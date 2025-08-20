@@ -80,6 +80,26 @@ A comprehensive web application for tracking Black Desert Online ship upgrade ma
 4. **Open your browser**
    Navigate to `http://localhost:8000`
 
+### 🐳 Docker Setup (Alternative)
+
+If you prefer using Docker, you can run the application in a container:
+
+1. **Build the Docker image**
+   ```bash
+   docker build -t bdo-ship-tracker .
+   ```
+
+2. **Run the container**
+   ```bash
+   docker run -p 8000:8000 bdo-ship-tracker
+   ```
+
+3. **Open your browser**
+   Navigate to `http://localhost:8000`
+
+**Docker Compose (Optional)**
+run: `docker compose up -d`
+
 ## 🎮 How to Use
 
 ### Getting Started
