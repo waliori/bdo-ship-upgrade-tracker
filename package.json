@@ -1,0 +1,25 @@
+{
+  "name": "bdo-ship-upgrade-tracker",
+  "version": "1.0.0",
+  "description": "Black Desert Online Ship Upgrade Recipe Tracker",
+  "main": "js/app.js",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "echo 'No build process needed - static files'",
+    "start": "node server.js",
+    "test": "echo 'No tests yet'"
+  },
+  "type": "module",
+  "keywords": [
+    "black-desert-online",
+    "bdo",
+    "ship-upgrade",
+    "tracker"
+  ],
+  "author": "BDO Ship Tracker",
+  "license": "MIT",
+  "devDependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  }
+}

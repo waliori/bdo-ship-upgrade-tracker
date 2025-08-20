@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>BDO Ship Upgrade Tracker - Maritime Excellence</title>
+    <meta name="description" content="The ultimate Black Desert Online ship upgrade tracker. Chart your course to maritime mastery with our comprehensive material tracking system.">
+    <meta name="keywords" content="Black Desert Online, BDO, ship upgrade, material tracker, maritime, sailing">
+    
+    <!-- Performance CSS Layer -->
+    <link href="css/modern-layout.css" rel="stylesheet" type="text/css" />
+    
+    <!-- Favicon -->
+    <link rel="shortcut icon" type="image/x-icon" href="icon.png">
+    
+    <!-- Motion Library for Animations -->
+    <script type="module">
+        import { animate, stagger } from "https://cdn.jsdelivr.net/npm/motion@latest/+esm";
+        // Make Motion functions globally available
+        window.Motion = { animate, stagger };
+    </script>
+    
+    <!-- Driver.js for Guided Tours - Async loading -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.css"></noscript>
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.js.iife.js" defer></script>
+    
+    <!-- Preload Critical Resources -->
+    <link rel="preload" href="js/app.js" as="script">
+    <link rel="preload" href="js/ships.js" as="script">
+    <link rel="preload" href="js/recipes.js" as="script">
+    
+    <style>
+        /* Enhanced Modern UI Styles - Phase 1 Foundation Excellence */
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 var(--space-lg) var(--space-lg);
+            background: transparent;
+            min-height: 100vh;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Elegant Maritime Header */
+        .app-header {
+            position: static;
+            padding: 0;
+            margin: 0 calc(-1 * var(--space-lg)) var(--space-xl);
+            background: rgba(10, 23, 40, 0.25);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            border-radius: var(--radius-lg);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(224, 242, 254, 0.1),
+                inset 0 1px 0 rgba(224, 242, 254, 0.15);
+            overflow: hidden;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .app-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 30% 50%, rgba(14, 165, 233, 0.06) 0%, transparent 60%),
+                radial-gradient(circle at 70% 30%, rgba(59, 130, 246, 0.04) 0%, transparent 60%),
+                linear-gradient(180deg, rgba(224, 242, 254, 0.03) 0%, transparent 100%);
+            pointer-events: none;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--space-lg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-main {
+            display: flex;
+            align-items: center;
+            gap: var(--space-lg);
+            flex: 1;
+        }
+
+        .header-icon {
+            position: relative;
+            width: 55px;
+            height: 55px;
+            border-radius: var(--radius-lg);
+            /* background: linear-gradient(135deg, var(--brand-secondary) 0%, var(--accent-primary) 100%); */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+            border: 1px solid rgba(224, 242, 254, 0.2);
+            transition: all var(--transition-fast);
+        }
+
+        .header-icon:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+        }
+
+        .header-icon::before {
+            content: '';
+            width: 50px;
+            height: 50px;
+            background-image: url('icon.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            display: block;
+        }
+
+        .header-text {
+            flex: 1;
+        }
+
+        .app-title {
+            font-size: clamp(1.25rem, 3vw, 1.8rem);
+            font-weight: 600;
+            color: var(--text-accent);
+            margin: 0 0 var(--space-xs) 0;
+            letter-spacing: -0.01em;
+            font-family: var(--font-captain);
+        }
+
+        .app-subtitle {
+            font-size: clamp(0.75rem, 1.5vw, 0.9rem);
+            color: var(--text-tertiary);
+            margin: 0;
+            font-weight: 400;
+            letter-spacing: 0.25px;
+            opacity: 0.8;
+        }
+
+        /* Water Ripples Toggle Button */
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .water-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            padding: var(--space-sm) var(--space-md);
+            background: rgba(14, 165, 233, 0.1);
+            border: 2px solid rgba(14, 165, 233, 0.3);
+            border-radius: var(--radius-lg);
+            color: var(--brand-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .water-toggle-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(14, 165, 233, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .water-toggle-btn:hover::before {
+            left: 100%;
+        }
+
+        .water-toggle-btn:hover {
+            background: rgba(14, 165, 233, 0.2);
+            border-color: rgba(14, 165, 233, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+        }
+
+        .water-toggle-btn.disabled {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: var(--error);
+        }
+
+        .water-toggle-btn.disabled:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.5);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .water-toggle-icon {
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            transition: transform var(--transition-fast);
+        }
+
+        .water-toggle-btn:hover .water-toggle-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        /* Auto Tour Toggle Styling */
+        .auto-tour-toggle {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            cursor: pointer;
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            transition: var(--transition-fast);
+        }
+
+        .auto-tour-toggle:hover {
+            color: var(--text-primary);
+        }
+
+        .auto-tour-toggle input[type="checkbox"] {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--accent-primary);
+            border-radius: var(--radius-sm);
+            background: transparent;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            position: relative;
+        }
+
+        .auto-tour-toggle input[type="checkbox"]:checked {
+            background: var(--accent-primary);
+            border-color: var(--accent-secondary);
+        }
+
+        .auto-tour-toggle input[type="checkbox"]:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .auto-tour-toggle input[type="checkbox"]:hover {
+            border-color: var(--accent-secondary);
+            box-shadow: 0 0 8px rgba(14, 165, 233, 0.3);
+        }
+
+        /* Pulse attention animation for interactive tour elements */
+        @keyframes pulse-attention {
+            0%, 100% { 
+                transform: scale(1); 
+                box-shadow: 0 0 0 rgba(14, 165, 233, 0.4); 
+            }
+            50% { 
+                transform: scale(1.05); 
+                box-shadow: 0 0 20px rgba(14, 165, 233, 0.6); 
+            }
+        }
+
+        .water-toggle-text {
+            font-family: var(--font-captain);
+            letter-spacing: 0.5px;
+        }
+
+
+        /* Mobile Responsive Header */
+        @media (max-width: 768px) {
+            .app-header {
+                min-height: 70px;
+                margin: 0 calc(-1 * var(--space-md)) var(--space-lg);
+            }
+
+            .header-content {
+                padding: var(--space-md);
+            }
+
+            .header-main {
+                gap: var(--space-md);
+            }
+
+            .header-icon {
+                width: 40px;
+                height: 40px;
+            }
+
+            .header-icon::before {
+                font-size: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+                gap: var(--space-md);
+            }
+
+            .header-main {
+                justify-content: center;
+            }
+
+            .water-toggle-btn .water-toggle-text {
+                display: none;
+            }
+
+            .water-toggle-btn {
+                padding: var(--space-sm);
+                min-width: 44px;
+                justify-content: center;
+            }
+        }
+
+        /* Enhanced Material Cards Grid */
+        .materials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: var(--space-lg);
+            margin: var(--space-lg) 0;
+        }
+
+        .material-card {
+            background: rgba(22, 27, 34, 0.15);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            transition: all var(--transition-normal);
+            position: relative;
+            overflow: visible;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .material-card.has-recipe {
+            border-left: 4px solid var(--treasure);
+            background: rgba(255, 215, 0, 0.05);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            transition: all var(--transition-fast);
+        }
+        
+        .material-card.has-recipe:hover {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(255, 215, 0, 0.12) 100%);
+            border-left-color: var(--treasure-shimmer);
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: var(--shadow-treasure);
+        }
+
+        .material-card.has-recipe .material-card-title::after {
+            content: "📋";
+            margin-left: 8px;
+            font-size: 14px;
+        }
+        
+        .material-card.has-recipe .material-card-title {
+            color: var(--treasure);
+            font-weight: 700;
+        }
+
+        /* Enhanced Recipe completion button */
+        .recipe-complete-btn {
+            background: var(--gradient-treasure) !important;
+            border: 2px solid var(--treasure) !important;
+            color: var(--bg-primary) !important;
+            font-weight: 700 !important;
+            transition: all var(--transition-fast);
+        }
+        
+        .recipe-complete-btn:hover {
+            background: var(--gradient-ocean) !important;
+            border-color: var(--brand-secondary) !important;
+            color: var(--text-accent) !important;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-treasure);
+        }
+        
+        /* Enhanced Reset button */
+        .reset-btn {
+            background: var(--bg-tertiary) !important;
+            border: 2px solid var(--text-secondary) !important;
+            color: var(--text-secondary) !important;
+            transition: all var(--transition-fast);
+        }
+        
+        .reset-btn:hover {
+            background: var(--gradient-ocean) !important;
+            border-color: var(--brand-secondary) !important;
+            color: var(--text-accent) !important;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-wake);
+        }
+        
+        /* Enhanced incomplete recipe state */
+        .progress-input-row[style*="opacity: 0.5"] {
+            background: var(--bg-quaternary) !important;
+            border: 2px dashed var(--text-secondary) !important;
+            opacity: 0.6 !important;
+        }
+        
+        .progress-input-row[style*="opacity: 0.5"] .quick-btn,
+        .progress-input-row[style*="opacity: 0.5"] .quantity-input {
+            background: var(--bg-quaternary) !important;
+            color: var(--text-secondary) !important;
+            cursor: not-allowed !important;
+        }
+
+        .material-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-treasure);
+            transform: scaleX(0);
+            transition: transform var(--transition-normal);
+        }
+
+        .material-card:not(.has-recipe):hover {
+            transform: translateY(-6px);
+            border-color: var(--brand-secondary);
+            box-shadow: var(--shadow-wake);
+        }
+
+        .material-card:not(.has-recipe):hover::before {
+            transform: scaleX(1);
+        }
+
+        .material-card-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            margin-bottom: var(--space-md);
+        }
+
+        .material-icon-large {
+            width: 64px;
+            height: 64px;
+            border-radius: var(--radius-md);
+            border: 2px solid var(--bg-tertiary);
+            background: var(--bg-tertiary);
+            flex-shrink: 0;
+            box-shadow: var(--shadow-sm);
+            transition: all var(--transition-fast);
+        }
+
+        .material-icon-large:hover {
+            transform: scale(1.05);
+            border-color: var(--treasure);
+        }
+
+        .material-card-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .material-card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-accent);
+            margin: 0 0 var(--space-xs) 0;
+            line-height: 1.3;
+        }
+
+        .material-card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-md);
+            align-items: flex-start;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            border: 1px solid transparent;
+        }
+
+        .badge-vendor {
+            background: rgba(255, 170, 0, 0.2);
+            color: var(--warning);
+            border-color: var(--warning);
+        }
+
+        .badge-recipe {
+            background: rgba(51, 181, 229, 0.2);
+            color: var(--info);
+            border-color: var(--info);
+        }
+
+        .badge-barter {
+            background: rgba(200, 150, 50, 0.2);
+            color: var(--trade-tier-5);
+            border-color: var(--trade-tier-5);
+        }
+
+        .badge-coins {
+            background: rgba(255, 215, 0, 0.2);
+            color: var(--treasure);
+            border-color: var(--treasure);
+        }
+
+        .badge-category {
+            background: var(--gradient-treasure);
+            color: var(--bg-primary);
+            border: 1px solid var(--treasure);
+            font-weight: 800;
+            order: -1;
+        }
+
+        /* Enhanced Progress System */
+        .progress-section {
+            margin: var(--space-md) 0;
+        }
+
+        .progress-controls {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+            margin-bottom: var(--space-md);
+            padding: var(--space-sm) 0;
+        }
+
+        .progress-input-row {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            width: 100%;
+            justify-content: space-between;
+            background: rgba(22, 27, 34, 0.12);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: var(--space-md);
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+            box-shadow: 
+                0 4px 16px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .progress-input-row:hover {
+            border-color: rgba(74, 158, 255, 0.3);
+            background: rgba(22, 27, 34, 0.2);
+            backdrop-filter: blur(15px);
+            box-shadow: 
+                0 6px 24px rgba(0, 0, 0, 0.2),
+                0 0 0 1px rgba(74, 158, 255, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        .quantity-controls-group {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            flex: 1;
+            justify-content: center;
+        }
+
+        .progress-input-row .quantity-input {
+            width: 100px;
+            text-align: center;
+            background: var(--bg-secondary);
+            border: 2px solid var(--bg-quaternary);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 14px;
+            transition: all var(--transition-fast);
+        }
+
+        .progress-input-row .quantity-input:focus {
+            border-color: var(--treasure);
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+            background: var(--bg-primary);
+        }
+
+        .progress-circle-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: var(--space-sm) 0;
+        }
+
+        .progress-controls label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            min-width: 60px;
+            font-weight: 500;
+        }
+
+        .quantity-input {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            color: var(--text-primary);
+            width: 80px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .quantity-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+        }
+
+        .quick-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--bg-tertiary);
+            color: var(--text-primary);
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            min-width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .quick-btn:hover {
+            background: var(--treasure);
+            border-color: var(--treasure);
+            color: var(--bg-primary);
+            transform: scale(1.05);
+        }
+
+        .circular-progress {
+            position: relative;
+            width: 72px;
+            height: 72px;
+            flex-shrink: 0;
+            margin: 0 auto;
+        }
+
+        .circular-progress svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+
+        .progress-bg {
+            fill: none;
+            stroke: var(--bg-tertiary);
+            stroke-width: 6;
+            opacity: 0.3;
+        }
+
+        .progress-fill {
+            fill: none;
+            stroke: var(--accent-primary);
+            stroke-width: 6;
+            stroke-linecap: round;
+            transition: stroke-dasharray var(--transition-normal), stroke var(--transition-normal);
+        }
+
+        .progress-fill.completed {
+            stroke: #1e40af;
+            filter: drop-shadow(0 0 20px rgba(30, 64, 175, 0.8)) 
+                    drop-shadow(0 0 40px rgba(30, 64, 175, 0.4))
+                    drop-shadow(0 0 60px rgba(30, 64, 175, 0.2));
+            animation: deepOceanGlow 2.5s ease-in-out infinite alternate;
+        }
+        
+        @keyframes deepOceanGlow {
+            0% {
+                filter: drop-shadow(0 0 15px rgba(30, 64, 175, 0.6)) 
+                        drop-shadow(0 0 30px rgba(30, 64, 175, 0.3));
+            }
+            100% {
+                filter: drop-shadow(0 0 25px rgba(30, 64, 175, 0.9)) 
+                        drop-shadow(0 0 50px rgba(30, 64, 175, 0.5))
+                        drop-shadow(0 0 80px rgba(30, 64, 175, 0.3));
+            }
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        /* Enhanced Tabs System */
+        .tabs-container {
+            margin: var(--space-lg) 0;
+        }
+
+        .tabs-nav {
+            display: flex;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-lg);
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: var(--space-sm);
+            background: rgba(22, 27, 34, 0.15);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .tabs-nav::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .tabs-nav::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 2px;
+        }
+
+        .tabs-nav::-webkit-scrollbar-thumb {
+            background: var(--treasure);
+            border-radius: 2px;
+        }
+
+        .tab-button {
+            padding: var(--space-md) var(--space-lg);
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-weight: 500;
+            white-space: nowrap;
+            position: relative;
+            border: 2px solid transparent;
+        }
+
+        .tab-button:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-color: var(--brand-secondary);
+        }
+
+        .tab-button.active {
+            background: var(--gradient-treasure);
+            color: var(--bg-primary);
+            font-weight: 700;
+            border-color: var(--treasure);
+            box-shadow: var(--shadow-treasure);
+        }
+
+        .tab-badge {
+            background: var(--error);
+            color: white;
+            border-radius: 12px;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: var(--space-xs);
+            min-width: 20px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Enhanced Search and Filter */
+        .controls-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-md);
+            align-items: center;
+            margin-bottom: var(--space-lg);
+            padding: var(--space-lg);
+            background: rgba(22, 27, 34, 0.2);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: var(--space-md) var(--space-lg);
+            padding-left: 40px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--bg-quaternary);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: var(--font-size-md);
+            transition: all var(--transition-fast);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--treasure);
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, rgba(255, 215, 0, 0.05) 100%);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: var(--space-md);
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .filter-chips {
+            display: flex;
+            gap: var(--space-sm);
+            flex-wrap: wrap;
+        }
+
+        .filter-chip {
+            padding: var(--space-sm) var(--space-md);
+            background: var(--bg-tertiary);
+            border: 2px solid var(--bg-quaternary);
+            border-radius: var(--radius-lg);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+        }
+
+        .filter-chip:hover {
+            border-color: var(--brand-secondary);
+            background: var(--bg-quaternary);
+            color: var(--text-primary);
+        }
+
+        .filter-chip.active {
+            background: var(--gradient-treasure);
+            border-color: var(--treasure);
+            color: var(--bg-primary);
+            font-weight: 700;
+            box-shadow: var(--shadow-treasure);
+        }
+
+        /* Enhanced Overall Progress Dashboard */
+        .progress-dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--space-lg);
+            margin: var(--space-lg) 0;
+        }
+
+        .dashboard-card {
+            background: rgba(22, 27, 34, 0.18);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .dashboard-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--treasure);
+            margin-bottom: var(--space-sm);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+            font-family: var(--font-captain);
+        }
+
+        .dashboard-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Mobile Responsive Enhancements */
+        @media (max-width: 768px) {
+            .app-container {
+                padding: 0 var(--space-md) var(--space-md);
+            }
+
+            .materials-grid {
+                grid-template-columns: 1fr;
+                gap: var(--space-md);
+            }
+
+            .material-card {
+                padding: var(--space-lg);
+            }
+
+            .progress-controls {
+                gap: var(--space-md);
+            }
+
+            .progress-input-row {
+                gap: var(--space-sm);
+                padding: var(--space-lg);
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .quantity-controls-group {
+                gap: var(--space-md);
+                margin: var(--space-sm) 0;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .progress-input-row .quantity-input {
+                width: 100px;
+                font-size: 16px;
+                height: 44px;
+            }
+
+            .circular-progress {
+                width: 64px;
+                height: 64px;
+                margin-right: var(--space-xs);
+            }
+
+            .circular-progress svg {
+                width: 64px;
+                height: 64px;
+            }
+
+            .progress-text {
+                font-size: 12px;
+            }
+
+            .material-icon-large {
+                width: 56px;
+                height: 56px;
+            }
+
+            .badge {
+                font-size: 10px;
+                padding: 3px 6px;
+            }
+
+            .controls-section {
+                flex-direction: column;
+                align-items: stretch;
+                gap: var(--space-lg);
+            }
+
+            .search-box {
+                min-width: 100%;
+            }
+        }
+
+        /* Extra small screens */
+        @media (max-width: 480px) {
+            .circular-progress {
+                width: 56px;
+                height: 56px;
+                margin-right: 2px;
+            }
+
+            .circular-progress svg {
+                width: 56px;
+                height: 56px;
+            }
+
+            .progress-text {
+                font-size: 10px;
+            }
+
+            .progress-controls {
+                min-height: 56px;
+                gap: var(--space-md);
+            }
+
+            .quantity-input {
+                width: 80px;
+                font-size: 12px;
+                padding: 6px 8px;
+            }
+
+            .quick-btn {
+                min-width: 36px;
+                height: 36px;
+                font-size: 14px;
+            }
+
+            .progress-input-row {
+                padding: var(--space-md);
+            }
+
+            .quantity-controls-group {
+                gap: var(--space-sm);
+            }
+
+            .tabs-nav {
+                justify-content: flex-start;
+                gap: var(--space-xs);
+                padding: var(--space-xs) var(--space-sm);
+            }
+
+            .tab-button {
+                padding: var(--space-md);
+                font-size: 14px;
+                min-width: 120px;
+                text-align: center;
+            }
+
+            .tab-badge {
+                margin-left: var(--space-xs);
+                padding: 2px 6px;
+                font-size: 10px;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+            position: relative;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid var(--bg-tertiary);
+            border-top-color: var(--treasure);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Enhanced Icon System Styles */
+        .bdo-icon {
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-fast);
+        }
+
+        .bdo-icon.icon-loaded {
+            animation: iconFadeIn 0.3s ease-out;
+        }
+
+        .bdo-icon.icon-fallback {
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-quaternary) 100%);
+        }
+
+        .bdo-icon img {
+            transition: all var(--transition-fast);
+        }
+
+        .bdo-icon:hover img {
+            transform: scale(1.05);
+        }
+
+        /* Ship icon specific styles */
+        .ship-icon {
+            box-shadow: var(--shadow-md);
+            border: 3px solid var(--bg-quaternary);
+            background: radial-gradient(circle at center, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+        }
+
+        .ship-icon.icon-loaded {
+            animation: shipIconEntrance 0.5s ease-out;
+        }
+
+        /* Material icon specific styles */
+        .material-icon {
+            border: 2px solid var(--bg-tertiary);
+        }
+
+        .material-icon.icon-loaded {
+            animation: materialIconPop 0.3s ease-out;
+        }
+
+        /* Icon animations */
+        @keyframes iconFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes shipIconEntrance {
+            0% {
+                opacity: 0;
+                transform: scale(0.8) rotate(-5deg);
+            }
+            50% {
+                transform: scale(1.05) rotate(2deg);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+        }
+
+        @keyframes materialIconPop {
+            0% {
+                opacity: 0;
+                transform: scale(0.7);
+            }
+            70% {
+                transform: scale(1.1);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Icon quality indicators */
+        .bdo-icon .quality-border {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            animation: qualityGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes qualityGlow {
+            from {
+                box-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+            }
+            to {
+                box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+            }
+        }
+
+        /* Icon loading shimmer effect */
+        .icon-loading {
+            background: linear-gradient(90deg, 
+                var(--bg-tertiary) 25%, 
+                var(--bg-secondary) 50%, 
+                var(--bg-tertiary) 75%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        /* Compact Stats for Dropdown and Current Selection */
+        .compact-stats, .ship-option-stats, .ship-current-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-xs);
+            margin-top: var(--space-xs);
+            max-width: 100%;
+        }
+
+        .compact-stat-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            background: var(--bg-quaternary);
+            border: 1px solid var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+            padding: 2px 6px;
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .compact-stat-item .stat-icon {
+            display: flex;
+            align-items: center;
+            opacity: 0.8;
+        }
+
+        .compact-stat-item .stat-icon svg {
+            stroke: currentColor;
+        }
+
+        /* Tooltip styling for stat items */
+        .compact-stat-item {
+            position: relative;
+            cursor: help;
+        }
+
+        .compact-stat-item:hover {
+            background: var(--bg-tertiary);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .ship-option-stats .compact-stat-item {
+            background: rgba(74, 158, 255, 0.1);
+            border-color: rgba(74, 158, 255, 0.2);
+            color: var(--text-tertiary);
+        }
+
+        .ship-current-stats .compact-stat-item {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: rgba(255, 215, 0, 0.3);
+            color: var(--treasure);
+            font-weight: 600;
+        }
+
+        /* Mobile responsive for compact stats */
+        @media (max-width: 768px) {
+            .compact-stat-item {
+                font-size: 9px;
+                padding: 1px 4px;
+            }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: var(--space-xl);
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: var(--space-md);
+            opacity: 0.5;
+        }
+
+        /* Enhanced Recipe Modal */
+        .recipe-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100000;
+            backdrop-filter: blur(8px);
+        }
+
+        .recipe-modal.hidden {
+            display: none;
+        }
+
+        .recipe-modal-content {
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(25px);
+            border: 2px solid rgba(74, 158, 255, 0.3);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            margin: var(--space-lg);
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255, 255, 255, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .recipe-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-lg);
+            padding-bottom: var(--space-md);
+            border-bottom: 2px solid var(--bg-tertiary);
+        }
+
+        .recipe-modal-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: var(--treasure);
+            margin: 0;
+            font-family: var(--font-captain);
+        }
+
+        .recipe-modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: var(--font-size-lg);
+            cursor: pointer;
+            padding: var(--space-sm);
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+        }
+
+        .recipe-modal-close:hover {
+            background: var(--bg-tertiary);
+            color: var(--treasure);
+        }
+
+        .recipe-modal-progress {
+            margin-bottom: var(--space-lg);
+        }
+
+        .recipe-materials-list {
+            margin-top: var(--space-md);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Clean Maritime Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="header-main">
+                    <div class="header-icon"></div>
+                    <div class="header-text">
+                        <h1 class="app-title">BDO Ship Upgrade Tracker</h1>
+                        <p class="app-subtitle">Maritime Upgrade Planning</p>
+                    </div>
+                </div>
+                <div class="header-controls">
+                    <button id="guided-tour-btn" class="tour-trigger-btn" title="Start Guided Tour">
+                        <span class="tour-icon">🧭</span>
+                        <span>Tour</span>
+                    </button>
+                    <!-- <label class="auto-tour-toggle" title="Auto-start tour for new visitors">
+                        <input type="checkbox" id="auto-tour-checkbox" />
+                        <span class="auto-tour-text">Auto Tour</span>
+                    </label> -->
+                    <button id="water-ripples-toggle" class="water-toggle-btn" title="Toggle Water Ripples Effect">
+                        <span class="water-toggle-icon">🌊</span>
+                        <span class="water-toggle-text">Water</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Ship Selection -->
+        <div class="ship-selection">
+            <div class="ship-selector-container">
+                <div class="ship-selector-header">
+                    <h2>🚢 Select Your Ship</h2>
+                    <div class="ship-current-selection" id="ship-current-selection">
+                        <div class="ship-current-info" id="ship-current-info">
+                            <div class="ship-current-icon" id="ship-current-icon"></div>
+                            <div class="ship-current-details">
+                                <div class="ship-current-name" id="ship-current-name">Epheria Sailboat</div>
+                                <div class="ship-current-desc" id="ship-current-desc">Entry-level ocean vessel for exploration</div>
+                                <div class="ship-current-stats" id="ship-current-stats"></div>
+                                <div class="ship-current-progress" id="ship-current-progress">Progress: 0.0% • Not Started</div>
+                            </div>
+                            <button class="ship-selector-trigger" id="ship-selector-trigger" aria-expanded="false">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="m6 9 6 6 6-6"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="ship-dropdown-menu hidden" id="ship-dropdown-menu">
+                    <div class="ship-dropdown-header">
+                        <div class="ship-search-container">
+                            <svg class="ship-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="m21 21-4.35-4.35"/>
+                            </svg>
+                            <input type="text" class="ship-search-input" id="ship-search-input" placeholder="Search ships..." />
+                        </div>
+                    </div>
+                    <div class="ship-dropdown-content" id="ship-dropdown-content">
+                        <!-- Ships will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Overall Progress Dashboard -->
+        <div id="progress-dashboard" class="progress-dashboard" style="display: none;">
+            <div class="dashboard-card">
+                <div class="dashboard-icon">
+                    <img src="icons/ship_12.webp" alt="Ship Progress" class="dashboard-icon-img">
+                </div>
+                <div id="overall-progress" class="dashboard-value">0%</div>
+                <div class="dashboard-label">Overall Progress</div>
+            </div>
+            <div class="dashboard-card">
+                <div class="dashboard-icon">
+                    <img src="icons/00004685.webp" alt="Items" class="dashboard-icon-img">
+                </div>
+                <div id="completed-items" class="dashboard-value">0</div>
+                <div class="dashboard-label">Items</div>
+            </div>
+            <div class="dashboard-card">
+                <div class="dashboard-icon">
+                    <img src="icons/00000010_special.webp" alt="Crow Coins" class="dashboard-icon-img">
+                </div>
+                <div id="crow-coins-progress" class="dashboard-value">0/0 (0)</div>
+                <div class="dashboard-label">Crow Coins</div>
+            </div>
+            <div class="dashboard-card">
+                <div class="dashboard-icon">
+                    <img id="enhancement-stones-icon" src="icons/00000008.webp" alt="Enhancement Stones" class="dashboard-icon-img">
+                </div>
+                <div id="enhancement-stones-progress" class="dashboard-value">0/0 (0)</div>
+                <div class="dashboard-label">Enhancement Stones</div>
+            </div>
+        </div>
+
+        <!-- Enhanced Materials Section -->
+        <div id="materials-section" style="display: none;">
+            <!-- Enhanced Search and Filter Controls -->
+            <div class="controls-section">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-input" class="search-input" placeholder="Search the seven seas for materials...">
+                </div>
+                <div class="filter-chips">
+                    <button class="filter-chip active" data-filter="all">All</button>
+                    <button class="filter-chip" data-filter="missing">Missing Only</button>
+                    <button class="filter-chip" data-filter="vendor">Vendor</button>
+                    <button class="filter-chip" data-filter="recipe">Recipe</button>
+                    <button class="filter-chip" data-filter="barter">Barter</button>
+                </div>
+            </div>
+
+            <!-- Enhanced Tabs -->
+            <div class="tabs-container">
+                <nav class="tabs-nav">
+                    <button class="tab-button active" data-tab="all">
+                        📋 ALL <span class="tab-badge" id="all-count">0</span>
+                    </button>
+                    <button class="tab-button" data-tab="basic">
+                        ⚓ Basic Supplies <span class="tab-badge" id="basic-count">0</span>
+                    </button>
+                    <button class="tab-button" data-tab="recipes">
+                        🔨 Crafting Orders <span class="tab-badge" id="recipes-count">0</span>
+                    </button>
+                </nav>
+
+                <div id="tab-all" class="tab-content active">
+                    <div class="materials-grid" id="all-materials"></div>
+                </div>
+                <div id="tab-basic" class="tab-content">
+                    <div class="materials-grid" id="basic-materials"></div>
+                </div>
+                <div id="tab-recipes" class="tab-content">
+                    <div class="materials-grid" id="recipes-materials"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Recipe Modal -->
+    <div id="recipe-modal" class="recipe-modal hidden">
+        <div class="recipe-modal-content">
+            <div class="recipe-modal-header">
+                <h3 id="recipe-modal-title" class="recipe-modal-title">Recipe Details</h3>
+                <button id="recipe-modal-close" class="recipe-modal-close">✕</button>
+            </div>
+            <div id="recipe-modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Enhanced Acquisition Details Modal -->
+    <div id="acquisition-modal" class="recipe-modal hidden">
+        <div class="recipe-modal-content">
+            <div class="recipe-modal-header">
+                <h3 id="acquisition-modal-title" class="recipe-modal-title">Acquisition Details</h3>
+                <button id="acquisition-modal-close" class="recipe-modal-close">✕</button>
+            </div>
+            <div id="acquisition-modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Load the enhanced JavaScript application -->
+    <script type="module" src="js/app.js"></script>
+    
+    <!-- Load header animations -->
+    <script type="module" src="js/header-animations.js"></script>
+    
+    <!-- Analytics and privacy code removed - not needed for self-hosted app -->
+    
+</body>
+</html>
