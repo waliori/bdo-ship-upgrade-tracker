@@ -143,7 +143,7 @@ class GuidedTour {
             {
                 popover: {
                     title: '🌊 Welcome to BDO Ship Upgrade Tracker!',
-                    description: 'Your guide to Black Desert Online ship upgrades tracker! This tour will show you all the key features. Just click "Next" to explore - we\'ll handle the rest!',
+                    description: 'Your guide to Black Desert Online ship upgrades tracker! This tour will show you all the key features. Just click "Next" to explore - we\'ll handle the rest! <br> <br> Note this web app uses local storage to save your tracked items!',
                     position: 'center'
                 }
             },
