@@ -1883,11 +1883,77 @@ async function createHybridModalMaterialItem(materialName, requiredQuantity, par
     infoSection.className = 'modal-material-info';
     infoSection.style.flex = '1';
     
-    // Material name
-    const nameElem = document.createElement('div');
-    nameElem.textContent = materialName;
-    nameElem.style.cssText = 'font-weight: 600; color: var(--text-primary); margin-bottom: 4px;';
-    infoSection.appendChild(nameElem);
+    // Material name (clickable if URL exists)
+    if (hasUrl) {
+        const nameLink = document.createElement('a');
+        nameLink.href = iconInfo.url;
+        nameLink.target = '_blank';
+        nameLink.rel = 'noopener noreferrer';
+        nameLink.textContent = materialName;
+        nameLink.style.cssText = `
+            font-weight: 600; 
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: color 0.2s ease;
+            display: block;
+        `;
+        nameLink.addEventListener('mouseenter', () => {
+            nameLink.style.color = 'var(--accent-primary)';
+        });
+        nameLink.addEventListener('mouseleave', () => {
+            nameLink.style.color = 'var(--text-primary)';
+        });
+        nameLink.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        infoSection.appendChild(nameLink);
+    } else {
+        const nameElem = document.createElement('div');
+        nameElem.textContent = materialName;
+        nameElem.style.cssText = 'font-weight: 600; color: var(--text-primary); margin-bottom: 4px;';
+        infoSection.appendChild(nameElem);
+    }
+    
+    // Acquisition method badges for modal
+    const modalMeta = document.createElement('div');
+    modalMeta.className = 'modal-material-meta';
+    modalMeta.style.cssText = 'display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap;';
+    
+    const acquisitionMethods = getAcquisitionMethods(materialName);
+    for (const [methodType, methodName] of acquisitionMethods) {
+        const badge = document.createElement('span');
+        badge.className = `badge badge-${methodType}`;
+        badge.textContent = methodName;
+        badge.style.cssText = 'font-size: 10px; padding: 2px 6px;';
+        
+        // Add modal functionality for vendor and barter badges in modal
+        if (methodType === 'vendor' && materialName in items) {
+            badge.style.cursor = 'pointer';
+            badge.title = 'Click for acquisition details';
+            badge.addEventListener('click', async (event) => {
+                event.stopPropagation(); // Prevent triggering parent click events
+                const itemData = items[materialName];
+                const methodSources = itemData[methodName] || [];
+                await showAcquisitionModal(materialName, methodName, methodSources);
+            });
+        } else if (methodType === 'barter' && (materialName in shipbarters || materialName in barters)) {
+            badge.style.cursor = 'pointer';
+            badge.title = 'Click for barter details';
+            // Determine which barter type this specific badge represents
+            const barterSubtype = methodName === 'Trade Item Barter' ? 'trade' : 'ship';
+            badge.addEventListener('click', async (event) => {
+                event.stopPropagation(); // Prevent triggering parent click events
+                // Use proper modal instead of tooltip
+                const barterInfo = barterSubtype === 'ship' ? shipbarters[materialName] : barters[materialName];
+                await showBarterModal(materialName, barterSubtype, barterInfo);
+            });
+        }
+        
+        modalMeta.appendChild(badge);
+    }
+    infoSection.appendChild(modalMeta);
     
     // Quantity row
     const storageId = `${currentShip}-${parentRecipe}-${materialName}`;
