@@ -9,6 +9,8 @@
     
     <!-- Performance CSS Layer -->
     <link href="css/modern-layout.css" rel="stylesheet" type="text/css" />
+    <link href="css/craft-navigation.css" rel="stylesheet" type="text/css" />
+    <link href="css/inventory-system.css" rel="stylesheet" type="text/css" />
     
     <!-- Favicon -->
     <link rel="shortcut icon" type="image/x-icon" href="icon.png">
@@ -913,9 +915,10 @@
             font-size: 2.5rem;
             font-weight: 800;
             color: var(--treasure);
-            margin-bottom: var(--space-sm);
+            margin-bottom: var(--space-xs);
             text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
             font-family: var(--font-captain);
+            line-height: 1;
         }
 
         .dashboard-label {
@@ -924,6 +927,33 @@
             font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            margin-bottom: var(--space-xs);
+        }
+        
+        .dashboard-subtitle {
+            color: var(--text-tertiary);
+            font-size: 11px;
+            font-weight: 400;
+            opacity: 0.8;
+            line-height: 1.2;
+        }
+        
+        .dashboard-card.priority-card .dashboard-value {
+            color: var(--accent-primary);
+        }
+        
+        .dashboard-card.warning-card {
+            border-color: rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.05);
+        }
+        
+        .dashboard-card.warning-card .dashboard-value {
+            color: var(--error);
+            animation: pulse-warning 2s infinite;
+        }
+        
+        .dashboard-card.warning-card .dashboard-icon svg {
+            stroke: var(--error);
         }
 
         /* Mobile Responsive Enhancements */
@@ -1001,6 +1031,27 @@
             }
         }
 
+        .storage-tab {
+            position: relative;
+        }
+        
+        .storage-tab.has-updates::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 6px;
+            height: 6px;
+            background: var(--error);
+            border-radius: 50%;
+            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+        
         /* Extra small screens */
         @media (max-width: 480px) {
             .circular-progress {
@@ -1041,6 +1092,20 @@
 
             .quantity-controls-group {
                 gap: var(--space-sm);
+            }
+            
+            .dashboard-subtitle {
+                font-size: 10px;
+            }
+            
+            .projects-management-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .cross-craft-indicator {
+                display: block;
+                margin-left: 0;
+                margin-top: var(--space-xs);
             }
 
             .tabs-nav {
@@ -1292,6 +1357,718 @@
             opacity: 0.5;
         }
 
+        /* Global Inventory Panel */
+        .inventory-panel {
+            padding: var(--space-lg);
+        }
+
+        .inventory-header {
+            text-align: center;
+            margin-bottom: var(--space-xl);
+        }
+
+        .inventory-header h3 {
+            color: var(--treasure);
+            font-size: var(--font-size-lg);
+            margin: 0 0 var(--space-sm) 0;
+            font-family: var(--font-captain);
+        }
+
+        .inventory-description {
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+            margin: 0;
+        }
+
+        .inventory-filters {
+            margin: var(--space-lg) 0;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        .inventory-search {
+            width: 100%;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: var(--space-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-secondary);
+            color: var(--text-primary);
+            font-size: var(--font-size-md);
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-primary);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .inventory-filter-buttons {
+            display: flex;
+            gap: var(--space-xs);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .filter-btn {
+            padding: var(--space-sm) var(--space-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-secondary);
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover {
+            background: var(--background-tertiary);
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .filter-btn.active {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+            box-shadow: 0 2px 8px rgba(74, 158, 255, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .inventory-filter-buttons {
+                justify-content: flex-start;
+            }
+            
+            .filter-btn {
+                flex: 1;
+                min-width: calc(50% - var(--space-xs) / 2);
+            }
+        }
+
+
+        .barter-calculations {
+            margin-top: var(--space-xl);
+            padding-top: var(--space-xl);
+            border-top: 2px solid var(--border-color);
+        }
+
+        .barter-calc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--space-md);
+            padding: var(--space-lg) 0;
+        }
+
+        .barter-calc-card {
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            transition: all 0.3s ease;
+        }
+
+        .barter-calc-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .barter-calc-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            margin-bottom: var(--space-md);
+            padding-bottom: var(--space-sm);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .barter-calc-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            flex: 1;
+        }
+
+        .barter-calc-level {
+            background: var(--accent-primary);
+            color: white;
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-xs);
+            font-weight: 600;
+        }
+
+        .barter-calc-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-md);
+            margin-bottom: var(--space-md);
+        }
+
+        .barter-calc-stat {
+            text-align: center;
+            padding: var(--space-sm);
+            background: var(--background-primary);
+            border-radius: var(--radius-md);
+        }
+
+        .barter-calc-stat-value {
+            font-size: var(--font-size-lg);
+            font-weight: 700;
+            color: var(--accent-primary);
+        }
+
+        .barter-calc-stat-label {
+            font-size: var(--font-size-xs);
+            color: var(--text-secondary);
+            margin-top: var(--space-xs);
+        }
+
+        .barter-calc-details {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+        }
+
+        .barter-calc-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-xs) 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .barter-calc-item:last-child {
+            border-bottom: none;
+        }
+
+        /* BDO-like Storage Interface */
+        .storage-panel {
+            background: var(--background-secondary);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .storage-header {
+            background: var(--background-primary);
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--space-md);
+        }
+
+        .storage-title h3 {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: var(--font-size-lg);
+        }
+
+        .storage-subtitle {
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+            margin-top: var(--space-xs);
+        }
+
+        .storage-controls {
+            display: flex;
+            align-items: center;
+            gap: var(--space-lg);
+        }
+
+        .storage-tabs {
+            display: flex;
+            gap: var(--space-xs);
+        }
+
+        .storage-tab {
+            padding: var(--space-sm) var(--space-md);
+            border: 1px solid var(--border-color);
+            background: var(--background-secondary);
+            color: var(--text-secondary);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .storage-tab.active {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .storage-tab:hover:not(.active) {
+            background: var(--background-tertiary);
+            color: var(--text-primary);
+        }
+
+        .storage-search-input {
+            padding: var(--space-sm) var(--space-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--background-secondary);
+            color: var(--text-primary);
+            min-width: 200px;
+        }
+
+        .storage-search-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .storage-content {
+            display: none;
+            padding: var(--space-lg);
+        }
+
+        .storage-content.active {
+            display: block;
+        }
+
+        .storage-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-md);
+            padding: var(--space-sm) 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .storage-count {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+        }
+        
+        .cross-craft-indicator {
+            font-size: var(--font-size-sm);
+            color: var(--accent-primary);
+            margin-left: var(--space-md);
+            font-weight: 500;
+        }
+        
+        .dependencies-grid,
+        .barter-calc-enhanced,
+        .projects-overview {
+            padding: var(--space-lg);
+        }
+        
+        .dependency-info h4,
+        .barter-info h4,
+        .projects-info h4 {
+            color: var(--treasure);
+            margin: 0 0 var(--space-sm) 0;
+            font-size: var(--font-size-lg);
+        }
+        
+        .dependency-info p,
+        .barter-info p,
+        .projects-info p {
+            color: var(--text-secondary);
+            margin: 0 0 var(--space-lg) 0;
+            font-size: var(--font-size-sm);
+        }
+        
+        .projects-management-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: var(--space-lg);
+        }
+        
+        .project-management-card {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-primary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            transition: all var(--transition-fast);
+        }
+        
+        .project-management-card:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(74, 158, 255, 0.12);
+        }
+        
+        .project-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-md);
+            padding-bottom: var(--space-sm);
+            border-bottom: 1px solid var(--border-secondary);
+        }
+        
+        .project-card-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: var(--font-size-md);
+        }
+        
+        .project-priority-badge {
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-xs);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .project-priority-badge.urgent {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--error);
+        }
+        
+        .project-priority-badge.high {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+        
+        .project-priority-badge.normal {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--accent-primary);
+        }
+        
+        .project-priority-badge.low {
+            background: rgba(71, 85, 105, 0.2);
+            color: var(--text-secondary);
+        }
+        
+        .project-progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-quaternary);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+            margin: var(--space-md) 0;
+        }
+        
+        .project-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-primary), var(--treasure));
+            border-radius: var(--radius-full);
+            transition: width var(--transition-normal);
+        }
+        
+        .project-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-md);
+        }
+        
+        .project-stat {
+            text-align: center;
+            padding: var(--space-sm);
+            background: var(--bg-quaternary);
+            border-radius: var(--radius-sm);
+        }
+        
+        .project-stat-value {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--space-xs);
+        }
+        
+        .project-stat-label {
+            font-size: var(--font-size-xs);
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        /* BDO-like Grid Layout */
+        .storage-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 64px);
+            gap: 2px;
+            padding: var(--space-sm);
+            background: var(--background-primary);
+            border-radius: var(--radius-md);
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .storage-item {
+            width: 64px;
+            height: 64px;
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xs);
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .storage-item:hover {
+            border-color: var(--accent-primary);
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .storage-item-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-xs);
+            object-fit: cover;
+        }
+
+        .storage-item-count {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 3px;
+            border-radius: 2px;
+            min-width: 12px;
+            text-align: center;
+        }
+
+        .storage-item-allocated {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            background: var(--warning);
+            color: white;
+            font-size: 8px;
+            font-weight: 600;
+            padding: 1px 2px;
+            border-radius: 2px;
+            min-width: 8px;
+            text-align: center;
+        }
+
+        /* Tooltip */
+        .storage-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: var(--space-sm);
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-xs);
+            max-width: 250px;
+            z-index: 1000;
+            pointer-events: none;
+            border: 1px solid var(--border-color);
+        }
+
+        .storage-tooltip-title {
+            color: var(--treasure);
+            font-weight: 600;
+            margin-bottom: var(--space-xs);
+        }
+
+        .storage-tooltip-stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+
+        /* Compact Barter Calculator */
+        .barter-calc-compact {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--space-md);
+        }
+
+        .barter-compact-card {
+            background: var(--background-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+        }
+
+        .barter-compact-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-sm);
+        }
+
+        .barter-compact-level {
+            background: var(--accent-primary);
+            color: white;
+            padding: 2px 6px;
+            border-radius: var(--radius-xs);
+            font-size: var(--font-size-xs);
+            font-weight: 600;
+        }
+
+        .barter-compact-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 40px);
+            gap: 2px;
+        }
+
+        .barter-compact-item {
+            width: 40px;
+            height: 40px;
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xs);
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .barter-compact-item:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .barter-compact-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .barter-compact-icon img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
+
+        .barter-compact-count {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: var(--accent-primary);
+            color: white;
+            font-size: 11px;
+            padding: 1px 2px;
+            border-radius: 2px;
+            font-weight: 600;
+        }
+
+        .inventory-item {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-primary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            transition: all var(--transition-fast);
+        }
+
+        .inventory-item:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(74, 158, 255, 0.12);
+        }
+
+        .inventory-item-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            margin-bottom: var(--space-md);
+            padding-bottom: var(--space-sm);
+            border-bottom: 1px solid var(--border-secondary);
+        }
+
+        .inventory-item-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: var(--font-size-md);
+            flex: 1;
+        }
+
+        .inventory-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: var(--space-md);
+            margin-bottom: var(--space-md);
+        }
+
+        .inventory-stat {
+            text-align: center;
+            padding: var(--space-sm);
+            background: var(--bg-quaternary);
+            border-radius: var(--radius-md);
+        }
+
+        .inventory-stat-label {
+            font-size: var(--font-size-xs);
+            color: var(--text-secondary);
+            margin-bottom: var(--space-xs);
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .inventory-stat-value {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .inventory-stat.total .inventory-stat-value { color: var(--accent-primary); }
+        .inventory-stat.allocated .inventory-stat-value { color: var(--warning); }
+        .inventory-stat.available .inventory-stat-value { color: var(--success); }
+        .inventory-stat.over-allocated .inventory-stat-value { color: var(--danger); }
+
+        .inventory-controls {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-md);
+        }
+
+        .inventory-input {
+            flex: 1;
+            background: var(--bg-quaternary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-sm);
+            padding: var(--space-sm);
+            color: var(--text-primary);
+            font-size: var(--font-size-sm);
+        }
+
+        .inventory-input:focus {
+            border-color: var(--accent-primary);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+        }
+
+        .allocation-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .allocation-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-xs) var(--space-sm);
+            margin-bottom: var(--space-xs);
+            background: var(--bg-quaternary);
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-sm);
+        }
+
+        .allocation-context {
+            color: var(--text-secondary);
+            flex: 1;
+        }
+
+        .allocation-amount {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
         /* Enhanced Recipe Modal */
         .recipe-modal {
             position: fixed;
@@ -1367,6 +2144,126 @@
         .recipe-materials-list {
             margin-top: var(--space-md);
         }
+        /* Quantity Editor Modal */
+        .quantity-editor-content {
+            padding: var(--space-lg);
+        }
+
+        .quantity-current {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: var(--space-lg);
+            padding: var(--space-md);
+            background: var(--background-secondary);
+            border-radius: var(--radius-md);
+            color: var(--accent-primary);
+        }
+
+        .quantity-input-section {
+            margin-bottom: var(--space-lg);
+        }
+
+        .quantity-input-section label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: var(--space-sm);
+            color: var(--text-primary);
+        }
+
+        .quantity-input-group {
+            display: flex;
+            gap: var(--space-sm);
+            align-items: center;
+        }
+
+        .quantity-input-group input {
+            flex: 1;
+            padding: var(--space-sm);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--background-primary);
+            color: var(--text-primary);
+            font-size: var(--font-size-md);
+        }
+
+        .quantity-input-group input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+        }
+
+        .quantity-btn {
+            padding: var(--space-sm) var(--space-md);
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 80px;
+        }
+
+        .quantity-btn.primary {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .quantity-btn.success {
+            background: var(--success);
+            color: white;
+        }
+
+        .quantity-btn.danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .quantity-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .quantity-divider {
+            text-align: center;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin: var(--space-lg) 0;
+            position: relative;
+        }
+
+        .quantity-divider::before,
+        .quantity-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 30%;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .quantity-divider::before {
+            left: 0;
+        }
+
+        .quantity-divider::after {
+            right: 0;
+        }
+
+        .quantity-preview {
+            text-align: center;
+            font-size: var(--font-size-md);
+            font-weight: 600;
+            padding: var(--space-md);
+            background: var(--background-tertiary);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+
+        .quantity-preview #quantity-preview-value {
+            color: var(--accent-primary);
+            font-size: var(--font-size-lg);
+        }
+
     </style>
 </head>
 <body>
@@ -1438,80 +2335,6 @@
             </div>
         </div>
 
-        <!-- Enhanced Overall Progress Dashboard -->
-        <div id="progress-dashboard" class="progress-dashboard" style="display: none;">
-            <div class="dashboard-card">
-                <div class="dashboard-icon">
-                    <img src="icons/ship_12.webp" alt="Ship Progress" class="dashboard-icon-img">
-                </div>
-                <div id="overall-progress" class="dashboard-value">0%</div>
-                <div class="dashboard-label">Overall Progress</div>
-            </div>
-            <div class="dashboard-card">
-                <div class="dashboard-icon">
-                    <img src="icons/00004685.webp" alt="Items" class="dashboard-icon-img">
-                </div>
-                <div id="completed-items" class="dashboard-value">0</div>
-                <div class="dashboard-label">Items</div>
-            </div>
-            <div class="dashboard-card">
-                <div class="dashboard-icon">
-                    <img src="icons/00000010_special.webp" alt="Crow Coins" class="dashboard-icon-img">
-                </div>
-                <div id="crow-coins-progress" class="dashboard-value">0/0 (0)</div>
-                <div class="dashboard-label">Crow Coins</div>
-            </div>
-            <div class="dashboard-card">
-                <div class="dashboard-icon">
-                    <img id="enhancement-stones-icon" src="icons/00000008.webp" alt="Enhancement Stones" class="dashboard-icon-img">
-                </div>
-                <div id="enhancement-stones-progress" class="dashboard-value">0/0 (0)</div>
-                <div class="dashboard-label">Enhancement Stones</div>
-            </div>
-        </div>
-
-        <!-- Enhanced Materials Section -->
-        <div id="materials-section" style="display: none;">
-            <!-- Enhanced Search and Filter Controls -->
-            <div class="controls-section">
-                <div class="search-box">
-                    <span class="search-icon">🔍</span>
-                    <input type="text" id="search-input" class="search-input" placeholder="Search the seven seas for materials...">
-                </div>
-                <div class="filter-chips">
-                    <button class="filter-chip active" data-filter="all">All</button>
-                    <button class="filter-chip" data-filter="missing">Missing Only</button>
-                    <button class="filter-chip" data-filter="vendor">Vendor</button>
-                    <button class="filter-chip" data-filter="recipe">Recipe</button>
-                    <button class="filter-chip" data-filter="barter">Barter</button>
-                </div>
-            </div>
-
-            <!-- Enhanced Tabs -->
-            <div class="tabs-container">
-                <nav class="tabs-nav">
-                    <button class="tab-button active" data-tab="all">
-                        📋 ALL <span class="tab-badge" id="all-count">0</span>
-                    </button>
-                    <button class="tab-button" data-tab="basic">
-                        ⚓ Basic Supplies <span class="tab-badge" id="basic-count">0</span>
-                    </button>
-                    <button class="tab-button" data-tab="recipes">
-                        🔨 Crafting Orders <span class="tab-badge" id="recipes-count">0</span>
-                    </button>
-                </nav>
-
-                <div id="tab-all" class="tab-content active">
-                    <div class="materials-grid" id="all-materials"></div>
-                </div>
-                <div id="tab-basic" class="tab-content">
-                    <div class="materials-grid" id="basic-materials"></div>
-                </div>
-                <div id="tab-recipes" class="tab-content">
-                    <div class="materials-grid" id="recipes-materials"></div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Enhanced Recipe Modal -->
@@ -1536,6 +2359,134 @@
         </div>
     </div>
 
+    <!-- Quantity Editor Modal -->
+    <div id="quantity-editor-modal" class="recipe-modal hidden">
+        <div class="recipe-modal-content">
+            <div class="recipe-modal-header">
+                <h3 id="quantity-modal-title" class="recipe-modal-title">Edit Material Quantity</h3>
+                <button id="quantity-modal-close" class="recipe-modal-close">✕</button>
+            </div>
+            <div class="recipe-modal-body">
+                <div class="quantity-editor-content">
+                    <div class="quantity-current">
+                        <span>Current: </span>
+                        <span id="quantity-current-value">0</span>
+                    </div>
+                    
+                    <div class="quantity-input-section">
+                        <label>New Quantity:</label>
+                        <div class="quantity-input-group">
+                            <input type="number" id="quantity-absolute-input" placeholder="Enter total amount" min="0">
+                            <button id="quantity-set-absolute" class="quantity-btn primary">Set</button>
+                        </div>
+                    </div>
+                    
+                    <div class="quantity-divider">OR</div>
+                    
+                    <div class="quantity-input-section">
+                        <label>Add/Remove:</label>
+                        <div class="quantity-input-group">
+                            <input type="number" id="quantity-relative-input" placeholder="Enter amount to add/remove">
+                            <button id="quantity-add" class="quantity-btn success">Add</button>
+                            <button id="quantity-subtract" class="quantity-btn danger">Remove</button>
+                        </div>
+                    </div>
+                    
+                    <div class="quantity-preview">
+                        <span>Result will be: </span>
+                        <span id="quantity-preview-value">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barter Exchange Info Modal -->
+    <div id="barter-exchange-modal" class="recipe-modal hidden">
+        <div class="recipe-modal-content">
+            <div class="recipe-modal-header">
+                <h3 id="barter-exchange-title" class="recipe-modal-title">Barter Exchange Information</h3>
+                <button id="barter-exchange-close" class="recipe-modal-close">✕</button>
+            </div>
+            <div class="recipe-modal-body">
+                <!-- Content will be dynamically generated -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Cross-Craft Inventory Modal -->
+    <div id="cross-craft-modal" class="recipe-modal hidden">
+        <div class="recipe-modal-content" style="max-width: 90vw; max-height: 90vh;">
+            <div class="recipe-modal-header">
+                <h3 class="recipe-modal-title">🌐 Cross-Craft Inventory Manager</h3>
+                <button id="cross-craft-modal-close" class="recipe-modal-close">✕</button>
+            </div>
+            <div class="recipe-modal-body">
+                <div class="storage-panel">
+                    <div class="storage-header">
+                        <div class="storage-title">
+                            <h3>🌐 Cross-Craft Material Hub</h3>
+                            <div class="storage-subtitle">Unified inventory across all your active projects</div>
+                        </div>
+                        <div class="storage-controls">
+                            <div class="storage-tabs">
+                                <button class="storage-tab active" data-tab="materials">Materials</button>
+                                <button class="storage-tab" data-tab="dependencies">Dependencies</button>
+                                <button class="storage-tab" data-tab="barter">Barter Calc</button>
+                                <button class="storage-tab" data-tab="projects">Projects</button>
+                            </div>
+                            <div class="storage-search">
+                                <input type="text" id="storage-search" placeholder="Search across all projects..." class="storage-search-input">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Materials Storage View -->
+                    <div id="storage-materials" class="storage-content active">
+                        <div class="storage-info">
+                            <span class="storage-count">Materials: <span id="storage-item-count">0</span></span>
+                            <span class="cross-craft-indicator" id="cross-craft-indicator">Shared across <span id="shared-projects-count">0</span> projects</span>
+                        </div>
+                        <div class="storage-grid" id="storage-grid"></div>
+                    </div>
+                    
+                    <!-- Dependencies View -->
+                    <div id="storage-dependencies" class="storage-content">
+                        <div class="dependencies-grid" id="dependencies-grid">
+                            <div class="dependency-info">
+                                <h4>🔗 Project Dependencies</h4>
+                                <p>Visual representation of how your projects depend on each other</p>
+                            </div>
+                            <div id="dependency-chart"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Enhanced Barter Calculator View -->
+                    <div id="storage-barter" class="storage-content">
+                        <div class="barter-calc-enhanced" id="barter-calc-enhanced">
+                            <div class="barter-info">
+                                <h4>🏪 Smart Barter Calculator</h4>
+                                <p>Calculate optimal barter routes for your cross-craft needs</p>
+                            </div>
+                            <div class="barter-calc-compact" id="barter-calc-compact"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Projects Overview -->
+                    <div id="storage-projects" class="storage-content">
+                        <div class="projects-overview" id="projects-overview">
+                            <div class="projects-info">
+                                <h4>🎯 Active Projects Overview</h4>
+                                <p>Manage priorities and track completion across all your crafting goals</p>
+                            </div>
+                            <div class="projects-management-grid" id="projects-management-grid"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Load the enhanced JavaScript application -->
     <script type="module" src="js/app.js"></script>
     
@@ -1543,6 +2494,11 @@
     <script type="module" src="js/header-animations.js"></script>
     
     <!-- Analytics and privacy code removed - not needed for self-hosted app -->
+    
+    <!-- Floating Inventory Button -->
+    <button id="floating-inventory-btn" class="floating-inventory-btn" title="Open Global Inventory">
+        📦
+    </button>
     
 </body>
 </html>

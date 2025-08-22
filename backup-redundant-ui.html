@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<!-- BACKUP OF REDUNDANT UI COMPONENTS - REMOVE AFTER REFACTORING -->
+<!-- This file contains components that are being removed from the main interface -->
+<!-- but may contain useful functionality that needs to be preserved -->
+
+<html>
+<head>
+    <title>BDO Ship Tracker - Redundant UI Backup</title>
+</head>
+<body>
+
+<!-- REDUNDANT: Materials Section with tabs and detailed grids -->
+<!-- This entire section is now redundant because we have craft detail pages -->
+<!-- But we need to preserve some functionality for the cross-craft inventory modal -->
+
+<div id="materials-section-BACKUP" style="display: none;">
+    <!-- Enhanced Search and Filter Controls -->
+    <div class="controls-section">
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="search-input" class="search-input" placeholder="Search the seven seas for materials...">
+        </div>
+        <div class="filter-chips">
+            <button class="filter-chip active" data-filter="all">All</button>
+            <button class="filter-chip" data-filter="missing">Missing Only</button>
+            <button class="filter-chip" data-filter="vendor">Vendor</button>
+            <button class="filter-chip" data-filter="recipe">Recipe</button>
+            <button class="filter-chip" data-filter="barter">Barter</button>
+        </div>
+    </div>
+
+    <!-- Enhanced Tabs -->
+    <div class="tabs-container">
+        <nav class="tabs-nav">
+            <button class="tab-button active" data-tab="all">
+                📋 ALL <span class="tab-badge" id="all-count">0</span>
+            </button>
+            <button class="tab-button" data-tab="basic">
+                ⚓ Basic Supplies <span class="tab-badge" id="basic-count">0</span>
+            </button>
+            <button class="tab-button" data-tab="recipes">
+                🔨 Crafting Orders <span class="tab-badge" id="recipes-count">0</span>
+            </button>
+            <!-- KEEP THIS: Cross-Craft Inventory tab - move to modal -->
+            <button class="tab-button" data-tab="inventory">
+                🌐 Cross-Craft Inventory <span class="tab-badge" id="inventory-count">0</span>
+            </button>
+        </nav>
+
+        <!-- REMOVE: Basic material grids - redundant with craft detail pages -->
+        <div id="tab-all" class="tab-content active">
+            <div class="materials-grid" id="all-materials"></div>
+        </div>
+        <div id="tab-basic" class="tab-content">
+            <div class="materials-grid" id="basic-materials"></div>
+        </div>
+        <div id="tab-recipes" class="tab-content">
+            <div class="materials-grid" id="recipes-materials"></div>
+        </div>
+        
+        <!-- PRESERVE: Cross-craft inventory functionality for modal system -->
+        <div id="tab-inventory" class="tab-content">
+            <div class="storage-panel">
+                <div class="storage-header">
+                    <div class="storage-title">
+                        <h3>🌐 Cross-Craft Material Hub</h3>
+                        <div class="storage-subtitle">Unified inventory across all your active projects</div>
+                    </div>
+                    <div class="storage-controls">
+                        <div class="storage-tabs">
+                            <button class="storage-tab active" data-tab="materials">Materials</button>
+                            <button class="storage-tab" data-tab="dependencies">Dependencies</button>
+                            <button class="storage-tab" data-tab="barter">Barter Calc</button>
+                            <button class="storage-tab" data-tab="projects">Projects</button>
+                        </div>
+                        <div class="storage-search">
+                            <input type="text" id="storage-search" placeholder="Search across all projects..." class="storage-search-input">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Materials Storage View -->
+                <div id="storage-materials" class="storage-content active">
+                    <div class="storage-info">
+                        <span class="storage-count">Materials: <span id="storage-item-count">0</span></span>
+                        <span class="cross-craft-indicator" id="cross-craft-indicator">Shared across <span id="shared-projects-count">0</span> projects</span>
+                    </div>
+                    <div class="storage-grid" id="storage-grid"></div>
+                </div>
+                
+                <!-- Dependencies View -->
+                <div id="storage-dependencies" class="storage-content">
+                    <div class="dependencies-grid" id="dependencies-grid">
+                        <div class="dependency-info">
+                            <h4>🔗 Project Dependencies</h4>
+                            <p>Visual representation of how your projects depend on each other</p>
+                        </div>
+                        <div id="dependency-chart"></div>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Barter Calculator View -->
+                <div id="storage-barter" class="storage-content">
+                    <div class="barter-calc-enhanced" id="barter-calc-enhanced">
+                        <div class="barter-info">
+                            <h4>🏪 Smart Barter Calculator</h4>
+                            <p>Calculate optimal barter routes for your cross-craft needs</p>
+                        </div>
+                        <div class="barter-calc-compact" id="barter-calc-compact"></div>
+                    </div>
+                </div>
+                
+                <!-- Projects Overview -->
+                <div id="storage-projects" class="storage-content">
+                    <div class="projects-overview" id="projects-overview">
+                        <div class="projects-info">
+                            <h4>🎯 Active Projects Overview</h4>
+                            <p>Manage priorities and track completion across all your crafting goals</p>
+                        </div>
+                        <div class="projects-management-grid" id="projects-management-grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- REDUNDANT: Dashboard cards showing detailed breakdowns -->
+<!-- Keep the dashboard but simplify it -->
+<div id="progress-dashboard-BACKUP" class="progress-dashboard" style="display: none;">
+    <!-- KEEP: Overall progress -->
+    <div class="dashboard-card">
+        <div class="dashboard-icon">
+            <img src="icons/ship_12.webp" alt="Ship Progress" class="dashboard-icon-img">
+        </div>
+        <div id="overall-progress" class="dashboard-value">0%</div>
+        <div class="dashboard-label">Overall Progress</div>
+        <div class="dashboard-subtitle" id="overall-progress-subtitle">Across all projects</div>
+    </div>
+    
+    <!-- REDUNDANT: Detailed material breakdowns - users can see this in craft details -->
+    <div class="dashboard-card">
+        <div class="dashboard-icon">
+            <img src="icons/00004685.webp" alt="Items" class="dashboard-icon-img">
+        </div>
+        <div id="completed-items" class="dashboard-value">0</div>
+        <div class="dashboard-label">Materials Complete</div>
+        <div class="dashboard-subtitle" id="materials-breakdown">0 ships • 0 parts • 0 materials</div>
+    </div>
+    
+    <!-- REDUNDANT: Specific material counts - users can see this in craft details -->
+    <div class="dashboard-card">
+        <div class="dashboard-icon">
+            <img src="icons/00000010_special.webp" alt="Crow Coins" class="dashboard-icon-img">
+        </div>
+        <div id="crow-coins-progress" class="dashboard-value">0/0</div>
+        <div class="dashboard-label">Crow Coins</div>
+        <div class="dashboard-subtitle" id="crow-coins-subtitle">0 total stored</div>
+    </div>
+    
+    <!-- REDUNDANT: Enhancement stones count - users can see this in craft details -->
+    <div class="dashboard-card">
+        <div class="dashboard-icon">
+            <img id="enhancement-stones-icon" src="icons/00000008.webp" alt="Enhancement Stones" class="dashboard-icon-img">
+        </div>
+        <div id="enhancement-stones-progress" class="dashboard-value">0/0</div>
+        <div class="dashboard-label">Enhancement</div>
+        <div class="dashboard-subtitle" id="enhancement-subtitle">0 total stored</div>
+    </div>
+    
+    <!-- KEEP: Active projects count - useful overview -->
+    <div class="dashboard-card priority-card">
+        <div class="dashboard-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="12 6v6l4 2"/>
+            </svg>
+        </div>
+        <div id="active-projects-count-dash" class="dashboard-value">0</div>
+        <div class="dashboard-label">Active Projects</div>
+        <div class="dashboard-subtitle" id="projects-breakdown">0 pending completion</div>
+    </div>
+    
+    <!-- KEEP: Bottlenecks - useful for global overview -->
+    <div class="dashboard-card warning-card" id="bottlenecks-card" style="display: none;">
+        <div class="dashboard-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m21 16-4 4-4-4"/>
+                <path d="M17 20V4"/>
+                <path d="m3 8 4-4 4 4"/>
+                <path d="M7 4v16"/>
+            </svg>
+        </div>
+        <div id="bottlenecks-count" class="dashboard-value">0</div>
+        <div class="dashboard-label">Bottlenecks</div>
+        <div class="dashboard-subtitle" id="bottlenecks-subtitle">Materials blocking progress</div>
+    </div>
+</div>
+
+</body>
+</html>

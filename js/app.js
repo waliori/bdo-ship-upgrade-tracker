@@ -7,13 +7,18 @@ import { recipes } from './recipes.js';
 import { coins } from './sea_coins.js';
 import { tccost } from './totals.js';
 import { barters } from './tradein.js';
+import { globalInventory } from './craft-system/global_inventory.js';
 import { items } from './vendor_items.js';
 import { shipbarters } from './shipbarter.js';
 import { genInfo, shipstats } from './information.js';
 import { iconLoader } from './icon-loader.js';
 import { shipMaterialTotals } from './ship_totals.js';
+import { barterRequirements, calculateBarterNeeds } from './barter_requirements.js';
 import RealisticWaterRipples from './realistic-water-ripples.js';
 import { guidedTour } from './guided-tour.js';
+import { craftNavigationUI } from './craft-navigation-ui.js';
+import { inventoryUI } from './inventory-ui.js';
+import { inventoryManager } from './inventory-system.js';
 
 // Motion library is loaded via CDN and available globally as Motion
 // Safe animate function that checks for Motion availability
@@ -907,6 +912,209 @@ function checkStorage(key) {
     return localStorage.getItem(`${storageKey}-${key}`) !== null;
 }
 
+// ===== GLOBAL INVENTORY MANAGEMENT SYSTEM =====
+
+// Get global inventory data for a material
+function getGlobalInventory(materialName) {
+    const inventoryData = getStorage('globalInventory');
+    const inventory = inventoryData ? JSON.parse(inventoryData) : {};
+    return inventory[materialName] || { total: 0, allocations: {} };
+}
+
+// Set global inventory data for a material
+function setGlobalInventory(materialName, inventoryData) {
+    const allInventory = getStorage('globalInventory');
+    const inventory = allInventory ? JSON.parse(allInventory) : {};
+    inventory[materialName] = inventoryData;
+    setStorage('globalInventory', JSON.stringify(inventory));
+}
+
+// Get total materials user actually has
+function getGlobalTotal(materialName) {
+    return getGlobalInventory(materialName).total;
+}
+
+// Set total materials user actually has
+function setGlobalTotal(materialName, total) {
+    const inventory = getGlobalInventory(materialName);
+    inventory.total = Math.max(0, total);
+    setGlobalInventory(materialName, inventory);
+    
+    // Update any visible cards showing this material
+    refreshMaterialCards(materialName);
+}
+
+// Refresh material cards that display a specific material
+function refreshMaterialCards(materialName) {
+    // Find all material cards and global inventory info elements that need updating
+    const allCards = document.querySelectorAll('.material-card');
+    const allInventoryInfos = document.querySelectorAll('.global-inventory-info');
+    
+    allCards.forEach(card => {
+        const cardMaterialName = card.getAttribute('data-material-name');
+        if (cardMaterialName === materialName) {
+            // Find and update the global inventory info section within this card
+            const inventoryInfo = card.querySelector('.global-inventory-info span');
+            if (inventoryInfo) {
+                const summary = getAllocationSummary(materialName);
+                inventoryInfo.innerHTML = `📦 Global: <strong style="color: var(--accent-primary);">${summary.total}</strong> | Allocated: <strong style="color: ${summary.isOverAllocated ? 'var(--danger)' : 'var(--warning)'};">${summary.allocated}</strong> | Available: <strong style="color: var(--success);">${summary.available}</strong>`;
+                
+                // Update warning icon
+                const existingWarning = card.querySelector('.global-inventory-info span[title*="Over-allocated"]');
+                if (existingWarning) existingWarning.remove();
+                
+                if (summary.isOverAllocated) {
+                    const warningIcon = document.createElement('span');
+                    warningIcon.textContent = '⚠️';
+                    warningIcon.title = 'Over-allocated! Add more to global inventory';
+                    warningIcon.style.cursor = 'help';
+                    card.querySelector('.global-inventory-info').appendChild(warningIcon);
+                }
+            }
+        }
+    });
+    
+    // Also refresh the storage interface if it's currently visible
+    refreshStorageInterface(materialName);
+}
+
+// Efficiently refresh a specific material in the storage interface
+function refreshStorageInterface(materialName) {
+    // Check if storage interface is currently visible
+    const storageGrid = document.getElementById('storage-grid');
+    if (!storageGrid || !storageGrid.offsetParent) return; // Not visible
+    
+    // Find and update the specific storage item
+    const storageItems = storageGrid.querySelectorAll('.storage-item');
+    storageItems.forEach(async (item) => {
+        const actualName = item.getAttribute('data-material-name');
+        const isBarter = item.getAttribute('data-is-barter') === 'true';
+        
+        if (actualName === materialName) {
+            // Update the count display
+            const countElement = item.querySelector('.storage-item-count');
+            if (countElement) {
+                let total = 0;
+                if (isBarter) {
+                    total = getBarterMaterialTotal(materialName);
+                } else {
+                    const summary = getAllocationSummary(materialName);
+                    total = summary.total;
+                }
+                
+                countElement.textContent = total;
+                
+                // Update styling for 0 quantities
+                if (total === 0) {
+                    countElement.style.backgroundColor = 'rgba(156, 163, 175, 0.8)';
+                    countElement.style.color = '#374151';
+                } else {
+                    countElement.style.backgroundColor = '';
+                    countElement.style.color = '';
+                }
+            }
+        }
+    });
+    
+    // Also update the item count in the header
+    updateStorageItemCount();
+}
+
+// Update the storage item count display
+function updateStorageItemCount() {
+    const storageGrid = document.getElementById('storage-grid');
+    const countElement = document.getElementById('storage-item-count');
+    
+    if (storageGrid && countElement) {
+        // Count only visible items
+        const visibleItems = storageGrid.querySelectorAll('.storage-item:not([style*="display: none"])');
+        countElement.textContent = visibleItems.length;
+    }
+}
+
+// Get allocation for specific context (ship-recipe combination)
+function getAllocation(materialName, context) {
+    const inventory = getGlobalInventory(materialName);
+    return inventory.allocations[context] || 0;
+}
+
+// Set allocation for specific context
+function setAllocation(materialName, context, amount) {
+    const inventory = getGlobalInventory(materialName);
+    if (amount <= 0) {
+        delete inventory.allocations[context];
+    } else {
+        inventory.allocations[context] = amount;
+    }
+    setGlobalInventory(materialName, inventory);
+}
+
+// Get total allocated across all contexts
+function getTotalAllocated(materialName) {
+    const inventory = getGlobalInventory(materialName);
+    return Object.values(inventory.allocations).reduce((sum, amount) => sum + amount, 0);
+}
+
+// Get available (unallocated) materials
+function getAvailable(materialName) {
+    const total = getGlobalTotal(materialName);
+    const allocated = getTotalAllocated(materialName);
+    return Math.max(0, total - allocated);
+}
+
+// Check if allocation would exceed available materials
+function canAllocate(materialName, context, amount) {
+    const currentAllocation = getAllocation(materialName, context);
+    const available = getAvailable(materialName);
+    const netIncrease = amount - currentAllocation;
+    return netIncrease <= available;
+}
+
+// Auto-allocate available materials up to requested amount
+function smartAllocate(materialName, context, requestedAmount) {
+    const currentAllocation = getAllocation(materialName, context);
+    const available = getAvailable(materialName);
+    const netIncrease = requestedAmount - currentAllocation;
+    
+    if (netIncrease <= 0) {
+        // Reducing allocation or no change
+        setAllocation(materialName, context, requestedAmount);
+        return requestedAmount;
+    } else {
+        // Increasing allocation
+        if (netIncrease <= available) {
+            // We have enough available materials
+            setAllocation(materialName, context, requestedAmount);
+            return requestedAmount;
+        } else {
+            // Not enough available - auto-increase global total to accommodate
+            const currentTotal = getGlobalTotal(materialName);
+            const newTotal = currentTotal + netIncrease;
+            setGlobalTotal(materialName, newTotal);
+            
+            // Now allocate the full requested amount
+            setAllocation(materialName, context, requestedAmount);
+            return requestedAmount;
+        }
+    }
+}
+
+// Get allocation summary for a material
+function getAllocationSummary(materialName) {
+    const inventory = getGlobalInventory(materialName);
+    const total = inventory.total;
+    const allocated = getTotalAllocated(materialName);
+    const available = total - allocated;
+    
+    return {
+        total,
+        allocated,
+        available,
+        isOverAllocated: allocated > total,
+        allocations: { ...inventory.allocations }
+    };
+}
+
 // Material categorization
 function categorizeMaterial(materialName) {
     // Check if this material has a recipe (excluding ships)
@@ -960,9 +1168,110 @@ async function createItemIcon(itemName, size = "md", acquisitionMethod = null) {
     return await iconLoader.createMaterialIcon(itemName, size, acquisitionMethod);
 }
 
+// Create non-clickable icon for storage items (prevents BDO Codex link conflicts)
+async function createStorageIcon(itemName, acquisitionMethod = null, barterLevel = null) {
+    // Wait for iconLoader to be initialized
+    while (!iconLoader.initialized) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    
+    const iconInfo = iconLoader.getIconInfo(itemName);
+    
+    const iconContainer = document.createElement('div');
+    
+    // Base styling
+    let containerStyle = `
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        border-radius: 4px;
+    `;
+    
+    // Add barter level border colors
+    if (barterLevel) {
+        const levelColors = {
+            1: '#ffffff',      // white
+            2: '#00ff00',      // green  
+            3: '#0099ff',      // blue
+            4: '#ffcc00',      // yellow
+            5: '#ff6600'       // red-orange
+        };
+        
+        const borderColor = levelColors[barterLevel];
+        if (borderColor) {
+            containerStyle += `
+                border: 2px solid ${borderColor};
+                box-shadow: 0 0 8px rgba(${barterLevel === 1 ? '255,255,255' : 
+                                        barterLevel === 2 ? '0,255,0' :
+                                        barterLevel === 3 ? '0,153,255' :
+                                        barterLevel === 4 ? '255,204,0' : '255,102,0'}, 0.3);
+            `;
+        }
+    }
+    
+    iconContainer.style.cssText = containerStyle;
+    
+    if (iconInfo && iconInfo.filename) {
+        const img = document.createElement('img');
+        // Construct the proper icon path
+        img.src = `icons/${iconInfo.filename}`;
+        img.alt = itemName;
+        img.style.cssText = `
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        `;
+        
+        // Add method-specific styling
+        if (acquisitionMethod) {
+            img.classList.add(`acquisition-${acquisitionMethod}`);
+        }
+        
+        // Handle image load errors with fallback
+        img.addEventListener('error', () => {
+            img.style.display = 'none';
+            const placeholder = createIconPlaceholder(itemName);
+            iconContainer.appendChild(placeholder);
+        });
+        
+        iconContainer.appendChild(img);
+    } else {
+        // Fallback for missing icons
+        const placeholder = createIconPlaceholder(itemName);
+        iconContainer.appendChild(placeholder);
+    }
+    
+    return iconContainer;
+}
+
+// Helper function to create icon placeholder
+function createIconPlaceholder(itemName) {
+    const placeholder = document.createElement('div');
+    placeholder.style.cssText = `
+        width: 40px;
+        height: 40px;
+        background: var(--background-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-xs);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        color: var(--text-secondary);
+        text-align: center;
+        font-weight: 600;
+    `;
+    placeholder.textContent = itemName.substring(0, 3).toUpperCase();
+    return placeholder;
+}
+
 async function createMaterialCard(materialName, requiredQuantity, currentQuantity = 0, originalPartName = null) {
     const card = document.createElement('div');
     card.className = 'material-card';
+    card.setAttribute('data-material-name', materialName);
     
     // Determine if this is an enhanced item
     const isEnhanced = materialName.includes('+');
@@ -1189,6 +1498,35 @@ async function createMaterialCard(materialName, requiredQuantity, currentQuantit
     info.appendChild(meta);
     header.appendChild(info);
     card.appendChild(header);
+    
+    // Global inventory info section
+    const inventoryInfo = document.createElement('div');
+    inventoryInfo.className = 'global-inventory-info';
+    inventoryInfo.style.cssText = `
+        padding: var(--space-sm) var(--space-md);
+        background: rgba(74, 158, 255, 0.05);
+        border-top: 1px solid rgba(74, 158, 255, 0.2);
+        font-size: var(--font-size-xs);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    `;
+    
+    const summary = getAllocationSummary(materialName);
+    const inventoryText = document.createElement('span');
+    inventoryText.style.color = 'var(--text-secondary)';
+    inventoryText.innerHTML = `📦 Global: <strong style="color: var(--accent-primary);">${summary.total}</strong> | Allocated: <strong style="color: ${summary.isOverAllocated ? 'var(--danger)' : 'var(--warning)'};">${summary.allocated}</strong> | Available: <strong style="color: var(--success);">${summary.available}</strong>`;
+    inventoryInfo.appendChild(inventoryText);
+    
+    if (summary.isOverAllocated) {
+        const warningIcon = document.createElement('span');
+        warningIcon.textContent = '⚠️';
+        warningIcon.title = 'Over-allocated! Add more to global inventory';
+        warningIcon.style.cursor = 'help';
+        inventoryInfo.appendChild(warningIcon);
+    }
+    
+    card.appendChild(inventoryInfo);
     
     // Progress section
     const progressSection = document.createElement('div');
@@ -1464,7 +1802,18 @@ async function createMaterialCard(materialName, requiredQuantity, currentQuantit
         quantityInput.value = newValue;
         
         // Update storage
-        setStorage(quantityInput.id.replace('modern-', ''), newValue.toString());
+        const storageKey = quantityInput.id.replace('modern-', '');
+        setStorage(storageKey, newValue.toString());
+        
+        // Update global inventory allocation
+        const context = storageKey; // Use the full storage key as context
+        const newAllocation = smartAllocate(materialName, context, newValue);
+        
+        // If we couldn't allocate all requested, update the input to actual allocated
+        if (newAllocation !== newValue) {
+            quantityInput.value = newAllocation;
+            setStorage(storageKey, newAllocation.toString());
+        }
         
         // Update ship selector progress in real-time
         updateShipSelectorProgress();
@@ -2073,6 +2422,16 @@ async function createHybridModalMaterialItem(materialName, requiredQuantity, par
         // Update storage
         const storageKey = quantityInput.id.replace('hybrid-modal-', '');
         setStorage(storageKey, newValue.toString());
+        
+        // Update global inventory allocation
+        const context = storageKey; // Use the full storage key as context
+        const newAllocation = smartAllocate(materialName, context, newValue);
+        
+        // If we couldn't allocate all requested, update the input to actual allocated
+        if (newAllocation !== newValue) {
+            quantityInput.value = newAllocation;
+            setStorage(storageKey, newAllocation.toString());
+        }
         
         // Update visual elements
         const newPercentage = requiredQuantity > 0 ? (newValue / requiredQuantity * 100) : 0;
@@ -4365,6 +4724,11 @@ async function createShipCard(shipName) {
         setStorage('ship', shipName);
         updateShipSelection();
         await loadShipMaterials();
+        
+        // Refresh inventory tab if it's currently active
+        if (activeTab === 'inventory') {
+            await loadInventoryTab();
+        }
     });
     
     card.setAttribute("tabindex", "0");
@@ -4756,6 +5120,11 @@ async function selectShip(shipName) {
     
     // Load materials for selected ship
     await loadShipMaterials();
+    
+    // Refresh inventory tab if it's currently active
+    if (activeTab === 'inventory') {
+        await loadInventoryTab();
+    }
 }
 
 // Helper function to get all ship stats for compact display
@@ -4888,16 +5257,26 @@ async function loadShipMaterials() {
         return;
     }
     
-    // Show sections
-    document.getElementById('progress-dashboard').style.display = 'grid';
-    document.getElementById('materials-section').style.display = 'block';
+    // Show sections (if they exist)
+    const progressDashboard = document.getElementById('progress-dashboard');
+    if (progressDashboard) {
+        progressDashboard.style.display = 'grid';
+    }
+    
+    const materialsSection = document.getElementById('materials-section');
+    if (materialsSection) {
+        materialsSection.style.display = 'block';
+    }
     
     // Update enhancement stones icon for the current ship
     updateEnhancementStoneIcon();
     
-    // Clear all material containers
+    // Clear all material containers (if they exist)
     for (const tab of ['all', 'basic', 'recipes']) {
-        document.getElementById(`${tab}-materials`).innerHTML = '';
+        const container = document.getElementById(`${tab}-materials`);
+        if (container) {
+            container.innerHTML = '';
+        }
     }
     
     // Preload material icons for better performance
@@ -4946,9 +5325,12 @@ async function loadShipMaterials() {
         card.style.opacity = '0';
         card.style.transform = 'translateY(30px) scale(0.9)';
         
-        // Add to category-specific tab
-        document.getElementById(`${category}-materials`).appendChild(card);
-        animatedCards.push(card);
+        // Add to category-specific tab (if it exists)
+        const categoryContainer = document.getElementById(`${category}-materials`);
+        if (categoryContainer) {
+            categoryContainer.appendChild(card);
+            animatedCards.push(card);
+        }
         
         // Create a copy for the "All" tab
         const allCard = await createMaterialCard(name, val, currentQty, part);
@@ -4980,15 +5362,20 @@ async function loadShipMaterials() {
         allCard.style.opacity = '0';
         allCard.style.transform = 'translateY(30px) scale(0.9)';
         
-        document.getElementById('all-materials').appendChild(allCard);
-        animatedCards.push(allCard);
+        const allContainer = document.getElementById('all-materials');
+        if (allContainer) {
+            allContainer.appendChild(allCard);
+            animatedCards.push(allCard);
+        }
     }
     
-    // Update tab badges
+    // Update tab badges (if they exist)
     for (const [category, count] of Object.entries(materialCounts)) {
         const badge = document.getElementById(`${category}-count`);
-        badge.textContent = count;
-        badge.style.display = count > 0 ? 'inline' : 'none';
+        if (badge) {
+            badge.textContent = count;
+            badge.style.display = count > 0 ? 'inline' : 'none';
+        }
     }
     
     // Elegant staggered reveal - like ripples in water
@@ -5031,7 +5418,7 @@ function updateCategoryBadges() {
         }
     }
     
-    // Update tab badges
+    // Update tab badges (if they exist - for cross-craft modal)
     for (const [category, count] of Object.entries(materialCounts)) {
         const badge = document.getElementById(`${category}-count`);
         if (badge) {
@@ -5353,7 +5740,7 @@ function updateOverallProgress() {
         overallProgressEl.title = `Completed: ${completedCount.toLocaleString()} | Total: ${totalItems.toLocaleString()} | Remaining: ${remainingCount.toLocaleString()}`;
     }
     
-    // Update completed items with detailed tooltip
+    // Update completed items with detailed tooltip (if element exists)
     const completedItemsEl = document.getElementById('completed-items');
     if (completedItemsEl) {
         const completedCount = Math.floor(completedItems);
@@ -5362,37 +5749,39 @@ function updateOverallProgress() {
         completedItemsEl.title = `Completed: ${completedCount.toLocaleString()} | Total: ${totalItems.toLocaleString()} | Remaining: ${remainingCount.toLocaleString()}`;
     }
     
-    // Handle crow coins card visibility and content
+    // Handle crow coins card visibility and content (if element exists)
     const crowCoinsProgressEl = document.getElementById('crow-coins-progress');
     const crowCoinsCard = crowCoinsProgressEl ? crowCoinsProgressEl.closest('.dashboard-card') : null;
     
-    if (!hasCrowCoinRequirements) {
-        // Ship doesn't require crow coins - hide the card
-        if (crowCoinsCard) {
-            crowCoinsCard.style.display = 'none';
-        }
-    } else {
-        // Ship requires crow coins - show the card and format progress
-        if (crowCoinsCard) {
-            crowCoinsCard.style.display = 'block';
-        }
-        
-        const completedText = completedCrowCoins.toLocaleString();
-        const totalText = totalCrowCoins.toLocaleString();
-        const remainingText = remainingCrowCoins.toLocaleString();
-        const fullText = `${completedText}/${totalText} (${remainingText})`;
-        
-        // Determine if we need two lines based on text length
-        if (fullText.length <= 20) {
-            // Short enough for single line
-            crowCoinsProgressEl.classList.remove('two-lines');
-            crowCoinsProgressEl.textContent = fullText;
-            crowCoinsProgressEl.title = `Completed: ${completedText} | Total: ${totalText} | Remaining: ${remainingText}`;
+    if (crowCoinsProgressEl) {
+        if (!hasCrowCoinRequirements) {
+            // Ship doesn't require crow coins - hide the card
+            if (crowCoinsCard) {
+                crowCoinsCard.style.display = 'none';
+            }
         } else {
-            // Too long, use two lines
-            crowCoinsProgressEl.classList.add('two-lines');
-            crowCoinsProgressEl.innerHTML = `${completedText}/${totalText}<br/>(${remainingText})`;
-            crowCoinsProgressEl.title = `Completed: ${completedText} | Total: ${totalText} | Remaining: ${remainingText}`;
+            // Ship requires crow coins - show the card and format progress
+            if (crowCoinsCard) {
+                crowCoinsCard.style.display = 'block';
+            }
+            
+            const completedText = completedCrowCoins.toLocaleString();
+            const totalText = totalCrowCoins.toLocaleString();
+            const remainingText = remainingCrowCoins.toLocaleString();
+            const fullText = `${completedText}/${totalText} (${remainingText})`;
+            
+            // Determine if we need two lines based on text length
+            if (fullText.length <= 20) {
+                // Short enough for single line
+                crowCoinsProgressEl.classList.remove('two-lines');
+                crowCoinsProgressEl.textContent = fullText;
+                crowCoinsProgressEl.title = `Completed: ${completedText} | Total: ${totalText} | Remaining: ${remainingText}`;
+            } else {
+                // Too long, use two lines
+                crowCoinsProgressEl.classList.add('two-lines');
+                crowCoinsProgressEl.innerHTML = `${completedText}/${totalText}<br/>(${remainingText})`;
+                crowCoinsProgressEl.title = `Completed: ${completedText} | Total: ${totalText} | Remaining: ${remainingText}`;
+            }
         }
     }
     
@@ -5478,34 +5867,36 @@ function updateOverallProgress() {
     // Update enhancement stones icon based on the stone type used by this ship
     updateEnhancementStoneIcon();
     
-    // Handle enhancement stones card visibility and content
+    // Handle enhancement stones card visibility and content (if element exists)
     const enhancementProgressEl = document.getElementById('enhancement-stones-progress');
     const enhancementCard = enhancementProgressEl ? enhancementProgressEl.closest('.dashboard-card') : null;
     
-    if (!hasEnhancementRequirements) {
-        // Ship doesn't require enhancement - hide the card
-        if (enhancementCard) {
-            enhancementCard.style.display = 'none';
-        }
-    } else {
-        // Ship requires enhancement - show the card and format progress
-        if (enhancementCard) {
-            enhancementCard.style.display = 'block';
-        }
-        
-        const enhCompletedText = completedEnhancementStones.toLocaleString();
-        const enhTotalText = totalEnhancementStones.toLocaleString();
-        const enhRemainingText = remainingEnhancementStones.toLocaleString();
-        const enhFullText = `${enhCompletedText}/${enhTotalText} (${enhRemainingText})`;
-        
-        if (enhFullText.length <= 20) {
-            enhancementProgressEl.classList.remove('two-lines');
-            enhancementProgressEl.textContent = enhFullText;
-            enhancementProgressEl.title = `Completed: ${enhCompletedText} | Total: ${enhTotalText} | Remaining: ${enhRemainingText}`;
+    if (enhancementProgressEl) {
+        if (!hasEnhancementRequirements) {
+            // Ship doesn't require enhancement - hide the card
+            if (enhancementCard) {
+                enhancementCard.style.display = 'none';
+            }
         } else {
-            enhancementProgressEl.classList.add('two-lines');
-            enhancementProgressEl.innerHTML = `${enhCompletedText}/${enhTotalText}<br/>(${enhRemainingText})`;
-            enhancementProgressEl.title = `Completed: ${enhCompletedText} | Total: ${enhTotalText} | Remaining: ${enhRemainingText}`;
+            // Ship requires enhancement - show the card and format progress
+            if (enhancementCard) {
+                enhancementCard.style.display = 'block';
+            }
+            
+            const enhCompletedText = completedEnhancementStones.toLocaleString();
+            const enhTotalText = totalEnhancementStones.toLocaleString();
+            const enhRemainingText = remainingEnhancementStones.toLocaleString();
+            const enhFullText = `${enhCompletedText}/${enhTotalText} (${enhRemainingText})`;
+            
+            if (enhFullText.length <= 20) {
+                enhancementProgressEl.classList.remove('two-lines');
+                enhancementProgressEl.textContent = enhFullText;
+                enhancementProgressEl.title = `Completed: ${enhCompletedText} | Total: ${enhTotalText} | Remaining: ${enhRemainingText}`;
+            } else {
+                enhancementProgressEl.classList.add('two-lines');
+                enhancementProgressEl.innerHTML = `${enhCompletedText}/${enhTotalText}<br/>(${enhRemainingText})`;
+                enhancementProgressEl.title = `Completed: ${enhCompletedText} | Total: ${enhTotalText} | Remaining: ${enhRemainingText}`;
+            }
         }
     }
     
@@ -5519,9 +5910,14 @@ function updateOverallProgress() {
     syncFloatingDashboard();
 }
 
-// Tab system
+// Tab system (now mainly handles cross-craft modal tabs)
 function setupTabs() {
     const tabButtons = document.querySelectorAll(".tab-button");
+    if (tabButtons.length === 0) {
+        // No tab buttons found - this is expected with the new UI structure
+        return;
+    }
+    
     for (const button of tabButtons) {
         const tabName = button.getAttribute('data-tab');
         button.addEventListener('click', (event) => {
@@ -5537,12 +5933,1607 @@ function setupTabs() {
             for (const content of document.querySelectorAll(".tab-content")) {
                 content.classList.remove("active");
             }
-            document.getElementById(`tab-${tabName}`).classList.add("active");
+            const targetContent = document.getElementById(`tab-${tabName}`);
+            if (targetContent) {
+                targetContent.classList.add("active");
+            }
             
-            // Apply current filters
-            applyFilters();
+            // Special handling for inventory tab
+            if (tabName === 'inventory') {
+                // Always refresh inventory tab when switching to it
+                setTimeout(() => loadInventoryTab(), 100);
+            } else {
+                // Apply current filters for other tabs
+                applyFilters();
+            }
         });
     }
+}
+
+// ===== BARTER MATERIALS EXTRACTION =====
+
+// Extract all barter materials and categorize by level
+function getAllBarterMaterials() {
+    const barterMaterials = {
+        level1: new Set(),
+        level2: new Set(),
+        level3: new Set(),
+        level4: new Set(),
+        level5: new Set()
+    };
+    
+    // Extract from shipbarters
+    for (const [outputItem, barterOptions] of Object.entries(shipbarters)) {
+        for (const option of barterOptions) {
+            for (const inputItem of option.input) {
+                const level = extractBarterLevel(inputItem);
+                if (level && barterMaterials[`level${level}`]) {
+                    barterMaterials[`level${level}`].add(inputItem);
+                }
+            }
+        }
+    }
+    
+    // Extract from regular barters
+    for (const [outputItem, barterOptions] of Object.entries(barters)) {
+        for (const option of barterOptions) {
+            for (const inputItem of option.input) {
+                const level = extractBarterLevel(inputItem);
+                if (level && barterMaterials[`level${level}`]) {
+                    barterMaterials[`level${level}`].add(inputItem);
+                }
+            }
+        }
+    }
+    
+    // Convert Sets to sorted arrays
+    return {
+        level1: Array.from(barterMaterials.level1).sort(),
+        level2: Array.from(barterMaterials.level2).sort(),
+        level3: Array.from(barterMaterials.level3).sort(),
+        level4: Array.from(barterMaterials.level4).sort(),
+        level5: Array.from(barterMaterials.level5).sort()
+    };
+}
+
+// Extract level number from barter item name
+function extractBarterLevel(itemName) {
+    const match = itemName.match(/\[Level (\d+)\]/);
+    return match ? parseInt(match[1]) : null;
+}
+
+// Get clean barter material name (without level prefix)
+function getCleanBarterName(itemName) {
+    return itemName.replace(/^\[Level \d+\]\s*/, '');
+}
+
+// Get barter level for a clean material name
+function getBarterLevelForMaterial(cleanMaterialName) {
+    const barterMaterials = getAllBarterMaterials();
+    for (let level = 1; level <= 5; level++) {
+        for (const barterMaterial of barterMaterials[`level${level}`]) {
+            if (getCleanBarterName(barterMaterial) === cleanMaterialName) {
+                return level;
+            }
+        }
+    }
+    return null;
+}
+
+// Check what materials can be obtained with current barter materials
+function calculateAvailableBartersForShip(currentShip) {
+    const availableBarters = {};
+    
+    // Check ship barters
+    for (const [outputItem, barterOptions] of Object.entries(shipbarters)) {
+        // Only check materials needed for current ship
+        const neededForShip = isNeededForShip(outputItem, currentShip);
+        if (!neededForShip) continue;
+        
+        for (const option of barterOptions) {
+            let canMake = true;
+            const requiredMaterials = [];
+            
+            for (const inputItem of option.input) {
+                const barterTotal = getBarterMaterialTotal(inputItem);
+                requiredMaterials.push({
+                    name: inputItem,
+                    available: barterTotal,
+                    needed: 1 // Most barters need 1 of each material
+                });
+                
+                if (barterTotal === 0) {
+                    canMake = false;
+                }
+            }
+            
+            if (canMake) {
+                if (!availableBarters[outputItem]) {
+                    availableBarters[outputItem] = [];
+                }
+                availableBarters[outputItem].push({
+                    type: 'ship',
+                    count: option.count,
+                    materials: requiredMaterials
+                });
+            }
+        }
+    }
+    
+    // Check regular barters (similar logic)
+    for (const [outputItem, barterOptions] of Object.entries(barters)) {
+        const neededForShip = isNeededForShip(outputItem, currentShip);
+        if (!neededForShip) continue;
+        
+        for (const option of barterOptions) {
+            let canMake = true;
+            const requiredMaterials = [];
+            
+            for (const inputItem of option.input) {
+                const barterTotal = getBarterMaterialTotal(inputItem);
+                requiredMaterials.push({
+                    name: inputItem,
+                    available: barterTotal,
+                    needed: 1
+                });
+                
+                if (barterTotal === 0) {
+                    canMake = false;
+                }
+            }
+            
+            if (canMake) {
+                if (!availableBarters[outputItem]) {
+                    availableBarters[outputItem] = [];
+                }
+                availableBarters[outputItem].push({
+                    type: 'trade',
+                    count: option.count,
+                    materials: requiredMaterials
+                });
+            }
+        }
+    }
+    
+    return availableBarters;
+}
+
+// Check if a material is needed for the current ship
+function isNeededForShip(materialName, shipName) {
+    if (!recipes[shipName]) return false;
+    
+    // Check direct ship materials
+    const baseName = materialName.startsWith('+10 ') ? materialName.substring(4) : materialName;
+    if (recipes[shipName][materialName] || recipes[shipName][`+10 ${baseName}`]) {
+        return true;
+    }
+    
+    // Check sub-recipe materials
+    for (const [shipMaterial] of Object.entries(recipes[shipName])) {
+        const shipBaseName = shipMaterial.startsWith('+10 ') ? shipMaterial.substring(4) : shipMaterial;
+        if (recipes[shipBaseName] && recipes[shipBaseName][materialName]) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// Get total barter materials from global inventory
+function getBarterMaterialTotal(barterMaterialName) {
+    return getGlobalTotal(`barter:${barterMaterialName}`) || 0;
+}
+
+// Set total barter materials in global inventory
+function setBarterMaterialTotal(barterMaterialName, total) {
+    setGlobalTotal(`barter:${barterMaterialName}`, total);
+}
+
+// ===== GLOBAL INVENTORY UI FUNCTIONS =====
+
+async function loadInventoryTab() {
+    await loadStorageInterface();
+}
+
+// New BDO-like storage interface
+async function loadStorageInterface() {
+    await loadStorageMaterials();
+    await loadStorageBarter();
+    initStorageInterface();
+}
+
+async function loadStorageMaterials() {
+    const storageGrid = document.getElementById('storage-grid');
+    storageGrid.innerHTML = '';
+    
+    // Get all materials needed for current ship and with existing inventory
+    const allMaterials = new Set();
+    
+    // Add materials for current ship
+    if (recipes[currentShip]) {
+        for (const material of Object.keys(recipes[currentShip])) {
+            const baseName = material.startsWith('+10 ') ? material.substring(4) : material;
+            allMaterials.add(baseName);
+            
+            // Add sub-recipe materials
+            if (recipes[baseName]) {
+                for (const subMaterial of Object.keys(recipes[baseName])) {
+                    allMaterials.add(subMaterial);
+                }
+            }
+        }
+    }
+    
+    // Add ALL materials from existing inventory (regardless of quantity)
+    const inventoryData = getStorage('globalInventory');
+    if (inventoryData) {
+        const inventory = JSON.parse(inventoryData);
+        for (const material of Object.keys(inventory)) {
+            allMaterials.add(material);
+        }
+    }
+    
+    // Add ALL barter materials (regardless of quantity)
+    const barterMaterials = getAllBarterMaterials();
+    for (let level = 1; level <= 5; level++) {
+        for (const barterMaterial of barterMaterials[`level${level}`]) {
+            // Use clean name without [Level X] prefix for icon lookup
+            const cleanName = getCleanBarterName(barterMaterial);
+            allMaterials.add(`barter:${cleanName}`);
+        }
+    }
+    
+    // Create storage items
+    let itemCount = 0;
+    for (const materialName of Array.from(allMaterials).sort()) {
+        const storageItem = await createStorageItem(materialName);
+        if (storageItem) {
+            storageGrid.appendChild(storageItem);
+            itemCount++;
+        }
+    }
+    
+    // Update count (if element exists)
+    const storageItemCount = document.getElementById('storage-item-count');
+    if (storageItemCount) {
+        storageItemCount.textContent = itemCount;
+    }
+}
+
+// Helper function to create exchange item display
+async function createExchangeItem(exchange, barterMaterial) {
+    const exchangeItem = document.createElement('div');
+    exchangeItem.style.cssText = `
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        margin-bottom: 8px;
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        border: 1px solid var(--bg-quaternary);
+    `;
+    
+    // Material icon
+    const icon = await createStorageIcon(exchange.materialName, null);
+    icon.style.marginRight = '12px';
+    exchangeItem.appendChild(icon);
+    
+    // Show actual number of required input items using pre-calculated data
+    const inputsPerOperation = exchange.allInputs.length;
+    let inputDisplay;
+    
+    if (exchange.count.includes('-')) {
+        inputDisplay = `${inputsPerOperation} items (per operation)`;
+    } else {
+        inputDisplay = `${inputsPerOperation} items`;
+    }
+
+    // Exchange info
+    const info = document.createElement('div');
+    info.style.flex = '1';
+    info.innerHTML = `
+        <div style="font-weight: bold; margin-bottom: 4px;">${exchange.materialName}</div>
+        <div style="font-size: 12px; color: ${exchange.type === 'ship' ? 'var(--accent-primary)' : 'var(--warning)'};">
+            Output: ${exchange.count} | Type: ${exchange.category}
+        </div>
+        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+            Required inputs: ${inputDisplay}
+        </div>
+    `;
+    exchangeItem.appendChild(info);
+    
+    // Available quantity info
+    const availability = document.createElement('div');
+    const currentStock = getBarterMaterialTotal(barterMaterial);
+    availability.style.cssText = `
+        text-align: right;
+        font-size: 12px;
+    `;
+    availability.innerHTML = `
+        <div style="color: var(--text-secondary);">You have:</div>
+        <div style="font-weight: bold; color: ${currentStock > 0 ? 'var(--success)' : 'var(--error)'};">
+            ${currentStock.toLocaleString()}
+        </div>
+    `;
+    exchangeItem.appendChild(availability);
+    
+    return exchangeItem;
+}
+
+// Show barter exchange modal - displays what ship materials can be obtained from a barter item
+async function showBarterExchangeModal(barterMaterial, level) {
+    const modal = document.getElementById('barter-exchange-modal');
+    const title = document.getElementById('barter-exchange-title');
+    const body = modal.querySelector('.recipe-modal-body');
+    
+    // Set modal title
+    title.textContent = `Barter Exchange: [Level ${level}] ${barterMaterial}`;
+    
+    // Clear previous content
+    body.innerHTML = '';
+    
+    // Find all materials that can be obtained using this barter material
+    const formattedBarterName = `[Level ${level}] ${barterMaterial}`;
+    const exchanges = [];
+    
+    // Check ship material barters (shipbarter.js)
+    for (const [shipMaterial, barterOptions] of Object.entries(shipbarters)) {
+        for (const option of barterOptions) {
+            if (option.input && option.input.includes(formattedBarterName)) {
+                exchanges.push({
+                    materialName: shipMaterial,
+                    count: option.count,
+                    allInputs: option.input,
+                    type: 'ship',
+                    category: 'Ship Material'
+                });
+            }
+        }
+    }
+    
+    // Check trade item barters (tradein.js)
+    for (const [tradeMaterial, barterOptions] of Object.entries(barters)) {
+        for (const option of barterOptions) {
+            if (option.input && option.input.includes(formattedBarterName)) {
+                exchanges.push({
+                    materialName: tradeMaterial,
+                    count: option.count,
+                    allInputs: option.input,
+                    type: 'trade',
+                    category: 'Trade Item'
+                });
+            }
+        }
+    }
+    
+    if (exchanges.length === 0) {
+        body.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">No materials can be obtained from this barter item.</div>';
+    } else {
+        // Group exchanges by type
+        const shipExchanges = exchanges.filter(e => e.type === 'ship');
+        const tradeExchanges = exchanges.filter(e => e.type === 'trade');
+        
+        // Create header
+        const header = document.createElement('div');
+        header.style.cssText = `
+            margin-bottom: 16px;
+            padding: 12px;
+            background: rgba(74, 158, 255, 0.1);
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-primary);
+        `;
+        header.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 4px;">Available Exchanges</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">Materials you can obtain:</div>
+        `;
+        body.appendChild(header);
+        
+        // Ship Materials Section
+        if (shipExchanges.length > 0) {
+            const shipSection = document.createElement('div');
+            shipSection.style.cssText = `
+                margin-bottom: 16px;
+            `;
+            
+            const shipHeader = document.createElement('div');
+            shipHeader.style.cssText = `
+                font-weight: bold;
+                margin-bottom: 8px;
+                color: var(--accent-primary);
+                font-size: 14px;
+                display: flex;
+                align-items: center;
+            `;
+            shipHeader.innerHTML = `⚓ Ship Materials (${shipExchanges.length})`;
+            shipSection.appendChild(shipHeader);
+            
+            for (const exchange of shipExchanges) {
+                const exchangeItem = await createExchangeItem(exchange, barterMaterial);
+                shipSection.appendChild(exchangeItem);
+            }
+            
+            body.appendChild(shipSection);
+        }
+        
+        // Trade Items Section
+        if (tradeExchanges.length > 0) {
+            const tradeSection = document.createElement('div');
+            tradeSection.style.cssText = `
+                margin-bottom: 16px;
+            `;
+            
+            const tradeHeader = document.createElement('div');
+            tradeHeader.style.cssText = `
+                font-weight: bold;
+                margin-bottom: 8px;
+                color: var(--warning);
+                font-size: 14px;
+                display: flex;
+                align-items: center;
+            `;
+            tradeHeader.innerHTML = `🏪 Trade Items (${tradeExchanges.length})`;
+            tradeSection.appendChild(tradeHeader);
+            
+            for (const exchange of tradeExchanges) {
+                const exchangeItem = await createExchangeItem(exchange, barterMaterial);
+                tradeSection.appendChild(exchangeItem);
+            }
+            
+            body.appendChild(tradeSection);
+        }
+        
+        // Add note about other required materials
+        // const note = document.createElement('div');
+        // note.style.cssText = `
+        //     margin-top: 16px;
+        //     padding: 12px;
+        //     background: rgba(255, 165, 0, 0.1);
+        //     border-radius: 8px;
+        //     border-left: 4px solid var(--warning);
+        //     font-size: 12px;
+        // `;
+        // note.innerHTML = `
+        //     <div style="font-weight: bold; margin-bottom: 4px;">⚠️ Note</div>
+        //     <div style="color: var(--text-secondary);">
+        //         Each exchange may require additional barter materials beyond ${barterMaterial}. 
+        //         Check the full requirements before trading.
+        //     </div>
+        // `;
+        // body.appendChild(note);
+    }
+    
+    // Show modal
+    modal.classList.remove('hidden');
+}
+
+// Create storage item (BDO-style)
+async function createStorageItem(materialName) {
+    const item = document.createElement('div');
+    item.className = 'storage-item';
+    
+    let actualName = materialName;
+    let isBarter = false;
+    
+    if (materialName.startsWith('barter:')) {
+        actualName = materialName.substring(7);
+        isBarter = true;
+    }
+    
+    // Add data attributes for real-time updates
+    item.setAttribute('data-material-name', actualName);
+    item.setAttribute('data-is-barter', isBarter.toString());
+    
+    // Get icon with proper method for barter vs regular materials
+    let primaryMethod = null;
+    let barterLevel = null;
+    
+    if (isBarter) {
+        primaryMethod = "barter";
+        barterLevel = getBarterLevelForMaterial(actualName);
+    } else {
+        const methods = getAcquisitionMethods(actualName);
+        primaryMethod = methods.length > 0 ? methods[0][0] : null;
+    }
+    
+    // Create non-clickable icon for storage (prevents BDO Codex link conflicts)
+    const icon = await createStorageIcon(actualName, primaryMethod, barterLevel);
+    icon.className = 'storage-item-icon';
+    item.appendChild(icon);
+    
+    // Get quantities
+    let total = 0;
+    let allocated = 0;
+    
+    if (isBarter) {
+        total = getBarterMaterialTotal(actualName);
+    } else {
+        const summary = getAllocationSummary(actualName);
+        total = summary.total;
+        allocated = summary.allocated;
+    }
+    
+    // Show all items, including those with 0 quantities
+    
+    // Add count (always show, even if 0)
+    const count = document.createElement('div');
+    count.className = 'storage-item-count';
+    count.textContent = total;
+    // Add different styling for 0 quantities
+    if (total === 0) {
+        count.style.backgroundColor = 'rgba(156, 163, 175, 0.8)';
+        count.style.color = '#374151';
+    }
+    item.appendChild(count);
+    
+    // Add allocated indicator
+    if (!isBarter && allocated > 0) {
+        const allocatedIndicator = document.createElement('div');
+        allocatedIndicator.className = 'storage-item-allocated';
+        allocatedIndicator.textContent = allocated;
+        item.appendChild(allocatedIndicator);
+    }
+    
+    // Add tooltip functionality
+    item.addEventListener('mouseenter', (e) => {
+        showStorageTooltip(e, actualName, { total, allocated, isBarter });
+    });
+    
+    item.addEventListener('mouseleave', () => {
+        hideStorageTooltip();
+    });
+    
+    // Add click functionality for editing quantities
+    item.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openQuantityEditor(actualName, isBarter);
+    });
+    
+    return item;
+}
+
+// Storage tooltip functions
+let currentTooltip = null;
+
+function showStorageTooltip(event, materialName, data) {
+    hideStorageTooltip();
+    
+    const tooltip = document.createElement('div');
+    tooltip.className = 'storage-tooltip';
+    
+    // Add debugging styles to ensure tooltip is visible
+    tooltip.style.cssText = `
+        position: absolute;
+        background: rgba(0, 0, 0, 0.95);
+        color: white;
+        padding: 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        max-width: 250px;
+        z-index: 10000;
+        pointer-events: none;
+        border: 1px solid #666;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    `;
+    
+    const title = document.createElement('div');
+    title.className = 'storage-tooltip-title';
+    title.textContent = materialName;
+    tooltip.appendChild(title);
+    
+    if (data.isBarter) {
+        const stat = document.createElement('div');
+        stat.className = 'storage-tooltip-stat';
+        stat.innerHTML = `<span>Barter Material:</span><span>${data.total}</span>`;
+        tooltip.appendChild(stat);
+        
+        // Add exchange information
+        const actualBarterName = materialName.replace(/^\[Level \d+\] /, '');
+        const uses = getBarterUses(actualBarterName);
+        
+        if (uses.length > 0) {
+            const exchangeHeader = document.createElement('div');
+            exchangeHeader.style.cssText = 'margin-top: var(--space-sm); font-size: 9px; color: var(--text-secondary); font-weight: 600;';
+            exchangeHeader.textContent = 'Can exchange for:';
+            tooltip.appendChild(exchangeHeader);
+            
+            uses.slice(0, 5).forEach(use => { // Limit to 5 items to avoid huge tooltips
+                const exchangeItem = document.createElement('div');
+                exchangeItem.className = 'storage-tooltip-stat';
+                exchangeItem.style.fontSize = '10px';
+                
+                // Calculate how many we can make with current materials
+                const owned = data.total;
+                let maxCanMake = 0;
+                
+                // Parse the count (could be a range like "1-2" or single number)
+                if (use.count.includes('-')) {
+                    const [min, max] = use.count.split('-').map(n => parseInt(n.trim()));
+                    maxCanMake = Math.floor(owned / min); // Use minimum required for conservative estimate
+                    exchangeItem.innerHTML = `<span>${use.material}:</span><span style="color: var(--success);">${use.count} (can make: ${maxCanMake})</span>`;
+                } else {
+                    const required = parseInt(use.count);
+                    maxCanMake = Math.floor(owned / required);
+                    exchangeItem.innerHTML = `<span>${use.material}:</span><span style="color: var(--success);">${use.count} (can make: ${maxCanMake})</span>`;
+                }
+                
+                tooltip.appendChild(exchangeItem);
+            });
+            
+            if (uses.length > 5) {
+                const moreInfo = document.createElement('div');
+                moreInfo.style.cssText = 'font-size: 9px; color: var(--text-secondary); font-style: italic; margin-top: var(--space-xs);';
+                moreInfo.textContent = `...and ${uses.length - 5} more items`;
+                tooltip.appendChild(moreInfo);
+            }
+        }
+    } else {
+        const totalStat = document.createElement('div');
+        totalStat.className = 'storage-tooltip-stat';
+        totalStat.innerHTML = `<span>Total Owned:</span><span>${data.total}</span>`;
+        tooltip.appendChild(totalStat);
+        
+        const allocatedStat = document.createElement('div');
+        allocatedStat.className = 'storage-tooltip-stat';
+        allocatedStat.innerHTML = `<span>Allocated:</span><span>${data.allocated}</span>`;
+        tooltip.appendChild(allocatedStat);
+        
+        const availableStat = document.createElement('div');
+        availableStat.className = 'storage-tooltip-stat';
+        availableStat.innerHTML = `<span>Available:</span><span>${data.total - data.allocated}</span>`;
+        tooltip.appendChild(availableStat);
+    }
+    
+    const clickHint = document.createElement('div');
+    clickHint.style.cssText = 'margin-top: var(--space-xs); font-size: 9px; color: var(--text-secondary);';
+    clickHint.textContent = 'Click to edit quantity';
+    tooltip.appendChild(clickHint);
+    
+    document.body.appendChild(tooltip);
+    currentTooltip = tooltip;
+    
+    // Position tooltip very close to the storage item
+    const storageItem = event.target.closest('.storage-item') || event.target.closest('.barter-compact-item') || event.target;
+    const rect = storageItem.getBoundingClientRect();
+    
+    // Position tooltip directly below the item
+    tooltip.style.left = rect.left + 'px';
+    tooltip.style.top = (rect.bottom + 5) + 'px';
+    
+    // Get tooltip dimensions after positioning
+    setTimeout(() => {
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        // If tooltip goes off right edge, align it to the right
+        if (tooltipRect.right > window.innerWidth - 10) {
+            tooltip.style.left = (window.innerWidth - tooltipRect.width - 10) + 'px';
+        }
+        
+        // If tooltip goes off bottom, position it above the item
+        if (tooltipRect.bottom > window.innerHeight - 10) {
+            tooltip.style.top = (rect.top - tooltipRect.height - 5) + 'px';
+        }
+    }, 0);
+}
+
+function hideStorageTooltip() {
+    if (currentTooltip) {
+        currentTooltip.remove();
+        currentTooltip = null;
+    }
+}
+
+// Quantity editor modal
+let currentEditingMaterial = null;
+let currentEditingIsBarter = false;
+
+function openQuantityEditor(materialName, isBarter) {
+    currentEditingMaterial = materialName;
+    currentEditingIsBarter = isBarter;
+    
+    const currentValue = isBarter ? getBarterMaterialTotal(materialName) : getGlobalTotal(materialName);
+    
+    // Update modal content
+    document.getElementById('quantity-modal-title').textContent = `Edit ${materialName}`;
+    document.getElementById('quantity-current-value').textContent = currentValue;
+    document.getElementById('quantity-preview-value').textContent = currentValue;
+    
+    // Clear inputs
+    document.getElementById('quantity-absolute-input').value = '';
+    document.getElementById('quantity-relative-input').value = '';
+    
+    // Show modal
+    const modal = document.getElementById('quantity-editor-modal');
+    modal.classList.remove('hidden');
+}
+
+function closeQuantityEditor() {
+    const modal = document.getElementById('quantity-editor-modal');
+    modal.classList.add('hidden');
+    currentEditingMaterial = null;
+    currentEditingIsBarter = false;
+}
+
+function updateQuantityPreview() {
+    if (!currentEditingMaterial) return;
+    
+    const currentValue = currentEditingIsBarter ? 
+        getBarterMaterialTotal(currentEditingMaterial) : 
+        getGlobalTotal(currentEditingMaterial);
+    
+    const absoluteInput = document.getElementById('quantity-absolute-input');
+    const relativeInput = document.getElementById('quantity-relative-input');
+    const previewElement = document.getElementById('quantity-preview-value');
+    
+    let previewValue = currentValue;
+    
+    if (absoluteInput.value.trim()) {
+        previewValue = Math.max(0, parseInt(absoluteInput.value) || 0);
+    } else if (relativeInput.value.trim()) {
+        const relativeAmount = parseInt(relativeInput.value) || 0;
+        previewValue = Math.max(0, currentValue + relativeAmount);
+    }
+    
+    previewElement.textContent = previewValue;
+}
+
+function applyQuantityChange(type) {
+    if (!currentEditingMaterial) return;
+    
+    const currentValue = currentEditingIsBarter ? 
+        getBarterMaterialTotal(currentEditingMaterial) : 
+        getGlobalTotal(currentEditingMaterial);
+    
+    let newValue = currentValue;
+    
+    if (type === 'absolute') {
+        const absoluteInput = document.getElementById('quantity-absolute-input');
+        newValue = Math.max(0, parseInt(absoluteInput.value) || 0);
+    } else if (type === 'add') {
+        const relativeInput = document.getElementById('quantity-relative-input');
+        const addAmount = Math.abs(parseInt(relativeInput.value) || 0);
+        newValue = Math.max(0, currentValue + addAmount);
+    } else if (type === 'subtract') {
+        const relativeInput = document.getElementById('quantity-relative-input');
+        const subtractAmount = Math.abs(parseInt(relativeInput.value) || 0);
+        newValue = Math.max(0, currentValue - subtractAmount);
+    }
+    
+    // Apply the change
+    if (currentEditingIsBarter) {
+        setBarterMaterialTotal(currentEditingMaterial, newValue);
+    } else {
+        setGlobalTotal(currentEditingMaterial, newValue);
+    }
+    
+    // Close modal and refresh
+    closeQuantityEditor();
+    loadStorageMaterials();
+}
+
+async function loadStorageBarter() {
+    const barterGrid = document.getElementById('barter-calc-compact');
+    barterGrid.innerHTML = '';
+    
+    // Get barter requirements and create compact cards
+    const shipMaterials = getAllShipMaterialsWithQuantities(currentShip);
+    const barterRequirements = calculateBarterRequirements(shipMaterials);
+    
+    // Group by level
+    for (let level = 1; level <= 5; level++) {
+        const levelRequirements = barterRequirements.filter(req => req.level === level);
+        if (levelRequirements.length > 0) {
+            const card = createCompactBarterCard(level, levelRequirements);
+            barterGrid.appendChild(card);
+        }
+    }
+}
+
+function createCompactBarterCard(level, requirements) {
+    const card = document.createElement('div');
+    card.className = 'barter-compact-card';
+    
+    const header = document.createElement('div');
+    header.className = 'barter-compact-header';
+    
+    const title = document.createElement('div');
+    title.textContent = `Level ${level}`;
+    title.style.fontWeight = '600';
+    header.appendChild(title);
+    
+    const levelBadge = document.createElement('div');
+    levelBadge.className = 'barter-compact-level';
+    levelBadge.textContent = requirements.length;
+    header.appendChild(levelBadge);
+    
+    card.appendChild(header);
+    
+    const itemsGrid = document.createElement('div');
+    itemsGrid.className = 'barter-compact-items';
+    
+    for (const req of requirements.slice(0, 12)) { // Max 12 items per card
+        const item = document.createElement('div');
+        item.className = 'barter-compact-item';
+        
+        // Create icon for barter material with [Level X] prefix
+        const fullMaterialName = `[Level ${level}] ${req.barterMaterial}`;
+        const icon = document.createElement('div');
+        icon.className = 'barter-compact-icon';
+        
+        // Get non-clickable icon for barter material with level-based border
+        createStorageIcon(req.barterMaterial, "barter", level).then(iconElement => {
+            icon.appendChild(iconElement);
+        });
+        item.appendChild(icon);
+        
+        const count = document.createElement('div');
+        count.className = 'barter-compact-count';
+        count.textContent = req.hasRanges ? `${req.minNeeded}-${req.maxNeeded}` : req.minNeeded;
+        item.appendChild(count);
+        
+        // Add tooltip with full material name
+        item.title = `${fullMaterialName}: ${req.hasRanges ? `${req.minNeeded}-${req.maxNeeded}` : req.minNeeded}`;
+        
+        // Add click handler to show barter exchange modal
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showBarterExchangeModal(req.barterMaterial, level);
+        });
+        
+        // Add hover tooltip functionality
+        item.addEventListener('mouseenter', (e) => {
+            showStorageTooltip(e, fullMaterialName, { 
+                total: getBarterMaterialTotal(req.barterMaterial), 
+                allocated: 0, 
+                isBarter: true 
+            });
+        });
+        item.addEventListener('mouseleave', () => {
+            hideStorageTooltip();
+        });
+        
+        // Make item clickable
+        item.style.cursor = 'pointer';
+        
+        itemsGrid.appendChild(item);
+    }
+    
+    card.appendChild(itemsGrid);
+    return card;
+}
+
+function initStorageInterface() {
+    // Storage tabs
+    const storageTabs = document.querySelectorAll('.storage-tab');
+    storageTabs.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            // Update active tab
+            storageTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            // Show/hide content
+            const tabName = tab.getAttribute('data-tab');
+            document.querySelectorAll('.storage-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`storage-${tabName}`).classList.add('active');
+        });
+    });
+    
+    // Search functionality
+    const searchInput = document.getElementById('storage-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('.storage-item');
+            
+            items.forEach(item => {
+                const materialName = item.getAttribute('data-material-name') || '';
+                const shouldShow = materialName.toLowerCase().includes(searchTerm) || searchTerm === '';
+                item.style.display = shouldShow ? '' : 'none';
+            });
+            
+            // Update item count after filtering
+            updateStorageItemCount();
+        });
+    }
+}
+
+
+
+// Barter calculation engine functions - removed duplicate, functionality moved to getBarterUses
+
+function getBarterUses(barterMaterialName) {
+    const uses = [];
+    
+    // Check what ship materials this barter material can create
+    for (const [shipMaterial, trades] of Object.entries(shipbarters)) {
+        for (const trade of trades) {
+            if (trade.input && trade.input.includes(`[Level ${getBarterLevel(barterMaterialName)}] ${barterMaterialName}`)) {
+                uses.push({
+                    material: shipMaterial,
+                    count: trade.count,
+                    type: 'ship'
+                });
+            }
+        }
+    }
+    
+    // Check regular barters too
+    for (const [material, trades] of Object.entries(barters)) {
+        for (const trade of trades) {
+            if (trade.input && trade.input.includes(`[Level ${getBarterLevel(barterMaterialName)}] ${barterMaterialName}`)) {
+                uses.push({
+                    material: material,
+                    count: trade.count,
+                    type: 'regular'
+                });
+            }
+        }
+    }
+    
+    return uses;
+}
+
+function getBarterLevel(barterMaterialName) {
+    const allBarterMaterials = getAllBarterMaterials();
+    for (let level = 1; level <= 5; level++) {
+        if (allBarterMaterials[`level${level}`].includes(barterMaterialName)) {
+            return level;
+        }
+    }
+    return 1; // default fallback
+}
+
+// Create barter material item
+async function createBarterMaterialItem(barterMaterialName, level) {
+    const item = document.createElement('div');
+    item.className = 'inventory-item barter-material-item';
+    
+    // Get clean name and current total
+    const cleanName = getCleanBarterName(barterMaterialName);
+    const currentTotal = getBarterMaterialTotal(barterMaterialName);
+    
+    // Header with level indicator and title
+    const header = document.createElement('div');
+    header.className = 'inventory-item-header';
+    
+    // Icon (use clean name for icon lookup)
+    const methods = getAcquisitionMethods(cleanName);
+    const primaryMethod = methods.length > 0 ? methods[0][0] : null;
+    const icon = await createItemIcon(cleanName, "lg", primaryMethod);
+    header.appendChild(icon);
+    
+    // Title
+    const title = document.createElement('div');
+    title.className = 'inventory-item-title';
+    title.textContent = cleanName;
+    header.appendChild(title);
+    
+    item.appendChild(header);
+    
+    // Controls for barter material quantity
+    const controls = document.createElement('div');
+    controls.className = 'inventory-controls';
+    
+    const label = document.createElement('label');
+    label.textContent = 'Barter materials owned:';
+    label.style.cssText = 'font-size: var(--font-size-sm); color: var(--text-secondary);';
+    controls.appendChild(label);
+    
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '0';
+    input.value = currentTotal;
+    input.className = 'inventory-input';
+    input.addEventListener('change', () => {
+        const newTotal = Math.max(0, parseInt(input.value) || 0);
+        setBarterMaterialTotal(barterMaterialName, newTotal);
+        // Refresh inventory to update available barters calculations
+        loadInventoryTab();
+    });
+    controls.appendChild(input);
+    
+    const setBtn = document.createElement('button');
+    setBtn.textContent = 'Update';
+    setBtn.className = 'quick-btn';
+    setBtn.addEventListener('click', () => {
+        input.dispatchEvent(new Event('change'));
+    });
+    controls.appendChild(setBtn);
+    
+    item.appendChild(controls);
+    
+    // Show what this can be used for (if any) with visual indicators
+    const usageInfo = getBarterUsageInfo(barterMaterialName, currentShip);
+    if (usageInfo.length > 0) {
+        const usageHeader = document.createElement('div');
+        usageHeader.style.cssText = `
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            margin: var(--space-sm) 0 var(--space-xs) 0;
+            font-weight: 500;
+        `;
+        usageHeader.textContent = 'Can be used for:';
+        item.appendChild(usageHeader);
+        
+        const usageList = document.createElement('div');
+        usageList.className = 'allocation-list';
+        usageList.style.maxHeight = '120px';
+        
+        for (const usage of usageInfo.slice(0, 5)) { // Show max 5 items
+            const usageItem = document.createElement('div');
+            usageItem.className = 'allocation-item';
+            usageItem.style.cursor = 'pointer';
+            usageItem.title = 'Click to see barter details';
+            
+            // Check if we have enough materials for this barter
+            const canCraft = currentTotal >= usage.requiredAmount;
+            const maxCrafts = Math.floor(currentTotal / usage.requiredAmount);
+            
+            const itemName = document.createElement('div');
+            itemName.className = 'allocation-context';
+            itemName.style.cssText = canCraft ? 'color: var(--success);' : 'color: var(--text-secondary);';
+            itemName.textContent = usage.outputItem;
+            usageItem.appendChild(itemName);
+            
+            const barterInfo = document.createElement('div');
+            barterInfo.className = 'allocation-amount';
+            barterInfo.style.cssText = `
+                display: flex;
+                align-items: center;
+                gap: var(--space-xs);
+                font-size: var(--font-size-xs);
+            `;
+            
+            // Craft indicator
+            const craftIndicator = document.createElement('span');
+            craftIndicator.textContent = canCraft ? '✅' : '❌';
+            craftIndicator.title = canCraft ? `Can craft ${maxCrafts}x` : `Need ${usage.requiredAmount - currentTotal} more`;
+            barterInfo.appendChild(craftIndicator);
+            
+            // Cost indicator
+            const costText = document.createElement('span');
+            costText.textContent = `${usage.requiredAmount}x`;
+            costText.style.cssText = canCraft ? 'color: var(--success);' : 'color: var(--text-secondary);';
+            barterInfo.appendChild(costText);
+            
+            // Type indicator
+            const typeIndicator = document.createElement('span');
+            typeIndicator.textContent = usage.type === 'ship' ? '🚢' : '🏪';
+            typeIndicator.title = usage.type === 'ship' ? 'Ship barter' : 'Regular barter';
+            barterInfo.appendChild(typeIndicator);
+            
+            usageItem.appendChild(barterInfo);
+            
+            // Add click handler to open barter modal
+            usageItem.addEventListener('click', async () => {
+                if (usage.type === 'ship') {
+                    await showBarterModal(usage.outputItem, 'ship', shipbarters[usage.outputItem]);
+                } else {
+                    await showBarterModal(usage.outputItem, 'trade', barters[usage.outputItem]);
+                }
+            });
+            
+            usageList.appendChild(usageItem);
+        }
+        
+        if (usageInfo.length > 3) {
+            const moreInfo = document.createElement('div');
+            moreInfo.style.cssText = `
+                text-align: center;
+                font-size: var(--font-size-xs);
+                color: var(--text-secondary);
+                padding: var(--space-xs);
+                font-style: italic;
+            `;
+            moreInfo.textContent = `...and ${usageInfo.length - 3} more items`;
+            usageList.appendChild(moreInfo);
+        }
+        
+        item.appendChild(usageList);
+    }
+    
+    return item;
+}
+
+// Get what a barter material can be used for
+function getBarterUsageInfo(barterMaterialName, currentShip) {
+    const usageInfo = [];
+    const level = getBarterLevel(barterMaterialName);
+    const formattedBarterName = `[Level ${level}] ${barterMaterialName}`;
+    
+    // Check ship barters
+    for (const [outputItem, barterOptions] of Object.entries(shipbarters)) {
+        if (!isNeededForShip(outputItem, currentShip)) continue;
+        
+        for (const option of barterOptions) {
+            if (option.input && option.input.includes(formattedBarterName)) {
+                const requiredAmount = parseInt(option.count) || 1;
+                usageInfo.push({
+                    outputItem,
+                    type: 'ship',
+                    count: option.count,
+                    requiredAmount: requiredAmount
+                });
+                break; // Only add once per output item
+            }
+        }
+    }
+    
+    // Check regular barters  
+    for (const [outputItem, barterOptions] of Object.entries(barters)) {
+        if (!isNeededForShip(outputItem, currentShip)) continue;
+        
+        for (const option of barterOptions) {
+            if (option.input && option.input.includes(formattedBarterName)) {
+                const requiredAmount = parseInt(option.count) || 1;
+                usageInfo.push({
+                    outputItem,
+                    type: 'trade',
+                    count: option.count,
+                    requiredAmount: requiredAmount
+                });
+                break; // Only add once per output item
+            }
+        }
+    }
+    
+    return usageInfo;
+}
+
+
+// Initialize inventory search and filter functionality
+function initInventorySearch() {
+    const searchInput = document.getElementById('inventory-search');
+    const inventoryGrid = document.getElementById('inventory-grid');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    
+    if (!searchInput || !inventoryGrid) return;
+    
+    let currentFilter = 'all';
+    
+    // Search functionality
+    function applyFilters() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const allItems = inventoryGrid.querySelectorAll('.inventory-item, .barter-material-item');
+        const sections = inventoryGrid.querySelectorAll('[style*="grid-column: 1 / -1"]');
+        
+        // Filter items based on both search and category filter
+        let visibleSections = new Set();
+        let visibleCount = 0;
+        
+        allItems.forEach(item => {
+            const title = item.querySelector('.inventory-item-title');
+            if (title) {
+                const itemName = title.textContent.toLowerCase();
+                const searchMatch = searchTerm === '' || itemName.includes(searchTerm);
+                
+                // Determine item category
+                let itemCategory = 'basic';
+                const section = findParentSection(item, sections);
+                if (section) {
+                    const sectionText = section.textContent.toLowerCase();
+                    if (sectionText.includes('recipe')) {
+                        itemCategory = 'recipes';
+                    } else if (sectionText.includes('barter')) {
+                        itemCategory = 'barter';
+                    }
+                }
+                
+                const categoryMatch = currentFilter === 'all' || currentFilter === itemCategory;
+                const shouldShow = searchMatch && categoryMatch;
+                
+                if (shouldShow) {
+                    item.style.display = '';
+                    visibleCount++;
+                    if (section) visibleSections.add(section);
+                } else {
+                    item.style.display = 'none';
+                }
+            }
+        });
+        
+        // Show/hide sections based on whether they have visible items
+        sections.forEach(section => {
+            const sectionText = section.textContent.toLowerCase();
+            let sectionCategory = 'basic';
+            if (sectionText.includes('recipe')) {
+                sectionCategory = 'recipes';
+            } else if (sectionText.includes('barter')) {
+                sectionCategory = 'barter';
+            }
+            
+            const shouldShowSection = (currentFilter === 'all' || currentFilter === sectionCategory) && 
+                                    (visibleSections.has(section) || (searchTerm === '' && currentFilter === sectionCategory));
+            
+            section.style.display = shouldShowSection ? '' : 'none';
+        });
+        
+        // Update count (if element exists)
+        const inventoryCount = document.getElementById('inventory-count');
+        if (inventoryCount) {
+            inventoryCount.textContent = visibleCount;
+        }
+    }
+    
+    // Search input event
+    searchInput.addEventListener('input', applyFilters);
+    
+    // Filter button events
+    filterButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            // Update active button
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // Update current filter
+            currentFilter = button.getAttribute('data-filter');
+            
+            // Apply filters
+            applyFilters();
+        });
+    });
+}
+
+// Helper function to find which section an item belongs to
+function findParentSection(item, sections) {
+    const allElements = Array.from(item.parentElement.children);
+    const itemIndex = allElements.indexOf(item);
+    
+    // Find the last section header before this item
+    for (let i = itemIndex - 1; i >= 0; i--) {
+        if (sections.length && Array.from(sections).includes(allElements[i])) {
+            return allElements[i];
+        }
+    }
+    return null;
+}
+
+// Load barter calculations for the current ship
+async function loadBarterCalculations() {
+    const calcGrid = document.getElementById('barter-calc-grid');
+    calcGrid.innerHTML = '';
+    
+    // Get all materials needed for current ship and their quantities
+    const shipMaterials = getAllShipMaterialsWithQuantities(currentShip);
+    
+    // Calculate barter requirements by level
+    const barterRequirements = calculateBarterRequirements(shipMaterials);
+    
+    // Group by level and create cards
+    for (let level = 1; level <= 5; level++) {
+        const levelRequirements = barterRequirements.filter(req => req.level === level);
+        if (levelRequirements.length > 0) {
+            const card = createBarterCalcCard(level, levelRequirements);
+            calcGrid.appendChild(card);
+        }
+    }
+    
+    // If no barter requirements found
+    if (barterRequirements.length === 0) {
+        const emptyMessage = document.createElement('div');
+        emptyMessage.style.cssText = `
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: var(--space-xl);
+            color: var(--text-secondary);
+            font-style: italic;
+        `;
+        emptyMessage.innerHTML = `
+            <div style="font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.5;">🎣</div>
+            <p>No barter materials required for "${currentShip}".</p>
+            <p>All materials can be obtained through other methods!</p>
+        `;
+        calcGrid.appendChild(emptyMessage);
+    }
+}
+
+// Get all materials needed for ship with their total quantities
+function getAllShipMaterialsWithQuantities(shipName) {
+    const materials = {};
+    
+    if (!recipes[shipName]) return materials;
+    
+    // Add direct ship materials
+    for (const [materialName, quantity] of Object.entries(recipes[shipName])) {
+        const baseName = materialName.startsWith('+10 ') ? materialName.substring(4) : materialName;
+        materials[baseName] = (materials[baseName] || 0) + quantity;
+        
+        // Add sub-recipe materials
+        if (recipes[baseName]) {
+            for (const [subMaterial, subQuantity] of Object.entries(recipes[baseName])) {
+                materials[subMaterial] = (materials[subMaterial] || 0) + (subQuantity * quantity);
+            }
+        }
+    }
+    
+    return materials;
+}
+
+// Calculate barter requirements for ship materials
+function calculateBarterRequirements(shipMaterials) {
+    const allReqs = {};
+    
+    // For each ship material, get its barter requirements using pre-calculated data
+    for (const [materialName, neededQuantity] of Object.entries(shipMaterials)) {
+        const barterNeeds = calculateBarterNeeds(materialName, neededQuantity);
+        
+        if (barterNeeds) {
+            for (const exchange of barterNeeds) {
+                for (const [key, material] of Object.entries(exchange.materials)) {
+                    if (!allReqs[key]) {
+                        allReqs[key] = {
+                            level: material.level,
+                            barterMaterial: material.material,
+                            minNeeded: 0,
+                            maxNeeded: 0,
+                            hasRanges: false,
+                            usedFor: []
+                        };
+                    }
+                    
+                    allReqs[key].minNeeded += material.minNeeded;
+                    allReqs[key].maxNeeded += material.maxNeeded;
+                    if (material.hasRange) {
+                        allReqs[key].hasRanges = true;
+                    }
+                    
+                    allReqs[key].usedFor.push({
+                        material: materialName,
+                        minQuantity: material.minNeeded,
+                        maxQuantity: material.maxNeeded,
+                        isRange: material.hasRange
+                    });
+                }
+            }
+        }
+    }
+    
+    return Object.values(allReqs);
+}
+
+// Helper functions
+function parseBarterCount(countString) {
+    // Handle ranges like "25-50", "1-2", etc.
+    if (countString.includes('-')) {
+        const parts = countString.split('-');
+        const min = parseInt(parts[0]) || 1;
+        const max = parseInt(parts[1]) || min;
+        return { min: min, max: max, isRange: true, display: countString };
+    }
+    const value = parseInt(countString) || 1;
+    return { min: value, max: value, isRange: false, display: countString };
+}
+
+
+
+// Create barter calculation card for a specific level
+function createBarterCalcCard(level, requirements) {
+    const card = document.createElement('div');
+    card.className = 'barter-calc-card';
+    
+    // Header
+    const header = document.createElement('div');
+    header.className = 'barter-calc-header';
+    
+    const title = document.createElement('div');
+    title.className = 'barter-calc-title';
+    title.textContent = `Level ${level} Barter Materials`;
+    header.appendChild(title);
+    
+    const levelBadge = document.createElement('div');
+    levelBadge.className = 'barter-calc-level';
+    levelBadge.textContent = `${requirements.length} items`;
+    header.appendChild(levelBadge);
+    
+    card.appendChild(header);
+    
+    // Summary stats
+    const summary = document.createElement('div');
+    summary.className = 'barter-calc-summary';
+    
+    const totalMinNeeded = requirements.reduce((sum, req) => sum + req.minNeeded, 0);
+    const totalMaxNeeded = requirements.reduce((sum, req) => sum + req.maxNeeded, 0);
+    const hasRanges = requirements.some(req => req.hasRanges);
+    
+    const minStat = document.createElement('div');
+    minStat.className = 'barter-calc-stat';
+    minStat.innerHTML = `
+        <div class="barter-calc-stat-value">${totalMinNeeded}</div>
+        <div class="barter-calc-stat-label">Minimum Items</div>
+    `;
+    summary.appendChild(minStat);
+    
+    const maxStat = document.createElement('div');
+    maxStat.className = 'barter-calc-stat';
+    if (hasRanges && totalMaxNeeded !== totalMinNeeded) {
+        maxStat.innerHTML = `
+            <div class="barter-calc-stat-value">${totalMaxNeeded}</div>
+            <div class="barter-calc-stat-label">Maximum Items</div>
+        `;
+    } else {
+        maxStat.innerHTML = `
+            <div class="barter-calc-stat-value">${requirements.length}</div>
+            <div class="barter-calc-stat-label">Unique Types</div>
+        `;
+    }
+    summary.appendChild(maxStat);
+    
+    card.appendChild(summary);
+    
+    // Details
+    const details = document.createElement('div');
+    details.className = 'barter-calc-details';
+    
+    for (const req of requirements.sort((a, b) => b.maxNeeded - a.maxNeeded)) {
+        const item = document.createElement('div');
+        item.className = 'barter-calc-item';
+        
+        const name = document.createElement('div');
+        name.textContent = req.barterMaterial;
+        name.style.fontWeight = '500';
+        
+        const quantity = document.createElement('div');
+        quantity.style.color = 'var(--accent-primary)';
+        quantity.style.fontWeight = '600';
+        
+        if (req.hasRanges && req.minNeeded !== req.maxNeeded) {
+            quantity.innerHTML = `
+                <div>${req.minNeeded}-${req.maxNeeded}x</div>
+                <div style="font-size: var(--font-size-xs); color: var(--text-secondary); font-weight: normal;">
+                    Range due to RNG
+                </div>
+            `;
+        } else {
+            quantity.textContent = `${req.minNeeded}x`;
+        }
+        
+        item.appendChild(name);
+        item.appendChild(quantity);
+        details.appendChild(item);
+    }
+    
+    card.appendChild(details);
+    
+    return card;
+}
+
+async function createInventoryItem(materialName, summary) {
+    const item = document.createElement('div');
+    item.className = 'inventory-item';
+    
+    // Header with icon and title
+    const header = document.createElement('div');
+    header.className = 'inventory-item-header';
+    
+    // Icon
+    const methods = getAcquisitionMethods(materialName);
+    const primaryMethod = methods.length > 0 ? methods[0][0] : null;
+    const icon = await createItemIcon(materialName, "md", primaryMethod);
+    header.appendChild(icon);
+    
+    // Title
+    const title = document.createElement('div');
+    title.className = 'inventory-item-title';
+    title.textContent = materialName;
+    header.appendChild(title);
+    
+    // Acquisition badges
+    const badgeContainer = document.createElement('div');
+    badgeContainer.style.cssText = 'display: flex; gap: 4px; flex-wrap: wrap;';
+    for (const [methodType, methodName] of methods.slice(0, 2)) { // Show max 2 badges
+        const badge = document.createElement('span');
+        badge.className = `badge badge-${methodType}`;
+        badge.textContent = methodName;
+        badge.style.cssText = 'font-size: 10px; padding: 2px 6px;';
+        badgeContainer.appendChild(badge);
+    }
+    header.appendChild(badgeContainer);
+    
+    item.appendChild(header);
+    
+    // Summary stats
+    const summaryDiv = document.createElement('div');
+    summaryDiv.className = 'inventory-summary';
+    
+    // Total
+    const totalStat = document.createElement('div');
+    totalStat.className = 'inventory-stat total';
+    totalStat.innerHTML = `
+        <div class="inventory-stat-label">Total</div>
+        <div class="inventory-stat-value">${summary.total}</div>
+    `;
+    summaryDiv.appendChild(totalStat);
+    
+    // Allocated
+    const allocatedStat = document.createElement('div');
+    allocatedStat.className = `inventory-stat ${summary.isOverAllocated ? 'over-allocated' : 'allocated'}`;
+    allocatedStat.innerHTML = `
+        <div class="inventory-stat-label">Allocated</div>
+        <div class="inventory-stat-value">${summary.allocated}</div>
+    `;
+    summaryDiv.appendChild(allocatedStat);
+    
+    // Available
+    const availableStat = document.createElement('div');
+    availableStat.className = 'inventory-stat available';
+    availableStat.innerHTML = `
+        <div class="inventory-stat-label">Available</div>
+        <div class="inventory-stat-value">${summary.available}</div>
+    `;
+    summaryDiv.appendChild(availableStat);
+    
+    item.appendChild(summaryDiv);
+    
+    // Controls for total inventory
+    const controls = document.createElement('div');
+    controls.className = 'inventory-controls';
+    
+    const label = document.createElement('label');
+    label.textContent = 'Total in inventory:';
+    label.style.cssText = 'font-size: var(--font-size-sm); color: var(--text-secondary);';
+    controls.appendChild(label);
+    
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '0';
+    input.value = summary.total;
+    input.className = 'inventory-input';
+    input.addEventListener('change', () => {
+        const newTotal = Math.max(0, parseInt(input.value) || 0);
+        setGlobalTotal(materialName, newTotal);
+        loadInventoryTab(); // Refresh
+    });
+    controls.appendChild(input);
+    
+    const setBtn = document.createElement('button');
+    setBtn.textContent = 'Update';
+    setBtn.className = 'quick-btn';
+    setBtn.addEventListener('click', () => {
+        input.dispatchEvent(new Event('change'));
+    });
+    controls.appendChild(setBtn);
+    
+    item.appendChild(controls);
+    
+    // Allocation breakdown (if any)
+    if (Object.keys(summary.allocations).length > 0) {
+        const allocationsHeader = document.createElement('div');
+        allocationsHeader.style.cssText = `
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            margin-bottom: var(--space-sm);
+            font-weight: 500;
+        `;
+        allocationsHeader.textContent = 'Allocated to:';
+        item.appendChild(allocationsHeader);
+        
+        const allocationsList = document.createElement('div');
+        allocationsList.className = 'allocation-list';
+        
+        for (const [context, amount] of Object.entries(summary.allocations)) {
+            const allocationItem = document.createElement('div');
+            allocationItem.className = 'allocation-item';
+            
+            const contextDiv = document.createElement('div');
+            contextDiv.className = 'allocation-context';
+            contextDiv.textContent = context.replace('-', ' → ');
+            allocationItem.appendChild(contextDiv);
+            
+            const amountDiv = document.createElement('div');
+            amountDiv.className = 'allocation-amount';
+            amountDiv.textContent = amount;
+            allocationItem.appendChild(amountDiv);
+            
+            allocationsList.appendChild(allocationItem);
+        }
+        
+        item.appendChild(allocationsList);
+    }
+    
+    return item;
 }
 
 // Search and filter system
@@ -5575,9 +7566,14 @@ function applyFilters() {
     const tabCategories = ['all', 'basic', 'recipes'];
     const tabVisibleCounts = {};
     
-    // Apply filters to all tabs
+    // Apply filters to all tabs (if they exist)
     for (const category of tabCategories) {
         const tabContent = document.getElementById(`tab-${category}`);
+        if (!tabContent) {
+            // Tab doesn't exist - skip this category
+            tabVisibleCounts[category] = 0;
+            continue;
+        }
         const cards = tabContent.querySelectorAll(".material-card");
         let visibleCount = 0;
         
@@ -5729,6 +7725,91 @@ function setupModal() {
     acquisitionModal.addEventListener('click', (event) => {
         if (event.target === acquisitionModal) {
             hideAcquisitionModal();
+        }
+    });
+    
+    // Quantity Editor Modal
+    const quantityModal = document.getElementById('quantity-editor-modal');
+    const quantityCloseBtn = document.getElementById('quantity-modal-close');
+    const quantityAbsoluteInput = document.getElementById('quantity-absolute-input');
+    const quantityRelativeInput = document.getElementById('quantity-relative-input');
+    
+    // Close button
+    quantityCloseBtn.addEventListener('click', closeQuantityEditor);
+    
+    // Click outside to close
+    quantityModal.addEventListener('click', (event) => {
+        if (event.target === quantityModal) {
+            closeQuantityEditor();
+        }
+    });
+    
+    // Set up barter exchange modal
+    const barterExchangeModal = document.getElementById('barter-exchange-modal');
+    const barterExchangeCloseBtn = document.getElementById('barter-exchange-close');
+    
+    // Close button for barter exchange modal
+    barterExchangeCloseBtn.addEventListener('click', () => {
+        barterExchangeModal.classList.add('hidden');
+    });
+    
+    // Click outside to close barter exchange modal
+    barterExchangeModal.addEventListener('click', (event) => {
+        if (event.target === barterExchangeModal) {
+            barterExchangeModal.classList.add('hidden');
+        }
+    });
+    
+    // Input event listeners for preview updates
+    quantityAbsoluteInput.addEventListener('input', updateQuantityPreview);
+    quantityRelativeInput.addEventListener('input', updateQuantityPreview);
+    
+    // Clear opposite input when typing in one
+    quantityAbsoluteInput.addEventListener('input', () => {
+        if (quantityAbsoluteInput.value.trim()) {
+            quantityRelativeInput.value = '';
+        }
+        updateQuantityPreview();
+    });
+    
+    quantityRelativeInput.addEventListener('input', () => {
+        if (quantityRelativeInput.value.trim()) {
+            quantityAbsoluteInput.value = '';
+        }
+        updateQuantityPreview();
+    });
+    
+    // Button event listeners
+    document.getElementById('quantity-set-absolute').addEventListener('click', () => {
+        applyQuantityChange('absolute');
+    });
+    
+    document.getElementById('quantity-add').addEventListener('click', () => {
+        applyQuantityChange('add');
+    });
+    
+    document.getElementById('quantity-subtract').addEventListener('click', () => {
+        applyQuantityChange('subtract');
+    });
+    
+    // Enter key support
+    quantityAbsoluteInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            applyQuantityChange('absolute');
+        }
+    });
+    
+    quantityRelativeInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            const addBtn = document.getElementById('quantity-add');
+            const subtractBtn = document.getElementById('quantity-subtract');
+            // Default to add if positive or zero, subtract if negative
+            const value = parseInt(e.target.value) || 0;
+            if (value >= 0) {
+                applyQuantityChange('add');
+            } else {
+                applyQuantityChange('subtract');
+            }
         }
     });
 }
@@ -5911,9 +7992,19 @@ async function initApp() {
     // Create ship list
     await createShipList();
     
+    // Initialize new craft navigation system
+    try {
+        console.log('🔄 Initializing Craft Navigation UI...');
+        await craftNavigationUI.initialize();
+        console.log('✅ Craft Navigation UI initialized successfully');
+    } catch (error) {
+        console.error('❌ Failed to initialize Craft Navigation UI:', error);
+        // Fallback to original system
+        setupTabs();
+        setupSearchAndFilters();
+    }
+    
     // Setup interactive elements
-    setupTabs();
-    setupSearchAndFilters();
     setupModal();
     
     // Initialize water ripples cursor trail effect
@@ -5927,8 +8018,42 @@ async function initApp() {
     // Setup auto-tour checkbox
     guidedTour.setupAutoTourCheckbox();
     
-    // Load initial materials
-    await loadShipMaterials();
+    // Initialize inventory system
+    try {
+        console.log('🎒 Initializing Inventory System...');
+        await inventoryUI.initialize();
+        await inventoryManager.initialize?.(); // Initialize if method exists
+        console.log('✅ Inventory System initialized successfully');
+        
+        // Setup global inventory button (do this later to override existing handlers)
+        setTimeout(() => {
+            setupGlobalInventoryButton();
+        }, 100);
+    } catch (error) {
+        console.error('❌ Failed to initialize Inventory System:', error);
+    }
+    
+    // Initialize craft navigation UI system
+    try {
+        await craftNavigationUI.initialize();
+        
+        // Show the dashboard
+        const progressDashboard = document.getElementById('progress-dashboard');
+        if (progressDashboard) {
+            progressDashboard.style.display = 'grid';
+        }
+        
+        console.log('Craft Navigation UI initialized successfully');
+    } catch (error) {
+        console.warn('Craft Navigation UI failed to initialize:', error);
+        // Fallback to original system
+        await loadShipMaterials();
+    }
+    
+    // Load inventory tab if it's the active tab on page load
+    if (activeTab === 'inventory') {
+        await loadInventoryTab();
+    }
     
     // Setup reset button
     const resetBtn = document.createElement('button');
@@ -5959,6 +8084,59 @@ async function initApp() {
             adjustEnhancementLevel(itemName, shipName, change);
         }
     });
+    
+    // Setup integration between systems
+    setupCraftNavigationIntegration();
+}
+
+// Setup Global Inventory Button (now just the floating button)
+function setupGlobalInventoryButton() {
+    // Test function for debugging (keep this for console testing)
+    window.testInventory = () => {
+        console.log('🧪 Testing inventory system...');
+        console.log('Items loaded:', inventoryManager.items.size);
+        console.log('Categories:', inventoryManager.categories.size);
+        inventoryUI.openInventoryModal();
+    };
+    
+    // Setup floating inventory button with identical logic
+    const floatingBtn = document.getElementById('floating-inventory-btn');
+    if (floatingBtn) {
+        // Remove any existing event listeners by cloning the button
+        const newFloatingBtn = floatingBtn.cloneNode(true);
+        floatingBtn.parentNode.replaceChild(newFloatingBtn, floatingBtn);
+        
+        // Add our new event listener with identical logic to cross-craft button
+        newFloatingBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('📦 Floating inventory button clicked - Opening Global Inventory...');
+            console.log('Inventory manager ready?', inventoryManager.items.size > 0);
+            console.log('InventoryUI available?', typeof inventoryUI.openInventoryModal === 'function');
+            
+            // Debug: Test direct inventory access (identical to cross-craft button)
+            if (inventoryManager.items.size === 0) {
+                console.warn('⚠️ Inventory manager not ready, forcing initialization...');
+                inventoryManager.initializeFromIconMapping().then(() => {
+                    console.log('✅ Inventory initialized, opening modal...');
+                    inventoryUI.openInventoryModal();
+                }).catch(error => {
+                    console.error('❌ Failed to initialize inventory:', error);
+                });
+            } else {
+                inventoryUI.openInventoryModal();
+            }
+        });
+        
+        // Update tooltip
+        newFloatingBtn.title = 'Open Global Inventory Manager';
+        newFloatingBtn.setAttribute('aria-label', 'Open Global Inventory Manager');
+        
+        console.log('✅ Floating Inventory button setup complete');
+        
+    } else {
+        console.warn('❌ Floating inventory button not found in DOM');
+    }
 }
 
 // Start the application
@@ -5968,6 +8146,269 @@ if (document.readyState === 'loading') {
     initApp();
 }
 
+
+// Setup integration between craft navigation UI and existing systems
+function setupCraftNavigationIntegration() {
+    // Listen for quantity editor requests from the craft navigation UI
+    document.addEventListener('openQuantityEditor', (event) => {
+        const { materialName } = event.detail;
+        
+        // Get current value from global inventory system
+        let currentValue = 0;
+        try {
+            // Get from global inventory (for craft navigation system)
+            currentValue = globalInventory.getMaterialQuantity(materialName, 'global') || 0;
+            console.log('Retrieved quantity for', materialName, ':', currentValue);
+        } catch (error) {
+            console.warn('Could not get current quantity for', materialName, 'from globalInventory:', error);
+            // Fallback to existing input lookup
+            const existingInput = document.querySelector(`[data-material="${materialName}"]`);
+            currentValue = existingInput ? parseInt(existingInput.value) || 0 : 0;
+            console.log('Fallback quantity for', materialName, ':', currentValue);
+        }
+        
+        // Create a simple quantity editor modal
+        showQuantityEditorModal(materialName, currentValue);
+    });
+}
+
+// Simple quantity editor modal for the craft navigation system
+function showQuantityEditorModal(materialName, currentValue) {
+    // Create modal backdrop
+    const modalBackdrop = document.createElement('div');
+    modalBackdrop.className = 'modal-backdrop';
+    modalBackdrop.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    `;
+    
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.className = 'quantity-editor-modal';
+    modal.style.cssText = `
+        background: rgba(10, 23, 40, 0.95);
+        border: 1px solid rgba(14, 165, 233, 0.3);
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    `;
+    
+    modal.innerHTML = `
+        <div style="margin-bottom: 20px;">
+            <h3 style="color: var(--text-primary); margin: 0 0 8px 0; font-size: 18px; font-weight: 600;">
+                Edit Quantity
+            </h3>
+            <p style="color: var(--text-secondary); margin: 0; font-size: 14px;">
+                ${materialName}
+            </p>
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+            <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">
+                Current: ${currentValue}
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="color: var(--text-primary); display: block; margin-bottom: 8px; font-weight: 500;">
+                Set Total Quantity:
+            </label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button id="qty-decrease" style="
+                    background: rgba(71, 85, 105, 0.3);
+                    border: 1px solid rgba(71, 85, 105, 0.5);
+                    color: var(--text-secondary);
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 18px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">-</button>
+                <input 
+                    type="number" 
+                    id="quantity-input"
+                    value="${currentValue}"
+                    min="0"
+                    style="
+                        flex: 1;
+                        padding: 8px 12px;
+                        background: rgba(15, 23, 42, 0.8);
+                        border: 1px solid rgba(71, 85, 105, 0.5);
+                        border-radius: 6px;
+                        color: var(--text-primary);
+                        text-align: center;
+                        font-size: 16px;
+                    "
+                >
+                <button id="qty-increase" style="
+                    background: rgba(71, 85, 105, 0.3);
+                    border: 1px solid rgba(71, 85, 105, 0.5);
+                    color: var(--text-secondary);
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 18px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">+</button>
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 24px;">
+            <label style="color: var(--text-primary); display: block; margin-bottom: 8px; font-weight: 500;">
+                Or Add to Current:
+            </label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <input 
+                    type="number" 
+                    id="add-quantity-input"
+                    placeholder="Amount to add"
+                    min="0"
+                    style="
+                        flex: 1;
+                        padding: 8px 12px;
+                        background: rgba(15, 23, 42, 0.8);
+                        border: 1px solid rgba(71, 85, 105, 0.5);
+                        border-radius: 6px;
+                        color: var(--text-primary);
+                        text-align: center;
+                        font-size: 16px;
+                    "
+                >
+                <button id="qty-add" style="
+                    background: rgba(34, 197, 94, 0.2);
+                    border: 1px solid rgba(34, 197, 94, 0.4);
+                    color: rgba(34, 197, 94, 1);
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    font-size: 14px;
+                ">Add</button>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 12px;">
+            <button id="qty-cancel" style="
+                flex: 1;
+                padding: 10px 20px;
+                background: rgba(71, 85, 105, 0.3);
+                border: 1px solid rgba(71, 85, 105, 0.5);
+                color: var(--text-secondary);
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 600;
+            ">Cancel</button>
+            <button id="qty-save" style="
+                flex: 1;
+                padding: 10px 20px;
+                background: rgba(59, 130, 246, 0.2);
+                border: 1px solid rgba(59, 130, 246, 0.4);
+                color: rgba(59, 130, 246, 1);
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 600;
+            ">Save</button>
+        </div>
+    `;
+    
+    modalBackdrop.appendChild(modal);
+    document.body.appendChild(modalBackdrop);
+    
+    // Get elements
+    const quantityInput = modal.querySelector('#quantity-input');
+    const addQuantityInput = modal.querySelector('#add-quantity-input');
+    const decreaseBtn = modal.querySelector('#qty-decrease');
+    const increaseBtn = modal.querySelector('#qty-increase');
+    const addBtn = modal.querySelector('#qty-add');
+    const cancelBtn = modal.querySelector('#qty-cancel');
+    const saveBtn = modal.querySelector('#qty-save');
+    
+    // Focus on input
+    quantityInput.focus();
+    quantityInput.select();
+    
+    // Button handlers
+    decreaseBtn.addEventListener('click', () => {
+        const current = parseInt(quantityInput.value) || 0;
+        quantityInput.value = Math.max(0, current - 1);
+    });
+    
+    increaseBtn.addEventListener('click', () => {
+        const current = parseInt(quantityInput.value) || 0;
+        quantityInput.value = current + 1;
+    });
+    
+    // Add button handler
+    addBtn.addEventListener('click', () => {
+        const current = parseInt(quantityInput.value) || 0;
+        const addAmount = parseInt(addQuantityInput.value) || 0;
+        if (addAmount > 0) {
+            quantityInput.value = current + addAmount;
+            addQuantityInput.value = ''; // Clear the add input
+        }
+    });
+    
+    // Close modal
+    const closeModal = () => {
+        document.body.removeChild(modalBackdrop);
+    };
+    
+    cancelBtn.addEventListener('click', closeModal);
+    
+    modalBackdrop.addEventListener('click', (e) => {
+        if (e.target === modalBackdrop) {
+            closeModal();
+        }
+    });
+    
+    // Save handler
+    saveBtn.addEventListener('click', () => {
+        const newQuantity = parseInt(quantityInput.value) || 0;
+        
+        // Update the global inventory through the craft navigation system
+        import('./craft-system/global_inventory.js').then(({ globalInventory }) => {
+            globalInventory.setMaterialQuantity(materialName, newQuantity, 'global');
+        });
+        
+        // Update any existing inputs in the legacy system
+        const existingInputs = document.querySelectorAll(`[data-material="${materialName}"]`);
+        existingInputs.forEach(input => {
+            if (input.tagName === 'INPUT') {
+                input.value = newQuantity;
+                // Trigger change event to update the UI
+                input.dispatchEvent(new Event('change'));
+            }
+        });
+        
+        closeModal();
+    });
+    
+    // Keyboard support
+    quantityInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            saveBtn.click();
+        } else if (e.key === 'Escape') {
+            closeModal();
+        }
+    });
+}
 
 // Export for debugging
 // Helper functions for UI
@@ -6862,6 +9303,106 @@ function initStickyProgressDashboard() {
 
 // Initialize sticky dashboard when DOM is ready
 document.addEventListener('DOMContentLoaded', initStickyProgressDashboard);
+
+// Cross-Craft Modal functionality
+function initCrossCraftModal() {
+    const crossCraftBtn = document.getElementById('cross-craft-btn');
+    const crossCraftModal = document.getElementById('cross-craft-modal');
+    const crossCraftModalClose = document.getElementById('cross-craft-modal-close');
+    
+    // Skip setting up the button click handler as it will be handled by the new inventory system
+    console.log('📊 Cross-craft modal initialized (button handler will be overridden by inventory system)');
+    
+    // Keep the existing modal close functionality for fallback
+    // if (crossCraftBtn) {
+    //     crossCraftBtn.addEventListener('click', () => {
+    //         crossCraftModal.classList.remove('hidden');
+    //         // Initialize the cross-craft inventory UI if needed
+    //         if (craftNavigationUI && craftNavigationUI.setupGlobalInventoryPanel) {
+    //             craftNavigationUI.setupGlobalInventoryPanel();
+    //         }
+    //     });
+    // }
+    
+    if (crossCraftModalClose) {
+        crossCraftModalClose.addEventListener('click', () => {
+            crossCraftModal.classList.add('hidden');
+        });
+    }
+    
+    // Close modal when clicking outside
+    if (crossCraftModal) {
+        crossCraftModal.addEventListener('click', (e) => {
+            if (e.target === crossCraftModal) {
+                crossCraftModal.classList.add('hidden');
+            }
+        });
+        
+        // Handle storage tab switching within the modal
+        const storageTabs = crossCraftModal.querySelectorAll('.storage-tab');
+        const storageContents = crossCraftModal.querySelectorAll('.storage-content');
+        
+        storageTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.dataset.tab;
+                
+                // Update active tab
+                storageTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Update active content
+                storageContents.forEach(content => {
+                    content.classList.remove('active');
+                    if (content.id === `storage-${targetTab}`) {
+                        content.classList.add('active');
+                    }
+                });
+            });
+        });
+    }
+}
+
+// Initialize cross-craft modal when DOM is ready
+document.addEventListener('DOMContentLoaded', initCrossCraftModal);
+
+// Make craftNavigationUI globally accessible for updates
+window.craftNavigationUI = craftNavigationUI;
+
+// Make syncFloatingDashboard globally accessible
+window.syncFloatingDashboard = syncFloatingDashboard;
+
+// Global function to update dashboard - can be called from anywhere
+window.updateDashboard = function() {
+    // Update active projects count
+    if (window.craftNavigationUI && window.craftNavigationUI.updateActiveProjectsDisplay) {
+        window.craftNavigationUI.updateActiveProjectsDisplay();
+    }
+    
+    // Additional direct updates as fallback
+    if (window.craftNavigationUI && window.craftNavigationUI.activeProjects) {
+        const actualCount = window.craftNavigationUI.activeProjects.size;
+        
+        // Update main dashboard count
+        const dashboardCount = document.getElementById('dashboard-active-projects-count');
+        if (dashboardCount) {
+            dashboardCount.textContent = actualCount;
+        }
+        
+        // Update main dashboard breakdown
+        const breakdown = document.getElementById('projects-breakdown');
+        if (breakdown) {
+            breakdown.textContent = `${actualCount} pending completion`;
+        }
+    }
+    
+    // Update overall progress if needed
+    updateOverallProgress();
+    
+    // Sync floating dashboard
+    if (window.syncFloatingDashboard) {
+        window.syncFloatingDashboard();
+    }
+};
 
 window.BDOApp = {
     ships,
