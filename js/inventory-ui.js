@@ -979,14 +979,127 @@ export class InventoryUI {
     }
     
     /**
-     * Save quantity changes
+     * Save quantity changes with unified completion system integration
      */
-    saveQuantity() {
+    async saveQuantity() {
         const input = this.quantityModal?.querySelector('#quantity-input');
         if (!input || !this.selectedItem) return;
         
         const newQuantity = parseInt(input.value) || 0;
-        inventoryManager.setItemQuantity(this.selectedItem.name, newQuantity);
+        const oldQuantity = this.selectedItem.quantity;
+        const neededQuantity = this.selectedItem.needed;
+        const itemName = this.selectedItem.name;
+        
+        console.log(`📦 Quantity change: ${itemName} ${oldQuantity} → ${newQuantity} (needed: ${neededQuantity})`);
+        
+        // DEBUG: Log selectedItem properties
+        console.log(`🔍 DEBUG selectedItem for ${itemName}:`, {
+            name: this.selectedItem.name,
+            isClickable: this.selectedItem.isClickable,
+            needed: this.selectedItem.needed,
+            quantity: this.selectedItem.quantity,
+            keys: Object.keys(this.selectedItem)
+        });
+        
+        console.log(`🔍 DEBUG: About to check completion conditions...`);
+        
+        // Check if this is a recipe completion (quantity now >= needed and it's a clickable recipe)
+        const isRecipeCompletion = (
+            this.selectedItem.isClickable && 
+            neededQuantity > 0 && 
+            oldQuantity < neededQuantity && 
+            newQuantity >= neededQuantity
+        );
+        
+        // Debug logging for completion detection
+        console.log(`🔍 Recipe completion check for ${itemName}: isClickable=${this.selectedItem.isClickable}, needed=${neededQuantity}, ${oldQuantity}→${newQuantity}, result=${isRecipeCompletion}`);
+        
+        if (isRecipeCompletion) {
+            console.log(`🎯 Recipe completion detected via quantity: ${itemName}`);
+            
+            try {
+                // Use unified completion system instead of just setting quantity
+                const { completeRecipe, validateRecipeForCompletion } = await import('./craft-system/global_inventory.js');
+                
+                // For manual quantity setting in inventory UI, skip dependency validation
+                // This allows users to mark recipes as completed when they've crafted them externally
+                console.log(`🎯 Manual recipe completion via inventory UI - bypassing dependency validation for ${itemName}`);
+                
+                // Optional: Show warning if dependencies aren't met, but still allow completion
+                const validationResult = await validateRecipeForCompletion(itemName, {});
+                if (!validationResult.canComplete) {
+                    console.log(`⚠️ Note: Recipe ${itemName} has unmet dependencies, but allowing manual completion`);
+                    console.log(`📋 Missing: ${validationResult.reason}`);
+                }
+                
+                // Close modal first to prevent UI issues
+                this.closeQuantityModal();
+                
+                // Show loading feedback
+                const originalButton = document.querySelector(`[data-item="${itemName}"] .quantity-btn`);
+                if (originalButton) {
+                    const originalText = originalButton.textContent;
+                    originalButton.textContent = '⏳';
+                    originalButton.disabled = true;
+                }
+                
+                // Complete the recipe using unified system with dependency check bypass
+                const transaction = await completeRecipe(itemName, 'inventory_quantity', {
+                    triggeredFrom: 'quantity_modal',
+                    originalQuantity: oldQuantity,
+                    targetQuantity: newQuantity,
+                    autoCascade: true,
+                    skipDependencyCheck: true, // Allow manual completion regardless of dependencies
+                    manualCompletion: true // Flag this as a manual completion
+                });
+                
+                console.log(`✅ Recipe completed via quantity setting:`, transaction);
+                
+                // Refresh the display
+                this.renderInventoryContent();
+                
+                // Show success notification
+                if (window.UnifiedCompletion && window.UnifiedCompletion.showNotification) {
+                    const cascadeText = transaction.cascadeCompletions && transaction.cascadeCompletions.length > 0 
+                        ? ` (+${transaction.cascadeCompletions.length} cascades)` : '';
+                    window.UnifiedCompletion.showNotification(
+                        'Recipe Completed', 
+                        `${itemName} completed successfully${cascadeText}`, 
+                        'success'
+                    );
+                }
+                
+                return;
+                
+            } catch (error) {
+                console.error(`❌ Unified completion failed for ${itemName}:`, error);
+                
+                // Fallback to regular quantity setting
+                console.log(`⚠️ Falling back to regular quantity setting for ${itemName}`);
+                inventoryManager.setItemQuantity(itemName, newQuantity);
+                
+                // Close modal and refresh display
+                this.closeQuantityModal();
+                this.renderInventoryContent();
+                
+                if (window.UnifiedCompletion && window.UnifiedCompletion.showNotification) {
+                    // Provide a more user-friendly error message
+                    const errorMsg = error.message.includes('Missing dependencies') 
+                        ? `Recipe ${itemName} has missing dependencies. Quantity updated instead.`
+                        : `Could not complete recipe: ${error.message}. Set as regular quantity instead.`;
+                    
+                    window.UnifiedCompletion.showNotification(
+                        'Completion Error', 
+                        errorMsg, 
+                        'error'
+                    );
+                }
+            }
+        } else {
+            // Regular quantity setting (not a recipe completion)
+            inventoryManager.setItemQuantity(itemName, newQuantity);
+            console.log(`📦 Regular quantity update: ${itemName} = ${newQuantity}`);
+        }
         
         this.closeQuantityModal();
         this.renderInventoryContent(); // Refresh the display

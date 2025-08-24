@@ -823,6 +823,8 @@ option {
   align-items: center;
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
+  position: relative;
+  z-index: 1;
 }
 
 /* Clean completed progress text styling */
@@ -831,8 +833,15 @@ option {
   font-weight: 600;
   font-size: var(--font-size-sm);
   position: relative;
-  text-align: center;
   z-index: 2;
+}
+
+/* Ensure non-circular progress text stays in normal flow */
+.progress-text:not(.circular-progress .progress-text) {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 /* Override positioning for circular progress completed text */

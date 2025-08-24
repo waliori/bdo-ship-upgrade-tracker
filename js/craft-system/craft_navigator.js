@@ -54,6 +54,9 @@ export class CraftNavigator {
         // Initialize from localStorage
         this.initializeFromStorage();
         
+        // Initialize completion tracking state
+        this.initializeCompletionState();
+        
         // Setup event listeners for inventory changes
         this.setupInventoryEventListeners();
     }
@@ -253,11 +256,23 @@ export class CraftNavigator {
     }
     
     /**
-     * Enhanced add to active projects with localStorage
+     * Enhanced add to active projects with localStorage and auto-dependency management
      */
-    addToActiveProjects(craftName, projectData = {}) {
+    addToActiveProjects(craftName, projectData = {}, options = {}) {
+        const { 
+            skipDuplicateCheck = false, 
+            skipAutoDependencies = false,
+            isAutoDependency = false
+        } = options;
+        
         if (!this.allCrafts[craftName]) {
             throw new Error(`Cannot add unknown craft to projects: ${craftName}`);
+        }
+        
+        // Check if already in active projects (prevent duplicates)
+        if (!skipDuplicateCheck && this.activeCrafts.has(craftName)) {
+            console.log(`Project ${craftName} is already active`);
+            return null; // Already exists
         }
         
         this.activeCrafts.add(craftName);
@@ -269,8 +284,14 @@ export class CraftNavigator {
             addedAt: Date.now(),
             requirements: this.allCrafts[craftName].requirements || {},
             metadata: this.metadata[craftName],
+            isAutoDependency: isAutoDependency,
             ...projectData
         };
+        
+        // Auto-add recipe dependencies with 0 quantities
+        if (!skipAutoDependencies) {
+            this.autoAddRecipeDependencies(craftName);
+        }
         
         // Update cross-craft dependencies
         this.updateCrossCraftDependencies(craftName);
@@ -281,10 +302,135 @@ export class CraftNavigator {
         // Trigger event
         this.triggerNavigationEvent('project-added', {
             project: craftName,
-            data: project
+            data: project,
+            isAutoDependency: isAutoDependency
         });
         
         return project;
+    }
+    
+    /**
+     * Check if a recipe is part of a linear crafting chain (A → B → C)
+     * In linear chains, we should not auto-add intermediate steps as separate projects
+     */
+    isPartOfLinearCraftingChain(dependencyName, parentName) {
+        // Check if the dependency is a direct linear progression to the parent
+        // A linear chain means: dependency makes parent, and nothing else significant
+        
+        const parentCraft = this.allCrafts[parentName];
+        const dependencyCraft = this.allCrafts[dependencyName];
+        
+        if (!parentCraft || !dependencyCraft) return false;
+        
+        // Check if this is a typical ship progression chain
+        const shipProgressions = [
+            ['Bartali Sailboat', 'Epheria Sailboat', 'Epheria Caravel', 'Carrack (Advance)'],
+            ['Bartali Sailboat', 'Epheria Frigate', 'Epheria Galleass', 'Carrack (Volante)'],
+            ['Bartali Sailboat', 'Epheria Frigate', 'Epheria Galleass', 'Carrack (Valor)']
+        ];
+        
+        // Check if both recipes are in the same progression chain
+        for (const chain of shipProgressions) {
+            const parentIndex = chain.indexOf(parentName);
+            const dependencyIndex = chain.indexOf(dependencyName);
+            
+            if (parentIndex !== -1 && dependencyIndex !== -1) {
+                // If dependency comes right before parent in chain, it's part of linear progression
+                if (dependencyIndex === parentIndex - 1) {
+                    console.log(`🔗 Detected linear progression: ${dependencyName} → ${parentName}`);
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Auto-add recipe dependencies that have 0 quantities
+     */
+    autoAddRecipeDependencies(craftName) {
+        const craft = this.allCrafts[craftName];
+        if (!craft || !craft.requirements) return;
+        
+        const recipeDependencies = [];
+        
+        Object.entries(craft.requirements).forEach(([materialName, reqData]) => {
+            // Check if this material is itself a recipe (exists in allCrafts)
+            if (this.allCrafts[materialName]) {
+                try {
+                    // Try to access globalInventory directly (it should be available)
+                    // Import globalInventory to check quantities
+                    import('./global_inventory.js').then(({ globalInventory }) => {
+                        const storedQuantity = globalInventory.getMaterialQuantity(materialName, 'global');
+                        
+                        // If stored quantity is 0 AND not already in active projects, auto-add as dependency project
+                        if (storedQuantity === 0 && !this.activeCrafts.has(materialName)) {
+                            // Check if this dependency is part of a linear crafting chain
+                            const isPartOfCraftingChain = this.isPartOfLinearCraftingChain(materialName, craftName);
+                            
+                            if (!isPartOfCraftingChain) {
+                                console.log(`Auto-adding recipe dependency: ${materialName} (0 quantity, not already active, not part of chain)`);
+                                this.addToActiveProjects(materialName, {
+                                    addedReason: `Auto-dependency for ${craftName}`,
+                                    parentProject: craftName
+                                }, {
+                                    skipDuplicateCheck: false, // Still check for duplicates
+                                    skipAutoDependencies: false, // Allow recursive dependencies
+                                    isAutoDependency: true
+                                });
+                                recipeDependencies.push(materialName);
+                            } else {
+                                console.log(`🔗 Skipping auto-add of ${materialName} - part of linear crafting chain from ${craftName}`);
+                            }
+                        } else if (this.activeCrafts.has(materialName)) {
+                            console.log(`🔄 Skipping auto-add of ${materialName} - already in active projects`);
+                        }
+                    }).catch(err => {
+                        console.warn('Could not load globalInventory for dependency check:', err);
+                        
+                        // Fallback: assume 0 quantity and auto-add (better to over-add than miss dependencies)
+                        // But still check if already in active projects to avoid duplicates
+                        if (!this.activeCrafts.has(materialName)) {
+                            console.log(`Auto-adding recipe dependency: ${materialName} (fallback - assuming 0 quantity, not already active)`);
+                            this.addToActiveProjects(materialName, {
+                                addedReason: `Auto-dependency for ${craftName} (fallback)`,
+                                parentProject: craftName
+                            }, {
+                                skipDuplicateCheck: false,
+                                skipAutoDependencies: false,
+                                isAutoDependency: true
+                            });
+                            recipeDependencies.push(materialName);
+                        } else {
+                            console.log(`🔄 Skipping fallback auto-add of ${materialName} - already in active projects`);
+                        }
+                    });
+                } catch (error) {
+                    console.warn('Error in autoAddRecipeDependencies:', error);
+                }
+            }
+        });
+        
+        return recipeDependencies;
+    }
+    
+    /**
+     * Check if a craft can be added to projects (for button state management)
+     */
+    canAddToProjects(craftName, options = {}) {
+        if (!this.allCrafts[craftName]) {
+            return { canAdd: false, reason: 'Unknown craft' };
+        }
+        
+        // Check if already in active projects
+        if (this.activeCrafts.has(craftName)) {
+            return { canAdd: false, reason: 'Already in projects' };
+        }
+        
+        // All recipes can be added as projects - no restrictions!
+        // The auto-dependency addition happens when adding, not as a restriction
+        return { canAdd: true };
     }
     
     /**
@@ -655,24 +801,38 @@ export class CraftNavigator {
     }
     
     /**
-     * Enhanced global requirements calculation with localStorage caching
+     * Enhanced global requirements calculation with localStorage caching and completion tracking
      */
     calculateGlobalRequirements() {
-        const cacheKey = `global-reqs-${Array.from(this.activeCrafts).sort().join('-')}`;
+        // Get completed projects to exclude from calculations
+        const completedProjects = this.getCompletedProjects();
+        const activeCraftsArray = Array.from(this.activeCrafts).filter(craftName => 
+            !completedProjects.includes(craftName)
+        );
+        
+        const cacheKey = `global-reqs-${activeCraftsArray.sort().join('-')}-completed-${completedProjects.length}`;
         const cached = this.crossCraftCache.get(cacheKey);
         
         if (cached && (Date.now() - cached.timestamp) < 30000) { // 30 second cache
             return cached.requirements;
         }
         
+        console.log(`🔄 Calculating global requirements for ${activeCraftsArray.length} active projects (excluding ${completedProjects.length} completed)`);
+        
         const globalReqs = {};
         
-        for (const craftName of this.activeCrafts) {
+        for (const craftName of activeCraftsArray) {
             const craft = this.allCrafts[craftName];
             if (!craft) continue;
             
+            // Check if this specific craft is completed
+            if (this.isProjectCompleted(craftName)) {
+                console.log(`⏭️ Skipping completed project: ${craftName}`);
+                continue;
+            }
+            
             // Recursively calculate all requirements with enhanced tracking
-            this._addRequirementsToGlobal(craft.requirements, globalReqs, 1, craftName);
+            this._addRequirementsToGlobal(craft.requirements, globalReqs, 1, craftName, completedProjects);
         }
         
         // Cache the result
@@ -685,9 +845,9 @@ export class CraftNavigator {
     }
     
     /**
-     * Enhanced helper function to recursively add requirements
+     * Enhanced helper function to recursively add requirements with completion tracking
      */
-    _addRequirementsToGlobal(requirements, globalReqs, multiplier, sourceCraft = null) {
+    _addRequirementsToGlobal(requirements, globalReqs, multiplier, sourceCraft = null, completedProjects = []) {
         for (const [reqName, reqData] of Object.entries(requirements)) {
             
             // Handle ship alternatives specially
@@ -696,6 +856,13 @@ export class CraftNavigator {
                 const recommendedAlternative = reqData.alternatives.find(alt => alt.isRecommended);
                 if (recommendedAlternative) {
                     const altName = recommendedAlternative.name;
+                    
+                    // Skip if this alternative recipe is completed
+                    if (completedProjects.includes(altName) || this.isProjectCompleted(altName)) {
+                        console.log(`⏭️ Skipping completed alternative: ${altName}`);
+                        continue;
+                    }
+                    
                     const quantity = recommendedAlternative.quantity * multiplier;
                     
                     if (!globalReqs[altName]) {
@@ -719,13 +886,20 @@ export class CraftNavigator {
                             this.allCrafts[altName].requirements,
                             globalReqs,
                             quantity,
-                            sourceCraft
+                            sourceCraft,
+                            completedProjects
                         );
                     }
                 }
             } else {
                 // Handle regular requirements
                 const quantity = reqData.quantity * multiplier;
+                
+                // If this is a recipe (isClickable) and it's completed, skip adding its requirements
+                if (reqData.isClickable && (completedProjects.includes(reqName) || this.isProjectCompleted(reqName))) {
+                    console.log(`⏭️ Skipping completed recipe: ${reqName}`);
+                    continue;
+                }
                 
                 if (!globalReqs[reqName]) {
                     globalReqs[reqName] = {
@@ -740,14 +914,22 @@ export class CraftNavigator {
                 globalReqs[reqName].totalNeeded += quantity;
                 globalReqs[reqName].usedBy.add(sourceCraft || this.currentCraft);
                 
-                // If this requirement is also a craft, recursively add its requirements
-                if (this.allCrafts[reqName]) {
+                // If this requirement is also a craft and not completed AND not already an active project, 
+                // recursively add its requirements
+                const isActiveProject = this.activeCrafts.has(reqName);
+                const shouldRecurse = this.allCrafts[reqName] && !this.isProjectCompleted(reqName) && !isActiveProject;
+                
+                if (shouldRecurse) {
+                    console.log(`🔄 Recursing into ${reqName} requirements (not an active project)`);
                     this._addRequirementsToGlobal(
                         this.allCrafts[reqName].requirements,
                         globalReqs,
                         quantity,
-                        sourceCraft
+                        sourceCraft,
+                        completedProjects
                     );
+                } else if (isActiveProject) {
+                    console.log(`⏭️ Skipping recursion into ${reqName} - already an active project, its requirements are tracked separately`);
                 }
             }
         }
@@ -812,6 +994,141 @@ export class CraftNavigator {
             currentType: this.craftType,
             breadcrumbLength: this.breadcrumb.length
         };
+    }
+    
+    // ============================================================================
+    // COMPLETION TRACKING METHODS
+    // ============================================================================
+    
+    /**
+     * Mark a project as completed in the navigator state
+     */
+    markProjectComplete(craftName) {
+        console.log(`🎯 CraftNavigator: Marking project complete: ${craftName}`);
+        
+        try {
+            // Update local active crafts state (keep it in the set for reference)
+            // but mark it as completed in our internal state
+            if (!this.completedProjects) {
+                this.completedProjects = new Set();
+            }
+            
+            this.completedProjects.add(craftName);
+            
+            // Update localStorage state
+            const navigationState = this.getStorageItem(this.storageKeys.navigationState, {});
+            if (!navigationState.completedProjects) {
+                navigationState.completedProjects = [];
+            }
+            
+            if (!navigationState.completedProjects.includes(craftName)) {
+                navigationState.completedProjects.push(craftName);
+            }
+            
+            navigationState.lastCompletionUpdate = Date.now();
+            this.setStorageItem(this.storageKeys.navigationState, navigationState);
+            
+            console.log(`✅ CraftNavigator: Project marked as completed: ${craftName}`);
+            return true;
+            
+        } catch (error) {
+            console.error(`❌ CraftNavigator: Failed to mark project complete: ${craftName}`, error);
+            return false;
+        }
+    }
+    
+    /**
+     * Check if a project is completed in navigator state
+     */
+    isProjectCompleted(craftName) {
+        if (this.completedProjects && this.completedProjects.has(craftName)) {
+            return true;
+        }
+        
+        // Check localStorage state
+        const navigationState = this.getStorageItem(this.storageKeys.navigationState, {});
+        return navigationState.completedProjects && navigationState.completedProjects.includes(craftName);
+    }
+    
+    /**
+     * Mark a project as uncompleted (remove from completed state)
+     */
+    markProjectUncompleted(craftName) {
+        console.log(`🔄 CraftNavigator: Marking project uncompleted: ${craftName}`);
+        
+        try {
+            // Update local state
+            if (this.completedProjects) {
+                this.completedProjects.delete(craftName);
+            }
+            
+            // Update localStorage state
+            const navigationState = this.getStorageItem(this.storageKeys.navigationState, {});
+            if (navigationState.completedProjects) {
+                navigationState.completedProjects = navigationState.completedProjects.filter(name => name !== craftName);
+                navigationState.lastCompletionUpdate = Date.now();
+                this.setStorageItem(this.storageKeys.navigationState, navigationState);
+            }
+            
+            console.log(`✅ CraftNavigator: Project marked as uncompleted: ${craftName}`);
+            return true;
+            
+        } catch (error) {
+            console.error(`❌ CraftNavigator: Failed to mark project uncompleted: ${craftName}`, error);
+            return false;
+        }
+    }
+    
+    /**
+     * Get all completed projects
+     */
+    getCompletedProjects() {
+        const navigationState = this.getStorageItem(this.storageKeys.navigationState, {});
+        return navigationState.completedProjects || [];
+    }
+    
+    /**
+     * Enhanced localStorage get with JSON parsing (for completion tracking)
+     */
+    getStorageItem(key, defaultValue = null) {
+        try {
+            const item = localStorage.getItem(key);
+            return item ? JSON.parse(item) : defaultValue;
+        } catch (error) {
+            console.warn(`Failed to parse localStorage item ${key}:`, error);
+            return defaultValue;
+        }
+    }
+    
+    /**
+     * Enhanced localStorage set with JSON stringification (for completion tracking)
+     */
+    setStorageItem(key, value) {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+            return true;
+        } catch (error) {
+            console.error(`Failed to save to localStorage ${key}:`, error);
+            return false;
+        }
+    }
+    
+    /**
+     * Initialize completion state from localStorage
+     */
+    initializeCompletionState() {
+        try {
+            const navigationState = this.getStorageItem(this.storageKeys.navigationState, {});
+            if (navigationState.completedProjects) {
+                this.completedProjects = new Set(navigationState.completedProjects);
+                console.log(`📦 CraftNavigator: Loaded ${navigationState.completedProjects.length} completed projects from storage`);
+            } else {
+                this.completedProjects = new Set();
+            }
+        } catch (error) {
+            console.warn('Failed to initialize completion state:', error);
+            this.completedProjects = new Set();
+        }
     }
 }
 

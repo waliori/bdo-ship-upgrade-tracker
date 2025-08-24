@@ -4,7 +4,7 @@
  */
 
 import { craftNavigator, addToActiveProjects, calculateGlobalRequirements } from './craft-system/craft_navigator.js';
-import { globalInventory } from './craft-system/global_inventory.js';
+import { globalInventory, completeRecipe, validateRecipeForCompletion, isRecipeCompleted } from './craft-system/global_inventory.js';
 import { iconLoader } from './icon-loader.js';
 
 export class CraftNavigationUI {
@@ -426,9 +426,14 @@ export class CraftNavigationUI {
         });
         
         // Add to projects button
-        document.getElementById('add-to-projects-btn')?.addEventListener('click', () => {
+        document.getElementById('add-to-projects-btn')?.addEventListener('click', async () => {
             if (this.currentCraft) {
-                this.addToActiveProjects(this.currentCraft);
+                try {
+                    await this.addToActiveProjects(this.currentCraft);
+                } catch (error) {
+                    console.error('Error adding to active projects:', error);
+                    this.showToast(`Error adding ${this.currentCraft}: ${error.message}`, 'error');
+                }
             }
         });
         
@@ -711,6 +716,67 @@ export class CraftNavigationUI {
         
         // Populate requirements
         await this.populateRequirements(craftInfo.craft.requirements, craftName);
+        
+        // Update button states
+        await this.updateAddToProjectsButtonState();
+    }
+    
+    /**
+     * Update the Add to Projects button state based on current craft
+     */
+    async updateAddToProjectsButtonState() {
+        const button = document.getElementById('add-to-projects-btn');
+        if (!button || !this.currentCraft) return;
+        
+        try {
+            const canAddResult = await craftNavigator.canAddToProjects(this.currentCraft);
+            
+            if (canAddResult.canAdd === false) {
+                // Gray out the button - only for already added items
+                button.disabled = true;
+                button.classList.add('disabled');
+                
+                // Update button text to show reason
+                const btnText = button.querySelector('.btn-text') || button.childNodes[button.childNodes.length - 1];
+                if (btnText) {
+                    btnText.textContent = canAddResult.reason === 'Already in projects' ? 
+                        'Already Added' : 
+                        'Cannot Add';
+                }
+                
+                // Update icon
+                const btnIcon = button.querySelector('.btn-icon');
+                if (btnIcon) {
+                    btnIcon.textContent = canAddResult.reason === 'Already in projects' ? '✅' : '❌';
+                }
+                
+                // Update title for tooltip
+                button.title = canAddResult.reason;
+            } else {
+                // Enable the button - all recipes can now be added!
+                button.disabled = false;
+                button.classList.remove('disabled');
+                
+                // Reset button text and icon
+                const btnText = button.querySelector('.btn-text') || button.childNodes[button.childNodes.length - 1];
+                if (btnText) {
+                    btnText.textContent = 'Add to Projects';
+                }
+                
+                const btnIcon = button.querySelector('.btn-icon');
+                if (btnIcon) {
+                    btnIcon.textContent = '➕';
+                }
+                
+                // Clear tooltip
+                button.title = 'Add this recipe to your active projects';
+            }
+        } catch (error) {
+            console.warn('Error updating button state:', error);
+            // Default to enabled if there's an error
+            button.disabled = false;
+            button.classList.remove('disabled');
+        }
     }
     
     /**
@@ -1024,9 +1090,18 @@ export class CraftNavigationUI {
     /**
      * Enhanced add craft to active projects with localStorage integration
      */
-    addToActiveProjects(craftName) {
+    async addToActiveProjects(craftName, forceAdd = false) {
         if (!craftNavigator.allCrafts[craftName]) {
             console.warn(`Cannot add unknown craft: ${craftName}`);
+            return false;
+        }
+        
+        // Check if can be added (prevents duplicates)
+        const canAddResult = await craftNavigator.canAddToProjects(craftName);
+        
+        if (canAddResult.canAdd === false) {
+            console.log(`Cannot add ${craftName}: ${canAddResult.reason}`);
+            this.showToast(`${craftName}: ${canAddResult.reason}`, 'info');
             return false;
         }
         
@@ -1040,35 +1115,43 @@ export class CraftNavigationUI {
         // Add to global inventory manager with enhanced tracking
         globalInventory.addProject(craftName, projectData, 'normal');
         
-        // Update local state
-        craftNavigator.addToActiveProjects(craftName, projectData);
-        this.activeProjects.add(craftName);
-        this.saveActiveProjects();
-        this.updateActiveProjectsDisplay();
+        // Update local state using enhanced craftNavigator method (with auto-dependencies)
+        const addedProject = craftNavigator.addToActiveProjects(craftName, projectData);
         
-        // Update all craft cards to reflect new state
-        this.updateAllCraftCards();
-        
-        // Update global dashboard
-        if (window.updateDashboard) {
-            window.updateDashboard();
-        }
-        
-        // Update inventory system if available
-        if (window.inventoryManager && window.inventoryManager.updateNeededQuantities) {
-            console.log('🔄 Calling inventory system update after project add...');
-            window.inventoryManager.updateNeededQuantities();
+        if (addedProject) {
+            this.activeProjects.add(craftName);
+            this.saveActiveProjects();
+            this.updateActiveProjectsDisplay();
+            
+            // Update all craft cards to reflect new state
+            this.updateAllCraftCards();
+            
+            // Update button states for current craft
+            await this.updateAddToProjectsButtonState();
+            
+            // Update global dashboard
+            if (window.updateDashboard) {
+                window.updateDashboard();
+            }
+            
+            // Update inventory system if available
+            if (window.inventoryManager && window.inventoryManager.updateNeededQuantities) {
+                console.log('🔄 Calling inventory system update after project add...');
+                window.inventoryManager.updateNeededQuantities();
+            } else {
+                console.warn('❌ Inventory manager not available on window object');
+            }
+            
+            // Show success feedback
+            this.showToast(`Added ${craftName} to active projects with auto-dependencies`, 'success');
+            
+            console.log(`➕ Added project: ${craftName} with auto-dependencies`);
+            return true;
         } else {
-            console.warn('❌ Inventory manager not available on window object');
+            console.log(`Project ${craftName} was already active or couldn't be added`);
+            await this.updateAddToProjectsButtonState(); // Update button state anyway
+            return false;
         }
-        
-        // Show success feedback
-        this.showToast(`Added ${craftName} to active projects`, 'success');
-        
-        console.log(`➕ Added project: ${craftName}`);
-        console.log('🔍 Debug - window.inventoryManager available?', !!window.inventoryManager);
-        console.log('🔍 Debug - updateNeededQuantities method?', !!(window.inventoryManager && window.inventoryManager.updateNeededQuantities));
-        return true;
     }
     
     /**
@@ -1577,6 +1660,7 @@ export class CraftNavigationUI {
         // Implementation for toast notifications
         console.log(`${type.toUpperCase()}: ${message}`);
     }
+    
     
     /**
      * Refresh current view

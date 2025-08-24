@@ -16,25 +16,25 @@ export const data = {
                 "baseName": "Ship Upgrade Permit: Epheria Sailboat",
                 "isClickable": true
             },
-            "+10 Bartali Sailboat: Old Figurehead": {
+            "Bartali Sailboat: Old Figurehead": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Bartali Sailboat: Old Figurehead",
                 "isClickable": true
             },
-            "+10 Bartali Sailboat: Old Plating": {
+            "Bartali Sailboat: Old Plating": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Bartali Sailboat: Old Plating",
                 "isClickable": true
             },
-            "+10 Bartali Sailboat: Old Cannon": {
+            "Bartali Sailboat: Old Cannon": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Bartali Sailboat: Old Cannon",
                 "isClickable": true
             },
-            "+10 Bartali Sailboat: Old Wind Sail": {
+            "Bartali Sailboat: Old Wind Sail": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Bartali Sailboat: Old Wind Sail",
@@ -174,25 +174,25 @@ export const data = {
                 "baseName": "Ship Upgrade Permit: Epheria Caravel",
                 "isClickable": false
             },
-            "+10 Epheria: Old Figurehead": {
+            "Epheria: Old Figurehead": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria: Old Figurehead",
                 "isClickable": true
             },
-            "+10 Epheria: Old Plating": {
+            "Epheria: Old Plating": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria: Old Plating",
                 "isClickable": true
             },
-            "+10 Epheria: Old Cannon": {
+            "Epheria: Old Cannon": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria: Old Cannon",
                 "isClickable": true
             },
-            "+10 Epheria: Old Wind Sail": {
+            "Epheria: Old Wind Sail": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria: Old Wind Sail",
@@ -251,25 +251,25 @@ export const data = {
                 "baseName": "Epheria Caravel",
                 "isClickable": true
             },
-            "+10 Epheria Caravel: Black Dragon Figurehead": {
+            "Epheria Caravel: Black Dragon Figurehead": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria Caravel: Black Dragon Figurehead",
                 "isClickable": true
             },
-            "+10 Epheria Caravel: Upgraded Plating": {
+            "Epheria Caravel: Upgraded Plating": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria Caravel: Upgraded Plating",
                 "isClickable": true
             },
-            "+10 Epheria Caravel: Mayna Cannon": {
+            "Epheria Caravel: Mayna Cannon": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria Caravel: Mayna Cannon",
                 "isClickable": true
             },
-            "+10 Epheria Caravel: Stratus Wind Sail": {
+            "Epheria Caravel: Stratus Wind Sail": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria Caravel: Stratus Wind Sail",
@@ -316,25 +316,25 @@ export const data = {
                 "baseName": "Epheria Caravel",
                 "isClickable": true
             },
-            "+10 Epheria Caravel: Black Dragon Figurehead": {
+            "Epheria Caravel: Black Dragon Figurehead": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria Caravel: Black Dragon Figurehead",
                 "isClickable": true
             },
-            "+10 Epheria Caravel: Upgraded Plating": {
+            "Epheria Caravel: Upgraded Plating": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria Caravel: Upgraded Plating",
                 "isClickable": true
             },
-            "+10 Epheria Caravel: Mayna Cannon": {
+            "Epheria Caravel: Mayna Cannon": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria Caravel: Mayna Cannon",
                 "isClickable": true
             },
-            "+10 Epheria Caravel: Stratus Wind Sail": {
+            "Epheria Caravel: Stratus Wind Sail": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria Caravel: Stratus Wind Sail",
@@ -387,25 +387,25 @@ export const data = {
                 "baseName": "Ship Upgrade Permit: Epheria Frigate",
                 "isClickable": false
             },
-            "+10 Bartali Sailboat: Old Figurehead": {
+            "Bartali Sailboat: Old Figurehead": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Bartali Sailboat: Old Figurehead",
                 "isClickable": true
             },
-            "+10 Bartali Sailboat: Old Plating": {
+            "Bartali Sailboat: Old Plating": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Bartali Sailboat: Old Plating",
                 "isClickable": true
             },
-            "+10 Bartali Sailboat: Old Cannon": {
+            "Bartali Sailboat: Old Cannon": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Bartali Sailboat: Old Cannon",
                 "isClickable": true
             },
-            "+10 Bartali Sailboat: Old Wind Sail": {
+            "Bartali Sailboat: Old Wind Sail": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Bartali Sailboat: Old Wind Sail",
@@ -545,25 +545,25 @@ export const data = {
                 "baseName": "Ship Upgrade Permit: Epheria Galleass",
                 "isClickable": false
             },
-            "+10 Epheria: Old Figurehead": {
+            "Epheria: Old Figurehead": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria: Old Figurehead",
                 "isClickable": true
             },
-            "+10 Epheria: Old Plating": {
+            "Epheria: Old Plating": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria: Old Plating",
                 "isClickable": true
             },
-            "+10 Epheria: Old Cannon": {
+            "Epheria: Old Cannon": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria: Old Cannon",
                 "isClickable": true
             },
-            "+10 Epheria: Old Wind Sail": {
+            "Epheria: Old Wind Sail": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria: Old Wind Sail",
@@ -622,25 +622,25 @@ export const data = {
                 "baseName": "Epheria Galleass",
                 "isClickable": true
             },
-            "+10 Epheria Galleass: Black Dragon Figurehead": {
+            "Epheria Galleass: Black Dragon Figurehead": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria Galleass: Black Dragon Figurehead",
                 "isClickable": true
             },
-            "+10 Epheria Galleass: Upgraded Plating": {
+            "Epheria Galleass: Upgraded Plating": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria Galleass: Upgraded Plating",
                 "isClickable": true
             },
-            "+10 Epheria Galleass: Mayna Cannon": {
+            "Epheria Galleass: Mayna Cannon": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria Galleass: Mayna Cannon",
                 "isClickable": true
             },
-            "+10 Epheria Galleass: Stratus Wind Sail": {
+            "Epheria Galleass: Stratus Wind Sail": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria Galleass: Stratus Wind Sail",
@@ -687,25 +687,25 @@ export const data = {
                 "baseName": "Epheria Galleass",
                 "isClickable": true
             },
-            "+10 Epheria Galleass: Black Dragon Figurehead": {
+            "Epheria Galleass: Black Dragon Figurehead": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria Galleass: Black Dragon Figurehead",
                 "isClickable": true
             },
-            "+10 Epheria Galleass: Upgraded Plating": {
+            "Epheria Galleass: Upgraded Plating": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria Galleass: Upgraded Plating",
                 "isClickable": true
             },
-            "+10 Epheria Galleass: Mayna Cannon": {
+            "Epheria Galleass: Mayna Cannon": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria Galleass: Mayna Cannon",
                 "isClickable": true
             },
-            "+10 Epheria Galleass: Stratus Wind Sail": {
+            "Epheria Galleass: Stratus Wind Sail": {
                 "quantity": 1,
                 "type": "ship_parts",
                 "baseName": "Epheria Galleass: Stratus Wind Sail",

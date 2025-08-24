@@ -206,7 +206,8 @@ export class InventoryManager {
                     quantity: globalInventory.getMaterialQuantity(itemName),
                     allocated: 0,
                     needed: 0,
-                    isTracked: false
+                    isTracked: false,
+                    isClickable: false // Will be updated later in updateNeededQuantities
                 };
                 
                 this.items.set(itemName, item);
@@ -349,6 +350,9 @@ export class InventoryManager {
                     item.usedBy = status.usedBy || [];
                     item.completionPercent = status.completionPercent || 0;
                     item.barterInfo = status.barterInfo || { canBeBarterd: false };
+                    
+                    // CRITICAL FIX: Copy isClickable property for recipe completion detection
+                    item.isClickable = status.isClickable || false;
                     
                     if (oldNeeded !== item.needed) {
                         console.log(`📝 Updated ${itemName}: needed ${oldNeeded} → ${item.needed}`);
@@ -640,13 +644,63 @@ export class InventoryManager {
     }
     
     /**
-     * Dispatch custom inventory events
+     * Enhanced dispatch inventory events for UI updates with completion context
      */
     dispatchInventoryEvent(type, data) {
-        const event = new CustomEvent('inventoryChanged', {
-            detail: { type, data, timestamp: Date.now() }
+        // Enhanced event with completion context and detailed metadata
+        const eventDetail = {
+            type,
+            data,
+            timestamp: Date.now(),
+            source: 'inventory-system',
+            version: '2.0' // Mark as enhanced event
+        };
+        
+        // Add completion-specific context for completion events
+        if (type === 'recipe-completed' && data.transaction) {
+            eventDetail.completion = {
+                recipeName: data.transaction.recipeName,
+                context: data.transaction.completionContext,
+                cascadeCount: data.transaction.cascadeCompletions ? data.transaction.cascadeCompletions.length : 0,
+                affectedProjects: data.transaction.affectedProjects.length,
+                materialsConsumed: Object.keys(data.transaction.materialsConsumed).length,
+                transactionId: data.transaction.id
+            };
+        }
+        
+        // Dispatch the enhanced inventory event
+        const inventoryEvent = new CustomEvent('inventoryChanged', {
+            detail: eventDetail
         });
-        document.dispatchEvent(event);
+        document.dispatchEvent(inventoryEvent);
+        
+        // Also dispatch specific completion events
+        if (type === 'recipe-completed') {
+            const completionEvent = new CustomEvent('recipeCompleted', {
+                detail: {
+                    recipeName: data.itemName,
+                    transaction: data.transaction,
+                    context: data.context,
+                    source: 'inventory-system',
+                    timestamp: Date.now()
+                }
+            });
+            document.dispatchEvent(completionEvent);
+        }
+        
+        // Dispatch error events for completion failures
+        if (type === 'completion-error') {
+            const errorEvent = new CustomEvent('completionError', {
+                detail: {
+                    recipeName: data.itemName,
+                    error: data.error,
+                    context: data.context,
+                    source: 'inventory-system',
+                    timestamp: Date.now()
+                }
+            });
+            document.dispatchEvent(errorEvent);
+        }
     }
     
     /**
@@ -720,6 +774,94 @@ export class InventoryManager {
             return match;
         });
     }
+    
+    /**
+     * Complete item as recipe using unified completion system
+     */
+    async completeItemAsRecipe(itemName, completionContext = 'inventory') {
+        console.log(`🎯 InventoryManager: Attempting to complete item as recipe: ${itemName}`);
+        
+        try {
+            // Import the unified completion system dynamically to avoid circular imports
+            const { completeRecipe } = await import('./craft-system/global_inventory.js');
+            
+            // Call the unified completion system
+            const transaction = await completeRecipe(itemName, completionContext, {
+                triggeredFrom: 'inventory_system',
+                autoCascade: true
+            });
+            
+            console.log(`✅ InventoryManager: Recipe completed successfully: ${itemName}`, transaction);
+            
+            // Update local item state
+            const item = this.items.get(itemName);
+            if (item) {
+                item.quantity = item.quantity + 1;
+                item.isCompleted = true;
+                item.lastCompletedAt = Date.now();
+                item.completionContext = completionContext;
+                this.items.set(itemName, item);
+            }
+            
+            // Trigger local refresh event
+            this.dispatchInventoryEvent('recipe-completed', {
+                itemName,
+                transaction,
+                context: completionContext
+            });
+            
+            return transaction;
+            
+        } catch (error) {
+            console.error(`❌ InventoryManager: Failed to complete recipe: ${itemName}`, error);
+            
+            // Trigger error event
+            this.dispatchInventoryEvent('completion-error', {
+                itemName,
+                error: error.message,
+                context: completionContext
+            });
+            
+            throw error;
+        }
+    }
+    
+    /**
+     * Check if an item can be completed as a recipe
+     */
+    async canCompleteAsRecipe(itemName) {
+        try {
+            // Import the validation function dynamically
+            const { validateRecipeForCompletion } = await import('./craft-system/global_inventory.js');
+            
+            const validation = await validateRecipeForCompletion(itemName);
+            return validation.canComplete;
+            
+        } catch (error) {
+            console.warn(`Failed to validate completion for ${itemName}:`, error);
+            return false;
+        }
+    }
+    
+    /**
+     * Get recipe completion status for an item
+     */
+    async getItemRecipeStatus(itemName) {
+        try {
+            // Import the status function dynamically
+            const { getRecipeCompletionStatus } = await import('./craft-system/global_inventory.js');
+            
+            return await getRecipeCompletionStatus(itemName);
+            
+        } catch (error) {
+            console.warn(`Failed to get recipe status for ${itemName}:`, error);
+            return {
+                isCompleted: false,
+                inventoryQuantity: this.getMaterialQuantity ? this.getMaterialQuantity(itemName) : 0,
+                canComplete: false
+            };
+        }
+    }
 }
 
 // Create global instance
@@ -747,4 +889,9 @@ export function getCategoryStats() {
 
 export function getInventoryStats() {
     return inventoryManager.getInventoryStats();
+}
+
+// Export unified completion system integration
+export function completeItemAsRecipe(itemName, completionContext = 'inventory') {
+    return inventoryManager.completeItemAsRecipe(itemName, completionContext);
 }

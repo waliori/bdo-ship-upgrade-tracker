@@ -2869,6 +2869,9 @@ async function showRecipeModal(materialName) {
             const completeBtn = document.createElement('button');
             completeBtn.textContent = '✅ Complete All';
             completeBtn.className = 'quick-btn recipe-complete-btn';
+            // Add data attributes for unified completion system
+            completeBtn.dataset.recipeName = materialName;
+            completeBtn.dataset.context = 'recipe_modal';
             completeBtn.style.cssText = `
                 background: var(--accent-primary);
                 border-color: var(--accent-primary);
@@ -6677,7 +6680,7 @@ function updateQuantityPreview() {
     previewElement.textContent = previewValue;
 }
 
-function applyQuantityChange(type) {
+async function applyQuantityChange(type) {
     if (!currentEditingMaterial) return;
     
     const currentValue = currentEditingIsBarter ? 
@@ -6699,7 +6702,84 @@ function applyQuantityChange(type) {
         newValue = Math.max(0, currentValue - subtractAmount);
     }
     
-    // Apply the change
+    console.log(`📊 Project quantity change: ${currentEditingMaterial} ${currentValue} → ${newValue}`);
+    
+    // Check if this is a recipe completion for non-barter items
+    if (!currentEditingIsBarter) {
+        try {
+            // Get recipe/material info to check if it's completable
+            const isRecipe = craftNavigator && craftNavigator.allCrafts && craftNavigator.allCrafts[currentEditingMaterial];
+            
+            // Get needed quantity from global inventory status
+            const globalStatus = window.globalInventory ? 
+                await window.globalInventory.calculateGlobalInventoryStatus() : {};
+            const materialInfo = globalStatus[currentEditingMaterial];
+            const neededQuantity = materialInfo ? materialInfo.needed : 0;
+            
+            console.log(`🔍 Recipe completion check: ${currentEditingMaterial}`, {
+                isRecipe,
+                neededQuantity,
+                currentValue,
+                newValue,
+                materialInfo
+            });
+            
+            // Check if this is a recipe completion
+            const isRecipeCompletion = (
+                isRecipe && 
+                neededQuantity > 0 && 
+                currentValue < neededQuantity && 
+                newValue >= neededQuantity
+            );
+            
+            if (isRecipeCompletion) {
+                console.log(`🎯 Recipe completion detected via project quantity: ${currentEditingMaterial}`);
+                
+                // Use unified completion system
+                const { completeRecipe } = await import('./craft-system/global_inventory.js');
+                
+                // Close modal first
+                closeQuantityEditor();
+                
+                // Complete the recipe using unified system
+                const transaction = await completeRecipe(currentEditingMaterial, 'project_quantity', {
+                    triggeredFrom: 'project_quantity_modal',
+                    originalQuantity: currentValue,
+                    targetQuantity: newValue,
+                    autoCascade: true
+                });
+                
+                console.log(`✅ Recipe completed via project quantity setting:`, transaction);
+                
+                // Refresh displays
+                loadStorageMaterials();
+                if (typeof refreshCurrentDisplay === 'function') {
+                    refreshCurrentDisplay();
+                }
+                
+                // Show success notification
+                if (window.UnifiedCompletion && window.UnifiedCompletion.showNotification) {
+                    const cascadeText = transaction.cascadeCompletions && transaction.cascadeCompletions.length > 0 
+                        ? ` (+${transaction.cascadeCompletions.length} cascades)` : '';
+                    window.UnifiedCompletion.showNotification(
+                        'Recipe Completed', 
+                        `${currentEditingMaterial} completed successfully${cascadeText}`, 
+                        'success'
+                    );
+                }
+                
+                return;
+                
+            } else {
+                console.log(`📦 Regular quantity update: ${currentEditingMaterial} (not a recipe completion)`);
+            }
+        } catch (error) {
+            console.error(`❌ Failed to check recipe completion for ${currentEditingMaterial}:`, error);
+            // Fall through to regular quantity setting
+        }
+    }
+    
+    // Regular quantity setting (not a recipe completion or failed completion)
     if (currentEditingIsBarter) {
         setBarterMaterialTotal(currentEditingMaterial, newValue);
     } else {
@@ -8378,24 +8458,150 @@ function showQuantityEditorModal(materialName, currentValue) {
         }
     });
     
-    // Save handler
-    saveBtn.addEventListener('click', () => {
+    // Save handler - using the complete saveQuantity() logic from inventory-ui.js
+    saveBtn.addEventListener('click', async () => {
         const newQuantity = parseInt(quantityInput.value) || 0;
+        const oldQuantity = currentValue; // Use the currentValue passed to the function
         
-        // Update the global inventory through the craft navigation system
-        import('./craft-system/global_inventory.js').then(({ globalInventory }) => {
-            globalInventory.setMaterialQuantity(materialName, newQuantity, 'global');
-        });
+        console.log(`📦 Quantity change: ${materialName} ${oldQuantity} → ${newQuantity}`);
         
-        // Update any existing inputs in the legacy system
-        const existingInputs = document.querySelectorAll(`[data-material="${materialName}"]`);
-        existingInputs.forEach(input => {
-            if (input.tagName === 'INPUT') {
-                input.value = newQuantity;
-                // Trigger change event to update the UI
-                input.dispatchEvent(new Event('change'));
+        // Get material data from global inventory for recipe completion detection
+        let neededQuantity = 0;
+        let isClickable = false;
+        
+        try {
+            const { globalInventory } = await import('./craft-system/global_inventory.js');
+            const globalStatus = globalInventory.calculateGlobalInventoryStatus();
+            const materialStatus = globalStatus[materialName];
+            
+            if (materialStatus) {
+                neededQuantity = materialStatus.needed || 0;
+                isClickable = materialStatus.isClickable || false;
             }
-        });
+            
+            // DEBUG: Log material properties for recipe completion detection
+            console.log(`🔍 DEBUG material data for ${materialName}:`, {
+                name: materialName,
+                isClickable: isClickable,
+                needed: neededQuantity,
+                oldQuantity: oldQuantity,
+                newQuantity: newQuantity
+            });
+            
+            console.log(`🔍 DEBUG: About to check completion conditions...`);
+            
+            // Check if this is a recipe completion (quantity now >= needed and it's a clickable recipe)
+            const isRecipeCompletion = (
+                isClickable && 
+                neededQuantity > 0 && 
+                oldQuantity < neededQuantity && 
+                newQuantity >= neededQuantity
+            );
+            
+            // Debug logging for completion detection
+            console.log(`🔍 Recipe completion check for ${materialName}: isClickable=${isClickable}, needed=${neededQuantity}, ${oldQuantity}→${newQuantity}, result=${isRecipeCompletion}`);
+            
+            if (isRecipeCompletion) {
+                console.log(`🎯 Recipe completion detected via quantity: ${materialName}`);
+                
+                try {
+                    // Use unified completion system instead of just setting quantity
+                    const { completeRecipe, validateRecipeForCompletion } = await import('./craft-system/global_inventory.js');
+                    
+                    // For manual quantity setting in recipe details, skip dependency validation
+                    // This allows users to mark recipes as completed when they've crafted them externally
+                    console.log(`🎯 Manual recipe completion via recipe details - bypassing dependency validation for ${materialName}`);
+                    
+                    // Optional: Show warning if dependencies aren't met, but still allow completion
+                    const validationResult = await validateRecipeForCompletion(materialName, {});
+                    if (!validationResult.canComplete) {
+                        console.log(`⚠️ Note: Recipe ${materialName} has unmet dependencies, but allowing manual completion`);
+                        console.log(`📋 Missing: ${validationResult.reason}`);
+                    }
+                    
+                    // Close modal first to prevent UI issues
+                    closeModal();
+                    
+                    // Show loading feedback
+                    console.log(`⏳ Processing recipe completion for ${materialName}...`);
+                    
+                    // Complete the recipe using unified system with dependency check bypass
+                    const transaction = await completeRecipe(materialName, 'recipe_details_quantity', {
+                        triggeredFrom: 'quantity_modal_recipe_details',
+                        originalQuantity: oldQuantity,
+                        targetQuantity: newQuantity,
+                        autoCascade: true,
+                        skipDependencyCheck: true, // Allow manual completion regardless of dependencies
+                        manualCompletion: true // Flag this as a manual completion
+                    });
+                    
+                    console.log(`✅ Recipe completed via quantity setting:`, transaction);
+                    
+                    // Show success notification
+                    if (window.UnifiedCompletion && window.UnifiedCompletion.showNotification) {
+                        const cascadeText = transaction.cascadeCompletions && transaction.cascadeCompletions.length > 0 
+                            ? ` (+${transaction.cascadeCompletions.length} cascades)` : '';
+                        window.UnifiedCompletion.showNotification(
+                            'Recipe Completed', 
+                            `${materialName} completed successfully${cascadeText}`, 
+                            'success'
+                        );
+                    }
+                    
+                    return;
+                    
+                } catch (error) {
+                    console.error(`❌ Unified completion failed for ${materialName}:`, error);
+                    
+                    // Fallback to regular quantity setting
+                    console.log(`⚠️ Falling back to regular quantity setting for ${materialName}`);
+                    globalInventory.setMaterialQuantity(materialName, newQuantity, 'global');
+                    
+                    if (window.UnifiedCompletion && window.UnifiedCompletion.showNotification) {
+                        // Provide a more user-friendly error message
+                        const errorMsg = error.message.includes('Missing dependencies') 
+                            ? `Recipe ${materialName} has missing dependencies. Quantity updated instead.`
+                            : `Could not complete recipe: ${error.message}. Set as regular quantity instead.`;
+                        
+                        window.UnifiedCompletion.showNotification(
+                            'Completion Error', 
+                            errorMsg, 
+                            'error'
+                        );
+                    }
+                }
+            } else {
+                // Regular quantity setting (not a recipe completion)
+                globalInventory.setMaterialQuantity(materialName, newQuantity, 'global');
+                console.log(`📦 Regular quantity update: ${materialName} = ${newQuantity}`);
+            }
+            
+            // Update any existing inputs in the legacy system
+            const existingInputs = document.querySelectorAll(`[data-material="${materialName}"]`);
+            existingInputs.forEach(input => {
+                if (input.tagName === 'INPUT') {
+                    input.value = newQuantity;
+                    // Trigger change event to update the UI
+                    input.dispatchEvent(new Event('change'));
+                }
+            });
+            
+        } catch (error) {
+            console.error(`❌ Error processing quantity change for ${materialName}:`, error);
+            
+            // Fallback to basic update
+            const { globalInventory } = await import('./craft-system/global_inventory.js');
+            globalInventory.setMaterialQuantity(materialName, newQuantity, 'global');
+            
+            // Update any existing inputs in the legacy system
+            const existingInputs = document.querySelectorAll(`[data-material="${materialName}"]`);
+            existingInputs.forEach(input => {
+                if (input.tagName === 'INPUT') {
+                    input.value = newQuantity;
+                    input.dispatchEvent(new Event('change'));
+                }
+            });
+        }
         
         closeModal();
     });
@@ -9404,6 +9610,417 @@ window.updateDashboard = function() {
     }
 };
 
+// ============================================================================
+// UNIFIED COMPLETION SYSTEM INTEGRATION
+// ============================================================================
+
+/**
+ * Unified completion button handler
+ * Replaces all individual completion button handlers with a single unified system
+ */
+async function handleUnifiedCompletion(event) {
+    const button = event.target;
+    const recipeName = button.dataset.recipeName || button.dataset.itemName;
+    const context = button.dataset.context || 'manual';
+    
+    if (!recipeName) {
+        console.warn('No recipe name found on completion button:', button);
+        return;
+    }
+    
+    console.log(`🎯 Unified completion triggered: ${recipeName} (context: ${context})`);
+    
+    try {
+        // Show loading state
+        const originalText = button.innerHTML;
+        const originalDisabled = button.disabled;
+        button.innerHTML = '⏳';
+        button.disabled = true;
+        
+        // Import and call unified completion system
+        const { completeRecipe } = await import('./craft-system/global_inventory.js');
+        
+        const transaction = await completeRecipe(recipeName, context, {
+            triggeredFrom: 'ui_button',
+            autoCascade: true,
+            skipDependencyCheck: event.shiftKey // Allow Shift+click to force completion
+        });
+        
+        console.log(`✅ Recipe completed successfully:`, transaction);
+        
+        // Show success feedback
+        button.innerHTML = '✅';
+        button.style.background = 'var(--success)';
+        button.style.borderColor = 'var(--success)';
+        
+        // Refresh UI after short delay
+        setTimeout(() => {
+            // Trigger global UI refresh events
+            document.dispatchEvent(new CustomEvent('recipeCompleted', {
+                detail: { recipeName, transaction, context }
+            }));
+            
+            // Refresh the current ship/project display
+            if (typeof refreshCurrentDisplay === 'function') {
+                refreshCurrentDisplay();
+            }
+            
+            // Restore button or hide it
+            if (transaction.cascadeCompletions && transaction.cascadeCompletions.length > 0) {
+                button.innerHTML = `✅ +${transaction.cascadeCompletions.length}`;
+                setTimeout(() => button.style.display = 'none', 2000);
+            } else {
+                button.style.display = 'none';
+            }
+        }, 1000);
+        
+    } catch (error) {
+        console.error(`❌ Recipe completion failed:`, error);
+        
+        // Show error feedback
+        button.innerHTML = '❌';
+        button.style.background = 'var(--error)';
+        button.style.borderColor = 'var(--error)';
+        
+        // Show user-friendly error message
+        showNotification('Completion Error', error.message, 'error');
+        
+        // Restore button after delay
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.disabled = originalDisabled;
+            button.style.background = '';
+            button.style.borderColor = '';
+        }, 3000);
+    }
+}
+
+/**
+ * Setup unified completion system event listeners
+ * Call this after DOM is loaded to replace all existing completion handlers
+ */
+function setupUnifiedCompletionListeners() {
+    console.log('🔧 Setting up unified completion system listeners');
+    
+    // Remove all existing completion button listeners
+    document.querySelectorAll('.recipe-complete-btn, .complete-btn, .complete-recipe-btn').forEach(button => {
+        // Clone button to remove all existing event listeners
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+    });
+    
+    // Add unified completion handler with event delegation
+    document.addEventListener('click', (event) => {
+        const button = event.target;
+        
+        // Check if this is a completion button
+        if (button.classList.contains('recipe-complete-btn') || 
+            button.classList.contains('complete-btn') ||
+            button.classList.contains('complete-recipe-btn') ||
+            button.dataset.action === 'complete-recipe') {
+            
+            event.preventDefault();
+            event.stopPropagation();
+            handleUnifiedCompletion(event);
+        }
+    });
+    
+    console.log('✅ Unified completion system listeners setup complete');
+}
+
+/**
+ * Enhanced notification system for completion feedback
+ */
+function showNotification(title, message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <div class="notification-header">
+            <h4>${title}</h4>
+            <button class="notification-close">&times;</button>
+        </div>
+        <div class="notification-body">${message}</div>
+    `;
+    
+    // Style the notification with proper opacity and modern design
+    const bgColor = type === 'success' ? 'rgba(34, 197, 94, 0.95)' : 
+                   type === 'error' ? 'rgba(239, 68, 68, 0.95)' : 
+                   'rgba(59, 130, 246, 0.95)';
+    const borderColor = type === 'success' ? '#22c55e' : 
+                       type === 'error' ? '#ef4444' : 
+                       '#3b82f6';
+    
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        background: ${bgColor};
+        border: 2px solid ${borderColor};
+        border-radius: 12px;
+        padding: 16px 20px;
+        max-width: 400px;
+        min-width: 300px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        backdrop-filter: blur(10px);
+        color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        animation: slideInRight 0.3s ease-out;
+        transform: translateX(0);
+        opacity: 1;
+    `;
+    
+    // Style header and body elements
+    const header = notification.querySelector('.notification-header');
+    const body = notification.querySelector('.notification-body');
+    const closeBtn = notification.querySelector('.notification-close');
+    
+    if (header) {
+        header.style.cssText = `
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-weight: 600;
+        `;
+        
+        const title = header.querySelector('h4');
+        if (title) {
+            title.style.cssText = `
+                margin: 0;
+                font-size: 16px;
+                font-weight: 600;
+                color: white;
+            `;
+        }
+    }
+    
+    if (body) {
+        body.style.cssText = `
+            font-size: 14px;
+            line-height: 1.4;
+            color: rgba(255, 255, 255, 0.9);
+            margin: 0;
+        `;
+    }
+    
+    if (closeBtn) {
+        closeBtn.style.cssText = `
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 12px;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        `;
+        
+        closeBtn.addEventListener('mouseenter', () => {
+            closeBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+            closeBtn.style.color = 'white';
+        });
+        
+        closeBtn.addEventListener('mouseleave', () => {
+            closeBtn.style.background = 'none';
+            closeBtn.style.color = 'rgba(255, 255, 255, 0.8)';
+        });
+    }
+    
+    // Add CSS animation keyframes to document if not already present
+    if (!document.getElementById('notification-keyframes')) {
+        const style = document.createElement('style');
+        style.id = 'notification-keyframes';
+        style.textContent = `
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Handle stacking of multiple notifications
+    const existingNotifications = document.querySelectorAll('.notification');
+    const offset = existingNotifications.length * 80; // Stack vertically
+    notification.style.top = `${20 + offset}px`;
+    
+    // Add to DOM
+    document.body.appendChild(notification);
+    
+    // Close function with animation
+    const closeNotification = () => {
+        notification.style.animation = 'slideOutRight 0.3s ease-out forwards';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+                // Restack remaining notifications
+                const remaining = document.querySelectorAll('.notification');
+                remaining.forEach((notif, index) => {
+                    notif.style.top = `${20 + index * 80}px`;
+                });
+            }
+        }, 300);
+    };
+    
+    // Auto-remove after 5 seconds
+    const autoRemoveTimeout = setTimeout(closeNotification, 5000);
+    
+    // Close button handler
+    const closeButton = notification.querySelector('.notification-close');
+    if (closeButton) {
+        closeButton.addEventListener('click', () => {
+            clearTimeout(autoRemoveTimeout);
+            closeNotification();
+        });
+    }
+    
+    // Add slideOut animation to existing keyframes
+    const existingStyle = document.getElementById('notification-keyframes');
+    if (existingStyle && !existingStyle.textContent.includes('slideOutRight')) {
+        existingStyle.textContent += `
+            @keyframes slideOutRight {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+        `;
+    }
+}
+
+/**
+ * Enhanced refresh current display after completion with global requirements update
+ */
+function refreshCurrentDisplay() {
+    console.log('🔄 Refreshing display after completion');
+    
+    try {
+        // Force clear any cached requirements and recalculate
+        if (window.craftNavigator && window.craftNavigator.crossCraftCache) {
+            window.craftNavigator.crossCraftCache.clear();
+        }
+        
+        // Refresh ship progress if we're on a ship page
+        if (typeof refreshShipProgress === 'function') {
+            refreshShipProgress();
+        }
+        
+        // Refresh inventory if open - this should update the NEEDED count
+        if (window.inventoryUI && window.inventoryUI.isModalOpen) {
+            console.log('🔄 Refreshing inventory UI');
+            window.inventoryUI.renderInventoryContent();
+            
+            // Force update the inventory statistics in the header
+            if (typeof window.inventoryUI.updateInventoryStats === 'function') {
+                window.inventoryUI.updateInventoryStats();
+            }
+        }
+        
+        // Refresh craft navigation if open
+        if (window.craftNavigationUI) {
+            console.log('🔄 Refreshing craft navigation UI');
+            window.craftNavigationUI.refreshActiveProjects();
+            window.craftNavigationUI.refreshCurrentView();
+            
+            // Update the global inventory display
+            if (typeof window.craftNavigationUI.updateGlobalInventoryDisplay === 'function') {
+                window.craftNavigationUI.updateGlobalInventoryDisplay();
+            }
+        }
+        
+        // Refresh any global inventory displays
+        const globalInventoryElements = document.querySelectorAll('[data-role="global-inventory"]');
+        globalInventoryElements.forEach(element => {
+            if (element.refresh && typeof element.refresh === 'function') {
+                element.refresh();
+            }
+        });
+        
+        // Update any material count displays
+        setTimeout(() => {
+            updateNeededQuantities();
+        }, 100);
+        
+        // Trigger generic refresh events
+        document.dispatchEvent(new CustomEvent('unifiedCompletionRefresh'));
+        
+        // Trigger specific inventory refresh events
+        document.dispatchEvent(new CustomEvent('globalInventoryRefresh', {
+            detail: {
+                reason: 'completion',
+                timestamp: Date.now()
+            }
+        }));
+        
+        console.log('✅ Display refresh completed');
+        
+    } catch (error) {
+        console.warn('Error during display refresh:', error);
+    }
+}
+
+// Initialize unified completion system when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupUnifiedCompletionListeners);
+} else {
+    setupUnifiedCompletionListeners();
+}
+
+// Add specific event listeners for completion handling
+document.addEventListener('recipeCompleted', (event) => {
+    console.log('🎯 Recipe completed event received:', event.detail);
+    
+    // Delay the refresh slightly to allow all completion processing to finish
+    setTimeout(() => {
+        refreshCurrentDisplay();
+    }, 200);
+});
+
+document.addEventListener('inventoryUpdated', (event) => {
+    // Handle inventory updates that might affect global requirements
+    if (event.detail && event.detail.completion) {
+        console.log('📦 Inventory updated with completion context:', event.detail);
+        
+        setTimeout(() => {
+            refreshCurrentDisplay();
+        }, 100);
+    }
+});
+
+document.addEventListener('projectChanged', (event) => {
+    console.log('📋 Project changed event received:', event.detail);
+    
+    setTimeout(() => {
+        refreshCurrentDisplay();
+    }, 100);
+});
+
+// Export for global access
+window.UnifiedCompletion = {
+    handleCompletion: handleUnifiedCompletion,
+    setupListeners: setupUnifiedCompletionListeners,
+    showNotification,
+    refreshDisplay: refreshCurrentDisplay
+};
+
 window.BDOApp = {
     ships,
     recipes,
@@ -9419,5 +10036,13 @@ window.BDOApp = {
     resetData,
     currentShip: () => currentShip,
     adjustEnhancementLevel,
-    showRecipeModal
+    showRecipeModal,
+    // Add unified completion system
+    unifiedCompletion: window.UnifiedCompletion
 };
+
+// Export storage functions for unified completion system synchronization
+window.setGlobalTotal = setGlobalTotal;
+window.getGlobalTotal = getGlobalTotal;
+window.setGlobalInventory = setGlobalInventory;
+window.getGlobalInventory = getGlobalInventory;

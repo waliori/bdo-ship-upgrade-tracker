@@ -348,6 +348,23 @@
     transform: translateY(-1px);
 }
 
+.add-to-projects-btn:disabled,
+.add-to-projects-btn.disabled {
+    background: rgba(107, 114, 128, 0.2);
+    border-color: rgba(107, 114, 128, 0.3);
+    color: rgba(107, 114, 128, 0.7);
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none !important;
+}
+
+.add-to-projects-btn:disabled:hover,
+.add-to-projects-btn.disabled:hover {
+    background: rgba(107, 114, 128, 0.2);
+    border-color: rgba(107, 114, 128, 0.3);
+    transform: none;
+}
+
 .craft-info-btn {
     background: rgba(71, 85, 105, 0.3);
     border: 1px solid rgba(71, 85, 105, 0.5);
@@ -2087,4 +2104,49 @@
         order: -1;
         margin-bottom: var(--space-sm);
     }
+}
+
+/* Override Modal Styles */
+.modal-btn {
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: var(--font-size-md);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-height: 44px;
+}
+
+.modal-btn-primary {
+    background: linear-gradient(135deg, var(--accent-primary) 0%, #0ea5e9 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+}
+
+.modal-btn-primary:hover {
+    background: linear-gradient(135deg, #0ea5e9 0%, var(--accent-primary) 100%);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+    transform: translateY(-1px);
+}
+
+.modal-btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 2px solid var(--bg-quaternary);
+}
+
+.modal-btn-secondary:hover {
+    background: var(--bg-quaternary);
+    border-color: var(--accent-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.modal-actions {
+    margin-top: var(--space-lg);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--bg-quaternary);
 }

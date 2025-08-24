@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BDO Ship Upgrade Tracker - Unified Storage Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .demo-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-left: 4px solid #3498db;
+        }
+        
+        .demo-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .stat {
+            background: white;
+            padding: 1rem;
+            border-radius: 6px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 1rem 0;
+        }
+        
+        .materials-list, .projects-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 6px;
+            padding: 1rem;
+        }
+        
+        .material-item, .project-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .status {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .status.active {
+            background: #3498db;
+            color: white;
+        }
+        
+        .status.completed {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .status.needed {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .status.owned {
+            background: #27ae60;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚢 BDO Ship Upgrade Tracker - Unified Storage System</h1>
+        
+        <div class="demo-section">
+            <h3>📊 Storage Statistics</h3>
+            <div class="stats" id="stats">
+                <!-- Stats will be populated by JavaScript -->
+            </div>
+            <button onclick="refreshStats()">Refresh Stats</button>
+            <button onclick="debugStorage()">Debug Storage</button>
+            <button onclick="validateStorage()">Validate Storage</button>
+        </div>
+        
+        <div class="demo-section">
+            <h3>🚀 Project Management</h3>
+            <button onclick="addSampleProject()">Add Sample Project</button>
+            <button onclick="addCarrackProject()">Add Carrack Project</button>
+            <button onclick="markRandomCompleted()">Mark Random Complete</button>
+            <button onclick="clearAllProjects()">Clear All Projects</button>
+            
+            <h4>Active Projects:</h4>
+            <div class="projects-list" id="projects-list">
+                <!-- Projects will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h3>📦 Material Management</h3>
+            <button onclick="addSampleMaterials()">Add Sample Materials</button>
+            <button onclick="setRandomQuantities()">Set Random Quantities</button>
+            <button onclick="clearAllMaterials()">Clear All Materials</button>
+            
+            <h4>Materials Inventory:</h4>
+            <div class="materials-list" id="materials-list">
+                <!-- Materials will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h3>🧪 Storage Operations</h3>
+            <button onclick="exportData()">Export Data</button>
+            <button onclick="importSampleData()">Import Sample Data</button>
+            <button onclick="clearAllData()">Clear All Data</button>
+            
+            <h4>Event Log:</h4>
+            <div class="log" id="event-log">
+                Welcome to the Unified Storage System Demo!<br>
+                All storage operations are logged here...<br>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import the unified storage system
+        import { quickStart } from './js/init-unified-storage.js';
+        import * as StorageAPI from './js/storage-integration.js';
+        
+        let storage = null;
+        
+        // Initialize storage
+        async function initializeDemo() {
+            try {
+                storage = await quickStart();
+                log('✅ Unified Storage System initialized successfully');
+                
+                // Set up event listeners
+                storage.events.addEventListener('material-updated', (event) => {
+                    log(`📦 Material updated: ${event.detail.materialName} = ${event.detail.newQuantity}`);
+                    refreshMaterials();
+                    refreshStats();
+                });
+                
+                storage.events.addEventListener('project-updated', (event) => {
+                    log(`🚀 Project ${event.detail.action}: ${event.detail.project.name}`);
+                    refreshProjects();
+                    refreshStats();
+                });
+                
+                storage.events.addEventListener('project-progress-updated', (event) => {
+                    log(`📈 Project progress: ${event.detail.project.name} = ${event.detail.newPercent.toFixed(1)}%`);
+                    refreshProjects();
+                });
+                
+                // Initial data load
+                refreshAll();
+                
+            } catch (error) {
+                log(`❌ Failed to initialize storage: ${error.message}`);
+            }
+        }
+        
+        // Logging function
+        function log(message) {
+            const logEl = document.getElementById('event-log');
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.innerHTML += `<br>[${timestamp}] ${message}`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        
+        // Demo functions
+        window.refreshStats = function() {
+            const stats = StorageAPI.getStorageStats();
+            const statsEl = document.getElementById('stats');
+            
+            statsEl.innerHTML = `
+                <div class="stat">
+                    <div class="stat-value">${stats.projects.total}</div>
+                    <div>Total Projects</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">${stats.projects.active}</div>
+                    <div>Active Projects</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">${stats.projects.completed}</div>
+                    <div>Completed</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">${stats.materials.total}</div>
+                    <div>Total Materials</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">${stats.materials.withQuantity}</div>
+                    <div>With Quantity</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">${Math.round(stats.storage.size / 1024)}KB</div>
+                    <div>Storage Size</div>
+                </div>
+            `;
+            
+            log('📊 Statistics refreshed');
+        };
+        
+        window.refreshProjects = function() {
+            const projects = StorageAPI.getActiveProjects();
+            const completed = Object.values(StorageAPI.storage.getAllProjects()).filter(p => p.status === 'completed');
+            const allProjects = [...projects, ...completed];
+            
+            const projectsEl = document.getElementById('projects-list');
+            
+            if (allProjects.length === 0) {
+                projectsEl.innerHTML = '<div>No projects yet. Click "Add Sample Project" to get started!</div>';
+                return;
+            }
+            
+            projectsEl.innerHTML = allProjects.map(project => `
+                <div class="project-item">
+                    <span>${project.name}</span>
+                    <span class="status ${project.status}">${project.status} (${project.completionPercent.toFixed(1)}%)</span>
+                </div>
+            `).join('');
+        };
+        
+        window.refreshMaterials = function() {
+            const materials = Object.values(StorageAPI.getAllMaterials());
+            const materialsEl = document.getElementById('materials-list');
+            
+            if (materials.length === 0) {
+                materialsEl.innerHTML = '<div>No materials yet. Click "Add Sample Materials" to get started!</div>';
+                return;
+            }
+            
+            materialsEl.innerHTML = materials.slice(0, 20).map(material => `
+                <div class="material-item">
+                    <span>${material.name}</span>
+                    <div>
+                        <span class="status owned">${material.owned}</span>
+                        ${material.needed > 0 ? `<span class="status needed">${material.needed} needed</span>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        };
+        
+        window.refreshAll = function() {
+            refreshStats();
+            refreshProjects();
+            refreshMaterials();
+        };
+        
+        // Demo actions
+        window.addSampleProject = function() {
+            const projects = ['Epheria Sailboat', 'Epheria Frigate', 'Epheria Caravel'];
+            const randomProject = projects[Math.floor(Math.random() * projects.length)];
+            
+            StorageAPI.addProject(randomProject, {
+                type: 'ships',
+                requirements: {
+                    'Pine Timber': { quantity: 100, type: 'materials' },
+                    'Iron Ingot': { quantity: 50, type: 'materials' },
+                    'Standardized Timber Square': { quantity: 25, type: 'materials' }
+                }
+            });
+            
+            log(`🚀 Added project: ${randomProject}`);
+        };
+        
+        window.addCarrackProject = function() {
+            StorageAPI.addProject('Carrack (Advance)', {
+                type: 'ships',
+                requirements: {
+                    'Epheria Caravel': { quantity: 1, type: 'ships' },
+                    'Black Stone (Ship Upgrade Permit)': { quantity: 50, type: 'materials' },
+                    'Gold Bar': { quantity: 100, type: 'materials' },
+                    'Pine Timber': { quantity: 500, type: 'materials' }
+                }
+            });
+            
+            log('🚢 Added Carrack project with complex requirements');
+        };
+        
+        window.addSampleMaterials = function() {
+            const materials = [
+                'Pine Timber', 'Iron Ingot', 'Standardized Timber Square',
+                'Black Stone (Weapon)', 'Gold Bar', 'Pine Plywood',
+                'Steel Ingot', 'Brass Ingot', 'Sturdy Pine Plywood'
+            ];
+            
+            materials.forEach(material => {
+                const quantity = Math.floor(Math.random() * 100) + 1;
+                StorageAPI.setMaterialQuantity(material, quantity, 'demo');
+            });
+            
+            log(`📦 Added ${materials.length} sample materials`);
+        };
+        
+        window.setRandomQuantities = function() {
+            const materials = Object.keys(StorageAPI.getAllMaterials());
+            
+            if (materials.length === 0) {
+                log('⚠️ No materials to update. Add some first!');
+                return;
+            }
+            
+            materials.forEach(materialName => {
+                const quantity = Math.floor(Math.random() * 200);
+                StorageAPI.setMaterialQuantity(materialName, quantity, 'random');
+            });
+            
+            log(`🎲 Set random quantities for ${materials.length} materials`);
+        };
+        
+        window.markRandomCompleted = function() {
+            const projects = StorageAPI.getActiveProjects();
+            
+            if (projects.length === 0) {
+                log('⚠️ No active projects to complete');
+                return;
+            }
+            
+            const randomProject = projects[Math.floor(Math.random() * projects.length)];
+            
+            // Set all requirements to be fulfilled
+            if (randomProject.requirements) {
+                Object.entries(randomProject.requirements).forEach(([materialName, reqData]) => {
+                    StorageAPI.setMaterialQuantity(materialName, reqData.quantity + 10, 'completion');
+                });
+            }
+            
+            log(`🎯 Fulfilled requirements for: ${randomProject.name}`);
+        };
+        
+        window.debugStorage = function() {
+            StorageAPI.debugLogState();
+            log('🔍 Debug information logged to console');
+        };
+        
+        window.validateStorage = function() {
+            const validation = StorageAPI.validateStorageIntegrity();
+            if (validation.isValid) {
+                log('✅ Storage validation passed - no issues found');
+            } else {
+                log(`⚠️ Storage validation found ${validation.issues.length} issues`);
+                validation.issues.forEach(issue => log(`  - ${issue}`));
+            }
+        };
+        
+        window.exportData = function() {
+            const data = StorageAPI.exportData();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bdo-storage-export.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            log('💾 Data exported successfully');
+        };
+        
+        window.importSampleData = function() {
+            const sampleData = {
+                projects: {
+                    'Epheria Sailboat': {
+                        name: 'Epheria Sailboat',
+                        type: 'ships',
+                        status: 'active',
+                        requirements: {
+                            'Pine Timber': { quantity: 100, type: 'materials' },
+                            'Iron Ingot': { quantity: 50, type: 'materials' }
+                        },
+                        completionPercent: 0,
+                        createdAt: Date.now(),
+                        lastUpdated: Date.now()
+                    }
+                },
+                materials: {
+                    'Pine Timber': {
+                        name: 'Pine Timber',
+                        category: 'materials',
+                        owned: 75,
+                        needed: 100,
+                        remaining: 25,
+                        usedBy: ['Epheria Sailboat']
+                    },
+                    'Iron Ingot': {
+                        name: 'Iron Ingot', 
+                        category: 'materials',
+                        owned: 60,
+                        needed: 50,
+                        remaining: 0,
+                        usedBy: ['Epheria Sailboat']
+                    }
+                },
+                exportVersion: '2.0'
+            };
+            
+            try {
+                StorageAPI.storage.import(sampleData);
+                log('📥 Sample data imported successfully');
+                refreshAll();
+            } catch (error) {
+                log(`❌ Import failed: ${error.message}`);
+            }
+        };
+        
+        window.clearAllProjects = function() {
+            if (confirm('Clear all projects? This cannot be undone.')) {
+                const projects = Object.keys(StorageAPI.storage.getAllProjects());
+                projects.forEach(projectName => {
+                    StorageAPI.removeProject(projectName);
+                });
+                log(`🗑️ Cleared ${projects.length} projects`);
+            }
+        };
+        
+        window.clearAllMaterials = function() {
+            if (confirm('Clear all materials? This cannot be undone.')) {
+                const materials = Object.keys(StorageAPI.getAllMaterials());
+                materials.forEach(materialName => {
+                    StorageAPI.setMaterialQuantity(materialName, 0, 'clear');
+                });
+                log(`🗑️ Cleared ${materials.length} materials`);
+            }
+        };
+        
+        window.clearAllData = function() {
+            if (confirm('Clear ALL data? This cannot be undone!')) {
+                StorageAPI.clearAllData();
+                log('🗑️ All data cleared');
+                refreshAll();
+            }
+        };
+        
+        // Initialize demo when page loads
+        initializeDemo();
+    </script>
+</body>
+</html>
