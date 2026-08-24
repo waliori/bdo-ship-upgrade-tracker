@@ -298,16 +298,11 @@ function renderBuilds() {
 	const targets = store.getTargets();
 	const byId = new Map(snapshot.targets.map(t => [t.id, t]));
 
-	const options = buildableItems()
-		.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
-
 	const head = `<div class="queue-head">
 		<span class="queue-title">Build queue</span>
 		<span class="queue-note">Scarce stock goes to the build nearest the top</span>
 		<span class="panel-spacer"></span>
-		<select class="select" data-act="add-build">
-			<option value="">+ Add a build…</option>${options}
-		</select>
+		<button class="act add-build" data-act="add-build">+ Add a build</button>
 	</div>`;
 
 	const list = targets.length ? targets.map((t, i) => {
@@ -762,6 +757,7 @@ function wire() {
 				toast(label ? `Reverted: ${label}` : 'Nothing to undo');
 				return;
 			}
+			case 'add-build': return openBuildPicker();
 			case 'export': return doExport();
 			case 'import': return doImport();
 			case 'water': return toggleWater();
@@ -832,15 +828,6 @@ function wire() {
 		}
 	});
 
-	document.addEventListener('change', evt => {
-		const el = evt.target.closest('[data-act]');
-		if (el && el.getAttribute('data-act') === 'add-build' && el.value) {
-			store.addTarget(el.value, 1);
-			toast(`${el.value} added to the queue`);
-			el.value = '';
-		}
-	});
-
 	document.addEventListener('input', evt => {
 		const el = evt.target.closest('[data-act="query"]');
 		if (!el) return;
@@ -873,6 +860,57 @@ function closeDialog() {
 	const host = document.getElementById('dialog');
 	host.hidden = true;
 	host.innerHTML = '';
+}
+
+/** Searchable, icon-led list of everything that can be queued. */
+function openBuildPicker() {
+	const queued = new Set(store.getTargets().map(t => t.item));
+	// shipGroups[0] is the ships themselves; anything else grouped there is
+	// a trackable part, and everything else is a material.
+	const kindOf = name => {
+		for (const [i, group] of shipGroups.entries()) {
+			if (group.items.includes(name)) return i === 0 ? 'ship' : 'part';
+		}
+		return 'material';
+	};
+
+	const host = openDialog(`
+		<h2>Add a build</h2>
+		<p>Anything with a recipe can be queued — a ship, a part, or a stack of materials.</p>
+		<input class="field picker-search" type="search" placeholder="Search ships, parts and materials…" data-picker-search>
+		<div class="picker" data-picker></div>
+		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>
+	`);
+
+	const listEl = host.querySelector('[data-picker]');
+	const searchEl = host.querySelector('[data-picker-search]');
+
+	const paint = term => {
+		const t = (term || '').trim().toLowerCase();
+		const matches = buildableItems().filter(n => !t || n.toLowerCase().includes(t));
+		listEl.innerHTML = matches.length
+			? matches.slice(0, 200).map(n => {
+				const already = queued.has(n);
+				return `<button type="button" class="picker-row" data-pick="${esc(n)}" ${already ? 'disabled' : ''}>
+					${img(n, 'row-icon sm')}
+					<span class="picker-name">${esc(n)}</span>
+					<span class="picker-tag">${already ? 'queued' : kindOf(n)}</span>
+				</button>`;
+			}).join('')
+			: '<p class="empty">Nothing matches that search.</p>';
+	};
+
+	paint('');
+	searchEl.addEventListener('input', () => paint(searchEl.value));
+	listEl.addEventListener('click', evt => {
+		const btn = evt.target.closest('[data-pick]');
+		if (!btn || btn.disabled) return;
+		const item = btn.getAttribute('data-pick');
+		store.addTarget(item, 1);
+		closeDialog();
+		toast(`${item} added to the queue`);
+	});
+	searchEl.focus();
 }
 
 function doExport() {
