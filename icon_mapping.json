@@ -898,5 +898,29 @@
   "Epheria Carrack Parts Upgrade Permit: Valor": {
     "icon": "00059319.webp",
     "url": "https://bdocodex.com/us/item/59319/"
+  },
+  "Violent Sea Monster's Scale": {
+    "icon": "00008009.webp",
+    "url": "https://bdocodex.com/us/item/8009/"
+  },
+  "Violent Sea Monster's Bone": {
+    "icon": "00008008.webp",
+    "url": "https://bdocodex.com/us/item/8008/"
+  },
+  "Violent Sea Monster's Ooze": {
+    "icon": "00008011.webp",
+    "url": "https://bdocodex.com/us/item/8011/"
+  },
+  "Saltwater Crocodile's Scale": {
+    "icon": "00008025.webp",
+    "url": "https://bdocodex.com/us/item/8025/"
+  },
+  "Starlight Hardener": {
+    "icon": "00008023.webp",
+    "url": "https://bdocodex.com/us/item/8023/"
+  },
+  "Starlight Emulsifier": {
+    "icon": "00008024.webp",
+    "url": "https://bdocodex.com/us/item/8024/"
   }
 }
