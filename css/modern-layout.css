@@ -5372,3 +5372,15 @@ button:focus,
   backdrop-filter: none !important;
   -webkit-filter: none !important;
 }
+/* Ship dropdown group headers (Ships / Carrack Parts) */
+.ship-option-group {
+  padding: var(--space-sm) var(--space-md) var(--space-xs);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.08));
+  margin-top: var(--space-xs);
+}
+.ship-option-group:first-child { margin-top: 0; }

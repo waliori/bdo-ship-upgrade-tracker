@@ -2,7 +2,7 @@
 // Full implementation matching modern-ui.html functionality
 
 // Import all data modules
-import { ships } from './ships.js';
+import { ships, shipGroups, shipDescriptions } from './ships.js';
 import { recipes } from './recipes.js';
 import { coins } from './sea_coins.js';
 import { tccost } from './totals.js';
@@ -4217,19 +4217,7 @@ async function createShipCard(shipName) {
     card.appendChild(header);
     
     // Description
-    const descriptions = {
-        "Epheria Sailboat": "Entry-level ocean vessel for exploration",
-        "Improved Epheria Sailboat": "Enhanced sailboat with better performance",
-        "Epheria Caravel": "Versatile trading vessel with cargo capacity",
-        "Carrack (Advance)": "High-speed carrack for fast travel",
-        "Carrack (Balance)": "Well-rounded carrack for all activities",
-        "Epheria Frigate": "Combat vessel for sea monster hunting",
-        "Improved Epheria Frigate": "Enhanced frigate with superior firepower",
-        "Epheria Galleass": "Large cargo ship for extensive trading",
-        "Carrack (Volante)": "Speed-focused carrack for rapid traversal",
-        "Carrack (Valor)": "Combat-oriented carrack with firepower",
-        "Panokseon": "Traditional Korean warship"
-    };
+    const descriptions = shipDescriptions;
     
     if (descriptions[shipName]) {
         const desc = document.createElement('div');
@@ -4317,19 +4305,7 @@ async function initCompactShipSelector() {
     await iconLoader.preloadIcons(ships);
     
     // Get descriptions mapping
-    const descriptions = {
-        "Epheria Sailboat": "Entry-level ocean vessel for exploration",
-        "Improved Epheria Sailboat": "Enhanced sailboat with better performance",
-        "Epheria Caravel": "Versatile trading vessel with cargo capacity",
-        "Carrack (Advance)": "High-speed carrack for fast travel",
-        "Carrack (Balance)": "Well-rounded carrack for all activities",
-        "Epheria Frigate": "Combat vessel for sea monster hunting",
-        "Improved Epheria Frigate": "Enhanced frigate with superior firepower",
-        "Epheria Galleass": "Large cargo ship for extensive trading",
-        "Carrack (Volante)": "Speed-focused carrack for rapid traversal",
-        "Carrack (Valor)": "Combat-oriented carrack with firepower",
-        "Panokseon": "Traditional Korean warship"
-    };
+    const descriptions = shipDescriptions;
     
     // Update current selection display
     await updateCurrentShipDisplay(currentShip, descriptions);
@@ -4395,9 +4371,17 @@ async function populateShipDropdown(descriptions) {
     const dropdownContent = document.getElementById('ship-dropdown-content');
     dropdownContent.innerHTML = '';
     
-    for (const ship of ships) {
-        const option = await createShipOption(ship, descriptions);
-        dropdownContent.appendChild(option);
+    for (const group of shipGroups) {
+        if (shipGroups.length > 1) {
+            const header = document.createElement('div');
+            header.className = 'ship-option-group';
+            header.textContent = group.name;
+            dropdownContent.appendChild(header);
+        }
+        for (const ship of group.items) {
+            const option = await createShipOption(ship, descriptions);
+            dropdownContent.appendChild(option);
+        }
     }
 }
 
@@ -4610,6 +4594,17 @@ function filterShipOptions(searchTerm) {
         const matches = shipName.includes(term);
         option.classList.toggle('hidden', !matches);
     });
+
+    // Hide group headers whose options are all filtered out
+    document.querySelectorAll('.ship-option-group').forEach(header => {
+        let sibling = header.nextElementSibling;
+        let anyVisible = false;
+        while (sibling && !sibling.classList.contains('ship-option-group')) {
+            if (!sibling.classList.contains('hidden')) { anyVisible = true; break; }
+            sibling = sibling.nextElementSibling;
+        }
+        header.classList.toggle('hidden', !anyVisible);
+    });
 }
 
 function updateShipSelectorProgress() {
@@ -4663,19 +4658,7 @@ async function selectShip(shipName) {
     setStorage('ship', currentShip);
     
     // Update current selection display
-    const descriptions = {
-        "Epheria Sailboat": "Entry-level ocean vessel for exploration",
-        "Improved Epheria Sailboat": "Enhanced sailboat with better performance",
-        "Epheria Caravel": "Versatile trading vessel with cargo capacity",
-        "Carrack (Advance)": "High-speed carrack for fast travel",
-        "Carrack (Balance)": "Well-rounded carrack for all activities",
-        "Epheria Frigate": "Combat vessel for sea monster hunting",
-        "Improved Epheria Frigate": "Enhanced frigate with superior firepower",
-        "Epheria Galleass": "Large cargo ship for extensive trading",
-        "Carrack (Volante)": "Speed-focused carrack for rapid traversal",
-        "Carrack (Valor)": "Combat-oriented carrack with firepower",
-        "Panokseon": "Traditional Korean warship"
-    };
+    const descriptions = shipDescriptions;
     
     await updateCurrentShipDisplay(shipName, descriptions);
     
@@ -5974,15 +5957,9 @@ function isEnhanceableItem(itemName) {
     const baseName = itemName.replace(/^\+\d+\s+/, '');
     
     // Exclude ship names themselves (not ship parts)
-    const shipNames = [
-        "Epheria Sailboat", "Improved Epheria Sailboat", "Epheria Caravel",
-        "Carrack (Advance)", "Carrack (Balance)", "Epheria Frigate", 
-        "Improved Epheria Frigate", "Epheria Galleass", "Carrack (Volante)",
-        "Carrack (Valor)", "Panokseon", "Bartali Sailboat"
-    ];
-    
-    // Don't enhance actual ships
-    if (shipNames.includes(baseName)) {
+    // Don't enhance actual ships (trackable ship parts like Chiro's parts ARE enhanceable)
+    const isActualShip = shipGroups[0].items.includes(baseName) || baseName === "Bartali Sailboat";
+    if (isActualShip) {
         return false;
     }
     
