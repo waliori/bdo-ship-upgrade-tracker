@@ -56,15 +56,18 @@
 
 * { box-sizing: border-box; }
 
-html {
-  margin: 0;
-  padding: 0;
-  background: var(--ocean-deep);
-}
+html { margin: 0; padding: 0; }
 
 /* The ocean ground the water shader ripples over. The shader draws its
    own gradient in these same colours, so with the effect on or off the
-   page reads as the same body of water. */
+   page reads as the same body of water.
+ *
+ * This background must stay on <body> with <html> left transparent. An
+ * unstyled root lets the body background propagate to the viewport, where
+ * it paints beneath everything -- which is what leaves the shader's
+ * canvas (a z-index:-1 child of body) visible. Give <html> a background
+ * of its own and propagation stops, body paints over the canvas, and the
+ * water silently disappears. */
 body {
   margin: 0;
   padding: 0;
@@ -800,4 +803,46 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 @media (prefers-reduced-motion: reduce) {
   .toast { animation: none; }
   * { transition: none !important; }
+}
+
+/* ---- build picker -------------------------------------------------- */
+
+.add-build { flex: 0 0 auto; padding: 8px 16px; font-size: 13px; }
+
+.picker-search { width: 100%; margin-bottom: 12px; }
+
+.picker {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-btn);
+  margin-bottom: 14px;
+}
+
+.picker-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--ink-mid);
+  font-size: 13px;
+  text-align: left;
+}
+
+.picker-row:last-child { border-bottom: none; }
+.picker-row:hover:not(:disabled) { background: rgba(88, 168, 232, 0.08); color: var(--ink-hi); }
+.picker-row:disabled { opacity: 0.45; cursor: default; }
+.picker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.picker-tag {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
 }
