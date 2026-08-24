@@ -110,9 +110,9 @@ export const items = {
 	"Epheria Carrack: Toro Sail": {"Purchase": ["Crow Coin Shop (10,000 Crow Coins)"]},
 	"Epheria Carrack: Toro Figurehead": {"Purchase": ["Crow Coin Shop (10,000 Crow Coins)"]},
 	"Epheria Carrack: Toro Plating": {"Purchase": ["Crow Coin Shop (10,000 Crow Coins)"]},
-	"Violent Wave Plywood": {"Purchase": ["Crow Coin Shop (350 Crow Coins)"]},
-	"Delicately Polished Support": {"Purchase": ["Crow Coin Shop (350 Crow Coins)"]},
-	"Wave Residue Adhesive": {"Purchase": ["Crow Coin Shop (350 Crow Coins)"]},
+	"Violent Wave Plywood": {"Purchase": ["Crow Coin Shop (350 Crow Coins)"], "Processing": ["Manufacture (Beginner 1)"]},
+	"Delicately Polished Support": {"Purchase": ["Crow Coin Shop (350 Crow Coins)"], "Processing": ["Manufacture (Beginner 1)"]},
+	"Wave Residue Adhesive": {"Purchase": ["Crow Coin Shop (350 Crow Coins)"], "Processing": ["Simple Alchemy (Beginner 1)"]},
 	"Blueprint: Chiro's Cannon": {"Gathering": ["Worker Node: Al-Nahad Island (chance drop)"]},
 	"Blueprint: Chiro's Sail": {"Gathering": ["Worker Node: Racid Island (chance drop)"]},
 	"Blueprint: Chiro's Figurehead": {"Gathering": ["Worker Node: Tinberra Island (chance drop)"]},
@@ -137,4 +137,12 @@ export const items = {
 	"Epheria Carrack: Valor (Chiro's Sail)": {"Crafting": ["Chiro's Ship Part Workshop (Iliya Island)"]},
 	"Epheria Carrack: Valor (Chiro's Figurehead)": {"Crafting": ["Chiro's Ship Part Workshop (Iliya Island)"]},
 	"Epheria Carrack: Valor (Chiro's Black Plating)": {"Crafting": ["Chiro's Ship Part Workshop (Iliya Island)"]},
+
+	// Sub-materials for Chiro part materials
+	"Violent Sea Monster's Scale": {"Monster Drop": ["Great Ocean Sea Monsters"]},
+	"Violent Sea Monster's Bone": {"Monster Drop": ["Great Ocean Sea Monsters"]},
+	"Violent Sea Monster's Ooze": {"Monster Drop": ["Great Ocean Sea Monsters"]},
+	"Saltwater Crocodile's Scale": {"Monster Drop": ["Saltwater Crocodile (Great Ocean)"]},
+	"Starlight Hardener": {"Purchase": ["Crow Coin Shop (250 Crow Coins)"]},
+	"Starlight Emulsifier": {"Purchase": ["Crow Coin Shop (250 Crow Coins)"]},
 };

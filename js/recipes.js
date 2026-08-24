@@ -451,6 +451,20 @@ export const recipes = {
 	"+2 Epheria Galleass: Stratus Wind Sail": {"+1 Epheria Galleass: Stratus Wind Sail": 1, "Tidal Black Stone": 1},
 	"+1 Epheria Galleass: Stratus Wind Sail": {"Epheria Galleass: Stratus Wind Sail": 1, "Tidal Black Stone": 1},
 
+	// ===== Chiro's part materials (craftable via Processing; also buyable for 350 Crow Coins) =====
+	"Violent Wave Plywood": {
+		"Violent Sea Monster's Scale": 1,
+		"Saltwater Crocodile's Scale": 1
+	},
+	"Delicately Polished Support": {
+		"Violent Sea Monster's Bone": 1,
+		"Starlight Hardener": 1
+	},
+	"Wave Residue Adhesive": {
+		"Violent Sea Monster's Ooze": 1,
+		"Starlight Emulsifier": 1
+	},
+
 	// ===== Epheria Carrack: Chiro's parts (blue) - crafted at Chiro's Ship Part Workshop, Iliya Island =====
 	"Epheria Carrack: Advance (Chiro's Cannon)": {
 		"+10 Epheria Carrack: Toro Cannon": 1,
