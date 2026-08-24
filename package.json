@@ -1,8 +1,8 @@
 {
   "name": "bdo-ship-upgrade-tracker",
   "version": "1.0.0",
-  "description": "Black Desert Online Ship Upgrade Recipe Tracker",
-  "main": "js/app.js",
+  "description": "Black Desert Online ship upgrade tracker with a shared inventory",
+  "main": "js/ui.js",
   "scripts": {
     "dev": "node server.js",
     "build": "echo 'No build process needed - static files'",
