@@ -2,7 +2,10 @@
    Chakra Petch for display, numbers and labels; Noto Sans for prose. */
 
 :root {
-  --bg: #050d18;
+  --bg: #0a1728;
+  --ocean-deep: #0a1728;
+  --ocean-mid: #0f2847;
+  --ocean-surface: #1e3a8a;
   --panel: rgba(10, 24, 40, 0.66);
   --panel-solid: rgba(10, 24, 40, 0.9);
   --panel-strong: rgba(10, 24, 40, 0.75);
@@ -53,13 +56,28 @@
 
 * { box-sizing: border-box; }
 
-html, body {
+html {
   margin: 0;
   padding: 0;
-  background: var(--bg);
+  background: var(--ocean-deep);
 }
 
+/* The ocean ground the water shader ripples over. The shader draws its
+   own gradient in these same colours, so with the effect on or off the
+   page reads as the same body of water. */
 body {
+  margin: 0;
+  padding: 0;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(14, 165, 233, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 70% 60%, rgba(59, 130, 246, 0.10) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+    linear-gradient(180deg,
+      var(--ocean-deep) 0%,
+      var(--ocean-mid) 30%,
+      var(--ocean-surface) 60%,
+      var(--ocean-mid) 100%);
+  background-attachment: fixed;
   font-family: var(--font-body);
   font-size: 14px;
   color: var(--ink);
@@ -81,14 +99,6 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: rgba(110, 150, 190, 0.25); border-radius: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-
-/* The WebGL water sits behind everything and never takes pointer events. */
-#water-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
 
 .shell {
   position: relative;
