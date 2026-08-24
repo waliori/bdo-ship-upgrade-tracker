@@ -14,6 +14,9 @@ import { iconLoader } from './icon-loader.js';
 import { shipMaterialTotals } from './ship_totals.js';
 import RealisticWaterRipples from './realistic-water-ripples.js';
 import { guidedTour } from './guided-tour.js';
+import * as store from './state.js';
+import * as bridge from './store-bridge.js';
+import { planOne, ownedLevel } from './planner.js';
 
 // Motion library is loaded via CDN and available globally as Motion
 // Safe animate function that checks for Motion availability
@@ -691,27 +694,13 @@ function getShipProgress(shipName) {
     if (!(shipName in recipes)) {
         return 0;
     }
-    
-    const flattenedMaterials = flattenRecipeRequirements(shipName);
-    
-    // Calculate total items dynamically based on current flattened materials
-    let totalItems = 0;
-    for (const [materialName, requiredQty] of flattenedMaterials) {
-        totalItems += requiredQty;
-    }
-    
-    if (totalItems === 0) {
-        return 0;
-    }
-    
-    let completedItems = 0;
-    for (const [materialName, requiredQty] of flattenedMaterials) {
-        const totalStoredQty = getTotalStoredQuantity(materialName, shipName);
-        const actualCompleted = Math.min(totalStoredQty, requiredQty);
-        completedItems += actualCompleted;
-    }
-    
-    return (completedItems / totalItems) * 100;
+
+    // The planner explodes the whole recipe tree and nets it against what
+    // you own, so holding an intermediate correctly removes its
+    // sub-materials from the requirement. The old version only looked one
+    // level deep.
+    const result = planOne(shipName, 1, store.getAllStock(), store.getAllStrategy());
+    return result.targets.length ? result.targets[0].progress : 0;
 }
 
 function showTooltip(element, content, x, y) {
@@ -895,16 +884,20 @@ document.addEventListener('scroll', hideTooltip);
 window.addEventListener('resize', hideTooltip);
 
 // Storage utility functions
+// Material quantities now live in the global inventory (state.js). The
+// bridge resolves the old per-ship key shapes to the single item each one
+// always meant; anything that is really a setting still goes straight to
+// localStorage.
 function setStorage(key, val) {
-    localStorage.setItem(`${storageKey}-${key}`, val);
+    bridge.writeKey(key, val);
 }
 
 function getStorage(key) {
-    return localStorage.getItem(`${storageKey}-${key}`) || "";
+    return bridge.readKey(key);
 }
 
 function checkStorage(key) {
-    return localStorage.getItem(`${storageKey}-${key}`) !== null;
+    return bridge.hasKey(key);
 }
 
 // Material categorization
@@ -5104,85 +5097,10 @@ function calculateMaterialsForShip(shipName) {
 
 // Get total stored quantity for a material, considering all places it might be stored
 function getTotalStoredQuantity(materialName, shipName) {
-    let totalStored = 0;
-    
-    // 1. Check direct storage: shipName-materialName
-    // Also check for +10 prefixed version since items can be stored with enhancement prefix
-    const directKey1 = `${shipName}-${materialName}`;
-    const directKey2 = `${shipName}-+10 ${materialName}`;
-    const directQty1 = parseInt(getStorage(directKey1)) || 0;
-    const directQty2 = parseInt(getStorage(directKey2)) || 0;
-    totalStored += directQty1 + directQty2;
-    
-    // 2. Check recipe context storage: shipName-recipeName-materialName
-    // Also check for +10 prefixed versions since materials are stored with enhancement prefix
-    if (shipName in recipes) {
-        for (const [part, quantity] of Object.entries(recipes[shipName])) {
-            const baseName = part.startsWith('+10 ') ? part.substring(4) : part;
-            if (baseName in recipes && !ships.includes(baseName)) {
-                // Check both with and without +10 prefix
-                const contextKey1 = `${shipName}-${baseName}-${materialName}`;
-                const contextKey2 = `${shipName}-${baseName}-+10 ${materialName}`;
-                
-                const contextQty1 = parseInt(getStorage(contextKey1)) || 0;
-                const contextQty2 = parseInt(getStorage(contextKey2)) || 0;
-                
-                totalStored += contextQty1 + contextQty2;
-            }
-        }
-    }
-    
-    // 3. FIXED: Check if this material is a recipe and account for completed items properly
-    if (materialName in recipes) {
-        // Get completed recipe items from the hybrid system storage
-        const completedStorageId = `${shipName}-${materialName}-completed`;
-        const completedItems = parseInt(getStorage(completedStorageId)) || 0;
-        
-        // Add completed items directly
-        totalStored += completedItems;
-        
-        // Also check for raw material progress, but only count fractional part beyond completed items
-        // This handles case where user has both completed items AND partial progress on additional items
-        
-        // Find how many items this ship actually needs for this recipe
-        let parentQuantity = 1; // Default to 1 if not specified
-        if (shipName in recipes && materialName in recipes[shipName]) {
-            parentQuantity = recipes[shipName][materialName];
-        } else {
-            // Check for +10 version
-            const plus10Name = `+10 ${materialName}`;
-            if (shipName in recipes && plus10Name in recipes[shipName]) {
-                parentQuantity = recipes[shipName][plus10Name];
-            }
-        }
-        
-        // If we have fewer completed items than needed, check raw material progress for the remainder
-        if (completedItems < parentQuantity) {
-            const remainingNeeded = parentQuantity - completedItems;
-            
-            // Calculate raw material progress for the remaining items
-            let rawMaterialProgress = 0;
-            let totalRawNeeded = 0;
-            
-            for (const [subMaterial, subQuantity] of Object.entries(recipes[materialName])) {
-                const neededForRemaining = subQuantity * remainingNeeded;
-                const storageId = `${shipName}-${materialName}-${subMaterial}`;
-                const currentRaw = parseInt(getStorage(storageId)) || 0;
-                
-                totalRawNeeded += neededForRemaining;
-                rawMaterialProgress += Math.min(currentRaw, neededForRemaining);
-            }
-            
-            // Add fractional progress from raw materials
-            if (totalRawNeeded > 0) {
-                const rawProgressRatio = rawMaterialProgress / totalRawNeeded;
-                const fractionalQuantity = rawProgressRatio * remainingNeeded;
-                totalStored += fractionalQuantity;
-            }
-        }
-    }
-    
-    return totalStored;
+    // One pile per item now, so this is a lookup rather than a sum over a
+    // dozen key variants. The "+10" form is included because requirement
+    // lists strip that prefix before asking.
+    return bridge.totalOwned(materialName);
 }
 
 
@@ -5654,10 +5572,11 @@ async function resetData() {
     if (confirm("Are you sure you want to reset all data? This cannot be undone.")) {
         for (let i = localStorage.length - 1; i >= 0; i--) {
             const key = localStorage.key(i);
-            if (key && key.startsWith(storageKey)) {
+            if (key && (key.startsWith(storageKey) || key.startsWith('bdo-tracker/'))) {
                 localStorage.removeItem(key);
             }
         }
+        store.init();
         
         // Properly select Epheria Sailboat and update all UI
         await selectShip("Epheria Sailboat");
@@ -5878,11 +5797,36 @@ async function initApp() {
     });
 }
 
-// Start the application
+// The inventory has to exist before anything reads a quantity.
+async function boot() {
+    store.init();
+    await initApp();
+
+    const manifest = await import('./manifest-ui.js');
+    manifest.init();
+
+    // Stock can change from any view, another tab, or an undo -- repaint
+    // the per-ship cards whenever it does.
+    let repainting = false;
+    store.subscribe((_state, reason) => {
+        if (repainting || reason === 'settings') return;
+        repainting = true;
+        try {
+            refreshAllMaterialCards();
+            updateOverallProgress();
+            updateShipSelectorProgress();
+        } catch (err) {
+            console.warn('[app] repaint failed:', err);
+        } finally {
+            repainting = false;
+        }
+    });
+}
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initApp);
+    document.addEventListener('DOMContentLoaded', boot);
 } else {
-    initApp();
+    boot();
 }
 
 
@@ -5978,15 +5922,14 @@ function getBaseItemName(itemName) {
 }
 
 function getCurrentEnhancementLevel(itemName, shipName) {
-    const baseName = getBaseItemName(itemName);
-    const enhancementKey = `${shipName}-${baseName}-enhancement`;
-    return parseInt(getStorage(enhancementKey)) || 0;
+    // Owning a "+7 Foo" is what being at +7 means -- there is no longer a
+    // separate level setting.
+    return ownedLevel(getBaseItemName(itemName), store.getAllStock());
 }
 
 function setEnhancementLevel(itemName, shipName, level) {
     const baseName = getBaseItemName(itemName);
-    const enhancementKey = `${shipName}-${baseName}-enhancement`;
-    setStorage(enhancementKey, level.toString());
+    bridge.setLevel(baseName, level);
     
     // Update enhancement-specific UI elements in real-time
     updateEnhancementUI(itemName, shipName, level);
