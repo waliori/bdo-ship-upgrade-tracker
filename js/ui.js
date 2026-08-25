@@ -42,6 +42,13 @@ const SOURCE_LABEL = {
 const CROW_COIN = 'Crow Coin';
 const SILVER = 'Silver';
 
+// Sangpyeong Coins are money too, even though they sit in your bags like a
+// material: they buy Finely Polished Pine Plywood, which the Panokseon
+// wants 300 of and each Byukgye's part another 50 -- thousands of coins in
+// a build, earned from Moodle Village dailies rather than bought. It stays
+// in the item grid as well, since where it comes from is worth reading.
+const SANGPYEONG = 'Sangpyeong Coin';
+
 // Everything an enhancement attempt burns other than the part itself --
 // derived from the recipes, so a new stone in a future update shows up in
 // the pouch without anyone editing this file.
@@ -367,12 +374,14 @@ function renderPlan() {
 }
 
 /**
- * The pouch: coins, silver and enhancement stones, on every tab.
+ * The pouch: coins, silver, Sangpyeong Coins and enhancement stones, on
+ * every tab.
  *
  * These are spent from wherever you happen to be -- buying on To Get,
  * enhancing in the Workshop -- so they sit in the shell above the tabs
- * instead of belonging to one screen. Stones only appear once a build
- * needs them or you hold some, so the bar stays short.
+ * instead of belonging to one screen. Everything past the two headline
+ * currencies only appears once a build needs it or you hold some, so the
+ * bar stays short.
  */
 function pouchHTML() {
 	const totals = totalsToGo();
@@ -382,8 +391,18 @@ function pouchHTML() {
 		{ item: SILVER, label: 'Silver', need: totals.silver, where: 'Falasi, port of Epheria', glyph: '\u25C9' }
 	];
 
-	STONES
-		.map(item => ({ item, label: item, need: rows[item] ? rows[item].need : 0, where: 'spent on enhancement attempts' }))
+	// Coins and stones are earned or dropped, not priced, so they join the
+	// bar only once a build wants them or you are holding some -- that way
+	// a Carrack plan never carries a Panokseon currency it has no use for.
+	const carried = (item, label, where) => {
+		const need = rows[item] ? rows[item].need : 0;
+		return { item, label, need, where };
+	};
+
+	const optional = [carried(SANGPYEONG, 'Sangpyeong Coins', 'Moodle Village dailies')];
+	STONES.forEach(item => optional.push(carried(item, item, 'spent on enhancement attempts')));
+
+	optional
 		.filter(e => e.need > 0 || store.getStock(e.item) > 0)
 		.sort((a, b) => b.need - a.need || a.label.localeCompare(b.label))
 		.forEach(e => entries.push(e));

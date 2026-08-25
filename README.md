@@ -81,8 +81,8 @@ can be both made and bought, you choose, and the plan follows.
 
 - **Undo** on every change, and a one-line **Next** banner that tells you
   the single most useful thing to do right now.
-- **Your purse** — Crow Coins, silver and enhancement stones ride along
-  above every tab, since you spend them from every tab.
+- **Your purse** — Crow Coins, silver, Sangpyeong Coins and enhancement
+  stones ride along above every tab, since you spend them from every tab.
 - **Export / Import** a JSON backup to move between machines.
 - **A guided tour** that demonstrates on example data, then hands your
   own data back untouched.
