@@ -130,6 +130,18 @@ Racid, Lerao and Tinberra worker nodes, and the full enhancement chains.
 The `+10` versions that the coming yellow-part update will consume are
 already modelled.
 
+**Panokseon parts** — Haemo's four green parts and the Byukgye's Enhanced
+blue parts they become, with their blueprints from Dallae Pier Quarry and
+the permit from Moodle Village Shipyard.
+
+**What enhancement really costs.** Every enhanceable part carries its real
+per-level success rates, and the Agris Essence pity caps that guarantee an
+attempt after enough failures. So the plan budgets what the climb will
+actually take rather than assuming every attempt lands — for a blue
+Carrack part that is the difference between 500 stones and about 5,600 —
+and the Workshop tells you the odds in front of you and the most it can
+possibly cost.
+
 Crow Coin prices were checked against the shop at Oquilla's Eye on
 2026‑08‑25.
 

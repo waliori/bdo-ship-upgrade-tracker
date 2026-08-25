@@ -922,5 +922,57 @@
   "Starlight Emulsifier": {
     "icon": "00008024.webp",
     "url": "https://bdocodex.com/us/item/8024/"
+  },
+  "Panokseon: Haemo's Cannon": {
+    "icon": "00059402.webp",
+    "url": "https://bdocodex.com/us/item/59402/"
+  },
+  "Panokseon: Haemo's Sail": {
+    "icon": "00059403.webp",
+    "url": "https://bdocodex.com/us/item/59403/"
+  },
+  "Panokseon: Haemo's Figurehead": {
+    "icon": "00059404.webp",
+    "url": "https://bdocodex.com/us/item/59404/"
+  },
+  "Panokseon: Haemo's Plating": {
+    "icon": "00059405.webp",
+    "url": "https://bdocodex.com/us/item/59405/"
+  },
+  "Panokseon: Byukgye's Enhanced Cannon": {
+    "icon": "00059406.webp",
+    "url": "https://bdocodex.com/us/item/59406/"
+  },
+  "Panokseon: Byukgye's Enhanced Sail": {
+    "icon": "00059407.webp",
+    "url": "https://bdocodex.com/us/item/59407/"
+  },
+  "Panokseon: Byukgye's Enhanced Figurehead": {
+    "icon": "00059408.webp",
+    "url": "https://bdocodex.com/us/item/59408/"
+  },
+  "Panokseon: Byukgye's Enhanced Plating": {
+    "icon": "00059409.webp",
+    "url": "https://bdocodex.com/us/item/59409/"
+  },
+  "Panokseon Enhancement Parts Upgrade Permit": {
+    "icon": "00059414.webp",
+    "url": "https://bdocodex.com/us/item/59414/"
+  },
+  "Blueprint: Byukgye's Enhanced Cannon": {
+    "icon": "00008027.webp",
+    "url": "https://bdocodex.com/us/item/8027/"
+  },
+  "Blueprint: Byukgye's Enhanced Sail": {
+    "icon": "00008028.webp",
+    "url": "https://bdocodex.com/us/item/8028/"
+  },
+  "Blueprint: Byukgye's Enhanced Figurehead": {
+    "icon": "00008029.webp",
+    "url": "https://bdocodex.com/us/item/8029/"
+  },
+  "Blueprint: Byukgye's Enhanced Plating": {
+    "icon": "00008030.webp",
+    "url": "https://bdocodex.com/us/item/8030/"
   }
 }
