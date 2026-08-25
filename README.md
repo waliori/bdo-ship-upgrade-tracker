@@ -167,6 +167,7 @@ js/
   all_barter.js       barter routes
   guided-tour.js      the walkthrough
 icons/                item and ship icons (WebP)
+og.png                the social preview card
 docs/media/           the images and clips in this README
 tools/capture/        the harness that generates them
 ```

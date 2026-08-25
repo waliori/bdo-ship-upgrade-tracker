@@ -1,8 +1,28 @@
 {
   "name": "bdo-ship-upgrade-tracker",
   "version": "1.0.0",
-  "description": "Black Desert Online ship upgrade tracker with a shared inventory",
+  "description": "Track Black Desert Online ship upgrades against one shared inventory",
+  "author": "waliori",
+  "license": "MIT",
+  "homepage": "https://sail.walior.it/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/waliori/bdo-ship-upgrade-tracker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/waliori/bdo-ship-upgrade-tracker/issues"
+  },
+  "keywords": [
+    "black-desert-online",
+    "bdo",
+    "ship-upgrade",
+    "tracker"
+  ],
+  "type": "module",
   "main": "js/ui.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "node server.js",
     "build": "echo 'No build process needed - static files'",
@@ -10,17 +30,7 @@
     "test": "echo 'No tests yet'",
     "capture": "node tools/capture/scenes.mjs docs/media"
   },
-  "type": "module",
-  "keywords": [
-    "black-desert-online",
-    "bdo",
-    "ship-upgrade",
-    "tracker"
-  ],
-  "author": "BDO Ship Tracker",
-  "license": "MIT",
   "dependencies": {
-    "cors": "^2.8.5",
     "express": "^4.18.2"
   },
   "devDependencies": {
