@@ -30,6 +30,9 @@ let state = emptyState();
 let listeners = new Set();
 let writeTimer = null;
 let suppressStorageEvent = false;
+// While the guided tour is showing example data, nothing may be written:
+// a single save would put the demo where the user's real inventory is.
+let transient = false;
 
 /* ------------------------------------------------------------------ *
  * Persistence
@@ -79,6 +82,7 @@ function normalise(raw) {
 }
 
 function persist() {
+	if (transient) return;
 	if (writeTimer) clearTimeout(writeTimer);
 	writeTimer = setTimeout(() => {
 		writeTimer = null;
@@ -404,6 +408,59 @@ export function importJSON(text) {
 		state.strategy = incoming.strategy;
 	});
 	return { items: Object.keys(incoming.stock).length, targets: incoming.targets.length };
+}
+
+/* ------------------------------------------------------------------ *
+ * Temporary state, for the guided tour
+ * ------------------------------------------------------------------ */
+
+/** A copy of everything that matters, to put back later. */
+export function capture() {
+	return JSON.stringify({
+		stock: state.stock,
+		targets: state.targets,
+		strategy: state.strategy
+	});
+}
+
+/**
+ * Swap in some state without saving it.
+ *
+ * The tour needs worked-through data to point at, but that data must
+ * never reach storage: nothing is persisted here, so whatever is on disk
+ * stays the real thing even if the tab is closed mid-tour.
+ */
+export function applyTransient(json) {
+	let raw;
+	try {
+		raw = JSON.parse(json);
+	} catch {
+		return false;
+	}
+	transient = true;
+	// Drop any queued write from before the swap, so it cannot land later
+	// carrying example data.
+	if (writeTimer) {
+		clearTimeout(writeTimer);
+		writeTimer = null;
+	}
+	state.stock = { ...(raw.stock || {}) };
+	state.targets = (raw.targets || []).map(t => ({ ...t }));
+	state.strategy = { ...(raw.strategy || {}) };
+	notify('transient');
+	return true;
+}
+
+/** Put back a captured copy and start saving again. */
+export function restore(json) {
+	if (!applyTransient(json)) return false;
+	transient = false;
+	notify('restore');
+	return true;
+}
+
+export function isTransient() {
+	return transient;
 }
 
 /* ------------------------------------------------------------------ *

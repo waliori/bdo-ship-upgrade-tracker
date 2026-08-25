@@ -129,14 +129,26 @@ function recompute() {
 	});
 
 	// Collapse every build's requirement tree into one row per item.
+	//
+	// Enhancement chains are folded away: a "+10 part" pulls in +9, +8 … +1
+	// and the base item, which would otherwise fill the plan with ten rows
+	// per part. Only the level a build actually asks for is kept -- the
+	// steps in between belong to the Workshop. The base part and the stones
+	// still appear, because those are things you have to go and get.
 	rows = {};
 	for (const target of snapshot.targets) {
 		const walk = node => {
-			const r = rows[node.item] || (rows[node.item] = { need: 0, take: 0, craft: 0, short: 0 });
-			r.need += node.need;
-			r.take += node.fromStock;
-			r.craft += node.toCraft;
-			r.short += node.missing;
+			const here = parseEnhanced(node.item);
+			const from = node.via ? parseEnhanced(node.via) : null;
+			const midChain = here.level > 0 && from && from.level > 0 && from.base === here.base;
+
+			if (!midChain) {
+				const r = rows[node.item] || (rows[node.item] = { need: 0, take: 0, craft: 0, short: 0 });
+				r.need += node.need;
+				r.take += node.fromStock;
+				r.craft += node.toCraft;
+				r.short += node.missing;
+			}
 			node.children.forEach(walk);
 		};
 		walk(target.tree);
@@ -225,10 +237,11 @@ function renderPlan() {
 		.filter(g => g.list.length);
 
 	if (!groups.length) {
-		return statHTML + readyHTML + controlsHTML(filters) +
-			`<div class="panel"><p class="empty">${store.getActiveTargets().length
-				? 'Nothing matches that filter.'
-				: 'No builds yet — add one from the Builds tab and the plan fills itself in.'}</p></div>`;
+		const nothingQueued = !store.getActiveTargets().length;
+		return statHTML + readyHTML + (nothingQueued ? '' : controlsHTML(filters)) +
+			(nothingQueued
+				? startHere()
+				: '<div class="panel"><p class="empty">Nothing matches that filter.</p></div>');
 	}
 
 	const groupHTML = groups.map(g => `<div class="panel">
@@ -240,6 +253,31 @@ function renderPlan() {
 	</div>`).join('');
 
 	return statHTML + readyHTML + controlsHTML(filters) + groupHTML;
+}
+
+/** The loop to follow, for anyone opening the tracker for the first time. */
+function startHere() {
+	const steps = [
+		['Queue what you want to build', 'A ship, a Chiro part, or a stack of materials. Order them by what you want finished first.', 'Add a build', 'builds'],
+		['Say what you already own', 'Set quantities here on the Plan with the − number + box on each row, or from the Inventory grid.', 'Open Inventory', 'inventory'],
+		['Work the list', 'Whatever is left shows as Missing. The Workshop makes anything you have the materials for, and handles enhancing.', 'Open Workshop', 'workshop'],
+		['Take the shopping list with you', 'To Get groups everything outstanding by how you actually obtain it, with Crow Coin and silver totals.', 'Open To Get', 'get']
+	];
+	return `<div class="panel start-here">
+		<div class="panel-head">
+			<h2 class="panel-title plain">How this works</h2>
+			<span class="panel-sub">Four steps, then it is just keeping the numbers current</span>
+		</div>
+		<ol class="steps">${steps.map(([title, body, cta, view], i) => `
+			<li class="step">
+				<span class="step-n">${i + 1}</span>
+				<div>
+					<div class="step-title">${esc(title)}</div>
+					<div class="step-body">${esc(body)}</div>
+				</div>
+				<button class="act quiet step-cta" data-act="view" data-id="${view}">${esc(cta)}</button>
+			</li>`).join('')}</ol>
+	</div>`;
 }
 
 function controlsHTML(filters) {
@@ -261,14 +299,17 @@ function planRow(item, r, covered) {
 	if (r.craft) legend.push(`${F(r.craft)} to craft`);
 	if (r.short) legend.push(`${F(r.short)} missing`);
 
+	const enhanced = parseEnhanced(item).level > 0;
 	const who = (r.resv || []).slice(0, 2)
 		.map(v => (v.via && v.via !== item ? `${v.targetItem}, via ${v.via}` : v.targetItem));
 	const src = sourceOf(item);
-	const sub = who.length ? `reserved for ${who.join(' · ')}` : (src ? src.label : 'intermediate craft');
+	let sub = who.length ? `reserved for ${who.join(' · ')}` : (src ? src.label : 'intermediate craft');
+	if (enhanced) sub = 'enhanced in the Workshop';
 
-	const can = recipes[item] && r.craft > 0 && maxCraftable(item, store.getAllStock()) >= 1;
-	const badge = covered ? 'covered' : r.short > 0 ? `${F(r.short)} short` : 'craftable';
+	const can = !enhanced && recipes[item] && r.craft > 0 && maxCraftable(item, store.getAllStock()) >= 1;
+	const badge = covered ? 'covered' : r.short > 0 ? `${F(r.short)} short` : enhanced ? 'to enhance' : 'craftable';
 	const badgeCls = covered ? 'teal' : r.short > 0 ? 'red' : 'blue';
+	const own = store.getStock(item);
 
 	return `<div class="row">
 		${img(item)}
@@ -280,10 +321,15 @@ function planRow(item, r, covered) {
 			<div class="bar">${segs.join('')}</div>
 			<div class="bar-legend">
 				<span>${esc(legend.join(' · '))}</span>
-				<span class="n">${F(store.getStock(item))} / ${F(r.need)}</span>
+				<span class="n">${F(own)} / ${F(r.need)}</span>
 			</div>
 		</div>
 		<div class="row-tail">
+			<span class="own" title="How many you own">
+				<button class="sq-btn" data-act="own" data-item="${esc(item)}" data-delta="-1" aria-label="One fewer">−</button>
+				<input class="own-input" type="number" min="0" value="${own}" data-act="own-set" data-item="${esc(item)}" aria-label="Owned">
+				<button class="sq-btn" data-act="own" data-item="${esc(item)}" data-delta="1" aria-label="One more">+</button>
+			</span>
 			<span class="badge ${badgeCls}">${esc(badge)}</span>
 			${can ? `<button class="mini-btn" data-act="craft" data-item="${esc(item)}" data-times="1">Craft</button>` : ''}
 		</div>
@@ -771,6 +817,9 @@ function wire() {
 			case 'bump':
 				if (selected) store.addStock(selected, Number(el.dataset.delta));
 				return;
+			case 'own':
+				store.addStock(el.dataset.item, Number(el.dataset.delta));
+				return;
 			case 'copy':
 				try {
 					await navigator.clipboard.writeText(shoppingText());
@@ -826,6 +875,11 @@ function wire() {
 			}
 			default:
 		}
+	});
+
+	document.addEventListener('change', evt => {
+		const el = evt.target.closest('[data-act="own-set"]');
+		if (el) store.setStock(el.dataset.item, el.value);
 	});
 
 	document.addEventListener('input', evt => {

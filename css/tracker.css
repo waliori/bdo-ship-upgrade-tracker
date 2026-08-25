@@ -846,3 +846,70 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   text-transform: uppercase;
   color: var(--ink-faint);
 }
+
+/* ---- record what you own, straight from a plan row ------------------ */
+
+.own {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(125, 175, 225, 0.18);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+
+.own .sq-btn { border: none; border-radius: 0; width: 26px; height: 28px; }
+
+.own-input {
+  width: 52px;
+  height: 28px;
+  border: none;
+  border-left: 1px solid rgba(125, 175, 225, 0.14);
+  border-right: 1px solid rgba(125, 175, 225, 0.14);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--ink-hi);
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.own-input::-webkit-outer-spin-button,
+.own-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* ---- first-run guidance -------------------------------------------- */
+
+.steps { list-style: none; margin: 0; padding: 0; }
+
+.step {
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.step:last-child { border-bottom: none; }
+
+.step-n {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--blue-edge);
+  background: var(--blue-glow);
+  color: var(--blue);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.step-title { font-weight: 600; font-size: 14px; color: var(--ink-hi); }
+.step-body { font-size: 12.5px; color: var(--ink-mute); margin-top: 2px; line-height: 1.5; }
+.step-cta { flex: 0 0 auto; padding: 8px 14px; font-size: 12.5px; white-space: nowrap; }
+
+@media (max-width: 640px) {
+  .step { grid-template-columns: 30px 1fr; }
+  .step-cta { grid-column: 2; justify-self: start; }
+}

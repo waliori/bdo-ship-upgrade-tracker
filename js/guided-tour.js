@@ -5,13 +5,46 @@
 // shopping. Each step switches tab by clicking the real tab button, so
 // there is no second copy of the navigation logic to keep in sync.
 
+import * as store from './state.js';
+
 const DONE_KEY = 'bdo_ship_upgrade-tour_completed';
 const AUTO_KEY = 'bdo_ship_upgrade-auto_tour_enabled';
+
+/**
+ * A worked-through example to talk over: a Carrack part part-way built,
+ * with something craftable, something short, and a part mid-enhancement.
+ * It is never saved -- the real data is captured first and put back when
+ * the tour ends.
+ */
+const DEMO = JSON.stringify({
+	stock: {
+		'Violent Wave Plywood': 120,
+		"Violent Sea Monster's Scale": 60,
+		"Saltwater Crocodile's Scale": 55,
+		'Tidal Black Stone': 300,
+		'+4 Epheria Carrack: Toro Sail': 1,
+		'Starlight Hardener': 80,
+		"Blueprint: Chiro's Sail": 6,
+		'Moon Vein Flax Fabric': 90
+	},
+	targets: [
+		{ id: 'demo-1', item: "Epheria Carrack: Valor (Chiro's Sail)", qty: 1, active: true },
+		{ id: 'demo-2', item: "Epheria Carrack: Valor (Chiro's Cannon)", qty: 1, active: true }
+	],
+	strategy: {}
+});
 
 /** Click a tab and give the render a moment to land. */
 function goToTab(id) {
 	const btn = document.querySelector(`[data-act="view"][data-id="${id}"]`);
 	if (btn) btn.click();
+}
+
+/** Open an inventory tile so the detail panel has something in it. */
+function selectSampleItem() {
+	const tile = [...document.querySelectorAll('.tile')]
+		.find(t => t.title === 'Violent Wave Plywood') || document.querySelector('.tile');
+	if (tile) tile.click();
 }
 
 class GuidedTour {
@@ -60,6 +93,7 @@ class GuidedTour {
 			prevBtnText: 'Back',
 			onDestroyed: () => {
 				this.running = false;
+				this.restoreRealData();
 				try {
 					localStorage.setItem(DONE_KEY, 'true');
 				} catch {
@@ -74,7 +108,7 @@ class GuidedTour {
 			{
 				popover: {
 					title: '⚓ One inventory, every build',
-					description: 'This tracker keeps a single record of what you own. Every build draws from it, so the same 100 planks are never promised to two ships at once. Everything is saved in your browser.',
+					description: 'This tracker keeps a single record of what you own. Every build draws from it, so the same 100 planks are never promised to two ships at once.<br><br><b>The next few screens show an example so there is something to point at — your own data comes back when the tour ends.</b>',
 					align: 'center'
 				},
 				before: () => goToTab('plan')
@@ -105,10 +139,10 @@ class GuidedTour {
 				}
 			},
 			{
-				element: '.row-meter',
+				element: '.row',
 				popover: {
-					title: 'Reading a material',
-					description: 'The bar splits three ways — <span style="color:#4ec9ae">green</span> is covered from stock, <span style="color:#3a89c9">blue</span> is still to craft, <span style="color:#e87a6d">red</span> is missing. The line underneath says which build reserved it, and through which recipe.',
+					title: 'Reading a material, and recording it',
+					description: 'The bar splits three ways — <span style="color:#4ec9ae">green</span> is covered from stock, <span style="color:#3a89c9">blue</span> is still to craft, <span style="color:#e87a6d">red</span> is missing.<br><br>The <b>− number +</b> box on the right is how many you own. Change it here as you gather and every build updates at once — that is the main thing you will do day to day.',
 					side: 'top'
 				}
 			},
@@ -132,6 +166,10 @@ class GuidedTour {
 			},
 			{
 				element: '.detail',
+				before: () => {
+					goToTab('inventory');
+					selectSampleItem();
+				},
 				popover: {
 					title: 'Why an item is reserved',
 					description: 'Pick a tile and this panel shows who reserved it and through which recipe, where to buy it, and — when an item can be both made and bought — lets you choose which.',
@@ -173,6 +211,14 @@ class GuidedTour {
 		return all;
 	}
 
+	/** Put the user's own data back after the walkthrough. */
+	restoreRealData() {
+		if (!this.realData) return;
+		const saved = this.realData;
+		this.realData = null;
+		store.restore(saved);
+	}
+
 	startTour() {
 		if (this.running) return;
 		const steps = this.steps();
@@ -181,6 +227,11 @@ class GuidedTour {
 			console.warn('[tour] Driver.js is not available yet');
 			return;
 		}
+
+		// Swap in the example, keeping the real data to hand back later.
+		this.realData = store.capture();
+		store.applyTransient(DEMO);
+
 		goToTab('plan');
 		this.running = true;
 		this.driver.setSteps(steps);
