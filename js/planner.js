@@ -7,6 +7,7 @@
 // two builds at once.
 
 import { recipes as defaultRecipes } from './recipes.js';
+import { tableFor } from './enhancement.js';
 
 /** Recipes an item can be made from, honouring a "I'll just buy this" choice. */
 function recipeFor(item, strategy, recipes) {
@@ -240,6 +241,79 @@ export function enhanceStep(base, toLevel, recipes = defaultRecipes) {
 	for (const [item, per] of Object.entries(stones)) onFailure[item] = -per;
 
 	return { from, to: target, stones, onSuccess, onFailure };
+}
+
+/**
+ * What taking `base` from one level to another really costs.
+ *
+ * The recipes describe one successful attempt per level, which is the
+ * floor, not the forecast: a Chiro part succeeds 0.5% of the time at +9.
+ * Agris Essence is what makes this answerable -- each failure stores one,
+ * and when the meter is full the next attempt cannot fail, so there is a
+ * genuine worst case rather than an open-ended tail.
+ *
+ * Returns null for parts with no table, and for the older gear that
+ * succeeds every time (where the recipe already tells the whole truth).
+ */
+export function enhancementForecast(base, from = 0, to = 10) {
+	const table = tableFor(base);
+	if (!table) return null;
+
+	const steps = [];
+	let minimum = 0;
+	let expected = 0;
+	let ceiling = 0;
+	let perfect = 0;
+	let durability = 0;
+	let certain = true;
+
+	for (let level = from; level < to; level++) {
+		const step = table.levels[level];
+		if (!step) break;
+		if (step.chance < 1) certain = false;
+
+		// Expected attempts when the (agris + 1)-th try is guaranteed.
+		const cap = step.agris ?? 0;
+		let tries = 0;
+		let stillFailing = 1;
+		for (let k = 1; k <= cap; k++) {
+			tries += k * step.chance * stillFailing;
+			stillFailing *= 1 - step.chance;
+		}
+		tries += (cap + 1) * stillFailing;
+		const worst = cap + 1;
+
+		minimum += step.stones;
+		expected += step.stones * tries;
+		ceiling += step.stones * worst;
+		perfect += step.perfect || 0;
+		durability += step.durability * cap;
+
+		steps.push({
+			level,
+			chance: step.chance,
+			agris: cap,
+			stones: step.stones,
+			attempts: tries,
+			expected: step.stones * tries,
+			ceiling: step.stones * worst,
+			perfect: step.perfect
+		});
+	}
+
+	if (!steps.length || certain) return null;
+
+	return {
+		material: table.material,
+		label: table.label,
+		steps,
+		minimum,
+		expected: Math.round(expected),
+		ceiling,
+		perfect: perfect || null,
+		durability,
+		repairs: Math.ceil(durability / 100)
+	};
 }
 
 /** The highest level of `base` currently owned, or 0. */

@@ -38,6 +38,15 @@ export const shipGroups = [
 			"Epheria Carrack: Valor (Chiro's Black Plating)",
 		]
 	},
+	{
+		name: "Panokseon Parts (Byukgye)",
+		items: [
+			"Panokseon: Byukgye's Enhanced Cannon",
+			"Panokseon: Byukgye's Enhanced Sail",
+			"Panokseon: Byukgye's Enhanced Figurehead",
+			"Panokseon: Byukgye's Enhanced Plating",
+		]
+	},
 ];
 
 export const ships = shipGroups.flatMap(g => g.items);

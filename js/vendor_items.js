@@ -117,6 +117,18 @@ export const items = {
 	"Blueprint: Chiro's Sail": {"Gathering": ["Worker Node: Racid Island (chance drop)"]},
 	"Blueprint: Chiro's Figurehead": {"Gathering": ["Worker Node: Tinberra Island (chance drop)"]},
 	"Blueprint: Chiro's Black Plating": {"Gathering": ["Worker Node: Lerao Island (chance drop)"]},
+
+	// Panokseon gear. The four Byukgye blueprints all come off one node, and
+	// the parts are assembled at the Byukgye Ship Part Workshop, Moodle Village.
+	"Blueprint: Byukgye's Enhanced Cannon": {"Gathering": ["Worker Node: Dallae Pier Quarry"]},
+	"Blueprint: Byukgye's Enhanced Sail": {"Gathering": ["Worker Node: Dallae Pier Quarry"]},
+	"Blueprint: Byukgye's Enhanced Figurehead": {"Gathering": ["Worker Node: Dallae Pier Quarry"]},
+	"Blueprint: Byukgye's Enhanced Plating": {"Gathering": ["Worker Node: Dallae Pier Quarry"]},
+	"Panokseon Enhancement Parts Upgrade Permit": {"Purchase": ["Chulong, Moodle Village Shipyard"]},
+	"Panokseon: Byukgye's Enhanced Cannon": {"Crafting": ["Byukgye Ship Part Workshop (Moodle Village)"]},
+	"Panokseon: Byukgye's Enhanced Sail": {"Crafting": ["Byukgye Ship Part Workshop (Moodle Village)"]},
+	"Panokseon: Byukgye's Enhanced Figurehead": {"Crafting": ["Byukgye Ship Part Workshop (Moodle Village)"]},
+	"Panokseon: Byukgye's Enhanced Plating": {"Crafting": ["Byukgye Ship Part Workshop (Moodle Village)"]},
 	"Epheria Carrack Parts Upgrade Permit: Advance": {"Purchase": ["Falasi (1 bil)"]},
 	"Epheria Carrack Parts Upgrade Permit: Balance": {"Purchase": ["Falasi (1 bil)"]},
 	"Epheria Carrack Parts Upgrade Permit: Volante": {"Purchase": ["Falasi (1 bil)"]},

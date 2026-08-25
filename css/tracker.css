@@ -1267,3 +1267,26 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 .purse-inline::-webkit-outer-spin-button,
 .purse-inline::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .purse-inline:focus { border-color: var(--blue-edge); color: var(--ink-hi); }
+
+/* ---- what an enhancement really costs ------------------------------ */
+
+.enh-odds {
+  display: block;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.enh-outlook {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--ink-mute);
+  white-space: nowrap;
+  padding: 3px 9px;
+  border-radius: var(--r-btn);
+  border: 1px solid rgba(125, 175, 225, 0.16);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.enh-outlook b { color: var(--amber); font-family: var(--font-display); }
