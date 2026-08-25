@@ -119,6 +119,10 @@ docker build -t bdo-ship-tracker .
 docker run -p 8000:8000 bdo-ship-tracker
 ```
 
+`docker compose` picks up a `.env` if there is one; plain `docker run`
+needs `--env-file .env`. Neither is required to run the tracker itself
+— see [Syncing across devices](#syncing-across-devices).
+
 ---
 
 ## What's covered
@@ -196,7 +200,8 @@ What it does and does not do:
 
 ### Setting it up
 
-Copy `.env.example` to `.env` and fill in five values:
+Copy `.env.example` to `.env` and fill in five values. Both `npm start`
+and `docker compose up` read that file on their own:
 
 | | |
 |---|---|
@@ -204,6 +209,16 @@ Copy `.env.example` to `.env` and fill in five values:
 | `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | from a [Discord application](https://discord.com/developers/applications) → OAuth2 |
 | `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | from `turso db show <name> --url` and `turso db tokens create <name>` |
 | `SESSION_SECRET` | any long random string — `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+
+Then check it before opening a browser:
+
+```bash
+npm run check
+```
+
+That asks Discord whether the client id and secret are a real pair,
+connects to the database and creates the schema, and prints the exact
+redirect URI to register. It never prints a secret.
 
 Register `PUBLIC_URL` + `/auth/discord/callback` as a redirect URI on the
 Discord application. To develop locally, add
@@ -214,6 +229,15 @@ no Turso account at all.
 Leave any of it blank and sync stays off, which is a deliberate
 half-configured deploy falling back to the safe behaviour rather than
 failing at the first sign-in.
+
+`.env` is gitignored and excluded from the Docker build context, so the
+secrets are never committed and never baked into an image -- compose
+passes them to the container at run time. With plain `docker run`, hand
+them over yourself:
+
+```bash
+docker run -p 8000:8000 --env-file .env bdo-ship-tracker
+```
 
 ---
 
@@ -234,6 +258,7 @@ js/
   falasi_vendor.js    Falasi's silver prices
   all_barter.js       barter routes
   guided-tour.js      the walkthrough
+tools/check-env.mjs   npm run check -- validates a sync configuration
 server/               only loaded when sync is configured
   config.js           what is switched on, and what is therefore offered
   db.js               libSQL schema and queries

@@ -1,22 +1,21 @@
 # The tracker is a static site with a small Node server in front of it.
-# Nothing else is needed to run it.
+# `docker compose up -d` is the whole of it.
 #
-# Sync is optional and off unless configured: create a .env from
-# .env.example and the values below are picked up. Without one, this
-# starts the browser-only tracker and no database is involved.
+# Sync is optional and off unless configured. Copy .env.example to .env
+# and fill it in, and the values below are handed to the container at
+# run time. Without a .env this still starts -- it just starts the
+# browser-only tracker, with no database involved.
 services:
   bdo-tracker:
     build: .
     ports:
       - "${PORT:-8000}:8000"
+    # `required: false` is what lets the file be absent. Everything in it
+    # is passed straight into the container, so a new setting needs no
+    # change here -- only a line in .env.
+    env_file:
+      - path: .env
+        required: false
     environment:
       - NODE_ENV=production
-      # Every one of these is empty unless set, and sync stays off until
-      # all of them are present.
-      - PUBLIC_URL=${PUBLIC_URL:-}
-      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID:-}
-      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET:-}
-      - TURSO_DATABASE_URL=${TURSO_DATABASE_URL:-}
-      - TURSO_AUTH_TOKEN=${TURSO_AUTH_TOKEN:-}
-      - SESSION_SECRET=${SESSION_SECRET:-}
     restart: unless-stopped

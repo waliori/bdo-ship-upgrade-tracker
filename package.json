@@ -21,13 +21,14 @@
   "type": "module",
   "main": "js/ui.js",
   "engines": {
-    "node": ">=20"
+    "node": ">=20.12"
   },
   "scripts": {
-    "dev": "node server.js",
+    "dev": "node --env-file-if-exists=.env server.js",
     "build": "echo 'No build process needed - static files'",
-    "start": "node server.js",
+    "start": "node --env-file-if-exists=.env server.js",
     "test": "node --test \"test/*.test.mjs\"",
+    "check": "node --env-file-if-exists=.env tools/check-env.mjs",
     "capture": "node tools/capture/scenes.mjs docs/media"
   },
   "dependencies": {
