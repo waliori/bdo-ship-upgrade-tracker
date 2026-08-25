@@ -42,6 +42,22 @@ const SOURCE_LABEL = {
 const CROW_COIN = 'Crow Coin';
 const SILVER = 'Silver';
 
+// Everything an enhancement attempt burns other than the part itself --
+// derived from the recipes, so a new stone in a future update shows up in
+// the pouch without anyone editing this file.
+const STONES = (() => {
+	const set = new Set();
+	for (const [product, recipe] of Object.entries(recipes)) {
+		const made = parseEnhanced(product);
+		if (made.level === 0) continue;
+		for (const item of Object.keys(recipe)) {
+			if (parseEnhanced(item).base === made.base) continue;
+			set.add(item);
+		}
+	}
+	return [...set];
+})();
+
 let view = 'plan';
 let query = '';
 let planFilter = 'all';
@@ -61,6 +77,27 @@ const esc = s => String(s).replace(/[&<>"']/g, c =>
 	({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const F = n => Math.round(n).toLocaleString();
+
+// Silver runs to ten figures; a pouch chip has no room for that.
+/**
+ * Read a quantity the way a player would write one: "1.5b", "400m",
+ * "12,000". Returns null for anything that is not a number at all, so a
+ * typo leaves the stored value alone.
+ */
+function parseAmount(raw) {
+	const t = String(raw).trim().toLowerCase().replace(/[\s,_]/g, '');
+	if (!t) return 0;
+	const m = t.match(/^([0-9]*\.?[0-9]+)([kmb])?$/);
+	if (!m) return null;
+	const mult = { k: 1e3, m: 1e6, b: 1e9 }[m[2]] || 1;
+	return Math.max(0, Math.round(Number(m[1]) * mult));
+}
+
+const FC = n => n >= 1e9
+	? `${(n / 1e9).toFixed(2).replace(/\.?0+$/, '')}b`
+	: n >= 1e6
+		? `${(n / 1e6).toFixed(1).replace(/\.0$/, '')}m`
+		: F(n);
 
 function iconSrc(name) {
 	let info = null;
@@ -194,26 +231,12 @@ function renderPlan() {
 	}
 	const pct = need ? Math.round((have / need) * 100) : 0;
 
-	const purseCoins = store.getStock(CROW_COIN);
-	const purseSilver = store.getStock(SILVER);
-	const coinsShort = Math.max(0, totals.coins - purseCoins);
-	const silverShort = Math.max(0, totals.silver - purseSilver);
-
+	// What the money costs is on the pouch, right above these -- To Get
+	// carries the exact breakdown -- so it is not repeated here.
 	const stats = [
 		{ k: 'Fleet progress', v: `${pct}%`, sub: 'of all required units covered', cls: 'teal' },
 		{ k: 'Units covered', v: `${F(have)} / ${F(need)}`, sub: 'across every active build', cls: '' },
-		{
-			k: 'Crow Coins short',
-			v: F(coinsShort),
-			sub: `${F(totals.coins)} needed · ${F(purseCoins)} in your purse`,
-			cls: coinsShort ? 'amber' : 'teal'
-		},
-		{
-			k: 'Silver short',
-			v: F(silverShort),
-			sub: `${F(totals.silver)} needed · ${F(purseSilver)} in your purse`,
-			cls: silverShort ? 'blue' : 'teal'
-		},
+		{ k: 'Still missing', v: F(totals.lines), sub: 'materials with nothing behind them', cls: totals.lines ? 'amber' : 'teal' },
 		{ k: 'Craftable now', v: F(ready.length), sub: 'recipes ready from stock', cls: ready.length ? 'teal' : 'off' }
 	];
 
@@ -273,23 +296,76 @@ function renderPlan() {
 		${g.list.map(({ item, r, covered }) => planRow(item, r, covered)).join('')}
 	</div>`).join('');
 
-	return nextStep() + statHTML + purseHTML() + readyHTML + controlsHTML(filters) + groupHTML;
+	return nextStep() + statHTML + readyHTML + controlsHTML(filters) + groupHTML;
 }
 
-/** What you actually own of each currency, editable. */
-function purseHTML() {
-	const field = (label, item, hint) => `<label class="purse-field">
-		<span class="purse-k">${esc(label)}</span>
-		<input class="purse-input" type="number" min="0" step="1"
-			value="${store.getStock(item)}" data-act="purse" data-item="${esc(item)}"
-			aria-label="${esc(label)} you hold">
-		<span class="purse-hint">${esc(hint)}</span>
-	</label>`;
-	return `<div class="purse">
-		<span class="purse-title">Your purse</span>
-		${field('Crow Coins', CROW_COIN, "Crow Coin Shop, Oquilla's Eye")}
-		${field('Silver', SILVER, 'Falasi, port of Epheria')}
-	</div>`;
+/**
+ * The pouch: coins, silver and enhancement stones, on every tab.
+ *
+ * These are spent from wherever you happen to be -- buying on To Get,
+ * enhancing in the Workshop -- so they sit in the shell above the tabs
+ * instead of belonging to one screen. Stones only appear once a build
+ * needs them or you hold some, so the bar stays short.
+ */
+function pouchHTML() {
+	const totals = totalsToGo();
+
+	const entries = [
+		{ item: CROW_COIN, label: 'Crow Coins', need: totals.coins, where: "Crow Coin Shop, Oquilla's Eye" },
+		{ item: SILVER, label: 'Silver', need: totals.silver, where: 'Falasi, port of Epheria', glyph: '\u25C9' }
+	];
+
+	STONES
+		.map(item => ({ item, label: item, need: rows[item] ? rows[item].need : 0, where: 'spent on enhancement attempts' }))
+		.filter(e => e.need > 0 || store.getStock(e.item) > 0)
+		.sort((a, b) => b.need - a.need || a.label.localeCompare(b.label))
+		.forEach(e => entries.push(e));
+
+	const chips = entries.map(e => {
+		const held = store.getStock(e.item);
+		const short = Math.max(0, e.need - held);
+		const state = !e.need ? 'idle' : short ? 'short' : 'ok';
+		const sub = !e.need
+			? 'none needed yet'
+			: short
+				? `${FC(short)} short of ${FC(e.need)}`
+				: `enough for all ${FC(e.need)}`;
+		return `<label class="pouch-item ${state}" title="${esc(e.item)} \u2014 ${esc(e.where)}">
+			${e.glyph ? `<span class="pouch-glyph" aria-hidden="true">${e.glyph}</span>` : img(e.item, 'pouch-icon')}
+			<span class="pouch-body">
+				<span class="pouch-k">${esc(e.label)}</span>
+				<input class="pouch-input" type="text" inputmode="numeric" value="${F(held)}"
+					data-act="purse" data-item="${esc(e.item)}" aria-label="${esc(e.label)} you hold">
+				<span class="pouch-need">${esc(sub)}</span>
+			</span>
+		</label>`;
+	}).join('');
+
+	return `<span class="pouch-title">Carrying</span><div class="pouch-list">${chips}</div>`;
+}
+
+/**
+ * Repaint the pouch -- but never while someone is typing in it. A state
+ * change re-renders everything, and swapping the inputs out mid-edit would
+ * steal the caret; the blur handler in wire() paints the pending update.
+ */
+function paintPouch() {
+	const host = document.getElementById('pouch');
+	if (!host) return;
+	if (host.contains(document.activeElement)) return;
+	host.innerHTML = pouchHTML();
+	measurePouch();
+}
+
+/**
+ * Publish the pouch's height so anything else that sticks (the inventory
+ * detail panel) can clear it instead of sliding underneath.
+ */
+function measurePouch() {
+	const host = document.getElementById('pouch');
+	if (!host) return;
+	const h = getComputedStyle(host).position === 'sticky' ? host.offsetHeight : 0;
+	document.documentElement.style.setProperty('--pouch-h', `${h}px`);
 }
 
 /** One concrete thing to do next, based on where the plan actually stands. */
@@ -743,8 +819,8 @@ function renderGet() {
 	const money = (label, need, held, short, cls, item) => `<div>
 		<div class="summary-k">${esc(label)}</div>
 		<div class="summary-v ${short ? cls : 'teal'}">${F(short)} short</div>
-		<div class="summary-sub">${F(need)} needed · <input class="purse-inline" type="number" min="0"
-			value="${held}" data-act="purse" data-item="${esc(item)}" aria-label="${esc(label)} you hold"> held</div>
+		<div class="summary-sub">${F(need)} needed · <input class="purse-inline" type="text" inputmode="numeric"
+			value="${F(held)}" data-act="purse" data-item="${esc(item)}" aria-label="${esc(label)} you hold"> held</div>
 	</div>`;
 
 	const summary = `<div class="summary">
@@ -823,6 +899,8 @@ export function render() {
 
 	const undoBtn = document.getElementById('undo-btn');
 	if (undoBtn) undoBtn.disabled = !store.canUndo();
+
+	paintPouch();
 
 	const root = document.getElementById('screen');
 	root.className = 'screen';
@@ -1006,7 +1084,22 @@ function wire() {
 		const own = evt.target.closest('[data-act="own-set"]');
 		if (own) store.setStock(own.dataset.item, own.value);
 		const purse = evt.target.closest('[data-act="purse"]');
-		if (purse) store.setStock(purse.dataset.item, purse.value);
+		if (purse) {
+			const n = parseAmount(purse.value);
+			if (n === null) render();   // gibberish: put the stored value back
+			else store.setStock(purse.dataset.item, n);
+		}
+	});
+
+	// The pouch holds its ground while you type in it; once focus leaves it
+	// entirely, catch it up with whatever the change already recorded.
+	window.addEventListener('resize', measurePouch);
+
+	document.addEventListener('focusout', evt => {
+		const host = document.getElementById('pouch');
+		if (!host || !host.contains(evt.target)) return;
+		if (host.contains(evt.relatedTarget)) return;
+		paintPouch();
 	});
 
 	document.addEventListener('input', evt => {

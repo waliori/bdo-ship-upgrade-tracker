@@ -529,7 +529,8 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   padding: 20px;
   backdrop-filter: blur(8px);
   position: sticky;
-  top: 16px;
+  /* Clear the pouch, which sticks above it. */
+  top: calc(var(--pouch-h, 0px) + 16px);
 }
 
 .detail-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
@@ -914,7 +915,7 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   .step-cta { grid-column: 2; justify-self: start; }
 }
 
-/* ---- next step + purse --------------------------------------------- */
+/* ---- next step + pouch --------------------------------------------- */
 
 .next-step {
   display: flex;
@@ -941,55 +942,121 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 .next-msg { flex: 1 1 260px; font-size: 13px; color: var(--ink-row); }
 .next-cta { flex: 0 0 auto; padding: 7px 14px; font-size: 12.5px; white-space: nowrap; }
 
-.purse {
+/* The pouch sits between the tabs and the screen and follows you across
+   all five of them, because coins and stones are spent from every one. */
+.pouch {
   display: flex;
   align-items: center;
-  gap: 26px;
+  gap: 18px;
   flex-wrap: wrap;
-  padding: 14px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  margin: -26px 0 22px;
+  padding: 11px 18px;
   border-radius: var(--r-panel);
   border: 1px solid var(--line);
-  background: var(--panel);
-  backdrop-filter: blur(6px);
+  background: rgba(9, 24, 43, 0.86);
+  backdrop-filter: blur(10px);
 }
 
-.purse-title {
+.pouch:empty { display: none; }
+
+.pouch-title {
   font-family: var(--font-display);
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--ink-hi);
+  color: var(--ink-mute);
   white-space: nowrap;
 }
 
-.purse-field { display: flex; flex-direction: column; gap: 3px; }
-
-.purse-k {
-  font-size: 10.5px;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-  color: var(--ink-mute);
+.pouch-list {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
 }
 
-.purse-input {
-  width: 190px;
-  max-width: 46vw;
-  padding: 7px 11px;
+.pouch-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 6px 8px;
   border-radius: var(--r-btn);
-  border: 1px solid rgba(125, 175, 225, 0.2);
-  background: rgba(0, 0, 0, 0.22);
-  color: var(--amber);
+  border: 1px solid transparent;
+  background: rgba(0, 0, 0, 0.2);
+  cursor: text;
+}
+
+.pouch-item:hover { border-color: rgba(125, 175, 225, 0.22); }
+.pouch-item.short { border-color: rgba(232, 122, 109, 0.3); }
+.pouch-item.ok { border-color: rgba(78, 201, 174, 0.26); }
+
+.pouch-icon,
+.pouch-glyph {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
+.pouch-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  color: #b9c9dc;
+  background: rgba(120, 160, 200, 0.12);
+}
+
+.pouch-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+
+.pouch-k {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  white-space: nowrap;
+}
+
+.pouch-input {
+  width: 116px;
+  max-width: 34vw;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ink-hi);
   font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
   -moz-appearance: textfield;
 }
 
-.purse-input::-webkit-outer-spin-button,
-.purse-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.purse-input:focus { border-color: var(--blue-edge); }
-.purse-hint { font-size: 11px; color: var(--ink-faint); }
+.pouch-input::-webkit-outer-spin-button,
+.pouch-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pouch-input:focus { outline: none; color: var(--blue-hi); }
+
+.pouch-item.short .pouch-input { color: var(--amber); }
+.pouch-item.ok .pouch-input { color: var(--teal); }
+
+.pouch-need { font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; }
+.pouch-item.short .pouch-need { color: var(--red); }
+
+/* One scrolling row beats three stacked ones on a bar that is always on
+   screen. Kept here, after the base rules, so it actually wins. */
+@media (max-width: 720px) {
+  .pouch { gap: 10px; padding: 9px 12px; margin: -26px 0 18px; }
+  .pouch-title { display: none; }
+  .pouch-list { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+  .pouch-item { flex: none; }
+  .pouch-input { width: 92px; font-size: 15px; }
+}
 
 .summary-sub { font-size: 11px; color: var(--ink-faint); margin-top: 3px; }
 
