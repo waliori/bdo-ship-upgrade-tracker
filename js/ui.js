@@ -137,6 +137,61 @@ function buildableItems() {
 		.sort((a, b) => (shipSet.has(a) ? 0 : 1) - (shipSet.has(b) ? 0 : 1) || a.localeCompare(b));
 }
 
+/**
+ * One ingredient, with how many the recipe wants and how many you hold.
+ * Shared by the hover card and the inventory detail panel so the two can
+ * never drift apart.
+ */
+function ingredientLine(name, per, cls = 'peek-line') {
+	const have = store.getStock(name);
+	return `<div class="${cls} ${have >= per ? 'ok' : 'short'}">
+		${img(name, 'peek-icon')}
+		<span class="peek-need">${F(per)}×</span>
+		<span class="peek-name">${esc(name)}</span>
+		<span class="peek-have">${F(have)}</span>
+	</div>`;
+}
+
+/**
+ * What goes into a thing: its recipe, or -- for an enhancement level --
+ * the part and the stones one attempt costs. Returns '' for a raw
+ * material, which has nothing to show.
+ */
+function makeupHTML(item, cls = 'peek-line') {
+	const { base, level } = parseEnhanced(item);
+	if (level > 0) {
+		const step = enhanceStep(base, level);
+		if (!step) return '';
+		return `<div class="peek-label">+${level - 1} → +${level}, per attempt</div>`
+			+ ingredientLine(step.from, 1, cls)
+			+ Object.entries(step.stones).map(([n, q]) => ingredientLine(n, q, cls)).join('');
+	}
+	const recipe = recipes[item];
+	if (!recipe) return '';
+	return '<div class="peek-label">Made from</div>'
+		+ Object.entries(recipe).map(([n, q]) => ingredientLine(n, q, cls)).join('');
+}
+
+const MAKE_KEYS = new Set(['craft', 'Crafting', 'Processing']);
+
+/** The hover card: what it is made of, or where it comes from. */
+function peekHTML(item) {
+	const body = makeupHTML(item);
+	const src = sourceOf(item);
+
+	// With the ingredients already listed, a crafting source is a place,
+	// not an alternative -- only a shop or a drop is an "or".
+	let foot = '';
+	if (src && !body) foot = `${src.label} · ${src.detail}`;
+	else if (src && MAKE_KEYS.has(src.key)) foot = src.key === 'craft' ? '' : src.detail;
+	else if (src) foot = `or ${src.label} · ${src.detail}`;
+
+	if (!body && !foot) return '';
+	return `<div class="peek-head">${img(item, 'peek-icon lg')}<span>${esc(item)}</span></div>`
+		+ body
+		+ (foot ? `<div class="peek-foot">${esc(foot)}</div>` : '');
+}
+
 /** Where an item comes from, and what it costs. */
 function sourceOf(item) {
 	if (coins[item]) return { key: 'coin', label: SOURCE_LABEL.coin, detail: `${F(coins[item])} Crow Coins each`, coins: coins[item] };
@@ -259,7 +314,7 @@ function renderPlan() {
 	const readyHTML = ready.length ? `<div class="readybar">
 		<div class="readybar-label">Ready to craft</div>
 		<div class="readybar-list">${ready.slice(0, 8).map(c => `
-			<button class="ready-chip" data-act="craft" data-item="${esc(c.item)}" data-times="1" title="Craft one now">
+			<button class="ready-chip" data-act="craft" data-item="${esc(c.item)}" data-times="1" data-peek="${esc(c.item)}" title="Craft one now">
 				${img(c.item, '')}${F(c.suggested)}× ${esc(c.item)}
 			</button>`).join('')}</div>
 	</div>` : '';
@@ -482,7 +537,7 @@ function planRow(item, r, covered) {
 	const badgeCls = covered ? 'teal' : r.short > 0 ? 'red' : can ? 'teal' : 'blue';
 	const own = store.getStock(item);
 
-	return `<div class="row">
+	return `<div class="row" data-peek="${esc(item)}">
 		${img(item)}
 		<div class="row-main">
 			<div class="row-name">${esc(item)}</div>
@@ -658,7 +713,7 @@ function renderInventory() {
 		const denom = Math.max(stats.own, 1);
 		const open = stats.at;   // clicking lands on the level you hold
 		const isOpen = family ? familyOf(selected || '') === key : selected === key;
-		return `<button class="tile ${stats.short > 0 ? 'short' : ''} ${isOpen ? 'selected' : ''}" data-act="select" data-item="${esc(open)}" title="${esc(key)}">
+		return `<button class="tile ${stats.short > 0 ? 'short' : ''} ${isOpen ? 'selected' : ''}" data-act="select" data-item="${esc(open)}" data-peek="${esc(stats.at)}" title="${esc(key)}">
 			${img(stats.at, '')}
 			${family && stats.top > 0 ? `<span class="tile-lvl">+${stats.top}</span>` : ''}
 			<span class="tile-qty">${F(stats.own)}</span>
@@ -740,13 +795,13 @@ function renderDetail() {
 			<div class="kv-row"><span>Free</span><span class="n teal">${F(free)}</span></div>
 			<div class="kv-row"><span>Still short</span><span class="n ${short > 0 ? 'red' : 'faint'}">${short > 0 ? F(short) : '—'}</span></div>
 		</div>
+		${(() => {
+			const made = makeupHTML(item, 'ing-line');
+			return made ? `<div class="detail-block">${made}</div>` : '';
+		})()}
 		${resvHTML}
 		${src ? `<div class="detail-src"><span>${esc(src.label)}</span><span>${esc(src.detail)}</span></div>` : ''}
-		${step ? `<div class="detail-src">
-			<span>Enhancement</span>
-			<span>+${level - 1} → +${level} · ${Object.entries(step.stones).map(([n, q]) => `${F(q)}× ${esc(n)}`).join(', ')}</span>
-		</div>
-		<button class="act quiet wide" data-act="view" data-id="workshop">Attempt it in the Workshop</button>` : ''}
+		${step ? '<button class="act quiet wide" data-act="view" data-id="workshop">Attempt it in the Workshop</button>' : ''}
 		${toggle}
 		${canCraft ? `<div class="detail-actions">
 			<button class="act" data-act="craft" data-item="${esc(item)}" data-times="1" ${most < 1 ? 'disabled' : ''}>Craft 1</button>
@@ -891,7 +946,7 @@ function renderWorkshop() {
 				${img(ing, '')}${F(have)}/${F(per)}
 			</span>`;
 		}).join('');
-		return `<div class="craft-card">
+		return `<div class="craft-card" data-peek="${esc(c.item)}">
 			<div class="craft-top">
 				${img(c.item, '')}
 				<div>
@@ -909,7 +964,7 @@ function renderWorkshop() {
 	}).join('');
 
 	const enhRows = pendingEnhancements().map(e => `
-		<div class="row" data-base="${esc(e.base)}" data-level="${e.next}" ${e.blocked ? 'style="opacity:.55"' : ''}>
+		<div class="row" data-base="${esc(e.base)}" data-level="${e.next}" data-peek="${esc(enhancedName(e.base, e.next))}" ${e.blocked ? 'style="opacity:.55"' : ''}>
 			${img(enhancedName(e.base, e.have), 'row-icon md')}
 			<div class="row-main">
 				<div class="row-name">${esc(e.base)}</div>
@@ -1053,6 +1108,8 @@ export function render() {
 	if (undoBtn) undoBtn.disabled = !store.canUndo();
 
 	paintPouch();
+
+	hidePeek();
 
 	const root = document.getElementById('screen');
 	const focus = captureFocus(root);
@@ -1291,6 +1348,8 @@ function wire() {
 
 	// The pouch holds its ground while you type in it; once focus leaves it
 	// entirely, catch it up with whatever the change already recorded.
+	wirePeek();
+
 	// Landing in a quantity field selects what is there, so typing a new
 	// number replaces it instead of appending to it.
 	document.addEventListener('focusin', evt => {
@@ -1312,6 +1371,57 @@ function wire() {
 		query = el.value;
 		render();   // the caret is restored by render() itself
 	});
+}
+
+/* ------------------------------------------------------------------ *
+ * hover card
+ * ------------------------------------------------------------------ */
+
+let peekTimer = null;
+
+function hidePeek() {
+	clearTimeout(peekTimer);
+	const host = document.getElementById('peek');
+	if (host) host.hidden = true;
+}
+
+/** Park the card under what you are pointing at, inside the viewport. */
+function placePeek(host, el) {
+	const box = el.getBoundingClientRect();
+	const w = host.offsetWidth;
+	const h = host.offsetHeight;
+	let x = box.left;
+	let y = box.bottom + 8;
+	if (y + h > window.innerHeight - 8) y = Math.max(8, box.top - h - 8);
+	if (x + w > window.innerWidth - 8) x = Math.max(8, window.innerWidth - w - 8);
+	host.style.left = `${Math.round(x)}px`;
+	host.style.top = `${Math.round(y)}px`;
+}
+
+function wirePeek() {
+	const host = document.getElementById('peek');
+	if (!host) return;
+
+	document.addEventListener('mouseover', evt => {
+		const el = evt.target.closest('[data-peek]');
+		if (!el) return;
+		clearTimeout(peekTimer);
+		// A short delay, so sweeping the mouse across a grid of tiles does
+		// not flash a card for every one of them.
+		peekTimer = setTimeout(() => {
+			const html = peekHTML(el.dataset.peek);
+			if (!html) return;
+			host.innerHTML = html;
+			host.hidden = false;
+			placePeek(host, el);
+		}, 280);
+	});
+
+	document.addEventListener('mouseout', evt => {
+		if (evt.target.closest('[data-peek]')) hidePeek();
+	});
+	document.addEventListener('scroll', hidePeek, true);
+	window.addEventListener('blur', hidePeek);
 }
 
 /* ------------------------------------------------------------------ *
@@ -1363,7 +1473,7 @@ function openBuildPicker() {
 		listEl.innerHTML = matches.length
 			? matches.slice(0, 200).map(n => {
 				const already = queued.has(n);
-				return `<button type="button" class="picker-row" data-pick="${esc(n)}" ${already ? 'disabled' : ''}>
+				return `<button type="button" class="picker-row" data-pick="${esc(n)}" data-peek="${esc(n)}" ${already ? 'disabled' : ''}>
 					${img(n, 'row-icon sm')}
 					<span class="picker-name">${esc(n)}</span>
 					<span class="picker-tag">${already ? 'queued' : kindOf(n)}</span>

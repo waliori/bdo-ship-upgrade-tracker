@@ -801,6 +801,90 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   to { opacity: 1; transform: translate(-50%, 0); }
 }
 
+/* ---- hover card: what a thing is made of ---------------------------- */
+
+.peek {
+  position: fixed;
+  z-index: 45;
+  width: 300px;
+  max-width: calc(100vw - 24px);
+  padding: 12px 14px;
+  border-radius: var(--r-panel);
+  border: 1px solid rgba(120, 180, 230, 0.28);
+  background: rgba(9, 24, 43, 0.97);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.peek[hidden] { display: none; }
+
+.peek-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-bottom: 9px;
+  margin-bottom: 9px;
+  border-bottom: 1px solid rgba(125, 175, 225, 0.14);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink-hi);
+  line-height: 1.3;
+}
+
+.peek-label {
+  font-size: 10px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 6px;
+}
+
+.peek-line,
+.ing-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 3px 0;
+  color: var(--ink-row);
+}
+
+.peek-icon { width: 20px; height: 20px; border-radius: 4px; object-fit: contain; flex: none; }
+.peek-icon.lg { width: 28px; height: 28px; border-radius: 6px; }
+
+.peek-need {
+  font-family: var(--font-display);
+  font-weight: 700;
+  min-width: 40px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.peek-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.peek-have {
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.peek-line.ok .peek-have, .ing-line.ok .peek-have { color: var(--teal); }
+.peek-line.short .peek-have, .ing-line.short .peek-have { color: var(--red); }
+
+/* With no ingredient list between them, the head rule and the foot rule
+   sit on top of each other. */
+.peek:not(:has(.peek-label)) .peek-head { border-bottom: none; padding-bottom: 0; margin-bottom: 6px; }
+.peek:not(:has(.peek-label)) .peek-foot { border-top: none; padding-top: 0; margin-top: 0; }
+
+.peek-foot {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(125, 175, 225, 0.14);
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
 .toast {
   position: fixed;
   bottom: 28px;
