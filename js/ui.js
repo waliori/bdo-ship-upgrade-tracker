@@ -12,7 +12,7 @@ import * as store from './state.js';
 import {
 	plan, craftableNow, maxCraftable, craftDelta,
 	enhanceStep, ownedLevel, shoppingList, bottlenecks,
-	parseEnhanced, enhancedName
+	parseEnhanced, enhancedName, enhancementForecast
 } from './planner.js';
 
 const TABS = [
@@ -870,6 +870,28 @@ function moveLevelAction(item) {
  * because a part you levelled for its own sake is still a part you want
  * to take further.
  */
+/** The odds on this single attempt, and when the pity meter fills. */
+function odds(e) {
+	const s = e.step1 && e.step1.steps[0];
+	if (!s || s.chance >= 1) return '';
+	const pct = s.chance < 0.01 ? (s.chance * 100).toFixed(1) : Math.round(s.chance * 100);
+	return `<span class="enh-odds">${pct}% · certain after ${s.agris} fails</span>`;
+}
+
+/**
+ * What the rest of the climb costs. The recipe only ever describes one
+ * successful attempt per level, which for a Chiro part is out by more
+ * than tenfold -- so say what it will really take, and what it cannot
+ * exceed.
+ */
+function outlook(e) {
+	const f = e.forecast;
+	if (!f || e.next >= e.want) return '';
+	return `<span class="enh-outlook" title="Expected cost of every attempt from +${e.have} to +${e.want}, and the most it can possibly take">
+		to +${e.want}: <b>${F(f.expected)}</b> expected · ${F(f.ceiling)} at worst
+	</span>`;
+}
+
 /** " -- Crow Coin Shop", when we know where a part comes from. */
 function whereFrom(item) {
 	const src = sourceOf(item);
@@ -913,6 +935,8 @@ function pendingEnhancements() {
 			have,
 			next: have + 1,
 			want,
+			forecast: enhancementForecast(base, have, want),
+			step1: enhancementForecast(base, have, have + 1),
 			forBuild,
 			stoneName,
 			stoneQty,
@@ -971,7 +995,8 @@ function renderWorkshop() {
 				<div class="row-sub" ${e.blocked ? 'style="color:var(--red)"' : ''}>${esc(e.note)}</div>
 			</div>
 			<span class="enh-level">+${e.have} → +${e.next}</span>
-			<span class="enh-cost">${img(e.stoneName, '')}×${F(e.stoneQty)}</span>
+			<span class="enh-cost">${img(e.stoneName, '')}×${F(e.stoneQty)}${odds(e)}</span>
+			${outlook(e)}
 			<span class="enh-actions">
 				<button class="pill-btn" data-act="enhance" data-result="success" ${e.blocked ? 'disabled' : ''}>Succeeded</button>
 				<button class="pill-btn bad" data-act="enhance" data-result="fail" ${e.blocked ? 'disabled' : ''}>Failed</button>
