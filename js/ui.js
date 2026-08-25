@@ -1378,9 +1378,11 @@ function wire() {
  * ------------------------------------------------------------------ */
 
 let peekTimer = null;
+let peekOn = null;
 
 function hidePeek() {
 	clearTimeout(peekTimer);
+	peekOn = null;
 	const host = document.getElementById('peek');
 	if (host) host.hidden = true;
 }
@@ -1404,8 +1406,8 @@ function wirePeek() {
 
 	document.addEventListener('mouseover', evt => {
 		const el = evt.target.closest('[data-peek]');
-		if (!el) return;
-		clearTimeout(peekTimer);
+		if (!el || el.dataset.peek === peekOn) return;
+		hidePeek();
 		// A short delay, so sweeping the mouse across a grid of tiles does
 		// not flash a card for every one of them.
 		peekTimer = setTimeout(() => {
@@ -1413,12 +1415,21 @@ function wirePeek() {
 			if (!html) return;
 			host.innerHTML = html;
 			host.hidden = false;
+			peekOn = el.dataset.peek;
 			placePeek(host, el);
 		}, 280);
 	});
 
 	document.addEventListener('mouseout', evt => {
-		if (evt.target.closest('[data-peek]')) hidePeek();
+		const from = evt.target.closest('[data-peek]');
+		if (!from) return;
+		// Moving straight onto another one: its mouseover takes over, and
+		// hiding here would cancel the card before it ever appeared.
+		const to = evt.relatedTarget && evt.relatedTarget.closest
+			? evt.relatedTarget.closest('[data-peek]')
+			: null;
+		if (to) return;
+		hidePeek();
 	});
 	document.addEventListener('scroll', hidePeek, true);
 	window.addEventListener('blur', hidePeek);
