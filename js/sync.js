@@ -20,7 +20,21 @@ const DEVICE_KEY = 'sync.device';
 
 // Long enough that typing a quantity does not push on every keystroke,
 // short enough that switching to your phone finds the change already there.
-const PUSH_DELAY = 2500;
+//
+// This used to be measured in seconds, because a push meant waiting on
+// two round trips to a database on another continent and there was no
+// point in paying that often. The server now answers a push from memory
+// and writes it out behind the request, so the cost is a local request
+// and the delay can be what it should always have been: about as long as
+// the gap between two keystrokes.
+const PUSH_DELAY = 500;
+
+// A push that failed is not a change that went away. Left alone, a
+// single edit that met a bad moment would sit unsent until the next
+// edit -- which might be tomorrow. So a failure is retried on its own,
+// backing off up to about half a minute.
+const RETRY_MIN = 1500;
+const RETRY_MAX = 30000;
 
 let hooks = {};
 let account = null;      // { id, username, avatar } once signed in
@@ -31,6 +45,8 @@ let pushTimer = null;
 let inFlight = false;
 let lastPushed = null;   // the save text we know the server has
 let resolving = false;   // a conflict dialog is open; hold all pushes
+let again = false;       // a change landed while a push was in the air
+let failures = 0;        // consecutive failed pushes, for the backoff
 
 /* ------------------------------------------------------------------ *
  * Talking to the server
@@ -156,9 +172,17 @@ async function push(force = false) {
 	if (store.isTransient()) return schedulePush();
 	const text = localText();
 	if (!force && text === lastPushed) return say('idle');
-	if (inFlight) return schedulePush();
+	// Something is already in the air. Note that there is more to send and
+	// let that push hand over when it lands, rather than waiting out
+	// another full delay for a change that is ready now.
+	if (inFlight) {
+		again = true;
+		return;
+	}
 
 	inFlight = true;
+	clearTimeout(pushTimer);
+	pushTimer = null;
 	say('syncing');
 	try {
 		const res = await api('PUT', '/api/state', {
@@ -170,31 +194,50 @@ async function push(force = false) {
 		if (res.ok) {
 			setRev(res.body.rev);
 			lastPushed = text;
+			failures = 0;
 			return say('idle');
 		}
 		if (res.status === 409) {
 			// Another browser got there first. Its save came back with the
 			// refusal, so we can show both without a second request.
+			failures = 0;
 			return askWhichCopy(res.body, 'Another device saved while you were working.');
 		}
 		if (res.status === 401) {
 			account = null;
 			return say('out');
 		}
+		// A 4xx is about this save and will not get better by being sent
+		// again; anything else is the server having a moment, and is worth
+		// another try.
+		if (res.status >= 500) retryLater();
 		say('error', (res.body && res.body.error) || 'that did not save');
 	} catch {
-		// Offline, most likely. The local copy is untouched and the next
-		// change will try again, so this is a state, not a failure.
+		// Offline, most likely. The local copy is untouched, and this will
+		// keep trying quietly until the network comes back -- so it is a
+		// state, not a failure.
+		retryLater();
 		say('error', 'offline — your data is safe here');
 	} finally {
 		inFlight = false;
+		// A change that arrived mid-flight goes now, not in half a second.
+		if (again) {
+			again = false;
+			schedulePush(0);
+		}
 	}
 }
 
-function schedulePush() {
+function schedulePush(delay = PUSH_DELAY) {
 	if (!account || resolving) return;
 	clearTimeout(pushTimer);
-	pushTimer = setTimeout(() => push(), PUSH_DELAY);
+	pushTimer = setTimeout(() => push(), delay);
+}
+
+/** Come back to a push that did not land, a little later each time. */
+function retryLater() {
+	failures++;
+	schedulePush(Math.min(RETRY_MIN * 2 ** (failures - 1), RETRY_MAX));
 }
 
 /** Check for someone else's changes -- on focus, and when asked. */
@@ -488,9 +531,14 @@ export async function initSync(callbacks = {}) {
 	// and unlike sendBeacon it can do the PUT the API already has, so
 	// there is no write-only side door to secure.
 	window.addEventListener('pagehide', () => {
-		if (!pushTimer || !account || resolving) return;
+		if (!account || resolving) return;
 		clearTimeout(pushTimer);
 		pushTimer = null;
+		again = false;
+		// Anything the server has not confirmed goes now, whether it was
+		// waiting on the delay or on a push that is still in the air. The
+		// question is not "was something queued" but "does the server have
+		// this yet", and only the second one is answerable here.
 		const text = localText();
 		if (text === lastPushed) return;
 		fetch('/api/state', {

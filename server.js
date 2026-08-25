@@ -22,12 +22,21 @@ app.disable('x-powered-by');
 if (config.cookieSecure) app.set('trust proxy', 1);
 
 if (syncEnabled) {
-	const [{ migrate }, { authRoutes }, { apiRoutes }] = await Promise.all([
+	const [{ migrate }, { flushOnShutdown }, { authRoutes }, { apiRoutes }] = await Promise.all([
 		import('./server/db.js'),
+		import('./server/saves.js'),
 		import('./server/auth.js'),
 		import('./server/api.js')
 	]);
-	await migrate();
+	// Not awaited. The tracker works without a database -- the page is a
+	// browser-only tool until you sign in -- so a database that is briefly
+	// unreachable at boot should cost sync, not the site. Everything that
+	// touches a table awaits this anyway, and it is retried on demand.
+	migrate().catch(err => console.warn('[db] tables not ready yet:', err.message));
+	// Saves are answered from memory and written out behind the request.
+	// This is what makes sure the last few hundred milliseconds of work
+	// still reach the database when the container is asked to stop.
+	if (process.env.NODE_ENV !== 'test') flushOnShutdown();
 	app.use('/auth', authRoutes());
 	app.use('/api', apiRoutes());
 }

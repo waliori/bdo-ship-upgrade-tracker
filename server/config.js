@@ -16,9 +16,30 @@ const discord = {
 	clientSecret: read('DISCORD_CLIENT_SECRET')
 };
 
+const num = (name, fallback) => Number(read(name)) || fallback;
+
 const turso = {
 	url: read('TURSO_DATABASE_URL'),
-	authToken: read('TURSO_AUTH_TOKEN')
+	authToken: read('TURSO_AUTH_TOKEN'),
+
+	// How long an idle connection to Turso is held open. The default four
+	// seconds means almost every save reconnects, since saves are debounced
+	// and then nothing happens until you type again.
+	keepAliveMs: num('TURSO_KEEPALIVE_MS', 60_000),
+	// A small pool, reused, rather than an unbounded fan of new sockets.
+	connections: num('TURSO_CONNECTIONS', 8),
+	// A handshake that has not completed by now is not going to.
+	connectMs: num('TURSO_CONNECT_MS', 5_000),
+	// And a whole statement that has not answered by now is weather.
+	timeoutMs: num('TURSO_TIMEOUT_MS', 10_000),
+	// How long to wait on an IPv6 address before trying the IPv4 one.
+	familyTimeoutMs: num('TURSO_FAMILY_MS', 500),
+	// Attempts per statement before giving up and letting the write be
+	// retried later. Every statement this server sends is idempotent.
+	retries: num('TURSO_RETRIES', 4),
+	// 'ipv4first' where the host has no IPv6 route -- which is most
+	// containers. Set to 'verbatim' to leave resolution alone.
+	dnsOrder: read('DNS_RESULT_ORDER') || 'ipv4first'
 };
 
 // Where this deployment answers, used to build the OAuth redirect. Discord
@@ -41,7 +62,7 @@ export const ephemeralSecret = syncEnabled && !sessionSecret;
 if (!sessionSecret) sessionSecret = crypto.randomBytes(32).toString('hex');
 
 export const config = {
-	port: Number(read('PORT')) || 8000,
+	port: num('PORT', 8000),
 	publicUrl,
 	discord: {
 		...discord,
@@ -58,8 +79,18 @@ export const config = {
 	// A tracker save is a few hundred keys of stock and a handful of
 	// targets. A megabyte is far past anything legitimate, and stops a
 	// signed-in account from being used as free storage.
-	maxSaveBytes: Number(read('MAX_SAVE_BYTES')) || 1024 * 1024,
-	sessionDays: Number(read('SESSION_DAYS')) || 30
+	maxSaveBytes: num('MAX_SAVE_BYTES', 1024 * 1024),
+	sessionDays: num('SESSION_DAYS', 30),
+
+	// How long a change waits before being written out. Long enough that
+	// typing "1", "12", "120" is one write rather than three; short enough
+	// that it is over before anyone could close the tab.
+	flushDelayMs: num('FLUSH_DELAY_MS', 400),
+	// Ceilings on the saves held in memory. A save is a few kilobytes, so
+	// these are generous; they exist so that a deployment with a great many
+	// accounts cannot turn all of them into resident memory.
+	cacheAccounts: num('CACHE_ACCOUNTS', 5_000),
+	cacheBytes: num('CACHE_BYTES', 128 * 1024 * 1024)
 };
 
 /** A one-line account of what is switched on, for the boot log. */

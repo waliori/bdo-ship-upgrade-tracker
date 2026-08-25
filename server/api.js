@@ -8,7 +8,8 @@
 
 import express from 'express';
 import { config } from './config.js';
-import { getUser, getSave, putSave, deleteAccount } from './db.js';
+import { getUser, deleteAccount } from './db.js';
+import { readSave, writeSaveFor, forget } from './saves.js';
 import { sessionUser, requireUser, endSession } from './session.js';
 import { wrap } from './wrap.js';
 
@@ -59,22 +60,19 @@ export function apiRoutes() {
 	}));
 
 	/** The stored save. `rev` 0 with no data means "nothing synced yet",
-	 *  which the client needs to tell apart from an empty inventory. */
+	 *  which the client needs to tell apart from an empty inventory.
+	 *
+	 *  The payload goes out as the text it was stored as, dropped into the
+	 *  response whole. Parsing it here only to have `res.json` build the
+	 *  same string again is work on the busiest route in the app -- a tab
+	 *  coming back into view pulls, and there may be a great many tabs. */
 	router.get('/state', requireUser, wrap(async (req, res) => {
-		const save = await getSave(req.userId);
-		if (!save) return res.json({ rev: 0, data: null, updatedAt: null, device: null });
-
-		let data;
-		try {
-			data = JSON.parse(save.payload);
-		} catch {
-			// Unreadable stored JSON should not lock an account out of
-			// syncing; treating it as "nothing there" lets the next push
-			// replace it.
-			console.error('[api] unreadable save for', req.userId);
-			return res.json({ rev: save.rev, data: null, updatedAt: save.updatedAt, device: save.device });
-		}
-		res.json({ rev: save.rev, data, updatedAt: save.updatedAt, device: save.device });
+		const { rev, payload, updatedAt, device } = await readSave(req.userId);
+		res.type('application/json').send(
+			`{"rev":${rev},"data":${payload || 'null'},` +
+			`"updatedAt":${updatedAt === null ? 'null' : updatedAt},` +
+			`"device":${JSON.stringify(device ?? null)}}`
+		);
 	}));
 
 	/**
@@ -105,7 +103,7 @@ export function apiRoutes() {
 		}
 
 		const device = typeof body.device === 'string' ? body.device.slice(0, 64) : null;
-		const result = await putSave(req.userId, payload, expected, device);
+		const result = await writeSaveFor(req.userId, payload, expected, device);
 
 		if (!result.ok) {
 			return res.status(409).json({
@@ -122,6 +120,9 @@ export function apiRoutes() {
 	/** Delete the account and its save. There is no undo for this one, so
 	 *  the client asks twice before calling it. */
 	router.delete('/account', requireUser, wrap(async (req, res) => {
+		// Out of memory first: a flush that is still queued must not write
+		// the save back a moment after the row was dropped.
+		forget(req.userId);
 		await deleteAccount(req.userId);
 		endSession(res);
 		res.json({ ok: true });
