@@ -774,5 +774,153 @@
   "Central Market": {
     "icon": "cm.png",
     "url": "#"
+  },
+  "Epheria Carrack: Toro Cannon": {
+    "icon": "00049742.webp",
+    "url": "https://bdocodex.com/us/item/49742/"
+  },
+  "Epheria Carrack: Toro Sail": {
+    "icon": "00049743.webp",
+    "url": "https://bdocodex.com/us/item/49743/"
+  },
+  "Epheria Carrack: Toro Figurehead": {
+    "icon": "00049744.webp",
+    "url": "https://bdocodex.com/us/item/49744/"
+  },
+  "Epheria Carrack: Toro Plating": {
+    "icon": "00049745.webp",
+    "url": "https://bdocodex.com/us/item/49745/"
+  },
+  "Epheria Carrack: Advance (Chiro's Cannon)": {
+    "icon": "00049746.webp",
+    "url": "https://bdocodex.com/us/item/49746/"
+  },
+  "Epheria Carrack: Advance (Chiro's Sail)": {
+    "icon": "00049747.webp",
+    "url": "https://bdocodex.com/us/item/49747/"
+  },
+  "Epheria Carrack: Advance (Chiro's Figurehead)": {
+    "icon": "00049748.webp",
+    "url": "https://bdocodex.com/us/item/49748/"
+  },
+  "Epheria Carrack: Advance (Chiro's Black Plating)": {
+    "icon": "00049749.webp",
+    "url": "https://bdocodex.com/us/item/49749/"
+  },
+  "Epheria Carrack: Balance (Chiro's Cannon)": {
+    "icon": "00049762.webp",
+    "url": "https://bdocodex.com/us/item/49762/"
+  },
+  "Epheria Carrack: Balance (Chiro's Sail)": {
+    "icon": "00049763.webp",
+    "url": "https://bdocodex.com/us/item/49763/"
+  },
+  "Epheria Carrack: Balance (Chiro's Figurehead)": {
+    "icon": "00049764.webp",
+    "url": "https://bdocodex.com/us/item/49764/"
+  },
+  "Epheria Carrack: Balance (Chiro's Black Plating)": {
+    "icon": "00049765.webp",
+    "url": "https://bdocodex.com/us/item/49765/"
+  },
+  "Epheria Carrack: Volante (Chiro's Cannon)": {
+    "icon": "00049766.webp",
+    "url": "https://bdocodex.com/us/item/49766/"
+  },
+  "Epheria Carrack: Volante (Chiro's Sail)": {
+    "icon": "00049767.webp",
+    "url": "https://bdocodex.com/us/item/49767/"
+  },
+  "Epheria Carrack: Volante (Chiro's Figurehead)": {
+    "icon": "00049768.webp",
+    "url": "https://bdocodex.com/us/item/49768/"
+  },
+  "Epheria Carrack: Volante (Chiro's Black Plating)": {
+    "icon": "00049769.webp",
+    "url": "https://bdocodex.com/us/item/49769/"
+  },
+  "Epheria Carrack: Valor (Chiro's Cannon)": {
+    "icon": "00049770.webp",
+    "url": "https://bdocodex.com/us/item/49770/"
+  },
+  "Epheria Carrack: Valor (Chiro's Sail)": {
+    "icon": "00049771.webp",
+    "url": "https://bdocodex.com/us/item/49771/"
+  },
+  "Epheria Carrack: Valor (Chiro's Figurehead)": {
+    "icon": "00049772.webp",
+    "url": "https://bdocodex.com/us/item/49772/"
+  },
+  "Epheria Carrack: Valor (Chiro's Black Plating)": {
+    "icon": "00049773.webp",
+    "url": "https://bdocodex.com/us/item/49773/"
+  },
+  "Blueprint: Chiro's Cannon": {
+    "icon": "00008012.webp",
+    "url": "https://bdocodex.com/us/item/8012/"
+  },
+  "Blueprint: Chiro's Sail": {
+    "icon": "00008013.webp",
+    "url": "https://bdocodex.com/us/item/8013/"
+  },
+  "Blueprint: Chiro's Figurehead": {
+    "icon": "00008014.webp",
+    "url": "https://bdocodex.com/us/item/8014/"
+  },
+  "Blueprint: Chiro's Black Plating": {
+    "icon": "00008015.webp",
+    "url": "https://bdocodex.com/us/item/8015/"
+  },
+  "Violent Wave Plywood": {
+    "icon": "00008019.webp",
+    "url": "https://bdocodex.com/us/item/8019/"
+  },
+  "Delicately Polished Support": {
+    "icon": "00008020.webp",
+    "url": "https://bdocodex.com/us/item/8020/"
+  },
+  "Wave Residue Adhesive": {
+    "icon": "00008021.webp",
+    "url": "https://bdocodex.com/us/item/8021/"
+  },
+  "Epheria Carrack Parts Upgrade Permit: Advance": {
+    "icon": "00059316.webp",
+    "url": "https://bdocodex.com/us/item/59316/"
+  },
+  "Epheria Carrack Parts Upgrade Permit: Balance": {
+    "icon": "00059317.webp",
+    "url": "https://bdocodex.com/us/item/59317/"
+  },
+  "Epheria Carrack Parts Upgrade Permit: Volante": {
+    "icon": "00059318.webp",
+    "url": "https://bdocodex.com/us/item/59318/"
+  },
+  "Epheria Carrack Parts Upgrade Permit: Valor": {
+    "icon": "00059319.webp",
+    "url": "https://bdocodex.com/us/item/59319/"
+  },
+  "Violent Sea Monster's Scale": {
+    "icon": "00008009.webp",
+    "url": "https://bdocodex.com/us/item/8009/"
+  },
+  "Violent Sea Monster's Bone": {
+    "icon": "00008008.webp",
+    "url": "https://bdocodex.com/us/item/8008/"
+  },
+  "Violent Sea Monster's Ooze": {
+    "icon": "00008011.webp",
+    "url": "https://bdocodex.com/us/item/8011/"
+  },
+  "Saltwater Crocodile's Scale": {
+    "icon": "00008025.webp",
+    "url": "https://bdocodex.com/us/item/8025/"
+  },
+  "Starlight Hardener": {
+    "icon": "00008023.webp",
+    "url": "https://bdocodex.com/us/item/8023/"
+  },
+  "Starlight Emulsifier": {
+    "icon": "00008024.webp",
+    "url": "https://bdocodex.com/us/item/8024/"
   }
 }
