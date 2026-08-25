@@ -1,5 +1,9 @@
 # The tracker is a static site with a small Node server in front of it.
 # Nothing else is needed to run it.
+#
+# Sync is optional and off unless configured: create a .env from
+# .env.example and the values below are picked up. Without one, this
+# starts the browser-only tracker and no database is involved.
 services:
   bdo-tracker:
     build: .
@@ -7,4 +11,12 @@ services:
       - "${PORT:-8000}:8000"
     environment:
       - NODE_ENV=production
+      # Every one of these is empty unless set, and sync stays off until
+      # all of them are present.
+      - PUBLIC_URL=${PUBLIC_URL:-}
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID:-}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET:-}
+      - TURSO_DATABASE_URL=${TURSO_DATABASE_URL:-}
+      - TURSO_AUTH_TOKEN=${TURSO_AUTH_TOKEN:-}
+      - SESSION_SECRET=${SESSION_SECRET:-}
     restart: unless-stopped

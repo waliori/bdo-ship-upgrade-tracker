@@ -9,6 +9,7 @@ import { falasi } from './falasi_vendor.js';
 import { iconLoader } from './icon-loader.js';
 import RealisticWaterRipples from './realistic-water-ripples.js';
 import * as store from './state.js';
+import { initSync, openAccount } from './sync.js';
 import {
 	plan, craftableNow, maxCraftable, craftDelta,
 	enhanceStep, ownedLevel, shoppingList, bottlenecks,
@@ -1297,6 +1298,8 @@ function wire() {
 			case 'import': return doImport();
 			case 'water': return toggleWater();
 			case 'tour': return startTour();
+			case 'signin':
+			case 'account': return openAccount();
 			case 'plan-filter': planFilter = el.dataset.id; return render();
 			case 'inv-filter': invFilter = el.dataset.id; return render();
 			case 'select': selected = el.dataset.item; return render();
@@ -1662,4 +1665,9 @@ export async function init() {
 	} catch {
 		/* icons fall back to the app mark */
 	}
+
+	// Sync last, and never blocking: on a deployment without it this is
+	// one request that comes back "no" and nothing more happens.
+	initSync({ toast, openDialog, closeDialog, rerender: render })
+		.catch(err => console.warn('[ui] sync unavailable:', err));
 }

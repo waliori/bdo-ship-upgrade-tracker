@@ -2,6 +2,10 @@ node_modules
 build
 npm-debug.log
 .env
+.env.local
+
+# The local libSQL file used when developing without a Turso account.
+.data/
 .DS_Store
 
 # Capture intermediates — the media in docs/media is what ships.

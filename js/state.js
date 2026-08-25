@@ -401,8 +401,31 @@ export function importJSON(text) {
 	if (!parsed || typeof parsed !== 'object' || !parsed.stock) {
 		throw new Error('That file does not contain tracker data.');
 	}
-	const incoming = normalise(parsed);
-	commit('import', 'Imported tracker data', () => {
+	return adopt(parsed, 'Imported tracker data');
+}
+
+/**
+ * The three fields that are the save, as an object.
+ *
+ * Everything else the state holds is either derived (nothing here) or
+ * local to this browser: `history` is the undo stack, `settings` are
+ * preferences like which tab you were on. Neither belongs in a backup or
+ * on another machine, so neither is included.
+ */
+export function saveShape() {
+	return { stock: state.stock, targets: state.targets, strategy: state.strategy };
+}
+
+/**
+ * Replace the save wholesale -- from a file, or from another device.
+ *
+ * It goes through `commit`, so it lands on the undo stack: taking the
+ * wrong copy in a sync conflict is exactly the sort of thing you want one
+ * press to reverse.
+ */
+export function adopt(data, label = 'Replaced tracker data') {
+	const incoming = normalise(data);
+	commit('import', label, () => {
 		state.stock = incoming.stock;
 		state.targets = incoming.targets;
 		state.strategy = incoming.strategy;

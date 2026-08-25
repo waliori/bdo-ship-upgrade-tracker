@@ -1,0 +1,220 @@
+// The sync layer, exercised against a real libSQL file.
+//
+// Everything here runs the actual server code -- the same routes, the
+// same session signing, the same database calls -- against a throwaway
+// file database. Only Discord is absent, because the one thing that
+// cannot be tested without it is the round trip to Discord itself; the
+// session it would have produced is minted here with the server's own
+// signing code, so every route past the callback is the real path.
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sail-sync-'));
+
+process.env.NODE_ENV = 'test';
+process.env.PORT = '0';
+process.env.DISCORD_CLIENT_ID = 'test-client';
+process.env.DISCORD_CLIENT_SECRET = 'test-secret';
+process.env.TURSO_DATABASE_URL = `file:${path.join(dir, 'tracker.db')}`;
+process.env.SESSION_SECRET = 'test-secret-key-for-signing-sessions';
+
+const app = (await import('../server.js')).default;
+const { startSession } = await import('../server/session.js');
+const { upsertUser } = await import('../server/db.js');
+
+/** A signed cookie for `id`, produced by the server's own session code. */
+function cookieFor(id) {
+	const headers = [];
+	startSession({ append: (name, value) => headers.push(value) }, id);
+	return headers.map(h => h.split(';')[0]).join('; ');
+}
+
+// One listener for the whole file, on a port the OS picks.
+const server = app.listen(0);
+await new Promise(resolve => server.once('listening', resolve));
+const base = `http://127.0.0.1:${server.address().port}`;
+test.after(() => {
+	server.close();
+	fs.rmSync(dir, { recursive: true, force: true });
+});
+
+const call = (method, url, { cookie, body } = {}) => fetch(base + url, {
+	method,
+	headers: {
+		...(cookie ? { Cookie: cookie } : {}),
+		...(body ? { 'Content-Type': 'application/json' } : {})
+	},
+	body: body ? JSON.stringify(body) : undefined,
+	redirect: 'manual'
+});
+
+const SAVE = {
+	stock: { 'Tidal Black Stone': 400, 'Sangpyeong Coin': 3000 },
+	targets: [{ id: 't1', item: 'Panokseon', qty: 1, active: true, note: '' }],
+	strategy: { 'Finely Polished Pine Plywood': 'craft' }
+};
+
+await upsertUser({ id: '1001', username: 'Sailor', avatar: null });
+await upsertUser({ id: '1002', username: 'Other', avatar: null });
+const alice = cookieFor('1001');
+const bob = cookieFor('1002');
+
+test('the page is still served', async () => {
+	const res = await call('GET', '/');
+	assert.equal(res.status, 200);
+	assert.match(await res.text(), /Ship Upgrade Tracker/);
+});
+
+test('the client is told sync is available', async () => {
+	const res = await call('GET', '/api/config');
+	assert.deepEqual(await res.json(), { sync: true });
+});
+
+test('being signed out is an answer, not an error', async () => {
+	const res = await call('GET', '/api/me');
+	assert.equal(res.status, 200);
+	assert.deepEqual(await res.json(), { signedIn: false });
+});
+
+test('a session names its account', async () => {
+	const body = await (await call('GET', '/api/me', { cookie: alice })).json();
+	assert.equal(body.signedIn, true);
+	assert.equal(body.user.username, 'Sailor');
+});
+
+test('a forged session is refused', async () => {
+	// Same shape, wrong signature.
+	const forged = alice.replace(/\.[^.]+$/, '.notarealsignature');
+	const body = await (await call('GET', '/api/me', { cookie: forged })).json();
+	assert.equal(body.signedIn, false);
+});
+
+test('state needs an account', async () => {
+	assert.equal((await call('GET', '/api/state')).status, 401);
+	assert.equal((await call('PUT', '/api/state', { body: { rev: 0, data: SAVE } })).status, 401);
+});
+
+test('an account that has never synced reads as revision 0', async () => {
+	const body = await (await call('GET', '/api/state', { cookie: alice })).json();
+	assert.deepEqual(body, { rev: 0, data: null, updatedAt: null, device: null });
+});
+
+test('a first push creates revision 1, and reads back', async () => {
+	const put = await call('PUT', '/api/state', { cookie: alice, body: { rev: 0, data: SAVE, device: 'desktop' } });
+	assert.equal(put.status, 200);
+	assert.equal((await put.json()).rev, 1);
+
+	const got = await (await call('GET', '/api/state', { cookie: alice })).json();
+	assert.equal(got.rev, 1);
+	assert.equal(got.device, 'desktop');
+	assert.deepEqual(got.data, SAVE);
+});
+
+test('a push based on the current revision moves it on', async () => {
+	const next = { ...SAVE, stock: { ...SAVE.stock, 'Tidal Black Stone': 500 } };
+	const put = await call('PUT', '/api/state', { cookie: alice, body: { rev: 1, data: next } });
+	assert.equal((await put.json()).rev, 2);
+});
+
+test('a stale push is refused, and hands back what beat it', async () => {
+	const stale = { ...SAVE, stock: { 'Tidal Black Stone': 1 } };
+	const res = await call('PUT', '/api/state', { cookie: alice, body: { rev: 1, data: stale } });
+	assert.equal(res.status, 409);
+
+	const body = await res.json();
+	assert.equal(body.rev, 2);
+	// The loser gets the winner's save, which is what lets the browser
+	// offer a choice instead of just reporting a failure.
+	assert.equal(body.data.stock['Tidal Black Stone'], 500);
+
+	// And the refusal really did not write.
+	const got = await (await call('GET', '/api/state', { cookie: alice })).json();
+	assert.equal(got.rev, 2);
+	assert.equal(got.data.stock['Tidal Black Stone'], 500);
+});
+
+test('a first push cannot overwrite an existing save', async () => {
+	const res = await call('PUT', '/api/state', { cookie: alice, body: { rev: 0, data: SAVE } });
+	assert.equal(res.status, 409);
+});
+
+test('one account cannot see or touch another', async () => {
+	const got = await (await call('GET', '/api/state', { cookie: bob })).json();
+	assert.equal(got.rev, 0);
+	assert.equal(got.data, null);
+
+	await call('PUT', '/api/state', { cookie: bob, body: { rev: 0, data: { stock: { Silver: 1 } } } });
+	const alicesStill = await (await call('GET', '/api/state', { cookie: alice })).json();
+	assert.equal(alicesStill.rev, 2);
+	assert.equal(alicesStill.data.stock['Tidal Black Stone'], 500);
+});
+
+test('rubbish is refused before it reaches the database', async () => {
+	const cases = [
+		[{ rev: 2, data: null }, 400],
+		[{ rev: 2, data: { stock: [] } }, 400],
+		[{ rev: 2, data: { stock: {}, targets: {} } }, 400],
+		[{ data: SAVE }, 400],
+		[{ rev: -1, data: SAVE }, 400],
+		[{ rev: 1.5, data: SAVE }, 400]
+	];
+	for (const [body, expected] of cases) {
+		const res = await call('PUT', '/api/state', { cookie: alice, body });
+		assert.equal(res.status, expected, JSON.stringify(body));
+	}
+});
+
+test('an oversized save is refused, without a 500', async () => {
+	const huge = { stock: {} };
+	for (let i = 0; i < 120000; i++) huge.stock[`Item number ${i}`] = i;
+	const { rev } = await (await call('GET', '/api/state', { cookie: alice })).json();
+	const res = await call('PUT', '/api/state', { cookie: alice, body: { rev, data: huge } });
+	assert.equal(res.status, 413);
+
+	// And the refusal left the stored save alone.
+	const after = await (await call('GET', '/api/state', { cookie: alice })).json();
+	assert.equal(after.rev, rev);
+});
+
+test('a body that is not JSON is a 400, not a crash', async () => {
+	const res = await fetch(base + '/api/state', {
+		method: 'PUT',
+		headers: { Cookie: alice, 'Content-Type': 'application/json' },
+		body: '{ this is not json'
+	});
+	assert.equal(res.status, 400);
+});
+
+test('sign-in redirects to Discord, carrying a state it can check later', async () => {
+	const res = await call('GET', '/auth/discord?to=/inventory');
+	assert.equal(res.status, 302);
+	const url = new URL(res.headers.get('location'));
+	assert.equal(url.origin + url.pathname, 'https://discord.com/oauth2/authorize');
+	assert.equal(url.searchParams.get('client_id'), 'test-client');
+	assert.equal(url.searchParams.get('scope'), 'identify');
+	assert.ok(url.searchParams.get('state'));
+	assert.ok(res.headers.getSetCookie().some(c => c.startsWith('sail_oauth=')));
+});
+
+test('a callback with no matching state cookie is refused', async () => {
+	const res = await call('GET', '/auth/discord/callback?code=abc&state=made-up');
+	assert.equal(res.status, 302);
+	assert.equal(res.headers.get('location'), '/?signin=expired');
+});
+
+test('a cancelled sign-in comes back as cancelled', async () => {
+	const res = await call('GET', '/auth/discord/callback?error=access_denied');
+	assert.equal(res.headers.get('location'), '/?signin=cancelled');
+});
+
+test('deleting the account takes the save with it', async () => {
+	const res = await call('DELETE', '/api/account', { cookie: bob });
+	assert.equal(res.status, 200);
+	// The session is cleared, so the old cookie no longer names anyone.
+	const me = await (await call('GET', '/api/me', { cookie: bob })).json();
+	assert.equal(me.signedIn, false);
+});

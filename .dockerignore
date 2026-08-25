@@ -6,3 +6,6 @@ tools
 *.md
 !README.md
 .env
+.env.local
+.data
+test

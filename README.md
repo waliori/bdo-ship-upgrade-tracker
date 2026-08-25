@@ -6,7 +6,8 @@ each one still needs, what you can make right now, and what you have to
 go and get — without ever promising the same 100 planks to two builds.
 
 Runs entirely in your browser. No account, no server, nothing leaves your
-machine.
+machine — [unless you turn on sync](#syncing-across-devices), which is
+opt-in, self-hosted and off by default.
 
 ![The Plan screen, part-way through two Carrack parts](docs/media/hero.png)
 
@@ -102,6 +103,9 @@ npm start
 
 Then open <http://localhost:8000>. Set `PORT` to use another port.
 
+`npm test` runs the suite: the sync API against a throwaway libSQL file,
+and the browser half driven in a real Chrome.
+
 ### Docker
 
 ```bash
@@ -154,11 +158,62 @@ Everything lives in your browser's `localStorage` under
 craft-or-buy choices and an undo history. It syncs across tabs, and
 **Export** writes the same object out as JSON.
 
-There is no backend. Clearing site data clears your progress, so export
-if it matters to you.
+By default there is no backend. Clearing site data clears your progress,
+so export if it matters to you.
 
 If you used an earlier version, the first load offers to bring your
 per-ship counts across into the shared inventory.
+
+---
+
+## Syncing across devices
+
+Optional, and off unless you configure it. The public site and any plain
+`npm start` behave exactly as above: no account, no database, nothing
+leaves the browser.
+
+Given a Discord app and a [Turso](https://turso.tech) database, the
+server also offers a **Sign in** button. Signing in stores one copy of
+your inventory under your Discord account, so the phone you check on a
+boat and the desktop you plan on hold the same numbers.
+
+What it does and does not do:
+
+- **Your browser stays the source of truth.** Sync is a mirror. Offline,
+  or signed out, or with the server down, the tracker works unchanged.
+- **`identify` and nothing else.** The Discord scope covers an account
+  id to file the save under and a name to show in the header. No email,
+  no server list, no messages.
+- **Stock, builds and craft-or-buy choices.** Your undo history and local
+  preferences stay in the browser, where they belong.
+- **Conflicts are a question, not a guess.** Every save carries a
+  revision, and a push built on a stale one is refused. When two devices
+  have both been edited you are shown what each holds and asked which to
+  keep — merging counts would invent a number that was never true. The
+  copy you do not keep is one **Undo** away.
+- **Deletable.** The account menu removes the stored copy and the account
+  record with it. What is in your browser stays.
+
+### Setting it up
+
+Copy `.env.example` to `.env` and fill in five values:
+
+| | |
+|---|---|
+| `PUBLIC_URL` | where your deployment answers, e.g. `https://sail.walior.it` |
+| `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | from a [Discord application](https://discord.com/developers/applications) → OAuth2 |
+| `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | from `turso db show <name> --url` and `turso db tokens create <name>` |
+| `SESSION_SECRET` | any long random string — `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+
+Register `PUBLIC_URL` + `/auth/discord/callback` as a redirect URI on the
+Discord application. To develop locally, add
+`http://localhost:8000/auth/discord/callback` as a second one and point
+`TURSO_DATABASE_URL` at a file — `file:./.data/tracker.db` — which needs
+no Turso account at all.
+
+Leave any of it blank and sync stays off, which is a deliberate
+half-configured deploy falling back to the safe behaviour rather than
+failing at the first sign-in.
 
 ---
 
@@ -166,18 +221,26 @@ per-ship counts across into the shared inventory.
 
 ```
 index.html            the whole shell: masthead, tabs, screen
-server.js             Express static server
+server.js             static files, plus the sync API when configured
 css/tracker.css       the design system
 js/
   ui.js               every screen, and the only place that touches the DOM
   state.js            the store: stock, targets, undo, persistence
   planner.js          pure planning — netting, explosion, enhancement steps
+  sync.js             optional device sync: pull, push, conflict
   recipes.js          recipes and enhancement chains
   ships.js            what can be queued
   sea_coins.js        Crow Coin prices
   falasi_vendor.js    Falasi's silver prices
   all_barter.js       barter routes
   guided-tour.js      the walkthrough
+server/               only loaded when sync is configured
+  config.js           what is switched on, and what is therefore offered
+  db.js               libSQL schema and queries
+  auth.js             the Discord OAuth exchange
+  api.js              /api/me and /api/state
+  session.js          signed session cookies, no session table
+test/                 npm test — the server, and the client in a browser
 icons/                item and ship icons (WebP)
 og.png                the social preview card
 docs/media/           the images and clips in this README
