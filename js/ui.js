@@ -187,7 +187,7 @@ function recompute() {
 	// still appear, because those are things you have to go and get.
 	rows = {};
 	for (const target of snapshot.targets) {
-		const walk = node => {
+		const walk = (node, root) => {
 			const here = parseEnhanced(node.item);
 			const from = node.via ? parseEnhanced(node.via) : null;
 			const midChain = here.level > 0 && from && from.level > 0 && from.base === here.base;
@@ -198,10 +198,12 @@ function recompute() {
 				r.take += node.fromStock;
 				r.craft += node.toCraft;
 				r.short += node.missing;
+				// The thing you queued is the goal, not a material for it.
+				if (root) r.isTarget = true;
 			}
-			node.children.forEach(walk);
+			node.children.forEach(child => walk(child, false));
 		};
-		walk(target.tree);
+		walk(target.tree, true);
 	}
 	for (const [item, holders] of Object.entries(snapshot.reservedBy)) {
 		if (rows[item]) rows[item].resv = holders;
@@ -274,9 +276,12 @@ function renderPlan() {
 		.map(([item, r]) => ({ item, r, covered: r.short === 0 && r.craft === 0 }));
 
 	const groupsDef = [
-		['Missing', 'buy, barter, gather or hunt these', 'red', p => p.r.short > 0, 'short'],
-		['To craft', 'recipes standing between you and done', 'blue', p => p.r.short === 0 && p.r.craft > 0, 'craft'],
-		['Covered', 'fully reserved from stock', 'teal', p => p.covered, 'done']
+		['What you are building', 'the queued items themselves — everything below feeds these', 'blue',
+			p => p.r.isTarget, 'target'],
+		['Missing', 'buy, barter, gather or hunt these', 'red', p => !p.r.isTarget && p.r.short > 0, 'short'],
+		['To craft', 'recipes standing between you and done', 'blue',
+			p => !p.r.isTarget && p.r.short === 0 && p.r.craft > 0, 'craft'],
+		['Covered', 'fully reserved from stock', 'teal', p => !p.r.isTarget && p.covered, 'done']
 	];
 
 	const groups = groupsDef
@@ -455,10 +460,26 @@ function planRow(item, r, covered) {
 	const src = sourceOf(item);
 	let sub = who.length ? `reserved for ${who.join(' · ')}` : (src ? src.label : 'intermediate craft');
 	if (enhanced) sub = 'enhanced in the Workshop';
+	// Goes first, ahead of the reservation text -- the sub line is
+	// ellipsised, and otherwise a craftable material sitting in Missing
+	// looks like a bug rather than a choice.
+	if (!enhanced && recipes[item] && store.getStrategy(item) === 'buy') {
+		sub = `buying rather than crafting · ${sub}`;
+	}
 
+	// "craftable" means the materials are on hand *now* -- not merely that
+	// the plan has a recipe lined up for it. The two used to be conflated,
+	// which is how the Plan could badge seven rows craftable while the
+	// Workshop said nothing could be made.
 	const can = !enhanced && recipes[item] && r.craft > 0 && maxCraftable(item, store.getAllStock()) >= 1;
-	const badge = covered ? 'covered' : r.short > 0 ? `${F(r.short)} short` : enhanced ? 'to enhance' : 'craftable';
-	const badgeCls = covered ? 'teal' : r.short > 0 ? 'red' : 'blue';
+	const badge = covered
+		? 'covered'
+		: r.short > 0
+			? `${F(r.short)} short`
+			: enhanced
+				? 'to enhance'
+				: can ? 'craftable now' : 'to craft';
+	const badgeCls = covered ? 'teal' : r.short > 0 ? 'red' : can ? 'teal' : 'blue';
 	const own = store.getStock(item);
 
 	return `<div class="row">
@@ -678,6 +699,12 @@ function renderDetail() {
  * because a part you levelled for its own sake is still a part you want
  * to take further.
  */
+/** " -- Crow Coin Shop", when we know where a part comes from. */
+function whereFrom(item) {
+	const src = sourceOf(item);
+	return src ? ` — ${src.label}` : '';
+}
+
 function pendingEnhancements() {
 	const stock = store.getAllStock();
 	const targets = new Map();
@@ -722,7 +749,7 @@ function pendingEnhancements() {
 			holds,
 			blocked: !affordable || !holds,
 			note: !holds
-				? `you do not own ${have > 0 ? `a +${have}` : 'the base'} part yet`
+				? `you do not own ${have > 0 ? `a +${have}` : 'the base'} part yet${whereFrom(step.from)}`
 				: !affordable
 					? `not enough ${stoneName}`
 					: forBuild
@@ -776,7 +803,7 @@ function renderWorkshop() {
 			<span class="enh-cost">${img(e.stoneName, '')}×${F(e.stoneQty)}</span>
 			<span class="enh-actions">
 				<button class="pill-btn" data-act="enhance" data-result="success" ${e.blocked ? 'disabled' : ''}>Succeeded</button>
-				<button class="pill-btn bad" data-act="enhance" data-result="fail" ${e.affordable ? '' : 'disabled'}>Failed</button>
+				<button class="pill-btn bad" data-act="enhance" data-result="fail" ${e.blocked ? 'disabled' : ''}>Failed</button>
 			</span>
 		</div>`).join('');
 
