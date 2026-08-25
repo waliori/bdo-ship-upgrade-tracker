@@ -207,9 +207,15 @@ async function push(force = false) {
 			account = null;
 			return say('out');
 		}
-		// A 4xx is about this save and will not get better by being sent
-		// again; anything else is the server having a moment, and is worth
-		// another try.
+		// Too fast, not wrong. The save is fine and will go through; it
+		// just has to wait, which is what the backoff already does.
+		if (res.status === 429) {
+			retryLater();
+			return say('syncing', 'saving shortly');
+		}
+		// Any other 4xx is about this save and will not get better by being
+		// sent again; anything else is the server having a moment, and is
+		// worth another try.
 		if (res.status >= 500) retryLater();
 		say('error', (res.body && res.body.error) || 'that did not save');
 	} catch {

@@ -81,6 +81,10 @@ export const config = {
 	// signed-in account from being used as free storage.
 	maxSaveBytes: num('MAX_SAVE_BYTES', 1024 * 1024),
 	sessionDays: num('SESSION_DAYS', 30),
+	// Pushes allowed per account per minute. The client debounces to two a
+	// second at the very most, so this is a ceiling on misbehaviour rather
+	// than a budget anything legitimate has to fit inside.
+	maxPushesPerMinute: num('MAX_PUSHES_PER_MINUTE', 120),
 
 	// How long a change waits before being written out. Long enough that
 	// typing "1", "12", "120" is one write rather than three; short enough

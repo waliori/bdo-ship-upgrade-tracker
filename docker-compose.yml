@@ -5,6 +5,10 @@
 # and fill it in, and the values below are handed to the container at
 # run time. Without a .env this still starts -- it just starts the
 # browser-only tracker, with no database involved.
+#
+# Run one instance. With sync on the server holds the current revision of
+# each save in memory, which is only correct while a single process owns
+# it -- see "Run exactly one of it" in the README before scaling this.
 services:
   bdo-tracker:
     build: .

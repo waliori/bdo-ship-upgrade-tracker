@@ -11,6 +11,7 @@ import { config } from './config.js';
 import { getUser, deleteAccount } from './db.js';
 import { readSave, writeSaveFor, forget } from './saves.js';
 import { sessionUser, requireUser, endSession } from './session.js';
+import { perAccount } from './limit.js';
 import { wrap } from './wrap.js';
 
 /**
@@ -38,9 +39,27 @@ function looksLikeSave(body) {
 export function apiRoutes() {
 	const router = express.Router();
 
+	// Nothing here may be cached by anything, ever.
+	//
+	// A save is one account's, and the only thing telling it apart from
+	// another account's is a cookie. Without these headers a proxy that
+	// has been told to cache generously -- a Cloudflare "Cache Everything"
+	// rule, an nginx block someone added for speed -- would be within its
+	// rights to keep one player's inventory and hand it to the next.
+	router.use((req, res, next) => {
+		res.set('Cache-Control', 'no-store');
+		res.set('Vary', 'Cookie');
+		next();
+	});
+
 	// Only the three fields that make up a save are stored. Anything else
 	// the client sends is dropped here rather than in the database.
 	router.use(express.json({ limit: config.maxSaveBytes }));
+
+	// A browser pushes at most twice a second and backs off when refused,
+	// so this is far above anything the app does and only bites something
+	// that is not the app.
+	const pushLimit = perAccount(config.maxPushesPerMinute);
 
 	/** Who is signed in, if anyone. Answers 200 either way -- being signed
 	 *  out is a normal state for this app, not an error. */
@@ -83,7 +102,7 @@ export function apiRoutes() {
 	 * with 409 and the newer save comes back in the body, so the client
 	 * can show both and let the user choose instead of quietly losing one.
 	 */
-	router.put('/state', requireUser, wrap(async (req, res) => {
+	router.put('/state', requireUser, pushLimit, wrap(async (req, res) => {
 		const body = req.body || {};
 		const complaint = looksLikeSave(body.data);
 		if (complaint) return res.status(400).json({ error: complaint });

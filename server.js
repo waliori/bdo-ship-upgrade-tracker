@@ -13,10 +13,51 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { config, syncEnabled, ephemeralSecret, describe } from './server/config.js';
 
+// NOTE: run exactly one of these.
+//
+// With sync on, server/saves.js holds the current revision of every save
+// in memory and answers pushes from there. That is what makes a save
+// feel instant, and it is only correct while one process owns the data.
+// Two instances behind a load balancer would each believe they held the
+// current revision, both would accept a push built on it, and one
+// browser's work would be lost silently -- the conflict dialog would
+// never appear, which is the one thing the revision scheme exists to
+// prevent. Scaling out means moving that check back into SQL first.
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 app.disable('x-powered-by');
+
+// Headers every response carries.
+//
+// The page is almost entirely self-contained; the exceptions are the
+// fonts and the guided tour's library, and naming them here is the point.
+// A compromised CDN then cannot run arbitrary script in a session that
+// can read someone's saved inventory -- the worst it can do is fail to
+// load. `style-src` has to allow inline: the progress bars set their
+// width as a style attribute, which counts.
+const CSP = [
+	"default-src 'self'",
+	"script-src 'self' https://cdn.jsdelivr.net",
+	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+	"font-src 'self' https://fonts.gstatic.com",
+	"img-src 'self' data:",
+	"connect-src 'self'",
+	"frame-ancestors 'none'",
+	"base-uri 'none'",
+	"form-action 'self'",
+	"object-src 'none'"
+].join('; ');
+
+app.use((req, res, next) => {
+	res.set('Content-Security-Policy', CSP);
+	res.set('X-Content-Type-Options', 'nosniff');
+	res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+	// Belt and braces with frame-ancestors, for anything that predates it.
+	res.set('X-Frame-Options', 'DENY');
+	next();
+});
 // Behind a reverse proxy the client's scheme arrives in a header. Without
 // this, Express reports every request as plain HTTP.
 if (config.cookieSecure) app.set('trust proxy', 1);

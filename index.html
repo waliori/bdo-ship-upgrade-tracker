@@ -34,8 +34,7 @@
     <link href="css/tracker.css" rel="stylesheet" type="text/css" />
 
     <!-- Driver.js powers the guided tour, loaded out of the critical path -->
-    <link rel="preload" href="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.css"></noscript>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.css">
     <script src="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.js.iife.js" defer></script>
 
     <link rel="modulepreload" href="js/ui.js">
@@ -78,9 +77,6 @@
     <div class="toast" id="toast" role="status" hidden></div>
     <div class="dialog" id="dialog" role="dialog" aria-modal="true" hidden></div>
 
-    <script type="module">
-        import { init } from './js/ui.js';
-        init();
-    </script>
+    <script type="module" src="js/boot.js"></script>
 </body>
 </html>

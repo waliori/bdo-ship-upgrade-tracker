@@ -259,3 +259,41 @@ test('a database that refuses a save is not mistaken for one that is unreachable
 	assert.equal(transient(new Error('SQLITE_CONSTRAINT: FOREIGN KEY constraint failed')), false);
 	assert.equal(transient(new Error('no such column: payload')), false);
 });
+
+test('an account cannot push without limit, and is told to come back', async () => {
+	const { upsertUser: addUser } = await import('../server/db.js');
+	await addUser({ id: '1004', username: 'Eager', avatar: null });
+	const eager = cookieFor('1004');
+
+	// The configured ceiling is well above anything the client does, so
+	// reaching it takes deliberate effort -- which is the point.
+	const max = (await import('../server/config.js')).config.maxPushesPerMinute;
+	let refused = null;
+	for (let i = 0; i <= max && !refused; i++) {
+		const res = await call('PUT', '/api/state', {
+			cookie: eager,
+			body: { rev: i, data: SAVE, device: 'desk' }
+		});
+		if (res.status === 429) refused = res;
+	}
+	assert.ok(refused, `no push was refused within ${max + 1} attempts`);
+	assert.ok(Number(refused.headers.get('retry-after')) > 0, 'no Retry-After to wait on');
+});
+
+test('nothing in the API may be cached, whoever is in front of it', async () => {
+	// A save is told apart from another account's only by a cookie, so a
+	// proxy told to cache generously must still be refused.
+	for (const url of ['/api/state', '/api/me']) {
+		const res = await call('GET', url, { cookie: alice });
+		assert.equal(res.headers.get('cache-control'), 'no-store', url);
+		assert.equal(res.headers.get('vary'), 'Cookie', url);
+	}
+});
+
+test('every response carries the security headers', async () => {
+	const res = await call('GET', '/');
+	assert.match(res.headers.get('content-security-policy'), /default-src 'self'/);
+	assert.doesNotMatch(res.headers.get('content-security-policy'), /script-src[^;]*unsafe-inline/);
+	assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
+	assert.equal(res.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
+});

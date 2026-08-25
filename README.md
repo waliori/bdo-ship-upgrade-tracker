@@ -239,6 +239,35 @@ them over yourself:
 docker run -p 8000:8000 --env-file .env bdo-ship-tracker
 ```
 
+### Run exactly one of it
+
+With sync on, the server keeps the current revision of every save in
+memory and answers a push from there — that is what makes saving feel
+instant, and it is only correct while **one process** owns the data. Two
+instances behind a load balancer would each believe they held the current
+revision, both would accept a push built on it, and one player's work
+would vanish without the conflict dialog ever appearing. Scaling out
+means moving that check back into SQL first.
+
+One VPS with a proxy in front of it is exactly the shape this is built
+for. Behind Cloudflare or nginx, two things are worth knowing:
+
+- **Do not cache `/api/`.** Those responses are one account's, told apart
+  from another's only by a cookie. The server sends `Cache-Control:
+  no-store` and `Vary: Cookie` on every one of them, so a generous cache
+  rule cannot serve one player's inventory to another — but do not add a
+  "Cache Everything" rule that overrides it either.
+- **Rate limiting is per account here**, not per address, because behind
+  two proxies the client's address is several headers deep and easy to
+  get wrong. Address-level abuse — sign-in floods, one noisy host — is
+  the proxy's job, and it is much better placed to do it.
+
+### If the database is lost
+
+Nothing is lost. Every browser keeps its own copy in `localStorage`; the
+database is a mirror, not the original. The next push from each player
+writes their save back.
+
 ---
 
 ## Project layout

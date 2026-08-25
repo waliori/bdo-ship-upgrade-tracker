@@ -118,6 +118,11 @@ async function entryFor(userId) {
 		};
 		live.set(userId, entry);
 		bytes += size(entry.payload);
+		// Reading an account in is the other way memory grows. Eviction
+		// used to run only after a successful write, so a deployment whose
+		// players mostly pull -- opening the app, not editing it -- would
+		// climb past both ceilings with nothing to bring it back down.
+		evictIfCrowded(userId);
 		return entry;
 	})().finally(() => loading.delete(userId));
 
@@ -304,11 +309,12 @@ async function flush(userId, entry) {
  * evicting it would lose a revision. The next request for a dropped
  * account simply reads it back.
  */
-function evictIfCrowded() {
+function evictIfCrowded(keep = null) {
 	if (live.size <= MAX_ACCOUNTS && bytes <= MAX_BYTES) return;
 
 	const cold = [...live.entries()]
-		.filter(([, entry]) => !entry.dirty && !entry.flushing && !entry.timer)
+		.filter(([userId, entry]) =>
+			userId !== keep && !entry.dirty && !entry.flushing && !entry.timer)
 		.sort((a, b) => a[1].touched - b[1].touched);
 
 	for (const [userId, entry] of cold) {
