@@ -27,7 +27,8 @@ const DEMO = JSON.stringify({
 		"Blueprint: Chiro's Sail": 6,
 		'Moon Vein Flax Fabric': 90,
 		'Epheria Carrack: Toro Cannon': 1,
-		'Crow Coin': 3000
+		'Crow Coin': 3000,
+		Silver: 42000000
 	},
 	targets: [
 		{ id: 'demo-1', item: "Epheria Carrack: Valor (Chiro's Sail)", qty: 1, active: true },
@@ -149,10 +150,10 @@ class GuidedTour {
 				}
 			},
 			{
-				element: '.purse',
+				element: '#pouch',
 				popover: {
-					title: 'Crow Coins and silver',
-					description: 'Type in what you are carrying and the totals above turn into what you are actually <b>short</b> — not just what the shopping list costs.',
+					title: 'What you are carrying',
+					description: 'Coins, silver and enhancement stones sit above every tab, because you spend them from every tab. Type in what you have and each one tells you whether it covers your builds or how far <b>short</b> you are.',
 					side: 'bottom'
 				},
 				before: () => goToTab('plan')
