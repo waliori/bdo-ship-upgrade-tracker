@@ -6,3 +6,7 @@ npm-debug.log
 CLAUDE.md
 .hive-mind
 .claude-flow
+
+# Capture intermediates — the media in docs/media is what ships.
+tools/capture/out/
+*.webm
