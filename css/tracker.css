@@ -486,7 +486,18 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 
 .stepper button { width: 26px; height: 30px; background: none; border: none; color: var(--ink-dim); }
 .stepper button:hover { color: var(--ink-hi); }
-.stepper .val { font-family: var(--font-display); font-size: 13px; min-width: 26px; text-align: center; color: var(--ink-hi); }
+.stepper .val {
+  width: 46px;
+  height: 30px;
+  border: none;
+  border-left: 1px solid rgba(125, 175, 225, 0.14);
+  border-right: 1px solid rgba(125, 175, 225, 0.14);
+  background: rgba(0, 0, 0, 0.18);
+  font-family: var(--font-display);
+  font-size: 13px;
+  text-align: center;
+  color: var(--ink-hi);
+}
 
 /* ---- inventory ---------------------------------------------------- */
 
@@ -552,7 +563,22 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 }
 
 .qty-btn:hover { color: var(--ink-hi); border-color: var(--line-btn-hi); }
-.qty-val { flex: 1; text-align: center; font-family: var(--font-display); font-size: 19px; font-weight: 700; color: var(--ink-hi); }
+.qty-val {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid rgba(125, 175, 225, 0.25);
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.22);
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ink-hi);
+}
+
+.qty-hint { font-size: 11px; color: var(--ink-faint); margin: -12px 0 16px; text-align: center; }
 
 .kv { display: flex; flex-direction: column; gap: 7px; padding-bottom: 14px; border-bottom: 1px solid rgba(125, 175, 225, 0.12); margin-bottom: 14px; }
 .kv-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; }
@@ -620,7 +646,22 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 .ing.short { color: var(--red); }
 .ing img { width: 16px; height: 16px; border-radius: 3px; object-fit: contain; }
 
-.craft-actions { display: flex; gap: 8px; }
+.craft-actions { display: flex; gap: 8px; align-items: center; }
+
+.craft-n {
+  width: 56px;
+  flex: none;
+  height: 32px;
+  padding: 0 6px;
+  border: 1px solid rgba(125, 175, 225, 0.25);
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.22);
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-hi);
+}
 
 .act.go {
   background: rgba(78, 201, 174, 0.14);
@@ -861,7 +902,7 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 .own .sq-btn { border: none; border-radius: 0; width: 26px; height: 28px; }
 
 .own-input {
-  width: 52px;
+  width: 66px;
   height: 28px;
   border: none;
   border-left: 1px solid rgba(125, 175, 225, 0.14);
@@ -876,6 +917,13 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 
 .own-input::-webkit-outer-spin-button,
 .own-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Every quantity in the app is typed into the same way. */
+.amt { -moz-appearance: textfield; font-variant-numeric: tabular-nums; }
+.amt::-webkit-outer-spin-button,
+.amt::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.amt:focus { outline: none; box-shadow: inset 0 0 0 1px var(--blue-edge); color: var(--blue-hi); }
+.amt:focus::selection { background: rgba(88, 168, 232, 0.35); }
 
 /* ---- first-run guidance -------------------------------------------- */
 

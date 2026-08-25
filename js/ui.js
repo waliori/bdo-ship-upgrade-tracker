@@ -93,6 +93,13 @@ function parseAmount(raw) {
 	return Math.max(0, Math.round(Number(m[1]) * mult));
 }
 
+/**
+ * Any quantity in the app that you can set is one of these: type into it
+ * directly ("4k", "12,000") or nudge it with the buttons beside it.
+ */
+const amountInput = (cls, value, attrs) =>
+	`<input class="amt ${cls}" type="text" inputmode="numeric" autocomplete="off" value="${F(value)}" ${attrs}>`;
+
 const FC = n => n >= 1e9
 	? `${(n / 1e9).toFixed(2).replace(/\.?0+$/, '')}b`
 	: n >= 1e6
@@ -470,7 +477,7 @@ function planRow(item, r, covered) {
 		<div class="row-tail">
 			<span class="own" title="How many you own">
 				<button class="sq-btn" data-act="own" data-item="${esc(item)}" data-delta="-1" aria-label="One fewer">−</button>
-				<input class="own-input" type="number" min="0" value="${own}" data-act="own-set" data-item="${esc(item)}" aria-label="Owned">
+				${amountInput('own-input', own, `data-act="own-set" data-item="${esc(item)}" aria-label="How many ${esc(item)} you own"`)}
 				<button class="sq-btn" data-act="own" data-item="${esc(item)}" data-delta="1" aria-label="One more">+</button>
 			</span>
 			<span class="badge ${badgeCls}">${esc(badge)}</span>
@@ -517,7 +524,7 @@ function renderBuilds() {
 				<button class="sq-btn" data-act="move" data-dir="1" title="Lower priority" ${i === targets.length - 1 ? 'disabled' : ''}>▼</button>
 				<span class="stepper">
 					<button data-act="qty" data-delta="-1" aria-label="Fewer">−</button>
-					<span class="val">${t.qty}</span>
+					${amountInput('val', t.qty, `data-act="target-qty" data-target="${esc(t.id)}" aria-label="How many to build"`)}
 					<button data-act="qty" data-delta="1" aria-label="More">+</button>
 				</span>
 				<button class="sq-btn" data-act="pause" title="Pause or resume">${t.active ? '⏸' : '▶'}</button>
@@ -642,10 +649,11 @@ function renderDetail() {
 		<div class="qty-row">
 			<button class="qty-btn" data-act="bump" data-delta="-10">−10</button>
 			<button class="qty-btn" data-act="bump" data-delta="-1">−</button>
-			<span class="qty-val">${F(own)}</span>
+			${amountInput('qty-val', own, `data-act="own-set" data-item="${esc(item)}" aria-label="How many you own"`)}
 			<button class="qty-btn" data-act="bump" data-delta="1">+</button>
 			<button class="qty-btn" data-act="bump" data-delta="10">+10</button>
 		</div>
+		<div class="qty-hint">Type the number straight in — 4k and 12,000 both work.</div>
 		<div class="kv">
 			<div class="kv-row"><span>Reserved</span><span class="n blue">${F(reserved)}</span></div>
 			<div class="kv-row"><span>Free</span><span class="n teal">${F(free)}</span></div>
@@ -750,8 +758,9 @@ function renderWorkshop() {
 			</div>
 			<div class="ings">${ings}</div>
 			<div class="craft-actions">
-				<button class="act go" data-act="craft" data-item="${esc(c.item)}" data-times="1">Craft 1</button>
-				<button class="act quiet" data-act="craft" data-item="${esc(c.item)}" data-times="${c.possible}">Craft ×${F(c.possible)}</button>
+				${amountInput('craft-n', 1, `data-act="craft-n" data-item="${esc(c.item)}" aria-label="How many to craft"`)}
+				<button class="act go" data-act="craft" data-item="${esc(c.item)}" data-times="field">Craft</button>
+				<button class="act quiet" data-act="craft" data-item="${esc(c.item)}" data-times="${c.possible}">All ${F(c.possible)}</button>
 			</div>
 		</div>`;
 	}).join('');
@@ -903,12 +912,45 @@ export function render() {
 	paintPouch();
 
 	const root = document.getElementById('screen');
+	const focus = captureFocus(root);
 	root.className = 'screen';
 	if (view === 'plan') root.innerHTML = renderPlan();
 	else if (view === 'builds') root.innerHTML = renderBuilds();
 	else if (view === 'inventory') root.innerHTML = renderInventory();
 	else if (view === 'workshop') root.innerHTML = renderWorkshop();
 	else root.innerHTML = renderGet();
+	restoreFocus(root, focus);
+}
+
+/**
+ * A render replaces the whole screen, which would throw away the field
+ * someone is typing in. Remember which one it was -- by what it edits,
+ * not by node identity -- and put the caret back where it was.
+ */
+function captureFocus(root) {
+	const el = document.activeElement;
+	if (!el || el.tagName !== 'INPUT' || !root.contains(el) || !el.dataset.act) return null;
+	const parts = [`[data-act="${el.dataset.act}"]`];
+	if (el.dataset.item) parts.push(`[data-item="${el.dataset.item}"]`);
+	if (el.dataset.target) parts.push(`[data-target="${el.dataset.target}"]`);
+	return { sel: parts.join(''), start: el.selectionStart, end: el.selectionEnd };
+}
+
+function restoreFocus(root, focus) {
+	if (!focus) return;
+	let next = null;
+	try {
+		next = root.querySelector(focus.sel);
+	} catch {
+		return;   // an item name that will not survive a selector
+	}
+	if (!next) return;
+	next.focus();
+	try {
+		next.setSelectionRange(focus.start, focus.end);
+	} catch {
+		/* not a field with a caret */
+	}
 }
 
 function setView(id) {
@@ -1033,7 +1075,11 @@ function wire() {
 				return;
 			case 'craft': {
 				const item = el.dataset.item;
-				const want = Math.max(1, Number(el.dataset.times) || 1);
+				const field = el.dataset.times === 'field'
+					? el.closest('.craft-actions').querySelector('.craft-n')
+					: null;
+				const asked = field ? parseAmount(field.value) : Number(el.dataset.times);
+				const want = Math.max(1, asked || 1);
 				const times = Math.min(want, maxCraftable(item, store.getAllStock()));
 				if (times < 1) return toast('Not enough materials for that');
 				store.applyDelta(craftDelta(item, times), 'craft', `Crafted ${times} × ${item}`);
@@ -1080,19 +1126,25 @@ function wire() {
 		}
 	});
 
+	// Every typed-in quantity lands here: stock on the Plan and in the
+	// inventory detail, the pouch, and how many of a build you want.
 	document.addEventListener('change', evt => {
-		const own = evt.target.closest('[data-act="own-set"]');
-		if (own) store.setStock(own.dataset.item, own.value);
-		const purse = evt.target.closest('[data-act="purse"]');
-		if (purse) {
-			const n = parseAmount(purse.value);
-			if (n === null) render();   // gibberish: put the stored value back
-			else store.setStock(purse.dataset.item, n);
-		}
+		const el = evt.target.closest('[data-act="own-set"], [data-act="purse"], [data-act="target-qty"]');
+		if (!el) return;
+		const n = parseAmount(el.value);
+		if (n === null) return render();   // gibberish: put the stored value back
+		if (el.dataset.act === 'target-qty') store.setTargetQty(el.dataset.target, n);
+		else store.setStock(el.dataset.item, n);
 	});
 
 	// The pouch holds its ground while you type in it; once focus leaves it
 	// entirely, catch it up with whatever the change already recorded.
+	// Landing in a quantity field selects what is there, so typing a new
+	// number replaces it instead of appending to it.
+	document.addEventListener('focusin', evt => {
+		if (evt.target.classList && evt.target.classList.contains('amt')) evt.target.select();
+	});
+
 	window.addEventListener('resize', measurePouch);
 
 	document.addEventListener('focusout', evt => {
@@ -1106,13 +1158,7 @@ function wire() {
 		const el = evt.target.closest('[data-act="query"]');
 		if (!el) return;
 		query = el.value;
-		const pos = el.selectionStart;
-		render();
-		const next = document.querySelector('[data-act="query"]');
-		if (next) {
-			next.focus();
-			next.setSelectionRange(pos, pos);
-		}
+		render();   // the caret is restored by render() itself
 	});
 }
 
