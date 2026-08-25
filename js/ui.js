@@ -36,6 +36,12 @@ const SOURCE_LABEL = {
 	Exchange: 'Exchange'
 };
 
+// Currencies are held in stock like anything else, so they undo, export
+// and sync for free -- but they are kept out of the item grid, which is
+// for things with recipes and sources.
+const CROW_COIN = 'Crow Coin';
+const SILVER = 'Silver';
+
 let view = 'plan';
 let query = '';
 let planFilter = 'all';
@@ -188,11 +194,26 @@ function renderPlan() {
 	}
 	const pct = need ? Math.round((have / need) * 100) : 0;
 
+	const purseCoins = store.getStock(CROW_COIN);
+	const purseSilver = store.getStock(SILVER);
+	const coinsShort = Math.max(0, totals.coins - purseCoins);
+	const silverShort = Math.max(0, totals.silver - purseSilver);
+
 	const stats = [
 		{ k: 'Fleet progress', v: `${pct}%`, sub: 'of all required units covered', cls: 'teal' },
 		{ k: 'Units covered', v: `${F(have)} / ${F(need)}`, sub: 'across every active build', cls: '' },
-		{ k: 'Crow Coins to go', v: F(totals.coins), sub: "Crow Coin Shop, Oquilla's Eye", cls: 'amber' },
-		{ k: 'Silver to go', v: F(totals.silver), sub: 'Falasi, port of Epheria', cls: 'blue' },
+		{
+			k: 'Crow Coins short',
+			v: F(coinsShort),
+			sub: `${F(totals.coins)} needed · ${F(purseCoins)} in your purse`,
+			cls: coinsShort ? 'amber' : 'teal'
+		},
+		{
+			k: 'Silver short',
+			v: F(silverShort),
+			sub: `${F(totals.silver)} needed · ${F(purseSilver)} in your purse`,
+			cls: silverShort ? 'blue' : 'teal'
+		},
 		{ k: 'Craftable now', v: F(ready.length), sub: 'recipes ready from stock', cls: ready.length ? 'teal' : 'off' }
 	];
 
@@ -252,7 +273,53 @@ function renderPlan() {
 		${g.list.map(({ item, r, covered }) => planRow(item, r, covered)).join('')}
 	</div>`).join('');
 
-	return statHTML + readyHTML + controlsHTML(filters) + groupHTML;
+	return nextStep() + statHTML + purseHTML() + readyHTML + controlsHTML(filters) + groupHTML;
+}
+
+/** What you actually own of each currency, editable. */
+function purseHTML() {
+	const field = (label, item, hint) => `<label class="purse-field">
+		<span class="purse-k">${esc(label)}</span>
+		<input class="purse-input" type="number" min="0" step="1"
+			value="${store.getStock(item)}" data-act="purse" data-item="${esc(item)}"
+			aria-label="${esc(label)} you hold">
+		<span class="purse-hint">${esc(hint)}</span>
+	</label>`;
+	return `<div class="purse">
+		<span class="purse-title">Your purse</span>
+		${field('Crow Coins', CROW_COIN, "Crow Coin Shop, Oquilla's Eye")}
+		${field('Silver', SILVER, 'Falasi, port of Epheria')}
+	</div>`;
+}
+
+/** One concrete thing to do next, based on where the plan actually stands. */
+function nextStep() {
+	if (!store.getActiveTargets().length) return '';
+
+	const ready = readyCrafts();
+	const pending = pendingEnhancements().filter(e => !e.blocked);
+	const shortCount = Object.keys(snapshot.missing).length;
+
+	let msg;
+	let cta = null;
+	if (ready.length) {
+		msg = `You can craft ${ready.length === 1 ? ready[0].item : `${ready.length} recipes`} right now.`;
+		cta = ['Open Workshop', 'workshop'];
+	} else if (pending.length) {
+		msg = `${pending.length} enhancement ${pending.length === 1 ? 'attempt is' : 'attempts are'} affordable.`;
+		cta = ['Open Workshop', 'workshop'];
+	} else if (shortCount) {
+		msg = `Nothing to make yet — ${shortCount} ${shortCount === 1 ? 'item is' : 'items are'} still missing. Record what you gather in the boxes below.`;
+		cta = ['See the shopping list', 'get'];
+	} else {
+		msg = 'Everything your builds need is on hand.';
+	}
+
+	return `<div class="next-step">
+		<span class="next-label">Next</span>
+		<span class="next-msg">${esc(msg)}</span>
+		${cta ? `<button class="act quiet next-cta" data-act="view" data-id="${cta[1]}">${esc(cta[0])}</button>` : ''}
+	</div>`;
 }
 
 /** The loop to follow, for anyone opening the tracker for the first time. */
@@ -521,6 +588,70 @@ function renderDetail() {
  * Workshop
  * ------------------------------------------------------------------ */
 
+/**
+ * Every part worth an enhancement attempt: the ones a build is waiting
+ * on, and anything enhanceable already sitting in your inventory --
+ * because a part you levelled for its own sake is still a part you want
+ * to take further.
+ */
+function pendingEnhancements() {
+	const stock = store.getAllStock();
+	const targets = new Map();
+
+	// Levels a build is asking for.
+	for (const item of Object.keys(snapshot.toCraft)) {
+		const { level, base } = parseEnhanced(item);
+		if (level > 0) {
+			targets.set(base, { want: Math.max(targets.get(base)?.want || 0, level), forBuild: true });
+		}
+	}
+
+	// Anything enhanceable you hold, whether or not a build wants it yet.
+	for (const item of Object.keys(stock)) {
+		const { base } = parseEnhanced(item);
+		if (!recipes[`+1 ${base}`]) continue;
+		if (!targets.has(base)) targets.set(base, { want: 10, forBuild: false });
+	}
+
+	const out = [];
+	for (const [base, { want, forBuild }] of targets) {
+		const have = ownedLevel(base, stock);
+		if (have >= want) continue;
+
+		const step = enhanceStep(base, have + 1);
+		if (!step) continue;
+
+		const stoneName = Object.keys(step.stones)[0] || 'Tidal Black Stone';
+		const stoneQty = step.stones[stoneName] || 0;
+		const affordable = Object.entries(step.stones).every(([st, q]) => (stock[st] || 0) >= q);
+		const holds = (stock[step.from] || 0) > 0;
+
+		out.push({
+			base,
+			have,
+			next: have + 1,
+			want,
+			forBuild,
+			stoneName,
+			stoneQty,
+			affordable,
+			holds,
+			blocked: !affordable || !holds,
+			note: !holds
+				? `you do not own ${have > 0 ? `a +${have}` : 'the base'} part yet`
+				: !affordable
+					? `not enough ${stoneName}`
+					: forBuild
+						? `a build needs +${want}`
+						: `yours to enhance · up to +${want}`
+		});
+	}
+
+	// Build-driven work first, then whatever you can actually afford.
+	return out.sort((a, b) =>
+		(b.forBuild - a.forBuild) || (a.blocked - b.blocked) || a.base.localeCompare(b.base));
+}
+
 function renderWorkshop() {
 	const stock = store.getAllStock();
 	const ready = readyCrafts();
@@ -549,42 +680,20 @@ function renderWorkshop() {
 		</div>`;
 	}).join('');
 
-	// Parts a build wants at a level above the one you hold.
-	const wanted = new Map();
-	for (const item of Object.keys(snapshot.toCraft)) {
-		const { level, base } = parseEnhanced(item);
-		if (level > 0) wanted.set(base, Math.max(wanted.get(base) || 0, level));
-	}
-
-	const enhRows = [...wanted.entries()].map(([base, want]) => {
-		const have = ownedLevel(base, stock);
-		if (have >= want) return '';
-		const step = enhanceStep(base, have + 1);
-		if (!step) return '';
-		const stoneName = Object.keys(step.stones)[0] || 'Tidal Black Stone';
-		const stoneQty = step.stones[stoneName] || 0;
-		const affordable = Object.entries(step.stones).every(([s, q]) => (stock[s] || 0) >= q);
-		const holds = (stock[step.from] || 0) > 0;
-		const blocked = !affordable || !holds;
-		const note = !holds
-			? 'you do not own the part yet'
-			: !affordable
-				? 'not enough stones'
-				: `target +${want}`;
-		return `<div class="row" data-base="${esc(base)}" data-level="${have + 1}" style="${blocked ? 'opacity:.55' : ''}">
-			${img(enhancedName(base, have), 'row-icon md')}
+	const enhRows = pendingEnhancements().map(e => `
+		<div class="row" data-base="${esc(e.base)}" data-level="${e.next}" ${e.blocked ? 'style="opacity:.55"' : ''}>
+			${img(enhancedName(e.base, e.have), 'row-icon md')}
 			<div class="row-main">
-				<div class="row-name">${esc(base)}</div>
-				<div class="row-sub" style="${blocked ? 'color:var(--red)' : ''}">${esc(note)}</div>
+				<div class="row-name">${esc(e.base)}</div>
+				<div class="row-sub" ${e.blocked ? 'style="color:var(--red)"' : ''}>${esc(e.note)}</div>
 			</div>
-			<span class="enh-level">+${have} → +${have + 1}</span>
-			<span class="enh-cost">${img(stoneName, '')}×${F(stoneQty)}</span>
+			<span class="enh-level">+${e.have} → +${e.next}</span>
+			<span class="enh-cost">${img(e.stoneName, '')}×${F(e.stoneQty)}</span>
 			<span class="enh-actions">
-				<button class="pill-btn" data-act="enhance" data-result="success" ${blocked ? 'disabled' : ''}>Succeeded</button>
-				<button class="pill-btn bad" data-act="enhance" data-result="fail" ${affordable ? '' : 'disabled'}>Failed</button>
+				<button class="pill-btn" data-act="enhance" data-result="success" ${e.blocked ? 'disabled' : ''}>Succeeded</button>
+				<button class="pill-btn bad" data-act="enhance" data-result="fail" ${e.affordable ? '' : 'disabled'}>Failed</button>
 			</span>
-		</div>`;
-	}).filter(Boolean).join('');
+		</div>`).join('');
 
 	return `<div class="panel">
 		<div class="panel-head">
@@ -598,9 +707,9 @@ function renderWorkshop() {
 	<div class="panel">
 		<div class="panel-head">
 			<h2 class="panel-title">Enhancement</h2>
-			<span class="panel-sub">Ship parts keep their level on a failed attempt — record what happened, stones are spent either way</span>
+			<span class="panel-sub">Everything you own that can go higher. Ship parts keep their level on a failed attempt — record what happened, stones are spent either way</span>
 		</div>
-		${enhRows || '<p class="empty">No enhancement steps pending.</p>'}
+		${enhRows || '<p class="empty">Nothing in your inventory can be enhanced. Add a ship part and it will show up here.</p>'}
 	</div>`;
 }
 
@@ -626,12 +735,28 @@ function renderGet() {
 		barter: barterData ? barterLookup : null
 	});
 
+	const purseCoins = store.getStock(CROW_COIN);
+	const purseSilver = store.getStock(SILVER);
+	const coinsShort = Math.max(0, totals.coins - purseCoins);
+	const silverShort = Math.max(0, totals.silver - purseSilver);
+
+	const money = (label, need, held, short, cls, item) => `<div>
+		<div class="summary-k">${esc(label)}</div>
+		<div class="summary-v ${short ? cls : 'teal'}">${F(short)} short</div>
+		<div class="summary-sub">${F(need)} needed · <input class="purse-inline" type="number" min="0"
+			value="${held}" data-act="purse" data-item="${esc(item)}" aria-label="${esc(label)} you hold"> held</div>
+	</div>`;
+
 	const summary = `<div class="summary">
 		<span class="summary-title">Still to get</span>
 		<div class="summary-stats">
-			<div><div class="summary-k">Crow Coins</div><div class="summary-v amber">${F(totals.coins)}</div></div>
-			<div><div class="summary-k">Silver</div><div class="summary-v blue">${F(totals.silver)}</div></div>
-			<div><div class="summary-k">Line items</div><div class="summary-v">${F(totals.lines)}</div></div>
+			${money('Crow Coins', totals.coins, purseCoins, coinsShort, 'amber', CROW_COIN)}
+			${money('Silver', totals.silver, purseSilver, silverShort, 'blue', SILVER)}
+			<div>
+				<div class="summary-k">Line items</div>
+				<div class="summary-v">${F(totals.lines)}</div>
+				<div class="summary-sub">distinct things to obtain</div>
+			</div>
 		</div>
 		<button class="ghost-btn" data-act="copy">Copy list</button>
 	</div>`;
@@ -878,8 +1003,10 @@ function wire() {
 	});
 
 	document.addEventListener('change', evt => {
-		const el = evt.target.closest('[data-act="own-set"]');
-		if (el) store.setStock(el.dataset.item, el.value);
+		const own = evt.target.closest('[data-act="own-set"]');
+		if (own) store.setStock(own.dataset.item, own.value);
+		const purse = evt.target.closest('[data-act="purse"]');
+		if (purse) store.setStock(purse.dataset.item, purse.value);
 	});
 
 	document.addEventListener('input', evt => {
