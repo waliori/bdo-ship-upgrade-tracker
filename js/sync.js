@@ -246,7 +246,13 @@ async function pull() {
 	const got = await api('GET', '/api/state');
 	if (!got.ok || !got.body) return;
 	const remote = got.body;
-	if (remote.rev === rev() || !remote.data) return;
+	// Only ever move forwards. A server that lost an unflushed revision --
+	// a hard restart, a flush that never landed -- comes back naming a
+	// revision older than the one this browser already has, and adopting
+	// that would quietly undo work nobody asked to undo. Sitting still is
+	// safe: the next push settles it, through the conflict dialog if the
+	// two have genuinely diverged.
+	if (remote.rev <= rev() || !remote.data) return;
 
 	// The stored save has moved on. If nothing has changed here since our
 	// last push, taking it is safe and silent.

@@ -129,7 +129,7 @@ export async function closePool() {
 // idempotent.
 const WEATHER = /fetch failed|ETIMEDOUT|ECONNRESET|ECONNREFUSED|EPIPE|EAI_AGAIN|ENOTFOUND|ENETUNREACH|socket hang up|terminated|other side closed|TimeoutError|aborted/i;
 
-function transient(error) {
+export function transient(error) {
 	for (let e = error, depth = 0; e && depth < 5; e = e.cause, depth++) {
 		if (WEATHER.test(e.code || '') || WEATHER.test(e.name || '') || WEATHER.test(e.message || '')) {
 			return true;

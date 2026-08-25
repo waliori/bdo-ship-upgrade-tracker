@@ -21,12 +21,23 @@ import path from 'node:path';
 import puppeteer from 'puppeteer-core';
 
 // Wherever this machine keeps a Chrome. CHROME= overrides it.
-const CHROME = process.env.CHROME || [
+const CHROME = [
+	process.env.CHROME,
 	'/opt/pw-browsers/chromium',
 	'/usr/bin/google-chrome',
 	'/usr/bin/chromium',
-	'/usr/bin/chromium-browser'
-].find(p => fs.existsSync(p));
+	'/usr/bin/chromium-browser',
+	'/etc/profiles/per-user/' + (process.env.USER || '') + '/bin/google-chrome',
+	'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+].filter(Boolean).find(p => fs.existsSync(p));
+
+// Nothing to drive. These are the only tests that need a browser, so a
+// machine without one should report them skipped and let the rest of the
+// suite speak -- not fail with a puppeteer stack trace.
+if (!CHROME) {
+	test('the browser tests need a Chrome -- set CHROME=/path/to/chrome', { skip: true }, () => {});
+	process.exit(0);
+}
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sail-browser-'));
 
 process.env.NODE_ENV = 'test';

@@ -21,6 +21,9 @@ process.env.DISCORD_CLIENT_ID = 'test-client';
 process.env.DISCORD_CLIENT_SECRET = 'test-secret';
 process.env.TURSO_DATABASE_URL = `file:${path.join(dir, 'tracker.db')}`;
 process.env.SESSION_SECRET = 'test-secret-key-for-signing-sessions';
+// No coalescing window, so a flush is genuinely in the air by the time
+// the deletion test reaches it -- the race it exists to cover.
+process.env.FLUSH_DELAY_MS = '0';
 
 const app = (await import('../server.js')).default;
 const { startSession } = await import('../server/session.js');
@@ -217,4 +220,42 @@ test('deleting the account takes the save with it', async () => {
 	// The session is cleared, so the old cookie no longer names anyone.
 	const me = await (await call('GET', '/api/me', { cookie: bob })).json();
 	assert.equal(me.signedIn, false);
+});
+
+/* ------------------------------------------------------------------ *
+ * Fixes from the review of this branch
+ * ------------------------------------------------------------------ */
+
+test('deleting an account leaves nothing behind', async () => {
+	const { writeSaveFor, forget } = await import('../server/saves.js');
+	const { getSave, deleteAccount, upsertUser: addUser } = await import('../server/db.js');
+
+	await addUser({ id: '1003', username: 'Doomed', avatar: null });
+	await writeSaveFor('1003', JSON.stringify(SAVE), 0, 'desk');
+	await new Promise(resolve => setTimeout(resolve, 0));
+
+	// forget() is awaited, and only then is the row dropped. Against a
+	// local file the write settles in well under a millisecond, so this
+	// cannot reproduce the case it was written for -- a flush still out
+	// over the network when the delete arrives. What it does hold is the
+	// ordering: forget resolves before deleteAccount is called, and
+	// nothing reappears afterwards.
+	await forget('1003');
+	await deleteAccount('1003');
+
+	await new Promise(resolve => setTimeout(resolve, 600));
+	assert.equal(await getSave('1003'), null, 'the save came back after deletion');
+});
+
+test('a database that refuses a save is not mistaken for one that is unreachable', async () => {
+	const { transient } = await import('../server/db.js');
+
+	// Weather: worth retrying, and the reason a save is held in memory.
+	assert.equal(transient(Object.assign(new Error('fetch failed'), { code: 'ETIMEDOUT' })), true);
+	assert.equal(transient(new Error('socket hang up')), true);
+
+	// A verdict, not weather. Sending it again unchanged gets the same
+	// answer, so the retry loop must not treat it as a bad minute.
+	assert.equal(transient(new Error('SQLITE_CONSTRAINT: FOREIGN KEY constraint failed')), false);
+	assert.equal(transient(new Error('no such column: payload')), false);
 });

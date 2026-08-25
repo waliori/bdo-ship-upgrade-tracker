@@ -27,7 +27,7 @@
 //     truth; localStorage keeps the save regardless. The worst a lost
 //     flush can do is cost one revision, which the next push replaces.
 
-import { getSave, writeSave, closePool } from './db.js';
+import { getSave, writeSave, closePool, transient } from './db.js';
 import { config } from './config.js';
 
 /* How long to sit on a change before writing it out. Long enough that
@@ -194,15 +194,27 @@ export async function writeSaveFor(userId, payload, expected, device) {
 	return { ok: true, rev: entry.rev, updatedAt: entry.updatedAt };
 }
 
-/** Drop an account from memory -- the row is already gone. */
-export function forget(userId) {
+/**
+ * Drop an account from memory, ahead of deleting its row.
+ *
+ * Clearing the pending timer is not enough on its own. A flush may
+ * already be in the air, and a write cannot be recalled -- so it has to
+ * be allowed to land *before* the row is deleted, or it would insert the
+ * save back a moment afterwards and the account would not be deleted at
+ * all. Awaited, therefore, and the caller deletes only once this returns.
+ */
+export async function forget(userId) {
 	const entry = live.get(userId);
 	if (!entry) return;
 	clearTimeout(entry.timer);
 	entry.dirty = false;
 	entry.timer = null;
+	entry.gone = true;
 	bytes -= size(entry.payload);
 	live.delete(userId);
+	// Its own failure is not this caller's problem: either way, by the
+	// time this resolves nothing more is on its way to the database.
+	if (entry.settled) await entry.settled.catch(() => {});
 }
 
 /* ------------------------------------------------------------------ *
@@ -228,8 +240,11 @@ function start(userId, entry) {
 	}
 	entry.flushing = true;
 	inFlight++;
-	flush(userId, entry).finally(() => {
+	// Kept so that forget() can wait for it. A write that is already out
+	// cannot be called back, so the only safe order is to let it land.
+	entry.settled = flush(userId, entry).finally(() => {
 		entry.flushing = false;
+		entry.settled = null;
 		inFlight--;
 		const next = queued.shift();
 		if (next) start(next[0], next[1]);
@@ -241,7 +256,7 @@ async function flush(userId, entry) {
 	// edits may land while this is out, and they must not be marked clean
 	// by a write that did not include them.
 	const sending = snapshot(entry);
-	if (!sending.payload) return;
+	if (!sending.payload || entry.gone) return;
 
 	try {
 		await writeSave(userId, sending);
@@ -253,10 +268,23 @@ async function flush(userId, entry) {
 			schedule(userId, entry, 0);   // it moved on; go again
 		}
 	} catch (error) {
-		// Still dirty, still in memory, still correct. Turso is behind and
-		// will catch up; the only thing that has actually failed is the
-		// deadline, and nobody was waiting on it.
 		entry.failures++;
+
+		// A statement the database understood and refused -- a constraint,
+		// a column that is not there -- will be refused again just as
+		// firmly. Retrying it forever would bury the one line that says
+		// what is actually wrong under a log full of "cannot reach".
+		//
+		// It stays dirty and in memory, so it is still the newest copy and
+		// the next edit will try again; what stops is the loop.
+		if (!transient(error)) {
+			console.error(`[saves] the database refused ${userId}'s save:`, error.message);
+			return;
+		}
+
+		// Weather, by contrast. Still dirty, still in memory, still
+		// correct. Turso is behind and will catch up; the only thing that
+		// has failed is the deadline, and nobody was waiting on it.
 		const backoff = Math.min(FLUSH_DELAY * 2 ** entry.failures, 30_000);
 		if (entry.failures === 1 || entry.failures % 10 === 0) {
 			console.warn(

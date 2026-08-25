@@ -120,9 +120,10 @@ export function apiRoutes() {
 	/** Delete the account and its save. There is no undo for this one, so
 	 *  the client asks twice before calling it. */
 	router.delete('/account', requireUser, wrap(async (req, res) => {
-		// Out of memory first: a flush that is still queued must not write
-		// the save back a moment after the row was dropped.
-		forget(req.userId);
+		// Out of memory first, and awaited: a write that is queued or
+		// already in the air must not put the save back a moment after
+		// the row was dropped.
+		await forget(req.userId);
 		await deleteAccount(req.userId);
 		endSession(res);
 		res.json({ ok: true });
