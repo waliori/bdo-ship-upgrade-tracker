@@ -15,6 +15,41 @@ function recipeFor(item, strategy, recipes) {
 	return recipes[item] || null;
 }
 
+/**
+ * Expected attempts to get one success at `level` of `base`, given that a
+ * full Agris meter guarantees the try after `agris` failures. 1 when the
+ * step cannot fail, or when we have no table for the part.
+ */
+export function expectedAttempts(base, level) {
+	const table = tableFor(base);
+	const step = table && table.levels[level];
+	if (!step || step.chance >= 1) return 1;
+	const cap = step.agris ?? 0;
+	let tries = 0;
+	let stillFailing = 1;
+	for (let k = 1; k <= cap; k++) {
+		tries += k * step.chance * stillFailing;
+		stillFailing *= 1 - step.chance;
+	}
+	return tries + (cap + 1) * stillFailing;
+}
+
+/**
+ * How much of `ingredient` a single craft of `product` really consumes.
+ *
+ * For everything but enhancement this is the recipe quantity. An
+ * enhancement recipe describes one attempt, and most attempts fail --
+ * the part carries over but the stones are gone -- so the stones are
+ * scaled by how many attempts that level is expected to take. The part
+ * being enhanced is not scaled: you only ever need the one.
+ */
+function perCraft(product, ingredient, quantity) {
+	const made = parseEnhanced(product);
+	if (made.level === 0) return quantity;
+	if (parseEnhanced(ingredient).base === made.base) return quantity;
+	return quantity * expectedAttempts(made.base, made.level - 1);
+}
+
 function bump(obj, key, amount) {
 	if (!amount) return;
 	obj[key] = (obj[key] || 0) + amount;
@@ -53,8 +88,9 @@ function explode(item, qty, pool, acc, ctx, seen, via) {
 		bump(acc.toCraft, item, outstanding);
 		const deeper = new Set(seen).add(item);
 		for (const [ingredient, per] of Object.entries(recipe)) {
+			const need = Math.ceil(perCraft(item, ingredient, per) * outstanding);
 			node.children.push(
-				explode(ingredient, per * outstanding, pool, acc, ctx, deeper, item)
+				explode(ingredient, need, pool, acc, ctx, deeper, item)
 			);
 		}
 	} else {
@@ -76,7 +112,8 @@ export function totalUnits(item, qty, strategy = {}, recipes = defaultRecipes, s
 	const deeper = new Set(seen).add(item);
 	let sum = 0;
 	for (const [ingredient, per] of Object.entries(recipe)) {
-		sum += totalUnits(ingredient, per * qty, strategy, recipes, deeper);
+		const need = Math.ceil(perCraft(item, ingredient, per) * qty);
+		sum += totalUnits(ingredient, need, strategy, recipes, deeper);
 	}
 	return sum;
 }
