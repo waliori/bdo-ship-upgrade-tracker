@@ -25,7 +25,9 @@ const DEMO = JSON.stringify({
 		'+4 Epheria Carrack: Toro Sail': 1,
 		'Starlight Hardener': 80,
 		"Blueprint: Chiro's Sail": 6,
-		'Moon Vein Flax Fabric': 90
+		'Moon Vein Flax Fabric': 90,
+		'Epheria Carrack: Toro Cannon': 1,
+		'Crow Coin': 3000
 	},
 	targets: [
 		{ id: 'demo-1', item: "Epheria Carrack: Valor (Chiro's Sail)", qty: 1, active: true },
@@ -147,6 +149,15 @@ class GuidedTour {
 				}
 			},
 			{
+				element: '.purse',
+				popover: {
+					title: 'Crow Coins and silver',
+					description: 'Type in what you are carrying and the totals above turn into what you are actually <b>short</b> — not just what the shopping list costs.',
+					side: 'bottom'
+				},
+				before: () => goToTab('plan')
+			},
+			{
 				element: '.queue-head',
 				popover: {
 					title: 'Your build queue',
@@ -180,7 +191,16 @@ class GuidedTour {
 				element: '.craft-grid',
 				popover: {
 					title: 'The workshop',
-					description: 'Every recipe you have the materials for, with what it will consume. Enhancement lives below: ship parts keep their level when an attempt fails, so record Succeeded or Failed and the stones are counted either way.',
+					description: 'Every recipe you have the materials for, with exactly what it will consume.',
+					side: 'top'
+				},
+				before: () => goToTab('workshop')
+			},
+			{
+				element: '[data-base]',
+				popover: {
+					title: 'Enhancing',
+					description: 'Every part you own that can go higher is listed — whether or not a build is waiting on it — with the stones the next attempt costs.<br><br>Ship parts keep their level when an attempt fails, so record <b>Succeeded</b> or <b>Failed</b> and the stones come off your stock either way.',
 					side: 'top'
 				},
 				before: () => goToTab('workshop')
