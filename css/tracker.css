@@ -1498,3 +1498,18 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   text-underline-offset: 2px;
 }
 .linky:hover { color: var(--blue-hi); }
+
+.detail-close {
+  margin-left: auto;
+  align-self: flex-start;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  background: none;
+  color: var(--ink-mute);
+  font-size: 17px;
+  line-height: 1;
+}
+.detail-close:hover { color: var(--ink-hi); border-color: var(--line-btn-hi); }

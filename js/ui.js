@@ -808,6 +808,7 @@ function renderDetail() {
 	return `<div class="detail-head">
 			${img(item, '')}
 			<div class="detail-name">${esc(item)}</div>
+			<button class="detail-close" data-act="deselect" title="Close (Esc)" aria-label="Close">×</button>
 		</div>
 		${levelPicker(item)}
 		<div class="qty-row">
@@ -1468,7 +1469,16 @@ function targetIdFrom(el) {
 function wire() {
 	document.addEventListener('click', async evt => {
 		const el = evt.target.closest('[data-act]');
-		if (!el) return;
+		if (!el) {
+			// Clicking past the tiles puts the detail panel away. Reading
+			// the panel itself is not clicking past anything, so a click
+			// inside it leaves the selection alone.
+			if (view === 'inventory' && selected && !evt.target.closest('.detail')) {
+				selected = null;
+				render();
+			}
+			return;
+		}
 		const act = el.getAttribute('data-act');
 
 		switch (act) {
@@ -1503,6 +1513,7 @@ function wire() {
 			}
 			case 'inv-filter': invFilter = el.dataset.id; return render();
 			case 'select': selected = el.dataset.item; return render();
+			case 'deselect': selected = null; return render();
 			case 'strategy':
 				if (selected) store.setStrategy(selected, el.dataset.mode);
 				return;
@@ -1602,6 +1613,13 @@ function wire() {
 	// The pouch holds its ground while you type in it; once focus leaves it
 	// entirely, catch it up with whatever the change already recorded.
 	wirePeek();
+
+	document.addEventListener('keydown', evt => {
+		if (evt.key !== 'Escape' || !selected) return;
+		if (!document.getElementById('dialog').hidden) return;   // the dialog has first claim
+		selected = null;
+		render();
+	});
 
 	// Landing in a quantity field selects what is there, so typing a new
 	// number replaces it instead of appending to it.
