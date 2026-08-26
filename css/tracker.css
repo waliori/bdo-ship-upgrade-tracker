@@ -1705,3 +1705,92 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 @media (prefers-reduced-motion: reduce) {
   .detail.open { animation: none; }
 }
+
+/* ---- links out to BDOCodex ------------------------------------------ */
+
+/* Every item name in the app is a link to the game's own reference. It
+   has to read as a name first and a link second, or the Plan turns into
+   a page of blue text. */
+a.codex {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+a.codex:hover,
+a.codex:focus-visible {
+  color: var(--blue-hi);
+  border-bottom-color: rgba(124, 195, 238, 0.45);
+}
+
+.codex-mark {
+  font-size: 0.75em;
+  margin-left: 3px;
+  color: var(--ink-faint);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+a.codex:hover .codex-mark,
+a.codex:focus-visible .codex-mark { opacity: 1; color: var(--blue); }
+
+/* The hover card cannot be clicked, so it must not advertise links. */
+.peek a.codex { color: inherit; border-bottom: none; pointer-events: none; }
+.peek .codex-mark { display: none; }
+
+/* ---- what a thing really costs -------------------------------------- */
+
+.way {
+  padding: 8px 10px;
+  border-radius: var(--r-btn);
+  border: 1px solid rgba(125, 175, 225, 0.14);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.way + .way { margin-top: 6px; }
+.way.on { border-color: var(--blue-edge); background: var(--blue-glow); }
+
+.way-top { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.way-label { font-size: 11.5px; font-weight: 700; color: var(--ink-mid); }
+.way-tag { font-size: 10px; color: var(--blue); margin-left: auto; }
+
+.way-cost {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  color: var(--ink-row);
+  font-variant-numeric: tabular-nums;
+}
+
+.way-unit { font-family: inherit; font-size: 11px; color: var(--ink-faint); }
+
+.way-total {
+  font-size: 11.5px;
+  color: var(--amber);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.way-parts { font-size: 10.5px; color: var(--ink-faint); margin-top: 4px; line-height: 1.45; }
+
+.peek-cost {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--ink-mid);
+  font-variant-numeric: tabular-nums;
+}
+
+.row-alt { font-size: 11px; color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Nothing hovers on a phone, so the arrow has to be there all along or
+   nobody ever finds out the names are links. */
+@media (hover: none) {
+  .codex-mark { opacity: 0.55; }
+  .peek .codex-mark { display: none; }
+}
+
+.build-cost {
+  font-size: 11.5px;
+  color: var(--amber);
+  font-variant-numeric: tabular-nums;
+  margin-top: 4px;
+}

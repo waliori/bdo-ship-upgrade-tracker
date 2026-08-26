@@ -396,6 +396,145 @@ export function ownedLevel(base, stock = {}) {
 }
 
 /* ------------------------------------------------------------------ *
+ * What things cost
+ * ------------------------------------------------------------------ */
+
+/**
+ * A cost is a vector, never a single number.
+ *
+ * Crow Coins and silver do not convert into one another at any rate the
+ * game publishes, and plenty of materials have no price at all -- they
+ * are bartered for, or they drop. So every route reports all three:
+ * coins, silver, and the things you still have to go and find. Anything
+ * that pretends otherwise would be inventing an exchange rate.
+ */
+const emptyCost = () => ({ coins: 0, silver: 0, needs: {} });
+
+function mergeCost(into, part, times) {
+	into.coins += part.coins * times;
+	into.silver += part.silver * times;
+	for (const [item, qty] of Object.entries(part.needs)) {
+		into.needs[item] = (into.needs[item] || 0) + qty * times;
+	}
+}
+
+/** How many unpriceable things a route leaves you to go and get. */
+export function outstanding(cost) {
+	let n = 0;
+	for (const qty of Object.values(cost.needs)) n += qty;
+	return n;
+}
+
+/**
+ * The order used to pick a sub-ingredient's route while pricing a craft.
+ *
+ * Fewest things left to find wins first: a route the app can price is
+ * one you can act on this evening, and one that ends in "and then barter
+ * for six scales" is not. Coins, then silver, break the tie. This is a
+ * default, not a judgement -- the top-level comparison shows every route
+ * and only calls one of them cheaper when it beats the others outright.
+ */
+const rank = (a, b) =>
+	outstanding(a) - outstanding(b) || a.coins - b.coins || a.silver - b.silver;
+
+/** True when `a` costs no more than `b` on every axis, and less on one. */
+export function beats(a, b) {
+	const oa = outstanding(a);
+	const ob = outstanding(b);
+	return a.coins <= b.coins && a.silver <= b.silver && oa <= ob
+		&& (a.coins < b.coins || a.silver < b.silver || oa < ob);
+}
+
+/**
+ * The one route to price an ingredient by.
+ *
+ * It follows the player's own craft-or-buy choice, so a total quoted
+ * here is a total the plan will actually charge them -- and where they
+ * have expressed no choice, the default is the same one the planner
+ * uses. Falls back to naming the item as something still to find, which
+ * is the honest answer for anything bartered or dropped.
+ */
+function pickRoute(item, ctx, seen) {
+	const ways = costRoutes(item, ctx, seen).sort(rank);
+	if (!ways.length) return { kind: 'find', label: null, coins: 0, silver: 0, needs: { [item]: 1 } };
+	const buying = (ctx.strategy || {})[item] === 'buy';
+	const shop = r => r.kind === 'coin' || r.kind === 'silver';
+	return ways.find(r => shop(r) === buying) || ways[0];
+}
+
+/**
+ * Every way of getting one of `item` that the data knows how to price.
+ *
+ * @param {string} item
+ * @param {object} ctx  { coins, silver, recipes, strategy }
+ */
+export function costRoutes(item, ctx = {}, seen = new Set()) {
+	const { coins = {}, silver = {}, recipes = defaultRecipes } = ctx;
+	const out = [];
+
+	if (coins[item] > 0) {
+		out.push({ kind: 'coin', label: 'Crow Coin Shop', coins: coins[item], silver: 0, needs: {} });
+	}
+	if (silver[item] > 0) {
+		out.push({ kind: 'silver', label: 'Falasi vendor', coins: 0, silver: silver[item], needs: {} });
+	}
+
+	// `seen` is a path guard, not a memo: a recipe that reached itself
+	// would otherwise recurse forever.
+	const recipe = seen.has(item) ? null : recipes[item];
+	if (recipe) {
+		const inner = new Set(seen).add(item);
+		const cost = emptyCost();
+		const parts = [];
+		for (const [ingredient, quantity] of Object.entries(recipe)) {
+			const per = perCraft(item, ingredient, quantity);
+			const one = pickRoute(ingredient, ctx, inner);
+			mergeCost(cost, one, per);
+			parts.push({ item: ingredient, qty: per, via: one.label, cost: one });
+		}
+		const enhanced = parseEnhanced(item).level > 0;
+		out.push({
+			kind: enhanced ? 'enhance' : 'craft',
+			label: enhanced ? 'Enhance it' : 'Make it',
+			coins: cost.coins,
+			silver: cost.silver,
+			needs: cost.needs,
+			parts
+		});
+	}
+
+	return out;
+}
+
+/**
+ * What is left to pay for a build.
+ *
+ * Every leaf of its tree that stock could not cover and a recipe could
+ * not make, priced the way the plan will actually get it. So this is the
+ * bill for the route the player chose, not for a cheaper one they did
+ * not, and it shrinks as they record what they gather.
+ */
+export function remainingCost(node, ctx = {}) {
+	const total = emptyCost();
+	(function walk(n) {
+		if (n.missing > 0) mergeCost(total, pickRoute(n.item, ctx, new Set()), n.missing);
+		for (const child of n.children || []) walk(child);
+	})(node);
+	return total;
+}
+
+/**
+ * The priced routes to an item, best first, and the one worth
+ * recommending -- or null when they trade off against each other and the
+ * choice is genuinely the player's.
+ */
+export function waysToGet(item, ctx = {}) {
+	const routes = costRoutes(item, ctx).sort(rank);
+	const clear = routes.length > 1 && routes.slice(1).every(other => beats(routes[0], other));
+	return { routes, best: clear ? routes[0] : null };
+}
+
+/* ------------------------------------------------------------------ *
  * Shopping
  * ------------------------------------------------------------------ */
 

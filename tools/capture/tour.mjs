@@ -87,6 +87,17 @@ await say(page, 'Enhancing is separate, because attempts fail.');
 await say(page, 'It shows the real odds, and the most it can ever cost.');
 await hush(page);
 
+await tab(page, 'inventory');
+await click(page, '[data-act="select"][data-item="Violent Wave Plywood"]', { after: 900 });
+await say(page, 'Open anything and every way of getting it is priced.');
+await say(page, 'The shop price, or what making one costs once its');
+await say(page, 'own ingredients are priced too, all the way down.');
+await hush(page);
+// On a phone the panel is a sheet over the screen; leaving it open would
+// swallow the next tab press.
+await page.keyboard.press('Escape');
+await wait(600);
+
 await tab(page, 'tree');
 await say(page, 'The Tree shows why a build needs what it needs.');
 await click(page, '[data-act="tree-pick"]', { after: 700 });
@@ -96,6 +107,7 @@ await hush(page);
 
 await tab(page, 'get');
 await say(page, 'And To Get is the shopping list, grouped by where to go.');
+await say(page, 'Each line costs the lot -- and what making it would cost instead.');
 await say(page, 'Your data stays in your browser. Sign in only to sync it.');
 await hush(page);
 

@@ -162,7 +162,7 @@ class GuidedTour {
 				element: '.queue-head',
 				popover: {
 					title: 'Your build queue',
-					description: 'Add any ship, part or material as a build. Order matters: when stock is short, the build nearest the top gets it first. Use ▲▼ to re-order, ⏸ to park one without losing it.<br><br>Some ships can be reached more than one way — a Caravel from a plain Epheria Sailboat or an Improved one. Queue one and it asks which, shows what each costs, and the build then says the route it is taking.',
+					description: 'Add any ship, part or material as a build. Order matters: when stock is short, the build nearest the top gets it first. Use ▲▼ to re-order, ⏸ to park one without losing it.<br><br>Each build says what is still left to pay for it, which falls as you record what you gather.<br><br>Some ships can be reached more than one way — a Caravel from a plain Epheria Sailboat or an Improved one. Queue one and it asks which, shows what each costs, and the build then says the route it is taking.',
 					side: 'bottom'
 				},
 				before: () => goToTab('builds')
@@ -184,7 +184,7 @@ class GuidedTour {
 				},
 				popover: {
 					title: 'Why an item is reserved',
-					description: 'Pick a tile and this panel shows who reserved it and through which recipe, where to buy it, and — when an item can be both made and bought — lets you choose which.',
+					description: 'Pick a tile and this panel shows who reserved it and through which recipe, and every way of getting it priced end to end — the shop\'s number beside what making one costs once <i>its</i> ingredients are priced too. Coins and silver stay apart, and anything bartered for is named rather than counted as free.<br><br>Any item name in the app opens its <b>BDOCodex</b> page in a new tab.',
 					side: 'left'
 				}
 			},
@@ -219,7 +219,7 @@ class GuidedTour {
 				element: '.summary',
 				popover: {
 					title: 'The shopping list',
-					description: 'Everything still missing, grouped by how you actually get it — Crow Coins, Falasi silver, barter, worker nodes or hunting — with running totals you can copy out.',
+					description: 'Everything still missing, grouped by how you actually get it — Crow Coins, Falasi silver, barter, worker nodes or hunting — with running totals you can copy out.<br><br>Each line prices the whole quantity, and where a thing can be made instead it says what that would cost, so the choice is one glance rather than arithmetic.',
 					side: 'bottom'
 				},
 				before: () => goToTab('get')
@@ -228,7 +228,7 @@ class GuidedTour {
 				element: '.masthead-actions',
 				popover: {
 					title: 'Undo, and your data',
-					description: 'Every change can be undone. Export writes a JSON backup you can import on another machine — nothing leaves your browser otherwise.<br><br><b>Help</b> plays a ninety-second film of the whole thing end to end. Where the deployment offers it, signing in with Discord keeps this same inventory on your phone as well; without it nothing leaves this browser at all.',
+					description: 'Every change can be undone. Export writes a JSON backup you can import on another machine — nothing leaves your browser otherwise.<br><br><b>Help</b> plays a two-minute film of the whole thing end to end. Where the deployment offers it, signing in with Discord keeps this same inventory on your phone as well; without it nothing leaves this browser at all.',
 					side: 'bottom'
 				},
 				before: () => goToTab('plan')

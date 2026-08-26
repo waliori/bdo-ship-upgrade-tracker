@@ -974,5 +974,69 @@
   "Blueprint: Byukgye's Enhanced Plating": {
     "icon": "00008030.webp",
     "url": "https://bdocodex.com/us/item/8030/"
+  },
+  "Crow Coin Coupon": {
+    "icon": "00752032.webp",
+    "url": "https://bdocodex.com/us/item/752032/"
+  },
+  "Ebenruth's Nol": {
+    "icon": "00059321.webp",
+    "url": "https://bdocodex.com/us/item/59321/"
+  },
+  "Fountain of Divine Melodies": {
+    "icon": "00005153.webp",
+    "url": "https://bdocodex.com/us/item/5153/"
+  },
+  "Hero's Small Lamp": {
+    "icon": "00005161.webp",
+    "url": "https://bdocodex.com/us/item/5161/"
+  },
+  "Oquilla Aquamarine Fresh Water": {
+    "icon": "00008103.webp",
+    "url": "https://bdocodex.com/us/item/8103/"
+  },
+  "Oquilla Crimson Fresh Water": {
+    "icon": "00821170.webp",
+    "url": "https://bdocodex.com/us/item/821170/"
+  },
+  "Oquilla Emerald Fresh Water": {
+    "icon": "00008102.webp",
+    "url": "https://bdocodex.com/us/item/8102/"
+  },
+  "Oquilla Golden Fresh Water": {
+    "icon": "00008104.webp",
+    "url": "https://bdocodex.com/us/item/8104/"
+  },
+  "Oquilla's Flower": {
+    "icon": "00008010.webp",
+    "url": "https://bdocodex.com/us/item/8010/"
+  },
+  "Oquilla's Tear": {
+    "icon": "00008026.webp",
+    "url": "https://bdocodex.com/us/item/8026/"
+  },
+  "Ravinia's Moss Remover": {
+    "icon": "00059329.webp",
+    "url": "https://bdocodex.com/us/item/59329/"
+  },
+  "Sailor Contract Certificate": {
+    "icon": "00752030.webp",
+    "url": "https://bdocodex.com/us/item/752030/"
+  },
+  "Sealed Compass (7 Days)": {
+    "icon": "00018858.webp",
+    "url": "https://bdocodex.com/us/item/751502/"
+  },
+  "Ship Building Permit: Epheria Cog": {
+    "icon": "00009775.webp",
+    "url": "https://bdocodex.com/us/item/9775/"
+  },
+  "Tidal Blue Lamp Post": {
+    "icon": "00005162.webp",
+    "url": "https://bdocodex.com/us/item/5162/"
+  },
+  "Void Sea Crystal": {
+    "icon": "00756424.webp",
+    "url": "https://bdocodex.com/us/item/756424/"
   }
 }

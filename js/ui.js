@@ -13,7 +13,8 @@ import { initSync, openAccount } from './sync.js';
 import {
 	plan, planOne, craftableNow, maxCraftable, craftDelta,
 	enhanceStep, ownedLevel, shoppingList, bottlenecks,
-	parseEnhanced, enhancedName, enhancementForecast, resolveRoutes, routeOf
+	parseEnhanced, enhancedName, enhancementForecast, resolveRoutes, routeOf,
+	waysToGet, outstanding, remainingCost
 } from './planner.js';
 
 // The recipe book as the user's chosen routes make it. An upgrade with
@@ -135,6 +136,35 @@ function iconSrc(name) {
 const img = (name, cls = 'row-icon') =>
 	`<img class="${cls}" src="${esc(iconSrc(name))}" alt="" loading="lazy">`;
 
+/**
+ * BDOCodex has a page for every item in the game, and the icon mapping
+ * already carries the URL beside the picture -- so linking a name to the
+ * game's own reference costs nothing but the anchor. An enhancement
+ * level shares its base item's page, which is where the level table
+ * lives anyway.
+ */
+function codexUrl(item) {
+	let info = null;
+	try {
+		info = iconLoader.getIconInfo(item) || iconLoader.getIconInfo(parseEnhanced(item).base);
+	} catch {
+		info = null;
+	}
+	return info && info.url ? info.url : null;
+}
+
+/**
+ * An item's name, linked to its BDOCodex page. Falls back to plain text
+ * for anything the mapping has never heard of, so a name is never
+ * missing just because a link is.
+ */
+function codexName(item, text = item) {
+	const url = codexUrl(item);
+	if (!url) return esc(text);
+	return `<a class="codex" href="${esc(url)}" target="_blank" rel="noopener noreferrer" data-codex
+		title="Look up ${esc(item)} on BDOCodex">${esc(text)}<span class="codex-mark" aria-hidden="true">\u2197</span></a>`;
+}
+
 function allItems() {
 	const set = new Set();
 	for (const [product, recipe] of Object.entries(recipes)) {
@@ -163,9 +193,32 @@ function ingredientLine(name, per, cls = 'peek-line') {
 	return `<div class="${cls} ${have >= per ? 'ok' : 'short'}">
 		${img(name, 'peek-icon')}
 		<span class="peek-need">${F(per)}×</span>
-		<span class="peek-name">${esc(name)}</span>
+		<span class="peek-name">${codexName(name)}</span>
 		<span class="peek-have">${F(have)}</span>
 	</div>`;
+}
+
+/**
+ * The price lists the cost model works from. `recipes` is the resolved
+ * book, so a Caravel priced here is the Caravel by the route the player
+ * actually chose.
+ */
+const costCtx = () => ({ coins, silver: falasi, recipes, strategy: store.getAllStrategy() });
+
+/**
+ * A cost said out loud. Coins and silver stay apart -- the game will not
+ * trade one for the other -- and anything the data cannot price is named
+ * rather than quietly counted as free.
+ */
+function costText(cost, times = 1) {
+	const bits = [];
+	if (cost.coins) bits.push(`${FC(Math.round(cost.coins * times))} coins`);
+	if (cost.silver) bits.push(`${FC(Math.round(cost.silver * times))} silver`);
+	const needs = Object.entries(cost.needs);
+	const listed = needs.slice(0, 2);
+	for (const [item, qty] of listed) bits.push(`${F(Math.ceil(qty * times))}\u00d7 ${item}`);
+	const rest = needs.length - listed.length;
+	return (bits.join(' + ') || 'nothing') + (rest > 0 ? `, and ${rest} more` : '');
 }
 
 /**
@@ -195,6 +248,14 @@ function peekHTML(item) {
 	const body = makeupHTML(item);
 	const src = sourceOf(item);
 
+	// The shop price is already on the source line; what is not written
+	// anywhere in the game is what one costs once its ingredients are
+	// priced too, all the way down. That is the number worth showing.
+	const made = waysToGet(item, costCtx()).routes.find(r => r.parts);
+	const price = made && (made.coins || made.silver || outstanding(made))
+		? `<div class="peek-cost">${esc(made.kind === 'enhance' ? 'One success' : 'Making one')}: ${esc(costText(made))}</div>`
+		: '';
+
 	// With the ingredients already listed, a crafting source is a place,
 	// not an alternative -- only a shop or a drop is an "or".
 	let foot = '';
@@ -202,9 +263,10 @@ function peekHTML(item) {
 	else if (src && MAKE_KEYS.has(src.key)) foot = src.key === 'craft' ? '' : src.detail;
 	else if (src) foot = `or ${src.label} · ${src.detail}`;
 
-	if (!body && !foot) return '';
+	if (!body && !foot && !price) return '';
 	return `<div class="peek-head">${img(item, 'peek-icon lg')}<span>${esc(item)}</span></div>`
 		+ body
+		+ price
 		+ (foot ? `<div class="peek-foot">${esc(foot)}</div>` : '');
 }
 
@@ -569,7 +631,7 @@ function planRow(item, r, covered) {
 	return `<div class="row" data-peek="${esc(item)}">
 		${img(item)}
 		<div class="row-main">
-			<div class="row-name">${esc(item)}</div>
+			<div class="row-name">${codexName(item)}</div>
 			<div class="row-sub">${esc(sub)}</div>
 		</div>
 		<div class="row-meter">
@@ -618,11 +680,19 @@ function renderBuilds() {
 			${img(t.item, 'row-icon lg')}
 			<div class="build-main">
 				<div class="build-titles">
-					<span class="build-name">${esc(t.item)}</span>
+					<span class="build-name">${codexName(t.item)}</span>
 					<span class="build-state ${state}">${stateLabel}</span>
 				</div>
 				<div class="bar tall"><i class="fill" style="width:${pct.toFixed(1)}%"></i></div>
 				<div class="build-meta">Priority ${i + 1} · <span class="n">${pct.toFixed(1)}%</span> · ${esc(units)}${routeNote(t.item)}</div>
+				${(() => {
+					// The bill for finishing this one: every leaf its tree
+					// could neither cover from stock nor make, priced the
+					// way the plan will actually get it.
+					if (!r || r.missingUnits <= 0) return '';
+					const left = remainingCost(r.tree, costCtx());
+					return `<div class="build-cost">Still to get: ${esc(costText(left))}</div>`;
+				})()}
 			</div>
 			<div class="build-actions">
 				<button class="sq-btn" data-act="move" data-dir="-1" title="Raise priority" ${i === 0 ? 'disabled' : ''}>▲</button>
@@ -647,7 +717,7 @@ function renderBuilds() {
 		${blockers.map(b => `<div class="row">
 			${img(b.item, 'row-icon md')}
 			<div class="row-main">
-				<div class="row-name">${esc(b.item)}</div>
+				<div class="row-name">${codexName(b.item)}</div>
 				<div class="row-sub">blocks ${esc(b.targets.join(', '))}</div>
 			</div>
 			<span class="qty-out">${F(b.qty)} short</span>
@@ -769,6 +839,50 @@ function renderInventory() {
 	</div>`;
 }
 
+/**
+ * Every way of getting the item, priced.
+ *
+ * The point is the comparison. A Crow Coin shop price is one line in the
+ * game already; what the game never tells you is what the same thing
+ * costs to make once its ingredients are priced too, recursively, and
+ * what that route still leaves you to go and barter for. Both are shown,
+ * per unit and against what you are actually short of, and neither is
+ * called the right answer unless it beats the other outright.
+ */
+function waysBlock(item) {
+	const { routes, best } = waysToGet(item, costCtx());
+	if (!routes.length) return '';
+
+	const short = rows[item] ? Math.ceil(rows[item].short) : 0;
+	const mode = store.getStrategy(item);
+	const inPlan = r => (r.kind === 'coin' || r.kind === 'silver' ? mode === 'buy' : mode !== 'buy');
+
+	const lines = routes.map(r => {
+		const on = routes.length > 1 && hasBuyOption(item) && inPlan(r);
+		// Where each ingredient is coming from, so the total is not a
+		// number you have to take on faith.
+		const via = (r.parts || [])
+			.filter(p => p.via)
+			.map(p => `${F(p.qty)}\u00d7 ${p.item} from ${p.via}`)
+			.join(' \u00b7 ');
+		return `<div class="way ${on ? 'on' : ''}">
+			<div class="way-top">
+				<span class="way-label">${esc(r.label)}</span>
+				${best === r ? '<span class="badge teal">cheapest</span>' : ''}
+				${on ? '<span class="way-tag">in the plan</span>' : ''}
+			</div>
+			<div class="way-cost">${esc(costText(r))} <span class="way-unit">each</span></div>
+			${short > 1 ? `<div class="way-total">${F(short)} short \u2192 ${esc(costText(r, short))}</div>` : ''}
+			${via ? `<div class="way-parts">${esc(via)}</div>` : ''}
+		</div>`;
+	}).join('');
+
+	return `<div class="detail-block">
+		<div class="detail-label">${routes.length > 1 ? 'Ways to get it' : 'What it costs'}</div>
+		${lines}
+	</div>`;
+}
+
 function renderDetail() {
 	if (!selected) {
 		return '<p class="empty">Select an item to see who reserved it and where to get more.</p>';
@@ -808,7 +922,7 @@ function renderDetail() {
 
 	return `<div class="detail-head">
 			${img(item, '')}
-			<div class="detail-name">${esc(item)}</div>
+			<div class="detail-name">${codexName(item)}</div>
 			<button class="detail-close" data-act="deselect" title="Close (Esc)" aria-label="Close">×</button>
 		</div>
 		${levelPicker(item)}
@@ -831,7 +945,10 @@ function renderDetail() {
 			return made ? `<div class="detail-block">${made}</div>` : '';
 		})()}
 		${resvHTML}
-		${src ? `<div class="detail-src"><span>${esc(src.label)}</span><span>${esc(src.detail)}</span></div>` : ''}
+		${src && src.key !== 'coin' && src.key !== 'falasi'
+			? `<div class="detail-src"><span>${esc(src.label)}</span><span>${esc(src.detail)}</span></div>`
+			: ''}
+		${waysBlock(item)}
 		${step ? '<button class="act quiet wide" data-act="view" data-id="workshop">Attempt it in the Workshop</button>' : ''}
 		${toggle}
 		${canCraft ? `<div class="detail-actions">
@@ -981,7 +1098,7 @@ function renderTree() {
 				: '<span class="tcaret empty"></span>'}
 			${img(node.item, 'trow-icon')}
 			<span class="trow-main">
-				<span class="trow-name">${esc(node.item)}</span>
+				<span class="trow-name">${codexName(node.item)}</span>
 				<span class="trow-sub">${esc(bits.join(' · ') || 'nothing needed')}</span>
 			</span>
 			<span class="trow-need">${F(node.need)}</span>
@@ -1203,7 +1320,7 @@ function renderWorkshop() {
 			<div class="craft-top">
 				${img(c.item, '')}
 				<div>
-					<div class="craft-name">${esc(c.item)}</div>
+					<div class="craft-name">${codexName(c.item)}</div>
 					<div class="craft-times">×${F(c.possible)} possible now</div>
 				</div>
 			</div>
@@ -1220,7 +1337,7 @@ function renderWorkshop() {
 		<div class="row" data-base="${esc(e.base)}" data-level="${e.next}" data-peek="${esc(enhancedName(e.base, e.next))}" ${e.blocked ? 'style="opacity:.55"' : ''}>
 			${img(enhancedName(e.base, e.have), 'row-icon md')}
 			<div class="row-main">
-				<div class="row-name">${esc(e.base)}</div>
+				<div class="row-name">${codexName(e.base)}</div>
 				<div class="row-sub" ${e.blocked ? 'style="color:var(--red)"' : ''}>${esc(e.note)}</div>
 			</div>
 			<span class="enh-level">+${e.have} → +${e.next}</span>
@@ -1312,15 +1429,26 @@ function renderGet() {
 			</div>
 			${g.items.map(entry => {
 				let sub = entry.unit || entry.detail || '';
+				// The unit price alone leaves the comparison as mental
+				// arithmetic; the line total is the number being decided.
+				if (entry.qty > 1 && entry.coins) sub += ` \u00b7 ${FC(entry.coins)} coins for ${F(entry.qty)}`;
+				else if (entry.qty > 1 && entry.silver) sub += ` \u00b7 ${FC(entry.silver)} silver for ${F(entry.qty)}`;
 				if (entry.barter) {
 					const t = `barter from ${entry.barter.npcs.length} NPCs for ${entry.barter.gives.slice(0, 2).join(' / ')}`;
 					sub = sub ? `${sub} · ${t}` : t;
 				}
-				return `<div class="row">
+				// The list says where to buy it; the other half of the
+				// decision is what making it would cost instead.
+				const made = waysToGet(entry.item, costCtx()).routes.find(r => r.parts);
+				const alt = made
+					? `<div class="row-alt">or make ${F(entry.qty)}: ${esc(costText(made, entry.qty))}</div>`
+					: '';
+				return `<div class="row" data-peek="${esc(entry.item)}">
 					${img(entry.item, 'row-icon sm')}
 					<div class="row-main">
-						<div class="row-name">${esc(entry.item)}</div>
+						<div class="row-name">${codexName(entry.item)}</div>
 						<div class="row-sub">${esc(sub)}</div>
+						${alt}
 					</div>
 					<span class="qty-out">${F(entry.qty)}</span>
 				</div>`;
@@ -1496,6 +1624,10 @@ function targetIdFrom(el) {
 
 function wire() {
 	document.addEventListener('click', async evt => {
+		// A link out to BDOCodex is the browser's business, not ours --
+		// it must not also select a tile or dismiss a panel on the way.
+		if (evt.target.closest('a[data-codex]')) return;
+
 		const el = evt.target.closest('[data-act]');
 		if (!el) {
 			// Clicking past the tiles puts the detail panel away. Reading
@@ -1910,7 +2042,7 @@ function openHelp() {
 	const file = phone ? 'walkthrough-phone.mp4' : 'walkthrough.mp4';
 	const host = openDialog(`
 		<h2>How this works</h2>
-		<p>Ninety seconds, end to end: queue a build, choose how to get there, record what you gathered, make something, and take the list shopping.</p>
+		<p>Two minutes, end to end: queue a build, choose how to get there, record what you gathered, make something, see what it will really cost, and take the list shopping.</p>
 		<video class="help-film" src="docs/media/${file}" controls autoplay muted playsinline loop></video>
 		<div class="dialog-actions">
 			<button class="act quiet" data-close>Close</button>

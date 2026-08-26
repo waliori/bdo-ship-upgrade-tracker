@@ -11,7 +11,7 @@ opt-in, self-hosted and off by default.
 
 ![The Plan screen, part-way through two Carrack parts](docs/media/hero.png)
 
-**In a hurry?** [Watch the ninety-second walkthrough](docs/media/walkthrough.mp4)
+**In a hurry?** [Watch the two-minute walkthrough](docs/media/walkthrough.mp4)
 — queue a build, choose how to get there, record what you gathered, make
 something, and take the list shopping. It is the real app, captioned, and
 there is a [narrower cut for a phone](docs/media/walkthrough-phone.mp4).
@@ -99,6 +99,35 @@ Enhancement chains start folded, because a `+10` pulling in `+9` pulling
 in `+8` is ten rows that all say the same thing.
 
 ![The requirement tree for a Carrack](docs/media/the-tree.gif)
+
+### Know what it will actually cost
+
+Every part has a shop price, and none of them tell you what the thing
+really costs. Open any item and it prices each route end to end: the
+Crow Coin Shop's number beside what making one costs once *its*
+ingredients are priced too, all the way down the recipe.
+
+Crow Coins and silver are kept apart, because the game will not trade
+one for the other, and anything with no price — bartered for, dropped —
+is named rather than quietly counted as free. So a Carrack part reads as
+*57,029 coins + 1b silver + 100× Violent Sea Monster's Scale*, not as a
+number that hides the barter grind behind it.
+
+Where an item can be both made and bought, both are shown side by side
+with the one your plan is using marked, and neither is called the right
+answer unless it beats the other outright. Each build in the queue
+carries the same figure for what is left to finish it, which falls as
+you record what you gather.
+
+![Both ways of getting a material, priced](docs/media/what-it-costs.gif)
+
+### Look anything up
+
+Every item name in the app links to its page on
+[BDOCodex](https://bdocodex.com/), in a new tab — in the Plan, the Tree,
+the Workshop, the shopping list, and in the ingredient lists inside the
+detail panel. Enhancement levels link to the base item, which is where
+the level table lives.
 
 ### See who reserved what
 
@@ -310,7 +339,7 @@ css/tracker.css       the design system
 js/
   ui.js               every screen, and the only place that touches the DOM
   state.js            the store: stock, targets, undo, persistence
-  planner.js          pure planning — netting, explosion, enhancement steps
+  planner.js          pure planning — netting, explosion, costing, enhancement
   sync.js             optional device sync: pull, push, conflict
   recipes.js          recipes and enhancement chains
   ships.js            what can be queued
@@ -326,8 +355,9 @@ server/               only loaded when sync is configured
   auth.js             the Discord OAuth exchange
   api.js              /api/me and /api/state
   session.js          signed session cookies, no session table
-test/                 npm test — the server, and the client in a browser
+test/                 npm test — the server, the cost model, and a browser
 icons/                item and ship icons (WebP)
+icon_mapping.json     item -> icon file and BDOCodex page
 og.png                the social preview card
 docs/media/           the images and clips in this README
 tools/capture/        the harness that generates them, film included
@@ -335,8 +365,8 @@ tools/capture/        the harness that generates them, film included
 
 The planner is pure: given stock, a queue and your craft-or-buy choices,
 it returns a requirement tree per build, netted against one draining pool
-of stock. The UI is a projection of that — no screen keeps its own copy
-of anything.
+of stock, and a cost for any route through it. The UI is a projection of
+that — no screen keeps its own copy of anything.
 
 ---
 

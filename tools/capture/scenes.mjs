@@ -103,6 +103,20 @@ const scenes = {
 	},
 
 	/* Hover anything and see what goes into it. */
+	/* What a thing really costs: the hover card, then both routes.
+	 * Stays on one screen throughout -- a tab switch repaints every
+	 * pixel, which doubles the GIF for nothing. */
+	async 'what-it-costs'({ page, url }) {
+		await seed(page, url, midBuild);
+		await tab(page, 'inventory');
+		await wait(700);
+		await rec(page, 'what-it-costs', async () => {
+			await wait(500);
+			await moveTo(page, '[data-act="select"][data-item="Delicately Polished Support"]', { settle: 2200 });
+			await click(page, '[data-act="select"][data-item="Delicately Polished Support"]', { after: 2600 });
+		});
+	},
+
 	async 'peek-a-recipe'({ page, url }) {
 		await seed(page, url, midBuild);
 		// Park the view on the crafting rows before the tape rolls -- a
