@@ -17,10 +17,14 @@ export const recipes = {
 	},
 	"Improved Epheria Sailboat": {
 		"Epheria Sailboat": 1,
-		"Bartali Sailboat: Old Figurehead": 1,
-		"Bartali Sailboat: Old Plating": 1,
-		"Bartali Sailboat: Old Cannon": 1,
-		"Bartali Sailboat: Old Wind Sail": 1,
+		// Epheria gear, unenhanced -- not the Bartali gear this used to
+		// name. Checked against bdocodex mount/31058, which lists
+		// Epheria: Old x1 of each. The Bartali set belongs one step
+		// earlier, at +10, on the Bartali -> Epheria upgrade.
+		"Epheria: Old Figurehead": 1,
+		"Epheria: Old Plating": 1,
+		"Epheria: Old Cannon": 1,
+		"Epheria: Old Wind Sail": 1,
 		"Standardized Timber Square": 250,
 		"Steel": 200,
 		"Pine Plywood": 500,
@@ -82,10 +86,14 @@ export const recipes = {
 	},
 	"Improved Epheria Frigate": {
 		"Epheria Frigate": 1,
-		"Bartali Sailboat: Old Figurehead": 1,
-		"Bartali Sailboat: Old Plating": 1,
-		"Bartali Sailboat: Old Cannon": 1,
-		"Bartali Sailboat: Old Wind Sail": 1,
+		// Epheria gear, unenhanced -- not the Bartali gear this used to
+		// name. Checked against bdocodex mount/31059, which lists
+		// Epheria: Old x1 of each. The Bartali set belongs one step
+		// earlier, at +10, on the Bartali -> Epheria upgrade.
+		"Epheria: Old Figurehead": 1,
+		"Epheria: Old Plating": 1,
+		"Epheria: Old Cannon": 1,
+		"Epheria: Old Wind Sail": 1,
 		"Standardized Timber Square": 250,
 		"Steel": 200,
 		"Pine Plywood": 500,
