@@ -950,10 +950,15 @@ function renderTree() {
 	}
 	const current = targets.find(t => t.item === treeTarget) || targets[0];
 
-	const chips = targets.map(t => `
-		<button class="tchip ${t === current ? 'on' : ''}" data-act="tree-target" data-item="${esc(t.item)}">
-			${img(t.item, 'tchip-icon')}${esc(t.item)}
-		</button>`).join('');
+	// One control, not a wrapping row of them. Seven builds turned the
+	// chips into six rows on a phone before any of the tree was visible,
+	// and the row grows without bound as the queue does.
+	const picker = `<button class="tpick" data-act="tree-pick">
+		${img(current.item, 'tchip-icon')}
+		<span class="tpick-name">${esc(current.item)}</span>
+		<span class="tpick-of">${targets.indexOf(current) + 1} of ${targets.length}</span>
+		<span class="tpick-caret" aria-hidden="true">▾</span>
+	</button>`;
 
 	const rows = walkTree(current.tree, []).map(row => {
 		const { node, depth, id, trail, kids } = row;
@@ -985,7 +990,7 @@ function renderTree() {
 	}).join('');
 
 	return `<div class="tbar">
-			<div class="tchips">${chips}</div>
+			${picker}
 			<span class="panel-spacer"></span>
 			<button class="ghost-btn" data-act="tree-all">Expand all</button>
 			<button class="ghost-btn" data-act="tree-none">Collapse</button>
@@ -996,6 +1001,24 @@ function renderTree() {
 			<span><i class="dot blue"></i>to craft or enhance</span>
 			<span><i class="dot red"></i>still missing</span>
 		</div>`;
+}
+
+/** Which build's tree to look at. A list rather than a row of chips, so
+ *  it costs the same whether you have two builds queued or twenty. */
+function pickTreeTarget() {
+	const targets = snapshot.targets;
+	const current = targets.find(t => t.item === treeTarget) || targets[0];
+	openDialog(`
+		<h2>Which build</h2>
+		<div class="picker">${targets.map(t => `
+			<button type="button" class="picker-row ${t === current ? 'on' : ''}"
+				data-act="tree-target" data-item="${esc(t.item)}">
+				${img(t.item, 'row-icon sm')}
+				<span class="picker-name">${esc(t.item)}</span>
+				<span class="picker-tag">${Math.round(t.progress)}%</span>
+			</button>`).join('')}</div>
+		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>
+	`);
 }
 
 /* ------------------------------------------------------------------ *
@@ -1334,6 +1357,10 @@ export function render() {
 			${t.label}${counts[t.id] ? `<span class="tab-count">${counts[t.id]}</span>` : ''}
 		</button>`).join('');
 
+	// Only fade the tab row when there is in fact something past the edge.
+	const tabBar = document.getElementById('tabs');
+	tabBar.classList.toggle('scrolls', tabBar.scrollWidth > tabBar.clientWidth + 1);
+
 	const undoBtn = document.getElementById('undo-btn');
 	if (undoBtn) undoBtn.disabled = !store.canUndo();
 
@@ -1481,6 +1508,13 @@ function wire() {
 		}
 		const act = el.getAttribute('data-act');
 
+		// Picking something out of the phone menu puts it away again.
+		if (act !== 'menu' && el.closest('.masthead-actions.open')) {
+			document.getElementById('masthead-actions').classList.remove('open');
+			const burger = document.querySelector('[data-act="menu"]');
+			if (burger) burger.setAttribute('aria-expanded', 'false');
+		}
+
 		switch (act) {
 			case 'view': setView(el.dataset.id); return;
 			case 'undo': {
@@ -1495,8 +1529,17 @@ function wire() {
 			case 'tour': return startTour();
 			case 'signin':
 			case 'account': return openAccount();
+			case 'menu': {
+				// The header's buttons do not fit a phone, so below a certain
+				// width they live behind this and are shown on demand.
+				const bar = document.getElementById('masthead-actions');
+				const open = bar.classList.toggle('open');
+				el.setAttribute('aria-expanded', String(open));
+				return;
+			}
 			case 'plan-filter': planFilter = el.dataset.id; return render();
-			case 'tree-target': treeTarget = el.dataset.item; return render();
+			case 'tree-pick': return pickTreeTarget();
+			case 'tree-target': treeTarget = el.dataset.item; closeDialog(); return render();
 			case 'tree-fold': {
 				const id = el.dataset.id;
 				if (folded.has(id)) folded.delete(id); else folded.add(id);
