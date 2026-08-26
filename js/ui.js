@@ -622,7 +622,7 @@ function renderBuilds() {
 					<span class="build-state ${state}">${stateLabel}</span>
 				</div>
 				<div class="bar tall"><i class="fill" style="width:${pct.toFixed(1)}%"></i></div>
-				<div class="build-meta">Priority ${i + 1} · <span class="n">${pct.toFixed(1)}%</span> · ${esc(units)}</div>
+				<div class="build-meta">Priority ${i + 1} · <span class="n">${pct.toFixed(1)}%</span> · ${esc(units)}${routeNote(t.item)}</div>
 			</div>
 			<div class="build-actions">
 				<button class="sq-btn" data-act="move" data-dir="-1" title="Raise priority" ${i === 0 ? 'disabled' : ''}>▲</button>
@@ -810,7 +810,6 @@ function renderDetail() {
 			<div class="detail-name">${esc(item)}</div>
 		</div>
 		${levelPicker(item)}
-		${routePicker(item)}
 		<div class="qty-row">
 			<button class="qty-btn" data-act="bump" data-delta="-10">−10</button>
 			<button class="qty-btn" data-act="bump" data-delta="-1">−</button>
@@ -1042,14 +1041,14 @@ function outlook(e) {
  * Neither is presented as the right answer. What each costs is shown,
  * and the choice is the user's.
  */
-function routePicker(item) {
+function routeOptions(item) {
 	const variants = routes[item];
 	if (!variants) return '';
 	const chosen = routeOf(item, store.getAllStrategy());
 	const info = routeInfo[item] || {};
 	const stock = store.getAllStock();
 
-	const options = Object.keys(variants).map(name => {
+	return Object.keys(variants).map(name => {
 		const meta = info[name] || {};
 		const on = name === chosen;
 		// What this route asks for beyond the step they share, priced from
@@ -1066,11 +1065,35 @@ function routePicker(item) {
 			${meta.gains ? `<span class="route-gain">${esc(meta.gains)}</span>` : ''}
 		</button>`;
 	}).join('');
+}
 
-	return `<div class="detail-block">
-		<div class="detail-label">Which way to build it</div>
-		<div class="route-list">${options}</div>
-	</div>`;
+/** " · via the Improved Epheria Sailboat — change", on a build that has
+ *  more than one way in. */
+function routeNote(item) {
+	if (!routes[item]) return '';
+	const chosen = routeOf(item, store.getAllStrategy());
+	const meta = (routeInfo[item] || {})[chosen] || {};
+	return ` · via <b>${esc(meta.via || chosen)}</b>` +
+		` <button class="linky" data-act="ask-route" data-item="${esc(item)}">change</button>`;
+}
+
+/** The choice, as its own dialog -- asked when a build is queued, and
+ *  reachable again from the build afterwards. */
+function askRoute(item, { onPick } = {}) {
+	const host = openDialog(`
+		<h2>${esc(item)}</h2>
+		<p>There are two ways to build this one. Pick either — you can change your mind later from the build.</p>
+		<div class="route-list">${routeOptions(item)}</div>
+		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>
+	`);
+	host.querySelectorAll('[data-act="route"]').forEach(btn => {
+		btn.addEventListener('click', () => {
+			store.setStrategy(item, btn.dataset.route);
+			closeDialog();
+			if (onPick) onPick(btn.dataset.route);
+		});
+	});
+	return host;
 }
 
 /** " -- Crow Coin Shop", when we know where a part comes from. */
@@ -1483,10 +1506,12 @@ function wire() {
 			case 'strategy':
 				if (selected) store.setStrategy(selected, el.dataset.mode);
 				return;
-			case 'route':
-				store.setStrategy(el.dataset.item, el.dataset.route);
-				toast(`Building the ${el.dataset.item} ${el.dataset.route === 'improved' ? 'by way of the Improved hull' : 'straight from the base hull'}`, true);
-				return;
+			case 'ask-route': return askRoute(el.dataset.item, {
+				onPick: name => toast(
+					`${el.dataset.item} — ${name === 'improved' ? 'by way of the Improved hull' : 'straight from the base hull'}`,
+					true
+				)
+			});
 			case 'bump':
 				if (selected) store.addStock(selected, Number(el.dataset.delta));
 				return;
@@ -1729,6 +1754,13 @@ function openBuildPicker() {
 		const item = btn.getAttribute('data-pick');
 		store.addTarget(item, 1);
 		closeDialog();
+		// Something with two ways in asks straight away, while the choice
+		// is still the thing you are thinking about -- not later, buried
+		// in a panel about inventory.
+		if (routes[item]) {
+			askRoute(item, { onPick: () => toast(`${item} added to the queue`) });
+			return;
+		}
 		toast(`${item} added to the queue`);
 	});
 	searchEl.focus();
