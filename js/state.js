@@ -356,10 +356,20 @@ export function reorderTargets(ids) {
  * Strategy: craft an item, or buy it and stop exploding its recipe
  * ------------------------------------------------------------------ */
 
+/**
+ * How this item is to be obtained.
+ *
+ * 'craft' and 'buy' are the universal pair. Anything else names a route
+ * through an upgrade that has more than one -- a Caravel from a plain
+ * Sailboat or an Improved one. The store does not need to know which
+ * routes exist: planner.js falls back to the default when it does not
+ * recognise the name, so an unknown value is inert rather than wrong.
+ */
 export function setStrategy(item, mode) {
-	const next = mode === 'buy' ? 'buy' : 'craft';
+	const next = typeof mode === 'string' && mode ? mode : 'craft';
 	if (getStrategy(item) === next) return null;
-	return commit('strategy', `${item}: ${next === 'buy' ? 'buy it' : 'craft it'}`, () => {
+	const how = next === 'buy' ? 'buy it' : next === 'craft' ? 'craft it' : `via ${next}`;
+	return commit('strategy', `${item}: ${how}`, () => {
 		const s = { ...state.strategy };
 		if (next === 'craft') delete s[item];
 		else s[item] = next;

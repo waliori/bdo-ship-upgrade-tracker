@@ -1,7 +1,7 @@
 // The whole interface. Every screen is a projection of state.js through
 // planner.js -- nothing here holds its own copy of anything.
 
-import { recipes } from './recipes.js';
+import { recipes as allRecipes, routes, routeInfo } from './recipes.js';
 import { shipGroups } from './ships.js';
 import { items as vendorItems } from './vendor_items.js';
 import { coins } from './sea_coins.js';
@@ -11,15 +11,21 @@ import RealisticWaterRipples from './realistic-water-ripples.js';
 import * as store from './state.js';
 import { initSync, openAccount } from './sync.js';
 import {
-	plan, craftableNow, maxCraftable, craftDelta,
+	plan, planOne, craftableNow, maxCraftable, craftDelta,
 	enhanceStep, ownedLevel, shoppingList, bottlenecks,
-	parseEnhanced, enhancedName, enhancementForecast
+	parseEnhanced, enhancedName, enhancementForecast, resolveRoutes, routeOf
 } from './planner.js';
+
+// The recipe book as the user's chosen routes make it. An upgrade with
+// two ways in -- the Caravel, the Galleass -- reads here as whichever one
+// they picked, so nothing downstream has to know routes exist.
+let recipes = allRecipes;
 
 const TABS = [
 	{ id: 'plan', label: 'Plan' },
 	{ id: 'builds', label: 'Builds' },
 	{ id: 'inventory', label: 'Inventory' },
+	{ id: 'tree', label: 'Tree' },
 	{ id: 'workshop', label: 'Workshop' },
 	{ id: 'get', label: 'To Get' }
 ];
@@ -70,6 +76,8 @@ let view = 'plan';
 let query = '';
 let planFilter = 'all';
 let invFilter = 'all';
+let treeTarget = null;
+const folded = new Set();
 let selected = null;
 let snapshot = null;
 let rows = {};
@@ -235,6 +243,7 @@ function toast(message, undoable = false) {
  * ------------------------------------------------------------------ */
 
 function recompute() {
+	recipes = resolveRoutes(store.getAllStrategy(), allRecipes);
 	snapshot = plan({
 		stock: store.getAllStock(),
 		targets: store.getTargets(),
@@ -274,7 +283,7 @@ function recompute() {
 }
 
 const readyCrafts = () =>
-	craftableNow(store.getAllStock(), snapshot.toCraft)
+	craftableNow(store.getAllStock(), snapshot.toCraft, recipes)
 		.filter(c => parseEnhanced(c.item).level === 0);
 
 function totalsToGo() {
@@ -546,7 +555,7 @@ function planRow(item, r, covered) {
 	// the plan has a recipe lined up for it. The two used to be conflated,
 	// which is how the Plan could badge seven rows craftable while the
 	// Workshop said nothing could be made.
-	const can = !enhanced && recipes[item] && r.craft > 0 && maxCraftable(item, store.getAllStock()) >= 1;
+	const can = !enhanced && recipes[item] && r.craft > 0 && maxCraftable(item, store.getAllStock(), recipes) >= 1;
 	const badge = covered
 		? 'covered'
 		: r.short > 0
@@ -777,7 +786,7 @@ function renderDetail() {
 	const step = level > 0 ? enhanceStep(base, level) : null;
 	const src = step ? null : sourceOf(item);
 	const canCraft = !!recipes[item] && !step;
-	const most = canCraft ? maxCraftable(item, store.getAllStock()) : 0;
+	const most = canCraft ? maxCraftable(item, store.getAllStock(), recipes) : 0;
 
 	const resvHTML = holders.length ? `<div class="detail-block">
 		<div class="detail-label">Reserved by</div>
@@ -801,6 +810,7 @@ function renderDetail() {
 			<div class="detail-name">${esc(item)}</div>
 		</div>
 		${levelPicker(item)}
+		${routePicker(item)}
 		<div class="qty-row">
 			<button class="qty-btn" data-act="bump" data-delta="-10">−10</button>
 			<button class="qty-btn" data-act="bump" data-delta="-1">−</button>
@@ -881,6 +891,114 @@ function moveLevelAction(item) {
 }
 
 /* ------------------------------------------------------------------ *
+ * Tree
+ * ------------------------------------------------------------------ */
+
+/**
+ * The requirement tree, as the planner already built it.
+ *
+ * The Plan flattens every build into one row per material, which is the
+ * right shape for "what do I still need" and the wrong one for "why does
+ * it need that". This is the same data unflattened: a Carrack sits above
+ * its Caravel, which sits above its Sailboat, with the materials of each
+ * hanging off the step that wants them -- so the upgrade path you chose
+ * is something you can see rather than infer.
+ */
+function nodeState(node) {
+	if (node.missing > 0) return 'missing';
+	if (node.toCraft > 0) return parseEnhanced(node.item).level > 0 ? 'enhance' : 'make';
+	return 'covered';
+}
+
+const STATE_WORD = {
+	missing: 'missing',
+	make: 'to craft',
+	enhance: 'to enhance',
+	covered: 'covered'
+};
+
+/** Depth-first, carrying enough about ancestors to draw the guide lines. */
+function walkTree(node, rows, depth = 0, path = '', trail = []) {
+	const id = `${path}/${node.item}`;
+	const kids = node.children || [];
+	rows.push({ node, depth, id, trail: [...trail], kids: kids.length });
+	if (!kids.length || folded.has(id)) return rows;
+	kids.forEach((kid, i) => walkTree(kid, rows, depth + 1, id, [...trail, i === kids.length - 1]));
+	return rows;
+}
+
+/** Mid-chain enhancement steps are folded to start with: a +10 pulling in
+ *  +9 pulling in +8 is ten rows that all say the same thing. */
+function foldChains(node, path = '') {
+	const id = `${path}/${node.item}`;
+	const here = parseEnhanced(node.item);
+	if (here.level > 1 && node.children.some(k => parseEnhanced(k.item).base === here.base)) {
+		folded.add(id);
+	}
+	node.children.forEach(kid => foldChains(kid, id));
+}
+
+let chainsFolded = false;
+
+function renderTree() {
+	const targets = snapshot.targets;
+	if (!targets.length) return startHere();
+
+	if (!chainsFolded) {
+		targets.forEach(t => foldChains(t.tree));
+		chainsFolded = true;
+	}
+	const current = targets.find(t => t.item === treeTarget) || targets[0];
+
+	const chips = targets.map(t => `
+		<button class="tchip ${t === current ? 'on' : ''}" data-act="tree-target" data-item="${esc(t.item)}">
+			${img(t.item, 'tchip-icon')}${esc(t.item)}
+		</button>`).join('');
+
+	const rows = walkTree(current.tree, []).map(row => {
+		const { node, depth, id, trail, kids } = row;
+		const state = nodeState(node);
+		const own = store.getStock(node.item);
+		const guides = trail.map(last =>
+			`<span class="tguide ${last ? 'stop' : ''}"></span>`).join('') +
+			(depth ? '<span class="tguide elbow"></span>' : '');
+
+		const bits = [];
+		if (node.fromStock) bits.push(`${F(node.fromStock)} from stock`);
+		if (node.toCraft) bits.push(`${F(node.toCraft)} ${parseEnhanced(node.item).level > 0 ? 'to enhance' : 'to craft'}`);
+		if (node.missing) bits.push(`${F(node.missing)} missing`);
+
+		return `<div class="trow ${state}" style="--depth:${depth}">
+			${guides}
+			${kids
+				? `<button class="tcaret" data-act="tree-fold" data-id="${esc(id)}">${folded.has(id) ? '+' : '−'}</button>`
+				: '<span class="tcaret empty"></span>'}
+			${img(node.item, 'trow-icon')}
+			<span class="trow-main">
+				<span class="trow-name">${esc(node.item)}</span>
+				<span class="trow-sub">${esc(bits.join(' · ') || 'nothing needed')}</span>
+			</span>
+			<span class="trow-need">${F(node.need)}</span>
+			<span class="trow-own">${F(own)} held</span>
+			<span class="badge ${state === 'missing' ? 'red' : state === 'covered' ? 'teal' : 'blue'}">${STATE_WORD[state]}</span>
+		</div>`;
+	}).join('');
+
+	return `<div class="tbar">
+			<div class="tchips">${chips}</div>
+			<span class="panel-spacer"></span>
+			<button class="ghost-btn" data-act="tree-all">Expand all</button>
+			<button class="ghost-btn" data-act="tree-none">Collapse</button>
+		</div>
+		<div class="panel tpanel">${rows}</div>
+		<div class="tlegend">
+			<span><i class="dot teal"></i>covered from stock</span>
+			<span><i class="dot blue"></i>to craft or enhance</span>
+			<span><i class="dot red"></i>still missing</span>
+		</div>`;
+}
+
+/* ------------------------------------------------------------------ *
  * Workshop
  * ------------------------------------------------------------------ */
 
@@ -910,6 +1028,49 @@ function outlook(e) {
 	return `<span class="enh-outlook" title="Expected cost of every attempt from +${e.have} to +${e.want}, and the most it can possibly take">
 		to +${e.want}: <b>${F(f.expected)}</b> expected · ${F(f.ceiling)} at worst
 	</span>`;
+}
+
+/**
+ * Which way round to build something that can be reached two ways.
+ *
+ * The Caravel takes either an Epheria Sailboat or an Improved one, and
+ * the Galleass either Frigate. bdocodex lists both with the same
+ * materials, so the step is the same either way -- what differs is
+ * whether you build the Improved first, which is a whole upgrade of its
+ * own and wants four more Epheria: Old parts.
+ *
+ * Neither is presented as the right answer. What each costs is shown,
+ * and the choice is the user's.
+ */
+function routePicker(item) {
+	const variants = routes[item];
+	if (!variants) return '';
+	const chosen = routeOf(item, store.getAllStrategy());
+	const info = routeInfo[item] || {};
+	const stock = store.getAllStock();
+
+	const options = Object.keys(variants).map(name => {
+		const meta = info[name] || {};
+		const on = name === chosen;
+		// What this route asks for beyond the step they share, priced from
+		// nothing so the two are comparable.
+		const cost = planOne(item, 1, {}, { ...store.getAllStrategy(), [item]: name });
+		const units = Object.values(cost.missing).reduce((a, b) => a + b, 0);
+		const held = (stock[meta.via] || 0) > 0;
+		return `<button class="route ${on ? 'on' : ''}" data-act="route" data-item="${esc(item)}" data-route="${esc(name)}">
+			<span class="route-head">
+				<span class="route-name">${esc(meta.label || name)}</span>
+				${held ? '<span class="route-have">you have one</span>' : ''}
+			</span>
+			<span class="route-cost">${F(units)} units of material in total</span>
+			${meta.gains ? `<span class="route-gain">${esc(meta.gains)}</span>` : ''}
+		</button>`;
+	}).join('');
+
+	return `<div class="detail-block">
+		<div class="detail-label">Which way to build it</div>
+		<div class="route-list">${options}</div>
+	</div>`;
 }
 
 /** " -- Crow Coin Shop", when we know where a part comes from. */
@@ -1162,6 +1323,7 @@ export function render() {
 	if (view === 'plan') root.innerHTML = renderPlan();
 	else if (view === 'builds') root.innerHTML = renderBuilds();
 	else if (view === 'inventory') root.innerHTML = renderInventory();
+	else if (view === 'tree') root.innerHTML = renderTree();
 	else if (view === 'workshop') root.innerHTML = renderWorkshop();
 	else root.innerHTML = renderGet();
 	restoreFocus(root, focus);
@@ -1301,10 +1463,29 @@ function wire() {
 			case 'signin':
 			case 'account': return openAccount();
 			case 'plan-filter': planFilter = el.dataset.id; return render();
+			case 'tree-target': treeTarget = el.dataset.item; return render();
+			case 'tree-fold': {
+				const id = el.dataset.id;
+				if (folded.has(id)) folded.delete(id); else folded.add(id);
+				return render();
+			}
+			case 'tree-all': folded.clear(); return render();
+			case 'tree-none': {
+				folded.clear();
+				snapshot.targets.forEach(t => (t.tree.children || []).forEach(function deep(n) {
+					folded.add(`/${t.tree.item}/${n.item}`);
+				}));
+				chainsFolded = true;
+				return render();
+			}
 			case 'inv-filter': invFilter = el.dataset.id; return render();
 			case 'select': selected = el.dataset.item; return render();
 			case 'strategy':
 				if (selected) store.setStrategy(selected, el.dataset.mode);
+				return;
+			case 'route':
+				store.setStrategy(el.dataset.item, el.dataset.route);
+				toast(`Building the ${el.dataset.item} ${el.dataset.route === 'improved' ? 'by way of the Improved hull' : 'straight from the base hull'}`, true);
 				return;
 			case 'bump':
 				if (selected) store.addStock(selected, Number(el.dataset.delta));
@@ -1336,9 +1517,9 @@ function wire() {
 					: null;
 				const asked = field ? parseAmount(field.value) : Number(el.dataset.times);
 				const want = Math.max(1, asked || 1);
-				const times = Math.min(want, maxCraftable(item, store.getAllStock()));
+				const times = Math.min(want, maxCraftable(item, store.getAllStock(), recipes));
 				if (times < 1) return toast('Not enough materials for that');
-				store.applyDelta(craftDelta(item, times), 'craft', `Crafted ${times} × ${item}`);
+				store.applyDelta(craftDelta(item, times, recipes), 'craft', `Crafted ${times} × ${item}`);
 				toast(`Crafted ${times} × ${item}`, true);
 				return;
 			}

@@ -6,10 +6,41 @@
 // one draining pool, so the same physical material is never promised to
 // two builds at once.
 
-import { recipes as defaultRecipes } from './recipes.js';
+import { recipes as defaultRecipes, routes } from './recipes.js';
 import { tableFor } from './enhancement.js';
 
 /** Recipes an item can be made from, honouring a "I'll just buy this" choice. */
+/**
+ * The recipe book with each branching upgrade resolved to the route the
+ * user picked.
+ *
+ * Doing it once, here, is what keeps every other function honest: plan,
+ * craftDelta, maxCraftable and the rest all take a recipe map, so once
+ * the map says "this Caravel comes from an Improved Sailboat" they all
+ * agree without any of them having to know that routes exist.
+ *
+ * Returns the untouched book when nothing has been chosen, so the common
+ * case allocates nothing.
+ */
+export function resolveRoutes(strategy = {}, recipes = defaultRecipes) {
+	let out = null;
+	for (const [item, variants] of Object.entries(routes)) {
+		const picked = variants[strategy[item]];
+		if (!picked || picked === recipes[item]) continue;
+		out = out || { ...recipes };
+		out[item] = picked;
+	}
+	return out || recipes;
+}
+
+/** Which route is in force for an item -- the first is the default. */
+export function routeOf(item, strategy = {}) {
+	const variants = routes[item];
+	if (!variants) return null;
+	const names = Object.keys(variants);
+	return names.includes(strategy[item]) ? strategy[item] : names[0];
+}
+
 function recipeFor(item, strategy, recipes) {
 	if (strategy[item] === 'buy') return null;
 	return recipes[item] || null;
@@ -128,6 +159,9 @@ export function totalUnits(item, qty, strategy = {}, recipes = defaultRecipes, s
  * @param {object}   [opts.recipes]
  */
 export function plan({ stock = {}, targets = [], strategy = {}, recipes = defaultRecipes } = {}) {
+	// Resolved once, up front, so no caller can forget to -- an upgrade
+	// with two routes has to explode down the one that was chosen.
+	recipes = resolveRoutes(strategy, recipes);
 	const pool = { ...stock };
 	const acc = { reserved: {}, reservedBy: {}, toCraft: {}, missing: {} };
 	const results = [];

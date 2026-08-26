@@ -929,3 +929,61 @@ export const recipes = {
 	"+2 Panokseon: Byukgye's Enhanced Plating": {"+1 Panokseon: Byukgye's Enhanced Plating": 1, "Tidal Black Stone": 50},
 	"+1 Panokseon: Byukgye's Enhanced Plating": {"Panokseon: Byukgye's Enhanced Plating": 1, "Tidal Black Stone": 50},
 };
+
+/* ------------------------------------------------------------------ *
+ * Two ways to reach a Caravel, and two to reach a Galleass
+ * ------------------------------------------------------------------ */
+
+/**
+ * The Caravel accepts either an Epheria Sailboat or an Improved Epheria
+ * Sailboat, and bdocodex lists the two with identical material lists --
+ * mount/31048 shows both under "Initial ship", character for character
+ * the same apart from which hull goes in. So the variants are derived
+ * from the one recipe rather than written twice, which is also how they
+ * stay in step when a patch moves a number.
+ *
+ * What actually differs is the step before: the Improved upgrade is a
+ * whole extra build, and it wants four unenhanced Epheria: Old parts on
+ * top of the four at +10 the Caravel still needs afterwards.
+ *
+ * Neither is the right answer. The direct route is fewer materials; the
+ * Improved route adds a solo cannon volley and can be done alone, which
+ * is a real reason to take it. The app offers both and says what each
+ * costs.
+ */
+const viaHull = (recipe, from, to) => {
+	const out = {};
+	for (const [item, qty] of Object.entries(recipe)) out[item === from ? to : item] = qty;
+	return out;
+};
+
+export const routes = {
+	"Epheria Caravel": {
+		direct: recipes["Epheria Caravel"],
+		improved: viaHull(recipes["Epheria Caravel"], "Epheria Sailboat", "Improved Epheria Sailboat")
+	},
+	"Epheria Galleass": {
+		direct: recipes["Epheria Galleass"],
+		improved: viaHull(recipes["Epheria Galleass"], "Epheria Frigate", "Improved Epheria Frigate")
+	}
+};
+
+/** How the choice is described, and what taking it buys you. */
+export const routeInfo = {
+	"Epheria Caravel": {
+		direct: { label: "Straight from the Epheria Sailboat", via: "Epheria Sailboat" },
+		improved: {
+			label: "By way of the Improved Epheria Sailboat",
+			via: "Improved Epheria Sailboat",
+			gains: "Adds a solo cannon volley, and the upgrade quests can be done alone."
+		}
+	},
+	"Epheria Galleass": {
+		direct: { label: "Straight from the Epheria Frigate", via: "Epheria Frigate" },
+		improved: {
+			label: "By way of the Improved Epheria Frigate",
+			via: "Improved Epheria Frigate",
+			gains: "Adds a solo cannon volley, and the upgrade quests can be done alone."
+		}
+	}
+};
