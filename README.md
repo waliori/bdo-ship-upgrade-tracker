@@ -11,6 +11,12 @@ opt-in, self-hosted and off by default.
 
 ![The Plan screen, part-way through two Carrack parts](docs/media/hero.png)
 
+**In a hurry?** [Watch the ninety-second walkthrough](docs/media/walkthrough.mp4)
+— queue a build, choose how to get there, record what you gathered, make
+something, and take the list shopping. It is the real app, captioned, and
+there is a [narrower cut for a phone](docs/media/walkthrough-phone.mp4).
+Both play inside the app too, under **Help**.
+
 ---
 
 ## The loop
@@ -21,6 +27,18 @@ Any ship, any part, or a stack of materials. Order matters: when stock is
 short, the build nearest the top of the queue gets it first.
 
 ![Adding a build from the picker](docs/media/queue-a-build.gif)
+
+**Some ships can be reached more than one way.** A Caravel takes either a
+plain Epheria Sailboat or an Improved one; a Galleass either Frigate. The
+step itself is identical — bdocodex lists both with the same materials —
+but the Improved route is a whole upgrade of its own first, and wants
+four more Epheria: Old parts. It also adds a solo cannon volley, and its
+quests can be done alone, which is a real reason to take it.
+
+So queueing one asks which, shows what each costs, and the build then
+says the route it is taking. Neither is marked correct.
+
+![Choosing which way to build a Caravel](docs/media/choose-a-route.gif)
 
 ### 2. Record what you gathered
 
@@ -70,6 +88,18 @@ spent**, because the Workshop is for attempts you are really making.
 
 ![Recording a part at +7 without spending stones](docs/media/record-a-level.gif)
 
+### See why a build needs a thing
+
+The Plan is one row per material, which answers *what am I short of*. The
+Tree is the same thing unflattened, and answers the other question: a
+Carrack sits over the Caravel it is made from, over the Sailboat before
+that, with the materials of each hanging off the step that wants them.
+
+Enhancement chains start folded, because a `+10` pulling in `+9` pulling
+in `+8` is ten rows that all say the same thing.
+
+![The requirement tree for a Carrack](docs/media/the-tree.gif)
+
 ### See who reserved what
 
 Every material shows how much is spoken for by a build and how much is
@@ -86,7 +116,8 @@ can be both made and bought, you choose, and the plan follows.
   stones ride along above every tab, since you spend them from every tab.
 - **Export / Import** a JSON backup to move between machines.
 - **A guided tour** that demonstrates on example data, then hands your
-  own data back untouched.
+  own data back untouched, and a **Help** film of the whole thing end to
+  end for when you would rather just watch.
 - Works on a phone; the water shader is optional (`≈ Water` in the
   header).
 
@@ -286,7 +317,8 @@ js/
   sea_coins.js        Crow Coin prices
   falasi_vendor.js    Falasi's silver prices
   all_barter.js       barter routes
-  guided-tour.js      the walkthrough
+  guided-tour.js      the guided tour
+  enhancement.js      per-level rates, Agris caps, perfect-enhance costs
 tools/check-env.mjs   npm run check -- validates a sync configuration
 server/               only loaded when sync is configured
   config.js           what is switched on, and what is therefore offered
@@ -298,7 +330,7 @@ test/                 npm test — the server, and the client in a browser
 icons/                item and ship icons (WebP)
 og.png                the social preview card
 docs/media/           the images and clips in this README
-tools/capture/        the harness that generates them
+tools/capture/        the harness that generates them, film included
 ```
 
 The planner is pure: given stock, a queue and your craft-or-buy choices,

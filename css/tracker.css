@@ -1629,3 +1629,20 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   .trow-name { white-space: normal; line-height: 1.3; }
   .trow-icon { width: 22px; height: 22px; }
 }
+
+/* The walkthrough film, in the help dialog. */
+.help-film {
+  display: block;
+  width: 100%;
+  max-height: 62vh;
+  margin: 4px 0 14px;
+  border-radius: var(--r-panel);
+  border: 1px solid rgba(125, 175, 225, 0.2);
+  background: #06111e;
+}
+
+@media (max-width: 720px) {
+  /* Leave room for the buttons under it: the dialog scrolls, but the
+     thing you are meant to press should not start below the fold. */
+  .help-film { max-height: 42vh; }
+}

@@ -1527,6 +1527,7 @@ function wire() {
 			case 'import': return doImport();
 			case 'water': return toggleWater();
 			case 'tour': return startTour();
+			case 'help': return openHelp();
 			case 'signin':
 			case 'account': return openAccount();
 			case 'menu': {
@@ -1892,6 +1893,34 @@ function offerLegacyImport() {
 		closeDialog();
 		toast(`Imported ${Object.keys(legacy.stock).length} items`);
 	});
+}
+
+/**
+ * The walkthrough, as a film.
+ *
+ * The guided tour points at things on your own screen, which is the right
+ * way to learn a control you are looking at. This is for the other
+ * question -- "what is this for" -- answered once, end to end, without
+ * having to do anything. It is the real app, driven and captioned, with a
+ * narrower cut for a phone.
+ */
+function openHelp() {
+	const phone = window.matchMedia('(max-width: 720px)').matches;
+	const file = phone ? 'walkthrough-phone.mp4' : 'walkthrough.mp4';
+	const host = openDialog(`
+		<h2>How this works</h2>
+		<p>Ninety seconds, end to end: queue a build, choose how to get there, record what you gathered, make something, and take the list shopping.</p>
+		<video class="help-film" src="docs/media/${file}" controls autoplay muted playsinline loop></video>
+		<div class="dialog-actions">
+			<button class="act quiet" data-close>Close</button>
+			<button class="act" data-act="tour">Walk me through my own screen</button>
+		</div>
+	`);
+	// The captions are the narration, so it starts muted and stays that
+	// way; unmuting an autoplaying video is a good way to be hated.
+	const film = host.querySelector('video');
+	if (film) film.play().catch(() => { /* a browser that would rather not */ });
+	return host;
 }
 
 async function startTour() {

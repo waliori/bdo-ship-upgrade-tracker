@@ -18,11 +18,21 @@ const CURSOR = `
 		if (document.getElementById('__cur')) return;
 		const c = document.createElement('div');
 		c.id = '__cur';
+		if (window.__touch) c.classList.add('touch');
 		c.innerHTML = \`<svg width="22" height="26" viewBox="0 0 22 26" fill="none">
 			<path d="M2 1.5 L2 21 L7 16.5 L10.5 24 L14 22.5 L10.5 15 L17 15 Z"
 				fill="#ffffff" stroke="#0b1a2c" stroke-width="1.6" stroke-linejoin="round"/>
 		</svg><i></i>\`;
 		document.body.appendChild(c);
+
+		// A caption bar, so a clip can say what it is doing. Rendered in
+		// the page rather than burned in afterwards, so it picks up the
+		// app's own typography and looks like part of it.
+		const cap = document.createElement('div');
+		cap.id = '__cap';
+		cap.innerHTML = '<span></span>';
+		document.body.appendChild(cap);
+
 		const css = document.createElement('style');
 		css.textContent = \`
 			#__cur { position: fixed; left: 0; top: 0; z-index: 2147483647; pointer-events: none;
@@ -36,14 +46,29 @@ const CURSOR = `
 			@keyframes __ripple {
 				from { width: 0; height: 0; opacity: .9; }
 				to { width: 54px; height: 54px; opacity: 0; }
-			}\`;
+			}
+			#__cap { position: fixed; left: 0; right: 0; bottom: 0; z-index: 2147483646;
+				display: flex; justify-content: center; padding: 0 16px 22px;
+				pointer-events: none; opacity: 0; transition: opacity .28s ease; }
+			#__cap.on { opacity: 1; }
+			#__cap span { max-width: 760px; padding: 11px 20px; border-radius: 12px;
+				background: rgba(6, 17, 30, .93); border: 1px solid rgba(120, 180, 230, .3);
+				box-shadow: 0 10px 34px rgba(0,0,0,.5); backdrop-filter: blur(8px);
+				font-family: 'Noto Sans', system-ui, sans-serif; font-size: 16px; line-height: 1.45;
+				color: #e8f2fb; text-align: center; }
+			/* On a phone the pointer reads better as a fingertip. */
+			#__cur.touch svg { display: none; }
+			#__cur.touch { width: 34px; height: 34px; margin: -17px 0 0 -17px;
+				border-radius: 50%; background: rgba(160, 215, 255, .34);
+				border: 2px solid rgba(200, 235, 255, .85); }
+			#__cur.touch i { left: 15px; top: 15px; }\`;
 		document.head.appendChild(css);
 	};
 	if (document.body) draw();
 	else document.addEventListener('DOMContentLoaded', draw);
 })();`;
 
-export async function open({ width = 1280, height = 820, url = `http://localhost:${PORT}/` } = {}) {
+export async function open({ width = 1280, height = 820, touch = false, url = `http://localhost:${PORT}/` } = {}) {
 	const browser = await puppeteer.launch({
 		headless: true,
 		executablePath: CHROME,
@@ -52,8 +77,9 @@ export async function open({ width = 1280, height = 820, url = `http://localhost
 	const page = await browser.newPage();
 	await page.setViewport({ width, height, deviceScaleFactor: 1 });
 	await page.evaluateOnNewDocument(CURSOR);
+	if (touch) await page.evaluateOnNewDocument('window.__touch = true;');
 	page.on('pageerror', e => console.log('  PAGEERR', e.message));
-	return { browser, page, url };
+	return { browser, page, url, touch };
 }
 
 /** Load the app with a given store payload already in place. */
@@ -126,3 +152,25 @@ export async function typeInto(page, sel, text, { after = 800 } = {}) {
 }
 
 export const tab = (page, id) => click(page, `[data-act="view"][data-id="${id}"]`, { after: 900 });
+
+/**
+ * Put a line on screen, and leave it there.
+ *
+ * Reading rate is the thing to get right: too fast and the clip is
+ * useless, too slow and it drags. Roughly 14 characters a second with a
+ * floor, which lands close to a comfortable subtitle.
+ */
+export async function say(page, text, { hold = null } = {}) {
+	await page.evaluate(t => {
+		const cap = document.getElementById('__cap');
+		cap.querySelector('span').textContent = t;
+		cap.classList.toggle('on', Boolean(t));
+	}, text);
+	if (text) await wait(hold ?? Math.max(1500, Math.round(text.length * 70)));
+}
+
+/** Clear the caption and wait for it to fade. */
+export async function hush(page) {
+	await page.evaluate(() => document.getElementById('__cap').classList.remove('on'));
+	await wait(320);
+}

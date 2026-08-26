@@ -119,8 +119,8 @@ class GuidedTour {
 			{
 				element: '#tabs',
 				popover: {
-					title: 'The five views',
-					description: '<b>Plan</b> is what every build needs. <b>Builds</b> is the queue and its priority. <b>Inventory</b> is what you own. <b>Workshop</b> is where you craft and enhance. <b>To Get</b> is the shopping list.',
+					title: 'The six views',
+					description: '<b>Plan</b> is what every build needs. <b>Builds</b> is the queue and its priority. <b>Inventory</b> is what you own. <b>Tree</b> shows why a build needs a thing. <b>Workshop</b> is where you craft and enhance. <b>To Get</b> is the shopping list.',
 					side: 'bottom'
 				}
 			},
@@ -162,7 +162,7 @@ class GuidedTour {
 				element: '.queue-head',
 				popover: {
 					title: 'Your build queue',
-					description: 'Add any ship, part or material as a build. Order matters: when stock is short, the build nearest the top gets it first. Use ▲▼ to re-order, ⏸ to park one without losing it.',
+					description: 'Add any ship, part or material as a build. Order matters: when stock is short, the build nearest the top gets it first. Use ▲▼ to re-order, ⏸ to park one without losing it.<br><br>Some ships can be reached more than one way — a Caravel from a plain Epheria Sailboat or an Improved one. Queue one and it asks which, shows what each costs, and the build then says the route it is taking.',
 					side: 'bottom'
 				},
 				before: () => goToTab('builds')
@@ -187,6 +187,15 @@ class GuidedTour {
 					description: 'Pick a tile and this panel shows who reserved it and through which recipe, where to buy it, and — when an item can be both made and bought — lets you choose which.',
 					side: 'left'
 				}
+			},
+			{
+				element: '.tpanel',
+				popover: {
+					title: 'Why it needs what it needs',
+					description: 'The Plan is one row per material, which answers "what am I short of". This is the same thing unflattened, and answers the other question: a Carrack sits over the Caravel it is made from, over the Sailboat before that, with the materials of each hanging off the step that wants them.<br><br>Enhancement chains start folded — a +10 pulling in +9 pulling in +8 is ten rows that all say the same thing.',
+					side: 'top'
+				},
+				before: () => goToTab('tree')
 			},
 			{
 				element: '.craft-grid',
@@ -219,7 +228,7 @@ class GuidedTour {
 				element: '.masthead-actions',
 				popover: {
 					title: 'Undo, and your data',
-					description: 'Every change can be undone. Export writes a JSON backup you can import on another machine — nothing leaves your browser otherwise. Water toggles the background effect.',
+					description: 'Every change can be undone. Export writes a JSON backup you can import on another machine — nothing leaves your browser otherwise.<br><br><b>Help</b> plays a ninety-second film of the whole thing end to end. Where the deployment offers it, signing in with Discord keeps this same inventory on your phone as well; without it nothing leaves this browser at all.',
 					side: 'bottom'
 				},
 				before: () => goToTab('plan')

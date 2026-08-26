@@ -72,6 +72,36 @@ const scenes = {
 		});
 	},
 
+	/* Two ways to the same ship, and the choice is yours. */
+	async 'choose-a-route'({ page, url }) {
+		await seed(page, url, emptyStart);
+		await tab(page, 'builds');
+		await rec(page, 'choose-a-route', async () => {
+			await wait(500);
+			await click(page, '[data-act="add-build"]', { after: 800 });
+			await page.type('.picker-search', 'caravel', { delay: 90 });
+			await wait(800);
+			await click(page, '[data-pick="Epheria Caravel"]', { after: 1500 });
+			await click(page, '.route:not(.on)', { after: 1600 });
+		});
+	},
+
+	/* Why a build needs what it needs. */
+	async 'the-tree'({ page, url }) {
+		await seed(page, url, {
+			...midBuild,
+			targets: [{ id: 'c', item: 'Carrack (Advance)', qty: 1, active: true }]
+		});
+		await tab(page, 'tree');
+		await rec(page, 'the-tree', async () => {
+			// Opens on the useful view -- folded chains, whole spine
+			// visible -- because the first frame is the thumbnail.
+			await wait(900);
+			await click(page, '[data-act="tree-all"]', { after: 2000 });
+			await click(page, '[data-act="tree-none"]', { after: 1600 });
+		});
+	},
+
 	/* Hover anything and see what goes into it. */
 	async 'peek-a-recipe'({ page, url }) {
 		await seed(page, url, midBuild);

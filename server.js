@@ -99,6 +99,11 @@ const FILES = ['index.html', 'icon.png', 'og.png', 'icon_mapping.json'];
 const IMMUTABLE = { maxAge: '30d', immutable: true };
 
 app.use('/icons', express.static(path.join(__dirname, 'icons'), IMMUTABLE));
+// The walkthrough film the Help dialog plays. It lives beside the rest of
+// the documentation media so the README and the app show the same thing,
+// and only the video is copied into the image -- the README's GIFs are
+// several megabytes and nothing serves them.
+app.use('/docs/media', express.static(path.join(__dirname, 'docs', 'media'), IMMUTABLE));
 for (const dir of PUBLIC.filter(d => d !== 'icons')) {
 	app.use(`/${dir}`, express.static(path.join(__dirname, dir), { maxAge: '1h' }));
 }
