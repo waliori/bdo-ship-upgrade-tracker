@@ -764,7 +764,8 @@ function renderInventory() {
 				? `<div class="inv-grid">${tiles}</div>`
 				: `<div class="panel"><p class="empty">${searching ? 'Nothing matches that search.' : 'Nothing here yet — add a build, or switch to Owned to record what you have.'}</p></div>`}
 		</div>
-		<aside class="detail">${renderDetail()}</aside>
+		${selected ? '<div class="detail-veil" data-act="deselect" aria-hidden="true"></div>' : ''}
+		<aside class="detail ${selected ? 'open' : ''}">${renderDetail()}</aside>
 	</div>`;
 }
 
@@ -1924,6 +1925,10 @@ function openHelp() {
 }
 
 async function startTour() {
+	// Whatever asked for it -- the Help film, most likely -- gets out of
+	// the way first. A tour that highlights the page from behind a dialog
+	// is worse than no tour.
+	closeDialog();
 	try {
 		const { guidedTour } = await import('./guided-tour.js');
 		guidedTour.startTour('main');

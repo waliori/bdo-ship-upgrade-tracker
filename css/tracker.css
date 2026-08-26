@@ -1646,3 +1646,62 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
      thing you are meant to press should not start below the fold. */
   .help-film { max-height: 42vh; }
 }
+
+/* ---- the detail panel on a phone ------------------------------------ */
+
+.detail-veil { display: none; }
+
+@media (max-width: 720px) {
+  /* Below this width the layout is one column, so the panel used to land
+     under the whole grid -- tapping a tile looked like it did nothing.
+     It comes up over the page instead, where it can be seen. */
+  .detail { display: none; }
+
+  .detail.open {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    z-index: 55;
+    max-height: 78vh;
+    overflow-y: auto;
+    border-radius: var(--r-panel) var(--r-panel) 0 0;
+    border-bottom: none;
+    padding-bottom: 26px;
+    animation: sheetUp 0.22s ease;
+    box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  @keyframes sheetUp {
+    from { transform: translateY(14px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+
+  /* A grab bar, so it reads as something that can be dismissed. */
+  .detail.open::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    margin: 0 auto 14px;
+    border-radius: 2px;
+    background: rgba(125, 175, 225, 0.35);
+  }
+
+  .detail-veil {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 54;
+    background: rgba(3, 9, 16, 0.6);
+    backdrop-filter: blur(2px);
+  }
+
+  .detail-close { position: absolute; top: 14px; right: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail.open { animation: none; }
+}
