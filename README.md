@@ -54,9 +54,11 @@ The Workshop lists everything you have the materials for. Name a batch
 size or take the lot; crafting moves real stock — ingredients out,
 product in — and it can be undone.
 
-Enhancement is separate, because ship parts keep their level on a failed
-attempt. Record **Succeeded** or **Failed** and the stones come off
-either way.
+Enhancement is separate, because an attempt can fail. Blue and green ship
+parts keep their level when one does; the yellow Falasi and Cheongun tier
+drops one, which is why Cron Stones are part of what an attempt there
+costs. Record **Succeeded** or **Failed** and the materials come off your
+stock either way.
 
 ![Crafting a batch of 40](docs/media/craft.gif)
 
@@ -195,12 +197,21 @@ Epheria Frigate, Improved Epheria Frigate, Epheria Galleass, Carrack
 Balance, Volante and Valor × cannon, sail, figurehead and black plating),
 including their processed materials, the blueprints from the Al-Nahad,
 Racid, Lerao and Tinberra worker nodes, and the full enhancement chains.
-The `+10` versions that the coming yellow-part update will consume are
-already modelled.
 
 **Panokseon parts** — Haemo's four green parts and the Byukgye's Enhanced
 blue parts they become, with their blueprints from Dallae Pier Quarry and
 the permit from Moodle Village Shipyard.
+
+**The yellow tier** (August 2026) — the 16 Falasi Carrack parts and the
+four Cheongun Panokseon parts, each consuming the `+10` blue part of its
+own variant, with the three new coral materials, the Lyngbakr drops under
+them, the Sunset Coral Essence exchanges, the five-billion-silver permits,
+and Sunset Tidal Black Stone at a hundred Tidal Black Stones each.
+
+Recipes were read off the workshop designs rather than the patch notes
+alone, because the notes write one recipe for all four Carrack variants
+and leave it open whether the Chiro part has to match. It does: an
+Advance Falasi cannon takes an Advance Chiro cannon and an Advance permit.
 
 **What enhancement really costs.** Every enhanceable part carries its real
 per-level success rates, and the Agris Essence pity caps that guarantee an
@@ -210,8 +221,16 @@ Carrack part that is the difference between 500 stones and about 5,600 —
 and the Workshop tells you the odds in front of you and the most it can
 possibly cost.
 
+The yellow tier changes the arithmetic, because a failure there takes a
+level rather than just durability. Climbing it unprotected would cost
+around 52 million Sunset Tidal Black Stones by `+10`, since every failure
+buys back a level that has to be re-climbed — which is why Cron Stones
+are counted as part of what an attempt costs, not as an optional extra.
+Protected, the same climb is about 72 stones and 30,000 Cron.
+
 Crow Coin prices were checked against the shop at Oquilla's Eye on
-2026‑08‑25.
+2026‑08‑25. The yellow tier is from the 2026‑08‑26 patch notes, with the
+rates and Cron prices cross-checked against BDOCodex.
 
 ---
 

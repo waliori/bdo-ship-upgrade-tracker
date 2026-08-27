@@ -51,9 +51,7 @@ function recipeFor(item, strategy, recipes) {
  * full Agris meter guarantees the try after `agris` failures. 1 when the
  * step cannot fail, or when we have no table for the part.
  */
-export function expectedAttempts(base, level) {
-	const table = tableFor(base);
-	const step = table && table.levels[level];
+function triesAtLevel(step) {
 	if (!step || step.chance >= 1) return 1;
 	const cap = step.agris ?? 0;
 	let tries = 0;
@@ -64,6 +62,59 @@ export function expectedAttempts(base, level) {
 	}
 	return tries + (cap + 1) * stillFailing;
 }
+
+/**
+ * Attempts to get one success at `level` of `base`.
+ *
+ * This is the level-held case throughout: every tier below the yellow
+ * gear holds its level on a failure by the game's own rules, and the
+ * yellow tier holds it because the Cron Stones that do so are part of
+ * its recipe. `unprotectedAttempts` is what skipping them would cost.
+ */
+export function expectedAttempts(base, level) {
+	const table = tableFor(base);
+	const step = table && table.levels[level];
+	if (!step || step.chance >= 1) return 1;
+	return triesAtLevel(step);
+}
+
+/**
+ * What one level costs on gear that falls back when an attempt fails.
+ *
+ * Yellow ship gear is the first tier where a failure takes a level, so
+ * the attempts at a level are no longer the whole story: each failure
+ * also costs the climb back up to it. Writing a(i) for the attempts
+ * spent at level i and C(i) for everything advancing from i to i+1
+ * takes,
+ *
+ *     C(i) = a(i) + (a(i) - 1) * C(i - 1)
+ *
+ * -- a(i) attempts here, and each of the a(i) - 1 failures drops you a
+ * level that then has to be re-climbed at its own full cost. C(0) is
+ * just a(0), since +0 has nowhere to fall to.
+ *
+ * The Agris cap is applied per visit, which is the pessimistic reading:
+ * if the meter survives a level drop then the real figure is lower.
+ * Either way this is not a plan, it is the argument for Cron Stones --
+ * it runs to tens of millions of stones by +10.
+ *
+ * Returns null for gear that holds its level, which has no such cost.
+ */
+export function unprotectedAttempts(base, to = 10) {
+	const table = tableFor(base);
+	if (!table || table.keepsLevel !== false) return null;
+	let tries = 0;
+	let total = 0;
+	for (let i = 0; i < to; i++) {
+		const step = table.levels[i];
+		if (!step) break;
+		const each = triesAtLevel(step);
+		tries = i === 0 ? each : each + (each - 1) * tries;
+		total += tries;
+	}
+	return total;
+}
+
 
 /**
  * How much of `ingredient` a single craft of `product` really consumes.

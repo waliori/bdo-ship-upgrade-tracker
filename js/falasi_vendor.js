@@ -1,4 +1,9 @@
 export const falasi = {
+    "Falasi's Epheria Carrack Parts Upgrade Permit: Advance": 5000000000,
+    "Falasi's Epheria Carrack Parts Upgrade Permit: Balance": 5000000000,
+    "Falasi's Epheria Carrack Parts Upgrade Permit: Valor": 5000000000,
+    "Falasi's Epheria Carrack Parts Upgrade Permit: Volante": 5000000000,
+    "Cheongun's Panokseon Parts Upgrade Permit": 5000000000,
     "Bartali Sailboat: Old Cannon": 400000,
     "Bartali Sailboat: Old Figurehead": 400000,
     "Bartali Sailboat: Old Plating": 500000,

@@ -6,6 +6,7 @@ import { shipGroups } from './ships.js';
 import { items as vendorItems } from './vendor_items.js';
 import { coins } from './sea_coins.js';
 import { falasi } from './falasi_vendor.js';
+import { tableFor } from './enhancement.js';
 import { iconLoader } from './icon-loader.js';
 import RealisticWaterRipples from './realistic-water-ripples.js';
 import * as store from './state.js';
@@ -1271,8 +1272,11 @@ function pendingEnhancements() {
 		const step = enhanceStep(base, have + 1);
 		if (!step) continue;
 
-		const stoneName = Object.keys(step.stones)[0] || 'Tidal Black Stone';
-		const stoneQty = step.stones[stoneName] || 0;
+		// Yellow gear spends Cron Stones alongside the enhancement stone,
+		// so an attempt costs a list, not one thing.
+		const costs = Object.entries(step.stones);
+		const stoneName = costs[0] ? costs[0][0] : 'Tidal Black Stone';
+		const stoneQty = costs[0] ? costs[0][1] : 0;
 		const affordable = Object.entries(step.stones).every(([st, q]) => (stock[st] || 0) >= q);
 		const holds = (stock[step.from] || 0) > 0;
 
@@ -1284,6 +1288,7 @@ function pendingEnhancements() {
 			forecast: enhancementForecast(base, have, want),
 			step1: enhancementForecast(base, have, have + 1),
 			forBuild,
+			costs,
 			stoneName,
 			stoneQty,
 			affordable,
@@ -1341,7 +1346,7 @@ function renderWorkshop() {
 				<div class="row-sub" ${e.blocked ? 'style="color:var(--red)"' : ''}>${esc(e.note)}</div>
 			</div>
 			<span class="enh-level">+${e.have} → +${e.next}</span>
-			<span class="enh-cost">${img(e.stoneName, '')}×${F(e.stoneQty)}${odds(e)}</span>
+			<span class="enh-cost">${e.costs.map(([n, q]) => `${img(n, '')}×${F(q)}`).join('')}${odds(e)}</span>
 			${outlook(e)}
 			<span class="enh-actions">
 				<button class="pill-btn" data-act="enhance" data-result="success" ${e.blocked ? 'disabled' : ''}>Succeeded</button>
@@ -1361,7 +1366,7 @@ function renderWorkshop() {
 	<div class="panel">
 		<div class="panel-head">
 			<h2 class="panel-title">Enhancement</h2>
-			<span class="panel-sub">Everything you own that can go higher. Ship parts keep their level on a failed attempt — record what happened, stones are spent either way</span>
+			<span class="panel-sub">Everything you own that can go higher. Record what happened — the materials are spent either way. Blue and green parts keep their level on a failure; yellow ones would drop a level, which is what the Cron Stones in the cost are holding</span>
 		</div>
 		${enhRows || '<p class="empty">Nothing in your inventory can be enhanced. Add a ship part and it will show up here.</p>'}
 	</div>`;
@@ -1748,7 +1753,12 @@ function wire() {
 					'enhance',
 					ok ? `${base} reached +${level}` : `Failed attempt at +${level} ${base}`
 				);
-				toast(ok ? `${base} is now +${level}` : `Stones spent — ${base} kept its level`, true);
+				// Only the steps that actually spend Cron are being held by
+				// it; +1 costs none, and has nothing to fall to anyway.
+				const held = (tableFor(base) || {}).keepsLevel !== false || !step.stones['Cron Stone']
+					? 'kept its level'
+					: 'held its level on the Cron Stones';
+				toast(ok ? `${base} is now +${level}` : `Materials spent — ${base} ${held}`, true);
 				return;
 			}
 			case 'move': {

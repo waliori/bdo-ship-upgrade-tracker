@@ -210,7 +210,7 @@ class GuidedTour {
 				element: '[data-base]',
 				popover: {
 					title: 'Enhancing',
-					description: 'Every part you own that can go higher is listed — whether or not a build is waiting on it — with the stones the next attempt costs.<br><br>Ship parts keep their level when an attempt fails, so record <b>Succeeded</b> or <b>Failed</b> and the stones come off your stock either way.',
+					description: 'Every part you own that can go higher is listed — whether or not a build is waiting on it — with the stones the next attempt costs.<br><br>Blue and green ship parts keep their level when an attempt fails; the yellow Falasi and Cheongun tier drops one, so its cost includes the Cron Stones that prevent it. Record <b>Succeeded</b> or <b>Failed</b> and the materials come off your stock either way.',
 					side: 'top'
 				},
 				before: () => goToTab('workshop')
