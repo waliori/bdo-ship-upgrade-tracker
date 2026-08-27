@@ -4,7 +4,7 @@
 // +10 -- which under-states a Chiro part by more than tenfold. These are
 // the real per-attempt numbers.
 //
-// Sources, checked 2026-08-25:
+// Sources, checked 2026-08-25 (the yellow tier 2026-08-26):
 //   rates, stone counts, perfect-enhance costs and durability loss come
 //     from the enchantment table embedded in each bdocodex item page
 //     (https://bdocodex.com/us/item/<id>/);
@@ -17,7 +17,9 @@
 // number of failures before a guaranteed success is a hard ceiling, which
 // is the number worth planning against.
 //
-// All 42 enhanceable ship parts share just six tables.
+// All 70 enhanceable ship parts share seven tables. The last of them,
+// the yellow tier, is the one that breaks the pattern: a failed attempt
+// there takes a level, not just durability.
 
 export const tables = {
 	'sailboat': {
