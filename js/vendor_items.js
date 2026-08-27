@@ -18,7 +18,7 @@ export const items = {
 	"Lyngbakr's Bone": {"Monster Drop": ["Lyngbakr"], "Exchange": ["Crow Coin Exchange — trades for 8x Tidal Black Stone"]},
 	"Lyngbakr's Scale": {"Monster Drop": ["Lyngbakr"], "Exchange": ["Crow Coin Exchange — trades for 12x Tidal Black Stone"]},
 	"Lyngbakr's Fluid": {"Monster Drop": ["Lyngbakr"], "Exchange": ["Crow Coin Exchange — trades for 20x Tidal Black Stone"]},
-	"Sunset Coral Essence": {"Monster Drop": ["Great Ocean"]},
+	"Sunset Coral Essence": {"Monster Drop": ["Lyngbakr"]},
 	"Cron Stone": {"Purchase": ["Pearl Shop, Loyalties, or melting a costume"]},
 	"Epheria Carrack: Advance (Falasi's Cannon)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
 	"Epheria Carrack: Advance (Falasi's Sail)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
