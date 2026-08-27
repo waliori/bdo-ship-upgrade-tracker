@@ -94,21 +94,37 @@ app.get('/api/config', (req, res) => {
 const PUBLIC = ['css', 'js', 'icons'];
 const FILES = ['index.html', 'icon.png', 'og.png', 'icon_mapping.json'];
 
-// Icons and modules are content-addressed by name and change rarely; the
-// page itself must not be cached or a deploy would not reach anyone.
-const IMMUTABLE = { maxAge: '30d', immutable: true };
+// There is no build step, so a module's filename never changes while its
+// contents do -- which makes cache freshness a correctness problem, not a
+// performance one. Serve js/ and css/ a stale copy of one file and a
+// fresh copy of another and the page dies on an import that no longer
+// exists. `no-cache` is not "do not store": it stores and revalidates,
+// so the usual answer is a 304 costing a header round-trip.
+const REVALIDATE = { maxAge: 0, etag: true, setHeaders: res => res.set('Cache-Control', 'no-cache') };
 
-app.use('/icons', express.static(path.join(__dirname, 'icons'), IMMUTABLE));
+// Icons are addressed by the game's own item id, so a given name really
+// does keep its contents. Long, but not `immutable` -- a wrong icon
+// should be fixable inside a month rather than never.
+const LONG = { maxAge: '7d' };
+
+app.use('/icons', express.static(path.join(__dirname, 'icons'), LONG));
 // The walkthrough film the Help dialog plays. It lives beside the rest of
 // the documentation media so the README and the app show the same thing,
 // and only the video is copied into the image -- the README's GIFs are
-// several megabytes and nothing serves them.
-app.use('/docs/media', express.static(path.join(__dirname, 'docs', 'media'), IMMUTABLE));
+// several megabytes and nothing serves them. It is re-shot under the same
+// name whenever the UI moves, so it revalidates like the modules do.
+app.use('/docs/media', express.static(path.join(__dirname, 'docs', 'media'), REVALIDATE));
 for (const dir of PUBLIC.filter(d => d !== 'icons')) {
-	app.use(`/${dir}`, express.static(path.join(__dirname, dir), { maxAge: '1h' }));
+	app.use(`/${dir}`, express.static(path.join(__dirname, dir), REVALIDATE));
 }
 for (const file of FILES) {
-	app.get(`/${file}`, (req, res) => res.sendFile(path.join(__dirname, file)));
+	app.get(`/${file}`, (req, res) => {
+		// icon_mapping.json is loaded by the same code that imports the
+		// modules and has to move with them; the rest are images that only
+		// change when the branding does.
+		res.set('Cache-Control', file.endsWith('.json') ? 'no-cache' : 'public, max-age=604800');
+		res.sendFile(path.join(__dirname, file));
+	});
 }
 
 app.get('/', (req, res) => {

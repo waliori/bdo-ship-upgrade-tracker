@@ -11,6 +11,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import http from 'node:http';
 
 process.env.NODE_ENV = 'test';
 for (const name of [
@@ -58,4 +59,57 @@ test('the repository is not served alongside the app', async () => {
 	for (const url of ['/package.json', '/Dockerfile', '/server.js', '/server/config.js']) {
 		assert.equal((await fetch(base + url)).status, 404, url);
 	}
+});
+
+test('the modules are never served stale against each other', async () => {
+	// There is no build step, so a module keeps its filename while its
+	// contents change. A cache that holds one file from before a deploy
+	// and another from after it produces a page that dies on an import
+	// that no longer exists -- which is what a max-age on js/ once did.
+	for (const url of ['/js/planner.js', '/js/recipes.js', '/js/ui.js', '/css/tracker.css', '/icon_mapping.json']) {
+		const res = await fetch(base + url);
+		assert.equal(res.status, 200, url);
+		const cache = res.headers.get('cache-control') || '';
+		assert.ok(/no-cache|no-store|max-age=0/.test(cache),
+			`${url} must revalidate, got "${cache}"`);
+	}
+});
+
+test('revalidating a module costs nothing when it has not changed', async () => {
+	// no-cache stores and revalidates rather than refetching, so the
+	// correctness above is not paid for on every page load.
+	//
+	// Asked over node:http rather than fetch, because undici attaches
+	// `cache-control: no-cache` to every request it makes, and a server
+	// is right to answer that with the whole file rather than a 304. No
+	// browser sends it unless the reader forces a reload.
+	const first = await fetch(base + '/js/recipes.js');
+	const etag = first.headers.get('etag');
+	assert.ok(etag, 'a module is served with an ETag to revalidate against');
+
+	const { statusCode, bytes } = await new Promise((resolve, reject) => {
+		const url = new URL(base + '/js/recipes.js');
+		http.get({
+			host: url.hostname, port: url.port, path: url.pathname,
+			headers: { 'If-None-Match': etag }
+		}, res => {
+			let bytes = 0;
+			res.on('data', chunk => { bytes += chunk.length; });
+			res.on('end', () => resolve({ statusCode: res.statusCode, bytes }));
+		}).on('error', reject);
+	});
+
+	assert.equal(statusCode, 304);
+	assert.equal(bytes, 0);
+});
+
+test('an icon may be cached, but not forever', async () => {
+	// Icons are addressed by the game's item id, so a name really does
+	// keep its contents -- but `immutable` would make a wrong one
+	// unfixable, and one has already needed fixing.
+	const res = await fetch(base + '/icons/00049778.webp');
+	assert.equal(res.status, 200);
+	const cache = res.headers.get('cache-control') || '';
+	assert.match(cache, /max-age=\d+/);
+	assert.doesNotMatch(cache, /immutable/);
 });
