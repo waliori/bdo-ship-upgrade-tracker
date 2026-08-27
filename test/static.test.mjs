@@ -113,3 +113,36 @@ test('an icon may be cached, but not forever', async () => {
 	assert.match(cache, /max-age=\d+/);
 	assert.doesNotMatch(cache, /immutable/);
 });
+
+test('the CSP admits every origin the page actually loads from', async () => {
+	// The avatar was blocked in every deployment because img-src named
+	// nothing but 'self' -- the policy was tightened without checking what
+	// the client fetches. Links out to BDOCodex need no entry: navigating
+	// away is not a fetch, and CSP does not govern it.
+	const csp = (await fetch(base + '/')).headers.get('content-security-policy');
+	const directive = name => (csp.split(';').find(d => d.trim().startsWith(name)) || '').trim();
+
+	for (const [name, origin] of [
+		['script-src', 'https://cdn.jsdelivr.net'],       // the guided tour
+		['style-src', 'https://cdn.jsdelivr.net'],        // and its stylesheet
+		['style-src', 'https://fonts.googleapis.com'],
+		['font-src', 'https://fonts.gstatic.com'],
+		['img-src', 'https://cdn.discordapp.com']         // the signed-in chip
+	]) {
+		assert.ok(directive(name).includes(origin), `${name} must admit ${origin} — got "${directive(name)}"`);
+	}
+});
+
+test('the avatar the client builds is an origin the CSP allows', async () => {
+	// Tied to the source rather than to a copy of it, so moving the avatar
+	// to another host fails here rather than in a browser console.
+	const fs = await import('node:fs/promises');
+	const sync = await fs.readFile(new URL('../js/sync.js', import.meta.url), 'utf8');
+	const hosts = [...sync.matchAll(/https:\/\/([a-z0-9.-]+)/g)].map(m => m[1]);
+	assert.ok(hosts.length, 'sync.js fetches something external');
+
+	const csp = (await fetch(base + '/')).headers.get('content-security-policy');
+	for (const host of new Set(hosts)) {
+		assert.ok(csp.includes(host), `${host} is fetched by sync.js but absent from the CSP`);
+	}
+});
