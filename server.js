@@ -32,7 +32,8 @@ app.disable('x-powered-by');
 // Headers every response carries.
 //
 // The page is almost entirely self-contained; the exceptions are the
-// fonts and the guided tour's library, and naming them here is the point.
+// fonts, the guided tour's library and the Discord avatar, and naming
+// them here is the point.
 // A compromised CDN then cannot run arbitrary script in a session that
 // can read someone's saved inventory -- the worst it can do is fail to
 // load. `style-src` has to allow inline: the progress bars set their
@@ -42,7 +43,9 @@ const CSP = [
 	"script-src 'self' https://cdn.jsdelivr.net",
 	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
 	"font-src 'self' https://fonts.gstatic.com",
-	"img-src 'self' data:",
+	// The signed-in chip shows the player's Discord avatar, which is the
+	// one image the page does not host itself.
+	"img-src 'self' data: https://cdn.discordapp.com",
 	"connect-src 'self'",
 	"frame-ancestors 'none'",
 	"base-uri 'none'",
