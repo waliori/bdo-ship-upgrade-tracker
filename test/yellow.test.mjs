@@ -16,7 +16,7 @@ import assert from 'node:assert/strict';
 
 import { recipes } from '../js/recipes.js';
 import { tableFor, families } from '../js/enhancement.js';
-import { expectedAttempts, unprotectedAttempts, enhanceStep } from '../js/planner.js';
+import { expectedAttempts, unprotectedAttempts, enhanceStep, plan } from '../js/planner.js';
 import { falasi } from '../js/falasi_vendor.js';
 import { ships } from '../js/ships.js';
 
@@ -97,6 +97,52 @@ test('every yellow part follows the yellow table, and nothing else does', () => 
 	const chiro = "Epheria Carrack: Advance (Chiro's Sail)";
 	assert.notEqual(families[chiro], 'yellow');
 	assert.notEqual(tableFor(chiro).keepsLevel, false);
+});
+
+test('a blueprint is bought with essence, and the plan sees through it', () => {
+	// Two Sunset Coral Essence for a Falasi blueprint, four for a Cheongun
+	// one. Ten blueprints go into a part, so this is twenty essence before
+	// a single stone is spent -- worth showing rather than leaving the
+	// blueprint as the end of the line.
+	for (const t of TYPES) {
+		assert.deepEqual(recipes[`Blueprint: Falasi's ${t}`], { 'Sunset Coral Essence': 2 });
+		assert.deepEqual(recipes[`Blueprint: Cheongun's ${t}`], { 'Sunset Coral Essence': 4 });
+	}
+
+	const part = falasiPart('Advance', 'Cannon');
+	const tree = plan({ stock: {}, targets: [{ id: '1', item: part, qty: 1, active: true }] });
+	// 10 blueprints x 2 essence each, and nothing else in an unenhanced
+	// part calls for essence.
+	assert.equal(tree.missing['Sunset Coral Essence'], 20);
+	assert.equal(tree.missing["Blueprint: Falasi's Cannon"], undefined,
+		'the blueprint is made, not missing');
+});
+
+test('the Agris meter belongs to the step, not to the visit', () => {
+	// The meter is only spent when its own step succeeds, so falling past
+	// a step leaves it where it was. That is what makes the attempts at a
+	// step a one-off a(i) rather than a fresh capped run per visit, and
+	// pins the recurrence to
+	//
+	//     C(i) = a(i) + (a(i) - 1) * C(i - 1)
+	//
+	// rather than the a(i) * (1 + C(i - 1)) a per-visit meter would give.
+	const part = falasiPart('Advance', 'Cannon');
+	const table = tableFor(part);
+
+	// unprotectedAttempts is cumulative, so one level's climb is a
+	// difference of two of them.
+	const climb = i => unprotectedAttempts(part, i + 1) - unprotectedAttempts(part, i);
+
+	for (let i = 0; i < 10; i++) {
+		const a = expectedAttempts(part, i);
+		assert.ok(a <= table.levels[i].agris + 1,
+			`step ${i} should stop at agris + 1 attempts, got ${a.toFixed(2)}`);
+
+		const want = i === 0 ? a : a + (a - 1) * climb(i - 1);
+		assert.ok(Math.abs(climb(i) - want) < 1e-6,
+			`step ${i}: climb ${climb(i)} should be ${want}`);
+	}
 });
 
 test('going without Cron Stones is not a plan', () => {

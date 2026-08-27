@@ -205,8 +205,11 @@ the permit from Moodle Village Shipyard.
 **The yellow tier** (August 2026) — the 16 Falasi Carrack parts and the
 four Cheongun Panokseon parts, each consuming the `+10` blue part of its
 own variant, with the three new coral materials, the Lyngbakr drops under
-them, the Sunset Coral Essence exchanges, the five-billion-silver permits,
-and Sunset Tidal Black Stone at a hundred Tidal Black Stones each.
+them, the five-billion-silver permits, and Sunset Tidal Black Stone at a
+hundred Tidal Black Stones each. The blueprints are modelled as the
+exchange they are — two Sunset Coral Essence each from Falasi, four from
+Gangman — so a part shows the twenty essence behind its ten blueprints
+rather than stopping at the blueprint.
 
 Recipes were read off the workshop designs rather than the patch notes
 alone, because the notes write one recipe for all four Carrack variants
@@ -222,11 +225,13 @@ and the Workshop tells you the odds in front of you and the most it can
 possibly cost.
 
 The yellow tier changes the arithmetic, because a failure there takes a
-level rather than just durability. Climbing it unprotected would cost
-around 52 million Sunset Tidal Black Stones by `+10`, since every failure
-buys back a level that has to be re-climbed — which is why Cron Stones
-are counted as part of what an attempt costs, not as an optional extra.
-Protected, the same climb is about 72 stones and 30,000 Cron.
+level rather than just durability. The Agris meter belongs to the step
+and is only spent when that step succeeds, so falling past one leaves it
+where it was — but the level below has to be climbed again from a meter
+the last success reset. Compounded over ten levels that runs to around
+52 million Sunset Tidal Black Stones, which is why Cron Stones are
+counted as part of what an attempt costs rather than as an optional
+extra. Protected, the same climb is about 72 stones and 30,000 Cron.
 
 Crow Coin prices were checked against the shop at Oquilla's Eye on
 2026‑08‑25. The yellow tier is from the 2026‑08‑26 patch notes, with the

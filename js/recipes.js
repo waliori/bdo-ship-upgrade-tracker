@@ -1114,6 +1114,19 @@ export const recipes = {
 	// which is most of what enhancing a yellow part really costs.
 	"Sunset Tidal Black Stone": {"Sunset Coral Essence": 1, "Tidal Black Stone": 100},
 
+	// The blueprints are an exchange, not a drop: Philaberto Falasi takes
+	// two Sunset Coral Essence for one, and Gangman four. Modelling it as
+	// a recipe is what makes the essence behind a part visible -- ten
+	// blueprints per part is twenty essence before a stone is spent.
+	"Blueprint: Falasi's Cannon": {"Sunset Coral Essence": 2},
+	"Blueprint: Falasi's Sail": {"Sunset Coral Essence": 2},
+	"Blueprint: Falasi's Figurehead": {"Sunset Coral Essence": 2},
+	"Blueprint: Falasi's Plating": {"Sunset Coral Essence": 2},
+	"Blueprint: Cheongun's Cannon": {"Sunset Coral Essence": 4},
+	"Blueprint: Cheongun's Sail": {"Sunset Coral Essence": 4},
+	"Blueprint: Cheongun's Figurehead": {"Sunset Coral Essence": 4},
+	"Blueprint: Cheongun's Plating": {"Sunset Coral Essence": 4},
+
 	// Yellow gear enhances with Sunset Tidal Black Stone, one per
 	// attempt -- and unlike every tier below it, a failure takes a
 	// level as well as durability. See enhancement.js.

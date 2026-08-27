@@ -93,10 +93,16 @@ export function expectedAttempts(base, level) {
  * level that then has to be re-climbed at its own full cost. C(0) is
  * just a(0), since +0 has nowhere to fall to.
  *
- * The Agris cap is applied per visit, which is the pessimistic reading:
- * if the meter survives a level drop then the real figure is lower.
- * Either way this is not a plan, it is the argument for Cron Stones --
- * it runs to tens of millions of stones by +10.
+ * The Agris meter belongs to the step, not to the visit: it is only
+ * spent when that step succeeds, so a level drop leaves it where it was
+ * and it is still there when you climb back. That is why a(i) is counted
+ * once here rather than once per visit -- the total attempts at a step
+ * stay capped at agris + 1 however many times you fall past it. The
+ * level below is the part that gets done again, and its own meter was
+ * reset by the success that brought you up.
+ *
+ * The result is not a plan, it is the argument for Cron Stones: it runs
+ * to tens of millions of stones by +10.
  *
  * Returns null for gear that holds its level, which has no such cost.
  */
