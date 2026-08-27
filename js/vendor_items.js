@@ -15,10 +15,17 @@ export const items = {
 	"Blueprint: Cheongun's Sail": {"Exchange": ["Gangman, Cheongsa Island Wharf — 4x Sunset Coral Essence"]},
 	"Blueprint: Cheongun's Figurehead": {"Exchange": ["Gangman, Cheongsa Island Wharf — 4x Sunset Coral Essence"]},
 	"Blueprint: Cheongun's Plating": {"Exchange": ["Gangman, Cheongsa Island Wharf — 4x Sunset Coral Essence"]},
-	"Lyngbakr's Bone": {"Monster Drop": ["Lyngbakr"], "Exchange": ["Crow Coin Exchange — trades for 8x Tidal Black Stone"]},
-	"Lyngbakr's Scale": {"Monster Drop": ["Lyngbakr"], "Exchange": ["Crow Coin Exchange — trades for 12x Tidal Black Stone"]},
-	"Lyngbakr's Fluid": {"Monster Drop": ["Lyngbakr"], "Exchange": ["Crow Coin Exchange — trades for 20x Tidal Black Stone"]},
-	"Sunset Coral Essence": {"Monster Drop": ["Lyngbakr"]},
+	// The yellow tier all comes off one sea monster. Lyngbakr's drop table
+	// is fourteen items and only these four feed a ship recipe, so the
+	// hunt cannot be aimed -- the other ten are Lyngbakr's Horn, Serni,
+	// Zulatia, Margoria and Coral Crystals, Claws of the Waves, Red Sea
+	// Monster Meat, Blue Whale Oil, Sea Monster's Bizarre Fang and the
+	// Moss-Covered Map. They are left out because nothing here consumes
+	// them; a build could never ask for one.
+	"Lyngbakr's Bone": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"], "Exchange": ["Crow Coin Exchange — trades for 8x Tidal Black Stone"]},
+	"Lyngbakr's Scale": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"], "Exchange": ["Crow Coin Exchange — trades for 12x Tidal Black Stone"]},
+	"Lyngbakr's Fluid": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"], "Exchange": ["Crow Coin Exchange — trades for 20x Tidal Black Stone"]},
+	"Sunset Coral Essence": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"]},
 	"Cron Stone": {"Purchase": ["Pearl Shop, Loyalties, or melting a costume"]},
 	"Epheria Carrack: Advance (Falasi's Cannon)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
 	"Epheria Carrack: Advance (Falasi's Sail)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
