@@ -34,8 +34,7 @@
     <link href="css/tracker.css" rel="stylesheet" type="text/css" />
 
     <!-- Driver.js powers the guided tour, loaded out of the critical path -->
-    <link rel="preload" href="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.css"></noscript>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.css">
     <script src="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.js.iife.js" defer></script>
 
     <link rel="modulepreload" href="js/ui.js">
@@ -53,12 +52,19 @@
                     <div class="brand-sub">One inventory, every build &middot; Black Desert</div>
                 </div>
             </div>
-            <div class="masthead-actions">
+            <button class="hamburger" data-act="menu" aria-label="Menu" aria-expanded="false">
+                <span></span><span></span><span></span>
+            </button>
+            <div class="masthead-actions" id="masthead-actions">
                 <button class="ghost-btn" id="undo-btn" data-act="undo">&#8630; Undo</button>
                 <button class="ghost-btn" data-act="export">Export</button>
                 <button class="ghost-btn" data-act="import">Import</button>
+                <button class="ghost-btn" data-act="help">Help</button>
                 <button class="ghost-btn" data-act="tour">Tour</button>
                 <button class="ghost-btn" id="water-btn" data-act="water">&#8776; Water off</button>
+                <!-- Sign-in, and who is signed in. Stays empty unless the
+                     deployment has been given a Discord app and a database. -->
+                <span class="account" id="account"></span>
             </div>
         </header>
 
@@ -75,9 +81,6 @@
     <div class="toast" id="toast" role="status" hidden></div>
     <div class="dialog" id="dialog" role="dialog" aria-modal="true" hidden></div>
 
-    <script type="module">
-        import { init } from './js/ui.js';
-        init();
-    </script>
+    <script type="module" src="js/boot.js"></script>
 </body>
 </html>

@@ -2,6 +2,56 @@
 // Each item can have multiple acquisition methods with proper categorization
 
 export const items = {
+	"Falasi's Epheria Carrack Parts Upgrade Permit: Advance": {"Purchase": ["Philaberto Falasi, Port Epheria (5 bil)"]},
+	"Falasi's Epheria Carrack Parts Upgrade Permit: Balance": {"Purchase": ["Philaberto Falasi, Port Epheria (5 bil)"]},
+	"Falasi's Epheria Carrack Parts Upgrade Permit: Volante": {"Purchase": ["Philaberto Falasi, Port Epheria (5 bil)"]},
+	"Falasi's Epheria Carrack Parts Upgrade Permit: Valor": {"Purchase": ["Philaberto Falasi, Port Epheria (5 bil)"]},
+	"Cheongun's Panokseon Parts Upgrade Permit": {"Purchase": ["Gangman, Cheongsa Island Wharf (5 bil)"]},
+	"Blueprint: Falasi's Cannon": {"Exchange": ["Philaberto Falasi, Port Epheria — 2x Sunset Coral Essence"]},
+	"Blueprint: Falasi's Sail": {"Exchange": ["Philaberto Falasi, Port Epheria — 2x Sunset Coral Essence"]},
+	"Blueprint: Falasi's Figurehead": {"Exchange": ["Philaberto Falasi, Port Epheria — 2x Sunset Coral Essence"]},
+	"Blueprint: Falasi's Plating": {"Exchange": ["Philaberto Falasi, Port Epheria — 2x Sunset Coral Essence"]},
+	"Blueprint: Cheongun's Cannon": {"Exchange": ["Gangman, Cheongsa Island Wharf — 4x Sunset Coral Essence"]},
+	"Blueprint: Cheongun's Sail": {"Exchange": ["Gangman, Cheongsa Island Wharf — 4x Sunset Coral Essence"]},
+	"Blueprint: Cheongun's Figurehead": {"Exchange": ["Gangman, Cheongsa Island Wharf — 4x Sunset Coral Essence"]},
+	"Blueprint: Cheongun's Plating": {"Exchange": ["Gangman, Cheongsa Island Wharf — 4x Sunset Coral Essence"]},
+	// The yellow tier all comes off one sea monster. Lyngbakr's drop table
+	// is fourteen items and only these four feed a ship recipe, so the
+	// hunt cannot be aimed -- the other ten are Lyngbakr's Horn, Serni,
+	// Zulatia, Margoria and Coral Crystals, Claws of the Waves, Red Sea
+	// Monster Meat, Blue Whale Oil, Sea Monster's Bizarre Fang and the
+	// Moss-Covered Map. They are left out because nothing here consumes
+	// them; a build could never ask for one.
+	"Lyngbakr's Bone": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"], "Exchange": ["Crow Coin Exchange — trades for 8x Tidal Black Stone"]},
+	"Lyngbakr's Scale": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"], "Exchange": ["Crow Coin Exchange — trades for 12x Tidal Black Stone"]},
+	"Lyngbakr's Fluid": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"], "Exchange": ["Crow Coin Exchange — trades for 20x Tidal Black Stone"]},
+	"Sunset Coral Essence": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"]},
+	"Cron Stone": {"Purchase": ["Pearl Shop, Loyalties, or melting a costume"]},
+	"Epheria Carrack: Advance (Falasi's Cannon)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
+	"Epheria Carrack: Advance (Falasi's Sail)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
+	"Epheria Carrack: Advance (Falasi's Figurehead)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
+	"Epheria Carrack: Advance (Falasi's Plating)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
+	"Epheria Carrack: Balance (Falasi's Cannon)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
+	"Epheria Carrack: Balance (Falasi's Sail)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
+	"Epheria Carrack: Balance (Falasi's Figurehead)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
+	"Epheria Carrack: Balance (Falasi's Plating)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
+	"Epheria Carrack: Volante (Falasi's Cannon)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
+	"Epheria Carrack: Volante (Falasi's Sail)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
+	"Epheria Carrack: Volante (Falasi's Figurehead)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
+	"Epheria Carrack: Volante (Falasi's Plating)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
+	"Epheria Carrack: Valor (Falasi's Cannon)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
+	"Epheria Carrack: Valor (Falasi's Sail)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
+	"Epheria Carrack: Valor (Falasi's Figurehead)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
+	"Epheria Carrack: Valor (Falasi's Plating)": {"Crafting": ["Ship Part Workshop Lv.2, Iliya Island 3"]},
+	"Panokseon: Cheongun's Enhanced Cannon": {"Crafting": ["Cheongsa Ship Part Workshop, Cheongsa Island"]},
+	"Panokseon: Cheongun's Enhanced Sail": {"Crafting": ["Cheongsa Ship Part Workshop, Cheongsa Island"]},
+	"Panokseon: Cheongun's Enhanced Figurehead": {"Crafting": ["Cheongsa Ship Part Workshop, Cheongsa Island"]},
+	"Panokseon: Cheongun's Enhanced Plating": {"Crafting": ["Cheongsa Ship Part Workshop, Cheongsa Island"]},
+	"Sturdy Coral Support": {"Processing": ["Manufacture"]},
+	"Raging Wave Plywood": {"Processing": ["Manufacture"]},
+	"Dormant Crimson Coral Adhesive": {"Processing": ["Simple Alchemy"]},
+	"Sunset Tidal Black Stone": {"Processing": ["Heating (Processing L)"]},
+
 	"Gold Bar 1,000G": {
 		"Purchase": ["Storage Keeper"]
 	},

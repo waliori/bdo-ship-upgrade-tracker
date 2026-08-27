@@ -6,10 +6,41 @@
 // one draining pool, so the same physical material is never promised to
 // two builds at once.
 
-import { recipes as defaultRecipes } from './recipes.js';
+import { recipes as defaultRecipes, routes } from './recipes.js';
 import { tableFor } from './enhancement.js';
 
 /** Recipes an item can be made from, honouring a "I'll just buy this" choice. */
+/**
+ * The recipe book with each branching upgrade resolved to the route the
+ * user picked.
+ *
+ * Doing it once, here, is what keeps every other function honest: plan,
+ * craftDelta, maxCraftable and the rest all take a recipe map, so once
+ * the map says "this Caravel comes from an Improved Sailboat" they all
+ * agree without any of them having to know that routes exist.
+ *
+ * Returns the untouched book when nothing has been chosen, so the common
+ * case allocates nothing.
+ */
+export function resolveRoutes(strategy = {}, recipes = defaultRecipes) {
+	let out = null;
+	for (const [item, variants] of Object.entries(routes)) {
+		const picked = variants[strategy[item]];
+		if (!picked || picked === recipes[item]) continue;
+		out = out || { ...recipes };
+		out[item] = picked;
+	}
+	return out || recipes;
+}
+
+/** Which route is in force for an item -- the first is the default. */
+export function routeOf(item, strategy = {}) {
+	const variants = routes[item];
+	if (!variants) return null;
+	const names = Object.keys(variants);
+	return names.includes(strategy[item]) ? strategy[item] : names[0];
+}
+
 function recipeFor(item, strategy, recipes) {
 	if (strategy[item] === 'buy') return null;
 	return recipes[item] || null;
@@ -20,9 +51,7 @@ function recipeFor(item, strategy, recipes) {
  * full Agris meter guarantees the try after `agris` failures. 1 when the
  * step cannot fail, or when we have no table for the part.
  */
-export function expectedAttempts(base, level) {
-	const table = tableFor(base);
-	const step = table && table.levels[level];
+function triesAtLevel(step) {
 	if (!step || step.chance >= 1) return 1;
 	const cap = step.agris ?? 0;
 	let tries = 0;
@@ -33,6 +62,65 @@ export function expectedAttempts(base, level) {
 	}
 	return tries + (cap + 1) * stillFailing;
 }
+
+/**
+ * Attempts to get one success at `level` of `base`.
+ *
+ * This is the level-held case throughout: every tier below the yellow
+ * gear holds its level on a failure by the game's own rules, and the
+ * yellow tier holds it because the Cron Stones that do so are part of
+ * its recipe. `unprotectedAttempts` is what skipping them would cost.
+ */
+export function expectedAttempts(base, level) {
+	const table = tableFor(base);
+	const step = table && table.levels[level];
+	if (!step || step.chance >= 1) return 1;
+	return triesAtLevel(step);
+}
+
+/**
+ * What one level costs on gear that falls back when an attempt fails.
+ *
+ * Yellow ship gear is the first tier where a failure takes a level, so
+ * the attempts at a level are no longer the whole story: each failure
+ * also costs the climb back up to it. Writing a(i) for the attempts
+ * spent at level i and C(i) for everything advancing from i to i+1
+ * takes,
+ *
+ *     C(i) = a(i) + (a(i) - 1) * C(i - 1)
+ *
+ * -- a(i) attempts here, and each of the a(i) - 1 failures drops you a
+ * level that then has to be re-climbed at its own full cost. C(0) is
+ * just a(0), since +0 has nowhere to fall to.
+ *
+ * The Agris meter belongs to the step, not to the visit: it is only
+ * spent when that step succeeds, so a level drop leaves it where it was
+ * and it is still there when you climb back. That is why a(i) is counted
+ * once here rather than once per visit -- the total attempts at a step
+ * stay capped at agris + 1 however many times you fall past it. The
+ * level below is the part that gets done again, and its own meter was
+ * reset by the success that brought you up.
+ *
+ * The result is not a plan, it is the argument for Cron Stones: it runs
+ * to tens of millions of stones by +10.
+ *
+ * Returns null for gear that holds its level, which has no such cost.
+ */
+export function unprotectedAttempts(base, to = 10) {
+	const table = tableFor(base);
+	if (!table || table.keepsLevel !== false) return null;
+	let tries = 0;
+	let total = 0;
+	for (let i = 0; i < to; i++) {
+		const step = table.levels[i];
+		if (!step) break;
+		const each = triesAtLevel(step);
+		tries = i === 0 ? each : each + (each - 1) * tries;
+		total += tries;
+	}
+	return total;
+}
+
 
 /**
  * How much of `ingredient` a single craft of `product` really consumes.
@@ -128,6 +216,9 @@ export function totalUnits(item, qty, strategy = {}, recipes = defaultRecipes, s
  * @param {object}   [opts.recipes]
  */
 export function plan({ stock = {}, targets = [], strategy = {}, recipes = defaultRecipes } = {}) {
+	// Resolved once, up front, so no caller can forget to -- an upgrade
+	// with two routes has to explode down the one that was chosen.
+	recipes = resolveRoutes(strategy, recipes);
 	const pool = { ...stock };
 	const acc = { reserved: {}, reservedBy: {}, toCraft: {}, missing: {} };
 	const results = [];
@@ -359,6 +450,145 @@ export function ownedLevel(base, stock = {}) {
 		if ((stock[enhancedName(base, level)] || 0) > 0) return level;
 	}
 	return 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * What things cost
+ * ------------------------------------------------------------------ */
+
+/**
+ * A cost is a vector, never a single number.
+ *
+ * Crow Coins and silver do not convert into one another at any rate the
+ * game publishes, and plenty of materials have no price at all -- they
+ * are bartered for, or they drop. So every route reports all three:
+ * coins, silver, and the things you still have to go and find. Anything
+ * that pretends otherwise would be inventing an exchange rate.
+ */
+const emptyCost = () => ({ coins: 0, silver: 0, needs: {} });
+
+function mergeCost(into, part, times) {
+	into.coins += part.coins * times;
+	into.silver += part.silver * times;
+	for (const [item, qty] of Object.entries(part.needs)) {
+		into.needs[item] = (into.needs[item] || 0) + qty * times;
+	}
+}
+
+/** How many unpriceable things a route leaves you to go and get. */
+export function outstanding(cost) {
+	let n = 0;
+	for (const qty of Object.values(cost.needs)) n += qty;
+	return n;
+}
+
+/**
+ * The order used to pick a sub-ingredient's route while pricing a craft.
+ *
+ * Fewest things left to find wins first: a route the app can price is
+ * one you can act on this evening, and one that ends in "and then barter
+ * for six scales" is not. Coins, then silver, break the tie. This is a
+ * default, not a judgement -- the top-level comparison shows every route
+ * and only calls one of them cheaper when it beats the others outright.
+ */
+const rank = (a, b) =>
+	outstanding(a) - outstanding(b) || a.coins - b.coins || a.silver - b.silver;
+
+/** True when `a` costs no more than `b` on every axis, and less on one. */
+export function beats(a, b) {
+	const oa = outstanding(a);
+	const ob = outstanding(b);
+	return a.coins <= b.coins && a.silver <= b.silver && oa <= ob
+		&& (a.coins < b.coins || a.silver < b.silver || oa < ob);
+}
+
+/**
+ * The one route to price an ingredient by.
+ *
+ * It follows the player's own craft-or-buy choice, so a total quoted
+ * here is a total the plan will actually charge them -- and where they
+ * have expressed no choice, the default is the same one the planner
+ * uses. Falls back to naming the item as something still to find, which
+ * is the honest answer for anything bartered or dropped.
+ */
+function pickRoute(item, ctx, seen) {
+	const ways = costRoutes(item, ctx, seen).sort(rank);
+	if (!ways.length) return { kind: 'find', label: null, coins: 0, silver: 0, needs: { [item]: 1 } };
+	const buying = (ctx.strategy || {})[item] === 'buy';
+	const shop = r => r.kind === 'coin' || r.kind === 'silver';
+	return ways.find(r => shop(r) === buying) || ways[0];
+}
+
+/**
+ * Every way of getting one of `item` that the data knows how to price.
+ *
+ * @param {string} item
+ * @param {object} ctx  { coins, silver, recipes, strategy }
+ */
+export function costRoutes(item, ctx = {}, seen = new Set()) {
+	const { coins = {}, silver = {}, recipes = defaultRecipes } = ctx;
+	const out = [];
+
+	if (coins[item] > 0) {
+		out.push({ kind: 'coin', label: 'Crow Coin Shop', coins: coins[item], silver: 0, needs: {} });
+	}
+	if (silver[item] > 0) {
+		out.push({ kind: 'silver', label: 'Falasi vendor', coins: 0, silver: silver[item], needs: {} });
+	}
+
+	// `seen` is a path guard, not a memo: a recipe that reached itself
+	// would otherwise recurse forever.
+	const recipe = seen.has(item) ? null : recipes[item];
+	if (recipe) {
+		const inner = new Set(seen).add(item);
+		const cost = emptyCost();
+		const parts = [];
+		for (const [ingredient, quantity] of Object.entries(recipe)) {
+			const per = perCraft(item, ingredient, quantity);
+			const one = pickRoute(ingredient, ctx, inner);
+			mergeCost(cost, one, per);
+			parts.push({ item: ingredient, qty: per, via: one.label, cost: one });
+		}
+		const enhanced = parseEnhanced(item).level > 0;
+		out.push({
+			kind: enhanced ? 'enhance' : 'craft',
+			label: enhanced ? 'Enhance it' : 'Make it',
+			coins: cost.coins,
+			silver: cost.silver,
+			needs: cost.needs,
+			parts
+		});
+	}
+
+	return out;
+}
+
+/**
+ * What is left to pay for a build.
+ *
+ * Every leaf of its tree that stock could not cover and a recipe could
+ * not make, priced the way the plan will actually get it. So this is the
+ * bill for the route the player chose, not for a cheaper one they did
+ * not, and it shrinks as they record what they gather.
+ */
+export function remainingCost(node, ctx = {}) {
+	const total = emptyCost();
+	(function walk(n) {
+		if (n.missing > 0) mergeCost(total, pickRoute(n.item, ctx, new Set()), n.missing);
+		for (const child of n.children || []) walk(child);
+	})(node);
+	return total;
+}
+
+/**
+ * The priced routes to an item, best first, and the one worth
+ * recommending -- or null when they trade off against each other and the
+ * choice is genuinely the player's.
+ */
+export function waysToGet(item, ctx = {}) {
+	const routes = costRoutes(item, ctx).sort(rank);
+	const clear = routes.length > 1 && routes.slice(1).every(other => beats(routes[0], other));
+	return { routes, best: clear ? routes[0] : null };
 }
 
 /* ------------------------------------------------------------------ *

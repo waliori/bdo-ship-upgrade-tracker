@@ -356,10 +356,20 @@ export function reorderTargets(ids) {
  * Strategy: craft an item, or buy it and stop exploding its recipe
  * ------------------------------------------------------------------ */
 
+/**
+ * How this item is to be obtained.
+ *
+ * 'craft' and 'buy' are the universal pair. Anything else names a route
+ * through an upgrade that has more than one -- a Caravel from a plain
+ * Sailboat or an Improved one. The store does not need to know which
+ * routes exist: planner.js falls back to the default when it does not
+ * recognise the name, so an unknown value is inert rather than wrong.
+ */
 export function setStrategy(item, mode) {
-	const next = mode === 'buy' ? 'buy' : 'craft';
+	const next = typeof mode === 'string' && mode ? mode : 'craft';
 	if (getStrategy(item) === next) return null;
-	return commit('strategy', `${item}: ${next === 'buy' ? 'buy it' : 'craft it'}`, () => {
+	const how = next === 'buy' ? 'buy it' : next === 'craft' ? 'craft it' : `via ${next}`;
+	return commit('strategy', `${item}: ${how}`, () => {
 		const s = { ...state.strategy };
 		if (next === 'craft') delete s[item];
 		else s[item] = next;
@@ -401,8 +411,31 @@ export function importJSON(text) {
 	if (!parsed || typeof parsed !== 'object' || !parsed.stock) {
 		throw new Error('That file does not contain tracker data.');
 	}
-	const incoming = normalise(parsed);
-	commit('import', 'Imported tracker data', () => {
+	return adopt(parsed, 'Imported tracker data');
+}
+
+/**
+ * The three fields that are the save, as an object.
+ *
+ * Everything else the state holds is either derived (nothing here) or
+ * local to this browser: `history` is the undo stack, `settings` are
+ * preferences like which tab you were on. Neither belongs in a backup or
+ * on another machine, so neither is included.
+ */
+export function saveShape() {
+	return { stock: state.stock, targets: state.targets, strategy: state.strategy };
+}
+
+/**
+ * Replace the save wholesale -- from a file, or from another device.
+ *
+ * It goes through `commit`, so it lands on the undo stack: taking the
+ * wrong copy in a sync conflict is exactly the sort of thing you want one
+ * press to reverse.
+ */
+export function adopt(data, label = 'Replaced tracker data') {
+	const incoming = normalise(data);
+	commit('import', label, () => {
 		state.stock = incoming.stock;
 		state.targets = incoming.targets;
 		state.strategy = incoming.strategy;

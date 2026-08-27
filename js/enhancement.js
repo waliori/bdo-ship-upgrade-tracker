@@ -4,7 +4,7 @@
 // +10 -- which under-states a Chiro part by more than tenfold. These are
 // the real per-attempt numbers.
 //
-// Sources, checked 2026-08-25:
+// Sources, checked 2026-08-25 (the yellow tier 2026-08-26):
 //   rates, stone counts, perfect-enhance costs and durability loss come
 //     from the enchantment table embedded in each bdocodex item page
 //     (https://bdocodex.com/us/item/<id>/);
@@ -17,7 +17,9 @@
 // number of failures before a guaranteed success is a hard ceiling, which
 // is the number worth planning against.
 //
-// All 42 enhanceable ship parts share just six tables.
+// All 70 enhanceable ship parts share seven tables. The last of them,
+// the yellow tier, is the one that breaks the pattern: a failed attempt
+// there takes a level, not just durability.
 
 export const tables = {
 	'sailboat': {
@@ -121,10 +123,55 @@ export const tables = {
 			{ chance: 1, stones: 1, perfect: null, durability: 0 },
 			{ chance: 1, stones: 1, perfect: null, durability: 0 },
 		]
-	},};
+	},
+	'yellow': {
+		label: 'Falasi / Cheongun yellow',
+		material: 'Sunset Tidal Black Stone',
+		// The rule that makes this tier different: a failure takes a
+		// level as well as durability, which no tier below it does.
+		// Cron Stones buy that protection back, at the price in `cron`.
+		keepsLevel: false,
+		// `chance` is the rate the game quotes at `stack` failstacks,
+		// which is the number a player actually enhances at; `base` is
+		// the same attempt at zero stacks.
+		// index = the level you are at; the attempt takes you to index + 1
+		levels: [
+			{ chance: 0.24, base: 0.03, stack: 70, stones: 1, perfect: null, durability: 10, agris: 8, cron: 0 },
+			{ chance: 0.22, base: 0.02, stack: 100, stones: 1, perfect: null, durability: 10, agris: 9, cron: 290 },
+			{ chance: 0.2025, base: 0.015, stack: 125, stones: 1, perfect: null, durability: 10, agris: 9, cron: 360 },
+			{ chance: 0.175, base: 0.0125, stack: 130, stones: 1, perfect: null, durability: 10, agris: 11, cron: 380 },
+			{ chance: 0.155, base: 0.01, stack: 145, stones: 1, perfect: null, durability: 10, agris: 12, cron: 400 },
+			{ chance: 0.136, base: 0.0085, stack: 150, stones: 1, perfect: null, durability: 10, agris: 14, cron: 420 },
+			{ chance: 0.1155, base: 0.007, stack: 155, stones: 1, perfect: null, durability: 10, agris: 17, cron: 440 },
+			{ chance: 0.0963, base: 0.0055, stack: 165, stones: 1, perfect: null, durability: 10, agris: 20, cron: 460 },
+			{ chance: 0.078, base: 0.004, stack: 185, stones: 1, perfect: null, durability: 10, agris: 25, cron: 480 },
+			{ chance: 0.0625, base: 0.0025, stack: 240, stones: 1, perfect: null, durability: 10, agris: 30, cron: 540 },
+		]
+	},
+};
 
 /** Which table each part follows. */
 export const families = {
+	"Epheria Carrack: Advance (Falasi's Cannon)": 'yellow',
+	"Epheria Carrack: Advance (Falasi's Figurehead)": 'yellow',
+	"Epheria Carrack: Advance (Falasi's Plating)": 'yellow',
+	"Epheria Carrack: Advance (Falasi's Sail)": 'yellow',
+	"Epheria Carrack: Balance (Falasi's Cannon)": 'yellow',
+	"Epheria Carrack: Balance (Falasi's Figurehead)": 'yellow',
+	"Epheria Carrack: Balance (Falasi's Plating)": 'yellow',
+	"Epheria Carrack: Balance (Falasi's Sail)": 'yellow',
+	"Epheria Carrack: Volante (Falasi's Cannon)": 'yellow',
+	"Epheria Carrack: Volante (Falasi's Figurehead)": 'yellow',
+	"Epheria Carrack: Volante (Falasi's Plating)": 'yellow',
+	"Epheria Carrack: Volante (Falasi's Sail)": 'yellow',
+	"Epheria Carrack: Valor (Falasi's Cannon)": 'yellow',
+	"Epheria Carrack: Valor (Falasi's Figurehead)": 'yellow',
+	"Epheria Carrack: Valor (Falasi's Plating)": 'yellow',
+	"Epheria Carrack: Valor (Falasi's Sail)": 'yellow',
+	"Panokseon: Cheongun's Enhanced Cannon": 'yellow',
+	"Panokseon: Cheongun's Enhanced Figurehead": 'yellow',
+	"Panokseon: Cheongun's Enhanced Plating": 'yellow',
+	"Panokseon: Cheongun's Enhanced Sail": 'yellow',
 	"Bartali Sailboat: Old Cannon": 'sailboat',
 	"Bartali Sailboat: Old Figurehead": 'sailboat',
 	"Bartali Sailboat: Old Plating": 'sailboat',

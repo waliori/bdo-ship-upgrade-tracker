@@ -165,6 +165,59 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 .ghost-btn:hover:not(:disabled) { color: var(--ink-hi); border-color: var(--line-btn-hi); }
 .ghost-btn.on { color: var(--teal); }
 
+/* ---- account ------------------------------------------------------ *
+   Present only where the deployment offers sync; otherwise #account is
+   empty and this costs nothing. The chip is the sync status as much as
+   it is the name -- the dot is the whole of the reporting, so a normal
+   save never interrupts anything. */
+
+.account { display: inline-flex; }
+
+.account-chip { display: inline-flex; align-items: center; gap: 8px; }
+.account-avatar { border-radius: 50%; display: block; }
+.account-name { font-weight: 600; }
+
+.account-note {
+  position: relative;
+  padding-left: 12px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-mute);
+  letter-spacing: 0.02em;
+}
+
+.account-note::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+}
+
+.account-chip.idle .account-note::before { background: var(--teal); }
+.account-chip.syncing .account-note::before { background: var(--blue); animation: account-pulse 1.1s ease-in-out infinite; }
+.account-chip.conflict .account-note::before { background: var(--amber); }
+.account-chip.error .account-note::before { background: var(--red); }
+.account-chip.conflict, .account-chip.error { border-color: var(--red-edge); }
+
+@keyframes account-pulse { 50% { opacity: 0.35; } }
+
+/* A steady dot says as much as a blinking one, and does not drag the eye
+   away from the screen the user is actually reading. */
+@media (prefers-reduced-motion: reduce) {
+  .account-chip.syncing .account-note::before { animation: none; }
+}
+
+/* The name is the least useful part on a narrow screen: the avatar says
+   who, and the dot says whether. */
+@media (max-width: 640px) {
+  .account-name { display: none; }
+}
+
 /* ---- tabs --------------------------------------------------------- */
 
 .tabs {
@@ -674,6 +727,10 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 .act:hover:not(:disabled) { background: rgba(88, 168, 232, 0.3); }
 .act.quiet { background: none; border-color: rgba(125, 175, 225, 0.25); color: var(--ink-dim); font-weight: 600; }
 .act.quiet:hover:not(:disabled) { border-color: var(--line-btn-hi); color: var(--ink-hi); }
+
+/* For the one action in the app that cannot be undone. */
+.act.bad { background: rgba(232, 122, 109, 0.16); border-color: var(--red-edge); color: var(--red-soft); }
+.act.bad:hover:not(:disabled) { background: rgba(232, 122, 109, 0.3); }
 
 /* ---- workshop ----------------------------------------------------- */
 
@@ -1216,8 +1273,12 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 }
 
 .pouch-input {
-  width: 116px;
-  max-width: 34vw;
+  /* Wide enough for thirteen characters: silver reached ten figures the
+     day the yellow permits arrived at five billion each. */
+  width: 148px;
+  /* The chips wrap, so a phone can spare the width -- and 34vw used to
+     cut the last two digits off a ten-figure silver balance. */
+  max-width: 60vw;
   padding: 0;
   border: none;
   background: none;
@@ -1247,7 +1308,9 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   .pouch-title { display: none; }
   .pouch-list { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
   .pouch-item { flex: none; }
-  .pouch-input { width: 92px; font-size: 15px; }
+  /* The row scrolls here, so the extra width costs nothing but a swipe,
+     and ten-figure silver no longer loses its last two digits. */
+  .pouch-input { width: 124px; font-size: 15px; }
 }
 
 .summary-sub { font-size: 11px; color: var(--ink-faint); margin-top: 3px; }
@@ -1290,3 +1353,450 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 }
 
 .enh-outlook b { color: var(--amber); font-family: var(--font-display); }
+
+/* ---- two ways to build the same ship -------------------------------- */
+
+.route-list { display: flex; flex-direction: column; gap: 6px; }
+
+.route {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid rgba(125, 175, 225, 0.18);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--ink-dim);
+}
+
+.route:hover { border-color: var(--line-btn-hi); color: var(--ink-hi); }
+.route.on { border-color: var(--blue-edge); background: rgba(88, 168, 232, 0.12); color: var(--ink-hi); }
+
+.route-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.route-name { font-weight: 600; font-size: 12.5px; }
+
+.route-have {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--teal);
+  border: 1px solid var(--teal-edge);
+  border-radius: 8px;
+  padding: 1px 6px;
+}
+
+.route-cost { font-size: 11px; color: var(--ink-mute); font-variant-numeric: tabular-nums; }
+.route-gain { font-size: 11px; color: var(--ink-faint); line-height: 1.45; }
+
+/* ---- the requirement tree ------------------------------------------- */
+
+.tbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* One button naming the build on screen, whatever the queue length. */
+.tpick {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  flex: 1 1 260px;
+  max-width: 460px;
+  padding: 8px 13px;
+  border-radius: 9px;
+  border: 1px solid var(--blue-edge);
+  background: rgba(88, 168, 232, 0.12);
+  color: var(--ink-hi);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tpick:hover { border-color: rgba(88, 168, 232, 0.7); }
+.tpick-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.tpick-of { font-size: 11px; font-weight: 500; color: var(--ink-mute); white-space: nowrap; }
+.tpick-caret { color: var(--ink-mute); font-size: 11px; }
+.tchip-icon { width: 22px; height: 22px; border-radius: 4px; object-fit: contain; flex: none; }
+
+.picker-row.on { border-color: var(--blue-edge); background: rgba(88, 168, 232, 0.12); }
+
+.tpanel { padding: 10px 14px 12px; overflow-x: auto; }
+
+.trow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 6px;
+  border-radius: 8px;
+  min-width: 620px;
+}
+
+.trow:hover { background: rgba(88, 168, 232, 0.05); }
+
+/* One cell per ancestor: a line where the branch continues below, an
+   elbow on the last one. */
+/* The negative margin is what makes the vertical lines meet across rows:
+   without it each stops at the row's padding and the branch looks broken. */
+.tguide { position: relative; width: 22px; flex: none; align-self: stretch; margin: -5px 0; }
+.tguide::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(125, 175, 225, 0.2);
+}
+.tguide.stop::before { bottom: 50%; }
+.tguide.elbow::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  width: 11px;
+  height: 1px;
+  background: rgba(125, 175, 225, 0.2);
+}
+.tguide.elbow::before { bottom: 50%; }
+
+.tcaret {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: 5px;
+  border: 1px solid rgba(125, 175, 225, 0.25);
+  background: none;
+  color: var(--ink-mute);
+  font-size: 11px;
+  line-height: 1;
+}
+.tcaret:hover { color: var(--ink-hi); border-color: var(--line-btn-hi); }
+.tcaret.empty { border: none; }
+
+.trow-icon { width: 26px; height: 26px; border-radius: 5px; object-fit: contain; flex: none; }
+.trow-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.trow-name { font-size: 12.5px; color: var(--ink-row); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trow.missing .trow-name { color: var(--ink-hi); }
+.trow-sub { font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; }
+
+.trow-need,
+.trow-own {
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  flex: none;
+  text-align: right;
+}
+.trow-need { min-width: 54px; color: var(--ink-dim); }
+.trow-own { min-width: 68px; color: var(--ink-faint); }
+
+.tlegend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 11.5px; color: var(--ink-mute); padding-left: 4px; }
+.tlegend span { display: flex; align-items: center; gap: 7px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot.teal { background: var(--teal); }
+.dot.blue { background: var(--blue); }
+.dot.red { background: var(--red); }
+
+@media (max-width: 720px) {
+  .trow { min-width: 520px; }
+  .trow-own { display: none; }
+}
+
+/* An inline "change" that reads as part of the sentence around it. */
+.linky {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.linky:hover { color: var(--blue-hi); }
+
+.detail-close {
+  margin-left: auto;
+  align-self: flex-start;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  background: none;
+  color: var(--ink-mute);
+  font-size: 17px;
+  line-height: 1;
+}
+.detail-close:hover { color: var(--ink-hi); border-color: var(--line-btn-hi); }
+
+/* ---- the header on a phone ------------------------------------------ */
+
+/* Hidden until there is not room for the buttons themselves. */
+.hamburger { display: none; }
+
+@media (max-width: 780px) {
+  .masthead { position: relative; }
+
+  .hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    width: 40px;
+    height: 40px;
+    flex: none;
+    padding: 0 9px;
+    border-radius: var(--r-btn);
+    border: 1px solid var(--line-btn);
+    background: none;
+  }
+
+  .hamburger span {
+    display: block;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--ink-dim);
+  }
+
+  .hamburger[aria-expanded="true"] { border-color: var(--blue-edge); }
+  .hamburger[aria-expanded="true"] span { background: var(--blue-hi); }
+
+  /* Out of the flow entirely, so the header stays one line high. */
+  .masthead-actions {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 20;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    min-width: 210px;
+    padding: 8px;
+    border-radius: var(--r-panel);
+    border: 1px solid var(--line);
+    background: rgba(9, 24, 43, 0.97);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  .masthead-actions.open { display: flex; }
+  .masthead-actions .ghost-btn { text-align: left; width: 100%; }
+  .brand-sub { display: none; }
+}
+
+/* Six tabs have to fit a 360px screen, and scroll rather than clip if a
+   seventh ever arrives. */
+@media (max-width: 640px) {
+  .tabs {
+    gap: 0;
+    margin-bottom: 20px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab {
+    padding: 9px 9px 11px;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    gap: 5px;
+  }
+
+  .tab-count { padding: 1px 5px; font-size: 10px; }
+}
+
+@media (max-width: 720px) {
+  .tbar { gap: 6px; }
+  .tpick { flex: 1 1 100%; max-width: none; }
+  .tbar .ghost-btn { flex: 1 1 auto; text-align: center; }
+}
+
+/* A tab row that scrolls should look like one. The fade sits on the right
+   edge and only appears while there is more to reach. */
+.tabs {
+  position: relative;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent 100%);
+}
+
+.tabs:not(.scrolls) {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+@media (max-width: 640px) {
+  /* The tree has to fit the screen rather than scroll sideways inside a
+     panel that is already the width of the phone. */
+  .tpanel { padding: 8px 10px 10px; }
+  .trow { min-width: 0; gap: 7px; padding: 5px 2px; }
+  .tguide { width: 14px; }
+  .tguide::before { left: 6px; }
+  .tguide.elbow::after { left: 6px; width: 7px; }
+  .trow-need { display: none; }
+  .trow-name { white-space: normal; line-height: 1.3; }
+  .trow-icon { width: 22px; height: 22px; }
+}
+
+/* The walkthrough film, in the help dialog. */
+.help-film {
+  display: block;
+  width: 100%;
+  max-height: 62vh;
+  margin: 4px 0 14px;
+  border-radius: var(--r-panel);
+  border: 1px solid rgba(125, 175, 225, 0.2);
+  background: #06111e;
+}
+
+@media (max-width: 720px) {
+  /* Leave room for the buttons under it: the dialog scrolls, but the
+     thing you are meant to press should not start below the fold. */
+  .help-film { max-height: 42vh; }
+}
+
+/* ---- the detail panel on a phone ------------------------------------ */
+
+.detail-veil { display: none; }
+
+@media (max-width: 720px) {
+  /* Below this width the layout is one column, so the panel used to land
+     under the whole grid -- tapping a tile looked like it did nothing.
+     It comes up over the page instead, where it can be seen. */
+  .detail { display: none; }
+
+  .detail.open {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    z-index: 55;
+    max-height: 78vh;
+    overflow-y: auto;
+    border-radius: var(--r-panel) var(--r-panel) 0 0;
+    border-bottom: none;
+    padding-bottom: 26px;
+    animation: sheetUp 0.22s ease;
+    box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  @keyframes sheetUp {
+    from { transform: translateY(14px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+
+  /* A grab bar, so it reads as something that can be dismissed. */
+  .detail.open::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    margin: 0 auto 14px;
+    border-radius: 2px;
+    background: rgba(125, 175, 225, 0.35);
+  }
+
+  .detail-veil {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 54;
+    background: rgba(3, 9, 16, 0.6);
+    backdrop-filter: blur(2px);
+  }
+
+  .detail-close { position: absolute; top: 14px; right: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail.open { animation: none; }
+}
+
+/* ---- links out to BDOCodex ------------------------------------------ */
+
+/* Every item name in the app is a link to the game's own reference. It
+   has to read as a name first and a link second, or the Plan turns into
+   a page of blue text. */
+a.codex {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+a.codex:hover,
+a.codex:focus-visible {
+  color: var(--blue-hi);
+  border-bottom-color: rgba(124, 195, 238, 0.45);
+}
+
+.codex-mark {
+  font-size: 0.75em;
+  margin-left: 3px;
+  color: var(--ink-faint);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+a.codex:hover .codex-mark,
+a.codex:focus-visible .codex-mark { opacity: 1; color: var(--blue); }
+
+/* The hover card cannot be clicked, so it must not advertise links. */
+.peek a.codex { color: inherit; border-bottom: none; pointer-events: none; }
+.peek .codex-mark { display: none; }
+
+/* ---- what a thing really costs -------------------------------------- */
+
+.way {
+  padding: 8px 10px;
+  border-radius: var(--r-btn);
+  border: 1px solid rgba(125, 175, 225, 0.14);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.way + .way { margin-top: 6px; }
+.way.on { border-color: var(--blue-edge); background: var(--blue-glow); }
+
+.way-top { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.way-label { font-size: 11.5px; font-weight: 700; color: var(--ink-mid); }
+.way-tag { font-size: 10px; color: var(--blue); margin-left: auto; }
+
+.way-cost {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  color: var(--ink-row);
+  font-variant-numeric: tabular-nums;
+}
+
+.way-unit { font-family: inherit; font-size: 11px; color: var(--ink-faint); }
+
+.way-total {
+  font-size: 11.5px;
+  color: var(--amber);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.way-parts { font-size: 10.5px; color: var(--ink-faint); margin-top: 4px; line-height: 1.45; }
+
+.peek-cost {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--ink-mid);
+  font-variant-numeric: tabular-nums;
+}
+
+.row-alt { font-size: 11px; color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Nothing hovers on a phone, so the arrow has to be there all along or
+   nobody ever finds out the names are links. */
+@media (hover: none) {
+  .codex-mark { opacity: 0.55; }
+  .peek .codex-mark { display: none; }
+}
+
+.build-cost {
+  font-size: 11.5px;
+  color: var(--amber);
+  font-variant-numeric: tabular-nums;
+  margin-top: 4px;
+}

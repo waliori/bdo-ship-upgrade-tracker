@@ -1,24 +1,33 @@
 // The whole interface. Every screen is a projection of state.js through
 // planner.js -- nothing here holds its own copy of anything.
 
-import { recipes } from './recipes.js';
+import { recipes as allRecipes, routes, routeInfo } from './recipes.js';
 import { shipGroups } from './ships.js';
 import { items as vendorItems } from './vendor_items.js';
 import { coins } from './sea_coins.js';
 import { falasi } from './falasi_vendor.js';
+import { tableFor } from './enhancement.js';
 import { iconLoader } from './icon-loader.js';
 import RealisticWaterRipples from './realistic-water-ripples.js';
 import * as store from './state.js';
+import { initSync, openAccount } from './sync.js';
 import {
-	plan, craftableNow, maxCraftable, craftDelta,
+	plan, planOne, craftableNow, maxCraftable, craftDelta,
 	enhanceStep, ownedLevel, shoppingList, bottlenecks,
-	parseEnhanced, enhancedName, enhancementForecast
+	parseEnhanced, enhancedName, enhancementForecast, resolveRoutes, routeOf,
+	waysToGet, outstanding, remainingCost
 } from './planner.js';
+
+// The recipe book as the user's chosen routes make it. An upgrade with
+// two ways in -- the Caravel, the Galleass -- reads here as whichever one
+// they picked, so nothing downstream has to know routes exist.
+let recipes = allRecipes;
 
 const TABS = [
 	{ id: 'plan', label: 'Plan' },
 	{ id: 'builds', label: 'Builds' },
 	{ id: 'inventory', label: 'Inventory' },
+	{ id: 'tree', label: 'Tree' },
 	{ id: 'workshop', label: 'Workshop' },
 	{ id: 'get', label: 'To Get' }
 ];
@@ -42,6 +51,13 @@ const SOURCE_LABEL = {
 const CROW_COIN = 'Crow Coin';
 const SILVER = 'Silver';
 
+// Sangpyeong Coins are money too, even though they sit in your bags like a
+// material: they buy Finely Polished Pine Plywood, which the Panokseon
+// wants 300 of and each Byukgye's part another 50 -- thousands of coins in
+// a build, earned from Moodle Village dailies rather than bought. It stays
+// in the item grid as well, since where it comes from is worth reading.
+const SANGPYEONG = 'Sangpyeong Coin';
+
 // Everything an enhancement attempt burns other than the part itself --
 // derived from the recipes, so a new stone in a future update shows up in
 // the pouch without anyone editing this file.
@@ -62,6 +78,8 @@ let view = 'plan';
 let query = '';
 let planFilter = 'all';
 let invFilter = 'all';
+let treeTarget = null;
+const folded = new Set();
 let selected = null;
 let snapshot = null;
 let rows = {};
@@ -119,6 +137,35 @@ function iconSrc(name) {
 const img = (name, cls = 'row-icon') =>
 	`<img class="${cls}" src="${esc(iconSrc(name))}" alt="" loading="lazy">`;
 
+/**
+ * BDOCodex has a page for every item in the game, and the icon mapping
+ * already carries the URL beside the picture -- so linking a name to the
+ * game's own reference costs nothing but the anchor. An enhancement
+ * level shares its base item's page, which is where the level table
+ * lives anyway.
+ */
+function codexUrl(item) {
+	let info = null;
+	try {
+		info = iconLoader.getIconInfo(item) || iconLoader.getIconInfo(parseEnhanced(item).base);
+	} catch {
+		info = null;
+	}
+	return info && info.url ? info.url : null;
+}
+
+/**
+ * An item's name, linked to its BDOCodex page. Falls back to plain text
+ * for anything the mapping has never heard of, so a name is never
+ * missing just because a link is.
+ */
+function codexName(item, text = item) {
+	const url = codexUrl(item);
+	if (!url) return esc(text);
+	return `<a class="codex" href="${esc(url)}" target="_blank" rel="noopener noreferrer" data-codex
+		title="Look up ${esc(item)} on BDOCodex">${esc(text)}<span class="codex-mark" aria-hidden="true">\u2197</span></a>`;
+}
+
 function allItems() {
 	const set = new Set();
 	for (const [product, recipe] of Object.entries(recipes)) {
@@ -147,9 +194,32 @@ function ingredientLine(name, per, cls = 'peek-line') {
 	return `<div class="${cls} ${have >= per ? 'ok' : 'short'}">
 		${img(name, 'peek-icon')}
 		<span class="peek-need">${F(per)}×</span>
-		<span class="peek-name">${esc(name)}</span>
+		<span class="peek-name">${codexName(name)}</span>
 		<span class="peek-have">${F(have)}</span>
 	</div>`;
+}
+
+/**
+ * The price lists the cost model works from. `recipes` is the resolved
+ * book, so a Caravel priced here is the Caravel by the route the player
+ * actually chose.
+ */
+const costCtx = () => ({ coins, silver: falasi, recipes, strategy: store.getAllStrategy() });
+
+/**
+ * A cost said out loud. Coins and silver stay apart -- the game will not
+ * trade one for the other -- and anything the data cannot price is named
+ * rather than quietly counted as free.
+ */
+function costText(cost, times = 1) {
+	const bits = [];
+	if (cost.coins) bits.push(`${FC(Math.round(cost.coins * times))} coins`);
+	if (cost.silver) bits.push(`${FC(Math.round(cost.silver * times))} silver`);
+	const needs = Object.entries(cost.needs);
+	const listed = needs.slice(0, 2);
+	for (const [item, qty] of listed) bits.push(`${F(Math.ceil(qty * times))}\u00d7 ${item}`);
+	const rest = needs.length - listed.length;
+	return (bits.join(' + ') || 'nothing') + (rest > 0 ? `, and ${rest} more` : '');
 }
 
 /**
@@ -179,6 +249,14 @@ function peekHTML(item) {
 	const body = makeupHTML(item);
 	const src = sourceOf(item);
 
+	// The shop price is already on the source line; what is not written
+	// anywhere in the game is what one costs once its ingredients are
+	// priced too, all the way down. That is the number worth showing.
+	const made = waysToGet(item, costCtx()).routes.find(r => r.parts);
+	const price = made && (made.coins || made.silver || outstanding(made))
+		? `<div class="peek-cost">${esc(made.kind === 'enhance' ? 'One success' : 'Making one')}: ${esc(costText(made))}</div>`
+		: '';
+
 	// With the ingredients already listed, a crafting source is a place,
 	// not an alternative -- only a shop or a drop is an "or".
 	let foot = '';
@@ -186,9 +264,10 @@ function peekHTML(item) {
 	else if (src && MAKE_KEYS.has(src.key)) foot = src.key === 'craft' ? '' : src.detail;
 	else if (src) foot = `or ${src.label} · ${src.detail}`;
 
-	if (!body && !foot) return '';
+	if (!body && !foot && !price) return '';
 	return `<div class="peek-head">${img(item, 'peek-icon lg')}<span>${esc(item)}</span></div>`
 		+ body
+		+ price
 		+ (foot ? `<div class="peek-foot">${esc(foot)}</div>` : '');
 }
 
@@ -227,6 +306,7 @@ function toast(message, undoable = false) {
  * ------------------------------------------------------------------ */
 
 function recompute() {
+	recipes = resolveRoutes(store.getAllStrategy(), allRecipes);
 	snapshot = plan({
 		stock: store.getAllStock(),
 		targets: store.getTargets(),
@@ -266,7 +346,7 @@ function recompute() {
 }
 
 const readyCrafts = () =>
-	craftableNow(store.getAllStock(), snapshot.toCraft)
+	craftableNow(store.getAllStock(), snapshot.toCraft, recipes)
 		.filter(c => parseEnhanced(c.item).level === 0);
 
 function totalsToGo() {
@@ -367,12 +447,14 @@ function renderPlan() {
 }
 
 /**
- * The pouch: coins, silver and enhancement stones, on every tab.
+ * The pouch: coins, silver, Sangpyeong Coins and enhancement stones, on
+ * every tab.
  *
  * These are spent from wherever you happen to be -- buying on To Get,
  * enhancing in the Workshop -- so they sit in the shell above the tabs
- * instead of belonging to one screen. Stones only appear once a build
- * needs them or you hold some, so the bar stays short.
+ * instead of belonging to one screen. Everything past the two headline
+ * currencies only appears once a build needs it or you hold some, so the
+ * bar stays short.
  */
 function pouchHTML() {
 	const totals = totalsToGo();
@@ -382,8 +464,18 @@ function pouchHTML() {
 		{ item: SILVER, label: 'Silver', need: totals.silver, where: 'Falasi, port of Epheria', glyph: '\u25C9' }
 	];
 
-	STONES
-		.map(item => ({ item, label: item, need: rows[item] ? rows[item].need : 0, where: 'spent on enhancement attempts' }))
+	// Coins and stones are earned or dropped, not priced, so they join the
+	// bar only once a build wants them or you are holding some -- that way
+	// a Carrack plan never carries a Panokseon currency it has no use for.
+	const carried = (item, label, where) => {
+		const need = rows[item] ? rows[item].need : 0;
+		return { item, label, need, where };
+	};
+
+	const optional = [carried(SANGPYEONG, 'Sangpyeong Coins', 'Moodle Village dailies')];
+	STONES.forEach(item => optional.push(carried(item, item, 'spent on enhancement attempts')));
+
+	optional
 		.filter(e => e.need > 0 || store.getStock(e.item) > 0)
 		.sort((a, b) => b.need - a.need || a.label.localeCompare(b.label))
 		.forEach(e => entries.push(e));
@@ -526,7 +618,7 @@ function planRow(item, r, covered) {
 	// the plan has a recipe lined up for it. The two used to be conflated,
 	// which is how the Plan could badge seven rows craftable while the
 	// Workshop said nothing could be made.
-	const can = !enhanced && recipes[item] && r.craft > 0 && maxCraftable(item, store.getAllStock()) >= 1;
+	const can = !enhanced && recipes[item] && r.craft > 0 && maxCraftable(item, store.getAllStock(), recipes) >= 1;
 	const badge = covered
 		? 'covered'
 		: r.short > 0
@@ -540,7 +632,7 @@ function planRow(item, r, covered) {
 	return `<div class="row" data-peek="${esc(item)}">
 		${img(item)}
 		<div class="row-main">
-			<div class="row-name">${esc(item)}</div>
+			<div class="row-name">${codexName(item)}</div>
 			<div class="row-sub">${esc(sub)}</div>
 		</div>
 		<div class="row-meter">
@@ -589,11 +681,19 @@ function renderBuilds() {
 			${img(t.item, 'row-icon lg')}
 			<div class="build-main">
 				<div class="build-titles">
-					<span class="build-name">${esc(t.item)}</span>
+					<span class="build-name">${codexName(t.item)}</span>
 					<span class="build-state ${state}">${stateLabel}</span>
 				</div>
 				<div class="bar tall"><i class="fill" style="width:${pct.toFixed(1)}%"></i></div>
-				<div class="build-meta">Priority ${i + 1} · <span class="n">${pct.toFixed(1)}%</span> · ${esc(units)}</div>
+				<div class="build-meta">Priority ${i + 1} · <span class="n">${pct.toFixed(1)}%</span> · ${esc(units)}${routeNote(t.item)}</div>
+				${(() => {
+					// The bill for finishing this one: every leaf its tree
+					// could neither cover from stock nor make, priced the
+					// way the plan will actually get it.
+					if (!r || r.missingUnits <= 0) return '';
+					const left = remainingCost(r.tree, costCtx());
+					return `<div class="build-cost">Still to get: ${esc(costText(left))}</div>`;
+				})()}
 			</div>
 			<div class="build-actions">
 				<button class="sq-btn" data-act="move" data-dir="-1" title="Raise priority" ${i === 0 ? 'disabled' : ''}>▲</button>
@@ -618,7 +718,7 @@ function renderBuilds() {
 		${blockers.map(b => `<div class="row">
 			${img(b.item, 'row-icon md')}
 			<div class="row-main">
-				<div class="row-name">${esc(b.item)}</div>
+				<div class="row-name">${codexName(b.item)}</div>
 				<div class="row-sub">blocks ${esc(b.targets.join(', '))}</div>
 			</div>
 			<span class="qty-out">${F(b.qty)} short</span>
@@ -735,7 +835,52 @@ function renderInventory() {
 				? `<div class="inv-grid">${tiles}</div>`
 				: `<div class="panel"><p class="empty">${searching ? 'Nothing matches that search.' : 'Nothing here yet — add a build, or switch to Owned to record what you have.'}</p></div>`}
 		</div>
-		<aside class="detail">${renderDetail()}</aside>
+		${selected ? '<div class="detail-veil" data-act="deselect" aria-hidden="true"></div>' : ''}
+		<aside class="detail ${selected ? 'open' : ''}">${renderDetail()}</aside>
+	</div>`;
+}
+
+/**
+ * Every way of getting the item, priced.
+ *
+ * The point is the comparison. A Crow Coin shop price is one line in the
+ * game already; what the game never tells you is what the same thing
+ * costs to make once its ingredients are priced too, recursively, and
+ * what that route still leaves you to go and barter for. Both are shown,
+ * per unit and against what you are actually short of, and neither is
+ * called the right answer unless it beats the other outright.
+ */
+function waysBlock(item) {
+	const { routes, best } = waysToGet(item, costCtx());
+	if (!routes.length) return '';
+
+	const short = rows[item] ? Math.ceil(rows[item].short) : 0;
+	const mode = store.getStrategy(item);
+	const inPlan = r => (r.kind === 'coin' || r.kind === 'silver' ? mode === 'buy' : mode !== 'buy');
+
+	const lines = routes.map(r => {
+		const on = routes.length > 1 && hasBuyOption(item) && inPlan(r);
+		// Where each ingredient is coming from, so the total is not a
+		// number you have to take on faith.
+		const via = (r.parts || [])
+			.filter(p => p.via)
+			.map(p => `${F(p.qty)}\u00d7 ${p.item} from ${p.via}`)
+			.join(' \u00b7 ');
+		return `<div class="way ${on ? 'on' : ''}">
+			<div class="way-top">
+				<span class="way-label">${esc(r.label)}</span>
+				${best === r ? '<span class="badge teal">cheapest</span>' : ''}
+				${on ? '<span class="way-tag">in the plan</span>' : ''}
+			</div>
+			<div class="way-cost">${esc(costText(r))} <span class="way-unit">each</span></div>
+			${short > 1 ? `<div class="way-total">${F(short)} short \u2192 ${esc(costText(r, short))}</div>` : ''}
+			${via ? `<div class="way-parts">${esc(via)}</div>` : ''}
+		</div>`;
+	}).join('');
+
+	return `<div class="detail-block">
+		<div class="detail-label">${routes.length > 1 ? 'Ways to get it' : 'What it costs'}</div>
+		${lines}
 	</div>`;
 }
 
@@ -757,7 +902,7 @@ function renderDetail() {
 	const step = level > 0 ? enhanceStep(base, level) : null;
 	const src = step ? null : sourceOf(item);
 	const canCraft = !!recipes[item] && !step;
-	const most = canCraft ? maxCraftable(item, store.getAllStock()) : 0;
+	const most = canCraft ? maxCraftable(item, store.getAllStock(), recipes) : 0;
 
 	const resvHTML = holders.length ? `<div class="detail-block">
 		<div class="detail-label">Reserved by</div>
@@ -778,7 +923,8 @@ function renderDetail() {
 
 	return `<div class="detail-head">
 			${img(item, '')}
-			<div class="detail-name">${esc(item)}</div>
+			<div class="detail-name">${codexName(item)}</div>
+			<button class="detail-close" data-act="deselect" title="Close (Esc)" aria-label="Close">×</button>
 		</div>
 		${levelPicker(item)}
 		<div class="qty-row">
@@ -800,7 +946,10 @@ function renderDetail() {
 			return made ? `<div class="detail-block">${made}</div>` : '';
 		})()}
 		${resvHTML}
-		${src ? `<div class="detail-src"><span>${esc(src.label)}</span><span>${esc(src.detail)}</span></div>` : ''}
+		${src && src.key !== 'coin' && src.key !== 'falasi'
+			? `<div class="detail-src"><span>${esc(src.label)}</span><span>${esc(src.detail)}</span></div>`
+			: ''}
+		${waysBlock(item)}
 		${step ? '<button class="act quiet wide" data-act="view" data-id="workshop">Attempt it in the Workshop</button>' : ''}
 		${toggle}
 		${canCraft ? `<div class="detail-actions">
@@ -861,6 +1010,137 @@ function moveLevelAction(item) {
 }
 
 /* ------------------------------------------------------------------ *
+ * Tree
+ * ------------------------------------------------------------------ */
+
+/**
+ * The requirement tree, as the planner already built it.
+ *
+ * The Plan flattens every build into one row per material, which is the
+ * right shape for "what do I still need" and the wrong one for "why does
+ * it need that". This is the same data unflattened: a Carrack sits above
+ * its Caravel, which sits above its Sailboat, with the materials of each
+ * hanging off the step that wants them -- so the upgrade path you chose
+ * is something you can see rather than infer.
+ */
+function nodeState(node) {
+	if (node.missing > 0) return 'missing';
+	if (node.toCraft > 0) return parseEnhanced(node.item).level > 0 ? 'enhance' : 'make';
+	return 'covered';
+}
+
+const STATE_WORD = {
+	missing: 'missing',
+	make: 'to craft',
+	enhance: 'to enhance',
+	covered: 'covered'
+};
+
+/** Depth-first, carrying enough about ancestors to draw the guide lines. */
+function walkTree(node, rows, depth = 0, path = '', trail = []) {
+	const id = `${path}/${node.item}`;
+	const kids = node.children || [];
+	rows.push({ node, depth, id, trail: [...trail], kids: kids.length });
+	if (!kids.length || folded.has(id)) return rows;
+	kids.forEach((kid, i) => walkTree(kid, rows, depth + 1, id, [...trail, i === kids.length - 1]));
+	return rows;
+}
+
+/** Mid-chain enhancement steps are folded to start with: a +10 pulling in
+ *  +9 pulling in +8 is ten rows that all say the same thing. */
+function foldChains(node, path = '') {
+	const id = `${path}/${node.item}`;
+	const here = parseEnhanced(node.item);
+	if (here.level > 1 && node.children.some(k => parseEnhanced(k.item).base === here.base)) {
+		folded.add(id);
+	}
+	node.children.forEach(kid => foldChains(kid, id));
+}
+
+let chainsFolded = false;
+
+function renderTree() {
+	const targets = snapshot.targets;
+	if (!targets.length) return startHere();
+
+	if (!chainsFolded) {
+		targets.forEach(t => foldChains(t.tree));
+		chainsFolded = true;
+	}
+	const current = targets.find(t => t.item === treeTarget) || targets[0];
+
+	// One control, not a wrapping row of them. Seven builds turned the
+	// chips into six rows on a phone before any of the tree was visible,
+	// and the row grows without bound as the queue does.
+	const picker = `<button class="tpick" data-act="tree-pick">
+		${img(current.item, 'tchip-icon')}
+		<span class="tpick-name">${esc(current.item)}</span>
+		<span class="tpick-of">${targets.indexOf(current) + 1} of ${targets.length}</span>
+		<span class="tpick-caret" aria-hidden="true">▾</span>
+	</button>`;
+
+	const rows = walkTree(current.tree, []).map(row => {
+		const { node, depth, id, trail, kids } = row;
+		const state = nodeState(node);
+		const own = store.getStock(node.item);
+		const guides = trail.map(last =>
+			`<span class="tguide ${last ? 'stop' : ''}"></span>`).join('') +
+			(depth ? '<span class="tguide elbow"></span>' : '');
+
+		const bits = [];
+		if (node.fromStock) bits.push(`${F(node.fromStock)} from stock`);
+		if (node.toCraft) bits.push(`${F(node.toCraft)} ${parseEnhanced(node.item).level > 0 ? 'to enhance' : 'to craft'}`);
+		if (node.missing) bits.push(`${F(node.missing)} missing`);
+
+		return `<div class="trow ${state}" style="--depth:${depth}">
+			${guides}
+			${kids
+				? `<button class="tcaret" data-act="tree-fold" data-id="${esc(id)}">${folded.has(id) ? '+' : '−'}</button>`
+				: '<span class="tcaret empty"></span>'}
+			${img(node.item, 'trow-icon')}
+			<span class="trow-main">
+				<span class="trow-name">${codexName(node.item)}</span>
+				<span class="trow-sub">${esc(bits.join(' · ') || 'nothing needed')}</span>
+			</span>
+			<span class="trow-need">${F(node.need)}</span>
+			<span class="trow-own">${F(own)} held</span>
+			<span class="badge ${state === 'missing' ? 'red' : state === 'covered' ? 'teal' : 'blue'}">${STATE_WORD[state]}</span>
+		</div>`;
+	}).join('');
+
+	return `<div class="tbar">
+			${picker}
+			<span class="panel-spacer"></span>
+			<button class="ghost-btn" data-act="tree-all">Expand all</button>
+			<button class="ghost-btn" data-act="tree-none">Collapse</button>
+		</div>
+		<div class="panel tpanel">${rows}</div>
+		<div class="tlegend">
+			<span><i class="dot teal"></i>covered from stock</span>
+			<span><i class="dot blue"></i>to craft or enhance</span>
+			<span><i class="dot red"></i>still missing</span>
+		</div>`;
+}
+
+/** Which build's tree to look at. A list rather than a row of chips, so
+ *  it costs the same whether you have two builds queued or twenty. */
+function pickTreeTarget() {
+	const targets = snapshot.targets;
+	const current = targets.find(t => t.item === treeTarget) || targets[0];
+	openDialog(`
+		<h2>Which build</h2>
+		<div class="picker">${targets.map(t => `
+			<button type="button" class="picker-row ${t === current ? 'on' : ''}"
+				data-act="tree-target" data-item="${esc(t.item)}">
+				${img(t.item, 'row-icon sm')}
+				<span class="picker-name">${esc(t.item)}</span>
+				<span class="picker-tag">${Math.round(t.progress)}%</span>
+			</button>`).join('')}</div>
+		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>
+	`);
+}
+
+/* ------------------------------------------------------------------ *
  * Workshop
  * ------------------------------------------------------------------ */
 
@@ -890,6 +1170,73 @@ function outlook(e) {
 	return `<span class="enh-outlook" title="Expected cost of every attempt from +${e.have} to +${e.want}, and the most it can possibly take">
 		to +${e.want}: <b>${F(f.expected)}</b> expected · ${F(f.ceiling)} at worst
 	</span>`;
+}
+
+/**
+ * Which way round to build something that can be reached two ways.
+ *
+ * The Caravel takes either an Epheria Sailboat or an Improved one, and
+ * the Galleass either Frigate. bdocodex lists both with the same
+ * materials, so the step is the same either way -- what differs is
+ * whether you build the Improved first, which is a whole upgrade of its
+ * own and wants four more Epheria: Old parts.
+ *
+ * Neither is presented as the right answer. What each costs is shown,
+ * and the choice is the user's.
+ */
+function routeOptions(item) {
+	const variants = routes[item];
+	if (!variants) return '';
+	const chosen = routeOf(item, store.getAllStrategy());
+	const info = routeInfo[item] || {};
+	const stock = store.getAllStock();
+
+	return Object.keys(variants).map(name => {
+		const meta = info[name] || {};
+		const on = name === chosen;
+		// What this route asks for beyond the step they share, priced from
+		// nothing so the two are comparable.
+		const cost = planOne(item, 1, {}, { ...store.getAllStrategy(), [item]: name });
+		const units = Object.values(cost.missing).reduce((a, b) => a + b, 0);
+		const held = (stock[meta.via] || 0) > 0;
+		return `<button class="route ${on ? 'on' : ''}" data-act="route" data-item="${esc(item)}" data-route="${esc(name)}">
+			<span class="route-head">
+				<span class="route-name">${esc(meta.label || name)}</span>
+				${held ? '<span class="route-have">you have one</span>' : ''}
+			</span>
+			<span class="route-cost">${F(units)} units of material in total</span>
+			${meta.gains ? `<span class="route-gain">${esc(meta.gains)}</span>` : ''}
+		</button>`;
+	}).join('');
+}
+
+/** " · via the Improved Epheria Sailboat — change", on a build that has
+ *  more than one way in. */
+function routeNote(item) {
+	if (!routes[item]) return '';
+	const chosen = routeOf(item, store.getAllStrategy());
+	const meta = (routeInfo[item] || {})[chosen] || {};
+	return ` · via <b>${esc(meta.via || chosen)}</b>` +
+		` <button class="linky" data-act="ask-route" data-item="${esc(item)}">change</button>`;
+}
+
+/** The choice, as its own dialog -- asked when a build is queued, and
+ *  reachable again from the build afterwards. */
+function askRoute(item, { onPick } = {}) {
+	const host = openDialog(`
+		<h2>${esc(item)}</h2>
+		<p>There are two ways to build this one. Pick either — you can change your mind later from the build.</p>
+		<div class="route-list">${routeOptions(item)}</div>
+		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>
+	`);
+	host.querySelectorAll('[data-act="route"]').forEach(btn => {
+		btn.addEventListener('click', () => {
+			store.setStrategy(item, btn.dataset.route);
+			closeDialog();
+			if (onPick) onPick(btn.dataset.route);
+		});
+	});
+	return host;
 }
 
 /** " -- Crow Coin Shop", when we know where a part comes from. */
@@ -925,8 +1272,11 @@ function pendingEnhancements() {
 		const step = enhanceStep(base, have + 1);
 		if (!step) continue;
 
-		const stoneName = Object.keys(step.stones)[0] || 'Tidal Black Stone';
-		const stoneQty = step.stones[stoneName] || 0;
+		// Yellow gear spends Cron Stones alongside the enhancement stone,
+		// so an attempt costs a list, not one thing.
+		const costs = Object.entries(step.stones);
+		const stoneName = costs[0] ? costs[0][0] : 'Tidal Black Stone';
+		const stoneQty = costs[0] ? costs[0][1] : 0;
 		const affordable = Object.entries(step.stones).every(([st, q]) => (stock[st] || 0) >= q);
 		const holds = (stock[step.from] || 0) > 0;
 
@@ -938,6 +1288,7 @@ function pendingEnhancements() {
 			forecast: enhancementForecast(base, have, want),
 			step1: enhancementForecast(base, have, have + 1),
 			forBuild,
+			costs,
 			stoneName,
 			stoneQty,
 			affordable,
@@ -974,7 +1325,7 @@ function renderWorkshop() {
 			<div class="craft-top">
 				${img(c.item, '')}
 				<div>
-					<div class="craft-name">${esc(c.item)}</div>
+					<div class="craft-name">${codexName(c.item)}</div>
 					<div class="craft-times">×${F(c.possible)} possible now</div>
 				</div>
 			</div>
@@ -991,11 +1342,11 @@ function renderWorkshop() {
 		<div class="row" data-base="${esc(e.base)}" data-level="${e.next}" data-peek="${esc(enhancedName(e.base, e.next))}" ${e.blocked ? 'style="opacity:.55"' : ''}>
 			${img(enhancedName(e.base, e.have), 'row-icon md')}
 			<div class="row-main">
-				<div class="row-name">${esc(e.base)}</div>
+				<div class="row-name">${codexName(e.base)}</div>
 				<div class="row-sub" ${e.blocked ? 'style="color:var(--red)"' : ''}>${esc(e.note)}</div>
 			</div>
 			<span class="enh-level">+${e.have} → +${e.next}</span>
-			<span class="enh-cost">${img(e.stoneName, '')}×${F(e.stoneQty)}${odds(e)}</span>
+			<span class="enh-cost">${e.costs.map(([n, q]) => `${img(n, '')}×${F(q)}`).join('')}${odds(e)}</span>
 			${outlook(e)}
 			<span class="enh-actions">
 				<button class="pill-btn" data-act="enhance" data-result="success" ${e.blocked ? 'disabled' : ''}>Succeeded</button>
@@ -1015,7 +1366,7 @@ function renderWorkshop() {
 	<div class="panel">
 		<div class="panel-head">
 			<h2 class="panel-title">Enhancement</h2>
-			<span class="panel-sub">Everything you own that can go higher. Ship parts keep their level on a failed attempt — record what happened, stones are spent either way</span>
+			<span class="panel-sub">Everything you own that can go higher. Record what happened — the materials are spent either way. Blue and green parts keep their level on a failure; yellow ones would drop a level, which is what the Cron Stones in the cost are holding</span>
 		</div>
 		${enhRows || '<p class="empty">Nothing in your inventory can be enhanced. Add a ship part and it will show up here.</p>'}
 	</div>`;
@@ -1083,15 +1434,26 @@ function renderGet() {
 			</div>
 			${g.items.map(entry => {
 				let sub = entry.unit || entry.detail || '';
+				// The unit price alone leaves the comparison as mental
+				// arithmetic; the line total is the number being decided.
+				if (entry.qty > 1 && entry.coins) sub += ` \u00b7 ${FC(entry.coins)} coins for ${F(entry.qty)}`;
+				else if (entry.qty > 1 && entry.silver) sub += ` \u00b7 ${FC(entry.silver)} silver for ${F(entry.qty)}`;
 				if (entry.barter) {
 					const t = `barter from ${entry.barter.npcs.length} NPCs for ${entry.barter.gives.slice(0, 2).join(' / ')}`;
 					sub = sub ? `${sub} · ${t}` : t;
 				}
-				return `<div class="row">
+				// The list says where to buy it; the other half of the
+				// decision is what making it would cost instead.
+				const made = waysToGet(entry.item, costCtx()).routes.find(r => r.parts);
+				const alt = made
+					? `<div class="row-alt">or make ${F(entry.qty)}: ${esc(costText(made, entry.qty))}</div>`
+					: '';
+				return `<div class="row" data-peek="${esc(entry.item)}">
 					${img(entry.item, 'row-icon sm')}
 					<div class="row-main">
-						<div class="row-name">${esc(entry.item)}</div>
+						<div class="row-name">${codexName(entry.item)}</div>
 						<div class="row-sub">${esc(sub)}</div>
+						${alt}
 					</div>
 					<span class="qty-out">${F(entry.qty)}</span>
 				</div>`;
@@ -1129,6 +1491,10 @@ export function render() {
 			${t.label}${counts[t.id] ? `<span class="tab-count">${counts[t.id]}</span>` : ''}
 		</button>`).join('');
 
+	// Only fade the tab row when there is in fact something past the edge.
+	const tabBar = document.getElementById('tabs');
+	tabBar.classList.toggle('scrolls', tabBar.scrollWidth > tabBar.clientWidth + 1);
+
 	const undoBtn = document.getElementById('undo-btn');
 	if (undoBtn) undoBtn.disabled = !store.canUndo();
 
@@ -1142,6 +1508,7 @@ export function render() {
 	if (view === 'plan') root.innerHTML = renderPlan();
 	else if (view === 'builds') root.innerHTML = renderBuilds();
 	else if (view === 'inventory') root.innerHTML = renderInventory();
+	else if (view === 'tree') root.innerHTML = renderTree();
 	else if (view === 'workshop') root.innerHTML = renderWorkshop();
 	else root.innerHTML = renderGet();
 	restoreFocus(root, focus);
@@ -1262,9 +1629,29 @@ function targetIdFrom(el) {
 
 function wire() {
 	document.addEventListener('click', async evt => {
+		// A link out to BDOCodex is the browser's business, not ours --
+		// it must not also select a tile or dismiss a panel on the way.
+		if (evt.target.closest('a[data-codex]')) return;
+
 		const el = evt.target.closest('[data-act]');
-		if (!el) return;
+		if (!el) {
+			// Clicking past the tiles puts the detail panel away. Reading
+			// the panel itself is not clicking past anything, so a click
+			// inside it leaves the selection alone.
+			if (view === 'inventory' && selected && !evt.target.closest('.detail')) {
+				selected = null;
+				render();
+			}
+			return;
+		}
 		const act = el.getAttribute('data-act');
+
+		// Picking something out of the phone menu puts it away again.
+		if (act !== 'menu' && el.closest('.masthead-actions.open')) {
+			document.getElementById('masthead-actions').classList.remove('open');
+			const burger = document.querySelector('[data-act="menu"]');
+			if (burger) burger.setAttribute('aria-expanded', 'false');
+		}
 
 		switch (act) {
 			case 'view': setView(el.dataset.id); return;
@@ -1278,12 +1665,46 @@ function wire() {
 			case 'import': return doImport();
 			case 'water': return toggleWater();
 			case 'tour': return startTour();
+			case 'help': return openHelp();
+			case 'signin':
+			case 'account': return openAccount();
+			case 'menu': {
+				// The header's buttons do not fit a phone, so below a certain
+				// width they live behind this and are shown on demand.
+				const bar = document.getElementById('masthead-actions');
+				const open = bar.classList.toggle('open');
+				el.setAttribute('aria-expanded', String(open));
+				return;
+			}
 			case 'plan-filter': planFilter = el.dataset.id; return render();
+			case 'tree-pick': return pickTreeTarget();
+			case 'tree-target': treeTarget = el.dataset.item; closeDialog(); return render();
+			case 'tree-fold': {
+				const id = el.dataset.id;
+				if (folded.has(id)) folded.delete(id); else folded.add(id);
+				return render();
+			}
+			case 'tree-all': folded.clear(); return render();
+			case 'tree-none': {
+				folded.clear();
+				snapshot.targets.forEach(t => (t.tree.children || []).forEach(function deep(n) {
+					folded.add(`/${t.tree.item}/${n.item}`);
+				}));
+				chainsFolded = true;
+				return render();
+			}
 			case 'inv-filter': invFilter = el.dataset.id; return render();
 			case 'select': selected = el.dataset.item; return render();
+			case 'deselect': selected = null; return render();
 			case 'strategy':
 				if (selected) store.setStrategy(selected, el.dataset.mode);
 				return;
+			case 'ask-route': return askRoute(el.dataset.item, {
+				onPick: name => toast(
+					`${el.dataset.item} — ${name === 'improved' ? 'by way of the Improved hull' : 'straight from the base hull'}`,
+					true
+				)
+			});
 			case 'bump':
 				if (selected) store.addStock(selected, Number(el.dataset.delta));
 				return;
@@ -1314,9 +1735,9 @@ function wire() {
 					: null;
 				const asked = field ? parseAmount(field.value) : Number(el.dataset.times);
 				const want = Math.max(1, asked || 1);
-				const times = Math.min(want, maxCraftable(item, store.getAllStock()));
+				const times = Math.min(want, maxCraftable(item, store.getAllStock(), recipes));
 				if (times < 1) return toast('Not enough materials for that');
-				store.applyDelta(craftDelta(item, times), 'craft', `Crafted ${times} × ${item}`);
+				store.applyDelta(craftDelta(item, times, recipes), 'craft', `Crafted ${times} × ${item}`);
 				toast(`Crafted ${times} × ${item}`, true);
 				return;
 			}
@@ -1332,7 +1753,12 @@ function wire() {
 					'enhance',
 					ok ? `${base} reached +${level}` : `Failed attempt at +${level} ${base}`
 				);
-				toast(ok ? `${base} is now +${level}` : `Stones spent — ${base} kept its level`, true);
+				// Only the steps that actually spend Cron are being held by
+				// it; +1 costs none, and has nothing to fall to anyway.
+				const held = (tableFor(base) || {}).keepsLevel !== false || !step.stones['Cron Stone']
+					? 'kept its level'
+					: 'held its level on the Cron Stones';
+				toast(ok ? `${base} is now +${level}` : `Materials spent — ${base} ${held}`, true);
 				return;
 			}
 			case 'move': {
@@ -1374,6 +1800,13 @@ function wire() {
 	// The pouch holds its ground while you type in it; once focus leaves it
 	// entirely, catch it up with whatever the change already recorded.
 	wirePeek();
+
+	document.addEventListener('keydown', evt => {
+		if (evt.key !== 'Escape' || !selected) return;
+		if (!document.getElementById('dialog').hidden) return;   // the dialog has first claim
+		selected = null;
+		render();
+	});
 
 	// Landing in a quantity field selects what is there, so typing a new
 	// number replaces it instead of appending to it.
@@ -1526,6 +1959,13 @@ function openBuildPicker() {
 		const item = btn.getAttribute('data-pick');
 		store.addTarget(item, 1);
 		closeDialog();
+		// Something with two ways in asks straight away, while the choice
+		// is still the thing you are thinking about -- not later, buried
+		// in a panel about inventory.
+		if (routes[item]) {
+			askRoute(item, { onPick: () => toast(`${item} added to the queue`) });
+			return;
+		}
 		toast(`${item} added to the queue`);
 	});
 	searchEl.focus();
@@ -1598,7 +2038,39 @@ function offerLegacyImport() {
 	});
 }
 
+/**
+ * The walkthrough, as a film.
+ *
+ * The guided tour points at things on your own screen, which is the right
+ * way to learn a control you are looking at. This is for the other
+ * question -- "what is this for" -- answered once, end to end, without
+ * having to do anything. It is the real app, driven and captioned, with a
+ * narrower cut for a phone.
+ */
+function openHelp() {
+	const phone = window.matchMedia('(max-width: 720px)').matches;
+	const file = phone ? 'walkthrough-phone.mp4' : 'walkthrough.mp4';
+	const host = openDialog(`
+		<h2>How this works</h2>
+		<p>Two minutes, end to end: queue a build, choose how to get there, record what you gathered, make something, see what it will really cost, and take the list shopping.</p>
+		<video class="help-film" src="docs/media/${file}" controls autoplay muted playsinline loop></video>
+		<div class="dialog-actions">
+			<button class="act quiet" data-close>Close</button>
+			<button class="act" data-act="tour">Walk me through my own screen</button>
+		</div>
+	`);
+	// The captions are the narration, so it starts muted and stays that
+	// way; unmuting an autoplaying video is a good way to be hated.
+	const film = host.querySelector('video');
+	if (film) film.play().catch(() => { /* a browser that would rather not */ });
+	return host;
+}
+
 async function startTour() {
+	// Whatever asked for it -- the Help film, most likely -- gets out of
+	// the way first. A tour that highlights the page from behind a dialog
+	// is worse than no tour.
+	closeDialog();
 	try {
 		const { guidedTour } = await import('./guided-tour.js');
 		guidedTour.startTour('main');
@@ -1643,4 +2115,9 @@ export async function init() {
 	} catch {
 		/* icons fall back to the app mark */
 	}
+
+	// Sync last, and never blocking: on a deployment without it this is
+	// one request that comes back "no" and nothing more happens.
+	initSync({ toast, openDialog, closeDialog, rerender: render })
+		.catch(err => console.warn('[ui] sync unavailable:', err));
 }

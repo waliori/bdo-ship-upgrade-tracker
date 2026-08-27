@@ -17,10 +17,14 @@ export const recipes = {
 	},
 	"Improved Epheria Sailboat": {
 		"Epheria Sailboat": 1,
-		"Bartali Sailboat: Old Figurehead": 1,
-		"Bartali Sailboat: Old Plating": 1,
-		"Bartali Sailboat: Old Cannon": 1,
-		"Bartali Sailboat: Old Wind Sail": 1,
+		// Epheria gear, unenhanced -- not the Bartali gear this used to
+		// name. Checked against bdocodex mount/31058, which lists
+		// Epheria: Old x1 of each. The Bartali set belongs one step
+		// earlier, at +10, on the Bartali -> Epheria upgrade.
+		"Epheria: Old Figurehead": 1,
+		"Epheria: Old Plating": 1,
+		"Epheria: Old Cannon": 1,
+		"Epheria: Old Wind Sail": 1,
 		"Standardized Timber Square": 250,
 		"Steel": 200,
 		"Pine Plywood": 500,
@@ -82,10 +86,14 @@ export const recipes = {
 	},
 	"Improved Epheria Frigate": {
 		"Epheria Frigate": 1,
-		"Bartali Sailboat: Old Figurehead": 1,
-		"Bartali Sailboat: Old Plating": 1,
-		"Bartali Sailboat: Old Cannon": 1,
-		"Bartali Sailboat: Old Wind Sail": 1,
+		// Epheria gear, unenhanced -- not the Bartali gear this used to
+		// name. Checked against bdocodex mount/31059, which lists
+		// Epheria: Old x1 of each. The Bartali set belongs one step
+		// earlier, at +10, on the Bartali -> Epheria upgrade.
+		"Epheria: Old Figurehead": 1,
+		"Epheria: Old Plating": 1,
+		"Epheria: Old Cannon": 1,
+		"Epheria: Old Wind Sail": 1,
 		"Standardized Timber Square": 250,
 		"Steel": 200,
 		"Pine Plywood": 500,
@@ -920,4 +928,464 @@ export const recipes = {
 	"+3 Panokseon: Byukgye's Enhanced Plating": {"+2 Panokseon: Byukgye's Enhanced Plating": 1, "Tidal Black Stone": 50},
 	"+2 Panokseon: Byukgye's Enhanced Plating": {"+1 Panokseon: Byukgye's Enhanced Plating": 1, "Tidal Black Stone": 50},
 	"+1 Panokseon: Byukgye's Enhanced Plating": {"Panokseon: Byukgye's Enhanced Plating": 1, "Tidal Black Stone": 50},
+
+	// ---- Falasi: yellow Carrack gear (August 2026) -----------------
+	//
+	// A Falasi part is a +10 Chiro part of the same Carrack variant,
+	// consumed. Verified against the workshop designs on bdocodex
+	// (design/9041 and up), which is also where the variant question
+	// is settled: an Advance Falasi cannon takes an Advance Chiro
+	// cannon and an Advance permit -- the variant does not cross over.
+	"Epheria Carrack: Advance (Falasi's Cannon)": {
+		"+10 Epheria Carrack: Advance (Chiro's Cannon)": 1,
+		"Blueprint: Falasi's Cannon": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Falasi's Epheria Carrack Parts Upgrade Permit: Advance": 1
+	},
+	"Epheria Carrack: Advance (Falasi's Sail)": {
+		"+10 Epheria Carrack: Advance (Chiro's Sail)": 1,
+		"Blueprint: Falasi's Sail": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Falasi's Epheria Carrack Parts Upgrade Permit: Advance": 1
+	},
+	"Epheria Carrack: Advance (Falasi's Figurehead)": {
+		"+10 Epheria Carrack: Advance (Chiro's Figurehead)": 1,
+		"Blueprint: Falasi's Figurehead": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Falasi's Epheria Carrack Parts Upgrade Permit: Advance": 1
+	},
+	"Epheria Carrack: Advance (Falasi's Plating)": {
+		"+10 Epheria Carrack: Advance (Chiro's Black Plating)": 1,
+		"Blueprint: Falasi's Plating": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Falasi's Epheria Carrack Parts Upgrade Permit: Advance": 1
+	},
+	"Epheria Carrack: Balance (Falasi's Cannon)": {
+		"+10 Epheria Carrack: Balance (Chiro's Cannon)": 1,
+		"Blueprint: Falasi's Cannon": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Falasi's Epheria Carrack Parts Upgrade Permit: Balance": 1
+	},
+	"Epheria Carrack: Balance (Falasi's Sail)": {
+		"+10 Epheria Carrack: Balance (Chiro's Sail)": 1,
+		"Blueprint: Falasi's Sail": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Falasi's Epheria Carrack Parts Upgrade Permit: Balance": 1
+	},
+	"Epheria Carrack: Balance (Falasi's Figurehead)": {
+		"+10 Epheria Carrack: Balance (Chiro's Figurehead)": 1,
+		"Blueprint: Falasi's Figurehead": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Falasi's Epheria Carrack Parts Upgrade Permit: Balance": 1
+	},
+	"Epheria Carrack: Balance (Falasi's Plating)": {
+		"+10 Epheria Carrack: Balance (Chiro's Black Plating)": 1,
+		"Blueprint: Falasi's Plating": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Falasi's Epheria Carrack Parts Upgrade Permit: Balance": 1
+	},
+	"Epheria Carrack: Volante (Falasi's Cannon)": {
+		"+10 Epheria Carrack: Volante (Chiro's Cannon)": 1,
+		"Blueprint: Falasi's Cannon": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Falasi's Epheria Carrack Parts Upgrade Permit: Volante": 1
+	},
+	"Epheria Carrack: Volante (Falasi's Sail)": {
+		"+10 Epheria Carrack: Volante (Chiro's Sail)": 1,
+		"Blueprint: Falasi's Sail": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Falasi's Epheria Carrack Parts Upgrade Permit: Volante": 1
+	},
+	"Epheria Carrack: Volante (Falasi's Figurehead)": {
+		"+10 Epheria Carrack: Volante (Chiro's Figurehead)": 1,
+		"Blueprint: Falasi's Figurehead": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Falasi's Epheria Carrack Parts Upgrade Permit: Volante": 1
+	},
+	"Epheria Carrack: Volante (Falasi's Plating)": {
+		"+10 Epheria Carrack: Volante (Chiro's Black Plating)": 1,
+		"Blueprint: Falasi's Plating": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Falasi's Epheria Carrack Parts Upgrade Permit: Volante": 1
+	},
+	"Epheria Carrack: Valor (Falasi's Cannon)": {
+		"+10 Epheria Carrack: Valor (Chiro's Cannon)": 1,
+		"Blueprint: Falasi's Cannon": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Falasi's Epheria Carrack Parts Upgrade Permit: Valor": 1
+	},
+	"Epheria Carrack: Valor (Falasi's Sail)": {
+		"+10 Epheria Carrack: Valor (Chiro's Sail)": 1,
+		"Blueprint: Falasi's Sail": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Falasi's Epheria Carrack Parts Upgrade Permit: Valor": 1
+	},
+	"Epheria Carrack: Valor (Falasi's Figurehead)": {
+		"+10 Epheria Carrack: Valor (Chiro's Figurehead)": 1,
+		"Blueprint: Falasi's Figurehead": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Falasi's Epheria Carrack Parts Upgrade Permit: Valor": 1
+	},
+	"Epheria Carrack: Valor (Falasi's Plating)": {
+		"+10 Epheria Carrack: Valor (Chiro's Black Plating)": 1,
+		"Blueprint: Falasi's Plating": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Falasi's Epheria Carrack Parts Upgrade Permit: Valor": 1
+	},
+
+	// ---- Cheongun: yellow Panokseon gear ---------------------------
+	// The same shape one tier along: a +10 Byukgye's part, consumed.
+	// The patch notes call these "Cheongun's Cannon"; the item names
+	// keep the "Enhanced" the Byukgye tier used, so those are used here.
+	"Panokseon: Cheongun's Enhanced Cannon": {
+		"+10 Panokseon: Byukgye's Enhanced Cannon": 1,
+		"Blueprint: Cheongun's Cannon": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Cheongun's Panokseon Parts Upgrade Permit": 1
+	},
+	"Panokseon: Cheongun's Enhanced Sail": {
+		"+10 Panokseon: Byukgye's Enhanced Sail": 1,
+		"Blueprint: Cheongun's Sail": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Cheongun's Panokseon Parts Upgrade Permit": 1
+	},
+	"Panokseon: Cheongun's Enhanced Figurehead": {
+		"+10 Panokseon: Byukgye's Enhanced Figurehead": 1,
+		"Blueprint: Cheongun's Figurehead": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Cheongun's Panokseon Parts Upgrade Permit": 1
+	},
+	"Panokseon: Cheongun's Enhanced Plating": {
+		"+10 Panokseon: Byukgye's Enhanced Plating": 1,
+		"Blueprint: Cheongun's Plating": 10,
+		"Sturdy Coral Support": 125,
+		"Raging Wave Plywood": 75,
+		"Dormant Crimson Coral Adhesive": 50,
+		"Cheongun's Panokseon Parts Upgrade Permit": 1
+	},
+
+	// The three materials every yellow part is built from. Each is one
+	// Lyngbakr drop plus the two Starlight reagents the blue tier
+	// already used; Mass Process turns 10x the materials plus a Black
+	// Stone Powder into 10, which the app does not model.
+	"Sturdy Coral Support": {"Lyngbakr's Bone": 1, "Starlight Hardener": 1, "Starlight Emulsifier": 1},
+	"Raging Wave Plywood": {"Lyngbakr's Scale": 1, "Starlight Hardener": 1, "Starlight Emulsifier": 1},
+	"Dormant Crimson Coral Adhesive": {"Lyngbakr's Fluid": 1, "Starlight Hardener": 1, "Starlight Emulsifier": 1},
+
+	// Processing (L) - Heating. A hundred Tidal Black Stones per stone,
+	// which is most of what enhancing a yellow part really costs.
+	"Sunset Tidal Black Stone": {"Sunset Coral Essence": 1, "Tidal Black Stone": 100},
+
+	// The blueprints are an exchange, not a drop: Philaberto Falasi takes
+	// two Sunset Coral Essence for one, and Gangman four. Modelling it as
+	// a recipe is what makes the essence behind a part visible -- ten
+	// blueprints per part is twenty essence before a stone is spent.
+	"Blueprint: Falasi's Cannon": {"Sunset Coral Essence": 2},
+	"Blueprint: Falasi's Sail": {"Sunset Coral Essence": 2},
+	"Blueprint: Falasi's Figurehead": {"Sunset Coral Essence": 2},
+	"Blueprint: Falasi's Plating": {"Sunset Coral Essence": 2},
+	"Blueprint: Cheongun's Cannon": {"Sunset Coral Essence": 4},
+	"Blueprint: Cheongun's Sail": {"Sunset Coral Essence": 4},
+	"Blueprint: Cheongun's Figurehead": {"Sunset Coral Essence": 4},
+	"Blueprint: Cheongun's Plating": {"Sunset Coral Essence": 4},
+
+	// Yellow gear enhances with Sunset Tidal Black Stone, one per
+	// attempt -- and unlike every tier below it, a failure takes a
+	// level as well as durability. See enhancement.js.
+	"+10 Epheria Carrack: Advance (Falasi's Cannon)": {"+9 Epheria Carrack: Advance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Epheria Carrack: Advance (Falasi's Cannon)": {"+8 Epheria Carrack: Advance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Epheria Carrack: Advance (Falasi's Cannon)": {"+7 Epheria Carrack: Advance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Epheria Carrack: Advance (Falasi's Cannon)": {"+6 Epheria Carrack: Advance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Epheria Carrack: Advance (Falasi's Cannon)": {"+5 Epheria Carrack: Advance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Epheria Carrack: Advance (Falasi's Cannon)": {"+4 Epheria Carrack: Advance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Epheria Carrack: Advance (Falasi's Cannon)": {"+3 Epheria Carrack: Advance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Epheria Carrack: Advance (Falasi's Cannon)": {"+2 Epheria Carrack: Advance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Epheria Carrack: Advance (Falasi's Cannon)": {"+1 Epheria Carrack: Advance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Epheria Carrack: Advance (Falasi's Cannon)": {"Epheria Carrack: Advance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Epheria Carrack: Advance (Falasi's Sail)": {"+9 Epheria Carrack: Advance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Epheria Carrack: Advance (Falasi's Sail)": {"+8 Epheria Carrack: Advance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Epheria Carrack: Advance (Falasi's Sail)": {"+7 Epheria Carrack: Advance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Epheria Carrack: Advance (Falasi's Sail)": {"+6 Epheria Carrack: Advance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Epheria Carrack: Advance (Falasi's Sail)": {"+5 Epheria Carrack: Advance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Epheria Carrack: Advance (Falasi's Sail)": {"+4 Epheria Carrack: Advance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Epheria Carrack: Advance (Falasi's Sail)": {"+3 Epheria Carrack: Advance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Epheria Carrack: Advance (Falasi's Sail)": {"+2 Epheria Carrack: Advance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Epheria Carrack: Advance (Falasi's Sail)": {"+1 Epheria Carrack: Advance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Epheria Carrack: Advance (Falasi's Sail)": {"Epheria Carrack: Advance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Epheria Carrack: Advance (Falasi's Figurehead)": {"+9 Epheria Carrack: Advance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Epheria Carrack: Advance (Falasi's Figurehead)": {"+8 Epheria Carrack: Advance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Epheria Carrack: Advance (Falasi's Figurehead)": {"+7 Epheria Carrack: Advance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Epheria Carrack: Advance (Falasi's Figurehead)": {"+6 Epheria Carrack: Advance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Epheria Carrack: Advance (Falasi's Figurehead)": {"+5 Epheria Carrack: Advance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Epheria Carrack: Advance (Falasi's Figurehead)": {"+4 Epheria Carrack: Advance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Epheria Carrack: Advance (Falasi's Figurehead)": {"+3 Epheria Carrack: Advance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Epheria Carrack: Advance (Falasi's Figurehead)": {"+2 Epheria Carrack: Advance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Epheria Carrack: Advance (Falasi's Figurehead)": {"+1 Epheria Carrack: Advance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Epheria Carrack: Advance (Falasi's Figurehead)": {"Epheria Carrack: Advance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Epheria Carrack: Advance (Falasi's Plating)": {"+9 Epheria Carrack: Advance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Epheria Carrack: Advance (Falasi's Plating)": {"+8 Epheria Carrack: Advance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Epheria Carrack: Advance (Falasi's Plating)": {"+7 Epheria Carrack: Advance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Epheria Carrack: Advance (Falasi's Plating)": {"+6 Epheria Carrack: Advance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Epheria Carrack: Advance (Falasi's Plating)": {"+5 Epheria Carrack: Advance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Epheria Carrack: Advance (Falasi's Plating)": {"+4 Epheria Carrack: Advance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Epheria Carrack: Advance (Falasi's Plating)": {"+3 Epheria Carrack: Advance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Epheria Carrack: Advance (Falasi's Plating)": {"+2 Epheria Carrack: Advance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Epheria Carrack: Advance (Falasi's Plating)": {"+1 Epheria Carrack: Advance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Epheria Carrack: Advance (Falasi's Plating)": {"Epheria Carrack: Advance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Epheria Carrack: Balance (Falasi's Cannon)": {"+9 Epheria Carrack: Balance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Epheria Carrack: Balance (Falasi's Cannon)": {"+8 Epheria Carrack: Balance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Epheria Carrack: Balance (Falasi's Cannon)": {"+7 Epheria Carrack: Balance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Epheria Carrack: Balance (Falasi's Cannon)": {"+6 Epheria Carrack: Balance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Epheria Carrack: Balance (Falasi's Cannon)": {"+5 Epheria Carrack: Balance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Epheria Carrack: Balance (Falasi's Cannon)": {"+4 Epheria Carrack: Balance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Epheria Carrack: Balance (Falasi's Cannon)": {"+3 Epheria Carrack: Balance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Epheria Carrack: Balance (Falasi's Cannon)": {"+2 Epheria Carrack: Balance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Epheria Carrack: Balance (Falasi's Cannon)": {"+1 Epheria Carrack: Balance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Epheria Carrack: Balance (Falasi's Cannon)": {"Epheria Carrack: Balance (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Epheria Carrack: Balance (Falasi's Sail)": {"+9 Epheria Carrack: Balance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Epheria Carrack: Balance (Falasi's Sail)": {"+8 Epheria Carrack: Balance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Epheria Carrack: Balance (Falasi's Sail)": {"+7 Epheria Carrack: Balance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Epheria Carrack: Balance (Falasi's Sail)": {"+6 Epheria Carrack: Balance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Epheria Carrack: Balance (Falasi's Sail)": {"+5 Epheria Carrack: Balance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Epheria Carrack: Balance (Falasi's Sail)": {"+4 Epheria Carrack: Balance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Epheria Carrack: Balance (Falasi's Sail)": {"+3 Epheria Carrack: Balance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Epheria Carrack: Balance (Falasi's Sail)": {"+2 Epheria Carrack: Balance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Epheria Carrack: Balance (Falasi's Sail)": {"+1 Epheria Carrack: Balance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Epheria Carrack: Balance (Falasi's Sail)": {"Epheria Carrack: Balance (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Epheria Carrack: Balance (Falasi's Figurehead)": {"+9 Epheria Carrack: Balance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Epheria Carrack: Balance (Falasi's Figurehead)": {"+8 Epheria Carrack: Balance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Epheria Carrack: Balance (Falasi's Figurehead)": {"+7 Epheria Carrack: Balance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Epheria Carrack: Balance (Falasi's Figurehead)": {"+6 Epheria Carrack: Balance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Epheria Carrack: Balance (Falasi's Figurehead)": {"+5 Epheria Carrack: Balance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Epheria Carrack: Balance (Falasi's Figurehead)": {"+4 Epheria Carrack: Balance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Epheria Carrack: Balance (Falasi's Figurehead)": {"+3 Epheria Carrack: Balance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Epheria Carrack: Balance (Falasi's Figurehead)": {"+2 Epheria Carrack: Balance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Epheria Carrack: Balance (Falasi's Figurehead)": {"+1 Epheria Carrack: Balance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Epheria Carrack: Balance (Falasi's Figurehead)": {"Epheria Carrack: Balance (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Epheria Carrack: Balance (Falasi's Plating)": {"+9 Epheria Carrack: Balance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Epheria Carrack: Balance (Falasi's Plating)": {"+8 Epheria Carrack: Balance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Epheria Carrack: Balance (Falasi's Plating)": {"+7 Epheria Carrack: Balance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Epheria Carrack: Balance (Falasi's Plating)": {"+6 Epheria Carrack: Balance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Epheria Carrack: Balance (Falasi's Plating)": {"+5 Epheria Carrack: Balance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Epheria Carrack: Balance (Falasi's Plating)": {"+4 Epheria Carrack: Balance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Epheria Carrack: Balance (Falasi's Plating)": {"+3 Epheria Carrack: Balance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Epheria Carrack: Balance (Falasi's Plating)": {"+2 Epheria Carrack: Balance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Epheria Carrack: Balance (Falasi's Plating)": {"+1 Epheria Carrack: Balance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Epheria Carrack: Balance (Falasi's Plating)": {"Epheria Carrack: Balance (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Epheria Carrack: Volante (Falasi's Cannon)": {"+9 Epheria Carrack: Volante (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Epheria Carrack: Volante (Falasi's Cannon)": {"+8 Epheria Carrack: Volante (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Epheria Carrack: Volante (Falasi's Cannon)": {"+7 Epheria Carrack: Volante (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Epheria Carrack: Volante (Falasi's Cannon)": {"+6 Epheria Carrack: Volante (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Epheria Carrack: Volante (Falasi's Cannon)": {"+5 Epheria Carrack: Volante (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Epheria Carrack: Volante (Falasi's Cannon)": {"+4 Epheria Carrack: Volante (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Epheria Carrack: Volante (Falasi's Cannon)": {"+3 Epheria Carrack: Volante (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Epheria Carrack: Volante (Falasi's Cannon)": {"+2 Epheria Carrack: Volante (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Epheria Carrack: Volante (Falasi's Cannon)": {"+1 Epheria Carrack: Volante (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Epheria Carrack: Volante (Falasi's Cannon)": {"Epheria Carrack: Volante (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Epheria Carrack: Volante (Falasi's Sail)": {"+9 Epheria Carrack: Volante (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Epheria Carrack: Volante (Falasi's Sail)": {"+8 Epheria Carrack: Volante (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Epheria Carrack: Volante (Falasi's Sail)": {"+7 Epheria Carrack: Volante (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Epheria Carrack: Volante (Falasi's Sail)": {"+6 Epheria Carrack: Volante (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Epheria Carrack: Volante (Falasi's Sail)": {"+5 Epheria Carrack: Volante (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Epheria Carrack: Volante (Falasi's Sail)": {"+4 Epheria Carrack: Volante (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Epheria Carrack: Volante (Falasi's Sail)": {"+3 Epheria Carrack: Volante (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Epheria Carrack: Volante (Falasi's Sail)": {"+2 Epheria Carrack: Volante (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Epheria Carrack: Volante (Falasi's Sail)": {"+1 Epheria Carrack: Volante (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Epheria Carrack: Volante (Falasi's Sail)": {"Epheria Carrack: Volante (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Epheria Carrack: Volante (Falasi's Figurehead)": {"+9 Epheria Carrack: Volante (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Epheria Carrack: Volante (Falasi's Figurehead)": {"+8 Epheria Carrack: Volante (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Epheria Carrack: Volante (Falasi's Figurehead)": {"+7 Epheria Carrack: Volante (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Epheria Carrack: Volante (Falasi's Figurehead)": {"+6 Epheria Carrack: Volante (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Epheria Carrack: Volante (Falasi's Figurehead)": {"+5 Epheria Carrack: Volante (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Epheria Carrack: Volante (Falasi's Figurehead)": {"+4 Epheria Carrack: Volante (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Epheria Carrack: Volante (Falasi's Figurehead)": {"+3 Epheria Carrack: Volante (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Epheria Carrack: Volante (Falasi's Figurehead)": {"+2 Epheria Carrack: Volante (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Epheria Carrack: Volante (Falasi's Figurehead)": {"+1 Epheria Carrack: Volante (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Epheria Carrack: Volante (Falasi's Figurehead)": {"Epheria Carrack: Volante (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Epheria Carrack: Volante (Falasi's Plating)": {"+9 Epheria Carrack: Volante (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Epheria Carrack: Volante (Falasi's Plating)": {"+8 Epheria Carrack: Volante (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Epheria Carrack: Volante (Falasi's Plating)": {"+7 Epheria Carrack: Volante (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Epheria Carrack: Volante (Falasi's Plating)": {"+6 Epheria Carrack: Volante (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Epheria Carrack: Volante (Falasi's Plating)": {"+5 Epheria Carrack: Volante (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Epheria Carrack: Volante (Falasi's Plating)": {"+4 Epheria Carrack: Volante (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Epheria Carrack: Volante (Falasi's Plating)": {"+3 Epheria Carrack: Volante (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Epheria Carrack: Volante (Falasi's Plating)": {"+2 Epheria Carrack: Volante (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Epheria Carrack: Volante (Falasi's Plating)": {"+1 Epheria Carrack: Volante (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Epheria Carrack: Volante (Falasi's Plating)": {"Epheria Carrack: Volante (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Epheria Carrack: Valor (Falasi's Cannon)": {"+9 Epheria Carrack: Valor (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Epheria Carrack: Valor (Falasi's Cannon)": {"+8 Epheria Carrack: Valor (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Epheria Carrack: Valor (Falasi's Cannon)": {"+7 Epheria Carrack: Valor (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Epheria Carrack: Valor (Falasi's Cannon)": {"+6 Epheria Carrack: Valor (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Epheria Carrack: Valor (Falasi's Cannon)": {"+5 Epheria Carrack: Valor (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Epheria Carrack: Valor (Falasi's Cannon)": {"+4 Epheria Carrack: Valor (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Epheria Carrack: Valor (Falasi's Cannon)": {"+3 Epheria Carrack: Valor (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Epheria Carrack: Valor (Falasi's Cannon)": {"+2 Epheria Carrack: Valor (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Epheria Carrack: Valor (Falasi's Cannon)": {"+1 Epheria Carrack: Valor (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Epheria Carrack: Valor (Falasi's Cannon)": {"Epheria Carrack: Valor (Falasi's Cannon)": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Epheria Carrack: Valor (Falasi's Sail)": {"+9 Epheria Carrack: Valor (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Epheria Carrack: Valor (Falasi's Sail)": {"+8 Epheria Carrack: Valor (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Epheria Carrack: Valor (Falasi's Sail)": {"+7 Epheria Carrack: Valor (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Epheria Carrack: Valor (Falasi's Sail)": {"+6 Epheria Carrack: Valor (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Epheria Carrack: Valor (Falasi's Sail)": {"+5 Epheria Carrack: Valor (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Epheria Carrack: Valor (Falasi's Sail)": {"+4 Epheria Carrack: Valor (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Epheria Carrack: Valor (Falasi's Sail)": {"+3 Epheria Carrack: Valor (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Epheria Carrack: Valor (Falasi's Sail)": {"+2 Epheria Carrack: Valor (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Epheria Carrack: Valor (Falasi's Sail)": {"+1 Epheria Carrack: Valor (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Epheria Carrack: Valor (Falasi's Sail)": {"Epheria Carrack: Valor (Falasi's Sail)": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Epheria Carrack: Valor (Falasi's Figurehead)": {"+9 Epheria Carrack: Valor (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Epheria Carrack: Valor (Falasi's Figurehead)": {"+8 Epheria Carrack: Valor (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Epheria Carrack: Valor (Falasi's Figurehead)": {"+7 Epheria Carrack: Valor (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Epheria Carrack: Valor (Falasi's Figurehead)": {"+6 Epheria Carrack: Valor (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Epheria Carrack: Valor (Falasi's Figurehead)": {"+5 Epheria Carrack: Valor (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Epheria Carrack: Valor (Falasi's Figurehead)": {"+4 Epheria Carrack: Valor (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Epheria Carrack: Valor (Falasi's Figurehead)": {"+3 Epheria Carrack: Valor (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Epheria Carrack: Valor (Falasi's Figurehead)": {"+2 Epheria Carrack: Valor (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Epheria Carrack: Valor (Falasi's Figurehead)": {"+1 Epheria Carrack: Valor (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Epheria Carrack: Valor (Falasi's Figurehead)": {"Epheria Carrack: Valor (Falasi's Figurehead)": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Epheria Carrack: Valor (Falasi's Plating)": {"+9 Epheria Carrack: Valor (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Epheria Carrack: Valor (Falasi's Plating)": {"+8 Epheria Carrack: Valor (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Epheria Carrack: Valor (Falasi's Plating)": {"+7 Epheria Carrack: Valor (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Epheria Carrack: Valor (Falasi's Plating)": {"+6 Epheria Carrack: Valor (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Epheria Carrack: Valor (Falasi's Plating)": {"+5 Epheria Carrack: Valor (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Epheria Carrack: Valor (Falasi's Plating)": {"+4 Epheria Carrack: Valor (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Epheria Carrack: Valor (Falasi's Plating)": {"+3 Epheria Carrack: Valor (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Epheria Carrack: Valor (Falasi's Plating)": {"+2 Epheria Carrack: Valor (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Epheria Carrack: Valor (Falasi's Plating)": {"+1 Epheria Carrack: Valor (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Epheria Carrack: Valor (Falasi's Plating)": {"Epheria Carrack: Valor (Falasi's Plating)": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Panokseon: Cheongun's Enhanced Cannon": {"+9 Panokseon: Cheongun's Enhanced Cannon": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Panokseon: Cheongun's Enhanced Cannon": {"+8 Panokseon: Cheongun's Enhanced Cannon": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Panokseon: Cheongun's Enhanced Cannon": {"+7 Panokseon: Cheongun's Enhanced Cannon": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Panokseon: Cheongun's Enhanced Cannon": {"+6 Panokseon: Cheongun's Enhanced Cannon": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Panokseon: Cheongun's Enhanced Cannon": {"+5 Panokseon: Cheongun's Enhanced Cannon": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Panokseon: Cheongun's Enhanced Cannon": {"+4 Panokseon: Cheongun's Enhanced Cannon": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Panokseon: Cheongun's Enhanced Cannon": {"+3 Panokseon: Cheongun's Enhanced Cannon": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Panokseon: Cheongun's Enhanced Cannon": {"+2 Panokseon: Cheongun's Enhanced Cannon": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Panokseon: Cheongun's Enhanced Cannon": {"+1 Panokseon: Cheongun's Enhanced Cannon": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Panokseon: Cheongun's Enhanced Cannon": {"Panokseon: Cheongun's Enhanced Cannon": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Panokseon: Cheongun's Enhanced Sail": {"+9 Panokseon: Cheongun's Enhanced Sail": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Panokseon: Cheongun's Enhanced Sail": {"+8 Panokseon: Cheongun's Enhanced Sail": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Panokseon: Cheongun's Enhanced Sail": {"+7 Panokseon: Cheongun's Enhanced Sail": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Panokseon: Cheongun's Enhanced Sail": {"+6 Panokseon: Cheongun's Enhanced Sail": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Panokseon: Cheongun's Enhanced Sail": {"+5 Panokseon: Cheongun's Enhanced Sail": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Panokseon: Cheongun's Enhanced Sail": {"+4 Panokseon: Cheongun's Enhanced Sail": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Panokseon: Cheongun's Enhanced Sail": {"+3 Panokseon: Cheongun's Enhanced Sail": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Panokseon: Cheongun's Enhanced Sail": {"+2 Panokseon: Cheongun's Enhanced Sail": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Panokseon: Cheongun's Enhanced Sail": {"+1 Panokseon: Cheongun's Enhanced Sail": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Panokseon: Cheongun's Enhanced Sail": {"Panokseon: Cheongun's Enhanced Sail": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Panokseon: Cheongun's Enhanced Figurehead": {"+9 Panokseon: Cheongun's Enhanced Figurehead": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Panokseon: Cheongun's Enhanced Figurehead": {"+8 Panokseon: Cheongun's Enhanced Figurehead": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Panokseon: Cheongun's Enhanced Figurehead": {"+7 Panokseon: Cheongun's Enhanced Figurehead": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Panokseon: Cheongun's Enhanced Figurehead": {"+6 Panokseon: Cheongun's Enhanced Figurehead": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Panokseon: Cheongun's Enhanced Figurehead": {"+5 Panokseon: Cheongun's Enhanced Figurehead": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Panokseon: Cheongun's Enhanced Figurehead": {"+4 Panokseon: Cheongun's Enhanced Figurehead": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Panokseon: Cheongun's Enhanced Figurehead": {"+3 Panokseon: Cheongun's Enhanced Figurehead": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Panokseon: Cheongun's Enhanced Figurehead": {"+2 Panokseon: Cheongun's Enhanced Figurehead": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Panokseon: Cheongun's Enhanced Figurehead": {"+1 Panokseon: Cheongun's Enhanced Figurehead": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Panokseon: Cheongun's Enhanced Figurehead": {"Panokseon: Cheongun's Enhanced Figurehead": 1, "Sunset Tidal Black Stone": 1},
+	"+10 Panokseon: Cheongun's Enhanced Plating": {"+9 Panokseon: Cheongun's Enhanced Plating": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 540},
+	"+9 Panokseon: Cheongun's Enhanced Plating": {"+8 Panokseon: Cheongun's Enhanced Plating": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 480},
+	"+8 Panokseon: Cheongun's Enhanced Plating": {"+7 Panokseon: Cheongun's Enhanced Plating": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 460},
+	"+7 Panokseon: Cheongun's Enhanced Plating": {"+6 Panokseon: Cheongun's Enhanced Plating": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 440},
+	"+6 Panokseon: Cheongun's Enhanced Plating": {"+5 Panokseon: Cheongun's Enhanced Plating": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 420},
+	"+5 Panokseon: Cheongun's Enhanced Plating": {"+4 Panokseon: Cheongun's Enhanced Plating": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 400},
+	"+4 Panokseon: Cheongun's Enhanced Plating": {"+3 Panokseon: Cheongun's Enhanced Plating": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 380},
+	"+3 Panokseon: Cheongun's Enhanced Plating": {"+2 Panokseon: Cheongun's Enhanced Plating": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 360},
+	"+2 Panokseon: Cheongun's Enhanced Plating": {"+1 Panokseon: Cheongun's Enhanced Plating": 1, "Sunset Tidal Black Stone": 1, "Cron Stone": 290},
+	"+1 Panokseon: Cheongun's Enhanced Plating": {"Panokseon: Cheongun's Enhanced Plating": 1, "Sunset Tidal Black Stone": 1},
+};
+
+/* ------------------------------------------------------------------ *
+ * Two ways to reach a Caravel, and two to reach a Galleass
+ * ------------------------------------------------------------------ */
+
+/**
+ * The Caravel accepts either an Epheria Sailboat or an Improved Epheria
+ * Sailboat, and bdocodex lists the two with identical material lists --
+ * mount/31048 shows both under "Initial ship", character for character
+ * the same apart from which hull goes in. So the variants are derived
+ * from the one recipe rather than written twice, which is also how they
+ * stay in step when a patch moves a number.
+ *
+ * What actually differs is the step before: the Improved upgrade is a
+ * whole extra build, and it wants four unenhanced Epheria: Old parts on
+ * top of the four at +10 the Caravel still needs afterwards.
+ *
+ * Neither is the right answer. The direct route is fewer materials; the
+ * Improved route adds a solo cannon volley and can be done alone, which
+ * is a real reason to take it. The app offers both and says what each
+ * costs.
+ */
+const viaHull = (recipe, from, to) => {
+	const out = {};
+	for (const [item, qty] of Object.entries(recipe)) out[item === from ? to : item] = qty;
+	return out;
+};
+
+export const routes = {
+	"Epheria Caravel": {
+		direct: recipes["Epheria Caravel"],
+		improved: viaHull(recipes["Epheria Caravel"], "Epheria Sailboat", "Improved Epheria Sailboat")
+	},
+	"Epheria Galleass": {
+		direct: recipes["Epheria Galleass"],
+		improved: viaHull(recipes["Epheria Galleass"], "Epheria Frigate", "Improved Epheria Frigate")
+	}
+};
+
+/** How the choice is described, and what taking it buys you. */
+export const routeInfo = {
+	"Epheria Caravel": {
+		direct: { label: "Straight from the Epheria Sailboat", via: "Epheria Sailboat" },
+		improved: {
+			label: "By way of the Improved Epheria Sailboat",
+			via: "Improved Epheria Sailboat",
+			gains: "Adds a solo cannon volley, and the upgrade quests can be done alone."
+		}
+	},
+	"Epheria Galleass": {
+		direct: { label: "Straight from the Epheria Frigate", via: "Epheria Frigate" },
+		improved: {
+			label: "By way of the Improved Epheria Frigate",
+			via: "Improved Epheria Frigate",
+			gains: "Adds a solo cannon volley, and the upgrade quests can be done alone."
+		}
+	}
 };

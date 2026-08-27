@@ -47,6 +47,36 @@ export const shipGroups = [
 			"Panokseon: Byukgye's Enhanced Plating",
 		]
 	},
+	{
+		name: "Carrack Parts (Falasi, yellow)",
+		items: [
+			"Epheria Carrack: Advance (Falasi's Cannon)",
+			"Epheria Carrack: Advance (Falasi's Sail)",
+			"Epheria Carrack: Advance (Falasi's Figurehead)",
+			"Epheria Carrack: Advance (Falasi's Plating)",
+			"Epheria Carrack: Balance (Falasi's Cannon)",
+			"Epheria Carrack: Balance (Falasi's Sail)",
+			"Epheria Carrack: Balance (Falasi's Figurehead)",
+			"Epheria Carrack: Balance (Falasi's Plating)",
+			"Epheria Carrack: Volante (Falasi's Cannon)",
+			"Epheria Carrack: Volante (Falasi's Sail)",
+			"Epheria Carrack: Volante (Falasi's Figurehead)",
+			"Epheria Carrack: Volante (Falasi's Plating)",
+			"Epheria Carrack: Valor (Falasi's Cannon)",
+			"Epheria Carrack: Valor (Falasi's Sail)",
+			"Epheria Carrack: Valor (Falasi's Figurehead)",
+			"Epheria Carrack: Valor (Falasi's Plating)",
+		]
+	},
+	{
+		name: "Panokseon Parts (Cheongun, yellow)",
+		items: [
+			"Panokseon: Cheongun's Enhanced Cannon",
+			"Panokseon: Cheongun's Enhanced Sail",
+			"Panokseon: Cheongun's Enhanced Figurehead",
+			"Panokseon: Cheongun's Enhanced Plating",
+		]
+	},
 ];
 
 export const ships = shipGroups.flatMap(g => g.items);
@@ -79,4 +109,28 @@ export const shipDescriptions = {
 	"Epheria Carrack: Valor (Chiro's Sail)": "Blue sail for Carrack (Valor) - crafted from a +10 Toro sail at Iliya Island",
 	"Epheria Carrack: Valor (Chiro's Figurehead)": "Blue figurehead for Carrack (Valor) - crafted from a +10 Toro figurehead at Iliya Island",
 	"Epheria Carrack: Valor (Chiro's Black Plating)": "Blue black plating for Carrack (Valor) - crafted from a +10 Toro black plating at Iliya Island",
+	"Epheria Carrack: Advance (Falasi's Cannon)": "Yellow cannon for Carrack (Advance) - crafted from a +10 Chiro cannon at Iliya Island",
+	"Epheria Carrack: Advance (Falasi's Sail)": "Yellow sail for Carrack (Advance) - crafted from a +10 Chiro sail at Iliya Island",
+	"Epheria Carrack: Advance (Falasi's Figurehead)": "Yellow figurehead for Carrack (Advance) - crafted from a +10 Chiro figurehead at Iliya Island",
+	"Epheria Carrack: Advance (Falasi's Plating)": "Yellow plating for Carrack (Advance) - crafted from a +10 Chiro black plating at Iliya Island",
+	"Epheria Carrack: Balance (Falasi's Cannon)": "Yellow cannon for Carrack (Balance) - crafted from a +10 Chiro cannon at Iliya Island",
+	"Epheria Carrack: Balance (Falasi's Sail)": "Yellow sail for Carrack (Balance) - crafted from a +10 Chiro sail at Iliya Island",
+	"Epheria Carrack: Balance (Falasi's Figurehead)": "Yellow figurehead for Carrack (Balance) - crafted from a +10 Chiro figurehead at Iliya Island",
+	"Epheria Carrack: Balance (Falasi's Plating)": "Yellow plating for Carrack (Balance) - crafted from a +10 Chiro black plating at Iliya Island",
+	"Epheria Carrack: Volante (Falasi's Cannon)": "Yellow cannon for Carrack (Volante) - crafted from a +10 Chiro cannon at Iliya Island",
+	"Epheria Carrack: Volante (Falasi's Sail)": "Yellow sail for Carrack (Volante) - crafted from a +10 Chiro sail at Iliya Island",
+	"Epheria Carrack: Volante (Falasi's Figurehead)": "Yellow figurehead for Carrack (Volante) - crafted from a +10 Chiro figurehead at Iliya Island",
+	"Epheria Carrack: Volante (Falasi's Plating)": "Yellow plating for Carrack (Volante) - crafted from a +10 Chiro black plating at Iliya Island",
+	"Epheria Carrack: Valor (Falasi's Cannon)": "Yellow cannon for Carrack (Valor) - crafted from a +10 Chiro cannon at Iliya Island",
+	"Epheria Carrack: Valor (Falasi's Sail)": "Yellow sail for Carrack (Valor) - crafted from a +10 Chiro sail at Iliya Island",
+	"Epheria Carrack: Valor (Falasi's Figurehead)": "Yellow figurehead for Carrack (Valor) - crafted from a +10 Chiro figurehead at Iliya Island",
+	"Epheria Carrack: Valor (Falasi's Plating)": "Yellow plating for Carrack (Valor) - crafted from a +10 Chiro black plating at Iliya Island",
+	"Panokseon: Byukgye's Enhanced Cannon": "Blue cannon for the Panokseon - crafted from a +10 Haemo's cannon at Cheongsa Island",
+	"Panokseon: Byukgye's Enhanced Sail": "Blue sail for the Panokseon - crafted from a +10 Haemo's sail at Cheongsa Island",
+	"Panokseon: Byukgye's Enhanced Figurehead": "Blue figurehead for the Panokseon - crafted from a +10 Haemo's figurehead at Cheongsa Island",
+	"Panokseon: Byukgye's Enhanced Plating": "Blue plating for the Panokseon - crafted from a +10 Haemo's plating at Cheongsa Island",
+	"Panokseon: Cheongun's Enhanced Cannon": "Yellow cannon for the Panokseon - crafted from a +10 Byukgye's cannon at Cheongsa Island",
+	"Panokseon: Cheongun's Enhanced Sail": "Yellow sail for the Panokseon - crafted from a +10 Byukgye's sail at Cheongsa Island",
+	"Panokseon: Cheongun's Enhanced Figurehead": "Yellow figurehead for the Panokseon - crafted from a +10 Byukgye's figurehead at Cheongsa Island",
+	"Panokseon: Cheongun's Enhanced Plating": "Yellow plating for the Panokseon - crafted from a +10 Byukgye's plating at Cheongsa Island",
 };

@@ -1,8 +1,13 @@
 .git
 .github
 node_modules
-docs
+# The README's stills and GIFs are not served; the walkthrough film is.
+docs/**
+!docs/media/*.mp4
 tools
 *.md
 !README.md
 .env
+.env.local
+.data
+test
