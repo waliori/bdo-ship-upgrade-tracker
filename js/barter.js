@@ -176,6 +176,11 @@ export function bestExchange(item, barterData) {
 		if (!best || rate > best.rate) {
 			best = {
 				rate, received, given,
+				// The range as the game writes it. The average is what the
+				// arithmetic needs; "2-3" is what a person should be shown,
+				// because a plan quoted on 2.5 of something reads as a
+				// precision the game does not offer.
+				receivedText: String(s.quantity_received),
 				give: s.give.name,
 				npc: s.npc_name,
 				// 0 is the dataset's "not stated", not "none allowed".
@@ -224,6 +229,7 @@ export function ladder(item, barterData, seen = new Set()) {
 		item,
 		give: best.give,
 		received: best.received,
+		receivedText: best.receivedText,
 		given: best.given,
 		attempts: best.attempts,
 		trades: tradesHere,             // this rung only

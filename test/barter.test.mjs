@@ -129,6 +129,16 @@ test('no rung of the chain pays one for one any more', () => {
 	}
 });
 
+test('a rung keeps the range the game prints, not just its average', () => {
+	// The arithmetic needs 2.5; a person should be shown "2-3". Quoting
+	// an average back as if it were the rule reads as a precision the
+	// game does not offer.
+	const top = ladder('Brilliant Pearl Shard', shipbarters);
+	const two = rungs(top).find(r => levelOf(r.item) === 2);
+	assert.equal(two.receivedText, '2-3');
+	assert.equal(two.received, 2.5);
+});
+
 test('the ladder bottoms out on a land good, not on another barter', () => {
 	const f = forecast('Brilliant Pearl Shard', 1, shipbarters, { barterCount: 2000 });
 	const bottom = f.rungs[f.rungs.length - 1];

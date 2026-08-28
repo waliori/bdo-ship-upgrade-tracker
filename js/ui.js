@@ -251,9 +251,48 @@ function makeupHTML(item, cls = 'peek-line') {
 
 const MAKE_KEYS = new Set(['craft', 'Crafting', 'Processing']);
 
+/**
+ * The ladder behind a bartered item, rung by rung.
+ *
+ * The To Get row can only afford one line, so it says the total and
+ * leaves it there. This is where the total is worth taking apart: seeing
+ * that a Brilliant Pearl Shard is really a [Level 4] good and change
+ * tells you the [Level 4] rung is the one to go and buy, and seeing the
+ * land goods at the foot tells you what the whole climb actually starts
+ * from -- which is the part nothing in the game ever shows you.
+ *
+ * Rungs are listed top down, the way you climb them in reverse: what you
+ * hand over first is at the bottom.
+ */
+function barterHTML(item) {
+	if (!barterData) return '';
+	const plan = barterForecast(item, 1, barterData, barterProfile());
+	if (!plan || plan.gate) return '';
+
+	// Bottom up, which is the order you actually trade them: the land
+	// good you buy first is at the top. Quantities are deliberately left
+	// off -- per one item they are fractions like 0.03 of a [Level 5],
+	// which is true and unreadable. What each rung pays is the number
+	// that helps, because a rung paying ten is a rung you stop worrying
+	// about.
+	const climb = [...plan.rungs].reverse();
+	const lines = climb.map(r => `<div class="peek-line ok">
+		${img(r.item, 'peek-icon')}
+		<span class="peek-name">${codexName(r.item)}</span>
+		<span class="peek-have">pays ${esc(r.receivedText)}</span>
+	</div>`).join('');
+
+	const start = plan.seed
+		? `<div class="peek-label">Starting from ${esc(plan.seed.item)}</div>`
+		: '';
+
+	return start + lines
+		+ `<div class="peek-cost">${esc(plan.perUnit.toFixed(2))} barter trades each</div>`;
+}
+
 /** The hover card: what it is made of, or where it comes from. */
 function peekHTML(item) {
-	const body = makeupHTML(item);
+	const body = makeupHTML(item) + barterHTML(item);
 	const src = sourceOf(item);
 
 	// The shop price is already on the source line; what is not written
@@ -1504,9 +1543,15 @@ function renderGet() {
 				// if the barter is cheap, and this says which it is.
 				const plan = entry.barter && entry.barter.plan;
 				const why = plan && barterWhy(plan);
+				// The land goods belong here rather than in the hover card,
+				// because this is the only place a real quantity exists --
+				// "50 Palm Plywood" is shopping, "1.25 per one" is noise.
+				const seed = plan && !plan.gate && plan.seed
+					? ` <span class="row-sea-why">from ${F(Math.ceil(plan.seed.qty))}× ${esc(plan.seed.item)}</span>`
+					: '';
 				const sea = plan
 					? `<div class="row-sea${plan.gate ? ' locked' : ''}">by barter: ${esc(barterLine(plan))}${
-						why ? ` <span class="row-sea-why">${esc(why)}</span>` : ''}</div>`
+						why ? ` <span class="row-sea-why">${esc(why)}</span>` : ''}${seed}</div>`
 					: '';
 				// The list says where to buy it; the other half of the
 				// decision is what making it would cost instead.
