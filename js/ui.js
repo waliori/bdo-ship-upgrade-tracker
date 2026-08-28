@@ -1386,8 +1386,8 @@ function renderWorkshop() {
 /** What the player has told us about their own bartering. */
 function barterProfile() {
 	return {
-		barterCount: Number(store.getSetting('barterCount', 0)) || 0,
-		valuePack: store.getSetting('valuePack', false) === true
+		barterCount: Number(store.getProfile('barterCount', 0)) || 0,
+		valuePack: store.getProfile('valuePack', false) === true
 	};
 }
 
@@ -1859,7 +1859,7 @@ function wire() {
 		// The Value Pack is a tick rather than a number, so it lands first
 		// and on its own.
 		const vp = evt.target.closest('[data-act="value-pack"]');
-		if (vp) return store.setSetting('valuePack', vp.checked);
+		if (vp) return store.setProfile('valuePack', vp.checked);
 
 		const el = evt.target.closest(
 			'[data-act="own-set"], [data-act="purse"], [data-act="target-qty"], [data-act="barter-count"]');
@@ -1867,7 +1867,7 @@ function wire() {
 		const n = parseAmount(el.value);
 		if (n === null) return render();   // gibberish: put the stored value back
 		if (el.dataset.act === 'target-qty') store.setTargetQty(el.dataset.target, n);
-		else if (el.dataset.act === 'barter-count') store.setSetting('barterCount', n);
+		else if (el.dataset.act === 'barter-count') store.setProfile('barterCount', n);
 		else store.setStock(el.dataset.item, n);
 	});
 

@@ -33,6 +33,10 @@ function looksLikeSave(body) {
 	if (strategy !== undefined && (typeof strategy !== 'object' || Array.isArray(strategy))) {
 		return 'Strategy must be an object.';
 	}
+	if (body.profile !== undefined
+		&& (typeof body.profile !== 'object' || body.profile === null || Array.isArray(body.profile))) {
+		return 'Profile must be an object.';
+	}
 	return null;
 }
 
@@ -112,11 +116,19 @@ export function apiRoutes() {
 			return res.status(400).json({ error: 'A push must say which revision it is based on.' });
 		}
 
-		const payload = JSON.stringify({
+		// Rebuilt rather than stored as sent, so a client cannot park
+		// arbitrary keys in another device's save. `profile` is only
+		// written when the client actually sent one -- an older browser
+		// that has not reloaded still pushes three fields, and adding an
+		// empty fourth on its behalf would change the stored bytes out
+		// from under every save that already exists.
+		const shape = {
 			stock: body.data.stock,
 			targets: body.data.targets || [],
 			strategy: body.data.strategy || {}
-		});
+		};
+		if (body.data.profile) shape.profile = body.data.profile;
+		const payload = JSON.stringify(shape);
 		if (Buffer.byteLength(payload) > config.maxSaveBytes) {
 			return res.status(413).json({ error: 'That save is too large to sync.' });
 		}

@@ -74,14 +74,26 @@ async function api(method, path, body) {
  * ------------------------------------------------------------------ */
 
 /** The save as the server will store it, with keys in a stable order so
- *  the same inventory always produces the same text to compare. */
+ *  the same inventory always produces the same text to compare.
+ *
+ *  The profile is appended only when there is one, and `saveShape` omits
+ *  it while it is empty. That is deliberate: this text is what firstPull
+ *  compares against the stored copy to decide whether the two sides
+ *  agree, so a field that appeared unconditionally would make every
+ *  already-signed-in player differ from their own save on the first load
+ *  after this shipped, and each of them would be asked to resolve a
+ *  conflict that does not exist. Nobody who has not set a barter count
+ *  sees any change at all. */
 function localText() {
 	const save = store.saveShape();
 	const stock = {};
 	for (const key of Object.keys(save.stock).sort()) stock[key] = save.stock[key];
 	const strategy = {};
 	for (const key of Object.keys(save.strategy).sort()) strategy[key] = save.strategy[key];
-	return JSON.stringify({ stock, targets: save.targets, strategy });
+
+	const out = { stock, targets: save.targets, strategy };
+	if (save.profile) out.profile = save.profile;
+	return JSON.stringify(out);
 }
 
 const isEmpty = data =>

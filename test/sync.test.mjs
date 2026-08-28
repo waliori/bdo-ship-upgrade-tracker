@@ -297,3 +297,39 @@ test('every response carries the security headers', async () => {
 	assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
 	assert.equal(res.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
 });
+
+/* ------------------------------------------------------------------ *
+ * the barter profile, added to the save after people were using it
+ * ------------------------------------------------------------------ */
+
+test('a save with no profile is stored with no profile', async () => {
+	// The field has to be invisible to anyone who has not set one. If the
+	// server helpfully added an empty object, every stored save would
+	// change shape on its owner's next push, and every already-signed-in
+	// browser would find its own copy no longer matching what is stored.
+	await call('PUT', '/api/state', { cookie: bob, body: { rev: 0, data: SAVE } });
+	const got = await (await call('GET', '/api/state', { cookie: bob })).json();
+	assert.deepEqual(got.data, SAVE);
+	assert.ok(!('profile' in got.data));
+});
+
+test('a profile survives the round trip', async () => {
+	const withProfile = { ...SAVE, profile: { barterCount: 2000, valuePack: true } };
+	const put = await call('PUT', '/api/state', { cookie: bob, body: { rev: 1, data: withProfile } });
+	assert.equal(put.status, 200);
+
+	const got = await (await call('GET', '/api/state', { cookie: bob })).json();
+	assert.deepEqual(got.data.profile, { barterCount: 2000, valuePack: true });
+	// And the rest of the save is untouched by its arrival.
+	assert.deepEqual(got.data.stock, SAVE.stock);
+});
+
+test('a profile that is not an object is refused', async () => {
+	for (const bad of [[], 'yes', 3]) {
+		const res = await call('PUT', '/api/state', {
+			cookie: bob,
+			body: { rev: 2, data: { ...SAVE, profile: bad } }
+		});
+		assert.equal(res.status, 400, `profile ${JSON.stringify(bad)} should be refused`);
+	}
+});

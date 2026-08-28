@@ -22,6 +22,7 @@ const emptyState = () => ({
 	stock: {},
 	targets: [],
 	strategy: {},
+	profile: {},
 	history: [],
 	settings: {}
 });
@@ -76,9 +77,28 @@ function normalise(raw) {
 			if (mode === 'buy' || mode === 'craft') s.strategy[item] = mode;
 		}
 	}
+	s.profile = readProfile(raw.profile);
 	if (Array.isArray(raw.history)) s.history = raw.history.slice(-HISTORY_CAP);
 	if (raw.settings && typeof raw.settings === 'object') s.settings = { ...raw.settings };
 	return s;
+}
+
+/**
+ * The profile, keyed and bounded.
+ *
+ * Only known keys survive, so a save written by a newer version cannot
+ * put anything unexpected in front of the planner. `barterCount` is a
+ * running total that only goes up, and a Value Pack is on or it is not.
+ */
+const isProfile = raw => Boolean(raw) && typeof raw === 'object' && !Array.isArray(raw);
+
+function readProfile(raw) {
+	const out = {};
+	if (!isProfile(raw)) return out;
+	const count = Math.max(0, Math.floor(Number(raw.barterCount) || 0));
+	if (count > 0) out.barterCount = count;
+	if (raw.valuePack === true) out.valuePack = true;
+	return out;
 }
 
 function persist() {
@@ -146,6 +166,7 @@ function commit(type, label, mutate) {
 	const beforeStock = { ...state.stock };
 	const beforeTargets = state.targets;
 	const beforeStrategy = state.strategy;
+	const beforeProfile = state.profile;
 
 	mutate();
 
@@ -161,8 +182,9 @@ function commit(type, label, mutate) {
 	if (Object.keys(delta).length) entry.delta = delta;
 	if (state.targets !== beforeTargets) entry.prevTargets = beforeTargets;
 	if (state.strategy !== beforeStrategy) entry.prevStrategy = beforeStrategy;
+	if (state.profile !== beforeProfile) entry.prevProfile = beforeProfile;
 
-	if (entry.delta || entry.prevTargets || entry.prevStrategy) {
+	if (entry.delta || entry.prevTargets || entry.prevStrategy || entry.prevProfile) {
 		state.history.push(entry);
 		if (state.history.length > HISTORY_CAP) state.history.shift();
 	}
@@ -186,6 +208,7 @@ export function undo() {
 	}
 	if (entry.prevTargets) state.targets = entry.prevTargets;
 	if (entry.prevStrategy) state.strategy = entry.prevStrategy;
+	if (entry.prevProfile) state.profile = entry.prevProfile;
 
 	persist();
 	notify('undo');
@@ -234,6 +257,29 @@ export function getStrategy(item) {
 
 export function getAllStrategy() {
 	return state.strategy;
+}
+
+/**
+ * Facts about the player that the plan needs and cannot derive.
+ *
+ * Two so far: how many barters they have completed, which decides what
+ * the barter list will offer them, and whether a Value Pack is running,
+ * which decides how often they can refresh it.
+ *
+ * These are data rather than preference -- a barter count is earned, and
+ * having to re-enter it on a phone would be exactly the kind of thing
+ * this app exists to avoid -- so unlike `settings` they travel with the
+ * save, are exported with it, and sync.
+ */
+export function getProfile(key, fallback = null) {
+	return key in state.profile ? state.profile[key] : fallback;
+}
+
+export function setProfile(key, value) {
+	const next = readProfile({ ...state.profile, [key]: value });
+	commit('profile', 'Changed your barter profile', () => {
+		state.profile = next;
+	});
 }
 
 export function getSetting(key, fallback = null) {
@@ -395,9 +441,7 @@ export function exportJSON() {
 	return JSON.stringify({
 		v: SCHEMA,
 		exported: new Date().toISOString(),
-		stock: state.stock,
-		targets: state.targets,
-		strategy: state.strategy
+		...saveShape()
 	}, null, 2);
 }
 
@@ -415,15 +459,22 @@ export function importJSON(text) {
 }
 
 /**
- * The three fields that are the save, as an object.
+ * The four fields that are the save, as an object.
  *
  * Everything else the state holds is either derived (nothing here) or
  * local to this browser: `history` is the undo stack, `settings` are
  * preferences like which tab you were on. Neither belongs in a backup or
  * on another machine, so neither is included.
+ *
+ * `profile` is omitted while it is empty. Every save written before it
+ * existed then compares byte-for-byte identical to one written now,
+ * which is what keeps this change invisible to anyone already signed in
+ * -- see localText() in sync.js for why that matters.
  */
 export function saveShape() {
-	return { stock: state.stock, targets: state.targets, strategy: state.strategy };
+	const shape = { stock: state.stock, targets: state.targets, strategy: state.strategy };
+	if (Object.keys(state.profile).length) shape.profile = state.profile;
+	return shape;
 }
 
 /**
@@ -432,13 +483,25 @@ export function saveShape() {
  * It goes through `commit`, so it lands on the undo stack: taking the
  * wrong copy in a sync conflict is exactly the sort of thing you want one
  * press to reverse.
+ *
+ * A save with no `profile` at all leaves the one here alone. That is the
+ * difference between "this copy predates the field" and "this player
+ * cleared it", and getting it wrong would mean a phone that has not
+ * been reloaded since the update silently wiping a barter count off
+ * every other device. An empty object still clears it, so a deliberate
+ * reset survives the round trip.
  */
 export function adopt(data, label = 'Replaced tracker data') {
 	const incoming = normalise(data);
+	// `isProfile` and not a bare typeof check: an array is an object to
+	// JavaScript but is not a profile, and treating one as a deliberate
+	// clear would throw a barter count away on malformed input.
+	const carriesProfile = data && isProfile(data.profile);
 	commit('import', label, () => {
 		state.stock = incoming.stock;
 		state.targets = incoming.targets;
 		state.strategy = incoming.strategy;
+		if (carriesProfile) state.profile = incoming.profile;
 	});
 	return { items: Object.keys(incoming.stock).length, targets: incoming.targets.length };
 }
