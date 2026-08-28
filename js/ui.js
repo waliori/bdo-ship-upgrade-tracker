@@ -16,6 +16,8 @@ import {
 	ROUTE_UNLOCKS
 } from './barter.js';
 import { iconLoader } from './icon-loader.js';
+import { createMap, frame, marksFor, pan, zoomBy } from './map.js';
+import { npcById } from './barter_npcs.js';
 import RealisticWaterRipples from './realistic-water-ripples.js';
 import * as store from './state.js';
 import { initSync, openAccount } from './sync.js';
@@ -37,7 +39,8 @@ const TABS = [
 	{ id: 'inventory', label: 'Inventory' },
 	{ id: 'tree', label: 'Tree' },
 	{ id: 'workshop', label: 'Workshop' },
-	{ id: 'get', label: 'To Get' }
+	{ id: 'get', label: 'To Get' },
+	{ id: 'map', label: 'Map' }
 ];
 
 const SOURCE_LABEL = {
@@ -1603,6 +1606,134 @@ function shoppingText() {
 }
 
 /* ------------------------------------------------------------------ *
+ * Map
+ * ------------------------------------------------------------------ */
+
+let mapState = null;
+let mapPick = null;
+
+/**
+ * The chart, and your shopping list drawn onto it.
+ *
+ * Everything else here answers "what do I need"; this answers the
+ * question straight after, which nothing else does: where do I sail.
+ * A row saying "barter from 36 NPCs" cannot tell you whether those 36
+ * are one afternoon's loop or scattered across the whole sea, and a
+ * chart can.
+ *
+ * The frame is painted once into the screen HTML and then moved by
+ * hand on a drag -- re-rendering the whole app on every mousemove would
+ * be both slow and enough to lose the drag.
+ */
+function renderMap() {
+	if (!mapState) mapState = createMap();
+
+	if (!barterData) {
+		return '<div class="panel"><p class="empty">Loading the barter routes…</p></div>';
+	}
+
+	const wanted = mapPick ? { [mapPick]: 1 } : snapshot.missing;
+	const marks = marksFor(wanted, barterData);
+
+	const options = [...new Set(barterData.map(b => b.name))].sort()
+		.map(n => `<option${n === mapPick ? ' selected' : ''}>${esc(n)}</option>`).join('');
+
+	const head = `<div class="summary">
+		<span class="summary-title">Where to sail</span>
+		<div class="summary-stats">
+			<div>
+				<div class="summary-k">Barterers</div>
+				<div class="summary-v">${F(marks.size)} of 81</div>
+				<div class="summary-sub">${mapPick ? 'trade this' : 'have something on your list'}</div>
+			</div>
+			<div>
+				<div class="summary-k">Showing</div>
+				<div class="summary-v"><select class="purse-inline" data-act="map-pick"
+					aria-label="What to look for"><option value=""${mapPick ? '' : ' selected'}
+					>Everything I am short of</option>${options}</select></div>
+				<div class="summary-sub">drag to pan · scroll to zoom</div>
+			</div>
+		</div>
+		<div class="map-zoom">
+			<button class="ghost-btn" data-act="map-zoom" data-step="-1" aria-label="Zoom out">−</button>
+			<button class="ghost-btn" data-act="map-zoom" data-step="1" aria-label="Zoom in">+</button>
+		</div>
+	</div>`;
+
+	return head + `<div class="panel map-panel"><div class="map" id="map" data-map>
+		<div class="map-layer" data-map-layer></div>
+	</div></div>`;
+}
+
+/** Draw the tiles and pins for the current state into the live map. */
+function paintMap() {
+	const host = document.querySelector('[data-map]');
+	const layer = host && host.querySelector('[data-map-layer]');
+	if (!host || !layer || !barterData) return;
+
+	const size = { w: host.clientWidth, h: host.clientHeight };
+	if (!size.w || !size.h) return;
+
+	const wanted = mapPick ? { [mapPick]: 1 } : snapshot.missing;
+	const marks = marksFor(wanted, barterData);
+	const { tiles, pins } = frame(mapState, size, marks);
+
+	layer.innerHTML = tiles.map(t =>
+		`<img class="map-tile" src="${t.src}" alt="" draggable="false"
+			style="left:${t.left}px;top:${t.top}px">`).join('')
+		+ pins.map(p => {
+			const m = p.mark;
+			const what = m ? [...m.items.keys()] : [];
+			const title = m
+				? `${p.name} — ${what.join(', ')}`
+				: p.name;
+			return `<button class="map-pin${m ? ' wanted' : ''}" style="left:${p.left}px;top:${p.top}px"
+				data-act="map-pin" data-npc="${p.id}" title="${esc(title)}">
+				<span class="map-pin-dot"></span>
+				<span class="map-pin-name">${esc(p.name)}${m && what.length > 1 ? ` ·${what.length}` : ''}</span>
+			</button>`;
+		}).join('');
+}
+
+/** Drag to pan, wheel to zoom. Wired once, for whatever map exists. */
+function wireMap() {
+	let dragging = null;
+
+	document.addEventListener('pointerdown', evt => {
+		const host = evt.target.closest('[data-map]');
+		if (!host || evt.target.closest('[data-act="map-pin"]')) return;
+		dragging = { x: evt.clientX, y: evt.clientY };
+		host.setPointerCapture(evt.pointerId);
+		host.classList.add('dragging');
+	});
+
+	document.addEventListener('pointermove', evt => {
+		if (!dragging || !mapState) return;
+		pan(mapState, evt.clientX - dragging.x, evt.clientY - dragging.y);
+		dragging = { x: evt.clientX, y: evt.clientY };
+		paintMap();
+	});
+
+	const stop = () => {
+		dragging = null;
+		document.querySelectorAll('[data-map].dragging').forEach(el => el.classList.remove('dragging'));
+	};
+	document.addEventListener('pointerup', stop);
+	document.addEventListener('pointercancel', stop);
+
+	document.addEventListener('wheel', evt => {
+		const host = evt.target.closest('[data-map]');
+		if (!host || !mapState) return;
+		evt.preventDefault();
+		if (zoomBy(mapState, evt.deltaY < 0 ? 1 : -1)) paintMap();
+	}, { passive: false });
+
+	window.addEventListener('resize', () => {
+		if (view === 'map') paintMap();
+	});
+}
+
+/* ------------------------------------------------------------------ *
  * shell
  * ------------------------------------------------------------------ */
 
@@ -1640,8 +1771,13 @@ export function render() {
 	else if (view === 'inventory') root.innerHTML = renderInventory();
 	else if (view === 'tree') root.innerHTML = renderTree();
 	else if (view === 'workshop') root.innerHTML = renderWorkshop();
+	else if (view === 'map') root.innerHTML = renderMap();
 	else root.innerHTML = renderGet();
 	restoreFocus(root, focus);
+	// The map draws itself after the shell exists, since it has to
+	// measure the box it was given before it knows which tiles to ask
+	// for.
+	if (view === 'map') paintMap();
 }
 
 /**
@@ -1694,7 +1830,9 @@ async function loadBarter() {
 	} catch {
 		barterData = [];
 	}
-	if (view === 'get') render();
+	// Both screens are built out of this data and both are showing a
+	// placeholder until it lands, so both need the second paint.
+	if (view === 'get' || view === 'map') render();
 }
 
 /* ------------------------------------------------------------------ *
@@ -1804,6 +1942,18 @@ function wire() {
 				const bar = document.getElementById('masthead-actions');
 				const open = bar.classList.toggle('open');
 				el.setAttribute('aria-expanded', String(open));
+				return;
+			}
+			case 'map-zoom':
+				if (mapState && zoomBy(mapState, Number(el.dataset.step))) paintMap();
+				return;
+			case 'map-pin': {
+				const npc = Number(el.dataset.npc);
+				const at = npcById.get(npc);
+				if (at && mapState) {
+					mapState.centre = { x: at.x, y: at.y };
+					paintMap();
+				}
 				return;
 			}
 			case 'plan-filter': planFilter = el.dataset.id; return render();
@@ -1929,6 +2079,9 @@ function wire() {
 		const lvl = evt.target.closest('[data-act="barter-level"]');
 		if (lvl) return store.setProfile('level', lvl.value || null);
 
+		const pick = evt.target.closest('[data-act="map-pick"]');
+		if (pick) { mapPick = pick.value || null; return render(); }
+
 		const el = evt.target.closest(
 			'[data-act="own-set"], [data-act="purse"], [data-act="target-qty"],'
 			+ ' [data-act="barter-count"], [data-act="vouchers"]');
@@ -1944,6 +2097,7 @@ function wire() {
 	// The pouch holds its ground while you type in it; once focus leaves it
 	// entirely, catch it up with whatever the change already recorded.
 	wirePeek();
+	wireMap();
 
 	document.addEventListener('keydown', evt => {
 		if (evt.key !== 'Escape' || !selected) return;

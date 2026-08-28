@@ -1830,3 +1830,81 @@ select.purse-inline { width: auto; cursor: pointer; }
   font-variant-numeric: tabular-nums;
   margin-top: 4px;
 }
+
+/* ------------------------------------------------------------------ *
+ * Map
+ * ------------------------------------------------------------------ */
+
+/* The chart fills what is left of the window rather than a fixed box,
+   so a wide screen gets more sea instead of more margin. */
+.map-panel { padding: 0; overflow: hidden; }
+
+.map {
+  position: relative;
+  height: min(68vh, 780px);
+  overflow: hidden;
+  cursor: grab;
+  background: #0a1725;
+  touch-action: none;
+  contain: strict;
+}
+
+.map.dragging { cursor: grabbing; }
+
+.map-layer { position: absolute; inset: 0; }
+
+/* Tiles are placed, not flowed. `pixelated` keeps the coastlines crisp
+   when a zoom step lands between the levels we shipped. */
+.map-tile {
+  position: absolute;
+  width: 256px;
+  height: 256px;
+  user-select: none;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+/* A pin is its own anchor: the dot sits on the coordinate and the name
+   hangs off it, so the label never decides where the island is. */
+.map-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-mute);
+  font-family: var(--font-display);
+  font-size: 10px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.map-pin-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(125, 175, 225, 0.45);
+  box-shadow: 0 0 0 1px rgba(10, 23, 37, 0.9);
+  flex: none;
+}
+
+.map-pin-name { opacity: 0; transition: opacity .12s; }
+.map-pin:hover .map-pin-name { opacity: 1; color: var(--ink-hi); }
+
+/* An island that has something you are short of. Named all the time,
+   because that is the whole point of opening this screen. */
+.map-pin.wanted { color: var(--teal); z-index: 2; }
+.map-pin.wanted .map-pin-dot {
+  background: var(--teal);
+  width: 9px;
+  height: 9px;
+  box-shadow: 0 0 0 1px rgba(10, 23, 37, 0.9), 0 0 10px var(--teal-glow);
+}
+.map-pin.wanted .map-pin-name { opacity: 1; }
+.map-pin.wanted:hover .map-pin-name { color: var(--teal-hi); }
+
+.map-zoom { display: flex; gap: 6px; }
+.map-zoom .ghost-btn { min-width: 34px; font-size: 15px; line-height: 1; }

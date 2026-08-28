@@ -94,7 +94,7 @@ app.get('/api/config', (req, res) => {
 
 // Only what the page actually asks for. Serving the repository root would
 // hand out package.json, the Dockerfile and the capture harness too.
-const PUBLIC = ['css', 'js', 'icons'];
+const PUBLIC = ['css', 'js', 'icons', 'map'];
 const FILES = ['index.html', 'icon.png', 'og.png', 'icon_mapping.json'];
 
 // There is no build step, so a module's filename never changes while its
@@ -111,13 +111,16 @@ const REVALIDATE = { maxAge: 0, etag: true, setHeaders: res => res.set('Cache-Co
 const LONG = { maxAge: '7d' };
 
 app.use('/icons', express.static(path.join(__dirname, 'icons'), LONG));
+// Map tiles are named by zoom and grid position, so a given name is a
+// given square of sea forever. They cache like the icons do.
+app.use('/map', express.static(path.join(__dirname, 'map'), LONG));
 // The walkthrough film the Help dialog plays. It lives beside the rest of
 // the documentation media so the README and the app show the same thing,
 // and only the video is copied into the image -- the README's GIFs are
 // several megabytes and nothing serves them. It is re-shot under the same
 // name whenever the UI moves, so it revalidates like the modules do.
 app.use('/docs/media', express.static(path.join(__dirname, 'docs', 'media'), REVALIDATE));
-for (const dir of PUBLIC.filter(d => d !== 'icons')) {
+for (const dir of PUBLIC.filter(d => d !== 'icons' && d !== 'map')) {
 	app.use(`/${dir}`, express.static(path.join(__dirname, dir), REVALIDATE));
 }
 for (const file of FILES) {
