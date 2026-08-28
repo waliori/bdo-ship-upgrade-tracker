@@ -12,6 +12,9 @@
 services:
   bdo-tracker:
     build: .
+    # A real init as PID 1, so SIGTERM reaches node cleanly and the
+    # shutdown flush in server/saves.js actually gets to run.
+    init: true
     ports:
       - "${PORT:-8000}:8000"
     # `required: false` is what lets the file be absent. Everything in it
