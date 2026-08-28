@@ -14,7 +14,7 @@ export const TILE = 256;
 
 /** The tile ranges actually downloaded, per zoom. Nothing outside is
  *  fetched, so a pan past the edge draws sea rather than a 404. */
-export const TILES = { 3: { x0: 0, x1: 8, y0: 0, y1: 5 }, 4: { x0: 2, x1: 15, y0: 1, y1: 9 }, 5: { x0: 6, x1: 29, y0: 4, y1: 17 } };
+export const TILES = { 3: { x0: 0, x1: 7, y0: 0, y1: 5 }, 4: { x0: 2, x1: 15, y0: 1, y1: 9 }, 5: { x0: 6, x1: 29, y0: 4, y1: 17 } };
 
 export const npcs = [
 	{ id: 58922, name: "Akenisi", x: 61554, y: 60679 },

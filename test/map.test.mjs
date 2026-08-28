@@ -88,6 +88,29 @@ test('the map opens wide enough to show nearly every island', () => {
 	assert.ok(pins.length > npcs.length * 0.9, `only ${pins.length} of ${npcs.length} in view`);
 });
 
+test('every tile the ranges promise is actually on disk', async () => {
+	// The viewer trusts TILES completely: anything inside a range is
+	// fetched without checking. A declared column that never shipped is
+	// therefore a 404 re-requested on every repaint of the map -- and the
+	// test below cannot catch it, because it only checks that frame()
+	// stays inside the ranges, not that the ranges tell the truth.
+	const fs = await import('node:fs/promises');
+	const missing = [];
+	for (const [z, b] of Object.entries(TILES)) {
+		for (let x = b.x0; x <= b.x1; x++) {
+			for (let y = b.y0; y <= b.y1; y++) {
+				const name = `${z}_${x}_${y}.webp`;
+				try {
+					await fs.access(new URL(`../map/${name}`, import.meta.url));
+				} catch {
+					missing.push(name);
+				}
+			}
+		}
+	}
+	assert.deepEqual(missing, [], 'tiles declared but never downloaded');
+});
+
 test('a frame only asks for tiles that exist', () => {
 	const state = createMap();
 	// Shove the view far past the edge of the world.
