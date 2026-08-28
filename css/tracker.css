@@ -1787,6 +1787,31 @@ a.codex:focus-visible .codex-mark { opacity: 1; color: var(--blue); }
 
 .row-alt { font-size: 11px; color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* What a barter costs in sea time. It sits below the shop price it is
+   competing with, and unlike .row-alt it is allowed to wrap: the whole
+   point is the clause after the dash, so truncating it would leave the
+   line saying nothing the row above did not already say. */
+.row-sea {
+  font-size: 11px;
+  color: var(--teal);
+  font-variant-numeric: tabular-nums;
+}
+
+.row-sea.locked { color: var(--ink-mute); }
+
+.row-sea-why { color: var(--ink-faint); }
+.row-sea-why::before { content: "· "; }
+
+/* A tick that reads as part of the sentence it interrupts. */
+.inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.inline-check input { margin: 0; cursor: pointer; }
+
 /* Nothing hovers on a phone, so the arrow has to be there all along or
    nobody ever finds out the names are links. */
 @media (hover: none) {

@@ -623,6 +623,16 @@ export function shoppingList(missing, sources = {}) {
 		if (qty <= 0) continue;
 		const entry = { item, qty };
 
+		// Whether a thing can be bartered for is asked before any of the
+		// grouping, because it is not a group -- it is the other side of
+		// every price below. Nine hundred Tidal Black Stones at ten coins
+		// each is only a bargain next to what bartering for them costs,
+		// and that comparison is the whole reason this screen exists.
+		// The quantity goes with it: the question is about the shortfall
+		// in front of you, not about one unit of it.
+		const trade = barter ? barter(item, qty) : null;
+		if (trade) entry.barter = trade;
+
 		if (coins[item]) {
 			entry.coins = coins[item] * qty;
 			entry.unit = `${coins[item].toLocaleString()} coins each`;
@@ -636,10 +646,7 @@ export function shoppingList(missing, sources = {}) {
 			continue;
 		}
 		// A curated source is more specific than "it is barterable", so it
-		// decides the group; barter detail rides along in the same entry.
-		const trade = barter ? barter(item) : null;
-		if (trade) entry.barter = trade;
-
+		// decides the group.
 		const methods = acquisition[item];
 		if (methods) {
 			const key = Object.keys(methods)[0] || 'Other';

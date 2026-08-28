@@ -102,9 +102,9 @@ export const items = {
 	"Sea Monster's Ooze": {
 		"Monster Drop": ["Hekaru", "Ocean Stalker"]
 	},
-	"Graphite Ingot for Upgrade": {"Quest Reward": ["Ravinia's Wiggly-Waggly Letter"]},
-	"Timber for Upgrade": {"Quest Reward": ["Ravinia's Wiggly-Waggly Letter"]},
-	"Adhesive for Upgrade": {"Quest Reward": ["Ravinia's Wiggly-Waggly Letter"]},
+	"Graphite Ingot for Upgrade": {"Quest Reward": ["Ravinia's Wiggly-Waggly Letter (25x)"]},
+	"Timber for Upgrade": {"Quest Reward": ["Ravinia's Wiggly-Waggly Letter (25x)"]},
+	"Adhesive for Upgrade": {"Quest Reward": ["Ravinia's Wiggly-Waggly Letter (25x)"]},
 
 	"Zinc Ingot": {"Market": ["Central Market"], "Processing": ["Melting Zinc Ore"]},
 	"Old Tree Bark": {"Market": ["Central Market"], "Gathering": ["Worker Nodes"]},
@@ -205,6 +205,6 @@ export const items = {
 	"Violent Sea Monster's Bone": {"Monster Drop": ["Great Ocean Sea Monsters"]},
 	"Violent Sea Monster's Ooze": {"Monster Drop": ["Great Ocean Sea Monsters"]},
 	"Saltwater Crocodile's Scale": {"Monster Drop": ["Saltwater Crocodile (Great Ocean)"]},
-	"Starlight Hardener": {"Purchase": ["Crow Coin Shop (250 Crow Coins)"]},
-	"Starlight Emulsifier": {"Purchase": ["Crow Coin Shop (250 Crow Coins)"]},
+	"Starlight Hardener": {"Purchase": ["Crow Coin Shop (200 Crow Coins)"]},
+	"Starlight Emulsifier": {"Purchase": ["Crow Coin Shop (200 Crow Coins)"]},
 };

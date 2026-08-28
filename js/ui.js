@@ -7,6 +7,13 @@ import { items as vendorItems } from './vendor_items.js';
 import { coins } from './sea_coins.js';
 import { falasi } from './falasi_vendor.js';
 import { tableFor } from './enhancement.js';
+import {
+	forecast as barterForecast,
+	summarise as barterLine,
+	explain as barterWhy,
+	dailyCapacity as barterDay,
+	ROUTE_UNLOCKS
+} from './barter.js';
 import { iconLoader } from './icon-loader.js';
 import RealisticWaterRipples from './realistic-water-ripples.js';
 import * as store from './state.js';
@@ -1376,13 +1383,62 @@ function renderWorkshop() {
  * To Get
  * ------------------------------------------------------------------ */
 
-function barterLookup(item) {
+/** What the player has told us about their own bartering. */
+function barterProfile() {
+	return {
+		barterCount: Number(store.getSetting('barterCount', 0)) || 0,
+		valuePack: store.getSetting('valuePack', false) === true
+	};
+}
+
+/**
+ * A shopping-list entry's barter side: who trades it, and -- the part
+ * nothing else answers -- what getting this many is going to cost in
+ * sea time.
+ *
+ * `shoppingList` hands us the quantity, so the forecast is for the
+ * shortfall in front of you rather than for a unit, which is what makes
+ * it worth reading.
+ */
+function barterLookup(item, qty = 1) {
 	if (!barterData) return null;
 	const entry = barterData.find(b => b.name === item);
 	if (!entry || !entry.sources || !entry.sources.length) return null;
 	const npcs = [...new Set(entry.sources.map(s => s.npc_name))];
 	const gives = [...new Set(entry.sources.map(s => s.give && s.give.name).filter(Boolean))];
-	return { npcs, gives };
+	return { npcs, gives, plan: barterForecast(item, qty, barterData, barterProfile()) };
+}
+
+/**
+ * The two things about you that the barter forecast cannot know.
+ *
+ * Both are one-off answers that then quietly improve every barter line
+ * below, so they sit in the summary bar with the purse rather than
+ * behind a settings screen -- and the barter count is shown as what it
+ * unlocks next, because the raw number means nothing until you know
+ * what it buys.
+ */
+function barterProfileTile() {
+	const { barterCount, valuePack } = barterProfile();
+	const day = barterDay({ valuePack });
+	const next = nextUnlock(barterCount);
+
+	return `<div>
+		<div class="summary-k">Bartering</div>
+		<div class="summary-v">${F(day.trades)} trades/day</div>
+		<div class="summary-sub"><input class="purse-inline" type="text" inputmode="numeric"
+			value="${F(barterCount)}" data-act="barter-count"
+			aria-label="Barters you have completed"> done${next ? ` · ${esc(next)}` : ''}
+			· <label class="inline-check"><input type="checkbox" data-act="value-pack"
+			${valuePack ? 'checked' : ''}> Value Pack</label></div>
+	</div>`;
+}
+
+/** The next thing your barter count opens, phrased as the wait for it. */
+function nextUnlock(count) {
+	const next = ROUTE_UNLOCKS.filter(r => r.opens && r.barters > count)[0];
+	if (!next) return null;
+	return `${F(next.barters - count)} to ${next.opens}`;
 }
 
 function renderGet() {
@@ -1416,6 +1472,7 @@ function renderGet() {
 				<div class="summary-v">${F(totals.lines)}</div>
 				<div class="summary-sub">distinct things to obtain</div>
 			</div>
+			${barterProfileTile()}
 		</div>
 		<button class="ghost-btn" data-act="copy">Copy list</button>
 	</div>`;
@@ -1442,6 +1499,15 @@ function renderGet() {
 					const t = `barter from ${entry.barter.npcs.length} NPCs for ${entry.barter.gives.slice(0, 2).join(' / ')}`;
 					sub = sub ? `${sub} · ${t}` : t;
 				}
+				// The trade count is the half of the decision the shop
+				// price cannot make for you: 400 coins each is only dear
+				// if the barter is cheap, and this says which it is.
+				const plan = entry.barter && entry.barter.plan;
+				const why = plan && barterWhy(plan);
+				const sea = plan
+					? `<div class="row-sea${plan.gate ? ' locked' : ''}">by barter: ${esc(barterLine(plan))}${
+						why ? ` <span class="row-sea-why">${esc(why)}</span>` : ''}</div>`
+					: '';
 				// The list says where to buy it; the other half of the
 				// decision is what making it would cost instead.
 				const made = waysToGet(entry.item, costCtx()).routes.find(r => r.parts);
@@ -1454,6 +1520,7 @@ function renderGet() {
 						<div class="row-name">${codexName(entry.item)}</div>
 						<div class="row-sub">${esc(sub)}</div>
 						${alt}
+						${sea}
 					</div>
 					<span class="qty-out">${F(entry.qty)}</span>
 				</div>`;
@@ -1789,11 +1856,18 @@ function wire() {
 	// Every typed-in quantity lands here: stock on the Plan and in the
 	// inventory detail, the pouch, and how many of a build you want.
 	document.addEventListener('change', evt => {
-		const el = evt.target.closest('[data-act="own-set"], [data-act="purse"], [data-act="target-qty"]');
+		// The Value Pack is a tick rather than a number, so it lands first
+		// and on its own.
+		const vp = evt.target.closest('[data-act="value-pack"]');
+		if (vp) return store.setSetting('valuePack', vp.checked);
+
+		const el = evt.target.closest(
+			'[data-act="own-set"], [data-act="purse"], [data-act="target-qty"], [data-act="barter-count"]');
 		if (!el) return;
 		const n = parseAmount(el.value);
 		if (n === null) return render();   // gibberish: put the stored value back
 		if (el.dataset.act === 'target-qty') store.setTargetQty(el.dataset.target, n);
+		else if (el.dataset.act === 'barter-count') store.setSetting('barterCount', n);
 		else store.setStock(el.dataset.item, n);
 	});
 
