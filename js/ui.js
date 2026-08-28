@@ -12,6 +12,7 @@ import {
 	summarise as barterLine,
 	explain as barterWhy,
 	dailyCapacity as barterDay,
+	barterLevels,
 	ROUTE_UNLOCKS
 } from './barter.js';
 import { iconLoader } from './icon-loader.js';
@@ -1426,7 +1427,9 @@ function renderWorkshop() {
 function barterProfile() {
 	return {
 		barterCount: Number(store.getProfile('barterCount', 0)) || 0,
-		valuePack: store.getProfile('valuePack', false) === true
+		valuePack: store.getProfile('valuePack', false) === true,
+		level: store.getProfile('level', null),
+		vouchers: Number(store.getProfile('vouchers', 0)) || 0
 	};
 }
 
@@ -1458,10 +1461,18 @@ function barterLookup(item, qty = 1) {
  * what it buys.
  */
 function barterProfileTile() {
-	const { barterCount, valuePack } = barterProfile();
-	const day = barterDay({ valuePack });
+	const profile = barterProfile();
+	const { barterCount, valuePack, level, vouchers } = profile;
+	const day = barterDay(profile);
 	const next = nextUnlock(barterCount);
 
+	const levels = barterLevels().map(name =>
+		`<option${name === level ? ' selected' : ''}>${esc(name)}</option>`).join('');
+
+	// Parley is not what paces the trip -- the refresh cap is -- so it
+	// sits under the headline as a fact rather than above it as a limit.
+	// It is still worth showing: it is the one number a barter level
+	// visibly moves, and the game never adds up what a bar buys you.
 	return `<div>
 		<div class="summary-k">Bartering</div>
 		<div class="summary-v">${F(day.refreshes)} refreshes/day</div>
@@ -1470,6 +1481,13 @@ function barterProfileTile() {
 			aria-label="Barters you have completed"> done${next ? ` · ${esc(next)}` : ''}
 			· <label class="inline-check"><input type="checkbox" data-act="value-pack"
 			${valuePack ? 'checked' : ''}> Value Pack</label></div>
+		<div class="summary-sub"><select class="purse-inline" data-act="barter-level"
+			aria-label="Your barter level"><option value=""${level ? '' : ' selected'}>—</option>${levels}</select>
+			· ${F(day.perTrade)} Parley a trade
+			· <input class="purse-inline narrow" type="text" inputmode="numeric"
+			value="${F(vouchers)}" data-act="vouchers"
+			aria-label="Crow's Trade Vouchers you carry"> vouchers
+			· ${F(day.tradesPerBar)} trades a refill</div>
 	</div>`;
 }
 
@@ -1906,13 +1924,20 @@ function wire() {
 		const vp = evt.target.closest('[data-act="value-pack"]');
 		if (vp) return store.setProfile('valuePack', vp.checked);
 
+		// The level is a name, not a number, so it lands before the
+		// numeric parse below rather than going through it.
+		const lvl = evt.target.closest('[data-act="barter-level"]');
+		if (lvl) return store.setProfile('level', lvl.value || null);
+
 		const el = evt.target.closest(
-			'[data-act="own-set"], [data-act="purse"], [data-act="target-qty"], [data-act="barter-count"]');
+			'[data-act="own-set"], [data-act="purse"], [data-act="target-qty"],'
+			+ ' [data-act="barter-count"], [data-act="vouchers"]');
 		if (!el) return;
 		const n = parseAmount(el.value);
 		if (n === null) return render();   // gibberish: put the stored value back
 		if (el.dataset.act === 'target-qty') store.setTargetQty(el.dataset.target, n);
 		else if (el.dataset.act === 'barter-count') store.setProfile('barterCount', n);
+		else if (el.dataset.act === 'vouchers') store.setProfile('vouchers', n);
 		else store.setStock(el.dataset.item, n);
 	});
 

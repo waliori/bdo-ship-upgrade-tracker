@@ -127,6 +127,69 @@ export const ROUTE_UNLOCKS = [
 	{ barters: 20000, opens: "Margoria's Star — Shipwrecked Marine Vessel" }
 ];
 
+/**
+ * Barter levels, in order, and how many steps each tier holds.
+ *
+ * Master runs to 30 and Guru to 100, which is why this is a table rather
+ * than a multiplication.
+ */
+export const BARTER_TIERS = [
+	['Beginner', 10], ['Apprentice', 10], ['Skilled', 10],
+	['Professional', 10], ['Artisan', 10], ['Master', 30], ['Guru', 100]
+];
+
+/**
+ * What each barter level takes off the Parley an exchange costs, as a
+ * percentage.
+ *
+ * Guides will tell you bartering has no Mastery benefit. The game
+ * disagrees and publishes the whole curve, one row per level: it opens
+ * at nothing, is already worth 8% by the end of Beginner, and then
+ * flattens hard -- the last forty levels are worth less than the first
+ * two. From Guru 50 it stops entirely at 25.27%, so the table ends there
+ * and everything above reads the last value.
+ *
+ * This stacks with the Value Pack's 10% and, since 2025-03-06, a ship's
+ * own 10% while you are aboard.
+ */
+const PARLEY_DISCOUNT = [
+	0, 2.7329, 3.8568, 4.7136, 5.4313, 6.0595, 6.6238, 7.1392, 7.6157, 8.0603,
+	8.4779, 8.8723, 9.2466, 9.603, 9.9435, 10.2697, 10.583, 10.8843, 11.1747, 11.455,
+	11.726, 11.9882, 12.2423, 12.4887, 12.7279, 12.9602, 13.1861, 13.4059, 13.6198, 13.8281,
+	14.0312, 14.2291, 14.4222, 14.6105, 14.7944, 14.9739, 15.1492, 15.3205, 15.4878, 15.6514,
+	15.8113, 15.9677, 16.1206, 16.2701, 16.4164, 16.5595, 16.6995, 16.8365, 16.9705, 17.1017,
+	17.23, 17.3556, 17.4785, 17.5988, 17.7165, 17.8316, 17.9443, 18.0546, 18.1624, 18.2679,
+	18.3711, 18.4721, 18.5708, 18.67, 18.77, 18.87, 18.97, 19.07, 19.17, 19.27,
+	19.37, 19.47, 19.57, 19.67, 19.77, 19.87, 19.97, 20.07, 20.17, 20.27,
+	20.37, 20.47, 20.57, 20.67, 20.77, 20.87, 20.97, 21.07, 21.17, 21.27,
+	21.37, 21.47, 21.57, 21.67, 21.77, 21.87, 21.97, 22.07, 22.17, 22.27,
+	22.37, 22.47, 22.57, 22.67, 22.77, 22.87, 22.97, 23.07, 23.17, 23.27,
+	23.37, 23.47, 23.57, 23.67, 23.77, 23.87, 23.97, 24.07, 24.17, 24.27,
+	24.37, 24.47, 24.57, 24.67, 24.77, 24.87, 24.97, 25.07, 25.17, 25.27
+];
+
+/** Every level as a flat list, so a picker can just render it. */
+export function barterLevels() {
+	const out = [];
+	for (const [tier, steps] of BARTER_TIERS) {
+		for (let i = 1; i <= steps; i++) out.push(`${tier} ${i}`);
+	}
+	return out;
+}
+
+/** A level name to its place in the table. Beginner 1 is 0. */
+export function levelIndex(name) {
+	if (!name) return 0;
+	const at = barterLevels().indexOf(name);
+	return at < 0 ? 0 : at;
+}
+
+/** What a barter level takes off an exchange, as a fraction. */
+export function levelDiscount(name) {
+	const i = Math.min(levelIndex(name), PARLEY_DISCOUNT.length - 1);
+	return PARLEY_DISCOUNT[i] / 100;
+}
+
 /* ------------------------------------------------------------------ *
  * reading the dataset
  * ------------------------------------------------------------------ */
@@ -292,26 +355,40 @@ export function rungs(step) {
  * them is trading tomorrow's presses for today's, and a forecast that
  * counted them would quietly promise a pace nobody can hold.
  */
-export function dailyCapacity({ valuePack = false, vouchers = 0 } = {}) {
+export function dailyCapacity({ valuePack = false, vouchers = 0, level = null } = {}) {
 	const refreshes = 1
 		+ (valuePack ? REFRESH.tradeItem.perDayWithValuePack : REFRESH.tradeItem.perDay)
 		+ REFRESH.shipMaterial.perDay;
 
-	const perTrade = parleyPerTrade({ valuePack });
+	const perTrade = parleyPerTrade({ valuePack, level });
+	const bar = PARLEY.max + vouchers * PARLEY.voucher;
 
 	return {
 		refreshes,
-		parley: refreshes * PARLEY.max + vouchers * PARLEY.voucher,
+		vouchers,
+		parley: refreshes * bar,
 		perTrade,
-		// Top-rung exchanges one refilled bar covers.
-		tradesPerBar: Math.floor(PARLEY.max / perTrade)
+		// Top-rung exchanges one refill covers, vouchers included. A
+		// voucher is a quarter of a bar and carries its own two-hour
+		// cooldown, so this is what a patient player can reach rather
+		// than what fits in one sitting.
+		tradesPerBar: Math.floor(bar / perTrade)
 	};
 }
 
-/** What one Great Ocean exchange costs, Value Pack included. */
-export function parleyPerTrade({ valuePack = false, crowCoin = false } = {}) {
+/**
+ * What one Great Ocean exchange costs you, specifically.
+ *
+ * The two reductions multiply rather than add -- a Guru 50 with a Value
+ * Pack pays 0.7473 x 0.9, not 1 - 0.3527 -- which is the difference
+ * between 9,600 and 9,250 and worth getting right when the answer is
+ * "how many exchanges does a bar cover".
+ */
+export function parleyPerTrade({ valuePack = false, crowCoin = false, level = null } = {}) {
 	const base = crowCoin ? PARLEY.perCrowCoinTrade : PARLEY.perGreatOceanTrade;
-	return Math.round(base * (valuePack ? 1 - PARLEY.valuePackDiscount : 1));
+	const fromLevel = 1 - levelDiscount(level);
+	const fromPack = valuePack ? 1 - PARLEY.valuePackDiscount : 1;
+	return Math.round(base * fromLevel * fromPack);
 }
 
 /* ------------------------------------------------------------------ *
@@ -380,12 +457,12 @@ export function gateFor(item, barterCount) {
  * the caller already knows how to say "not bartered".
  */
 export function forecast(item, qty, barterData, opts = {}) {
-	const { barterCount = 0, valuePack = false, vouchers = 0 } = opts;
+	const { barterCount = 0, valuePack = false, vouchers = 0, level = null } = opts;
 
 	const top = ladder(item, barterData);
 	if (!top) return null;
 
-	const day = dailyCapacity({ valuePack, vouchers });
+	const day = dailyCapacity({ valuePack, vouchers, level });
 	const trades = top.totalTrades * qty;
 
 	// The trip is paced by the rung that runs out first. Parley is not

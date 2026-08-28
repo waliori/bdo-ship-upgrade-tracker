@@ -16,7 +16,8 @@ import { shipbarters } from '../js/all_barter.js';
 import {
 	REFRESH, PARLEY, ROUTE_UNLOCKS,
 	amount, levelOf, bestExchange, ladder, rungs, bottleneck,
-	dailyCapacity, parleyPerTrade, gateFor, forecast, summarise, explain
+	dailyCapacity, parleyPerTrade, gateFor, forecast, summarise, explain,
+	barterLevels, levelDiscount, BARTER_TIERS
 } from '../js/barter.js';
 
 /* ------------------------------------------------------------------ *
@@ -77,6 +78,64 @@ test('the Brilliant pair unlocks at 1,500', () => {
 
 	const three = ROUTE_UNLOCKS.find(r => r.barters === 3000);
 	assert.ok(three && !/Brilliant/.test(three.opens));
+});
+
+/* ------------------------------------------------------------------ *
+ * barter level
+ * ------------------------------------------------------------------ */
+
+test('the level list is every step of every tier', () => {
+	// Master runs to 30 and Guru to 100, which is the part a formula
+	// would get wrong.
+	const all = barterLevels();
+	assert.equal(all.length, BARTER_TIERS.reduce((a, [, n]) => a + n, 0));
+	assert.equal(all.length, 180);
+	assert.equal(all[0], 'Beginner 1');
+	assert.equal(all[50], 'Master 1');
+	assert.equal(all[80], 'Guru 1');
+	assert.equal(all.at(-1), 'Guru 100');
+});
+
+test('the Parley discount climbs, then stops dead at Guru 50', () => {
+	assert.equal(levelDiscount('Beginner 1'), 0);
+	assert.ok(levelDiscount('Guru 50') > levelDiscount('Guru 49'));
+	// Everything above Guru 50 reads the last value rather than running
+	// off the end of the table.
+	assert.equal(levelDiscount('Guru 100'), levelDiscount('Guru 50'));
+	assert.ok(Math.abs(levelDiscount('Guru 50') - 0.2527) < 1e-9);
+});
+
+test('an unknown or missing level costs full price', () => {
+	assert.equal(levelDiscount(null), 0);
+	assert.equal(levelDiscount('Grandmaster 3'), 0);
+	assert.equal(parleyPerTrade({ level: null }), PARLEY.perGreatOceanTrade);
+});
+
+test('the level and the Value Pack multiply, they do not add', () => {
+	// 0.7473 x 0.9 is 0.6726, not 1 - 0.3527. Adding them would claim a
+	// cheaper trade than the game gives.
+	const both = parleyPerTrade({ level: 'Guru 50', valuePack: true });
+	const added = Math.round(PARLEY.perGreatOceanTrade * (1 - 0.2527 - 0.1));
+	assert.ok(both > added, `${both} should be dearer than the added-up ${added}`);
+	assert.equal(both, Math.round(PARLEY.perGreatOceanTrade * (1 - 0.2527) * 0.9));
+});
+
+test('a voucher is a quarter of a bar of extra trades', () => {
+	const plain = dailyCapacity();
+	const carried = dailyCapacity({ vouchers: 2 });
+	assert.equal(carried.tradesPerBar,
+		Math.floor((PARLEY.max + 2 * PARLEY.voucher) / plain.perTrade));
+	assert.equal(carried.refreshes, plain.refreshes, 'vouchers do not buy refreshes');
+});
+
+test('a barter level does not change how many days a trip takes', () => {
+	// Parley is not the pace, so making it cheaper must not quietly
+	// shorten the forecast. Only refreshes do that.
+	const plain = forecast('Brilliant Pearl Shard', 40, shipbarters, { barterCount: 2000 });
+	const guru = forecast('Brilliant Pearl Shard', 40, shipbarters,
+		{ barterCount: 2000, level: 'Guru 50', vouchers: 5 });
+	assert.equal(guru.days, plain.days);
+	assert.ok(guru.topParley < plain.topParley, 'but it does make the Parley cheaper');
 });
 
 /* ------------------------------------------------------------------ *

@@ -1812,6 +1812,11 @@ a.codex:focus-visible .codex-mark { opacity: 1; color: var(--blue); }
 
 .inline-check input { margin: 0; cursor: pointer; }
 
+/* A voucher count is two digits; the level names are long. Both borrow
+   the purse field's look rather than inventing a second one. */
+.purse-inline.narrow { width: 44px; }
+select.purse-inline { width: auto; cursor: pointer; }
+
 /* Nothing hovers on a phone, so the arrow has to be there all along or
    nobody ever finds out the names are links. */
 @media (hover: none) {
