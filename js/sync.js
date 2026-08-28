@@ -138,8 +138,27 @@ function say(next, note = '') {
  * something the user is asked rather than guessed at.
  */
 async function firstPull() {
-	const got = await api('GET', '/api/state');
-	if (!got.ok) return say('error', 'could not reach the server');
+	if (!account || resolving) return;
+
+	// `api` throws when the network itself is down, and that must not
+	// escape: initSync awaits this, and an escaped rejection would end
+	// sync for the whole session over a bad first second.
+	let got;
+	try {
+		got = await api('GET', '/api/state');
+	} catch {
+		got = { ok: false };
+	}
+	if (!got.ok) {
+		// This is the one pull that decides everything -- without it the
+		// revision is unknown and every later push is a guess. So it does
+		// not give up: try again, a little later each time.
+		say('error', 'could not reach the server — retrying');
+		failures++;
+		setTimeout(firstPull, Math.min(RETRY_MIN * 2 ** (failures - 1), RETRY_MAX));
+		return;
+	}
+	failures = 0;
 
 	const remote = got.body;
 	const localEmpty = isEmpty(store.saveShape());
@@ -330,7 +349,17 @@ function askWhichCopy(remote, headline) {
 			<button class="act quiet" data-keep-remote>Use the saved one</button>
 			<button class="act" data-keep-local>Keep what is here</button>
 		</div>
-	`);
+	`, {
+		// Clicking past the dialog is not an answer, and it must not jam
+		// the works: `resolving` held pushes only while the question was
+		// on screen. Nothing is decided on the user's behalf -- the two
+		// copies still disagree, so the very next push meets the same
+		// refusal and asks again, and a pull on refocus does too.
+		onDismiss: () => {
+			resolving = false;
+			say('conflict');
+		}
+	});
 
 	host.querySelector('[data-keep-local]').addEventListener('click', async () => {
 		hooks.closeDialog();

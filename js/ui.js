@@ -2217,12 +2217,22 @@ function wirePeek() {
  * dialogs
  * ------------------------------------------------------------------ */
 
-function openDialog(html) {
+/**
+ * `onDismiss` fires when the dialog is put away without an answer -- the
+ * backdrop, or a plain Close button. A caller that was holding work while
+ * the question was on screen (the sync conflict) uses it to let go; the
+ * buttons that *are* answers call closeDialog() directly and never
+ * trigger it.
+ */
+function openDialog(html, { onDismiss = null } = {}) {
 	const host = document.getElementById('dialog');
 	host.innerHTML = `<div class="dialog-box">${html}</div>`;
 	host.hidden = false;
 	host.onclick = evt => {
-		if (evt.target === host || evt.target.hasAttribute('data-close')) closeDialog();
+		if (evt.target === host || evt.target.hasAttribute('data-close')) {
+			closeDialog();
+			if (onDismiss) onDismiss();
+		}
 	};
 	return host;
 }
