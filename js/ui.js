@@ -3,7 +3,7 @@
 
 import { recipes as allRecipes, routes, routeInfo } from './recipes.js';
 import { shipGroups } from './ships.js';
-import { items as vendorItems } from './vendor_items.js';
+import { items as vendorItems, bulkExchanges } from './vendor_items.js';
 import { coins } from './sea_coins.js';
 import { falasi } from './falasi_vendor.js';
 import { tableFor } from './enhancement.js';
@@ -314,10 +314,22 @@ function peekHTML(item) {
 	else if (src && MAKE_KEYS.has(src.key)) foot = src.key === 'craft' ? '' : src.detail;
 	else if (src) foot = `or ${src.label} · ${src.detail}`;
 
-	if (!body && !foot && !price) return '';
+	// A hundred at a time from one item is not a recipe and cannot be
+	// one -- the book makes a single unit -- but for the yellow tier it
+	// is very often the answer, and it has to be visible wherever the
+	// material is, not only where it is short. The card follows the
+	// material everywhere; the To Get row never sees these three,
+	// because the planner resolves them into their ingredients first.
+	const bulk = bulkExchanges[item];
+	const inBulk = bulk
+		? `<div class="peek-cost">or ${F(bulk.gets)} at once for one ${esc(bulk.give)}</div>`
+		: '';
+
+	if (!body && !foot && !price && !inBulk) return '';
 	return `<div class="peek-head">${img(item, 'peek-icon lg')}<span>${esc(item)}</span></div>`
 		+ body
 		+ price
+		+ inBulk
 		+ (foot ? `<div class="peek-foot">${esc(foot)}</div>` : '');
 }
 
@@ -1580,12 +1592,22 @@ function renderGet() {
 				const alt = made
 					? `<div class="row-alt">or make ${F(entry.qty)}: ${esc(costText(made, entry.qty))}</div>`
 					: '';
+
+				// Some things come a hundred at a time from one item. That
+				// is not a recipe and cannot be one -- the book makes a
+				// single unit -- but it is very often the answer, so it
+				// goes beside the recipe rather than in it.
+				const bulk = bulkExchanges[entry.item];
+				const inBulk = bulk
+					? `<div class="row-alt">or ${F(Math.ceil(entry.qty / bulk.gets))}× ${esc(bulk.give)}, ${F(bulk.gets)} a time</div>`
+					: '';
 				return `<div class="row" data-peek="${esc(entry.item)}">
 					${img(entry.item, 'row-icon sm')}
 					<div class="row-main">
 						<div class="row-name">${codexName(entry.item)}</div>
 						<div class="row-sub">${esc(sub)}</div>
 						${alt}
+						${inBulk}
 						${sea}
 					</div>
 					<span class="qty-out">${F(entry.qty)}</span>

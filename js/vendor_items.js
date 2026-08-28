@@ -220,3 +220,24 @@ export const items = {
 	"Starlight Hardener": {"Purchase": ["Crow Coin Shop (200 Crow Coins)"]},
 	"Starlight Emulsifier": {"Purchase": ["Crow Coin Shop (200 Crow Coins)"]},
 };
+
+/**
+ * One thing that buys a great many of another.
+ *
+ * These do not fit the recipe book, which makes one unit at a time: a
+ * Lyngbakr's Horn is not an ingredient of a Sturdy Coral Support, it is
+ * a hundred and twenty-five of them at once. Recorded separately so the
+ * To Get screen can put the two ways side by side, which is the whole
+ * point -- the numbers are not close. One Horn is exactly one part's
+ * worth, where crafting the same 125 wants 125 Lyngbakr's Bone and 250
+ * Starlight reagents at 200 Crow Coins each.
+ *
+ * From the 2026-08-27 patch: "Lyngbakr's Horn can be exchanged for
+ * materials used to craft yellow-grade ship parts for an Epheria
+ * Carrack and Panokseon. Choose 1 from the following."
+ */
+export const bulkExchanges = {
+	"Sturdy Coral Support": { give: "Lyngbakr's Horn", gets: 125 },
+	"Raging Wave Plywood": { give: "Lyngbakr's Horn", gets: 75 },
+	"Dormant Crimson Coral Adhesive": { give: "Lyngbakr's Horn", gets: 50 }
+};

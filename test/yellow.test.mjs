@@ -18,6 +18,7 @@ import { recipes } from '../js/recipes.js';
 import { tableFor, families } from '../js/enhancement.js';
 import { expectedAttempts, unprotectedAttempts, enhanceStep, plan } from '../js/planner.js';
 import { falasi } from '../js/falasi_vendor.js';
+import { bulkExchanges } from '../js/vendor_items.js';
 import { ships } from '../js/ships.js';
 
 const VARIANTS = ['Advance', 'Balance', 'Volante', 'Valor'];
@@ -182,5 +183,27 @@ test('every yellow part has its ten enhancement levels', () => {
 			assert.equal(recipes[`+${level} ${part}`][below], 1, `+${level} ${part}`);
 		}
 		assert.equal(recipes[`+11 ${part}`], undefined, 'and stops at ten');
+	}
+});
+
+test('one Lyngbakr\'s Horn is exactly one part\'s worth of a material', () => {
+	// The 2026-08-27 exchange pays 125 / 75 / 50, which is precisely what
+	// a yellow part asks for. That is not a coincidence, and if a patch
+	// ever moves one of the two the app must not go on claiming a Horn
+	// covers a part.
+	const part = recipes["Epheria Carrack: Valor (Falasi's Sail)"];
+	for (const [material, ex] of Object.entries(bulkExchanges)) {
+		assert.equal(ex.gets, part[material],
+			`${material}: a Horn pays ${ex.gets} but a part wants ${part[material]}`);
+		assert.equal(ex.give, "Lyngbakr's Horn");
+	}
+});
+
+test('the bulk exchange is an alternative to a recipe, never a replacement', () => {
+	// Both ways have to stay reachable: the Horn is usually cheaper, but
+	// it comes off one sea monster and the crafted route is the one you
+	// can grind.
+	for (const material of Object.keys(bulkExchanges)) {
+		assert.ok(recipes[material], `${material} lost its recipe`);
 	}
 });
