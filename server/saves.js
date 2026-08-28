@@ -182,7 +182,34 @@ export async function readSave(userId) {
  * browser has its answer before Turso has heard about any of it.
  */
 export async function writeSaveFor(userId, payload, expected, device) {
-	const entry = await entryFor(userId);
+	let entry = await entryFor(userId);
+
+	// The await above is a seam. While the read resolved, another
+	// request's work may have changed what `live` holds for this account:
+	// an eviction can have dropped our (then clean) entry, a re-read can
+	// have built a second one, or a forget() can have deleted the account.
+	// Writing into an orphan would fork the account -- two entries, each
+	// sure of "the current revision" -- so this is settled before the
+	// revision check, which is only meaningful against the real entry.
+	if (entry.gone) {
+		// A forgotten account is the one thing that must stay gone.
+		return { ok: false, current: null };
+	}
+	const held = live.get(userId);
+	if (held !== entry) {
+		if (held && (held.dirty || held.rev > entry.rev)) {
+			// The raced entry carries writes ours never saw; ours is the
+			// orphan. Judge the push against the truth instead.
+			entry = held;
+		} else {
+			// Ours was evicted (or raced by a plain re-read of the same
+			// revision); put it back before it becomes the newest copy.
+			if (held) bytes -= size(held.payload);
+			live.set(userId, entry);
+			bytes += size(entry.payload);
+		}
+	}
+
 	if (entry.rev !== expected) {
 		return { ok: false, current: entry.rev === 0 ? null : snapshot(entry) };
 	}
