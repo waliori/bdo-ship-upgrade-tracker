@@ -52,17 +52,31 @@ test('a Value Pack buys a sixth refresh and a cheaper trade', () => {
 	assert.equal(plain.refreshes, 5);
 	assert.equal(vp.refreshes, 6);
 	assert.ok(vp.perTrade < plain.perTrade);
-	assert.ok(vp.trades > plain.trades);
+	assert.ok(vp.tradesPerBar > plain.tradesPerBar);
 });
 
-test('the Brilliant unlock sits between the seventh and eighth route', () => {
-	// The 3,000 and 5,000 figures that circulate belong to the Ship
-	// Material Refresh table, not to this one; conflating them puts the
-	// unlock three times too far away.
+test('the route table is the one the 2026-05-21 patch left behind', () => {
+	// Three routes from a standing start, and thresholds rounded off --
+	// 2,551 became 2,500. Anything still holding the old 11/31/71 set is
+	// reading a guide written before that patch.
+	assert.equal(ROUTE_UNLOCKS[0].barters, 0);
+	assert.equal(ROUTE_UNLOCKS[0].routes, 3);
+	for (const r of ROUTE_UNLOCKS) {
+		assert.ok(r.barters % 10 === 0, `${r.barters} is not a rounded threshold`);
+	}
+});
+
+test('the Brilliant pair unlocks at 1,500', () => {
+	// It was 1,000 until 2026-05-21 and every guide still says so. The
+	// 3,000 that also circulates is the threshold one row below it on
+	// the same table and has nothing to do with Brilliants.
 	const brilliant = ROUTE_UNLOCKS.find(r => /Brilliant/.test(r.opens || ''));
-	assert.equal(brilliant.barters, 1000);
-	assert.equal(ROUTE_UNLOCKS.find(r => r.route === 7).barters, 630);
-	assert.equal(ROUTE_UNLOCKS.find(r => r.route === 8).barters, 1270);
+	assert.equal(brilliant.barters, 1500);
+	assert.equal(gateFor('Brilliant Pearl Shard', 1499).short, 1);
+	assert.equal(gateFor('Brilliant Pearl Shard', 1500), null);
+
+	const three = ROUTE_UNLOCKS.find(r => r.barters === 3000);
+	assert.ok(three && !/Brilliant/.test(three.opens));
 });
 
 /* ------------------------------------------------------------------ *
@@ -85,13 +99,34 @@ test('levels come off the name, and ship materials have none', () => {
  * folding the ladder
  * ------------------------------------------------------------------ */
 
-test('a Brilliant Pearl Shard is three trades, not six', () => {
+test('a Brilliant Pearl Shard is under three trades, not six', () => {
 	// The ladder is six rungs tall, but the [Level 2] to [Level 4]
-	// rungs each pay two at a time, so half of each is charged. Getting
-	// this wrong is the single most likely way to double the forecast.
+	// rungs each pay more than one at a time, so a fraction of each is
+	// charged. Getting this wrong is the single most likely way to
+	// double the forecast.
+	//
+	// 2.86 rather than a round 3 is the 2026-04-16 minimum-exchange
+	// change showing through: the [Level 2] and [Level 3] rungs pay 2-3
+	// now instead of 1-3, so they average 2.5 and cost 0.4 of a trade
+	// each rather than 0.5.
 	const f = forecast('Brilliant Pearl Shard', 1, shipbarters, { barterCount: 2000 });
 	assert.equal(rungs(ladder('Brilliant Pearl Shard', shipbarters)).length, 6);
-	assert.equal(f.perUnit, 3);
+	assert.ok(Math.abs(f.perUnit - 2.86) < 0.001, `got ${f.perUnit}`);
+});
+
+test('no rung of the chain pays one for one any more', () => {
+	// The 2026-04-16 patch: "Adjusted the minimum exchange amount for
+	// level 1 -> level 2 and level 2 -> level 3 barters. Before: x1-3
+	// After: x2-3". A dataset still carrying 1-3 there would quietly
+	// inflate every forecast on the screen.
+	for (const entry of shipbarters) {
+		const level = levelOf(entry.name);
+		if (level !== 2 && level !== 3) continue;
+		for (const s of entry.sources) {
+			assert.notEqual(s.quantity_received, '1-3',
+				`${entry.name} still pays 1-3 from ${s.npc_name}`);
+		}
+	}
 });
 
 test('the ladder bottoms out on a land good, not on another barter', () => {
@@ -129,15 +164,21 @@ test('an item nobody barters for has no forecast', () => {
  * what actually costs days
  * ------------------------------------------------------------------ */
 
-test('the top rung sets the pace, not Parley', () => {
-	// Forty Shards is a couple of hundred trades, which one afternoon of
-	// Parley covers easily. Two per refresh is what makes it a week.
+test('the top rung sets the pace, and Parley never does', () => {
+	// Forty Shards is a couple of hundred trades. One refilled Parley
+	// bar covers sixty-nine top-rung exchanges and you refill five times
+	// a day, so Parley was never going to be the thing in the way. Two
+	// attempts per refresh is what makes it four days.
 	const f = forecast('Brilliant Pearl Shard', 40, shipbarters, { barterCount: 2000 });
-	assert.ok(f.parleyDays < 1, 'Parley alone would say under a day');
-	assert.ok(f.refreshDays > 3, 'the attempt cap should say days');
-	assert.equal(f.days, f.refreshDays);
 	assert.equal(f.limit.item, 'Brilliant Pearl Shard');
 	assert.equal(f.limit.perRefresh, 2);
+	assert.equal(f.days, f.limit.refreshes / f.capacity.refreshes);
+	assert.ok(f.days > 3, `expected days, got ${f.days}`);
+
+	// Parley is reported, not used as a ceiling: forty Shards is forty
+	// top-rung exchanges, well inside a single bar.
+	assert.equal(f.topParley, 40 * PARLEY.perGreatOceanTrade);
+	assert.ok(f.topParley < PARLEY.max);
 });
 
 test('the bottleneck is the worst rung, not the first or the sum', () => {
@@ -187,10 +228,13 @@ test('the gate named is the furthest one on the whole ladder', () => {
 	assert.equal(f.gate.short, 400);
 });
 
-test('past every threshold there is no gate', () => {
-	assert.equal(gateFor('Brilliant Pearl Shard', 1000), null);
-	assert.equal(gateFor('[Level 5] Azure Quartz', 1500), null);
-	assert.equal(gateFor('[Level 4] Panacea', 70), null);
+test('only thresholds a patch note still states are claimed', () => {
+	// The per-level gates guides print at 10, 30 and 70 were rewritten
+	// on 2026-05-21 into Crow Coin routes and never restated. Claiming
+	// them anyway would grey out routes that are open.
+	assert.equal(gateFor('Brilliant Pearl Shard', 1500), null);
+	assert.equal(gateFor('[Level 5] Azure Quartz', 0), null);
+	assert.equal(gateFor('[Level 4] Panacea', 0), null);
 	assert.equal(gateFor('Moon Scale Plywood', 0), null, 'nothing gates a plain material');
 });
 
@@ -201,7 +245,7 @@ test('past every threshold there is no gate', () => {
 test('the summary leads with trades and hedges the days', () => {
 	const f = forecast('Brilliant Pearl Shard', 40, shipbarters, { barterCount: 2000 });
 	const line = summarise(f);
-	assert.match(line, /120 trades/);
+	assert.match(line, /115 trades/);
 	assert.match(line, /at best/);
 });
 
@@ -242,14 +286,20 @@ test('a ship material is exactly one trade above the rung that buys it', () => {
 	}
 });
 
-test('the chain gets dearer with every level', () => {
+test('[Level 5] is the dearest rung, because it is the only 1:1 one', () => {
+	// The chain does not simply get dearer as it climbs. [Level 2] to
+	// [Level 4] each pay more than one per trade, so a unit of them
+	// costs less than the [Level 1] underneath -- one [Level 1] becomes
+	// two and a half [Level 2]s. [Level 5] is where that stops: it pays
+	// one for one, so it costs its whole [Level 4] plus a trade, and it
+	// is what makes the Brilliants expensive.
 	const cost = level => {
-		const items = shipbarters.filter(e => levelOf(e.name) === level);
-		const each = items.map(e => forecast(e.name, 1, shipbarters, { barterCount: 20000 }).perUnit);
+		const each = shipbarters
+			.filter(e => levelOf(e.name) === level)
+			.map(e => forecast(e.name, 1, shipbarters, { barterCount: 20000 }).perUnit);
 		return each.reduce((a, b) => a + b, 0) / each.length;
 	};
 	const byLevel = [1, 2, 3, 4, 5].map(cost);
-	for (let i = 1; i < byLevel.length; i++) {
-		assert.ok(byLevel[i] >= byLevel[i - 1], `level ${i + 1} costs less than level ${i}`);
-	}
+	assert.equal(Math.max(...byLevel), byLevel[4], 'level 5 should be the dearest');
+	assert.ok(byLevel[1] < byLevel[0], 'a level 2 should cost less than the level 1 below it');
 });

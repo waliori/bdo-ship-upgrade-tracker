@@ -1,3 +1,13 @@
+// Every barter that yields a ship material, and the trade-good ladder
+// that leads to one. Scraped from BDOCodex.
+//
+// The 1:1 exchanges are gone: the 2026-04-16 patch raised the minimum on
+// the two rungs that had one -- "Adjusted the minimum exchange amount for
+// level 1 -> level 2 and level 2 -> level 3 barters. Before: x1-3 After:
+// x2-3" -- so every [Level 2] and [Level 3] payout here reads 2-3. The
+// two Tidal Black Stone routes that pay 1-3 are untouched: they hand
+// over a ship material, not a trade good, and the patch did not name
+// them.
 export const shipbarters = [
   {
     "id": "5828",
@@ -28173,7 +28183,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -28185,7 +28195,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -28197,7 +28207,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -28209,7 +28219,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -28221,7 +28231,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -28233,7 +28243,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -28245,7 +28255,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -28257,7 +28267,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -28269,7 +28279,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -28281,7 +28291,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -28293,7 +28303,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -28305,7 +28315,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -28317,7 +28327,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -28329,7 +28339,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -28341,7 +28351,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -28353,7 +28363,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -28365,7 +28375,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -28377,7 +28387,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -28389,7 +28399,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -28401,7 +28411,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -28413,7 +28423,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -28425,7 +28435,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -28437,7 +28447,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -28449,7 +28459,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -28461,7 +28471,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -28473,7 +28483,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -28485,7 +28495,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -28497,7 +28507,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -28509,7 +28519,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -28521,7 +28531,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -28540,7 +28550,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -28552,7 +28562,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -28564,7 +28574,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -28576,7 +28586,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -28588,7 +28598,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -28600,7 +28610,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -28612,7 +28622,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -28624,7 +28634,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -28636,7 +28646,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -28648,7 +28658,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -28660,7 +28670,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -28672,7 +28682,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -28684,7 +28694,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -28696,7 +28706,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -28708,7 +28718,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -28720,7 +28730,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -28732,7 +28742,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -28744,7 +28754,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -28756,7 +28766,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -28768,7 +28778,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -28780,7 +28790,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -28792,7 +28802,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -28804,7 +28814,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -28816,7 +28826,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -28828,7 +28838,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -28840,7 +28850,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -28852,7 +28862,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -28864,7 +28874,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -28876,7 +28886,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -28888,7 +28898,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -28907,7 +28917,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -28919,7 +28929,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -28931,7 +28941,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -28943,7 +28953,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -28955,7 +28965,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -28967,7 +28977,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -28979,7 +28989,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -28991,7 +29001,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -29003,7 +29013,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -29015,7 +29025,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -29027,7 +29037,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -29039,7 +29049,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -29051,7 +29061,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -29063,7 +29073,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -29075,7 +29085,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -29087,7 +29097,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -29099,7 +29109,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -29111,7 +29121,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -29123,7 +29133,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -29135,7 +29145,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -29147,7 +29157,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -29159,7 +29169,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -29171,7 +29181,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -29183,7 +29193,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -29195,7 +29205,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -29207,7 +29217,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -29219,7 +29229,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -29231,7 +29241,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -29243,7 +29253,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -29262,7 +29272,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -29274,7 +29284,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -29286,7 +29296,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -29298,7 +29308,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -29310,7 +29320,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -29322,7 +29332,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -29334,7 +29344,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -29346,7 +29356,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -29358,7 +29368,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -29370,7 +29380,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -29382,7 +29392,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -29394,7 +29404,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -29406,7 +29416,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -29418,7 +29428,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -29430,7 +29440,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -29442,7 +29452,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -29454,7 +29464,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -29466,7 +29476,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -29478,7 +29488,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -29490,7 +29500,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -29502,7 +29512,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -29514,7 +29524,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -29526,7 +29536,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -29538,7 +29548,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -29550,7 +29560,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -29562,7 +29572,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -29574,7 +29584,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -29586,7 +29596,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -29598,7 +29608,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -29610,7 +29620,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -29629,7 +29639,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -29641,7 +29651,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -29653,7 +29663,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -29665,7 +29675,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -29677,7 +29687,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -29689,7 +29699,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -29701,7 +29711,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -29713,7 +29723,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -29725,7 +29735,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -29737,7 +29747,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -29749,7 +29759,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -29761,7 +29771,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -29773,7 +29783,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -29785,7 +29795,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -29797,7 +29807,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -29809,7 +29819,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -29821,7 +29831,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -29833,7 +29843,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -29845,7 +29855,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -29857,7 +29867,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -29869,7 +29879,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -29881,7 +29891,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -29893,7 +29903,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -29905,7 +29915,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -29917,7 +29927,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -29929,7 +29939,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -29941,7 +29951,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -29953,7 +29963,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -29965,7 +29975,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -29977,7 +29987,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -29989,7 +29999,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -30008,7 +30018,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -30020,7 +30030,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -30032,7 +30042,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -30044,7 +30054,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -30056,7 +30066,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -30068,7 +30078,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -30080,7 +30090,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -30092,7 +30102,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -30104,7 +30114,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -30116,7 +30126,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -30128,7 +30138,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -30140,7 +30150,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -30152,7 +30162,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -30164,7 +30174,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -30176,7 +30186,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -30188,7 +30198,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -30200,7 +30210,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -30212,7 +30222,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -30224,7 +30234,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -30236,7 +30246,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -30248,7 +30258,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -30260,7 +30270,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -30272,7 +30282,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -30284,7 +30294,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -30296,7 +30306,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -30308,7 +30318,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -30320,7 +30330,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -30332,7 +30342,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -30344,7 +30354,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -30356,7 +30366,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -30375,7 +30385,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -30387,7 +30397,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -30399,7 +30409,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -30411,7 +30421,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -30423,7 +30433,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -30435,7 +30445,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -30447,7 +30457,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -30459,7 +30469,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -30471,7 +30481,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -30483,7 +30493,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -30495,7 +30505,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -30507,7 +30517,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -30519,7 +30529,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -30531,7 +30541,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -30543,7 +30553,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -30555,7 +30565,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -30567,7 +30577,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -30579,7 +30589,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -30591,7 +30601,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -30603,7 +30613,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -30615,7 +30625,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -30627,7 +30637,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -30639,7 +30649,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -30651,7 +30661,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -30663,7 +30673,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -30675,7 +30685,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -30687,7 +30697,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -30706,7 +30716,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -30718,7 +30728,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -30730,7 +30740,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -30742,7 +30752,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -30754,7 +30764,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -30766,7 +30776,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -30778,7 +30788,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -30790,7 +30800,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -30802,7 +30812,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -30814,7 +30824,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -30826,7 +30836,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -30838,7 +30848,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -30850,7 +30860,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -30862,7 +30872,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -30874,7 +30884,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -30886,7 +30896,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -30898,7 +30908,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -30910,7 +30920,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -30922,7 +30932,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -30934,7 +30944,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -30946,7 +30956,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -30958,7 +30968,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -30970,7 +30980,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -30982,7 +30992,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -30994,7 +31004,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -31006,7 +31016,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -31018,7 +31028,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -31030,7 +31040,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -31042,7 +31052,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -31054,7 +31064,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -31066,7 +31076,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -31078,7 +31088,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -31097,7 +31107,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -31109,7 +31119,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -31121,7 +31131,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -31133,7 +31143,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -31145,7 +31155,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -31157,7 +31167,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -31169,7 +31179,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -31181,7 +31191,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -31193,7 +31203,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -31205,7 +31215,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -31217,7 +31227,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -31229,7 +31239,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -31241,7 +31251,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -31253,7 +31263,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -31265,7 +31275,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -31277,7 +31287,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -31289,7 +31299,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -31301,7 +31311,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -31313,7 +31323,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -31325,7 +31335,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -31337,7 +31347,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -31349,7 +31359,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -31361,7 +31371,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -31373,7 +31383,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -31385,7 +31395,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -31397,7 +31407,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -31409,7 +31419,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -31421,7 +31431,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -31433,7 +31443,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -31445,7 +31455,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -31457,7 +31467,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -31469,7 +31479,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -31488,7 +31498,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -31500,7 +31510,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -31512,7 +31522,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -31524,7 +31534,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -31536,7 +31546,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -31548,7 +31558,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -31560,7 +31570,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -31572,7 +31582,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -31584,7 +31594,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -31596,7 +31606,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -31608,7 +31618,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -31620,7 +31630,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -31632,7 +31642,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -31644,7 +31654,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -31656,7 +31666,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -31668,7 +31678,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -31680,7 +31690,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -31692,7 +31702,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -31704,7 +31714,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -31716,7 +31726,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -31735,7 +31745,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -31747,7 +31757,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -31759,7 +31769,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -31771,7 +31781,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -31783,7 +31793,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -31795,7 +31805,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -31807,7 +31817,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -31819,7 +31829,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -31831,7 +31841,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -31843,7 +31853,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -31855,7 +31865,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -31867,7 +31877,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -31879,7 +31889,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -31891,7 +31901,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -31903,7 +31913,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -31915,7 +31925,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -31927,7 +31937,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -31939,7 +31949,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -31951,7 +31961,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -31963,7 +31973,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -31975,7 +31985,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -31987,7 +31997,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -31999,7 +32009,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -32011,7 +32021,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -32023,7 +32033,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -32035,7 +32045,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -32047,7 +32057,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -32059,7 +32069,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -32071,7 +32081,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -32083,7 +32093,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -32095,7 +32105,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -32114,7 +32124,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -32126,7 +32136,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -32138,7 +32148,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -32150,7 +32160,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -32162,7 +32172,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -32174,7 +32184,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -32186,7 +32196,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -32198,7 +32208,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -32210,7 +32220,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -32222,7 +32232,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -32234,7 +32244,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -32246,7 +32256,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -32258,7 +32268,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -32270,7 +32280,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -32282,7 +32292,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -32294,7 +32304,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -32306,7 +32316,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -32318,7 +32328,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -32330,7 +32340,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -32342,7 +32352,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -32354,7 +32364,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -32366,7 +32376,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -32378,7 +32388,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -32390,7 +32400,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -32402,7 +32412,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -32414,7 +32424,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -32426,7 +32436,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -32438,7 +32448,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -32457,7 +32467,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58958,
@@ -32469,7 +32479,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -32481,7 +32491,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -32493,7 +32503,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -32505,7 +32515,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -32517,7 +32527,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -32529,7 +32539,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -32541,7 +32551,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -32553,7 +32563,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -32565,7 +32575,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -32577,7 +32587,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800010.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -32589,7 +32599,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -32601,7 +32611,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800037.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -32613,7 +32623,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -32625,7 +32635,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -32637,7 +32647,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -32649,7 +32659,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -32661,7 +32671,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -32673,7 +32683,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -32685,7 +32695,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -32697,7 +32707,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -32709,7 +32719,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800006.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -32721,7 +32731,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -32733,7 +32743,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -32745,7 +32755,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -32757,7 +32767,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -32769,7 +32779,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -32788,7 +32798,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58954,
@@ -32800,7 +32810,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -32812,7 +32822,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -32824,7 +32834,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58914,
@@ -32836,7 +32846,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -32848,7 +32858,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -32860,7 +32870,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58945,
@@ -32872,7 +32882,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800015.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58946,
@@ -32884,7 +32894,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -32896,7 +32906,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800007.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58967,
@@ -32908,7 +32918,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800051.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -32920,7 +32930,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800026.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58962,
@@ -32932,7 +32942,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800016.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -32944,7 +32954,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800001.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58951,
@@ -32956,7 +32966,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -32968,7 +32978,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800003.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58943,
@@ -32980,7 +32990,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58955,
@@ -32992,7 +33002,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800008.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58947,
@@ -33004,7 +33014,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800036.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -33016,7 +33026,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800033.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58917,
@@ -33028,7 +33038,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800022.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -33047,7 +33057,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -33059,7 +33069,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -33071,7 +33081,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -33083,7 +33093,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -33095,7 +33105,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -33107,7 +33117,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -33119,7 +33129,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -33131,7 +33141,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -33143,7 +33153,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -33155,7 +33165,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -33167,7 +33177,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -33179,7 +33189,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -33191,7 +33201,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -33203,7 +33213,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -33215,7 +33225,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -33227,7 +33237,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -33239,7 +33249,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -33251,7 +33261,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -33263,7 +33273,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -33275,7 +33285,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -33287,7 +33297,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -33299,7 +33309,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -33311,7 +33321,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -33323,7 +33333,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -33342,7 +33352,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -33354,7 +33364,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -33366,7 +33376,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -33378,7 +33388,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -33390,7 +33400,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -33402,7 +33412,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -33414,7 +33424,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -33426,7 +33436,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -33438,7 +33448,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -33450,7 +33460,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -33462,7 +33472,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -33474,7 +33484,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -33486,7 +33496,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -33498,7 +33508,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -33510,7 +33520,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -33522,7 +33532,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -33534,7 +33544,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -33546,7 +33556,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -33558,7 +33568,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -33570,7 +33580,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -33589,7 +33599,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -33601,7 +33611,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -33613,7 +33623,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -33625,7 +33635,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -33637,7 +33647,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -33649,7 +33659,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -33661,7 +33671,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -33673,7 +33683,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -33685,7 +33695,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -33697,7 +33707,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -33709,7 +33719,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -33721,7 +33731,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -33733,7 +33743,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -33745,7 +33755,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -33757,7 +33767,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -33769,7 +33779,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -33781,7 +33791,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -33793,7 +33803,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -33805,7 +33815,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -33817,7 +33827,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -33829,7 +33839,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -33841,7 +33851,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -33853,7 +33863,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -33865,7 +33875,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -33877,7 +33887,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -33889,7 +33899,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -33901,7 +33911,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -33913,7 +33923,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -33925,7 +33935,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -33937,7 +33947,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -33956,7 +33966,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -33968,7 +33978,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -33980,7 +33990,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -33992,7 +34002,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -34004,7 +34014,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -34016,7 +34026,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -34028,7 +34038,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -34040,7 +34050,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -34052,7 +34062,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -34064,7 +34074,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -34076,7 +34086,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -34088,7 +34098,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -34100,7 +34110,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -34112,7 +34122,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -34124,7 +34134,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -34136,7 +34146,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -34148,7 +34158,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -34160,7 +34170,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -34172,7 +34182,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -34184,7 +34194,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -34196,7 +34206,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -34208,7 +34218,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -34220,7 +34230,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -34239,7 +34249,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -34251,7 +34261,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -34263,7 +34273,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -34275,7 +34285,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -34287,7 +34297,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -34299,7 +34309,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -34311,7 +34321,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -34323,7 +34333,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -34335,7 +34345,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -34347,7 +34357,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -34359,7 +34369,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -34371,7 +34381,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -34383,7 +34393,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -34395,7 +34405,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -34407,7 +34417,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -34419,7 +34429,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -34431,7 +34441,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -34443,7 +34453,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -34455,7 +34465,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -34467,7 +34477,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -34479,7 +34489,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -34491,7 +34501,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -34503,7 +34513,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -34515,7 +34525,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -34527,7 +34537,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -34539,7 +34549,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -34551,7 +34561,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -34563,7 +34573,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -34575,7 +34585,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -34587,7 +34597,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -34606,7 +34616,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -34618,7 +34628,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -34630,7 +34640,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -34642,7 +34652,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -34654,7 +34664,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -34666,7 +34676,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -34678,7 +34688,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -34690,7 +34700,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -34702,7 +34712,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -34714,7 +34724,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -34726,7 +34736,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -34738,7 +34748,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -34750,7 +34760,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -34762,7 +34772,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -34774,7 +34784,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -34786,7 +34796,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -34798,7 +34808,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -34810,7 +34820,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -34822,7 +34832,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -34834,7 +34844,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -34846,7 +34856,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -34858,7 +34868,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -34870,7 +34880,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -34882,7 +34892,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -34894,7 +34904,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -34906,7 +34916,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -34925,7 +34935,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -34937,7 +34947,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -34949,7 +34959,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -34961,7 +34971,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -34973,7 +34983,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -34985,7 +34995,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -34997,7 +35007,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -35009,7 +35019,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -35021,7 +35031,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -35033,7 +35043,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -35045,7 +35055,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -35057,7 +35067,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -35069,7 +35079,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -35081,7 +35091,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -35093,7 +35103,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -35105,7 +35115,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -35117,7 +35127,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -35129,7 +35139,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -35141,7 +35151,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -35153,7 +35163,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -35165,7 +35175,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -35177,7 +35187,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -35189,7 +35199,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -35201,7 +35211,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -35213,7 +35223,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -35225,7 +35235,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -35237,7 +35247,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -35249,7 +35259,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -35261,7 +35271,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -35273,7 +35283,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -35292,7 +35302,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -35304,7 +35314,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -35316,7 +35326,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -35328,7 +35338,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -35340,7 +35350,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -35352,7 +35362,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -35364,7 +35374,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -35376,7 +35386,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -35388,7 +35398,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -35400,7 +35410,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -35412,7 +35422,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -35424,7 +35434,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -35436,7 +35446,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -35448,7 +35458,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -35460,7 +35470,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -35472,7 +35482,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -35484,7 +35494,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -35496,7 +35506,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -35508,7 +35518,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -35520,7 +35530,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -35532,7 +35542,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -35544,7 +35554,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -35556,7 +35566,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -35568,7 +35578,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -35580,7 +35590,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -35592,7 +35602,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -35604,7 +35614,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -35616,7 +35626,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -35628,7 +35638,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -35647,7 +35657,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -35659,7 +35669,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -35671,7 +35681,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -35683,7 +35693,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -35695,7 +35705,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -35707,7 +35717,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -35719,7 +35729,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -35731,7 +35741,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -35743,7 +35753,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -35755,7 +35765,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -35767,7 +35777,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -35779,7 +35789,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -35791,7 +35801,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -35803,7 +35813,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -35815,7 +35825,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -35827,7 +35837,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -35839,7 +35849,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -35851,7 +35861,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -35863,7 +35873,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -35875,7 +35885,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -35887,7 +35897,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -35899,7 +35909,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -35911,7 +35921,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -35923,7 +35933,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -35935,7 +35945,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -35947,7 +35957,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -35959,7 +35969,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -35971,7 +35981,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -35983,7 +35993,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -35995,7 +36005,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -36014,7 +36024,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -36026,7 +36036,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -36038,7 +36048,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -36050,7 +36060,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -36062,7 +36072,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -36074,7 +36084,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -36086,7 +36096,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -36098,7 +36108,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -36110,7 +36120,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -36122,7 +36132,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -36134,7 +36144,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -36146,7 +36156,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -36158,7 +36168,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -36170,7 +36180,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -36182,7 +36192,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -36194,7 +36204,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -36206,7 +36216,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -36218,7 +36228,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -36230,7 +36240,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -36242,7 +36252,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -36254,7 +36264,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -36266,7 +36276,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -36278,7 +36288,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -36290,7 +36300,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -36302,7 +36312,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -36314,7 +36324,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -36326,7 +36336,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -36338,7 +36348,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -36357,7 +36367,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -36369,7 +36379,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -36381,7 +36391,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -36393,7 +36403,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -36405,7 +36415,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -36417,7 +36427,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -36429,7 +36439,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -36441,7 +36451,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -36453,7 +36463,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -36465,7 +36475,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -36477,7 +36487,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -36489,7 +36499,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -36501,7 +36511,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -36513,7 +36523,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -36525,7 +36535,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -36537,7 +36547,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -36549,7 +36559,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -36561,7 +36571,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -36573,7 +36583,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -36585,7 +36595,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -36597,7 +36607,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -36609,7 +36619,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -36621,7 +36631,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -36633,7 +36643,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -36645,7 +36655,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -36657,7 +36667,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -36669,7 +36679,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -36681,7 +36691,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -36693,7 +36703,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -36712,7 +36722,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -36724,7 +36734,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -36736,7 +36746,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -36748,7 +36758,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -36760,7 +36770,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -36772,7 +36782,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -36784,7 +36794,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -36796,7 +36806,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -36808,7 +36818,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -36820,7 +36830,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -36832,7 +36842,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -36844,7 +36854,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -36856,7 +36866,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -36868,7 +36878,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -36880,7 +36890,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -36892,7 +36902,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -36904,7 +36914,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -36916,7 +36926,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -36928,7 +36938,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -36940,7 +36950,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -36952,7 +36962,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -36964,7 +36974,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -36976,7 +36986,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -36988,7 +36998,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -37000,7 +37010,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -37019,7 +37029,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -37031,7 +37041,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -37043,7 +37053,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800027.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -37055,7 +37065,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -37067,7 +37077,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -37079,7 +37089,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -37091,7 +37101,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -37103,7 +37113,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -37115,7 +37125,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -37127,7 +37137,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -37139,7 +37149,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -37151,7 +37161,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -37163,7 +37173,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -37175,7 +37185,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -37187,7 +37197,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -37199,7 +37209,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -37211,7 +37221,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -37223,7 +37233,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -37235,7 +37245,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -37247,7 +37257,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -37259,7 +37269,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -37271,7 +37281,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -37283,7 +37293,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -37295,7 +37305,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -37307,7 +37317,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -37319,7 +37329,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -37331,7 +37341,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -37343,7 +37353,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -37355,7 +37365,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800049.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -37367,7 +37377,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -37379,7 +37389,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },
@@ -37398,7 +37408,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -37410,7 +37420,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800060.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58935,
@@ -37422,7 +37432,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800017.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -37434,7 +37444,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58950,
@@ -37446,7 +37456,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -37458,7 +37468,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -37470,7 +37480,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800020.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -37482,7 +37492,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58941,
@@ -37494,7 +37504,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58906,
@@ -37506,7 +37516,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -37518,7 +37528,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -37530,7 +37540,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -37542,7 +37552,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800031.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58934,
@@ -37554,7 +37564,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -37566,7 +37576,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -37578,7 +37588,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58920,
@@ -37590,7 +37600,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800059.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -37602,7 +37612,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -37614,7 +37624,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58928,
@@ -37626,7 +37636,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -37638,7 +37648,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -37650,7 +37660,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58924,
@@ -37662,7 +37672,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -37674,7 +37684,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58942,
@@ -37686,7 +37696,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800021.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -37698,7 +37708,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -37710,7 +37720,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800042.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -37722,7 +37732,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800029.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58912,
@@ -37734,7 +37744,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800035.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58910,
@@ -37746,7 +37756,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800024.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -37758,7 +37768,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800023.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       },
       {
         "npc_id": 58902,
@@ -37770,7 +37780,7 @@ export const shipbarters = [
           "icon": "/items/new_icon/03_etc/10_free_tradeitem/00800040.webp",
           "quantity": "1"
         },
-        "quantity_received": "1-3"
+        "quantity_received": "2-3"
       }
     ]
   },

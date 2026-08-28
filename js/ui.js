@@ -1425,7 +1425,7 @@ function barterProfileTile() {
 
 	return `<div>
 		<div class="summary-k">Bartering</div>
-		<div class="summary-v">${F(day.trades)} trades/day</div>
+		<div class="summary-v">${F(day.refreshes)} refreshes/day</div>
 		<div class="summary-sub"><input class="purse-inline" type="text" inputmode="numeric"
 			value="${F(barterCount)}" data-act="barter-count"
 			aria-label="Barters you have completed"> done${next ? ` · ${esc(next)}` : ''}

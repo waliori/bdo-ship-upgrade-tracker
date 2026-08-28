@@ -16,12 +16,22 @@ export const items = {
 	"Blueprint: Cheongun's Figurehead": {"Exchange": ["Gangman, Cheongsa Island Wharf — 4x Sunset Coral Essence"]},
 	"Blueprint: Cheongun's Plating": {"Exchange": ["Gangman, Cheongsa Island Wharf — 4x Sunset Coral Essence"]},
 	// The yellow tier all comes off one sea monster. Lyngbakr's drop table
-	// is fourteen items and only these four feed a ship recipe, so the
-	// hunt cannot be aimed -- the other ten are Lyngbakr's Horn, Serni,
-	// Zulatia, Margoria and Coral Crystals, Claws of the Waves, Red Sea
-	// Monster Meat, Blue Whale Oil, Sea Monster's Bizarre Fang and the
-	// Moss-Covered Map. They are left out because nothing here consumes
-	// them; a build could never ask for one.
+	// is fourteen items and five of them matter here: these four, and the
+	// Horn below. The rest -- Serni, Zulatia, Margoria and Coral Crystals,
+	// Claws of the Waves, Red Sea Monster Meat, Blue Whale Oil, Sea
+	// Monster's Bizarre Fang and the Moss-Covered Map -- are left out
+	// because nothing here consumes them; a build could never ask for one.
+	//
+	// The Horn is the one worth knowing about. One of them buys a whole
+	// part's worth of a yellow material outright, which is the same
+	// 125 / 75 / 50 the recipes below ask for, and it skips the two
+	// Starlight reagents entirely: crafting that 125 Sturdy Coral Support
+	// instead wants 125 Lyngbakr's Bone and 250 reagents at 200 Crow
+	// Coins each. Three Horns is a part. A hundred and twenty-five
+	// separate crafts is the same part the long way round.
+	"Lyngbakr's Horn": {"Monster Drop": ["Lyngbakr, Lyngbakr Habitat"], "Exchange": [
+		"Choose one: 125x Sturdy Coral Support, 75x Raging Wave Plywood, or 50x Dormant Crimson Coral Adhesive"
+	]},
 	"Lyngbakr's Bone": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"], "Exchange": ["Crow Coin Exchange — trades for 8x Tidal Black Stone"]},
 	"Lyngbakr's Scale": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"], "Exchange": ["Crow Coin Exchange — trades for 12x Tidal Black Stone"]},
 	"Lyngbakr's Fluid": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"], "Exchange": ["Crow Coin Exchange — trades for 20x Tidal Black Stone"]},
@@ -47,9 +57,11 @@ export const items = {
 	"Panokseon: Cheongun's Enhanced Sail": {"Crafting": ["Cheongsa Ship Part Workshop, Cheongsa Island"]},
 	"Panokseon: Cheongun's Enhanced Figurehead": {"Crafting": ["Cheongsa Ship Part Workshop, Cheongsa Island"]},
 	"Panokseon: Cheongun's Enhanced Plating": {"Crafting": ["Cheongsa Ship Part Workshop, Cheongsa Island"]},
-	"Sturdy Coral Support": {"Processing": ["Manufacture"]},
-	"Raging Wave Plywood": {"Processing": ["Manufacture"]},
-	"Dormant Crimson Coral Adhesive": {"Processing": ["Simple Alchemy"]},
+	// Craftable, but rarely the cheap way: one Lyngbakr's Horn is worth
+	// a whole part's supply of any one of these.
+	"Sturdy Coral Support": {"Processing": ["Manufacture"], "Exchange": ["125x for 1x Lyngbakr's Horn"]},
+	"Raging Wave Plywood": {"Processing": ["Manufacture"], "Exchange": ["75x for 1x Lyngbakr's Horn"]},
+	"Dormant Crimson Coral Adhesive": {"Processing": ["Simple Alchemy"], "Exchange": ["50x for 1x Lyngbakr's Horn"]},
 	"Sunset Tidal Black Stone": {"Processing": ["Heating (Processing L)"]},
 
 	"Gold Bar 1,000G": {

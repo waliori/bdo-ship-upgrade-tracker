@@ -11,18 +11,25 @@
 // you buy from a villager. Fold that up and one Shard is about three
 // trades, whoever you buy it from.
 //
-// Trades are the unit worth counting because Parley is what runs out.
-// Parley refills only when you press Barter Refresh, and since April
-// 2026 every Great Ocean exchange costs the same flat 14,286 -- so a
-// refill is exactly seventy trades and a day is exactly as many refills
-// as the game lets you press. That chain of fixed numbers is the whole
-// forecast, and none of it is guesswork.
+// Trades turn into days through the attempt cap, not through Parley.
+// It is tempting to reach for Parley -- it is the resource with a bar
+// on it -- but a refilled bar buys sixty-nine exchanges at the top rung
+// and the list will never offer you that many, so it is never what
+// stops you. The cap is: an exchange for a Brilliant Pearl Shard can be
+// taken twice before the list has to be redrawn, and the list can be
+// redrawn five times a day. Forty Shards is therefore twenty redraws,
+// which is four days, and no amount of Parley shortens it.
 //
-// What IS guesswork, and is not modelled: whether the route you want is
-// on today's list. The list is redrawn at random on every refresh and
-// the pool weights are not published anywhere. So every number here is
-// a floor -- what the trip costs if the game offers you what you need.
-// Nothing below pretends otherwise, and the UI says so out loud.
+// Every number here is read from a patch note or folded out of the
+// barter data, and where the game has not published something it is
+// left out rather than guessed at. Parley is priced for the top rung
+// only, because that is the only rung Pearl Abyss has ever priced.
+//
+// What is deliberately not modelled: whether the route you want is on
+// today's list. It is redrawn at random from a pool whose weights are
+// not published anywhere. So every number here is a floor -- what the
+// trip costs if the game offers you what you need -- and the UI says
+// "at best" out loud rather than implying a precision it lacks.
 
 /* ------------------------------------------------------------------ *
  * the game's numbers
@@ -60,15 +67,25 @@ export const REFRESH = {
 /**
  * Parley, and the flat rates that replaced the old sliding scale.
  *
- * Before 2026-04-16 an exchange cost anywhere from 29,430 to 58,180 and
- * a forecast had to average over routes it could not see. The patch
- * standardised it, which is what makes counting trades worth doing at
- * all: one number now converts trades into refills.
+ * The 2026-04-16 patch standardised what had been a spread from 29,430
+ * to 58,180: "we have significantly lowered the Parley required for
+ * existing trades and standardized the costs across both trade goods
+ * and Crow Coins."
+ *
+ * Read the scope carefully, because it is narrower than it looks. The
+ * patch prices exactly two things -- a Crow Coin exchange, and the
+ * [Great Ocean] goods that buy ship materials -- and says it adjusted
+ * "certain Barter exchanges". What a [Level 2] costs was not published
+ * then and has not been since, so nothing here is multiplied up the
+ * ladder. These are the top rung's price and are quoted as such.
  */
 export const PARLEY = {
 	max: 1000000,
 	perGreatOceanTrade: 14286,
 	perCrowCoinTrade: 21650,
+	// Value Pack; a ship's own Parley reduction stacks another 10% on
+	// top since 2025-03-06, which the Barter Information window shows
+	// and this does not try to guess at.
 	valuePackDiscount: 0.1,
 	voucher: 250000
 };
@@ -76,47 +93,38 @@ export const PARLEY = {
 /**
  * Total completed barters, and what each threshold opens.
  *
- * Two separate ladders share this counter and guides routinely fuse
- * them. `route` is the trade-item list growing another slot; `opens` is
- * a class of exchange becoming reachable at all. The Brilliant pair
- * arrives at 1,000 -- between the seventh and eighth route -- and the
- * 3,000 and 5,000 figures that circulate belong to the Ship Material
- * Refresh table below, not here.
+ * Rebuilt from the 2026-05-21 patch, which moved every number: three
+ * routes are now open from a standing start, the count needed for the
+ * last one was halved, and the thresholds were rounded off -- "Adjusted
+ * the total barter counts required for trade route expansion to more
+ * intuitive values. Example: 2,551 barters -> 2,500 barters."
+ *
+ * The Brilliant pair is the entry that matters here and it moved too:
+ * it is 1,500, at Invernen and Marka. Every guide still says 1,000,
+ * which was right until that patch, and the 3,000 and 5,000 figures in
+ * circulation are the two thresholds either side of it on this same
+ * table -- neither has anything to do with Brilliants.
+ *
+ * Only what the patch itself lists is here. The old per-level gates
+ * that used to sit at 10, 30 and 70 are gone from it: those counts now
+ * open Crow Coin routes, and nothing since has restated a [Level 2] or
+ * [Level 4] threshold, so none is claimed.
  */
 export const ROUTE_UNLOCKS = [
-	{ barters: 0, route: 1, opens: 'Old Moon Guild Carrack' },
-	{ barters: 10, route: 2, opens: '[Level 2] goods' },
-	{ barters: 30, route: 3, opens: '[Level 3] goods' },
-	{ barters: 70, route: 4, opens: '[Level 4] goods' },
-	{ barters: 150, route: 5 },
-	{ barters: 310, route: 6 },
-	{ barters: 630, route: 7 },
-	{ barters: 1000, opens: 'Brilliant Rock Salt Ingot and Brilliant Pearl Shard' },
-	{ barters: 1270, route: 8 },
-	{ barters: 1500, opens: '[Level 5] goods' },
-	{ barters: 2550, route: 9 },
-	{ barters: 5110, route: 10 },
-	{ barters: 10230, route: 11 },
-	{ barters: 20470, route: 12 }
-];
-
-/**
- * The Tidal Black Stone exchanges that a Ship Material Refresh can turn
- * up, and the barter count each one waits for.
- *
- * Kept separate from ROUTE_UNLOCKS because it is a different mechanism
- * on the same counter, and because it is the one thing here that may
- * have been quietly removed when the sea stones were consolidated into
- * Tidal Black Stone. Nobody has confirmed it either way since.
- */
-export const SHIP_MATERIAL_REFRESH = [
-	{ barters: 100, give: '[Level 3] good', get: 'Tidal Black Stone x3', times: 3 },
-	{ barters: 300, give: '[Level 4] good', get: 'Tidal Black Stone x6', times: 3 },
-	{ barters: 3500, give: '[Level 5] good', get: 'Tidal Black Stone x20', times: 1 },
-	{ barters: 3500, give: 'Gold Bar 100G x1', get: 'Tidal Black Stone x20', times: 1 },
-	{ barters: 3500, give: '[Level 5] good', get: 'Tidal Black Stone x30', times: 1 },
-	{ barters: 3500, give: 'Gold Bar 100G x2', get: 'Tidal Black Stone x30', times: 1 },
-	{ barters: 5000, give: '[Level 5] good', get: 'Tidal Black Stone x50', times: 1 }
+	{ barters: 0, routes: 3 },
+	{ barters: 10, routes: 4, opens: 'Kashuma Island — Crow Coin' },
+	{ barters: 30, routes: 5, opens: 'Derko Island — Crow Coin' },
+	{ barters: 70, routes: 6, opens: "Crow's Nest — Crow Coin" },
+	{ barters: 150, routes: 7, opens: "Margoria's Star — Shipwrecked Haran's Cargo Ship" },
+	{ barters: 300, routes: 8, opens: "Margoria's Star — Unfinished Adrift Vessel" },
+	{ barters: 600, routes: 9, opens: "Margoria's Star — Lantinia's Combat Raft" },
+	{ barters: 1200, routes: 10, opens: "Margoria's Star — Pakio's Combat Raft" },
+	{ barters: 1500, opens: 'Brilliant Rock Salt Ingot and Brilliant Pearl Shard' },
+	{ barters: 2500, routes: 11, opens: "Margoria's Star — Crow Merchants' Vessel" },
+	{ barters: 3000, opens: "Margoria's Star — Wandering Merchant's Ship" },
+	{ barters: 5000, routes: 12, opens: "Margoria's Star — Shipwrecked Rickun's Ship" },
+	{ barters: 10000, opens: "Margoria's Star — Shipwrecked Cox Pirate Ship" },
+	{ barters: 20000, opens: "Margoria's Star — Shipwrecked Marine Vessel" }
 ];
 
 /* ------------------------------------------------------------------ *
@@ -262,10 +270,16 @@ export function rungs(step) {
 /**
  * How much sea a day holds.
  *
- * Parley refills on every press of Barter Refresh and on nothing else,
- * so a day's trades are simply the presses a day allows times the trades
- * one full Parley bar pays for. The list you wake up with counts as one,
- * which is where the leading 1 comes from.
+ * A day is counted in refreshes, not in trades. The list you wake up
+ * with is one, and every press of Barter Refresh is another, so the
+ * daily caps are the whole story: two trade-item presses, three with a
+ * Value Pack, and two ship-material ones.
+ *
+ * Parley rides along as information rather than as a limit. It refills
+ * on every press, and a full bar buys sixty-nine exchanges at the top
+ * rung -- far more of them than the list will ever offer in one draw --
+ * so it has never been what stops anybody. Quoting it as a ceiling
+ * would also mean pricing rungs the patch notes have never priced.
  *
  * Instant refreshes are deliberately left out. They are bought with the
  * same point pool the ordinary presses spend, so a player who leans on
@@ -277,14 +291,14 @@ export function dailyCapacity({ valuePack = false, vouchers = 0 } = {}) {
 		+ (valuePack ? REFRESH.tradeItem.perDayWithValuePack : REFRESH.tradeItem.perDay)
 		+ REFRESH.shipMaterial.perDay;
 
-	const parley = refreshes * PARLEY.max + vouchers * PARLEY.voucher;
 	const perTrade = parleyPerTrade({ valuePack });
 
 	return {
 		refreshes,
-		parley,
+		parley: refreshes * PARLEY.max + vouchers * PARLEY.voucher,
 		perTrade,
-		trades: Math.floor(parley / perTrade)
+		// Top-rung exchanges one refilled bar covers.
+		tradesPerBar: Math.floor(PARLEY.max / perTrade)
 	};
 }
 
@@ -336,11 +350,12 @@ export function gateFor(item, barterCount) {
 	const level = levelOf(item);
 	let needed = null;
 
-	if (/^Brilliant /.test(item)) needed = 1000;
-	else if (level === 5) needed = 1500;
-	else if (level === 4) needed = 70;
-	else if (level === 3) needed = 30;
-	else if (level === 2) needed = 10;
+	// The Brilliant pair is the only threshold the current patch notes
+	// still state, so it is the only one claimed. The per-level gates
+	// that guides print alongside it were rewritten on 2026-05-21 and
+	// never restated; inventing replacements would lock routes that are
+	// open.
+	if (/^Brilliant /.test(item)) needed = 1500;
 
 	if (needed === null || barterCount >= needed) return null;
 	const row = ROUTE_UNLOCKS.find(r => r.barters === needed);
@@ -366,36 +381,30 @@ export function forecast(item, qty, barterData, opts = {}) {
 
 	const day = dailyCapacity({ valuePack, vouchers });
 	const trades = top.totalTrades * qty;
-	const parley = trades * day.perTrade;
 
-	// Two independent ceilings, and the trip takes the slower of them.
-	// Parley usually loses -- a refill buys seventy trades and the caps
-	// let you fill five times a day, so a few hundred trades fit into an
-	// afternoon. What actually costs days is waiting for the list to
-	// offer the top rung again.
+	// The trip is paced by the rung that runs out first. Parley is not
+	// that rung and is not modelled as one -- see dailyCapacity -- so it
+	// is priced only where a patch note prices it: the top exchange.
 	const limit = bottleneck(top, qty);
-	const parleyDays = trades / day.trades;
-	const refreshDays = limit ? limit.refreshes / day.refreshes : 0;
+	const days = limit ? limit.refreshes / day.refreshes : 0;
 
-	// The Brilliant pair is the only ship material behind an unlock, but
-	// a low-count player is also short the [Level 4] and [Level 5] rungs
-	// the ladder walks through, so every rung is checked.
-	const gates = rungs(top)
+	// Every rung is checked, not just the one asked for: a ladder can
+	// walk through something the player cannot reach yet.
+	const gate = rungs(top)
 		.map(r => gateFor(r.item, barterCount))
-		.filter(Boolean);
-	const gate = gates.sort((a, b) => b.barters - a.barters)[0] || null;
+		.filter(Boolean)
+		.sort((a, b) => b.barters - a.barters)[0] || null;
 
 	return {
 		item,
 		qty,
 		trades,
-		parley,
-		refills: parley / PARLEY.max,
-		days: Math.max(parleyDays, refreshDays),
-		parleyDays,
-		refreshDays,
+		days,
 		limit,
 		perUnit: top.totalTrades,
+		// What the top rung alone costs in Parley, which is the only
+		// rung the game has published a price for.
+		topParley: qty * (1 / top.received) * day.perTrade,
 		seed: top.seed ? { item: top.seed.item, qty: top.seed.qty * qty } : null,
 		rungs: rungs(top),
 		capacity: day,
@@ -427,17 +436,13 @@ export function summarise(f) {
 
 /** Why the forecast lands where it does, for the row that wants detail. */
 export function explain(f) {
-	if (!f || f.gate) return '';
+	if (!f || f.gate || !f.limit) return '';
 
-	// Which of the two ceilings bit. Naming the rung is only worth the
-	// words when it is not the thing you asked for -- being told that
-	// Brilliant Pearl Shards are limited by Brilliant Pearl Shards
-	// teaches nobody anything.
-	if (f.refreshDays >= f.parleyDays && f.limit) {
-		const where = f.limit.item === f.item ? '' : ` on ${f.limit.item}`;
-		return `${fmt(f.limit.perRefresh)} a refresh${where}, ${f.capacity.refreshes} refreshes a day`;
-	}
-	return `${fmt(Math.ceil(f.refills))} Parley refills, at ${fmt(f.capacity.trades)} trades a day`;
+	// Naming the rung is only worth the words when it is not the thing
+	// you asked for -- being told that Brilliant Pearl Shards are
+	// limited by Brilliant Pearl Shards teaches nobody anything.
+	const where = f.limit.item === f.item ? '' : ` on ${f.limit.item}`;
+	return `${fmt(f.limit.perRefresh)} a refresh${where}, ${f.capacity.refreshes} refreshes a day`;
 }
 
 function fmt(n) {
