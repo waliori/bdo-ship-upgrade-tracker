@@ -8,21 +8,35 @@ class IconLoader {
         this.failedIcons = new Set();
         this.loadingPromises = new Map();
         this.initialized = false;
-        
-        // Initialize the icon system
-        this.init();
+        this.ready = null;
+
+        // Start fetching the mapping straight away. Failure is not
+        // swallowed by init() itself any more, so it is swallowed here:
+        // the app works without icons, and ui.js awaits init() again
+        // with its own error handling.
+        this.init().catch(() => {});
     }
-    
-    async init() {
-        try {
-            // Load icon mapping
-            const response = await fetch('./icon_mapping.json');
-            this.iconMapping = await response.json();
-            this.initialized = true;
-            
-        } catch (error) {
-            this.initialized = false;
+
+    /**
+     * Load the icon mapping, once. Every caller shares the same fetch --
+     * the constructor starts it and ui.js awaits it, which used to be
+     * two requests. A failed read clears the slot so the next call can
+     * try again instead of reporting "no icons" forever.
+     */
+    init() {
+        if (!this.ready) {
+            this.ready = (async () => {
+                const response = await fetch('./icon_mapping.json');
+                if (!response.ok) throw new Error(`icon_mapping.json: ${response.status}`);
+                this.iconMapping = await response.json();
+                this.initialized = true;
+            })().catch(error => {
+                this.ready = null;
+                this.initialized = false;
+                throw error;
+            });
         }
+        return this.ready;
     }
     
     /**
