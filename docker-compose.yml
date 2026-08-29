@@ -25,4 +25,9 @@ services:
         required: false
     environment:
       - NODE_ENV=production
+      # Inside the container the app always listens on 8000 -- the port
+      # map above and the image's healthcheck both point there. A PORT in
+      # .env chooses only the host side, and this line stops env_file
+      # from carrying it into the container and moving the listener.
+      - PORT=8000
     restart: unless-stopped

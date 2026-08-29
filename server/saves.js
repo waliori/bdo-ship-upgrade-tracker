@@ -59,6 +59,9 @@ const MAX_IN_FLIGHT = config.turso.connections;
  */
 const live = new Map();
 const loading = new Map();
+// Accounts a forget() is mid-way through dropping. A read that resolves
+// while its account is in here must not put the entry into `live`.
+const dying = new Set();
 
 let bytes = 0;
 let inFlight = 0;
@@ -116,6 +119,13 @@ async function entryFor(userId) {
 			failures: 0,
 			touched: Date.now()
 		};
+		if (dying.has(userId)) {
+			// forget() started while this read was out. An entry born now
+			// must not outlive it -- hand it back flagged, off the map, so
+			// nothing can write through it or flush it later.
+			entry.gone = true;
+			return entry;
+		}
 		live.set(userId, entry);
 		bytes += size(entry.payload);
 		// Reading an account in is the other way memory grows. Eviction
@@ -236,17 +246,29 @@ export async function writeSaveFor(userId, payload, expected, device) {
  * all. Awaited, therefore, and the caller deletes only once this returns.
  */
 export async function forget(userId) {
-	const entry = live.get(userId);
-	if (!entry) return;
-	clearTimeout(entry.timer);
-	entry.dirty = false;
-	entry.timer = null;
-	entry.gone = true;
-	bytes -= size(entry.payload);
-	live.delete(userId);
-	// Its own failure is not this caller's problem: either way, by the
-	// time this resolves nothing more is on its way to the database.
-	if (entry.settled) await entry.settled.catch(() => {});
+	dying.add(userId);
+	try {
+		// A first read may be building the entry right now, and it would
+		// repopulate `live` the moment it resolved. Marking the account
+		// dying makes that read discard its work; waiting for it means no
+		// half-built entry is left behind when this returns.
+		const building = loading.get(userId);
+		if (building) await building.catch(() => {});
+
+		const entry = live.get(userId);
+		if (!entry) return;
+		clearTimeout(entry.timer);
+		entry.dirty = false;
+		entry.timer = null;
+		entry.gone = true;
+		bytes -= size(entry.payload);
+		live.delete(userId);
+		// Its own failure is not this caller's problem: either way, by the
+		// time this resolves nothing more is on its way to the database.
+		if (entry.settled) await entry.settled.catch(() => {});
+	} finally {
+		dying.delete(userId);
+	}
 }
 
 /* ------------------------------------------------------------------ *
@@ -308,9 +330,15 @@ async function flush(userId, entry) {
 		// what is actually wrong under a log full of "cannot reach".
 		//
 		// It stays dirty and in memory, so it is still the newest copy and
-		// the next edit will try again; what stops is the loop.
+		// the next edit will try again; what stops is the loop. The browser
+		// was already told "Saved", so this line is the only witness that
+		// the durable copy is behind -- it has to say so plainly.
 		if (!transient(error)) {
-			console.error(`[saves] the database refused ${userId}'s save:`, error.message);
+			console.error(
+				`[saves] the database refused ${userId}'s save; ` +
+				'it is held in memory only until the next edit or shutdown retries it:',
+				error.message
+			);
 			return;
 		}
 
@@ -383,21 +411,27 @@ export async function flushAll() {
 
 let leaving = false;
 
-/** Flush on the way out, then let the signal do what it was going to do. */
+/** Flush on the way out, then let the signal do what it was going to do.
+ *  The exit code says whether everything landed: a supervisor cannot read
+ *  the log of a container that is already gone, but it does see a
+ *  non-zero exit, and losing a save silently is the one thing the
+ *  in-memory design must never do. */
 export function flushOnShutdown() {
 	for (const signal of ['SIGINT', 'SIGTERM']) {
 		process.on(signal, () => {
 			if (leaving) return;
 			leaving = true;
+			let flushed = false;
 			// A container gets ten seconds by default; this needs a fraction
 			// of one, but it must not hang if the database is unreachable.
-			const giveUp = setTimeout(() => process.exit(0), 5000);
+			const giveUp = setTimeout(() => process.exit(flushed ? 0 : 1), 5000);
 			if (giveUp.unref) giveUp.unref();
 			flushAll()
-				.then(closePool, closePool)
+				.then(ok => { flushed = ok; }, () => {})
+				.then(closePool)
 				.finally(() => {
 					clearTimeout(giveUp);
-					process.exit(0);
+					process.exit(flushed ? 0 : 1);
 				});
 		});
 	}

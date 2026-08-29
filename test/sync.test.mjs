@@ -247,6 +247,64 @@ test('deleting an account leaves nothing behind', async () => {
 	assert.equal(await getSave('1003'), null, 'the save came back after deletion');
 });
 
+test('a device still signed in cannot resurrect a deleted account', async () => {
+	const { getSave, upsertUser: addUser } = await import('../server/db.js');
+	await addUser({ id: '1005', username: 'Straggler', avatar: null });
+	// Two devices, one account. Sessions are stateless cookies, so
+	// deleting the account on one cannot invalidate the other's.
+	const desk = cookieFor('1005');
+	const phone = cookieFor('1005');
+
+	await call('PUT', '/api/state', { cookie: desk, body: { rev: 0, data: SAVE, device: 'desk' } });
+	assert.equal((await call('DELETE', '/api/account', { cookie: desk })).status, 200);
+
+	// The phone finds no save, concludes it has never synced, and pushes
+	// revision 0 -- the exact shape that used to re-create the row.
+	const res = await call('PUT', '/api/state', { cookie: phone, body: { rev: 0, data: SAVE, device: 'phone' } });
+	assert.equal(res.status, 410);
+	// It is told to sign out as well as refused.
+	assert.ok(res.headers.getSetCookie().some(c => c.startsWith('sail_session=;')));
+
+	// And nothing came back, not even after any flush had time to land.
+	await new Promise(resolve => setTimeout(resolve, 100));
+	assert.equal(await getSave('1005'), null, 'the save was re-created after deletion');
+});
+
+test('the sign-in hand-off cannot be steered off the site', async () => {
+	const { beginOAuth, finishOAuth } = await import('../server/session.js');
+
+	// The real flow, minus Discord: mint the state and its cookie, then
+	// present both to the callback check as a browser would.
+	const roundTrip = to => {
+		const jar = [];
+		const state = beginOAuth({ append: (_name, value) => jar.push(value) }, to);
+		const cookie = jar.map(c => c.split(';')[0]).join('; ');
+		return finishOAuth({ headers: { cookie } }, { append: () => {} }, state);
+	};
+
+	assert.equal(roundTrip('/inventory?tab=barter').returnTo, '/inventory?tab=barter');
+
+	for (const evil of [
+		'https://evil.example',
+		'//evil.example',
+		// Browsers read `\` as `/` in a Location, so a single slash and a
+		// backslash is `//` in everything but the check.
+		'/\\evil.example',
+		'/\\/evil.example',
+		'/fine\r\nSet-Cookie: stolen=1'
+	]) {
+		assert.equal(roundTrip(evil).returnTo, '/', evil);
+	}
+});
+
+test('an explicit zero in the environment is a zero, not the default', async () => {
+	// FLUSH_DELAY_MS is '0' at the top of this file, and the deletion
+	// test above leans on it: a flush must be in the air immediately,
+	// not after a default 400ms this process never asked for.
+	const { config } = await import('../server/config.js');
+	assert.equal(config.flushDelayMs, 0);
+});
+
 test('a database that refuses a save is not mistaken for one that is unreachable', async () => {
 	const { transient } = await import('../server/db.js');
 
@@ -309,6 +367,11 @@ test('a save with no profile is stored with no profile', async () => {
 	// server helpfully added an empty object, every stored save would
 	// change shape on its owner's next push, and every already-signed-in
 	// browser would find its own copy no longer matching what is stored.
+	//
+	// Bob deleted his account above, and a deleted account may no longer
+	// push. Signing back in re-creates the user row, which upsertUser
+	// stands in for here.
+	await upsertUser({ id: '1002', username: 'Other', avatar: null });
 	await call('PUT', '/api/state', { cookie: bob, body: { rev: 0, data: SAVE } });
 	const got = await (await call('GET', '/api/state', { cookie: bob })).json();
 	assert.deepEqual(got.data, SAVE);

@@ -134,12 +134,17 @@ export function requireUser(req, res, next) {
  * callback is only honoured when the two agree. The tab the user started
  * from rides along so they land back where they were.
  */
+/* Ten minutes is longer than anyone takes to approve a Discord prompt
+ * and short enough that an abandoned attempt does not linger. The limit
+ * is signed into the state itself, not just set on the cookie: a browser
+ * that keeps sending an expired cookie is the browser's business, but
+ * honouring it would be ours. */
+const STATE_TTL_MS = 600_000;
+
 export function beginOAuth(res, returnTo) {
 	const nonce = crypto.randomBytes(16).toString('base64url');
-	const payload = b64(JSON.stringify({ n: nonce, r: returnTo || '/' }));
-	// Ten minutes is longer than anyone takes to approve a Discord prompt
-	// and short enough that an abandoned attempt does not linger.
-	setCookie(res, STATE_COOKIE, sign(payload), 600);
+	const payload = b64(JSON.stringify({ n: nonce, r: returnTo || '/', t: Date.now() }));
+	setCookie(res, STATE_COOKIE, sign(payload), STATE_TTL_MS / 1000);
 	return payload;
 }
 
@@ -153,6 +158,7 @@ export function finishOAuth(req, res, given) {
 	if (!stored || !given || stored !== given) return null;
 	try {
 		const claim = JSON.parse(Buffer.from(stored, 'base64url').toString('utf8'));
+		if (!(claim.t > Date.now() - STATE_TTL_MS)) return null;
 		return { returnTo: safeReturn(claim.r) };
 	} catch {
 		return null;
@@ -162,8 +168,15 @@ export function finishOAuth(req, res, given) {
 /**
  * Only ever redirect back into this site. An open redirect here would let
  * a crafted sign-in link bounce a freshly authenticated user anywhere.
+ *
+ * Backslashes are refused along with `//`: browsers read `\` as `/` when
+ * resolving a Location, so `/\evil.com` lands on evil.com even though it
+ * begins with a single slash. Control characters have no place in a path
+ * either -- a stray CR or LF is a header trying to happen.
  */
 function safeReturn(value) {
 	if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return '/';
+	// eslint-disable-next-line no-control-regex -- the control range is the point
+	if (/[\\\u0000-\u001f\u007f]/.test(value)) return '/';
 	return value;
 }

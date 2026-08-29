@@ -16,7 +16,14 @@ const discord = {
 	clientSecret: read('DISCORD_CLIENT_SECRET')
 };
 
-const num = (name, fallback) => Number(read(name)) || fallback;
+// Not `Number(x) || fallback`: an explicit 0 -- FLUSH_DELAY_MS=0, say --
+// is a setting, and `||` would silently hand back the default instead.
+const num = (name, fallback) => {
+	const given = read(name);
+	if (given === '') return fallback;
+	const value = Number(given);
+	return Number.isFinite(value) ? value : fallback;
+};
 
 const turso = {
 	url: read('TURSO_DATABASE_URL'),

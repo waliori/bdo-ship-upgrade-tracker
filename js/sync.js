@@ -231,9 +231,29 @@ async function push(force = false) {
 		}
 		if (res.status === 409) {
 			// Another browser got there first. Its save came back with the
-			// refusal, so we can show both without a second request.
+			// refusal, so we can show both without a second request -- but
+			// only when it actually did. A refusal with nothing in it (a
+			// proxy's error page, a server that has lost the save) offers
+			// no choice to make, and "Use the saved one" on an empty body
+			// would wipe the inventory it was meant to protect. That is a
+			// bad moment, not a conflict: try again later.
+			if (!res.body || !res.body.data) {
+				retryLater();
+				return say('error', 'that did not save');
+			}
 			failures = 0;
 			return askWhichCopy(res.body, 'Another device saved while you were working.');
+		}
+		// The account behind this session was deleted -- from another
+		// device, since this one still thinks it is signed in. Sign out
+		// here too; the local copy stays, as it does for any sign-out.
+		if (res.status === 410) {
+			account = null;
+			setRev(0);
+			lastPushed = null;
+			say('out');
+			if (hooks.toast) hooks.toast('That account was deleted, so nothing is saved online any more. Your inventory is still here.');
+			return;
 		}
 		if (res.status === 401) {
 			account = null;

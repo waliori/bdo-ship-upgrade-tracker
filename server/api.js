@@ -65,12 +65,35 @@ export function apiRoutes() {
 	// that is not the app.
 	const pushLimit = perAccount(config.maxPushesPerMinute);
 
+	// Every page load asks /me, and it has no limiter of its own -- so the
+	// user row is held briefly instead of read every time. Half a minute of
+	// staleness costs nothing: the row only changes on sign-in, and a
+	// deleted account is dropped from here at the moment of deletion.
+	const ME_TTL_MS = 30_000;
+	const meCache = new Map();   // uid -> { user, until }
+
+	async function cachedUser(uid) {
+		const held = meCache.get(uid);
+		if (held && held.until > Date.now()) return held.user;
+		// Only real accounts get in here -- a uid comes from a signed
+		// cookie -- so the map cannot be grown by strangers. Expired rows
+		// are swept when it gets crowded rather than on a timer.
+		if (meCache.size > 5000) {
+			const now = Date.now();
+			for (const [id, entry] of meCache) if (entry.until <= now) meCache.delete(id);
+		}
+		const user = await getUser(uid);
+		if (user) meCache.set(uid, { user, until: Date.now() + ME_TTL_MS });
+		else meCache.delete(uid);
+		return user;
+	}
+
 	/** Who is signed in, if anyone. Answers 200 either way -- being signed
 	 *  out is a normal state for this app, not an error. */
 	router.get('/me', wrap(async (req, res) => {
 		const uid = sessionUser(req);
 		if (!uid) return res.json({ signedIn: false });
-		const user = await getUser(uid);
+		const user = await cachedUser(uid);
 		if (!user) {
 			// The session outlived the account it names.
 			endSession(res);
@@ -133,6 +156,19 @@ export function apiRoutes() {
 			return res.status(413).json({ error: 'That save is too large to sync.' });
 		}
 
+		// Sessions are stateless, so a cookie outlives the account it names.
+		// A push that would create the first save row is therefore checked
+		// against the users table -- without this, a device still signed in
+		// after DELETE /api/account would push revision 0 and quietly
+		// resurrect the save the owner just asked to be rid of. 410, not
+		// 401: the client reads it as "this account is gone", signs out
+		// locally, and keeps its copy.
+		if (expected === 0 && !await getUser(req.userId)) {
+			meCache.delete(req.userId);
+			endSession(res);
+			return res.status(410).json({ error: 'This account has been deleted.' });
+		}
+
 		const device = typeof body.device === 'string' ? body.device.slice(0, 64) : null;
 		const result = await writeSaveFor(req.userId, payload, expected, device);
 
@@ -155,6 +191,7 @@ export function apiRoutes() {
 		// already in the air must not put the save back a moment after
 		// the row was dropped.
 		await forget(req.userId);
+		meCache.delete(req.userId);
 		await deleteAccount(req.userId);
 		endSession(res);
 		res.json({ ok: true });

@@ -194,6 +194,13 @@ let schema = null;
 export function migrate() {
 	if (!schema) {
 		schema = (async () => {
+			// SQLite leaves REFERENCES unenforced unless each connection asks.
+			// A file database is one held handle, so asking once here holds
+			// for the life of the process. Over `libsql://` every statement
+			// is its own HTTPS request with no connection to pin the pragma
+			// to, so there the parent-row check is made in code instead --
+			// the deleted-account guard in api.js.
+			if (!remote) await exec('PRAGMA foreign_keys = ON');
 			for (const statement of SCHEMA) await exec(statement);
 		})().catch(error => {
 			schema = null;   // let the next caller try again

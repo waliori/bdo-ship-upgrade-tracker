@@ -66,6 +66,12 @@ app.use((req, res, next) => {
 	res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 	// Belt and braces with frame-ancestors, for anything that predates it.
 	res.set('X-Frame-Options', 'DENY');
+	// Only claimed when the deployment says it is HTTPS and this request
+	// actually arrived that way -- promising HTTPS-for-a-year on a local
+	// HTTP setup would lock the browser out of it.
+	if (config.cookieSecure && (req.secure || req.headers['x-forwarded-proto'] === 'https')) {
+		res.set('Strict-Transport-Security', 'max-age=31536000');
+	}
 	next();
 });
 // Behind a reverse proxy the client's scheme arrives in a header. Without
