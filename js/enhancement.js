@@ -178,6 +178,7 @@ export const families = {
 	"Bartali Sailboat: Old Wind Sail": 'sailboat',
 	"Epheria Caravel: Black Dragon Figurehead": 'caravel-blue',
 	"Epheria Caravel: Brass Figurehead": 'caravel-green',
+	"Epheria Caravel: Enhanced Plating": 'caravel-green',
 	"Epheria Caravel: Mayna Cannon": 'caravel-blue',
 	"Epheria Caravel: Stratus Wind Sail": 'caravel-blue',
 	"Epheria Caravel: Upgraded Plating": 'caravel-blue',
@@ -204,6 +205,7 @@ export const families = {
 	"Epheria Carrack: Volante (Chiro's Figurehead)": 'chiro',
 	"Epheria Carrack: Volante (Chiro's Sail)": 'chiro',
 	"Epheria Galleass: Black Dragon Figurehead": 'caravel-blue',
+	"Epheria Galleass: Enhanced Plating": 'caravel-green',
 	"Epheria Galleass: Mayna Cannon": 'caravel-blue',
 	"Epheria Galleass: Stratus Wind Sail": 'caravel-blue',
 	"Epheria Galleass: Upgraded Plating": 'caravel-blue',
@@ -213,7 +215,8 @@ export const families = {
 	"Epheria: Old Cannon": 'epheria',
 	"Epheria: Old Figurehead": 'epheria',
 	"Epheria: Old Plating": 'epheria',
-	"Epheria: Old Wind Sail": 'epheria',	"Panokseon: Haemo's Cannon": 'toro',
+	"Epheria: Old Wind Sail": 'epheria',
+	"Panokseon: Haemo's Cannon": 'toro',
 	"Panokseon: Haemo's Sail": 'toro',
 	"Panokseon: Haemo's Figurehead": 'toro',
 	"Panokseon: Haemo's Plating": 'toro',
@@ -227,4 +230,22 @@ export const families = {
 export function tableFor(base) {
 	const id = families[base];
 	return id ? tables[id] : null;
+}
+
+/**
+ * The odds of one attempt at the player's own failstack.
+ *
+ * The yellow rows carry the rate at zero stacks and the stack the quoted
+ * rate was read at, and the quoted numbers all follow the game's usual
+ * line -- base plus a tenth of base per stack -- exactly, which is what
+ * lets a different stack be priced rather than guessed. Rows without a
+ * `base` (every tier below yellow) have one fixed rate regardless of
+ * stacks, and return it unchanged.
+ *
+ * Capped at 90%, where the game stops an enhancement chance climbing.
+ */
+export function chanceAt(step, failstack = null) {
+	if (!step) return 0;
+	if (!step.base || failstack === null || !Number.isFinite(failstack)) return step.chance;
+	return Math.min(0.9, step.base * (1 + Math.max(0, failstack) / 10));
 }

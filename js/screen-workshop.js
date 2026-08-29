@@ -4,7 +4,7 @@
 import { esc, F } from './fmt.js';
 import * as store from './state.js';
 import { img, codexName, amountInput, whereFrom } from './ui-bits.js';
-import { recipes, snapshot, readyCrafts } from './ui-state.js';
+import { recipes, snapshot, query, readyCrafts } from './ui-state.js';
 import { parseEnhanced, enhancedName, enhanceStep, ownedLevel, enhancementForecast } from './planner.js';
 
 /**
@@ -37,6 +37,9 @@ export function outlook(e) {
 
 export function pendingEnhancements() {
 	const stock = store.getAllStock();
+	// The failstack the player takes into a yellow attempt; the quoted
+	// stack when they have not said. Only the yellow table listens.
+	const failstacks = Number(store.getProfile('failstacks', 0)) || null;
 	const targets = new Map();
 
 	// Levels a build is asking for.
@@ -69,19 +72,26 @@ export function pendingEnhancements() {
 		const stoneQty = costs[0] ? costs[0][1] : 0;
 		const affordable = Object.entries(step.stones).every(([st, q]) => (stock[st] || 0) >= q);
 		const holds = (stock[step.from] || 0) > 0;
+		// An attempt made without Crons needs everything but the Crons.
+		const affordableDropped = holds && Object.entries(step.stones)
+			.every(([st, q]) => st === 'Cron Stone' || (stock[st] || 0) >= q);
 
 		out.push({
 			base,
 			have,
 			next: have + 1,
 			want,
-			forecast: enhancementForecast(base, have, want),
-			step1: enhancementForecast(base, have, have + 1),
+			forecast: enhancementForecast(base, have, want, failstacks),
+			step1: enhancementForecast(base, have, have + 1, failstacks),
+			// Yellow gear only: the same attempt without Cron Stones, for
+			// the third button.
+			canDrop: Boolean(step.onFailureDropped),
 			forBuild,
 			costs,
 			stoneName,
 			stoneQty,
 			affordable,
+			affordableDropped,
 			holds,
 			blocked: !affordable || !holds,
 			note: !holds
@@ -101,7 +111,8 @@ export function pendingEnhancements() {
 
 export function renderWorkshop() {
 	const stock = store.getAllStock();
-	const ready = readyCrafts();
+	const q = query.toLowerCase();
+	const ready = readyCrafts().filter(c => !q || c.item.toLowerCase().includes(q));
 
 	const cards = ready.map(c => {
 		const recipe = recipes[c.item] || {};
@@ -128,7 +139,9 @@ export function renderWorkshop() {
 		</div>`;
 	}).join('');
 
-	const enhRows = pendingEnhancements().map(e => `
+	const enhRows = pendingEnhancements()
+		.filter(e => !q || e.base.toLowerCase().includes(q))
+		.map(e => `
 		<div class="row" data-base="${esc(e.base)}" data-level="${e.next}" data-peek="${esc(enhancedName(e.base, e.next))}" ${e.blocked ? 'style="opacity:.55"' : ''}>
 			${img(enhancedName(e.base, e.have), 'row-icon md')}
 			<div class="row-main">
@@ -141,23 +154,38 @@ export function renderWorkshop() {
 			<span class="enh-actions">
 				<button class="pill-btn" data-act="enhance" data-result="success" ${e.blocked ? 'disabled' : ''}>Succeeded</button>
 				<button class="pill-btn bad" data-act="enhance" data-result="fail" ${e.blocked ? 'disabled' : ''}>Failed</button>
+				${e.canDrop ? `<button class="pill-btn bad" data-act="enhance" data-result="dropped"
+					${e.affordableDropped ? '' : 'disabled'}
+					title="The attempt was made without Cron Stones: none are spent, and the part falls a level">Failed — no Crons</button>` : ''}
 			</span>
 		</div>`).join('');
 
-	return `<div class="panel">
+	return `<div class="controls">
+		<input class="field" type="search" placeholder="Search recipes and parts…" value="${esc(query)}" data-act="query">
+	</div>
+	<div class="panel">
 		<div class="panel-head">
 			<h2 class="panel-title teal">Ready to craft</h2>
 			<span class="panel-sub">Crafting moves real stock: ingredients out, product in</span>
 		</div>
 		${ready.length
 			? `<div class="craft-grid">${cards}</div>`
-			: '<p class="empty">Nothing can be made from what is on hand right now.</p>'}
+			: `<p class="empty">${q
+				? 'Nothing craftable matches that search.'
+				: 'Nothing can be made from what is on hand right now.'}</p>`}
 	</div>
 	<div class="panel">
 		<div class="panel-head">
 			<h2 class="panel-title">Enhancement</h2>
-			<span class="panel-sub">Everything you own that can go higher. Record what happened — the materials are spent either way. Blue and green parts keep their level on a failure; yellow ones would drop a level, which is what the Cron Stones in the cost are holding</span>
+			<span class="panel-sub">Everything you own that can go higher. Record what happened — the materials are spent either way. Blue and green parts keep their level on a failure; yellow ones fall a level unless Cron Stones held it, so a yellow row has both failures to choose from</span>
 		</div>
-		${enhRows || '<p class="empty">Nothing in your inventory can be enhanced. Add a ship part and it will show up here.</p>'}
+		${enhRows ? `<div class="controls">
+			<label class="inline-check" title="The yellow tier's odds scale with the failstack you bring; every other tier's rate is fixed. 0 means the stack the quoted rates assume.">
+				Failstacks ${amountInput('purse-inline', store.getProfile('failstacks', 0) || 0, 'data-act="failstacks" aria-label="The failstack you enhance yellow parts at"')}
+			</label>
+		</div>` : ''}
+		${enhRows || `<p class="empty">${q
+			? 'No enhanceable part matches that search.'
+			: 'Nothing in your inventory can be enhanced. Add a ship part and it will show up here.'}</p>`}
 	</div>`;
 }

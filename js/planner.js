@@ -7,7 +7,7 @@
 // two builds at once.
 
 import { recipes as defaultRecipes, routes } from './recipes.js';
-import { tableFor } from './enhancement.js';
+import { tableFor, chanceAt } from './enhancement.js';
 
 /** Recipes an item can be made from, honouring a "I'll just buy this" choice. */
 /**
@@ -347,9 +347,12 @@ export function enhancedName(base, level) {
 /**
  * What one enhancement attempt costs.
  *
- * Ship parts never lose a level on failure, so a failed attempt spends
- * the stones and nothing else -- which is why success and failure need
- * separate deltas.
+ * Blue and green ship parts hold their level on a failure, so failing
+ * spends the stones and nothing else. The yellow tier falls a level
+ * unless Cron Stones held it -- the recipe prices the Crons in, so
+ * `onFailure` is the held outcome, and `onFailureDropped` is the same
+ * attempt made without them: no Crons spent, and the part a level
+ * poorer. Which of the two happened is the player's to record.
  */
 export function enhanceStep(base, toLevel, recipes = defaultRecipes) {
 	const target = enhancedName(base, toLevel);
@@ -368,7 +371,20 @@ export function enhanceStep(base, toLevel, recipes = defaultRecipes) {
 	const onFailure = {};
 	for (const [item, per] of Object.entries(stones)) onFailure[item] = -per;
 
-	return { from, to: target, stones, onSuccess, onFailure };
+	const step = { from, to: target, stones, onSuccess, onFailure };
+
+	const table = tableFor(base);
+	if (table && table.keepsLevel === false && stones['Cron Stone'] && toLevel >= 2) {
+		const dropped = {};
+		for (const [item, per] of Object.entries(stones)) {
+			if (item !== 'Cron Stone') dropped[item] = -per;
+		}
+		dropped[from] = -1;
+		dropped[enhancedName(base, toLevel - 2)] = 1;
+		step.onFailureDropped = dropped;
+	}
+
+	return step;
 }
 
 /**
@@ -383,7 +399,7 @@ export function enhanceStep(base, toLevel, recipes = defaultRecipes) {
  * Returns null for parts with no table, and for the older gear that
  * succeeds every time (where the recipe already tells the whole truth).
  */
-export function enhancementForecast(base, from = 0, to = 10) {
+export function enhancementForecast(base, from = 0, to = 10, failstack = null) {
 	const table = tableFor(base);
 	if (!table) return null;
 
@@ -398,15 +414,18 @@ export function enhancementForecast(base, from = 0, to = 10) {
 	for (let level = from; level < to; level++) {
 		const step = table.levels[level];
 		if (!step) break;
-		if (step.chance < 1) certain = false;
+		// The player's own failstack, where the tier listens to one; the
+		// quoted rate otherwise.
+		const chance = chanceAt(step, failstack);
+		if (chance < 1) certain = false;
 
 		// Expected attempts when the (agris + 1)-th try is guaranteed.
 		const cap = step.agris ?? 0;
 		let tries = 0;
 		let stillFailing = 1;
 		for (let k = 1; k <= cap; k++) {
-			tries += k * step.chance * stillFailing;
-			stillFailing *= 1 - step.chance;
+			tries += k * chance * stillFailing;
+			stillFailing *= 1 - chance;
 		}
 		tries += (cap + 1) * stillFailing;
 		const worst = cap + 1;
@@ -419,7 +438,7 @@ export function enhancementForecast(base, from = 0, to = 10) {
 
 		steps.push({
 			level,
-			chance: step.chance,
+			chance,
 			agris: cap,
 			stones: step.stones,
 			attempts: tries,
@@ -439,8 +458,12 @@ export function enhancementForecast(base, from = 0, to = 10) {
 		expected: Math.round(expected),
 		ceiling,
 		perfect: perfect || null,
-		durability,
-		repairs: Math.ceil(durability / 100)
+		// Durability is priced at the pity cap, not the mean: `expected`
+		// says what the stones will probably cost, these two say what the
+		// hull can lose at the very worst. Mixing the two in one sentence
+		// would overstate the likely bill.
+		durabilityCeiling: durability,
+		repairsCeiling: Math.ceil(durability / 100)
 	};
 }
 
@@ -685,12 +708,3 @@ export function bottlenecks(planResult, limit = 5) {
 		.slice(0, limit);
 }
 
-/** Flatten a requirement tree to the leaves you have to obtain yourself. */
-export function leaves(node, out = {}) {
-	if (!node.children.length) {
-		bump(out, node.item, node.need);
-	} else {
-		node.children.forEach(child => leaves(child, out));
-	}
-	return out;
-}
