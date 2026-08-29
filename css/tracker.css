@@ -1954,7 +1954,17 @@ select.purse-inline { width: auto; cursor: pointer; }
   flex: none;
 }
 
-.map-pin-name { opacity: 0; transition: opacity .12s; }
+.map-pin-name {
+  opacity: 0;
+  transition: opacity .12s;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+/* The island itself, under the barterer who stands on it. */
+.map-pin-at { font-size: 9px; letter-spacing: 0.02em; color: var(--ink-mute); }
+.map-pin.wanted .map-pin-at { color: var(--ink-dim); }
 .map-pin:hover .map-pin-name { opacity: 1; color: var(--ink-hi); }
 
 /* An island that has something you are short of. Named all the time,

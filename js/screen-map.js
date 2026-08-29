@@ -169,13 +169,14 @@ function sailHTML(marks) {
 	const q = searchQ.trim().toLowerCase();
 	const rows = [...marks.entries()]
 		.map(([id, m]) => ({ npc: npcById.get(id), m }))
-		.filter(r => r.npc && (!q || r.npc.name.toLowerCase().includes(q)))
+		.filter(r => r.npc && (!q || r.npc.name.toLowerCase().includes(q)
+			|| r.npc.at.toLowerCase().includes(q)))
 		.sort((a, b) => b.m.items.size - a.m.items.size || a.npc.name.localeCompare(b.npc.name))
 		.map(({ npc, m }) => {
 			const items = [...m.items.keys()];
 			const gives = [...new Set([...m.items.values()].flatMap(s => [...s]))];
 			return rowHTML(npc,
-				`for ${esc(gives.slice(0, 2).join(' / ') || '—')}`,
+				`${esc(npc.at)} · for ${esc(gives.slice(0, 2).join(' / ') || '—')}`,
 				items.length > 1 ? `·${items.length}` : esc(items[0] || ''));
 		}).join('');
 	const list = rows
@@ -195,9 +196,9 @@ function routeHTML(marks) {
 			<span class="map-stop-n">${k + 1}</span>
 			<span class="map-row-main">
 				<span class="map-row-name">${esc(n.name)}</span>
-				<span class="map-row-sub">${has
-					? esc([...has.items.keys()].join(', '))
-					: 'nothing on your list here'}</span>
+				<span class="map-row-sub">${esc(n.at)}${has
+					? ' · ' + esc([...has.items.keys()].join(', '))
+					: ' · nothing on your list here'}</span>
 			</span>
 			<button class="map-x" data-act="map-stop" data-npc="${id}"
 				aria-label="Remove ${esc(n.name)} from the route">×</button>
@@ -233,7 +234,7 @@ function todayHTML(marks) {
 			<span class="map-check">✓</span>
 			<span class="map-row-main">
 				<span class="map-row-name">${esc(n.name)}</span>
-				<span class="map-row-sub">${esc([...marks.get(n.id).items.keys()].join(', '))}</span>
+				<span class="map-row-sub">${esc(n.at)} · ${esc([...marks.get(n.id).items.keys()].join(', '))}</span>
 			</span>
 		</button>`;
 	}).join('');
@@ -384,7 +385,8 @@ function paintPins(layer, pins, marks) {
 			btn.className = 'map-pin';
 			btn.dataset.act = 'map-pin';
 			btn.dataset.npc = p.id;
-			btn.innerHTML = '<span class="map-pin-dot"></span><span class="map-pin-badge"></span><span class="map-pin-name"></span>';
+			btn.innerHTML = '<span class="map-pin-dot"></span><span class="map-pin-badge"></span>'
+				+ '<span class="map-pin-name"><span class="map-pin-npc"></span><span class="map-pin-at"></span></span>';
 			btn.addEventListener('pointerenter', () => { hoverNpc = p.id; paintMap(); });
 			btn.addEventListener('pointerleave', () => { hoverNpc = null; paintMap(); });
 			pool.set(p.id, btn);
@@ -406,8 +408,9 @@ function paintPins(layer, pins, marks) {
 		const badge = btn.querySelector('.map-pin-badge');
 		badge.textContent = stopAt >= 0 ? String(stopAt + 1) : visited && m ? '✓' : '';
 		badge.classList.toggle('is-done', stopAt < 0 && visited);
-		btn.querySelector('.map-pin-name').textContent =
+		btn.querySelector('.map-pin-npc').textContent =
 			p.name + (m && what.length > 1 ? ` ·${what.length}` : '');
+		btn.querySelector('.map-pin-at').textContent = npcById.get(p.id).at;
 	}
 	for (const [id, btn] of pool) {
 		if (!live.has(id)) {
@@ -493,7 +496,7 @@ function paintTip(host, size, marks) {
 					<span class="map-tip-arrow">→</span><span>${esc(item)}</span></div>`).join('')
 			: '';
 		const others = new Set(goodsOf(id).map(g => g.item)).size - (m ? m.items.size : 0);
-		const sub = `${F(parleyPerTrade(barterProfile()))} parley a trade`
+		const sub = `${esc(npc.at)} · ${F(parleyPerTrade(barterProfile()))} parley a trade`
 			+ (others > 0 ? ` · ${others} other good${others > 1 ? 's' : ''}` : '');
 		const onRoute = stops.includes(id);
 		const btns = `<div class="map-tip-btns">

@@ -52,6 +52,15 @@ test('every position falls inside the tiles we downloaded', () => {
 	}
 });
 
+test('every barterer says where it stands', () => {
+	// `at` comes from the BDOCodex node database by nearest-node match;
+	// a missing one would render an empty line under the pin.
+	for (const n of npcs) {
+		assert.ok(typeof n.at === 'string' && n.at.length, `${n.name} has no place`);
+		assert.ok(typeof n.region === 'string' && n.region.length, `${n.name} has no region`);
+	}
+});
+
 /* ------------------------------------------------------------------ *
  * arithmetic
  * ------------------------------------------------------------------ */
