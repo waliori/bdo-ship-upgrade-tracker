@@ -174,6 +174,7 @@ export function openBuildPicker() {
 	const paint = term => {
 		const t = (term || '').trim().toLowerCase();
 		const matches = buildableItems().filter(n => !t || n.toLowerCase().includes(t));
+		const over = matches.length - 200;
 		listEl.innerHTML = matches.length
 			? matches.slice(0, 200).map(n => {
 				const already = queued.has(n);
@@ -183,6 +184,9 @@ export function openBuildPicker() {
 					<span class="picker-tag">${already ? 'queued' : kindOf(n)}</span>
 				</button>`;
 			}).join('')
+				+ (over > 0
+					? `<p class="empty">…${F(over)} more — keep typing to narrow it.</p>`
+					: '')
 			: '<p class="empty">Nothing matches that search.</p>';
 	};
 

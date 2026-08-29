@@ -50,14 +50,18 @@ export function renderInventory() {
 	const q = query.toLowerCase();
 	const searching = q.length > 0;
 
+	// A search narrows within the chip that is lit, not instead of it --
+	// "plank" with Owned selected means the planks you own. Only the
+	// default In play widens under a search, so anything at all can be
+	// found and recorded.
 	const list = allItems().filter(item => {
-		if (searching) return item.toLowerCase().includes(q);
+		if (searching && !item.toLowerCase().includes(q)) return false;
 		const r = rows[item];
 		if (invFilter === 'owned') return (stock[item] || 0) > 0;
 		if (invFilter === 'needed') return !!r && r.need > 0;
 		if (invFilter === 'short') return !!r && r.short > 0;
 		if (invFilter === 'free') return (snapshot.free[item] || 0) > 0;
-		return (stock[item] || 0) > 0 || (r && r.need > 0);
+		return searching || (stock[item] || 0) > 0 || (r && r.need > 0);
 	}).sort((a, b) => ((rows[b] && rows[b].short) || 0) - ((rows[a] && rows[a].short) || 0) || a.localeCompare(b));
 
 	const filters = [

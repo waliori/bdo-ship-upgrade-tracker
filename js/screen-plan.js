@@ -43,7 +43,7 @@ export function renderPlan() {
 	const readyHTML = ready.length ? `<div class="readybar">
 		<div class="readybar-label">Ready to craft</div>
 		<div class="readybar-list">${ready.slice(0, 8).map(c => `
-			<button class="ready-chip" data-act="craft" data-item="${esc(c.item)}" data-times="1" data-peek="${esc(c.item)}" title="Craft one now">
+			<button class="ready-chip" data-act="craft" data-item="${esc(c.item)}" data-times="${c.suggested}" data-peek="${esc(c.item)}" title="Craft ${F(c.suggested)} now">
 				${img(c.item, '')}${F(c.suggested)}× ${esc(c.item)}
 			</button>`).join('')}</div>
 	</div>` : '';

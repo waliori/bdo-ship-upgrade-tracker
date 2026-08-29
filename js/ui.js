@@ -15,7 +15,7 @@ import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.
 import {
 	view, selected, recipes, barterData, snapshot,
 	setView, setQuery, setPlanFilter, setInvFilter, setSelected, setBarterData,
-	recompute, readyCrafts
+	recompute, readyCrafts, CROW_COIN, SILVER
 } from './ui-state.js';
 import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
 import { allItems } from './ui-bits.js';
@@ -26,7 +26,7 @@ import { renderPlan } from './screen-plan.js';
 import { renderBuilds, openBuildPicker, askRoute } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
-import { renderWorkshop } from './screen-workshop.js';
+import { renderWorkshop, pendingEnhancements } from './screen-workshop.js';
 import { renderGet, shoppingText } from './screen-get.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
@@ -47,6 +47,9 @@ const TABS = [
 ];
 
 let water = null;
+// Debounces the search box; showView cancels it so a stale query cannot
+// repaint the next tab. Declared here because both need it.
+let queryTimer = null;
 
 
 export function render() {
@@ -54,8 +57,13 @@ export function render() {
 
 	const counts = {
 		builds: store.getTargets().length,
-		inventory: Object.keys(store.getAllStock()).length,
-		workshop: readyCrafts().length,
+		// The badge counts what the grid will show: currencies live in the
+		// pouch, so silver alone must not read as one mysterious item.
+		inventory: Object.keys(store.getAllStock())
+			.filter(i => i !== CROW_COIN && i !== SILVER).length,
+		// Anything actionable: a recipe you can make, or an enhancement
+		// attempt you hold the part and the stones for.
+		workshop: readyCrafts().length + pendingEnhancements().filter(e => !e.blocked).length,
 		get: Object.keys(snapshot.missing).length
 	};
 
@@ -63,10 +71,13 @@ export function render() {
 	// and the arrow keys walk the rest (wired in wire()).
 	document.getElementById('tabs').innerHTML = TABS.map(t => `
 		<button class="tab ${view === t.id ? 'active' : ''}" role="tab"
-			aria-selected="${view === t.id}" tabindex="${view === t.id ? 0 : -1}"
-			data-act="view" data-id="${t.id}">
+			aria-selected="${view === t.id}" aria-controls="screen"
+			tabindex="${view === t.id ? 0 : -1}"
+			data-act="view" data-id="${t.id}" id="tab-${t.id}">
 			${t.label}${counts[t.id] ? `<span class="tab-count">${counts[t.id]}</span>` : ''}
 		</button>`).join('');
+	const screenHost = document.getElementById('screen');
+	if (screenHost) screenHost.setAttribute('aria-labelledby', `tab-${view}`);
 
 	// Only fade the tab row when there is in fact something past the edge.
 	const tabBar = document.getElementById('tabs');
@@ -96,6 +107,7 @@ export function render() {
 	// measure the box it was given before it knows which tiles to ask
 	// for.
 	if (view === 'map') paintMap();
+	syncHash();
 }
 
 /**
@@ -105,21 +117,33 @@ export function render() {
  */
 function captureFocus(root) {
 	const el = document.activeElement;
-	if (!el || el.tagName !== 'INPUT' || !root.contains(el) || !el.dataset.act) return null;
+	if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'SELECT')
+		|| !root.contains(el) || !el.dataset.act) return null;
 	const parts = [`[data-act="${el.dataset.act}"]`];
 	if (el.dataset.item) parts.push(`[data-item="${el.dataset.item}"]`);
 	if (el.dataset.target) parts.push(`[data-target="${el.dataset.target}"]`);
-	return { sel: parts.join(''), start: el.selectionStart, end: el.selectionEnd };
+	const sel = parts.join('');
+	// The Tree can show the same item on several branches, so the selector
+	// alone would put the caret back in the first of them. Which occurrence
+	// it was disambiguates.
+	let nth;
+	try {
+		nth = [...root.querySelectorAll(sel)].indexOf(el);
+	} catch {
+		return null;   // an item name that will not survive a selector
+	}
+	return { sel, nth: Math.max(0, nth), start: el.selectionStart, end: el.selectionEnd };
 }
 
 function restoreFocus(root, focus) {
 	if (!focus) return;
-	let next;
+	let matches;
 	try {
-		next = root.querySelector(focus.sel);
+		matches = root.querySelectorAll(focus.sel);
 	} catch {
-		return;   // an item name that will not survive a selector
+		return;
 	}
+	const next = matches[focus.nth] || matches[0];
 	if (!next) return;
 	next.focus();
 	try {
@@ -132,8 +156,47 @@ function restoreFocus(root, focus) {
 function showView(id) {
 	setView(id);
 	setQuery('');
+	// A search typed on the old tab must not repaint the new one with a
+	// stale query when its debounce fires.
+	clearTimeout(queryTimer);
+	// setSetting notifies, and the render subscription answers -- calling
+	// render() here as well would draw the heaviest path twice per tap.
 	store.setSetting('view', id);
-	render();
+	syncHash();
+	// The button that had focus was just rebuilt; without this, a keyboard
+	// user pressing Enter on a tab lands back at the top of the page.
+	const active = document.querySelector('.tab.active');
+	if (active && document.activeElement === document.body) active.focus({ preventScroll: true });
+	if ((id === 'get' || id === 'map') && !barterData) loadBarter();
+}
+
+/**
+ * The address bar names the tab, and the selected item when there is
+ * one, so a place in the app survives a reload and travels in a link.
+ * A tab change is a step Back can retrace; changing the selection within
+ * a tab only rewrites the entry.
+ */
+let applyingHash = false;
+
+function syncHash() {
+	if (applyingHash) return;
+	const want = '#' + view + (view === 'inventory' && selected ? '/' + encodeURIComponent(selected) : '');
+	if (location.hash === want) return;
+	const sameView = (location.hash + '/').startsWith('#' + view + '/') || location.hash === '#' + view;
+	if (sameView) history.replaceState(null, '', want);
+	else location.hash = want;
+}
+
+function applyHash() {
+	const m = location.hash.match(/^#([a-z]+)(?:\/(.*))?$/);
+	if (!m || !TABS.some(t => t.id === m[1])) return false;
+	applyingHash = true;
+	setView(m[1]);
+	setQuery('');
+	if (m[1] === 'inventory' && m[2]) setSelected(decodeURIComponent(m[2]));
+	store.setSetting('view', m[1]);
+	applyingHash = false;
+	return true;
 }
 
 /**
@@ -146,18 +209,29 @@ function showView(id) {
  * What the numbers mean, and which patch notes they were read against,
  * is documented where the dataset is read -- barter.js.
  */
+let barterLoading = null;
+
 async function loadBarter() {
-	if (barterData) return;
-	try {
+	if (barterData || barterLoading) return;
+	barterLoading = (async () => {
 		const res = await fetch('js/all_barter.json');
 		if (!res.ok) throw new Error(String(res.status));
 		setBarterData(await res.json());
+	})();
+	try {
+		await barterLoading;
 	} catch {
-		setBarterData([]);
+		// Left unset rather than set to [], so opening To Get or the Map
+		// after the network comes back tries again instead of showing an
+		// empty ocean until someone reloads.
+		barterLoading = null;
+		return;
 	}
-	// Both screens are built out of this data and both are showing a
-	// placeholder until it lands, so both need the second paint.
-	if (view === 'get' || view === 'map') render();
+	barterLoading = null;
+	// Barter lines appear on more screens than these two -- the Tree and
+	// the inventory detail draw their buttons from the same data -- so
+	// whichever is up gets the second paint.
+	render();
 }
 
 
@@ -255,6 +329,7 @@ function wire() {
 			case 'add-build': return openBuildPicker();
 			case 'export': return doExport();
 			case 'import': return doImport();
+			case 'reset': return doReset();
 			case 'water': return toggleWater();
 			case 'tour': return startTour();
 			case 'help': return openHelp();
@@ -356,11 +431,33 @@ function wire() {
 				const step = enhanceStep(base, level);
 				if (!step) return;
 				const ok = el.dataset.result === 'success';
+				// 'dropped' is the yellow tier's third outcome: the attempt
+				// was made without Cron Stones, so no Crons are spent and
+				// the part falls a level.
+				const dropped = el.dataset.result === 'dropped' && step.onFailureDropped;
+				// Recording an attempt spends real stock; short of it, the
+				// clamp at zero would eat the shortfall and mint the part
+				// from nothing. The level picker is the way to record gear
+				// that was enhanced outside the app.
+				const spend = ok ? step.onSuccess : dropped ? step.onFailureDropped : step.onFailure;
+				const short = Object.entries(spend)
+					.filter(([item, d]) => d < 0 && store.getStock(item) < -d)
+					.map(([item]) => item);
+				if (short.length) {
+					toast(`Not enough ${short.join(', ')} for that attempt — to record a level you already have, open the part and pick the level`);
+					return;
+				}
 				store.applyDelta(
-					ok ? step.onSuccess : step.onFailure,
+					spend,
 					'enhance',
-					ok ? `${base} reached +${level}` : `Failed attempt at +${level} ${base}`
+					ok ? `${base} reached +${level}`
+						: dropped ? `${base} fell to +${level - 2} — no Crons on the attempt`
+						: `Failed attempt at +${level} ${base}`
 				);
+				if (dropped) {
+					toast(`${base} fell to +${level - 2} — the Crons stayed in your pocket`, true);
+					return;
+				}
 				// Only the steps that actually spend Cron are being held by
 				// it; +1 costs none, and has nothing to fall to anyway.
 				const held = (tableFor(base) || {}).keepsLevel !== false || !step.stones['Cron Stone']
@@ -387,7 +484,9 @@ function wire() {
 			}
 			case 'remove': {
 				const id = targetIdFrom(el);
-				if (id) store.removeTarget(id);
+				if (!id) return;
+				const entry = store.removeTarget(id);
+				if (entry) toast(`${entry.label} — Undo brings it back`, true);
 				return;
 			}
 			default:
@@ -418,7 +517,8 @@ function wire() {
 
 		const el = evt.target.closest(
 			'[data-act="own-set"], [data-act="purse"], [data-act="target-qty"],'
-			+ ' [data-act="barter-count"], [data-act="vouchers"], [data-act="parley-held"]');
+			+ ' [data-act="barter-count"], [data-act="vouchers"], [data-act="parley-held"],'
+			+ ' [data-act="failstacks"]');
 		if (!el) return;
 		const n = parseAmount(el.value);
 		if (n === null) return render();   // gibberish: put the stored value back
@@ -426,6 +526,7 @@ function wire() {
 		else if (el.dataset.act === 'barter-count') store.setProfile('barterCount', n);
 		else if (el.dataset.act === 'vouchers') store.setProfile('vouchers', n);
 		else if (el.dataset.act === 'parley-held') store.setProfile('parleyHeld', n);
+		else if (el.dataset.act === 'failstacks') store.setProfile('failstacks', n);
 		else store.setStock(el.dataset.item, n);
 	});
 
@@ -453,14 +554,28 @@ function wire() {
 		}
 
 		// Escape peels the layers in order: the dialog first, then the
-		// inventory detail panel.
+		// field being typed in, then the inventory detail panel. Someone
+		// abandoning an edit is not asking to lose the panel around it.
 		if (evt.key === 'Escape') {
 			if (!dialog.hidden) {
 				evt.preventDefault();
 				dismissDialog();
+			} else if (evt.target.closest('input, textarea, select')) {
+				evt.target.blur();
 			} else if (selected) {
 				setSelected(null);
 				render();
+			}
+			return;
+		}
+
+		// Enter in the Workshop's batch-size field is the same as pressing
+		// the button beside it.
+		if (evt.key === 'Enter' && evt.target.classList && evt.target.classList.contains('craft-n')) {
+			const btn = evt.target.closest('.craft-actions')?.querySelector('[data-act="craft"][data-times="field"]');
+			if (btn) {
+				evt.preventDefault();
+				btn.click();
 			}
 			return;
 		}
@@ -517,7 +632,6 @@ function wire() {
 	// Debounced: a render rebuilds the whole screen and re-runs the
 	// planner, which is far too much work to do between two keystrokes
 	// of "brilliant". The caret survives because render() restores it.
-	let queryTimer = null;
 	document.addEventListener('input', evt => {
 		const el = evt.target.closest('[data-act="query"]');
 		if (!el) return;
@@ -540,7 +654,10 @@ function doExport() {
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement('a');
 	a.href = url;
-	a.download = 'ship-tracker.json';
+	// Dated, so keeping more than one backup does not mean the second
+	// silently replacing the first in the downloads folder.
+	const stamp = new Date().toISOString().slice(0, 16).replace('T', '-').replace(':', '');
+	a.download = `ship-tracker-${stamp}.json`;
 	document.body.appendChild(a);
 	a.click();
 	a.remove();
@@ -554,24 +671,74 @@ function doImport() {
 	input.addEventListener('change', async () => {
 		const file = input.files && input.files[0];
 		if (!file) return;
+		let text;
+		let incoming;
 		try {
-			const result = store.importJSON(await file.text());
-			toast(`Imported ${result.items} items and ${result.targets} builds`);
-		} catch (err) {
-			toast(err.message);
+			text = await file.text();
+			incoming = JSON.parse(text);
+		} catch {
+			return toast('That file is not valid JSON.');
 		}
+		if (!incoming || typeof incoming !== 'object' || !incoming.stock) {
+			return toast('That file does not contain tracker data.');
+		}
+		// Importing replaces everything, which deserves saying before it
+		// happens rather than in the past tense afterwards.
+		const items = Object.keys(incoming.stock).length;
+		const builds = Array.isArray(incoming.targets) ? incoming.targets.length : 0;
+		const host = openDialog(`
+			<h2>Replace your tracker data?</h2>
+			<p>This file holds ${F(items)} items and ${F(builds)} builds. Importing it replaces
+			everything here — your stock, your build queue and your choices. One Undo brings
+			the current data back.</p>
+			<div class="dialog-actions">
+				<button class="act quiet" data-cancel>Keep what I have</button>
+				<button class="act" data-accept>Replace it</button>
+			</div>
+		`);
+		host.querySelector('[data-cancel]').addEventListener('click', () => closeDialog());
+		host.querySelector('[data-accept]').addEventListener('click', () => {
+			closeDialog();
+			try {
+				const result = store.importJSON(text);
+				toast(`Replaced tracker data — ${result.items} items, ${result.targets} builds`, true);
+			} catch (err) {
+				toast(err.message);
+			}
+		});
 	});
 	input.click();
 }
 
+function doReset() {
+	const items = Object.keys(store.getAllStock()).length;
+	const builds = store.getTargets().length;
+	const host = openDialog(`
+		<h2>Start fresh?</h2>
+		<p>This clears your stock (${F(items)} items), your build queue (${F(builds)} builds),
+		your choices and your barter profile. One Undo brings it all back — but Export first
+		if this is a copy you may ever want again.</p>
+		<div class="dialog-actions">
+			<button class="act quiet" data-cancel>Keep everything</button>
+			<button class="act" data-accept>Start fresh</button>
+		</div>
+	`);
+	host.querySelector('[data-cancel]').addEventListener('click', () => closeDialog());
+	host.querySelector('[data-accept]').addEventListener('click', () => {
+		closeDialog();
+		store.adopt({ stock: {}, targets: [], strategy: {}, profile: {} }, 'Started fresh');
+		toast('Everything cleared — Undo brings it back', true);
+	});
+}
+
 function offerLegacyImport() {
-	if (store.hasImportedLegacy()) return;
+	if (store.hasImportedLegacy()) return false;
 
 	const shipNames = shipGroups.flatMap(g => g.items);
 	const legacy = store.readLegacyData(shipNames, allItems());
 	if (!legacy || !Object.keys(legacy.stock).length) {
 		store.markLegacyImported();
-		return;
+		return false;
 	}
 
 	const list = Object.entries(legacy.stock)
@@ -600,6 +767,7 @@ function offerLegacyImport() {
 		closeDialog();
 		toast(`Imported ${Object.keys(legacy.stock).length} items`);
 	});
+	return true;
 }
 
 /**
@@ -637,9 +805,12 @@ async function startTour() {
 	closeDialog();
 	try {
 		const { guidedTour } = await import('./guided-tour.js');
-		guidedTour.startTour('main');
+		if (!guidedTour.startTour('main')) {
+			toast('The tour could not load — check your connection and try again');
+		}
 	} catch (err) {
 		console.warn('[ui] tour unavailable:', err);
+		toast('The tour could not load — check your connection and try again');
 	}
 }
 
@@ -652,24 +823,36 @@ export async function init() {
 
 	const saved = store.getSetting('view');
 	if (saved && TABS.some(t => t.id === saved)) setView(saved);
+	// A link or a reload with a hash names a place, and the address bar
+	// outranks the remembered tab.
+	applyHash();
 
 	wire();
+	window.addEventListener('hashchange', applyHash);
 	store.subscribe(() => render());
 	render();
 
 	loadBarter();
+	// A failed fetch leaves barterData unset on purpose; the network
+	// coming back is the retry signal.
+	window.addEventListener('online', loadBarter);
 
 	if (store.getSetting('water', false) === true) waterOn();
 	syncWaterButton();
 
-	offerLegacyImport();
+	const legacyDialogUp = offerLegacyImport();
 
-	// First-run tour, once the screens are on the page.
-	try {
-		const { guidedTour } = await import('./guided-tour.js');
-		guidedTour.checkAndShowInitialTour();
-	} catch {
-		/* the tour is optional */
+	// First-run tour, once the screens are on the page -- but not on top
+	// of the legacy-import question. Starting it would swap in demo data
+	// under the open dialog, and "Import it" would then merge a player's
+	// history into example numbers the tour throws away.
+	if (!legacyDialogUp) {
+		try {
+			const { guidedTour } = await import('./guided-tour.js');
+			guidedTour.checkAndShowInitialTour();
+		} catch {
+			/* the tour is optional */
+		}
 	}
 
 	// Icon metadata arrives asynchronously; repaint once it is ready.

@@ -101,6 +101,8 @@ export function wireGuide() {
 		if (tip) return tip;
 		tip = document.createElement('div');
 		tip.className = 'guide-tip';
+		tip.id = 'guide-tip';
+		tip.setAttribute('role', 'tooltip');
 		tip.hidden = true;
 		document.body.appendChild(tip);
 		return tip;
@@ -136,11 +138,13 @@ export function wireGuide() {
 		}
 		t.hidden = false;
 		anchor = el;
+		el.setAttribute('aria-describedby', 'guide-tip');
 		place();
 	};
 
 	const hide = () => {
 		if (tip) tip.hidden = true;
+		if (anchor) anchor.removeAttribute('aria-describedby');
 	};
 
 	document.addEventListener('pointerover', evt => {
@@ -156,8 +160,23 @@ export function wireGuide() {
 			else show(el);
 		} else if (!evt.target.closest('.guide-tip')) hide();
 	});
+	// The same card for a keyboard: tabbing onto a term shows it, and
+	// Enter or Space toggles it, the way a tap does.
+	document.addEventListener('focusin', evt => {
+		const el = evt.target.closest ? evt.target.closest('[data-guide]') : null;
+		if (el) show(el);
+	});
+	document.addEventListener('focusout', evt => {
+		if (evt.target.closest && evt.target.closest('[data-guide]')) hide();
+	});
 	window.addEventListener('scroll', hide, true);
 	document.addEventListener('keydown', evt => {
-		if (evt.key === 'Escape') hide();
+		if (evt.key === 'Escape') { hide(); return; }
+		if (evt.key !== 'Enter' && evt.key !== ' ') return;
+		const el = evt.target.closest ? evt.target.closest('[data-guide]') : null;
+		if (!el) return;
+		evt.preventDefault();
+		if (tip && !tip.hidden && showing === el.dataset.guide) hide();
+		else show(el);
 	});
 }

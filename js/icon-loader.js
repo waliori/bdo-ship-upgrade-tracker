@@ -43,18 +43,13 @@ class IconLoader {
 	/**
 	 * The icon file and BDOCodex URL for an item, or null.
 	 *
-	 * An enhanced name falls back to its base item's entry, and a few
-	 * renamed part families fall back to the name the mapping still
+	 * Callers retry an enhanced name with its base themselves; here a
+	 * few renamed part families fall back to the name the mapping still
 	 * carries.
 	 */
 	getIconInfo(itemName) {
 		const found = this.iconMapping[itemName];
 		if (found) return this.normalise(found);
-
-		if (itemName.startsWith('+10 ')) {
-			const base = this.iconMapping[itemName.slice(4)];
-			if (base) return this.normalise(base);
-		}
 
 		for (const variation of [
 			itemName.replace('(Green)', '').trim(),

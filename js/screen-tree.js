@@ -15,17 +15,22 @@ import { startHere } from './screen-plan.js';
 // Which build's tree is open, and which nodes are folded shut.
 export const folded = new Set();
 let treeTarget = null;
-let chainsFolded = false;
+// Builds whose enhancement chains have had their one-time auto-fold, by
+// target id -- a boolean here meant a build queued after the first
+// render never got its chains folded at all.
+const chainsFolded = new Set();
 
 export const setTreeTarget = item => { treeTarget = item; };
 
 /** Fold every top-level branch shut (the shell's Collapse button). */
 export function collapseAll() {
 	folded.clear();
-	snapshot.targets.forEach(t => (t.tree.children || []).forEach(n => {
-		folded.add(`/${t.tree.item}/${n.item}`);
-	}));
-	chainsFolded = true;
+	snapshot.targets.forEach(t => {
+		chainsFolded.add(t.id);
+		(t.tree.children || []).forEach(n => {
+			folded.add(`/${t.tree.item}/${n.item}`);
+		});
+	});
 }
 
 
@@ -78,10 +83,21 @@ export function renderTree() {
 	const targets = snapshot.targets;
 	if (!targets.length) return startHere();
 
-	if (!chainsFolded) {
-		targets.forEach(t => foldChains(t.tree));
-		chainsFolded = true;
+	// Fold the chains of any build seen here for the first time, and let
+	// go of state belonging to builds that have left the queue -- fold
+	// paths are rooted at the tree's top item, processed marks at the id.
+	const ids = new Set(targets.map(t => t.id));
+	for (const id of chainsFolded) if (!ids.has(id)) chainsFolded.delete(id);
+	for (const path of folded) {
+		if (!targets.some(t => path === `/${t.tree.item}` || path.startsWith(`/${t.tree.item}/`))) {
+			folded.delete(path);
+		}
 	}
+	targets.forEach(t => {
+		if (chainsFolded.has(t.id)) return;
+		chainsFolded.add(t.id);
+		foldChains(t.tree);
+	});
 	const current = targets.find(t => t.item === treeTarget) || targets[0];
 
 	// One control, not a wrapping row of them. Seven builds turned the

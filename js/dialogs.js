@@ -28,14 +28,31 @@ export function toast(message, undoable = false) {
  * and never trigger it.
  */
 let dialogDismiss = null;   // the open dialog's onDismiss, for Escape
-let dialogOpener = null;    // where focus returns when the dialog closes
+let dialogOpener = null;    // where focus returns when the last dialog closes
+
+/** The page behind the veil, out of the tab order and the screen
+ *  reader's reach while a dialog is the whole interface. */
+function veilShell(on) {
+	const shell = document.querySelector('.shell');
+	if (shell && 'inert' in shell) shell.inert = on;
+}
 
 export function openDialog(html, { onDismiss = null } = {}) {
 	const host = document.getElementById('dialog');
+	// A dialog opened over another replaces it, which dismisses the
+	// first in every sense -- anything it was holding gets let go, and
+	// the opener recorded then is still where focus belongs at the end.
+	if (!host.hidden) {
+		const prev = dialogDismiss;
+		dialogDismiss = null;
+		if (prev) prev();
+	} else {
+		dialogOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		veilShell(true);
+	}
 	host.innerHTML = `<div class="dialog-box">${html}</div>`;
 	host.hidden = false;
 	dialogDismiss = onDismiss;
-	dialogOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 	host.onclick = evt => {
 		if (evt.target === host || evt.target.hasAttribute('data-close')) dismissDialog();
 	};
@@ -52,6 +69,7 @@ export function closeDialog() {
 	host.hidden = true;
 	host.innerHTML = '';
 	dialogDismiss = null;
+	veilShell(false);
 	// Focus goes back where it came from, so Escape does not dump a
 	// keyboard user at the top of the page.
 	if (dialogOpener && dialogOpener.isConnected) dialogOpener.focus();
