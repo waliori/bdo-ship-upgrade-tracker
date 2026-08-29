@@ -2575,6 +2575,44 @@ select.purse-inline { width: auto; cursor: pointer; }
 
 .map-startrow { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 
+/* The field guide: one quiet dot, and the game's own windows behind it. */
+.info-dot {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line-btn);
+  background: none;
+  color: var(--ink-mute);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: 2px;
+}
+.info-dot:hover { color: var(--teal-hi); border-color: var(--teal-edge); }
+
+.guide { display: flex; flex-direction: column; gap: 14px; max-height: 60vh; overflow-y: auto; padding-right: 4px; }
+
+.guide-card h3 { margin: 0 0 2px; font-size: 14px; color: var(--ink-hi); font-family: var(--font-display); }
+
+.guide-where {
+  font-size: 11px;
+  color: var(--teal);
+  margin-bottom: 6px;
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+}
+
+.guide-card img {
+  display: block;
+  max-width: 100%;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--line);
+  margin-bottom: 6px;
+}
+
+.guide-card p { margin: 0; font-size: 12.5px; color: var(--ink-mid); line-height: 1.5; }
+
 /* One refresh list per run: the chart plans against materials or the
    trade chain, not a mixture. */
 .map-kinds { display: flex; gap: 4px; margin: 0 0 8px; }

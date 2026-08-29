@@ -101,7 +101,7 @@ app.get('/api/config', (req, res) => {
 
 // Only what the page actually asks for. Serving the repository root would
 // hand out package.json, the Dockerfile and the capture harness too.
-const PUBLIC = ['css', 'js', 'icons', 'map'];
+const PUBLIC = ['css', 'js', 'icons', 'map', 'guide'];
 const FILES = [
 	'index.html', 'icon.png', 'og.png', 'icon_mapping.json',
 	'icon-192.png', 'icon-512.png', 'manifest.webmanifest', 'sw.js'

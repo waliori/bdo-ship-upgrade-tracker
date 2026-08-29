@@ -64,11 +64,12 @@ function barterProfileTile() {
 	// It is still worth showing: it is the one number a barter level
 	// visibly moves, and the game never adds up what a bar buys you.
 	return `<div>
-		<div class="summary-k">Bartering</div>
+		<div class="summary-k">Bartering <button class="info-dot" data-act="guide"
+			aria-label="Where to see these numbers in game">?</button></div>
 		<div class="summary-v">${F(day.refreshes)} refreshes/day</div>
 		<div class="summary-sub"><input class="purse-inline" type="text" inputmode="numeric"
 			value="${F(barterCount)}" data-act="barter-count"
-			aria-label="Barters you have completed"> done${next ? ` · ${esc(next)}` : ''}
+			aria-label="Your Total Barters, as the Barter Information window shows it"> Total Barters${next ? ` · ${esc(next)}` : ''}
 			· <label class="inline-check"><input type="checkbox" data-act="value-pack"
 			${valuePack ? 'checked' : ''}> Value Pack</label>
 			· <label class="inline-check"><input type="checkbox" data-act="crew-discount"

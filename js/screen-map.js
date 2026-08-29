@@ -177,7 +177,8 @@ export function renderMap() {
 	const marks = marksNow();
 
 	const head = `<div class="summary">
-		<span class="summary-title">Where to sail</span>
+		<span class="summary-title">Where to sail <button class="info-dot" data-act="guide"
+			aria-label="Where to see these numbers in game">?</button></span>
 		<div class="summary-stats">
 			<div>
 				<div class="summary-k">Barterers</div>

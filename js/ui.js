@@ -21,6 +21,7 @@ import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
 import { allItems } from './ui-bits.js';
 import { paintPouch, measurePouch } from './pouch.js';
 import { hidePeek, wirePeek } from './peek.js';
+import { openGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
 import { renderBuilds, openBuildPicker, askRoute } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
@@ -257,6 +258,7 @@ function wire() {
 			case 'water': return toggleWater();
 			case 'tour': return startTour();
 			case 'help': return openHelp();
+			case 'guide': return openGuide();
 			case 'signin':
 			case 'account': return openAccount();
 			case 'menu': {
