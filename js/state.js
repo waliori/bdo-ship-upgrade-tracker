@@ -190,6 +190,10 @@ function commit(type, label, mutate) {
 	if (entry.delta || entry.prevTargets || entry.prevStrategy || entry.prevProfile) {
 		state.history.push(entry);
 		if (state.history.length > HISTORY_CAP) state.history.shift();
+		// A new change forks history: what was undone can no longer be
+		// redone, because redoing it would land on top of this instead of
+		// where it was undone from.
+		future = [];
 	}
 
 	persist();
@@ -197,10 +201,25 @@ function commit(type, label, mutate) {
 	return entry;
 }
 
+// What undo took away, so redo can put it back. In memory only: the
+// undo history travels with the save because reopening the app and
+// reversing yesterday's mistake is a real need, but "redo the thing I
+// undid before reloading" is not one anyone has.
+let future = [];
+
 /** Reverse the most recent change. Returns its label, or null if nothing to undo. */
 export function undo() {
 	const entry = state.history.pop();
 	if (!entry) return null;
+
+	// Captured before the revert touches anything: the values this undo
+	// is about to replace are exactly what redo will need.
+	const redoEntry = { type: entry.type, label: entry.label };
+	if (entry.delta) redoEntry.delta = entry.delta;
+	if (entry.prevTargets) redoEntry.nextTargets = state.targets;
+	if (entry.prevStrategy) redoEntry.nextStrategy = state.strategy;
+	if (entry.prevProfile) redoEntry.nextProfile = state.profile;
+	future.push(redoEntry);
 
 	if (entry.delta) {
 		for (const [item, diff] of Object.entries(entry.delta)) {
@@ -218,8 +237,49 @@ export function undo() {
 	return entry.label || 'Change';
 }
 
+/** Put back the most recently undone change, itself undoable again. */
+export function redo() {
+	const entry = future.pop();
+	if (!entry) return null;
+
+	// Rebuilt as a history entry as it goes back on, so redo and undo
+	// can trade the same change back and forth indefinitely.
+	const hist = { t: Date.now(), type: entry.type, label: entry.label };
+	if (entry.delta) {
+		hist.delta = entry.delta;
+		for (const [item, diff] of Object.entries(entry.delta)) {
+			const next = (state.stock[item] || 0) + diff;
+			if (next > 0) state.stock[item] = next;
+			else delete state.stock[item];
+		}
+	}
+	if (entry.nextTargets) {
+		hist.prevTargets = state.targets;
+		state.targets = entry.nextTargets;
+	}
+	if (entry.nextStrategy) {
+		hist.prevStrategy = state.strategy;
+		state.strategy = entry.nextStrategy;
+	}
+	if (entry.nextProfile) {
+		hist.prevProfile = state.profile;
+		state.profile = entry.nextProfile;
+	}
+
+	state.history.push(hist);
+	if (state.history.length > HISTORY_CAP) state.history.shift();
+
+	persist();
+	notify('redo');
+	return entry.label || 'Change';
+}
+
 export function canUndo() {
 	return state.history.length > 0;
+}
+
+export function canRedo() {
+	return future.length > 0;
 }
 
 export function lastChange() {

@@ -1897,6 +1897,8 @@ export function render() {
 
 	const undoBtn = document.getElementById('undo-btn');
 	if (undoBtn) undoBtn.disabled = !store.canUndo();
+	const redoBtn = document.getElementById('redo-btn');
+	if (redoBtn) redoBtn.disabled = !store.canRedo();
 
 	paintPouch();
 
@@ -2074,6 +2076,11 @@ function wire() {
 				toast(label ? `Reverted: ${label}` : 'Nothing to undo');
 				return;
 			}
+			case 'redo': {
+				const label = store.redo();
+				toast(label ? `Redone: ${label}` : 'Nothing to redo');
+				return;
+			}
 			case 'add-build': return openBuildPicker();
 			case 'export': return doExport();
 			case 'import': return doImport();
@@ -2247,6 +2254,20 @@ function wire() {
 
 	document.addEventListener('keydown', evt => {
 		const dialog = document.getElementById('dialog');
+
+		// Ctrl+Z / Ctrl+Shift+Z (and Ctrl+Y), everywhere except inside a
+		// field -- there the browser's own text undo has first claim.
+		if ((evt.ctrlKey || evt.metaKey) && !evt.altKey
+			&& (evt.key.toLowerCase() === 'z' || evt.key.toLowerCase() === 'y')
+			&& !evt.target.closest('input, textarea, select')) {
+			evt.preventDefault();
+			const redoing = evt.key.toLowerCase() === 'y' || evt.shiftKey;
+			const label = redoing ? store.redo() : store.undo();
+			toast(label
+				? `${redoing ? 'Redone' : 'Reverted'}: ${label}`
+				: `Nothing to ${redoing ? 'redo' : 'undo'}`);
+			return;
+		}
 
 		// Escape peels the layers in order: the dialog first, then the
 		// inventory detail panel.
