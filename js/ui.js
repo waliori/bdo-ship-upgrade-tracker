@@ -13,7 +13,7 @@ import * as store from './state.js';
 import { initSync, openAccount } from './sync.js';
 import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.js';
 import {
-	view, query, selected, recipes, barterData, snapshot,
+	view, selected, recipes, barterData, snapshot,
 	setView, setQuery, setPlanFilter, setInvFilter, setSelected, setBarterData,
 	recompute, readyCrafts
 } from './ui-state.js';
@@ -107,7 +107,7 @@ function captureFocus(root) {
 
 function restoreFocus(root, focus) {
 	if (!focus) return;
-	let next = null;
+	let next;
 	try {
 		next = root.querySelector(focus.sel);
 	} catch {

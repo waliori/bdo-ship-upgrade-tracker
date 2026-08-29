@@ -443,7 +443,6 @@ export function bottleneck(top, qty) {
 
 /** The unlock this item is waiting on, or null if nothing gates it. */
 export function gateFor(item, barterCount) {
-	const level = levelOf(item);
 	let needed = null;
 
 	// The Brilliant pair is the only threshold the current patch notes

@@ -270,8 +270,8 @@ class GuidedTour {
 
 	/** Show the tour once, the first time someone opens the app. */
 	checkAndShowInitialTour() {
-		let done = 'true';
-		let auto = 'true';
+		let done;
+		let auto;
 		try {
 			done = localStorage.getItem(DONE_KEY);
 			auto = localStorage.getItem(AUTO_KEY);

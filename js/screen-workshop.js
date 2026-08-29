@@ -1,7 +1,6 @@
 // The Workshop: everything craftable right now, and every part worth an
 // enhancement attempt.
 
-import { tableFor } from './enhancement.js';
 import { esc, F } from './fmt.js';
 import * as store from './state.js';
 import { img, codexName, amountInput, whereFrom } from './ui-bits.js';

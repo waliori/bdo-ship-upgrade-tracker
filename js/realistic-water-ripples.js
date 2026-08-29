@@ -72,7 +72,7 @@ class RealisticWaterRipples {
         if (!gl) return false;
         
         // Check for optional extensions
-        const floatExt = gl.getExtension('OES_texture_float');
+        const _floatExt = gl.getExtension('OES_texture_float');
         
         return true;
     }

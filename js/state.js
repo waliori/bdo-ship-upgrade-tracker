@@ -662,7 +662,7 @@ export function readLegacyData(shipNames, itemNames) {
 		if (qty > 0) stock[item] = Math.max(stock[item] || 0, qty);
 	};
 
-	let keyCount = 0;
+	let keyCount;
 	try {
 		keyCount = localStorage.length;
 	} catch {

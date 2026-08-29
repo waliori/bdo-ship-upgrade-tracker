@@ -9,7 +9,7 @@
 //
 //   node tools/capture/tour.mjs <outdir> [phone]
 
-import { open, seed, tab, click, moveTo, typeInto, say, hush, wait } from './drive.mjs';
+import { open, seed, tab, click, typeInto, say, hush, wait } from './drive.mjs';
 
 const OUT = process.argv[2];
 const PHONE = process.argv[3] === 'phone';

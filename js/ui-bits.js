@@ -35,7 +35,7 @@ export const amountInput = (cls, value, attrs) =>
 
 
 export function iconSrc(name) {
-	let info = null;
+	let info;
 	try {
 		info = iconLoader.getIconInfo(name) || iconLoader.getIconInfo(parseEnhanced(name).base);
 	} catch {
@@ -55,7 +55,7 @@ export const img = (name, cls = 'row-icon') =>
  * lives anyway.
  */
 export function codexUrl(item) {
-	let info = null;
+	let info;
 	try {
 		info = iconLoader.getIconInfo(item) || iconLoader.getIconInfo(parseEnhanced(item).base);
 	} catch {
