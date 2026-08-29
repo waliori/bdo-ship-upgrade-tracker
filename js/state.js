@@ -34,6 +34,9 @@ let suppressStorageEvent = false;
 // While the guided tour is showing example data, nothing may be written:
 // a single save would put the demo where the user's real inventory is.
 let transient = false;
+// Set when another tab saves mid-tour, so restore() knows the capture it
+// holds is older than the disk and yields to it.
+let staleWhileTransient = false;
 
 /* ------------------------------------------------------------------ *
  * Persistence
@@ -78,9 +81,50 @@ function normalise(raw) {
 		}
 	}
 	s.profile = readProfile(raw.profile);
-	if (Array.isArray(raw.history)) s.history = raw.history.slice(-HISTORY_CAP);
+	s.history = readHistory(raw.history);
 	if (raw.settings && typeof raw.settings === 'object') s.settings = { ...raw.settings };
+	// Anything a newer version wrote that this one does not know rides
+	// along untouched, so opening a save in an old tab cannot strip what
+	// the new one added.
+	for (const key of Object.keys(raw)) {
+		if (!(key in s)) s[key] = raw[key];
+	}
+	if (Number(raw.v) > SCHEMA) s.v = Number(raw.v);
 	return s;
+}
+
+/**
+ * The undo stack, believed only as far as it can be verified.
+ *
+ * History is the one persisted field whose entries are applied as raw
+ * arithmetic -- a delta of "x" would quietly turn a stock count into NaN
+ * and undo() would then delete the row. So a hand-edited or corrupted
+ * save keeps only the entries that could actually be undone.
+ */
+function readHistory(raw) {
+	if (!Array.isArray(raw)) return [];
+	const out = [];
+	for (const e of raw.slice(-HISTORY_CAP)) {
+		if (!e || typeof e !== 'object') continue;
+		const entry = { t: Number(e.t) || 0, type: String(e.type || 'stock'), label: String(e.label || '') };
+		if (e.delta && typeof e.delta === 'object') {
+			const delta = {};
+			for (const [item, diff] of Object.entries(e.delta)) {
+				const n = Math.trunc(Number(diff));
+				if (Number.isFinite(n) && n !== 0) delta[item] = n;
+			}
+			if (Object.keys(delta).length) entry.delta = delta;
+		}
+		if (Array.isArray(e.prevTargets)) {
+			entry.prevTargets = normalise({ targets: e.prevTargets }).targets;
+		}
+		if (e.prevStrategy && typeof e.prevStrategy === 'object') {
+			entry.prevStrategy = normalise({ strategy: e.prevStrategy }).strategy;
+		}
+		if (isProfile(e.prevProfile)) entry.prevProfile = readProfile(e.prevProfile);
+		if (entry.delta || entry.prevTargets || entry.prevStrategy || entry.prevProfile) out.push(entry);
+	}
+	return out;
 }
 
 /**
@@ -104,6 +148,11 @@ function readProfile(raw) {
 	if (vouchers > 0) out.vouchers = vouchers;
 	const held = Math.max(0, Math.floor(Number(raw.parleyHeld) || 0));
 	if (held > 0) out.parleyHeld = held;
+	// The failstack the player takes into a yellow attempt. Bounded the
+	// way the game bounds one; zero means "the quoted stack", so only a
+	// real number is kept.
+	const stacks = Math.min(500, Math.max(0, Math.floor(Number(raw.failstacks) || 0)));
+	if (stacks > 0) out.failstacks = stacks;
 	return out;
 }
 
@@ -131,7 +180,7 @@ function persist() {
  * our in-memory state would silently overwrite that.
  */
 export function flush() {
-	if (!writeTimer) return;
+	if (transient || !writeTimer) return;
 	clearTimeout(writeTimer);
 	writeTimer = null;
 	try {
@@ -169,6 +218,15 @@ function notify(reason) {
  * ------------------------------------------------------------------ */
 
 function commit(type, label, mutate) {
+	// While the tour's example data is in: act, but leave no record. A
+	// history entry written against demo quantities would hand undo a
+	// delta that was never true of the real inventory.
+	if (transient) {
+		mutate();
+		notify(type);
+		return { t: Date.now(), type, label, transient: true };
+	}
+
 	const beforeStock = { ...state.stock };
 	const beforeTargets = state.targets;
 	const beforeStrategy = state.strategy;
@@ -212,6 +270,9 @@ let future = [];
 
 /** Reverse the most recent change. Returns its label, or null if nothing to undo. */
 export function undo() {
+	// The history is real; the stock on show mid-tour is not. Undoing a
+	// real entry against demo quantities would lose the entry for good.
+	if (transient) return null;
 	const entry = state.history.pop();
 	if (!entry) return null;
 
@@ -242,6 +303,7 @@ export function undo() {
 
 /** Put back the most recently undone change, itself undoable again. */
 export function redo() {
+	if (transient) return null;
 	const entry = future.pop();
 	if (!entry) return null;
 
@@ -278,11 +340,11 @@ export function redo() {
 }
 
 export function canUndo() {
-	return state.history.length > 0;
+	return !transient && state.history.length > 0;
 }
 
 export function canRedo() {
-	return future.length > 0;
+	return !transient && future.length > 0;
 }
 
 export function lastChange() {
@@ -615,8 +677,23 @@ export function applyTransient(json) {
 
 /** Put back a captured copy and start saving again. */
 export function restore(json) {
+	// Another tab may have saved while the demo data was in. Its write is
+	// newer than our capture, so the disk copy wins -- the same rule the
+	// storage listener applies when we are not mid-tour.
+	if (staleWhileTransient) {
+		transient = false;
+		staleWhileTransient = false;
+		state = normalise(readRaw());
+		future = [];
+		notify('restore');
+		return true;
+	}
 	if (!applyTransient(json)) return false;
 	transient = false;
+	// The capture may hold a change that was still inside the write
+	// debounce when the tour began -- applyTransient() cancelled that
+	// timer, so without a fresh persist it would exist nowhere on disk.
+	persist();
 	notify('restore');
 	return true;
 }
@@ -696,10 +773,12 @@ export function readLegacyData(shipNames, itemNames) {
 		seenShips.add(ship);
 		found++;
 
-		// <ship>-<item>-enhancement : owning a part at +N.
+		// <ship>-<item>-enhancement : owning a part at +N. Only a level of
+		// a part we know -- a stray key must not invent an item.
 		if (tail.endsWith('-enhancement')) {
 			const base = tail.slice(0, -'-enhancement'.length);
-			if (qty >= 1 && qty <= 10) record(`+${qty} ${base}`, 1);
+			const levelled = `+${qty} ${base}`;
+			if (qty >= 1 && qty <= 10 && itemSet.has(levelled)) record(levelled, 1);
 			continue;
 		}
 
@@ -768,11 +847,28 @@ export function init() {
 
 	window.addEventListener('storage', evt => {
 		if (evt.key !== KEY || suppressStorageEvent) return;
+		// Mid-tour, the other tab's save must not be overdrawn with demo
+		// data -- note it and let restore() adopt the disk copy instead.
+		if (transient) {
+			staleWhileTransient = true;
+			return;
+		}
 		state = normalise(readRaw());
+		// The redo stack was built against the state this tab held; replayed
+		// onto another tab's save it would apply deltas that were never
+		// subtracted there.
+		future = [];
 		notify('sync');
 	});
 
 	window.addEventListener('beforeunload', flush);
+	// beforeunload does not fire on a phone -- backgrounding the PWA and
+	// letting the OS reap it is the normal way a mobile session ends, so
+	// the pending write must leave with the visibility change.
+	window.addEventListener('pagehide', flush);
+	document.addEventListener('visibilitychange', () => {
+		if (document.visibilityState === 'hidden') flush();
+	});
 	return state;
 }
 

@@ -8,7 +8,6 @@
 import * as store from './state.js';
 
 const DONE_KEY = 'bdo_ship_upgrade-tour_completed';
-const AUTO_KEY = 'bdo_ship_upgrade-auto_tour_enabled';
 
 /**
  * A worked-through example to talk over: a Carrack part part-way built,
@@ -249,13 +248,15 @@ class GuidedTour {
 		store.restore(saved);
 	}
 
+	/** True when the tour is up; false when Driver.js never arrived, so
+	 *  the caller can say so instead of silently doing nothing. */
 	startTour() {
-		if (this.running) return;
+		if (this.running) return true;
 		const steps = this.steps();
 		this.driver = this.create(steps);
 		if (!this.driver) {
 			console.warn('[tour] Driver.js is not available yet');
-			return;
+			return false;
 		}
 
 		// Swap in the example, keeping the real data to hand back later.
@@ -266,28 +267,19 @@ class GuidedTour {
 		this.running = true;
 		this.driver.setSteps(steps);
 		this.driver.drive();
+		return true;
 	}
 
 	/** Show the tour once, the first time someone opens the app. */
 	checkAndShowInitialTour() {
 		let done;
-		let auto;
 		try {
 			done = localStorage.getItem(DONE_KEY);
-			auto = localStorage.getItem(AUTO_KEY);
 		} catch {
 			return;
 		}
-		if (done === 'true' || auto === 'false') return;
+		if (done === 'true') return;
 		setTimeout(() => this.startTour(), 900);
-	}
-
-	reset() {
-		try {
-			localStorage.removeItem(DONE_KEY);
-		} catch {
-			/* ignore */
-		}
 	}
 }
 
