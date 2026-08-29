@@ -3,6 +3,7 @@
 
 import { routes, routeInfo } from './recipes.js';
 import { shipGroups } from './ships.js';
+import { statsLine } from './ship_stats.js';
 import { esc, F } from './fmt.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
@@ -39,6 +40,7 @@ export function renderBuilds() {
 				</div>
 				<div class="bar tall"><i class="fill" style="width:${pct.toFixed(1)}%"></i></div>
 				<div class="build-meta">Priority ${i + 1} · <span class="n">${pct.toFixed(1)}%</span> · ${esc(units)}${routeNote(t.item)}</div>
+				${statsLine(t.item) ? `<div class="build-meta build-stats" title="What this hull is, in the game's own numbers — see Crew for the rest">${esc(statsLine(t.item))}</div>` : ''}
 				${(() => {
 					// The bill for finishing this one: every leaf its tree
 					// could neither cover from stock nor make, priced the

@@ -28,6 +28,8 @@ import { renderBuilds, openBuildPicker, askRoute } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements } from './screen-workshop.js';
+import { renderCrew, bumpSailor } from './screen-crew.js';
+import { contract as sailorContract, planCrew } from './sailors.js';
 import { renderGet, shoppingText } from './screen-get.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
@@ -44,7 +46,8 @@ const TABS = [
 	{ id: 'tree', label: 'Tree' },
 	{ id: 'workshop', label: 'Workshop' },
 	{ id: 'get', label: 'To Get' },
-	{ id: 'map', label: 'Map' }
+	{ id: 'map', label: 'Map' },
+	{ id: 'crew', label: 'Crew' }
 ];
 
 let water = null;
@@ -102,6 +105,7 @@ export function render() {
 	else if (view === 'tree') root.innerHTML = renderTree();
 	else if (view === 'workshop') root.innerHTML = renderWorkshop();
 	else if (view === 'map') root.innerHTML = renderMap();
+	else if (view === 'crew') root.innerHTML = renderCrew();
 	else root.innerHTML = renderGet();
 	restoreFocus(root, focus);
 	// The map draws itself after the shell exists, since it has to
@@ -367,6 +371,19 @@ function wire() {
 			case 'map-follow': mapFollowToggle(); return;
 			case 'map-port': mapPortClick(Number(el.dataset.port)); return;
 			case 'goto-map': mapShowItem(el.dataset.item); showView('map'); return;
+			case 'sailor': bumpSailor(el.dataset.type, Number(el.dataset.delta)); return;
+			case 'crew-clear': store.setProfile('sailors', {}); toast('Crew cleared', true); return;
+			case 'crew-queue': {
+				// The certificates are a thing to buy like any other, so
+				// they join the queue and Falasi's price lands in To Get.
+				const n = planCrew(store.getProfile('sailors', {}) || {}, null).sailors;
+				if (!n) return;
+				const existing = store.getTargets().find(t => t.item === sailorContract.item);
+				if (existing) store.setTargetQty(existing.id, n);
+				else store.addTarget(sailorContract.item, n);
+				toast(`${n} × ${sailorContract.item} on the list`, true);
+				return;
+			}
 			case 'plan-filter': setPlanFilter(el.dataset.id); return render();
 			case 'tree-pick': return pickTreeTarget();
 			case 'tree-target': setTreeTarget(el.dataset.item); closeDialog(); return render();
@@ -524,6 +541,9 @@ function wire() {
 		// numeric parse below rather than going through it.
 		const lvl = evt.target.closest('[data-act="barter-level"]');
 		if (lvl) return store.setProfile('level', lvl.value || null);
+
+		const cs = evt.target.closest('[data-act="crew-ship"]');
+		if (cs) return store.setProfile('crewShip', cs.value || null);
 
 		const ms = evt.target.closest('[data-act="map-start"]');
 		if (ms) return setMapStart(Number(ms.value));

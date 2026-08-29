@@ -153,6 +153,18 @@ function readProfile(raw) {
 	// real number is kept.
 	const stacks = Math.min(500, Math.max(0, Math.floor(Number(raw.failstacks) || 0)));
 	if (stacks > 0) out.failstacks = stacks;
+	// The crew plan: which hull it is for, and how many of each sailor
+	// type. Types are checked where they are used (sailors.js knows the
+	// pool); here a name is a name and a count is a small whole number.
+	if (typeof raw.crewShip === 'string' && raw.crewShip) out.crewShip = raw.crewShip.slice(0, 60);
+	if (isProfile(raw.sailors)) {
+		const sailors = {};
+		for (const [type, n] of Object.entries(raw.sailors)) {
+			const count = Math.min(60, Math.max(0, Math.floor(Number(n) || 0)));
+			if (count > 0 && typeof type === 'string' && type.length <= 40) sailors[type] = count;
+		}
+		if (Object.keys(sailors).length) out.sailors = sailors;
+	}
 	return out;
 }
 

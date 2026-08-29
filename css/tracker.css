@@ -2706,3 +2706,13 @@ select.purse-inline { width: auto; cursor: pointer; }
 
 .chart-link:hover { text-decoration: underline; }
 .map-zoom .ghost-btn { min-width: 34px; font-size: 15px; line-height: 1; }
+
+/* ---- Crew ------------------------------------------------------------ */
+.crew-ship { display: flex; align-items: center; gap: 12px; padding: 4px 22px 12px; }
+.crew-ship-name { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--ink-hi); }
+.crew-row.on { background: rgba(88, 196, 196, 0.06); }
+.crew-race { font-size: 11px; color: var(--ink-faint); margin-left: 6px; letter-spacing: 0.06em; text-transform: uppercase; }
+.crew-growth { font-variant-numeric: tabular-nums; }
+.crew-over { margin: 0 22px 12px; color: var(--amber); font-size: 12.5px; }
+.crew-actions { display: flex; gap: 10px; flex-wrap: wrap; padding: 0 22px 14px; }
+.build-stats { color: var(--ink-faint); }
