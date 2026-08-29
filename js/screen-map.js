@@ -4,6 +4,8 @@
 // with the command functions the shell's event handling calls.
 
 import { esc, F } from './fmt.js';
+import { shipStats } from './ship_stats.js';
+import { crewShip } from './screen-crew.js';
 import { img } from './ui-bits.js';
 import {
 	createMap, frame, marksFor, pan, zoomAt, clampView, fitTo,
@@ -11,7 +13,7 @@ import {
 } from './map.js';
 import { npcs, npcById, ports } from './barter_npcs.js';
 import { openDialog } from './dialogs.js';
-import { parleyPerTrade, PARLEY } from './barter.js';
+import { parleyPerTrade, PARLEY, GOODS } from './barter.js';
 import { snapshot, barterData, barterProfile, view } from './ui-state.js';
 
 let mapState = null;
@@ -339,15 +341,22 @@ function routeHTML(marks) {
 	const cover = !held ? `one trade each · of ${F(PARLEY.max)}`
 		: held >= need ? `one trade each · your ${F(held)} covers it`
 		: `one trade each · your ${F(held)} covers ${afford}`;
+	// The hold: how many goods of each level the crew's hull can carry
+	// per run. A route is only as long as the deck allows.
+	const hull = shipStats[crewShip()];
+	const hold = hull ? `<div><div class="summary-k">Hold</div><div class="summary-v">${F(hull.weight)} LT</div>
+				<div class="summary-sub">${esc(crewShip())}: ${Math.floor(hull.weight / GOODS[5].weight)} of Lv4–5 · ${Math.floor(hull.weight / GOODS[6].weight)} of Lv6–7 a run</div></div>` : '';
 	const stats = stops.length ? `<div class="map-stats">
 			<div><div class="summary-k">Stops</div><div class="summary-v">${stops.length}</div></div>
+			${hold}
 			<div><div class="summary-k"><span class="gterm" role="button" tabindex="0" data-guide="parley">Parley</span></div><div class="summary-v">${F(need)}</div>
 				<div class="summary-sub">${cover}</div></div>
 		</div>
 		<div class="map-side-btns">
 			<button class="ghost-btn" data-act="map-route-reverse">⇆ Reverse</button>
+			<button class="ghost-btn" data-act="map-route-export" title="Save this route as a small JSON file to share or bring back later">Export</button>
 			<button class="ghost-btn danger" data-act="map-route-clear">Clear</button>
-		</div>` : '';
+		</div>` : `<div class="map-side-btns"><button class="ghost-btn" data-act="map-route-import" title="Load a route saved from here">Import a route</button></div>`;
 	const seedBtn = !stops.length && marks.size > 1
 		? `<button class="ghost-btn wide" data-act="map-route-use">Start from the suggested loop</button>` : '';
 	const startRow = `<div class="map-startrow">
@@ -1143,4 +1152,65 @@ export function setMapKind(id) {
 	persist();
 	refreshSide();
 	paintMap();
+}
+
+
+/* ------------------------------------------------------------------ *
+ * a route as a file
+ * ------------------------------------------------------------------ */
+
+/**
+ * The plotted route as JSON: the stops by barterer id and name, where
+ * it sails from, and whether it comes home. Names ride along so the
+ * file reads as a route to a person and survives an id the data no
+ * longer has; ids are what import trusts.
+ */
+export function exportRoute() {
+	const ids = stopsLive() ? stops : [];
+	return JSON.stringify({
+		app: 'bdo-ship-upgrade-tracker',
+		kind: 'barter-route',
+		version: 1,
+		exported: new Date().toISOString(),
+		for: mapPick || null,
+		start: ports.find(p => p.id === startPort) ? { id: startPort, name: ports.find(p => p.id === startPort).name } : null,
+		returnHome,
+		stops: ids.map(id => {
+			const n = npcById.get(id);
+			return { npc: id, name: n ? n.name : null, at: n ? n.at : null };
+		})
+	}, null, 2);
+}
+
+/**
+ * Take a route file back in. Stops unknown to the chart are dropped
+ * and counted, so a file from a newer dataset still lands; the route
+ * is plotted under whatever the chart is currently showing.
+ */
+export function importRoute(text) {
+	let data;
+	try {
+		data = JSON.parse(text);
+	} catch {
+		throw new Error('That file is not valid JSON.');
+	}
+	if (!data || data.kind !== 'barter-route' || !Array.isArray(data.stops)) {
+		throw new Error('That file does not hold a barter route.');
+	}
+	const ids = [];
+	let dropped = 0;
+	for (const s of data.stops) {
+		const id = Number(s && (s.npc ?? s.id));
+		if (npcById.has(id) && !ids.includes(id)) ids.push(id);
+		else dropped++;
+	}
+	if (!ids.length) throw new Error('None of those stops is on this chart.');
+	stops = ids;
+	stopsPick = mapPick || '';
+	startPort = data.start && ports.some(p => p.id === Number(data.start.id)) ? Number(data.start.id) : 0;
+	returnHome = data.returnHome === true;
+	mode = 'route';
+	stepIdx = 0;
+	persist();
+	return { stops: ids.length, dropped };
 }

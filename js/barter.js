@@ -445,6 +445,44 @@ function countNpcs(item, barterData) {
 	return new Set(entry.sources.map(s => s.npc_name)).size;
 }
 
+/**
+ * What a trade good is worth on its own -- what it weighs, and what a
+ * barterer pays for it in silver. Read off the goods' item pages on
+ * 2026-08-29: the first two levels cannot be sold at all, and the two
+ * new levels are the heavy, expensive end. This is the other side of
+ * every exchange: a [Level 5] handed over for a ship material is ten
+ * million silver not taken.
+ */
+export const GOODS = {
+	1: { weight: 100, sell: 0 },
+	2: { weight: 400, sell: 0 },
+	3: { weight: 900, sell: 1000000 },
+	4: { weight: 1000, sell: 2000000 },
+	5: { weight: 1000, sell: 10000000 },
+	6: { weight: 2000, sell: 50000000 },
+	7: { weight: 2000, sell: 100000000 }
+};
+
+/**
+ * What the top rung of a ladder hands over for `qty` of the item: how
+ * many of which good, what they weigh, and what selling them instead
+ * would have paid. Null when the exchange is paid in something that
+ * is not a levelled good.
+ */
+export function handedOver(top, qty = 1) {
+	if (!top) return null;
+	const level = levelOf(top.give);
+	if (!level || !GOODS[level]) return null;
+	const count = Math.ceil(top.givePerUnit * qty);
+	return {
+		give: top.give,
+		level,
+		count,
+		weight: count * GOODS[level].weight,
+		worth: count * GOODS[level].sell
+	};
+}
+
 /** The ladder as a flat list, top rung first. */
 export function rungs(step) {
 	const out = [];
@@ -658,6 +696,8 @@ export function forecast(item, qty, barterData, opts = {}) {
 		topParley: qty * (1 / top.received)
 			* parleyPerTrade({ valuePack, level, crew, kind: exchangeKind(item) }),
 		seed: top.seed ? { item: top.seed.item, qty: top.seed.qty * qty } : null,
+		// The goods the top exchange takes, and what they were worth.
+		cargo: handedOver(top, qty),
 		rungs: rungs(top),
 		capacity: day,
 		gate

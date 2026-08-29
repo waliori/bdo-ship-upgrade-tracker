@@ -2718,3 +2718,5 @@ select.purse-inline { width: auto; cursor: pointer; }
 .build-stats { color: var(--ink-faint); }
 .enh-log { font-size: 11.5px; color: var(--ink-faint); white-space: nowrap; }
 .enh-gain { display: block; font-size: 11px; color: var(--teal); font-weight: 400; white-space: normal; max-width: 220px; }
+.quest-row.on { background: rgba(88, 196, 196, 0.06); }
+.quest-rewards { color: var(--ink-dim); }

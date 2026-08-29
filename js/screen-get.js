@@ -4,6 +4,7 @@
 
 import { items as vendorItems, bulkExchanges } from './vendor_items.js';
 import { marketSilver, marketStatus, REGIONS as MARKET_REGIONS } from './market.js';
+import { quests, questsFor } from './quests.js';
 import { coins } from './sea_coins.js';
 import { falasi } from './falasi_vendor.js';
 import {
@@ -209,6 +210,12 @@ export function renderGet() {
 				// The land goods belong here rather than in the hover card,
 				// because this is the only place a real quantity exists --
 				// "50 Palm Plywood" is shopping, "1.25 per one" is noise.
+				// What the exchange takes off the deck, priced as the silver
+				// those goods would have sold for: the cost of a barter the
+				// shop price never mentions.
+				const cargo = plan && !plan.gate && plan.cargo && plan.cargo.worth
+					? ` <span class="row-sea-why">· hands over ${F(plan.cargo.count)}× [Level ${plan.cargo.level}] worth ${FC(plan.cargo.worth)} silver sold</span>`
+					: '';
 				const seed = plan && !plan.gate && plan.seed
 					? ` <span class="row-sea-why">from ${F(Math.ceil(plan.seed.qty))}× ${esc(plan.seed.item)}</span>`
 					: '';
@@ -219,7 +226,7 @@ export function renderGet() {
 				const sea = plan
 					? `<div class="row-sea${plan.gate ? ' locked' : ''}">by barter: ${esc(barterLine(plan))}${
 						why ? ` <span class="row-sea-why">${esc(why)}</span>` : ''}${
-						plan.gate ? '' : ' <span class="row-sea-why">· if the offer turns up</span>'}${seed} ${chart}</div>`
+						plan.gate ? '' : ' <span class="row-sea-why">· if the offer turns up</span>'}${cargo}${seed} ${chart}</div>`
 					: '';
 				// The list says where to buy it; the other half of the
 				// decision is what making it would cost instead.
@@ -251,7 +258,38 @@ export function renderGet() {
 		</div>`;
 	}).join('');
 
-	return summary + controls + body;
+	return summary + controls + body + questsPanel();
+}
+
+/**
+ * The quests that pay in what you are short of, first; the rest after.
+ * "Claimed" puts the reward in stock the way a craft does -- one press,
+ * one undoable change -- because a letter opened in the game is stock
+ * the plan should know about the moment it lands.
+ */
+function questsPanel() {
+	const relevant = new Set(questsFor(snapshot.missing).map(q => q.id));
+	const ordered = [...quests].sort((a, b) => Number(relevant.has(b.id)) - Number(relevant.has(a.id)));
+	const line = rewards => Object.entries(rewards).map(([item, n]) => `${F(n)}× ${item}`).join(', ');
+	const rows = ordered.map(q => `<div class="row quest-row${relevant.has(q.id) ? ' on' : ''}" data-peek="">
+		<div class="row-main">
+			<div class="row-name">${esc(q.name)}</div>
+			<div class="row-sub">${esc(q.where)} · ${esc(q.repeat)}${q.note ? ` · ${esc(q.note)}` : ''}</div>
+			<div class="row-sub quest-rewards">${esc(line(q.rewards))}${q.choice ? ` · and one of: ${q.choice.map(c => esc(line(c))).join(' / ')}` : ''}</div>
+		</div>
+		<span class="enh-actions">
+			${q.choice
+				? q.choice.map((c, i) => `<button class="pill-btn" data-act="quest-claim" data-quest="${esc(q.id)}" data-choice="${i}">Claimed + ${esc(line(c))}</button>`).join('')
+				: `<button class="pill-btn" data-act="quest-claim" data-quest="${esc(q.id)}">Claimed</button>`}
+		</span>
+	</div>`).join('');
+	return `<div class="panel">
+		<div class="panel-head">
+			<h2 class="panel-title teal">Free from quests</h2>
+			<span class="panel-sub">What the sea hands out: the ones that pay in something you are short of come first. Claimed records the reward in your stock</span>
+		</div>
+		${rows}
+	</div>`;
 }
 
 export function shoppingText() {

@@ -21,6 +21,7 @@ import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
 import { allItems } from './ui-bits.js';
 import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
+import { questById } from './quests.js';
 import { paintPouch, measurePouch } from './pouch.js';
 import { hidePeek, wirePeek } from './peek.js';
 import { openGuide, wireGuide } from './guide.js';
@@ -37,7 +38,7 @@ import {
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, toggleMapDone, closeMapTip,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
-	reviveMapRoute, setMapKind
+	reviveMapRoute, setMapKind, exportRoute, importRoute
 } from './screen-map.js';
 
 const TABS = [
@@ -364,6 +365,38 @@ function wire() {
 			case 'map-route-revive': reviveMapRoute(); return render();
 			case 'map-route-reverse': reverseMapRoute(); return;
 			case 'map-route-clear': clearMapRoute(); return;
+			case 'map-route-export': {
+				// A route is a few dozen bytes of ids; a file is how it
+				// reaches a friend, or another optimiser.
+				const blob = new Blob([exportRoute()], { type: 'application/json' });
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = `barter-route-${new Date().toISOString().slice(0, 10)}.json`;
+				document.body.appendChild(a);
+				a.click();
+				a.remove();
+				setTimeout(() => URL.revokeObjectURL(url), 1000);
+				return;
+			}
+			case 'map-route-import': {
+				const input = document.createElement('input');
+				input.type = 'file';
+				input.accept = 'application/json,.json';
+				input.addEventListener('change', async () => {
+					const file = input.files && input.files[0];
+					if (!file) return;
+					try {
+						const r = importRoute(await file.text());
+						toast(`Route loaded — ${r.stops} stops${r.dropped ? `, ${r.dropped} not on this chart` : ''}`);
+						render();
+					} catch (err) {
+						toast(err.message);
+					}
+				});
+				input.click();
+				return;
+			}
 			case 'map-done': toggleMapDone(Number(el.dataset.npc)); return;
 			case 'map-tip-close': closeMapTip(); return;
 			case 'map-pick-open': return openMapPicker();
@@ -386,6 +419,16 @@ function wire() {
 				if (existing) store.setTargetQty(existing.id, n);
 				else store.addTarget(sailorContract.item, n);
 				toast(`${n} × ${sailorContract.item} on the list`, true);
+				return;
+			}
+			case 'quest-claim': {
+				const q = questById[el.dataset.quest];
+				if (!q) return;
+				const delta = { ...q.rewards };
+				const pick = q.choice && q.choice[Number(el.dataset.choice)];
+				if (pick) for (const [item, n] of Object.entries(pick)) delta[item] = (delta[item] || 0) + n;
+				store.applyDelta(delta, 'quest', `Claimed ${q.name}`);
+				toast(`Recorded the reward for ${q.name}`, true);
 				return;
 			}
 			case 'plan-filter': setPlanFilter(el.dataset.id); return render();
