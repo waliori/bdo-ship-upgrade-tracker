@@ -1,0 +1,22 @@
+# The suite is the spec: 129 tests over the planner, the barter maths,
+# the sync protocol and the served headers, plus a real-browser pass.
+# GitHub's runners ship a Chrome at /usr/bin/google-chrome, which
+# browser.test.mjs already knows to look for -- and skips cleanly when
+# it is absent, so this workflow needs no browser setup of its own.
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
