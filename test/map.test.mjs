@@ -15,7 +15,7 @@ import { readFile } from 'node:fs/promises';
 const shipbarters = JSON.parse(
 	await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
 import { npcs, npcById, TILES, TILE, MAX_ZOOM } from '../js/barter_npcs.js';
-import { toPixel, frame, marksFor, pan, zoomBy, createMap, zoomRange } from '../js/map.js';
+import { toPixel, frame, marksFor, pan, zoomBy, zoomAt, createMap, zoomRange } from '../js/map.js';
 
 const SIZE = { w: 1200, h: 640 };
 
@@ -82,6 +82,38 @@ test('zoom stops at the levels we have tiles for', () => {
 	state.zoom = zoomRange.max;
 	assert.equal(zoomBy(state, 1), false, 'cannot go past the closest');
 	assert.equal(state.zoom, zoomRange.max);
+});
+
+test('zooming at the cursor keeps the pointed-at world where it is', () => {
+	// The island under the cursor must not slide away as you zoom
+	// towards it. World-at-cursor = centre + (cursor - middle) * scale,
+	// and it has to come out the same on both sides of the step.
+	const size = { w: 1200, h: 640 };
+	const cursor = { x: 900, y: 150 };
+	for (const step of [1, -1]) {
+		const state = createMap({ zoom: 4 });
+		const scale = z => Math.pow(2, MAX_ZOOM - z);
+		const before = state.centre.x + (cursor.x - size.w / 2) * scale(state.zoom);
+		assert.ok(zoomAt(state, step, size, cursor.x, cursor.y));
+		const after = state.centre.x + (cursor.x - size.w / 2) * scale(state.zoom);
+		assert.ok(Math.abs(before - after) < 1e-6, `step ${step} moved the cursor's world point`);
+	}
+});
+
+test('zooming at the exact centre is the plain zoom', () => {
+	const size = { w: 1200, h: 640 };
+	const a = createMap({ zoom: 4 });
+	const b = createMap({ zoom: 4 });
+	zoomAt(a, 1, size, size.w / 2, size.h / 2);
+	zoomBy(b, 1);
+	assert.deepEqual(a, b);
+});
+
+test('a refused zoom step does not move the centre either', () => {
+	const state = createMap({ zoom: zoomRange.max });
+	const centre = { ...state.centre };
+	assert.equal(zoomAt(state, 1, { w: 1200, h: 640 }, 100, 100), false);
+	assert.deepEqual(state.centre, centre);
 });
 
 test('the map opens wide enough to show nearly every island', () => {

@@ -16,7 +16,7 @@ import {
 	ROUTE_UNLOCKS
 } from './barter.js';
 import { iconLoader } from './icon-loader.js';
-import { createMap, frame, marksFor, pan, zoomBy } from './map.js';
+import { createMap, frame, marksFor, pan, zoomBy, zoomAt } from './map.js';
 import { npcById } from './barter_npcs.js';
 import RealisticWaterRipples from './realistic-water-ripples.js';
 import * as store from './state.js';
@@ -1687,7 +1687,18 @@ function renderMap() {
 	</div></div>`;
 }
 
-/** Draw the tiles and pins for the current state into the live map. */
+/**
+ * Draw the tiles and pins for the current state into the live map.
+ *
+ * By moving nodes, not by rebuilding them. A drag repaints on every
+ * pointer move, and replacing the layer's innerHTML each time meant
+ * re-parsing and re-laying-out thirty images and eighty buttons per
+ * mouse twitch. Instead each tile and pin is keyed -- by src, by npc id
+ * -- reused across paints, and only its position is touched; what
+ * scrolls off is removed, what scrolls on is created. The pools live on
+ * the layer element, so a re-render of the screen (which builds a fresh
+ * layer) starts them clean.
+ */
 function paintMap() {
 	const host = document.querySelector('[data-map]');
 	const layer = host && host.querySelector('[data-map-layer]');
@@ -1700,43 +1711,139 @@ function paintMap() {
 	const marks = marksFor(wanted, barterData);
 	const { tiles, pins } = frame(mapState, size, marks);
 
-	layer.innerHTML = tiles.map(t =>
-		`<img class="map-tile" src="${t.src}" alt="" draggable="false"
-			style="left:${t.left}px;top:${t.top}px">`).join('')
-		+ pins.map(p => {
-			const m = p.mark;
-			const what = m ? [...m.items.keys()] : [];
-			const title = m
-				? `${p.name} — ${what.join(', ')}`
-				: p.name;
-			return `<button class="map-pin${m ? ' wanted' : ''}" style="left:${p.left}px;top:${p.top}px"
-				data-act="map-pin" data-npc="${p.id}" title="${esc(title)}">
-				<span class="map-pin-dot"></span>
-				<span class="map-pin-name">${esc(p.name)}${m && what.length > 1 ? ` ·${what.length}` : ''}</span>
-			</button>`;
-		}).join('');
+	const tilePool = layer._tiles || (layer._tiles = new Map());
+	const liveTiles = new Set();
+	for (const t of tiles) {
+		liveTiles.add(t.src);
+		let img = tilePool.get(t.src);
+		if (!img) {
+			img = document.createElement('img');
+			img.className = 'map-tile';
+			img.src = t.src;
+			img.alt = '';
+			img.draggable = false;
+			tilePool.set(t.src, img);
+			layer.appendChild(img);
+		}
+		img.style.left = `${t.left}px`;
+		img.style.top = `${t.top}px`;
+	}
+	for (const [src, img] of tilePool) {
+		if (!liveTiles.has(src)) {
+			img.remove();
+			tilePool.delete(src);
+		}
+	}
+
+	const pinPool = layer._pins || (layer._pins = new Map());
+	const livePins = new Set();
+	for (const p of pins) {
+		livePins.add(p.id);
+		let btn = pinPool.get(p.id);
+		if (!btn) {
+			btn = document.createElement('button');
+			btn.className = 'map-pin';
+			btn.dataset.act = 'map-pin';
+			btn.dataset.npc = p.id;
+			btn.innerHTML = '<span class="map-pin-dot"></span><span class="map-pin-name"></span>';
+			pinPool.set(p.id, btn);
+			layer.appendChild(btn);
+		}
+		const m = p.mark;
+		const what = m ? [...m.items.keys()] : [];
+		btn.classList.toggle('wanted', !!m);
+		btn.title = m ? `${p.name} — ${what.join(', ')}` : p.name;
+		// z-index rather than DOM order does what the wanted-last sort in
+		// frame() used to: a lit pin paints over a plain one.
+		btn.style.zIndex = m ? 2 : 1;
+		btn.style.left = `${p.left}px`;
+		btn.style.top = `${p.top}px`;
+		btn.querySelector('.map-pin-name').textContent =
+			p.name + (m && what.length > 1 ? ` ·${what.length}` : '');
+	}
+	for (const [id, btn] of pinPool) {
+		if (!livePins.has(id)) {
+			btn.remove();
+			pinPool.delete(id);
+		}
+	}
 }
 
-/** Drag to pan, wheel to zoom. Wired once, for whatever map exists. */
+/** Drag to pan, wheel or pinch to zoom. Wired once, for whatever map
+ *  exists. */
 function wireMap() {
-	let dragging = null;
+	let dragging = null;          // one pointer moving the sea
+	const touching = new Map();   // every pointer down on the map, for pinch
+	let pinch = null;             // { dist } spread at the last zoom step
+	let raf = null;
+
+	// One repaint per frame however fast the pointer reports; a trackpad
+	// can deliver several moves per frame and each paint is work.
+	const repaint = () => {
+		if (raf) return;
+		raf = requestAnimationFrame(() => {
+			raf = null;
+			paintMap();
+		});
+	};
 
 	document.addEventListener('pointerdown', evt => {
 		const host = evt.target.closest('[data-map]');
 		if (!host || evt.target.closest('[data-act="map-pin"]')) return;
-		dragging = { x: evt.clientX, y: evt.clientY };
+		touching.set(evt.pointerId, { x: evt.clientX, y: evt.clientY });
+		if (touching.size === 2) {
+			// A second finger turns the gesture into a pinch, not a drag.
+			dragging = null;
+			const [a, b] = [...touching.values()];
+			pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y) };
+		} else {
+			dragging = { x: evt.clientX, y: evt.clientY };
+		}
 		host.setPointerCapture(evt.pointerId);
 		host.classList.add('dragging');
 	});
 
 	document.addEventListener('pointermove', evt => {
-		if (!dragging || !mapState) return;
+		if (!mapState) return;
+		if (touching.has(evt.pointerId)) {
+			touching.set(evt.pointerId, { x: evt.clientX, y: evt.clientY });
+		}
+
+		if (pinch && touching.size === 2) {
+			const host = document.querySelector('[data-map]');
+			if (!host) return;
+			// Zoom levels are discrete, so the pinch steps once per
+			// half-again change in finger spread, anchored between the
+			// fingers -- the same pin-the-world rule the wheel uses.
+			const [a, b] = [...touching.values()];
+			const dist = Math.hypot(a.x - b.x, a.y - b.y);
+			const grown = dist / pinch.dist;
+			if (grown > 1.4 || grown < 1 / 1.4) {
+				const box = host.getBoundingClientRect();
+				const ok = zoomAt(mapState, grown > 1 ? 1 : -1,
+					{ w: box.width, h: box.height },
+					(a.x + b.x) / 2 - box.left, (a.y + b.y) / 2 - box.top);
+				if (ok) repaint();
+				pinch.dist = dist;
+			}
+			return;
+		}
+
+		if (!dragging) return;
 		pan(mapState, evt.clientX - dragging.x, evt.clientY - dragging.y);
 		dragging = { x: evt.clientX, y: evt.clientY };
-		paintMap();
+		repaint();
 	});
 
-	const stop = () => {
+	const stop = evt => {
+		if (evt) touching.delete(evt.pointerId);
+		if (touching.size < 2) pinch = null;
+		if (touching.size === 1) {
+			// The finger that stays keeps panning from where it is.
+			const [rest] = touching.values();
+			dragging = { x: rest.x, y: rest.y };
+			return;
+		}
 		dragging = null;
 		document.querySelectorAll('[data-map].dragging').forEach(el => el.classList.remove('dragging'));
 	};
@@ -1747,7 +1854,13 @@ function wireMap() {
 		const host = evt.target.closest('[data-map]');
 		if (!host || !mapState) return;
 		evt.preventDefault();
-		if (zoomBy(mapState, evt.deltaY < 0 ? 1 : -1)) paintMap();
+		// Anchored under the cursor: the island you are wheeling towards
+		// stays put instead of sliding off towards the centre.
+		const box = host.getBoundingClientRect();
+		const ok = zoomAt(mapState, evt.deltaY < 0 ? 1 : -1,
+			{ w: box.width, h: box.height },
+			evt.clientX - box.left, evt.clientY - box.top);
+		if (ok) paintMap();
 	}, { passive: false });
 
 	window.addEventListener('resize', () => {

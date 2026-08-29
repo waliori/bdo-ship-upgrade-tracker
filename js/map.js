@@ -145,3 +145,23 @@ export function zoomBy(state, step) {
 	state.zoom = next;
 	return true;
 }
+
+/**
+ * Step the zoom keeping the world point under the cursor where it is.
+ *
+ * Zooming to the centre is how a map feels broken: the island you are
+ * pointing at slides away exactly when you are trying to get closer to
+ * it. So the point under (px, py) -- viewport pixels -- is pinned: work
+ * out which world coordinate sits there, zoom, then move the centre so
+ * the same coordinate sits there again.
+ */
+export function zoomAt(state, step, size, px, py) {
+	const before = Math.pow(2, MAX_ZOOM - state.zoom);
+	if (!zoomBy(state, step)) return false;
+	const after = Math.pow(2, MAX_ZOOM - state.zoom);
+	const dx = px - size.w / 2;
+	const dy = py - size.h / 2;
+	state.centre.x += dx * (before - after);
+	state.centre.y += dy * (before - after);
+	return true;
+}
