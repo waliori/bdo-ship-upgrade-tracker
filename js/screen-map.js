@@ -4,6 +4,7 @@
 // with the command functions the shell's event handling calls.
 
 import { esc, F } from './fmt.js';
+import { img } from './ui-bits.js';
 import {
 	createMap, frame, marksFor, pan, zoomAt, clampView, fitTo,
 	routeFor, routePath, project, placeTile, zoomRange
@@ -154,6 +155,13 @@ function sideHTML(marks) {
 	</div>`;
 }
 
+/** Up to three item icons, then a count for the rest. */
+function iconStrip(items) {
+	const shown = items.slice(0, 3).map(i => img(i, 'map-icon')).join('');
+	const more = items.length > 3 ? `<span class="map-row-more">+${items.length - 3}</span>` : '';
+	return shown + more;
+}
+
 function rowHTML(npc, sub, right, act = 'map-row') {
 	return `<button class="map-row" data-act="${act}" data-npc="${npc.id}">
 		<span class="map-row-dot"></span>
@@ -177,7 +185,7 @@ function sailHTML(marks) {
 			const gives = [...new Set([...m.items.values()].flatMap(s => [...s]))];
 			return rowHTML(npc,
 				`${esc(npc.at)} · for ${esc(gives.slice(0, 2).join(' / ') || '—')}`,
-				items.length > 1 ? `·${items.length}` : esc(items[0] || ''));
+				iconStrip(items));
 		}).join('');
 	const list = rows
 		|| `<p class="empty">${q ? 'No island by that name has it.'
@@ -200,6 +208,7 @@ function routeHTML(marks) {
 					? ' · ' + esc([...has.items.keys()].join(', '))
 					: ' · nothing on your list here'}</span>
 			</span>
+			<span class="map-row-right">${has ? iconStrip([...has.items.keys()]) : ''}</span>
 			<button class="map-x" data-act="map-stop" data-npc="${id}"
 				aria-label="Remove ${esc(n.name)} from the route">×</button>
 		</div>`;
@@ -236,6 +245,7 @@ function todayHTML(marks) {
 				<span class="map-row-name">${esc(n.name)}</span>
 				<span class="map-row-sub">${esc(n.at)} · ${esc([...marks.get(n.id).items.keys()].join(', '))}</span>
 			</span>
+			<span class="map-row-right">${iconStrip([...marks.get(n.id).items.keys()])}</span>
 		</button>`;
 	}).join('');
 	return `<div class="map-ring-row">
@@ -491,9 +501,14 @@ function paintTip(host, size, marks) {
 	if (tip._for !== key) {
 		tip._for = key;
 		const rows = m
-			? [...m.items.entries()].slice(0, 5).map(([item, gives]) =>
-				`<div class="map-tip-row"><span>${esc([...gives][0] || '—')}</span>
-					<span class="map-tip-arrow">→</span><span>${esc(item)}</span></div>`).join('')
+			? [...m.items.entries()].slice(0, 5).map(([item, gives]) => {
+				const gv = [...gives][0] || '—';
+				return `<div class="map-tip-row">
+					<span class="map-tip-side">${img(gv, 'map-icon')}<span>${esc(gv)}</span></span>
+					<span class="map-tip-arrow">→</span>
+					<span class="map-tip-side get">${img(item, 'map-icon')}<span>${esc(item)}</span></span>
+				</div>`;
+			}).join('')
 			: '';
 		const others = new Set(goodsOf(id).map(g => g.item)).size - (m ? m.items.size : 0);
 		const sub = `${esc(npc.at)} · ${F(parleyPerTrade(barterProfile()))} parley a trade`

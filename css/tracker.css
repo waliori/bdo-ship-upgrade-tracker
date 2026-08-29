@@ -2164,12 +2164,25 @@ select.purse-inline { width: auto; cursor: pointer; }
 }
 
 .map-row-right {
+  display: flex;
+  align-items: center;
+  gap: 3px;
   font-size: 11px;
   color: var(--amber);
-  max-width: 90px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: none;
+}
+
+.map-row-more { font-size: 10px; color: var(--ink-mute); }
+
+/* An item's face, at chart scale. */
+.map-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  object-fit: contain;
+  background: rgba(125, 175, 225, 0.05);
+  flex: none;
 }
 
 .map-stop-n {
@@ -2300,12 +2313,25 @@ select.purse-inline { width: auto; cursor: pointer; }
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11.5px;
+  font-size: 11px;
   padding: 4px 0;
   border-top: 1px solid var(--line-soft);
 }
-.map-tip-row span:first-child { color: var(--ink-dim); flex: 1; }
-.map-tip-row span:last-child { color: var(--amber); flex: 1; text-align: right; }
+
+.map-tip-side {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+  color: var(--ink-dim);
+}
+.map-tip-side > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.map-tip-side.get { color: var(--amber); justify-content: flex-end; }
 .map-tip-arrow { color: var(--ink-faint); flex: none; }
 
 .map-tip-btns { display: flex; gap: 6px; margin-top: 8px; }
