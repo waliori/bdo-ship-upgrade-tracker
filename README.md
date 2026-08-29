@@ -366,8 +366,16 @@ index.html            the whole shell: masthead, tabs, screen
 server.js             static files, plus the sync API when configured
 css/tracker.css       the design system
 js/
-  ui.js               every screen, and the only place that touches the DOM
-  state.js            the store: stock, targets, undo, persistence
+  ui.js               the shell: render loop, event wiring, boot
+  screen-*.js         one module per tab — plan, builds, inventory, tree,
+                      workshop, to-get, map
+  ui-state.js         the shared view state, recomputed from the store
+  ui-bits.js          icons, linked names, priced costs — the screens' vocabulary
+  pouch.js            the currency bar above the tabs
+  peek.js             the hover card
+  dialogs.js          toasts and dialogs
+  fmt.js              escaping and number formats
+  state.js            the store: stock, targets, undo/redo, persistence
   planner.js          pure planning — netting, explosion, costing, enhancement
   sync.js             optional device sync: pull, push, conflict
   recipes.js          recipes and enhancement chains
@@ -375,6 +383,8 @@ js/
   sea_coins.js        Crow Coin prices
   falasi_vendor.js    Falasi's silver prices
   all_barter.json     barter routes, scraped from BDOCodex
+  map.js              the tile viewer's arithmetic
+  barter_npcs.js      where the 81 barterers are
   guided-tour.js      the guided tour
   enhancement.js      per-level rates, Agris caps, perfect-enhance costs
 tools/check-env.mjs   npm run check -- validates a sync configuration

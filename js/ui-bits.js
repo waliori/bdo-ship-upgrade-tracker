@@ -1,0 +1,260 @@
+// The interface's shared vocabulary: icons, linked names, ingredient
+// lines, priced costs, the hover card's body. Every screen builds its
+// HTML out of these, so they live below the screens and above the data.
+
+import { shipGroups } from './ships.js';
+import { items as vendorItems, bulkExchanges } from './vendor_items.js';
+import { coins } from './sea_coins.js';
+import { falasi } from './falasi_vendor.js';
+import { forecast as barterForecast } from './barter.js';
+import { iconLoader } from './icon-loader.js';
+import { esc, F, FC } from './fmt.js';
+import * as store from './state.js';
+import { parseEnhanced, enhanceStep, waysToGet, outstanding } from './planner.js';
+import { recipes, barterData, barterProfile } from './ui-state.js';
+
+const SOURCE_LABEL = {
+	coin: 'Crow Coin Shop',
+	falasi: 'Falasi vendor',
+	Market: 'Central Market',
+	Purchase: 'Vendor',
+	'Monster Drop': 'Monster drop',
+	Gathering: 'Gathering',
+	Processing: 'Processing',
+	Crafting: 'Crafting',
+	'Quest Reward': 'Quest reward',
+	Exchange: 'Exchange'
+};
+
+/**
+ * Any quantity in the app that you can set is one of these: type into it
+ * directly ("4k", "12,000") or nudge it with the buttons beside it.
+ */
+export const amountInput = (cls, value, attrs) =>
+	`<input class="amt ${cls}" type="text" inputmode="numeric" autocomplete="off" value="${F(value)}" ${attrs}>`;
+
+
+export function iconSrc(name) {
+	let info = null;
+	try {
+		info = iconLoader.getIconInfo(name) || iconLoader.getIconInfo(parseEnhanced(name).base);
+	} catch {
+		info = null;
+	}
+	return info && info.filename ? `icons/${info.filename}` : 'icon.png';
+}
+
+export const img = (name, cls = 'row-icon') =>
+	`<img class="${cls}" src="${esc(iconSrc(name))}" alt="" loading="lazy">`;
+
+/**
+ * BDOCodex has a page for every item in the game, and the icon mapping
+ * already carries the URL beside the picture -- so linking a name to the
+ * game's own reference costs nothing but the anchor. An enhancement
+ * level shares its base item's page, which is where the level table
+ * lives anyway.
+ */
+export function codexUrl(item) {
+	let info = null;
+	try {
+		info = iconLoader.getIconInfo(item) || iconLoader.getIconInfo(parseEnhanced(item).base);
+	} catch {
+		info = null;
+	}
+	return info && info.url ? info.url : null;
+}
+
+/**
+ * An item's name, linked to its BDOCodex page. Falls back to plain text
+ * for anything the mapping has never heard of, so a name is never
+ * missing just because a link is.
+ */
+export function codexName(item, text = item) {
+	const url = codexUrl(item);
+	if (!url) return esc(text);
+	return `<a class="codex" href="${esc(url)}" target="_blank" rel="noopener noreferrer" data-codex
+		title="Look up ${esc(item)} on BDOCodex">${esc(text)}<span class="codex-mark" aria-hidden="true">\u2197</span></a>`;
+}
+
+export function allItems() {
+	const set = new Set();
+	for (const [product, recipe] of Object.entries(recipes)) {
+		set.add(product);
+		Object.keys(recipe).forEach(i => set.add(i));
+	}
+	Object.keys(vendorItems).forEach(i => set.add(i));
+	Object.keys(coins).forEach(i => set.add(i));
+	return [...set];
+}
+
+export function buildableItems() {
+	const shipSet = new Set(shipGroups.flatMap(g => g.items));
+	return Object.keys(recipes)
+		.filter(n => !/^\+\d+\s/.test(n))
+		.sort((a, b) => (shipSet.has(a) ? 0 : 1) - (shipSet.has(b) ? 0 : 1) || a.localeCompare(b));
+}
+
+/**
+ * One ingredient, with how many the recipe wants and how many you hold.
+ * Shared by the hover card and the inventory detail panel so the two can
+ * never drift apart.
+ */
+export function ingredientLine(name, per, cls = 'peek-line') {
+	const have = store.getStock(name);
+	return `<div class="${cls} ${have >= per ? 'ok' : 'short'}">
+		${img(name, 'peek-icon')}
+		<span class="peek-need">${F(per)}×</span>
+		<span class="peek-name">${codexName(name)}</span>
+		<span class="peek-have">${F(have)}</span>
+	</div>`;
+}
+
+/**
+ * The price lists the cost model works from. `recipes` is the resolved
+ * book, so a Caravel priced here is the Caravel by the route the player
+ * actually chose.
+ */
+export const costCtx = () => ({ coins, silver: falasi, recipes, strategy: store.getAllStrategy() });
+
+/**
+ * A cost said out loud. Coins and silver stay apart -- the game will not
+ * trade one for the other -- and anything the data cannot price is named
+ * rather than quietly counted as free.
+ */
+export function costText(cost, times = 1) {
+	const bits = [];
+	if (cost.coins) bits.push(`${FC(Math.round(cost.coins * times))} coins`);
+	if (cost.silver) bits.push(`${FC(Math.round(cost.silver * times))} silver`);
+	const needs = Object.entries(cost.needs);
+	const listed = needs.slice(0, 2);
+	for (const [item, qty] of listed) bits.push(`${F(Math.ceil(qty * times))}\u00d7 ${item}`);
+	const rest = needs.length - listed.length;
+	return (bits.join(' + ') || 'nothing') + (rest > 0 ? `, and ${rest} more` : '');
+}
+
+/**
+ * What goes into a thing: its recipe, or -- for an enhancement level --
+ * the part and the stones one attempt costs. Returns '' for a raw
+ * material, which has nothing to show.
+ */
+export function makeupHTML(item, cls = 'peek-line') {
+	const { base, level } = parseEnhanced(item);
+	if (level > 0) {
+		const step = enhanceStep(base, level);
+		if (!step) return '';
+		return `<div class="peek-label">+${level - 1} → +${level}, per attempt</div>`
+			+ ingredientLine(step.from, 1, cls)
+			+ Object.entries(step.stones).map(([n, q]) => ingredientLine(n, q, cls)).join('');
+	}
+	const recipe = recipes[item];
+	if (!recipe) return '';
+	return '<div class="peek-label">Made from</div>'
+		+ Object.entries(recipe).map(([n, q]) => ingredientLine(n, q, cls)).join('');
+}
+
+const MAKE_KEYS = new Set(['craft', 'Crafting', 'Processing']);
+
+/**
+ * The ladder behind a bartered item, rung by rung.
+ *
+ * The To Get row can only afford one line, so it says the total and
+ * leaves it there. This is where the total is worth taking apart: seeing
+ * that a Brilliant Pearl Shard is really a [Level 4] good and change
+ * tells you the [Level 4] rung is the one to go and buy, and seeing the
+ * land goods at the foot tells you what the whole climb actually starts
+ * from -- which is the part nothing in the game ever shows you.
+ *
+ * Rungs are listed top down, the way you climb them in reverse: what you
+ * hand over first is at the bottom.
+ */
+export function barterHTML(item) {
+	if (!barterData) return '';
+	const plan = barterForecast(item, 1, barterData, barterProfile());
+	if (!plan || plan.gate) return '';
+
+	// Bottom up, which is the order you actually trade them: the land
+	// good you buy first is at the top. Quantities are deliberately left
+	// off -- per one item they are fractions like 0.03 of a [Level 5],
+	// which is true and unreadable. What each rung pays is the number
+	// that helps, because a rung paying ten is a rung you stop worrying
+	// about.
+	const climb = [...plan.rungs].reverse();
+	const lines = climb.map(r => `<div class="peek-line ok">
+		${img(r.item, 'peek-icon')}
+		<span class="peek-name">${codexName(r.item)}</span>
+		<span class="peek-have">pays ${esc(r.receivedText)}</span>
+	</div>`).join('');
+
+	const start = plan.seed
+		? `<div class="peek-label">Starting from ${esc(plan.seed.item)}</div>`
+		: '';
+
+	return start + lines
+		+ `<div class="peek-cost">${esc(plan.perUnit.toFixed(2))} barter trades each</div>`;
+}
+
+/** The hover card: what it is made of, or where it comes from. */
+export function peekHTML(item) {
+	const body = makeupHTML(item) + barterHTML(item);
+	const src = sourceOf(item);
+
+	// The shop price is already on the source line; what is not written
+	// anywhere in the game is what one costs once its ingredients are
+	// priced too, all the way down. That is the number worth showing.
+	const made = waysToGet(item, costCtx()).routes.find(r => r.parts);
+	const price = made && (made.coins || made.silver || outstanding(made))
+		? `<div class="peek-cost">${esc(made.kind === 'enhance' ? 'One success' : 'Making one')}: ${esc(costText(made))}</div>`
+		: '';
+
+	// With the ingredients already listed, a crafting source is a place,
+	// not an alternative -- only a shop or a drop is an "or".
+	let foot = '';
+	if (src && !body) foot = `${src.label} · ${src.detail}`;
+	else if (src && MAKE_KEYS.has(src.key)) foot = src.key === 'craft' ? '' : src.detail;
+	else if (src) foot = `or ${src.label} · ${src.detail}`;
+
+	// A hundred at a time from one item is not a recipe and cannot be
+	// one -- the book makes a single unit -- but for the yellow tier it
+	// is very often the answer, and it has to be visible wherever the
+	// material is, not only where it is short. The card follows the
+	// material everywhere; the To Get row never sees these three,
+	// because the planner resolves them into their ingredients first.
+	const bulk = bulkExchanges[item];
+	const inBulk = bulk
+		? `<div class="peek-cost">or ${F(bulk.gets)} at once for one ${esc(bulk.give)}</div>`
+		: '';
+
+	if (!body && !foot && !price && !inBulk) return '';
+	return `<div class="peek-head">${img(item, 'peek-icon lg')}<span>${esc(item)}</span></div>`
+		+ body
+		+ price
+		+ inBulk
+		+ (foot ? `<div class="peek-foot">${esc(foot)}</div>` : '');
+}
+
+/** Where an item comes from, and what it costs. */
+export function sourceOf(item) {
+	if (coins[item]) return { key: 'coin', label: SOURCE_LABEL.coin, detail: `${F(coins[item])} Crow Coins each`, coins: coins[item] };
+	if (falasi[item]) return { key: 'falasi', label: SOURCE_LABEL.falasi, detail: `${F(falasi[item])} silver each`, silver: falasi[item] };
+	const methods = vendorItems[item];
+	if (methods) {
+		const key = Object.keys(methods)[0];
+		return { key, label: SOURCE_LABEL[key] || key, detail: (methods[key] || []).join(', ') };
+	}
+	if (recipes[item]) return { key: 'craft', label: 'Crafted', detail: 'made from other materials' };
+	return null;
+}
+
+/** An item is a choice only when it can both be made and be bought. */
+export function hasBuyOption(item) {
+	if (!recipes[item]) return false;
+	if (coins[item] || falasi[item]) return true;
+	const m = vendorItems[item];
+	return !!(m && (m.Purchase || m.Market));
+}
+
+/** " -- Crow Coin Shop", when we know where a part comes from. */
+export function whereFrom(item) {
+	const src = sourceOf(item);
+	return src ? ` — ${src.label}` : '';
+}
