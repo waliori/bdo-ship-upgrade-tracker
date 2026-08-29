@@ -17,8 +17,9 @@ import {
 } from './barter.js';
 import { iconLoader } from './icon-loader.js';
 import { createMap, frame, marksFor, pan, zoomBy, zoomAt } from './map.js';
-import { npcById } from './barter_npcs.js';
+import { npcs, npcById } from './barter_npcs.js';
 import RealisticWaterRipples from './realistic-water-ripples.js';
+import { esc, F, FC, parseAmount } from './fmt.js';
 import * as store from './state.js';
 import { initSync, openAccount } from './sync.js';
 import {
@@ -102,26 +103,6 @@ let toastTimer = null;
  * helpers
  * ------------------------------------------------------------------ */
 
-const esc = s => String(s).replace(/[&<>"']/g, c =>
-	({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-
-const F = n => Math.round(n).toLocaleString();
-
-// Silver runs to ten figures; a pouch chip has no room for that.
-/**
- * Read a quantity the way a player would write one: "1.5b", "400m",
- * "12,000". Returns null for anything that is not a number at all, so a
- * typo leaves the stored value alone.
- */
-function parseAmount(raw) {
-	const t = String(raw).trim().toLowerCase().replace(/[\s,_]/g, '');
-	if (!t) return 0;
-	const m = t.match(/^([0-9]*\.?[0-9]+)([kmb])?$/);
-	if (!m) return null;
-	const mult = { k: 1e3, m: 1e6, b: 1e9 }[m[2]] || 1;
-	return Math.max(0, Math.round(Number(m[1]) * mult));
-}
-
 /**
  * Any quantity in the app that you can set is one of these: type into it
  * directly ("4k", "12,000") or nudge it with the buttons beside it.
@@ -129,11 +110,6 @@ function parseAmount(raw) {
 const amountInput = (cls, value, attrs) =>
 	`<input class="amt ${cls}" type="text" inputmode="numeric" autocomplete="off" value="${F(value)}" ${attrs}>`;
 
-const FC = n => n >= 1e9
-	? `${(n / 1e9).toFixed(2).replace(/\.?0+$/, '')}b`
-	: n >= 1e6
-		? `${(n / 1e6).toFixed(1).replace(/\.0$/, '')}m`
-		: F(n);
 
 function iconSrc(name) {
 	let info = null;
@@ -1665,7 +1641,7 @@ function renderMap() {
 		<div class="summary-stats">
 			<div>
 				<div class="summary-k">Barterers</div>
-				<div class="summary-v">${F(marks.size)} of 81</div>
+				<div class="summary-v">${F(marks.size)} of ${npcs.length}</div>
 				<div class="summary-sub">${mapPick ? 'trade this' : 'have something on your list'}</div>
 			</div>
 			<div>

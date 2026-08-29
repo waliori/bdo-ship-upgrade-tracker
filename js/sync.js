@@ -14,6 +14,7 @@
 // say which one is theirs.
 
 import * as store from './state.js';
+import { esc } from './fmt.js';
 
 const REV_KEY = 'sync.rev';
 const DEVICE_KEY = 'sync.device';
@@ -376,9 +377,6 @@ function askWhichCopy(remote, headline) {
 		take(remote, 'Took the saved inventory');
 	});
 }
-
-const esc = s => String(s).replace(/[&<>"']/g, c =>
-	({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* ------------------------------------------------------------------ *
  * The header chip

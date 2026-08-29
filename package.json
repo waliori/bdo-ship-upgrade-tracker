@@ -19,7 +19,6 @@
     "tracker"
   ],
   "type": "module",
-  "main": "js/ui.js",
   "engines": {
     "node": ">=20.18.1"
   },
