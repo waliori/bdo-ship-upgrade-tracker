@@ -1858,35 +1858,73 @@ select.purse-inline { width: auto; cursor: pointer; }
 
 /* Tiles are placed, not flowed, and drawn at their own size: most are
    256px, but the chart's edge column was cut short by the source image,
-   and stretching a 40px sliver to 256 smeared the coastline. */
+   and stretching a 40px sliver to 256 smeared the coastline. The zoom
+   is continuous, so a tile is also fractionally rescaled in transform
+   -- never by more than half a level. */
 .map-tile {
   position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
   user-select: none;
   pointer-events: none;
-  image-rendering: pixelated;
   opacity: 0;
   transition: opacity 0.18s;
 }
 
 .map-tile.on { opacity: 1; }
 
-/* The sailing line through the islands that have what you are short of:
-   over the sea, under the pins. */
+/* The sailing line through the stops: a soft wake under a run of
+   marching dashes, over the sea and under the pins. */
 .map-route {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 1;
+  z-index: 2;
   pointer-events: none;
+  overflow: visible;
 }
 
-.map-route polyline {
+.map-route-glow {
   fill: none;
   stroke: var(--teal);
-  stroke-width: 1.5;
-  stroke-dasharray: 6 5;
-  opacity: 0.55;
+  stroke-width: 7;
+  stroke-linecap: round;
+  opacity: 0.12;
+}
+
+.map-route-dash {
+  fill: none;
+  stroke: var(--teal);
+  stroke-width: 2;
+  stroke-dasharray: 9 13;
+  stroke-linecap: round;
+  opacity: 0.85;
+  animation: map-dash 1.4s linear infinite;
+}
+
+/* One dash-plus-gap per cycle, so the loop point is invisible. */
+@keyframes map-dash { to { stroke-dashoffset: -22; } }
+
+/* The little ship that sails the plotted course, nose along the line. */
+.map-ship {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 15px;
+  height: 15px;
+  z-index: 3;
+  pointer-events: none;
+  background: var(--teal-hi);
+  clip-path: polygon(50% 0, 100% 100%, 50% 78%, 0 100%);
+  offset-rotate: auto 90deg;
+  filter: drop-shadow(0 0 6px var(--teal-edge));
+}
+
+@keyframes map-sail {
+  from { offset-distance: 0%; }
+  to { offset-distance: 100%; }
 }
 
 /* A pin is its own anchor: the dot sits on the coordinate and the name
@@ -1920,18 +1958,395 @@ select.purse-inline { width: auto; cursor: pointer; }
 .map-pin:hover .map-pin-name { opacity: 1; color: var(--ink-hi); }
 
 /* An island that has something you are short of. Named all the time,
-   because that is the whole point of opening this screen. */
+   because that is the whole point of opening this screen; the dot bobs
+   like a buoy and rings like a sounder so it reads across a busy sea. */
 .map-pin.wanted { color: var(--teal); z-index: 2; }
 .map-pin.wanted .map-pin-dot {
   background: var(--teal);
   width: 9px;
   height: 9px;
   box-shadow: 0 0 0 1px rgba(10, 23, 37, 0.9), 0 0 10px var(--teal-glow);
+  animation: map-bob 1.6s ease-in-out infinite;
+}
+.map-pin.wanted .map-pin-dot::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border-radius: 50%;
+  border: 1.5px solid var(--teal);
+  animation: map-sonar 2.2s ease-out infinite;
+  pointer-events: none;
 }
 .map-pin.wanted .map-pin-name { opacity: 1; }
 .map-pin.wanted:hover .map-pin-name { color: var(--teal-hi); }
 
+@keyframes map-sonar {
+  from { transform: scale(0.35); opacity: 0.7; }
+  to { transform: scale(2.4); opacity: 0; }
+}
+
+@keyframes map-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+/* When the list lights some islands, the rest step back. */
+.map-pin.dim { opacity: 0.42; transition: opacity 0.25s; }
+
+/* Already sailed today: the ping stops, the strike-through stands. */
+.map-pin.done .map-pin-dot { background: #2c9a7a; animation: none; }
+.map-pin.done .map-pin-dot::after { display: none; }
+.map-pin.done .map-pin-name { color: var(--ink-mute); text-decoration: line-through; }
+
+/* The stop number of a plotted route, riding the pin's shoulder. */
+.map-pin-badge {
+  position: absolute;
+  left: 6px;
+  top: -17px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 50%;
+  background: var(--amber);
+  color: #241a05;
+  font-size: 10px;
+  font-weight: 700;
+  display: none;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.map-pin-badge:not(:empty) { display: grid; }
+.map-pin-badge.is-done { background: #153b31; color: #5ef0c9; border-color: #2c9a7a; }
+
 .map-zoom { display: flex; gap: 6px; }
+
+/* ------------------------------------------------------------------ *
+ * The chart's furniture: the side panel, the pin's card, the minimap.
+ * All float on the sea inside the map box, in the app's own materials.
+ * ------------------------------------------------------------------ */
+
+.map-side {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  bottom: 12px;
+  width: min(300px, calc(100% - 24px));
+  display: flex;
+  flex-direction: column;
+  background: var(--panel-solid);
+  border: 1px solid var(--line-btn);
+  border-radius: var(--r-panel);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  z-index: 10;
+  overflow: hidden;
+}
+
+.map-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 6px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.map-side-close,
+.map-x {
+  background: none;
+  border: 0;
+  padding: 0 5px;
+  color: var(--ink-mute);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.map-side-close:hover,
+.map-x:hover { color: var(--ink-hi); }
+
+.map-tabs { display: flex; gap: 4px; padding: 0 10px 8px; }
+
+.map-tab {
+  flex: 1;
+  padding: 6px 2px;
+  border-radius: var(--r-btn);
+  border: 1px solid transparent;
+  background: none;
+  color: var(--ink-mute);
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.map-tab.active {
+  background: var(--teal-glow);
+  color: var(--teal-hi);
+  border-color: var(--teal-edge);
+}
+
+.map-side-body { flex: 1; overflow-y: auto; padding: 2px 10px 10px; }
+
+.map-search {
+  width: 100%;
+  padding: 7px 9px;
+  margin-bottom: 8px;
+  border-radius: var(--r-btn);
+  background: var(--panel-inset);
+  border: 1px solid var(--line-btn);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.map-list { display: flex; flex-direction: column; gap: 5px; }
+
+.map-row,
+.map-stop-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  padding: 7px 9px;
+  border-radius: var(--r-btn);
+  background: var(--panel-inset);
+  border: 1px solid var(--line);
+  color: inherit;
+  font: inherit;
+}
+.map-row { cursor: pointer; }
+.map-row:hover { border-color: var(--line-btn-hi); }
+
+.map-row-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 6px var(--teal-glow);
+  flex: none;
+}
+
+.map-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.map-row-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-hi);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-row-sub {
+  font-size: 10.5px;
+  color: var(--ink-mute);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-row-right {
+  font-size: 11px;
+  color: var(--amber);
+  max-width: 90px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-stop-n {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--amber);
+  color: #241a05;
+  font-size: 11px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.map-hint {
+  font-size: 11.5px;
+  color: var(--ink-mute);
+  background: var(--panel-inset);
+  border: 1px dashed var(--line-btn);
+  border-radius: var(--r-btn);
+  padding: 8px 10px;
+  margin: 4px 0 8px;
+}
+
+.map-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+.map-stats > div { background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
+
+.map-side-btns { display: flex; gap: 6px; margin-top: 8px; }
+.map-side-btns .ghost-btn { flex: 1; }
+.ghost-btn.wide { width: 100%; margin: 2px 0 8px; }
+.ghost-btn.danger { color: var(--red-soft); border-color: var(--red-edge); }
+
+.map-side-pill {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 10;
+  padding: 9px 13px;
+  border-radius: var(--r-tile);
+  background: var(--panel-solid);
+  border: 1px solid var(--line-btn);
+  color: var(--teal-hi);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.map-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex: none;
+  background: var(--panel-inset);
+  border: 1px solid var(--line-btn);
+  color: transparent;
+}
+.map-row.today.done .map-check { background: #153b31; border-color: #2c9a7a; color: #5ef0c9; }
+.map-row.today.done .map-row-name { color: var(--ink-mute); text-decoration: line-through; }
+
+.map-ring-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel-inset);
+  border-radius: var(--r-tile);
+  padding: 10px;
+  margin: 4px 0 10px;
+}
+
+.map-ring {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.map-ring span {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--panel-solid);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-hi);
+}
+
+.map-ring-big { font-size: 13px; font-weight: 600; color: var(--ink-hi); }
+
+/* The pin's card: follows the hover, pins on a click. */
+.map-tip {
+  position: absolute;
+  z-index: 12;
+  width: 238px;
+  background: var(--panel-solid);
+  border: 1px solid var(--line-btn);
+  border-radius: var(--r-tile);
+  padding: 10px 12px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+.map-tip.pinned { pointer-events: auto; }
+
+.map-tip-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+
+.map-tip-name {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-hi);
+}
+
+.map-tip-sub { font-size: 10.5px; color: var(--ink-mute); margin: 2px 0 6px; }
+.map-tip-sub.none { margin: 0; }
+
+.map-tip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  padding: 4px 0;
+  border-top: 1px solid var(--line-soft);
+}
+.map-tip-row span:first-child { color: var(--ink-dim); flex: 1; }
+.map-tip-row span:last-child { color: var(--amber); flex: 1; text-align: right; }
+.map-tip-arrow { color: var(--ink-faint); flex: none; }
+
+.map-tip-btns { display: flex; gap: 6px; margin-top: 8px; }
+.map-tip-btns .ghost-btn { flex: 1; font-size: 11px; padding: 5px 6px; }
+
+/* The minimap: the whole fleet of islands at a glance, the viewport
+   drawn on it, a click to jump. */
+.map-mini {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 10;
+  width: 176px;
+  height: 110px;
+  border-radius: var(--r-tile);
+  background: rgba(8, 20, 34, 0.85);
+  border: 1px solid var(--line-btn);
+  overflow: hidden;
+  cursor: crosshair;
+  backdrop-filter: blur(8px);
+}
+
+.mini-dot {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  margin: -1.5px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+}
+.mini-dot.wanted {
+  width: 4px;
+  height: 4px;
+  margin: -2px;
+  background: var(--teal);
+  box-shadow: 0 0 4px var(--teal);
+}
+
+.mini-view {
+  position: absolute;
+  border: 1.5px solid var(--teal);
+  border-radius: 3px;
+  background: var(--teal-glow);
+  pointer-events: none;
+}
+
+/* A phone is all sea: the panel becomes a sheet, the minimap yields. */
+@media (max-width: 640px) {
+  .map-mini { display: none; }
+  .map-side { bottom: auto; max-height: 62%; }
+}
 
 /* The jump from a shopping-list line to its islands. */
 .chart-link {

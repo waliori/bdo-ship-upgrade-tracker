@@ -14,7 +14,10 @@
 // The tiles under map/ are the game's own, cut at three zooms across
 // the barter region only -- 510 of them, 1.5 MB, which is less than the
 // icons. Coordinates are the game's: a position divided by 2^(9 - zoom)
-// is its pixel on that zoom's grid.
+// is its pixel on that zoom's grid. The zoom itself is continuous --
+// a chart that snaps between three magnifications feels like a slide
+// carousel, not a sea -- and the shipped levels are just where the
+// pixels come from.
 
 import { npcs, npcById, TILES, TILE, MAX_ZOOM } from './barter_npcs.js';
 
@@ -22,7 +25,8 @@ const ZOOMS = Object.keys(TILES).map(Number).sort((a, b) => a - b);
 const MIN_Z = ZOOMS[0];
 const MAX_Z = ZOOMS[ZOOMS.length - 1];
 
-/** A world position to its pixel on `zoom`'s grid. */
+/** A world position to its pixel on `zoom`'s grid. Works for fractional
+ *  zooms, which is what makes the zoom continuous. */
 export function toPixel(coord, zoom) {
 	return coord / Math.pow(2, MAX_ZOOM - zoom);
 }
@@ -57,6 +61,22 @@ export function createMap({ zoom = MIN_Z, centre = null } = {}) {
 
 export const zoomRange = { min: MIN_Z, max: MAX_Z };
 
+/** A viewport point for a world position, under the current view. */
+export function project(state, size, x, y) {
+	return {
+		left: toPixel(x, state.zoom) - (toPixel(state.centre.x, state.zoom) - size.w / 2),
+		top: toPixel(y, state.zoom) - (toPixel(state.centre.y, state.zoom) - size.h / 2)
+	};
+}
+
+/** Where one specific shipped tile lands under the current view -- used
+ *  to keep the old level's tiles beneath the new one while it loads. */
+export function placeTile(state, size, z, x, y) {
+	const g = Math.pow(2, state.zoom - z);
+	const at = project(state, size, 0, 0);
+	return { left: x * TILE * g + at.left, top: y * TILE * g + at.top, scale: g };
+}
+
 /**
  * Everything needed to draw one frame: the tiles under the viewport and
  * the markers on top, both already in viewport pixels.
@@ -72,16 +92,24 @@ export function frame(state, size, marks = new Map()) {
 	const left = cx - size.w / 2;
 	const top = cy - size.h / 2;
 
+	// The zoom is continuous but the shipped tiles are not: draw the
+	// nearest level, scaled the rest of the way -- never more than
+	// half a step, so the stretch stays invisible.
+	const tileZ = Math.max(MIN_Z, Math.min(MAX_Z, Math.round(zoom)));
+	const f = Math.pow(2, zoom - tileZ);
+
 	// One tile beyond the viewport on every side, so a pan reveals
 	// coastline that is already loaded rather than a flash of sea.
-	const r = tileRange(zoom, left - TILE, top - TILE, size.w + TILE * 2, size.h + TILE * 2);
+	const r = tileRange(tileZ, left / f - TILE, top / f - TILE,
+		size.w / f + TILE * 2, size.h / f + TILE * 2);
 	const tiles = [];
 	for (let x = r.x0; x <= r.x1; x++) {
 		for (let y = r.y0; y <= r.y1; y++) {
 			tiles.push({
-				src: `map/${zoom}_${x}_${y}.webp`,
-				left: Math.round(x * TILE - left),
-				top: Math.round(y * TILE - top)
+				src: `map/${tileZ}_${x}_${y}.webp`,
+				z: tileZ, x, y, scale: f,
+				left: x * TILE * f - left,
+				top: y * TILE * f - top
 			});
 		}
 	}
@@ -148,16 +176,17 @@ export function pan(state, dx, dy) {
 	return state;
 }
 
-/** Step the zoom, keeping the centre. Returns whether it moved. */
-export function zoomBy(state, step) {
-	const next = Math.min(MAX_Z, Math.max(MIN_Z, state.zoom + step));
-	if (next === state.zoom) return false;
+/** Move the zoom by a (fractional) amount, keeping the centre. Returns
+ *  whether it moved. */
+export function zoomBy(state, dz) {
+	const next = Math.min(MAX_Z, Math.max(MIN_Z, state.zoom + dz));
+	if (Math.abs(next - state.zoom) < 1e-9) return false;
 	state.zoom = next;
 	return true;
 }
 
 /**
- * Step the zoom keeping the world point under the cursor where it is.
+ * Move the zoom keeping the world point under the cursor where it is.
  *
  * Zooming to the centre is how a map feels broken: the island you are
  * pointing at slides away exactly when you are trying to get closer to
@@ -165,9 +194,9 @@ export function zoomBy(state, step) {
  * out which world coordinate sits there, zoom, then move the centre so
  * the same coordinate sits there again.
  */
-export function zoomAt(state, step, size, px, py) {
+export function zoomAt(state, dz, size, px, py) {
 	const before = Math.pow(2, MAX_ZOOM - state.zoom);
-	if (!zoomBy(state, step)) return false;
+	if (!zoomBy(state, dz)) return false;
 	const after = Math.pow(2, MAX_ZOOM - state.zoom);
 	const dx = px - size.w / 2;
 	const dy = py - size.h / 2;
@@ -194,6 +223,10 @@ const EXTENT = (() => {
 	}
 	return { x0, y0, x1, y1 };
 })();
+
+/** The charted world box, for anything that needs to scale it down --
+ *  the minimap does. */
+export const chartBox = EXTENT;
 
 /** Keep the viewport on the chart, in place. An axis where the chart is
  *  narrower than the view is centred instead. */
@@ -257,20 +290,38 @@ export function routeFor(marks) {
 	return path;
 }
 
+/**
+ * The route as one SVG path, gently bowed: each leg is a quadratic
+ * curve whose control point sits a little off the midpoint, so the
+ * line reads as a sailing course rather than a ruler. Points are
+ * viewport pixels, as frame() and project() hand them out.
+ */
+export function routePath(pts) {
+	if (pts.length < 2) return '';
+	let d = `M ${pts[0].left.toFixed(1)} ${pts[0].top.toFixed(1)}`;
+	for (let i = 1; i < pts.length; i++) {
+		const a = pts[i - 1], b = pts[i];
+		const dx = b.left - a.left, dy = b.top - a.top;
+		const len = Math.hypot(dx, dy) || 1;
+		const k = Math.min(0.16 * len, 52);
+		d += ` Q ${((a.left + b.left) / 2 - dy / len * k).toFixed(1)}`
+			+ ` ${((a.top + b.top) / 2 + dx / len * k).toFixed(1)}`
+			+ ` ${b.left.toFixed(1)} ${b.top.toFixed(1)}`;
+	}
+	return d;
+}
+
 /** Zoom and centre so every given world point is in view, with room to
  *  breathe, in place. */
 export function fitTo(state, size, points, pad = 56) {
 	if (!points.length) return state;
 	const x0 = Math.min(...points.map(p => p.x)), x1 = Math.max(...points.map(p => p.x));
 	const y0 = Math.min(...points.map(p => p.y)), y1 = Math.max(...points.map(p => p.y));
-	state.zoom = MIN_Z;
-	for (let z = MAX_Z; z >= MIN_Z; z--) {
-		const s = Math.pow(2, MAX_ZOOM - z);
-		if ((x1 - x0) / s <= size.w - pad * 2 && (y1 - y0) / s <= size.h - pad * 2) {
-			state.zoom = z;
-			break;
-		}
-	}
+	// The zoom at which each span exactly fills its padded box; one
+	// island asks for infinity and gets the closest we have.
+	const zx = MAX_ZOOM - Math.log2(Math.max(1e-9, (x1 - x0) / Math.max(1, size.w - pad * 2)));
+	const zy = MAX_ZOOM - Math.log2(Math.max(1e-9, (y1 - y0) / Math.max(1, size.h - pad * 2)));
+	state.zoom = Math.min(MAX_Z, Math.max(MIN_Z, Math.min(zx, zy)));
 	state.centre = { x: (x0 + x1) / 2, y: (y0 + y1) / 2 };
 	return clampView(state, size);
 }

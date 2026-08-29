@@ -15,7 +15,10 @@ import { readFile } from 'node:fs/promises';
 const shipbarters = JSON.parse(
 	await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
 import { npcs, npcById, TILES, TILE, MAX_ZOOM } from '../js/barter_npcs.js';
-import { toPixel, frame, marksFor, pan, zoomBy, zoomAt, createMap, zoomRange, clampView, routeFor, fitTo } from '../js/map.js';
+import {
+	toPixel, frame, marksFor, pan, zoomBy, zoomAt, createMap, zoomRange,
+	clampView, routeFor, fitTo, routePath, project, placeTile
+} from '../js/map.js';
 
 const SIZE = { w: 1200, h: 640 };
 
@@ -298,4 +301,55 @@ test('fitting one island goes in close instead of staying wide', () => {
 	fitTo(state, SIZE, [npcs[0]]);
 	assert.equal(state.zoom, zoomRange.max);
 	assert.deepEqual(state.centre, { x: npcs[0].x, y: npcs[0].y });
+});
+
+/* ------------------------------------------------------------------ *
+ * continuous zoom
+ * ------------------------------------------------------------------ */
+
+test('a fractional zoom draws the nearest level, scaled the rest', () => {
+	const state = createMap({ zoom: 3.5 });
+	clampView(state, SIZE);
+	const { tiles } = frame(state, SIZE);
+	assert.ok(tiles.length, 'no tiles at a half zoom');
+	for (const t of tiles) {
+		assert.equal(t.z, 4, 'half-way rounds to the sharper level');
+		assert.ok(Math.abs(t.scale - Math.pow(2, 3.5 - 4)) < 1e-9);
+	}
+});
+
+test('a fractional zoom step still pins the cursor world point', () => {
+	const cursor = { x: 900, y: 150 };
+	const state = createMap({ zoom: 4 });
+	const scale = z => Math.pow(2, MAX_ZOOM - z);
+	const before = state.centre.x + (cursor.x - SIZE.w / 2) * scale(state.zoom);
+	assert.ok(zoomAt(state, 0.3, SIZE, cursor.x, cursor.y));
+	const after = state.centre.x + (cursor.x - SIZE.w / 2) * scale(state.zoom);
+	assert.ok(Math.abs(before - after) < 1e-6);
+});
+
+test('project and placeTile land exactly where frame does', () => {
+	const state = createMap({ zoom: 4.2 });
+	clampView(state, SIZE);
+	const { tiles, pins } = frame(state, SIZE);
+
+	const t = tiles[0];
+	const at = placeTile(state, SIZE, t.z, t.x, t.y);
+	assert.ok(Math.abs(at.left - t.left) < 1e-6, 'tile x drifted');
+	assert.ok(Math.abs(at.top - t.top) < 1e-6, 'tile y drifted');
+	assert.ok(Math.abs(at.scale - t.scale) < 1e-9, 'tile scale drifted');
+
+	assert.ok(pins.length, 'no pin to check against');
+	const pin = pins[0];
+	const n = npcById.get(pin.id);
+	const p = project(state, SIZE, n.x, n.y);
+	assert.ok(Math.abs(p.left - pin.left) <= 0.5 && Math.abs(p.top - pin.top) <= 0.5);
+});
+
+test('routePath bows every leg and starts at the first stop', () => {
+	assert.equal(routePath([]), '');
+	assert.equal(routePath([{ left: 3, top: 4 }]), '');
+	const d = routePath([{ left: 0, top: 0 }, { left: 100, top: 0 }, { left: 100, top: 80 }]);
+	assert.ok(d.startsWith('M 0.0 0.0'), d);
+	assert.equal((d.match(/Q/g) || []).length, 2, 'one curve per leg');
 });

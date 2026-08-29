@@ -27,7 +27,11 @@ import { renderInventory } from './screen-inventory.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop } from './screen-workshop.js';
 import { renderGet, shoppingText } from './screen-get.js';
-import { renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapShowItem, mapFit } from './screen-map.js';
+import {
+	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
+	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
+	useSuggestedRoute, reverseMapRoute, clearMapRoute, toggleMapDone, closeMapTip
+} from './screen-map.js';
 
 const TABS = [
 	{ id: 'plan', label: 'Plan' },
@@ -263,7 +267,16 @@ function wire() {
 			}
 			case 'map-zoom': mapZoomStep(Number(el.dataset.step)); return;
 			case 'map-fit': mapFit(); return;
-			case 'map-pin': mapCentreOn(Number(el.dataset.npc)); return;
+			case 'map-pin':
+			case 'map-row': mapCentreOn(Number(el.dataset.npc)); return;
+			case 'map-mode': setMapMode(el.dataset.id); return;
+			case 'map-panel': toggleMapPanel(); return;
+			case 'map-stop': toggleMapStop(Number(el.dataset.npc)); return;
+			case 'map-route-use': useSuggestedRoute(); return;
+			case 'map-route-reverse': reverseMapRoute(); return;
+			case 'map-route-clear': clearMapRoute(); return;
+			case 'map-done': toggleMapDone(Number(el.dataset.npc)); return;
+			case 'map-tip-close': closeMapTip(); return;
 			case 'goto-map': mapShowItem(el.dataset.item); showView('map'); return;
 			case 'plan-filter': setPlanFilter(el.dataset.id); return render();
 			case 'tree-pick': return pickTreeTarget();
