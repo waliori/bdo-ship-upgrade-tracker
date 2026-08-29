@@ -6,6 +6,7 @@ import * as store from './state.js';
 import { img, codexName, amountInput, whereFrom } from './ui-bits.js';
 import { recipes, snapshot, query, readyCrafts } from './ui-state.js';
 import { parseEnhanced, enhancedName, enhanceStep, ownedLevel, enhancementForecast } from './planner.js';
+import { massProcess } from './vendor_items.js';
 
 /**
  * Every part worth an enhancement attempt: the ones a build is waiting
@@ -136,6 +137,10 @@ export function renderWorkshop() {
 				<button class="act go" data-act="craft" data-item="${esc(c.item)}" data-times="field">Craft</button>
 				<button class="act quiet" data-act="craft" data-item="${esc(c.item)}" data-times="${c.possible}">All ${F(c.possible)}</button>
 			</div>
+			${massProcess[c.item] ? `<label class="inline-check"
+				title="Ten crafts in one go, plus one ${esc(massProcess[c.item].extra)} for each batch of ${massProcess[c.item].batch}">
+				<input type="checkbox" data-mass-process> via Mass Process
+			</label>` : ''}
 		</div>`;
 	}).join('');
 

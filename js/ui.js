@@ -19,6 +19,7 @@ import {
 } from './ui-state.js';
 import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
 import { allItems } from './ui-bits.js';
+import { massProcess } from './vendor_items.js';
 import { paintPouch, measurePouch } from './pouch.js';
 import { hidePeek, wirePeek } from './peek.js';
 import { openGuide, wireGuide } from './guide.js';
@@ -420,8 +421,23 @@ function wire() {
 				const want = Math.max(1, asked || 1);
 				const times = Math.min(want, maxCraftable(item, store.getAllStock(), recipes));
 				if (times < 1) return toast('Not enough materials for that');
-				store.applyDelta(craftDelta(item, times, recipes), 'craft', `Crafted ${times} × ${item}`);
-				toast(`Crafted ${times} × ${item}`, true);
+				const delta = craftDelta(item, times, recipes);
+				// Mass Process is the same recipe run ten at a time, plus a
+				// Black Stone Powder per batch -- recording it that way has
+				// to spend the powder too, or the powder count drifts.
+				const mass = el.closest('.craft-card')?.querySelector('[data-mass-process]');
+				let label = `Crafted ${times} × ${item}`;
+				if (mass && mass.checked && massProcess[item]) {
+					const { extra, batch } = massProcess[item];
+					const powder = Math.ceil(times / batch);
+					if (store.getStock(extra) < powder) {
+						return toast(`Mass Process wants ${F(powder)} ${extra} for that batch — you hold ${F(store.getStock(extra))}`);
+					}
+					delta[extra] = (delta[extra] || 0) - powder;
+					label = `Mass Processed ${times} × ${item}`;
+				}
+				store.applyDelta(delta, 'craft', label);
+				toast(`${label}`, true);
 				return;
 			}
 			case 'enhance': {

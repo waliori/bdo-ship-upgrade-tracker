@@ -241,3 +241,15 @@ export const bulkExchanges = {
 	"Raging Wave Plywood": { give: "Lyngbakr's Horn", gets: 75 },
 	"Dormant Crimson Coral Adhesive": { give: "Lyngbakr's Horn", gets: 50 }
 };
+
+/**
+ * Mass Process, for the recipes that allow it: ten crafts in one go,
+ * plus one Black Stone Powder for the batch. The powder is the only
+ * material difference, so the plan does not assume it -- but recording
+ * a craft made that way must spend it, or the powder drifts.
+ */
+export const massProcess = {
+	"Sturdy Coral Support": { extra: "Black Stone Powder", batch: 10 },
+	"Raging Wave Plywood": { extra: "Black Stone Powder", batch: 10 },
+	"Dormant Crimson Coral Adhesive": { extra: "Black Stone Powder", batch: 10 }
+};
