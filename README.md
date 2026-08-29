@@ -143,6 +143,16 @@ can be both made and bought, you choose, and the plan follows.
 
 - **Undo** on every change, and a one-line **Next** banner that tells you
   the single most useful thing to do right now.
+- **Sort** the Plan and the Inventory by shortfall, need, what you own or
+  name; **search** on every list, the Workshop and the shopping list too.
+- **The address bar knows where you are** — the tab, and the item you
+  have open — so a place survives a reload and travels in a link, and
+  Back retraces your steps.
+- **Start fresh** clears everything behind a confirmation, and **Import**
+  asks whether to replace what you have or merge the file in, keeping the
+  higher count of anything counted twice. Exports are dated.
+- Quantities read the way your browser writes them: `12.000` is twelve
+  thousand on a German machine and twelve on an English one.
 - **Your purse** — Crow Coins, silver, Sangpyeong Coins and enhancement
   stones ride along above every tab, since you spend them from every tab.
 - **Export / Import** a JSON backup to move between machines.
@@ -150,7 +160,8 @@ can be both made and bought, you choose, and the plan follows.
   own data back untouched, and a **Help** film of the whole thing end to
   end for when you would rather just watch.
 - Works on a phone; the water shader is optional (`≈ Water` in the
-  header).
+  header). Offline it runs from a snapshot of the last deploy, never a
+  mixture of two.
 
 ---
 
@@ -191,7 +202,30 @@ needs `--env-file .env`. Neither is required to run the tracker itself
 
 **Ships** — Epheria Sailboat, Improved Epheria Sailboat, Epheria Caravel,
 Epheria Frigate, Improved Epheria Frigate, Epheria Galleass, Carrack
-(Advance / Balance / Volante / Valor), Panokseon.
+(Advance / Balance / Volante / Valor), Panokseon — and the small craft:
+the Epheria Cog by either of its two designs (Falasi's permit and land
+materials, or the Fallen Vell Pirates' four bartered ones), the three
+rowboats and the Raft.
+
+**What each hull is** — durability, rations, weight limit, inventory,
+cabin space, sailor seats, cannons and reload, and the four movement
+percentages, read off each hull's codex page. The Builds screen shows the
+line under every ship; the **Crew** screen shows the lot.
+
+**What each part does** — the equip effect of all 72 enhanceable parts at
+every level from +0 to +10: speed, acceleration, turning, braking, DP,
+damage reduction, weight, rations, durability, cannon damage and reload.
+The Workshop says what the next level adds beside every attempt, the hover
+card says what a part does at the level you hold, and the Crew screen
+sums the best part you own in each slot onto the hull — the answer to
+"is +8 worth it" in the game's own numbers.
+
+**The crew** — the twenty sailor types with their race, cabin cost,
+appetite, weight and per-level growth, and where each is hired; the seven
+positions and what each doubles; condition and sickness and what mends
+them; the experience split; the three first mates; where the sailor slots
+come from. Plan a crew against a hull's seats and cabin space, see the
+contracts priced, and put the certificates on the shopping list.
 
 **Carrack parts** — all 16 of the craftable Chiro parts (Advance,
 Balance, Volante and Valor × cannon, sail, figurehead and black plating),
@@ -216,6 +250,22 @@ alone, because the notes write one recipe for all four Carrack variants
 and leave it open whether the Chiro part has to match. It does: an
 Advance Falasi cannon takes an Advance Chiro cannon and an Advance permit.
 
+**Free from quests.** Ravinia's Ship Upgrade Log — fifty of each Upgrade
+material and twenty Tidal Black Stones over its seven days — and the Old
+Moon Guild's dailies and weeklies, the soldier's dailies at Oquilla's Eye
+and the supply runs, with their exact rewards. The shopping list puts the
+ones that pay in what you are short of first, and one press records a
+claimed reward in your stock.
+
+**The Market.** What Falasi and the Crow Coin Shop sell is priced from
+their lists; what only the Central Market sells — plywood, ingots, saps —
+is priced from the Market itself, per region, relayed by the server from
+the community market API and remembered so the plan stays priced offline.
+The shopping list says how old the numbers are and lets you ask again.
+
+**Mass Process** can be ticked when recording a craft of the yellow
+materials, so the Black Stone Powder it takes leaves your stock too.
+
 **What enhancement really costs.** Every enhanceable part carries its real
 per-level success rates, and the Agris Essence pity caps that guarantee an
 attempt after enough failures. So the plan budgets what the climb will
@@ -232,6 +282,25 @@ the last success reset. Compounded over ten levels that runs to around
 52 million Sunset Tidal Black Stones, which is why Cron Stones are
 counted as part of what an attempt costs rather than as an optional
 extra. Protected, the same climb is about 72 stones and 30,000 Cron.
+
+A yellow row in the Workshop has three buttons, not two: **Failed — no
+Crons** records the attempt that was made unprotected, spending the stone
+and dropping the part a level. And because the yellow rates scale with
+the failstack you bring, you can type yours in and every yellow forecast
+follows it; blank means the stack the quoted rates assume. Each row also
+keeps score — attempts won, attempts lost, stones spent — from the undo
+history.
+
+**Bartering** — the whole barter table as it stands: 91 barterers and
+4,397 exchanges across Levels 1 to 7, including the ten coastal barterers
+the April 2026 patch added (Olvia Coast, Arehaza, the Epheria and
+Sanctuary outposts, Sausan, Dallae Pier, Haemo, Grándiha, Starry Midnight
+Port and Crow's Nest), on a chart that reaches their shores. Every barter
+line says what the exchange hands over and what those goods would have
+sold for; the Route tab says how many goods of each level your hull holds
+per run; a route can be exported as a small JSON file and imported again.
+The day-forecast paces each of the game's two refresh lists on its own
+clock, which is what makes its "at best" honest.
 
 Crow Coin prices were checked against the shop at Oquilla's Eye on
 2026‑08‑25. The yellow tier is from the 2026‑08‑26 patch notes, with the
@@ -368,7 +437,7 @@ css/tracker.css       the design system
 js/
   ui.js               the shell: render loop, event wiring, boot
   screen-*.js         one module per tab — plan, builds, inventory, tree,
-                      workshop, to-get, map
+                      workshop, to-get, map, crew
   ui-state.js         the shared view state, recomputed from the store
   ui-bits.js          icons, linked names, priced costs — the screens' vocabulary
   pouch.js            the currency bar above the tabs
@@ -387,12 +456,18 @@ js/
   barter_npcs.js      where the 81 barterers are
   guided-tour.js      the guided tour
   enhancement.js      per-level rates, Agris caps, perfect-enhance costs
+  ship_stats.js       what each hull is, in the game's own numbers
+  part_stats.js       what each part does, level by level
+  sailors.js          the hiring pool, positions, condition, first mates
+  quests.js           the quests that pay in ship materials
+  market.js           Central Market prices, per region, kept offline
 tools/check-env.mjs   npm run check -- validates a sync configuration
 server/               only loaded when sync is configured
   config.js           what is switched on, and what is therefore offered
   db.js               libSQL schema and queries
   auth.js             the Discord OAuth exchange
   api.js              /api/me and /api/state
+  market.js           /api/market — the Market relay, on by default
   session.js          signed session cookies, no session table
 test/                 npm test — the server, the cost model, and a browser
 icons/                item and ship icons (WebP)
