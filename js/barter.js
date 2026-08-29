@@ -11,6 +11,18 @@
 // you buy from a villager. Fold that up and one Shard is about three
 // trades, whoever you buy it from.
 //
+// The ladder no longer stops at [Level 5]. Since the coast opened for
+// barter the chain runs two rungs higher: a [Level 5] buys a [Level 6]
+// at six shore barterers -- Hakoven, Arehaza, the two O'dyllita ports
+// and the two in the Land of Morning Light -- and a [Level 6] buys a
+// [Level 7] at six more, from the Olvia coast round to Sanctuary. Both
+// pay one for one, so each is a whole trade dearer than the rung under
+// it. A [Level 7] is the top of the ladder and the table has no use for
+// it: nothing in it is bought with one. Whatever they are for is sold
+// or handed in somewhere the barter window does not describe, so they
+// fold as the dearest thing you can barter for and are never offered
+// as the way to anything else.
+//
 // Trades turn into days through the attempt cap, not through Parley.
 // It is tempting to reach for Parley -- it is the resource with a bar
 // on it -- but a refilled bar buys sixty-nine exchanges at the top rung
@@ -137,6 +149,13 @@ export const ROUTE_UNLOCKS = [
 	{ barters: 20000, opens: "Margoria's Star — Shipwrecked Marine Vessel" }
 ];
 
+// The coastal barterers who deal the [Level 6] and [Level 7] goods are
+// not on this table, and deliberately: no patch note in hand states a
+// barter count that opens them, and the 2026-08-29 table lists their
+// exchanges without one. Until a threshold is published they are
+// treated as open -- guessing a gate would grey out a route that a
+// player can sail to today.
+
 /**
  * Barter levels, in order, and how many steps each tier holds.
  *
@@ -206,18 +225,37 @@ export function levelDiscount(name) {
 
 // The dataset itself is js/all_barter.json: every barter that yields a
 // ship material, and the trade-good ladder that leads to one, scraped
-// from BDOCodex. It is JSON rather than a module, so its provenance
-// lives here, beside the code that reads it.
+// from BDOCodex's barter table on 2026-08-29 -- 4,397 exchanges at 91
+// barterers, regrouped under the 158 things they hand over (tools/
+// build-barter.mjs does the regrouping). It is JSON rather than a
+// module, so its provenance lives here, beside the code that reads it.
 //
-// The 1:1 exchanges are gone from it: the 2026-04-16 patch raised the
-// minimum on the two rungs that had one -- "Adjusted the minimum
-// exchange amount for level 1 -> level 2 and level 2 -> level 3
-// barters. Before: x1-3 After: x2-3" -- so every [Level 2] and
-// [Level 3] payout reads 2-3. The two Tidal Black Stone routes that pay
-// 1-3 are untouched: they hand over a ship material, not a trade good,
-// and the patch did not name them.
+// That pull replaced one from 2025-09-01 that knew 81 barterers and
+// stopped at [Level 5]. The ten it added are the shore: Kami at Crow's
+// Nest, five ports that turn a [Level 5] into a [Level 6] and four --
+// with Chikao and Priko, who already dealt the chain -- that turn a
+// [Level 6] into a [Level 7]. Between them 818 existing exchanges also
+// moved their quantities, which is why nothing below is hand-copied
+// from the old file.
+//
+// The 1:1 exchanges are gone from the bottom of the chain: the
+// 2026-04-16 patch raised the minimum on the two rungs that had one --
+// "Adjusted the minimum exchange amount for level 1 -> level 2 and
+// level 2 -> level 3 barters. Before: x1-3 After: x2-3" -- so every
+// [Level 2] and [Level 3] payout reads 2-3. The Tidal Black Stone
+// routes that pay 1-3 are untouched: they hand over a ship material,
+// not a trade good, and the patch did not name them.
+//
+// Not every hand-over is a trade good. The Margoria drifters and the
+// shore barterers take Gold Bar 100G for a handful of things -- Tidal
+// Black Stone, a single Crow Coin -- and the ladder treats a give the
+// table has no exchange for the way it treats the [Level 1] floor: as
+// something bought on land, handed back as the seed.
 
 const LEVEL = /^\[Level (\d)\]/;
+
+/** The top rung of the trade chain, as the table stands. */
+export const TOP_LEVEL = 7;
 
 /** The tier of a sea trade good, or null for a ship material. */
 export function levelOf(name) {
@@ -226,12 +264,25 @@ export function levelOf(name) {
 }
 
 /**
+ * Whether this is the end of the ladder: a [Level 7] good, which the
+ * table hands over at six coastal barterers and takes back nowhere.
+ * Its sink -- sale, hand-in, whatever the shore does with it -- is
+ * outside the barter window and so outside this file. A terminal good
+ * still folds (it is one [Level 6] and a trade) but is never a rung on
+ * the way to anything, and the forecast never offers it as one.
+ */
+export function isTerminal(name) {
+	return levelOf(name) === TOP_LEVEL;
+}
+
+/**
  * Which of the game's exchanges this is, and so which flat rate and
- * which refresh list it lives on: [Level N] goods are the trade chain,
- * Crow Coin is its own priced exchange dealt on the same trade-item
- * list, and everything else is a ship material. The same split the
- * map's barterKind makes, kept here so the forecast does not need the
- * map.
+ * which refresh list it lives on: [Level N] goods are the trade chain
+ * -- all seven rungs, the coastal [Level 6] and [Level 7] with the
+ * rest -- Crow Coin is its own priced exchange dealt on the same
+ * trade-item list, and everything else is a ship material. The same
+ * split the map's barterKind makes, kept here so the forecast does not
+ * need the map.
  */
 export function exchangeKind(item) {
 	if (item === 'Crow Coin') return 'coin';
@@ -326,7 +377,16 @@ export function bestExchange(item, barterData) {
  *
  * The walk stops at a [Level 1] good, whose "give" is a land item the
  * barter dataset does not describe as a barter and which this returns as
- * `seed` for the shopping list to price.
+ * `seed` for the shopping list to price. It stops the same way at any
+ * other give the table has no exchange for -- the Gold Bar 100G a few
+ * barterers take -- since a thing nobody barters for is, by the only
+ * definition this file has, bought on land.
+ *
+ * At the top, the ladder now climbs to [Level 7]: a [Level 6] good is
+ * one [Level 5] and a trade, a [Level 7] one [Level 6] and a trade, so
+ * a ship material bought with a [Level 6] would fold through seven
+ * rungs the same way a Brilliant folds through six. [Level 7] is never
+ * a rung: no exchange takes one, so no walk ever recurses onto one.
  *
  * `seen` guards the recursion. The dataset is a ladder, not a graph, but
  * a bad scrape could close a loop and this should not hang on it.
@@ -336,6 +396,10 @@ export function ladder(item, barterData, seen = new Set()) {
 
 	const best = bestExchange(item, barterData);
 	if (!best) return null;
+
+	// The floor: a [Level 1] good, or anything else paid for with
+	// something the table never hands over.
+	const floor = levelOf(item) === 1 || !bestExchange(best.give, barterData);
 
 	// One press of this exchange eats `given` and pays `received`, so a
 	// single unit of this item is a fraction of a trade and a fraction of
@@ -360,7 +424,7 @@ export function ladder(item, barterData, seen = new Set()) {
 
 	// A [Level 1] good is bought with land goods, which the dataset does
 	// not carry a barter for -- that is the floor of the ladder.
-	if (levelOf(item) === 1) {
+	if (floor) {
 		step.seed = { item: best.give, qty: givePerUnit };
 		step.totalTrades = tradesHere;
 		return step;

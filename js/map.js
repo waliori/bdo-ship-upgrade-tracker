@@ -12,8 +12,9 @@
 // from somewhere, which this app does not do.
 //
 // The tiles under map/ are the game's own, cut at three zooms across
-// the barter region only -- 510 of them, 1.5 MB, which is less than the
-// icons. Coordinates are the game's: a position divided by 2^(9 - zoom)
+// the barter region only -- 779 of them, 3.7 MB, since the shore
+// barterers pulled the chart out to Haemo Island and the O'dyllita
+// coast (tools/fetch-map-tiles.mjs says where they come from). Coordinates are the game's: a position divided by 2^(9 - zoom)
 // is its pixel on that zoom's grid. The zoom itself is continuous --
 // a chart that snaps between three magnifications feels like a slide
 // carousel, not a sea -- and the shipped levels are just where the
@@ -247,7 +248,7 @@ export function clampView(state, size) {
  * mistakes a drawn route must not make are visiting an island twice
  * and crossing its own wake, and this makes neither: nearest-neighbour
  * from the westernmost stop, then any leg whose reversal shortens the
- * path is reversed until none does. At 81 islands the whole thing is
+ * path is reversed until none does. At 91 islands the whole thing is
  * arithmetic; cached by the set of stops, since a drag repaints every
  * frame but the stops only change when the shopping list does.
  */

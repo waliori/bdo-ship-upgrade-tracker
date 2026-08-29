@@ -6,7 +6,7 @@
 // divided by 2^(9 - zoom) is its pixel on that zoom's grid, and that
 // pixel divided by 256 is the tile it lands in.
 //
-// 81 barterers. Which goods each one trades is not repeated here --
+// 91 barterers. Which goods each one trades is not repeated here --
 // all_barter.json already says, keyed by the same npc_id.
 //
 // `at` is the place each one stands, matched 2026-08-29 against the
@@ -16,13 +16,20 @@
 // wrecks and rafts adrift in Margoria are not nodes in that database,
 // so their `at` is the sea itself, which is also the truth of them.
 // `region` is the codex's territory column, as it stands.
+//
+// The ten added 2026-08-29 are the shore -- the coastal barterers who
+// deal the [Level 6] and [Level 7] goods, and Kami at Crow's Nest --
+// read straight off their BDOCodex pages' location arrays, in the same
+// coordinate space. They stretch the chart: Haemo Island is west of
+// where the tiles used to stop, the two O'dyllita ports south of it and
+// Arehaza on its eastern edge, which is why TILES grew to hold them.
 
 export const MAX_ZOOM = 9;
 export const TILE = 256;
 
 /** The tile ranges actually downloaded, per zoom. Nothing outside is
  *  fetched, so a pan past the edge draws sea rather than a 404. */
-export const TILES = { 3: { x0: 0, x1: 8, y0: 0, y1: 5 }, 4: { x0: 2, x1: 15, y0: 1, y1: 9 }, 5: { x0: 6, x1: 29, y0: 4, y1: 17 } };
+export const TILES = { 3: { x0: 0, x1: 8, y0: 0, y1: 5 }, 4: { x0: 1, x1: 15, y0: 1, y1: 11 }, 5: { x0: 3, x1: 30, y0: 4, y1: 23 } };
 
 /** The wharves inside the charted sea, for anchoring a route to where
  *  a ship actually starts. Same BDOCodex map layer as the island match,
@@ -36,10 +43,12 @@ export const ports = [
 
 export const npcs = [
 	{ id: 58922, name: "Akenisi", x: 61554, y: 60679, at: "Narvo Island", region: "Balenos" },
+	{ id: 58979, name: "Anvanio", x: 88186.68, y: 54211, at: "Sanctuary Coastal Outpost", region: "Valencia" },
 	{ id: 58916, name: "Arutiha", x: 52644, y: 59076, at: "Almai Island", region: "Calpheon" },
 	{ id: 50825, name: "Atinia", x: 42171, y: 40202, at: "Margoria", region: "The Great Ocean" },
 	{ id: 58935, name: "Belgio", x: 74431, y: 63509, at: "Ostra Island", region: "Mediah" },
 	{ id: 58958, name: "Biapin", x: 85412, y: 62855, at: "Esfah Island", region: "Valencia" },
+	{ id: 58973, name: "Brio", x: 65397.868, y: 66856.64, at: "Olvia Coast", region: "Balenos" },
 	{ id: 58901, name: "Cazio", x: 50797, y: 68766, at: "Baeza Island", region: "Calpheon" },
 	{ id: 58954, name: "Chikao", x: 66695, y: 55615, at: "Lema Island", region: "Balenos" },
 	{ id: 50827, name: "Cholace Chico", x: 34570, y: 36579, at: "Margoria", region: "The Great Ocean" },
@@ -47,7 +56,10 @@ export const npcs = [
 	{ id: 58941, name: "Decario", x: 70112, y: 62116, at: "Weita Island", region: "Balenos" },
 	{ id: 58906, name: "Denio", x: 50350, y: 66370, at: "Ginburrey Island", region: "Calpheon" },
 	{ id: 50823, name: "Donalia", x: 30938, y: 49984, at: "Margoria", region: "The Great Ocean" },
+	{ id: 58981, name: "Gangdalpo", x: 28825.88, y: 18258.4, at: "Dallae Pier", region: "Land of Morning Light" },
+	{ id: 58980, name: "Gangnampo", x: 15766.8, y: 30628.8, at: "Haemo Island", region: "Land of Morning Light" },
 	{ id: 58933, name: "Gerio", x: 71968, y: 65377, at: "Beiruwa Island", region: "Mediah" },
+	{ id: 58984, name: "Hanipu", x: 119951.2, y: 64964.44, at: "Arehaza", region: "Valencia" },
 	{ id: 50814, name: "Haran", x: 40076, y: 34043, at: "Margoria", region: "The Great Ocean" },
 	{ id: 50826, name: "Harus", x: 46874, y: 30982, at: "Margoria", region: "The Great Ocean" },
 	{ id: 58934, name: "Hashin", x: 74216, y: 64616, at: "Taramura Island", region: "Mediah" },
@@ -59,6 +71,8 @@ export const npcs = [
 	{ id: 58961, name: "Juki", x: 101829, y: 54946, at: "Derko Island", region: "Valencia" },
 	{ id: 58920, name: "Julio", x: 59690, y: 62810, at: "Louruve Island", region: "Balenos" },
 	{ id: 58926, name: "Juvio", x: 64950, y: 64048, at: "Duch Island", region: "Balenos" },
+	{ id: 58983, name: "Kami", x: 78047.2, y: 44417.76, at: "Crow's Nest", region: "The Great Ocean" },
+	{ id: 58974, name: "Karpu", x: 53477.96, y: 70747.348, at: "Epheria Sentry Post", region: "Calpheon" },
 	{ id: 58915, name: "Keshao", x: 54637, y: 58309, at: "Kuit Islands", region: "Calpheon" },
 	{ id: 58957, name: "Kiapura", x: 86584, y: 61709, at: "Shirna Island", region: "Valencia" },
 	{ id: 50816, name: "Lantinia", x: 43212, y: 26893, at: "Margoria", region: "The Great Ocean" },
@@ -67,8 +81,10 @@ export const npcs = [
 	{ id: 58911, name: "Merio", x: 53979, y: 64903, at: "Eberdeen Island", region: "Calpheon" },
 	{ id: 58939, name: "Metakio", x: 64973, y: 59131, at: "Tulu Island", region: "Balenos" },
 	{ id: 58945, name: "Mulicia", x: 77864, y: 51088, at: "Chiro's Figurehead Workshop", region: "Balenos" },
+	{ id: 58976, name: "Nedio", x: 78741.16, y: 66291.12, at: "Sausan Garrison Wharf", region: "Mediah" },
 	{ id: 58924, name: "Neruo", x: 63237, y: 62978, at: "Fish Drying Yard 2", region: "Balenos" },
 	{ id: 50818, name: "Olcia Viano", x: 47925, y: 37728, at: "Margoria", region: "The Great Ocean" },
+	{ id: 58978, name: "Orchio", x: 55741, y: 96527.52, at: "Starry Midnight Port", region: "O'dyllita" },
 	{ id: 58908, name: "Padio", x: 51887, y: 64171, at: "Netnume Island", region: "Calpheon" },
 	{ id: 50817, name: "Pakio", x: 55120, y: 25866, at: "Margoria", region: "The Great Ocean" },
 	{ id: 58923, name: "Pakuo", x: 64159, y: 60542, at: "Invernen Island", region: "Balenos" },
@@ -96,6 +112,7 @@ export const npcs = [
 	{ id: 58910, name: "Ruishi", x: 53393, y: 65173, at: "Dunde Island", region: "Calpheon" },
 	{ id: 58925, name: "Rukio", x: 64614, y: 61439, at: "Balvege Island", region: "Balenos" },
 	{ id: 58967, name: "Ryubio", x: 54673, y: 57268, at: "Kuit Islands", region: "Calpheon" },
+	{ id: 58977, name: "Sabnipu", x: 46009.84, y: 91986.64, at: "Grándiha", region: "O'dyllita" },
 	{ id: 58940, name: "Serapu", x: 69343, y: 60614, at: "Baremi Island", region: "Balenos" },
 	{ id: 58936, name: "Serrio", x: 77085, y: 64171, at: "Delinghart Island", region: "Mediah" },
 	{ id: 58962, name: "Shamihi", x: 85236, y: 57464, at: "Boa Island", region: "Valencia" },

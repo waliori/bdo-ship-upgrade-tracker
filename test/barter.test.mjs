@@ -20,7 +20,7 @@ import {
 	REFRESH, PARLEY, ROUTE_UNLOCKS,
 	amount, levelOf, bestExchange, ladder, rungs, bottleneck,
 	dailyCapacity, parleyPerTrade, gateFor, forecast, summarise, explain,
-	barterLevels, levelDiscount, BARTER_TIERS
+	barterLevels, levelDiscount, BARTER_TIERS, TOP_LEVEL, isTerminal, exchangeKind
 } from '../js/barter.js';
 
 /* ------------------------------------------------------------------ *
@@ -443,7 +443,9 @@ test('every barterable item folds to a finite, positive cost', () => {
 		assert.ok(f, `${entry.name} has sources but no forecast`);
 		assert.ok(Number.isFinite(f.perUnit) && f.perUnit > 0, `${entry.name}: ${f.perUnit} trades`);
 		assert.ok(Number.isFinite(f.days) && f.days >= 0, `${entry.name}: ${f.days} days`);
-		assert.ok(f.rungs.length <= 6, `${entry.name} climbs ${f.rungs.length} rungs`);
+		// A [Level 7] is seven rungs, and so would be a material bought
+		// with a [Level 6]; nothing can be taller than the chain itself.
+		assert.ok(f.rungs.length <= TOP_LEVEL, `${entry.name} climbs ${f.rungs.length} rungs`);
 	}
 });
 
@@ -452,8 +454,10 @@ test('a ship material is exactly one trade above the rung that buys it', () => {
 	// cost more than the good it is bought with plus the single trade
 	// that buys it. A ladder folded the wrong way round -- multiplying
 	// where it should divide -- breaks this immediately.
+	// The dearest good a material could be bought with: anything under
+	// the terminal rung, which nothing is bought with.
 	const dearest = Math.max(...shipbarters
-		.filter(e => levelOf(e.name) === 5)
+		.filter(e => levelOf(e.name) !== null && !isTerminal(e.name))
 		.map(e => forecast(e.name, 1, shipbarters, { barterCount: 20000 }).perUnit));
 
 	for (const entry of shipbarters.filter(e => levelOf(e.name) === null)) {
@@ -462,20 +466,150 @@ test('a ship material is exactly one trade above the rung that buys it', () => {
 	}
 });
 
-test('[Level 5] is the dearest rung, because it is the only 1:1 one', () => {
+test('the chain gets dearer only where it pays one for one', () => {
 	// The chain does not simply get dearer as it climbs. [Level 2] to
 	// [Level 4] each pay more than one per trade, so a unit of them
 	// costs less than the [Level 1] underneath -- one [Level 1] becomes
 	// two and a half [Level 2]s. [Level 5] is where that stops: it pays
-	// one for one, so it costs its whole [Level 4] plus a trade, and it
-	// is what makes the Brilliants expensive.
+	// one for one, so it costs its whole [Level 4] plus a trade, and so
+	// do the two coastal rungs above it. That makes [Level 7] the
+	// dearest thing on the table, each of the top three exactly one
+	// trade over the one beneath.
 	const cost = level => {
 		const each = shipbarters
 			.filter(e => levelOf(e.name) === level)
 			.map(e => forecast(e.name, 1, shipbarters, { barterCount: 20000 }).perUnit);
+		assert.ok(each.length, `no [Level ${level}] goods in the dataset`);
 		return each.reduce((a, b) => a + b, 0) / each.length;
 	};
-	const byLevel = [1, 2, 3, 4, 5].map(cost);
-	assert.equal(Math.max(...byLevel), byLevel[4], 'level 5 should be the dearest');
+	const byLevel = [1, 2, 3, 4, 5, 6, 7].map(cost);
+	assert.equal(Math.max(...byLevel), byLevel[6], 'level 7 should be the dearest');
 	assert.ok(byLevel[1] < byLevel[0], 'a level 2 should cost less than the level 1 below it');
+	assert.ok(byLevel[4] > byLevel[3], 'level 5 is the first rung dearer than the one below');
+	assert.ok(Math.abs(byLevel[5] - byLevel[4] - 1) < 1e-9, 'a level 6 is a level 5 and a trade');
+	assert.ok(Math.abs(byLevel[6] - byLevel[5] - 1) < 1e-9, 'a level 7 is a level 6 and a trade');
+});
+
+/* ------------------------------------------------------------------ *
+ * the coast: [Level 6], [Level 7], and the ten barterers who deal them
+ * ------------------------------------------------------------------ */
+
+test('the dataset is the 2026-08-29 table: seven levels, 91 barterers', () => {
+	// The counts the header of barter.js quotes. A re-scrape that
+	// silently dropped the coast -- or the [Level 6] rows with it --
+	// would pass every folding test above and still be the old sea.
+	const exchanges = shipbarters.reduce((n, e) => n + e.sources.length, 0);
+	const npcs = new Set(shipbarters.flatMap(e => e.sources.map(s => s.npc_id)));
+	assert.equal(shipbarters.length, 158);
+	assert.equal(exchanges, 4397);
+	assert.equal(npcs.size, 91);
+
+	const levels = new Set(shipbarters.map(e => levelOf(e.name)).filter(Boolean));
+	assert.deepEqual([...levels].sort(), [1, 2, 3, 4, 5, 6, 7]);
+	assert.equal(TOP_LEVEL, 7);
+
+	// The shore, by id, as barter_npcs.js carries them.
+	for (const id of [58979, 58973, 58981, 58980, 58984, 58983, 58974, 58976, 58978, 58977]) {
+		assert.ok(npcs.has(id), `${id} deals nothing in the dataset`);
+	}
+});
+
+test('a [Level 6] is bought with a [Level 5], one for one, five a draw', () => {
+	// Six ports deal the rung: Hakoven, which was already on the chart,
+	// and the five the 2026-08-29 pull added. Every one of their rows
+	// reads the same way -- one [Level 5] in, one [Level 6] out, five
+	// attempts -- which is what makes the rung a whole trade dearer
+	// than the one below.
+	const sixes = shipbarters.filter(e => levelOf(e.name) === 6);
+	assert.equal(sixes.length, 24);
+	const dealers = new Set();
+	for (const e of sixes) {
+		for (const s of e.sources) {
+			dealers.add(s.npc_id);
+			assert.equal(levelOf(s.give.name), 5, `${e.name} is not bought with a [Level 5] at ${s.npc_name}`);
+			assert.equal(s.give.quantity, '1');
+			assert.equal(s.quantity_received, '1');
+			assert.equal(s.attempts_available, 5);
+		}
+	}
+	assert.deepEqual([...dealers].sort(), [58971, 58977, 58978, 58980, 58981, 58984]);
+
+	const f = forecast(sixes[0].name, 1, shipbarters, { barterCount: 20000 });
+	assert.equal(f.rungs.length, 6);
+	assert.equal(levelOf(f.rungs[1].item), 5);
+	assert.equal(exchangeKind(sixes[0].name), 'trade');
+});
+
+test('a material bought with a [Level 6] folds through the whole coast', () => {
+	// The table has no such material yet -- every [Level 6] is spent on
+	// a [Level 7] -- so one is built by hand on top of the real chain:
+	// as tall as a [Level 7], and exactly one trade over the [Level 6]
+	// it costs.
+	const six = shipbarters.find(e => levelOf(e.name) === 6);
+	const data = [...shipbarters, {
+		name: 'Coastal Keel Plate', sources: [{
+			npc_id: 1, npc_name: 'Nobody', attempts_available: 2,
+			quantity_received: '1', give: { name: six.name, quantity: '1' }
+		}]
+	}];
+	const plate = forecast('Coastal Keel Plate', 1, data, { barterCount: 20000 });
+	const under = forecast(six.name, 1, data, { barterCount: 20000 });
+	assert.equal(plate.rungs.length, TOP_LEVEL);
+	assert.ok(Math.abs(plate.perUnit - under.perUnit - 1) < 1e-9, `${plate.perUnit} vs ${under.perUnit}`);
+	assert.equal(levelOf(plate.rungs.at(-1).item), 1, 'the ladder still bottoms out on land');
+	assert.deepEqual(plate.seed, under.seed);
+});
+
+test('[Level 7] is the top of the ladder and never a rung on it', () => {
+	// No exchange in the table takes a [Level 7]; their sink is outside
+	// the barter window. So they fold -- one [Level 6] and a trade --
+	// but nothing folds through them.
+	const sevens = shipbarters.filter(e => isTerminal(e.name));
+	assert.equal(sevens.length, 24);
+	for (const e of shipbarters) {
+		for (const s of e.sources) {
+			assert.ok(!isTerminal(s.give.name), `${e.name} is bought with ${s.give.name} at ${s.npc_name}`);
+		}
+	}
+	for (const e of sevens) {
+		for (const s of e.sources) {
+			assert.equal(levelOf(s.give.name), 6, `${e.name} is not bought with a [Level 6]`);
+		}
+		const f = forecast(e.name, 1, shipbarters, { barterCount: 20000 });
+		assert.equal(f.rungs.length, TOP_LEVEL);
+		for (const r of f.rungs.slice(1)) assert.ok(!isTerminal(r.item));
+	}
+	assert.equal(isTerminal('[Level 6] Golden Sand Ring'), false);
+	assert.equal(isTerminal('Brilliant Pearl Shard'), false);
+});
+
+test('a give the table never hands over is the floor, like a [Level 1]', () => {
+	// Kami and the Margoria drifters take Gold Bar 100G for Tidal Black
+	// Stone. Nothing barters for a gold bar, so a ladder that picked
+	// that exchange has to stop there and hand the bar back as the seed
+	// rather than recurse onto nothing and lose the shopping list.
+	const data = [{
+		name: 'Tidal Black Stone', sources: [{
+			npc_id: 1, npc_name: 'Kami', attempts_available: 2,
+			quantity_received: '20', give: { name: 'Gold Bar 100G', quantity: '1' }
+		}]
+	}];
+	const f = forecast('Tidal Black Stone', 40, data, { barterCount: 20000 });
+	assert.equal(f.rungs.length, 1);
+	assert.deepEqual(f.seed, { item: 'Gold Bar 100G', qty: 2 });
+	assert.equal(f.trades, 2);
+});
+
+test('the coast does not move what an unstated cap is charged at', () => {
+	// An unstated cap is charged at the Brilliants' two a draw. The
+	// coast's fives and Kami's ones are new numbers in the table, and
+	// neither is what a zero now reads as.
+	for (const name of ['Brilliant Pearl Shard', 'Brilliant Rock Salt Ingot']) {
+		const caps = new Set(shipbarters.find(e => e.name === name).sources.map(s => s.attempts_available));
+		assert.deepEqual([...caps], [2], `${name} is capped at ${[...caps]}`);
+	}
+	const coral = forecast('Gilded Coral', 1, shipbarters, { barterCount: 20000 });
+	assert.equal(coral.limit.attempts, 2);
+	const six = shipbarters.find(e => levelOf(e.name) === 6);
+	assert.equal(forecast(six.name, 1, shipbarters, { barterCount: 20000 }).rungs[0].attempts, 5);
 });

@@ -145,9 +145,37 @@ test('a refused zoom step does not move the centre either', () => {
 
 test('the map opens wide enough to show nearly every island', () => {
 	// The point of the screen is how spread out the sea is; opening on a
-	// corner of it hides the answer.
+	// corner of it hides the answer. Since the shore joined, the whole
+	// sea is wider than a laptop view holds at the widest zoom -- Haemo
+	// Island to Arehaza is 1,600 pixels at zoom 3 -- so the outermost
+	// ports may start just off-screen; the heart of it must not.
 	const { pins } = frame(createMap(), SIZE);
-	assert.ok(pins.length > npcs.length * 0.9, `only ${pins.length} of ${npcs.length} in view`);
+	assert.ok(pins.length > npcs.length * 0.85, `only ${pins.length} of ${npcs.length} in view`);
+});
+
+test('the shore is on the chart: the ten coastal barterers, at every zoom', () => {
+	// Four of them stand past where the tiles used to end -- Haemo
+	// Island west of it, the two O'dyllita ports south, Arehaza on the
+	// eastern edge -- and TILES was widened to hold them. Each is joined
+	// both ways: a position here, and exchanges in all_barter.json.
+	const shore = [58979, 58973, 58981, 58980, 58984, 58983, 58974, 58976, 58978, 58977];
+	const inRoutes = new Set(shipbarters.flatMap(e => e.sources.map(s => s.npc_id)));
+	for (const id of shore) {
+		const n = npcById.get(id);
+		assert.ok(n, `${id} has no position`);
+		assert.ok(inRoutes.has(id), `${n.name} trades nothing in the dataset`);
+		for (const z of Object.keys(TILES).map(Number)) {
+			const b = TILES[z];
+			const tx = Math.floor(toPixel(n.x, z) / TILE);
+			const ty = Math.floor(toPixel(n.y, z) / TILE);
+			assert.ok(tx >= b.x0 && tx <= b.x1 && ty >= b.y0 && ty <= b.y1, `${n.name} off the chart at z${z}`);
+		}
+	}
+	assert.equal(npcs.length, 91);
+	// The far ones by name, so a coordinate typo cannot hide behind the loop.
+	assert.equal(npcById.get(58980).at, 'Haemo Island');
+	assert.equal(npcById.get(58983).at, "Crow's Nest");
+	assert.ok(npcById.get(58980).x < 16000 && npcById.get(58978).y > 96000);
 });
 
 test('every tile the ranges promise is actually on disk', async () => {
