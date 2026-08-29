@@ -123,14 +123,24 @@ test('the CSP admits every origin the page actually loads from', async () => {
 	const directive = name => (csp.split(';').find(d => d.trim().startsWith(name)) || '').trim();
 
 	for (const [name, origin] of [
-		['script-src', 'https://cdn.jsdelivr.net'],       // the guided tour
-		['style-src', 'https://cdn.jsdelivr.net'],        // and its stylesheet
 		['style-src', 'https://fonts.googleapis.com'],
 		['font-src', 'https://fonts.gstatic.com'],
 		['img-src', 'https://cdn.discordapp.com']         // the signed-in chip
 	]) {
 		assert.ok(directive(name).includes(origin), `${name} must admit ${origin} — got "${directive(name)}"`);
 	}
+
+	// And nothing else may run script. The guided tour's library is
+	// vendored precisely so that no CDN needs to be trusted with
+	// script-src -- this holds the door shut behind it.
+	assert.equal(directive('script-src'), "script-src 'self'");
+});
+
+test('the guided tour library is served from here, not a CDN', async () => {
+	assert.equal((await fetch(`${base}/js/driver.iife.js`)).status, 200);
+	assert.equal((await fetch(`${base}/css/driver.css`)).status, 200);
+	const page = await (await fetch(`${base}/`)).text();
+	assert.doesNotMatch(page, /jsdelivr|unpkg|cdnjs/, 'the page still names a script CDN');
 });
 
 test('the avatar the client builds is an origin the CSP allows', async () => {

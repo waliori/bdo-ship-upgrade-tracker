@@ -33,9 +33,12 @@
 
     <link href="css/tracker.css" rel="stylesheet" type="text/css" />
 
-    <!-- Driver.js powers the guided tour, loaded out of the critical path -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.css">
-    <script src="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.js.iife.js" defer></script>
+    <!-- Driver.js powers the guided tour. Vendored (v1.8.0) rather than
+         pulled from a CDN: an unpinned @latest was a supply-chain door
+         the CSP held open, and a tour that only works while someone
+         else's CDN is up is not a tour this app should have. -->
+    <link rel="stylesheet" href="css/driver.css">
+    <script src="js/driver.iife.js" defer></script>
 
     <link rel="modulepreload" href="js/ui.js">
     <link rel="modulepreload" href="js/state.js">

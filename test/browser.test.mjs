@@ -101,6 +101,20 @@ async function open({ signedIn = null } = {}) {
 		const c = sessionCookie(signedIn);
 		await context.setCookie({ ...c, domain: '127.0.0.1', path: '/' });
 	}
+
+	// These pages model a player who has already seen the first-run tour.
+	// While the tour is up the app deliberately holds every push -- its
+	// example data must never reach a save -- so an auto-started tour
+	// would wedge each sync test on a dialog nobody is there to dismiss.
+	// This was invisible while the tour's library came from a CDN this
+	// harness blocks; vendoring the library made the tour actually start.
+	// The one test about the tour itself starts it by hand regardless.
+	await page.evaluateOnNewDocument(() => {
+		try {
+			localStorage.setItem('bdo_ship_upgrade-tour_completed', 'true');
+		} catch { /* then the tour may start, and only that test minds */ }
+	});
+
 	await page.goto(base, { waitUntil: 'domcontentloaded' });
 	await page.waitForSelector('#pouch .pouch-item', { timeout: 15000 });
 	return { page, context, external };
