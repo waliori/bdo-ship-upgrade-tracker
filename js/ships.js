@@ -18,6 +18,16 @@ export const shipGroups = [
 		]
 	},
 	{
+		name: "Small craft",
+		items: [
+			"Epheria Cog",
+			"Rowboat",
+			"Calpheon Rowboat",
+			"Mediah Rowboat",
+			"Raft",
+		]
+	},
+	{
 		name: "Carrack Parts (Chiro)",
 		items: [
 			"Epheria Carrack: Advance (Chiro's Cannon)",
@@ -93,6 +103,11 @@ export const shipDescriptions = {
 	"Carrack (Volante)": "Speed-focused carrack for rapid traversal",
 	"Carrack (Valor)": "Combat-oriented carrack with firepower",
 	"Panokseon": "Traditional Korean warship",
+	"Epheria Cog": "A fast, fragile runabout with no sailors, no cannons and a lifespan repairs cannot restore",
+	"Rowboat": "The coastal boat for the first Great Ocean errands",
+	"Calpheon Rowboat": "A Rowboat with a little more weight allowance",
+	"Mediah Rowboat": "A Rowboat built from Mediah's materials",
+	"Raft": "Twenty-five logs and some powder",
 	"Epheria Carrack: Advance (Chiro's Cannon)": "Blue cannon for Carrack (Advance) - crafted from a +10 Toro cannon at Iliya Island",
 	"Epheria Carrack: Advance (Chiro's Sail)": "Blue sail for Carrack (Advance) - crafted from a +10 Toro sail at Iliya Island",
 	"Epheria Carrack: Advance (Chiro's Figurehead)": "Blue figurehead for Carrack (Advance) - crafted from a +10 Toro figurehead at Iliya Island",

@@ -148,6 +148,48 @@ export const recipes = {
 		"Glue With Traces of Deep Waves": 200,
 	},
 
+	// The small craft. None of these upgrades into anything, but each is
+	// a shipyard build with a bill, and the Cog in particular is the
+	// boat people make while the big one is still a pile of plywood.
+	// Read from the BDOCodex workshop designs on 2026-08-29.
+	//
+	// The Cog has two designs at a Shipyard Lv2 -- the Kalis-Certified
+	// one wants Falasi's seven-million permit and land materials; the
+	// Fallen Vell Pirates' Legacy one wants four bartered materials and
+	// no permit at all. Both make the same boat. See `routes` below.
+	"Epheria Cog": {
+		"Ship Building Permit: Epheria Cog": 1,
+		"Standardized Timber Square": 25,
+		"Zinc Ingot": 50,
+		"Flax Fabric": 60,
+		"Palm Plywood": 50,
+	},
+	"Rowboat": {
+		"Usable Scantling": 10,
+		"Ash Plywood": 20,
+		"Lead Ingot": 10,
+		"Ash Sap": 10,
+		"Black Stone Powder": 10,
+	},
+	"Calpheon Rowboat": {
+		"Usable Scantling": 10,
+		"Fir Plywood": 20,
+		"Iron Ingot": 10,
+		"Cedar Sap": 10,
+		"Black Stone Powder": 15,
+	},
+	"Mediah Rowboat": {
+		"Usable Scantling": 10,
+		"White Cedar Plywood": 20,
+		"Brass Ingot": 10,
+		"Acacia Sap": 10,
+		"Black Stone Powder": 15,
+	},
+	"Raft": {
+		"Log": 25,
+		"Black Stone Powder": 3,
+	},
+
 	// Upgrade parts
 	"Finely Polished Pine Plywood": {"Sangpyeong Coin": 10},
 	"Graphite Ingot for Upgrade": {"Zinc Ingot": 100, "Sea Monster's Ooze": 1},
@@ -1369,6 +1411,16 @@ export const routes = {
 	"Epheria Galleass": {
 		direct: recipes["Epheria Galleass"],
 		improved: viaHull(recipes["Epheria Galleass"], "Epheria Frigate", "Improved Epheria Frigate")
+	},
+	// Two different designs for one boat, rather than two hulls into one.
+	"Epheria Cog": {
+		permit: recipes["Epheria Cog"],
+		pirates: {
+			"Island Tree Coated Plywood": 100,
+			"Rock Salt Ingot": 100,
+			"Seaweed Stalk": 1,
+			"Tide-Dyed Standardized Timber Square": 2
+		}
 	}
 };
 
@@ -1388,6 +1440,18 @@ export const routeInfo = {
 			label: "By way of the Improved Epheria Frigate",
 			via: "Improved Epheria Frigate",
 			gains: "Adds a solo cannon volley, and the upgrade quests can be done alone."
+		}
+	},
+	"Epheria Cog": {
+		permit: {
+			label: "Kalis-Certified design, with Falasi's permit",
+			via: "Ship Building Permit: Epheria Cog",
+			gains: "Seven million silver for the permit, and land materials the Market sells."
+		},
+		pirates: {
+			label: "Fallen Vell Pirates' Legacy design",
+			via: "Island Tree Coated Plywood",
+			gains: "No permit: four bartered materials instead, for a boat that is the same in every way."
 		}
 	}
 };

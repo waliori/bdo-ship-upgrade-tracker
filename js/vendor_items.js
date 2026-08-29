@@ -126,6 +126,20 @@ export const items = {
 	"Elder Tree Sap": {"Market": ["Central Market"], "Gathering": ["Worker Nodes"]},
 
 	"Standardized Timber Square": {"Market": ["Central Market"], "Processing": ["Chopping Log"]},
+	// What the small craft are built from: everyday land materials the
+	// Market sells, or a worker makes.
+	"Palm Plywood": {"Market": ["Central Market"], "Processing": ["Chopping Palm Plank"]},
+	"Usable Scantling": {"Market": ["Central Market"], "Processing": ["Chopping Log"]},
+	"Ash Plywood": {"Market": ["Central Market"], "Processing": ["Chopping Ash Plank"]},
+	"Fir Plywood": {"Market": ["Central Market"], "Processing": ["Chopping Fir Plank"]},
+	"White Cedar Plywood": {"Market": ["Central Market"], "Processing": ["Chopping White Cedar Plank"]},
+	"Lead Ingot": {"Market": ["Central Market"], "Processing": ["Heating Melted Lead Shard"]},
+	"Iron Ingot": {"Market": ["Central Market"], "Processing": ["Heating Melted Iron Shard"]},
+	"Brass Ingot": {"Market": ["Central Market"], "Processing": ["Heating Melted Copper and Zinc Shards"]},
+	"Ash Sap": {"Market": ["Central Market"], "Gathering": ["Ash trees, with a fluid collector"]},
+	"Cedar Sap": {"Market": ["Central Market"], "Gathering": ["Cedar trees, with a fluid collector"]},
+	"Log": {"Market": ["Central Market"], "Gathering": ["Any tree, with an axe"]},
+	"Black Stone Powder": {"Market": ["Central Market"], "Processing": ["Grinding rough stone or crystals"]},
 	"Steel": {"Market": ["Central Market"], "Processing": ["Heating Iron"]},
 	"Pine Plywood": {"Market": ["Central Market"], "Processing": ["Chopping Pine Timber"]},
 	"Flax Fabric": {
