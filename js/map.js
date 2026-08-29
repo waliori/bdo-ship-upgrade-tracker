@@ -125,8 +125,9 @@ export function frame(state, size, marks = new Map()) {
 		const mark = marks.get(n.id);
 		pins.push({ id: n.id, name: n.name, left: Math.round(px), top: Math.round(py), mark });
 	}
-	// Wanted ones last, so they paint over the rest.
-	pins.sort((a, b) => (a.mark ? 1 : 0) - (b.mark ? 1 : 0));
+	// No layering order here: the painter keys pins by id and reuses the
+	// nodes across frames, so DOM order could not track a sort anyway --
+	// z-index puts a lit pin over a plain one.
 
 	// The sailing line through the marked islands, in viewport pixels
 	// and never culled: a leg between two off-screen stops still

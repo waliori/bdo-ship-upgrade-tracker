@@ -138,11 +138,12 @@ function stopsLive() {
 }
 
 /** The stops in sailing order: the hand-plotted route if there is
- *  one for this view, else the suggested loop -- turned to sail from
- *  home when a wharf is chosen, since a loop has no direction of its
- *  own. */
+ *  one for this view -- a single stop included, since one errand is
+ *  still a route and its pin already wears the "1" -- else the
+ *  suggested loop, turned to sail from home when a wharf is chosen,
+ *  since a loop has no direction of its own. */
 function routeIds(marks) {
-	if (stopsLive() && stops.length >= 2) return stops;
+	if (stopsLive()) return stops;
 	let ids = routeFor(marks).map(n => n.id);
 	const port = ports.find(p => p.id === startPort);
 	if (port && ids.length > 1) {
@@ -271,7 +272,7 @@ function sailHTML(marks) {
 	const list = rows
 		|| `<p class="empty">${q ? 'No island by that name has it.'
 			: 'Nothing on your list is bartered at sea.'}</p>`;
-	const draw = rows && !q ? `<p class="map-hint">Today's list is <span class="gterm"
+	const draw = rows && !q ? `<p class="map-hint">Today's list is <span class="gterm" role="button" tabindex="0"
 		data-guide="draw">a draw</span>: each island deals one offer per list from its own
 		pool, so these are the islands where it <em>can</em> appear — the “1 of N” is that
 		pool.</p>` : '';
@@ -312,9 +313,22 @@ function routeHTML(marks) {
 	}).join('');
 	const prof = barterProfile();
 	const rateFor = id => {
+		// A marked stop is priced by what you are sailing there for, the
+		// dearest kind first -- that is the trade you will make. A bare
+		// stop is priced by what the island actually deals, which the
+		// barter data knows; only when it deals more than one kind, or
+		// none we know of, does a guess come in, and then the cheaper
+		// one -- an estimate should undersell the route, not pad it.
 		const mm = marks.get(id);
-		const ks = mm ? [...mm.items.keys()].map(barterKind) : [];
-		const kind = ks.includes('material') ? 'material' : ks.includes('coin') ? 'coin' : ks.length ? 'trade' : 'material';
+		if (mm && mm.items.size) {
+			const ks = [...mm.items.keys()].map(barterKind);
+			const kind = ks.includes('material') ? 'material' : ks.includes('coin') ? 'coin' : 'trade';
+			return parleyPerTrade({ ...prof, kind });
+		}
+		const deals = [...new Set(goodsOf(id).map(g => barterKind(g.item)))];
+		const kind = deals.length === 1 ? deals[0]
+			: deals.includes('trade') || !deals.length ? 'trade'
+			: deals.includes('coin') ? 'coin' : 'material';
 		return parleyPerTrade({ ...prof, kind });
 	};
 	const rates = stops.map(rateFor);
@@ -327,7 +341,7 @@ function routeHTML(marks) {
 		: `one trade each · your ${F(held)} covers ${afford}`;
 	const stats = stops.length ? `<div class="map-stats">
 			<div><div class="summary-k">Stops</div><div class="summary-v">${stops.length}</div></div>
-			<div><div class="summary-k"><span class="gterm" data-guide="parley">Parley</span></div><div class="summary-v">${F(need)}</div>
+			<div><div class="summary-k"><span class="gterm" role="button" tabindex="0" data-guide="parley">Parley</span></div><div class="summary-v">${F(need)}</div>
 				<div class="summary-sub">${cover}</div></div>
 		</div>
 		<div class="map-side-btns">
@@ -371,7 +385,7 @@ function todayHTML(marks) {
 			<div class="map-ring" style="background:conic-gradient(var(--teal) ${pct * 3.6}deg, var(--track) 0deg)">
 				<span>${pct}%</span></div>
 			<div><div class="map-ring-big">${doneCount} of ${all.length} visited</div>
-				<div class="map-row-sub"><span class="gterm" data-guide="refresh">resets 06:00 UTC with the game</span></div></div>
+				<div class="map-row-sub"><span class="gterm" role="button" tabindex="0" data-guide="refresh">resets 06:00 UTC with the game</span></div></div>
 		</div>
 		<div class="map-list">${rows}</div>`;
 }
@@ -419,6 +433,37 @@ function refreshSideList() {
  * painting
  * ------------------------------------------------------------------ */
 
+/** One repaint per frame however fast the events report: a trackpad
+ *  delivers several moves per frame, a pointer crossing a row of pins
+ *  fires enter/leave in pairs, and each paint is work. Everything that
+ *  repaints in response to input goes through here. */
+let paintRaf = null;
+function schedulePaint() {
+	if (paintRaf) return;
+	paintRaf = requestAnimationFrame(() => {
+		paintRaf = null;
+		paintMap();
+	});
+}
+
+/** Zoom on wheel. Wired to the map box itself rather than the document
+ *  -- a non-passive document listener would cost the whole app its
+ *  passive scrolling -- and non-passive there, so preventDefault still
+ *  keeps the page from scrolling under the chart. The box is rebuilt
+ *  with the screen, so paintMap re-wires whichever one exists. */
+function onWheel(evt) {
+	if (!mapState) return;
+	if (evt.target.closest('.map-side, .map-tip, .map-steps')) return;   // their scroll, not ours
+	evt.preventDefault();
+	cancelFly();
+	// Anchored under the cursor, and continuous: a notch of the wheel is
+	// a quarter-step of magnification, not a lurch to the next level.
+	const box = evt.currentTarget.getBoundingClientRect();
+	if (zoomAt(mapState, -evt.deltaY * 0.0024,
+		{ w: box.width, h: box.height },
+		evt.clientX - box.left, evt.clientY - box.top)) schedulePaint();
+}
+
 /**
  * Draw the tiles and pins for the current state into the live map.
  *
@@ -438,6 +483,12 @@ export function paintMap() {
 
 	const size = { w: host.clientWidth, h: host.clientHeight };
 	if (!size.w || !size.h) return;
+
+	// A re-render hands us a fresh box; give it its wheel back.
+	if (!host._wheelWired) {
+		host._wheelWired = true;
+		host.addEventListener('wheel', onWheel, { passive: false });
+	}
 
 	const marks = marksNow();
 
@@ -523,8 +574,12 @@ function paintPins(layer, pins, marks, currentId) {
 			btn.dataset.npc = p.id;
 			btn.innerHTML = '<span class="map-pin-dot"></span><span class="map-pin-badge"></span>'
 				+ '<span class="map-pin-name"><span class="map-pin-npc"></span><span class="map-pin-at"></span></span>';
-			btn.addEventListener('pointerenter', () => { hoverNpc = p.id; paintMap(); });
-			btn.addEventListener('pointerleave', () => { hoverNpc = null; paintMap(); });
+			// Through the frame throttle, like every other pointer event:
+			// skimming a cluster of pins fires these in bursts, and a
+			// synchronous paint per crossing stuttered the very hover it
+			// was showing.
+			btn.addEventListener('pointerenter', () => { hoverNpc = p.id; schedulePaint(); });
+			btn.addEventListener('pointerleave', () => { hoverNpc = null; schedulePaint(); });
 			pool.set(p.id, btn);
 			layer.appendChild(btn);
 		}
@@ -784,21 +839,10 @@ export function wireMap() {
 	let dragging = null;          // one pointer moving the sea
 	const touching = new Map();   // every pointer down on the map, for pinch
 	let pinch = null;             // { dist } spread at the last frame
-	let raf = null;
 
 	// The panel, the card, the minimap: furniture on top of the sea.
 	// A gesture that starts on them is for them, not for the chart.
 	const FURNITURE = '[data-act="map-pin"], [data-act="map-port"], .map-side, .map-side-pill, .map-tip, .map-mini, .map-steps';
-
-	// One repaint per frame however fast the pointer reports; a trackpad
-	// can deliver several moves per frame and each paint is work.
-	const repaint = () => {
-		if (raf) return;
-		raf = requestAnimationFrame(() => {
-			raf = null;
-			paintMap();
-		});
-	};
 
 	document.addEventListener('pointerdown', evt => {
 		const host = evt.target.closest('[data-map]');
@@ -835,7 +879,7 @@ export function wireMap() {
 				const box = host.getBoundingClientRect();
 				if (zoomAt(mapState, Math.log2(dist / pinch.dist),
 					{ w: box.width, h: box.height },
-					(a.x + b.x) / 2 - box.left, (a.y + b.y) / 2 - box.top)) repaint();
+					(a.x + b.x) / 2 - box.left, (a.y + b.y) / 2 - box.top)) schedulePaint();
 			}
 			pinch.dist = dist;
 			return;
@@ -844,7 +888,7 @@ export function wireMap() {
 		if (!dragging) return;
 		pan(mapState, evt.clientX - dragging.x, evt.clientY - dragging.y);
 		dragging = { x: evt.clientX, y: evt.clientY };
-		repaint();
+		schedulePaint();
 	});
 
 	const stop = evt => {
@@ -862,20 +906,8 @@ export function wireMap() {
 	document.addEventListener('pointerup', stop);
 	document.addEventListener('pointercancel', stop);
 
-	document.addEventListener('wheel', evt => {
-		const host = evt.target.closest('[data-map]');
-		if (!host || !mapState) return;
-		if (evt.target.closest('.map-side, .map-tip, .map-steps')) return;   // their scroll, not ours
-		evt.preventDefault();
-		cancelFly();
-		// Anchored under the cursor, and continuous: a notch of the
-		// wheel is a quarter-step of magnification, not a lurch to the
-		// next level.
-		const box = host.getBoundingClientRect();
-		if (zoomAt(mapState, -evt.deltaY * 0.0024,
-			{ w: box.width, h: box.height },
-			evt.clientX - box.left, evt.clientY - box.top)) repaint();
-	}, { passive: false });
+	// The wheel is not delegated like the rest: it lives on the map box
+	// itself, wired by paintMap -- see onWheel.
 
 	// The search box filters as you type, touching only the list under
 	// it -- rebuilding the input mid-word would eat the caret.

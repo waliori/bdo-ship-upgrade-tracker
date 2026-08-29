@@ -58,11 +58,29 @@ test('a crewed ship shaves its tenth off, added like the rest', () => {
 	assert.ok(dailyCapacity({ crew: true }).perTrade < dailyCapacity({}).perTrade);
 });
 
-test('a Value Pack buys a sixth refresh and a cheaper trade', () => {
+test('the crew discount reaches the forecast, not just the tooltip', () => {
+	// forecast used to destructure `crew` out of existence on the way
+	// in, so the Get screen's checkbox changed nothing it quoted.
+	const plain = forecast('Brilliant Pearl Shard', 40, shipbarters, { barterCount: 2000 });
+	const crewed = forecast('Brilliant Pearl Shard', 40, shipbarters, { barterCount: 2000, crew: true });
+	assert.ok(crewed.topParley < plain.topParley, 'crew was dropped on the way in');
+	assert.equal(crewed.days, plain.days, 'cheaper Parley is not a faster trip');
+});
+
+test('the two lists refresh on their own clocks', () => {
+	// One free draw each at 06:00, plus each list's own presses -- a
+	// press re-rolls one list, never both. So a Value Pack's extra
+	// trade-item press buys the trade list a fourth draw and buys the
+	// material list nothing at all. Pooling the two into one pace was
+	// how the forecast used to lend the material list draws it does not
+	// have.
 	const plain = dailyCapacity();
 	const vp = dailyCapacity({ valuePack: true });
-	assert.equal(plain.refreshes, 5);
-	assert.equal(vp.refreshes, 6);
+	assert.equal(plain.lists.trade, 3);
+	assert.equal(plain.lists.material, 3);
+	assert.equal(vp.lists.trade, 4);
+	assert.equal(vp.lists.material, 3, 'a Value Pack does not press the material list');
+	assert.equal(plain.refreshes, plain.lists.trade + plain.lists.material);
 	assert.ok(vp.perTrade < plain.perTrade);
 	assert.ok(vp.tradesPerBar > plain.tradesPerBar);
 });
@@ -167,6 +185,24 @@ test('levels come off the name, and ship materials have none', () => {
 	assert.equal(levelOf('Brilliant Pearl Shard'), null);
 });
 
+test('a rate tie goes to the higher cap, then to the wider offer', () => {
+	// Equal rates used to fall to whichever source the scrape listed
+	// first. The higher attempt cap needs fewer redraws; failing that,
+	// the exchange more islands deal is likelier on somebody's list
+	// today.
+	const src = (npc, give, attempts) => ({
+		npc_id: npc.charCodeAt(0), npc_name: npc, attempts_available: attempts,
+		quantity_received: '2', give: { name: give, quantity: '1' }
+	});
+	const capped = [{ name: 'Tied Shell', sources: [src('A', 'X', 2), src('B', 'X', 6)] }];
+	assert.equal(bestExchange('Tied Shell', capped).npc, 'B');
+
+	const spread = [{ name: 'Tied Shell', sources: [
+		src('A', 'X', 2), src('B', 'Y', 2), src('C', 'Y', 2)
+	] }];
+	assert.equal(bestExchange('Tied Shell', spread).give, 'Y');
+});
+
 /* ------------------------------------------------------------------ *
  * folding the ladder
  * ------------------------------------------------------------------ */
@@ -247,20 +283,23 @@ test('an item nobody barters for has no forecast', () => {
  * ------------------------------------------------------------------ */
 
 test('the top rung sets the pace, and Parley never does', () => {
-	// Forty Shards is a couple of hundred trades. One refilled Parley
-	// bar covers sixty-nine top-rung exchanges and you refill five times
-	// a day, so Parley was never going to be the thing in the way. Two
-	// attempts per refresh is what makes it four days.
+	// Forty Shards is a couple of hundred trades. The Shard is a ship
+	// material, so its two attempts a refresh are paced by the material
+	// list's own three draws a day -- twenty redraws is the best part
+	// of a week, whatever the trade list is doing.
 	const f = forecast('Brilliant Pearl Shard', 40, shipbarters, { barterCount: 2000 });
 	assert.equal(f.limit.item, 'Brilliant Pearl Shard');
 	assert.equal(f.limit.perRefresh, 2);
-	assert.equal(f.days, f.limit.refreshes / f.capacity.refreshes);
-	assert.ok(f.days > 3, `expected days, got ${f.days}`);
+	assert.equal(f.limit.list, 'material');
+	assert.equal(f.days, f.limit.refreshes / f.capacity.lists.material);
+	assert.ok(f.days > 6, `expected days, got ${f.days}`);
 
-	// Parley is reported, not used as a ceiling: forty Shards is forty
-	// top-rung exchanges, well inside a single bar.
-	assert.equal(f.topParley, 40 * PARLEY.perGreatOceanTrade);
-	assert.ok(f.topParley < PARLEY.max);
+	// Parley is reported, not used as a ceiling -- and at the material
+	// list's own rate, the one the Get screen and the map quote, not
+	// the chain rate that undersold it four times over. A couple of
+	// bars, against a bar that refills on every press.
+	assert.equal(f.topParley, 40 * PARLEY.perMaterialTrade);
+	assert.ok(f.topParley < f.capacity.parley);
 });
 
 test('the bottleneck is the worst rung, not the first or the sum', () => {
@@ -269,23 +308,50 @@ test('the bottleneck is the worst rung, not the first or the sum', () => {
 	const perRung = [];
 	let needed = 40;
 	for (let r = top; r; r = r.from) {
-		if (r.attempts) perRung.push(needed / (r.attempts * r.received));
+		// An unstated cap is charged at two a draw, and without a Value
+		// Pack both lists hold three draws, so days rank as refreshes do.
+		perRung.push(needed / ((r.attempts || 2) * r.received));
 		needed *= r.givePerUnit;
 	}
 	assert.equal(worst.refreshes, Math.max(...perRung));
 });
 
-test('a rung with no stated attempt cap is skipped, not guessed', () => {
-	const top = ladder('Brilliant Pearl Shard', shipbarters);
+test('an unstated attempt cap is charged, never read as unlimited', () => {
+	// Gilded Coral's every source reads 0 attempts, and so does Golden
+	// Turtle Shell's -- the dataset's "not stated", not "take as many as
+	// you like". Read as unlimited they promised any quantity in one
+	// sitting; charged at the tightest cap the dataset does state, two a
+	// draw, the days come out finite and honest.
+	const coral = forecast('Gilded Coral', 40, shipbarters, { barterCount: 20000 });
+	assert.equal(coral.limit.item, 'Gilded Coral');
+	assert.ok(coral.days > 3, `forty corals in ${coral.days} days`);
+	assert.doesNotMatch(summarise(coral), /one sitting/);
+
+	const shell = forecast('Golden Turtle Shell', 40, shipbarters, { barterCount: 20000 });
+	assert.ok(shell.limit, 'no cap stated anywhere, and still no bottleneck');
+	assert.ok(shell.days > 6, `forty shells in ${shell.days} days`);
+
+	// The ladder itself still tells the truth: 0 stays "not stated".
+	const top = ladder('Gilded Coral', shipbarters);
+	assert.equal(rungs(top)[0].attempts, null);
 	for (const r of rungs(top)) {
 		assert.notEqual(r.attempts, 0, `${r.item} kept a zero attempt count`);
 	}
 });
 
-test('more refreshes a day is fewer days', () => {
-	const plain = forecast('Brilliant Pearl Shard', 40, shipbarters, { barterCount: 2000 });
-	const vp = forecast('Brilliant Pearl Shard', 40, shipbarters, { barterCount: 2000, valuePack: true });
-	assert.ok(vp.days < plain.days);
+test('more draws of the right list is fewer days', () => {
+	// The Value Pack's extra press is a trade-item press. It speeds a
+	// trip paced by the trade list and does nothing at all for one paced
+	// by the material list -- the Shard takes its week either way.
+	const quartz = forecast('[Level 5] Azure Quartz', 40, shipbarters, { barterCount: 2000 });
+	const quartzVp = forecast('[Level 5] Azure Quartz', 40, shipbarters,
+		{ barterCount: 2000, valuePack: true });
+	assert.ok(quartzVp.days < quartz.days);
+
+	const shard = forecast('Brilliant Pearl Shard', 40, shipbarters, { barterCount: 2000 });
+	const shardVp = forecast('Brilliant Pearl Shard', 40, shipbarters,
+		{ barterCount: 2000, valuePack: true });
+	assert.equal(shardVp.days, shard.days, 'a trade press cannot redraw the material list');
 });
 
 /* ------------------------------------------------------------------ *
@@ -308,6 +374,24 @@ test('the gate named is the furthest one on the whole ladder', () => {
 	const f = forecast('Brilliant Pearl Shard', 1, shipbarters, { barterCount: 1100 });
 	assert.equal(f.gate.barters, 1500);
 	assert.equal(f.gate.short, 400);
+});
+
+test('Crow Coin is gated until the first Crow Coin route opens', () => {
+	// The 10/30/70 counts that used to gate levels now open the Crow
+	// Coin routes, Kashuma first at 10 -- ROUTE_UNLOCKS has said so all
+	// along, while gateFor only ever looked for Brilliants. Below 10 a
+	// player has no Crow Coin route at all, so an ungated forecast was
+	// quoting a trade the window would not show. Past the first route
+	// the later thresholds only add islands; they do not lock the coin.
+	assert.equal(gateFor('Crow Coin', 0).barters, 10);
+	assert.equal(gateFor('Crow Coin', 0).short, 10);
+	assert.match(gateFor('Crow Coin', 9).opens, /Crow Coin/);
+	assert.equal(gateFor('Crow Coin', 10), null);
+	assert.equal(gateFor('Crow Coin', 30), null);
+
+	const f = forecast('Crow Coin', 100, shipbarters, { barterCount: 0 });
+	assert.ok(f.gate);
+	assert.match(summarise(f), /^locked/);
 });
 
 test('only thresholds a patch note still states are claimed', () => {
@@ -335,8 +419,18 @@ test('the explanation does not tell you an item limits itself', () => {
 	const self = forecast('Brilliant Pearl Shard', 40, shipbarters, { barterCount: 2000 });
 	assert.doesNotMatch(explain(self), /on Brilliant Pearl Shard/);
 
-	const other = forecast('Bright Reef Piece', 40, shipbarters, { barterCount: 2000 });
-	assert.match(explain(other), /on \[Level/);
+	// In the shipped dataset the top rung is always the stingy one, so a
+	// lopsided ladder is built by hand: ten a draw at the top, but the
+	// [Level 1] that buys it comes two a draw and is what runs out.
+	const lopsided = [
+		{ name: 'Coral Trinket', sources: [{ npc_id: 1, npc_name: 'A', attempts_available: 10,
+			quantity_received: '10', give: { name: '[Level 1] Old Rope', quantity: '1' } }] },
+		{ name: '[Level 1] Old Rope', sources: [{ npc_id: 2, npc_name: 'B', attempts_available: 2,
+			quantity_received: '1', give: { name: 'Old Tree Bark', quantity: '1' } }] }
+	];
+	const other = forecast('Coral Trinket', 40, lopsided, { barterCount: 2000 });
+	assert.equal(other.limit.item, '[Level 1] Old Rope');
+	assert.match(explain(other), /on \[Level 1\] Old Rope/);
 });
 
 /* ------------------------------------------------------------------ *

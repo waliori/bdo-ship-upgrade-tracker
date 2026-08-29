@@ -222,12 +222,16 @@ test('something with no barter route marks nothing, rather than erroring', () =>
 	assert.equal(marksFor({ 'Cron Stone': 500 }, shipbarters).size, 0);
 });
 
-test('wanted pins are drawn last so they land on top', () => {
+test('every pin still carries its mark for the painter to layer by', () => {
+	// frame() no longer orders pins -- the painter reuses keyed nodes, so
+	// DOM order could not follow a sort anyway; z-index does the layering
+	// off the mark. What the frame owes it is the mark itself.
 	const marks = marksFor({ 'Brilliant Pearl Shard': 40 }, shipbarters);
 	const { pins } = frame(createMap(), SIZE, marks);
-	const firstMarked = pins.findIndex(p => p.mark);
-	assert.ok(firstMarked >= 0, 'nothing marked in view');
-	assert.ok(pins.slice(firstMarked).every(p => p.mark), 'a plain pin sorted after a marked one');
+	const lit = pins.filter(p => p.mark);
+	assert.ok(lit.length > 0, 'nothing marked in view');
+	for (const p of lit) assert.ok(marks.has(p.id), `${p.id} lit without a mark`);
+	assert.equal(lit.length, pins.filter(p => marks.has(p.id)).length);
 });
 
 /* ------------------------------------------------------------------ *

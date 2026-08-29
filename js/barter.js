@@ -16,9 +16,10 @@
 // on it -- but a refilled bar buys sixty-nine exchanges at the top rung
 // and the list will never offer you that many, so it is never what
 // stops you. The cap is: an exchange for a Brilliant Pearl Shard can be
-// taken twice before the list has to be redrawn, and the list can be
-// redrawn five times a day. Forty Shards is therefore twenty redraws,
-// which is four days, and no amount of Parley shortens it.
+// taken twice before the list has to be redrawn, and the ship-material
+// list -- its own list, with its own free draw and its own presses --
+// can be redrawn three times a day. Forty Shards is therefore twenty
+// redraws, which is a week, and no amount of Parley shortens it.
 //
 // Every number here is read from a patch note or folded out of the
 // barter data, and where the game has not published something it is
@@ -225,6 +226,19 @@ export function levelOf(name) {
 }
 
 /**
+ * Which of the game's exchanges this is, and so which flat rate and
+ * which refresh list it lives on: [Level N] goods are the trade chain,
+ * Crow Coin is its own priced exchange dealt on the same trade-item
+ * list, and everything else is a ship material. The same split the
+ * map's barterKind makes, kept here so the forecast does not need the
+ * map.
+ */
+export function exchangeKind(item) {
+	if (item === 'Crow Coin') return 'coin';
+	return levelOf(item) === null ? 'material' : 'trade';
+}
+
+/**
  * The middle of a quantity as the dataset writes it: "1", "1-3", "40-60".
  *
  * Averaging a range is the only defensible reading -- the game rolls
@@ -251,14 +265,34 @@ export function bestExchange(item, barterData) {
 	const entry = (barterData || []).find(b => b.name === item);
 	if (!entry || !entry.sources || !entry.sources.length) return null;
 
+	// How many islands deal each hand-over, for breaking ties. The rate
+	// says what a trade pays; on a dead heat, the exchange with the
+	// higher attempt cap needs fewer redraws, and the one more islands
+	// offer is likelier to be on somebody's list today. Before this,
+	// whichever the scrape happened to list first won.
+	const offeredBy = new Map();
+	for (const s of entry.sources) {
+		if (!s.give) continue;
+		if (!offeredBy.has(s.give.name)) offeredBy.set(s.give.name, new Set());
+		offeredBy.get(s.give.name).add(s.npc_name);
+	}
+
 	let best = null;
+	let bestSpread = 0;
 	for (const s of entry.sources) {
 		if (!s.give) continue;
 		const received = amount(s.quantity_received);
 		const given = amount(s.give.quantity);
 		if (!(received > 0) || !(given > 0)) continue;
 		const rate = received / given;
-		if (!best || rate > best.rate) {
+		const attempts = s.attempts_available > 0 ? s.attempts_available : null;
+		const spread = offeredBy.get(s.give.name).size;
+		const wins = !best
+			|| rate > best.rate
+			|| (rate === best.rate && ((attempts || 0) > (best.attempts || 0)
+				|| ((attempts || 0) === (best.attempts || 0) && spread > bestSpread)));
+		if (wins) {
+			bestSpread = spread;
 			best = {
 				rate, received, given,
 				// The range as the game writes it. The average is what the
@@ -269,7 +303,7 @@ export function bestExchange(item, barterData) {
 				give: s.give.name,
 				npc: s.npc_name,
 				// 0 is the dataset's "not stated", not "none allowed".
-				attempts: s.attempts_available > 0 ? s.attempts_available : null
+				attempts
 			};
 		}
 	}
@@ -361,10 +395,16 @@ export function rungs(step) {
 /**
  * How much sea a day holds.
  *
- * A day is counted in refreshes, not in trades. The list you wake up
- * with is one, and every press of Barter Refresh is another, so the
- * daily caps are the whole story: two trade-item presses, three with a
- * Value Pack, and two ship-material ones.
+ * A day is counted in refreshes, not in trades -- and per list, because
+ * the game runs two. The trade-good list and the ship-material list
+ * refresh independently: each wakes up with its own free draw, and each
+ * press of Barter Refresh re-rolls one of them, never both. So the pace
+ * is two numbers -- three trade draws a day (four with a Value Pack)
+ * and three material draws -- and neither list can lend the other a
+ * press. The point pool the presses spend is shared, but it does not
+ * force a split worth modelling: the daily allowance pays for both
+ * lists' full run of presses (the identity noted on REFRESH), so each
+ * list is quoted at its whole allowance.
  *
  * Parley rides along as information rather than as a limit. It refills
  * on every press, and a full bar buys sixty-nine exchanges at the top
@@ -378,14 +418,19 @@ export function rungs(step) {
  * counted them would quietly promise a pace nobody can hold.
  */
 export function dailyCapacity({ valuePack = false, vouchers = 0, level = null, crew = false } = {}) {
-	const refreshes = 1
-		+ (valuePack ? REFRESH.tradeItem.perDayWithValuePack : REFRESH.tradeItem.perDay)
-		+ REFRESH.shipMaterial.perDay;
+	const lists = {
+		trade: 1 + (valuePack ? REFRESH.tradeItem.perDayWithValuePack : REFRESH.tradeItem.perDay),
+		material: 1 + REFRESH.shipMaterial.perDay
+	};
+	const refreshes = lists.trade + lists.material;
 
 	const perTrade = parleyPerTrade({ valuePack, level, crew });
 	const bar = PARLEY.max + vouchers * PARLEY.voucher;
 
 	return {
+		// Each list on its own clock; `refreshes` is the day's total
+		// presses across both, which is what the Parley refills ride on.
+		lists,
 		refreshes,
 		vouchers,
 		parley: refreshes * bar,
@@ -428,33 +473,48 @@ export function parleyPerTrade({ valuePack = false, crowCoin = false, level = nu
  * the forecast
  * ------------------------------------------------------------------ */
 
+// Where BDOCodex states no attempt cap, the dataset writes 0. Reading
+// that as "unlimited" priced Gilded Coral at one sitting for any
+// quantity, which is not a floor, it is a fiction. So an unstated cap
+// is charged the tightest one the dataset does state -- the Brilliants'
+// two a draw -- and the number stays finite and honest.
+const ASSUMED_ATTEMPTS = 2;
+
 /**
- * The rung that runs out first, and how many refreshes it needs.
+ * The rung that runs out first, and how many days that takes.
  *
  * Parley is not what stops you getting forty Brilliant Pearl Shards. An
- * exchange for one is capped at two attempts, so the list has to be
- * redrawn twenty times whatever your Parley looks like -- and that is
- * days, not hours. The rungs below are capped at ten and are never the
- * problem, which is exactly why the answer is a maximum over rungs
- * rather than a sum: one bottleneck sets the pace and the rest keep up.
+ * exchange for one is capped at two attempts, so the material list has
+ * to be redrawn twenty times whatever your Parley looks like -- and
+ * that is days, not hours. The rungs below are capped at ten and are
+ * never the problem, which is exactly why the answer is a worst-over-
+ * rungs rather than a sum: one bottleneck sets the pace and the rest
+ * keep up. The comparison is made in days, not redraws, because each
+ * rung is paced by its own list -- a material rung by the material
+ * list's draws, a trade rung by the trade list's -- and a redraw of one
+ * list is not a redraw of the other.
  *
  * The assumption, and it is a real one: that the exchange turns up on
  * every refresh. It will not -- the list is drawn at random from a pool
  * whose weights the game does not publish -- so this is the best case
- * and the UI says so. A rung the dataset gives no attempt cap for is
- * skipped rather than guessed at.
+ * and the UI says so.
  */
-export function bottleneck(top, qty) {
+export function bottleneck(top, qty, lists = null) {
+	const pace = lists || {
+		trade: 1 + REFRESH.tradeItem.perDay,
+		material: 1 + REFRESH.shipMaterial.perDay
+	};
 	let worst = null;
 	let needed = qty;
 
 	for (let r = top; r; r = r.from) {
-		if (r.attempts) {
-			const perRefresh = r.attempts * r.received;
-			const refreshes = needed / perRefresh;
-			if (!worst || refreshes > worst.refreshes) {
-				worst = { item: r.item, needed, perRefresh, refreshes, attempts: r.attempts };
-			}
+		const attempts = r.attempts || ASSUMED_ATTEMPTS;
+		const list = exchangeKind(r.item) === 'material' ? 'material' : 'trade';
+		const perRefresh = attempts * r.received;
+		const refreshes = needed / perRefresh;
+		const days = refreshes / pace[list];
+		if (!worst || days > worst.days) {
+			worst = { item: r.item, needed, perRefresh, refreshes, days, list, attempts };
 		}
 		needed *= r.givePerUnit;
 	}
@@ -465,12 +525,18 @@ export function bottleneck(top, qty) {
 export function gateFor(item, barterCount) {
 	let needed = null;
 
-	// The Brilliant pair is the only threshold the current patch notes
-	// still state, so it is the only one claimed. The per-level gates
-	// that guides print alongside it were rewritten on 2026-05-21 and
+	// Only thresholds the current patch notes still state are claimed.
+	// The per-level gates guides print were rewritten on 2026-05-21 and
 	// never restated; inventing replacements would lock routes that are
-	// open.
+	// open. What the patch does state: the Brilliant pair at 1,500, and
+	// the Crow Coin routes at the counts that used to gate levels --
+	// below the first of those a player has no Crow Coin route at all.
+	// The later ones just add islands; they do not lock the coin.
 	if (/^Brilliant /.test(item)) needed = 1500;
+	if (item === 'Crow Coin') {
+		const first = ROUTE_UNLOCKS.find(r => /Crow Coin/.test(r.opens || ''));
+		if (first) needed = first.barters;
+	}
 
 	if (needed === null || barterCount >= needed) return null;
 	const row = ROUTE_UNLOCKS.find(r => r.barters === needed);
@@ -489,19 +555,20 @@ export function gateFor(item, barterCount) {
  * the caller already knows how to say "not bartered".
  */
 export function forecast(item, qty, barterData, opts = {}) {
-	const { barterCount = 0, valuePack = false, vouchers = 0, level = null } = opts;
+	const { barterCount = 0, valuePack = false, vouchers = 0, level = null, crew = false } = opts;
 
 	const top = ladder(item, barterData);
 	if (!top) return null;
 
-	const day = dailyCapacity({ valuePack, vouchers, level });
+	const day = dailyCapacity({ valuePack, vouchers, level, crew });
 	const trades = top.totalTrades * qty;
 
-	// The trip is paced by the rung that runs out first. Parley is not
-	// that rung and is not modelled as one -- see dailyCapacity -- so it
-	// is priced only where a patch note prices it: the top exchange.
-	const limit = bottleneck(top, qty);
-	const days = limit ? limit.refreshes / day.refreshes : 0;
+	// The trip is paced by the rung that runs out first, each rung on
+	// its own list's clock. Parley is not that rung and is not modelled
+	// as one -- see dailyCapacity -- so it is priced only where a patch
+	// note prices it: the top exchange.
+	const limit = bottleneck(top, qty, day.lists);
+	const days = limit ? limit.days : 0;
 
 	// Every rung is checked, not just the one asked for: a ladder can
 	// walk through something the player cannot reach yet.
@@ -518,8 +585,14 @@ export function forecast(item, qty, barterData, opts = {}) {
 		limit,
 		perUnit: top.totalTrades,
 		// What the top rung alone costs in Parley, which is the only
-		// rung the game has published a price for.
-		topParley: qty * (1 / top.received) * day.perTrade,
+		// rung the game has published a price for -- at the rate of the
+		// exchange it actually is: a ship material at the material
+		// list's dearer flat rate, Crow Coin at its own, the chain at
+		// the Great Ocean one. The Get screen and the map already price
+		// this way; the forecast quoting the chain rate for a material
+		// disagreed with both by a factor of four.
+		topParley: qty * (1 / top.received)
+			* parleyPerTrade({ valuePack, level, crew, kind: exchangeKind(item) }),
 		seed: top.seed ? { item: top.seed.item, qty: top.seed.qty * qty } : null,
 		rungs: rungs(top),
 		capacity: day,
@@ -557,7 +630,7 @@ export function explain(f) {
 	// you asked for -- being told that Brilliant Pearl Shards are
 	// limited by Brilliant Pearl Shards teaches nobody anything.
 	const where = f.limit.item === f.item ? '' : ` on ${f.limit.item}`;
-	return `${fmt(f.limit.perRefresh)} a refresh${where}, ${f.capacity.refreshes} refreshes a day`;
+	return `${fmt(f.limit.perRefresh)} a refresh${where}, ${f.capacity.lists[f.limit.list]} refreshes of its list a day`;
 }
 
 function fmt(n) {

@@ -17,7 +17,7 @@ import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
 import { img, codexName, costCtx, costText } from './ui-bits.js';
 import {
-	snapshot, barterData, barterProfile, totalsToGo, CROW_COIN, SILVER
+	snapshot, barterData, barterProfile, totalsToGo, query, CROW_COIN, SILVER
 } from './ui-state.js';
 import { shoppingList, waysToGet } from './planner.js';
 
@@ -66,10 +66,12 @@ function barterProfileTile() {
 	return `<div>
 		<div class="summary-k">Bartering <button class="info-dot" data-act="guide"
 			aria-label="Where to see these numbers in game">?</button></div>
-		<div class="summary-v">${F(day.refreshes)} <span class="gterm" data-guide="refresh">refreshes/day</span></div>
+		<div class="summary-v">${F(day.lists.trade)}+${F(day.lists.material)} <span class="gterm" role="button" tabindex="0"
+			data-guide="refresh"
+			title="${F(day.lists.trade)} draws of the trade-goods list and ${F(day.lists.material)} of the ship-materials list — the two refresh on their own clocks">refreshes/day</span></div>
 		<div class="summary-sub"><input class="purse-inline" type="text" inputmode="numeric"
 			value="${F(barterCount)}" data-act="barter-count"
-			aria-label="Your Total Barters, as the Barter Information window shows it"> <span class="gterm"
+			aria-label="Your Total Barters, as the Barter Information window shows it"> <span class="gterm" role="button" tabindex="0"
 			data-guide="parley">Total Barters</span>${next ? ` · ${esc(next)}` : ''}
 			· <label class="inline-check"><input type="checkbox" data-act="value-pack"
 			${valuePack ? 'checked' : ''}> Value Pack</label>
@@ -77,14 +79,14 @@ function barterProfileTile() {
 			${crew ? 'checked' : ''}> Crew −10%</label></div>
 		<div class="summary-sub"><select class="purse-inline" data-act="barter-level"
 			aria-label="Your barter level"><option value=""${level ? '' : ' selected'}>—</option>${levels}</select>
-			· ${F(day.perTrade)} <span class="gterm" data-guide="level">Parley a trade</span>
+			· ${F(day.perTrade)} <span class="gterm" role="button" tabindex="0" data-guide="level">Parley a trade</span>
 			· <input class="purse-inline narrow" type="text" inputmode="numeric"
 			value="${F(vouchers)}" data-act="vouchers"
-			aria-label="Crow's Trade Vouchers you carry"> <span class="gterm" data-guide="voucher">vouchers</span>
+			aria-label="Crow's Trade Vouchers you carry"> <span class="gterm" role="button" tabindex="0" data-guide="voucher">vouchers</span>
 			· ${F(day.tradesPerBar)} trades a refill</div>
 		<div class="summary-sub"><input class="purse-inline" type="text" inputmode="numeric"
 			value="${F(parleyHeld)}" data-act="parley-held"
-			aria-label="Parley in the bar right now"> <span class="gterm" data-guide="parley">Parley in the bar right now</span></div>
+			aria-label="Parley in the bar right now"> <span class="gterm" role="button" tabindex="0" data-guide="parley">Parley in the bar right now</span></div>
 	</div>`;
 }
 
@@ -99,12 +101,24 @@ function nextUnlock(count) {
 
 export function renderGet() {
 	const totals = totalsToGo();
+	const q = query.toLowerCase();
+	// A search narrows the list to the lines it names; each group total
+	// is re-summed so the head still describes what is under it.
 	const groups = shoppingList(snapshot.missing, {
 		coins,
 		silver: falasi,
 		acquisition: vendorItems,
 		barter: barterData ? barterLookup : null
-	});
+	}).map(g => {
+		if (!q) return g;
+		const items = g.items.filter(e => e.item.toLowerCase().includes(q));
+		return {
+			...g,
+			items,
+			coins: items.reduce((a, e) => a + (e.coins || 0), 0),
+			silver: items.reduce((a, e) => a + (e.silver || 0), 0)
+		};
+	}).filter(g => g.items.length);
 
 	const purseCoins = store.getStock(CROW_COIN);
 	const purseSilver = store.getStock(SILVER);
@@ -133,8 +147,14 @@ export function renderGet() {
 		<button class="ghost-btn" data-act="copy">Copy list</button>
 	</div>`;
 
+	const controls = `<div class="controls">
+		<input class="field" type="search" placeholder="Search the list…" value="${esc(query)}" data-act="query">
+	</div>`;
+
 	if (!groups.length) {
-		return summary + '<div class="panel"><p class="empty">Nothing outstanding — every build has what it needs.</p></div>';
+		return summary + controls + `<div class="panel"><p class="empty">${q
+			? 'Nothing outstanding matches that search.'
+			: 'Nothing outstanding — every build has what it needs.'}</p></div>`;
 	}
 
 	const body = groups.map(g => {
@@ -205,7 +225,7 @@ export function renderGet() {
 		</div>`;
 	}).join('');
 
-	return summary + body;
+	return summary + controls + body;
 }
 
 export function shoppingText() {
