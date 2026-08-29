@@ -4,3 +4,11 @@
 import { init } from './ui.js';
 
 init();
+
+// The offline half of local-first: a service worker that keeps the last
+// complete set of assets for when there is no network. Registered after
+// init so it never competes with the first paint, and best-effort --
+// a browser without it just stays online-only, as before.
+if ('serviceWorker' in navigator) {
+	navigator.serviceWorker.register('/sw.js').catch(() => { /* online-only, then */ });
+}

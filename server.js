@@ -102,7 +102,16 @@ app.get('/api/config', (req, res) => {
 // Only what the page actually asks for. Serving the repository root would
 // hand out package.json, the Dockerfile and the capture harness too.
 const PUBLIC = ['css', 'js', 'icons', 'map'];
-const FILES = ['index.html', 'icon.png', 'og.png', 'icon_mapping.json'];
+const FILES = [
+	'index.html', 'icon.png', 'og.png', 'icon_mapping.json',
+	'icon-192.png', 'icon-512.png', 'manifest.webmanifest', 'sw.js'
+];
+
+// The page and everything that steers loading must revalidate: a stale
+// service worker or manifest would defeat the very caching rules it
+// carries, and /index.html is the same page '/' already refuses to let
+// go stale. Images may rest for a week.
+const MUST_REVALIDATE = /\.(html|json|webmanifest)$|^sw\.js$/;
 
 // There is no build step, so a module's filename never changes while its
 // contents do -- which makes cache freshness a correctness problem, not a
@@ -132,10 +141,9 @@ for (const dir of PUBLIC.filter(d => d !== 'icons' && d !== 'map')) {
 }
 for (const file of FILES) {
 	app.get(`/${file}`, (req, res) => {
-		// icon_mapping.json is loaded by the same code that imports the
-		// modules and has to move with them; the rest are images that only
-		// change when the branding does.
-		res.set('Cache-Control', file.endsWith('.json') ? 'no-cache' : 'public, max-age=604800');
+		res.set('Cache-Control', MUST_REVALIDATE.test(file) ? 'no-cache' : 'public, max-age=604800');
+		// Express does not know this one by extension.
+		if (file.endsWith('.webmanifest')) res.type('application/manifest+json');
 		res.sendFile(path.join(__dirname, file));
 	});
 }

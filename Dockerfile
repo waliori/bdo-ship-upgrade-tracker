@@ -21,7 +21,7 @@ COPY map ./map
 COPY docs/media ./docs/media
 
 # Then the code, which is what actually changes between builds.
-COPY icon.png og.png icon_mapping.json index.html server.js ./
+COPY icon.png icon-192.png icon-512.png og.png icon_mapping.json manifest.webmanifest sw.js index.html server.js ./
 COPY css ./css
 COPY js ./js
 COPY server ./server

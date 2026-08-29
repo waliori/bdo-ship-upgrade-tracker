@@ -119,6 +119,25 @@ test('the heavy files travel compressed', async () => {
 	assert.equal(encoding, 'gzip', 'a megabyte of barter data went over the wire raw');
 });
 
+test('the offline shell is served, and never stale', async () => {
+	// The service worker steers every cache decision the page makes, so
+	// a stale copy of it would defeat the rules it carries -- it has to
+	// revalidate like the modules do. Same for the manifest, and for
+	// /index.html, which is the same page '/' already refuses to let go
+	// stale.
+	for (const url of ['/sw.js', '/manifest.webmanifest', '/index.html']) {
+		const res = await fetch(base + url);
+		assert.equal(res.status, 200, url);
+		assert.match(res.headers.get('cache-control') || '', /no-cache/, url);
+	}
+	const manifest = await (await fetch(base + '/manifest.webmanifest')).json();
+	for (const icon of manifest.icons) {
+		assert.equal((await fetch(`${base}/${icon.src}`)).status, 200, icon.src);
+	}
+	const page = await (await fetch(base + '/')).text();
+	assert.match(page, /rel="manifest"/, 'the page never names its manifest');
+});
+
 test('an icon may be cached, but not forever', async () => {
 	// Icons are addressed by the game's item id, so a name really does
 	// keep its contents -- but `immutable` would make a wrong one
