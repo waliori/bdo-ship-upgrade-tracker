@@ -91,6 +91,17 @@ test('an empty profile is a deliberate clear, and is obeyed', () => {
 	assert.equal(store.getProfile('barterCount', 0), 0);
 });
 
+test('the crew tick and the parley you hold survive the whitelist', () => {
+	// Both arrived after the whitelist did, and the whitelist eats what
+	// it does not know: the symptom was a checkbox that refused to stay
+	// ticked, because every render read the profile back.
+	store.setProfile('crew', true);
+	store.setProfile('parleyHeld', 850000);
+	assert.equal(store.getProfile('crew', false), true);
+	assert.equal(store.getProfile('parleyHeld', 0), 850000);
+	assert.deepEqual(store.saveShape().profile, { crew: true, parleyHeld: 850000 });
+});
+
 test('a profile that is there is taken', () => {
 	reset();
 	store.setProfile('barterCount', 10);

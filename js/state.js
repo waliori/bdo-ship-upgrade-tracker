@@ -98,9 +98,12 @@ function readProfile(raw) {
 	const count = Math.max(0, Math.floor(Number(raw.barterCount) || 0));
 	if (count > 0) out.barterCount = count;
 	if (raw.valuePack === true) out.valuePack = true;
+	if (raw.crew === true) out.crew = true;
 	if (typeof raw.level === 'string' && raw.level) out.level = raw.level.slice(0, 20);
 	const vouchers = Math.max(0, Math.floor(Number(raw.vouchers) || 0));
 	if (vouchers > 0) out.vouchers = vouchers;
+	const held = Math.max(0, Math.floor(Number(raw.parleyHeld) || 0));
+	if (held > 0) out.parleyHeld = held;
 	return out;
 }
 
