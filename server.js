@@ -9,6 +9,7 @@
 // server's involvement; it never plans anything.
 
 import express from 'express';
+import compression from 'compression';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { config, syncEnabled, ephemeralSecret, describe } from './server/config.js';
@@ -28,6 +29,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 app.disable('x-powered-by');
+
+// The barter dataset is the reason this is not optional: 1.4 MB of JSON
+// that gzips to a tenth of that. A reverse proxy that compresses would
+// make this a no-op, but nothing forces a deployment to have one, and
+// serving megabytes uncompressed to a phone at sea is not a default.
+app.use(compression());
 
 // Headers every response carries.
 //

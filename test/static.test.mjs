@@ -103,6 +103,22 @@ test('revalidating a module costs nothing when it has not changed', async () => 
 	assert.equal(bytes, 0);
 });
 
+test('the heavy files travel compressed', async () => {
+	// Asked over node:http with an explicit Accept-Encoding, because
+	// fetch decompresses transparently and hides the evidence.
+	const { encoding } = await new Promise((resolve, reject) => {
+		const url = new URL(base + '/js/all_barter.js');
+		http.get({
+			host: url.hostname, port: url.port, path: url.pathname,
+			headers: { 'Accept-Encoding': 'gzip' }
+		}, res => {
+			res.resume();
+			res.on('end', () => resolve({ encoding: res.headers['content-encoding'] }));
+		}).on('error', reject);
+	});
+	assert.equal(encoding, 'gzip', 'a megabyte of barter data went over the wire raw');
+});
+
 test('an icon may be cached, but not forever', async () => {
 	// Icons are addressed by the game's item id, so a name really does
 	// keep its contents -- but `immutable` would make a wrong one
