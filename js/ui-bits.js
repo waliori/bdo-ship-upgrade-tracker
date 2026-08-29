@@ -7,6 +7,7 @@ import { items as vendorItems, bulkExchanges } from './vendor_items.js';
 import { coins } from './sea_coins.js';
 import { falasi } from './falasi_vendor.js';
 import { marketSilver, marketPrice, marketStatus } from './market.js';
+import { statsAt, describeStats } from './part_stats.js';
 import { forecast as barterForecast } from './barter.js';
 import { iconLoader } from './icon-loader.js';
 import { esc, F, FC } from './fmt.js';
@@ -227,11 +228,18 @@ export function peekHTML(item) {
 		? `<div class="peek-cost">or ${F(bulk.gets)} at once for one ${esc(bulk.give)}</div>`
 		: '';
 
-	if (!body && !foot && !price && !inBulk) return '';
+	// A part says what it does for the hull at this level: the reason
+	// for the stones above it.
+	const lv = parseEnhanced(item);
+	const fit = statsAt(lv.base, lv.level);
+	const does = fit ? `<div class="peek-cost">at +${lv.level}: ${esc(describeStats(fit, { signed: false }))}</div>` : '';
+
+	if (!body && !foot && !price && !inBulk && !does) return '';
 	return `<div class="peek-head">${img(item, 'peek-icon lg')}<span>${esc(item)}</span></div>`
 		+ body
 		+ price
 		+ inBulk
+		+ does
 		+ (foot ? `<div class="peek-foot">${esc(foot)}</div>` : '');
 }
 

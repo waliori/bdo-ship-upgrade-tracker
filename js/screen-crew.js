@@ -10,6 +10,9 @@ import { esc, F } from './fmt.js';
 import * as store from './state.js';
 import { img, codexName } from './ui-bits.js';
 import { shipStats, crewedShips } from './ship_stats.js';
+import { loadout, describeStats, sumStats } from './part_stats.js';
+import { families } from './enhancement.js';
+import { enhancedName } from './planner.js';
 import {
 	pool, poolByType, positions, care, rations, expSplit, firstMates, slotSources,
 	contract, planCrew, SAILOR_CAP
@@ -45,6 +48,40 @@ function statTiles(ship) {
 		${tile('Rations', F(s.rations))}
 		${tile('Speed', pct(s.speed), `accel ${pct(s.accel)}`)}
 		${tile('Turn', pct(s.turn), `brake ${pct(s.brake)}`)}
+	</div>`;
+}
+
+/**
+ * The hull as fitted: the best part you hold in each slot, and what the
+ * four of them add to the hull's own numbers. This is the "why" behind
+ * every enhancement attempt, in one place.
+ */
+function loadoutPanel(ship) {
+	const s = shipStats[ship];
+	const fit = loadout(ship, store.getAllStock(), families);
+	const any = fit.slots.some(x => x.part);
+	const slotRows = fit.slots.map(x => `<div class="row">
+		${x.part ? img(enhancedName(x.part, x.level), 'row-icon sm') : '<span class="row-icon sm"></span>'}
+		<div class="row-main">
+			<div class="row-name">${x.part ? `${codexName(x.part)} <span class="enh-level">+${x.level}</span>` : `<span class="crew-race">${esc(x.slot)}</span> nothing fitted`}</div>
+			<div class="row-sub">${x.part ? esc(describeStats(x.stats, { signed: false })) || 'no listed effect' : `the ${esc(x.slot)} slot is empty — record one in Inventory and it appears here`}</div>
+		</div>
+	</div>`).join('');
+	const hull = { speed: s.speed, accel: s.accel, turn: s.turn, brake: s.brake, weight: s.weight, rations: s.rations, durability: s.durability };
+	const total = sumStats(hull, fit.total);
+	return `<div class="panel">
+		<div class="panel-head"><h2 class="panel-title">Fitted out</h2>
+			<span class="panel-sub">The best part you hold for each slot, and the hull with all four on</span></div>
+		${slotRows}
+		<div class="stats">
+			<div class="stat"><div class="stat-k">Speed</div><div class="stat-v ${fit.total.speed ? 'teal' : ''}">${total.speed}%</div><div class="stat-sub">accel ${total.accel}%</div></div>
+			<div class="stat"><div class="stat-k">Turn</div><div class="stat-v ${fit.total.turn ? 'teal' : ''}">${total.turn}%</div><div class="stat-sub">brake ${total.brake}%</div></div>
+			<div class="stat"><div class="stat-k">Weight limit</div><div class="stat-v">${F(total.weight)} LT</div><div class="stat-sub">${fit.total.weight ? `+${F(fit.total.weight)} from parts` : 'hull alone'}</div></div>
+			<div class="stat"><div class="stat-k">Durability</div><div class="stat-v">${F(total.durability)}</div><div class="stat-sub">${F(total.rations)} rations</div></div>
+			<div class="stat"><div class="stat-k">Defence</div><div class="stat-v">${fit.total.dp ? `DP ${fit.total.dp}` : '—'}</div><div class="stat-sub">${fit.total.drr ? `damage reduction ${fit.total.drr}%` : ''}</div></div>
+			<div class="stat"><div class="stat-k">Cannons</div><div class="stat-v">${fit.total.damage ? F(fit.total.damage) : '—'}</div><div class="stat-sub">${fit.total.damage ? `per hit × ${fit.total.hits || s.cannons}${fit.total.reload ? `, ${fit.total.reload} s faster` : ''}` : s.cannons ? `${s.cannons} a side, ${s.reload} s` : ''}</div></div>
+		</div>
+		${any ? '' : '<p class="empty">Nothing of yours fits this hull yet.</p>'}
 	</div>`;
 }
 
@@ -154,6 +191,7 @@ export function renderCrew() {
 		<div class="crew-ship">${img(ship, 'row-icon lg')}<span class="crew-ship-name">${codexName(ship)}</span></div>
 		${statTiles(ship)}
 	</div>
+	${loadoutPanel(ship)}
 	${s.crew ? `<div class="panel">
 		<div class="panel-head">
 			<h2 class="panel-title">The crew</h2>

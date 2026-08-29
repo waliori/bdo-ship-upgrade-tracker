@@ -7,6 +7,7 @@ import { img, codexName, amountInput, whereFrom } from './ui-bits.js';
 import { recipes, snapshot, query, readyCrafts } from './ui-state.js';
 import { parseEnhanced, enhancedName, enhanceStep, ownedLevel, enhancementForecast } from './planner.js';
 import { massProcess } from './vendor_items.js';
+import { gainAt, describeStats } from './part_stats.js';
 
 /**
  * Every part worth an enhancement attempt: the ones a build is waiting
@@ -108,6 +109,8 @@ export function pendingEnhancements() {
 			// the third button.
 			canDrop: Boolean(step.onFailureDropped),
 			log: attemptsFor(base, stoneName),
+			// What the level is for, in the hull's own numbers.
+			gain: describeStats(gainAt(base, have)),
 			forBuild,
 			costs,
 			stoneName,
@@ -174,7 +177,7 @@ export function renderWorkshop() {
 				<div class="row-name">${codexName(e.base)}</div>
 				<div class="row-sub" ${e.blocked ? 'style="color:var(--red)"' : ''}>${esc(e.note)}</div>
 			</div>
-			<span class="enh-level">+${e.have} → +${e.next}</span>
+			<span class="enh-level">+${e.have} → +${e.next}${e.gain ? `<span class="enh-gain" title="What +${e.next} adds over +${e.have}">${esc(e.gain)}</span>` : ''}</span>
 			<span class="enh-cost">${e.costs.map(([n, q]) => `${img(n, '')}×${F(q)}`).join('')}${odds(e)}</span>
 			${outlook(e)}
 			${e.log.won + e.log.lost ? `<span class="enh-log" title="From the undo history, which keeps the last two hundred changes">${e.log.won} won · ${e.log.lost} lost · ${F(e.log.stones)} ${esc(e.stoneName)} spent</span>` : ''}

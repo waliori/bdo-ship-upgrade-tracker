@@ -2717,3 +2717,4 @@ select.purse-inline { width: auto; cursor: pointer; }
 .crew-actions { display: flex; gap: 10px; flex-wrap: wrap; padding: 0 22px 14px; }
 .build-stats { color: var(--ink-faint); }
 .enh-log { font-size: 11.5px; color: var(--ink-faint); white-space: nowrap; }
+.enh-gain { display: block; font-size: 11px; color: var(--teal); font-weight: 400; white-space: normal; max-width: 220px; }
