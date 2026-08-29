@@ -281,6 +281,11 @@ What it does and does not do:
   copy you do not keep is one **Undo** away.
 - **Deletable.** The account menu removes the stored copy and the account
   record with it. What is in your browser stays.
+- **Sessions are a signed cookie, good for 30 days.** There is no session
+  table, so a session cannot be revoked from another device — signing out
+  clears that browser and nothing else. The trade is deliberate (no
+  round trip per request, no rows to expire); if a machine you signed in
+  on is lost, rotating `SESSION_SECRET` signs every device out at once.
 
 ### Setting it up
 
