@@ -13,6 +13,7 @@ import compression from 'compression';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { config, syncEnabled, ephemeralSecret, describe } from './server/config.js';
+import { marketRoutes } from './server/market.js';
 
 // NOTE: run exactly one of these.
 //
@@ -97,6 +98,12 @@ if (syncEnabled) {
 	app.use('/auth', authRoutes());
 	app.use('/api', apiRoutes());
 }
+
+// Central Market prices, relayed from the community market API and
+// remembered for a while. Needs no configuration: it is the one network
+// feature that is on by default, because the plan is priced wrong
+// without it and it never carries anyone's data.
+app.use('/api', marketRoutes(express));
 
 // So the page knows whether to offer sign-in at all. A deployment with no
 // Discord app should not show a button that cannot work.

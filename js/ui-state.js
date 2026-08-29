@@ -10,6 +10,7 @@
 import { recipes as allRecipes } from './recipes.js';
 import { coins } from './sea_coins.js';
 import { falasi } from './falasi_vendor.js';
+import { marketSilver } from './market.js';
 import * as store from './state.js';
 import { plan, craftableNow, parseEnhanced, resolveRoutes } from './planner.js';
 
@@ -144,9 +145,12 @@ export const readyCrafts = () =>
 export function totalsToGo() {
 	let c = 0;
 	let s = 0;
+	// Falasi's list first; the Market prices only what he does not sell.
+	const market = marketSilver();
 	for (const [item, qty] of Object.entries(snapshot.missing)) {
 		if (coins[item]) c += coins[item] * qty;
 		if (falasi[item]) s += falasi[item] * qty;
+		else if (market[item]) s += market[item] * qty;
 	}
 	return { coins: c, silver: s, lines: Object.keys(snapshot.missing).length };
 }

@@ -20,6 +20,7 @@ import {
 import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
 import { allItems } from './ui-bits.js';
 import { massProcess } from './vendor_items.js';
+import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
 import { paintPouch, measurePouch } from './pouch.js';
 import { hidePeek, wirePeek } from './peek.js';
 import { openGuide, wireGuide } from './guide.js';
@@ -335,6 +336,9 @@ function wire() {
 			case 'export': return doExport();
 			case 'import': return doImport();
 			case 'reset': return doReset();
+			case 'market-refresh':
+				loadMarket({ force: true }).then(ok => toast(ok ? 'Market prices refreshed' : 'The Market did not answer — showing the last prices it gave'));
+				return;
 			case 'water': return toggleWater();
 			case 'tour': return startTour();
 			case 'help': return openHelp();
@@ -541,6 +545,9 @@ function wire() {
 		// numeric parse below rather than going through it.
 		const lvl = evt.target.closest('[data-act="barter-level"]');
 		if (lvl) return store.setProfile('level', lvl.value || null);
+
+		const mreg = evt.target.closest('[data-act="market-region"]');
+		if (mreg) return setMarketRegion(mreg.value);
 
 		const so = evt.target.closest('[data-act="sort"]');
 		if (so) {
@@ -911,6 +918,14 @@ export async function init() {
 	} catch {
 		/* icons fall back to the app mark */
 	}
+
+	// Market prices ride on the icon mapping, which is where an item's
+	// codex id lives -- so they are asked for after it, and repaint the
+	// costs when they land. Offline, the last copy this browser saw
+	// prices the plan until the network is back.
+	onMarket(render);
+	loadMarket();
+	window.addEventListener('online', () => loadMarket());
 
 	// Sync last, and never blocking: on a deployment without it this is
 	// one request that comes back "no" and nothing more happens.

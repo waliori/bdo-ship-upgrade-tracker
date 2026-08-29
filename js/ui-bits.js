@@ -6,6 +6,7 @@ import { shipGroups } from './ships.js';
 import { items as vendorItems, bulkExchanges } from './vendor_items.js';
 import { coins } from './sea_coins.js';
 import { falasi } from './falasi_vendor.js';
+import { marketSilver, marketPrice, marketStatus } from './market.js';
 import { forecast as barterForecast } from './barter.js';
 import { iconLoader } from './icon-loader.js';
 import { esc, F, FC } from './fmt.js';
@@ -114,7 +115,9 @@ export function ingredientLine(name, per, cls = 'peek-line') {
  * book, so a Caravel priced here is the Caravel by the route the player
  * actually chose.
  */
-export const costCtx = () => ({ coins, silver: falasi, recipes, strategy: store.getAllStrategy() });
+// The Market's prices sit under Falasi's: anything he sells is priced
+// off his list, and only what the Market alone sells takes the Market's.
+export const costCtx = () => ({ coins, silver: { ...marketSilver(), ...falasi }, recipes, strategy: store.getAllStrategy() });
 
 /**
  * A cost said out loud. Coins and silver stay apart -- the game will not
@@ -239,6 +242,12 @@ export function sourceOf(item) {
 	const methods = vendorItems[item];
 	if (methods) {
 		const key = Object.keys(methods)[0];
+		const price = methods.Market ? marketPrice(item) : 0;
+		if (price) {
+			const s = marketStatus();
+			return { key: 'Market', label: SOURCE_LABEL.Market,
+				detail: `about ${F(price)} silver each on the ${s.region.toUpperCase()} Market`, silver: price };
+		}
 		return { key, label: SOURCE_LABEL[key] || key, detail: (methods[key] || []).join(', ') };
 	}
 	if (recipes[item]) return { key: 'craft', label: 'Crafted', detail: 'made from other materials' };

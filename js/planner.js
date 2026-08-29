@@ -629,6 +629,9 @@ export function shoppingList(missing, sources = {}) {
 	const {
 		coins = {},
 		silver = {},
+		// The Market's prices, kept apart from Falasi's fixed list: they
+		// are a different shop, and a moving one.
+		market = {},
 		acquisition = {},
 		barter = null
 	} = sources;
@@ -666,6 +669,13 @@ export function shoppingList(missing, sources = {}) {
 			entry.silver = silver[item] * qty;
 			entry.unit = `${silver[item].toLocaleString()} silver each`;
 			add('Falasi (silver)', entry);
+			continue;
+		}
+		if (market[item]) {
+			entry.silver = market[item] * qty;
+			entry.unit = `about ${market[item].toLocaleString()} silver each, last sold`;
+			entry.market = true;
+			add('Central Market (silver)', entry);
 			continue;
 		}
 		// A curated source is more specific than "it is barterable", so it

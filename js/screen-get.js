@@ -3,6 +3,7 @@
 // price, and the profile facts that quietly improve the forecast.
 
 import { items as vendorItems, bulkExchanges } from './vendor_items.js';
+import { marketSilver, marketStatus, REGIONS as MARKET_REGIONS } from './market.js';
 import { coins } from './sea_coins.js';
 import { falasi } from './falasi_vendor.js';
 import {
@@ -99,6 +100,29 @@ function nextUnlock(count) {
 	return `${F(next.barters - count)} more open ${next.opens}`;
 }
 
+/**
+ * The Market's prices: which region, how old, and a way to ask again.
+ * Shown as a fact about the numbers above it, because a plan priced off
+ * last Tuesday's plywood should say so.
+ */
+function marketTile() {
+	const s = marketStatus();
+	const options = MARKET_REGIONS.map(([id, label]) =>
+		`<option value="${id}"${id === s.region ? ' selected' : ''}>${label}</option>`).join('');
+	const age = !s.at ? 'no prices yet'
+		: `${s.count} priced · ${ageText(Date.now() - s.at)}${s.failed ? ' · some unanswered' : ''}`;
+	return `<div>
+		<div class="summary-k">Market prices</div>
+		<div class="summary-v"><select class="purse-inline" data-act="market-region" aria-label="Which region's Central Market">${options}</select></div>
+		<div class="summary-sub">${esc(age)} · <button class="linky" data-act="market-refresh">refresh</button></div>
+	</div>`;
+}
+
+const ageText = ms => ms < 60_000 ? 'just now'
+	: ms < 3_600_000 ? `${Math.round(ms / 60_000)} min ago`
+	: ms < 86_400_000 ? `${Math.round(ms / 3_600_000)} h ago`
+	: `${Math.round(ms / 86_400_000)} d ago`;
+
 export function renderGet() {
 	const totals = totalsToGo();
 	const q = query.toLowerCase();
@@ -107,6 +131,7 @@ export function renderGet() {
 	const groups = shoppingList(snapshot.missing, {
 		coins,
 		silver: falasi,
+		market: marketSilver(),
 		acquisition: vendorItems,
 		barter: barterData ? barterLookup : null
 	}).map(g => {
@@ -143,6 +168,7 @@ export function renderGet() {
 				<div class="summary-sub">distinct things to obtain</div>
 			</div>
 			${barterProfileTile()}
+			${marketTile()}
 		</div>
 		<button class="ghost-btn" data-act="copy">Copy list</button>
 	</div>`;
