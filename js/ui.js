@@ -21,7 +21,7 @@ import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
 import { allItems } from './ui-bits.js';
 import { paintPouch, measurePouch } from './pouch.js';
 import { hidePeek, wirePeek } from './peek.js';
-import { openGuide } from './guide.js';
+import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
 import { renderBuilds, openBuildPicker, askRoute } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
@@ -432,6 +432,7 @@ function wire() {
 	// The pouch holds its ground while you type in it; once focus leaves it
 	// entirely, catch it up with whatever the change already recorded.
 	wirePeek();
+	wireGuide();
 	wireMap();
 
 	document.addEventListener('keydown', evt => {

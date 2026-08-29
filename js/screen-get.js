@@ -66,24 +66,25 @@ function barterProfileTile() {
 	return `<div>
 		<div class="summary-k">Bartering <button class="info-dot" data-act="guide"
 			aria-label="Where to see these numbers in game">?</button></div>
-		<div class="summary-v">${F(day.refreshes)} refreshes/day</div>
+		<div class="summary-v">${F(day.refreshes)} <span class="gterm" data-guide="refresh">refreshes/day</span></div>
 		<div class="summary-sub"><input class="purse-inline" type="text" inputmode="numeric"
 			value="${F(barterCount)}" data-act="barter-count"
-			aria-label="Your Total Barters, as the Barter Information window shows it"> Total Barters${next ? ` · ${esc(next)}` : ''}
+			aria-label="Your Total Barters, as the Barter Information window shows it"> <span class="gterm"
+			data-guide="parley">Total Barters</span>${next ? ` · ${esc(next)}` : ''}
 			· <label class="inline-check"><input type="checkbox" data-act="value-pack"
 			${valuePack ? 'checked' : ''}> Value Pack</label>
 			· <label class="inline-check"><input type="checkbox" data-act="crew-discount"
 			${crew ? 'checked' : ''}> Crew −10%</label></div>
 		<div class="summary-sub"><select class="purse-inline" data-act="barter-level"
 			aria-label="Your barter level"><option value=""${level ? '' : ' selected'}>—</option>${levels}</select>
-			· ${F(day.perTrade)} Parley a trade
+			· ${F(day.perTrade)} <span class="gterm" data-guide="level">Parley a trade</span>
 			· <input class="purse-inline narrow" type="text" inputmode="numeric"
 			value="${F(vouchers)}" data-act="vouchers"
-			aria-label="Crow's Trade Vouchers you carry"> vouchers
+			aria-label="Crow's Trade Vouchers you carry"> <span class="gterm" data-guide="voucher">vouchers</span>
 			· ${F(day.tradesPerBar)} trades a refill</div>
 		<div class="summary-sub"><input class="purse-inline" type="text" inputmode="numeric"
 			value="${F(parleyHeld)}" data-act="parley-held"
-			aria-label="Parley in the bar right now"> Parley in the bar right now</div>
+			aria-label="Parley in the bar right now"> <span class="gterm" data-guide="parley">Parley in the bar right now</span></div>
 	</div>`;
 }
 

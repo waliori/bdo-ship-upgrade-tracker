@@ -271,9 +271,10 @@ function sailHTML(marks) {
 	const list = rows
 		|| `<p class="empty">${q ? 'No island by that name has it.'
 			: 'Nothing on your list is bartered at sea.'}</p>`;
-	const draw = rows && !q ? `<p class="map-hint">Today's list is a draw: each island deals one
-		offer per list from its own pool, so these are the islands where it <em>can</em>
-		appear — the “1 of N” is that pool.</p>` : '';
+	const draw = rows && !q ? `<p class="map-hint">Today's list is <span class="gterm"
+		data-guide="draw">a draw</span>: each island deals one offer per list from its own
+		pool, so these are the islands where it <em>can</em> appear — the “1 of N” is that
+		pool.</p>` : '';
 	const kinds = !mapPick ? `<div class="map-kinds">${[
 			['all', 'All'], ['material', 'Materials'], ['trade', 'Trade goods']
 		].map(([id, label]) => `<button class="map-kind-chip${kindFilter === id ? ' on' : ''}"
@@ -326,7 +327,7 @@ function routeHTML(marks) {
 		: `one trade each · your ${F(held)} covers ${afford}`;
 	const stats = stops.length ? `<div class="map-stats">
 			<div><div class="summary-k">Stops</div><div class="summary-v">${stops.length}</div></div>
-			<div><div class="summary-k">Parley</div><div class="summary-v">${F(need)}</div>
+			<div><div class="summary-k"><span class="gterm" data-guide="parley">Parley</span></div><div class="summary-v">${F(need)}</div>
 				<div class="summary-sub">${cover}</div></div>
 		</div>
 		<div class="map-side-btns">
@@ -370,7 +371,7 @@ function todayHTML(marks) {
 			<div class="map-ring" style="background:conic-gradient(var(--teal) ${pct * 3.6}deg, var(--track) 0deg)">
 				<span>${pct}%</span></div>
 			<div><div class="map-ring-big">${doneCount} of ${all.length} visited</div>
-				<div class="map-row-sub">resets 06:00 UTC with the game</div></div>
+				<div class="map-row-sub"><span class="gterm" data-guide="refresh">resets 06:00 UTC with the game</span></div></div>
 		</div>
 		<div class="map-list">${rows}</div>`;
 }

@@ -2575,6 +2575,33 @@ select.purse-inline { width: auto; cursor: pointer; }
 
 .map-startrow { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 
+/* A term the game defines: dotted underneath, and the game's own
+   window floats up on hover, right where the term is used. */
+.gterm { border-bottom: 1px dotted var(--ink-faint); cursor: help; }
+.gterm:hover { color: var(--teal-hi); border-bottom-color: var(--teal-edge); }
+
+.guide-tip {
+  position: fixed;
+  z-index: 500;
+  background: var(--panel-solid);
+  border: 1px solid var(--line-btn);
+  border-radius: var(--r-tile);
+  padding: 10px 12px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.guide-tip img {
+  display: block;
+  max-width: 100%;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--line);
+  margin: 4px 0 6px;
+}
+
+.guide-tip p { margin: 0; font-size: 11.5px; color: var(--ink-mid); line-height: 1.45; }
+
 /* The field guide: one quiet dot, and the game's own windows behind it. */
 .info-dot {
   width: 15px;
