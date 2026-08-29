@@ -138,6 +138,22 @@ test('the offline shell is served, and never stale', async () => {
 	assert.match(page, /rel="manifest"/, 'the page never names its manifest');
 });
 
+test('every window the field guide shows is served, and shipped', async () => {
+	// Two failure modes, both already seen: the server not whitelisting
+	// the guide directory, and the Docker image not copying it. The
+	// first shows here as a 404; the second is caught by checking the
+	// Dockerfile carries every directory the guide depends on.
+	const fs = await import('node:fs/promises');
+	const guideSrc = await fs.readFile(new URL('../js/guide.js', import.meta.url), 'utf8');
+	const imgs = [...guideSrc.matchAll(/guide\/[a-z-]+\.webp/g)].map(m => m[0]);
+	assert.ok(imgs.length >= 6, 'the guide lost its pictures');
+	for (const img of new Set(imgs)) {
+		assert.equal((await fetch(`${base}/${img}`)).status, 200, `${img} is not served`);
+	}
+	const dockerfile = await fs.readFile(new URL('../Dockerfile', import.meta.url), 'utf8');
+	assert.match(dockerfile, /COPY guide \.\/guide/, 'the Docker image would ship without the guide');
+});
+
 test('an icon may be cached, but not forever', async () => {
 	// Icons are addressed by the game's item id, so a name really does
 	// keep its contents -- but `immutable` would make a wrong one

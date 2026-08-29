@@ -16,6 +16,7 @@ RUN npm ci --omit=dev
 # The heavy, rarely-changing assets first.
 COPY icons ./icons
 COPY map ./map
+COPY guide ./guide
 # Only the walkthrough films: .dockerignore filters the README's stills
 # and GIFs out of this copy, since nothing serves them.
 COPY docs/media ./docs/media
