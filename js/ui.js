@@ -2150,11 +2150,24 @@ function wire() {
 		paintPouch();
 	});
 
+	// Debounced: a render rebuilds the whole screen and re-runs the
+	// planner, which is far too much work to do between two keystrokes
+	// of "brilliant". The caret survives because render() restores it.
+	let queryTimer = null;
 	document.addEventListener('input', evt => {
 		const el = evt.target.closest('[data-act="query"]');
 		if (!el) return;
 		query = el.value;
-		render();   // the caret is restored by render() itself
+		clearTimeout(queryTimer);
+		queryTimer = setTimeout(render, 120);
+	});
+
+	// The water is pure decoration, and decoration has no business
+	// burning battery in a tab nobody is looking at.
+	document.addEventListener('visibilitychange', () => {
+		if (!water) return;
+		if (document.visibilityState === 'hidden') water.pause();
+		else water.play();
 	});
 }
 
