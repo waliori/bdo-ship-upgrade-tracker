@@ -174,3 +174,37 @@ export async function hush(page) {
 	await page.evaluate(() => document.getElementById('__cap').classList.remove('on'));
 	await wait(320);
 }
+
+/**
+ * Press, glide, release -- the map's pan gesture.
+ *
+ * The pointer is walked through intermediate points so the app sees a
+ * real drag, not a teleport. The fake cursor's easing is made tight for
+ * the duration: at its usual half-second glide it would trail the real
+ * pointer by half the gesture and the recording would show the sea
+ * moving before the hand does.
+ */
+export async function drag(page, sel, dx, dy, { steps = 24, after = 700 } = {}) {
+	const from = await moveTo(page, sel);
+	await page.evaluate(() => {
+		const cur = document.getElementById('__cur');
+		cur.classList.add('down');
+		cur.style.transition = 'transform .06s linear';
+	});
+	await page.mouse.down();
+	for (let i = 1; i <= steps; i++) {
+		const at = { x: from.x + dx * i / steps, y: from.y + dy * i / steps };
+		await page.evaluate(p => {
+			document.getElementById('__cur').style.transform = `translate(${p.x}px, ${p.y}px)`;
+		}, at);
+		await page.mouse.move(at.x, at.y);
+		await wait(30);
+	}
+	await page.mouse.up();
+	await page.evaluate(() => {
+		const cur = document.getElementById('__cur');
+		cur.classList.remove('down');
+		cur.style.transition = '';
+	});
+	await wait(after);
+}

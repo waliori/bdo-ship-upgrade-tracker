@@ -2,14 +2,15 @@
 //
 // This is the clip to watch if you have never opened the app: queue a
 // build, choose how to get there, record what you gathered, make
-// something, take a swing at an enhancement, read the tree, and go
-// shopping. Nothing is staged -- it drives the real app against a real
+// something, step a mistake back, take a swing at an enhancement, read
+// the tree, go shopping, and see it all drawn on the sea. Nothing is
+// staged -- it drives the real app against a real
 // inventory, so if a screen changes the clip stops being a lie the next
 // time it is shot.
 //
 //   node tools/capture/tour.mjs <outdir> [phone]
 
-import { open, seed, tab, click, typeInto, say, hush, wait } from './drive.mjs';
+import { open, seed, tab, click, typeInto, drag, say, hush, wait } from './drive.mjs';
 
 const OUT = process.argv[2];
 const PHONE = process.argv[3] === 'phone';
@@ -83,6 +84,15 @@ await click(page, '.craft-card [data-times="field"]', { after: 1400 });
 await say(page, 'Crafting moves real stock: ingredients out, product in.');
 await hush(page);
 
+await say(page, 'Slipped? Every change can step back, and forward again.');
+// On a phone the header's buttons live behind the hamburger, and
+// using one closes the menu again -- so it is opened for each.
+if (PHONE) await click(page, '[data-act="menu"]', { after: 600 });
+await click(page, '[data-act="undo"]', { after: 1300 });
+if (PHONE) await click(page, '[data-act="menu"]', { after: 600 });
+await click(page, '[data-act="redo"]', { after: 1300 });
+await hush(page);
+
 await say(page, 'Enhancing is separate, because attempts fail.');
 await say(page, 'It shows the real odds, and the most it can ever cost.');
 await hush(page);
@@ -108,6 +118,22 @@ await hush(page);
 await tab(page, 'get');
 await say(page, 'And To Get is the shopping list, grouped by where to go.');
 await say(page, 'Each line costs the lot -- and what making it would cost instead.');
+await hush(page);
+
+await tab(page, 'map');
+await say(page, 'The Map is that list drawn on the sea.');
+await say(page, 'Every pin is a barterer holding something you are short of.');
+await drag(page, '#map', -240, -110, { after: 500 });
+await say(page, 'Drag to pan. Pinch or scroll to zoom.');
+if (PHONE) {
+	await click(page, '[data-act="map-zoom"][data-step="1"]', { after: 1100 });
+} else {
+	await drag(page, '#map', 180, 60, { after: 500 });
+	await page.mouse.wheel({ deltaY: -120 });
+	await wait(1100);
+}
+await hush(page);
+
 await say(page, 'Your data stays in your browser. Sign in only to sync it.');
 await hush(page);
 
