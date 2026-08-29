@@ -26,6 +26,7 @@ let mode = 'sail';            // sail | route | today
 let panelOpen = true;
 let searchQ = '';
 let stops = [];               // npc ids, in sail order, chosen by hand
+let stopsPick = '';           // the "Showing" view they were plotted under
 let done = { day: '', ids: [] };
 let restored = false;
 
@@ -53,6 +54,7 @@ function restore() {
 		if (['sail', 'route', 'today'].includes(s.mode)) mode = s.mode;
 		panelOpen = s.panelOpen !== false;
 		if (Array.isArray(s.stops)) stops = s.stops.filter(id => npcById.has(id));
+		if (typeof s.stopsPick === 'string') stopsPick = s.stopsPick;
 		if (s.done && s.done.day === barterDay()) done = s.done;
 		if (ports.some(p => p.id === s.startPort)) startPort = s.startPort;
 		returnHome = s.returnHome === true;
@@ -63,7 +65,7 @@ function restore() {
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, done, startPort, returnHome, follow }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -89,18 +91,33 @@ function goodsOf(id) {
 		for (const entry of barterData || []) {
 			for (const s of entry.sources) {
 				if (!goodsIndex.has(s.npc_id)) goodsIndex.set(s.npc_id, []);
-				goodsIndex.get(s.npc_id).push({ item: entry.name, give: s.give && s.give.name });
+				goodsIndex.get(s.npc_id).push({
+					item: entry.name,
+					give: s.give && s.give.name,
+					giveQty: (s.give && s.give.quantity) || '1',
+					recvQty: s.quantity_received || '1',
+					tries: s.attempts_available || 0
+				});
 			}
 		}
 	}
 	return goodsIndex.get(id) || [];
 }
 
+/** Whether the plotted route belongs to what the chart is showing.
+ *  Change the view and it goes dormant rather than dragging you to
+ *  islands that no longer trade the thing; the Route tab offers it
+ *  back. */
+function stopsLive() {
+	return stops.length > 0 && stopsPick === (mapPick || '');
+}
+
 /** The stops in sailing order: the hand-plotted route if there is
- *  one, else the suggested loop -- turned to sail from home when a
- *  wharf is chosen, since a loop has no direction of its own. */
+ *  one for this view, else the suggested loop -- turned to sail from
+ *  home when a wharf is chosen, since a loop has no direction of its
+ *  own. */
 function routeIds(marks) {
-	if (stops.length >= 2) return stops;
+	if (stopsLive() && stops.length >= 2) return stops;
 	let ids = routeFor(marks).map(n => n.id);
 	const port = ports.find(p => p.id === startPort);
 	if (port && ids.length > 1) {
@@ -232,6 +249,15 @@ function sailHTML(marks) {
 
 function routeHTML(marks) {
 	const per = parleyPerTrade(barterProfile());
+	if (stops.length && !stopsLive()) {
+		return `<p class="map-hint">You plotted ${stops.length} stops while showing
+			<strong>${esc(stopsPick || 'everything you are short of')}</strong>; the chart
+			is on something else now, so the suggested loop is drawn instead.</p>
+			<div class="map-side-btns">
+				<button class="ghost-btn" data-act="map-route-revive">Show that again</button>
+				<button class="ghost-btn danger" data-act="map-route-clear">Clear it</button>
+			</div>`;
+	}
 	const list = stops.map((id, k) => {
 		const n = npcById.get(id);
 		const has = marks.get(id);
@@ -458,7 +484,7 @@ function paintPins(layer, pins, marks, currentId) {
 		}
 		const m = p.mark;
 		const what = m ? [...m.items.keys()] : [];
-		const stopAt = stops.indexOf(p.id);
+		const stopAt = stopsLive() ? stops.indexOf(p.id) : -1;
 		const visited = dn.has(p.id);
 		btn.classList.toggle('wanted', !!m);
 		btn.classList.toggle('current', p.id === currentId);
@@ -598,23 +624,27 @@ function paintTip(host, size, marks) {
 	const pinned = !hoverNpc && !!pinnedNpc;
 	const m = marks.get(id);
 	const dn = doneSet();
-	const key = [id, mode, pinned, stops.indexOf(id), dn.has(id), m ? m.items.size : 0].join('|');
+	const key = [id, mode, pinned, stopsLive() ? stops.indexOf(id) : -1, dn.has(id), m ? m.items.size : 0].join('|');
 	if (tip._for !== key) {
 		tip._for = key;
-		const rows = m
-			? [...m.items.entries()].slice(0, 5).map(([item, gives]) => {
-				const gv = [...gives][0] || '—';
-				return `<div class="map-tip-row">
-					<span class="map-tip-side"><span class="map-io minus">${img(gv, 'map-icon')}</span><span>${esc(gv)}</span></span>
-					<span class="map-tip-arrow">→</span>
-					<span class="map-tip-side get"><span class="map-io plus">${img(item, 'map-icon')}</span><span>${esc(item)}</span></span>
-				</div>`;
-			}).join('')
-			: '';
-		const others = new Set(goodsOf(id).map(g => g.item)).size - (m ? m.items.size : 0);
+		// The trades themselves, numbers and all, from the same file the
+		// marks come from: what you hand over, what you get, how many
+		// times today's list will let you.
+		const trades = m ? goodsOf(id).filter(g => m.items.has(g.item)) : [];
+		const qty = q => (q && q !== '1' ? `${q}× ` : '');
+		const rows = trades.slice(0, 5).map(g => `<div class="map-tip-row">
+				<span class="map-tip-side"${g.give ? ` data-peek="${esc(g.give)}"` : ''}><span class="map-io minus">${img(g.give || '', 'map-icon')}</span><span>${qty(g.giveQty)}${esc(g.give || '—')}</span></span>
+				<span class="map-tip-arrow">→</span>
+				<span class="map-tip-side get" data-peek="${esc(g.item)}"><span class="map-io plus">${img(g.item, 'map-icon')}</span><span>${qty(g.recvQty)}${esc(g.item)}</span></span>
+				<span class="map-tip-tries">${g.tries ? `×${g.tries}` : ''}</span>
+			</div>`).join('');
+		// The game deals each island one material offer per refresh, drawn
+		// from its own pool -- so the size of that pool is the honest way
+		// to say how likely your thing is to be on the table today.
+		const pool = new Set(goodsOf(id).map(g => g.item)).size;
 		const sub = `${esc(npc.at)} · ${F(parleyPerTrade(barterProfile()))} parley a trade`
-			+ (others > 0 ? ` · ${others} other good${others > 1 ? 's' : ''}` : '');
-		const onRoute = stops.includes(id);
+			+ (pool > 1 ? ` · draws 1 of its ${pool} offers a refresh` : '');
+		const onRoute = stopsLive() && stops.includes(id);
 		const btns = `<div class="map-tip-btns">
 			<button class="ghost-btn" data-act="map-stop" data-npc="${id}">${onRoute ? '− Remove stop' : '+ Add stop'}</button>
 			${m ? `<button class="ghost-btn" data-act="map-done" data-npc="${id}">${dn.has(id) ? '✓ Sailed' : 'Mark sailed'}</button>` : ''}
@@ -628,9 +658,10 @@ function paintTip(host, size, marks) {
 
 	const at = project(mapState, size, npc.x, npc.y);
 	tip.classList.toggle('pinned', pinned);
-	tip.style.left = `${Math.max(10, Math.min(size.w - 250, at.left + 16))}px`;
-	tip.style.top = `${Math.max(10, Math.min(size.h - 130, at.top - 12))}px`;
 	tip.hidden = false;
+	const w = tip.offsetWidth || 264, h = tip.offsetHeight || 140;
+	tip.style.left = `${Math.max(10, Math.min(size.w - w - 10, at.left + 16))}px`;
+	tip.style.top = `${Math.max(10, Math.min(size.h - h - 10, at.top - 12))}px`;
 }
 
 function paintMini(host, size) {
@@ -868,7 +899,14 @@ export function toggleMapPanel() {
 
 export function toggleMapStop(npcId) {
 	if (!npcById.has(npcId)) return;
-	stops = stops.includes(npcId) ? stops.filter(id => id !== npcId) : [...stops, npcId];
+	if (stops.length && !stopsLive()) {
+		// Plotting under a new view starts a new plot; the old one was
+		// one click to make and would only mislead here.
+		stops = [npcId];
+	} else {
+		stops = stops.includes(npcId) ? stops.filter(id => id !== npcId) : [...stops, npcId];
+	}
+	stopsPick = mapPick || '';
 	persist();
 	refreshSide();
 	paintMap();
@@ -876,6 +914,7 @@ export function toggleMapStop(npcId) {
 
 export function useSuggestedRoute() {
 	stops = routeFor(marksNow()).map(n => n.id);
+	stopsPick = mapPick || '';
 	persist();
 	refreshSide();
 	paintMap();
@@ -1003,4 +1042,11 @@ export function setMapReturn(on) {
 export function mapPortClick(portId) {
 	setMapStart(startPort === portId ? 0 : portId);
 	refreshSide();
+}
+
+/** Bring the chart back to the view a dormant plot was made under. */
+export function reviveMapRoute() {
+	mapPick = stopsPick || null;
+	pendingFit = true;
+	pinnedNpc = null;
 }

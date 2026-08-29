@@ -31,7 +31,8 @@ import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, toggleMapDone, closeMapTip,
-	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick
+	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
+	reviveMapRoute
 } from './screen-map.js';
 
 const TABS = [
@@ -274,6 +275,7 @@ function wire() {
 			case 'map-panel': toggleMapPanel(); return;
 			case 'map-stop': toggleMapStop(Number(el.dataset.npc)); return;
 			case 'map-route-use': useSuggestedRoute(); return;
+			case 'map-route-revive': reviveMapRoute(); return render();
 			case 'map-route-reverse': reverseMapRoute(); return;
 			case 'map-route-clear': clearMapRoute(); return;
 			case 'map-done': toggleMapDone(Number(el.dataset.npc)); return;

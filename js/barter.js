@@ -59,9 +59,11 @@ export const REFRESH = {
 	tradeItem: { costs: [20, 40, 50], perDay: 2, perDayWithValuePack: 3, instantExtra: 30 },
 	shipMaterial: { costs: [10, 30], perDay: 2, instantExtra: 30 },
 
-	// Parley spent to bring the two-hour cooldown forward, one press at
-	// a time. There is no way to spend less than a whole press.
-	reduceCooldown: { parleyPerPress: 50000, minutesPerPress: 5 }
+	// Parley spent to bring the two-hour cooldown forward. The dialog
+	// prices it by the minute -- "10,000 Parley reduces 1 min. Up to
+	// 50,000 Parley can be used at once" -- so one press buys at most
+	// five minutes, but any smaller number of minutes is a valid press.
+	reduceCooldown: { parleyPerMinute: 10000, maxParleyPerPress: 50000 }
 };
 
 /**
