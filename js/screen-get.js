@@ -157,9 +157,13 @@ export function renderGet() {
 				const seed = plan && !plan.gate && plan.seed
 					? ` <span class="row-sea-why">from ${F(Math.ceil(plan.seed.qty))}× ${esc(plan.seed.item)}</span>`
 					: '';
+				// The barter line names the sea; this link opens it. The
+				// map picks the item and frames its islands, which is the
+				// answer "from 6 NPCs" only gestures at.
+				const chart = `<button class="chart-link" data-act="goto-map" data-item="${esc(entry.item)}">on the map</button>`;
 				const sea = plan
 					? `<div class="row-sea${plan.gate ? ' locked' : ''}">by barter: ${esc(barterLine(plan))}${
-						why ? ` <span class="row-sea-why">${esc(why)}</span>` : ''}${seed}</div>`
+						why ? ` <span class="row-sea-why">${esc(why)}</span>` : ''}${seed} ${chart}</div>`
 					: '';
 				// The list says where to buy it; the other half of the
 				// decision is what making it would cost instead.

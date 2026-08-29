@@ -72,7 +72,9 @@ export function frame(state, size, marks = new Map()) {
 	const left = cx - size.w / 2;
 	const top = cy - size.h / 2;
 
-	const r = tileRange(zoom, left, top, size.w, size.h);
+	// One tile beyond the viewport on every side, so a pan reveals
+	// coastline that is already loaded rather than a flash of sea.
+	const r = tileRange(zoom, left - TILE, top - TILE, size.w + TILE * 2, size.h + TILE * 2);
 	const tiles = [];
 	for (let x = r.x0; x <= r.x1; x++) {
 		for (let y = r.y0; y <= r.y1; y++) {
@@ -98,7 +100,15 @@ export function frame(state, size, marks = new Map()) {
 	// Wanted ones last, so they paint over the rest.
 	pins.sort((a, b) => (a.mark ? 1 : 0) - (b.mark ? 1 : 0));
 
-	return { tiles, pins };
+	// The sailing line through the marked islands, in viewport pixels
+	// and never culled: a leg between two off-screen stops still
+	// crosses the view, and cutting it would break the line.
+	const route = routeFor(marks).map(n => ({
+		left: Math.round(toPixel(n.x, zoom) - left),
+		top: Math.round(toPixel(n.y, zoom) - top)
+	}));
+
+	return { tiles, pins, route };
 }
 
 /**
@@ -164,4 +174,103 @@ export function zoomAt(state, step, size, px, py) {
 	state.centre.x += dx * (before - after);
 	state.centre.y += dy * (before - after);
 	return true;
+}
+
+/**
+ * The world box every zoom actually covers: the intersection of the
+ * shipped tile ranges. The view is clamped to it, so every visible
+ * spot has a tile at every zoom -- panning or zooming at the edge can
+ * no longer land on the void past the chart.
+ */
+const EXTENT = (() => {
+	let x0 = -Infinity, y0 = -Infinity, x1 = Infinity, y1 = Infinity;
+	for (const z of ZOOMS) {
+		const b = TILES[z];
+		const s = Math.pow(2, MAX_ZOOM - z);
+		x0 = Math.max(x0, b.x0 * TILE * s);
+		y0 = Math.max(y0, b.y0 * TILE * s);
+		x1 = Math.min(x1, (b.x1 + 1) * TILE * s);
+		y1 = Math.min(y1, (b.y1 + 1) * TILE * s);
+	}
+	return { x0, y0, x1, y1 };
+})();
+
+/** Keep the viewport on the chart, in place. An axis where the chart is
+ *  narrower than the view is centred instead. */
+export function clampView(state, size) {
+	const scale = Math.pow(2, MAX_ZOOM - state.zoom);
+	const axis = (c, half, lo, hi) =>
+		hi - lo < half * 2 ? (lo + hi) / 2 : Math.min(hi - half, Math.max(lo + half, c));
+	state.centre.x = axis(state.centre.x, size.w / 2 * scale, EXTENT.x0, EXTENT.x1);
+	state.centre.y = axis(state.centre.y, size.h / 2 * scale, EXTENT.y0, EXTENT.y1);
+	return state;
+}
+
+/**
+ * The order to sail the marked islands in.
+ *
+ * Not the optimum -- that is the travelling salesman -- but the two
+ * mistakes a drawn route must not make are visiting an island twice
+ * and crossing its own wake, and this makes neither: nearest-neighbour
+ * from the westernmost stop, then any leg whose reversal shortens the
+ * path is reversed until none does. At 81 islands the whole thing is
+ * arithmetic; cached by the set of stops, since a drag repaints every
+ * frame but the stops only change when the shopping list does.
+ */
+let routeCache = { key: '', path: [] };
+export function routeFor(marks) {
+	const ids = [...marks.keys()].sort((a, b) => a - b);
+	const key = ids.join(',');
+	if (key === routeCache.key) return routeCache.path;
+
+	const stops = ids.map(id => npcById.get(id)).filter(Boolean);
+	const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+	let path = stops;
+	if (stops.length > 2) {
+		let at = stops.reduce((a, b) => (b.x < a.x ? b : a));
+		const rest = new Set(stops);
+		rest.delete(at);
+		path = [at];
+		while (rest.size) {
+			let best = null;
+			for (const n of rest) if (!best || d(at, n) < d(at, best)) best = n;
+			rest.delete(best);
+			path.push(at = best);
+		}
+		for (let pass = 0, changed = true; changed && pass < 20; pass++) {
+			changed = false;
+			for (let i = 0; i < path.length - 2; i++) {
+				for (let j = i + 2; j < path.length; j++) {
+					const tail = path[j + 1];
+					const gain = d(path[i], path[i + 1]) - d(path[i], path[j])
+						+ (tail ? d(path[j], tail) - d(path[i + 1], tail) : 0);
+					if (gain > 1e-9) {
+						let a = i + 1, b = j;
+						while (a < b) { const t = path[a]; path[a++] = path[b]; path[b--] = t; }
+						changed = true;
+					}
+				}
+			}
+		}
+	}
+	routeCache = { key, path };
+	return path;
+}
+
+/** Zoom and centre so every given world point is in view, with room to
+ *  breathe, in place. */
+export function fitTo(state, size, points, pad = 56) {
+	if (!points.length) return state;
+	const x0 = Math.min(...points.map(p => p.x)), x1 = Math.max(...points.map(p => p.x));
+	const y0 = Math.min(...points.map(p => p.y)), y1 = Math.max(...points.map(p => p.y));
+	state.zoom = MIN_Z;
+	for (let z = MAX_Z; z >= MIN_Z; z--) {
+		const s = Math.pow(2, MAX_ZOOM - z);
+		if ((x1 - x0) / s <= size.w - pad * 2 && (y1 - y0) / s <= size.h - pad * 2) {
+			state.zoom = z;
+			break;
+		}
+	}
+	state.centre = { x: (x0 + x1) / 2, y: (y0 + y1) / 2 };
+	return clampView(state, size);
 }

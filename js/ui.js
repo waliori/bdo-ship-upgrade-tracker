@@ -27,7 +27,7 @@ import { renderInventory } from './screen-inventory.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop } from './screen-workshop.js';
 import { renderGet, shoppingText } from './screen-get.js';
-import { renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn } from './screen-map.js';
+import { renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapShowItem, mapFit } from './screen-map.js';
 
 const TABS = [
 	{ id: 'plan', label: 'Plan' },
@@ -262,7 +262,9 @@ function wire() {
 				return;
 			}
 			case 'map-zoom': mapZoomStep(Number(el.dataset.step)); return;
+			case 'map-fit': mapFit(); return;
 			case 'map-pin': mapCentreOn(Number(el.dataset.npc)); return;
+			case 'goto-map': mapShowItem(el.dataset.item); showView('map'); return;
 			case 'plan-filter': setPlanFilter(el.dataset.id); return render();
 			case 'tree-pick': return pickTreeTarget();
 			case 'tree-target': setTreeTarget(el.dataset.item); closeDialog(); return render();

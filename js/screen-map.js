@@ -4,12 +4,13 @@
 // shell's event handling calls.
 
 import { esc, F } from './fmt.js';
-import { createMap, frame, marksFor, pan, zoomBy, zoomAt } from './map.js';
+import { createMap, frame, marksFor, pan, zoomBy, zoomAt, clampView, fitTo } from './map.js';
 import { npcs, npcById } from './barter_npcs.js';
 import { snapshot, barterData, view } from './ui-state.js';
 
 let mapState = null;
 let mapPick = null;
+let pendingFit = false;   // frame the marked islands on the next paint
 
 /**
  * The chart, and your shopping list drawn onto it.
@@ -56,6 +57,7 @@ export function renderMap() {
 		<div class="map-zoom">
 			<button class="ghost-btn" data-act="map-zoom" data-step="-1" aria-label="Zoom out">−</button>
 			<button class="ghost-btn" data-act="map-zoom" data-step="1" aria-label="Zoom in">+</button>
+			<button class="ghost-btn" data-act="map-fit" aria-label="Fit the marked islands in view">⌖</button>
 		</div>
 	</div>`;
 
@@ -86,7 +88,18 @@ export function paintMap() {
 
 	const wanted = mapPick ? { [mapPick]: 1 } : snapshot.missing;
 	const marks = marksFor(wanted, barterData);
-	const { tiles, pins } = frame(mapState, size, marks);
+
+	// A fit was asked for before the box existed to measure; do it now,
+	// on the marked islands if there are any, on all of them if not.
+	if (pendingFit) {
+		pendingFit = false;
+		const points = marks.size ? [...marks.keys()].map(id => npcById.get(id)).filter(Boolean) : npcs;
+		fitTo(mapState, size, points);
+	}
+	// The view never leaves the charted sea, whatever the gesture did.
+	clampView(mapState, size);
+
+	const { tiles, pins, route } = frame(mapState, size, marks);
 
 	const tilePool = layer._tiles || (layer._tiles = new Map());
 	const liveTiles = new Set();
@@ -99,6 +112,11 @@ export function paintMap() {
 			img.src = t.src;
 			img.alt = '';
 			img.draggable = false;
+			// Fading in over the sea colour is what a zoom step looks
+			// like while its tiles arrive; popping from dark was a bug
+			// report.
+			img.addEventListener('load', () => img.classList.add('on'), { once: true });
+			if (img.complete && img.naturalWidth) img.classList.add('on');
 			tilePool.set(t.src, img);
 			layer.appendChild(img);
 		}
@@ -132,7 +150,7 @@ export function paintMap() {
 		btn.title = m ? `${p.name} — ${what.join(', ')}` : p.name;
 		// z-index rather than DOM order does what the wanted-last sort in
 		// frame() used to: a lit pin paints over a plain one.
-		btn.style.zIndex = m ? 2 : 1;
+		btn.style.zIndex = m ? 3 : 2;
 		btn.style.left = `${p.left}px`;
 		btn.style.top = `${p.top}px`;
 		btn.querySelector('.map-pin-name').textContent =
@@ -144,6 +162,17 @@ export function paintMap() {
 			pinPool.delete(id);
 		}
 	}
+
+	// The route: one polyline, kept and re-pointed like the pools above.
+	let svg = layer._route;
+	if (!svg) {
+		svg = layer._route = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		svg.setAttribute('class', 'map-route');
+		svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'polyline'));
+		layer.appendChild(svg);
+	}
+	svg.firstChild.setAttribute('points',
+		route.length > 1 ? route.map(p => `${p.left},${p.top}`).join(' ') : '');
 }
 
 /** Drag to pan, wheel or pinch to zoom. Wired once, for whatever map
@@ -249,6 +278,19 @@ export function wireMap() {
 
 export function setMapPick(value) {
 	mapPick = value;
+	// Picking something is asking where it is; go there.
+	pendingFit = true;
+}
+
+/** Another screen pointing at the map: show this item's islands. */
+export function mapShowItem(item) {
+	mapPick = item;
+	pendingFit = true;
+}
+
+export function mapFit() {
+	pendingFit = true;
+	paintMap();
 }
 
 export function mapZoomStep(step) {

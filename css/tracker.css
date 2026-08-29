@@ -1844,7 +1844,10 @@ select.purse-inline { width: auto; cursor: pointer; }
   height: min(68vh, 780px);
   overflow: hidden;
   cursor: grab;
-  background: #0a1725;
+  /* The tiles' own ocean colour, so a spot the chart does not cover --
+     past its edge, inside a still-loading tile, under the transparent
+     fringe of an edge tile -- reads as open sea, not as a hole. */
+  background: #1e3636;
   touch-action: none;
   contain: strict;
 }
@@ -1853,15 +1856,37 @@ select.purse-inline { width: auto; cursor: pointer; }
 
 .map-layer { position: absolute; inset: 0; }
 
-/* Tiles are placed, not flowed. `pixelated` keeps the coastlines crisp
-   when a zoom step lands between the levels we shipped. */
+/* Tiles are placed, not flowed, and drawn at their own size: most are
+   256px, but the chart's edge column was cut short by the source image,
+   and stretching a 40px sliver to 256 smeared the coastline. */
 .map-tile {
   position: absolute;
-  width: 256px;
-  height: 256px;
   user-select: none;
   pointer-events: none;
   image-rendering: pixelated;
+  opacity: 0;
+  transition: opacity 0.18s;
+}
+
+.map-tile.on { opacity: 1; }
+
+/* The sailing line through the islands that have what you are short of:
+   over the sea, under the pins. */
+.map-route {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.map-route polyline {
+  fill: none;
+  stroke: var(--teal);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 5;
+  opacity: 0.55;
 }
 
 /* A pin is its own anchor: the dot sits on the coordinate and the name
@@ -1907,4 +1932,16 @@ select.purse-inline { width: auto; cursor: pointer; }
 .map-pin.wanted:hover .map-pin-name { color: var(--teal-hi); }
 
 .map-zoom { display: flex; gap: 6px; }
+
+/* The jump from a shopping-list line to its islands. */
+.chart-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--teal);
+  cursor: pointer;
+}
+
+.chart-link:hover { text-decoration: underline; }
 .map-zoom .ghost-btn { min-width: 34px; font-size: 15px; line-height: 1; }

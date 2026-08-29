@@ -15,7 +15,7 @@ import { readFile } from 'node:fs/promises';
 const shipbarters = JSON.parse(
 	await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
 import { npcs, npcById, TILES, TILE, MAX_ZOOM } from '../js/barter_npcs.js';
-import { toPixel, frame, marksFor, pan, zoomBy, zoomAt, createMap, zoomRange } from '../js/map.js';
+import { toPixel, frame, marksFor, pan, zoomBy, zoomAt, createMap, zoomRange, clampView, routeFor, fitTo } from '../js/map.js';
 
 const SIZE = { w: 1200, h: 640 };
 
@@ -201,4 +201,101 @@ test('wanted pins are drawn last so they land on top', () => {
 	const firstMarked = pins.findIndex(p => p.mark);
 	assert.ok(firstMarked >= 0, 'nothing marked in view');
 	assert.ok(pins.slice(firstMarked).every(p => p.mark), 'a plain pin sorted after a marked one');
+});
+
+/* ------------------------------------------------------------------ *
+ * staying on the chart
+ * ------------------------------------------------------------------ */
+
+test('a clamped view has a tile under every pixel, at every zoom', () => {
+	// The bug this pins down: pan to an edge, or zoom in near one, and
+	// the viewport hangs off the chart showing bare background.
+	const cover = Math.ceil(SIZE.w / TILE) * Math.ceil(SIZE.h / TILE);
+	for (const z of [zoomRange.min, zoomRange.max]) {
+		for (const [dx, dy] of [[1e6, 1e6], [-1e6, -1e6], [1e6, -1e6]]) {
+			const state = createMap({ zoom: z });
+			pan(state, dx, dy);
+			clampView(state, SIZE);
+			const { tiles } = frame(state, SIZE);
+			assert.ok(tiles.length >= cover, `z${z} pan(${dx},${dy}): ${tiles.length} tiles for ${cover} needed`);
+		}
+	}
+});
+
+test('zooming in at a corner cannot leave the chart either', () => {
+	const state = createMap();
+	pan(state, -1e6, -1e6);
+	clampView(state, SIZE);
+	while (zoomAt(state, 1, SIZE, 0, 0)) clampView(state, SIZE);
+	const { tiles } = frame(state, SIZE);
+	const cover = Math.ceil(SIZE.w / TILE) * Math.ceil(SIZE.h / TILE);
+	assert.ok(tiles.length >= cover, `holes at the edge after zooming in: ${tiles.length} < ${cover}`);
+});
+
+/* ------------------------------------------------------------------ *
+ * the route
+ * ------------------------------------------------------------------ */
+
+test('the route visits every marked island exactly once', () => {
+	const marks = marksFor({ 'Brilliant Pearl Shard': 40 }, shipbarters);
+	const path = routeFor(marks);
+	assert.equal(path.length, marks.size);
+	assert.equal(new Set(path.map(n => n.id)).size, marks.size);
+	for (const n of path) assert.ok(marks.has(n.id), `${n.name} is not marked`);
+});
+
+test('the route beats sailing the islands in naive west-to-east order', () => {
+	// Not optimal -- that is the travelling salesman -- but a drawn route
+	// that is longer than just reading the map left to right would be
+	// worse than no route.
+	const marks = marksFor({ 'Bright Reef Piece': 1, 'Cobalt Ingot': 1 }, shipbarters);
+	assert.ok(marks.size > 3, 'too few stops to say anything');
+	const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+	const len = p => p.reduce((s, n, i) => (i ? s + d(p[i - 1], n) : 0), 0);
+	const naive = [...marks.keys()].map(id => npcById.get(id)).sort((a, b) => a.x - b.x);
+	assert.ok(len(routeFor(marks)) <= len(naive) + 1e-6);
+});
+
+test('one stop is a route of one, and no stops is no route', () => {
+	assert.equal(routeFor(new Map()).length, 0);
+	const one = new Map([[npcs[0].id, {}]]);
+	assert.deepEqual(routeFor(one).map(n => n.id), [npcs[0].id]);
+});
+
+test('the frame carries the route in viewport pixels, uncropped', () => {
+	const marks = marksFor({ 'Brilliant Pearl Shard': 40 }, shipbarters);
+	const state = createMap();
+	clampView(state, SIZE);
+	const { route } = frame(state, SIZE, marks);
+	assert.equal(route.length, marks.size, 'a leg was culled');
+});
+
+/* ------------------------------------------------------------------ *
+ * fitting
+ * ------------------------------------------------------------------ */
+
+test('fitting to the marked islands puts every one of them in view', () => {
+	// A viewport tall enough that a fit is geometrically possible even
+	// for the widest-flung goods; a laptop-letterbox view of Cobalt
+	// Ingot cannot hold every island at any zoom we ship, and then the
+	// widest, centred view is the right answer rather than a bug.
+	const size = { w: 1200, h: 900 };
+	for (const item of ['Brilliant Pearl Shard', 'Cobalt Ingot', 'Bright Reef Piece']) {
+		const marks = marksFor({ [item]: 1 }, shipbarters);
+		const state = createMap();
+		fitTo(state, size, [...marks.keys()].map(id => npcById.get(id)));
+		const inView = new Set(frame(state, size, marks).pins
+			.filter(p => p.mark && p.left >= 0 && p.left <= size.w && p.top >= 0 && p.top <= size.h)
+			.map(p => p.id));
+		for (const id of marks.keys()) {
+			assert.ok(inView.has(id), `${npcById.get(id).name} out of view fitting ${item}`);
+		}
+	}
+});
+
+test('fitting one island goes in close instead of staying wide', () => {
+	const state = createMap();
+	fitTo(state, SIZE, [npcs[0]]);
+	assert.equal(state.zoom, zoomRange.max);
+	assert.deepEqual(state.centre, { x: npcs[0].x, y: npcs[0].y });
 });
