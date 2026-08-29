@@ -2378,10 +2378,200 @@ select.purse-inline { width: auto; cursor: pointer; }
   pointer-events: none;
 }
 
+/* The "Showing" picker's face: the picked item wears its own icon. */
+.map-pick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 8px;
+  border-radius: var(--r-btn);
+  background: var(--panel-inset);
+  border: 1px solid var(--line-btn);
+  color: var(--ink-hi);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.map-pick-btn:hover { border-color: var(--line-btn-hi); }
+.map-pick-btn > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-pick-caret { color: var(--ink-mute); font-size: 10px; flex: none; }
+
+.map-pick-all {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: rgba(125, 175, 225, 0.05);
+  color: var(--teal);
+  font-size: 13px;
+  flex: none;
+}
+
+.picker-head {
+  padding: 9px 10px 4px;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+
+/* Give and get, at a glance: minus on what leaves, plus on what boards. */
+.map-io { position: relative; display: inline-flex; flex: none; }
+.map-io::after {
+  content: '−';
+  position: absolute;
+  right: -4px;
+  top: -5px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  font-size: 9px;
+  line-height: 11px;
+  text-align: center;
+  font-weight: 700;
+  background: #3a1519;
+  color: var(--red-soft);
+  border: 1px solid var(--red-edge);
+}
+.map-io.plus::after {
+  content: '+';
+  background: #11332a;
+  color: #5ef0c9;
+  border-color: #2c9a7a;
+}
+
+/* A wharf: square where the islands are round, and gold when it is
+   the route's home. */
+.map-port {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-mute);
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  z-index: 3;
+}
+.map-port-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--blue-bar);
+  border: 1.5px solid rgba(240, 250, 255, 0.7);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+.map-port-name { text-shadow: 0 1px 4px #000; }
+.map-port:hover .map-port-name { color: var(--ink-hi); }
+.map-port.start { color: var(--amber); }
+.map-port.start .map-port-dot { background: var(--amber); }
+
+/* The stop the step player is on: a gold ring no sea swallows. */
+.map-pin.current .map-pin-dot {
+  box-shadow: 0 0 0 3px rgba(232, 182, 97, 0.9), 0 0 16px var(--amber);
+}
+
+/* The step player: the route as chips, walked or flown. */
+.map-steps {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(72%, 580px);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--panel-solid);
+  border: 1px solid var(--line-btn);
+  backdrop-filter: blur(8px);
+}
+
+.map-step-chips {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  max-width: 300px;
+  scrollbar-width: none;
+}
+.map-step-chips::-webkit-scrollbar { display: none; }
+
+.map-step-chip {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--panel-inset);
+  border: 1px solid var(--line-btn);
+  color: var(--ink-dim);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+}
+.map-step-chip.on {
+  background: var(--amber);
+  border-color: transparent;
+  color: #241a05;
+  font-weight: 700;
+}
+
+.map-step-nav {
+  background: none;
+  border: 0;
+  padding: 0 2px;
+  color: var(--ink-mute);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.map-step-nav:hover { color: var(--ink-hi); }
+
+.map-step-name {
+  font-size: 11px;
+  color: var(--ink-dim);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-step-follow {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: none;
+  border: 1px solid var(--line-btn);
+  color: var(--ink-mute);
+  cursor: pointer;
+}
+.map-step-follow.on {
+  color: var(--amber);
+  border-color: rgba(232, 182, 97, 0.5);
+  background: rgba(232, 182, 97, 0.08);
+}
+
+.map-startrow { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+
 /* A phone is all sea: the panel becomes a sheet, the minimap yields. */
 @media (max-width: 640px) {
   .map-mini { display: none; }
   .map-side { bottom: auto; max-height: 62%; }
+  .map-step-name { display: none; }
 }
 
 /* The jump from a shopping-list line to its islands. */

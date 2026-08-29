@@ -24,6 +24,16 @@ export const TILE = 256;
  *  fetched, so a pan past the edge draws sea rather than a 404. */
 export const TILES = { 3: { x0: 0, x1: 8, y0: 0, y1: 5 }, 4: { x0: 2, x1: 15, y0: 1, y1: 9 }, 5: { x0: 6, x1: 29, y0: 4, y1: 17 } };
 
+/** The wharves inside the charted sea, for anchoring a route to where
+ *  a ship actually starts. Same BDOCodex map layer as the island match,
+ *  read 2026-08-29; all four fall inside the shipped tiles. */
+export const ports = [
+	{ id: 1, name: "Velia", x: 69152, y: 69120 },
+	{ id: 604, name: "Port Epheria", x: 54375, y: 70894 },
+	{ id: 1002, name: "Iliya Island", x: 74893, y: 60562 },
+	{ id: 1343, name: "Ancado Inner Harbor", x: 107685, y: 58759 }
+];
+
 export const npcs = [
 	{ id: 58922, name: "Akenisi", x: 61554, y: 60679, at: "Narvo Island", region: "Balenos" },
 	{ id: 58916, name: "Arutiha", x: 52644, y: 59076, at: "Almai Island", region: "Calpheon" },

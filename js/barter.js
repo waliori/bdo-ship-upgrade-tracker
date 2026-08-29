@@ -83,10 +83,11 @@ export const PARLEY = {
 	max: 1000000,
 	perGreatOceanTrade: 14286,
 	perCrowCoinTrade: 21650,
-	// Value Pack; a ship's own Parley reduction stacks another 10% on
-	// top since 2025-03-06, which the Barter Information window shows
-	// and this does not try to guess at.
+	// Value Pack; a crewed ship's own Parley reduction stacks another
+	// 10% on top since 2025-03-06, which the Barter Information window
+	// shows -- modelled as the opt-in `crew` flag, off by default.
 	valuePackDiscount: 0.1,
+	crewDiscount: 0.1,
 	voucher: 250000
 };
 
@@ -368,12 +369,12 @@ export function rungs(step) {
  * them is trading tomorrow's presses for today's, and a forecast that
  * counted them would quietly promise a pace nobody can hold.
  */
-export function dailyCapacity({ valuePack = false, vouchers = 0, level = null } = {}) {
+export function dailyCapacity({ valuePack = false, vouchers = 0, level = null, crew = false } = {}) {
 	const refreshes = 1
 		+ (valuePack ? REFRESH.tradeItem.perDayWithValuePack : REFRESH.tradeItem.perDay)
 		+ REFRESH.shipMaterial.perDay;
 
-	const perTrade = parleyPerTrade({ valuePack, level });
+	const perTrade = parleyPerTrade({ valuePack, level, crew });
 	const bar = PARLEY.max + vouchers * PARLEY.voucher;
 
 	return {
@@ -397,11 +398,12 @@ export function dailyCapacity({ valuePack = false, vouchers = 0, level = null } 
  * between 9,600 and 9,250 and worth getting right when the answer is
  * "how many exchanges does a bar cover".
  */
-export function parleyPerTrade({ valuePack = false, crowCoin = false, level = null } = {}) {
+export function parleyPerTrade({ valuePack = false, crowCoin = false, level = null, crew = false } = {}) {
 	const base = crowCoin ? PARLEY.perCrowCoinTrade : PARLEY.perGreatOceanTrade;
 	const fromLevel = 1 - levelDiscount(level);
 	const fromPack = valuePack ? 1 - PARLEY.valuePackDiscount : 1;
-	return Math.round(base * fromLevel * fromPack);
+	const fromCrew = crew ? 1 - PARLEY.crewDiscount : 1;
+	return Math.round(base * fromLevel * fromPack * fromCrew);
 }
 
 /* ------------------------------------------------------------------ *

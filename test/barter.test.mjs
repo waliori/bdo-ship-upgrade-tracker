@@ -50,6 +50,16 @@ test('a Parley bar is sixty-nine Great Ocean trades', () => {
 	assert.equal(Math.floor(PARLEY.max / parleyPerTrade({ crowCoin: true })), 46);
 });
 
+test('a crewed ship shaves its tenth off, and it stacks by multiplying', () => {
+	// The 2025-03-06 stack: crew alone is base * 0.9, and with a Value
+	// Pack it is base * 0.9 * 0.9 -- not base * 0.8.
+	const base = parleyPerTrade({});
+	assert.equal(parleyPerTrade({ crew: true }), Math.round(base * 0.9));
+	assert.equal(parleyPerTrade({ crew: true, valuePack: true }),
+		Math.round(PARLEY.perGreatOceanTrade * 0.9 * 0.9));
+	assert.ok(dailyCapacity({ crew: true }).perTrade < dailyCapacity({}).perTrade);
+});
+
 test('a Value Pack buys a sixth refresh and a cheaper trade', () => {
 	const plain = dailyCapacity();
 	const vp = dailyCapacity({ valuePack: true });

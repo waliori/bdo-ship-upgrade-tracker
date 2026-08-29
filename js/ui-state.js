@@ -126,7 +126,10 @@ export function barterProfile() {
 	return {
 		barterCount: Number(store.getProfile('barterCount', 0)) || 0,
 		valuePack: store.getProfile('valuePack', false) === true,
+		crew: store.getProfile('crew', false) === true,
 		level: store.getProfile('level', null),
-		vouchers: Number(store.getProfile('vouchers', 0)) || 0
+		vouchers: Number(store.getProfile('vouchers', 0)) || 0,
+		// Parley in the bar right now, for "can I afford this route".
+		parleyHeld: Number(store.getProfile('parleyHeld', 0)) || 0
 	};
 }

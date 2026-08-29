@@ -52,7 +52,7 @@ export function barterLookup(item, qty = 1) {
  */
 function barterProfileTile() {
 	const profile = barterProfile();
-	const { barterCount, valuePack, level, vouchers } = profile;
+	const { barterCount, valuePack, crew, level, vouchers, parleyHeld } = profile;
 	const day = barterDay(profile);
 	const next = nextUnlock(barterCount);
 
@@ -70,7 +70,9 @@ function barterProfileTile() {
 			value="${F(barterCount)}" data-act="barter-count"
 			aria-label="Barters you have completed"> done${next ? ` · ${esc(next)}` : ''}
 			· <label class="inline-check"><input type="checkbox" data-act="value-pack"
-			${valuePack ? 'checked' : ''}> Value Pack</label></div>
+			${valuePack ? 'checked' : ''}> Value Pack</label>
+			· <label class="inline-check"><input type="checkbox" data-act="crew-discount"
+			${crew ? 'checked' : ''}> Crew −10%</label></div>
 		<div class="summary-sub"><select class="purse-inline" data-act="barter-level"
 			aria-label="Your barter level"><option value=""${level ? '' : ' selected'}>—</option>${levels}</select>
 			· ${F(day.perTrade)} Parley a trade
@@ -78,6 +80,9 @@ function barterProfileTile() {
 			value="${F(vouchers)}" data-act="vouchers"
 			aria-label="Crow's Trade Vouchers you carry"> vouchers
 			· ${F(day.tradesPerBar)} trades a refill</div>
+		<div class="summary-sub"><input class="purse-inline" type="text" inputmode="numeric"
+			value="${F(parleyHeld)}" data-act="parley-held"
+			aria-label="Parley in the bar right now"> Parley in the bar right now</div>
 	</div>`;
 }
 

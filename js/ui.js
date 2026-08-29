@@ -30,7 +30,8 @@ import { renderGet, shoppingText } from './screen-get.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
-	useSuggestedRoute, reverseMapRoute, clearMapRoute, toggleMapDone, closeMapTip
+	useSuggestedRoute, reverseMapRoute, clearMapRoute, toggleMapDone, closeMapTip,
+	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick
 } from './screen-map.js';
 
 const TABS = [
@@ -277,6 +278,13 @@ function wire() {
 			case 'map-route-clear': clearMapRoute(); return;
 			case 'map-done': toggleMapDone(Number(el.dataset.npc)); return;
 			case 'map-tip-close': closeMapTip(); return;
+			case 'map-pick-open': return openMapPicker();
+			case 'map-pick-set': setMapPick(el.dataset.item || null); closeDialog(); return render();
+			case 'map-step-prev': mapStep(-1); return;
+			case 'map-step-next': mapStep(1); return;
+			case 'map-step': mapStepTo(Number(el.dataset.i)); return;
+			case 'map-follow': mapFollowToggle(); return;
+			case 'map-port': mapPortClick(Number(el.dataset.port)); return;
 			case 'goto-map': mapShowItem(el.dataset.item); showView('map'); return;
 			case 'plan-filter': setPlanFilter(el.dataset.id); return render();
 			case 'tree-pick': return pickTreeTarget();
@@ -389,23 +397,30 @@ function wire() {
 		const vp = evt.target.closest('[data-act="value-pack"]');
 		if (vp) return store.setProfile('valuePack', vp.checked);
 
+		const cr = evt.target.closest('[data-act="crew-discount"]');
+		if (cr) return store.setProfile('crew', cr.checked);
+
 		// The level is a name, not a number, so it lands before the
 		// numeric parse below rather than going through it.
 		const lvl = evt.target.closest('[data-act="barter-level"]');
 		if (lvl) return store.setProfile('level', lvl.value || null);
 
-		const pick = evt.target.closest('[data-act="map-pick"]');
-		if (pick) { setMapPick(pick.value || null); return render(); }
+		const ms = evt.target.closest('[data-act="map-start"]');
+		if (ms) return setMapStart(Number(ms.value));
+
+		const mr = evt.target.closest('[data-act="map-return"]');
+		if (mr) return setMapReturn(mr.checked);
 
 		const el = evt.target.closest(
 			'[data-act="own-set"], [data-act="purse"], [data-act="target-qty"],'
-			+ ' [data-act="barter-count"], [data-act="vouchers"]');
+			+ ' [data-act="barter-count"], [data-act="vouchers"], [data-act="parley-held"]');
 		if (!el) return;
 		const n = parseAmount(el.value);
 		if (n === null) return render();   // gibberish: put the stored value back
 		if (el.dataset.act === 'target-qty') store.setTargetQty(el.dataset.target, n);
 		else if (el.dataset.act === 'barter-count') store.setProfile('barterCount', n);
 		else if (el.dataset.act === 'vouchers') store.setProfile('vouchers', n);
+		else if (el.dataset.act === 'parley-held') store.setProfile('parleyHeld', n);
 		else store.setStock(el.dataset.item, n);
 	});
 

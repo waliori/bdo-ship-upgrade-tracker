@@ -14,7 +14,7 @@ import { readFile } from 'node:fs/promises';
 
 const shipbarters = JSON.parse(
 	await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
-import { npcs, npcById, TILES, TILE, MAX_ZOOM } from '../js/barter_npcs.js';
+import { npcs, npcById, ports, TILES, TILE, MAX_ZOOM } from '../js/barter_npcs.js';
 import {
 	toPixel, frame, marksFor, pan, zoomBy, zoomAt, createMap, zoomRange,
 	clampView, routeFor, fitTo, routePath, project, placeTile
@@ -58,6 +58,21 @@ test('every barterer says where it stands', () => {
 	for (const n of npcs) {
 		assert.ok(typeof n.at === 'string' && n.at.length, `${n.name} has no place`);
 		assert.ok(typeof n.region === 'string' && n.region.length, `${n.name} has no region`);
+	}
+});
+
+test('every wharf sits on the charted sea, at every zoom', () => {
+	// A port outside the tiles would anchor routes to a spot the map
+	// cannot show.
+	for (const p of ports) {
+		assert.ok(p.name && p.x > 0 && p.y > 0, `${p.name || p.id} is incomplete`);
+		for (const z of Object.keys(TILES).map(Number)) {
+			const b = TILES[z];
+			const tx = Math.floor(toPixel(p.x, z) / TILE);
+			const ty = Math.floor(toPixel(p.y, z) / TILE);
+			assert.ok(tx >= b.x0 && tx <= b.x1 && ty >= b.y0 && ty <= b.y1,
+				`${p.name} off the chart at z${z}`);
+		}
 	}
 });
 

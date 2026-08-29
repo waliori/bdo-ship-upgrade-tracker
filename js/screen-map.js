@@ -9,7 +9,8 @@ import {
 	createMap, frame, marksFor, pan, zoomAt, clampView, fitTo,
 	routeFor, routePath, project, placeTile, zoomRange
 } from './map.js';
-import { npcs, npcById } from './barter_npcs.js';
+import { npcs, npcById, ports } from './barter_npcs.js';
+import { openDialog } from './dialogs.js';
 import { parleyPerTrade, PARLEY } from './barter.js';
 import { snapshot, barterData, barterProfile, view } from './ui-state.js';
 
@@ -32,6 +33,12 @@ let hoverNpc = null;
 let pinnedNpc = null;
 let fly = null;               // the rAF handle of a flight in progress
 
+let startPort = 0;            // wharf the route sails from; 0 = first stop
+let returnHome = false;       // close the loop back to that wharf
+let follow = true;            // the step player flies the camera along
+let stepIdx = 0;              // which stop the step player is on
+let stepKey = '';             // the route it was on, to reset when it changes
+
 /** The barter day: the game's lists refresh at 06:00 UTC, so "today"
  *  rolls over then, not at midnight. */
 function barterDay() {
@@ -47,12 +54,16 @@ function restore() {
 		panelOpen = s.panelOpen !== false;
 		if (Array.isArray(s.stops)) stops = s.stops.filter(id => npcById.has(id));
 		if (s.done && s.done.day === barterDay()) done = s.done;
+		if (ports.some(p => p.id === s.startPort)) startPort = s.startPort;
+		returnHome = s.returnHome === true;
+		follow = s.follow !== false;
 	} catch { /* a fresh chart, then */ }
 }
 
 function persist() {
 	try {
-		localStorage.setItem(STORE_KEY, JSON.stringify({ mode, panelOpen, stops, done }));
+		localStorage.setItem(STORE_KEY,
+			JSON.stringify({ mode, panelOpen, stops, done, startPort, returnHome, follow }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -85,6 +96,30 @@ function goodsOf(id) {
 	return goodsIndex.get(id) || [];
 }
 
+/** The stops in sailing order: the hand-plotted route if there is
+ *  one, else the suggested loop -- turned to sail from home when a
+ *  wharf is chosen, since a loop has no direction of its own. */
+function routeIds(marks) {
+	if (stops.length >= 2) return stops;
+	let ids = routeFor(marks).map(n => n.id);
+	const port = ports.find(p => p.id === startPort);
+	if (port && ids.length > 1) {
+		const a = npcById.get(ids[0]), b = npcById.get(ids[ids.length - 1]);
+		const d = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
+		if (d(port, b) < d(port, a)) ids = [...ids].reverse();
+	}
+	return ids;
+}
+
+/** Those stops as world points, wharf prepended -- and appended, when
+ *  the route is to end where the ship lives. */
+function routeWorld(marks) {
+	const pts = routeIds(marks).map(id => npcById.get(id)).filter(Boolean);
+	const port = ports.find(p => p.id === startPort);
+	if (!port || !pts.length) return pts;
+	return returnHome ? [port, ...pts, port] : [port, ...pts];
+}
+
 /* ------------------------------------------------------------------ *
  * the screen
  * ------------------------------------------------------------------ */
@@ -98,8 +133,6 @@ export function renderMap() {
 	}
 
 	const marks = marksNow();
-	const options = [...new Set(barterData.map(b => b.name))].sort()
-		.map(n => `<option${n === mapPick ? ' selected' : ''}>${esc(n)}</option>`).join('');
 
 	const head = `<div class="summary">
 		<span class="summary-title">Where to sail</span>
@@ -111,9 +144,10 @@ export function renderMap() {
 			</div>
 			<div>
 				<div class="summary-k">Showing</div>
-				<div class="summary-v"><select class="purse-inline" data-act="map-pick"
-					aria-label="What to look for"><option value=""${mapPick ? '' : ' selected'}
-					>Everything I am short of</option>${options}</select></div>
+				<div class="summary-v"><button class="map-pick-btn" data-act="map-pick-open"
+					aria-label="Choose what to look for">${mapPick
+						? `${img(mapPick, 'map-icon')}<span>${esc(mapPick)}</span>`
+						: '<span>Everything I am short of</span>'}<span class="map-pick-caret">▾</span></button></div>
 				<div class="summary-sub">drag to pan · scroll to zoom</div>
 			</div>
 		</div>
@@ -128,6 +162,7 @@ export function renderMap() {
 		<div class="map-layer" data-map-layer></div>
 		<div class="map-side-slot" data-map-side>${sideHTML(marks)}</div>
 		<div class="map-tip" data-map-tip hidden></div>
+		<div class="map-steps" data-map-steps hidden></div>
 		${miniHTML(marks)}
 	</div></div>`;
 }
@@ -213,10 +248,15 @@ function routeHTML(marks) {
 				aria-label="Remove ${esc(n.name)} from the route">×</button>
 		</div>`;
 	}).join('');
+	const held = barterProfile().parleyHeld;
+	const need = per * stops.length;
+	const cover = !held ? `one trade each · of ${F(PARLEY.max)}`
+		: held >= need ? `one trade each · your ${F(held)} covers it`
+		: `one trade each · your ${F(held)} covers ${Math.floor(held / per)}`;
 	const stats = stops.length ? `<div class="map-stats">
 			<div><div class="summary-k">Stops</div><div class="summary-v">${stops.length}</div></div>
-			<div><div class="summary-k">Parley</div><div class="summary-v">${F(per * stops.length)}</div>
-				<div class="summary-sub">one trade each · of ${F(PARLEY.max)}</div></div>
+			<div><div class="summary-k">Parley</div><div class="summary-v">${F(need)}</div>
+				<div class="summary-sub">${cover}</div></div>
 		</div>
 		<div class="map-side-btns">
 			<button class="ghost-btn" data-act="map-route-reverse">⇆ Reverse</button>
@@ -224,8 +264,15 @@ function routeHTML(marks) {
 		</div>` : '';
 	const seedBtn = !stops.length && marks.size > 1
 		? `<button class="ghost-btn wide" data-act="map-route-use">Start from the suggested loop</button>` : '';
+	const startRow = `<div class="map-startrow">
+		<select class="purse-inline" data-act="map-start" aria-label="Start the route from">
+			<option value="0">Start at the first stop</option>
+			${ports.map(p => `<option value="${p.id}"${p.id === startPort ? ' selected' : ''}>from ${esc(p.name)}</option>`).join('')}
+		</select>
+		<label class="inline-check"><input type="checkbox" data-act="map-return"${returnHome ? ' checked' : ''}> and back</label>
+	</div>`;
 	return `<p class="map-hint">Click a pin, then “Add stop”. The numbers sail in this order.</p>
-		${seedBtn}<div class="map-list">${list}</div>${stats}`;
+		${startRow}${seedBtn}<div class="map-list">${list}</div>${stats}`;
 }
 
 function todayHTML(marks) {
@@ -333,11 +380,18 @@ export function paintMap() {
 	// The view never leaves the charted sea, whatever the gesture did.
 	clampView(mapState, size);
 
-	const { tiles, pins, route } = frame(mapState, size, marks);
+	const { tiles, pins } = frame(mapState, size, marks);
+
+	const ids = routeIds(marks);
+	const key = `${ids.join('.')}|${startPort}|${returnHome}`;
+	if (key !== stepKey) { stepKey = key; stepIdx = 0; }
+	const currentId = ids.length > 1 ? ids[Math.min(stepIdx, ids.length - 1)] : null;
 
 	paintTiles(layer, tiles, size);
-	paintPins(layer, pins, marks);
-	paintRoute(layer, route, size);
+	paintPins(layer, pins, marks, currentId);
+	paintPorts(layer, size);
+	paintRoute(layer, size, marks);
+	paintSteps(host, ids);
 	paintTip(host, size, marks);
 	paintMini(host, size);
 }
@@ -383,7 +437,7 @@ function paintTiles(layer, tiles, size) {
 	}
 }
 
-function paintPins(layer, pins, marks) {
+function paintPins(layer, pins, marks, currentId) {
 	const pool = layer._pins || (layer._pins = new Map());
 	const live = new Set();
 	const dn = doneSet();
@@ -407,6 +461,7 @@ function paintPins(layer, pins, marks) {
 		const stopAt = stops.indexOf(p.id);
 		const visited = dn.has(p.id);
 		btn.classList.toggle('wanted', !!m);
+		btn.classList.toggle('current', p.id === currentId);
 		btn.classList.toggle('done', visited && (!!m || stopAt >= 0));
 		btn.classList.toggle('dim', marks.size > 0 && !m && stopAt < 0);
 		btn.title = m ? `${p.name} — ${what.join(', ')}` : p.name;
@@ -430,12 +485,11 @@ function paintPins(layer, pins, marks) {
 	}
 }
 
-function paintRoute(layer, autoRoute, size) {
+function paintRoute(layer, size, marks) {
 	// The hand-plotted route wins; the suggested loop through everything
-	// marked is what you get before you have plotted one.
-	const pts = stops.length >= 2
-		? stops.map(id => npcById.get(id)).filter(Boolean).map(n => project(mapState, size, n.x, n.y))
-		: autoRoute;
+	// marked is what you get before you have plotted one. Either way the
+	// chosen wharf anchors it.
+	const pts = routeWorld(marks).map(p => project(mapState, size, p.x, p.y));
 	const d = routePath(pts);
 
 	let svg = layer._route;
@@ -473,14 +527,61 @@ function paintRoute(layer, autoRoute, size) {
 	}
 	ship.style.display = '';
 	ship.style.offsetPath = `path("${d}")`;
-	const key = (stops.length >= 2 ? 'plot:' + stops.join('.') : 'auto:' + pts.length);
-	if (ship._for !== key) {
-		ship._for = key;
+	if (ship._for !== stepKey) {
+		ship._for = stepKey;
 		const dur = Math.max(8, Math.min(42, len / 55));
 		ship.style.animation = 'none';
 		void ship.offsetWidth;
 		ship.style.animation = `map-sail ${dur.toFixed(1)}s linear infinite`;
 	}
+}
+
+function paintPorts(layer, size) {
+	const pool = layer._portEls || (layer._portEls = new Map());
+	for (const p of ports) {
+		const at = project(mapState, size, p.x, p.y);
+		let el = pool.get(p.id);
+		const off = at.left < -60 || at.top < -60
+			|| at.left > size.w + 60 || at.top > size.h + 60;
+		if (off) { if (el) el.hidden = true; continue; }
+		if (!el) {
+			el = document.createElement('button');
+			el.className = 'map-port';
+			el.dataset.act = 'map-port';
+			el.dataset.port = p.id;
+			el.title = `Sail the route from ${p.name}`;
+			el.innerHTML = '<span class="map-port-dot"></span><span class="map-port-name"></span>';
+			el.querySelector('.map-port-name').textContent = p.name;
+			pool.set(p.id, el);
+			layer.appendChild(el);
+		}
+		el.hidden = false;
+		el.classList.toggle('start', p.id === startPort);
+		el.style.left = `${Math.round(at.left)}px`;
+		el.style.top = `${Math.round(at.top)}px`;
+	}
+}
+
+/** The step player: one chip per stop, the current one lit, and a
+ *  follow toggle that sails the camera along the route. */
+function paintSteps(host, ids) {
+	const el = host.querySelector('[data-map-steps]');
+	if (!el) return;
+	if (ids.length < 2) { el.hidden = true; el._sig = null; return; }
+	const cur = npcById.get(ids[Math.min(stepIdx, ids.length - 1)]);
+	const sig = `${stepKey}|${stepIdx}|${follow}`;
+	if (el._sig === sig) return;
+	el._sig = sig;
+	el.hidden = false;
+	el.innerHTML = `<button class="map-step-nav" data-act="map-step-prev" aria-label="Previous stop">‹</button>
+		<div class="map-step-chips">${ids.map((id, i) =>
+			`<button class="map-step-chip${i === stepIdx ? ' on' : ''}" data-act="map-step" data-i="${i}"
+				title="${esc(npcById.get(id).name)}">${i + 1}</button>`).join('')}</div>
+		<button class="map-step-nav" data-act="map-step-next" aria-label="Next stop">›</button>
+		<span class="map-step-name">${esc(cur.name)} · ${esc(cur.at)}</span>
+		<button class="map-step-follow${follow ? ' on' : ''}" data-act="map-follow">follow</button>`;
+	const on = el.querySelector('.map-step-chip.on');
+	if (on) on.scrollIntoView({ block: 'nearest', inline: 'center' });
 }
 
 function paintTip(host, size, marks) {
@@ -504,9 +605,9 @@ function paintTip(host, size, marks) {
 			? [...m.items.entries()].slice(0, 5).map(([item, gives]) => {
 				const gv = [...gives][0] || '—';
 				return `<div class="map-tip-row">
-					<span class="map-tip-side">${img(gv, 'map-icon')}<span>${esc(gv)}</span></span>
+					<span class="map-tip-side"><span class="map-io minus">${img(gv, 'map-icon')}</span><span>${esc(gv)}</span></span>
 					<span class="map-tip-arrow">→</span>
-					<span class="map-tip-side get">${img(item, 'map-icon')}<span>${esc(item)}</span></span>
+					<span class="map-tip-side get"><span class="map-io plus">${img(item, 'map-icon')}</span><span>${esc(item)}</span></span>
 				</div>`;
 			}).join('')
 			: '';
@@ -602,7 +703,7 @@ export function wireMap() {
 
 	// The panel, the card, the minimap: furniture on top of the sea.
 	// A gesture that starts on them is for them, not for the chart.
-	const FURNITURE = '[data-act="map-pin"], .map-side, .map-side-pill, .map-tip, .map-mini';
+	const FURNITURE = '[data-act="map-pin"], [data-act="map-port"], .map-side, .map-side-pill, .map-tip, .map-mini, .map-steps';
 
 	// One repaint per frame however fast the pointer reports; a trackpad
 	// can deliver several moves per frame and each paint is work.
@@ -679,7 +780,7 @@ export function wireMap() {
 	document.addEventListener('wheel', evt => {
 		const host = evt.target.closest('[data-map]');
 		if (!host || !mapState) return;
-		if (evt.target.closest('.map-side, .map-tip')) return;   // their scroll, not ours
+		if (evt.target.closest('.map-side, .map-tip, .map-steps')) return;   // their scroll, not ours
 		evt.preventDefault();
 		cancelFly();
 		// Anchored under the cursor, and continuous: a notch of the
@@ -806,4 +907,100 @@ export function toggleMapDone(npcId) {
 export function closeMapTip() {
 	pinnedNpc = null;
 	paintMap();
+}
+
+/**
+ * The "Showing" picker: what to light the chart for, with the things
+ * your builds are short of pinned on top -- the map is the question
+ * "where do I get what I still need", so the list leads with exactly
+ * that, counts and faces included.
+ */
+export function openMapPicker() {
+	if (!barterData) return;
+	const names = [...new Set(barterData.map(b => b.name))];
+	const short = names.filter(n => snapshot.missing[n] > 0)
+		.sort((a, b) => snapshot.missing[b] - snapshot.missing[a]);
+	const rest = names.filter(n => !(snapshot.missing[n] > 0)).sort();
+
+	const host = openDialog(`
+		<h2>What to look for</h2>
+		<p>The chart lights the islands that barter it.</p>
+		<input class="field picker-search" type="search" placeholder="Search the sea’s goods…" data-picker-search>
+		<div class="picker" data-picker></div>
+		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>`);
+
+	const listEl = host.querySelector('[data-picker]');
+	const searchEl = host.querySelector('[data-picker-search]');
+	const row = (n, tag) => `<button type="button" class="picker-row" data-act="map-pick-set"
+		data-item="${esc(n)}">${img(n, 'row-icon sm')}
+		<span class="picker-name">${esc(n)}</span><span class="picker-tag">${tag}</span></button>`;
+
+	const paint = term => {
+		const t = (term || '').trim().toLowerCase();
+		const hit = n => !t || n.toLowerCase().includes(t);
+		const a = short.filter(hit), b = rest.filter(hit);
+		const everything = t ? '' : `<button type="button" class="picker-row" data-act="map-pick-set" data-item="">
+			<span class="row-icon sm map-pick-all">⚓</span>
+			<span class="picker-name">Everything I am short of</span>
+			<span class="picker-tag">${short.length} goods</span></button>`;
+		listEl.innerHTML = (everything
+			+ (a.length ? '<div class="picker-head">On your build list</div>'
+				+ a.map(n => row(n, `${F(snapshot.missing[n])} short`)).join('') : '')
+			+ (b.length ? '<div class="picker-head">The rest of the sea</div>'
+				+ b.map(n => row(n, '')).join('') : ''))
+			|| '<p class="empty">Nothing matches that search.</p>';
+	};
+	paint('');
+	searchEl.addEventListener('input', () => paint(searchEl.value));
+}
+
+/* The step player. */
+
+function moveStep(i) {
+	const ids = routeIds(marksNow());
+	if (ids.length < 2) return;
+	stepIdx = ((i % ids.length) + ids.length) % ids.length;
+	if (follow) {
+		const n = npcById.get(ids[stepIdx]);
+		if (n) {
+			pinnedNpc = n.id;
+			hoverNpc = null;
+			flyTo(n.x, n.y, Math.max(mapState.zoom, zoomRange.max - 0.5));
+		}
+	}
+	paintMap();
+}
+
+export function mapStep(delta) {
+	moveStep(stepIdx + delta);
+}
+
+export function mapStepTo(i) {
+	moveStep(i);
+}
+
+export function mapFollowToggle() {
+	follow = !follow;
+	persist();
+	if (follow) moveStep(stepIdx);
+	else paintMap();
+}
+
+/* The route's anchor. */
+
+export function setMapStart(portId) {
+	startPort = ports.some(p => p.id === portId) ? portId : 0;
+	persist();
+	paintMap();
+}
+
+export function setMapReturn(on) {
+	returnHome = on === true;
+	persist();
+	paintMap();
+}
+
+export function mapPortClick(portId) {
+	setMapStart(startPort === portId ? 0 : portId);
+	refreshSide();
 }
