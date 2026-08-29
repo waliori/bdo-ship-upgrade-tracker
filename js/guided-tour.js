@@ -118,8 +118,8 @@ class GuidedTour {
 			{
 				element: '#tabs',
 				popover: {
-					title: 'The six views',
-					description: '<b>Plan</b> is what every build needs. <b>Builds</b> is the queue and its priority. <b>Inventory</b> is what you own. <b>Tree</b> shows why a build needs a thing. <b>Workshop</b> is where you craft and enhance. <b>To Get</b> is the shopping list.',
+					title: 'The eight views',
+					description: '<b>Plan</b> is what every build needs. <b>Builds</b> is the queue and its priority. <b>Inventory</b> is what you own. <b>Tree</b> shows why a build needs a thing. <b>Workshop</b> is where you craft and enhance. <b>To Get</b> is the shopping list. <b>Map</b> charts the barterers. <b>Crew</b> is the hull\'s own numbers and the sailors to fill it.',
 					side: 'bottom'
 				}
 			},
@@ -222,6 +222,15 @@ class GuidedTour {
 					side: 'bottom'
 				},
 				before: () => goToTab('get')
+			},
+			{
+				element: '.crew-ship',
+				popover: {
+					title: 'The other half of a ship',
+					description: 'Every hull in the game\'s own numbers — weight, slots, cannons, speed — and a crew planned against its seats and cabin space. Add sailors from the hiring pool, see what the contracts cost, and put the certificates on the shopping list.',
+					side: 'bottom'
+				},
+				before: () => goToTab('crew')
 			},
 			{
 				element: '.masthead-actions',
