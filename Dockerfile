@@ -27,6 +27,10 @@ COPY css ./css
 COPY js ./js
 COPY server ./server
 
+# Stamp the deploy into the service worker: the offline cache is named
+# for the build it holds, so activate can sweep every other deploy's.
+RUN sed -i "s/__BUILD__/$(date -u +%Y%m%d%H%M%S)/" sw.js
+
 USER tracker
 
 EXPOSE 8000
