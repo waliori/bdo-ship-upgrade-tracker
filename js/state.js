@@ -646,6 +646,41 @@ export function adopt(data, label = 'Replaced tracker data') {
 	return { items: Object.keys(incoming.stock).length, targets: incoming.targets.length };
 }
 
+/**
+ * Fold another save into this one rather than replacing it.
+ *
+ * Stock keeps the higher count of the two -- the same rule the legacy
+ * import uses, because the two copies most often describe one pile
+ * counted twice, and summing would invent material. Builds are added
+ * where this copy has none of that item; a choice already made here
+ * stands over the file's; a profile field is taken only where this copy
+ * is silent. One undo reverses the lot.
+ */
+export function merge(data, label = 'Merged tracker data') {
+	const incoming = normalise(data);
+	let items = 0;
+	let targets = 0;
+	commit('import', label, () => {
+		const stock = { ...state.stock };
+		for (const [item, qty] of Object.entries(incoming.stock)) {
+			if (qty > (stock[item] || 0)) {
+				stock[item] = qty;
+				items++;
+			}
+		}
+		state.stock = stock;
+		const have = new Set(state.targets.map(t => t.item));
+		const added = incoming.targets.filter(t => !have.has(t.item)).map(t => ({ ...t, id: makeId() }));
+		if (added.length) {
+			state.targets = [...state.targets, ...added];
+			targets = added.length;
+		}
+		state.strategy = { ...incoming.strategy, ...state.strategy };
+		state.profile = readProfile({ ...incoming.profile, ...state.profile });
+	});
+	return { items, targets };
+}
+
 /* ------------------------------------------------------------------ *
  * Temporary state, for the guided tour
  * ------------------------------------------------------------------ */

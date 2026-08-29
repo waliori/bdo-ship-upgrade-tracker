@@ -5,7 +5,7 @@ import { esc, F } from './fmt.js';
 import * as store from './state.js';
 import { img, codexName, amountInput, sourceOf } from './ui-bits.js';
 import {
-	recipes, rows, snapshot, query, planFilter,
+	recipes, rows, snapshot, query, planFilter, sort, sorter, sortSelect,
 	readyCrafts, totalsToGo
 } from './ui-state.js';
 import { maxCraftable, parseEnhanced } from './planner.js';
@@ -71,7 +71,8 @@ export function renderPlan() {
 	const groups = groupsDef
 		.filter(([, , , , id]) => planFilter === 'all' || planFilter === id)
 		.map(([title, sub, col, pred]) => {
-			const list = entries.filter(pred).sort((a, b) => b.r.short - a.r.short || b.r.need - a.r.need);
+			const cmp = sorter(sort, store.getAllStock());
+			const list = entries.filter(pred).sort((a, b) => cmp(a.item, b.item));
 			return { title, sub: `${list.length} · ${sub}`, col, list };
 		})
 		.filter(g => g.list.length);
@@ -154,6 +155,7 @@ export function controlsHTML(filters) {
 	return `<div class="controls">
 		<input class="field" type="search" placeholder="Search materials…" value="${esc(query)}" data-act="query">
 		<div class="chips">${filters}</div>
+		${sortSelect()}
 	</div>`;
 }
 

@@ -8,7 +8,7 @@ import {
 	img, codexName, amountInput, costCtx, costText, makeupHTML,
 	sourceOf, hasBuyOption, allItems
 } from './ui-bits.js';
-import { recipes, snapshot, rows, query, invFilter, selected, barterData } from './ui-state.js';
+import { recipes, snapshot, rows, query, invFilter, selected, barterData, sort, sorter, sortSelect } from './ui-state.js';
 import { maxCraftable, enhanceStep, parseEnhanced, enhancedName, waysToGet } from './planner.js';
 
 
@@ -62,7 +62,7 @@ export function renderInventory() {
 		if (invFilter === 'short') return !!r && r.short > 0;
 		if (invFilter === 'free') return (snapshot.free[item] || 0) > 0;
 		return searching || (stock[item] || 0) > 0 || (r && r.need > 0);
-	}).sort((a, b) => ((rows[b] && rows[b].short) || 0) - ((rows[a] && rows[a].short) || 0) || a.localeCompare(b));
+	}).sort(sorter(sort, stock));
 
 	const filters = [
 		['all', 'In play'], ['needed', 'Needed'], ['short', 'Short'], ['owned', 'Owned'], ['free', 'Free']
@@ -114,6 +114,7 @@ export function renderInventory() {
 			<div class="controls">
 				<input class="field" type="search" placeholder="Search items…" value="${esc(query)}" data-act="query">
 				<div class="chips">${filters}</div>
+				${sortSelect()}
 			</div>
 			${shown.length
 				? `<div class="inv-grid">${tiles}</div>`

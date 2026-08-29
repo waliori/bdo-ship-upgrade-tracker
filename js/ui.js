@@ -15,7 +15,7 @@ import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.
 import {
 	view, selected, recipes, barterData, snapshot,
 	setView, setQuery, setPlanFilter, setInvFilter, setSelected, setBarterData,
-	recompute, readyCrafts, CROW_COIN, SILVER
+	recompute, readyCrafts, CROW_COIN, SILVER, setSort
 } from './ui-state.js';
 import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
 import { allItems } from './ui-bits.js';
@@ -542,6 +542,12 @@ function wire() {
 		const lvl = evt.target.closest('[data-act="barter-level"]');
 		if (lvl) return store.setProfile('level', lvl.value || null);
 
+		const so = evt.target.closest('[data-act="sort"]');
+		if (so) {
+			setSort(so.value);
+			return render();
+		}
+
 		const cs = evt.target.closest('[data-act="crew-ship"]');
 		if (cs) return store.setProfile('crewShip', cs.value || null);
 
@@ -723,16 +729,23 @@ function doImport() {
 		const items = Object.keys(incoming.stock).length;
 		const builds = Array.isArray(incoming.targets) ? incoming.targets.length : 0;
 		const host = openDialog(`
-			<h2>Replace your tracker data?</h2>
-			<p>This file holds ${F(items)} items and ${F(builds)} builds. Importing it replaces
-			everything here — your stock, your build queue and your choices. One Undo brings
-			the current data back.</p>
+			<h2>Bring in this file?</h2>
+			<p>It holds ${F(items)} items and ${F(builds)} builds. <b>Replace</b> makes it the whole
+			tracker — your stock, your build queue and your choices. <b>Merge</b> keeps the higher
+			count of any item, adds builds you do not have, and leaves every choice you have
+			already made alone. Either way, one Undo brings the current data back.</p>
 			<div class="dialog-actions">
 				<button class="act quiet" data-cancel>Keep what I have</button>
-				<button class="act" data-accept>Replace it</button>
+				<button class="act quiet" data-merge>Merge it in</button>
+				<button class="act" data-accept>Replace everything</button>
 			</div>
 		`);
 		host.querySelector('[data-cancel]').addEventListener('click', () => closeDialog());
+		host.querySelector('[data-merge]').addEventListener('click', () => {
+			closeDialog();
+			const result = store.merge(incoming);
+			toast(`Merged — ${result.items} counts raised, ${result.targets} builds added`, true);
+		});
 		host.querySelector('[data-accept]').addEventListener('click', () => {
 			closeDialog();
 			try {

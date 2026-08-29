@@ -36,6 +36,26 @@ export function outlook(e) {
 	</span>`;
 }
 
+/**
+ * What the record says about a part so far: attempts won and lost, and
+ * the stones they took. Read off the undo history, which keeps the last
+ * two hundred changes -- so this is the recent record, not a lifetime.
+ */
+export function attemptsFor(base, stoneName) {
+	const out = { won: 0, lost: 0, stones: 0 };
+	const won = `${base} reached +`;
+	const lost = ` ${base}`;
+	for (const e of store.getState().history) {
+		if (e.type !== 'enhance' || !e.label) continue;
+		if (e.label.startsWith(won)) out.won++;
+		else if (e.label.startsWith(`Failed attempt at +`) && e.label.endsWith(lost)) out.lost++;
+		else if (e.label.startsWith(`${base} fell to +`)) out.lost++;
+		else continue;
+		if (e.delta && e.delta[stoneName] < 0) out.stones -= e.delta[stoneName];
+	}
+	return out;
+}
+
 export function pendingEnhancements() {
 	const stock = store.getAllStock();
 	// The failstack the player takes into a yellow attempt; the quoted
@@ -87,6 +107,7 @@ export function pendingEnhancements() {
 			// Yellow gear only: the same attempt without Cron Stones, for
 			// the third button.
 			canDrop: Boolean(step.onFailureDropped),
+			log: attemptsFor(base, stoneName),
 			forBuild,
 			costs,
 			stoneName,
@@ -156,6 +177,7 @@ export function renderWorkshop() {
 			<span class="enh-level">+${e.have} → +${e.next}</span>
 			<span class="enh-cost">${e.costs.map(([n, q]) => `${img(n, '')}×${F(q)}`).join('')}${odds(e)}</span>
 			${outlook(e)}
+			${e.log.won + e.log.lost ? `<span class="enh-log" title="From the undo history, which keeps the last two hundred changes">${e.log.won} won · ${e.log.lost} lost · ${F(e.log.stones)} ${esc(e.stoneName)} spent</span>` : ''}
 			<span class="enh-actions">
 				<button class="pill-btn" data-act="enhance" data-result="success" ${e.blocked ? 'disabled' : ''}>Succeeded</button>
 				<button class="pill-btn bad" data-act="enhance" data-result="fail" ${e.blocked ? 'disabled' : ''}>Failed</button>

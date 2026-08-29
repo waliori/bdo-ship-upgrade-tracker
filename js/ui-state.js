@@ -63,6 +63,36 @@ export const setInvFilter = f => { invFilter = f; };
 export const setSelected = item => { selected = item; };
 export const setBarterData = data => { barterData = data; };
 
+// How the Plan and the Inventory order their rows. Shortfall first is the
+// question the app exists to answer; the others are for finding a thing
+// you already know the name of, or seeing where the bulk is.
+export let sort = 'short';
+export const setSort = mode => { sort = SORTS.some(s => s.id === mode) ? mode : 'short'; };
+export const SORTS = [
+	{ id: 'short', label: 'Short first' },
+	{ id: 'need', label: 'Most needed' },
+	{ id: 'have', label: 'Most owned' },
+	{ id: 'name', label: 'A to Z' }
+];
+
+/** A comparator over item names for the chosen order. */
+export function sorter(mode, stock) {
+	const short = r => (r && r.short) || 0;
+	const need = r => (r && r.need) || 0;
+	return (a, b) => {
+		if (mode === 'name') return a.localeCompare(b);
+		if (mode === 'need') return need(rows[b]) - need(rows[a]) || a.localeCompare(b);
+		if (mode === 'have') return (stock[b] || 0) - (stock[a] || 0) || a.localeCompare(b);
+		return short(rows[b]) - short(rows[a]) || need(rows[b]) - need(rows[a]) || a.localeCompare(b);
+	};
+}
+
+/** The sort control, the same on every screen that has one. */
+export function sortSelect() {
+	return `<select class="select" data-act="sort" aria-label="Order the rows by">${SORTS.map(s =>
+		`<option value="${s.id}"${s.id === sort ? ' selected' : ''}>${s.label}</option>`).join('')}</select>`;
+}
+
 /* ------------------------------------------------------------------ *
  * planning
  * ------------------------------------------------------------------ */
