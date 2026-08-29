@@ -90,7 +90,9 @@ function barterProfileTile() {
 function nextUnlock(count) {
 	const next = ROUTE_UNLOCKS.filter(r => r.opens && r.barters > count)[0];
 	if (!next) return null;
-	return `${F(next.barters - count)} to ${next.opens}`;
+	// "10 more barters open Kashuma Island": the running barter count
+	// unlocks trade routes at fixed thresholds, and this is the next one.
+	return `${F(next.barters - count)} more open ${next.opens}`;
 }
 
 export function renderGet() {
@@ -168,7 +170,8 @@ export function renderGet() {
 				const chart = `<button class="chart-link" data-act="goto-map" data-item="${esc(entry.item)}">on the map</button>`;
 				const sea = plan
 					? `<div class="row-sea${plan.gate ? ' locked' : ''}">by barter: ${esc(barterLine(plan))}${
-						why ? ` <span class="row-sea-why">${esc(why)}</span>` : ''}${seed} ${chart}</div>`
+						why ? ` <span class="row-sea-why">${esc(why)}</span>` : ''}${
+						plan.gate ? '' : ' <span class="row-sea-why">· if the offer turns up</span>'}${seed} ${chart}</div>`
 					: '';
 				// The list says where to buy it; the other half of the
 				// decision is what making it would cost instead.

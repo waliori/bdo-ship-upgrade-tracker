@@ -260,24 +260,29 @@ function sailHTML(marks) {
 		.map(({ npc, m }) => {
 			const items = [...m.items.keys()];
 			const gives = [...new Set([...m.items.values()].flatMap(s => [...s]))];
+			const kind = barterKind(items[0] || '');
+			const pool = new Set(goodsOf(npc.id).filter(g => barterKind(g.item) === kind)
+				.map(g => g.item)).size;
 			return rowHTML(npc,
-				`${esc(npc.at)} · for ${esc(gives.slice(0, 2).join(' / ') || '—')}`,
+				`${esc(npc.at)}${pool > 1 ? ` · 1 of ${pool} a refresh` : ''} · for ${esc(gives.slice(0, 2).join(' / ') || '—')}`,
 				iconStrip(items));
 		}).join('');
 	const list = rows
 		|| `<p class="empty">${q ? 'No island by that name has it.'
 			: 'Nothing on your list is bartered at sea.'}</p>`;
+	const draw = rows && !q ? `<p class="map-hint">Today's list is a draw: each island deals one
+		offer per list from its own pool, so these are the islands where it <em>can</em>
+		appear — the “1 of N” is that pool.</p>` : '';
 	const kinds = !mapPick ? `<div class="map-kinds">${[
 			['all', 'All'], ['material', 'Materials'], ['trade', 'Trade goods']
 		].map(([id, label]) => `<button class="map-kind-chip${kindFilter === id ? ' on' : ''}"
 			data-act="map-kind" data-id="${id}">${label}</button>`).join('')}</div>` : '';
 	return `${kinds}<input class="map-search" type="search" data-act="map-search"
 			value="${esc(searchQ)}" placeholder="Filter islands…" aria-label="Filter islands">
-		<div class="map-list" data-map-list>${list}</div>`;
+		${draw}<div class="map-list" data-map-list>${list}</div>`;
 }
 
 function routeHTML(marks) {
-	const per = parleyPerTrade(barterProfile());
 	if (stops.length && !stopsLive()) {
 		return `<p class="map-hint">You plotted ${stops.length} stops while showing
 			<strong>${esc(stopsPick || 'everything you are short of')}</strong>; the chart
@@ -303,11 +308,21 @@ function routeHTML(marks) {
 				aria-label="Remove ${esc(n.name)} from the route">×</button>
 		</div>`;
 	}).join('');
-	const held = barterProfile().parleyHeld;
-	const need = per * stops.length;
+	const prof = barterProfile();
+	const rateFor = id => {
+		const mm = marks.get(id);
+		const ks = mm ? [...mm.items.keys()].map(barterKind) : [];
+		const kind = ks.includes('material') ? 'material' : ks.includes('coin') ? 'coin' : ks.length ? 'trade' : 'material';
+		return parleyPerTrade({ ...prof, kind });
+	};
+	const rates = stops.map(rateFor);
+	const held = prof.parleyHeld;
+	const need = rates.reduce((a, b) => a + b, 0);
+	let afford = 0;
+	for (let acc = 0; afford < rates.length && acc + rates[afford] <= held; afford++) acc += rates[afford];
 	const cover = !held ? `one trade each · of ${F(PARLEY.max)}`
 		: held >= need ? `one trade each · your ${F(held)} covers it`
-		: `one trade each · your ${F(held)} covers ${Math.floor(held / per)}`;
+		: `one trade each · your ${F(held)} covers ${afford}`;
 	const stats = stops.length ? `<div class="map-stats">
 			<div><div class="summary-k">Stops</div><div class="summary-v">${stops.length}</div></div>
 			<div><div class="summary-k">Parley</div><div class="summary-v">${F(need)}</div>
@@ -668,11 +683,18 @@ function paintTip(host, size, marks) {
 				<span class="map-tip-tries">${g.tries ? `×${g.tries}` : ''}<span class="map-kind-tag ${barterKind(g.item)}">${
 					{ material: 'mat', trade: 'good', coin: 'coin' }[barterKind(g.item)]}</span></span>
 			</div>`).join('');
-		// The game deals each island one material offer per refresh, drawn
+		// The game deals each island one offer per list per refresh, drawn
 		// from its own pool -- so the size of that pool is the honest way
-		// to say how likely your thing is to be on the table today.
+		// to say how likely your thing is to be on the table today. The
+		// parley quoted is the rate of the list these trades are on.
 		const pool = new Set(goodsOf(id).map(g => g.item)).size;
-		const sub = `${esc(npc.at)} · ${F(parleyPerTrade(barterProfile()))} parley a trade`
+		const prof = barterProfile();
+		const kinds = [...new Set((trades.length ? trades.map(g => g.item) : goodsOf(id).map(g => g.item))
+			.map(barterKind))];
+		const rate = kinds.length === 1
+			? `${F(parleyPerTrade({ ...prof, kind: kinds[0] }))} parley a trade`
+			: `${F(parleyPerTrade({ ...prof, kind: 'trade' }))}–${F(parleyPerTrade({ ...prof, kind: 'material' }))} parley a trade`;
+		const sub = `${esc(npc.at)} · ${rate}`
 			+ (pool > 1 ? ` · draws 1 of its ${pool} offers a refresh` : '');
 		const onRoute = stopsLive() && stops.includes(id);
 		const btns = `<div class="map-tip-btns">

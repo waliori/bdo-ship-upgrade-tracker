@@ -50,13 +50,11 @@ test('a Parley bar is sixty-nine Great Ocean trades', () => {
 	assert.equal(Math.floor(PARLEY.max / parleyPerTrade({ crowCoin: true })), 46);
 });
 
-test('a crewed ship shaves its tenth off, and it stacks by multiplying', () => {
-	// The 2025-03-06 stack: crew alone is base * 0.9, and with a Value
-	// Pack it is base * 0.9 * 0.9 -- not base * 0.8.
-	const base = parleyPerTrade({});
-	assert.equal(parleyPerTrade({ crew: true }), Math.round(base * 0.9));
+test('a crewed ship shaves its tenth off, added like the rest', () => {
+	assert.equal(parleyPerTrade({ crew: true }),
+		Math.floor(PARLEY.perGreatOceanTrade * 0.9));
 	assert.equal(parleyPerTrade({ crew: true, valuePack: true }),
-		Math.round(PARLEY.perGreatOceanTrade * 0.9 * 0.9));
+		Math.floor(PARLEY.perGreatOceanTrade * 0.8));
 	assert.ok(dailyCapacity({ crew: true }).perTrade < dailyCapacity({}).perTrade);
 });
 
@@ -124,13 +122,15 @@ test('an unknown or missing level costs full price', () => {
 	assert.equal(parleyPerTrade({ level: null }), PARLEY.perGreatOceanTrade);
 });
 
-test('the level and the Value Pack multiply, they do not add', () => {
-	// 0.7473 x 0.9 is 0.6726, not 1 - 0.3527. Adding them would claim a
-	// cheaper trade than the game gives.
-	const both = parleyPerTrade({ level: 'Guru 50', valuePack: true });
-	const added = Math.round(PARLEY.perGreatOceanTrade * (1 - 0.2527 - 0.1));
-	assert.ok(both > added, `${both} should be dearer than the added-up ${added}`);
-	assert.equal(both, Math.round(PARLEY.perGreatOceanTrade * (1 - 0.2527) * 0.9));
+test('the discounts add and the result floors — read off a live window', () => {
+	// Artisan 3 is -16.12% by the skill tooltip; with a Value Pack the
+	// window's chain rows read 10,554, Crow Coin rows 15,994, and the
+	// ship-material rows 45,384. All three reproduce exactly, which is
+	// also what pins the material base at 61,430.
+	const at = { level: 'Artisan 3', valuePack: true };
+	assert.equal(parleyPerTrade(at), 10554);
+	assert.equal(parleyPerTrade({ ...at, kind: 'coin' }), 15994);
+	assert.equal(parleyPerTrade({ ...at, kind: 'material' }), 45384);
 });
 
 test('a voucher is a quarter of a bar of extra trades', () => {

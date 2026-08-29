@@ -85,6 +85,12 @@ export const PARLEY = {
 	max: 1000000,
 	perGreatOceanTrade: 14286,
 	perCrowCoinTrade: 21650,
+	// The ship-material list has its own, far dearer flat rate, in no
+	// patch note we have. Derived 2026-08-29 from a live Barter
+	// Information window: every material row read 45,384 at Artisan 3
+	// (-16.12%) with a Value Pack (-10%), and only a base of 61,430
+	// floors to that under the additive discount -- reassuringly round.
+	perMaterialTrade: 61430,
 	// Value Pack; a crewed ship's own Parley reduction stacks another
 	// 10% on top since 2025-03-06, which the Barter Information window
 	// shows -- modelled as the opt-in `crew` flag, off by default.
@@ -393,19 +399,29 @@ export function dailyCapacity({ valuePack = false, vouchers = 0, level = null, c
 }
 
 /**
- * What one Great Ocean exchange costs you, specifically.
+ * What one exchange costs you, specifically.
  *
- * The two reductions multiply rather than add -- a Guru 50 with a Value
- * Pack pays 0.7473 x 0.9, not 1 - 0.3527 -- which is the difference
- * between 9,600 and 9,250 and worth getting right when the answer is
- * "how many exchanges does a bar cover".
+ * The discounts ADD before they apply, and the result is floored --
+ * both read straight off a live window on 2026-08-29. Artisan 3 shows
+ * "-16.12% for each barter attempt"; with a Value Pack on top, every
+ * chain row read 10,554 and every Crow Coin row 15,994, which are
+ * floor(base x (1 - 0.2612)) to the silver. Multiplying the two
+ * instead predicts 10,785 and 16,344, and the window disagrees. (An
+ * earlier version of this function multiplied, on the strength of a
+ * guide; the window outranks the guide.)
+ *
+ * `kind` picks the list: 'material' for the ship-material exchanges,
+ * 'coin' for Crow Coin, anything else the trade chain. The old
+ * `crowCoin` flag still works.
  */
-export function parleyPerTrade({ valuePack = false, crowCoin = false, level = null, crew = false } = {}) {
-	const base = crowCoin ? PARLEY.perCrowCoinTrade : PARLEY.perGreatOceanTrade;
-	const fromLevel = 1 - levelDiscount(level);
-	const fromPack = valuePack ? 1 - PARLEY.valuePackDiscount : 1;
-	const fromCrew = crew ? 1 - PARLEY.crewDiscount : 1;
-	return Math.round(base * fromLevel * fromPack * fromCrew);
+export function parleyPerTrade({ valuePack = false, crowCoin = false, level = null, crew = false, kind = null } = {}) {
+	const base = kind === 'material' ? PARLEY.perMaterialTrade
+		: (crowCoin || kind === 'coin') ? PARLEY.perCrowCoinTrade
+		: PARLEY.perGreatOceanTrade;
+	const off = levelDiscount(level)
+		+ (valuePack ? PARLEY.valuePackDiscount : 0)
+		+ (crew ? PARLEY.crewDiscount : 0);
+	return Math.floor(base * Math.max(0, 1 - off));
 }
 
 /* ------------------------------------------------------------------ *
