@@ -1882,8 +1882,12 @@ export function render() {
 		get: Object.keys(snapshot.missing).length
 	};
 
+	// A tablist for the keyboard: the active tab is the one Tab stop,
+	// and the arrow keys walk the rest (wired in wire()).
 	document.getElementById('tabs').innerHTML = TABS.map(t => `
-		<button class="tab ${view === t.id ? 'active' : ''}" data-act="view" data-id="${t.id}">
+		<button class="tab ${view === t.id ? 'active' : ''}" role="tab"
+			aria-selected="${view === t.id}" tabindex="${view === t.id ? 0 : -1}"
+			data-act="view" data-id="${t.id}">
 			${t.label}${counts[t.id] ? `<span class="tab-count">${counts[t.id]}</span>` : ''}
 		</button>`).join('');
 
@@ -2242,10 +2246,53 @@ function wire() {
 	wireMap();
 
 	document.addEventListener('keydown', evt => {
-		if (evt.key !== 'Escape' || !selected) return;
-		if (!document.getElementById('dialog').hidden) return;   // the dialog has first claim
-		selected = null;
-		render();
+		const dialog = document.getElementById('dialog');
+
+		// Escape peels the layers in order: the dialog first, then the
+		// inventory detail panel.
+		if (evt.key === 'Escape') {
+			if (!dialog.hidden) {
+				evt.preventDefault();
+				dismissDialog();
+			} else if (selected) {
+				selected = null;
+				render();
+			}
+			return;
+		}
+
+		// While a dialog is up it is the whole interface, so Tab cycles
+		// inside it rather than wandering the page behind the veil.
+		if (evt.key === 'Tab' && !dialog.hidden) {
+			const focusable = [...dialog.querySelectorAll(
+				'a[href], input, select, textarea, button:not([disabled]), video[controls]')]
+				.filter(el => el.offsetParent !== null);
+			if (!focusable.length) return;
+			const first = focusable[0];
+			const last = focusable[focusable.length - 1];
+			const outside = !dialog.contains(document.activeElement);
+			if (evt.shiftKey && (document.activeElement === first || outside)) {
+				evt.preventDefault();
+				last.focus();
+			} else if (!evt.shiftKey && (document.activeElement === last || outside)) {
+				evt.preventDefault();
+				first.focus();
+			}
+		}
+	});
+
+	// The tabs are a tablist: arrows move through it, Home and End jump.
+	document.getElementById('tabs').addEventListener('keydown', evt => {
+		const step = { ArrowRight: 1, ArrowLeft: -1 }[evt.key];
+		if (step === undefined && evt.key !== 'Home' && evt.key !== 'End') return;
+		evt.preventDefault();
+		const at = TABS.findIndex(t => t.id === view);
+		const to = evt.key === 'Home' ? 0
+			: evt.key === 'End' ? TABS.length - 1
+			: (at + step + TABS.length) % TABS.length;
+		setView(TABS[to].id);
+		const btn = document.querySelector('.tab.active');
+		if (btn) btn.focus();
 	});
 
 	// Landing in a quantity field selects what is there, so typing a new
@@ -2315,12 +2362,11 @@ function wirePeek() {
 	const host = document.getElementById('peek');
 	if (!host) return;
 
-	document.addEventListener('mouseover', evt => {
-		const el = evt.target.closest('[data-peek]');
-		if (!el || el.dataset.peek === peekOn) return;
+	// A short delay, so sweeping across a grid of tiles does not flash a
+	// card for every one of them.
+	const showSoon = el => {
+		if (el.dataset.peek === peekOn) return;
 		hidePeek();
-		// A short delay, so sweeping the mouse across a grid of tiles does
-		// not flash a card for every one of them.
 		peekTimer = setTimeout(() => {
 			const html = peekHTML(el.dataset.peek);
 			if (!html) return;
@@ -2329,19 +2375,34 @@ function wirePeek() {
 			peekOn = el.dataset.peek;
 			placePeek(host, el);
 		}, 280);
-	});
+	};
 
-	document.addEventListener('mouseout', evt => {
-		const from = evt.target.closest('[data-peek]');
+	const leaveFor = (from, to) => {
 		if (!from) return;
-		// Moving straight onto another one: its mouseover takes over, and
+		// Moving straight onto another one: its own show takes over, and
 		// hiding here would cancel the card before it ever appeared.
-		const to = evt.relatedTarget && evt.relatedTarget.closest
-			? evt.relatedTarget.closest('[data-peek]')
-			: null;
-		if (to) return;
+		if (to && to.closest && to.closest('[data-peek]')) return;
 		hidePeek();
+	};
+
+	document.addEventListener('mouseover', evt => {
+		const el = evt.target.closest('[data-peek]');
+		if (el) showSoon(el);
 	});
+	document.addEventListener('mouseout', evt =>
+		leaveFor(evt.target.closest('[data-peek]'), evt.relatedTarget));
+
+	// The same card for the keyboard: tabbing onto a tile or a chip shows
+	// what hovering it would.
+	document.addEventListener('focusin', evt => {
+		const el = evt.target.closest ? evt.target.closest('[data-peek]') : null;
+		if (el) showSoon(el);
+	});
+	document.addEventListener('focusout', evt =>
+		leaveFor(
+			evt.target.closest ? evt.target.closest('[data-peek]') : null,
+			evt.relatedTarget
+		));
 	document.addEventListener('scroll', hidePeek, true);
 	window.addEventListener('blur', hidePeek);
 }
@@ -2352,21 +2413,28 @@ function wirePeek() {
 
 /**
  * `onDismiss` fires when the dialog is put away without an answer -- the
- * backdrop, or a plain Close button. A caller that was holding work while
- * the question was on screen (the sync conflict) uses it to let go; the
- * buttons that *are* answers call closeDialog() directly and never
- * trigger it.
+ * backdrop, Escape, or a plain Close button. A caller that was holding
+ * work while the question was on screen (the sync conflict) uses it to
+ * let go; the buttons that *are* answers call closeDialog() directly
+ * and never trigger it.
  */
+let dialogDismiss = null;   // the open dialog's onDismiss, for Escape
+let dialogOpener = null;    // where focus returns when the dialog closes
+
 function openDialog(html, { onDismiss = null } = {}) {
 	const host = document.getElementById('dialog');
 	host.innerHTML = `<div class="dialog-box">${html}</div>`;
 	host.hidden = false;
+	dialogDismiss = onDismiss;
+	dialogOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 	host.onclick = evt => {
-		if (evt.target === host || evt.target.hasAttribute('data-close')) {
-			closeDialog();
-			if (onDismiss) onDismiss();
-		}
+		if (evt.target === host || evt.target.hasAttribute('data-close')) dismissDialog();
 	};
+	// A keyboard arrives inside the dialog, not stranded behind it.
+	// Callers that want a specific field focused (the build picker's
+	// search) focus it themselves afterwards and simply win.
+	const first = host.querySelector('input, select, textarea, button');
+	if (first) first.focus();
 	return host;
 }
 
@@ -2374,6 +2442,18 @@ function closeDialog() {
 	const host = document.getElementById('dialog');
 	host.hidden = true;
 	host.innerHTML = '';
+	dialogDismiss = null;
+	// Focus goes back where it came from, so Escape does not dump a
+	// keyboard user at the top of the page.
+	if (dialogOpener && dialogOpener.isConnected) dialogOpener.focus();
+	dialogOpener = null;
+}
+
+/** Close without an answer: the backdrop, a Close button, or Escape. */
+function dismissDialog() {
+	const onDismiss = dialogDismiss;
+	closeDialog();
+	if (onDismiss) onDismiss();
 }
 
 /** Searchable, icon-led list of everything that can be queued. */

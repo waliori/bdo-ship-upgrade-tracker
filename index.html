@@ -71,13 +71,13 @@
             </div>
         </header>
 
-        <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+        <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
 
         <!-- Currencies and enhancement stones are spent from every screen,
              so they live in the shell rather than on any one tab. -->
         <div class="pouch" id="pouch" aria-label="What you are carrying"></div>
 
-        <main class="screen" id="screen"></main>
+        <main class="screen" id="screen" role="tabpanel" aria-label="Current section"></main>
     </div>
 
     <div class="peek" id="peek" role="tooltip" hidden></div>
