@@ -32,7 +32,7 @@ import {
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, toggleMapDone, closeMapTip,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
-	reviveMapRoute
+	reviveMapRoute, setMapKind
 } from './screen-map.js';
 
 const TABS = [
@@ -281,6 +281,7 @@ function wire() {
 			case 'map-done': toggleMapDone(Number(el.dataset.npc)); return;
 			case 'map-tip-close': closeMapTip(); return;
 			case 'map-pick-open': return openMapPicker();
+			case 'map-kind': setMapKind(el.dataset.id); return;
 			case 'map-pick-set': setMapPick(el.dataset.item || null); closeDialog(); return render();
 			case 'map-step-prev': mapStep(-1); return;
 			case 'map-step-next': mapStep(1); return;

@@ -1810,5 +1810,49 @@
  "[Level 5] Supreme Gold Candlestick": {
   "icon": "00800028.webp",
   "url": "https://bdocodex.com/us/item/800062/"
+ },
+ "Elaborate Pearl Necklace": {
+  "icon": "00045152.webp",
+  "url": "https://bdocodex.com/us/item/45152/"
+ },
+ "Gilded Coral": {
+  "icon": "00045154.webp",
+  "url": "https://bdocodex.com/us/item/45154/"
+ },
+ "Golden Galley Figurine": {
+  "icon": "00045151.webp",
+  "url": "https://bdocodex.com/us/item/45151/"
+ },
+ "Golden Turtle Shell": {
+  "icon": "00045155.webp",
+  "url": "https://bdocodex.com/us/item/45155/"
+ },
+ "Lost Trade Box": {
+  "icon": "00049644.webp",
+  "url": "https://bdocodex.com/us/item/752562/"
+ },
+ "Obsidian Crystal Bracelet": {
+  "icon": "00045153.webp",
+  "url": "https://bdocodex.com/us/item/45153/"
+ },
+ "[Level 5] Cox Pirates' Journal": {
+  "icon": "00800072.webp",
+  "url": "https://bdocodex.com/us/item/800072/"
+ },
+ "[Level 5] Observatory Report": {
+  "icon": "00800075.webp",
+  "url": "https://bdocodex.com/us/item/800075/"
+ },
+ "[Level 5] Opulent Coral Trinket": {
+  "icon": "00800071.webp",
+  "url": "https://bdocodex.com/us/item/800071/"
+ },
+ "[Level 5] Otters Fish Hook": {
+  "icon": "00800074.webp",
+  "url": "https://bdocodex.com/us/item/800074/"
+ },
+ "[Level 5] Rust Repair Tool": {
+  "icon": "00800073.webp",
+  "url": "https://bdocodex.com/us/item/800073/"
  }
 }

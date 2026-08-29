@@ -2575,6 +2575,53 @@ select.purse-inline { width: auto; cursor: pointer; }
 
 .map-startrow { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 
+/* One refresh list per run: the chart plans against materials or the
+   trade chain, not a mixture. */
+.map-kinds { display: flex; gap: 4px; margin: 0 0 8px; }
+
+.map-kind-chip {
+  flex: 1;
+  padding: 5px 2px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--line);
+  background: var(--panel-inset);
+  color: var(--ink-mute);
+  font-size: 11px;
+  cursor: pointer;
+}
+.map-kind-chip.on { color: var(--teal-hi); border-color: var(--teal-edge); background: var(--teal-glow); }
+
+.map-kind-tag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid var(--line-btn);
+  color: var(--ink-mute);
+}
+.map-kind-tag.material { color: var(--teal); border-color: var(--teal-edge); }
+.map-kind-tag.trade { color: var(--blue); border-color: var(--blue-edge); }
+.map-kind-tag.coin { color: var(--amber); border-color: rgba(232, 182, 97, 0.4); }
+
+/* The tree's jump to the chart, one glyph wide. */
+.tmap {
+  width: 24px;
+  flex: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--ink-faint);
+  font-size: 14px;
+  cursor: pointer;
+}
+.tmap:hover { color: var(--teal-hi); }
+.tmap.empty { cursor: default; }
+
+.trow-own .own-input { width: 64px; }
+
 /* A phone is all sea: the panel becomes a sheet, the minimap yields. */
 @media (max-width: 640px) {
   .map-mini { display: none; }

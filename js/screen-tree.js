@@ -7,8 +7,8 @@
 import { esc, F } from './fmt.js';
 import * as store from './state.js';
 import { openDialog } from './dialogs.js';
-import { img, codexName } from './ui-bits.js';
-import { snapshot } from './ui-state.js';
+import { img, codexName, amountInput } from './ui-bits.js';
+import { snapshot, barterData } from './ui-state.js';
 import { parseEnhanced } from './planner.js';
 import { startHere } from './screen-plan.js';
 
@@ -118,7 +118,12 @@ export function renderTree() {
 				<span class="trow-sub">${esc(bits.join(' · ') || 'nothing needed')}</span>
 			</span>
 			<span class="trow-need">${F(node.need)}</span>
-			<span class="trow-own">${F(own)} held</span>
+			<span class="trow-own">${amountInput('own-input', own,
+				`data-act="own-set" data-item="${esc(node.item)}" aria-label="How many ${esc(node.item)} you hold"`)} held</span>
+			${barterData && barterData.some(b => b.name === node.item)
+				? `<button class="tmap" data-act="goto-map" data-item="${esc(node.item)}"
+					title="Where to barter it" aria-label="Show ${esc(node.item)} on the map">⌖</button>`
+				: '<span class="tmap empty"></span>'}
 			<span class="badge ${state === 'missing' ? 'red' : state === 'covered' ? 'teal' : 'blue'}">${STATE_WORD[state]}</span>
 		</div>`;
 	}).join('');

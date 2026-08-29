@@ -23,6 +23,7 @@ let pendingFit = false;
  * same way the active tab is -- it is view state, not inventory. */
 const STORE_KEY = 'bdo-tracker/map-view';
 let mode = 'sail';            // sail | route | today
+let kindFilter = 'all';       // all | material | trade -- one list per run
 let panelOpen = true;
 let searchQ = '';
 let stops = [];               // npc ids, in sail order, chosen by hand
@@ -52,6 +53,7 @@ function restore() {
 	try {
 		const s = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
 		if (['sail', 'route', 'today'].includes(s.mode)) mode = s.mode;
+		if (['all', 'material', 'trade'].includes(s.kindFilter)) kindFilter = s.kindFilter;
 		panelOpen = s.panelOpen !== false;
 		if (Array.isArray(s.stops)) stops = s.stops.filter(id => npcById.has(id));
 		if (typeof s.stopsPick === 'string') stopsPick = s.stopsPick;
@@ -65,7 +67,7 @@ function restore() {
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -74,8 +76,31 @@ function doneSet() {
 	return new Set(done.ids);
 }
 
+/**
+ * Which of the game's two refresh lists an exchange belongs to: the
+ * trade-item chain deals [Level N] goods and Crow Coins, the ship
+ * material list deals everything else. They refresh separately, so a
+ * sailing run is planned against one of them, not a mixture.
+ */
+export function barterKind(name) {
+	if (name === 'Crow Coin') return 'coin';
+	return name.startsWith('[Level') ? 'trade' : 'material';
+}
+
+function kindMatches(name) {
+	if (kindFilter === 'all') return true;
+	const k = barterKind(name);
+	return k === kindFilter || (kindFilter === 'trade' && k === 'coin');
+}
+
 function wantedNow() {
-	return mapPick ? { [mapPick]: 1 } : snapshot.missing;
+	if (mapPick) return { [mapPick]: 1 };
+	if (kindFilter === 'all') return snapshot.missing;
+	const out = {};
+	for (const [k, v] of Object.entries(snapshot.missing)) {
+		if (kindMatches(k)) out[k] = v;
+	}
+	return out;
 }
 
 function marksNow() {
@@ -242,7 +267,11 @@ function sailHTML(marks) {
 	const list = rows
 		|| `<p class="empty">${q ? 'No island by that name has it.'
 			: 'Nothing on your list is bartered at sea.'}</p>`;
-	return `<input class="map-search" type="search" data-act="map-search"
+	const kinds = !mapPick ? `<div class="map-kinds">${[
+			['all', 'All'], ['material', 'Materials'], ['trade', 'Trade goods']
+		].map(([id, label]) => `<button class="map-kind-chip${kindFilter === id ? ' on' : ''}"
+			data-act="map-kind" data-id="${id}">${label}</button>`).join('')}</div>` : '';
+	return `${kinds}<input class="map-search" type="search" data-act="map-search"
 			value="${esc(searchQ)}" placeholder="Filter islands…" aria-label="Filter islands">
 		<div class="map-list" data-map-list>${list}</div>`;
 }
@@ -636,7 +665,8 @@ function paintTip(host, size, marks) {
 				<span class="map-tip-side"${g.give ? ` data-peek="${esc(g.give)}"` : ''}><span class="map-io minus">${img(g.give || '', 'map-icon')}</span><span>${qty(g.giveQty)}${esc(g.give || '—')}</span></span>
 				<span class="map-tip-arrow">→</span>
 				<span class="map-tip-side get" data-peek="${esc(g.item)}"><span class="map-io plus">${img(g.item, 'map-icon')}</span><span>${qty(g.recvQty)}${esc(g.item)}</span></span>
-				<span class="map-tip-tries">${g.tries ? `×${g.tries}` : ''}</span>
+				<span class="map-tip-tries">${g.tries ? `×${g.tries}` : ''}<span class="map-kind-tag ${barterKind(g.item)}">${
+					{ material: 'mat', trade: 'good', coin: 'coin' }[barterKind(g.item)]}</span></span>
 			</div>`).join('');
 		// The game deals each island one material offer per refresh, drawn
 		// from its own pool -- so the size of that pool is the honest way
@@ -986,7 +1016,7 @@ export function openMapPicker() {
 			+ (a.length ? '<div class="picker-head">On your build list</div>'
 				+ a.map(n => row(n, `${F(snapshot.missing[n])} short`)).join('') : '')
 			+ (b.length ? '<div class="picker-head">The rest of the sea</div>'
-				+ b.map(n => row(n, '')).join('') : ''))
+				+ b.map(n => row(n, { material: 'material', trade: 'trade good', coin: 'crow coin' }[barterKind(n)])).join('') : ''))
 			|| '<p class="empty">Nothing matches that search.</p>';
 	};
 	paint('');
@@ -1049,4 +1079,12 @@ export function reviveMapRoute() {
 	mapPick = stopsPick || null;
 	pendingFit = true;
 	pinnedNpc = null;
+}
+
+export function setMapKind(id) {
+	if (!['all', 'material', 'trade'].includes(id)) return;
+	kindFilter = id;
+	persist();
+	refreshSide();
+	paintMap();
 }

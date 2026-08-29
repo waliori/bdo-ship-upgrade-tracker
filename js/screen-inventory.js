@@ -8,7 +8,7 @@ import {
 	img, codexName, amountInput, costCtx, costText, makeupHTML,
 	sourceOf, hasBuyOption, allItems
 } from './ui-bits.js';
-import { recipes, snapshot, rows, query, invFilter, selected } from './ui-state.js';
+import { recipes, snapshot, rows, query, invFilter, selected, barterData } from './ui-state.js';
 import { maxCraftable, enhanceStep, parseEnhanced, enhancedName, waysToGet } from './planner.js';
 
 
@@ -226,6 +226,10 @@ function renderDetail() {
 			return made ? `<div class="detail-block">${made}</div>` : '';
 		})()}
 		${resvHTML}
+		${barterData && barterData.some(b => b.name === item)
+			? `<div class="detail-block"><button class="act quiet" data-act="goto-map"
+				data-item="${esc(item)}">⌖ Where to barter it</button></div>`
+			: ''}
 		${src && src.key !== 'coin' && src.key !== 'falasi'
 			? `<div class="detail-src"><span>${esc(src.label)}</span><span>${esc(src.detail)}</span></div>`
 			: ''}
