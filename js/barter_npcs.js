@@ -7,7 +7,7 @@
 // pixel divided by 256 is the tile it lands in.
 //
 // 81 barterers. Which goods each one trades is not repeated here --
-// all_barter.js already says, keyed by the same npc_id.
+// all_barter.json already says, keyed by the same npc_id.
 
 export const MAX_ZOOM = 9;
 export const TILE = 256;
@@ -100,5 +100,5 @@ export const npcs = [
 	{ id: 58930, name: "Vedio", x: 66541, y: 64615 }
 ];
 
-/** Every barterer, by the id all_barter.js uses. */
+/** Every barterer, by the id all_barter.json uses. */
 export const npcById = new Map(npcs.map(n => [n.id, n]));

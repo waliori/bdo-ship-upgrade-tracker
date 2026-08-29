@@ -286,7 +286,9 @@ test('nothing in the API may be cached, whoever is in front of it', async () => 
 	for (const url of ['/api/state', '/api/me']) {
 		const res = await call('GET', url, { cookie: alice });
 		assert.equal(res.headers.get('cache-control'), 'no-store', url);
-		assert.equal(res.headers.get('vary'), 'Cookie', url);
+		// Cookie must be in there; compression is allowed to append
+		// Accept-Encoding, which only makes the caching story stricter.
+		assert.match(res.headers.get('vary'), /\bCookie\b/, url);
 	}
 });
 

@@ -107,7 +107,7 @@ test('the heavy files travel compressed', async () => {
 	// Asked over node:http with an explicit Accept-Encoding, because
 	// fetch decompresses transparently and hides the evidence.
 	const { encoding } = await new Promise((resolve, reject) => {
-		const url = new URL(base + '/js/all_barter.js');
+		const url = new URL(base + '/js/all_barter.json');
 		http.get({
 			host: url.hostname, port: url.port, path: url.pathname,
 			headers: { 'Accept-Encoding': 'gzip' }

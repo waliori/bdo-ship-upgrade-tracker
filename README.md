@@ -369,7 +369,7 @@ js/
   ships.js            what can be queued
   sea_coins.js        Crow Coin prices
   falasi_vendor.js    Falasi's silver prices
-  all_barter.js       barter routes
+  all_barter.json     barter routes, scraped from BDOCodex
   guided-tour.js      the guided tour
   enhancement.js      per-level rates, Agris caps, perfect-enhance costs
 tools/check-env.mjs   npm run check -- validates a sync configuration

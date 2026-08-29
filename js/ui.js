@@ -1844,11 +1844,18 @@ function setView(id) {
  * Pull in the barter dataset once, in the background. It is large, so it
  * never blocks a paint -- and loading it up front rather than on entering
  * "To Get" avoids a second render swapping the view out from under you.
+ *
+ * Fetched as JSON rather than imported as a module: it is a megabyte of
+ * pure data, and JSON.parse takes it off the JavaScript compiler's plate.
+ * What the numbers mean, and which patch notes they were read against,
+ * is documented where the dataset is read -- barter.js.
  */
 async function loadBarter() {
 	if (barterData) return;
 	try {
-		barterData = (await import('./all_barter.js')).shipbarters;
+		const res = await fetch('js/all_barter.json');
+		if (!res.ok) throw new Error(String(res.status));
+		barterData = await res.json();
 	} catch {
 		barterData = [];
 	}

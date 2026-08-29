@@ -104,7 +104,7 @@ export function frame(state, size, marks = new Map()) {
 /**
  * Which barterers sell what you are short of, and what each one offers.
  *
- * The join is on npc_id, which all_barter.js already carries, so the map
+ * The join is on npc_id, which all_barter.json already carries, so the map
  * needs no data of its own beyond the positions. An NPC that trades
  * three of the things on your list is worth more of a detour than one
  * that trades a single unit of one, which is why the count rides along.

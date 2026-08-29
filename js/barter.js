@@ -194,6 +194,19 @@ export function levelDiscount(name) {
  * reading the dataset
  * ------------------------------------------------------------------ */
 
+// The dataset itself is js/all_barter.json: every barter that yields a
+// ship material, and the trade-good ladder that leads to one, scraped
+// from BDOCodex. It is JSON rather than a module, so its provenance
+// lives here, beside the code that reads it.
+//
+// The 1:1 exchanges are gone from it: the 2026-04-16 patch raised the
+// minimum on the two rungs that had one -- "Adjusted the minimum
+// exchange amount for level 1 -> level 2 and level 2 -> level 3
+// barters. Before: x1-3 After: x2-3" -- so every [Level 2] and
+// [Level 3] payout reads 2-3. The two Tidal Black Stone routes that pay
+// 1-3 are untouched: they hand over a ship material, not a trade good,
+// and the patch did not name them.
+
 const LEVEL = /^\[Level (\d)\]/;
 
 /** The tier of a sea trade good, or null for a ship material. */

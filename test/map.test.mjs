@@ -10,7 +10,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { shipbarters } from '../js/all_barter.js';
+import { readFile } from 'node:fs/promises';
+
+const shipbarters = JSON.parse(
+	await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
 import { npcs, npcById, TILES, TILE, MAX_ZOOM } from '../js/barter_npcs.js';
 import { toPixel, frame, marksFor, pan, zoomBy, createMap, zoomRange } from '../js/map.js';
 
