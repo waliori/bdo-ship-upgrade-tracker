@@ -56,22 +56,24 @@
 
 * { box-sizing: border-box; }
 
-html { margin: 0; padding: 0; }
 
 /* The ocean ground the water shader ripples over. The shader draws its
    own gradient in these same colours, so with the effect on or off the
    page reads as the same body of water.
  *
- * This background must stay on <body> with <html> left transparent. An
- * unstyled root lets the body background propagate to the viewport, where
- * it paints beneath everything -- which is what leaves the shader's
- * canvas (a z-index:-1 child of body) visible. Give <html> a background
- * of its own and propagation stops, body paints over the canvas, and the
- * water silently disappears. */
-body {
+ * The background sits on <html>, not <body>. A root background is painted
+ * onto the canvas itself, beneath everything -- including the shader's
+ * canvas, a z-index:-1 child of body -- and it covers the whole document
+ * and whatever a phone shows past its ends (rubber-band overscroll, the
+ * strip the address bar reveals). Painted on <body> instead, it was fixed
+ * to the first viewport and every phone browser that ignores a fixed
+ * attachment left a white page below it. <body> stays transparent: a
+ * body background would paint over the shader and the water disappears. */
+html {
   margin: 0;
   padding: 0;
-  background:
+  background-color: var(--ocean-deep);
+  background-image:
     radial-gradient(circle at 30% 20%, rgba(14, 165, 233, 0.15) 0%, transparent 50%),
     radial-gradient(circle at 70% 60%, rgba(59, 130, 246, 0.10) 0%, transparent 50%),
     radial-gradient(circle at 40% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
@@ -80,7 +82,21 @@ body {
       var(--ocean-mid) 30%,
       var(--ocean-surface) 60%,
       var(--ocean-mid) 100%);
-  background-attachment: fixed;
+  min-height: 100%;
+}
+
+/* With a mouse the gradient stays put and the page scrolls over it, the
+   way it always has. Phones treat a fixed attachment as scroll anyway
+   (and some paint nothing past the first screen), so they get the
+   gradient stretched over the whole page instead. */
+@media (hover: hover) and (pointer: fine) {
+  html { background-attachment: fixed; }
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: none;
   font-family: var(--font-body);
   font-size: 14px;
   color: var(--ink);
@@ -694,6 +710,9 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 }
 
 .kv { display: flex; flex-direction: column; gap: 7px; padding-bottom: 14px; border-bottom: 1px solid rgba(125, 175, 225, 0.12); margin-bottom: 14px; }
+/* A kv list dropped straight into a panel (the Crew reference cards)
+   takes the panel's inner padding; inside a .detail it already has it. */
+.panel > .kv { padding: 12px 20px 14px; margin: 0; border-bottom: none; }
 .kv-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; }
 .kv-row span:first-child { color: var(--ink-mute); }
 .kv-row .n { font-family: var(--font-display); }
@@ -1030,6 +1049,8 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   .row-tail { width: 100%; justify-content: space-between; }
   .badge { text-align: left; min-width: 0; }
   .panel-head, .group-head { padding: 12px 14px 10px; }
+  .panel > .kv { padding: 10px 14px 12px; }
+  .sel-facts { padding: 10px 14px 12px; }
   .stat { padding: 13px 16px; }
   .craft-grid { padding: 12px 14px; }
   .build { padding: 14px; gap: 12px; }
@@ -2711,6 +2732,8 @@ select.purse-inline { width: auto; cursor: pointer; }
 /* The Manage Sailors board: a hull drawn in a 900-wide box, seats placed
    where the game places them, scaled by the container's width. */
 .crew-ship { display: flex; align-items: center; gap: 12px; padding: 6px 4px 14px; flex-wrap: wrap; }
+.crew-ship > div { min-width: 0; flex: 1 1 240px; }
+.crew-ship .row-sub { white-space: normal; }
 .crew-ship-name { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--ink-hi); }
 .crew-pick { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
 .crew-stats { margin-bottom: 14px; }
@@ -2794,7 +2817,8 @@ select.purse-inline { width: auto; cursor: pointer; }
 .sel-cond > i > b, .sel-stat > i > b { display: block; height: 100%; background: linear-gradient(90deg, #2c9a7a, var(--teal)); }
 .sel-stat b { color: var(--teal); }
 .sel-stats { padding-bottom: 4px; }
-.sel-facts { padding: 12px 14px 0; font-size: 11.5px; color: var(--ink-mute); }
+.sel-facts { padding: 12px 20px 14px; font-size: 11.5px; color: var(--ink-mute); }
+.panel > .kv + .sel-facts { padding-top: 0; }
 .sel-facts b { color: var(--ink-hi); }
 .sel-skill { margin: 10px 14px 0; font-size: 11.5px; color: #ffe3a3; background: rgba(231, 181, 77, 0.08); border: 1px solid rgba(231, 181, 77, 0.25); border-radius: 9px; padding: 8px 11px; }
 .sel-skill.quiet { color: var(--ink-mute); background: none; border-color: var(--line-btn); }
