@@ -2962,3 +2962,4 @@ select.purse-inline { width: auto; cursor: pointer; }
 .map-game-direct p { margin: 0 0 8px; }
 .map-game-direct .map-game-btns { margin: 0; flex-wrap: wrap; }
 .map-game-btns .ghost-btn:disabled { opacity: 0.5; cursor: default; }
+.map-game-nodirect { font-size: 12px; color: var(--ink-dim); margin: 0 0 12px; }
