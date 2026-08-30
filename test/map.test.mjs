@@ -409,3 +409,43 @@ test('routePath bows every leg and starts at the first stop', () => {
 	assert.ok(d.startsWith('M 0.0 0.0'), d);
 	assert.equal((d.match(/Q/g) || []).length, 2, 'one curve per leg');
 });
+
+test('a line too long to draw is cut to what can be seen', () => {
+	// Zoomed onto one island, the far end of a course is millions of
+	// pixels away; a browser handed a path that long stops drawing part
+	// way through, and the line ends in open water.
+	const size = { w: 1200, h: 640 };
+	const far = [
+		{ left: -4_000_000, top: 320 },
+		{ left: 600, top: 320 },
+		{ left: 5_000_000, top: 320 }
+	];
+	const d = routePath(far, size);
+	for (const n of d.match(/-?\d+(\.\d+)?/g).map(Number)) {
+		assert.ok(Math.abs(n) < 100_000, `${n} is too big to draw`);
+	}
+	// It still crosses the whole viewport rather than stopping inside it.
+	assert.match(d, /^M -400\.0 /);
+	assert.ok(d.includes('1600.0'), d);
+});
+
+test('a leg wholly off screen is dropped, and the line breaks rather than bending', () => {
+	const size = { w: 100, h: 100 };
+	// Two visible stretches with a long excursion far above the viewport
+	// between them: two subpaths, not one line cutting across.
+	const pts = [
+		{ left: 10, top: 50 }, { left: 60, top: 50 },
+		{ left: 60, top: -9000 }, { left: 20, top: -9000 },
+		{ left: 20, top: 40 }, { left: 80, top: 40 }
+	];
+	const d = routePath(pts, size);
+	assert.equal((d.match(/M /g) || []).length, 2, d);
+	// Nothing is drawn for the excursion itself.
+	assert.ok(!/-9000/.test(d));
+});
+
+test('without a viewport the path is the plain line it always was', () => {
+	const pts = [{ left: 0, top: 0 }, { left: 10, top: 0 }];
+	assert.match(routePath(pts), /^M 0\.0 0\.0 Q /);
+	assert.equal(routePath([{ left: 1, top: 1 }]), '');
+});

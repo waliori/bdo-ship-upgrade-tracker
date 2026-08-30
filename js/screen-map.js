@@ -155,6 +155,13 @@ function stopsLive() {
  *  since a loop has no direction of its own. */
 function routeIds(marks) {
 	if (stopsLive()) return stops;
+	return [];
+}
+
+/** The loop through everything you are short of, as an offer rather
+ *  than a default: a chart that draws a route nobody asked for is a
+ *  chart telling you where to sail before you have said what for. */
+function suggestedIds(marks) {
 	let ids = routeFor(marks).map(n => n.id);
 	const port = ports.find(p => p.id === startPort);
 	if (port && ids.length > 1) {
@@ -347,7 +354,7 @@ function routeHTML(marks) {
 	if (stops.length && !stopsLive()) {
 		return `<p class="map-hint">You plotted ${stops.length} stops while showing
 			<strong>${esc(stopsPick || 'everything you are short of')}</strong>; the chart
-			is on something else now, so the suggested loop is drawn instead.</p>
+			is on something else now, so they are not drawn.</p>
 			<div class="map-side-btns">
 				<button class="ghost-btn" data-act="map-route-revive">Show that again</button>
 				<button class="ghost-btn danger" data-act="map-route-clear">Clear it</button>
@@ -414,8 +421,11 @@ function routeHTML(marks) {
 			<button class="ghost-btn danger" data-act="map-route-clear">Clear</button>
 		</div>
 		<button class="ghost-btn wide" data-act="map-route-game" title="Write these stops into the game's world map as favourites">⚑ Put it on the game's map</button>` : `<div class="map-side-btns"><button class="ghost-btn" data-act="map-route-import" title="Load a route saved from here">Import a route</button></div>`;
+	// Nothing is plotted until you say so; this is the offer, next to
+	// the other ways of choosing what to look at.
 	const seedBtn = !stops.length && marks.size > 1
-		? `<button class="ghost-btn wide" data-act="map-route-use">Start from the suggested loop</button>` : '';
+		? `<button class="ghost-btn wide" data-act="map-route-use">Plot the loop through all ${marks.size} I am short of</button>`
+		: '';
 	const startRow = `<div class="map-startrow">
 		<select class="purse-inline" data-act="map-start" aria-label="Start the route from">
 			<option value="0">Start at the first stop</option>
@@ -423,7 +433,10 @@ function routeHTML(marks) {
 		</select>
 		<label class="inline-check"><input type="checkbox" data-act="map-return"${returnHome ? ' checked' : ''}> and back</label>
 	</div>`;
-	return `<p class="map-hint">Click a pin, then “Add stop”. The numbers sail in this order.</p>
+	const empty = !stops.length
+		? `<p class="map-hint">No route plotted. Click a pin and “Add stop”, or take the loop below and change it from there.</p>`
+		: `<p class="map-hint">Click a pin, then “Add stop”. The numbers sail in this order.</p>`;
+	return `${empty}
 		${startRow}${seedBtn}<div class="map-list">${list}</div>${stats}`;
 }
 
@@ -696,7 +709,7 @@ function paintRoute(layer, size, marks) {
 	// marked is what you get before you have plotted one. Either way the
 	// chosen wharf anchors it.
 	const pts = routeWorld(marks).map(p => project(mapState, size, p.x, p.y));
-	const d = routePath(pts);
+	const d = routePath(pts, size);
 
 	let svg = layer._route;
 	if (!svg) {
@@ -759,7 +772,7 @@ function paintCourse(layer, size) {
 	for (const id of coursesOn) {
 		const c = courseById[id];
 		if (!c) continue;
-		const d = routePath(c.points.map(p => project(mapState, size, p.x, p.y)));
+		const d = routePath(c.points.map(p => project(mapState, size, p.x, p.y)), size);
 		html += `<svg class="map-route map-course-line course-${esc(id)}">
 			<path class="map-course-glow" d="${d}"></path><path class="map-course-path" d="${d}"></path></svg>`;
 		for (const p of c.points) {
@@ -1173,7 +1186,7 @@ export function toggleMapStop(npcId) {
 }
 
 export function useSuggestedRoute() {
-	stops = routeFor(marksNow()).map(n => n.id);
+	stops = suggestedIds(marksNow());
 	stopsPick = mapPick || '';
 	persist();
 	refreshSide();

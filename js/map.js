@@ -298,17 +298,83 @@ export function routeFor(marks) {
  * line reads as a sailing course rather than a ruler. Points are
  * viewport pixels, as frame() and project() hand them out.
  */
-export function routePath(pts) {
-	if (pts.length < 2) return '';
-	let d = `M ${pts[0].left.toFixed(1)} ${pts[0].top.toFixed(1)}`;
+/**
+ * One segment against a box, by Liang-Barsky: the part of it inside,
+ * or null when it misses the box entirely.
+ */
+function clipSegment(a, b, box) {
+	const dx = b.left - a.left, dy = b.top - a.top;
+	const p = [-dx, dx, -dy, dy];
+	const q = [a.left - box.x0, box.x1 - a.left, a.top - box.y0, box.y1 - a.top];
+	let t0 = 0, t1 = 1;
+	for (let i = 0; i < 4; i++) {
+		if (p[i] === 0) {
+			if (q[i] < 0) return null;
+			continue;
+		}
+		const r = q[i] / p[i];
+		if (p[i] < 0) {
+			if (r > t1) return null;
+			if (r > t0) t0 = r;
+		} else {
+			if (r < t0) return null;
+			if (r < t1) t1 = r;
+		}
+	}
+	return {
+		a: { left: a.left + t0 * dx, top: a.top + t0 * dy },
+		b: { left: a.left + t1 * dx, top: a.top + t1 * dy },
+		whole: t0 === 0
+	};
+}
+
+/**
+ * A line cut to what can be seen, as runs of points.
+ *
+ * Zoomed in on one island, the far end of a route is millions of pixels
+ * off screen, and a browser asked to draw a path that long quietly
+ * gives up part way -- the line stops in open water with no edge in
+ * sight. Cutting each leg to a box a little larger than the viewport
+ * keeps every coordinate small enough to draw, and the line still runs
+ * off the edge the way it should.
+ */
+export function clipRuns(pts, size, pad = 400) {
+	const box = { x0: -pad, y0: -pad, x1: size.w + pad, y1: size.h + pad };
+	const runs = [];
+	let run = null;
 	for (let i = 1; i < pts.length; i++) {
-		const a = pts[i - 1], b = pts[i];
-		const dx = b.left - a.left, dy = b.top - a.top;
-		const len = Math.hypot(dx, dy) || 1;
-		const k = Math.min(0.16 * len, 52);
-		d += ` Q ${((a.left + b.left) / 2 - dy / len * k).toFixed(1)}`
-			+ ` ${((a.top + b.top) / 2 + dx / len * k).toFixed(1)}`
-			+ ` ${b.left.toFixed(1)} ${b.top.toFixed(1)}`;
+		const seg = clipSegment(pts[i - 1], pts[i], box);
+		if (!seg) {
+			run = null;
+			continue;
+		}
+		// A leg whose start was trimmed cannot continue the run before it.
+		if (run && seg.whole) run.push(seg.b);
+		else runs.push(run = [seg.a, seg.b]);
+	}
+	return runs;
+}
+
+/**
+ * The path itself. Given a viewport it is cut to what can be drawn
+ * first, which is why a long route no longer stops in mid-ocean.
+ */
+export function routePath(pts, size = null) {
+	if (pts.length < 2) return '';
+	const runs = size ? clipRuns(pts, size) : [pts];
+	let d = '';
+	for (const run of runs) {
+		if (run.length < 2) continue;
+		d += `${d ? ' ' : ''}M ${run[0].left.toFixed(1)} ${run[0].top.toFixed(1)}`;
+		for (let i = 1; i < run.length; i++) {
+			const a = run[i - 1], b = run[i];
+			const dx = b.left - a.left, dy = b.top - a.top;
+			const len = Math.hypot(dx, dy) || 1;
+			const k = Math.min(0.16 * len, 52);
+			d += ` Q ${((a.left + b.left) / 2 - dy / len * k).toFixed(1)}`
+				+ ` ${((a.top + b.top) / 2 + dx / len * k).toFixed(1)}`
+				+ ` ${b.left.toFixed(1)} ${b.top.toFixed(1)}`;
+		}
 	}
 	return d;
 }
