@@ -12,7 +12,10 @@
 // experience, textbooks or Origin of Wind are left out.
 //
 // Each entry names what completing it puts in your bags; `choice` is
-// the set you pick one from. The Quests screen groups them by how often
+// the set you pick one from; `monster` names the species in
+// sea_monsters.js whose grounds the Map can show for it (a young-one
+// quest points at whichever young species has grounds nearest the
+// quest giver). The Quests screen groups them by how often
 // they can be done, and records a reward with one press, so a claimed
 // letter lands in stock like a craft does.
 
@@ -56,6 +59,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-young',
+		monster: 'young-nineshark',
 		name: "[Daily] Old Moon Guild's Young Sea Monster Hunter",
 		where: "Ravikel, Oquilla's Eye — any five young sea monsters",
 		repeat: 'daily',
@@ -64,6 +68,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-candidum',
+		monster: 'candidum',
 		name: "[Daily] Old Moon Guild's Candidum Hunter",
 		where: "Ravikel, Oquilla's Eye — one Candidum",
 		repeat: 'daily',
@@ -72,6 +77,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-nineshark',
+		monster: 'nineshark',
 		name: "[Daily] Old Moon Guild's Nineshark Hunter",
 		where: "Ravikel, Oquilla's Eye — one Nineshark",
 		repeat: 'daily',
@@ -80,6 +86,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-blackrust',
+		monster: 'black-rust',
 		name: "[Daily] Old Moon Guild's Black Rust Hunter",
 		where: "Ravikel, Oquilla's Eye — one Black Rust",
 		repeat: 'daily',
@@ -88,6 +95,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-w-candidum',
+		monster: 'candidum',
 		name: "[Weekly] Old Moon Guild's Candidum Hunter",
 		where: "Ravikel, Oquilla's Eye — one Candidum",
 		repeat: 'weekly',
@@ -96,6 +104,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-w-nineshark',
+		monster: 'nineshark',
 		name: "[Weekly] Old Moon Guild's Nineshark Hunter",
 		where: "Ravikel, Oquilla's Eye — one Nineshark",
 		repeat: 'weekly',
@@ -104,6 +113,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-w-blackrust',
+		monster: 'black-rust',
 		name: "[Weekly] Old Moon Guild's Black Rust Hunter",
 		where: "Ravikel, Oquilla's Eye — one Black Rust",
 		repeat: 'weekly',
@@ -112,6 +122,7 @@ export const quests = [
 	},
 	{
 		id: 'charity',
+		monster: 'young-hekaru',
 		name: '[Daily] Our Guild is Not a Charity Group',
 		where: "the soldier at Oquilla's Eye — two young sea monsters",
 		repeat: 'daily',
@@ -120,6 +131,7 @@ export const quests = [
 	},
 	{
 		id: 'hekaru',
+		monster: 'hekaru',
 		name: '[Daily] Do You Have What it Takes?',
 		where: "the soldier at Oquilla's Eye — one Hekaru",
 		repeat: 'daily',
@@ -128,6 +140,7 @@ export const quests = [
 	},
 	{
 		id: 'winwin',
+		monster: 'ocean-stalker',
 		name: '[Daily] Win-win Situation',
 		where: "the soldier at Oquilla's Eye — one Ocean Stalker",
 		repeat: 'daily',
@@ -136,6 +149,7 @@ export const quests = [
 	},
 	{
 		id: 'increase',
+		monster: 'young-ocean-stalker',
 		name: '[Weekly] Monster Increase Report',
 		where: "the soldier at Oquilla's Eye — twenty young sea monsters",
 		repeat: 'weekly',
@@ -157,6 +171,7 @@ export const quests = [
 	},
 	{
 		id: 'margoria',
+		monster: 'nineshark',
 		name: "[Weekly] Old Moon Guild's Request: Defeat Margoria Sea Monsters",
 		where: 'Elro, the guild wharf manager — five Nineshark, Candidum or Black Rust',
 		repeat: 'weekly, resets Thursday',
@@ -165,6 +180,7 @@ export const quests = [
 	},
 	{
 		id: 'khan',
+		monster: 'khan',
 		name: "[Weekly] Old Moon Guild's Request: Uncover Oquilla's Eye's Secret",
 		where: 'Elro, the guild wharf manager — defeat Khan, at any difficulty',
 		repeat: 'weekly, resets Thursday',
@@ -173,6 +189,7 @@ export const quests = [
 	},
 	{
 		id: 'hampering',
+		monster: 'black-rust',
 		name: '[Daily] Hampering Monsters in the Sea',
 		where: "Haeran, Oquilla's Eye — two Black Rust or two Nineshark (Chasing Dark High Seas)",
 		repeat: 'daily',
@@ -181,6 +198,7 @@ export const quests = [
 	},
 	{
 		id: 'darkseas',
+		monster: 'black-rust',
 		name: '[Weekly] They Came from Dark High Seas',
 		where: "Haeran, Oquilla's Eye — four Black Rust (Chasing Dark High Seas)",
 		repeat: 'weekly',
@@ -189,6 +207,7 @@ export const quests = [
 	},
 	{
 		id: 'crocodile',
+		monster: 'saltwater-crocodile',
 		name: '[Weekly] Ferocious Saltwater Crocodile',
 		where: "Bave Ricksa, Oquilla's Eye — four Saltwater Crocodile",
 		repeat: 'weekly',
@@ -197,6 +216,7 @@ export const quests = [
 	},
 	{
 		id: 'hungry',
+		monster: 'hekaru',
 		name: '[Daily] Wanted: Hungry Sea Creatures',
 		where: 'Proix, Velia — three Hungry Hekaru',
 		repeat: 'daily',
@@ -204,6 +224,7 @@ export const quests = [
 	},
 	{
 		id: 'coxscouts',
+		monster: 'cox-pirates',
 		name: '[Daily] Wanted: Cox Scouts in Disguise',
 		where: 'Proix, Velia — twenty Cox Pirates infiltrating the islands',
 		repeat: 'daily',

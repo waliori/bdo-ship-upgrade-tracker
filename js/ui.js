@@ -36,7 +36,7 @@ import { renderGet, shoppingText } from './screen-get.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
-	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, toggleMapDone, closeMapTip,
+	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute
 } from './screen-map.js';
@@ -370,6 +370,8 @@ function wire() {
 			case 'map-route-reverse': reverseMapRoute(); return;
 			case 'map-route-clear': clearMapRoute(); return;
 			case 'map-course': setMapCourse(el.dataset.id); return;
+			case 'map-hunt': setMapHunt(el.dataset.id); return;
+			case 'quest-map': showHunt(el.dataset.monster); return showView('map');
 			case 'map-route-export': {
 				// A route is a few dozen bytes of ids; a file is how it
 				// reaches a friend, or another optimiser.

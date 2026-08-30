@@ -4,6 +4,7 @@
 // with the command functions the shell's event handling calls.
 
 import { courses, courseById } from './courses.js';
+import { monsters, monsterByKey } from './sea_monsters.js';
 import { esc, F } from './fmt.js';
 import { shipStats } from './ship_stats.js';
 import { crewShip } from './screen-crew.js';
@@ -13,6 +14,7 @@ import {
 	routeFor, routePath, project, placeTile, zoomRange
 } from './map.js';
 import { npcs, npcById, ports } from './barter_npcs.js';
+import { quests } from './quests.js';
 import { openDialog } from './dialogs.js';
 import { parleyPerTrade, PARLEY, GOODS } from './barter.js';
 import { snapshot, barterData, barterProfile, view } from './ui-state.js';
@@ -40,7 +42,8 @@ let fly = null;               // the rAF handle of a flight in progress
 
 let startPort = 0;            // wharf the route sails from; 0 = first stop
 let returnHome = false;       // close the loop back to that wharf
-let course = '';              // a community course drawn beneath the route, by id
+let coursesOn = [];           // community courses drawn beneath the route, by id
+let huntsOn = [];             // sea monster grounds shown, by species key
 let follow = true;            // the step player flies the camera along
 let stepIdx = 0;              // which stop the step player is on
 let stepKey = '';             // the route it was on, to reset when it changes
@@ -56,7 +59,7 @@ function restore() {
 	restored = true;
 	try {
 		const s = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
-		if (['sail', 'route', 'today'].includes(s.mode)) mode = s.mode;
+		if (['sail', 'route', 'today', 'hunt'].includes(s.mode)) mode = s.mode;
 		if (['all', 'material', 'trade'].includes(s.kindFilter)) kindFilter = s.kindFilter;
 		panelOpen = s.panelOpen !== false;
 		if (Array.isArray(s.stops)) stops = s.stops.filter(id => npcById.has(id));
@@ -65,14 +68,15 @@ function restore() {
 		if (ports.some(p => p.id === s.startPort)) startPort = s.startPort;
 		returnHome = s.returnHome === true;
 		follow = s.follow !== false;
-		if (courseById[s.course]) course = s.course;
+		if (Array.isArray(s.coursesOn)) coursesOn = s.coursesOn.filter(id => courseById[id]);
+		if (Array.isArray(s.huntsOn)) huntsOn = s.huntsOn.filter(k => monsterByKey[k]);
 	} catch { /* a fresh chart, then */ }
 }
 
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, course }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -168,16 +172,44 @@ function routeWorld(marks) {
 	return returnHome ? [port, ...pts, port] : [port, ...pts];
 }
 
-/** The community courses, each a switch: on, it is drawn under the
- *  route in its own colour, with its named waypoints. */
-function coursesHTML() {
-	return `<div class="map-courses">
-		<div class="map-courses-head">Courses</div>
-		${courses.map(c => `<button class="map-course${course === c.id ? ' on' : ''}" data-act="map-course" data-id="${esc(c.id)}"
-			aria-pressed="${course === c.id}">
+/** The Hunt tab: the community courses and the monster grounds, each a
+ *  switch. A course is drawn under the route in its own colour with its
+ *  named waypoints; a species scatters its codex spawn points over the
+ *  sea in the legend colour of the ocean map. The quests that send you
+ *  after each monster are listed with it. */
+function huntHTML() {
+	const byMonster = {};
+	for (const q of quests) if (q.monster) (byMonster[q.monster] = byMonster[q.monster] || []).push(q);
+	const courseRows = courses.map(c => {
+		const on = coursesOn.includes(c.id);
+		return `<button class="map-course${on ? ' on' : ''}" data-act="map-course" data-id="${esc(c.id)}" aria-pressed="${on}">
 			<span class="map-course-dot"></span>
 			<span class="map-row-main"><span class="map-row-name">${esc(c.name)}</span><span class="map-row-sub">${esc(c.sub)}</span></span>
-		</button>${course === c.id ? `<p class="map-course-note">${esc(c.note)}</p>` : ''}`).join('')}
+		</button>${on ? `<p class="map-course-note">${esc(c.note)}</p>` : ''}`;
+	}).join('');
+	const kinds = [['adult', 'Sea monsters'], ['young', 'Young ones'], ['ship', 'Ships'], ['boss', 'Bosses']];
+	const huntRows = kinds.map(([kind, label]) => {
+		const list = monsters.filter(m => m.kind === kind);
+		if (!list.length) return '';
+		return `<div class="map-hunt-kind">${label}</div>` + list.map(m => {
+			const on = huntsOn.includes(m.key);
+			const qs = byMonster[m.key] || [];
+			return `<button class="map-hunt${on ? ' on' : ''}" data-act="map-hunt" data-id="${esc(m.key)}" aria-pressed="${on}"
+				style="--hunt: ${m.colour}">
+				<span class="map-hunt-dot ${m.kind}"></span>
+				<span class="map-row-main"><span class="map-row-name">${esc(m.name)}</span>
+					<span class="map-row-sub">${m.points.length} spawn point${m.points.length === 1 ? '' : 's'}${qs.length
+						? ' · ' + qs.map(q => q.name.replace(/^\[(Daily|Weekly)\] /, '')).join(', ') : ''}</span></span>
+			</button>`;
+		}).join('');
+	}).join('');
+	return `<div class="map-courses">
+		<div class="map-courses-head">Courses <span class="map-courses-credit">from gpw’s ocean map (Snuggle Sailies Route)</span></div>
+		${courseRows}
+	</div>
+	<div class="map-courses">
+		<div class="map-courses-head">Grounds <span class="map-courses-credit">every spawn point on BDOCodex</span></div>
+		${huntRows}
 	</div>`;
 }
 
@@ -237,15 +269,16 @@ function sideHTML(marks) {
 	if (!panelOpen) {
 		return `<button class="map-side-pill" data-act="map-panel">☰ Where to sail</button>`;
 	}
-	const tabs = [['sail', 'Sail'], ['route', 'Route'], ['today', 'Today']]
+	const tabs = [['sail', 'Sail'], ['route', 'Route'], ['hunt', 'Hunt'], ['today', 'Today']]
 		.map(([id, label]) => `<button class="map-tab${mode === id ? ' active' : ''}"
 			data-act="map-mode" data-id="${id}">${label}</button>`).join('');
 	const body = mode === 'route' ? routeHTML(marks)
+		: mode === 'hunt' ? huntHTML()
 		: mode === 'today' ? todayHTML(marks)
 		: sailHTML(marks);
 	return `<div class="map-side">
 		<div class="map-side-head"><span>${
-			mode === 'route' ? 'Plot the loop' : mode === 'today' ? 'Sailed today' : 'Who has it'
+			mode === 'route' ? 'Plot the loop' : mode === 'hunt' ? 'Hunting grounds' : mode === 'today' ? 'Sailed today' : 'Who has it'
 		}</span><button class="map-side-close" data-act="map-panel" aria-label="Hide the panel">‹</button></div>
 		<div class="map-tabs" role="tablist">${tabs}</div>
 		<div class="map-side-body">${body}</div>
@@ -383,7 +416,7 @@ function routeHTML(marks) {
 		<label class="inline-check"><input type="checkbox" data-act="map-return"${returnHome ? ' checked' : ''}> and back</label>
 	</div>`;
 	return `<p class="map-hint">Click a pin, then “Add stop”. The numbers sail in this order.</p>
-		${startRow}${seedBtn}<div class="map-list">${list}</div>${stats}${coursesHTML()}`;
+		${startRow}${seedBtn}<div class="map-list">${list}</div>${stats}`;
 }
 
 function todayHTML(marks) {
@@ -520,8 +553,10 @@ export function paintMap() {
 	// A fit was asked for; now the box exists to measure, sail there.
 	if (pendingFit) {
 		pendingFit = false;
-		const points = marks.size ? [...marks.keys()].map(id => npcById.get(id)).filter(Boolean) : npcs;
-		if (courseById[course]) points.push(...courseById[course].points);
+		// A copy: the chart's own list must not grow course or monster points.
+		const points = marks.size ? [...marks.keys()].map(id => npcById.get(id)).filter(Boolean) : [...npcs];
+		for (const id of coursesOn) points.push(...courseById[id].points);
+		for (const k of huntsOn) points.push(...monsterByKey[k].points.map(([x, y]) => ({ x, y })));
 		const probe = { zoom: mapState.zoom, centre: { ...mapState.centre } };
 		fitTo(probe, size, points);
 		flyTo(probe.centre.x, probe.centre.y, probe.zoom);
@@ -539,6 +574,7 @@ export function paintMap() {
 	paintTiles(layer, tiles, size);
 	paintPins(layer, pins, marks, currentId);
 	paintPorts(layer, size);
+	paintHunt(layer, size);
 	paintCourse(layer, size);
 	paintRoute(layer, size, marks);
 	paintSteps(host, ids);
@@ -690,51 +726,108 @@ function paintRoute(layer, size, marks) {
 	}
 }
 
-/** The chosen course: one line in its own colour beneath the route,
- *  and a labelled mark at each named waypoint. Nothing when none is on. */
+/** The courses switched on: each a line in its own colour beneath the
+ *  route, with a labelled mark at its named waypoints. */
 function paintCourse(layer, size) {
-	const c = courseById[course];
-	let svg = layer._course;
+	const svgs = layer._courses || (layer._courses = new Map());
 	const pool = layer._courseEls || (layer._courseEls = new Map());
-	if (!c) {
-		if (svg) svg.hidden = true;
-		for (const el of pool.values()) el.hidden = true;
-		return;
-	}
-	if (!svg) {
-		svg = layer._course = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-		svg.setAttribute('class', 'map-route map-course-line');
-		const glow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-		glow.setAttribute('class', 'map-course-glow');
-		const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-		line.setAttribute('class', 'map-course-path');
-		svg.append(glow, line);
-		layer.appendChild(svg);
-	}
-	svg.hidden = false;
-	const d = routePath(c.points.map(p => project(mapState, size, p.x, p.y)));
-	for (const path of svg.children) path.setAttribute('d', d);
-
+	for (const svg of svgs.values()) svg.style.display = 'none';
 	for (const el of pool.values()) el.hidden = true;
-	c.points.forEach((p, i) => {
-		if (!p.name) return;
-		const at = project(mapState, size, p.x, p.y);
-		if (at.left < -80 || at.top < -40 || at.left > size.w + 80 || at.top > size.h + 40) return;
-		const key = `${c.id}:${i}`;
-		let el = pool.get(key);
-		if (!el) {
-			el = document.createElement('span');
-			el.className = 'map-waypoint' + (p.stop ? ' stop' : '');
-			el.innerHTML = '<span class="map-waypoint-dot"></span><span class="map-waypoint-name"></span>';
-			el.querySelector('.map-waypoint-name').textContent = p.name;
-			el.title = p.name;
-			pool.set(key, el);
-			layer.appendChild(el);
+	for (const id of coursesOn) {
+		const c = courseById[id];
+		if (!c) continue;
+		let svg = svgs.get(id);
+		if (!svg) {
+			svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+			svg.setAttribute('class', `map-route map-course-line course-${id}`);
+			const glow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+			glow.setAttribute('class', 'map-course-glow');
+			const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+			line.setAttribute('class', 'map-course-path');
+			svg.append(glow, line);
+			layer.appendChild(svg);
+			svgs.set(id, svg);
 		}
-		el.hidden = false;
-		el.style.left = `${Math.round(at.left)}px`;
-		el.style.top = `${Math.round(at.top)}px`;
-	});
+		svg.style.display = '';
+		const d = routePath(c.points.map(p => project(mapState, size, p.x, p.y)));
+		for (const path of svg.children) path.setAttribute('d', d);
+
+		c.points.forEach((p, i) => {
+			if (!p.name) return;
+			const at = project(mapState, size, p.x, p.y);
+			if (at.left < -80 || at.top < -40 || at.left > size.w + 80 || at.top > size.h + 40) return;
+			const key = `${id}:${i}`;
+			let el = pool.get(key);
+			if (!el) {
+				el = document.createElement('span');
+				el.className = 'map-waypoint' + (p.stop ? ' stop' : '');
+				el.innerHTML = '<span class="map-waypoint-dot"></span><span class="map-waypoint-name"></span>';
+				el.querySelector('.map-waypoint-name').textContent = p.name;
+				el.title = p.name;
+				pool.set(key, el);
+				layer.appendChild(el);
+			}
+			el.hidden = false;
+			el.style.left = `${Math.round(at.left)}px`;
+			el.style.top = `${Math.round(at.top)}px`;
+		});
+	}
+}
+
+/** The monster grounds switched on, as dots on one canvas: a few
+ *  hundred spawn points redrawn on every pan is cheap there and would
+ *  not be as elements. The legend's shapes: a cross for a grown
+ *  monster, a square for a young one, a diamond for a ship, a ring for
+ *  a boss. */
+function paintHunt(layer, size) {
+	let cv = layer._hunt;
+	if (!huntsOn.length) { if (cv) cv.style.display = 'none'; return; }
+	if (!cv) {
+		cv = layer._hunt = document.createElement('canvas');
+		cv.className = 'map-hunt-layer';
+		layer.appendChild(cv);
+	}
+	cv.style.display = '';
+	const dpr = window.devicePixelRatio || 1;
+	if (cv.width !== Math.round(size.w * dpr) || cv.height !== Math.round(size.h * dpr)) {
+		cv.width = Math.round(size.w * dpr);
+		cv.height = Math.round(size.h * dpr);
+		cv.style.width = `${size.w}px`;
+		cv.style.height = `${size.h}px`;
+	}
+	const g = cv.getContext('2d');
+	g.setTransform(dpr, 0, 0, dpr, 0, 0);
+	g.clearRect(0, 0, size.w, size.h);
+	const r = Math.max(2.5, Math.min(6, 1.2 * Math.pow(2, mapState.zoom - 4)));
+	g.lineWidth = Math.max(1.2, r / 2.5);
+	g.lineCap = 'round';
+	for (const key of huntsOn) {
+		const m = monsterByKey[key];
+		if (!m) continue;
+		g.strokeStyle = m.colour;
+		g.fillStyle = m.colour;
+		g.shadowColor = 'rgba(0,0,0,0.7)';
+		g.shadowBlur = 3;
+		for (const [x, y] of m.points) {
+			const at = project(mapState, size, x, y);
+			if (at.left < -10 || at.top < -10 || at.left > size.w + 10 || at.top > size.h + 10) continue;
+			g.beginPath();
+			if (m.kind === 'adult') {
+				g.moveTo(at.left - r, at.top - r); g.lineTo(at.left + r, at.top + r);
+				g.moveTo(at.left + r, at.top - r); g.lineTo(at.left - r, at.top + r);
+				g.stroke();
+			} else if (m.kind === 'young') {
+				g.fillRect(at.left - r * 0.7, at.top - r * 0.7, r * 1.4, r * 1.4);
+			} else if (m.kind === 'ship') {
+				g.moveTo(at.left, at.top - r * 1.2); g.lineTo(at.left + r * 1.2, at.top);
+				g.lineTo(at.left, at.top + r * 1.2); g.lineTo(at.left - r * 1.2, at.top);
+				g.closePath(); g.fill();
+			} else {
+				g.arc(at.left, at.top, r * 2, 0, Math.PI * 2); g.stroke();
+				g.beginPath(); g.arc(at.left, at.top, r * 0.7, 0, Math.PI * 2); g.fill();
+			}
+		}
+	}
 }
 
 function paintPorts(layer, size) {
@@ -1051,7 +1144,7 @@ export function mapCentreOn(npcId) {
 }
 
 export function setMapMode(id) {
-	if (!['sail', 'route', 'today'].includes(id)) return;
+	if (!['sail', 'route', 'today', 'hunt'].includes(id)) return;
 	mode = id;
 	persist();
 	refreshSide();
@@ -1202,10 +1295,32 @@ export function setMapStart(portId) {
 
 /** Switch a community course on, or off again by choosing it twice. */
 export function setMapCourse(id) {
-	course = course === id || !courseById[id] ? '' : id;
+	if (!courseById[id]) return;
+	coursesOn = coursesOn.includes(id) ? coursesOn.filter(x => x !== id) : [...coursesOn, id];
 	persist();
 	refreshSide();
 	paintMap();
+}
+
+/** Switch a species' grounds on or off. */
+export function setMapHunt(key) {
+	if (!monsterByKey[key]) return;
+	huntsOn = huntsOn.includes(key) ? huntsOn.filter(x => x !== key) : [...huntsOn, key];
+	persist();
+	refreshSide();
+	paintMap();
+}
+
+/** From a quest: show where its monster lives -- the Hunt tab open,
+ *  that species on, the chart fitted to it. Nothing else switched off. */
+export function showHunt(key) {
+	restore();
+	if (!monsterByKey[key]) return;
+	if (!huntsOn.includes(key)) huntsOn = [...huntsOn, key];
+	mode = 'hunt';
+	panelOpen = true;
+	pendingFit = true;
+	persist();
 }
 
 export function setMapReturn(on) {

@@ -2905,3 +2905,22 @@ select.purse-inline { width: auto; cursor: pointer; }
 .sailor-face { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
 .seat-mono, .roster-tile { overflow: hidden; }
 .roster-tile .roster-cond { z-index: 1; }
+
+/* A link that acts, inside running text. */
+.link-btn { background: none; border: 0; padding: 0; font: inherit; color: #6db9e8; cursor: pointer; }
+.link-btn:hover { color: #a5d5f2; text-decoration: underline; }
+
+/* ---- Hunt: monster grounds and the courses through them ------------ */
+.map-courses-credit { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink-faint); margin-left: 6px; }
+.map-hunt-kind { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); margin: 10px 0 4px; }
+.map-hunt { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 6px 10px; margin-bottom: 4px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: rgba(9, 22, 42, 0.5); color: var(--ink); font: inherit; cursor: pointer; }
+.map-hunt:hover { border-color: var(--hunt); }
+.map-hunt.on { border-color: var(--hunt); background: color-mix(in srgb, var(--hunt) 12%, transparent); }
+.map-hunt-dot { flex: none; width: 10px; height: 10px; border: 2px solid var(--hunt); background: none; opacity: 0.7; }
+.map-hunt-dot.adult { border-radius: 50%; }
+.map-hunt-dot.young { border-radius: 2px; }
+.map-hunt-dot.ship { transform: rotate(45deg); border-radius: 1px; }
+.map-hunt-dot.boss { border-radius: 50%; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5), 0 0 0 4px var(--hunt); width: 6px; height: 6px; margin: 2px; }
+.map-hunt.on .map-hunt-dot { background: var(--hunt); opacity: 1; box-shadow: 0 0 8px var(--hunt); }
+.map-hunt .map-row-sub { white-space: normal; }
+.map-hunt-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
