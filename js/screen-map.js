@@ -727,51 +727,35 @@ function paintRoute(layer, size, marks) {
 }
 
 /** The courses switched on: each a line in its own colour beneath the
- *  route, with a labelled mark at its named waypoints. */
+ *  route, with a labelled mark at its named waypoints. The whole layer
+ *  is rebuilt on every paint -- three paths and a dozen labels cost
+ *  nothing, and a layer that is written fresh can never keep a copy
+ *  from an earlier view. */
 function paintCourse(layer, size) {
-	const svgs = layer._courses || (layer._courses = new Map());
-	const pool = layer._courseEls || (layer._courseEls = new Map());
-	for (const svg of svgs.values()) svg.style.display = 'none';
-	for (const el of pool.values()) el.hidden = true;
+	let box = layer._courseBox;
+	if (!box || box.parentNode !== layer) {
+		box = layer._courseBox = document.createElement('div');
+		box.className = 'map-course-layer';
+		layer.appendChild(box);
+	}
+	if (!coursesOn.length) { box.innerHTML = ''; return; }
+	let html = '';
 	for (const id of coursesOn) {
 		const c = courseById[id];
 		if (!c) continue;
-		let svg = svgs.get(id);
-		if (!svg) {
-			svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-			svg.setAttribute('class', `map-route map-course-line course-${id}`);
-			const glow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-			glow.setAttribute('class', 'map-course-glow');
-			const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-			line.setAttribute('class', 'map-course-path');
-			svg.append(glow, line);
-			layer.appendChild(svg);
-			svgs.set(id, svg);
-		}
-		svg.style.display = '';
 		const d = routePath(c.points.map(p => project(mapState, size, p.x, p.y)));
-		for (const path of svg.children) path.setAttribute('d', d);
-
-		c.points.forEach((p, i) => {
-			if (!p.name) return;
+		html += `<svg class="map-route map-course-line course-${esc(id)}">
+			<path class="map-course-glow" d="${d}"></path><path class="map-course-path" d="${d}"></path></svg>`;
+		for (const p of c.points) {
+			if (!p.name) continue;
 			const at = project(mapState, size, p.x, p.y);
-			if (at.left < -80 || at.top < -40 || at.left > size.w + 80 || at.top > size.h + 40) return;
-			const key = `${id}:${i}`;
-			let el = pool.get(key);
-			if (!el) {
-				el = document.createElement('span');
-				el.className = 'map-waypoint' + (p.stop ? ' stop' : '');
-				el.innerHTML = '<span class="map-waypoint-dot"></span><span class="map-waypoint-name"></span>';
-				el.querySelector('.map-waypoint-name').textContent = p.name;
-				el.title = p.name;
-				pool.set(key, el);
-				layer.appendChild(el);
-			}
-			el.hidden = false;
-			el.style.left = `${Math.round(at.left)}px`;
-			el.style.top = `${Math.round(at.top)}px`;
-		});
+			if (at.left < -80 || at.top < -40 || at.left > size.w + 80 || at.top > size.h + 40) continue;
+			html += `<span class="map-waypoint${p.stop ? ' stop' : ''}" title="${esc(p.name)}"
+				style="left:${Math.round(at.left)}px;top:${Math.round(at.top)}px">
+				<span class="map-waypoint-dot"></span><span class="map-waypoint-name">${esc(p.name)}</span></span>`;
+		}
 	}
+	box.innerHTML = html;
 }
 
 /** The monster grounds switched on, as dots on one canvas: a few

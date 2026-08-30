@@ -2924,3 +2924,5 @@ select.purse-inline { width: auto; cursor: pointer; }
 .map-hunt.on .map-hunt-dot { background: var(--hunt); opacity: 1; box-shadow: 0 0 8px var(--hunt); }
 .map-hunt .map-row-sub { white-space: normal; }
 .map-hunt-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.map-course-layer { position: absolute; inset: 0; pointer-events: none; }
+.map-waypoint[hidden] { display: none; }
