@@ -19,6 +19,10 @@
   "icon": "00007347.webp",
   "url": "https://bdocodex.com/us/item/7347/"
  },
+ "Ambitious": {
+  "icon": "employee_59053.webp",
+  "url": "https://bdocodex.com/us/sailor/59053/"
+ },
  "Amethyst Fragment": {
   "icon": "00800012.webp",
   "url": "https://bdocodex.com/us/item/800046/"
@@ -179,6 +183,10 @@
   "icon": "00800069.webp",
   "url": "https://bdocodex.com/us/item/800050/"
  },
+ "Born-in-the-Sea": {
+  "icon": "employee_59070.webp",
+  "url": "https://bdocodex.com/us/sailor/59070/"
+ },
  "Brass Ingot": {
   "icon": "00004066.webp",
   "url": "https://bdocodex.com/us/item/4066/"
@@ -210,6 +218,10 @@
  "Cactus Thorn": {
   "icon": "00004683.webp",
   "url": "https://bdocodex.com/us/item/4683/"
+ },
+ "Calculating": {
+  "icon": "employee_59058.webp",
+  "url": "https://bdocodex.com/us/sailor/59058/"
  },
  "Calpheon Rowboat": {
   "icon": "00049003.webp",
@@ -291,6 +303,10 @@
   "icon": "00800020.webp",
   "url": "https://bdocodex.com/us/item/800020/"
  },
+ "Confident": {
+  "icon": "employee_59061.webp",
+  "url": "https://bdocodex.com/us/sailor/59061/"
+ },
  "Cooking Honey": {
   "icon": "00007702.webp",
   "url": "https://bdocodex.com/us/item/7702/"
@@ -342,6 +358,10 @@
  "Crow Coin Coupon": {
   "icon": "00752032.webp",
   "url": "https://bdocodex.com/us/item/752032/"
+ },
+ "Curious": {
+  "icon": "employee_59067.webp",
+  "url": "https://bdocodex.com/us/sailor/59067/"
  },
  "Daily: Do You Have What it Takes?": {
   "icon": "greatsea_04.webp",
@@ -407,9 +427,17 @@
   "icon": "00008020.webp",
   "url": "https://bdocodex.com/us/item/8020/"
  },
+ "Diligent": {
+  "icon": "employee_59054.webp",
+  "url": "https://bdocodex.com/us/sailor/59054/"
+ },
  "Dormant Crimson Coral Adhesive": {
   "icon": "000821367.webp",
   "url": "https://bdocodex.com/us/item/821367/"
+ },
+ "Dreaming of a Full Haul": {
+  "icon": "employee_59068.webp",
+  "url": "https://bdocodex.com/us/sailor/59068/"
  },
  "Ebenruth's Nol": {
   "icon": "00059321.webp",
@@ -434,6 +462,10 @@
  "Elixir of Youth": {
   "icon": "00800068.webp",
   "url": "https://bdocodex.com/us/item/800068/"
+ },
+ "Enamored": {
+  "icon": "employee_59056.webp",
+  "url": "https://bdocodex.com/us/sailor/59056/"
  },
  "Enhanced Flax Fabric": {
   "icon": "00005860.webp",
@@ -711,6 +743,10 @@
   "icon": "00009057.webp",
   "url": "https://bdocodex.com/us/item/9057/"
  },
+ "Experienced": {
+  "icon": "employee_59066.webp",
+  "url": "https://bdocodex.com/us/sailor/59066/"
+ },
  "Faded Gold Dragon Figurine": {
   "icon": "00800014.webp",
   "url": "https://bdocodex.com/us/item/800063/"
@@ -899,6 +935,10 @@
   "icon": "ic_05249.webp",
   "url": "https://bdocodex.com/us/npc/27575/"
  },
+ "Honest": {
+  "icon": "employee_59063.webp",
+  "url": "https://bdocodex.com/us/sailor/59063/"
+ },
  "Improved Epheria Frigate": {
   "icon": "ship_13.webp",
   "url": "https://bdocodex.com/us/mount/31059/"
@@ -906,6 +946,10 @@
  "Improved Epheria Sailboat": {
   "icon": "ship_12.webp",
   "url": "https://bdocodex.com/us/mount/31058/"
+ },
+ "Innocent": {
+  "icon": "employee_59055.webp",
+  "url": "https://bdocodex.com/us/sailor/59055/"
  },
  "Iron": {
   "icon": "00004001.webp",
@@ -1259,6 +1303,10 @@
   "icon": "00004805.webp",
   "url": "https://bdocodex.com/us/item/4805/"
  },
+ "Powerful": {
+  "icon": "employee_59069.webp",
+  "url": "https://bdocodex.com/us/sailor/59069/"
+ },
  "Processed Coal": {
   "icon": "00004070.webp",
   "url": "https://bdocodex.com/us/item/4070/"
@@ -1278,6 +1326,14 @@
  "Pure Powder Reagent": {
   "icon": "00005302.webp",
   "url": "https://bdocodex.com/us/item/5302/"
+ },
+ "Quick": {
+  "icon": "employee_59057.webp",
+  "url": "https://bdocodex.com/us/sailor/59057/"
+ },
+ "Quick-Witted": {
+  "icon": "employee_59072.webp",
+  "url": "https://bdocodex.com/us/sailor/59072/"
  },
  "Raft": {
   "icon": "00049005.webp",
@@ -1302,6 +1358,10 @@
  "Ravinia's Wiggly-Waggly Letter": {
   "icon": "rabinia.webp",
   "url": "https://bdocodex.com/us/quest/3709/3/"
+ },
+ "Realistic": {
+  "icon": "employee_59060.webp",
+  "url": "https://bdocodex.com/us/sailor/59060/"
  },
  "Red Sea Monster Meat": {
   "icon": "00821468.webp",
@@ -1451,22 +1511,6 @@
   "icon": "00006354.webp",
   "url": "https://bdocodex.com/us/item/6354/"
  },
- "Skilled Dwarf Sailor": {
-  "icon": "00049905.webp",
-  "url": "https://bdocodex.com/us/item/49906/"
- },
- "Skilled Giant Sailor": {
-  "icon": "00049913.webp",
-  "url": "https://bdocodex.com/us/item/49914/"
- },
- "Skilled Goblin Sailor": {
-  "icon": "00049909.webp",
-  "url": "https://bdocodex.com/us/item/49910/"
- },
- "Skilled Human Sailor": {
-  "icon": "00049901.webp",
-  "url": "https://bdocodex.com/us/item/49902/"
- },
  "Skull Decorated Teacup": {
   "icon": "00800034.webp",
   "url": "https://bdocodex.com/us/item/800034/"
@@ -1474,6 +1518,10 @@
  "Skull Symbol Carpet": {
   "icon": "00800044.webp",
   "url": "https://bdocodex.com/us/item/800038/"
+ },
+ "Smart": {
+  "icon": "employee_59071.webp",
+  "url": "https://bdocodex.com/us/sailor/59071/"
  },
  "Snowfield Cedar Plywood": {
   "icon": "00004722.webp",
@@ -1535,6 +1583,10 @@
   "icon": "ic_00559.webp",
   "url": "https://bdocodex.com/us/npc/507/300/"
  },
+ "Strong": {
+  "icon": "employee_59065.webp",
+  "url": "https://bdocodex.com/us/sailor/59065/"
+ },
  "Stuffed Morpho Butterfly": {
   "icon": "00800005.webp",
   "url": "https://bdocodex.com/us/item/800060/"
@@ -1587,6 +1639,10 @@
   "icon": "00007206.webp",
   "url": "https://bdocodex.com/us/item/7206/"
  },
+ "Tenacious": {
+  "icon": "employee_59062.webp",
+  "url": "https://bdocodex.com/us/sailor/59062/"
+ },
  "Thick Fur": {
   "icon": "00006155.webp",
   "url": "https://bdocodex.com/us/item/6155/"
@@ -1631,9 +1687,17 @@
   "icon": "00800052.webp",
   "url": "https://bdocodex.com/us/item/800030/"
  },
+ "Tough": {
+  "icon": "employee_59064.webp",
+  "url": "https://bdocodex.com/us/sailor/59064/"
+ },
  "Tough Hide": {
   "icon": "00006152.webp",
   "url": "https://bdocodex.com/us/item/6152/"
+ },
+ "Treasure-Seeking": {
+  "icon": "employee_59059.webp",
+  "url": "https://bdocodex.com/us/sailor/59059/"
  },
  "Ultimate Armor Reform Stone": {
   "icon": "00004913.webp",

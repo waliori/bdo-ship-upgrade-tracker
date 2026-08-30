@@ -19,7 +19,7 @@ import { families } from './enhancement.js';
 import { enhancedName } from './planner.js';
 import {
 	pool, mateTypes, anyType, care, rations, expSplit, firstMates, slotSources,
-	contract, SAILOR_CAP, seatsFor, statOf, crewTotals, autoAssign, portraits } from './sailors.js';
+	contract, SAILOR_CAP, seatsFor, statOf, crewTotals, autoAssign } from './sailors.js';
 
 // Session state: who is picked up, and how the roster is ordered.
 let selId = null;
@@ -27,14 +27,11 @@ let sort = 'stats';
 
 const RACE = { Human: '#8fb4d6', Goblin: '#8fd98a', Giant: '#e0a86a', Dwarf: '#c9a3e0' };
 
-/** A sailor's face on a tile: the race portrait when the mapping has
- *  it, the initials of their name otherwise. */
-const face = (t, s) => {
-	const p = t && portraits[t.race];
-	return p && iconSrc(p) !== 'icon.png'
-		? `<img class="sailor-face" src="${esc(iconSrc(p))}" alt="${esc(initials(s.name))}">`
-		: esc(initials(s.name));
-};
+/** A sailor's face on a tile: the game's portrait for their type when
+ *  the mapping has it, the initials of their name otherwise. */
+const face = (t, s) => t && iconSrc(t.type) !== 'icon.png'
+	? `<img class="sailor-face" src="${esc(iconSrc(t.type))}" alt="${esc(initials(s.name))}">`
+	: esc(initials(s.name));
 
 /**
  * The hull the crew is planned for: the one chosen here, else the

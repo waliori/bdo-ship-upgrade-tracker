@@ -68,9 +68,13 @@ const { falasi } = await import('../js/falasi_vendor.js');
 for (const n of Object.keys(falasi)) want(n);
 const { quests } = await import('../js/quests.js');
 for (const q of quests) for (const r of [q.rewards, ...(q.choice || q.either || [])]) if (r) for (const n of Object.keys(r)) want(n);
-const { care, contract, portraits } = await import('../js/sailors.js');
+const { care, contract, pool } = await import('../js/sailors.js');
 for (const c of care || []) want(c.item);
-for (const n of Object.values(portraits || {})) want(n);
+// Sailors are not items: their portraits live under 11_employee, keyed
+// by the codex sailor id each type carries, with a page of their own.
+for (const s of pool || []) if (s.codex) want(s.type, {
+	id: String(s.codex), icon: `/items/new_icon/11_employee/employee_${s.codex}.webp`, url: `${BASE}/us/sailor/${s.codex}/`
+});
 if (contract && contract.item) want(contract.item);
 const { ships } = await import('../js/ships.js');
 for (const s of ships) want(typeof s === 'string' ? s : s.name);
@@ -136,7 +140,7 @@ for (const [name, info] of missing) {
 	try {
 		await download(hit.icon, filename);
 		// A mount or design page already in the mapping keeps its URL.
-		const url = (mapping[name] && mapping[name].url) || `${BASE}/us/item/${hit.id}/`;
+		const url = hit.url || (mapping[name] && mapping[name].url) || `${BASE}/us/item/${hit.id}/`;
 		mapping[name] = { icon: filename, url };
 		fetched++;
 	} catch (e) {
