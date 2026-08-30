@@ -98,10 +98,12 @@ export const expSplit = [
 ];
 
 /** The three sailors with a name of their own, and how each is met. */
+// `npc` is the first mate's page on BDOCodex (they are people before they
+// are sailors), which is where their portrait comes from.
 export const firstMates = [
-	{ name: 'Proix', trait: 'Breezy Sail lasts longer', from: 'finish the "[The Great Expedition] In Search of Khan" questline' },
-	{ name: 'Cleia', trait: 'Parley costs 10% less', from: 'obtain the Golden Pocket Watch from a Special Barter' },
-	{ name: 'Tranan Underfoe', trait: 'the ship repairs itself from repair materials in its inventory', from: 'obtain the Fancy Figurehead where the Saltwater Crocodiles are' }
+	{ name: 'Proix', npc: 58045, portrait: '/items/ui_artwork/ic_01463.webp', trait: 'Breezy Sail lasts longer', from: 'finish the "[The Great Expedition] In Search of Khan" questline' },
+	{ name: 'Cleia', npc: 41056, portrait: '/items/ui_artwork/ic_00496.webp', trait: 'Parley costs 10% less', from: 'obtain the Golden Pocket Watch from a Special Barter' },
+	{ name: 'Tranan Underfoe', npc: 40008, portrait: '/items/ui_artwork/ic_00008.webp', trait: 'the ship repairs itself from repair materials in its inventory', from: 'obtain the Fancy Figurehead where the Saltwater Crocodiles are' }
 ];
 
 /**

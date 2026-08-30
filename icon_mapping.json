@@ -283,6 +283,10 @@
   "icon": "00005301.webp",
   "url": "https://bdocodex.com/us/item/5301/"
  },
+ "Cleia": {
+  "icon": "ic_00496.webp",
+  "url": "https://bdocodex.com/us/npc/41056/"
+ },
  "Clown's Blood": {
   "icon": "00006353.webp",
   "url": "https://bdocodex.com/us/item/6353/"
@@ -1694,6 +1698,10 @@
  "Tough Hide": {
   "icon": "00006152.webp",
   "url": "https://bdocodex.com/us/item/6152/"
+ },
+ "Tranan Underfoe": {
+  "icon": "ic_00008.webp",
+  "url": "https://bdocodex.com/us/npc/40008/"
  },
  "Treasure-Seeking": {
   "icon": "employee_59059.webp",

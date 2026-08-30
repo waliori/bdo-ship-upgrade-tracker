@@ -68,10 +68,13 @@ const { falasi } = await import('../js/falasi_vendor.js');
 for (const n of Object.keys(falasi)) want(n);
 const { quests } = await import('../js/quests.js');
 for (const q of quests) for (const r of [q.rewards, ...(q.choice || q.either || [])]) if (r) for (const n of Object.keys(r)) want(n);
-const { care, contract, pool } = await import('../js/sailors.js');
+const { care, contract, pool, firstMates } = await import('../js/sailors.js');
 for (const c of care || []) want(c.item);
 // Sailors are not items: their portraits live under 11_employee, keyed
 // by the codex sailor id each type carries, with a page of their own.
+for (const m of firstMates || []) if (m.portrait) want(m.name, {
+	id: String(m.npc), icon: m.portrait, url: `${BASE}/us/npc/${m.npc}/`
+});
 for (const s of pool || []) if (s.codex) want(s.type, {
 	id: String(s.codex), icon: `/items/new_icon/11_employee/employee_${s.codex}.webp`, url: `${BASE}/us/sailor/${s.codex}/`
 });
