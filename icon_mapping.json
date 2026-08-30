@@ -1063,6 +1063,10 @@
   "icon": "00045153.webp",
   "url": "https://bdocodex.com/us/item/45153/"
  },
+ "Ocean Essence": {
+  "icon": "00890075.webp",
+  "url": "https://bdocodex.com/us/item/821467/"
+ },
  "Ocean Stalker": {
   "icon": "ic_04970.webp",
   "url": "https://bdocodex.com/us/npc/21421/"
@@ -1183,6 +1187,10 @@
   "icon": "00059403.webp",
   "url": "https://bdocodex.com/us/item/59403/"
  },
+ "Part for Explorer's Compass": {
+  "icon": "00044286.webp",
+  "url": "https://bdocodex.com/us/item/44286/"
+ },
  "Pig Hide": {
   "icon": "00006005.webp",
   "url": "https://bdocodex.com/us/item/6005/"
@@ -1295,6 +1303,10 @@
   "icon": "rabinia.webp",
   "url": "https://bdocodex.com/us/quest/3709/3/"
  },
+ "Red Sea Monster Meat": {
+  "icon": "00821468.webp",
+  "url": "https://bdocodex.com/us/item/821468/"
+ },
  "Red Tree Lump": {
   "icon": "00005011.webp",
   "url": "https://bdocodex.com/us/item/5011/"
@@ -1318,6 +1330,10 @@
  "Rice Dough": {
   "icon": "00820119.webp",
   "url": "https://bdocodex.com/us/item/820119/"
+ },
+ "Riddle-Me Barter Support Box": {
+  "icon": "00015305.webp",
+  "url": "https://bdocodex.com/us/item/65179/"
  },
  "Rock Salt Ingot": {
   "icon": "00005806.webp",
@@ -1435,6 +1451,22 @@
   "icon": "00006354.webp",
   "url": "https://bdocodex.com/us/item/6354/"
  },
+ "Skilled Dwarf Sailor": {
+  "icon": "00049905.webp",
+  "url": "https://bdocodex.com/us/item/49906/"
+ },
+ "Skilled Giant Sailor": {
+  "icon": "00049913.webp",
+  "url": "https://bdocodex.com/us/item/49914/"
+ },
+ "Skilled Goblin Sailor": {
+  "icon": "00049909.webp",
+  "url": "https://bdocodex.com/us/item/49910/"
+ },
+ "Skilled Human Sailor": {
+  "icon": "00049901.webp",
+  "url": "https://bdocodex.com/us/item/49902/"
+ },
  "Skull Decorated Teacup": {
   "icon": "00800034.webp",
   "url": "https://bdocodex.com/us/item/800034/"
@@ -1458,6 +1490,10 @@
  "Solidified Lava": {
   "icon": "00800066.webp",
   "url": "https://bdocodex.com/us/item/800048/"
+ },
+ "Special Balenos Meal": {
+  "icon": "00009602.webp",
+  "url": "https://bdocodex.com/us/item/9602/"
  },
  "Spirit's Leaf": {
   "icon": "00005006.webp",

@@ -68,8 +68,9 @@ const { falasi } = await import('../js/falasi_vendor.js');
 for (const n of Object.keys(falasi)) want(n);
 const { quests } = await import('../js/quests.js');
 for (const q of quests) for (const r of [q.rewards, ...(q.choice || q.either || [])]) if (r) for (const n of Object.keys(r)) want(n);
-const { care, contract } = await import('../js/sailors.js');
+const { care, contract, portraits } = await import('../js/sailors.js');
 for (const c of care || []) want(c.item);
+for (const n of Object.values(portraits || {})) want(n);
 if (contract && contract.item) want(contract.item);
 const { ships } = await import('../js/ships.js');
 for (const s of ships) want(typeof s === 'string' ? s : s.name);
@@ -95,7 +96,7 @@ async function lookup(name) {
 		const text = (await res.text()).replace(/^\uFEFF/, '');
 		list = new Map();
 		for (const row of JSON.parse(text).aaData) {
-			const n = row[2].replace(/<[^>]+>/g, '');
+			const n = row[2].replace(/<[^>]+>/g, '').replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&');
 			const icon = (row[1].match(/src="([^"]+)"/) || [])[1];
 			// Several ids can share a name; the first with a real icon wins.
 			if (!icon || icon.includes('know_icon')) continue;

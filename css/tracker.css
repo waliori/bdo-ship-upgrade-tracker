@@ -2827,6 +2827,8 @@ select.purse-inline { width: auto; cursor: pointer; }
 .preset.has { color: var(--ink-hi); background: #0b1e38; border-style: solid; cursor: pointer; }
 .preset-sub { display: block; font-size: 10px; color: var(--ink-faint); font-weight: 400; }
 .dialog-field { display: flex; flex-direction: column; gap: 4px; margin: 10px 0; font-size: 12px; color: var(--ink-mute); }
+/* .field's flex basis is a width in a row; stacked in a column it would become a height. */
+.dialog-field .field { flex: none; }
 
 @media (max-width: 900px) {
   .crew-grid { grid-template-columns: 1fr; }
@@ -2879,3 +2881,27 @@ select.purse-inline { width: auto; cursor: pointer; }
 /* A yellow row has three verdicts; they wrap inside their column rather
    than shoving the column under the row. */
 .enh-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 250px; }
+
+/* ---- Courses: community loops drawn beneath the route ---------------- */
+.map-courses { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(125, 175, 225, 0.12); }
+.map-courses-head { font-family: var(--font-display); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 8px; }
+.map-course { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 8px 10px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: rgba(9, 22, 42, 0.5); color: var(--ink); font: inherit; cursor: pointer; }
+.map-course:hover { border-color: rgba(240, 130, 190, 0.5); }
+.map-course.on { border-color: rgba(240, 130, 190, 0.7); background: rgba(240, 130, 190, 0.1); }
+.map-course-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; border: 2px solid rgba(240, 130, 190, 0.8); background: none; }
+.map-course.on .map-course-dot { background: #f082be; box-shadow: 0 0 8px rgba(240, 130, 190, 0.7); }
+.map-course-note { margin: 6px 2px 0; font-size: 11.5px; line-height: 1.45; color: var(--ink-mute); }
+
+.map-course-line { z-index: 1; }
+.map-course-glow { fill: none; stroke: #f082be; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; opacity: 0.14; }
+.map-course-path { fill: none; stroke: #f082be; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.8; }
+.map-waypoint { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none; z-index: 2; color: rgba(255, 200, 230, 0.8); font-family: var(--font-display); font-size: 9px; white-space: nowrap; }
+.map-waypoint-dot { width: 7px; height: 7px; border-radius: 50%; background: #f082be; border: 1.5px solid rgba(255, 240, 248, 0.8); box-shadow: 0 0 6px rgba(0, 0, 0, 0.6); }
+.map-waypoint.stop .map-waypoint-dot { width: 10px; height: 10px; }
+.map-waypoint-name { text-shadow: 0 1px 4px #000; }
+.map-waypoint:not(.stop) .map-waypoint-name { display: none; }
+
+/* A sailor's portrait fills the tile; the race colour shows as its rim. */
+.sailor-face { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
+.seat-mono, .roster-tile { overflow: hidden; }
+.roster-tile .roster-cond { z-index: 1; }

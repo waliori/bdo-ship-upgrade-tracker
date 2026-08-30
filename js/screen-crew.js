@@ -11,7 +11,7 @@
 
 import { esc, F } from './fmt.js';
 import * as store from './state.js';
-import { img, codexName } from './ui-bits.js';
+import { img, iconSrc, codexName } from './ui-bits.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { shipStats } from './ship_stats.js';
 import { loadout, describeStats, sumStats } from './part_stats.js';
@@ -19,14 +19,22 @@ import { families } from './enhancement.js';
 import { enhancedName } from './planner.js';
 import {
 	pool, mateTypes, anyType, care, rations, expSplit, firstMates, slotSources,
-	contract, SAILOR_CAP, seatsFor, statOf, crewTotals, autoAssign
-} from './sailors.js';
+	contract, SAILOR_CAP, seatsFor, statOf, crewTotals, autoAssign, portraits } from './sailors.js';
 
 // Session state: who is picked up, and how the roster is ordered.
 let selId = null;
 let sort = 'stats';
 
 const RACE = { Human: '#8fb4d6', Goblin: '#8fd98a', Giant: '#e0a86a', Dwarf: '#c9a3e0' };
+
+/** A sailor's face on a tile: the race portrait when the mapping has
+ *  it, the initials of their name otherwise. */
+const face = (t, s) => {
+	const p = t && portraits[t.race];
+	return p && iconSrc(p) !== 'icon.png'
+		? `<img class="sailor-face" src="${esc(iconSrc(p))}" alt="${esc(initials(s.name))}">`
+		: esc(initials(s.name));
+};
 
 /**
  * The hull the crew is planned for: the one chosen here, else the
@@ -73,7 +81,7 @@ function seatBox(ship, seat, armed) {
 	const cls = ['seat', s ? 'taken' : 'empty', armed && !s ? 'armed' : '', s && s.id === selId ? 'picked' : ''].join(' ');
 	const title = s ? `${s.name} · ${s.type} · Lv ${s.lv}` : `${seat.label}: empty seat — ${seat.effect}`;
 	return `<button class="${cls}" data-act="crew-seat" data-seat="${esc(seat.key)}" title="${esc(title)}" aria-label="${esc(title)}">
-		${s ? `<span class="seat-mono" style="background:${RACE[(t && t.race) || 'Human']}">${esc(initials(s.name))}</span>
+		${s ? `<span class="seat-mono" style="background:${RACE[(t && t.race) || 'Human']}">${face(t, s)}</span>
 			<span class="seat-lv">${s.lv}</span>
 			<span class="seat-cond"><i style="width:${s.cond}%;background:${condColor(s.cond)}"></i></span>` : '<span class="seat-plus">+</span>'}
 	</button>`;
@@ -160,7 +168,7 @@ function rosterPanel(ship) {
 		const where = whereIs(ship, s.id);
 		const seatName = where ? seatsFor(ship, shipStats[ship]).find(x => x.key === where) : null;
 		return `<button class="roster-card ${s.id === selId ? 'picked' : ''} ${where ? 'seated' : ''}" data-act="crew-select" data-id="${esc(s.id)}">
-			<span class="roster-tile" style="background:${RACE[t.race] || '#8fb4d6'}">${esc(initials(s.name))}<i class="roster-cond" style="width:${s.cond}%;background:${condColor(s.cond)}"></i></span>
+			<span class="roster-tile" style="background:${RACE[t.race] || '#8fb4d6'}">${face(t, s)}<i class="roster-cond" style="width:${s.cond}%;background:${condColor(s.cond)}"></i></span>
 			<span class="roster-main">
 				<span class="roster-name">${esc(s.name)} <span class="crew-race" style="color:${RACE[t.race] || 'inherit'}">${esc(t.race || '')}</span></span>
 				<span class="roster-sub">${esc(s.type)} · Lv ${s.lv}${t.mate ? ' · first mate' : ''}</span>
@@ -201,7 +209,7 @@ function selectedPanel(ship) {
 		<div class="panel-head"><h2 class="panel-title">Selected sailor</h2><span class="panel-spacer"></span>
 			<button class="sq-btn" data-act="crew-clear-sel" title="Put down">×</button></div>
 		<div class="sel-top">
-			<span class="roster-tile big" style="background:${RACE[t.race] || '#8fb4d6'}">${esc(initials(s.name))}</span>
+			<span class="roster-tile big" style="background:${RACE[t.race] || '#8fb4d6'}">${face(t, s)}</span>
 			<div>
 				<input class="field sel-name" value="${esc(s.name)}" data-act="crew-name" data-id="${esc(s.id)}" aria-label="Name" maxlength="30">
 				<div class="roster-sub">${esc(s.type)} · <span style="color:${RACE[t.race] || 'inherit'}">${esc(t.race || '')}</span> · Lv

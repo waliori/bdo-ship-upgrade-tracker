@@ -114,6 +114,11 @@ export const slotSources = [
 
 export const SAILOR_CAP = 60;
 
+/** The face the game gives each race of sailor -- the contract items
+ *  on BDOCodex carry the portraits, one per race, so a Human sailor of
+ *  any temperament wears the same one. */
+export const portraits = { Human: 'Skilled Human Sailor', Giant: 'Skilled Giant Sailor', Goblin: 'Skilled Goblin Sailor', Dwarf: 'Skilled Dwarf Sailor' };
+
 /**
  * A crew plan against a hull: what it spends and what it grows.
  *

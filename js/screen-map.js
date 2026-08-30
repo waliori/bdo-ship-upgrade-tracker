@@ -3,6 +3,7 @@
 // what you picked to show, the route you are building -- lives here,
 // with the command functions the shell's event handling calls.
 
+import { courses, courseById } from './courses.js';
 import { esc, F } from './fmt.js';
 import { shipStats } from './ship_stats.js';
 import { crewShip } from './screen-crew.js';
@@ -39,6 +40,7 @@ let fly = null;               // the rAF handle of a flight in progress
 
 let startPort = 0;            // wharf the route sails from; 0 = first stop
 let returnHome = false;       // close the loop back to that wharf
+let course = '';              // a community course drawn beneath the route, by id
 let follow = true;            // the step player flies the camera along
 let stepIdx = 0;              // which stop the step player is on
 let stepKey = '';             // the route it was on, to reset when it changes
@@ -63,13 +65,14 @@ function restore() {
 		if (ports.some(p => p.id === s.startPort)) startPort = s.startPort;
 		returnHome = s.returnHome === true;
 		follow = s.follow !== false;
+		if (courseById[s.course]) course = s.course;
 	} catch { /* a fresh chart, then */ }
 }
 
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, course }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -163,6 +166,19 @@ function routeWorld(marks) {
 	const port = ports.find(p => p.id === startPort);
 	if (!port || !pts.length) return pts;
 	return returnHome ? [port, ...pts, port] : [port, ...pts];
+}
+
+/** The community courses, each a switch: on, it is drawn under the
+ *  route in its own colour, with its named waypoints. */
+function coursesHTML() {
+	return `<div class="map-courses">
+		<div class="map-courses-head">Courses</div>
+		${courses.map(c => `<button class="map-course${course === c.id ? ' on' : ''}" data-act="map-course" data-id="${esc(c.id)}"
+			aria-pressed="${course === c.id}">
+			<span class="map-course-dot"></span>
+			<span class="map-row-main"><span class="map-row-name">${esc(c.name)}</span><span class="map-row-sub">${esc(c.sub)}</span></span>
+		</button>${course === c.id ? `<p class="map-course-note">${esc(c.note)}</p>` : ''}`).join('')}
+	</div>`;
 }
 
 /* ------------------------------------------------------------------ *
@@ -367,7 +383,7 @@ function routeHTML(marks) {
 		<label class="inline-check"><input type="checkbox" data-act="map-return"${returnHome ? ' checked' : ''}> and back</label>
 	</div>`;
 	return `<p class="map-hint">Click a pin, then “Add stop”. The numbers sail in this order.</p>
-		${startRow}${seedBtn}<div class="map-list">${list}</div>${stats}`;
+		${startRow}${seedBtn}<div class="map-list">${list}</div>${stats}${coursesHTML()}`;
 }
 
 function todayHTML(marks) {
@@ -505,6 +521,7 @@ export function paintMap() {
 	if (pendingFit) {
 		pendingFit = false;
 		const points = marks.size ? [...marks.keys()].map(id => npcById.get(id)).filter(Boolean) : npcs;
+		if (courseById[course]) points.push(...courseById[course].points);
 		const probe = { zoom: mapState.zoom, centre: { ...mapState.centre } };
 		fitTo(probe, size, points);
 		flyTo(probe.centre.x, probe.centre.y, probe.zoom);
@@ -522,6 +539,7 @@ export function paintMap() {
 	paintTiles(layer, tiles, size);
 	paintPins(layer, pins, marks, currentId);
 	paintPorts(layer, size);
+	paintCourse(layer, size);
 	paintRoute(layer, size, marks);
 	paintSteps(host, ids);
 	paintTip(host, size, marks);
@@ -670,6 +688,53 @@ function paintRoute(layer, size, marks) {
 		void ship.offsetWidth;
 		ship.style.animation = `map-sail ${dur.toFixed(1)}s linear infinite`;
 	}
+}
+
+/** The chosen course: one line in its own colour beneath the route,
+ *  and a labelled mark at each named waypoint. Nothing when none is on. */
+function paintCourse(layer, size) {
+	const c = courseById[course];
+	let svg = layer._course;
+	const pool = layer._courseEls || (layer._courseEls = new Map());
+	if (!c) {
+		if (svg) svg.hidden = true;
+		for (const el of pool.values()) el.hidden = true;
+		return;
+	}
+	if (!svg) {
+		svg = layer._course = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		svg.setAttribute('class', 'map-route map-course-line');
+		const glow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+		glow.setAttribute('class', 'map-course-glow');
+		const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+		line.setAttribute('class', 'map-course-path');
+		svg.append(glow, line);
+		layer.appendChild(svg);
+	}
+	svg.hidden = false;
+	const d = routePath(c.points.map(p => project(mapState, size, p.x, p.y)));
+	for (const path of svg.children) path.setAttribute('d', d);
+
+	for (const el of pool.values()) el.hidden = true;
+	c.points.forEach((p, i) => {
+		if (!p.name) return;
+		const at = project(mapState, size, p.x, p.y);
+		if (at.left < -80 || at.top < -40 || at.left > size.w + 80 || at.top > size.h + 40) return;
+		const key = `${c.id}:${i}`;
+		let el = pool.get(key);
+		if (!el) {
+			el = document.createElement('span');
+			el.className = 'map-waypoint' + (p.stop ? ' stop' : '');
+			el.innerHTML = '<span class="map-waypoint-dot"></span><span class="map-waypoint-name"></span>';
+			el.querySelector('.map-waypoint-name').textContent = p.name;
+			el.title = p.name;
+			pool.set(key, el);
+			layer.appendChild(el);
+		}
+		el.hidden = false;
+		el.style.left = `${Math.round(at.left)}px`;
+		el.style.top = `${Math.round(at.top)}px`;
+	});
 }
 
 function paintPorts(layer, size) {
@@ -1132,6 +1197,14 @@ export function mapFollowToggle() {
 export function setMapStart(portId) {
 	startPort = ports.some(p => p.id === portId) ? portId : 0;
 	persist();
+	paintMap();
+}
+
+/** Switch a community course on, or off again by choosing it twice. */
+export function setMapCourse(id) {
+	course = course === id || !courseById[id] ? '' : id;
+	persist();
+	refreshSide();
 	paintMap();
 }
 
