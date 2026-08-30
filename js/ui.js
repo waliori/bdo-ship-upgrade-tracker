@@ -38,7 +38,7 @@ import {
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
-	reviveMapRoute, setMapKind, exportRoute, importRoute
+	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameCams
 } from './screen-map.js';
 
 const TABS = [
@@ -380,6 +380,31 @@ function wire() {
 				const a = document.createElement('a');
 				a.href = url;
 				a.download = `barter-route-${new Date().toISOString().slice(0, 10)}.json`;
+				document.body.appendChild(a);
+				a.click();
+				a.remove();
+				setTimeout(() => URL.revokeObjectURL(url), 1000);
+				return;
+			}
+			case 'map-route-game': return openGameExport();
+			case 'map-game-cams': setGameCams(el.checked); return openGameExport();
+			case 'map-game-copy': {
+				try {
+					await navigator.clipboard.writeText(gameBookmarks().xml);
+					toast('Copied — paste it over the block in gameVariable.xml');
+				} catch {
+					toast('Could not reach the clipboard');
+				}
+				return;
+			}
+			case 'map-game-save': {
+				// The same block as a file, for a person who would rather
+				// open two editors side by side than trust a clipboard.
+				const blob = new Blob([gameBookmarks().xml], { type: 'application/xml' });
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = `worldmap-favorites-${new Date().toISOString().slice(0, 10)}.xml`;
 				document.body.appendChild(a);
 				a.click();
 				a.remove();

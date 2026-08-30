@@ -298,7 +298,14 @@ Sanctuary outposts, Sausan, Dallae Pier, Haemo, Grándiha, Starry Midnight
 Port and Crow's Nest), on a chart that reaches their shores. Every barter
 line says what the exchange hands over and what those goods would have
 sold for; the Route tab says how many goods of each level your hull holds
-per run; a route can be exported as a small JSON file and imported again.
+per run; a route can be exported as a small JSON file and imported again,
+or written straight into the game's world map: **Put it on the game's
+map** hands you the `<WorldMapQuickScreenPosition>` block for
+`Documents\Black Desert\UserCache\<account>\gameVariable.xml`, the
+stops numbered in sailing order as Favorites (five, with the next ten on
+the map's camera slots), each with a locate button in game. The chart's
+pixels are the game's world position divided by 25, checked against the
+client's own positions for the barterers to within a pixel.
 The day-forecast paces each of the game's two refresh lists on its own
 clock, which is what makes its "at best" honest.
 

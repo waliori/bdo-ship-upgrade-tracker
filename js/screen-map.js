@@ -16,6 +16,7 @@ import {
 import { npcs, npcById, ports } from './barter_npcs.js';
 import { quests } from './quests.js';
 import { openDialog } from './dialogs.js';
+import { bookmarkXML, BOOKMARK_SLOTS, CAMERA_SLOTS, FILE_HINT } from './worldmap.js';
 import { parleyPerTrade, PARLEY, GOODS } from './barter.js';
 import { snapshot, barterData, barterProfile, view } from './ui-state.js';
 
@@ -405,7 +406,8 @@ function routeHTML(marks) {
 			<button class="ghost-btn" data-act="map-route-reverse">⇆ Reverse</button>
 			<button class="ghost-btn" data-act="map-route-export" title="Save this route as a small JSON file to share or bring back later">Export</button>
 			<button class="ghost-btn danger" data-act="map-route-clear">Clear</button>
-		</div>` : `<div class="map-side-btns"><button class="ghost-btn" data-act="map-route-import" title="Load a route saved from here">Import a route</button></div>`;
+		</div>
+		<button class="ghost-btn wide" data-act="map-route-game" title="Write these stops into the game's world map as favourites">⚑ Put it on the game's map</button>` : `<div class="map-side-btns"><button class="ghost-btn" data-act="map-route-import" title="Load a route saved from here">Import a route</button></div>`;
 	const seedBtn = !stops.length && marks.size > 1
 		? `<button class="ghost-btn wide" data-act="map-route-use">Start from the suggested loop</button>` : '';
 	const startRow = `<div class="map-startrow">
@@ -1393,3 +1395,70 @@ export function importRoute(text) {
 	persist();
 	return { stops: ids.length, dropped };
 }
+
+/* ------------------------------------------------------------------ *
+ * the game's own map
+ * ------------------------------------------------------------------ */
+
+let gameCams = true;          // fill the camera slots past the five bookmarks
+
+/**
+ * The plotted stops as the game's favourites: the XML block for
+ * gameVariable.xml, and how much of the route it holds. Each bookmark
+ * is numbered in sailing order and named for the barterer and the
+ * island, so the map's list reads as the route does here.
+ */
+export function gameBookmarks() {
+	const ids = stopsLive() ? stops : [];
+	const points = ids.map((id, k) => {
+		const n = npcById.get(id);
+		return { name: `${k + 1}: ${n.name} (${n.at})`, x: n.x, y: n.y };
+	});
+	return { ...bookmarkXML(points, { cameras: gameCams }), stops: points.length };
+}
+
+export function setGameCams(on) {
+	gameCams = !!on;
+}
+
+/**
+ * The dialog: the block to paste, and the three things a person has
+ * to know to paste it -- which file, when (the game overwrites it on
+ * every character switch, so at the character screen or with the game
+ * closed), and which part to replace.
+ */
+export function openGameExport() {
+	const r = gameBookmarks();
+	if (!r.stops) return;
+	const held = r.bookmarks + r.cameras;
+	const fit = r.stops <= BOOKMARK_SLOTS
+		? `All ${r.stops} stops fit the map's ${BOOKMARK_SLOTS} favourite slots.`
+		: `The map's Favorites list holds ${BOOKMARK_SLOTS}; ${gameCams
+			? `stops ${BOOKMARK_SLOTS + 1}–${held} go on the ${CAMERA_SLOTS} camera slots (the number keys on the map), unnamed but in order`
+			: `the other ${r.stops - r.bookmarks} are left out`}${r.dropped ? `, and ${r.dropped} more do not fit` : ''}.`;
+	openDialog(`<h2>Put the route on the game's map</h2>
+		<p>Black Desert reads its world-map favourites from a file. Paste this block in and the
+		stops appear under <strong>World Map → Favorites</strong>, numbered in sailing order,
+		each with a locate button.</p>
+		<p class="map-game-fit">${esc(fit)}</p>
+		<label class="inline-check map-game-opt"><input type="checkbox" data-act="map-game-cams"${gameCams ? ' checked' : ''}>
+			also fill the ${CAMERA_SLOTS} camera slots with the stops past the fifth</label>
+		<textarea class="map-xml" readonly rows="10" spellcheck="false" aria-label="The XML block for gameVariable.xml">${esc(r.xml)}</textarea>
+		<div class="map-game-btns">
+			<button class="ghost-btn" data-act="map-game-copy">Copy</button>
+			<button class="ghost-btn" data-act="map-game-save">Download .xml</button>
+		</div>
+		<details class="map-game-how">
+			<summary>How to install it</summary>
+			<ol>
+				<li>Go to the <strong>character selection screen</strong>, or close the game — it rewrites this file whenever a character loads, so a paste made while playing is lost.</li>
+				<li>Open <code>${esc(FILE_HINT.windows)}</code>. On Linux under Steam it is
+					<code>${esc(FILE_HINT.linux)}</code>. The account folder is a number; the <code>gameVariable.xml</code> <em>inside</em> it is the one the map reads, not the one beside it.</li>
+				<li>Find the <code>&lt;WorldMapQuickScreenPosition Version="4"&gt;</code> block near the end and replace the whole block with this one. It replaces any favourites and camera positions you saved before; to keep camera positions, paste only the <code>&lt;WorldmapBookMark&gt;</code> part.</li>
+				<li>Save, load a character, open the map: the stops are in Favorites.</li>
+			</ol>
+			<p>The trick is the fishing community's — Flockenberger's <em>bdo-fish-waypoints</em> is where the file format was worked out.</p>
+		</details>
+		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`);
+}
+

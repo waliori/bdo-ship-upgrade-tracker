@@ -81,7 +81,8 @@ const SHELL = [
 	'/js/ui-bits.js',
 	'/js/ui-state.js',
 	'/js/ui.js',
-	'/js/vendor_items.js'
+	'/js/vendor_items.js',
+	'/js/worldmap.js'
 ];
 
 self.addEventListener('install', evt => {

@@ -2931,3 +2931,29 @@ select.purse-inline { width: auto; cursor: pointer; }
    display, which would otherwise outrank the attribute and leave a
    culled pin standing where it last was. */
 .map-port[hidden], .map-pin[hidden], .map-steps[hidden], .map-tip[hidden] { display: none; }
+
+/* the game's-map export: the block to paste, and its small options */
+.map-xml {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 8px 0;
+  padding: 8px 10px;
+  font: 11.5px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--ink-mid);
+  background: var(--bg-deep, rgba(0, 0, 0, 0.25));
+  border: 1px solid var(--line-btn);
+  border-radius: 6px;
+  resize: vertical;
+  white-space: pre;
+  tab-size: 2;
+  overflow: auto;
+}
+.map-game-fit { color: var(--ink-hi); }
+.map-game-opt { margin: 0 0 4px; font-size: 12.5px; }
+.map-game-btns { display: flex; gap: 8px; margin: 0 0 10px; }
+.map-game-btns .ghost-btn { flex: 1; }
+.map-game-how { margin: 0 0 12px; font-size: 12.5px; color: var(--ink-dim); }
+.map-game-how summary { cursor: pointer; color: var(--ink-mid); }
+.map-game-how ol { margin: 8px 0 8px 18px; padding: 0; }
+.map-game-how li { margin: 0 0 6px; line-height: 1.5; }
+.map-game-how code { font-size: 11px; word-break: break-all; }
