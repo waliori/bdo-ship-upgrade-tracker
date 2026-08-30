@@ -2926,3 +2926,8 @@ select.purse-inline { width: auto; cursor: pointer; }
 .map-hunt-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 .map-course-layer { position: absolute; inset: 0; pointer-events: none; }
 .map-waypoint[hidden] { display: none; }
+
+/* Anything on the chart that is hidden is hidden: these set their own
+   display, which would otherwise outrank the attribute and leave a
+   culled pin standing where it last was. */
+.map-port[hidden], .map-pin[hidden], .map-steps[hidden], .map-tip[hidden] { display: none; }

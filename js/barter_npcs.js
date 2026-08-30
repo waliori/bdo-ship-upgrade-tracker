@@ -20,16 +20,19 @@
 // The ten added 2026-08-29 are the shore -- the coastal barterers who
 // deal the [Level 6] and [Level 7] goods, and Kami at Crow's Nest --
 // read straight off their BDOCodex pages' location arrays, in the same
-// coordinate space. They stretch the chart: Haemo Island is west of
-// where the tiles used to stop, the two O'dyllita ports south of it and
-// Arehaza on its eastern edge, which is why TILES grew to hold them.
+// coordinate space. They stretched the chart at the time -- Haemo
+// Island west of where the tiles stopped, the O'dyllita ports south,
+// Arehaza east -- before TILES grew to the whole world on 2026-08-30.
 
 export const MAX_ZOOM = 9;
 export const TILE = 256;
 
-/** The tile ranges actually downloaded, per zoom. Nothing outside is
- *  fetched, so a pan past the edge draws sea rather than a 404. */
-export const TILES = { 3: { x0: 0, x1: 8, y0: 0, y1: 5 }, 4: { x0: 1, x1: 15, y0: 1, y1: 11 }, 5: { x0: 3, x1: 30, y0: 4, y1: 23 } };
+/** The tile ranges downloaded, per zoom: the whole world square now,
+ *  8x8 at zoom 3 up to 32x32 at zoom 5 -- BDOCodex draws real ground
+ *  out to exactly that edge and flat filler beyond it, so the chart
+ *  pans to every coast rather than stopping at the sea's. Nothing
+ *  outside is fetched, so a pan past the edge draws sea, not a 404. */
+export const TILES = { 3: { x0: 0, x1: 7, y0: 0, y1: 7 }, 4: { x0: 0, x1: 15, y0: 0, y1: 15 }, 5: { x0: 0, x1: 31, y0: 0, y1: 31 } };
 
 /** The wharves inside the charted sea, for anchoring a route to where
  *  a ship actually starts. Same BDOCodex map layer as the island match,
