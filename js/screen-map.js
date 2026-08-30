@@ -14,6 +14,7 @@ import {
 	routeFor, routePath, project, placeTile, zoomRange
 } from './map.js';
 import { npcs, npcById, ports } from './barter_npcs.js';
+import { seaRoute } from './searoute.js';
 import { quests } from './quests.js';
 import { openDialog } from './dialogs.js';
 import { bookmarkXML, writeMode, BOOKMARK_SLOTS, CAMERA_SLOTS, LOOP_SLOTS, FILE_HINT } from './worldmap.js';
@@ -170,6 +171,24 @@ function suggestedIds(marks) {
 		if (d(port, b) < d(port, a)) ids = [...ids].reverse();
 	}
 	return ids;
+}
+
+/**
+ * The same line, bent round whatever land is in the way.
+ *
+ * Routing costs a few milliseconds a leg, which is nothing on a click
+ * and far too much on every frame of a pan -- so the answer is kept
+ * until the points themselves change.
+ */
+const bent = new Map();
+export function seaBent(points) {
+	if (points.length < 2) return points;
+	const key = points.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join('|');
+	if (!bent.has(key)) {
+		if (bent.size > 24) bent.clear();
+		bent.set(key, seaRoute(points));
+	}
+	return bent.get(key);
 }
 
 /** Those stops as world points, wharf prepended -- and appended, when
@@ -708,7 +727,7 @@ function paintRoute(layer, size, marks) {
 	// The hand-plotted route wins; the suggested loop through everything
 	// marked is what you get before you have plotted one. Either way the
 	// chosen wharf anchors it.
-	const pts = routeWorld(marks).map(p => project(mapState, size, p.x, p.y));
+	const pts = seaBent(routeWorld(marks)).map(p => project(mapState, size, p.x, p.y));
 	const d = routePath(pts, size);
 
 	let svg = layer._route;
@@ -772,7 +791,7 @@ function paintCourse(layer, size) {
 	for (const id of coursesOn) {
 		const c = courseById[id];
 		if (!c) continue;
-		const d = routePath(c.points.map(p => project(mapState, size, p.x, p.y)), size);
+		const d = routePath(seaBent(c.points).map(p => project(mapState, size, p.x, p.y)), size);
 		html += `<svg class="map-route map-course-line course-${esc(id)}">
 			<path class="map-course-glow" d="${d}"></path><path class="map-course-path" d="${d}"></path></svg>`;
 		for (const p of c.points) {
@@ -1479,7 +1498,10 @@ export function gameBookmarks() {
 		...bookmarkXML(points, {
 			cameras: loop === null,
 			bookmarks: loop === null,
-			loop
+			loop,
+			// A loop is sailed, so it gets the way round the headlands;
+			// a favourite is a place, so it stays the place.
+			loopPoints: loop === null ? null : seaBent(points)
 		}),
 		stops: points.length,
 		source: gameSource
@@ -1517,7 +1539,9 @@ export async function openGameExport(source) {
 		</div>` : `<p class="map-game-nodirect">Only Chromium browsers (Chrome, Edge, Brave) can write the file for you; this one cannot, so paste the block by hand.</p>`;
 	const held = r.bookmarks + r.cameras;
 	const fit = r.loop
-		? `Loop ${r.loop.slot + 1} carries all ${r.loop.points} points in order — a loop is a list, not five slots. Your favourites and the map's other two loops are left as they are.`
+		? `Loop ${r.loop.slot + 1} carries all ${r.stops} in order${r.loop.bends
+			? `, with ${r.loop.bends} turn${r.loop.bends === 1 ? '' : 's'} added to keep the line off the rocks`
+			: ''} — a loop is a list, not five slots. Your favourites and the map's other two loops are left as they are.`
 		: r.stops <= BOOKMARK_SLOTS
 			? `All ${r.stops} fit the map's ${BOOKMARK_SLOTS} favourite slots, named.`
 			: `The map's Favorites list holds ${BOOKMARK_SLOTS}; ${

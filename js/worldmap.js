@@ -117,7 +117,7 @@ export function naviPathXML(points, slot = 0) {
  * gameVariable.xml holds and what a person replaces; line ends are
  * the file's own (CRLF), indentation its tabs.
  */
-export function bookmarkXML(points, { cameras = true, loop = null, bookmarks = true } = {}) {
+export function bookmarkXML(points, { cameras = true, loop = null, bookmarks = true, loopPoints = null } = {}) {
 	const marks = bookmarks ? points.slice(0, BOOKMARK_SLOTS) : [];
 	const cams = cameras ? points.slice(BOOKMARK_SLOTS, BOOKMARK_SLOTS + CAMERA_SLOTS) : [];
 	const dropped = points.length - marks.length - cams.length;
@@ -129,7 +129,10 @@ export function bookmarkXML(points, { cameras = true, loop = null, bookmarks = t
 	// The loop, when one is asked for, carries the whole route -- every
 	// stop, in order, past the fifteen the slots above can hold.
 	const slot = Number.isInteger(loop) && loop >= 0 && loop < LOOP_SLOTS ? loop : null;
-	if (slot !== null && points.length) lines.push(naviPathXML(points, slot));
+	// The loop may be sailed round headlands the stops themselves do not
+	// bend for; the bookmarks stay the stops.
+	const path = loopPoints && loopPoints.length ? loopPoints : points;
+	if (slot !== null && points.length) lines.push(naviPathXML(path, slot));
 	// Leaving the bookmarks out is not leaving them empty: a block with
 	// no <WorldmapBookMark> keeps whatever the file already had, so
 	// writing a loop does not cost someone their five favourites.
@@ -151,7 +154,9 @@ export function bookmarkXML(points, { cameras = true, loop = null, bookmarks = t
 		bookmarks: marks.length,
 		cameras: cams.length,
 		dropped,
-		loop: slot !== null && points.length ? { slot, points: points.length } : null
+		loop: slot !== null && points.length
+			? { slot, points: path.length, bends: Math.max(0, path.length - points.length) }
+			: null
 	};
 }
 

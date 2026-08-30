@@ -309,7 +309,13 @@ of the map's three navigation loops, which is a list rather than a set
 of slots and holds every stop in order. It is one or the other, never
 both — whichever you do not write is left exactly as it was, loops in
 the other slots included. The Hunt tab writes the same way: the courses
-and monster grounds you have ticked, several courses sailed as one run. The chart's
+and monster grounds you have ticked, several courses sailed as one run.
+
+Every line the chart draws, and every loop it writes, is bent round the
+land in its way: `tools/build-seamask.mjs` reads the shipped tiles and
+records which parts of the chart are sea, and a leg that cannot be
+sailed straight is searched over that mask and reduced to the few turns
+it actually needs. The chart's
 pixels are the game's world position divided by 25, checked against the
 client's own positions for the barterers to within a pixel.
 The day-forecast paces each of the game's two refresh lists on its own

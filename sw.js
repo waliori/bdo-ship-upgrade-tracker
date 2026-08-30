@@ -67,6 +67,8 @@ const SHELL = [
 	'/js/screen-inventory.js',
 	'/js/screen-map.js',
 	'/js/sea_monsters.js',
+	'/js/seamask.js',
+	'/js/searoute.js',
 	'/js/screen-plan.js',
 	'/js/screen-tree.js',
 	'/js/screen-workshop.js',
