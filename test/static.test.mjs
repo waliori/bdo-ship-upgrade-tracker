@@ -12,6 +12,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
 
 process.env.NODE_ENV = 'test';
 for (const name of [
@@ -206,4 +208,28 @@ test('the avatar the client builds is an origin the CSP allows', async () => {
 	for (const host of new Set(hosts)) {
 		assert.ok(csp.includes(host), `${host} is fetched by sync.js but absent from the CSP`);
 	}
+});
+
+test('no action is worn by both a button and a select', () => {
+	// Buttons are answered on click and selects on change, so one name
+	// on both means one of them is dead: the control fires an event
+	// nothing is listening for, and clicking it does nothing at all --
+	// no toast, no error, no sign that anything happened.
+	const dir = new URL('../js/', import.meta.url);
+	const files = fs.readdirSync(dir)
+		.filter(f => f.endsWith('.js') && f !== 'driver.iife.js')
+		.map(f => path.join(dir.pathname, f))
+		.concat(path.join(new URL('../', import.meta.url).pathname, 'index.html'));
+
+	const on = { button: new Map(), picker: new Map() };
+	for (const file of files) {
+		const src = fs.readFileSync(file, 'utf8');
+		for (const m of src.matchAll(/<(button|select|input)\b[^>]*?data-act="([a-z0-9-]+)"/g)) {
+			const kind = m[1] === 'button' ? 'button' : 'picker';
+			if (!on[kind].has(m[2])) on[kind].set(m[2], path.basename(file));
+		}
+	}
+	const shared = [...on.button.keys()].filter(a => on.picker.has(a));
+	assert.deepEqual(shared, [], shared.map(a =>
+		`"${a}" is a button in ${on.button.get(a)} and a select in ${on.picker.get(a)}`).join('; '));
 });

@@ -1498,7 +1498,7 @@ export async function openGameExport(source) {
 				Do it at the character screen — the game rewrites the file when a character loads.</p>
 			<div class="map-game-btns">
 				<button class="ghost-btn" data-act="map-game-pick">${folder ? 'Choose another folder' : 'Choose the account folder…'}</button>
-				<button class="ghost-btn" data-act="map-game-as"${folder ? '' : ' disabled'}>Write it into the game file</button>
+				<button class="ghost-btn" data-act="map-game-write"${folder ? '' : ' disabled'}>Write it into the game file</button>
 				${previousBlock() ? '<button class="ghost-btn" data-act="map-game-restore" title="Put back the favourites the last write replaced">Restore previous</button>' : ''}
 			</div>
 		</div>` : `<p class="map-game-nodirect">Only Chromium browsers (Chrome, Edge, Brave) can write the file for you; this one cannot, so paste the block by hand.</p>`;
