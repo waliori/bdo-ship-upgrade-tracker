@@ -97,3 +97,24 @@ export const FILE_HINT = {
 	windows: 'Documents\\Black Desert\\UserCache\\<account number>\\gameVariable.xml',
 	linux: '~/.local/share/Steam/steamapps/compatdata/582660/pfx/drive_c/users/steamuser/Documents/Black Desert/UserCache/<account number>/gameVariable.xml'
 };
+
+const BLOCK = /<WorldMapQuickScreenPosition Version="4">[\s\S]*?<\/WorldMapQuickScreenPosition>|<WorldMapQuickScreenPosition Version="4"\/>/;
+
+/**
+ * gameVariable.xml with its favourites block swapped for `xml`. The
+ * rest of the file -- a few thousand lines of settings -- is left
+ * byte for byte, and the block takes the file's own line ends. Returns
+ * null when the file has no such block, which means it is not the file
+ * the map reads (the lobby's copy beside it, say) and must not be
+ * written to.
+ */
+export function spliceBlock(text, xml) {
+	const m = BLOCK.exec(text);
+	if (!m) return null;
+	const crlf = /\r\n/.test(text);
+	const block = xml.replace(/\r?\n$/, '').replace(/\r?\n/g, crlf ? '\r\n' : '\n');
+	return {
+		text: text.slice(0, m.index) + block + text.slice(m.index + m[0].length),
+		previous: m[0]
+	};
+}

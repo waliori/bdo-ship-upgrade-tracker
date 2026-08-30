@@ -101,3 +101,27 @@ test('names are escaped the way an attribute needs', () => {
 	const r = bookmarkXML([{ name: 'a & b <c> "d"', x: 60000, y: 60000 }]);
 	assert.match(r.xml, /BookMarkName="a &amp; b &lt;c&gt; &quot;d&quot;"/);
 });
+
+import { spliceBlock } from '../js/worldmap.js';
+
+test('the block is swapped in place and the rest of the file is untouched', () => {
+	const file = '<A Version="1"/>\r\n<WorldMapQuickScreenPosition Version="4">\r\n\t<WorldmapBookMark/>\r\n</WorldMapQuickScreenPosition>\r\n<B Version="2"/>\r\n';
+	const r = spliceBlock(file, bookmarkXML([{ name: '1: x', x: 60000, y: 60000 }]).xml);
+	assert.ok(r);
+	assert.ok(r.text.startsWith('<A Version="1"/>\r\n<WorldMapQuickScreenPosition Version="4">\r\n\t<WorldmapBookMark>\r\n\t\t<BookMark BookMarkName="1: x"'));
+	assert.ok(r.text.endsWith('</WorldMapQuickScreenPosition>\r\n<B Version="2"/>\r\n'));
+	assert.equal(r.previous, '<WorldMapQuickScreenPosition Version="4">\r\n\t<WorldmapBookMark/>\r\n</WorldMapQuickScreenPosition>');
+	assert.ok(!/[^\r]\n/.test(r.text));
+	// And back again.
+	assert.equal(spliceBlock(r.text, r.previous).text, file);
+});
+
+test('the self-closing lobby form is a block too, and a file without one is refused', () => {
+	const lobby = '<X/>\r\n<WorldMapQuickScreenPosition Version="4"/>\r\n<Y/>\r\n';
+	const r = spliceBlock(lobby, bookmarkXML([]).xml);
+	assert.ok(r && r.text.includes('<WorldmapBookMark/>'));
+	assert.equal(spliceBlock('<X/>\n<Y/>\n', bookmarkXML([]).xml), null);
+	// LF files stay LF.
+	const lf = spliceBlock('<WorldMapQuickScreenPosition Version="4"/>\n', bookmarkXML([]).xml);
+	assert.ok(!lf.text.includes('\r'));
+});

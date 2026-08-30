@@ -32,6 +32,7 @@ import { renderWorkshop, pendingEnhancements } from './screen-workshop.js';
 import { renderCrew, crewAction, crewChange } from './screen-crew.js';
 import { renderQuests, questAction } from './screen-quests.js';
 import { questsFor } from './quests.js';
+import { pickGameFile, writeGameFile, restoreGameFile } from './gamefile.js';
 import { renderGet, shoppingText } from './screen-get.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
@@ -388,6 +389,33 @@ function wire() {
 			}
 			case 'map-route-game': return openGameExport();
 			case 'map-game-cams': setGameCams(el.checked); return openGameExport();
+			case 'map-game-pick': {
+				try {
+					await pickGameFile();
+				} catch (err) {
+					if (err && err.name !== 'AbortError') toast(err.message);
+					return;
+				}
+				return openGameExport();
+			}
+			case 'map-game-write': {
+				try {
+					const name = await writeGameFile(gameBookmarks().xml);
+					toast(`Written to ${name} — load a character and open the map`);
+				} catch (err) {
+					toast(err.message);
+				}
+				return openGameExport();
+			}
+			case 'map-game-restore': {
+				try {
+					const name = await restoreGameFile();
+					toast(`Previous favourites put back in ${name}`);
+				} catch (err) {
+					toast(err.message);
+				}
+				return openGameExport();
+			}
 			case 'map-game-copy': {
 				try {
 					await navigator.clipboard.writeText(gameBookmarks().xml);

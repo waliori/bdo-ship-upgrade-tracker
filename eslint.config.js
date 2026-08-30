@@ -16,7 +16,8 @@ const browserGlobals = {
 	getComputedStyle: 'readonly', Event: 'readonly',
 	console: 'readonly', caches: 'readonly', self: 'readonly',
 	Response: 'readonly', AbortController: 'readonly', DOMException: 'readonly',
-	AbortSignal: 'readonly', WebGLRenderingContext: 'readonly'
+	AbortSignal: 'readonly', WebGLRenderingContext: 'readonly',
+	indexedDB: 'readonly'
 };
 
 export default [

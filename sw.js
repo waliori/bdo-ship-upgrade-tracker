@@ -52,6 +52,7 @@ const SHELL = [
 	'/js/enhancement.js',
 	'/js/falasi_vendor.js',
 	'/js/fmt.js',
+	'/js/gamefile.js',
 	'/js/guide.js',
 	'/js/guided-tour.js',
 	'/js/icon-loader.js',

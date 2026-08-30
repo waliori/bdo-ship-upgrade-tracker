@@ -2957,3 +2957,8 @@ select.purse-inline { width: auto; cursor: pointer; }
 .map-game-how ol { margin: 8px 0 8px 18px; padding: 0; }
 .map-game-how li { margin: 0 0 6px; line-height: 1.5; }
 .map-game-how code { font-size: 11px; word-break: break-all; }
+.map-game-direct { margin: 4px 0 12px; padding: 10px 12px; border: 1px solid var(--line-btn); border-radius: 8px; }
+.map-game-direct-head { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-hi); margin: 0 0 6px; }
+.map-game-direct p { margin: 0 0 8px; }
+.map-game-direct .map-game-btns { margin: 0; flex-wrap: wrap; }
+.map-game-btns .ghost-btn:disabled { opacity: 0.5; cursor: default; }

@@ -17,6 +17,7 @@ import { npcs, npcById, ports } from './barter_npcs.js';
 import { quests } from './quests.js';
 import { openDialog } from './dialogs.js';
 import { bookmarkXML, BOOKMARK_SLOTS, CAMERA_SLOTS, FILE_HINT } from './worldmap.js';
+import { canWriteFiles, gameFileName, previousBlock } from './gamefile.js';
 import { parleyPerTrade, PARLEY, GOODS } from './barter.js';
 import { snapshot, barterData, barterProfile, view } from './ui-state.js';
 
@@ -1427,9 +1428,23 @@ export function setGameCams(on) {
  * every character switch, so at the character screen or with the game
  * closed), and which part to replace.
  */
-export function openGameExport() {
+export async function openGameExport() {
 	const r = gameBookmarks();
 	if (!r.stops) return;
+	// Chromium can hold the file itself; elsewhere the block is pasted.
+	const fileName = canWriteFiles() ? await gameFileName() : null;
+	const direct = canWriteFiles() ? `<div class="map-game-direct">
+			<div class="map-game-direct-head">Or let the app write it</div>
+			<p>${fileName
+				? `Writing to <code>${esc(fileName)}</code>. The browser asks once per visit before it touches the file.`
+				: 'Choose the <code>gameVariable.xml</code> inside the account-number folder once; the browser remembers it and asks before each write.'}
+				Do it at the character screen — the game rewrites the file when a character loads.</p>
+			<div class="map-game-btns">
+				<button class="ghost-btn" data-act="map-game-pick">${fileName ? 'Choose another file' : 'Choose gameVariable.xml…'}</button>
+				<button class="ghost-btn" data-act="map-game-write"${fileName ? '' : ' disabled'}>Write it into the game file</button>
+				${previousBlock() ? '<button class="ghost-btn" data-act="map-game-restore" title="Put back the favourites the last write replaced">Restore previous</button>' : ''}
+			</div>
+		</div>` : '';
 	const held = r.bookmarks + r.cameras;
 	const fit = r.stops <= BOOKMARK_SLOTS
 		? `All ${r.stops} stops fit the map's ${BOOKMARK_SLOTS} favourite slots.`
@@ -1448,6 +1463,7 @@ export function openGameExport() {
 			<button class="ghost-btn" data-act="map-game-copy">Copy</button>
 			<button class="ghost-btn" data-act="map-game-save">Download .xml</button>
 		</div>
+		${direct}
 		<details class="map-game-how">
 			<summary>How to install it</summary>
 			<ol>
