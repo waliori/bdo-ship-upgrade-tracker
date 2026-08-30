@@ -39,7 +39,7 @@ import {
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
-	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameCams
+	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameCams, setGameLoop
 } from './screen-map.js';
 
 const TABS = [
@@ -400,6 +400,7 @@ function wire() {
 			}
 			case 'map-route-game': return openGameExport();
 			case 'map-game-cams': setGameCams(el.checked); return openGameExport();
+			case 'map-game-loop': setGameLoop(el.value); return openGameExport();
 			case 'map-game-pick': {
 				try {
 					await pickGameFolder();

@@ -125,3 +125,53 @@ test('the self-closing lobby form is a block too, and a file without one is refu
 	const lf = spliceBlock('<WorldMapQuickScreenPosition Version="4"/>\n', bookmarkXML([]).xml);
 	assert.ok(!lf.text.includes('\r'));
 });
+
+import { naviPathXML, LOOP_SLOTS } from '../js/worldmap.js';
+
+test('a loop carries every stop, in the world space the client uses', () => {
+	// The loop saved in game on 2026-08-30 had its first point at
+	// PosX="4.11843e+11" PosZ="2.54844e+11", which is Perugia's own
+	// position times a million.
+	const perugia = { x: 85073.72, y: 62006.24 };
+	const xml = naviPathXML([perugia], 0);
+	const m = /PosX="([-\d.e+]+)" PosY="([-\d.e+]+)" PosZ="([-\d.e+]+)"/.exec(xml);
+	assert.ok(m, 'a path row');
+	assert.ok(Math.abs(Number(m[1]) - 4.11843e+11) < 1e6, m[1]);
+	assert.ok(Math.abs(Number(m[3]) - 2.54844e+11) < 1e6, m[3]);
+	assert.equal(Number(m[2]), -8.175e+09);
+	// The client's own float format: %g at six figures, two-digit exponent.
+	assert.match(xml, /PosY="-8\.175e\+09"/);
+});
+
+test('a loop is not capped at five, and only three slots exist', () => {
+	const pts = Array.from({ length: 30 }, (_, i) => ({ name: `${i}`, x: 60000 + i * 10, y: 60000 }));
+	const r = bookmarkXML(pts, { loop: 2 });
+	assert.equal(r.loop.slot, 2);
+	assert.equal(r.loop.points, 30);
+	assert.equal((r.xml.match(/<Path /g) || []).length, 30);
+	// The bookmarks and cameras still take what they can.
+	assert.equal(r.bookmarks, 5);
+	assert.equal(r.cameras, 10);
+	assert.match(r.xml, /<WorldmapNaviPath Index="2">/);
+	// Out-of-range slots are simply no loop at all.
+	assert.equal(bookmarkXML(pts, { loop: LOOP_SLOTS }).loop, null);
+	assert.equal(bookmarkXML(pts, { loop: -1 }).loop, null);
+	assert.equal(bookmarkXML(pts).loop, null);
+});
+
+test('the loops in the other slots survive a write', () => {
+	const existing = '<WorldMapQuickScreenPosition Version="4">\r\n'
+		+ '\t<WorldmapNaviPath Index="0">\r\n\t\t<Path PosX="1" PosY="2" PosZ="3"/>\r\n\t</WorldmapNaviPath>\r\n'
+		+ '\t<WorldmapNaviPath Index="2">\r\n\t\t<Path PosX="9" PosY="9" PosZ="9"/>\r\n\t</WorldmapNaviPath>\r\n'
+		+ '\t<WorldmapBookMark/>\r\n</WorldMapQuickScreenPosition>\r\n';
+	const mine = bookmarkXML([{ name: '1: a', x: 60000, y: 60000 }], { loop: 0 });
+	const out = spliceBlock(existing, mine.xml);
+	// Ours took slot 0; the stranger in slot 2 is still there, once.
+	assert.equal((out.text.match(/<WorldmapNaviPath Index="0">/g) || []).length, 1);
+	assert.equal((out.text.match(/<WorldmapNaviPath Index="2">/g) || []).length, 1);
+	assert.match(out.text, /PosX="9" PosY="9" PosZ="9"/);
+	assert.doesNotMatch(out.text, /PosX="1" PosY="2" PosZ="3"/);
+	// Kept loops sit before the bookmarks, as the client writes them.
+	assert.ok(out.text.indexOf('Index="2"') < out.text.indexOf('<WorldmapBookMark'));
+	assert.ok(!/[^\r]\n/.test(out.text));
+});

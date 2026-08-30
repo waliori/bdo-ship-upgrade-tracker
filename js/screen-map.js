@@ -16,7 +16,7 @@ import {
 import { npcs, npcById, ports } from './barter_npcs.js';
 import { quests } from './quests.js';
 import { openDialog } from './dialogs.js';
-import { bookmarkXML, BOOKMARK_SLOTS, CAMERA_SLOTS, FILE_HINT } from './worldmap.js';
+import { bookmarkXML, BOOKMARK_SLOTS, CAMERA_SLOTS, LOOP_SLOTS, FILE_HINT } from './worldmap.js';
 import { canWriteFiles, gameFolderName, previousBlock } from './gamefile.js';
 import { parleyPerTrade, PARLEY, GOODS } from './barter.js';
 import { snapshot, barterData, barterProfile, view } from './ui-state.js';
@@ -1402,6 +1402,7 @@ export function importRoute(text) {
  * ------------------------------------------------------------------ */
 
 let gameCams = true;          // fill the camera slots past the five bookmarks
+let gameLoop = null;          // which of the map's three loops to write, if any
 
 /**
  * The plotted stops as the game's favourites: the XML block for
@@ -1415,11 +1416,16 @@ export function gameBookmarks() {
 		const n = npcById.get(id);
 		return { name: `${k + 1}: ${n.name} (${n.at})`, x: n.x, y: n.y };
 	});
-	return { ...bookmarkXML(points, { cameras: gameCams }), stops: points.length };
+	return { ...bookmarkXML(points, { cameras: gameCams, loop: gameLoop }), stops: points.length };
 }
 
 export function setGameCams(on) {
 	gameCams = !!on;
+}
+
+export function setGameLoop(value) {
+	const n = Number(value);
+	gameLoop = Number.isInteger(n) && n >= 0 && n < LOOP_SLOTS ? n : null;
 }
 
 /**
@@ -1451,6 +1457,18 @@ export async function openGameExport() {
 		: `The map's Favorites list holds ${BOOKMARK_SLOTS}; ${gameCams
 			? `stops ${BOOKMARK_SLOTS + 1}–${held} go on the ${CAMERA_SLOTS} camera slots (the number keys on the map), unnamed but in order`
 			: `the other ${r.stops - r.bookmarks} are left out`}${r.dropped ? `, and ${r.dropped} more do not fit` : ''}.`;
+	const loopNote = r.loop
+		? `Loop ${r.loop.slot + 1} carries all ${r.loop.points} stops in order — the map's loops are a list, not five slots.`
+		: `The map also keeps ${LOOP_SLOTS} navigation loops, and a loop holds every stop rather than five.`;
+	const loopRow = `<div class="map-game-loop">
+		<label>Save the whole route as a loop
+			<select class="purse-inline" data-act="map-game-loop">
+				<option value=""${gameLoop === null ? ' selected' : ''}>don't touch my loops</option>
+				${Array.from({ length: LOOP_SLOTS }, (_, i) => `<option value="${i}"${gameLoop === i ? ' selected' : ''}>as loop ${i + 1}</option>`).join('')}
+			</select>
+		</label>
+		<p class="map-game-loopnote">${esc(loopNote)} The loops you keep in the other slots are left alone.</p>
+	</div>`;
 	openDialog(`<h2>Put the route on the game's map</h2>
 		<p>Black Desert reads its world-map favourites from a file. Paste this block in and the
 		stops appear under <strong>World Map → Favorites</strong>, numbered in sailing order,
@@ -1458,6 +1476,7 @@ export async function openGameExport() {
 		<p class="map-game-fit">${esc(fit)}</p>
 		<label class="inline-check map-game-opt"><input type="checkbox" data-act="map-game-cams"${gameCams ? ' checked' : ''}>
 			also fill the ${CAMERA_SLOTS} camera slots with the stops past the fifth</label>
+		${loopRow}
 		<textarea class="map-xml" readonly rows="10" spellcheck="false" aria-label="The XML block for gameVariable.xml">${esc(r.xml)}</textarea>
 		<div class="map-game-btns">
 			<button class="ghost-btn" data-act="map-game-copy">Copy</button>
