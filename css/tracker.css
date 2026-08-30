@@ -981,7 +981,13 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   bottom: 28px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 50;
+  /* Above everything, dialogs included. A toast is the answer to what
+     you just did -- "written", "could not reach the clipboard" -- and
+     the thing you did it from is usually a dialog still standing open,
+     so anything less than the top of the stack means the answer is
+     posted behind the question. The order below it: guide tip 500,
+     dialog 60, detail sheet 55, veil 54, peek 45, shell 1. */
+  z-index: 1000;
   background: rgba(12, 30, 50, 0.95);
   border: 1px solid rgba(110, 180, 230, 0.35);
   border-radius: var(--r-tile);

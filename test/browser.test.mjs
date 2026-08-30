@@ -203,6 +203,31 @@ test('the pouch carries Sangpyeong Coins once a build wants them', async () => {
 	await context.close();
 });
 
+test('a toast is readable over an open dialog', async () => {
+	// The answer to what you just did is usually raised from inside a
+	// dialog -- "written to the game file", "could not reach the
+	// clipboard" -- so a toast behind the dialog is an answer nobody
+	// sees.
+	const { page, context } = await open();
+
+	await page.evaluate(async () => {
+		const { openDialog, toast } = await import('/js/dialogs.js');
+		openDialog('<h2>Something</h2><p>' + 'x'.repeat(400) + '</p>');
+		toast('written');
+	});
+	await until(page, () => !document.getElementById('toast').hidden, 'the toast');
+
+	const onTop = await page.evaluate(() => {
+		const el = document.getElementById('toast');
+		const b = el.getBoundingClientRect();
+		const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+		return { covered: !el.contains(hit), text: el.textContent.trim(), tag: hit && hit.className };
+	});
+	assert.equal(onTop.text, 'written');
+	assert.ok(!onTop.covered, `the dialog is over the toast (${onTop.tag})`);
+	await context.close();
+});
+
 test('signed out, the app offers sign-in and nothing else changes', async () => {
 	const { page, context } = await open();
 	await until(page, () => document.querySelector('#account button'), 'the sign-in button');
