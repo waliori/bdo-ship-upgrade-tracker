@@ -103,8 +103,8 @@ export function naviPathXML(points, slot = 0) {
  * gameVariable.xml holds and what a person replaces; line ends are
  * the file's own (CRLF), indentation its tabs.
  */
-export function bookmarkXML(points, { cameras = true, loop = null } = {}) {
-	const marks = points.slice(0, BOOKMARK_SLOTS);
+export function bookmarkXML(points, { cameras = true, loop = null, bookmarks = true } = {}) {
+	const marks = bookmarks ? points.slice(0, BOOKMARK_SLOTS) : [];
 	const cams = cameras ? points.slice(BOOKMARK_SLOTS, BOOKMARK_SLOTS + CAMERA_SLOTS) : [];
 	const dropped = points.length - marks.length - cams.length;
 	const lines = ['<WorldMapQuickScreenPosition Version="4">'];
@@ -116,15 +116,20 @@ export function bookmarkXML(points, { cameras = true, loop = null } = {}) {
 	// stop, in order, past the fifteen the slots above can hold.
 	const slot = Number.isInteger(loop) && loop >= 0 && loop < LOOP_SLOTS ? loop : null;
 	if (slot !== null && points.length) lines.push(naviPathXML(points, slot));
-	if (!marks.length) {
-		lines.push('\t<WorldmapBookMark/>');
-	} else {
-		lines.push('\t<WorldmapBookMark>');
-		for (const p of marks) {
-			const g = toGame(p.x, p.y);
-			lines.push(`\t\t<BookMark BookMarkName="${attr(p.name)}" PosX="${num(g.x)}" PosY="${SEA_LEVEL}" PosZ="${num(g.z)}"/>`);
+	// Leaving the bookmarks out is not leaving them empty: a block with
+	// no <WorldmapBookMark> keeps whatever the file already had, so
+	// writing a loop does not cost someone their five favourites.
+	if (bookmarks) {
+		if (!marks.length) {
+			lines.push('\t<WorldmapBookMark/>');
+		} else {
+			lines.push('\t<WorldmapBookMark>');
+			for (const p of marks) {
+				const g = toGame(p.x, p.y);
+				lines.push(`\t\t<BookMark BookMarkName="${attr(p.name)}" PosX="${num(g.x)}" PosY="${SEA_LEVEL}" PosZ="${num(g.z)}"/>`);
+			}
+			lines.push('\t</WorldmapBookMark>');
 		}
-		lines.push('\t</WorldmapBookMark>');
 	}
 	lines.push('</WorldMapQuickScreenPosition>');
 	return {
@@ -156,39 +161,56 @@ const BLOCK = /<WorldMapQuickScreenPosition Version="4">[\s\S]*?<\/WorldMapQuick
  * the map reads (the lobby's copy beside it, say) and must not be
  * written to.
  */
-const LOOP = /[ \t]*<WorldmapNaviPath Index="(\d+)">[\s\S]*?<\/WorldmapNaviPath>[ \t]*\r?\n?/g;
+const LOOP = /[ \t]*<WorldmapNaviPath Index="(\d+)">[\s\S]*?<\/WorldmapNaviPath>/g;
+const CAMERA = /[ \t]*<WorldMapQuickScreenPosition index="(\d+)"[^>]*\/>/g;
+const MARKS = /[ \t]*<WorldmapBookMark(?:\s*\/>|>[\s\S]*?<\/WorldmapBookMark>)/;
 
-/** The loop slots a block already uses. */
-function loopSlots(block) {
-	const out = new Map();
-	for (const m of block.matchAll(LOOP)) out.set(Number(m[1]), m[0]);
-	return out;
+/** A favourites block taken apart: the camera slots and loops by their
+ *  index, and the bookmarks whole. */
+function parseBlock(block) {
+	const cameras = new Map();
+	for (const m of block.matchAll(CAMERA)) cameras.set(Number(m[1]), m[0].trim());
+	const loops = new Map();
+	for (const m of block.matchAll(LOOP)) loops.set(Number(m[1]), m[0].trim());
+	const marks = MARKS.exec(block);
+	return { cameras, loops, marks: marks ? marks[0].trim() : null };
 }
 
-/**
- * The block, with any loop the file already held in a slot we are not
- * writing put back. The game keeps three; taking over one of them is
- * no reason to lose the other two.
- */
-function keepLoops(oldBlock, block, crlf) {
-	const mine = new Set(loopSlots(block).keys());
-	const keep = [...loopSlots(oldBlock)].filter(([slot]) => !mine.has(slot));
-	if (!keep.length) return block;
-	const nl = crlf ? '\r\n' : '\n';
-	const text = keep.map(([, xml]) => xml.replace(/\r?\n$/, '')).join(nl) + nl;
-	// Loops sit between the camera slots and the bookmarks, as the
-	// client writes them.
-	const at = block.search(/[ \t]*<WorldmapBookMark/);
-	if (at < 0) return block;
-	return block.slice(0, at) + text.replace(/\r?\n/g, nl) + block.slice(at);
+/** And put back together, in the order the client writes: the camera
+ *  slots, then the loops, then the bookmarks. */
+function emitBlock({ cameras, loops, marks }, nl) {
+	// An element's own tags sit one tab in, its children two -- however
+	// the piece was indented in the file it came from.
+	const indent = t => {
+		const body = t.split(/\r?\n/).map(l => l.trim());
+		if (body.length === 1) return '\t' + body[0];
+		return ['\t' + body[0], ...body.slice(1, -1).map(l => '\t\t' + l), '\t' + body[body.length - 1]].join(nl);
+	};
+	const rows = ['<WorldMapQuickScreenPosition Version="4">'];
+	for (const i of [...cameras.keys()].sort((a, b) => a - b)) rows.push('\t' + cameras.get(i));
+	for (const i of [...loops.keys()].sort((a, b) => a - b)) rows.push(indent(loops.get(i)));
+	rows.push(marks ? indent(marks) : '\t<WorldmapBookMark/>');
+	rows.push('</WorldMapQuickScreenPosition>');
+	return rows.join(nl) + nl;
 }
 
 export function spliceBlock(text, xml) {
 	const m = BLOCK.exec(text);
 	if (!m) return null;
 	const crlf = /\r\n/.test(text);
-	let block = xml.replace(/\r?\n$/, '').replace(/\r?\n/g, crlf ? '\r\n' : '\n');
-	block = keepLoops(m[0], block, crlf);
+	const nl = crlf ? '\r\n' : '\n';
+	// Whatever the new block does not speak for is carried over from the
+	// old one -- the loops in the other slots, the camera slots and the
+	// favourites when only a loop is being written. Taking one thing
+	// over is no reason to lose the rest.
+	const was = parseBlock(m[0]);
+	const now = parseBlock(xml);
+	const merged = {
+		cameras: now.cameras.size ? now.cameras : was.cameras,
+		loops: new Map([...was.loops, ...now.loops]),
+		marks: now.marks || was.marks
+	};
+	const block = emitBlock(merged, nl).replace(/\r?\n$/, '');
 	return {
 		text: text.slice(0, m.index) + block + text.slice(m.index + m[0].length),
 		previous: m[0]

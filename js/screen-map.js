@@ -205,6 +205,11 @@ function huntHTML() {
 			</button>`;
 		}).join('');
 	}).join('');
+	const picked = coursesOn.length + huntsOn.length;
+	const toGame = picked ? `<div class="map-side-btns">
+		<button class="ghost-btn wide" data-act="map-hunt-game"
+			title="Write what is ticked here into the game's world map">⚑ Put ${picked === 1 ? 'it' : 'these'} on the game's map</button>
+	</div>` : '';
 	return `<div class="map-courses">
 		<div class="map-courses-head">Courses <span class="map-courses-credit">from gpw’s ocean map (Snuggle Sailies Route)</span></div>
 		${courseRows}
@@ -212,7 +217,7 @@ function huntHTML() {
 	<div class="map-courses">
 		<div class="map-courses-head">Grounds <span class="map-courses-credit">every spawn point on BDOCodex</span></div>
 		${huntRows}
-	</div>`;
+	</div>${toGame}`;
 }
 
 /* ------------------------------------------------------------------ *
@@ -479,7 +484,15 @@ function npcBox() {
  *  toggled stop does not rebuild (and flash) the whole chart. */
 function refreshSide() {
 	const slot = document.querySelector('[data-map-side]');
-	if (slot) slot.innerHTML = sideHTML(marksNow());
+	if (!slot) return;
+	// Ticking a course or a species rebuilds the whole panel. Without
+	// this the list springs back to the top and the row just clicked is
+	// off screen -- so the scroll is put back where it was.
+	const was = slot.querySelector('.map-side-body');
+	const top = was ? was.scrollTop : 0;
+	slot.innerHTML = sideHTML(marksNow());
+	const now = slot.querySelector('.map-side-body');
+	if (now && top) now.scrollTop = top;
 }
 
 function refreshSideList() {
@@ -1401,8 +1414,40 @@ export function importRoute(text) {
  * the game's own map
  * ------------------------------------------------------------------ */
 
-let gameCams = true;          // fill the camera slots past the five bookmarks
-let gameLoop = null;          // which of the map's three loops to write, if any
+let gameSource = 'route';     // route | hunt -- which list the dialog is writing
+let gameWrite = 'favorites';  // favorites, or 0..2 for one of the map's loops
+
+/**
+ * The stops the Hunt tab has ticked, as one run.
+ *
+ * A course is already a loop, so several ticked are sailed one after
+ * another rather than saved apart -- that is what a night out hunting
+ * actually looks like, and the map keeps only three loops anyway. A
+ * species' grounds are a scatter, not a course, so each contributes the
+ * middle of its spawn points: one place to steer for.
+ */
+function huntPoints() {
+	const out = [];
+	for (const c of courses) {
+		if (!coursesOn.includes(c.id)) continue;
+		for (const p of c.points) out.push({ name: p.name || c.name, x: p.x, y: p.y });
+	}
+	for (const m of monsters) {
+		if (!huntsOn.includes(m.key) || !m.points.length) continue;
+		const mid = m.points.reduce((a, p) => [a[0] + p[0], a[1] + p[1]], [0, 0]);
+		out.push({ name: `${m.name} grounds`, x: mid[0] / m.points.length, y: mid[1] / m.points.length });
+	}
+	return out.map((p, i) => ({ ...p, name: `${i + 1}: ${p.name}` }));
+}
+
+/** The route's stops, in sailing order. */
+function routePoints() {
+	const ids = stopsLive() ? stops : [];
+	return ids.map((id, k) => {
+		const n = npcById.get(id);
+		return { name: `${k + 1}: ${n.name} (${n.at})`, x: n.x, y: n.y };
+	});
+}
 
 /**
  * The plotted stops as the game's favourites: the XML block for
@@ -1411,21 +1456,26 @@ let gameLoop = null;          // which of the map's three loops to write, if any
  * island, so the map's list reads as the route does here.
  */
 export function gameBookmarks() {
-	const ids = stopsLive() ? stops : [];
-	const points = ids.map((id, k) => {
-		const n = npcById.get(id);
-		return { name: `${k + 1}: ${n.name} (${n.at})`, x: n.x, y: n.y };
-	});
-	return { ...bookmarkXML(points, { cameras: gameCams, loop: gameLoop }), stops: points.length };
+	const points = gameSource === 'hunt' ? huntPoints() : routePoints();
+	// One or the other, never both: the favourites are five named pins
+	// and ten camera jumps, a loop is the whole run in order. Writing
+	// both would spend someone's five favourites on stops the loop
+	// already holds. Whichever is not written is left as it was.
+	const loop = gameWrite === 'favorites' ? null : gameWrite;
+	return {
+		...bookmarkXML(points, {
+			cameras: loop === null,
+			bookmarks: loop === null,
+			loop
+		}),
+		stops: points.length,
+		source: gameSource
+	};
 }
 
-export function setGameCams(on) {
-	gameCams = !!on;
-}
-
-export function setGameLoop(value) {
+export function setGameWrite(value) {
 	const n = Number(value);
-	gameLoop = Number.isInteger(n) && n >= 0 && n < LOOP_SLOTS ? n : null;
+	gameWrite = Number.isInteger(n) && n >= 0 && n < LOOP_SLOTS ? n : 'favorites';
 }
 
 /**
@@ -1434,9 +1484,11 @@ export function setGameLoop(value) {
  * every character switch, so at the character screen or with the game
  * closed), and which part to replace.
  */
-export async function openGameExport() {
+export async function openGameExport(source) {
+	if (source === 'route' || source === 'hunt') gameSource = source;
 	const r = gameBookmarks();
 	if (!r.stops) return;
+	const what = r.source === 'hunt' ? 'hunt' : 'route';
 	// Chromium can hold the folder itself; elsewhere the block is pasted.
 	const folder = canWriteFiles() ? await gameFolderName() : null;
 	const direct = canWriteFiles() ? `<div class="map-game-direct">
@@ -1447,35 +1499,31 @@ export async function openGameExport() {
 				Do it at the character screen — the game rewrites the file when a character loads.</p>
 			<div class="map-game-btns">
 				<button class="ghost-btn" data-act="map-game-pick">${folder ? 'Choose another folder' : 'Choose the account folder…'}</button>
-				<button class="ghost-btn" data-act="map-game-write"${folder ? '' : ' disabled'}>Write it into the game file</button>
+				<button class="ghost-btn" data-act="map-game-as"${folder ? '' : ' disabled'}>Write it into the game file</button>
 				${previousBlock() ? '<button class="ghost-btn" data-act="map-game-restore" title="Put back the favourites the last write replaced">Restore previous</button>' : ''}
 			</div>
 		</div>` : `<p class="map-game-nodirect">Only Chromium browsers (Chrome, Edge, Brave) can write the file for you; this one cannot, so paste the block by hand.</p>`;
 	const held = r.bookmarks + r.cameras;
-	const fit = r.stops <= BOOKMARK_SLOTS
-		? `All ${r.stops} stops fit the map's ${BOOKMARK_SLOTS} favourite slots.`
-		: `The map's Favorites list holds ${BOOKMARK_SLOTS}; ${gameCams
-			? `stops ${BOOKMARK_SLOTS + 1}–${held} go on the ${CAMERA_SLOTS} camera slots (the number keys on the map), unnamed but in order`
-			: `the other ${r.stops - r.bookmarks} are left out`}${r.dropped ? `, and ${r.dropped} more do not fit` : ''}.`;
-	const loopNote = r.loop
-		? `Loop ${r.loop.slot + 1} carries all ${r.loop.points} stops in order — the map's loops are a list, not five slots.`
-		: `The map also keeps ${LOOP_SLOTS} navigation loops, and a loop holds every stop rather than five.`;
+	const fit = r.loop
+		? `Loop ${r.loop.slot + 1} carries all ${r.loop.points} points in order — a loop is a list, not five slots. Your favourites and the map's other two loops are left as they are.`
+		: r.stops <= BOOKMARK_SLOTS
+			? `All ${r.stops} fit the map's ${BOOKMARK_SLOTS} favourite slots, named.`
+			: `The map's Favorites list holds ${BOOKMARK_SLOTS}; ${
+				`points ${BOOKMARK_SLOTS + 1}–${held} go on the ${CAMERA_SLOTS} camera slots (the number keys on the map), unnamed but in order`
+			}${r.dropped ? `, and ${r.dropped} more do not fit — a loop would hold them all` : ''}.`;
 	const loopRow = `<div class="map-game-loop">
-		<label>Save the whole route as a loop
-			<select class="purse-inline" data-act="map-game-loop">
-				<option value=""${gameLoop === null ? ' selected' : ''}>don't touch my loops</option>
-				${Array.from({ length: LOOP_SLOTS }, (_, i) => `<option value="${i}"${gameLoop === i ? ' selected' : ''}>as loop ${i + 1}</option>`).join('')}
+		<label>Write it as
+			<select class="purse-inline" data-act="map-game-as">
+				<option value=""${gameWrite === 'favorites' ? ' selected' : ''}>favourites — ${BOOKMARK_SLOTS} named, ${CAMERA_SLOTS} camera slots</option>
+				${Array.from({ length: LOOP_SLOTS }, (_, i) => `<option value="${i}"${gameWrite === i ? ' selected' : ''}>loop ${i + 1} — every point, in order</option>`).join('')}
 			</select>
 		</label>
-		<p class="map-game-loopnote">${esc(loopNote)} The loops you keep in the other slots are left alone.</p>
 	</div>`;
-	openDialog(`<h2>Put the route on the game's map</h2>
-		<p>Black Desert reads its world-map favourites from a file. Paste this block in and the
-		stops appear under <strong>World Map → Favorites</strong>, numbered in sailing order,
-		each with a locate button.</p>
+	openDialog(`<h2>Put the ${what} on the game's map</h2>
+		<p>Black Desert reads its world map from a file. Paste this block in and the
+		${what === 'hunt' ? 'courses and grounds you ticked' : 'stops'} appear
+		${r.loop ? 'as one of the map\'s three navigation loops' : 'under <strong>World Map → Favorites</strong>, numbered in order, each with a locate button'}.</p>
 		<p class="map-game-fit">${esc(fit)}</p>
-		<label class="inline-check map-game-opt"><input type="checkbox" data-act="map-game-cams"${gameCams ? ' checked' : ''}>
-			also fill the ${CAMERA_SLOTS} camera slots with the stops past the fifth</label>
 		${loopRow}
 		<textarea class="map-xml" readonly rows="10" spellcheck="false" aria-label="The XML block for gameVariable.xml">${esc(r.xml)}</textarea>
 		<div class="map-game-btns">

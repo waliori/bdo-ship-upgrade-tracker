@@ -304,10 +304,12 @@ map** hands you the `<WorldMapQuickScreenPosition>` block for
 `Documents\Black Desert\UserCache\<account>\gameVariable.xml`, the
 stops numbered in sailing order as Favorites (five, with the next ten on
 the map's camera slots), each with a locate button in game. The game
-caps Favorites at five, so a longer route can also be written as one of
-the map's three navigation loops, which is a list rather than a set of
-slots and holds every stop in order; the loops in the other two slots
-are left alone. The chart's
+caps Favorites at five, so a longer route can instead be written as one
+of the map's three navigation loops, which is a list rather than a set
+of slots and holds every stop in order. It is one or the other, never
+both — whichever you do not write is left exactly as it was, loops in
+the other slots included. The Hunt tab writes the same way: the courses
+and monster grounds you have ticked, several courses sailed as one run. The chart's
 pixels are the game's world position divided by 25, checked against the
 client's own positions for the barterers to within a pixel.
 The day-forecast paces each of the game's two refresh lists on its own

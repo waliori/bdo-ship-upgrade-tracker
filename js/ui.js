@@ -39,7 +39,7 @@ import {
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
-	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameCams, setGameLoop
+	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite
 } from './screen-map.js';
 
 const TABS = [
@@ -398,9 +398,8 @@ function wire() {
 				setTimeout(() => URL.revokeObjectURL(url), 1000);
 				return;
 			}
-			case 'map-route-game': return openGameExport();
-			case 'map-game-cams': setGameCams(el.checked); return openGameExport();
-			case 'map-game-loop': setGameLoop(el.value); return openGameExport();
+			case 'map-route-game': return openGameExport('route');
+			case 'map-hunt-game': return openGameExport('hunt');
 			case 'map-game-pick': {
 				try {
 					await pickGameFolder();
@@ -651,6 +650,14 @@ function wire() {
 		// numeric parse below rather than going through it.
 		const lvl = evt.target.closest('[data-act="barter-level"]');
 		if (lvl) return store.setProfile('level', lvl.value || null);
+
+		// How the route is written to the game's map -- favourites or one
+		// of its loops. A select answers on change, not on click.
+		const gw = evt.target.closest('[data-act="map-game-as"]');
+		if (gw) {
+			setGameWrite(gw.value);
+			return openGameExport();
+		}
 
 		const mreg = evt.target.closest('[data-act="market-region"]');
 		if (mreg) return setMarketRegion(mreg.value);

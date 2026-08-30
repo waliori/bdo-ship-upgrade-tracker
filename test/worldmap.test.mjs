@@ -175,3 +175,37 @@ test('the loops in the other slots survive a write', () => {
 	assert.ok(out.text.indexOf('Index="2"') < out.text.indexOf('<WorldmapBookMark'));
 	assert.ok(!/[^\r]\n/.test(out.text));
 });
+
+test('writing a loop costs you neither your favourites nor your camera slots', () => {
+	const existing = '<WorldMapQuickScreenPosition Version="4">\r\n'
+		+ '\t<WorldMapQuickScreenPosition index="0" positionX="5" positionY="-8175" positionZ="6" cameraDistance="40000"/>\r\n'
+		+ '\t<WorldmapBookMark>\r\n\t\t<BookMark BookMarkName="mine" PosX="1" PosY="2" PosZ="3"/>\r\n\t</WorldmapBookMark>\r\n'
+		+ '</WorldMapQuickScreenPosition>\r\n';
+	const pts = Array.from({ length: 9 }, (_, i) => ({ name: `${i + 1}: s`, x: 60000 + i * 100, y: 60000 }));
+	const mine = bookmarkXML(pts, { cameras: false, bookmarks: false, loop: 1 });
+	// A loop-only block says nothing about bookmarks or cameras...
+	assert.doesNotMatch(mine.xml, /WorldmapBookMark/);
+	assert.doesNotMatch(mine.xml, /QuickScreenPosition index=/);
+	const out = spliceBlock(existing, mine.xml);
+	// ...so the file keeps its own, and gains the loop.
+	assert.match(out.text, /BookMarkName="mine"/);
+	assert.match(out.text, /index="0" positionX="5"/);
+	assert.equal((out.text.match(/<Path /g) || []).length, 9);
+	// Order is the client's: cameras, loops, bookmarks.
+	assert.ok(out.text.indexOf('index="0"') < out.text.indexOf('NaviPath'));
+	assert.ok(out.text.indexOf('NaviPath') < out.text.indexOf('WorldmapBookMark'));
+	// Indentation of a carried element is preserved, closing tag included.
+	assert.match(out.text, /\t<WorldmapBookMark>\r\n\t\t<BookMark[^\n]*\r\n\t<\/WorldmapBookMark>/);
+	assert.ok(!/[^\r]\n/.test(out.text));
+});
+
+test('writing favourites leaves every loop alone', () => {
+	const existing = '<WorldMapQuickScreenPosition Version="4">\r\n'
+		+ '\t<WorldmapNaviPath Index="0">\r\n\t\t<Path PosX="1" PosY="2" PosZ="3"/>\r\n\t</WorldmapNaviPath>\r\n'
+		+ '\t<WorldmapNaviPath Index="2">\r\n\t\t<Path PosX="9" PosY="9" PosZ="9"/>\r\n\t</WorldmapNaviPath>\r\n'
+		+ '\t<WorldmapBookMark/>\r\n</WorldMapQuickScreenPosition>\r\n';
+	const out = spliceBlock(existing, bookmarkXML([{ name: '1: a', x: 60000, y: 60000 }]).xml);
+	assert.match(out.text, /PosX="1" PosY="2" PosZ="3"/);
+	assert.match(out.text, /PosX="9" PosY="9" PosZ="9"/);
+	assert.match(out.text, /BookMarkName="1: a"/);
+});
