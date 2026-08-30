@@ -778,8 +778,15 @@ function paintTip(host, size, marks) {
 	tip.classList.toggle('pinned', pinned);
 	tip.hidden = false;
 	const w = tip.offsetWidth || 264, h = tip.offsetHeight || 140;
+	// The step player sits along the bottom edge; the card must not lie
+	// over it, or a phone loses the route's controls behind an island's
+	// trades. Keep the card above it, and at the top when there is no
+	// room above.
+	const steps = host.querySelector('[data-map-steps]');
+	const floor = steps && !steps.hidden ? steps.offsetTop - 8 : size.h - 10;
+	const maxTop = Math.max(10, floor - h);
 	tip.style.left = `${Math.max(10, Math.min(size.w - w - 10, at.left + 16))}px`;
-	tip.style.top = `${Math.max(10, Math.min(size.h - h - 10, at.top - 12))}px`;
+	tip.style.top = `${Math.max(10, Math.min(maxTop, at.top - 12))}px`;
 }
 
 function paintMini(host, size) {

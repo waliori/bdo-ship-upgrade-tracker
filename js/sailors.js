@@ -148,3 +148,128 @@ export function planCrew(crew, ship) {
 		overSpace: space ? Math.max(0, totals.cabins - space) : 0
 	};
 }
+
+/* ------------------------------------------------------------------ *
+ * The Manage Sailors board: seats, a roster, and what a crew adds up to
+ * ------------------------------------------------------------------ */
+
+/**
+ * The three first mates as sailors that can be hired onto the roster:
+ * the game gives them fixed, modest stats, no cabin cost, and a skill
+ * the First Mate seat switches on.
+ */
+export const mateTypes = firstMates.map(m => ({
+	type: m.name, race: m.name === 'Tranan Underfoe' ? 'Dwarf' : 'Human', mate: true,
+	appetite: 100, cabin: 0, weight: 300,
+	speed: 0.5, accel: 0.5, turn: 0.5, brake: 0.5,
+	skill: `${m.trait} — ${m.from}`
+}));
+
+export const anyType = Object.fromEntries([...pool, ...mateTypes].map(s => [s.type, s]));
+
+/** The seats a hull has, in the order the board draws them. */
+const POSITIONS = [
+	{ pos: 'sail', label: 'Sail', n: 2, effect: 'speed and acceleration count double' },
+	{ pos: 'wheel', label: 'Wheel', n: 1, effect: 'turning and braking count double' },
+	{ pos: 'cannon', label: 'Cannon', n: 1, effect: 'cannon damage, reload and range' },
+	{ pos: 'deck', label: 'Deck', n: 1, effect: '+10,000 durability for every cabin the sailor costs' },
+	{ pos: 'mess', label: 'Mess', n: 1, effect: '+5,000 rations for every cabin the sailor costs' },
+	{ pos: 'firstmate', label: 'First Mate', n: 1, effect: "the sailor's own skill switches on" },
+	{ pos: 'fish', label: 'Fish', n: 1, effect: 'auto-fishing under way — a Carrack only' }
+];
+
+/**
+ * Which seats a hull offers: the named positions first, as many as the
+ * hull seats, then cabins for the rest. A Panokseon has two more cannon
+ * seats than a Carrack; only a Carrack has a fishing seat.
+ */
+export function seatsFor(ship, stats) {
+	const crew = stats ? stats.crew : 0;
+	const out = [];
+	for (const p of POSITIONS) {
+		if (p.pos === 'fish' && !/^Carrack/.test(ship)) continue;
+		const n = p.pos === 'cannon' && ship === 'Panokseon' ? 3 : p.n;
+		for (let i = 0; i < n && out.length < crew; i++) out.push({ key: `${p.pos}:${i}`, pos: p.pos, label: p.label, effect: p.effect });
+	}
+	for (let i = 0; out.length < crew; i++) out.push({ key: `cabin:${i}`, pos: 'cabin', label: 'Cabin', effect: 'no role, but aboard: weight and appetite count, and they level along' });
+	return out;
+}
+
+/** A sailor's stat at their level: growth times level. */
+export function statOf(sailor, key) {
+	const t = anyType[sailor.type];
+	return t ? Math.round((t[key] || 0) * (sailor.lv || 1) * 10) / 10 : 0;
+}
+
+/**
+ * What a seated crew adds to the hull. A Sail seat doubles speed and
+ * acceleration, the Wheel doubles turning and braking, the Deck pays
+ * durability and the Mess rations by the sailor's cabin cost; every
+ * sailor aboard adds weight, eats, and spends cabin space.
+ */
+export function crewTotals(roster, seats, stats) {
+	const byId = new Map((roster || []).map(s => [s.id, s]));
+	const t = { seated: 0, cabins: 0, weight: 0, appetite: 0, speed: 0, accel: 0, turn: 0, brake: 0,
+		force: 0, focus: 0, vision: 0, durability: 0, rations: 0, sick: 0 };
+	for (const [key, id] of Object.entries(seats || {})) {
+		const s = byId.get(id);
+		const type = s && anyType[s.type];
+		if (!type) continue;
+		const pos = key.split(':')[0];
+		t.seated++;
+		t.cabins += type.cabin;
+		t.weight += type.weight;
+		t.appetite += type.appetite;
+		if ((s.cond ?? 100) <= 0) t.sick++;
+		const m = (k, mult = 1) => statOf(s, k) * mult;
+		t.speed += m('speed', pos === 'sail' ? 2 : 1);
+		t.accel += m('accel', pos === 'sail' ? 2 : 1);
+		t.turn += m('turn', pos === 'wheel' ? 2 : 1);
+		t.brake += m('brake', pos === 'wheel' ? 2 : 1);
+		if (pos === 'cannon') {
+			t.force += m('force', 2);
+			t.focus += m('focus', 2);
+			t.vision += m('vision', 2);
+		}
+		if (pos === 'deck') t.durability += type.cabin * 10000;
+		if (pos === 'mess') t.rations += type.cabin * 5000;
+	}
+	for (const k of ['speed', 'accel', 'turn', 'brake', 'force', 'focus', 'vision']) t[k] = Math.round(t[k] * 10) / 10;
+	t.seats = stats ? stats.crew : 0;
+	t.space = stats ? stats.cabins : 0;
+	t.overSpace = Math.max(0, t.cabins - t.space);
+	return t;
+}
+
+/**
+ * Fill the seats sensibly from a roster: the first mate to their seat,
+ * the fastest to the sails, the best handler to the wheel, the gunners
+ * to the cannons, the costliest cabins to the Deck and the Mess (where
+ * cabin cost is the whole point), and everyone left to a cabin.
+ */
+export function autoAssign(roster, ship, stats) {
+	const seats = seatsFor(ship, stats);
+	const left = [...(roster || [])].filter(s => anyType[s.type]);
+	const out = {};
+	const t = s => anyType[s.type];
+	const gunner = s => t(s).force !== undefined;
+	const take = (seat, score, only = () => true) => {
+		if (out[seat.key]) return;
+		const pick = left.filter(only).sort((a, b) => score(b) - score(a))[0];
+		if (!pick) return;
+		out[seat.key] = pick.id;
+		left.splice(left.indexOf(pick), 1);
+	};
+	const of = pos => seats.filter(x => x.pos === pos);
+	// Specialists first, so a gunner is not swept up by a sail: the mate
+	// to the bow, the gunners to the cannons, then the fastest to the
+	// sails, the best handler to the wheel, the costliest cabins to the
+	// Deck and the Mess, and everyone left wherever is free.
+	for (const seat of of('firstmate')) take(seat, s => statOf(s, 'speed'), s => t(s).mate);
+	for (const seat of of('cannon')) take(seat, s => statOf(s, 'force') + statOf(s, 'focus') + statOf(s, 'vision'), s => gunner(s) && !t(s).mate);
+	for (const seat of of('sail')) take(seat, s => statOf(s, 'speed') + statOf(s, 'accel'), s => !t(s).mate);
+	for (const seat of of('wheel')) take(seat, s => statOf(s, 'turn') + statOf(s, 'brake'), s => !t(s).mate);
+	for (const seat of [...of('deck'), ...of('mess')]) take(seat, s => t(s).cabin, s => !t(s).mate);
+	for (const seat of seats) take(seat, () => 0);
+	return out;
+}

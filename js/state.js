@@ -157,13 +157,55 @@ function readProfile(raw) {
 	// type. Types are checked where they are used (sailors.js knows the
 	// pool); here a name is a name and a count is a small whole number.
 	if (typeof raw.crewShip === 'string' && raw.crewShip) out.crewShip = raw.crewShip.slice(0, 60);
-	if (isProfile(raw.sailors)) {
-		const sailors = {};
-		for (const [type, n] of Object.entries(raw.sailors)) {
-			const count = Math.min(60, Math.max(0, Math.floor(Number(n) || 0)));
-			if (count > 0 && typeof type === 'string' && type.length <= 40) sailors[type] = count;
+	// The crew itself: the sailors hired (a name, a type, a level and a
+	// condition each), who sits where on each hull, and two saved
+	// arrangements per hull. Bounded the way the game bounds them -- sixty
+	// sailors, levels one to ten, condition nought to a hundred.
+	if (Array.isArray(raw.roster)) {
+		const seen = new Set();
+		const roster = [];
+		for (const r of raw.roster.slice(0, 60)) {
+			if (!r || typeof r !== 'object' || typeof r.id !== 'string' || !r.id || seen.has(r.id)) continue;
+			if (typeof r.type !== 'string' || !r.type) continue;
+			seen.add(r.id);
+			roster.push({
+				id: r.id.slice(0, 24),
+				name: String(r.name || r.type).slice(0, 30),
+				type: r.type.slice(0, 40),
+				lv: Math.min(10, Math.max(1, Math.floor(Number(r.lv) || 1))),
+				cond: Math.min(100, Math.max(0, Math.floor(Number(r.cond ?? 100))))
+			});
 		}
-		if (Object.keys(sailors).length) out.sailors = sailors;
+		if (roster.length) out.roster = roster;
+	}
+	const seatMap = raw => {
+		if (!isProfile(raw)) return null;
+		const m = {};
+		for (const [seat, id] of Object.entries(raw)) {
+			if (/^[a-z]+:\d{1,2}$/.test(seat) && typeof id === 'string' && id) m[seat] = id.slice(0, 24);
+		}
+		return Object.keys(m).length ? m : null;
+	};
+	if (isProfile(raw.seats)) {
+		const seats = {};
+		for (const [ship, m] of Object.entries(raw.seats)) {
+			const clean = seatMap(m);
+			if (clean && ship.length <= 60) seats[ship] = clean;
+		}
+		if (Object.keys(seats).length) out.seats = seats;
+	}
+	if (isProfile(raw.presets)) {
+		const presets = {};
+		for (const [ship, p] of Object.entries(raw.presets)) {
+			if (!isProfile(p) || ship.length > 60) continue;
+			const clean = {};
+			for (const k of ['p1', 'p2']) {
+				const m = seatMap(p[k]);
+				if (m) clean[k] = m;
+			}
+			if (Object.keys(clean).length) presets[ship] = clean;
+		}
+		if (Object.keys(presets).length) out.presets = presets;
 	}
 	return out;
 }

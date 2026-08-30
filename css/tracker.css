@@ -2708,15 +2708,123 @@ select.purse-inline { width: auto; cursor: pointer; }
 .map-zoom .ghost-btn { min-width: 34px; font-size: 15px; line-height: 1; }
 
 /* ---- Crew ------------------------------------------------------------ */
-.crew-ship { display: flex; align-items: center; gap: 12px; padding: 4px 22px 12px; }
+/* The Manage Sailors board: a hull drawn in a 900-wide box, seats placed
+   where the game places them, scaled by the container's width. */
+.crew-ship { display: flex; align-items: center; gap: 12px; padding: 6px 4px 14px; flex-wrap: wrap; }
 .crew-ship-name { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--ink-hi); }
-.crew-row.on { background: rgba(88, 196, 196, 0.06); }
-.crew-race { font-size: 11px; color: var(--ink-faint); margin-left: 6px; letter-spacing: 0.06em; text-transform: uppercase; }
-.crew-growth { font-variant-numeric: tabular-nums; }
-.crew-over { margin: 0 22px 12px; color: var(--amber); font-size: 12.5px; }
-.crew-actions { display: flex; gap: 10px; flex-wrap: wrap; padding: 0 22px 14px; }
+.crew-pick { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
+.crew-stats { margin-bottom: 14px; }
+.crew-stats .stat { flex: 1 1 130px; padding: 10px 14px; }
+.crew-stats .stat-v { font-size: 17px; }
+.crew-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; align-items: start; }
+.crew-main, .crew-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.crew-side { position: sticky; top: 14px; }
+.crew-panel { margin: 0; }
+.crew-head { flex-wrap: wrap; gap: 8px; }
+.crew-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.act.small { padding: 5px 11px; font-size: 12px; }
+.act.danger { color: var(--red); border-color: rgba(255, 120, 110, 0.3); }
+
+.crew-board {
+  position: relative;
+  container-type: inline-size;
+  aspect-ratio: 900 / 470;
+  margin: 0 14px;
+  background: radial-gradient(70% 60% at 50% 55%, rgba(30, 80, 120, 0.18), transparent 75%);
+}
+.crew-hull { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.5; }
+.crew-counter { position: absolute; left: 1.2cqw; top: 1cqw; font-size: max(10px, 1.35cqw); font-weight: 600; color: var(--ink-mute); z-index: 3; }
+.seat-bar {
+  position: absolute; z-index: 2; text-align: center; white-space: nowrap;
+  font-size: max(9px, 1.25cqw); font-weight: 600; color: var(--ink-dim);
+  background: rgba(20, 42, 68, 0.9); border: 1px solid var(--line-btn); border-radius: 4px; padding: 0.2cqw 0;
+}
+.seat-bar.static { position: static; width: 154px; margin: 0 auto 6px; font-size: 11.5px; padding: 2px 0; }
+.seat-wrap { position: absolute; z-index: 2; display: flex; gap: 0.7cqw; }
+.seat {
+  position: relative; width: 5.1cqw; height: 5.1cqw; min-width: 34px; min-height: 34px;
+  border-radius: 9px; display: grid; place-items: center; cursor: pointer; padding: 0;
+  background: rgba(9, 22, 42, 0.85); border: 1.5px dashed rgba(90, 160, 220, 0.3); color: inherit;
+}
+.seat.taken { background: #0d2438; border: 1px solid rgba(90, 160, 220, 0.35); }
+.seat.picked { border: 1.5px solid var(--teal); }
+.seat.armed { border: 1.5px dashed rgba(70, 224, 200, 0.9); animation: seatPulse 1.4s ease-in-out infinite; }
+.seat-plus { font-size: max(16px, 2.1cqw); color: #3d5c80; }
+.seat-mono { width: 70%; height: 70%; border-radius: 7px; display: grid; place-items: center; font-size: max(10px, 1.3cqw); font-weight: 800; color: #08131f; }
+.seat-lv {
+  position: absolute; right: -4px; top: -4px; min-width: 15px; height: 15px; border-radius: 8px; padding: 0 3px;
+  background: #0b1e38; border: 1px solid rgba(90, 160, 220, 0.4); font-size: 9px; font-weight: 700; color: var(--ink-dim); display: grid; place-items: center;
+}
+.seat-cond { position: absolute; left: 4px; right: 4px; bottom: 3px; height: 2.5px; border-radius: 2px; background: #12263f; overflow: hidden; }
+.seat-cond i { display: block; height: 100%; }
+.cabin-row { padding: 12px 14px 14px; }
+.cabin-seats { display: flex; flex-wrap: wrap; gap: 6px; }
+.cabin-seats .seat { width: 46px; height: 46px; }
+.cabin-note { font-size: 10.5px; color: var(--ink-faint); margin-top: 6px; }
+@keyframes seatPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(70, 224, 200, 0.25); }
+  50% { box-shadow: 0 0 0 6px rgba(70, 224, 200, 0); }
+}
+
+.roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; padding: 12px 14px 4px; }
+.roster-card {
+  display: flex; gap: 9px; align-items: center; padding: 8px 10px; border-radius: 10px; cursor: pointer; text-align: left;
+  background: rgba(10, 26, 49, 0.8); border: 1px solid rgba(90, 160, 220, 0.12); color: inherit; font: inherit;
+}
+.roster-card.seated { opacity: 0.8; }
+.roster-card.picked { background: #10304a; border-color: rgba(70, 224, 200, 0.5); opacity: 1; }
+.roster-tile { position: relative; flex: none; width: 38px; height: 38px; border-radius: 9px; display: grid; place-items: center; font-size: 13px; font-weight: 800; color: #08131f; }
+.roster-tile.big { width: 52px; height: 52px; border-radius: 12px; font-size: 18px; }
+.roster-cond { position: absolute; left: 2px; bottom: -3px; height: 3px; border-radius: 2px; max-width: calc(100% - 4px); }
+.roster-main { min-width: 0; display: flex; flex-direction: column; }
+.roster-name { font-size: 12.5px; font-weight: 700; color: var(--ink-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.roster-sub { font-size: 10.5px; color: var(--ink-mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.roster-pos { font-size: 10px; color: var(--ink-faint); }
+.roster-pos.on { color: var(--teal); }
+.crew-race { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; margin-left: 4px; opacity: 0.85; }
+.crew-actions { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 14px 14px; }
+
+.crew-sel { min-height: 200px; }
+.crew-nosel { text-align: center; line-height: 1.6; padding: 40px 14px; }
+.sel-top { display: flex; gap: 12px; align-items: center; padding: 4px 14px 0; }
+.sel-name { font-weight: 700; padding: 4px 8px; margin-bottom: 4px; width: 100%; }
+.sel-cond, .sel-stat { padding: 0 14px; margin-top: 10px; }
+.sel-cond > span, .sel-stat > span { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--ink-mute); letter-spacing: 0.08em; text-transform: uppercase; }
+.sel-cond > i, .sel-stat > i { display: block; height: 4px; border-radius: 2px; background: #12263f; margin-top: 3px; overflow: hidden; }
+.sel-cond > i > b, .sel-stat > i > b { display: block; height: 100%; background: linear-gradient(90deg, #2c9a7a, var(--teal)); }
+.sel-stat b { color: var(--teal); }
+.sel-stats { padding-bottom: 4px; }
+.sel-facts { padding: 12px 14px 0; font-size: 11.5px; color: var(--ink-mute); }
+.sel-facts b { color: var(--ink-hi); }
+.sel-skill { margin: 10px 14px 0; font-size: 11.5px; color: #ffe3a3; background: rgba(231, 181, 77, 0.08); border: 1px solid rgba(231, 181, 77, 0.25); border-radius: 9px; padding: 8px 11px; }
+.sel-skill.quiet { color: var(--ink-mute); background: none; border-color: var(--line-btn); }
+.preset-row { display: flex; gap: 8px; padding: 0 14px 14px; }
+.preset { flex: 1; text-align: left; padding: 9px 11px; border-radius: 10px; font: inherit; font-size: 12px; font-weight: 700; color: var(--ink-faint); background: rgba(9, 22, 42, 0.5); border: 1px dashed var(--line-btn); cursor: default; }
+.preset.has { color: var(--ink-hi); background: #0b1e38; border-style: solid; cursor: pointer; }
+.preset-sub { display: block; font-size: 10px; color: var(--ink-faint); font-weight: 400; }
+.dialog-field { display: flex; flex-direction: column; gap: 4px; margin: 10px 0; font-size: 12px; color: var(--ink-mute); }
+
+@media (max-width: 900px) {
+  .crew-grid { grid-template-columns: 1fr; }
+  .crew-side { position: static; }
+}
 .build-stats { color: var(--ink-faint); }
 .enh-log { font-size: 11.5px; color: var(--ink-faint); white-space: nowrap; }
 .enh-gain { display: block; font-size: 11px; color: var(--teal); font-weight: 400; white-space: normal; max-width: 220px; }
 .quest-row.on { background: rgba(88, 196, 196, 0.06); }
 .quest-rewards { color: var(--ink-dim); }
+
+/* On a phone the drawn hull has no room for seats you can tap; the same
+   seats lay out as labelled rows instead, and the drawing steps aside. */
+@media (max-width: 640px) {
+  .crew-board { aspect-ratio: auto; display: flex; flex-wrap: wrap; gap: 6px 8px; padding: 10px 12px 4px; margin: 0; background: none; }
+  .crew-hull { display: none; }
+  .crew-counter { position: static; flex: 1 1 100%; margin-bottom: 4px; font-size: 11px; }
+  .seat-bar { position: static !important; width: auto !important; flex: 1 1 100%; text-align: left; padding: 3px 8px; font-size: 11px; margin-top: 4px; }
+  .seat-wrap { position: static !important; flex-wrap: wrap; gap: 6px; }
+  .seat { width: 46px; height: 46px; }
+  .seat-mono { font-size: 12px; }
+  .cabin-row { padding-top: 6px; }
+  .seat-bar.static { width: auto; margin: 4px 0 6px; text-align: left; padding: 3px 8px; }
+  .crew-stats .stat { flex: 1 1 45%; }
+}

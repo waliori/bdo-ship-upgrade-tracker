@@ -30,8 +30,7 @@ import { renderBuilds, openBuildPicker, askRoute } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements } from './screen-workshop.js';
-import { renderCrew, bumpSailor } from './screen-crew.js';
-import { contract as sailorContract, planCrew } from './sailors.js';
+import { renderCrew, crewAction, crewChange } from './screen-crew.js';
 import { renderGet, shoppingText } from './screen-get.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
@@ -408,19 +407,6 @@ function wire() {
 			case 'map-follow': mapFollowToggle(); return;
 			case 'map-port': mapPortClick(Number(el.dataset.port)); return;
 			case 'goto-map': mapShowItem(el.dataset.item); showView('map'); return;
-			case 'sailor': bumpSailor(el.dataset.type, Number(el.dataset.delta)); return;
-			case 'crew-clear': store.setProfile('sailors', {}); toast('Crew cleared', true); return;
-			case 'crew-queue': {
-				// The certificates are a thing to buy like any other, so
-				// they join the queue and Falasi's price lands in To Get.
-				const n = planCrew(store.getProfile('sailors', {}) || {}, null).sailors;
-				if (!n) return;
-				const existing = store.getTargets().find(t => t.item === sailorContract.item);
-				if (existing) store.setTargetQty(existing.id, n);
-				else store.addTarget(sailorContract.item, n);
-				toast(`${n} × ${sailorContract.item} on the list`, true);
-				return;
-			}
 			case 'quest-claim': {
 				const q = questById[el.dataset.quest];
 				if (!q) return;
@@ -570,6 +556,9 @@ function wire() {
 				return;
 			}
 			default:
+				// The Crew screen owns its own verbs; most change the save
+				// (and repaint through it), the rest are session state.
+				if (act.startsWith('crew-') && crewAction(act, el)) return render();
 		}
 	});
 
@@ -600,6 +589,9 @@ function wire() {
 
 		const cs = evt.target.closest('[data-act="crew-ship"]');
 		if (cs) return store.setProfile('crewShip', cs.value || null);
+
+		const cw = evt.target.closest('[data-act^="crew-"]');
+		if (cw && crewChange(cw)) return;
 
 		const ms = evt.target.closest('[data-act="map-start"]');
 		if (ms) return setMapStart(Number(ms.value));
