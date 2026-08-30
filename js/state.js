@@ -151,8 +151,16 @@ function readProfile(raw) {
 	// The failstack the player takes into a yellow attempt. Bounded the
 	// way the game bounds one; zero means "the quoted stack", so only a
 	// real number is kept.
-	const stacks = Math.min(500, Math.max(0, Math.floor(Number(raw.failstacks) || 0)));
-	if (stacks > 0) out.failstacks = stacks;
+	// The failstack each yellow part currently carries, by part. Absent
+	// means "the stack the quoted rate assumes for its next level".
+	if (isProfile(raw.failstacks)) {
+		const stacks = {};
+		for (const [base, n] of Object.entries(raw.failstacks)) {
+			const v = Math.min(500, Math.max(0, Math.floor(Number(n))));
+			if (Number.isFinite(v) && typeof base === 'string' && base.length <= 80) stacks[base] = v;
+		}
+		if (Object.keys(stacks).length) out.failstacks = stacks;
+	}
 	// The crew plan: which hull it is for, and how many of each sailor
 	// type. Types are checked where they are used (sailors.js knows the
 	// pool); here a name is a name and a count is a small whole number.

@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { quests, questById, questsFor } from '../js/quests.js';
+import { quests, questById, questsFor, cadenceOf } from '../js/quests.js';
 import { recipes } from '../js/recipes.js';
 import { items as vendorItems } from '../js/vendor_items.js';
 import { coins } from '../js/sea_coins.js';
@@ -44,4 +44,11 @@ test('a shortfall picks out the quests that pay in it', () => {
 	assert.ok(hits.includes('omg-w-nineshark'), 'a choice reward counts');
 	assert.ok(!hits.includes('otters'));
 	assert.deepEqual(questsFor({}), []);
+});
+
+test('every quest has a cadence the screen can group by', () => {
+	for (const q of quests) assert.ok(['daily', 'weekly', 'once'].includes(cadenceOf(q)), q.name);
+	assert.equal(cadenceOf(questById['ravinia-1']), 'once');
+	assert.equal(cadenceOf(questById['khan']), 'weekly');
+	assert.equal(cadenceOf(questById['omg-nineshark']), 'daily');
 });

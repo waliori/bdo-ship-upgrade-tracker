@@ -414,9 +414,10 @@ export function enhancementForecast(base, from = 0, to = 10, failstack = null) {
 	for (let level = from; level < to; level++) {
 		const step = table.levels[level];
 		if (!step) break;
-		// The player's own failstack, where the tier listens to one; the
-		// quoted rate otherwise.
-		const chance = chanceAt(step, failstack);
+		// The stack in hand is for the next attempt only: a success resets
+		// it, so every level after the first is priced at its own quoted
+		// stack, and the tiers that ignore stacks return their rate as is.
+		const chance = chanceAt(step, level === from ? failstack : null);
 		if (chance < 1) certain = false;
 
 		// Expected attempts when the (agris + 1)-th try is guaranteed.

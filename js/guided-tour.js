@@ -118,8 +118,8 @@ class GuidedTour {
 			{
 				element: '#tabs',
 				popover: {
-					title: 'The eight views',
-					description: '<b>Plan</b> is what every build needs. <b>Builds</b> is the queue and its priority. <b>Inventory</b> is what you own. <b>Tree</b> shows why a build needs a thing. <b>Workshop</b> is where you craft and enhance. <b>To Get</b> is the shopping list. <b>Map</b> charts the barterers. <b>Crew</b> is the hull\'s own numbers and the sailors to fill it.',
+					title: 'The nine views',
+					description: '<b>Plan</b> is what every build needs. <b>Builds</b> is the queue and its priority. <b>Inventory</b> is what you own. <b>Tree</b> shows why a build needs a thing. <b>Workshop</b> is where you craft and enhance. <b>To Get</b> is the shopping list. <b>Map</b> charts the barterers. <b>Quests</b> is what the sea hands out for free. <b>Crew</b> is the hull\'s own numbers and the sailors to fill it.',
 					side: 'bottom'
 				}
 			},

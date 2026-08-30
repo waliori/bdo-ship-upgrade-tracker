@@ -21,7 +21,6 @@ import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
 import { allItems } from './ui-bits.js';
 import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
-import { questById } from './quests.js';
 import { paintPouch, measurePouch } from './pouch.js';
 import { hidePeek, wirePeek } from './peek.js';
 import { openGuide, wireGuide } from './guide.js';
@@ -31,6 +30,8 @@ import { renderInventory } from './screen-inventory.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements } from './screen-workshop.js';
 import { renderCrew, crewAction, crewChange } from './screen-crew.js';
+import { renderQuests, questAction } from './screen-quests.js';
+import { questsFor } from './quests.js';
 import { renderGet, shoppingText } from './screen-get.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
@@ -48,6 +49,7 @@ const TABS = [
 	{ id: 'workshop', label: 'Workshop' },
 	{ id: 'get', label: 'To Get' },
 	{ id: 'map', label: 'Map' },
+	{ id: 'quests', label: 'Quests' },
 	{ id: 'crew', label: 'Crew' }
 ];
 
@@ -69,7 +71,9 @@ export function render() {
 		// Anything actionable: a recipe you can make, or an enhancement
 		// attempt you hold the part and the stones for.
 		workshop: readyCrafts().length + pendingEnhancements().filter(e => !e.blocked).length,
-		get: Object.keys(snapshot.missing).length
+		get: Object.keys(snapshot.missing).length,
+		// The quests that pay in something the plan is short of.
+		quests: questsFor(snapshot.missing).length
 	};
 
 	// A tablist for the keyboard: the active tab is the one Tab stop,
@@ -107,6 +111,7 @@ export function render() {
 	else if (view === 'workshop') root.innerHTML = renderWorkshop();
 	else if (view === 'map') root.innerHTML = renderMap();
 	else if (view === 'crew') root.innerHTML = renderCrew();
+	else if (view === 'quests') root.innerHTML = renderQuests();
 	else root.innerHTML = renderGet();
 	restoreFocus(root, focus);
 	// The map draws itself after the shell exists, since it has to
@@ -407,16 +412,6 @@ function wire() {
 			case 'map-follow': mapFollowToggle(); return;
 			case 'map-port': mapPortClick(Number(el.dataset.port)); return;
 			case 'goto-map': mapShowItem(el.dataset.item); showView('map'); return;
-			case 'quest-claim': {
-				const q = questById[el.dataset.quest];
-				if (!q) return;
-				const delta = { ...q.rewards };
-				const pick = q.choice && q.choice[Number(el.dataset.choice)];
-				if (pick) for (const [item, n] of Object.entries(pick)) delta[item] = (delta[item] || 0) + n;
-				store.applyDelta(delta, 'quest', `Claimed ${q.name}`);
-				toast(`Recorded the reward for ${q.name}`, true);
-				return;
-			}
 			case 'plan-filter': setPlanFilter(el.dataset.id); return render();
 			case 'tree-pick': return pickTreeTarget();
 			case 'tree-target': setTreeTarget(el.dataset.item); closeDialog(); return render();
@@ -520,6 +515,16 @@ function wire() {
 						: dropped ? `${base} fell to +${level - 2} — no Crons on the attempt`
 						: `Failed attempt at +${level} ${base}`
 				);
+				// The failstack moves with the attempt: a failure adds one
+				// (Crons or not), a success spends the stack, and the next
+				// level starts from its own recommended one.
+				const tier = (tableFor(base) || { levels: [] }).levels[level - 1];
+				if (tier && tier.base) {
+					const stacks = { ...(store.getProfile('failstacks', {}) || {}) };
+					if (ok) delete stacks[base];
+					else stacks[base] = (stacks[base] ?? tier.stack) + 1;
+					store.setProfile('failstacks', stacks);
+				}
 				if (dropped) {
 					toast(`${base} fell to +${level - 2} — the Crons stayed in your pocket`, true);
 					return;
@@ -559,6 +564,7 @@ function wire() {
 				// The Crew screen owns its own verbs; most change the save
 				// (and repaint through it), the rest are session state.
 				if (act.startsWith('crew-') && crewAction(act, el)) return render();
+				if (act.startsWith('quest-') && questAction(act, el)) return render();
 		}
 	});
 
@@ -610,7 +616,11 @@ function wire() {
 		else if (el.dataset.act === 'barter-count') store.setProfile('barterCount', n);
 		else if (el.dataset.act === 'vouchers') store.setProfile('vouchers', n);
 		else if (el.dataset.act === 'parley-held') store.setProfile('parleyHeld', n);
-		else if (el.dataset.act === 'failstacks') store.setProfile('failstacks', n);
+		else if (el.dataset.act === 'failstacks') {
+			const stacks = { ...(store.getProfile('failstacks', {}) || {}) };
+			stacks[el.dataset.base] = n;
+			store.setProfile('failstacks', stacks);
+		}
 		else store.setStock(el.dataset.item, n);
 	});
 

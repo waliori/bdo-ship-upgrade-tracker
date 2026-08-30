@@ -2828,3 +2828,30 @@ select.purse-inline { width: auto; cursor: pointer; }
   .seat-bar.static { width: auto; margin: 4px 0 6px; text-align: left; padding: 3px 8px; }
   .crew-stats .stat { flex: 1 1 45%; }
 }
+.enh-fs { display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; font-size: 11px; color: var(--ink-mute); white-space: nowrap; }
+.enh-fs .purse-inline.narrow { width: 52px; }
+.enh-fs-note { color: var(--ink-faint); }
+
+/* ---- Quests ---------------------------------------------------------- */
+.quest { display: flex; gap: 14px; align-items: flex-start; padding: 12px 22px; border-top: 1px solid rgba(125, 175, 225, 0.08); }
+.quest.wanted { background: rgba(88, 196, 196, 0.05); }
+.quest-main { flex: 1; min-width: 0; }
+.quest-name { font-weight: 600; color: var(--ink-hi); }
+.quest-tag { margin-left: 8px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); }
+.quest-where { font-size: 12px; color: var(--ink-mute); margin: 2px 0 8px; }
+.quest-rewards { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.reward { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 4px; border-radius: 999px; background: rgba(9, 22, 42, 0.7); border: 1px solid var(--line-btn); font-size: 12px; color: var(--ink-dim); }
+.reward.wanted { border-color: rgba(88, 196, 196, 0.5); color: var(--ink-hi); }
+.reward b { color: var(--ink-hi); font-weight: 600; }
+.reward-icon { width: 20px; height: 20px; border-radius: 4px; }
+.quest-or { font-size: 11px; color: var(--ink-faint); font-style: italic; }
+.quest-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex: none; }
+.quest-total { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 12px 22px 16px; border-top: 1px solid rgba(125, 175, 225, 0.08); font-size: 12px; color: var(--ink-mute); }
+.get-quests { margin: 0 0 14px; font-size: 12.5px; color: var(--ink-mute); }
+@media (max-width: 640px) {
+  .quest { flex-direction: column; gap: 8px; }
+  .quest-actions { flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
+}
+/* A yellow row has three verdicts; they wrap inside their column rather
+   than shoving the column under the row. */
+.enh-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 250px; }

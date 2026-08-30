@@ -8,6 +8,7 @@ import { recipes, snapshot, query, readyCrafts } from './ui-state.js';
 import { parseEnhanced, enhancedName, enhanceStep, ownedLevel, enhancementForecast } from './planner.js';
 import { massProcess } from './vendor_items.js';
 import { gainAt, describeStats } from './part_stats.js';
+import { tableFor } from './enhancement.js';
 
 /**
  * Every part worth an enhancement attempt: the ones a build is waiting
@@ -59,9 +60,10 @@ export function attemptsFor(base, stoneName) {
 
 export function pendingEnhancements() {
 	const stock = store.getAllStock();
-	// The failstack the player takes into a yellow attempt; the quoted
-	// stack when they have not said. Only the yellow table listens.
-	const failstacks = Number(store.getProfile('failstacks', 0)) || null;
+	// The failstack each yellow part carries into its next attempt: the
+	// one recorded for it, else the stack the quoted rate assumes for
+	// that level (the recommended one). Only the yellow table listens.
+	const carried = store.getProfile('failstacks', {}) || {};
 	const targets = new Map();
 
 	// Levels a build is asking for.
@@ -86,6 +88,10 @@ export function pendingEnhancements() {
 
 		const step = enhanceStep(base, have + 1);
 		if (!step) continue;
+		const table = tableFor(base);
+		const row = table && table.levels[have];
+		const recommended = row && row.base ? row.stack : null;
+		const failstacks = recommended === null ? null : (carried[base] ?? recommended);
 
 		// Yellow gear spends Cron Stones alongside the enhancement stone,
 		// so an attempt costs a list, not one thing.
@@ -105,6 +111,9 @@ export function pendingEnhancements() {
 			want,
 			forecast: enhancementForecast(base, have, want, failstacks),
 			step1: enhancementForecast(base, have, have + 1, failstacks),
+			failstacks,
+			recommended,
+			carriedStack: carried[base] !== undefined,
 			// Yellow gear only: the same attempt without Cron Stones, for
 			// the third button.
 			canDrop: Boolean(step.onFailureDropped),
@@ -178,7 +187,11 @@ export function renderWorkshop() {
 				<div class="row-sub" ${e.blocked ? 'style="color:var(--red)"' : ''}>${esc(e.note)}</div>
 			</div>
 			<span class="enh-level">+${e.have} → +${e.next}${e.gain ? `<span class="enh-gain" title="What +${e.next} adds over +${e.have}">${esc(e.gain)}</span>` : ''}</span>
-			<span class="enh-cost">${e.costs.map(([n, q]) => `${img(n, '')}×${F(q)}`).join('')}${odds(e)}</span>
+			<span class="enh-cost">${e.costs.map(([n, q]) => `${img(n, '')}×${F(q)}`).join('')}${odds(e)}${e.recommended !== null ? `
+				<label class="enh-fs" title="The failstack this part carries into its next attempt. Starts at the stack the quoted rate assumes (${e.recommended}); each failure recorded here adds one, a success resets it for the next level. Type to correct it.">
+					FS ${amountInput('purse-inline narrow', e.failstacks, `data-act="failstacks" data-base="${esc(e.base)}" aria-label="Failstack for ${esc(e.base)}"`)}
+					<span class="enh-fs-note">${e.carriedStack ? `recommended ${e.recommended}` : 'recommended'}</span>
+				</label>` : ''}</span>
 			${outlook(e)}
 			${e.log.won + e.log.lost ? `<span class="enh-log" title="From the undo history, which keeps the last two hundred changes">${e.log.won} won · ${e.log.lost} lost · ${F(e.log.stones)} ${esc(e.stoneName)} spent</span>` : ''}
 			<span class="enh-actions">
@@ -209,11 +222,7 @@ export function renderWorkshop() {
 			<h2 class="panel-title">Enhancement</h2>
 			<span class="panel-sub">Everything you own that can go higher. Record what happened — the materials are spent either way. Blue and green parts keep their level on a failure; yellow ones fall a level unless Cron Stones held it, so a yellow row has both failures to choose from</span>
 		</div>
-		${enhRows ? `<div class="controls">
-			<label class="inline-check" title="The yellow tier's odds scale with the failstack you bring; every other tier's rate is fixed. 0 means the stack the quoted rates assume.">
-				Failstacks ${amountInput('purse-inline', store.getProfile('failstacks', 0) || 0, 'data-act="failstacks" aria-label="The failstack you enhance yellow parts at"')}
-			</label>
-		</div>` : ''}
+
 		${enhRows || `<p class="empty">${q
 			? 'No enhanceable part matches that search.'
 			: 'Nothing in your inventory can be enhanced. Add a ship part and it will show up here.'}</p>`}

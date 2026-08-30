@@ -4,7 +4,7 @@
 
 import { items as vendorItems, bulkExchanges } from './vendor_items.js';
 import { marketSilver, marketStatus, REGIONS as MARKET_REGIONS } from './market.js';
-import { quests, questsFor } from './quests.js';
+import { questsFor } from './quests.js';
 import { coins } from './sea_coins.js';
 import { falasi } from './falasi_vendor.js';
 import {
@@ -258,38 +258,11 @@ export function renderGet() {
 		</div>`;
 	}).join('');
 
-	return summary + controls + body + questsPanel();
-}
-
-/**
- * The quests that pay in what you are short of, first; the rest after.
- * "Claimed" puts the reward in stock the way a craft does -- one press,
- * one undoable change -- because a letter opened in the game is stock
- * the plan should know about the moment it lands.
- */
-function questsPanel() {
-	const relevant = new Set(questsFor(snapshot.missing).map(q => q.id));
-	const ordered = [...quests].sort((a, b) => Number(relevant.has(b.id)) - Number(relevant.has(a.id)));
-	const line = rewards => Object.entries(rewards).map(([item, n]) => `${F(n)}× ${item}`).join(', ');
-	const rows = ordered.map(q => `<div class="row quest-row${relevant.has(q.id) ? ' on' : ''}" data-peek="">
-		<div class="row-main">
-			<div class="row-name">${esc(q.name)}</div>
-			<div class="row-sub">${esc(q.where)} · ${esc(q.repeat)}${q.note ? ` · ${esc(q.note)}` : ''}</div>
-			<div class="row-sub quest-rewards">${esc(line(q.rewards))}${q.choice ? ` · and one of: ${q.choice.map(c => esc(line(c))).join(' / ')}` : ''}</div>
-		</div>
-		<span class="enh-actions">
-			${q.choice
-				? q.choice.map((c, i) => `<button class="pill-btn" data-act="quest-claim" data-quest="${esc(q.id)}" data-choice="${i}">Claimed + ${esc(line(c))}</button>`).join('')
-				: `<button class="pill-btn" data-act="quest-claim" data-quest="${esc(q.id)}">Claimed</button>`}
-		</span>
-	</div>`).join('');
-	return `<div class="panel">
-		<div class="panel-head">
-			<h2 class="panel-title teal">Free from quests</h2>
-			<span class="panel-sub">What the sea hands out: the ones that pay in something you are short of come first. Claimed records the reward in your stock</span>
-		</div>
-		${rows}
-	</div>`;
+	// The quests that pay in what is short are a screen of their own; a
+	// line here says how many, so the list is not read as the whole story.
+	const free = questsFor(snapshot.missing).length;
+	const hint = free ? `<p class="get-quests"><button class="linky" data-act="view" data-id="quests">${free} quest${free === 1 ? '' : 's'} pay in something on this list</button> — Quests records a claimed reward in your stock.</p>` : '';
+	return summary + controls + hint + body;
 }
 
 export function shoppingText() {
@@ -299,4 +272,3 @@ export function shoppingText() {
 		.map(([item, q]) => `${Math.round(q)}× ${item}`)
 		.join('\n');
 }
-

@@ -9,9 +9,10 @@
 // quest pages; the Oquilla's Eye dailies from the community guides,
 // which the codex pages did not render).
 //
-// Each entry names what completing it puts in your bags. The To Get
-// screen lists them beside the shortfall and records a reward with one
-// press, so a claimed letter lands in stock like a craft does.
+// Each entry names what completing it puts in your bags. The Quests
+// screen groups them by how often they can be done, and records a
+// reward with one press, so a claimed letter lands in stock like a
+// craft does.
 
 export const quests = [
 	{
@@ -155,6 +156,11 @@ export const quests = [
 ];
 
 export const questById = Object.fromEntries(quests.map(q => [q.id, q]));
+
+/** How often a quest can be done: 'daily', 'weekly' or 'once'. */
+export function cadenceOf(q) {
+	return q.repeat.startsWith('daily') ? 'daily' : q.repeat.startsWith('weekly') ? 'weekly' : 'once';
+}
 
 /** The quests whose rewards touch anything in `wanted` (a shortfall map). */
 export function questsFor(wanted) {
