@@ -278,6 +278,17 @@ function waterOff() {
 	water = null;
 }
 
+// The dialog's veil blurs the whole viewport, water included, and a
+// blur over a canvas that redraws every frame is a full-screen
+// re-blur every frame. Hold the water still while a dialog is up.
+document.addEventListener('dialog-toggle', evt => {
+	if (!water) return;
+	try {
+		if (evt.detail.open) water.pause();
+		else water.play();
+	} catch { /* the shader is decorative */ }
+});
+
 function syncWaterButton() {
 	const btn = document.getElementById('water-btn');
 	if (!btn) return;

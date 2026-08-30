@@ -21,7 +21,26 @@ function putAway() {
 	peekTimer = null;
 	peekOn = null;
 	const host = document.getElementById('peek');
-	if (host) host.hidden = true;
+	if (host && !host.hidden) host.hidden = true;
+}
+
+/** Whether a card is up, or about to be. */
+function peekLive() {
+	const host = document.getElementById('peek');
+	return !!(peekTimer || peekOn || (host && !host.hidden));
+}
+
+/**
+ * A scroll puts the card away and leaves it there. Re-arming from
+ * under the pointer here would run elementFromPoint -- a forced
+ * layout -- on every scroll tick and pop cards up mid-scroll, which
+ * read as the page flickering; and when nothing is showing there is
+ * nothing to do at all.
+ */
+function onScroll() {
+	if (!peekLive()) return;
+	clearTimeout(rearmTimer);
+	putAway();
 }
 
 export function hidePeek() {
@@ -109,7 +128,7 @@ export function wirePeek() {
 			evt.target.closest ? evt.target.closest('[data-peek]') : null,
 			evt.relatedTarget
 		));
-	document.addEventListener('scroll', hidePeek, true);
+	document.addEventListener('scroll', onScroll, true);
 	window.addEventListener('blur', hidePeek);
 
 	// Escape puts the card away for good -- no re-arm, or it would be

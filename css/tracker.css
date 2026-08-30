@@ -6,6 +6,15 @@
   --ocean-deep: #0a1728;
   --ocean-mid: #0f2847;
   --ocean-surface: #1e3a8a;
+  --ocean-gradient:
+    radial-gradient(circle at 30% 20%, rgba(14, 165, 233, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 70% 60%, rgba(59, 130, 246, 0.10) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+    linear-gradient(180deg,
+      var(--ocean-deep) 0%,
+      var(--ocean-mid) 30%,
+      var(--ocean-surface) 60%,
+      var(--ocean-mid) 100%);
   --panel: rgba(10, 24, 40, 0.66);
   --panel-solid: rgba(10, 24, 40, 0.9);
   --panel-strong: rgba(10, 24, 40, 0.75);
@@ -73,24 +82,30 @@ html {
   margin: 0;
   padding: 0;
   background-color: var(--ocean-deep);
-  background-image:
-    radial-gradient(circle at 30% 20%, rgba(14, 165, 233, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 70% 60%, rgba(59, 130, 246, 0.10) 0%, transparent 50%),
-    radial-gradient(circle at 40% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
-    linear-gradient(180deg,
-      var(--ocean-deep) 0%,
-      var(--ocean-mid) 30%,
-      var(--ocean-surface) 60%,
-      var(--ocean-mid) 100%);
+  background-image: var(--ocean-gradient);
   min-height: 100%;
 }
 
-/* With a mouse the gradient stays put and the page scrolls over it, the
-   way it always has. Phones treat a fixed attachment as scroll anyway
-   (and some paint nothing past the first screen), so they get the
-   gradient stretched over the whole page instead. */
+/* With a mouse the gradient stays put and the page scrolls over it.
+   Not with background-attachment: fixed, though: Chrome repaints a
+   fixed root background on every scroll step, and with the blurred
+   panels sampling it -- two of them sticky -- that is a layout and a
+   full repaint per tick, which is the flicker people saw scrolled down.
+   A fixed pseudo-element is its own composited layer and scrolls for
+   free. Phones treat a fixed attachment as scroll anyway (and some
+   paint nothing past the first screen), so they keep the gradient
+   stretched over the whole page instead. */
 @media (hover: hover) and (pointer: fine) {
-  html { background-attachment: fixed; }
+  html { background-image: none; }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background-color: var(--ocean-deep);
+    background-image: var(--ocean-gradient);
+  }
 }
 
 body {
@@ -990,9 +1005,12 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   z-index: 60;
   display: grid;
   place-items: center;
-  background: rgba(3, 9, 16, 0.72);
+  /* A veil, not a blur: blurring the whole viewport makes Chrome
+     re-rasterise every blurred panel underneath the moment a dialog
+     opens, which showed as a flicker; at this opacity the blur was
+     not visible anyway. */
+  background: rgba(3, 9, 16, 0.8);
   padding: 16px;
-  backdrop-filter: blur(3px);
 }
 
 .dialog[hidden] { display: none; }

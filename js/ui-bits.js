@@ -46,8 +46,12 @@ export function iconSrc(name) {
 	return info && info.filename ? `icons/${info.filename}` : 'icon.png';
 }
 
+// Not lazy: a render replaces the whole screen, and a lazy icon below
+// the fold is fetched and decoded again on every one, so the rows
+// flash empty and fill in. The icons are small, served from the
+// service worker's cache, and decoded in the same frame as the row.
 export const img = (name, cls = 'row-icon') =>
-	`<img class="${cls}" src="${esc(iconSrc(name))}" alt="" loading="lazy">`;
+	`<img class="${cls}" src="${esc(iconSrc(name))}" alt="" decoding="sync">`;
 
 /**
  * BDOCodex has a page for every item in the game, and the icon mapping

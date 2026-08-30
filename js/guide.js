@@ -143,7 +143,9 @@ export function wireGuide() {
 	};
 
 	const hide = () => {
-		if (tip) tip.hidden = true;
+		// Called on every scroll tick, so a hidden tip must cost nothing.
+		if (!tip || tip.hidden) return;
+		tip.hidden = true;
 		if (anchor) anchor.removeAttribute('aria-describedby');
 	};
 

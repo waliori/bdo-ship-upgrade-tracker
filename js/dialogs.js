@@ -49,6 +49,7 @@ export function openDialog(html, { onDismiss = null } = {}) {
 	} else {
 		dialogOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 		veilShell(true);
+		document.dispatchEvent(new CustomEvent('dialog-toggle', { detail: { open: true } }));
 	}
 	host.innerHTML = `<div class="dialog-box">${html}</div>`;
 	host.hidden = false;
@@ -70,6 +71,7 @@ export function closeDialog() {
 	host.innerHTML = '';
 	dialogDismiss = null;
 	veilShell(false);
+	document.dispatchEvent(new CustomEvent('dialog-toggle', { detail: { open: false } }));
 	// Focus goes back where it came from, so Escape does not dump a
 	// keyboard user at the top of the page.
 	if (dialogOpener && dialogOpener.isConnected) dialogOpener.focus();
