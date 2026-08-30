@@ -209,3 +209,23 @@ test('writing favourites leaves every loop alone', () => {
 	assert.match(out.text, /PosX="9" PosY="9" PosZ="9"/);
 	assert.match(out.text, /BookMarkName="1: a"/);
 });
+
+import { writeMode, LOOP_SLOTS as SLOTS } from '../js/worldmap.js';
+
+test('choosing the favourites again is always possible', () => {
+	// The favourites option carries an empty value, and Number('') is 0
+	// -- a real loop slot. Coerce first and picking the favourites picks
+	// loop 1 instead, with no way back to them.
+	assert.equal(writeMode(''), 'favorites');
+	assert.equal(writeMode(null), 'favorites');
+	assert.equal(writeMode(undefined), 'favorites');
+	// The loops still are what they say.
+	assert.equal(writeMode('0'), 0);
+	assert.equal(writeMode(0), 0);
+	assert.equal(writeMode('2'), 2);
+	// And nothing beyond them.
+	assert.equal(writeMode(String(SLOTS)), 'favorites');
+	assert.equal(writeMode('-1'), 'favorites');
+	assert.equal(writeMode('1.5'), 'favorites');
+	assert.equal(writeMode('nonsense'), 'favorites');
+});

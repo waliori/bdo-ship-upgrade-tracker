@@ -34,6 +34,20 @@ const PATH_SCALE = 1e6;
 /** The game keeps three saved loops, on Index 0, 1 and 2. */
 export const LOOP_SLOTS = 3;
 
+/**
+ * What a control's value means: the favourites, or one of the loops.
+ *
+ * The empty string is the favourites, and it has to be checked before
+ * the number is taken -- Number('') is 0, which is a perfectly good
+ * loop slot, so coercing first makes "favourites" mean "loop 1" and
+ * leaves no way back to the favourites at all.
+ */
+export function writeMode(value) {
+	if (value === null || value === undefined || value === '') return 'favorites';
+	const n = Number(value);
+	return Number.isInteger(n) && n >= 0 && n < LOOP_SLOTS ? n : 'favorites';
+}
+
 /** The map's Favorites list holds five named bookmarks. */
 export const BOOKMARK_SLOTS = 5;
 /** The map also keeps ten camera positions, on the number keys. */

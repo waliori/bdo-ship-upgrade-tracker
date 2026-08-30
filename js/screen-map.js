@@ -16,7 +16,7 @@ import {
 import { npcs, npcById, ports } from './barter_npcs.js';
 import { quests } from './quests.js';
 import { openDialog } from './dialogs.js';
-import { bookmarkXML, BOOKMARK_SLOTS, CAMERA_SLOTS, LOOP_SLOTS, FILE_HINT } from './worldmap.js';
+import { bookmarkXML, writeMode, BOOKMARK_SLOTS, CAMERA_SLOTS, LOOP_SLOTS, FILE_HINT } from './worldmap.js';
 import { canWriteFiles, gameFolderName, previousBlock } from './gamefile.js';
 import { parleyPerTrade, PARLEY, GOODS } from './barter.js';
 import { snapshot, barterData, barterProfile, view } from './ui-state.js';
@@ -1474,8 +1474,7 @@ export function gameBookmarks() {
 }
 
 export function setGameWrite(value) {
-	const n = Number(value);
-	gameWrite = Number.isInteger(n) && n >= 0 && n < LOOP_SLOTS ? n : 'favorites';
+	gameWrite = writeMode(value);
 }
 
 /**
