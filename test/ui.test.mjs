@@ -209,3 +209,49 @@ test('a sea crystal is chosen by grade and shows on the ship card', async () => 
 	assert.deepEqual(errors, []);
 	await context.close();
 });
+
+test('habitat markers follow a pan, hide and return once, and the Lyngbakr stands alone', async () => {
+	const { page, context, errors } = await open('#map');
+	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: false, habitatsOn: true })); });
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('#pouch .pouch-item'); await wait(1500);
+	const marker = () => page.evaluate(() => { const e = document.querySelector('.map-habitat:not([hidden])'); return e ? [e.dataset.key, e.style.left] : null; });
+	const pin = () => page.evaluate(() => { const e = document.querySelector('[data-act="map-pin"]:not([hidden])'); return e ? e.style.left : null; });
+	const before = { m: await marker(), p: await pin() };
+	// A drag on open sea: a spot inside the box that no pin, marker or
+	// panel sits on -- the chart's furniture takes its own gestures.
+	const spot = await page.evaluate(() => {
+		const box = document.getElementById('map').getBoundingClientRect();
+		const furniture = '[data-act="map-pin"], [data-act="map-port"], .map-habitat, .map-side, .map-side-pill, .map-tip, .map-mini, .map-steps, .map-wharf';
+		for (let y = 0.2; y < 0.9; y += 0.1) for (let x = 0.2; x < 0.95; x += 0.1) {
+			const px = box.left + box.width * x, py = box.top + box.height * y;
+			const el = document.elementFromPoint(px, py);
+			if (el && el.closest('[data-map]') && !el.closest(furniture)) return { x: px, y: py };
+		}
+		return null;
+	});
+	assert.ok(spot, 'some open sea to drag');
+	await page.mouse.move(spot.x, spot.y); await page.mouse.down();
+	await page.mouse.move(spot.x - 220, spot.y - 140, { steps: 6 }); await page.mouse.up(); await wait(400);
+	const after = { m: await marker(), p: await pin() };
+	assert.notEqual(after.p, before.p, 'the pins moved');
+	assert.notEqual(after.m[1], before.m[1], 'the markers moved with them');
+	const keys = () => page.evaluate(() => [...document.querySelectorAll('.map-habitat')].map(e => e.dataset.key));
+	const once = await keys();
+	assert.equal(new Set(once).size, once.length, 'one element per marker');
+	await page.click('[data-act="map-panel"]'); await wait(300);
+	await page.click('[data-act="map-habitats"]'); await wait(200);
+	assert.equal(await page.evaluate(() => [...document.querySelectorAll('.map-habitat')].filter(e => !e.hidden).length), 0, 'hidden');
+	await page.click('[data-act="map-habitats"]'); await wait(300);
+	const again = await keys();
+	assert.equal(new Set(again).size, again.length, 'still one element per marker');
+	// The Lyngbakr ground is its own: no Nineshark or Black Rust marker within a few kilometres.
+	const clash = await page.evaluate(async () => {
+		const { monsters } = await import('/js/sea_monsters.js');
+		const ly = monsters.find(m => m.key === 'lyngbakr');
+		const cx = ly.points.reduce((a, p) => a + p[0], 0) / ly.points.length, cy = ly.points.reduce((a, p) => a + p[1], 0) / ly.points.length;
+		return monsters.filter(m => ['nineshark', 'black-rust'].includes(m.key)).flatMap(m => m.points).filter(([x, y]) => Math.hypot(x - cx, y - cy) < 8000).length;
+	});
+	assert.equal(clash, 0);
+	assert.deepEqual(errors, []);
+	await context.close();
+});

@@ -3265,7 +3265,6 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .dialog-box { overflow-x: hidden; }
 
 /* ---- The chart: habitat markers and the currents ---- */
-.map-currents { position: absolute; z-index: 1; opacity: 0.62; pointer-events: none; mix-blend-mode: screen; }
 .map-habitat { position: absolute; transform: translate(-50%, -50%); z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 2px; border: 0; background: none; color: #f3e35a; font: inherit; cursor: pointer; text-shadow: 0 1px 4px #000, 0 0 8px rgba(0, 0, 0, 0.8); }
 .map-habitat-pic { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8)); transition: transform 0.15s; }
 .map-habitat:hover .map-habitat-pic, .map-habitat.on .map-habitat-pic { transform: scale(1.12); }

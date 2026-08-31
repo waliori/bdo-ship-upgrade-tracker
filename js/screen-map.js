@@ -17,7 +17,6 @@ import { seaRoute } from './searoute.js';
 import { wharves, nearestWharf } from './wharves.js';
 import { habitatsOf, habitatsOfMany } from './habitats.js';
 import { monsterArt } from './monster_art.js';
-import { CURRENTS } from './currents.js';
 import { gradeById } from './crystals.js';
 import { quests } from './quests.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
@@ -56,7 +55,6 @@ let coursesOn = [];           // community courses drawn beneath the route, by i
 let huntsOn = [];             // sea monster grounds shown, by species key
 let wharvesOn = [];           // 'wharf' and/or 'guild': the wharf managers drawn
 let habitatsOn = true;        // the game's habitat markers: a picture per species' ground
-let currentsOn = false;       // the community's current tracing, over the sea
 let follow = true;            // the step player flies the camera along
 let stepIdx = 0;              // which stop the step player is on
 let stepKey = '';             // the route it was on, to reset when it changes
@@ -96,7 +94,6 @@ function restore() {
 		if (Array.isArray(s.huntsOn)) huntsOn = s.huntsOn.filter(k => monsterByKey[k]);
 		if (Array.isArray(s.wharvesOn)) wharvesOn = s.wharvesOn.filter(k => k === 'wharf' || k === 'guild');
 		habitatsOn = s.habitatsOn !== false;
-		currentsOn = s.currentsOn === true;
 		if (s.tradesMode === 'all') tradesMode = 'all';
 		miniOn = s.miniOn !== false;
 		if (s.miniPos && Number.isFinite(s.miniPos.x) && Number.isFinite(s.miniPos.y)) miniPos = { x: s.miniPos.x, y: s.miniPos.y };
@@ -111,7 +108,7 @@ function restore() {
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, currentsOn, tradesMode, savedRoutes, miniOn, miniPos }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, tradesMode, savedRoutes, miniOn, miniPos }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -288,10 +285,6 @@ function huntHTML() {
 		<button class="map-course${habitatsOn ? ' on' : ''}" data-act="map-habitats" aria-pressed="${habitatsOn}">
 			<span class="map-course-dot" style="background:#ffd77a"></span>
 			<span class="map-row-main"><span class="map-row-name">Habitat markers</span><span class="map-row-sub">a picture where each species lives, as the game's map shows them</span></span>
-		</button>
-		<button class="map-course${currentsOn ? ' on' : ''}" data-act="map-currents" aria-pressed="${currentsOn}" title="${esc(CURRENTS.credit)}">
-			<span class="map-course-dot" style="background:#4aa8ff"></span>
-			<span class="map-row-main"><span class="map-row-name">Currents</span><span class="map-row-sub">the community's tracing of the game's currents — where the water runs, by speed</span></span>
 		</button>
 		<div class="map-courses-head">Landmarks <span class="map-courses-credit">the client's own positions, via Flockenberger's waypoints</span></div>
 		${landmarks}
@@ -1098,11 +1091,11 @@ export function paintMap() {
 
 	paintTiles(layer, tiles, size);
 	paintPins(layer, pins, marks, currentId);
-	paintPorts(layer, size);
-	paintCurrents(layer, size);
-	paintWharves(layer, size);
-	paintHunt(layer, size);
-	paintHabitats(layer, size);
+	// Each layer on its own: a fault in one must not leave the rest of
+	// the chart unpainted under the pointer.
+	for (const step of [paintPorts, paintWharves, paintHunt, paintHabitats]) {
+		try { step(layer, size); } catch (err) { console.warn('[map]', step.name, err); }
+	}
 	paintCourse(layer, size);
 	paintRoute(layer, size, marks);
 	paintMeasure(layer, size);
@@ -1369,27 +1362,6 @@ function paintPorts(layer, size) {
 	}
 }
 
-/** The community's current tracing, stretched over the sea it was traced on. */
-function paintCurrents(layer, size) {
-	let el = layer._currents;
-	if (!currentsOn) { if (el) el.hidden = true; return; }
-	if (!el) {
-		el = layer._currents = document.createElement('img');
-		el.className = 'map-currents';
-		el.src = CURRENTS.src;
-		el.alt = '';
-		el.title = CURRENTS.credit;
-		layer.appendChild(el);
-	}
-	const a = project(mapState, size, CURRENTS.x0, CURRENTS.y0);
-	const b = project(mapState, size, CURRENTS.x1, CURRENTS.y1);
-	el.hidden = false;
-	el.style.left = `${Math.round(a.left)}px`;
-	el.style.top = `${Math.round(a.top)}px`;
-	el.style.width = `${Math.round(b.left - a.left)}px`;
-	el.style.height = `${Math.round(b.top - a.top)}px`;
-}
-
 const habitatCache = new Map();
 function habitats(m) {
 	if (!habitatCache.has(m.key)) habitatCache.set(m.key, habitatsOf(m.points));
@@ -1423,7 +1395,9 @@ function habitatMarkers() {
 
 /** A picture at each ground, named the way the game names it. */
 function paintHabitats(layer, size) {
-	const pool = layer._habitatEls || (layer._habitatEls = new Map());
+	// The pool is read back from the layer itself, so a marker can never
+	// be drawn twice however the layer was rebuilt.
+	const pool = new Map([...layer.querySelectorAll('.map-habitat')].map(el => [el.dataset.key, el]));
 	for (const mk of habitatMarkers()) {
 		let el = pool.get(mk.key);
 		const at = project(mapState, size, mk.x, mk.y);
@@ -1433,6 +1407,7 @@ function paintHabitats(layer, size) {
 		if (!el) {
 			el = document.createElement('button');
 			el.className = `map-habitat ${mk.kind}`;
+			el.dataset.key = mk.key;
 			el.dataset.act = 'map-hunt';
 			el.dataset.id = mk.keys.join(',');
 			el.title = `${mk.sub} — ${mk.n} spawn point${mk.n === 1 ? '' : 's'} here · click to show or hide them`;
@@ -1634,7 +1609,7 @@ export function wireMap() {
 
 	// The panel, the card, the minimap: furniture on top of the sea.
 	// A gesture that starts on them is for them, not for the chart.
-	const FURNITURE = '[data-act="map-pin"], [data-act="map-port"], .map-side, .map-side-pill, .map-tip, .map-mini, .map-steps';
+	const FURNITURE = '[data-act="map-pin"], [data-act="map-port"], .map-habitat, .map-side, .map-side-pill, .map-tip, .map-mini, .map-steps';
 
 	let pressed = null;           // where the last pointer went down, to tell a click from a drag
 
@@ -1974,13 +1949,6 @@ export function setMapStart(portId) {
 /** Switch a community course on, or off again by choosing it twice. */
 export function setMapHabitats() {
 	habitatsOn = !habitatsOn;
-	persist();
-	refreshSide();
-	paintMap();
-}
-
-export function setMapCurrents() {
-	currentsOn = !currentsOn;
 	persist();
 	refreshSide();
 	paintMap();
