@@ -13,11 +13,13 @@ import {
 	createMap, frame, marksFor, pan, zoomAt, clampView, fitTo,
 	routeFor, routePath, project, placeTile, zoomRange
 } from './map.js';
-import { npcs, npcById, ports } from './barter_npcs.js';
+import { npcs, npcById, ports, MAX_ZOOM } from './barter_npcs.js';
 import { seaRoute } from './searoute.js';
 import { quests } from './quests.js';
-import { openDialog } from './dialogs.js';
-import { bookmarkXML, writeMode, BOOKMARK_SLOTS, CAMERA_SLOTS, LOOP_SLOTS, FILE_HINT } from './worldmap.js';
+import { openDialog, closeDialog, toast } from './dialogs.js';
+import * as store from './state.js';
+import { speedPct, legLengths, pathLength, sailSeconds, calibrate, fmtDistance, fmtDuration, DEFAULT_CAL } from './sailing.js';
+import { bookmarkXML, writeMode, BOOKMARK_SLOTS, CAMERA_SLOTS, LOOP_SLOTS, FILE_HINT, toGame } from './worldmap.js';
 import { canWriteFiles, gameFolderName, previousBlock } from './gamefile.js';
 import { parleyPerTrade, PARLEY, GOODS } from './barter.js';
 import { snapshot, barterData, barterProfile, view } from './ui-state.js';
@@ -50,6 +52,11 @@ let huntsOn = [];             // sea monster grounds shown, by species key
 let follow = true;            // the step player flies the camera along
 let stepIdx = 0;              // which stop the step player is on
 let stepKey = '';             // the route it was on, to reset when it changes
+let tradesMode = 'one';       // one | all -- how many trades a stop is costed at
+let savedRoutes = [];         // { name, stops, startPort, returnHome, pick, at }
+const SAVED_MAX = 8;
+let measuring = false;        // the ruler is armed
+let measurePts = [];          // the two ends of a measurement, in world space
 
 /** The barter day: the game's lists refresh at 06:00 UTC, so "today"
  *  rolls over then, not at midnight. */
@@ -73,13 +80,19 @@ function restore() {
 		follow = s.follow !== false;
 		if (Array.isArray(s.coursesOn)) coursesOn = s.coursesOn.filter(id => courseById[id]);
 		if (Array.isArray(s.huntsOn)) huntsOn = s.huntsOn.filter(k => monsterByKey[k]);
+		if (s.tradesMode === 'all') tradesMode = 'all';
+		if (Array.isArray(s.savedRoutes)) {
+			savedRoutes = s.savedRoutes.filter(r => r && typeof r.name === 'string' && Array.isArray(r.stops))
+				.map(r => ({ ...r, name: r.name.slice(0, 40), stops: r.stops.filter(id => npcById.has(id)) }))
+				.filter(r => r.stops.length).slice(0, SAVED_MAX);
+		}
 	} catch { /* a fresh chart, then */ }
 }
 
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, tradesMode, savedRoutes }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -282,14 +295,16 @@ export function renderMap() {
 			<button class="ghost-btn" data-act="map-zoom" data-step="-1" aria-label="Zoom out">−</button>
 			<button class="ghost-btn" data-act="map-zoom" data-step="1" aria-label="Zoom in">+</button>
 			<button class="ghost-btn" data-act="map-fit" aria-label="Fit the marked islands in view">⌖</button>
+			<button class="ghost-btn" data-act="map-measure" aria-pressed="${measuring}" aria-label="Measure a distance" title="Ruler: click two points on the sea">⟷</button>
 		</div>
 	</div>`;
 
-	return head + `<div class="panel map-panel"><div class="map" id="map" data-map>
+	return head + `<div class="panel map-panel"><div class="map${measuring ? ' measuring' : ''}" id="map" data-map>
 		<div class="map-layer" data-map-layer></div>
 		<div class="map-side-slot" data-map-side>${sideHTML(marks)}</div>
 		<div class="map-tip" data-map-tip hidden></div>
 		<div class="map-steps" data-map-steps hidden></div>
+		<div class="map-coords" data-map-coords hidden></div>
 		${miniHTML(marks)}
 	</div></div>`;
 }
@@ -377,67 +392,78 @@ function routeHTML(marks) {
 			<div class="map-side-btns">
 				<button class="ghost-btn" data-act="map-route-revive">Show that again</button>
 				<button class="ghost-btn danger" data-act="map-route-clear">Clear it</button>
-			</div>`;
+			</div>${savedHTML()}`;
 	}
+	const prof = barterProfile();
+	const port = ports.find(p => p.id === startPort);
+	// The line as it is sailed, bent round the land, one leg per stop
+	// (and one more home when the loop closes).
+	const world = seaBent(routeWorld(marks));
+	const legs = legLengths(world);
+	const legTo = k => port ? legs[k] : k > 0 ? legs[k - 1] : null;
+	const speed = routeSpeed();
+	const cal = sailCal();
+	const timeOf = m => speed && m != null ? fmtDuration(sailSeconds(m, speed.total, cal)) : '';
+	const costs = stops.map(id => stopParley(id, marks, prof));
+	const held = prof.parleyHeld;
+	const need = costs.reduce((a, b) => a + b, 0);
+	let afford = 0;
+	for (let acc = 0; afford < costs.length && acc + costs[afford] <= held; afford++) acc += costs[afford];
+	const overBudget = held > 0 && afford > 0 && afford < stops.length;
+
 	const list = stops.map((id, k) => {
 		const n = npcById.get(id);
 		const has = marks.get(id);
-		return `<div class="map-stop-row">
+		const m = legTo(k);
+		const leg = m != null ? `<span class="map-leg">${esc(fmtDistance(m))}${timeOf(m) ? ` · ${esc(timeOf(m))}` : ''}</span>` : '';
+		const over = held > 0 && k >= afford;
+		return `<div class="map-stop-row${over ? ' over' : ''}">
 			<span class="map-stop-n">${k + 1}</span>
 			<span class="map-row-main">
-				<span class="map-row-name">${esc(n.name)}</span>
+				<span class="map-row-name">${esc(n.name)}${leg}</span>
 				<span class="map-row-sub">${esc(n.at)}${has
 					? ' · ' + esc([...has.items.keys()].join(', '))
 					: ' · nothing on your list here'}</span>
+				${cargoLine(id, has)}${over ? `<span class="map-row-sub warn">past what your Parley covers</span>` : ''}
 			</span>
 			<span class="map-row-right">${has ? iconStrip([...has.items.keys()]) : ''}</span>
 			<button class="map-x" data-act="map-stop" data-npc="${id}"
 				aria-label="Remove ${esc(n.name)} from the route">×</button>
 		</div>`;
 	}).join('');
-	const prof = barterProfile();
-	const rateFor = id => {
-		// A marked stop is priced by what you are sailing there for, the
-		// dearest kind first -- that is the trade you will make. A bare
-		// stop is priced by what the island actually deals, which the
-		// barter data knows; only when it deals more than one kind, or
-		// none we know of, does a guess come in, and then the cheaper
-		// one -- an estimate should undersell the route, not pad it.
-		const mm = marks.get(id);
-		if (mm && mm.items.size) {
-			const ks = [...mm.items.keys()].map(barterKind);
-			const kind = ks.includes('material') ? 'material' : ks.includes('coin') ? 'coin' : 'trade';
-			return parleyPerTrade({ ...prof, kind });
-		}
-		const deals = [...new Set(goodsOf(id).map(g => barterKind(g.item)))];
-		const kind = deals.length === 1 ? deals[0]
-			: deals.includes('trade') || !deals.length ? 'trade'
-			: deals.includes('coin') ? 'coin' : 'material';
-		return parleyPerTrade({ ...prof, kind });
-	};
-	const rates = stops.map(rateFor);
-	const held = prof.parleyHeld;
-	const need = rates.reduce((a, b) => a + b, 0);
-	let afford = 0;
-	for (let acc = 0; afford < rates.length && acc + rates[afford] <= held; afford++) acc += rates[afford];
-	const cover = !held ? `one trade each · of ${F(PARLEY.max)}`
-		: held >= need ? `one trade each · your ${F(held)} covers it`
-		: `one trade each · your ${F(held)} covers ${afford}`;
+
+	const cover = !held ? `of ${F(PARLEY.max)}`
+		: held >= need ? `your ${F(held)} covers it`
+		: `your ${F(held)} covers ${afford} of ${stops.length}`;
+	const tradesBtn = m => `<button class="chip tiny ${tradesMode === m ? 'active' : ''}" data-act="map-trades" data-id="${m}"
+		title="${m === 'one' ? 'One exchange at each stop' : 'Every attempt the offer allows at each stop'}">${m === 'one' ? 'one trade' : 'all attempts'}</button>`;
 	// The hold: how many goods of each level the crew's hull can carry
 	// per run. A route is only as long as the deck allows.
 	const hull = shipStats[crewShip()];
 	const hold = hull ? `<div><div class="summary-k">Hold</div><div class="summary-v">${F(hull.weight)} LT</div>
 				<div class="summary-sub">${esc(crewShip())}: ${Math.floor(hull.weight / GOODS[5].weight)} of Lv4–5 · ${Math.floor(hull.weight / GOODS[6].weight)} of Lv6–7 a run</div></div>` : '';
+	const total = pathLength(world);
+	const distance = world.length > 1 ? `<div><div class="summary-k">Distance</div><div class="summary-v">${esc(fmtDistance(total))}</div>
+				<div class="summary-sub">${speed ? `≈ ${esc(timeOf(total))} at ${speed.total}% · ` : ''}100% ≈ ${cal} m/s · <button class="linky" data-act="map-sail-cal">timed a leg?</button></div></div>` : '';
+	const cargo = cargoTile(hull);
 	const stats = stops.length ? `<div class="map-stats">
 			<div><div class="summary-k">Stops</div><div class="summary-v">${stops.length}</div></div>
+			${distance}
 			${hold}
 			<div><div class="summary-k"><span class="gterm" role="button" tabindex="0" data-guide="parley">Parley</span></div><div class="summary-v">${F(need)}</div>
-				<div class="summary-sub">${cover}</div></div>
+				<div class="summary-sub">${cover}</div><div class="chips">${tradesBtn('one')}${tradesBtn('all')}</div></div>
+			${cargo}
 		</div>
+		${overBudget ? `<button class="ghost-btn wide" data-act="map-route-trim" title="Drop the stops past what your Parley covers">Trim to the ${afford} stop${afford === 1 ? '' : 's'} Parley covers</button>` : ''}
 		<div class="map-side-btns">
 			<button class="ghost-btn" data-act="map-route-reverse">⇆ Reverse</button>
-			<button class="ghost-btn" data-act="map-route-export" title="Save this route as a small JSON file to share or bring back later">Export</button>
+			<button class="ghost-btn" data-act="map-route-save" title="Keep this route by name, to come back to">Save…</button>
 			<button class="ghost-btn danger" data-act="map-route-clear">Clear</button>
+		</div>
+		<div class="map-side-btns">
+			<button class="ghost-btn" data-act="map-route-link" title="A link that opens this route on this chart">Copy link</button>
+			<button class="ghost-btn" data-act="map-route-export" title="Save this route as a small JSON file to share or bring back later">Export</button>
+			<button class="ghost-btn" data-act="map-route-import" title="Load a route saved from here">Import</button>
 		</div>
 		<button class="ghost-btn wide" data-act="map-route-game" title="Write these stops into the game's world map as favourites">⚑ Put it on the game's map</button>` : `<div class="map-side-btns"><button class="ghost-btn" data-act="map-route-import" title="Load a route saved from here">Import a route</button></div>`;
 	// Nothing is plotted until you say so; this is the offer, next to
@@ -456,7 +482,369 @@ function routeHTML(marks) {
 		? `<p class="map-hint">No route plotted. Click a pin and “Add stop”, or take the loop below and change it from there.</p>`
 		: `<p class="map-hint">Click a pin, then “Add stop”. The numbers sail in this order.</p>`;
 	return `${empty}
-		${startRow}${seedBtn}<div class="map-list">${list}</div>${stats}`;
+		${startRow}${seedBtn}<div class="map-list">${list}</div>${stats}${savedHTML()}`;
+}
+
+/* ------------------------------------------------------------------ *
+ * what a route costs to sail: time, Parley, and what is in the hold
+ * ------------------------------------------------------------------ */
+
+/**
+ * What one stop costs in Parley. A marked stop is priced by what you
+ * are sailing there for, the dearest kind first -- that is the trade
+ * you will make. A bare stop is priced by what the island actually
+ * deals, which the barter data knows; only when it deals more than one
+ * kind, or none we know of, does a guess come in, and then the cheaper
+ * one -- an estimate should undersell the route, not pad it. Times the
+ * attempts the offer allows, when the route is costed that way.
+ */
+function stopParley(id, marks, prof) {
+	const mm = marks.get(id);
+	let kind;
+	if (mm && mm.items.size) {
+		const ks = [...mm.items.keys()].map(barterKind);
+		kind = ks.includes('material') ? 'material' : ks.includes('coin') ? 'coin' : 'trade';
+	} else {
+		const deals = [...new Set(goodsOf(id).map(g => barterKind(g.item)))];
+		kind = deals.length === 1 ? deals[0]
+			: deals.includes('trade') || !deals.length ? 'trade'
+			: deals.includes('coin') ? 'coin' : 'material';
+	}
+	return parleyPerTrade({ ...prof, kind }) * (tradesMode === 'all' ? triesAt(id, marks) : 1);
+}
+
+/** The speed the route is sailed at: the crew screen's hull, as fitted
+ *  and crewed. */
+function routeSpeed() {
+	const ship = crewShip();
+	const seats = (store.getProfile('seats', {}) || {})[ship] || {};
+	return speedPct(ship, store.getAllStock(), store.getProfile('roster', []) || [], seats);
+}
+
+/** Metres a second at 100%: the player's own figure if they timed a
+ *  leg, else the working estimate. */
+function sailCal() {
+	const v = Number(store.getSetting('sailCal', null));
+	return v > 0 ? v : DEFAULT_CAL;
+}
+
+/** How many exchanges a stop allows for what you are there for: the
+ *  most any of its offers states, two where the codex states none. */
+function triesAt(id, marks) {
+	const mm = marks.get(id);
+	const goods = goodsOf(id).filter(g => !mm || !mm.items.size || mm.items.has(g.item));
+	const t = Math.max(0, ...goods.map(g => Number(g.tries) || 0));
+	return t || 2;
+}
+
+/** The trade goods in the hold right now: name, level, count, weight. */
+function heldGoods() {
+	const out = [];
+	for (const [name, qty] of Object.entries(store.getAllStock())) {
+		const m = /^\[Level (\d)\]/.exec(name);
+		if (!m || !qty) continue;
+		const lv = Number(m[1]);
+		out.push({ name, lv, qty, weight: (GOODS[lv] ? GOODS[lv].weight : 0) * qty });
+	}
+	return out.sort((a, b) => b.lv - a.lv || a.name.localeCompare(b.name));
+}
+
+/** What a stop wants handed over, against what is aboard. */
+function cargoLine(id, has) {
+	if (!has || !has.items.size) return '';
+	const gives = [...new Set([...has.items.values()].flatMap(set => [...set]))].filter(g => /^\[Level/.test(g));
+	if (!gives.length) return '';
+	const aboard = gives.filter(g => store.getStock(g) > 0);
+	return aboard.length
+		? `<span class="map-row-sub ok">aboard: ${esc(aboard.map(g => `${F(store.getStock(g))}× ${g}`).join(', '))}</span>`
+		: `<span class="map-row-sub warn">hands over ${esc(gives.join(' or '))} — none aboard</span>`;
+}
+
+function cargoTile(hull) {
+	const goods = heldGoods();
+	if (!goods.length) return '';
+	const n = goods.reduce((a, g) => a + g.qty, 0);
+	const w = goods.reduce((a, g) => a + g.weight, 0);
+	const overW = hull && w > hull.weight;
+	return `<div><div class="summary-k">Cargo</div><div class="summary-v${overW ? ' amber' : ''}">${F(n)} goods</div>
+		<div class="summary-sub">${F(w)} LT${hull ? ` of ${F(hull.weight)}` : ''} · ${esc(goods.map(g => `${F(g.qty)}× Lv${g.lv}`).join(', '))}</div></div>`;
+}
+
+/* ------------------------------------------------------------------ *
+ * routes kept by name
+ * ------------------------------------------------------------------ */
+
+function savedHTML() {
+	if (!savedRoutes.length) return '';
+	const rows = savedRoutes.map((r, i) => `<div class="map-saved-row">
+		<button class="map-row saved" data-act="map-route-load" data-i="${i}" title="Plot this route${r.pick ? ` (for ${esc(r.pick)})` : ''}">
+			<span class="map-row-main"><span class="map-row-name">${esc(r.name)}</span>
+			<span class="map-row-sub">${r.stops.length} stop${r.stops.length === 1 ? '' : 's'}${r.pick ? ` · ${esc(r.pick)}` : ''}${r.startPort && ports.find(p => p.id === r.startPort) ? ` · from ${esc(ports.find(p => p.id === r.startPort).name)}` : ''}</span></span>
+		</button>
+		<button class="map-x" data-act="map-route-del" data-i="${i}" aria-label="Forget ${esc(r.name)}">×</button>
+	</div>`).join('');
+	return `<div class="map-saved"><div class="summary-k">Saved routes</div>${rows}</div>`;
+}
+
+function keepRoute(name, ids = stops) {
+	if (!ids.length) return;
+	const entry = { name, stops: [...ids], startPort, returnHome, pick: stopsPick || '', at: new Date().toISOString().slice(0, 10) };
+	savedRoutes = [entry, ...savedRoutes.filter(r => r.name !== name)].slice(0, SAVED_MAX);
+}
+
+/** A plot that is about to be replaced is kept as "Previous route"
+ *  rather than thrown away -- one click to make is no reason to lose
+ *  twenty minutes of choosing. */
+function stashRoute() {
+	if (stops.length > 1) keepRoute('Previous route');
+}
+
+export function saveRouteDialog() {
+	if (!stops.length) return;
+	const host = openDialog(`
+		<h2>Keep this route</h2>
+		<p class="dialog-copy">${stops.length} stop${stops.length === 1 ? '' : 's'}${stopsPick ? ` for ${esc(stopsPick)}` : ''}. Up to ${SAVED_MAX} routes are kept on this browser; the game itself keeps three loops.</p>
+		<input class="field" type="text" maxlength="40" placeholder="A name — “Tuesday coral run”" data-route-name>
+		<div class="dialog-actions">
+			<button class="ghost-btn" data-close>Cancel</button>
+			<button class="act" data-route-save>Save</button>
+		</div>`);
+	const input = host.querySelector('[data-route-name]');
+	input.focus();
+	const save = () => {
+		const name = input.value.trim();
+		if (!name) return toast('Give it a name');
+		keepRoute(name);
+		persist();
+		closeDialog();
+		refreshSide();
+		toast(`Kept as “${name}”`);
+	};
+	host.querySelector('[data-route-save]').addEventListener('click', save);
+	input.addEventListener('keydown', evt => { if (evt.key === 'Enter') save(); });
+}
+
+export function loadSavedRoute(i) {
+	const r = savedRoutes[i];
+	if (!r) return;
+	if (stops.length && stops.join('.') !== r.stops.join('.')) stashRoute();
+	stops = r.stops.filter(id => npcById.has(id));
+	startPort = ports.some(p => p.id === r.startPort) ? r.startPort : 0;
+	returnHome = r.returnHome === true;
+	mapPick = r.pick || null;
+	stopsPick = r.pick || '';
+	mode = 'route';
+	stepIdx = 0;
+	pendingFit = true;
+	persist();
+	refreshSide();
+	paintMap();
+}
+
+export function deleteSavedRoute(i) {
+	const r = savedRoutes[i];
+	if (!r) return;
+	savedRoutes = savedRoutes.filter((_, k) => k !== i);
+	persist();
+	refreshSide();
+	toast(`Forgot “${r.name}”`);
+}
+
+export function setTradesMode(m) {
+	tradesMode = m === 'all' ? 'all' : 'one';
+	persist();
+	refreshSide();
+}
+
+/** Drop the stops past what the Parley in the bar covers. */
+export function trimRouteToParley() {
+	const marks = marksNow();
+	const prof = barterProfile();
+	if (!prof.parleyHeld) return;
+	const kept = [];
+	let acc = 0;
+	for (const id of stops) {
+		const c = stopParley(id, marks, prof);
+		if (acc + c > prof.parleyHeld) break;
+		acc += c;
+		kept.push(id);
+	}
+	if (!kept.length || kept.length === stops.length) return;
+	stashRoute();
+	stops = kept;
+	persist();
+	refreshSide();
+	paintMap();
+	toast(`Trimmed to ${kept.length} stop${kept.length === 1 ? '' : 's'} — the full route is kept as “Previous route”`);
+}
+
+/* ------------------------------------------------------------------ *
+ * a route in a link
+ * ------------------------------------------------------------------ */
+
+/** The route as a hash fragment the chart can read back: stops,
+ *  start wharf, the return, and what it was plotted for. */
+export function routeLink() {
+	const parts = [`r=${stops.join('.')}`];
+	if (startPort) parts.push(`s=${startPort}`);
+	if (returnHome) parts.push('h=1');
+	if (stopsPick) parts.push(`p=${encodeURIComponent(stopsPick)}`);
+	return `${location.origin}${location.pathname}#map/${parts.join(';')}`;
+}
+
+/** Read a link's fragment (the part after `#map/`) into the chart.
+ *  Returns how many stops landed, 0 for nothing usable. */
+export function applyMapLink(fragment) {
+	const q = {};
+	for (const part of String(fragment || '').split(';')) {
+		const i = part.indexOf('=');
+		if (i > 0) q[part.slice(0, i)] = part.slice(i + 1);
+	}
+	if (!q.r) return 0;
+	const ids = [];
+	for (const s of q.r.split('.')) {
+		const id = Number(s);
+		if (npcById.has(id) && !ids.includes(id)) ids.push(id);
+	}
+	if (!ids.length) return 0;
+	restore();
+	if (stops.length && stops.join('.') !== ids.join('.')) stashRoute();
+	stops = ids;
+	startPort = ports.some(p => p.id === Number(q.s)) ? Number(q.s) : 0;
+	returnHome = q.h === '1';
+	let pick;
+	try { pick = q.p ? decodeURIComponent(q.p) : null; } catch { pick = null; }
+	mapPick = pick;
+	stopsPick = pick || '';
+	mode = 'route';
+	panelOpen = true;
+	stepIdx = 0;
+	pendingFit = true;
+	persist();
+	return ids.length;
+}
+
+/* ------------------------------------------------------------------ *
+ * the ruler
+ * ------------------------------------------------------------------ */
+
+export function toggleMeasure() {
+	measuring = !measuring;
+	if (!measuring) measurePts = [];
+	const btn = document.querySelector('[data-act="map-measure"]');
+	if (btn) btn.setAttribute('aria-pressed', String(measuring));
+	const host = document.querySelector('[data-map]');
+	if (host) host.classList.toggle('measuring', measuring);
+	if (measuring) toast('Click two points on the sea');
+	paintMap();
+}
+
+/** The world point under a screen position. */
+function unproject(size, left, top) {
+	const scale = Math.pow(2, MAX_ZOOM - mapState.zoom);
+	return {
+		x: mapState.centre.x + (left - size.w / 2) * scale,
+		y: mapState.centre.y + (top - size.h / 2) * scale
+	};
+}
+
+function measureAt(host, clientX, clientY) {
+	const box = host.getBoundingClientRect();
+	const p = unproject({ w: box.width, h: box.height }, clientX - box.left, clientY - box.top);
+	measurePts = measurePts.length >= 2 ? [p] : [...measurePts, p];
+	paintMap();
+}
+
+function paintMeasure(layer, size) {
+	let svg = layer._measure;
+	if (!measurePts.length) {
+		if (svg) svg.style.display = 'none';
+		if (layer._measureLabel) layer._measureLabel.hidden = true;
+		return;
+	}
+	if (!svg) {
+		svg = layer._measure = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		svg.setAttribute('class', 'map-route map-measure');
+		const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+		path.setAttribute('class', 'map-measure-line');
+		svg.appendChild(path);
+		layer.appendChild(svg);
+		const label = layer._measureLabel = document.createElement('div');
+		label.className = 'map-measure-label';
+		layer.appendChild(label);
+	}
+	svg.style.display = '';
+	const world = measurePts.length === 2 ? seaBent(measurePts) : measurePts;
+	const pts = world.map(p => project(mapState, size, p.x, p.y));
+	const d = pts.length > 1 ? routePath(pts, size) : `M${pts[0].left - 4},${pts[0].top}a4,4 0 1,0 8,0a4,4 0 1,0 -8,0`;
+	svg.children[0].setAttribute('d', d);
+	const label = layer._measureLabel;
+	if (measurePts.length === 2) {
+		const m = pathLength(world);
+		const speed = routeSpeed();
+		const t = speed ? fmtDuration(sailSeconds(m, speed.total, sailCal())) : '';
+		label.textContent = `${fmtDistance(m)}${t ? ` · ≈ ${t}` : ''}`;
+		const mid = pts[Math.floor(pts.length / 2)];
+		label.style.left = `${mid.left}px`;
+		label.style.top = `${mid.top}px`;
+		label.hidden = false;
+	} else {
+		label.hidden = true;
+	}
+}
+
+/** The game's own coordinates under the pointer. */
+function paintCoords(host, clientX, clientY) {
+	const el = host.querySelector('[data-map-coords]');
+	if (!el || !mapState) return;
+	const box = host.getBoundingClientRect();
+	const p = unproject({ w: box.width, h: box.height }, clientX - box.left, clientY - box.top);
+	const g = toGame(p.x, p.y);
+	el.textContent = `X ${F(Math.round(g.x))} · Z ${F(Math.round(g.z))}`;
+	el.hidden = false;
+}
+
+/** How to calibrate the clock: name a leg you have sailed and how long
+ *  it took, and every other leg follows. */
+export function openSailCal() {
+	const marks = marksNow();
+	const world = seaBent(routeWorld(marks));
+	const legs = legLengths(world);
+	const port = ports.find(p => p.id === startPort);
+	const names = [];
+	const pts = routeIds(marks).map(id => npcById.get(id).name);
+	if (port) names.push(port.name);
+	names.push(...pts);
+	if (port && returnHome) names.push(port.name);
+	const speed = routeSpeed();
+	const options = legs.map((m, i) => `<option value="${m}">${esc(names[i] || '?')} → ${esc(names[i + 1] || '?')} · ${esc(fmtDistance(m))}</option>`).join('');
+	const host = openDialog(`
+		<h2>How fast is 100%?</h2>
+		<p class="dialog-copy">The game gives speed as a percentage and never says what 100% is in metres. The chart assumes <b>${DEFAULT_CAL} m/s</b>; you are using <b>${sailCal()} m/s</b>. Time one leg in game${speed ? ` at your ${speed.total}%` : ''} and the rest are corrected from it.</p>
+		${legs.length ? `<label class="dialog-label">Leg <select class="field select" data-cal-leg>${options}</select></label>` : '<p class="dialog-copy">Plot a route first, then time one of its legs.</p>'}
+		<label class="dialog-label">Took <input class="field" type="text" inputmode="decimal" placeholder="minutes, e.g. 6.5" data-cal-min> minutes</label>
+		<div class="dialog-actions">
+			<button class="ghost-btn" data-cal-reset>Back to ${DEFAULT_CAL} m/s</button>
+			<button class="ghost-btn" data-close>Cancel</button>
+			<button class="act" data-cal-save${legs.length ? '' : ' disabled'}>Set</button>
+		</div>`);
+	host.querySelector('[data-cal-reset]').addEventListener('click', () => {
+		store.setSetting('sailCal', null);
+		closeDialog();
+		refreshSide();
+		toast(`Back to ${DEFAULT_CAL} m/s at 100%`);
+	});
+	host.querySelector('[data-cal-save]').addEventListener('click', () => {
+		const metres = Number(host.querySelector('[data-cal-leg]').value);
+		const minutes = Number(String(host.querySelector('[data-cal-min]').value).replace(',', '.'));
+		const v = calibrate(metres, minutes * 60, speed ? speed.total : 100);
+		if (!v) return toast('Give the minutes that leg took');
+		store.setSetting('sailCal', v);
+		closeDialog();
+		refreshSide();
+		paintMap();
+		toast(`100% is now ${v} m/s on this chart`);
+	});
 }
 
 function todayHTML(marks) {
@@ -625,6 +1013,7 @@ export function paintMap() {
 	paintHunt(layer, size);
 	paintCourse(layer, size);
 	paintRoute(layer, size, marks);
+	paintMeasure(layer, size);
 	paintSteps(host, ids);
 	paintTip(host, size, marks);
 	paintMini(host, size);
@@ -1050,10 +1439,13 @@ export function wireMap() {
 	// A gesture that starts on them is for them, not for the chart.
 	const FURNITURE = '[data-act="map-pin"], [data-act="map-port"], .map-side, .map-side-pill, .map-tip, .map-mini, .map-steps';
 
+	let pressed = null;           // where the last pointer went down, to tell a click from a drag
+
 	document.addEventListener('pointerdown', evt => {
 		const host = evt.target.closest('[data-map]');
 		if (!host || evt.target.closest(FURNITURE)) return;
 		cancelFly();
+		pressed = { x: evt.clientX, y: evt.clientY, host };
 		touching.set(evt.pointerId, { x: evt.clientX, y: evt.clientY });
 		if (touching.size === 2) {
 			// A second finger turns the gesture into a pinch, not a drag.
@@ -1091,13 +1483,24 @@ export function wireMap() {
 			return;
 		}
 
-		if (!dragging) return;
+		if (!dragging) {
+			const host = evt.target.closest && evt.target.closest('[data-map]');
+			if (host && !evt.target.closest(FURNITURE)) paintCoords(host, evt.clientX, evt.clientY);
+			return;
+		}
 		pan(mapState, evt.clientX - dragging.x, evt.clientY - dragging.y);
 		dragging = { x: evt.clientX, y: evt.clientY };
 		schedulePaint();
 	});
 
 	const stop = evt => {
+		// A press that did not move is a click on the sea: with the ruler
+		// armed, that is one end of a measurement.
+		if (evt && evt.type === 'pointerup' && pressed && measuring && mapState
+			&& Math.hypot(evt.clientX - pressed.x, evt.clientY - pressed.y) < 5) {
+			measureAt(pressed.host, evt.clientX, evt.clientY);
+		}
+		pressed = null;
 		if (evt) touching.delete(evt.pointerId);
 		if (touching.size < 2) pinch = null;
 		if (touching.size === 1) {
@@ -1192,8 +1595,9 @@ export function toggleMapPanel() {
 export function toggleMapStop(npcId) {
 	if (!npcById.has(npcId)) return;
 	if (stops.length && !stopsLive()) {
-		// Plotting under a new view starts a new plot; the old one was
-		// one click to make and would only mislead here.
+		// Plotting under a new view starts a new plot; the old one is
+		// kept as "Previous route" rather than lost.
+		stashRoute();
 		stops = [npcId];
 	} else {
 		stops = stops.includes(npcId) ? stops.filter(id => id !== npcId) : [...stops, npcId];
@@ -1205,6 +1609,7 @@ export function toggleMapStop(npcId) {
 }
 
 export function useSuggestedRoute() {
+	stashRoute();
 	stops = suggestedIds(marksNow());
 	stopsPick = mapPick || '';
 	persist();
@@ -1432,6 +1837,7 @@ export function importRoute(text) {
 		else dropped++;
 	}
 	if (!ids.length) throw new Error('None of those stops is on this chart.');
+	if (stops.length && stops.join('.') !== ids.join('.')) stashRoute();
 	stops = ids;
 	stopsPick = mapPick || '';
 	startPort = data.start && ports.some(p => p.id === Number(data.start.id)) ? Number(data.start.id) : 0;

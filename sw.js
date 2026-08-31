@@ -81,6 +81,7 @@ const SHELL = [
 	'/js/clock.js',
 	'/js/pace.js',
 	'/js/today.js',
+	'/js/sailing.js',
 	'/js/market.js',
 	'/js/sea_coins.js',
 	'/js/ships.js',

@@ -42,6 +42,7 @@ import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
+	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite
 } from './screen-map.js';
@@ -215,6 +216,11 @@ function applyHash() {
 	setView(m[1]);
 	setQuery('');
 	if (m[1] === 'inventory' && m[2]) setSelected(decodeURIComponent(m[2]));
+	// A route in a link: plotted, and the chart flown to it.
+	if (m[1] === 'map' && m[2]) {
+		const n = applyMapLink(m[2]);
+		if (n) toast(`Route from the link: ${n} stop${n === 1 ? '' : 's'}`);
+	}
 	store.setSetting('view', m[1]);
 	applyingHash = false;
 	return true;
@@ -392,6 +398,21 @@ function wire() {
 			case 'map-route-revive': reviveMapRoute(); return render();
 			case 'map-route-reverse': reverseMapRoute(); return;
 			case 'map-route-clear': clearMapRoute(); return;
+			case 'map-route-save': return saveRouteDialog();
+			case 'map-route-load': loadSavedRoute(Number(el.dataset.i)); return;
+			case 'map-route-del': deleteSavedRoute(Number(el.dataset.i)); return;
+			case 'map-route-trim': trimRouteToParley(); return;
+			case 'map-trades': setTradesMode(el.dataset.id); return;
+			case 'map-measure': toggleMeasure(); return;
+			case 'map-sail-cal': return openSailCal();
+			case 'map-route-link':
+				try {
+					await navigator.clipboard.writeText(routeLink());
+					toast('Route link copied');
+				} catch {
+					toast('Could not reach the clipboard');
+				}
+				return;
 			case 'map-course': setMapCourse(el.dataset.id); return;
 			case 'map-hunt': setMapHunt(el.dataset.id); return;
 			case 'quest-map': showHunt(el.dataset.monster); return showView('map');
