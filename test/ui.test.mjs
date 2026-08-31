@@ -210,6 +210,34 @@ test('a sea crystal is chosen by grade and shows on the ship card', async () => 
 	await context.close();
 });
 
+test('the hunt courses and grounds stay above the tiles through a zoom', async () => {
+	const { page, context, errors } = await open('#map', { touch: true });
+	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: false, coursesOn: ['balenos', 'lekrashan'], huntsOn: ['nineshark'], habitatsOn: false })); });
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.map-course-line'); await wait(800);
+	// Tiles that have arrived and would paint over a layer: a higher
+	// z-index, or the same one and a later place in the DOM.
+	const covered = () => page.evaluate(() => {
+		const layer = document.querySelector('[data-map-layer]');
+		const kids = [...layer.children];
+		const zi = e => { const z = getComputedStyle(e).zIndex; return z === 'auto' ? 0 : Number(z); };
+		const above = el => kids.filter(t => t.classList.contains('map-tile') && getComputedStyle(t).opacity === '1'
+			&& (zi(t) > zi(el) || (zi(t) === zi(el) && kids.indexOf(t) > kids.indexOf(el)))).length;
+		const course = layer.querySelector('.map-course-layer');
+		return { course: above(course), hunt: above(layer.querySelector('.map-hunt-layer')), tiles: kids.filter(t => t.classList.contains('map-tile')).length };
+	});
+	const zoom = () => page.evaluate(async () => { const m = await import('/js/screen-map.js'); m.mapZoomStep(1); });
+	for (let i = 0; i < 4; i++) {
+		await zoom(); await wait(500);
+		const c = await covered();
+		assert.ok(c.tiles > 0, 'tiles on the chart');
+		assert.equal(c.course, 0, `no tile over the course after ${i + 1} zoom steps`);
+		assert.equal(c.hunt, 0, `no tile over the hunt dots after ${i + 1} zoom steps`);
+	}
+	assert.ok(await count(page, '.map-course-path[d]:not([d=""])') > 0, 'the course still has a path');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('habitat markers follow a pan, hide and return once, and the Lyngbakr stands alone', async () => {
 	const { page, context, errors } = await open('#map');
 	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: false, habitatsOn: true })); });

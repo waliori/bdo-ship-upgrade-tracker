@@ -1125,7 +1125,11 @@ function paintTiles(layer, tiles, size) {
 			img.addEventListener('load', () => img.classList.add('on'), { once: true });
 			if (img.complete && img.naturalWidth) img.classList.add('on');
 			pool.set(t.src, (e = { img, z: t.z, x: t.x, y: t.y }));
-			layer.appendChild(img);
+			// At the front of the layer, always: everything drawn over the
+			// sea shares its z-index with the tiles or beats it, so a tile
+			// appended after the course line would cover it -- which is
+			// what happened on every zoom.
+			layer.insertBefore(img, layer.firstChild);
 		}
 		if (!e.img.classList.contains('on')) loading = true;
 		e.img.style.zIndex = 1;
