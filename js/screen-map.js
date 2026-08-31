@@ -1448,7 +1448,7 @@ function paintWharves(layer, size) {
 			el = document.createElement('div');
 			el.className = `map-wharf ${w.kind}`;
 			el.dataset.i = i;
-			el.title = `${w.name} — ${w.kind === 'guild' ? 'guild wharf manager' : 'wharf manager: repair, rations, sailors'}`;
+			el.title = `${w.name}${w.at ? ` — ${w.at}` : ''} — ${w.kind === 'guild' ? 'guild wharf manager' : 'wharf manager: repair, rations, sailors'}`;
 			el.innerHTML = '<span class="map-wharf-dot">⚓</span><span class="map-wharf-name"></span>';
 			el.querySelector('.map-wharf-name').textContent = w.name;
 			pool.set(i, el);

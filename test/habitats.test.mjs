@@ -33,5 +33,8 @@ test("a species with the game's own zone is marked there, the crocodile only rou
 	const croc = monsters.find(m => m.key === 'saltwater-crocodile');
 	assert.ok(croc.zones && croc.approx, 'north of Cheongsa, approximate');
 	assert.ok(monsters.find(m => m.key === 'lyngbakr').zones, 'the Lyngbakr has its marker');
+	const gm = monsters.find(m => m.key === 'goldmont-medium');
+	assert.ok(gm.zones[0][0] > 40000 && gm.approx, 'the Goldmont Medium patrols the open Ross Sea, not a Donghae town');
+	assert.ok(croc.zones[0][1] < 18000 && Math.abs(croc.zones[0][0] - 33534) < 2000, 'the crocodiles sit north of Cheongsa');
 	assert.ok(monsterArt.lyngbakr, 'and a picture');
 });

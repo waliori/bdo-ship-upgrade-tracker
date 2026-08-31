@@ -8,6 +8,8 @@ export const DATA = [
 	{ what: 'Barter catalogue — 91 barterers, Levels 1–7', asOf: '2026-08-29', from: 'BDOCodex' },
 	{ what: 'Barterers’ positions on the chart', asOf: '2026-08-30', from: 'client positions, within a pixel' },
 	{ what: 'Sea monster spawn points', asOf: '2026-08-30', from: 'BDOCodex; the Lyngbakr Habitat of 2026-08-27 from the patch note' },
+	{ what: 'Monster ground markers', asOf: '2026-08-31', from: 'the client’s knowledge waypoints; crocodile and Goldmont Medium corrected by the patch note and the codex spawns' },
+	{ what: 'Wharf managers — the full roll, 58 of them', asOf: '2026-08-31', from: 'BDOCodex NPC pages' },
 	{ what: 'Quests and their rewards', asOf: '2026-08-30', from: 'BDOCodex' },
 	{ what: 'Ship hulls — durability, weight, speed…', asOf: '2026-08-29', from: 'BDOCodex' },
 	{ what: 'Ship parts at every level', asOf: '2026-08-29', from: 'BDOCodex' },
