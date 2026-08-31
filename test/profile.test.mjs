@@ -205,21 +205,29 @@ test('claiming a quest is one undo for the stock and the tick together', () => {
 	assert.equal(store.unclaimQuest('never-ticked'), null);
 });
 
-test('where an item is kept is a bounded note beside the count', () => {
+test('where an item is kept adds up to the count owned', () => {
 	store.adopt({ ...SAVE, profile: { stash: {
 		'Tidal Black Stone': { Velia: 300, 'Port Epheria': 100, Nowhere: 0, ['x'.repeat(41)]: 5 },
 		['y'.repeat(81)]: { Velia: 1 },
 		'Black Stone': 'Velia'
 	} } });
-	assert.deepEqual(store.getProfile('stash'), { 'Tidal Black Stone': { Velia: 300, 'Port Epheria': 100 } });
+	assert.deepEqual(store.getProfile('stash'), { 'Tidal Black Stone': { Velia: 300, 'Port Epheria': 100, Nowhere: 0 } }, 'an empty place is kept until forgotten');
+	assert.equal(store.getStock('Tidal Black Stone'), 400);
+	// Noting forty more on the ship raises the total by forty.
 	store.setStash('Tidal Black Stone', "Ship's hold", 40);
-	assert.equal(store.getProfile('stash')['Tidal Black Stone']["Ship's hold"], 40);
-	store.setStash('Tidal Black Stone', 'Velia', 0);
-	assert.deepEqual(store.getProfile('stash')['Tidal Black Stone'], { 'Port Epheria': 100, "Ship's hold": 40 });
+	assert.equal(store.getStock('Tidal Black Stone'), 440);
+	// Typing a lower count at Velia lowers the total by the difference.
+	store.setStash('Tidal Black Stone', 'Velia', 250);
+	assert.equal(store.getStock('Tidal Black Stone'), 390);
+	// Forgetting a place hands its count to the bags: the total holds.
+	store.setStash('Tidal Black Stone', 'Port Epheria', null);
+	assert.equal(store.getStock('Tidal Black Stone'), 390);
+	assert.equal(store.getProfile('stash')['Tidal Black Stone']['Port Epheria'], undefined);
+	// Typing the total lower than the places comes off the places, largest first.
+	store.setStock('Tidal Black Stone', 100);
+	assert.deepEqual(store.getProfile('stash')['Tidal Black Stone'], { Velia: 60, "Ship's hold": 40, Nowhere: 0 });
 	store.undo();
-	assert.equal(store.getProfile('stash')['Tidal Black Stone'].Velia, 300);
-	store.setStash('Tidal Black Stone', 'Port Epheria', 0);
-	store.setStash('Tidal Black Stone', "Ship's hold", 0);
-	store.setStash('Tidal Black Stone', 'Velia', 0);
-	assert.equal(store.getProfile('stash'), null, 'the last place gone, the item goes with it');
+	assert.equal(store.getStock('Tidal Black Stone'), 390);
+	assert.equal(store.getProfile('stash')['Tidal Black Stone'].Velia, 250, 'the places come back with the count');
 });
+

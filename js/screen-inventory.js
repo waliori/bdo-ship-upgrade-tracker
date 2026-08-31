@@ -180,19 +180,24 @@ export const TOWNS = [
 
 /** Where the item is kept: a line per storage, editable, against the
  *  count owned -- a note, never a second inventory. */
+/** Where the item is: your bags, and every storage noted -- the count
+ *  owned is their sum, so a number typed at a place moves the total. */
 function whereBlock(item, own) {
 	const stash = (store.getProfile('stash', {}) || {})[item] || {};
 	const placed = Object.values(stash).reduce((a, b) => a + b, 0);
-	const lines = Object.entries(stash).sort((a, b) => b[1] - a[1]).map(([town, n]) => `<div class="detail-line where-line">
+	const bags = Math.max(0, own - placed);
+	const line = (town, n, fixed) => `<div class="detail-line where-line">
 		<span>${esc(town)}</span>
-		<span class="where-edit">${amountInput('where-val', n, `data-act="stash-set" data-item="${esc(item)}" data-town="${esc(town)}" aria-label="How many at ${esc(town)}"`)}
-		<button class="map-x" data-act="stash-del" data-item="${esc(item)}" data-town="${esc(town)}" aria-label="Forget ${esc(town)}">×</button></span>
-	</div>`).join('');
-	const left = own - placed;
-	const note = !placed ? '' : left > 0 ? `${F(left)} not placed` : left < 0 ? `${F(-left)} more placed than owned` : 'all placed';
+		<span class="where-edit">${fixed
+			? `<span class="n teal" title="What is not at a noted storage is in your bags">${F(n)}</span>`
+			: amountInput('where-val', n, `data-act="stash-set" data-item="${esc(item)}" data-town="${esc(town)}" aria-label="How many at ${esc(town)}"`)}
+		${fixed ? '' : `<button class="map-x" data-act="stash-del" data-item="${esc(item)}" data-town="${esc(town)}" aria-label="Forget ${esc(town)} — its count goes back to your bags">×</button>`}</span>
+	</div>`;
+	const lines = line('Inventory (bags)', bags, true)
+		+ Object.entries(stash).sort((a, b) => b[1] - a[1]).map(([town, n]) => line(town, n, false)).join('');
 	const options = TOWNS.filter(t => !(t in stash)).map(t => `<option>${esc(t)}</option>`).join('');
 	return `<div class="detail-block">
-		<div class="detail-label">Where it is${note ? ` <span class="detail-note">· ${esc(note)}</span>` : ''}</div>
+		<div class="detail-label">Where it is <span class="detail-note">· ${F(own)} in all</span></div>
 		${lines}
 		<select class="field select where-add" data-act="stash-town" data-item="${esc(item)}" aria-label="Note a storage this is kept in"><option value="">+ a storage…</option>${options}</select>
 	</div>`;

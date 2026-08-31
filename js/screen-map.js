@@ -262,10 +262,10 @@ function huntHTML() {
 			const qs = byMonster[m.key] || [];
 			const pic = monsterArt[m.key] ? `<img class="map-hunt-pic" src="icons/${monsterArt[m.key]}" alt="">` : `<span class="map-hunt-dot ${m.kind}"></span>`;
 			return `<button class="map-hunt${on ? ' on' : ''}" data-act="map-hunt" data-id="${esc(m.key)}" aria-pressed="${on}"
-				style="--hunt: ${m.colour}" ${m.points.length ? '' : 'disabled title="Its ground is not on the chart yet"'}>
+				style="--hunt: ${m.colour}" ${m.points.length || m.zones ? '' : 'disabled title="Its ground is not on the chart yet"'}>
 				${pic}
 				<span class="map-row-main"><span class="map-row-name">${esc(m.name)}</span>
-					<span class="map-row-sub">${m.points.length ? `${m.points.length} spawn point${m.points.length === 1 ? '' : 's'}` : 'ground not charted yet'}${qs.length
+					<span class="map-row-sub">${m.points.length ? `${m.points.length} spawn point${m.points.length === 1 ? '' : 's'}` : m.zones ? 'the habitat marker; no spawn points on the codex yet' : 'ground not charted yet'}${qs.length
 						? ' · ' + qs.map(q => q.name.replace(/^\[(Daily|Weekly)\] /, '')).join(', ') : ''}</span>
 					${m.note ? `<span class="map-row-sub note">${esc(m.note)}</span>` : ''}</span>
 			</button>`;
@@ -1083,25 +1083,27 @@ export function paintMap() {
 	clampView(mapState, size);
 
 	const { tiles, pins } = frame(mapState, size, marks);
+	// A layer that faults says so in the console and leaves the others
+	// to paint; nothing on the chart depends on another layer's luck.
+	const guarded = (fn, ...args) => { try { fn(...args); } catch (err) { console.warn(`[map] ${fn.name} failed:`, err); } };
 
 	const ids = routeIds(marks);
 	const key = `${ids.join('.')}|${startPort}|${returnHome}`;
 	if (key !== stepKey) { stepKey = key; stepIdx = 0; }
 	const currentId = ids.length > 1 ? ids[Math.min(stepIdx, ids.length - 1)] : null;
 
-	paintTiles(layer, tiles, size);
-	paintPins(layer, pins, marks, currentId);
-	// Each layer on its own: a fault in one must not leave the rest of
-	// the chart unpainted under the pointer.
-	for (const step of [paintPorts, paintWharves, paintHunt, paintHabitats]) {
-		try { step(layer, size); } catch (err) { console.warn('[map]', step.name, err); }
-	}
-	paintCourse(layer, size);
-	paintRoute(layer, size, marks);
-	paintMeasure(layer, size);
-	paintSteps(host, ids);
-	paintTip(host, size, marks);
-	paintMini(host, size);
+	guarded(paintTiles, layer, tiles, size);
+	guarded(paintPins, layer, pins, marks, currentId);
+	guarded(paintPorts, layer, size);
+	guarded(paintWharves, layer, size);
+	guarded(paintHunt, layer, size);
+	guarded(paintHabitats, layer, size);
+	guarded(paintCourse, layer, size);
+	guarded(paintRoute, layer, size, marks);
+	guarded(paintMeasure, layer, size);
+	guarded(paintSteps, host, ids);
+	guarded(paintTip, host, size, marks);
+	guarded(paintMini, host, size);
 }
 
 function paintTiles(layer, tiles, size) {
@@ -1375,10 +1377,14 @@ function habitatMarkers() {
 	if (markerCache) return markerCache;
 	const out = [];
 	for (const m of monsters) {
-		if (m.kind === 'young' || !m.points.length) continue;
-		habitats(m).forEach((h, i) => out.push({
+		if (m.kind === 'young' || (!m.points.length && !m.zones)) continue;
+		// The game's own marker where the client keeps one; the spawn
+		// clusters only where it does not.
+		const spots = m.zones ? m.zones.map(([x, y]) => ({ x, y, n: m.points.length })) : habitats(m);
+		spots.forEach((h, i) => out.push({
 			key: `${m.key}:${i}`, x: h.x, y: h.y, kind: m.kind, keys: [m.key], colour: m.colour, art: monsterArt[m.key],
-			name: m.kind === 'ship' ? `${m.name.split(' ')[0]} Waters` : `${m.name} Habitat`, sub: m.name, n: h.n
+			name: m.kind === 'ship' ? `${m.name.split(' ')[0]} Waters` : `${m.name} Habitat`,
+			sub: `${m.name}${m.approx ? ' · about here' : ''}`, n: h.n
 		}));
 	}
 	const young = monsters.filter(m => m.kind === 'young' && m.points.length);
@@ -1427,7 +1433,7 @@ function paintHabitats(layer, size) {
 
 /** Every wharf manager of the kinds ticked: an anchor and a name. */
 function paintWharves(layer, size) {
-	const pool = layer._wharfEls || (layer._wharfEls = new Map());
+	const pool = new Map([...layer.querySelectorAll('.map-wharf')].map(el => [Number(el.dataset.i), el]));
 	wharves.forEach((w, i) => {
 		let el = pool.get(i);
 		const on = wharvesOn.includes(w.kind);
@@ -1437,6 +1443,7 @@ function paintWharves(layer, size) {
 		if (!el) {
 			el = document.createElement('div');
 			el.className = `map-wharf ${w.kind}`;
+			el.dataset.i = i;
 			el.title = `${w.name} — ${w.kind === 'guild' ? 'guild wharf manager' : 'wharf manager: repair, rations, sailors'}`;
 			el.innerHTML = '<span class="map-wharf-dot">⚓</span><span class="map-wharf-name"></span>';
 			el.querySelector('.map-wharf-name').textContent = w.name;
@@ -1884,10 +1891,10 @@ export function openMapPicker() {
 		{ id: '', label: 'Everything I am short of', icon: '<span class="row-icon sm map-pick-all">⚓</span>', meta: `${short.length} goods` },
 		...short.map(n => ({ id: n, label: n, icon: img(n, ''), meta: `${F(snapshot.missing[n])} short`, group: 'On your build list' })),
 		...rest.map(n => ({ id: n, label: n, icon: img(n, ''), sub: kindWord[barterKind(n)], group: 'The rest of the sea' })),
-		...monsters.filter(m => m.points.length).map(m => ({
+		...monsters.filter(m => m.points.length || m.zones).map(m => ({
 			id: `hunt:${m.key}`, label: m.name,
 			icon: monsterArt[m.key] ? `<img src="icons/${monsterArt[m.key]}" alt="">` : `<span class="row-icon sm map-pick-all" style="color:${m.colour}">◎</span>`,
-			sub: `${m.points.length} spawn points · ${habitats(m).length} habitat${habitats(m).length === 1 ? '' : 's'}`,
+			sub: m.points.length ? `${m.points.length} spawn points · ${(m.zones || habitats(m)).length} habitat${(m.zones || habitats(m)).length === 1 ? '' : 's'}` : 'the habitat marker only, so far',
 			meta: huntsOn.includes(m.key) ? 'shown' : '', group: 'Hunting grounds'
 		}))
 	];
@@ -1991,7 +1998,8 @@ export function showHunt(key) {
 	mode = 'hunt';
 	panelOpen = true;
 	// Sail to that species' waters, not to everything on the chart.
-	pendingFit = { points: monsterByKey[key].points.map(([x, y]) => ({ x, y })) };
+	const m = monsterByKey[key];
+	pendingFit = { points: (m.points.length ? m.points : m.zones || []).map(([x, y]) => ({ x, y })) };
 	persist();
 }
 

@@ -26,3 +26,12 @@ test('every species on the chart gets at least one habitat, and its picture is o
 	}
 	assert.ok(monsters.some(m => m.key === 'lyngbakr'), 'the 27 August patch is on the chart');
 });
+
+test("a species with the game's own zone is marked there, the crocodile only roughly", () => {
+	const nineshark = monsters.find(m => m.key === 'nineshark');
+	assert.deepEqual(nineshark.zones, [[47609, 35335]], 'the Margoria ground the game marks');
+	const croc = monsters.find(m => m.key === 'saltwater-crocodile');
+	assert.ok(croc.zones && croc.approx, 'north of Cheongsa, approximate');
+	assert.ok(monsters.find(m => m.key === 'lyngbakr').zones, 'the Lyngbakr has its marker');
+	assert.ok(monsterArt.lyngbakr, 'and a picture');
+});

@@ -112,11 +112,14 @@ export async function loadMarket({ force = false } = {}) {
 			if (item && p && p.price > 0) prices[item] = { price: p.price, base: p.base, stock: p.stock, at: p.at, stale: Boolean(p.stale) };
 		}
 		// Keep what we already knew for anything the upstream would not
-		// price this time.
+		// price this time -- and when it priced nothing at all, keep the
+		// old copy's time too, so the screen says how old the numbers are
+		// rather than calling an empty answer fresh.
+		const answered = Object.keys(prices).length > 0;
 		if (held && held.region === body.region) {
 			for (const [item, p] of Object.entries(held.prices)) if (!prices[item]) prices[item] = { ...p, stale: true };
 		}
-		held = { region: body.region, at: body.at || Date.now(), prices, failed: body.failed || 0 };
+		held = { region: body.region, at: answered ? (body.at || Date.now()) : (held && held.region === body.region ? held.at : 0), prices, failed: body.failed || 0 };
 		write();
 		for (const fn of listeners) {
 			try {

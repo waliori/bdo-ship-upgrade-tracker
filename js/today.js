@@ -8,7 +8,7 @@
 import { esc, F } from './fmt.js';
 import * as store from './state.js';
 import { snapshot } from './ui-state.js';
-import { questsFor } from './quests.js';
+import { quests, questsFor } from './quests.js';
 import { questDone } from './screen-quests.js';
 import { VELL, VELL_CHECKED, nextSpawn, timeLabel, localLabel } from './clock.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
@@ -61,11 +61,10 @@ function vellTile() {
 /** The strip itself. */
 export function todayStrip() {
 	const wanted = questsFor(snapshot.missing);
+	const leftAll = quests.filter(q => !questDone(q)).length;
 	const left = wanted.filter(q => !questDone(q));
-	const questTile = wanted.length
-		? `<div class="today-v">${left.length} ${left.length === 1 ? 'quest' : 'quests'} left</div>
-			<div class="today-sub">of ${wanted.length} that pay in what you need · <button class="linky" data-act="view" data-id="quests">open</button></div>`
-		: `<div class="today-v faint">—</div><div class="today-sub">no quest pays in what you are short of</div>`;
+	const questTile = `<div class="today-v">${leftAll} of ${quests.length} left</div>
+			<div class="today-sub">${wanted.length ? `${left.length} of them pay in what you need` : 'none of them pays in what you are short of'} · <button class="linky" data-act="view" data-id="quests">open</button></div>`;
 
 	const targets = (snapshot.targets || []).filter(t => t.missingUnits > 0);
 	const paced = targets.map(t => ({ t, text: paceText(t) })).filter(x => x.text);
@@ -189,13 +188,14 @@ export function statusLine() {
 	const me = currentShip();
 	const wanted = questsFor(snapshot.missing);
 	const left = wanted.filter(q => !questDone(q)).length;
+	const leftAll = quests.filter(q => !questDone(q)).length;
 	const plan = vellPlan();
 	const next = plan && nextSpawn(plan.zone, plan.times);
 	const targets = (snapshot.targets || []).filter(t => t.missingUnits > 0);
 	const paced = targets.map(t => ({ t, text: paceText(t) })).find(x => x.text);
 	const bits = [
 		`<button class="status-bit" data-act="view" data-id="crew" title="Your ship — hull, parts and crew, on the Crew tab">⚓ <b>${esc(me.name)}</b> ${me.speed.total}% · ${F(me.hold.free)} LT</button>`,
-		wanted.length ? `<button class="status-bit" data-act="view" data-id="quests" title="Quests still open that pay in what you need">✦ <b>${left}</b> quest${left === 1 ? '' : 's'} left</button>` : '',
+		`<button class="status-bit" data-act="view" data-id="quests" title="Quests still to do this period${wanted.length ? `; ${left} of them pay in what you need` : ''}">✦ <b>${leftAll}</b> quest${leftAll === 1 ? '' : 's'} left${wanted.length ? ` · <b>${left}</b> for your list` : ''}</button>`,
 		`<span class="status-bit" title="Dailies reset at 00:00 UTC, the barter refill at 06:00 UTC">dailies <b data-until="daily"></b> · barter <b data-until="barter"></b></span>`,
 		next ? `<span class="status-bit" title="Vell's next spawn on your servers">Vell <b>${esc(localLabel(next.at))}</b> in <b data-until="at" data-at="${next.at}"></b></span>` : '',
 		paced ? `<button class="status-bit" data-act="view" data-id="builds" title="${esc(paced.text)}">${esc(paced.t.item)}: <b>${esc(paced.text.replace(/ at the last.*$/, ''))}</b></button>` : ''

@@ -45,17 +45,29 @@ function reduce(row) {
 	};
 }
 
-async function askUpstream(region, ids, fetchImpl) {
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function askUpstream(region, ids, fetchImpl, tries = 3) {
 	const url = `${UPSTREAM}/${region}/GetWorldMarketSubList?id=${ids.join(',')}&lang=en`;
-	const res = await fetchImpl(url, {
-		signal: AbortSignal.timeout(TIMEOUT_MS),
-		headers: { accept: 'application/json' }
-	});
-	if (!res.ok) throw new Error(`upstream ${res.status}`);
-	const body = await res.json();
-	// One id comes back as an object, several as an array.
-	const rows = Array.isArray(body) ? body : [body];
-	return rows.map(reduce).filter(Boolean);
+	// The upstream is a community relay and has bad minutes -- a 5xx, a
+	// rate limit, a socket that never answers. A batch is asked again,
+	// a little later, before it is given up on.
+	for (let attempt = 1; ; attempt++) {
+		try {
+			const res = await fetchImpl(url, {
+				signal: AbortSignal.timeout(TIMEOUT_MS),
+				headers: { accept: 'application/json' }
+			});
+			if (!res.ok) throw new Error(`upstream ${res.status}`);
+			const body = await res.json();
+			// One id comes back as an object, several as an array.
+			const rows = Array.isArray(body) ? body : [body];
+			return rows.map(reduce).filter(Boolean);
+		} catch (err) {
+			if (attempt >= tries) throw err;
+			await wait(400 * attempt);
+		}
+	}
 }
 
 /**
@@ -83,6 +95,9 @@ export async function pricesFor(region, ids, { fetchImpl = fetch, now = Date.now
 		} catch {
 			failed += batch.length;
 		}
+		// A breath between batches, so a burst of forty is not what trips
+		// the upstream's limit.
+		if (i + BATCH < want.length) await wait(120);
 		for (const id of batch) {
 			if (out[id]) continue;
 			const old = held.get(id);

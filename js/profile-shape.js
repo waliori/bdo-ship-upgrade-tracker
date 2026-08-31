@@ -155,7 +155,7 @@ export function readProfile(raw) {
 			const clean = {};
 			for (const [town, n] of Object.entries(towns)) {
 				const v = Math.floor(Number(n));
-				if (town.length <= 40 && Number.isFinite(v) && v > 0) clean[town] = v;
+				if (town.length <= 40 && Number.isFinite(v) && v >= 0) clean[town] = v;
 			}
 			if (Object.keys(clean).length) stash[item] = clean;
 		}

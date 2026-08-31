@@ -4,6 +4,7 @@
 // species with no picture of its own is not here and gets a glyph.
 
 export const monsterArt = {
+	'lyngbakr': 'monster-lyngbakr.png',   // cropped from the 2026-08-27 patch note's map; the codex has no page yet
 	'hekaru': 'monster-hekaru.webp',
 	'ocean-stalker': 'monster-ocean-stalker.webp',
 	'candidum': 'monster-candidum.webp',

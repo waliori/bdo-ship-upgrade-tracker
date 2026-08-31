@@ -176,8 +176,10 @@ can be both made and bought, you choose, and the plan follows.
   typed on it.
 - **Log a trip**: everything you brought back, in one box, as one
   undoable change.
-- **Where it is**: each item can carry a note of which storage holds how
-  many, beside the count the plan works from.
+- **Where it is**: an item's count is what is in your bags plus every
+  storage you have noted it at — Velia, the ship's hold, wherever — so a
+  number typed at a place moves the total, and a total typed lower comes
+  off the places.
 - **Profiles**: separate saves on one browser for an alt or a what-if;
   sync mirrors the main one only.
 - **Look-ups in your language**: Help lets you pick the BDOCodex locale
@@ -233,11 +235,14 @@ kept as the previous one, a route travels in a link, and a ruler
 coordinates under the pointer. The Hunt tab draws the game's own
 **habitat markers** — each species' picture from the codex at the
 centre of its grounds, "Hekaru Habitat", "Young Sea Monster Habitat" —
-which are also in the *Showing* picker. The Lyngbakr Habitat of the
-27 August 2026 patch sits where the crocodiles were, as the patch note
-says — the Nineshark and Black Rust spawns the codex still lists there
-are left out — and the crocodiles' new ground north of Cheongsa Island
-waits on the codex. The Hunt tab can also draw every **wharf manager** (repair, rations, sailors) and the Old Moon Guild's
+which are also in the *Showing* picker. The markers sit where the
+game's own map puts them — the client's knowledge waypoint for each
+creature — with the codex's spawn points behind them; the Lyngbakr
+Habitat of the 27 August 2026 patch is where the crocodiles were, as
+the patch note says (the Nineshark and Black Rust spawns the codex still
+lists there are left out), and the crocodiles' new ground north of
+Cheongsa Island is read off the patch note's map to a kilometre or so
+until the codex carries it. The Hunt tab can also draw every **wharf manager** (repair, rations, sailors) and the Old Moon Guild's
 guild wharves, and the Route tab names the nearest wharf to the last
 stop.
 

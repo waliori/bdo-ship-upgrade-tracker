@@ -433,7 +433,7 @@ function wire() {
 			case 'trip-log': return openTripLog();
 			case 'quest-pay-pick': return questAction(act, el);
 			case 'quest-pay-del': questAction(act, el); return render();
-			case 'stash-del': store.setStash(el.dataset.item, el.dataset.town, 0); return;
+			case 'stash-del': store.setStash(el.dataset.item, el.dataset.town, null); return;
 			case 'export': return doExport();
 			case 'import': return doImport();
 			case 'reset': return doReset();
@@ -772,12 +772,9 @@ function wire() {
 		if (mreg) return setMarketRegion(mreg.value);
 
 		const st = evt.target.closest('[data-act="stash-town"]');
-		if (st && st.value) {
-			const item = st.dataset.item;
-			const stash = (store.getProfile('stash', {}) || {})[item] || {};
-			const placed = Object.values(stash).reduce((a, b) => a + b, 0);
-			return store.setStash(item, st.value, Math.max(1, store.getStock(item) - placed));
-		}
+		// A new place starts empty; the count typed into it is added to
+		// the total, since it is a count you have somewhere.
+		if (st && st.value) return store.setStash(st.dataset.item, st.value, 0);
 
 		const cl = evt.target.closest('[data-act="codex-lang"]');
 		if (cl) return store.setSetting('codexLang', cl.value);

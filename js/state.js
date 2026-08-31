@@ -430,6 +430,21 @@ function writeStock(item, qty) {
 	const n = Math.max(0, Math.floor(Number(qty) || 0));
 	if (n > 0) state.stock[item] = n;
 	else delete state.stock[item];
+	// The places an item is noted at can never hold more than the total:
+	// a count typed lower comes off the noted places, largest first, and
+	// what is left is in your bags.
+	const places = state.profile.stash && state.profile.stash[item];
+	if (!places) return;
+	let over = Object.values(places).reduce((a, b) => a + b, 0) - n;
+	if (over <= 0) return;
+	const next = { ...places };
+	for (const [town] of Object.entries(next).sort((a, b) => b[1] - a[1])) {
+		if (over <= 0) break;
+		const take = Math.min(next[town], over);
+		next[town] -= take;
+		over -= take;
+	}
+	state.profile = readProfile({ ...state.profile, stash: { ...state.profile.stash, [item]: next } });
 }
 
 /** Set an item's owned quantity outright. */
@@ -475,14 +490,25 @@ export function claimQuest(id, delta, key, label) {
 }
 
 /** How many of an item sit at one place; nought forgets the place. */
+/**
+ * How many of an item sit at one place. The total you own is what is
+ * in your bags plus every place noted, so a count typed at a place
+ * moves the total by the difference; null forgets the place and hands
+ * its count back to the bags.
+ */
 export function setStash(item, town, qty) {
 	const stash = { ...(state.profile.stash || {}) };
 	const towns = { ...(stash[item] || {}) };
-	const n = Math.max(0, Math.floor(Number(qty) || 0));
-	if (n > 0) towns[town] = n; else delete towns[town];
+	const before = towns[town] || 0;
+	const forget = qty === null;
+	const n = forget ? 0 : Math.max(0, Math.floor(Number(qty) || 0));
+	if (forget) delete towns[town]; else towns[town] = n;
 	if (Object.keys(towns).length) stash[item] = towns; else delete stash[item];
-	const next = readProfile({ ...state.profile, stash });
-	return commit('profile', n > 0 ? `${item}: ${n} at ${town}` : `${item}: no longer noted at ${town}`, () => { state.profile = next; });
+	const total = getStock(item) + (forget ? 0 : n - before);
+	return commit('profile', forget ? `${item}: no longer noted at ${town}` : `${item}: ${n} at ${town}`, () => {
+		state.profile = readProfile({ ...state.profile, stash });
+		if (!forget && total !== getStock(item)) writeStock(item, total);
+	});
 }
 
 /** Take a quest off the done list without touching stock -- for a tick
