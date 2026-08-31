@@ -37,6 +37,7 @@ import { openVellDialog } from './today.js';
 import { startClocks, tickClocks } from './clock.js';
 import { recordProgress } from './pace.js';
 import { openJump } from './jump.js';
+import { setFitted } from './ship.js';
 import { openProfiles, activeProfile } from './profiles.js';
 import { DATA, CHANGES, LATEST } from './about.js';
 import { toggleVellReminder, checkVellReminder } from './today.js';
@@ -736,6 +737,9 @@ function wire() {
 			setSort(so.value);
 			return render();
 		}
+
+		const fp = evt.target.closest('[data-act="fit-part"]');
+		if (fp) return setFitted(fp.dataset.ship, fp.dataset.slot, fp.value);
 
 		const cs = evt.target.closest('[data-act="crew-ship"]');
 		if (cs) return store.setProfile('crewShip', cs.value || null);

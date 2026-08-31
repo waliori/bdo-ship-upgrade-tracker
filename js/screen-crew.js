@@ -14,8 +14,8 @@ import * as store from './state.js';
 import { img, iconSrc, codexName } from './ui-bits.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { shipStats } from './ship_stats.js';
-import { loadout, describeStats, sumStats } from './part_stats.js';
-import { families } from './enhancement.js';
+import { describeStats } from './part_stats.js';
+import { currentShip, fittedFor, partsForSlot, shipName } from './ship.js';
 import { enhancedName } from './planner.js';
 import {
 	pool, mateTypes, anyType, care, rations, expSplit, firstMates, slotSources,
@@ -37,13 +37,7 @@ const face = (t, s) => t && iconSrc(t.type) !== 'icon.png'
  * The hull the crew is planned for: the one chosen here, else the
  * largest crewed ship in the queue, else the first ship anyone sails.
  */
-export function crewShip() {
-	const chosen = store.getProfile('crewShip', null);
-	if (chosen && shipStats[chosen]) return chosen;
-	const queued = store.getTargets().map(t => t.item).filter(i => shipStats[i] && shipStats[i].crew > 0);
-	if (queued.length) return queued.sort((a, b) => shipStats[b].crew - shipStats[a].crew || shipStats[b].cabins - shipStats[a].cabins)[0];
-	return 'Epheria Sailboat';
-}
+export const crewShip = shipName;
 
 const roster = () => store.getProfile('roster', []) || [];
 const seatsOf = ship => (store.getProfile('seats', {}) || {})[ship] || {};
@@ -274,16 +268,47 @@ function guidePanels() {
  */
 function loadoutPanel(ship) {
 	const s = shipStats[ship];
-	const fit = loadout(ship, store.getAllStock(), families);
-	const rows = fit.slots.map(x => `<div class="kv-row"><span>${x.part ? `${img(enhancedName(x.part, x.level), 'row-icon sm')} ${codexName(x.part)} +${x.level}` : `<span class="crew-race">${esc(x.slot)}</span> nothing fitted`}</span>
-		<span>${x.part ? esc(describeStats(x.stats, { signed: false })) : ''}</span></div>`).join('');
-	const hull = { speed: s.speed, accel: s.accel, turn: s.turn, brake: s.brake, weight: s.weight, rations: s.rations, durability: s.durability };
-	const total = sumStats(hull, fit.total);
+	const stock = store.getAllStock();
+	const fit = fittedFor(ship, stock);
+	const chosen = (store.getProfile('fitted', {}) || {})[ship] || {};
+	const rows = fit.slots.map(x => {
+		// The choice: the best you own, nothing, or any part that goes in
+		// this slot at any level -- the ones you hold marked.
+		const value = chosen[x.slot] === undefined ? 'auto' : chosen[x.slot] === '' ? 'none' : chosen[x.slot];
+		const options = partsForSlot(ship, x.slot).map(part => {
+			const levels = [];
+			for (let lv = 0; lv <= 10; lv++) {
+				const item = enhancedName(part, lv);
+				const have = stock[item] > 0;
+				levels.push(`<option value="${esc(item)}"${value === item ? ' selected' : ''}>+${lv}${have ? ` · you hold ${F(stock[item])}` : ''}</option>`);
+			}
+			return `<optgroup label="${esc(part)}">${levels.join('')}</optgroup>`;
+		}).join('');
+		const tag = x.source === 'owned' ? 'from your inventory'
+			: x.source === 'chosen' ? 'chosen · in your inventory'
+			: x.source === 'chosen-unowned' ? 'chosen · not in your inventory'
+			: 'nothing fitted';
+		return `<div class="kv-row fit-row">
+			<span>${x.part ? `${img(enhancedName(x.part, x.level), 'row-icon sm')} ${codexName(x.part)} +${x.level}` : `<span class="crew-race">${esc(x.slot)}</span>`}
+				<span class="fit-tag${x.source === 'chosen-unowned' ? ' warn' : ''}">${tag}</span></span>
+			<span class="fit-edit">${x.part ? `<span class="fit-stats">${esc(describeStats(x.stats, { signed: false }))}</span>` : ''}
+				<select class="field select fit-sel" data-act="fit-part" data-ship="${esc(ship)}" data-slot="${x.slot}" aria-label="${esc(x.slot)} fitted">
+					<option value="auto"${value === 'auto' ? ' selected' : ''}>best you own</option>
+					<option value="none"${value === 'none' ? ' selected' : ''}>nothing</option>
+					${options}
+				</select></span>
+		</div>`;
+	}).join('');
+	const me = currentShip();
+	const same = me.name === ship;
+	const hold = same ? me.hold : { limit: s.weight + (Number(fit.total.weight) || 0), crew: 0, free: s.weight + (Number(fit.total.weight) || 0) };
 	return `<div class="panel crew-panel">
 		<div class="panel-head"><h2 class="panel-title">Fitted out</h2>
 			<span class="panel-sub">Hull: ${F(s.weight)} LT · ${s.slots} slots · ${s.cannons ? `${s.cannons} cannons a side, ${s.reload} s` : 'no cannons'} · ${F(s.durability)} durability · ${F(s.rations)} rations</span></div>
+		<p class="fit-hint">What the Map sails and the hold it carries follow this. The best part you hold goes in each slot by itself; pick another for one you have not recorded, or to weigh a plan.</p>
 		<div class="kv">${rows}</div>
-		<div class="sel-facts">with parts: speed <b>${total.speed}%</b> · accel <b>${total.accel}%</b> · turn <b>${total.turn}%</b> · brake <b>${total.brake}%</b> · <b>${F(total.weight)} LT</b> · <b>${F(total.durability)}</b> durability${fit.total.dp ? ` · DP <b>${fit.total.dp}</b>` : ''}${fit.total.damage ? ` · cannon <b>${F(fit.total.damage)}</b> × ${fit.total.hits}` : ''}</div>
+		<div class="sel-facts">with parts${same && me.crew.seated ? ' and crew' : ''}: speed <b>${same ? me.speed.total : s.speed + (Number(fit.total.speed) || 0)}%</b> · accel <b>${same ? me.accel : s.accel + (Number(fit.total.accel) || 0)}%</b> · turn <b>${same ? me.turn : s.turn + (Number(fit.total.turn) || 0)}%</b> · brake <b>${same ? me.brake : s.brake + (Number(fit.total.brake) || 0)}%</b>
+			· hold <b>${F(hold.free)} LT</b>${hold.crew ? ` <span class="fit-tag">(${F(hold.limit)} less ${F(hold.crew)} of crew)</span>` : ''} · <b>${F(same ? me.durability : s.durability + (Number(fit.total.durability) || 0))}</b> durability${fit.total.dp ? ` · DP <b>${fit.total.dp}</b>` : ''}${fit.total.damage ? ` · cannon <b>${F(fit.total.damage)}</b> × ${fit.total.hits}` : ''}</div>
 	</div>`;
 }
 

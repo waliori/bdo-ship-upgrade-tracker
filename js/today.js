@@ -5,7 +5,7 @@
 // until the resets, when Vell is next up on this player's servers, and
 // how many more days a build is at the pace it has been going.
 
-import { esc } from './fmt.js';
+import { esc, F } from './fmt.js';
 import * as store from './state.js';
 import { snapshot } from './ui-state.js';
 import { questsFor } from './quests.js';
@@ -13,6 +13,7 @@ import { questDone } from './screen-quests.js';
 import { VELL, VELL_CHECKED, nextSpawn, timeLabel, localLabel } from './clock.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { paceText } from './pace.js';
+import { currentShip } from './ship.js';
 import { REGIONS } from './market.js';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -74,9 +75,14 @@ export function todayStrip() {
 			? `<div class="today-v faint">—</div><div class="today-sub">a pace appears after a day of records</div>`
 			: '';
 
+	const me = currentShip();
+	const fitted = me.fit.slots.filter(s => s.part).length;
+	const shipTile = `<div class="today-v">${esc(me.name)}</div>
+		<div class="today-sub">${me.speed.total}% · ${esc(F(me.hold.free))} LT free · ${fitted} of 4 parts${me.crew.seated ? ` · ${me.crew.seated} aboard` : ''} · <button class="linky" data-act="view" data-id="crew">fit out</button></div>`;
 	return `<div class="today">
 		<div class="today-k">Today</div>
 		<div class="today-tiles">
+			<div class="today-tile"><div class="summary-k">Your ship</div>${shipTile}</div>
 			<div class="today-tile"><div class="summary-k">Quests</div>${questTile}</div>
 			<div class="today-tile"><div class="summary-k">Resets</div>
 				<div class="today-v">dailies <b data-until="daily"></b></div>

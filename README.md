@@ -196,12 +196,19 @@ done, what pays in something you need, or one reward in particular —
 the ones on your own list are offered first. Ravinia's log shows how
 many of its letters you have recorded.
 
+**One ship, every tab.** The Crew screen picks the hull you sail and
+what is on it: each slot takes the best part you hold by itself, or
+one you choose — a part you own but have not recorded, or a plan you
+are weighing, marked as such. From that one setup follow the speed the
+Map times a route at, the hold a run can carry once the crew's own
+weight is aboard, and the "Your ship" tile on the Plan.
+
 **Routes** say how long. Every leg on the Map's Route tab carries its
-length and the minutes it takes at the speed your hull actually makes
-— hull, parts and sail seats, the same sum the Crew screen shows — over
-the line as it is bent round the land. What 100% is in metres the game
-never says, so the chart assumes 11 m/s and lets one timed leg replace
-it. Parley is costed at one trade a stop or at every attempt the offer
+length and the minutes it takes at the speed that ship actually makes
+— hull, parts and sail seats — over the line as it is bent round the
+land. What 100% is in metres the game never says, so every time is a
+range: a fifth either way around the chart's 11 m/s estimate, a tenth
+either way once you have timed one leg and told it. Parley is costed at one trade a stop or at every attempt the offer
 allows; the stops past what your bar covers are marked and a button
 trims to them. The trade goods in your stock are read against what
 each stop hands over. Routes are kept by name, a replaced route is

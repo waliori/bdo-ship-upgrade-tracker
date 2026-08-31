@@ -46,3 +46,16 @@ test('distances and durations read the way a sailor says them', () => {
 	assert.equal(fmtDuration(6 * 60 + 20), '6 min');
 	assert.equal(fmtDuration(72 * 60), '1 h 12 min');
 });
+
+test('a time is a range: a fifth either way, a tenth once a leg was timed', async () => {
+	const { calRange, sailRange, fmtRange } = await import('../js/sailing.js');
+	assert.deepEqual(calRange(10), [8, 12]);
+	assert.deepEqual(calRange(10, true), [9, 11]);
+	const [fast, slow] = sailRange(1200, 100, 10);
+	assert.equal(fast, 100);
+	assert.equal(slow, 150);
+	assert.equal(fmtRange(fast, slow), '2–3 min');
+	assert.equal(fmtRange(290, 310), '5 min');
+	assert.equal(fmtRange(3600, 4800), '1 h 00 min – 1 h 20 min');
+	assert.equal(fmtRange(10, 20), 'under a minute');
+});

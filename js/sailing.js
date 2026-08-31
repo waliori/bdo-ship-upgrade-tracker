@@ -61,6 +61,34 @@ export function speedPct(ship, stock = {}, roster = [], seats = {}) {
 
 export const speedMs = (pct, cal = DEFAULT_CAL) => cal * pct / 100;
 
+// How far to trust the calibration: a fifth either way around the
+// working estimate, a tenth around a leg someone actually timed --
+// turns, currents and the wharf approach vary between runs.
+export const BAND_ESTIMATE = 0.2;
+export const BAND_MEASURED = 0.1;
+
+/** The slow and fast ends of what 100% might be, in m/s. */
+export function calRange(cal = DEFAULT_CAL, measured = false) {
+	const b = measured ? BAND_MEASURED : BAND_ESTIMATE;
+	return [cal * (1 - b), cal * (1 + b)];
+}
+
+/** Seconds to sail `metres`: the quick end and the slow end. */
+export function sailRange(metres, pct, cal = DEFAULT_CAL, measured = false) {
+	const [lo, hi] = calRange(cal, measured);
+	return [sailSeconds(metres, pct, hi), sailSeconds(metres, pct, lo)];
+}
+
+/** "5–7 min", "48–58 min", "1 h 05 – 1 h 20 min". */
+export function fmtRange(fast, slow) {
+	if (!Number.isFinite(fast) || !Number.isFinite(slow)) return '';
+	const a = Math.round(fast / 60), b = Math.round(slow / 60);
+	if (b < 1) return 'under a minute';
+	if (a === b) return fmtDuration(slow);
+	if (b < 60) return `${Math.max(1, a)}–${b} min`;
+	return `${fmtDuration(fast)} – ${fmtDuration(slow)}`;
+}
+
 /** Seconds to sail `metres` at `pct` speed. */
 export function sailSeconds(metres, pct, cal = DEFAULT_CAL) {
 	const v = speedMs(pct, cal);

@@ -240,6 +240,20 @@ function readProfile(raw) {
 		}
 		if (Object.keys(presets).length) out.presets = presets;
 	}
+	// What is fitted on each hull by hand: slot -> item (with its level),
+	// or '' for an empty slot. Absent means "the best you own".
+	if (isProfile(raw.fitted)) {
+		const fitted = {};
+		for (const [ship, slots] of Object.entries(raw.fitted)) {
+			if (ship.length > 60 || !isProfile(slots)) continue;
+			const clean = {};
+			for (const [slot, item] of Object.entries(slots)) {
+				if (['cannon', 'sail', 'figurehead', 'plating'].includes(slot) && typeof item === 'string' && item.length <= 80) clean[slot] = item;
+			}
+			if (Object.keys(clean).length) fitted[ship] = clean;
+		}
+		if (Object.keys(fitted).length) out.fitted = fitted;
+	}
 	// Which quests are done, stamped with the period they were done in:
 	// a date for a daily, a week key for a weekly, 'once' for the chain.
 	// A stamp from an earlier period simply stops matching at the reset,

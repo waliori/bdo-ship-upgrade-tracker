@@ -6,8 +6,7 @@
 import { courses, courseById } from './courses.js';
 import { monsters, monsterByKey } from './sea_monsters.js';
 import { esc, F } from './fmt.js';
-import { shipStats } from './ship_stats.js';
-import { crewShip } from './screen-crew.js';
+import { currentShip } from './ship.js';
 import { img } from './ui-bits.js';
 import {
 	createMap, frame, marksFor, pan, zoomAt, clampView, fitTo,
@@ -19,7 +18,7 @@ import { wharves, nearestWharf } from './wharves.js';
 import { quests } from './quests.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import * as store from './state.js';
-import { speedPct, legLengths, pathLength, sailSeconds, calibrate, fmtDistance, fmtDuration, DEFAULT_CAL } from './sailing.js';
+import { legLengths, pathLength, sailRange, fmtRange, calibrate, fmtDistance, DEFAULT_CAL } from './sailing.js';
 import { bookmarkXML, writeMode, BOOKMARK_SLOTS, CAMERA_SLOTS, LOOP_SLOTS, FILE_HINT, toGame } from './worldmap.js';
 import { canWriteFiles, gameFolderName, previousBlock } from './gamefile.js';
 import { parleyPerTrade, PARLEY, GOODS } from './barter.js';
@@ -415,9 +414,11 @@ function routeHTML(marks) {
 	const world = seaBent(routeWorld(marks));
 	const legs = legLengths(world);
 	const legTo = k => port ? legs[k] : k > 0 ? legs[k - 1] : null;
-	const speed = routeSpeed();
+	const me = currentShip();
+	const speed = me.speed;
 	const cal = sailCal();
-	const timeOf = m => speed && m != null ? fmtDuration(sailSeconds(m, speed.total, cal)) : '';
+	const measured = Number(store.getSetting('sailCal', null)) > 0;
+	const timeOf = m => m != null ? fmtRange(...sailRange(m, speed.total, cal, measured)) : '';
 	const costs = stops.map(id => stopParley(id, marks, prof));
 	const held = prof.parleyHeld;
 	const need = costs.reduce((a, b) => a + b, 0);
@@ -451,18 +452,19 @@ function routeHTML(marks) {
 		: `your ${F(held)} covers ${afford} of ${stops.length}`;
 	const tradesBtn = m => `<button class="chip tiny ${tradesMode === m ? 'active' : ''}" data-act="map-trades" data-id="${m}"
 		title="${m === 'one' ? 'One exchange at each stop' : 'Every attempt the offer allows at each stop'}">${m === 'one' ? 'one trade' : 'all attempts'}</button>`;
-	// The hold: how many goods of each level the crew's hull can carry
-	// per run. A route is only as long as the deck allows.
-	const hull = shipStats[crewShip()];
-	const hold = hull ? `<div><div class="summary-k">Hold</div><div class="summary-v">${F(hull.weight)} LT</div>
-				<div class="summary-sub">${esc(crewShip())}: ${Math.floor(hull.weight / GOODS[5].weight)} of Lv4–5 · ${Math.floor(hull.weight / GOODS[6].weight)} of Lv6–7 a run</div></div>` : '';
+	// The hold: what the ship as fitted can carry once the crew is
+	// aboard, and how many goods of each level that is. A route is only
+	// as long as the deck allows.
+	const hold = `<div><div class="summary-k">Hold</div><div class="summary-v">${F(me.hold.free)} LT</div>
+				<div class="summary-sub">${F(me.hold.limit)} as fitted${me.hold.crew ? ` less ${F(me.hold.crew)} of crew` : ''} · ${Math.floor(me.hold.free / GOODS[5].weight)} of Lv4–5 · ${Math.floor(me.hold.free / GOODS[6].weight)} of Lv6–7 a run</div></div>`;
 	const total = pathLength(world);
 	const lastStop = npcById.get(stops[stops.length - 1]);
 	const wharf = lastStop && !returnHome ? nearestWharf(lastStop.x, lastStop.y, 'wharf') : null;
 	const wharfLine = wharf ? `<div class="summary-sub">nearest wharf to the last stop: ${esc(wharf.name)}, ${esc(fmtDistance(wharf.d * 0.25))}</div>` : '';
 	const distance = world.length > 1 ? `<div><div class="summary-k">Distance</div><div class="summary-v">${esc(fmtDistance(total))}</div>
-				<div class="summary-sub">${speed ? `≈ ${esc(timeOf(total))} at ${speed.total}% · ` : ''}100% ≈ ${cal} m/s · <button class="linky" data-act="map-sail-cal">timed a leg?</button></div>${wharfLine}</div>` : '';
-	const cargo = cargoTile(hull);
+				<div class="summary-sub">≈ ${esc(timeOf(total))} at ${speed.total}% · 100% ≈ ${cal} m/s ${measured ? '±10%' : '±20%'} · <button class="linky" data-act="map-sail-cal">timed a leg?</button></div>${wharfLine}</div>` : '';
+	const cargo = cargoTile({ weight: me.hold.free });
+	const sailingAs = stops.length ? `<p class="map-hint map-as">Sailing as <b>${esc(me.name)}</b> · ${speed.total}% · ${F(me.hold.free)} LT free${me.crew.seated ? ` · ${me.crew.seated} aboard` : ''} · <button class="linky" data-act="view" data-id="crew">change</button></p>` : '';
 	const stats = stops.length ? `<div class="map-stats">
 			<div><div class="summary-k">Stops</div><div class="summary-v">${stops.length}</div></div>
 			${distance}
@@ -498,7 +500,7 @@ function routeHTML(marks) {
 	const empty = !stops.length
 		? `<p class="map-hint">No route plotted. Click a pin and “Add stop”, or take the loop below and change it from there.</p>`
 		: `<p class="map-hint">Click a pin, then “Add stop”. The numbers sail in this order.</p>`;
-	return `${empty}
+	return `${empty}${sailingAs}
 		${startRow}${seedBtn}<div class="map-list">${list}</div>${stats}${savedHTML()}`;
 }
 
@@ -530,12 +532,10 @@ function stopParley(id, marks, prof) {
 	return parleyPerTrade({ ...prof, kind }) * (tradesMode === 'all' ? triesAt(id, marks) : 1);
 }
 
-/** The speed the route is sailed at: the crew screen's hull, as fitted
- *  and crewed. */
+/** The speed the route is sailed at: the ship as the Crew screen has
+ *  it -- hull, fitted parts and the sail seats. */
 function routeSpeed() {
-	const ship = crewShip();
-	const seats = (store.getProfile('seats', {}) || {})[ship] || {};
-	return speedPct(ship, store.getAllStock(), store.getProfile('roster', []) || [], seats);
+	return currentShip().speed;
 }
 
 /** Metres a second at 100%: the player's own figure if they timed a
@@ -577,14 +577,14 @@ function cargoLine(id, has) {
 		: `<span class="map-row-sub warn">hands over ${esc(gives.join(' or '))} — none aboard</span>`;
 }
 
-function cargoTile(hull) {
+function cargoTile(hold) {
 	const goods = heldGoods();
 	if (!goods.length) return '';
 	const n = goods.reduce((a, g) => a + g.qty, 0);
 	const w = goods.reduce((a, g) => a + g.weight, 0);
-	const overW = hull && w > hull.weight;
+	const overW = hold && w > hold.weight;
 	return `<div><div class="summary-k">Cargo</div><div class="summary-v${overW ? ' amber' : ''}">${F(n)} goods</div>
-		<div class="summary-sub">${F(w)} LT${hull ? ` of ${F(hull.weight)}` : ''} · ${esc(goods.map(g => `${F(g.qty)}× Lv${g.lv}`).join(', '))}</div></div>`;
+		<div class="summary-sub">${F(w)} LT${hold ? ` of ${F(hold.weight)} free` : ''}${overW ? ' · over the limit — the ship slows' : ''} · ${esc(goods.map(g => `${F(g.qty)}× Lv${g.lv}`).join(', '))}</div></div>`;
 }
 
 /* ------------------------------------------------------------------ *
@@ -799,7 +799,7 @@ function paintMeasure(layer, size) {
 	if (measurePts.length === 2) {
 		const m = pathLength(world);
 		const speed = routeSpeed();
-		const t = speed ? fmtDuration(sailSeconds(m, speed.total, sailCal())) : '';
+		const t = fmtRange(...sailRange(m, speed.total, sailCal(), Number(store.getSetting('sailCal', null)) > 0));
 		label.textContent = `${fmtDistance(m)}${t ? ` · ≈ ${t}` : ''}`;
 		const mid = pts[Math.floor(pts.length / 2)];
 		label.style.left = `${mid.left}px`;
@@ -837,7 +837,7 @@ export function openSailCal() {
 	const options = legs.map((m, i) => `<option value="${m}">${esc(names[i] || '?')} → ${esc(names[i + 1] || '?')} · ${esc(fmtDistance(m))}</option>`).join('');
 	const host = openDialog(`
 		<h2>How fast is 100%?</h2>
-		<p class="dialog-copy">The game gives speed as a percentage and never says what 100% is in metres. The chart assumes <b>${DEFAULT_CAL} m/s</b>; you are using <b>${sailCal()} m/s</b>. Time one leg in game${speed ? ` at your ${speed.total}%` : ''} and the rest are corrected from it.</p>
+		<p class="dialog-copy">The game gives speed as a percentage and never says what 100% is in metres. The chart assumes <b>${DEFAULT_CAL} m/s</b> and shows every time as a range a fifth either way; you are using <b>${sailCal()} m/s</b>. Time one leg in game${speed ? ` at your ${speed.total}%` : ''} and the rest are corrected from it, with the range narrowed to a tenth.</p>
 		${legs.length ? `<label class="dialog-label">Leg <select class="field select" data-cal-leg>${options}</select></label>` : '<p class="dialog-copy">Plot a route first, then time one of its legs.</p>'}
 		<label class="dialog-label">Took <input class="field" type="text" inputmode="decimal" placeholder="minutes, e.g. 6.5" data-cal-min> minutes</label>
 		<div class="dialog-actions">
