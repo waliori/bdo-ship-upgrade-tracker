@@ -3074,3 +3074,17 @@ select.purse-inline { width: auto; cursor: pointer; }
 .help-change ul { margin: 4px 0 0 18px; padding: 0; }
 .help-change li { margin: 2px 0; }
 .help-data { display: flex; flex-direction: column; gap: 5px; margin: 6px 0; }
+
+/* ---- Shared plan, typed sailor stats ---- */
+.shared-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 10px 16px; background: rgba(6, 14, 26, 0.94); border-top: 1px solid rgba(240, 180, 90, 0.5); color: var(--amber); font-size: 13px; }
+.shared-bar[hidden] { display: none; }
+.stat-in { width: 52px; text-align: right; }
+.sel-stat.typed b > .stat-in { color: var(--teal); }
+.sel-note { font-size: 11px; color: var(--ink-faint); margin: 6px 0 2px; }
+.field.select.inline { display: inline-block; width: auto; padding: 2px 6px; font-size: 12px; }
+
+/* ---- Wharves ---- */
+.map-wharf { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 4px; pointer-events: none; z-index: 2; font-size: 10.5px; color: #cfe3f5; text-shadow: 0 1px 4px #000; white-space: nowrap; }
+.map-wharf-dot { font-size: 13px; line-height: 1; filter: drop-shadow(0 1px 2px #000); }
+.map-wharf.guild { color: #d9c4ff; }
+.map-course-dot.wharf { background: #cfe3f5; }

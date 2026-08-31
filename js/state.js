@@ -191,13 +191,23 @@ function readProfile(raw) {
 			if (!r || typeof r !== 'object' || typeof r.id !== 'string' || !r.id || seen.has(r.id)) continue;
 			if (typeof r.type !== 'string' || !r.type) continue;
 			seen.add(r.id);
-			roster.push({
+			const entry = {
 				id: r.id.slice(0, 24),
 				name: String(r.name || r.type).slice(0, 30),
 				type: r.type.slice(0, 40),
 				lv: Math.min(10, Math.max(1, Math.floor(Number(r.lv) || 1))),
 				cond: Math.min(100, Math.max(0, Math.floor(Number(r.cond ?? 100))))
-			});
+			};
+			// The sailor's real stats as the game shows them, when typed in.
+			if (isProfile(r.stats)) {
+				const st = {};
+				for (const k of ['speed', 'accel', 'turn', 'brake', 'force', 'focus', 'vision']) {
+					const v = Number(r.stats[k]);
+					if (Number.isFinite(v) && v >= 0 && v <= 500) st[k] = Math.round(v * 10) / 10;
+				}
+				if (Object.keys(st).length) entry.stats = st;
+			}
+			roster.push(entry);
 		}
 		if (roster.length) out.roster = roster;
 	}

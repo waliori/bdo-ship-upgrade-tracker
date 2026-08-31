@@ -75,8 +75,21 @@ export function codexUrl(item) {
  * for anything the mapping has never heard of, so a name is never
  * missing just because a link is.
  */
+/** BDOCodex locale codes the look-ups can open in. */
+export const CODEX_LANGS = [
+	['us', 'English'], ['de', 'Deutsch'], ['fr', 'Français'], ['es', 'Español'], ['pt', 'Português'],
+	['ru', 'Русский'], ['tr', 'Türkçe'], ['jp', '日本語'], ['kr', '한국어'], ['tw', '繁體中文'], ['th', 'ไทย'], ['id', 'Bahasa Indonesia']
+];
+
+/** The same codex page in the language the player chose. */
+export function localiseCodex(url) {
+	const lang = store.getSetting('codexLang', 'us');
+	if (!url || !lang || lang === 'us' || !CODEX_LANGS.some(([id]) => id === lang)) return url;
+	return url.replace('bdocodex.com/us/', `bdocodex.com/${lang}/`);
+}
+
 export function codexName(item, text = item) {
-	const url = codexUrl(item);
+	const url = localiseCodex(codexUrl(item));
 	if (!url) return esc(text);
 	return `<a class="codex" href="${esc(url)}" target="_blank" rel="noopener noreferrer" data-codex
 		title="Look up ${esc(item)} on BDOCodex">${esc(text)}<span class="codex-mark" aria-hidden="true">\u2197</span></a>`;

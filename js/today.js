@@ -1,4 +1,3 @@
-/* global Notification */
 // Today, at sea: the clocks a sailor plays by, on the Plan screen.
 //
 // The plan says what is left; this says what today can do about it --
@@ -48,8 +47,11 @@ function vellTile() {
 		: `${esc(plan.label)}: ${esc(plan.times.map(timeLabel).join(' · '))} ${esc(zoneShort(plan.zone))}, as of ${VELL_CHECKED}`;
 	const canNotify = typeof Notification !== 'undefined';
 	const on = canNotify && store.getSetting('vellNotify', false) === true && Notification.permission === 'granted';
+	const byPush = on && store.getSetting('vellPush', false) === true;
 	const bell = canNotify
-		? ` · <button class="linky" data-act="vell-notify" title="${on ? 'A notification a quarter of an hour before, while this tab is open' : 'Ask for a notification a quarter of an hour before, while this tab is open'}">${on ? '🔔 reminding' : 'remind me'}</button>`
+		? ` · <button class="linky" data-act="vell-notify" title="${on
+			? (byPush ? 'A notification a quarter of an hour before, tab open or not — follows the server timetable' : 'A notification a quarter of an hour before, while this tab is open')
+			: 'Ask for a notification a quarter of an hour before'}">${on ? `🔔 reminding${byPush ? ' by push' : ' while open'}` : 'remind me'}</button>`
 		: '';
 	return `<div class="today-v">${esc(localLabel(next.at))} <span class="today-in">in <b data-until="at" data-at="${next.at}"></b></span></div>
 		<div class="today-sub">${source} · ${edit}${bell}</div>`;
@@ -88,10 +90,61 @@ export function todayStrip() {
 const REMIND_BEFORE = 15 * 60e3;
 let remindedFor = 0;
 
-/** Turn the reminder on (asking the browser first) or off. */
+const b64ToBytes = s => {
+	const b = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - s.length % 4) % 4));
+	return Uint8Array.from(b, c => c.charCodeAt(0));
+};
+
+/** The server region the push timetable would follow, if it has one. */
+function pushRegion() {
+	const r = String(store.getSetting('marketRegion', 'eu') || 'eu').replace('console_', '');
+	return VELL[r] ? r : null;
+}
+
+/** Try for a push subscription: the server must offer it, the browser
+ *  must have a worker, and the region must have a timetable. True when
+ *  the reminder is now the server's job. */
+async function subscribePush() {
+	const region = pushRegion();
+	if (!region || !('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+	try {
+		const cfg = await (await fetch('/api/config')).json();
+		if (!cfg || !cfg.push) return false;
+		const { key } = await (await fetch('/api/push/key')).json();
+		const reg = await navigator.serviceWorker.ready;
+		const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(key) });
+		const res = await fetch('/api/push/subscribe', {
+			method: 'POST', headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ subscription: sub.toJSON(), region })
+		});
+		return res.ok;
+	} catch {
+		return false;
+	}
+}
+
+async function unsubscribePush() {
+	if (store.getSetting('vellPush', false) !== true) return;
+	try {
+		const reg = await navigator.serviceWorker.ready;
+		const sub = await reg.pushManager.getSubscription();
+		if (sub) {
+			await fetch('/api/push/subscribe', {
+				method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ endpoint: sub.endpoint })
+			}).catch(() => {});
+			await sub.unsubscribe();
+		}
+	} catch { /* then the server's copy dies of a 410 on its next send */ }
+}
+
+/** Turn the reminder on (asking the browser first) or off. By push
+ *  where the deployment offers it; in the page otherwise. */
 export async function toggleVellReminder() {
 	if (typeof Notification === 'undefined') return toast('This browser has no notifications');
 	if (store.getSetting('vellNotify', false) === true && Notification.permission === 'granted') {
+		await unsubscribePush();
+		store.setSetting('vellPush', false);
 		store.setSetting('vellNotify', false);
 		return toast('No more Vell reminders');
 	}
@@ -100,15 +153,19 @@ export async function toggleVellReminder() {
 		try { perm = await Notification.requestPermission(); } catch { perm = 'denied'; }
 	}
 	if (perm !== 'granted') return toast('The browser would not allow notifications — check the site settings');
+	const pushed = await subscribePush();
+	store.setSetting('vellPush', pushed);
 	store.setSetting('vellNotify', true);
-	toast('You will be told a quarter of an hour before Vell, while this tab is open');
+	toast(pushed
+		? 'You will be told a quarter of an hour before Vell, tab open or not'
+		: 'You will be told a quarter of an hour before Vell, while this tab is open');
 }
 
 /** Called by the clock: a notification once, a quarter of an hour
  *  before the next spawn, while the page is open and allowed to. */
 export function checkVellReminder(now = Date.now()) {
 	if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-	if (store.getSetting('vellNotify', false) !== true) return;
+	if (store.getSetting('vellNotify', false) !== true || store.getSetting('vellPush', false) === true) return;
 	const plan = vellPlan();
 	const next = plan && nextSpawn(plan.zone, plan.times, now);
 	if (!next || next.at === remindedFor) return;

@@ -68,8 +68,20 @@ let sessionSecret = read('SESSION_SECRET');
 export const ephemeralSecret = syncEnabled && !sessionSecret;
 if (!sessionSecret) sessionSecret = crypto.randomBytes(32).toString('hex');
 
+// Push reminders need a key pair to sign them and a table to keep the
+// subscriptions in; a database alone is enough -- no Discord needed.
+const vapid = {
+	publicKey: read('VAPID_PUBLIC_KEY'),
+	privateKey: read('VAPID_PRIVATE_KEY'),
+	subject: read('VAPID_SUBJECT') || (publicUrl.startsWith('https://') ? publicUrl : 'mailto:admin@localhost')
+};
+export const pushEnabled = Boolean(vapid.publicKey && vapid.privateKey && turso.url);
+
 export const config = {
 	port: num('PORT', 8000),
+	vapid,
+	// How long before a spawn the reminder goes out.
+	pushBeforeMs: num('PUSH_BEFORE_MINUTES', 15) * 60 * 1000,
 	publicUrl,
 	discord: {
 		...discord,

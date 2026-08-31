@@ -177,6 +177,15 @@ const SCHEMA = [
 		payload     TEXT NOT NULL,
 		updated_at  INTEGER NOT NULL,
 		device      TEXT
+	)`,
+	// Push subscriptions for the Vell reminder, by the server region
+	// whose timetable they follow. Anonymous: an endpoint is its own key
+	// and says nothing about who holds it.
+	`CREATE TABLE IF NOT EXISTS push_subs (
+		endpoint    TEXT PRIMARY KEY,
+		sub         TEXT NOT NULL,
+		region      TEXT NOT NULL,
+		created_at  INTEGER NOT NULL
 	)`
 ];
 
@@ -208,6 +217,36 @@ export function migrate() {
 		});
 	}
 	return schema;
+}
+
+/* ------------------------------------------------------------------ *
+ * Push subscriptions
+ * ------------------------------------------------------------------ */
+
+export async function putPushSub(endpoint, sub, region) {
+	await migrate();
+	await exec({
+		sql: `INSERT INTO push_subs (endpoint, sub, region, created_at) VALUES (?, ?, ?, ?)
+			ON CONFLICT(endpoint) DO UPDATE SET sub = excluded.sub, region = excluded.region`,
+		args: [endpoint, JSON.stringify(sub), region, Date.now()]
+	});
+}
+
+export async function deletePushSub(endpoint) {
+	await migrate();
+	await exec({ sql: 'DELETE FROM push_subs WHERE endpoint = ?', args: [endpoint] });
+}
+
+export async function listPushSubs(region) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT endpoint, sub FROM push_subs WHERE region = ?', args: [region] });
+	return rows.map(r => ({ endpoint: r.endpoint, sub: JSON.parse(r.sub) }));
+}
+
+export async function countPushSubs() {
+	await migrate();
+	const { rows } = await exec('SELECT COUNT(*) AS n FROM push_subs');
+	return Number(rows[0] && rows[0].n) || 0;
 }
 
 /* ------------------------------------------------------------------ *

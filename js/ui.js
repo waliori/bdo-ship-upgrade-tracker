@@ -19,7 +19,8 @@ import {
 	recompute, readyCrafts, CROW_COIN, SILVER, setSort
 } from './ui-state.js';
 import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
-import { allItems } from './ui-bits.js';
+import { allItems, CODEX_LANGS } from './ui-bits.js';
+import { encodeShare, decodeShare, shareLink } from './share.js';
 import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
 import { paintPouch, measurePouch } from './pouch.js';
@@ -47,7 +48,7 @@ import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
-	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal,
+	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite
 } from './screen-map.js';
@@ -216,6 +217,14 @@ function syncHash() {
 
 function applyHash() {
 	const m = location.hash.match(/^#([a-z]+)(?:\/(.*))?$/);
+	// A plan in a link: offered, and the address cleaned so a reload does
+	// not offer it twice.
+	if (m && m[1] === 'share' && m[2]) {
+		const payload = m[2];
+		history.replaceState(null, '', `${location.pathname}${location.search}#plan`);
+		openShared(payload);
+		return true;
+	}
 	if (!m || !TABS.some(t => t.id === m[1])) return false;
 	applyingHash = true;
 	setView(m[1]);
@@ -424,6 +433,7 @@ function wire() {
 				}
 				return;
 			case 'map-course': setMapCourse(el.dataset.id); return;
+			case 'map-wharves': setMapWharves(el.dataset.id); return;
 			case 'map-hunt': setMapHunt(el.dataset.id); return;
 			case 'quest-map': showHunt(el.dataset.monster); return showView('map');
 			case 'map-route-export': {
@@ -712,6 +722,9 @@ function wire() {
 			return store.setStash(item, st.value, Math.max(1, store.getStock(item) - placed));
 		}
 
+		const cl = evt.target.closest('[data-act="codex-lang"]');
+		if (cl) return store.setSetting('codexLang', cl.value);
+
 		const qp = evt.target.closest('[data-act="quest-pay"]');
 		if (qp) {
 			setQuestPay(qp.value);
@@ -906,7 +919,93 @@ function openJumpPalette() {
 	});
 }
 
+/** A plan in a link: looked at without saving, or taken in. */
+let sharedKept = null;
+
+async function openShared(payload) {
+	let save;
+	try {
+		save = await decodeShare(payload);
+	} catch {
+		return toast('That link does not carry a plan the tracker can read');
+	}
+	const items = Object.keys(save.stock || {}).length;
+	const builds = (save.targets || []).length;
+	const host = openDialog(`
+		<h2>A plan in a link</h2>
+		<p class="dialog-copy">This link carries ${items} item${items === 1 ? '' : 's'} in stock and ${builds} build${builds === 1 ? '' : 's'}. Look around it without touching yours, or take it in.</p>
+		<div class="dialog-actions">
+			<button class="act" data-share-look>Look around</button>
+			<button class="ghost-btn" data-share-merge>Merge into mine</button>
+			<button class="ghost-btn danger" data-share-replace>Replace mine</button>
+			<button class="ghost-btn" data-close>Ignore</button>
+		</div>`);
+	host.querySelector('[data-share-look]').addEventListener('click', () => {
+		closeDialog();
+		sharedKept = store.capture();
+		store.applyTransient(JSON.stringify(save));
+		showSharedBar(save);
+	});
+	host.querySelector('[data-share-merge]').addEventListener('click', () => {
+		closeDialog();
+		store.merge(save, 'Merged a shared plan');
+		toast('Merged the shared plan into yours', true);
+	});
+	host.querySelector('[data-share-replace]').addEventListener('click', () => {
+		closeDialog();
+		store.adopt(save, 'Took a shared plan');
+		toast('Replaced yours with the shared plan', true);
+	});
+}
+
+function showSharedBar(save) {
+	let bar = document.getElementById('shared-bar');
+	if (!bar) {
+		bar = document.createElement('div');
+		bar.id = 'shared-bar';
+		bar.className = 'shared-bar';
+		document.body.appendChild(bar);
+	}
+	bar.innerHTML = `<span>Looking at a shared plan — nothing you do here is saved.</span>
+		<button class="ghost-btn" data-shared="merge">Merge into mine</button>
+		<button class="ghost-btn" data-shared="replace">Keep it, replace mine</button>
+		<button class="act" data-shared="back">Back to mine</button>`;
+	bar.hidden = false;
+	bar.onclick = evt => {
+		const b = evt.target.closest('[data-shared]');
+		if (!b) return;
+		store.restore(sharedKept);
+		sharedKept = null;
+		bar.hidden = true;
+		if (b.dataset.shared === 'merge') { store.merge(save, 'Merged a shared plan'); toast('Merged the shared plan into yours', true); }
+		else if (b.dataset.shared === 'replace') { store.adopt(save, 'Took a shared plan'); toast('Replaced yours with the shared plan', true); }
+		else toast('Back to your own plan');
+	};
+}
+
 function doExport() {
+	const host = openDialog(`
+		<h2>Take the plan with you</h2>
+		<p class="dialog-copy">A file is a backup and moves between machines. A link opens the same plan on any browser — stock, builds and crew all ride in the address — to look at without saving, or to take in.</p>
+		<div class="dialog-actions">
+			<button class="act" data-export-file>Download a file</button>
+			<button class="ghost-btn" data-export-link>Copy a link</button>
+			<button class="ghost-btn" data-close>Cancel</button>
+		</div>`);
+	host.querySelector('[data-export-file]').addEventListener('click', () => { closeDialog(); downloadExport(); });
+	host.querySelector('[data-export-link]').addEventListener('click', async () => {
+		try {
+			const link = shareLink(await encodeShare(store.saveShape()));
+			await navigator.clipboard.writeText(link);
+			closeDialog();
+			toast(`Link copied — ${Math.round(link.length / 1024)} KB of address`);
+		} catch {
+			toast('Could not build or copy the link');
+		}
+	});
+}
+
+function downloadExport() {
 	const blob = new Blob([store.exportJSON()], { type: 'application/json' });
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement('a');
@@ -1054,6 +1153,9 @@ function openHelp() {
 			<summary>What's new</summary>
 			${CHANGES.slice(0, 6).map(c => `<div class="help-change"><b>${esc(c.date)}</b> — ${esc(c.title)}<ul>${c.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>`).join('')}
 		</details>
+		<p class="dialog-copy">Look-ups open on BDOCodex in
+			<select class="field select inline" data-act="codex-lang" aria-label="BDOCodex language">${CODEX_LANGS.map(([id, name]) => `<option value="${id}"${(store.getSetting('codexLang', 'us') || 'us') === id ? ' selected' : ''}>${esc(name)}</option>`).join('')}</select>
+		</p>
 		<details class="help-more">
 			<summary>The data, and when it was checked</summary>
 			<div class="help-data">${DATA.map(d => `<div class="kv-row"><span>${esc(d.what)}</span><span class="n">${esc(d.asOf)}${d.from ? ` · ${esc(d.from)}` : ''}</span></div>`).join('')}</div>

@@ -155,7 +155,9 @@ can be both made and bought, you choose, and the plan follows.
   thousand on a German machine and twelve on an English one.
 - **Your purse** — Crow Coins, silver, Sangpyeong Coins and enhancement
   stones ride along above every tab, since you spend them from every tab.
-- **Export / Import** a JSON backup to move between machines.
+- **Export / Import** a JSON backup to move between machines — or
+  **a link**: the whole plan rides in the address, gzipped, to look at
+  on any browser without saving, or to merge or take in.
 - **A guided tour** that demonstrates on example data, then hands your
   own data back untouched, and a **Help** film of the whole thing end to
   end for when you would rather just watch. Help also lists **what
@@ -168,6 +170,8 @@ can be both made and bought, you choose, and the plan follows.
   many, beside the count the plan works from.
 - **Profiles**: separate saves on one browser for an alt or a what-if;
   sync mirrors the main one only.
+- **Look-ups in your language**: Help lets you pick the BDOCodex locale
+  every item link opens in (French, German, Korean and nine more).
 - Works on a phone — a tap on a row or a chip shows the hover card, a
   second tap puts it away; the water shader is optional (`≈ Water` in
   the header). Offline it runs from a snapshot of the last deploy, never
@@ -203,7 +207,24 @@ trims to them. The trade goods in your stock are read against what
 each stop hands over. Routes are kept by name, a replaced route is
 kept as the previous one, a route travels in a link, and a ruler
 (`⟷`) measures any two points on the sea, with the game's own
-coordinates under the pointer.
+coordinates under the pointer. The Hunt tab can also draw every
+**wharf manager** (repair, rations, sailors) and the Old Moon Guild's
+guild wharves, and the Route tab names the nearest wharf to the last
+stop.
+
+**Enhancement below the yellow tier** takes a failstack too. The game
+publishes no per-stack figure for ship parts, so the Workshop assumes
+the standard line — a tenth of the base rate a stack, capped at 90% —
+and says so; blank means the quoted rate.
+
+**Sailors' real numbers.** Growth is a hidden random range per sailor,
+so the type's figures are averages. The Crew screen lets you type what
+the sailor window shows for each stat, and everything downstream — the
+hull's speed, the route's minutes — follows the typed number.
+
+**Vell by push.** With a key pair configured (see below) the reminder
+reaches a phone with the tab closed; without one it fires while the
+tab is open.
 
 ---
 
@@ -428,6 +449,7 @@ and `docker compose up` read that file on their own:
 | `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | from a [Discord application](https://discord.com/developers/applications) → OAuth2 |
 | `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | from `turso db show <name> --url` and `turso db tokens create <name>` |
 | `SESSION_SECRET` | any long random string — `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | optional, for Vell reminders by push — `npx web-push generate-vapid-keys`; needs the database, not Discord |
 
 Then check it before opening a browser:
 

@@ -205,8 +205,15 @@ export function seatsFor(ship, stats) {
 /** A sailor's stat at their level: growth times level. */
 export function statOf(sailor, key) {
 	const t = anyType[sailor.type];
-	return t ? Math.round((t[key] || 0) * (sailor.lv || 1) * 10) / 10 : 0;
+	if (!t) return 0;
+	// Growth is a hidden random range per sailor, so the type's figure is
+	// an average. The game shows each sailor's real numbers; typed in,
+	// they outrank it.
+	if (sailor.stats && Number.isFinite(sailor.stats[key])) return sailor.stats[key];
+	return Math.round((t[key] || 0) * (sailor.lv || 1) * 10) / 10;
 }
+
+export const STAT_KEYS = ['speed', 'accel', 'turn', 'brake', 'force', 'focus', 'vision'];
 
 /**
  * What a seated crew adds to the hull. A Sail seat doubles speed and

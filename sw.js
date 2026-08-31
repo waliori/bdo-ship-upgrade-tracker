@@ -86,6 +86,8 @@ const SHELL = [
 	'/js/triplog.js',
 	'/js/profiles.js',
 	'/js/about.js',
+	'/js/share.js',
+	'/js/wharves.js',
 	'/js/market.js',
 	'/js/sea_coins.js',
 	'/js/ships.js',
@@ -156,6 +158,36 @@ async function cacheFirst(req) {
 		return new Response('', { status: 404, statusText: 'offline' });
 	}
 }
+
+// A push is a reminder the page asked for -- Vell, a quarter of an hour
+// out -- shown as a notification, and a tap on it opens the tracker.
+self.addEventListener('push', evt => {
+	let data;
+	try {
+		data = evt.data ? evt.data.json() : {};
+	} catch {
+		data = { body: evt.data ? evt.data.text() : '' };
+	}
+	evt.waitUntil(self.registration.showNotification(data.title || 'Ship Upgrade Tracker', {
+		body: data.body || '',
+		icon: '/icon-192.png',
+		badge: '/icon-192.png',
+		tag: data.tag || 'sail',
+		data: { url: data.url || '/' }
+	}));
+});
+
+self.addEventListener('notificationclick', evt => {
+	evt.notification.close();
+	const url = (evt.notification.data && evt.notification.data.url) || '/';
+	evt.waitUntil((async () => {
+		const open = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+		for (const c of open) {
+			if ('focus' in c) return c.focus();
+		}
+		return self.clients.openWindow(url);
+	})());
+});
 
 async function networkFirst(req) {
 	try {

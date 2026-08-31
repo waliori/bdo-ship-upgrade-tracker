@@ -74,7 +74,7 @@ test('the page is still served', async () => {
 
 test('the client is told sync is available', async () => {
 	const res = await call('GET', '/api/config');
-	assert.deepEqual(await res.json(), { sync: true });
+	assert.deepEqual(await res.json(), { sync: true, push: false });
 });
 
 test('being signed out is an answer, not an error', async () => {

@@ -18,7 +18,10 @@ const browserGlobals = {
 	Response: 'readonly', AbortController: 'readonly', DOMException: 'readonly',
 	AbortSignal: 'readonly', WebGLRenderingContext: 'readonly',
 	indexedDB: 'readonly', CustomEvent: 'readonly',
-	atob: 'readonly', Buffer: 'readonly'
+	atob: 'readonly', btoa: 'readonly', Buffer: 'readonly',
+	TextEncoder: 'readonly', TextDecoder: 'readonly',
+	CompressionStream: 'readonly', DecompressionStream: 'readonly',
+	Notification: 'readonly', Intl: 'readonly'
 };
 
 export default [

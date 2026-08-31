@@ -15,6 +15,7 @@ import {
 } from './map.js';
 import { npcs, npcById, ports, MAX_ZOOM } from './barter_npcs.js';
 import { seaRoute } from './searoute.js';
+import { wharves, nearestWharf } from './wharves.js';
 import { quests } from './quests.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import * as store from './state.js';
@@ -49,6 +50,7 @@ let startPort = 0;            // wharf the route sails from; 0 = first stop
 let returnHome = false;       // close the loop back to that wharf
 let coursesOn = [];           // community courses drawn beneath the route, by id
 let huntsOn = [];             // sea monster grounds shown, by species key
+let wharvesOn = [];           // 'wharf' and/or 'guild': the wharf managers drawn
 let follow = true;            // the step player flies the camera along
 let stepIdx = 0;              // which stop the step player is on
 let stepKey = '';             // the route it was on, to reset when it changes
@@ -80,6 +82,7 @@ function restore() {
 		follow = s.follow !== false;
 		if (Array.isArray(s.coursesOn)) coursesOn = s.coursesOn.filter(id => courseById[id]);
 		if (Array.isArray(s.huntsOn)) huntsOn = s.huntsOn.filter(k => monsterByKey[k]);
+		if (Array.isArray(s.wharvesOn)) wharvesOn = s.wharvesOn.filter(k => k === 'wharf' || k === 'guild');
 		if (s.tradesMode === 'all') tradesMode = 'all';
 		if (Array.isArray(s.savedRoutes)) {
 			savedRoutes = s.savedRoutes.filter(r => r && typeof r.name === 'string' && Array.isArray(r.stops))
@@ -92,7 +95,7 @@ function restore() {
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, tradesMode, savedRoutes }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, tradesMode, savedRoutes }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -228,6 +231,15 @@ function huntHTML() {
 			<span class="map-row-main"><span class="map-row-name">${esc(c.name)}</span><span class="map-row-sub">${esc(c.sub)}</span></span>
 		</button>${on ? `<p class="map-course-note">${esc(c.note)}</p>` : ''}`;
 	}).join('');
+	const landmarks = [['wharf', 'Wharf managers', 'repair, rations, sailor contracts'], ['guild', 'Guild wharves', "the Old Moon Guild's, for a guild ship"]]
+		.map(([k, label, sub]) => {
+			const on = wharvesOn.includes(k);
+			const n = wharves.filter(w => w.kind === k).length;
+			return `<button class="map-course${on ? ' on' : ''}" data-act="map-wharves" data-id="${k}" aria-pressed="${on}">
+				<span class="map-course-dot wharf"></span>
+				<span class="map-row-main"><span class="map-row-name">${label} · ${n}</span><span class="map-row-sub">${esc(sub)}</span></span>
+			</button>`;
+		}).join('');
 	const kinds = [['adult', 'Sea monsters'], ['young', 'Young ones'], ['ship', 'Ships'], ['boss', 'Bosses']];
 	const huntRows = kinds.map(([kind, label]) => {
 		const list = monsters.filter(m => m.kind === kind);
@@ -254,6 +266,8 @@ function huntHTML() {
 		${courseRows}
 	</div>
 	<div class="map-courses">
+		<div class="map-courses-head">Landmarks <span class="map-courses-credit">the client's own positions, via Flockenberger's waypoints</span></div>
+		${landmarks}
 		<div class="map-courses-head">Grounds <span class="map-courses-credit">every spawn point on BDOCodex</span></div>
 		${huntRows}
 	</div>${toGame}`;
@@ -443,8 +457,11 @@ function routeHTML(marks) {
 	const hold = hull ? `<div><div class="summary-k">Hold</div><div class="summary-v">${F(hull.weight)} LT</div>
 				<div class="summary-sub">${esc(crewShip())}: ${Math.floor(hull.weight / GOODS[5].weight)} of Lv4–5 · ${Math.floor(hull.weight / GOODS[6].weight)} of Lv6–7 a run</div></div>` : '';
 	const total = pathLength(world);
+	const lastStop = npcById.get(stops[stops.length - 1]);
+	const wharf = lastStop && !returnHome ? nearestWharf(lastStop.x, lastStop.y, 'wharf') : null;
+	const wharfLine = wharf ? `<div class="summary-sub">nearest wharf to the last stop: ${esc(wharf.name)}, ${esc(fmtDistance(wharf.d * 0.25))}</div>` : '';
 	const distance = world.length > 1 ? `<div><div class="summary-k">Distance</div><div class="summary-v">${esc(fmtDistance(total))}</div>
-				<div class="summary-sub">${speed ? `≈ ${esc(timeOf(total))} at ${speed.total}% · ` : ''}100% ≈ ${cal} m/s · <button class="linky" data-act="map-sail-cal">timed a leg?</button></div></div>` : '';
+				<div class="summary-sub">${speed ? `≈ ${esc(timeOf(total))} at ${speed.total}% · ` : ''}100% ≈ ${cal} m/s · <button class="linky" data-act="map-sail-cal">timed a leg?</button></div>${wharfLine}</div>` : '';
 	const cargo = cargoTile(hull);
 	const stats = stops.length ? `<div class="map-stats">
 			<div><div class="summary-k">Stops</div><div class="summary-v">${stops.length}</div></div>
@@ -1010,6 +1027,7 @@ export function paintMap() {
 	paintTiles(layer, tiles, size);
 	paintPins(layer, pins, marks, currentId);
 	paintPorts(layer, size);
+	paintWharves(layer, size);
 	paintHunt(layer, size);
 	paintCourse(layer, size);
 	paintRoute(layer, size, marks);
@@ -1275,6 +1293,30 @@ function paintPorts(layer, size) {
 		el.style.left = `${Math.round(at.left)}px`;
 		el.style.top = `${Math.round(at.top)}px`;
 	}
+}
+
+/** Every wharf manager of the kinds ticked: an anchor and a name. */
+function paintWharves(layer, size) {
+	const pool = layer._wharfEls || (layer._wharfEls = new Map());
+	wharves.forEach((w, i) => {
+		let el = pool.get(i);
+		const on = wharvesOn.includes(w.kind);
+		const at = project(mapState, size, w.x, w.y);
+		const off = !on || at.left < -60 || at.top < -60 || at.left > size.w + 60 || at.top > size.h + 60;
+		if (off) { if (el) el.hidden = true; return; }
+		if (!el) {
+			el = document.createElement('div');
+			el.className = `map-wharf ${w.kind}`;
+			el.title = `${w.name} — ${w.kind === 'guild' ? 'guild wharf manager' : 'wharf manager: repair, rations, sailors'}`;
+			el.innerHTML = '<span class="map-wharf-dot">⚓</span><span class="map-wharf-name"></span>';
+			el.querySelector('.map-wharf-name').textContent = w.name;
+			pool.set(i, el);
+			layer.appendChild(el);
+		}
+		el.hidden = false;
+		el.style.left = `${Math.round(at.left)}px`;
+		el.style.top = `${Math.round(at.top)}px`;
+	});
 }
 
 /** The step player: one chip per stop, the current one lit, and a
@@ -1731,6 +1773,14 @@ export function setMapStart(portId) {
 }
 
 /** Switch a community course on, or off again by choosing it twice. */
+export function setMapWharves(kind) {
+	if (kind !== 'wharf' && kind !== 'guild') return;
+	wharvesOn = wharvesOn.includes(kind) ? wharvesOn.filter(k => k !== kind) : [...wharvesOn, kind];
+	persist();
+	refreshSide();
+	paintMap();
+}
+
 export function setMapCourse(id) {
 	if (!courseById[id]) return;
 	coursesOn = coursesOn.includes(id) ? coursesOn.filter(x => x !== id) : [...coursesOn, id];

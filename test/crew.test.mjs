@@ -142,3 +142,11 @@ test('auto assign keeps to the cabin space', () => {
 	assert.equal(Object.keys(seats).length, 1, 'one fits, the second would be over');
 	assert.equal(crewTotals(roster, seats, stats).overSpace, 0);
 });
+
+test("a sailor's typed stats outrank the type's average", () => {
+	const s = { id: 'a', type: 'Ambitious', lv: 10, cond: 100, stats: { speed: 21.4 } };
+	assert.equal(statOf(s, 'speed'), 21.4);
+	assert.equal(statOf(s, 'accel'), 2, 'the rest stay on the average');
+	const t = crewTotals([s], { 'sail:0': 'a' }, shipStats['Epheria Caravel']);
+	assert.equal(t.speed, 42.8);
+});

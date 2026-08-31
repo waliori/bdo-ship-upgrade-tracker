@@ -12,7 +12,7 @@ import express from 'express';
 import compression from 'compression';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { config, syncEnabled, ephemeralSecret, describe } from './server/config.js';
+import { config, syncEnabled, pushEnabled, ephemeralSecret, describe } from './server/config.js';
 import { marketRoutes } from './server/market.js';
 
 // NOTE: run exactly one of these.
@@ -99,6 +99,18 @@ if (syncEnabled) {
 	app.use('/api', apiRoutes());
 }
 
+// Vell reminders by push: a key pair and a table are all it takes, so
+// it can run on a deployment without Discord. Off without the keys.
+if (pushEnabled) {
+	const [{ migrate }, { pushRoutes, startVellPushes }] = await Promise.all([
+		import('./server/db.js'),
+		import('./server/push.js')
+	]);
+	if (!syncEnabled) migrate().catch(err => console.warn('[db] tables not ready yet:', err.message));
+	app.use('/api', pushRoutes());
+	if (process.env.NODE_ENV !== 'test') startVellPushes();
+}
+
 // Central Market prices, relayed from the community market API and
 // remembered for a while. Needs no configuration: it is the one network
 // feature that is on by default, because the plan is priced wrong
@@ -109,7 +121,7 @@ app.use('/api', marketRoutes(express));
 // Discord app should not show a button that cannot work.
 app.get('/api/config', (req, res) => {
 	res.set('Cache-Control', 'no-store');
-	res.json({ sync: syncEnabled });
+	res.json({ sync: syncEnabled, push: pushEnabled });
 });
 
 // Only what the page actually asks for. Serving the repository root would

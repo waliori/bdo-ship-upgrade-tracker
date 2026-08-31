@@ -246,6 +246,12 @@ export function tableFor(base) {
  */
 export function chanceAt(step, failstack = null) {
 	if (!step) return 0;
-	if (!step.base || failstack === null || !Number.isFinite(failstack)) return step.chance;
-	return Math.min(0.9, step.base * (1 + Math.max(0, failstack) / 10));
+	if (failstack === null || !Number.isFinite(failstack)) return step.chance;
+	// The yellow tier quotes a base and the stack it was quoted at; every
+	// other tier quotes the bare rate, which is the base at no stacks.
+	// The same line is assumed for them -- the game publishes no
+	// per-stack figure for ship parts, so this is the standard rule,
+	// not a measured one, and the Workshop says so.
+	const base = step.base || step.chance;
+	return Math.min(0.9, base * (1 + Math.max(0, failstack) / 10));
 }

@@ -41,7 +41,7 @@ test('the page and its assets are served', async () => {
 
 test('the client is told there is no sync', async () => {
 	const res = await fetch(`${base}/api/config`);
-	assert.deepEqual(await res.json(), { sync: false });
+	assert.deepEqual(await res.json(), { sync: false, push: false });
 });
 
 test('no sync routes exist at all', async () => {

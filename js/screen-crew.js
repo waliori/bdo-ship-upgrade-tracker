@@ -199,9 +199,15 @@ function selectedPanel(ship) {
 	const t = anyType[s.type] || {};
 	const where = whereIs(ship, s.id);
 	const seat = where ? seatsFor(ship, shipStats[ship]).find(x => x.key === where) : null;
-	const bar = (k, v, max) => `<div class="sel-stat"><span><span>${k}</span><b>+${v}%</b></span><i><b style="width:${Math.min(100, v / max * 100)}%"></b></i></div>`;
-	const stats = [bar('Speed', statOf(s, 'speed'), 20), bar('Accel', statOf(s, 'accel'), 20), bar('Turn', statOf(s, 'turn'), 40), bar('Brake', statOf(s, 'brake'), 40)];
-	if (t.force !== undefined) stats.push(bar('Force', statOf(s, 'force'), 30), bar('Focus', statOf(s, 'focus'), 50), bar('Vision', statOf(s, 'vision'), 150));
+	const own = s.stats || {};
+	const bar = (k, key, max) => {
+		const v = statOf(s, key);
+		const typed = Number.isFinite(own[key]);
+		return `<div class="sel-stat${typed ? ' typed' : ''}"><span><span>${k}</span><b>+<input class="purse-inline narrow stat-in" type="text" inputmode="decimal" value="${v}"
+			data-act="crew-stat" data-id="${esc(s.id)}" data-key="${key}" aria-label="${k}, as the game shows it" title="${typed ? 'As you typed it — clear to go back to the type’s average' : 'The type’s average at this level — type what the game shows'}">%</b></span><i><b style="width:${Math.min(100, v / max * 100)}%"></b></i></div>`;
+	};
+	const stats = [bar('Speed', 'speed', 20), bar('Accel', 'accel', 20), bar('Turn', 'turn', 40), bar('Brake', 'brake', 40)];
+	if (t.force !== undefined) stats.push(bar('Force', 'force', 30), bar('Focus', 'focus', 50), bar('Vision', 'vision', 150));
 	return `<div class="panel crew-panel crew-sel">
 		<div class="panel-head"><h2 class="panel-title">Selected sailor</h2><span class="panel-spacer"></span>
 			<button class="sq-btn" data-act="crew-clear-sel" title="Put down">×</button></div>
@@ -217,6 +223,7 @@ function selectedPanel(ship) {
 		<div class="sel-cond"><span><span>Condition</span><b style="color:${condColor(s.cond)}"><input class="purse-inline narrow" type="text" inputmode="numeric" value="${s.cond}" data-act="crew-cond" data-id="${esc(s.id)}" aria-label="Condition">%</b></span>
 			<i><b style="width:${s.cond}%;background:${condColor(s.cond)}"></b></i></div>
 		<div class="sel-stats">${stats.join('')}</div>
+		<div class="sel-note">Growth is a hidden range per sailor, so these are the type's averages until you type what the sailor window shows.</div>
 		<div class="sel-facts">cabins <b>${t.cabin ?? '—'}</b> · eats <b>${t.appetite ?? '—'}</b>/day · weight <b>+${t.weight ?? 0} LT</b></div>
 		${t.skill ? `<div class="sel-skill">★ ${esc(t.skill)}</div>` : t.note ? `<div class="sel-skill quiet">${esc(t.note)}</div>` : ''}
 		<div class="crew-actions">
@@ -429,10 +436,19 @@ export function crewAction(act, el) {
 export function crewChange(el) {
 	const act = el.dataset.act;
 	const id = el.dataset.id;
-	if (!['crew-name', 'crew-lv', 'crew-cond'].includes(act)) return false;
+	if (!['crew-name', 'crew-lv', 'crew-cond', 'crew-stat'].includes(act)) return false;
 	setRoster(roster().map(s => {
 		if (s.id !== id) return s;
 		if (act === 'crew-name') return { ...s, name: el.value.trim().slice(0, 30) || s.name };
+		if (act === 'crew-stat') {
+			const stats = { ...(s.stats || {}) };
+			const v = Number(String(el.value).replace(',', '.'));
+			if (el.value.trim() === '' || !Number.isFinite(v) || v < 0) delete stats[el.dataset.key];
+			else stats[el.dataset.key] = Math.round(v * 10) / 10;
+			const out = { ...s, stats };
+			if (!Object.keys(stats).length) delete out.stats;
+			return out;
+		}
 		if (act === 'crew-lv') return { ...s, lv: Math.min(10, Math.max(1, Math.floor(Number(el.value) || s.lv))) };
 		const cond = Number(el.value);
 		return { ...s, cond: Number.isFinite(cond) ? Math.min(100, Math.max(0, Math.floor(cond))) : s.cond };

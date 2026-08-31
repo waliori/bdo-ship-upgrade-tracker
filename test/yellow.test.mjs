@@ -207,3 +207,11 @@ test('the bulk exchange is an alternative to a recipe, never a replacement', () 
 		assert.ok(recipes[material], `${material} lost its recipe`);
 	}
 });
+
+test('below the yellow tier a failstack lifts the quoted rate by a tenth a stack, capped', async () => {
+	const { chanceAt } = await import('../js/enhancement.js');
+	assert.equal(chanceAt({ chance: 0.3 }), 0.3);
+	assert.equal(chanceAt({ chance: 0.3 }, 0), 0.3);
+	assert.equal(chanceAt({ chance: 0.3 }, 10), 0.6);
+	assert.equal(chanceAt({ chance: 0.3 }, 40), 0.9);
+});
