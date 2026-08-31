@@ -239,9 +239,19 @@ test('habitat markers follow a pan, hide and return once, and the Lyngbakr stand
 	const once = await keys();
 	assert.equal(new Set(once).size, once.length, 'one element per marker');
 	await page.click('[data-act="map-panel"]'); await wait(300);
+	// Painted, not merely flagged: a class that sets its own display
+	// once beat the hidden attribute, and the markers stayed on screen.
+	const shown = sel => page.evaluate(sel => [...document.querySelectorAll(sel)].filter(e => getComputedStyle(e).display !== 'none').length, sel);
+	assert.ok(await shown('.map-habitat') > 0, 'markers painted while on');
 	await page.click('[data-act="map-habitats"]'); await wait(200);
-	assert.equal(await page.evaluate(() => [...document.querySelectorAll('.map-habitat')].filter(e => !e.hidden).length), 0, 'hidden');
+	assert.equal(await shown('.map-habitat'), 0, 'none painted once off');
 	await page.click('[data-act="map-habitats"]'); await wait(300);
+	assert.ok(await shown('.map-habitat') > 0, 'painted again');
+	// The wharf managers answer their own toggle the same way.
+	await page.click('[data-act="map-wharves"][data-id="wharf"]'); await wait(200);
+	assert.ok(await shown('.map-wharf.wharf') > 0, 'wharves painted while on');
+	await page.click('[data-act="map-wharves"][data-id="wharf"]'); await wait(200);
+	assert.equal(await shown('.map-wharf.wharf'), 0, 'none painted once off');
 	const again = await keys();
 	assert.equal(new Set(again).size, again.length, 'still one element per marker');
 	// The Lyngbakr ground is its own: no Nineshark or Black Rust marker within a few kilometres.

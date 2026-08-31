@@ -2954,7 +2954,7 @@ select.purse-inline { width: auto; cursor: pointer; }
 /* Anything on the chart that is hidden is hidden: these set their own
    display, which would otherwise outrank the attribute and leave a
    culled pin standing where it last was. */
-.map-port[hidden], .map-pin[hidden], .map-steps[hidden], .map-tip[hidden] { display: none; }
+.map-port[hidden], .map-pin[hidden], .map-steps[hidden], .map-tip[hidden], .map-wharf[hidden], .map-habitat[hidden] { display: none; }
 
 /* the game's-map export: the block to paste, and its small options */
 .map-xml {
