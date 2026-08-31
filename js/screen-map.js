@@ -15,6 +15,10 @@ import {
 import { npcs, npcById, ports, MAX_ZOOM } from './barter_npcs.js';
 import { seaRoute } from './searoute.js';
 import { wharves, nearestWharf } from './wharves.js';
+import { habitatsOf, habitatsOfMany } from './habitats.js';
+import { monsterArt } from './monster_art.js';
+import { CURRENTS } from './currents.js';
+import { gradeById } from './crystals.js';
 import { quests } from './quests.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { openPicker } from './picker.js';
@@ -51,6 +55,8 @@ let returnHome = false;       // close the loop back to that wharf
 let coursesOn = [];           // community courses drawn beneath the route, by id
 let huntsOn = [];             // sea monster grounds shown, by species key
 let wharvesOn = [];           // 'wharf' and/or 'guild': the wharf managers drawn
+let habitatsOn = true;        // the game's habitat markers: a picture per species' ground
+let currentsOn = false;       // the community's current tracing, over the sea
 let follow = true;            // the step player flies the camera along
 let stepIdx = 0;              // which stop the step player is on
 let stepKey = '';             // the route it was on, to reset when it changes
@@ -89,6 +95,8 @@ function restore() {
 		if (Array.isArray(s.coursesOn)) coursesOn = s.coursesOn.filter(id => courseById[id]);
 		if (Array.isArray(s.huntsOn)) huntsOn = s.huntsOn.filter(k => monsterByKey[k]);
 		if (Array.isArray(s.wharvesOn)) wharvesOn = s.wharvesOn.filter(k => k === 'wharf' || k === 'guild');
+		habitatsOn = s.habitatsOn !== false;
+		currentsOn = s.currentsOn === true;
 		if (s.tradesMode === 'all') tradesMode = 'all';
 		miniOn = s.miniOn !== false;
 		if (s.miniPos && Number.isFinite(s.miniPos.x) && Number.isFinite(s.miniPos.y)) miniPos = { x: s.miniPos.x, y: s.miniPos.y };
@@ -103,7 +111,7 @@ function restore() {
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, tradesMode, savedRoutes, miniOn, miniPos }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, currentsOn, tradesMode, savedRoutes, miniOn, miniPos }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -255,12 +263,14 @@ function huntHTML() {
 		return `<div class="map-hunt-kind">${label}</div>` + list.map(m => {
 			const on = huntsOn.includes(m.key);
 			const qs = byMonster[m.key] || [];
+			const pic = monsterArt[m.key] ? `<img class="map-hunt-pic" src="icons/${monsterArt[m.key]}" alt="">` : `<span class="map-hunt-dot ${m.kind}"></span>`;
 			return `<button class="map-hunt${on ? ' on' : ''}" data-act="map-hunt" data-id="${esc(m.key)}" aria-pressed="${on}"
-				style="--hunt: ${m.colour}">
-				<span class="map-hunt-dot ${m.kind}"></span>
+				style="--hunt: ${m.colour}" ${m.points.length ? '' : 'disabled title="Its ground is not on the chart yet"'}>
+				${pic}
 				<span class="map-row-main"><span class="map-row-name">${esc(m.name)}</span>
-					<span class="map-row-sub">${m.points.length} spawn point${m.points.length === 1 ? '' : 's'}${qs.length
-						? ' · ' + qs.map(q => q.name.replace(/^\[(Daily|Weekly)\] /, '')).join(', ') : ''}</span></span>
+					<span class="map-row-sub">${m.points.length ? `${m.points.length} spawn point${m.points.length === 1 ? '' : 's'}` : 'ground not charted yet'}${qs.length
+						? ' · ' + qs.map(q => q.name.replace(/^\[(Daily|Weekly)\] /, '')).join(', ') : ''}</span>
+					${m.note ? `<span class="map-row-sub note">${esc(m.note)}</span>` : ''}</span>
 			</button>`;
 		}).join('');
 	}).join('');
@@ -274,6 +284,15 @@ function huntHTML() {
 		${courseRows}
 	</div>
 	<div class="map-courses">
+		<div class="map-courses-head">Layers</div>
+		<button class="map-course${habitatsOn ? ' on' : ''}" data-act="map-habitats" aria-pressed="${habitatsOn}">
+			<span class="map-course-dot" style="background:#ffd77a"></span>
+			<span class="map-row-main"><span class="map-row-name">Habitat markers</span><span class="map-row-sub">a picture where each species lives, as the game's map shows them</span></span>
+		</button>
+		<button class="map-course${currentsOn ? ' on' : ''}" data-act="map-currents" aria-pressed="${currentsOn}" title="${esc(CURRENTS.credit)}">
+			<span class="map-course-dot" style="background:#4aa8ff"></span>
+			<span class="map-row-main"><span class="map-row-name">Currents</span><span class="map-row-sub">the community's tracing of the game's currents — where the water runs, by speed</span></span>
+		</button>
 		<div class="map-courses-head">Landmarks <span class="map-courses-credit">the client's own positions, via Flockenberger's waypoints</span></div>
 		${landmarks}
 		<div class="map-courses-head">Grounds <span class="map-courses-credit">every spawn point on BDOCodex</span></div>
@@ -428,7 +447,10 @@ function routeHTML(marks) {
 	const speed = me.speed;
 	const cal = sailCal();
 	const measured = Number(store.getSetting('sailCal', null)) > 0;
-	const timeOf = m => m != null ? fmtRange(...sailRange(m, speed.total, cal, measured)) : '';
+	// A crystal that works in its own sea only lifts the quick end of the
+	// range: the slow end is the route sailed where it does nothing.
+	const localBoost = me.crystal && gradeById[me.crystal.grade].local ? me.speed.crystal : 0;
+	const timeOf = m => m != null ? fmtRange(sailRange(m, speed.total, cal, measured)[0], sailRange(m, speed.total - localBoost, cal, measured)[1]) : '';
 	const costs = stops.map(id => stopParley(id, marks, prof));
 	const held = prof.parleyHeld;
 	const need = costs.reduce((a, b) => a + b, 0);
@@ -1054,13 +1076,14 @@ export function paintMap() {
 
 	// A fit was asked for; now the box exists to measure, sail there.
 	if (pendingFit) {
+		const only = pendingFit.points;
 		pendingFit = false;
 		// A copy: the chart's own list must not grow course or monster points.
 		const points = marks.size ? [...marks.keys()].map(id => npcById.get(id)).filter(Boolean) : [...npcs];
 		for (const id of coursesOn) points.push(...courseById[id].points);
 		for (const k of huntsOn) points.push(...monsterByKey[k].points.map(([x, y]) => ({ x, y })));
 		const probe = { zoom: mapState.zoom, centre: { ...mapState.centre } };
-		fitTo(probe, size, points);
+		fitTo(probe, size, only && only.length ? only : points);
 		flyTo(probe.centre.x, probe.centre.y, probe.zoom);
 	}
 	// The view never leaves the charted sea, whatever the gesture did.
@@ -1076,8 +1099,10 @@ export function paintMap() {
 	paintTiles(layer, tiles, size);
 	paintPins(layer, pins, marks, currentId);
 	paintPorts(layer, size);
+	paintCurrents(layer, size);
 	paintWharves(layer, size);
 	paintHunt(layer, size);
+	paintHabitats(layer, size);
 	paintCourse(layer, size);
 	paintRoute(layer, size, marks);
 	paintMeasure(layer, size);
@@ -1339,6 +1364,87 @@ function paintPorts(layer, size) {
 		}
 		el.hidden = false;
 		el.classList.toggle('start', p.id === startPort);
+		el.style.left = `${Math.round(at.left)}px`;
+		el.style.top = `${Math.round(at.top)}px`;
+	}
+}
+
+/** The community's current tracing, stretched over the sea it was traced on. */
+function paintCurrents(layer, size) {
+	let el = layer._currents;
+	if (!currentsOn) { if (el) el.hidden = true; return; }
+	if (!el) {
+		el = layer._currents = document.createElement('img');
+		el.className = 'map-currents';
+		el.src = CURRENTS.src;
+		el.alt = '';
+		el.title = CURRENTS.credit;
+		layer.appendChild(el);
+	}
+	const a = project(mapState, size, CURRENTS.x0, CURRENTS.y0);
+	const b = project(mapState, size, CURRENTS.x1, CURRENTS.y1);
+	el.hidden = false;
+	el.style.left = `${Math.round(a.left)}px`;
+	el.style.top = `${Math.round(a.top)}px`;
+	el.style.width = `${Math.round(b.left - a.left)}px`;
+	el.style.height = `${Math.round(b.top - a.top)}px`;
+}
+
+const habitatCache = new Map();
+function habitats(m) {
+	if (!habitatCache.has(m.key)) habitatCache.set(m.key, habitatsOf(m.points));
+	return habitatCache.get(m.key);
+}
+
+/** The markers to draw: one per adult, ship or boss habitat; the young
+ *  ones share a marker per ground, naming whoever swims there. */
+let markerCache = null;
+function habitatMarkers() {
+	if (markerCache) return markerCache;
+	const out = [];
+	for (const m of monsters) {
+		if (m.kind === 'young' || !m.points.length) continue;
+		habitats(m).forEach((h, i) => out.push({
+			key: `${m.key}:${i}`, x: h.x, y: h.y, kind: m.kind, keys: [m.key], colour: m.colour, art: monsterArt[m.key],
+			name: m.kind === 'ship' ? `${m.name.split(' ')[0]} Waters` : `${m.name} Habitat`, sub: m.name, n: h.n
+		}));
+	}
+	const young = monsters.filter(m => m.kind === 'young' && m.points.length);
+	habitatsOfMany(young).forEach((h, i) => {
+		const here = young.filter(m => h.species.includes(m.name));
+		out.push({
+			key: `young:${i}`, x: h.x, y: h.y, kind: 'young', keys: here.map(m => m.key), colour: '#e0c060', art: monsterArt[here[0] && here[0].key],
+			name: 'Young Sea Monster Habitat', sub: here.map(m => m.name.replace(/^Young /, '')).join(', '), n: h.n
+		});
+	});
+	markerCache = out;
+	return out;
+}
+
+/** A picture at each ground, named the way the game names it. */
+function paintHabitats(layer, size) {
+	const pool = layer._habitatEls || (layer._habitatEls = new Map());
+	for (const mk of habitatMarkers()) {
+		let el = pool.get(mk.key);
+		const at = project(mapState, size, mk.x, mk.y);
+		const off = !habitatsOn || at.left < -80 || at.top < -80 || at.left > size.w + 80 || at.top > size.h + 80;
+		if (off) { if (el) el.hidden = true; continue; }
+		const on = mk.keys.some(k => huntsOn.includes(k));
+		if (!el) {
+			el = document.createElement('button');
+			el.className = `map-habitat ${mk.kind}`;
+			el.dataset.act = 'map-hunt';
+			el.dataset.id = mk.keys.join(',');
+			el.title = `${mk.sub} — ${mk.n} spawn point${mk.n === 1 ? '' : 's'} here · click to show or hide them`;
+			const pic = mk.art
+				? `<img class="map-habitat-pic" src="icons/${mk.art}" alt="">`
+				: `<span class="map-habitat-glyph" style="border-color:${mk.colour};color:${mk.colour}">${mk.kind === 'ship' ? '⛵' : '◎'}</span>`;
+			el.innerHTML = `${pic}<span class="map-habitat-name">${esc(mk.name)}</span><span class="map-habitat-sub">${esc(mk.sub)}</span>`;
+			pool.set(mk.key, el);
+			layer.appendChild(el);
+		}
+		el.hidden = false;
+		el.classList.toggle('on', on);
 		el.style.left = `${Math.round(at.left)}px`;
 		el.style.top = `${Math.round(at.top)}px`;
 	}
@@ -1802,14 +1908,24 @@ export function openMapPicker() {
 	const items = [
 		{ id: '', label: 'Everything I am short of', icon: '<span class="row-icon sm map-pick-all">⚓</span>', meta: `${short.length} goods` },
 		...short.map(n => ({ id: n, label: n, icon: img(n, ''), meta: `${F(snapshot.missing[n])} short`, group: 'On your build list' })),
-		...rest.map(n => ({ id: n, label: n, icon: img(n, ''), sub: kindWord[barterKind(n)], group: 'The rest of the sea' }))
+		...rest.map(n => ({ id: n, label: n, icon: img(n, ''), sub: kindWord[barterKind(n)], group: 'The rest of the sea' })),
+		...monsters.filter(m => m.points.length).map(m => ({
+			id: `hunt:${m.key}`, label: m.name,
+			icon: monsterArt[m.key] ? `<img src="icons/${monsterArt[m.key]}" alt="">` : `<span class="row-icon sm map-pick-all" style="color:${m.colour}">◎</span>`,
+			sub: `${m.points.length} spawn points · ${habitats(m).length} habitat${habitats(m).length === 1 ? '' : 's'}`,
+			meta: huntsOn.includes(m.key) ? 'shown' : '', group: 'Hunting grounds'
+		}))
 	];
 	openPicker({
 		title: 'What to look for',
-		hint: 'The chart lights the islands that barter it.',
+		hint: 'The chart lights the islands that barter it, or the waters a species swims in.',
 		items, selected: mapPick || '',
 		onPick: id => {
-			setMapPick(id || null);
+			if (id.startsWith('hunt:')) {
+				showHunt(id.slice(5));
+			} else {
+				setMapPick(id || null);
+			}
 			document.dispatchEvent(new CustomEvent('app-render'));
 		}
 	});
@@ -1856,6 +1972,20 @@ export function setMapStart(portId) {
 }
 
 /** Switch a community course on, or off again by choosing it twice. */
+export function setMapHabitats() {
+	habitatsOn = !habitatsOn;
+	persist();
+	refreshSide();
+	paintMap();
+}
+
+export function setMapCurrents() {
+	currentsOn = !currentsOn;
+	persist();
+	refreshSide();
+	paintMap();
+}
+
 export function setMapWharves(kind) {
 	if (kind !== 'wharf' && kind !== 'guild') return;
 	wharvesOn = wharvesOn.includes(kind) ? wharvesOn.filter(k => k !== kind) : [...wharvesOn, kind];
@@ -1874,8 +2004,11 @@ export function setMapCourse(id) {
 
 /** Switch a species' grounds on or off. */
 export function setMapHunt(key) {
-	if (!monsterByKey[key]) return;
-	huntsOn = huntsOn.includes(key) ? huntsOn.filter(x => x !== key) : [...huntsOn, key];
+	// A shared habitat marker names several species: all on, or all off.
+	const keys = String(key).split(',').filter(k => monsterByKey[k]);
+	if (!keys.length) return;
+	const allOn = keys.every(k => huntsOn.includes(k));
+	huntsOn = allOn ? huntsOn.filter(x => !keys.includes(x)) : [...new Set([...huntsOn, ...keys])];
 	persist();
 	refreshSide();
 	paintMap();
@@ -1889,7 +2022,8 @@ export function showHunt(key) {
 	if (!huntsOn.includes(key)) huntsOn = [...huntsOn, key];
 	mode = 'hunt';
 	panelOpen = true;
-	pendingFit = true;
+	// Sail to that species' waters, not to everything on the chart.
+	pendingFit = { points: monsterByKey[key].points.map(([x, y]) => ({ x, y })) };
 	persist();
 }
 

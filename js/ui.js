@@ -50,7 +50,7 @@ import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
-	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini,
+	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapCurrents,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite
 } from './screen-map.js';
@@ -490,6 +490,8 @@ function wire() {
 				return;
 			case 'map-course': setMapCourse(el.dataset.id); return;
 			case 'map-wharves': setMapWharves(el.dataset.id); return;
+			case 'map-habitats': setMapHabitats(); return;
+			case 'map-currents': setMapCurrents(); return;
 			case 'map-hunt': setMapHunt(el.dataset.id); return;
 			case 'quest-map': showHunt(el.dataset.monster); return showView('map');
 			case 'map-route-export': {
