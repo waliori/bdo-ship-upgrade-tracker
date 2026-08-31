@@ -14,7 +14,7 @@ import * as store from './state.js';
 import { initSync, openAccount } from './sync.js';
 import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.js';
 import {
-	view, selected, recipes, barterData, snapshot,
+	view, selected, recipes, barterData, snapshot, query,
 	setView, setQuery, setPlanFilter, setInvFilter, setSelected, setBarterData,
 	recompute, readyCrafts, CROW_COIN, SILVER, setSort
 } from './ui-state.js';
@@ -30,7 +30,7 @@ import { renderPlan } from './screen-plan.js';
 import { renderBuilds, openBuildPicker, askRoute, toggleBlockers } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
-import { renderWorkshop, pendingEnhancements } from './screen-workshop.js';
+import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
 import { renderCrew, crewAction, crewChange, applyShipSetup } from './screen-crew.js';
 import { statusLine } from './today.js';
 import { renderQuests, questAction, questDone } from './screen-quests.js';
@@ -50,7 +50,7 @@ import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
-	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves,
+	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite
 } from './screen-map.js';
@@ -73,6 +73,8 @@ let water = null;
 // Debounces the search box; showView cancels it so a stale query cannot
 // repaint the next tab. Declared here because both need it.
 let queryTimer = null;
+// Each tab keeps the search typed on it, so coming back finds it as left.
+const queries = {};
 
 
 export function render() {
@@ -121,9 +123,15 @@ export function render() {
 	tabBar.classList.toggle('scrolls', tabBar.scrollWidth > tabBar.clientWidth + 1);
 
 	const undoBtn = document.getElementById('undo-btn');
-	if (undoBtn) undoBtn.disabled = !store.canUndo();
+	if (undoBtn) {
+		undoBtn.disabled = !store.canUndo();
+		undoBtn.title = store.canUndo() ? `Undo: ${store.lastChange().label}` : 'Nothing to undo';
+	}
 	const redoBtn = document.getElementById('redo-btn');
-	if (redoBtn) redoBtn.disabled = !store.canRedo();
+	if (redoBtn) {
+		redoBtn.disabled = !store.canRedo();
+		redoBtn.title = store.canRedo() ? `Redo: ${store.nextRedo().label}` : 'Nothing to redo';
+	}
 
 	paintPouch();
 
@@ -194,8 +202,9 @@ function restoreFocus(root, focus) {
 }
 
 function showView(id) {
+	queries[view] = query;
 	setView(id);
-	setQuery('');
+	setQuery(queries[id] || '');
 	// A search typed on the old tab must not repaint the new one with a
 	// stale query when its debounce fires.
 	clearTimeout(queryTimer);
@@ -246,8 +255,9 @@ function applyHash() {
 	}
 	if (!m || !TABS.some(t => t.id === m[1])) return false;
 	applyingHash = true;
+	queries[view] = query;
 	setView(m[1]);
-	setQuery('');
+	setQuery(queries[m[1]] || '');
 	if (m[1] === 'inventory' && m[2]) setSelected(decodeURIComponent(m[2]));
 	// A route in a link: plotted, and the chart flown to it.
 	if (m[1] === 'map' && m[2]) {
@@ -414,6 +424,8 @@ function wire() {
 			}
 			case 'add-build': return openBuildPicker();
 			case 'blockers-all': toggleBlockers(); return render();
+			case 'enh-blocked': toggleBlocked(); return render();
+			case 'open-item': hidePeek(); showView('inventory'); setSelected(el.dataset.item); return render();
 			case 'vell-edit': return openVellDialog();
 			case 'jump': return openJumpPalette();
 			case 'profiles': return openProfiles({ toast });
@@ -466,6 +478,7 @@ function wire() {
 			case 'map-route-trim': trimRouteToParley(); return;
 			case 'map-trades': setTradesMode(el.dataset.id); return;
 			case 'map-measure': toggleMeasure(); return;
+			case 'map-mini': toggleMini(); return;
 			case 'map-sail-cal': return openSailCal();
 			case 'map-route-link':
 				try {
@@ -937,6 +950,7 @@ function wire() {
 	// The water is pure decoration, and decoration has no business
 	// burning battery in a tab nobody is looking at.
 	document.addEventListener('quests-refilter', () => render());
+	document.addEventListener('app-render', () => render());
 
 	document.addEventListener('visibilitychange', () => {
 		if (!water) return;

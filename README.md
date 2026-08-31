@@ -164,6 +164,16 @@ can be both made and bought, you choose, and the plan follows.
   changed** and **when each dataset was last checked**.
 - **Find** anything with `Ctrl+K` (or `/` on its own): an item opens in
   the Inventory's panel, a tab opens. The digits `1`–`9` switch tabs.
+  Every choice the app asks for — a hull, a part and its level, a
+  sailor type, the rewards to narrow the quests to, an item a trip
+  brought back — goes through one picker: rows with a picture, a fact
+  beside the name, a search box that ranks a name starting with your
+  letters first, the keyboard, and ticks where several are wanted.
+- **The masthead** keeps five buttons — Find, Log a trip, Undo, Redo,
+  More — and folds Profiles, Export, Import, Help, Tour, the water and
+  Start fresh into *More*. The tabs sit in two groups: the yard, where a
+  build is planned and made, and the sea. Each tab keeps the search
+  typed on it.
 - **Log a trip**: everything you brought back, in one box, as one
   undoable change.
 - **Where it is**: each item can carry a note of which storage holds how
@@ -196,10 +206,13 @@ done, what pays in something you need, or one reward in particular —
 the ones on your own list are offered first. Ravinia's log shows how
 many of its letters you have recorded.
 
-**One ship, every tab.** The Crew screen picks the hull you sail and
-what is on it: each slot takes the best part you hold by itself, or
-one you choose — a part you own but have not recorded, or a plan you
-are weighing, marked as such. From that one setup follow the speed the
+**One ship, every tab.** The Crew screen opens on the ship as a card
+and fits it out as four slot cards: each slot takes the best part you
+hold by itself, or one you choose — a part you own but have not
+recorded, or a plan you are weighing, marked as such, and recorded in
+your inventory with one press. The roster can be ticked for a bulk
+recover, disembark or dismiss, and the hull, its parts and its crew
+travel in a link of their own. From that one setup follow the speed the
 Map times a route at, the hold a run can carry once the crew's own
 weight is aboard, and the "Your ship" tile on the Plan.
 
@@ -248,6 +261,9 @@ Then open <http://localhost:8000>. Set `PORT` to use another port.
 
 `npm test` runs the suite: the sync API against a throwaway libSQL file,
 and the browser half driven in a real Chrome.
+
+`node tools/build-shell.mjs` rewrites the service worker's precache
+list from the import graph; the test suite refuses a module left out.
 
 ### Docker
 

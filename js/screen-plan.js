@@ -191,10 +191,11 @@ export function planRow(item, r, covered) {
 	// which is how the Plan could badge seven rows craftable while the
 	// Workshop said nothing could be made.
 	const can = !enhanced && recipes[item] && r.craft > 0 && maxCraftable(item, store.getAllStock(), recipes) >= 1;
+	const bought = !enhanced && !recipes[item] && src && ['coin', 'falasi', 'Market'].includes(src.key);
 	const badge = covered
 		? 'covered'
 		: r.short > 0
-			? `${F(r.short)} short`
+			? `${F(r.short)} ${bought ? 'to buy' : 'short'}`
 			: enhanced
 				? 'to enhance'
 				: can ? 'craftable now' : 'to craft';

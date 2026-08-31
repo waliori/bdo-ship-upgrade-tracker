@@ -8,7 +8,7 @@ import { esc, F } from './fmt.js';
 import * as store from './state.js';
 import { openDialog } from './dialogs.js';
 import { img, codexName, amountInput } from './ui-bits.js';
-import { snapshot, barterData } from './ui-state.js';
+import { snapshot, barterData, query } from './ui-state.js';
 import { parseEnhanced } from './planner.js';
 import { startHere } from './screen-plan.js';
 
@@ -110,7 +110,15 @@ export function renderTree() {
 		<span class="tpick-caret" aria-hidden="true">▾</span>
 	</button>`;
 
-	const rows = walkTree(current.tree, []).map(row => {
+	// A search keeps the rows that match and the branch that leads to
+	// them, so a thing found deep in a Carrack still shows its way in.
+	const q = query.trim().toLowerCase();
+	let walked = walkTree(current.tree, []);
+	if (q) {
+		const hits = walked.filter(r => r.node.item.toLowerCase().includes(q)).map(r => r.id);
+		walked = walked.filter(r => hits.some(h => h === r.id || h.startsWith(r.id + '/') || r.id.startsWith(h + '/')));
+	}
+	const rows = walked.map(row => {
 		const { node, depth, id, trail, kids } = row;
 		const state = nodeState(node);
 		const own = store.getStock(node.item);
@@ -146,11 +154,12 @@ export function renderTree() {
 
 	return `<div class="tbar">
 			${picker}
+			<input class="field tsearch" type="search" placeholder="Find in this tree…" value="${esc(query)}" data-act="query" aria-label="Find in this tree">
 			<span class="panel-spacer"></span>
 			<button class="ghost-btn" data-act="tree-all">Expand all</button>
 			<button class="ghost-btn" data-act="tree-none">Collapse</button>
 		</div>
-		<div class="panel tpanel">${rows}</div>
+		<div class="panel tpanel">${rows || `<p class="empty">Nothing in this tree matches “${esc(query)}”.</p>`}</div>
 		<div class="tlegend">
 			<span><i class="dot teal"></i>covered from stock</span>
 			<span><i class="dot blue"></i>to craft or enhance</span>

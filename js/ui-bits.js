@@ -257,7 +257,8 @@ export function peekHTML(item) {
 		+ price
 		+ inBulk
 		+ does
-		+ (foot ? `<div class="peek-foot">${esc(foot)}</div>` : '');
+		+ (foot ? `<div class="peek-foot">${esc(foot)}</div>` : '')
+		+ `<button class="peek-open" data-act="open-item" data-item="${esc(item)}">Open in Inventory →</button>`;
 }
 
 /** Where an item comes from, and what it costs. */

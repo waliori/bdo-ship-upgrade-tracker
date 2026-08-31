@@ -9,7 +9,9 @@ globalThis.localStorage = {
 	setItem(k, v) { this.store.set(k, String(v)); },
 	removeItem(k) { this.store.delete(k); }
 };
+const store = await import('../js/state.js');
 const { recordProgress, paceOf, paceText, resetPace } = await import('../js/pace.js');
+store.adopt({ stock: {}, targets: [], strategy: {}, profile: {} });
 
 const day = n => Date.parse('2026-08-01T12:00:00Z') + n * 86400e3;
 const t = (missing, total = 1000) => ({ id: 'carrack', item: 'Carrack', totalUnits: total, missingUnits: missing });
@@ -48,4 +50,12 @@ test('a build that left the queue is forgotten; old days are pruned', () => {
 	recordProgress([t(900)], day(0));
 	recordProgress([t(800)], day(40));
 	assert.equal(paceOf(t(800), day(40)), null, 'a record forty days old is outside the window');
+});
+
+test('the diary rides in the profile, written without a history entry', () => {
+	resetPace();
+	const before = store.getState().history.length;
+	recordProgress([t(900)], day(0));
+	assert.deepEqual(store.getProfile('progress'), { carrack: { '2026-08-01': 100 } });
+	assert.equal(store.getState().history.length, before, 'nothing to undo');
 });

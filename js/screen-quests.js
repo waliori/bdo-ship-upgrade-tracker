@@ -70,7 +70,7 @@ const doneWord = q => cadenceOf(q) === 'daily' ? 'done today' : cadenceOf(q) ===
 
 function questRow(q, short, wanted, isDone) {
 	const claim = q.choice
-		? q.choice.map((c, i) => `<button class="pill-btn" data-act="quest-claim" data-quest="${esc(q.id)}" data-choice="${i}">Claimed, took ${esc(Object.entries(c).map(([item, n]) => `${F(n)}× ${item}`).join(', '))}</button>`).join('')
+		? `<button class="pill-btn" data-act="quest-claim-pick" data-quest="${esc(q.id)}" title="Which of the pick-one rewards you took">Claimed ▾</button>`
 		: `<button class="pill-btn" data-act="quest-claim" data-quest="${esc(q.id)}">Claimed</button>`;
 	const buttons = isDone
 		? `<span class="quest-done-tag">✓ ${doneWord(q)}</span>
@@ -193,6 +193,16 @@ export function renderQuests() {
 	${groups || `<div class="panel"><p class="empty">${esc(nothing)}</p></div>`}`;
 }
 
+/** Record a claim: the fixed rewards, plus the pick-one at `choice`. */
+function claim(q, choice) {
+	const delta = { ...q.rewards };
+	const pick = choice !== null && q.choice && q.choice[choice];
+	if (pick) for (const [item, n] of Object.entries(pick)) delta[item] = (delta[item] || 0) + n;
+	store.claimQuest(q.id, delta, periodKey(cadenceOf(q)), `Claimed ${q.name}`);
+	toast(`Recorded the reward for ${q.name} — ${doneWord(q)}`, true);
+	document.dispatchEvent(new CustomEvent('quests-refilter'));
+}
+
 /** Every quest-* click. Returns false for one this screen does not own. */
 export function questAction(act, el) {
 	if (act === 'quest-filter') {
@@ -207,14 +217,24 @@ export function questAction(act, el) {
 		payFilter = payFilter.filter(i => i !== el.dataset.item);
 		return true;
 	}
+	if (act === 'quest-claim-pick') {
+		const q = questById[el.dataset.quest];
+		if (!q || !q.choice) return true;
+		const need = needMap();
+		openPicker({
+			title: 'Which reward did you take?',
+			hint: `${esc(q.name)} pays ${esc(Object.entries(q.rewards).map(([item, n]) => `${F(n)}× ${item}`).join(', '))} and one of these.`,
+			items: q.choice.map((c, i) => {
+				const [item, n] = Object.entries(c)[0];
+				return { id: String(i), label: `${F(n)}× ${item}`, icon: img(item, ''), meta: need.get(item) === 'short' ? 'short of it' : need.get(item) ? 'on your list' : '' };
+			}),
+			onPick: i => claim(q, Number(i))
+		});
+		return true;
+	}
 	if (act === 'quest-claim') {
 		const q = questById[el.dataset.quest];
-		if (!q) return true;
-		const delta = { ...q.rewards };
-		const pick = q.choice && q.choice[Number(el.dataset.choice)];
-		if (pick) for (const [item, n] of Object.entries(pick)) delta[item] = (delta[item] || 0) + n;
-		store.claimQuest(q.id, delta, periodKey(cadenceOf(q)), `Claimed ${q.name}`);
-		toast(`Recorded the reward for ${q.name} — ${doneWord(q)}`, true);
+		if (q) claim(q, null);
 		return true;
 	}
 	if (act === 'quest-undone') {

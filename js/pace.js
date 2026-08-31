@@ -3,32 +3,20 @@
 // The plan says how much is left; the thing a grinder wants to know is
 // how many more evenings that is. Each day a build is in the queue, the
 // units it has covered are noted once; the pace is the change over the
-// last fortnight, and the finish is the shortfall divided by it. Local
-// to this browser and deliberately not synced or undoable: it is a
-// diary of what the numbers were, not one of the numbers.
+// last fortnight, and the finish is the shortfall divided by it. The
+// diary rides in the profile, so it syncs with the save and a phone and
+// a desktop agree on the pace -- written quietly, since nobody typed it
+// and nobody would want to undo it.
 
-const KEY = 'bdo-tracker/progress';
+import * as store from './state.js';
+
 const WINDOW_DAYS = 14;
 const KEEP_DAYS = 30;
 const DAY = 86400e3;
 
-let log = null;
-
-function read() {
-	if (log) return log;
-	try {
-		const raw = JSON.parse(localStorage.getItem(KEY) || '{}');
-		log = raw && typeof raw === 'object' ? raw : {};
-	} catch { log = {}; }
-	return log;
-}
-
-function write() {
-	try { localStorage.setItem(KEY, JSON.stringify(log)); } catch { /* private mode */ }
-}
-
 const today = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
 const daysBetween = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / DAY);
+const read = () => store.getProfile('progress', {}) || {};
 
 /**
  * Note where every queued build stands today. Called on each repaint;
@@ -36,27 +24,20 @@ const daysBetween = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / DAY);
  * queue and days older than a month.
  */
 export function recordProgress(targets, now = Date.now()) {
-	const l = read();
+	const was = read();
 	const day = today(now);
+	const next = {};
 	let dirty = false;
-	const live = new Set();
 	for (const t of targets || []) {
 		if (!t.id || !(t.totalUnits > 0)) continue;
-		live.add(t.id);
 		const covered = Math.max(0, t.totalUnits - t.missingUnits);
-		const entry = l[t.id] || (l[t.id] = {});
-		if (entry[day] !== covered) {
-			entry[day] = covered;
-			dirty = true;
-		}
-		for (const d of Object.keys(entry)) {
-			if (daysBetween(d, day) > KEEP_DAYS) { delete entry[d]; dirty = true; }
-		}
+		const entry = { ...(was[t.id] || {}) };
+		for (const d of Object.keys(entry)) if (daysBetween(d, day) > KEEP_DAYS) { delete entry[d]; dirty = true; }
+		if (entry[day] !== covered) { entry[day] = covered; dirty = true; }
+		next[t.id] = entry;
 	}
-	for (const id of Object.keys(l)) {
-		if (!live.has(id)) { delete l[id]; dirty = true; }
-	}
-	if (dirty) write();
+	if (Object.keys(was).some(id => !next[id])) dirty = true;
+	if (dirty) store.setProfileQuiet('progress', Object.keys(next).length ? next : null);
 }
 
 /**
@@ -76,11 +57,7 @@ export function paceOf(target, now = Date.now()) {
 	const covered = Math.max(0, target.totalUnits - target.missingUnits);
 	const perDay = Math.max(0, (covered - entry[first]) / span);
 	const left = target.missingUnits;
-	return {
-		perDay,
-		span,
-		daysLeft: left <= 0 ? 0 : perDay > 0 ? left / perDay : Infinity
-	};
+	return { perDay, span, daysLeft: left <= 0 ? 0 : perDay > 0 ? left / perDay : Infinity };
 }
 
 /** "about 19 days at this fortnight's pace", or why there is no figure. */
@@ -96,6 +73,5 @@ export function paceText(target, now = Date.now()) {
 
 /** For tests: forget everything. */
 export function resetPace() {
-	log = {};
-	write();
+	store.setProfileQuiet('progress', null);
 }

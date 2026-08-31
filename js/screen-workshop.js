@@ -19,7 +19,8 @@ import { tableFor } from './enhancement.js';
 /** The odds on this single attempt, and when the pity meter fills. */
 export function odds(e) {
 	const s = e.step1 && e.step1.steps[0];
-	if (!s || s.chance >= 1) return '';
+	if (!s) return '';
+	if (s.chance >= 1) return '<span class="enh-odds sure">always succeeds</span>';
 	const pct = s.chance < 0.01 ? (s.chance * 100).toFixed(1) : Math.round(s.chance * 100);
 	return `<span class="enh-odds">${pct}% · certain after ${s.agris} fails</span>`;
 }
@@ -145,6 +146,10 @@ export function pendingEnhancements() {
 		(b.forBuild - a.forBuild) || (a.blocked - b.blocked) || a.base.localeCompare(b.base));
 }
 
+// Whether the rows that cannot be attempted yet are unfolded.
+let showBlocked = false;
+export function toggleBlocked() { showBlocked = !showBlocked; }
+
 export function renderWorkshop() {
 	const stock = store.getAllStock();
 	const q = query.toLowerCase();
@@ -179,9 +184,13 @@ export function renderWorkshop() {
 		</div>`;
 	}).join('');
 
-	const enhRows = pendingEnhancements()
-		.filter(e => !q || e.base.toLowerCase().includes(q))
-		.map(e => `
+	const pending = pendingEnhancements().filter(e => !q || e.base.toLowerCase().includes(q));
+	// What can be tried comes first; what cannot -- the base part not
+	// held, the stones short -- is folded, since it is the plan's list,
+	// not the bench's.
+	const open = pending.filter(e => !e.blocked);
+	const blocked = pending.filter(e => e.blocked);
+	const enhRow = e => `
 		<div class="row" data-base="${esc(e.base)}" data-level="${e.next}" data-peek="${esc(enhancedName(e.base, e.next))}" ${e.blocked ? 'style="opacity:.55"' : ''}>
 			${img(enhancedName(e.base, e.have), 'row-icon md')}
 			<div class="row-main">
@@ -203,7 +212,11 @@ export function renderWorkshop() {
 					${e.affordableDropped ? '' : 'disabled'}
 					title="The attempt was made without Cron Stones: none are spent, and the part falls a level">Failed — no Crons</button>` : ''}
 			</span>
-		</div>`).join('');
+		</div>`;
+	const enhRows = open.map(enhRow).join('') + (blocked.length
+		? `<button class="row-fold" data-act="enh-blocked" aria-expanded="${showBlocked}">${showBlocked ? '▾' : '▸'} ${blocked.length} you cannot attempt yet${showBlocked ? '' : ' — show'}</button>`
+			+ (showBlocked ? blocked.map(enhRow).join('') : '')
+		: '');
 
 	return `<div class="controls">
 		<input class="field" type="search" placeholder="Search recipes and parts…" value="${esc(query)}" data-act="query">

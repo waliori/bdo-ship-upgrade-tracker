@@ -103,6 +103,18 @@ function board(ship, stats, totals) {
 		</div>` : '';
 	const sel = selId && byId(selId);
 	const hint = sel ? `placing ${sel.name} — tap a seat` : 'tap a sailor below, then a seat';
+	// The same seats as a list, for a screen too narrow for the drawing.
+	const seatList = [...groups].map(([pos, g]) => `<div class="seat-list-group">
+		<div class="seat-bar static" title="${esc(g.effect)}">${esc(g.label)}</div>
+		<div class="seat-list-seats">${g.seats.map(seat => {
+			const id = seatsOf(ship)[seat.key];
+			const s = id ? byId(id) : null;
+			return `<button class="seat-line${s ? ' taken' : ''}${armed && !s ? ' armed' : ''}${s && s.id === selId ? ' picked' : ''}" data-act="crew-seat" data-seat="${esc(seat.key)}">
+				${seatBox(ship, seat, armed).replace(/<button[^>]*>|<\/button>$/g, '')}
+				<span class="seat-line-text">${s ? `${esc(s.name)} <small>${esc(s.type)} · Lv ${s.lv}</small>` : `<small>empty — ${esc(seat.effect)}</small>`}</span>
+			</button>`;
+		}).join('')}</div>
+	</div>`).join('');
 	return `<div class="panel crew-panel">
 		<div class="panel-head crew-head">
 			<h2 class="panel-title teal">Manage sailors</h2>
@@ -131,6 +143,7 @@ function board(ship, stats, totals) {
 			${placed}
 		</div>
 		${cabinRow}
+		<div class="seat-list">${seatList}</div>
 	</div>`;
 }
 
@@ -291,7 +304,7 @@ function slotCard(ship, x, chosenByHand) {
 	const tag = x.source === 'owned' ? 'from your inventory'
 		: x.source === 'chosen' ? 'chosen · in your inventory'
 		: x.source === 'chosen-unowned' ? 'chosen · not in your inventory'
-		: chosenByHand ? 'left empty' : 'nothing in your inventory fits';
+		: chosenByHand ? 'left empty' : 'no part held yet';
 	const item = x.part ? enhancedName(x.part, x.level) : null;
 	return `<div class="slot-card${x.part ? '' : ' empty'}${x.source === 'chosen-unowned' ? ' unowned' : ''}">
 		<div class="slot-head"><span class="slot-glyph" aria-hidden="true">${SLOT_GLYPH[x.slot]}</span><span class="slot-name">${SLOT_LABEL[x.slot]}</span>
@@ -300,7 +313,7 @@ function slotCard(ship, x, chosenByHand) {
 			${x.part ? img(item, 'slot-icon') : '<span class="slot-icon blank">+</span>'}
 			<div class="slot-text">
 				<div class="slot-part">${x.part ? `${codexName(x.part)} <b>+${x.level}</b>` : 'Nothing fitted'}</div>
-				<div class="slot-stats">${x.part ? esc(describeStats(x.stats, { signed: false })) : 'choose a part to see what it adds'}</div>
+				<div class="slot-stats">${x.part ? esc(describeStats(x.stats, { signed: false })) : 'choose one to weigh it, or record one in the Inventory'}</div>
 			</div>
 		</div>
 		<div class="slot-btns">
@@ -453,6 +466,11 @@ export function crewAction(act, el) {
 				setSeats(ship, map);
 			}
 			if (op === 'dismiss') {
+				if (el.dataset.sure !== '1') {
+					el.dataset.sure = '1';
+					el.textContent = `Dismiss ${ids.size} — sure?`;
+					return false;
+				}
 				setRoster(roster().filter(x => !ids.has(x.id)));
 				const all = { ...(store.getProfile('seats', {}) || {}) };
 				for (const [hull, map] of Object.entries(all)) {

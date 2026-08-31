@@ -236,15 +236,17 @@ export function renderGet() {
 				const inBulk = bulk
 					? `<div class="row-alt">or ${F(Math.ceil(entry.qty / bulk.gets))}× ${esc(bulk.give)}, ${F(bulk.gets)} a time</div>`
 					: '';
+				const ways = [alt, inBulk, hunt, sea].filter(Boolean);
+				const waysHTML = ways.length ? `<details class="row-ways"${ways.length === 1 && !sea ? ' open' : ''}>
+					<summary>${ways.length === 1 ? 'another way' : `${ways.length} other ways`}${sea ? ' · by barter' : ''}${hunt ? ' · by hunting' : ''}</summary>
+					${ways.join('')}
+				</details>` : '';
 				return `<div class="row" data-peek="${esc(entry.item)}">
 					${img(entry.item, 'row-icon sm')}
 					<div class="row-main">
 						<div class="row-name">${codexName(entry.item)}</div>
 						<div class="row-sub">${esc(sub)}</div>
-						${alt}
-						${inBulk}
-						${hunt}
-						${sea}
+						${waysHTML}
 					</div>
 					<span class="qty-out">${F(entry.qty)}</span>
 				</div>`;

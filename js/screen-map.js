@@ -17,6 +17,7 @@ import { seaRoute } from './searoute.js';
 import { wharves, nearestWharf } from './wharves.js';
 import { quests } from './quests.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
+import { openPicker } from './picker.js';
 import * as store from './state.js';
 import { legLengths, pathLength, sailRange, fmtRange, calibrate, fmtDistance, DEFAULT_CAL } from './sailing.js';
 import { bookmarkXML, writeMode, BOOKMARK_SLOTS, CAMERA_SLOTS, LOOP_SLOTS, FILE_HINT, toGame } from './worldmap.js';
@@ -56,6 +57,8 @@ let stepKey = '';             // the route it was on, to reset when it changes
 let tradesMode = 'one';       // one | all -- how many trades a stop is costed at
 let savedRoutes = [];         // { name, stops, startPort, returnHome, pick, at }
 const SAVED_MAX = 8;
+let miniOn = true;            // the minimap is shown
+let miniPos = null;           // where it was dragged to, { x, y } from the box's corner, else the default corner
 let measuring = false;        // the ruler is armed
 let measurePts = [];          // the two ends of a measurement, in world space
 
@@ -72,7 +75,11 @@ function restore() {
 		const s = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
 		if (['sail', 'route', 'today', 'hunt'].includes(s.mode)) mode = s.mode;
 		if (['all', 'material', 'trade'].includes(s.kindFilter)) kindFilter = s.kindFilter;
-		panelOpen = s.panelOpen !== false;
+		// A phone starts with the panel folded: 300 of its 400 pixels are
+		// the sea's, until the panel is asked for.
+		panelOpen = s.panelOpen === undefined
+			? !(typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 720px)').matches)
+			: s.panelOpen !== false;
 		if (Array.isArray(s.stops)) stops = s.stops.filter(id => npcById.has(id));
 		if (typeof s.stopsPick === 'string') stopsPick = s.stopsPick;
 		if (s.done && s.done.day === barterDay()) done = s.done;
@@ -83,6 +90,8 @@ function restore() {
 		if (Array.isArray(s.huntsOn)) huntsOn = s.huntsOn.filter(k => monsterByKey[k]);
 		if (Array.isArray(s.wharvesOn)) wharvesOn = s.wharvesOn.filter(k => k === 'wharf' || k === 'guild');
 		if (s.tradesMode === 'all') tradesMode = 'all';
+		miniOn = s.miniOn !== false;
+		if (s.miniPos && Number.isFinite(s.miniPos.x) && Number.isFinite(s.miniPos.y)) miniPos = { x: s.miniPos.x, y: s.miniPos.y };
 		if (Array.isArray(s.savedRoutes)) {
 			savedRoutes = s.savedRoutes.filter(r => r && typeof r.name === 'string' && Array.isArray(r.stops))
 				.map(r => ({ ...r, name: r.name.slice(0, 40), stops: r.stops.filter(id => npcById.has(id)) }))
@@ -94,7 +103,7 @@ function restore() {
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, tradesMode, savedRoutes }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, tradesMode, savedRoutes, miniOn, miniPos }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -309,6 +318,7 @@ export function renderMap() {
 			<button class="ghost-btn" data-act="map-zoom" data-step="1" aria-label="Zoom in">+</button>
 			<button class="ghost-btn" data-act="map-fit" aria-label="Fit the marked islands in view">⌖</button>
 			<button class="ghost-btn" data-act="map-measure" aria-pressed="${measuring}" aria-label="Measure a distance" title="Ruler: click two points on the sea">⟷</button>
+			<button class="ghost-btn" data-act="map-mini" aria-pressed="${miniOn}" aria-label="Show or hide the minimap" title="Minimap: show or hide it; drag its grip to move it">▭</button>
 		</div>
 	</div>`;
 
@@ -455,8 +465,11 @@ function routeHTML(marks) {
 	// The hold: what the ship as fitted can carry once the crew is
 	// aboard, and how many goods of each level that is. A route is only
 	// as long as the deck allows.
+	const rations = me.crew.appetite
+		? `<div class="summary-sub">rations: the crew eats ${F(me.crew.appetite)} a day · a full ${F(me.rations)} lasts ${Math.floor(me.rations / me.crew.appetite)} days</div>`
+		: `<div class="summary-sub">rations: ${F(me.rations)} when full · nobody aboard eats</div>`;
 	const hold = `<div><div class="summary-k">Hold</div><div class="summary-v">${F(me.hold.free)} LT</div>
-				<div class="summary-sub">${F(me.hold.limit)} as fitted${me.hold.crew ? ` less ${F(me.hold.crew)} of crew` : ''} · ${Math.floor(me.hold.free / GOODS[5].weight)} of Lv4–5 · ${Math.floor(me.hold.free / GOODS[6].weight)} of Lv6–7 a run</div></div>`;
+				<div class="summary-sub">${F(me.hold.limit)} as fitted${me.hold.crew ? ` less ${F(me.hold.crew)} of crew` : ''} · ${Math.floor(me.hold.free / GOODS[5].weight)} of Lv4–5 · ${Math.floor(me.hold.free / GOODS[6].weight)} of Lv6–7 a run</div>${rations}</div>`;
 	const total = pathLength(world);
 	const lastStop = npcById.get(stops[stops.length - 1]);
 	const wharf = lastStop && !returnHome ? nearestWharf(lastStop.x, lastStop.y, 'wharf') : null;
@@ -519,17 +532,18 @@ function routeHTML(marks) {
  */
 function stopParley(id, marks, prof) {
 	const mm = marks.get(id);
-	let kind;
+	const times = tradesMode === 'all' ? triesAt(id, marks) : 1;
 	if (mm && mm.items.size) {
-		const ks = [...mm.items.keys()].map(barterKind);
-		kind = ks.includes('material') ? 'material' : ks.includes('coin') ? 'coin' : 'trade';
-	} else {
-		const deals = [...new Set(goodsOf(id).map(g => barterKind(g.item)))];
-		kind = deals.length === 1 ? deals[0]
-			: deals.includes('trade') || !deals.length ? 'trade'
-			: deals.includes('coin') ? 'coin' : 'material';
+		// One exchange per kind you are there for: a material and a
+		// trade good at the same island are two trades, two rates.
+		const kinds = [...new Set([...mm.items.keys()].map(barterKind))];
+		return kinds.reduce((sum, kind) => sum + parleyPerTrade({ ...prof, kind }), 0) * times;
 	}
-	return parleyPerTrade({ ...prof, kind }) * (tradesMode === 'all' ? triesAt(id, marks) : 1);
+	const deals = [...new Set(goodsOf(id).map(g => barterKind(g.item)))];
+	const kind = deals.length === 1 ? deals[0]
+		: deals.includes('trade') || !deals.length ? 'trade'
+		: deals.includes('coin') ? 'coin' : 'material';
+	return parleyPerTrade({ ...prof, kind }) * times;
 }
 
 /** The speed the route is sailed at: the ship as the Crew screen has
@@ -745,6 +759,21 @@ export function applyMapLink(fragment) {
  * the ruler
  * ------------------------------------------------------------------ */
 
+/** Show or hide the minimap. Hidden, it keeps the place it was dragged to. */
+export function toggleMini() {
+	miniOn = !miniOn;
+	persist();
+	const host = document.querySelector('[data-map]');
+	if (host) {
+		const old = host.querySelector('[data-map-mini]');
+		if (old) old.remove();
+		if (miniOn) host.insertAdjacentHTML('beforeend', miniHTML(marksNow()));
+	}
+	const btn = document.querySelector('[data-act="map-mini"][aria-pressed]');
+	if (btn) btn.setAttribute('aria-pressed', String(miniOn));
+	paintMap();
+}
+
 export function toggleMeasure() {
 	measuring = !measuring;
 	if (!measuring) measurePts = [];
@@ -900,7 +929,12 @@ function miniHTML(marks) {
 	const b = npcBox();
 	const dots = npcs.map(n => `<i class="mini-dot${marks.has(n.id) ? ' wanted' : ''}"
 		style="left:${((n.x - b.x0) / (b.x1 - b.x0) * 100).toFixed(1)}%;top:${((n.y - b.y0) / (b.y1 - b.y0) * 100).toFixed(1)}%"></i>`).join('');
-	return `<div class="map-mini" data-map-mini title="Jump there">${dots}<i class="mini-view" data-map-view></i></div>`;
+	if (!miniOn) return '';
+	const at = miniPos ? ` style="left:${Math.round(miniPos.x)}px;top:${Math.round(miniPos.y)}px;right:auto;bottom:auto"` : '';
+	return `<div class="map-mini${miniPos ? ' moved' : ''}" data-map-mini title="Jump there"${at}>
+		<span class="mini-grip" data-mini-grip title="Drag to move the minimap" aria-hidden="true">⋮⋮</span>
+		<button class="mini-hide" data-act="map-mini" title="Hide the minimap" aria-label="Hide the minimap">×</button>
+		${dots}<i class="mini-view" data-map-view></i></div>`;
 }
 
 let npcBoxCache = null;
@@ -999,6 +1033,21 @@ export function paintMap() {
 	if (!host._wheelWired) {
 		host._wheelWired = true;
 		host.addEventListener('wheel', onWheel, { passive: false });
+		// The keyboard sails too: arrows pan, + and - zoom, once the box
+		// has focus -- and never while typing in the panel.
+		host.tabIndex = 0;
+		host.addEventListener('keydown', evt => {
+			if (evt.target.closest('input, select, textarea, button')) return;
+			const step = evt.shiftKey ? 240 : 80;
+			const moves = { ArrowLeft: [step, 0], ArrowRight: [-step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] };
+			if (moves[evt.key]) {
+				evt.preventDefault();
+				cancelFly();
+				pan(mapState, ...moves[evt.key]);
+				schedulePaint();
+			} else if (evt.key === '+' || evt.key === '=') { evt.preventDefault(); mapZoomStep(1); }
+			else if (evt.key === '-' || evt.key === '_') { evt.preventDefault(); mapZoomStep(-1); }
+		});
 	}
 
 	const marks = marksNow();
@@ -1569,11 +1618,41 @@ export function wireMap() {
 		refreshSideList();
 	});
 
+	// The minimap's grip drags it; the box keeps it inside itself.
+	let miniDrag = null;
+	document.addEventListener('pointerdown', evt => {
+		const grip = evt.target.closest('[data-mini-grip]');
+		if (!grip) return;
+		const mini = grip.closest('[data-map-mini]');
+		const host = mini.closest('[data-map]');
+		const r = mini.getBoundingClientRect();
+		const h = host.getBoundingClientRect();
+		miniDrag = { mini, host, dx: evt.clientX - r.left, dy: evt.clientY - r.top, w: r.width, hgt: r.height, hx: h.left, hy: h.top, hw: h.width, hh: h.height, moved: false };
+		grip.setPointerCapture(evt.pointerId);
+		evt.preventDefault();
+	});
+	document.addEventListener('pointermove', evt => {
+		if (!miniDrag) return;
+		const x = Math.max(0, Math.min(miniDrag.hw - miniDrag.w, evt.clientX - miniDrag.hx - miniDrag.dx));
+		const y = Math.max(0, Math.min(miniDrag.hh - miniDrag.hgt, evt.clientY - miniDrag.hy - miniDrag.dy));
+		miniPos = { x, y };
+		miniDrag.moved = true;
+		Object.assign(miniDrag.mini.style, { left: `${Math.round(x)}px`, top: `${Math.round(y)}px`, right: 'auto', bottom: 'auto' });
+		miniDrag.mini.classList.add('moved');
+	});
+	const endMiniDrag = () => {
+		if (!miniDrag) return;
+		if (miniDrag.moved) persist();
+		miniDrag = null;
+	};
+	document.addEventListener('pointerup', endMiniDrag);
+	document.addEventListener('pointercancel', endMiniDrag);
+
 	// A click on the minimap is "take me there": the same spot, scaled
 	// up from thumbnail to sea.
 	document.addEventListener('click', evt => {
 		const mini = evt.target.closest('[data-map-mini]');
-		if (!mini || !mapState) return;
+		if (!mini || !mapState || evt.target.closest('[data-mini-grip], [data-act]')) return;
 		const r = mini.getBoundingClientRect();
 		const b = npcBox();
 		flyTo(
@@ -1584,6 +1663,26 @@ export function wireMap() {
 
 	window.addEventListener('resize', () => {
 		if (view === 'map') paintMap();
+	});
+
+	// A route file dropped on the sea is a route file opened.
+	document.addEventListener('dragover', evt => {
+		if (evt.target.closest && evt.target.closest('[data-map]')) evt.preventDefault();
+	});
+	document.addEventListener('drop', async evt => {
+		const host = evt.target.closest && evt.target.closest('[data-map]');
+		if (!host) return;
+		evt.preventDefault();
+		const file = evt.dataTransfer && evt.dataTransfer.files && evt.dataTransfer.files[0];
+		if (!file) return;
+		try {
+			const r = importRoute(await file.text());
+			toast(`Route loaded: ${r.stops} stop${r.stops === 1 ? '' : 's'}${r.dropped ? `, ${r.dropped} not on this chart` : ''}`);
+			refreshSide();
+			paintMap();
+		} catch (err) {
+			toast(err.message);
+		}
 	});
 }
 
@@ -1699,37 +1798,21 @@ export function openMapPicker() {
 	const short = names.filter(n => snapshot.missing[n] > 0)
 		.sort((a, b) => snapshot.missing[b] - snapshot.missing[a]);
 	const rest = names.filter(n => !(snapshot.missing[n] > 0)).sort();
-
-	const host = openDialog(`
-		<h2>What to look for</h2>
-		<p>The chart lights the islands that barter it.</p>
-		<input class="field picker-search" type="search" placeholder="Search the sea’s goods…" data-picker-search>
-		<div class="picker" data-picker></div>
-		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>`);
-
-	const listEl = host.querySelector('[data-picker]');
-	const searchEl = host.querySelector('[data-picker-search]');
-	const row = (n, tag) => `<button type="button" class="picker-row" data-act="map-pick-set"
-		data-item="${esc(n)}">${img(n, 'row-icon sm')}
-		<span class="picker-name">${esc(n)}</span><span class="picker-tag">${tag}</span></button>`;
-
-	const paint = term => {
-		const t = (term || '').trim().toLowerCase();
-		const hit = n => !t || n.toLowerCase().includes(t);
-		const a = short.filter(hit), b = rest.filter(hit);
-		const everything = t ? '' : `<button type="button" class="picker-row" data-act="map-pick-set" data-item="">
-			<span class="row-icon sm map-pick-all">⚓</span>
-			<span class="picker-name">Everything I am short of</span>
-			<span class="picker-tag">${short.length} goods</span></button>`;
-		listEl.innerHTML = (everything
-			+ (a.length ? '<div class="picker-head">On your build list</div>'
-				+ a.map(n => row(n, `${F(snapshot.missing[n])} short`)).join('') : '')
-			+ (b.length ? '<div class="picker-head">The rest of the sea</div>'
-				+ b.map(n => row(n, { material: 'material', trade: 'trade good', coin: 'crow coin' }[barterKind(n)])).join('') : ''))
-			|| '<p class="empty">Nothing matches that search.</p>';
-	};
-	paint('');
-	searchEl.addEventListener('input', () => paint(searchEl.value));
+	const kindWord = { material: 'material', trade: 'trade good', coin: 'crow coin' };
+	const items = [
+		{ id: '', label: 'Everything I am short of', icon: '<span class="row-icon sm map-pick-all">⚓</span>', meta: `${short.length} goods` },
+		...short.map(n => ({ id: n, label: n, icon: img(n, ''), meta: `${F(snapshot.missing[n])} short`, group: 'On your build list' })),
+		...rest.map(n => ({ id: n, label: n, icon: img(n, ''), sub: kindWord[barterKind(n)], group: 'The rest of the sea' }))
+	];
+	openPicker({
+		title: 'What to look for',
+		hint: 'The chart lights the islands that barter it.',
+		items, selected: mapPick || '',
+		onPick: id => {
+			setMapPick(id || null);
+			document.dispatchEvent(new CustomEvent('app-render'));
+		}
+	});
 }
 
 /* The step player. */

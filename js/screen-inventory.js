@@ -100,7 +100,9 @@ export function renderInventory() {
 		return `<button class="tile ${stats.short > 0 ? 'short' : ''} ${isOpen ? 'selected' : ''}" data-act="select" data-item="${esc(open)}" data-peek="${esc(stats.at)}" title="${esc(key)}">
 			${img(stats.at, '')}
 			${family && stats.top > 0 ? `<span class="tile-lvl">+${stats.top}</span>` : ''}
-			<span class="tile-qty">${F(stats.own)}</span>
+			${stats.own === 0 && stats.short > 0
+				? `<span class="tile-qty short">${F(stats.short)} short</span>`
+				: `<span class="tile-qty">${F(stats.own)}</span>`}
 			<span class="tile-name">${esc(key)}</span>
 			<span class="bar">
 				<i class="make" style="width:${(stats.reserved / denom) * 100}%"></i>
