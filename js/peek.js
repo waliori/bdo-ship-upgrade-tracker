@@ -72,6 +72,16 @@ function placePeek(host, el) {
 	host.style.top = `${Math.round(y)}px`;
 }
 
+/** The card itself, now. */
+function reveal(host, el) {
+	const html = peekHTML(el.dataset.peek);
+	if (!html) return;
+	host.innerHTML = html;
+	host.hidden = false;
+	peekOn = el.dataset.peek;
+	placePeek(host, el);
+}
+
 // A short delay, so sweeping across a grid of tiles does not flash a
 // card for every one of them.
 function showSoon(el) {
@@ -82,13 +92,33 @@ function showSoon(el) {
 	putAway();
 	peekTimer = setTimeout(() => {
 		peekTimer = null;
-		const html = peekHTML(el.dataset.peek);
-		if (!html) return;
-		host.innerHTML = html;
-		host.hidden = false;
-		peekOn = el.dataset.peek;
-		placePeek(host, el);
+		reveal(host, el);
 	}, 280);
+}
+
+/**
+ * A finger's hover: a tap on a row or a chip that does nothing else
+ * shows the card, a second tap -- or one anywhere else -- puts it
+ * away. Controls keep their own meaning; a tile still opens its
+ * panel, a button still presses.
+ */
+function onTap(evt) {
+	if (hoverable) return;
+	const host = document.getElementById('peek');
+	if (!host) return;
+	if (evt.target.closest('#peek')) return;
+	const el = evt.target.closest('[data-peek]');
+	const control = evt.target.closest('button, a, input, select, textarea, label, summary');
+	if (!el || control) {
+		putAway();
+		return;
+	}
+	if (peekOn === el.dataset.peek && !host.hidden) {
+		putAway();
+		return;
+	}
+	putAway();
+	reveal(host, el);
 }
 
 function leaveFor(from, to) {
@@ -116,6 +146,7 @@ export function wirePeek() {
 	});
 	document.addEventListener('mouseout', evt =>
 		leaveFor(evt.target.closest('[data-peek]'), evt.relatedTarget));
+	document.addEventListener('click', onTap);
 
 	// The same card for the keyboard: tabbing onto a tile or a chip shows
 	// what hovering it would.

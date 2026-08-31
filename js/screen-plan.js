@@ -158,6 +158,7 @@ export function controlsHTML(filters) {
 		<input class="field" type="search" placeholder="Search materials…" value="${esc(query)}" data-act="query">
 		<div class="chips">${filters}</div>
 		${sortSelect()}
+		<button class="ghost-btn" data-act="trip-log" title="Record several things you brought back, as one change">+ Log a trip</button>
 	</div>`;
 }
 

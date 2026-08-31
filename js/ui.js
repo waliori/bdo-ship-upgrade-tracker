@@ -35,6 +35,8 @@ import { renderQuests, questAction, questDone, setQuestPay } from './screen-ques
 import { openVellDialog } from './today.js';
 import { startClocks, tickClocks } from './clock.js';
 import { recordProgress } from './pace.js';
+import { openJump } from './jump.js';
+import { openTripLog } from './triplog.js';
 import { questsFor } from './quests.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
 import { renderGet, shoppingText } from './screen-get.js';
@@ -367,6 +369,9 @@ function wire() {
 			case 'add-build': return openBuildPicker();
 			case 'blockers-all': toggleBlockers(); return render();
 			case 'vell-edit': return openVellDialog();
+			case 'jump': return openJumpPalette();
+			case 'trip-log': return openTripLog();
+			case 'stash-del': store.setStash(el.dataset.item, el.dataset.town, 0); return;
 			case 'export': return doExport();
 			case 'import': return doImport();
 			case 'reset': return doReset();
@@ -694,6 +699,14 @@ function wire() {
 		const mreg = evt.target.closest('[data-act="market-region"]');
 		if (mreg) return setMarketRegion(mreg.value);
 
+		const st = evt.target.closest('[data-act="stash-town"]');
+		if (st && st.value) {
+			const item = st.dataset.item;
+			const stash = (store.getProfile('stash', {}) || {})[item] || {};
+			const placed = Object.values(stash).reduce((a, b) => a + b, 0);
+			return store.setStash(item, st.value, Math.max(1, store.getStock(item) - placed));
+		}
+
 		const qp = evt.target.closest('[data-act="quest-pay"]');
 		if (qp) {
 			setQuestPay(qp.value);
@@ -721,11 +734,12 @@ function wire() {
 		const el = evt.target.closest(
 			'[data-act="own-set"], [data-act="purse"], [data-act="target-qty"],'
 			+ ' [data-act="barter-count"], [data-act="vouchers"], [data-act="parley-held"],'
-			+ ' [data-act="failstacks"]');
+			+ ' [data-act="failstacks"], [data-act="stash-set"]');
 		if (!el) return;
 		const n = parseAmount(el.value);
 		if (n === null) return render();   // gibberish: put the stored value back
-		if (el.dataset.act === 'target-qty') store.setTargetQty(el.dataset.target, n);
+		if (el.dataset.act === 'stash-set') store.setStash(el.dataset.item, el.dataset.town, n);
+		else if (el.dataset.act === 'target-qty') store.setTargetQty(el.dataset.target, n);
 		else if (el.dataset.act === 'barter-count') store.setProfile('barterCount', n);
 		else if (el.dataset.act === 'vouchers') store.setProfile('vouchers', n);
 		else if (el.dataset.act === 'parley-held') store.setProfile('parleyHeld', n);
@@ -745,6 +759,24 @@ function wire() {
 
 	document.addEventListener('keydown', evt => {
 		const dialog = document.getElementById('dialog');
+		const inField = evt.target.closest('input, textarea, select, [contenteditable]');
+
+		// Ctrl+K anywhere, / outside a field: find anything. The digits
+		// switch tabs, the way they do in a browser.
+		if ((evt.ctrlKey || evt.metaKey) && !evt.altKey && evt.key.toLowerCase() === 'k') {
+			evt.preventDefault();
+			return openJumpPalette();
+		}
+		if (!inField && dialog.hidden && !evt.ctrlKey && !evt.metaKey && !evt.altKey) {
+			if (evt.key === '/') {
+				evt.preventDefault();
+				return openJumpPalette();
+			}
+			if (/^[1-9]$/.test(evt.key) && TABS[Number(evt.key) - 1]) {
+				evt.preventDefault();
+				return showView(TABS[Number(evt.key) - 1].id);
+			}
+		}
 
 		// Ctrl+Z / Ctrl+Shift+Z (and Ctrl+Y), everywhere except inside a
 		// field -- there the browser's own text undo has first claim.
@@ -853,6 +885,19 @@ function wire() {
 		if (!water) return;
 		if (document.visibilityState === 'hidden') water.pause();
 		else water.play();
+	});
+}
+
+/** The find box: a tab opens, an item opens in the Inventory's panel. */
+function openJumpPalette() {
+	openJump({
+		tabs: TABS,
+		go: (kind, value) => {
+			if (kind === 'tab') return showView(value);
+			showView('inventory');
+			setSelected(value);
+			render();
+		}
 	});
 }
 

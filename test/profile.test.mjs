@@ -204,3 +204,22 @@ test('claiming a quest is one undo for the stock and the tick together', () => {
 	assert.deepEqual(store.getProfile('questsDone'), { 'omg-nineshark': '2026-08-29', 'ravinia-1': 'once' });
 	assert.equal(store.unclaimQuest('never-ticked'), null);
 });
+
+test('where an item is kept is a bounded note beside the count', () => {
+	store.adopt({ ...SAVE, profile: { stash: {
+		'Tidal Black Stone': { Velia: 300, 'Port Epheria': 100, Nowhere: 0, ['x'.repeat(41)]: 5 },
+		['y'.repeat(81)]: { Velia: 1 },
+		'Black Stone': 'Velia'
+	} } });
+	assert.deepEqual(store.getProfile('stash'), { 'Tidal Black Stone': { Velia: 300, 'Port Epheria': 100 } });
+	store.setStash('Tidal Black Stone', "Ship's hold", 40);
+	assert.equal(store.getProfile('stash')['Tidal Black Stone']["Ship's hold"], 40);
+	store.setStash('Tidal Black Stone', 'Velia', 0);
+	assert.deepEqual(store.getProfile('stash')['Tidal Black Stone'], { 'Port Epheria': 100, "Ship's hold": 40 });
+	store.undo();
+	assert.equal(store.getProfile('stash')['Tidal Black Stone'].Velia, 300);
+	store.setStash('Tidal Black Stone', 'Port Epheria', 0);
+	store.setStash('Tidal Black Stone', "Ship's hold", 0);
+	store.setStash('Tidal Black Stone', 'Velia', 0);
+	assert.equal(store.getProfile('stash'), null, 'the last place gone, the item goes with it');
+});

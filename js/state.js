@@ -219,6 +219,22 @@ function readProfile(raw) {
 	// a date for a daily, a week key for a weekly, 'once' for the chain.
 	// A stamp from an earlier period simply stops matching at the reset,
 	// so nothing has to sweep them.
+	// Where the stock is: per item, how many sit in which storage. A
+	// note beside the count, never a second count -- the total stays the
+	// number the plan works from.
+	if (isProfile(raw.stash)) {
+		const stash = {};
+		for (const [item, towns] of Object.entries(raw.stash)) {
+			if (item.length > 80 || !isProfile(towns)) continue;
+			const clean = {};
+			for (const [town, n] of Object.entries(towns)) {
+				const v = Math.floor(Number(n));
+				if (town.length <= 40 && Number.isFinite(v) && v > 0) clean[town] = v;
+			}
+			if (Object.keys(clean).length) stash[item] = clean;
+		}
+		if (Object.keys(stash).length) out.stash = stash;
+	}
 	if (isProfile(raw.questsDone)) {
 		const done = {};
 		for (const [id, key] of Object.entries(raw.questsDone)) {
@@ -537,6 +553,17 @@ export function claimQuest(id, delta, key, label) {
 		}
 		state.profile = next;
 	});
+}
+
+/** How many of an item sit at one place; nought forgets the place. */
+export function setStash(item, town, qty) {
+	const stash = { ...(state.profile.stash || {}) };
+	const towns = { ...(stash[item] || {}) };
+	const n = Math.max(0, Math.floor(Number(qty) || 0));
+	if (n > 0) towns[town] = n; else delete towns[town];
+	if (Object.keys(towns).length) stash[item] = towns; else delete stash[item];
+	const next = readProfile({ ...state.profile, stash });
+	return commit('profile', n > 0 ? `${item}: ${n} at ${town}` : `${item}: no longer noted at ${town}`, () => { state.profile = next; });
 }
 
 /** Take a quest off the done list without touching stock -- for a tick

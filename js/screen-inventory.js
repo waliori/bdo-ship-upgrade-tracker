@@ -115,6 +115,7 @@ export function renderInventory() {
 				<input class="field" type="search" placeholder="Search items…" value="${esc(query)}" data-act="query">
 				<div class="chips">${filters}</div>
 				${sortSelect()}
+				<button class="ghost-btn" data-act="trip-log" title="Record several things you brought back, as one change">+ Log a trip</button>
 			</div>
 			${shown.length
 				? `<div class="inv-grid">${tiles}</div>`
@@ -166,6 +167,33 @@ function waysBlock(item) {
 	return `<div class="detail-block">
 		<div class="detail-label">${routes.length > 1 ? 'Ways to get it' : 'What it costs'}</div>
 		${lines}
+	</div>`;
+}
+
+/** The storages a sailor actually uses, for the "where it is" note. */
+export const TOWNS = [
+	"Ship's hold", 'Velia', 'Port Epheria', 'Iliya Island', 'Olvia', 'Heidel', 'Glish', 'Calpheon City', 'Keplan', 'Trent',
+	'Altinova', 'Tarif', 'Valencia City', 'Sand Grain Bazaar', 'Arehaza', 'Ancado Inner Harbor', 'Shakatu', 'Abun', 'Muiquun',
+	'Grána', 'Duvencrune', "O'draxxia", 'Eilton', 'Nampo', 'Dalbeol Village', 'Port Ratt', 'Elsewhere'
+];
+
+/** Where the item is kept: a line per storage, editable, against the
+ *  count owned -- a note, never a second inventory. */
+function whereBlock(item, own) {
+	const stash = (store.getProfile('stash', {}) || {})[item] || {};
+	const placed = Object.values(stash).reduce((a, b) => a + b, 0);
+	const lines = Object.entries(stash).sort((a, b) => b[1] - a[1]).map(([town, n]) => `<div class="detail-line where-line">
+		<span>${esc(town)}</span>
+		<span class="where-edit">${amountInput('where-val', n, `data-act="stash-set" data-item="${esc(item)}" data-town="${esc(town)}" aria-label="How many at ${esc(town)}"`)}
+		<button class="map-x" data-act="stash-del" data-item="${esc(item)}" data-town="${esc(town)}" aria-label="Forget ${esc(town)}">×</button></span>
+	</div>`).join('');
+	const left = own - placed;
+	const note = !placed ? '' : left > 0 ? `${F(left)} not placed` : left < 0 ? `${F(-left)} more placed than owned` : 'all placed';
+	const options = TOWNS.filter(t => !(t in stash)).map(t => `<option>${esc(t)}</option>`).join('');
+	return `<div class="detail-block">
+		<div class="detail-label">Where it is${note ? ` <span class="detail-note">· ${esc(note)}</span>` : ''}</div>
+		${lines}
+		<select class="field select where-add" data-act="stash-town" data-item="${esc(item)}" aria-label="Note a storage this is kept in"><option value="">+ a storage…</option>${options}</select>
 	</div>`;
 }
 
@@ -221,6 +249,7 @@ function renderDetail() {
 		</div>
 		<div class="qty-hint">Type the number straight in — 4k and 12,000 both work.</div>
 		${moveLevelAction(item)}
+		${whereBlock(item, own)}
 		<div class="kv">
 			<div class="kv-row"><span>Reserved</span><span class="n blue">${F(reserved)}</span></div>
 			<div class="kv-row"><span>Free</span><span class="n teal">${F(free)}</span></div>

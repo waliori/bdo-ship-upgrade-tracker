@@ -227,7 +227,12 @@ export function crewTotals(roster, seats, stats) {
 		t.cabins += type.cabin;
 		t.weight += type.weight;
 		t.appetite += type.appetite;
-		if ((s.cond ?? 100) <= 0) t.sick++;
+		// A sick sailor still eats, weighs and takes a cabin, and gives
+		// the seat nothing until mended.
+		if ((s.cond ?? 100) <= 0) {
+			t.sick++;
+			continue;
+		}
 		const m = (k, mult = 1) => statOf(s, k) * mult;
 		t.speed += m('speed', pos === 'sail' ? 2 : 1);
 		t.accel += m('accel', pos === 'sail' ? 2 : 1);
@@ -260,11 +265,16 @@ export function autoAssign(roster, ship, stats) {
 	const out = {};
 	const t = s => anyType[s.type];
 	const gunner = s => t(s).force !== undefined;
+	// The cabin budget is kept: a sailor who would not fit stays ashore,
+	// however good, because the game will not seat them either.
+	const space = stats && stats.cabins > 0 ? stats.cabins : Infinity;
+	let used = 0;
 	const take = (seat, score, only = () => true) => {
 		if (out[seat.key]) return;
-		const pick = left.filter(only).sort((a, b) => score(b) - score(a))[0];
+		const pick = left.filter(s => only(s) && used + t(s).cabin <= space).sort((a, b) => score(b) - score(a))[0];
 		if (!pick) return;
 		out[seat.key] = pick.id;
+		used += t(pick).cabin;
 		left.splice(left.indexOf(pick), 1);
 	};
 	const of = pos => seats.filter(x => x.pos === pos);

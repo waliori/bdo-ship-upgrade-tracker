@@ -15,6 +15,7 @@ import {
 	barterLevels,
 	ROUTE_UNLOCKS
 } from './barter.js';
+import { monsters } from './sea_monsters.js';
 import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
 import { img, codexName, costCtx, costText } from './ui-bits.js';
@@ -223,6 +224,14 @@ export function renderGet() {
 				// is not a recipe and cannot be one -- the book makes a
 				// single unit -- but it is very often the answer, so it
 				// goes beside the recipe rather than in it.
+				// What drops it, when the chart knows where that swims.
+				const drops = (vendorItems[entry.item] && vendorItems[entry.item]['Monster Drop']) || [];
+				const grounds = [...new Map(drops
+					.map(d => monsters.find(m => d.toLowerCase().startsWith(m.name.toLowerCase())))
+					.filter(Boolean).map(m => [m.key, m])).values()].slice(0, 3);
+				const hunt = grounds.length
+					? `<div class="row-alt">hunt: ${grounds.map(m => `<button class="chart-link" data-act="quest-map" data-monster="${esc(m.key)}">${esc(m.name)}</button>`).join(' · ')}</div>`
+					: '';
 				const bulk = bulkExchanges[entry.item];
 				const inBulk = bulk
 					? `<div class="row-alt">or ${F(Math.ceil(entry.qty / bulk.gets))}× ${esc(bulk.give)}, ${F(bulk.gets)} a time</div>`
@@ -234,6 +243,7 @@ export function renderGet() {
 						<div class="row-sub">${esc(sub)}</div>
 						${alt}
 						${inBulk}
+						${hunt}
 						${sea}
 					</div>
 					<span class="qty-out">${F(entry.qty)}</span>

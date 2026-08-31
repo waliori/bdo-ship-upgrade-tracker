@@ -3037,3 +3037,23 @@ select.purse-inline { width: auto; cursor: pointer; }
 .map-zoom .ghost-btn[aria-pressed="true"] { color: var(--amber); border-color: rgba(240, 180, 90, 0.5); }
 .dialog-label { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 13px; color: var(--ink-dim); }
 .dialog-label .field { flex: 1; }
+
+/* ---- Find, the trip log, where it is ---- */
+.jump { display: flex; flex-direction: column; gap: 10px; min-width: min(520px, 90vw); }
+.jump-in { font-size: 15px; padding: 10px 12px; }
+.jump-list { display: flex; flex-direction: column; gap: 3px; max-height: 50vh; overflow-y: auto; }
+.jump-row { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: var(--r-btn); border: 1px solid transparent; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.jump-row:hover, .jump-row.on { background: rgba(88, 168, 232, 0.12); border-color: rgba(88, 168, 232, 0.35); }
+.jump-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jump-own { font-size: 11px; color: var(--teal); white-space: nowrap; }
+.jump-tab { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); width: 28px; }
+.jump-hint { font-size: 11px; color: var(--ink-faint); }
+.trip-rows { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; max-height: 50vh; overflow-y: auto; }
+.trip-row { display: flex; gap: 6px; }
+.trip-row .trip-item { flex: 1; min-width: 0; }
+.trip-row .trip-qty { width: 120px; }
+.where-line { align-items: center; }
+.where-edit { display: inline-flex; align-items: center; gap: 6px; }
+.where-val { width: 72px; text-align: right; }
+.where-add { margin-top: 6px; font-size: 12px; }
+.detail-note { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink-faint); }

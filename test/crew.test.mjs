@@ -70,10 +70,10 @@ test('a seated crew adds up the way the positions say', () => {
 	];
 	const t = crewTotals(roster, { 'sail:0': 'a', 'deck:0': 'b', 'cannon:0': 'c' }, shipStats['Carrack (Advance)']);
 	assert.equal(t.seated, 3);
-	assert.equal(t.speed, 1.6 * 10 * 2 + 1.0 * 5 + 0.2 * 4, 'the sail counts double');
+	assert.equal(t.speed, 1.6 * 10 * 2 + 1.0 * 5, 'the sail counts double; the sick gunner adds nothing');
 	assert.equal(t.durability, 8 * 10000, 'the Deck pays by cabin cost');
 	assert.equal(t.rations, 0);
-	assert.equal(t.force, 3.0 * 4 * 2, 'the cannon doubles force');
+	assert.equal(t.force, 0, 'a sick sailor works no seat');
 	assert.equal(t.cabins, 10 + 8 + 10);
 	assert.equal(t.weight, 200 + 500 + 250);
 	assert.equal(t.sick, 1);
@@ -121,4 +121,24 @@ test('the Cog can be built two ways, and both are described', () => {
 	assert.deepEqual(Object.keys(routes['Epheria Cog']), ['permit', 'pirates']);
 	assert.equal(routes['Epheria Cog'].permit, recipes['Epheria Cog']);
 	for (const name of ['permit', 'pirates']) assert.ok(routeInfo['Epheria Cog'][name].label && routeInfo['Epheria Cog'][name].via, name);
+});
+
+test('a sick sailor takes a cabin and eats, and works no seat', () => {
+	const stats = shipStats['Epheria Caravel'];
+	const roster = [{ id: 'a', type: 'Ambitious', lv: 10, cond: 100 }, { id: 'b', type: 'Ambitious', lv: 10, cond: 0 }];
+	const well = crewTotals(roster, { 'sail:0': 'a' }, stats);
+	const sick = crewTotals(roster, { 'sail:0': 'b' }, stats);
+	assert.ok(well.speed > 0);
+	assert.equal(sick.speed, 0);
+	assert.equal(sick.sick, 1);
+	assert.equal(sick.cabins, well.cabins);
+	assert.equal(sick.appetite, well.appetite);
+});
+
+test('auto assign keeps to the cabin space', () => {
+	const stats = shipStats['Epheria Sailboat'];   // 10 cabin space, 2 seats
+	const roster = ['a', 'b', 'c'].map(id => ({ id, type: 'Ambitious', lv: 5, cond: 100 }));   // 10 cabins each
+	const seats = autoAssign(roster, 'Epheria Sailboat', stats);
+	assert.equal(Object.keys(seats).length, 1, 'one fits, the second would be over');
+	assert.equal(crewTotals(roster, seats, stats).overSpace, 0);
 });
