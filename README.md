@@ -207,7 +207,10 @@ the ones on your own list are offered first. Ravinia's log shows how
 many of its letters you have recorded.
 
 **One ship, every tab.** The Crew screen opens on the ship as a card
-and fits it out as four slot cards: each slot takes the best part you
+and fits it out as five slot cards — the four parts and the **sea
+crystal**, every one of the codex's 287 variants from Eltro to Rusalka
+plus Ebenruth's Nol and the Oceanteared Nol, chosen by grade with its
+effect beside the name and added to the hull's numbers: each slot takes the best part you
 hold by itself, or one you choose — a part you own but have not
 recorded, or a plan you are weighing, marked as such, and recorded in
 your inventory with one press. The roster can be ticked for a bulk

@@ -193,3 +193,19 @@ test('the minimap hides, comes back, and stays where it is dragged', async () =>
 	assert.deepEqual(errors, []);
 	await context.close();
 });
+
+test('a sea crystal is chosen by grade and shows on the ship card', async () => {
+	const { page, context, errors } = await open('#crew');
+	await seed(page); await wait(400);
+	assert.equal(await count(page, '.slot-card.crystal'), 1);
+	await page.click('[data-act="crew-crystal-pick"]'); await wait(200);
+	assert.ok(await count(page, '.picker-row') > 280, 'every variant is offered');
+	await page.type('.picker-in', 'rusalka speed'); await wait(150);
+	await page.keyboard.press('Enter'); await wait(400);
+	assert.match(await text(page, '.slot-card.crystal'), /Rusalka Sea Crystal.*speed \+4\.5%/i);
+	assert.match(await text(page, '.ship-card'), /crystal 4\.5/);
+	await page.click('[data-act="crew-crystal-none"]'); await wait(300);
+	assert.match(await text(page, '.slot-card.crystal'), /No crystal/);
+	assert.deepEqual(errors, []);
+	await context.close();
+});

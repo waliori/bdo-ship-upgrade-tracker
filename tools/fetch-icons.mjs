@@ -66,6 +66,8 @@ const { coins } = await import('../js/sea_coins.js');
 for (const n of Object.keys(coins)) want(n);
 const { falasi } = await import('../js/falasi_vendor.js');
 for (const n of Object.keys(falasi)) want(n);
+const { crystals } = await import('../js/sea_crystals.js');
+for (const c of crystals) want(c.name);
 const { quests } = await import('../js/quests.js');
 for (const q of quests) for (const r of [q.rewards, ...(q.choice || q.either || [])]) if (r) for (const n of Object.keys(r)) want(n);
 const { care, contract, pool, firstMates } = await import('../js/sailors.js');

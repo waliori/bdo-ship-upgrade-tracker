@@ -75,3 +75,21 @@ test('the fitted note survives the profile shape, junk does not', () => {
 	} } });
 	assert.deepEqual(store.getProfile('fitted'), { 'Carrack (Valor)': { cannon: `+5 ${CANNON}`, sail: '' } });
 });
+
+test('a sea crystal is the fifth slot, and its stat lands in the sum', async () => {
+	const { setCrystal, crystalFor } = await import('../js/ship.js');
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { crewShip: 'Epheria Caravel' } });
+	const bare = currentShip();
+	setCrystal('Epheria Caravel', 756821);   // Rusalka, speed +4.5%
+	const with1 = currentShip();
+	assert.equal(with1.crystal.id, 756821);
+	assert.equal(with1.speed.crystal, 4.5);
+	assert.equal(with1.speed.total, Math.round((bare.speed.total + 4.5) * 10) / 10);
+	setCrystal('Epheria Caravel', 59444);    // Oceanteared Nol, weight +1,350
+	assert.equal(currentShip().hold.limit, bare.hold.limit + 1350);
+	setCrystal('Epheria Caravel', null);
+	assert.equal(crystalFor('Epheria Caravel'), null);
+	assert.equal(store.getProfile('crystal'), null);
+	setCrystal('Epheria Caravel', 12345);
+	assert.equal(store.getProfile('crystal'), null, 'an unknown id is not kept');
+});

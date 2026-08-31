@@ -467,6 +467,10 @@
   "icon": "00800068.webp",
   "url": "https://bdocodex.com/us/item/800068/"
  },
+ "Eltro Sea Crystal": {
+  "icon": "00756425_3.webp",
+  "url": "https://bdocodex.com/us/item/756750/"
+ },
  "Enamored": {
   "icon": "employee_59056.webp",
   "url": "https://bdocodex.com/us/sailor/59056/"
@@ -1055,6 +1059,10 @@
   "icon": "00004655.webp",
   "url": "https://bdocodex.com/us/item/4655/"
  },
+ "Margoria Sea Crystal": {
+  "icon": "00756428_3.webp",
+  "url": "https://bdocodex.com/us/item/756780/"
+ },
  "Marine Knights' Helm": {
   "icon": "00800043.webp",
   "url": "https://bdocodex.com/us/item/800043/"
@@ -1118,6 +1126,10 @@
  "Ocean Stalker": {
   "icon": "ic_04970.webp",
   "url": "https://bdocodex.com/us/npc/21421/"
+ },
+ "Oceanteared Ebenruth's Nol": {
+  "icon": "00059440.webp",
+  "url": "https://bdocodex.com/us/item/59446/"
  },
  "Octagonal Box": {
   "icon": "00800057.webp",
@@ -1439,6 +1451,10 @@
   "icon": "00005807.webp",
   "url": "https://bdocodex.com/us/item/5807/"
  },
+ "Rusalka Sea Crystal": {
+  "icon": "00756821.webp",
+  "url": "https://bdocodex.com/us/item/756827/"
+ },
  "Sailor Contract Certificate": {
   "icon": "00752030.webp",
   "url": "https://bdocodex.com/us/item/752030/"
@@ -1474,6 +1490,10 @@
  "Seaweed Stalk": {
   "icon": "00005829.webp",
   "url": "https://bdocodex.com/us/item/5829/"
+ },
+ "Serni Sea Crystal": {
+  "icon": "00756426.webp",
+  "url": "https://bdocodex.com/us/item/756751/"
  },
  "Shining Powder": {
   "icon": "00009733.webp",
@@ -1818,6 +1838,10 @@
  "Zinc Ingot": {
   "icon": "00004064.webp",
   "url": "https://bdocodex.com/us/item/4064/"
+ },
+ "Zulatia Sea Crystal": {
+  "icon": "00756427_3.webp",
+  "url": "https://bdocodex.com/us/item/756770/"
  },
  "[Level 1] Ancient Urn Piece": {
   "icon": "00800007.webp",

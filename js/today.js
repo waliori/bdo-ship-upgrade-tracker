@@ -76,9 +76,9 @@ export function todayStrip() {
 			: '';
 
 	const me = currentShip();
-	const fitted = me.fit.slots.filter(s => s.part).length;
+	const fitted = me.fit.slots.filter(s => s.part).length + (me.crystal ? 1 : 0);
 	const shipTile = `<div class="today-v">${esc(me.name)}</div>
-		<div class="today-sub">${me.speed.total}% · ${esc(F(me.hold.free))} LT free · ${fitted} of 4 parts${me.crew.seated ? ` · ${me.crew.seated} aboard` : ''} · <button class="linky" data-act="view" data-id="crew">fit out</button></div>`;
+		<div class="today-sub">${me.speed.total}% · ${esc(F(me.hold.free))} LT free · ${fitted} of 5 fitted${me.crew.seated ? ` · ${me.crew.seated} aboard` : ''} · <button class="linky" data-act="view" data-id="crew">fit out</button></div>`;
 	return `<div class="today">
 		<div class="today-k">Today</div>
 		<div class="today-tiles">

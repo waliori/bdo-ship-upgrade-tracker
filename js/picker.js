@@ -47,12 +47,18 @@ export function openPicker(o) {
 		// Typing ranks: a name that starts with the letters, then a word
 		// that does, then anything that has them -- and the groups give
 		// way to that order, since the search is now the order.
+		// Every word typed must be somewhere in the row -- "rusalka
+		// speed" finds the Rusalka crystal that lifts speed -- and the
+		// rows whose name starts with the first word come first.
+		const words = q.split(/\s+/).filter(Boolean);
 		const rank = it => {
 			const l = it.label.toLowerCase();
+			const hay = `${l} ${(it.sub || '').toLowerCase()} ${(it.group || '').toLowerCase()}`;
+			if (!words.every(w => hay.includes(w))) return -1;
 			if (l.startsWith(q)) return 0;
-			if (l.includes(' ' + q) || l.includes('(' + q) || l.includes('+' + q)) return 1;
-			if (l.includes(q)) return 2;
-			return `${it.sub || ''} ${it.group || ''}`.toLowerCase().includes(q) ? 3 : -1;
+			if (l.startsWith(words[0])) return 1;
+			if (l.includes(' ' + words[0]) || l.includes('(' + words[0]) || l.includes('+' + words[0])) return 2;
+			return l.includes(words[0]) ? 3 : 4;
 		};
 		rows = q
 			? o.items.map(it => [it, rank(it)]).filter(([, r]) => r >= 0).sort((a, b) => a[1] - b[1]).map(([it]) => it)

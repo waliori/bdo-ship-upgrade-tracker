@@ -16,7 +16,8 @@ import { openDialog, closeDialog, toast } from './dialogs.js';
 import { shipStats } from './ship_stats.js';
 import { describeStats, statsAt } from './part_stats.js';
 import { families, tables } from './enhancement.js';
-import { currentShip, fittedFor, partsForSlot, shipName, setFitted } from './ship.js';
+import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal } from './ship.js';
+import { GRADES, gradeById, crystalsOf, crystalVariant, crystalLine } from './crystals.js';
 import { openPicker } from './picker.js';
 import { encodeShare, shareLink } from './share.js';
 import { enhancedName } from './planner.js';
@@ -325,12 +326,33 @@ function slotCard(ship, x, chosenByHand) {
 	</div>`;
 }
 
+/** The fifth slot: one sea crystal, or the Nol, or nothing. */
+function crystalCard(ship) {
+	const c = crystalFor(ship);
+	const grade = c && gradeById[c.grade];
+	return `<div class="slot-card crystal${c ? '' : ' empty'}">
+		<div class="slot-head"><span class="slot-glyph" aria-hidden="true">◆</span><span class="slot-name">Sea crystal</span>
+			<span class="fit-tag">${c ? esc(grade.label) + (grade.local ? ' · its own sea only' : ' · every sea') : 'one slot, any grade'}</span></div>
+		<div class="slot-body">
+			${c ? img(c.name, 'slot-icon') : '<span class="slot-icon blank">◆</span>'}
+			<div class="slot-text">
+				<div class="slot-part">${c ? `${codexName(c.name)} <b style="color:${grade.colour}">${esc(crystalVariant(c))}</b>` : 'No crystal'}</div>
+				<div class="slot-stats" title="${c ? esc(crystalLine(c)) : ''}">${c ? esc(crystalLine(c)) : 'Eltro to Rusalka, or the Nol — each one lifts one thing'}</div>
+			</div>
+		</div>
+		<div class="slot-btns">
+			<button class="act quiet small" data-act="crew-crystal-pick">${c ? 'Change…' : 'Choose…'}</button>
+			${c ? `<button class="act quiet small" data-act="crew-crystal-none" title="Sail without a crystal">Take out</button>` : ''}
+		</div>
+	</div>`;
+}
+
 function loadoutPanel(ship) {
 	const s = shipStats[ship];
 	const stock = store.getAllStock();
 	const fit = fittedFor(ship, stock);
 	const chosen = (store.getProfile('fitted', {}) || {})[ship] || {};
-	const rows = `<div class="slot-grid">${fit.slots.map(x => slotCard(ship, x, chosen[x.slot] !== undefined)).join('')}</div>`;
+	const rows = `<div class="slot-grid">${fit.slots.map(x => slotCard(ship, x, chosen[x.slot] !== undefined)).join('')}${crystalCard(ship)}</div>`;
 	const me = currentShip();
 	const same = me.name === ship;
 	const hold = same ? me.hold : { limit: s.weight + (Number(fit.total.weight) || 0), crew: 0, free: s.weight + (Number(fit.total.weight) || 0) };
@@ -365,9 +387,9 @@ export function renderCrew() {
 			</div>
 		</div>
 		<div class="ship-card-facts">
-			<div><div class="summary-k">Speed</div><div class="summary-v">${me.speed.total}%</div><div class="summary-sub">hull ${stats.speed}${me.speed.parts ? ` + parts ${me.speed.parts}` : ''}${me.speed.crew ? ` + crew ${me.speed.crew}` : ''}</div></div>
+			<div><div class="summary-k">Speed</div><div class="summary-v">${me.speed.total}%</div><div class="summary-sub">hull ${stats.speed}${me.speed.parts ? ` + parts ${me.speed.parts}` : ''}${me.speed.crystal ? ` + crystal ${me.speed.crystal}` : ''}${me.speed.crew ? ` + crew ${me.speed.crew}` : ''}</div></div>
 			<div><div class="summary-k">Hold</div><div class="summary-v">${F(me.hold.free)} LT</div><div class="summary-sub">${F(me.hold.limit)} as fitted${me.hold.crew ? ` less ${F(me.hold.crew)} of crew` : ''}</div></div>
-			<div><div class="summary-k">Fitted</div><div class="summary-v">${fittedN} of 4</div><div class="summary-sub">${stats.crew ? `${me.crew.seated} of ${stats.crew} seats taken` : 'carries no sailors'}</div></div>
+			<div><div class="summary-k">Fitted</div><div class="summary-v">${fittedN + (me.crystal ? 1 : 0)} of 5</div><div class="summary-sub">${stats.crew ? `${me.crew.seated} of ${stats.crew} seats taken` : 'carries no sailors'}</div></div>
 		</div>
 		<div class="ship-card-btns">
 			<button class="act quiet small" data-act="crew-ship-pick" title="Which hull you sail — the Map and the Plan follow it">⚓ Change ship</button>
@@ -485,6 +507,8 @@ export function crewAction(act, el) {
 			return true;
 		}
 		case 'crew-ship-pick': shipPicker(); return true;
+		case 'crew-crystal-pick': crystalPicker(ship); return true;
+		case 'crew-crystal-none': setCrystal(ship, null); return true;
 		case 'crew-fit-pick': partPicker(ship, el.dataset.slot); return true;
 		case 'crew-fit-auto': setFitted(ship, el.dataset.slot, 'auto'); return true;
 		case 'crew-fit-none': setFitted(ship, el.dataset.slot, 'none'); return true;
@@ -621,10 +645,31 @@ function levelPicker(ship, slot, part) {
 	openPicker({ title: `${part} — which level?`, items, onPick: item => setFitted(ship, slot, item) });
 }
 
+/** Which crystal: every one the codex knows, by grade, the effect beside it. */
+function crystalPicker(ship) {
+	const now = crystalFor(ship);
+	const items = [];
+	for (const g of GRADES) {
+		for (const c of crystalsOf(g.id)) {
+			items.push({
+				id: String(c.id), label: `${c.name} — ${crystalVariant(c)}`, icon: img(c.name, ''),
+				sub: crystalLine(c), meta: g.local ? 'its sea only' : 'every sea',
+				group: `${g.label} · ${g.note}`
+			});
+		}
+	}
+	openPicker({
+		title: 'Which sea crystal?',
+		hint: 'One slot. Every grade lifts one stat; Rusalka lifts it most and works in every sea, and the Oceanteared Nol is a Rusalka crystal with the Nol\'s BreezySail on top.',
+		items, selected: now ? String(now.id) : null,
+		onPick: id => setCrystal(ship, Number(id))
+	});
+}
+
 /** The hull, its fitted parts and its crew, in a link. */
 async function copyShipLink() {
 	const ship = shipName();
-	const setup = { ship, fitted: (store.getProfile('fitted', {}) || {})[ship] || {}, roster: roster(), seats: seatsOf(ship) };
+	const setup = { ship, fitted: (store.getProfile('fitted', {}) || {})[ship] || {}, crystal: (store.getProfile('crystal', {}) || {})[ship] || null, roster: roster(), seats: seatsOf(ship) };
 	try {
 		const link = shareLink(await encodeShare({ stock: {}, setup })).replace('#share/', '#ship/');
 		await navigator.clipboard.writeText(link);
@@ -643,6 +688,7 @@ export function applyShipSetup(setup) {
 		all[setup.ship] = setup.fitted;
 		store.setProfile('fitted', all);
 	}
+	if (setup.crystal !== undefined) setCrystal(setup.ship, setup.crystal);
 	if (Array.isArray(setup.roster)) store.setProfile('roster', setup.roster);
 	if (setup.seats && typeof setup.seats === 'object') setSeats(setup.ship, setup.seats);
 	return true;

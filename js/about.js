@@ -17,6 +17,7 @@ export const DATA = [
 	{ what: 'Falasi’s prices', asOf: '2026-08-25', from: 'Port Epheria' },
 	{ what: 'Parley rates and discounts', asOf: '2026-08-29', from: 'the Barter Information window' },
 	{ what: 'Vell’s timetable (EU, NA)', asOf: '2026-08-30', from: 'mmotimer.com' },
+	{ what: 'Sea crystals — 287 variants and the Nols', asOf: '2026-08-31', from: 'BDOCodex' },
 	{ what: 'Central Market prices', asOf: 'live', from: 'the community market API, per region' }
 ];
 

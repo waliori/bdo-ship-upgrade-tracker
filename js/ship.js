@@ -14,6 +14,7 @@ import { shipStats } from './ship_stats.js';
 import { partStats, slotOf, fitsShip, statsAt, sumStats, loadout } from './part_stats.js';
 import { families } from './enhancement.js';
 import { crewTotals } from './sailors.js';
+import { crystalById, crystalStats } from './crystals.js';
 
 export const SLOTS = ['cannon', 'sail', 'figurehead', 'plating'];
 const RANK = { yellow: 5, chiro: 4, 'caravel-blue': 4, toro: 3, 'caravel-green': 3, epheria: 2, sailboat: 1 };
@@ -64,26 +65,44 @@ export function fittedFor(ship, stock = store.getAllStock()) {
 	return { slots, total: sumStats(...slots.map(s => s.stats)) };
 }
 
-/** The whole setup, summed. */
+/** The sea crystal on a hull, if one is set: the codex entry and its stats. */
+export function crystalFor(ship) {
+	const id = (store.getProfile('crystal', {}) || {})[ship];
+	const c = id ? crystalById[id] : null;
+	return c ? { ...c, stats: crystalStats(c) } : null;
+}
+
+/** Set the crystal on a hull by codex id; null takes it out. */
+export function setCrystal(ship, id) {
+	if (!shipStats[ship]) return null;
+	const all = { ...(store.getProfile('crystal', {}) || {}) };
+	if (id && crystalById[id]) all[ship] = Number(id); else delete all[ship];
+	return store.setProfile('crystal', Object.keys(all).length ? all : null);
+}
+
+/** The whole setup, summed: hull, parts, the crystal, the crew. */
 export function currentShip() {
 	const name = shipName();
 	const stats = shipStats[name];
 	const fit = fittedFor(name);
+	const crystal = crystalFor(name);
+	const gem = k => (crystal && Number(crystal.stats[k])) || 0;
 	const seats = (store.getProfile('seats', {}) || {})[name] || {};
 	const crew = crewTotals(store.getProfile('roster', []) || [], seats, stats);
 	const parts = k => Number(fit.total[k]) || 0;
-	const limit = stats.weight + parts('weight');
+	const limit = stats.weight + parts('weight') + gem('weight');
 	return {
-		name, stats, fit, crew,
-		speed: { hull: stats.speed, parts: parts('speed'), crew: crew.speed, total: round1(stats.speed + parts('speed') + crew.speed) },
-		accel: round1(stats.accel + parts('accel') + crew.accel),
-		turn: round1(stats.turn + parts('turn') + crew.turn),
-		brake: round1(stats.brake + parts('brake') + crew.brake),
-		// The hold: hull plus what the plating adds, less the crew's own
-		// weight -- what is left is what a run can carry.
+		name, stats, fit, crew, crystal,
+		speed: { hull: stats.speed, parts: parts('speed'), crystal: gem('speed'), crew: crew.speed, total: round1(stats.speed + parts('speed') + gem('speed') + crew.speed) },
+		accel: round1(stats.accel + parts('accel') + gem('accel') + crew.accel),
+		turn: round1(stats.turn + parts('turn') + gem('turn') + crew.turn),
+		brake: round1(stats.brake + parts('brake') + gem('brake') + crew.brake),
+		// The hold: hull plus what the plating and a crystal add, less the
+		// crew's own weight -- what is left is what a run can carry.
 		hold: { limit, crew: crew.weight, free: Math.max(0, limit - crew.weight) },
-		durability: stats.durability + parts('durability') + crew.durability,
-		rations: stats.rations + parts('rations') + crew.rations
+		durability: stats.durability + parts('durability') + gem('durability') + crew.durability,
+		rations: stats.rations + parts('rations') + crew.rations,
+		damage: parts('damage') + gem('damage')
 	};
 }
 

@@ -117,6 +117,15 @@ export function readProfile(raw) {
 		}
 		if (Object.keys(fitted).length) out.fitted = fitted;
 	}
+	// The sea crystal on each hull, by its codex id: one slot, one crystal.
+	if (isProfile(raw.crystal)) {
+		const crystal = {};
+		for (const [ship, id] of Object.entries(raw.crystal)) {
+			const n = Math.floor(Number(id));
+			if (ship.length <= 60 && Number.isFinite(n) && n > 0) crystal[ship] = n;
+		}
+		if (Object.keys(crystal).length) out.crystal = crystal;
+	}
 	// Where each build stood, day by day, for the pace: build id -> date
 	// -> units covered. Bounded to a month per build and twenty builds.
 	if (isProfile(raw.progress)) {
