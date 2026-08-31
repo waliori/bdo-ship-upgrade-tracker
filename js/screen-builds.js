@@ -12,6 +12,10 @@ import { snapshot } from './ui-state.js';
 import { planOne, bottlenecks, routeOf, remainingCost } from './planner.js';
 
 
+// Whether the blockers panel shows the worst five or the lot.
+let allBlockers = false;
+export function toggleBlockers() { allBlockers = !allBlockers; }
+
 export function renderBuilds() {
 	const targets = store.getTargets();
 	const byId = new Map(snapshot.targets.map(t => [t.id, t]));
@@ -64,11 +68,13 @@ export function renderBuilds() {
 		</div>`;
 	}).join('') : '<div class="panel"><p class="empty">Nothing queued yet. Add a ship or a part above and the rest follows from it.</p></div>';
 
-	const blockers = bottlenecks(snapshot, 5);
+	const every = bottlenecks(snapshot, Infinity);
+	const blockers = allBlockers ? every : every.slice(0, 5);
 	const blockHTML = blockers.length ? `<div class="panel">
 		<div class="panel-head">
 			<h2 class="panel-title amber">Biggest blockers</h2>
-			<span class="panel-sub">Missing items holding up the queue</span>
+			<span class="panel-sub">Missing items holding up the queue${every.length > 5
+				? ` · <button class="linky" data-act="blockers-all">${allBlockers ? 'the worst five' : `all ${every.length}`}</button>` : ''}</span>
 		</div>
 		${blockers.map(b => `<div class="row">
 			${img(b.item, 'row-icon md')}

@@ -45,7 +45,8 @@ export function renderPlan() {
 		<div class="readybar-list">${ready.slice(0, 8).map(c => `
 			<button class="ready-chip" data-act="craft" data-item="${esc(c.item)}" data-times="${c.suggested}" data-peek="${esc(c.item)}" title="Craft ${F(c.suggested)} now">
 				${img(c.item, '')}${F(c.suggested)}× ${esc(c.item)}
-			</button>`).join('')}</div>
+			</button>`).join('')}${ready.length > 8
+			? `<button class="ready-chip more" data-act="view" data-id="workshop" title="The Workshop lists every one">and ${ready.length - 8} more…</button>` : ''}</div>
 	</div>` : '';
 
 	const filters = [

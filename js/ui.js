@@ -5,6 +5,7 @@
 // planner.js, rebuilt on every change.
 
 import { shipGroups } from './ships.js';
+import { routeInfo } from './recipes.js';
 import { tableFor } from './enhancement.js';
 import { iconLoader } from './icon-loader.js';
 import RealisticWaterRipples from './realistic-water-ripples.js';
@@ -25,7 +26,7 @@ import { paintPouch, measurePouch } from './pouch.js';
 import { hidePeek, wirePeek } from './peek.js';
 import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
-import { renderBuilds, openBuildPicker, askRoute } from './screen-builds.js';
+import { renderBuilds, openBuildPicker, askRoute, toggleBlockers } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements } from './screen-workshop.js';
@@ -350,6 +351,7 @@ function wire() {
 				return;
 			}
 			case 'add-build': return openBuildPicker();
+			case 'blockers-all': toggleBlockers(); return render();
 			case 'export': return doExport();
 			case 'import': return doImport();
 			case 'reset': return doReset();
@@ -496,10 +498,10 @@ function wire() {
 				if (selected) store.setStrategy(selected, el.dataset.mode);
 				return;
 			case 'ask-route': return askRoute(el.dataset.item, {
-				onPick: name => toast(
-					`${el.dataset.item} — ${name === 'improved' ? 'by way of the Improved hull' : 'straight from the base hull'}`,
-					true
-				)
+				onPick: name => {
+					const info = routeInfo[el.dataset.item] && routeInfo[el.dataset.item][name];
+					toast(`${el.dataset.item} — ${info ? info.label.charAt(0).toLowerCase() + info.label.slice(1) : name}`, true);
+				}
 			});
 			case 'bump':
 				if (selected) store.addStock(selected, Number(el.dataset.delta));

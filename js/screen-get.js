@@ -127,24 +127,7 @@ const ageText = ms => ms < 60_000 ? 'just now'
 export function renderGet() {
 	const totals = totalsToGo();
 	const q = query.toLowerCase();
-	// A search narrows the list to the lines it names; each group total
-	// is re-summed so the head still describes what is under it.
-	const groups = shoppingList(snapshot.missing, {
-		coins,
-		silver: falasi,
-		market: marketSilver(),
-		acquisition: vendorItems,
-		barter: barterData ? barterLookup : null
-	}).map(g => {
-		if (!q) return g;
-		const items = g.items.filter(e => e.item.toLowerCase().includes(q));
-		return {
-			...g,
-			items,
-			coins: items.reduce((a, e) => a + (e.coins || 0), 0),
-			silver: items.reduce((a, e) => a + (e.silver || 0), 0)
-		};
-	}).filter(g => g.items.length);
+	const groups = visibleGroups(q);
 
 	const purseCoins = store.getStock(CROW_COIN);
 	const purseSilver = store.getStock(SILVER);
@@ -265,10 +248,35 @@ export function renderGet() {
 	return summary + controls + hint + body;
 }
 
+/** The list as the screen shows it: grouped by how each thing is got,
+ *  narrowed to a search when there is one, each group total re-summed
+ *  so the head still describes what is under it. */
+function visibleGroups(q) {
+	return shoppingList(snapshot.missing, {
+		coins,
+		silver: falasi,
+		market: marketSilver(),
+		acquisition: vendorItems,
+		barter: barterData ? barterLookup : null
+	}).map(g => {
+		if (!q) return g;
+		const items = g.items.filter(e => e.item.toLowerCase().includes(q));
+		return {
+			...g,
+			items,
+			coins: items.reduce((a, e) => a + (e.coins || 0), 0),
+			silver: items.reduce((a, e) => a + (e.silver || 0), 0)
+		};
+	}).filter(g => g.items.length);
+}
+
+/** What "Copy list" puts on the clipboard: the list exactly as it is
+ *  shown -- the same groups, the same search -- so a narrowed list
+ *  copies narrow, and the headings say where each thing comes from. */
 export function shoppingText() {
-	return Object.entries(snapshot.missing)
-		.filter(([, q]) => q > 0)
-		.sort((a, b) => b[1] - a[1])
-		.map(([item, q]) => `${Math.round(q)}× ${item}`)
-		.join('\n');
+	return visibleGroups(query.toLowerCase()).map(g => {
+		const total = g.coins ? ` — ${F(g.coins)} coins` : g.silver ? ` — ${F(g.silver)} silver` : '';
+		const lines = [...g.items].sort((a, b) => b.qty - a.qty).map(e => `  ${Math.round(e.qty)}× ${e.item}`);
+		return `${g.key}${total}\n${lines.join('\n')}`;
+	}).join('\n\n');
 }

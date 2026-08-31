@@ -76,6 +76,8 @@ const SHELL = [
 	'/js/sailors.js',
 	'/js/screen-crew.js',
 	'/js/screen-quests.js',
+	'/js/quests.js',
+	'/js/part_stats.js',
 	'/js/market.js',
 	'/js/sea_coins.js',
 	'/js/ships.js',

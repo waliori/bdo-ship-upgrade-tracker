@@ -233,3 +233,21 @@ test('no action is worn by both a button and a select', () => {
 	assert.deepEqual(shared, [], shared.map(a =>
 		`"${a}" is a button in ${on.button.get(a)} and a select in ${on.picker.get(a)}`).join('; '));
 });
+
+test('the offline shell precaches every module the app imports', () => {
+	const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+	const shell = new Set([...sw.matchAll(/'(\/js\/[^']+\.js)'/g)].map(m => m[1]));
+	const dir = new URL('../js/', import.meta.url);
+	// Walk the import graph from the entry point rather than listing the
+	// folder: a module nothing imports is not the shell's problem.
+	const seen = new Set();
+	const walk = name => {
+		if (seen.has(name)) return;
+		seen.add(name);
+		const src = fs.readFileSync(new URL(name, dir), 'utf8');
+		for (const m of src.matchAll(/import[^'"]*['"]\.\/([^'"]+)['"]/g)) walk(m[1]);
+	};
+	walk('boot.js');
+	const missing = [...seen].filter(n => !shell.has(`/js/${n}`));
+	assert.deepEqual(missing, [], `not precached: ${missing.join(', ')}`);
+});
