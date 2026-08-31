@@ -3057,3 +3057,20 @@ select.purse-inline { width: auto; cursor: pointer; }
 .where-val { width: 72px; text-align: right; }
 .where-add { margin-top: 6px; font-size: 12px; }
 .detail-note { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink-faint); }
+
+/* ---- Profiles, Help extras ---- */
+.profile-list { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+.profile-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--r-btn); border: 1px solid rgba(125, 175, 225, 0.12); background: var(--panel-inset, rgba(9, 22, 42, 0.55)); }
+.profile-row.on { border-color: rgba(88, 196, 196, 0.45); }
+.profile-name { flex: 1; font-weight: 600; color: var(--ink-hi); }
+.profile-tag { margin-left: 6px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); font-weight: 500; }
+.profile-new { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+.profile-new .field { flex: 1; min-width: 160px; }
+.map-x.sure { color: var(--red-soft); width: auto; padding: 0 6px; font-size: 11px; }
+.account-chip.off { font-size: 11px; color: var(--ink-mute); }
+.help-more { margin: 12px 0 0; font-size: 13px; color: var(--ink-dim); }
+.help-more summary { cursor: pointer; color: var(--ink); font-weight: 600; margin-bottom: 6px; }
+.help-change { margin: 6px 0 10px; }
+.help-change ul { margin: 4px 0 0 18px; padding: 0; }
+.help-change li { margin: 2px 0; }
+.help-data { display: flex; flex-direction: column; gap: 5px; margin: 6px 0; }

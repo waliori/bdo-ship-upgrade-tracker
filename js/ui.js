@@ -36,6 +36,9 @@ import { openVellDialog } from './today.js';
 import { startClocks, tickClocks } from './clock.js';
 import { recordProgress } from './pace.js';
 import { openJump } from './jump.js';
+import { openProfiles, activeProfile } from './profiles.js';
+import { DATA, CHANGES, LATEST } from './about.js';
+import { toggleVellReminder, checkVellReminder } from './today.js';
 import { openTripLog } from './triplog.js';
 import { questsFor } from './quests.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
@@ -370,6 +373,8 @@ function wire() {
 			case 'blockers-all': toggleBlockers(); return render();
 			case 'vell-edit': return openVellDialog();
 			case 'jump': return openJumpPalette();
+			case 'profiles': return openProfiles({ toast });
+			case 'vell-notify': return toggleVellReminder();
 			case 'trip-log': return openTripLog();
 			case 'stash-del': store.setStash(el.dataset.item, el.dataset.town, 0); return;
 			case 'export': return doExport();
@@ -1045,6 +1050,15 @@ function openHelp() {
 		<h2>How this works</h2>
 		<p>Two minutes, end to end: queue a build, choose how to get there, record what you gathered, make something, see what it will really cost, and take the list shopping.</p>
 		<video class="help-film" src="docs/media/${file}" controls autoplay muted playsinline loop></video>
+		<details class="help-more">
+			<summary>What's new</summary>
+			${CHANGES.slice(0, 6).map(c => `<div class="help-change"><b>${esc(c.date)}</b> — ${esc(c.title)}<ul>${c.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>`).join('')}
+		</details>
+		<details class="help-more">
+			<summary>The data, and when it was checked</summary>
+			<div class="help-data">${DATA.map(d => `<div class="kv-row"><span>${esc(d.what)}</span><span class="n">${esc(d.asOf)}${d.from ? ` · ${esc(d.from)}` : ''}</span></div>`).join('')}</div>
+			<p class="dialog-copy">A patch can move any of these. The Market prices are live; everything else is a snapshot the app was checked against on the date shown.</p>
+		</details>
 		<div class="dialog-actions">
 			<button class="act quiet" data-close>Close</button>
 			<button class="act" data-act="tour">Walk me through my own screen</button>
@@ -1090,9 +1104,15 @@ export async function init() {
 	window.addEventListener('hashchange', applyHash);
 	store.subscribe(() => render());
 	render();
-	// The minute hand on every countdown, and a repaint when a reset
-	// passes with the page open.
-	startClocks(render);
+	// The minute hand on every countdown, a repaint when a reset passes
+	// with the page open, and the Vell reminder if it was asked for.
+	startClocks(render, checkVellReminder);
+	whatsNew();
+	// Which save this page is on. Sync mirrors the main profile only:
+	// a second profile is a second save, and the account holds one.
+	const prof = activeProfile();
+	const profBtn = document.querySelector('[data-act="profiles"]');
+	if (profBtn && prof.slug) profBtn.textContent = `Profile: ${prof.name}`;
 
 	loadBarter();
 	// A failed fetch leaves barterData unset on purpose; the network
@@ -1135,6 +1155,20 @@ export async function init() {
 
 	// Sync last, and never blocking: on a deployment without it this is
 	// one request that comes back "no" and nothing more happens.
-	initSync({ toast, openDialog, closeDialog, rerender: render })
-		.catch(err => console.warn('[ui] sync unavailable:', err));
+	if (prof.slug) {
+		const acct = document.getElementById('account');
+		if (acct) acct.innerHTML = `<span class="account-chip off" title="Sync mirrors the Main profile only">sync off on this profile</span>`;
+	} else {
+		initSync({ toast, openDialog, closeDialog, rerender: render })
+			.catch(err => console.warn('[ui] sync unavailable:', err));
+	}
+}
+
+/** One line about what changed since the last visit, once. */
+function whatsNew() {
+	const KEY = 'bdo-tracker/seen';
+	let seen = null;
+	try { seen = localStorage.getItem(KEY); } catch { /* then say nothing */ }
+	if (seen && seen !== LATEST) toast(`New since your last visit: ${CHANGES[0].title}. The details are under Help.`);
+	try { localStorage.setItem(KEY, LATEST); } catch { /* private mode */ }
 }

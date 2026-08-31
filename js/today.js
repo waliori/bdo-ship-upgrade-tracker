@@ -1,3 +1,4 @@
+/* global Notification */
 // Today, at sea: the clocks a sailor plays by, on the Plan screen.
 //
 // The plan says what is left; this says what today can do about it --
@@ -45,8 +46,13 @@ function vellTile() {
 	const source = plan.custom
 		? 'your own timetable'
 		: `${esc(plan.label)}: ${esc(plan.times.map(timeLabel).join(' · '))} ${esc(zoneShort(plan.zone))}, as of ${VELL_CHECKED}`;
+	const canNotify = typeof Notification !== 'undefined';
+	const on = canNotify && store.getSetting('vellNotify', false) === true && Notification.permission === 'granted';
+	const bell = canNotify
+		? ` · <button class="linky" data-act="vell-notify" title="${on ? 'A notification a quarter of an hour before, while this tab is open' : 'Ask for a notification a quarter of an hour before, while this tab is open'}">${on ? '🔔 reminding' : 'remind me'}</button>`
+		: '';
 	return `<div class="today-v">${esc(localLabel(next.at))} <span class="today-in">in <b data-until="at" data-at="${next.at}"></b></span></div>
-		<div class="today-sub">${source} · ${edit}</div>`;
+		<div class="today-sub">${source} · ${edit}${bell}</div>`;
 }
 
 /** The strip itself. */
@@ -77,6 +83,42 @@ export function todayStrip() {
 			${paceTile ? `<div class="today-tile"><div class="summary-k">Pace</div>${paceTile}</div>` : ''}
 		</div>
 	</div>`;
+}
+
+const REMIND_BEFORE = 15 * 60e3;
+let remindedFor = 0;
+
+/** Turn the reminder on (asking the browser first) or off. */
+export async function toggleVellReminder() {
+	if (typeof Notification === 'undefined') return toast('This browser has no notifications');
+	if (store.getSetting('vellNotify', false) === true && Notification.permission === 'granted') {
+		store.setSetting('vellNotify', false);
+		return toast('No more Vell reminders');
+	}
+	let perm = Notification.permission;
+	if (perm === 'default') {
+		try { perm = await Notification.requestPermission(); } catch { perm = 'denied'; }
+	}
+	if (perm !== 'granted') return toast('The browser would not allow notifications — check the site settings');
+	store.setSetting('vellNotify', true);
+	toast('You will be told a quarter of an hour before Vell, while this tab is open');
+}
+
+/** Called by the clock: a notification once, a quarter of an hour
+ *  before the next spawn, while the page is open and allowed to. */
+export function checkVellReminder(now = Date.now()) {
+	if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+	if (store.getSetting('vellNotify', false) !== true) return;
+	const plan = vellPlan();
+	const next = plan && nextSpawn(plan.zone, plan.times, now);
+	if (!next || next.at === remindedFor) return;
+	const left = next.at - now;
+	if (left > REMIND_BEFORE || left < 0) return;
+	remindedFor = next.at;
+	try {
+		new Notification('Vell is coming up', { body: `Spawns ${localLabel(next.at)} — in ${Math.max(1, Math.round(left / 60e3))} minutes.`, tag: 'vell' });
+	} catch { /* a browser that will not */ }
+	toast(`Vell in ${Math.max(1, Math.round(left / 60e3))} minutes`);
 }
 
 /** Set Vell's times by hand, on the player's own clock. */

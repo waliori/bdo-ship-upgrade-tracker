@@ -159,7 +159,7 @@ let lastBarter = '';
 /** Start the minute hand; `onRollover` is called once when a reset
  *  passes while the page is open, so a done quest becomes undone and
  *  the barter day's ticks clear without a reload. */
-export function startClocks(onRollover) {
+export function startClocks(onRollover, onTick = null) {
 	if (ticking) return;
 	lastDay = dayKey();
 	lastWeek = weekKey();
@@ -167,6 +167,7 @@ export function startClocks(onRollover) {
 	const beat = () => {
 		const now = Date.now();
 		tickClocks(now);
+		if (onTick) onTick(now);
 		const d = dayKey(now), w = weekKey(now), b = dayKey(now, BARTER_RESET_UTC);
 		if (d !== lastDay || w !== lastWeek || b !== lastBarter) {
 			lastDay = d; lastWeek = w; lastBarter = b;

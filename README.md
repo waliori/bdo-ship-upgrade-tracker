@@ -158,10 +158,52 @@ can be both made and bought, you choose, and the plan follows.
 - **Export / Import** a JSON backup to move between machines.
 - **A guided tour** that demonstrates on example data, then hands your
   own data back untouched, and a **Help** film of the whole thing end to
-  end for when you would rather just watch.
-- Works on a phone; the water shader is optional (`≈ Water` in the
-  header). Offline it runs from a snapshot of the last deploy, never a
-  mixture of two.
+  end for when you would rather just watch. Help also lists **what
+  changed** and **when each dataset was last checked**.
+- **Find** anything with `Ctrl+K` (or `/` on its own): an item opens in
+  the Inventory's panel, a tab opens. The digits `1`–`9` switch tabs.
+- **Log a trip**: everything you brought back, in one box, as one
+  undoable change.
+- **Where it is**: each item can carry a note of which storage holds how
+  many, beside the count the plan works from.
+- **Profiles**: separate saves on one browser for an alt or a what-if;
+  sync mirrors the main one only.
+- Works on a phone — a tap on a row or a chip shows the hover card, a
+  second tap puts it away; the water shader is optional (`≈ Water` in
+  the header). Offline it runs from a snapshot of the last deploy, never
+  a mixture of two.
+
+### Playing day to day
+
+The plan says what is left; the **Today** strip on the Plan says what
+today can do about it: the quests still open that pay in something on
+your list, how long until the dailies, the weeklies and the barter
+refill reset (00:00 UTC, Thursday 00:00 UTC and 06:00 UTC), when
+**Vell** is next up on your servers — the EU and NA timetables as of
+2026‑08‑30, correctable in place, with a reminder a quarter of an hour
+before while the tab is open — and the **pace** each build has been
+moving at, with the finish that pace implies. The pace is a diary kept
+in this browser, not part of the save.
+
+**Quests** are a checklist. Claiming a reward puts it in stock and
+ticks the quest for the day or the week it counts for; the tick wears
+off at the reset by itself. Filter to what is still to do, what is
+done, what pays in something you need, or one reward in particular —
+the ones on your own list are offered first. Ravinia's log shows how
+many of its letters you have recorded.
+
+**Routes** say how long. Every leg on the Map's Route tab carries its
+length and the minutes it takes at the speed your hull actually makes
+— hull, parts and sail seats, the same sum the Crew screen shows — over
+the line as it is bent round the land. What 100% is in metres the game
+never says, so the chart assumes 11 m/s and lets one timed leg replace
+it. Parley is costed at one trade a stop or at every attempt the offer
+allows; the stops past what your bar covers are marked and a button
+trims to them. The trade goods in your stock are read against what
+each stop hands over. Routes are kept by name, a replaced route is
+kept as the previous one, a route travels in a link, and a ruler
+(`⟷`) measures any two points on the sea, with the game's own
+coordinates under the pointer.
 
 ---
 

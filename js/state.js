@@ -5,7 +5,22 @@
 // shortfalls and progress are never stored -- planner.js derives them from
 // these on every read, so nothing can drift out of sync.
 
-const KEY = 'bdo-tracker/v2';
+const BASE_KEY = 'bdo-tracker/v2';
+const ACTIVE_PROFILE_KEY = 'bdo-tracker/profile';
+
+/** Where a profile's save lives: the original key for the main one, so
+ *  nobody's save moves; a suffixed key for every other. */
+export function keyFor(slug) {
+	return slug ? `${BASE_KEY}@${slug}` : BASE_KEY;
+}
+
+function activeSlug() {
+	try { return localStorage.getItem(ACTIVE_PROFILE_KEY) || ''; } catch { return ''; }
+}
+
+/** The profile this page loaded with. Switching is a reload. */
+export const ACTIVE_PROFILE = activeSlug();
+const KEY = keyFor(ACTIVE_PROFILE);
 const LEGACY_PREFIX = 'bdo_ship_upgrade-';
 const LEGACY_MIGRATED_FLAG = 'bdo-tracker/v1-imported';
 const HISTORY_CAP = 200;
