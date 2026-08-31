@@ -89,6 +89,7 @@ const SHELL = [
 	'/js/share.js',
 	'/js/wharves.js',
 	'/js/ship.js',
+	'/js/picker.js',
 	'/js/market.js',
 	'/js/sea_coins.js',
 	'/js/ships.js',

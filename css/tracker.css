@@ -3100,3 +3100,93 @@ select.purse-inline { width: auto; cursor: pointer; }
 .fit-hint { font-size: 12px; color: var(--ink-faint); margin: 0 22px 8px; }
 .map-as { color: var(--ink-dim); }
 .map-as b { color: var(--ink-hi); }
+
+/* ---- The picker ---- */
+.picker { display: flex; flex-direction: column; gap: 10px; min-width: min(560px, 92vw); }
+.picker h2 { margin: 0; }
+.picker-in { font-size: 14px; padding: 9px 12px; }
+.picker-list { display: flex; flex-direction: column; gap: 2px; max-height: 52vh; overflow-y: auto; padding-right: 2px; }
+.picker-group { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); padding: 8px 6px 3px; position: sticky; top: 0; background: var(--panel, #0a1728); z-index: 1; }
+.picker-row { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: var(--r-btn); border: 1px solid transparent; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.picker-row:hover, .picker-row.on { background: rgba(88, 168, 232, 0.12); border-color: rgba(88, 168, 232, 0.35); }
+.picker-row.picked { background: rgba(78, 201, 174, 0.1); border-color: rgba(78, 201, 174, 0.4); }
+.picker-row.off { opacity: 0.45; cursor: default; }
+.picker-tick { width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--line-btn); display: inline-flex; align-items: center; justify-content: center; font-size: 12px; color: var(--teal); flex: none; }
+.picker-row.picked .picker-tick { border-color: var(--teal); background: rgba(78, 201, 174, 0.15); }
+.picker-icon { flex: none; display: inline-flex; }
+.picker-icon img, .picker-icon .sailor-face { width: 30px; height: 30px; border-radius: 6px; object-fit: cover; }
+.picker-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.picker-label { color: var(--ink-hi); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-sub { font-size: 11.5px; color: var(--ink-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-meta { font-family: var(--font-display); font-size: 12px; color: var(--teal); white-space: nowrap; }
+.picker-actions { align-items: center; }
+.picker-count { flex: 1; font-size: 12px; color: var(--ink-mute); }
+
+/* ---- Masthead: fewer buttons, a More menu; tabs in two groups ---- */
+.more { position: relative; display: inline-flex; }
+.more-menu { position: absolute; right: 0; top: calc(100% + 6px); min-width: 250px; z-index: 60; display: flex; flex-direction: column; padding: 6px; border-radius: 12px; background: rgba(8, 18, 34, 0.98); border: 1px solid rgba(125, 175, 225, 0.22); box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5); }
+.more-menu[hidden] { display: none; }
+.more-item { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 8px 10px; border-radius: 8px; border: 0; background: none; color: var(--ink-hi); font: inherit; text-align: left; cursor: pointer; }
+.more-item small { font-size: 11px; color: var(--ink-faint); }
+.more-item:hover { background: rgba(88, 168, 232, 0.12); }
+.more-item.danger span { color: var(--red-soft); }
+.tab-icon { margin-right: 6px; opacity: 0.75; font-size: 12px; }
+.tab.active .tab-icon { opacity: 1; }
+.tab-gap { width: 1px; height: 18px; align-self: center; margin: 0 8px; background: rgba(125, 175, 225, 0.25); }
+.status-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 10px 0 12px; padding: 7px 14px; border-radius: var(--r-btn, 10px); background: rgba(9, 22, 42, 0.7); border: 1px solid rgba(125, 175, 225, 0.16); font-size: 12.5px; color: var(--ink-dim); }
+.status-bar[hidden] { display: none; }
+.status-bit { background: none; border: 0; padding: 2px 4px; font: inherit; color: var(--ink-mute); border-radius: 6px; }
+.status-bit b { color: var(--ink-hi); font-family: var(--font-display); font-weight: 600; }
+button.status-bit { cursor: pointer; }
+button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink-hi); }
+.status-sep { color: var(--ink-faint); }
+
+/* ---- Crew: the ship card, slot cards, ticks ---- */
+.ship-card { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: center; padding: 16px 22px; }
+.ship-card-main { display: flex; align-items: center; gap: 14px; flex: 1 1 320px; min-width: 0; }
+.ship-card-icon { width: 64px; height: 64px; border-radius: 12px; flex: none; }
+.ship-card-text { min-width: 0; }
+.ship-card-facts { display: flex; gap: 26px; flex-wrap: wrap; }
+.ship-card-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.slot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; padding: 0 14px 12px; }
+.slot-card { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: var(--r-btn); background: var(--panel-inset, rgba(9, 22, 42, 0.55)); border: 1px solid rgba(125, 175, 225, 0.12); }
+.slot-card.unowned { border-color: rgba(240, 180, 90, 0.4); }
+.slot-card.empty { border-style: dashed; }
+.slot-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.slot-glyph { color: var(--teal); font-size: 13px; }
+.slot-name { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
+.slot-head .fit-tag { margin-left: auto; }
+.slot-body { display: flex; align-items: center; gap: 10px; }
+.slot-icon { width: 44px; height: 44px; border-radius: 8px; flex: none; }
+.slot-icon.blank { display: inline-flex; align-items: center; justify-content: center; border: 1px dashed rgba(125, 175, 225, 0.3); color: var(--ink-faint); font-size: 20px; }
+.slot-text { min-width: 0; }
+.slot-part { color: var(--ink-hi); font-weight: 600; font-size: 13px; overflow-wrap: anywhere; }
+.slot-part b { color: var(--teal); }
+.slot-stats { font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
+.slot-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.roster-card { position: relative; }
+.roster-card.ticked { border-color: rgba(78, 201, 174, 0.55); }
+.roster-hit { position: absolute; inset: 0; background: none; border: 0; cursor: pointer; border-radius: inherit; }
+.roster-check { position: absolute; top: 6px; right: 6px; z-index: 2; width: 20px; height: 20px; border-radius: 5px; border: 1px solid var(--line-btn); background: rgba(6, 14, 26, 0.7); color: var(--teal); font-size: 12px; cursor: pointer; padding: 0; }
+.roster-check.on { border-color: var(--teal); background: rgba(78, 201, 174, 0.2); }
+.crew-bulk { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 14px 0; padding: 8px 12px; border-radius: var(--r-btn); background: rgba(78, 201, 174, 0.08); border: 1px solid rgba(78, 201, 174, 0.3); font-size: 12.5px; color: var(--ink-dim); }
+.crew-bulk b { color: var(--teal); }
+.hire-type { display: flex; align-items: center; gap: 12px; margin: 6px 0 12px; }
+.hire-type b { color: var(--ink-hi); }
+
+/* ---- Quests: the reward chips ---- */
+.pay-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; width: 100%; }
+.pay-chip { padding-right: 4px; }
+.pay-chip .map-x { width: 18px; height: 18px; font-size: 12px; }
+
+/* ---- Trip log rows ---- */
+.trip-pick { flex: 1; min-width: 0; display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: var(--panel-inset, rgba(9, 22, 42, 0.55)); color: var(--ink-hi); font: inherit; text-align: left; cursor: pointer; }
+.trip-pick.empty { color: var(--ink-faint); border-style: dashed; }
+.trip-pick span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trip-plus { font-size: 16px; color: var(--teal); }
+.trip-row .map-x { flex: none; }
+
+/* ---- Where it is: the same inputs as everywhere else ---- */
+.where-line { padding: 4px 0; }
+.where-val { width: 76px; text-align: right; padding: 4px 8px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: var(--panel-inset, rgba(9, 22, 42, 0.7)); color: var(--ink-hi); font-family: var(--font-display); font-size: 13px; }
+.where-val:focus { border-color: var(--blue-edge); outline: none; }

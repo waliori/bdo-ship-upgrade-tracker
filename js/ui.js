@@ -31,13 +31,14 @@ import { renderBuilds, openBuildPicker, askRoute, toggleBlockers } from './scree
 import { renderInventory } from './screen-inventory.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements } from './screen-workshop.js';
-import { renderCrew, crewAction, crewChange } from './screen-crew.js';
-import { renderQuests, questAction, questDone, setQuestPay } from './screen-quests.js';
+import { renderCrew, crewAction, crewChange, applyShipSetup } from './screen-crew.js';
+import { statusLine } from './today.js';
+import { renderQuests, questAction, questDone } from './screen-quests.js';
 import { openVellDialog } from './today.js';
 import { startClocks, tickClocks } from './clock.js';
 import { recordProgress } from './pace.js';
 import { openJump } from './jump.js';
-import { setFitted } from './ship.js';
+
 import { openProfiles, activeProfile } from './profiles.js';
 import { DATA, CHANGES, LATEST } from './about.js';
 import { toggleVellReminder, checkVellReminder } from './today.js';
@@ -54,16 +55,18 @@ import {
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite
 } from './screen-map.js';
 
+// Two groups: the yard, where a build is planned and made, and the
+// sea, where the day is spent. A divider in the tab row says so.
 const TABS = [
-	{ id: 'plan', label: 'Plan' },
-	{ id: 'builds', label: 'Builds' },
-	{ id: 'inventory', label: 'Inventory' },
-	{ id: 'tree', label: 'Tree' },
-	{ id: 'workshop', label: 'Workshop' },
-	{ id: 'get', label: 'To Get' },
-	{ id: 'map', label: 'Map' },
-	{ id: 'quests', label: 'Quests' },
-	{ id: 'crew', label: 'Crew' }
+	{ id: 'plan', label: 'Plan', icon: '◈', group: 'yard' },
+	{ id: 'builds', label: 'Builds', icon: '⚒', group: 'yard' },
+	{ id: 'inventory', label: 'Inventory', icon: '▦', group: 'yard' },
+	{ id: 'tree', label: 'Tree', icon: '⌥', group: 'yard' },
+	{ id: 'workshop', label: 'Workshop', icon: '⚙', group: 'yard' },
+	{ id: 'get', label: 'To Get', icon: '☰', group: 'yard' },
+	{ id: 'map', label: 'Map', icon: '⌖', group: 'sea' },
+	{ id: 'quests', label: 'Quests', icon: '✦', group: 'sea' },
+	{ id: 'crew', label: 'Crew', icon: '⚓', group: 'sea' }
 ];
 
 let water = null;
@@ -95,13 +98,21 @@ export function render() {
 
 	// A tablist for the keyboard: the active tab is the one Tab stop,
 	// and the arrow keys walk the rest (wired in wire()).
-	document.getElementById('tabs').innerHTML = TABS.map(t => `
+	document.getElementById('tabs').innerHTML = TABS.map((t, i) => `${i > 0 && TABS[i - 1].group !== t.group ? '<span class="tab-gap" aria-hidden="true"></span>' : ''}
 		<button class="tab ${view === t.id ? 'active' : ''}" role="tab"
 			aria-selected="${view === t.id}" aria-controls="screen"
 			tabindex="${view === t.id ? 0 : -1}"
-			data-act="view" data-id="${t.id}" id="tab-${t.id}">
-			${t.label}${counts[t.id] ? `<span class="tab-count">${counts[t.id]}</span>` : ''}
+			data-act="view" data-id="${t.id}" id="tab-${t.id}" title="${t.label} (${i + 1})">
+			<span class="tab-icon" aria-hidden="true">${t.icon}</span>${t.label}${counts[t.id] ? `<span class="tab-count">${counts[t.id]}</span>` : ''}
 		</button>`).join('');
+	// The day's clocks and the ship, in one line, wherever the Plan's
+	// own strip is not on the page.
+	const status = document.getElementById('status');
+	if (status) {
+		const line = view === 'plan' || !store.getActiveTargets().length ? '' : statusLine();
+		status.innerHTML = line;
+		status.hidden = !line;
+	}
 	const screenHost = document.getElementById('screen');
 	if (screenHost) screenHost.setAttribute('aria-labelledby', `tab-${view}`);
 
@@ -226,6 +237,13 @@ function applyHash() {
 		openShared(payload);
 		return true;
 	}
+	if (m && m[1] === 'ship' && m[2]) {
+		const payload = m[2];
+		history.replaceState(null, '', `${location.pathname}${location.search}#crew`);
+		setView('crew');
+		openSharedShip(payload);
+		return true;
+	}
 	if (!m || !TABS.some(t => t.id === m[1])) return false;
 	applyingHash = true;
 	setView(m[1]);
@@ -323,7 +341,8 @@ function syncWaterButton() {
 	const btn = document.getElementById('water-btn');
 	if (!btn) return;
 	const on = store.getSetting('water', false) === true;
-	btn.textContent = `≈ Water ${on ? 'on' : 'off'}`;
+	const label = btn.querySelector('span') || btn;
+	label.textContent = `≈ Water ${on ? 'on' : 'off'}`;
 	btn.classList.toggle('on', on);
 }
 
@@ -349,6 +368,13 @@ function wire() {
 
 		const el = evt.target.closest('[data-act]');
 		if (!el) {
+			// A click anywhere else closes the More menu.
+			const pop = document.getElementById('more-menu');
+			if (pop && !pop.hidden && !evt.target.closest('#more-menu')) {
+				pop.hidden = true;
+				const btn = document.querySelector('[data-act="more"]');
+				if (btn) btn.setAttribute('aria-expanded', 'false');
+			}
 			// Clicking past the tiles puts the detail panel away. Reading
 			// the panel itself is not clicking past anything, so a click
 			// inside it leaves the selection alone.
@@ -359,6 +385,13 @@ function wire() {
 			return;
 		}
 		const act = el.getAttribute('data-act');
+
+		// Picking anything out of the More menu puts it away.
+		if (act !== 'more' && el.closest('#more-menu')) {
+			document.getElementById('more-menu').hidden = true;
+			const btn = document.querySelector('[data-act="more"]');
+			if (btn) btn.setAttribute('aria-expanded', 'false');
+		}
 
 		// Picking something out of the phone menu puts it away again.
 		if (act !== 'menu' && el.closest('.masthead-actions.open')) {
@@ -386,6 +419,8 @@ function wire() {
 			case 'profiles': return openProfiles({ toast });
 			case 'vell-notify': return toggleVellReminder();
 			case 'trip-log': return openTripLog();
+			case 'quest-pay-pick': return questAction(act, el);
+			case 'quest-pay-del': questAction(act, el); return render();
 			case 'stash-del': store.setStash(el.dataset.item, el.dataset.town, 0); return;
 			case 'export': return doExport();
 			case 'import': return doImport();
@@ -399,6 +434,13 @@ function wire() {
 			case 'guide': return openGuide();
 			case 'signin':
 			case 'account': return openAccount();
+			case 'more': {
+				const pop = document.getElementById('more-menu');
+				const open = !pop.hidden;
+				pop.hidden = open;
+				el.setAttribute('aria-expanded', String(!open));
+				return;
+			}
 			case 'menu': {
 				// The header's buttons do not fit a phone, so below a certain
 				// width they live behind this and are shown on demand.
@@ -726,20 +768,11 @@ function wire() {
 		const cl = evt.target.closest('[data-act="codex-lang"]');
 		if (cl) return store.setSetting('codexLang', cl.value);
 
-		const qp = evt.target.closest('[data-act="quest-pay"]');
-		if (qp) {
-			setQuestPay(qp.value);
-			return render();
-		}
-
 		const so = evt.target.closest('[data-act="sort"]');
 		if (so) {
 			setSort(so.value);
 			return render();
 		}
-
-		const fp = evt.target.closest('[data-act="fit-part"]');
-		if (fp) return setFitted(fp.dataset.ship, fp.dataset.slot, fp.value);
 
 		const cs = evt.target.closest('[data-act="crew-ship"]');
 		if (cs) return store.setProfile('crewShip', cs.value || null);
@@ -903,6 +936,8 @@ function wire() {
 
 	// The water is pure decoration, and decoration has no business
 	// burning battery in a tab nobody is looking at.
+	document.addEventListener('quests-refilter', () => render());
+
 	document.addEventListener('visibilitychange', () => {
 		if (!water) return;
 		if (document.visibilityState === 'hidden') water.pause();
@@ -959,6 +994,30 @@ async function openShared(payload) {
 		closeDialog();
 		store.adopt(save, 'Took a shared plan');
 		toast('Replaced yours with the shared plan', true);
+	});
+}
+
+/** A ship setup in a link: the hull, its parts, its crew. */
+async function openSharedShip(payload) {
+	let setup;
+	try {
+		setup = (await decodeShare(payload)).setup;
+	} catch {
+		return toast('That link does not carry a ship setup the tracker can read');
+	}
+	if (!setup || !setup.ship) return toast('That link does not carry a ship setup');
+	const parts = Object.values(setup.fitted || {}).filter(Boolean).length;
+	const sailors = (setup.roster || []).length;
+	const host = openDialog(`
+		<h2>A ship setup in a link</h2>
+		<p class="dialog-copy"><b>${esc(setup.ship)}</b>, ${parts} part${parts === 1 ? '' : 's'} chosen by hand, ${sailors} sailor${sailors === 1 ? '' : 's'} on the roster. Taking it in makes it your ship — the roster and that hull's seats are replaced; one Undo takes it back.</p>
+		<div class="dialog-actions">
+			<button class="act" data-ship-take>Make it my ship</button>
+			<button class="ghost-btn" data-close>Ignore</button>
+		</div>`);
+	host.querySelector('[data-ship-take]').addEventListener('click', () => {
+		closeDialog();
+		if (applyShipSetup(setup)) toast(`Sailing as ${setup.ship}`, true);
 	});
 }
 

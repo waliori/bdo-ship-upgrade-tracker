@@ -61,22 +61,29 @@
             </button>
             <div class="masthead-actions" id="masthead-actions">
                 <button class="ghost-btn" data-act="jump" title="Find an item or a tab (Ctrl+K)">&#8981; Find</button>
-                <button class="ghost-btn" data-act="profiles" title="Separate saves on this browser — an alt, or a what-if">Profiles</button>
+                <button class="ghost-btn" data-act="trip-log" title="Record everything you brought back from a trip, as one change">&#65291; Log a trip</button>
                 <button class="ghost-btn" id="undo-btn" data-act="undo">&#8630; Undo</button>
                 <button class="ghost-btn" id="redo-btn" data-act="redo">&#8631; Redo</button>
-                <button class="ghost-btn" data-act="export">Export</button>
-                <button class="ghost-btn" data-act="import">Import</button>
-                <button class="ghost-btn" data-act="reset">Start fresh</button>
-                <button class="ghost-btn" data-act="help">Help</button>
-                <button class="ghost-btn" data-act="tour">Tour</button>
-                <button class="ghost-btn" id="water-btn" data-act="water">&#8776; Water off</button>
                 <!-- Sign-in, and who is signed in. Stays empty unless the
                      deployment has been given a Discord app and a database. -->
                 <span class="account" id="account"></span>
+                <div class="more">
+                    <button class="ghost-btn" data-act="more" aria-haspopup="menu" aria-expanded="false" aria-controls="more-menu">&#8943; More</button>
+                    <div class="more-menu" id="more-menu" role="menu" hidden>
+                        <button class="more-item" role="menuitem" data-act="profiles"><span>Profiles</span><small>separate saves on this browser</small></button>
+                        <button class="more-item" role="menuitem" data-act="export"><span>Export</span><small>a file, or a link</small></button>
+                        <button class="more-item" role="menuitem" data-act="import"><span>Import</span><small>a file saved from here</small></button>
+                        <button class="more-item" role="menuitem" data-act="help"><span>Help</span><small>the film, what's new, the data's dates</small></button>
+                        <button class="more-item" role="menuitem" data-act="tour"><span>Tour</span><small>a walk through your own screen</small></button>
+                        <button class="more-item" role="menuitem" id="water-btn" data-act="water"><span>&#8776; Water off</span><small>the shader behind the page</small></button>
+                        <button class="more-item danger" role="menuitem" data-act="reset"><span>Start fresh</span><small>clears everything, one Undo away</small></button>
+                    </div>
+                </div>
             </div>
         </header>
 
         <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
+        <div class="status-bar" id="status" hidden></div>
 
         <!-- Currencies and enhancement stones are spent from every screen,
              so they live in the shell rather than on any one tab. -->

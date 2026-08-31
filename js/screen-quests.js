@@ -16,13 +16,14 @@ import { toast } from './dialogs.js';
 import { rows, query } from './ui-state.js';
 import { quests, questById, cadenceOf } from './quests.js';
 import { periodKey } from './clock.js';
+import { openPicker } from './picker.js';
 
 // Session state: which chip is lit, and which reward the list is
 // narrowed to, if any.
 let filter = 'all';
-let payFilter = '';
+let payFilter = [];   // reward items the list is narrowed to; empty for all
 
-export function setQuestPay(item) { payFilter = item || ''; }
+export function setQuestPay(items) { payFilter = Array.isArray(items) ? items : items ? [items] : []; }
 
 const CADENCE = [
 	['daily', 'Daily', 'once a day', 'daily'],
@@ -61,7 +62,7 @@ function sparesYou(q, need) {
 }
 
 function rewardChips(rewards, short) {
-	return Object.entries(rewards).map(([item, n]) => `<span class="reward ${short.has(item) ? 'wanted' : ''}${item === payFilter ? ' lit' : ''}" data-peek="${esc(item)}"
+	return Object.entries(rewards).map(([item, n]) => `<span class="reward ${short.has(item) ? 'wanted' : ''}${payFilter.includes(item) ? ' lit' : ''}" data-peek="${esc(item)}"
 		title="${short.has(item) ? `The plan still wants ${esc(item)}` : esc(item)}">${img(item, 'reward-icon')}<b>${F(n)}×</b> ${codexName(item)}</span>`).join('');
 }
 
@@ -87,20 +88,33 @@ function questRow(q, short, wanted, isDone) {
 	</div>`;
 }
 
-/** The reward select: every item any quest pays, the ones on your list
- *  first, each with how many quests pay it. */
-function paySelect(need) {
+/** Every item any quest pays, with how many pay it. */
+function payCounts() {
 	const count = new Map();
 	for (const q of quests) for (const item of new Set(rewardItems(q))) count.set(item, (count.get(item) || 0) + 1);
-	const items = [...count.keys()].sort((a, b) => a.localeCompare(b));
-	const mine = items.filter(i => need.has(i));
-	const rest = items.filter(i => !need.has(i));
-	const opt = i => `<option value="${esc(i)}"${i === payFilter ? ' selected' : ''}>${esc(i)} · ${count.get(i)}</option>`;
-	return `<select class="field select" data-act="quest-pay" aria-label="Only quests paying in">
-		<option value="">Paying in anything</option>
-		${mine.length ? `<optgroup label="On your list">${mine.map(opt).join('')}</optgroup>` : ''}
-		<optgroup label="${mine.length ? 'Everything else' : 'Every reward'}">${rest.map(opt).join('')}</optgroup>
-	</select>`;
+	return count;
+}
+
+/** The reward filter: a button that opens a picker with pictures, and a
+ *  chip per item chosen, each with its own ×. */
+function payControl() {
+	const chips = payFilter.map(item => `<span class="reward lit pay-chip" data-peek="${esc(item)}">${img(item, 'reward-icon')}${esc(item)}
+		<button class="map-x" data-act="quest-pay-del" data-item="${esc(item)}" aria-label="Stop filtering by ${esc(item)}">×</button></span>`).join('');
+	return `<button class="ghost-btn" data-act="quest-pay-pick" title="Only the quests that pay in the items you choose">${payFilter.length ? `Paying in ${payFilter.length} item${payFilter.length === 1 ? '' : 's'}` : 'Paying in…'}</button>${chips}`;
+}
+
+/** Open the picker: the ones on your list first, then the rest. */
+function openPayPicker(need) {
+	const count = payCounts();
+	const items = [...count.keys()].sort((a, b) => (need.has(b) ? 1 : 0) - (need.has(a) ? 1 : 0) || a.localeCompare(b))
+		.map(item => ({ id: item, label: item, icon: img(item, ''), sub: `${count.get(item)} quest${count.get(item) === 1 ? '' : 's'} pay it`,
+			meta: need.get(item) === 'short' ? 'short of it' : need.get(item) === 'craft' ? 'would craft' : need.get(item) === 'buy' ? 'would buy' : '',
+			group: need.has(item) ? 'On your list' : 'Everything else' }));
+	openPicker({
+		title: 'Only quests paying in…', hint: 'Tick as many as you like; a quest shows if it pays in any of them.',
+		items, multi: true, selected: payFilter, apply: 'Show those quests',
+		onPick: chosen => { setQuestPay(chosen); document.dispatchEvent(new CustomEvent('quests-refilter')); }
+	});
 }
 
 export function renderQuests() {
@@ -115,7 +129,7 @@ export function renderQuests() {
 		if (filter === 'left' && isDone(quest)) return false;
 		if (filter === 'done' && !isDone(quest)) return false;
 		if (['daily', 'weekly', 'once'].includes(filter) && cadenceOf(quest) !== filter) return false;
-		if (payFilter && !rewardItems(quest).includes(payFilter)) return false;
+		if (payFilter.length && !rewardItems(quest).some(i => payFilter.includes(i))) return false;
 		if (!q) return true;
 		const hay = [quest.name, quest.where, quest.repeat, quest.note || '', quest.monster || '', ...rewardItems(quest)].join(' ').toLowerCase();
 		return hay.includes(q);
@@ -166,15 +180,15 @@ export function renderQuests() {
 	</div>`;
 
 	const nothing = q ? 'No quest matches that search.'
-		: payFilter ? `No quest pays in ${payFilter} under that filter.`
+		: payFilter.length ? `No quest pays in ${payFilter.join(' or ')} under that filter.`
 		: filter === 'left' ? 'Everything is done for now — the ticks wear off at the reset.'
 		: filter === 'done' ? 'Nothing ticked yet. Claim a reward and it lands here.'
 		: 'Nothing pays in what you are short of right now.';
 
 	return `${clocks}<div class="controls">
 		<input class="field" type="search" placeholder="Search quests, places and rewards…" value="${esc(query)}" data-act="query">
-		${paySelect(need)}
 		<div class="chips">${chips}</div>
+		<div class="pay-row">${payControl()}</div>
 	</div>
 	${groups || `<div class="panel"><p class="empty">${esc(nothing)}</p></div>`}`;
 }
@@ -183,6 +197,14 @@ export function renderQuests() {
 export function questAction(act, el) {
 	if (act === 'quest-filter') {
 		filter = el.dataset.id;
+		return true;
+	}
+	if (act === 'quest-pay-pick') {
+		openPayPicker(needMap());
+		return true;
+	}
+	if (act === 'quest-pay-del') {
+		payFilter = payFilter.filter(i => i !== el.dataset.item);
 		return true;
 	}
 	if (act === 'quest-claim') {

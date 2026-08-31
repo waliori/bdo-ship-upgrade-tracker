@@ -184,6 +184,25 @@ export function checkVellReminder(now = Date.now()) {
 	toast(`Vell in ${Math.max(1, Math.round(left / 60e3))} minutes`);
 }
 
+/** The day in one line, for the tabs that do not carry the strip. */
+export function statusLine() {
+	const me = currentShip();
+	const wanted = questsFor(snapshot.missing);
+	const left = wanted.filter(q => !questDone(q)).length;
+	const plan = vellPlan();
+	const next = plan && nextSpawn(plan.zone, plan.times);
+	const targets = (snapshot.targets || []).filter(t => t.missingUnits > 0);
+	const paced = targets.map(t => ({ t, text: paceText(t) })).find(x => x.text);
+	const bits = [
+		`<button class="status-bit" data-act="view" data-id="crew" title="Your ship — hull, parts and crew, on the Crew tab">⚓ <b>${esc(me.name)}</b> ${me.speed.total}% · ${F(me.hold.free)} LT</button>`,
+		wanted.length ? `<button class="status-bit" data-act="view" data-id="quests" title="Quests still open that pay in what you need">✦ <b>${left}</b> quest${left === 1 ? '' : 's'} left</button>` : '',
+		`<span class="status-bit" title="Dailies reset at 00:00 UTC, the barter refill at 06:00 UTC">dailies <b data-until="daily"></b> · barter <b data-until="barter"></b></span>`,
+		next ? `<span class="status-bit" title="Vell's next spawn on your servers">Vell <b>${esc(localLabel(next.at))}</b> in <b data-until="at" data-at="${next.at}"></b></span>` : '',
+		paced ? `<button class="status-bit" data-act="view" data-id="builds" title="${esc(paced.text)}">${esc(paced.t.item)}: <b>${esc(paced.text.replace(/ at the last.*$/, ''))}</b></button>` : ''
+	].filter(Boolean);
+	return bits.join('<span class="status-sep">·</span>');
+}
+
 /** Set Vell's times by hand, on the player's own clock. */
 export function openVellDialog() {
 	const plan = vellPlan();

@@ -14,8 +14,11 @@ import * as store from './state.js';
 import { img, iconSrc, codexName } from './ui-bits.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { shipStats } from './ship_stats.js';
-import { describeStats } from './part_stats.js';
-import { currentShip, fittedFor, partsForSlot, shipName } from './ship.js';
+import { describeStats, statsAt } from './part_stats.js';
+import { families, tables } from './enhancement.js';
+import { currentShip, fittedFor, partsForSlot, shipName, setFitted } from './ship.js';
+import { openPicker } from './picker.js';
+import { encodeShare, shareLink } from './share.js';
 import { enhancedName } from './planner.js';
 import {
 	pool, mateTypes, anyType, care, rations, expSplit, firstMates, slotSources,
@@ -23,6 +26,7 @@ import {
 
 // Session state: who is picked up, and how the roster is ordered.
 let selId = null;
+const checked = new Set();      // sailors ticked for a bulk action
 let sort = 'stats';
 
 const RACE = { Human: '#8fb4d6', Goblin: '#8fd98a', Giant: '#e0a86a', Dwarf: '#c9a3e0' };
@@ -158,15 +162,28 @@ function rosterPanel(ship) {
 		const t = anyType[s.type] || {};
 		const where = whereIs(ship, s.id);
 		const seatName = where ? seatsFor(ship, shipStats[ship]).find(x => x.key === where) : null;
-		return `<button class="roster-card ${s.id === selId ? 'picked' : ''} ${where ? 'seated' : ''}" data-act="crew-select" data-id="${esc(s.id)}">
+		const ticked = checked.has(s.id);
+		return `<div class="roster-card ${s.id === selId ? 'picked' : ''} ${where ? 'seated' : ''}${ticked ? ' ticked' : ''}">
+			<button class="roster-check${ticked ? ' on' : ''}" data-act="crew-check" data-id="${esc(s.id)}" aria-pressed="${ticked}" title="Tick to act on several at once">${ticked ? '✓' : ''}</button>
+			<button class="roster-hit" data-act="crew-select" data-id="${esc(s.id)}" aria-label="Select ${esc(s.name)}"></button>
 			<span class="roster-tile" style="background:${RACE[t.race] || '#8fb4d6'}">${face(t, s)}<i class="roster-cond" style="width:${s.cond}%;background:${condColor(s.cond)}"></i></span>
 			<span class="roster-main">
 				<span class="roster-name">${esc(s.name)} <span class="crew-race" style="color:${RACE[t.race] || 'inherit'}">${esc(t.race || '')}</span></span>
 				<span class="roster-sub">${esc(s.type)} · Lv ${s.lv}${t.mate ? ' · first mate' : ''}</span>
 				<span class="roster-pos ${where ? 'on' : ''}">${where ? `⚓ ${esc(seatName ? seatName.label : where)}` : '(idle)'}</span>
 			</span>
-		</button>`;
+		</div>`;
 	}).join('');
+	const nTicked = [...checked].filter(id => byId(id)).length;
+	const bulk = nTicked ? `<div class="crew-bulk">
+		<span><b>${nTicked}</b> ticked</span>
+		<button class="act quiet small" data-act="crew-bulk" data-op="recover">Recover</button>
+		<button class="act quiet small" data-act="crew-bulk" data-op="disembark">Disembark</button>
+		<button class="act quiet small danger" data-act="crew-bulk" data-op="dismiss">Dismiss</button>
+		<span class="panel-spacer"></span>
+		<button class="act quiet small" data-act="crew-bulk" data-op="all">Tick all</button>
+		<button class="act quiet small" data-act="crew-bulk" data-op="clear">Untick</button>
+	</div>` : '';
 	const tabs = [['stats', 'By stats'], ['type', 'By type'], ['cond', 'By condition']].map(([id, label]) =>
 		`<button class="chip ${sort === id ? 'active' : ''}" data-act="crew-sort" data-id="${id}">${label}</button>`).join('');
 	const n = roster().length;
@@ -179,7 +196,7 @@ function rosterPanel(ship) {
 			<button class="act quiet small" data-act="crew-recover-all" ${n ? '' : 'disabled'} title="Marks every sailor's condition back at 100">Recover all</button>
 			<button class="act small" data-act="crew-hire" ${n >= SAILOR_CAP ? 'disabled' : ''}>+ Hire</button>
 		</div>
-		${n ? `<div class="roster-grid">${cards}</div>` : `<p class="empty">Nobody hired yet. A sailor costs a ${esc(contract.item)} (${F(contract.silver)} silver) at ${esc(contract.hireAt)}.</p>`}
+		${bulk}${n ? `<div class="roster-grid">${cards}</div>` : `<p class="empty">Nobody hired yet. A sailor costs a ${esc(contract.item)} (${F(contract.silver)} silver) at ${esc(contract.hireAt)}.</p>`}
 		${n ? `<div class="crew-actions"><button class="act quiet small" data-act="crew-queue" title="Queues one certificate per sailor, so the silver shows in To Get">Put ${n} ${esc(contract.item)}${n === 1 ? '' : 's'} on the list</button></div>` : ''}
 	</div>`;
 }
@@ -266,47 +283,49 @@ function guidePanels() {
  * The hull as fitted: the best part you hold in each slot, and what the
  * four of them add to the hull's own numbers.
  */
+const SLOT_GLYPH = { cannon: '⁂', sail: '⛵', figurehead: '❖', plating: '▣' };
+const SLOT_LABEL = { cannon: 'Cannon', sail: 'Sail', figurehead: 'Figurehead', plating: 'Black plating' };
+
+/** One slot: what is on it, where that came from, and the ways to change it. */
+function slotCard(ship, x, chosenByHand) {
+	const tag = x.source === 'owned' ? 'from your inventory'
+		: x.source === 'chosen' ? 'chosen · in your inventory'
+		: x.source === 'chosen-unowned' ? 'chosen · not in your inventory'
+		: chosenByHand ? 'left empty' : 'nothing in your inventory fits';
+	const item = x.part ? enhancedName(x.part, x.level) : null;
+	return `<div class="slot-card${x.part ? '' : ' empty'}${x.source === 'chosen-unowned' ? ' unowned' : ''}">
+		<div class="slot-head"><span class="slot-glyph" aria-hidden="true">${SLOT_GLYPH[x.slot]}</span><span class="slot-name">${SLOT_LABEL[x.slot]}</span>
+			<span class="fit-tag${x.source === 'chosen-unowned' ? ' warn' : ''}">${tag}</span></div>
+		<div class="slot-body">
+			${x.part ? img(item, 'slot-icon') : '<span class="slot-icon blank">+</span>'}
+			<div class="slot-text">
+				<div class="slot-part">${x.part ? `${codexName(x.part)} <b>+${x.level}</b>` : 'Nothing fitted'}</div>
+				<div class="slot-stats">${x.part ? esc(describeStats(x.stats, { signed: false })) : 'choose a part to see what it adds'}</div>
+			</div>
+		</div>
+		<div class="slot-btns">
+			<button class="act quiet small" data-act="crew-fit-pick" data-slot="${x.slot}">${x.part ? 'Change…' : 'Choose…'}</button>
+			${x.source === 'chosen-unowned' ? `<button class="act small" data-act="crew-fit-add" data-item="${esc(item)}" title="Record one in your inventory">+ Add to inventory</button>` : ''}
+			${chosenByHand ? `<button class="act quiet small" data-act="crew-fit-auto" data-slot="${x.slot}" title="Back to the best part you hold">Best I own</button>` : ''}
+			${x.part ? `<button class="act quiet small" data-act="crew-fit-none" data-slot="${x.slot}" title="Sail with this slot empty">Empty</button>` : ''}
+		</div>
+	</div>`;
+}
+
 function loadoutPanel(ship) {
 	const s = shipStats[ship];
 	const stock = store.getAllStock();
 	const fit = fittedFor(ship, stock);
 	const chosen = (store.getProfile('fitted', {}) || {})[ship] || {};
-	const rows = fit.slots.map(x => {
-		// The choice: the best you own, nothing, or any part that goes in
-		// this slot at any level -- the ones you hold marked.
-		const value = chosen[x.slot] === undefined ? 'auto' : chosen[x.slot] === '' ? 'none' : chosen[x.slot];
-		const options = partsForSlot(ship, x.slot).map(part => {
-			const levels = [];
-			for (let lv = 0; lv <= 10; lv++) {
-				const item = enhancedName(part, lv);
-				const have = stock[item] > 0;
-				levels.push(`<option value="${esc(item)}"${value === item ? ' selected' : ''}>+${lv}${have ? ` · you hold ${F(stock[item])}` : ''}</option>`);
-			}
-			return `<optgroup label="${esc(part)}">${levels.join('')}</optgroup>`;
-		}).join('');
-		const tag = x.source === 'owned' ? 'from your inventory'
-			: x.source === 'chosen' ? 'chosen · in your inventory'
-			: x.source === 'chosen-unowned' ? 'chosen · not in your inventory'
-			: 'nothing fitted';
-		return `<div class="kv-row fit-row">
-			<span>${x.part ? `${img(enhancedName(x.part, x.level), 'row-icon sm')} ${codexName(x.part)} +${x.level}` : `<span class="crew-race">${esc(x.slot)}</span>`}
-				<span class="fit-tag${x.source === 'chosen-unowned' ? ' warn' : ''}">${tag}</span></span>
-			<span class="fit-edit">${x.part ? `<span class="fit-stats">${esc(describeStats(x.stats, { signed: false }))}</span>` : ''}
-				<select class="field select fit-sel" data-act="fit-part" data-ship="${esc(ship)}" data-slot="${x.slot}" aria-label="${esc(x.slot)} fitted">
-					<option value="auto"${value === 'auto' ? ' selected' : ''}>best you own</option>
-					<option value="none"${value === 'none' ? ' selected' : ''}>nothing</option>
-					${options}
-				</select></span>
-		</div>`;
-	}).join('');
+	const rows = `<div class="slot-grid">${fit.slots.map(x => slotCard(ship, x, chosen[x.slot] !== undefined)).join('')}</div>`;
 	const me = currentShip();
 	const same = me.name === ship;
 	const hold = same ? me.hold : { limit: s.weight + (Number(fit.total.weight) || 0), crew: 0, free: s.weight + (Number(fit.total.weight) || 0) };
 	return `<div class="panel crew-panel">
 		<div class="panel-head"><h2 class="panel-title">Fitted out</h2>
 			<span class="panel-sub">Hull: ${F(s.weight)} LT · ${s.slots} slots · ${s.cannons ? `${s.cannons} cannons a side, ${s.reload} s` : 'no cannons'} · ${F(s.durability)} durability · ${F(s.rations)} rations</span></div>
-		<p class="fit-hint">What the Map sails and the hold it carries follow this. The best part you hold goes in each slot by itself; pick another for one you have not recorded, or to weigh a plan.</p>
-		<div class="kv">${rows}</div>
+		<p class="fit-hint">What the Map sails and the hold it carries follow this. The best part you hold goes in each slot by itself; choose another for one you have not recorded, or to weigh a plan.</p>
+		${rows}
 		<div class="sel-facts">with parts${same && me.crew.seated ? ' and crew' : ''}: speed <b>${same ? me.speed.total : s.speed + (Number(fit.total.speed) || 0)}%</b> · accel <b>${same ? me.accel : s.accel + (Number(fit.total.accel) || 0)}%</b> · turn <b>${same ? me.turn : s.turn + (Number(fit.total.turn) || 0)}%</b> · brake <b>${same ? me.brake : s.brake + (Number(fit.total.brake) || 0)}%</b>
 			· hold <b>${F(hold.free)} LT</b>${hold.crew ? ` <span class="fit-tag">(${F(hold.limit)} less ${F(hold.crew)} of crew)</span>` : ''} · <b>${F(same ? me.durability : s.durability + (Number(fit.total.durability) || 0))}</b> durability${fit.total.dp ? ` · DP <b>${fit.total.dp}</b>` : ''}${fit.total.damage ? ` · cannon <b>${F(fit.total.damage)}</b> × ${fit.total.hits}` : ''}</div>
 	</div>`;
@@ -321,13 +340,26 @@ export function renderCrew() {
 	const stats = shipStats[ship];
 	if (selId && !byId(selId)) selId = null;
 	const totals = crewTotals(roster(), seatsOf(ship), stats);
-	const options = Object.keys(shipStats).map(name =>
-		`<option value="${esc(name)}"${name === ship ? ' selected' : ''}>${esc(name)}</option>`).join('');
-	const head = `<div class="crew-ship">
-		${img(ship, 'row-icon lg')}
-		<div><div class="crew-ship-name">${codexName(ship)}</div><div class="row-sub">${esc(stats.note || '')}</div></div>
-		<span class="panel-spacer"></span>
-		<label class="crew-pick">Ship <select class="select" data-act="crew-ship" aria-label="Which ship to crew">${options}</select></label>
+	const me = currentShip();
+	const fittedN = me.fit.slots.filter(x => x.part).length;
+	const head = `<div class="panel crew-panel ship-card">
+		<div class="ship-card-main">
+			${img(ship, 'ship-card-icon')}
+			<div class="ship-card-text">
+				<div class="summary-k">Your ship</div>
+				<div class="crew-ship-name">${codexName(ship)}</div>
+				<div class="row-sub">${esc(stats.note || '')}</div>
+			</div>
+		</div>
+		<div class="ship-card-facts">
+			<div><div class="summary-k">Speed</div><div class="summary-v">${me.speed.total}%</div><div class="summary-sub">hull ${stats.speed}${me.speed.parts ? ` + parts ${me.speed.parts}` : ''}${me.speed.crew ? ` + crew ${me.speed.crew}` : ''}</div></div>
+			<div><div class="summary-k">Hold</div><div class="summary-v">${F(me.hold.free)} LT</div><div class="summary-sub">${F(me.hold.limit)} as fitted${me.hold.crew ? ` less ${F(me.hold.crew)} of crew` : ''}</div></div>
+			<div><div class="summary-k">Fitted</div><div class="summary-v">${fittedN} of 4</div><div class="summary-sub">${stats.crew ? `${me.crew.seated} of ${stats.crew} seats taken` : 'carries no sailors'}</div></div>
+		</div>
+		<div class="ship-card-btns">
+			<button class="act quiet small" data-act="crew-ship-pick" title="Which hull you sail — the Map and the Plan follow it">⚓ Change ship</button>
+			<button class="act quiet small" data-act="crew-link" title="A link that carries this hull, its parts and its crew">Copy link</button>
+		</div>
 	</div>`;
 	if (!stats.crew) {
 		return head + `<div class="panel"><p class="empty">${esc(ship)} carries no sailors. Pick a crewed hull to plan one.</p></div>` + loadoutPanel(ship);
@@ -352,13 +384,35 @@ function setRoster(list) {
 	store.setProfile('roster', list);
 }
 
+/** A sailor type as a picker row: the portrait, the race and what they cost. */
+function typeRow(t) {
+	return {
+		id: t.type,
+		label: t.type,
+		icon: face(t, { name: t.type }),
+		sub: t.mate ? `first mate · ${t.skill || ''}` : `${t.race} · ${t.cabin} cabins · eats ${t.appetite} · +${t.weight} LT · hired at ${(t.at || []).join(', ')}`,
+		meta: t.mate ? '★ mate' : `spd ${t.speed} · acc ${t.accel} · turn ${t.turn}`,
+		group: t.mate ? 'First mates' : t.race
+	};
+}
+
 function hireDialog() {
 	const types = [...pool, ...mateTypes];
-	const options = types.map(t => `<option value="${esc(t.type)}">${esc(t.type)}${t.mate ? ' (first mate)' : ` — ${t.race}, ${t.cabin} cabins`}</option>`).join('');
+	openPicker({
+		title: 'Hire a sailor',
+		hint: `Which type — the portrait is the one the wharf shows. A ${esc(contract.item)} each, ${F(contract.silver)} silver.`,
+		items: types.map(typeRow),
+		onPick: type => hireDetails(type)
+	});
+}
+
+function hireDetails(type) {
+	const t = anyType[type];
 	const host = openDialog(`
 		<h2>Hire a sailor</h2>
-		<p>Record one you hired at the wharf — a ${esc(contract.item)} each, ${F(contract.silver)} silver.</p>
-		<label class="dialog-field">Type <select class="select" data-type>${options}</select></label>
+		<div class="hire-type"><span class="roster-tile big" style="background:${RACE[(t && t.race) || 'Human']}">${face(t, { name: type })}</span>
+			<div><b>${esc(type)}</b><div class="row-sub">${t && t.mate ? 'first mate' : `${t.race} · ${t.cabin} cabins`}</div></div>
+			<button class="link-btn" data-retype>change type</button></div>
 		<label class="dialog-field">Name <input class="field" data-name placeholder="as the game named them" maxlength="30"></label>
 		<label class="dialog-field">Level <input class="field" data-lv value="1" inputmode="numeric" style="max-width:80px"></label>
 		<div class="dialog-actions">
@@ -366,8 +420,8 @@ function hireDialog() {
 			<button class="act" data-hire>Hire</button>
 		</div>
 	`);
+	host.querySelector('[data-retype]').addEventListener('click', () => { closeDialog(); hireDialog(); });
 	host.querySelector('[data-hire]').addEventListener('click', () => {
-		const type = host.querySelector('[data-type]').value;
 		const name = host.querySelector('[data-name]').value.trim() || type;
 		const lv = Math.min(10, Math.max(1, Math.floor(Number(host.querySelector('[data-lv]').value) || 1)));
 		const id = 's' + Date.now().toString(36) + Math.floor(Math.random() * 1e5).toString(36);
@@ -385,6 +439,43 @@ export function crewAction(act, el) {
 	const id = el.dataset.id;
 	switch (act) {
 		case 'crew-select': selId = selId === id ? null : id; return true;
+		case 'crew-check': if (checked.has(id)) checked.delete(id); else checked.add(id); return true;
+		case 'crew-bulk': {
+			const op = el.dataset.op;
+			const ids = new Set([...checked].filter(x => byId(x)));
+			if (op === 'all') { for (const s of roster()) checked.add(s.id); return true; }
+			if (op === 'clear') { checked.clear(); return true; }
+			if (!ids.size) return true;
+			if (op === 'recover') setRoster(roster().map(s => (ids.has(s.id) ? { ...s, cond: 100 } : s)));
+			if (op === 'disembark') {
+				const map = { ...seatsOf(ship) };
+				for (const k of Object.keys(map)) if (ids.has(map[k])) delete map[k];
+				setSeats(ship, map);
+			}
+			if (op === 'dismiss') {
+				setRoster(roster().filter(x => !ids.has(x.id)));
+				const all = { ...(store.getProfile('seats', {}) || {}) };
+				for (const [hull, map] of Object.entries(all)) {
+					const next = Object.fromEntries(Object.entries(map).filter(([, v]) => !ids.has(v)));
+					if (Object.keys(next).length) all[hull] = next; else delete all[hull];
+				}
+				store.setProfile('seats', all);
+				if (ids.has(selId)) selId = null;
+				checked.clear();
+				toast(`${ids.size} struck off the roster`, true);
+			}
+			return true;
+		}
+		case 'crew-ship-pick': shipPicker(); return true;
+		case 'crew-fit-pick': partPicker(ship, el.dataset.slot); return true;
+		case 'crew-fit-auto': setFitted(ship, el.dataset.slot, 'auto'); return true;
+		case 'crew-fit-none': setFitted(ship, el.dataset.slot, 'none'); return true;
+		case 'crew-fit-add': {
+			store.addStock(el.dataset.item, 1, `+1 ${el.dataset.item}`);
+			toast(`${el.dataset.item} recorded in your inventory`, true);
+			return true;
+		}
+		case 'crew-link': copyShipLink(); return true;
 		case 'crew-clear-sel': selId = null; return true;
 		case 'crew-sort': sort = el.dataset.id; return true;
 		case 'crew-hire': hireDialog(); return true;
@@ -455,6 +546,88 @@ export function crewAction(act, el) {
 		default:
 			return false;
 	}
+}
+
+/** Which hull: every one the app knows, with its picture and its numbers. */
+function shipPicker() {
+	const queued = new Set(store.getTargets().map(t => t.item));
+	const stock = store.getAllStock();
+	const items = Object.keys(shipStats).map(name => {
+		const s = shipStats[name];
+		return {
+			id: name, label: name, icon: img(name, ''),
+			sub: s.crew ? `${s.crew} sailors · ${s.cabins} cabin space · ${F(s.weight)} LT · ${s.slots} slots · speed ${s.speed}%` : `no crew · ${F(s.weight)} LT · speed ${s.speed}%`,
+			meta: stock[name] ? 'you hold one' : queued.has(name) ? 'in your queue' : '',
+			group: s.crew ? 'Ships' : 'Small craft'
+		};
+	});
+	openPicker({
+		title: 'Which ship do you sail?',
+		hint: 'The Map times routes and sizes the hold from this hull, as fitted and crewed here.',
+		items, selected: shipName(),
+		onPick: name => store.setProfile('crewShip', name)
+	});
+}
+
+/** A part for a slot: first the part, then its level -- the ones you
+ *  hold marked at each step. */
+function partPicker(ship, slot) {
+	const stock = store.getAllStock();
+	const held = part => {
+		const out = [];
+		for (let lv = 0; lv <= 10; lv++) { const n = stock[enhancedName(part, lv)]; if (n) out.push(`+${lv}${n > 1 ? ` ×${n}` : ''}`); }
+		return out;
+	};
+	const tierOf = part => (tables[families[part]] || {}).label || 'Other';
+	const items = partsForSlot(ship, slot).map(part => ({
+		id: part, label: part, icon: img(part, ''),
+		sub: `at +10: ${describeStats(statsAt(part, 10), { signed: false })}`,
+		meta: held(part).length ? `you hold ${held(part).join(', ')}` : '',
+		group: tierOf(part)
+	}));
+	openPicker({
+		title: `${SLOT_LABEL[slot]} — which part?`,
+		hint: 'Then its level. A part you do not hold can still be chosen — to weigh a plan, or to record it afterwards.',
+		items,
+		onPick: part => levelPicker(ship, slot, part)
+	});
+}
+
+function levelPicker(ship, slot, part) {
+	const stock = store.getAllStock();
+	const items = [];
+	for (let lv = 0; lv <= 10; lv++) {
+		const item = enhancedName(part, lv);
+		items.push({ id: item, label: `+${lv}`, icon: img(item, ''), sub: describeStats(statsAt(part, lv), { signed: false }), meta: stock[item] ? `you hold ${F(stock[item])}` : '' });
+	}
+	openPicker({ title: `${part} — which level?`, items, onPick: item => setFitted(ship, slot, item) });
+}
+
+/** The hull, its fitted parts and its crew, in a link. */
+async function copyShipLink() {
+	const ship = shipName();
+	const setup = { ship, fitted: (store.getProfile('fitted', {}) || {})[ship] || {}, roster: roster(), seats: seatsOf(ship) };
+	try {
+		const link = shareLink(await encodeShare({ stock: {}, setup })).replace('#share/', '#ship/');
+		await navigator.clipboard.writeText(link);
+		toast('Ship setup link copied');
+	} catch {
+		toast('Could not build or copy the link');
+	}
+}
+
+/** Take a ship setup in from a link: the hull, what is on it, who sails it. */
+export function applyShipSetup(setup) {
+	if (!setup || !shipStats[setup.ship]) return false;
+	store.setProfile('crewShip', setup.ship);
+	if (setup.fitted && typeof setup.fitted === 'object') {
+		const all = { ...(store.getProfile('fitted', {}) || {}) };
+		all[setup.ship] = setup.fitted;
+		store.setProfile('fitted', all);
+	}
+	if (Array.isArray(setup.roster)) store.setProfile('roster', setup.roster);
+	if (setup.seats && typeof setup.seats === 'object') setSeats(setup.ship, setup.seats);
+	return true;
 }
 
 /** A name, level or condition typed into the selected sailor's panel. */
