@@ -483,7 +483,7 @@ function todayHTML(marks) {
 			<div class="map-ring" style="background:conic-gradient(var(--teal) ${pct * 3.6}deg, var(--track) 0deg)">
 				<span>${pct}%</span></div>
 			<div><div class="map-ring-big">${doneCount} of ${all.length} visited</div>
-				<div class="map-row-sub"><span class="gterm" role="button" tabindex="0" data-guide="refresh">resets 06:00 UTC with the game</span></div></div>
+				<div class="map-row-sub"><span class="gterm" role="button" tabindex="0" data-guide="refresh">resets with the game</span> in <b data-until="barter"></b></div></div>
 		</div>
 		<div class="map-list">${rows}</div>`;
 }

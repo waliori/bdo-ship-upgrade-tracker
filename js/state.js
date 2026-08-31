@@ -215,6 +215,17 @@ function readProfile(raw) {
 		}
 		if (Object.keys(presets).length) out.presets = presets;
 	}
+	// Which quests are done, stamped with the period they were done in:
+	// a date for a daily, a week key for a weekly, 'once' for the chain.
+	// A stamp from an earlier period simply stops matching at the reset,
+	// so nothing has to sweep them.
+	if (isProfile(raw.questsDone)) {
+		const done = {};
+		for (const [id, key] of Object.entries(raw.questsDone)) {
+			if (id.length <= 40 && typeof key === 'string' && /^(once|W?\d{4}-\d{2}-\d{2})$/.test(key)) done[id] = key;
+		}
+		if (Object.keys(done).length) out.questsDone = done;
+	}
 	return out;
 }
 
@@ -509,6 +520,33 @@ export function applyDelta(delta, type, label) {
 	return commit(type || 'stock', label || 'Inventory change', () => {
 		for (const [item, d] of entries) writeStock(item, getStock(item) + Math.floor(d));
 	});
+}
+
+/**
+ * A quest claimed: the reward into stock and the quest onto the done
+ * list as one change, so one Undo takes back both. `key` is the period
+ * it counts for; a stamp from an earlier period simply stops matching,
+ * and there is one per quest at most, so nothing needs sweeping.
+ */
+export function claimQuest(id, delta, key, label) {
+	const done = { ...(state.profile.questsDone || {}), [id]: key };
+	const next = readProfile({ ...state.profile, questsDone: done });
+	return commit('quest', label || 'Claimed a quest', () => {
+		for (const [item, d] of Object.entries(delta || {})) {
+			if (Number(d)) writeStock(item, getStock(item) + Math.floor(d));
+		}
+		state.profile = next;
+	});
+}
+
+/** Take a quest off the done list without touching stock -- for a tick
+ *  made by mistake; a reward recorded by mistake is what Undo is for. */
+export function unclaimQuest(id, label) {
+	if (!state.profile.questsDone || !(id in state.profile.questsDone)) return null;
+	const done = { ...state.profile.questsDone };
+	delete done[id];
+	const next = readProfile({ ...state.profile, questsDone: done });
+	return commit('quest', label || 'Marked a quest not done', () => { state.profile = next; });
 }
 
 /** Replace the whole stock table (used by the v1 import review screen). */

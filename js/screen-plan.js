@@ -2,6 +2,7 @@
 // what stands between you and done, with the one next step called out.
 
 import { esc, F } from './fmt.js';
+import { todayStrip } from './today.js';
 import * as store from './state.js';
 import { img, codexName, amountInput, sourceOf } from './ui-bits.js';
 import {
@@ -94,7 +95,7 @@ export function renderPlan() {
 		${g.list.map(({ item, r, covered }) => planRow(item, r, covered)).join('')}
 	</div>`).join('');
 
-	return nextStep() + statHTML + readyHTML + controlsHTML(filters) + groupHTML;
+	return nextStep() + todayStrip() + statHTML + readyHTML + controlsHTML(filters) + groupHTML;
 }
 
 /** One concrete thing to do next, based on where the plan actually stands. */

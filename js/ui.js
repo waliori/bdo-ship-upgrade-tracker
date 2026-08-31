@@ -31,7 +31,10 @@ import { renderInventory } from './screen-inventory.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements } from './screen-workshop.js';
 import { renderCrew, crewAction, crewChange } from './screen-crew.js';
-import { renderQuests, questAction } from './screen-quests.js';
+import { renderQuests, questAction, questDone, setQuestPay } from './screen-quests.js';
+import { openVellDialog } from './today.js';
+import { startClocks, tickClocks } from './clock.js';
+import { recordProgress } from './pace.js';
 import { questsFor } from './quests.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
 import { renderGet, shoppingText } from './screen-get.js';
@@ -63,6 +66,9 @@ let queryTimer = null;
 
 export function render() {
 	recompute();
+	// Where each build stands today, for the pace -- never the tour's
+	// example numbers.
+	if (!store.isTransient()) recordProgress(snapshot.targets);
 
 	const counts = {
 		builds: store.getTargets().length,
@@ -74,8 +80,9 @@ export function render() {
 		// attempt you hold the part and the stones for.
 		workshop: readyCrafts().length + pendingEnhancements().filter(e => !e.blocked).length,
 		get: Object.keys(snapshot.missing).length,
-		// The quests that pay in something the plan is short of.
-		quests: questsFor(snapshot.missing).length
+		// The quests that pay in something the plan is short of and are
+		// still to do this period.
+		quests: questsFor(snapshot.missing).filter(q => !questDone(q)).length
 	};
 
 	// A tablist for the keyboard: the active tab is the one Tab stop,
@@ -120,6 +127,7 @@ export function render() {
 	// measure the box it was given before it knows which tiles to ask
 	// for.
 	if (view === 'map') paintMap();
+	tickClocks();
 	syncHash();
 }
 
@@ -352,6 +360,7 @@ function wire() {
 			}
 			case 'add-build': return openBuildPicker();
 			case 'blockers-all': toggleBlockers(); return render();
+			case 'vell-edit': return openVellDialog();
 			case 'export': return doExport();
 			case 'import': return doImport();
 			case 'reset': return doReset();
@@ -663,6 +672,12 @@ function wire() {
 
 		const mreg = evt.target.closest('[data-act="market-region"]');
 		if (mreg) return setMarketRegion(mreg.value);
+
+		const qp = evt.target.closest('[data-act="quest-pay"]');
+		if (qp) {
+			setQuestPay(qp.value);
+			return render();
+		}
 
 		const so = evt.target.closest('[data-act="sort"]');
 		if (so) {
@@ -1009,6 +1024,9 @@ export async function init() {
 	window.addEventListener('hashchange', applyHash);
 	store.subscribe(() => render());
 	render();
+	// The minute hand on every countdown, and a repaint when a reset
+	// passes with the page open.
+	startClocks(render);
 
 	loadBarter();
 	// A failed fetch leaves barterData unset on purpose; the network

@@ -175,3 +175,32 @@ test('changing the profile can be undone', () => {
 	store.undo();
 	assert.equal(store.getProfile('barterCount'), 2000);
 });
+
+test('the quests done list keeps period stamps and drops junk', () => {
+	store.adopt({ ...SAVE, profile: { questsDone: {
+		'omg-candidum': '2026-08-30', 'khan': 'W2026-08-27', 'ravinia-1': 'once',
+		'bad-1': 'yesterday', 'bad-2': 42, ['x'.repeat(41)]: '2026-08-30'
+	} } });
+	assert.deepEqual(store.getProfile('questsDone'), {
+		'omg-candidum': '2026-08-30', 'khan': 'W2026-08-27', 'ravinia-1': 'once'
+	});
+});
+
+test('claiming a quest is one undo for the stock and the tick together', () => {
+	store.adopt({ ...SAVE, profile: {} });
+	store.claimQuest('omg-candidum', { 'Crow Coin': 100, 'Tidal Black Stone': 14 }, '2026-08-30', 'Claimed');
+	assert.equal(store.getStock('Crow Coin'), 100);
+	assert.equal(store.getStock('Tidal Black Stone'), 414);
+	assert.equal(store.getProfile('questsDone')['omg-candidum'], '2026-08-30');
+	store.undo();
+	assert.equal(store.getStock('Crow Coin'), 0);
+	assert.equal(store.getStock('Tidal Black Stone'), 400);
+	assert.equal(store.getProfile('questsDone'), null);
+	// A new stamp sits beside the others; an untick removes only its own.
+	store.adopt({ ...SAVE, profile: { questsDone: { 'omg-nineshark': '2026-08-29', 'ravinia-1': 'once' } } });
+	store.claimQuest('omg-candidum', {}, '2026-08-30', 'Claimed');
+	assert.deepEqual(store.getProfile('questsDone'), { 'omg-nineshark': '2026-08-29', 'ravinia-1': 'once', 'omg-candidum': '2026-08-30' });
+	store.unclaimQuest('omg-candidum');
+	assert.deepEqual(store.getProfile('questsDone'), { 'omg-nineshark': '2026-08-29', 'ravinia-1': 'once' });
+	assert.equal(store.unclaimQuest('never-ticked'), null);
+});

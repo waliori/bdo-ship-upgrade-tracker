@@ -10,6 +10,7 @@ import { openDialog, closeDialog, toast } from './dialogs.js';
 import { img, codexName, amountInput, costCtx, costText, buildableItems } from './ui-bits.js';
 import { snapshot } from './ui-state.js';
 import { planOne, bottlenecks, routeOf, remainingCost } from './planner.js';
+import { paceText } from './pace.js';
 
 
 // Whether the blockers panel shows the worst five or the lot.
@@ -51,7 +52,9 @@ export function renderBuilds() {
 					// way the plan will actually get it.
 					if (!r || r.missingUnits <= 0) return '';
 					const left = remainingCost(r.tree, costCtx());
-					return `<div class="build-cost">Still to get: ${esc(costText(left))}</div>`;
+					const pace = paceText(r);
+					return `<div class="build-cost">Still to get: ${esc(costText(left))}</div>${pace
+						? `<div class="build-meta build-pace" title="Units covered over the last fortnight, against what is left">${esc(pace)}</div>` : ''}`;
 				})()}
 			</div>
 			<div class="build-actions">
