@@ -3255,3 +3255,11 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 	#screen .summary .summary-sub { display: none; }
 	.map-zoom { margin-left: auto; }
 }
+
+/* A field in a column stays a field: the flex-grow that fills a
+   toolbar row would fill a dialog's height instead. */
+.dialog-box .field, .picker .field, .jump .field { flex: 0 0 auto; width: 100%; }
+.trip-row .field, .vell-row .field, .profile-new .field, .dialog-label .field { width: auto; flex: 1 1 auto; }
+.picker, .jump { min-width: 0; width: 100%; }
+.picker-list, .jump-list { padding: 2px 2px 6px; }
+.dialog-box { overflow-x: hidden; }
