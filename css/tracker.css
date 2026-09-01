@@ -2945,6 +2945,7 @@ select.purse-inline { width: auto; cursor: pointer; }
 .map-hunt-dot.young { border-radius: 2px; }
 .map-hunt-dot.ship { transform: rotate(45deg); border-radius: 1px; }
 .map-hunt-dot.boss { border-radius: 50%; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5), 0 0 0 4px var(--hunt); width: 6px; height: 6px; margin: 2px; }
+.map-hunt-dot.pirate { border-radius: 50%; background: var(--hunt); border-color: transparent; }
 .map-hunt.on .map-hunt-dot { background: var(--hunt); opacity: 1; box-shadow: 0 0 8px var(--hunt); }
 .map-hunt .map-row-sub { white-space: normal; }
 .map-hunt-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }

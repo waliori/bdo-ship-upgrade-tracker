@@ -245,7 +245,10 @@ bookmarked on the game's own map, north of the crocodiles' old ground
 (the Nineshark and Black Rust spawns the codex still lists in that old
 ground are left out), and the crocodiles' new ground is placed off the
 game map's icon north-north-west of Cheongsa Island, roughly, until
-the codex carries it. The Hunt tab can also draw all 58 **wharf
+the codex carries it. Two community maps are on the chart too, fitted
+to it on their island names: Awabi's *Road to Cox* — the Cox Pirates'
+camps (six to eight seals), flags and cargo ships, a group of their own
+on the Hunt tab — and Vell's waters from gpw's ocean map. The Hunt tab can also draw all 58 **wharf
 managers** (repair, rations, sailors) and guild wharves, named by
 harbour, and the Route tab names the nearest wharf to the last
 stop.

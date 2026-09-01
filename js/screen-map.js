@@ -253,7 +253,7 @@ function huntHTML() {
 				<span class="map-row-main"><span class="map-row-name">${label} · ${n}</span><span class="map-row-sub">${esc(sub)}</span></span>
 			</button>`;
 		}).join('');
-	const kinds = [['adult', 'Sea monsters'], ['young', 'Young ones'], ['ship', 'Ships'], ['boss', 'Bosses']];
+	const kinds = [['adult', 'Sea monsters'], ['young', 'Young ones'], ['ship', 'Ships'], ['boss', 'Bosses'], ['pirate', "Cox Pirates' seals"]];
 	const huntRows = kinds.map(([kind, label]) => {
 		const list = monsters.filter(m => m.kind === kind);
 		if (!list.length) return '';
@@ -1337,13 +1337,18 @@ function paintHunt(layer, size) {
 			}
 			continue;
 		}
-		for (const [x, y] of m.points) {
+		for (const [x, y, w] of m.points) {
 			const at = project(mapState, size, x, y);
 			if (at.left < -10 || at.top < -10 || at.left > size.w + 10 || at.top > size.h + 10) continue;
+			// A point can carry how many spawn there (the crocodiles' map
+			// counts one, three or four); the mark grows with it.
+			const rr = w > 1 ? r * (1 + 0.3 * Math.min(w - 1, 3)) : r;
 			g.beginPath();
-			if (m.kind === 'adult') {
-				g.moveTo(at.left - r, at.top - r); g.lineTo(at.left + r, at.top + r);
-				g.moveTo(at.left + r, at.top - r); g.lineTo(at.left - r, at.top + r);
+			if (m.kind === 'pirate') {
+				g.arc(at.left, at.top, rr * 0.9, 0, Math.PI * 2); g.fill();
+			} else if (m.kind === 'adult') {
+				g.moveTo(at.left - rr, at.top - rr); g.lineTo(at.left + rr, at.top + rr);
+				g.moveTo(at.left + rr, at.top - rr); g.lineTo(at.left - rr, at.top + rr);
 				g.stroke();
 			} else if (m.kind === 'young') {
 				g.fillRect(at.left - r * 0.7, at.top - r * 0.7, r * 1.4, r * 1.4);
@@ -1398,13 +1403,14 @@ function habitatMarkers() {
 	if (markerCache) return markerCache;
 	const out = [];
 	for (const m of monsters) {
-		if (m.kind === 'young' || (!m.points.length && !m.zones)) continue;
+		// The young share a marker per ground (below); the Cox Pirates' camps, flags and cargo are dots, not grounds.
+		if (m.kind === 'young' || m.kind === 'pirate' || (!m.points.length && !m.zones)) continue;
 		// The game's own marker where the client keeps one; the spawn
 		// clusters only where it does not.
 		const spots = m.zones ? m.zones.map(([x, y]) => ({ x, y, n: m.points.length })) : habitats(m);
 		spots.forEach((h, i) => out.push({
 			key: `${m.key}:${i}`, x: h.x, y: h.y, kind: m.kind, keys: [m.key], colour: m.colour, art: monsterArt[m.key],
-			name: m.kind === 'ship' ? `${m.name.split(' ')[0]} Waters` : `${m.name} Habitat`,
+			name: m.kind === 'ship' ? `${m.name.split(' ')[0]} Waters` : m.kind === 'pirate' ? m.name : `${m.name} Habitat`,
 			sub: `${m.name}${m.approx ? ' · about here' : ''}`, n: h.n
 		}));
 	}

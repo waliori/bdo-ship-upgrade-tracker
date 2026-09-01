@@ -22,6 +22,7 @@ test('points a few kilometres apart form one habitat, a distant cloud another', 
 test('every species on the chart gets at least one habitat, and its picture is on disk', () => {
 	for (const m of monsters) {
 		if (!m.points.length) continue;
+		if (m.kind === 'pirate') continue;
 		assert.ok(habitatsOf(m.points).length >= 1, m.key);
 		if (monsterArt[m.key]) assert.ok(fs.existsSync(new URL(`../icons/${monsterArt[m.key]}`, import.meta.url)), m.key);
 	}
@@ -30,6 +31,7 @@ test('every species on the chart gets at least one habitat, and its picture is o
 
 test('every spawn point and every marker is on the water', () => {
 	for (const m of monsters) {
+		if (m.kind === 'pirate') continue;   // camps and flags stand on the islands
 		for (const [x, y] of m.points) assert.ok(openSea(x, y), `${m.key} spawn at ${x},${y} is on land`);
 		for (const [x, y] of m.zones || []) assert.ok(openSea(x, y), `${m.key} zone at ${x},${y} is on land`);
 		for (const h of habitatsOf(m.points, { onWater: openSea })) assert.ok(openSea(h.x, h.y), `${m.key} marker at ${h.x},${h.y} is on land`);
@@ -54,8 +56,10 @@ test('the species the codex has no points for are marked by hand, roughly', () =
 	assert.ok(croc.zones[0][1] < 18000 && Math.abs(croc.zones[0][0] - 33534) < 2000, 'the crocodiles sit north of Cheongsa');
 	const khan = monsters.find(m => m.key === 'khan');
 	assert.ok(khan.zones && khan.approx && Math.hypot(khan.zones[0][0] - 65006, khan.zones[0][1] - 48051) < 4000, 'Khan stands off Oquilla’s Eye');
+	const vell = monsters.find(m => m.key === 'vell');
+	assert.ok(vell.zones && vell.approx && vell.kind === 'boss', 'Vell is marked, roughly, as a boss');
 	for (const m of monsters) {
-		if (m.key === 'saltwater-crocodile' || m.key === 'khan') continue;
+		if (['saltwater-crocodile', 'khan', 'vell'].includes(m.key)) continue;
 		assert.ok(!m.zones, `${m.key} is marked by its spawns, not a hand-placed zone`);
 		assert.ok(m.points.length > 0, `${m.key} has spawn points`);
 	}

@@ -10,6 +10,8 @@ export const DATA = [
 	{ what: 'Sea monster spawn points', asOf: '2026-08-30', from: 'BDOCodex; the Lyngbakr Habitat from in-game bookmarks, 2026-08-31' },
 	{ what: 'Monster ground markers', asOf: '2026-08-31', from: 'the centre of each species’ codex spawns, kept to open water; the crocodiles from the patch note' },
 	{ what: 'Wharf managers — the full roll, 58 of them', asOf: '2026-08-31', from: 'BDOCodex NPC pages' },
+	{ what: 'Cox Pirates’ camps, flags and cargo ships', asOf: '2026-08-31', from: 'Awabi’s “The Road to Cox” map, fitted to the chart on its island names' },
+	{ what: 'Vell’s waters', asOf: '2026-08-31', from: 'gpw’s ocean map v1.6, to a couple of kilometres' },
 	{ what: 'Quests and their rewards', asOf: '2026-08-30', from: 'BDOCodex' },
 	{ what: 'Ship hulls — durability, weight, speed…', asOf: '2026-08-29', from: 'BDOCodex' },
 	{ what: 'Ship parts at every level', asOf: '2026-08-29', from: 'BDOCodex' },
