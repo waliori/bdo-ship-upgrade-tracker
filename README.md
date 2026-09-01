@@ -235,15 +235,18 @@ kept as the previous one, a route travels in a link, and a ruler
 coordinates under the pointer. The Hunt tab draws the game's own
 **habitat markers** — each species' picture from the codex at the
 centre of its grounds, "Hekaru Habitat", "Young Sea Monster Habitat" —
-which are also in the *Showing* picker. The markers sit where the
-game's own map puts them — the client's knowledge waypoint for each
-creature — with the codex's spawn points behind them; the Lyngbakr
-Habitat of the 27 August 2026 patch is where the crocodiles were, as
-the patch note says (the Nineshark and Black Rust spawns the codex still
-lists there are left out), and the crocodiles' new ground north of
-Cheongsa Island is read off the patch note's map to a kilometre or so
-until the codex carries it. The Hunt tab can also draw every **wharf manager** (repair, rations, sailors) and the Old Moon Guild's
-guild wharves, and the Route tab names the nearest wharf to the last
+which are also in the *Showing* picker. Every spawn point is kept to
+open water — the codex draws a region's spawns as a grid that runs
+straight over islands — and each marker stands at the centre of a
+species' spawn cluster, on the water; markers that would print on top
+of one another at a given zoom share one picture with a count. The
+Lyngbakr Habitat of the 27 August 2026 patch is where the crocodiles
+were, as the patch note says (the Nineshark and Black Rust spawns the
+codex still lists there are left out), and the crocodiles' new ground
+north of Cheongsa Island is placed off Cheongsa's pier, roughly, until
+the codex carries it. The Hunt tab can also draw all 58 **wharf
+managers** (repair, rations, sailors) and guild wharves, named by
+harbour, and the Route tab names the nearest wharf to the last
 stop.
 
 **Enhancement below the yellow tier** takes a failstack too. The game

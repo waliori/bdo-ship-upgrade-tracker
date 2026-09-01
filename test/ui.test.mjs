@@ -238,6 +238,31 @@ test('the hunt courses and grounds stay above the tiles through a zoom', async (
 	await context.close();
 });
 
+test('habitat markers never print on top of one another, at any zoom', async () => {
+	const { page, context, errors } = await open('#map');
+	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: false, habitatsOn: true })); });
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.map-habitat'); await wait(800);
+	const gaps = () => page.evaluate(() => {
+		const els = [...document.querySelectorAll('.map-habitat')].filter(e => getComputedStyle(e).display !== 'none');
+		const at = els.map(e => [parseFloat(e.style.left), parseFloat(e.style.top)]);
+		// Two labels touch when both their horizontal and vertical gaps are small.
+		let touching = 0;
+		for (let i = 0; i < at.length; i++) for (let j = i + 1; j < at.length; j++) {
+			if (Math.abs(at[i][0] - at[j][0]) < 140 && Math.abs(at[i][1] - at[j][1]) < 64) touching++;
+		}
+		return { n: els.length, touching, grouped: els.filter(e => e.classList.contains('many')).length };
+	});
+	const first = await gaps();
+	assert.ok(first.n > 0 && first.grouped > 0, 'at the widest zoom some grounds share a picture');
+	for (let i = 0; i < 4; i++) {
+		const g = await gaps();
+		assert.equal(g.touching, 0, `${g.touching} label pairs touch after ${i} zoom steps`);
+		await page.evaluate(async () => { const m = await import('/js/screen-map.js'); m.mapZoomStep(1); }); await wait(500);
+	}
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('habitat markers follow a pan, hide and return once, and the Lyngbakr stands alone', async () => {
 	const { page, context, errors } = await open('#map');
 	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: false, habitatsOn: true })); });

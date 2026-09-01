@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { habitatsOf } from '../js/habitats.js';
 import { monsters } from '../js/sea_monsters.js';
 import { monsterArt } from '../js/monster_art.js';
+import { openSea } from '../js/searoute.js';
 import fs from 'node:fs';
 
 test('points a few kilometres apart form one habitat, a distant cloud another', () => {
@@ -27,14 +28,37 @@ test('every species on the chart gets at least one habitat, and its picture is o
 	assert.ok(monsters.some(m => m.key === 'lyngbakr'), 'the 27 August patch is on the chart');
 });
 
-test("a species with the game's own zone is marked there, the crocodile only roughly", () => {
-	const nineshark = monsters.find(m => m.key === 'nineshark');
-	assert.deepEqual(nineshark.zones, [[47609, 35335]], 'the Margoria ground the game marks');
+test('every spawn point and every marker is on the water', () => {
+	for (const m of monsters) {
+		for (const [x, y] of m.points) assert.ok(openSea(x, y), `${m.key} spawn at ${x},${y} is on land`);
+		for (const [x, y] of m.zones || []) assert.ok(openSea(x, y), `${m.key} zone at ${x},${y} is on land`);
+		for (const h of habitatsOf(m.points, { onWater: openSea })) assert.ok(openSea(h.x, h.y), `${m.key} marker at ${h.x},${h.y} is on land`);
+	}
+});
+
+test('a ground that rings an island is marked on the water beside it', () => {
+	// Eight points round a "shore" at (5000, 5000); the centre is land.
+	const ring = [];
+	for (let a = 0; a < 360; a += 45) ring.push([Math.round(5000 + 1500 * Math.cos(a * Math.PI / 180)), Math.round(5000 + 1500 * Math.sin(a * Math.PI / 180))]);
+	const onWater = (x, y) => Math.hypot(x - 5000, y - 5000) > 1000;
+	const [dry] = habitatsOf(ring);
+	assert.ok(!onWater(dry.x, dry.y), 'the plain centre is on the island');
+	const [wet] = habitatsOf(ring, { onWater });
+	assert.ok(onWater(wet.x, wet.y), 'the marker moved onto the water');
+	assert.ok(ring.some(([x, y]) => x === wet.x && y === wet.y), 'to one of its own spawn points');
+});
+
+test('the species the codex has no points for are marked by hand, roughly', () => {
 	const croc = monsters.find(m => m.key === 'saltwater-crocodile');
 	assert.ok(croc.zones && croc.approx, 'north of Cheongsa, approximate');
-	assert.ok(monsters.find(m => m.key === 'lyngbakr').zones, 'the Lyngbakr has its marker');
-	const gm = monsters.find(m => m.key === 'goldmont-medium');
-	assert.ok(gm.zones[0][0] > 40000 && gm.approx, 'the Goldmont Medium patrols the open Ross Sea, not a Donghae town');
 	assert.ok(croc.zones[0][1] < 18000 && Math.abs(croc.zones[0][0] - 33534) < 2000, 'the crocodiles sit north of Cheongsa');
+	const khan = monsters.find(m => m.key === 'khan');
+	assert.ok(khan.zones && khan.approx && Math.hypot(khan.zones[0][0] - 65006, khan.zones[0][1] - 48051) < 4000, 'Khan stands off Oquilla’s Eye');
+	for (const m of monsters) {
+		if (m.key === 'saltwater-crocodile' || m.key === 'khan') continue;
+		assert.ok(!m.zones, `${m.key} is marked by its spawns, not a hand-placed zone`);
+		assert.ok(m.points.length > 0, `${m.key} has spawn points`);
+	}
+	assert.ok(monsters.find(m => m.key === 'lyngbakr').points.length >= 50, 'the Lyngbakr ground is the old crocodile ground');
 	assert.ok(monsterArt.lyngbakr, 'and a picture');
 });

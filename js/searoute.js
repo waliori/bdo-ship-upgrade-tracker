@@ -40,6 +40,17 @@ export function isSea(x, y) {
 	return seaCell(cellOf(x), cellOf(y));
 }
 
+/** Water with water all round it -- a cell in from any shore, so a
+ *  point there reads as at sea at every zoom, not on the beach. */
+export function openSea(x, y) {
+	for (let dx = -SEA_CELL; dx <= SEA_CELL; dx += SEA_CELL) {
+		for (let dy = -SEA_CELL; dy <= SEA_CELL; dy += SEA_CELL) {
+			if (!isSea(x + dx, y + dy)) return false;
+		}
+	}
+	return true;
+}
+
 /** The nearest water cell to a position, since a barterer stands on an
  *  island and a route has to start from the water beside it. */
 function nearestSea(x, y, reach = 6) {

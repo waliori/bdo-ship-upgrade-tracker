@@ -3273,6 +3273,8 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .map-habitat-name { font-size: 11px; font-weight: 600; white-space: nowrap; }
 .map-habitat-sub { font-size: 9.5px; color: #cfe3f5; white-space: nowrap; }
 .map-habitat.young .map-habitat-pic { width: 34px; height: 34px; }
+.map-habitat-art { position: relative; display: inline-flex; }
+.map-habitat-count { position: absolute; right: -6px; top: -4px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: #ffd77a; color: #14202c; font-size: 10.5px; font-weight: 700; line-height: 17px; text-align: center; text-shadow: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
 .picker-icon img { background: rgba(6, 14, 26, 0.5); }
 @media (max-width: 720px) { .map-habitat-pic { width: 34px; height: 34px; } .map-habitat-sub { display: none; } }
 .map-hunt-pic { width: 26px; height: 26px; object-fit: contain; flex: none; filter: drop-shadow(0 1px 2px #000); }

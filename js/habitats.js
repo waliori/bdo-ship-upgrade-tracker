@@ -31,9 +31,10 @@ export function habitatsOfMany(named, opts = {}) {
 /**
  * The habitats of one species: { x, y, n } per cluster, biggest first,
  * at most `max`. Clusters smaller than `min` points are noise unless
- * the species has few points at all (a boss with two spawns).
+ * the species has few points at all (a boss with two spawns). With
+ * `onWater(x, y)` given, every marker is kept on the water.
  */
-export function habitatsOf(points, { cell = CELL, min = 3, max = 6 } = {}) {
+export function habitatsOf(points, { cell = CELL, min = 3, max = 6, onWater = null } = {}) {
 	if (!points || !points.length) return [];
 	const cells = new Map();
 	for (const [x, y] of points) {
@@ -60,7 +61,19 @@ export function habitatsOf(points, { cell = CELL, min = 3, max = 6 } = {}) {
 	const floor = points.length < min * 2 ? 1 : min;
 	return [...groups.values()]
 		.filter(g => g.length >= floor)
-		.map(g => ({ x: Math.round(g.reduce((a, p) => a + p[0], 0) / g.length), y: Math.round(g.reduce((a, p) => a + p[1], 0) / g.length), n: g.length }))
+		.map(g => {
+			let x = Math.round(g.reduce((a, p) => a + p[0], 0) / g.length);
+			let y = Math.round(g.reduce((a, p) => a + p[1], 0) / g.length);
+			// A ground that rings an island has its centre on the island;
+			// the marker then goes to the spawn point nearest that centre
+			// that is actually on the water.
+			if (onWater && !onWater(x, y)) {
+				const wet = g.filter(p => onWater(p[0], p[1]))
+					.sort((a, b) => Math.hypot(a[0] - x, a[1] - y) - Math.hypot(b[0] - x, b[1] - y))[0];
+				if (wet) [x, y] = wet;
+			}
+			return { x, y, n: g.length };
+		})
 		.sort((a, b) => b.n - a.n)
 		.slice(0, max);
 }

@@ -13,7 +13,7 @@ import {
 	routeFor, routePath, project, placeTile, zoomRange
 } from './map.js';
 import { npcs, npcById, ports, MAX_ZOOM } from './barter_npcs.js';
-import { seaRoute } from './searoute.js';
+import { seaRoute, openSea } from './searoute.js';
 import { wharves, nearestWharf } from './wharves.js';
 import { habitatsOf, habitatsOfMany } from './habitats.js';
 import { monsterArt } from './monster_art.js';
@@ -286,7 +286,7 @@ function huntHTML() {
 			<span class="map-course-dot" style="background:#ffd77a"></span>
 			<span class="map-row-main"><span class="map-row-name">Habitat markers</span><span class="map-row-sub">a picture where each species lives, as the game's map shows them</span></span>
 		</button>
-		<div class="map-courses-head">Landmarks <span class="map-courses-credit">the client's own positions, via Flockenberger's waypoints</span></div>
+		<div class="map-courses-head">Landmarks <span class="map-courses-credit">every wharf on BDOCodex, at its pier</span></div>
 		${landmarks}
 		<div class="map-courses-head">Grounds <span class="map-courses-credit">every spawn point on BDOCodex</span></div>
 		${huntRows}
@@ -1370,7 +1370,7 @@ function paintPorts(layer, size) {
 
 const habitatCache = new Map();
 function habitats(m) {
-	if (!habitatCache.has(m.key)) habitatCache.set(m.key, habitatsOf(m.points));
+	if (!habitatCache.has(m.key)) habitatCache.set(m.key, habitatsOf(m.points, { onWater: openSea }));
 	return habitatCache.get(m.key);
 }
 
@@ -1392,7 +1392,7 @@ function habitatMarkers() {
 		}));
 	}
 	const young = monsters.filter(m => m.kind === 'young' && m.points.length);
-	habitatsOfMany(young).forEach((h, i) => {
+	habitatsOfMany(young, { onWater: openSea }).forEach((h, i) => {
 		const here = young.filter(m => h.species.includes(m.name));
 		out.push({
 			key: `young:${i}`, x: h.x, y: h.y, kind: 'young', keys: here.map(m => m.key), colour: '#e0c060', art: monsterArt[here[0] && here[0].key],
@@ -1403,47 +1403,78 @@ function habitatMarkers() {
 	return out;
 }
 
-/** A picture at each ground, named the way the game names it. */
+/** A picture at each ground, named the way the game names it -- and
+ *  one picture for several grounds when, at this zoom, they would print
+ *  on top of one another. */
 function paintHabitats(layer, size) {
 	// The pool is read back from the layer itself, so a marker can never
 	// be drawn twice however the layer was rebuilt.
 	const pool = new Map([...layer.querySelectorAll('.map-habitat')].map(el => [el.dataset.key, el]));
-	for (const mk of habitatMarkers()) {
-		let el = pool.get(mk.key);
-		const at = project(mapState, size, mk.x, mk.y);
-		const off = !habitatsOn || at.left < -80 || at.top < -80 || at.left > size.w + 80 || at.top > size.h + 80;
-		if (off) { if (el) el.hidden = true; continue; }
-		const on = mk.keys.some(k => huntsOn.includes(k));
-		if (!el) {
-			el = document.createElement('button');
-			el.className = `map-habitat ${mk.kind}`;
-			el.dataset.key = mk.key;
-			el.dataset.act = 'map-hunt';
-			el.dataset.id = mk.keys.join(',');
-			el.title = `${mk.sub} — ${mk.n} spawn point${mk.n === 1 ? '' : 's'} here · click to show or hide them`;
-			const pic = mk.art
-				? `<img class="map-habitat-pic" src="icons/${mk.art}" alt="">`
-				: `<span class="map-habitat-glyph" style="border-color:${mk.colour};color:${mk.colour}">${mk.kind === 'ship' ? '⛵' : '◎'}</span>`;
-			el.innerHTML = `${pic}<span class="map-habitat-name">${esc(mk.name)}</span><span class="map-habitat-sub">${esc(mk.sub)}</span>`;
-			pool.set(mk.key, el);
-			layer.appendChild(el);
+	const live = new Set();
+	if (habitatsOn) {
+		const seen = habitatMarkers()
+			.map(mk => ({ mk, at: project(mapState, size, mk.x, mk.y) }))
+			.filter(({ at }) => at.left > -80 && at.top > -80 && at.left < size.w + 80 && at.top < size.h + 80)
+			.sort((a, b) => b.mk.n - a.mk.n);
+		// Greedy, biggest ground first: a marker whose label box would
+		// touch one already placed joins it instead of covering it. The
+		// box is wide and short, like the name under the picture.
+		const groups = [];
+		for (const s of seen) {
+			const g = groups.find(g => Math.abs(g.at.left - s.at.left) < 140 && Math.abs(g.at.top - s.at.top) < 64);
+			if (g) g.members.push(s.mk); else groups.push({ at: s.at, members: [s.mk] });
 		}
-		el.hidden = false;
-		el.classList.toggle('on', on);
-		el.style.left = `${Math.round(at.left)}px`;
-		el.style.top = `${Math.round(at.top)}px`;
+		for (const g of groups) {
+			const key = g.members.map(m => m.key).sort().join('+');
+			live.add(key);
+			const keys = [...new Set(g.members.flatMap(m => m.keys))];
+			const on = keys.some(k => huntsOn.includes(k));
+			let el = pool.get(key);
+			if (!el) {
+				const lead = g.members[0];
+				const many = g.members.length > 1;
+				el = document.createElement('button');
+				el.className = `map-habitat ${lead.kind}${many ? ' many' : ''}`;
+				el.dataset.key = key;
+				el.dataset.act = 'map-hunt';
+				el.dataset.id = keys.join(',');
+				const subs = g.members.map(m => m.sub.replace(/ · about here$/, ''));
+				el.title = many
+					? `${subs.join(' · ')} — click to show or hide their spawn points`
+					: `${lead.sub} — ${lead.n} spawn point${lead.n === 1 ? '' : 's'} here · click to show or hide them`;
+				const pic = lead.art
+					? `<img class="map-habitat-pic" src="icons/${lead.art}" alt="">`
+					: `<span class="map-habitat-glyph" style="border-color:${lead.colour};color:${lead.colour}">${lead.kind === 'ship' ? '⛵' : '◎'}</span>`;
+				const badge = many ? `<span class="map-habitat-count">${g.members.length}</span>` : '';
+				el.innerHTML = `<span class="map-habitat-art">${pic}${badge}</span>`
+					+ `<span class="map-habitat-name">${esc(many ? `${g.members.length} habitats` : lead.name)}</span>`
+					+ `<span class="map-habitat-sub">${esc(many ? [...new Set(subs)].join(', ') : lead.sub)}</span>`;
+				pool.set(key, el);
+				layer.appendChild(el);
+			}
+			el.hidden = false;
+			el.classList.toggle('on', on);
+			el.style.left = `${Math.round(g.at.left)}px`;
+			el.style.top = `${Math.round(g.at.top)}px`;
+		}
 	}
+	for (const [key, el] of pool) if (!live.has(key)) el.hidden = true;
 }
 
 /** Every wharf manager of the kinds ticked: an anchor and a name. */
 function paintWharves(layer, size) {
 	const pool = new Map([...layer.querySelectorAll('.map-wharf')].map(el => [Number(el.dataset.i), el]));
+	const placed = [];
 	wharves.forEach((w, i) => {
 		let el = pool.get(i);
 		const on = wharvesOn.includes(w.kind);
 		const at = project(mapState, size, w.x, w.y);
 		const off = !on || at.left < -60 || at.top < -60 || at.left > size.w + 60 || at.top > size.h + 60;
 		if (off) { if (el) el.hidden = true; return; }
+		// Most piers keep two managers, the harbour's and the guild's, a
+		// few steps apart: the second prints a line below the first.
+		while (placed.some(p => Math.abs(p.left - at.left) < 70 && Math.abs(p.top - at.top) < 14)) at.top += 15;
+		placed.push({ left: at.left, top: at.top });
 		if (!el) {
 			el = document.createElement('div');
 			el.className = `map-wharf ${w.kind}`;
