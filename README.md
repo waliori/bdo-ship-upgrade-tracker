@@ -264,6 +264,9 @@ on the Hunt tab — and Vell's waters from gpw's ocean map. The Hunt tab can als
 managers** (repair, rations, sailors) and guild wharves, named by
 harbour; **island names** appear faintly once the chart is close
 enough to read them; the side panel sits on whichever side you like.
+Every one of these is a layer with its own switch, the barterers' green
+marks and the traced routes included — put them away and the sea is
+bare to read.
 The **Trace** tab is for routes the barter list cannot express: pick
 *Add stops* and click the sea, *Draw* and drag a line, or *Write* and
 type a word straight onto the water — every point is a place on the
@@ -276,7 +279,10 @@ already down is dragged where it belongs — a word tapped rather than
 carried opens to be retyped. Each stop takes a note;
 a trace is kept by name, travels in a `#trace/` link or a JSON file,
 and its stops go into the game's world map like a route's — with the
-written words as extra favourites.
+written words as extra favourites. Up to twenty traces live on a shelf
+below, each drawn small with what it holds and when it was kept:
+open one to draw on it, rename it, copy a link to it, or open its
+**eye** to lay it over the chart beside whatever else you are drawing.
 The Route tab names the nearest wharf to the last
 stop.
 

@@ -106,6 +106,7 @@ class GuidedTour {
 	}
 
 	steps() {
+		const onPhone = () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
 		const all = [
 			{
 				popover: {
@@ -116,11 +117,13 @@ class GuidedTour {
 				before: () => goToTab('plan')
 			},
 			{
-				element: '#tabs',
+				// A phone has the bar at the thumb instead of the row above.
+				element: onPhone() ? '#tabbar' : '#tabs',
 				popover: {
 					title: 'The nine views',
-					description: '<b>Plan</b> is what every build needs. <b>Builds</b> is the queue and its priority. <b>Inventory</b> is what you own. <b>Tree</b> shows why a build needs a thing. <b>Workshop</b> is where you craft and enhance. <b>To Get</b> is the shopping list. <b>Map</b> charts the barterers. <b>Quests</b> is what the sea hands out for free. <b>Crew</b> is the hull\'s own numbers and the sailors to fill it.',
-					side: 'bottom'
+					description: '<b>Plan</b> is what every build needs. <b>Builds</b> is the queue and its priority. <b>Inventory</b> is what you own. <b>Tree</b> shows why a build needs a thing. <b>Workshop</b> is where you craft and enhance. <b>To Get</b> is the shopping list. <b>Map</b> charts the barterers. <b>Quests</b> is what the sea hands out for free. <b>Ship</b> is the hull\'s own numbers and the sailors to fill it.'
+						+ (onPhone() ? '<br><br>Four sit in the bar; <b>All</b> opens the rest.' : ''),
+					side: onPhone() ? 'top' : 'bottom'
 				}
 			},
 			{

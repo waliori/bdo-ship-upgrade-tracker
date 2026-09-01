@@ -440,6 +440,93 @@ test('a stop and a word are picked up and carried to where they belong', async (
 	await context.close();
 });
 
+test('the barterers and the traces are layers like any other', async () => {
+	const { page, context, errors } = await open('#map');
+	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: true, habitatsOn: false })); });
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.map-pin'); await wait(700);
+	assert.ok(await count(page, '.map-pin') > 10, 'the islands are marked to begin with');
+	await page.click('[data-act="map-pins"]'); await wait(400);
+	assert.equal(await count(page, '.map-pin'), 0, 'put away, the marks leave the sea bare');
+	await page.click('[data-act="map-pins"]'); await wait(400);
+	assert.ok(await count(page, '.map-pin') > 10, 'and come back');
+
+	// The same for what is traced by hand.
+	await page.click('[data-act="map-mode"][data-id="trace"]'); await wait(400);
+	await page.click('[data-act="trace-tool"][data-id="point"]'); await wait(200);
+	const box = await (await page.$('[data-map]')).boundingBox();
+	for (const [fx, fy] of [[0.6, 0.35], [0.75, 0.5]]) { await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy); await wait(250); }
+	assert.equal(await count(page, '.map-trace-dot'), 2);
+	await page.click('[data-act="map-traces"]'); await wait(400);
+	assert.equal(await count(page, '.map-trace-dot'), 0, 'hidden, not lost');
+	assert.equal(await count(page, '.map-trace-stop'), 2, 'the stops are still on the panel');
+	await page.click('[data-act="map-traces"]'); await wait(400);
+	assert.equal(await count(page, '.map-trace-dot'), 2, 'and shown again');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('traces are kept on a shelf: named, drawn small, renamed, and laid over the chart by their eye', async () => {
+	const { page, context, errors } = await open('#map');
+	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'trace', panelOpen: true, habitatsOn: false })); });
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('[data-act="trace-tool"]'); await wait(600);
+	const box = await (await page.$('[data-map]')).boundingBox();
+	const sea = (fx, fy) => [box.x + box.width * fx, box.y + box.height * fy];
+	const keep = async (name, spots) => {
+		await page.click('[data-act="trace-tool"][data-id="point"]'); await wait(200);
+		for (const [fx, fy] of spots) { await page.mouse.click(...sea(fx, fy)); await wait(220); }
+		await page.$eval('[data-act="trace-name"]', (el, n) => { el.value = n; el.dispatchEvent(new Event('change', { bubbles: true })); }, name);
+		await wait(200);
+		await page.click('[data-act="trace-save"]'); await wait(350);
+		await page.click('[data-act="trace-clear"]'); await wait(350);
+	};
+	await keep('Coral loop', [[0.55, 0.3], [0.66, 0.42], [0.75, 0.3]]);
+	await keep('Cox run', [[0.5, 0.6], [0.62, 0.7]]);
+	assert.equal(await count(page, '.trace-card'), 2, 'both are on the shelf');
+	assert.equal(await count(page, '.trace-thumb'), 2, 'each drawn small');
+	assert.ok((await text(page, '.trace-card')).includes('kept today'));
+
+	// The eye lays one over the chart without opening it.
+	assert.equal(await count(page, '.map-trace-ghost'), 0);
+	await page.click('.trace-card:last-child [data-act="trace-eye"]'); await wait(400);
+	assert.equal(await count(page, '.map-trace-ghost'), 1, 'one trace laid over the chart');
+	assert.equal(await count(page, '.map-trace-ghost .map-trace-dot'), 3, 'with its three stops');
+	assert.equal(await page.evaluate(() => document.querySelector('[data-act="trace-name"]').value), '', 'and nothing opened to draw on');
+
+	// Renaming it.
+	await page.click('.trace-card:last-child [data-act="trace-rename"]'); await wait(300);
+	await page.$eval('[data-trace-name]', el => { el.value = ''; });
+	await page.type('[data-trace-name]', 'Reef road');
+	await page.click('[data-trace-rename]'); await wait(400);
+	assert.ok((await text(page, '.trace-shelf')).includes('Reef road'), 'the shelf calls it what it is now');
+	assert.equal(await count(page, '.map-trace-ghost'), 1, 'and it is still on the chart');
+
+	// Opening one puts it in hand, and it is not then drawn twice.
+	await page.click('.trace-card:last-child [data-act="trace-load"]'); await wait(600);
+	assert.equal(await page.evaluate(() => document.querySelector('[data-act="trace-name"]').value), 'Reef road');
+	assert.equal(await count(page, '.map-trace-ghost'), 0, 'the one in hand is not also a ghost of itself');
+	assert.equal(await count(page, '.map-trace-dot'), 3);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('a phone is given a bar at the thumb, not a tab row that scrolls out of sight', async () => {
+	const { page, context, errors } = await open('#crew', { touch: true });
+	await wait(400);
+	assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('tabs')).display), 'none', 'the sideways row is put away');
+	assert.equal(await count(page, '.tabbar-btn'), 5, 'four sections and the way to the rest');
+	assert.ok(await page.evaluate(() => !!document.querySelector('.tabbar-btn.active[data-id="crew"]')), 'the standing section has a seat of its own');
+	await page.click('[data-act="tab-sheet"]'); await wait(400);
+	assert.equal(await count(page, '.sheet-tab'), 9, 'every section, named');
+	await page.click('.sheet-tab[data-id="workshop"]'); await wait(700);
+	assert.equal(await page.evaluate(() => location.hash), '#workshop');
+	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), true, 'and the sheet closes behind it');
+	assert.ok(await page.evaluate(() => !!document.querySelector('.tabbar-btn.active[data-id="workshop"]')));
+	const wide = await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
+	assert.equal(wide[0], wide[1], 'and nothing hangs off the side');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('habitat markers never print on top of one another, at any zoom', async () => {
 	const { page, context, errors } = await open('#map');
 	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: false, habitatsOn: true })); });

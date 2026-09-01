@@ -130,9 +130,14 @@ button { cursor: pointer; font-family: inherit; }
 button:disabled { cursor: not-allowed; opacity: 0.4; }
 :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: rgba(110, 150, 190, 0.25); border-radius: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
+/* Only where a scrollbar is furniture. Styling it at all turns a
+   phone's overlay scrollbar into a permanent one, which took a pale
+   ten-pixel gutter out of the right of every screen. */
+@media (pointer: fine) {
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(110, 150, 190, 0.25); border-radius: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+}
 
 .shell {
   position: relative;
@@ -3011,6 +3016,94 @@ select.purse-inline { width: auto; cursor: pointer; }
 .map-pen.wide { padding: 0 8px; font-size: 10.5px; letter-spacing: 0.08em; }
 .map-pen.on { border-color: #7ef0d4; background: rgba(126, 240, 212, 0.14); }
 .map-pen-bar { display: block; width: 16px; border-radius: 3px; }
+/* A kept trace laid over the chart is a memory of a route, not the one
+   in hand: quieter, and it does not answer the pointer. */
+.map-trace-ghost { position: absolute; inset: 0; opacity: 0.55; }
+.map-trace-ghost .map-trace-dot { width: 15px; height: 15px; font-size: 9px; pointer-events: none; }
+.map-trace-ghost .map-trace-word { opacity: 0.9; }
+
+/* ---- the shelf of kept traces -------------------------------------- */
+.trace-shelf { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 4px; }
+.trace-card {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 1px solid rgba(125, 175, 225, 0.16);
+  border-radius: var(--r-tile, 8px);
+  background: rgba(255, 255, 255, 0.02);
+}
+.trace-card.shown { border-color: rgba(255, 215, 122, 0.5); background: rgba(255, 215, 122, 0.07); }
+.trace-card.open { box-shadow: inset 2px 0 0 var(--blue-bar, #7ef0d4); }
+.trace-eye { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(125, 175, 225, 0.3); background: none; color: var(--ink-off); font-size: 12px; cursor: pointer; padding: 0; }
+.trace-card.shown .trace-eye { color: #ffd77a; border-color: rgba(255, 215, 122, 0.6); }
+.trace-thumb-box { width: 52px; height: 34px; border-radius: 5px; background: rgba(8, 20, 34, 0.6); border: 1px solid rgba(125, 175, 225, 0.12); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.trace-thumb { width: 52px; height: 34px; fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.trace-card-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.trace-card-name { font-family: var(--font-display); font-weight: 600; font-size: 12.5px; letter-spacing: 0.03em; color: var(--ink-hi, #e8f2fb); display: flex; align-items: center; gap: 6px; }
+.trace-card-tag { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: #7ef0d4; border: 1px solid rgba(126, 240, 212, 0.4); border-radius: 3px; padding: 0 4px; }
+.trace-card-sub { font-size: 10.5px; color: var(--ink-off); }
+.trace-card-note { font-size: 10.5px; color: var(--ink-off); opacity: 0.8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trace-card-btns { grid-column: 1 / -1; display: flex; gap: 4px; justify-content: flex-end; }
+.ghost-btn.tiny { padding: 3px 9px; font-size: 11px; }
+
+/* ---- the phone's section bar --------------------------------------- */
+/* Nine sections do not fit a thumb, and a row that scrolls sideways
+   hides what is past its edge. Four sit here; "All" opens the rest. */
+.tabbar { display: none; }
+.sheet-head { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-off); margin: 14px 0 8px; }
+.sheet-head:first-of-type { margin-top: 4px; }
+.sheet-note { text-transform: none; letter-spacing: 0.02em; opacity: 0.7; }
+.sheet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.sheet-tab {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 14px 6px 12px;
+  border: 1px solid var(--line); border-radius: var(--r-tile, 8px);
+  background: rgba(255, 255, 255, 0.03); color: var(--ink);
+  font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.sheet-tab.active { border-color: var(--blue-bar, #7ef0d4); color: var(--blue-hi); background: rgba(126, 240, 212, 0.08); }
+.sheet-icon { font-size: 18px; opacity: 0.85; }
+.sheet-count { position: absolute; top: 6px; right: 8px; font-family: var(--font-body); font-size: 10px; font-weight: 700; background: var(--blue-glow); color: var(--blue); border-radius: 9px; padding: 1px 6px; }
+
+@media (max-width: 640px) {
+  .tabs { display: none; }
+  .shell { padding-bottom: 84px; }
+  .tabbar {
+    display: flex;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 40;
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
+    background: rgba(8, 22, 40, 0.96);
+    border-top: 1px solid rgba(120, 170, 220, 0.18);
+    backdrop-filter: blur(10px);
+  }
+  .tabbar-btn {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 7px 2px 6px;
+    background: none; border: none; border-radius: 8px;
+    color: var(--ink-off);
+    font-family: var(--font-display); font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em;
+  }
+  .tabbar-btn.active { color: var(--blue-hi); background: rgba(126, 240, 212, 0.08); }
+  .tabbar-icon { font-size: 16px; line-height: 1; }
+  .tabbar-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tabbar-count {
+    position: absolute; top: 2px; right: 50%; margin-right: -22px;
+    font-family: var(--font-body); font-size: 9.5px; font-weight: 700;
+    background: var(--blue-glow); color: var(--blue);
+    border-radius: 9px; padding: 0 5px;
+  }
+  /* The toast rides above the bar rather than behind it. */
+  .toast { bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
+}
 
 /* the game's-map export: the block to paste, and its small options */
 .map-xml {

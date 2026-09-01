@@ -49,7 +49,7 @@ import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
-	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, flipMapSide, traceAction, traceChange, applyTraceLink,
+	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite
 } from './screen-map.js';
@@ -68,6 +68,9 @@ const TABS = [
 	{ id: 'crew', label: 'Ship', icon: '⚓', group: 'sea' }
 ];
 
+// The four a phone gets at the thumb; the rest live behind "All".
+const THUMB_TABS = ['plan', 'inventory', 'map', 'quests'];
+
 let water = null;
 // Debounces the search box; showView cancels it so a stale query cannot
 // repaint the next tab. Declared here because both need it.
@@ -75,6 +78,54 @@ let queryTimer = null;
 // Each tab keeps the search typed on it, so coming back finds it as left.
 const queries = {};
 
+
+/**
+ * The phone's section bar. Nine tabs will not fit a thumb's reach, and
+ * a row that scrolls sideways hides whatever is past the edge -- people
+ * did not know the rest were there. So four sit in the bar and the last
+ * slot opens a sheet with every one of them, named and counted. Where
+ * the standing tab is not one of the four, that slot becomes it, so the
+ * bar always says where you are.
+ */
+function paintTabBar(counts) {
+	const bar = document.getElementById('tabbar');
+	if (!bar) return;
+	const cell = (t, extra = '') => `<button class="tabbar-btn${view === t.id ? ' active' : ''}${extra}"
+		data-act="view" data-id="${t.id}" aria-current="${view === t.id}" title="${t.label}">
+		<span class="tabbar-icon" aria-hidden="true">${t.icon}</span><span class="tabbar-label">${t.label}</span>
+		${counts[t.id] ? `<span class="tabbar-count">${counts[t.id]}</span>` : ''}</button>`;
+	const four = THUMB_TABS.map(id => TABS.find(t => t.id === id)).filter(Boolean);
+	const here = TABS.find(t => t.id === view);
+	// The standing tab always has a seat: an odd one takes the last of
+	// the four rather than hiding behind "All".
+	const seats = four.some(t => t.id === view) || !here ? four : [...four.slice(0, 3), here];
+	const rest = TABS.filter(t => !seats.some(s => s.id === t.id));
+	const waiting = rest.reduce((n, t) => n + (counts[t.id] || 0), 0);
+	bar.innerHTML = seats.map(t => cell(t)).join('')
+		+ `<button class="tabbar-btn all" data-act="tab-sheet" aria-haspopup="dialog" title="Every section">
+			<span class="tabbar-icon" aria-hidden="true">▦</span><span class="tabbar-label">All</span>
+			${waiting ? `<span class="tabbar-count">${waiting}</span>` : ''}</button>`;
+}
+
+/** Every section at once, named, counted and grouped the way the tab
+ *  row groups them. */
+function openTabSheet() {
+	const counts = lastCounts;
+	const group = (id, title, note) => `<div class="sheet-head">${title} <span class="sheet-note">${note}</span></div>
+		<div class="sheet-grid">${TABS.filter(t => t.group === id).map(t => `
+			<button class="sheet-tab${view === t.id ? ' active' : ''}" data-act="view" data-id="${t.id}">
+				<span class="sheet-icon" aria-hidden="true">${t.icon}</span>
+				<span class="sheet-name">${t.label}</span>
+				${counts[t.id] ? `<span class="sheet-count">${counts[t.id]}</span>` : ''}
+			</button>`).join('')}</div>`;
+	openDialog(`<h2>Where to</h2>
+		${group('yard', 'The yard', 'planning and making')}
+		${group('sea', 'The sea', 'the day itself')}
+		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`);
+}
+
+// What the badges said at the last render, for the sheet.
+let lastCounts = {};
 
 export function render() {
 	recompute();
@@ -116,6 +167,9 @@ export function render() {
 	}
 	const screenHost = document.getElementById('screen');
 	if (screenHost) screenHost.setAttribute('aria-labelledby', `tab-${view}`);
+
+	lastCounts = counts;
+	paintTabBar(counts);
 
 	// Only fade the tab row when there is in fact something past the edge.
 	const tabBar = document.getElementById('tabs');
@@ -421,7 +475,9 @@ function wire() {
 		}
 
 		switch (act) {
-			case 'view': showView(el.dataset.id); return;
+			// Chosen out of the sections sheet, the sheet has done its job.
+			case 'view': if (el.closest('.dialog')) closeDialog(); showView(el.dataset.id); return;
+			case 'tab-sheet': return openTabSheet();
 			case 'undo': {
 				const label = store.undo();
 				toast(label ? `Reverted: ${label}` : 'Nothing to undo');
@@ -502,6 +558,8 @@ function wire() {
 			case 'map-wharves': setMapWharves(el.dataset.id); return;
 			case 'map-habitats': setMapHabitats(); return;
 			case 'map-labels': setMapLabels(); return;
+			case 'map-pins': setMapPins(); return;
+			case 'map-traces': setMapTraces(); return;
 			case 'map-setup-pick': openSetupPicker(() => render()); return;
 			case 'map-side-flip': flipMapSide(); return;
 			case 'map-hunt': setMapHunt(el.dataset.id); return;
