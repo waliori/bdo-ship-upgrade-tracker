@@ -71,6 +71,18 @@ function nearestSea(x, y, reach = 6) {
 	return null;
 }
 
+/**
+ * The nearest water to a position, as a world point: the position
+ * itself when it is already wet, otherwise the middle of the closest
+ * water cell -- or null when there is no water within reach. A stop on
+ * a route is a place a hull can float.
+ */
+export function nearestWater(x, y, reach = 8) {
+	if (isSea(x, y)) return { x, y };
+	const cell = nearestSea(x, y, reach);
+	return cell ? { x: mid(cell[0]), y: mid(cell[1]) } : null;
+}
+
 /** Every cell a straight line crosses is water -- so the leg needs no
  *  help. Walked at half a cell so a corner cannot be stepped over. */
 function clearLine(ax, ay, bx, by) {

@@ -3048,6 +3048,17 @@ select.purse-inline { width: auto; cursor: pointer; }
 .trace-card-btns { grid-column: 1 / -1; display: flex; gap: 4px; justify-content: flex-end; }
 .ghost-btn.tiny { padding: 3px 9px; font-size: 11px; }
 
+/* ---- the traces library -------------------------------------------- */
+.dialog-box.wide { max-width: 900px; }
+.lib-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.lib-bar .field { flex: 1 1 100%; }
+.lib-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-off); margin-left: 6px; }
+.lib-label:first-child { margin-left: 0; }
+.trace-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 8px; max-height: 52vh; overflow-y: auto; padding: 2px; }
+.trace-grid .trace-card { grid-template-columns: auto auto 1fr; }
+.trace-grid .trace-thumb-box, .trace-grid .trace-thumb { width: 64px; height: 42px; }
+@media (max-width: 640px) { .trace-grid { grid-template-columns: 1fr; max-height: 46vh; } }
+
 /* ---- the phone's section bar --------------------------------------- */
 /* Nine sections do not fit a thumb, and a row that scrolls sideways
    hides what is past its edge. Four sit here; "All" opens the rest. */

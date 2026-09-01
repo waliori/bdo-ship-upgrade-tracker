@@ -527,6 +527,73 @@ test('a phone is given a bar at the thumb, not a tab row that scrolls out of sig
 	await context.close();
 });
 
+test('a traced leg goes round the land, and a stop cannot be put on it', async () => {
+	const { page, context, errors } = await open('#map');
+	// Two stops with an island between them: Akenisi's water to Kami's.
+	const seed = {
+		name: 'Blocked', notes: '', seq: 2, at: Date.now(), strokes: [], texts: [],
+		points: [{ x: 61554, y: 60679, colour: '#ffd77a', seq: 1 }, { x: 78047, y: 44418, colour: '#ffd77a', seq: 2 }]
+	};
+	await page.evaluate(t => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'trace', panelOpen: true, habitatsOn: false, pinsOn: false, trace: t })); }, seed);
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.map-trace-path'); await wait(900);
+	const path = () => page.$eval('.map-trace-path', el => el.getAttribute('d'));
+	const bits = d => ({ turns: (d.match(/L/g) || []).length, bows: (d.match(/Q/g) || []).length });
+	const bent = bits(await path());
+	assert.ok(bent.turns >= 3, 'the leg turns where the water turns');
+	assert.equal(bent.bows, 0, 'a line already bent round the land is not bowed as well');
+
+	await page.click('[data-act="trace-hug"]'); await wait(500);
+	const straight = bits(await path());
+	assert.equal(straight.turns, 0, 'straight legs are one sweep');
+	assert.equal(straight.bows, 1);
+	await page.click('[data-act="trace-hug"]'); await wait(500);
+
+	// A stop is a place a hull can float: the desert is not one.
+	const box = await (await page.$('[data-map]')).boundingBox();
+	await page.click('[data-act="trace-tool"][data-id="point"]'); await wait(200);
+	await page.mouse.click(box.x + box.width * 0.9, box.y + box.height * 0.75); await wait(400);
+	assert.equal(await count(page, '.map-trace-dot'), 2, 'the click on land laid down nothing');
+	assert.ok((await text(page, '#toast')).includes('water'), 'and said why');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('the traces library: a search, a sort, a filter, and the shelf keeps to a few', async () => {
+	const { page, context, errors } = await open('#map');
+	const names = ['Coral loop', 'Cox run', 'Vell watch', 'Hekaru sweep', 'Morning barter', 'Ross reef', 'Oquilla loop', 'Nineshark line', 'Padix bay', 'Illya circuit'];
+	const traces = names.map((n, i) => ({
+		name: n, notes: i === 5 ? 'the shallow way' : '', at: Date.now() - i * 86400e3, seq: 9, shown: i === 8,
+		points: [{ x: 40000 + i * 500, y: 40000, seq: 1 }, { x: 42000 + i * 500, y: 43000, seq: 2 }],
+		strokes: [], texts: []
+	}));
+	await page.evaluate(t => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'trace', panelOpen: true, habitatsOn: false, traces: t })); }, traces);
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.trace-card'); await wait(700);
+	// The panel is a column beside a chart: it shows a few and the way to the rest.
+	assert.equal(await count(page, '.map-side .trace-card'), 5, 'four newest and the one on the chart');
+	assert.ok((await text(page, '[data-act="trace-library"]')).includes('10'));
+
+	await page.click('[data-act="trace-library"]'); await wait(500);
+	assert.equal(await count(page, '.trace-grid .trace-card'), 10, 'all of them, with room');
+	await page.type('[data-lib-search]', 'loop'); await wait(400);
+	assert.equal(await count(page, '.trace-grid .trace-card'), 2, 'the search narrows it');
+	await page.$eval('[data-lib-search]', el => { el.value = 'shallow'; el.dispatchEvent(new Event('input', { bubbles: true })); }); await wait(400);
+	assert.equal(await count(page, '.trace-grid .trace-card'), 1, 'and reads the notes too');
+	await page.$eval('[data-lib-search]', el => { el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); }); await wait(400);
+
+	await page.click('[data-act="trace-lib-only"][data-id="shown"]'); await wait(400);
+	assert.equal(await count(page, '.trace-grid .trace-card'), 1, 'only what is on the chart');
+	await page.click('[data-act="trace-lib-only"][data-id="all"]'); await wait(400);
+	await page.click('[data-act="trace-lib-sort"][data-id="name"]'); await wait(400);
+	assert.equal(await text(page, '.trace-grid .trace-card .trace-card-name'), 'Coral loop', 'sorted by name');
+
+	// Opening one from the library is a thing you do to see the chart.
+	await page.click('.trace-grid .trace-card [data-act="trace-load"]'); await wait(700);
+	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), true, 'the library stands aside');
+	assert.equal(await page.evaluate(() => document.querySelector('[data-act="trace-name"]').value), 'Coral loop');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('habitat markers never print on top of one another, at any zoom', async () => {
 	const { page, context, errors } = await open('#map');
 	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: false, habitatsOn: true })); });

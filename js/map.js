@@ -359,7 +359,7 @@ export function clipRuns(pts, size, pad = 400) {
  * The path itself. Given a viewport it is cut to what can be drawn
  * first, which is why a long route no longer stops in mid-ocean.
  */
-export function routePath(pts, size = null) {
+export function routePath(pts, size = null, bow = 0.16) {
 	if (pts.length < 2) return '';
 	const runs = size ? clipRuns(pts, size) : [pts];
 	let d = '';
@@ -368,9 +368,14 @@ export function routePath(pts, size = null) {
 		d += `${d ? ' ' : ''}M ${run[0].left.toFixed(1)} ${run[0].top.toFixed(1)}`;
 		for (let i = 1; i < run.length; i++) {
 			const a = run[i - 1], b = run[i];
+			// A line already bent round the land must not be bowed as
+			// well: the bow is a sixth of the leg sideways, which is a
+			// headland's worth of it. `bow: 0` draws exactly the points
+			// given.
+			if (!bow) { d += ` L ${b.left.toFixed(1)} ${b.top.toFixed(1)}`; continue; }
 			const dx = b.left - a.left, dy = b.top - a.top;
 			const len = Math.hypot(dx, dy) || 1;
-			const k = Math.min(0.16 * len, 52);
+			const k = Math.min(bow * len, 52);
 			d += ` Q ${((a.left + b.left) / 2 - dy / len * k).toFixed(1)}`
 				+ ` ${((a.top + b.top) / 2 + dx / len * k).toFixed(1)}`
 				+ ` ${b.left.toFixed(1)} ${b.top.toFixed(1)}`;

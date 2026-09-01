@@ -279,10 +279,17 @@ already down is dragged where it belongs — a word tapped rather than
 carried opens to be retyped. Each stop takes a note;
 a trace is kept by name, travels in a `#trace/` link or a JSON file,
 and its stops go into the game's world map like a route's — with the
-written words as extra favourites. Up to twenty traces live on a shelf
-below, each drawn small with what it holds and when it was kept:
-open one to draw on it, rename it, copy a link to it, or open its
-**eye** to lay it over the chart beside whatever else you are drawing.
+written words as extra favourites. Legs are **bent round the land** by the same
+router the barter route uses — two stops with an island between them
+are not a straight line — and a stop clicked onto a headland steps off
+it, because a stop is a place a hull can float; *Straight legs* turns
+the routing off. Up to twenty traces live on a shelf below, each drawn
+small with what it holds and when it was kept: open one to draw on it,
+rename it, copy a link to it, or open its **eye** to lay it over the
+chart beside whatever else you are drawing. The shelf keeps to the
+newest few and whatever is on the water; **Browse all** opens the
+library, which has the room for a search (names, notes and the words
+written on them), a sort, and every trace as a card.
 The Route tab names the nearest wharf to the last
 stop.
 

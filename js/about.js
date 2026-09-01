@@ -31,7 +31,8 @@ export const CHANGES = [
 		title: 'routes traced by hand, ship setups, and quests finished together',
 		notes: [
 			'A phone is given a bar at the thumb instead of a tab row that scrolled sideways: four sections, and “All” opens a sheet with every one of them.',
-			'Traces are kept on a shelf — drawn small, named, renamed, linked, and laid over the chart by their eye, up to twenty of them.',
+			'Traces are kept on a shelf — drawn small, named, renamed, linked, and laid over the chart by their eye, up to twenty of them; “Browse all” opens a library with a search and a sort.',
+			'A traced leg is bent round the land between its stops, and a stop clicked onto an island steps off it into the water beside it.',
 			'The barterers’ marks and the traced routes are layers now, with their own switches, like the habitats and the island names.',
 			'Map: a Trace tab — click stops onto the sea, draw with the pen, write words on the water; eight inks, three pen widths, three sizes. Undo walks back through them in the order they were made, stops and words are dragged where they belong, and the chart’s markers hold their tongues while you draw. It zooms with the chart, keeps by name, travels in a link or a file, and goes into the game’s map.',
 			'Map: island names at close zoom, the side panel on either side, and a switch between saved ship setups where the route is timed.',

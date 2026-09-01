@@ -8,7 +8,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { isSea, seaCell, seaLeg, seaRoute } from '../js/searoute.js';
+import { isSea, seaCell, seaLeg, seaRoute, nearestWater } from '../js/searoute.js';
 import { SEA_CELL, SEA_SIDE } from '../js/seamask.js';
 import { npcs, npcById, ports } from '../js/barter_npcs.js';
 
@@ -79,4 +79,18 @@ test('every barterer is within reach of open water', () => {
 		assert.ok(near, `${n.name} has no water within three cells`);
 	}
 	assert.ok(npcById.size > 0);
+});
+
+test('a point put on land is answered with the water beside it', () => {
+	// A traced stop is a place a hull can float, so one dropped on an
+	// island steps off it -- and the step is a short one.
+	const velia = at('Velia');
+	const wet = nearestWater(velia.x, velia.y);
+	assert.ok(wet, 'there is water beside Velia');
+	assert.equal(isSea(wet.x, wet.y), true);
+	assert.ok(Math.hypot(wet.x - velia.x, wet.y - velia.y) < SEA_CELL * 4, 'and it is the water beside it, not the next sea over');
+	// Open water is already the answer, unmoved.
+	assert.deepEqual(nearestWater(40000, 40000), { x: 40000, y: 40000 });
+	// The middle of a continent has none within reach.
+	assert.equal(nearestWater(90000, 55000, 3), null);
 });

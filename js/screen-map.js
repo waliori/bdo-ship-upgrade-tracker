@@ -13,7 +13,7 @@ import {
 	routeFor, routePath, project, placeTile, zoomRange
 } from './map.js';
 import { npcs, npcById, ports, MAX_ZOOM } from './barter_npcs.js';
-import { seaRoute, openSea } from './searoute.js';
+import { seaRoute, openSea, nearestWater } from './searoute.js';
 import { wharves, nearestWharf } from './wharves.js';
 import { habitatsOf, habitatsOfMany } from './habitats.js';
 import { monsterArt } from './monster_art.js';
@@ -77,8 +77,13 @@ let inkColour = '#ffd77a';    // the ink every new stop, stroke and word is draw
 let inkWidth = 2.5;           // how thick the pen draws
 let inkSize = 14;             // how big a word is written
 let inkPlate = true;          // a word sits on a dark plate, to be read over bright water
+let hugWater = true;          // a traced leg bends round the land between its stops
 let pinsOn = true;            // the barterers' own marks are drawn
 let tracesOn = true;          // hand-traced routes are drawn
+let libQ = '';                // the traces library: what is typed in its search
+let libSort = 'recent';       // recent | name | size
+let libOnly = 'all';          // all | shown
+let libOpen = false;          // the library is the dialog on screen
 let editing = 0;              // the seq of the word being typed on the chart, 0 for none
 let markDrag = null;          // a stop or a word being carried elsewhere: { kind, seq, from, x, y, moved }
 
@@ -112,6 +117,7 @@ function restore() {
 		habitatsOn = s.habitatsOn !== false;
 		labelsOn = s.labelsOn !== false;
 		pinsOn = s.pinsOn !== false;
+		hugWater = s.hugWater !== false;
 		tracesOn = s.tracesOn !== false;
 		if (s.trace && typeof s.trace === 'object') trace = cleanTrace(s.trace);
 		if (Array.isArray(s.traces)) traces = s.traces.map(cleanTrace).filter(Boolean).slice(0, TRACES_MAX);
@@ -134,7 +140,7 @@ function restore() {
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, sideRight, tradesMode, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, hugWater, sideRight, tradesMode, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -240,7 +246,7 @@ export function seaBent(points) {
 	if (points.length < 2) return points;
 	const key = points.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join('|');
 	if (!bent.has(key)) {
-		if (bent.size > 24) bent.clear();
+		if (bent.size > 64) bent.clear();
 		bent.set(key, seaRoute(points));
 	}
 	return bent.get(key);
@@ -925,10 +931,24 @@ function traceMarks(t) {
 	].sort((a, b) => (Number(a.it.seq) || 0) - (Number(b.it.seq) || 0));
 }
 
-/** The traced stops as the route tab counts them: length and time. */
+/**
+ * The water a traced line actually follows. Two stops with an island
+ * between them are not a straight leg: the same routing the barter
+ * route uses bends it round, over the sea mask built from the chart's
+ * own tiles. While a stop is being carried the straight line is drawn
+ * instead -- a search per frame of a drag is a search too many, and
+ * the water comes back the moment it is set down.
+ */
+function traceLine(t) {
+	if (!t || t.points.length < 2) return t ? t.points : [];
+	return hugWater && !markDrag ? seaBent(t.points) : t.points;
+}
+
+/** The traced stops as the route tab counts them: length and time --
+ *  along the water when the legs are bent round the land. */
 function traceLength() {
 	if (!trace || trace.points.length < 2) return 0;
-	return pathLength(trace.points);
+	return pathLength(traceLine(trace));
 }
 
 /** How long ago something was kept, in the words a person would use. */
@@ -972,21 +992,40 @@ function traceThumb(t, w = 52, h = 34) {
 }
 
 /** The traces kept on this browser: what each one is, at a glance, with
- *  an eye that lays it over the chart without opening it. */
+ *  an eye that lays it over the chart without opening it.
+ *
+ *  The panel is 300 pixels of a chart nobody wants covered, so it shows
+ *  the newest few and whatever is on the water; twenty of them are
+ *  browsed in the library, which has the room for a search and a sort.
+ */
 function traceShelf() {
 	if (!traces.length) {
 		return `<div class="map-courses-head">Kept traces</div>
 			<p class="map-hint">None kept yet. Draw a route, name it, and press <b>Keep</b> — up to ${TRACES_MAX} live on this browser, and any of them can be laid over the chart with its eye.</p>`;
 	}
 	const shown = traces.filter(r => r.shown).length;
-	const cards = traces.map((r, i) => {
+	const SHELF = 4;
+	const near = traces.filter((r, i) => r.shown || i < SHELF);
+	const rest = traces.length - near.length;
+	const cards = near.map(r => traceCard(r, traces.indexOf(r))).join('');
+	return `<div class="map-courses-head">Kept traces <span class="map-courses-credit">${traces.length} of ${TRACES_MAX}${shown ? ` · ${shown} on the chart` : ''}</span></div>
+		<div class="trace-shelf">${cards}</div>
+		<div class="map-side-btns">
+			<button class="ghost-btn wide" data-act="trace-library">${rest > 0 ? `Browse all ${traces.length}…` : 'Browse the traces…'}</button>
+			${shown ? `<button class="ghost-btn" data-act="trace-eye-none">Clear the chart</button>` : ''}
+		</div>`;
+}
+
+/** One trace as a card, on the shelf or in the library. */
+function traceCard(r, i) {
+	{
 		const bits = [
 			`${r.points.length} stop${r.points.length === 1 ? '' : 's'}`,
 			r.strokes.length ? `${r.strokes.length} stroke${r.strokes.length === 1 ? '' : 's'}` : '',
 			(r.texts || []).length ? `${r.texts.length} word${r.texts.length === 1 ? '' : 's'}` : ''
 		].filter(Boolean).join(' · ');
 		const open = trace && trace.name && trace.name === r.name;
-		return `<div class="trace-card${r.shown ? ' shown' : ''}${open ? ' open' : ''}">
+		return `<div class="trace-card${r.shown ? ' shown' : ''}${open ? ' open' : ''}" data-trace="${esc(r.name)}">
 			<button class="trace-eye" data-act="trace-eye" data-i="${i}" aria-pressed="${!!r.shown}"
 				title="${r.shown ? 'Take it off the chart' : 'Lay it over the chart'}" aria-label="${r.shown ? 'Hide' : 'Show'} ${esc(r.name || 'this trace')} on the chart">${r.shown ? '◉' : '○'}</button>
 			<span class="trace-thumb-box">${traceThumb(r)}</span>
@@ -1002,10 +1041,7 @@ function traceShelf() {
 				<button class="map-x" data-act="trace-del" data-i="${i}" aria-label="Forget ${esc(r.name || 'this trace')}">×</button>
 			</span>
 		</div>`;
-	}).join('');
-	return `<div class="map-courses-head">Kept traces <span class="map-courses-credit">${traces.length} of ${TRACES_MAX}${shown ? ` · ${shown} on the chart` : ''}</span></div>
-		<div class="trace-shelf">${cards}</div>
-		${shown ? `<div class="map-side-btns"><button class="ghost-btn" data-act="trace-eye-none">Clear the chart of them</button></div>` : ''}`;
+	}
 }
 
 function traceHTML() {
@@ -1049,6 +1085,7 @@ function traceHTML() {
 			<button class="ghost-btn" data-act="trace-undo" ${has ? '' : 'disabled'} title="Take back the last mark, whatever kind it was">↶ Undo</button>
 			<button class="ghost-btn" data-act="trace-clear" ${has ? '' : 'disabled'}>Clear</button>
 			<button class="ghost-btn${tracesOn ? ' on' : ''}" data-act="map-traces" aria-pressed="${tracesOn}" title="Show or hide everything traced, without losing any of it">${tracesOn ? '◉ Shown' : '○ Hidden'}</button>
+			<button class="ghost-btn${hugWater ? ' on' : ''}" data-act="trace-hug" aria-pressed="${hugWater}" title="Bend each leg round the land between its stops, the way the barter route is drawn">${hugWater ? '⛵ Round the land' : '↗ Straight legs'}</button>
 		</div>
 	</div>
 	<div class="map-courses">
@@ -1076,7 +1113,7 @@ function traceArt(t, size, live) {
 	let html = '';
 	const P = p => project(mapState, size, p.x, p.y);
 	if (t.points.length > 1) {
-		const d = routePath(t.points.map(P), size);
+		const d = routePath(traceLine(t).map(P), size, hugWater ? 0 : 0.16);
 		const c = t.points[0].colour || LINE_INK;
 		html += `<svg class="map-route map-trace-line"><path class="map-trace-glow" style="stroke:${c}" d="${d}"></path><path class="map-trace-path" style="stroke:${c}" d="${d}"></path></svg>`;
 	}
@@ -1200,6 +1237,15 @@ function endWriting() {
 	paintMap();
 }
 
+/** The nearest water to a point clicked, when it is close enough to
+ *  have been meant -- a stop is a place a hull can float, so one put on
+ *  a headland steps off it rather than sitting in a field. */
+function onWater(p) {
+	const wet = nearestWater(p.x, p.y);
+	if (!wet) return null;
+	return { x: Math.round(wet.x), y: Math.round(wet.y) };
+}
+
 function atSea(host, clientX, clientY) {
 	const box = host.getBoundingClientRect();
 	const p = unproject({ w: box.width, h: box.height }, clientX - box.left, clientY - box.top);
@@ -1209,7 +1255,10 @@ function atSea(host, clientX, clientY) {
 function traceAdd(host, clientX, clientY) {
 	const t = liveTrace();
 	if (t.points.length >= TRACE_STOPS) return toast(`${TRACE_STOPS} stops is the most a trace holds`);
-	t.points.push({ ...atSea(host, clientX, clientY), colour: inkColour, seq: bumpSeq() });
+	const at = atSea(host, clientX, clientY);
+	const wet = onWater(at);
+	if (!wet) return toast('A stop belongs on the water');
+	t.points.push({ ...wet, colour: inkColour, seq: bumpSeq() });
 	persist();
 	refreshSide();
 	paintMap();
@@ -1338,6 +1387,10 @@ export function traceAction(act, el) {
 			toast(`Kept “${name}”`);
 			break;
 		}
+		case 'trace-hug': hugWater = !hugWater; break;
+		case 'trace-library': openTraceLibrary(); return true;
+		case 'trace-lib-sort': libSort = ['recent', 'name', 'size'].includes(el.dataset.id) ? el.dataset.id : 'recent'; refreshLibrary(); return true;
+		case 'trace-lib-only': libOnly = el.dataset.id === 'shown' ? 'shown' : 'all'; refreshLibrary(); return true;
 		case 'trace-eye': if (traces[i]) { traces[i].shown = !traces[i].shown; if (traces[i].shown) tracesOn = true; } break;
 		case 'trace-eye-none': traces = traces.map(r => ({ ...r, shown: false })); break;
 		case 'trace-rename': {
@@ -1360,7 +1413,11 @@ export function traceAction(act, el) {
 			})();
 			return true;
 		}
-		case 'trace-load': if (traces[i]) { trace = cleanTrace(traces[i]); editing = 0; pendingFit = { points: trace.points.length ? trace.points : traceAnchors(trace) }; } break;
+		case 'trace-load':
+			if (traces[i]) { trace = cleanTrace(traces[i]); editing = 0; pendingFit = { points: trace.points.length ? trace.points : traceAnchors(trace) }; }
+			// Opened from the library, the chart is what you wanted to see.
+			if (libOpen) { libOpen = false; closeDialog(); }
+			break;
 		case 'trace-del': traces = traces.filter((_, k) => k !== i); break;
 		case 'trace-link':
 			(async () => {
@@ -1383,14 +1440,102 @@ export function traceAction(act, el) {
 	}
 	persist();
 	refreshSide();
+	if (libOpen) refreshLibrary();
 	paintMap();
 	return true;
+}
+
+/* ------------------------------------------------------------------ *
+ * the traces library
+ *
+ * Twenty traces do not belong in a 300-pixel column beside the chart.
+ * The library is the width of a dialog: a search, a sort, a filter and
+ * the cards in a grid big enough to tell one drawing from another at a
+ * glance. The cards are the shelf's own, so there is one set of
+ * buttons to learn and one to maintain.
+ * ------------------------------------------------------------------ */
+
+/** The kept traces the library is showing, in the order it shows them. */
+function libraryList() {
+	const q = libQ.trim().toLowerCase();
+	let list = traces.map((r, i) => ({ r, i }));
+	if (libOnly === 'shown') list = list.filter(e => e.r.shown);
+	if (q) list = list.filter(e => `${e.r.name} ${e.r.notes} ${(e.r.texts || []).map(w => w.text).join(' ')}`.toLowerCase().includes(q));
+	const size = r => r.points.length + r.strokes.length + (r.texts || []).length;
+	if (libSort === 'name') list.sort((a, b) => a.r.name.localeCompare(b.r.name));
+	else if (libSort === 'size') list.sort((a, b) => size(b.r) - size(a.r));
+	else list.sort((a, b) => (b.r.at || 0) - (a.r.at || 0));
+	return list;
+}
+
+function libraryHTML() {
+	const list = libraryList();
+	const shown = traces.filter(r => r.shown).length;
+	const chip = (act, id, now, label) => `<button class="chip tiny${now ? ' active' : ''}" data-act="${act}" data-id="${id}" aria-pressed="${now}">${label}</button>`;
+	const cards = list.length
+		? `<div class="trace-grid">${list.map(e => traceCard(e.r, e.i)).join('')}</div>`
+		: `<p class="dialog-copy">Nothing here answers to “${esc(libQ)}”${libOnly === 'shown' ? ', among the ones on the chart' : ''}.</p>`;
+	return `<div class="lib-bar">
+			<input class="field" type="search" placeholder="Search names, notes, and the words written on them"
+				value="${esc(libQ)}" data-lib-search aria-label="Search the traces">
+		</div>
+		<div class="lib-bar">
+			<span class="lib-label">Sort</span>
+			${chip('trace-lib-sort', 'recent', libSort === 'recent', 'newest')}
+			${chip('trace-lib-sort', 'name', libSort === 'name', 'name')}
+			${chip('trace-lib-sort', 'size', libSort === 'size', 'biggest')}
+			<span class="lib-label">Show</span>
+			${chip('trace-lib-only', 'all', libOnly === 'all', `all ${traces.length}`)}
+			${chip('trace-lib-only', 'shown', libOnly === 'shown', `on the chart ${shown}`)}
+		</div>
+		${cards}`;
+}
+
+function refreshLibrary() {
+	const box = document.querySelector('[data-trace-lib]');
+	if (!box) return;
+	const was = box.querySelector('[data-lib-search]');
+	const caret = was && document.activeElement === was ? was.selectionStart : null;
+	box.innerHTML = libraryHTML();
+	if (caret !== null) {
+		const now = box.querySelector('[data-lib-search]');
+		now.focus();
+		now.setSelectionRange(caret, caret);
+	}
+}
+
+/** Every trace kept on this browser, with room to look at them. */
+export function openTraceLibrary() {
+	libOpen = true;
+	const host = openDialog(`
+		<h2>The traces you have kept</h2>
+		<p class="dialog-copy">${traces.length} of ${TRACES_MAX} on this browser. Open one to draw on it, or open its eye to lay it over the chart beside whatever else you are drawing.</p>
+		<div data-trace-lib>${libraryHTML()}</div>
+		<div class="dialog-actions">
+			${traces.some(r => r.shown) ? '<button class="ghost-btn" data-act="trace-eye-none">Clear the chart</button>' : ''}
+			<button class="ghost-btn" data-close>Close</button>
+		</div>`, { onDismiss: () => { libOpen = false; } });
+	// The one dialog in the app that wants the width: a grid of drawings
+	// reads three across, and two of them is a list with gaps.
+	const boxEl = host.querySelector('.dialog-box');
+	if (boxEl) boxEl.classList.add('wide');
+	host.addEventListener('input', evt => {
+		const el = evt.target.closest('[data-lib-search]');
+		if (!el) return;
+		libQ = el.value.slice(0, 40);
+		refreshLibrary();
+	});
+	const search = host.querySelector('[data-lib-search]');
+	if (search) search.focus();
 }
 
 /** Rename a kept trace, in place on the shelf. */
 function renameTraceDialog(i) {
 	const r = traces[i];
 	if (!r) return;
+	// Asked for from the library, the library is what you go back to.
+	const back = libOpen;
+	libOpen = false;
 	const host = openDialog(`
 		<h2>Rename this trace</h2>
 		<p class="dialog-copy">${esc(r.name || 'untitled')} — ${r.points.length} stop${r.points.length === 1 ? '' : 's'}, kept ${keptWhen(r.at)}.</p>
@@ -1413,6 +1558,7 @@ function renameTraceDialog(i) {
 		refreshSide();
 		paintMap();
 		toast(`Now “${name}”`);
+		if (back) openTraceLibrary();
 	};
 	host.querySelector('[data-trace-rename]').addEventListener('click', save);
 	input.addEventListener('keydown', evt => { if (evt.key === 'Enter') save(); });
@@ -2565,6 +2711,13 @@ export function wireMap() {
 			markDrag = null;
 			document.querySelectorAll('[data-map].moving-mark').forEach(el => el.classList.remove('moving-mark'));
 			if (evt) touching.delete(evt.pointerId);
+			// Set down on a headland, a stop steps off it; a word may
+			// stand wherever it is put.
+			const m = markBySeq(kind, seq);
+			if (m && kind === 'stop') {
+				const wet = onWater(m);
+				if (wet) { m.x = wet.x; m.y = wet.y; }
+			}
 			if (!moved && kind === 'word' && markBySeq('word', seq)) editing = seq;
 			persist();
 			refreshSide();
