@@ -2217,7 +2217,7 @@ export function mapCentreOn(npcId) {
 }
 
 export function setMapMode(id) {
-	if (!['sail', 'route', 'today', 'hunt'].includes(id)) return;
+	if (!['sail', 'route', 'today', 'hunt', 'trace'].includes(id)) return;
 	mode = id;
 	persist();
 	refreshSide();

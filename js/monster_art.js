@@ -16,6 +16,7 @@ export const monsterArt = {
 	'saltwater-crocodile': 'monster-saltwater-crocodile.webp',
 	'lekrashan': 'monster-lekrashan.webp',
 	'khan': 'monster-khan.webp',
+	'vell': 'monster-vell.webp',   // NPC 28732 on the codex
 	'young-hekaru': 'monster-hekaru.webp',
 	'young-ocean-stalker': 'monster-ocean-stalker.webp',
 	'young-candidum': 'monster-candidum.webp',
