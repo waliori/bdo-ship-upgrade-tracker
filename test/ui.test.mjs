@@ -238,6 +238,25 @@ test('the hunt courses and grounds stay above the tiles through a zoom', async (
 	await context.close();
 });
 
+test('a species without spawn points still marks its ground when picked', async () => {
+	const { page, context, errors } = await open('#map');
+	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: false, habitatsOn: false })); });
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('[data-map-layer]'); await wait(600);
+	await page.evaluate(() => import('/js/screen-map.js').then(m => { m.showHunt('saltwater-crocodile'); m.paintMap(); })); await wait(1800);
+	// The fit centres on the ground; the hunt canvas must have ink there.
+	const painted = await page.evaluate(() => {
+		const cv = document.querySelector('.map-hunt-layer'); if (!cv) return 'no canvas';
+		const dpr = window.devicePixelRatio || 1, g = cv.getContext('2d');
+		const cx = Math.round(cv.width / 2), cy = Math.round(cv.height / 2);
+		const d = g.getImageData(cx - 30 * dpr, cy - 30 * dpr, 60 * dpr, 60 * dpr).data;
+		let ink = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) ink++;
+		return ink;
+	});
+	assert.ok(typeof painted === 'number' && painted > 20, `ink at the crocodiles' ground: ${painted}`);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('habitat markers never print on top of one another, at any zoom', async () => {
 	const { page, context, errors } = await open('#map');
 	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: false, habitatsOn: true })); });

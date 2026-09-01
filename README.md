@@ -240,10 +240,11 @@ open water — the codex draws a region's spawns as a grid that runs
 straight over islands — and each marker stands at the centre of a
 species' spawn cluster, on the water; markers that would print on top
 of one another at a given zoom share one picture with a count. The
-Lyngbakr Habitat of the 27 August 2026 patch is where the crocodiles
-were, as the patch note says (the Nineshark and Black Rust spawns the
-codex still lists there are left out), and the crocodiles' new ground
-north of Cheongsa Island is placed off Cheongsa's pier, roughly, until
+Lyngbakr Habitat of the 27 August 2026 patch is twelve positions
+bookmarked on the game's own map, north of the crocodiles' old ground
+(the Nineshark and Black Rust spawns the codex still lists in that old
+ground are left out), and the crocodiles' new ground is placed off the
+game map's icon north-north-west of Cheongsa Island, roughly, until
 the codex carries it. The Hunt tab can also draw all 58 **wharf
 managers** (repair, rations, sailors) and guild wharves, named by
 harbour, and the Route tab names the nearest wharf to the last

@@ -1320,6 +1320,23 @@ function paintHunt(layer, size) {
 		g.fillStyle = m.colour;
 		g.shadowColor = 'rgba(0,0,0,0.7)';
 		g.shadowBlur = 3;
+		// A species the codex has no points for -- the crocodiles since
+		// their move -- is drawn at its ground instead: a dashed ring,
+		// since the spot is approximate, so picking it never shows an
+		// empty sea.
+		if (!m.points.length && m.zones) {
+			for (const [x, y] of m.zones) {
+				const at = project(mapState, size, x, y);
+				if (at.left < -60 || at.top < -60 || at.left > size.w + 60 || at.top > size.h + 60) continue;
+				g.save();
+				g.setLineDash([6, 5]);
+				g.lineWidth = 2;
+				g.beginPath(); g.arc(at.left, at.top, 22, 0, Math.PI * 2); g.stroke();
+				g.restore();
+				g.beginPath(); g.arc(at.left, at.top, r, 0, Math.PI * 2); g.fill();
+			}
+			continue;
+		}
 		for (const [x, y] of m.points) {
 			const at = project(mapState, size, x, y);
 			if (at.left < -10 || at.top < -10 || at.left > size.w + 10 || at.top > size.h + 10) continue;

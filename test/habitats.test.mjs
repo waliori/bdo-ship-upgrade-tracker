@@ -59,6 +59,8 @@ test('the species the codex has no points for are marked by hand, roughly', () =
 		assert.ok(!m.zones, `${m.key} is marked by its spawns, not a hand-placed zone`);
 		assert.ok(m.points.length > 0, `${m.key} has spawn points`);
 	}
-	assert.ok(monsters.find(m => m.key === 'lyngbakr').points.length >= 50, 'the Lyngbakr ground is the old crocodile ground');
+	const ly = monsters.find(m => m.key === 'lyngbakr');
+	assert.equal(ly.points.length, 12, 'the twelve positions bookmarked in game');
+	assert.ok(ly.points.every(([, y]) => y < 15000), 'north of the old crocodile ground');
 	assert.ok(monsterArt.lyngbakr, 'and a picture');
 });

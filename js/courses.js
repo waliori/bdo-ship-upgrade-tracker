@@ -54,12 +54,12 @@ export const courses = [
 	},
 	{
 		id: 'crocodile',
-		name: 'Crocodile run',
-		sub: 'the northern detour through the wrecks',
-		note: 'Off the current at Pakio’s raft, north to the Saltwater Crocodile grounds for the weekly, then down the chain of wrecks -- Lantinia, Heracio, Popo -- to Lekrashan.',
+		name: 'Lyngbakr run',
+		sub: 'the northern detour through the wrecks -- the old crocodile run',
+		note: 'Off the current at Pakio’s raft, north to the Lyngbakr Habitat (the crocodiles’ ground until 27 August 2026, when the Lyngbakrs took it), then down the chain of wrecks -- Lantinia, Heracio, Popo -- to Lekrashan.',
 		points: [
 			{ name: 'Pakio (combat raft)', x: 55120, y: 25866 },
-			{ name: 'Saltwater Crocodiles', x: 48825, y: 13918, stop: true },
+			{ name: 'Lyngbakr Habitat', x: 49933, y: 10654, stop: true },
 			{ name: 'Lantinia (combat raft)', x: 43212, y: 26893 },
 			{ name: 'Heracio (adrift vessel)', x: 40189, y: 22992 },
 			{ name: 'Popo (Old Moon carrack)', x: 33948, y: 28948 },
