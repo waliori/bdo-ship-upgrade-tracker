@@ -403,6 +403,9 @@ function wire() {
 		}
 		const act = el.getAttribute('data-act');
 
+		// Everything the trace panel does answers to the one handler.
+		if (act.startsWith('trace-') && traceAction(act, el)) return;
+
 		// Picking anything out of the More menu puts it away.
 		if (act !== 'more' && el.closest('#more-menu')) {
 			document.getElementById('more-menu').hidden = true;
@@ -499,7 +502,6 @@ function wire() {
 			case 'map-wharves': setMapWharves(el.dataset.id); return;
 			case 'map-habitats': setMapHabitats(); return;
 			case 'map-labels': setMapLabels(); return;
-			case 'trace-tool': case 'trace-undo': case 'trace-clear': case 'trace-point-del': case 'trace-save': case 'trace-load': case 'trace-del': case 'trace-link': case 'trace-export': traceAction(act, el); return;
 			case 'map-setup-pick': openSetupPicker(() => render()); return;
 			case 'map-side-flip': flipMapSide(); return;
 			case 'map-hunt': setMapHunt(el.dataset.id); return;

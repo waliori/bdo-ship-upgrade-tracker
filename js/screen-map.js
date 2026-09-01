@@ -68,11 +68,16 @@ let miniOn = true;            // the minimap is shown
 let miniPos = null;           // where it was dragged to, { x, y } from the box's corner, else the default corner
 let measuring = false;        // the ruler is armed
 let measurePts = [];          // the two ends of a measurement, in world space
-let trace = null;             // the route being traced by hand: { name, notes, points: [{ x, y, note }], strokes: [[x, y, ...]] }
+let trace = null;             // the route being traced by hand -- see cleanTrace for its shape
 let traces = [];              // traced routes kept by name, newest first
 const TRACES_MAX = 12;
-let traceTool = null;         // 'point' adds a stop per click, 'pen' draws while the pointer is down
+let traceTool = null;         // 'point' adds a stop per click, 'pen' draws while dragged, 'text' writes on the sea
 let penStroke = null;         // the stroke under the pointer right now, in world space
+let inkColour = '#ffd77a';    // the ink every new stop, stroke and word is drawn in
+let inkWidth = 2.5;           // how thick the pen draws
+let inkSize = 14;             // how big a word is written
+let inkPlate = true;          // a word sits on a dark plate, to be read over bright water
+let editing = 0;              // the seq of the word being typed on the chart, 0 for none
 
 /** The barter day: the game's lists refresh at 06:00 UTC, so "today"
  *  rolls over then, not at midnight. */
@@ -105,6 +110,10 @@ function restore() {
 		labelsOn = s.labelsOn !== false;
 		if (s.trace && typeof s.trace === 'object') trace = cleanTrace(s.trace);
 		if (Array.isArray(s.traces)) traces = s.traces.map(cleanTrace).filter(Boolean).slice(0, TRACES_MAX);
+		if (INKS.includes(s.inkColour)) inkColour = s.inkColour;
+		if (WIDTHS.some(w => w.v === s.inkWidth)) inkWidth = s.inkWidth;
+		if (SIZES.some(z => z.v === s.inkSize)) inkSize = s.inkSize;
+		inkPlate = s.inkPlate !== false;
 		sideRight = s.sideRight === true;
 		if (s.tradesMode === 'all') tradesMode = 'all';
 		miniOn = s.miniOn !== false;
@@ -120,7 +129,7 @@ function restore() {
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, sideRight, tradesMode, savedRoutes, miniOn, miniPos, trace, traces }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, sideRight, tradesMode, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -350,7 +359,7 @@ export function renderMap() {
 		</div>
 	</div>`;
 
-	return head + `<div class="panel map-panel"><div class="map${measuring ? ' measuring' : ''}${sideRight ? ' side-right' : ''}${traceTool ? ` tracing tool-${traceTool}` : ''}" id="map" data-map>
+	return head + `<div class="panel map-panel"><div class="map${measuring ? ' measuring' : ''}${sideRight ? ' side-right' : ''}${mode === 'trace' ? ' free-hand' : ''}${traceTool ? ` tracing tool-${traceTool}` : ''}" id="map" data-map>
 		<div class="map-layer" data-map-layer></div>
 		<div class="map-side-slot" data-map-side>${sideHTML(marks)}</div>
 		<div class="map-tip" data-map-tip hidden></div>
@@ -800,36 +809,101 @@ export function applyMapLink(fragment) {
 
 const num = (v, lo, hi) => { const n = Number(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, Math.round(n))) : null; };
 
-/** A trace as stored, bounded: forty stops, twelve strokes of a few
- *  hundred points, a name and notes of sensible length. */
+// The ink a trace is drawn in: eight colours that hold up over blue
+// water, three pen widths, three sizes of writing. A closed set, so a
+// trace off a stranger's link can only carry ink this chart knows.
+const INKS = ['#ffd77a', '#7ef0d4', '#7ec8f0', '#c6a0ff', '#ff8f8f', '#9ce87a', '#ff9de0', '#ffffff'];
+const WIDTHS = [{ v: 1.5, label: 'Fine' }, { v: 2.5, label: 'Medium' }, { v: 4.5, label: 'Bold' }];
+const SIZES = [{ v: 11, label: 'S' }, { v: 14, label: 'M' }, { v: 19, label: 'L' }];
+const LINE_INK = '#7ef0d4';
+const inkOf = (c, fallback = INKS[0]) => (INKS.includes(c) ? c : fallback);
+const widthOf = w => (WIDTHS.some(x => x.v === Number(w)) ? Number(w) : 2.5);
+const sizeOf = z => (SIZES.some(x => x.v === Number(z)) ? Number(z) : 14);
+
+const TRACE_STOPS = 40, TRACE_STROKES = 24, TRACE_WORDS = 24;
+
+/** A trace as stored, bounded: forty stops, two dozen strokes of a few
+ *  hundred points, two dozen words, a name and notes of sensible
+ *  length. Every mark carries `seq`, the order it was made in, so undo
+ *  can walk back through stops, strokes and words as they were laid
+ *  down. A trace saved before the ink existed has none of that: its
+ *  strokes are bare arrays of coordinates and its marks are numbered
+ *  as they are read. */
 function cleanTrace(raw) {
 	if (!raw || typeof raw !== 'object') return null;
-	const points = (Array.isArray(raw.points) ? raw.points : []).slice(0, 40).map(p => {
+	let seq = 0;
+	const stamp = v => { const n = num(v, 1, 1e9); const s = n || seq + 1; seq = Math.max(seq, s); return s; };
+	const points = (Array.isArray(raw.points) ? raw.points : []).slice(0, TRACE_STOPS).map(p => {
 		const x = num(p && p.x, 0, 200000), y = num(p && p.y, 0, 200000);
 		if (x === null || y === null) return null;
 		const out = { x, y };
 		if (p.note && typeof p.note === 'string') out.note = p.note.slice(0, 120);
+		if (INKS.includes(p.colour)) out.colour = p.colour;
+		out.seq = stamp(p.seq);
 		return out;
 	}).filter(Boolean);
-	const strokes = (Array.isArray(raw.strokes) ? raw.strokes : []).slice(0, 12).map(st => {
-		if (!Array.isArray(st)) return null;
+	const strokes = (Array.isArray(raw.strokes) ? raw.strokes : []).slice(0, TRACE_STROKES).map(st => {
+		const bare = Array.isArray(st);
+		const src = bare ? st : (st && Array.isArray(st.pts) ? st.pts : null);
+		if (!src) return null;
 		const flat = [];
-		for (let i = 0; i + 1 < st.length && flat.length < 600; i += 2) {
-			const x = num(st[i], 0, 200000), y = num(st[i + 1], 0, 200000);
+		for (let i = 0; i + 1 < src.length && flat.length < 600; i += 2) {
+			const x = num(src[i], 0, 200000), y = num(src[i + 1], 0, 200000);
 			if (x !== null && y !== null) flat.push(x, y);
 		}
-		return flat.length >= 4 ? flat : null;
+		if (flat.length < 4) return null;
+		return {
+			pts: flat,
+			colour: inkOf(bare ? null : st.colour),
+			width: widthOf(bare ? null : st.width),
+			seq: stamp(bare ? null : st.seq)
+		};
 	}).filter(Boolean);
-	if (!points.length && !strokes.length && !raw.name) return null;
+	const texts = (Array.isArray(raw.texts) ? raw.texts : []).slice(0, TRACE_WORDS).map(w => {
+		const x = num(w && w.x, 0, 200000), y = num(w && w.y, 0, 200000);
+		if (x === null || y === null) return null;
+		const words = String(w.text || '').slice(0, 60).trim();
+		if (!words) return null;
+		return { x, y, text: words, colour: inkOf(w.colour), size: sizeOf(w.size), plate: w.plate !== false, seq: stamp(w.seq) };
+	}).filter(Boolean);
+	if (!points.length && !strokes.length && !texts.length && !raw.name) return null;
 	return {
 		name: String(raw.name || '').slice(0, 40),
 		notes: String(raw.notes || '').slice(0, 400),
-		points, strokes,
+		points, strokes, texts,
+		seq,
 		at: Number(raw.at) || Date.now()
 	};
 }
 
-const blankTrace = () => ({ name: '', notes: '', points: [], strokes: [], at: Date.now() });
+const blankTrace = () => ({ name: '', notes: '', points: [], strokes: [], texts: [], seq: 0, at: Date.now() });
+
+/** The trace being drawn on, made if there is none, and always with
+ *  every list a trace has -- one kept from an older version may not. */
+function liveTrace() {
+	if (!trace) trace = blankTrace();
+	if (!Array.isArray(trace.points)) trace.points = [];
+	if (!Array.isArray(trace.strokes)) trace.strokes = [];
+	if (!Array.isArray(trace.texts)) trace.texts = [];
+	return trace;
+}
+
+/** The next number in the order marks were made in. */
+function bumpSeq() {
+	const t = liveTrace();
+	t.seq = (Number(t.seq) || 0) + 1;
+	return t.seq;
+}
+
+/** Every mark on the trace, whatever kind, newest last. */
+function traceMarks(t) {
+	if (!t) return [];
+	return [
+		...(t.points || []).map((it, i) => ({ it, i, list: t.points, kind: 'stop' })),
+		...(t.strokes || []).map((it, i) => ({ it, i, list: t.strokes, kind: 'stroke' })),
+		...(t.texts || []).map((it, i) => ({ it, i, list: t.texts, kind: 'word' }))
+	].sort((a, b) => (Number(a.it.seq) || 0) - (Number(b.it.seq) || 0));
+}
 
 /** The traced stops as the route tab counts them: length and time. */
 function traceLength() {
@@ -839,39 +913,58 @@ function traceLength() {
 
 function traceHTML() {
 	const t = trace || blankTrace();
+	const words = t.texts || [];
+	const dot = id => (id === 'point' ? LINE_INK : inkColour);
 	const tool = (id, label, hint) => `<button class="map-course${traceTool === id ? ' on' : ''}" data-act="trace-tool" data-id="${id}" aria-pressed="${traceTool === id}">
-		<span class="map-course-dot" style="background:${id === 'pen' ? '#ffd77a' : '#7ef0d4'}"></span>
+		<span class="map-course-dot" style="background:${dot(id)}"></span>
 		<span class="map-row-main"><span class="map-row-name">${label}</span><span class="map-row-sub">${hint}</span></span></button>`;
+	const swatch = c => `<button class="map-ink${c === inkColour ? ' on' : ''}" data-act="trace-ink" data-colour="${c}" style="--ink:${c}" aria-pressed="${c === inkColour}" aria-label="Draw in ${c}" title="Draw in this colour"></button>`;
+	const pick = (act, list, now, unit) => list.map(o => `<button class="map-pen${o.v === now ? ' on' : ''}" data-act="${act}" data-v="${o.v}" aria-pressed="${o.v === now}" title="${o.label}">${
+		unit === 'pen' ? `<span class="map-pen-bar" style="height:${Math.max(2, o.v)}px;background:${inkColour}"></span>` : `<span style="font-size:${Math.round(o.v * 0.8)}px">${o.label}</span>`
+	}</button>`).join('');
 	const stops = t.points.map((p, i) => `<div class="map-trace-stop">
-		<span class="map-trace-n">${i + 1}</span>
+		<span class="map-trace-n" style="border-color:${p.colour || LINE_INK};color:${p.colour || LINE_INK}">${i + 1}</span>
 		<input class="field small" type="text" maxlength="120" placeholder="a note for this stop" value="${esc(p.note || '')}" data-act="trace-point-note" data-i="${i}" aria-label="Note for stop ${i + 1}">
 		<button class="map-x" data-act="trace-point-del" data-i="${i}" aria-label="Remove stop ${i + 1}">×</button>
+	</div>`).join('');
+	const wordRows = words.map((w, i) => `<div class="map-trace-stop">
+		<button class="map-trace-n word" style="border-color:${w.colour};color:${w.colour}" data-act="trace-text-ink" data-i="${i}" aria-label="Restyle word ${i + 1}" title="Give this word the ink and size chosen above">✎</button>
+		<input class="field small" type="text" maxlength="60" placeholder="the word on the chart" value="${esc(w.text)}" data-act="trace-text" data-i="${i}" aria-label="Word ${i + 1}">
+		<button class="map-x" data-act="trace-text-del" data-i="${i}" aria-label="Remove word ${i + 1}">×</button>
 	</div>`).join('');
 	const m = traceLength();
 	const speed = routeSpeed();
 	const time = m ? fmtRange(...sailRange(m, speed.total, sailCal(), Number(store.getSetting('sailCal', null)) > 0)) : '';
-	const has = t.points.length || t.strokes.length;
+	const has = t.points.length || t.strokes.length || words.length;
 	const saved = traces.length ? `<div class="map-courses-head">Kept on this browser</div>${traces.map((r, i) => `<div class="map-saved-row">
-		<button class="map-saved-load" data-act="trace-load" data-i="${i}" title="Open it on the chart">${esc(r.name || 'untitled')} <span class="row-sub">· ${r.points.length} stop${r.points.length === 1 ? '' : 's'}${r.strokes.length ? ` · ${r.strokes.length} stroke${r.strokes.length === 1 ? '' : 's'}` : ''}</span></button>
+		<button class="map-saved-load" data-act="trace-load" data-i="${i}" title="Open it on the chart">${esc(r.name || 'untitled')} <span class="row-sub">· ${r.points.length} stop${r.points.length === 1 ? '' : 's'}${r.strokes.length ? ` · ${r.strokes.length} stroke${r.strokes.length === 1 ? '' : 's'}` : ''}${(r.texts || []).length ? ` · ${r.texts.length} word${r.texts.length === 1 ? '' : 's'}` : ''}</span></button>
 		<button class="map-x" data-act="trace-del" data-i="${i}" aria-label="Forget ${esc(r.name || 'this trace')}">×</button>
 	</div>`).join('')}` : '';
 	return `<div class="map-courses">
-		<div class="map-courses-head">Tools <span class="map-courses-credit">every point is a place on the chart</span></div>
+		<div class="map-courses-head">Tools <span class="map-courses-credit">the islands sit still while you draw</span></div>
 		${tool('point', 'Add stops', 'click the sea to put a numbered stop there')}
 		${tool('pen', 'Draw', 'drag to draw a line; it stays with the chart')}
+		${tool('text', 'Write', 'click the sea and type; the word stays where you put it')}
+		<div class="map-inks" role="group" aria-label="Ink colour">${INKS.map(swatch).join('')}</div>
+		<div class="map-style-row">
+			<span class="map-style-label">Stroke</span><span class="map-pens">${pick('trace-width', WIDTHS, inkWidth, 'pen')}</span>
+			<span class="map-style-label">Words</span><span class="map-pens">${pick('trace-size', SIZES, inkSize, 'text')}</span>
+			<button class="map-pen wide${inkPlate ? ' on' : ''}" data-act="trace-plate" aria-pressed="${inkPlate}" title="A dark plate behind a word, to read it over bright water">plate</button>
+		</div>
 		<div class="map-side-btns">
-			<button class="ghost-btn" data-act="trace-undo" ${has ? '' : 'disabled'} title="Take back the last stop or stroke">↶ Undo</button>
+			<button class="ghost-btn" data-act="trace-undo" ${has ? '' : 'disabled'} title="Take back the last mark, whatever kind it was">↶ Undo</button>
 			<button class="ghost-btn" data-act="trace-clear" ${has ? '' : 'disabled'}>Clear</button>
 		</div>
 	</div>
 	<div class="map-courses">
 		<input class="field" type="text" maxlength="40" placeholder="Name this route" value="${esc(t.name)}" data-act="trace-name" aria-label="Name of the traced route">
 		<textarea class="field map-trace-notes" maxlength="400" rows="2" placeholder="Notes — what it is for, when to sail it, what to watch" data-act="trace-notes" aria-label="Notes">${esc(t.notes)}</textarea>
-		${t.points.length ? `<div class="map-trace-stops">${stops}</div>` : '<p class="map-hint">No stops yet. Pick <b>Add stops</b> and click the sea; pick <b>Draw</b> and drag to sketch.</p>'}
+		${t.points.length ? `<div class="map-trace-stops">${stops}</div>` : '<p class="map-hint">No stops yet. Pick <b>Add stops</b> and click the sea, <b>Draw</b> and drag to sketch, or <b>Write</b> and type on the water.</p>'}
+		${words.length ? `<div class="map-courses-head">Words on the chart</div><div class="map-trace-stops">${wordRows}</div>` : ''}
 		${m ? `<p class="map-hint">${esc(fmtDistance(m))} stop to stop${time ? ` · ≈ ${esc(time)} at ${speed.total}%` : ''}</p>` : ''}
 		<div class="map-side-btns">
 			<button class="act small" data-act="trace-save" ${has ? '' : 'disabled'} title="Keep it on this browser, by name">Keep</button>
-			<button class="ghost-btn" data-act="trace-link" ${has ? '' : 'disabled'} title="A link that carries the whole trace — stops, notes and drawing">Copy link</button>
+			<button class="ghost-btn" data-act="trace-link" ${has ? '' : 'disabled'} title="A link that carries the whole trace — stops, notes, drawing and words">Copy link</button>
 			<button class="ghost-btn" data-act="trace-export" ${has ? '' : 'disabled'} title="A JSON file of it">File</button>
 			<button class="ghost-btn" data-act="map-game" data-source="trace" ${t.points.length ? '' : 'disabled'} title="Write the stops into the game's world map as favourites or a loop">⚑ To the game</button>
 		</div>
@@ -880,7 +973,8 @@ function traceHTML() {
 }
 
 /** The trace on the chart: the line through its stops, the stops
- *  themselves with their notes, and every stroke drawn. */
+ *  themselves with their notes, every stroke drawn, and every word
+ *  written -- each in the ink it was made with. */
 function paintTrace(layer, size) {
 	let box = layer._traceBox;
 	if (!box || box.parentNode !== layer) {
@@ -888,67 +982,149 @@ function paintTrace(layer, size) {
 		box.className = 'map-trace-layer';
 		layer.appendChild(box);
 	}
+	// The drawing is rebuilt whole at every paint; the word being typed
+	// is not, so it lives beside it rather than inside it.
+	let art = box._art;
+	if (!art || art.parentNode !== box) {
+		art = box._art = document.createElement('div');
+		art.className = 'map-trace-art';
+		box.appendChild(art);
+	}
 	const t = trace;
-	if (!t || (!t.points.length && !t.strokes.length && !penStroke)) { box.innerHTML = ''; return; }
+	if (!t || (!t.points.length && !t.strokes.length && !(t.texts || []).length && !penStroke)) {
+		art.innerHTML = '';
+		paintWriting(box, size);
+		return;
+	}
 	let html = '';
 	const P = p => project(mapState, size, p.x, p.y);
 	if (t.points.length > 1) {
 		const d = routePath(t.points.map(P), size);
-		html += `<svg class="map-route map-trace-line"><path class="map-trace-glow" d="${d}"></path><path class="map-trace-path" d="${d}"></path></svg>`;
+		const c = t.points[0].colour || LINE_INK;
+		html += `<svg class="map-route map-trace-line"><path class="map-trace-glow" style="stroke:${c}" d="${d}"></path><path class="map-trace-path" style="stroke:${c}" d="${d}"></path></svg>`;
 	}
-	const strokes = penStroke ? [...t.strokes, penStroke] : t.strokes;
-	for (const st of strokes) {
+	const live = penStroke ? [...t.strokes, { pts: penStroke, colour: inkColour, width: inkWidth }] : t.strokes;
+	for (const st of live) {
+		const pts = Array.isArray(st) ? st : st.pts;
 		let d = '';
-		for (let i = 0; i + 1 < st.length; i += 2) {
-			const at = project(mapState, size, st[i], st[i + 1]);
+		for (let i = 0; i + 1 < pts.length; i += 2) {
+			const at = project(mapState, size, pts[i], pts[i + 1]);
 			d += `${d ? ' L' : 'M'}${at.left.toFixed(1)} ${at.top.toFixed(1)}`;
 		}
-		if (d) html += `<svg class="map-route map-trace-line"><path class="map-trace-stroke" d="${d}"></path></svg>`;
+		if (d) html += `<svg class="map-route map-trace-line"><path class="map-trace-stroke" style="stroke:${inkOf(st.colour)};stroke-width:${widthOf(st.width)}" d="${d}"></path></svg>`;
 	}
+	const onScreen = at => at.left > -40 && at.top > -40 && at.left < size.w + 40 && at.top < size.h + 40;
 	t.points.forEach((p, i) => {
 		const at = P(p);
-		if (at.left < -40 || at.top < -40 || at.left > size.w + 40 || at.top > size.h + 40) return;
-		html += `<span class="map-trace-dot${p.note ? ' noted' : ''}" style="left:${Math.round(at.left)}px;top:${Math.round(at.top)}px" title="${esc(p.note || `stop ${i + 1}`)}">${i + 1}${p.note ? `<span class="map-trace-note">${esc(p.note)}</span>` : ''}</span>`;
+		if (!onScreen(at)) return;
+		const c = p.colour || LINE_INK;
+		html += `<span class="map-trace-dot${p.note ? ' noted' : ''}" style="left:${Math.round(at.left)}px;top:${Math.round(at.top)}px;border-color:${c};color:${c}" title="${esc(p.note || `stop ${i + 1}`)}">${i + 1}${p.note ? `<span class="map-trace-note">${esc(p.note)}</span>` : ''}</span>`;
 	});
-	box.innerHTML = html;
+	for (const w of (t.texts || [])) {
+		if (w.seq === editing) continue;          // that one is an input, below
+		const at = P(w);
+		if (!onScreen(at) || !w.text) continue;
+		html += `<span class="map-trace-word${w.plate ? ' plate' : ''}" style="left:${Math.round(at.left)}px;top:${Math.round(at.top)}px;color:${inkOf(w.colour)};font-size:${sizeOf(w.size)}px">${esc(w.text)}</span>`;
+	}
+	art.innerHTML = html;
+	paintWriting(box, size);
+}
+
+/** The word being typed is a real input standing on the chart. It is
+ *  kept across paints -- rebuilt with the rest it would lose the caret
+ *  at every pan -- and only moved. */
+function paintWriting(box, size) {
+	const item = editing && trace ? (trace.texts || []).find(w => w.seq === editing) : null;
+	let edit = box._edit;
+	if (edit && (!item || box._editSeq !== editing || edit.parentNode !== box)) { edit.remove(); edit = box._edit = null; }
+	if (!item) return;
+	if (!edit) {
+		edit = box._edit = document.createElement('input');
+		box._editSeq = editing;
+		edit.className = 'map-trace-write';
+		edit.type = 'text';
+		edit.maxLength = 60;
+		edit.placeholder = 'write here';
+		edit.setAttribute('aria-label', 'Word on the chart');
+		edit.value = item.text || '';
+		edit.addEventListener('input', () => { item.text = edit.value.slice(0, 60); });
+		edit.addEventListener('keydown', e => {
+			if (e.key === 'Enter') { e.preventDefault(); endWriting(); }
+			else if (e.key === 'Escape') { e.preventDefault(); item.text = ''; endWriting(); }
+			e.stopPropagation();
+		});
+		edit.addEventListener('blur', () => endWriting());
+		box.appendChild(edit);
+		setTimeout(() => { if (box._edit === edit) edit.focus(); }, 0);
+	}
+	const at = project(mapState, size, item.x, item.y);
+	edit.style.left = `${Math.round(Math.max(4, Math.min(size.w - 130, at.left)))}px`;
+	edit.style.top = `${Math.round(Math.max(4, Math.min(size.h - 30, at.top)))}px`;
+	edit.style.color = inkOf(item.colour);
+	edit.style.fontSize = `${sizeOf(item.size)}px`;
+}
+
+/** Done typing: an empty word is no word at all, so it goes. */
+function endWriting() {
+	if (!editing) return;
+	const t = liveTrace();
+	const w = t.texts.find(x => x.seq === editing);
+	editing = 0;
+	if (w && !String(w.text || '').trim()) t.texts = t.texts.filter(x => x !== w);
+	persist();
+	refreshSide();
+	paintMap();
+}
+
+function atSea(host, clientX, clientY) {
+	const box = host.getBoundingClientRect();
+	const p = unproject({ w: box.width, h: box.height }, clientX - box.left, clientY - box.top);
+	return { x: Math.round(p.x), y: Math.round(p.y) };
 }
 
 function traceAdd(host, clientX, clientY) {
-	const box = host.getBoundingClientRect();
-	const p = unproject({ w: box.width, h: box.height }, clientX - box.left, clientY - box.top);
-	if (!trace) trace = blankTrace();
-	if (trace.points.length >= 40) return toast('Forty stops is the most a trace holds');
-	trace.points.push({ x: Math.round(p.x), y: Math.round(p.y) });
+	const t = liveTrace();
+	if (t.points.length >= TRACE_STOPS) return toast(`${TRACE_STOPS} stops is the most a trace holds`);
+	t.points.push({ ...atSea(host, clientX, clientY), colour: inkColour, seq: bumpSeq() });
+	persist();
+	refreshSide();
+	paintMap();
+}
+
+function textAdd(host, clientX, clientY) {
+	const t = liveTrace();
+	if (t.texts.length >= TRACE_WORDS) return toast(`${TRACE_WORDS} words is the most a trace holds`);
+	const w = { ...atSea(host, clientX, clientY), text: '', colour: inkColour, size: inkSize, plate: inkPlate, seq: bumpSeq() };
+	t.texts.push(w);
+	editing = w.seq;
 	persist();
 	refreshSide();
 	paintMap();
 }
 
 function penStart(host, clientX, clientY) {
-	const box = host.getBoundingClientRect();
-	const p = unproject({ w: box.width, h: box.height }, clientX - box.left, clientY - box.top);
-	penStroke = [Math.round(p.x), Math.round(p.y)];
+	const p = atSea(host, clientX, clientY);
+	penStroke = [p.x, p.y];
 }
 
 function penMove(host, clientX, clientY) {
 	if (!penStroke) return;
-	const box = host.getBoundingClientRect();
-	const p = unproject({ w: box.width, h: box.height }, clientX - box.left, clientY - box.top);
+	const p = atSea(host, clientX, clientY);
 	// One point every few screen pixels: enough for a curve, few enough
 	// to travel in a link.
 	const scale = Math.pow(2, MAX_ZOOM - mapState.zoom);
 	const lx = penStroke[penStroke.length - 2], ly = penStroke[penStroke.length - 1];
 	if (Math.hypot(p.x - lx, p.y - ly) < 4 * scale) return;
-	if (penStroke.length < 1200) penStroke.push(Math.round(p.x), Math.round(p.y));
+	if (penStroke.length < 1200) penStroke.push(p.x, p.y);
 	schedulePaint();
 }
 
 function penEnd() {
 	if (!penStroke) return;
 	if (penStroke.length >= 4) {
-		if (!trace) trace = blankTrace();
-		if (trace.strokes.length >= 12) toast('Twelve strokes is the most a trace holds');
-		else trace.strokes.push(penStroke);
+		const t = liveTrace();
+		if (t.strokes.length >= TRACE_STROKES) toast(`${TRACE_STROKES} strokes is the most a trace holds`);
+		else t.strokes.push({ pts: penStroke, colour: inkColour, width: inkWidth, seq: bumpSeq() });
 	}
 	penStroke = null;
 	persist();
@@ -957,13 +1133,24 @@ function penEnd() {
 }
 
 export function setTraceTool(id) {
-	traceTool = traceTool === id ? null : (id === 'pen' || id === 'point' ? id : null);
+	if (editing) endWriting();
+	traceTool = traceTool === id ? null : (['pen', 'point', 'text'].includes(id) ? id : null);
 	if (traceTool && measuring) toggleMeasure();
-	const host = document.querySelector('[data-map]');
-	if (host) { host.classList.toggle('tracing', Boolean(traceTool)); host.classList.toggle('tool-pen', traceTool === 'pen'); host.classList.toggle('tool-point', traceTool === 'point'); }
+	markTraceHost();
 	if (traceTool === 'point') toast('Click the sea to add a stop');
 	if (traceTool === 'pen') toast('Drag on the sea to draw');
+	if (traceTool === 'text') toast('Click the sea, then type');
 	refreshSide();
+}
+
+/** The map box wears what is going on: which tool has the pointer, and
+ *  whether the chart's own markers are listening at all. */
+function markTraceHost() {
+	const host = document.querySelector('[data-map]');
+	if (!host) return;
+	host.classList.toggle('tracing', Boolean(traceTool));
+	for (const id of ['pen', 'point', 'text']) host.classList.toggle(`tool-${id}`, traceTool === id);
+	host.classList.toggle('free-hand', mode === 'trace');
 }
 
 /** Every trace-* action from the panel. Returns true when it was one. */
@@ -971,23 +1158,60 @@ export function traceAction(act, el) {
 	const i = Number(el && el.dataset.i);
 	switch (act) {
 		case 'trace-tool': setTraceTool(el.dataset.id); return true;
-		case 'trace-undo':
-			if (!trace) return true;
-			if (trace.strokes.length && (!trace.points.length || (trace.at || 0) < 0)) trace.strokes.pop();
-			else if (trace.points.length) trace.points.pop();
-			else trace.strokes.pop();
+		case 'trace-ink': {
+			inkColour = inkOf(el.dataset.colour);
+			const w = editing && trace ? trace.texts.find(x => x.seq === editing) : null;
+			if (w) w.colour = inkColour;
 			break;
-		case 'trace-clear': trace = null; traceTool = null; break;
+		}
+		case 'trace-width': inkWidth = widthOf(el.dataset.v); break;
+		case 'trace-size': {
+			inkSize = sizeOf(el.dataset.v);
+			const w = editing && trace ? trace.texts.find(x => x.seq === editing) : null;
+			if (w) w.size = inkSize;
+			break;
+		}
+		case 'trace-plate': {
+			inkPlate = !inkPlate;
+			const w = editing && trace ? trace.texts.find(x => x.seq === editing) : null;
+			if (w) w.plate = inkPlate;
+			break;
+		}
+		case 'trace-text-ink': {
+			const w = trace && trace.texts[i];
+			if (!w) return true;
+			w.colour = inkColour; w.size = inkSize; w.plate = inkPlate;
+			break;
+		}
+		case 'trace-text-del':
+			if (trace && trace.texts[i]) {
+				if (trace.texts[i].seq === editing) editing = 0;
+				trace.texts.splice(i, 1);
+			}
+			break;
+		case 'trace-undo': {
+			// Back through the marks in the order they were made, so a
+			// stroke drawn after a stop is the first thing taken back --
+			// not every stop first because stops are a different list.
+			const marks = traceMarks(trace);
+			const last = marks[marks.length - 1];
+			if (!last) return true;
+			if (last.kind === 'word' && last.it.seq === editing) editing = 0;
+			last.list.splice(last.i, 1);
+			break;
+		}
+		case 'trace-clear': trace = null; traceTool = null; editing = 0; break;
 		case 'trace-point-del': if (trace && trace.points[i]) trace.points.splice(i, 1); break;
 		case 'trace-save': {
-			if (!trace || (!trace.points.length && !trace.strokes.length)) return true;
-			const name = trace.name.trim() || `Trace ${traces.length + 1}`;
-			trace.name = name;
-			traces = [{ ...trace, at: Date.now() }, ...traces.filter(r => r.name !== name)].slice(0, TRACES_MAX);
+			const t = trace;
+			if (!t || (!t.points.length && !t.strokes.length && !t.texts.length)) return true;
+			const name = t.name.trim() || `Trace ${traces.length + 1}`;
+			t.name = name;
+			traces = [{ ...t, at: Date.now() }, ...traces.filter(r => r.name !== name)].slice(0, TRACES_MAX);
 			toast(`Kept “${name}”`);
 			break;
 		}
-		case 'trace-load': if (traces[i]) { trace = cleanTrace(traces[i]); pendingFit = { points: trace.points.length ? trace.points : strokePoints(trace) }; } break;
+		case 'trace-load': if (traces[i]) { trace = cleanTrace(traces[i]); editing = 0; pendingFit = { points: trace.points.length ? trace.points : traceAnchors(trace) }; } break;
 		case 'trace-del': traces = traces.filter((_, k) => k !== i); break;
 		case 'trace-link':
 			(async () => {
@@ -1014,24 +1238,40 @@ export function traceAction(act, el) {
 	return true;
 }
 
-/** A field typed into on the trace panel: the name, the notes, a stop's note. */
+/** A field typed into on the trace panel: the name, the notes, a
+ *  stop's note, a word on the chart. */
 export function traceChange(el) {
 	const act = el.dataset.act;
-	if (!['trace-name', 'trace-notes', 'trace-point-note'].includes(act)) return false;
-	if (!trace) trace = blankTrace();
-	if (act === 'trace-name') trace.name = el.value.slice(0, 40);
-	else if (act === 'trace-notes') trace.notes = el.value.slice(0, 400);
-	else { const p = trace.points[Number(el.dataset.i)]; if (p) { if (el.value.trim()) p.note = el.value.slice(0, 120); else delete p.note; } }
+	if (!['trace-name', 'trace-notes', 'trace-point-note', 'trace-text'].includes(act)) return false;
+	const t = liveTrace();
+	if (act === 'trace-name') t.name = el.value.slice(0, 40);
+	else if (act === 'trace-notes') t.notes = el.value.slice(0, 400);
+	else if (act === 'trace-text') {
+		const w = t.texts[Number(el.dataset.i)];
+		if (w) {
+			if (el.value.trim()) w.text = el.value.slice(0, 60);
+			else t.texts = t.texts.filter(x => x !== w);
+		}
+	} else { const p = t.points[Number(el.dataset.i)]; if (p) { if (el.value.trim()) p.note = el.value.slice(0, 120); else delete p.note; } }
 	persist();
 	paintMap();
 	return true;
 }
 
-const strokePoints = t => t.strokes.flatMap(st => { const out = []; for (let i = 0; i + 1 < st.length; i += 2) out.push({ x: st[i], y: st[i + 1] }); return out; });
+/** Everywhere a trace touches the chart, for fitting the view to it. */
+const traceAnchors = t => [
+	...(t.strokes || []).flatMap(st => {
+		const pts = Array.isArray(st) ? st : st.pts;
+		const out = [];
+		for (let i = 0; i + 1 < pts.length; i += 2) out.push({ x: pts[i], y: pts[i + 1] });
+		return out;
+	}),
+	...(t.texts || []).map(w => ({ x: w.x, y: w.y }))
+];
 
 function traceExportObject() {
 	const t = trace || blankTrace();
-	return { app: 'bdo-ship-upgrade-tracker', kind: 'trace', version: 1, exported: new Date().toISOString(), name: t.name, notes: t.notes, points: t.points, strokes: t.strokes };
+	return { app: 'bdo-ship-upgrade-tracker', kind: 'trace', version: 2, exported: new Date().toISOString(), name: t.name, notes: t.notes, points: t.points, strokes: t.strokes, texts: t.texts || [] };
 }
 
 export function traceLink(payload) {
@@ -1050,17 +1290,22 @@ export function applyTraceObject(data) {
 	if (!t) return null;
 	restore();
 	trace = t;
+	editing = 0;
 	mode = 'trace';
 	panelOpen = true;
-	pendingFit = { points: t.points.length ? t.points : strokePoints(t) };
+	pendingFit = { points: t.points.length ? t.points : traceAnchors(t) };
 	persist();
 	return t;
 }
 
-/** The traced stops for the game's map, numbered, named by their notes. */
-function tracePoints() {
+/** The traced marks for the game's map, numbered, named by their
+ *  notes. A loop is sailed, so it takes the stops alone; favourites are
+ *  places, so the words written on the chart come too. */
+function tracePoints(withWords = false) {
 	if (!trace) return [];
-	return trace.points.map((p, i) => ({ name: `${i + 1}: ${p.note || trace.name || 'trace'}`.slice(0, 30), x: p.x, y: p.y }));
+	const stops = trace.points.map((p, i) => ({ name: `${i + 1}: ${p.note || trace.name || 'trace'}`.slice(0, 30), x: p.x, y: p.y }));
+	if (!withWords) return stops;
+	return [...stops, ...(trace.texts || []).map(w => ({ name: w.text.slice(0, 30), x: w.x, y: w.y }))];
 }
 
 /* ------------------------------------------------------------------ *
@@ -1890,6 +2135,9 @@ function paintSteps(host, ids) {
 function paintTip(host, size, marks) {
 	const tip = host.querySelector('[data-map-tip]');
 	if (!tip) return;
+	// The trace tab hands the sea to the pen: no card opens over what is
+	// being drawn, however the pointer wanders.
+	if (mode === 'trace') { tip.hidden = true; tip._for = null; return; }
 	const id = hoverNpc || pinnedNpc;
 	const npc = id && npcById.get(id);
 	if (!npc) {
@@ -2025,13 +2273,17 @@ export function wireMap() {
 
 	// The panel, the card, the minimap: furniture on top of the sea.
 	// A gesture that starts on them is for them, not for the chart.
-	const FURNITURE = '[data-act="map-pin"], [data-act="map-port"], .map-habitat, .map-side, .map-side-pill, .map-tip, .map-mini, .map-steps';
+	const CHROME = '.map-side, .map-side-pill, .map-tip, .map-mini, .map-steps, .map-trace-write';
+	const MARKERS = '[data-act="map-pin"], [data-act="map-port"], .map-habitat';
+	// Tracing, the markers are scenery: a line drawn across a barterer
+	// must not stop dead there and open his trades instead.
+	const furniture = () => (mode === 'trace' ? CHROME : `${MARKERS}, ${CHROME}`);
 
 	let pressed = null;           // where the last pointer went down, to tell a click from a drag
 
 	document.addEventListener('pointerdown', evt => {
 		const host = evt.target.closest('[data-map]');
-		if (!host || evt.target.closest(FURNITURE)) return;
+		if (!host || evt.target.closest(furniture())) return;
 		cancelFly();
 		pressed = { x: evt.clientX, y: evt.clientY, host };
 		touching.set(evt.pointerId, { x: evt.clientX, y: evt.clientY });
@@ -2084,7 +2336,7 @@ export function wireMap() {
 
 		if (!dragging) {
 			const host = evt.target.closest && evt.target.closest('[data-map]');
-			if (host && !evt.target.closest(FURNITURE)) paintCoords(host, evt.clientX, evt.clientY);
+			if (host && !evt.target.closest(furniture())) paintCoords(host, evt.clientX, evt.clientY);
 			return;
 		}
 		pan(mapState, evt.clientX - dragging.x, evt.clientY - dragging.y);
@@ -2100,6 +2352,7 @@ export function wireMap() {
 			&& Math.hypot(evt.clientX - pressed.x, evt.clientY - pressed.y) < 5) {
 			if (measuring) measureAt(pressed.host, evt.clientX, evt.clientY);
 			else if (traceTool === 'point') traceAdd(pressed.host, evt.clientX, evt.clientY);
+			else if (traceTool === 'text') textAdd(pressed.host, evt.clientX, evt.clientY);
 		}
 		pressed = null;
 		if (evt) touching.delete(evt.pointerId);
@@ -2232,6 +2485,13 @@ export function mapCentreOn(npcId) {
 export function setMapMode(id) {
 	if (!['sail', 'route', 'today', 'hunt', 'trace'].includes(id)) return;
 	mode = id;
+	// Leaving the trace tab puts the pen down and gives the chart's
+	// markers their clicks back.
+	if (mode !== 'trace') {
+		if (editing) endWriting();
+		traceTool = null;
+	}
+	markTraceHost();
 	persist();
 	refreshSide();
 	paintMap();
@@ -2581,12 +2841,13 @@ function routePoints() {
  * island, so the map's list reads as the route does here.
  */
 export function gameBookmarks() {
-	const points = gameSource === 'hunt' ? huntPoints() : gameSource === 'trace' ? tracePoints() : routePoints();
+	const loopOnly = gameWrite !== 'favorites';
+	const points = gameSource === 'hunt' ? huntPoints() : gameSource === 'trace' ? tracePoints(!loopOnly) : routePoints();
 	// One or the other, never both: the favourites are five named pins
 	// and ten camera jumps, a loop is the whole run in order. Writing
 	// both would spend someone's five favourites on stops the loop
 	// already holds. Whichever is not written is left as it was.
-	const loop = gameWrite === 'favorites' ? null : gameWrite;
+	const loop = loopOnly ? gameWrite : null;
 	return {
 		...bookmarkXML(points, {
 			cameras: loop === null,

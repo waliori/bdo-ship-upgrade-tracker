@@ -2975,7 +2975,13 @@ select.purse-inline { width: auto; cursor: pointer; }
 .map.side-right .map-side, .map.side-right .map-side-pill { left: auto; right: 12px; }
 .map.tracing { cursor: crosshair; }
 .map.tool-pen { cursor: cell; }
+.map.tool-text { cursor: text; }
+/* The trace tab hands the sea to the pen: the chart's own markers stay
+   in view as landmarks, but a stroke drawn across one goes through it
+   instead of opening its card. */
+.map.free-hand .map-pin, .map.free-hand .map-port, .map.free-hand .map-habitat, .map.free-hand .map-wharf { pointer-events: none; }
 .map-trace-layer { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.map-trace-art { position: absolute; inset: 0; }
 .map-trace-glow { fill: none; stroke: #7ef0d4; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; opacity: 0.14; }
 .map-trace-path { fill: none; stroke: #7ef0d4; stroke-width: 2; stroke-dasharray: 7 5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.9; }
 .map-trace-stroke { fill: none; stroke: #ffd77a; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.9; }
@@ -2987,6 +2993,21 @@ select.purse-inline { width: auto; cursor: pointer; }
 .map-trace-stop .field { flex: 1; min-width: 0; }
 .map-trace-n { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 1px solid #7ef0d4; color: #7ef0d4; font-size: 10.5px; display: flex; align-items: center; justify-content: center; }
 .map-trace-notes { resize: vertical; min-height: 44px; margin-top: 6px; }
+.map-trace-word { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-display); font-weight: 600; letter-spacing: 0.04em; line-height: 1.2; text-shadow: 0 1px 3px #000, 0 0 6px rgba(0, 0, 0, 0.75); pointer-events: none; z-index: 2; }
+.map-trace-word.plate { padding: 2px 7px; border-radius: 5px; background: rgba(6, 14, 22, 0.72); border: 1px solid rgba(255, 255, 255, 0.1); text-shadow: 0 1px 2px #000; }
+.map-trace-write { position: absolute; transform: translate(-50%, -50%); width: 150px; padding: 3px 7px; border-radius: 5px; background: rgba(6, 14, 22, 0.9); border: 1px dashed currentColor; font-family: var(--font-display); font-weight: 600; letter-spacing: 0.04em; pointer-events: auto; z-index: 3; }
+.map-trace-write:focus { outline: none; box-shadow: 0 0 0 2px rgba(126, 240, 212, 0.35); }
+.map-trace-n.word { cursor: pointer; background: none; }
+.map-inks { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 6px; }
+.map-ink { width: 20px; height: 20px; border-radius: 50%; background: var(--ink); border: 2px solid transparent; box-shadow: 0 1px 3px #000; cursor: pointer; padding: 0; }
+.map-ink.on { border-color: #f3f7fb; transform: scale(1.12); }
+.map-style-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.map-style-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted, #8ea6bb); }
+.map-pens { display: flex; gap: 3px; }
+.map-pen { min-width: 26px; height: 24px; display: flex; align-items: center; justify-content: center; padding: 0 5px; border-radius: 5px; border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.04); color: inherit; cursor: pointer; }
+.map-pen.wide { padding: 0 8px; font-size: 10.5px; letter-spacing: 0.08em; }
+.map-pen.on { border-color: #7ef0d4; background: rgba(126, 240, 212, 0.14); }
+.map-pen-bar { display: block; width: 16px; border-radius: 3px; }
 
 /* the game's-map export: the block to paste, and its small options */
 .map-xml {

@@ -323,6 +323,75 @@ test('a route traced by hand: stops by click, a note, a link back, and it stays 
 	await context.close();
 });
 
+test('the pen has ink: a colour, a width, words on the water -- and undo walks back the way it came', async () => {
+	const { page, context, errors } = await open('#map');
+	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'trace', panelOpen: true, habitatsOn: false })); });
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('[data-act="trace-tool"]'); await wait(600);
+	const box = await (await page.$('[data-map]')).boundingBox();
+	const sea = (fx, fy) => [box.x + box.width * fx, box.y + box.height * fy];
+
+	// The trace tab hands the sea to the pen: the chart's markers stay in
+	// view but stop answering, so a line can be drawn across one.
+	assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.map-port')).pointerEvents), 'none');
+	await page.click('[data-act="map-mode"][data-id="sail"]'); await wait(300);
+	assert.notEqual(await page.evaluate(() => getComputedStyle(document.querySelector('.map-port')).pointerEvents), 'none');
+	await page.click('[data-act="map-mode"][data-id="trace"]'); await wait(300);
+
+	// Violet, bold, drawn.
+	await page.click('[data-act="trace-ink"][data-colour="#c6a0ff"]'); await wait(150);
+	await page.click('[data-act="trace-width"][data-v="4.5"]'); await wait(150);
+	await page.click('[data-act="trace-tool"][data-id="pen"]'); await wait(200);
+	await page.mouse.move(...sea(0.55, 0.3));
+	await page.mouse.down();
+	for (let i = 1; i <= 6; i++) { await page.mouse.move(...sea(0.55 + i * 0.03, 0.3 + i * 0.02)); await wait(30); }
+	await page.mouse.up(); await wait(300);
+	const pen = await page.evaluate(() => { const p = document.querySelector('.map-trace-stroke'); return [p.style.stroke, p.style.strokeWidth]; });
+	assert.deepEqual(pen, ['rgb(198, 160, 255)', '4.5'], 'the stroke kept the ink and the width it was drawn with');
+
+	// A word on the water, typed where it was put.
+	await page.click('[data-act="trace-tool"][data-id="text"]'); await wait(200);
+	await page.mouse.click(...sea(0.75, 0.62)); await wait(300);
+	await page.waitForSelector('.map-trace-write');
+	await page.type('.map-trace-write', 'reef here');
+	await page.keyboard.press('Enter'); await wait(300);
+	assert.equal(await text(page, '.map-trace-word'), 'reef here');
+	assert.equal(await page.evaluate(() => document.querySelector('.map-trace-word').style.color), 'rgb(198, 160, 255)');
+	assert.equal(await count(page, '[data-act="trace-text"]'), 1, 'and it is listed in the panel');
+
+	// Stop, stroke, stop: undo must take back the last thing done, not
+	// empty one list before it touches another.
+	await page.click('[data-act="trace-tool"][data-id="point"]'); await wait(200);
+	await page.mouse.click(...sea(0.6, 0.75)); await wait(250);
+	await page.click('[data-act="trace-tool"][data-id="pen"]'); await wait(200);
+	await page.mouse.move(...sea(0.5, 0.8));
+	await page.mouse.down();
+	for (let i = 1; i <= 5; i++) { await page.mouse.move(...sea(0.5 + i * 0.02, 0.8 - i * 0.02)); await wait(30); }
+	await page.mouse.up(); await wait(300);
+	await page.click('[data-act="trace-tool"][data-id="point"]'); await wait(200);
+	await page.mouse.click(...sea(0.68, 0.85)); await wait(250);
+	const marks = () => page.evaluate(() => [document.querySelectorAll('.map-trace-dot').length, document.querySelectorAll('.map-trace-stroke').length, document.querySelectorAll('.map-trace-word').length]);
+	assert.deepEqual(await marks(), [2, 2, 1], 'two stops, two strokes, a word');
+	await page.click('[data-act="trace-undo"]'); await wait(250);
+	assert.deepEqual(await marks(), [1, 2, 1], 'the last stop went first');
+	await page.click('[data-act="trace-undo"]'); await wait(250);
+	assert.deepEqual(await marks(), [1, 1, 1], 'then the stroke drawn before it');
+	await page.click('[data-act="trace-undo"]'); await wait(250);
+	assert.deepEqual(await marks(), [0, 1, 1], 'then the stop before that');
+	await page.click('[data-act="trace-undo"]'); await wait(250);
+	assert.deepEqual(await marks(), [0, 1, 0], 'then the word');
+
+	// The ink travels with the trace.
+	const back = await page.evaluate(async () => {
+		const { encodeAny, decodeAny } = await import('/js/share.js');
+		const t = JSON.parse(localStorage.getItem('bdo-tracker/map-view')).trace;
+		return decodeAny(await encodeAny({ kind: 'trace', name: 'Ink run', notes: '', points: t.points, strokes: t.strokes, texts: t.texts }));
+	});
+	assert.equal(back.strokes[0].colour, '#c6a0ff');
+	assert.equal(back.strokes[0].width, 4.5);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('habitat markers never print on top of one another, at any zoom', async () => {
 	const { page, context, errors } = await open('#map');
 	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: false, habitatsOn: true })); });

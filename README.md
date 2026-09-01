@@ -265,10 +265,16 @@ managers** (repair, rations, sailors) and guild wharves, named by
 harbour; **island names** appear faintly once the chart is close
 enough to read them; the side panel sits on whichever side you like.
 The **Trace** tab is for routes the barter list cannot express: pick
-*Add stops* and click the sea, or *Draw* and drag a line — every point
-is a place on the chart, so it zooms and pans with the tiles; each stop
-takes a note; a trace is kept by name, travels in a `#trace/` link or a
-JSON file, and its stops go into the game's world map like a route's.
+*Add stops* and click the sea, *Draw* and drag a line, or *Write* and
+type a word straight onto the water — every point is a place on the
+chart, so it all zooms and pans with the tiles. There are eight inks,
+three pen widths and three sizes of writing, and while the tab is open
+the chart's own markers stop answering, so a line can be drawn across a
+barterer without opening his trades. Undo walks back through stops,
+strokes and words in the order they were made. Each stop takes a note;
+a trace is kept by name, travels in a `#trace/` link or a JSON file,
+and its stops go into the game's world map like a route's — with the
+written words as extra favourites.
 The Route tab names the nearest wharf to the last
 stop.
 
