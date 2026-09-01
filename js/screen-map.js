@@ -78,6 +78,7 @@ let inkWidth = 2.5;           // how thick the pen draws
 let inkSize = 14;             // how big a word is written
 let inkPlate = true;          // a word sits on a dark plate, to be read over bright water
 let editing = 0;              // the seq of the word being typed on the chart, 0 for none
+let markDrag = null;          // a stop or a word being carried elsewhere: { kind, seq, from, x, y, moved }
 
 /** The barter day: the game's lists refresh at 06:00 UTC, so "today"
  *  rolls over then, not at midnight. */
@@ -895,6 +896,12 @@ function bumpSeq() {
 	return t.seq;
 }
 
+/** A stop or a word on the chart, by the number it was made with. */
+function markBySeq(kind, seq) {
+	const list = trace ? (kind === 'word' ? trace.texts : trace.points) : null;
+	return (list || []).find(m => m.seq === seq) || null;
+}
+
 /** Every mark on the trace, whatever kind, newest last. */
 function traceMarks(t) {
 	if (!t) return [];
@@ -942,9 +949,9 @@ function traceHTML() {
 	</div>`).join('')}` : '';
 	return `<div class="map-courses">
 		<div class="map-courses-head">Tools <span class="map-courses-credit">the islands sit still while you draw</span></div>
-		${tool('point', 'Add stops', 'click the sea to put a numbered stop there')}
+		${tool('point', 'Add stops', 'click the sea for a numbered stop; drag one to move it')}
 		${tool('pen', 'Draw', 'drag to draw a line; it stays with the chart')}
-		${tool('text', 'Write', 'click the sea and type; the word stays where you put it')}
+		${tool('text', 'Write', 'click the sea and type; drag a word to move it, click it to retype')}
 		<div class="map-inks" role="group" aria-label="Ink colour">${INKS.map(swatch).join('')}</div>
 		<div class="map-style-row">
 			<span class="map-style-label">Stroke</span><span class="map-pens">${pick('trace-width', WIDTHS, inkWidth, 'pen')}</span>
@@ -1018,13 +1025,13 @@ function paintTrace(layer, size) {
 		const at = P(p);
 		if (!onScreen(at)) return;
 		const c = p.colour || LINE_INK;
-		html += `<span class="map-trace-dot${p.note ? ' noted' : ''}" style="left:${Math.round(at.left)}px;top:${Math.round(at.top)}px;border-color:${c};color:${c}" title="${esc(p.note || `stop ${i + 1}`)}">${i + 1}${p.note ? `<span class="map-trace-note">${esc(p.note)}</span>` : ''}</span>`;
+		html += `<span class="map-trace-dot${p.note ? ' noted' : ''}" data-mark="stop" data-seq="${p.seq}" style="left:${Math.round(at.left)}px;top:${Math.round(at.top)}px;border-color:${c};color:${c}" title="${esc(p.note || `stop ${i + 1}`)}${mode === 'trace' ? ' · drag it to move it' : ''}">${i + 1}${p.note ? `<span class="map-trace-note">${esc(p.note)}</span>` : ''}</span>`;
 	});
 	for (const w of (t.texts || [])) {
 		if (w.seq === editing) continue;          // that one is an input, below
 		const at = P(w);
 		if (!onScreen(at) || !w.text) continue;
-		html += `<span class="map-trace-word${w.plate ? ' plate' : ''}" style="left:${Math.round(at.left)}px;top:${Math.round(at.top)}px;color:${inkOf(w.colour)};font-size:${sizeOf(w.size)}px">${esc(w.text)}</span>`;
+		html += `<span class="map-trace-word${w.plate ? ' plate' : ''}" data-mark="word" data-seq="${w.seq}" title="Drag it where it belongs · click to retype it" style="left:${Math.round(at.left)}px;top:${Math.round(at.top)}px;color:${inkOf(w.colour)};font-size:${sizeOf(w.size)}px">${esc(w.text)}</span>`;
 	}
 	art.innerHTML = html;
 	paintWriting(box, size);
@@ -1053,7 +1060,14 @@ function paintWriting(box, size) {
 			else if (e.key === 'Escape') { e.preventDefault(); item.text = ''; endWriting(); }
 			e.stopPropagation();
 		});
-		edit.addEventListener('blur', () => endWriting());
+		// Losing focus is done typing -- unless the input was torn out
+		// from under the pointer. Anything that redraws the whole screen
+		// rebuilds the layer this stands in, and the browser blurs what
+		// it removes: taking that for "done" threw the word away
+		// mid-word. The answer waits a tick, when the removal has
+		// settled: gone from the page, the word stays open and the next
+		// paint stands it back up where it was.
+		edit.addEventListener('blur', () => setTimeout(() => { if (edit.isConnected) endWriting(); }, 0));
 		box.appendChild(edit);
 		setTimeout(() => { if (box._edit === edit) edit.focus(); }, 0);
 	}
@@ -1064,13 +1078,18 @@ function paintWriting(box, size) {
 	edit.style.fontSize = `${sizeOf(item.size)}px`;
 }
 
-/** Done typing: an empty word is no word at all, so it goes. */
+/** An empty word is no word at all: the only one kept is the one being
+ *  typed at this moment. */
+function dropBlankWords() {
+	if (!trace || !Array.isArray(trace.texts)) return;
+	trace.texts = trace.texts.filter(w => String(w.text || '').trim() || w.seq === editing);
+}
+
+/** Done typing. */
 function endWriting() {
 	if (!editing) return;
-	const t = liveTrace();
-	const w = t.texts.find(x => x.seq === editing);
 	editing = 0;
-	if (w && !String(w.text || '').trim()) t.texts = t.texts.filter(x => x !== w);
+	dropBlankWords();
 	persist();
 	refreshSide();
 	paintMap();
@@ -1093,6 +1112,9 @@ function traceAdd(host, clientX, clientY) {
 
 function textAdd(host, clientX, clientY) {
 	const t = liveTrace();
+	// Whatever was open and still blank was never a word.
+	editing = 0;
+	dropBlankWords();
 	if (t.texts.length >= TRACE_WORDS) return toast(`${TRACE_WORDS} words is the most a trace holds`);
 	const w = { ...atSea(host, clientX, clientY), text: '', colour: inkColour, size: inkSize, plate: inkPlate, seq: bumpSeq() };
 	t.texts.push(w);
@@ -2285,6 +2307,22 @@ export function wireMap() {
 		const host = evt.target.closest('[data-map]');
 		if (!host || evt.target.closest(furniture())) return;
 		cancelFly();
+		// A stop or a word already on the sea is picked up and carried,
+		// not drawn over. The pointer is captured by the map box rather
+		// than by the mark itself: the mark is redrawn at every frame of
+		// the drag, and a captured element that is replaced stops
+		// hearing the pointer that is moving it.
+		const grabbed = mode === 'trace' && evt.target.closest('[data-mark]');
+		if (grabbed) {
+			const kind = grabbed.dataset.mark, seq = Number(grabbed.dataset.seq);
+			const m = markBySeq(kind, seq);
+			if (m) {
+				markDrag = { kind, seq, from: atSea(host, evt.clientX, evt.clientY), x: m.x, y: m.y, px: evt.clientX, py: evt.clientY, moved: false };
+				host.setPointerCapture(evt.pointerId);
+				host.classList.add('moving-mark');
+				return;
+			}
+		}
 		pressed = { x: evt.clientX, y: evt.clientY, host };
 		touching.set(evt.pointerId, { x: evt.clientX, y: evt.clientY });
 		// The pen draws instead of panning: one finger, one stroke.
@@ -2309,6 +2347,20 @@ export function wireMap() {
 		if (!mapState) return;
 		if (touching.has(evt.pointerId)) {
 			touching.set(evt.pointerId, { x: evt.clientX, y: evt.clientY });
+		}
+		if (markDrag) {
+			const host = document.querySelector('[data-map]');
+			if (!host) return;
+			const m = markBySeq(markDrag.kind, markDrag.seq);
+			const now = atSea(host, evt.clientX, evt.clientY);
+			if (m) {
+				const hold = v => Math.max(0, Math.min(200000, Math.round(v)));
+				m.x = hold(markDrag.x + now.x - markDrag.from.x);
+				m.y = hold(markDrag.y + now.y - markDrag.from.y);
+			}
+			if (Math.hypot(evt.clientX - markDrag.px, evt.clientY - markDrag.py) > 4) markDrag.moved = true;
+			schedulePaint();
+			return;
 		}
 		if (penStroke) {
 			const host = document.querySelector('[data-map]');
@@ -2345,6 +2397,19 @@ export function wireMap() {
 	});
 
 	const stop = evt => {
+		// A mark set down stays where it was let go; a word tapped rather
+		// than carried opens for retyping.
+		if (markDrag) {
+			const { kind, seq, moved } = markDrag;
+			markDrag = null;
+			document.querySelectorAll('[data-map].moving-mark').forEach(el => el.classList.remove('moving-mark'));
+			if (evt) touching.delete(evt.pointerId);
+			if (!moved && kind === 'word' && markBySeq('word', seq)) editing = seq;
+			persist();
+			refreshSide();
+			paintMap();
+			return;
+		}
 		// A press that did not move is a click on the sea: with the ruler
 		// armed, that is one end of a measurement.
 		if (penStroke) penEnd();

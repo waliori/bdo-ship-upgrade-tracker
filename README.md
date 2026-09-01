@@ -271,7 +271,9 @@ chart, so it all zooms and pans with the tiles. There are eight inks,
 three pen widths and three sizes of writing, and while the tab is open
 the chart's own markers stop answering, so a line can be drawn across a
 barterer without opening his trades. Undo walks back through stops,
-strokes and words in the order they were made. Each stop takes a note;
+strokes and words in the order they were made, and a stop or a word
+already down is dragged where it belongs — a word tapped rather than
+carried opens to be retyped. Each stop takes a note;
 a trace is kept by name, travels in a `#trace/` link or a JSON file,
 and its stops go into the game's world map like a route's — with the
 written words as extra favourites.

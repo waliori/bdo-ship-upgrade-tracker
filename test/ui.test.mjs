@@ -392,6 +392,54 @@ test('the pen has ink: a colour, a width, words on the water -- and undo walks b
 	await context.close();
 });
 
+test('a stop and a word are picked up and carried to where they belong', async () => {
+	const { page, context, errors } = await open('#map');
+	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'trace', panelOpen: true, habitatsOn: false })); });
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('[data-act="trace-tool"]'); await wait(600);
+	const box = await (await page.$('[data-map]')).boundingBox();
+	const sea = (fx, fy) => [box.x + box.width * fx, box.y + box.height * fy];
+	const held = () => page.evaluate(() => JSON.parse(localStorage.getItem('bdo-tracker/map-view')).trace);
+	const carry = async (sel, dx, dy) => {
+		const at = await page.evaluate(s => { const r = document.querySelector(s).getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }, sel);
+		await page.mouse.move(...at);
+		await page.mouse.down();
+		for (let i = 1; i <= 5; i++) { await page.mouse.move(at[0] + dx * i / 5, at[1] + dy * i / 5); await wait(30); }
+		await page.mouse.up(); await wait(300);
+	};
+
+	// A stop, carried.
+	await page.click('[data-act="trace-tool"][data-id="point"]'); await wait(200);
+	await page.mouse.click(...sea(0.55, 0.35)); await wait(300);
+	const stopWas = (await held()).points[0];
+	await carry('.map-trace-dot', 90, 60);
+	const stopNow = (await held()).points[0];
+	assert.notDeepEqual([stopNow.x, stopNow.y], [stopWas.x, stopWas.y], 'the stop went where it was let go');
+	assert.ok(stopNow.x > stopWas.x && stopNow.y > stopWas.y, 'and in the direction it was carried');
+	assert.equal(await count(page, '.map-trace-dot'), 1, 'carrying a stop does not lay down another');
+
+	// A word, carried -- and tapped, which opens it for retyping.
+	await page.click('[data-act="trace-tool"][data-id="text"]'); await wait(200);
+	await page.mouse.click(...sea(0.75, 0.6)); await wait(300);
+	await page.waitForSelector('.map-trace-write');
+	await page.type('.map-trace-write', 'sho');
+	// A redraw of the whole screen tears the input out from under the
+	// hand; the word must survive it and go on being typed.
+	await page.evaluate(() => import('/js/ui.js').then(m => m.render())); await wait(400);
+	await page.waitForSelector('.map-trace-write');
+	await page.type('.map-trace-write', 'al');
+	await page.keyboard.press('Enter'); await wait(300);
+	const wordWas = (await held()).texts[0];
+	assert.equal(wordWas.text, 'shoal', 'the word was not lost to a redraw');
+	await carry('.map-trace-word', -80, 70);
+	const wordNow = (await held()).texts[0];
+	assert.ok(wordNow.x < wordWas.x && wordNow.y > wordWas.y, 'the word followed the pointer');
+	assert.equal(wordNow.text, 'shoal', 'and kept what it says');
+	await page.click('.map-trace-word'); await wait(300);
+	assert.equal(await page.evaluate(() => { const e = document.querySelector('.map-trace-write'); return e && e.value; }), 'shoal', 'a tap opens it to retype');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('habitat markers never print on top of one another, at any zoom', async () => {
 	const { page, context, errors } = await open('#map');
 	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: false, habitatsOn: true })); });

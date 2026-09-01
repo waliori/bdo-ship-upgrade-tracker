@@ -2980,6 +2980,9 @@ select.purse-inline { width: auto; cursor: pointer; }
    in view as landmarks, but a stroke drawn across one goes through it
    instead of opening its card. */
 .map.free-hand .map-pin, .map.free-hand .map-port, .map.free-hand .map-habitat, .map.free-hand .map-wharf { pointer-events: none; }
+/* A stop or a word already on the sea is picked up and carried. */
+.map.free-hand .map-trace-dot, .map.free-hand .map-trace-word { pointer-events: auto; cursor: grab; user-select: none; touch-action: none; }
+.map.moving-mark, .map.moving-mark .map-trace-dot, .map.moving-mark .map-trace-word { cursor: grabbing; }
 .map-trace-layer { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
 .map-trace-art { position: absolute; inset: 0; }
 .map-trace-glow { fill: none; stroke: #7ef0d4; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; opacity: 0.14; }
