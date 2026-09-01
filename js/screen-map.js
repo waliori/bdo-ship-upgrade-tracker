@@ -1793,7 +1793,8 @@ function islandLabels() {
 	const isle = at => /Island|Islands|Eye$|Nest$|Pier$/.test(at) && !/Workshop|Yard/.test(at);
 	for (const n of npcs) if (n.at && isle(n.at)) add(n.at.replace(/ Islands?$/, ''), n.x, n.y);
 	for (const w of wharves) if (w.at && isle(w.at)) add(w.at.replace(/ Islands?$/, ''), w.x, w.y);
-	for (const p of ports) add(p.name, p.x, p.y);
+	// The wharves the route can start from name themselves permanently,
+	// in their own layer; a label there would be the same word twice.
 	labelCache = [...sum.entries()].map(([name, e]) => ({ name, x: e.x / e.n, y: e.y / e.n }));
 	return labelCache;
 }
@@ -1802,10 +1803,22 @@ function islandLabels() {
 function paintLabels(layer, size) {
 	const pool = new Map([...layer.querySelectorAll('.map-label')].map(el => [el.dataset.name, el]));
 	const show = labelsOn && mapState.zoom >= 4.4;
+	// Whatever the chart already spells out -- a wharf's own name, the
+	// island written under a barterer the plan wants -- is not written
+	// again underneath it. Read back from the layer, which paintPorts
+	// and paintPins have just finished with.
+	const spoken = new Set();
+	if (show) {
+		for (const el of layer.querySelectorAll('.map-port-name, .map-pin.wanted .map-pin-at')) {
+			const t = (el.textContent || '').trim().replace(/ Islands?$/, '');
+			if (t) spoken.add(t.toLowerCase());
+		}
+	}
 	for (const l of islandLabels()) {
 		let el = pool.get(l.name);
 		const at = project(mapState, size, l.x, l.y);
-		const off = !show || at.left < -80 || at.top < -30 || at.left > size.w + 80 || at.top > size.h + 30;
+		const off = !show || spoken.has(l.name.toLowerCase())
+			|| at.left < -80 || at.top < -30 || at.left > size.w + 80 || at.top > size.h + 30;
 		if (off) { if (el) el.hidden = true; continue; }
 		if (!el) {
 			el = document.createElement('span');

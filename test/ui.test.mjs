@@ -267,6 +267,17 @@ test('island names show once the chart is close, hide on the toggle, and the pan
 	let shown = 0;
 	for (let i = 0; i < 10 && shown <= 3; i++) { await wait(300); shown = await shownLabels(); }
 	assert.ok(shown > 3, `names appear once close (${shown})`);
+	// Never the same name twice: what the ports and the wanted pins
+	// already spell out is not written again underneath them.
+	const doubled = await page.evaluate(() => {
+		const seen = new Map();
+		const put = (t, from) => { const k = (t || '').trim().replace(/ Islands?$/, '').toLowerCase(); if (k) seen.set(k, (seen.get(k) || []).concat(from)); };
+		for (const e of document.querySelectorAll('.map-port-name')) put(e.textContent, 'port');
+		for (const e of document.querySelectorAll('.map-pin.wanted .map-pin-at')) put(e.textContent, 'pin');
+		for (const e of document.querySelectorAll('.map-label')) if (getComputedStyle(e).display !== 'none') put(e.textContent, 'label');
+		return [...seen].filter(([, from]) => from.includes('label') && from.length > 1).map(([k]) => k);
+	});
+	assert.deepEqual(doubled, [], 'no island named twice');
 	await page.click('[data-act="map-labels"]'); await wait(300);
 	assert.equal(await shownLabels(), 0, 'and go on the toggle');
 	assert.equal(await page.evaluate(() => document.querySelector('[data-map]').classList.contains('side-right')), false);
