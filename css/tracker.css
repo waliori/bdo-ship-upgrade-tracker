@@ -3048,6 +3048,29 @@ select.purse-inline { width: auto; cursor: pointer; }
 .trace-card-btns { grid-column: 1 / -1; display: flex; gap: 4px; justify-content: flex-end; }
 .ghost-btn.tiny { padding: 3px 9px; font-size: 11px; }
 
+/* ---- what the chart draws, above every tab -------------------------- */
+.map-layers { border-bottom: 1px solid rgba(125, 175, 225, 0.12); padding: 0 10px 0; flex: none; }
+.map-layers-head {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  padding: 7px 2px; background: none; border: none; cursor: pointer;
+  font-family: var(--font-display); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-mute);
+}
+.map-layers-head:hover { color: var(--ink-hi); }
+.map-layers-caret { font-size: 9px; opacity: 0.7; }
+.map-layers-head .map-courses-credit { margin-left: auto; }
+.map-chips { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 0 8px; }
+.map-chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 9px 4px 6px;
+  border: 1px solid rgba(125, 175, 225, 0.18); border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02); color: var(--ink-off);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em; cursor: pointer;
+}
+.map-chip-dot { width: 7px; height: 7px; border-radius: 50%; opacity: 0.45; }
+.map-chip.on { color: var(--ink-hi); border-color: rgba(125, 175, 225, 0.45); background: rgba(125, 175, 225, 0.1); }
+.map-chip.on .map-chip-dot { opacity: 1; box-shadow: 0 0 6px currentColor; }
+
 /* ---- the traces library -------------------------------------------- */
 .dialog-box.wide { max-width: 900px; }
 .lib-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
@@ -3083,6 +3106,10 @@ select.purse-inline { width: auto; cursor: pointer; }
 @media (max-width: 640px) {
   .tabs { display: none; }
   .shell { padding-bottom: 84px; }
+  /* The pouch is pulled up by the height of the tab row's margin so it
+     sits tight beneath it. With the row gone there is nothing above it
+     to tuck under but the title itself, which it was covering. */
+  .pouch { margin-top: 0; }
   .tabbar {
     display: flex;
     position: fixed;

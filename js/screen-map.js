@@ -78,6 +78,7 @@ let inkWidth = 2.5;           // how thick the pen draws
 let inkSize = 14;             // how big a word is written
 let inkPlate = true;          // a word sits on a dark plate, to be read over bright water
 let hugWater = true;          // a traced leg bends round the land between its stops
+let layersOpen = true;        // the strip of chart layers is unfolded
 let pinsOn = true;            // the barterers' own marks are drawn
 let tracesOn = true;          // hand-traced routes are drawn
 let libQ = '';                // the traces library: what is typed in its search
@@ -117,6 +118,11 @@ function restore() {
 		habitatsOn = s.habitatsOn !== false;
 		labelsOn = s.labelsOn !== false;
 		pinsOn = s.pinsOn !== false;
+		// A phone's panel is 300 of its 400 pixels; the strip folds itself
+		// away there until it is asked for, and stays as it is left.
+		layersOpen = s.layersOpen === undefined
+			? !(typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 720px)').matches)
+			: s.layersOpen !== false;
 		hugWater = s.hugWater !== false;
 		tracesOn = s.tracesOn !== false;
 		if (s.trace && typeof s.trace === 'object') trace = cleanTrace(s.trace);
@@ -140,7 +146,7 @@ function restore() {
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, hugWater, sideRight, tradesMode, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, hugWater, layersOpen, sideRight, tradesMode, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -276,15 +282,6 @@ function huntHTML() {
 			<span class="map-row-main"><span class="map-row-name">${esc(c.name)}</span><span class="map-row-sub">${esc(c.sub)}</span></span>
 		</button>${on ? `<p class="map-course-note">${esc(c.note)}</p>` : ''}`;
 	}).join('');
-	const landmarks = [['wharf', 'Wharf managers', 'repair, rations, sailor contracts'], ['guild', 'Guild wharves', "the Old Moon Guild's, for a guild ship"]]
-		.map(([k, label, sub]) => {
-			const on = wharvesOn.includes(k);
-			const n = wharves.filter(w => w.kind === k).length;
-			return `<button class="map-course${on ? ' on' : ''}" data-act="map-wharves" data-id="${k}" aria-pressed="${on}">
-				<span class="map-course-dot wharf"></span>
-				<span class="map-row-main"><span class="map-row-name">${label} · ${n}</span><span class="map-row-sub">${esc(sub)}</span></span>
-			</button>`;
-		}).join('');
 	const kinds = [['adult', 'Sea monsters'], ['young', 'Young ones'], ['ship', 'Ships'], ['boss', 'Bosses'], ['pirate', "Cox Pirates' seals"]];
 	const huntRows = kinds.map(([kind, label]) => {
 		const list = monsters.filter(m => m.kind === kind);
@@ -313,25 +310,6 @@ function huntHTML() {
 		${courseRows}
 	</div>
 	<div class="map-courses">
-		<div class="map-courses-head">Layers</div>
-		<button class="map-course${habitatsOn ? ' on' : ''}" data-act="map-habitats" aria-pressed="${habitatsOn}">
-			<span class="map-course-dot" style="background:#ffd77a"></span>
-			<span class="map-row-main"><span class="map-row-name">Habitat markers</span><span class="map-row-sub">a picture where each species lives, as the game's map shows them</span></span>
-		</button>
-		<button class="map-course${labelsOn ? ' on' : ''}" data-act="map-labels" aria-pressed="${labelsOn}">
-			<span class="map-course-dot" style="background:#cfe3f5"></span>
-			<span class="map-row-main"><span class="map-row-name">Island names</span><span class="map-row-sub">faint, once the chart is close enough to read them</span></span>
-		</button>
-		<button class="map-course${pinsOn ? ' on' : ''}" data-act="map-pins" aria-pressed="${pinsOn}">
-			<span class="map-course-dot" style="background:#7ef0d4"></span>
-			<span class="map-row-main"><span class="map-row-name">Barterers</span><span class="map-row-sub">the ${npcs.length} island marks — put them away to read the sea itself</span></span>
-		</button>
-		<button class="map-course${tracesOn ? ' on' : ''}" data-act="map-traces" aria-pressed="${tracesOn}">
-			<span class="map-course-dot" style="background:#ffd77a"></span>
-			<span class="map-row-main"><span class="map-row-name">Traced routes</span><span class="map-row-sub">what you drew by hand, and every kept trace you have opened an eye on</span></span>
-		</button>
-		<div class="map-courses-head">Landmarks <span class="map-courses-credit">every wharf on BDOCodex, at its pier</span></div>
-		${landmarks}
 		<div class="map-courses-head">Grounds <span class="map-courses-credit">every spawn point on BDOCodex</span></div>
 		${huntRows}
 	</div>${toGame}`;
@@ -396,7 +374,7 @@ function sideHTML(marks) {
 	if (!panelOpen) {
 		return `<button class="map-side-pill" data-act="map-panel">☰ Where to sail</button>`;
 	}
-	const tabs = [['sail', 'Sail'], ['route', 'Route'], ['trace', 'Trace'], ['hunt', 'Hunt'], ['today', 'Today']]
+	const tabs = [['sail', 'Barter'], ['route', 'Route'], ['trace', 'Draw'], ['hunt', 'Grounds'], ['today', 'Today']]
 		.map(([id, label]) => `<button class="map-tab${mode === id ? ' active' : ''}"
 			data-act="map-mode" data-id="${id}">${label}</button>`).join('');
 	const body = mode === 'route' ? routeHTML(marks)
@@ -409,7 +387,39 @@ function sideHTML(marks) {
 			mode === 'route' ? 'Plot the loop' : mode === 'trace' ? 'Trace a route' : mode === 'hunt' ? 'Hunting grounds' : mode === 'today' ? 'Sailed today' : 'Who has it'
 		}</span><span class="map-side-head-btns"><button class="map-side-close" data-act="map-side-flip" aria-label="Move the panel to the other side" title="Move the panel to the ${sideRight ? 'left' : 'right'}">⇄</button><button class="map-side-close" data-act="map-panel" aria-label="Hide the panel">${sideRight ? '›' : '‹'}</button></span></div>
 		<div class="map-tabs" role="tablist">${tabs}</div>
+		${layersHTML()}
 		<div class="map-side-body">${body}</div>
+	</div>`;
+}
+
+/**
+ * What the chart draws, on every tab.
+ *
+ * These were switches inside the Hunt tab, which made them look like
+ * part of hunting; they are not. What is on the chart is the same
+ * question whichever tab is open -- plotting a loop past the wharves,
+ * tracing over the barterers, reading the grounds -- so they live above
+ * the tabs, one row of them, and fold away when they are in the road.
+ */
+function layersHTML() {
+	const wharfN = k => wharves.filter(w => w.kind === k).length;
+	const chip = (act, id, on, dot, label, title) => `<button class="map-chip${on ? ' on' : ''}" data-act="${act}"${id ? ` data-id="${id}"` : ''}
+		aria-pressed="${on}" title="${esc(title)}"><span class="map-chip-dot" style="background:${dot}"></span>${esc(label)}</button>`;
+	const chips = [
+		chip('map-pins', '', pinsOn, '#7ef0d4', 'Barterers', `The ${npcs.length} island marks`),
+		chip('map-habitats', '', habitatsOn, '#ffd77a', 'Habitats', "A picture where each species lives, as the game's map shows them"),
+		chip('map-wharves', 'wharf', wharvesOn.includes('wharf'), '#9fd0f0', 'Wharves', `${wharfN('wharf')} wharf managers — repair, rations, sailor contracts`),
+		chip('map-wharves', 'guild', wharvesOn.includes('guild'), '#c6a0ff', 'Guild', `${wharfN('guild')} guild wharves — the Old Moon Guild's, for a guild ship`),
+		chip('map-labels', '', labelsOn, '#cfe3f5', 'Islands', 'Island names, faint, once the chart is close enough to read them'),
+		chip('map-traces', '', tracesOn, '#ffd77a', 'Traces', 'What you drew by hand, and every kept trace with its eye open')
+	].join('');
+	const on = [pinsOn, habitatsOn, labelsOn, tracesOn].filter(Boolean).length + wharvesOn.length;
+	return `<div class="map-layers${layersOpen ? ' open' : ''}">
+		<button class="map-layers-head" data-act="map-layers" aria-expanded="${layersOpen}"
+			title="What the chart draws, on every tab">
+			<span class="map-layers-caret" aria-hidden="true">${layersOpen ? '▾' : '▸'}</span>
+			<span>On the chart</span><span class="map-courses-credit">${on} of 6</span></button>
+		${layersOpen ? `<div class="map-chips">${chips}</div>` : ''}
 	</div>`;
 }
 
@@ -3035,6 +3045,13 @@ export function setMapPins() {
 	persist();
 	refreshSide();
 	paintMap();
+}
+
+/** Fold the layer strip away, or back. */
+export function toggleMapLayers() {
+	layersOpen = !layersOpen;
+	persist();
+	refreshSide();
 }
 
 /** Every traced route at once, off and on. */

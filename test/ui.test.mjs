@@ -440,15 +440,34 @@ test('a stop and a word are picked up and carried to where they belong', async (
 	await context.close();
 });
 
-test('the barterers and the traces are layers like any other', async () => {
+test('the barterers and the traces are layers like any other, on whichever tab is open', async () => {
 	const { page, context, errors } = await open('#map');
-	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: true, habitatsOn: false })); });
+	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'sail', panelOpen: true, habitatsOn: false })); });
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.map-pin'); await wait(700);
+	// What the chart draws is the same question on every tab, so the
+	// switches are above them rather than inside the hunting one.
+	assert.equal(await count(page, '.map-chip'), 6, 'the strip is there on the barter tab');
+	for (const id of ['route', 'trace', 'hunt', 'today']) {
+		await page.click(`[data-act="map-mode"][data-id="${id}"]`); await wait(300);
+		assert.equal(await count(page, '.map-chip'), 6, `and on ${id}`);
+	}
+	await page.click('[data-act="map-mode"][data-id="sail"]'); await wait(300);
+	// It folds away when it is in the road, and comes back.
+	await page.click('[data-act="map-layers"]'); await wait(300);
+	assert.equal(await count(page, '.map-chip'), 0);
+	await page.click('[data-act="map-layers"]'); await wait(300);
+	assert.equal(await count(page, '.map-chip'), 6);
 	assert.ok(await count(page, '.map-pin') > 10, 'the islands are marked to begin with');
 	await page.click('[data-act="map-pins"]'); await wait(400);
 	assert.equal(await count(page, '.map-pin'), 0, 'put away, the marks leave the sea bare');
 	await page.click('[data-act="map-pins"]'); await wait(400);
 	assert.ok(await count(page, '.map-pin') > 10, 'and come back');
+
+	// The wharves answer to the strip too.
+	await page.click('[data-act="map-wharves"][data-id="wharf"]'); await wait(400);
+	assert.ok(await count(page, '.map-wharf') > 10, 'the wharf managers come out');
+	await page.click('[data-act="map-wharves"][data-id="wharf"]'); await wait(400);
+	assert.equal(await count(page, '.map-wharf:not([hidden])'), 0, 'and go away again');
 
 	// The same for what is traced by hand.
 	await page.click('[data-act="map-mode"][data-id="trace"]'); await wait(400);

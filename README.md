@@ -244,7 +244,7 @@ trims to them. The trade goods in your stock are read against what
 each stop hands over. Routes are kept by name, a replaced route is
 kept as the previous one, a route travels in a link, and a ruler
 (`⟷`) measures any two points on the sea, with the game's own
-coordinates under the pointer. The Hunt tab draws the game's own
+coordinates under the pointer. The chart draws the game's own
 **habitat markers** — each species' picture from the codex at the
 centre of its grounds, "Hekaru Habitat", "Young Sea Monster Habitat" —
 which are also in the *Showing* picker. Every spawn point is kept to
@@ -260,14 +260,22 @@ game map's icon north-north-west of Cheongsa Island, roughly, until
 the codex carries it. Two community maps are on the chart too, fitted
 to it on their island names: Awabi's *Road to Cox* — the Cox Pirates'
 camps (six to eight seals), flags and cargo ships, a group of their own
-on the Hunt tab — and Vell's waters from gpw's ocean map. The Hunt tab can also draw all 58 **wharf
-managers** (repair, rations, sailors) and guild wharves, named by
-harbour; **island names** appear faintly once the chart is close
-enough to read them; the side panel sits on whichever side you like.
-Every one of these is a layer with its own switch, the barterers' green
-marks and the traced routes included — put them away and the sea is
-bare to read.
-The **Trace** tab is for routes the barter list cannot express: pick
+on the Grounds tab — and Vell's waters from gpw's ocean map. The chart
+can also draw all 58 **wharf managers** (repair, rations, sailors) and
+guild wharves, named by harbour, and **island names** faintly once it
+is close enough to read them.
+
+**What the chart draws** is one strip of switches — *On the chart* —
+above the panel's tabs rather than inside any of them, since it is the
+same question whichever tab is open: barterers, habitats, wharves,
+guild wharves, island names, traced routes. It folds away when it is in
+the road, and a phone starts with it folded. The five tabs are named
+for what they do: **Barter** (who has what you are short of),
+**Route** (plot the loop), **Draw**, **Grounds** (monsters and
+community courses) and **Today**; the side panel sits on whichever side
+you like.
+
+The **Draw** tab is for routes the barter list cannot express: pick
 *Add stops* and click the sea, *Draw* and drag a line, or *Write* and
 type a word straight onto the water — every point is a place on the
 chart, so it all zooms and pans with the tiles. There are eight inks,
@@ -455,8 +463,9 @@ caps Favorites at five, so a longer route can instead be written as one
 of the map's three navigation loops, which is a list rather than a set
 of slots and holds every stop in order. It is one or the other, never
 both — whichever you do not write is left exactly as it was, loops in
-the other slots included. The Hunt tab writes the same way: the courses
-and monster grounds you have ticked, several courses sailed as one run.
+the other slots included. The Grounds tab writes the same way: the
+courses and monster grounds you have ticked, several courses sailed as
+one run.
 
 Every line the chart draws, and every loop it writes, is bent round the
 land in its way: `tools/build-seamask.mjs` reads the shipped tiles and
