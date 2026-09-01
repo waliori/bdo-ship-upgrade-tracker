@@ -46,3 +46,23 @@ export async function decodeShare(text) {
 export function shareLink(payload) {
 	return `${location.origin}${location.pathname}#share/${payload}`;
 }
+
+/** Anything small as link text -- a traced route, say -- packed the same way. */
+export async function encodeAny(obj) {
+	const bytes = new TextEncoder().encode(JSON.stringify(obj));
+	if (typeof CompressionStream !== 'undefined') return 'z' + b64url(await pipe(bytes, CompressionStream, 'gzip'));
+	return 'p' + b64url(bytes);
+}
+
+/** Link text back to whatever encodeAny packed. Throws on anything else. */
+export async function decodeAny(text) {
+	const flag = text[0];
+	let bytes = unb64url(text.slice(1));
+	if (flag === 'z') {
+		if (typeof DecompressionStream === 'undefined') throw new Error('no decompressor');
+		bytes = await pipe(bytes, DecompressionStream, 'gzip');
+	} else if (flag !== 'p') {
+		throw new Error('not a link of ours');
+	}
+	return JSON.parse(new TextDecoder().decode(bytes));
+}

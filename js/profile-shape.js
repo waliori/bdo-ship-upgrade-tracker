@@ -126,6 +126,54 @@ export function readProfile(raw) {
 		}
 		if (Object.keys(crystal).length) out.crystal = crystal;
 	}
+	// The Quests tab's memory: which pick-one reward was taken last time
+	// (quest id -> choice index), the favourites, and named groups of
+	// quests finished together.
+	if (isProfile(raw.questPicks)) {
+		const picks = {};
+		for (const [id, i] of Object.entries(raw.questPicks).slice(0, 100)) {
+			const n = Math.floor(Number(i));
+			if (id.length <= 40 && Number.isFinite(n) && n >= 0 && n < 10) picks[id] = n;
+		}
+		if (Object.keys(picks).length) out.questPicks = picks;
+	}
+	if (Array.isArray(raw.questFavs)) {
+		const favs = [...new Set(raw.questFavs.filter(id => typeof id === 'string' && id && id.length <= 40))].slice(0, 100);
+		if (favs.length) out.questFavs = favs;
+	}
+	if (isProfile(raw.questGroups)) {
+		const groups = {};
+		for (const [name, ids] of Object.entries(raw.questGroups).slice(0, 12)) {
+			if (!name || name.length > 30 || !Array.isArray(ids)) continue;
+			const clean = [...new Set(ids.filter(id => typeof id === 'string' && id && id.length <= 40))].slice(0, 100);
+			if (clean.length) groups[name] = clean;
+		}
+		if (Object.keys(groups).length) out.questGroups = groups;
+	}
+	// Saved ship setups -- a hull with its parts, crystal and seating --
+	// to switch between, and the sailing mastery the game shows.
+	if (isProfile(raw.setups)) {
+		const setups = {};
+		for (const [id, st] of Object.entries(raw.setups).slice(0, 12)) {
+			if (!isProfile(st) || id.length > 24 || typeof st.ship !== 'string' || !st.ship) continue;
+			const clean = { name: String(st.name || st.ship).slice(0, 40), ship: st.ship.slice(0, 60) };
+			if (isProfile(st.fitted)) {
+				const f = {};
+				for (const [slot, item] of Object.entries(st.fitted)) {
+					if (['cannon', 'sail', 'figurehead', 'plating'].includes(slot) && typeof item === 'string' && item.length <= 80) f[slot] = item;
+				}
+				if (Object.keys(f).length) clean.fitted = f;
+			}
+			const cr = Math.floor(Number(st.crystal));
+			if (Number.isFinite(cr) && cr > 0) clean.crystal = cr;
+			const sm = seatMap(st.seats);
+			if (sm) clean.seats = sm;
+			setups[id] = clean;
+		}
+		if (Object.keys(setups).length) out.setups = setups;
+	}
+	const mastery = Math.floor(Number(raw.sailingMastery));
+	if (Number.isFinite(mastery) && mastery > 0) out.sailingMastery = Math.min(3000, mastery);
 	// Where each build stood, day by day, for the pace: build id -> date
 	// -> units covered. Bounded to a month per build and twenty builds.
 	if (isProfile(raw.progress)) {

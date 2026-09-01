@@ -7,21 +7,25 @@
 // "Claimed" puts the reward in stock the way a craft does and ticks the
 // quest for the day -- one press, one undoable change -- and the tick
 // wears off by itself at the reset, because a done list that has to be
-// cleared by hand is a list nobody keeps.
+// cleared by hand is a list nobody keeps. A pick-one reward is
+// remembered, so next time the same choice is one press too; quests can
+// be ticked several at a time and finished together; and a set that is
+// run every day can be starred, or kept as a named group.
 
 import { esc, F } from './fmt.js';
 import * as store from './state.js';
 import { img, codexName } from './ui-bits.js';
-import { toast } from './dialogs.js';
+import { toast, openDialog, closeDialog } from './dialogs.js';
 import { rows, query } from './ui-state.js';
 import { quests, questById, cadenceOf } from './quests.js';
 import { periodKey } from './clock.js';
 import { openPicker } from './picker.js';
 
-// Session state: which chip is lit, and which reward the list is
-// narrowed to, if any.
+// Session state: which chip is lit, which rewards the list is narrowed
+// to, and which quests are ticked for finishing together.
 let filter = 'all';
 let payFilter = [];   // reward items the list is narrowed to; empty for all
+let selected = new Set();
 
 export function setQuestPay(items) { payFilter = Array.isArray(items) ? items : items ? [items] : []; }
 
@@ -30,6 +34,11 @@ const CADENCE = [
 	['weekly', 'Weekly', 'once a week', 'weekly'],
 	['once', 'Once', 'once per family', null]
 ];
+
+const picks = () => store.getProfile('questPicks', {}) || {};
+const favs = () => store.getProfile('questFavs', []) || [];
+const groups = () => store.getProfile('questGroups', {}) || {};
+const codexURL = q => q.codex ? `https://bdocodex.com/us/quest/${q.codex}/` : null;
 
 /** Whether a quest is done for the period it is in right now. */
 export function questDone(q, done = store.getProfile('questsDone', {}) || {}) {
@@ -61,6 +70,13 @@ function sparesYou(q, need) {
 	return kinds.has('craft') ? 'pays what you would craft' : 'pays what you would buy';
 }
 
+/** The quests that pay in something the plan still wants -- the one
+ *  list the tab badge, the Today strip and the "Pays what I need" chip
+ *  all count from. */
+export function wantedQuests(need = needMap()) {
+	return quests.filter(q => sparesYou(q, need));
+}
+
 function rewardChips(rewards, short) {
 	return Object.entries(rewards).map(([item, n]) => `<span class="reward ${short.has(item) ? 'wanted' : ''}${payFilter.includes(item) ? ' lit' : ''}" data-peek="${esc(item)}"
 		title="${short.has(item) ? `The plan still wants ${esc(item)}` : esc(item)}">${img(item, 'reward-icon')}<b>${F(n)}×</b> ${codexName(item)}</span>`).join('');
@@ -68,21 +84,39 @@ function rewardChips(rewards, short) {
 
 const doneWord = q => cadenceOf(q) === 'daily' ? 'done today' : cadenceOf(q) === 'weekly' ? 'done this week' : 'done';
 
+/** The pick-one reward remembered for a quest, if it still exists. */
+function recalled(q) {
+	const i = picks()[q.id];
+	return q.choice && Number.isInteger(i) && q.choice[i] ? { i, item: Object.entries(q.choice[i])[0] } : null;
+}
+
 function questRow(q, short, wanted, isDone) {
+	const last = recalled(q);
 	const claim = q.choice
-		? `<button class="pill-btn" data-act="quest-claim-pick" data-quest="${esc(q.id)}" title="Which of the pick-one rewards you took">Claimed ▾</button>`
+		? (last
+			? `<button class="pill-btn" data-act="quest-claim" data-quest="${esc(q.id)}" title="Record it with ${esc(last.item[0])} again, as last time">Claimed</button>
+				<button class="link-btn" data-act="quest-claim-pick" data-quest="${esc(q.id)}" title="Took a different reward this time">other reward…</button>`
+			: `<button class="pill-btn" data-act="quest-claim-pick" data-quest="${esc(q.id)}" title="Which of the pick-one rewards you took">Claimed ▾</button>`)
 		: `<button class="pill-btn" data-act="quest-claim" data-quest="${esc(q.id)}">Claimed</button>`;
 	const buttons = isDone
 		? `<span class="quest-done-tag">✓ ${doneWord(q)}</span>
 			<button class="link-btn" data-act="quest-undone" data-quest="${esc(q.id)}" title="Take the tick off without touching your stock">not done</button>`
 		: claim;
-	return `<div class="quest ${wanted ? 'wanted' : ''}${isDone ? ' done' : ''}">
+	const fav = favs().includes(q.id);
+	const url = codexURL(q);
+	const name = url
+		? `<a class="quest-codex" href="${url}" target="_blank" rel="noopener" title="Open on BDOCodex">${esc(q.name)}</a>`
+		: esc(q.name);
+	return `<div class="quest ${wanted ? 'wanted' : ''}${isDone ? ' done' : ''}${selected.has(q.id) ? ' selected' : ''}">
+		<input type="checkbox" class="quest-check" data-act="quest-check" data-quest="${esc(q.id)}" ${selected.has(q.id) ? 'checked' : ''} ${isDone ? 'disabled' : ''} aria-label="Tick ${esc(q.name)} to finish it with others">
+		<button class="quest-star${fav ? ' on' : ''}" data-act="quest-fav" data-quest="${esc(q.id)}" aria-pressed="${fav}" title="${fav ? 'A favourite — click to unstar' : 'Star it: favourites have a chip of their own'}">★</button>
 		<div class="quest-main">
-			<div class="quest-name">${esc(q.name)}${wanted ? `<span class="quest-tag">${esc(wanted)}</span>` : ''}</div>
+			<div class="quest-name">${name}${wanted ? `<span class="quest-tag">${esc(wanted)}</span>` : ''}</div>
 			<div class="quest-where">${esc(q.where)}${q.note ? ` · ${esc(q.note)}` : ''}${q.monster
 				? ` · <button class="link-btn" data-act="quest-map" data-monster="${esc(q.monster)}" title="Show where they are on the Map">on the map ↗</button>` : ''}</div>
 			<div class="quest-rewards">${rewardChips(q.rewards, short)}${q.choice
 				? `<span class="quest-or">and one of</span>${q.choice.map(c => rewardChips(c, short)).join('<span class="quest-or">or</span>')}` : ''}</div>
+			${last ? `<div class="quest-recall">Last time you took ${F(last.item[1])}× ${esc(last.item[0])} — Claimed records that again.</div>` : ''}
 		</div>
 		<div class="quest-actions">${buttons}</div>
 	</div>`;
@@ -101,6 +135,30 @@ function payControl() {
 	const chips = payFilter.map(item => `<span class="reward lit pay-chip" data-peek="${esc(item)}">${img(item, 'reward-icon')}${esc(item)}
 		<button class="map-x" data-act="quest-pay-del" data-item="${esc(item)}" aria-label="Stop filtering by ${esc(item)}">×</button></span>`).join('');
 	return `<button class="ghost-btn" data-act="quest-pay-pick" title="Only the quests that pay in the items you choose">${payFilter.length ? `Paying in ${payFilter.length} item${payFilter.length === 1 ? '' : 's'}` : 'Paying in…'}</button>${chips}`;
+}
+
+/** The named groups, each a chip that ticks its quests; and a × to forget one. */
+function groupsRow() {
+	const g = groups();
+	const names = Object.keys(g);
+	if (!names.length) return '';
+	return `<div class="quest-groups"><span class="summary-k">Groups</span>${names.map(name => `<span class="quest-group">
+		<button class="chip" data-act="quest-group-pick" data-name="${esc(name)}" title="Tick every quest in ${esc(name)} that is still to do">${esc(name)} · ${g[name].length}</button>
+		<button class="map-x" data-act="quest-group-del" data-name="${esc(name)}" aria-label="Forget the group ${esc(name)}">×</button></span>`).join('')}</div>`;
+}
+
+/** The bar above the list while quests are ticked. */
+function bulkBar(isDone) {
+	const ids = [...selected].filter(id => questById[id] && !isDone(questById[id]));
+	if (!ids.length) return '';
+	const asking = ids.filter(id => questById[id].choice && !recalled(questById[id])).length;
+	return `<div class="quest-bulk"><b>${ids.length}</b> ticked
+		<button class="act go small" data-act="quest-finish" title="Record every ticked quest as done, rewards into stock, in one undoable change">Finish ${ids.length}</button>
+		${asking ? `<span class="row-sub">${asking} of them will ask which reward you took</span>` : ''}
+		<span class="panel-spacer"></span>
+		<button class="act quiet small" data-act="quest-group-save" title="Keep these as a named group to tick again in one go">Save as group…</button>
+		<button class="link-btn" data-act="quest-select-none">untick all</button>
+	</div>`;
 }
 
 /** Open the picker: the ones on your list first, then the rest. */
@@ -123,11 +181,13 @@ export function renderQuests() {
 	const done = store.getProfile('questsDone', {}) || {};
 	const wanted = new Map(quests.map(q => [q.id, sparesYou(q, need)]).filter(([, w]) => w));
 	const isDone = q => questDone(q, done);
+	const starred = favs();
 	const q = query.toLowerCase();
 	const matches = quest => {
 		if (filter === 'wanted' && !wanted.has(quest.id)) return false;
 		if (filter === 'left' && isDone(quest)) return false;
 		if (filter === 'done' && !isDone(quest)) return false;
+		if (filter === 'fav' && !starred.includes(quest.id)) return false;
 		if (['daily', 'weekly', 'once'].includes(filter) && cadenceOf(quest) !== filter) return false;
 		if (payFilter.length && !rewardItems(quest).some(i => payFilter.includes(i))) return false;
 		if (!q) return true;
@@ -137,16 +197,18 @@ export function renderQuests() {
 	const shown = quests.filter(matches);
 	const leftCount = quests.filter(quest => !isDone(quest)).length;
 	const wantedLeft = [...wanted.keys()].filter(id => !isDone(questById[id])).length;
+	const favLeft = starred.filter(id => questById[id] && !isDone(questById[id])).length;
 
 	const chips = [
 		['all', 'All'],
 		['left', `Still to do · ${leftCount}`],
 		['wanted', `Pays what I need${wantedLeft ? ` · ${wantedLeft}` : ''}`],
+		['fav', `★ Favourites${starred.length ? ` · ${favLeft}` : ''}`],
 		...CADENCE.map(([id, label]) => [id, label]),
 		['done', 'Done']
 	].map(([id, label]) => `<button class="chip ${filter === id ? 'active' : ''}" data-act="quest-filter" data-id="${id}">${label}</button>`).join('');
 
-	const groups = CADENCE.map(([id, label, sub, clock]) => {
+	const groupsHTML = CADENCE.map(([id, label, sub, clock]) => {
 		const list = shown.filter(quest => cadenceOf(quest) === id)
 			.sort((a, b) => Number(isDone(a)) - Number(isDone(b))
 				|| Number(wanted.has(b.id)) - Number(wanted.has(a.id))
@@ -160,11 +222,13 @@ export function renderQuests() {
 		const ravinia = id === 'once' ? quests.filter(x => x.id.startsWith('ravinia')) : [];
 		const chain = ravinia.length
 			? `<div class="quest-chain">Ravinia's log: ${ravinia.filter(isDone).length} of ${ravinia.length} letters recorded</div>` : '';
+		const open = list.filter(x => !isDone(x));
 		return `<div class="panel">
 			<div class="panel-head">
 				<h2 class="panel-title ${id === 'daily' ? 'teal' : id === 'weekly' ? 'blue' : 'amber'}">${label}</h2>
 				<span class="panel-sub">${list.length} quest${list.length === 1 ? '' : 's'} · ${esc(sub)}${doneN ? ` · ${doneN} done` : ''}${clock
 					? ` · resets in <b data-until="${clock}"></b>` : ''}</span>
+				${open.length > 1 ? `<span class="panel-spacer"></span><button class="link-btn" data-act="quest-select-shown" data-cadence="${id}" title="Tick every ${label.toLowerCase()} quest shown that is still to do">tick all ${open.length}</button>` : ''}
 			</div>
 			${chain}
 			${list.map(quest => questRow(quest, short, wanted.get(quest.id), isDone(quest))).join('')}
@@ -183,24 +247,108 @@ export function renderQuests() {
 		: payFilter.length ? `No quest pays in ${payFilter.join(' or ')} under that filter.`
 		: filter === 'left' ? 'Everything is done for now — the ticks wear off at the reset.'
 		: filter === 'done' ? 'Nothing ticked yet. Claim a reward and it lands here.'
+		: filter === 'fav' ? 'No favourites yet — star a quest and it lands here.'
 		: 'Nothing pays in what you are short of right now.';
 
 	return `${clocks}<div class="controls">
 		<input class="field" type="search" placeholder="Search quests, places and rewards…" value="${esc(query)}" data-act="query">
 		<div class="chips">${chips}</div>
 		<div class="pay-row">${payControl()}</div>
+		${groupsRow()}
 	</div>
-	${groups || `<div class="panel"><p class="empty">${esc(nothing)}</p></div>`}`;
+	${bulkBar(isDone)}
+	${groupsHTML || `<div class="panel"><p class="empty">${esc(nothing)}</p></div>`}`;
 }
 
-/** Record a claim: the fixed rewards, plus the pick-one at `choice`. */
-function claim(q, choice) {
+/** The change one claim makes to stock: the fixed rewards, plus the
+ *  pick-one at `choice`. */
+function claimDelta(q, choice) {
 	const delta = { ...q.rewards };
 	const pick = choice !== null && q.choice && q.choice[choice];
 	if (pick) for (const [item, n] of Object.entries(pick)) delta[item] = (delta[item] || 0) + n;
-	store.claimQuest(q.id, delta, periodKey(cadenceOf(q)), `Claimed ${q.name}`);
+	return delta;
+}
+
+/** Record a claim: the fixed rewards, plus the pick-one at `choice`,
+ *  which is remembered for next time. */
+function claim(q, choice) {
+	if (q.choice && Number.isInteger(choice)) store.setProfileQuiet('questPicks', { ...picks(), [q.id]: choice });
+	store.claimQuest(q.id, claimDelta(q, choice), periodKey(cadenceOf(q)), `Claimed ${q.name}`);
+	selected.delete(q.id);
 	toast(`Recorded the reward for ${q.name} — ${doneWord(q)}`, true);
 	document.dispatchEvent(new CustomEvent('quests-refilter'));
+}
+
+/** Ask which pick-one reward was taken; resolves to the index, or null
+ *  when the picker is closed without an answer. */
+function askChoice(q, need) {
+	const last = recalled(q);
+	return new Promise(resolve => {
+		let answered = false;
+		openPicker({
+			title: 'Which reward did you take?',
+			hint: `${esc(q.name)} pays ${esc(Object.entries(q.rewards).map(([item, n]) => `${F(n)}× ${item}`).join(', '))} and one of these.`,
+			items: q.choice.map((c, i) => {
+				const [item, n] = Object.entries(c)[0];
+				return { id: String(i), label: `${F(n)}× ${item}`, icon: img(item, ''), meta: last && last.i === i ? 'last time' : need.get(item) === 'short' ? 'short of it' : need.get(item) ? 'on your list' : '' };
+			}),
+			selected: last ? [String(last.i)] : [],
+			onPick: i => { answered = true; resolve(Number(i)); },
+			onClose: () => { if (!answered) resolve(null); }
+		});
+	});
+}
+
+/** Finish every ticked quest: the recalled choice where there is one,
+ *  a question where there is not, then one change for the lot. */
+async function finishSelected() {
+	const done = store.getProfile('questsDone', {}) || {};
+	const list = [...selected].map(id => questById[id]).filter(q => q && !questDone(q, done));
+	if (!list.length) return;
+	const need = needMap();
+	const entries = [];
+	const remembered = { ...picks() };
+	for (const q of list) {
+		let choice = null;
+		if (q.choice) {
+			const last = recalled(q);
+			choice = last ? last.i : await askChoice(q, need);
+			if (choice === null) continue;   // closed the question: this one stays open
+			remembered[q.id] = choice;
+		}
+		entries.push({ id: q.id, key: periodKey(cadenceOf(q)), delta: claimDelta(q, choice) });
+	}
+	if (!entries.length) return;
+	store.setProfileQuiet('questPicks', remembered);
+	store.claimQuests(entries, `Finished ${entries.length} quest${entries.length === 1 ? '' : 's'}`);
+	for (const e of entries) selected.delete(e.id);
+	toast(`Recorded ${entries.length} quest${entries.length === 1 ? '' : 's'} — rewards in stock`, true);
+	document.dispatchEvent(new CustomEvent('quests-refilter'));
+}
+
+function saveGroupDialog() {
+	const ids = [...selected].filter(id => questById[id]);
+	if (!ids.length) return;
+	const host = openDialog(`
+		<h2>Keep these ${ids.length} as a group</h2>
+		<p class="dialog-copy">A group is a chip on the Quests tab: one click ticks every quest in it that is still to do, and Finish records them together.</p>
+		<input class="field" type="text" maxlength="30" placeholder="A name — “Morning dailies”" data-quest-group-name>
+		<div class="dialog-actions">
+			<button class="ghost-btn" data-close>Cancel</button>
+			<button class="act" data-quest-group-save>Keep it</button>
+		</div>`);
+	const input = host.querySelector('[data-quest-group-name]');
+	input.focus();
+	const save = () => {
+		const name = input.value.trim().slice(0, 30);
+		if (!name) return toast('Give it a name');
+		store.setProfileQuiet('questGroups', { ...groups(), [name]: ids });
+		closeDialog();
+		toast(`Kept ${name}`);
+		document.dispatchEvent(new CustomEvent('quests-refilter'));
+	};
+	host.querySelector('[data-quest-group-save]').addEventListener('click', save);
+	input.addEventListener('keydown', evt => { if (evt.key === 'Enter') save(); });
 }
 
 /** Every quest-* click. Returns false for one this screen does not own. */
@@ -217,24 +365,67 @@ export function questAction(act, el) {
 		payFilter = payFilter.filter(i => i !== el.dataset.item);
 		return true;
 	}
+	if (act === 'quest-check') {
+		const id = el.dataset.quest;
+		if (selected.has(id)) selected.delete(id); else selected.add(id);
+		return true;
+	}
+	if (act === 'quest-select-none') {
+		selected = new Set();
+		return true;
+	}
+	if (act === 'quest-select-shown') {
+		const done = store.getProfile('questsDone', {}) || {};
+		const cadence = el.dataset.cadence;
+		for (const q of quests) {
+			if (cadenceOf(q) !== cadence || questDone(q, done)) continue;
+			if (payFilter.length && !rewardItems(q).some(i => payFilter.includes(i))) continue;
+			if (filter === 'wanted' && !sparesYou(q, needMap())) continue;
+			if (filter === 'fav' && !favs().includes(q.id)) continue;
+			selected.add(q.id);
+		}
+		return true;
+	}
+	if (act === 'quest-fav') {
+		const id = el.dataset.quest;
+		const list = favs();
+		store.setProfileQuiet('questFavs', list.includes(id) ? list.filter(x => x !== id) : [...list, id]);
+		return true;
+	}
+	if (act === 'quest-group-pick') {
+		const ids = groups()[el.dataset.name] || [];
+		const done = store.getProfile('questsDone', {}) || {};
+		let n = 0;
+		for (const id of ids) if (questById[id] && !questDone(questById[id], done)) { selected.add(id); n++; }
+		toast(n ? `${n} of ${el.dataset.name} ticked` : `Everything in ${el.dataset.name} is done for now`);
+		return true;
+	}
+	if (act === 'quest-group-del') {
+		const g = { ...groups() };
+		delete g[el.dataset.name];
+		store.setProfileQuiet('questGroups', Object.keys(g).length ? g : null);
+		return true;
+	}
+	if (act === 'quest-group-save') {
+		saveGroupDialog();
+		return true;
+	}
+	if (act === 'quest-finish') {
+		finishSelected();
+		return true;
+	}
 	if (act === 'quest-claim-pick') {
 		const q = questById[el.dataset.quest];
 		if (!q || !q.choice) return true;
-		const need = needMap();
-		openPicker({
-			title: 'Which reward did you take?',
-			hint: `${esc(q.name)} pays ${esc(Object.entries(q.rewards).map(([item, n]) => `${F(n)}× ${item}`).join(', '))} and one of these.`,
-			items: q.choice.map((c, i) => {
-				const [item, n] = Object.entries(c)[0];
-				return { id: String(i), label: `${F(n)}× ${item}`, icon: img(item, ''), meta: need.get(item) === 'short' ? 'short of it' : need.get(item) ? 'on your list' : '' };
-			}),
-			onPick: i => claim(q, Number(i))
-		});
+		askChoice(q, needMap()).then(i => { if (i !== null) claim(q, i); });
 		return true;
 	}
 	if (act === 'quest-claim') {
 		const q = questById[el.dataset.quest];
-		if (q) claim(q, null);
+		if (!q) return true;
+		const last = recalled(q);
+		if (q.choice && !last) askChoice(q, needMap()).then(i => { if (i !== null) claim(q, i); });
+		else claim(q, last ? last.i : null);
 		return true;
 	}
 	if (act === 'quest-undone') {

@@ -21,6 +21,7 @@ import { openDialog, closeDialog } from './dialogs.js';
  * @param {string} [o.empty]        what to say for no match
  * @param {string} [o.apply]        the button label in multi mode
  * @param {function} o.onPick       (id) in single mode, (ids[]) in multi
+ * @param {function} [o.onClose]    called when the picker closes, picked or not
  */
 export function openPicker(o) {
 	const multi = o.multi === true;
@@ -36,7 +37,7 @@ export function openPicker(o) {
 				<button class="ghost-btn" data-close>Cancel</button>
 				${multi ? `<button class="act" data-picker-apply>${esc(o.apply || 'Apply')}</button>` : ''}
 			</div>
-		</div>`);
+		</div>`, { onDismiss: () => { if (typeof o.onClose === 'function') o.onClose(); } });
 	const input = host.querySelector('.picker-in');
 	const list = host.querySelector('[data-picker-list]');
 	let rows = [];

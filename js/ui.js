@@ -31,9 +31,9 @@ import { renderBuilds, openBuildPicker, askRoute, toggleBlockers } from './scree
 import { renderInventory } from './screen-inventory.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
-import { renderCrew, crewAction, crewChange, applyShipSetup } from './screen-crew.js';
+import { renderCrew, crewAction, crewChange, applyShipSetup, openSetupPicker } from './screen-crew.js';
 import { statusLine } from './today.js';
-import { renderQuests, questAction, questDone } from './screen-quests.js';
+import { renderQuests, questAction, questDone, wantedQuests } from './screen-quests.js';
 import { openVellDialog } from './today.js';
 import { startClocks, tickClocks } from './clock.js';
 import { recordProgress } from './pace.js';
@@ -43,14 +43,13 @@ import { openProfiles, activeProfile } from './profiles.js';
 import { DATA, CHANGES, LATEST } from './about.js';
 import { toggleVellReminder, checkVellReminder } from './today.js';
 import { openTripLog } from './triplog.js';
-import { questsFor } from './quests.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
 import { renderGet, shoppingText } from './screen-get.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
-	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats,
+	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite
 } from './screen-map.js';
@@ -66,7 +65,7 @@ const TABS = [
 	{ id: 'get', label: 'To Get', icon: '☰', group: 'yard' },
 	{ id: 'map', label: 'Map', icon: '⌖', group: 'sea' },
 	{ id: 'quests', label: 'Quests', icon: '✦', group: 'sea' },
-	{ id: 'crew', label: 'Crew', icon: '⚓', group: 'sea' }
+	{ id: 'crew', label: 'Ship', icon: '⚓', group: 'sea' }
 ];
 
 let water = null;
@@ -93,9 +92,9 @@ export function render() {
 		// attempt you hold the part and the stones for.
 		workshop: readyCrafts().length + pendingEnhancements().filter(e => !e.blocked).length,
 		get: Object.keys(snapshot.missing).length,
-		// The quests that pay in something the plan is short of and are
-		// still to do this period.
-		quests: questsFor(snapshot.missing).filter(q => !questDone(q)).length
+		// The quests that pay in something the plan still wants -- short
+		// of, or still to craft or buy -- and are still to do this period.
+		quests: wantedQuests().filter(q => !questDone(q)).length
 	};
 
 	// A tablist for the keyboard: the active tab is the one Tab stop,
@@ -244,6 +243,14 @@ function applyHash() {
 		const payload = m[2];
 		history.replaceState(null, '', `${location.pathname}${location.search}#plan`);
 		openShared(payload);
+		return true;
+	}
+	// A traced route in a link: onto the chart, and the address cleaned.
+	if (m && m[1] === 'trace' && m[2]) {
+		const payload = m[2];
+		history.replaceState(null, '', `${location.pathname}${location.search}#map`);
+		setView('map');
+		applyTraceLink(payload).then(t => { toast(t ? `Trace from the link: ${t.name || 'untitled'}` : 'That link does not hold a trace'); render(); });
 		return true;
 	}
 	if (m && m[1] === 'ship' && m[2]) {
@@ -491,6 +498,10 @@ function wire() {
 			case 'map-course': setMapCourse(el.dataset.id); return;
 			case 'map-wharves': setMapWharves(el.dataset.id); return;
 			case 'map-habitats': setMapHabitats(); return;
+			case 'map-labels': setMapLabels(); return;
+			case 'trace-tool': case 'trace-undo': case 'trace-clear': case 'trace-point-del': case 'trace-save': case 'trace-load': case 'trace-del': case 'trace-link': case 'trace-export': traceAction(act, el); return;
+			case 'map-setup-pick': openSetupPicker(() => render()); return;
+			case 'map-side-flip': flipMapSide(); return;
 			case 'map-hunt': setMapHunt(el.dataset.id); return;
 			case 'quest-map': showHunt(el.dataset.monster); return showView('map');
 			case 'map-route-export': {
@@ -509,6 +520,7 @@ function wire() {
 			}
 			case 'map-route-game': return openGameExport('route');
 			case 'map-hunt-game': return openGameExport('hunt');
+			case 'map-game': return openGameExport(el.dataset.source);
 			case 'map-game-pick': {
 				try {
 					await pickGameFolder();
@@ -790,6 +802,8 @@ function wire() {
 
 		const cw = evt.target.closest('[data-act^="crew-"]');
 		if (cw && crewChange(cw)) return;
+		const tr = evt.target.closest('[data-act^="trace-"]');
+		if (tr && traceChange(tr)) return;
 
 		const ms = evt.target.closest('[data-act="map-start"]');
 		if (ms) return setMapStart(Number(ms.value));

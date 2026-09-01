@@ -81,6 +81,19 @@ export function setCrystal(ship, id) {
 }
 
 /** The whole setup, summed: hull, parts, the crystal, the crew. */
+/**
+ * What Sailing Mastery adds to speed, acceleration, turn and brake, in
+ * percentage points: the game's table -- half a point per fifty
+ * mastery up to 2,000 (20%), a quarter-point per fifty from there to
+ * 3,000 (25%), and no more above that.
+ */
+export function masteryBonus(mastery = store.getProfile('sailingMastery', 0) || 0) {
+	const m = Math.max(0, Math.min(3000, Math.floor(Number(mastery) || 0)));
+	const steps = Math.floor(m / 50);
+	const pct = m <= 2000 ? steps * 0.5 : 20 + (steps - 40) * 0.25;
+	return Math.round(pct * 100) / 100;
+}
+
 export function currentShip() {
 	const name = shipName();
 	const stats = shipStats[name];
@@ -90,13 +103,14 @@ export function currentShip() {
 	const seats = (store.getProfile('seats', {}) || {})[name] || {};
 	const crew = crewTotals(store.getProfile('roster', []) || [], seats, stats);
 	const parts = k => Number(fit.total[k]) || 0;
+	const mastery = masteryBonus();
 	const limit = stats.weight + parts('weight') + gem('weight');
 	return {
-		name, stats, fit, crew, crystal,
-		speed: { hull: stats.speed, parts: parts('speed'), crystal: gem('speed'), crew: crew.speed, total: round1(stats.speed + parts('speed') + gem('speed') + crew.speed) },
-		accel: round1(stats.accel + parts('accel') + gem('accel') + crew.accel),
-		turn: round1(stats.turn + parts('turn') + gem('turn') + crew.turn),
-		brake: round1(stats.brake + parts('brake') + gem('brake') + crew.brake),
+		name, stats, fit, crew, crystal, mastery,
+		speed: { hull: stats.speed, parts: parts('speed'), crystal: gem('speed'), crew: crew.speed, mastery, total: round1(stats.speed + parts('speed') + gem('speed') + crew.speed + mastery) },
+		accel: round1(stats.accel + parts('accel') + gem('accel') + crew.accel + mastery),
+		turn: round1(stats.turn + parts('turn') + gem('turn') + crew.turn + mastery),
+		brake: round1(stats.brake + parts('brake') + gem('brake') + crew.brake + mastery),
 		// The hold: hull plus what the plating and a crystal add, less the
 		// crew's own weight -- what is left is what a run can carry.
 		hold: { limit, crew: crew.weight, free: Math.max(0, limit - crew.weight) },
@@ -116,4 +130,69 @@ export function setFitted(ship, slot, value) {
 	else forShip[slot] = value === 'none' ? '' : String(value).slice(0, 80);
 	if (Object.keys(forShip).length) all[ship] = forShip; else delete all[ship];
 	return store.setProfile('fitted', Object.keys(all).length ? all : null);
+}
+
+/* ------------------------------------------------------------------ *
+ * setups: a hull with its parts, crystal and seating, kept by name
+ * ------------------------------------------------------------------ */
+
+/** The saved setups, newest last: { id, name, ship, fitted, crystal, seats }. */
+export function listSetups() {
+	const all = store.getProfile('setups', {}) || {};
+	return Object.entries(all).map(([id, s]) => ({ id, ...s }));
+}
+
+/** What is sailed right now, as a setup would keep it. */
+export function currentSetup() {
+	const ship = shipName();
+	return {
+		ship,
+		fitted: (store.getProfile('fitted', {}) || {})[ship] || {},
+		crystal: (store.getProfile('crystal', {}) || {})[ship] || null,
+		seats: (store.getProfile('seats', {}) || {})[ship] || {}
+	};
+}
+
+/** Keep the current ship under a name; the same name replaces. */
+export function saveSetup(name) {
+	const clean = String(name || '').trim().slice(0, 40) || shipName();
+	const all = { ...(store.getProfile('setups', {}) || {}) };
+	const existing = Object.keys(all).find(id => all[id].name === clean);
+	const id = existing || `s${Date.now().toString(36)}`;
+	const cur = currentSetup();
+	all[id] = { name: clean, ship: cur.ship, ...(Object.keys(cur.fitted).length ? { fitted: cur.fitted } : {}), ...(cur.crystal ? { crystal: cur.crystal } : {}), ...(Object.keys(cur.seats).length ? { seats: cur.seats } : {}) };
+	store.setProfile('setups', all);
+	return id;
+}
+
+/** Sail a saved setup: its hull becomes the current one, with its parts,
+ *  crystal and seating; the crew roster itself is shared. */
+export function loadSetup(id) {
+	const s = (store.getProfile('setups', {}) || {})[id];
+	if (!s || !shipStats[s.ship]) return false;
+	const fitted = { ...(store.getProfile('fitted', {}) || {}) };
+	if (s.fitted) fitted[s.ship] = s.fitted; else delete fitted[s.ship];
+	const crystal = { ...(store.getProfile('crystal', {}) || {}) };
+	if (s.crystal) crystal[s.ship] = s.crystal; else delete crystal[s.ship];
+	const seats = { ...(store.getProfile('seats', {}) || {}) };
+	if (s.seats) seats[s.ship] = s.seats; else delete seats[s.ship];
+	store.setProfileQuiet('fitted', Object.keys(fitted).length ? fitted : null);
+	store.setProfileQuiet('crystal', Object.keys(crystal).length ? crystal : null);
+	store.setProfileQuiet('seats', Object.keys(seats).length ? seats : null);
+	store.setProfile('crewShip', s.ship);
+	return true;
+}
+
+export function deleteSetup(id) {
+	const all = { ...(store.getProfile('setups', {}) || {}) };
+	if (!(id in all)) return false;
+	delete all[id];
+	store.setProfile('setups', Object.keys(all).length ? all : null);
+	return true;
+}
+
+/** Which saved setup, if any, is exactly what is sailed right now. */
+export function activeSetupId() {
+	const cur = JSON.stringify(currentSetup());
+	return (listSetups().find(s => JSON.stringify({ ship: s.ship, fitted: s.fitted || {}, crystal: s.crystal || null, seats: s.seats || {} }) === cur) || {}).id || null;
 }

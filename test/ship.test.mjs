@@ -93,3 +93,44 @@ test('a sea crystal is the fifth slot, and its stat lands in the sum', async () 
 	setCrystal('Epheria Caravel', 12345);
 	assert.equal(store.getProfile('crystal'), null, 'an unknown id is not kept');
 });
+
+test('sailing mastery follows the game\'s table: half a point per fifty to 2,000, a quarter to 3,000', async () => {
+	const { masteryBonus, currentShip } = await import('../js/ship.js');
+	assert.equal(masteryBonus(0), 0);
+	assert.equal(masteryBonus(1400), 14);
+	assert.equal(masteryBonus(2000), 20);
+	assert.equal(masteryBonus(2050), 20.25);
+	assert.equal(masteryBonus(2975), 24.75, 'a part-step counts nothing');
+	assert.equal(masteryBonus(3000), 25);
+	assert.equal(masteryBonus(4000), 25, 'capped at the top of the table');
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { crewShip: 'Epheria Caravel' } });
+	const before = currentShip();
+	store.setProfile('sailingMastery', 2000);
+	const after = currentShip();
+	assert.equal(after.speed.total, Math.round((before.speed.total + 20) * 10) / 10);
+	assert.equal(after.speed.mastery, 20);
+	assert.equal(after.turn, Math.round((before.turn + 20) * 10) / 10);
+});
+
+test('a setup keeps a hull with its parts, crystal and seats, and sails again on demand', async () => {
+	const { saveSetup, loadSetup, listSetups, deleteSetup, activeSetupId, shipName, fittedFor, crystalFor } = await import('../js/ship.js');
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { crewShip: 'Epheria Caravel' } });
+	setFitted('Epheria Caravel', 'sail', 'none');
+	const { setCrystal } = await import('../js/ship.js');
+	setCrystal('Epheria Caravel', 756531);
+	const id = saveSetup('Slow coach');
+	assert.equal(listSetups().length, 1);
+	assert.equal(activeSetupId(), id, 'what is sailed now is the setup just kept');
+	store.setProfile('crewShip', 'Carrack (Valor)');
+	setFitted('Epheria Caravel', 'sail', null);
+	setCrystal('Epheria Caravel', null);
+	assert.equal(activeSetupId(), null);
+	assert.ok(loadSetup(id));
+	assert.equal(shipName(), 'Epheria Caravel');
+	assert.equal(fittedFor('Epheria Caravel').slots.find(s => s.slot === 'sail').source, 'none', 'the empty sail slot came back');
+	assert.equal(crystalFor('Epheria Caravel').id, 756531, 'and the crystal');
+	assert.equal(saveSetup('Slow coach'), id, 'the same name replaces');
+	assert.ok(deleteSetup(id));
+	assert.equal(listSetups().length, 0);
+	assert.equal(loadSetup(id), false);
+});

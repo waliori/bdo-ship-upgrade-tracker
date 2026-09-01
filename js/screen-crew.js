@@ -16,7 +16,7 @@ import { openDialog, closeDialog, toast } from './dialogs.js';
 import { shipStats } from './ship_stats.js';
 import { describeStats, statsAt } from './part_stats.js';
 import { families, tables } from './enhancement.js';
-import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal } from './ship.js';
+import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listSetups, saveSetup, loadSetup, deleteSetup, activeSetupId } from './ship.js';
 import { GRADES, gradeById, crystalsOf, crystalVariant, crystalLine } from './crystals.js';
 import { openPicker } from './picker.js';
 import { encodeShare, shareLink } from './share.js';
@@ -370,6 +370,28 @@ function loadoutPanel(ship) {
  * the screen
  * ------------------------------------------------------------------ */
 
+/** The saved setups as chips: the one being sailed is lit. */
+function setupsRow() {
+	const list = listSetups();
+	if (!list.length) return '';
+	const active = activeSetupId();
+	return `<div class="crew-setups"><span class="summary-k">Setups</span>${list.map(s => `<span class="quest-group">
+		<button class="chip${s.id === active ? ' active' : ''}" data-act="crew-setup-load" data-id="${esc(s.id)}" title="${esc(s.ship)}${s.fitted ? ` · ${Object.keys(s.fitted).length} slot${Object.keys(s.fitted).length === 1 ? '' : 's'} set` : ''}${s.crystal ? ' · crystal' : ''}${s.seats ? ` · ${Object.keys(s.seats).length} seated` : ''} — click to sail it">${s.id === active ? '⚓ ' : ''}${esc(s.name)}</button>
+		<button class="map-x" data-act="crew-setup-del" data-id="${esc(s.id)}" aria-label="Forget the setup ${esc(s.name)}">×</button></span>`).join('')}</div>`;
+}
+
+/** The picker of setups, for the Map: sail one without leaving the chart. */
+export function openSetupPicker(after) {
+	const list = listSetups();
+	const active = activeSetupId();
+	openPicker({
+		title: 'Sail which setup?',
+		hint: list.length ? 'The Map times routes at the speed of the setup sailed; the roster is shared.' : 'No setups kept yet — on the Ship tab, "Save as setup…" keeps the current hull with its parts, crystal and seating.',
+		items: list.map(s => ({ id: s.id, label: s.name, icon: img(s.ship, ''), sub: s.ship, meta: s.id === active ? 'sailing now' : '' })),
+		onPick: id => { if (loadSetup(id)) { toast(`Sailing ${(list.find(s => s.id === id) || {}).name}`); if (after) after(); } }
+	});
+}
+
 export function renderCrew() {
 	const ship = crewShip();
 	const stats = shipStats[ship];
@@ -387,14 +409,21 @@ export function renderCrew() {
 			</div>
 		</div>
 		<div class="ship-card-facts">
-			<div><div class="summary-k">Speed</div><div class="summary-v">${me.speed.total}%</div><div class="summary-sub">hull ${stats.speed}${me.speed.parts ? ` + parts ${me.speed.parts}` : ''}${me.speed.crystal ? ` + crystal ${me.speed.crystal}` : ''}${me.speed.crew ? ` + crew ${me.speed.crew}` : ''}</div></div>
+			<div><div class="summary-k">Speed</div><div class="summary-v">${me.speed.total}%</div><div class="summary-sub">hull ${stats.speed}${me.speed.parts ? ` + parts ${me.speed.parts}` : ''}${me.speed.crystal ? ` + crystal ${me.speed.crystal}` : ''}${me.speed.crew ? ` + crew ${me.speed.crew}` : ''}${me.mastery ? ` + mastery ${me.mastery}` : ''}</div></div>
 			<div><div class="summary-k">Hold</div><div class="summary-v">${F(me.hold.free)} LT</div><div class="summary-sub">${F(me.hold.limit)} as fitted${me.hold.crew ? ` less ${F(me.hold.crew)} of crew` : ''}</div></div>
 			<div><div class="summary-k">Fitted</div><div class="summary-v">${fittedN + (me.crystal ? 1 : 0)} of 5</div><div class="summary-sub">${stats.crew ? `${me.crew.seated} of ${stats.crew} seats taken` : 'carries no sailors'}</div></div>
 		</div>
 		<div class="ship-card-btns">
 			<button class="act quiet small" data-act="crew-ship-pick" title="Which hull you sail — the Map and the Plan follow it">⚓ Change ship</button>
+			<button class="act quiet small" data-act="crew-setup-save" title="Keep this hull with its parts, crystal and seating under a name, to come back to">Save as setup…</button>
 			<button class="act quiet small" data-act="crew-link" title="A link that carries this hull, its parts and its crew">Copy link</button>
 		</div>
+		${setupsRow()}
+		<label class="crew-mastery" title="Sailing Mastery, as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000">
+			<span class="summary-k">Sailing mastery</span>
+			<input class="field purse-inline narrow" type="number" min="0" max="3000" step="50" inputmode="numeric" value="${store.getProfile('sailingMastery', 0) || ''}" placeholder="0" data-act="crew-mastery" aria-label="Sailing mastery">
+			<span class="summary-sub">${me.mastery ? `+${me.mastery}% speed, acceleration, turn and brake` : 'adds to speed, acceleration, turn and brake'}</span>
+		</label>
 	</div>`;
 	if (!stats.crew) {
 		return head + `<div class="panel"><p class="empty">${esc(ship)} carries no sailors. Pick a crewed hull to plan one.</p></div>` + loadoutPanel(ship);
@@ -474,6 +503,24 @@ export function crewAction(act, el) {
 	const id = el.dataset.id;
 	switch (act) {
 		case 'crew-select': selId = selId === id ? null : id; return true;
+		case 'crew-setup-load': if (loadSetup(id)) toast('Sailing it'); return true;
+		case 'crew-setup-del': deleteSetup(id); return true;
+		case 'crew-setup-save': {
+			const host = openDialog(`
+				<h2>Keep this setup</h2>
+				<p class="dialog-copy">${esc(ship)} with what is fitted, its crystal and who sits where. The Map can switch between setups; the crew roster itself is shared by all of them.</p>
+				<input class="field" type="text" maxlength="40" placeholder="A name — “Barter Carrack”" data-setup-name value="${esc(ship)}">
+				<div class="dialog-actions">
+					<button class="ghost-btn" data-close>Cancel</button>
+					<button class="act" data-setup-save>Keep it</button>
+				</div>`);
+			const input = host.querySelector('[data-setup-name]');
+			input.focus(); input.select();
+			const save = () => { saveSetup(input.value); closeDialog(); toast(`Kept “${input.value.trim() || ship}”`); document.dispatchEvent(new CustomEvent('quests-refilter')); };
+			host.querySelector('[data-setup-save]').addEventListener('click', save);
+			input.addEventListener('keydown', evt => { if (evt.key === 'Enter') save(); });
+			return false;
+		}
 		case 'crew-check': if (checked.has(id)) checked.delete(id); else checked.add(id); return true;
 		case 'crew-bulk': {
 			const op = el.dataset.op;
@@ -698,6 +745,11 @@ export function applyShipSetup(setup) {
 export function crewChange(el) {
 	const act = el.dataset.act;
 	const id = el.dataset.id;
+	if (act === 'crew-mastery') {
+		const v = Math.floor(Number(el.value));
+		store.setProfile('sailingMastery', Number.isFinite(v) && v > 0 ? Math.min(3000, v) : null);
+		return true;
+	}
 	if (!['crew-name', 'crew-lv', 'crew-cond', 'crew-stat'].includes(act)) return false;
 	setRoster(roster().map(s => {
 		if (s.id !== id) return s;

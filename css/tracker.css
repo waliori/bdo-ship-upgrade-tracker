@@ -2896,6 +2896,20 @@ select.purse-inline { width: auto; cursor: pointer; }
 .reward-icon { width: 20px; height: 20px; border-radius: 4px; }
 .quest-or { font-size: 11px; color: var(--ink-faint); font-style: italic; }
 .quest-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex: none; }
+.quest-check { flex: none; width: 16px; height: 16px; margin-top: 3px; accent-color: var(--teal); cursor: pointer; }
+.quest-star { flex: none; border: 0; background: none; color: rgba(255, 215, 122, 0.35); font-size: 16px; line-height: 1; cursor: pointer; padding: 0 2px; margin-top: 1px; }
+.quest-star.on { color: #ffd77a; text-shadow: 0 0 6px rgba(255, 215, 122, 0.5); }
+.quest-codex { color: inherit; text-decoration: none; border-bottom: 1px dotted rgba(125, 175, 225, 0.35); }
+.quest-codex:hover { color: var(--teal); border-bottom-color: var(--teal); }
+.quest-recall { font-size: 11px; color: var(--ink-mute); margin-top: 4px; }
+.quest-bulk { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 12px; margin: 0 0 12px; border-radius: var(--r-btn); background: rgba(88, 196, 196, 0.08); border: 1px solid rgba(88, 196, 196, 0.25); font-size: 12.5px; }
+.quest-groups { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
+.quest-group { display: inline-flex; align-items: center; gap: 6px; }
+.quest-group .map-x { margin-left: 0; }
+.quest.selected { background: rgba(255, 215, 122, 0.06); }
+.crew-setups { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 0 0; width: 100%; }
+.crew-mastery { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 0 0; width: 100%; }
+.crew-mastery .field { width: 90px; }
 .quest-total { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 12px 22px 16px; border-top: 1px solid rgba(125, 175, 225, 0.08); font-size: 12px; color: var(--ink-mute); }
 .get-quests { margin: 0 0 14px; font-size: 12.5px; color: var(--ink-mute); }
 @media (max-width: 640px) {
@@ -2955,7 +2969,24 @@ select.purse-inline { width: auto; cursor: pointer; }
 /* Anything on the chart that is hidden is hidden: these set their own
    display, which would otherwise outrank the attribute and leave a
    culled pin standing where it last was. */
-.map-port[hidden], .map-pin[hidden], .map-steps[hidden], .map-tip[hidden], .map-wharf[hidden], .map-habitat[hidden] { display: none; }
+.map-port[hidden], .map-pin[hidden], .map-steps[hidden], .map-tip[hidden], .map-wharf[hidden], .map-habitat[hidden], .map-label[hidden] { display: none; }
+.map-label { position: absolute; transform: translate(-50%, -50%); pointer-events: none; z-index: 1; font-family: var(--font-display); font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(214, 232, 246, 0.5); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.6); white-space: nowrap; }
+.map-side-head-btns { display: flex; gap: 2px; }
+.map.side-right .map-side, .map.side-right .map-side-pill { left: auto; right: 12px; }
+.map.tracing { cursor: crosshair; }
+.map.tool-pen { cursor: cell; }
+.map-trace-layer { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.map-trace-glow { fill: none; stroke: #7ef0d4; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; opacity: 0.14; }
+.map-trace-path { fill: none; stroke: #7ef0d4; stroke-width: 2; stroke-dasharray: 7 5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.9; }
+.map-trace-stroke { fill: none; stroke: #ffd77a; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.9; }
+.map-trace-dot { position: absolute; transform: translate(-50%, -50%); width: 20px; height: 20px; border-radius: 50%; background: #0b1622; border: 2px solid #7ef0d4; color: #7ef0d4; font: 700 10.5px var(--font-display); display: flex; align-items: center; justify-content: center; pointer-events: auto; box-shadow: 0 1px 4px #000; }
+.map-trace-dot.noted { border-color: #ffd77a; color: #ffd77a; }
+.map-trace-note { position: absolute; left: 24px; top: 50%; transform: translateY(-50%); white-space: nowrap; font: 500 10.5px var(--font-body, inherit); color: #f3e9c8; text-shadow: 0 1px 3px #000, 0 0 6px rgba(0, 0, 0, 0.7); pointer-events: none; }
+.map-trace-stops { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+.map-trace-stop { display: flex; align-items: center; gap: 6px; }
+.map-trace-stop .field { flex: 1; min-width: 0; }
+.map-trace-n { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 1px solid #7ef0d4; color: #7ef0d4; font-size: 10.5px; display: flex; align-items: center; justify-content: center; }
+.map-trace-notes { resize: vertical; min-height: 44px; margin-top: 6px; }
 
 /* the game's-map export: the block to paste, and its small options */
 .map-xml {

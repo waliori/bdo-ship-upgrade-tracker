@@ -8,8 +8,8 @@
 import { esc, F } from './fmt.js';
 import * as store from './state.js';
 import { snapshot } from './ui-state.js';
-import { quests, questsFor } from './quests.js';
-import { questDone } from './screen-quests.js';
+import { quests } from './quests.js';
+import { questDone, wantedQuests } from './screen-quests.js';
 import { VELL, VELL_CHECKED, nextSpawn, timeLabel, localLabel } from './clock.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { paceText } from './pace.js';
@@ -60,11 +60,11 @@ function vellTile() {
 
 /** The strip itself. */
 export function todayStrip() {
-	const wanted = questsFor(snapshot.missing);
+	const wanted = wantedQuests();
 	const leftAll = quests.filter(q => !questDone(q)).length;
 	const left = wanted.filter(q => !questDone(q));
 	const questTile = `<div class="today-v">${leftAll} of ${quests.length} left</div>
-			<div class="today-sub">${wanted.length ? `${left.length} of them pay in what you need` : 'none of them pays in what you are short of'} · <button class="linky" data-act="view" data-id="quests">open</button></div>`;
+			<div class="today-sub">${wanted.length ? `${left.length} of them pay in what your plan still wants` : 'none of them pays in what you are short of'} · <button class="linky" data-act="view" data-id="quests">open</button></div>`;
 
 	const targets = (snapshot.targets || []).filter(t => t.missingUnits > 0);
 	const paced = targets.map(t => ({ t, text: paceText(t) })).filter(x => x.text);
@@ -186,7 +186,7 @@ export function checkVellReminder(now = Date.now()) {
 /** The day in one line, for the tabs that do not carry the strip. */
 export function statusLine() {
 	const me = currentShip();
-	const wanted = questsFor(snapshot.missing);
+	const wanted = wantedQuests();
 	const left = wanted.filter(q => !questDone(q)).length;
 	const leftAll = quests.filter(q => !questDone(q)).length;
 	const plan = vellPlan();
@@ -194,8 +194,8 @@ export function statusLine() {
 	const targets = (snapshot.targets || []).filter(t => t.missingUnits > 0);
 	const paced = targets.map(t => ({ t, text: paceText(t) })).find(x => x.text);
 	const bits = [
-		`<button class="status-bit" data-act="view" data-id="crew" title="Your ship — hull, parts and crew, on the Crew tab">⚓ <b>${esc(me.name)}</b> ${me.speed.total}% · ${F(me.hold.free)} LT</button>`,
-		`<button class="status-bit" data-act="view" data-id="quests" title="Quests still to do this period${wanted.length ? `; ${left} of them pay in what you need` : ''}">✦ <b>${leftAll}</b> quest${leftAll === 1 ? '' : 's'} left${wanted.length ? ` · <b>${left}</b> for your list` : ''}</button>`,
+		`<button class="status-bit" data-act="view" data-id="crew" title="Your ship — hull, parts, crew and setups, on the Ship tab">⚓ <b>${esc(me.name)}</b> ${me.speed.total}% · ${F(me.hold.free)} LT</button>`,
+		`<button class="status-bit" data-act="view" data-id="quests" title="Quests still to do this period${wanted.length ? `; ${left} of them pay in what your plan still wants — short of, or still to craft or buy` : ''}">✦ <b>${leftAll}</b> quest${leftAll === 1 ? '' : 's'} left${wanted.length ? ` · <b>${left}</b> for your list` : ''}</button>`,
 		`<span class="status-bit" title="Dailies reset at 00:00 UTC, the barter refill at 06:00 UTC">dailies <b data-until="daily"></b> · barter <b data-until="barter"></b></span>`,
 		next ? `<span class="status-bit" title="Vell's next spawn on your servers">Vell <b>${esc(localLabel(next.at))}</b> in <b data-until="at" data-at="${next.at}"></b></span>` : '',
 		paced ? `<button class="status-bit" data-act="view" data-id="builds" title="${esc(paced.text)}">${esc(paced.t.item)}: <b>${esc(paced.text.replace(/ at the last.*$/, ''))}</b></button>` : ''

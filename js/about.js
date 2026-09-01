@@ -27,6 +27,17 @@ export const DATA = [
 
 export const CHANGES = [
 	{
+		date: '2026-08-31',
+		title: 'routes traced by hand, ship setups, and quests finished together',
+		notes: [
+			'Map: a Trace tab — click stops onto the sea, draw with the pen, note each stop; it zooms with the chart, keeps by name, travels in a link or a file, and goes into the game’s map.',
+			'Map: island names at close zoom, the side panel on either side, and a switch between saved ship setups where the route is timed.',
+			'Ship (was Crew): setups — a hull with its parts, crystal and seating kept by name — and Sailing Mastery, which the speed now counts.',
+			'Quests: a pick-one reward is remembered and taken again in one press; tick several and finish them together; star favourites or keep named groups; every quest opens on BDOCodex.',
+			'The hunt grounds keep to the water; markers that would collide share one picture; Salty’s croc map, Awabi’s Road to Cox and Vell’s waters are on the chart; the full roll of 58 wharf managers.'
+		]
+	},
+	{
 		date: '2026-08-30',
 		title: 'quests as a checklist, a Today strip, and a route that says how long',
 		notes: [

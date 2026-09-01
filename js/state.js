@@ -511,6 +511,27 @@ export function setStash(item, town, qty) {
 	});
 }
 
+/**
+ * Several quests claimed at once -- a favourite group finished in one
+ * sitting -- as one change, so one Undo takes back the lot. Each entry
+ * is { id, key, delta }.
+ */
+export function claimQuests(entries, label) {
+	const list = (entries || []).filter(e => e && e.id);
+	if (!list.length) return null;
+	const done = { ...(state.profile.questsDone || {}) };
+	for (const e of list) done[e.id] = e.key;
+	const next = readProfile({ ...state.profile, questsDone: done });
+	return commit('quest', label || `Claimed ${list.length} quests`, () => {
+		for (const e of list) {
+			for (const [item, d] of Object.entries(e.delta || {})) {
+				if (Number(d)) writeStock(item, getStock(item) + Math.floor(d));
+			}
+		}
+		state.profile = next;
+	});
+}
+
 /** Take a quest off the done list without touching stock -- for a tick
  *  made by mistake; a reward recorded by mistake is what Undo is for. */
 export function unclaimQuest(id, label) {

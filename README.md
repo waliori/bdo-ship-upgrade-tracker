@@ -203,12 +203,24 @@ in this browser, not part of the save.
 
 **Quests** are a checklist. Claiming a reward puts it in stock and
 ticks the quest for the day or the week it counts for; the tick wears
-off at the reset by itself. Filter to what is still to do, what is
-done, what pays in something you need, or one reward in particular —
-the ones on your own list are offered first. Ravinia's log shows how
-many of its letters you have recorded.
+off at the reset by itself. A pick-one reward is remembered, so the
+next claim takes the same one in a single press (an *other reward…*
+link is there for the day you change your mind). Tick several quests
+and **Finish** them together as one undoable change — the ones whose
+choice is not yet known ask, the rest go through — and keep a set you
+run every day as a named **group** (one click ticks it) or **star** the
+ones that matter. Filter to what is still to do, what is done, what
+pays in something your plan still wants, your favourites, or one reward
+in particular — the ones on your own list are offered first; every
+quest's name opens its BDOCodex page. Ravinia's log shows how many of
+its letters you have recorded.
 
-**One ship, every tab.** The Crew screen opens on the ship as a card
+**One ship, every tab.** The Ship screen opens on the ship as a card
+— and keeps **setups**: a hull with its parts, crystal and seating
+under a name, to switch between here or from the Map's route timing
+(the crew roster itself is shared). Your **Sailing Mastery** goes in
+beside it and counts toward speed, acceleration, turn and brake the
+way the game's table has it. The screen
 and fits it out as five slot cards — the four parts and the **sea
 crystal**, every one of the codex's 287 variants from Eltro to Rusalka
 plus Ebenruth's Nol and the Oceanteared Nol, chosen by grade with its
@@ -250,7 +262,14 @@ to it on their island names: Awabi's *Road to Cox* — the Cox Pirates'
 camps (six to eight seals), flags and cargo ships, a group of their own
 on the Hunt tab — and Vell's waters from gpw's ocean map. The Hunt tab can also draw all 58 **wharf
 managers** (repair, rations, sailors) and guild wharves, named by
-harbour, and the Route tab names the nearest wharf to the last
+harbour; **island names** appear faintly once the chart is close
+enough to read them; the side panel sits on whichever side you like.
+The **Trace** tab is for routes the barter list cannot express: pick
+*Add stops* and click the sea, or *Draw* and drag a line — every point
+is a place on the chart, so it zooms and pans with the tiles; each stop
+takes a note; a trace is kept by name, travels in a `#trace/` link or a
+JSON file, and its stops go into the game's world map like a route's.
+The Route tab names the nearest wharf to the last
 stop.
 
 **Enhancement below the yellow tier** takes a failstack too. The game
@@ -259,7 +278,7 @@ the standard line — a tenth of the base rate a stack, capped at 90% —
 and says so; blank means the quoted rate.
 
 **Sailors' real numbers.** Growth is a hidden random range per sailor,
-so the type's figures are averages. The Crew screen lets you type what
+so the type's figures are averages. The Ship screen lets you type what
 the sailor window shows for each stat, and everything downstream — the
 hull's speed, the route's minutes — follows the typed number.
 
@@ -317,13 +336,13 @@ rowboats and the Raft.
 **What each hull is** — durability, rations, weight limit, inventory,
 cabin space, sailor seats, cannons and reload, and the four movement
 percentages, read off each hull's codex page. The Builds screen shows the
-line under every ship; the **Crew** screen shows the lot.
+line under every ship; the **Ship** screen shows the lot.
 
 **What each part does** — the equip effect of all 72 enhanceable parts at
 every level from +0 to +10: speed, acceleration, turning, braking, DP,
 damage reduction, weight, rations, durability, cannon damage and reload.
 The Workshop says what the next level adds beside every attempt, the hover
-card says what a part does at the level you hold, and the Crew screen
+card says what a part does at the level you hold, and the Ship screen
 sums the best part you own in each slot onto the hull — the answer to
 "is +8 worth it" in the game's own numbers.
 

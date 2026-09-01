@@ -24,6 +24,7 @@ import { openPicker } from './picker.js';
 import * as store from './state.js';
 import { legLengths, pathLength, sailRange, fmtRange, calibrate, fmtDistance, DEFAULT_CAL } from './sailing.js';
 import { bookmarkXML, writeMode, BOOKMARK_SLOTS, CAMERA_SLOTS, LOOP_SLOTS, FILE_HINT, toGame } from './worldmap.js';
+import { encodeAny, decodeAny } from './share.js';
 import { canWriteFiles, gameFolderName, previousBlock } from './gamefile.js';
 import { parleyPerTrade, PARLEY, GOODS } from './barter.js';
 import { snapshot, barterData, barterProfile, view } from './ui-state.js';
@@ -55,6 +56,8 @@ let coursesOn = [];           // community courses drawn beneath the route, by i
 let huntsOn = [];             // sea monster grounds shown, by species key
 let wharvesOn = [];           // 'wharf' and/or 'guild': the wharf managers drawn
 let habitatsOn = true;        // the game's habitat markers: a picture per species' ground
+let labelsOn = true;          // island names, faint, once the chart is close enough to read them
+let sideRight = false;        // the side panel on the right-hand side instead
 let follow = true;            // the step player flies the camera along
 let stepIdx = 0;              // which stop the step player is on
 let stepKey = '';             // the route it was on, to reset when it changes
@@ -65,6 +68,11 @@ let miniOn = true;            // the minimap is shown
 let miniPos = null;           // where it was dragged to, { x, y } from the box's corner, else the default corner
 let measuring = false;        // the ruler is armed
 let measurePts = [];          // the two ends of a measurement, in world space
+let trace = null;             // the route being traced by hand: { name, notes, points: [{ x, y, note }], strokes: [[x, y, ...]] }
+let traces = [];              // traced routes kept by name, newest first
+const TRACES_MAX = 12;
+let traceTool = null;         // 'point' adds a stop per click, 'pen' draws while the pointer is down
+let penStroke = null;         // the stroke under the pointer right now, in world space
 
 /** The barter day: the game's lists refresh at 06:00 UTC, so "today"
  *  rolls over then, not at midnight. */
@@ -77,7 +85,7 @@ function restore() {
 	restored = true;
 	try {
 		const s = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
-		if (['sail', 'route', 'today', 'hunt'].includes(s.mode)) mode = s.mode;
+		if (['sail', 'route', 'today', 'hunt', 'trace'].includes(s.mode)) mode = s.mode;
 		if (['all', 'material', 'trade'].includes(s.kindFilter)) kindFilter = s.kindFilter;
 		// A phone starts with the panel folded: 300 of its 400 pixels are
 		// the sea's, until the panel is asked for.
@@ -94,6 +102,10 @@ function restore() {
 		if (Array.isArray(s.huntsOn)) huntsOn = s.huntsOn.filter(k => monsterByKey[k]);
 		if (Array.isArray(s.wharvesOn)) wharvesOn = s.wharvesOn.filter(k => k === 'wharf' || k === 'guild');
 		habitatsOn = s.habitatsOn !== false;
+		labelsOn = s.labelsOn !== false;
+		if (s.trace && typeof s.trace === 'object') trace = cleanTrace(s.trace);
+		if (Array.isArray(s.traces)) traces = s.traces.map(cleanTrace).filter(Boolean).slice(0, TRACES_MAX);
+		sideRight = s.sideRight === true;
 		if (s.tradesMode === 'all') tradesMode = 'all';
 		miniOn = s.miniOn !== false;
 		if (s.miniPos && Number.isFinite(s.miniPos.x) && Number.isFinite(s.miniPos.y)) miniPos = { x: s.miniPos.x, y: s.miniPos.y };
@@ -108,7 +120,7 @@ function restore() {
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, tradesMode, savedRoutes, miniOn, miniPos }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, sideRight, tradesMode, savedRoutes, miniOn, miniPos, trace, traces }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -286,6 +298,10 @@ function huntHTML() {
 			<span class="map-course-dot" style="background:#ffd77a"></span>
 			<span class="map-row-main"><span class="map-row-name">Habitat markers</span><span class="map-row-sub">a picture where each species lives, as the game's map shows them</span></span>
 		</button>
+		<button class="map-course${labelsOn ? ' on' : ''}" data-act="map-labels" aria-pressed="${labelsOn}">
+			<span class="map-course-dot" style="background:#cfe3f5"></span>
+			<span class="map-row-main"><span class="map-row-name">Island names</span><span class="map-row-sub">faint, once the chart is close enough to read them</span></span>
+		</button>
 		<div class="map-courses-head">Landmarks <span class="map-courses-credit">every wharf on BDOCodex, at its pier</span></div>
 		${landmarks}
 		<div class="map-courses-head">Grounds <span class="map-courses-credit">every spawn point on BDOCodex</span></div>
@@ -334,7 +350,7 @@ export function renderMap() {
 		</div>
 	</div>`;
 
-	return head + `<div class="panel map-panel"><div class="map${measuring ? ' measuring' : ''}" id="map" data-map>
+	return head + `<div class="panel map-panel"><div class="map${measuring ? ' measuring' : ''}${sideRight ? ' side-right' : ''}${traceTool ? ` tracing tool-${traceTool}` : ''}" id="map" data-map>
 		<div class="map-layer" data-map-layer></div>
 		<div class="map-side-slot" data-map-side>${sideHTML(marks)}</div>
 		<div class="map-tip" data-map-tip hidden></div>
@@ -352,17 +368,18 @@ function sideHTML(marks) {
 	if (!panelOpen) {
 		return `<button class="map-side-pill" data-act="map-panel">☰ Where to sail</button>`;
 	}
-	const tabs = [['sail', 'Sail'], ['route', 'Route'], ['hunt', 'Hunt'], ['today', 'Today']]
+	const tabs = [['sail', 'Sail'], ['route', 'Route'], ['trace', 'Trace'], ['hunt', 'Hunt'], ['today', 'Today']]
 		.map(([id, label]) => `<button class="map-tab${mode === id ? ' active' : ''}"
 			data-act="map-mode" data-id="${id}">${label}</button>`).join('');
 	const body = mode === 'route' ? routeHTML(marks)
+		: mode === 'trace' ? traceHTML()
 		: mode === 'hunt' ? huntHTML()
 		: mode === 'today' ? todayHTML(marks)
 		: sailHTML(marks);
 	return `<div class="map-side">
 		<div class="map-side-head"><span>${
-			mode === 'route' ? 'Plot the loop' : mode === 'hunt' ? 'Hunting grounds' : mode === 'today' ? 'Sailed today' : 'Who has it'
-		}</span><button class="map-side-close" data-act="map-panel" aria-label="Hide the panel">‹</button></div>
+			mode === 'route' ? 'Plot the loop' : mode === 'trace' ? 'Trace a route' : mode === 'hunt' ? 'Hunting grounds' : mode === 'today' ? 'Sailed today' : 'Who has it'
+		}</span><span class="map-side-head-btns"><button class="map-side-close" data-act="map-side-flip" aria-label="Move the panel to the other side" title="Move the panel to the ${sideRight ? 'left' : 'right'}">⇄</button><button class="map-side-close" data-act="map-panel" aria-label="Hide the panel">${sideRight ? '›' : '‹'}</button></span></div>
 		<div class="map-tabs" role="tablist">${tabs}</div>
 		<div class="map-side-body">${body}</div>
 	</div>`;
@@ -492,7 +509,7 @@ function routeHTML(marks) {
 	const distance = world.length > 1 ? `<div><div class="summary-k">Distance</div><div class="summary-v">${esc(fmtDistance(total))}</div>
 				<div class="summary-sub">≈ ${esc(timeOf(total))} at ${speed.total}% · 100% ≈ ${cal} m/s ${measured ? '±10%' : '±20%'} · <button class="linky" data-act="map-sail-cal">timed a leg?</button></div>${wharfLine}</div>` : '';
 	const cargo = cargoTile({ weight: me.hold.free });
-	const sailingAs = stops.length ? `<p class="map-hint map-as">Sailing as <b>${esc(me.name)}</b> · ${speed.total}% · ${F(me.hold.free)} LT free${me.crew.seated ? ` · ${me.crew.seated} aboard` : ''} · <button class="linky" data-act="view" data-id="crew">change</button></p>` : '';
+	const sailingAs = stops.length ? `<p class="map-hint map-as">Sailing as <b>${esc(me.name)}</b> <button class="linky" data-act="map-setup-pick" title="Sail a saved setup instead — the times follow its speed">switch setup ▾</button> · ${speed.total}% · ${F(me.hold.free)} LT free${me.crew.seated ? ` · ${me.crew.seated} aboard` : ''} · <button class="linky" data-act="view" data-id="crew">change</button></p>` : '';
 	const stats = stops.length ? `<div class="map-stats">
 			<div><div class="summary-k">Stops</div><div class="summary-v">${stops.length}</div></div>
 			${distance}
@@ -768,6 +785,282 @@ export function applyMapLink(fragment) {
 	pendingFit = true;
 	persist();
 	return ids.length;
+}
+
+/* ------------------------------------------------------------------ *
+ * a route traced by hand
+ *
+ * A barter route is a list of islands; a hunting run, a scouting line
+ * or "the way I go round the reef" is not. Here the sea itself is the
+ * input: a click puts a stop where the pointer is, a stroke is drawn as
+ * it is dragged, and every point is a place on the chart -- so it zooms
+ * and pans with the tiles and never floats. A stop can carry a note. The
+ * whole thing travels in a link, a file, or into the game's own map.
+ * ------------------------------------------------------------------ */
+
+const num = (v, lo, hi) => { const n = Number(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, Math.round(n))) : null; };
+
+/** A trace as stored, bounded: forty stops, twelve strokes of a few
+ *  hundred points, a name and notes of sensible length. */
+function cleanTrace(raw) {
+	if (!raw || typeof raw !== 'object') return null;
+	const points = (Array.isArray(raw.points) ? raw.points : []).slice(0, 40).map(p => {
+		const x = num(p && p.x, 0, 200000), y = num(p && p.y, 0, 200000);
+		if (x === null || y === null) return null;
+		const out = { x, y };
+		if (p.note && typeof p.note === 'string') out.note = p.note.slice(0, 120);
+		return out;
+	}).filter(Boolean);
+	const strokes = (Array.isArray(raw.strokes) ? raw.strokes : []).slice(0, 12).map(st => {
+		if (!Array.isArray(st)) return null;
+		const flat = [];
+		for (let i = 0; i + 1 < st.length && flat.length < 600; i += 2) {
+			const x = num(st[i], 0, 200000), y = num(st[i + 1], 0, 200000);
+			if (x !== null && y !== null) flat.push(x, y);
+		}
+		return flat.length >= 4 ? flat : null;
+	}).filter(Boolean);
+	if (!points.length && !strokes.length && !raw.name) return null;
+	return {
+		name: String(raw.name || '').slice(0, 40),
+		notes: String(raw.notes || '').slice(0, 400),
+		points, strokes,
+		at: Number(raw.at) || Date.now()
+	};
+}
+
+const blankTrace = () => ({ name: '', notes: '', points: [], strokes: [], at: Date.now() });
+
+/** The traced stops as the route tab counts them: length and time. */
+function traceLength() {
+	if (!trace || trace.points.length < 2) return 0;
+	return pathLength(trace.points);
+}
+
+function traceHTML() {
+	const t = trace || blankTrace();
+	const tool = (id, label, hint) => `<button class="map-course${traceTool === id ? ' on' : ''}" data-act="trace-tool" data-id="${id}" aria-pressed="${traceTool === id}">
+		<span class="map-course-dot" style="background:${id === 'pen' ? '#ffd77a' : '#7ef0d4'}"></span>
+		<span class="map-row-main"><span class="map-row-name">${label}</span><span class="map-row-sub">${hint}</span></span></button>`;
+	const stops = t.points.map((p, i) => `<div class="map-trace-stop">
+		<span class="map-trace-n">${i + 1}</span>
+		<input class="field small" type="text" maxlength="120" placeholder="a note for this stop" value="${esc(p.note || '')}" data-act="trace-point-note" data-i="${i}" aria-label="Note for stop ${i + 1}">
+		<button class="map-x" data-act="trace-point-del" data-i="${i}" aria-label="Remove stop ${i + 1}">×</button>
+	</div>`).join('');
+	const m = traceLength();
+	const speed = routeSpeed();
+	const time = m ? fmtRange(...sailRange(m, speed.total, sailCal(), Number(store.getSetting('sailCal', null)) > 0)) : '';
+	const has = t.points.length || t.strokes.length;
+	const saved = traces.length ? `<div class="map-courses-head">Kept on this browser</div>${traces.map((r, i) => `<div class="map-saved-row">
+		<button class="map-saved-load" data-act="trace-load" data-i="${i}" title="Open it on the chart">${esc(r.name || 'untitled')} <span class="row-sub">· ${r.points.length} stop${r.points.length === 1 ? '' : 's'}${r.strokes.length ? ` · ${r.strokes.length} stroke${r.strokes.length === 1 ? '' : 's'}` : ''}</span></button>
+		<button class="map-x" data-act="trace-del" data-i="${i}" aria-label="Forget ${esc(r.name || 'this trace')}">×</button>
+	</div>`).join('')}` : '';
+	return `<div class="map-courses">
+		<div class="map-courses-head">Tools <span class="map-courses-credit">every point is a place on the chart</span></div>
+		${tool('point', 'Add stops', 'click the sea to put a numbered stop there')}
+		${tool('pen', 'Draw', 'drag to draw a line; it stays with the chart')}
+		<div class="map-side-btns">
+			<button class="ghost-btn" data-act="trace-undo" ${has ? '' : 'disabled'} title="Take back the last stop or stroke">↶ Undo</button>
+			<button class="ghost-btn" data-act="trace-clear" ${has ? '' : 'disabled'}>Clear</button>
+		</div>
+	</div>
+	<div class="map-courses">
+		<input class="field" type="text" maxlength="40" placeholder="Name this route" value="${esc(t.name)}" data-act="trace-name" aria-label="Name of the traced route">
+		<textarea class="field map-trace-notes" maxlength="400" rows="2" placeholder="Notes — what it is for, when to sail it, what to watch" data-act="trace-notes" aria-label="Notes">${esc(t.notes)}</textarea>
+		${t.points.length ? `<div class="map-trace-stops">${stops}</div>` : '<p class="map-hint">No stops yet. Pick <b>Add stops</b> and click the sea; pick <b>Draw</b> and drag to sketch.</p>'}
+		${m ? `<p class="map-hint">${esc(fmtDistance(m))} stop to stop${time ? ` · ≈ ${esc(time)} at ${speed.total}%` : ''}</p>` : ''}
+		<div class="map-side-btns">
+			<button class="act small" data-act="trace-save" ${has ? '' : 'disabled'} title="Keep it on this browser, by name">Keep</button>
+			<button class="ghost-btn" data-act="trace-link" ${has ? '' : 'disabled'} title="A link that carries the whole trace — stops, notes and drawing">Copy link</button>
+			<button class="ghost-btn" data-act="trace-export" ${has ? '' : 'disabled'} title="A JSON file of it">File</button>
+			<button class="ghost-btn" data-act="map-game" data-source="trace" ${t.points.length ? '' : 'disabled'} title="Write the stops into the game's world map as favourites or a loop">⚑ To the game</button>
+		</div>
+	</div>
+	${saved}`;
+}
+
+/** The trace on the chart: the line through its stops, the stops
+ *  themselves with their notes, and every stroke drawn. */
+function paintTrace(layer, size) {
+	let box = layer._traceBox;
+	if (!box || box.parentNode !== layer) {
+		box = layer._traceBox = document.createElement('div');
+		box.className = 'map-trace-layer';
+		layer.appendChild(box);
+	}
+	const t = trace;
+	if (!t || (!t.points.length && !t.strokes.length && !penStroke)) { box.innerHTML = ''; return; }
+	let html = '';
+	const P = p => project(mapState, size, p.x, p.y);
+	if (t.points.length > 1) {
+		const d = routePath(t.points.map(P), size);
+		html += `<svg class="map-route map-trace-line"><path class="map-trace-glow" d="${d}"></path><path class="map-trace-path" d="${d}"></path></svg>`;
+	}
+	const strokes = penStroke ? [...t.strokes, penStroke] : t.strokes;
+	for (const st of strokes) {
+		let d = '';
+		for (let i = 0; i + 1 < st.length; i += 2) {
+			const at = project(mapState, size, st[i], st[i + 1]);
+			d += `${d ? ' L' : 'M'}${at.left.toFixed(1)} ${at.top.toFixed(1)}`;
+		}
+		if (d) html += `<svg class="map-route map-trace-line"><path class="map-trace-stroke" d="${d}"></path></svg>`;
+	}
+	t.points.forEach((p, i) => {
+		const at = P(p);
+		if (at.left < -40 || at.top < -40 || at.left > size.w + 40 || at.top > size.h + 40) return;
+		html += `<span class="map-trace-dot${p.note ? ' noted' : ''}" style="left:${Math.round(at.left)}px;top:${Math.round(at.top)}px" title="${esc(p.note || `stop ${i + 1}`)}">${i + 1}${p.note ? `<span class="map-trace-note">${esc(p.note)}</span>` : ''}</span>`;
+	});
+	box.innerHTML = html;
+}
+
+function traceAdd(host, clientX, clientY) {
+	const box = host.getBoundingClientRect();
+	const p = unproject({ w: box.width, h: box.height }, clientX - box.left, clientY - box.top);
+	if (!trace) trace = blankTrace();
+	if (trace.points.length >= 40) return toast('Forty stops is the most a trace holds');
+	trace.points.push({ x: Math.round(p.x), y: Math.round(p.y) });
+	persist();
+	refreshSide();
+	paintMap();
+}
+
+function penStart(host, clientX, clientY) {
+	const box = host.getBoundingClientRect();
+	const p = unproject({ w: box.width, h: box.height }, clientX - box.left, clientY - box.top);
+	penStroke = [Math.round(p.x), Math.round(p.y)];
+}
+
+function penMove(host, clientX, clientY) {
+	if (!penStroke) return;
+	const box = host.getBoundingClientRect();
+	const p = unproject({ w: box.width, h: box.height }, clientX - box.left, clientY - box.top);
+	// One point every few screen pixels: enough for a curve, few enough
+	// to travel in a link.
+	const scale = Math.pow(2, MAX_ZOOM - mapState.zoom);
+	const lx = penStroke[penStroke.length - 2], ly = penStroke[penStroke.length - 1];
+	if (Math.hypot(p.x - lx, p.y - ly) < 4 * scale) return;
+	if (penStroke.length < 1200) penStroke.push(Math.round(p.x), Math.round(p.y));
+	schedulePaint();
+}
+
+function penEnd() {
+	if (!penStroke) return;
+	if (penStroke.length >= 4) {
+		if (!trace) trace = blankTrace();
+		if (trace.strokes.length >= 12) toast('Twelve strokes is the most a trace holds');
+		else trace.strokes.push(penStroke);
+	}
+	penStroke = null;
+	persist();
+	refreshSide();
+	paintMap();
+}
+
+export function setTraceTool(id) {
+	traceTool = traceTool === id ? null : (id === 'pen' || id === 'point' ? id : null);
+	if (traceTool && measuring) toggleMeasure();
+	const host = document.querySelector('[data-map]');
+	if (host) { host.classList.toggle('tracing', Boolean(traceTool)); host.classList.toggle('tool-pen', traceTool === 'pen'); host.classList.toggle('tool-point', traceTool === 'point'); }
+	if (traceTool === 'point') toast('Click the sea to add a stop');
+	if (traceTool === 'pen') toast('Drag on the sea to draw');
+	refreshSide();
+}
+
+/** Every trace-* action from the panel. Returns true when it was one. */
+export function traceAction(act, el) {
+	const i = Number(el && el.dataset.i);
+	switch (act) {
+		case 'trace-tool': setTraceTool(el.dataset.id); return true;
+		case 'trace-undo':
+			if (!trace) return true;
+			if (trace.strokes.length && (!trace.points.length || (trace.at || 0) < 0)) trace.strokes.pop();
+			else if (trace.points.length) trace.points.pop();
+			else trace.strokes.pop();
+			break;
+		case 'trace-clear': trace = null; traceTool = null; break;
+		case 'trace-point-del': if (trace && trace.points[i]) trace.points.splice(i, 1); break;
+		case 'trace-save': {
+			if (!trace || (!trace.points.length && !trace.strokes.length)) return true;
+			const name = trace.name.trim() || `Trace ${traces.length + 1}`;
+			trace.name = name;
+			traces = [{ ...trace, at: Date.now() }, ...traces.filter(r => r.name !== name)].slice(0, TRACES_MAX);
+			toast(`Kept “${name}”`);
+			break;
+		}
+		case 'trace-load': if (traces[i]) { trace = cleanTrace(traces[i]); pendingFit = { points: trace.points.length ? trace.points : strokePoints(trace) }; } break;
+		case 'trace-del': traces = traces.filter((_, k) => k !== i); break;
+		case 'trace-link':
+			(async () => {
+				try {
+					await navigator.clipboard.writeText(traceLink(await encodeAny(traceExportObject())));
+					toast('Trace link copied');
+				} catch { toast('Could not reach the clipboard'); }
+			})();
+			return true;
+		case 'trace-export': {
+			const blob = new Blob([JSON.stringify(traceExportObject(), null, 2)], { type: 'application/json' });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url; a.download = `${(trace && trace.name.trim()) || 'trace'}.json`;
+			document.body.appendChild(a); a.click(); a.remove();
+			setTimeout(() => URL.revokeObjectURL(url), 1000);
+			return true;
+		}
+		default: return false;
+	}
+	persist();
+	refreshSide();
+	paintMap();
+	return true;
+}
+
+/** A field typed into on the trace panel: the name, the notes, a stop's note. */
+export function traceChange(el) {
+	const act = el.dataset.act;
+	if (!['trace-name', 'trace-notes', 'trace-point-note'].includes(act)) return false;
+	if (!trace) trace = blankTrace();
+	if (act === 'trace-name') trace.name = el.value.slice(0, 40);
+	else if (act === 'trace-notes') trace.notes = el.value.slice(0, 400);
+	else { const p = trace.points[Number(el.dataset.i)]; if (p) { if (el.value.trim()) p.note = el.value.slice(0, 120); else delete p.note; } }
+	persist();
+	paintMap();
+	return true;
+}
+
+const strokePoints = t => t.strokes.flatMap(st => { const out = []; for (let i = 0; i + 1 < st.length; i += 2) out.push({ x: st[i], y: st[i + 1] }); return out; });
+
+function traceExportObject() {
+	const t = trace || blankTrace();
+	return { app: 'bdo-ship-upgrade-tracker', kind: 'trace', version: 1, exported: new Date().toISOString(), name: t.name, notes: t.notes, points: t.points, strokes: t.strokes };
+}
+
+export function traceLink(payload) {
+	return `${location.origin}${location.pathname}#trace/${payload}`;
+}
+
+/** A trace from a link or a file, onto the chart. Returns it, or null. */
+export async function applyTraceLink(payload) {
+	let data;
+	try { data = await decodeAny(payload); } catch { return null; }
+	return applyTraceObject(data);
+}
+
+export function applyTraceObject(data) {
+	const t = data && data.kind === 'trace' ? cleanTrace(data) : null;
+	if (!t) return null;
+	restore();
+	trace = t;
+	mode = 'trace';
+	panelOpen = true;
+	pendingFit = { points: t.points.length ? t.points : strokePoints(t) };
+	persist();
+	return t;
+}
+
+/** The traced stops for the game's map, numbered, named by their notes. */
+function tracePoints() {
+	if (!trace) return [];
+	return trace.points.map((p, i) => ({ name: `${i + 1}: ${p.note || trace.name || 'trace'}`.slice(0, 30), x: p.x, y: p.y }));
 }
 
 /* ------------------------------------------------------------------ *
@@ -1096,11 +1389,13 @@ export function paintMap() {
 	guarded(paintPins, layer, pins, marks, currentId);
 	guarded(paintPorts, layer, size);
 	guarded(paintWharves, layer, size);
+	guarded(paintLabels, layer, size);
 	guarded(paintHunt, layer, size);
 	guarded(paintHabitats, layer, size);
 	guarded(paintCourse, layer, size);
 	guarded(paintRoute, layer, size, marks);
 	guarded(paintMeasure, layer, size);
+	guarded(paintTrace, layer, size);
 	guarded(paintSteps, host, ids);
 	guarded(paintTip, host, size, marks);
 	guarded(paintMini, host, size);
@@ -1484,6 +1779,49 @@ function paintHabitats(layer, size) {
 	for (const [key, el] of pool) if (!live.has(key)) el.hidden = true;
 }
 
+/** The islands' names, once: every place a barterer or a wharf stands
+ *  on that reads as an island, at the middle of what stands there. */
+let labelCache = null;
+function islandLabels() {
+	if (labelCache) return labelCache;
+	const sum = new Map();
+	const add = (name, x, y) => {
+		const k = name.trim();
+		if (!sum.has(k)) sum.set(k, { x: 0, y: 0, n: 0 });
+		const e = sum.get(k); e.x += x; e.y += y; e.n++;
+	};
+	const isle = at => /Island|Islands|Eye$|Nest$|Pier$/.test(at) && !/Workshop|Yard/.test(at);
+	for (const n of npcs) if (n.at && isle(n.at)) add(n.at.replace(/ Islands?$/, ''), n.x, n.y);
+	for (const w of wharves) if (w.at && isle(w.at)) add(w.at.replace(/ Islands?$/, ''), w.x, w.y);
+	for (const p of ports) add(p.name, p.x, p.y);
+	labelCache = [...sum.entries()].map(([name, e]) => ({ name, x: e.x / e.n, y: e.y / e.n }));
+	return labelCache;
+}
+
+/** Faint names over the islands, from a zoom where they can be read. */
+function paintLabels(layer, size) {
+	const pool = new Map([...layer.querySelectorAll('.map-label')].map(el => [el.dataset.name, el]));
+	const show = labelsOn && mapState.zoom >= 4.4;
+	for (const l of islandLabels()) {
+		let el = pool.get(l.name);
+		const at = project(mapState, size, l.x, l.y);
+		const off = !show || at.left < -80 || at.top < -30 || at.left > size.w + 80 || at.top > size.h + 30;
+		if (off) { if (el) el.hidden = true; continue; }
+		if (!el) {
+			el = document.createElement('span');
+			el.className = 'map-label';
+			el.dataset.name = l.name;
+			el.textContent = l.name;
+			pool.set(l.name, el);
+			layer.appendChild(el);
+		}
+		el.hidden = false;
+		// A touch below the island's middle, where the pins are not.
+		el.style.left = `${Math.round(at.left)}px`;
+		el.style.top = `${Math.round(at.top) + 18}px`;
+	}
+}
+
 /** Every wharf manager of the kinds ticked: an anchor and a name. */
 function paintWharves(layer, size) {
 	const pool = new Map([...layer.querySelectorAll('.map-wharf')].map(el => [Number(el.dataset.i), el]));
@@ -1684,6 +2022,12 @@ export function wireMap() {
 		cancelFly();
 		pressed = { x: evt.clientX, y: evt.clientY, host };
 		touching.set(evt.pointerId, { x: evt.clientX, y: evt.clientY });
+		// The pen draws instead of panning: one finger, one stroke.
+		if (traceTool === 'pen' && touching.size === 1) {
+			penStart(host, evt.clientX, evt.clientY);
+			host.setPointerCapture(evt.pointerId);
+			return;
+		}
 		if (touching.size === 2) {
 			// A second finger turns the gesture into a pinch, not a drag.
 			dragging = null;
@@ -1700,6 +2044,11 @@ export function wireMap() {
 		if (!mapState) return;
 		if (touching.has(evt.pointerId)) {
 			touching.set(evt.pointerId, { x: evt.clientX, y: evt.clientY });
+		}
+		if (penStroke) {
+			const host = document.querySelector('[data-map]');
+			if (host) penMove(host, evt.clientX, evt.clientY);
+			return;
 		}
 
 		if (pinch && touching.size === 2) {
@@ -1733,9 +2082,11 @@ export function wireMap() {
 	const stop = evt => {
 		// A press that did not move is a click on the sea: with the ruler
 		// armed, that is one end of a measurement.
-		if (evt && evt.type === 'pointerup' && pressed && measuring && mapState
+		if (penStroke) penEnd();
+		if (evt && evt.type === 'pointerup' && pressed && mapState
 			&& Math.hypot(evt.clientX - pressed.x, evt.clientY - pressed.y) < 5) {
-			measureAt(pressed.host, evt.clientX, evt.clientY);
+			if (measuring) measureAt(pressed.host, evt.clientX, evt.clientY);
+			else if (traceTool === 'point') traceAdd(pressed.host, evt.clientX, evt.clientY);
 		}
 		pressed = null;
 		if (evt) touching.delete(evt.pointerId);
@@ -2019,6 +2370,23 @@ export function setMapHabitats() {
 	paintMap();
 }
 
+export function setMapLabels() {
+	labelsOn = !labelsOn;
+	persist();
+	refreshSide();
+	paintMap();
+}
+
+/** The side panel to the other edge -- right-handed on a phone, or
+ *  clear of whatever the left of the chart is showing. */
+export function flipMapSide() {
+	sideRight = !sideRight;
+	persist();
+	const host = document.querySelector('[data-map]');
+	if (host) host.classList.toggle('side-right', sideRight);
+	refreshSide();
+}
+
 export function setMapWharves(kind) {
 	if (kind !== 'wharf' && kind !== 'guild') return;
 	wharvesOn = wharvesOn.includes(kind) ? wharvesOn.filter(k => k !== kind) : [...wharvesOn, kind];
@@ -2127,8 +2495,13 @@ export function importRoute(text) {
 	} catch {
 		throw new Error('That file is not valid JSON.');
 	}
+	if (data && data.kind === 'trace') {
+		const t = applyTraceObject(data);
+		if (!t) throw new Error('That trace file is empty.');
+		return { stops: t.points.length, dropped: 0, trace: true };
+	}
 	if (!data || data.kind !== 'barter-route' || !Array.isArray(data.stops)) {
-		throw new Error('That file does not hold a barter route.');
+		throw new Error('That file does not hold a barter route or a trace.');
 	}
 	const ids = [];
 	let dropped = 0;
@@ -2195,7 +2568,7 @@ function routePoints() {
  * island, so the map's list reads as the route does here.
  */
 export function gameBookmarks() {
-	const points = gameSource === 'hunt' ? huntPoints() : routePoints();
+	const points = gameSource === 'hunt' ? huntPoints() : gameSource === 'trace' ? tracePoints() : routePoints();
 	// One or the other, never both: the favourites are five named pins
 	// and ten camera jumps, a loop is the whole run in order. Writing
 	// both would spend someone's five favourites on stops the loop
@@ -2226,10 +2599,10 @@ export function setGameWrite(value) {
  * closed), and which part to replace.
  */
 export async function openGameExport(source) {
-	if (source === 'route' || source === 'hunt') gameSource = source;
+	if (source === 'route' || source === 'hunt' || source === 'trace') gameSource = source;
 	const r = gameBookmarks();
 	if (!r.stops) return;
-	const what = r.source === 'hunt' ? 'hunt' : 'route';
+	const what = r.source === 'hunt' ? 'hunt' : r.source === 'trace' ? 'traced route' : 'route';
 	// Chromium can hold the folder itself; elsewhere the block is pasted.
 	const folder = canWriteFiles() ? await gameFolderName() : null;
 	const direct = canWriteFiles() ? `<div class="map-game-direct">

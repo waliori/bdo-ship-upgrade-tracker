@@ -22,6 +22,7 @@
 export const quests = [
 	{
 		id: 'ravinia-1',
+		codex: '3709/7',
 		name: "Ravinia's Ship Upgrade Log I — Wiggly-Waggly Letter",
 		where: "Ravinia, Crow's Nest; then Carpuro at Oquilla's Eye",
 		repeat: 'once per family',
@@ -30,6 +31,7 @@ export const quests = [
 	},
 	{
 		id: 'ravinia-3',
+		codex: '3711/2',
 		name: "Ravinia's Ship Upgrade Log III — Lovey-Dovey Letter",
 		where: "Curio, Oquilla's Eye",
 		repeat: 'once per family',
@@ -37,6 +39,7 @@ export const quests = [
 	},
 	{
 		id: 'ravinia-4',
+		codex: '3709/7',
 		name: "Ravinia's Ship Upgrade Log IV — Wiggly-Waggly Letter",
 		where: 'Wale, Wale Farm near Olvia',
 		repeat: 'once per family',
@@ -44,6 +47,7 @@ export const quests = [
 	},
 	{
 		id: 'ravinia-6',
+		codex: '3711/2',
 		name: "Ravinia's Ship Upgrade Log VI — Lovey-Dovey Letter",
 		where: 'Chief Diega, Iliya Island',
 		repeat: 'once per family',
@@ -51,6 +55,7 @@ export const quests = [
 	},
 	{
 		id: 'ravinia-7',
+		codex: '3712/1',
 		name: "Ravinia's Ship Upgrade Log VII — Sparkly-Shiny Letter",
 		where: 'Dichzy Borne, Lema Island',
 		repeat: 'once per family',
@@ -59,6 +64,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-young',
+		codex: '3707/23',
 		monster: 'young-nineshark',
 		name: "[Daily] Old Moon Guild's Young Sea Monster Hunter",
 		where: "Ravikel, Oquilla's Eye — any five young sea monsters",
@@ -68,6 +74,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-candidum',
+		codex: '3707/9',
 		monster: 'candidum',
 		name: "[Daily] Old Moon Guild's Candidum Hunter",
 		where: "Ravikel, Oquilla's Eye — one Candidum",
@@ -77,6 +84,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-nineshark',
+		codex: '3707/10',
 		monster: 'nineshark',
 		name: "[Daily] Old Moon Guild's Nineshark Hunter",
 		where: "Ravikel, Oquilla's Eye — one Nineshark",
@@ -86,6 +94,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-blackrust',
+		codex: '3707/11',
 		monster: 'black-rust',
 		name: "[Daily] Old Moon Guild's Black Rust Hunter",
 		where: "Ravikel, Oquilla's Eye — one Black Rust",
@@ -95,6 +104,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-w-candidum',
+		codex: '3707/19',
 		monster: 'candidum',
 		name: "[Weekly] Old Moon Guild's Candidum Hunter",
 		where: "Ravikel, Oquilla's Eye — one Candidum",
@@ -104,6 +114,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-w-nineshark',
+		codex: '3707/20',
 		monster: 'nineshark',
 		name: "[Weekly] Old Moon Guild's Nineshark Hunter",
 		where: "Ravikel, Oquilla's Eye — one Nineshark",
@@ -113,6 +124,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-w-blackrust',
+		codex: '3707/21',
 		monster: 'black-rust',
 		name: "[Weekly] Old Moon Guild's Black Rust Hunter",
 		where: "Ravikel, Oquilla's Eye — one Black Rust",
@@ -122,6 +134,7 @@ export const quests = [
 	},
 	{
 		id: 'charity',
+		codex: '3707/6',
 		monster: 'young-hekaru',
 		name: '[Daily] Our Guild is Not a Charity Group',
 		where: "the soldier at Oquilla's Eye — two young sea monsters",
@@ -131,6 +144,7 @@ export const quests = [
 	},
 	{
 		id: 'hekaru',
+		codex: '3707/7',
 		monster: 'hekaru',
 		name: '[Daily] Do You Have What it Takes?',
 		where: "the soldier at Oquilla's Eye — one Hekaru",
@@ -140,6 +154,7 @@ export const quests = [
 	},
 	{
 		id: 'winwin',
+		codex: '3707/8',
 		monster: 'ocean-stalker',
 		name: '[Daily] Win-win Situation',
 		where: "the soldier at Oquilla's Eye — one Ocean Stalker",
@@ -149,6 +164,7 @@ export const quests = [
 	},
 	{
 		id: 'increase',
+		codex: '3707/22',
 		monster: 'young-ocean-stalker',
 		name: '[Weekly] Monster Increase Report',
 		where: "the soldier at Oquilla's Eye — twenty young sea monsters",
@@ -157,6 +173,7 @@ export const quests = [
 	},
 	{
 		id: 'swordfish',
+		codex: '3707/24',
 		name: '[Weekly] So You Wanna Live in Oquilla?',
 		where: "Kario, Oquilla's Eye — hand in one Yellow Swordfish",
 		repeat: 'weekly',
@@ -164,6 +181,7 @@ export const quests = [
 	},
 	{
 		id: 'otters',
+		codex: '3707/25',
 		name: '[Weekly] For the Young Otter Merchants',
 		where: "Kario, Oquilla's Eye — hand in 5 Iridescent Coral Piece and 50 Coral Piece",
 		repeat: 'weekly',
@@ -171,6 +189,7 @@ export const quests = [
 	},
 	{
 		id: 'margoria',
+		codex: '3740/1',
 		monster: 'nineshark',
 		name: "[Weekly] Old Moon Guild's Request: Defeat Margoria Sea Monsters",
 		where: 'Elro, the guild wharf manager — five Nineshark, Candidum or Black Rust',
@@ -180,6 +199,7 @@ export const quests = [
 	},
 	{
 		id: 'khan',
+		codex: '3740/2',
 		monster: 'khan',
 		name: "[Weekly] Old Moon Guild's Request: Uncover Oquilla's Eye's Secret",
 		where: 'Elro, the guild wharf manager — defeat Khan, at any difficulty',
@@ -189,6 +209,7 @@ export const quests = [
 	},
 	{
 		id: 'hampering',
+		codex: '3726/1',
 		monster: 'black-rust',
 		name: '[Daily] Hampering Monsters in the Sea',
 		where: "Haeran, Oquilla's Eye — two Black Rust or two Nineshark (Chasing Dark High Seas)",
@@ -198,6 +219,7 @@ export const quests = [
 	},
 	{
 		id: 'darkseas',
+		codex: '3726/2',
 		monster: 'black-rust',
 		name: '[Weekly] They Came from Dark High Seas',
 		where: "Haeran, Oquilla's Eye — four Black Rust (Chasing Dark High Seas)",
@@ -207,6 +229,7 @@ export const quests = [
 	},
 	{
 		id: 'crocodile',
+		codex: '3839/1',
 		monster: 'saltwater-crocodile',
 		name: '[Weekly] Ferocious Saltwater Crocodile',
 		where: "Bave Ricksa, Oquilla's Eye — four Saltwater Crocodile",
@@ -216,6 +239,7 @@ export const quests = [
 	},
 	{
 		id: 'hungry',
+		codex: '3704/10',
 		monster: 'hekaru',
 		name: '[Daily] Wanted: Hungry Sea Creatures',
 		where: 'Proix, Velia — three Hungry Hekaru',
@@ -224,6 +248,7 @@ export const quests = [
 	},
 	{
 		id: 'coxscouts',
+		codex: '3704/11',
 		monster: 'cox-pirates',
 		name: '[Daily] Wanted: Cox Scouts in Disguise',
 		where: 'Proix, Velia — twenty Cox Pirates infiltrating the islands',
@@ -232,6 +257,7 @@ export const quests = [
 	},
 	{
 		id: 'recover',
+		codex: '3704/13',
 		name: '[Weekly] How to Recover Sailors',
 		where: 'Proix, Velia — hand in 20 Chowder',
 		repeat: 'weekly',
@@ -240,6 +266,7 @@ export const quests = [
 	},
 	{
 		id: 'goods-baremi',
+		codex: '3704/7',
 		name: '[Daily] Delivering Goods: Baremi Island',
 		where: 'Miya, Velia — deliver Barter Trade Goods (1) to Serapu on Baremi',
 		repeat: 'daily',
@@ -247,6 +274,7 @@ export const quests = [
 	},
 	{
 		id: 'goods-narvo',
+		codex: '3704/8',
 		name: '[Daily] Delivering Goods: Narvo Island',
 		where: 'Miya, Velia — deliver Barter Trade Goods (1) to Akenisi on Narvo',
 		repeat: 'daily',
@@ -254,6 +282,7 @@ export const quests = [
 	},
 	{
 		id: 'goods-tinberra',
+		codex: '3704/9',
 		name: '[Daily] Delivering Goods: Tinberra Island',
 		where: 'Miya, Velia — deliver Barter Trade Goods (1) to Mulicia on Tinberra',
 		repeat: 'daily',
@@ -261,6 +290,7 @@ export const quests = [
 	},
 	{
 		id: 'supplies-iliya',
+		codex: '3736/1',
 		name: '[Daily] Supplies Delivery (Iliya Island)',
 		where: "Croix, Velia — deliver Croix's supplies to Dario on Iliya",
 		repeat: 'daily',
@@ -268,6 +298,7 @@ export const quests = [
 	},
 	{
 		id: 'supplies-tinberra',
+		codex: '3727/1',
 		name: '[Daily] Supplies Delivery (Tinberra Island)',
 		where: 'Rovinia, Velia — deliver her supplies to Shanjo on Tinberra',
 		repeat: 'daily',
@@ -275,6 +306,7 @@ export const quests = [
 	},
 	{
 		id: 'supplies-oquilla',
+		codex: '3727/2',
 		name: "[Daily] Supplies Delivery (Oquilla's Eye)",
 		where: "Dario, Iliya Island — deliver his supplies to Ravikel at Oquilla's Eye",
 		repeat: 'daily',
@@ -282,6 +314,7 @@ export const quests = [
 	},
 	{
 		id: 'lively',
+		codex: '3736/12',
 		name: '[Barter] [Daily] Lively Iliya Island',
 		where: 'the villager on Iliya Island — barter fifteen times',
 		repeat: 'daily',
@@ -290,6 +323,7 @@ export const quests = [
 	},
 	{
 		id: 'wider',
+		codex: '3841/1',
 		name: '[Barter] [Daily] Sailing to a Wider World',
 		where: 'Dario, Iliya Island — barter twenty times',
 		repeat: 'daily',
@@ -298,6 +332,7 @@ export const quests = [
 	},
 	{
 		id: 'nexus',
+		codex: '3736/9',
 		name: '[Barter] [Weekly] Iliya Island, the Barter Nexus',
 		where: 'Priko, Iliya Island — barter a hundred times',
 		repeat: 'weekly',
@@ -306,6 +341,7 @@ export const quests = [
 	},
 	{
 		id: 'worldsend-1',
+		codex: '3736/10',
 		name: "[Daily] At World's End I: Ancado Inner Harbor",
 		where: 'Priko, Iliya Island — deliver supplies to Samia in Ancado Inner Harbor',
 		repeat: 'daily',
@@ -314,6 +350,7 @@ export const quests = [
 	},
 	{
 		id: 'worldsend-2',
+		codex: '3736/11',
 		name: "[Daily] At World's End II: Hakoven Island",
 		where: 'Priko, Iliya Island — deliver supplies to Rosina on Hakoven Island',
 		repeat: 'daily',
@@ -322,6 +359,7 @@ export const quests = [
 	},
 	{
 		id: 'pirates',
+		codex: '3720/1',
 		name: '[Daily] Subjugating the Pirates',
 		where: 'Haim, Kuit Islands — hand over 1,000 Pirate Bandanas',
 		repeat: 'daily',
@@ -329,6 +367,7 @@ export const quests = [
 	},
 	{
 		id: 'lyngbakr',
+		codex: '3707/26',
 		name: '[Weekly] Lyngbakr Ecology Survey',
 		where: 'Gangman, Cheongsa Island wharf — two Lyngbakr',
 		repeat: 'weekly',

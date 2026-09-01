@@ -257,6 +257,61 @@ test('a species without spawn points still marks its ground when picked', async 
 	await context.close();
 });
 
+test('island names show once the chart is close, hide on the toggle, and the panel flips sides', async () => {
+	const { page, context, errors } = await open('#map');
+	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: true, habitatsOn: false })); });
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('[data-map-layer]'); await wait(600);
+	const shownLabels = () => page.evaluate(() => [...document.querySelectorAll('.map-label')].filter(e => getComputedStyle(e).display !== 'none').length);
+	assert.equal(await shownLabels(), 0, 'too far out to read names');
+	for (let i = 0; i < 2; i++) { await page.evaluate(() => import('/js/screen-map.js').then(m => m.mapZoomStep(1))); await wait(700); }
+	let shown = 0;
+	for (let i = 0; i < 10 && shown <= 3; i++) { await wait(300); shown = await shownLabels(); }
+	assert.ok(shown > 3, `names appear once close (${shown})`);
+	await page.click('[data-act="map-labels"]'); await wait(300);
+	assert.equal(await shownLabels(), 0, 'and go on the toggle');
+	assert.equal(await page.evaluate(() => document.querySelector('[data-map]').classList.contains('side-right')), false);
+	await page.click('[data-act="map-side-flip"]'); await wait(300);
+	assert.equal(await page.evaluate(() => document.querySelector('[data-map]').classList.contains('side-right')), true, 'the panel moved right');
+	const side = await page.evaluate(() => { const r = document.querySelector('.map-side').getBoundingClientRect(), m = document.querySelector('[data-map]').getBoundingClientRect(); return r.left - m.left > (m.width / 2); });
+	assert.ok(side, 'and sits on the right half of the chart');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('a route traced by hand: stops by click, a note, a link back, and it stays put through a zoom', async () => {
+	const { page, context, errors } = await open('#map');
+	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'trace', panelOpen: true, habitatsOn: false })); });
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('[data-act="trace-tool"]'); await wait(600);
+	await page.click('[data-act="trace-tool"][data-id="point"]'); await wait(200);
+	const box = await (await page.$('[data-map]')).boundingBox();
+	// Two clicks on open sea, right of the panel.
+	const at = [[box.x + box.width * 0.7, box.y + box.height * 0.3], [box.x + box.width * 0.85, box.y + box.height * 0.5]];
+	for (const [x, y] of at) { await page.mouse.click(x, y); await wait(250); }
+	assert.equal(await count(page, '.map-trace-dot'), 2, 'two stops on the chart');
+	assert.equal(await count(page, '.map-trace-stop'), 2, 'and in the panel');
+	const dotBefore = await page.evaluate(() => { const d = document.querySelector('.map-trace-dot'); return [parseFloat(d.style.left), parseFloat(d.style.top)]; });
+	// A note on the first stop.
+	await page.type('[data-act="trace-point-note"][data-i="0"]', 'start here');
+	await page.$eval('[data-act="trace-point-note"][data-i="0"]', el => el.dispatchEvent(new Event('change', { bubbles: true }))); await wait(200);
+	assert.equal(await text(page, '.map-trace-dot.noted .map-trace-note'), 'start here');
+	// Zoom: the stop moves with the chart, so its screen position changes.
+	await page.evaluate(() => import('/js/screen-map.js').then(m => m.mapZoomStep(1))); await wait(500);
+	const dotAfter = await page.evaluate(() => { const d = document.querySelector('.map-trace-dot'); return [parseFloat(d.style.left), parseFloat(d.style.top)]; });
+	assert.notDeepEqual(dotAfter, dotBefore, 'anchored to the sea, not the screen');
+	// Through a link and back.
+	const payload = await page.evaluate(async () => {
+		const { encodeAny } = await import('/js/share.js');
+		const t = JSON.parse(localStorage.getItem('bdo-tracker/map-view')).trace;
+		return encodeAny({ kind: 'trace', name: 'Test run', notes: '', points: t.points, strokes: t.strokes });
+	});
+	await page.evaluate(() => localStorage.removeItem('bdo-tracker/map-view'));
+	await page.goto(base + '/#trace/' + payload, { waitUntil: 'domcontentloaded' }); await page.waitForSelector('.map-trace-dot', { timeout: 15000 }); await wait(500);
+	assert.equal(await count(page, '.map-trace-dot'), 2, 'the link carried both stops');
+	assert.equal(await page.evaluate(() => document.querySelector('[data-act="trace-name"]').value), 'Test run');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('habitat markers never print on top of one another, at any zoom', async () => {
 	const { page, context, errors } = await open('#map');
 	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: false, habitatsOn: true })); });
