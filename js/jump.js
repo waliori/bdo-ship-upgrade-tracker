@@ -8,23 +8,45 @@
 
 import { esc, F } from './fmt.js';
 import * as store from './state.js';
-import { img, allItems } from './ui-bits.js';
+import { img, allItems, offerableItems } from './ui-bits.js';
+import { snapshot } from './ui-state.js';
 import { openDialog, closeDialog } from './dialogs.js';
 
-/** The names that match, best first: a name that starts with the
- *  query, then one with a word that does, then one that contains it. */
+/**
+ * The names that match, best first: a name that starts with the query,
+ * then one with a word that does, then one that contains it.
+ *
+ * Every word has to appear somewhere in the name, not the whole query as
+ * one run of characters -- the picker has always worked that way and
+ * this did not, so "+7 toro" found nothing at all: no name contains
+ * "+7 toro", though "+7 Epheria Carrack: Toro Sail" contains both words.
+ * Ranking still goes on the query as typed, so the exact-prefix case is
+ * unchanged.
+ */
 export function matchItems(q, names, limit = 12) {
 	const s = String(q || '').trim().toLowerCase();
 	if (!s) return [];
+	const words = s.split(/\s+/).filter(Boolean);
 	const rank = name => {
 		const n = name.toLowerCase();
+		if (!words.every(w => n.includes(w))) return -1;
 		if (n.startsWith(s)) return 0;
 		if (n.includes(' ' + s) || n.includes('[' + s) || n.includes('+' + s)) return 1;
-		return n.includes(s) ? 2 : -1;
+		if (n.includes(s)) return 2;
+		// Every word is in there, just not together: "+7 toro" in
+		// "+7 Epheria Carrack: Toro Sail".
+		return n.startsWith(words[0]) ? 3 : 4;
 	};
+	// A "+4 Toro Sail" sorts under the plain part, never over it: the
+	// part is what someone typing a name is looking for, and sorting on
+	// the string alone put "+10" second and the part itself last.
+	const level = name => (/^\+(\d+)\s/.exec(name) || [0, 0])[1];
 	return names.map(name => [name, rank(name)])
 		.filter(([, r]) => r >= 0)
-		.sort((a, b) => a[1] - b[1] || a[0].length - b[0].length || a[0].localeCompare(b[0]))
+		.sort((a, b) => a[1] - b[1]
+			|| (level(a[0]) ? 1 : 0) - (level(b[0]) ? 1 : 0)
+			|| Number(level(a[0])) - Number(level(b[0]))
+			|| a[0].length - b[0].length || a[0].localeCompare(b[0]))
 		.slice(0, limit)
 		.map(([name]) => name);
 }
@@ -48,7 +70,15 @@ export function openJump({ tabs, go }) {
 		const q = input.value.trim();
 		const ql = q.toLowerCase();
 		const tabHits = q ? tabs.filter(t => t.label.toLowerCase().includes(ql)).map(t => ({ kind: 'tab', value: t.id, label: t.label })) : [];
-		const itemHits = matchItems(q, items).map(name => ({ kind: 'item', value: name, label: name }));
+		// Eleven enhancement levels of one part are eleven ways to bury it,
+		// so they are offered only when they are real for this player --
+		// held, wanted by a build, or asked for by typing a level.
+		const offered = offerableItems(items, {
+			query: q,
+			stock: store.getAllStock(),
+			needed: (snapshot && snapshot.missing) || {}
+		});
+		const itemHits = matchItems(q, offered).map(name => ({ kind: 'item', value: name, label: name }));
 		rows = [...tabHits, ...itemHits];
 		on = Math.min(on, Math.max(0, rows.length - 1));
 		list.innerHTML = rows.length ? rows.map((r, i) => `<button class="jump-row${i === on ? ' on' : ''}" data-i="${i}">

@@ -69,3 +69,85 @@ test('many ids go up in batches', async () => {
 	assert.equal(up.calls.length, 3);
 	assert.equal(Object.keys(prices).length, 95);
 });
+
+/* ------------------------------------------------------------------ *
+ * The second opinion
+ * ------------------------------------------------------------------ */
+
+// api.arsha.io fails a region at a time rather than all at once, and eu
+// -- this app's default -- is one of the ones that goes. So a batch it
+// refuses is asked of blackdesertmarket.com before it is given up for
+// stale. These stub both, so the test says what the code does without
+// asking anything of either.
+
+/** An upstream that refuses, and a fallback that answers per id. */
+function split(table, { fallbackFails = new Set() } = {}) {
+	const calls = { arsha: 0, fallback: [] };
+	const fetchImpl = async url => {
+		const u = String(url);
+		if (u.includes('arsha.io')) {
+			calls.arsha++;
+			return { ok: false, status: 500, json: async () => ({}) };
+		}
+		const id = Number(u.match(/\/item\/(\d+)/)[1]);
+		calls.fallback.push(id);
+		if (fallbackFails.has(id)) return { ok: true, json: async () => ({ code: 'ERROR_INTERNAL' }) };
+		if (!table[id]) return { ok: false, status: 404, json: async () => ({}) };
+		return {
+			ok: true,
+			json: async () => ({ code: 'SUCCESS', data: [{ id, basePrice: table[id], count: 7, enhancement: 0 }] })
+		};
+	};
+	return { fetchImpl, calls };
+}
+
+test('a region the first source refuses is priced by the second', async () => {
+	const s = split({ 4064: 144000, 4917: 22400000 });
+	const { prices, failed, fellBack } = await pricesFor('eu', [4064, 4917], { fetchImpl: s.fetchImpl, now: 10_000_000 });
+	assert.equal(prices[4064].price, 144000, 'the base price is the price this source has');
+	assert.equal(prices[4917].stock, 7);
+	assert.equal(failed, 0);
+	assert.equal(fellBack, true, 'and the page is told these came from the other source');
+	assert.deepEqual(s.calls.fallback.sort((a, b) => a - b), [4064, 4917]);
+});
+
+test('one id the second source cannot answer costs only itself', async () => {
+	// The whole point of asking per id: a batch failure upstream is all
+	// forty, but here a bad id leaves the other prices standing.
+	const s = split({ 4064: 144000, 4917: 22400000 }, { fallbackFails: new Set([4917]) });
+	const { prices, failed, fellBack } = await pricesFor('na', [4064, 4917], { fetchImpl: s.fetchImpl, now: 11_000_000 });
+	assert.equal(prices[4064].price, 144000);
+	assert.equal(prices[4917], undefined);
+	assert.equal(failed, 1);
+	assert.equal(fellBack, true);
+});
+
+test('a region the second source does not cover is not asked, and still does not throw', async () => {
+	// It answers eu and na only. Anywhere else must degrade exactly as it
+	// did before there was a fallback at all -- no request, no error.
+	const s = split({ 4064: 144000 });
+	const { prices, failed, fellBack } = await pricesFor('kr', [4064], { fetchImpl: s.fetchImpl, now: 12_000_000 });
+	assert.deepEqual(prices, {});
+	assert.equal(failed, 1);
+	assert.equal(fellBack, false);
+	assert.deepEqual(s.calls.fallback, [], 'kr was never asked of a source that has no kr');
+});
+
+test('a fallback price is remembered like any other, so the next ask is free', async () => {
+	const s = split({ 4064: 144000 });
+	const t = 13_000_000;
+	await pricesFor('eu', [4064], { fetchImpl: s.fetchImpl, now: t });
+	const before = s.calls.fallback.length;
+	const again = await pricesFor('eu', [4064], { fetchImpl: s.fetchImpl, now: t + 60_000 });
+	assert.equal(again.prices[4064].price, 144000);
+	assert.equal(s.calls.fallback.length, before, 'it was answered from memory, not asked again');
+});
+
+test('a request that names no region is answered for NA', async () => {
+	// The page always names one, so this is only the bare-URL case -- but
+	// it has to agree with js/market.js or the two halves would disagree
+	// about which server a price came from.
+	const { DEFAULT_REGION } = await import('../server/market.js');
+	assert.equal(DEFAULT_REGION, 'na');
+	assert.ok(REGIONS.includes(DEFAULT_REGION));
+});

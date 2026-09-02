@@ -37,6 +37,7 @@ test('the page and its assets are served', async () => {
 	assert.equal((await fetch(`${base}/`)).status, 200);
 	assert.equal((await fetch(`${base}/js/planner.js`)).status, 200);
 	assert.equal((await fetch(`${base}/icon_mapping.json`)).status, 200);
+	assert.equal((await fetch(`${base}/favicon.ico`)).status, 200);
 });
 
 test('the client is told there is no sync', async () => {
@@ -250,4 +251,27 @@ test('the offline shell precaches every module the app imports', () => {
 	walk('boot.js');
 	const missing = [...seen].filter(n => !shell.has(`/js/${n}`));
 	assert.deepEqual(missing, [], `not precached: ${missing.join(', ')}`);
+});
+
+test('what only some visitors need is not in the page for all of them', () => {
+	// Two things used to be paid for on every load and used on almost
+	// none: the tour's library, which was a <script> in the head, and the
+	// water shader, which was a static import in ui.js while the setting
+	// that turns it on defaults to off. Both are fetched at the moment
+	// they are wanted now. The service worker still precaches them, so
+	// offline is unaffected -- this is about what the main thread parses
+	// before the first screen is drawn.
+	const page = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+	assert.doesNotMatch(page, /<script[^>]+driver\.iife\.js/, 'the tour library is back in the page for everyone');
+	assert.doesNotMatch(page, /<link[^>]+driver\.css/, 'and so is its stylesheet');
+
+	const ui = fs.readFileSync(new URL('../js/ui.js', import.meta.url), 'utf8');
+	assert.doesNotMatch(ui, /^import .*realistic-water-ripples/m, 'the shader is statically imported again');
+	assert.match(ui, /await import\('\.\/realistic-water-ripples\.js'\)/, 'and nothing fetches it on demand either');
+
+	// Both still belong to the offline shell.
+	const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+	for (const path of ['/js/driver.iife.js', '/css/driver.css', '/js/realistic-water-ripples.js']) {
+		assert.ok(sw.includes(`'${path}'`), `${path} fell out of the offline shell`);
+	}
 });

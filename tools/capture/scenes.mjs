@@ -3,8 +3,8 @@
 //
 //   node scenes.mjs <outdir> [sceneName ...]
 
-import { open, seed, tab, click, moveTo, typeInto, wait } from './drive.mjs';
-import { midBuild, readyToCraft, recordLevel, emptyStart } from './states.mjs';
+import { open, seed, tab, click, clickIn, drag, moveTo, typeInto, wait } from './drive.mjs';
+import { midBuild, readyToCraft, recordLevel, fittedShip, emptyStart } from './states.mjs';
 
 const OUT = process.argv[2];
 const only = process.argv.slice(3);
@@ -117,6 +117,74 @@ const scenes = {
 		});
 	},
 
+	/* The shopping list, drawn on the sea, then plotted as a loop. */
+	async 'chart-the-loop'({ page, url }) {
+		await seed(page, url, midBuild);
+		await tab(page, 'map');
+		await wait(1600);
+		await rec(page, 'chart-the-loop', async () => {
+			await wait(600);
+			await click(page, '[data-act="map-mode"][data-id="route"]', { after: 1000 });
+			await click(page, '[data-act="map-route-use"]', { after: 2800 });
+		});
+	},
+
+	/* A route the barter list cannot express: stops, a line, a word.
+	 * Nothing scrolls and the tiles never move, so the only pixels that
+	 * change are the ink -- which is what keeps this one small. */
+	async 'draw-a-route'({ page, url }) {
+		await seed(page, url, midBuild);
+		await tab(page, 'map');
+		await wait(1600);
+		await click(page, '[data-act="map-mode"][data-id="trace"]', { after: 900 });
+		await click(page, '[data-act="trace-tool"][data-id="point"]', { after: 700 });
+		await rec(page, 'draw-a-route', async () => {
+			await wait(500);
+			for (const [fx, fy] of [[0.24, 0.32], [0.42, 0.48], [0.28, 0.68]]) {
+				await clickIn(page, '#map', fx, fy, { after: 650 });
+			}
+			await click(page, '[data-act="trace-tool"][data-id="pen"]', { after: 600 });
+			await drag(page, '#map', 190, -120, { from: [0.28, 0.70], after: 900 });
+		});
+	},
+
+	/* The day's free rewards, ticked and recorded together.
+	 *
+	 * Kept short on purpose. Ticking a row opens the bar above the list
+	 * and pushes every row below it down, so each press repaints the
+	 * whole frame -- which is why this one is given a narrower, slower
+	 * encode in shoot.sh than the clips that only change a corner. */
+	async 'claim-a-quest'({ page, url }) {
+		await seed(page, url, midBuild);
+		await tab(page, 'quests');
+		await wait(800);
+		// Only the quests paying one fixed reward: a pick-one quest stops
+		// Finish to ask which, which is true but not what this shows.
+		const plain = '.quest:not(.done):not(.selected):has([data-act="quest-claim"]) .quest-check';
+		await rec(page, 'claim-a-quest', async () => {
+			await wait(300);
+			await click(page, plain, { after: 350 });
+			await click(page, plain, { after: 500 });
+			await click(page, '[data-act="quest-finish"]', { after: 1300 });
+		});
+	},
+
+	/* A hull is five slots and a crew, and its speed is a real number:
+	 * type in the Sailing Mastery and the whole card moves.
+	 *
+	 * The pointer is kept off the slot cards -- hovering one opens the
+	 * peek card over half the screen, and a full-width overlay appearing
+	 * and going again costs more in the GIF than it explains. */
+	async 'fit-a-ship'({ page, url }) {
+		await seed(page, url, fittedShip);
+		await tab(page, 'crew');
+		await wait(900);
+		await rec(page, 'fit-a-ship', async () => {
+			await wait(500);
+			await typeInto(page, '[data-act="crew-mastery"]', '750', { after: 1500 });
+		});
+	},
+
 	async 'peek-a-recipe'({ page, url }) {
 		await seed(page, url, midBuild);
 		// Park the view on the crafting rows before the tape rolls -- a
@@ -147,6 +215,20 @@ const stills = {
 		await tab(page, 'get');
 		await page.evaluate(() => document.getElementById('__cur').remove());
 		await page.screenshot({ path: `${OUT}/to-get.png` });
+	},
+	async map({ page, url }) {
+		await seed(page, url, midBuild);
+		await tab(page, 'map');
+		await wait(2200);
+		await page.evaluate(() => document.getElementById('__cur').remove());
+		await page.screenshot({ path: `${OUT}/map.png` });
+	},
+	async quests({ page, url }) {
+		await seed(page, url, midBuild);
+		await tab(page, 'quests');
+		await wait(900);
+		await page.evaluate(() => document.getElementById('__cur').remove());
+		await page.screenshot({ path: `${OUT}/quests.png` });
 	},
 	async inventory({ page, url }) {
 		await seed(page, url, midBuild);

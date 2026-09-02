@@ -18,10 +18,24 @@ import { iconLoader } from './icon-loader.js';
 const KEY = 'bdo-tracker/market';
 const STALE_MS = 30 * 60 * 1000;
 export const REGIONS = [
-	['eu', 'EU'], ['na', 'NA'], ['sea', 'SEA'], ['mena', 'MENA'], ['sa', 'SA'],
+	['na', 'NA'], ['eu', 'EU'], ['sea', 'SEA'], ['mena', 'MENA'], ['sa', 'SA'],
 	['kr', 'KR'], ['ru', 'RU'], ['jp', 'JP'], ['th', 'TH'], ['tw', 'TW'],
 	['console_eu', 'Console EU'], ['console_na', 'Console NA'], ['console_asia', 'Console Asia']
 ];
+
+/**
+ * The region assumed until someone chooses one.
+ *
+ * NA rather than EU. It decides more than the prices: Vell's timetable
+ * and the reminder that goes with it are read from whichever region is
+ * standing (see today.js), so this is the one setting that has to be
+ * named in a single place -- a default that drifted between the two
+ * would price against one server and time Vell against the other.
+ *
+ * Anyone who has already picked a region keeps it; this is only what a
+ * browser that has never been asked starts from.
+ */
+export const DEFAULT_REGION = 'na';
 
 // { region, at, prices: { [item]: { price, base, stock, at, stale } } }
 let held = read();
@@ -46,8 +60,8 @@ function write() {
 }
 
 export function region() {
-	const r = store.getSetting('marketRegion', 'eu');
-	return REGIONS.some(([id]) => id === r) ? r : 'eu';
+	const r = store.getSetting('marketRegion', DEFAULT_REGION);
+	return REGIONS.some(([id]) => id === r) ? r : DEFAULT_REGION;
 }
 
 /** Every item the Market is a source for, with the codex id that names it there. */

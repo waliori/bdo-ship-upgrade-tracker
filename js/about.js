@@ -15,6 +15,7 @@ export const DATA = [
 	{ what: 'Quests and their rewards', asOf: '2026-08-30', from: 'BDOCodex' },
 	{ what: 'Ship hulls — durability, weight, speed…', asOf: '2026-08-29', from: 'BDOCodex' },
 	{ what: 'Ship parts at every level', asOf: '2026-08-29', from: 'BDOCodex' },
+	{ what: 'Ship appearance sets — Benelois (crafted), Oquilla Carrack Overlay (pearls)', asOf: '2026-09-01', from: 'BDOCodex item and design pages, per slot' },
 	{ what: 'Enhancement rates and Agris caps', asOf: '2026-08-25', from: 'BDOCodex, BDFoundry' },
 	{ what: 'The yellow tier (Falasi, Cheongun)', asOf: '2026-08-26', from: 'patch notes, BDOCodex' },
 	{ what: 'Crow Coin Shop prices', asOf: '2026-08-25', from: 'the shop at Oquilla’s Eye' },
@@ -25,7 +26,195 @@ export const DATA = [
 	{ what: 'Central Market prices', asOf: 'live', from: 'the community market API, per region' }
 ];
 
+/**
+ * Releases, as a player would tell them.
+ *
+ * CHANGES below is the working diary -- one entry a day, in the words of
+ * whoever wrote the code. This is the other thing: what actually arrived
+ * between one version of the app and the next, written for someone who
+ * has been away. The What's New dialog reads it, and CHANGELOG.md is
+ * generated from it by tools/build-changelog.mjs, so the two can never
+ * drift apart.
+ *
+ * A section with `media` is a headline: the dialog shows its picture.
+ * The rest are folded away behind "everything else", and printed in
+ * full in the file.
+ */
+export const RELEASES = [
+	{
+		id: '2.0',
+		name: 'The sea',
+		date: '2026-09-01',
+		blurb: 'The tracker knew what a ship costs. It had nothing to say about the water you would have to cross to pay for it. '
+			+ 'This release adds the sea: a chart with every barterer on it, the loop through them timed at your own hull’s speed, '
+			+ 'the quests the ocean hands out for free, and the ship you sail it in.',
+		sections: [
+			{
+				title: 'A chart of the sea, with your shopping list on it',
+				media: 'docs/media/small/map.png',
+				alt: 'The Map, a pin for every barterer holding something on the list',
+				text: 'The <b>Map</b> is the To Get list drawn on the game’s own chart. Every pin is one of the 91 barterers, '
+					+ 'holding something you are short of; open one and it says what it hands over, how many exchanges are left '
+					+ 'and what the parley costs at your own Barter level.',
+				points: [
+					'All 91 barterers, Levels 1 to 7, on the game’s own tiles, placed from client positions to within a pixel.',
+					'One strip of switches — <i>On the chart</i> — says what is drawn: barterers, monster habitats, the 58 wharf managers, guild wharves, island names, your own traced routes.',
+					'Monster habitats stand at the centre of each species’ spawns, kept to open water, each with its picture from the codex.',
+					'Two community maps are fitted to the chart on their island names: Awabi’s <i>Road to Cox</i>, and Vell’s waters from gpw’s ocean map.',
+					'A ruler measures any two points, with the game’s own coordinates under the pointer, and a minimap you can drag out of the way.'
+				]
+			},
+			{
+				title: 'A loop that says how long it takes',
+				media: 'docs/media/small/chart-the-loop.gif',
+				alt: 'Plotting a barter loop; every leg gets a distance and a time',
+				text: 'Plot the loop through everything you are short of and every leg comes back with its length and its minutes '
+					+ '— bent round the land, at the speed <i>that</i> hull actually makes with those parts and those sail seats.',
+				points: [
+					'What 100% is in metres the game never says, so a time is a range: a fifth either way around the chart’s 11 m/s estimate, a tenth once you have timed a leg and told it.',
+					'Parley is budgeted at one trade a stop or at every attempt the offer allows; the stops past what your bar covers are marked, and a button trims to them.',
+					'Routes are kept by name, a replaced one is kept as the previous, and a route travels in a link or a small JSON file.',
+					'<b>Put it on the game’s map</b> writes the stops into your own world map as favourites, or as one of its three navigation loops.'
+				]
+			},
+			{
+				title: 'Draw a route the list cannot express',
+				media: 'docs/media/small/draw-a-route.gif',
+				alt: 'Three stops, a freehand line and a word, drawn straight onto the sea',
+				text: 'Click the sea for a numbered stop, drag to sketch a line, or type a word straight onto the water. '
+					+ 'Every mark is a place on the chart, so it all pans and zooms with the tiles.',
+				points: [
+					'Eight inks, three pen widths, three sizes of writing, and an undo that walks back through stops, strokes and words in the order they were made.',
+					'Legs bend round the land like a barter route’s, and a stop dropped on a headland steps off into the water beside it.',
+					'A trace is kept by name and travels in a link or a file; twenty live on a shelf, and <b>Browse all</b> opens a library with a search over names, notes and the words written on them.'
+				]
+			},
+			{
+				title: 'What the sea hands out free',
+				media: 'docs/media/small/quests.png',
+				alt: 'The Quests screen, grouped by how often each comes round',
+				text: 'Every quest that pays in a ship material, grouped by how often it comes round, with the ones paying in '
+					+ 'something your plan still wants marked. Claiming puts the reward in stock and ticks the quest until its own reset.',
+				points: [
+					'Tick several and <b>Finish</b> records them together as one undoable change.',
+					'A pick-one reward is remembered, so the next claim takes the same one in a single press.',
+					'Keep a set you run every day as a named group, star the ones that matter, and filter by what is still to do, what your plan wants, or one reward in particular.'
+				]
+			},
+			{
+				title: 'The other half of a ship',
+				media: 'docs/media/small/fit-a-ship.gif',
+				alt: 'A Carrack with two of its parts on; typing in the Sailing Mastery moves every number',
+				text: 'The <b>Ship</b> screen carries every hull in the game’s own numbers and fits it out as five slots — the four '
+					+ 'parts and the sea crystal — each taking the best you already hold, or one you choose.',
+				points: [
+					'All 287 sea crystals from Eltro to Rusalka, plus Ebenruth’s Nol and the Oceanteared Nol, chosen by grade with the effect beside the name.',
+					'A crew planned against the hull’s seats and cabin space: contracts, condition, food, first mates, and the certificates on the shopping list.',
+					'Your Sailing Mastery counts toward speed, acceleration, turn and brake — and a sailor’s real numbers can be typed in, since the type’s figures are only averages.',
+					'Keep a whole fit-out as a named <b>setup</b> and switch between them here or from the Map, where the route is timed.'
+				]
+			},
+			{
+				title: 'What today can do about it',
+				text: 'The Plan carries a <b>Today</b> strip: the quests still open that pay in something on your list, the time to '
+					+ 'the daily, weekly and barter resets, when Vell is next up on your servers, and the pace each build has been moving at.',
+				points: [
+					'Resets at 00:00 UTC, Thursday 00:00 UTC and 06:00 UTC, ticking in place.',
+					'Vell’s EU and NA timetables, correctable where they are shown, with a reminder a quarter of an hour before — by push, where the deployment has a key pair.',
+					'The pace is a diary this browser keeps; it is not part of the save.'
+				]
+			},
+			{
+				title: 'Prices that are actually today’s',
+				text: 'Anything the Central Market sells is priced from the Market itself, per region, and the app says how old the '
+					+ 'number is. The last prices a browser saw stay on hand offline.'
+			},
+			{
+				title: 'Getting around',
+				text: 'The app grew from six screens to nine, so finding things had to get easier rather than harder.',
+				points: [
+					'<b>Find</b> on Ctrl+K (or <kbd>/</kbd>): an item opens in the Inventory’s panel, a tab opens; the digits 1–9 switch tabs.',
+					'<b>Log a trip</b> records everything you brought back in one box, as one undoable change.',
+					'<b>Profiles</b>: separate saves on one browser, for an alt or a what-if.',
+					'An item’s count is what is in your bags plus every storage you have noted it at, so a number typed at a place moves the total.',
+					'A phone gets a bar at the thumb with four sections and an <b>All</b> sheet holding every one of them; the header folds into one menu.',
+					'Every choice the app asks for goes through one picker: pictures, a fact beside each name, a search that ranks a name starting with your letters first.'
+				]
+			},
+			{
+				title: 'The yard, sharpened',
+				text: 'The six screens that were already here got the other half of their work done.',
+				points: [
+					'<b>Redo</b>, to go with Undo.',
+					'Sort the Plan and the Inventory by shortfall, need, what you own or name; search on every list.',
+					'The address bar names the tab and the open item, so a place survives a reload, travels in a link, and Back retraces your steps.',
+					'Enhancement below the yellow tier takes a failstack; the yellow Falasi and Cheongun tier drops a level on a failure, so Cron Stones are part of what an attempt costs.',
+					'The small craft: a Cog two ways, three rowboats and a raft.',
+					'A craft can be recorded the way Mass Process actually makes it.',
+					'Import asks whether to replace or merge, keeping the higher count of anything counted twice; exports are dated.',
+					'Quantities read the way your browser writes them, and item look-ups open BDOCodex in any of twelve languages.',
+					'A field guide behind one quiet dot: the game’s own windows, so a number here can be traced to the screen it came from.'
+				]
+			},
+			{
+				title: 'Underneath',
+				text: 'None of this is visible, and all of it is why the rest works.',
+				points: [
+					'Every screen is its own module; the planner stays pure, and each screen is a projection of it.',
+					'Offline, the app runs from a snapshot of one deploy — never a mixture of two.',
+					'The barter catalogue is served as data rather than as script, and everything heavy travels compressed.',
+					'The tour’s library is vendored, so the page needs no CDN and the CSP can stay shut.',
+					'A test suite of 310, run on every push, covering the cost model, the sync API and the client in a real browser.',
+					'The image is layered by rate of change, and SIGTERM reaches node itself so the shutdown flush actually runs.'
+				]
+			},
+			{
+				title: 'The tour, and the film',
+				text: 'Both were re-made for the app this became: the guided tour walks all nine views and points at each thing on '
+					+ 'your own screen, and the walkthrough film is re-shot end to end with the sea in it. Neither is a mock-up — '
+					+ 'they drive the real app, so a screen that changes makes them wrong until they are shot again.'
+			}
+		]
+	}
+];
+
+/** The release this build is; what the What's New dialog is keyed on. */
+export const RELEASE = RELEASES[0].id;
+
 export const CHANGES = [
+	{
+		date: '2026-09-02',
+		title: 'a favourite reward, and a phone that keeps its words',
+		notes: [
+			'A pick-one quest keeps a favourite: <b>choose ahead</b> on the row answers the question before it is asked, and Claimed and Finish then run on it in one press. The bulk bar says how many would still ask, and <b>choose now…</b> walks those pickers back to back.',
+			'A phone’s quest row holds its shape — tick, star and name share a line, and only the buttons drop below — so a day’s list is a third the scroll it was.',
+			'The tree’s verdicts — covered, to craft, missing — are whole words on a phone again, and a long sub-line trims itself instead of painting over them.',
+			'The pouch writes big silver the short way (“1.96b”); the caret swaps it to the exact digits, so editing never rounds what you hold.',
+			'The phone menu closes when a tab is pressed under it, the thumb bar clears the home indicator, a dragged minimap keeps inside a chart that shrank under it, and /favicon.ico answers instead of 404ing on every load.',
+			'Sign in says where it is taking you before it leaves for discord.com, and signing out on a dead network still signs the device out.',
+			'The capture harness seeds the store before the app wakes, so the README states load instead of being written over by the empty page they replaced.',
+			'The plotted loop is drawn as the water path it found — the shortest line that keeps to the sea — instead of bowing every leg into an arc; the ruler and the community courses draw the same way, and the drawn line finally agrees with the measured minutes.',
+			'Lively Iliya Island pays out everything on its list — BDOCodex shows no pick there — so it no longer asks which; and Sailing to a Wider World’s note says both extras come, not one of them.',
+			'The hire picker names each race once, the pool sorted under four headings instead of fifteen.',
+			'The bottom sheets clear a phone’s gesture bar: viewport-fit=cover wakes the safe-area insets the styles were already asking for, and Close keeps a thumb’s worth of ground either way — and a dialog’s buttons keep a breath of air above them instead of leaning on the list.',
+			'A drag that begins on a barterer no longer dies on the pin: the sea takes the gesture wherever it starts, pinch included, and a press that stays put is still the tap that opens the trades.',
+			'The hire list wears its figures — the level-10 averages on every row — and a row of chips narrows it to one race or ranks it by a stat; a picker row now wraps instead of trailing off in an ellipsis, so a sailor’s appetite, cargo and ports all read.',
+			'A sailor’s figures told a story four times too tall: the per-type numbers are the level-1 base, not growth a level, and every level-up rolls in a hidden band. The estimates now walk from the base to the level-10 average — taken from the community sailor tables and confirmed against BDOCodex’s maxima — the crew’s speed and the routes’ minutes follow, and a stat you type from the sailor window is judged against its level’s band: top roll, above or below the average, or the floor. The Quick sailor’s cannon figures were the guide’s error, settled the same way.',
+			'A tap on a habitat marker toggles its grounds once: the pan fix had briefly made every tap count twice, on and off in the same breath.',
+			'The Ship’s reference reads like the rest of the yard now: every remedy under its own icon, the food grades wearing their colours, the experience shares drawn as meters, the sailor slots as badges, and the three named mates given their faces.',
+			'The fleet wears its hulls: every row carries the ship’s own icon, and the whole line is the way aboard — click anywhere on it to sail, with only the × standing clear. Hovering says so.',
+			'Every seat can say what it would do with the sailor in hand: hover one while placing — or one already taken — and it speaks in that sailor’s own numbers; the selected sailor carries the same line, Sail to Mess, worked out for them.'
+		]
+	},
+	{
+		date: '2026-09-01',
+		title: 'the tour and the film cover the sea as well as the yard',
+		notes: [
+			'The guided tour walks all nine views — the Today strip, Quests, Ship and the chart’s five tabs among them — and points at what it is talking about: half its steps used to open as a popover in the middle of the page because the screen repainted a frame after the tour moved.',
+			'The tour reads a phone properly: it points at the bar at the thumb rather than the tab row that is not there, opens the map’s panel before naming its tabs, and puts the last step on the hamburger the header’s buttons are folded behind.',
+			'The film is re-shot end to end, with the sea in it — quests finished together, a hull fitted out, the loop plotted with its minutes, and a route traced onto blank water — and its subtitles are set half again as large, which is the size they should have been for a clip watched at half width.'
+		]
+	},
 	{
 		date: '2026-08-31',
 		title: 'routes traced by hand, ship setups, and quests finished together',

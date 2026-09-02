@@ -8,7 +8,6 @@ import { shipGroups } from './ships.js';
 import { routeInfo } from './recipes.js';
 import { tableFor } from './enhancement.js';
 import { iconLoader } from './icon-loader.js';
-import RealisticWaterRipples from './realistic-water-ripples.js';
 import { esc, F, parseAmount } from './fmt.js';
 import * as store from './state.js';
 import { initSync, openAccount } from './sync.js';
@@ -33,14 +32,16 @@ import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from '
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
 import { renderCrew, crewAction, crewChange, applyShipSetup, openSetupPicker } from './screen-crew.js';
 import { statusLine } from './today.js';
-import { renderQuests, questAction, questDone, wantedQuests } from './screen-quests.js';
-import { openVellDialog } from './today.js';
+import { renderQuests, questAction, questDone, wantedQuests, setQuestPay } from './screen-quests.js';
+import { openVellDialog, openResetsDialog } from './today.js';
 import { startClocks, tickClocks } from './clock.js';
 import { recordProgress } from './pace.js';
 import { openJump } from './jump.js';
+import { openItemCard } from './item-card.js';
+import { attachSheet } from './sheet.js';
 
 import { openProfiles, activeProfile } from './profiles.js';
-import { DATA, CHANGES, LATEST } from './about.js';
+import { DATA, CHANGES, LATEST, RELEASES, RELEASE } from './about.js';
 import { toggleVellReminder, checkVellReminder } from './today.js';
 import { openTripLog } from './triplog.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
@@ -70,6 +71,12 @@ const TABS = [
 
 // The four a phone gets at the thumb; the rest live behind "All".
 const THUMB_TABS = ['plan', 'inventory', 'map', 'quests'];
+
+/* Everything that answers by going somewhere else. Chosen inside a
+   dialog, the dialog has done its job and gets out of the way -- the
+   item card's "Show the barterers on the map" used to leave the card
+   standing over the map it had just drawn. */
+const NAV_ACTS = new Set(['view', 'open-item', 'goto-map', 'goto-quests', 'goto-tree', 'goto-workshop', 'goto-get', 'quest-map']);
 
 let water = null;
 // Debounces the search box; showView cancels it so a stale query cannot
@@ -105,6 +112,23 @@ function paintTabBar(counts) {
 		+ `<button class="tabbar-btn all" data-act="tab-sheet" aria-haspopup="dialog" title="Every section">
 			<span class="tabbar-icon" aria-hidden="true">▦</span><span class="tabbar-label">All</span>
 			${waiting ? `<span class="tabbar-count">${waiting}</span>` : ''}</button>`;
+	measureTabBar();
+}
+
+/**
+ * Publish the tab bar's height.
+ *
+ * The bar is fixed to the bottom edge and belongs to the page, not to
+ * the shell -- and .shell carries a stacking context of its own, so
+ * nothing inside it can be raised over the bar however high its
+ * z-index. The inventory sheet's last line went under it. Now the sheet
+ * is told where the bar begins and stops there.
+ */
+function measureTabBar() {
+	const bar = document.getElementById('tabbar');
+	if (!bar) return;
+	const h = getComputedStyle(bar).display === 'none' ? 0 : bar.offsetHeight;
+	document.documentElement.style.setProperty('--tabbar-h', `${h}px`);
 }
 
 /** Every section at once, named, counted and grouped the way the tab
@@ -203,6 +227,12 @@ export function render() {
 	else if (view === 'quests') root.innerHTML = renderQuests();
 	else root.innerHTML = renderGet();
 	restoreFocus(root, focus);
+	// On a phone the inventory detail is a sheet at the bottom edge, and
+	// a sheet is something a thumb can move: out to the whole screen,
+	// back, or away. Named, so a render -- pressing "+" redraws the
+	// panel -- does not fold it back up under the hand that opened it.
+	const drawer = root.querySelector('.detail.open');
+	if (drawer) attachSheet(drawer, { key: 'inventory', onDismiss: () => { setSelected(null); render(); } });
 	// The map draws itself after the shell exists, since it has to
 	// measure the box it was given before it knows which tiles to ask
 	// for.
@@ -254,7 +284,21 @@ function restoreFocus(root, focus) {
 	}
 }
 
+/**
+ * Put a search on a tab you are not standing on yet.
+ *
+ * showView() takes the tab's remembered query as it arrives, so setting
+ * one has to go through the same store or it is overwritten a line
+ * later. This is how a door into To Get arrives with the item in the
+ * search box.
+ */
+function setQueryFor(id, text) {
+	queries[id] = text;
+}
+
 function showView(id) {
+	// The phone menu, if it was standing open, goes with the old screen.
+	closeBar();
 	queries[view] = query;
 	setView(id);
 	setQuery(queries[id] || '');
@@ -316,6 +360,8 @@ function applyHash() {
 	}
 	if (!m || !TABS.some(t => t.id === m[1])) return false;
 	applyingHash = true;
+	// Back and forward switch screens like a tab press does.
+	closeBar();
 	queries[view] = query;
 	setView(m[1]);
 	setQuery(queries[m[1]] || '');
@@ -366,13 +412,29 @@ async function loadBarter() {
 }
 
 
-function waterOn() {
+/**
+ * The shader behind the page, fetched the moment it is switched on.
+ *
+ * It is off by default, so a static import made every visitor pay 25 KB
+ * for a canvas most of them never see. Imported here instead, which
+ * costs the people who turn it on one short wait and everybody else
+ * nothing.
+ *
+ * A full-screen animation is also exactly what `prefers-reduced-motion`
+ * is for. The setting still wins if it is set by hand -- it is a
+ * deliberate choice, and refusing to honour it would be its own kind of
+ * rude -- but nothing starts the water on that browser by itself.
+ */
+async function waterOn() {
 	if (water) {
 		water.show();
 		water.play();
 		return;
 	}
 	try {
+		const { default: RealisticWaterRipples } = await import('./realistic-water-ripples.js');
+		// Turned on and off again while the module was in flight.
+		if (store.getSetting('water', false) !== true) return;
 		water = RealisticWaterRipples.create(document.body, {
 			resolution: 512,
 			dropRadius: 30,
@@ -385,6 +447,12 @@ function waterOn() {
 	} catch {
 		water = null;
 	}
+}
+
+/** True when the browser has asked for less movement. */
+function wantsStillness() {
+	return typeof window.matchMedia === 'function'
+		&& window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 function waterOff() {
@@ -431,6 +499,23 @@ function targetIdFrom(el) {
 	return row ? row.getAttribute('data-target') : null;
 }
 
+/* The More submenu, shut and told so. */
+const closeMore = () => {
+	const pop = document.getElementById('more-menu');
+	if (pop) pop.hidden = true;
+	const btn = document.querySelector('[data-act="more"]');
+	if (btn) btn.setAttribute('aria-expanded', 'false');
+};
+
+/* The phone's own menu, the same. */
+const closeBar = () => {
+	const bar = document.getElementById('masthead-actions');
+	if (bar) bar.classList.remove('open');
+	const burger = document.querySelector('[data-act="menu"]');
+	if (burger) burger.setAttribute('aria-expanded', 'false');
+	closeMore();
+};
+
 function wire() {
 	document.addEventListener('click', async evt => {
 		// A link out to BDOCodex is the browser's business, not ours --
@@ -439,13 +524,9 @@ function wire() {
 
 		const el = evt.target.closest('[data-act]');
 		if (!el) {
-			// A click anywhere else closes the More menu.
-			const pop = document.getElementById('more-menu');
-			if (pop && !pop.hidden && !evt.target.closest('#more-menu')) {
-				pop.hidden = true;
-				const btn = document.querySelector('[data-act="more"]');
-				if (btn) btn.setAttribute('aria-expanded', 'false');
-			}
+			// A click anywhere else closes the More menu, and the phone's
+			// menu with it.
+			if (!evt.target.closest('#more-menu') && !evt.target.closest('.masthead-actions')) closeBar();
 			// Clicking past the tiles puts the detail panel away. Reading
 			// the panel itself is not clicking past anything, so a click
 			// inside it leaves the selection alone.
@@ -461,22 +542,23 @@ function wire() {
 		if (act.startsWith('trace-') && traceAction(act, el)) return;
 
 		// Picking anything out of the More menu puts it away.
-		if (act !== 'more' && el.closest('#more-menu')) {
-			document.getElementById('more-menu').hidden = true;
-			const btn = document.querySelector('[data-act="more"]');
-			if (btn) btn.setAttribute('aria-expanded', 'false');
-		}
+		if (act !== 'more' && el.closest('#more-menu')) closeMore();
 
-		// Picking something out of the phone menu puts it away again.
-		if (act !== 'menu' && el.closest('.masthead-actions.open')) {
-			document.getElementById('masthead-actions').classList.remove('open');
-			const burger = document.querySelector('[data-act="menu"]');
-			if (burger) burger.setAttribute('aria-expanded', 'false');
-		}
+		// Picking something out of the phone menu puts it away again --
+		// but "More" is a section of that menu, not a choice made from
+		// it. Closing the bar on the way to opening its own submenu is
+		// what used to make the whole thing vanish, and leave the
+		// submenu standing open behind it for the next press.
+		if (act !== 'menu' && act !== 'more' && el.closest('.masthead-actions.open')) closeBar();
+
+		// A way through to a screen leaves behind the dialog it was chosen
+		// from: the answer is on the screen now, and the item card that
+		// offered it would otherwise still be standing over the map it
+		// just sent you to.
+		if (NAV_ACTS.has(act) && el.closest('.dialog')) closeDialog();
 
 		switch (act) {
-			// Chosen out of the sections sheet, the sheet has done its job.
-			case 'view': if (el.closest('.dialog')) closeDialog(); showView(el.dataset.id); return;
+			case 'view': showView(el.dataset.id); return;
 			case 'tab-sheet': return openTabSheet();
 			case 'undo': {
 				const label = store.undo();
@@ -493,6 +575,7 @@ function wire() {
 			case 'enh-blocked': toggleBlocked(); return render();
 			case 'open-item': hidePeek(); showView('inventory'); setSelected(el.dataset.item); return render();
 			case 'vell-edit': return openVellDialog();
+			case 'resets-edit': return openResetsDialog();
 			case 'jump': return openJumpPalette();
 			case 'profiles': return openProfiles({ toast });
 			case 'vell-notify': return toggleVellReminder();
@@ -508,23 +591,28 @@ function wire() {
 				return;
 			case 'water': return toggleWater();
 			case 'tour': return startTour();
+			case 'whats-new': return openWhatsNew();
 			case 'help': return openHelp();
 			case 'guide': return openGuide();
 			case 'signin':
 			case 'account': return openAccount();
 			case 'more': {
 				const pop = document.getElementById('more-menu');
-				const open = !pop.hidden;
-				pop.hidden = open;
-				el.setAttribute('aria-expanded', String(!open));
+				if (pop.hidden) {
+					pop.hidden = false;
+					el.setAttribute('aria-expanded', 'true');
+				} else closeMore();
 				return;
 			}
 			case 'menu': {
 				// The header's buttons do not fit a phone, so below a certain
-				// width they live behind this and are shown on demand.
+				// width they live behind this and are shown on demand. The
+				// More submenu is inside it, so it goes away with it --
+				// otherwise the bar reopens already expanded.
 				const bar = document.getElementById('masthead-actions');
 				const open = bar.classList.toggle('open');
 				el.setAttribute('aria-expanded', String(open));
+				if (!open) closeMore();
 				return;
 			}
 			case 'map-zoom': mapZoomStep(Number(el.dataset.step)); return;
@@ -660,7 +748,32 @@ function wire() {
 			case 'map-step': mapStepTo(Number(el.dataset.i)); return;
 			case 'map-follow': mapFollowToggle(); return;
 			case 'map-port': mapPortClick(Number(el.dataset.port)); return;
+			// Doors out of an item's detail: each opens the screen that
+			// owns that part of the answer with the screen already
+			// pointed at the item, rather than dropping you at the top of
+			// it to find the thing again yourself. ui-bits.waysThrough
+			// draws them; these are what they do.
 			case 'goto-map': mapShowItem(el.dataset.item); showView('map'); return;
+			case 'goto-quests': setQuestPay(el.dataset.item); showView('quests'); return render();
+			case 'goto-tree': {
+				// The Tree unfolds one queued build, so a door into it
+				// carries which build that is -- worked out where the
+				// door was drawn, out of the trees themselves. Searching
+				// for the item keeps the branch leading down to it and
+				// folds the rest away; a build is its own whole tree and
+				// wants no search at all.
+				const build = el.dataset.build || el.dataset.item;
+				setTreeTarget(build);
+				setQueryFor('tree', build === el.dataset.item ? '' : el.dataset.item);
+				showView('tree');
+				return render();
+			}
+			// The Tree, the Workshop and To Get all narrow by the same
+			// search box, so a door into one arrives with the item in it
+			// -- and it is kept as that tab's query, so coming back finds
+			// it as it was left.
+			case 'goto-workshop': setQueryFor('workshop', el.dataset.item); showView('workshop'); return render();
+			case 'goto-get': setQueryFor('get', el.dataset.item); showView('get'); return render();
 			case 'plan-filter': setPlanFilter(el.dataset.id); return render();
 			case 'tree-pick': return pickTreeTarget();
 			case 'tree-target': setTreeTarget(el.dataset.item); closeDialog(); return render();
@@ -1000,7 +1113,17 @@ function wire() {
 		if (evt.target.classList && evt.target.classList.contains('amt')) evt.target.select();
 	});
 
-	window.addEventListener('resize', measurePouch);
+	window.addEventListener('resize', () => { measurePouch(); measureTabBar(); });
+
+	// The pouch writes big silver the short way ("1.96b"); under the
+	// caret it swaps to the exact digits, so editing never rounds what
+	// you hold. parseAmount reads either form on the way back in.
+	document.addEventListener('focusin', evt => {
+		const el = evt.target.closest('[data-act="purse"]');
+		if (!el || el.dataset.exact === undefined || el.value === el.dataset.exact) return;
+		el.value = el.dataset.exact;
+		el.select();
+	});
 
 	document.addEventListener('focusout', evt => {
 		const host = document.getElementById('pouch');
@@ -1038,9 +1161,11 @@ function openJumpPalette() {
 		tabs: TABS,
 		go: (kind, value) => {
 			if (kind === 'tab') return showView(value);
-			showView('inventory');
-			setSelected(value);
-			render();
+			// Not the Inventory any more: an item nobody owns has no row
+			// there, so the panel opened empty and Find looked broken.
+			// The card says what the app knows about it either way, and
+			// still opens the Inventory for anyone who wanted that.
+			openItemCard(value);
 		}
 	});
 }
@@ -1284,23 +1409,88 @@ function offerLegacyImport() {
 }
 
 /**
+ * What arrived since you were last here.
+ *
+ * Shown by hand from the More menu, and once by itself when a browser
+ * that has seen an older release opens a newer one. The notes live in
+ * about.js, which CHANGELOG.md is also generated from -- so what a
+ * player reads here and what a reader finds in the repository are the
+ * same sentences.
+ *
+ * The pictures are the narrow copies under docs/media/small: they are
+ * the only ones inside the Docker image, and a dialog on a phone should
+ * not pull down a two-megabyte GIF to make its point. They load lazily,
+ * so the sections nobody scrolls to cost nothing.
+ */
+function openWhatsNew({ onClose = null } = {}) {
+	const r = RELEASES[0];
+	const headline = r.sections.filter(s => s.media);
+	const rest = r.sections.filter(s => !s.media);
+	const points = list => (list && list.length
+		? `<ul class="news-points">${list.map(p => `<li>${p}</li>`).join('')}</ul>` : '');
+
+	const host = openDialog(`
+		<h2>What's new</h2>
+		<p class="news-rel"><b>${esc(r.name)}</b> · version ${esc(r.id)} · ${esc(r.date)}</p>
+		<p class="dialog-copy">${r.blurb}</p>
+		<div class="news">
+			${headline.map(s => `<section class="news-item">
+				<h3>${s.title}</h3>
+				<img class="news-shot" src="${esc(s.media)}" alt="${esc(s.alt || '')}" loading="lazy">
+				<p>${s.text}</p>
+				${points(s.points)}
+			</section>`).join('')}
+		</div>
+		<details class="help-more">
+			<summary>Everything else in this release</summary>
+			${rest.map(s => `<section class="news-item plain">
+				<h3>${s.title}</h3>
+				${s.text ? `<p>${s.text}</p>` : ''}
+				${points(s.points)}
+			</section>`).join('')}
+		</details>
+		<p class="dialog-copy">The same notes are in
+			<a href="https://github.com/waliori/bdo-ship-upgrade-tracker/blob/main/CHANGELOG.md"
+				target="_blank" rel="noopener">CHANGELOG.md</a>.</p>
+		<div class="dialog-actions">
+			<button class="act quiet" data-close>Close</button>
+			<button class="act" data-act="tour">Show me around</button>
+		</div>
+	`, { onDismiss: onClose });
+	markReleaseSeen();
+	return host;
+}
+
+/** Remember that this release's notes have been read. */
+function markReleaseSeen() {
+	try {
+		localStorage.setItem(RELEASE_KEY, RELEASE);
+	} catch {
+		/* private mode: it will offer again, which is the safe way round */
+	}
+}
+
+/**
  * The walkthrough, as a film.
  *
  * The guided tour points at things on your own screen, which is the right
  * way to learn a control you are looking at. This is for the other
  * question -- "what is this for" -- answered once, end to end, without
  * having to do anything. It is the real app, driven and captioned, with a
- * narrower cut for a phone.
+ * narrower cut for a phone: neither is a mock-up, so a screen that
+ * changes makes the film wrong until it is shot again, which
+ * tools/capture does in one command.
  */
 function openHelp() {
 	const phone = window.matchMedia('(max-width: 720px)').matches;
 	const file = phone ? 'walkthrough-phone.mp4' : 'walkthrough.mp4';
 	const host = openDialog(`
 		<h2>How this works</h2>
-		<p>Two minutes, end to end: queue a build, choose how to get there, record what you gathered, make something, see what it will really cost, and take the list shopping.</p>
+		<p>The whole thing, end to end. The yard first — queue a build, choose how to get there, record what you gathered, make something, see what it will really cost, take the list shopping — and then the sea: the day's free quests, the ship you sail, and the chart, where that list becomes a loop with minutes on it and a blank stretch of water can be drawn on.</p>
 		<video class="help-film" src="docs/media/${file}" controls autoplay muted playsinline loop></video>
 		<details class="help-more">
-			<summary>What's new</summary>
+			<summary>Day by day</summary>
+			<p class="dialog-copy">The working diary. What arrived between one <i>version</i> and the next is under <b>More → What's new</b>.</p>
 			${CHANGES.slice(0, 6).map(c => `<div class="help-change"><b>${esc(c.date)}</b> — ${esc(c.title)}<ul>${c.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>`).join('')}
 		</details>
 		<p class="dialog-copy">Look-ups open on BDOCodex in
@@ -1330,7 +1520,7 @@ async function startTour() {
 	closeDialog();
 	try {
 		const { guidedTour } = await import('./guided-tour.js');
-		if (!guidedTour.startTour('main')) {
+		if (!await guidedTour.startTour('main')) {
 			toast('The tour could not load — check your connection and try again');
 		}
 	} catch (err) {
@@ -1348,6 +1538,12 @@ export async function init() {
 
 	const saved = store.getSetting('view');
 	if (saved && TABS.some(t => t.id === saved)) setView(saved);
+	// Someone sent this link. A bare #map is a reload of your own; a hash
+	// carrying a payload -- #share/, #trace/, #ship/, #map/, an item --
+	// is a thing another player wanted you to look at. Read before
+	// applyHash(), which rewrites a share link to a plain #plan on the
+	// way through.
+	const arrivedOnALink = /^#[a-z]+\/.+/.test(location.hash);
 	// A link or a reload with a hash names a place, and the address bar
 	// outranks the remembered tab.
 	applyHash();
@@ -1359,7 +1555,7 @@ export async function init() {
 	// The minute hand on every countdown, a repaint when a reset passes
 	// with the page open, and the Vell reminder if it was asked for.
 	startClocks(render, checkVellReminder);
-	whatsNew();
+	whatsNewToast();
 	// Which save this page is on. Sync mirrors the main profile only:
 	// a second profile is a second save, and the account holds one.
 	const prof = activeProfile();
@@ -1371,23 +1567,14 @@ export async function init() {
 	// coming back is the retry signal.
 	window.addEventListener('online', loadBarter);
 
-	if (store.getSetting('water', false) === true) waterOn();
+	if (store.getSetting('water', false) === true && !wantsStillness()) waterOn();
 	syncWaterButton();
 
 	const legacyDialogUp = offerLegacyImport();
 
-	// First-run tour, once the screens are on the page -- but not on top
-	// of the legacy-import question. Starting it would swap in demo data
-	// under the open dialog, and "Import it" would then merge a player's
-	// history into example numbers the tour throws away.
-	if (!legacyDialogUp) {
-		try {
-			const { guidedTour } = await import('./guided-tour.js');
-			guidedTour.checkAndShowInitialTour();
-		} catch {
-			/* the tour is optional */
-		}
-	}
+	// The release notes, then the tour -- or neither, for someone who
+	// followed a link here to see one particular thing.
+	await firstRun({ arrivedOnALink, legacyDialogUp });
 
 	// Icon metadata arrives asynchronously; repaint once it is ready.
 	try {
@@ -1417,10 +1604,91 @@ export async function init() {
 }
 
 /** One line about what changed since the last visit, once. */
-function whatsNew() {
+/**
+ * The day's diary line, for someone who was here yesterday.
+ *
+ * This is the small one: a toast naming the newest working entry. The
+ * release notes are the other thing, and they get a dialog of their own
+ * -- see firstRun().
+ */
+function whatsNewToast() {
+	// The release notes say it better and at more length. When they are
+	// about to open, a toast saying the same thing over the top of them
+	// is just noise.
+	if (releaseSeen() !== RELEASE) return;
 	const KEY = 'bdo-tracker/seen';
 	let seen = null;
 	try { seen = localStorage.getItem(KEY); } catch { /* then say nothing */ }
 	if (seen && seen !== LATEST) toast(`New since your last visit: ${CHANGES[0].title}. The details are under Help.`);
 	try { localStorage.setItem(KEY, LATEST); } catch { /* private mode */ }
+}
+
+/** Which release, if any, this browser last read the notes for. */
+const RELEASE_KEY = 'bdo-tracker/release';
+function releaseSeen() {
+	try {
+		return localStorage.getItem(RELEASE_KEY);
+	} catch {
+		// No storage to ask: treat it as read, so a private window is not
+		// shown the same notes on every load.
+		return RELEASE;
+	}
+}
+
+/**
+ * What greets someone when the page opens, and in what order.
+ *
+ * Three things want the first moment, and only one of them may have it:
+ *
+ *   - A shared link outranks everything. Someone opening a plan, a
+ *     route, a trace or a ship that another player sent them came to
+ *     see that, and a dialog over it -- however new -- is in the way.
+ *     They have not asked to be introduced to the app; they have asked
+ *     to look at one thing in it.
+ *   - Otherwise the release notes, once, for a browser that has seen an
+ *     older version of this app.
+ *   - Then the tour, for a browser that has never seen it -- when the
+ *     notes are closed rather than behind them.
+ *
+ * `arrivedOnALink` is worked out before the address bar is tidied, since
+ * applyHash() rewrites a share link to a plain #plan on the way through.
+ */
+async function firstRun({ arrivedOnALink, legacyDialogUp }) {
+	// The legacy-import question owns the screen when it is up: the tour
+	// would swap demo data in underneath it, and "Import it" would then
+	// merge a player's history into numbers the tour throws away.
+	if (arrivedOnALink || legacyDialogUp) {
+		// Their notes are still waiting under More; nothing is marked read.
+		return;
+	}
+
+	let tourDone = true;
+	try {
+		tourDone = localStorage.getItem('bdo_ship_upgrade-tour_completed') === 'true';
+	} catch { /* then no tour, which is the quiet way round */ }
+
+	const unread = releaseSeen() !== RELEASE;
+	// A browser with nothing in it has never seen an older version of
+	// this app, so "what's new" is a list of things it has never known
+	// was missing. It gets the tour instead, and the notes are marked
+	// read so they do not appear tomorrow as if they were news.
+	const nothingSaved = !Object.keys(store.getAllStock()).length && !store.getTargets().length;
+	const brandNew = !tourDone && nothingSaved;
+
+	if (unread && !brandNew) {
+		// The tour follows the notes rather than fighting them: closing
+		// the dialog is what starts it. "Show me around" is the same
+		// thing said out loud, and closes the dialog on its own way in.
+		openWhatsNew({ onClose: tourDone ? null : () => startTour() });
+		return;
+	}
+	if (unread) markReleaseSeen();
+	if (!tourDone) {
+		try {
+			const { guidedTour } = await import('./guided-tour.js');
+			guidedTour.checkAndShowInitialTour();
+		} catch {
+			/* the tour is optional */
+		}
+	}
 }

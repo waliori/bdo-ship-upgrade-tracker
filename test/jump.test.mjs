@@ -18,3 +18,19 @@ test('nothing for nothing, and the list is capped', () => {
 	assert.deepEqual(matchItems('   ', names), []);
 	assert.equal(matchItems('o', names, 2).length, 2);
 });
+
+test('every word has to be there, but not as one run of characters', () => {
+	// "+7 toro" used to find nothing: no name contains that string,
+	// though "+7 Epheria Carrack: Toro Sail" contains both words.
+	const parts = ['+7 Epheria Carrack: Toro Sail', 'Epheria Carrack: Toro Sail', '+7 Epheria Carrack: Toro Cannon'];
+	assert.deepEqual(matchItems('+7 toro', parts), ['+7 Epheria Carrack: Toro Sail', '+7 Epheria Carrack: Toro Cannon']);
+	assert.deepEqual(matchItems('toro sail', parts), ['Epheria Carrack: Toro Sail', '+7 Epheria Carrack: Toro Sail']);
+	// A word that is nowhere in the name still matches nothing.
+	assert.deepEqual(matchItems('toro anchor', parts), []);
+});
+
+test('a bare part is offered above its own enhancement levels', () => {
+	// Sorting on the string alone put "+10" second and the part last.
+	const levels = ['+10 Toro Sail', '+2 Toro Sail', 'Toro Sail', '+1 Toro Sail'];
+	assert.deepEqual(matchItems('toro sail', levels), ['Toro Sail', '+1 Toro Sail', '+2 Toro Sail', '+10 Toro Sail']);
+});

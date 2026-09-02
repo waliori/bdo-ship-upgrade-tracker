@@ -10,15 +10,31 @@ import * as store from './state.js';
 import { snapshot } from './ui-state.js';
 import { quests } from './quests.js';
 import { questDone, wantedQuests } from './screen-quests.js';
-import { VELL, VELL_CHECKED, nextSpawn, timeLabel, localLabel } from './clock.js';
+import { VELL, VELL_CHECKED, nextSpawn, timeLabel, localLabel, resetPlan, setResetPlan, RESETS_CHECKED } from './clock.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { paceText } from './pace.js';
 import { currentShip } from './ship.js';
-import { REGIONS } from './market.js';
+import { REGIONS, DEFAULT_REGION } from './market.js';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 const zoneShort = zone => `${zone.split('/').pop().replace(/_/g, ' ')} time`;
+
+/**
+ * The reset clock for the region standing, with the player's correction
+ * if they have made one, handed to clock.js so every countdown and every
+ * quest tick on the page counts to the same instant.
+ *
+ * Called on each render, which is cheap and means changing the region
+ * moves the clocks with it -- there is nothing to reload and no server
+ * to ask, only the browser's own Intl.
+ */
+export function currentResets() {
+	const region = String(store.getSetting('marketRegion', DEFAULT_REGION) || DEFAULT_REGION);
+	const plan = resetPlan(region.replace('console_', '') === region ? region : region, store.getSetting('resetTimes', null));
+	setResetPlan(plan);
+	return { region, plan };
+}
 
 /** The timetable in force: the player's own if they set one (kept on
  *  their own clock), else the server's for the Market region they
@@ -28,13 +44,43 @@ export function vellPlan() {
 	if (Array.isArray(custom) && custom.length) {
 		return { label: 'your own', zone: Intl.DateTimeFormat().resolvedOptions().timeZone, times: custom, custom: true };
 	}
-	const region = String(store.getSetting('marketRegion', 'eu') || 'eu').replace('console_', '');
+	const region = String(store.getSetting('marketRegion', DEFAULT_REGION) || DEFAULT_REGION).replace('console_', '');
 	return VELL[region] ? { ...VELL[region], custom: false } : null;
+}
+
+/**
+ * What the reset countdowns are actually counting to, said out loud.
+ *
+ * NA and EU are known; every other region is the same guess wearing a
+ * label, because no public source has tested them. Saying which it is
+ * costs one line and stops the app presenting an assumption as a fact --
+ * and the line is a way to correct it, for a player who knows.
+ */
+function resetNote() {
+	const { region, plan } = currentResets();
+	const label = (REGIONS.find(r => r[0] === region) || ['', region.toUpperCase()])[1];
+	const zone = plan.zone === 'UTC' ? 'UTC' : zoneShort(plan.zone);
+	const when = `${String(plan.daily).padStart(2, '0')}:00 ${zone} · ${DAY_NAMES[plan.weekly.day]} · ${String(plan.barter).padStart(2, '0')}:00`;
+	const edit = '<button class="linky" data-act="resets-edit">change</button>';
+	if (plan.custom) return `${esc(when)} — your own times · ${edit}`;
+	if (plan.sure) return `${esc(label)}: ${esc(when)}, as of ${RESETS_CHECKED} · ${edit}`;
+	return `${esc(label)}: assumed the same as NA/EU — ${esc(when)}. Nobody has published ${esc(label)}'s. ${edit}`;
+}
+
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/** The same fact as resetNote(), short enough for a tooltip. */
+function resetTitle() {
+	const { plan } = currentResets();
+	const zone = plan.zone === 'UTC' ? 'UTC' : plan.zone;
+	const hh = h => `${String(h).padStart(2, '0')}:00`;
+	return `Dailies reset at ${hh(plan.daily)} ${zone}, the barter refill at ${hh(plan.barter)}`
+		+ (plan.sure ? '' : ' — assumed; nobody has published this region\'s');
 }
 
 function vellTile() {
 	const plan = vellPlan();
-	const regionId = store.getSetting('marketRegion', 'eu');
+	const regionId = store.getSetting('marketRegion', DEFAULT_REGION);
 	const regionLabel = (REGIONS.find(r => r[0] === regionId) || ['', 'your region'])[1];
 	const edit = `<button class="linky" data-act="vell-edit">${plan ? 'change' : 'set the times'}</button>`;
 	if (!plan) {
@@ -85,7 +131,8 @@ export function todayStrip() {
 			<div class="today-tile"><div class="summary-k">Quests</div>${questTile}</div>
 			<div class="today-tile"><div class="summary-k">Resets</div>
 				<div class="today-v">dailies <b data-until="daily"></b></div>
-				<div class="today-sub">weeklies <b data-until="weekly"></b> · barter refresh <b data-until="barter"></b></div></div>
+				<div class="today-sub">weeklies <b data-until="weekly"></b> · barter refresh <b data-until="barter"></b></div>
+				<div class="today-sub">${resetNote()}</div></div>
 			<div class="today-tile"><div class="summary-k">Vell</div>${vellTile()}</div>
 			${paceTile ? `<div class="today-tile"><div class="summary-k">Pace</div>${paceTile}</div>` : ''}
 		</div>
@@ -102,7 +149,7 @@ const b64ToBytes = s => {
 
 /** The server region the push timetable would follow, if it has one. */
 function pushRegion() {
-	const r = String(store.getSetting('marketRegion', 'eu') || 'eu').replace('console_', '');
+	const r = String(store.getSetting('marketRegion', DEFAULT_REGION) || DEFAULT_REGION).replace('console_', '');
 	return VELL[r] ? r : null;
 }
 
@@ -196,7 +243,7 @@ export function statusLine() {
 	const bits = [
 		`<button class="status-bit" data-act="view" data-id="crew" title="Your ship — hull, parts, crew and setups, on the Ship tab">⚓ <b>${esc(me.name)}</b> ${me.speed.total}% · ${F(me.hold.free)} LT</button>`,
 		`<button class="status-bit" data-act="view" data-id="quests" title="Quests still to do this period${wanted.length ? `; ${left} of them pay in what your plan still wants — short of, or still to craft or buy` : ''}">✦ <b>${leftAll}</b> quest${leftAll === 1 ? '' : 's'} left${wanted.length ? ` · <b>${left}</b> for your list` : ''}</button>`,
-		`<span class="status-bit" title="Dailies reset at 00:00 UTC, the barter refill at 06:00 UTC">dailies <b data-until="daily"></b> · barter <b data-until="barter"></b></span>`,
+		`<span class="status-bit" title="${esc(resetTitle())}">dailies <b data-until="daily"></b> · barter <b data-until="barter"></b></span>`,
 		next ? `<span class="status-bit" title="Vell's next spawn on your servers">Vell <b>${esc(localLabel(next.at))}</b> in <b data-until="at" data-at="${next.at}"></b></span>` : '',
 		paced ? `<button class="status-bit" data-act="view" data-id="builds" title="${esc(paced.text)}">${esc(paced.t.item)}: <b>${esc(paced.text.replace(/ at the last.*$/, ''))}</b></button>` : ''
 	].filter(Boolean);
@@ -251,5 +298,68 @@ export function openVellDialog() {
 		store.setSetting('vellTimes', times);
 		closeDialog();
 		toast('Vell timetable saved');
+	});
+}
+
+/**
+ * Correct the reset times for the server you actually play on.
+ *
+ * NA and EU are known; the other eleven regions are the same assumption
+ * with a label, because nobody has published theirs. Rather than guess
+ * on a player's behalf, this lets the one person who can see the truth
+ * -- the player, looking at their own game -- write it down. The zone is
+ * theirs too, so a server that keeps local time survives its own
+ * daylight saving without anything here being touched again.
+ */
+export function openResetsDialog() {
+	const { region, plan } = currentResets();
+	const label = (REGIONS.find(r => r[0] === region) || ['', region.toUpperCase()])[1];
+	const mine = Intl.DateTimeFormat().resolvedOptions().timeZone;
+	const hh = h => `${String(h).padStart(2, '0')}:00`;
+	const host = openDialog(`
+		<h2>When your server's day turns over</h2>
+		<p class="dialog-copy">${plan.sure && !plan.custom
+			? `NA and EU share one clock and it is UTC — checked ${esc(RESETS_CHECKED)}.`
+			: `These are what <b>${esc(label)}</b> is assumed to use: the NA/EU clock. No public source has tested ${esc(label)}, so if your game says otherwise, this is where to say so.`}
+			Times are read on the clock you pick, so daylight saving looks after itself.</p>
+		<div class="dialog-field"><span>Dailies</span>
+			<input class="field" type="time" data-reset-daily value="${esc(hh(plan.daily))}"></div>
+		<div class="dialog-field"><span>Barter refill</span>
+			<input class="field" type="time" data-reset-barter value="${esc(hh(plan.barter))}"></div>
+		<div class="dialog-field"><span>Weeklies</span>
+			<select class="field select" data-reset-weekday>
+				${DAY_NAMES.map((d, k) => `<option value="${k}"${plan.weekly.day === k ? ' selected' : ''}>${d}</option>`).join('')}
+			</select></div>
+		<div class="dialog-field"><span>On which clock</span>
+			<select class="field select" data-reset-zone>
+				<option value="UTC"${plan.zone === 'UTC' ? ' selected' : ''}>UTC — what NA and EU use</option>
+				<option value="${esc(mine)}"${plan.zone === mine ? ' selected' : ''}>${esc(mine)} — my own</option>
+			</select></div>
+		<div class="dialog-actions">
+			<button class="ghost-btn" data-reset-default>Use the default</button>
+			<button class="ghost-btn" data-close>Cancel</button>
+			<button class="act" data-reset-save>Save</button>
+		</div>`);
+	host.querySelector('[data-reset-default]').addEventListener('click', () => {
+		store.setSetting('resetTimes', null);
+		closeDialog();
+		toast('Back on the default reset times');
+	});
+	host.querySelector('[data-reset-save]').addEventListener('click', () => {
+		const hour = sel => {
+			const m = /^(\d{1,2}):/.exec(host.querySelector(sel).value || '');
+			return m ? Number(m[1]) : null;
+		};
+		const daily = hour('[data-reset-daily]');
+		const barter = hour('[data-reset-barter]');
+		if (daily === null || barter === null) return toast('Both times are needed');
+		store.setSetting('resetTimes', {
+			zone: host.querySelector('[data-reset-zone]').value,
+			daily,
+			barter,
+			weekly: { day: Number(host.querySelector('[data-reset-weekday]').value), hour: daily }
+		});
+		closeDialog();
+		toast('Reset times saved');
 	});
 }

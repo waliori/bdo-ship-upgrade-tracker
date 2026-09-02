@@ -10,6 +10,7 @@
 // aboard, the numbers the Crew screen sums.
 
 import * as store from './state.js';
+import { skinFor, skinStats, SKIN_SLOTS } from './ship_skins.js';
 import { shipStats } from './ship_stats.js';
 import { partStats, slotOf, fitsShip, statsAt, sumStats, loadout } from './part_stats.js';
 import { families } from './enhancement.js';
@@ -94,6 +95,40 @@ export function masteryBonus(mastery = store.getProfile('sailingMastery', 0) || 
 	return Math.round(pct * 100) / 100;
 }
 
+
+/* ------------------------------------------------------------------ *
+ * The appearance set
+ * ------------------------------------------------------------------ */
+
+/** Which slots of a hull's skin the player says they have. */
+export function skinWorn(ship) {
+	return ((store.getProfile('skins', {}) || {})[ship]) || {};
+}
+
+/** Turn one slot of the set on or off. */
+export function setSkinSlot(ship, slot, on) {
+	if (!skinFor(ship) || !SKIN_SLOTS.includes(slot)) return null;
+	const all = { ...(store.getProfile('skins', {}) || {}) };
+	const mine = { ...(all[ship] || {}) };
+	if (on) mine[slot] = true; else delete mine[slot];
+	if (Object.keys(mine).length) all[ship] = mine; else delete all[ship];
+	return store.setProfile('skins', Object.keys(all).length ? all : null);
+}
+
+/** The whole set on or off at once, which is how it is bought. */
+export function setSkinAll(ship, on) {
+	if (!skinFor(ship)) return null;
+	const all = { ...(store.getProfile('skins', {}) || {}) };
+	if (on) all[ship] = Object.fromEntries(SKIN_SLOTS.map(k => [k, true]));
+	else delete all[ship];
+	return store.setProfile('skins', Object.keys(all).length ? all : null);
+}
+
+/** What the set on this hull is adding right now. */
+export function skinTotals(ship) {
+	return skinStats(ship, skinWorn(ship));
+}
+
 export function currentShip() {
 	const name = shipName();
 	const stats = shipStats[name];
@@ -104,17 +139,21 @@ export function currentShip() {
 	const crew = crewTotals(store.getProfile('roster', []) || [], seats, stats);
 	const parts = k => Number(fit.total[k]) || 0;
 	const mastery = masteryBonus();
-	const limit = stats.weight + parts('weight') + gem('weight');
+	// The appearance set is not only a look: its four slots carry speed,
+	// weight, turn and durability, so it belongs in the same sum.
+	const skinT = skinStats(name, skinWorn(name));
+	const skin = k => Number(skinT[k]) || 0;
+	const limit = stats.weight + parts('weight') + gem('weight') + skin('weight');
 	return {
-		name, stats, fit, crew, crystal, mastery,
-		speed: { hull: stats.speed, parts: parts('speed'), crystal: gem('speed'), crew: crew.speed, mastery, total: round1(stats.speed + parts('speed') + gem('speed') + crew.speed + mastery) },
-		accel: round1(stats.accel + parts('accel') + gem('accel') + crew.accel + mastery),
-		turn: round1(stats.turn + parts('turn') + gem('turn') + crew.turn + mastery),
-		brake: round1(stats.brake + parts('brake') + gem('brake') + crew.brake + mastery),
+		name, stats, fit, crew, crystal, mastery, skin: skinT, skinWorn: skinWorn(name),
+		speed: { hull: stats.speed, parts: parts('speed'), crystal: gem('speed'), crew: crew.speed, mastery, skin: skin('speed'), total: round1(stats.speed + parts('speed') + gem('speed') + crew.speed + mastery + skin('speed')) },
+		accel: round1(stats.accel + parts('accel') + gem('accel') + crew.accel + mastery + skin('accel')),
+		turn: round1(stats.turn + parts('turn') + gem('turn') + crew.turn + mastery + skin('turn')),
+		brake: round1(stats.brake + parts('brake') + gem('brake') + crew.brake + mastery + skin('brake')),
 		// The hold: hull plus what the plating and a crystal add, less the
 		// crew's own weight -- what is left is what a run can carry.
 		hold: { limit, crew: crew.weight, free: Math.max(0, limit - crew.weight) },
-		durability: stats.durability + parts('durability') + gem('durability') + crew.durability,
+		durability: stats.durability + parts('durability') + gem('durability') + crew.durability + skin('durability'),
 		rations: stats.rations + parts('rations') + crew.rations,
 		damage: parts('damage') + gem('damage')
 	};
@@ -137,6 +176,54 @@ export function setFitted(ship, slot, value) {
  * ------------------------------------------------------------------ */
 
 /** The saved setups, newest last: { id, name, ship, fitted, crystal, seats }. */
+/**
+ * What a saved setup would sail like, without loading it.
+ *
+ * currentShip() answers the same question for the setup that is
+ * standing, but it reads the profile -- so comparing two saved setups
+ * meant loading each in turn and remembering the numbers. This works
+ * them out from the setup's own record instead, which is what lets the
+ * Ship screen put them side by side.
+ *
+ * Crew is counted from the seats the setup kept, against the roster as
+ * it is now: the roster is shared between setups, so a sailor who has
+ * been dismissed since simply no longer counts, which is the truth.
+ */
+export function setupSummary(setup) {
+	const stats = shipStats[setup && setup.ship];
+	if (!stats) return null;
+	const parts = [];
+	for (const raw of Object.values(setup.fitted || {})) {
+		if (!raw) continue;
+		const { part, level } = splitLevel(raw);
+		if (partStats[part]) parts.push(statsAt(part, level));
+	}
+	const total = sumStats(...parts);
+	const c = setup.crystal ? crystalById[setup.crystal] : null;
+	const gemStats = c ? crystalStats(c) : {};
+	const gem = k => Number(gemStats[k]) || 0;
+	const got = k => Number(total[k]) || 0;
+	const crew = crewTotals(store.getProfile('roster', []) || [], setup.seats || {}, stats);
+	const mastery = masteryBonus();
+	// A setup keeps the skin it was saved with, so two setups of the same
+	// hull -- one skinned, one not -- compare as the different ships they
+	// actually are.
+	const skinT = skinStats(setup.ship, setup.skin || {});
+	const skin = k => Number(skinT[k]) || 0;
+	const limit = stats.weight + got('weight') + gem('weight') + skin('weight');
+	return {
+		ship: setup.ship,
+		skinned: Object.values(setup.skin || {}).filter(Boolean).length,
+		fittedCount: Object.values(setup.fitted || {}).filter(Boolean).length,
+		slots: stats.slots,
+		seated: Object.keys(setup.seats || {}).length,
+		crystal: c ? c.name : null,
+		speed: round1(stats.speed + got('speed') + gem('speed') + crew.speed + mastery + skin('speed')),
+		hold: Math.max(0, limit - crew.weight),
+		durability: stats.durability + got('durability') + gem('durability') + crew.durability + skin('durability')
+	};
+}
+
 export function listSetups() {
 	const all = store.getProfile('setups', {}) || {};
 	return Object.entries(all).map(([id, s]) => ({ id, ...s }));
@@ -149,7 +236,8 @@ export function currentSetup() {
 		ship,
 		fitted: (store.getProfile('fitted', {}) || {})[ship] || {},
 		crystal: (store.getProfile('crystal', {}) || {})[ship] || null,
-		seats: (store.getProfile('seats', {}) || {})[ship] || {}
+		seats: (store.getProfile('seats', {}) || {})[ship] || {},
+		skin: skinWorn(ship)
 	};
 }
 
@@ -160,7 +248,7 @@ export function saveSetup(name) {
 	const existing = Object.keys(all).find(id => all[id].name === clean);
 	const id = existing || `s${Date.now().toString(36)}`;
 	const cur = currentSetup();
-	all[id] = { name: clean, ship: cur.ship, ...(Object.keys(cur.fitted).length ? { fitted: cur.fitted } : {}), ...(cur.crystal ? { crystal: cur.crystal } : {}), ...(Object.keys(cur.seats).length ? { seats: cur.seats } : {}) };
+	all[id] = { name: clean, ship: cur.ship, ...(Object.keys(cur.fitted).length ? { fitted: cur.fitted } : {}), ...(cur.crystal ? { crystal: cur.crystal } : {}), ...(Object.keys(cur.seats).length ? { seats: cur.seats } : {}), ...(Object.keys(cur.skin).length ? { skin: cur.skin } : {}) };
 	store.setProfile('setups', all);
 	return id;
 }
@@ -176,9 +264,12 @@ export function loadSetup(id) {
 	if (s.crystal) crystal[s.ship] = s.crystal; else delete crystal[s.ship];
 	const seats = { ...(store.getProfile('seats', {}) || {}) };
 	if (s.seats) seats[s.ship] = s.seats; else delete seats[s.ship];
+	const skins = { ...(store.getProfile('skins', {}) || {}) };
+	if (s.skin) skins[s.ship] = s.skin; else delete skins[s.ship];
 	store.setProfileQuiet('fitted', Object.keys(fitted).length ? fitted : null);
 	store.setProfileQuiet('crystal', Object.keys(crystal).length ? crystal : null);
 	store.setProfileQuiet('seats', Object.keys(seats).length ? seats : null);
+	store.setProfileQuiet('skins', Object.keys(skins).length ? skins : null);
 	store.setProfile('crewShip', s.ship);
 	return true;
 }
@@ -194,5 +285,15 @@ export function deleteSetup(id) {
 /** Which saved setup, if any, is exactly what is sailed right now. */
 export function activeSetupId() {
 	const cur = JSON.stringify(currentSetup());
-	return (listSetups().find(s => JSON.stringify({ ship: s.ship, fitted: s.fitted || {}, crystal: s.crystal || null, seats: s.seats || {} }) === cur) || {}).id || null;
+	// The keys have to be written in the order currentSetup() writes
+	// them: this compares the two as JSON, so a field added to one and
+	// not the other -- or added in the wrong place -- means no setup is
+	// ever the one being sailed.
+	return (listSetups().find(s => JSON.stringify({
+		ship: s.ship,
+		fitted: s.fitted || {},
+		crystal: s.crystal || null,
+		seats: s.seats || {},
+		skin: s.skin || {}
+	}) === cur) || {}).id || null;
 }

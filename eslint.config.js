@@ -11,6 +11,7 @@ const browserGlobals = {
 	fetch: 'readonly', URL: 'readonly', URLSearchParams: 'readonly',
 	Blob: 'readonly', Image: 'readonly', HTMLElement: 'readonly',
 	requestAnimationFrame: 'readonly', cancelAnimationFrame: 'readonly',
+	performance: 'readonly',
 	setTimeout: 'readonly', clearTimeout: 'readonly',
 	setInterval: 'readonly', clearInterval: 'readonly',
 	getComputedStyle: 'readonly', Event: 'readonly',

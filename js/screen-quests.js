@@ -116,7 +116,9 @@ function questRow(q, short, wanted, isDone) {
 				? ` · <button class="link-btn" data-act="quest-map" data-monster="${esc(q.monster)}" title="Show where they are on the Map">on the map ↗</button>` : ''}</div>
 			<div class="quest-rewards">${rewardChips(q.rewards, short)}${q.choice
 				? `<span class="quest-or">and one of</span>${q.choice.map(c => rewardChips(c, short)).join('<span class="quest-or">or</span>')}` : ''}</div>
-			${last ? `<div class="quest-recall">Last time you took ${F(last.item[1])}× ${esc(last.item[0])} — Claimed records that again.</div>` : ''}
+			${q.choice ? (last
+				? `<div class="quest-recall">You take ${F(last.item[1])}× ${esc(last.item[0])} — Claimed records that again. <button class="link-btn" data-act="quest-pick-set" data-quest="${esc(q.id)}" title="Keep a different reward as the favourite">change</button></div>`
+				: `<div class="quest-recall">Claimed will ask which reward. <button class="link-btn" data-act="quest-pick-set" data-quest="${esc(q.id)}" title="Answer once now; every claim after is one press">choose ahead</button></div>`) : ''}
 		</div>
 		<div class="quest-actions">${buttons}</div>
 	</div>`;
@@ -154,7 +156,8 @@ function bulkBar(isDone) {
 	const asking = ids.filter(id => questById[id].choice && !recalled(questById[id])).length;
 	return `<div class="quest-bulk"><b>${ids.length}</b> ticked
 		<button class="act go small" data-act="quest-finish" title="Record every ticked quest as done, rewards into stock, in one undoable change">Finish ${ids.length}</button>
-		${asking ? `<span class="row-sub">${asking} of them will ask which reward you took</span>` : ''}
+		${asking ? `<span class="row-sub">${asking} of them will ask which reward you took</span>
+		<button class="link-btn" data-act="quest-pick-all" title="Answer each one now — Finish then runs in one go">choose now…</button>` : ''}
 		<span class="panel-spacer"></span>
 		<button class="act quiet small" data-act="quest-group-save" title="Keep these as a named group to tick again in one go">Save as group…</button>
 		<button class="link-btn" data-act="quest-select-none">untick all</button>
@@ -281,13 +284,13 @@ function claim(q, choice) {
 
 /** Ask which pick-one reward was taken; resolves to the index, or null
  *  when the picker is closed without an answer. */
-function askChoice(q, need) {
+function askChoice(q, need, title = 'Which reward did you take?') {
 	const last = recalled(q);
 	return new Promise(resolve => {
 		let answered = false;
 		openPicker({
-			title: 'Which reward did you take?',
-			hint: `${esc(q.name)} pays ${esc(Object.entries(q.rewards).map(([item, n]) => `${F(n)}× ${item}`).join(', '))} and one of these.`,
+			title,
+			hint: `${esc(q.name)} pays ${esc(Object.entries(q.rewards).map(([item, n]) => `${F(n)}× ${item}`).join(', '))} and one of these. Your pick is kept as the favourite — one press claims it next time, and Finish uses it without asking.`,
 			items: q.choice.map((c, i) => {
 				const [item, n] = Object.entries(c)[0];
 				return { id: String(i), label: `${F(n)}× ${item}`, icon: img(item, ''), meta: last && last.i === i ? 'last time' : need.get(item) === 'short' ? 'short of it' : need.get(item) ? 'on your list' : '' };
@@ -297,6 +300,30 @@ function askChoice(q, need) {
 			onClose: () => { if (!answered) resolve(null); }
 		});
 	});
+}
+
+/** Keep a favourite without claiming: the pick is remembered, the
+ *  stock untouched. Claimed and Finish then run on it in one press. */
+async function choosePick(q) {
+	const i = await askChoice(q, needMap(), 'Which reward do you take?');
+	if (i === null) return;
+	store.setProfileQuiet('questPicks', { ...picks(), [q.id]: i });
+	document.dispatchEvent(new CustomEvent('quests-refilter'));
+}
+
+/** Answer for every ticked quest that would ask, one picker after
+ *  another; closing one stops the walk with the earlier answers kept. */
+async function chooseAllPicks() {
+	const done = store.getProfile('questsDone', {}) || {};
+	const need = needMap();
+	for (const id of [...selected]) {
+		const q = questById[id];
+		if (!q || !q.choice || recalled(q) || questDone(q, done)) continue;
+		const i = await askChoice(q, need, 'Which reward do you take?');
+		if (i === null) break;
+		store.setProfileQuiet('questPicks', { ...picks(), [q.id]: i });
+	}
+	document.dispatchEvent(new CustomEvent('quests-refilter'));
 }
 
 /** Finish every ticked quest: the recalled choice where there is one,
@@ -412,6 +439,15 @@ export function questAction(act, el) {
 	}
 	if (act === 'quest-finish') {
 		finishSelected();
+		return true;
+	}
+	if (act === 'quest-pick-set') {
+		const q = questById[el.dataset.quest];
+		if (q && q.choice) choosePick(q);
+		return true;
+	}
+	if (act === 'quest-pick-all') {
+		chooseAllPicks();
 		return true;
 	}
 	if (act === 'quest-claim-pick') {

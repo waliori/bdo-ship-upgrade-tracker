@@ -53,8 +53,9 @@ export function pouchHTML() {
 			${e.glyph ? `<span class="pouch-glyph" aria-hidden="true">${e.glyph}</span>` : img(e.item, 'pouch-icon')}
 			<span class="pouch-body">
 				<span class="pouch-k">${esc(e.label)}</span>
-				<input class="pouch-input" type="text" inputmode="numeric" value="${F(held)}"
-					data-act="purse" data-item="${esc(e.item)}" aria-label="${esc(e.label)} you hold">
+				<input class="pouch-input" type="text" inputmode="numeric" value="${FC(held)}"
+					data-act="purse" data-item="${esc(e.item)}" data-exact="${held}" title="${F(held)}"
+					aria-label="${esc(e.label)} you hold">
 				<span class="pouch-need">${esc(sub)}</span>
 			</span>
 		</label>`;

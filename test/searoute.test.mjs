@@ -26,8 +26,67 @@ test('the mask knows the sea from the shore', () => {
 });
 
 test('a leg with clear water is left exactly as it was', () => {
-	const a = at('Velia'), b = at('Iliya Island');
+	// Two points in open Margoria with nothing between them.
+	const a = { x: 30000, y: 30000 }, b = { x: 40000, y: 40000 };
+	assert.equal(isSea(a.x, a.y) && isSea(b.x, b.y), true);
 	assert.deepEqual(seaLeg(a, b), [a, b]);
+});
+
+test('a harbour is water the open sea can still be reached from', () => {
+	// At 256 units to a cell, Velia's harbour is a single wet cell walled
+	// in by its own shore. A search that started there had nowhere to go
+	// and gave up, and the leg was drawn straight -- so the route out of
+	// Velia crossed Balenos on foot. Every leg from a wharf did.
+	const velia = at('Velia');
+	for (const to of ['Iliya Island', 'Rian', 'Sikario'].map(at)) {
+		const leg = seaLeg(velia, to);
+		assert.ok(leg.length > 2, `Velia to ${to.name} came back as a straight line`);
+		// Away from the two ends -- a wharf is on land, and a barterer
+		// stands on an island -- the drawn line is on the water.
+		const wet = leg.slice(1, -1);
+		for (const p of wet) assert.ok(isSea(p.x, p.y), `a turn on land at ${Math.round(p.x)},${Math.round(p.y)}`);
+		assert.ok(dryRun(wet) === 0, `Velia to ${to.name} crosses ${dryRun(wet)} units of land`);
+	}
+});
+
+/**
+ * The longest unbroken stretch of a drawn line that is over land.
+ *
+ * `spare` is where land is expected and fine -- the last few hundred
+ * units into a wharf or up to a barterer's island, which is a landing,
+ * not a shortcut. Sampled along the line rather than by dropping points,
+ * because dropping the approach points and joining what is left invents
+ * a segment that was never drawn.
+ */
+function dryRun(points, spare = () => false) {
+	let run = 0, worst = 0;
+	for (let i = 1; i < points.length; i++) {
+		const a = points[i - 1], b = points[i];
+		const len = Math.hypot(b.x - a.x, b.y - a.y);
+		const steps = Math.max(1, Math.ceil(len / 60));
+		for (let k = 0; k <= steps; k++) {
+			const t = k / steps;
+			const p = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+			if (spare(p) || isSea(p.x, p.y)) run = 0;
+			else { run += len / steps; worst = Math.max(worst, run); }
+		}
+	}
+	return Math.round(worst);
+}
+
+test('every leg of a whole route keeps to the water, not just the first', () => {
+	// A loop is a chain of legs and any one of them can be the one that
+	// cuts a corner off a continent, so the promise is about all of them.
+	const stops = [at('Velia'), at('Rian'), at('Sherahi'), at('Biapin'),
+		at('Tesivin'), at('Sikario'), at('Priko'), at('Velia')];
+	const line = seaRoute(stops);
+	assert.ok(line.length > stops.length * 2, 'the loop was bent, leg by leg');
+	// The landing approach at each stop is over its island, by design.
+	// Everywhere else the line is at sea, give or take a headland's
+	// corner clipped between two turns.
+	const landing = p => stops.some(s => Math.hypot(p.x - s.x, p.y - s.y) < 900);
+	const crossed = dryRun(line, landing);
+	assert.ok(crossed < 400, `the loop crosses ${crossed} units of land between its stops`);
 });
 
 test('a blocked leg comes back as a way round, on water throughout', () => {

@@ -1711,7 +1711,7 @@ function paintMeasure(layer, size) {
 	svg.style.display = '';
 	const world = measurePts.length === 2 ? seaBent(measurePts) : measurePts;
 	const pts = world.map(p => project(mapState, size, p.x, p.y));
-	const d = pts.length > 1 ? routePath(pts, size) : `M${pts[0].left - 4},${pts[0].top}a4,4 0 1,0 8,0a4,4 0 1,0 -8,0`;
+	const d = pts.length > 1 ? routePath(pts, size, 0) : `M${pts[0].left - 4},${pts[0].top}a4,4 0 1,0 8,0a4,4 0 1,0 -8,0`;
 	svg.children[0].setAttribute('d', d);
 	const label = layer._measureLabel;
 	if (measurePts.length === 2) {
@@ -1819,6 +1819,19 @@ function miniHTML(marks) {
 	const dots = npcs.map(n => `<i class="mini-dot${marks.has(n.id) ? ' wanted' : ''}"
 		style="left:${((n.x - b.x0) / (b.x1 - b.x0) * 100).toFixed(1)}%;top:${((n.y - b.y0) / (b.y1 - b.y0) * 100).toFixed(1)}%"></i>`).join('');
 	if (!miniOn) return '';
+	// A dragged position was clamped against the box it was dragged in;
+	// this box may be smaller — a window shrunk, a panel grown — so it
+	// is clamped again before it is drawn. 176×110 is the minimap's
+	// fixed size in tracker.css.
+	if (miniPos) {
+		const host = document.querySelector('[data-map]');
+		if (host && host.clientWidth) {
+			miniPos = {
+				x: Math.max(0, Math.min(host.clientWidth - 176, miniPos.x)),
+				y: Math.max(0, Math.min(host.clientHeight - 110, miniPos.y))
+			};
+		}
+	}
 	const at = miniPos ? ` style="left:${Math.round(miniPos.x)}px;top:${Math.round(miniPos.y)}px;right:auto;bottom:auto"` : '';
 	return `<div class="map-mini${miniPos ? ' moved' : ''}" data-map-mini title="Jump there"${at}>
 		<span class="mini-grip" data-mini-grip title="Drag to move the minimap" aria-hidden="true">⋮⋮</span>
@@ -1967,8 +1980,14 @@ export function paintMap() {
 	const currentId = ids.length > 1 ? ids[Math.min(stepIdx, ids.length - 1)] : null;
 
 	guarded(paintTiles, layer, tiles, size);
-	guarded(paintPins, layer, pins, marks, currentId);
+	// Ports before pins, and both before the island names: each of these
+	// three writes words on the sea, and each one gives way to the ones
+	// already written. The wharves name themselves permanently and so go
+	// first; the barterers fold a name away rather than print over one
+	// (declutterPins); the island names come last and skip anything the
+	// other two have already said (paintLabels).
 	guarded(paintPorts, layer, size);
+	guarded(paintPins, layer, pins, marks, currentId);
 	guarded(paintWharves, layer, size);
 	guarded(paintLabels, layer, size);
 	guarded(paintHunt, layer, size);
@@ -2080,6 +2099,94 @@ function paintPins(layer, pins, marks, currentId) {
 			pool.delete(id);
 		}
 	}
+	declutterPins(pool, pins);
+}
+
+/**
+ * Stop the barterers' names printing over each other.
+ *
+ * Only a wanted pin shows its name unasked, and where the plan wants a
+ * dozen islands in one corner of Margoria those names land on top of one
+ * another and the corner turns to grey mush. So a name claims the ground
+ * it covers and a name that cannot have its own ground is not drawn.
+ *
+ * The pin itself never goes: the dot, the badge and the hit target are
+ * exactly where they were, and hovering one whose name is folded away
+ * still shows it -- so nothing becomes unreachable, it just stops
+ * shouting over its neighbours. Zooming in spreads them out and the
+ * names come back on their own.
+ *
+ * Order decides who wins the overlap: a numbered stop on the route
+ * first, then whatever is nearest the middle of the chart, which is
+ * what the reader is looking at.
+ */
+function declutterPins(pool, pins) {
+	const shown = [];
+	// The wharves name themselves permanently and were on the chart
+	// first, so their words are ground already taken. There are only a
+	// handful, so these can be measured properly rather than guessed.
+	const layer = pool.values().next().value?.parentElement;
+	if (layer) {
+		for (const el of layer.querySelectorAll('.map-port-name')) {
+			if (el.hidden || el.offsetParent === null) continue;
+			const r = el.getBoundingClientRect();
+			if (!r.width) continue;
+			const host = layer.getBoundingClientRect();
+			shown.push({ l: r.left - host.left, r: r.right - host.left, t: r.top - host.top, b: r.bottom - host.top });
+		}
+	}
+	// The name hangs to the right of a dot centred on the coordinate:
+	// roughly 12px of dot and gap, then the wider of its two lines. At
+	// 10px display type that runs about 5.6px a character, over two
+	// lines about 24px tall. Estimated rather than measured because this
+	// runs on every pan frame, and 80 getBoundingClientRect calls there
+	// is a layout thrash for a label nobody is reading yet.
+	const CH = 5.6, DOT = 12, H = 24;
+	const claim = (btn, left, top) => {
+		const npc = btn.querySelector('.map-pin-npc').textContent || '';
+		const at = btn.querySelector('.map-pin-at').textContent || '';
+		const w = DOT + Math.max(npc.length, at.length) * CH;
+		const box = { l: left - w / 2, r: left + w / 2, t: top - H / 2, b: top + H / 2 };
+		for (const s of shown) {
+			if (box.l < s.r && box.r > s.l && box.t < s.b && box.b > s.t) return false;
+		}
+		shown.push(box);
+		return true;
+	};
+
+	// Only the pins that show a name unasked are worth arranging.
+	const named = pins.filter(p => {
+		const btn = pool.get(p.id);
+		return btn && btn.classList.contains('wanted');
+	});
+	const mid = namedMid(named);
+	named.sort((a, b) => {
+		const sa = stopsLive() ? stops.indexOf(a.id) : -1;
+		const sb = stopsLive() ? stops.indexOf(b.id) : -1;
+		// A stop on the route keeps its name whatever else is near it.
+		if ((sa >= 0) !== (sb >= 0)) return sa >= 0 ? -1 : 1;
+		if (sa >= 0 && sb >= 0) return sa - sb;
+		return ((a.left - mid.x) ** 2 + (a.top - mid.y) ** 2)
+			- ((b.left - mid.x) ** 2 + (b.top - mid.y) ** 2);
+	});
+
+	for (const p of named) {
+		const btn = pool.get(p.id);
+		btn.classList.toggle('name-off', !claim(btn, p.left, p.top));
+	}
+	// A pin with no name of its own to show was never in the running.
+	for (const p of pins) {
+		const btn = pool.get(p.id);
+		if (btn && !btn.classList.contains('wanted')) btn.classList.remove('name-off');
+	}
+}
+
+/** The middle of whatever is marked, which is where the eye is. */
+function namedMid(named) {
+	if (!named.length) return { x: 0, y: 0 };
+	let x = 0, y = 0;
+	for (const p of named) { x += p.left; y += p.top; }
+	return { x: x / named.length, y: y / named.length };
 }
 
 function paintRoute(layer, size, marks) {
@@ -2087,7 +2194,10 @@ function paintRoute(layer, size, marks) {
 	// marked is what you get before you have plotted one. Either way the
 	// chosen wharf anchors it.
 	const pts = seaBent(routeWorld(marks)).map(p => project(mapState, size, p.x, p.y));
-	const d = routePath(pts, size);
+	// The pathfinder already bent these legs round the land; drawn as
+	// given they are the shortest water line, and the line agrees with
+	// the measured minutes. A bow on top redrew open water as an arc.
+	const d = routePath(pts, size, 0);
 
 	let svg = layer._route;
 	if (!svg) {
@@ -2150,7 +2260,7 @@ function paintCourse(layer, size) {
 	for (const id of coursesOn) {
 		const c = courseById[id];
 		if (!c) continue;
-		const d = routePath(seaBent(c.points).map(p => project(mapState, size, p.x, p.y)), size);
+		const d = routePath(seaBent(c.points).map(p => project(mapState, size, p.x, p.y)), size, 0);
 		html += `<svg class="map-route map-course-line course-${esc(id)}">
 			<path class="map-course-glow" d="${d}"></path><path class="map-course-path" d="${d}"></path></svg>`;
 		for (const p of c.points) {
@@ -2398,12 +2508,48 @@ function paintLabels(layer, size) {
 			if (t) spoken.add(t.toLowerCase());
 		}
 	}
-	for (const l of islandLabels()) {
+	// Margoria is a lot of small islands close together, and at the zoom
+	// where the names first appear they used to print straight over each
+	// other into a grey smudge. So a name claims a box, and a name whose
+	// box is already taken waits for a closer zoom -- where the same two
+	// islands are further apart and both fit. Nothing is dropped
+	// permanently; zooming in is what asks for more of them.
+	//
+	// The box is measured from the text rather than the element: these
+	// are set in one size, uppercase and nowrap, so a character count is
+	// as good as a reflow here and does not cost a layout per label per
+	// frame. 10px display type at .14em tracking runs about 7.4px a
+	// character; the height is the line box plus a little air.
+	const taken = [];
+	const CH = 7.4, LINE = 15;
+	const clear = (cx, cy, text) => {
+		const halfW = (text.length * CH) / 2, halfH = LINE / 2;
+		const l = cx - halfW, r = cx + halfW, t = cy - halfH, b = cy + halfH;
+		for (const box of taken) {
+			if (l < box.r && r > box.l && t < box.b && b > box.t) return null;
+		}
+		return { l, r, t, b };
+	};
+
+	// Nearest the middle of the chart wins the ground it stands on: the
+	// island being looked at keeps its name when a neighbour at the edge
+	// would otherwise have taken the box first.
+	const mid = { x: size.w / 2, y: size.h / 2 };
+	const placed = islandLabels()
+		.map(l => ({ l, at: project(mapState, size, l.x, l.y) }))
+		.sort((a, b) => ((a.at.left - mid.x) ** 2 + (a.at.top - mid.y) ** 2)
+			- ((b.at.left - mid.x) ** 2 + (b.at.top - mid.y) ** 2));
+
+	for (const { l, at } of placed) {
 		let el = pool.get(l.name);
-		const at = project(mapState, size, l.x, l.y);
 		const off = !show || spoken.has(l.name.toLowerCase())
 			|| at.left < -80 || at.top < -30 || at.left > size.w + 80 || at.top > size.h + 30;
 		if (off) { if (el) el.hidden = true; continue; }
+		// The label sits 18px below the point, which is where it has to
+		// be measured for a collision to mean anything.
+		const box = clear(at.left, at.top + 18, l.name);
+		if (!box) { if (el) el.hidden = true; continue; }
+		taken.push(box);
 		if (!el) {
 			el = document.createElement('span');
 			el.className = 'map-label';
@@ -2606,6 +2752,7 @@ function cancelFly() {
 /** Drag to pan, wheel or pinch to zoom. Wired once, for whatever map
  *  exists. */
 export function wireMap() {
+	let swallowTap = false;       // the last gesture panned; eat its click
 	let dragging = null;          // one pointer moving the sea
 	const touching = new Map();   // every pointer down on the map, for pinch
 	let pinch = null;             // { dist } spread at the last frame
@@ -2613,16 +2760,20 @@ export function wireMap() {
 	// The panel, the card, the minimap: furniture on top of the sea.
 	// A gesture that starts on them is for them, not for the chart.
 	const CHROME = '.map-side, .map-side-pill, .map-tip, .map-mini, .map-steps, .map-trace-write';
-	const MARKERS = '[data-act="map-pin"], [data-act="map-port"], .map-habitat';
-	// Tracing, the markers are scenery: a line drawn across a barterer
+		// Tracing, the markers are scenery: a line drawn across a barterer
 	// must not stop dead there and open his trades instead.
-	const furniture = () => (mode === 'trace' ? CHROME : `${MARKERS}, ${CHROME}`);
+	// The markers used to be furniture too, and a drag that began on one
+// died on the pin -- on a phone, half the sea wears a barterer. Now the
+// sea takes the gesture wherever it starts, pinch included; a press
+// that never leaves the slop is still the tap, answered in stop().
+const furniture = () => CHROME;
 
 	let pressed = null;           // where the last pointer went down, to tell a click from a drag
 
 	document.addEventListener('pointerdown', evt => {
 		const host = evt.target.closest('[data-map]');
 		if (!host || evt.target.closest(furniture())) return;
+		swallowTap = false;
 		cancelFly();
 		// A stop or a word already on the sea is picked up and carried,
 		// not drawn over. The pointer is captured by the map box rather
@@ -2710,6 +2861,9 @@ export function wireMap() {
 		}
 		pan(mapState, evt.clientX - dragging.x, evt.clientY - dragging.y);
 		dragging = { x: evt.clientX, y: evt.clientY };
+		// A tooltip that opened on the touch-down is noise once the
+		// finger is clearly sailing, not asking.
+		if (hoverNpc) hoverNpc = null;
 		schedulePaint();
 	});
 
@@ -2737,6 +2891,12 @@ export function wireMap() {
 		// A press that did not move is a click on the sea: with the ruler
 		// armed, that is one end of a measurement.
 		if (penStroke) penEnd();
+		// A press that travelled was a pan; the click the browser still
+		// fires after it must not also work whatever marker it ends on.
+		// A press that stayed put is the tap, and that click stands --
+		// the markers stopped being furniture, so it reaches them.
+		if (evt && evt.type === 'pointerup' && pressed
+			&& Math.hypot(evt.clientX - pressed.x, evt.clientY - pressed.y) >= 5) swallowTap = true;
 		if (evt && evt.type === 'pointerup' && pressed && mapState
 			&& Math.hypot(evt.clientX - pressed.x, evt.clientY - pressed.y) < 5) {
 			if (measuring) measureAt(pressed.host, evt.clientX, evt.clientY);
@@ -2757,6 +2917,14 @@ export function wireMap() {
 	};
 	document.addEventListener('pointerup', stop);
 	document.addEventListener('pointercancel', stop);
+	document.addEventListener('click', evt => {
+		if (!swallowTap) return;
+		swallowTap = false;
+		if (evt.target.closest && evt.target.closest('[data-map]')) {
+			evt.stopPropagation();
+			evt.preventDefault();
+		}
+	}, true);
 
 	// The wheel is not delegated like the rest: it lives on the map box
 	// itself, wired by paintMap -- see onWheel.
@@ -2814,7 +2982,19 @@ export function wireMap() {
 	});
 
 	window.addEventListener('resize', () => {
-		if (view === 'map') paintMap();
+		if (view !== 'map') return;
+		// The box changed size under the minimap; keep it inside.
+		const mini = document.querySelector('[data-map-mini]');
+		const host = mini && mini.closest('[data-map]');
+		if (mini && host && miniPos) {
+			const r = mini.getBoundingClientRect();
+			miniPos = {
+				x: Math.max(0, Math.min(host.clientWidth - r.width, miniPos.x)),
+				y: Math.max(0, Math.min(host.clientHeight - r.height, miniPos.y))
+			};
+			Object.assign(mini.style, { left: `${Math.round(miniPos.x)}px`, top: `${Math.round(miniPos.y)}px`, right: 'auto', bottom: 'auto' });
+		}
+		paintMap();
 	});
 
 	// A route file dropped on the sea is a route file opened.

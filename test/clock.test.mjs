@@ -5,6 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
 	dayKey, weekKey, periodKey, untilDaily, untilWeekly, untilBarter, countdown,
+	REGION_CLOCK, resetPlan, untilHourIn,
 	nextSpawn, zonedInstant, VELL
 } from '../js/clock.js';
 
@@ -59,4 +60,54 @@ test("Vell's next spawn is the nearest entry ahead, on the server's clock", () =
 	const na = nextSpawn(VELL.na.zone, VELL.na.times, at('2026-08-30T10:00:00Z'));
 	assert.equal(na.at, at('2026-08-30T21:00:00Z'));
 	assert.equal(nextSpawn('Europe/Berlin', []), null);
+});
+
+test('only the regions anybody has actually checked claim to be known', () => {
+	// NA and EU share one UTC clock and that is tested. The other eleven
+	// are the same assumption wearing a label -- altarofgaming, the most
+	// careful public source, says outright it has not tested them. The
+	// table must keep saying which is which rather than flattening them.
+	assert.deepEqual(Object.entries(REGION_CLOCK).filter(([, v]) => v.sure).map(([k]) => k), ['na', 'eu']);
+	assert.equal(Object.keys(REGION_CLOCK).length, 13, 'every region the Market offers needs a clock');
+	for (const [id, plan] of Object.entries(REGION_CLOCK)) {
+		assert.ok(plan.zone, `${id} has no clock to read`);
+		assert.equal(typeof plan.daily, 'number', id);
+		assert.equal(typeof plan.barter, 'number', id);
+		assert.ok(plan.weekly && typeof plan.weekly.day === 'number', id);
+	}
+});
+
+test('a reset on a local clock counts to that clock, not to UTC', () => {
+	// 00:00 in Seoul is 15:00 UTC, so at 10:30 UTC the Korean day turns
+	// over in four and a half hours where the UTC one has thirteen and a
+	// half to go. This is the whole reason the zone is in the table.
+	const at = Date.parse('2026-09-01T10:30:00Z');
+	const utc = { zone: 'UTC', daily: 0, barter: 6, weekly: { day: 4, hour: 0 } };
+	const kst = { zone: 'Asia/Seoul', daily: 0, barter: 6, weekly: { day: 4, hour: 0 } };
+	assert.equal(untilDaily(at, utc) / 3600e3, 13.5);
+	assert.equal(untilDaily(at, kst) / 3600e3, 4.5);
+	assert.equal(untilHourIn('Asia/Seoul', 0, at) / 3600e3, 4.5);
+});
+
+test('a done mark expires with the reset it belongs to, on either clock', () => {
+	// The key has to turn over at the same instant the countdown reaches
+	// zero, or a tick would clear at some other hour of the day.
+	const kst = { zone: 'Asia/Seoul', daily: 0, barter: 6, weekly: { day: 4, hour: 0 } };
+	const before = Date.parse('2026-09-01T14:59:00Z');   // 23:59 Seoul
+	const after = Date.parse('2026-09-01T15:01:00Z');    // 00:01 Seoul, next day
+	assert.notEqual(periodKey('daily', before, kst), periodKey('daily', after, kst),
+		'the Korean day did not turn over at Korean midnight');
+	// And the same two instants are the same UTC day, which is the bug
+	// this replaces: one clock for thirteen regions.
+	assert.equal(periodKey('daily', before, null), periodKey('daily', after, null));
+});
+
+test('a player who knows their server outranks the table', () => {
+	const guessed = resetPlan('kr');
+	assert.equal(guessed.sure, false, 'KR is not something we know');
+	const mine = resetPlan('kr', { zone: 'Asia/Seoul', daily: 0, barter: 6, weekly: { day: 1, hour: 0 } });
+	assert.equal(mine.zone, 'Asia/Seoul');
+	assert.equal(mine.weekly.day, 1);
+	assert.equal(mine.sure, true, 'a correction is not a guess');
+	assert.equal(mine.custom, true);
 });

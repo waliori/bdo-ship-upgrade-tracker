@@ -1,9 +1,12 @@
 // Guided tour, built on Driver.js.
 //
-// The tour walks the five tabs in the order someone would actually use
-// them: see the plan, queue a build, record what you own, craft, then go
-// shopping. Each step switches tab by clicking the real tab button, so
-// there is no second copy of the navigation logic to keep in sync.
+// The tour walks all nine views in the order someone would actually use
+// them: the yard first -- see the plan, queue a build, record what you
+// own, craft, go shopping -- and then the sea, where the day is spent:
+// the quests, the ship, and the chart. Each step switches tab by
+// clicking the real tab button, so there is no second copy of the
+// navigation logic to keep in sync, and it works the same on a phone,
+// where that button is in the bar at the thumb or behind "All".
 
 import * as store from './state.js';
 
@@ -49,10 +52,34 @@ function selectSampleItem() {
 	if (tile) tile.click();
 }
 
+/**
+ * The Map, with its side panel out and a given tab up.
+ *
+ * The panel is open on a wide screen and folded to a pill on a narrow
+ * one, where it would be the whole screen -- so it is asked for rather
+ * than assumed, and a step can point at a tab that is really there.
+ */
+function goToMap(mode) {
+	goToTab('map');
+	if (!document.querySelector('.map-side')) {
+		const pill = document.querySelector('[data-act="map-panel"]');
+		if (pill) pill.click();
+	}
+	if (!mode) return;
+	const btn = document.querySelector(`[data-act="map-mode"][data-id="${mode}"]`);
+	if (btn) btn.click();
+}
+
 class GuidedTour {
 	constructor() {
 		this.driver = null;
 		this.running = false;
+		// The in-flight fetch of Driver.js, so two clicks share one.
+		this.loading = null;
+		// Set while the tour is up: the store subscription that keeps the
+		// highlight on its element across a repaint, and its debounce.
+		this.stopWatching = null;
+		this.restage = null;
 	}
 
 	resolveDriver() {
@@ -62,6 +89,38 @@ class GuidedTour {
 		return null;
 	}
 
+	/**
+	 * Fetch the library and its stylesheet, once, the first time a tour
+	 * is asked for.
+	 *
+	 * It used to be a plain <script defer> in the page, which meant every
+	 * visit paid for 25 KB of tour library whether or not anyone toured.
+	 * The tag is gone; this puts it back at the moment it is needed. The
+	 * promise is kept so a second Tour click while the first is still in
+	 * flight waits on the same request rather than starting another.
+	 */
+	loadDriver() {
+		if (this.resolveDriver()) return Promise.resolve(true);
+		if (this.loading) return this.loading;
+		this.loading = new Promise(resolve => {
+			if (!document.querySelector('link[data-driver-css]')) {
+				const css = document.createElement('link');
+				css.rel = 'stylesheet';
+				css.href = 'css/driver.css';
+				css.dataset.driverCss = '';
+				document.head.appendChild(css);
+			}
+			const tag = document.createElement('script');
+			tag.src = 'js/driver.iife.js';
+			// Either way the caller is told: startTour() says so out loud
+			// rather than appearing to do nothing.
+			tag.onload = () => resolve(!!this.resolveDriver());
+			tag.onerror = () => { this.loading = null; resolve(false); };
+			document.head.appendChild(tag);
+		});
+		return this.loading;
+	}
+
 	create(steps) {
 		const driverFn = this.resolveDriver();
 		if (!driverFn) return null;
@@ -69,12 +128,33 @@ class GuidedTour {
 		// Driver.js resolves a step's element the moment it moves to it, so
 		// the tab has to change *before* the move, not from inside the
 		// step's own highlight hook.
+		//
+		// And a tab change repaints the screen twice -- the render the
+		// click causes, and one more a frame behind it. Moving in
+		// between staged an element that was thrown away with the nodes
+		// it stood on a moment later, which is why half the steps used
+		// to land as a popover in the middle of the page instead of
+		// pointing at anything. So the move waits for the second paint,
+		// and a refresh afterwards catches anything later still.
 		const hop = delta => {
 			const at = this.driver ? this.driver.getActiveIndex() : 0;
 			const next = steps[at + delta];
 			if (next && next.before) next.before();
-			if (delta > 0) this.driver.moveNext();
-			else this.driver.movePrevious();
+			setTimeout(() => {
+				// Skip may have landed inside that wait.
+				if (!this.running || !this.driver) return;
+				if (delta > 0) this.driver.moveNext();
+				else this.driver.movePrevious();
+				// Twice: once for the repaint a tab change causes, and again
+				// for anything slower behind it -- a screen that waits on
+				// the chart's tiles, say. Refresh only re-measures where
+				// the popover should sit, so a second one is invisible.
+				for (const at of [140, 420]) {
+					setTimeout(() => {
+						if (this.running && this.driver) this.driver.refresh();
+					}, at);
+				}
+			}, 90);
 		};
 
 		return driverFn({
@@ -95,6 +175,10 @@ class GuidedTour {
 			prevBtnText: 'Back',
 			onDestroyed: () => {
 				this.running = false;
+				this.driver = null;
+				clearTimeout(this.restage);
+				if (this.stopWatching) this.stopWatching();
+				this.stopWatching = null;
 				this.restoreRealData();
 				try {
 					localStorage.setItem(DONE_KEY, 'true');
@@ -107,6 +191,7 @@ class GuidedTour {
 
 	steps() {
 		const onPhone = () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+		const phone = onPhone();
 		const all = [
 			{
 				popover: {
@@ -118,13 +203,22 @@ class GuidedTour {
 			},
 			{
 				// A phone has the bar at the thumb instead of the row above.
-				element: onPhone() ? '#tabbar' : '#tabs',
+				element: phone ? '#tabbar' : '#tabs',
 				popover: {
-					title: 'The nine views',
-					description: '<b>Plan</b> is what every build needs. <b>Builds</b> is the queue and its priority. <b>Inventory</b> is what you own. <b>Tree</b> shows why a build needs a thing. <b>Workshop</b> is where you craft and enhance. <b>To Get</b> is the shopping list. <b>Map</b> charts the barterers. <b>Quests</b> is what the sea hands out for free. <b>Ship</b> is the hull\'s own numbers and the sailors to fill it.'
-						+ (onPhone() ? '<br><br>Four sit in the bar; <b>All</b> opens the rest.' : ''),
-					side: onPhone() ? 'top' : 'bottom'
+					title: 'The nine views, in two groups',
+					description: 'The <b>yard</b>, where a build is planned and made: <b>Plan</b> is what every build needs, <b>Builds</b> is the queue and its priority, <b>Inventory</b> is what you own, <b>Tree</b> shows why a build needs a thing, <b>Workshop</b> is where you craft and enhance, <b>To Get</b> is the shopping list.<br><br>Then the <b>sea</b>, where the day is spent: <b>Map</b> charts the barterers and plots the loop, <b>Quests</b> is what the sea hands out for free, <b>Ship</b> is the hull\'s own numbers and the crew to fill it.'
+						+ (phone ? '<br><br>Four sit in the bar at your thumb; <b>All</b> opens the rest.' : '<br><br>The digits <b>1</b>–<b>9</b> switch between them.'),
+					side: phone ? 'top' : 'bottom'
 				}
+			},
+			{
+				element: '.today',
+				popover: {
+					title: 'What today can do about it',
+					description: 'The plan says what is left; this says what today can do about it — the ship you are sailing, the quests still open that pay in something on your list, how long until the dailies, the weeklies and the barter refill reset, and when <b>Vell</b> is next up on your servers.',
+					side: 'bottom'
+				},
+				before: () => goToTab('plan')
 			},
 			{
 				element: '.stats',
@@ -187,7 +281,7 @@ class GuidedTour {
 				popover: {
 					title: 'Why an item is reserved',
 					description: 'Pick a tile and this panel shows who reserved it and through which recipe, and every way of getting it priced end to end — the shop\'s number beside what making one costs once <i>its</i> ingredients are priced too. Coins and silver stay apart, and anything bartered for is named rather than counted as free.<br><br>Any item name in the app opens its <b>BDOCodex</b> page in a new tab.',
-					side: 'left'
+					side: phone ? 'top' : 'left'
 				}
 			},
 			{
@@ -212,7 +306,7 @@ class GuidedTour {
 				element: '[data-base]',
 				popover: {
 					title: 'Enhancing',
-					description: 'Every part you own that can go higher is listed — whether or not a build is waiting on it — with the stones the next attempt costs.<br><br>Blue and green ship parts keep their level when an attempt fails; the yellow Falasi and Cheongun tier drops one, so its cost includes the Cron Stones that prevent it. Record <b>Succeeded</b> or <b>Failed</b> and the materials come off your stock either way.',
+					description: 'Every part you own that can go higher is listed — whether or not a build is waiting on it — with the stones the next attempt costs and a box for the <b>failstack</b> you are on.<br><br>Blue and green ship parts keep their level when an attempt fails; the yellow Falasi and Cheongun tier drops one, so its cost includes the Cron Stones that prevent it. Record <b>Succeeded</b> or <b>Failed</b> and the materials come off your stock either way.',
 					side: 'top'
 				},
 				before: () => goToTab('workshop')
@@ -227,19 +321,48 @@ class GuidedTour {
 				before: () => goToTab('get')
 			},
 			{
-				element: '.crew-ship',
+				element: '.quest-clocks',
+				popover: {
+					title: 'What the sea hands out free',
+					description: 'Every quest that pays in a ship material, grouped by how often it comes round, with the ones paying in something your plan still wants marked.<br><br>Tick what you did and <b>Finish</b> records them together: the rewards go into stock as one undoable change, and the tick wears off at the reset by itself. A set you run every day can be kept as a named <b>group</b>, or starred.',
+					side: 'bottom'
+				},
+				before: () => goToTab('quests')
+			},
+			{
+				element: '.ship-card-main',
 				popover: {
 					title: 'The other half of a ship',
-					description: 'Every hull in the game\'s own numbers — weight, slots, cannons, speed — and a crew planned against its seats and cabin space. Add sailors from the hiring pool, see what the contracts cost, and put the certificates on the shopping list.',
+					description: 'Every hull in the game\'s own numbers — weight, slots, cannons, speed — fitted out as five slots: the four parts and the <b>sea crystal</b>. Each takes the best you hold, or one you choose. Your <b>Sailing Mastery</b> goes in beside it and counts toward speed, acceleration, turn and brake.<br><br>Below sits the crew: sailors against the hull\'s seats and cabin space, what their contracts cost, and the certificates on the shopping list. Keep a whole fit-out as a named <b>setup</b> and switch between them here or from the Map.',
 					side: 'bottom'
 				},
 				before: () => goToTab('crew')
 			},
 			{
-				element: '.masthead-actions',
+				element: '#map',
+				popover: {
+					title: 'The list, drawn on the sea',
+					description: 'Every pin is a barterer holding something you are short of, on the game\'s own chart. Drag to pan, scroll or pinch to zoom.<br><br>The strip above the tabs — <b>On the chart</b> — is what gets drawn: barterers, monster habitats, the 58 wharf managers, guild wharves, island names, and any route you have traced.',
+					side: phone ? 'top' : 'left'
+				},
+				before: () => goToMap('sail')
+			},
+			{
+				element: '.map-tabs',
+				popover: {
+					title: 'Five things to do with a chart',
+					description: '<b>Barter</b> is who has what you are short of. <b>Route</b> plots the loop through them and gives every leg its distance and its minutes, at the speed your ship actually makes — then keeps it by name, in a link, or writes it into the game\'s own world map.<br><br><b>Draw</b> is for the routes a shopping list cannot express: click the sea for a stop, drag to sketch a line, or type a word straight onto the water. <b>Grounds</b> is the monsters and the community courses, and <b>Today</b> is what you have already sailed.',
+					side: phone ? 'top' : 'left'
+				},
+				before: () => goToMap('route')
+			},
+			{
+				// The masthead's buttons are behind the hamburger on a phone,
+				// so that is what a phone gets pointed at.
+				element: phone ? '.hamburger' : '.masthead-actions',
 				popover: {
 					title: 'Undo, and your data',
-					description: 'Every change can be undone. Export writes a JSON backup you can import on another machine — nothing leaves your browser otherwise.<br><br><b>Help</b> plays a two-minute film of the whole thing end to end. Where the deployment offers it, signing in with Discord keeps this same inventory on your phone as well; without it nothing leaves this browser at all.',
+					description: 'Every change can be undone. <b>Find</b> (Ctrl+K) opens any item or tab, and <b>Log a trip</b> records everything you brought back as one change.<br><br><b>More</b> holds Profiles, Export and Import — a JSON backup, or a link carrying the whole plan — and <b>Help</b>, which plays a film of the whole thing end to end and lists what changed and when each dataset was checked.<br><br>Where the deployment offers it, signing in with Discord keeps this same inventory on your phone as well; without it nothing leaves this browser at all.',
 					side: 'bottom'
 				},
 				before: () => goToTab('plan')
@@ -262,7 +385,16 @@ class GuidedTour {
 
 	/** True when the tour is up; false when Driver.js never arrived, so
 	 *  the caller can say so instead of silently doing nothing. */
-	startTour() {
+	async startTour() {
+		if (this.running) return true;
+		// The library is fetched on the first tour rather than on every
+		// page load, so this is where it arrives.
+		if (!await this.loadDriver()) {
+			console.warn('[tour] Driver.js could not be loaded');
+			return false;
+		}
+		// Two clicks in quick succession: the second waited on the same
+		// load and must not start a second tour behind the first.
 		if (this.running) return true;
 		const steps = this.steps();
 		this.driver = this.create(steps);
@@ -274,6 +406,22 @@ class GuidedTour {
 		// Swap in the example, keeping the real data to hand back later.
 		this.realData = store.capture();
 		store.applyTransient(DEMO);
+
+		// Anything that repaints the screen throws away the node the
+		// highlight was on, and the popover is left pointing at a gap.
+		// Plenty does, long after the tour has started: the icon mapping
+		// lands, the barter catalogue lands, Market prices land, a clock
+		// ticks over. So every repaint re-measures the step -- refresh
+		// only moves the ring and the popover to where the element is
+		// now, so doing it often is invisible and doing it too rarely is
+		// the bug.
+		this.stopWatching = store.subscribe(() => {
+			if (!this.running || !this.driver) return;
+			clearTimeout(this.restage);
+			this.restage = setTimeout(() => {
+				if (this.running && this.driver) this.driver.refresh();
+			}, 60);
+		});
 
 		goToTab('plan');
 		this.running = true;
@@ -291,7 +439,9 @@ class GuidedTour {
 			return;
 		}
 		if (done === 'true') return;
-		setTimeout(() => this.startTour(), 900);
+		// Fire and forget: the tour loads its library first now, and a
+		// first visit with no network simply gets no tour.
+		setTimeout(() => { this.startTour().catch(() => { /* no tour, then */ }); }, 900);
 	}
 }
 

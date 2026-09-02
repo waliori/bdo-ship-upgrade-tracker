@@ -457,7 +457,7 @@ function openAccountDialog() {
 	});
 
 	host.querySelector('[data-signout]').addEventListener('click', async () => {
-		await api('POST', '/auth/logout');
+		try { await api('POST', '/auth/logout'); } catch { /* signed out locally all the same */ }
 		account = null;
 		hooks.closeDialog();
 		say('out');
@@ -527,7 +527,20 @@ function readSignInResult() {
 }
 
 export function signIn() {
-	location.href = `/auth/discord?to=${encodeURIComponent(location.pathname + location.search)}`;
+	// One tap used to leave for discord.com with no warning at all --
+	// mid-plan, the whole page gone. Say where the door goes first.
+	const host = hooks.openDialog(`
+		<h2>Sign in with Discord</h2>
+		<p>Sync keeps this inventory on your Discord account, so the same one follows you between machines. You will go to discord.com to sign in, and come straight back here.</p>
+		<div class="dialog-actions">
+			<button class="act quiet" data-cancel>Cancel</button>
+			<button class="act" data-go>Continue to Discord</button>
+		</div>
+	`);
+	host.querySelector('[data-cancel]').addEventListener('click', () => hooks.closeDialog());
+	host.querySelector('[data-go]').addEventListener('click', () => {
+		location.href = `/auth/discord?to=${encodeURIComponent(location.pathname + location.search)}`;
+	});
 }
 
 export function openAccount() {

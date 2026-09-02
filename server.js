@@ -173,6 +173,13 @@ for (const file of FILES) {
 	});
 }
 
+// Browsers ask for /favicon.ico by name whatever the page says; the
+// anchor answers, rather than a 404 in every log.
+app.get('/favicon.ico', (req, res) => {
+	res.set('Cache-Control', 'public, max-age=604800');
+	res.sendFile(path.join(__dirname, 'icon.png'));
+});
+
 app.get('/', (req, res) => {
 	res.set('Cache-Control', 'no-cache');
 	res.sendFile(path.join(__dirname, 'index.html'));

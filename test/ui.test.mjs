@@ -20,6 +20,7 @@ if (!CHROME) {
 
 process.env.NODE_ENV = 'test';
 for (const name of ['DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET', 'TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN', 'PUBLIC_URL']) delete process.env[name];
+const { RELEASE } = await import('../js/about.js');
 const app = (await import('../server.js')).default;
 const server = app.listen(0);
 await new Promise(resolve => server.once('listening', resolve));
@@ -38,7 +39,7 @@ async function open(hash = '#plan', { touch = false } = {}) {
 	page.on('pageerror', err => errors.push(err.message));
 	await page.setRequestInterception(true);
 	page.on('request', req => (req.url().startsWith(base) || req.url().startsWith('data:')) ? req.continue() : req.abort().catch(() => {}));
-	await page.evaluateOnNewDocument(() => { try { localStorage.setItem('bdo_ship_upgrade-tour_completed', 'true'); } catch { /* fine */ } });
+	await page.evaluateOnNewDocument(release => { try { localStorage.setItem('bdo_ship_upgrade-tour_completed', 'true'); localStorage.setItem('bdo-tracker/release', release); } catch { /* fine */ } }, RELEASE);
 	await page.goto(base + '/' + hash, { waitUntil: 'domcontentloaded' });
 	await page.waitForSelector('#pouch .pouch-item', { timeout: 15000 });
 	return { page, context, errors };
@@ -55,12 +56,20 @@ const count = (page, sel) => page.evaluate(s => document.querySelectorAll(s).len
 
 test('a slot is fitted through the picker, and an unheld part can be recorded', async () => {
 	const { page, context, errors } = await open('#crew');
-	await seed(page); await wait(500);
-	await page.click('[data-act="crew-fit-pick"][data-slot="cannon"]'); await wait(200);
+	await seed(page);
+	// Waiting for the thing rather than for a number of milliseconds:
+	// the Ship screen does more work than it did when this was written
+	// and a fixed 200ms went from comfortable to marginal under a full
+	// parallel run, which is how a test starts failing one time in ten.
+	await page.waitForSelector('[data-act="crew-fit-pick"][data-slot="cannon"]', { timeout: 10000 });
+	await page.click('[data-act="crew-fit-pick"][data-slot="cannon"]');
+	await page.waitForSelector('.picker-row', { timeout: 10000 });
 	assert.ok(await count(page, '.picker-row') >= 3, 'parts to choose from');
-	await page.type('.picker-in', 'chiro'); await wait(150);
+	await page.type('.picker-in', 'chiro');
+	await page.waitForFunction(() => /chiro/i.test(document.querySelector('.picker-row.on .picker-label')?.textContent || ''), { timeout: 10000 });
 	assert.match(await text(page, '.picker-row.on .picker-label'), /Chiro/, 'typing ranks the part first');
-	await page.keyboard.press('Enter'); await wait(200);
+	await page.keyboard.press('Enter');
+	await page.waitForFunction(() => /which level/i.test(document.querySelector('#dialog h2')?.textContent || ''), { timeout: 10000 });
 	assert.match(await text(page, '#dialog h2'), /which level/i);
 	await page.evaluate(() => [...document.querySelectorAll('.picker-row')].find(r => r.textContent.includes('+9')).click()); await wait(400);
 	assert.match(await text(page, '.slot-card'), /\+9/);
@@ -123,6 +132,116 @@ test('the quests narrow to the rewards ticked, and a pick-one claim asks which',
 	assert.match(await text(page, '#dialog h2'), /which reward/i);
 	await page.evaluate(() => document.querySelector('.picker-row').click()); await wait(300);
 	assert.ok(await count(page, '.quest.done') >= 1, 'ticked done');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('a pick-one favourite chosen ahead claims in one press', async () => {
+	const { page, context, errors } = await open('#quests');
+	// Choose ahead: the picker opens, the pick is kept, nothing claimed.
+	await page.click('[data-act="quest-pick-set"]'); await wait(300);
+	assert.match(await text(page, '#dialog h2'), /which reward do you take/i);
+	await page.evaluate(() => document.querySelector('.picker-row').click()); await wait(300);
+	assert.equal(await count(page, '.quest.done'), 0, 'choosing ahead claims nothing');
+	const picks = await page.evaluate(async () => (await import('/js/state.js')).getProfile('questPicks', {}));
+	assert.equal(Object.keys(picks).length, 1, 'the favourite is kept');
+	// The row now records it in one press, no picker in the way.
+	const id = Object.keys(picks)[0];
+	await page.click(`[data-act="quest-claim"][data-quest="${id}"]`); await wait(300);
+	assert.ok(await count(page, '.quest.done') >= 1, 'one press, no question');
+	assert.equal(await count(page, '#dialog:not([hidden])'), 0, 'no picker opened');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('the pouch shortens big silver and hands the caret exact digits', async () => {
+	const { page, context, errors } = await open('#plan');
+	await page.evaluate(async () => (await import('/js/state.js')).setStock('Silver', 1960000000));
+	await wait(400);
+	const sel = '[data-act="purse"][aria-label="Silver you hold"]';
+	assert.equal(await page.$eval(sel, el => el.value), '1.96b');
+	await page.focus(sel); await wait(100);
+	assert.equal(await page.$eval(sel, el => el.value), '1960000000', 'the caret gets exact digits');
+	await page.$eval(sel, el => el.blur()); await wait(300);
+	assert.equal(await page.$eval(sel, el => el.value), '1.96b', 'the short form comes back');
+	assert.equal(await page.evaluate(async () => (await import('/js/state.js')).getStock('Silver')), 1960000000, 'focus alone changes nothing');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('the hire picker names each race once', async () => {
+	const { page, context, errors } = await open('#crew');
+	await page.click('[data-act="crew-hire"]'); await wait(300);
+	const groups = await page.evaluate(() => [...document.querySelectorAll('.picker-group')].map(g => g.textContent.trim()));
+	assert.deepEqual(groups, [...new Set(groups)], 'no heading repeats');
+	assert.equal(groups.length, 5, 'four races and the first mates');
+	// Rank by speed: the list goes flat and the fastest growth leads.
+	await page.click('[data-picker-chip="sort:speed"]'); await wait(200);
+	assert.equal(await count(page, '.picker-group'), 0, 'a ranked list has no headings');
+	assert.equal(await text(page, '.picker-row .picker-label'), 'Innocent', 'the best level-10 speed leads');
+	// Narrow to one race.
+	await page.click('[data-picker-chip="sort:speed"]'); await page.click('[data-picker-chip="race:Goblin"]'); await wait(200);
+	const left = await page.evaluate(() => [...document.querySelectorAll('.picker-row .picker-sub')].map(s => s.textContent));
+	assert.ok(left.length > 0 && left.every(s => s.startsWith('Goblin')), 'only goblins remain');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('a drag that starts on a barterer pin pans the chart, a tap still opens it', async () => {
+	const { page, context, errors } = await open('#map');
+	await page.waitForSelector('.map-pin:not([hidden])', { timeout: 15000 }); await wait(1500);
+	const midPin = () => page.evaluate(() => {
+		const box = document.querySelector('[data-map]').getBoundingClientRect();
+		const mid = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+		const pins = [...document.querySelectorAll('.map-pin:not([hidden])')]
+			.map(p => { const r = p.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })
+			.filter(p => Math.abs(p.x - mid.x) < box.width * 0.3 && Math.abs(p.y - mid.y) < box.height * 0.3);
+		return pins[0] || null;
+	});
+	const at = await midPin();
+	assert.ok(at, 'a pin near the middle of the chart');
+	const firstPinX = () => page.evaluate(() => document.querySelector('.map-pin:not([hidden])').getBoundingClientRect().left);
+	const before = await firstPinX();
+	await page.mouse.move(at.x, at.y);
+	await page.mouse.down();
+	await page.mouse.move(at.x + 140, at.y, { steps: 10 }); await wait(300);
+	await page.mouse.up(); await wait(500);
+	assert.ok(Math.abs(await firstPinX() - before) > 60, 'the chart moved under the drag');
+	// A tap without movement still opens the pin's tip.
+	const tap = await midPin();
+	assert.ok(tap, 'a pin to tap');
+	await page.mouse.click(tap.x, tap.y); await wait(800);
+	assert.equal(await page.evaluate(() => document.querySelector('[data-map-tip]').hidden), false, 'the tap opened the tip');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('a habitat tap counts once, not twice', async () => {
+	const { page, context, errors } = await open('#map', { touch: true });
+	await page.waitForSelector('.map-habitat:not([hidden])', { timeout: 15000 }); await wait(1500);
+	await page.evaluate(() => {
+		window.__habClicks = 0;
+		document.addEventListener('click', e => { if (e.target.closest('.map-habitat')) window.__habClicks++; }, true);
+	});
+	const at = await page.evaluate(() => {
+		const h = document.querySelector('.map-habitat:not([hidden])');
+		const r = h.getBoundingClientRect();
+		return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+	});
+	await page.touchscreen.tap(at.x, at.y); await wait(400);
+	assert.equal(await page.evaluate(() => window.__habClicks), 1, 'one tap, one click');
+	await page.touchscreen.tap(at.x, at.y); await wait(400);
+	assert.equal(await page.evaluate(() => window.__habClicks), 2, 'the second tap counts once too');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('the phone menu goes with the screen it was opened over', async () => {
+	const { page, context, errors } = await open('#plan', { touch: true });
+	await page.click('[data-act="menu"]'); await wait(200);
+	assert.equal(await count(page, '.masthead-actions.open'), 1, 'the menu opened');
+	await page.click('.tabbar-btn[data-id="inventory"]'); await wait(300);
+	assert.equal(await count(page, '.masthead-actions.open'), 0, 'a tab press closes it');
 	assert.deepEqual(errors, []);
 	await context.close();
 });
@@ -690,6 +809,554 @@ test('habitat markers follow a pan, hide and return once, and the Lyngbakr stand
 		return monsters.filter(m => ['nineshark', 'black-rust'].includes(m.key)).flatMap(m => m.points).filter(([x, y]) => Math.hypot(x - cx, y - cy) < 8000).length;
 	});
 	assert.equal(clash, 0);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('a dialog opened from the More menu hands focus back to More, not to the page', async () => {
+	// The opener is a button inside a menu that closes behind it, and
+	// .focus() on a hidden element quietly does nothing -- so Escape used
+	// to leave a keyboard user standing on <body> at the top of the page.
+	const { page, context, errors } = await open('#plan');
+	await wait(400);
+	await page.click('[data-act="more"]'); await wait(200);
+	await page.click('[data-act="export"]'); await wait(500);
+	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), false);
+	await page.keyboard.press('Escape'); await wait(400);
+	assert.equal(await page.evaluate(() => document.activeElement?.dataset?.act), 'more',
+		'focus went back to the menu the dialog was chosen from');
+	// A dialog opened from a button that is still on screen still returns
+	// to that button, which is the case that already worked.
+	await page.click('[data-act="jump"]'); await wait(400);
+	await page.keyboard.press('Escape'); await wait(400);
+	assert.equal(await page.evaluate(() => document.activeElement?.dataset?.act), 'jump');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('the tour library is not run until the tour is asked for', async () => {
+	// 25 KB of Driver.js parsed on a page nobody tours is 25 KB wasted, so
+	// the <script> tag is gone and guided-tour.js inserts it on demand.
+	// The service worker still precaches the file for offline, which is
+	// why this asks whether the library has *run* -- window.driver is
+	// defined by executing it -- rather than whether it came down.
+	const { page, context, errors } = await open('#plan');
+	await wait(800);
+	assert.equal(await page.evaluate(() => typeof window.driver), 'undefined', 'the library ran before anyone asked for a tour');
+
+	await page.click('[data-act="more"]'); await wait(200);
+	await page.click('[data-act="tour"]'); await wait(3000);
+	assert.notEqual(await page.evaluate(() => typeof window.driver), 'undefined', 'asking for the tour did not bring the library in');
+	assert.ok(await page.evaluate(() => !!document.querySelector('.driver-popover')), 'and no tour appeared');
+	await page.evaluate(() => document.querySelector('.driver-popover-close-btn')?.click());
+	await wait(900);
+	assert.equal(await page.evaluate(() => !!document.querySelector('.driver-popover')), false, 'and it would not close again');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('the water shader is only started when it is switched on', async () => {
+	// It is off by default, so a static import made every visitor parse a
+	// canvas most of them never see. The module is imported by waterOn().
+	const { page, context, errors } = await open('#plan');
+	await wait(800);
+	assert.equal(await page.evaluate(() => !!document.querySelector('canvas')), false, 'a shader nobody asked for is running');
+	await page.click('[data-act="more"]'); await wait(200);
+	await page.click('[data-act="water"]'); await wait(2500);
+	assert.ok(await page.evaluate(() => !!document.querySelector('canvas')), 'switching it on started nothing');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('the names on the chart do not print over each other', async () => {
+	// Margoria puts a dozen wanted islands in one corner, and their names
+	// used to land on top of one another. Each layer now gives way to the
+	// ones already written; a folded-away name is still there on hover.
+	const { page, context, errors } = await open('#map');
+	await page.waitForSelector('.map-tile', { timeout: 20000 });
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.addTarget("Epheria Carrack: Valor (Chiro's Sail)", 1);
+		store.addTarget("Epheria Carrack: Valor (Chiro's Cannon)", 1);
+	});
+	await wait(3000);
+	const seen = await page.evaluate(() => {
+		const visible = el => {
+			if (el.hidden || el.offsetParent === null) return false;
+			for (let n = el; n && n !== document.body; n = n.parentElement) {
+				if (Number(getComputedStyle(n).opacity) === 0) return false;
+			}
+			return true;
+		};
+		const boxes = [...document.querySelectorAll('.map-pin-at, .map-label, .map-port-name')]
+			.filter(visible).map(el => el.getBoundingClientRect()).filter(r => r.width > 0);
+		let overlaps = 0;
+		for (let i = 0; i < boxes.length; i++) {
+			for (let j = i + 1; j < boxes.length; j++) {
+				const a = boxes[i], b = boxes[j];
+				if (a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top) overlaps++;
+			}
+		}
+		return { shown: boxes.length, overlaps };
+	});
+	assert.ok(seen.shown > 5, 'the chart stopped naming anything at all');
+	assert.equal(seen.overlaps, 0, `${seen.overlaps} pairs of names are printing over each other`);
+	// The pin itself never goes away, only its name.
+	const pins = await count(page, '.map-pin.wanted');
+	assert.ok(pins > await count(page, '.map-pin.wanted:not(.name-off)'), 'nothing was folded away to make room');
+	assert.ok(pins > 0);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('the region starts at NA, and the Vell clock follows whichever region is standing', async () => {
+	// One setting decides two things: which server the Market is priced
+	// against, and which timetable Vell is counted down to. They must not
+	// be able to disagree, so both read the same default.
+	const { page, context, errors } = await open('#plan');
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.addTarget('Carrack (Valor)', 1);
+	});
+	await wait(1200);
+	const start = await page.evaluate(async () => {
+		const market = await import('/js/market.js');
+		const today = await import('/js/today.js');
+		return { def: market.DEFAULT_REGION, active: market.region(), first: market.REGIONS[0][0], vell: today.vellPlan() };
+	});
+	assert.equal(start.def, 'na');
+	assert.equal(start.active, 'na', 'a browser that has never chosen is not on NA');
+	assert.equal(start.first, 'na', 'and NA is not the first region offered');
+	assert.equal(start.vell.label, 'NA');
+	assert.equal(start.vell.zone, 'America/Los_Angeles', 'Vell is being counted to the wrong server');
+	assert.match(await text(page, '.today'), /NA: .*Los Angeles time/, 'the Vell tile does not say which server it means');
+
+	// Change the region and the timetable moves with it.
+	await page.evaluate(async () => { (await import('/js/market.js')).setRegion('eu'); });
+	await wait(1200);
+	const moved = await page.evaluate(async () => (await import('/js/today.js')).vellPlan());
+	assert.equal(moved.label, 'EU');
+	assert.equal(moved.zone, 'Europe/Berlin', 'the Vell clock did not follow the region');
+	assert.match(await text(page, '.today'), /EU: .*Berlin time/);
+
+	// The daily, weekly and barter resets are the game's own UTC clocks
+	// and belong to no server, so they must not move with the region.
+	const clocks = await page.evaluate(async () => {
+		const c = await import('/js/clock.js');
+		return { daily: c.DAILY_RESET_UTC, barter: c.BARTER_RESET_UTC, weekly: c.WEEKLY_RESET };
+	});
+	assert.deepEqual(clocks, { daily: 0, barter: 6, weekly: { day: 4, hour: 0 } });
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('Find offers a part once, not once per enhancement level', async () => {
+	// 720 of the 938 names the app knows are "+N something", from 72
+	// parts. Offering them all made "toro sail" eleven near-identical
+	// rows. A level is offered when it is real -- held, wanted, or typed.
+	const { page, context, errors } = await open('#plan');
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.setStock('+4 Epheria Carrack: Toro Sail', 1);
+	});
+	await wait(1200);
+	const find = async q => {
+		await page.keyboard.down('Control'); await page.keyboard.press('KeyK'); await page.keyboard.up('Control');
+		await wait(400);
+		await page.type('.jump-in', q); await wait(500);
+		const rows = await page.evaluate(() => [...document.querySelectorAll('.jump-row .jump-name')].map(e => e.textContent));
+		await page.keyboard.press('Escape'); await wait(300);
+		return rows;
+	};
+	const plain = await find('toro sail');
+	assert.equal(plain[0], 'Epheria Carrack: Toro Sail', 'the part itself is not the first answer');
+	assert.ok(plain.includes('+4 Epheria Carrack: Toro Sail'), 'the level actually held is not offered');
+	assert.equal(plain.filter(n => /^\+/.test(n)).length, 1, 'levels nobody holds are still being listed');
+
+	// Naming a level brings it back, so nothing is unreachable.
+	const asked = await find('+7 toro');
+	assert.ok(asked.length > 0, 'typing a level found nothing at all');
+	assert.ok(asked.every(n => n.startsWith('+7 ')), 'typing a level offered other levels too');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('the trip log puts what the builds are short of at the top', async () => {
+	// Coming off the water, the thing you sailed for should not be
+	// somewhere in one alphabetical run of every name in the game.
+	const { page, context, errors } = await open('#plan');
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.addTarget("Epheria Carrack: Valor (Chiro's Sail)", 1);
+	});
+	await wait(1500);
+	await page.click('[data-act="trip-log"]'); await wait(600);
+	await page.evaluate(() => document.querySelector('[data-trip-pick]').click());
+	await wait(1200);
+	const seen = await page.evaluate(() => ({
+		groups: [...document.querySelectorAll('.picker-group')].map(e => e.textContent),
+		firstRow: document.querySelector('.picker-row .picker-label')?.textContent,
+		firstMeta: document.querySelector('.picker-row .picker-meta')?.textContent,
+		rows: document.querySelectorAll('.picker-row').length,
+	}));
+	assert.equal(seen.groups[0], 'Your builds still need', 'the needed things are not first');
+	assert.ok(seen.groups.includes('Everything else'), 'and there is no way through to the rest');
+	assert.match(seen.firstMeta || '', /short/, 'the top row does not say how many are wanted');
+	// The enhancement levels are filtered here too, so the list is a
+	// fraction of every name the app knows.
+	assert.ok(seen.rows < 400, `the picker is still offering ${seen.rows} rows`);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('Find opens a card for an item, even one nobody owns', async () => {
+	// It used to switch to the Inventory and select the thing, which is a
+	// dead end for anything with no stock: no row, so an empty panel and
+	// a search that looked broken.
+	const { page, context, errors } = await open('#plan');
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.addTarget("Epheria Carrack: Valor (Chiro's Sail)", 1);
+	});
+	await wait(1500);
+	const card = async q => {
+		await page.keyboard.down('Control'); await page.keyboard.press('KeyK'); await page.keyboard.up('Control');
+		await wait(400);
+		await page.type('.jump-in', q); await wait(500);
+		await page.keyboard.press('Enter'); await wait(1000);
+		return page.evaluate(() => {
+			const c = document.querySelector('.item-card');
+			return c && { title: c.querySelector('h2')?.innerText, sections: [...c.querySelectorAll('.card-part h3')].map(h => h.innerText) };
+		});
+	};
+	// Something the plan wants: it should say so, and how to get it.
+	const wanted = await card('Tidal Black Stone');
+	assert.ok(wanted, 'no card opened at all');
+	assert.match(wanted.title, /Tidal Black Stone/i);
+	assert.ok(wanted.sections.includes('WHERE IT STANDS'), 'the card never says where it stands');
+	assert.ok(wanted.sections.some(s => /BARTER/i.test(s)), 'a bartered item does not say where to barter for it');
+	await page.keyboard.press('Escape'); await wait(400);
+
+	// And something owned by nobody and wanted by nothing still answers.
+	const stranger = await card('Sunset Coral');
+	assert.ok(stranger, 'an item with no stock still opens nothing');
+	assert.ok(stranger.sections.length > 0, 'the card came up empty');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('a fleet of sixty costs the screen one line, and the dialog searches it', async () => {
+	// Chips, then cards, then rows: each was fine at three and wrong at
+	// thirty, because anything drawn inline grows without limit and
+	// pushes the rest of the screen away. The screen now keeps only the
+	// ship being sailed -- the one that decides what the Map times its
+	// routes at -- and the rest live behind a door.
+	const { page, context, errors } = await open('#crew');
+	await wait(600);
+	await page.evaluate(async () => {
+		const ship = await import('/js/ship.js');
+		const store = await import('/js/state.js');
+		const hulls = ['Panokseon', 'Carrack (Advance)', 'Carrack (Valor)', 'Epheria Caravel'];
+		for (let i = 0; i < 40; i++) {
+			const h = hulls[i % hulls.length];
+			store.setProfile('crewShip', h);
+			ship.saveSetup(`${h.split(' ')[0]} run ${i + 1}`);
+		}
+		store.setProfile('crewShip', 'Panokseon');
+	});
+	await wait(2200);
+
+	// Forty ships, and not one of them drawn on the screen itself.
+	assert.equal(await count(page, '.fleet-row'), 0, 'the fleet is being drawn inline again');
+	const bar = await page.evaluate(() => document.querySelector('.setups-panel').getBoundingClientRect().height);
+	assert.ok(bar < 200, `the fleet strip grew to ${Math.round(bar)}px`);
+	assert.match(await text(page, '.setups-panel'), /40 kept/);
+
+	await page.click('[data-act="crew-fleet"]'); await wait(700);
+	// A page at a time, and it says where you are in the whole.
+	assert.equal(await count(page, '.fleet-row'), 8);
+	assert.match(await text(page, '.fleet-pager'), /1.8 of 40/);
+	// The one being sailed is first and offers no way to sail it again.
+	assert.ok(await page.evaluate(() => document.querySelector('.fleet-row').classList.contains('on')),
+		'the ship being sailed is not at the top');
+	assert.equal(await count(page, '.fleet-row.on [data-act="fleet-sail"]'), 0);
+
+	// Search narrows it.
+	await page.type('.fleet-search', 'valor'); await wait(600);
+	assert.match(await text(page, '.fleet-pager'), /of 10/, 'searching did not narrow the fleet');
+
+	// A hull chip narrows it a different way, with counts to choose on.
+	await page.evaluate(() => { const i = document.querySelector('.fleet-search'); i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true })); });
+	await wait(500);
+	await page.evaluate(() => [...document.querySelectorAll('[data-act="fleet-hull"]')].find(c => /Caravel/.test(c.innerText)).click());
+	await wait(600);
+	assert.match(await text(page, '.fleet-pager'), /of 10/);
+
+	// Sorting reorders, and paging moves.
+	await page.select('[data-act="fleet-sort"]', 'speed'); await wait(600);
+	await page.click('[data-act="fleet-page"]:not([disabled])'); await wait(600);
+	assert.match(await text(page, '.fleet-pager'), /9.10 of 10/);
+
+	// And sailing one from the dialog closes it and switches the ship.
+	await page.evaluate(() => [...document.querySelectorAll('[data-act="fleet-hull"]')].find(c => /All/.test(c.innerText)).click());
+	await wait(600);
+	await page.click('.fleet-row:not(.on) [data-act="fleet-sail"]'); await wait(1200);
+	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), true, 'the fleet stayed open after sailing one');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+
+
+test('the appearance set is fitted like a part, and its stats count', async () => {
+	// Both sets fill four slots and every slot carries a stat, so a ship
+	// wearing one is a different ship. The app used to price hulls as
+	// though skins were only a look.
+	const { page, context, errors } = await open('#crew');
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.setProfile('crewShip', 'Carrack (Valor)');
+	});
+	await wait(1500);
+	const read = () => page.evaluate(async () => {
+		const me = (await import('/js/ship.js')).currentShip();
+		return { speed: me.speed.total, hold: me.hold.limit, durability: me.durability };
+	});
+	const before = await read();
+	assert.ok(await page.evaluate(() => !!document.querySelector('.slot-card.skin')), 'a Carrack is offered no set');
+
+	await page.click('[data-act="crew-skin-all"][data-on="1"]');
+	await wait(1400);
+	const after = await read();
+	assert.equal(after.speed - before.speed, 3, 'the overlay is not adding its speed');
+	assert.equal(after.hold - before.hold, 600, 'nor its weight limit');
+	assert.equal(after.durability - before.durability, 100000, 'nor its durability');
+
+	// One slot off again, and only that slot's stat goes with it.
+	await page.click('.skin-slot input[data-slot="plating"]');
+	await wait(1200);
+	const part = await read();
+	assert.equal(part.hold, before.hold, 'taking the plating off left its weight behind');
+	assert.equal(part.speed, after.speed, 'and took the figurehead down with it');
+
+	// A hull with no set in the game is offered none rather than an empty card.
+	await page.evaluate(async () => {
+		(await import('/js/state.js')).setProfile('crewShip', 'Panokseon');
+	});
+	await wait(1400);
+	assert.equal(await page.evaluate(() => !!document.querySelector('.slot-card.skin')), false,
+		'the Panokseon has no appearance set, so it should be offered none');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('on a phone a card and the inventory panel are sheets a thumb can move', async () => {
+	// Two complaints, one shape. The item card Find opens was laid out to
+	// a minimum width wider than the box holding it, so a phone clipped
+	// the right-hand column off every row; and the inventory panel came
+	// up under the tab bar, which is fixed to the page while the panel
+	// lives inside .shell and cannot be raised over it. Both are bottom
+	// sheets now, and a sheet is something you can pull open, push back,
+	// and throw away.
+	const { page, context, errors } = await open('#inventory', { touch: true });
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.setStock('Black Stone', 4);
+	});
+	await wait(700);
+
+	// The card, which is the longest thing the app puts in a dialog.
+	await page.evaluate(async () => {
+		const { openItemCard } = await import('/js/item-card.js');
+		openItemCard('Black Stone');
+	});
+	await wait(400);
+	const card = await page.evaluate(() => {
+		const b = document.querySelector('.dialog-box');
+		const r = b.getBoundingClientRect();
+		return { clipped: b.scrollWidth > b.clientWidth, bottom: Math.round(r.bottom),
+			viewport: window.innerHeight, grab: !!b.querySelector('.sheet-grab') };
+	});
+	assert.equal(card.clipped, false, 'the card is wider than the sheet holding it');
+	assert.equal(card.bottom, card.viewport, 'and does not sit in the middle of the screen');
+	assert.equal(card.grab, true, 'a sheet has a bar to take hold of');
+
+	// A tap on that bar opens it out, and a tap back folds it in.
+	await page.click('.dialog-box .sheet-grab'); await wait(300);
+	assert.equal(await page.evaluate(() => document.querySelector('.dialog-box').classList.contains('tall')), true);
+	await page.click('.dialog-box .sheet-grab'); await wait(300);
+	assert.equal(await page.evaluate(() => document.querySelector('.dialog-box').classList.contains('tall')), false);
+
+	// A button inside a sheet is still a button: taking hold of the sheet
+	// on every press used to send the click to the sheet instead.
+	await page.click('.dialog-box [data-act="open-item"]'); await wait(600);
+	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), true,
+		'a way through to a screen leaves the card behind');
+
+	// And the panel it opened stops where the tab bar starts.
+	const panel = await page.evaluate(() => {
+		const d = document.querySelector('.detail.open');
+		return { bottom: Math.round(d.getBoundingClientRect().bottom),
+			bar: Math.round(document.getElementById('tabbar').getBoundingClientRect().top),
+			grab: !!d.querySelector('.sheet-grab') };
+	});
+	assert.equal(panel.grab, true, 'the inventory panel is a sheet too');
+	assert.equal(panel.bottom, panel.bar, 'and its last line is not under the tab bar');
+
+	// Pulled down far enough, it is put away.
+	const bar = await page.$('.detail.open .sheet-grab');
+	const box = await bar.boundingBox();
+	const x = box.x + box.width / 2, y = box.y + box.height / 2;
+	await page.mouse.move(x, y);
+	await page.mouse.down();
+	for (let i = 1; i <= 10; i++) await page.mouse.move(x, y + i * 25);
+	await page.mouse.up();
+	await wait(400);
+	assert.equal(await count(page, '.detail.open'), 0, 'a pull downwards puts the sheet away');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('a sheet stands on top of the keyboard rather than under it', async () => {
+	// A phone keyboard does not make the page smaller -- it slides over
+	// the bottom of it, which is where a sheet lives. Find's results
+	// ended up underneath one with only the search box on its roof.
+	// sheet.js publishes what the visual viewport says is covered, and
+	// the sheets take it off their own foot and their own height. There
+	// is no way to raise a real keyboard from here, so this drives the
+	// measurement the same way the browser does: by setting it.
+	const { page, context, errors } = await open('#plan', { touch: true });
+	await wait(400);
+	const kb = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--kb-h').trim());
+	assert.equal(await kb(), '0px', 'nothing is covered until something is');
+
+	// Find lives in the header, which on a phone is folded behind the
+	// hamburger -- so it is opened the way the keyboard shortcut does.
+	await page.evaluate(() => document.querySelector('[data-act="jump"]').click());
+	await wait(400);
+	await page.keyboard.type('black'); await wait(300);
+	const floor = () => page.evaluate(() => Math.round(document.querySelector('.dialog-box').getBoundingClientRect().bottom));
+	assert.equal(await floor(), await page.evaluate(() => window.innerHeight), 'with no keyboard it sits on the bottom edge');
+
+	// 380px of keyboard.
+	await page.evaluate(() => document.documentElement.style.setProperty('--kb-h', '380px'));
+	await wait(400);
+	const up = await page.evaluate(() => {
+		const b = document.querySelector('.dialog-box');
+		const f = b.querySelector('input');
+		return { bottom: Math.round(b.getBoundingClientRect().bottom), top: Math.round(b.getBoundingClientRect().top),
+			field: Math.round(f.getBoundingClientRect().bottom), roof: window.innerHeight - 380 };
+	});
+	assert.equal(up.bottom, up.roof, 'the sheet stands on the keyboard');
+	assert.ok(up.field < up.roof, 'and what is being typed into is above it');
+	assert.ok(up.top >= 0, 'without being pushed off the top of the screen');
+	await page.keyboard.press('Escape'); await wait(300);
+
+	// The inventory panel clears whichever is in the way -- the tab bar,
+	// or the keyboard that is covering the tab bar as well.
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.setStock('Black Stone', 4);
+	});
+	await page.evaluate(() => document.querySelector('.tabbar-btn[data-id="inventory"]').click());
+	await wait(700);
+	await page.click('.tile'); await wait(400);
+	assert.equal(await page.evaluate(() => Math.round(document.querySelector('.detail.open').getBoundingClientRect().bottom)),
+		await page.evaluate(() => window.innerHeight - 380), 'the panel stops at the keyboard, not at the tab bar');
+
+	await page.evaluate(() => document.documentElement.style.setProperty('--kb-h', '0px'));
+	await wait(400);
+	assert.equal(await page.evaluate(() => Math.round(document.querySelector('.detail.open').getBoundingClientRect().bottom)),
+		await page.evaluate(() => Math.round(document.getElementById('tabbar').getBoundingClientRect().top)),
+		'and back to the tab bar when the keyboard goes away');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('an item says which other screens know it, and opens them pointed at it', async () => {
+	// What the app knows about one item is spread across nine screens,
+	// and each used to keep it to itself: the Inventory panel said what
+	// you held and stopped, so finding out that two quests pay in the
+	// thing meant remembering to go and look. The card and the panel
+	// draw the same row of doors now, out of one function, and each door
+	// opens its screen already pointed at the item.
+	const { page, context, errors } = await open('#map');
+	// The barterers have to be loaded before a door can count them.
+	await page.waitForFunction(() => document.querySelectorAll('.map-npc, .map-pin').length > 0
+		|| document.querySelector('#screen').innerText.includes('barter'), { timeout: 15000 }).catch(() => {});
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.addTarget('Carrack (Valor)', 1);
+		store.setStock("Cox Pirates' Artifact (Parley Beginner)", 3);
+	});
+	await wait(1800);
+
+	const doors = sel => page.evaluate(s => [...document.querySelectorAll(`${s} .door`)]
+		.map(d => d.dataset.act), sel);
+
+	// The card, for something bartered, paid by quests and still short.
+	await page.evaluate(async () => {
+		const { openItemCard } = await import('/js/item-card.js');
+		openItemCard("Cox Pirates' Artifact (Parley Beginner)");
+	});
+	await wait(500);
+	const onCard = await doors('.dialog-box');
+	assert.deepEqual(onCard, ['open-item', 'goto-map', 'goto-quests', 'goto-tree', 'goto-get'],
+		'the card offers every screen with something to say, and nothing else');
+	await page.keyboard.press('Escape'); await wait(300);
+
+	// The panel, same item: the same doors bar the one it is standing in.
+	await page.evaluate(async () => {
+		const s = await import('/js/ui-state.js');
+		s.setView('inventory');
+		s.setSelected("Cox Pirates' Artifact (Parley Beginner)");
+		(await import('/js/ui.js')).render();
+	});
+	await wait(600);
+	assert.deepEqual(await doors('.detail'), ['goto-map', 'goto-quests', 'goto-tree', 'goto-get'],
+		'the Inventory panel does not offer to open the Inventory');
+
+	// Quests, narrowed to what pays in it.
+	await page.evaluate(() => document.querySelector('.detail [data-act="goto-quests"]').click());
+	await wait(900);
+	assert.equal(await page.evaluate(() => location.hash), '#quests');
+	assert.ok((await text(page, '#screen')).includes('Paying in 1 item'),
+		'and the list is narrowed to the quests that pay in it');
+
+	// The Tree is a build unfolded, so a material's door has to carry the
+	// build and then search -- and the search has to see inside the
+	// enhancement chains, which are folded shut when a build opens.
+	// With one build there is nothing to choose, so the door does not
+	// name it: the panel's "Reserved by" is a line above, and saying it
+	// again is what made the first cut of this row read as a stutter.
+	await page.evaluate(async () => {
+		const s = await import('/js/ui-state.js');
+		s.setView('inventory'); s.setSelected('Black Stone');
+		(await import('/js/ui.js')).render();
+	});
+	await wait(700);
+	assert.equal(await page.evaluate(() => document.querySelector('.detail [data-act="goto-tree"]').innerText.replace(/\s+/g, ' ').trim()),
+		'⌥ Tree', 'one build, so nothing to disambiguate');
+	assert.equal(await page.evaluate(() => document.querySelector('.detail [data-act="goto-tree"]').dataset.build),
+		'Carrack (Valor)', 'but the door still knows which tree it opens');
+	await page.evaluate(() => document.querySelector('.detail [data-act="goto-tree"]').click());
+	await wait(1000);
+	assert.equal(await page.evaluate(() => location.hash), '#tree');
+	assert.equal(await page.evaluate(() => document.querySelector('.tpick-name').innerText), 'Carrack (Valor)');
+	assert.equal(await page.evaluate(() => document.querySelector('.tsearch').value), 'Black Stone');
+	assert.ok(await count(page, '.trow') > 1, 'and the branches leading down to it are open');
+
+	// To Get arrives with it in the search box.
+	await page.evaluate(async () => {
+		const s = await import('/js/ui-state.js');
+		s.setView('inventory'); s.setSelected('Black Stone');
+		(await import('/js/ui.js')).render();
+	});
+	await wait(700);
+	await page.evaluate(() => document.querySelector('.detail [data-act="goto-get"]').click());
+	await wait(900);
+	assert.equal(await page.evaluate(() => location.hash), '#get');
+	assert.equal(await page.evaluate(() => document.querySelector('#screen input[type="search"]').value), 'Black Stone');
 	assert.deepEqual(errors, []);
 	await context.close();
 });

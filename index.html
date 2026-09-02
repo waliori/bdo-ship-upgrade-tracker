@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>BDO Ship Upgrade Tracker</title>
     <meta name="description" content="Track Black Desert Online ship upgrades against one shared inventory: what you own, what every build has reserved, and what you still have to get.">
     <meta name="keywords" content="Black Desert Online, BDO, ship upgrade, material tracker, maritime, sailing">
 
-    <link rel="shortcut icon" type="image/x-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
     <meta name="theme-color" content="#0a1728">
     <link rel="canonical" href="https://sail.walior.it/">
@@ -37,9 +37,13 @@
     <!-- Driver.js powers the guided tour. Vendored (v1.8.0) rather than
          pulled from a CDN: an unpinned @latest was a supply-chain door
          the CSP held open, and a tour that only works while someone
-         else's CDN is up is not a tour this app should have. -->
-    <link rel="stylesheet" href="css/driver.css">
-    <script src="js/driver.iife.js" defer></script>
+         else's CDN is up is not a tour this app should have.
+
+         Fetched when the tour is actually asked for, not on every load:
+         guided-tour.js is itself imported on demand, and 25 KB of
+         library parsed on a page nobody tours is 25 KB wasted. The
+         service worker still precaches both, so the first tour works
+         offline as well as the rest of the app. -->
 
     <link rel="modulepreload" href="js/ui.js">
     <link rel="modulepreload" href="js/state.js">
@@ -73,7 +77,8 @@
                         <button class="more-item" role="menuitem" data-act="profiles"><span>Profiles</span><small>separate saves on this browser</small></button>
                         <button class="more-item" role="menuitem" data-act="export"><span>Export</span><small>a file, or a link</small></button>
                         <button class="more-item" role="menuitem" data-act="import"><span>Import</span><small>a file saved from here</small></button>
-                        <button class="more-item" role="menuitem" data-act="help"><span>Help</span><small>the film, what's new, the data's dates</small></button>
+                        <button class="more-item" role="menuitem" data-act="whats-new"><span>What's new</span><small>what arrived since you were last here</small></button>
+                        <button class="more-item" role="menuitem" data-act="help"><span>Help</span><small>the film, the data's dates</small></button>
                         <button class="more-item" role="menuitem" data-act="tour"><span>Tour</span><small>a walk through your own screen</small></button>
                         <button class="more-item" role="menuitem" id="water-btn" data-act="water"><span>&#8776; Water off</span><small>the shader behind the page</small></button>
                         <button class="more-item danger" role="menuitem" data-act="reset"><span>Start fresh</span><small>clears everything, one Undo away</small></button>

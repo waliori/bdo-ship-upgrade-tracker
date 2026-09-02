@@ -51,22 +51,104 @@ export function openSea(x, y) {
 	return true;
 }
 
-/** The nearest water cell to a position, since a barterer stands on an
- *  island and a route has to start from the water beside it. */
-function nearestSea(x, y, reach = 6) {
+/* ---- which water is which ------------------------------------------ *
+   Not all water is the same water. At 256 units to a cell a harbour is
+   often a single wet cell walled in by its own shore -- Velia's is --
+   and a search that starts there has nowhere to go, gives up, and the
+   leg is drawn straight. Which is how the route out of Velia used to
+   cross Balenos on foot.
+
+   So every water cell is labelled with the body of water it belongs to,
+   once, and a leg starts and ends on water the other end can actually
+   be reached from. The fill is four-way because the search is: it
+   refuses the diagonal gap between two shores, so a diagonal touch is
+   not a way through for it either. */
+
+let pools = null;
+
+function buildPools() {
+	pools = new Int32Array(SEA_SIDE * SEA_SIDE);
+	const stack = [];
+	let id = 0;
+	for (let y = 0; y < SEA_SIDE; y++) {
+		for (let x = 0; x < SEA_SIDE; x++) {
+			const at = y * SEA_SIDE + x;
+			if (pools[at] || !seaCell(x, y)) continue;
+			id++;
+			pools[at] = id;
+			stack.push(at);
+			while (stack.length) {
+				const c = stack.pop();
+				const cx = c % SEA_SIDE, cy = (c / SEA_SIDE) | 0;
+				for (const [dx, dy] of SIDES) {
+					const nx = cx + dx, ny = cy + dy;
+					if (!seaCell(nx, ny)) continue;
+					const n = ny * SEA_SIDE + nx;
+					if (pools[n]) continue;
+					pools[n] = id;
+					stack.push(n);
+				}
+			}
+		}
+	}
+}
+
+const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+/** Which body of water a cell is in; 0 for land and for off the chart. */
+function poolOf(cx, cy) {
+	if (!pools) buildPools();
+	if (cx < 0 || cy < 0 || cx >= SEA_SIDE || cy >= SEA_SIDE) return 0;
+	return pools[cy * SEA_SIDE + cx];
+}
+
+/** Water cells around a point, nearest first, out to `reach` rings. */
+function watersNear(x, y, reach) {
 	const cx = cellOf(x), cy = cellOf(y);
-	if (seaCell(cx, cy)) return [cx, cy];
+	const out = [];
+	if (seaCell(cx, cy)) out.push([cx, cy]);
 	for (let d = 1; d <= reach; d++) {
-		let best = null, bestD = Infinity;
+		const ring = [];
 		for (let dx = -d; dx <= d; dx++) {
 			for (let dy = -d; dy <= d; dy++) {
 				if (Math.abs(dx) !== d && Math.abs(dy) !== d) continue;
 				if (!seaCell(cx + dx, cy + dy)) continue;
-				const dist = dx * dx + dy * dy;
-				if (dist < bestD) { bestD = dist; best = [cx + dx, cy + dy]; }
+				ring.push([cx + dx, cy + dy, dx * dx + dy * dy]);
 			}
 		}
-		if (best) return best;
+		ring.sort((p, q) => p[2] - q[2]);
+		for (const c of ring) out.push([c[0], c[1]]);
+	}
+	return out;
+}
+
+/** The nearest water cell to a position, since a barterer stands on an
+ *  island and a route has to start from the water beside it. */
+function nearestSea(x, y, reach = 6) {
+	return watersNear(x, y, reach)[0] || null;
+}
+
+/* How far out a leg may look for water it can actually sail on. Wide,
+   because Ancado Inner Harbor sits at the end of a canal the chart's
+   tiles do not draw as water: the open sea is 26 cells away, and the
+   choice there is between one straight run down the canyon -- which is
+   the passage a ship really makes -- and a straight line across the
+   whole of Valencia, which is what it used to draw. The nearest shared
+   water still wins, so nowhere else is affected by the room. */
+const REACH = 28;
+
+/** One water cell by each end, as close in as they go, on water the
+ *  other end can be reached from -- so neither leg begins in a puddle
+ *  the sea does not touch. */
+function sharedWater(a, b, reach = REACH) {
+	const far = new Map();
+	for (const [cx, cy] of watersNear(b.x, b.y, reach)) {
+		const p = poolOf(cx, cy);
+		if (!far.has(p)) far.set(p, [cx, cy]);
+	}
+	for (const [cx, cy] of watersNear(a.x, a.y, reach)) {
+		const p = poolOf(cx, cy);
+		if (far.has(p)) return [[cx, cy], far.get(p)];
 	}
 	return null;
 }
@@ -79,6 +161,10 @@ function nearestSea(x, y, reach = 6) {
  */
 export function nearestWater(x, y, reach = 8) {
 	if (isSea(x, y)) return { x, y };
+	// The nearest water, whichever water it is. A stop dropped beside a
+	// harbour belongs in that harbour, not out at sea a kilometre away;
+	// getting a hull from there to the open sea is seaLeg's problem, and
+	// seaLeg solves it.
 	const cell = nearestSea(x, y, reach);
 	return cell ? { x: mid(cell[0]), y: mid(cell[1]) } : null;
 }
@@ -209,8 +295,9 @@ function simplify(pts) {
  */
 export function seaLeg(a, b) {
 	if (clearLine(a.x, a.y, b.x, b.y)) return [a, b];
-	const from = nearestSea(a.x, a.y), to = nearestSea(b.x, b.y);
-	if (!from || !to) return [a, b];
+	const ends = sharedWater(a, b);
+	if (!ends) return [a, b];
+	const [from, to] = ends;
 	const cells = search(from, to);
 	if (!cells) return [a, b];
 	const pts = [a, ...cells.map(([cx, cy]) => ({ x: mid(cx), y: mid(cy) })), b];

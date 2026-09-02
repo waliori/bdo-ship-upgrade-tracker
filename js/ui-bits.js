@@ -13,7 +13,9 @@ import { iconLoader } from './icon-loader.js';
 import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
 import { parseEnhanced, enhanceStep, waysToGet, outstanding } from './planner.js';
-import { recipes, barterData, barterProfile } from './ui-state.js';
+import { quests } from './quests.js';
+import { monsters } from './sea_monsters.js';
+import { recipes, barterData, barterProfile, snapshot } from './ui-state.js';
 
 const SOURCE_LABEL = {
 	coin: 'Crow Coin Shop',
@@ -104,6 +106,37 @@ export function allItems() {
 	Object.keys(vendorItems).forEach(i => set.add(i));
 	Object.keys(coins).forEach(i => set.add(i));
 	return [...set];
+}
+
+/**
+ * The names a search box should offer, for a query.
+ *
+ * Every ship part exists at eleven levels, and each one is its own row
+ * in the recipe tables -- so of the 938 names allItems() knows, 720 are
+ * "+N something" belonging to only 72 parts. Offering all of them turns
+ * "toro sail" into eleven near-identical lines, alphabetically sorted,
+ * so "+10" lands second and the plain part is last.
+ *
+ * A level is only worth offering when it is real for this player: one
+ * they hold, one a build is waiting on, or one they have named
+ * themselves by typing a level into the box. Everything else collapses
+ * to the bare part, which is what someone searching a name means.
+ * Nothing becomes unreachable -- typing "+7" brings +7 back.
+ *
+ * @param {string[]} names   every name known
+ * @param {object}   o
+ * @param {string}   [o.query]   what has been typed, so far
+ * @param {object}   [o.stock]   item -> how many held
+ * @param {object}   [o.needed]  item -> how many a build is still short
+ */
+export function offerableItems(names, { query = '', stock = {}, needed = {} } = {}) {
+	// A level typed into the box is a level asked for: "+7" or "+7 toro".
+	if (/\+\s*\d/.test(query)) return names;
+	return names.filter(name => {
+		const { level } = parseEnhanced(name);
+		if (!level) return true;
+		return Number(stock[name]) > 0 || Number(needed[name]) > 0;
+	});
 }
 
 export function buildableItems() {
@@ -292,4 +325,137 @@ export function hasBuyOption(item) {
 export function whereFrom(item) {
 	const src = sourceOf(item);
 	return src ? ` — ${src.label}` : '';
+}
+
+/* ------------------------------------------------------------------ *
+ * where else an item turns up
+ * ------------------------------------------------------------------ */
+
+/**
+ * What the app knows about one item is spread across nine screens, and
+ * for a long time each screen kept its own knowledge to itself: the
+ * Inventory panel said what you held and stopped there, and finding out
+ * that four quests pay in the thing meant remembering to go and look.
+ *
+ * These say, in one voice and in one place, which other screens have
+ * something to say about this item -- and take you there with the
+ * screen already pointed at it. The Map opens on its barterers, Quests
+ * on the quests that pay in it, the Tree rooted at it, To Get searched
+ * for it. Anything with nothing to say is left out, so a plain material
+ * offers two doors and a Carrack part offers six.
+ */
+
+/** Which quests pay in this item, fixed reward or pick-one. */
+export function questsPaying(item) {
+	return quests.filter(q => Object.keys(q.rewards).includes(item)
+		|| (q.choice || []).some(c => Object.keys(c).includes(item)));
+}
+
+/** The hunting grounds this drops on, where the map knows the water. */
+export function groundsFor(item) {
+	const drops = (vendorItems[item] && vendorItems[item]['Monster Drop']) || [];
+	return [...new Map(drops
+		.map(d => monsters.find(m => d.toLowerCase().startsWith(m.name.toLowerCase())))
+		.filter(Boolean).map(m => [m.key, m])).values()];
+}
+
+/** How many barterers hand this over. */
+const barterersFor = item => (barterData || []).filter(b => b.name === item).length;
+
+/** The queued builds whose tree has this item somewhere in it, the
+ *  build itself first when the item is one. */
+function buildsUsing(item) {
+	const has = node => node.item === item || (node.children || []).some(has);
+	return ((snapshot && snapshot.targets) || []).filter(t => has(t.tree)).map(t => t.item);
+}
+
+/**
+ * One door.
+ *
+ * A door carries no numbers. The sections above it already say what you
+ * hold, which quests pay in it and how far short you are, and printing
+ * those again beside a door said everything twice -- the Cox artifact's
+ * two quests were listed and then counted, in the same panel. So a door
+ * is the screen's own name, and a `qualifier` only where the door would
+ * be ambiguous without one: which build the Tree would open, which
+ * ground the chart would fly to. The sentence a reader might want is on
+ * the tooltip, where it costs nothing.
+ */
+const door = (act, icon, label, why, { qualifier = '', attrs = '' } = {}) =>
+	`<button class="door" data-act="${act}" ${attrs} title="${esc(`${label} — ${why}`)}">
+		<span class="door-icon" aria-hidden="true">${icon}</span>
+		<span class="door-name">${esc(label)}</span>
+		${qualifier ? `<span class="door-note">${esc(qualifier)}</span>` : ''}
+	</button>`;
+
+/**
+ * Every other screen with something to say about this item, as a row of
+ * doors through to it.
+ *
+ * `from` is the screen asking, which is left out of its own row -- the
+ * Inventory panel does not offer to open the Inventory.
+ */
+export function waysThrough(item, { from = '' } = {}) {
+	const at = esc(item);
+	const has = `data-item="${at}"`;
+	const doors = [];
+
+	if (from !== 'inventory') {
+		doors.push(door('open-item', '▦', 'Inventory', 'what you hold, and where it is kept', { attrs: has }));
+	}
+
+	const barterers = barterersFor(item);
+	if (barterers) {
+		doors.push(door('goto-map', '⌖', 'Map',
+			barterers === 1 ? 'the one barterer who hands it over'
+				: `the ${barterers} barterers who hand it over`, { attrs: has }));
+	}
+
+	// The ground's name is the door, because which ground it is is the
+	// whole answer -- and the chart can be flown to one at a time.
+	for (const m of groundsFor(item).slice(0, 2)) {
+		doors.push(door('quest-map', '≈', m.name, 'where it swims',
+			{ attrs: `data-monster="${esc(m.key)}"` }));
+	}
+
+	const pays = questsPaying(item).length;
+	if (pays) {
+		doors.push(door('goto-quests', '✦', 'Quests',
+			pays === 1 ? 'the quest that pays in it' : `the ${pays} quests that pay in it`,
+			{ attrs: has }));
+	}
+
+	// The Tree is a queued build unfolded, not an item's own recipe, so
+	// it can only show something a build actually asks for -- and it
+	// has to be told which build. Reservations do not answer that: what
+	// a Carrack reserves is the +10 sail, and the plain sail sits under
+	// it as one of the things an attempt spends. So the tree itself is
+	// the thing to ask.
+	const inside = buildsUsing(item);
+	if (inside.length && from !== 'tree') {
+		const root = inside[0] === item;
+		doors.push(door('goto-tree', '⌥', 'Tree',
+			root ? 'everything under it'
+				: `where it sits under ${inside.join(' and ')}`,
+			// Which build, but only when there is a choice to make: the
+			// Tree opens one at a time, so with two the door has to say
+			// which it means -- and with one the panel's "Reserved by"
+			// has already said the same words a line above.
+			{ qualifier: inside.length > 1 ? inside[0] : '',
+				attrs: `${has} data-build="${esc(inside[0])}"` }));
+	}
+
+	const step = parseEnhanced(item).level > 0;
+	if ((recipes[item] || step) && from !== 'workshop') {
+		doors.push(door('goto-workshop', '⚙', 'Workshop',
+			step ? 'attempt the next level' : 'make it from what you hold', { attrs: has }));
+	}
+
+	const short = Number((snapshot && snapshot.missing && snapshot.missing[item]) || 0);
+	if (short && from !== 'get') {
+		doors.push(door('goto-get', '☰', 'To Get', 'the shopping list, priced', { attrs: has }));
+	}
+
+	if (!doors.length) return '';
+	return `<div class="doors">${doors.join('')}</div>`;
 }

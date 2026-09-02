@@ -318,8 +318,7 @@ export const quests = [
 		name: '[Barter] [Daily] Lively Iliya Island',
 		where: 'the villager on Iliya Island — barter fifteen times',
 		repeat: 'daily',
-		rewards: { 'Crow Coin': 50 },
-		choice: [{ 'Enhanced Island Tree Coated Plywood': 10 }, { "Cox Pirates' Artifact (Parley Expert)": 1 }, { 'Pure Pearl Crystal': 2 }, { 'Deep Sea Memory Filled Glue': 8 }, { 'Bright Reef Piece': 8 }]
+		rewards: { 'Crow Coin': 50, 'Enhanced Island Tree Coated Plywood': 10, "Cox Pirates' Artifact (Parley Expert)": 1, 'Pure Pearl Crystal': 2, 'Deep Sea Memory Filled Glue': 8, 'Bright Reef Piece': 8 }
 	},
 	{
 		id: 'wider',
@@ -327,7 +326,7 @@ export const quests = [
 		name: '[Barter] [Daily] Sailing to a Wider World',
 		where: 'Dario, Iliya Island — barter twenty times',
 		repeat: 'daily',
-		note: 'Plus a pick of one Lost Trade Box or one Part for Explorer\'s Compass, neither of which the tracker holds.',
+		note: 'Plus one Lost Trade Box and one Part for Explorer\'s Compass, neither of which the tracker holds.',
 		rewards: { 'Crow Coin': 50 }
 	},
 	{

@@ -16,13 +16,15 @@ import { openDialog, closeDialog, toast } from './dialogs.js';
 import { shipStats } from './ship_stats.js';
 import { describeStats, statsAt } from './part_stats.js';
 import { families, tables } from './enhancement.js';
-import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listSetups, saveSetup, loadSetup, deleteSetup, activeSetupId } from './ship.js';
+import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listSetups, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, skinWorn, setSkinSlot, setSkinAll, skinTotals } from './ship.js';
 import { GRADES, gradeById, crystalsOf, crystalVariant, crystalLine } from './crystals.js';
+import { skinFor, SKIN_SLOTS } from './ship_skins.js';
+import { openFleet } from './setups.js';
 import { openPicker } from './picker.js';
 import { encodeShare, shareLink } from './share.js';
 import { enhancedName } from './planner.js';
 import {
-	pool, mateTypes, anyType, care, rations, expSplit, firstMates, slotSources,
+	pool, mateTypes, anyType, care, rations, expSplit, firstMates, slotSources, statBand,
 	contract, SAILOR_CAP, seatsFor, statOf, crewTotals, autoAssign } from './sailors.js';
 
 // Session state: who is picked up, and how the roster is ordered.
@@ -70,12 +72,39 @@ const SPOT = {
 };
 const cq = px => `${(px / 900 * 100).toFixed(2)}cqw`;
 
+const dbl = v => Math.round(v * 20) / 10;
+
+/** What this seat would do with THIS sailor's own numbers. */
+function seatPitch(pos, s) {
+	const t = anyType[s.type];
+	if (!t) return '';
+	const f = k => statOf(s, k);
+	if (pos === 'sail') return `doubles their Endurance and Wits: speed +${f('speed')}% becomes +${dbl(f('speed'))}%, accel +${f('accel')}% becomes +${dbl(f('accel'))}%`;
+	if (pos === 'wheel') return `doubles their Awareness and Strength: turn +${f('turn')}% becomes +${dbl(f('turn'))}%, brake +${f('brake')}% becomes +${dbl(f('brake'))}%`;
+	if (pos === 'cannon') {
+		return t.force !== undefined
+			? `doubles their gunnery: force +${dbl(f('force'))}%, focus +${dbl(f('focus'))}%, vision +${dbl(f('vision'))}%`
+			: 'doubles Force, Focus and Vision — this type grows none of them';
+	}
+	if (pos === 'deck') return `+${F((t.cabin || 0) * 10000)} durability — their ${t.cabin || 0} cabins at 10,000 each`;
+	if (pos === 'mess') return `+${F((t.cabin || 0) * 5000)} rations — their ${t.cabin || 0} cabins at 5,000 each`;
+	if (pos === 'fish') return 'auto-fishing, once an Oceanbound Otter Fishing Rod is aboard';
+	if (pos === 'firstmate') return t.mate ? `switches on their skill: ${t.skill}` : 'the seat switches on a named mate\'s skill — this sailor has none';
+	if (pos === 'cabin') return 'no role — they still eat, weigh and level along';
+	return '';
+}
+
 function seatBox(ship, seat, armed) {
 	const id = seatsOf(ship)[seat.key];
 	const s = id ? byId(id) : null;
 	const t = s && anyType[s.type];
+	const held = armed ? byId(selId) : null;
 	const cls = ['seat', s ? 'taken' : 'empty', armed && !s ? 'armed' : '', s && s.id === selId ? 'picked' : ''].join(' ');
-	const title = s ? `${s.name} · ${s.type} · Lv ${s.lv}` : `${seat.label}: empty seat — ${seat.effect}`;
+	const title = s
+		? `${s.name} · ${s.type} · Lv ${s.lv} — ${seatPitch(seat.pos, s) || seat.effect}`
+		: held
+			? `${seat.label}, for ${held.name}: ${seatPitch(seat.pos, held) || seat.effect}`
+			: `${seat.label}: empty seat — ${seat.effect}`;
 	return `<button class="${cls}" data-act="crew-seat" data-seat="${esc(seat.key)}" title="${esc(title)}" aria-label="${esc(title)}">
 		${s ? `<span class="seat-mono" style="background:${RACE[(t && t.race) || 'Human']}">${face(t, s)}</span>
 			<span class="seat-lv">${s.lv}</span>
@@ -110,7 +139,9 @@ function board(ship, stats, totals) {
 		<div class="seat-list-seats">${g.seats.map(seat => {
 			const id = seatsOf(ship)[seat.key];
 			const s = id ? byId(id) : null;
-			return `<button class="seat-line${s ? ' taken' : ''}${armed && !s ? ' armed' : ''}${s && s.id === selId ? ' picked' : ''}" data-act="crew-seat" data-seat="${esc(seat.key)}">
+			const held = armed ? byId(selId) : null;
+			const lineTitle = s ? seatPitch(seat.pos, s) : held ? `for ${held.name}: ${seatPitch(seat.pos, held)}` : seat.effect;
+			return `<button class="seat-line${s ? ' taken' : ''}${armed && !s ? ' armed' : ''}${s && s.id === selId ? ' picked' : ''}" data-act="crew-seat" data-seat="${esc(seat.key)}" title="${esc(lineTitle || seat.effect)}">
 				${seatBox(ship, seat, armed).replace(/<button[^>]*>|<\/button>$/g, '')}
 				<span class="seat-line-text">${s ? `${esc(s.name)} <small>${esc(s.type)} · Lv ${s.lv}</small>` : `<small>empty — ${esc(seat.effect)}</small>`}</span>
 			</button>`;
@@ -228,11 +259,20 @@ function selectedPanel(ship) {
 	const bar = (k, key, max) => {
 		const v = statOf(s, key);
 		const typed = Number.isFinite(own[key]);
-		return `<div class="sel-stat${typed ? ' typed' : ''}"><span><span>${k}</span><b>+<input class="purse-inline narrow stat-in" type="text" inputmode="decimal" value="${v}"
-			data-act="crew-stat" data-id="${esc(s.id)}" data-key="${key}" aria-label="${k}, as the game shows it" title="${typed ? 'As you typed it — clear to go back to the type’s average' : 'The type’s average at this level — type what the game shows'}">%</b></span><i><b style="width:${Math.min(100, v / max * 100)}%"></b></i></div>`;
+		const band = statBand(s.type, key, s.lv);
+		// A typed roll is judged against what the level can hold.
+		const word = typed && band
+			? (v >= band.max - 0.05 ? 'top roll' : v <= band.min + 0.05 ? 'floor roll' : v >= band.avg ? 'above average' : 'below average')
+			: '';
+		const title = typed
+			? `As you typed it${word ? ` — ${word} for Lv ${s.lv}` : ''}. Clear to go back to the estimate`
+			: band ? `Estimate at Lv ${s.lv}: ${band.min}–${band.max}, usually ${band.avg}. Type what the sailor window shows`
+				: 'Type what the sailor window shows';
+		return `<div class="sel-stat${typed ? ' typed' : ''}"><span><span>${k}</span>${word ? `<em class="roll-note ${v >= band.avg ? 'good' : 'low'}">${word}</em>` : ''}<b>+<input class="purse-inline narrow stat-in" type="text" inputmode="decimal" value="${v}"
+			data-act="crew-stat" data-id="${esc(s.id)}" data-key="${key}" aria-label="${k}, as the game shows it" title="${title}">%</b></span><i><b style="width:${Math.min(100, v / max * 100)}%"></b></i></div>`;
 	};
-	const stats = [bar('Speed', 'speed', 20), bar('Accel', 'accel', 20), bar('Turn', 'turn', 40), bar('Brake', 'brake', 40)];
-	if (t.force !== undefined) stats.push(bar('Force', 'force', 30), bar('Focus', 'focus', 50), bar('Vision', 'vision', 150));
+	const stats = [bar('Speed', 'speed', 5), bar('Accel', 'accel', 8), bar('Turn', 'turn', 10), bar('Brake', 'brake', 10)];
+	if (t.force !== undefined) stats.push(bar('Force', 'force', 6), bar('Focus', 'focus', 14), bar('Vision', 'vision', 50));
 	return `<div class="panel crew-panel crew-sel">
 		<div class="panel-head"><h2 class="panel-title">Selected sailor</h2><span class="panel-spacer"></span>
 			<button class="sq-btn" data-act="crew-clear-sel" title="Put down">×</button></div>
@@ -248,8 +288,11 @@ function selectedPanel(ship) {
 		<div class="sel-cond"><span><span>Condition</span><b style="color:${condColor(s.cond)}"><input class="purse-inline narrow" type="text" inputmode="numeric" value="${s.cond}" data-act="crew-cond" data-id="${esc(s.id)}" aria-label="Condition">%</b></span>
 			<i><b style="width:${s.cond}%;background:${condColor(s.cond)}"></b></i></div>
 		<div class="sel-stats">${stats.join('')}</div>
-		<div class="sel-note">Growth is a hidden range per sailor, so these are the type's averages until you type what the sailor window shows.</div>
+		<div class="sel-note">Each level-up rolls inside a hidden range, so these are estimates — type what the sailor window shows and they outrank it, judged against the level's band.</div>
 		<div class="sel-facts">cabins <b>${t.cabin ?? '—'}</b> · eats <b>${t.appetite ?? '—'}</b>/day · weight <b>+${t.weight ?? 0} LT</b></div>
+		${t.mate
+		? '<div class="sel-facts sel-seats" title="Seats double a sailor\'s matching growths; the First Mate seat is where a named mate\'s skill switches on.">at the <b>First Mate</b> seat ★ their skill switches on</div>'
+		: `<div class="sel-facts sel-seats" title="What each seat does with this sailor's own numbers — hover a seat on the ship for the same. Deck and Mess pay by cabin cost.">at a seat: Sail <b>+${dbl(statOf(s, 'speed'))}%</b> spd · Wheel <b>+${dbl(statOf(s, 'turn'))}%</b> turn${t.force !== undefined ? ` · Cannon <b>+${dbl(statOf(s, 'focus'))}%</b> focus` : ''} · Deck <b>+${F((t.cabin || 0) * 10000)}</b> dura · Mess <b>+${F((t.cabin || 0) * 5000)}</b> rations</div>`}
 		${t.skill ? `<div class="sel-skill">★ ${esc(t.skill)}</div>` : t.note ? `<div class="sel-skill quiet">${esc(t.note)}</div>` : ''}
 		<div class="crew-actions">
 			${where ? `<button class="act quiet small danger" data-act="crew-disembark" data-id="${esc(s.id)}">Disembark</button>` : ''}
@@ -275,22 +318,54 @@ function presetsPanel(ship) {
 }
 
 function guidePanels() {
-	const careRows = care.map(c => `<div class="kv-row"><span>${codexName(c.item)}</span><span>${esc(c.effect)} · ${esc(c.from)}</span></div>`).join('');
-	const rationRows = rations.map(r => `<div class="kv-row"><span>${esc(r.grade)} food</span><span>${F(r.restores)} rations</span></div>`).join('');
-	const expRows = expSplit.map(e => `<div class="kv-row"><span>${e.aboard}${e.note ? '+' : ''} aboard</span><span>${e.each === null ? '' : `${e.each}% each, `}${e.total}% in all</span></div>`).join('');
-	const slotRows = slotSources.map(s => `<div class="kv-row"><span>+${s.oaths} slot${s.oaths > 1 ? 's' : ''}</span><span>${esc(s.from)}</span></div>`).join('');
-	const mateRows = firstMates.map(m => `<div class="kv-row"><span>${esc(m.name)}</span><span>${esc(m.trait)} — ${esc(m.from)}</span></div>`).join('');
+	// Reference, but drawn like the rest of the yard: each remedy under
+	// its own icon, the grades wearing their colours, the shares as
+	// meters, and the three named mates with their faces on.
+	const careRows = care.map(c => `<div class="guide-row">
+		${img(c.item, 'guide-icon')}
+		<div class="guide-main">
+			<div class="guide-name">${codexName(c.item)} <span class="guide-effect">${esc(c.effect)}</span></div>
+			<div class="guide-sub">${esc(c.from)}</div>
+		</div>
+	</div>`).join('');
+	const rationChips = rations.map(r => `<span class="ration-chip g-${r.grade.toLowerCase()}"><i></i>${esc(r.grade)} · <b>${F(r.restores)}</b></span>`).join('');
+	const expRows = expSplit.map(e => `<div class="exp-row">
+		<span class="exp-aboard">${e.aboard}${e.note ? '+' : ''}<small>aboard</small></span>
+		<span class="exp-bar"><i style="width:${e.total / 4}%"></i></span>
+		<span class="exp-fig">${e.each === null ? '' : `${e.each}% each · `}<b>${e.total}%</b> in all</span>
+	</div>`).join('');
+	const slotRows = slotSources.map(s => `<div class="guide-row">
+		<span class="slot-badge">+${s.oaths}</span>
+		<div class="guide-main">
+			<div class="guide-name">${s.oaths} more slot${s.oaths > 1 ? 's' : ''}</div>
+			<div class="guide-sub">${esc(s.from)}</div>
+		</div>
+	</div>`).join('');
+	const mateCards = firstMates.map(m => {
+		const t = anyType[m.name];
+		return `<div class="mate-card">
+			<span class="roster-tile big" style="background:${RACE[(t && t.race) || 'Human']}">${face(t, { name: m.name })}</span>
+			<div class="guide-main">
+				<div class="guide-name">${esc(m.name)}</div>
+				<div class="mate-trait">${esc(m.trait)}</div>
+				<div class="guide-sub">${esc(m.from)}</div>
+			</div>
+		</div>`;
+	}).join('');
 	return `<div class="crew-two">
 		<div class="panel crew-panel"><div class="panel-head"><h2 class="panel-title">Keeping them well</h2>
 			<span class="panel-sub">Condition falls as they work; at zero a sailor is sick and does nothing until cured</span></div>
-			<div class="kv">${careRows}${rationRows}</div></div>
+			<div class="guide-list">${careRows}
+				<div class="ration-row"><span class="guide-sub">Any food thrown to the crew is rations, by its grade</span>
+					<span class="ration-chips">${rationChips}</span></div>
+			</div></div>
 		<div class="panel crew-panel"><div class="panel-head"><h2 class="panel-title">Levelling &amp; slots</h2>
 			<span class="panel-sub">Experience is shared out: each gets less, the crew gets more</span></div>
-			<div class="kv">${expRows}${slotRows}</div></div>
+			<div class="guide-list">${expRows}${slotRows}</div></div>
 	</div>
 	<div class="panel crew-panel"><div class="panel-head"><h2 class="panel-title">First mates</h2>
 		<span class="panel-sub">Three sailors with names; the First Mate seat switches their trait on</span></div>
-		<div class="kv">${mateRows}</div></div>`;
+		<div class="mate-cards">${mateCards}</div></div>`;
 }
 
 /**
@@ -327,6 +402,63 @@ function slotCard(ship, x, chosenByHand) {
 }
 
 /** The fifth slot: one sea crystal, or the Nol, or nothing. */
+
+/**
+ * The appearance set, which is not only an appearance.
+ *
+ * Both sets in the game fill the four appearance slots and every slot
+ * carries a stat -- so a Carrack wearing its overlay is three per cent
+ * faster, holds six hundred more and takes a hundred thousand more
+ * damage than the same Carrack without. The app priced hulls as if this
+ * did not exist; now it is a row like the crystal, ticked per slot
+ * because the slots are separate items even though the set is bought
+ * whole.
+ *
+ * A hull with no set -- the Panokseon has none -- gets no card rather
+ * than an empty one.
+ */
+function skinCard(ship) {
+	const skin = skinFor(ship);
+	if (!skin) return '';
+	const worn = skinWorn(ship);
+	const on = SKIN_SLOTS.filter(k => worn[k]);
+	const t = skinTotals(ship);
+	const bits = [];
+	if (t.speed) bits.push(`speed +${t.speed}%`);
+	if (t.turn) bits.push(`turn +${t.turn}%`);
+	if (t.weight) bits.push(`+${F(t.weight)} LT`);
+	if (t.durability) bits.push(`+${F(t.durability)} durability`);
+	const slotLine = k => {
+		const part = skin.parts[k];
+		const val = Object.entries(part.stats)
+			.map(([sk, v]) => sk === 'weight' ? `+${F(v)} LT` : sk === 'durability' ? `+${F(v)} durability` : `${sk} +${v}%`).join(', ');
+		// A crafted slot says what it takes, since that is a shopping
+		// list like any other; a pearl one has nothing to say here.
+		const made = part.recipe
+			? ` — ${Object.entries(part.recipe).map(([m, n]) => `${F(n)}× ${m}`).join(', ')}`
+			: '';
+		return `<label class="skin-slot${worn[k] ? ' on' : ''}" title="${esc(part.name)}${esc(made)}">
+			<input type="checkbox" data-act="crew-skin-slot" data-slot="${k}"${worn[k] ? ' checked' : ''}>
+			<span class="skin-slot-name">${esc(k)}</span>
+			<span class="skin-slot-val">${esc(val)}</span></label>`;
+	};
+	return `<div class="slot-card skin${on.length ? '' : ' empty'}">
+		<div class="slot-head"><span class="slot-glyph" aria-hidden="true">✦</span><span class="slot-name">Appearance set</span>
+			<span class="fit-tag">${esc(skin.name)} · ${esc(skin.source)}${skin.pearls ? ` · ${F(skin.pearls)} pearls` : ''}${skin.where ? ` · ${esc(skin.where)}` : ''}</span></div>
+		<div class="slot-body">
+			<div class="slot-text">
+				<div class="slot-part">${on.length ? `${on.length} of 4 slots — ${esc(bits.join(' · '))}` : 'Not worn'}</div>
+				<div class="slot-stats">${esc(skin.note || '')}</div>
+			</div>
+		</div>
+		<div class="skin-slots">${SKIN_SLOTS.map(slotLine).join('')}</div>
+		<div class="slot-btns">
+			<button class="act quiet small" data-act="crew-skin-all" data-on="1">I have the set</button>
+			${on.length ? '<button class="act quiet small" data-act="crew-skin-all" data-on="">Take it off</button>' : ''}
+		</div>
+	</div>`;
+}
+
 function crystalCard(ship) {
 	const c = crystalFor(ship);
 	const grade = c && gradeById[c.grade];
@@ -352,7 +484,7 @@ function loadoutPanel(ship) {
 	const stock = store.getAllStock();
 	const fit = fittedFor(ship, stock);
 	const chosen = (store.getProfile('fitted', {}) || {})[ship] || {};
-	const rows = `<div class="slot-grid">${fit.slots.map(x => slotCard(ship, x, chosen[x.slot] !== undefined)).join('')}${crystalCard(ship)}</div>`;
+	const rows = `<div class="slot-grid">${fit.slots.map(x => slotCard(ship, x, chosen[x.slot] !== undefined)).join('')}${crystalCard(ship)}${skinCard(ship)}</div>`;
 	const me = currentShip();
 	const same = me.name === ship;
 	const hold = same ? me.hold : { limit: s.weight + (Number(fit.total.weight) || 0), crew: 0, free: s.weight + (Number(fit.total.weight) || 0) };
@@ -370,14 +502,54 @@ function loadoutPanel(ship) {
  * the screen
  * ------------------------------------------------------------------ */
 
-/** The saved setups as chips: the one being sailed is lit. */
+/**
+ * The saved setups, as something worth choosing between.
+ *
+ * They were chips: a name apiece, styled like the quest filters, tucked
+ * under the ship card. But a setup is a whole ship -- a different hull,
+ * different parts, a different crew -- and switching one changes what
+ * every route on the Map is timed at. Naming them was not enough to
+ * choose between them, because the thing you choose on is what they
+ * *do*, and that was only visible one at a time by loading each.
+ *
+ * So each one is a card carrying its own numbers, the sailing one is
+ * marked, and the differences from it are called out where they are
+ * worth seeing -- which is the whole point of keeping more than one.
+ */
+/**
+ * The fleet, on the screen: one line and a way in.
+ *
+ * Only the ship being sailed changes what anything else does -- the Map
+ * times its routes at that hull's speed -- so that is the one worth a
+ * permanent place. Every other setup lives behind "Your fleet", which
+ * can search, filter and page through however many there are without
+ * pushing the rest of this screen off the bottom. A list drawn inline
+ * grows without limit; a door does not.
+ */
 function setupsRow() {
 	const list = listSetups();
 	if (!list.length) return '';
 	const active = activeSetupId();
-	return `<div class="crew-setups"><span class="summary-k">Setups</span>${list.map(s => `<span class="quest-group">
-		<button class="chip${s.id === active ? ' active' : ''}" data-act="crew-setup-load" data-id="${esc(s.id)}" title="${esc(s.ship)}${s.fitted ? ` · ${Object.keys(s.fitted).length} slot${Object.keys(s.fitted).length === 1 ? '' : 's'} set` : ''}${s.crystal ? ' · crystal' : ''}${s.seats ? ` · ${Object.keys(s.seats).length} seated` : ''} — click to sail it">${s.id === active ? '⚓ ' : ''}${esc(s.name)}</button>
-		<button class="map-x" data-act="crew-setup-del" data-id="${esc(s.id)}" aria-label="Forget the setup ${esc(s.name)}">×</button></span>`).join('')}</div>`;
+	const now = list.find(s => s.id === active);
+	const sum = now ? setupSummary(now) : null;
+	const hulls = new Set(list.map(s => s.ship)).size;
+
+	const sailing = now && sum
+		? `<span class="fleet-now"><span class="setup-flag">⚓</span>${esc(now.name)}
+			<span class="setup-fig">speed <b>${sum.speed}%</b></span>
+			<span class="setup-fig">hold <b>${F(sum.hold)} LT</b></span>
+			<span class="setup-fig">fitted <b>${sum.fittedCount}/${sum.slots}</b></span>
+			${sum.skinned ? `<span class="setup-fig">skin <b>${sum.skinned}/4</b></span>` : ''}</span>`
+		: '<span class="fleet-now none">This hull is not one of your saved setups yet</span>';
+
+	return `<div class="panel setups-panel">
+		<div class="panel-head"><h2 class="panel-title">Fleet</h2>
+			<span class="panel-sub">${list.length === 1 ? 'One ship kept' : `${list.length} kept across ${hulls === 1 ? 'one hull' : `${hulls} hulls`}`}</span></div>
+		<div class="fleet-bar">
+			${sailing}
+			<button class="act quiet small" data-act="crew-fleet">Your fleet${list.length > 1 ? ` (${list.length})` : ''}…</button>
+		</div>
+	</div>`;
 }
 
 /** The picker of setups, for the Map: sail one without leaving the chart. */
@@ -418,7 +590,6 @@ export function renderCrew() {
 			<button class="act quiet small" data-act="crew-setup-save" title="Keep this hull with its parts, crystal and seating under a name, to come back to">Save as setup…</button>
 			<button class="act quiet small" data-act="crew-link" title="A link that carries this hull, its parts and its crew">Copy link</button>
 		</div>
-		${setupsRow()}
 		<label class="crew-mastery" title="Sailing Mastery, as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000">
 			<span class="summary-k">Sailing mastery</span>
 			<input class="field purse-inline narrow" type="number" min="0" max="3000" step="50" inputmode="numeric" value="${store.getProfile('sailingMastery', 0) || ''}" placeholder="0" data-act="crew-mastery" aria-label="Sailing mastery">
@@ -426,9 +597,9 @@ export function renderCrew() {
 		</label>
 	</div>`;
 	if (!stats.crew) {
-		return head + `<div class="panel"><p class="empty">${esc(ship)} carries no sailors. Pick a crewed hull to plan one.</p></div>` + loadoutPanel(ship);
+		return head + setupsRow() + `<div class="panel"><p class="empty">${esc(ship)} carries no sailors. Pick a crewed hull to plan one.</p></div>` + loadoutPanel(ship);
 	}
-	return head + statCards(ship, stats, totals) + `<div class="crew-grid">
+	return head + setupsRow() + statCards(ship, stats, totals) + `<div class="crew-grid">
 		<div class="crew-main">${board(ship, stats, totals)}${rosterPanel(ship)}${guidePanels()}</div>
 		<div class="crew-side">${selectedPanel(ship)}${presetsPanel(ship)}${loadoutPanel(ship)}</div>
 	</div>`;
@@ -449,23 +620,53 @@ function setRoster(list) {
 }
 
 /** A sailor type as a picker row: the portrait, the race and what they cost. */
-function typeRow(t) {
+/** A stat's level-10 average — the figure a levelled sailor really holds. */
+const l10avg = (t, key) => t.l10 && t.l10[key] ? t.l10[key][1] : t[key] || 0;
+
+function typeRow(t, flat = false) {
 	return {
 		id: t.type,
 		label: t.type,
 		icon: face(t, { name: t.type }),
 		sub: t.mate ? `first mate · ${t.skill || ''}` : `${t.race} · ${t.cabin} cabins · eats ${t.appetite} · +${t.weight} LT · hired at ${(t.at || []).join(', ')}`,
-		meta: t.mate ? '★ mate' : `spd ${t.speed} · acc ${t.accel} · turn ${t.turn}`,
-		group: t.mate ? 'First mates' : t.race
+		meta: t.mate ? '★ mate' : `spd ${l10avg(t, 'speed')} · acc ${l10avg(t, 'accel')} · turn ${l10avg(t, 'turn')} · brk ${l10avg(t, 'brake')}`,
+		// A sorted list interleaves the races, and the picker names a
+		// group on every change of it -- so a sorted list goes flat.
+		group: flat ? null : t.mate ? 'First mates' : t.race
 	};
 }
 
 function hireDialog() {
-	const types = [...pool, ...mateTypes];
+	// The pool is authored best-growth-first, which scatters the races;
+	// the picker groups adjacent runs, so it printed fifteen headings.
+	// Sorted by each race's first appearance, the order inside a race
+	// still reads best-first, and every race is named once.
+	const races = [...new Set(pool.map(t => t.race))];
+	const byRace = [...pool].sort((a, b) => races.indexOf(a.race) - races.indexOf(b.race));
+	const STATS = [['speed', 'Speed'], ['accel', 'Accel'], ['turn', 'Turn'], ['brake', 'Brake']];
+	let race = null;      // one race, or all of them
+	let sortBy = null;    // a growth to rank by, or the authored order
+	const chips = () => [
+		...races.map(r => ({ id: `race:${r}`, label: r, on: race === r })),
+		...STATS.map(([k, label]) => ({ id: `sort:${k}`, label: `▾ ${label}`, on: sortBy === k }))
+	];
+	const items = () => {
+		let list = byRace.filter(t => !race || t.race === race);
+		if (sortBy) list = [...list].sort((a, b) => l10avg(b, sortBy) - l10avg(a, sortBy));
+		return [...list, ...(race ? [] : mateTypes)].map(t => typeRow(t, Boolean(sortBy)));
+	};
 	openPicker({
 		title: 'Hire a sailor',
-		hint: `Which type — the portrait is the one the wharf shows. A ${esc(contract.item)} each, ${F(contract.silver)} silver.`,
-		items: types.map(typeRow),
+		hint: `Which type — the portrait is the one the wharf shows. A ${esc(contract.item)} each, ${F(contract.silver)} silver. `
+			+ 'The figures are the level-10 average — each level-up rolls in a hidden range. A race narrows the list, a stat ranks it.',
+		items: items(),
+		chips: chips(),
+		onChips: id => {
+			const [kind, v] = id.split(':');
+			if (kind === 'race') race = race === v ? null : v;
+			else sortBy = sortBy === v ? null : v;
+			return { items: items(), chips: chips() };
+		},
 		onPick: type => hireDetails(type)
 	});
 }
@@ -503,6 +704,13 @@ export function crewAction(act, el) {
 	const id = el.dataset.id;
 	switch (act) {
 		case 'crew-select': selId = selId === id ? null : id; return true;
+		case 'crew-fleet': openFleet(); return true;
+		case 'crew-skin-all': {
+			const on = el.dataset.on === '1';
+			setSkinAll(crewShip(), on);
+			toast(on ? 'Set on — its stats now count' : 'Set taken off');
+			return true;
+		}
 		case 'crew-setup-load': if (loadSetup(id)) toast('Sailing it'); return true;
 		case 'crew-setup-del': deleteSetup(id); return true;
 		case 'crew-setup-save': {
@@ -748,6 +956,13 @@ export function crewChange(el) {
 	if (act === 'crew-mastery') {
 		const v = Math.floor(Number(el.value));
 		store.setProfile('sailingMastery', Number.isFinite(v) && v > 0 ? Math.min(3000, v) : null);
+		return true;
+	}
+	// A tick per appearance slot: the set is bought whole but worn a
+	// piece at a time, and someone half-way through should not be told
+	// they have all four.
+	if (act === 'crew-skin-slot') {
+		setSkinSlot(crewShip(), el.dataset.slot, el.checked);
 		return true;
 	}
 	if (!['crew-name', 'crew-lv', 'crew-cond', 'crew-stat'].includes(act)) return false;

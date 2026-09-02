@@ -1,6 +1,6 @@
 {
   "name": "bdo-ship-upgrade-tracker",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Track Black Desert Online ship upgrades against one shared inventory",
   "author": "waliori",
   "license": "MIT",
@@ -28,7 +28,7 @@
     "start": "node --env-file-if-exists=.env server.js",
     "test": "node --test \"test/*.test.mjs\"",
     "check": "node --env-file-if-exists=.env tools/check-env.mjs",
-    "capture": "node tools/capture/scenes.mjs docs/media",
+    "capture": "tools/capture/shoot.sh",
     "lint": "eslint ."
   },
   "dependencies": {

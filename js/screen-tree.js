@@ -58,12 +58,12 @@ const STATE_WORD = {
 };
 
 /** Depth-first, carrying enough about ancestors to draw the guide lines. */
-function walkTree(node, rows, depth = 0, path = '', trail = []) {
+function walkTree(node, rows, depth = 0, path = '', trail = [], all = false) {
 	const id = `${path}/${node.item}`;
 	const kids = node.children || [];
 	rows.push({ node, depth, id, trail: [...trail], kids: kids.length });
-	if (!kids.length || folded.has(id)) return rows;
-	kids.forEach((kid, i) => walkTree(kid, rows, depth + 1, id, [...trail, i === kids.length - 1]));
+	if (!kids.length || (!all && folded.has(id))) return rows;
+	kids.forEach((kid, i) => walkTree(kid, rows, depth + 1, id, [...trail, i === kids.length - 1], all));
 	return rows;
 }
 
@@ -112,8 +112,14 @@ export function renderTree() {
 
 	// A search keeps the rows that match and the branch that leads to
 	// them, so a thing found deep in a Carrack still shows its way in.
+	//
+	// A search walks the whole tree, folds and all. Enhancement chains
+	// are shut when a build first opens, and everything a chain spends
+	// -- every Black Stone and Cron Stone in the build -- is inside one:
+	// searching only the open rows answered "nothing in this tree
+	// matches Black Stone" about a tree with two hundred of them in it.
 	const q = query.trim().toLowerCase();
-	let walked = walkTree(current.tree, []);
+	let walked = walkTree(current.tree, [], 0, '', [], !!q);
 	if (q) {
 		const hits = walked.filter(r => r.node.item.toLowerCase().includes(q)).map(r => r.id);
 		walked = walked.filter(r => hits.some(h => h === r.id || h.startsWith(r.id + '/') || r.id.startsWith(h + '/')));
@@ -134,7 +140,7 @@ export function renderTree() {
 		return `<div class="trow ${state}" style="--depth:${depth}">
 			${guides}
 			${kids
-				? `<button class="tcaret" data-act="tree-fold" data-id="${esc(id)}">${folded.has(id) ? '+' : '−'}</button>`
+				? `<button class="tcaret" data-act="tree-fold" data-id="${esc(id)}">${folded.has(id) && !q ? '+' : '−'}</button>`
 				: '<span class="tcaret empty"></span>'}
 			${img(node.item, 'trow-icon')}
 			<span class="trow-main">

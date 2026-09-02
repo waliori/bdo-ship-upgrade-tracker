@@ -5,10 +5,10 @@
 import { esc, F } from './fmt.js';
 import * as store from './state.js';
 import {
-	img, codexName, amountInput, costCtx, costText, makeupHTML,
-	sourceOf, hasBuyOption, allItems
+	img, codexName, amountInput, costCtx, costText, makeupHTML, barterHTML,
+	sourceOf, hasBuyOption, allItems, waysThrough, questsPaying
 } from './ui-bits.js';
-import { recipes, snapshot, rows, query, invFilter, selected, barterData, sort, sorter, sortSelect } from './ui-state.js';
+import { recipes, snapshot, rows, query, invFilter, selected, sort, sorter, sortSelect } from './ui-state.js';
 import { maxCraftable, enhanceStep, parseEnhanced, enhancedName, waysToGet } from './planner.js';
 
 
@@ -266,10 +266,8 @@ function renderDetail() {
 			return made ? `<div class="detail-block">${made}</div>` : '';
 		})()}
 		${resvHTML}
-		${barterData && barterData.some(b => b.name === item)
-			? `<div class="detail-block"><button class="act quiet" data-act="goto-map"
-				data-item="${esc(item)}">⌖ Where to barter it</button></div>`
-			: ''}
+		${block('Bartered for', barterHTML(item))}
+		${block('Paid by quests', questsPaid(item))}
 		${src && src.key !== 'coin' && src.key !== 'falasi'
 			? `<div class="detail-src"><span>${esc(src.label)}</span><span>${esc(src.detail)}</span></div>`
 			: ''}
@@ -279,7 +277,24 @@ function renderDetail() {
 		${canCraft ? `<div class="detail-actions">
 			<button class="act" data-act="craft" data-item="${esc(item)}" data-times="1" ${most < 1 ? 'disabled' : ''}>Craft 1</button>
 			<button class="act quiet" data-act="craft" data-item="${esc(item)}" data-times="${most}" ${most < 1 ? 'disabled' : ''}>Craft max (${F(most)})</button>
-		</div>` : ''}`;
+		</div>` : ''}
+		${block('Where else it turns up', waysThrough(item, { from: 'inventory' }))}`;
+}
+
+/** A labelled block, left out when there is nothing to put in it. */
+const block = (label, body) => (body
+	? `<div class="detail-block"><div class="detail-label">${esc(label)}</div>${body}</div>` : '');
+
+/** Which quests pay in this, named. The way through to Quests is one of
+ *  the doors at the foot of the panel. */
+function questsPaid(item) {
+	const pays = questsPaying(item);
+	if (!pays.length) return '';
+	return pays.slice(0, 5).map(q => `<div class="detail-line">
+			<span>${esc(q.name)}</span>
+			<span class="n">${F(Number(q.rewards[item]) || Number((q.choice || []).map(c => c[item]).find(Boolean)) || 0)}</span>
+		</div>`).join('')
+		+ (pays.length > 5 ? `<div class="detail-note">and ${pays.length - 5} more</div>` : '');
 }
 
 /**

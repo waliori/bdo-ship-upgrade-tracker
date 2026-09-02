@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { shipStats, crewedShips, statsLine } from '../js/ship_stats.js';
 import {
 	pool, poolByType, anyType, mateTypes, contract, SAILOR_CAP,
-	seatsFor, statOf, crewTotals, autoAssign
+	seatsFor, statOf, statBand, crewTotals, autoAssign
 } from '../js/sailors.js';
 import { shipGroups } from '../js/ships.js';
 import { recipes, routes, routeInfo } from '../js/recipes.js';
@@ -70,7 +70,9 @@ test('a seated crew adds up the way the positions say', () => {
 	];
 	const t = crewTotals(roster, { 'sail:0': 'a', 'deck:0': 'b', 'cannon:0': 'c' }, shipStats['Carrack (Advance)']);
 	assert.equal(t.seated, 3);
-	assert.equal(t.speed, 1.6 * 10 * 2 + 1.0 * 5, 'the sail counts double; the sick gunner adds nothing');
+	// Ambitious Lv10 speed is the band's average, 3.1, doubled at the
+	// sail; Powerful Lv5 walks the line from 1.0 towards 2.5: 1.7.
+	assert.equal(Math.round(t.speed * 10) / 10, 3.1 * 2 + 1.7, 'the sail counts double; the sick gunner adds nothing');
 	assert.equal(t.durability, 8 * 10000, 'the Deck pays by cabin cost');
 	assert.equal(t.rations, 0);
 	assert.equal(t.force, 0, 'a sick sailor works no seat');
@@ -79,7 +81,7 @@ test('a seated crew adds up the way the positions say', () => {
 	assert.equal(t.sick, 1);
 	assert.equal(t.seats, 20);
 	assert.equal(t.overSpace, 0);
-	assert.equal(statOf(roster[0], 'speed'), 16);
+	assert.equal(statOf(roster[0], 'speed'), 3.1);
 });
 
 test('a sailor the roster does not know is simply not counted', () => {
@@ -144,9 +146,22 @@ test('auto assign keeps to the cabin space', () => {
 });
 
 test("a sailor's typed stats outrank the type's average", () => {
-	const s = { id: 'a', type: 'Ambitious', lv: 10, cond: 100, stats: { speed: 21.4 } };
-	assert.equal(statOf(s, 'speed'), 21.4);
-	assert.equal(statOf(s, 'accel'), 2, 'the rest stay on the average');
+	const s = { id: 'a', type: 'Ambitious', lv: 10, cond: 100, stats: { speed: 3.3 } };
+	assert.equal(statOf(s, 'speed'), 3.3);
+	assert.equal(statOf(s, 'accel'), 1.3, 'the rest stay on the estimate');
 	const t = crewTotals([s], { 'sail:0': 'a' }, shipStats['Epheria Caravel']);
-	assert.equal(t.speed, 42.8);
+	assert.equal(t.speed, 6.6);
+});
+
+test('growth is a band walked from the base, not a line through it', () => {
+	assert.equal(statOf({ type: 'Innocent', lv: 1 }, 'speed'), 1.2, 'level 1 is the base');
+	assert.equal(statOf({ type: 'Innocent', lv: 10 }, 'speed'), 3.4, 'level 10 is the average');
+	assert.equal(statOf({ type: 'Innocent', lv: 5 }, 'speed'), 2.2, 'between, the line between them');
+	assert.deepEqual(statBand('Innocent', 'speed', 10), { min: 2.8, avg: 3.4, max: 4.0 });
+	assert.equal(statBand('Cleia', 'speed', 10), null, 'a first mate has no band');
+	assert.equal(statOf({ type: 'Cleia', lv: 10 }, 'speed'), 0.5, 'and holds their fixed figure');
+	// The level-10 averages carry the true ranking: an Innocent ends
+	// faster than a Born-in-the-Sea, though it starts slower.
+	assert.ok(statOf({ type: 'Innocent', lv: 10 }, 'speed') > statOf({ type: 'Born-in-the-Sea', lv: 10 }, 'speed'));
+	assert.ok(poolByType['Born-in-the-Sea'].speed > poolByType['Innocent'].speed);
 });

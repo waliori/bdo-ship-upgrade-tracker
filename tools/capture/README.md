@@ -7,7 +7,7 @@ pictures never drift from the app.
 ## Requirements
 
 - `ffmpeg` on `PATH` (used both by Puppeteer's screencast and by the GIF
-  conversion)
+  and MP4 conversions)
 - A Chrome or Chromium binary
 - `npm install` (brings in `puppeteer-core`)
 
@@ -19,16 +19,20 @@ Start the app on its own port so a capture never fights your dev server:
 PORT=8765 node server.js &
 ```
 
-Then shoot everything:
+Then shoot everything — every scene, both cuts of the film, and the
+conversions — with:
 
 ```bash
-npm run capture                      # all scenes, into docs/media/
+npm run capture
 ```
 
-or one at a time while you iterate:
+That is `tools/capture/shoot.sh`, which takes about ten minutes. While
+iterating on one clip it is quicker to drive the pieces directly:
 
 ```bash
-node tools/capture/scenes.mjs tools/capture/out craft
+node tools/capture/scenes.mjs tools/capture/out craft      # one scene
+node tools/capture/tour.mjs   tools/capture/out            # the film
+node tools/capture/tour.mjs   tools/capture/out phone      # the phone cut
 ```
 
 Point it at a different browser or port with environment variables:
@@ -37,11 +41,13 @@ Point it at a different browser or port with environment variables:
 CHROME=/usr/bin/chromium PORT=9000 npm run capture
 ```
 
-Clips land as `.webm`. Turn one into a GIF with:
+Clips land as `.webm`. The conversions are separate scripts, so a clip
+can be re-encoded without re-shooting it:
 
 ```bash
 ./tools/capture/togif.sh tools/capture/out/craft.webm docs/media/craft.gif 900 13
 #                        <in>                         <out>                 <width> <fps>
+./tools/capture/tomp4.sh tools/capture/out/walkthrough.webm docs/media/walkthrough.mp4
 ```
 
 900px at 13fps keeps a 6–10 second clip around half a megabyte. The
@@ -65,20 +71,48 @@ teleporting, and a `.down` class adds a click ripple. The app still
 receives genuine `mouseover` and `click` events — nothing is faked but
 the drawing.
 
-Two things worth knowing if you add a scene:
+The same injection carries the caption bar (`#__cap`), which is why the
+film's subtitles are set in the app's own typeface rather than burned in
+afterwards. They are deliberately large — about twice the app's body
+text, and smaller but still generous on the phone cut — because these
+clips get watched at half width inside a README.
 
-- `moveTo` scrolls its target into view before measuring. A pointer moved
-  to an off-screen coordinate fires no hover at all, and the clip comes
-  out looking like the feature is broken.
-- Scrolling **during** a recording changes every pixel in the frame and
+## Writing a scene
+
+Five things are worth knowing.
+
+- **`moveTo` scrolls its target into view before measuring.** A pointer
+  moved to an off-screen coordinate fires no hover at all, and the clip
+  comes out looking like the feature is broken.
+- **Scrolling *during* a recording** changes every pixel in the frame and
   can triple the GIF. Scroll before `rec()` starts, as `peek-a-recipe`
   does.
+- **A selector can match twice.** A section button lives both in the row
+  above — hidden below 640px — and in the bar at the thumb, and the
+  "All" sheet adds a third. Every verb here aims at the first match that
+  is actually on the screen, so a scene never has to say which; `tab()`
+  goes further and opens the sheet when the section it wants is behind
+  it.
+- **A typed value needs the page shoved.** Headless Chrome's screencast
+  can miss the repaint that follows a keyboard-driven commit, so a clip
+  ending on a number you just typed shows the old one -- with the frames
+  still arriving, so waiting longer does not help. `typeInto` nudges
+  `body`'s opacity by a thousandth afterwards, which invalidates
+  everything and moves nothing.
+- **The sea has no selectors on it.** A traced stop or a written word
+  goes wherever the click lands, so `clickIn(page, '#map', fx, fy)`
+  names a point as a fraction of the chart's box. Pick open water, and
+  keep a pen stroke clear of any stop already down: a drag begun on top
+  of a mark picks the mark up and carries it instead of drawing.
 
 ## Files
 
 | File | What it is |
 |---|---|
-| `drive.mjs` | Browser, fake cursor, and the `click` / `typeInto` / `moveTo` verbs |
+| `drive.mjs` | Browser, fake cursor, captions, and the `click` / `typeInto` / `moveTo` / `clickIn` / `drag` verbs |
 | `states.mjs` | Seeded inventories, so every clip shows a believable part-built fleet |
 | `scenes.mjs` | One entry per clip and per still |
+| `tour.mjs` | The captioned film, end to end; `phone` for the narrow cut |
+| `shoot.sh` | The whole shoot, and the conversions |
 | `togif.sh` | `webm` → `gif` |
+| `tomp4.sh` | `webm` → `mp4` |

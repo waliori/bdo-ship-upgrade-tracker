@@ -82,6 +82,15 @@ export function readProfile(raw) {
 		}
 		return Object.keys(m).length ? m : null;
 	};
+	/** The four appearance slots a hull can wear, as flags. */
+	const skinMap = raw => {
+		if (!isProfile(raw)) return null;
+		const m = {};
+		for (const slot of ['cannon', 'sail', 'figurehead', 'plating']) {
+			if (raw[slot] === true || raw[slot] === 1) m[slot] = true;
+		}
+		return Object.keys(m).length ? m : null;
+	};
 	if (isProfile(raw.seats)) {
 		const seats = {};
 		for (const [ship, m] of Object.entries(raw.seats)) {
@@ -117,6 +126,18 @@ export function readProfile(raw) {
 		}
 		if (Object.keys(fitted).length) out.fitted = fitted;
 	}
+	// The appearance set worn on each hull: slot -> true. Four fixed
+	// slots, the same four the parts use, and nothing but a boolean --
+	// which set it is follows from the hull, so there is no name to keep.
+	if (isProfile(raw.skins)) {
+		const skins = {};
+		for (const [ship, slots] of Object.entries(raw.skins)) {
+			if (ship.length > 60 || !isProfile(slots)) continue;
+			const clean = skinMap(slots);
+			if (clean) skins[ship] = clean;
+		}
+		if (Object.keys(skins).length) out.skins = skins;
+	}
 	// The sea crystal on each hull, by its codex id: one slot, one crystal.
 	if (isProfile(raw.crystal)) {
 		const crystal = {};
@@ -150,11 +171,14 @@ export function readProfile(raw) {
 		}
 		if (Object.keys(groups).length) out.questGroups = groups;
 	}
-	// Saved ship setups -- a hull with its parts, crystal and seating --
-	// to switch between, and the sailing mastery the game shows.
+	// Saved ship setups -- a hull with its parts, crystal, skin and
+	// seating -- to switch between, and the sailing mastery the game
+	// shows. The ceiling is high because the fleet is a searched, paged
+	// dialog now rather than a list drawn on the screen: keeping fifty
+	// costs the same to draw as keeping five.
 	if (isProfile(raw.setups)) {
 		const setups = {};
-		for (const [id, st] of Object.entries(raw.setups).slice(0, 12)) {
+		for (const [id, st] of Object.entries(raw.setups).slice(0, 200)) {
 			if (!isProfile(st) || id.length > 24 || typeof st.ship !== 'string' || !st.ship) continue;
 			const clean = { name: String(st.name || st.ship).slice(0, 40), ship: st.ship.slice(0, 60) };
 			if (isProfile(st.fitted)) {
@@ -168,6 +192,8 @@ export function readProfile(raw) {
 			if (Number.isFinite(cr) && cr > 0) clean.crystal = cr;
 			const sm = seatMap(st.seats);
 			if (sm) clean.seats = sm;
+			const sk = skinMap(st.skin);
+			if (sk) clean.skin = sk;
 			setups[id] = clean;
 		}
 		if (Object.keys(setups).length) out.setups = setups;

@@ -52,6 +52,19 @@ export const recordLevel = {
 	stock: { ...midBuild.stock, 'Epheria Carrack: Toro Plating': 1 }
 };
 
+/**
+ * A Carrack, with the parts held for it.
+ *
+ * The hull a save starts on is an Epheria Sailboat, which takes none of
+ * the Carrack parts this inventory is full of -- so every slot card
+ * reads "nothing fitted", which is a poor picture of a screen whose
+ * point is that each slot takes the best you already hold.
+ */
+export const fittedShip = {
+	...midBuild,
+	profile: { crewShip: 'Carrack (Advance)' }
+};
+
 export const emptyStart = {
 	v: 2,
 	stock: {},

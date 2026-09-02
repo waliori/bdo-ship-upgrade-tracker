@@ -22,15 +22,18 @@ import { openDialog, closeDialog } from './dialogs.js';
  * @param {string} [o.apply]        the button label in multi mode
  * @param {function} o.onPick       (id) in single mode, (ids[]) in multi
  * @param {function} [o.onClose]    called when the picker closes, picked or not
+ * @param {Array}   [o.chips]       { id, label, on? } — a row of toggles above the list
+ * @param {function} [o.onChips]    (id) → { items?, chips? } to reorder or narrow the list
  */
 export function openPicker(o) {
 	const multi = o.multi === true;
 	const picked = new Set(multi ? (o.selected || []) : (o.selected ? [o.selected] : []));
 	const host = openDialog(`
-		<div class="picker">
+		<div class="picker picker-dialog">
 			<h2>${esc(o.title)}</h2>
 			${o.hint ? `<p class="dialog-copy">${o.hint}</p>` : ''}
 			<input class="field picker-in" type="search" placeholder="Type to find…" aria-label="Find" autocomplete="off">
+			${o.chips ? '<div class="picker-chips" data-picker-chips></div>' : ''}
 			<div class="picker-list" data-picker-list role="listbox" aria-multiselectable="${multi}"></div>
 			<div class="dialog-actions picker-actions">
 				${multi ? `<span class="picker-count" data-picker-count></span><button class="ghost-btn" data-picker-clear>Clear</button>` : ''}
@@ -40,6 +43,21 @@ export function openPicker(o) {
 		</div>`, { onDismiss: () => { if (typeof o.onClose === 'function') o.onClose(); } });
 	const input = host.querySelector('.picker-in');
 	const list = host.querySelector('[data-picker-list]');
+	const chipRow = host.querySelector('[data-picker-chips]');
+	const paintChips = () => {
+		if (!chipRow) return;
+		chipRow.innerHTML = (o.chips || []).map(c =>
+			`<button class="chip${c.on ? ' on' : ''}" data-picker-chip="${esc(c.id)}" aria-pressed="${c.on === true}">${esc(c.label)}</button>`).join('');
+	};
+	if (chipRow) chipRow.addEventListener('click', evt => {
+		const chip = evt.target.closest('[data-picker-chip]');
+		if (!chip || typeof o.onChips !== 'function') return;
+		const next = o.onChips(chip.dataset.pickerChip) || {};
+		if (next.items) o.items = next.items;
+		if (next.chips) o.chips = next.chips;
+		paintChips();
+		paint();
+	});
 	let rows = [];
 	let on = 0;
 
@@ -61,8 +79,15 @@ export function openPicker(o) {
 			if (l.includes(' ' + words[0]) || l.includes('(' + words[0]) || l.includes('+' + words[0])) return 2;
 			return l.includes(words[0]) ? 3 : 4;
 		};
+		// `boost` breaks a tie between two equally good matches: the trip
+		// log uses it so the thing a build is waiting on stays above the
+		// thing that merely shares a word with it. Without it the order
+		// inside a rank is whatever the caller's array happened to be,
+		// which is the right answer only before anything is typed.
 		rows = q
-			? o.items.map(it => [it, rank(it)]).filter(([, r]) => r >= 0).sort((a, b) => a[1] - b[1]).map(([it]) => it)
+			? o.items.map(it => [it, rank(it)]).filter(([, r]) => r >= 0)
+				.sort((a, b) => a[1] - b[1] || (b[0].boost || 0) - (a[0].boost || 0))
+				.map(([it]) => it)
 			: o.items;
 		on = Math.min(on, Math.max(0, rows.length - 1));
 		let html = '';
@@ -113,6 +138,7 @@ export function openPicker(o) {
 		host.querySelector('[data-picker-clear]').addEventListener('click', () => { picked.clear(); paint(); });
 	}
 	input.focus();
+	paintChips();
 	paint();
 	return host;
 }

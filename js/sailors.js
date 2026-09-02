@@ -5,9 +5,15 @@
 // on 2026-08-29 -- the wiki for positions, condition and the certificate;
 // the tables for the hiring pool, which the wiki does not list. Where the
 // two disagreed (cabin counts) the hulls' own codex pages settled it, in
-// ship_stats.js. Only what could be verified is here; growth is given as
-// each type's specialisation per level, because the exact roll bands are
-// published for one type only.
+// ship_stats.js.
+//
+// The per-type figures are the LEVEL-1 BASE. A level-up adds a small
+// hidden roll, so a sailor's true numbers drift inside a band: `l10`
+// carries [min, average, max] at level 10, read from the community "BDO
+// Sailors" sheet (by Sheen, raw data NekoNeko) on 2026-09-02 and
+// confirmed against BDOCodex, whose sailor pages publish exactly the
+// maxima. The game shows each sailor's real rolls; typed into the
+// roster, they outrank every estimate here.
 
 /** The one item every sailor costs, and where it is sold. */
 export const contract = {
@@ -22,8 +28,8 @@ export const contract = {
  *
  * `cabin` is the cabin space each one spends aboard; `appetite` how many
  * rations a day they eat; `weight` what they add to the hull's limit.
- * The four movement numbers and the three cannon numbers are how fast
- * that stat grows per level -- the shape of the sailor, not a total.
+ * The four movement numbers and the three cannon numbers are the
+ * level-1 base; `l10` is that stat's [min, avg, max] at level 10.
  * `at` is where the type turns up for hire.
  */
 // `codex` is the sailor's id on BDOCodex (query.php?a=sailors), matched
@@ -31,27 +37,49 @@ export const contract = {
 // it grows most -- the portrait the game shows in the sailor list lives
 // there, and fetch-icons files it under the type's name.
 export const pool = [
-	{ type: 'Born-in-the-Sea', codex: 59070, race: 'Giant', appetite: 150, cabin: 10, weight: 500, speed: 2.0, accel: 0.3, turn: 0.3, brake: 0.3, at: ['Iliya'] },
-	{ type: 'Ambitious', codex: 59053, race: 'Goblin', appetite: 150, cabin: 10, weight: 200, speed: 1.6, accel: 0.2, turn: 0.2, brake: 0.2, at: ['Velia', 'Epheria'] },
+	{ type: 'Born-in-the-Sea', codex: 59070, race: 'Giant', appetite: 150, cabin: 10, weight: 500, speed: 2.0, accel: 0.3, turn: 0.3, brake: 0.3, at: ['Iliya'],
+		l10: { speed: [3.0, 3.2, 3.4], accel: [1.3, 1.5, 1.7], turn: [0.6, 0.8, 1.0], brake: [0.6, 0.8, 1.0] } },
+	{ type: 'Ambitious', codex: 59053, race: 'Goblin', appetite: 150, cabin: 10, weight: 200, speed: 1.6, accel: 0.2, turn: 0.2, brake: 0.2, at: ['Velia', 'Epheria'],
+		l10: { speed: [2.7, 3.1, 3.4], accel: [1.1, 1.3, 1.5], turn: [1.1, 1.3, 1.5], brake: [1.1, 1.3, 1.5] } },
 	{ type: 'Innocent', codex: 59055, race: 'Goblin', appetite: 150, cabin: 10, weight: 200, speed: 1.2, accel: 0.3, turn: 0.3, brake: 0.3, at: ['Velia', 'Epheria'],
-		note: 'Slower to start than an Ambitious one, and the best speed growth of any sailor by the time it is levelled.' },
-	{ type: 'Experienced', codex: 59066, race: 'Human', appetite: 150, cabin: 10, weight: 250, speed: 1.0, accel: 1.0, turn: 0.3, brake: 0.3, at: ['Velia', 'Epheria'] },
-	{ type: 'Powerful', codex: 59069, race: 'Giant', appetite: 150, cabin: 8, weight: 500, speed: 1.0, accel: 1.0, turn: 1.0, brake: 1.0, at: ['Iliya'] },
-	{ type: 'Dreaming of a Full Haul', codex: 59068, race: 'Giant', appetite: 150, cabin: 13, weight: 400, speed: 0.2, accel: 1.4, turn: 0.2, brake: 0.2, at: ['Epheria', 'Iliya'] },
-	{ type: 'Honest', codex: 59063, race: 'Human', appetite: 120, cabin: 7, weight: 200, speed: 0.5, accel: 0.5, turn: 0.5, brake: 0.5, at: ['Iliya'] },
-	{ type: 'Strong', codex: 59065, race: 'Human', appetite: 100, cabin: 8, weight: 250, speed: 0.5, accel: 0.5, turn: 1.5, brake: 1.5, at: ['Iliya'] },
-	{ type: 'Smart', codex: 59071, race: 'Giant', appetite: 100, cabin: 5, weight: 500, speed: 0.4, accel: 0.4, turn: 0.4, brake: 0.4, at: ['Velia', 'Epheria'] },
-	{ type: 'Diligent', codex: 59054, race: 'Goblin', appetite: 80, cabin: 10, weight: 100, speed: 0.3, accel: 0.3, turn: 2.0, brake: 2.0, at: ['Iliya'] },
-	{ type: 'Calculating', codex: 59058, race: 'Dwarf', appetite: 150, cabin: 10, weight: 300, speed: 0.3, accel: 1.2, turn: 0.3, brake: 0.3, at: ['Velia', 'Epheria'] },
-	{ type: 'Confident', codex: 59061, race: 'Dwarf', appetite: 100, cabin: 5, weight: 300, speed: 0.3, accel: 0.3, turn: 3.0, brake: 0.6, at: ['Velia', 'Epheria'] },
-	{ type: 'Tough', codex: 59064, race: 'Human', appetite: 100, cabin: 5, weight: 300, speed: 0.3, accel: 0.3, turn: 0.6, brake: 3.0, at: ['Velia', 'Epheria'] },
-	{ type: 'Enamored', codex: 59056, race: 'Goblin', appetite: 150, cabin: 10, weight: 300, speed: 0.2, accel: 1.6, turn: 0.2, brake: 0.2, at: ['Velia', 'Epheria'] },
-	{ type: 'Treasure-Seeking', codex: 59059, race: 'Dwarf', appetite: 110, cabin: 5, weight: 300, speed: 0.2, accel: 0.2, turn: 4.0, brake: 0.8, at: ['Velia', 'Epheria'] },
-	{ type: 'Tenacious', codex: 59062, race: 'Dwarf', appetite: 100, cabin: 5, weight: 300, speed: 0.2, accel: 0.2, turn: 0.8, brake: 4.0, at: ['Velia'] },
-	{ type: 'Quick-Witted', codex: 59072, race: 'Giant', appetite: 150, cabin: 10, weight: 500, speed: 0.2, accel: 0.2, turn: 0.2, brake: 3.0, force: 0.2, focus: 5.0, vision: 0.2, at: ['Velia', 'Iliya'] },
-	{ type: 'Quick', codex: 59057, race: 'Goblin', appetite: 100, cabin: 10, weight: 250, speed: 0.2, accel: 1.5, turn: 0.2, brake: 0.2, force: 3.0, focus: 0.2, vision: 0.2, at: ['Velia', 'Iliya'] },
-	{ type: 'Realistic', codex: 59060, race: 'Dwarf', appetite: 100, cabin: 10, weight: 300, speed: 0.2, accel: 0.2, turn: 3.0, brake: 0.2, force: 0.2, focus: 0.2, vision: 15.0, at: ['Velia', 'Iliya'] },
-	{ type: 'Curious', codex: 59067, race: 'Human', appetite: 100, cabin: 10, weight: 300, speed: 0.2, accel: 1.0, turn: 0.2, brake: 1.0, force: 1.0, focus: 3.0, vision: 0.2, at: ['Velia', 'Iliya'] }
+		l10: { speed: [2.8, 3.4, 4.0], accel: [1.2, 1.4, 1.6], turn: [1.4, 2.0, 2.5], brake: [1.4, 2.0, 2.5] },
+		note: 'Slower to start than an Ambitious one, and the best speed of any sailor by the time it is levelled.' },
+	{ type: 'Experienced', codex: 59066, race: 'Human', appetite: 150, cabin: 10, weight: 250, speed: 1.0, accel: 1.0, turn: 0.3, brake: 0.3, at: ['Velia', 'Epheria'],
+		l10: { speed: [2.1, 2.5, 2.8], accel: [2.1, 2.5, 2.8], turn: [1.3, 1.5, 1.7], brake: [1.3, 1.5, 1.7] } },
+	{ type: 'Powerful', codex: 59069, race: 'Giant', appetite: 150, cabin: 8, weight: 500, speed: 1.0, accel: 1.0, turn: 1.0, brake: 1.0, at: ['Iliya'],
+		l10: { speed: [2.1, 2.5, 2.8], accel: [2.1, 2.5, 2.8], turn: [2.1, 2.5, 2.8], brake: [2.1, 2.5, 2.8] } },
+	{ type: 'Dreaming of a Full Haul', codex: 59068, race: 'Giant', appetite: 150, cabin: 13, weight: 400, speed: 0.2, accel: 1.4, turn: 0.2, brake: 0.2, at: ['Epheria', 'Iliya'],
+		l10: { speed: [1.1, 1.3, 1.5], accel: [3.5, 5.0, 6.5], turn: [1.1, 1.3, 1.5], brake: [1.1, 1.3, 1.5] } },
+	{ type: 'Honest', codex: 59063, race: 'Human', appetite: 120, cabin: 7, weight: 200, speed: 0.5, accel: 0.5, turn: 0.5, brake: 0.5, at: ['Iliya'],
+		l10: { speed: [1.6, 2.0, 2.3], accel: [1.6, 2.0, 2.3], turn: [1.6, 2.0, 2.3], brake: [1.6, 2.0, 2.3] } },
+	{ type: 'Strong', codex: 59065, race: 'Human', appetite: 100, cabin: 8, weight: 250, speed: 0.5, accel: 0.5, turn: 1.5, brake: 1.5, at: ['Iliya'],
+		l10: { speed: [1.4, 1.6, 1.8], accel: [1.4, 1.6, 1.8], turn: [3.5, 4.2, 4.8], brake: [3.5, 4.2, 4.8] } },
+	{ type: 'Smart', codex: 59071, race: 'Giant', appetite: 100, cabin: 5, weight: 500, speed: 0.4, accel: 0.4, turn: 0.4, brake: 0.4, at: ['Velia', 'Epheria'],
+		l10: { speed: [1.3, 1.5, 1.7], accel: [1.3, 1.5, 1.7], turn: [1.3, 1.5, 1.7], brake: [1.3, 1.5, 1.7] } },
+	{ type: 'Diligent', codex: 59054, race: 'Goblin', appetite: 80, cabin: 10, weight: 100, speed: 0.3, accel: 0.3, turn: 2.0, brake: 2.0, at: ['Iliya'],
+		l10: { speed: [1.2, 1.4, 1.6], accel: [1.2, 1.4, 1.6], turn: [3.6, 4.0, 4.4], brake: [3.6, 4.0, 4.4] } },
+	{ type: 'Calculating', codex: 59058, race: 'Dwarf', appetite: 150, cabin: 10, weight: 300, speed: 0.3, accel: 1.2, turn: 0.3, brake: 0.3, at: ['Velia', 'Epheria'],
+		l10: { speed: [1.3, 1.5, 1.7], accel: [2.8, 3.4, 4.0], turn: [1.9, 2.5, 3.1], brake: [1.9, 2.5, 3.1] } },
+	{ type: 'Confident', codex: 59061, race: 'Dwarf', appetite: 100, cabin: 5, weight: 300, speed: 0.3, accel: 0.3, turn: 3.0, brake: 0.6, at: ['Velia', 'Epheria'],
+		l10: { speed: [1.3, 1.5, 1.7], accel: [1.3, 1.5, 1.7], turn: [7.1, 7.7, 8.3], brake: [2.6, 3.3, 3.9] } },
+	{ type: 'Tough', codex: 59064, race: 'Human', appetite: 100, cabin: 5, weight: 300, speed: 0.3, accel: 0.3, turn: 0.6, brake: 3.0, at: ['Velia', 'Epheria'],
+		l10: { speed: [1.3, 1.5, 1.7], accel: [1.3, 1.5, 1.7], turn: [2.6, 3.3, 3.9], brake: [7.1, 7.7, 8.3] } },
+	{ type: 'Enamored', codex: 59056, race: 'Goblin', appetite: 150, cabin: 10, weight: 300, speed: 0.2, accel: 1.6, turn: 0.2, brake: 0.2, at: ['Velia', 'Epheria'],
+		l10: { speed: [1.1, 1.3, 1.5], accel: [2.7, 3.1, 3.4], turn: [1.1, 1.3, 1.5], brake: [1.1, 1.3, 1.5] } },
+	{ type: 'Treasure-Seeking', codex: 59059, race: 'Dwarf', appetite: 110, cabin: 5, weight: 300, speed: 0.2, accel: 0.2, turn: 4.0, brake: 0.8, at: ['Velia', 'Epheria'],
+		l10: { speed: [1.1, 1.3, 1.5], accel: [1.1, 1.3, 1.5], turn: [5.6, 6.0, 6.4], brake: [1.8, 2.0, 2.2] } },
+	{ type: 'Tenacious', codex: 59062, race: 'Dwarf', appetite: 100, cabin: 5, weight: 300, speed: 0.2, accel: 0.2, turn: 0.8, brake: 4.0, at: ['Velia'],
+		l10: { speed: [1.1, 1.3, 1.5], accel: [1.1, 1.3, 1.5], turn: [1.8, 2.0, 2.2], brake: [5.6, 6.0, 6.4] } },
+	{ type: 'Quick-Witted', codex: 59072, race: 'Giant', appetite: 150, cabin: 10, weight: 500, speed: 0.2, accel: 0.2, turn: 0.2, brake: 3.0, force: 0.2, focus: 5.0, vision: 0.2, at: ['Velia', 'Iliya'],
+		l10: { speed: [1.1, 1.8, 2.5], accel: [1.7, 2.4, 3.0], turn: [1.5, 1.8, 2.0], brake: [5.7, 7.8, 9.8], force: [1.1, 1.3, 1.5], focus: [9.1, 11.1, 13.0], vision: [1.1, 1.3, 1.5] } },
+	// Quick's cannon base read force 3.0 / vision 0.2 in the guide; the
+	// community sheet and the codex maxima agree it is the other way.
+	{ type: 'Quick', codex: 59057, race: 'Goblin', appetite: 100, cabin: 10, weight: 250, speed: 0.2, accel: 1.5, turn: 0.2, brake: 0.2, force: 2.0, focus: 0.2, vision: 6.0, at: ['Velia', 'Iliya'],
+		l10: { speed: [1.1, 1.8, 2.5], accel: [4.6, 6.2, 7.8], turn: [1.3, 1.7, 2.0], brake: [2.2, 2.9, 3.5], force: [3.6, 4.3, 5.0], focus: [1.2, 1.5, 1.8], vision: [6.9, 7.0, 7.1] } },
+	{ type: 'Realistic', codex: 59060, race: 'Dwarf', appetite: 100, cabin: 10, weight: 300, speed: 0.2, accel: 0.2, turn: 3.0, brake: 0.2, force: 0.2, focus: 0.2, vision: 15.0, at: ['Velia', 'Iliya'],
+		l10: { speed: [1.1, 1.8, 2.5], accel: [1.7, 2.4, 3.0], turn: [5.7, 7.8, 9.8], brake: [2.2, 2.9, 3.5], force: [1.2, 1.4, 1.5], focus: [1.2, 1.4, 1.5], vision: [41.9, 45.0, 48.0] } },
+	{ type: 'Curious', codex: 59067, race: 'Human', appetite: 100, cabin: 10, weight: 300, speed: 0.2, accel: 1.0, turn: 0.2, brake: 1.0, force: 1.0, focus: 3.0, vision: 0.2, at: ['Velia', 'Iliya'],
+		l10: { speed: [1.1, 1.8, 2.5], accel: [3.9, 4.6, 5.2], turn: [1.5, 1.8, 2.0], brake: [4.0, 5.3, 6.6], force: [2.6, 3.8, 5.0], focus: [6.1, 7.6, 9.0], vision: [1.1, 1.2, 1.3] } }
 ];
 
 export const poolByType = Object.fromEntries(pool.map(s => [s.type, s]));
@@ -206,11 +234,29 @@ export function seatsFor(ship, stats) {
 export function statOf(sailor, key) {
 	const t = anyType[sailor.type];
 	if (!t) return 0;
-	// Growth is a hidden random range per sailor, so the type's figure is
-	// an average. The game shows each sailor's real numbers; typed in,
-	// they outrank it.
+	// Every level adds a hidden roll, so the estimate walks the line
+	// from the level-1 base to the level-10 average. The game shows each
+	// sailor's real numbers; typed into the roster, they outrank this.
 	if (sailor.stats && Number.isFinite(sailor.stats[key])) return sailor.stats[key];
-	return Math.round((t[key] || 0) * (sailor.lv || 1) * 10) / 10;
+	const base = t[key] || 0;
+	const band = t.l10 && t.l10[key];
+	if (!band) return base;   // a first mate's figures do not grow
+	const f = (Math.min(10, Math.max(1, sailor.lv || 1)) - 1) / 9;
+	return Math.round((base + (band[1] - base) * f) * 10) / 10;
+}
+
+/**
+ * The [min, avg, max] a stat can be at a level, walked linearly from
+ * the base to the level-10 band -- what a typed roll is judged against.
+ */
+export function statBand(type, key, lv = 10) {
+	const t = anyType[type];
+	const band = t && t.l10 && t.l10[key];
+	if (!band) return null;
+	const base = t[key] || 0;
+	const f = (Math.min(10, Math.max(1, lv)) - 1) / 9;
+	const at = v => Math.round((base + (v - base) * f) * 10) / 10;
+	return { min: at(band[0]), avg: at(band[1]), max: at(band[2]) };
 }
 
 export const STAT_KEYS = ['speed', 'accel', 'turn', 'brake', 'force', 'focus', 'vision'];

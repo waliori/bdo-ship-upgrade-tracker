@@ -8,7 +8,8 @@
 
 import { esc, F, parseAmount } from './fmt.js';
 import * as store from './state.js';
-import { img, allItems } from './ui-bits.js';
+import { img, allItems, offerableItems } from './ui-bits.js';
+import { snapshot } from './ui-state.js';
 import { CROW_COIN, SILVER, SANGPYEONG } from './ui-state.js';
 import { quests } from './quests.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
@@ -38,11 +39,56 @@ function rowHTML(l, i) {
 	</div>`;
 }
 
-function pickFor(i) {
+/**
+ * The list to choose from, in the order a sailor coming off the water
+ * wants it.
+ *
+ * What the builds are short of comes first, because that is what the
+ * trip was for -- it was previously one alphabetical run of every name
+ * the app knows, where the thing you sailed out for sat between two
+ * things you will never hold. Then what is already in stock, which is
+ * the other common case: topping up a pile. Then everything else, still
+ * there to be typed at.
+ *
+ * The eleven enhancement levels of each ship part are left out unless
+ * they are real for this player -- nobody comes back from a barter run
+ * with a +7 sail, and 720 of the 938 names are those.
+ */
+function pickerItems(query = '') {
 	const stock = store.getAllStock();
+	const needed = (snapshot && snapshot.missing) || {};
+	const offered = offerableItems(names(), { query, stock, needed });
+
+	const want = [], held = [], rest = [];
+	for (const n of offered) {
+		const short = Number(needed[n]) || 0;
+		const have = Number(stock[n]) || 0;
+		if (short > 0) {
+			want.push({ id: n, label: n, icon: img(n, ''), group: 'Your builds still need',
+				meta: `${F(short)} short`, sub: have ? `you hold ${F(have)}` : '', boost: 2 });
+		} else if (have > 0) {
+			held.push({ id: n, label: n, icon: img(n, ''), group: 'Already in your stock',
+				meta: `you hold ${F(have)}`, boost: 1 });
+		} else {
+			rest.push({ id: n, label: n, icon: img(n, ''), group: 'Everything else' });
+		}
+	}
+	// Biggest shortfall first: the deeper the hole, the more likely it is
+	// what was just sailed for.
+	want.sort((a, b) => (Number(needed[b.id]) || 0) - (Number(needed[a.id]) || 0) || a.id.localeCompare(b.id));
+	held.sort((a, b) => (Number(stock[b.id]) || 0) - (Number(stock[a.id]) || 0) || a.id.localeCompare(b.id));
+	return [...want, ...held, ...rest];
+}
+
+function pickFor(i) {
+	const items = pickerItems();
+	const shortOf = items.filter(it => it.boost === 2).length;
 	openPicker({
 		title: 'Which item?',
-		items: names().map(n => ({ id: n, label: n, icon: img(n, ''), meta: stock[n] ? `you hold ${F(stock[n])}` : '' })),
+		hint: shortOf
+			? `The ${shortOf === 1 ? 'one thing' : `${shortOf} things`} your builds are still short of ${shortOf === 1 ? 'is' : 'are'} first. Type to reach anything else.`
+			: 'Type to find anything you brought back.',
+		items,
 		selected: lines[i] && lines[i].item,
 		onPick: item => {
 			lines[i].item = item;
