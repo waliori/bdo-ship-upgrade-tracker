@@ -261,6 +261,25 @@ test('a plan and a ship travel in links', async () => {
 	await context.close();
 });
 
+test('a ship in a link is looked at first, and the missing parts can queue', async () => {
+	const { page, context, errors } = await open('#crew');
+	const link = await page.evaluate(async () => {
+		const s = await import('/js/share.js');
+		const setup = { ship: 'Carrack (Valor)', fitted: { cannon: "+9 Epheria Carrack: Valor (Chiro's Cannon)" }, roster: [], seats: {} };
+		return s.shareLink(await s.encodeShare({ stock: {}, setup })).replace('#share/', '#ship/');
+	});
+	const p2 = await context.newPage();
+	await p2.goto(link, { waitUntil: 'domcontentloaded' }); await wait(900);
+	assert.match(await text(p2, '#dialog h2'), /a ship in a link/i);
+	assert.equal(await count(p2, '.share-part'), 1, 'the fitted part is laid out');
+	assert.match(await text(p2, '.share-part'), /not in your inventory/i);
+	await p2.click('[data-ship-queue]'); await wait(400);
+	const targets = await p2.evaluate(async () => (await import('/js/state.js')).saveShape().targets.map(t => t.item));
+	assert.ok(targets.includes("+9 Epheria Carrack: Valor (Chiro's Cannon)"), 'the missing part joined the queue');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('the day rides under the pouch on every tab but the Plan, and the More menu opens and closes', async () => {
 	const { page, context, errors } = await open('#builds');
 	await seed(page); await wait(300);

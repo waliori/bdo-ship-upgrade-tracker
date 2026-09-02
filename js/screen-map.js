@@ -2135,18 +2135,18 @@ function declutterPins(pool, pins) {
 			shown.push({ l: r.left - host.left, r: r.right - host.left, t: r.top - host.top, b: r.bottom - host.top });
 		}
 	}
-	// The name hangs to the right of a dot centred on the coordinate:
-	// roughly 12px of dot and gap, then the wider of its two lines. At
-	// 10px display type that runs about 5.6px a character, over two
-	// lines about 24px tall. Estimated rather than measured because this
-	// runs on every pan frame, and 80 getBoundingClientRect calls there
-	// is a layout thrash for a label nobody is reading yet.
-	const CH = 5.6, DOT = 12, H = 24;
+	// The name hangs east of a dot that sits exactly on the coordinate:
+	// half a dot and the gap, then the wider of its two lines. At 10px
+	// display type that runs about 5.6px a character, over two lines
+	// about 24px tall. Estimated rather than measured because this runs
+	// on every pan frame, and 80 getBoundingClientRect calls there is a
+	// layout thrash for a label nobody is reading yet.
+	const CH = 5.6, H = 24;
 	const claim = (btn, left, top) => {
 		const npc = btn.querySelector('.map-pin-npc').textContent || '';
 		const at = btn.querySelector('.map-pin-at').textContent || '';
-		const w = DOT + Math.max(npc.length, at.length) * CH;
-		const box = { l: left - w / 2, r: left + w / 2, t: top - H / 2, b: top + H / 2 };
+		const w = Math.max(npc.length, at.length) * CH;
+		const box = { l: left - 8, r: left + 12 + w, t: top - H / 2, b: top + H / 2 };
 		for (const s of shown) {
 			if (box.l < s.r && box.r > s.l && box.t < s.b && box.b > s.t) return false;
 		}
@@ -2760,6 +2760,7 @@ export function wireMap() {
 	// The panel, the card, the minimap: furniture on top of the sea.
 	// A gesture that starts on them is for them, not for the chart.
 	const CHROME = '.map-side, .map-side-pill, .map-tip, .map-mini, .map-steps, .map-trace-write';
+const MARKERS = '[data-act="map-pin"], [data-act="map-port"], .map-habitat';
 		// Tracing, the markers are scenery: a line drawn across a barterer
 	// must not stop dead there and open his trades instead.
 	// The markers used to be furniture too, and a drag that began on one
@@ -2807,7 +2808,11 @@ const furniture = () => CHROME;
 		} else {
 			dragging = { x: evt.clientX, y: evt.clientY };
 		}
-		host.setPointerCapture(evt.pointerId);
+		// Firefox hands the click after a captured gesture to the capture
+		// target, not the button it began on -- so a press that starts on
+		// a marker goes uncaptured, and its tap stays a plain click in
+		// every engine. The document-level listeners pan it all the same.
+		if (!(mode !== 'trace' && evt.target.closest(MARKERS))) host.setPointerCapture(evt.pointerId);
 		host.classList.add('dragging');
 	});
 

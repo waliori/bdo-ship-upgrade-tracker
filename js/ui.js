@@ -18,7 +18,7 @@ import {
 	recompute, readyCrafts, CROW_COIN, SILVER, setSort
 } from './ui-state.js';
 import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
-import { allItems, CODEX_LANGS } from './ui-bits.js';
+import { allItems, CODEX_LANGS, img } from './ui-bits.js';
 import { encodeShare, decodeShare, shareLink } from './share.js';
 import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
@@ -517,6 +517,36 @@ const closeBar = () => {
 };
 
 function wire() {
+	// A styled tip for anything wearing data-tip: the browser's yellow
+	// rectangle reads like a debugger, not like the app. One element,
+	// moved under whatever is pointed at or focused.
+	const tip = document.createElement('div');
+	tip.className = 'app-tip';
+	tip.hidden = true;
+	document.body.appendChild(tip);
+	const showTip = target => {
+		tip.textContent = target.dataset.tip;
+		tip.hidden = false;
+		const w = tip.offsetWidth, h = tip.offsetHeight;
+		const r = target.getBoundingClientRect();
+		const x = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+		const y = r.top - h - 10 >= 4 ? r.top - h - 10 : r.bottom + 10;
+		tip.style.left = `${Math.round(x)}px`;
+		tip.style.top = `${Math.round(y)}px`;
+	};
+	const hideTip = () => { tip.hidden = true; };
+	document.addEventListener('pointerover', evt => {
+		const t = evt.target.closest('[data-tip]');
+		if (t) showTip(t); else if (!tip.hidden) hideTip();
+	});
+	document.addEventListener('focusin', evt => {
+		const t = evt.target.closest('[data-tip]');
+		if (t) showTip(t);
+	});
+	document.addEventListener('focusout', hideTip);
+	document.addEventListener('scroll', hideTip, true);
+	document.addEventListener('pointerdown', hideTip, true);
+
 	document.addEventListener('click', async evt => {
 		// A link out to BDOCodex is the browser's business, not ours --
 		// it must not also select a tile or dismiss a panel on the way.
@@ -1209,7 +1239,7 @@ async function openShared(payload) {
 	});
 }
 
-/** A ship setup in a link: the hull, its parts, its crew. */
+/** A ship setup in a link: shown first, taken only on purpose. */
 async function openSharedShip(payload) {
 	let setup;
 	try {
@@ -1218,18 +1248,35 @@ async function openSharedShip(payload) {
 		return toast('That link does not carry a ship setup the tracker can read');
 	}
 	if (!setup || !setup.ship) return toast('That link does not carry a ship setup');
-	const parts = Object.values(setup.fitted || {}).filter(Boolean).length;
+	const fitted = Object.entries(setup.fitted || {}).filter(([, part]) => part);
+	const missing = fitted.filter(([, part]) => !(store.getStock(part) > 0)).map(([, part]) => part);
 	const sailors = (setup.roster || []).length;
+	const partRows = fitted.length
+		? fitted.map(([slot, part]) => {
+			const held = store.getStock(part) > 0;
+			return `<div class="share-part${held ? ' held' : ''}">${img(part, 'share-part-icon')}
+				<span class="share-part-name">${esc(part)} <small>${esc(slot)}</small></span>
+				<span class="share-part-have">${held ? 'you hold it' : 'not in your inventory'}</span></div>`;
+		}).join('')
+		: '<p class="empty">No parts chosen by hand — the hull as it comes.</p>';
 	const host = openDialog(`
-		<h2>A ship setup in a link</h2>
-		<p class="dialog-copy"><b>${esc(setup.ship)}</b>, ${parts} part${parts === 1 ? '' : 's'} chosen by hand, ${sailors} sailor${sailors === 1 ? '' : 's'} on the roster. Taking it in makes it your ship — the roster and that hull's seats are replaced; one Undo takes it back.</p>
+		<h2>A ship in a link</h2>
+		<p class="dialog-copy">Someone's <b>${esc(setup.ship)}</b>${sailors ? ` · ${sailors} sailor${sailors === 1 ? '' : 's'} on the roster` : ''}${setup.crystal ? ' · a sea crystal chosen' : ''}. Looking costs nothing; taking it replaces that hull's parts and seats and your roster, and one Undo takes it back.</p>
+		<div class="share-parts">${partRows}</div>
 		<div class="dialog-actions">
+			${missing.length ? `<button class="act quiet" data-ship-queue title="Each missing part joins the build queue, so the plan prices the way to this ship">Queue the ${missing.length} missing part${missing.length === 1 ? '' : 's'}</button>` : ''}
+			<button class="ghost-btn" data-close>Just looking</button>
 			<button class="act" data-ship-take>Make it my ship</button>
-			<button class="ghost-btn" data-close>Ignore</button>
 		</div>`);
 	host.querySelector('[data-ship-take]').addEventListener('click', () => {
 		closeDialog();
-		if (applyShipSetup(setup)) toast(`Sailing as ${setup.ship}`, true);
+		if (applyShipSetup(setup)) toast(`Sailing as ${setup.ship} — one Undo takes it back`, true);
+	});
+	const queue = host.querySelector('[data-ship-queue]');
+	if (queue) queue.addEventListener('click', () => {
+		closeDialog();
+		for (const part of missing) store.addTarget(part, 1);
+		toast(`Queued ${missing.length} part${missing.length === 1 ? '' : 's'} to build`, true);
 	});
 }
 

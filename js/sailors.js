@@ -73,9 +73,10 @@ export const pool = [
 	{ type: 'Quick-Witted', codex: 59072, race: 'Giant', appetite: 150, cabin: 10, weight: 500, speed: 0.2, accel: 0.2, turn: 0.2, brake: 3.0, force: 0.2, focus: 5.0, vision: 0.2, at: ['Velia', 'Iliya'],
 		l10: { speed: [1.1, 1.8, 2.5], accel: [1.7, 2.4, 3.0], turn: [1.5, 1.8, 2.0], brake: [5.7, 7.8, 9.8], force: [1.1, 1.3, 1.5], focus: [9.1, 11.1, 13.0], vision: [1.1, 1.3, 1.5] } },
 	// Quick's cannon base read force 3.0 / vision 0.2 in the guide; the
-	// community sheet and the codex maxima agree it is the other way.
+	// community sheet and the codex maxima agree it is the other way,
+	// and the patch that reshaped them puts Force at 3.5–5% by level 10.
 	{ type: 'Quick', codex: 59057, race: 'Goblin', appetite: 100, cabin: 10, weight: 250, speed: 0.2, accel: 1.5, turn: 0.2, brake: 0.2, force: 2.0, focus: 0.2, vision: 6.0, at: ['Velia', 'Iliya'],
-		l10: { speed: [1.1, 1.8, 2.5], accel: [4.6, 6.2, 7.8], turn: [1.3, 1.7, 2.0], brake: [2.2, 2.9, 3.5], force: [3.6, 4.3, 5.0], focus: [1.2, 1.5, 1.8], vision: [6.9, 7.0, 7.1] } },
+		l10: { speed: [1.1, 1.8, 2.5], accel: [4.6, 6.2, 7.8], turn: [1.3, 1.7, 2.0], brake: [2.2, 2.9, 3.5], force: [3.5, 4.3, 5.0], focus: [1.2, 1.5, 1.8], vision: [6.9, 7.0, 7.1] } },
 	{ type: 'Realistic', codex: 59060, race: 'Dwarf', appetite: 100, cabin: 10, weight: 300, speed: 0.2, accel: 0.2, turn: 3.0, brake: 0.2, force: 0.2, focus: 0.2, vision: 15.0, at: ['Velia', 'Iliya'],
 		l10: { speed: [1.1, 1.8, 2.5], accel: [1.7, 2.4, 3.0], turn: [5.7, 7.8, 9.8], brake: [2.2, 2.9, 3.5], force: [1.2, 1.4, 1.5], focus: [1.2, 1.4, 1.5], vision: [41.9, 45.0, 48.0] } },
 	{ type: 'Curious', codex: 59067, race: 'Human', appetite: 100, cabin: 10, weight: 300, speed: 0.2, accel: 1.0, turn: 0.2, brake: 1.0, force: 1.0, focus: 3.0, vision: 0.2, at: ['Velia', 'Iliya'],

@@ -105,7 +105,7 @@ function seatBox(ship, seat, armed) {
 		: held
 			? `${seat.label}, for ${held.name}: ${seatPitch(seat.pos, held) || seat.effect}`
 			: `${seat.label}: empty seat — ${seat.effect}`;
-	return `<button class="${cls}" data-act="crew-seat" data-seat="${esc(seat.key)}" title="${esc(title)}" aria-label="${esc(title)}">
+	return `<button class="${cls}" data-act="crew-seat" data-seat="${esc(seat.key)}" data-tip="${esc(title)}" aria-label="${esc(title)}">
 		${s ? `<span class="seat-mono" style="background:${RACE[(t && t.race) || 'Human']}">${face(t, s)}</span>
 			<span class="seat-lv">${s.lv}</span>
 			<span class="seat-cond"><i style="width:${s.cond}%;background:${condColor(s.cond)}"></i></span>` : '<span class="seat-plus">+</span>'}
@@ -141,7 +141,7 @@ function board(ship, stats, totals) {
 			const s = id ? byId(id) : null;
 			const held = armed ? byId(selId) : null;
 			const lineTitle = s ? seatPitch(seat.pos, s) : held ? `for ${held.name}: ${seatPitch(seat.pos, held)}` : seat.effect;
-			return `<button class="seat-line${s ? ' taken' : ''}${armed && !s ? ' armed' : ''}${s && s.id === selId ? ' picked' : ''}" data-act="crew-seat" data-seat="${esc(seat.key)}" title="${esc(lineTitle || seat.effect)}">
+			return `<button class="seat-line${s ? ' taken' : ''}${armed && !s ? ' armed' : ''}${s && s.id === selId ? ' picked' : ''}" data-act="crew-seat" data-seat="${esc(seat.key)}" data-tip="${esc(lineTitle || seat.effect)}">
 				${seatBox(ship, seat, armed).replace(/<button[^>]*>|<\/button>$/g, '')}
 				<span class="seat-line-text">${s ? `${esc(s.name)} <small>${esc(s.type)} · Lv ${s.lv}</small>` : `<small>empty — ${esc(seat.effect)}</small>`}</span>
 			</button>`;
@@ -291,8 +291,8 @@ function selectedPanel(ship) {
 		<div class="sel-note">Each level-up rolls inside a hidden range, so these are estimates — type what the sailor window shows and they outrank it, judged against the level's band.</div>
 		<div class="sel-facts">cabins <b>${t.cabin ?? '—'}</b> · eats <b>${t.appetite ?? '—'}</b>/day · weight <b>+${t.weight ?? 0} LT</b></div>
 		${t.mate
-		? '<div class="sel-facts sel-seats" title="Seats double a sailor\'s matching growths; the First Mate seat is where a named mate\'s skill switches on.">at the <b>First Mate</b> seat ★ their skill switches on</div>'
-		: `<div class="sel-facts sel-seats" title="What each seat does with this sailor's own numbers — hover a seat on the ship for the same. Deck and Mess pay by cabin cost.">at a seat: Sail <b>+${dbl(statOf(s, 'speed'))}%</b> spd · Wheel <b>+${dbl(statOf(s, 'turn'))}%</b> turn${t.force !== undefined ? ` · Cannon <b>+${dbl(statOf(s, 'focus'))}%</b> focus` : ''} · Deck <b>+${F((t.cabin || 0) * 10000)}</b> dura · Mess <b>+${F((t.cabin || 0) * 5000)}</b> rations</div>`}
+		? '<div class="sel-facts sel-seats" data-tip="Seats double a sailor\'s matching growths; the First Mate seat is where a named mate\'s skill switches on.">at the <b>First Mate</b> seat ★ their skill switches on</div>'
+		: `<div class="sel-facts sel-seats" data-tip="What each seat does with this sailor's own numbers — hover a seat on the ship for the same. Deck and Mess pay by cabin cost.">at a seat: Sail <b>+${dbl(statOf(s, 'speed'))}%</b> spd · Wheel <b>+${dbl(statOf(s, 'turn'))}%</b> turn${t.force !== undefined ? ` · Cannon <b>+${dbl(statOf(s, 'focus'))}%</b> focus` : ''} · Deck <b>+${F((t.cabin || 0) * 10000)}</b> dura · Mess <b>+${F((t.cabin || 0) * 5000)}</b> rations</div>`}
 		${t.skill ? `<div class="sel-skill">★ ${esc(t.skill)}</div>` : t.note ? `<div class="sel-skill quiet">${esc(t.note)}</div>` : ''}
 		<div class="crew-actions">
 			${where ? `<button class="act quiet small danger" data-act="crew-disembark" data-id="${esc(s.id)}">Disembark</button>` : ''}
@@ -361,12 +361,50 @@ function guidePanels() {
 			</div></div>
 		<div class="panel crew-panel"><div class="panel-head"><h2 class="panel-title">Levelling &amp; slots</h2>
 			<span class="panel-sub">Experience is shared out: each gets less, the crew gets more</span></div>
-			<div class="guide-list">${expRows}${slotRows}</div></div>
+			<div class="guide-list">${expRows}<div class="guide-row">
+				<span class="slot-badge">1</span>
+				<div class="guide-main">
+					<div class="guide-name">to start with</div>
+					<div class="guide-sub">every account begins with one slot — the three below make it ten, free</div>
+				</div>
+			</div>${slotRows}</div></div>
 	</div>
 	<div class="panel crew-panel"><div class="panel-head"><h2 class="panel-title">First mates</h2>
 		<span class="panel-sub">Three sailors with names; the First Mate seat switches their trait on</span></div>
-		<div class="mate-cards">${mateCards}</div></div>`;
+		<div class="mate-cards">${mateCards}</div></div>
+	<div class="panel crew-panel"><div class="panel-head"><h2 class="panel-title">Crew templates</h2>
+		<span class="panel-sub">The sailing community's builds — who to hire, and where they sit</span></div>
+		<div class="mate-cards tmpl-cards">${TEMPLATES.map(t => `<div class="mate-card tmpl">
+			<div class="guide-main">
+				<div class="guide-name">${t.name} <span class="tmpl-tag">${t.tag}</span></div>
+				${t.lines.map(l => `<div class="guide-sub">· ${l}</div>`).join('')}
+			</div>
+		</div>`).join('')}</div>
+		<div class="guide-list tmpl-foot"><div class="guide-sub">Any sailor in the Fish seat fishes — Crio trades an Oceanbound Otter Fishing Rod for 200 Crow Coin Coupons, as often as you like.</div></div></div>`;
 }
+
+/** The community's crew builds, as passed around the sailors' Discord. */
+const TEMPLATES = [
+	{ name: 'Bartering', tag: 'free · 10 sailors', lines: [
+		'Cleia at the First Mate seat, if she is yours — no other mate registered.',
+		'9–10 Innocents; the highest Endurance take the Sail seats.'
+	] },
+	{ name: 'PvX', tag: 'free · 10 sailors', lines: [
+		'No first mate registered at all.',
+		'1–2 Innocents at the Sail; 1–3 Realistics at the Cannon, up to 9 in all.',
+		'The highest-Awareness Realistic takes the Wheel; the rest fill Deck, Mess and cabins.',
+		'Swap Realistics for Innocents for speed, at the cost of turn.'
+	] },
+	{ name: 'Bartering', tag: '12–16 sailors', lines: [
+		'Cleia — or Proix — at the First Mate seat.',
+		'11 Innocents on a Carrack, 15 on a Panokseon; the fastest at the Sail.'
+	] },
+	{ name: 'PvX', tag: '14–31 sailors', lines: [
+		'Tranan for grinding, Proix for the Breezy Sail, at the First Mate seat.',
+		'0–2 Innocents at the Sail; up to 3 Realistics at the Cannon — the angle caps at 45°, five to seven are enough.',
+		'Up to 22 Confidents on a Carrack, 30 on a Panokseon; the best Awareness at the Wheel.'
+	] }
+];
 
 /**
  * The hull as fitted: the best part you hold in each slot, and what the
