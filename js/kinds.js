@@ -10,10 +10,11 @@
 
 import { recipes } from './recipes.js';
 import { shipGroups } from './ships.js';
+import { shipStats } from './ship_stats.js';
 import { levelOf } from './barter.js';
 import { parseEnhanced } from './planner.js';
 
-const hulls = new Set(shipGroups.flatMap(g => g.items));
+const hulls = new Set([...shipGroups.flatMap(g => g.items), ...Object.keys(shipStats)]);
 
 /** The kinds, in the order a chip row shows them. */
 export const KINDS = [

@@ -28,6 +28,7 @@ import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
 import { renderBuilds, openBuildPicker, askRoute, toggleBlockers } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
+import { renderBarter, barterAction, barterChange, chartFragment } from './screen-barter.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
 import { renderCrew, crewAction, crewChange, applyShipSetup, openSetupPicker } from './screen-crew.js';
@@ -51,7 +52,7 @@ import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
-	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, setLoad, fillLoad, clearLoad, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
+	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite
 } from './screen-map.js';
@@ -67,7 +68,9 @@ const TABS = [
 	{ id: 'get', label: 'To Get', icon: '☰', group: 'yard' },
 	{ id: 'map', label: 'Map', icon: '⌖', group: 'sea' },
 	{ id: 'quests', label: 'Quests', icon: '✦', group: 'sea' },
-	{ id: 'crew', label: 'Ship', icon: '⚓', group: 'sea' }
+	{ id: 'crew', label: 'Ship', icon: '⚓', group: 'sea' },
+	// Last, so the digit shortcuts the first nine tabs answer to stay put.
+	{ id: 'barter', label: 'Barter', icon: '⇄', group: 'sea' }
 ];
 
 // The four a phone gets at the thumb; the rest live behind "All".
@@ -224,6 +227,7 @@ export function render() {
 	else if (view === 'tree') root.innerHTML = renderTree();
 	else if (view === 'workshop') root.innerHTML = renderWorkshop();
 	else if (view === 'map') root.innerHTML = renderMap();
+	else if (view === 'barter') root.innerHTML = renderBarter();
 	else if (view === 'crew') root.innerHTML = renderCrew();
 	else if (view === 'quests') root.innerHTML = renderQuests();
 	else root.innerHTML = renderGet();
@@ -314,7 +318,7 @@ function showView(id) {
 	// user pressing Enter on a tab lands back at the top of the page.
 	const active = document.querySelector('.tab.active');
 	if (active && document.activeElement === document.body) active.focus({ preventScroll: true });
-	if ((id === 'get' || id === 'map') && !barterData) loadBarter();
+	if ((id === 'get' || id === 'map' || id === 'barter') && !barterData) loadBarter();
 }
 
 /**
@@ -576,6 +580,19 @@ function wire() {
 
 		// Everything the trace panel does answers to the one handler.
 		if (act.startsWith('trace-') && traceAction(act, el)) return;
+		// The Barter tab: a run drawn on the chart goes to the Map; the
+		// rest is the tab's own, redrawn when it says so.
+		if (act === 'barter-chart') {
+			const frag = chartFragment(el);
+			if (!frag) return;
+			applyMapLink(frag);
+			showView('map');
+			return;
+		}
+		if (act.startsWith('barter-') && act !== 'barter-level') {
+			if (barterAction(act, el, render)) render();
+			return;
+		}
 
 		// Picking anything out of the More menu puts it away.
 		if (act !== 'more' && el.closest('#more-menu')) closeMore();
@@ -668,9 +685,6 @@ function wire() {
 			case 'map-route-del': deleteSavedRoute(Number(el.dataset.i)); return;
 			case 'map-route-trim': trimRouteToParley(); return;
 			case 'map-trades': setTradesMode(el.dataset.id); return;
-			case 'map-load': setLoad(Number(el.dataset.lv), 'step', Number(el.dataset.step)); return;
-			case 'map-load-fill': fillLoad(); return;
-			case 'map-load-clear': clearLoad(); return;
 			case 'map-measure': toggleMeasure(); return;
 			case 'map-mini': toggleMini(); return;
 			case 'map-sail-cal': return openSailCal();
@@ -1035,8 +1049,8 @@ function wire() {
 		const mr = evt.target.closest('[data-act="map-return"]');
 		if (mr) return setMapReturn(mr.checked);
 
-		const ml = evt.target.closest('[data-act="map-load-set"]');
-		if (ml) return setLoad(Number(ml.dataset.lv), 'set', ml.value);
+		const bc = evt.target.closest('[data-act^="barter-"]');
+		if (bc && bc.dataset.act !== 'barter-count' && bc.dataset.act !== 'barter-level' && barterChange(bc, parseAmount)) return render();
 
 		const el = evt.target.closest(
 			'[data-act="own-set"], [data-act="purse"], [data-act="target-qty"],'

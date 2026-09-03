@@ -673,7 +673,7 @@ test('a phone is given a bar at the thumb, not a tab row that scrolls out of sig
 	assert.equal(await count(page, '.tabbar-btn'), 5, 'four sections and the way to the rest');
 	assert.ok(await page.evaluate(() => !!document.querySelector('.tabbar-btn.active[data-id="crew"]')), 'the standing section has a seat of its own');
 	await page.click('[data-act="tab-sheet"]'); await wait(400);
-	assert.equal(await count(page, '.sheet-tab'), 9, 'every section, named');
+	assert.equal(await count(page, '.sheet-tab'), 10, 'every section, named');
 	await page.click('.sheet-tab[data-id="workshop"]'); await wait(700);
 	assert.equal(await page.evaluate(() => location.hash), '#workshop');
 	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), true, 'and the sheet closes behind it');
