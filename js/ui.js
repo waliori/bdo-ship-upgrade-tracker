@@ -42,6 +42,7 @@ import { attachSheet } from './sheet.js';
 
 import { openProfiles, activeProfile } from './profiles.js';
 import { DATA, CHANGES, LATEST, RELEASES, RELEASE } from './about.js';
+import { openTables } from './screen-tables.js';
 import { toggleVellReminder, checkVellReminder } from './today.js';
 import { openTripLog } from './triplog.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
@@ -628,6 +629,7 @@ function wire() {
 			case 'tour': return startTour();
 			case 'whats-new': return openWhatsNew();
 			case 'help': return openHelp();
+			case 'tables': return openTables(el.dataset.stack ? Number(el.dataset.stack) : null);
 			case 'guide': return openGuide();
 			case 'signin':
 			case 'account': return openAccount();

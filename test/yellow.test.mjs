@@ -247,3 +247,13 @@ test('the yellow tier still quotes its own rate at its own stack', async () => {
 		assert.ok(Math.abs(chanceAt(row, row.stack) - row.chance) < 1e-4, `+${row.stack} stacks`);
 	}
 });
+
+test('every level says which stack reaches the soft cap and which the ceiling', async () => {
+	const { stacksTo, tables } = await import('../js/enhancement.js');
+	const green = tables['caravel-green'].levels;
+	assert.deepEqual(stacksTo(green[0]), { soft: 0, hard: 15 }, '+1 starts at the soft cap');
+	assert.deepEqual(stacksTo(green[9]), { soft: 14, hard: 44 }, '+10: fourteen quick stacks, then thirty slow ones');
+	assert.equal(stacksTo(tables.yellow.levels[0]).soft, 224, 'a 3% base needs 224 stacks to reach 70%');
+	assert.equal(stacksTo(tables.sailboat.levels[0]), null, 'a sure thing has no stacks to reach');
+	assert.equal(stacksTo(null), null);
+});

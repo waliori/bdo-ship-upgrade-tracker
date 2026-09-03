@@ -87,6 +87,7 @@ const SHELL = [
 	'/js/screen-map.js',
 	'/js/screen-plan.js',
 	'/js/screen-quests.js',
+	'/js/screen-tables.js',
 	'/js/screen-tree.js',
 	'/js/screen-workshop.js',
 	'/js/sea_coins.js',

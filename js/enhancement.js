@@ -254,6 +254,23 @@ export const HARD_CAP = 0.9;
  * without a `base` (every tier below yellow) quote the bare rate, which
  * is the base at no stacks.
  */
+/**
+ * The stacks at which a level's chance reaches the soft cap -- the
+ * last stack that still adds a tenth of base -- and the hard cap. The
+ * first is the stack worth stacking to before an attempt: every stack
+ * up to it buys five times what a stack past it does. Zero when the
+ * base is already there.
+ */
+export function stacksTo(step) {
+	if (!step) return null;
+	const base = step.base || step.chance;
+	if (!(base > 0) || base >= 1) return null;
+	let soft = 0, hard = 0;
+	while (chanceAt(step, soft) < SOFT_CAP - 1e-9) soft++;
+	while (chanceAt(step, hard) < HARD_CAP - 1e-9 && hard < 1000) hard++;
+	return { soft, hard: hard >= 1000 ? null : hard };
+}
+
 export function chanceAt(step, failstack = null) {
 	if (!step) return 0;
 	if (failstack === null || !Number.isFinite(failstack)) return step.chance;

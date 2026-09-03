@@ -8,7 +8,7 @@ import { recipes, snapshot, query, readyCrafts, craftStock } from './ui-state.js
 import { parseEnhanced, enhancedName, enhanceStep, ownedLevel, enhancementForecast } from './planner.js';
 import { massProcess } from './vendor_items.js';
 import { gainAt, describeStats } from './part_stats.js';
-import { tableFor } from './enhancement.js';
+import { tableFor, stacksTo } from './enhancement.js';
 
 /**
  * Every part worth an enhancement attempt: the ones a build is waiting
@@ -117,6 +117,9 @@ export function pendingEnhancements() {
 			failstacks,
 			recommended,
 			carriedStack: carried[base] !== undefined,
+			// Where the climb slows: the stack worth reaching before this
+			// attempt, which the yellow tier's quoted stacks all sit past.
+			soft: row && row.chance < 1 && !row.base ? stacksTo(row) : null,
 			// Yellow gear only: the same attempt without Cron Stones, for
 			// the third button.
 			canDrop: Boolean(step.onFailureDropped),
@@ -203,7 +206,7 @@ export function renderWorkshop() {
 			<span class="enh-cost">${e.costs.map(([n, q]) => `${img(n, '')}×${F(q)}`).join('')}${odds(e)}${e.recommended !== null ? `
 				<label class="enh-fs" title="The failstack this part carries into its next attempt. Starts at the stack the quoted rate assumes (${e.recommended}); each failure recorded here adds one, a success resets it for the next level. Type to correct it.${e.recommended === 0 ? ' Each stack adds a tenth of the base rate until the chance reaches 70%, a fiftieth after that, and 90% is the ceiling — the enhancement window shows the same figure.' : ''}">
 					FS ${amountInput('purse-inline narrow', e.failstacks, `data-act="failstacks" data-base="${esc(e.base)}" aria-label="Failstack for ${esc(e.base)}"`)}
-					<span class="enh-fs-note">${e.carriedStack ? `recommended ${e.recommended}` : 'recommended'}</span>
+					<span class="enh-fs-note">${e.carriedStack ? `recommended ${e.recommended}` : 'recommended'}${e.soft && e.soft.soft ? ` · <span title="Every stack up to ${e.soft.soft} adds a tenth of the base rate; past it a fiftieth. ${e.soft.hard ? `90% at ${e.soft.hard}.` : ''}">70% at ${e.soft.soft}</span>` : ''}</span>
 				</label>` : ''}</span>
 			${outlook(e)}
 			${e.log.won + e.log.lost ? `<span class="enh-log" title="From the undo history, which keeps the last two hundred changes">${e.log.won} won · ${e.log.lost} lost · ${F(e.log.stones)} ${esc(e.stoneName)} spent</span>` : ''}
@@ -237,7 +240,7 @@ export function renderWorkshop() {
 	<div class="panel">
 		<div class="panel-head">
 			<h2 class="panel-title">Enhancement</h2>
-			<span class="panel-sub">Everything you own that can go higher. Record what happened — the materials are spent either way. Blue and green parts keep their level on a failure; yellow ones fall a level unless Cron Stones held it, so a yellow row has both failures to choose from</span>
+			<span class="panel-sub">Everything you own that can go higher. Record what happened — the materials are spent either way. Blue and green parts keep their level on a failure; yellow ones fall a level unless Cron Stones held it, so a yellow row has both failures to choose from · <button class="linky" data-act="tables" title="The seven tables every part follows, lit at your stack">the tables</button></span>
 		</div>
 
 		${enhRows || `<p class="empty">${q
