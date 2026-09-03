@@ -205,7 +205,7 @@ export const anyType = Object.fromEntries([...pool, ...mateTypes].map(s => [s.ty
 
 /** The seats a hull has, in the order the board draws them. */
 const POSITIONS = [
-	{ pos: 'sail', label: 'Sail', n: 2, effect: 'speed and acceleration count double' },
+	{ pos: 'sail', label: 'Sail', n: 1, effect: 'speed and acceleration count double' },
 	{ pos: 'wheel', label: 'Wheel', n: 1, effect: 'turning and braking count double' },
 	{ pos: 'cannon', label: 'Cannon', n: 1, effect: 'cannon damage, reload and range' },
 	{ pos: 'deck', label: 'Deck', n: 1, effect: '+10,000 durability for every cabin the sailor costs' },
@@ -215,19 +215,46 @@ const POSITIONS = [
 ];
 
 /**
+ * The seat every hull of that name has over the common frame: each
+ * Carrack is built around one extra seat, and which one is the whole
+ * difference between them; the Panokseon carries two more guns.
+ */
+const EXTRA = {
+	'Carrack (Advance)': { mess: 1 },
+	'Carrack (Balance)': { sail: 1 },
+	'Carrack (Volante)': { sail: 1 },
+	'Carrack (Valor)': { cannon: 1 },
+	Panokseon: { cannon: 2 }
+};
+
+/**
  * Which seats a hull offers: the named positions first, as many as the
- * hull seats, then cabins for the rest. A Panokseon has two more cannon
- * seats than a Carrack; only a Carrack has a fishing seat.
+ * hull seats, then cabins for the rest -- the hull's own extra seat
+ * included. Only a Carrack has a fishing seat.
  */
 export function seatsFor(ship, stats) {
 	const crew = stats ? stats.crew : 0;
+	const extra = EXTRA[ship] || {};
 	const out = [];
 	for (const p of POSITIONS) {
 		if (p.pos === 'fish' && !/^Carrack/.test(ship)) continue;
-		const n = p.pos === 'cannon' && ship === 'Panokseon' ? 3 : p.n;
+		const n = p.n + (extra[p.pos] || 0);
 		for (let i = 0; i < n && out.length < crew; i++) out.push({ key: `${p.pos}:${i}`, pos: p.pos, label: p.label, effect: p.effect });
 	}
 	for (let i = 0; out.length < crew; i++) out.push({ key: `cabin:${i}`, pos: 'cabin', label: 'Cabin', effect: 'no role, but aboard: weight and appetite count, and they level along' });
+	return out;
+}
+
+/**
+ * A saved arrangement kept to the seats this hull really has: a crew
+ * seated when the board drew a second sail keeps nobody there on a
+ * hull whose extra seat is a Mess or a gun, so no seat pays out twice.
+ */
+export function fitSeats(ship, seats, stats) {
+	const keys = new Set(seatsFor(ship, stats).map(x => x.key));
+	if (!keys.size) return { ...(seats || {}) };   // an unknown hull: leave it be
+	const out = {};
+	for (const [k, id] of Object.entries(seats || {})) if (keys.has(k)) out[k] = id;
 	return out;
 }
 

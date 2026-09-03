@@ -25,7 +25,7 @@ import { encodeShare, shareLink } from './share.js';
 import { enhancedName } from './planner.js';
 import {
 	pool, mateTypes, anyType, care, rations, expSplit, firstMates, slotSources, statBand,
-	contract, SAILOR_CAP, seatsFor, statOf, crewTotals, autoAssign } from './sailors.js';
+	contract, SAILOR_CAP, seatsFor, fitSeats, statOf, crewTotals, autoAssign } from './sailors.js';
 
 // Session state: who is picked up, and how the roster is ordered.
 let selId = null;
@@ -47,7 +47,9 @@ const face = (t, s) => t && iconSrc(t.type) !== 'icon.png'
 export const crewShip = shipName;
 
 const roster = () => store.getProfile('roster', []) || [];
-const seatsOf = ship => (store.getProfile('seats', {}) || {})[ship] || {};
+// Seats kept to the hull: an arrangement saved for a different shape
+// leaves nobody at a seat this hull does not have.
+const seatsOf = ship => fitSeats(ship, (store.getProfile('seats', {}) || {})[ship] || {}, shipStats[ship]);
 const presetsOf = ship => (store.getProfile('presets', {}) || {})[ship] || {};
 const byId = id => roster().find(s => s.id === id) || null;
 const whereIs = (ship, id) => Object.keys(seatsOf(ship)).find(k => seatsOf(ship)[k] === id) || null;
@@ -58,17 +60,20 @@ const initials = name => name.trim().split(/\s+/).map(w => w[0]).join('').slice(
  * pieces
  * ------------------------------------------------------------------ */
 
-// Where each seat sits on the board, in a 900-wide box. These mirror
-// the in-game panel: the mate at the bow, sails on the mast, the wheel
-// aft, the deck and the cannon amidships, the mess at the stern.
+// Where each seat sits on the board, in a 900-wide box: `cx` is the
+// middle of the label plate, `w` its width. These mirror the in-game
+// panel -- the mate at the bow, sails on the mast, the wheel aft, the
+// deck and the cannon amidships, the mess at the stern. Seats hang
+// centred under their plate, so a hull with two sails or three cannons
+// widens the group about the same point instead of drifting off it.
 const SPOT = {
-	firstmate: { x: 78, y: 58, bar: [20, 158] },
-	sail: { x: 480, y: 44, bar: [452, 118] },
-	wheel: { x: 742, y: 120, bar: [672, 148] },
-	deck: { x: 432, y: 214, bar: [378, 152] },
-	mess: { x: 760, y: 258, bar: [706, 112] },
-	cannon: { x: 430, y: 330, bar: [378, 152] },
-	fish: { x: 150, y: 330, bar: [96, 112] }
+	firstmate: { cx: 99, y: 58, w: 158 },
+	sail: { cx: 511, y: 44, w: 118 },
+	wheel: { cx: 746, y: 120, w: 148 },
+	deck: { cx: 454, y: 214, w: 152 },
+	mess: { cx: 762, y: 258, w: 112 },
+	cannon: { cx: 454, y: 330, w: 152 },
+	fish: { cx: 152, y: 330, w: 112 }
 };
 const cq = px => `${(px / 900 * 100).toFixed(2)}cqw`;
 
@@ -122,8 +127,8 @@ function board(ship, stats, totals) {
 	}
 	const placed = [...groups].filter(([pos]) => SPOT[pos]).map(([pos, g]) => {
 		const sp = SPOT[pos];
-		return `<div class="seat-bar" style="left:${cq(sp.bar[0])};top:${cq(sp.y - 28)};width:${cq(sp.bar[1])}" title="${esc(g.effect)}">${esc(g.label)}</div>
-			<div class="seat-wrap" style="left:${cq(sp.x)};top:${cq(sp.y)}">${g.seats.map(seat => seatBox(ship, seat, armed)).join('')}</div>`;
+		return `<div class="seat-bar" style="left:${cq(sp.cx)};top:${cq(sp.y - 28)};width:${cq(sp.w)}" title="${esc(g.effect)}">${esc(g.label)}</div>
+			<div class="seat-wrap" style="left:${cq(sp.cx)};top:${cq(sp.y)}">${g.seats.map(seat => seatBox(ship, seat, armed)).join('')}</div>`;
 	}).join('');
 	const cabins = groups.get('cabin');
 	const cabinRow = cabins ? `<div class="cabin-row">

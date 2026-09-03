@@ -49,16 +49,23 @@ test('every sailor in the pool is whole, and the first mates can be hired', () =
 });
 
 test('a hull offers the seats the game draws, then cabins', () => {
+	const count = (ship, pos) => seatsFor(ship, shipStats[ship]).filter(s => s.pos === pos).length;
 	const carrack = seatsFor('Carrack (Advance)', shipStats['Carrack (Advance)']);
 	assert.equal(carrack.length, 20);
-	assert.equal(carrack.filter(s => s.pos === 'sail').length, 2);
 	assert.equal(carrack.filter(s => s.pos === 'fish').length, 1);
 	assert.equal(carrack.filter(s => s.pos === 'cabin').length, 12);
+	// Each hull's extra seat, the one thing that tells the four apart.
+	assert.equal(count('Carrack (Advance)', 'mess'), 2, 'the Advance messes a second cook');
+	assert.equal(count('Carrack (Advance)', 'sail'), 1);
+	assert.equal(count('Carrack (Balance)', 'sail'), 2);
+	assert.equal(count('Carrack (Volante)', 'sail'), 2);
+	assert.equal(count('Carrack (Valor)', 'cannon'), 2);
+	assert.equal(count('Carrack (Volante)', 'cannon'), 1);
 	const pano = seatsFor('Panokseon', shipStats['Panokseon']);
 	assert.equal(pano.filter(s => s.pos === 'cannon').length, 3, 'two more cannon seats than a Carrack');
 	assert.equal(pano.filter(s => s.pos === 'fish').length, 0, 'no fishing seat');
 	const sloop = seatsFor('Epheria Sailboat', shipStats['Epheria Sailboat']);
-	assert.deepEqual(sloop.map(s => s.pos), ['sail', 'sail']);
+	assert.deepEqual(sloop.map(s => s.pos), ['sail', 'wheel']);
 	assert.equal(seatsFor('Epheria Cog', shipStats['Epheria Cog']).length, 0);
 });
 
@@ -102,7 +109,7 @@ test('auto assign puts the mate at the bow, the fast at the sails, the gunner at
 	assert.equal(a['sail:0'], 'f');
 	assert.equal(a['wheel:0'], 'w');
 	assert.equal(a['cannon:0'], 'g');
-	assert.equal(a['sail:1'], 'd', 'the last hand goes where a seat is still open');
+	assert.equal(a['deck:0'], 'd', 'the last hand goes where a seat is still open');
 	assert.equal(Object.keys(a).length, 5);
 	assert.ok(SAILOR_CAP >= 20);
 });

@@ -12,7 +12,7 @@
 import { shipStats } from './ship_stats.js';
 import { loadout } from './part_stats.js';
 import { families } from './enhancement.js';
-import { crewTotals } from './sailors.js';
+import { crewTotals, fitSeats } from './sailors.js';
 
 export const METRES_PER_PX = 0.25;
 // Metres a second at 100% speed. An estimate: replace it by timing a leg.
@@ -54,7 +54,7 @@ export function speedPct(ship, stock = {}, roster = [], seats = {}) {
 	const s = shipStats[ship];
 	if (!s) return null;
 	const fit = loadout(ship, stock, families);
-	const crew = crewTotals(roster, seats, s);
+	const crew = crewTotals(roster, fitSeats(ship, seats, s), s);
 	const parts = Number(fit.total.speed) || 0;
 	return { hull: s.speed, parts, crew: crew.speed, total: Math.round((s.speed + parts + crew.speed) * 10) / 10 };
 }

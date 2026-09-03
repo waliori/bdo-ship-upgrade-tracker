@@ -2828,12 +2828,12 @@ select.purse-inline { width: auto; cursor: pointer; }
 .crew-hull { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.5; }
 .crew-counter { position: absolute; left: 1.2cqw; top: 1cqw; font-size: max(10px, 1.35cqw); font-weight: 600; color: var(--ink-mute); z-index: 3; }
 .seat-bar {
-  position: absolute; z-index: 2; text-align: center; white-space: nowrap;
+  position: absolute; z-index: 2; transform: translateX(-50%); text-align: center; white-space: nowrap;
   font-size: max(9px, 1.25cqw); font-weight: 600; color: var(--ink-dim);
   background: rgba(20, 42, 68, 0.9); border: 1px solid var(--line-btn); border-radius: 4px; padding: 0.2cqw 0;
 }
-.seat-bar.static { position: static; width: 154px; margin: 0 auto 6px; font-size: 11.5px; padding: 2px 0; }
-.seat-wrap { position: absolute; z-index: 2; display: flex; gap: 0.7cqw; }
+.seat-bar.static { position: static; transform: none; width: 154px; margin: 0 auto 6px; font-size: 11.5px; padding: 2px 0; }
+.seat-wrap { position: absolute; z-index: 2; transform: translateX(-50%); display: flex; gap: 0.7cqw; }
 .seat {
   position: relative; width: 5.1cqw; height: 5.1cqw; min-width: 34px; min-height: 34px;
   border-radius: 9px; display: grid; place-items: center; cursor: pointer; padding: 0;
@@ -2916,8 +2916,8 @@ select.purse-inline { width: auto; cursor: pointer; }
   .crew-board { aspect-ratio: auto; display: flex; flex-wrap: wrap; gap: 6px 8px; padding: 10px 12px 4px; margin: 0; background: none; }
   .crew-hull { display: none; }
   .crew-counter { position: static; flex: 1 1 100%; margin-bottom: 4px; font-size: 11px; }
-  .seat-bar { position: static !important; width: auto !important; flex: 1 1 100%; text-align: left; padding: 3px 8px; font-size: 11px; margin-top: 4px; }
-  .seat-wrap { position: static !important; flex-wrap: wrap; gap: 6px; }
+  .seat-bar { position: static !important; transform: none !important; width: auto !important; flex: 1 1 100%; text-align: left; padding: 3px 8px; font-size: 11px; margin-top: 4px; }
+  .seat-wrap { position: static !important; transform: none !important; flex-wrap: wrap; gap: 6px; }
   .seat { width: 46px; height: 46px; }
   .seat-mono { font-size: 12px; }
   .cabin-row { padding-top: 6px; }
