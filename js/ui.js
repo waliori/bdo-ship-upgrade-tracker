@@ -51,7 +51,7 @@ import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
-	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, setLoad, fillLoad, clearLoad, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
+	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, setLoad, fillLoad, clearLoad, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, setMapLanes, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite
 } from './screen-map.js';
@@ -688,6 +688,7 @@ function wire() {
 			case 'map-labels': setMapLabels(); return;
 			case 'map-pins': setMapPins(); return;
 			case 'map-traces': setMapTraces(); return;
+			case 'map-lanes': setMapLanes(); return;
 			case 'map-layers': toggleMapLayers(); return;
 			case 'map-setup-pick': openSetupPicker(() => render()); return;
 			case 'map-side-flip': flipMapSide(); return;
