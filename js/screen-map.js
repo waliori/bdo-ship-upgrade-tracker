@@ -31,7 +31,6 @@ import { canWriteFiles, gameFolderName, previousBlock } from './gamefile.js';
 import { parleyPerTrade, PARLEY, GOODS, amount, bestExchange, levelOf } from './barter.js';
 import { marketPrice } from './market.js';
 import { routeLedger, perHour } from './route-ledger.js';
-import { cleanLane, effectiveLegs, effectiveTotal, LANE_MAX, WITH_CURRENT } from './currents.js';
 import { snapshot, barterData, barterProfile, view } from './ui-state.js';
 
 let mapState = null;
@@ -80,8 +79,6 @@ const TRACES_MAX = 20;
 let traceTool = null;         // 'point' adds a stop per click, 'pen' draws while dragged, 'text' writes on the sea
 let penStroke = null;         // the stroke under the pointer right now, in world space
 let areaDraft = null;         // the corners of an area being shaded, flat world coords, until it is closed
-let lanes = [];               // ocean currents traced by hand: see currents.js for the shape
-let lanesOn = true;           // the currents drawn on the chart (they time the routes either way)
 let inkColour = '#ffd77a';    // the ink every new stop, stroke and word is drawn in
 let inkWidth = 2.5;           // how thick the pen draws
 let inkSize = 14;             // how big a word is written
@@ -151,8 +148,6 @@ function restore() {
 		sideRight = s.sideRight === true;
 		if (s.tradesMode === 'all') tradesMode = 'all';
 		if (s.load && typeof s.load === 'object') load = cleanLoad(s.load);
-		if (Array.isArray(s.lanes)) lanes = s.lanes.map(cleanLane).filter(Boolean).slice(0, LANE_MAX);
-		lanesOn = s.lanesOn !== false;
 		miniOn = s.miniOn !== false;
 		if (s.miniPos && Number.isFinite(s.miniPos.x) && Number.isFinite(s.miniPos.y)) miniPos = { x: s.miniPos.x, y: s.miniPos.y };
 		if (Array.isArray(s.savedRoutes)) {
@@ -166,7 +161,7 @@ function restore() {
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, hugWater, layersOpen, sideRight, tradesMode, load, lanes, lanesOn, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, hugWater, layersOpen, sideRight, tradesMode, load, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -443,17 +438,14 @@ function layersHTML() {
 		chip('map-wharves', 'wharf', wharvesOn.includes('wharf'), '#9fd0f0', 'Wharves', `${wharfN('wharf')} wharf managers — repair, rations, sailor contracts`),
 		chip('map-wharves', 'guild', wharvesOn.includes('guild'), '#c6a0ff', 'Guild', `${wharfN('guild')} guild wharves — the Old Moon Guild's, for a guild ship`),
 		chip('map-labels', '', labelsOn, '#cfe3f5', 'Islands', 'Island names, faint, once the chart is close enough to read them'),
-		chip('map-traces', '', tracesOn, '#ffd77a', 'Traces', 'What you drew by hand, and every kept trace with its eye open'),
-		chip('map-lanes', '', lanesOn, '#7ec8f0', 'Currents', lanes.length
-			? `${lanes.length} current${lanes.length === 1 ? '' : 's'} you traced, drawn as bands; every route is timed through them whether drawn or not`
-			: 'No currents traced yet: trace one in Draw mode and keep it as a current')
+		chip('map-traces', '', tracesOn, '#ffd77a', 'Traces', 'What you drew by hand, and every kept trace with its eye open')
 	].join('');
-	const on = [pinsOn, habitatsOn, labelsOn, tracesOn, lanesOn].filter(Boolean).length + wharvesOn.length;
+	const on = [pinsOn, habitatsOn, labelsOn, tracesOn].filter(Boolean).length + wharvesOn.length;
 	return `<div class="map-layers${layersOpen ? ' open' : ''}">
 		<button class="map-layers-head" data-act="map-layers" aria-expanded="${layersOpen}"
 			title="What the chart draws, on every tab">
 			<span class="map-layers-caret" aria-hidden="true">${layersOpen ? '▾' : '▸'}</span>
-			<span>On the chart</span><span class="map-courses-credit">${on} of 7</span></button>
+			<span>On the chart</span><span class="map-courses-credit">${on} of 6</span></button>
 		${layersOpen ? `<div class="map-chips">${chips}</div>` : ''}
 	</div>`;
 }
@@ -524,10 +516,8 @@ function routeHTML(marks) {
 	// The line as it is sailed, bent round the land, one leg per stop
 	// (and one more home when the loop closes).
 	const world = seaBent(routeWorld(marks));
-	// Each leg twice over: the metres it is, and the metres it is worth
-	// once the currents traced on the chart have had their say.
-	const eff = effectiveLegs(world, lanes);
-	const legTo = k => port ? eff[k] : k > 0 ? eff[k - 1] : null;
+	const legs = legLengths(world);
+	const legTo = k => port ? legs[k] : k > 0 ? legs[k - 1] : null;
 	const me = currentShip();
 	const speed = me.speed;
 	const cal = sailCal();
@@ -553,8 +543,8 @@ function routeHTML(marks) {
 	const list = stops.map((id, k) => {
 		const n = npcById.get(id);
 		const has = marks.get(id);
-		const l = legTo(k);
-		const leg = l ? `<span class="map-leg${l.current ? ' map-leg-current' : ''}"${l.current ? ` title="${esc(fmtDistance(l.current))} of it on a current"` : ''}>${l.current ? '≋ ' : ''}${esc(fmtDistance(l.metres))}${timeOf(l.effective) ? ` · ${esc(timeOf(l.effective))}` : ''}</span>` : '';
+		const m = legTo(k);
+		const leg = m != null ? `<span class="map-leg">${esc(fmtDistance(m))}${timeOf(m) ? ` · ${esc(timeOf(m))}` : ''}</span>` : '';
 		const over = held > 0 && k >= afford;
 		return `<div class="map-stop-row${over ? ' over' : ''}">
 			<span class="map-stop-n">${k + 1}</span>
@@ -588,12 +578,10 @@ function routeHTML(marks) {
 	const lastStop = npcById.get(stops[stops.length - 1]);
 	const wharf = lastStop && !returnHome ? nearestWharf(lastStop.x, lastStop.y, 'wharf') : null;
 	const wharfLine = wharf ? `<div class="summary-sub">nearest wharf to the last stop: ${esc(wharf.name)}, ${esc(fmtDistance(wharf.d * 0.25))}</div>` : '';
-	const whole = effectiveTotal(world, lanes);
-	const onCurrent = whole.current ? ` · ${esc(fmtDistance(whole.current))} of it on a current` : '';
 	const distance = world.length > 1 ? `<div><div class="summary-k">Distance</div><div class="summary-v">${esc(fmtDistance(total))}</div>
-				<div class="summary-sub">≈ ${esc(timeOf(whole.effective))} at ${speed.total}%${onCurrent} · 100% ≈ ${cal} m/s ${measured ? '±10%' : '±20%'} · <button class="linky" data-act="map-sail-cal">timed a leg?</button></div>${wharfLine}</div>` : '';
+				<div class="summary-sub">≈ ${esc(timeOf(total))} at ${speed.total}% · 100% ≈ ${cal} m/s ${measured ? '±10%' : '±20%'} · <button class="linky" data-act="map-sail-cal">timed a leg?</button></div>${wharfLine}</div>` : '';
 	const cargo = cargoTile({ weight: me.hold.free }) + loadTile(me);
-	const mid = world.length > 1 ? sailRange(whole.effective, speed.total, cal, measured).reduce((a, b) => a + b) / 2 : 0;
+	const mid = world.length > 1 ? sailRange(total, speed.total, cal, measured).reduce((a, b) => a + b) / 2 : 0;
 	const worth = worthTile(ledger, mid);
 	const carry = carryBlock(ledger);
 	const sailingAs = stops.length ? `<p class="map-hint map-as">Sailing as <b>${esc(me.name)}</b> <button class="linky" data-act="map-setup-pick" title="Sail a saved setup instead — the times follow its speed">switch setup ▾</button> · ${speed.total}% · ${F(me.hold.free)} LT free${me.crew.seated ? ` · ${me.crew.seated} aboard` : ''} · <button class="linky" data-act="view" data-id="crew">change</button></p>` : '';
@@ -1357,25 +1345,9 @@ function traceHTML() {
 			<button class="ghost-btn" data-act="trace-link" ${has ? '' : 'disabled'} title="A link that carries the whole trace — stops, notes, drawing and words">Copy link</button>
 			<button class="ghost-btn" data-act="trace-export" ${has ? '' : 'disabled'} title="A JSON file of it">File</button>
 			<button class="ghost-btn" data-act="map-game" data-source="trace" ${t.points.length ? '' : 'disabled'} title="Write the stops into the game's world map as favourites or a loop">⚑ To the game</button>
-			<button class="ghost-btn" data-act="trace-lane-keep" ${t.points.length >= 2 || t.strokes.length ? '' : 'disabled'} title="Keep this line as an ocean current, the way it was traced: every route is then timed faster along it">≋ As a current</button>
 		</div>
 	</div>
-	${lanesHTML()}${saved}`;
-}
-
-/** The currents kept, on the Draw panel: name, pace, and a way to forget one. */
-function lanesHTML() {
-	if (!lanes.length) return '';
-	const rows = lanes.map((l, i) => `<div class="map-trace-stop map-lane-row">
-		<span class="map-trace-n" style="border-color:${l.colour};color:${l.colour}">≋</span>
-		<input class="field small" type="text" maxlength="40" value="${esc(l.name)}" data-act="trace-lane-name" data-i="${i}" aria-label="Name of current ${i + 1}">
-		<input class="purse-inline narrow" type="text" inputmode="decimal" value="${l.factor}" data-act="trace-lane-factor" data-i="${i}" aria-label="Pace of current ${i + 1}" title="How many times the ship's speed a leg makes riding it. ${WITH_CURRENT} is the community figure; replace it with one you timed">
-		<span class="map-row-sub">×</span>
-		<button class="map-x" data-act="trace-lane-del" data-i="${i}" aria-label="Forget the current ${esc(l.name)}">×</button>
-	</div>`).join('');
-	return `<div class="map-courses"><div class="map-courses-head">Currents <span class="map-courses-credit">traced by hand · every route is timed through them</span></div>
-		<div class="map-trace-stops">${rows}</div>
-		<p class="map-hint">Against a current nothing is claimed: the leg is timed as open water. Trace each one the way it runs.</p></div>`;
+	${saved}`;
 }
 
 /** One trace's ink on the chart: the line through its stops, the stops
@@ -1691,8 +1663,6 @@ export function traceAction(act, el) {
 				trace.texts.splice(i, 1);
 			}
 			break;
-		case 'trace-lane-keep': keepLane(); return true;
-		case 'trace-lane-del': lanes = lanes.filter((_, k) => k !== i); break;
 		case 'trace-area-close': areaClose(); return true;
 		case 'trace-area-drop': areaDraft = null; break;
 		case 'trace-area-del': if (trace && trace.areas && trace.areas[i]) trace.areas.splice(i, 1); break;
@@ -1906,16 +1876,6 @@ function renameTraceDialog(i) {
  *  stop's note, a word on the chart. */
 export function traceChange(el) {
 	const act = el.dataset.act;
-	if (act === 'trace-lane-name' || act === 'trace-lane-factor') {
-		const lane = lanes[Number(el.dataset.i)];
-		if (!lane) return true;
-		const next = cleanLane({ ...lane, [act === 'trace-lane-name' ? 'name' : 'factor']: act === 'trace-lane-factor' ? Number(String(el.value).replace(',', '.')) : el.value });
-		if (next) lanes = lanes.map(l => (l === lane ? next : l));
-		persist();
-		refreshSide();
-		paintMap();
-		return true;
-	}
 	if (!['trace-name', 'trace-notes', 'trace-point-note', 'trace-text'].includes(act)) return false;
 	const t = liveTrace();
 	if (act === 'trace-name') t.name = el.value.slice(0, 40);
@@ -2331,7 +2291,6 @@ export function paintMap() {
 	guarded(paintHunt, layer, size);
 	guarded(paintHabitats, layer, size);
 	guarded(paintCourse, layer, size);
-	guarded(paintLanes, layer, size);
 	guarded(paintRoute, layer, size, marks);
 	guarded(paintMeasure, layer, size);
 	guarded(paintTrace, layer, size);
@@ -3633,75 +3592,6 @@ export function setMapTraces() {
 	persist();
 	refreshSide();
 	paintMap();
-}
-
-export function setMapLanes() {
-	lanesOn = !lanesOn;
-	persist();
-	refreshSide();
-	paintMap();
-}
-
-/* ------------------------------------------------------------------ *
- * currents: lanes kept from a trace, and drawn as bands
- * ------------------------------------------------------------------ */
-
-/** The live trace as a lane: its stops in order, else its first stroke. */
-function laneFromTrace(t) {
-	if (!t) return null;
-	const pts = t.points.length >= 2 ? t.points.flatMap(p => [p.x, p.y])
-		: t.strokes.length ? (Array.isArray(t.strokes[0]) ? t.strokes[0] : t.strokes[0].pts) : null;
-	if (!pts || pts.length < 4) return null;
-	return cleanLane({ pts, name: t.name || `Current ${lanes.length + 1}`, colour: t.points.length >= 2 ? (t.points[0].colour || LINE_INK) : inkOf(t.strokes[0].colour), factor: WITH_CURRENT });
-}
-
-function keepLane() {
-	const lane = laneFromTrace(trace);
-	if (!lane) return toast('Trace the current first: two stops or more along it, in the direction it runs, or one stroke');
-	if (lanes.length >= LANE_MAX) return toast(`${LANE_MAX} currents is the most the chart keeps`);
-	lanes = [...lanes.filter(l => l.name !== lane.name), lane];
-	lanesOn = true;
-	persist();
-	refreshSide();
-	paintMap();
-	toast(`Kept as a current: every route is now timed through it at ${lane.factor}×`);
-}
-
-/** The bands on the chart, arrowed the way they run, named at the middle. */
-function paintLanes(layer, size) {
-	let box = layer._laneBox;
-	if (!box || box.parentNode !== layer) {
-		box = layer._laneBox = document.createElement('div');
-		box.className = 'map-course-layer map-lane-layer';
-		layer.appendChild(box);
-	}
-	if (!lanesOn || !lanes.length) { box.innerHTML = ''; return; }
-	const o = project(mapState, size, 0, 0), o2 = project(mapState, size, 1000, 0);
-	const pxPerK = Math.abs(o2.left - o.left);
-	let html = '';
-	for (const lane of lanes) {
-		const pts = [];
-		for (let i = 0; i + 1 < lane.pts.length; i += 2) pts.push(project(mapState, size, lane.pts[i], lane.pts[i + 1]));
-		const xs = pts.map(p => p.left), ys = pts.map(p => p.top);
-		const w = Math.max(6, lane.width * 2 / 1000 * pxPerK);
-		if (Math.max(...xs) < -w || Math.max(...ys) < -w || Math.min(...xs) > size.w + w || Math.min(...ys) > size.h + w) continue;
-		const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p.left.toFixed(1)} ${p.top.toFixed(1)}`).join(' ');
-		let arrows = '';
-		for (let i = 1; i < pts.length; i++) {
-			const a = pts[i - 1], b = pts[i];
-			const len = Math.hypot(b.left - a.left, b.top - a.top);
-			const n = Math.max(1, Math.floor(len / 90));
-			const ang = Math.atan2(b.top - a.top, b.left - a.left) * 180 / Math.PI;
-			for (let k = 1; k <= n; k++) {
-				const f = k / (n + 1);
-				arrows += `<path class="map-lane-arrow" style="fill:${lane.colour}" transform="translate(${(a.left + (b.left - a.left) * f).toFixed(1)} ${(a.top + (b.top - a.top) * f).toFixed(1)}) rotate(${ang.toFixed(1)})" d="M-5 -4 L5 0 L-5 4 Z"></path>`;
-			}
-		}
-		html += `<svg class="map-route map-lane"><path class="map-lane-band" style="stroke:${lane.colour};stroke-width:${w.toFixed(1)}" d="${d}"></path><path class="map-lane-line" style="stroke:${lane.colour}" d="${d}"></path>${arrows}</svg>`;
-		const mid = pts[Math.floor(pts.length / 2)];
-		html += `<span class="map-lane-name" style="left:${mid.left.toFixed(0)}px;top:${(mid.top - w / 2 - 8).toFixed(0)}px">${esc(lane.name)} · ${lane.factor}×</span>`;
-	}
-	box.innerHTML = html;
 }
 
 /** The side panel to the other edge -- right-handed on a phone, or

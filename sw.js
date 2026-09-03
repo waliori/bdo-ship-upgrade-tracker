@@ -51,7 +51,6 @@ const SHELL = [
 	'/js/clock.js',
 	'/js/courses.js',
 	'/js/crystals.js',
-	'/js/currents.js',
 	'/js/dialogs.js',
 	'/js/enhancement.js',
 	'/js/falasi_vendor.js',
