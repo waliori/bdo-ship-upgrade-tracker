@@ -78,8 +78,8 @@ test('a seated crew adds up the way the positions say', () => {
 	const t = crewTotals(roster, { 'sail:0': 'a', 'deck:0': 'b', 'cannon:0': 'c' }, shipStats['Carrack (Advance)']);
 	assert.equal(t.seated, 3);
 	// Ambitious Lv10 speed is the band's average, 3.1, doubled at the
-	// sail; Powerful Lv5 walks the line from 1.0 towards 2.5: 1.7.
-	assert.equal(Math.round(t.speed * 10) / 10, 3.1 * 2 + 1.7, 'the sail counts double; the sick gunner adds nothing');
+	// sail; Powerful Lv5 holds 1.4 to 1.6 by the sheet's rolls: 1.5.
+	assert.equal(Math.round(t.speed * 10) / 10, 3.1 * 2 + 1.5, 'the sail counts double; the sick gunner adds nothing');
 	assert.equal(t.durability, 8 * 10000, 'the Deck pays by cabin cost');
 	assert.equal(t.rations, 0);
 	assert.equal(t.force, 0, 'a sick sailor works no seat');
@@ -160,10 +160,13 @@ test("a sailor's typed stats outrank the type's average", () => {
 	assert.equal(t.speed, 6.6);
 });
 
-test('growth is a band walked from the base, not a line through it', () => {
+test('growth is a band summed from the rolls, not a line through it', () => {
 	assert.equal(statOf({ type: 'Innocent', lv: 1 }, 'speed'), 1.2, 'level 1 is the base');
 	assert.equal(statOf({ type: 'Innocent', lv: 10 }, 'speed'), 3.4, 'level 10 is the average');
-	assert.equal(statOf({ type: 'Innocent', lv: 5 }, 'speed'), 2.2, 'between, the line between them');
+	// The sheet's level-5 row: 1.7 at the least, 2.2 at the most; the
+	// middle of the paths between is 1.95, which prints as 2.0.
+	assert.equal(statOf({ type: 'Innocent', lv: 5 }, 'speed'), 2.0, 'between, the middle of what the level holds');
+	assert.deepEqual(statBand('Innocent', 'speed', 5), { min: 1.7, avg: 2.0, max: 2.2 });
 	assert.deepEqual(statBand('Innocent', 'speed', 10), { min: 2.8, avg: 3.4, max: 4.0 });
 	assert.equal(statBand('Cleia', 'speed', 10), null, 'a first mate has no band');
 	assert.equal(statOf({ type: 'Cleia', lv: 10 }, 'speed'), 0.5, 'and holds their fixed figure');
@@ -171,4 +174,31 @@ test('growth is a band walked from the base, not a line through it', () => {
 	// faster than a Born-in-the-Sea, though it starts slower.
 	assert.ok(statOf({ type: 'Innocent', lv: 10 }, 'speed') > statOf({ type: 'Born-in-the-Sea', lv: 10 }, 'speed'));
 	assert.ok(poolByType['Born-in-the-Sea'].speed > poolByType['Innocent'].speed);
+});
+
+test('every roll a level could make is counted, so a typed roll has a rank', async () => {
+	const { rollOutcomes, rollRank, statBand } = await import('../js/sailors.js');
+	const { sailorRolls } = await import('../js/sailor_rolls.js');
+	// Every type in the pool has its rolls, and each one's level-1
+	// figure is the base the pool quotes.
+	for (const t of pool) {
+		assert.ok(sailorRolls[t.type], `${t.type} has rolls`);
+		assert.equal(sailorRolls[t.type].speed.min[0] / 10, t.speed, `${t.type} speed base`);
+	}
+	const o = rollOutcomes('Innocent', 'speed', 10);
+	assert.equal(o.paths, 1728, 'nine level-ups of two or three steps each');
+	let total = 0;
+	for (const p of o.dist.values()) total += p;
+	assert.ok(Math.abs(total - 1) < 1e-9, 'the outcomes sum to one');
+	const top = rollRank('Innocent', 'speed', 10, 4.0);
+	assert.ok(Math.abs(top.below - 1727 / 1728) < 1e-9, 'a 4.0 beats every path but its own');
+	assert.equal(top.above, 0);
+	assert.equal(top.mode, 3.4, 'the value most paths land on');
+	assert.equal(top.mean, 3.4);
+	const floor = rollRank('Innocent', 'speed', 10, 2.8);
+	assert.equal(floor.below, 0);
+	const mid = rollRank('Innocent', 'speed', 10, 3.6);
+	assert.ok(mid.below > 0.6 && mid.below < 0.9, `a 3.6 beats most: ${mid.below}`);
+	assert.equal(rollRank('Cleia', 'speed', 10, 0.5), null, 'a first mate has no rolls');
+	assert.deepEqual(statBand('Innocent', 'speed', 1), { min: 1.2, avg: 1.2, max: 1.2 });
 });

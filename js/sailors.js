@@ -12,8 +12,13 @@
 // carries [min, average, max] at level 10, read from the community "BDO
 // Sailors" sheet (by Sheen, raw data NekoNeko) on 2026-09-02 and
 // confirmed against BDOCodex, whose sailor pages publish exactly the
-// maxima. The game shows each sailor's real rolls; typed into the
-// roster, they outrank every estimate here.
+// maxima. What each level-up can add -- the least and the most, level
+// by level -- is in sailor_rolls.js from the same sheet, and is what
+// the bands below are built from; `l10` is the fallback for a type it
+// does not list. The game shows each sailor's real rolls; typed into
+// the roster, they outrank every estimate here.
+
+import { sailorRolls } from './sailor_rolls.js';
 
 /** The one item every sailor costs, and where it is sold. */
 export const contract = {
@@ -258,33 +263,94 @@ export function fitSeats(ship, seats, stats) {
 	return out;
 }
 
-/** A sailor's stat at their level: growth times level. */
+/** A sailor's stat at their level: what the level usually holds. */
 export function statOf(sailor, key) {
 	const t = anyType[sailor.type];
 	if (!t) return 0;
-	// Every level adds a hidden roll, so the estimate walks the line
-	// from the level-1 base to the level-10 average. The game shows each
-	// sailor's real numbers; typed into the roster, they outrank this.
+	// Every level adds a hidden roll, so the estimate is the middle of
+	// what the level can hold. The game shows each sailor's real
+	// numbers; typed into the roster, they outrank this.
 	if (sailor.stats && Number.isFinite(sailor.stats[key])) return sailor.stats[key];
-	const base = t[key] || 0;
-	const band = t.l10 && t.l10[key];
-	if (!band) return base;   // a first mate's figures do not grow
-	const f = (Math.min(10, Math.max(1, sailor.lv || 1)) - 1) / 9;
-	return Math.round((base + (band[1] - base) * f) * 10) / 10;
+	const band = statBand(sailor.type, key, sailor.lv || 1);
+	return band ? band.avg : (t[key] || 0);   // a first mate's figures do not grow
+}
+
+/* ------------------------------------------------------------------ *
+ * what a level can hold: the rolls, level by level
+ * ------------------------------------------------------------------ */
+
+const clampLv = lv => Math.min(10, Math.max(1, Math.floor(Number(lv) || 1)));
+
+/** What a type's stat can add at each level, in tenths, or null. */
+export function rollsFor(type, key) {
+	const r = sailorRolls[type];
+	return r && r[key] ? r[key] : null;
 }
 
 /**
- * The [min, avg, max] a stat can be at a level, walked linearly from
- * the base to the level-10 band -- what a typed roll is judged against.
+ * The [min, avg, max] a stat can be at a level -- what a typed roll is
+ * judged against. Summed level by level from the rolls where the type
+ * has them: the least every level-up could add, the most, and the mean
+ * of every path between, which is the middle since each level-up is
+ * as likely to land anywhere in its range. A type without rolls walks
+ * the line from its base to its level-10 band instead.
  */
 export function statBand(type, key, lv = 10) {
+	const n = clampLv(lv);
+	const r = rollsFor(type, key);
+	if (r) {
+		let lo = 0, hi = 0;
+		for (let i = 0; i < n; i++) { lo += r.min[i]; hi += r.max[i]; }
+		return { min: lo / 10, avg: Math.round((lo + hi) / 2) / 10, max: hi / 10 };
+	}
 	const t = anyType[type];
 	const band = t && t.l10 && t.l10[key];
 	if (!band) return null;
 	const base = t[key] || 0;
-	const f = (Math.min(10, Math.max(1, lv)) - 1) / 9;
+	const f = (n - 1) / 9;
 	const at = v => Math.round((base + (v - base) * f) * 10) / 10;
 	return { min: at(band[0]), avg: at(band[1]), max: at(band[2]) };
+}
+
+/**
+ * Every value a stat can hold at a level and how likely each one is,
+ * each level-up drawn evenly from its own range -- the community sheet
+ * records the ends of each range and nothing about its shape, so even
+ * is the honest assumption. `dist` maps tenths to probability; `paths`
+ * is how many distinct roll histories there are.
+ */
+export function rollOutcomes(type, key, lv = 10) {
+	const r = rollsFor(type, key);
+	if (!r) return null;
+	const n = clampLv(lv);
+	let dist = new Map([[r.min[0], 1]]);
+	let paths = 1;
+	for (let i = 1; i < n; i++) {
+		const lo = r.min[i], hi = r.max[i], w = hi - lo + 1;
+		paths *= w;
+		const next = new Map();
+		for (const [v, p] of dist) for (let g = lo; g <= hi; g++) next.set(v + g, (next.get(v + g) || 0) + p / w);
+		dist = next;
+	}
+	return { dist, paths };
+}
+
+/**
+ * Where a roll stands among every roll the level could have made:
+ * the share of paths below it and at it, the value most paths reach,
+ * and the mean. Null for a type without rolls.
+ */
+export function rollRank(type, key, lv, value) {
+	const o = rollOutcomes(type, key, lv);
+	if (!o) return null;
+	const v = Math.round(Number(value) * 10);
+	let below = 0, at = 0, above = 0, mode = 0, modeP = 0, mean = 0;
+	for (const [x, p] of o.dist) {
+		if (x < v) below += p; else if (x === v) at += p; else above += p;
+		if (p > modeP) { modeP = p; mode = x; }
+		mean += x * p;
+	}
+	return { below, at, above, mode: mode / 10, mean: Math.round(mean) / 10, paths: o.paths };
 }
 
 export const STAT_KEYS = ['speed', 'accel', 'turn', 'brake', 'force', 'focus', 'vision'];

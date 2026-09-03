@@ -24,7 +24,7 @@ import { openPicker } from './picker.js';
 import { encodeShare, shareLink } from './share.js';
 import { enhancedName } from './planner.js';
 import {
-	pool, mateTypes, anyType, care, rations, expSplit, firstMates, slotSources, statBand,
+	pool, mateTypes, anyType, care, rations, expSplit, firstMates, slotSources, statBand, rollRank,
 	contract, SAILOR_CAP, seatsFor, fitSeats, statOf, crewTotals, autoAssign } from './sailors.js';
 
 // Session state: who is picked up, and how the roster is ordered.
@@ -265,12 +265,19 @@ function selectedPanel(ship) {
 		const v = statOf(s, key);
 		const typed = Number.isFinite(own[key]);
 		const band = statBand(s.type, key, s.lv);
-		// A typed roll is judged against what the level can hold.
-		const word = typed && band
-			? (v >= band.max - 0.05 ? 'top roll' : v <= band.min + 0.05 ? 'floor roll' : v >= band.avg ? 'above average' : 'below average')
-			: '';
+		// A typed roll is judged against every roll the level could have
+		// made: the share of them it beats, where the type's rolls are
+		// known level by level; the band's ends and middle where not.
+		const rank = typed && band ? rollRank(s.type, key, s.lv, v) : null;
+		const word = rank
+			? (v >= band.max ? 'top roll' : v <= band.min ? 'floor roll' : v > band.max ? 'past the top' : `beats ${Math.round(rank.below * 100)}%`)
+			: typed && band
+				? (v >= band.max - 0.05 ? 'top roll' : v <= band.min + 0.05 ? 'floor roll' : v >= band.avg ? 'above average' : 'below average')
+				: '';
 		const title = typed
-			? `As you typed it${word ? ` — ${word} for Lv ${s.lv}` : ''}. Clear to go back to the estimate`
+			? `As you typed it${rank
+				? ` — better than ${Math.round(rank.below * 100)}% of ${esc(s.type)} rolls at Lv ${s.lv} (${band.min}–${band.max}; most land on ${rank.mode}; ${F(rank.paths)} roll paths)`
+				: word ? ` — ${word} for Lv ${s.lv}` : ''}. Clear to go back to the estimate`
 			: band ? `Estimate at Lv ${s.lv}: ${band.min}–${band.max}, usually ${band.avg}. Type what the sailor window shows`
 				: 'Type what the sailor window shows';
 		return `<div class="sel-stat${typed ? ' typed' : ''}"><span><span>${k}</span>${word ? `<em class="roll-note ${v >= band.avg ? 'good' : 'low'}">${word}</em>` : ''}<b>+<input class="purse-inline narrow stat-in" type="text" inputmode="decimal" value="${v}"
