@@ -12,7 +12,9 @@
 import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
 import { img, codexName, amountInput } from './ui-bits.js';
-import { snapshot, barterData, barterProfile } from './ui-state.js';
+import { snapshot, barterData, barterProfile, combos } from './ui-state.js';
+import { barterKey } from './clock.js';
+import { candidates, askable, offersAt, boardData } from './barter-board.js';
 import { currentShip } from './ship.js';
 import { npcById, ports } from './barter_npcs.js';
 import { seaRoute } from './searoute.js';
@@ -35,6 +37,7 @@ let item = null;         // the material a run is for
 let qty = 1;             // how many of it
 let port = 0;            // the wharf the run sails from, 0 for none
 let land = false;        // buy the land goods a [Level 1] exchange takes
+let board = { day: '', answers: [] };   // what islands were seen to show today: { npcId, give, recv }
 let restored = false;
 
 function restore() {
@@ -48,12 +51,15 @@ function restore() {
 		if (Number(s.qty) > 0) qty = Math.min(9999, Math.floor(Number(s.qty)));
 		if (ports.some(p => p.id === Number(s.port))) port = Number(s.port);
 		land = s.land === true;
+		if (s.board && Array.isArray(s.board.answers)) {
+			board = { day: String(s.board.day || ''), answers: s.board.answers.filter(a => a && npcById.has(Number(a.npcId)) && typeof a.give === 'string' && typeof a.recv === 'string').map(a => ({ npcId: Number(a.npcId), give: a.give, recv: a.recv })) };
+		}
 	} catch { /* a fresh tab */ }
 }
 
 function persist() {
 	try {
-		localStorage.setItem(STORE_KEY, JSON.stringify({ goal, item, qty, port, land }));
+		localStorage.setItem(STORE_KEY, JSON.stringify({ goal, item, qty, port, land, board }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -110,6 +116,54 @@ function holdHTML(me) {
 }
 
 /* ------------------------------------------------------------------ *
+ * today's board
+ * ------------------------------------------------------------------ */
+
+/**
+ * The layouts still standing after what was seen today, and the table
+ * a run is planned on: the board itself once one layout is left, the
+ * whole table until then. What was seen lapses with the barter day,
+ * since the sea redraws every board at the refill.
+ */
+function boardNow() {
+	if (!combos || !barterData) return { standing: [], combo: null, data: barterData };
+	if (board.day !== barterKey()) {
+		board = { day: barterKey(), answers: [] };
+		persist();
+	}
+	const standing = board.answers.length ? candidates(combos.combos, board.answers) : combos.combos;
+	const combo = standing.length === 1 ? standing[0] : null;
+	return { standing, combo, data: combo ? boardData(combo, barterData, npcById) : barterData };
+}
+
+const fromPort = () => ports.find(p => p.id === port) || null;
+
+function boardHTML(b) {
+	if (!combos) return '<p class="panel-sub barter-caveat">The record of the boards did not load, so the run is planned on the whole table at best.</p>';
+	const since = new Date(combos.sample.since + 'T00:00:00Z').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+	const seen = board.answers.map(a => `<span class="chip tiny active" title="${esc(a.give)} → ${esc(a.recv)}">${esc(npcById.get(a.npcId).name)}</span>`).join('');
+	if (b.combo) {
+		return `<div class="barter-board known">
+			<div class="barter-board-head"><b>Today's board is layout ${esc(b.combo.id)}</b> <span class="panel-sub">· seen ${b.combo.seen} of ${combos.sample.refreshes} refreshes since ${esc(since)} · every island's offer is known; the material islands roll on their own and are read from the whole table</span></div>
+			<div class="chips">${seen}<button class="chip tiny" data-act="barter-board-clear" title="The board was refreshed in game: start again">Refreshed in game</button></div>
+		</div>`;
+	}
+	const ask = askable(b.standing, npcById, fromPort());
+	if (!b.standing.length) {
+		return `<div class="barter-board"><div class="barter-board-head"><b>No layout shows that.</b> <span class="panel-sub">The record is from ${esc(combos.read)}; the game may have moved on. Planning on the whole table at best.</span></div>
+			<div class="chips">${seen}<button class="chip tiny" data-act="barter-board-undo">Undo</button></div></div>`;
+	}
+	const first = ask[0] ? npcById.get(ask[0].npcId) : null;
+	const lead = board.answers.length
+		? `<b>${b.standing.length} layouts fit so far.</b> <span class="panel-sub">One more look settles it.</span>`
+		: `<b>Which board is the sea showing?</b> <span class="panel-sub">Look at one island in the game and tap what it offers; the whole board follows, since every refresh is one of ${combos.combos.length} layouts.</span>`;
+	return `<div class="barter-board">
+		<div class="barter-board-head">${lead}</div>
+		<div class="chips">${seen}${first ? `<button class="chip" data-act="barter-board-ask" data-npc="${first.id}" title="The island whose offer tells the layouts apart best${ask[0].worst > 1 ? ` — leaves ${ask[0].worst} at worst` : ''}">What does ${esc(first.name)} at ${esc(first.at)} show? ▾</button>` : ''}<button class="chip" data-act="barter-board-island">another island…</button>${board.answers.length ? '<button class="chip tiny" data-act="barter-board-undo">Undo</button>' : ''}</div>
+	</div>`;
+}
+
+/* ------------------------------------------------------------------ *
  * the run
  * ------------------------------------------------------------------ */
 
@@ -143,14 +197,7 @@ function legsOf(stops) {
 	if (pts.length < 2) return { total: 0, legs: [], time: '' };
 	const world = seaRoute(pts.map(p => ({ x: p.x, y: p.y })));
 	const total = pathLength(world);
-	// Leg lengths land on the stops, not the bends between them.
-	const legs = [];
-	let acc = 0, k = 0;
-	const raw = legLengths(world);
-	for (let i = 1; i < world.length; i++) {
-		acc += raw[i - 1];
-		if (!world[i].bend) { legs[k++] = acc; acc = 0; }
-	}
+	const legs = legLengths(world);   // one a stop after the first, bends included
 	const me = currentShip();
 	const measured = Number(store.getSetting('sailCal', null)) > 0;
 	const range = m => sailRange(m, me.speed.total, sailCal(), measured);
@@ -189,11 +236,11 @@ function chartButton(stops, pick) {
 	</div>`;
 }
 
-function silverHTML(me) {
+function silverHTML(me, data) {
 	const prof = barterProfile();
-	const from = ports.find(p => p.id === port) || null;
+	const from = fromPort();
 	const plan = silverPlan({
-		stock: store.getAllStock(), barterData,
+		stock: store.getAllStock(), barterData: data,
 		hold: me.hold,
 		parley: { bar: PARLEY.max + prof.vouchers * PARLEY.voucher, perTrade: parleyPerTrade({ ...prof, kind: 'trade' }) },
 		npcById, start: from, price: marketPrice, land
@@ -227,7 +274,7 @@ function silverHTML(me) {
 		${sold}${kept}${chartButton(plan.stops, '')}`;
 }
 
-function materialHTML(me) {
+function materialHTML(me, data) {
 	const it = itemNow();
 	if (!it) return '<p class="empty">The barter table deals no material the app knows.</p>';
 	const short = (snapshot && snapshot.missing && Number(snapshot.missing[it])) || 0;
@@ -235,8 +282,8 @@ function materialHTML(me) {
 		<button class="trip-pick" data-act="barter-item" title="Choose the material">${img(it, 'row-icon sm')}<span>${esc(it)}</span> ▾</button>
 		<span class="barter-qty">${amountInput('purse-inline', qty, 'data-act="barter-qty" aria-label="How many"')} wanted${short ? ` · <button class="linky" data-act="barter-qty-short" data-n="${Math.ceil(short)}">your builds are short ${F(Math.ceil(short))}</button>` : ''}</span>
 	</div>`;
-	const from = ports.find(p => p.id === port) || null;
-	const plan = materialPlan({ item: it, qty, stock: store.getAllStock(), barterData, npcById, start: from, hold: me.hold });
+	const from = fromPort();
+	const plan = materialPlan({ item: it, qty, stock: store.getAllStock(), barterData: data, npcById, start: from, hold: me.hold });
 	if (!plan) return `${pick}<p class="empty">No exchange in the table hands over ${esc(it)}.</p>`;
 	for (const s of plan.stops) s.hold = me.hold;
 	const legs = legsOf(plan.stops);
@@ -280,9 +327,13 @@ export function renderBarter() {
 			<option value="0" ${port ? '' : 'selected'}>the first stop</option>
 			${ports.map(p => `<option value="${p.id}" ${p.id === port ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
 		</select></label>`;
+	const b = boardNow();
 	const body = !barterData
 		? '<p class="empty">Reading the barter table…</p>'
-		: goal === 'material' ? materialHTML(me) : silverHTML(me);
+		: goal === 'material' ? materialHTML(me, b.data) : silverHTML(me, b.data);
+	const caveat = b.combo
+		? ''
+		: '<p class="panel-sub barter-caveat">Until the board is known, an island shows one exchange a refresh, drawn from the table at random, and this is the run the table allows at best — the same reading the Get tab’s forecasts make — with every island dealing once and the hold weighed at every stop.</p>';
 	return `<div class="barter-layout">
 		${holdHTML(me)}
 		<section class="panel barter-run">
@@ -292,7 +343,7 @@ export function renderBarter() {
 				<span class="panel-spacer"></span>
 				${portSel}
 			</div>
-			<p class="panel-sub barter-caveat">An island shows one exchange a refresh, drawn from the table at random. This is the run the table allows at best — the same reading the Get tab’s forecasts make — with every island dealing once and the hold weighed at every stop.</p>
+			${barterData ? boardHTML(b) : ''}${caveat}
 			${body}
 		</section>
 	</div>`;
@@ -331,6 +382,45 @@ function pickMaterial(then) {
 	});
 }
 
+/** What one island is showing: its possible offers, commonest first. */
+function pickOffer(npcId, then) {
+	const { standing } = boardNow();
+	const npc = npcById.get(npcId);
+	const items = offersAt(standing, npcId).map(o => ({
+		id: `${o.give}|${o.recv}`, label: `${o.give} → ${o.recv}`, icon: img(o.recv, ''),
+		sub: `hands over ${o.qty}× ${o.give}`,
+		meta: standing.length > 1 ? `${o.ids.length} of ${standing.length}` : ''
+	}));
+	items.push({ id: '', label: 'Something else', sub: 'an offer the record has never seen there', group: '' });
+	openPicker({
+		title: `What does ${npc.name} show?`,
+		hint: `${npc.at}. The offer on the barter window right now.`,
+		items,
+		onPick: id => {
+			if (!id) { toast('The record has no layout with that offer; the run stays on the whole table'); return; }
+			const [give, recv] = id.split('|');
+			board.answers.push({ npcId, give, recv });
+			persist();
+			then();
+		}
+	});
+}
+
+/** An island of the player's own choosing, the telling ones first. */
+function pickIsland(then) {
+	const { standing } = boardNow();
+	const list = askable(standing, npcById, fromPort());
+	openPicker({
+		title: 'Which island are you looking at?',
+		hint: 'The ones whose offer tells the layouts apart best come first.',
+		items: list.map(a => {
+			const n = npcById.get(a.npcId);
+			return { id: String(a.npcId), label: n.name, sub: n.at, icon: '', meta: a.worst > 1 ? `${a.worst} left at worst` : 'settles it' };
+		}),
+		onPick: id => pickOffer(Number(id), then)
+	});
+}
+
 /** A click on the tab. Returns true when it was one of ours, with the
  *  screen to be redrawn by the caller. */
 export function barterAction(act, el, redraw) {
@@ -342,6 +432,10 @@ export function barterAction(act, el, redraw) {
 		case 'barter-good-drop': store.setStock(el.dataset.item, 0); return false;
 		case 'barter-qty-short': qty = Math.max(1, Number(el.dataset.n) || 1); persist(); return true;
 		case 'barter-trip': openTripLog(); return false;
+		case 'barter-board-ask': pickOffer(Number(el.dataset.npc), redraw); return false;
+		case 'barter-board-island': pickIsland(redraw); return false;
+		case 'barter-board-undo': board.answers.pop(); persist(); return true;
+		case 'barter-board-clear': board.answers = []; persist(); return true;
 		default: return false;
 	}
 }

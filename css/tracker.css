@@ -4101,3 +4101,8 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 @media (max-width: 900px) {
   .barter-layout { grid-template-columns: 1fr; }
 }
+.barter-board { border: 1px solid var(--line-btn); border-radius: var(--r-btn); padding: 9px 11px; margin: 6px 0 12px; background: var(--panel-inset); }
+.barter-board.known { border-color: rgba(126, 240, 212, 0.35); }
+.barter-board-head { font-size: 13px; line-height: 1.45; margin-bottom: 7px; }
+.barter-board .chips { gap: 6px; }
+

@@ -22,10 +22,7 @@
 // table come in as arguments, so the plans can be tested on a pinned
 // table and drawn by any screen.
 
-import { GOODS, amount, levelOf, ladder } from './barter.js';
-
-/** Where the table states no attempt cap, the tightest one it does. */
-export const ASSUMED_TRIES = 2;
+import { GOODS, amount, levelOf, ladder, triesFor } from './barter.js';
 
 /** The weight of a good, 0 for anything the table does not price. */
 export function weightOf(name) {
@@ -56,7 +53,7 @@ export function exchanges(barterData) {
 				npcId: s.npc_id, npc: s.npc_name,
 				item: e.name, recv, recvText: String(s.quantity_received),
 				give: s.give.name, giveN, giveText: String(s.give.quantity),
-				tries: s.attempts_available > 0 ? s.attempts_available : ASSUMED_TRIES
+				tries: triesFor(e.name, s.attempts_available)
 			});
 		}
 	}

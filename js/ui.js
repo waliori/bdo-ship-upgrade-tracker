@@ -14,7 +14,7 @@ import { initSync, openAccount } from './sync.js';
 import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.js';
 import {
 	view, selected, recipes, barterData, snapshot, query,
-	setView, setQuery, setPlanFilter, setInvFilter, setInvKind, setSelected, setBarterData,
+	setView, setQuery, setPlanFilter, setInvFilter, setInvKind, setSelected, setBarterData, setCombos,
 	recompute, readyCrafts, craftStock, CROW_COIN, SILVER, setSort
 } from './ui-state.js';
 import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
@@ -401,9 +401,15 @@ let barterLoading = null;
 async function loadBarter() {
 	if (barterData || barterLoading) return;
 	barterLoading = (async () => {
-		const res = await fetch('js/all_barter.json');
-		if (!res.ok) throw new Error(String(res.status));
-		setBarterData(await res.json());
+		// The boards ride with the table: the Barter tab needs both, and
+		// a table without its boards still plans at best.
+		const [table, boards] = await Promise.all([
+			fetch('js/all_barter.json'),
+			fetch('js/barter_combos.json').catch(() => null)
+		]);
+		if (!table.ok) throw new Error(String(table.status));
+		setBarterData(await table.json());
+		if (boards && boards.ok) setCombos(await boards.json());
 	})();
 	try {
 		await barterLoading;

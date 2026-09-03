@@ -28,7 +28,7 @@ import { legLengths, pathLength, sailRange, fmtRange, calibrate, fmtDistance, DE
 import { bookmarkXML, writeMode, BOOKMARK_SLOTS, CAMERA_SLOTS, LOOP_SLOTS, FILE_HINT, toGame } from './worldmap.js';
 import { encodeAny, decodeAny } from './share.js';
 import { canWriteFiles, gameFolderName, previousBlock } from './gamefile.js';
-import { parleyPerTrade, PARLEY, GOODS, amount, bestExchange, levelOf } from './barter.js';
+import { parleyPerTrade, PARLEY, GOODS, amount, bestExchange, levelOf, triesFor } from './barter.js';
 import { marketPrice } from './market.js';
 import { routeLedger, perHour } from './route-ledger.js';
 import { snapshot, barterData, barterProfile, view } from './ui-state.js';
@@ -666,12 +666,12 @@ function sailCal() {
 }
 
 /** How many exchanges a stop allows for what you are there for: the
- *  most any of its offers states, two where the codex states none. */
+ *  most any of its offers allows, the rung's cap where the codex
+ *  states none. */
 function triesAt(id, marks) {
 	const mm = marks.get(id);
 	const goods = goodsOf(id).filter(g => !mm || !mm.items.size || mm.items.has(g.item));
-	const t = Math.max(0, ...goods.map(g => Number(g.tries) || 0));
-	return t || 2;
+	return Math.max(0, ...goods.map(g => triesFor(g.item, Number(g.tries) || 0))) || 2;
 }
 
 /** The trade goods in the hold right now: name, level, count, weight. */

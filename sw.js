@@ -43,8 +43,10 @@ const SHELL = [
 	'/css/tracker.css',
 	'/css/driver.css',
 	'/js/all_barter.json',
+	'/js/barter_combos.json',
 	'/js/driver.iife.js',
 	'/js/about.js',
+	'/js/barter-board.js',
 	'/js/barter-plan.js',
 	'/js/barter.js',
 	'/js/barter_npcs.js',
@@ -149,7 +151,7 @@ self.addEventListener('activate', evt => {
 // The barter table is precached with the shell and only changes with a
 // deploy, which is when the shell cache is replaced -- so it is served
 // from the cache first rather than re-fetched on every load.
-const contentAddressed = path => path.startsWith('/icons/') || path.startsWith('/map/') || path === '/js/all_barter.json';
+const contentAddressed = path => path.startsWith('/icons/') || path.startsWith('/map/') || path === '/js/all_barter.json' || path === '/js/barter_combos.json';
 const neverCached = path =>
 	path.startsWith('/api/') || path.startsWith('/auth/') || path.startsWith('/docs/media/');
 

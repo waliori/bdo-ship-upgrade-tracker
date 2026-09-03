@@ -578,9 +578,23 @@ export function parleyPerTrade({ valuePack = false, crowCoin = false, level = nu
 // Where BDOCodex states no attempt cap, the dataset writes 0. Reading
 // that as "unlimited" priced Gilded Coral at one sitting for any
 // quantity, which is not a floor, it is a fiction. So an unstated cap
-// is charged the tightest one the dataset does state -- the Brilliants'
-// two a draw -- and the number stays finite and honest.
+// on a ship material is charged the tightest one the dataset does state
+// -- the Brilliants' two a draw -- and the number stays finite and
+// honest. The trade chain is better known: the community's board record
+// (read 2026-09-03) states each rung's cap, and where the codex writes
+// 0 -- every [Level 7] exchange, a third of the [Level 5] ones -- the
+// rung's cap is the figure, which the codex's own stated values agree
+// with on the rungs it does state.
 const ASSUMED_ATTEMPTS = 2;
+export const TRIES_BY_RUNG = { 1: 10, 2: 10, 3: 10, 4: 10, 5: 6, 6: 5, 7: 5, coin: 4 };
+
+/** The attempts an exchange allows: as stated, else the rung's cap. */
+export function triesFor(item, stated) {
+	if (stated > 0) return stated;
+	if (item === 'Crow Coin') return TRIES_BY_RUNG.coin;
+	const lv = levelOf(item);
+	return lv && TRIES_BY_RUNG[lv] ? TRIES_BY_RUNG[lv] : ASSUMED_ATTEMPTS;
+}
 
 /**
  * The rung that runs out first, and how many days that takes.
@@ -610,7 +624,7 @@ export function bottleneck(top, qty, lists = null) {
 	let needed = qty;
 
 	for (let r = top; r; r = r.from) {
-		const attempts = r.attempts || ASSUMED_ATTEMPTS;
+		const attempts = triesFor(r.item, r.attempts);
 		const list = exchangeKind(r.item) === 'material' ? 'material' : 'trade';
 		const perRefresh = attempts * r.received;
 		const refreshes = needed / perRefresh;

@@ -57,6 +57,7 @@ export let selected = null;
 export let snapshot = null;
 export let rows = {};
 export let barterData = null;
+export let combos = null;       // the forty barter boards, js/barter_combos.json, once read
 
 export const setView = id => { view = id; };
 export const setQuery = q => { query = q; };
@@ -65,6 +66,7 @@ export const setInvFilter = f => { invFilter = f; };
 export const setInvKind = k => { invKind = k; };
 export const setSelected = item => { selected = item; };
 export const setBarterData = data => { barterData = data; };
+export const setCombos = data => { combos = data; };
 
 // How the Plan and the Inventory order their rows. Shortfall first is the
 // question the app exists to answer; the others are for finding a thing

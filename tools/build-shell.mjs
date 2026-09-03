@@ -24,7 +24,7 @@ walk('boot.js');
 
 const FIXED = [
 	'/', '/index.html', '/manifest.webmanifest', '/icon_mapping.json',
-	'/css/tracker.css', '/css/driver.css', '/js/all_barter.json', '/js/driver.iife.js'
+	'/css/tracker.css', '/css/driver.css', '/js/all_barter.json', '/js/barter_combos.json', '/js/driver.iife.js'
 ];
 const modules = [...seen].sort().map(n => `/js/${n}`);
 const list = [...FIXED, ...modules].map(p => `\t'${p}'`).join(',\n');
