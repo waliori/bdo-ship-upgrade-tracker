@@ -178,9 +178,13 @@ function openPayPicker(need) {
 	});
 }
 
-export function renderQuests() {
+/**
+ * The quests the screen is showing: the chip, the pay filter and the
+ * search, all applied. One function, so "tick all N" ticks the N it
+ * counted rather than a list of its own.
+ */
+function shownQuests() {
 	const need = needMap();
-	const short = new Set([...need.keys()]);
 	const done = store.getProfile('questsDone', {}) || {};
 	const wanted = new Map(quests.map(q => [q.id, sparesYou(q, need)]).filter(([, w]) => w));
 	const isDone = q => questDone(q, done);
@@ -197,7 +201,13 @@ export function renderQuests() {
 		const hay = [quest.name, quest.where, quest.repeat, quest.note || '', quest.monster || '', ...rewardItems(quest)].join(' ').toLowerCase();
 		return hay.includes(q);
 	};
-	const shown = quests.filter(matches);
+	return { shown: quests.filter(matches), need, done, wanted, isDone, starred };
+}
+
+export function renderQuests() {
+	const { shown, need, wanted, isDone, starred } = shownQuests();
+	const short = new Set([...need.keys()]);
+	const q = query.toLowerCase();
 	const leftCount = quests.filter(quest => !isDone(quest)).length;
 	const wantedLeft = [...wanted.keys()].filter(id => !isDone(questById[id])).length;
 	const favLeft = starred.filter(id => questById[id] && !isDone(questById[id])).length;
@@ -402,13 +412,10 @@ export function questAction(act, el) {
 		return true;
 	}
 	if (act === 'quest-select-shown') {
-		const done = store.getProfile('questsDone', {}) || {};
 		const cadence = el.dataset.cadence;
-		for (const q of quests) {
-			if (cadenceOf(q) !== cadence || questDone(q, done)) continue;
-			if (payFilter.length && !rewardItems(q).some(i => payFilter.includes(i))) continue;
-			if (filter === 'wanted' && !sparesYou(q, needMap())) continue;
-			if (filter === 'fav' && !favs().includes(q.id)) continue;
+		const { shown, isDone } = shownQuests();
+		for (const q of shown) {
+			if (cadenceOf(q) !== cadence || isDone(q)) continue;
 			selected.add(q.id);
 		}
 		return true;

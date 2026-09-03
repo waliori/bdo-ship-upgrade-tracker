@@ -266,11 +266,15 @@ export function loadSetup(id) {
 	if (s.seats) seats[s.ship] = s.seats; else delete seats[s.ship];
 	const skins = { ...(store.getProfile('skins', {}) || {}) };
 	if (s.skin) skins[s.ship] = s.skin; else delete skins[s.ship];
-	store.setProfileQuiet('fitted', Object.keys(fitted).length ? fitted : null);
-	store.setProfileQuiet('crystal', Object.keys(crystal).length ? crystal : null);
-	store.setProfileQuiet('seats', Object.keys(seats).length ? seats : null);
-	store.setProfileQuiet('skins', Object.keys(skins).length ? skins : null);
-	store.setProfile('crewShip', s.ship);
+	// One change, not five: a fit assembled by hand is replaced here, and
+	// the Undo the toast offers has to bring all of it back.
+	store.setProfileMany({
+		fitted: Object.keys(fitted).length ? fitted : null,
+		crystal: Object.keys(crystal).length ? crystal : null,
+		seats: Object.keys(seats).length ? seats : null,
+		skins: Object.keys(skins).length ? skins : null,
+		crewShip: s.ship
+	}, `Sailed the setup "${s.name}"`);
 	return true;
 }
 
@@ -284,16 +288,24 @@ export function deleteSetup(id) {
 
 /** Which saved setup, if any, is exactly what is sailed right now. */
 export function activeSetupId() {
-	const cur = JSON.stringify(currentSetup());
-	// The keys have to be written in the order currentSetup() writes
-	// them: this compares the two as JSON, so a field added to one and
-	// not the other -- or added in the wrong place -- means no setup is
-	// ever the one being sailed.
-	return (listSetups().find(s => JSON.stringify({
+	const cur = canon(currentSetup());
+	// Compared with the keys in one fixed order, so a setup written by
+	// an older version -- or synced from another device -- with its
+	// fields in another order is still recognised as the one sailed.
+	return (listSetups().find(s => canon({
 		ship: s.ship,
 		fitted: s.fitted || {},
 		crystal: s.crystal || null,
 		seats: s.seats || {},
 		skin: s.skin || {}
 	}) === cur) || {}).id || null;
+}
+
+/** JSON with every object's keys sorted, so equal things read equal. */
+function canon(v) {
+	if (Array.isArray(v)) return `[${v.map(canon).join(',')}]`;
+	if (v && typeof v === 'object') {
+		return `{${Object.keys(v).sort().map(k => `${JSON.stringify(k)}:${canon(v[k])}`).join(',')}}`;
+	}
+	return JSON.stringify(v === undefined ? null : v);
 }

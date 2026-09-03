@@ -17,7 +17,7 @@ import { shipStats } from './ship_stats.js';
 import { describeStats, statsAt } from './part_stats.js';
 import { families, tables } from './enhancement.js';
 import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listSetups, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, skinWorn, setSkinSlot, setSkinAll, skinTotals } from './ship.js';
-import { GRADES, gradeById, crystalsOf, crystalVariant, crystalLine } from './crystals.js';
+import { GRADES, gradeById, crystalById, crystalsOf, crystalVariant, crystalLine } from './crystals.js';
 import { skinFor, SKIN_SLOTS } from './ship_skins.js';
 import { openFleet } from './setups.js';
 import { openPicker } from './picker.js';
@@ -624,7 +624,7 @@ export function renderCrew() {
 			</div>
 		</div>
 		<div class="ship-card-facts">
-			<div><div class="summary-k">Speed</div><div class="summary-v">${me.speed.total}%</div><div class="summary-sub">hull ${stats.speed}${me.speed.parts ? ` + parts ${me.speed.parts}` : ''}${me.speed.crystal ? ` + crystal ${me.speed.crystal}` : ''}${me.speed.crew ? ` + crew ${me.speed.crew}` : ''}${me.mastery ? ` + mastery ${me.mastery}` : ''}</div></div>
+			<div><div class="summary-k">Speed</div><div class="summary-v">${me.speed.total}%</div><div class="summary-sub">hull ${stats.speed}${me.speed.parts ? ` + parts ${me.speed.parts}` : ''}${me.speed.crystal ? ` + crystal ${me.speed.crystal}` : ''}${me.speed.crew ? ` + crew ${me.speed.crew}` : ''}${me.mastery ? ` + mastery ${me.mastery}` : ''}${me.speed.skin ? ` + skin ${me.speed.skin}` : ''}</div></div>
 			<div><div class="summary-k">Hold</div><div class="summary-v">${F(me.hold.free)} LT</div><div class="summary-sub">${F(me.hold.limit)} as fitted${me.hold.crew ? ` less ${F(me.hold.crew)} of crew` : ''}</div></div>
 			<div><div class="summary-k">Fitted</div><div class="summary-v">${fittedN + (me.crystal ? 1 : 0)} of 5</div><div class="summary-sub">${stats.crew ? `${me.crew.seated} of ${stats.crew} seats taken` : 'carries no sailors'}</div></div>
 		</div>
@@ -980,15 +980,23 @@ async function copyShipLink() {
 /** Take a ship setup in from a link: the hull, what is on it, who sails it. */
 export function applyShipSetup(setup) {
 	if (!setup || !shipStats[setup.ship]) return false;
-	store.setProfile('crewShip', setup.ship);
+	// The dialog promises one Undo takes it back, so it is one change.
+	const patch = { crewShip: setup.ship };
 	if (setup.fitted && typeof setup.fitted === 'object') {
-		const all = { ...(store.getProfile('fitted', {}) || {}) };
-		all[setup.ship] = setup.fitted;
-		store.setProfile('fitted', all);
+		patch.fitted = { ...(store.getProfile('fitted', {}) || {}), [setup.ship]: setup.fitted };
 	}
-	if (setup.crystal !== undefined) setCrystal(setup.ship, setup.crystal);
-	if (Array.isArray(setup.roster)) store.setProfile('roster', setup.roster);
-	if (setup.seats && typeof setup.seats === 'object') setSeats(setup.ship, setup.seats);
+	if (setup.crystal !== undefined) {
+		const all = { ...(store.getProfile('crystal', {}) || {}) };
+		if (setup.crystal && crystalById[setup.crystal]) all[setup.ship] = Number(setup.crystal); else delete all[setup.ship];
+		patch.crystal = Object.keys(all).length ? all : null;
+	}
+	if (Array.isArray(setup.roster)) patch.roster = setup.roster;
+	if (setup.seats && typeof setup.seats === 'object') {
+		const all = { ...(store.getProfile('seats', {}) || {}) };
+		if (Object.keys(setup.seats).length) all[setup.ship] = setup.seats; else delete all[setup.ship];
+		patch.seats = all;
+	}
+	store.setProfileMany(patch, `Took a ship from a link: ${setup.ship}`);
 	return true;
 }
 

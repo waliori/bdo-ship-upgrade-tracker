@@ -4,7 +4,7 @@
 import { esc, F } from './fmt.js';
 import * as store from './state.js';
 import { img, codexName, amountInput, whereFrom } from './ui-bits.js';
-import { recipes, snapshot, query, readyCrafts } from './ui-state.js';
+import { recipes, snapshot, query, readyCrafts, craftStock } from './ui-state.js';
 import { parseEnhanced, enhancedName, enhanceStep, ownedLevel, enhancementForecast } from './planner.js';
 import { massProcess } from './vendor_items.js';
 import { gainAt, describeStats } from './part_stats.js';
@@ -151,14 +151,16 @@ let showBlocked = false;
 export function toggleBlocked() { showBlocked = !showBlocked; }
 
 export function renderWorkshop() {
-	const stock = store.getAllStock();
 	const q = query.toLowerCase();
 	const ready = readyCrafts().filter(c => !q || c.item.toLowerCase().includes(q));
 
 	const cards = ready.map(c => {
 		const recipe = recipes[c.item] || {};
+		// Counted against what this craft may actually spend: stock a
+		// build has claimed for something else is not on the bench.
+		const bench = craftStock(c.item);
 		const ings = Object.entries(recipe).map(([ing, per]) => {
-			const have = stock[ing] || 0;
+			const have = bench[ing] || 0;
 			return `<span class="ing ${have < per ? 'short' : ''}" title="${esc(ing)}">
 				${img(ing, '')}${F(have)}/${F(per)}
 			</span>`;

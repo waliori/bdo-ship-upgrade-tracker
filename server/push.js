@@ -11,8 +11,15 @@
 import express from 'express';
 import webpush from 'web-push';
 import { config } from './config.js';
-import { putPushSub, deletePushSub, listPushSubs } from './db.js';
+import { putPushSub, deletePushSub, listPushSubs, countPushSubs } from './db.js';
 import { VELL, nextSpawn } from '../js/clock.js';
+import { perAddress } from './limit.js';
+
+// How many subscriptions the table will hold. Each one is an endpoint
+// the server posts to every Vell, so an open, anonymous route needs a
+// ceiling on the list it is filling -- this is far past any real
+// readership, and reached only by someone filling it on purpose.
+export const MAX_SUBSCRIPTIONS = Number(process.env.PUSH_MAX_SUBSCRIPTIONS) || 10000;
 
 const looksLikeSubscription = s =>
 	s && typeof s === 'object' && typeof s.endpoint === 'string' && /^https:\/\//.test(s.endpoint)
@@ -30,11 +37,19 @@ export function pushRoutes() {
 		res.json({ key: config.vapid.publicKey, regions: Object.keys(VELL), beforeMinutes: config.pushBeforeMs / 60000 });
 	});
 
-	router.post('/push/subscribe', async (req, res) => {
+	// A browser subscribes once and unsubscribes once; a few a minute
+	// from one address is generous, and the process-wide ceiling keeps
+	// the table from being filled from many.
+	const limited = perAddress(6, 60, 'Too many subscription changes just now; try again shortly.');
+
+	router.post('/push/subscribe', limited, async (req, res) => {
 		const { subscription, region } = req.body || {};
 		if (!looksLikeSubscription(subscription)) return res.status(400).json({ error: 'Expected a push subscription.' });
 		if (!VELL[region]) return res.status(400).json({ error: 'No timetable for that region.' });
 		try {
+			if (await countPushSubs() >= MAX_SUBSCRIPTIONS) {
+				return res.status(503).json({ error: 'No room for another reminder right now.' });
+			}
 			await putPushSub(subscription.endpoint, subscription, region);
 			res.status(204).end();
 		} catch (err) {
@@ -43,7 +58,7 @@ export function pushRoutes() {
 		}
 	});
 
-	router.delete('/push/subscribe', async (req, res) => {
+	router.delete('/push/subscribe', limited, async (req, res) => {
 		const endpoint = req.body && req.body.endpoint;
 		if (typeof endpoint !== 'string' || !endpoint) return res.status(400).json({ error: 'Which subscription?' });
 		try {

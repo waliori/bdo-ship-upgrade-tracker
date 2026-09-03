@@ -359,7 +359,11 @@ class GuidedTour {
 			{
 				// The masthead's buttons are behind the hamburger on a phone,
 				// so that is what a phone gets pointed at.
-				element: phone ? '.hamburger' : '.masthead-actions',
+				// The header folds into the hamburger at 780px (css), which is
+				// wider than the phone the rest of the tour is cut for --
+				// between the two, the actions the step would point at
+				// are hidden, so this step follows the header's own rule.
+				element: typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 780px)').matches ? '.hamburger' : '.masthead-actions',
 				popover: {
 					title: 'Undo, and your data',
 					description: 'Every change can be undone. <b>Find</b> (Ctrl+K) opens any item or tab, and <b>Log a trip</b> records everything you brought back as one change.<br><br><b>More</b> holds Profiles, Export and Import — a JSON backup, or a link carrying the whole plan — and <b>Help</b>, which plays a film of the whole thing end to end and lists what changed and when each dataset was checked.<br><br>Where the deployment offers it, signing in with Discord keeps this same inventory on your phone as well; without it nothing leaves this browser at all.',

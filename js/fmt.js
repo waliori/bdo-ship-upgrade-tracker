@@ -46,9 +46,18 @@ const localeParts = (() => {
  * exactly three digits once could be either, and the browser's locale
  * casts the deciding vote.
  */
-export function parseAmount(raw) {
+export function parseAmount(raw, { signed = false } = {}) {
 	let t = String(raw).trim().toLowerCase().replace(/[\s_']/g, '');
 	if (!t) return 0;
+	// A leading minus is a count taken away, where the caller allows
+	// one: the trip log promises it, the stock fields do not.
+	let sign = 1;
+	if (/^[-\u2212]/.test(t)) {
+		if (!signed) return null;
+		sign = -1;
+		t = t.slice(1);
+		if (!t) return null;
+	}
 
 	const hasDot = t.includes('.');
 	const hasComma = t.includes(',');
@@ -75,5 +84,12 @@ export function parseAmount(raw) {
 	const m = t.match(/^([0-9]*\.?[0-9]+)([kmb])?$/);
 	if (!m) return null;
 	const mult = { k: 1e3, m: 1e6, b: 1e9 }[m[2]] || 1;
-	return Math.max(0, Math.round(Number(m[1]) * mult));
+	const n = Math.round(Number(m[1]) * mult);
+	// A figure too big to be a count is a slip, and is treated like any
+	// other gibberish -- kept as Infinity it would vanish on reload.
+	if (!Number.isFinite(n) || n > AMOUNT_CAP) return null;
+	return sign * Math.max(0, n);
 }
+
+/** More than any inventory holds; past it a typed number is a typo. */
+export const AMOUNT_CAP = 1e15;

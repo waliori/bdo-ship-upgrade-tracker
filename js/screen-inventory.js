@@ -8,7 +8,7 @@ import {
 	img, codexName, amountInput, costCtx, costText, makeupHTML, barterHTML,
 	sourceOf, hasBuyOption, allItems, waysThrough, questsPaying
 } from './ui-bits.js';
-import { recipes, snapshot, rows, query, invFilter, selected, sort, sorter, sortSelect } from './ui-state.js';
+import { recipes, snapshot, rows, query, invFilter, selected, sort, sorter, sortSelect, craftStock } from './ui-state.js';
 import { maxCraftable, enhanceStep, parseEnhanced, enhancedName, waysToGet } from './planner.js';
 
 
@@ -221,7 +221,7 @@ function renderDetail() {
 	const step = level > 0 ? enhanceStep(base, level) : null;
 	const src = step ? null : sourceOf(item);
 	const canCraft = !!recipes[item] && !step;
-	const most = canCraft ? maxCraftable(item, store.getAllStock(), recipes) : 0;
+	const most = canCraft ? maxCraftable(item, craftStock(item), recipes) : 0;
 
 	const resvHTML = holders.length ? `<div class="detail-block">
 		<div class="detail-label">Reserved by</div>

@@ -15,7 +15,7 @@ import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.
 import {
 	view, selected, recipes, barterData, snapshot, query,
 	setView, setQuery, setPlanFilter, setInvFilter, setSelected, setBarterData,
-	recompute, readyCrafts, CROW_COIN, SILVER, setSort
+	recompute, readyCrafts, craftStock, CROW_COIN, SILVER, setSort
 } from './ui-state.js';
 import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
 import { allItems, CODEX_LANGS, img } from './ui-bits.js';
@@ -323,6 +323,7 @@ function showView(id) {
  * a tab only rewrites the entry.
  */
 let applyingHash = false;
+let pendingUpdate = null;   // lets a waiting service worker take over (boot.js)
 
 function syncHash() {
 	if (applyingHash) return;
@@ -366,10 +367,14 @@ function applyHash() {
 	setView(m[1]);
 	setQuery(queries[m[1]] || '');
 	if (m[1] === 'inventory' && m[2]) setSelected(decodeURIComponent(m[2]));
-	// A route in a link: plotted, and the chart flown to it.
+	// A route in a link: plotted, the chart flown to it, and the address
+	// cleaned like every other payload -- a reload of the link would
+	// otherwise stash the route as "Previous" again each time, and the
+	// list of saved routes holds eight.
 	if (m[1] === 'map' && m[2]) {
 		const n = applyMapLink(m[2]);
 		if (n) toast(`Route from the link: ${n} stop${n === 1 ? '' : 's'}`);
+		history.replaceState(null, '', `${location.pathname}${location.search}#map`);
 	}
 	store.setSetting('view', m[1]);
 	applyingHash = false;
@@ -856,7 +861,7 @@ function wire() {
 					: null;
 				const asked = field ? parseAmount(field.value) : Number(el.dataset.times);
 				const want = Math.max(1, asked || 1);
-				const times = Math.min(want, maxCraftable(item, store.getAllStock(), recipes));
+				const times = Math.min(want, maxCraftable(item, craftStock(item), recipes));
 				if (times < 1) return toast('Not enough materials for that');
 				const delta = craftDelta(item, times, recipes);
 				// Mass Process is the same recipe run ten at a time, plus a
@@ -900,23 +905,27 @@ function wire() {
 					toast(`Not enough ${short.join(', ')} for that attempt — to record a level you already have, open the part and pick the level`);
 					return;
 				}
+				// The failstack moves with the attempt: a failure adds one
+				// (Crons or not), a success spends the stack, and the next
+				// level starts from its own recommended one. It moves in
+				// the same change as the stones, so the Undo the toast
+				// offers takes back the attempt, not half of it.
+				const tier = (tableFor(base) || { levels: [] }).levels[level - 1];
+				let stackPatch = null;
+				if (tier && tier.base) {
+					const stacks = { ...(store.getProfile('failstacks', {}) || {}) };
+					if (ok) delete stacks[base];
+					else stacks[base] = (stacks[base] ?? tier.stack) + 1;
+					stackPatch = { failstacks: Object.keys(stacks).length ? stacks : null };
+				}
 				store.applyDelta(
 					spend,
 					'enhance',
 					ok ? `${base} reached +${level}`
 						: dropped ? `${base} fell to +${level - 2} — no Crons on the attempt`
-						: `Failed attempt at +${level} ${base}`
+						: `Failed attempt at +${level} ${base}`,
+					stackPatch
 				);
-				// The failstack moves with the attempt: a failure adds one
-				// (Crons or not), a success spends the stack, and the next
-				// level starts from its own recommended one.
-				const tier = (tableFor(base) || { levels: [] }).levels[level - 1];
-				if (tier && tier.base) {
-					const stacks = { ...(store.getProfile('failstacks', {}) || {}) };
-					if (ok) delete stacks[base];
-					else stacks[base] = (stacks[base] ?? tier.stack) + 1;
-					store.setProfile('failstacks', stacks);
-				}
 				if (dropped) {
 					toast(`${base} fell to +${level - 2} — the Crons stayed in your pocket`, true);
 					return;
@@ -929,6 +938,11 @@ function wire() {
 				toast(ok ? `${base} is now +${level}` : `Materials spent — ${base} ${held}`, true);
 				return;
 			}
+			case 'app-reload':
+				// The new deploy takes over, and the controller change
+				// that follows reloads the page onto it.
+				if (pendingUpdate) pendingUpdate();
+				return;
 			case 'move': {
 				const id = targetIdFrom(el);
 				if (id) store.moveTarget(id, Number(el.dataset.dir));
@@ -1293,12 +1307,16 @@ function showSharedBar(save) {
 		<button class="ghost-btn" data-shared="replace">Keep it, replace mine</button>
 		<button class="act" data-shared="back">Back to mine</button>`;
 	bar.hidden = false;
+	// The shell leaves room under its last line for the bar -- and on a
+	// phone for the section bar the bar now stands on.
+	document.querySelector('.shell')?.classList.add('shared');
 	bar.onclick = evt => {
 		const b = evt.target.closest('[data-shared]');
 		if (!b) return;
 		store.restore(sharedKept);
 		sharedKept = null;
 		bar.hidden = true;
+		document.querySelector('.shell')?.classList.remove('shared');
 		if (b.dataset.shared === 'merge') { store.merge(save, 'Merged a shared plan'); toast('Merged the shared plan into yours', true); }
 		else if (b.dataset.shared === 'replace') { store.adopt(save, 'Took a shared plan'); toast('Replaced yours with the shared plan', true); }
 		else toast('Back to your own plan');
@@ -1585,17 +1603,29 @@ export async function init() {
 
 	const saved = store.getSetting('view');
 	if (saved && TABS.some(t => t.id === saved)) setView(saved);
-	// Someone sent this link. A bare #map is a reload of your own; a hash
-	// carrying a payload -- #share/, #trace/, #ship/, #map/, an item --
-	// is a thing another player wanted you to look at. Read before
-	// applyHash(), which rewrites a share link to a plain #plan on the
-	// way through.
-	const arrivedOnALink = /^#[a-z]+\/.+/.test(location.hash);
+	// Someone sent this link. A bare #map is a reload of your own, and so
+	// is #inventory/<item> -- the app writes that itself whenever an item
+	// is open. A hash carrying a shared payload -- #share/, #trace/,
+	// #ship/, #map/ -- is a thing another player wanted you to look at,
+	// and neither the tour nor the notes interrupt that; they wait for
+	// the next plain visit, unmarked. Read before applyHash(), which
+	// rewrites a share link to a plain #plan on the way through.
+	const arrivedOnALink = /^#(share|trace|ship|map)\/.+/.test(location.hash);
 	// A link or a reload with a hash names a place, and the address bar
 	// outranks the remembered tab.
 	applyHash();
 
 	wire();
+	// A newer deploy has installed behind this page and is waiting to
+	// be let in (see boot.js). Offered, never forced: the reload is
+	// the player's to take when nothing is half-typed.
+	document.addEventListener('app-update', evt => {
+		pendingUpdate = evt.detail && evt.detail.apply;
+		const el = document.getElementById('toast');
+		if (!el || !pendingUpdate) return;
+		el.innerHTML = '<span>A new version of the tracker is ready.</span><button type="button" data-act="app-reload">Reload</button>';
+		el.hidden = false;
+	});
 	window.addEventListener('hashchange', applyHash);
 	store.subscribe(() => render());
 	render();

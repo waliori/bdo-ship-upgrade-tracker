@@ -134,3 +134,30 @@ test('a setup keeps a hull with its parts, crystal and seats, and sails again on
 	assert.equal(listSetups().length, 0);
 	assert.equal(loadSetup(id), false);
 });
+
+test('sailing a saved setup is one change, and one Undo brings the hand fit back', async () => {
+	const { saveSetup, loadSetup, activeSetupId } = await import('../js/ship.js');
+	const HULL = 'Bartali Sailboat';
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: {
+		crewShip: HULL,
+		fitted: { [HULL]: { cannon: `+7 ${HULL}: Old Cannon`, sail: `+5 ${HULL}: Old Wind Sail` } },
+		setups: { sA: { name: 'Old setup', ship: HULL, fitted: { figurehead: `${HULL}: Old Figurehead` } } }
+	} });
+	assert.ok(loadSetup('sA'));
+	assert.deepEqual(store.getProfile('fitted')[HULL], { figurehead: `${HULL}: Old Figurehead` });
+	assert.equal(store.lastChange().label, 'Sailed the setup "Old setup"');
+	assert.equal(activeSetupId(), 'sA');
+
+	assert.ok(store.undo());
+	assert.deepEqual(store.getProfile('fitted')[HULL], { cannon: `+7 ${HULL}: Old Cannon`, sail: `+5 ${HULL}: Old Wind Sail` });
+	assert.equal(activeSetupId(), null);
+
+	// Saved again under a name, the setup matches however its fields are ordered.
+	const id = saveSetup('Now');
+	assert.equal(activeSetupId(), id);
+	const all = { ...store.getProfile('setups') };
+	const s = all[id];
+	all[id] = { fitted: { sail: s.fitted.sail, cannon: s.fitted.cannon }, ship: s.ship, name: s.name };
+	store.setProfile('setups', all);
+	assert.equal(activeSetupId(), id, 'key order alone must not unrecognise a setup');
+});

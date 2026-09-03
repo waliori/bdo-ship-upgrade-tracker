@@ -139,9 +139,11 @@ export function renderTree() {
 
 		return `<div class="trow ${state}" style="--depth:${depth}">
 			${guides}
-			${kids
-				? `<button class="tcaret" data-act="tree-fold" data-id="${esc(id)}">${folded.has(id) && !q ? '+' : '−'}</button>`
-				: '<span class="tcaret empty"></span>'}
+			${kids && !q
+				? `<button class="tcaret" data-act="tree-fold" data-id="${esc(id)}">${folded.has(id) ? '+' : '−'}</button>`
+				: kids
+					? '<span class="tcaret open" title="Every branch with a match is open while you search"></span>'
+					: '<span class="tcaret empty"></span>'}
 			${img(node.item, 'trow-icon')}
 			<span class="trow-main">
 				<span class="trow-name">${codexName(node.item)}</span>

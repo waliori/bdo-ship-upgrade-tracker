@@ -51,14 +51,16 @@ function recipeFor(item, strategy, recipes) {
  * full Agris meter guarantees the try after `agris` failures. 1 when the
  * step cannot fail, or when we have no table for the part.
  */
-function triesAtLevel(step) {
-	if (!step || step.chance >= 1) return 1;
+function triesAtLevel(step, failstack = null) {
+	if (!step) return 1;
+	const chance = chanceAt(step, failstack);
+	if (chance >= 1) return 1;
 	const cap = step.agris ?? 0;
 	let tries = 0;
 	let stillFailing = 1;
 	for (let k = 1; k <= cap; k++) {
-		tries += k * step.chance * stillFailing;
-		stillFailing *= 1 - step.chance;
+		tries += k * chance * stillFailing;
+		stillFailing *= 1 - chance;
 	}
 	return tries + (cap + 1) * stillFailing;
 }
@@ -71,11 +73,11 @@ function triesAtLevel(step) {
  * yellow tier holds it because the Cron Stones that do so are part of
  * its recipe. `unprotectedAttempts` is what skipping them would cost.
  */
-export function expectedAttempts(base, level) {
+export function expectedAttempts(base, level, failstack = null) {
 	const table = tableFor(base);
 	const step = table && table.levels[level];
 	if (!step || step.chance >= 1) return 1;
-	return triesAtLevel(step);
+	return triesAtLevel(step, failstack);
 }
 
 /**
@@ -131,11 +133,17 @@ export function unprotectedAttempts(base, to = 10) {
  * scaled by how many attempts that level is expected to take. The part
  * being enhanced is not scaled: you only ever need the one.
  */
-function perCraft(product, ingredient, quantity) {
+function perCraft(product, ingredient, quantity, failstacks = null) {
 	const made = parseEnhanced(product);
 	if (made.level === 0) return quantity;
 	if (parseEnhanced(ingredient).base === made.base) return quantity;
-	return quantity * expectedAttempts(made.base, made.level - 1);
+	// The stack the player carries prices the one attempt it is for --
+	// the next level on that part -- so the Plan quotes the same
+	// figure the Workshop's forecast does. Every level past it is
+	// priced at its quoted stack, as the forecast prices them.
+	const held = failstacks && failstacks[made.base];
+	const stack = held && held.level === made.level ? held.stack : null;
+	return quantity * expectedAttempts(made.base, made.level - 1, stack);
 }
 
 function bump(obj, key, amount) {
@@ -176,7 +184,7 @@ function explode(item, qty, pool, acc, ctx, seen, via) {
 		bump(acc.toCraft, item, outstanding);
 		const deeper = new Set(seen).add(item);
 		for (const [ingredient, per] of Object.entries(recipe)) {
-			const need = Math.ceil(perCraft(item, ingredient, per) * outstanding);
+			const need = Math.ceil(perCraft(item, ingredient, per, ctx.failstacks) * outstanding);
 			node.children.push(
 				explode(ingredient, need, pool, acc, ctx, deeper, item)
 			);
@@ -214,8 +222,11 @@ export function totalUnits(item, qty, strategy = {}, recipes = defaultRecipes, s
  * @param {Array}    opts.targets   [{id, item, qty, active}] in priority order
  * @param {object}   opts.strategy  item -> 'craft' | 'buy'
  * @param {object}   [opts.recipes]
+ * @param {object}   [opts.failstacks]  base -> { level, stack }: the stack
+ *                   carried into the next attempt on that part, so the
+ *                   stones are scaled the way the Workshop scales them
  */
-export function plan({ stock = {}, targets = [], strategy = {}, recipes = defaultRecipes } = {}) {
+export function plan({ stock = {}, targets = [], strategy = {}, recipes = defaultRecipes, failstacks = null } = {}) {
 	// Resolved once, up front, so no caller can forget to -- an upgrade
 	// with two routes has to explode down the one that was chosen.
 	recipes = resolveRoutes(strategy, recipes);
@@ -231,7 +242,8 @@ export function plan({ stock = {}, targets = [], strategy = {}, recipes = defaul
 			targetId: target.id,
 			targetItem: target.item,
 			strategy,
-			recipes
+			recipes,
+			failstacks
 		};
 		const tree = explode(target.item, target.qty, pool, acc, ctx, new Set(), null);
 
@@ -314,13 +326,36 @@ export function craftDelta(item, times = 1, recipes = defaultRecipes) {
 }
 
 /**
- * Everything you could make this second that something actually wants.
- * `wanted` is the planner's `toCraft` map.
+ * What may be spent crafting `item`: the stock nothing has claimed, plus
+ * whatever the plan earmarked as this very item's ingredients.
+ *
+ * Reservations are the whole point of one shared pool -- a plank held
+ * for the top build is not there to be turned into something for the
+ * second -- so a craft is checked against the free remainder, not the
+ * total. The one exception is the material the plan itself set aside
+ * *for this craft*: it is reserved "via" the item, and making the item
+ * is exactly what that reservation was for.
  */
-export function craftableNow(stock = {}, wanted = {}, recipes = defaultRecipes) {
+export function stockForCrafting(item, stock = {}, planned = null) {
+	if (!planned || !planned.reservedBy) return stock;
+	const out = {};
+	for (const [ing, qty] of Object.entries(stock)) {
+		let held = qty;
+		for (const h of planned.reservedBy[ing] || []) if (h.via !== item) held -= h.qty;
+		if (held > 0) out[ing] = held;
+	}
+	return out;
+}
+
+/**
+ * Everything you could make this second that something actually wants.
+ * `wanted` is the planner's `toCraft` map; with the plan itself passed
+ * as `planned`, reserved stock is not counted as available.
+ */
+export function craftableNow(stock = {}, wanted = {}, recipes = defaultRecipes, planned = null) {
 	const out = [];
 	for (const item of Object.keys(wanted)) {
-		const possible = maxCraftable(item, stock, recipes);
+		const possible = maxCraftable(item, stockForCrafting(item, stock, planned), recipes);
 		if (possible > 0) {
 			out.push({ item, possible, wanted: wanted[item], suggested: Math.min(possible, wanted[item]) });
 		}

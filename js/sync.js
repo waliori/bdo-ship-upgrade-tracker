@@ -242,6 +242,18 @@ async function push(force = false) {
 				return say('error', 'that did not save');
 			}
 			failures = 0;
+			// The revision lives in the same key as the save, so another
+			// tab of this browser writing its new revision wakes this one,
+			// which reloads and may already have a push in the air at the
+			// old number. The server refuses it -- and hands back what
+			// that tab saved, which is byte for byte what was sent. Two
+			// identical copies are not a choice to put to anyone: adopt
+			// the revision and go quiet.
+			if (JSON.stringify(res.body.data) === text) {
+				setRev(res.body.rev);
+				lastPushed = text;
+				return say('idle');
+			}
 			return askWhichCopy(res.body, 'Another device saved while you were working.');
 		}
 		// The account behind this session was deleted -- from another

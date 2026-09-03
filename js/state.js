@@ -397,9 +397,48 @@ export function getProfile(key, fallback = null) {
 	return key in state.profile ? state.profile[key] : fallback;
 }
 
-export function setProfile(key, value) {
+// What the undo toast calls a change to each field. The profile began
+// as two barter facts and grew the whole ship and crew; a sailor renamed
+// or a hull swapped is not "your barter profile" to the person undoing it.
+const PROFILE_LABELS = {
+	barterCount: 'Changed your barter count',
+	valuePack: 'Changed the Value Pack',
+	crew: 'Changed the crew discount',
+	level: 'Changed your barter level',
+	vouchers: 'Changed your vouchers',
+	parleyHeld: 'Changed the parley you hold',
+	failstacks: 'Changed a failstack',
+	crewShip: 'Changed the ship you sail',
+	roster: 'Changed the roster',
+	seats: 'Changed who sits where',
+	presets: 'Changed a crew preset',
+	fitted: 'Changed what is fitted',
+	crystal: 'Changed the sea crystal',
+	skins: 'Changed the appearance set',
+	setups: 'Changed your saved setups',
+	sailingMastery: 'Changed your sailing mastery',
+	questFavs: 'Changed your favourite quests',
+	questGroups: 'Changed a quest group',
+	stash: 'Changed where things are kept'
+};
+
+export function setProfile(key, value, label = null) {
 	const next = readProfile({ ...state.profile, [key]: value });
-	commit('profile', 'Changed your barter profile', () => {
+	commit('profile', label || PROFILE_LABELS[key] || 'Changed your profile', () => {
+		state.profile = next;
+	});
+}
+
+/**
+ * Several profile fields as one change, so one Undo takes back all of
+ * them: sailing a saved setup writes the hull, its parts, its crystal,
+ * its seating and its skin, and a player who undoes that expects the
+ * fit they had back, not the hull name alone.
+ */
+export function setProfileMany(patch, label) {
+	const next = readProfile({ ...state.profile, ...patch });
+	if (JSON.stringify(next) === JSON.stringify(state.profile)) return null;
+	return commit('profile', label || 'Changed your profile', () => {
 		state.profile = next;
 	});
 }
@@ -426,8 +465,13 @@ export function getSetting(key, fallback = null) {
  * Stock mutations
  * ------------------------------------------------------------------ */
 
+// More than any warehouse holds. A count past this is a slip, not a
+// stock, and left alone it would be Infinity in memory and nothing at
+// all after a reload -- JSON has no way to write it.
+export const STOCK_CAP = 1e15;
+
 function writeStock(item, qty) {
-	const n = Math.max(0, Math.floor(Number(qty) || 0));
+	const n = Math.min(STOCK_CAP, Math.max(0, Math.floor(Number(qty) || 0)));
 	if (n > 0) state.stock[item] = n;
 	else delete state.stock[item];
 	// The places an item is noted at can never hold more than the total:
@@ -450,7 +494,7 @@ function writeStock(item, qty) {
 /** Set an item's owned quantity outright. */
 export function setStock(item, qty, label) {
 	const before = getStock(item);
-	const after = Math.max(0, Math.floor(Number(qty) || 0));
+	const after = Math.min(STOCK_CAP, Math.max(0, Math.floor(Number(qty) || 0)));
 	if (before === after) return null;
 	return commit('stock', label || `${item}: ${before} → ${after}`, () => writeStock(item, after));
 }
@@ -463,12 +507,19 @@ export function addStock(item, delta, label) {
 	return commit('stock', label || `${d > 0 ? '+' : ''}${d} ${item}`, () => writeStock(item, after));
 }
 
-/** Apply several stock changes as one undoable step. */
-export function applyDelta(delta, type, label) {
+/**
+ * Apply several stock changes as one undoable step. `profile`, when
+ * given, is a patch of profile fields written in the same step -- an
+ * enhancement attempt spends stones and moves the failstack together,
+ * and one Undo has to take back both or it takes back a lie.
+ */
+export function applyDelta(delta, type, label, profile = null) {
 	const entries = Object.entries(delta).filter(([, d]) => Number(d));
-	if (!entries.length) return null;
+	if (!entries.length && !profile) return null;
+	const next = profile ? readProfile({ ...state.profile, ...profile }) : null;
 	return commit(type || 'stock', label || 'Inventory change', () => {
 		for (const [item, d] of entries) writeStock(item, getStock(item) + Math.floor(d));
+		if (next) state.profile = next;
 	});
 }
 
@@ -771,7 +822,8 @@ export function capture() {
 	return JSON.stringify({
 		stock: state.stock,
 		targets: state.targets,
-		strategy: state.strategy
+		strategy: state.strategy,
+		profile: state.profile
 	});
 }
 
@@ -799,6 +851,13 @@ export function applyTransient(json) {
 	state.stock = { ...(raw.stock || {}) };
 	state.targets = (raw.targets || []).map(t => ({ ...t }));
 	state.strategy = { ...(raw.strategy || {}) };
+	// The profile travels too: a shared plan's barter count and ship
+	// are part of what it shows, and what is typed into them while
+	// looking around must go back with the rest when the look ends --
+	// the bar says nothing here is saved, and the To Get screen's
+	// fields write here. The tour's example data names no profile, so
+	// it keeps the player's own.
+	if (isProfile(raw.profile)) state.profile = readProfile(raw.profile);
 	notify('transient');
 	return true;
 }

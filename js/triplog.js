@@ -134,7 +134,7 @@ export function openTripLog(focusRow = null) {
 		for (const l of lines) {
 			if (!l.item && !String(l.qty).trim()) continue;
 			if (!l.item) return toast('A line has a count but no item — choose one');
-			const n = parseAmount(String(l.qty));
+			const n = parseAmount(String(l.qty), { signed: true });
 			if (n === null || !n) return toast(`How many ${l.item}?`);
 			delta[l.item] = (delta[l.item] || 0) + n;
 			used.push(l.item);

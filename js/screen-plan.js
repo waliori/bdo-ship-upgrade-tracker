@@ -7,7 +7,7 @@ import * as store from './state.js';
 import { img, codexName, amountInput, sourceOf } from './ui-bits.js';
 import {
 	recipes, rows, snapshot, query, planFilter, sort, sorter, sortSelect,
-	readyCrafts, totalsToGo
+	readyCrafts, craftStock, totalsToGo
 } from './ui-state.js';
 import { maxCraftable, parseEnhanced } from './planner.js';
 import { pendingEnhancements } from './screen-workshop.js';
@@ -190,7 +190,7 @@ export function planRow(item, r, covered) {
 	// the plan has a recipe lined up for it. The two used to be conflated,
 	// which is how the Plan could badge seven rows craftable while the
 	// Workshop said nothing could be made.
-	const can = !enhanced && recipes[item] && r.craft > 0 && maxCraftable(item, store.getAllStock(), recipes) >= 1;
+	const can = !enhanced && recipes[item] && r.craft > 0 && maxCraftable(item, craftStock(item), recipes) >= 1;
 	const bought = !enhanced && !recipes[item] && src && ['coin', 'falasi', 'Market'].includes(src.key);
 	const badge = covered
 		? 'covered'

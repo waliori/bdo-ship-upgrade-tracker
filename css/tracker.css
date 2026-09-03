@@ -1580,6 +1580,8 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 }
 .tcaret:hover { color: var(--ink-hi); border-color: var(--line-btn-hi); }
 .tcaret.empty { border: none; }
+.tcaret.open { border: none; color: var(--ink-faint); cursor: default; }
+.tcaret.open::before { content: '−'; }
 
 .trow-icon { width: 26px; height: 26px; border-radius: 5px; object-fit: contain; flex: none; }
 .trow-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
@@ -3126,6 +3128,41 @@ select.purse-inline { width: auto; cursor: pointer; }
 .trace-grid .trace-thumb-box, .trace-grid .trace-thumb { width: 64px; height: 42px; }
 @media (max-width: 640px) { .trace-grid { grid-template-columns: 1fr; max-height: 46vh; } }
 
+/* ---- a finger, not a pointer ---------------------------------------- */
+/* The small crosses remove saved routes, traces, profiles, quest groups,
+   fleet setups and storage rows. Drawn at 10 by 15 pixels they are a
+   guess to hit with a thumb; the glyph stays small, the target does not. */
+@media (pointer: coarse) {
+  .map-x, .map-side-close {
+    min-width: 32px;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* iOS Safari zooms the page into any field set under 16px the moment
+     it is focused, purse included. Sixteen it is, and the narrow fields
+     grow enough to still hold their digits. */
+  .field, .qty-val, .craft-n, .own-input, .purse-inline, .stat-in,
+  input[type="text"], input[type="number"], input[type="search"], select, textarea {
+    font-size: 16px;
+  }
+  .purse-inline { width: 108px; }
+  .purse-inline.narrow, .enh-fs .purse-inline.narrow { width: 64px; }
+  .stat-in { width: 64px; }
+}
+
+/* ---- a phone on its side ------------------------------------------- */
+/* Nothing here was sized for 400 pixels of height. The section bar
+   drops its labels to a single row of icons, the sheets and dialogs
+   take what height there is, and the chart keeps its full width. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .tabbar-label { display: none; }
+  .tabbar-btn { padding: 5px 2px 4px; }
+  .dialog-box { max-height: calc(100dvh - 16px); overflow-y: auto; }
+  .map { height: calc(100dvh - 120px); min-height: 220px; }
+}
+
 /* ---- the phone's section bar --------------------------------------- */
 /* Nine sections do not fit a thumb, and a row that scrolls sideways
    hides what is past its edge. Four sit here; "All" opens the rest. */
@@ -3344,8 +3381,15 @@ select.purse-inline { width: auto; cursor: pointer; }
 .news-points b { color: var(--ink); }
 
 /* ---- Shared plan, typed sailor stats ---- */
-.shared-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 10px 16px; background: rgba(6, 14, 26, 0.94); border-top: 1px solid rgba(240, 180, 90, 0.5); color: var(--amber); font-size: 13px; }
+.shared-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px)); background: rgba(6, 14, 26, 0.94); border-top: 1px solid rgba(240, 180, 90, 0.5); color: var(--amber); font-size: 13px; }
 .shared-bar[hidden] { display: none; }
+/* On a phone the section bar owns the bottom edge and already pads for
+   the home indicator; this one stands on top of it rather than over it,
+   so every section stays reachable while looking around a shared plan. */
+@media (max-width: 640px) {
+  .shared-bar { bottom: var(--tabbar-h, 0px); padding-bottom: 10px; }
+  .shell.shared { padding-bottom: calc(84px + 64px + env(safe-area-inset-bottom, 0px)); }
+}
 .stat-in { width: 52px; text-align: right; }
 .sel-stat.typed b > .stat-in { color: var(--teal); }
 .sel-note { font-size: 11px; color: var(--ink-faint); margin: 6px 0 2px; }

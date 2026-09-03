@@ -17,6 +17,7 @@
 // hour ago beats no price.
 
 import { fetch } from 'undici';
+import { perAddress } from './limit.js';
 
 export const REGIONS = ['na', 'eu', 'sea', 'mena', 'kr', 'ru', 'jp', 'th', 'tw', 'sa', 'console_eu', 'console_na', 'console_asia'];
 // What a request that names no region is taken to mean. The page always
@@ -216,7 +217,13 @@ export async function pricesFor(region, ids, { fetchImpl = fetch, now = Date.now
 /** The route: GET /api/market?region=eu&ids=4064,5828 */
 export function marketRoutes(express, deps = {}) {
 	const router = express.Router();
-	router.get('/market', async (req, res) => {
+	// The page asks once a region per quarter hour and the relay answers
+	// from memory for the rest, so a browser behaving itself needs a
+	// handful of calls an hour. Each call may fan out to ten upstream
+	// batches, which is why the process-wide ceiling is the low one: it
+	// caps what this deployment can ask of the upstream in a minute,
+	// whoever is asking.
+	router.get('/market', perAddress(30, 120, 'The Market has been asked a lot just now; try again shortly.'), async (req, res) => {
 		res.set('Cache-Control', 'no-store');
 		const region = String(req.query.region || DEFAULT_REGION).toLowerCase();
 		if (!REGIONS.includes(region)) return res.status(400).json({ error: 'That is not a region the Market has.' });

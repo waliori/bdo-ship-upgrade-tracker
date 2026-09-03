@@ -20,6 +20,7 @@ import { monsterArt } from './monster_art.js';
 import { gradeById } from './crystals.js';
 import { quests } from './quests.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
+import { barterKey } from './clock.js';
 import { openPicker } from './picker.js';
 import * as store from './state.js';
 import { legLengths, pathLength, sailRange, fmtRange, calibrate, fmtDistance, DEFAULT_CAL } from './sailing.js';
@@ -88,10 +89,11 @@ let libOpen = false;          // the library is the dialog on screen
 let editing = 0;              // the seq of the word being typed on the chart, 0 for none
 let markDrag = null;          // a stop or a word being carried elsewhere: { kind, seq, from, x, y, moved }
 
-/** The barter day: the game's lists refresh at 06:00 UTC, so "today"
- *  rolls over then, not at midnight. */
+/** The barter day, on the standing region's clock -- the same one the
+ *  Resets dialog corrects, so the countdown and the "sailed today" ticks
+ *  roll over together. */
 function barterDay() {
-	return new Date(Date.now() - 6 * 3600e3).toISOString().slice(0, 10);
+	return barterKey();
 }
 
 function restore() {
@@ -1393,7 +1395,9 @@ export function traceAction(act, el) {
 			if (!t || (!t.points.length && !t.strokes.length && !t.texts.length)) return true;
 			const name = t.name.trim() || `Trace ${traces.length + 1}`;
 			t.name = name;
-			traces = [{ ...t, at: Date.now() }, ...traces.filter(r => r.name !== name)].slice(0, TRACES_MAX);
+			// A copy, not the live object: a kept trace has to stand still
+			// while the next stroke goes on the one being drawn.
+			traces = [{ ...JSON.parse(JSON.stringify(t)), at: Date.now() }, ...traces.filter(r => r.name !== name)].slice(0, TRACES_MAX);
 			toast(`Kept “${name}”`);
 			break;
 		}
@@ -2800,6 +2804,10 @@ const furniture = () => CHROME;
 			host.setPointerCapture(evt.pointerId);
 			return;
 		}
+		// A second finger while the pen is down means a pinch, not a
+		// longer line: the stroke so far is dropped rather than kept
+		// half-drawn, and the two fingers zoom.
+		if (penStroke && touching.size === 2) penStroke = null;
 		if (touching.size === 2) {
 			// A second finger turns the gesture into a pinch, not a drag.
 			dragging = null;
@@ -2877,6 +2885,7 @@ const furniture = () => CHROME;
 		// than carried opens for retyping.
 		if (markDrag) {
 			const { kind, seq, moved } = markDrag;
+			const carried = markDrag;
 			markDrag = null;
 			document.querySelectorAll('[data-map].moving-mark').forEach(el => el.classList.remove('moving-mark'));
 			if (evt) touching.delete(evt.pointerId);
@@ -2886,6 +2895,13 @@ const furniture = () => CHROME;
 			if (m && kind === 'stop') {
 				const wet = onWater(m);
 				if (wet) { m.x = wet.x; m.y = wet.y; }
+				else if (moved) {
+					// No water near enough to step off to: the stop goes
+					// back where it was picked up, as a click that far
+					// inland would have been refused.
+					m.x = carried.x; m.y = carried.y;
+					toast('A stop belongs on the water');
+				}
 			}
 			if (!moved && kind === 'word' && markBySeq('word', seq)) editing = seq;
 			persist();
@@ -3472,7 +3488,11 @@ export function setGameWrite(value) {
 export async function openGameExport(source) {
 	if (source === 'route' || source === 'hunt' || source === 'trace') gameSource = source;
 	const r = gameBookmarks();
-	if (!r.stops) return;
+	if (!r.stops) {
+		return toast(gameSource === 'hunt'
+			? 'Nothing to put on the map: the grounds ticked have no fixed spawn points on the chart'
+			: 'Nothing to put on the map yet — plot a stop first');
+	}
 	const what = r.source === 'hunt' ? 'hunt' : r.source === 'trace' ? 'traced route' : 'route';
 	// Chromium can hold the folder itself; elsewhere the block is pasted.
 	const folder = canWriteFiles() ? await gameFolderName() : null;

@@ -12,7 +12,7 @@ import { coins } from './sea_coins.js';
 import { falasi } from './falasi_vendor.js';
 import { marketSilver } from './market.js';
 import * as store from './state.js';
-import { plan, craftableNow, parseEnhanced, resolveRoutes } from './planner.js';
+import { plan, craftableNow, stockForCrafting, parseEnhanced, resolveRoutes, ownedLevel } from './planner.js';
 
 // The recipe book as the user's chosen routes make it. An upgrade with
 // two ways in -- the Caravel, the Galleass -- reads here as whichever one
@@ -100,10 +100,19 @@ export function sortSelect() {
 
 export function recompute() {
 	recipes = resolveRoutes(store.getAllStrategy(), allRecipes);
+	const stock = store.getAllStock();
+	// The failstack each yellow part carries into its next attempt, so
+	// the plan scales its stones the way the Workshop's forecast does
+	// rather than at the quoted stack while the Workshop says otherwise.
+	const failstacks = {};
+	for (const [base, stack] of Object.entries(store.getProfile('failstacks', {}) || {})) {
+		failstacks[base] = { level: ownedLevel(base, stock) + 1, stack };
+	}
 	snapshot = plan({
-		stock: store.getAllStock(),
+		stock,
 		targets: store.getTargets(),
-		strategy: store.getAllStrategy()
+		strategy: store.getAllStrategy(),
+		failstacks
 	});
 
 	// Collapse every build's requirement tree into one row per item.
@@ -139,8 +148,12 @@ export function recompute() {
 }
 
 export const readyCrafts = () =>
-	craftableNow(store.getAllStock(), snapshot.toCraft, recipes)
+	craftableNow(store.getAllStock(), snapshot.toCraft, recipes, snapshot)
 		.filter(c => parseEnhanced(c.item).level === 0);
+
+/** What may be spent making `item` right now: stock no build has
+ *  claimed, plus what the plan set aside as this item's own materials. */
+export const craftStock = item => stockForCrafting(item, store.getAllStock(), snapshot);
 
 export function totalsToGo() {
 	let c = 0;
