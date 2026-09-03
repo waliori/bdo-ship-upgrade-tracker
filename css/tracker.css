@@ -4059,3 +4059,19 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .enh-table th.num, .enh-table td.num { text-align: right; }
 .enh-table td.lit { color: var(--teal); font-weight: 600; }
 .enh-table td small { display: block; font-weight: 400; color: var(--ink-faint); font-size: 10px; }
+
+/* The sea's clocks, a pill on the chart's top corner opposite the panel. */
+.map-clocks { position: absolute; right: 12px; top: 12px; z-index: 4; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 12px; max-width: 46%; padding: 4px 10px; border-radius: var(--r-btn); background: rgba(6, 14, 26, 0.78); border: 1px solid rgba(125, 175, 225, 0.18); font-size: 11px; color: var(--ink-mute); pointer-events: none; }
+.map-clocks b { color: var(--ink-hi); font-variant-numeric: tabular-nums; }
+.map.side-right .map-clocks { right: auto; left: 12px; justify-content: flex-start; }
+@media (max-width: 640px) { .map-clocks { top: auto; bottom: 10px; right: 10px; max-width: 60%; font-size: 10.5px; padding: 3px 8px; gap: 2px 8px; } .map.side-right .map-clocks { left: auto; right: 10px; } }
+
+/* An area shaded on the chart, and one being cornered. */
+.map-trace-area { fill-opacity: 0.18; stroke-width: 1.5; stroke-linejoin: round; opacity: 0.95; }
+.map-trace-draft { fill: none; stroke-width: 1.5; stroke-dasharray: 5 4; stroke-linejoin: round; }
+.map-trace-corner { stroke-width: 1.5; }
+.map-trace-corner.first { cursor: pointer; }
+.map-trace-n.area { font-size: 10px; }
+.map-area-draft { align-items: center; }
+.map-area-draft .map-hint { margin: 0; flex: 1; }
+.map.tool-area .map-layer { cursor: crosshair; }

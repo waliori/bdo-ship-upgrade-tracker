@@ -34,8 +34,8 @@ export function odds(e) {
 export function outlook(e) {
 	const f = e.forecast;
 	if (!f || e.next >= e.want) return '';
-	return `<span class="enh-outlook" title="Expected cost of every attempt from +${e.have} to +${e.want}, and the most it can possibly take">
-		to +${e.want}: <b>${F(f.expected)}</b> expected · ${F(f.ceiling)} at worst
+	return `<span class="enh-outlook" title="Expected cost of every attempt from +${e.have} to +${e.want}, the most it can possibly take, and the durability the failures can cost at the very worst — a repair each time the part runs out">
+		to +${e.want}: <b>${F(f.expected)}</b> expected · ${F(f.ceiling)} at worst${f.durabilityCeiling ? ` · up to ${F(f.durabilityCeiling)} durability lost` : ''}
 	</span>`;
 }
 
