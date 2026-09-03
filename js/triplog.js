@@ -14,6 +14,7 @@ import { CROW_COIN, SILVER, SANGPYEONG } from './ui-state.js';
 import { quests } from './quests.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { openPicker } from './picker.js';
+import { KINDS, kindOf } from './kinds.js';
 
 let known = null;
 function names() {
@@ -83,12 +84,21 @@ function pickerItems(query = '') {
 function pickFor(i) {
 	const items = pickerItems();
 	const shortOf = items.filter(it => it.boost === 2).length;
+	// One kind at a time when asked: a trip that brought back goods is
+	// logged from the goods, without the planks in between.
+	let kind = 'all';
+	const chipsFor = () => [['all', 'Everything'], ...KINDS.map(k => [k.id, k.label])].map(([id, label]) => ({ id, label, on: kind === id }));
 	openPicker({
 		title: 'Which item?',
 		hint: shortOf
 			? `The ${shortOf === 1 ? 'one thing' : `${shortOf} things`} your builds are still short of ${shortOf === 1 ? 'is' : 'are'} first. Type to reach anything else.`
 			: 'Type to find anything you brought back.',
 		items,
+		chips: chipsFor(),
+		onChips: id => {
+			kind = id;
+			return { items: kind === 'all' ? items : items.filter(it => kindOf(it.id) === kind), chips: chipsFor() };
+		},
 		selected: lines[i] && lines[i].item,
 		onPick: item => {
 			lines[i].item = item;

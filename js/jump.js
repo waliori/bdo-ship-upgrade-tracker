@@ -11,6 +11,7 @@ import * as store from './state.js';
 import { img, allItems, offerableItems } from './ui-bits.js';
 import { snapshot } from './ui-state.js';
 import { openDialog, closeDialog } from './dialogs.js';
+import { KINDS, kindOf, kindTag } from './kinds.js';
 
 /**
  * The names that match, best first: a name that starts with the query,
@@ -58,13 +59,19 @@ export function openJump({ tabs, go }) {
 	const host = openDialog(`
 		<div class="jump">
 			<input class="field jump-in" type="search" placeholder="Find an item or a tab… (Ctrl+K)" aria-label="Find" autocomplete="off">
+			<div class="chips jump-kinds" data-jump-kinds>${[['all', 'Everything'], ...KINDS.map(k => [k.id, k.label])].map(([id, label]) => `<button class="chip tiny${id === 'all' ? ' active' : ''}" data-kind="${id}" aria-pressed="${id === 'all'}">${label}</button>`).join('')}</div>
 			<div class="jump-list" data-jump-list></div>
 			<div class="jump-hint">↑ ↓ to move · Enter to open · 1–9 switch tabs anywhere</div>
 		</div>`);
 	const input = host.querySelector('.jump-in');
 	const list = host.querySelector('[data-jump-list]');
+	const kindRow = host.querySelector('[data-jump-kinds]');
 	let rows = [];
 	let on = 0;
+	// A kind lit narrows the items to it: the trade goods, the parts, the
+	// materials. Everything is the default, since a name typed is usually
+	// enough on its own.
+	let kind = 'all';
 
 	const paint = () => {
 		const q = input.value.trim();
@@ -78,12 +85,14 @@ export function openJump({ tabs, go }) {
 			stock: store.getAllStock(),
 			needed: (snapshot && snapshot.missing) || {}
 		});
-		const itemHits = matchItems(q, offered).map(name => ({ kind: 'item', value: name, label: name }));
+		const pool = kind === 'all' ? offered : offered.filter(n => kindOf(n) === kind);
+		const itemHits = matchItems(q, pool).map(name => ({ kind: 'item', value: name, label: name }));
 		rows = [...tabHits, ...itemHits];
 		on = Math.min(on, Math.max(0, rows.length - 1));
 		list.innerHTML = rows.length ? rows.map((r, i) => `<button class="jump-row${i === on ? ' on' : ''}" data-i="${i}">
 			${r.kind === 'item' ? img(r.value, 'row-icon sm') : '<span class="jump-tab">tab</span>'}
 			<span class="jump-name">${esc(r.label)}</span>
+			${r.kind === 'item' && kind === 'all' && kindTag(r.value) ? `<span class="jump-kind">${esc(kindTag(r.value))}</span>` : ''}
 			${r.kind === 'item' && store.getStock(r.value) ? `<span class="jump-own">${F(store.getStock(r.value))} owned</span>` : ''}
 		</button>`).join('') : (q ? '<p class="empty">Nothing by that name.</p>' : '');
 	};
@@ -94,6 +103,18 @@ export function openJump({ tabs, go }) {
 		go(r.kind, r.value);
 	};
 	input.addEventListener('input', () => { on = 0; paint(); });
+	kindRow.addEventListener('click', evt => {
+		const chip = evt.target.closest('[data-kind]');
+		if (!chip) return;
+		kind = chip.dataset.kind;
+		for (const c of kindRow.querySelectorAll('[data-kind]')) {
+			c.classList.toggle('active', c.dataset.kind === kind);
+			c.setAttribute('aria-pressed', String(c.dataset.kind === kind));
+		}
+		on = 0;
+		paint();
+		input.focus();
+	});
 	input.addEventListener('keydown', evt => {
 		if (evt.key === 'ArrowDown') { evt.preventDefault(); on = Math.min(rows.length - 1, on + 1); paint(); }
 		else if (evt.key === 'ArrowUp') { evt.preventDefault(); on = Math.max(0, on - 1); paint(); }

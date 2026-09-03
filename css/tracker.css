@@ -3314,6 +3314,9 @@ select.purse-inline { width: auto; cursor: pointer; }
 .jump-row:hover, .jump-row.on { background: rgba(88, 168, 232, 0.12); border-color: rgba(88, 168, 232, 0.35); }
 .jump-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .jump-own { font-size: 11px; color: var(--teal); white-space: nowrap; }
+.jump-kind { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); white-space: nowrap; }
+.jump-kinds { gap: 5px; }
+.inv-kinds { margin-top: -2px; }
 .jump-tab { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); width: 28px; }
 .jump-hint { font-size: 11px; color: var(--ink-faint); }
 .trip-rows { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; max-height: 50vh; overflow-y: auto; }

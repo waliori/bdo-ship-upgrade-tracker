@@ -14,7 +14,7 @@ import { initSync, openAccount } from './sync.js';
 import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.js';
 import {
 	view, selected, recipes, barterData, snapshot, query,
-	setView, setQuery, setPlanFilter, setInvFilter, setSelected, setBarterData,
+	setView, setQuery, setPlanFilter, setInvFilter, setInvKind, setSelected, setBarterData,
 	recompute, readyCrafts, craftStock, CROW_COIN, SILVER, setSort
 } from './ui-state.js';
 import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
@@ -825,6 +825,7 @@ function wire() {
 			case 'tree-all': folded.clear(); return render();
 			case 'tree-none': collapseAll(); return render();
 			case 'inv-filter': setInvFilter(el.dataset.id); return render();
+			case 'inv-kind': setInvKind(el.dataset.id); return render();
 			case 'select': setSelected(el.dataset.item); return render();
 			case 'deselect': setSelected(null); return render();
 			case 'strategy':

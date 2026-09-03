@@ -26,6 +26,7 @@
 // barter.js, next to the reasons.
 
 import { readFile, writeFile } from 'node:fs/promises';
+import { buildTradeGoods } from './build-trade-goods.mjs';
 
 const [rowsPath, rawPath] = process.argv.slice(2);
 if (!rowsPath) {
@@ -92,6 +93,8 @@ const out = [...byReceived.values()].sort((a, b) => cmp(a.name, b.name));
 for (const e of out) e.sources.sort((a, b) => cmp(a.npc_name, b.npc_name) || cmp(a.give.name, b.give.name));
 
 await writeFile(OUT, JSON.stringify(out, null, 2) + '\n');
+// The goods list the item pickers read is cut from the same table.
+await buildTradeGoods();
 
 const npcs = new Set(rows.map(r => r.npc_id));
 const missingIcon = out.filter(e => !e.icon).length

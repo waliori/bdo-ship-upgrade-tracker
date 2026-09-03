@@ -8,7 +8,8 @@ import {
 	img, codexName, amountInput, costCtx, costText, makeupHTML, barterHTML,
 	sourceOf, hasBuyOption, allItems, waysThrough, questsPaying
 } from './ui-bits.js';
-import { recipes, snapshot, rows, query, invFilter, selected, sort, sorter, sortSelect, craftStock } from './ui-state.js';
+import { recipes, snapshot, rows, query, invFilter, invKind, selected, sort, sorter, sortSelect, craftStock } from './ui-state.js';
+import { KINDS, kindOf } from './kinds.js';
 import { maxCraftable, enhanceStep, parseEnhanced, enhancedName, waysToGet } from './planner.js';
 
 
@@ -56,6 +57,7 @@ export function renderInventory() {
 	// found and recorded.
 	const list = allItems().filter(item => {
 		if (searching && !item.toLowerCase().includes(q)) return false;
+		if (invKind !== 'all' && kindOf(item) !== invKind) return false;
 		const r = rows[item];
 		if (invFilter === 'owned') return (stock[item] || 0) > 0;
 		if (invFilter === 'needed') return !!r && r.need > 0;
@@ -68,6 +70,12 @@ export function renderInventory() {
 		['all', 'In play'], ['needed', 'Needed'], ['short', 'Short'], ['owned', 'Owned'], ['free', 'Free']
 	].map(([id, label]) =>
 		`<button class="chip ${invFilter === id ? 'active' : ''}" data-act="inv-filter" data-id="${id}">${label}</button>`
+	).join('');
+	// What sort of thing: a second row, since "the trade goods I hold"
+	// and "the materials I am short of" are different questions and the
+	// list answers both. A lit kind stays lit across searches.
+	const kinds = [['all', 'Everything'], ...KINDS.map(k => [k.id, k.label])].map(([id, label]) =>
+		`<button class="chip ${invKind === id ? 'active' : ''}" data-act="inv-kind" data-id="${id}">${label}</button>`
 	).join('');
 
 	// Collapse each enhancement family to a single tile. A search for
@@ -116,11 +124,12 @@ export function renderInventory() {
 			<div class="controls">
 				<input class="field" type="search" placeholder="Search items…" value="${esc(query)}" data-act="query">
 				<div class="chips">${filters}</div>
+				<div class="chips inv-kinds">${kinds}</div>
 				${sortSelect()}
 			</div>
 			${shown.length
 				? `<div class="inv-grid">${tiles}</div>`
-				: `<div class="panel"><p class="empty">${searching ? 'Nothing matches that search.' : 'Nothing here yet — add a build, or switch to Owned to record what you have.'}</p></div>`}
+				: `<div class="panel"><p class="empty">${searching ? 'Nothing matches that search.' : invKind === 'goods' ? 'No trade goods in play — search one to record what is aboard, or log a trip.' : 'Nothing here yet — add a build, or switch to Owned to record what you have.'}</p></div>`}
 		</div>
 		${selected ? '<div class="detail-veil" data-act="deselect" aria-hidden="true"></div>' : ''}
 		<aside class="detail ${selected ? 'open' : ''}">${renderDetail()}</aside>

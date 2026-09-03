@@ -52,6 +52,7 @@ export let view = 'plan';
 export let query = '';
 export let planFilter = 'all';
 export let invFilter = 'all';
+export let invKind = 'all';     // all | materials | parts | goods
 export let selected = null;
 export let snapshot = null;
 export let rows = {};
@@ -61,6 +62,7 @@ export const setView = id => { view = id; };
 export const setQuery = q => { query = q; };
 export const setPlanFilter = f => { planFilter = f; };
 export const setInvFilter = f => { invFilter = f; };
+export const setInvKind = k => { invKind = k; };
 export const setSelected = item => { selected = item; };
 export const setBarterData = data => { barterData = data; };
 

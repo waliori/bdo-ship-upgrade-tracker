@@ -8,7 +8,8 @@ import { coins } from './sea_coins.js';
 import { falasi } from './falasi_vendor.js';
 import { marketSilver, marketPrice, marketStatus } from './market.js';
 import { statsAt, describeStats } from './part_stats.js';
-import { forecast as barterForecast } from './barter.js';
+import { forecast as barterForecast, GOODS, levelOf } from './barter.js';
+import { tradeGoodNames } from './trade_goods.js';
 import { iconLoader } from './icon-loader.js';
 import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
@@ -105,6 +106,9 @@ export function allItems() {
 	}
 	Object.keys(vendorItems).forEach(i => set.add(i));
 	Object.keys(coins).forEach(i => set.add(i));
+	// The sea trade goods: in no recipe, sold by no vendor, but held
+	// between runs and handed over on the next one.
+	tradeGoodNames.forEach(i => set.add(i));
 	return [...set];
 }
 
@@ -296,6 +300,12 @@ export function peekHTML(item) {
 
 /** Where an item comes from, and what it costs. */
 export function sourceOf(item) {
+	const lv = levelOf(item);
+	if (lv && GOODS[lv]) {
+		const g = GOODS[lv];
+		return { key: 'barter', label: 'Bartered at sea',
+			detail: `a [Level ${lv}] trade good \u00b7 ${F(g.weight)} LT each${g.sell ? ` \u00b7 a barterer pays ${F(g.sell)} silver` : ' \u00b7 cannot be sold'}` };
+	}
 	if (coins[item]) return { key: 'coin', label: SOURCE_LABEL.coin, detail: `${F(coins[item])} Crow Coins each`, coins: coins[item] };
 	if (falasi[item]) return { key: 'falasi', label: SOURCE_LABEL.falasi, detail: `${F(falasi[item])} silver each`, silver: falasi[item] };
 	const methods = vendorItems[item];
