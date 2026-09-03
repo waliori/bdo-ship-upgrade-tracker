@@ -161,3 +161,21 @@ test('sailing a saved setup is one change, and one Undo brings the hand fit back
 	store.setProfile('setups', all);
 	assert.equal(activeSetupId(), id, 'key order alone must not unrecognise a setup');
 });
+
+test('the hold reads as a sum of lines, and says how far over it will still sail', async () => {
+	const { OVERLOAD } = await import('../js/ship.js');
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { crewShip: 'Epheria Caravel' } });
+	const bare = currentShip();
+	assert.equal(OVERLOAD, 1.7);
+	assert.equal(bare.hold.lines.reduce((a, l) => a + l.lt, 0), bare.hold.free, 'the lines sum to what is free');
+	assert.equal(bare.hold.lines[0].label, 'hull');
+	assert.equal(bare.hold.max, Math.round(bare.hold.limit * 1.7));
+	// A crew aboard takes its weight off both the free hold and the ceiling.
+	store.setProfile('roster', [{ id: 'a', name: 'Bahar', type: 'Ambitious', lv: 10, cond: 100 }]);
+	store.setProfile('seats', { 'Epheria Caravel': { 'sail:0': 'a' } });
+	const crewed = currentShip();
+	assert.equal(crewed.hold.crew, 200);
+	assert.equal(crewed.hold.max, bare.hold.max - 200);
+	assert.ok(crewed.hold.lines.some(l => l.lt === -200 && /sailor/.test(l.label)));
+	assert.equal(crewed.hold.lines.reduce((a, l) => a + l.lt, 0), crewed.hold.free);
+});

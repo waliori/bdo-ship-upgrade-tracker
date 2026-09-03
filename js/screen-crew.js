@@ -16,7 +16,8 @@ import { openDialog, closeDialog, toast } from './dialogs.js';
 import { shipStats } from './ship_stats.js';
 import { describeStats, statsAt } from './part_stats.js';
 import { families, tables } from './enhancement.js';
-import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listSetups, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, skinWorn, setSkinSlot, setSkinAll, skinTotals } from './ship.js';
+import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listSetups, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, skinWorn, setSkinSlot, setSkinAll, skinTotals, OVERLOAD } from './ship.js';
+import { GOODS } from './barter.js';
 import { GRADES, gradeById, crystalById, crystalsOf, crystalVariant, crystalLine } from './crystals.js';
 import { skinFor, SKIN_SLOTS } from './ship_skins.js';
 import { openFleet } from './setups.js';
@@ -529,6 +530,25 @@ function crystalCard(ship) {
 	</div>`;
 }
 
+/**
+ * The hold as a sum: every line that adds to it or takes from it, the
+ * limit they make, and how far past that limit the hull will still
+ * sail -- the way the speed line already reads, and the number a
+ * route is planned against.
+ */
+function holdLines(me) {
+	const h = me.hold;
+	const line = l => `<span class="hold-line${l.lt < 0 ? ' minus' : ''}"><span>${esc(l.label)}</span><b>${l.lt < 0 ? '−' : '+'}${F(Math.abs(l.lt))}</b></span>`;
+	const perLevel = [5, 6].map(lv => `${Math.floor(h.free / GOODS[lv].weight)} of Lv${lv === 5 ? '4–5' : '6–7'}`).join(', ');
+	return `<div class="hold-lines" title="The hold, line by line. A ship sails past its limit up to ${Math.round((OVERLOAD - 1) * 100)}% over, slower the further it is, and not at all beyond that.">
+		<span class="hold-lines-k">Hold</span>
+		${h.lines.map(line).join('')}
+		<span class="hold-line total"><span>free to load</span><b>${F(h.free)} LT</b></span>
+		<span class="hold-line sub"><span>overweight, sailing slower, up to</span><b>${F(h.max)} LT</b></span>
+		<span class="hold-line sub"><span>fits</span><b>${perLevel}</b></span>
+	</div>`;
+}
+
 function loadoutPanel(ship) {
 	const s = shipStats[ship];
 	const stock = store.getAllStock();
@@ -545,6 +565,7 @@ function loadoutPanel(ship) {
 		${rows}
 		<div class="sel-facts">with parts${same && me.crew.seated ? ' and crew' : ''}: speed <b>${same ? me.speed.total : s.speed + (Number(fit.total.speed) || 0)}%</b> · accel <b>${same ? me.accel : s.accel + (Number(fit.total.accel) || 0)}%</b> · turn <b>${same ? me.turn : s.turn + (Number(fit.total.turn) || 0)}%</b> · brake <b>${same ? me.brake : s.brake + (Number(fit.total.brake) || 0)}%</b>
 			· hold <b>${F(hold.free)} LT</b>${hold.crew ? ` <span class="fit-tag">(${F(hold.limit)} less ${F(hold.crew)} of crew)</span>` : ''} · <b>${F(same ? me.durability : s.durability + (Number(fit.total.durability) || 0))}</b> durability${fit.total.dp ? ` · DP <b>${fit.total.dp}</b>` : ''}${fit.total.damage ? ` · cannon <b>${F(fit.total.damage)}</b> × ${fit.total.hits}` : ''}</div>
+		${same ? holdLines(me) : ''}
 	</div>`;
 }
 

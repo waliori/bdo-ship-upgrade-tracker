@@ -18,6 +18,14 @@ import { crewTotals } from './sailors.js';
 import { crystalById, crystalStats } from './crystals.js';
 
 export const SLOTS = ['cannon', 'sail', 'figurehead', 'plating'];
+
+/**
+ * How far past its limit a hull will still sail: to 170% of it, slower
+ * the further over, and not at all beyond. The figure is the one the
+ * community ship calculators quote (a 24,640 LT hold "loads" 41,888);
+ * the game's own tooltip gives only the limit.
+ */
+export const OVERLOAD = 1.7;
 const RANK = { yellow: 5, chiro: 4, 'caravel-blue': 4, toro: 3, 'caravel-green': 3, epheria: 2, sailboat: 1 };
 const round1 = n => Math.round(n * 10) / 10;
 
@@ -144,6 +152,13 @@ export function currentShip() {
 	const skinT = skinStats(name, skinWorn(name));
 	const skin = k => Number(skinT[k]) || 0;
 	const limit = stats.weight + parts('weight') + gem('weight') + skin('weight');
+	// The hold as a sum, line by line, the way the speed already reads:
+	// what each thing aboard adds or takes.
+	const lines = [{ label: 'hull', lt: stats.weight }];
+	for (const s of fit.slots) if (s.stats && Number(s.stats.weight)) lines.push({ label: `${s.level ? `+${s.level} ` : ''}${s.part.replace(/^.*?: /, '')}`, lt: Number(s.stats.weight) });
+	if (gem('weight')) lines.push({ label: crystal.name, lt: gem('weight') });
+	if (skin('weight')) lines.push({ label: 'appearance set', lt: skin('weight') });
+	if (crew.weight) lines.push({ label: `${crew.seated} sailor${crew.seated === 1 ? '' : 's'} aboard`, lt: -crew.weight });
 	return {
 		name, stats, fit, crew, crystal, mastery, skin: skinT, skinWorn: skinWorn(name),
 		speed: { hull: stats.speed, parts: parts('speed'), crystal: gem('speed'), crew: crew.speed, mastery, skin: skin('speed'), total: round1(stats.speed + parts('speed') + gem('speed') + crew.speed + mastery + skin('speed')) },
@@ -151,8 +166,9 @@ export function currentShip() {
 		turn: round1(stats.turn + parts('turn') + gem('turn') + crew.turn + mastery + skin('turn')),
 		brake: round1(stats.brake + parts('brake') + gem('brake') + crew.brake + mastery + skin('brake')),
 		// The hold: hull plus what the plating and a crystal add, less the
-		// crew's own weight -- what is left is what a run can carry.
-		hold: { limit, crew: crew.weight, free: Math.max(0, limit - crew.weight) },
+		// crew's own weight -- what is left is what a run can carry. `max`
+		// is the most the hull will move under at all, at OVERLOAD.
+		hold: { limit, crew: crew.weight, free: Math.max(0, limit - crew.weight), max: Math.max(0, Math.round(limit * OVERLOAD) - crew.weight), lines },
 		durability: stats.durability + parts('durability') + gem('durability') + crew.durability + skin('durability'),
 		rations: stats.rations + parts('rations') + crew.rations,
 		damage: parts('damage') + gem('damage')

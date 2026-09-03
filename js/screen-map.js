@@ -63,6 +63,7 @@ let follow = true;            // the step player flies the camera along
 let stepIdx = 0;              // which stop the step player is on
 let stepKey = '';             // the route it was on, to reset when it changes
 let tradesMode = 'one';       // one | all -- how many trades a stop is costed at
+let load = {};                // a load being composed: goods per level, 1..7, weighed against the hold
 let savedRoutes = [];         // { name, stops, startPort, returnHome, pick, at }
 const SAVED_MAX = 8;
 let miniOn = true;            // the minimap is shown
@@ -135,6 +136,7 @@ function restore() {
 		inkPlate = s.inkPlate !== false;
 		sideRight = s.sideRight === true;
 		if (s.tradesMode === 'all') tradesMode = 'all';
+		if (s.load && typeof s.load === 'object') load = cleanLoad(s.load);
 		miniOn = s.miniOn !== false;
 		if (s.miniPos && Number.isFinite(s.miniPos.x) && Number.isFinite(s.miniPos.y)) miniPos = { x: s.miniPos.x, y: s.miniPos.y };
 		if (Array.isArray(s.savedRoutes)) {
@@ -148,7 +150,7 @@ function restore() {
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, hugWater, layersOpen, sideRight, tradesMode, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, hugWater, layersOpen, sideRight, tradesMode, load, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -541,14 +543,14 @@ function routeHTML(marks) {
 		? `<div class="summary-sub">rations: the crew eats ${F(me.crew.appetite)} a day · a full ${F(me.rations)} lasts ${Math.floor(me.rations / me.crew.appetite)} days</div>`
 		: `<div class="summary-sub">rations: ${F(me.rations)} when full · nobody aboard eats</div>`;
 	const hold = `<div><div class="summary-k">Hold</div><div class="summary-v">${F(me.hold.free)} LT</div>
-				<div class="summary-sub">${F(me.hold.limit)} as fitted${me.hold.crew ? ` less ${F(me.hold.crew)} of crew` : ''} · ${Math.floor(me.hold.free / GOODS[5].weight)} of Lv4–5 · ${Math.floor(me.hold.free / GOODS[6].weight)} of Lv6–7 a run</div>${rations}</div>`;
+				<div class="summary-sub">${F(me.hold.limit)} as fitted${me.hold.crew ? ` less ${F(me.hold.crew)} of crew` : ''} · ${Math.floor(me.hold.free / GOODS[5].weight)} of Lv4–5 · ${Math.floor(me.hold.free / GOODS[6].weight)} of Lv6–7 a run · sails slower to ${F(me.hold.max)}</div>${rations}</div>`;
 	const total = pathLength(world);
 	const lastStop = npcById.get(stops[stops.length - 1]);
 	const wharf = lastStop && !returnHome ? nearestWharf(lastStop.x, lastStop.y, 'wharf') : null;
 	const wharfLine = wharf ? `<div class="summary-sub">nearest wharf to the last stop: ${esc(wharf.name)}, ${esc(fmtDistance(wharf.d * 0.25))}</div>` : '';
 	const distance = world.length > 1 ? `<div><div class="summary-k">Distance</div><div class="summary-v">${esc(fmtDistance(total))}</div>
 				<div class="summary-sub">≈ ${esc(timeOf(total))} at ${speed.total}% · 100% ≈ ${cal} m/s ${measured ? '±10%' : '±20%'} · <button class="linky" data-act="map-sail-cal">timed a leg?</button></div>${wharfLine}</div>` : '';
-	const cargo = cargoTile({ weight: me.hold.free });
+	const cargo = cargoTile({ weight: me.hold.free }) + loadTile(me);
 	const sailingAs = stops.length ? `<p class="map-hint map-as">Sailing as <b>${esc(me.name)}</b> <button class="linky" data-act="map-setup-pick" title="Sail a saved setup instead — the times follow its speed">switch setup ▾</button> · ${speed.total}% · ${F(me.hold.free)} LT free${me.crew.seated ? ` · ${me.crew.seated} aboard` : ''} · <button class="linky" data-act="view" data-id="crew">change</button></p>` : '';
 	const stats = stops.length ? `<div class="map-stats">
 			<div><div class="summary-k">Stops</div><div class="summary-v">${stops.length}</div></div>
@@ -671,6 +673,90 @@ function cargoTile(hold) {
 	const overW = hold && w > hold.weight;
 	return `<div><div class="summary-k">Cargo</div><div class="summary-v${overW ? ' amber' : ''}">${F(n)} goods</div>
 		<div class="summary-sub">${F(w)} LT${hold ? ` of ${F(hold.weight)} free` : ''}${overW ? ' · over the limit — the ship slows' : ''} · ${esc(goods.map(g => `${F(g.qty)}× Lv${g.lv}`).join(', '))}</div></div>`;
+}
+
+/* ------------------------------------------------------------------ *
+ * a load, composed: how many goods of each level, against the hold
+ * ------------------------------------------------------------------ */
+
+const LOAD_MAX = 9999;
+const LEVELS = [1, 2, 3, 4, 5, 6, 7];
+
+/** A load as kept: a count per level, 1 to 7, nothing else. */
+function cleanLoad(raw) {
+	const out = {};
+	for (const lv of LEVELS) {
+		const n = Math.floor(Number(raw && raw[lv]));
+		if (n > 0) out[lv] = Math.min(LOAD_MAX, n);
+	}
+	return out;
+}
+
+/** What the composed load weighs, and how many goods it is. */
+function loadWeight() {
+	let lt = 0, n = 0;
+	for (const lv of LEVELS) { const q = load[lv] || 0; n += q; lt += q * GOODS[lv].weight; }
+	return { lt, n };
+}
+
+/**
+ * The composer: a counter per level and one bar against the hold --
+ * green to the limit, amber past it as far as the hull will still
+ * move, red beyond. "What if I carry thirty of each" answered before
+ * the goods are bought, which the Cargo tile above (what is actually
+ * aboard) cannot do.
+ */
+function loadTile(me) {
+	const { lt, n } = loadWeight();
+	const free = me.hold.free, max = me.hold.max;
+	const overBy = lt - free;
+	const pct = max > 0 ? Math.min(100, lt / max * 100) : 0;
+	const mark = max > 0 ? free / max * 100 : 100;
+	const state = lt > max ? 'dead' : lt > free ? 'over' : '';
+	const room = lv => Math.max(0, Math.floor((free - lt) / GOODS[lv].weight));
+	const sub = !n ? `nothing composed · the hold takes ${F(free)} LT, and sails slower to ${F(max)}`
+		: state === 'dead' ? `${F(lt)} LT — past the ${F(max)} the hull will move under`
+			: state === 'over' ? `${F(lt)} LT — over the limit by ${F(overBy)}, sailing slower`
+				: `${F(lt)} LT of ${F(free)} · room for ${room(5)} more Lv4–5 or ${room(6)} Lv6–7`;
+	const counter = lv => `<span class="map-load-lv"><span class="map-load-k">Lv${lv}</span>
+		<button class="map-load-btn" data-act="map-load" data-lv="${lv}" data-step="-1" aria-label="One fewer [Level ${lv}] good">−</button>
+		<input class="purse-inline" type="text" inputmode="numeric" value="${load[lv] || 0}" data-act="map-load-set" data-lv="${lv}" aria-label="[Level ${lv}] goods to carry" title="${F(GOODS[lv].weight)} LT each">
+		<button class="map-load-btn" data-act="map-load" data-lv="${lv}" data-step="1" aria-label="One more [Level ${lv}] good">+</button></span>`;
+	return `<div class="map-load"><div class="summary-k">Compose a load <span class="map-courses-credit">${n ? `${F(n)} goods` : 'what would fit'}</span></div>
+		<div class="map-load-grid">${LEVELS.map(counter).join('')}</div>
+		<div class="map-load-bar" title="The bar runs to the most the hull will move under; the mark is its limit"><i class="${state}" style="width:${pct.toFixed(1)}%"></i><s style="left:${mark.toFixed(1)}%"></s></div>
+		<div class="summary-sub${state ? ' warn' : ''}">${sub}</div>
+		<div class="chips">
+			<button class="chip tiny" data-act="map-load-fill" title="Count what is actually aboard, from the inventory's trade goods">from the hold</button>
+			<button class="chip tiny" data-act="map-load-clear" ${n ? '' : 'disabled'}>clear</button>
+		</div></div>`;
+}
+
+/** A counter changed: a step of one, or a typed count. */
+export function setLoad(lv, op, value) {
+	if (!LEVELS.includes(Number(lv))) return;
+	const now = load[lv] || 0;
+	const next = op === 'set' ? Math.floor(Number(String(value).replace(/[^\d]/g, ''))) : now + Number(value);
+	const clean = Number.isFinite(next) ? Math.max(0, Math.min(LOAD_MAX, next)) : now;
+	if (clean) load[lv] = clean; else delete load[lv];
+	persist();
+	refreshSide();
+}
+
+/** The load set to what the inventory says is aboard. */
+export function fillLoad() {
+	const next = {};
+	for (const g of heldGoods()) next[g.lv] = (next[g.lv] || 0) + g.qty;
+	load = cleanLoad(next);
+	persist();
+	refreshSide();
+	if (!Object.keys(load).length) toast('No trade goods in the inventory to count');
+}
+
+export function clearLoad() {
+	load = {};
+	persist();
+	refreshSide();
 }
 
 /* ------------------------------------------------------------------ *

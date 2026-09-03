@@ -50,7 +50,7 @@ import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
-	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
+	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, setLoad, fillLoad, clearLoad, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite
 } from './screen-map.js';
@@ -666,6 +666,9 @@ function wire() {
 			case 'map-route-del': deleteSavedRoute(Number(el.dataset.i)); return;
 			case 'map-route-trim': trimRouteToParley(); return;
 			case 'map-trades': setTradesMode(el.dataset.id); return;
+			case 'map-load': setLoad(Number(el.dataset.lv), 'step', Number(el.dataset.step)); return;
+			case 'map-load-fill': fillLoad(); return;
+			case 'map-load-clear': clearLoad(); return;
 			case 'map-measure': toggleMeasure(); return;
 			case 'map-mini': toggleMini(); return;
 			case 'map-sail-cal': return openSailCal();
@@ -1028,6 +1031,9 @@ function wire() {
 
 		const mr = evt.target.closest('[data-act="map-return"]');
 		if (mr) return setMapReturn(mr.checked);
+
+		const ml = evt.target.closest('[data-act="map-load-set"]');
+		if (ml) return setLoad(Number(ml.dataset.lv), 'set', ml.value);
 
 		const el = evt.target.closest(
 			'[data-act="own-set"], [data-act="purse"], [data-act="target-qty"],'
