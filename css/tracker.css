@@ -4105,4 +4105,12 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .barter-board.known { border-color: rgba(126, 240, 212, 0.35); }
 .barter-board-head { font-size: 13px; line-height: 1.45; margin-bottom: 7px; }
 .barter-board .chips { gap: 6px; }
+/* The run's lists sit in the same inset boxes as its stops, not flush
+   against the panel the way the Inventory's narrow detail lines do. */
+.barter-run .detail-block { margin: 14px 0 0; }
+.barter-run .detail-label { margin-bottom: 6px; }
+.barter-run .detail-line { padding: 7px 10px; border-radius: var(--r-btn); background: var(--panel-inset); margin-bottom: 4px; }
+.barter-run .detail-line span:first-child { display: inline-flex; align-items: center; gap: 6px; }
+.barter-run .map-side-btns { margin-top: 14px; }
+.barter-rung .n { text-align: right; }
 
