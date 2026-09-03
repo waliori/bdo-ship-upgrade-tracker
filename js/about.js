@@ -183,6 +183,13 @@ export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
 	{
+		date: '2026-09-03',
+		title: 'the soft cap, the roll a level makes, and what a loop is worth',
+		notes: [
+			'A failstack climbs the way the game climbs it: a tenth of the base rate a stack until the chance reaches 70%, a fiftieth a stack after that, and 90% the ceiling. The Workshop and the Plan had let a green or Toro part run straight on to 90 — a +1 green Caravel part at six stacks is 78%, not 90 — so their stone forecasts ran light for anyone stacking below Carrack blue.'
+		]
+	},
+	{
 		date: '2026-09-02',
 		title: 'a favourite reward, and a phone that keeps its words',
 		notes: [

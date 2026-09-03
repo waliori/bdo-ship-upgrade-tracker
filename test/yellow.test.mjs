@@ -213,5 +213,37 @@ test('below the yellow tier a failstack lifts the quoted rate by a tenth a stack
 	assert.equal(chanceAt({ chance: 0.3 }), 0.3);
 	assert.equal(chanceAt({ chance: 0.3 }, 0), 0.3);
 	assert.equal(chanceAt({ chance: 0.3 }, 10), 0.6);
-	assert.equal(chanceAt({ chance: 0.3 }, 40), 0.9);
+	assert.equal(chanceAt({ chance: 0.3 }, 200), 0.9);
+});
+
+test('past 70% a stack adds a fifth of what it did: the green Caravel table', async () => {
+	const { chanceAt, tables } = await import('../js/enhancement.js');
+	const green = tables['caravel-green'].levels;
+	const pct = (level, fs) => Math.round(chanceAt(green[level], fs) * 10000) / 100;
+	// +1 starts at 70%: 1.4 a stack from the first, 90 at fifteen.
+	assert.equal(pct(0, 1), 71.4);
+	assert.equal(pct(0, 6), 78.4);
+	assert.equal(pct(0, 14), 89.6);
+	assert.equal(pct(0, 15), 90);
+	// +2 at 60%: two quick stacks to 72, then 1.2 apiece.
+	assert.equal(pct(1, 2), 72);
+	assert.equal(pct(1, 3), 73.2);
+	// +5 at 40%: eight quick stacks to 72, then 0.8.
+	assert.equal(pct(4, 8), 72);
+	assert.equal(pct(4, 10), 73.6);
+	// +6 at 37%: nine to 70.3, then 0.74.
+	assert.equal(pct(5, 9), 70.3);
+	assert.equal(pct(5, 10), 71.04);
+	// +10 at 30%: fourteen to 72, and 81 at twenty-nine.
+	assert.equal(pct(9, 13), 69);
+	assert.equal(pct(9, 14), 72);
+	assert.equal(pct(9, 29), 81);
+});
+
+test('the yellow tier still quotes its own rate at its own stack', async () => {
+	const { chanceAt, tables } = await import('../js/enhancement.js');
+	for (const row of tables.yellow.levels) {
+		// The table quotes the game's rounded figure (9.63% for 9.625%).
+		assert.ok(Math.abs(chanceAt(row, row.stack) - row.chance) < 1e-4, `+${row.stack} stacks`);
+	}
 });

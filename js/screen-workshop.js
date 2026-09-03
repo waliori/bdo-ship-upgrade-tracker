@@ -201,7 +201,7 @@ export function renderWorkshop() {
 			</div>
 			<span class="enh-level">+${e.have} → +${e.next}${e.gain ? `<span class="enh-gain" title="What +${e.next} adds over +${e.have}">${esc(e.gain)}</span>` : ''}</span>
 			<span class="enh-cost">${e.costs.map(([n, q]) => `${img(n, '')}×${F(q)}`).join('')}${odds(e)}${e.recommended !== null ? `
-				<label class="enh-fs" title="The failstack this part carries into its next attempt. Starts at the stack the quoted rate assumes (${e.recommended}); each failure recorded here adds one, a success resets it for the next level. Type to correct it.${e.recommended === 0 ? ' Below the yellow tier the game publishes no per-stack figure: a tenth of the base rate a stack is assumed, capped at 90% — check the enhancement window.' : ''}">
+				<label class="enh-fs" title="The failstack this part carries into its next attempt. Starts at the stack the quoted rate assumes (${e.recommended}); each failure recorded here adds one, a success resets it for the next level. Type to correct it.${e.recommended === 0 ? ' Each stack adds a tenth of the base rate until the chance reaches 70%, a fiftieth after that, and 90% is the ceiling — the enhancement window shows the same figure.' : ''}">
 					FS ${amountInput('purse-inline narrow', e.failstacks, `data-act="failstacks" data-base="${esc(e.base)}" aria-label="Failstack for ${esc(e.base)}"`)}
 					<span class="enh-fs-note">${e.carriedStack ? `recommended ${e.recommended}` : 'recommended'}</span>
 				</label>` : ''}</span>

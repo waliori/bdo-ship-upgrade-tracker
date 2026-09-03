@@ -232,26 +232,38 @@ export function tableFor(base) {
 	return id ? tables[id] : null;
 }
 
+/** Where the climb slows: past this chance a stack adds a fiftieth of
+ *  base instead of a tenth. And where it stops altogether. */
+export const SOFT_CAP = 0.7;
+export const HARD_CAP = 0.9;
+
 /**
  * The odds of one attempt at the player's own failstack.
  *
- * The yellow rows carry the rate at zero stacks and the stack the quoted
- * rate was read at, and the quoted numbers all follow the game's usual
- * line -- base plus a tenth of base per stack -- exactly, which is what
- * lets a different stack be priced rather than guessed. Rows without a
- * `base` (every tier below yellow) have one fixed rate regardless of
- * stacks, and return it unchanged.
+ * The game's line, the same for ship parts as for everything else:
+ * each stack adds a tenth of the base rate until the chance reaches
+ * 70%, and from there a fiftieth of base -- a fifth of the pace -- up
+ * to the 90% it never passes. Checked against a community chance table
+ * for every green Caravel level on 2026-09-03: +1 (70% base) climbs at
+ * 1.4 a stack from the first, +5 (40%) at 4 a stack to 72% at eight
+ * stacks and 0.8 a stack after, +10 (30%) reaches 72% at fourteen.
  *
- * Capped at 90%, where the game stops an enhancement chance climbing.
+ * The yellow rows carry the rate at zero stacks and the stack the quoted
+ * rate was read at, and the quoted numbers all sit on that line, which
+ * is what lets a different stack be priced rather than guessed. Rows
+ * without a `base` (every tier below yellow) quote the bare rate, which
+ * is the base at no stacks.
  */
 export function chanceAt(step, failstack = null) {
 	if (!step) return 0;
 	if (failstack === null || !Number.isFinite(failstack)) return step.chance;
-	// The yellow tier quotes a base and the stack it was quoted at; every
-	// other tier quotes the bare rate, which is the base at no stacks.
-	// The same line is assumed for them -- the game publishes no
-	// per-stack figure for ship parts, so this is the standard rule,
-	// not a measured one, and the Workshop says so.
 	const base = step.base || step.chance;
-	return Math.min(0.9, base * (1 + Math.max(0, failstack) / 10));
+	const stacks = Math.max(0, Math.floor(failstack));
+	const quick = base / 10, slow = base / 50;
+	// Stacks at the quick pace: as many as it takes to reach the soft
+	// cap, none when the base is already past it.
+	const toSoft = base >= SOFT_CAP ? 0 : Math.ceil((SOFT_CAP - base) / quick - 1e-9);
+	const quickStacks = Math.min(stacks, toSoft);
+	const chance = base + quickStacks * quick + (stacks - quickStacks) * slow;
+	return Math.min(HARD_CAP, Math.round(chance * 1e6) / 1e6);
 }
