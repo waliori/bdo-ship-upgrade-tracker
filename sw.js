@@ -76,6 +76,7 @@ const SHELL = [
 	'/js/quests.js',
 	'/js/realistic-water-ripples.js',
 	'/js/recipes.js',
+	'/js/route-ledger.js',
 	'/js/sailing.js',
 	'/js/sailor_rolls.js',
 	'/js/sailors.js',

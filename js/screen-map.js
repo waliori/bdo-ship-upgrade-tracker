@@ -5,7 +5,7 @@
 
 import { courses, courseById } from './courses.js';
 import { monsters, monsterByKey } from './sea_monsters.js';
-import { esc, F } from './fmt.js';
+import { esc, F, FC } from './fmt.js';
 import { currentShip } from './ship.js';
 import { img } from './ui-bits.js';
 import {
@@ -27,7 +27,9 @@ import { legLengths, pathLength, sailRange, fmtRange, calibrate, fmtDistance, DE
 import { bookmarkXML, writeMode, BOOKMARK_SLOTS, CAMERA_SLOTS, LOOP_SLOTS, FILE_HINT, toGame } from './worldmap.js';
 import { encodeAny, decodeAny } from './share.js';
 import { canWriteFiles, gameFolderName, previousBlock } from './gamefile.js';
-import { parleyPerTrade, PARLEY, GOODS } from './barter.js';
+import { parleyPerTrade, PARLEY, GOODS, amount, bestExchange, levelOf } from './barter.js';
+import { marketPrice } from './market.js';
+import { routeLedger, perHour } from './route-ledger.js';
 import { snapshot, barterData, barterProfile, view } from './ui-state.js';
 
 let mapState = null;
@@ -504,6 +506,13 @@ function routeHTML(marks) {
 	const localBoost = me.crystal && gradeById[me.crystal.grade].local ? me.speed.crystal : 0;
 	const timeOf = m => m != null ? fmtRange(sailRange(m, speed.total, cal, measured)[0], sailRange(m, speed.total - localBoost, cal, measured)[1]) : '';
 	const costs = stops.map(id => stopParley(id, marks, prof));
+	const ledger = routeLedger({
+		stops,
+		tradesAt: id => stopTrades(id, marks),
+		timesAt: id => (tradesMode === 'all' ? triesAt(id, marks) : 1),
+		aboard: heldGoods().reduce((a, g) => a + g.weight, 0),
+		price: marketPrice
+	});
 	const held = prof.parleyHeld;
 	const need = costs.reduce((a, b) => a + b, 0);
 	let afford = 0;
@@ -523,7 +532,7 @@ function routeHTML(marks) {
 				<span class="map-row-sub">${esc(n.at)}${has
 					? ' · ' + esc([...has.items.keys()].join(', '))
 					: ' · nothing on your list here'}</span>
-				${cargoLine(id, has)}${over ? `<span class="map-row-sub warn">past what your Parley covers</span>` : ''}
+				${cargoLine(id, has)}${holdAfter(ledger.stops[k], me.hold)}${over ? `<span class="map-row-sub warn">past what your Parley covers</span>` : ''}
 			</span>
 			<span class="map-row-right">${has ? iconStrip([...has.items.keys()]) : ''}</span>
 			<button class="map-x" data-act="map-stop" data-npc="${id}"
@@ -551,6 +560,9 @@ function routeHTML(marks) {
 	const distance = world.length > 1 ? `<div><div class="summary-k">Distance</div><div class="summary-v">${esc(fmtDistance(total))}</div>
 				<div class="summary-sub">≈ ${esc(timeOf(total))} at ${speed.total}% · 100% ≈ ${cal} m/s ${measured ? '±10%' : '±20%'} · <button class="linky" data-act="map-sail-cal">timed a leg?</button></div>${wharfLine}</div>` : '';
 	const cargo = cargoTile({ weight: me.hold.free }) + loadTile(me);
+	const mid = world.length > 1 ? sailRange(total, speed.total, cal, measured).reduce((a, b) => a + b) / 2 : 0;
+	const worth = worthTile(ledger, mid);
+	const carry = carryBlock(ledger);
 	const sailingAs = stops.length ? `<p class="map-hint map-as">Sailing as <b>${esc(me.name)}</b> <button class="linky" data-act="map-setup-pick" title="Sail a saved setup instead — the times follow its speed">switch setup ▾</button> · ${speed.total}% · ${F(me.hold.free)} LT free${me.crew.seated ? ` · ${me.crew.seated} aboard` : ''} · <button class="linky" data-act="view" data-id="crew">change</button></p>` : '';
 	const stats = stops.length ? `<div class="map-stats">
 			<div><div class="summary-k">Stops</div><div class="summary-v">${stops.length}</div></div>
@@ -558,8 +570,9 @@ function routeHTML(marks) {
 			${hold}
 			<div><div class="summary-k"><span class="gterm" role="button" tabindex="0" data-guide="parley">Parley</span></div><div class="summary-v">${F(need)}</div>
 				<div class="summary-sub">${cover}</div><div class="chips">${tradesBtn('one')}${tradesBtn('all')}</div></div>
+			${worth}
 			${cargo}
-		</div>
+		</div>${carry}
 		${overBudget ? `<button class="ghost-btn wide" data-act="map-route-trim" title="Drop the stops past what your Parley covers">Trim to the ${afford} stop${afford === 1 ? '' : 's'} Parley covers</button>` : ''}
 		<div class="map-side-btns">
 			<button class="ghost-btn" data-act="map-route-reverse">⇆ Reverse</button>
@@ -673,6 +686,92 @@ function cargoTile(hold) {
 	const overW = hold && w > hold.weight;
 	return `<div><div class="summary-k">Cargo</div><div class="summary-v${overW ? ' amber' : ''}">${F(n)} goods</div>
 		<div class="summary-sub">${F(w)} LT${hold ? ` of ${F(hold.weight)} free` : ''}${overW ? ' · over the limit — the ship slows' : ''} · ${esc(goods.map(g => `${F(g.qty)}× Lv${g.lv}`).join(', '))}</div></div>`;
+}
+
+/* ------------------------------------------------------------------ *
+ * the loop's ledger: what it hands over, what it brings in, its worth
+ * ------------------------------------------------------------------ */
+
+/**
+ * The exchanges a stop is sailed for: for each thing on the list the
+ * island deals, the offer that pays best per good handed over --
+ * quantities as averages of the game's ranges, one press each.
+ */
+function stopTrades(id, marks) {
+	const has = marks.get(id);
+	if (!has || !has.items.size) return [];
+	const best = new Map();
+	for (const g of goodsOf(id)) {
+		if (!has.items.has(g.item) || !g.give) continue;
+		const recv = amount(g.recvQty), giveN = amount(g.giveQty);
+		if (!(recv > 0) || !(giveN > 0)) continue;
+		const rate = recv / giveN;
+		if (!best.has(g.item) || rate > best.get(g.item).rate) best.set(g.item, { item: g.item, give: g.give, recv, giveN, rate });
+	}
+	return [...best.values()];
+}
+
+/** The hold after this stop's exchanges, on a stop's row. */
+function holdAfter(entry, hold) {
+	if (!entry || !entry.trades || !entry.change) return '';
+	const over = entry.after > hold.free;
+	const dead = entry.after > hold.max;
+	return `<span class="map-row-sub${dead ? ' warn' : over ? ' amber' : ''}" title="Goods only: what this stop takes aboard and hands over, on top of what was there">hold after: ${F(Math.max(0, entry.after))} LT${dead ? ' — more than the hull will move under' : over ? ' — overweight, slower' : ''}</span>`;
+}
+
+/**
+ * What the loop is worth: goods received at what a barterer pays for
+ * them, materials at what the market pays where it has said, less the
+ * goods handed over -- and, when the legs are timed, an hour's worth.
+ */
+function worthTile(l, seconds) {
+	if (!stops.length || (!l.goodsIn && !l.goodsOut && !l.mats)) return '';
+	const F0 = n => FC(Math.round(Math.abs(n)));
+	const n = v => F(Math.round(v));
+	const priced = l.inValue + l.matValue;
+	const bits = [];
+	if (l.goodsIn) bits.push(`${n(l.goodsIn)} good${l.goodsIn === 1 ? '' : 's'} aboard, worth ${F0(l.inValue)}`);
+	if (l.mats) {
+		const some = l.unpriced && l.unpriced < l.mats;
+		bits.push(`${n(l.mats)} material${l.mats === 1 ? '' : 's'}${l.matValue ? ` at the market's ${F0(l.matValue)}` : ''}${some ? `, ${n(l.unpriced)} of them unpriced` : l.unpriced ? ', none the market prices' : ''}`);
+	}
+	if (l.goodsOut) bits.push(`${n(l.goodsOut)} good${l.goodsOut === 1 ? '' : 's'} handed over, worth ${F0(l.outValue)} had they been sold`);
+	// A headline only when something coming aboard has a price: a loop
+	// for stones the market never sells is not "worth minus the goods".
+	let head, sub = '';
+	if (priced > 0) {
+		head = `<div class="summary-v${l.net < 0 ? ' amber' : ''}">${l.net < 0 ? '−' : ''}${F0(l.net)}</div>`;
+		const rate = perHour(l.net, seconds);
+		if (rate !== null && l.net > 0) sub = `<div class="summary-sub">≈ <b>${F0(rate)}</b> an hour under way, at the middle of the time range</div>`;
+	} else {
+		head = `<div class="summary-v">${n(l.mats)} material${l.mats === 1 ? '' : 's'}</div>`;
+	}
+	return `<div><div class="summary-k">Worth</div>${head}
+		<div class="summary-sub">${esc(bits.join(' · '))}</div>${sub}</div>`;
+}
+
+/**
+ * What to carry out of port: every good the loop hands over, how many
+ * are aboard already, and where the rest are dealt -- the island that
+ * hands the good over and what it takes for it, from the same table.
+ */
+function carryBlock(l) {
+	if (!l.carry.size) return '';
+	const rows = [...l.carry].sort((a, b) => (levelOf(b[0]) || 0) - (levelOf(a[0]) || 0) || a[0].localeCompare(b[0])).map(([give, n]) => {
+		const need = Math.ceil(n);
+		const have = store.getStock(give);
+		const short = Math.max(0, need - have);
+		const lower = bestExchange(give, barterData);
+		const from = lower ? `${lower.npc} hands it over for ${lower.give}` : 'bought on land';
+		return `<div class="map-carry-row${short ? '' : ' ok'}">
+			${img(give, 'map-icon')}
+			<span class="map-row-main"><span class="map-row-name">${F(need)}× ${esc(give)}</span>
+				<span class="map-row-sub">${have ? `${F(have)} aboard` : 'none aboard'}${short ? ` · ${F(short)} to get — ${esc(from)}` : ' · enough'}</span></span>
+		</div>`;
+	}).join('');
+	const kinds = l.carry.size;
+	const short = [...l.carry].filter(([give, q]) => store.getStock(give) < Math.ceil(q)).length;
+	return `<details class="map-carry"${kinds <= 6 ? ' open' : ''}><summary class="summary-k">Carry out of port <span class="map-courses-credit">${kinds} kind${kinds === 1 ? '' : 's'} the loop hands over${short ? `, ${short} not aboard` : ', all aboard'}</span></summary>${rows}</details>`;
 }
 
 /* ------------------------------------------------------------------ *

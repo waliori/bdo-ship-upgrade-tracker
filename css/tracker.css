@@ -4037,3 +4037,14 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 @media (pointer: coarse) { .map-load-btn { width: 28px; height: 28px; } }
 
 .summary-sub.warn { color: var(--amber); }
+
+/* Carry out of port: the goods the loop hands over, on the route panel. */
+.map-carry { margin-top: 10px; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
+.map-carry-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.map-carry-row:last-child { border-bottom: 0; }
+.map-carry-row.ok .map-row-sub { color: var(--teal); }
+.map-row-sub.amber { color: var(--amber); }
+.map-carry > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; }
+.map-carry > summary::before { content: '▸'; font-size: 10px; color: var(--ink-faint); }
+.map-carry[open] > summary::before { content: '▾'; }
+.map-carry > summary::-webkit-details-marker { display: none; }
