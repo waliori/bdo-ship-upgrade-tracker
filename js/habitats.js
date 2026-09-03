@@ -72,8 +72,32 @@ export function habitatsOf(points, { cell = CELL, min = 3, max = 6, onWater = nu
 					.sort((a, b) => Math.hypot(a[0] - x, a[1] - y) - Math.hypot(b[0] - x, b[1] - y))[0];
 				if (wet) [x, y] = wet;
 			}
-			return { x, y, n: g.length };
+			return { x, y, n: g.length, hull: hullOf(g) };
 		})
 		.sort((a, b) => b.n - a.n)
 		.slice(0, max);
+}
+
+/**
+ * The outline round a cluster: its convex hull, counter-clockwise,
+ * without repeats -- the shape the chart fills so a ground reads as an
+ * area rather than a scatter. Two points make a line, one a point.
+ */
+export function hullOf(points) {
+	const pts = [...new Map((points || []).map(p => [`${p[0]},${p[1]}`, [p[0], p[1]]])).values()]
+		.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+	if (pts.length < 3) return pts;
+	const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+	const lower = [];
+	for (const p of pts) {
+		while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+		lower.push(p);
+	}
+	const upper = [];
+	for (let i = pts.length - 1; i >= 0; i--) {
+		const p = pts[i];
+		while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+		upper.push(p);
+	}
+	return [...lower.slice(0, -1), ...upper.slice(0, -1)];
 }

@@ -2304,6 +2304,42 @@ function paintHunt(layer, size) {
 	g.setTransform(dpr, 0, 0, dpr, 0, 0);
 	g.clearRect(0, 0, size.w, size.h);
 	const r = Math.max(2.5, Math.min(6, 1.2 * Math.pow(2, mapState.zoom - 4)));
+	// A ground as an area first: the outline round each cluster of
+	// spawns, filled faintly and padded by about a spawn's reach, so a
+	// species' water reads at a glance the way the game's own map
+	// shades it. The points go on top.
+	const o = project(mapState, size, 0, 0), o2 = project(mapState, size, 1000, 0);
+	const pxPerK = Math.abs(o2.left - o.left);
+	const pad = Math.max(6, Math.min(40, 1.5 * pxPerK));
+	for (const key of huntsOn) {
+		const m = monsterByKey[key];
+		if (!m || !m.points.length) continue;
+		for (const h of habitats(m)) {
+			if (!h.hull || h.hull.length < 2) continue;
+			const pts = h.hull.map(([x, y]) => project(mapState, size, x, y));
+			// Skipped only when its whole box lies off the screen: a ground
+			// wider than the view has every corner out of sight and still
+			// fills it.
+			const xs = pts.map(p => p.left), ys = pts.map(p => p.top);
+			if (Math.max(...xs) < -pad || Math.max(...ys) < -pad || Math.min(...xs) > size.w + pad || Math.min(...ys) > size.h + pad) continue;
+			g.beginPath();
+			pts.forEach((p, i) => (i ? g.lineTo(p.left, p.top) : g.moveTo(p.left, p.top)));
+			g.closePath();
+			g.save();
+			g.lineJoin = 'round';
+			g.lineCap = 'round';
+			g.fillStyle = m.colour;
+			g.strokeStyle = m.colour;
+			g.globalAlpha = 0.14;
+			g.lineWidth = pad * 2;
+			g.stroke();
+			g.fill();
+			g.globalAlpha = 0.45;
+			g.lineWidth = 1;
+			g.stroke();
+			g.restore();
+		}
+	}
 	g.lineWidth = Math.max(1.2, r / 2.5);
 	g.lineCap = 'round';
 	for (const key of huntsOn) {

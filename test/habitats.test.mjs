@@ -68,3 +68,19 @@ test('the species the codex has no points for are marked by hand, roughly', () =
 	assert.ok(ly.points.every(([, y]) => y < 15000), 'north of the old crocodile ground');
 	assert.ok(monsterArt.lyngbakr, 'and a picture');
 });
+
+test('a habitat carries the outline round its spawns, so the chart can fill it', async () => {
+	const { hullOf } = await import('../js/habitats.js');
+	// A square of spawns with one inside: the hull is the four corners.
+	const hull = hullOf([[0, 0], [10, 0], [10, 10], [0, 10], [5, 5], [5, 5]]);
+	assert.equal(hull.length, 4);
+	assert.ok(!hull.some(p => p[0] === 5), 'the inside point is not on the outline');
+	assert.deepEqual(hullOf([[3, 3]]), [[3, 3]], 'one spawn is a point');
+	assert.equal(hullOf([[0, 0], [4, 4], [4, 4]]).length, 2, 'two spawns are a line');
+	assert.deepEqual(hullOf([]), []);
+	const h = habitatsOf([[1000, 1000], [1500, 1200], [2200, 900], [1800, 1600]]);
+	assert.ok(h[0].hull.length >= 3 && h[0].hull.length <= 4);
+	for (const m of monsters.filter(m => m.points.length > 2)) {
+		for (const c of habitatsOf(m.points)) assert.ok(c.hull.length >= 1, `${m.name} has an outline`);
+	}
+});
