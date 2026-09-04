@@ -3,12 +3,11 @@
 // The rest of the barter code answers "what does getting this cost":
 // the ladder folds an item into trades, the forecast paces it in days.
 // This file answers the other question a sailor asks before casting
-// off -- "with what I am holding, where do I go" -- in two shapes. For
-// silver: which exchanges, at which islands, turn the goods in the
-// hold into the most a barterer will pay at the end, within the hold's
-// weight, each island's attempts and the Parley bar. For a material:
+// off -- "with what I am holding, where do I go" -- for a material:
 // which rung of its ladder the hold already covers, what is the first
-// thing missing, and the stops in sailing order from there.
+// thing missing, and the stops in sailing order from there. The run
+// for silver is barter-chains.js, on today's board; the readings of
+// the table shared by both are here.
 //
 // Everything here assumes the table's offer is on the island's list
 // today. It will not always be -- each island shows one random
@@ -76,38 +75,6 @@ export function weightHeld(held) {
 	return w;
 }
 
-/**
- * What one of each good is worth at the end of a run, looking up the
- * chain: what a barterer pays for it, or what it becomes further up
- * if that is more -- a [Level 5] is ten million on its own, but the
- * [Level 6] it turns into is fifty. A material is worth what `price`
- * says; the market's figure when there is one, else nothing. The
- * lookahead is what makes a greedy plan sensible at the bottom rungs,
- * where a trade pays nothing yet and is worth making anyway.
- */
-export function worthOf(rows, price = () => 0) {
-	const memo = new Map();
-	const byGive = new Map();
-	for (const r of rows) {
-		if (!byGive.has(r.give)) byGive.set(r.give, []);
-		byGive.get(r.give).push(r);
-	}
-	const worth = (name, seen = new Set()) => {
-		if (memo.has(name)) return memo.get(name);
-		if (seen.has(name)) return 0;
-		let best = levelOf(name) === null ? (Number(price(name)) || 0) : sellOf(name);
-		for (const r of byGive.get(name) || []) {
-			// Only up the chain: a good handed over for a material is a
-			// dead end for silver unless the market prices it.
-			const up = worth(r.item, new Set([...seen, name]));
-			best = Math.max(best, r.recv / r.giveN * up);
-		}
-		memo.set(name, best);
-		return best;
-	};
-	return worth;
-}
-
 const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);
 
 /** Islands in nearest-neighbour order from `from`, each visited once. */
@@ -129,181 +96,6 @@ function chain(stops, from, npcById) {
 		at = npcById.get(next.npcId) || at;
 	}
 	return out;
-}
-
-/**
- * The run for silver.
- *
- * Level by level from the bottom the hold holds: every exchange that
- * takes a good aboard and pays the next level up is ranked by what it
- * adds -- what the goods received are worth at the end, less what the
- * goods handed over would have sold for -- per Parley spent, and taken
- * in that order for as many attempts as the island allows and the
- * goods aboard cover, all the way to the top. Then attempts are taken
- * back, cheapest first, until the hull moves under the hold and the
- * bar pays for the trades. Each island deals once a run, since it
- * shows one exchange at a time.
- *
- * `hold` is { free, max }: the weight the hull carries without slowing
- * and the most it moves under at all. `parley` is { bar, perTrade }.
- * `land` lets the plan buy the land goods a [Level 1] exchange takes,
- * for a hold with nothing aboard; they weigh nothing here, which is
- * said on the screen.
- */
-export function silverPlan({ stock = {}, barterData, hold, parley, npcById, start = null, price = () => 0, land = false } = {}) {
-	const rows = exchanges(barterData);
-	const worth = worthOf(rows, price);
-	const held = goodsHeld(stock);
-	// The rows by what they take, and by the level they pay: the
-	// lookahead asks both questions for every candidate trade.
-	const byGive = new Map();
-	for (const r of rows) {
-		if (!byGive.has(r.give)) byGive.set(r.give, []);
-		byGive.get(r.give).push(r);
-	}
-	const takes = name => byGive.get(name) || [];
-	const pays = new Map();
-	for (const r of rows) {
-		const lv = levelOf(r.item);
-		if (lv === null) continue;
-		if (!pays.has(lv)) pays.set(lv, []);
-		pays.get(lv).push(r);
-	}
-	const startValue = [...held].reduce((a, [n, q]) => a + q * sellOf(n), 0);
-	const weightStart = weightHeld(held);
-	const notes = [];
-	if (weightStart > hold.max) notes.push('over');
-	const perTrade = parley.perTrade;
-	const used = new Set();
-	const trades = [];
-	const bought = new Map();   // land goods the plan buys, by name
-
-	// How many of a [Level 1] good the rung above could take this run:
-	// what stops a hold with nothing aboard being filled with a land
-	// good's worth of [Level 1]s that no island can trade on. Beyond
-	// the floor the islands' own attempt caps do the same work.
-	const absorb = name => takes(name).filter(r => levelOf(r.item) === 2 && !used.has(r.npcId))
-		.reduce((a, r) => a + r.tries * r.giveN, 0);
-
-	// One rung's allocation: the exchanges that take a good aboard at
-	// this level (or, at the floor, a land good) and pay the level
-	// above, best first, each for the attempts the island allows and
-	// the goods aboard cover.
-	const rung = lv => {
-		const cands = (pays.get(lv + 1) || []).filter(r => {
-			if (used.has(r.npcId)) return false;
-			const g = levelOf(r.give);
-			if (lv === 0) return g === null && land;
-			return g === lv && (held.get(r.give) || 0) >= r.giveN;
-		}).map(r => {
-			const gain = r.recv * worth(r.item) - r.giveN * sellOf(r.give);
-			return { r, gain, per: gain / Math.max(1, perTrade) };
-		}).filter(c => c.gain > 0).sort((a, b) => b.per - a.per || a.r.npc.localeCompare(b.r.npc));
-
-		for (const { r, gain } of cands) {
-			if (used.has(r.npcId)) continue;
-			const ashore = levelOf(r.give) === null;
-			let times = Math.min(r.tries, ashore ? Infinity : Math.floor((held.get(r.give) || 0) / r.giveN + 1e-9));
-			if (ashore) {
-				const room = absorb(r.item) - (held.get(r.item) || 0);
-				times = Math.min(times, Math.floor(room / r.recv + 1e-9));
-			}
-			if (times < 1) continue;
-			if (ashore) bought.set(r.give, (bought.get(r.give) || 0) + times * r.giveN);
-			else held.set(r.give, held.get(r.give) - times * r.giveN);
-			held.set(r.item, (held.get(r.item) || 0) + times * r.recv);
-			used.add(r.npcId);
-			trades.push({ ...r, times, each: gain, level: lv });
-		}
-	};
-
-	// The whole climb first, rung by rung from the floor, as far as the
-	// islands' attempts take it: what a rung hands over is traded on
-	// by the next. Only then is the run cut down to the hull and the
-	// bar, since only then is it known which trades fed the top and
-	// which only left goods aboard.
-	for (let lv = 0; lv <= 6; lv++) rung(lv);
-
-	// A good weighs no less than what it was traded from, so the hold
-	// is heaviest at the end of the run and that is the weight the hull
-	// must move under. Over it, attempts are taken back one at a time,
-	// each the one that loses the least silver per LT it frees: a
-	// [Level 2] nobody trades on this run goes before a [Level 4] that
-	// would have sold, and a feeder whose goods the top rung eats is
-	// never touched while there is anything else. An attempt that
-	// frees nothing itself is only taken back when what it took would
-	// then free weight below it. Over the bar, the cheapest attempt
-	// goes, since every attempt costs the same Parley.
-	const dw = t => t.recv * weightOf(t.item) - t.giveN * weightOf(t.give);
-	const loss = t => t.recv * sellOf(t.item) - t.giveN * sellOf(t.give);
-	const spare = t => t.times > 0 && (held.get(t.item) || 0) >= t.recv - 1e-9;
-	const frees = t => dw(t) > 0 || trades.some(u => u.times > 0 && u.item === t.give && frees(u));
-	const back = t => {
-		t.times--;
-		held.set(t.item, held.get(t.item) - t.recv);
-		if (levelOf(t.give) === null) bought.set(t.give, bought.get(t.give) - t.giveN);
-		else held.set(t.give, held.get(t.give) + t.giveN);
-	};
-	const cheapest = (list, cost) => list.reduce((a, t) => (cost(t) < cost(a) ? t : a));
-	let weight = weightStart + trades.reduce((a, t) => a + t.times * dw(t), 0);
-	let spent = perTrade * trades.reduce((a, t) => a + t.times, 0);
-	while (weight > hold.max + 1e-6) {
-		const cands = trades.filter(t => spare(t) && frees(t));
-		if (!cands.length) break;
-		const heavy = cands.filter(t => dw(t) > 0);
-		const t = heavy.length ? cheapest(heavy, u => loss(u) / dw(u)) : cheapest(cands, loss);
-		back(t);
-		weight -= dw(t);
-		spent -= perTrade;
-	}
-	while (spent > parley.bar + 1e-6) {
-		const cands = trades.filter(spare);
-		if (!cands.length) break;
-		back(cheapest(cands, loss));
-		spent -= perTrade;
-	}
-	// A land good bought for a [Level 1] that no trade left then takes
-	// is not bought.
-	for (const t of trades) {
-		if (levelOf(t.give) !== null) continue;
-		while (spare(t)) { back(t); weight -= dw(t); spent -= perTrade; }
-	}
-
-	// Sailing order: rung by rung from the bottom -- the low goods are
-	// traded first because the high rungs eat what they pay -- each
-	// rung's islands nearest-first from wherever the last left the ship.
-	const sailed = [];
-	let at = start;
-	for (const lv of [...new Set(trades.filter(t => t.times > 0).map(t => t.level))].sort((a, b) => a - b)) {
-		const here = chain(trades.filter(t => t.times > 0 && t.level === lv), at, npcById);
-		sailed.push(...here);
-		if (here.length) at = npcById.get(here[here.length - 1].npcId) || at;
-	}
-	let w = weightStart;
-	const stops = sailed.map(({ each, ...t }) => {
-		w += t.times * dw(t);
-		return { ...t, parley: t.times * perTrade, gain: each * t.times, weightAfter: w };
-	});
-
-	const sold = [...held].filter(([n, q]) => q > 1e-9 && sellOf(n) > 0)
-		.map(([n, q]) => ({ item: n, n: q, each: sellOf(n), total: q * sellOf(n) }))
-		.sort((a, b) => b.total - a.total);
-	const kept = [...held].filter(([n, q]) => q > 1e-9 && !sellOf(n)).map(([n, q]) => ({ item: n, n: q }));
-	const endValue = sold.reduce((a, s) => a + s.total, 0);
-	return {
-		stops, sold, kept,
-		bought: [...bought].filter(([, n]) => n > 0).map(([item, n]) => ({ item, n })),
-		silver: endValue,
-		gain: endValue - startValue,
-		startValue,
-		parleyUsed: spent,
-		parleyBar: parley.bar,
-		trades: stops.reduce((a, s) => a + s.times, 0),
-		weightStart,
-		weightPeak: Math.max(weightStart, w),
-		hold,
-		notes
-	};
 }
 
 /**

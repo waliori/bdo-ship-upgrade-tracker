@@ -47,6 +47,7 @@ const SHELL = [
 	'/js/driver.iife.js',
 	'/js/about.js',
 	'/js/barter-board.js',
+	'/js/barter-chains.js',
 	'/js/barter-plan.js',
 	'/js/barter.js',
 	'/js/barter_npcs.js',

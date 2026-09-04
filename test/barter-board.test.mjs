@@ -6,7 +6,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 import { candidates, offersAt, askable, boardData, offersOf } from '../js/barter-board.js';
-import { silverPlan, materialPlan } from '../js/barter-plan.js';
+import { materialPlan } from '../js/barter-plan.js';
+import { chains, chainRun } from '../js/barter-chains.js';
 import { ladder, levelOf, triesFor, TRIES_BY_RUNG } from '../js/barter.js';
 import { npcById, ports } from '../js/barter_npcs.js';
 import { tradeGoodNames } from '../js/trade_goods.js';
@@ -84,7 +85,10 @@ test('a run planned on the board only calls at islands the board deals, and the 
 	const data = boardData(combo, barterData, npcById);
 	const board = offersOf(combo);
 	const five = [...board.values()].find(o => levelOf(o.give) === 4 && levelOf(o.recv) === 5);
-	const p = silverPlan({ stock: { [five.give]: 4 }, barterData: data, hold: { free: 20000, max: 30000 }, parley: { bar: 1e6, perTrade: 14286 }, npcById });
+	const all = chains(data, { [five.give]: 4 });
+	const mine = all.find(c => c.from === 'hold' && c.item === five.give);
+	assert.ok(mine && mine.rungs[0].item === five.recv);
+	const p = chainRun({ chosen: [mine], stock: { [five.give]: 4 }, hold: { free: 20000, max: 30000 }, parley: { bar: 1e6, perTrade: 14286 }, npcById });
 	assert.ok(p.stops.length > 0);
 	for (const s of p.stops) {
 		const o = board.get(s.npcId);
@@ -99,7 +103,7 @@ test('a run planned on the board only calls at islands the board deals, and the 
 	assert.equal(triesFor('Brilliant Pearl Shard', 0), 2);
 });
 
-test('a run on the board climbs to the top: the six [Level 6] offers the layout fixes, then the [Level 7]s', () => {
+test('the board’s [Level 6] offers are the layout’s; what a [Level 7] island pays is one of its own four', () => {
 	// Layout 25 as seen in the game on 2026-09-04: the [Level 6]
 	// offers matched the record island for island, four of the six
 	// [Level 7] goods did not -- so a [Level 7] island's give is the
@@ -116,13 +120,4 @@ test('a run on the board climbs to the top: the six [Level 6] offers the layout 
 		assert.ok(own.some(x => x.name === e.name));
 	}
 	assert.ok(data.some(e => e.name === '[Level 6] Valencian Desert Fine Sword' && e.sources[0].npc_name === 'Roshina'));
-	// A carrack's hold, bought from the shore: the run is worth the
-	// climb to [Level 7], with the hull's ceiling the only limit.
-	const p = silverPlan({ stock: {}, barterData: data, hold: { free: 23300, max: 39500 }, parley: { bar: 3500000, perTrade: 10554 }, npcById, start: ports[0], land: true });
-	const tops = p.sold.filter(s => levelOf(s.item) === 7);
-	assert.equal(tops.reduce((a, s) => a + s.n, 0), 15, 'three chains of five [Level 7]s');
-	assert.ok(p.stops.some(s => s.npc === 'Roshina' && s.times === 5));
-	assert.ok(p.stops.some(s => s.npc === 'Chikao' && s.times === 5));
-	assert.ok(p.weightPeak <= 39500 && p.weightPeak > 39500 - 2000, 'a fourth chain would not fit');
-	assert.ok(p.silver >= 1500000000);
 });
