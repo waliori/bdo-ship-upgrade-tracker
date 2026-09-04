@@ -24,8 +24,9 @@ import { seaRoute } from './searoute.js';
 import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, DEFAULT_CAL, sailSeconds } from './sailing.js';
 import { PRESETS, SELL_CHOICES, HOUR_CHOICES, readOrders, presetOrders, onPreset, yardsticks } from './barter-orders.js';
 import { propose } from './barter-optimizer.js';
+import { coins as coinShop } from './sea_coins.js';
 import { landPrices } from './land-cost.js';
-import { marketStatus } from './market.js';
+import { marketStatus, marketSilver } from './market.js';
 import { GOODS, PARLEY, parleyPerTrade, levelOf } from './barter.js';
 import { materialPlan, goodsHeld, weightOf, sellOf } from './barter-plan.js';
 import { TOWNS } from './screen-inventory.js';
@@ -501,6 +502,55 @@ function soloRun(c, opts, from, base) {
 	return run;
 }
 
+let expected = { key: '', value: null };
+
+/**
+ * What the best run would pay on each layout still standing, weighed
+ * by how often each has been seen: the mean, the ends, and the layout
+ * that pays best. A quick search, one set at a time, since forty
+ * boards are searched at once; kept until the inputs change.
+ */
+function expectedBest(me, b, prof) {
+	if (!combos || !b.standing.length) return null;
+	const o = ordersNow();
+	const from = fromPort();
+	const stock = aboardStock(), dock = dockStock();
+	const made = store.getProfile('homemade', []) || [];
+	const ship = { speed: me.speed.total, cal: sailCal() };
+	const key = JSON.stringify([board.day, b.standing.map(c => c.id), stock, dock, o, port, stash, made, me.hold, ship, Object.keys(marketSilver()).length]);
+	if (expected.key === key) return expected.value;
+	const parley = parleyOf(prof);
+	let sum = 0, weight = 0, min = Infinity, max = -Infinity, best = null;
+	for (const combo of b.standing) {
+		const data = boardData(combo, barterData, npcById);
+		const all = chains(data, stock, dock).filter(c => o.buy || c.from !== 'land');
+		const prices = landPrices(all.filter(c => c.from === 'land').map(c => c.item), made);
+		const opts = { stock, dock, hold: me.hold, parley, npcById, start: from, stashes, prefer: stashAt(), pace: o.pace, orders: o, prices };
+		const { best: top } = propose({ chains: all, opts, ship, timeCap: o.hours, width: 1, depth: 6 });
+		const v = top ? top.value : 0;
+		const w = Math.max(1, combo.seen || 1);
+		sum += v * w;
+		weight += w;
+		if (v < min) min = v;
+		if (v > max) { max = v; best = top ? { id: combo.id, what: `${top.ids.length} chain${top.ids.length === 1 ? '' : 's'}, ${FC(Math.round(top.value))}${top.hours ? ` in ≈ ${fmtRange(top.hours * 3600 * 0.9, top.hours * 3600 * 1.1)}` : ''}` } : null; }
+	}
+	expected = { key, value: { n: b.standing.length, mean: weight ? sum / weight : 0, min: min === Infinity ? 0 : min, max: max === -Infinity ? 0 : max, best } };
+	return expected.value;
+}
+
+/** What a Crow Coin is worth in silver at the coin shop's best rate:
+ *  the shop item whose Market price buys the most per coin. */
+function coinWorth() {
+	const silver = marketSilver();
+	let best = null;
+	for (const [item, price] of Object.entries(coinShop)) {
+		if (!(price > 0) || !(silver[item] > 0)) continue;
+		const each = silver[item] / price;
+		if (!best || each > best.each) best = { item, each };
+	}
+	return best;
+}
+
 /**
  * The run for silver, in two panels: the board's chains to tick, and
  * the run along the ticked ones -- its figures, each chain's stops as
@@ -510,13 +560,21 @@ function silverParts(me, b) {
 	const from = fromPort();
 	const head = `<div class="panel-head"><h2 class="panel-title">Chains on offer</h2><span class="panel-sub">tick the ones to sail</span><span class="panel-spacer"></span>${routes.ids.length ? '<button class="linky" data-act="barter-chains-clear">clear</button>' : ''}</div>`;
 	const headFill = fill => `<div class="panel-head"><h2 class="panel-title">Chains on offer</h2><span class="panel-sub">tick the ones to sail</span><span class="panel-spacer"></span>${fill ? '<button class="chip tiny primary" data-act="barter-fill" title="Keep what is ticked and add the chains that pay best beside it">fill the rest for me</button>' : ''}${routes.ids.length ? '<button class="linky" data-act="barter-chains-clear">clear</button>' : ''}</div>`;
+	const prof = barterProfile();
 	if (!b.combo) {
+		const ev = expectedBest(me, b, prof);
+		const evHTML = ev && ev.n ? `<div class="run-ev">
+			<div class="run-tiles">
+				<div><div class="summary-k">The best run, on average</div><div class="summary-v gold">${FC(Math.round(ev.mean))}</div><div class="summary-sub">across the ${ev.n} layout${ev.n === 1 ? '' : 's'} still standing, each weighed by how often it has been seen · under these orders</div></div>
+				<div><div class="summary-k">From the worst board to the best</div><div class="summary-v">${FC(Math.round(ev.min))} – ${FC(Math.round(ev.max))}</div><div class="summary-sub">${ev.best ? `the best is layout ${esc(ev.best.id)}: ${esc(ev.best.what)}` : ''}</div></div>
+			</div>
+			<p class="panel-sub barter-caveat">One look at an island names the layout, and the chains and the runs worth sailing follow. The value counts silver net of land goods and the goods kept.</p>
+		</div>` : '';
 		return {
 			chains: `<section class="panel barter-chains">${head}<p class="empty">The chains follow the board: look at one island in the game and tap what it shows.</p></section>`,
-			run: `<section class="panel barter-run"><div class="panel-head"><h2 class="panel-title plain">The run</h2></div><p class="empty">Nothing to lay out until the board is known.</p></section>`
+			run: `<section class="panel barter-run"><div class="panel-head run-head"><h2 class="panel-title plain">The run</h2><span class="panel-sub">what today could pay, before the board is known</span></div>${ordersHTML(ordersNow())}${evHTML || '<p class="empty">Nothing to lay out until the board is known.</p>'}</section>`
 		};
 	}
-	const prof = barterProfile();
 	const o = ordersNow();
 	const pace = o.pace;
 	const stock = aboardStock(), dock = dockStock();
@@ -661,6 +719,7 @@ function materialParts(me, data, known) {
 	}
 	for (const s of plan.stops) s.hold = me.hold;
 	const legs = legsOf(plan.stops);
+	const coin = it === 'Crow Coin' ? coinWorth() : null;
 	const rungs = [...plan.rungs].reverse();   // the shore first
 	const isl = r => (r.stops.length ? r.stops.map(s => `${s.npc}${s.times > 1 ? ` ×${s.times}` : ''}`).join(' › ') : 'no island deals it');
 
@@ -669,12 +728,16 @@ function materialParts(me, data, known) {
 	const rows = rungs.map((r, k) => {
 		const lv = levelOf(r.item), gl = levelOf(r.give) || 0;
 		const ok = r.short <= 0;
-		const pips = [1, 2, 3, 4, 5, 6, 7].map(l => `<i class="${l <= (lv || gl) ? 'on' : ''}${l === lv ? ' top' : ''}" style="--tier:${TIER(l)}">${l}</i>`).join('');
+		// The pips are the step this rung climbs: the give's level, drawn
+		// as held when it is aboard, to the item's -- or to "the material".
+		const pips = [1, 2, 3, 4, 5, 6, 7].filter(l => l >= Math.max(1, gl) && l <= (lv || gl))
+			.map(l => `<i class="${l === gl && r.have > 0 ? 'held' : 'on'}${l === lv ? ' top' : ''}" style="--tier:${TIER(l)}">${l}</i>`).join('');
+		const tr = `${r.trades} trade${r.trades === 1 ? '' : 's'}${r.refreshes > 1 ? ` · ${r.refreshes} refreshes` : ''}`;
 		const right = ok
-			? `<b class="ok">${F(r.have)}</b><span>aboard, enough</span><span>nothing to trade</span>`
+			? `<b class="ok">${F(r.have)}</b><span>aboard, enough</span><span>${tr}</span>`
 			: r.have
-				? `<b>${F(r.have)}</b><span>aboard · ${F(Math.ceil(r.short))} to get</span><span>${r.trades} trade${r.trades === 1 ? '' : 's'}</span>`
-				: `<b class="none">—</b><span>none aboard</span><span>${r.trades} trade${r.trades === 1 ? '' : 's'}${r.refreshes > 1 ? ` · ${r.refreshes} refreshes` : ''}</span>`;
+				? `<b>${F(r.have)}</b><span>aboard · ${F(Math.ceil(r.short))} to get</span><span>${tr}</span>`
+				: `<b class="none">—</b><span>${r.seed ? 'bought ashore' : 'none aboard'}</span><span>${tr}</span>`;
 		return `<div class="chain rung${ok ? ' ok' : ''}" style="--tier:${TIER(lv || gl + 1)}">
 			<span class="chain-mark rung-k">${k + 1}</span>
 			<span class="chain-main">
@@ -691,14 +754,14 @@ function materialParts(me, data, known) {
 	// The first thing to get, as the run's lead tile.
 	const usesHold = plan.rungs.some(r => r.have > 0);
 	const firstTile = plan.covered
-		? ['Nothing to trade', `${F(plan.rungs[0].have)} aboard`, `the top exchange wants ${F(Math.ceil(plan.rungs[0].giveNeed))}× ${esc(plan.rungs[0].give)}, and it is aboard`, 'teal']
+		? ['From the hold', `${F(plan.trades)} trade${plan.trades === 1 ? '' : 's'}`, plan.stops.length ? 'what is aboard covers it all · nothing bought, nothing climbed for' : 'what is aboard covers it all', 'teal']
 		: plan.first && plan.first.ashore
 			? ['Bought ashore', `${F(Math.ceil(plan.first.n))}× ${esc(plan.first.item)}`, `the floor of the ladder · ${usesHold ? 'what is aboard higher up shortens the climb' : 'nothing aboard shortens the climb'}`, 'gold']
 			: plan.first
 				? ['First to get', `${F(Math.ceil(plan.first.n))}× ${esc(plan.first.item)}`, 'the lowest rung the hold does not cover · what is aboard above it is used', 'gold']
 				: ['First to get', '—', '', ''];
 	const tile = (k, v, sub, cls = '') => `<div><div class="summary-k">${k}</div><div class="summary-v${cls ? ` ${cls}` : ''}">${v}</div><div class="summary-sub">${sub}</div></div>`;
-	const trades = plan.rungs.reduce((a, r) => a + (r.short > 0 ? r.trades : 0), 0);
+	const trades = plan.trades;
 	const islands = plan.stops.length;
 	const tiles = `<div class="run-tiles">
 		${tile(...firstTile)}
@@ -722,7 +785,7 @@ function materialParts(me, data, known) {
 	const empty = plan.stops.length ? '' : '<div class="run-empty">Nothing to sail for: what is aboard already covers the top exchange. Hand it over at the island that deals it.</div>';
 	return {
 		chains: chainsPanel,
-		run: `<section class="panel barter-run">${head(`for <b>${F(qty)}× ${esc(it)}</b> · aboard ${esc(me.name)}: ${F(me.hold.free)} LT before it slows, barters up to ${F(me.hold.deal)}`)}${picks}${tiles}${caveat}</section>${empty}${segs}${chartButton(plan.stops, it)}`
+		run: `<section class="panel barter-run">${head(`for <b>${F(qty)}× ${esc(it)}</b>${coin ? ` · worth ≈ ${FC(Math.round(coin.each * qty))} at the coin shop’s best rate, ${FC(Math.round(coin.each))} a coin on ${esc(coin.item)}` : ''} · aboard ${esc(me.name)}: ${F(me.hold.free)} LT before it slows, barters up to ${F(me.hold.deal)}`)}${picks}${tiles}${caveat}</section>${empty}${segs}${chartButton(plan.stops, it)}`
 	};
 }
 

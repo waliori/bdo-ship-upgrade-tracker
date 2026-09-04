@@ -4553,3 +4553,4 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .proposal-yard em { font-style: normal; color: var(--teal); font-weight: 600; }
 .proposal-sub { font-size: 11px; color: var(--ink-faint); }
 .proposals .empty { padding: 8px 4px; }
+.run-ev { margin-top: 12px; }

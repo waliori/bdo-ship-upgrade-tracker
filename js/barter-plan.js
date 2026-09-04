@@ -21,7 +21,7 @@
 // table come in as arguments, so the plans can be tested on a pinned
 // table and drawn by any screen.
 
-import { GOODS, amount, levelOf, ladder, triesFor } from './barter.js';
+import { GOODS, amount, levelOf, triesFor } from './barter.js';
 
 /** The weight of a good, 0 for anything the table does not price. */
 export function weightOf(name) {
@@ -104,85 +104,133 @@ function chain(stops, from, npcById) {
 }
 
 /**
- * The run for one material.
+ * The run for one material, from whatever is held.
  *
- * The ladder says which exchange pays best at each rung; this counts
- * each rung against the hold. From the top: how many of the rung's
- * give are wanted, how many are aboard, how many trades cover the rest
- * -- and the rung below is only asked for what those trades hand over.
- * The islands for a rung are those dealing that same exchange, nearest
- * the start first, each for as many attempts as it allows; when they
- * run out the rest waits for a refresh, and the plan says how many.
+ * Demand runs down and the hold answers first. To cover `need` of a
+ * target: every exchange that hands the target over is tried with what
+ * is aboard of its give, best rate first, each island once; only the
+ * shortfall goes to the best exchange by rate, whose give is then
+ * covered the same way one rung down -- so a [Level 4] aboard on a
+ * side path is spent before a land good is bought. The walk stops at a
+ * land good, which is bought ashore, and never runs past seven rungs.
+ * The islands for a rung are those dealing that exchange, nearest the
+ * start first, each for as many attempts as it allows; when they run
+ * out the rest waits for a refresh, and the plan says how many.
+ *
+ * Rungs come out top first, several to a level when the hold covers
+ * part of one; every stop carries the index of its rung from the
+ * bottom, which is the sailing order.
  */
 export function materialPlan({ item, qty = 1, stock = {}, barterData, npcById, start = null, hold = null } = {}) {
-	const top = ladder(item, barterData);
-	if (!top) return null;
-	const rows = exchanges(barterData);
+	const rows = exchanges(barterData).filter(x => npcById.has(x.npcId));
+	if (!rows.some(x => x.item === item)) return null;
 	const held = goodsHeld(stock);
-	const rungs = [];
 	const used = new Set();   // an island deals one exchange a run
-	let need = qty;
-	for (let r = top; r; r = r.from) {
-		const have = held.get(r.give) || 0;
-		const recvNeed = need;                                    // of r.item
-		const trades = Math.ceil(recvNeed / r.received - 1e-9);   // at this rung
-		const giveNeed = trades * r.given;                        // of r.give
-		const short = Math.max(0, giveNeed - have);
-		// Only the trades the shortfall forces are made below; what is
-		// aboard covers the rest of this rung's hand-over.
-		const tradesShort = Math.ceil(short / r.given - 1e-9);
-		const same = rows.filter(x => x.item === r.item && x.give === r.give && npcById.has(x.npcId) && !used.has(x.npcId))
-			.sort((a, b) => dist(start, npcById.get(a.npcId)) - dist(start, npcById.get(b.npcId)) || a.npc.localeCompare(b.npc));
+	const rungs = [];
+	const rate = x => x.recv / x.giveN;
+	// Every island dealing the same exchange, unused, nearest first.
+	const islandsFor = x => rows.filter(y => y.item === x.item && y.give === x.give && !used.has(y.npcId))
+		.sort((a, b) => dist(start, npcById.get(a.npcId)) - dist(start, npcById.get(b.npcId)) || a.npc.localeCompare(b.npc));
+	// The stops that make `trades` of exchange `x`, taking islands.
+	const book = (x, trades) => {
 		const stops = [];
 		let left = trades;
-		for (const x of same) {
+		for (const y of islandsFor(x)) {
 			if (left <= 0) break;
-			const times = Math.min(x.tries, left);
-			stops.push({ ...x, times });
-			used.add(x.npcId);
+			const times = Math.min(y.tries, left);
+			stops.push({ ...y, times });
+			used.add(y.npcId);
 			left -= times;
 		}
-		const perRefresh = same.reduce((a, x) => a + x.tries, 0);
-		rungs.push({
-			item: r.item, give: r.give, recv: r.received, recvText: r.receivedText, giveN: r.given,
-			need: recvNeed, trades, giveNeed, have, short, tradesShort, stops,
-			refreshes: perRefresh ? Math.ceil(trades / perRefresh) : 0,
-			seed: r.seed && !r.from ? r.seed : null
-		});
-		if (short <= 0) break;         // the hold covers this rung's give
-		need = tradesShort * r.given;  // the rung below hands over this many
-	}
-	// The first thing to get: the lowest rung still short is where the
-	// run starts -- its give bought ashore when that is the seed, else
-	// traded up from whatever is aboard below it.
-	const lowest = rungs[rungs.length - 1];
-	let first = null;
-	if (lowest.short > 0) {
-		first = lowest.seed
-			? { item: lowest.give, n: lowest.short, ashore: true }
-			: { item: lowest.give, n: lowest.short, ashore: false };
-	}
-	// Sailing order: the bottom rung first, each rung's islands nearest
-	// first from where the last left off.
+		return stops;
+	};
+	const perRefresh = x => rows.filter(y => y.item === x.item && y.give === x.give).reduce((a, y) => a + y.tries, 0);
+	const cover = (target, need, depth) => {
+		if (need <= 1e-9 || depth > 7) return;
+		// The exchanges handing the target over, the ones the hold can
+		// feed first, then by what a trade pays.
+		const ex = [];
+		const seenKey = new Set();
+		for (const x of rows) {
+			if (x.item !== target) continue;
+			const k = `${x.give}|${x.recvText}|${x.giveText}`;
+			if (seenKey.has(k)) continue;
+			seenKey.add(k);
+			ex.push(x);
+		}
+		ex.sort((a, b) => Number((held.get(b.give) || 0) > 0) - Number((held.get(a.give) || 0) > 0) || rate(b) - rate(a) || b.tries - a.tries);
+		// From the hold, exchange by exchange.
+		for (const x of ex) {
+			if (need <= 1e-9) break;
+			const have = held.get(x.give) || 0;
+			if (have <= 0) continue;
+			const want = Math.ceil(need / x.recv - 1e-9);
+			const can = Math.floor(have / x.giveN + 1e-9);
+			const trades = Math.min(want, can);
+			if (trades < 1) continue;
+			const stops = book(x, trades);
+			const made = stops.reduce((a, s) => a + s.times, 0);
+			if (!made) continue;
+			const giveNeed = made * x.giveN;
+			held.set(x.give, have - giveNeed);
+			rungs.push({ item: target, give: x.give, recv: x.recv, recvText: x.recvText, giveN: x.giveN,
+				need, trades: made, giveNeed, have, short: 0, tradesShort: 0, stops,
+				refreshes: 1, seed: null, depth });
+			need -= made * x.recv;
+		}
+		if (need <= 1e-9) return;
+		// The shortfall: the best exchange by rate, its give covered a
+		// rung down, or bought ashore when it is a land good.
+		const best = ex.slice().sort((a, b) => rate(b) - rate(a) || b.tries - a.tries)[0];
+		if (!best) return;
+		const trades = Math.ceil(need / best.recv - 1e-9);
+		const giveNeed = trades * best.giveN;
+		const stops = book(best, trades);
+		const per = perRefresh(best);
+		const land = levelOf(best.give) === null;
+		rungs.push({ item: target, give: best.give, recv: best.recv, recvText: best.recvText, giveN: best.giveN,
+			need, trades, giveNeed, have: 0, short: giveNeed, tradesShort: trades, stops,
+			refreshes: per ? Math.ceil(trades / per) : 0, seed: land ? { item: best.give, qty: giveNeed } : null, depth });
+		if (!land) cover(best.give, giveNeed, depth + 1);
+	};
+	cover(item, qty, 0);
+	if (!rungs.length) return null;
+
+	// The first thing to get: the deepest rung still short -- its give
+	// bought ashore when it is a land good, else traded up from below.
+	const shortRungs = rungs.filter(r => r.short > 0);
+	const lowest = shortRungs.length ? shortRungs.reduce((a, r) => (r.depth >= a.depth ? r : a)) : null;
+	const first = lowest ? { item: lowest.give, n: lowest.short, ashore: !!lowest.seed } : null;
+
+	// Sailing order: the deepest rung first, each rung's islands nearest
+	// first from where the last left off. Every stop carries its rung's
+	// index from the bottom, for the screen's segments.
+	const order = rungs.map((r, i) => i).sort((a, b) => rungs[b].depth - rungs[a].depth || b - a);
+	const level = new Map(order.map((i, k) => [i, k]));
 	const stops = [];
 	let at = start;
-	for (let i = rungs.length - 1; i >= 0; i--) {
+	for (const i of order) {
 		const here = chain(rungs[i].stops, at, npcById);
-		stops.push(...here.map(s => ({ ...s, level: rungs.length - 1 - i })));
+		stops.push(...here.map(s => ({ ...s, level: level.get(i) })));
 		if (here.length) at = npcById.get(here[here.length - 1].npcId) || at;
 	}
+	// The rungs in the screen's order: top first, so the reverse is the
+	// sailing order and the stop's `level` indexes it.
+	const ordered = order.slice().reverse().map(i => rungs[i]);
+
 	// The hold along the way, goods only.
-	let w = weightHeld(held);
+	const held0 = goodsHeld(stock);
+	let w = weightHeld(held0);
 	for (const s of stops) {
 		w += s.times * (s.recv * weightOf(s.item) - s.giveN * weightOf(s.give));
 		s.weightAfter = w;
 	}
-	const peak = Math.max(weightHeld(held), ...stops.map(s => s.weightAfter));
+	const peak = Math.max(weightHeld(held0), ...stops.map(s => s.weightAfter));
 	return {
-		item, qty, rungs, stops, first,
+		item, qty, rungs: ordered, stops, first,
 		trades: stops.reduce((a, s) => a + s.times, 0),
-		refreshes: Math.max(0, ...rungs.map(r => r.refreshes)),
-		weightStart: weightHeld(held), weightPeak: peak, hold,
-		covered: rungs[0].short <= 0
+		refreshes: Math.max(0, ...ordered.map(r => r.refreshes)),
+		weightStart: weightHeld(held0), weightPeak: peak, hold,
+		covered: !shortRungs.length
 	};
 }
