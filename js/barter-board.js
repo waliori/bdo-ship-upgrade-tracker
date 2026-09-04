@@ -77,7 +77,12 @@ export function askable(combos, npcById, near = null) {
  * given as one for one, capped by their rung.
  *
  * The ship-material exchanges ride along unchanged: those islands roll
- * on their own, so for them the whole table is still the truth.
+ * on their own, so for them the whole table is still the truth. And a
+ * [Level 7] is named by its island, not by the record: the layout fixes
+ * what the six [Level 7] islands take, but which of its own four goods
+ * each pays was seen to differ from the record on the same layout, so
+ * only the level is certain -- which is all the weight and the price
+ * hang on.
  */
 export function boardData(combo, barterData, npcById) {
 	const codex = new Map();
@@ -88,12 +93,13 @@ export function boardData(combo, barterData, npcById) {
 	}
 	for (const [id, give, qty, recv] of combo.offers) {
 		const known = codex.get(`${id}|${give}|${recv}`);
-		if (!entries.has(recv)) {
-			const e = known ? known.entry : null;
-			entries.set(recv, { id: e ? e.id : recv, name: recv, ...(e && e.icon ? { icon: e.icon } : {}), sources: [] });
+		const name = levelOf(recv) === 7 ? `[Level 7] one of ${npcById.get(id).at}'s goods` : recv;
+		if (!entries.has(name)) {
+			const e = known && name === recv ? known.entry : null;
+			entries.set(name, { id: e ? e.id : name, name, ...(e && e.icon ? { icon: e.icon } : {}), sources: [] });
 		}
 		const src = known ? known.source : null;
-		entries.get(recv).sources.push({
+		entries.get(name).sources.push({
 			npc_id: id,
 			npc_name: src ? src.npc_name : npcById.get(id).name,
 			attempts_available: src ? src.attempts_available : 0,

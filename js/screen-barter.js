@@ -144,7 +144,7 @@ function boardHTML(b) {
 	const seen = board.answers.map(a => `<span class="chip tiny active" title="${esc(a.give)} → ${esc(a.recv)}">${esc(npcById.get(a.npcId).name)}</span>`).join('');
 	if (b.combo) {
 		return `<div class="barter-board known">
-			<div class="barter-board-head"><b>Today's board is layout ${esc(b.combo.id)}</b> <span class="panel-sub">· seen ${b.combo.seen} of ${combos.sample.refreshes} refreshes since ${esc(since)} · every island's offer is known; the material islands roll on their own and are read from the whole table</span></div>
+			<div class="barter-board-head"><b>Today's board is layout ${esc(b.combo.id)}</b> <span class="panel-sub">· seen ${b.combo.seen} of ${combos.sample.refreshes} refreshes since ${esc(since)} · every island's offer is known, but the material islands roll on their own and are read from the whole table, and which of its four [Level 7] goods an island pays is not the layout's to say</span></div>
 			<div class="chips">${seen}<button class="chip tiny" data-act="barter-board-clear" title="The board was refreshed in game: start again">Refreshed in game</button></div>
 		</div>`;
 	}

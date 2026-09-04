@@ -88,7 +88,7 @@ test('a run planned on the board only calls at islands the board deals, and the 
 	assert.ok(p.stops.length > 0);
 	for (const s of p.stops) {
 		const o = board.get(s.npcId);
-		assert.ok(o && o.give === s.give && o.item === undefined ? true : o.recv === s.item, `${s.npc} deals ${s.give} -> ${s.item} today`);
+		assert.ok(o && o.give === s.give && (levelOf(s.item) === 7 ? s.item.startsWith('[Level 7] one of') : o.recv === s.item), `${s.npc} deals ${s.give} -> ${s.item} today`);
 	}
 	const m = materialPlan({ item: 'Brilliant Pearl Shard', qty: 2, stock: {}, barterData: data, npcById });
 	assert.ok(m && m.stops.length > 0);
@@ -97,4 +97,29 @@ test('a run planned on the board only calls at islands the board deals, and the 
 	assert.equal(triesFor('[Level 5] Azure Quartz', 4), 4);
 	assert.equal(triesFor('Crow Coin', 0), TRIES_BY_RUNG.coin);
 	assert.equal(triesFor('Brilliant Pearl Shard', 0), 2);
+});
+
+test('a run on the board climbs to the top: the six [Level 6] offers the layout fixes, then a [Level 7] named by its island', () => {
+	// Layout 25 as seen in the game on 2026-09-04: the [Level 6]
+	// offers matched the record island for island, four of the six
+	// [Level 7] goods did not.
+	const combo = combos.find(c => c.id === '25');
+	const data = boardData(combo, barterData, npcById);
+	const sevens = data.filter(e => levelOf(e.name) === 7);
+	assert.equal(sevens.length, 6);
+	for (const e of sevens) {
+		assert.equal(e.sources.length, 1);
+		assert.equal(e.name, `[Level 7] one of ${npcById.get(e.sources[0].npc_id).at}'s goods`);
+		assert.equal(levelOf(e.sources[0].give.name), 6);
+	}
+	assert.ok(data.some(e => e.name === '[Level 6] Valencian Desert Fine Sword' && e.sources[0].npc_name === 'Roshina'));
+	// A carrack's hold, bought from the shore: the run is worth the
+	// climb to [Level 7], with the hull's ceiling the only limit.
+	const p = silverPlan({ stock: {}, barterData: data, hold: { free: 23300, max: 39500 }, parley: { bar: 3500000, perTrade: 10554 }, npcById, start: ports[0], land: true });
+	const tops = p.sold.filter(s => levelOf(s.item) === 7);
+	assert.equal(tops.reduce((a, s) => a + s.n, 0), 15, 'three chains of five [Level 7]s');
+	assert.ok(p.stops.some(s => s.npc === 'Roshina' && s.times === 5));
+	assert.ok(p.stops.some(s => s.npc === 'Chikao' && s.times === 5));
+	assert.ok(p.weightPeak <= 39500 && p.weightPeak > 39500 - 2000, 'a fourth chain would not fit');
+	assert.ok(p.silver >= 1500000000);
 });
