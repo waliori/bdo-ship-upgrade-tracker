@@ -38,8 +38,11 @@ export function sellOf(name) {
 
 /**
  * The table as flat rows: one per exchange an island offers, with the
- * quantities as numbers. The dataset is keyed by what is received;
- * planning is keyed by what is handed over, so both are on the row.
+ * quantities as numbers -- `recv` the average of the game's range, the
+ * way the ladder counts, and `recvMin`/`recvMax` its ends for a plan
+ * that counts the goods at the least and the weight at the most. The
+ * dataset is keyed by what is received; planning is keyed by what is
+ * handed over, so both are on the row.
  */
 export function exchanges(barterData) {
 	const out = [];
@@ -48,9 +51,11 @@ export function exchanges(barterData) {
 			if (!s.give) continue;
 			const recv = amount(s.quantity_received), giveN = amount(s.give.quantity);
 			if (!(recv > 0) || !(giveN > 0)) continue;
+			const ends = String(s.quantity_received).split('-').map(Number).filter(n => Number.isFinite(n) && n > 0);
 			out.push({
 				npcId: s.npc_id, npc: s.npc_name,
 				item: e.name, recv, recvText: String(s.quantity_received),
+				recvMin: ends.length ? Math.min(...ends) : recv, recvMax: ends.length ? Math.max(...ends) : recv,
 				give: s.give.name, giveN, giveText: String(s.give.quantity),
 				tries: triesFor(e.name, s.attempts_available)
 			});

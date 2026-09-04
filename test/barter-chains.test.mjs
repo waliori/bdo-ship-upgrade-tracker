@@ -50,12 +50,14 @@ test('every chain climbs the board a rung at a time, from a land good or a good 
 	assert.equal(new Set(all.map(c => c.id)).size, all.length);
 });
 
-test('a full run from the shore: every attempt at each rung, a wharf call whenever the limit is in the way, the [Level 7]s sold where they are made', () => {
+test('a full run from the shore: every attempt the limit allows at each rung, a wharf call whenever the limit is in the way, the [Level 7]s sold in port', () => {
 	const c = chains(data).find(x => x.rungs[0].npc === 'Cazio');
 	const p = chainRun({ chosen: [c], stock: {}, hold, parley, npcById, start: ports[0], stashes });
 	const islands = p.stops.filter(s => s.npcId);
 	assert.deepEqual(islands.map(s => s.npc), c.rungs.map(r => r.npc));
-	assert.deepEqual(islands.map(s => s.times), [10, 10, 10, 10, 6, 5, 5]);
+	// Weighed as if every exchange paid three, ten attempts at the
+	// [Level 3] rung cannot all start under the limit: nine do.
+	assert.deepEqual(islands.map(s => s.times), [10, 10, 9, 10, 6, 5, 5]);
 	// No island barters with the hold over the limit: every exchange
 	// starts under it, so the hold on arrival is under it too.
 	let w = 0;
@@ -65,25 +67,31 @@ test('a full run from the shore: every attempt at each rung, a wharf call whenev
 	}
 	assert.ok(p.stops.every(s => s.weightAfter <= hold.max + 1e-6), 'never past what the hull moves under');
 	const wharfs = p.stops.filter(s => s.wharf);
-	assert.ok(wharfs.length >= 1, 'the leftovers go ashore on the way');
-	assert.ok(wharfs.every(s => stashes.includes(s.wharf) && s.dropped.length && s.chain === 0));
+	assert.ok(wharfs.length >= 2, 'the leftovers go ashore on the way');
+	assert.ok(wharfs.every(s => stashes.includes(s.wharf) && s.chain === 0));
 	assert.ok(p.stashed.every(s => levelOf(s.item) <= 5), 'nothing above what the top rungs take is left ashore');
+	// The [Level 7]s are carried to the wharf and sold there -- home,
+	// since the run set out from Velia -- never at the island.
+	assert.ok(islands.every(s => !s.sale));
+	const last = p.stops[p.stops.length - 1];
+	assert.ok(last.wharf && last.wharf.at === 'Velia' && last.sale && last.sale.n === 5 && last.dropped.length === 0);
+	assert.equal(last.weightAfter, 0);
 	assert.equal(p.sold.length, 1);
-	assert.equal(p.sold[0].n, 5);
+	assert.equal(p.sold[0].at, 'Velia');
 	assert.equal(p.silver, 5 * GOODS[7].sell);
-	assert.ok(islands[islands.length - 1].sale && islands[islands.length - 1].sale.n === 5);
 	assert.deepEqual(p.bought, [{ item: 'Copper Ingot', n: 100 }]);
-	assert.equal(p.trades, 56);
-	assert.ok(Math.abs(p.parleyUsed - 56 * parley.perTrade) < 1e-6);
+	assert.equal(p.trades, 55);
+	assert.ok(Math.abs(p.parleyUsed - 55 * parley.perTrade) < 1e-6);
 	assert.ok(p.keptWorth > 0, 'what is left over is priced');
 	assert.deepEqual(p.order, [c]);
 });
 
-test('a fast run buys only what the top can use, and calls at no wharf on a hull that carries it', () => {
+test('a fast run buys only what the top can use, counted at the least an exchange pays, and calls at no wharf but the last on a hull that carries it', () => {
 	const c = chains(data).find(x => x.rungs[0].npc === 'Cazio');
 	const p = chainRun({ chosen: [c], stock: {}, hold, parley, npcById, start: ports[0], stashes, pace: 'fast' });
-	assert.ok(p.stops.every(s => s.npcId), 'no wharf call');
-	assert.deepEqual(p.stops.map(s => s.times), [1, 1, 2, 3, 5, 5, 5]);
+	const islands = p.stops.filter(s => s.npcId);
+	assert.equal(p.stops.length, islands.length + 1, 'one wharf call: the sale');
+	assert.deepEqual(islands.map(s => s.times), [1, 1, 2, 3, 5, 5, 5]);
 	assert.equal(p.silver, 5 * GOODS[7].sell);
 	assert.deepEqual(p.bought, [{ item: 'Copper Ingot', n: 10 }]);
 	assert.ok(p.weightPeak <= hold.free);
@@ -125,7 +133,11 @@ test('two chains sail one after the other, nearest first, and an island crossed 
 	assert.ok(two.stops.every(s => s.weightAfter <= hold.max + 1e-6));
 	assert.equal(two.stops.filter(s => s.npcId)[0].npc, 'Renilu', 'the chain nearest Velia is sailed first');
 	assert.deepEqual(two.order.map(c => c.rungs[0].npc), ['Renilu', 'Cazio']);
-	assert.ok(two.stops.every(s => s.chain === two.order.findIndex(c => c.rungs.some(r => r.npcId === (s.npcId || two.stops[two.stops.indexOf(s) + 1].npcId)))), 'each stop is tagged with its chain');
+	assert.ok(two.stops.filter(s => s.npcId).every(s => two.order[s.chain].rungs.some(r => r.npcId === s.npcId)), 'each island stop is tagged with its chain');
+	// The first chain's [Level 7]s are sold at the first wharf call of
+	// the second, not carried the whole way.
+	const firstSale = two.stops.find(s => s.sale);
+	assert.ok(firstSale.wharf && firstSale.chain === 1 && firstSale.sale.n === 5);
 });
 
 test('with no wharf in reach the hold never ends over the limit, and the fast pace climbs furthest', () => {

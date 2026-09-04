@@ -11,7 +11,7 @@
 // is over the limit -- an island will not barter with a ship over its
 // weight limit, so a full run calls at a wharf to keep going -- or
 // only the attempts the top can use, and never over the limit. The
-// [Level 7]s are sold at the island that pays them.
+// [Level 7]s are sold at the wharf, since trade goods sell in port.
 //
 // Pure: the board, the hold and the wharves come in, the chains and
 // the run go out. Distances are straight lines here, for choosing a
@@ -51,8 +51,14 @@ const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);
 
 /**
  * The run along `chosen` chains, in the shape the screen draws: stops
- * in sailing order -- islands, and wharves where goods are left --
- * each tagged with the chain it belongs to, the hold weighed after it.
+ * in sailing order -- islands, and wharves where goods are left and
+ * sold -- each tagged with the chain it belongs to, the hold weighed
+ * after it.
+ *
+ * The count is pessimistic both ways: an exchange that pays two or
+ * three is counted as paying two, and weighed as if it paid three, so
+ * the goods handed on are never overstated and the hold never
+ * understated.
  *
  * Chains are sailed nearest-first from `start`. `hold` is { free, max }:
  * the weight limit, over which no island will barter at all (an
@@ -67,12 +73,14 @@ const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);
  * The wharf is `prefer` when given, else the one of `stashes`
  * ({ name, at, x, y }) that bends the leg least. An island that has
  * dealt this run deals no more, so a later chain crossing it stops
- * there. A [Level 7] is sold at the island that pays it, since nothing
- * takes it further; every other good aboard at the end is carried home,
- * and the run says what it would sell for.
+ * there. Trade goods are sold at a wharf, not at sea: the [Level 7]s,
+ * which nothing takes further, are sold at every wharf call and at a
+ * last one when the run is done; every other good aboard at the end is
+ * carried home, and the run says what it would sell for.
  */
 export function chainRun({ chosen = [], stock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full' } = {}) {
-	const held = goodsHeld(stock);
+	const held = goodsHeld(stock);          // the goods counted at the least
+	const heldMax = new Map(held);          // and weighed at the most
 	const weightStart = weightHeld(held);
 	let weight = weightStart, peak = weightStart, spent = 0;
 	const perTrade = parley.perTrade;
@@ -102,7 +110,7 @@ export function chainRun({ chosen = [], stock = {}, hold, parley, npcById, start
 		for (let k = c.rungs.length - 1; k >= 0; k--) {
 			const r = c.rungs[k];
 			const n = pace === 'fast' && need < Infinity
-				? Math.min(r.tries, Math.ceil(Math.max(0, need - (held.get(r.item) || 0)) / r.recv - 1e-9))
+				? Math.min(r.tries, Math.ceil(Math.max(0, need - (held.get(r.item) || 0)) / r.recvMin - 1e-9))
 				: r.tries;
 			cap.set(r, n);
 			need = n * r.giveN;
@@ -110,7 +118,7 @@ export function chainRun({ chosen = [], stock = {}, hold, parley, npcById, start
 	}
 
 	const rungs = order.flatMap((c, k) => c.rungs.map(r => ({ r, chain: k })));
-	const dw = r => r.recv * weightOf(r.item) - r.giveN * weightOf(r.give);
+	const dw = r => r.recvMax * weightOf(r.item) - r.giveN * weightOf(r.give);
 	// What the rungs from `i` on can still take of each good.
 	const needFrom = i => {
 		const need = new Map();
@@ -119,6 +127,39 @@ export function chainRun({ chosen = [], stock = {}, hold, parley, npcById, start
 	};
 	const spare = (goods, need) => [...goods].map(([name, n]) => [name, n - (need.get(name) || 0)]).filter(([, n]) => n > 1e-9);
 	const weighs = list => list.reduce((a, [name, n]) => a + n * weightOf(name), 0);
+	const take = (goods, name, n) => { goods.set(name, goods.get(name) - n); if (goods.get(name) < 1e-9) goods.delete(name); };
+
+	// A wharf call: the [Level 7]s aboard sold, the goods in `drop`
+	// (from the counted hold) left in storage, along with all of them
+	// the weighed hold may be carrying.
+	const call = (wharf, drop, chain, next) => {
+		const stop = { wharf, dropped: [], weightAfter: 0, chain };
+		const sevens = [...held].filter(([name, n]) => levelOf(name) === 7 && n > 1e-9);
+		if (sevens.length) {
+			stop.sale = { n: 0, total: 0 };
+			for (const [name, n] of sevens) {
+				sold.push({ item: name, n, each: sellOf(name), total: n * sellOf(name), at: wharf.at, chain });
+				stop.sale.n += n;
+				stop.sale.total += n * sellOf(name);
+				held.delete(name);
+				heldMax.delete(name);
+			}
+		}
+		for (const [name, n] of drop) {
+			if (levelOf(name) === 7) continue;   // sold, not stored
+			take(held, name, n);
+			const gone = heldMax.get(name) - (held.get(name) || 0);
+			take(heldMax, name, gone);
+			stashed.push({ item: name, n, at: wharf.at, each: sellOf(name), total: n * sellOf(name), chain });
+			stop.dropped.push({ item: name, n });
+		}
+		weight = weightHeld(heldMax);
+		stop.weightAfter = weight;
+		stops.push(stop);
+		at = wharf;
+		return next;
+	};
+	const wharfFor = next => prefer || stashes.reduce((a, w) => (dist(at, w) + dist(w, next) < dist(at, a) + dist(a, next) ? w : a));
 
 	for (let i = 0; i < rungs.length; i++) {
 		const { r, chain } = rungs[i];
@@ -129,10 +170,10 @@ export function chainRun({ chosen = [], stock = {}, hold, parley, npcById, start
 		if (perTrade > 0) want = Math.min(want, Math.floor((parley.bar - spent) / perTrade));
 
 		// How many of the attempts wanted the hold lets in from weight
-		// `w` with `goods` aboard: none over the limit; each exchange
-		// starting under it, the hull still moving after; and ending
-		// over the limit only when a wharf call can bring the hold back
-		// under before the next island.
+		// `w` with `goods` aboard (weighed at the most): none over the
+		// limit; each exchange starting under it, the hull still moving
+		// after; and ending over the limit only when a wharf call can
+		// bring the hold back under before the next island.
 		const fit = (w, goods) => {
 			if (w > hold.free + 1e-6) return 0;
 			if (dw(r) <= 0) return want;
@@ -141,53 +182,43 @@ export function chainRun({ chosen = [], stock = {}, hold, parley, npcById, start
 			if (t > under) {
 				const after = new Map(goods);
 				if (!ashore) after.set(r.give, after.get(r.give) - t * r.giveN);
-				after.set(r.item, (after.get(r.item) || 0) + t * r.recv);
+				after.set(r.item, (after.get(r.item) || 0) + t * r.recvMax);
 				const back = stashes.length ? weighs(spare(after, needFrom(i + 1))) : 0;
 				if (w + t * dw(r) - back > hold.free + 1e-6) t = under;
 			}
 			return t;
 		};
-		let times = fit(weight, held);
+		let times = fit(weight, heldMax);
 
-		// A wharf call first, when leaving what the rungs ahead cannot
-		// take lets more attempts in here.
+		// A wharf call first, when selling the [Level 7]s and leaving
+		// what the rungs ahead cannot take lets more attempts in here.
 		if (times < want && stashes.length) {
 			const drop = spare(held, needFrom(i));
-			const lighter = new Map(held);
-			for (const [name, n] of drop) lighter.set(name, lighter.get(name) - n);
-			if (drop.length && fit(weight - weighs(drop), lighter) > times) {
-				const wharf = prefer || stashes.reduce((a, w) => (dist(at, w) + dist(w, npc) < dist(at, a) + dist(a, npc) ? w : a));
-				for (const [name, n] of drop) {
-					held.set(name, held.get(name) - n);
-					if (held.get(name) < 1e-9) held.delete(name);
-					weight -= n * weightOf(name);
-					stashed.push({ item: name, n, at: wharf.at, each: sellOf(name), total: n * sellOf(name), chain });
-				}
-				stops.push({ wharf, dropped: drop.map(([item, n]) => ({ item, n })), weightAfter: weight, chain });
-				at = wharf;
-				times = fit(weight, held);
+			const lighter = new Map(heldMax);
+			for (const [name] of drop) lighter.set(name, needFrom(i).get(name) || 0);
+			for (const [name] of lighter) if (levelOf(name) === 7) lighter.delete(name);
+			if ((drop.length || [...held].some(([name]) => levelOf(name) === 7)) && fit(weighs([...lighter]), lighter) > times) {
+				call(wharfFor(npc), drop, chain);
+				times = fit(weight, heldMax);
 			}
 		}
 		if (times < 1) continue;
 
 		if (ashore) bought.set(r.give, (bought.get(r.give) || 0) + times * r.giveN);
-		else held.set(r.give, held.get(r.give) - times * r.giveN);
-		held.set(r.item, (held.get(r.item) || 0) + times * r.recv);
-		weight += times * dw(r);
+		else { take(held, r.give, times * r.giveN); take(heldMax, r.give, times * r.giveN); }
+		held.set(r.item, (held.get(r.item) || 0) + times * r.recvMin);
+		heldMax.set(r.item, (heldMax.get(r.item) || 0) + times * r.recvMax);
+		weight = weightHeld(heldMax);
 		peak = Math.max(peak, weight);
 		spent += times * perTrade;
 		used.add(r.npcId);
-		const stop = { ...r, times, parley: times * perTrade, level: levelOf(r.give) || 0, weightAfter: weight, chain };
-		if (levelOf(r.item) === 7) {
-			const n = held.get(r.item);
-			held.delete(r.item);
-			weight -= n * weightOf(r.item);
-			stop.sale = { n, total: n * sellOf(r.item) };
-			stop.weightAfter = weight;
-			sold.push({ item: r.item, n, each: sellOf(r.item), total: n * sellOf(r.item), npcId: r.npcId, chain });
-		}
-		stops.push(stop);
+		stops.push({ ...r, times, parley: times * perTrade, level: levelOf(r.give) || 0, weightAfter: weight, chain });
 		at = npc;
+	}
+	// The run done, the [Level 7]s aboard are sold at the wharf the
+	// ship makes for: the one chosen, else home, else the nearest.
+	if ([...held].some(([name, n]) => levelOf(name) === 7 && n > 1e-9) && stashes.length) {
+		call(prefer || (start && stashes.find(w => w.at === start.name)) || wharfFor(at), [], order.length - 1);
 	}
 
 	const kept = [...held].filter(([, n]) => n > 1e-9).map(([item, n]) => ({ item, n, each: sellOf(item), total: n * sellOf(item) }))

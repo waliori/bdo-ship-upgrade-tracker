@@ -254,8 +254,8 @@ function stopRows(stops, legs, { k0 = 0, board = false } = {}) {
 		const fill = Math.min(100, Math.min(s.weightAfter, hold.free) / hold.max * 100);
 		const extra = Math.max(0, Math.min(s.weightAfter, hold.max) - hold.free) / hold.max * 100;
 		const did = s.wharf
-			? `<div class="run-leave"><span>Leaves in storage</span>${s.dropped.map(d => `<span>${n1(d.n)}× ${esc(d.item)}</span>`).join('')}</div>`
-			: `<div class="run-trade"><span>${esc(s.giveText)}× ${esc(s.give)}</span><span class="run-arrow">→</span><span class="run-to" style="--tier:${TIER(levelOf(s.item))}"><i></i>${esc(s.recvText)}× ${esc(s.item)}${four(s)}</span><span class="run-times">×${s.times}</span>${img(s.item, 'row-icon sm')}</div>${s.sale ? `<div class="run-sell">sells the ${n1(s.sale.n)} here for ${FC(Math.round(s.sale.total))}</div>` : ''}`;
+			? `${s.dropped.length ? `<div class="run-leave"><span>Leaves in storage</span>${s.dropped.map(d => `<span>${n1(d.n)}× ${esc(d.item)}</span>`).join('')}</div>` : ''}${s.sale ? `<div class="run-sell">sells the ${n1(s.sale.n)} [Level 7] here for ${FC(Math.round(s.sale.total))}</div>` : ''}`
+			: `<div class="run-trade"><span>${esc(s.giveText)}× ${esc(s.give)}</span><span class="run-arrow">→</span><span class="run-to" style="--tier:${TIER(levelOf(s.item))}"><i></i>${esc(s.recvText)}× ${esc(s.item)}${four(s)}</span><span class="run-times">×${s.times}</span>${img(s.item, 'row-icon sm')}</div>`;
 		return `<div class="run-stop${s.wharf ? ' wharf' : ''}${s.sale ? ' sale' : ''}${i === stops.length - 1 ? ' last' : ''}">
 			<div class="run-rail"><i></i><b>${s.wharf ? '⚓' : k + 1}</b><i></i></div>
 			<div class="run-main">
@@ -297,7 +297,7 @@ function chainRow(c, on, solo) {
 		</span>
 		<span class="chain-right">
 			<b class="${solo.silver ? '' : 'none'}">${solo.silver ? FC(Math.round(solo.silver)) : '—'}</b>
-			<span>${solo.keptWorth ? `${FC(Math.round(solo.keptWorth))} left over` : solo.silver ? 'nothing left over' : 'nothing sells at this reach'}</span>
+			<span>${solo.keptWorth ? `${FC(Math.round(solo.keptWorth))} left over` : solo.silver ? 'nothing left over' : 'nothing to sell at this reach'}</span>
 			<span>${c.rungs.length} island${c.rungs.length === 1 ? '' : 's'}</span>
 		</span>
 	</button>`;
@@ -338,7 +338,7 @@ function silverParts(me, b) {
 	const sel = (act, label, value, options) => `<label class="run-pick">${label}<select class="field select" data-act="${act}">${options.map(([v, t]) => `<option value="${esc(String(v))}"${String(v) === String(value) ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
 	const runHead = `<div class="panel-head run-head">
 		<h2 class="panel-title plain">The run</h2>
-		<span class="panel-sub">${chosen.length} chain${chosen.length === 1 ? '' : 's'} ticked · aboard ${esc(me.name)}, barters under ${F(me.hold.free)} LT</span>
+		<span class="panel-sub">${chosen.length} chain${chosen.length === 1 ? '' : 's'} ticked · aboard ${esc(me.name)}, barters under ${F(me.hold.free)} LT · goods counted at the least, weighed at the most</span>
 		<span class="panel-spacer"></span>
 		${sel('barter-pace', 'pace', pace, [['fast', 'fast: what the top can use'], ['full', 'every attempt, storage on the way']])}
 		${sel('barter-stash', 'storage at', stash, [['', 'the nearest wharf'], ...stashes.map(w => [w.at, w.at])])}
@@ -346,7 +346,7 @@ function silverParts(me, b) {
 	</div>`;
 	const tile = (k, v, sub, cls = '') => `<div><div class="summary-k">${k}</div><div class="summary-v${cls ? ` ${cls}` : ''}">${v}</div><div class="summary-sub">${sub}</div></div>`;
 	const tiles = `<div class="run-tiles">
-		${tile('Sold on the way', plan.silver ? FC(Math.round(plan.silver)) : '—', plan.silver ? `at the last island of each chain${rate ? ` · ≈ ${FC(rate)} an hour under way` : ''}` : chosen.length ? 'no chain ticked sells' : 'pick a chain', 'gold')}
+		${tile('Sold in port', plan.silver ? FC(Math.round(plan.silver)) : '—', plan.silver ? `the [Level 7]s, at the wharf${rate ? ` · ≈ ${FC(rate)} an hour under way` : ''}` : chosen.length ? 'no chain ticked sells' : 'pick a chain', 'gold')}
 		${tile('Trades', F(plan.trades), `${F(Math.round(plan.parleyUsed))} Parley of ${F(plan.parleyBar)} · ${islands} island${islands === 1 ? '' : 's'}${wharfs ? ` · ${wharfs} wharf call${wharfs === 1 ? '' : 's'}` : ''}`)}
 		${tile('Hold at its fullest', plan.stops.length ? `${F(Math.round(plan.weightPeak))} LT` : '—', `${F(me.hold.free)} is the limit · ${F(me.hold.max)} at most`, plan.weightPeak > me.hold.max ? 'warn' : plan.weightPeak > me.hold.free ? 'amber' : 'teal')}
 		${tile('Under way', legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `≈ ${esc(legs.time)} at ${me.speed.total}%${from ? ` from ${esc(from.name)}` : ''}` : 'pick a chain')}
@@ -354,7 +354,7 @@ function silverParts(me, b) {
 	const segs = plan.order.map((c, k) => {
 		const first = plan.stops.findIndex(s => s.chain === k);
 		const mine = plan.stops.filter(s => s.chain === k);
-		const soldHere = mine.reduce((a, s) => a + (s.sale ? s.sale.total : 0), 0);
+		const soldHere = plan.sold.filter(s => s.chain === k).reduce((a, s) => a + s.total, 0);
 		const leftHere = plan.stashed.filter(s => s.chain === k).reduce((a, s) => a + s.total, 0);
 		return `<section class="panel run-seg" style="--tier:${TIER(c.top)}">
 			<div class="run-seg-head"><i></i><b>${esc(c.rungs[0].npc)} chain</b><em>Level ${c.top}</em><span>${soldHere ? `${FC(Math.round(soldHere))} sold` : 'nothing sold'}${leftHere ? ` · ${FC(Math.round(leftHere))} left on the way` : ''}${mine.length ? '' : ' · every island already dealt'}</span><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="Untick this chain">×</button></div>
