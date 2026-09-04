@@ -23,7 +23,7 @@ const combos = JSON.parse(await readFile(new URL('../js/barter_combos.json', imp
 const layout = combos.find(c => c.id === '25');
 const data = boardData(layout, barterData, npcById);
 const stashes = ['Velia', 'Iliya Island', "Oquilla's Eye"].map(at => wharves.find(w => w.kind === 'wharf' && w.at === at));
-const hold = { free: 23300, max: 39610 };
+const hold = { free: 23300, deal: 29125, max: 39610 };
 const parley = { bar: 3500000, perTrade: 10554 };
 
 test('every chain climbs the board a rung at a time, from a land good or a good aboard', () => {
@@ -55,16 +55,17 @@ test('a full run from the shore: every attempt the limit allows at each rung, a 
 	const p = chainRun({ chosen: [c], stock: {}, hold, parley, npcById, start: ports[0], stashes });
 	const islands = p.stops.filter(s => s.npcId);
 	assert.deepEqual(islands.map(s => s.npc), c.rungs.map(r => r.npc));
-	// Weighed as if every exchange paid three, ten attempts at the
-	// [Level 3] rung cannot all start under the limit: nine do.
-	assert.deepEqual(islands.map(s => s.times), [10, 10, 9, 10, 6, 5, 5]);
-	// No island barters with the hold over the limit: every exchange
-	// starts under it, so the hold on arrival is under it too.
+	assert.deepEqual(islands.map(s => s.times), [10, 10, 10, 10, 6, 5, 5]);
+	// No island barters with the hold over the ceiling: every exchange
+	// starts under it, so the hold on arrival is under it too -- and
+	// weighed as if every exchange paid three, the [Level 3] rung ends
+	// past the limit, sailing slower to the wharf.
 	let w = 0;
 	for (const s of p.stops) {
-		if (s.npcId) assert.ok(w <= hold.free + 1e-6, `${s.npc} is reached under the limit`);
+		if (s.npcId) assert.ok(w <= hold.deal + 1e-6, `${s.npc} is reached under the ceiling`);
 		w = s.weightAfter;
 	}
+	assert.ok(p.weightPeak > hold.free && p.weightPeak <= hold.deal);
 	assert.ok(p.stops.every(s => s.weightAfter <= hold.max + 1e-6), 'never past what the hull moves under');
 	const wharfs = p.stops.filter(s => s.wharf);
 	assert.ok(wharfs.length >= 2, 'the leftovers go ashore on the way');
@@ -75,29 +76,40 @@ test('a full run from the shore: every attempt the limit allows at each rung, a 
 	assert.ok(islands.every(s => !s.sale));
 	const last = p.stops[p.stops.length - 1];
 	assert.ok(last.wharf && last.wharf.at === 'Velia' && last.sale && last.sale.n === 5 && last.dropped.length === 0);
-	assert.equal(last.weightAfter, 0);
+	assert.ok(last.weightAfter < hold.free, 'what is left aboard is carried home');
 	assert.equal(p.sold.length, 1);
 	assert.equal(p.sold[0].at, 'Velia');
 	assert.equal(p.silver, 5 * GOODS[7].sell);
 	assert.deepEqual(p.bought, [{ item: 'Copper Ingot', n: 100 }]);
-	assert.equal(p.trades, 55);
-	assert.ok(Math.abs(p.parleyUsed - 55 * parley.perTrade) < 1e-6);
+	assert.equal(p.trades, 56);
+	assert.ok(Math.abs(p.parleyUsed - 56 * parley.perTrade) < 1e-6);
 	assert.ok(p.keptWorth > 0, 'what is left over is priced');
 	assert.deepEqual(p.order, [c]);
 });
 
-test('a fast run buys only what the top can use, counted at the least an exchange pays, and calls at no wharf but the last on a hull that carries it', () => {
+test('a fast run fills the hold to the limit without a wharf call: the top’s attempts first, then extras from the top down', () => {
 	const c = chains(data).find(x => x.rungs[0].npc === 'Cazio');
 	const p = chainRun({ chosen: [c], stock: {}, hold, parley, npcById, start: ports[0], stashes, pace: 'fast' });
 	const islands = p.stops.filter(s => s.npcId);
 	assert.equal(p.stops.length, islands.length + 1, 'one wharf call: the sale');
-	assert.deepEqual(islands.map(s => s.times), [1, 1, 2, 3, 5, 5, 5]);
+	assert.ok(p.stops.every(s => s.weightAfter <= hold.free + 1e-6), 'never past the limit, so never slower');
+	assert.ok(p.weightPeak > hold.free - 2000, 'and the hold is filled');
+	// The top three rungs at what the top can use, the [Level 3] and
+	// [Level 4] rungs with extras whose leftovers sell, the foot with no
+	// more than feeds them: a leftover [Level 2] sells for nothing.
+	assert.deepEqual(islands.map(s => s.times), [2, 2, 4, 6, 6, 5, 5]);
 	assert.equal(p.silver, 5 * GOODS[7].sell);
-	assert.deepEqual(p.bought, [{ item: 'Copper Ingot', n: 10 }]);
-	assert.ok(p.weightPeak <= hold.free);
+	assert.deepEqual(p.bought, [{ item: 'Copper Ingot', n: 20 }]);
+	assert.ok(p.kept.some(s => levelOf(s.item) === 4), 'the extra [Level 4]s come home');
+	// A tighter hull takes only what the top can use -- and the sixth
+	// attempt at the [Level 5] rung, which weighs nothing extra and
+	// leaves a [Level 5] worth ten million.
+	const tight = chainRun({ chosen: [c], stock: {}, hold: { free: 14200, deal: 17750, max: 24140 }, parley, npcById, start: ports[0], stashes, pace: 'fast' });
+	assert.deepEqual(tight.stops.filter(s => s.npcId).map(s => s.times), [1, 1, 2, 3, 6, 5, 5]);
+	assert.equal(tight.silver, 5 * GOODS[7].sell);
 	// Goods aboard shorten the buying: four [Level 4]s aboard mean one
 	// fewer attempt at the rung that pays them.
-	const q = chainRun({ chosen: [c], stock: { '[Level 4] Amethyst Fragment': 4 }, hold, parley, npcById, start: ports[0], stashes, pace: 'fast' });
+	const q = chainRun({ chosen: [c], stock: { '[Level 4] Amethyst Fragment': 4 }, hold: { free: 14200, deal: 17750, max: 24140 }, parley, npcById, start: ports[0], stashes, pace: 'fast' });
 	assert.equal(q.stops.find(s => s.npc === 'Perugia').times, 1);
 	assert.equal(q.silver, 5 * GOODS[7].sell);
 });
@@ -142,10 +154,11 @@ test('two chains sail one after the other, nearest first, and an island crossed 
 
 test('with no wharf in reach the hold never ends over the limit, and the fast pace climbs furthest', () => {
 	const c = chains(data).find(x => x.rungs[0].npc === 'Cazio');
-	const small = { free: 8000, max: 13600 };
+	const small = { free: 8000, deal: 10000, max: 13600 };
 	const full = chainRun({ chosen: [c], stock: {}, hold: small, parley, npcById, start: ports[0] });
 	const fast = chainRun({ chosen: [c], stock: {}, hold: small, parley, npcById, start: ports[0], pace: 'fast' });
-	for (const p of [full, fast]) assert.ok(p.stops.every(s => s.npcId && s.weightAfter <= small.free + 1e-6), 'never over the limit, since nothing could be left ashore');
+	assert.ok(full.stops.every(s => s.npcId && s.weightAfter <= small.deal + 1e-6), 'never over the ceiling, since nothing could be left ashore');
+	assert.ok(fast.stops.every(s => s.npcId && s.weightAfter <= small.free + 1e-6), 'never over the limit');
 	assert.ok(fast.stops.length > full.stops.length, 'every attempt at the foot leaves no room to climb');
 	assert.ok(fast.stops.some(s => s.npc === 'Tarin'));
 });

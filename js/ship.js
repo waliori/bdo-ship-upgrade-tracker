@@ -26,6 +26,11 @@ export const SLOTS = ['cannon', 'sail', 'figurehead', 'plating'];
  * the game's own tooltip gives only the limit.
  */
 export const OVERLOAD = 1.7;
+/** How far past its limit a ship still barters: the islands stop
+ *  dealing above this. No patch note gives the figure; a 27,000 LT
+ *  hold was seen dealing up to about 33,750 and refused past 34,000
+ *  (2026-09-04), which is the game's usual overweight step. */
+export const BARTER_OVER = 1.25;
 const RANK = { yellow: 5, chiro: 4, 'caravel-blue': 4, toro: 3, 'caravel-green': 3, epheria: 2, sailboat: 1 };
 const round1 = n => Math.round(n * 10) / 10;
 
@@ -166,9 +171,10 @@ export function currentShip() {
 		turn: round1(stats.turn + parts('turn') + gem('turn') + crew.turn + mastery + skin('turn')),
 		brake: round1(stats.brake + parts('brake') + gem('brake') + crew.brake + mastery + skin('brake')),
 		// The hold: hull plus what the plating and a crystal add, less the
-		// crew's own weight -- what is left is what a run can carry. `max`
-		// is the most the hull will move under at all, at OVERLOAD.
-		hold: { limit, crew: crew.weight, free: Math.max(0, limit - crew.weight), max: Math.max(0, Math.round(limit * OVERLOAD) - crew.weight), lines },
+		// crew's own weight -- what is left is what a run can carry. `deal`
+		// is the most it carries and still barters, at BARTER_OVER; `max`
+		// the most the hull will move under at all, at OVERLOAD.
+		hold: { limit, crew: crew.weight, free: Math.max(0, limit - crew.weight), deal: Math.max(0, Math.round(limit * BARTER_OVER) - crew.weight), max: Math.max(0, Math.round(limit * OVERLOAD) - crew.weight), lines },
 		durability: stats.durability + parts('durability') + gem('durability') + crew.durability + skin('durability'),
 		rations: stats.rations + parts('rations') + crew.rations,
 		damage: parts('damage') + gem('damage')

@@ -7,13 +7,14 @@
 // paint the sea one flat colour and everything else in greens, greys and
 // sand.
 //
-// So this reads the zoom-4 tiles -- the whole world at 4096x4096 -- and
-// writes a bitmask, one bit per 8x8 pixel cell, into js/seamask.js.
+// So this reads the zoom-5 tiles -- the whole world at 8192x8192, fine
+// enough for the Valencia river to read as water -- and writes a
+// bitmask, one bit per 8x8 pixel cell, into js/seamask.js.
 // Chrome does the decoding, since a webp decoder is the one thing this
 // repository does not already have and the browser is already here for
 // the capture harness.
 //
-//   node tools/build-seamask.mjs [--out js/seamask.js]
+//   node tools/build-seamask.mjs [--zoom 5] [--out js/seamask.js]
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -22,9 +23,10 @@ import puppeteer from 'puppeteer-core';
 import http from 'node:http';
 
 const ROOT = path.dirname(fileURLToPath(new URL('../package.json', import.meta.url)));
-const ZOOM = 4;              // 16x16 tiles, the whole world
-const TILES = 16;
-const CELL = 8;              // pixels a cell covers, so 512x512 cells
+const ZOOM = process.argv.includes('--zoom') ? Number(process.argv[process.argv.indexOf('--zoom') + 1]) : 5;
+const TILES = 2 ** ZOOM;     // tiles a side: the whole world
+const CELL = 8;              // pixels a cell covers
+const WET = process.argv.includes('--wet') ? Number(process.argv[process.argv.indexOf('--wet') + 1]) : 0.85;
 const SIDE = TILES * 256 / CELL;
 
 const CHROME = [
@@ -62,7 +64,7 @@ const grid = new Uint8Array(SIDE * SIDE);   // 1 = water
 let missing = 0;
 for (let tx = 0; tx < TILES; tx++) {
 	for (let ty = 0; ty < TILES; ty++) {
-		const cells = await page.evaluate(async (url, CELL) => {
+		const cells = await page.evaluate(async (url, CELL, WET) => {
 			const img = new Image();
 			img.src = url;
 			try {
@@ -89,11 +91,11 @@ for (let tx = 0; tx < TILES; tx++) {
 					}
 					// A cell is water only if it is nearly all water, so a
 					// shoreline counts as land and a route keeps its distance.
-					out[cy * per + cx] = wet >= CELL * CELL * 0.85 ? 1 : 0;
+					out[cy * per + cx] = wet >= CELL * CELL * WET ? 1 : 0;
 				}
 			}
 			return out;
-		}, `http://localhost:${port}/map/${ZOOM}_${tx}_${ty}.webp`, CELL);
+		}, `http://localhost:${port}/map/${ZOOM}_${tx}_${ty}.webp`, CELL, WET);
 		if (!cells) { missing++; continue; }
 		const per = 256 / CELL;
 		for (let cy = 0; cy < per; cy++) {

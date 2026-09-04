@@ -33,7 +33,7 @@ test('a leg with clear water is left exactly as it was', () => {
 });
 
 test('a harbour is water the open sea can still be reached from', () => {
-	// At 256 units to a cell, Velia's harbour is a single wet cell walled
+	// At 256 units to a cell, Velia's harbour was a single wet cell walled
 	// in by its own shore. A search that started there had nowhere to go
 	// and gave up, and the leg was drawn straight -- so the route out of
 	// Velia crossed Balenos on foot. Every leg from a wharf did.
@@ -132,10 +132,11 @@ test('every barterer is within reach of open water', () => {
 	for (const n of [...npcs, ...ports]) {
 		let near = false;
 		const cx = Math.floor(n.x / SEA_CELL), cy = Math.floor(n.y / SEA_CELL);
-		for (let dx = -3; dx <= 3 && !near; dx++) {
-			for (let dy = -3; dy <= 3 && !near; dy++) if (seaCell(cx + dx, cy + dy)) near = true;
+		const r = Math.ceil(768 / SEA_CELL);
+		for (let dx = -r; dx <= r && !near; dx++) {
+			for (let dy = -r; dy <= r && !near; dy++) if (seaCell(cx + dx, cy + dy)) near = true;
 		}
-		assert.ok(near, `${n.name} has no water within three cells`);
+		assert.ok(near, `${n.name} has no water within 768 units`);
 	}
 	assert.ok(npcById.size > 0);
 });
@@ -147,7 +148,7 @@ test('a point put on land is answered with the water beside it', () => {
 	const wet = nearestWater(velia.x, velia.y);
 	assert.ok(wet, 'there is water beside Velia');
 	assert.equal(isSea(wet.x, wet.y), true);
-	assert.ok(Math.hypot(wet.x - velia.x, wet.y - velia.y) < SEA_CELL * 4, 'and it is the water beside it, not the next sea over');
+	assert.ok(Math.hypot(wet.x - velia.x, wet.y - velia.y) < 1024, 'and it is the water beside it, not the next sea over');
 	// Open water is already the answer, unmoved.
 	assert.deepEqual(nearestWater(40000, 40000), { x: 40000, y: 40000 });
 	// The middle of a continent has none within reach.

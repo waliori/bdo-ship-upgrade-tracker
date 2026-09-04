@@ -124,18 +124,21 @@ function watersNear(x, y, reach) {
 
 /** The nearest water cell to a position, since a barterer stands on an
  *  island and a route has to start from the water beside it. */
-function nearestSea(x, y, reach = 6) {
+function nearestSea(x, y, reach = BESIDE) {
 	return watersNear(x, y, reach)[0] || null;
 }
 
-/* How far out a leg may look for water it can actually sail on. Wide,
-   because Ancado Inner Harbor sits at the end of a canal the chart's
-   tiles do not draw as water: the open sea is 26 cells away, and the
-   choice there is between one straight run down the canyon -- which is
-   the passage a ship really makes -- and a straight line across the
-   whole of Valencia, which is what it used to draw. The nearest shared
-   water still wins, so nowhere else is affected by the room. */
-const REACH = 28;
+/* How far out a leg may look for water it can actually sail on, in
+   cells: about 7,000 world units. Wide, because Ancado Inner Harbor
+   sits at the end of a canal the chart's tiles draw thinly: the open
+   sea is a long way off, and the choice there is between one run down
+   the canyon -- which is the passage a ship really makes -- and a
+   straight line across the whole of Valencia. The nearest shared water
+   still wins, so nowhere else is affected by the room. */
+const REACH = Math.round(7200 / SEA_CELL);
+/* How far a stop dropped on land, or a barterer's stand, looks for the
+   water beside it: about 2,000 world units. */
+const BESIDE = Math.round(2048 / SEA_CELL);
 
 /** One water cell by each end, as close in as they go, on water the
  *  other end can be reached from -- so neither leg begins in a puddle
@@ -159,7 +162,7 @@ function sharedWater(a, b, reach = REACH) {
  * water cell -- or null when there is no water within reach. A stop on
  * a route is a place a hull can float.
  */
-export function nearestWater(x, y, reach = 8) {
+export function nearestWater(x, y, reach = BESIDE) {
 	if (isSea(x, y)) return { x, y };
 	// The nearest water, whichever water it is. A stop dropped beside a
 	// harbour belongs in that harbour, not out at sea a kilometre away;
@@ -170,10 +173,11 @@ export function nearestWater(x, y, reach = 8) {
 }
 
 /** Every cell a straight line crosses is water -- so the leg needs no
- *  help. Walked at half a cell so a corner cannot be stepped over. */
+ *  help. Walked at a quarter of a cell so a corner cannot be stepped
+ *  over. */
 function clearLine(ax, ay, bx, by) {
 	const dist = Math.hypot(bx - ax, by - ay);
-	const steps = Math.ceil(dist / (SEA_CELL / 2));
+	const steps = Math.ceil(dist / (SEA_CELL / 4));
 	for (let i = 0; i <= steps; i++) {
 		const t = steps ? i / steps : 0;
 		if (!isSea(ax + (bx - ax) * t, ay + (by - ay) * t)) return false;

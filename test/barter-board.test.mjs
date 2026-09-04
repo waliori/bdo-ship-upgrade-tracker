@@ -88,7 +88,7 @@ test('a run planned on the board only calls at islands the board deals, and the 
 	const all = chains(data, { [five.give]: 4 });
 	const mine = all.find(c => c.from === 'hold' && c.item === five.give);
 	assert.ok(mine && mine.rungs[0].item === five.recv);
-	const p = chainRun({ chosen: [mine], stock: { [five.give]: 4 }, hold: { free: 20000, max: 30000 }, parley: { bar: 1e6, perTrade: 14286 }, npcById });
+	const p = chainRun({ chosen: [mine], stock: { [five.give]: 4 }, hold: { free: 20000, deal: 25000, max: 30000 }, parley: { bar: 1e6, perTrade: 14286 }, npcById });
 	assert.ok(p.stops.length > 0);
 	for (const s of p.stops) {
 		const o = board.get(s.npcId);

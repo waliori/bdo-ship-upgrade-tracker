@@ -60,23 +60,26 @@ const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);
  * the goods handed on are never overstated and the hold never
  * understated.
  *
- * Chains are sailed nearest-first from `start`. `hold` is { free, max }:
- * the weight limit, over which no island will barter at all (an
- * exchange must start under it, and can end over it, the ship then
- * sailing slower), and the most the hull moves under. `pace` is
- * 'full' -- every attempt the island allows at each rung -- or 'fast':
- * at each rung only the attempts the rungs above can use, counted down
- * from the top, which keeps a hull of any size under the limit. Either
- * way the goods the rungs ahead cannot take are left at a wharf when
- * that lets more attempts in, and a rung ends over the limit only when
- * such a call can bring the hold back under before the next island.
- * The wharf is `prefer` when given, else the one of `stashes`
- * ({ name, at, x, y }) that bends the leg least. An island that has
- * dealt this run deals no more, so a later chain crossing it stops
- * there. Trade goods are sold at a wharf, not at sea: the [Level 7]s,
- * which nothing takes further, are sold at every wharf call and at a
- * last one when the run is done; every other good aboard at the end is
- * carried home, and the run says what it would sell for.
+ * Chains are sailed nearest-first from `start`. `hold` is { free, deal,
+ * max }: the weight limit, over which the ship sails slower; the most
+ * it carries and still barters (an exchange must start under it, and
+ * can end over it); and the most the hull moves under at all. Two
+ * paces. 'fast' makes no wharf call and never slows: the attempts the
+ * rungs above can use come first, counted down from the top, and then
+ * as many more at each rung as the hold carries under the limit with
+ * the climb ahead still to fit -- so the hull is filled without a
+ * detour. 'full' does every attempt the island allows, up to the
+ * barter ceiling: the goods the rungs ahead cannot take are left at a
+ * wharf when that lets more attempts in, and a rung ends over the
+ * ceiling only when such a call can bring the hold back under before
+ * the next island. The wharf is `prefer` when given, else the one of
+ * `stashes` ({ name, at, x, y }) that bends the leg least. An island
+ * that has dealt this run deals no more, so a later chain crossing it
+ * stops there. Trade goods are sold at a wharf, not at sea: the
+ * [Level 7]s, which nothing takes further, are sold at every wharf
+ * call, between chains, and at a last one when the run is done; every
+ * other good aboard at the end is carried home, and the run says what
+ * it would sell for.
  */
 export function chainRun({ chosen = [], stock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full' } = {}) {
 	const held = goodsHeld(stock);          // the goods counted at the least
@@ -104,18 +107,9 @@ export function chainRun({ chosen = [], stock = {}, hold, parley, npcById, start
 	// The attempts a rung is worth: all the island allows, or in a
 	// fast run only what the rungs above can take, counted down from
 	// the top less what is already aboard.
-	const cap = new Map();
-	for (const c of order) {
-		let need = Infinity;
-		for (let k = c.rungs.length - 1; k >= 0; k--) {
-			const r = c.rungs[k];
-			const n = pace === 'fast' && need < Infinity
-				? Math.min(r.tries, Math.ceil(Math.max(0, need - (held.get(r.item) || 0)) / r.recvMin - 1e-9))
-				: r.tries;
-			cap.set(r, n);
-			need = n * r.giveN;
-		}
-	}
+	const deal = hold.deal ?? hold.free;
+	const cap = new Map();     // the attempts a rung is for: all the island allows, or a fast run's share
+	for (const c of order) for (const r of c.rungs) cap.set(r, r.tries);
 
 	const rungs = order.flatMap((c, k) => c.rungs.map(r => ({ r, chain: k })));
 	const dw = r => r.recvMax * weightOf(r.item) - r.giveN * weightOf(r.give);
@@ -124,6 +118,52 @@ export function chainRun({ chosen = [], stock = {}, hold, parley, npcById, start
 		const need = new Map();
 		for (const { r } of rungs.slice(i)) if (!used.has(r.npcId)) need.set(r.give, (need.get(r.give) || 0) + cap.get(r) * r.giveN);
 		return need;
+	};
+	// A fast run's share of a chain, from where the ship stands: the
+	// attempts the top can use, counted down from the top less what is
+	// aboard, and then extra attempts rung by rung from the top down --
+	// where a leftover is worth carrying -- as many as keep the hold
+	// under the limit through the whole climb. Nothing extra at a rung
+	// whose good sells for nothing: a leftover there is dead weight.
+	const share = c => {
+		const rs = c.rungs.filter(r => !used.has(r.npcId));
+		const top = rs.length - 1;
+		let topWant = rs[top].tries;
+		const vec = extra => {
+			const a = new Array(rs.length);
+			let need = Infinity;
+			for (let k = top; k >= 0; k--) {
+				const r = rs[k];
+				const feed = need < Infinity ? Math.ceil(Math.max(0, need - (held.get(r.item) || 0)) / r.recvMin - 1e-9) : 0;
+				a[k] = Math.min(r.tries, Math.max(feed, k === top ? topWant : extra[k]));
+				need = a[k] * r.giveN;
+			}
+			return a;
+		};
+		const fits = a => {
+			const goods = new Map(held), most = new Map(heldMax);
+			for (let k = 0; k < rs.length; k++) {
+				const r = rs[k];
+				const t = Math.min(a[k], levelOf(r.give) === null ? Infinity : Math.floor((goods.get(r.give) || 0) / r.giveN + 1e-9));
+				if (levelOf(r.give) !== null) { take(goods, r.give, t * r.giveN); take(most, r.give, t * r.giveN); }
+				goods.set(r.item, (goods.get(r.item) || 0) + t * r.recvMin);
+				most.set(r.item, (most.get(r.item) || 0) + t * r.recvMax);
+				if (weightHeld(most) > hold.free + 1e-6) return false;
+			}
+			return true;
+		};
+		const extra = new Array(rs.length).fill(0);
+		// A hull too small for the top's full attempts takes fewer.
+		while (topWant > 1 && !fits(vec(extra))) topWant--;
+		for (let k = top - 1; k >= 0; k--) {
+			if (!sellOf(rs[k].item)) continue;
+			while (extra[k] < rs[k].tries) {
+				extra[k]++;
+				if (!fits(vec(extra))) { extra[k]--; break; }
+			}
+		}
+		const a = vec(extra);
+		rs.forEach((r, k) => cap.set(r, a[k]));
 	};
 	const spare = (goods, need) => [...goods].map(([name, n]) => [name, n - (need.get(name) || 0)]).filter(([, n]) => n > 1e-9);
 	const weighs = list => list.reduce((a, [name, n]) => a + n * weightOf(name), 0);
@@ -166,40 +206,54 @@ export function chainRun({ chosen = [], stock = {}, hold, parley, npcById, start
 		if (used.has(r.npcId)) continue;
 		const npc = npcById.get(r.npcId);
 		const ashore = levelOf(r.give) === null;
+		if (pace === 'fast' && (i === 0 || rungs[i - 1].chain !== chain)) {
+			// A fast run sells the last chain's [Level 7]s before the next
+			// chain, so they are not carried up another climb, and takes
+			// its share of this one from where the ship then stands.
+			if (i > 0 && stashes.length && [...held].some(([name]) => levelOf(name) === 7)) call(wharfFor(npc), [], chain);
+			share(order[chain]);
+		}
 		let want = Math.min(cap.get(r), ashore ? Infinity : Math.floor((held.get(r.give) || 0) / r.giveN + 1e-9));
 		if (perTrade > 0) want = Math.min(want, Math.floor((parley.bar - spent) / perTrade));
+		let times;
 
-		// How many of the attempts wanted the hold lets in from weight
-		// `w` with `goods` aboard (weighed at the most): none over the
-		// limit; each exchange starting under it, the hull still moving
-		// after; and ending over the limit only when a wharf call can
-		// bring the hold back under before the next island.
-		const fit = (w, goods) => {
-			if (w > hold.free + 1e-6) return 0;
-			if (dw(r) <= 0) return want;
-			let t = Math.min(want, Math.floor((hold.free - w) / dw(r) + 1e-9) + 1, Math.floor((hold.max - w) / dw(r) + 1e-9));
-			const under = Math.floor((hold.free - w) / dw(r) + 1e-9);
-			if (t > under) {
-				const after = new Map(goods);
-				if (!ashore) after.set(r.give, after.get(r.give) - t * r.giveN);
-				after.set(r.item, (after.get(r.item) || 0) + t * r.recvMax);
-				const back = stashes.length ? weighs(spare(after, needFrom(i + 1))) : 0;
-				if (w + t * dw(r) - back > hold.free + 1e-6) t = under;
-			}
-			return t;
-		};
-		let times = fit(weight, heldMax);
+		if (pace === 'fast') {
+			// Never over the limit, and never slower.
+			if (weight > hold.free + 1e-6) continue;
+			times = dw(r) > 0 ? Math.min(want, Math.floor((hold.free - weight) / dw(r) + 1e-9)) : want;
+		} else {
+			// How many of the attempts wanted the hold lets in from weight
+			// `w` with `goods` aboard (weighed at the most): none over the
+			// barter ceiling; each exchange starting under it, the hull
+			// still moving after; and ending over it only when a wharf
+			// call can bring the hold back under before the next island.
+			const fit = (w, goods) => {
+				if (w > deal + 1e-6) return 0;
+				if (dw(r) <= 0) return want;
+				let t = Math.min(want, Math.floor((deal - w) / dw(r) + 1e-9) + 1, Math.floor((hold.max - w) / dw(r) + 1e-9));
+				const under = Math.floor((deal - w) / dw(r) + 1e-9);
+				if (t > under) {
+					const after = new Map(goods);
+					if (!ashore) after.set(r.give, after.get(r.give) - t * r.giveN);
+					after.set(r.item, (after.get(r.item) || 0) + t * r.recvMax);
+					const back = stashes.length ? weighs(spare(after, needFrom(i + 1))) : 0;
+					if (w + t * dw(r) - back > deal + 1e-6) t = under;
+				}
+				return t;
+			};
+			times = fit(weight, heldMax);
 
-		// A wharf call first, when selling the [Level 7]s and leaving
-		// what the rungs ahead cannot take lets more attempts in here.
-		if (times < want && stashes.length) {
-			const drop = spare(held, needFrom(i));
-			const lighter = new Map(heldMax);
-			for (const [name] of drop) lighter.set(name, needFrom(i).get(name) || 0);
-			for (const [name] of lighter) if (levelOf(name) === 7) lighter.delete(name);
-			if ((drop.length || [...held].some(([name]) => levelOf(name) === 7)) && fit(weighs([...lighter]), lighter) > times) {
-				call(wharfFor(npc), drop, chain);
-				times = fit(weight, heldMax);
+			// A wharf call first, when selling the [Level 7]s and leaving
+			// what the rungs ahead cannot take lets more attempts in here.
+			if (times < want && stashes.length) {
+				const drop = spare(held, needFrom(i));
+				const lighter = new Map(heldMax);
+				for (const [name] of drop) lighter.set(name, needFrom(i).get(name) || 0);
+				for (const [name] of lighter) if (levelOf(name) === 7) lighter.delete(name);
+				if ((drop.length || [...held].some(([name]) => levelOf(name) === 7)) && fit(weighs([...lighter]), lighter) > times) {
+					call(wharfFor(npc), drop, chain);
+					times = fit(weight, heldMax);
+				}
 			}
 		}
 		if (times < 1) continue;

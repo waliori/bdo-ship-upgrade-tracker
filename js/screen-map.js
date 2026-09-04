@@ -47,6 +47,7 @@ let panelOpen = true;
 let searchQ = '';
 let stops = [];               // npc ids, in sail order, chosen by hand
 let stopsPick = '';           // the "Showing" view they were plotted under
+let runTrades = {};           // npc id -> what a Barter-tab run calls there for: { give, giveText, item, recvText, recv, giveN, times }
 let done = { day: '', ids: [] };
 let restored = false;
 
@@ -121,6 +122,7 @@ function restore() {
 			: s.panelOpen !== false;
 		if (Array.isArray(s.stops)) stops = s.stops.filter(id => npcById.has(id));
 		if (typeof s.stopsPick === 'string') stopsPick = s.stopsPick;
+		if (s.runTrades && typeof s.runTrades === 'object') runTrades = readTrades(Object.entries(s.runTrades).map(([id, t]) => [Number(id), t.give, t.giveText, t.item, t.recvText, t.recv, t.giveN, t.times]));
 		if (s.done && s.done.day === barterDay()) done = s.done;
 		if (ports.some(p => p.id === s.startPort)) startPort = s.startPort;
 		returnHome = s.returnHome === true;
@@ -159,7 +161,7 @@ function restore() {
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, hugWater, layersOpen, sideRight, tradesMode, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, runTrades, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, hugWater, layersOpen, sideRight, tradesMode, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -527,8 +529,8 @@ function routeHTML(marks) {
 	const costs = stops.map(id => stopParley(id, marks, prof));
 	const ledger = routeLedger({
 		stops,
-		tradesAt: id => stopTrades(id, marks),
-		timesAt: id => (tradesMode === 'all' ? triesAt(id, marks) : 1),
+		tradesAt: id => (runTrades[id] ? [runTrades[id]] : stopTrades(id, marks)),
+		timesAt: id => (runTrades[id] ? runTrades[id].times : tradesMode === 'all' ? triesAt(id, marks) : 1),
 		aboard: heldGoods().reduce((a, g) => a + g.weight, 0),
 		price: marketPrice
 	});
@@ -548,12 +550,12 @@ function routeHTML(marks) {
 			<span class="map-stop-n">${k + 1}</span>
 			<span class="map-row-main">
 				<span class="map-row-name">${esc(n.name)}${leg}</span>
-				<span class="map-row-sub">${esc(n.at)}${has
-					? ' · ' + esc([...has.items.keys()].join(', '))
-					: ' · nothing on your list here'}</span>
-				${cargoLine(id, has)}${holdAfter(ledger.stops[k], me.hold)}${over ? `<span class="map-row-sub warn">past what your Parley covers</span>` : ''}
+				<span class="map-row-sub">${esc(n.at)}${runTrades[id]
+					? ''
+					: has ? ' · ' + esc([...has.items.keys()].join(', ')) : ' · nothing on your list here'}</span>
+				${runTrades[id] ? runLine(runTrades[id]) : cargoLine(id, has)}${holdAfter(ledger.stops[k], me.hold)}${over ? `<span class="map-row-sub warn">past what your Parley covers</span>` : ''}
 			</span>
-			<span class="map-row-right">${has ? iconStrip([...has.items.keys()]) : ''}</span>
+			<span class="map-row-right">${runTrades[id] ? img(runTrades[id].item, 'map-icon') : has ? iconStrip([...has.items.keys()]) : ''}</span>
 			<button class="map-x" data-act="map-stop" data-npc="${id}"
 				aria-label="Remove ${esc(n.name)} from the route">×</button>
 		</div>`;
@@ -687,6 +689,11 @@ function heldGoods() {
 }
 
 /** What a stop wants handed over, against what is aboard. */
+/** What a Barter-tab run calls at a stop for, on its row. */
+function runLine(t) {
+	return `<span class="map-row-sub ok">${esc(t.giveText)}× ${esc(t.give)} → ${esc(t.recvText)}× ${esc(t.item)}${t.times > 1 ? `, ${t.times} times` : ''}</span>`;
+}
+
 function cargoLine(id, has) {
 	if (!has || !has.items.size) return '';
 	const gives = [...new Set([...has.items.values()].flatMap(set => [...set]))].filter(g => /^\[Level/.test(g));
@@ -716,6 +723,18 @@ function cargoTile(hold) {
  * island deals, the offer that pays best per good handed over --
  * quantities as averages of the game's ranges, one press each.
  */
+/** A run's trades as they travel: rows of [npc, give, giveText, item,
+ *  recvText, recv, giveN, times], kept only where they name a barterer
+ *  and a good, keyed by the barterer. */
+function readTrades(rows) {
+	const out = {};
+	for (const r of Array.isArray(rows) ? rows : []) {
+		if (!Array.isArray(r) || !npcById.has(Number(r[0])) || typeof r[1] !== 'string' || typeof r[3] !== 'string') continue;
+		out[Number(r[0])] = { give: r[1], giveText: String(r[2] ?? ''), item: r[3], recvText: String(r[4] ?? ''), recv: Number(r[5]) || 1, giveN: Number(r[6]) || 1, times: Math.max(1, Number(r[7]) || 1) };
+	}
+	return out;
+}
+
 function stopTrades(id, marks) {
 	const has = marks.get(id);
 	if (!has || !has.items.size) return [];
@@ -812,7 +831,7 @@ function savedHTML() {
 
 function keepRoute(name, ids = stops) {
 	if (!ids.length) return;
-	const entry = { name, stops: [...ids], startPort, returnHome, pick: stopsPick || '', at: new Date().toISOString().slice(0, 10) };
+	const entry = { name, stops: [...ids], startPort, returnHome, pick: stopsPick || '', trades: Object.fromEntries(ids.filter(id => runTrades[id]).map(id => [id, runTrades[id]])), at: new Date().toISOString().slice(0, 10) };
 	savedRoutes = [entry, ...savedRoutes.filter(r => r.name !== name)].slice(0, SAVED_MAX);
 }
 
@@ -853,6 +872,7 @@ export function loadSavedRoute(i) {
 	if (!r) return;
 	if (stops.length && stops.join('.') !== r.stops.join('.')) stashRoute();
 	stops = r.stops.filter(id => npcById.has(id));
+	runTrades = readTrades(Object.entries(r.trades || {}).map(([id, t]) => [Number(id), t.give, t.giveText, t.item, t.recvText, t.recv, t.giveN, t.times]));
 	startPort = ports.some(p => p.id === r.startPort) ? r.startPort : 0;
 	returnHome = r.returnHome === true;
 	mapPick = r.pick || null;
@@ -913,6 +933,8 @@ export function routeLink() {
 	if (startPort) parts.push(`s=${startPort}`);
 	if (returnHome) parts.push('h=1');
 	if (stopsPick) parts.push(`p=${encodeURIComponent(stopsPick)}`);
+	const trades = stops.filter(id => runTrades[id]).map(id => { const t = runTrades[id]; return [id, t.give, t.giveText, t.item, t.recvText, t.recv, t.giveN, t.times]; });
+	if (trades.length) parts.push(`x=${encodeURIComponent(JSON.stringify(trades))}`);
 	return `${location.origin}${location.pathname}#map/${parts.join(';')}`;
 }
 
@@ -940,6 +962,9 @@ export function applyMapLink(fragment) {
 	try { pick = q.p ? decodeURIComponent(q.p) : null; } catch { pick = null; }
 	mapPick = pick;
 	stopsPick = pick || '';
+	let trades;
+	try { trades = q.x ? JSON.parse(decodeURIComponent(q.x)) : []; } catch { trades = []; }
+	runTrades = readTrades(trades);
 	mode = 'route';
 	panelOpen = true;
 	stepIdx = 0;
@@ -2919,7 +2944,8 @@ function paintTip(host, size, marks) {
 		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">${esc(npc.name)}</span>
 			${pinned ? `<button class="map-x" data-act="map-tip-close" aria-label="Close">×</button>` : ''}</div>
 			<div class="map-tip-sub">${sub}</div>
-			${rows || '<div class="map-tip-sub none">Nothing on your list here.</div>'}
+			${runTrades[id] ? `<div class="map-tip-sub ok">The run: ${esc(runTrades[id].giveText)}× ${esc(runTrades[id].give)} → ${esc(runTrades[id].recvText)}× ${esc(runTrades[id].item)}${runTrades[id].times > 1 ? `, ${runTrades[id].times} times` : ''}</div>` : ''}
+			${rows || (runTrades[id] ? '' : '<div class="map-tip-sub none">Nothing on your list here.</div>')}
 			${pinned ? btns : ''}`;
 	}
 
@@ -3346,8 +3372,10 @@ export function toggleMapStop(npcId) {
 		// kept as "Previous route" rather than lost.
 		stashRoute();
 		stops = [npcId];
+		runTrades = {};
 	} else {
 		stops = stops.includes(npcId) ? stops.filter(id => id !== npcId) : [...stops, npcId];
+		delete runTrades[npcId];
 	}
 	stopsPick = mapPick || '';
 	persist();
@@ -3358,6 +3386,7 @@ export function toggleMapStop(npcId) {
 export function useSuggestedRoute() {
 	stashRoute();
 	stops = suggestedIds(marksNow());
+	runTrades = {};
 	stopsPick = mapPick || '';
 	persist();
 	refreshSide();
@@ -3373,6 +3402,7 @@ export function reverseMapRoute() {
 
 export function clearMapRoute() {
 	stops = [];
+	runTrades = {};
 	persist();
 	refreshSide();
 	paintMap();
@@ -3645,6 +3675,7 @@ export function importRoute(text) {
 	if (!ids.length) throw new Error('None of those stops is on this chart.');
 	if (stops.length && stops.join('.') !== ids.join('.')) stashRoute();
 	stops = ids;
+	runTrades = {};
 	stopsPick = mapPick || '';
 	startPort = data.start && ports.some(p => p.id === Number(data.start.id)) ? Number(data.start.id) : 0;
 	returnHome = data.returnHome === true;
