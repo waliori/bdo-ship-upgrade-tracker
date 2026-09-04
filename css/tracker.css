@@ -4496,3 +4496,22 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .run-picks .run-pick-qty .purse-inline { width: 64px; text-align: center; }
 .run-picks .run-pick-qty .faint { color: var(--ink-faint); }
 .barter-run .run-tiles + .barter-caveat { margin: 12px 0 0; }
+
+/* ------------------------------------------------------------------ *
+ * Barter: the hold against the goods ashore
+ * ------------------------------------------------------------------ */
+
+/* The pip of the good a chain starts from: held, not climbed to. */
+.chain-pips i.held { background: transparent; border: 1px solid var(--tier); color: var(--tier); }
+
+.ashore { padding: 4px 14px 14px; border-top: 1px solid var(--line-soft); margin-top: 6px; }
+.ashore-k { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); padding: 10px 6px 6px; }
+.ashore-town { margin-bottom: 8px; }
+.ashore-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; padding: 4px 6px 6px; font-size: 12px; }
+.ashore-head b { color: var(--ink-hi); font-weight: 600; }
+.ashore-head span { color: var(--ink-faint); font-size: 11px; }
+.ashore-town.here .ashore-head b { color: var(--teal-hi); }
+.ashore-town.here .ashore-head span { color: var(--ink-mute); }
+.ashore-good { opacity: 0.85; }
+.ashore-town.here .ashore-good { opacity: 1; }
+.ashore-good .ghost-btn.sm { flex: none; white-space: nowrap; }

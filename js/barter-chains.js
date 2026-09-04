@@ -22,11 +22,16 @@ import { exchanges, goodsHeld, weightHeld, weightOf, sellOf } from './barter-pla
 
 /**
  * Every chain the table allows, highest top first. A chain is
- * { id, from: 'land' | 'hold', item, have, rungs, top }: `rungs` are
- * the exchanges in climbing order, `item` and `have` the good aboard
- * a hold chain starts from, `top` the level of the last rung's good.
+ * { id, from: 'land' | 'hold' | 'dock', item, have, load, rungs, top }:
+ * `rungs` are the exchanges in climbing order, `item` the good a chain
+ * that does not start ashore starts from, `have` how many of it are
+ * aboard and `load` how many wait in the start port's storage (`dock`)
+ * to be loaded before casting off; `from` is 'hold' when any is
+ * aboard, 'dock' when it all has to be loaded. `top` is the level of
+ * the last rung's good. The id does not carry `from`, so a chain
+ * stays ticked when its goods are loaded.
  */
-export function chains(barterData, stock = {}) {
+export function chains(barterData, stock = {}, dock = {}) {
 	const rows = exchanges(barterData).filter(r => levelOf(r.item) !== null);
 	const takes = name => rows.filter(r => r.give === name);
 	const walk = (r, path) => {
@@ -37,13 +42,15 @@ export function chains(barterData, stock = {}) {
 	const out = [];
 	for (const r of rows) {
 		if (levelOf(r.give) !== null) continue;
-		for (const rungs of walk(r, [])) out.push({ from: 'land', item: r.give, have: 0, rungs });
+		for (const rungs of walk(r, [])) out.push({ from: 'land', item: r.give, have: 0, load: 0, rungs });
 	}
-	for (const [item, have] of goodsHeld(stock)) {
-		for (const r of takes(item)) for (const rungs of walk(r, [])) out.push({ from: 'hold', item, have, rungs });
+	const aboard = goodsHeld(stock), ashore = goodsHeld(dock);
+	for (const item of new Set([...aboard.keys(), ...ashore.keys()])) {
+		const have = aboard.get(item) || 0, load = ashore.get(item) || 0;
+		for (const r of takes(item)) for (const rungs of walk(r, [])) out.push({ from: have > 0 ? 'hold' : 'dock', item, have, load, rungs });
 	}
 	return out
-		.map(c => ({ ...c, id: `${c.from}:${c.item}:${c.rungs.map(r => r.npcId).join('.')}`, top: levelOf(c.rungs[c.rungs.length - 1].item) }))
+		.map(c => ({ ...c, id: `${c.from === 'land' ? 'land' : 'hold'}:${c.item}:${c.rungs.map(r => r.npcId).join('.')}`, top: levelOf(c.rungs[c.rungs.length - 1].item) }))
 		.sort((a, b) => b.top - a.top || a.rungs.length - b.rungs.length || a.rungs[0].npc.localeCompare(b.rungs[0].npc));
 }
 
@@ -81,8 +88,20 @@ const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);
  * other good aboard at the end is carried home, and the run says what
  * it would sell for.
  */
-export function chainRun({ chosen = [], stock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full' } = {}) {
+export function chainRun({ chosen = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full' } = {}) {
 	const held = goodsHeld(stock);          // the goods counted at the least
+	// What the chosen chains start from and the start port's storage
+	// holds is loaded before casting off -- all of it, since the chain
+	// row promised as much; the hold panel is where a count is trimmed.
+	const ashore = goodsHeld(dock);
+	const loaded = [];
+	for (const c of chosen) {
+		if (c.from === 'land' || !ashore.has(c.item)) continue;
+		const n = ashore.get(c.item);
+		ashore.delete(c.item);
+		held.set(c.item, (held.get(c.item) || 0) + n);
+		loaded.push({ item: c.item, n });
+	}
 	const heldMax = new Map(held);          // and weighed at the most
 	const weightStart = weightHeld(held);
 	let weight = weightStart, peak = weightStart, spent = 0;
@@ -278,7 +297,7 @@ export function chainRun({ chosen = [], stock = {}, hold, parley, npcById, start
 	const kept = [...held].filter(([, n]) => n > 1e-9).map(([item, n]) => ({ item, n, each: sellOf(item), total: n * sellOf(item) }))
 		.sort((a, b) => b.total - a.total || a.item.localeCompare(b.item));
 	return {
-		order, stops, sold, kept, stashed,
+		order, stops, sold, kept, stashed, loaded,
 		bought: [...bought].map(([item, n]) => ({ item, n })),
 		silver: sold.reduce((a, s) => a + s.total, 0),
 		keptWorth: kept.reduce((a, s) => a + s.total, 0) + stashed.reduce((a, s) => a + s.total, 0),

@@ -484,47 +484,101 @@ export function homeOf(item) {
 	return homes[kindOf(item)] || '';
 }
 
+/** The storage that is the ship itself: goods noted here are aboard. */
+export const ABOARD = "Ship's hold";
+
 /**
- * Write an item's total. A count that grows lands at the kind's home
- * storage when one is set (`land`), so a trip logged puts the goods
- * where they are actually kept; a count that shrinks comes off the
- * bags first, then off the noted places, largest first, since the
- * places can never hold more than the total.
+ * Write an item's total. `at` says where the change happens: `true`
+ * (the default) means a count that grows lands at the kind's home
+ * storage when one is set, so a trip logged puts the goods where they
+ * are actually kept; a place name means the count grows or shrinks at
+ * that place -- the Barter tab works the ship's hold; `false` means the
+ * bags. A count that shrinks comes off the place named, else the bags,
+ * then off the noted places largest first, since the places can never
+ * hold more than the total.
  */
-function writeStock(item, qty, land = true) {
+function writeStock(item, qty, at = true) {
 	const before = getStock(item);
 	const n = Math.min(STOCK_CAP, Math.max(0, Math.floor(Number(qty) || 0)));
 	if (n > 0) state.stock[item] = n;
 	else delete state.stock[item];
-	const home = land && n > before ? homeOf(item) : '';
+	const place = typeof at === 'string' ? at : at && n > before ? homeOf(item) : '';
 	let places = state.profile.stash && state.profile.stash[item];
-	if (home) places = { ...(places || {}), [home]: ((places || {})[home] || 0) + (n - before) };
+	if (place && n > before) places = { ...(places || {}), [place]: ((places || {})[place] || 0) + (n - before) };
 	if (!places) return;
 	let over = Object.values(places).reduce((a, b) => a + b, 0) - n;
 	const next = { ...places };
+	// Off the place named first: a good taken off the ship comes off
+	// the ship, whatever the bigger pile ashore holds.
+	if (place && n < before && next[place]) {
+		const off = Math.min(next[place], before - n);
+		next[place] -= off;
+		over -= off;
+	}
 	for (const [town] of Object.entries(next).sort((a, b) => b[1] - a[1])) {
 		if (over <= 0) break;
 		const take = Math.min(next[town], over);
 		next[town] -= take;
 		over -= take;
 	}
+	for (const town of Object.keys(next)) if (next[town] <= 0) delete next[town];
 	state.profile = readProfile({ ...state.profile, stash: { ...state.profile.stash, [item]: next } });
 }
 
-/** Set an item's owned quantity outright. */
-export function setStock(item, qty, label) {
+/** Set an item's owned quantity outright; `at` names the place the
+ *  change is made at, when it is not the bags or the kind's home. */
+export function setStock(item, qty, label, at = true) {
 	const before = getStock(item);
 	const after = Math.min(STOCK_CAP, Math.max(0, Math.floor(Number(qty) || 0)));
 	if (before === after) return null;
-	return commit('stock', label || `${item}: ${before} → ${after}`, () => writeStock(item, after));
+	return commit('stock', label || `${item}: ${before} → ${after}`, () => writeStock(item, after, at));
+}
+
+/**
+ * How many of an item are at one place. The bags are what no place
+ * claims; `ABOARD` is the ship's hold.
+ */
+export function stockAt(item, town) {
+	const places = (state.profile.stash && state.profile.stash[item]) || {};
+	if (town === '') return Math.max(0, getStock(item) - Object.values(places).reduce((a, b) => a + b, 0));
+	return places[town] || 0;
+}
+
+/**
+ * Set how many of an item sit at one place outright, the total moving
+ * by the difference -- the Barter tab typing what is aboard.
+ */
+export function setStockAt(item, town, qty, label) {
+	const before = stockAt(item, town);
+	const n = Math.max(0, Math.floor(Number(qty) || 0));
+	if (before === n) return null;
+	return commit('stock', label || `${item} at ${town}: ${before} → ${n}`, () => writeStock(item, getStock(item) + (n - before), town));
+}
+
+/**
+ * Move `n` of an item from one place to another as one change: goods
+ * loaded from a harbour's storage onto the ship, or put back. '' is
+ * the bags. The total does not move.
+ */
+export function moveStash(item, from, to, n, label) {
+	const qty = Math.min(Math.floor(Number(n) || 0), stockAt(item, from));
+	if (qty <= 0 || from === to) return null;
+	const stash = { ...(state.profile.stash || {}) };
+	const towns = { ...(stash[item] || {}) };
+	if (from !== '') { towns[from] = (towns[from] || 0) - qty; if (towns[from] <= 0) delete towns[from]; }
+	if (to !== '') towns[to] = (towns[to] || 0) + qty;
+	if (Object.keys(towns).length) stash[item] = towns; else delete stash[item];
+	return commit('profile', label || `${qty}× ${item}: ${from || 'the bags'} → ${to || 'the bags'}`, () => {
+		state.profile = readProfile({ ...state.profile, stash });
+	});
 }
 
 /** Add (or subtract, with a negative delta) from an item's owned quantity. */
-export function addStock(item, delta, label) {
+export function addStock(item, delta, label, at = true) {
 	const d = Math.floor(Number(delta) || 0);
 	if (!d) return null;
 	const after = Math.max(0, getStock(item) + d);
-	return commit('stock', label || `${d > 0 ? '+' : ''}${d} ${item}`, () => writeStock(item, after));
+	return commit('stock', label || `${d > 0 ? '+' : ''}${d} ${item}`, () => writeStock(item, after, at));
 }
 
 /**
