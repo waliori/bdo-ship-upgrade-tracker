@@ -201,7 +201,7 @@ export function planCrew(crew, ship) {
  */
 export const mateTypes = firstMates.map(m => ({
 	type: m.name, race: m.name === 'Tranan Underfoe' ? 'Dwarf' : 'Human', mate: true,
-	appetite: 100, cabin: 0, weight: 300,
+	appetite: 100, cabin: 0, weight: 200,   // each adds 200 LT, read off the sailor window
 	speed: 0.5, accel: 0.5, turn: 0.5, brake: 0.5,
 	skill: `${m.trait} — ${m.from}`
 }));
