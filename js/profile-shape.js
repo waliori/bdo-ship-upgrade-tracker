@@ -235,6 +235,17 @@ export function readProfile(raw) {
 		}
 		if (Object.keys(stash).length) out.stash = stash;
 	}
+	// Where new things land, by kind: the storage a count added to a
+	// material, a part or a trade good is noted at, when it is not the
+	// bags -- a barterer who keeps the goods at Iliya says so once.
+	if (isProfile(raw.homes)) {
+		const homes = {};
+		for (const kind of ['materials', 'parts', 'goods']) {
+			const town = raw.homes[kind];
+			if (typeof town === 'string' && town && town.length <= 40) homes[kind] = town;
+		}
+		if (Object.keys(homes).length) out.homes = homes;
+	}
 	if (isProfile(raw.questsDone)) {
 		const done = {};
 		for (const [id, key] of Object.entries(raw.questsDone)) {

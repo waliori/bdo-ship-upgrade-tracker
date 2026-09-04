@@ -4393,3 +4393,84 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .map-io.ashore::after { content: '⌂'; background: #2a1c46; color: #ddc9ff; border-color: var(--stash-edge); font-size: 8px; }
 .map-step-chip.stash { color: var(--stash); border-color: var(--stash-edge); background: rgba(178, 143, 224, 0.12); border-radius: 6px; }
 .map-step-chip.stash.on { background: var(--stash); border-color: transparent; color: #1c1030; }
+
+/* ------------------------------------------------------------------ *
+ * Inventory: where things are, and several tiles moved at once
+ * ------------------------------------------------------------------ */
+
+/* Where a tile's count sits, in a word, at the top left -- the level
+   badge keeps the right. */
+.tile-at {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 6px;
+  background: rgba(88, 168, 232, 0.14);
+  border: 1px solid rgba(88, 168, 232, 0.3);
+  color: var(--blue-hi);
+}
+.tile-at.split { background: rgba(232, 180, 90, 0.14); border-color: rgba(232, 180, 90, 0.35); color: var(--amber); }
+.tile.picked .tile-at { opacity: 0.5; }
+
+/* Select mode: a tick box on every tile, lit when ticked. */
+.tile-tick {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1px solid var(--line-btn-hi, rgba(125, 175, 225, 0.5));
+  background: rgba(8, 20, 36, 0.7);
+  color: var(--teal-hi);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  z-index: 1;
+}
+.tile.picked { border-color: var(--teal-edge); background: rgba(78, 201, 174, 0.08); }
+.tile.picked .tile-tick { background: rgba(78, 201, 174, 0.25); border-color: var(--teal); }
+.tile .tile-tick ~ .tile-at { top: 28px; }
+
+.inv-select { margin-left: auto; }
+
+/* The bar of select mode, above the grid. */
+.inv-pickbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 10px 0 12px;
+  padding: 10px 14px;
+  border-radius: var(--r-tile);
+  border: 1px solid var(--teal-edge);
+  background: rgba(78, 201, 174, 0.07);
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+.inv-pickbar-n b { color: var(--ink-hi); font-family: var(--font-display); }
+.inv-place { display: inline-flex; align-items: center; gap: 8px; }
+.inv-place .select { font-size: 12px; }
+
+/* Where new things land: folded to one line, opened to three selects. */
+.inv-homes { margin-top: 10px; font-size: 12px; color: var(--ink-soft); }
+.inv-homes summary { cursor: pointer; display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; list-style: none; }
+.inv-homes summary::-webkit-details-marker { display: none; }
+.inv-homes summary::before { content: '▸'; color: var(--ink-faint); font-size: 11px; }
+.inv-homes[open] summary::before { content: '▾'; }
+.inv-homes-k { color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; font-size: 10.5px; }
+.inv-homes-v { color: var(--ink-soft); }
+.inv-homes-row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 0 2px 16px; }
+.inv-home { display: inline-flex; align-items: center; gap: 8px; }
+.inv-home > span { color: var(--ink-faint); }
+.inv-home .select { font-size: 12px; }
+.inv-homes-row .detail-note { flex-basis: 100%; }

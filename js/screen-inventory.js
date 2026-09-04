@@ -8,7 +8,7 @@ import {
 	img, codexName, amountInput, costCtx, costText, makeupHTML, barterHTML,
 	sourceOf, hasBuyOption, allItems, waysThrough, questsPaying
 } from './ui-bits.js';
-import { recipes, snapshot, rows, query, invFilter, invKind, selected, sort, sorter, sortSelect, craftStock } from './ui-state.js';
+import { recipes, snapshot, rows, query, invFilter, invKind, selected, sort, sorter, sortSelect, craftStock, invPicking, invPicked } from './ui-state.js';
 import { KINDS, kindOf } from './kinds.js';
 import { maxCraftable, enhanceStep, parseEnhanced, enhancedName, waysToGet } from './planner.js';
 
@@ -90,6 +90,7 @@ export function renderInventory() {
 		shown.push(key);
 	}
 
+	const stashAll = store.getProfile('stash', {}) || {};
 	const tiles = shown.map(key => {
 		const family = isEnhanceable(key);
 		const stats = family
@@ -105,9 +106,15 @@ export function renderInventory() {
 		const denom = Math.max(stats.own, 1);
 		const open = stats.at;   // clicking lands on the level you hold
 		const isOpen = family ? familyOf(selected || '') === key : selected === key;
-		return `<button class="tile ${stats.short > 0 ? 'short' : ''} ${isOpen ? 'selected' : ''}" data-act="select" data-item="${esc(open)}" data-peek="${esc(stats.at)}" title="${esc(key)}">
+		// In select mode a tile is ticked, not opened; a family is ticked
+		// at the level held, which is the one a storage would take.
+		const picked = invPicking && invPicked.has(open);
+		const act = invPicking ? 'inv-pick' : 'select';
+		return `<button class="tile ${stats.short > 0 ? 'short' : ''} ${isOpen && !invPicking ? 'selected' : ''} ${picked ? 'picked' : ''}" data-act="${act}" data-item="${esc(open)}" data-peek="${esc(stats.at)}" title="${esc(key)}" ${invPicking ? `aria-pressed="${picked}"` : ''}>
+			${invPicking ? `<span class="tile-tick">${picked ? '✓' : ''}</span>` : ''}
 			${img(stats.at, '')}
 			${family && stats.top > 0 ? `<span class="tile-lvl">+${stats.top}</span>` : ''}
+			${whereTag(open, stats.own, stashAll)}
 			${stats.own === 0 && stats.short > 0
 				? `<span class="tile-qty short">${F(stats.short)} short</span>`
 				: `<span class="tile-qty">${F(stats.own)}</span>`}
@@ -126,7 +133,10 @@ export function renderInventory() {
 				<div class="chips">${filters}</div>
 				<div class="chips inv-kinds">${kinds}</div>
 				${sortSelect()}
+				<button class="chip inv-select ${invPicking ? 'active' : ''}" data-act="inv-select" title="Tick several tiles and move them to a storage together">${invPicking ? '✓ Selecting' : '☐ Select'}</button>
 			</div>
+			${homesHTML()}
+			${invPicking ? pickBar(shown.filter(k => (stock[k] || 0) > 0 || isEnhanceable(k)).map(k => (isEnhanceable(k) ? familyStats(k).at : k))) : ''}
 			${shown.length
 				? `<div class="inv-grid">${tiles}</div>`
 				: `<div class="panel"><p class="empty">${searching ? 'Nothing matches that search.' : invKind === 'goods' ? 'No trade goods in play — search one to record what is aboard, or log a trip.' : 'Nothing here yet — add a build, or switch to Owned to record what you have.'}</p></div>`}
@@ -177,6 +187,54 @@ function waysBlock(item) {
 	return `<div class="detail-block">
 		<div class="detail-label">${routes.length > 1 ? 'Ways to get it' : 'What it costs'}</div>
 		${lines}
+	</div>`;
+}
+
+/**
+ * Where a tile's count sits, in a word: the one storage holding all of
+ * it, "bags" when none is noted, or "split" when it is in more than one
+ * place -- enough to spot the good recorded at the wrong harbour.
+ */
+function whereTag(item, own, stashAll) {
+	if (!(own > 0)) return '';
+	const places = Object.entries(stashAll[item] || {}).filter(([, n]) => n > 0);
+	const placed = places.reduce((a, [, n]) => a + n, 0);
+	if (!placed) return '';
+	const short = t => t.replace(/^Port |^Ancado | Island$| City$| Harbor$/g, '').replace("Ship's hold", 'hold');
+	const at = places.length === 1 && placed >= own ? short(places[0][0]) : 'split';
+	const title = places.length === 1 && placed >= own ? `all at ${places[0][0]}` : `${F(Math.max(0, own - placed))} in the bags · ${places.map(([t, n]) => `${F(n)} at ${t}`).join(' · ')}`;
+	return `<span class="tile-at ${at === 'split' ? 'split' : ''}" title="${esc(title)}">${esc(at)}</span>`;
+}
+
+/**
+ * Where new things land: one storage a kind, so a trip's goods are
+ * noted at the harbour they are actually kept in without a visit to
+ * each one. Folded to a line until it is wanted.
+ */
+function homesHTML() {
+	const homes = store.getProfile('homes', {}) || {};
+	const word = k => homes[k.id] || 'the bags';
+	const summary = KINDS.map(k => `${k.label.toLowerCase()} → ${word(k)}`).join(' · ');
+	const sel = k => `<label class="inv-home"><span>${esc(k.label)}</span><select class="field select" data-act="inv-home" data-kind="${k.id}" aria-label="Where new ${esc(k.label.toLowerCase())} land"><option value="">the bags</option>${TOWNS.map(t => `<option${homes[k.id] === t ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
+	return `<details class="inv-homes"><summary><span class="inv-homes-k">New things land in</span><span class="inv-homes-v">${esc(summary)}</span></summary>
+		<div class="inv-homes-row">${KINDS.map(sel).join('')}<span class="detail-note">A count added from here, a trip, or the Barter tab is noted at that storage; a count taken away comes off the bags first.</span></div>
+	</details>`;
+}
+
+/** The bar of select mode: what is ticked, and the one thing to do
+ *  with it. `shownItems` are the tiles on screen, for "all shown". */
+function pickBar(shownItems) {
+	const n = invPicked.size;
+	const own = [...invPicked].reduce((a, it) => a + store.getStock(it), 0);
+	return `<div class="inv-pickbar">
+		<span class="inv-pickbar-n"><b>${F(n)}</b> ${n === 1 ? 'item' : 'items'} ticked${n ? ` · ${F(own)} in all` : ''}</span>
+		<button class="chip tiny" data-act="inv-pick-all" data-items="${esc(JSON.stringify(shownItems))}">all shown</button>
+		<button class="chip tiny" data-act="inv-pick-none" ${n ? '' : 'disabled'}>none</button>
+		<span class="panel-spacer"></span>
+		<label class="inv-place"><span>move ${n === 1 ? 'it' : 'them all'} to</span>
+			<select class="field select" data-act="inv-place" ${n ? '' : 'disabled'} aria-label="Move the ticked items to a storage"><option value="">choose a storage…</option><option value="bags">the bags</option>${TOWNS.map(t => `<option>${esc(t)}</option>`).join('')}</select>
+		</label>
+		<button class="ghost-btn sm" data-act="inv-select">Done</button>
 	</div>`;
 }
 

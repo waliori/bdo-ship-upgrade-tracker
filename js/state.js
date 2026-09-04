@@ -419,7 +419,8 @@ const PROFILE_LABELS = {
 	sailingMastery: 'Changed your sailing mastery',
 	questFavs: 'Changed your favourite quests',
 	questGroups: 'Changed a quest group',
-	stash: 'Changed where things are kept'
+	stash: 'Changed where things are kept',
+	homes: 'Changed where new things land'
 };
 
 export function setProfile(key, value, label = null) {
@@ -470,17 +471,36 @@ export function getSetting(key, fallback = null) {
 // all after a reload -- JSON has no way to write it.
 export const STOCK_CAP = 1e15;
 
-function writeStock(item, qty) {
+// What sort of thing an item is, for the storage new counts land in.
+// The kinds live with the recipes, which this file does not read, so
+// the screen hands the function in at boot; until then nothing has a
+// home and every count lands in the bags, as it always did.
+let kindOf = () => '';
+export function useKinds(fn) { kindOf = typeof fn === 'function' ? fn : () => ''; }
+
+/** The storage a new count of `item` is noted at, '' for the bags. */
+export function homeOf(item) {
+	const homes = state.profile.homes || {};
+	return homes[kindOf(item)] || '';
+}
+
+/**
+ * Write an item's total. A count that grows lands at the kind's home
+ * storage when one is set (`land`), so a trip logged puts the goods
+ * where they are actually kept; a count that shrinks comes off the
+ * bags first, then off the noted places, largest first, since the
+ * places can never hold more than the total.
+ */
+function writeStock(item, qty, land = true) {
+	const before = getStock(item);
 	const n = Math.min(STOCK_CAP, Math.max(0, Math.floor(Number(qty) || 0)));
 	if (n > 0) state.stock[item] = n;
 	else delete state.stock[item];
-	// The places an item is noted at can never hold more than the total:
-	// a count typed lower comes off the noted places, largest first, and
-	// what is left is in your bags.
-	const places = state.profile.stash && state.profile.stash[item];
+	const home = land && n > before ? homeOf(item) : '';
+	let places = state.profile.stash && state.profile.stash[item];
+	if (home) places = { ...(places || {}), [home]: ((places || {})[home] || 0) + (n - before) };
 	if (!places) return;
 	let over = Object.values(places).reduce((a, b) => a + b, 0) - n;
-	if (over <= 0) return;
 	const next = { ...places };
 	for (const [town] of Object.entries(next).sort((a, b) => b[1] - a[1])) {
 		if (over <= 0) break;
@@ -558,8 +578,38 @@ export function setStash(item, town, qty) {
 	const total = getStock(item) + (forget ? 0 : n - before);
 	return commit('profile', forget ? `${item}: no longer noted at ${town}` : `${item}: ${n} at ${town}`, () => {
 		state.profile = readProfile({ ...state.profile, stash });
-		if (!forget && total !== getStock(item)) writeStock(item, total);
+		if (!forget && total !== getStock(item)) writeStock(item, total, false);
 	});
+}
+
+/**
+ * Several items moved to one place as one change: everything owned of
+ * each is noted at `town`, or handed back to the bags when `town` is
+ * empty. This is the group action of the Inventory's select mode -- a
+ * hold's worth of goods put at Iliya in one go, and taken back in one
+ * Undo.
+ */
+export function placeAll(items, town, label) {
+	const list = [...new Set(items)].filter(item => getStock(item) > 0);
+	if (!list.length) return null;
+	const stash = { ...(state.profile.stash || {}) };
+	for (const item of list) {
+		if (town) stash[item] = { [town]: getStock(item) };
+		else delete stash[item];
+	}
+	const next = readProfile({ ...state.profile, stash });
+	if (JSON.stringify(next.stash || {}) === JSON.stringify(state.profile.stash || {})) return null;
+	const what = list.length === 1 ? list[0] : `${list.length} items`;
+	return commit('profile', label || (town ? `${what} moved to ${town}` : `${what} back in the bags`), () => {
+		state.profile = next;
+	});
+}
+
+/** Where new counts of a kind land: '' for the bags. */
+export function setHome(kind, town) {
+	const homes = { ...(state.profile.homes || {}) };
+	if (town) homes[kind] = town; else delete homes[kind];
+	return setProfile('homes', homes, town ? `New ${kind} land at ${town}` : `New ${kind} land in the bags`);
 }
 
 /**
@@ -597,7 +647,7 @@ export function unclaimQuest(id, label) {
 export function replaceStock(next, label) {
 	return commit('stock', label || 'Inventory replaced', () => {
 		state.stock = {};
-		for (const [item, qty] of Object.entries(next || {})) writeStock(item, qty);
+		for (const [item, qty] of Object.entries(next || {})) writeStock(item, qty, false);
 	});
 }
 
@@ -1014,7 +1064,7 @@ export function markLegacyImported() {
 export function applyLegacyImport(stock, shipNames) {
 	commit('import', 'Imported your previous progress', () => {
 		for (const [item, qty] of Object.entries(stock)) {
-			writeStock(item, Math.max(getStock(item), qty));
+			writeStock(item, Math.max(getStock(item), qty), false);
 		}
 		const existing = new Set(state.targets.map(t => t.item));
 		const added = shipNames

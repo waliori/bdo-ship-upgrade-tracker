@@ -65,6 +65,11 @@ export const setPlanFilter = f => { planFilter = f; };
 export const setInvFilter = f => { invFilter = f; };
 export const setInvKind = k => { invKind = k; };
 export const setSelected = item => { selected = item; };
+// The Inventory's select mode: several tiles ticked for one action --
+// moved to a storage together, or handed back to the bags.
+export let invPicking = false;
+export const invPicked = new Set();
+export const setInvPicking = on => { invPicking = !!on; if (!on) invPicked.clear(); };
 export const setBarterData = data => { barterData = data; };
 export const setCombos = data => { combos = data; };
 

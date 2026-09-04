@@ -107,12 +107,19 @@ function pickFor(i) {
 	});
 }
 
+/** Where the counts land, when a kind has a storage of its own. */
+function homesNote() {
+	const homes = store.getProfile('homes', {}) || {};
+	const parts = KINDS.filter(k => homes[k.id]).map(k => `${k.label.toLowerCase()} at ${homes[k.id]}`);
+	return parts.length ? ` What arrives is noted where it is kept: ${esc(parts.join(', '))} — set on the Inventory.` : '';
+}
+
 /** Open the log; `focusRow` puts the caret in that row's count. */
 export function openTripLog(focusRow = null) {
 	if (!lines.length) lines = [{ item: '', qty: '' }, { item: '', qty: '' }, { item: '', qty: '' }];
 	const host = openDialog(`
 		<h2>Log a trip</h2>
-		<p class="dialog-copy">Everything you brought back, in one go. Counts add to what you hold; a minus takes away. One Undo takes the whole trip back.</p>
+		<p class="dialog-copy">Everything you brought back, in one go. Counts add to what you hold; a minus takes away. One Undo takes the whole trip back.${homesNote()}</p>
 		<div class="trip-rows" data-trip-rows>${lines.map(rowHTML).join('')}</div>
 		<div class="dialog-actions">
 			<button class="ghost-btn" data-trip-more>+ another line</button>

@@ -15,8 +15,9 @@ import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.
 import {
 	view, selected, recipes, barterData, snapshot, query,
 	setView, setQuery, setPlanFilter, setInvFilter, setInvKind, setSelected, setBarterData, setCombos,
-	recompute, readyCrafts, craftStock, CROW_COIN, SILVER, setSort
+	recompute, readyCrafts, craftStock, CROW_COIN, SILVER, setSort, invPicking, invPicked, setInvPicking
 } from './ui-state.js';
+import { kindOf } from './kinds.js';
 import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
 import { allItems, CODEX_LANGS, img } from './ui-bits.js';
 import { encodeShare, decodeShare, shareLink } from './share.js';
@@ -847,6 +848,21 @@ function wire() {
 			case 'tree-none': collapseAll(); return render();
 			case 'inv-filter': setInvFilter(el.dataset.id); return render();
 			case 'inv-kind': setInvKind(el.dataset.id); return render();
+			// Select mode: tiles tick instead of opening, and the bar above
+			// the grid moves the ticked ones to a storage together.
+			case 'inv-select': setInvPicking(!invPicking); if (invPicking) setSelected(null); return render();
+			case 'inv-pick': {
+				const it = el.dataset.item;
+				if (invPicked.has(it)) invPicked.delete(it); else invPicked.add(it);
+				return render();
+			}
+			case 'inv-pick-all': {
+				let items;
+				try { items = JSON.parse(el.dataset.items || '[]'); } catch { items = []; }
+				for (const it of items) if (store.getStock(it) > 0) invPicked.add(it);
+				return render();
+			}
+			case 'inv-pick-none': invPicked.clear(); return render();
 			case 'select': setSelected(el.dataset.item); return render();
 			case 'deselect': setSelected(null); return render();
 			case 'strategy':
@@ -1027,6 +1043,21 @@ function wire() {
 
 		const mreg = evt.target.closest('[data-act="market-region"]');
 		if (mreg) return setMarketRegion(mreg.value);
+
+		// The ticked tiles, moved to one storage as one change.
+		const pl = evt.target.closest('[data-act="inv-place"]');
+		if (pl) {
+			const town = pl.value === 'bags' ? '' : pl.value;
+			if (!pl.value) return;
+			const items = [...invPicked];
+			const done = store.placeAll(items, town);
+			invPicked.clear();
+			if (done) toast(town ? `${items.length === 1 ? items[0] : `${items.length} items`} noted at ${town}` : `${items.length === 1 ? items[0] : `${items.length} items`} back in the bags`, true);
+			else render();
+			return;
+		}
+		const hm = evt.target.closest('[data-act="inv-home"]');
+		if (hm) return store.setHome(hm.dataset.kind, hm.value);
 
 		const st = evt.target.closest('[data-act="stash-town"]');
 		// A new place starts empty; the count typed into it is added to
@@ -1634,6 +1665,7 @@ async function startTour() {
  * ------------------------------------------------------------------ */
 
 export async function init() {
+	store.useKinds(kindOf);
 	store.init();
 
 	const saved = store.getSetting('view');
