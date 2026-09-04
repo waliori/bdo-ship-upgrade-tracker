@@ -5,6 +5,8 @@
 // front of the planner. Only known keys survive, each clipped to the
 // range the game itself allows. state.js calls this on every read.
 
+import { readOrders } from './barter-orders.js';
+
 /**
  * The profile, keyed and bounded.
  *
@@ -246,6 +248,9 @@ export function readProfile(raw) {
 		}
 		if (Object.keys(homes).length) out.homes = homes;
 	}
+	// The sailing orders: what a barter run is for. Cleaned by the
+	// module that owns the shape.
+	if (isProfile(raw.orders)) out.orders = readOrders(raw.orders);
 	if (isProfile(raw.questsDone)) {
 		const done = {};
 		for (const [id, key] of Object.entries(raw.questsDone)) {

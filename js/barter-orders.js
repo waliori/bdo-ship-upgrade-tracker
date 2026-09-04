@@ -1,0 +1,108 @@
+// The sailing orders: what a barter run is for, said once.
+//
+// Most sailors answer one question -- cash out today, or build the
+// stocks -- and a preset fills in the rest the way the old barter
+// guide would: which levels a wharf sells, how many of each level to
+// keep back for the boards to come, whether land goods are bought.
+// The rest is a drawer with every default showing. The orders live in
+// the profile, so a phone and a desktop agree, and every plan reads
+// them through the helpers here.
+//
+// Pure: no store, no screen. The shape is read and cleaned in
+// profile-shape.js the same way the stash is.
+
+import { GOODS, levelOf } from './barter.js';
+
+/** One normal trade's Parley at Beginner 1: the guide's "barter
+ *  unit", which every silver-per-Parley figure is quoted in. */
+export const PARLEY_UNIT = 14286;
+
+/**
+ * The presets, in the order they are offered. `sell` is the lowest
+ * level a wharf call sells -- 7 for the [Level 7]s only, 3 for
+ * everything that pays, since nothing pays for a 1 or a 2. `floors`
+ * are how many of each level to keep back, the guide's stock: never
+ * sold, never spent below it.
+ */
+export const PRESETS = [
+	{
+		id: 'cash', label: 'Cash out today',
+		sub: 'the most silver at the wharf tonight, with what is aboard and at the harbour',
+		orders: { sell: 5, floors: {}, buy: true, pace: 'fast' }
+	},
+	{
+		id: 'stock', label: 'Build the stocks',
+		sub: 'finish every island, sell the top, keep a floor of every level for tomorrow’s board',
+		orders: { sell: 7, floors: { 1: 10, 2: 30, 3: 30, 4: 40, 5: 4 }, buy: true, pace: 'full' }
+	}
+];
+
+export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders };
+
+/** The choices a sailor can make for what a wharf sells. */
+export const SELL_CHOICES = [
+	[7, '[Level 7] only'],
+	[6, 'Level 6 and up'],
+	[5, 'Level 5 and up'],
+	[3, 'everything that pays']
+];
+
+/**
+ * A clean set of orders from whatever was saved: unknown presets fall
+ * back to cash, levels to sell are one of the choices, floors are
+ * whole counts on the levels that can be kept.
+ */
+export function readOrders(raw) {
+	const o = { ...DEFAULT_ORDERS };
+	if (!raw || typeof raw !== 'object') return o;
+	if (PRESETS.some(p => p.id === raw.preset)) o.preset = raw.preset;
+	if (SELL_CHOICES.some(([v]) => v === Number(raw.sell))) o.sell = Number(raw.sell);
+	if (raw.floors && typeof raw.floors === 'object') {
+		const floors = {};
+		for (const lv of [1, 2, 3, 4, 5, 6]) {
+			const n = Math.floor(Number(raw.floors[lv]));
+			if (Number.isFinite(n) && n > 0) floors[lv] = Math.min(9999, n);
+		}
+		o.floors = floors;
+	} else o.floors = {};
+	if (typeof raw.buy === 'boolean') o.buy = raw.buy;
+	if (raw.pace === 'full' || raw.pace === 'fast') o.pace = raw.pace;
+	return o;
+}
+
+/** The orders a preset sets, keeping nothing of the old ones. */
+export function presetOrders(id) {
+	const p = PRESETS.find(x => x.id === id) || PRESETS[0];
+	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors } };
+}
+
+/** Whether the saved orders still match their preset to the letter. */
+export function onPreset(orders) {
+	const p = presetOrders(orders.preset);
+	return p.sell === orders.sell && p.buy === orders.buy && p.pace === orders.pace
+		&& JSON.stringify(p.floors) === JSON.stringify(orders.floors || {});
+}
+
+/** Whether a wharf call sells this good under the orders. */
+export function sellable(name, orders) {
+	const lv = levelOf(name);
+	return lv !== null && !!GOODS[lv] && GOODS[lv].sell > 0 && lv >= orders.sell;
+}
+
+/** How many of a good to keep back, under the orders. */
+export function floorOf(name, orders) {
+	const lv = levelOf(name);
+	return (lv !== null && orders.floors && orders.floors[lv]) || 0;
+}
+
+/**
+ * The yardsticks of a run: silver a Parley unit and silver an hour,
+ * from a run's silver, the Parley it spent and the hours it sails.
+ * Either is 0 when the run spends or sails nothing.
+ */
+export function yardsticks(silver, parleyUsed, hours) {
+	return {
+		perUnit: parleyUsed > 0 ? silver / (parleyUsed / PARLEY_UNIT) : 0,
+		perHour: hours > 0 ? silver / hours : 0
+	};
+}

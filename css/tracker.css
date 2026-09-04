@@ -4515,3 +4515,22 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .ashore-good { opacity: 0.85; }
 .ashore-town.here .ashore-good { opacity: 1; }
 .ashore-good .ghost-btn.sm { flex: none; white-space: nowrap; }
+
+/* ------------------------------------------------------------------ *
+ * Barter: the sailing orders
+ * ------------------------------------------------------------------ */
+.orders { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.orders-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.orders-head .run-pick-k { flex: none; }
+.orders-sub, .orders-adjusted { font-size: 12px; color: var(--ink-mute); }
+.orders-adjusted { color: var(--amber); }
+.orders .run-picks { margin-top: 0; }
+.run-floors { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
+.run-floors .run-pick-k { margin-right: 4px; }
+.run-floor { display: inline-flex; align-items: center; gap: 4px; }
+.run-floor i { width: 16px; height: 14px; border-radius: 3px; background: var(--tier); color: #08131f; font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.run-floor .purse-inline { width: 46px; text-align: center; }
+.chain-yard { font-size: 11px; color: var(--ink-mute); }
+.chain-yard em { font-style: normal; color: var(--teal); font-weight: 600; }
+.run-notice { margin: 12px 0 0; padding: 9px 12px; border-radius: var(--r-btn); background: rgba(232, 122, 109, 0.09); border: 1px solid var(--red-edge); color: var(--ink-mid); font-size: 12.5px; line-height: 1.5; }
+.run-notice b { color: var(--ink-hi); }

@@ -213,11 +213,11 @@ function whereTag(item, own, stashAll) {
  */
 function homesHTML() {
 	const homes = store.getProfile('homes', {}) || {};
-	const word = k => homes[k.id] || 'the bags';
+	const word = k => homes[k.id] || (k.id === 'goods' ? 'the ship' : 'the bags');
 	const summary = KINDS.map(k => `${k.label.toLowerCase()} → ${word(k)}`).join(' · ');
-	const sel = k => `<label class="inv-home"><span>${esc(k.label)}</span><select class="field select" data-act="inv-home" data-kind="${k.id}" aria-label="Where new ${esc(k.label.toLowerCase())} land"><option value="">the bags</option>${TOWNS.map(t => `<option${homes[k.id] === t ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
+	const sel = k => `<label class="inv-home"><span>${esc(k.label)}</span><select class="field select" data-act="inv-home" data-kind="${k.id}" aria-label="Where new ${esc(k.label.toLowerCase())} land"><option value="">${k.id === 'goods' ? 'the ship' : 'the bags'}</option>${TOWNS.filter(t => !(k.id === 'goods' && t === store.ABOARD)).map(t => `<option${homes[k.id] === t ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
 	return `<details class="inv-homes"><summary><span class="inv-homes-k">New things land in</span><span class="inv-homes-v">${esc(summary)}</span></summary>
-		<div class="inv-homes-row">${KINDS.map(sel).join('')}<span class="detail-note">A count added from here, a trip, or the Barter tab is noted at that storage; a count taken away comes off the bags first.</span></div>
+		<div class="inv-homes-row">${KINDS.map(sel).join('')}<span class="detail-note">A count added from here or a trip is noted at that storage; a count taken away comes off the bags, or the ship for a trade good, first. The Barter tab's hold always works the ship.</span></div>
 	</details>`;
 }
 
@@ -232,7 +232,7 @@ function pickBar(shownItems) {
 		<button class="chip tiny" data-act="inv-pick-none" ${n ? '' : 'disabled'}>none</button>
 		<span class="panel-spacer"></span>
 		<label class="inv-place"><span>move ${n === 1 ? 'it' : 'them all'} to</span>
-			<select class="field select" data-act="inv-place" ${n ? '' : 'disabled'} aria-label="Move the ticked items to a storage"><option value="">choose a storage…</option><option value="bags">the bags</option>${TOWNS.map(t => `<option>${esc(t)}</option>`).join('')}</select>
+			<select class="field select" data-act="inv-place" ${n ? '' : 'disabled'} aria-label="Move the ticked items to a storage"><option value="">choose a storage…</option><option value="bags">the bags · the ship, for trade goods</option>${TOWNS.filter(t => t !== store.ABOARD).map(t => `<option>${esc(t)}</option>`).join('')}</select>
 		</label>
 		<button class="ghost-btn sm" data-act="inv-select">Done</button>
 	</div>`;
@@ -260,9 +260,13 @@ function whereBlock(item, own) {
 			: amountInput('where-val', n, `data-act="stash-set" data-item="${esc(item)}" data-town="${esc(town)}" aria-label="How many at ${esc(town)}"`)}
 		${fixed ? '' : `<button class="map-x" data-act="stash-del" data-item="${esc(item)}" data-town="${esc(town)}" aria-label="Forget ${esc(town)} — its count goes back to your bags">×</button>`}</span>
 	</div>`;
-	const lines = line('Inventory (bags)', bags, true)
+	// A trade good is never in the bags: what no storage claims is
+	// aboard, so the fixed line is the ship's hold and the ship is not
+	// offered again as a storage.
+	const goods = kindOf(item) === 'goods';
+	const lines = line(goods ? "Ship's hold (aboard)" : 'Inventory (bags)', bags, true)
 		+ Object.entries(stash).sort((a, b) => b[1] - a[1]).map(([town, n]) => line(town, n, false)).join('');
-	const options = TOWNS.filter(t => !(t in stash)).map(t => `<option>${esc(t)}</option>`).join('');
+	const options = TOWNS.filter(t => !(t in stash) && !(goods && t === store.ABOARD)).map(t => `<option>${esc(t)}</option>`).join('');
 	return `<div class="detail-block">
 		<div class="detail-label">Where it is <span class="detail-note">· ${F(own)} in all</span></div>
 		${lines}
