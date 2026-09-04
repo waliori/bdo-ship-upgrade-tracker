@@ -48,11 +48,14 @@ let searchQ = '';
 let stops = [];               // npc ids, in sail order, chosen by hand
 let stopsPick = '';           // the "Showing" view they were plotted under
 let runTrades = {};           // npc id -> what a Barter-tab run calls there for: { give, giveText, item, recvText, recv, giveN, times }
+let runStash = [];            // the run's wharf calls, threaded between the islands: { i, name, at, x, y, drops, sale, silver }
 let done = { day: '', ids: [] };
 let restored = false;
 
 let hoverNpc = null;
 let pinnedNpc = null;
+let hoverStash = -1;          // a wharf call under the pointer, by its place in runStash
+let pinnedStash = -1;         // one whose card was opened by a click
 let fly = null;               // the rAF handle of a flight in progress
 
 let startPort = 0;            // wharf the route sails from; 0 = first stop
@@ -123,6 +126,7 @@ function restore() {
 		if (Array.isArray(s.stops)) stops = s.stops.filter(id => npcById.has(id));
 		if (typeof s.stopsPick === 'string') stopsPick = s.stopsPick;
 		if (s.runTrades && typeof s.runTrades === 'object') runTrades = readTrades(Object.entries(s.runTrades).map(([id, t]) => [Number(id), t.give, t.giveText, t.item, t.recvText, t.recv, t.giveN, t.times]));
+		if (Array.isArray(s.runStash)) runStash = readStash(s.runStash.map(c => [c.i, c.name, c.at, c.x, c.y, (c.drops || []).map(d => [d.item, d.n]), c.sale, c.silver]));
 		if (s.done && s.done.day === barterDay()) done = s.done;
 		if (ports.some(p => p.id === s.startPort)) startPort = s.startPort;
 		returnHome = s.returnHome === true;
@@ -161,7 +165,7 @@ function restore() {
 function persist() {
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, runTrades, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, hugWater, layersOpen, sideRight, tradesMode, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, runTrades, runStash, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, hugWater, layersOpen, sideRight, tradesMode, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -273,10 +277,11 @@ export function seaBent(points) {
 	return bent.get(key);
 }
 
-/** Those stops as world points, wharf prepended -- and appended, when
- *  the route is to end where the ship lives. */
+/** Those stops as world points -- the run's wharf calls among them --
+ *  with the start wharf prepended, and appended when the route is to
+ *  end where the ship lives. */
 function routeWorld(marks) {
-	const pts = routeIds(marks).map(id => npcById.get(id)).filter(Boolean);
+	const pts = routeSeq(marks).map(s => s.place);
 	const port = ports.find(p => p.id === startPort);
 	if (!port || !pts.length) return pts;
 	return returnHome ? [port, ...pts, port] : [port, ...pts];
@@ -540,20 +545,26 @@ function routeHTML(marks) {
 	for (let acc = 0; afford < costs.length && acc + costs[afford] <= held; afford++) acc += costs[afford];
 	const overBudget = held > 0 && afford > 0 && afford < stops.length;
 
-	const list = stops.map((id, k) => {
-		const n = npcById.get(id);
-		const has = marks.get(id);
+	// The rows follow the line as it is sailed, so a wharf call sits
+	// between the two islands it comes between and wears the number the
+	// chart gives it.
+	let isle = -1;
+	const list = routeSeq(marks).map((s, k) => {
 		const m = legTo(k);
 		const leg = m != null ? `<span class="map-leg">${esc(fmtDistance(m))}${timeOf(m) ? ` · ${esc(timeOf(m))}` : ''}</span>` : '';
-		const over = held > 0 && k >= afford;
+		if (s.kind === 'stash') return stashRow(s, leg);
+		const id = s.id, n = s.place;
+		isle++;
+		const has = marks.get(id);
+		const over = held > 0 && isle >= afford;
 		return `<div class="map-stop-row${over ? ' over' : ''}">
-			<span class="map-stop-n">${k + 1}</span>
+			<span class="map-stop-n">${s.n}</span>
 			<span class="map-row-main">
 				<span class="map-row-name">${esc(n.name)}${leg}</span>
 				<span class="map-row-sub">${esc(n.at)}${runTrades[id]
 					? ''
 					: has ? ' · ' + esc([...has.items.keys()].join(', ')) : ' · nothing on your list here'}</span>
-				${runTrades[id] ? runLine(runTrades[id]) : cargoLine(id, has)}${holdAfter(ledger.stops[k], me.hold)}${over ? `<span class="map-row-sub warn">past what your Parley covers</span>` : ''}
+				${runTrades[id] ? runLine(runTrades[id]) : cargoLine(id, has)}${holdAfter(ledger.stops[isle], me.hold)}${over ? `<span class="map-row-sub warn">past what your Parley covers</span>` : ''}
 			</span>
 			<span class="map-row-right">${runTrades[id] ? img(runTrades[id].item, 'map-icon') : has ? iconStrip([...has.items.keys()]) : ''}</span>
 			<button class="map-x" data-act="map-stop" data-npc="${id}"
@@ -586,7 +597,8 @@ function routeHTML(marks) {
 	const carry = carryBlock(ledger);
 	const sailingAs = stops.length ? `<p class="map-hint map-as">Sailing as <b>${esc(me.name)}</b> <button class="linky" data-act="map-setup-pick" title="Sail a saved setup instead — the times follow its speed">switch setup ▾</button> · ${speed.total}% · ${F(me.hold.free)} LT free${me.crew.seated ? ` · ${me.crew.seated} aboard` : ''} · <button class="linky" data-act="view" data-id="crew">change</button></p>` : '';
 	const stats = stops.length ? `<div class="map-stats">
-			<div><div class="summary-k">Stops</div><div class="summary-v">${stops.length}</div></div>
+			<div><div class="summary-k">Stops</div><div class="summary-v">${stops.length}</div>
+				${stashLive() ? `<div class="summary-sub">islands · and ${runStash.length} wharf call${runStash.length === 1 ? '' : 's'} to lighten the hold</div>` : ''}</div>
 			${distance}
 			${hold}
 			<div><div class="summary-k"><span class="gterm" role="button" tabindex="0" data-guide="parley">Parley</span></div><div class="summary-v">${F(need)}</div>
@@ -694,6 +706,26 @@ function runLine(t) {
 	return `<span class="map-row-sub ok">${esc(t.giveText)}× ${esc(t.give)} → ${esc(t.recvText)}× ${esc(t.item)}${t.times > 1 ? `, ${t.times} times` : ''}</span>`;
 }
 
+/** A count that may be a fraction of a good, kept to one place. */
+const n1 = v => F(Math.round(v * 10) / 10);
+
+/** A wharf call on the route list: what is left in storage there, and
+ *  what the [Level 7]s aboard fetch, with none of a barterer's
+ *  furniture -- there is nothing to trade at a wharf. */
+function stashRow(s, leg) {
+	const c = s.place;
+	const drops = c.drops.map(d => `<span class="map-drop">${img(d.item, 'map-icon')}<b>${n1(d.n)}×</b>${esc(d.item)}</span>`).join('');
+	return `<div class="map-stop-row stash">
+		<span class="map-stop-n stash" title="A pause at a wharf">⚓</span>
+		<span class="map-row-main">
+			<span class="map-row-name">${esc(c.name)}${leg}</span>
+			<span class="map-row-sub">stop ${s.n} · ${esc(c.at)} wharf${c.drops.length ? ' · the hold is lightened here' : ' · the hold is sold down here'}</span>
+			${drops ? `<span class="map-drops">${drops}</span>` : ''}
+			${c.sale ? `<span class="map-row-sub ok">sells ${n1(c.sale)} [Level 7]${c.silver ? ` for ${FC(c.silver)}` : ''}</span>` : ''}
+		</span>
+	</div>`;
+}
+
 function cargoLine(id, has) {
 	if (!has || !has.items.size) return '';
 	const gives = [...new Set([...has.items.values()].flatMap(set => [...set]))].filter(g => /^\[Level/.test(g));
@@ -733,6 +765,71 @@ function readTrades(rows) {
 		out[Number(r[0])] = { give: r[1], giveText: String(r[2] ?? ''), item: r[3], recvText: String(r[4] ?? ''), recv: Number(r[5]) || 1, giveN: Number(r[6]) || 1, times: Math.max(1, Number(r[7]) || 1) };
 	}
 	return out;
+}
+
+/**
+ * A run's wharf calls as they travel: rows of [after, name, at, x, y,
+ * drops, sale, silver], where `after` is how many islands are sailed
+ * before the call. A call is a pause, not a barter -- the hold is
+ * lightened into storage and the [Level 7]s are sold -- so it carries
+ * no npc and lives beside the stops rather than among them.
+ */
+function readStash(rows) {
+	const out = [];
+	for (const r of Array.isArray(rows) ? rows : []) {
+		if (!Array.isArray(r)) continue;
+		const [i, name, at, x, y, drops, sale, silver] = r;
+		if (!Number.isFinite(Number(x)) || !Number.isFinite(Number(y))) continue;
+		out.push({
+			i: Math.max(0, Math.floor(Number(i)) || 0),
+			name: String(name || 'Wharf').slice(0, 40),
+			at: String(at || '').slice(0, 40),
+			x: Number(x), y: Number(y),
+			drops: (Array.isArray(drops) ? drops : [])
+				.filter(d => Array.isArray(d) && typeof d[0] === 'string' && Number(d[1]) > 0)
+				.map(d => ({ item: d[0], n: Number(d[1]) })).slice(0, 12),
+			sale: Math.max(0, Number(sale) || 0),
+			silver: Math.max(0, Number(silver) || 0)
+		});
+	}
+	return out.sort((a, b) => a.i - b.i).slice(0, 16);
+}
+
+/** The wharf calls as readStash takes them back: what a link, a saved
+ *  route and the browser's own copy all carry. */
+function stashRows() {
+	return runStash.map(c => [c.i, c.name, c.at, c.x, c.y, c.drops.map(d => [d.item, d.n]), c.sale, c.silver]);
+}
+
+/** Whether the run's wharf calls belong to the route as it stands.
+ *  They are the Barter tab's reading of one plotted run: edit the
+ *  stops by hand and they are dropped rather than left pointing at a
+ *  route that no longer passes them. */
+function stashLive() {
+	return runStash.length > 0 && stopsLive();
+}
+
+/**
+ * The run in sailing order: the islands plotted, with the wharf calls
+ * threaded in where they fall, each carrying the number it wears on
+ * the chart. With no calls this is the list of stops and the numbers
+ * are the stop numbers, exactly as before -- and with them, the chart
+ * counts the way the Barter tab's timeline does, storage pauses
+ * included.
+ */
+function routeSeq(marks) {
+	const ids = routeIds(marks);
+	const calls = stashLive() ? runStash : [];
+	const out = [];
+	let c = 0;
+	for (let k = 0; k <= ids.length; k++) {
+		while (c < calls.length && calls[c].i <= k) { out.push({ kind: 'stash', k: c, place: calls[c] }); c++; }
+		if (k < ids.length) out.push({ kind: 'npc', id: ids[k], place: npcById.get(ids[k]) });
+	}
+	// A call pinned past the end of a shortened route still gets sailed
+	// to, at the end, rather than quietly vanishing.
+	while (c < calls.length) { out.push({ kind: 'stash', k: c, place: calls[c] }); c++; }
+	return out.filter(s => s.place).map((s, n) => ({ ...s, n: n + 1 }));
 }
 
 function stopTrades(id, marks) {
@@ -831,7 +928,7 @@ function savedHTML() {
 
 function keepRoute(name, ids = stops) {
 	if (!ids.length) return;
-	const entry = { name, stops: [...ids], startPort, returnHome, pick: stopsPick || '', trades: Object.fromEntries(ids.filter(id => runTrades[id]).map(id => [id, runTrades[id]])), at: new Date().toISOString().slice(0, 10) };
+	const entry = { name, stops: [...ids], startPort, returnHome, pick: stopsPick || '', trades: Object.fromEntries(ids.filter(id => runTrades[id]).map(id => [id, runTrades[id]])), calls: stashRows(), at: new Date().toISOString().slice(0, 10) };
 	savedRoutes = [entry, ...savedRoutes.filter(r => r.name !== name)].slice(0, SAVED_MAX);
 }
 
@@ -873,6 +970,7 @@ export function loadSavedRoute(i) {
 	if (stops.length && stops.join('.') !== r.stops.join('.')) stashRoute();
 	stops = r.stops.filter(id => npcById.has(id));
 	runTrades = readTrades(Object.entries(r.trades || {}).map(([id, t]) => [Number(id), t.give, t.giveText, t.item, t.recvText, t.recv, t.giveN, t.times]));
+	runStash = readStash(r.calls || []);
 	startPort = ports.some(p => p.id === r.startPort) ? r.startPort : 0;
 	returnHome = r.returnHome === true;
 	mapPick = r.pick || null;
@@ -916,6 +1014,7 @@ export function trimRouteToParley() {
 	if (!kept.length || kept.length === stops.length) return;
 	stashRoute();
 	stops = kept;
+	runStash = [];
 	persist();
 	refreshSide();
 	paintMap();
@@ -935,6 +1034,7 @@ export function routeLink() {
 	if (stopsPick) parts.push(`p=${encodeURIComponent(stopsPick)}`);
 	const trades = stops.filter(id => runTrades[id]).map(id => { const t = runTrades[id]; return [id, t.give, t.giveText, t.item, t.recvText, t.recv, t.giveN, t.times]; });
 	if (trades.length) parts.push(`x=${encodeURIComponent(JSON.stringify(trades))}`);
+	if (runStash.length) parts.push(`w=${encodeURIComponent(JSON.stringify(stashRows()))}`);
 	return `${location.origin}${location.pathname}#map/${parts.join(';')}`;
 }
 
@@ -965,6 +1065,9 @@ export function applyMapLink(fragment) {
 	let trades;
 	try { trades = q.x ? JSON.parse(decodeURIComponent(q.x)) : []; } catch { trades = []; }
 	runTrades = readTrades(trades);
+	let calls;
+	try { calls = q.w ? JSON.parse(decodeURIComponent(q.w)) : []; } catch { calls = []; }
+	runStash = readStash(calls);
 	mode = 'route';
 	panelOpen = true;
 	stepIdx = 0;
@@ -2212,10 +2315,15 @@ export function paintMap() {
 	// to paint; nothing on the chart depends on another layer's luck.
 	const guarded = (fn, ...args) => { try { fn(...args); } catch (err) { console.warn(`[map] ${fn.name} failed:`, err); } };
 
-	const ids = routeIds(marks);
-	const key = `${ids.join('.')}|${startPort}|${returnHome}`;
+	// The route as it is sailed: the islands with the run's wharf calls
+	// among them. The step player walks it, the pins take their numbers
+	// from it, and the storage marks are its own entries.
+	const seq = routeSeq(marks);
+	const key = `${seq.map(s => (s.kind === 'npc' ? s.id : `w${s.k}`)).join('.')}|${startPort}|${returnHome}`;
 	if (key !== stepKey) { stepKey = key; stepIdx = 0; }
-	const currentId = ids.length > 1 ? ids[Math.min(stepIdx, ids.length - 1)] : null;
+	const current = seq.length > 1 ? seq[Math.min(stepIdx, seq.length - 1)] : null;
+	const currentId = current && current.kind === 'npc' ? current.id : null;
+	const nums = new Map(seq.filter(s => s.kind === 'npc').map(s => [s.id, s.n]));
 
 	guarded(paintTiles, layer, tiles, size);
 	// Ports before pins, and both before the island names: each of these
@@ -2225,8 +2333,9 @@ export function paintMap() {
 	// (declutterPins); the island names come last and skip anything the
 	// other two have already said (paintLabels).
 	guarded(paintPorts, layer, size);
-	guarded(paintPins, layer, pins, marks, currentId);
+	guarded(paintPins, layer, pins, marks, currentId, nums);
 	guarded(paintWharves, layer, size);
+	guarded(paintStash, layer, size, seq, current);
 	guarded(paintLabels, layer, size);
 	guarded(paintHunt, layer, size);
 	guarded(paintHabitats, layer, size);
@@ -2234,7 +2343,7 @@ export function paintMap() {
 	guarded(paintRoute, layer, size, marks);
 	guarded(paintMeasure, layer, size);
 	guarded(paintTrace, layer, size);
-	guarded(paintSteps, host, ids);
+	guarded(paintSteps, host, seq);
 	guarded(paintTip, host, size, marks);
 	guarded(paintMini, host, size);
 }
@@ -2284,7 +2393,7 @@ function paintTiles(layer, tiles, size) {
 	}
 }
 
-function paintPins(layer, pins, marks, currentId) {
+function paintPins(layer, pins, marks, currentId, nums = new Map()) {
 	const pool = layer._pins || (layer._pins = new Map());
 	const live = new Set();
 	// Put away, the barterers leave the sea to the courses, the grounds
@@ -2325,7 +2434,7 @@ function paintPins(layer, pins, marks, currentId) {
 		btn.style.left = `${p.left}px`;
 		btn.style.top = `${p.top}px`;
 		const badge = btn.querySelector('.map-pin-badge');
-		badge.textContent = stopAt >= 0 ? String(stopAt + 1) : visited && m ? '✓' : '';
+		badge.textContent = stopAt >= 0 ? String(nums.get(p.id) || stopAt + 1) : visited && m ? '✓' : '';
 		badge.classList.toggle('is-done', stopAt < 0 && visited);
 		btn.querySelector('.map-pin-npc').textContent =
 			p.name + (m && what.length > 1 ? ` ·${what.length}` : '');
@@ -2869,34 +2978,181 @@ function paintWharves(layer, size) {
 	});
 }
 
+/**
+ * The wharf calls gathered by pier.
+ *
+ * A run comes back to the same storage keeper as often as the hold
+ * needs it -- four calls at Port Epheria is an ordinary [Level 7]
+ * climb -- and four anchors on one coordinate is one anchor with three
+ * hidden behind it. So the chart draws the pier once and the mark
+ * carries every call made there.
+ */
+function stashPlaces(seq) {
+	const by = new Map();
+	for (const s of seq) {
+		if (s.kind !== 'stash') continue;
+		const key = `${Math.round(s.place.x)},${Math.round(s.place.y)}`;
+		if (!by.has(key)) by.set(key, { key, x: s.place.x, y: s.place.y, name: s.place.name, at: s.place.at, calls: [] });
+		by.get(key).calls.push(s);
+	}
+	return [...by.values()];
+}
+
+/** Every call made at the pier the call `wk` is at, in sailing order. */
+function stashGroup(wk, seq) {
+	const call = runStash[wk];
+	if (!call) return null;
+	return stashPlaces(seq).find(g => g.calls.some(s => s.k === wk))
+		|| { key: '', x: call.x, y: call.y, name: call.name, at: call.at, calls: [] };
+}
+
+/**
+ * The run's wharf calls, on the sea.
+ *
+ * A barterer's stop is a place to trade and wears the route's amber
+ * number; a wharf call is the opposite of a trade -- goods go ashore
+ * and the [Level 7]s are sold -- so it is drawn as its own kind of
+ * mark: a violet anchor on a squared plate, numbered in the same
+ * sequence so the chart and the Barter tab's timeline count alike.
+ */
+function paintStash(layer, size, seq, current) {
+	const pool = layer._stash || (layer._stash = new Map());
+	const live = new Set();
+	for (const g of stashPlaces(seq)) {
+		const at = project(mapState, size, g.x, g.y);
+		const off = at.left < -60 || at.top < -60 || at.left > size.w + 60 || at.top > size.h + 60;
+		live.add(g.key);
+		let el = pool.get(g.key);
+		if (!el) {
+			el = document.createElement('button');
+			el.className = 'map-stash';
+			el.dataset.act = 'map-stash';
+			el.innerHTML = '<span class="map-stash-dot">⚓</span><span class="map-stash-badge"></span>'
+				+ '<span class="map-stash-name"><span class="map-stash-who"></span><span class="map-stash-at"></span></span>';
+			el.addEventListener('pointerenter', () => { hoverStash = Number(el.dataset.i); hoverNpc = null; schedulePaint(); });
+			el.addEventListener('pointerleave', () => { hoverStash = -1; schedulePaint(); });
+			pool.set(g.key, el);
+			layer.appendChild(el);
+		}
+		el.dataset.i = g.calls[0].k;
+		el.hidden = off;
+		if (off) continue;
+		const stops = g.calls.map(s => s.n);
+		el.title = `${g.name}, ${g.at} wharf — ${g.calls.length > 1
+			? `${g.calls.length} calls on this run, at stops ${stops.join(', ')}`
+			: `stop ${stops[0]}: ${g.calls[0].place.drops.length
+				? `leaves ${g.calls[0].place.drops.map(d => `${n1(d.n)}× ${d.item}`).join(', ')} in storage`
+				: 'sells the goods aboard'}`}`;
+		el.classList.toggle('current', g.calls.includes(current));
+		el.classList.toggle('many', g.calls.length > 1);
+		el.style.left = `${Math.round(at.left)}px`;
+		el.style.top = `${Math.round(at.top)}px`;
+		el.querySelector('.map-stash-badge').textContent = g.calls.length > 1 ? `${g.calls.length}×` : String(stops[0]);
+		el.querySelector('.map-stash-who').textContent = g.name;
+		el.querySelector('.map-stash-at').textContent = g.calls.length > 1
+			? `${g.at} · storage, ${g.calls.length} calls`
+			: `${g.at} · storage`;
+	}
+	for (const [k, el] of pool) {
+		if (!live.has(k)) { el.remove(); pool.delete(k); }
+	}
+}
+
 /** The step player: one chip per stop, the current one lit, and a
  *  follow toggle that sails the camera along the route. */
-function paintSteps(host, ids) {
+function paintSteps(host, seq) {
 	const el = host.querySelector('[data-map-steps]');
 	if (!el) return;
-	if (ids.length < 2) { el.hidden = true; el._sig = null; return; }
-	const cur = npcById.get(ids[Math.min(stepIdx, ids.length - 1)]);
+	if (seq.length < 2) { el.hidden = true; el._sig = null; return; }
+	const cur = seq[Math.min(stepIdx, seq.length - 1)];
 	const sig = `${stepKey}|${stepIdx}|${follow}`;
 	if (el._sig === sig) return;
 	el._sig = sig;
 	el.hidden = false;
 	el.innerHTML = `<button class="map-step-nav" data-act="map-step-prev" aria-label="Previous stop">‹</button>
-		<div class="map-step-chips">${ids.map((id, i) =>
-			`<button class="map-step-chip${i === stepIdx ? ' on' : ''}" data-act="map-step" data-i="${i}"
-				title="${esc(npcById.get(id).name)}">${i + 1}</button>`).join('')}</div>
+		<div class="map-step-chips">${seq.map((s, i) =>
+			`<button class="map-step-chip${i === stepIdx ? ' on' : ''}${s.kind === 'stash' ? ' stash' : ''}" data-act="map-step" data-i="${i}"
+				title="${esc(s.place.name)}${s.kind === 'stash' ? ' — a wharf call' : ''}">${i + 1}</button>`).join('')}</div>
 		<button class="map-step-nav" data-act="map-step-next" aria-label="Next stop">›</button>
-		<span class="map-step-name">${esc(cur.name)} · ${esc(cur.at)}</span>
+		<span class="map-step-name">${esc(cur.place.name)} · ${esc(cur.place.at)}${cur.kind === 'stash' ? ' wharf' : ''}</span>
 		<button class="map-step-follow${follow ? ' on' : ''}" data-act="map-follow">follow</button>`;
 	const on = el.querySelector('.map-step-chip.on');
 	if (on) on.scrollIntoView({ block: 'nearest', inline: 'center' });
 }
 
+/**
+ * What a planned run calls at this island for, on its card: the same
+ * hand-over-and-get row the island's own offers are drawn as, in the
+ * run's own colour -- a line of names is not a trade until you can see
+ * what changes hands.
+ */
+function runTip(t) {
+	return `<div class="map-tip-run">
+		<span class="map-tip-k">The run</span>
+		<div class="map-tip-row">
+			<span class="map-tip-side" data-peek="${esc(t.give)}"><span class="map-io minus">${img(t.give, 'map-icon')}</span><span>${esc(t.giveText)}× ${esc(t.give)}</span></span>
+			<span class="map-tip-arrow">→</span>
+			<span class="map-tip-side get" data-peek="${esc(t.item)}"><span class="map-io plus">${img(t.item, 'map-icon')}</span><span>${esc(t.recvText)}× ${esc(t.item)}</span></span>
+			<span class="map-tip-tries">${t.times > 1 ? `×${t.times}` : ''}</span>
+		</div>
+	</div>`;
+}
+
+/**
+ * A wharf call's card. Nothing is bartered here, so the card says the
+ * other thing that happens on a run: what comes off the ship and into
+ * storage, and what the [Level 7]s aboard fetch at the counter.
+ */
+function paintStashTip(host, tip, size, g, pinned) {
+	const key = ['stash', g.key, pinned, g.calls.map(s => `${s.n}:${s.place.drops.length}:${s.place.sale}`).join(',')].join('|');
+	if (tip._for !== key) {
+		tip._for = key;
+		const visit = s => {
+			const c = s.place;
+			const rows = c.drops.map(d => `<div class="map-tip-row">
+				<span class="map-tip-side ashore" data-peek="${esc(d.item)}"><span class="map-io ashore">${img(d.item, 'map-icon')}</span><span>${esc(d.item)}</span></span>
+				<span class="map-tip-tries">${n1(d.n)}×</span>
+			</div>`).join('');
+			return `<span class="map-tip-k stash">Stop ${s.n}</span>
+				${c.sale ? `<div class="map-tip-sub sell">sells ${n1(c.sale)} [Level 7]${c.silver ? ` for ${FC(c.silver)}` : ''}</div>` : ''}
+				${rows || (c.sale ? '' : '<div class="map-tip-sub none">Nothing left ashore this time.</div>')}`;
+		};
+		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">⚓ ${esc(g.name)}</span>
+			${pinned ? '<button class="map-x" data-act="map-tip-close" aria-label="Close">×</button>' : ''}</div>
+			<div class="map-tip-sub">${esc(g.at)} wharf · ${g.calls.length > 1
+				? `the run calls ${g.calls.length} times`
+				: 'a pause, not a barter'}</div>
+			${g.calls.map(visit).join('')}`;
+	}
+	tip.classList.add('stash');
+	tip.classList.toggle('pinned', pinned);
+	tip.hidden = false;
+	const at = project(mapState, size, g.x, g.y);
+	const w = tip.offsetWidth || 264, h = tip.offsetHeight || 140;
+	const steps = host.querySelector('[data-map-steps]');
+	const floor = steps && !steps.hidden ? steps.offsetTop - 8 : size.h - 10;
+	const maxTop = Math.max(10, floor - h);
+	tip.style.left = `${Math.max(10, Math.min(size.w - w - 10, at.left + 16))}px`;
+	tip.style.top = `${Math.max(10, Math.min(maxTop, at.top - 12))}px`;
+}
+
 function paintTip(host, size, marks) {
 	const tip = host.querySelector('[data-map-tip]');
 	if (!tip) return;
+	tip.classList.remove('stash');
 	// The trace tab hands the sea to the pen: no card opens over what is
 	// being drawn, however the pointer wanders.
 	if (mode === 'trace') { tip.hidden = true; tip._for = null; return; }
+	// A wharf call has its own card: no trades, no Parley, no "add
+	// stop" -- what goes ashore there and what the hold fetches.
+	// Whatever the pointer is over wins over whatever was pinned, so a
+	// pinned call does not sit over the island you are reading.
+	const wk = stashLive() ? (hoverStash >= 0 ? hoverStash : hoverNpc ? -1 : pinnedStash) : -1;
+	const group = wk >= 0 ? stashGroup(wk, routeSeq(marks)) : null;
+	if (group) {
+		paintStashTip(host, tip, size, group, hoverStash < 0);
+		return;
+	}
 	const id = hoverNpc || pinnedNpc;
 	const npc = id && npcById.get(id);
 	if (!npc) {
@@ -2944,7 +3200,7 @@ function paintTip(host, size, marks) {
 		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">${esc(npc.name)}</span>
 			${pinned ? `<button class="map-x" data-act="map-tip-close" aria-label="Close">×</button>` : ''}</div>
 			<div class="map-tip-sub">${sub}</div>
-			${runTrades[id] ? `<div class="map-tip-sub ok">The run: ${esc(runTrades[id].giveText)}× ${esc(runTrades[id].give)} → ${esc(runTrades[id].recvText)}× ${esc(runTrades[id].item)}${runTrades[id].times > 1 ? `, ${runTrades[id].times} times` : ''}</div>` : ''}
+			${runTrades[id] ? runTip(runTrades[id]) : ''}
 			${rows || (runTrades[id] ? '' : '<div class="map-tip-sub none">Nothing on your list here.</div>')}
 			${pinned ? btns : ''}`;
 	}
@@ -3035,7 +3291,7 @@ export function wireMap() {
 	// The panel, the card, the minimap: furniture on top of the sea.
 	// A gesture that starts on them is for them, not for the chart.
 	const CHROME = '.map-side, .map-side-pill, .map-tip, .map-mini, .map-steps, .map-trace-write';
-const MARKERS = '[data-act="map-pin"], [data-act="map-port"], .map-habitat';
+const MARKERS = '[data-act="map-pin"], [data-act="map-port"], [data-act="map-stash"], .map-habitat';
 		// Tracing, the markers are scenery: a line drawn across a barterer
 	// must not stop dead there and open his trades instead.
 	// The markers used to be furniture too, and a drag that began on one
@@ -3340,6 +3596,7 @@ export function mapCentreOn(npcId) {
 	const at = npcById.get(npcId);
 	if (!at || !mapState) return;
 	pinnedNpc = npcId;
+	pinnedStash = -1;
 	hoverNpc = null;
 	flyTo(at.x, at.y, Math.max(mapState.zoom, zoomRange.max - 0.35));
 }
@@ -3377,6 +3634,9 @@ export function toggleMapStop(npcId) {
 		stops = stops.includes(npcId) ? stops.filter(id => id !== npcId) : [...stops, npcId];
 		delete runTrades[npcId];
 	}
+	// The wharf calls were a planned run's, pinned to its order; edit
+	// the stops and they no longer describe the route, so they go.
+	runStash = [];
 	stopsPick = mapPick || '';
 	persist();
 	refreshSide();
@@ -3387,6 +3647,7 @@ export function useSuggestedRoute() {
 	stashRoute();
 	stops = suggestedIds(marksNow());
 	runTrades = {};
+	runStash = [];
 	stopsPick = mapPick || '';
 	persist();
 	refreshSide();
@@ -3395,6 +3656,7 @@ export function useSuggestedRoute() {
 
 export function reverseMapRoute() {
 	stops = [...stops].reverse();
+	runStash = [];
 	persist();
 	refreshSide();
 	paintMap();
@@ -3403,6 +3665,7 @@ export function reverseMapRoute() {
 export function clearMapRoute() {
 	stops = [];
 	runTrades = {};
+	runStash = [];
 	persist();
 	refreshSide();
 	paintMap();
@@ -3419,7 +3682,19 @@ export function toggleMapDone(npcId) {
 
 export function closeMapTip() {
 	pinnedNpc = null;
+	pinnedStash = -1;
 	paintMap();
+}
+
+/** A wharf call clicked on the chart: its card opens and the sea
+ *  centres on it, the way a barterer's pin does. */
+export function mapCentreOnStash(i) {
+	const call = stashLive() ? runStash[i] : null;
+	if (!call || !mapState) return;
+	pinnedStash = i;
+	pinnedNpc = null;
+	hoverNpc = null;
+	flyTo(call.x, call.y, Math.max(mapState.zoom, zoomRange.max - 0.35));
 }
 
 /**
@@ -3464,15 +3739,19 @@ export function openMapPicker() {
 /* The step player. */
 
 function moveStep(i) {
-	const ids = routeIds(marksNow());
-	if (ids.length < 2) return;
-	stepIdx = ((i % ids.length) + ids.length) % ids.length;
+	const seq = routeSeq(marksNow());
+	if (seq.length < 2) return;
+	stepIdx = ((i % seq.length) + seq.length) % seq.length;
 	if (follow) {
-		const n = npcById.get(ids[stepIdx]);
-		if (n) {
-			pinnedNpc = n.id;
+		const s = seq[stepIdx];
+		if (s) {
+			// The card follows the camera: an island's trades, or what
+			// goes ashore at a wharf call.
+			pinnedNpc = s.kind === 'npc' ? s.id : null;
+			pinnedStash = s.kind === 'stash' ? s.k : -1;
 			hoverNpc = null;
-			flyTo(n.x, n.y, Math.max(mapState.zoom, zoomRange.max - 0.5));
+			hoverStash = -1;
+			flyTo(s.place.x, s.place.y, Math.max(mapState.zoom, zoomRange.max - 0.5));
 		}
 	}
 	paintMap();
@@ -3641,7 +3920,14 @@ export function exportRoute() {
 		stops: ids.map(id => {
 			const n = npcById.get(id);
 			return { npc: id, name: n ? n.name : null, at: n ? n.at : null };
-		})
+		}),
+		// The pauses a planned run makes between those stops: a wharf,
+		// how many islands are sailed before it, and what is left there.
+		calls: stashLive() ? runStash.map(c => ({
+			after: c.i, name: c.name, at: c.at, x: c.x, y: c.y,
+			leaves: c.drops.map(d => ({ item: d.item, n: d.n })),
+			sells: c.sale, silver: c.silver
+		})) : []
 	}, null, 2);
 }
 
@@ -3676,6 +3962,8 @@ export function importRoute(text) {
 	if (stops.length && stops.join('.') !== ids.join('.')) stashRoute();
 	stops = ids;
 	runTrades = {};
+	runStash = readStash((Array.isArray(data.calls) ? data.calls : [])
+		.map(c => [c.after, c.name, c.at, c.x, c.y, (c.leaves || []).map(d => [d.item, d.n]), c.sells, c.silver]));
 	stopsPick = mapPick || '';
 	startPort = data.start && ports.some(p => p.id === Number(data.start.id)) ? Number(data.start.id) : 0;
 	returnHome = data.returnHome === true;
@@ -3715,13 +4003,17 @@ function huntPoints() {
 	return out.map((p, i) => ({ ...p, name: `${i + 1}: ${p.name}` }));
 }
 
-/** The route's stops, in sailing order. */
+/** The route's stops, in sailing order -- the wharf calls of a planned
+ *  run among them, since the game's map is where the run is actually
+ *  sailed and a pause to unload is a place to steer for. */
 function routePoints() {
-	const ids = stopsLive() ? stops : [];
-	return ids.map((id, k) => {
-		const n = npcById.get(id);
-		return { name: `${k + 1}: ${n.name} (${n.at})`, x: n.x, y: n.y };
-	});
+	if (!stopsLive()) return [];
+	return routeSeq(marksNow()).map(s => ({
+		name: s.kind === 'stash'
+			? `${s.n}: ⚓ ${s.place.name} (${s.place.at})`
+			: `${s.n}: ${s.place.name} (${s.place.at})`,
+		x: s.place.x, y: s.place.y
+	}));
 }
 
 /**

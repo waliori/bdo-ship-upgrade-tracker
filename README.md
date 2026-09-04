@@ -742,7 +742,15 @@ UI so they can be re-shot.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+**MIT with Attribution** — see [LICENSE](LICENSE).
+
+The MIT licence with one condition added. Use it, change it, sell it, fork it,
+host it; no fee, no permission needed. The one thing asked in return is that
+credit travels with it: if you put this code in front of other people — as a
+site, an app, or a release — say that the original is by **waliori** and link
+to <https://github.com/waliori/bdo-ship-upgrade-tracker>, somewhere a person
+using your version can actually find it. An About page, a footer or your README
+all do the job.
 
 ## Thanks
 

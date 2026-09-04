@@ -114,8 +114,10 @@ function holdHTML(me) {
 			<h2 class="panel-title teal">The hold</h2>
 			<span class="panel-sub">aboard <b>${esc(me.name)}</b> · <button class="linky" data-act="view" data-id="crew">change</button></span>
 			<span class="panel-spacer"></span>
-			<button class="ghost-btn" data-act="trip-log" title="Everything a trip brought back, in one go">＋ Log a trip</button>
-			<button class="ghost-btn" data-act="barter-add" title="Record a good that is aboard">＋ A good</button>
+			<span class="panel-btns">
+				<button class="ghost-btn" data-act="trip-log" title="Everything a trip brought back, in one go">＋ Log a trip</button>
+				<button class="ghost-btn" data-act="barter-add" title="Record a good that is aboard">＋ A good</button>
+			</span>
 		</div>
 		<div class="map-load-bar" title="The bar runs to the most the hull will move under; the mark is its limit"><i class="${state}" style="width:${pct.toFixed(1)}%"></i><s style="left:${mark.toFixed(1)}%"></s></div>
 		<div class="summary-sub${state ? ' warn' : ''}">${sub}${worth ? ` · worth ${FC(worth)} to a barterer as it is` : ''}</div>
@@ -152,37 +154,42 @@ const fromPort = () => ports.find(p => p.id === port) || null;
  */
 function boardHTML(b) {
 	const goalChip = (id, label, title) => `<button class="seg${goal === id ? ' on' : ''}" data-act="barter-goal" data-id="${id}" title="${esc(title)}">${label}</button>`;
-	const goals = `<span class="segs">${goalChip('silver', 'Silver', 'The chains of today’s board, and a run along the ones ticked')}${goalChip('material', 'A material', 'The ladder to one material, against what is aboard')}</span>`;
-	if (!combos) return `<div class="barter-bar"><div class="barter-bar-lead"><b>Today’s board</b></div><div class="barter-bar-sub">The record of the boards did not load, so a run is planned on the whole table at best.</div>${goals}</div>`;
+	const goals = `<span class="segs" role="group" aria-label="What the run is for">${goalChip('silver', 'Silver', 'The chains of today’s board, and a run along the ones ticked')}${goalChip('material', 'A material', 'The ladder to one material, against what is aboard')}</span>`;
+	// The bar is one row of three parts: what the board is, what was
+	// looked at to find it, and what to do next. Each keeps its own
+	// column, so a long explanation never squeezes the buttons.
+	const bar = (cls, lead, sub, seen, acts) => `<div class="barter-bar${cls ? ` ${cls}` : ''}">
+		<div class="barter-bar-info"><div class="barter-bar-lead">${lead}</div><div class="barter-bar-sub">${sub}</div></div>
+		${seen ? `<div class="barter-bar-seen"><span class="barter-bar-k">looked at</span><span class="chips">${seen}</span></div>` : ''}
+		<div class="barter-bar-acts">${goals}${acts}</div>
+	</div>`;
+	if (!combos) return bar('', '<b>Today’s board</b>', 'The record of the boards did not load, so a run is planned on the whole table at best.', '', '');
 	const since = new Date(combos.sample.since + 'T00:00:00Z').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
-	const seen = board.answers.map(a => `<span class="chip tiny active" title="${esc(a.give)} → ${esc(a.recv)}">${esc(npcById.get(a.npcId).name)}</span>`).join('');
+	// Each answer wears the good it handed back, so a mistyped island is
+	// spotted without hovering for the tooltip.
+	const seen = board.answers.map(a => `<span class="chip tiny active board-seen" title="${esc(a.give)} → ${esc(a.recv)}">${img(a.recv, 'row-icon xs')}${esc(npcById.get(a.npcId).name)}</span>`).join('')
+		+ (board.answers.length ? '<button class="chip tiny" data-act="barter-board-undo" title="Take back the last island looked at">↶ Undo</button>' : '');
 	if (b.combo) {
-		return `<div class="barter-bar known">
-			<div class="barter-bar-lead"><b>Layout ${esc(b.combo.id)}</b><span>today’s board</span></div>
-			<div class="barter-bar-sub">seen ${b.combo.seen} of ${combos.sample.refreshes} refreshes since ${esc(since)} · every island’s offer is known; the material islands roll on their own and are read from the whole table, and which of its four [Level 7] goods an island pays is not the layout’s to say</div>
-			${goals}
-			<span class="chips">${seen}<button class="ghost-btn sm" data-act="barter-board-clear" title="The board was refreshed in game: start again">Refreshed in game</button></span>
-		</div>`;
+		return bar('known',
+			`<b>Layout ${esc(b.combo.id)}</b><span>today’s board</span>`,
+			`seen ${b.combo.seen} of ${combos.sample.refreshes} refreshes since ${esc(since)} · every island’s offer is known; the material islands roll on their own and are read from the whole table, and which of its four [Level 7] goods an island pays is not the layout’s to say`,
+			seen,
+			'<button class="ghost-btn sm" data-act="barter-board-clear" title="The board was refreshed in game: start again">↻ Refreshed in game</button>');
 	}
 	const ask = askable(b.standing, npcById, fromPort());
 	if (!b.standing.length) {
-		return `<div class="barter-bar">
-			<div class="barter-bar-lead"><b>No layout shows that</b></div>
-			<div class="barter-bar-sub">The record is from ${esc(combos.read)}; the game may have moved on.</div>
-			${goals}
-			<span class="chips">${seen}<button class="chip tiny" data-act="barter-board-undo">Undo</button></span>
-		</div>`;
+		return bar('lost',
+			'<b>No layout shows that</b><span>nothing in the record fits</span>',
+			`The record is from ${esc(combos.read)}; the game may have moved on.`,
+			seen,
+			'<button class="ghost-btn sm" data-act="barter-board-clear">↻ Start again</button>');
 	}
 	const first = ask[0] ? npcById.get(ask[0].npcId) : null;
 	const lead = board.answers.length
 		? `<b>${b.standing.length} layouts fit</b><span>one more look settles it</span>`
 		: '<b>Which board?</b><span>today’s board</span>';
-	return `<div class="barter-bar">
-		<div class="barter-bar-lead">${lead}</div>
-		<div class="barter-bar-sub">Look at one island in the game and tap what it offers; the whole board follows, since every refresh is one of ${combos.combos.length} layouts.</div>
-		${goals}
-		<span class="chips">${seen}${first ? `<button class="chip" data-act="barter-board-ask" data-npc="${first.id}" title="The island whose offer tells the layouts apart best${ask[0].worst > 1 ? ` — leaves ${ask[0].worst} at worst` : ''}">What does ${esc(first.name)} at ${esc(first.at)} show? ▾</button>` : ''}<button class="chip" data-act="barter-board-island">another island…</button>${board.answers.length ? '<button class="chip tiny" data-act="barter-board-undo">Undo</button>' : ''}</span>
-	</div>`;
+	const acts = `${first ? `<button class="chip primary" data-act="barter-board-ask" data-npc="${first.id}" title="The island whose offer tells the layouts apart best${ask[0].worst > 1 ? ` — leaves ${ask[0].worst} at worst` : ''}">What does <b>${esc(first.name)}</b> show? ▾</button>` : ''}<button class="chip" data-act="barter-board-island" title="Look at an island of your own choosing instead">another island…</button>`;
+	return bar('', lead, `Look at one island in the game and tap what it offers; the whole board follows, since every refresh is one of ${combos.combos.length} layouts.`, seen, acts);
 }
 
 /* ------------------------------------------------------------------ *
@@ -255,12 +262,12 @@ function stopRows(stops, legs, { k0 = 0, board = false } = {}) {
 		const extra = Math.max(0, Math.min(s.weightAfter, hold.deal) - hold.free) / hold.max * 100;
 		const worse = Math.max(0, Math.min(s.weightAfter, hold.max) - hold.deal) / hold.max * 100;
 		const did = s.wharf
-			? `${s.dropped.length ? `<div class="run-leave"><span>Leaves in storage</span>${s.dropped.map(d => `<span>${n1(d.n)}× ${esc(d.item)}</span>`).join('')}</div>` : ''}${s.sale ? `<div class="run-sell">sells the ${n1(s.sale.n)} [Level 7] here for ${FC(Math.round(s.sale.total))}</div>` : ''}`
+			? `${s.dropped.length ? `<div class="run-leave"><span class="run-leave-k">Leaves in storage</span>${s.dropped.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(d.item)}</span>`).join('')}</div>` : ''}${s.sale ? `<div class="run-sell">sells the ${n1(s.sale.n)} [Level 7] here for ${FC(Math.round(s.sale.total))}</div>` : ''}`
 			: `<div class="run-trade"><span>${esc(s.giveText)}× ${esc(s.give)}</span><span class="run-arrow">→</span><span class="run-to" style="--tier:${TIER(levelOf(s.item))}"><i></i>${esc(s.recvText)}× ${esc(s.item)}${four(s)}</span><span class="run-times">×${s.times}</span>${img(s.item, 'row-icon sm')}</div>`;
 		return `<div class="run-stop${s.wharf ? ' wharf' : ''}${s.sale ? ' sale' : ''}${i === stops.length - 1 ? ' last' : ''}">
-			<div class="run-rail"><i></i><b>${s.wharf ? '⚓' : k + 1}</b><i></i></div>
+			<div class="run-rail"><i></i><b>${k + 1}</b><i></i></div>
 			<div class="run-main">
-				<div class="run-stop-head"><b>${esc(place.name)}</b><span>${esc(place.at)}${s.wharf ? ' wharf' : ''}</span>${leg}</div>
+				<div class="run-stop-head">${s.wharf ? '<span class="run-anchor" title="A pause at a wharf, not a barter">⚓</span>' : ''}<b>${esc(place.name)}</b><span>${esc(place.at)}${s.wharf ? ' wharf' : ''}</span>${leg}</div>
 				${did}
 			</div>
 			<div class="run-hold">
@@ -272,14 +279,28 @@ function stopRows(stops, legs, { k0 = 0, board = false } = {}) {
 	}).join('');
 }
 
-/** The chart button: the islands in order, and what each is called
- *  at for, so the Map's route says the same as the run. */
+/** The chart button: the islands in order, what each is called at for,
+ *  and the wharf calls between them, so the Map's route says the same
+ *  as the run -- the same stops, in the same order, under the same
+ *  numbers. A call is pinned to the count of islands sailed before it,
+ *  which is where the chart threads it back in. */
 function chartButton(stops, pick) {
 	if (!stops.length) return '';
 	const isles = stops.filter(s => s.npcId);
 	const ids = [...new Set(isles.map(s => s.npcId))];
 	const trades = isles.map(s => [s.npcId, s.give, s.giveText, s.item, s.recvText, s.recvMin, s.giveN, s.times]);
-	return `<button class="ghost-btn run-chart" data-act="barter-chart" data-ids="${ids.join('.')}" data-pick="${esc(pick || '')}" data-trades="${esc(JSON.stringify(trades))}" title="Plot these stops on the Map, in this order — the islands; the wharves are on the chart already">Draw it on the chart</button>`;
+	const calls = [];
+	let n = 0;
+	for (const s of stops) {
+		if (s.npcId) { n++; continue; }
+		if (!s.wharf || (!s.dropped.length && !s.sale)) continue;
+		calls.push([n, s.wharf.name, s.wharf.at, s.wharf.x, s.wharf.y,
+			s.dropped.map(d => [d.item, Math.round(d.n * 10) / 10]),
+			s.sale ? Math.round(s.sale.n * 10) / 10 : 0,
+			s.sale ? Math.round(s.sale.total) : 0]);
+	}
+	const what = calls.length ? `${ids.length} islands and ${calls.length} wharf call${calls.length === 1 ? '' : 's'}` : 'these stops';
+	return `<button class="ghost-btn run-chart" data-act="barter-chart" data-ids="${ids.join('.')}" data-pick="${esc(pick || '')}" data-trades="${esc(JSON.stringify(trades))}" data-stash="${esc(JSON.stringify(calls))}" title="Plot ${what} on the Map, in this order">Draw it on the chart</button>`;
 }
 
 const parleyOf = prof => ({ bar: PARLEY.max + prof.vouchers * PARLEY.voucher, perTrade: parleyPerTrade({ ...prof, kind: 'trade' }) });
@@ -340,14 +361,18 @@ function silverParts(me, b) {
 	const legs = legsOf(plan.stops);
 	const rate = legs.mid > 0 && plan.silver > 0 ? Math.round(plan.silver / (legs.mid / 3600)) : 0;
 	const islands = plan.stops.filter(s => s.npcId).length, wharfs = plan.stops.length - islands;
-	const sel = (act, label, value, options) => `<label class="run-pick">${label}<select class="field select" data-act="${act}">${options.map(([v, t]) => `<option value="${esc(String(v))}"${String(v) === String(value) ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
+	// The three choices are of a kind and of a size, so they sit in a
+	// row of their own under the heading rather than wrapping one at a
+	// time off the end of it and leaving the line half empty.
+	const sel = (act, label, value, options) => `<label class="run-pick"><span class="run-pick-k">${label}</span><select class="field select" data-act="${act}">${options.map(([v, t]) => `<option value="${esc(String(v))}"${String(v) === String(value) ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
 	const runHead = `<div class="panel-head run-head">
 		<h2 class="panel-title plain">The run</h2>
 		<span class="panel-sub">${chosen.length} chain${chosen.length === 1 ? '' : 's'} ticked · aboard ${esc(me.name)}: ${F(me.hold.free)} LT before it slows, barters up to ${F(me.hold.deal)} · goods counted at the least, weighed at the most</span>
-		<span class="panel-spacer"></span>
+	</div>
+	<div class="run-picks">
 		${sel('barter-pace', 'pace', pace, [['fast', 'fast: no wharf calls, never slower'], ['full', 'every attempt, storage on the way']])}
 		${sel('barter-stash', 'storage at', stash, [['', 'the nearest wharf'], ...stashes.map(w => [w.at, w.at])])}
-		${sel('barter-port', 'from', port, [[0, 'the first stop'], ...ports.map(p => [p.id, p.name])])}
+		${sel('barter-port', 'sails from', port, [[0, 'the first stop'], ...ports.map(p => [p.id, p.name])])}
 	</div>`;
 	const tile = (k, v, sub, cls = '') => `<div><div class="summary-k">${k}</div><div class="summary-v${cls ? ` ${cls}` : ''}">${v}</div><div class="summary-sub">${sub}</div></div>`;
 	const tiles = `<div class="run-tiles">
@@ -429,7 +454,7 @@ export function renderBarter() {
 	const b = boardNow();
 	if (!barterData) return '<p class="empty">Reading the barter table…</p>';
 	const parts = goal === 'material'
-		? { chains: '', run: `<section class="panel barter-run"><div class="panel-head"><h2 class="panel-title plain">A run for a material</h2><span class="panel-spacer"></span><label class="run-pick">from<select class="field select" data-act="barter-port"><option value="0"${port ? '' : ' selected'}>the first stop</option>${ports.map(p => `<option value="${p.id}"${p.id === port ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label></div>${b.combo ? '' : '<p class="panel-sub barter-caveat">Until the board is known, an island shows one exchange a refresh, drawn from the table at random, and this is the run the table allows at best — the same reading the Get tab’s forecasts make — with every island dealing once and the hold weighed at every stop.</p>'}${materialHTML(me, b.data)}</section>` }
+		? { chains: '', run: `<section class="panel barter-run"><div class="panel-head"><h2 class="panel-title plain">A run for a material</h2></div><div class="run-picks one"><label class="run-pick"><span class="run-pick-k">sails from</span><select class="field select" data-act="barter-port"><option value="0"${port ? '' : ' selected'}>the first stop</option>${ports.map(p => `<option value="${p.id}"${p.id === port ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label></div>${b.combo ? '' : '<p class="panel-sub barter-caveat">Until the board is known, an island shows one exchange a refresh, drawn from the table at random, and this is the run the table allows at best — the same reading the Get tab’s forecasts make — with every island dealing once and the hold weighed at every stop.</p>'}${materialHTML(me, b.data)}</section>` }
 		: silverParts(me, b);
 	return `<div class="barter-screen">
 		${boardHTML(b)}
@@ -569,5 +594,6 @@ export function chartFragment(el) {
 	if (port) parts.push(`s=${port}`);
 	if (el.dataset.pick) parts.push(`p=${encodeURIComponent(el.dataset.pick)}`);
 	if (el.dataset.trades) parts.push(`x=${encodeURIComponent(el.dataset.trades)}`);
+	if (el.dataset.stash && el.dataset.stash !== '[]') parts.push(`w=${encodeURIComponent(el.dataset.stash)}`);
 	return parts.join(';');
 }

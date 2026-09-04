@@ -1,4 +1,9 @@
-MIT License
+MIT License with Attribution
+
+This is the MIT License with one condition added: clause 2, which asks that
+credit for the original work travel with it. Everything else — the freedom to
+use, change, sell and redistribute this code, with no fee and no permission
+needed — is unchanged.
 
 Copyright (c) 2025 waliori
 
@@ -9,8 +14,26 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+2. ATTRIBUTION. Any public use of the Software, or of a work derived from it,
+   must credit waliori as the original author and link to the original project
+   at https://github.com/waliori/bdo-ship-upgrade-tracker.
+
+   Public use means distributing the Software in source or compiled form, and
+   it means running the Software or a derivative of it as a website, an app, or
+   any other service that other people can reach.
+
+   The credit must sit where someone using that work can reasonably be expected
+   to find it — an About page, a page footer, a README, a documentation page,
+   or the equivalent for the medium — and must be no less prominent than the
+   credit that work gives to its own authors. It must remain legible in
+   compiled, minified or bundled builds.
+
+   This clause asks for acknowledgement, not permission. Nothing in it requires
+   you to ask before using the Software, and nothing in it lets the copyright
+   holder withdraw the rights granted above from a copy already released.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,

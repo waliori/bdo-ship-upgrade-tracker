@@ -49,7 +49,7 @@ import { openTripLog } from './triplog.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
 import { renderGet, shoppingText } from './screen-get.js';
 import {
-	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn,
+	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapCentreOnStash,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
 	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
@@ -679,6 +679,7 @@ function wire() {
 			case 'map-fit': mapFit(); return;
 			case 'map-pin':
 			case 'map-row': mapCentreOn(Number(el.dataset.npc)); return;
+			case 'map-stash': mapCentreOnStash(Number(el.dataset.i)); return;
 			case 'map-mode': setMapMode(el.dataset.id); return;
 			case 'map-panel': toggleMapPanel(); return;
 			case 'map-stop': toggleMapStop(Number(el.dataset.npc)); return;
@@ -1595,6 +1596,11 @@ function openHelp() {
 			<div class="help-data">${DATA.map(d => `<div class="kv-row"><span>${esc(d.what)}</span><span class="n">${esc(d.asOf)}${d.from ? ` · ${esc(d.from)}` : ''}</span></div>`).join('')}</div>
 			<p class="dialog-copy">A patch can move any of these. The Market prices are live; everything else is a snapshot the app was checked against on the date shown.</p>
 		</details>
+		<p class="dialog-copy help-credit">Built by <b>waliori</b> ·
+			<a href="https://github.com/waliori/bdo-ship-upgrade-tracker" target="_blank" rel="noopener">the source</a>,
+			free to use and to fork under
+			<a href="https://github.com/waliori/bdo-ship-upgrade-tracker/blob/main/LICENSE" target="_blank" rel="noopener">MIT with Attribution</a>
+			— which asks that a fork keep this line.</p>
 		<div class="dialog-actions">
 			<button class="act quiet" data-close>Close</button>
 			<button class="act" data-act="tour">Walk me through my own screen</button>
