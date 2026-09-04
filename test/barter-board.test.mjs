@@ -88,7 +88,7 @@ test('a run planned on the board only calls at islands the board deals, and the 
 	assert.ok(p.stops.length > 0);
 	for (const s of p.stops) {
 		const o = board.get(s.npcId);
-		assert.ok(o && o.give === s.give && (levelOf(s.item) === 7 ? s.item.startsWith('[Level 7] one of') : o.recv === s.item), `${s.npc} deals ${s.give} -> ${s.item} today`);
+		assert.ok(o && o.give === s.give && o.recv === s.item, `${s.npc} deals ${s.give} -> ${s.item} today`);
 	}
 	const m = materialPlan({ item: 'Brilliant Pearl Shard', qty: 2, stock: {}, barterData: data, npcById });
 	assert.ok(m && m.stops.length > 0);
@@ -99,18 +99,21 @@ test('a run planned on the board only calls at islands the board deals, and the 
 	assert.equal(triesFor('Brilliant Pearl Shard', 0), 2);
 });
 
-test('a run on the board climbs to the top: the six [Level 6] offers the layout fixes, then a [Level 7] named by its island', () => {
+test('a run on the board climbs to the top: the six [Level 6] offers the layout fixes, then the [Level 7]s', () => {
 	// Layout 25 as seen in the game on 2026-09-04: the [Level 6]
 	// offers matched the record island for island, four of the six
-	// [Level 7] goods did not.
+	// [Level 7] goods did not -- so a [Level 7] island's give is the
+	// layout's and what it pays is any of its own four.
 	const combo = combos.find(c => c.id === '25');
 	const data = boardData(combo, barterData, npcById);
 	const sevens = data.filter(e => levelOf(e.name) === 7);
 	assert.equal(sevens.length, 6);
 	for (const e of sevens) {
 		assert.equal(e.sources.length, 1);
-		assert.equal(e.name, `[Level 7] one of ${npcById.get(e.sources[0].npc_id).at}'s goods`);
 		assert.equal(levelOf(e.sources[0].give.name), 6);
+		const own = barterData.filter(x => levelOf(x.name) === 7 && x.sources.some(s => s.npc_id === e.sources[0].npc_id));
+		assert.equal(own.length, 4);
+		assert.ok(own.some(x => x.name === e.name));
 	}
 	assert.ok(data.some(e => e.name === '[Level 6] Valencian Desert Fine Sword' && e.sources[0].npc_name === 'Roshina'));
 	// A carrack's hold, bought from the shore: the run is worth the

@@ -207,7 +207,10 @@ function legsOf(stops) {
 
 const n1 = v => F(Math.round(v * 10) / 10);
 
-function stopRows(stops, legs) {
+// `board` is set when the plan is on today's layout: a [Level 7] is
+// then the record's, though the island may pay another of its four.
+function stopRows(stops, legs, board = false) {
+	const four = s => (board && levelOf(s.item) === 7 ? ', or another of the island\'s four' : '');
 	const from = legs.from;
 	return stops.map((s, k) => {
 		const npc = npcById.get(s.npcId);
@@ -220,7 +223,7 @@ function stopRows(stops, legs) {
 			<span class="map-row-main">
 				<span class="map-row-name">${esc(npc.name)}${leg}</span>
 				<span class="map-row-sub">${esc(npc.at)}</span>
-				<span class="map-row-sub ok">${esc(s.giveText)}× ${esc(s.give)} → ${esc(s.recvText)}× ${esc(s.item)}${s.times > 1 ? `, ${s.times} times` : ''}</span>
+				<span class="map-row-sub ok">${esc(s.giveText)}× ${esc(s.give)} → ${esc(s.recvText)}× ${esc(s.item)}${four(s)}${s.times > 1 ? `, ${s.times} times` : ''}</span>
 				<span class="map-row-sub${dead ? ' warn' : over ? ' amber' : ''}">hold after: ${F(Math.max(0, Math.round(s.weightAfter)))} LT${dead ? ' — more than the hull will move under' : over ? ' — overweight, slower' : ''}</span>
 			</span>
 			<span class="map-row-right">${img(s.item, 'map-icon')}</span>
@@ -236,11 +239,11 @@ function chartButton(stops, pick) {
 	</div>`;
 }
 
-function silverHTML(me, data) {
+function silverHTML(me, b) {
 	const prof = barterProfile();
 	const from = fromPort();
 	const plan = silverPlan({
-		stock: store.getAllStock(), barterData: data,
+		stock: store.getAllStock(), barterData: b.data,
 		hold: me.hold,
 		parley: { bar: PARLEY.max + prof.vouchers * PARLEY.voucher, perTrade: parleyPerTrade({ ...prof, kind: 'trade' }) },
 		npcById, start: from, price: marketPrice, land
@@ -266,11 +269,12 @@ function silverHTML(me, data) {
 			<div class="summary-sub">≈ ${esc(legs.time)} at ${me.speed.total}%${from ? ` from ${esc(from.name)}` : ''}</div></div>` : ''}
 	</div>`;
 	const line = (label, list, f) => (list.length ? `<div class="detail-block"><div class="detail-label">${label}</div>${list.map(f).join('')}</div>` : '');
-	const sold = line('Sell at the end', plan.sold, s => `<div class="detail-line"><span>${img(s.item, 'row-icon sm')} ${n1(s.n)}× ${esc(s.item)}</span><span class="n teal">${FC(Math.round(s.total))}</span></div>`);
+	const four = s => (b.combo && levelOf(s.item) === 7 ? `<span class="faint"> or another of ${esc(npcById.get(plan.stops.find(t => t.item === s.item).npcId).at)}'s four</span>` : '');
+	const sold = line('Sell at the end', plan.sold, s => `<div class="detail-line"><span>${img(s.item, 'row-icon sm')} ${n1(s.n)}× ${esc(s.item)}${four(s)}</span><span class="n teal">${FC(Math.round(s.total))}</span></div>`);
 	const kept = line('Carried home, for the next run', plan.kept, s => `<div class="detail-line"><span>${img(s.item, 'row-icon sm')} ${n1(s.n)}× ${esc(s.item)}</span><span class="n faint">unsold</span></div>`);
 	const bought = line('Bought ashore before casting off', plan.bought, s => `<div class="detail-line"><span>${img(s.item, 'row-icon sm')} ${F(Math.ceil(s.n))}× ${esc(s.item)}</span></div>`);
 	return `${landBox}${stats}${bought}
-		<div class="detail-block"><div class="detail-label">Stops, in sailing order</div>${stopRows(plan.stops, legs)}</div>
+		<div class="detail-block"><div class="detail-label">Stops, in sailing order</div>${stopRows(plan.stops, legs, !!b.combo)}</div>
 		${sold}${kept}${chartButton(plan.stops, '')}`;
 }
 
@@ -330,7 +334,7 @@ export function renderBarter() {
 	const b = boardNow();
 	const body = !barterData
 		? '<p class="empty">Reading the barter table…</p>'
-		: goal === 'material' ? materialHTML(me, b.data) : silverHTML(me, b.data);
+		: goal === 'material' ? materialHTML(me, b.data) : silverHTML(me, b);
 	const caveat = b.combo
 		? ''
 		: '<p class="panel-sub barter-caveat">Until the board is known, an island shows one exchange a refresh, drawn from the table at random, and this is the run the table allows at best — the same reading the Get tab’s forecasts make — with every island dealing once and the hold weighed at every stop.</p>';
