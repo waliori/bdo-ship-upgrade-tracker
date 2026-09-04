@@ -4474,3 +4474,25 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .inv-home > span { color: var(--ink-faint); }
 .inv-home .select { font-size: 12px; }
 .inv-homes-row .detail-note { flex-basis: 100%; }
+
+/* ------------------------------------------------------------------ *
+ * Barter: the run for a material, in the silver run's clothes
+ * ------------------------------------------------------------------ */
+
+/* A rung of the ladder is a chain row that is read, not ticked. */
+.chain.rung { cursor: default; border-left-color: var(--tier); }
+.chain.rung:hover { border-color: var(--line-btn); border-left-color: var(--tier); }
+.chain.rung.ok { opacity: 0.78; }
+.chain.rung .rung-k { background: var(--panel-strong); color: var(--ink-mute); font-family: var(--font-display); font-size: 10.5px; }
+.chain.rung .chain-start .run-arrow { color: var(--ink-faint); font-weight: 400; }
+.chain.rung .chain-right b { color: var(--ink-hi); }
+.chain.rung .chain-right b.ok { color: var(--teal); }
+.barter-ladder .chain-list { max-height: none; }
+
+/* The run's picks that are not a select: the material, and a count. */
+.run-picks .run-pick-item { display: flex; width: 100%; margin: 0; padding: 5px 8px; font-size: 13px; }
+.run-picks .run-pick-item .row-icon.sm { flex: none; }
+.run-picks .run-pick-qty { display: flex; align-items: center; gap: 8px; min-height: 30px; font-size: 12px; color: var(--ink-mute); }
+.run-picks .run-pick-qty .purse-inline { width: 64px; text-align: center; }
+.run-picks .run-pick-qty .faint { color: var(--ink-faint); }
+.barter-run .run-tiles + .barter-caveat { margin: 12px 0 0; }
