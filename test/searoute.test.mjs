@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 import { isSea, seaCell, seaLeg, seaRoute, nearestWater } from '../js/searoute.js';
 import { SEA_CELL, SEA_SIDE } from '../js/seamask.js';
 import { npcs, npcById, ports } from '../js/barter_npcs.js';
+import { wharves } from '../js/wharves.js';
 
 const at = name => npcs.find(n => n.name === name) || ports.find(p => p.name === name);
 
@@ -153,4 +154,47 @@ test('a point put on land is answered with the water beside it', () => {
 	assert.deepEqual(nearestWater(40000, 40000), { x: 40000, y: 40000 });
 	// The middle of a continent has none within reach.
 	assert.equal(nearestWater(90000, 55000, 3), null);
+});
+
+test('a channel through the land is judged on its length, not its shores', () => {
+	// From Karanza the game sails to Iliya through the strait between
+	// the continent and the desert, which is the shorter way. A shore
+	// surcharge levied cell by cell priced that strait out -- every cell
+	// of a strait is by a shore -- and the leg went round the north of
+	// the continent instead, drawn shorter than that passage really is.
+	const karanza = wharves.find(w => w.name === 'Karanza');
+	const dario = wharves.find(w => w.name === 'Dario');
+	const leg = seaLeg(karanza, dario);
+	assert.ok(leg.length > 2, 'a way round');
+	const north = Math.min(...leg.slice(1, -1).map(p => p.y));
+	assert.ok(north > 45000, `went round the north of the continent, up to y=${Math.round(north)}`);
+	const len = leg.slice(1).reduce((sum, p, i) => sum + Math.hypot(p.x - leg[i].x, p.y - leg[i].y), 0);
+	assert.ok(len < 62000, `${Math.round(len)} units is the way round, not the strait`);
+});
+
+test('a leg round a coast stands off it, as the game sails it', () => {
+	// Karanza to Anax goes round the north of the continent, and the
+	// game keeps its route well clear of the shore. A line drawn along
+	// the beach is shorter than the passage, which is how a run round the
+	// coast came to be preferred over ones that are really quicker.
+	const karanza = wharves.find(w => w.name === 'Karanza');
+	const anax = wharves.find(w => w.name === 'Anax');
+	const leg = seaLeg(karanza, anax);
+	assert.ok(leg.length > 2, 'a way round');
+	// Along the north coast -- west of the islets off Karanza, east of
+	// Anax -- every turn has water about it for a few hundred units in
+	// every direction.
+	const clear = (p, r) => {
+		for (let dx = -r; dx <= r; dx += SEA_CELL) {
+			for (let dy = -r; dy <= r; dy += SEA_CELL) if (!isSea(p.x + dx, p.y + dy)) return false;
+		}
+		return true;
+	};
+	const coast = leg.slice(1, -1).filter(p => p.x > anax.x + 3000 && p.x < 112000);
+	assert.ok(coast.length >= 2, 'turns along the coast');
+	for (const p of coast) {
+		assert.ok(clear(p, 3 * SEA_CELL), `a turn against the shore at ${Math.round(p.x)},${Math.round(p.y)}`);
+	}
+	const len = leg.slice(1).reduce((sum, p, i) => sum + Math.hypot(p.x - leg[i].x, p.y - leg[i].y), 0);
+	assert.ok(len > 53000, `${Math.round(len)} units hugs the coast`);
 });

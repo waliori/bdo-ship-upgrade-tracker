@@ -8,7 +8,8 @@
 // The common case costs nothing: if the straight line is already all
 // water, that is the answer. Only a blocked leg is searched, and the
 // search is a plain A* over the mask's cells with the corners kept
-// square -- a ship does not slip diagonally between two headlands.
+// square -- a ship does not slip diagonally between two headlands --
+// and with the shore kept at arm's length, as the game keeps it.
 
 import { SEA_BITS, SEA_CELL, SEA_SIDE } from './seamask.js';
 
@@ -172,17 +173,35 @@ export function nearestWater(x, y, reach = BESIDE) {
 	return cell ? { x: mid(cell[0]), y: mid(cell[1]) } : null;
 }
 
-/** Every cell a straight line crosses is water -- so the leg needs no
- *  help. Walked at a quarter of a cell so a corner cannot be stepped
- *  over. */
-function clearLine(ax, ay, bx, by) {
-	const dist = Math.hypot(bx - ax, by - ay);
-	const steps = Math.ceil(dist / (SEA_CELL / 4));
-	for (let i = 0; i <= steps; i++) {
-		const t = steps ? i / steps : 0;
-		if (!isSea(ax + (bx - ax) * t, ay + (by - ay) * t)) return false;
+/** Every cell a straight line crosses, in order, each with the length
+ *  of line inside it in cells -- exactly, cell edge by cell edge, so a
+ *  corner clipped for a few units is still a corner crossed. Stops
+ *  early when `visit` returns false. */
+function walkLine(ax, ay, bx, by, visit) {
+	const x = ax / SEA_CELL, y = ay / SEA_CELL;
+	const dx = bx / SEA_CELL - x, dy = by / SEA_CELL - y;
+	const dist = Math.hypot(dx, dy);
+	let cx = Math.floor(x), cy = Math.floor(y);
+	const sx = dx > 0 ? 1 : -1, sy = dy > 0 ? 1 : -1;
+	// Line travelled per cell crossed each way, and to the next edge.
+	const perX = dx ? Math.abs(dist / dx) : Infinity;
+	const perY = dy ? Math.abs(dist / dy) : Infinity;
+	let toX = dx ? (dx > 0 ? cx + 1 - x : x - cx) * perX : Infinity;
+	let toY = dy ? (dy > 0 ? cy + 1 - y : y - cy) * perY : Infinity;
+	let at = 0;
+	for (;;) {
+		const next = Math.min(toX, toY, dist);
+		if (visit(cx, cy, next - at) === false) return false;
+		if (next >= dist) return true;
+		at = next;
+		if (toX < toY) { cx += sx; toX += perX; } else { cy += sy; toY += perY; }
 	}
-	return true;
+}
+
+/** Every cell a straight line crosses is water -- so the leg needs no
+ *  help. */
+function clearLine(ax, ay, bx, by) {
+	return walkLine(ax, ay, bx, by, seaCell);
 }
 
 /** A tiny binary heap, so a search across the world is not a sort. */
@@ -225,11 +244,90 @@ function heap() {
 
 const NEAR = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
 
-/** A cell touching land costs more, so a leg keeps a little clearance
- *  instead of scraping every headland it passes. */
-function hugsLand(cx, cy) {
-	for (const [dx, dy] of NEAR) if (!seaCell(cx + dx, cy + dy)) return true;
-	return false;
+/* ---- keeping off the shore ------------------------------------------ *
+   The game does not sail a ship along the beach. Its route round a
+   coast stands off it by a good thousand units, and a leg drawn closer
+   in comes out shorter than the passage really is -- short enough that
+   a run round the north of the continent was picked over the channel
+   through it, which is the way the game actually goes.
+
+   So water near land costs more. Not a flat surcharge on the cell by
+   the shore, which is what this used to be: that taxed every cell of a
+   channel, since every cell of a channel is by a shore, and priced the
+   channel out against the open sea round the outside. Instead a cell
+   pays for being closer in than the water round it allows. In the open
+   that is the full clearance, and a leg stands off. In a channel it is
+   the middle of the channel, which is free, and the channel is judged
+   on its length like anywhere else. */
+
+/* How far off a shore a leg stands when it can, in cells: about 1,000
+   world units, which is what the game's own routes keep. */
+const CLEAR = 8;
+/* What sailing right up against the shore costs, on top of the distance
+   -- the price falls off in a straight line out to CLEAR. */
+const SHORE_TOLL = 1.6;
+
+let shore = null;   // cells to the nearest land, capped at CLEAR
+let room = null;    // the most shore any cell within CLEAR has, capped
+
+function buildShore() {
+	const n = SEA_SIDE * SEA_SIDE;
+	shore = new Uint8Array(n).fill(CLEAR);
+	let edge = [];
+	for (let i = 0; i < n; i++) {
+		if (!seaCell(i % SEA_SIDE, (i / SEA_SIDE) | 0)) { shore[i] = 0; edge.push(i); }
+	}
+	// Rings out from the land, eight ways, so the distance is in whole
+	// cells whichever way the shore lies.
+	for (let d = 1; d < CLEAR && edge.length; d++) {
+		const next = [];
+		for (const at of edge) {
+			const cx = at % SEA_SIDE, cy = (at / SEA_SIDE) | 0;
+			for (const [dx, dy] of NEAR) {
+				const nx = cx + dx, ny = cy + dy;
+				if (nx < 0 || ny < 0 || nx >= SEA_SIDE || ny >= SEA_SIDE) continue;
+				const i = ny * SEA_SIDE + nx;
+				if (shore[i] <= d) continue;
+				shore[i] = d;
+				next.push(i);
+			}
+		}
+		edge = next;
+	}
+	// The most room within CLEAR of each cell: a running maximum along
+	// the rows, then down the columns of that.
+	const rows = new Uint8Array(n);
+	for (let y = 0; y < SEA_SIDE; y++) {
+		for (let x = 0; x < SEA_SIDE; x++) {
+			let m = 0;
+			for (let dx = Math.max(0, x - CLEAR); dx <= Math.min(SEA_SIDE - 1, x + CLEAR); dx++) {
+				const v = shore[y * SEA_SIDE + dx];
+				if (v > m) m = v;
+			}
+			rows[y * SEA_SIDE + x] = m;
+		}
+	}
+	room = new Uint8Array(n);
+	for (let x = 0; x < SEA_SIDE; x++) {
+		for (let y = 0; y < SEA_SIDE; y++) {
+			let m = 0;
+			for (let dy = Math.max(0, y - CLEAR); dy <= Math.min(SEA_SIDE - 1, y + CLEAR); dy++) {
+				const v = rows[dy * SEA_SIDE + x];
+				if (v > m) m = v;
+			}
+			room[y * SEA_SIDE + x] = m;
+		}
+	}
+}
+
+/** What a water cell adds to the cost of crossing it, per unit of
+ *  distance: nothing where it is as far from shore as the water round it
+ *  allows, up to SHORE_TOLL when it is right against the shore with open
+ *  sea to hand. */
+function toll(i) {
+	if (!shore) buildShore();
+	const short = room[i] - shore[i];
+	return short > 0 ? SHORE_TOLL * short / CLEAR : 0;
 }
 
 /** The cells of a water path between two cells, or null. */
@@ -257,7 +355,7 @@ function search(from, to, limit = 220000) {
 			if (dx && dy && (!seaCell(cx + dx, cy) || !seaCell(cx, cy + dy))) continue;
 			const n = ny * SEA_SIDE + nx;
 			if (done[n]) continue;
-			const step = (dx && dy ? 1.4142 : 1) + (hugsLand(nx, ny) ? 1.6 : 0);
+			const step = (dx && dy ? 1.4142 : 1) * (1 + toll(n));
 			const next = cost[at] + step;
 			if (next >= cost[n]) continue;
 			cost[n] = next;
@@ -275,15 +373,40 @@ function search(from, to, limit = 220000) {
 	return path.reverse();
 }
 
+/** What a straight line costs to sail, by the same measure the search
+ *  uses -- its length, in cells, plus the toll of every cell it
+ *  crosses -- or Infinity once it touches land or runs past `most`. */
+function lineCost(ax, ay, bx, by, most = Infinity) {
+	let sum = 0;
+	const wet = walkLine(ax, ay, bx, by, (cx, cy, len) => {
+		if (!seaCell(cx, cy)) return false;
+		sum += len * (1 + toll(cy * SEA_SIDE + cx));
+		return sum <= most;
+	});
+	return wet ? sum : Infinity;
+}
+
 /** The fewest points that still describe the same water path: keep a
- *  point only where the line has to bend to stay wet. */
+ *  point only where the line has to bend to stay wet -- or to stay off
+ *  the shore, since a straight cut across a bay that costs more than
+ *  the way round it is not the same path drawn with fewer points. */
 function simplify(pts) {
+	// The running cost of the path so far. The ends may be on land -- a
+	// wharf is -- and the step onto or off it is given a price no cut
+	// can beat, so it is kept as the search left it; a finite one, or
+	// the sums either side of it would have no difference to compare.
+	const cost = [0];
+	for (let k = 1; k < pts.length; k++) {
+		const step = lineCost(pts[k - 1].x, pts[k - 1].y, pts[k].x, pts[k].y);
+		cost.push(cost[k - 1] + (step < Infinity ? step : 1e9));
+	}
 	const out = [pts[0]];
 	let i = 0;
 	while (i < pts.length - 1) {
 		let j = pts.length - 1;
 		for (; j > i + 1; j--) {
-			if (clearLine(pts[i].x, pts[i].y, pts[j].x, pts[j].y)) break;
+			const most = (cost[j] - cost[i]) * 1.001;
+			if (lineCost(pts[i].x, pts[i].y, pts[j].x, pts[j].y, most) <= most) break;
 		}
 		out.push(pts[j]);
 		i = j;
