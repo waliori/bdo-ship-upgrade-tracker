@@ -320,14 +320,99 @@ function buildShore() {
 	}
 }
 
+/* ---- the game's own lanes ------------------------------------------- *
+   Along some coasts the game does not sail the shortest water. Its
+   route round the north of the continent bends in towards the bay
+   rather than cutting across its mouth, and a leg drawn straighter is
+   drawn shorter than the passage really is -- short enough to be picked
+   over a run that is quicker in the game. The chart cannot know the
+   game's lanes; a player who has sailed one can draw it. A trace marked
+   as a lane is one, and every leg passing near it is drawn along it:
+   the lane itself costs its length, and water within reach of it that
+   is off the lane costs more, so a leg joins the lane at the nearest
+   point and leaves it at the last. A leg that merely crosses a lane
+   pays a little for the crossing and no more. */
+
+/* How far either side of a lane a leg is drawn onto it, in cells:
+   about 1,500 world units. */
+const LANE_REACH = 12;
+/* What water within reach of a lane, but off it, costs on top of the
+   distance. */
+const LANE_TOLL = 0.6;
+
+let lane = null;    // 1 where a lane runs
+let nearLane = null;   // 1 within LANE_REACH of a lane
+
+/**
+ * Set the lanes the game sails, each a list of world points joined by
+ * straight lines. Replaces whatever lanes were set before; an empty
+ * list clears them. Any route drawn before is worth drawing again.
+ */
+export function setLanes(lines) {
+	lane = null;
+	nearLane = null;
+	const marks = [];
+	for (const drawn of lines || []) {
+		// A lane is drawn with a few stops, and the line between two of
+		// them may cross a headland; it is bent round the land like any
+		// route, so the lane runs on water the whole way.
+		const line = seaRoute(drawn);
+		for (let k = 1; k < line.length; k++) {
+			walkLine(line[k - 1].x, line[k - 1].y, line[k].x, line[k].y, (cx, cy) => {
+				if (cx >= 0 && cy >= 0 && cx < SEA_SIDE && cy < SEA_SIDE) marks.push(cy * SEA_SIDE + cx);
+			});
+		}
+	}
+	if (!marks.length) return;
+	const n = SEA_SIDE * SEA_SIDE;
+	lane = new Uint8Array(n);
+	nearLane = new Uint8Array(n);
+	// The lane is three cells wide, so the search can hold it without
+	// the drawn line having to land on cell centres.
+	let edge = [];
+	for (const at of marks) {
+		const cx = at % SEA_SIDE, cy = (at / SEA_SIDE) | 0;
+		for (let dx = -1; dx <= 1; dx++) {
+			for (let dy = -1; dy <= 1; dy++) {
+				const nx = cx + dx, ny = cy + dy;
+				if (nx < 0 || ny < 0 || nx >= SEA_SIDE || ny >= SEA_SIDE) continue;
+				const i = ny * SEA_SIDE + nx;
+				if (lane[i]) continue;
+				lane[i] = 1;
+				nearLane[i] = 1;
+				edge.push(i);
+			}
+		}
+	}
+	for (let d = 1; d < LANE_REACH && edge.length; d++) {
+		const next = [];
+		for (const at of edge) {
+			const cx = at % SEA_SIDE, cy = (at / SEA_SIDE) | 0;
+			for (const [dx, dy] of NEAR) {
+				const nx = cx + dx, ny = cy + dy;
+				if (nx < 0 || ny < 0 || nx >= SEA_SIDE || ny >= SEA_SIDE) continue;
+				const i = ny * SEA_SIDE + nx;
+				if (nearLane[i]) continue;
+				nearLane[i] = 1;
+				next.push(i);
+			}
+		}
+		edge = next;
+	}
+}
+
 /** What a water cell adds to the cost of crossing it, per unit of
- *  distance: nothing where it is as far from shore as the water round it
- *  allows, up to SHORE_TOLL when it is right against the shore with open
- *  sea to hand. */
+ *  distance: nothing on a lane, or where it is as far from shore as the
+ *  water round it allows; up to SHORE_TOLL when it is right against the
+ *  shore with open sea to hand; and LANE_TOLL more beside a lane it is
+ *  not on. */
 function toll(i) {
+	if (lane && lane[i]) return 0;
 	if (!shore) buildShore();
 	const short = room[i] - shore[i];
-	return short > 0 ? SHORE_TOLL * short / CLEAR : 0;
+	let t = short > 0 ? SHORE_TOLL * short / CLEAR : 0;
+	if (nearLane && nearLane[i]) t += LANE_TOLL;
+	return t;
 }
 
 /** The cells of a water path between two cells, or null. */

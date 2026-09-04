@@ -3094,6 +3094,7 @@ select.purse-inline { width: auto; cursor: pointer; }
 .trace-card-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .trace-card-name { font-family: var(--font-display); font-weight: 600; font-size: 12.5px; letter-spacing: 0.03em; color: var(--ink-hi, #e8f2fb); display: flex; align-items: center; gap: 6px; }
 .trace-card-tag { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: #7ef0d4; border: 1px solid rgba(126, 240, 212, 0.4); border-radius: 3px; padding: 0 4px; }
+.trace-card-tag.lane { color: #ffd77a; border-color: rgba(255, 215, 122, 0.45); }
 .trace-card-sub { font-size: 10.5px; color: var(--ink-off); }
 .trace-card-note { font-size: 10.5px; color: var(--ink-off); opacity: 0.8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .trace-card-btns { grid-column: 1 / -1; display: flex; gap: 4px; justify-content: flex-end; }

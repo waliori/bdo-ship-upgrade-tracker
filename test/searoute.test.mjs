@@ -8,7 +8,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { isSea, seaCell, seaLeg, seaRoute, nearestWater } from '../js/searoute.js';
+import { isSea, seaCell, seaLeg, seaRoute, nearestWater, setLanes } from '../js/searoute.js';
 import { SEA_CELL, SEA_SIDE } from '../js/seamask.js';
 import { npcs, npcById, ports } from '../js/barter_npcs.js';
 import { wharves } from '../js/wharves.js';
@@ -198,3 +198,34 @@ test('a leg round a coast stands off it, as the game sails it', () => {
 	const len = leg.slice(1).reduce((sum, p, i) => sum + Math.hypot(p.x - leg[i].x, p.y - leg[i].y), 0);
 	assert.ok(len > 53000, `${Math.round(len)} units hugs the coast`);
 });
+
+test('a lane the game sails is followed by every leg near it', () => {
+	// The game's route round the north bends in towards the bay rather
+	// than cutting across its mouth. A trace of it, marked as a lane, is
+	// where a leg passing that way is drawn -- and measured.
+	const karanza = wharves.find(w => w.name === 'Karanza');
+	const anax = wharves.find(w => w.name === 'Anax');
+	const c = (cx, cy) => ({ x: cx * SEA_CELL + SEA_CELL / 2, y: cy * SEA_CELL + SEA_CELL / 2 });
+	const bay = c(760, 292);
+	assert.ok(isSea(bay.x, bay.y), 'the bend is on water');
+	const plain = seaLeg(karanza, anax);
+	const nearest = leg => Math.min(...leg.map(p => Math.hypot(p.x - bay.x, p.y - bay.y)));
+	assert.ok(nearest(plain) > 6 * SEA_CELL, 'the straight passage keeps out of the bay');
+	const len = leg => leg.slice(1).reduce((sum, p, i) => sum + Math.hypot(p.x - leg[i].x, p.y - leg[i].y), 0);
+	try {
+		setLanes([[c(923, 292), c(860, 283), bay, c(694, 293)]]);
+		const laned = seaLeg(karanza, anax);
+		assert.ok(nearest(laned) <= 3 * SEA_CELL, `the leg bends into the bay: nearest ${Math.round(nearest(laned))}`);
+		// Drawn along the lane, not sent wandering: about as long as the
+		// straight passage, the bend included.
+		assert.ok(len(laned) < len(plain) * 1.1, `${Math.round(len(laned))} units is a wander`);
+		for (const p of laned.slice(1, -1)) assert.ok(isSea(p.x, p.y), 'still on the water');
+		// A leg nowhere near the lane is drawn as before.
+		const far = [at('Akenisi'), at('Kami')];
+		assert.deepEqual(seaLeg(...far), plainFar);
+	} finally {
+		setLanes([]);
+	}
+	assert.deepEqual(seaLeg(karanza, anax), plain);
+});
+const plainFar = seaLeg(at('Akenisi'), at('Kami'));

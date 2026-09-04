@@ -13,7 +13,7 @@ import {
 	routeFor, routePath, project, placeTile, zoomRange
 } from './map.js';
 import { npcs, npcById, ports, MAX_ZOOM } from './barter_npcs.js';
-import { seaRoute, openSea, nearestWater } from './searoute.js';
+import { seaRoute, setLanes, openSea, nearestWater } from './searoute.js';
 import { wharves, nearestWharf } from './wharves.js';
 import { habitatsOf, habitatsOfMany } from './habitats.js';
 import { monsterArt } from './monster_art.js';
@@ -160,13 +160,28 @@ function restore() {
 				.filter(r => r.stops.length).slice(0, SAVED_MAX);
 		}
 	} catch { /* a fresh chart, then */ }
+	syncLanes();
 }
 
 function persist() {
+	syncLanes();
 	try {
 		localStorage.setItem(STORE_KEY,
 			JSON.stringify({ mode, panelOpen, stops, stopsPick, runTrades, runStash, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, hugWater, layersOpen, sideRight, tradesMode, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
 	} catch { /* private mode; the session still works */ }
+}
+
+/** The kept traces marked as lanes, handed to the router as the water
+ *  the game sails -- once per change, since every route drawn so far
+ *  is stale the moment a lane is. */
+let lanesKey = '';
+function syncLanes() {
+	const lanes = traces.filter(r => r.lane && r.points.length > 1).map(r => r.points.map(p => ({ x: p.x, y: p.y })));
+	const key = JSON.stringify(lanes);
+	if (key === lanesKey) return;
+	lanesKey = key;
+	setLanes(lanes);
+	bent.clear();
 }
 
 function doneSet() {
@@ -1166,6 +1181,7 @@ function cleanTrace(raw) {
 		points, strokes, texts, areas,
 		seq,
 		shown: raw.shown === true,
+		lane: raw.lane === true,
 		at: Number(raw.at) || Date.now()
 	};
 }
@@ -1309,12 +1325,13 @@ function traceCard(r, i) {
 				title="${r.shown ? 'Take it off the chart' : 'Lay it over the chart'}" aria-label="${r.shown ? 'Hide' : 'Show'} ${esc(r.name || 'this trace')} on the chart">${r.shown ? '◉' : '○'}</button>
 			<span class="trace-thumb-box">${traceThumb(r)}</span>
 			<span class="trace-card-main">
-				<span class="trace-card-name">${esc(r.name || 'untitled')}${open ? '<span class="trace-card-tag">open</span>' : ''}</span>
+				<span class="trace-card-name">${esc(r.name || 'untitled')}${open ? '<span class="trace-card-tag">open</span>' : ''}${r.lane ? '<span class="trace-card-tag lane">lane</span>' : ''}</span>
 				<span class="trace-card-sub">${bits} · kept ${keptWhen(r.at)}</span>
 				${r.notes ? `<span class="trace-card-note">${esc(r.notes)}</span>` : ''}
 			</span>
 			<span class="trace-card-btns">
 				<button class="ghost-btn tiny" data-act="trace-load" data-i="${i}" title="Open it to draw on">Open</button>
+				<button class="ghost-btn tiny${r.lane ? ' on' : ''}" data-act="trace-lane" data-i="${i}" aria-pressed="${!!r.lane}" title="${r.lane ? 'A lane the game sails: every route near it is drawn along it. Press to make it a plain trace again' : 'Mark it as a lane the game sails, so every route near it is drawn along it and timed as the game would sail it'}" aria-label="${r.lane ? 'Stop treating' : 'Treat'} ${esc(r.name || 'this trace')} as a lane the game sails">⚓</button>
 				<button class="ghost-btn tiny" data-act="trace-rename" data-i="${i}" title="Rename it" aria-label="Rename ${esc(r.name || 'this trace')}">✎</button>
 				<button class="ghost-btn tiny" data-act="trace-share" data-i="${i}" title="Copy a link to it" aria-label="Copy a link to ${esc(r.name || 'this trace')}">↗</button>
 				<button class="map-x" data-act="trace-del" data-i="${i}" aria-label="Forget ${esc(r.name || 'this trace')}">×</button>
@@ -1743,6 +1760,13 @@ export function traceAction(act, el) {
 		case 'trace-lib-sort': libSort = ['recent', 'name', 'size'].includes(el.dataset.id) ? el.dataset.id : 'recent'; refreshLibrary(); return true;
 		case 'trace-lib-only': libOnly = el.dataset.id === 'shown' ? 'shown' : 'all'; refreshLibrary(); return true;
 		case 'trace-eye': if (traces[i]) { traces[i].shown = !traces[i].shown; if (traces[i].shown) tracesOn = true; } break;
+		case 'trace-lane':
+			if (traces[i]) {
+				if (!traces[i].lane && traces[i].points.length < 2) { toast('A lane needs at least two stops to run between'); return true; }
+				traces[i].lane = !traces[i].lane;
+				toast(traces[i].lane ? `Routes near “${traces[i].name}” now follow it` : `“${traces[i].name}” is a plain trace again`);
+			}
+			break;
 		case 'trace-eye-none': traces = traces.map(r => ({ ...r, shown: false })); break;
 		case 'trace-rename': {
 			const r = traces[i];
@@ -1860,7 +1884,7 @@ export function openTraceLibrary() {
 	libOpen = true;
 	const host = openDialog(`
 		<h2>The traces you have kept</h2>
-		<p class="dialog-copy">${traces.length} of ${TRACES_MAX} on this browser. Open one to draw on it, or open its eye to lay it over the chart beside whatever else you are drawing.</p>
+		<p class="dialog-copy">${traces.length} of ${TRACES_MAX} on this browser. Open one to draw on it, or open its eye to lay it over the chart beside whatever else you are drawing. Trace the way the game’s auto-path really sails a passage and press ⚓ to make it a lane: every route drawn near it follows it from then on, and is timed as the game sails it.</p>
 		<div data-trace-lib>${libraryHTML()}</div>
 		<div class="dialog-actions">
 			${traces.some(r => r.shown) ? '<button class="ghost-btn" data-act="trace-eye-none">Clear the chart</button>' : ''}
@@ -4121,3 +4145,8 @@ export async function openGameExport(source) {
 		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`);
 }
 
+
+// The lanes are the router's to know about whichever screen draws a
+// route first, and they live in this screen's store -- so it is read
+// as soon as the module is, not on the first look at the chart.
+restore();
