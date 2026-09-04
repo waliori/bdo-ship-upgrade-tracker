@@ -22,7 +22,8 @@ import { currentShip } from './ship.js';
 import { npcById, ports } from './barter_npcs.js';
 import { seaRoute } from './searoute.js';
 import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, DEFAULT_CAL, sailSeconds } from './sailing.js';
-import { PRESETS, SELL_CHOICES, readOrders, presetOrders, onPreset, yardsticks } from './barter-orders.js';
+import { PRESETS, SELL_CHOICES, HOUR_CHOICES, readOrders, presetOrders, onPreset, yardsticks } from './barter-orders.js';
+import { propose } from './barter-optimizer.js';
 import { landPrices } from './land-cost.js';
 import { marketStatus } from './market.js';
 import { GOODS, PARLEY, parleyPerTrade, levelOf } from './barter.js';
@@ -47,6 +48,9 @@ let port = 0;            // the wharf the run sails from, 0 for none
 let routes = { key: '', ids: [] };     // the chains ticked, for one board (day|layout)
 let stash = '';          // the wharf goods are left at, '' for the nearest
 let board = { day: '', answers: [] };   // what islands were seen to show today: { npcId, give, recv }
+let proposed = { key: '', proposals: [], best: null, solos: new Map() };   // the runs worth sailing, for one set of inputs
+const legsCache = new Map();   // the legs of a run bent round the land, by its stops
+let lastSearch = null;   // what the last search was given, for "fill the rest
 let restored = false;
 
 function restore() {
@@ -305,9 +309,17 @@ function legsOf(stops) {
 	const from = ports.find(p => p.id === port) || null;
 	const pts = [...(from ? [from] : []), ...stops.map(s => s.wharf || npcById.get(s.npcId)).filter(Boolean)];
 	if (pts.length < 2) return { total: 0, legs: [], time: '' };
-	const world = seaRoute(pts.map(p => ({ x: p.x, y: p.y })));
-	const total = pathLength(world);
-	const legs = legLengths(world);   // one a stop after the first, bends included
+	// Bending the legs round the land is the dear part of a redraw, and
+	// the same stops bend the same way, so the answer is kept by them.
+	const ck = pts.map(p => `${p.x},${p.y}`).join(';');
+	let bent = legsCache.get(ck);
+	if (!bent) {
+		const world = seaRoute(pts.map(p => ({ x: p.x, y: p.y })));
+		bent = { total: pathLength(world), legs: legLengths(world) };
+		if (legsCache.size > 200) legsCache.clear();
+		legsCache.set(ck, bent);
+	}
+	const { total, legs } = bent;   // one leg a stop after the first, bends included
 	const me = currentShip();
 	const measured = Number(store.getSetting('sailCal', null)) > 0;
 	const range = m => sailRange(m, me.speed.total, sailCal(), measured);
@@ -435,6 +447,7 @@ function ordersHTML(o) {
 			${sel('barter-pace', 'pace', o.pace, [['fast', 'fast: no wharf calls, never slower'], ['full', 'every attempt, storage on the way']])}
 			${sel('barter-stash', 'storage at', stash, [['', 'the nearest wharf'], ...stashes.map(w => [w.at, w.at])])}
 			${sel('barter-port', 'sails from', port, [[0, 'the first stop'], ...ports.map(p => [p.id, p.name])])}
+			${sel('barter-hours', 'under way at most', o.hours, HOUR_CHOICES, 'A run proposed here sails no longer than this')}
 		</div>
 		<div class="run-floors" title="Kept back for the boards to come: never sold, never spent below this many">
 			<span class="run-pick-k">keep back, of every good at a level</span>${floors}
@@ -496,6 +509,7 @@ function soloRun(c, opts, from, base) {
 function silverParts(me, b) {
 	const from = fromPort();
 	const head = `<div class="panel-head"><h2 class="panel-title">Chains on offer</h2><span class="panel-sub">tick the ones to sail</span><span class="panel-spacer"></span>${routes.ids.length ? '<button class="linky" data-act="barter-chains-clear">clear</button>' : ''}</div>`;
+	const headFill = fill => `<div class="panel-head"><h2 class="panel-title">Chains on offer</h2><span class="panel-sub">tick the ones to sail</span><span class="panel-spacer"></span>${fill ? '<button class="chip tiny primary" data-act="barter-fill" title="Keep what is ticked and add the chains that pay best beside it">fill the rest for me</button>' : ''}${routes.ids.length ? '<button class="linky" data-act="barter-chains-clear">clear</button>' : ''}</div>`;
 	if (!b.combo) {
 		return {
 			chains: `<section class="panel barter-chains">${head}<p class="empty">The chains follow the board: look at one island in the game and tap what it shows.</p></section>`,
@@ -514,17 +528,41 @@ function silverParts(me, b) {
 	// Each chain on its own, for its row: the list is sorted by the
 	// yardstick, silver a Parley unit, the guide's measure of a chain,
 	// so the best use of the day's Parley is at the top of its group.
-	const base = chainRun({ ...opts, chosen: [] });
-	const solos = new Map(all.map(c => [c.id, soloRun(c, opts, from, base)]));
+	// The runs worth sailing, searched once for these inputs and kept
+	// until any of them change; each chain's run on its own likewise.
+	const ship = { speed: me.speed.total, cal: sailCal() };
+	const pkey = JSON.stringify([board.day, b.combo.id, stock, dock, o, port, stash, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley]);
+	if (proposed.key !== pkey) {
+		const base = chainRun({ ...opts, chosen: [] });
+		proposed = { key: pkey, solos: new Map(all.map(c => [c.id, soloRun(c, opts, from, base)])), ...propose({ chains: all, opts, ship, timeCap: o.hours }) };
+	}
+	lastSearch = { chains: all, opts, ship, timeCap: o.hours };
+	const solos = proposed.solos;
 	all.sort((x, y) => y.top - x.top || (solos.get(y.id).yard.perUnit - solos.get(x.id).yard.perUnit) || x.rungs.length - y.rungs.length || x.rungs[0].npc.localeCompare(y.rungs[0].npc));
 	const key = `${board.day}|${b.combo.id}`;
-	if (routes.key !== key) routes = { key, ids: all.length ? [all[0].id] : [] };
+	if (routes.key !== key) routes = { key, ids: proposed.best ? proposed.best.ids : all.length ? [all[0].id] : [] };
 	const chosen = all.filter(c => routes.ids.includes(c.id));
+	const sameSet = (x, y) => x.length === y.length && x.slice().sort().join('|') === y.slice().sort().join('|');
+	const cards = proposed.proposals.map(p => {
+		const isl = p.run.stops.filter(s => s.npcId).length;
+		const on = sameSet(p.ids, routes.ids);
+		return `<button class="proposal${on ? ' on' : ''}" data-act="barter-propose" data-ids="${esc(p.ids.join('\n'))}" title="${on ? 'This is the run laid out on the right' : 'Lay this run out on the right'}">
+			<span class="proposal-k">${esc(p.label)}</span>
+			<b>${FC(Math.round(p.value))}</b>
+			<span class="proposal-yard">${[p.yard.perUnit ? `<em>${esc(perUnitText(p.yard.perUnit))}</em>` : '', p.yard.perHour ? esc(perHourText(p.yard.perHour)) : '', p.hours ? `≈ ${esc(fmtRange(p.hours * 3600 * 0.9, p.hours * 3600 * 1.1))}` : ''].filter(Boolean).join(' · ')}</span>
+			<span class="proposal-sub">${p.ids.length} chain${p.ids.length === 1 ? '' : 's'} · ${isl} island${isl === 1 ? '' : 's'} · ${F(p.run.trades)} trades${p.run.cost ? ` · ${FC(Math.round(p.run.cost))} of land goods` : ''}</span>
+		</button>`;
+	}).join('');
+	const proposals = `<div class="proposals">
+		<div class="proposals-head"><span>Runs worth sailing</span><span class="faint">found on today’s board under these orders${o.hours ? `, within ${o.hours} hour${o.hours === 1 ? '' : 's'}` : ''} · the value counts silver net of land goods and the goods kept</span></div>
+		${cards ? `<div class="proposal-cards">${cards}</div>` : '<p class="empty">Nothing on this board pays under these orders.</p>'}
+	</div>`;
+	const fillable = chosen.length > 0 && !proposed.proposals.some(p => sameSet(p.ids, routes.ids));
 	const groups = [...new Set(all.map(c => c.top))].sort((a, b2) => b2 - a).map(top => {
 		const rows = all.filter(c => c.top === top);
 		return `<div class="chain-group"><div class="chain-group-head" style="--tier:${TIER(top)}"><i></i><span>Reaches Level ${top}</span><span>${rows.length}</span></div>${rows.map(c => chainRow(c, chosen.includes(c), solos.get(c.id), from && from.name, from)).join('')}</div>`;
 	}).join('');
-	const chainsPanel = `<section class="panel barter-chains">${head}<div class="chain-list">${groups || `<p class="empty">${o.buy ? 'Nothing climbs on this board.' : 'Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.'}</p>`}</div></section>`;
+	const chainsPanel = `<section class="panel barter-chains">${headFill(fillable)}${proposals}<div class="chain-list">${groups || `<p class="empty">${o.buy ? 'Nothing climbs on this board.' : 'Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.'}</p>`}</div></section>`;
 
 	const plan = chainRun({ ...opts, chosen });
 	for (const s of plan.stops) s.hold = me.hold;
@@ -816,6 +854,13 @@ export function barterAction(act, el, redraw) {
 			return true;
 		}
 		case 'barter-chains-clear': routes.ids = []; persist(); return true;
+		case 'barter-propose': routes.ids = String(el.dataset.ids || '').split('\n').filter(Boolean); persist(); return true;
+		case 'barter-fill': {
+			if (!lastSearch) return false;
+			const { best } = propose({ ...lastSearch, seed: routes.ids });
+			if (best) { routes.ids = best.ids; persist(); } else toast('Nothing pays beside what is ticked');
+			return true;
+		}
 		default: return false;
 	}
 }
@@ -841,6 +886,7 @@ export function barterChange(el, parseAmount) {
 		case 'barter-pace': setOrders({ pace: el.value === 'full' ? 'full' : 'fast' }); return true;
 		case 'barter-sell': setOrders({ sell: Number(el.value) }); return true;
 		case 'barter-buy': setOrders({ buy: el.value === 'yes' }); return true;
+		case 'barter-hours': setOrders({ hours: Number(el.value) }); return true;
 		case 'barter-floor': {
 			const n = parseAmount(el.value === '' ? '0' : el.value);
 			if (n === null) return true;

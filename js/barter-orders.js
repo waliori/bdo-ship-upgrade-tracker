@@ -37,7 +37,10 @@ export const PRESETS = [
 	}
 ];
 
-export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders };
+export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, hours: 0 };
+
+/** The caps on time under way a sailor can set, in hours; 0 is none. */
+export const HOUR_CHOICES = [[0, 'no limit'], [1, 'an hour'], [2, 'two hours'], [3, 'three hours'], [4, 'four hours'], [6, 'six hours']];
 
 /** The choices a sailor can make for what a wharf sells. */
 export const SELL_CHOICES = [
@@ -67,13 +70,14 @@ export function readOrders(raw) {
 	} else o.floors = {};
 	if (typeof raw.buy === 'boolean') o.buy = raw.buy;
 	if (raw.pace === 'full' || raw.pace === 'fast') o.pace = raw.pace;
+	if (HOUR_CHOICES.some(([h]) => h === Number(raw.hours))) o.hours = Number(raw.hours);
 	return o;
 }
 
 /** The orders a preset sets, keeping nothing of the old ones. */
 export function presetOrders(id) {
 	const p = PRESETS.find(x => x.id === id) || PRESETS[0];
-	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors } };
+	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, hours: 0 };
 }
 
 /** Whether the saved orders still match their preset to the letter. */
