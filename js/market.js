@@ -14,6 +14,7 @@
 import * as store from './state.js';
 import { items as vendorItems } from './vendor_items.js';
 import { iconLoader } from './icon-loader.js';
+import { landGoods } from './land_goods.js';
 
 const KEY = 'bdo-tracker/market';
 const STALE_MS = 30 * 60 * 1000;
@@ -64,7 +65,9 @@ export function region() {
 	return REGIONS.some(([id]) => id === r) ? r : DEFAULT_REGION;
 }
 
-/** Every item the Market is a source for, with the codex id that names it there. */
+/** Every item the Market is a source for, with the codex id that names
+ *  it there -- and the land goods the barter chains start from, which
+ *  the buy list prices the same way. */
 export function marketItems() {
 	const out = {};
 	for (const [item, methods] of Object.entries(vendorItems)) {
@@ -73,6 +76,7 @@ export function marketItems() {
 		const m = info && info.url && /\/item\/(\d+)\//.exec(info.url);
 		if (m) out[item] = Number(m[1]);
 	}
+	for (const [item, id] of Object.entries(landGoods)) if (id > 0 && !out[item]) out[item] = id;
 	return out;
 }
 

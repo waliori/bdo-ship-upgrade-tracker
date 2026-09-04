@@ -421,7 +421,8 @@ const PROFILE_LABELS = {
 	questGroups: 'Changed a quest group',
 	stash: 'Changed where things are kept',
 	homes: 'Changed where new things land',
-	orders: 'Changed the sailing orders'
+	orders: 'Changed the sailing orders',
+	homemade: 'Changed what your workers make'
 };
 
 export function setProfile(key, value, label = null) {

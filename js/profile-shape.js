@@ -251,6 +251,11 @@ export function readProfile(raw) {
 	// The sailing orders: what a barter run is for. Cleaned by the
 	// module that owns the shape.
 	if (isProfile(raw.orders)) out.orders = readOrders(raw.orders);
+	// Land goods the sailor's own workers make: they cost a run nothing.
+	if (Array.isArray(raw.homemade)) {
+		const made = [...new Set(raw.homemade.filter(n => typeof n === 'string' && n && n.length <= 80))].slice(0, 200);
+		if (made.length) out.homemade = made;
+	}
 	if (isProfile(raw.questsDone)) {
 		const done = {};
 		for (const [id, key] of Object.entries(raw.questsDone)) {

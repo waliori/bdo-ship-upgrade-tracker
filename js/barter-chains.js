@@ -89,7 +89,7 @@ const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);
  * other good aboard at the end is carried home, and the run says what
  * it would sell for.
  */
-export function chainRun({ chosen = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = DEFAULT_ORDERS } = {}) {
+export function chainRun({ chosen = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = DEFAULT_ORDERS, prices = {} } = {}) {
 	const held = goodsHeld(stock);          // the goods counted at the least
 	// What the chosen chains start from and the start port's storage
 	// holds is loaded before casting off -- all of it, since the chain
@@ -316,10 +316,20 @@ export function chainRun({ chosen = [], stock = {}, dock = {}, hold, parley, npc
 	const kept = [...held].filter(([, n]) => n > 1e-9)
 		.map(([item, n]) => ({ item, n, each: sellOf(item), total: n * sellOf(item), stock: Math.min(n, floorOf(item, orders)) }))
 		.sort((a, b) => b.total - a.total || a.item.localeCompare(b.item));
+	// What was bought ashore, priced: `prices` is name -> { each, how }
+	// from land-cost.js, and a good it does not price costs 0 and says so.
+	const boughtRows = [...bought].map(([item, n]) => {
+		const p = prices[item] || { each: 0, how: 'unpriced' };
+		return { item, n, each: p.each, how: p.how, total: Math.ceil(n) * p.each };
+	});
+	const silver = sold.reduce((a, s) => a + s.total, 0);
+	const cost = boughtRows.reduce((a, b) => a + b.total, 0);
 	return {
 		order, stops, sold, kept, stashed, loaded,
-		bought: [...bought].map(([item, n]) => ({ item, n })),
-		silver: sold.reduce((a, s) => a + s.total, 0),
+		bought: boughtRows,
+		cost,
+		net: silver - cost,
+		silver,
 		keptWorth: kept.reduce((a, s) => a + s.total, 0) + stashed.reduce((a, s) => a + s.total, 0),
 		trades: stops.reduce((a, s) => a + (s.times || 0), 0),
 		parleyUsed: spent,

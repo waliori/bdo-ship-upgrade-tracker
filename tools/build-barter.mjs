@@ -27,6 +27,7 @@
 
 import { readFile, writeFile } from 'node:fs/promises';
 import { buildTradeGoods } from './build-trade-goods.mjs';
+import { buildLandGoods } from './build-land-goods.mjs';
 
 const [rowsPath, rawPath] = process.argv.slice(2);
 if (!rowsPath) {
@@ -95,6 +96,7 @@ for (const e of out) e.sources.sort((a, b) => cmp(a.npc_name, b.npc_name) || cmp
 await writeFile(OUT, JSON.stringify(out, null, 2) + '\n');
 // The goods list the item pickers read is cut from the same table.
 await buildTradeGoods();
+await buildLandGoods();
 
 const npcs = new Set(rows.map(r => r.npc_id));
 const missingIcon = out.filter(e => !e.icon).length
