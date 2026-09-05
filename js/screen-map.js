@@ -2561,18 +2561,28 @@ function paintPins(layer, pins, marks, currentId, nums = new Map()) {
 		btn.classList.toggle('done', visited && (!!m || stopAt >= 0));
 		btn.classList.toggle('dim', marks.size > 0 && !m && stopAt < 0);
 		const isle = npcById.get(p.id).at;
-		btn.title = m ? `${isle} (${p.name}) — ${what.join(', ')}` : `${isle} (${p.name})`;
+		// A pan moves eighty of these a frame. Moving them by transform
+		// leaves layout alone, and the words are written only when they
+		// change: a text node replaced with its own text is still a
+		// text node re-laid, and eighty islands over a busy corner of
+		// the Ross Sea -- the hekaru's and the ocean stalker's water --
+		// re-laid three lines each per frame was the stutter there.
+		const title = m ? `${isle} (${p.name}) — ${what.join(', ')}` : `${isle} (${p.name})`;
+		if (btn.title !== title) btn.title = title;
 		// z-index rather than DOM order does what the wanted-last sort in
 		// frame() used to: a lit pin paints over a plain one.
-		btn.style.zIndex = m || stopAt >= 0 ? 4 : 3;
-		btn.style.left = `${p.left}px`;
-		btn.style.top = `${p.top}px`;
+		const z = m || stopAt >= 0 ? '4' : '3';
+		if (btn.style.zIndex !== z) btn.style.zIndex = z;
+		btn.style.transform = `translate(${p.left}px, ${p.top}px)`;
 		const badge = btn.querySelector('.map-pin-badge');
-		badge.textContent = stopAt >= 0 ? String(nums.get(p.id) || stopAt + 1) : visited && m ? '✓' : '';
+		const mark = stopAt >= 0 ? String(nums.get(p.id) || stopAt + 1) : visited && m ? '✓' : '';
+		if (badge.textContent !== mark) badge.textContent = mark;
 		badge.classList.toggle('is-done', stopAt < 0 && visited);
-		btn.querySelector('.map-pin-npc').textContent =
-			isle.replace(/ Islands?$/, '') + (m && what.length > 1 ? ` ·${what.length}` : '');
-		btn.querySelector('.map-pin-at').textContent = p.name;
+		const npcText = isle.replace(/ Islands?$/, '') + (m && what.length > 1 ? ` ·${what.length}` : '');
+		const npcEl = btn.querySelector('.map-pin-npc');
+		if (npcEl.textContent !== npcText) npcEl.textContent = npcText;
+		const atEl = btn.querySelector('.map-pin-at');
+		if (atEl.textContent !== p.name) atEl.textContent = p.name;
 	}
 	for (const [id, btn] of pool) {
 		if (!live.has(id)) {
@@ -2606,16 +2616,24 @@ function declutterPins(pool, pins) {
 	// The wharves name themselves permanently and were on the chart
 	// first, so their words are ground already taken. There are only a
 	// handful, so these can be measured properly rather than guessed.
+	//
+	// Measured once each, though: a name's size never changes, and
+	// measuring it on every frame -- after the pins above have all just
+	// been moved -- forced the whole layer to be laid out again per
+	// frame. Its place comes from where paintPorts put the dot: the name
+	// hangs centred under it.
 	const layer = pool.values().next().value?.parentElement;
 	if (layer) {
-		for (const el of layer.querySelectorAll('.map-port-name')) {
-			if (el.hidden || el.offsetParent === null) continue;
-			const r = el.getBoundingClientRect();
-			if (!r.width) continue;
-			const host = layer.getBoundingClientRect();
-			shown.push(fullTurned
-				? { l: r.top - host.top, r: r.bottom - host.top, t: host.right - r.right, b: host.right - r.left }
-				: { l: r.left - host.left, r: r.right - host.left, t: r.top - host.top, b: r.bottom - host.top });
+		for (const port of layer.querySelectorAll('.map-port')) {
+			if (port.hidden) continue;
+			const el = port.querySelector('.map-port-name');
+			if (!el) continue;
+			if (!el._box) el._box = { w: el.offsetWidth, h: el.offsetHeight };
+			if (!el._box.w) { el._box = null; continue; }
+			const left = parseFloat(port.style.left), top = parseFloat(port.style.top);
+			if (!Number.isFinite(left) || !Number.isFinite(top)) continue;
+			const t = top + 4.5 + 3;
+			shown.push({ l: left - el._box.w / 2, r: left + el._box.w / 2, t, b: t + el._box.h });
 		}
 	}
 	// The name hangs east of a dot that sits exactly on the coordinate:

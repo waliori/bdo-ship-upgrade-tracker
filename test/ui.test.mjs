@@ -781,7 +781,7 @@ test('habitat markers follow a pan, hide and return once, and the Lyngbakr stand
 	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: false, habitatsOn: true })); });
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('#pouch .pouch-item'); await wait(1500);
 	const marker = () => page.evaluate(() => { const e = document.querySelector('.map-habitat:not([hidden])'); return e ? [e.dataset.key, e.style.left] : null; });
-	const pin = () => page.evaluate(() => { const e = document.querySelector('[data-act="map-pin"]:not([hidden])'); return e ? e.style.left : null; });
+	const pin = () => page.evaluate(() => { const e = document.querySelector('[data-act="map-pin"]:not([hidden])'); return e ? e.style.transform : null; });
 	const before = { m: await marker(), p: await pin() };
 	// A drag on open sea: a spot inside the box that no pin, marker or
 	// panel sits on -- the chart's furniture takes its own gestures.
