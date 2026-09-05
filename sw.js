@@ -49,6 +49,7 @@ const SHELL = [
 	'/js/about.js',
 	'/js/barter-board.js',
 	'/js/barter-chains.js',
+	'/js/barter-material.js',
 	'/js/barter-optimizer.js',
 	'/js/barter-orders.js',
 	'/js/barter-plan.js',

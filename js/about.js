@@ -184,6 +184,13 @@ export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
 	{
+		date: '2026-09-05',
+		title: 'the material run as one route, and a hold that has its say',
+		notes: [
+			'The run for a material is <b>one route through every island ticked</b>, whatever each deals: the shortest way from the harbour through all of them, untangled rather than hopped nearest-first, a harbour a give is kept at called at before the first island that needs it, and the stops as one timeline. The hold has its say at last. The gives an island takes weigh a thousand a piece and the materials they pay weigh nothing, so a run leaves heavy and comes home light — and a hold cannot always carry every give at once. Two paces, on the run’s own orders: <i>full</i> sails everything ticked — what the run will not spend is left in storage to make room, the hold is loaded to the barter ceiling, and when the gives still do not fit the run goes out in <b>several departures</b>, back to the harbour for the rest between them, each one loading what the next islands take; <i>fast</i> sails once, loaded to the limit the ship still sails at full speed under, and what does not fit <b>stays ashore</b> and is listed, with a way to the full run beside it. What is loaded at the harbour is a stop on the checklist, so Record moves it out of storage.'
+		]
+	},
+	{
 		date: '2026-09-04',
 		title: 'where the goods are, the sailing orders, and the runs worth sailing',
 		notes: [

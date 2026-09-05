@@ -4780,6 +4780,8 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .run-tiles.flat .summary-v.names { font-size: 14.5px; }
 .run-list.orange { border-color: rgba(232, 144, 93, 0.25); }
 .run-list.orange .panel-title { color: var(--tier-7); }
+.run-list.amber { border-color: rgba(232, 182, 97, 0.3); }
+.run-list.amber .panel-title { color: var(--amber); }
 .run-seg-head .mat-seg-icons { display: inline-flex; align-items: center; gap: 4px; flex: none; }
 .run-seg-head .mat-seg-icons .row-icon.xs { width: 24px; height: 24px; border-radius: 5px; }
 .run-seg-head em.mat-got { flex: none; font-family: var(--font-display); font-size: 12.5px; font-weight: 700; color: var(--amber); }

@@ -28,9 +28,10 @@ import { coins as coinShop } from './sea_coins.js';
 import { landPrices } from './land-cost.js';
 import { marketStatus, marketSilver } from './market.js';
 import { GOODS, PARLEY, parleyPerTrade, levelOf } from './barter.js';
-import { exchanges, goodsHeld, weightHeld, weightOf, sellOf } from './barter-plan.js';
+import { exchanges, goodsHeld, weightOf, sellOf } from './barter-plan.js';
 import { TOWNS } from './screen-inventory.js';
 import { chains, chainRun } from './barter-chains.js';
+import { materialRun } from './barter-material.js';
 import { wharves } from './wharves.js';
 import { tradeGoodNames } from './trade_goods.js';
 import { openPicker } from './picker.js';
@@ -46,7 +47,7 @@ let goal = 'silver';     // silver | material
 let item = null;         // the material a run is for
 let qty = 1;             // how many of it
 let wants = {};          // and of every other material ticked today: material -> how many
-let matOrders = { reach: 'want', calls: true };   // sail for the wants, or every island ticked; call at a harbour for a give held there
+let matOrders = { reach: 'want', calls: true, pace: 'full' };   // sail for the wants, or every island ticked; call at a harbour for a give held there; one departure, or as many as the hold needs
 let port = 0;            // the wharf the run sails from, 0 for none
 let routes = { key: '', ids: [] };     // the chains ticked, for one board (day|layout)
 let stash = '';          // the wharf goods are left at, '' for the nearest
@@ -72,7 +73,7 @@ function restore() {
 		if (typeof s.item === 'string') item = s.item;
 		if (Number(s.qty) > 0) qty = Math.min(9999, Math.floor(Number(s.qty)));
 		if (s.wants && typeof s.wants === 'object') for (const [k, v] of Object.entries(s.wants)) if (typeof k === 'string' && Number(v) > 0) wants[k] = Math.min(9999, Math.floor(Number(v)));
-		if (s.matOrders && typeof s.matOrders === 'object') matOrders = { reach: s.matOrders.reach === 'all' ? 'all' : 'want', calls: s.matOrders.calls !== false };
+		if (s.matOrders && typeof s.matOrders === 'object') matOrders = { reach: s.matOrders.reach === 'all' ? 'all' : 'want', calls: s.matOrders.calls !== false, pace: s.matOrders.pace === 'fast' ? 'fast' : 'full' };
 		if (ports.some(p => p.id === Number(s.port))) port = Number(s.port);
 		if (STASHES.includes(s.stash)) stash = s.stash;
 		if (s.routes && typeof s.routes.key === 'string' && Array.isArray(s.routes.ids)) routes = { key: s.routes.key, ids: s.routes.ids.filter(id => typeof id === 'string') };
@@ -1117,117 +1118,6 @@ function matListHTML(it, data, mats = [], { short = 0, boards = 0 } = {}) {
 }
 
 /**
- * The run for a material: the islands ticked in today's list, each
- * dealt as many times as its attempts, the want, and what is held of
- * its give allow -- nothing climbed for. What is short says so, and
- * points at the item board.
- */
-function materialRun({ mats, data, showing, me, from, orders = matOrders }) {
-	const wantOf = new Map(mats.map(m => [m.it, m.qty]));
-	const rows = exchanges(data).filter(x => wantOf.has(x.item) && npcById.has(x.npcId));
-	const stops = [];
-	const missing = new Map();   // give -> { n, islands }
-	const need = new Map(wantOf);
-	// What is held of each give: aboard and at the start harbour first,
-	// then -- when the orders allow a call -- at another harbour with a
-	// wharf, which the run would put in on the way.
-	const held = new Map();
-	const haveOf = give => {
-		if (!held.has(give)) held.set(give, { run: heldOf(give).run, picks: orders.calls ? elsewhereOf(give).map(p => ({ ...p, used: 0 })) : [] });
-		return held.get(give);
-	};
-	const mine = showing
-		.map(a => rows.find(x => x.npcId === a.npcId && x.give === a.give && x.item === a.recv)).filter(Boolean);
-	// Held first, best rate first, nearest first.
-	const d = x => (from ? Math.hypot(from.x - npcById.get(x.npcId).x, from.y - npcById.get(x.npcId).y) : 0);
-	const canRun = x => haveOf(x.give).run + haveOf(x.give).picks.reduce((a, p) => a + p.n - p.used, 0);
-	mine.sort((a, b) => Number(canRun(b) > 0) - Number(canRun(a) > 0) || (b.recv / b.giveN) - (a.recv / a.giveN) || d(a) - d(b));
-	for (const x of mine) {
-		const h = haveOf(x.give);
-		const left = need.get(x.item) || 0;
-		const want = orders.reach === 'all' ? x.tries : Math.max(0, Math.ceil(left / x.recvMin - 1e-9));
-		const canPay = Math.floor((h.run + h.picks.reduce((a, p) => a + p.n - p.used, 0)) / x.giveN + 1e-9);
-		const times = Math.min(x.tries, want, canPay);
-		if (want > 0 && times < Math.min(x.tries, want)) {
-			const lack = (Math.min(x.tries, want) - times) * x.giveN;
-			const m = missing.get(x.give) || { n: 0, islands: [] };
-			m.n += lack;
-			m.islands.push(npcById.get(x.npcId));
-			missing.set(x.give, m);
-		}
-		if (times < 1) continue;
-		// Paid out of what sails with the run first; what a call brings
-		// aboard is noted on the stop, nearest harbour first.
-		let due = times * x.giveN;
-		const fromRun = Math.min(h.run, due);
-		h.run -= fromRun; due -= fromRun;
-		const picks = [];
-		for (const p of h.picks.sort((a, b) => (from ? Math.hypot(from.x - a.wharf.x, from.y - a.wharf.y) - Math.hypot(from.x - b.wharf.x, from.y - b.wharf.y) : 0))) {
-			if (due <= 0) break;
-			const take = Math.min(p.n - p.used, due);
-			if (take <= 0) continue;
-			p.used += take; due -= take;
-			picks.push({ town: p.town, wharf: p.wharf, item: x.give, n: take });
-		}
-		need.set(x.item, left - times * x.recvMin);
-		stops.push({ ...x, times, picks });
-	}
-	// Sailing order: nearest first from the start, then from each stop
-	// -- a harbour a give is loaded at counted as a stop of its own,
-	// and never after the island that needs what it loads.
-	const calls = new Map();   // town -> { wharf, loads: Map item -> n, for: Set of stops }
-	for (const st of stops) for (const p of st.picks) {
-		if (!calls.has(p.town)) calls.set(p.town, { wharf: p.wharf, loads: new Map(), waits: new Set() });
-		const c = calls.get(p.town);
-		c.loads.set(p.item, (c.loads.get(p.item) || 0) + p.n);
-		c.waits.add(st);
-	}
-	const order = [];
-	let at = from;
-	const left = [...stops];
-	const pending = new Map(calls);
-	const place = n => (n.wharf ? n.wharf : npcById.get(n.npcId));
-	while (left.length || pending.size) {
-		const ready = left.filter(st => st.picks.every(p => !pending.has(p.town)));
-		const cands = [...ready, ...[...pending.values()].filter(c => [...c.waits].some(st => left.includes(st)))];
-		if (!cands.length) break;
-		let best = cands[0];
-		if (at) {
-			let dist = Infinity;
-			for (const c of cands) { const pl = place(c); const dd = Math.hypot(at.x - pl.x, at.y - pl.y); if (dd < dist) { dist = dd; best = c; } }
-		}
-		if (best.wharf) {
-			order.push({ wharf: best.wharf, dropped: [], sale: null, loads: [...best.loads].map(([item, n]) => ({ item, n })) });
-			pending.delete(best.wharf.at);
-		} else {
-			order.push(best);
-			left.splice(left.indexOf(best), 1);
-		}
-		at = place(best);
-	}
-	let w = weightHeld(goodsHeld(aboardStock())) + [...Object.entries(dockStock())].reduce((a, [n, c]) => a + c * weightOf(n), 0);
-	for (const x of order) {
-		w += x.wharf
-			? x.loads.reduce((a, l) => a + l.n * weightOf(l.item), 0)
-			: x.times * (x.recvMax * weightOf(x.item) - x.giveN * weightOf(x.give));
-		x.weightAfter = w; x.level = 0; x.hold = me.hold;
-	}
-	const isles = order.filter(x => !x.wharf);
-	const got = new Map(mats.map(m => [m.it, { min: 0, max: 0 }]));
-	for (const x of isles) { const g = got.get(x.item); g.min += x.times * x.recvMin; g.max += x.times * x.recvMax; }
-	const waits = new Map(mats.map(m => [m.it, Math.max(0, m.qty - got.get(m.it).min)]));
-	return {
-		stops: order, got, waits,
-		missing: [...missing].map(([give, m]) => ({ give, ...m })),
-		trades: isles.reduce((a, x) => a + x.times, 0),
-		islands: isles.length,
-		calls: order.filter(x => x.wharf).length,
-		weightPeak: Math.max(0, ...order.map(x => x.weightAfter)),
-		ticked: mine.length
-	};
-}
-
-/**
  * The run for a material: the material list across the page -- the
  * main way, since that is what the game shows -- and under it the
  * run along the islands ticked: its orders and figures, what it
@@ -1250,7 +1140,13 @@ function materialParts(me, data) {
 	const showing = matBoardNow().answers;
 	const mats = matsToday();
 	const listPanel = matListHTML(it, data, mats, { short, boards: matBoards && matBoards.boards ? matBoards.boards.length : 0 });
-	const plan = materialRun({ mats, data, showing, me, from });
+	const rows = exchanges(data).filter(x => npcById.has(x.npcId));
+	const picks = showing.map(a => rows.find(x => x.npcId === a.npcId && x.give === a.give && x.item === a.recv)).filter(Boolean);
+	const plan = materialRun({
+		picks, wants: new Map(mats.map(m => [m.it, m.qty])), reach: matOrders.reach, pace: matOrders.pace, calls: matOrders.calls,
+		stock: aboardStock(), dock: dockStock(), elsewhere: harboursElsewhere(),
+		hold: me.hold, start: from, startWharf: from ? stashes.find(w => w.at === from.name) || null : null, npcById
+	});
 	shownPlan = plan.stops.length ? { stops: plan.stops, cost: 0, parleyUsed: 0 } : null;
 	const legs = legsOf(plan.stops);
 	const coin = it === 'Crow Coin' ? coinWorth() : null;
@@ -1260,8 +1156,8 @@ function materialParts(me, data) {
 	const waitsAny = mats.some(m => plan.waits.get(m.it) > 0);
 	const wantsText = mats.map(m => `${F(m.qty)}× ${esc(m.it)}`).join(', ');
 	const tiles = plan.ticked ? `<div class="run-tiles flat">
-		${tile('Comes aboard', gotAny ? mats.filter(m => plan.got.get(m.it).max > 0).map(m => `${gotText(m)}× ${esc(m.it)}`).join('<br>') : '—', gotAny ? `of the ${wantsText} wanted · ${plan.trades} trade${plan.trades === 1 ? '' : 's'} at ${plan.islands} island${plan.islands === 1 ? '' : 's'}${plan.calls ? `, ${plan.calls} harbour call${plan.calls === 1 ? '' : 's'}` : ''}` : 'nothing held that a ticked island takes', (waitsAny ? 'amber' : 'teal') + (mats.length > 1 ? ' names' : ''))}
-		${tile(plan.missing.length ? 'To get first' : 'Still wanted', plan.missing.length ? plan.missing.map(m => `${F(Math.ceil(m.n))}× ${esc(m.give)}`).join('<br>') : waitsAny ? mats.filter(m => plan.waits.get(m.it) > 0).map(m => `${F(Math.ceil(plan.waits.get(m.it)))}× ${esc(m.it)}`).join('<br>') : 'none', plan.missing.length ? 'the give the ticked islands take, not held · the item board climbs for it' : waitsAny ? 'the ticked islands cannot deal that many today · another refresh' : 'the wants are met', plan.missing.length ? 'orange names' : waitsAny ? 'amber names' : 'teal')}
+		${tile('Comes aboard', gotAny ? mats.filter(m => plan.got.get(m.it).max > 0).map(m => `${gotText(m)}× ${esc(m.it)}`).join('<br>') : '—', gotAny ? `of the ${wantsText} wanted · ${plan.trades} trade${plan.trades === 1 ? '' : 's'} at ${plan.islands} island${plan.islands === 1 ? '' : 's'}${plan.calls ? `, ${plan.calls} harbour call${plan.calls === 1 ? '' : 's'}` : ''}${plan.returns ? ` · ${plan.returns + 1} departures: the hold cannot carry every give at once` : ''}` : 'nothing held that a ticked island takes', (waitsAny ? 'amber' : 'teal') + (mats.length > 1 ? ' names' : ''))}
+		${tile(plan.missing.length ? 'To get first' : plan.noRoom.length ? 'Stays ashore' : 'Still wanted', plan.missing.length ? plan.missing.map(m => `${F(Math.ceil(m.n))}× ${esc(m.give)}`).join('<br>') : plan.noRoom.length ? plan.noRoom.map(m => `${F(Math.ceil(m.n))}× ${esc(m.give)}`).join('<br>') : waitsAny ? mats.filter(m => plan.waits.get(m.it) > 0).map(m => `${F(Math.ceil(plan.waits.get(m.it)))}× ${esc(m.it)}`).join('<br>') : 'none', plan.missing.length ? 'the give the ticked islands take, not held · the item board climbs for it' : plan.noRoom.length ? (matOrders.pace === 'fast' ? 'held, but more than one departure carries · the full pace goes back for it' : 'held, but more than the hold barters under at once') : waitsAny ? 'the ticked islands cannot deal that many today · another refresh' : 'the wants are met', plan.missing.length ? 'orange names' : plan.noRoom.length ? 'amber names' : waitsAny ? 'amber names' : 'teal')}
 		${tile('Hold at its fullest', plan.stops.length ? `${F(Math.round(plan.weightPeak))} LT` : '—', `${F(me.hold.free)} without slowing · barters to ${F(me.hold.deal)} · moves to ${F(me.hold.max)}`, plan.weightPeak > me.hold.deal ? 'warn' : plan.weightPeak > me.hold.free ? 'amber' : 'teal')}
 		${tile('Under way', legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `≈ ${esc(legs.time)} at ${me.speed.total}%${from ? ` from ${esc(from.name)}` : ''}` : plan.stops.length ? 'one stop' : 'tick an island')}
 	</div>` : '';
@@ -1274,26 +1170,40 @@ function materialParts(me, data) {
 				<option value="all"${matOrders.reach === 'all' ? ' selected' : ''}>every island ticked — as much as the gives allow</option>
 			</select>
 		</label>
+		<label class="mat-order"><span class="run-pick-k">pace</span>
+			<select class="purse-inline" data-act="barter-mat-pace" title="How the run treats the hold: one departure under the limit the ship still sails fast at, or every give ticked, in as many departures as the hold needs">
+				<option value="full"${matOrders.pace === 'full' ? ' selected' : ''}>full — every give ticked; back to the harbour when the hold cannot carry it all</option>
+				<option value="fast"${matOrders.pace === 'fast' ? ' selected' : ''}>fast — one departure, never over the limit; what does not fit stays ashore</option>
+			</select>
+		</label>
 		<label class="inline-check mat-order"><input type="checkbox" data-act="barter-mat-calls"${matOrders.calls ? ' checked' : ''}> call at a harbour for a give kept there</label>
 	</div>`;
 	const missing = plan.missing.length ? `<section class="panel run-list orange"><div class="panel-head"><h2 class="panel-title">To get first</h2><span class="panel-sub">the ticked islands take these, and the hold has none to spare</span></div>
 		${plan.missing.map(m => { const lv = levelOf(m.give); return `<div class="run-good"><i style="--tier:${TIER(lv || 1)}">${lv ? `L${lv}` : '·'}</i><b>${F(Math.ceil(m.n))}×</b><span>${esc(m.give)}</span><span class="faint">for ${esc(m.islands.map(n => isleShort(n)).join(', '))} · none held</span><span class="run-good-worth"><button class="chip primary" data-act="barter-reach" data-item="${esc(m.give)}" title="Switch to the item board and show the chains that reach it today">item board →</button></span></div>`; }).join('')}
 	</section>` : '';
+	// Gives held that the run could not take aboard: on a fast run, the
+	// full pace would go back for them; on a full run, one island asks
+	// more than the hold barters under.
+	const ashore = plan.noRoom.length ? `<section class="panel run-list amber"><div class="panel-head"><h2 class="panel-title">Stays ashore</h2><span class="panel-sub">${matOrders.pace === 'fast' ? 'held, but one departure under the limit cannot carry it all' : 'held, but more than the hold barters under, even alone'}</span>${matOrders.pace === 'fast' ? '<span class="panel-spacer"></span><button class="chip tiny primary" data-act="barter-mat-pace-set" data-id="full" title="Sail in as many departures as the hold needs">sail the full run →</button>' : ''}</div>
+		${plan.noRoom.map(m => { const lv = levelOf(m.give); return `<div class="run-good"><i style="--tier:${TIER(lv || 1)}">${lv ? `L${lv}` : '·'}</i><b>${F(Math.ceil(m.n))}×</b><span>${esc(m.give)}</span><span class="faint">for ${esc(m.islands.map(n => isleShort(n)).join(', '))} · ${F(Math.round(m.n * weightOf(m.give)))} LT</span></div>`; }).join('')}
+	</section>` : '';
 	// The stops as one timeline, since the order runs across the
-	// materials: nearest first, whatever the island deals. The head
-	// says what comes of it for each material against its want.
+	// materials: the shortest way through every island ticked, whatever
+	// each deals, with a harbour call where a give is loaded and a
+	// return to it when the hold could not carry everything at once.
+	// The head says what comes of it for each material against its want.
 	const got = mats.filter(m => plan.got.get(m.it).max > 0);
 	const segs = plan.stops.length ? `<section class="panel run-seg mat-seg" style="--tier:${TIER(6)}">
-		<div class="run-seg-head"><span class="mat-seg-icons">${(got.length ? got : mats.slice(0, 1)).map(m => img(m.it, 'row-icon xs')).join('')}</span><b>${esc((got.length ? got : mats.slice(0, 1)).map(m => m.it).join(', '))}</b><span>${plan.islands} island${plan.islands === 1 ? '' : 's'} · ${plan.trades} trade${plan.trades === 1 ? '' : 's'}${plan.calls ? ` · ${plan.calls} harbour call${plan.calls === 1 ? '' : 's'}` : ''}</span>${mats.map(m => { const g = plan.got.get(m.it); return `<em class="mat-got${g.min >= m.qty ? ' met' : ''}" title="${esc(m.it)}: ${gotText(m)} of the ${F(m.qty)} wanted">${gotText(m)} of ${F(m.qty)}</em>`; }).join('')}</div>
+		<div class="run-seg-head"><span class="mat-seg-icons">${(got.length ? got : mats.slice(0, 1)).map(m => img(m.it, 'row-icon xs')).join('')}</span><b>${esc((got.length ? got : mats.slice(0, 1)).map(m => m.it).join(', '))}</b><span>${plan.islands} island${plan.islands === 1 ? '' : 's'} · ${plan.trades} trade${plan.trades === 1 ? '' : 's'}${plan.calls ? ` · ${plan.calls} harbour call${plan.calls === 1 ? '' : 's'}` : ''}${plan.returns ? ` · ${plan.returns + 1} departures` : ''}</span>${mats.map(m => { const g = plan.got.get(m.it); return `<em class="mat-got${g.min >= m.qty ? ' met' : ''}" title="${esc(m.it)}: ${gotText(m)} of the ${F(m.qty)} wanted">${gotText(m)} of ${F(m.qty)}</em>`; }).join('')}</div>
 		<div class="run-stops">${stopRows(plan.stops, legs, { sailing: sailing() })}</div>
 	</section>` : '';
 	const empty = !plan.ticked
 		? `<div class="run-empty">Nothing ticked yet. Open the barter window in game and tap each island above that shows <b>${esc(it)}</b> today — the run lays itself out here.</div>`
-		: !plan.stops.length && !plan.missing.length ? '<div class="run-empty">The islands ticked take goods the hold does not have.</div>' : '';
+		: !plan.stops.length && !plan.missing.length && !plan.noRoom.length ? '<div class="run-empty">The islands ticked take goods the hold does not have.</div>' : '';
 	const bar = plan.stops.length ? `<div class="mat-sail${sailing() ? ' sailing' : ''}">${sailBar(shownPlan)}${chartButton(plan.stops, it)}</div>` : '';
 	return {
 		chains: listPanel,
-		run: `<section class="panel barter-run mat-run">${head(`for <b>${wantsText}</b>${coin ? ` · worth ≈ ${FC(Math.round(coin.each * qty))} at the coin shop’s best rate, ${FC(Math.round(coin.each))} a coin on ${esc(coin.item)}` : ''} · aboard ${esc(me.name)}, ${F(me.hold.free)} LT before it slows`, sel('from', portSel))}${ordersRow}${tiles}</section>${empty}${missing}${segs}${bar}`
+		run: `<section class="panel barter-run mat-run">${head(`for <b>${wantsText}</b>${coin ? ` · worth ≈ ${FC(Math.round(coin.each * qty))} at the coin shop’s best rate, ${FC(Math.round(coin.each))} a coin on ${esc(coin.item)}` : ''} · aboard ${esc(me.name)}, ${F(me.hold.free)} LT before it slows`, sel('from', portSel))}${ordersRow}${tiles}</section>${empty}${missing}${ashore}${segs}${bar}`
 	};
 }
 
@@ -1381,17 +1291,22 @@ function matsToday() {
 	return all.filter(m => materials().some(x => x.name === m)).map(m => ({ it: m, qty: m === it ? qty : (wants[m] || 1) }));
 }
 
-/** A give held at another harbour's storage, where a wharf is: what
- *  a run could call for on the way. */
-function elsewhereOf(name) {
+/** The other harbours with a storage and a wharf, and the trade goods
+ *  kept at each: what a run could call for on the way. */
+function harboursElsewhere() {
 	const from = fromPort();
 	const out = [];
 	for (const town of TOWNS) {
 		if (town === store.ABOARD || (from && town === from.name)) continue;
-		const n = store.stockAt(name, town);
-		if (!(n > 0)) continue;
 		const wharf = wharves.find(w => w.kind === 'wharf' && w.at === town);
-		if (wharf) out.push({ town, wharf, n });
+		if (!wharf) continue;
+		const goods = {};
+		for (const [name, qty] of Object.entries(store.getAllStock())) {
+			if (levelOf(name) === null || !(qty > 0)) continue;
+			const n = store.stockAt(name, town);
+			if (n > 0) goods[name] = n;
+		}
+		if (Object.keys(goods).length) out.push({ town, wharf, goods });
 	}
 	return out;
 }
@@ -1484,6 +1399,7 @@ export function barterAction(act, el, redraw) {
 		case 'barter-board-ask': pickOffer(Number(el.dataset.npc), redraw); return false;
 		case 'barter-board-island': pickIsland(redraw); return false;
 		case 'barter-board-undo': board.answers.pop(); persist(); return true;
+		case 'barter-mat-pace-set': matOrders = { ...matOrders, pace: el.dataset.id === 'fast' ? 'fast' : 'full' }; persist(); return true;
 		case 'barter-mat-tick': {
 			const mb = matBoardNow();
 			const npcId = Number(el.dataset.npc), give = el.dataset.give, recv = itemNow();
@@ -1586,6 +1502,7 @@ export function barterChange(el, parseAmount) {
 		}
 		case 'barter-mat-reach': matOrders = { ...matOrders, reach: el.value === 'all' ? 'all' : 'want' }; persist(); return true;
 		case 'barter-mat-calls': matOrders = { ...matOrders, calls: el.checked }; persist(); return true;
+		case 'barter-mat-pace': matOrders = { ...matOrders, pace: el.value === 'fast' ? 'fast' : 'full' }; persist(); return true;
 		case 'barter-good-set': {
 			const n = parseAmount(el.value);
 			if (n === null) return true;
