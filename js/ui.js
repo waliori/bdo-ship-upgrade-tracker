@@ -29,7 +29,7 @@ import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
 import { renderBuilds, openBuildPicker, askRoute, toggleBlockers } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
-import { renderBarter, barterAction, barterChange, chartFragment } from './screen-barter.js';
+import { renderBarter, barterAction, barterChange, barterType, chartFragment } from './screen-barter.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
 import { renderCrew, crewAction, crewChange, applyShipSetup, openSetupPicker } from './screen-crew.js';
@@ -1241,9 +1241,10 @@ function wire() {
 	// planner, which is far too much work to do between two keystrokes
 	// of "brilliant". The caret survives because render() restores it.
 	document.addEventListener('input', evt => {
-		const el = evt.target.closest('[data-act="query"]');
+		const el = evt.target.closest('[data-act="query"], [data-act="barter-hold-q"], [data-act="barter-chain-q"]');
 		if (!el) return;
-		setQuery(el.value);
+		if (el.dataset.act === 'query') setQuery(el.value);
+		else if (!barterType(el)) return;
 		clearTimeout(queryTimer);
 		queryTimer = setTimeout(render, 120);
 	});

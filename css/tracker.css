@@ -4114,7 +4114,7 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 
 /* the chains to tick */
 .barter-chains .panel-head { flex-wrap: wrap; }
-.chain-list { max-height: 62vh; overflow-y: auto; margin-top: 8px; }
+.chain-list { margin-top: 8px; }
 .chain-group { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
 .chain-group-head { display: flex; align-items: center; gap: 8px; padding: 0 4px; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
 .chain-group-head i { width: 6px; height: 6px; border-radius: 2px; background: var(--tier); }
@@ -4259,20 +4259,11 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .barter-hold .barter-goods { padding: 0 14px 14px; }
 .barter-hold > .empty { padding: 0 20px 18px; }
 
-/* The run is long and the chains are short, so on a wide screen the
-   left column used to run out a third of the way down and leave the
-   rest of the page bare blue. Now it is as tall as the run beside it:
-   the chain list takes whatever height is left and the column rides
-   with the scroll, so a chain can be ticked while the stop it changes
-   is still on screen. */
+/* Both columns run their full length and the page scrolls as one:
+   nothing on the tab scrolls inside its own box, so a long hold or a
+   long list of chains is read the way the run beside it is. */
 @media (min-width: 901px) {
-  .barter-layout { align-items: stretch; }
-  .barter-left { position: sticky; top: 12px; max-height: calc(100vh - 24px); }
-  /* The hold keeps its full height; the chains give way to it. */
-  .barter-left .barter-hold { flex: 0 0 auto; }
-  .barter-hold .barter-goods { max-height: 32vh; overflow-y: auto; }
-  .barter-left .barter-chains { flex: 1 1 auto; min-height: 220px; display: flex; flex-direction: column; }
-  .barter-left .chain-list { flex: 1 1 auto; max-height: none; min-height: 0; }
+  .barter-layout { align-items: start; }
 }
 
 /* the board bar */
@@ -4573,3 +4564,14 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .week-day i { display: block; width: 100%; max-width: 34px; border-radius: 3px 3px 0 0; background: var(--amber); }
 .week-day.none i { background: var(--track); height: 2px !important; }
 .week-day span { font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+
+
+/* Filters on the hold and the chain list: a word, the levels, a place. */
+.hold-filters, .chain-filters { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; padding: 10px 14px 4px; }
+.chain-filters { padding: 10px 0 2px; }
+.hold-filters .field.hold-q, .chain-filters .field.hold-q { flex: 1 1 160px; min-width: 140px; padding: 5px 9px; font-size: 12px; }
+.chip.tiny.lvl { min-width: 22px; padding: 2px 6px; font-family: var(--font-display); font-weight: 700; border-color: var(--tier); color: var(--tier); background: transparent; }
+.chip.tiny.lvl.active { background: var(--tier); color: #08131f; }
+.ashore-k { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ashore-places { text-transform: none; letter-spacing: 0; }
+.map-tip-check { margin-top: 6px; }

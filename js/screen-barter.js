@@ -49,7 +49,10 @@ let port = 0;            // the wharf the run sails from, 0 for none
 let routes = { key: '', ids: [] };     // the chains ticked, for one board (day|layout)
 let stash = '';          // the wharf goods are left at, '' for the nearest
 let board = { day: '', answers: [] };   // what islands were seen to show today: { npcId, give, recv }
-let sail = null;   // the run being sailed: { key, done: [stop indices], seen: { npcId: paid } }
+let sail = null;   // the run being sailed: { key, done: [stop keys], seen: { npcId: paid }, got: { npcId: item }, stops: [...] }
+// The filters on the hold and the chain list, for the session.
+let holdQ = '', holdLv = new Set(), holdAt = '';
+let chainQ = '', chainFrom = '', chainTop = 0;
 let proposed = { key: '', proposals: [], best: null, solos: new Map() };   // the runs worth sailing, for one set of inputs
 const legsCache = new Map();   // the legs of a run bent round the land, by its stops
 let lastSearch = null;   // what the last search was given, for "fill the rest
@@ -68,7 +71,7 @@ function restore() {
 		if (STASHES.includes(s.stash)) stash = s.stash;
 		if (s.routes && typeof s.routes.key === 'string' && Array.isArray(s.routes.ids)) routes = { key: s.routes.key, ids: s.routes.ids.filter(id => typeof id === 'string') };
 		if (s.sail && typeof s.sail.key === 'string' && Array.isArray(s.sail.done)) {
-			sail = { key: s.sail.key, done: s.sail.done.map(Number).filter(Number.isInteger), seen: {}, got: {} };
+			sail = { key: s.sail.key, done: s.sail.done.map(String), seen: {}, got: {}, stops: Array.isArray(s.sail.stops) ? s.sail.stops : [] };
 			for (const [k, v] of Object.entries(s.sail.seen || {})) if (Number(v) > 0) sail.seen[k] = Number(v);
 			for (const [k, v] of Object.entries(s.sail.got || {})) if (typeof v === 'string') sail.got[k] = v;
 		}
@@ -158,7 +161,14 @@ function holdHTML(me) {
 		: state === 'dead' ? `${F(lt)} LT — past the ${F(max)} the hull will move under`
 			: state === 'over' ? `${F(lt)} LT — over the ${F(free)} limit, sailing slower`
 				: `${F(lt)} LT of ${F(free)} · room for ${room(5)} more Lv4–5 or ${room(6)} Lv6–7`;
-	const rows = goods.map(g => `<div class="barter-good">
+	const q = holdQ.trim().toLowerCase();
+	const passes = g => (!q || g.name.toLowerCase().includes(q)) && (!holdLv.size || holdLv.has(g.lv));
+	const shown = goods.filter(passes);
+	const filters = `<div class="hold-filters">
+		<input class="field hold-q" type="search" placeholder="Find a good…" value="${esc(holdQ)}" data-act="barter-hold-q" aria-label="Find a good aboard or ashore">
+		<span class="chips">${[1, 2, 3, 4, 5, 6, 7].map(lv => `<button class="chip tiny lvl${holdLv.has(lv) ? ' active' : ''}" data-act="barter-hold-lv" data-lv="${lv}" style="--tier:${TIER(lv)}" title="Level ${lv}">${lv}</button>`).join('')}${holdLv.size || q ? '<button class="chip tiny" data-act="barter-hold-clear">clear</button>' : ''}</span>
+	</div>`;
+	const rows = shown.map(g => `<div class="barter-good">
 		${img(g.name, 'row-icon')}
 		<span class="map-row-main">
 			<span class="map-row-name">${codexName(g.name)}</span>
@@ -183,8 +193,9 @@ function holdHTML(me) {
 		</div>
 		<div class="map-load-bar" title="The bar runs to the most the hull will move under; the mark is its limit"><i class="${state}" style="width:${pct.toFixed(1)}%"></i><s style="left:${mark.toFixed(1)}%"></s></div>
 		<div class="summary-sub${state ? ' warn' : ''}">${sub}${worth ? ` · worth ${FC(worth)} to a barterer as it is` : ''}</div>
-		${rows ? `<div class="barter-goods">${rows}</div>` : '<p class="empty">Nothing recorded aboard. Add a good, or log the trip that brought them back — the counts are the Inventory’s, under Trade goods.</p>'}
-		${ashoreHTML()}
+		${goods.length || ashore().length ? filters : ''}
+		${rows ? `<div class="barter-goods">${rows}</div>` : goods.length ? '<p class="empty">Nothing aboard matches.</p>' : '<p class="empty">Nothing recorded aboard. Add a good, or log the trip that brought them back — the counts are the Inventory’s, under Trade goods.</p>'}
+		${ashoreHTML(passes)}
 	</section>`;
 }
 
@@ -194,10 +205,12 @@ function holdHTML(me) {
  * are the ones the chains can start from; a harbour elsewhere says
  * so, since the ship is not there to load them.
  */
-function ashoreHTML() {
-	const towns = ashore();
-	if (!towns.length) return '';
+function ashoreHTML(passes = () => true) {
+	const all = ashore();
+	if (!all.length) return '';
 	const from = fromPort();
+	const places = all.length > 1 ? `<span class="chips ashore-places">${all.map(t => `<button class="chip tiny${holdAt === t.town ? ' active' : ''}" data-act="barter-hold-at" data-town="${esc(t.town)}">${esc(t.town)}</button>`).join('')}</span>` : '';
+	const towns = all.filter(t => !holdAt || t.town === holdAt).map(t => ({ ...t, goods: t.goods.filter(passes) })).filter(t => t.goods.length);
 	const groups = towns.map(t => `<div class="ashore-town${t.here ? ' here' : ''}">
 		<div class="ashore-head"><b>${esc(t.town)}</b><span>${t.here ? 'the run sails from here — its goods can be loaded' : from ? 'not where the run starts' : 'choose where the run sails from to load these'}</span></div>
 		${t.goods.map(g => `<div class="barter-good ashore-good">
@@ -209,7 +222,7 @@ function ashoreHTML() {
 			<button class="ghost-btn sm" data-act="barter-load" data-item="${esc(g.name)}" data-town="${esc(t.town)}" data-n="${g.n}" title="Put all ${g.n} aboard">Load ${F(g.n)}</button>
 		</div>`).join('')}
 	</div>`).join('');
-	return `<div class="ashore"><div class="ashore-k">Ashore</div>${groups}</div>`;
+	return `<div class="ashore"><div class="ashore-k">Ashore${places}</div>${groups || '<p class="empty">Nothing ashore matches.</p>'}</div>`;
 }
 
 /* ------------------------------------------------------------------ *
@@ -365,7 +378,8 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null } = {}) {
 	// pays a range, the count it paid, so the rest re-counts.
 	const check = (s, k) => {
 		if (!sailing) return '';
-		const done = sailing.done.includes(k);
+		const key = stopKey(s, k, sailing.stops || stops);
+		const done = sailing.done.includes(key);
 		let paid = '';
 		if (s.npcId && s.recvMin !== s.recvMax) {
 			const opts = [];
@@ -377,7 +391,7 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null } = {}) {
 			const four = seventhsOf(s.npcId);
 			if (four.length > 1) got = `<span class="run-paid"><span>got</span>${four.map(name => `<button class="chip tiny${(sailing.got || {})[s.npcId] === name ? ' active' : ''}" data-act="barter-got" data-npc="${s.npcId}" data-item="${esc(name)}" title="${esc(name)}">${img(name, 'row-icon xs')}</button>`).join('')}</span>`;
 		}
-		return `<div class="run-check">${paid}${got}<button class="chip tiny${done ? ' active' : ''}" data-act="barter-stop-done" data-k="${k}" aria-pressed="${done}">${done ? '✓ done' : 'done'}</button></div>`;
+		return `<div class="run-check">${paid}${got}<button class="chip tiny${done ? ' active' : ''}" data-act="barter-stop-done" data-k="${esc(key)}" aria-pressed="${done}">${done ? '✓ done' : 'done'}</button></div>`;
 	};
 	return stops.map((s, i) => {
 		const k = k0 + i;
@@ -392,7 +406,7 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null } = {}) {
 		const did = s.wharf
 			? `${s.dropped.length ? `<div class="run-leave"><span class="run-leave-k">Leaves in storage</span>${s.dropped.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(d.item)}</span>`).join('')}</div>` : ''}${s.sale ? `<div class="run-sell">sells ${n1(s.sale.n)} ${s.sale.levels && s.sale.levels.length === 1 ? `[Level ${s.sale.levels[0]}]` : 'goods'} here for ${FC(Math.round(s.sale.total))}</div>` : ''}`
 			: `<div class="run-trade">${img(s.give, 'row-icon sm')}<span>${esc(s.giveText)}× ${esc(s.give)}</span><span class="run-arrow">→</span><span class="run-to" style="--tier:${TIER(levelOf(s.item))}"><i></i>${esc(s.recvText)}× ${esc(s.item)}${four(s)}</span><span class="run-times">×${s.times}</span>${img(s.item, 'row-icon sm')}</div>`;
-		return `<div class="run-stop${s.wharf ? ' wharf' : ''}${s.sale ? ' sale' : ''}${i === stops.length - 1 ? ' last' : ''}${sailing && sailing.done.includes(k) ? ' done' : ''}">
+		return `<div class="run-stop${s.wharf ? ' wharf' : ''}${s.sale ? ' sale' : ''}${i === stops.length - 1 ? ' last' : ''}${sailing && sailing.done.includes(stopKey(s, k, sailing.stops || stops)) ? ' done' : ''}">
 			<div class="run-rail"><i></i><b>${k + 1}</b><i></i></div>
 			<div class="run-main">
 				<div class="run-stop-head">${s.wharf ? '<span class="run-anchor" title="A pause at a wharf, not a barter">⚓</span>' : ''}<b>${esc(place.name)}</b><span>${esc(place.at)}${s.wharf ? ' wharf' : ''}</span>${leg}</div>
@@ -489,7 +503,7 @@ function ordersHTML(o) {
 			${sel('barter-stash', 'storage at', stash, [['', 'the nearest wharf'], ...stashes.map(w => [w.at, w.at])])}
 			${sel('barter-port', 'sails from', port, [[0, 'the first stop'], ...ports.map(p => [p.id, p.name])])}
 			${sel('barter-hours', 'under way at most', o.hours, HOUR_CHOICES, 'A run proposed here sails no longer than this')}
-			${sel('barter-count', 'a 2-3 counts', o.count, COUNT_CHOICES, 'How an exchange that pays a range is counted; the checklist records what your runs saw')}
+			${sel('barter-ratio', 'a 2-3 counts', o.count, COUNT_CHOICES, 'How an exchange that pays a range is counted; the checklist records what your runs saw')}
 		</div>
 		<div class="run-floors" title="Kept back for the boards to come: never sold, never spent below this many">
 			<span class="run-pick-k">keep back, of every good at a level</span>${floors}
@@ -677,6 +691,25 @@ function weekHTML() {
 const sailKey = () => (goal === 'material' ? `material|${itemNow()}|${qty}|${port}` : `silver|${routes.key}|${routes.ids.slice().sort().join('.')}|${port}`);
 /** The checklist for the run on screen, or null when not sailing it. */
 const sailing = () => (sail && sail.key === sailKey() ? sail : null);
+/** A stop's name on the checklist: the island, or the wharf and how
+ *  many islands came before it, so a re-count that moves a call does
+ *  not tick the wrong one. */
+const stopKey = (s, k, stops) => (s.npcId ? `n${s.npcId}` : `w${s.wharf.name}@${stops.slice(0, k).filter(x => x.npcId).length}`);
+
+/**
+ * What the Map's stop card asks: is this island on the checklist being
+ * sailed, is it done, what did it pay, what could it. Null when no run
+ * is being sailed or the island is not on it.
+ */
+export function sailFor(npcId) {
+	restore();
+	if (!sail || !Array.isArray(sail.stops)) return null;
+	const s = sail.stops.find(x => x.npcId === npcId);
+	if (!s) return null;
+	const opts = [];
+	if (s.recvMin !== s.recvMax) for (let n = Math.ceil(s.recvMin); n <= Math.floor(s.recvMax); n++) opts.push(n);
+	return { done: sail.done.includes(`n${npcId}`), paid: sail.seen[npcId] || null, options: opts, item: s.item, recvText: s.recvText };
+}
 
 /**
  * The bar under a run: "Sail it" when the run is only laid out; the
@@ -687,7 +720,7 @@ function sailBar(plan) {
 	if (!plan || !plan.stops.length) return '';
 	const on = sailing();
 	if (!on) return `<div class="sail-bar"><button class="act" data-act="barter-sail" title="Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change">⛵ Sail this run</button><span class="faint">tick each stop off as you sail; what an island paid re-counts the rest; Record at the end puts the whole trip in the Inventory in one Undo</span></div>`;
-	const n = plan.stops.filter((s, k) => on.done.includes(k)).length;
+	const n = plan.stops.filter((s, k) => on.done.includes(stopKey(s, k, plan.stops))).length;
 	return `<div class="sail-bar sailing">
 		<span class="sail-n"><b>${n}</b> of ${plan.stops.length} stops done</span>
 		<span class="panel-spacer"></span>
@@ -713,7 +746,7 @@ function tripOf(plan, on, from) {
 	const as = name => renamed.get(name) || name;
 	let silver = 0, trades = 0;
 	for (const [k, s] of plan.stops.entries()) {
-		if (!on.done.includes(k)) continue;
+		if (!on.done.includes(stopKey(s, k, plan.stops))) continue;
 		if (s.wharf) {
 			for (const x of (s.sale && s.sale.items) || []) { add(as(x.item), -x.n); silver += x.total; }
 			for (const d of s.dropped || []) moves.push({ item: as(d.item), from: '', to: s.wharf.at, n: Math.round(d.n) });
@@ -743,7 +776,7 @@ function recordTrip(plan, from) {
 	const ratios = { ...(store.getProfile('ratios', {}) || {}) };
 	const sevens = { ...(store.getProfile('sevens', {}) || {}) };
 	for (const [k, s] of plan.stops.entries()) {
-		if (!on.done.includes(k) || !s.npcId) continue;
+		if (!on.done.includes(stopKey(s, k, plan.stops)) || !s.npcId) continue;
 		const n = on.seen[s.npcId];
 		if (n && s.recvMin !== s.recvMax) {
 			const key = ratioKey(s);
@@ -832,11 +865,29 @@ function silverParts(me, b) {
 		${cards ? `<div class="proposal-cards">${cards}</div>` : '<p class="empty">Nothing on this board pays under these orders.</p>'}
 	</div>`;
 	const fillable = chosen.length > 0 && !proposed.proposals.some(p => sameSet(p.ids, routes.ids));
-	const groups = [...new Set(all.map(c => c.top))].sort((a, b2) => b2 - a).map(top => {
-		const rows = all.filter(c => c.top === top);
-		return `<div class="chain-group"><div class="chain-group-head" style="--tier:${TIER(top)}"><i></i><span>Reaches Level ${top}</span><span>${rows.length}</span></div>${rows.map(c => chainRow(c, chosen.includes(c), solos.get(c.id), from && from.name, from)).join('')}</div>`;
+	// The list, filtered: a word in an island's or a good's name, where
+	// the chain starts, the level it reaches. A ticked chain always shows.
+	const cq = chainQ.trim().toLowerCase();
+	const passes = c => chosen.includes(c) || ((!cq || c.item.toLowerCase().includes(cq) || c.rungs.some(r => r.npc.toLowerCase().includes(cq) || r.item.toLowerCase().includes(cq) || (npcById.get(r.npcId) || {}).at.toLowerCase().includes(cq)))
+		&& (!chainFrom || (chainFrom === 'held' ? c.from !== 'land' : c.from === 'land'))
+		&& (!chainTop || c.top === chainTop));
+	const listed = all.filter(passes);
+	const tops = [...new Set(all.map(c => c.top))].sort((a, b2) => b2 - a);
+	const chainFilters = `<div class="chain-filters">
+		<input class="field hold-q" type="search" placeholder="Find an island, a place or a good…" value="${esc(chainQ)}" data-act="barter-chain-q" aria-label="Find a chain">
+		<span class="chips">
+			<button class="chip tiny${chainFrom === 'held' ? ' active' : ''}" data-act="barter-chain-from" data-id="held" title="Chains that start from a good held, aboard or at the harbour">from what is held</button>
+			<button class="chip tiny${chainFrom === 'land' ? ' active' : ''}" data-act="barter-chain-from" data-id="land" title="Chains that start with a land good bought ashore">bought ashore</button>
+			${tops.map(t => `<button class="chip tiny lvl${chainTop === t ? ' active' : ''}" data-act="barter-chain-top" data-lv="${t}" style="--tier:${TIER(t)}" title="Chains that reach Level ${t}">${t}</button>`).join('')}
+			${cq || chainFrom || chainTop ? '<button class="chip tiny" data-act="barter-chain-clear">clear</button>' : ''}
+		</span>
+	</div>`;
+	const groups = tops.map(top => {
+		const rows = listed.filter(c => c.top === top);
+		if (!rows.length) return '';
+		return `<div class="chain-group"><div class="chain-group-head" style="--tier:${TIER(top)}"><i></i><span>Reaches Level ${top}</span><span>${rows.length}${rows.length !== all.filter(c => c.top === top).length ? ` of ${all.filter(c => c.top === top).length}` : ''}</span></div>${rows.map(c => chainRow(c, chosen.includes(c), solos.get(c.id), from && from.name, from)).join('')}</div>`;
 	}).join('');
-	const chainsPanel = `<section class="panel barter-chains">${headFill(fillable)}${proposals}<div class="chain-list">${groups || `<p class="empty">${o.buy ? 'Nothing climbs on this board.' : 'Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.'}</p>`}</div></section>`;
+	const chainsPanel = `<section class="panel barter-chains">${headFill(fillable)}${proposals}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.buy ? 'Nothing climbs on this board.' : 'Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.') : 'No chain matches.'}</p>`}</div></section>`;
 
 	const plan = chainRun({ ...opts, chosen });
 	shownPlan = plan;
@@ -1097,6 +1148,7 @@ function pickIsland(then) {
 /** A click on the tab. Returns true when it was one of ours, with the
  *  screen to be redrawn by the caller. */
 export function barterAction(act, el, redraw) {
+	restore();
 	switch (act) {
 		case 'barter-goal': goal = el.dataset.id === 'material' ? 'material' : 'silver'; persist(); return true;
 		case 'barter-preset': store.setProfile('orders', presetOrders(el.dataset.id)); return false;
@@ -1135,7 +1187,20 @@ export function barterAction(act, el, redraw) {
 			return true;
 		}
 		case 'barter-chains-clear': routes.ids = []; persist(); return true;
-		case 'barter-sail': sail = { key: sailKey(), done: [], seen: {}, got: {} }; persist(); return true;
+		case 'barter-hold-lv': { const lv = Number(el.dataset.lv); if (holdLv.has(lv)) holdLv.delete(lv); else holdLv.add(lv); return true; }
+		case 'barter-hold-at': holdAt = holdAt === el.dataset.town ? '' : el.dataset.town; return true;
+		case 'barter-hold-clear': holdQ = ''; holdLv = new Set(); holdAt = ''; return true;
+		case 'barter-chain-from': chainFrom = chainFrom === el.dataset.id ? '' : el.dataset.id; return true;
+		case 'barter-chain-top': chainTop = chainTop === Number(el.dataset.lv) ? 0 : Number(el.dataset.lv); return true;
+		case 'barter-chain-clear': chainQ = ''; chainFrom = ''; chainTop = 0; return true;
+		case 'barter-sail': {
+			const stops = (shownPlan ? shownPlan.stops : []).map(x => (x.npcId
+				? { npcId: x.npcId, item: x.item, recvMin: x.recvMin, recvMax: x.recvMax, recvText: x.recvText }
+				: { wharf: { name: x.wharf.name } }));
+			sail = { key: sailKey(), done: [], seen: {}, got: {}, stops };
+			persist();
+			return true;
+		}
 		case 'barter-got': {
 			const on = sailing();
 			if (!on) return false;
@@ -1145,15 +1210,15 @@ export function barterAction(act, el, redraw) {
 		}
 		case 'barter-sail-drop': sail = null; persist(); return true;
 		case 'barter-stop-done': {
-			const on = sailing();
+			const on = sailing() || (el.dataset.map ? sail : null);
 			if (!on) return false;
-			const k = Number(el.dataset.k);
+			const k = String(el.dataset.k);
 			on.done = on.done.includes(k) ? on.done.filter(x => x !== k) : [...on.done, k];
 			persist();
 			return true;
 		}
 		case 'barter-paid': {
-			const on = sailing();
+			const on = sailing() || (el.dataset.map ? sail : null);
 			if (!on) return false;
 			const n = Number(el.dataset.n);
 			if (on.seen[el.dataset.npc] === n) delete on.seen[el.dataset.npc]; else on.seen[el.dataset.npc] = n;
@@ -1170,6 +1235,13 @@ export function barterAction(act, el, redraw) {
 		}
 		default: return false;
 	}
+}
+
+/** A filter typed on the tab: true when the screen should redraw. */
+export function barterType(el) {
+	if (el.dataset.act === 'barter-hold-q') { holdQ = el.value; return true; }
+	if (el.dataset.act === 'barter-chain-q') { chainQ = el.value; return true; }
+	return false;
 }
 
 /** A value typed or chosen on the tab. */
@@ -1194,7 +1266,7 @@ export function barterChange(el, parseAmount) {
 		case 'barter-sell': setOrders({ sell: Number(el.value) }); return true;
 		case 'barter-buy': setOrders({ buy: el.value === 'yes' }); return true;
 		case 'barter-hours': setOrders({ hours: Number(el.value) }); return true;
-		case 'barter-count': setOrders({ count: el.value }); return true;
+		case 'barter-ratio': setOrders({ count: el.value }); return true;
 		case 'barter-floor': {
 			const n = parseAmount(el.value === '' ? '0' : el.value);
 			if (n === null) return true;

@@ -3,6 +3,7 @@
 // what you picked to show, the route you are building -- lives here,
 // with the command functions the shell's event handling calls.
 
+import { sailFor } from './screen-barter.js';
 import { courses, courseById } from './courses.js';
 import { monsters, monsterByKey } from './sea_monsters.js';
 import { esc, F, FC } from './fmt.js';
@@ -3110,15 +3111,23 @@ function paintSteps(host, seq) {
  * run's own colour -- a line of names is not a trade until you can see
  * what changes hands.
  */
-function runTip(t) {
+function runTip(t, id) {
+	// The Barter tab's checklist, when this island is on the run being
+	// sailed: what it paid, and done -- the same marks as on the tab.
+	const on = id ? sailFor(id) : null;
+	const check = on ? `<div class="run-check map-tip-check">
+		${on.options.length ? `<span class="run-paid"><span>paid</span>${on.options.map(n => `<button class="chip tiny${on.paid === n ? ' active' : ''}" data-act="barter-paid" data-map="1" data-npc="${id}" data-n="${n}">${n}</button>`).join('')}</span>` : ''}
+		<button class="chip tiny${on.done ? ' active' : ''}" data-act="barter-stop-done" data-map="1" data-k="n${id}" aria-pressed="${on.done}">${on.done ? '✓ done' : 'done'}</button>
+	</div>` : '';
 	return `<div class="map-tip-run">
-		<span class="map-tip-k">The run</span>
+		<span class="map-tip-k">The run${on ? ' · being sailed' : ''}</span>
 		<div class="map-tip-row">
 			<span class="map-tip-side" data-peek="${esc(t.give)}"><span class="map-io minus">${img(t.give, 'map-icon')}</span><span>${esc(t.giveText)}× ${esc(t.give)}</span></span>
 			<span class="map-tip-arrow">→</span>
-			<span class="map-tip-side get" data-peek="${esc(t.item)}"><span class="map-io plus">${img(t.item, 'map-icon')}</span><span>${esc(t.recvText)}× ${esc(t.item)}</span></span>
+			<span class="map-tip-side get" data-peek="${esc(t.item)}"><span class="map-io plus">${img(t.item, 'map-icon')}</span><span>${esc(on && on.paid ? String(on.paid) : t.recvText)}× ${esc(t.item)}</span></span>
 			<span class="map-tip-tries">${t.times > 1 ? `×${t.times}` : ''}</span>
 		</div>
+		${check}
 	</div>`;
 }
 
@@ -3188,7 +3197,8 @@ function paintTip(host, size, marks) {
 	const pinned = !hoverNpc && !!pinnedNpc;
 	const m = marks.get(id);
 	const dn = doneSet();
-	const key = [id, mode, pinned, stopsLive() ? stops.indexOf(id) : -1, dn.has(id), m ? m.items.size : 0].join('|');
+	const sf = runTrades[id] ? sailFor(id) : null;
+	const key = [id, mode, pinned, stopsLive() ? stops.indexOf(id) : -1, dn.has(id), m ? m.items.size : 0, sf ? `${sf.done}:${sf.paid}` : ''].join('|');
 	if (tip._for !== key) {
 		tip._for = key;
 		// The trades themselves, numbers and all, from the same file the
@@ -3224,7 +3234,7 @@ function paintTip(host, size, marks) {
 		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">${esc(npc.name)}</span>
 			${pinned ? `<button class="map-x" data-act="map-tip-close" aria-label="Close">×</button>` : ''}</div>
 			<div class="map-tip-sub">${sub}</div>
-			${runTrades[id] ? runTip(runTrades[id]) : ''}
+			${runTrades[id] ? runTip(runTrades[id], id) : ''}
 			${rows || (runTrades[id] ? '' : '<div class="map-tip-sub none">Nothing on your list here.</div>')}
 			${pinned ? btns : ''}`;
 	}
