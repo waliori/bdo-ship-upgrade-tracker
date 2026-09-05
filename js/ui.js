@@ -1254,7 +1254,7 @@ function wire() {
 	// planner, which is far too much work to do between two keystrokes
 	// of "brilliant". The caret survives because render() restores it.
 	document.addEventListener('input', evt => {
-		const el = evt.target.closest('[data-act="query"], [data-act="barter-hold-q"], [data-act="barter-chain-q"]');
+		const el = evt.target.closest('[data-act="query"], [data-act="barter-hold-q"], [data-act="barter-chain-q"], [data-act="barter-mat-q"]');
 		if (!el) return;
 		if (el.dataset.act === 'query') setQuery(el.value);
 		else if (!barterType(el)) return;

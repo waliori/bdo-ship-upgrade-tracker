@@ -1562,6 +1562,36 @@ test('one run for several materials: each keeps its ticks and its want, and a gi
 	await context.close();
 });
 
+test('the hold is a line across the Barter tab that opens over the page, and the dialog follows a change made in it', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)');
+		store.setStock('[Level 5] Azure Quartz', 5);
+		store.setStock('[Level 7] Crystal Ball of Fortune', 2);
+		store.setStockAt('[Level 5] Luxury Patterned Fabric', 'Iliya Island', 12, 'ashore');
+	});
+	await wait(500);
+	// One column: no two-column layout left on the tab.
+	assert.equal(await count(page, '.barter-layout'), 0);
+	assert.equal(await count(page, '.barter-screen > .barter-hold'), 0, 'the full hold is not on the page');
+	const bar = await text(page, '.hold-bar');
+	assert.match(bar, /The hold.*Carrack \(Advance\).*9,000 of 16,500 LT/i);
+	assert.match(bar, /L7\s*2.*L5\s*5/);
+	await page.evaluate(() => document.querySelector('[data-act="barter-hold-open"]').click()); await wait(400);
+	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), false);
+	assert.match(await text(page, '#dialog .barter-hold'), /Azure Quartz.*Crystal Ball of Fortune|Crystal Ball of Fortune.*Azure Quartz/);
+	// One more Ball, from inside the dialog: the dialog stays and re-counts.
+	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-good"][data-item="[Level 7] Crystal Ball of Fortune"][data-delta="1"]').click()); await wait(400);
+	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), false, 'still up');
+	assert.equal(await page.$eval('#dialog [data-act="barter-good-set"][data-item="[Level 7] Crystal Ball of Fortune"]', el => el.value), '3');
+	assert.match(await text(page, '.hold-bar'), /11,000 of 16,500 LT/, 'the bar under it follows');
+	await page.keyboard.press('Escape'); await wait(300);
+	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), true);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('the material run is one route through every island ticked: a full run goes back to the harbour when the hold cannot carry every give, a fast run sails once and says what stayed ashore', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.evaluate(() => { localStorage.setItem('bdo-tracker/barter-view', JSON.stringify({ goal: 'material', item: "Violent Sea Monster's Scale", qty: 999, port: 1, matOrders: { reach: 'all', calls: true, pace: 'full' } })); });

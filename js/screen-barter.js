@@ -36,7 +36,7 @@ import { wharves } from './wharves.js';
 import { tradeGoodNames } from './trade_goods.js';
 import { openPicker } from './picker.js';
 import { openTripLog } from './triplog.js';
-import { toast } from './dialogs.js';
+import { toast, openDialog } from './dialogs.js';
 
 /* ------------------------------------------------------------------ *
  * what the tab remembers
@@ -166,6 +166,74 @@ function held() {
 	return [...goodsHeld(aboardStock())]
 		.map(([name, n]) => ({ name, lv: levelOf(name), n, weight: n * weightOf(name) }))
 		.sort((a, b) => b.lv - a.lv || a.name.localeCompare(b.name));
+}
+
+/**
+ * The hold as one line across the page: the ship, its weight against
+ * the limit, what is aboard by level, what waits ashore, and the way
+ * into the whole thing -- which opens over the page, so the run under
+ * it has the page to itself.
+ */
+function holdBarHTML(me) {
+	const goods = held();
+	const lt = goods.reduce((a, g) => a + g.weight, 0);
+	const free = me.hold.free, max = me.hold.max;
+	const pct = max > 0 ? Math.min(100, lt / max * 100) : 0;
+	const mark = max > 0 ? Math.min(100, free / max * 100) : 100;
+	const state = lt > max ? 'dead' : lt > free ? 'over' : '';
+	const byLv = new Map();
+	for (const g of goods) byLv.set(g.lv, (byLv.get(g.lv) || 0) + g.n);
+	const levels = [...byLv].sort((a, b) => b[0] - a[0]).map(([lv, n]) => `<span class="hold-bar-lv" style="--tier:${TIER(lv)}" title="${F(n)} of Level ${lv} aboard"><i>L${lv}</i>${F(n)}</span>`).join('');
+	const from = fromPort();
+	const shore = ashore();
+	const here = shore.find(t => t.here);
+	const elsewhere = shore.filter(t => !t.here).reduce((a, t) => a + t.goods.reduce((x, g) => x + g.n, 0), 0);
+	const ashoreText = [
+		here ? `${F(here.goods.reduce((a, g) => a + g.n, 0))} at ${here.town}, to load` : '',
+		elsewhere ? `${F(elsewhere)} ashore elsewhere` : ''
+	].filter(Boolean).join(' · ');
+	const weightText = !goods.length ? `nothing aboard · ${F(free)} LT before it slows`
+		: state === 'dead' ? `${F(lt)} LT — past the ${F(max)} the hull will move under`
+			: state === 'over' ? `${F(lt)} LT — over the ${F(free)} limit, sailing slower`
+				: `${F(lt)} of ${F(free)} LT`;
+	return `<section class="panel hold-bar${state ? ` ${state}` : ''}">
+		<button class="hold-bar-main" data-act="barter-hold-open" title="Open the hold: every good aboard and ashore, with its count">
+			<span class="hold-bar-k">⚓ The hold</span>
+			<span class="hold-bar-ship">${esc(me.name)}</span>
+			<span class="hold-bar-gauge"><span class="map-load-bar"><i class="${state}" style="width:${pct.toFixed(1)}%"></i><s style="left:${mark.toFixed(1)}%"></s></span><b class="${state ? 'warn' : ''}">${weightText}</b></span>
+			<span class="hold-bar-goods">${levels || '<span class="faint">no trade goods aboard</span>'}</span>
+			${ashoreText ? `<span class="hold-bar-ashore">${esc(ashoreText)}</span>` : from ? '' : '<span class="hold-bar-ashore faint">choose where the run sails from to load goods ashore</span>'}
+			<span class="hold-bar-open">open ›</span>
+		</button>
+		<span class="panel-btns hold-bar-btns">
+			<button class="ghost-btn sm" data-act="trip-log" title="Everything a trip brought back, in one go">＋ Log a trip</button>
+			<button class="ghost-btn sm" data-act="barter-add" title="Record a good that is aboard">＋ A good</button>
+		</span>
+	</section>`;
+}
+
+let holdOpen = false;   // the hold dialog is up, and follows the tab's redraws
+
+/** The whole hold, over the page. */
+function openHold() {
+	holdOpen = true;
+	const host = openDialog(`<div class="hold-dialog">${holdHTML(currentShip())}<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div></div>`, { onDismiss: () => { holdOpen = false; } });
+	host.firstElementChild.classList.add('wide');
+}
+
+/** The hold dialog redrawn after a change, the caret kept where it was. */
+function refreshHold() {
+	if (!holdOpen) return;
+	const box = document.querySelector('#dialog:not([hidden]) .hold-dialog');
+	if (!box) { holdOpen = false; return; }
+	const el = document.activeElement;
+	const keep = el && box.contains(el) && el.dataset.act ? { act: el.dataset.act, item: el.dataset.item || '', start: el.selectionStart, end: el.selectionEnd } : null;
+	box.innerHTML = `${holdHTML(currentShip())}<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`;
+	if (!keep) return;
+	const again = [...box.querySelectorAll(`[data-act="${keep.act}"]`)].find(x => (x.dataset.item || '') === keep.item);
+	if (!again) return;
+	again.focus({ preventScroll: true });
+	try { if (keep.start != null && again.setSelectionRange) again.setSelectionRange(keep.start, keep.end); } catch { /* not a text field */ }
 }
 
 function holdHTML(me) {
@@ -843,7 +911,8 @@ function silverParts(me, b) {
 		const reachNote = reach ? `<div class="reach-bar"><span>Reaching <b>${esc(reach)}</b> for the material run. Look at one island first: the chains that pass it follow from the board.</span><button class="chip tiny" data-act="barter-goal" data-id="material">← the material run</button><button class="chip tiny" data-act="barter-reach-clear">clear</button></div>` : '';
 		return {
 			chains: `<section class="panel barter-chains">${head}${reachNote}<p class="empty">The chains follow the board: look at one island in the game and tap what it shows.</p></section>`,
-			run: `<section class="panel barter-run"><div class="panel-head run-head"><h2 class="panel-title plain">The run</h2><span class="panel-sub">what today could pay, before the board is known</span></div>${ordersHTML(ordersNow())}${evHTML || '<p class="empty">Nothing to lay out until the board is known.</p>'}</section>`
+			run: `<section class="panel barter-run"><div class="panel-head run-head"><h2 class="panel-title plain">The run</h2><span class="panel-sub">what today could pay, before the board is known</span></div>${ordersHTML(ordersNow())}${evHTML || '<p class="empty">Nothing to lay out until the board is known.</p>'}</section>`,
+			rest: ''
 		};
 	}
 	const o = ordersNow();
@@ -985,7 +1054,8 @@ function silverParts(me, b) {
 	const empty = chosen.length ? '' : '<div class="run-empty">Nothing ticked yet. Pick a chain on the left and the run lays itself out here — every rung, the hold after it, and where it has to call.</div>';
 	return {
 		chains: chainsPanel,
-		run: `<section class="panel barter-run">${runHead}${tiles}</section>${empty}${loaded}${bought}${segs}${stashed}${kept}${sailBar(plan)}${chartButton(plan.stops, '')}`
+		run: `<section class="panel barter-run">${runHead}${tiles}</section>`,
+		rest: `${empty}${loaded}${bought}${segs}${stashed}${kept}${sailBar(plan)}${chartButton(plan.stops, '')}`
 	};
 }
 
@@ -1264,28 +1334,21 @@ export function renderBarter() {
 	const me = currentShip();
 	const b = boardNow();
 	if (!barterData) return '<p class="empty">Reading the barter table…</p>';
-	// For silver the hold and the board's chains are one column and the
-	// run the other. For a material the list is the page's width and
-	// first -- it is the thing being worked -- with the run it makes
-	// and the hold it draws on side by side under it.
-	if (goal === 'material') {
-		const parts = materialParts(me, b.data);
-		return `<div class="barter-screen">
-			${boardHTML(b)}
-			${parts.chains}
-			<div class="barter-layout material">
-				<div class="barter-left">${parts.run}</div>
-				<div class="barter-right">${holdHTML(me)}${weekHTML()}</div>
-			</div>
-		</div>`;
-	}
-	const parts = silverParts(me, b);
+	// One column, the page's width, for either goal. The hold is a line
+	// across the top that opens over the page; then the board; then for
+	// silver the orders, the chains laid across the page to tick, and
+	// the run they make; for a material the list, then the run. The
+	// week's log closes the page.
+	const html = goal === 'material'
+		? (() => { const parts = materialParts(me, b.data); return `${parts.chains}${parts.run}`; })()
+		: (() => { const parts = silverParts(me, b); return `${parts.run}${parts.chains}${parts.rest}`; })();
+	// The hold dialog, if up, follows the redraw.
+	setTimeout(refreshHold, 0);
 	return `<div class="barter-screen">
 		${boardHTML(b)}
-		<div class="barter-layout">
-			<div class="barter-left">${holdHTML(me)}${parts.chains}${weekHTML()}</div>
-			<div class="barter-right">${parts.run}</div>
-		</div>
+		${holdBarHTML(me)}
+		${html}
+		${weekHTML()}
 	</div>`;
 }
 
@@ -1434,6 +1497,7 @@ export function barterAction(act, el, redraw) {
 			return false;
 		}
 		case 'barter-add': pickGood(redraw); return false;
+		case 'barter-hold-open': openHold(); return false;
 		case 'barter-item': pickMaterial(redraw); return false;
 		// The hold works the count no storage claims: a trade good is never
 		// in the bags, so that count is the ship's. Taking away never

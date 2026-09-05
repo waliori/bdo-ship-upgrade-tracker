@@ -351,6 +351,7 @@ let nearLane = null;   // 1 within LANE_REACH of a lane
 export function setLanes(lines) {
 	lane = null;
 	nearLane = null;
+	legs.clear();
 	const marks = [];
 	for (const drawn of lines || []) {
 		// A lane is drawn with a few stops, and the line between two of
@@ -505,15 +506,33 @@ function simplify(pts) {
  * no way round at all, or the search runs long -- the straight line
  * again, since a drawn line that is wrong beats no line.
  */
+const legs = new Map();   // "ax,ay|bx,by" -> the bends between, [] for a straight leg
+
 export function seaLeg(a, b) {
-	if (clearLine(a.x, a.y, b.x, b.y)) return [a, b];
+	// The same two points bend the same way every time, and a run or a
+	// route is redrawn far more often than its legs change: a leg once
+	// searched is kept, both ways round, until the lanes change.
+	const key = `${a.x},${a.y}|${b.x},${b.y}`;
+	const kept = legs.get(key);
+	if (kept) return [a, ...kept, b];
+	const back = legs.get(`${b.x},${b.y}|${a.x},${a.y}`);
+	if (back) return [a, ...back.slice().reverse(), b];
+	const bends = bendLeg(a, b);
+	if (legs.size >= 4000) legs.clear();
+	legs.set(key, bends);
+	return [a, ...bends, b];
+}
+
+/** The bends of one leg, found: none when the straight line is water. */
+function bendLeg(a, b) {
+	if (clearLine(a.x, a.y, b.x, b.y)) return [];
 	const ends = sharedWater(a, b);
-	if (!ends) return [a, b];
+	if (!ends) return [];
 	const [from, to] = ends;
 	const cells = search(from, to);
-	if (!cells) return [a, b];
+	if (!cells) return [];
 	const pts = [a, ...cells.map(([cx, cy]) => ({ x: mid(cx), y: mid(cy) })), b];
-	return simplify(pts);
+	return simplify(pts).slice(1, -1).map(p => ({ x: p.x, y: p.y }));
 }
 
 /**

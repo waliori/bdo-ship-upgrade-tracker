@@ -229,3 +229,17 @@ test('a lane the game sails is followed by every leg near it', () => {
 	assert.deepEqual(seaLeg(karanza, anax), plain);
 });
 const plainFar = seaLeg(at('Akenisi'), at('Kami'));
+
+test('a leg once bent is kept: the same two points come back the same way at once, and the way back is the way there reversed', () => {
+	const a = { x: 69152, y: 69120 }, b = { x: 42171, y: 40202 };   // Velia to the Relic Cargo Ship
+	const t0 = performance.now();
+	const first = seaRoute([a, b]);
+	const cold = performance.now() - t0;
+	const t1 = performance.now();
+	const again = seaRoute([a, b]);
+	const warm = performance.now() - t1;
+	assert.deepEqual(again.map(p => [p.x, p.y]), first.map(p => [p.x, p.y]));
+	assert.ok(warm <= Math.max(2, cold / 5), `kept: ${warm.toFixed(1)} ms against ${cold.toFixed(1)} ms cold`);
+	const back = seaRoute([b, a]);
+	assert.deepEqual(back.map(p => [p.x, p.y]), first.slice().reverse().map(p => [p.x, p.y]));
+});
