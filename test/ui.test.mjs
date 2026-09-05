@@ -1505,11 +1505,12 @@ test('one run for several materials: each keeps its ticks and its want, and a gi
 	let stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
 	assert.deepEqual(stops, ['Velia wharf|wharf', 'Shipwrecked Ancient Relic Cargo Ship'], 'the harbour first, the island after');
 	assert.match(await text(page, '.run-stop.wharf'), /Loads from storage.*Faded Gold Dragon Figurine/i);
-	// Without the call, the give is missing instead.
+	// Without the call, the route is still laid out -- with the give
+	// assumed aboard -- and Velia's Figurines are to bring first.
 	await page.click('[data-act="barter-mat-calls"]'); await wait(400);
-	stops = await page.$$eval('.run-stop', els => els.length);
-	assert.equal(stops, 0, 'no call, no run');
-	assert.match(await text(page, '.run-tiles'), /Bring to the harbour.*held at Velia, where the run cannot load it/i);
+	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
+	assert.deepEqual(stops, ['Shipwrecked Ancient Relic Cargo Ship'], 'no call: the island alone, the give assumed aboard');
+	assert.match(await text(page, '.run-list.amber'), /Before casting off.*Faded Gold Dragon Figurine.*at Velia \(2\)/i);
 	await page.click('[data-act="barter-mat-calls"]'); await wait(400);
 	// A second material through the picker: its own ticks, its own want.
 	await page.evaluate(() => document.querySelector('[data-act="barter-mat-add"]').click()); await wait(300);
@@ -1530,14 +1531,30 @@ test('one run for several materials: each keeps its ticks and its want, and a gi
 	assert.equal(strip.length, 2, 'both materials on the strip');
 	assert.ok(strip.some(t => /Violent Sea Monster's Scale.*20 wanted.*1 ticked/.test(t)), strip.join(' / '));
 	assert.ok(strip.some(t => new RegExp(`Bright Reef Piece.*${want} wanted.*1 ticked`).test(t)), strip.join(' / '));
-	assert.match(await text(page, '.run-head'), new RegExp(`${want}× Bright Reef Piece, 20× Violent Sea Monster's Scale`));
+	// The head names both, first ticked first: the Scale came first.
+	assert.match(await text(page, '.mat-run-for'), new RegExp(`20× Violent Sea Monster's Scale.*${want}× Bright Reef Piece`));
+	// And the tiles keep their places: the Reef Piece, opened, is still second.
+	assert.match(strip[0], /Violent Sea Monster's Scale/);
+	assert.match(strip[1], /Bright Reef Piece/);
+	assert.ok(await page.$eval('.mat-tile:nth-of-type(2)', el => el.classList.contains('active')), 'the open one is the second tile');
 	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
 	assert.equal(stops.length, 3, `the harbour and both islands: ${stops.join(', ')}`);
 	// Back to the first material: its want and ticks are as they were.
-	await page.evaluate(() => document.querySelector('.mat-tile:not(.active):not(.add)').click()); await wait(400);
+	await page.evaluate(() => document.querySelector('.mat-tile:not(.active):not(.add) .mat-tile-main').click()); await wait(400);
 	const back = await page.$eval('.mat-tile.active', el => el.textContent.replace(/\s+/g, ' ').trim());
 	assert.match(back, /Violent Sea Monster's Scale.*20 wanted.*1 ticked/);
 	assert.equal(await page.$eval('.mat-want .purse-inline', el => el.value), '20');
+	// Tapped again, it is put down: nothing open, the run still for both.
+	await page.evaluate(() => document.querySelector('.mat-tile.active .mat-tile-main').click()); await wait(400);
+	assert.equal(await count(page, '.mat-tile.active'), 0, 'nothing open');
+	assert.equal(await count(page, '.mat-pick-hint'), 1);
+	assert.equal(await count(page, '.mat-for'), 2, 'the run is still for both');
+	// The cross takes a material off the run: its ticks gone, its tile gone.
+	await page.evaluate(() => document.querySelector('.mat-tile-x').click()); await wait(400);
+	assert.equal(await count(page, '.mat-tile:not(.add)'), 1);
+	assert.equal(await count(page, '.mat-for'), 1);
+	await page.evaluate(() => document.querySelector('.mat-tile:not(.add) .mat-tile-main').click()); await wait(400);
+	assert.equal(await count(page, '.mat-tile.active'), 1);
 	// "Every island ticked" sails past the want.
 	await page.select('[data-act="barter-mat-reach"]', 'all'); await wait(400);
 	assert.equal(await page.$eval('[data-act="barter-mat-reach"]', el => el.value), 'all');
@@ -1572,7 +1589,7 @@ test('the material run is one route through every island ticked: a full run goes
 	assert.equal(stops.filter(n => n !== 'Velia wharf').length, 11, `eleven islands, each once: ${stops.join(', ')}`);
 	assert.equal(stops.filter(n => n === 'Velia wharf').length, 2, `two departures from Velia: ${stops.join(', ')}`);
 	assert.equal(stops[0], 'Velia wharf', 'the first stop loads at the harbour');
-	assert.match(await text(page, '.run-tiles'), /2 departures/);
+	assert.match(await text(page, '.mat-figs'), /2 departures/);
 	assert.match(await text(page, '.run-seg-head'), /22 trades/);
 	assert.equal(await count(page, '.run-list.amber'), 0, 'nothing stays ashore on a full run');
 	// The hold never over the barter ceiling, on any stop.
@@ -1610,7 +1627,7 @@ test('before casting off: a gold bar an island takes is bought ashore and priced
 	await tickFor('Gold Bar 100G'); await wait(400);
 	let stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
 	assert.equal(stops.length, 1, `one island, no harbour call: ${stops.join(', ')}`);
-	assert.match(await text(page, '.run-tiles'), /buys 2× Gold Bar 100G ashore first for 20m/i);
+	assert.match(await text(page, '.mat-figs'), /20m to buy ashore first/i);
 	const before = await text(page, '.run-list.amber');
 	assert.match(before, /Before casting off/i);
 	assert.match(before, /2× Gold Bar 100G.*buy ashore.*storage keeper.*20m/i);
@@ -1622,9 +1639,9 @@ test('before casting off: a gold bar an island takes is bought ashore and priced
 	await tickFor('Amethyst Fragment'); await wait(400);
 	const bring = await text(page, '.run-list.amber');
 	assert.match(bring, /Amethyst Fragment.*at Heidel \(2\).*bring it to Velia/i);
-	assert.match(await text(page, '.run-tiles'), /Bring to the harbour/i);
-	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
-	assert.equal(stops.length, 1, 'the Figurine island is not sailed: its give is out of reach');
+	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
+	assert.equal(stops.length, 3, `the route is laid out all the same, the give assumed in Velia's storage: ${stops.join(', ')}`);
+	assert.equal(stops[0], 'Velia wharf|wharf');
 	// Moved to Velia, the give is loaded at the first stop and the island joins the route.
 	await page.evaluate(async () => { const store = await import('/js/state.js'); store.setStockAt('[Level 4] Amethyst Fragment', 'Heidel', 0, 'moved'); store.setStockAt('[Level 4] Amethyst Fragment', 'Velia', 2, 'moved'); });
 	await wait(500);

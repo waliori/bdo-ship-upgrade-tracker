@@ -4687,10 +4687,14 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
    Ticking is the work, so a row ticked wears the teal edge. */
 .mat-list.hero { padding: 0; overflow: hidden; }
 .mat-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line-head); }
-.mat-tile { display: flex; align-items: center; gap: 9px; background: var(--panel-inset); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px 6px 7px; text-align: left; color: var(--ink-mid); font: inherit; cursor: pointer; }
+.mat-tile { display: flex; align-items: stretch; background: var(--panel-inset); border: 1px solid var(--line); border-radius: 10px; padding: 0; text-align: left; color: var(--ink-mid); font: inherit; overflow: hidden; }
 .mat-tile:hover { border-color: rgba(88, 168, 232, 0.5); }
 .mat-tile.active { background: rgba(88, 168, 232, 0.12); border-color: rgba(88, 168, 232, 0.55); color: var(--ink-hi); }
+.mat-tile-main { display: flex; align-items: center; gap: 9px; padding: 6px 12px 6px 7px; background: none; border: none; color: inherit; font: inherit; text-align: left; cursor: pointer; min-width: 0; }
+.mat-tile-x { flex: none; border: none; border-left: 1px solid var(--line); background: none; color: var(--ink-faint); padding: 0 10px; font: inherit; font-size: 15px; line-height: 1; cursor: pointer; }
+.mat-tile-x:hover { color: var(--red); background: rgba(232, 122, 109, 0.09); }
 .mat-tile .row-icon.md { flex: none; }
+.mat-pick-hint { padding: 22px 18px 26px; text-align: center; color: var(--ink-mute); font-size: 13px; line-height: 1.6; }
 .mat-tile-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .mat-tile-name { font-size: 12.5px; font-weight: 600; white-space: nowrap; }
 .mat-tile-sub { display: flex; gap: 8px; font-size: 11px; color: var(--ink-mute); font-weight: 400; }
@@ -4768,16 +4772,56 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .run-head .run-pick { flex: none; }
 .run-head .run-pick .run-pick-k { margin: 0; letter-spacing: 0; text-transform: none; font-size: 11.5px; color: var(--ink-mute); }
 .run-head .run-pick .select { padding: 5px 9px; font-size: 12px; }
-.mat-orders { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 9px 18px; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; color: var(--ink-mid); }
-.mat-order { display: inline-flex; align-items: center; gap: 8px; }
+.mat-run-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 18px; border-bottom: 1px solid var(--line-soft); }
+.mat-run-head .panel-title { margin: 0; }
+.mat-run-head .run-pick { margin-left: auto; }
+.mat-run-for { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 200px; min-width: 0; }
+.mat-for { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 4px; border-radius: 999px; background: var(--panel-inset); border: 1px solid var(--line); font-size: 12px; color: var(--ink-mid); }
+.mat-for.active { border-color: rgba(88, 168, 232, 0.45); color: var(--ink-hi); }
+.mat-for .row-icon.sm { width: 22px; height: 22px; border-radius: 5px; flex: none; }
+.mat-for b { font-family: var(--font-display); font-weight: 600; color: var(--ink-hi); }
+.mat-orders { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 10px 18px; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; color: var(--ink-mid); }
+.mat-order { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
 .mat-order .run-pick-k { margin: 0; }
-.mat-orders .purse-inline { text-transform: none; letter-spacing: 0; }
-.run-tiles.flat { display: flex; flex-wrap: wrap; gap: 0; margin: 0; }
-.run-tiles.flat > div { flex: 1 1 130px; padding: 13px 18px; border-radius: 0; background: transparent; border-right: 1px solid var(--line-soft); }
-.run-tiles.flat > div:last-child { border-right: none; }
-.run-tiles.flat .summary-k { font-size: 10px; letter-spacing: 0.12em; margin-bottom: 4px; }
-.run-tiles.flat .summary-v.orange { color: var(--tier-7); }
-.run-tiles.flat .summary-v.names { font-size: 14.5px; }
+.mat-orders .purse-inline { text-transform: none; letter-spacing: 0; max-width: 100%; }
+.mat-summary { padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 14px; }
+.mat-yield { display: flex; flex-direction: column; gap: 8px; }
+.mat-yield-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "icon name n" "icon bar bar" "icon note note"; column-gap: 10px; row-gap: 3px; align-items: center; }
+.mat-yield-row .row-icon.sm { grid-area: icon; width: 34px; height: 34px; border-radius: 7px; }
+.mat-yield-name { grid-area: name; font-size: 13px; font-weight: 600; color: var(--ink-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mat-yield-n { grid-area: n; font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--amber); white-space: nowrap; }
+.mat-yield-n small { font-size: 11px; font-weight: 500; color: var(--ink-mute); }
+.mat-yield-row.met .mat-yield-n { color: var(--teal); }
+.mat-yield-row.none .mat-yield-n { color: var(--ink-faint); }
+.mat-yield-bar { grid-area: bar; position: relative; height: 5px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.mat-yield-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: rgba(232, 182, 97, 0.45); }
+.mat-yield-bar i.least { background: var(--amber); }
+.mat-yield-row.met .mat-yield-bar i { background: rgba(78, 201, 174, 0.45); }
+.mat-yield-row.met .mat-yield-bar i.least { background: var(--teal); }
+.mat-yield-note { grid-area: note; font-size: 11px; color: var(--ink-faint); }
+.mat-figs { display: flex; flex-wrap: wrap; gap: 8px 10px; }
+.mat-fig { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 9px; border-radius: 10px; background: var(--panel-inset); border: 1px solid var(--line-soft); min-width: 0; }
+.mat-fig > i { font-style: normal; font-size: 15px; line-height: 1; flex: none; width: 20px; text-align: center; display: inline-flex; justify-content: center; }
+.mat-fig > i .row-icon.xs { width: 18px; height: 18px; border-radius: 4px; }
+.mat-fig-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.mat-fig-text b { font-family: var(--font-display); font-size: 13px; font-weight: 600; color: var(--ink-hi); white-space: nowrap; }
+.mat-fig-text small { font-size: 10.5px; color: var(--ink-faint); }
+.mat-fig.ok .mat-fig-text b { color: var(--teal); }
+.mat-fig.amber .mat-fig-text b { color: var(--amber); }
+.mat-fig.warn .mat-fig-text b { color: var(--red); }
+.mat-goods .run-good { flex-wrap: wrap; gap: 8px 10px; }
+.mat-goods .run-good .row-icon.sm { width: 26px; height: 26px; border-radius: 5px; flex: none; }
+.mat-goods .run-good > span:not(.faint):not(.run-good-worth) { white-space: normal; flex: 1 1 150px; }
+.mat-goods .run-good .faint { flex: 1 1 100%; order: 5; padding-left: 2px; white-space: normal; }
+@media (max-width: 640px) {
+  .mat-run-head, .mat-orders, .mat-summary { padding-left: 14px; padding-right: 14px; }
+  .mat-run-head .run-pick { margin-left: 0; }
+  .mat-order { display: flex; width: 100%; }
+  .mat-order .purse-inline { flex: 1 1 auto; min-width: 0; }
+  .mat-figs .mat-fig { flex: 1 1 45%; }
+  .mat-goods .run-good { padding-left: 14px; padding-right: 14px; }
+  .mat-goods .run-good .run-good-worth { flex: 1 1 100%; order: 6; margin-left: 0; }
+}
 .run-list.orange { border-color: rgba(232, 144, 93, 0.25); }
 .run-list.orange .panel-title { color: var(--tier-7); }
 .run-list.amber { border-color: rgba(232, 182, 97, 0.3); }

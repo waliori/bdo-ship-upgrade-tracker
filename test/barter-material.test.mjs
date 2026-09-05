@@ -74,13 +74,27 @@ test('for the wants the run deals what the want takes and no more; for every isl
 	assert.equal(wanted.waits.get(SCALE), 0);
 	const all = materialRun({ picks, wants: { [SCALE]: 7 }, reach: 'all', stock: { [L5]: 10 }, hold: { free: 20000, deal: 25000, max: 30000 }, start: velia, startWharf: veliaWharf, npcById });
 	assert.equal(all.trades, 6);
-	// The give short: what is not held is to climb for, island by island.
-	const short = materialRun({ picks, wants: { [SCALE]: 99 }, reach: 'all', stock: { [L5]: 1 }, hold, start: velia, startWharf: veliaWharf, npcById });
-	assert.equal(short.trades, 1);
+	// The give short: the run is laid out all the same, with the five
+	// Figurines it lacks assumed to be got first and put in Velia's
+	// storage, where the first stop loads them.
+	const short = materialRun({ picks, wants: { [SCALE]: 99 }, reach: 'all', stock: { [L5]: 1 }, hold: { free: 20000, deal: 25000, max: 30000 }, start: velia, startWharf: veliaWharf, npcById });
+	assert.equal(short.trades, 6);
+	assert.deepEqual(names(short.stops), ['Velia+5', 'A', 'B', 'C']);
 	assert.equal(short.missing.length, 1);
 	assert.equal(short.missing[0].give, L5);
 	assert.equal(short.missing[0].n, 5);
-	assert.equal(short.waits.get(SCALE), 96);
+	assert.equal(short.missing[0].kind, 'good');
+	assert.equal(short.waits.get(SCALE), 99 - 18);
+	// Planned only with what is held, it deals once and goes home.
+	const held = materialRun({ picks, wants: { [SCALE]: 99 }, reach: 'all', stock: { [L5]: 1 }, assume: false, hold, start: velia, startWharf: veliaWharf, npcById });
+	assert.equal(held.trades, 1);
+	assert.equal(held.missing[0].n, 5);
+	assert.equal(held.waits.get(SCALE), 96);
+	// Without a harbour the lack is assumed aboard from the start.
+	const adrift = materialRun({ picks, wants: { [SCALE]: 99 }, reach: 'all', stock: {}, hold: { free: 20000, deal: 25000, max: 30000 }, start: null, npcById });
+	assert.equal(adrift.trades, 6);
+	assert.equal(adrift.calls, 0);
+	assert.equal(adrift.weightStart, 6000, 'six Figurines aboard, to be got first');
 });
 
 test('a full run loads to the barter ceiling and goes back to the harbour for the gives that did not fit; a fast run sails once and says what stayed ashore', () => {
@@ -174,27 +188,32 @@ test('a give that is no trade good comes out of the bags or the shop: gold bars 
 	assert.equal(plan.cost, 30000000);
 	assert.deepEqual(plan.missing, []);
 	assert.ok(plan.stops.every(s => s.weightAfter === 0), 'a gold bar weighs nothing the hold counts');
-	// With buying off, the bars are missing and said to be a land good.
+	// With buying off, the bars are to get first, and said to be a land good.
 	const off = materialRun({ picks: bars, wants: { [REEF]: 99 }, reach: 'all', bags: { [BAR]: 1 }, buy: false, hold, start: velia, startWharf: veliaWharf, npcById });
-	assert.equal(off.trades, 1);
+	assert.equal(off.trades, 4);
+	assert.deepEqual(off.bought, []);
 	assert.equal(off.missing[0].kind, 'land');
 	assert.equal(off.missing[0].n, 3);
 	// A material for a material, out of the bags: a shortfall is a material to find, not a good to climb for or a thing to buy.
 	const salt = materialRun({ picks: [pick(1, SALT, { give: PLY, giveN: 2, recv: '1', tries: 3 })], wants: { [SALT]: 99 }, reach: 'all', bags: { [PLY]: 3 }, hold, start: velia, startWharf: veliaWharf, npcById });
-	assert.equal(salt.trades, 1);
+	assert.equal(salt.trades, 3);
 	assert.equal(salt.missing[0].kind, 'material');
-	assert.equal(salt.missing[0].n, 4);
+	assert.equal(salt.missing[0].n, 3, 'six handed over, three in the bags');
+	assert.equal(salt.calls, 0, 'a material in the bags is not loaded at a wharf');
 });
 
 test('a give kept where the run cannot load it -- a town without a wharf, or a harbour when calls are off -- is short, and the run says where it sits', () => {
 	const picks = [pick(1, REEF, { give: L4 })];
 	const stores = [{ town: 'Heidel', wharf: null, goods: { [L4]: 5 } }, { town: 'Iliya Island', wharf: northWharf, goods: { [L4]: 1 } }];
 	const plan = materialRun({ picks, wants: { [REEF]: 99 }, reach: 'all', stores, hold, start: velia, startWharf: veliaWharf, npcById });
-	assert.equal(plan.trades, 1, 'the one at Iliya, called for');
+	assert.equal(plan.trades, 2, 'the one at Iliya, called for, and one got first');
+	assert.equal(plan.calls, 2, 'Velia for the one to get first, Iliya for the one kept there');
 	assert.equal(plan.missing[0].kind, 'good');
 	assert.equal(plan.missing[0].n, 1);
 	assert.deepEqual(plan.missing[0].heldAt, [{ town: 'Heidel', n: 5 }]);
 	const off = materialRun({ picks, wants: { [REEF]: 99 }, reach: 'all', stores, calls: false, hold, start: velia, startWharf: veliaWharf, npcById });
-	assert.equal(off.trades, 0);
+	assert.equal(off.trades, 2);
+	assert.equal(off.missing[0].n, 2);
 	assert.deepEqual(off.missing[0].heldAt, [{ town: 'Heidel', n: 5 }, { town: 'Iliya Island', n: 1 }]);
+	assert.deepEqual(names(off.stops), ['Velia+2', 'A'], 'both brought to Velia first, then loaded');
 });

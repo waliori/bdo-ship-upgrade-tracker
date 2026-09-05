@@ -20,6 +20,13 @@
 // material -- Rock Salt Ingot for Cobalt Ingot -- out of the bags. The
 // run counts both, and says what to buy and what it lacks.
 //
+// What is lacked does not stop the run being laid out. A sailor who
+// holds none of a give still wants to see the route and what it would
+// bring, so the run assumes the shortfall is got first -- in the start
+// harbour's storage, or aboard when there is no harbour -- lays the
+// route out with it, and lists it as the thing to get before casting
+// off. `assume: false` plans only with what is held.
+//
 // Pure: the ticked exchanges, the wants, what is held where, the hold
 // and the harbours come in; the stops in sailing order go out.
 // Distances are straight lines, which is enough to order the stops;
@@ -119,15 +126,17 @@ export function tour(points, { start = null, end = null } = {}) {
  * in sailing order -- an island with its `times`, or a wharf with what
  * is loaded from and left in its storage -- each weighed after it; per
  * material the least and most that comes aboard and what is still
- * wanted; the gives short (`missing`: { give, n, kind, heldAt,
- * islands }, `kind` 'good' for a trade good to climb for, 'material'
- * for a ship material, 'land' for a land good not bought, `heldAt` the
- * storages holding some out of the run's reach); the gives held that
+ * wanted; the gives to get first (`missing`: { give, n, kind, heldAt,
+ * islands } -- what the run assumed got before casting off, or with
+ * `assume` off what it went without; `kind` 'good' for a trade good to
+ * climb for, 'material' for a ship material, 'land' for a land good
+ * not bought, `heldAt` the storages holding some out of the run's
+ * reach); the gives held that
  * the hold could not carry (`noRoom`); the land goods to buy before
  * casting off (`bought`: { item, n, each, how, total }) and their
  * `cost`; how many times the run went back to a harbour (`returns`).
  */
-export function materialRun({ picks = [], wants = new Map(), reach = 'want', pace = 'full', calls = true, buy = true, stock = {}, dock = {}, stores = [], bags = {}, prices = {}, hold, start = null, startWharf = null, npcById } = {}) {
+export function materialRun({ picks = [], wants = new Map(), reach = 'want', pace = 'full', calls = true, buy = true, assume = true, stock = {}, dock = {}, stores = [], bags = {}, prices = {}, hold, start = null, startWharf = null, npcById } = {}) {
 	const wantOf = wants instanceof Map ? wants : new Map(Object.entries(wants));
 	const limit = pace === 'fast' ? hold.free : (hold.deal ?? hold.free);
 	const place = x => npcById.get(x.npcId);
@@ -140,7 +149,8 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	const aboard = goodsHeld(stock);
 	const harbours = new Map();   // town -> { town, wharf, goods: Map }
 	const stranded = [];          // storages the run cannot load from
-	if (start && startWharf && Object.keys(dock).length) harbours.set(start.name, { town: start.name, wharf: startWharf, goods: goodsHeld(dock) });
+	const home = start && startWharf ? { town: start.name, wharf: startWharf, goods: goodsHeld(dock) } : null;
+	if (home && home.goods.size) harbours.set(start.name, home);
 	for (const st of [...stores].sort((a, b) => dist(start, a.wharf) - dist(start, b.wharf))) {
 		const goods = goodsHeld(st.goods);
 		if (!goods.size || harbours.has(st.town)) continue;
@@ -158,6 +168,9 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 				if (bags[give] > 0) out.push({ src: 'bags', n: Number(bags[give]) });
 				if (buy && isLandGood(give)) out.push({ src: 'shop', n: Infinity });
 			}
+			// The shortfall, got first: into the start harbour's storage,
+			// or aboard, or the bags, whichever the give would be in.
+			if (assume) out.push({ src: isGood(give) ? (home ? home.town : 'aboard') : 'bags', n: Infinity, assumed: true });
 			supply.set(give, out);
 		}
 		return supply.get(give);
@@ -194,6 +207,16 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 			if (take <= 1e-9) continue;
 			s.n -= take; due -= take;
 			if (s.src === 'shop') bought.set(x.give, (bought.get(x.give) || 0) + take);
+			if (s.assumed) {
+				const m = missing.get(x.give) || { n: 0, islands: [] };
+				m.n += take;
+				if (!m.islands.includes(place(x))) m.islands.push(place(x));
+				missing.set(x.give, m);
+				if (isGood(x.give)) {
+					if (home) { home.goods.set(x.give, (home.goods.get(x.give) || 0) + take); harbours.set(home.town, home); }
+					else aboard.set(x.give, (aboard.get(x.give) || 0) + take);
+				}
+			}
 			// What is aboard or in the bags, or bought ashore, sails with
 			// the run from the start; the rest waits at a harbour.
 			needs.push({ src: s.src, give: x.give, n: take, loaded: s.src === 'aboard' || s.src === 'bags' || s.src === 'shop' });
@@ -319,9 +342,8 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	// The start harbour first: its storage is loaded before casting
 	// off, and what the run will not spend is left there rather than
 	// carried round the sea.
-	if (start && startWharf) {
-		const home = harbours.get(start.name);
-		if (home) callAt(home);
+	if (home) {
+		if (harbours.has(home.town)) callAt(home);
 		else if (weight > limit + 1e-6 && spare().length) {
 			const stop = { wharf: startWharf, dropped: [], sale: null, loads: [], hold };
 			for (const [name, n] of spare()) {
