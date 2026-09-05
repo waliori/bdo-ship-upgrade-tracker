@@ -1487,3 +1487,60 @@ test('the game\'s favourites come back as the route they were written from, and 
 	assert.deepEqual(errors, []);
 	await context.close();
 });
+
+test('one run for several materials: each keeps its ticks and its want, and a give kept at another harbour is called for on the way', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.evaluate(() => { localStorage.setItem('bdo-tracker/barter-view', JSON.stringify({ goal: 'material', item: "Violent Sea Monster's Scale", qty: 20, port: 0 })); });
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.mat-list.hero', { timeout: 15000 });
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)');
+		// The Figurine only at Velia's storage: a run has to put in there for it.
+		store.setStockAt('[Level 5] Faded Gold Dragon Figurine', 'Velia', 2, 'ashore');
+	});
+	await wait(500);
+	// The Figurine group deals the Scale: tick its island.
+	const tickFor = give => page.evaluate(g => { const grp = [...document.querySelectorAll('.mat-give')].find(el => el.querySelector('.mat-give-head b').textContent.includes(g)); grp.querySelector('[data-act="barter-mat-tick"]').click(); }, give);
+	await tickFor('Faded Gold Dragon Figurine'); await wait(400);
+	let stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
+	assert.deepEqual(stops, ['Velia wharf|wharf', 'Shipwrecked Ancient Relic Cargo Ship'], 'the harbour first, the island after');
+	assert.match(await text(page, '.run-stop.wharf'), /Loads from storage.*Faded Gold Dragon Figurine/i);
+	// Without the call, the give is missing instead.
+	await page.click('[data-act="barter-mat-calls"]'); await wait(400);
+	stops = await page.$$eval('.run-stop', els => els.length);
+	assert.equal(stops, 0, 'no call, no run');
+	assert.match(await text(page, '.run-tiles'), /To get first/i);
+	await page.click('[data-act="barter-mat-calls"]'); await wait(400);
+	// A second material through the picker: its own ticks, its own want.
+	await page.click('[data-act="barter-mat-add"]'); await wait(300);
+	await page.type('.picker-in', 'Bright Reef Piece'); await wait(150);
+	await page.keyboard.press('Enter'); await wait(500);
+	// Its own want: what the builds are short of, not the Scale's twenty.
+	const want = await page.$eval('.run-pick-qty .purse-inline', el => el.value);
+	assert.ok(want !== '20' && Number(want) > 0, `a fresh want for a fresh material: ${want}`);
+	// Hold the give its first group takes, and tick that group's island.
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		const give = document.querySelector('.mat-give-head b').textContent.replace(/^[\d.–-]+× /, '');
+		store.setStock(give, 5);
+	});
+	await wait(400);
+	await page.evaluate(() => document.querySelector('[data-act="barter-mat-tick"]').click()); await wait(400);
+	const strip = await page.$$eval('.mat-chip', els => els.map(c => c.textContent.replace(/\s+/g, ' ').trim()));
+	assert.equal(strip.length, 2, 'both materials on the strip');
+	assert.ok(strip.some(t => /Violent Sea Monster's Scale.*1 ticked.*20 wanted/.test(t)), strip.join(' / '));
+	assert.ok(strip.some(t => new RegExp(`Bright Reef Piece.*1 ticked.*${want} wanted`).test(t)), strip.join(' / '));
+	assert.match(await text(page, '.run-head'), new RegExp(`${want}× Bright Reef Piece, 20× Violent Sea Monster's Scale`));
+	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
+	assert.equal(stops.length, 3, `the harbour and both islands: ${stops.join(', ')}`);
+	// Back to the first material: its want and ticks are as they were.
+	await page.click('.mat-chip:not(.active)'); await wait(400);
+	const back = await page.$eval('.mat-chip.active', el => el.textContent.replace(/\s+/g, ' ').trim());
+	assert.match(back, /Violent Sea Monster's Scale.*1 ticked.*20 wanted/);
+	assert.equal(await page.$eval('.run-pick-qty .purse-inline', el => el.value), '20');
+	// "Every island ticked" sails past the want.
+	await page.select('[data-act="barter-mat-reach"]', 'all'); await wait(400);
+	assert.equal(await page.$eval('[data-act="barter-mat-reach"]', el => el.value), 'all');
+	assert.deepEqual(errors, []);
+	await context.close();
+});

@@ -524,6 +524,14 @@ come onto the chart — as the route when their points sit on barterers
 be put over the whole screen; on a phone that is the whole screen, in
 landscape.
 
+The material list is the run for **several materials at once**: tick
+the islands showing each material you are after, each with its own
+want, and one run sails for all of them -- the islands in the shortest
+order from the harbour, a give kept at another harbour's storage loaded
+on the way with a wharf call before the island that needs it, and a
+choice between coming home once the wants are met and sailing every
+island ticked.
+
 Every line the chart draws, and every loop it writes, is bent round the
 land in its way: `tools/build-seamask.mjs` reads the shipped tiles and
 records which parts of the chart are sea, and a leg that cannot be

@@ -3266,7 +3266,7 @@ function paintStash(layer, size, seq, current) {
 			? `${g.calls.length} calls on this run, at stops ${stops.join(', ')}`
 			: `stop ${stops[0]}: ${g.calls[0].place.drops.length
 				? `leaves ${g.calls[0].place.drops.map(d => `${n1(d.n)}× ${d.item}`).join(', ')} in storage`
-				: 'sells the goods aboard'}`}`;
+				: g.calls[0].place.sale ? 'sells the goods aboard' : 'a call at the wharf'}`}`;
 		el.classList.toggle('current', g.calls.includes(current));
 		el.classList.toggle('many', g.calls.length > 1);
 		el.style.transform = `translate(${Math.round(at.left)}px, ${Math.round(at.top)}px)`;

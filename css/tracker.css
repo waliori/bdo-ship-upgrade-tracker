@@ -4686,3 +4686,17 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .map-game-set-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .map-game-set-name small { font-size: 11.5px; color: var(--ink-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .map-game-set .purse-inline { flex: none; }
+
+/* ---- Several materials on one list: a chip each, the run for all ---- */
+.mat-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 12px 20px 0; }
+.chip.mat-chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 6px; line-height: 1.2; }
+.chip.mat-chip .row-icon.sm { flex: none; }
+.chip.mat-chip .mat-chip-name { font-size: 12.5px; }
+.chip.mat-chip .mat-chip-sub { font-size: 10.5px; color: var(--ink-faint); font-weight: 400; }
+.chip.mat-chip.active { background: rgba(78, 201, 174, 0.18); border-color: var(--teal); color: var(--teal-hi); }
+.chip.mat-chip.active .mat-chip-sub { color: var(--teal); }
+.chip.mat-chip-add { color: var(--ink-mute); }
+.mat-orders { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 12px; padding: 8px 11px; border-radius: var(--r-btn); background: var(--panel-inset); font-size: 12.5px; color: var(--ink-mid); }
+.mat-order { display: inline-flex; align-items: center; gap: 8px; }
+.mat-order .run-pick-k { margin: 0; }
+@media (max-width: 720px) { .mat-strip { padding: 10px 14px 0; } }
