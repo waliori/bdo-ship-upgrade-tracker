@@ -283,6 +283,10 @@ function boardHTML(b) {
 		${seen ? `<div class="barter-bar-seen"><span class="barter-bar-k">looked at</span><span class="chips">${seen}</span></div>` : ''}
 		<div class="barter-bar-acts">${goals}${acts}</div>
 	</div>`;
+	// The material islands are not part of any layout, so with a
+	// material as the goal there is no layout to ask after: the bar is
+	// the goal toggle and a word on where the day's list is ticked.
+	if (goal === 'material') return bar('', '<b>Today’s material list</b><span>ticked below</span>', 'The material islands roll on their own, apart from the forty layouts, so no island is asked about here: open the barter window in game and tick, below, the islands showing what you are after.', '', '');
 	if (!combos) return bar('', '<b>Today’s board</b>', 'The record of the boards did not load, so a run is planned on the whole table at best.', '', '');
 	const since = new Date(combos.sample.since + 'T00:00:00Z').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 	// Each answer wears the good it handed back, so a mistyped island is
