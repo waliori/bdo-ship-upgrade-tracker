@@ -53,12 +53,22 @@ test('what is aboard shortens the ladder: the top give in the hold covers the ru
 	assert.equal(p.first, null);
 	assert.ok(p.stops.every(s => s.item === 'Brilliant Pearl Shard'));
 	assert.equal(p.stops.reduce((a, s) => a + s.times, 0), 4);
-	// Part of it aboard: the rung below is only asked for the rest.
+	// Part of it aboard: the hold's part is one rung, the shortfall
+	// another beside it, and the rung below is only asked for the rest.
 	const part = materialPlan({ item: 'Brilliant Pearl Shard', qty: 4, stock: { [top.give]: 2 }, barterData, npcById });
 	assert.ok(!part.covered);
 	assert.equal(part.rungs[0].have, 2);
-	assert.equal(part.rungs[0].short, 2);
-	assert.equal(part.rungs[1].need, 2);
+	assert.equal(part.rungs[0].short, 0);
+	assert.equal(part.rungs[0].trades, 2);
+	assert.equal(part.rungs[1].item, 'Brilliant Pearl Shard');
+	assert.equal(part.rungs[1].short, 2);
+	assert.equal(part.rungs[2].need, 2);
+	// A good held on another path is spent before anything is bought:
+	// three Azure Quartz cover forty Tidal Black Stone in two trades.
+	const side = materialPlan({ item: 'Tidal Black Stone', qty: 40, stock: { '[Level 5] Azure Quartz': 3 }, barterData, npcById });
+	assert.ok(side.covered);
+	assert.equal(side.trades, 2);
+	assert.equal(side.rungs[0].give, '[Level 5] Azure Quartz');
 });
 
 test('nothing bartered, no plan', () => {

@@ -19,7 +19,7 @@
 
 import { levelOf } from './barter.js';
 import { exchanges, goodsHeld, weightHeld, weightOf, sellOf } from './barter-plan.js';
-import { sellable, floorOf, DEFAULT_ORDERS } from './barter-orders.js';
+import { sellable, floorOf, PLAIN_ORDERS } from './barter-orders.js';
 
 /**
  * Every chain the table allows, highest top first. A chain is
@@ -89,7 +89,7 @@ const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);
  * other good aboard at the end is carried home, and the run says what
  * it would sell for.
  */
-export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = DEFAULT_ORDERS, prices = {}, seen = {} } = {}) {
+export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {} } = {}) {
 	// What an island was seen to pay this run, tapped on the checklist,
 	// replaces the range the table gives for it: counted and weighed at
 	// that, no longer at the least and the most.

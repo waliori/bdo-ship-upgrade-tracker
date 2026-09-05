@@ -158,7 +158,11 @@ export function materialPlan({ item, qty = 1, stock = {}, barterData, npcById, s
 			seenKey.add(k);
 			ex.push(x);
 		}
-		ex.sort((a, b) => Number((held.get(b.give) || 0) > 0) - Number((held.get(a.give) || 0) > 0) || rate(b) - rate(a) || b.tries - a.tries);
+		// Ties broken the ladder's way: the higher attempt cap needs fewer
+		// redraws, and the give more islands deal is likelier on a board.
+		const spread = x => rows.filter(y => y.item === target && y.give === x.give).length;
+		const better = (a, b) => rate(b) - rate(a) || b.tries - a.tries || spread(b) - spread(a);
+		ex.sort((a, b) => Number((held.get(b.give) || 0) > 0) - Number((held.get(a.give) || 0) > 0) || better(a, b));
 		// From the hold, exchange by exchange.
 		for (const x of ex) {
 			if (need <= 1e-9) break;
@@ -181,7 +185,7 @@ export function materialPlan({ item, qty = 1, stock = {}, barterData, npcById, s
 		if (need <= 1e-9) return;
 		// The shortfall: the best exchange by rate, its give covered a
 		// rung down, or bought ashore when it is a land good.
-		const best = ex.slice().sort((a, b) => rate(b) - rate(a) || b.tries - a.tries)[0];
+		const best = ex.slice().sort(better)[0];
 		if (!best) return;
 		const trades = Math.ceil(need / best.recv - 1e-9);
 		const giveNeed = trades * best.giveN;

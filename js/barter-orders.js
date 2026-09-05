@@ -39,6 +39,11 @@ export const PRESETS = [
 
 export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, hours: 0, count: 'least' };
 
+/** The orders a run has when none are given: the [Level 7]s sold and
+ *  nothing else, no floors -- the run as it was before there were
+ *  orders, and what the tests pin. */
+export const PLAIN_ORDERS = { preset: 'cash', sell: 7, floors: {}, buy: true, pace: 'fast', hours: 0, count: 'least' };
+
 /** How an exchange that pays a range is counted. */
 export const COUNT_CHOICES = [['least', 'at the least — 2 of a 2-3'], ['average', 'at the average'], ['seen', 'as your own runs saw it']];
 

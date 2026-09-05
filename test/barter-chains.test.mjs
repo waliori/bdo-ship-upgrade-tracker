@@ -80,7 +80,7 @@ test('a full run from the shore: every attempt the limit allows at each rung, a 
 	assert.equal(p.sold.length, 1);
 	assert.equal(p.sold[0].at, 'Velia');
 	assert.equal(p.silver, 5 * GOODS[7].sell);
-	assert.deepEqual(p.bought, [{ item: 'Copper Ingot', n: 100 }]);
+	assert.deepEqual(p.bought.map(b => [b.item, b.n]), [['Copper Ingot', 100]]);
 	assert.equal(p.trades, 56);
 	assert.ok(Math.abs(p.parleyUsed - 56 * parley.perTrade) < 1e-6);
 	assert.ok(p.keptWorth > 0, 'what is left over is priced');
@@ -99,7 +99,7 @@ test('a fast run fills the hold to the limit without a wharf call: the top’s a
 	// more than feeds them: a leftover [Level 2] sells for nothing.
 	assert.deepEqual(islands.map(s => s.times), [2, 2, 4, 6, 6, 5, 5]);
 	assert.equal(p.silver, 5 * GOODS[7].sell);
-	assert.deepEqual(p.bought, [{ item: 'Copper Ingot', n: 20 }]);
+	assert.deepEqual(p.bought.map(b => [b.item, b.n]), [['Copper Ingot', 20]]);
 	assert.ok(p.kept.some(s => levelOf(s.item) === 4), 'the extra [Level 4]s come home');
 	// A tighter hull takes only what the top can use -- and the sixth
 	// attempt at the [Level 5] rung, which weighs nothing extra and

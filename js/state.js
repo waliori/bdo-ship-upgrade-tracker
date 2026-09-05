@@ -523,7 +523,6 @@ function writeStock(item, qty, at = true) {
 		next[town] -= take;
 		over -= take;
 	}
-	for (const town of Object.keys(next)) if (next[town] <= 0) delete next[town];
 	state.profile = readProfile({ ...state.profile, stash: { ...state.profile.stash, [item]: next } });
 }
 
@@ -728,6 +727,16 @@ export function replaceStock(next, label) {
 	return commit('stock', label || 'Inventory replaced', () => {
 		state.stock = {};
 		for (const [item, qty] of Object.entries(next || {})) writeStock(item, qty, false);
+		// The places noted can never hold more than the total: an item no
+		// longer owned is no longer noted anywhere.
+		const stash = { ...(state.profile.stash || {}) };
+		let changed = false;
+		for (const item of Object.keys(stash)) {
+			if (getStock(item) > 0) continue;
+			delete stash[item];
+			changed = true;
+		}
+		if (changed) state.profile = readProfile({ ...state.profile, stash });
 	});
 }
 
