@@ -4547,9 +4547,18 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .run-ev { margin-top: 12px; }
 
 /* Sailing the run: the checklist on the stops, and the bar beneath. */
-.run-check { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
-.run-paid { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--ink-faint); }
-.run-paid > span { margin-right: 2px; }
+.run-check { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; margin-top: 8px; }
+.run-paid { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--ink-mute); }
+.run-paid > span { margin-right: 2px; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; }
+.chip.pay { min-width: 30px; height: 28px; padding: 0 9px; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 13px; }
+.chip.pay.active { background: rgba(78, 201, 174, 0.22); border-color: var(--teal); color: var(--teal-hi); }
+/* The mark that says this stop was sailed: a box you can hit. */
+.run-done { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px 0 6px; border-radius: 8px; border: 1px solid var(--line-btn-hi); background: rgba(8, 20, 36, 0.6); color: var(--ink-mid); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.run-done i { width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--line-btn-hi); display: inline-flex; align-items: center; justify-content: center; font-style: normal; font-size: 12px; font-weight: 700; color: #08131f; }
+.run-done:hover { border-color: var(--teal); color: var(--ink-hi); }
+.run-done.on { border-color: var(--teal); background: rgba(78, 201, 174, 0.16); color: var(--teal-hi); }
+.run-done.on i { background: var(--teal); border-color: var(--teal); }
+.map-tip-check .run-done { height: 28px; font-size: 12px; }
 .run-stop.done .run-main > .run-trade, .run-stop.done .run-main > .run-leave, .run-stop.done .run-main > .run-sell { opacity: 0.55; }
 .run-stop.done .run-rail b { background: var(--teal); color: #08131f; border-color: var(--teal); }
 .sail-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-radius: var(--r-panel); border: 1px dashed var(--line-btn-hi); font-size: 12.5px; color: var(--ink-mute); }
@@ -4575,3 +4584,18 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .ashore-k { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ashore-places { text-transform: none; letter-spacing: 0; }
 .map-tip-check { margin-top: 6px; }
+
+/* Today's material list: the islands that can deal a material, ticked. */
+.mat-list .panel-head { flex-wrap: wrap; }
+.mat-hint { padding: 0 20px 10px; font-size: 12px; color: var(--ink-mute); line-height: 1.5; }
+.mat-gives { display: flex; flex-direction: column; gap: 10px; padding: 0 14px 14px; }
+.mat-give { background: var(--panel-inset); border-radius: 10px; border-left: 3px solid var(--tier); padding: 9px 12px; display: flex; flex-direction: column; gap: 8px; }
+.mat-give-head { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; font-size: 12.5px; }
+.mat-give-head b { color: var(--ink-hi); font-weight: 600; }
+.mat-give-head .run-arrow { color: var(--ink-faint); }
+.mat-give-head .faint { color: var(--ink-faint); font-size: 11px; margin-left: auto; }
+.chip.mat-isle { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 5px 10px; line-height: 1.2; font-size: 12px; }
+.chip.mat-isle span { font-size: 10px; color: var(--ink-faint); font-weight: 400; }
+.chip.mat-isle.active { background: rgba(78, 201, 174, 0.18); border-color: var(--teal); color: var(--teal-hi); }
+.chip.mat-isle.other { opacity: 0.5; text-decoration: line-through; }
+.chain.rung.waits { border-style: dashed; opacity: 0.85; }

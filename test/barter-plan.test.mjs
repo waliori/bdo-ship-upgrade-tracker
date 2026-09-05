@@ -74,3 +74,25 @@ test('what is aboard shortens the ladder: the top give in the hold covers the ru
 test('nothing bartered, no plan', () => {
 	assert.equal(materialPlan({ item: 'Steel', qty: 1, stock: {}, barterData, npcById }), null);
 });
+
+test('the material list, once ticked, is all a material rung may use; what no island deals waits', () => {
+	const at = name => [...npcById.values()].find(n => n.at === name).id;
+	// Board B, 2026-09-04: Paratama and Duch dealt the Glue.
+	const showing = [
+		{ npcId: at('Paratama Island'), give: '[Level 3] Skull Decorated Teacup', recv: 'Deep Sea Memory Filled Glue' },
+		{ npcId: at('Duch Island'), give: '[Level 3] Old Hourglass', recv: 'Deep Sea Memory Filled Glue' }
+	];
+	const stock = { '[Level 3] Skull Decorated Teacup': 4, '[Level 3] Old Hourglass': 2 };
+	const p = materialPlan({ item: 'Deep Sea Memory Filled Glue', qty: 6, stock, barterData, npcById, showing });
+	assert.ok(p);
+	const isles = new Set(p.stops.map(s => s.npcId));
+	assert.deepEqual([...isles].sort(), showing.map(a => a.npcId).sort(), 'only the islands ticked are sailed to');
+	assert.equal(p.trades, 4, 'two attempts at each');
+	assert.equal(p.waits, 2, 'the rest waits for another refresh');
+	assert.ok(!p.covered);
+	assert.ok(!p.rungs.some(r => r.seed), 'nothing is bought for a rung no island deals today');
+	// Nothing ticked: the whole table, as before.
+	const all = materialPlan({ item: 'Deep Sea Memory Filled Glue', qty: 6, stock, barterData, npcById });
+	assert.equal(all.waits, 0);
+	assert.ok(all.covered);
+});

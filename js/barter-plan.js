@@ -121,8 +121,14 @@ function chain(stops, from, npcById) {
  * part of one; every stop carries the index of its rung from the
  * bottom, which is the sailing order.
  */
-export function materialPlan({ item, qty = 1, stock = {}, barterData, npcById, start = null, hold = null } = {}) {
-	const rows = exchanges(barterData).filter(x => npcById.has(x.npcId));
+export function materialPlan({ item, qty = 1, stock = {}, barterData, npcById, start = null, hold = null, showing = [] } = {}) {
+	// What the material list shows today, when the sailor has said: an
+	// island deals one material exchange a refresh, so with any answer
+	// given, only the exchanges seen are the ones a material rung can
+	// use; the rungs of trade goods below are the trade board's.
+	const shown = new Set(showing.map(a => `${a.npcId}|${a.give}|${a.recv}`));
+	const rows = exchanges(barterData).filter(x => npcById.has(x.npcId))
+		.filter(x => levelOf(x.item) !== null || !shown.size || shown.has(`${x.npcId}|${x.give}|${x.item}`));
 	if (!rows.some(x => x.item === item)) return null;
 	const held = goodsHeld(stock);
 	const used = new Set();   // an island deals one exchange a run
@@ -188,13 +194,22 @@ export function materialPlan({ item, qty = 1, stock = {}, barterData, npcById, s
 		const best = ex.slice().sort(better)[0];
 		if (!best) return;
 		const trades = Math.ceil(need / best.recv - 1e-9);
-		const giveNeed = trades * best.giveN;
 		const stops = book(best, trades);
+		const made = stops.reduce((a, s) => a + s.times, 0);
+		// No island left to deal it today: the rest waits for another
+		// refresh, and nothing is climbed for it now.
+		if (!made) {
+			rungs.push({ item: target, give: best.give, recv: best.recv, recvText: best.recvText, giveN: best.giveN,
+				need, trades: 0, giveNeed: 0, have: 0, short: 0, tradesShort: 0, stops: [], waits: need, refreshes: 0, seed: null, depth });
+			return;
+		}
+		const giveNeed = made * best.giveN;
 		const per = perRefresh(best);
 		const land = levelOf(best.give) === null;
 		rungs.push({ item: target, give: best.give, recv: best.recv, recvText: best.recvText, giveN: best.giveN,
-			need, trades, giveNeed, have: 0, short: giveNeed, tradesShort: trades, stops,
-			refreshes: per ? Math.ceil(trades / per) : 0, seed: land ? { item: best.give, qty: giveNeed } : null, depth });
+			need, trades: made, giveNeed, have: 0, short: giveNeed, tradesShort: made, stops,
+			refreshes: per ? Math.ceil(trades / per) : 0, waits: made < trades ? need - made * best.recv : 0,
+			seed: land ? { item: best.give, qty: giveNeed } : null, depth });
 		if (!land) cover(best.give, giveNeed, depth + 1);
 	};
 	cover(item, qty, 0);
@@ -235,6 +250,7 @@ export function materialPlan({ item, qty = 1, stock = {}, barterData, npcById, s
 		trades: stops.reduce((a, s) => a + s.times, 0),
 		refreshes: Math.max(0, ...ordered.map(r => r.refreshes)),
 		weightStart: weightHeld(held0), weightPeak: peak, hold,
-		covered: !shortRungs.length
+		waits: ordered.reduce((a, r) => a + (r.waits || 0), 0),
+		covered: !shortRungs.length && !ordered.some(r => r.waits > 0)
 	};
 }

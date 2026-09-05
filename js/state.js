@@ -422,7 +422,8 @@ const PROFILE_LABELS = {
 	stash: 'Changed where things are kept',
 	homes: 'Changed where new things land',
 	orders: 'Changed the sailing orders',
-	homemade: 'Changed what your workers make'
+	homemade: 'Changed what your workers make',
+	matSeen: 'Noted what the material list shows'
 };
 
 export function setProfile(key, value, label = null) {

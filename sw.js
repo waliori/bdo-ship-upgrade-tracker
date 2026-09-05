@@ -44,6 +44,7 @@ const SHELL = [
 	'/css/driver.css',
 	'/js/all_barter.json',
 	'/js/barter_combos.json',
+	'/js/material_boards.json',
 	'/js/driver.iife.js',
 	'/js/about.js',
 	'/js/barter-board.js',

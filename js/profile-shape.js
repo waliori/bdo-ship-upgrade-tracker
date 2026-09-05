@@ -290,6 +290,18 @@ export function readProfile(raw) {
 		}
 		if (Object.keys(sevens).length) out.sevens = sevens;
 	}
+	// The material list as the sailor saw it, day by day: which island
+	// showed which exchange. The last fourteen days, for the record.
+	if (isProfile(raw.matSeen)) {
+		const seen = {};
+		for (const [day, rows] of Object.entries(raw.matSeen).sort().slice(-14)) {
+			if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !Array.isArray(rows)) continue;
+			const clean = rows.filter(r => Array.isArray(r) && Number.isInteger(Number(r[0])) && typeof r[1] === 'string' && typeof r[2] === 'string' && r[1].length <= 80 && r[2].length <= 80)
+				.slice(0, 120).map(r => [Number(r[0]), r[1], r[2]]);
+			if (clean.length) seen[day] = clean;
+		}
+		if (Object.keys(seen).length) out.matSeen = seen;
+	}
 	// Land goods the sailor's own workers make: they cost a run nothing.
 	if (Array.isArray(raw.homemade)) {
 		const made = [...new Set(raw.homemade.filter(n => typeof n === 'string' && n && n.length <= 80))].slice(0, 200);

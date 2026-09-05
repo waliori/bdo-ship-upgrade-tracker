@@ -58,6 +58,7 @@ export let snapshot = null;
 export let rows = {};
 export let barterData = null;
 export let combos = null;       // the forty barter boards, js/barter_combos.json, once read
+export let matBoards = null;    // the material boards recorded, js/material_boards.json, once read
 
 export const setView = id => { view = id; };
 export const setQuery = q => { query = q; };
@@ -72,6 +73,7 @@ export const invPicked = new Set();
 export const setInvPicking = on => { invPicking = !!on; if (!on) invPicked.clear(); };
 export const setBarterData = data => { barterData = data; };
 export const setCombos = data => { combos = data; };
+export const setMatBoards = data => { matBoards = data; };
 
 // How the Plan and the Inventory order their rows. Shortfall first is the
 // question the app exists to answer; the others are for finding a thing

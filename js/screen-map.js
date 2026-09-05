@@ -3116,8 +3116,8 @@ function runTip(t, id) {
 	// sailed: what it paid, and done -- the same marks as on the tab.
 	const on = id ? sailFor(id) : null;
 	const check = on ? `<div class="run-check map-tip-check">
-		${on.options.length ? `<span class="run-paid"><span>paid</span>${on.options.map(n => `<button class="chip tiny${on.paid === n ? ' active' : ''}" data-act="barter-paid" data-map="1" data-npc="${id}" data-n="${n}">${n}</button>`).join('')}</span>` : ''}
-		<button class="chip tiny${on.done ? ' active' : ''}" data-act="barter-stop-done" data-map="1" data-k="n${id}" aria-pressed="${on.done}">${on.done ? '✓ done' : 'done'}</button>
+		${on.options.length ? `<span class="run-paid"><span>paid</span>${on.options.map(n => `<button class="chip pay${on.paid === n ? ' active' : ''}" data-act="barter-paid" data-map="1" data-npc="${id}" data-n="${n}">${n}</button>`).join('')}</span>` : ''}
+		<button class="run-done${on.done ? ' on' : ''}" data-act="barter-stop-done" data-map="1" data-k="n${id}" aria-pressed="${on.done}"><i>${on.done ? '✓' : ''}</i>${on.done ? 'Done' : 'Traded here'}</button>
 	</div>` : '';
 	return `<div class="map-tip-run">
 		<span class="map-tip-k">The run${on ? ' · being sailed' : ''}</span>

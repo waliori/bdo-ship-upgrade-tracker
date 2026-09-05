@@ -14,7 +14,7 @@ import { initSync, openAccount } from './sync.js';
 import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.js';
 import {
 	view, selected, recipes, barterData, snapshot, query,
-	setView, setQuery, setPlanFilter, setInvFilter, setInvKind, setSelected, setBarterData, setCombos,
+	setView, setQuery, setPlanFilter, setInvFilter, setInvKind, setSelected, setBarterData, setCombos, setMatBoards,
 	recompute, readyCrafts, craftStock, CROW_COIN, SILVER, setSort, invPicking, invPicked, setInvPicking
 } from './ui-state.js';
 import { kindOf } from './kinds.js';
@@ -404,13 +404,15 @@ async function loadBarter() {
 	barterLoading = (async () => {
 		// The boards ride with the table: the Barter tab needs both, and
 		// a table without its boards still plans at best.
-		const [table, boards] = await Promise.all([
+		const [table, boards, mats] = await Promise.all([
 			fetch('js/all_barter.json'),
-			fetch('js/barter_combos.json').catch(() => null)
+			fetch('js/barter_combos.json').catch(() => null),
+			fetch('js/material_boards.json').catch(() => null)
 		]);
 		if (!table.ok) throw new Error(String(table.status));
 		setBarterData(await table.json());
 		if (boards && boards.ok) setCombos(await boards.json());
+		if (mats && mats.ok) setMatBoards(await mats.json());
 	})();
 	try {
 		await barterLoading;
