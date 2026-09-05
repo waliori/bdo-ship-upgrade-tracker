@@ -22,7 +22,7 @@ import { currentShip } from './ship.js';
 import { npcById, ports } from './barter_npcs.js';
 import { seaRoute } from './searoute.js';
 import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, DEFAULT_CAL, sailSeconds } from './sailing.js';
-import { PRESETS, SELL_CHOICES, HOUR_CHOICES, readOrders, presetOrders, onPreset, yardsticks } from './barter-orders.js';
+import { PRESETS, SELL_CHOICES, HOUR_CHOICES, COUNT_CHOICES, readOrders, presetOrders, onPreset, yardsticks, countAs, ratioKey } from './barter-orders.js';
 import { propose } from './barter-optimizer.js';
 import { coins as coinShop } from './sea_coins.js';
 import { landPrices } from './land-cost.js';
@@ -68,8 +68,9 @@ function restore() {
 		if (STASHES.includes(s.stash)) stash = s.stash;
 		if (s.routes && typeof s.routes.key === 'string' && Array.isArray(s.routes.ids)) routes = { key: s.routes.key, ids: s.routes.ids.filter(id => typeof id === 'string') };
 		if (s.sail && typeof s.sail.key === 'string' && Array.isArray(s.sail.done)) {
-			sail = { key: s.sail.key, done: s.sail.done.map(Number).filter(Number.isInteger), seen: {} };
+			sail = { key: s.sail.key, done: s.sail.done.map(Number).filter(Number.isInteger), seen: {}, got: {} };
 			for (const [k, v] of Object.entries(s.sail.seen || {})) if (Number(v) > 0) sail.seen[k] = Number(v);
+			for (const [k, v] of Object.entries(s.sail.got || {})) if (typeof v === 'string') sail.got[k] = v;
 		}
 		if (s.board && Array.isArray(s.board.answers)) {
 			board = { day: String(s.board.day || ''), answers: s.board.answers.filter(a => a && npcById.has(Number(a.npcId)) && typeof a.give === 'string' && typeof a.recv === 'string').map(a => ({ npcId: Number(a.npcId), give: a.give, recv: a.recv })) };
@@ -343,8 +344,23 @@ const TIER = lv => `var(--tier-${Math.max(1, Math.min(7, lv || 1))})`;
  * is set when a [Level 7] is the record's, though the island may pay
  * another of its four.
  */
+/** The [Level 7] goods an island pays, from the whole table. */
+function seventhsOf(npcId) {
+	const out = [];
+	for (const e of barterData || []) {
+		if (levelOf(e.name) !== 7) continue;
+		if ((e.sources || []).some(x => x.npc_id === npcId)) out.push(e.name);
+	}
+	return out.sort();
+}
+
 function stopRows(stops, legs, { k0 = 0, board = false, sailing = null } = {}) {
-	const four = s => (board && levelOf(s.item) === 7 ? ', or another of the island’s four' : '');
+	const sevens = store.getProfile('sevens', {}) || {};
+	const four = s => {
+		if (!board || levelOf(s.item) !== 7) return '';
+		const last = sevens[s.npcId];
+		return last && last.item !== s.item ? `, or another of the island’s four — it paid ${esc(last.item)} last time` : last ? ' — as it paid last time' : ', or another of the island’s four';
+	};
 	// On the checklist: a Done mark on every stop, and on an island that
 	// pays a range, the count it paid, so the rest re-counts.
 	const check = (s, k) => {
@@ -356,7 +372,12 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null } = {}) {
 			for (let n = Math.ceil(s.recvMin); n <= Math.floor(s.recvMax); n++) opts.push(n);
 			paid = `<span class="run-paid"><span>paid</span>${opts.map(n => `<button class="chip tiny${sailing.seen[s.npcId] === n ? ' active' : ''}" data-act="barter-paid" data-npc="${s.npcId}" data-n="${n}">${n}</button>`).join('')}</span>`;
 		}
-		return `<div class="run-check">${paid}<button class="chip tiny${done ? ' active' : ''}" data-act="barter-stop-done" data-k="${k}" aria-pressed="${done}">${done ? '✓ done' : 'done'}</button></div>`;
+		let got = '';
+		if (s.npcId && levelOf(s.item) === 7) {
+			const four = seventhsOf(s.npcId);
+			if (four.length > 1) got = `<span class="run-paid"><span>got</span>${four.map(name => `<button class="chip tiny${(sailing.got || {})[s.npcId] === name ? ' active' : ''}" data-act="barter-got" data-npc="${s.npcId}" data-item="${esc(name)}" title="${esc(name)}">${img(name, 'row-icon xs')}</button>`).join('')}</span>`;
+		}
+		return `<div class="run-check">${paid}${got}<button class="chip tiny${done ? ' active' : ''}" data-act="barter-stop-done" data-k="${k}" aria-pressed="${done}">${done ? '✓ done' : 'done'}</button></div>`;
 	};
 	return stops.map((s, i) => {
 		const k = k0 + i;
@@ -468,6 +489,7 @@ function ordersHTML(o) {
 			${sel('barter-stash', 'storage at', stash, [['', 'the nearest wharf'], ...stashes.map(w => [w.at, w.at])])}
 			${sel('barter-port', 'sails from', port, [[0, 'the first stop'], ...ports.map(p => [p.id, p.name])])}
 			${sel('barter-hours', 'under way at most', o.hours, HOUR_CHOICES, 'A run proposed here sails no longer than this')}
+			${sel('barter-count', 'a 2-3 counts', o.count, COUNT_CHOICES, 'How an exchange that pays a range is counted; the checklist records what your runs saw')}
 		</div>
 		<div class="run-floors" title="Kept back for the boards to come: never sold, never spent below this many">
 			<span class="run-pick-k">keep back, of every good at a level</span>${floors}
@@ -684,17 +706,22 @@ function sailBar(plan) {
 function tripOf(plan, on, from) {
 	const delta = {}, moves = [];
 	const add = (item, n) => { if (Math.round(n)) delta[item] = (delta[item] || 0) + Math.round(n); };
+	// An island that paid another of its four [Level 7]s than the plan
+	// named: the good sold or carried is the one it paid.
+	const renamed = new Map();
+	for (const s of plan.stops) if (s.npcId && (on.got || {})[s.npcId]) renamed.set(s.item, on.got[s.npcId]);
+	const as = name => renamed.get(name) || name;
 	let silver = 0, trades = 0;
 	for (const [k, s] of plan.stops.entries()) {
 		if (!on.done.includes(k)) continue;
 		if (s.wharf) {
-			for (const x of (s.sale && s.sale.items) || []) { add(x.item, -x.n); silver += x.total; }
-			for (const d of s.dropped || []) moves.push({ item: d.item, from: '', to: s.wharf.at, n: Math.round(d.n) });
+			for (const x of (s.sale && s.sale.items) || []) { add(as(x.item), -x.n); silver += x.total; }
+			for (const d of s.dropped || []) moves.push({ item: as(d.item), from: '', to: s.wharf.at, n: Math.round(d.n) });
 			continue;
 		}
 		const paid = on.seen[s.npcId] || s.recvMin || s.recv;
 		if (levelOf(s.give) !== null || store.getStock(s.give) > 0) add(s.give, -s.times * s.giveN);
-		add(s.item, s.times * paid);
+		add(as(s.item), s.times * paid);
 		trades += s.times;
 	}
 	if (on.done.length && from) for (const l of plan.loaded || []) moves.push({ item: l.item, from: from.name, to: '', n: Math.round(l.n) });
@@ -711,7 +738,21 @@ function recordTrip(plan, from) {
 		day: barterKey(), silver: trip.silver, cost: Math.round(plan.cost || 0), trades: trip.trades, parley: Math.round(plan.parleyUsed || 0),
 		stops: on.done.length, goal, item: goal === 'material' ? itemNow() || '' : ''
 	}].slice(-60);
-	store.applyTrip({ delta: trip.delta, moves: trip.moves, profile: { runs }, label: `Sailed a run: ${on.done.length} stop${on.done.length === 1 ? '' : 's'}${trip.silver ? `, ${FC(trip.silver)} sold` : ''}` });
+	// What the islands were seen to pay goes into the record, so the
+	// counting can follow the sailor's own runs.
+	const ratios = { ...(store.getProfile('ratios', {}) || {}) };
+	const sevens = { ...(store.getProfile('sevens', {}) || {}) };
+	for (const [k, s] of plan.stops.entries()) {
+		if (!on.done.includes(k) || !s.npcId) continue;
+		const n = on.seen[s.npcId];
+		if (n && s.recvMin !== s.recvMax) {
+			const key = ratioKey(s);
+			ratios[key] = { ...(ratios[key] || {}), [n]: ((ratios[key] || {})[n] || 0) + s.times };
+		}
+		const got = (on.got || {})[s.npcId];
+		if (got) sevens[s.npcId] = { item: got, day: barterKey() };
+	}
+	store.applyTrip({ delta: trip.delta, moves: trip.moves, profile: { runs, ratios, sevens }, label: `Sailed a run: ${on.done.length} stop${on.done.length === 1 ? '' : 's'}${trip.silver ? `, ${FC(trip.silver)} sold` : ''}` });
 	sail = null;
 	persist();
 	toast(`Recorded: ${on.done.length} stop${on.done.length === 1 ? '' : 's'}${trip.silver ? ` · ${FC(trip.silver)} in silver` : ''}`, true);
@@ -751,7 +792,13 @@ function silverParts(me, b) {
 	const all = chains(b.data, stock, dock).filter(c => o.buy || c.from !== 'land');
 	const made = store.getProfile('homemade', []) || [];
 	const prices = landPrices(all.filter(c => c.from === 'land').map(c => c.item), made);
-	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen: (sailing() || {}).seen || {} };
+	// How the ranges are counted: the record of past runs or the
+	// average when the orders say so, and always what this run has seen.
+	const seen = {};
+	const ratios = store.getProfile('ratios', {}) || {};
+	if (o.count !== 'least') for (const c of all) for (const r of c.rungs) { const n = countAs(r, o, ratios); if (n) seen[r.npcId] = n; }
+	Object.assign(seen, (sailing() || {}).seen || {});
+	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen };
 	// Each chain on its own, for its row: the list is sorted by the
 	// yardstick, silver a Parley unit, the guide's measure of a chain,
 	// so the best use of the day's Parley is at the top of its group.
@@ -1088,7 +1135,14 @@ export function barterAction(act, el, redraw) {
 			return true;
 		}
 		case 'barter-chains-clear': routes.ids = []; persist(); return true;
-		case 'barter-sail': sail = { key: sailKey(), done: [], seen: {} }; persist(); return true;
+		case 'barter-sail': sail = { key: sailKey(), done: [], seen: {}, got: {} }; persist(); return true;
+		case 'barter-got': {
+			const on = sailing();
+			if (!on) return false;
+			if (on.got[el.dataset.npc] === el.dataset.item) delete on.got[el.dataset.npc]; else on.got[el.dataset.npc] = el.dataset.item;
+			persist();
+			return true;
+		}
 		case 'barter-sail-drop': sail = null; persist(); return true;
 		case 'barter-stop-done': {
 			const on = sailing();
@@ -1140,6 +1194,7 @@ export function barterChange(el, parseAmount) {
 		case 'barter-sell': setOrders({ sell: Number(el.value) }); return true;
 		case 'barter-buy': setOrders({ buy: el.value === 'yes' }); return true;
 		case 'barter-hours': setOrders({ hours: Number(el.value) }); return true;
+		case 'barter-count': setOrders({ count: el.value }); return true;
 		case 'barter-floor': {
 			const n = parseAmount(el.value === '' ? '0' : el.value);
 			if (n === null) return true;

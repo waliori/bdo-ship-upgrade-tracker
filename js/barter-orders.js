@@ -37,7 +37,10 @@ export const PRESETS = [
 	}
 ];
 
-export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, hours: 0 };
+export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, hours: 0, count: 'least' };
+
+/** How an exchange that pays a range is counted. */
+export const COUNT_CHOICES = [['least', 'at the least — 2 of a 2-3'], ['average', 'at the average'], ['seen', 'as your own runs saw it']];
 
 /** The caps on time under way a sailor can set, in hours; 0 is none. */
 export const HOUR_CHOICES = [[0, 'no limit'], [1, 'an hour'], [2, 'two hours'], [3, 'three hours'], [4, 'four hours'], [6, 'six hours']];
@@ -71,13 +74,14 @@ export function readOrders(raw) {
 	if (typeof raw.buy === 'boolean') o.buy = raw.buy;
 	if (raw.pace === 'full' || raw.pace === 'fast') o.pace = raw.pace;
 	if (HOUR_CHOICES.some(([h]) => h === Number(raw.hours))) o.hours = Number(raw.hours);
+	if (COUNT_CHOICES.some(([c]) => c === raw.count)) o.count = raw.count;
 	return o;
 }
 
 /** The orders a preset sets, keeping nothing of the old ones. */
 export function presetOrders(id) {
 	const p = PRESETS.find(x => x.id === id) || PRESETS[0];
-	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, hours: 0 };
+	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, hours: 0, count: 'least' };
 }
 
 /** Whether the saved orders still match their preset to the letter. */
@@ -97,6 +101,26 @@ export function sellable(name, orders) {
 export function floorOf(name, orders) {
 	const lv = levelOf(name);
 	return (lv !== null && orders.floors && orders.floors[lv]) || 0;
+}
+
+/** The key an exchange's ratios are recorded under. */
+export const ratioKey = r => `${r.npcId}|${r.give}|${r.item}`;
+
+/**
+ * What to count an exchange as, under the orders: the count seen most
+ * often on the sailor's own runs, the average, or nothing (the least,
+ * which is the run's own default). `ratios` is the profile's record.
+ */
+export function countAs(r, orders, ratios = {}) {
+	if (!r || r.recvMin === r.recvMax) return null;
+	if (orders.count === 'average') return r.recv;
+	if (orders.count === 'seen') {
+		const seen = ratios[ratioKey(r)];
+		if (!seen) return null;
+		const top = Object.entries(seen).sort((a, b) => b[1] - a[1] || Number(a[0]) - Number(b[0]))[0];
+		return top ? Number(top[0]) : null;
+	}
+	return null;
 }
 
 /**

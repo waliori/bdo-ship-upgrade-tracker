@@ -266,6 +266,30 @@ export function readProfile(raw) {
 		}));
 		if (runs.length) out.runs = runs;
 	}
+	// What islands were seen to pay on the sailor's own runs: per
+	// exchange, how often each count of the range came up; per island,
+	// which of its four [Level 7] goods it paid last, and when.
+	if (isProfile(raw.ratios)) {
+		const ratios = {};
+		for (const [k, counts] of Object.entries(raw.ratios).slice(0, 400)) {
+			if (k.length > 200 || !isProfile(counts)) continue;
+			const clean = {};
+			for (const [n, c] of Object.entries(counts)) {
+				const v = Math.floor(Number(c));
+				if (/^\d{1,2}$/.test(n) && Number.isFinite(v) && v > 0) clean[n] = Math.min(9999, v);
+			}
+			if (Object.keys(clean).length) ratios[k] = clean;
+		}
+		if (Object.keys(ratios).length) out.ratios = ratios;
+	}
+	if (isProfile(raw.sevens)) {
+		const sevens = {};
+		for (const [npc, v] of Object.entries(raw.sevens).slice(0, 100)) {
+			if (!/^\d+$/.test(npc) || !isProfile(v) || typeof v.item !== 'string' || v.item.length > 80) continue;
+			sevens[npc] = { item: v.item, day: /^\d{4}-\d{2}-\d{2}$/.test(String(v.day)) ? String(v.day) : '' };
+		}
+		if (Object.keys(sevens).length) out.sevens = sevens;
+	}
 	// Land goods the sailor's own workers make: they cost a run nothing.
 	if (Array.isArray(raw.homemade)) {
 		const made = [...new Set(raw.homemade.filter(n => typeof n === 'string' && n && n.length <= 80))].slice(0, 200);
