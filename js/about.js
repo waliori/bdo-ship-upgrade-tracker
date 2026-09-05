@@ -184,6 +184,17 @@ export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
 	{
+		date: '2026-09-04',
+		title: 'where the goods are, the sailing orders, and the runs worth sailing',
+		notes: [
+			'Every kind of item has a <b>home</b>: new trade goods can land at Iliya Island instead of the bags, from the Inventory, a logged trip or the Barter tab — set once under “New things land in”. The Inventory has a <b>select mode</b>: tick tiles and move them all to a storage, or back, in one undoable change; each tile wears a tag naming where it sits. A trade good is never in the bags: what no storage claims is the ship’s hold.',
+			'The Barter tab’s hold is <b>what is aboard</b>. Goods ashore are listed by harbour with a Load button; the harbour the run sails from is the one its chains can load from, and the run lists what to load before casting off. A chain’s pips start at the good held; the trade rows show the given good’s icon; the run for a material sits on the silver run’s skeleton, the ladder beside the hold.',
+			'The <b>sailing orders</b>: “Cash out today” or “Build the stocks”, then a drawer — which levels a wharf sells, a floor of every good at each level kept back, land goods on or off, the pace, a cap on time under way, how a 2-3 is counted. Every chain row shows what it adds a Parley unit and an hour, net of land goods priced from the Market (or nothing, when your workers make them), and the list sorts by it. A fast run over the weight limit says why nothing trades.',
+			'<b>Runs worth sailing</b>: a search over the board’s chains proposes the most silver, the most an hour and the most a Parley unit; one tap lays a run out, “fill the rest for me” builds round what is ticked, and before the board is known the tab says what the best run would pay across the layouts still standing. The run for a material starts from whatever is held on any path — three Azure Quartz cover forty Tidal Black Stone in two trades, not an eight-trade climb from Brass Ingot — and a Crow Coin is priced at the coin shop’s best rate.',
+			'<b>Sail this run</b> turns the timeline into a checklist: tick each stop off, tap what an island paid and which of its four [Level 7]s it handed over, and the rest re-counts; Record puts the whole trip in the Inventory as one change — goods gone and gained, the silver, deposits noted at their harbour — and in the week’s log. What islands paid goes into your own record, which the counting can follow. Goods kept say how many of the forty boards take them, and near which harbour. The first mates add 200 LT, and the Lyngbakr wears its own artwork.'
+		]
+	},
+	{
 		date: '2026-09-03',
 		title: 'the soft cap, the goods aboard, and a run planned from them',
 		notes: [
