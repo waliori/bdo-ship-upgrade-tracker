@@ -661,6 +661,30 @@ export function placeAll(items, town, label) {
 	});
 }
 
+/**
+ * A trip sailed as one change: stock deltas -- goods handed over and
+ * received, the [Level 7]s sold and the silver they paid -- goods put
+ * into a harbour's storage on the way (`moves`: { item, from, to, n },
+ * '' for the ship), and a profile patch, the run's entry in the log.
+ * One Undo takes the whole trip back.
+ */
+export function applyTrip({ delta = {}, moves = [], profile = null, label = 'Sailed a run' } = {}) {
+	const entries = Object.entries(delta).filter(([, d]) => Number(d));
+	return commit('trip', label, () => {
+		for (const [item, d] of entries) writeStock(item, getStock(item) + Math.floor(d), false);
+		const stash = { ...(state.profile.stash || {}) };
+		for (const m of moves) {
+			const qty = Math.min(Math.floor(Number(m.n) || 0), m.from === '' ? Math.max(0, getStock(m.item) - Object.values(stash[m.item] || {}).reduce((a, b) => a + b, 0)) : ((stash[m.item] || {})[m.from] || 0));
+			if (qty <= 0 || m.from === m.to) continue;
+			const towns = { ...(stash[m.item] || {}) };
+			if (m.from !== '') { towns[m.from] = (towns[m.from] || 0) - qty; if (towns[m.from] <= 0) delete towns[m.from]; }
+			if (m.to !== '') towns[m.to] = (towns[m.to] || 0) + qty;
+			if (Object.keys(towns).length) stash[m.item] = towns; else delete stash[m.item];
+		}
+		state.profile = readProfile({ ...state.profile, stash, ...(profile || {}) });
+	});
+}
+
 /** Where new counts of a kind land: '' for the bags. */
 export function setHome(kind, town) {
 	const homes = { ...(state.profile.homes || {}) };

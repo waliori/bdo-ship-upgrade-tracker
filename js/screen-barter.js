@@ -15,7 +15,7 @@
 import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
 import { img, codexName, amountInput } from './ui-bits.js';
-import { snapshot, barterData, barterProfile, combos } from './ui-state.js';
+import { snapshot, barterData, barterProfile, combos, SILVER } from './ui-state.js';
 import { barterKey } from './clock.js';
 import { candidates, askable, offersAt, boardData } from './barter-board.js';
 import { currentShip } from './ship.js';
@@ -49,6 +49,7 @@ let port = 0;            // the wharf the run sails from, 0 for none
 let routes = { key: '', ids: [] };     // the chains ticked, for one board (day|layout)
 let stash = '';          // the wharf goods are left at, '' for the nearest
 let board = { day: '', answers: [] };   // what islands were seen to show today: { npcId, give, recv }
+let sail = null;   // the run being sailed: { key, done: [stop indices], seen: { npcId: paid } }
 let proposed = { key: '', proposals: [], best: null, solos: new Map() };   // the runs worth sailing, for one set of inputs
 const legsCache = new Map();   // the legs of a run bent round the land, by its stops
 let lastSearch = null;   // what the last search was given, for "fill the rest
@@ -66,6 +67,10 @@ function restore() {
 		if (ports.some(p => p.id === Number(s.port))) port = Number(s.port);
 		if (STASHES.includes(s.stash)) stash = s.stash;
 		if (s.routes && typeof s.routes.key === 'string' && Array.isArray(s.routes.ids)) routes = { key: s.routes.key, ids: s.routes.ids.filter(id => typeof id === 'string') };
+		if (s.sail && typeof s.sail.key === 'string' && Array.isArray(s.sail.done)) {
+			sail = { key: s.sail.key, done: s.sail.done.map(Number).filter(Number.isInteger), seen: {} };
+			for (const [k, v] of Object.entries(s.sail.seen || {})) if (Number(v) > 0) sail.seen[k] = Number(v);
+		}
 		if (s.board && Array.isArray(s.board.answers)) {
 			board = { day: String(s.board.day || ''), answers: s.board.answers.filter(a => a && npcById.has(Number(a.npcId)) && typeof a.give === 'string' && typeof a.recv === 'string').map(a => ({ npcId: Number(a.npcId), give: a.give, recv: a.recv })) };
 		}
@@ -74,7 +79,7 @@ function restore() {
 
 function persist() {
 	try {
-		localStorage.setItem(STORE_KEY, JSON.stringify({ goal, item, qty, port, routes, stash, board }));
+		localStorage.setItem(STORE_KEY, JSON.stringify({ goal, item, qty, port, routes, stash, board, sail }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -338,8 +343,21 @@ const TIER = lv => `var(--tier-${Math.max(1, Math.min(7, lv || 1))})`;
  * is set when a [Level 7] is the record's, though the island may pay
  * another of its four.
  */
-function stopRows(stops, legs, { k0 = 0, board = false } = {}) {
+function stopRows(stops, legs, { k0 = 0, board = false, sailing = null } = {}) {
 	const four = s => (board && levelOf(s.item) === 7 ? ', or another of the island’s four' : '');
+	// On the checklist: a Done mark on every stop, and on an island that
+	// pays a range, the count it paid, so the rest re-counts.
+	const check = (s, k) => {
+		if (!sailing) return '';
+		const done = sailing.done.includes(k);
+		let paid = '';
+		if (s.npcId && s.recvMin !== s.recvMax) {
+			const opts = [];
+			for (let n = Math.ceil(s.recvMin); n <= Math.floor(s.recvMax); n++) opts.push(n);
+			paid = `<span class="run-paid"><span>paid</span>${opts.map(n => `<button class="chip tiny${sailing.seen[s.npcId] === n ? ' active' : ''}" data-act="barter-paid" data-npc="${s.npcId}" data-n="${n}">${n}</button>`).join('')}</span>`;
+		}
+		return `<div class="run-check">${paid}<button class="chip tiny${done ? ' active' : ''}" data-act="barter-stop-done" data-k="${k}" aria-pressed="${done}">${done ? '✓ done' : 'done'}</button></div>`;
+	};
 	return stops.map((s, i) => {
 		const k = k0 + i;
 		const place = s.wharf || npcById.get(s.npcId);
@@ -353,11 +371,12 @@ function stopRows(stops, legs, { k0 = 0, board = false } = {}) {
 		const did = s.wharf
 			? `${s.dropped.length ? `<div class="run-leave"><span class="run-leave-k">Leaves in storage</span>${s.dropped.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(d.item)}</span>`).join('')}</div>` : ''}${s.sale ? `<div class="run-sell">sells ${n1(s.sale.n)} ${s.sale.levels && s.sale.levels.length === 1 ? `[Level ${s.sale.levels[0]}]` : 'goods'} here for ${FC(Math.round(s.sale.total))}</div>` : ''}`
 			: `<div class="run-trade">${img(s.give, 'row-icon sm')}<span>${esc(s.giveText)}× ${esc(s.give)}</span><span class="run-arrow">→</span><span class="run-to" style="--tier:${TIER(levelOf(s.item))}"><i></i>${esc(s.recvText)}× ${esc(s.item)}${four(s)}</span><span class="run-times">×${s.times}</span>${img(s.item, 'row-icon sm')}</div>`;
-		return `<div class="run-stop${s.wharf ? ' wharf' : ''}${s.sale ? ' sale' : ''}${i === stops.length - 1 ? ' last' : ''}">
+		return `<div class="run-stop${s.wharf ? ' wharf' : ''}${s.sale ? ' sale' : ''}${i === stops.length - 1 ? ' last' : ''}${sailing && sailing.done.includes(k) ? ' done' : ''}">
 			<div class="run-rail"><i></i><b>${k + 1}</b><i></i></div>
 			<div class="run-main">
 				<div class="run-stop-head">${s.wharf ? '<span class="run-anchor" title="A pause at a wharf, not a barter">⚓</span>' : ''}<b>${esc(place.name)}</b><span>${esc(place.at)}${s.wharf ? ' wharf' : ''}</span>${leg}</div>
 				${did}
+				${check(s, k)}
 			</div>
 			<div class="run-hold">
 				<div><span>hold</span><b class="${heavy ? 'warn' : over ? 'amber' : ''}">${F(Math.max(0, Math.round(s.weightAfter)))} LT</b></div>
@@ -551,6 +570,79 @@ function coinWorth() {
 	return best;
 }
 
+/* ------------------------------------------------------------------ *
+ * sailing the run: the checklist, and the trip recorded
+ * ------------------------------------------------------------------ */
+
+/** The key a checklist belongs to: the goal and what it lays out. */
+const sailKey = () => (goal === 'material' ? `material|${itemNow()}|${qty}|${port}` : `silver|${routes.key}|${routes.ids.slice().sort().join('.')}|${port}`);
+/** The checklist for the run on screen, or null when not sailing it. */
+const sailing = () => (sail && sail.key === sailKey() ? sail : null);
+
+/**
+ * The bar under a run: "Sail it" when the run is only laid out; the
+ * count of stops done and the two ways off the water when it is being
+ * sailed -- the trip recorded, or the checklist dropped.
+ */
+function sailBar(plan) {
+	if (!plan || !plan.stops.length) return '';
+	const on = sailing();
+	if (!on) return `<div class="sail-bar"><button class="act" data-act="barter-sail" title="Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change">⛵ Sail this run</button><span class="faint">tick each stop off as you sail; what an island paid re-counts the rest; Record at the end puts the whole trip in the Inventory in one Undo</span></div>`;
+	const n = plan.stops.filter((s, k) => on.done.includes(k)).length;
+	return `<div class="sail-bar sailing">
+		<span class="sail-n"><b>${n}</b> of ${plan.stops.length} stops done</span>
+		<span class="panel-spacer"></span>
+		<button class="ghost-btn sm" data-act="barter-sail-drop" title="Drop the checklist; nothing is recorded">Abandon</button>
+		<button class="act" data-act="barter-record" ${n ? '' : 'disabled'} title="The stops done go into the Inventory as one change">Record the trip</button>
+	</div>`;
+}
+
+/**
+ * The trip as the Inventory takes it, from the stops done: goods
+ * handed over and received -- at what the island was seen to pay, else
+ * the least -- the goods sold and the silver they paid, the goods left
+ * in a harbour's storage, and the goods loaded from one. Land goods
+ * come off the stock only when the stock has them.
+ */
+function tripOf(plan, on, from) {
+	const delta = {}, moves = [];
+	const add = (item, n) => { if (Math.round(n)) delta[item] = (delta[item] || 0) + Math.round(n); };
+	let silver = 0, trades = 0;
+	for (const [k, s] of plan.stops.entries()) {
+		if (!on.done.includes(k)) continue;
+		if (s.wharf) {
+			for (const x of (s.sale && s.sale.items) || []) { add(x.item, -x.n); silver += x.total; }
+			for (const d of s.dropped || []) moves.push({ item: d.item, from: '', to: s.wharf.at, n: Math.round(d.n) });
+			continue;
+		}
+		const paid = on.seen[s.npcId] || s.recvMin || s.recv;
+		if (levelOf(s.give) !== null || store.getStock(s.give) > 0) add(s.give, -s.times * s.giveN);
+		add(s.item, s.times * paid);
+		trades += s.times;
+	}
+	if (on.done.length && from) for (const l of plan.loaded || []) moves.push({ item: l.item, from: from.name, to: '', n: Math.round(l.n) });
+	if (silver) add(SILVER, silver);
+	return { delta, moves, silver, trades };
+}
+
+/** The trip recorded: one change, and a line in the log of runs. */
+function recordTrip(plan, from) {
+	const on = sailing();
+	if (!on || !plan) return;
+	const trip = tripOf(plan, on, from);
+	const runs = [...(store.getProfile('runs', []) || []), {
+		day: barterKey(), silver: trip.silver, cost: Math.round(plan.cost || 0), trades: trip.trades, parley: Math.round(plan.parleyUsed || 0),
+		stops: on.done.length, goal, item: goal === 'material' ? itemNow() || '' : ''
+	}].slice(-60);
+	store.applyTrip({ delta: trip.delta, moves: trip.moves, profile: { runs }, label: `Sailed a run: ${on.done.length} stop${on.done.length === 1 ? '' : 's'}${trip.silver ? `, ${FC(trip.silver)} sold` : ''}` });
+	sail = null;
+	persist();
+	toast(`Recorded: ${on.done.length} stop${on.done.length === 1 ? '' : 's'}${trip.silver ? ` · ${FC(trip.silver)} in silver` : ''}`, true);
+}
+
+// The plan on screen, for the record button to read back.
+let shownPlan = null;
+
 /**
  * The run for silver, in two panels: the board's chains to tick, and
  * the run along the ticked ones -- its figures, each chain's stops as
@@ -582,14 +674,14 @@ function silverParts(me, b) {
 	const all = chains(b.data, stock, dock).filter(c => o.buy || c.from !== 'land');
 	const made = store.getProfile('homemade', []) || [];
 	const prices = landPrices(all.filter(c => c.from === 'land').map(c => c.item), made);
-	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices };
+	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen: (sailing() || {}).seen || {} };
 	// Each chain on its own, for its row: the list is sorted by the
 	// yardstick, silver a Parley unit, the guide's measure of a chain,
 	// so the best use of the day's Parley is at the top of its group.
 	// The runs worth sailing, searched once for these inputs and kept
 	// until any of them change; each chain's run on its own likewise.
 	const ship = { speed: me.speed.total, cal: sailCal() };
-	const pkey = JSON.stringify([board.day, b.combo.id, stock, dock, o, port, stash, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley]);
+	const pkey = JSON.stringify([board.day, b.combo.id, stock, dock, o, port, stash, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen]);
 	if (proposed.key !== pkey) {
 		const base = chainRun({ ...opts, chosen: [] });
 		proposed = { key: pkey, solos: new Map(all.map(c => [c.id, soloRun(c, opts, from, base)])), ...propose({ chains: all, opts, ship, timeCap: o.hours }) };
@@ -623,6 +715,7 @@ function silverParts(me, b) {
 	const chainsPanel = `<section class="panel barter-chains">${headFill(fillable)}${proposals}<div class="chain-list">${groups || `<p class="empty">${o.buy ? 'Nothing climbs on this board.' : 'Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.'}</p>`}</div></section>`;
 
 	const plan = chainRun({ ...opts, chosen });
+	shownPlan = plan;
 	for (const s of plan.stops) s.hold = me.hold;
 	const legs = legsOf(plan.stops);
 	const yard = yardsticks(plan.net, plan.parleyUsed, legs.mid / 3600);
@@ -652,7 +745,7 @@ function silverParts(me, b) {
 		const leftHere = plan.stashed.filter(s => s.chain === k).reduce((a, s) => a + s.total, 0);
 		return `<section class="panel run-seg" style="--tier:${TIER(c.top)}">
 			<div class="run-seg-head"><i></i><b>${esc(c.rungs[0].npc)} chain</b><em>Level ${c.top}</em><span>${soldHere ? `${FC(Math.round(soldHere))} sold` : 'nothing sold'}${leftHere ? ` · ${FC(Math.round(leftHere))} left on the way` : ''}${mine.length ? '' : ' · every island already dealt'}</span><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="Untick this chain">×</button></div>
-			${mine.length ? `<div class="run-stops">${stopRows(mine, legs, { k0: first, board: true })}</div>` : ''}
+			${mine.length ? `<div class="run-stops">${stopRows(mine, legs, { k0: first, board: true, sailing: sailing() })}</div>` : ''}
 		</section>`;
 	}).join('');
 	const worth = s => (s.total ? `would sell for ${FC(Math.round(s.total))}` : 'cannot be sold');
@@ -673,7 +766,7 @@ function silverParts(me, b) {
 	const empty = chosen.length ? '' : '<div class="run-empty">Nothing ticked yet. Pick a chain on the left and the run lays itself out here — every rung, the hold after it, and where it has to call.</div>';
 	return {
 		chains: chainsPanel,
-		run: `<section class="panel barter-run">${runHead}${tiles}</section>${empty}${loaded}${bought}${segs}${stashed}${kept}${chartButton(plan.stops, '')}`
+		run: `<section class="panel barter-run">${runHead}${tiles}</section>${empty}${loaded}${bought}${segs}${stashed}${kept}${sailBar(plan)}${chartButton(plan.stops, '')}`
 	};
 }
 
@@ -717,6 +810,7 @@ function materialParts(me, data, known) {
 			run: `<section class="panel barter-run">${head(`for ${F(qty)}× ${esc(it)}`)}${picks}${caveat}</section>`
 		};
 	}
+	shownPlan = plan;
 	for (const s of plan.stops) s.hold = me.hold;
 	const legs = legsOf(plan.stops);
 	const coin = it === 'Crow Coin' ? coinWorth() : null;
@@ -779,13 +873,13 @@ function materialParts(me, data, known) {
 		const lv = levelOf(r.item);
 		return `<section class="panel run-seg" style="--tier:${TIER(lv || (levelOf(r.give) || 0) + 1)}">
 			<div class="run-seg-head"><i></i><b>${esc(r.give)} → ${esc(r.item)}</b><em>${lv ? `Level ${lv}` : 'the material'}</em><span>${r.trades} trade${r.trades === 1 ? '' : 's'} at ${mine.length} island${mine.length === 1 ? '' : 's'}${r.refreshes > 1 ? ` · over ${r.refreshes} refreshes` : ''}</span></div>
-			<div class="run-stops">${stopRows(mine, legs, { k0: first })}</div>
+			<div class="run-stops">${stopRows(mine, legs, { k0: first, sailing: sailing() })}</div>
 		</section>`;
 	}).join('');
 	const empty = plan.stops.length ? '' : '<div class="run-empty">Nothing to sail for: what is aboard already covers the top exchange. Hand it over at the island that deals it.</div>';
 	return {
 		chains: chainsPanel,
-		run: `<section class="panel barter-run">${head(`for <b>${F(qty)}× ${esc(it)}</b>${coin ? ` · worth ≈ ${FC(Math.round(coin.each * qty))} at the coin shop’s best rate, ${FC(Math.round(coin.each))} a coin on ${esc(coin.item)}` : ''} · aboard ${esc(me.name)}: ${F(me.hold.free)} LT before it slows, barters up to ${F(me.hold.deal)}`)}${picks}${tiles}${caveat}</section>${empty}${segs}${chartButton(plan.stops, it)}`
+		run: `<section class="panel barter-run">${head(`for <b>${F(qty)}× ${esc(it)}</b>${coin ? ` · worth ≈ ${FC(Math.round(coin.each * qty))} at the coin shop’s best rate, ${FC(Math.round(coin.each))} a coin on ${esc(coin.item)}` : ''} · aboard ${esc(me.name)}: ${F(me.hold.free)} LT before it slows, barters up to ${F(me.hold.deal)}`)}${picks}${tiles}${caveat}</section>${empty}${segs}${sailBar(plan)}${chartButton(plan.stops, it)}`
 	};
 }
 
@@ -917,6 +1011,25 @@ export function barterAction(act, el, redraw) {
 			return true;
 		}
 		case 'barter-chains-clear': routes.ids = []; persist(); return true;
+		case 'barter-sail': sail = { key: sailKey(), done: [], seen: {} }; persist(); return true;
+		case 'barter-sail-drop': sail = null; persist(); return true;
+		case 'barter-stop-done': {
+			const on = sailing();
+			if (!on) return false;
+			const k = Number(el.dataset.k);
+			on.done = on.done.includes(k) ? on.done.filter(x => x !== k) : [...on.done, k];
+			persist();
+			return true;
+		}
+		case 'barter-paid': {
+			const on = sailing();
+			if (!on) return false;
+			const n = Number(el.dataset.n);
+			if (on.seen[el.dataset.npc] === n) delete on.seen[el.dataset.npc]; else on.seen[el.dataset.npc] = n;
+			persist();
+			return true;
+		}
+		case 'barter-record': recordTrip(shownPlan, fromPort()); return false;
 		case 'barter-propose': routes.ids = String(el.dataset.ids || '').split('\n').filter(Boolean); persist(); return true;
 		case 'barter-fill': {
 			if (!lastSearch) return false;

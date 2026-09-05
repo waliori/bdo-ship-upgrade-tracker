@@ -89,7 +89,12 @@ const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);
  * other good aboard at the end is carried home, and the run says what
  * it would sell for.
  */
-export function chainRun({ chosen = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = DEFAULT_ORDERS, prices = {} } = {}) {
+export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = DEFAULT_ORDERS, prices = {}, seen = {} } = {}) {
+	// What an island was seen to pay this run, tapped on the checklist,
+	// replaces the range the table gives for it: counted and weighed at
+	// that, no longer at the least and the most.
+	const fix = r => (seen[r.npcId] > 0 ? { ...r, recv: seen[r.npcId], recvMin: seen[r.npcId], recvMax: seen[r.npcId], recvText: String(seen[r.npcId]) } : r);
+	const chosen = Object.keys(seen).length ? picked.map(c => ({ ...c, rungs: c.rungs.map(fix) })) : picked;
 	const held = goodsHeld(stock);          // the goods counted at the least
 	// What the chosen chains start from and the start port's storage
 	// holds is loaded before casting off -- all of it, since the chain
@@ -204,9 +209,10 @@ export function chainRun({ chosen = [], stock = {}, dock = {}, hold, parley, npc
 	const call = (wharf, drop, chain, sale = []) => {
 		const stop = { wharf, dropped: [], weightAfter: 0, chain };
 		if (sale.length) {
-			stop.sale = { n: 0, total: 0, levels: new Set() };
+			stop.sale = { n: 0, total: 0, levels: new Set(), items: [] };
 			for (const [name, n] of sale) {
 				sold.push({ item: name, n, each: sellOf(name), total: n * sellOf(name), at: wharf.at, chain });
+				stop.sale.items.push({ item: name, n, total: n * sellOf(name) });
 				stop.sale.n += n;
 				stop.sale.total += n * sellOf(name);
 				stop.sale.levels.add(levelOf(name));

@@ -251,6 +251,21 @@ export function readProfile(raw) {
 	// The sailing orders: what a barter run is for. Cleaned by the
 	// module that owns the shape.
 	if (isProfile(raw.orders)) out.orders = readOrders(raw.orders);
+	// The runs sailed: day, silver, cost, trades, Parley, stops -- the
+	// last sixty, for the week's view.
+	if (Array.isArray(raw.runs)) {
+		const runs = raw.runs.filter(r => r && /^\d{4}-\d{2}-\d{2}$/.test(String(r.day))).slice(-60).map(r => ({
+			day: String(r.day),
+			silver: Math.max(0, Math.floor(Number(r.silver) || 0)),
+			cost: Math.max(0, Math.floor(Number(r.cost) || 0)),
+			trades: Math.max(0, Math.floor(Number(r.trades) || 0)),
+			parley: Math.max(0, Math.floor(Number(r.parley) || 0)),
+			stops: Math.max(0, Math.floor(Number(r.stops) || 0)),
+			goal: r.goal === 'material' ? 'material' : 'silver',
+			item: typeof r.item === 'string' && r.item.length <= 80 ? r.item : ''
+		}));
+		if (runs.length) out.runs = runs;
+	}
 	// Land goods the sailor's own workers make: they cost a run nothing.
 	if (Array.isArray(raw.homemade)) {
 		const made = [...new Set(raw.homemade.filter(n => typeof n === 'string' && n && n.length <= 80))].slice(0, 200);
