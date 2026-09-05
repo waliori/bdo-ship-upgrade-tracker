@@ -4154,6 +4154,8 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .run-tiles .summary-v.teal { color: var(--teal); }
 .run-tiles .summary-v.amber { color: var(--amber); }
 .run-tiles .summary-v.warn { color: var(--red); }
+/* A tile that names goods rather than counting them: a name is long. */
+.run-tiles .summary-v.names { font-size: 14.5px; line-height: 1.3; }
 .run-tiles .summary-sub { margin-top: 2px; }
 .run-empty { border: 1px dashed var(--line-btn-hi); border-radius: var(--r-panel); padding: 40px 24px; text-align: center; color: var(--ink-mute); font-size: 13px; line-height: 1.6; }
 .run-seg { padding: 0; overflow: hidden; }
@@ -4595,7 +4597,9 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .mat-give-head { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; font-size: 12.5px; }
 .mat-give-head b { color: var(--ink-hi); font-weight: 600; }
 .mat-give-head .run-arrow { color: var(--ink-faint); }
-.mat-give-head .faint { color: var(--ink-faint); font-size: 11px; margin-left: auto; }
+.mat-give-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: -2px; }
+.mat-give-meta .faint { color: var(--ink-faint); font-size: 11px; margin-left: auto; }
+.mat-give.on .mat-give-meta .faint { color: var(--teal); }
 .chip.mat-isle { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 5px 10px; line-height: 1.2; font-size: 12px; }
 .chip.mat-isle span { font-size: 10px; color: var(--ink-faint); font-weight: 400; }
 .chip.mat-isle.active { background: rgba(78, 201, 174, 0.18); border-color: var(--teal); color: var(--teal-hi); }
@@ -4604,6 +4608,23 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 
 /* The material list as the run: what is held on each group, the way to the item board. */
 .mat-filters { padding: 0 14px 8px; }
+
+/* The list as the page's hero: the width of the page, the material,
+   the want and the harbour on it, the give groups laid out in columns
+   rather than one long stack -- a page of chips wants a shelf, not a
+   column. The run and the hold share the row under it. */
+.mat-list.hero .panel-head .panel-sub b { color: var(--teal-hi); font-weight: 600; }
+.mat-list.hero .run-picks { margin: 12px 20px 0; grid-template-columns: repeat(auto-fit, minmax(190px, 300px)); }
+.mat-list.hero .mat-hint { padding-top: 12px; }
+.mat-list.hero .mat-hint .faint { color: var(--ink-faint); }
+.mat-list.hero .mat-gives { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr)); gap: 10px; align-items: start; }
+.mat-list.hero .mat-give { min-width: 0; }
+.mat-list.hero .mat-give.on { box-shadow: inset 0 0 0 1px var(--teal-edge); }
+.barter-layout.material { grid-template-columns: minmax(360px, 1.15fr) minmax(300px, 0.85fr); }
+@media (max-width: 900px) {
+  .barter-layout.material { grid-template-columns: 1fr; }
+  .mat-list.hero .run-picks { margin: 10px 14px 0; }
+}
 .mat-give.on { border-left-color: var(--teal); background: rgba(78, 201, 174, 0.06); }
 .mat-held { font-size: 11.5px; color: var(--ink-mute); padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-soft); }
 .mat-held.ok { color: var(--teal-hi); border-color: var(--teal-edge); }
