@@ -53,7 +53,16 @@ test('a ground that rings an island is marked on the water beside it', () => {
 test('the species the codex has no points for are marked by hand, roughly', () => {
 	const croc = monsters.find(m => m.key === 'saltwater-crocodile');
 	assert.ok(croc.zones && croc.approx, 'north of Cheongsa, approximate');
-	assert.ok(croc.zones[0][1] < 18000 && Math.abs(croc.zones[0][0] - 33534) < 2000, 'the crocodiles sit north of Cheongsa');
+	// The zone is the game map's own habitat icon, read off the drawing
+	// the nine bookmarks of 2026-09-05 were set on; the points around it
+	// are Salty's croc map fitted to those bookmarks.
+	assert.ok(croc.zones[0][1] < 18000 && Math.abs(croc.zones[0][0] - 32643) < 1000, 'the crocodiles sit north of Cheongsa');
+	assert.equal(croc.points.length, 54, 'the croc map, spot by spot');
+	assert.equal(croc.points.reduce((a, p) => a + p[2], 0), 125, 'a hundred and twenty-five crocodiles');
+	// The nine bookmarks ring the ground: every spot within two
+	// kilometres of the ring's box.
+	const xs = croc.points.map(p => p[0]), ys = croc.points.map(p => p[1]);
+	assert.ok(Math.min(...xs) > 27000 && Math.max(...xs) < 36000 && Math.min(...ys) > 9500 && Math.max(...ys) < 18500, 'inside the bookmarked water');
 	const khan = monsters.find(m => m.key === 'khan');
 	assert.ok(khan.zones && khan.approx && Math.hypot(khan.zones[0][0] - 65006, khan.zones[0][1] - 48051) < 4000, 'Khan stands off Oquilla’s Eye');
 	const vell = monsters.find(m => m.key === 'vell');
