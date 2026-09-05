@@ -1,6 +1,6 @@
 {
-	"read": "2026-09-04",
-	"source": "the barter window, read off screenshots of the material list on two refreshes",
+	"read": "2026-09-05",
+	"source": "the barter window, read off screenshots of the material list on four refreshes",
 	"boards": [
 		{
 			"id": "A",
@@ -712,6 +712,720 @@
 					1,
 					"Great Ocean Dark Iron",
 					3,
+					2
+				]
+			]
+		},
+		{
+			"id": "C",
+			"offers": [
+				[
+					58962,
+					"[Level 3] Ancient Orders",
+					1,
+					"Cox Pirates Extermination Seal",
+					50,
+					2
+				],
+				[
+					58961,
+					"[Level 5] Faded Gold Dragon Figurine",
+					1,
+					"Cox Pirates' Artifact (Combat)",
+					1,
+					2
+				],
+				[
+					58916,
+					"[Level 3] Weasel Leather Coat",
+					1,
+					"Pure Pearl Crystal",
+					1,
+					2
+				],
+				[
+					58945,
+					"[Level 4] Panacea",
+					1,
+					"Great Ocean Dark Iron",
+					3,
+					2
+				],
+				[
+					58946,
+					"[Level 4] Amethyst Fragment",
+					1,
+					"Tide-Dyed Standardized Timber Square",
+					1,
+					2
+				],
+				[
+					58947,
+					"[Level 4] Marine Knights' Spear",
+					1,
+					"Enhanced Island Tree Coated Plywood",
+					10,
+					2
+				],
+				[
+					58968,
+					"[Level 5] Supreme Gold Candlestick",
+					1,
+					"Brilliant Rock Salt Ingot",
+					1,
+					2
+				],
+				[
+					58970,
+					"[Level 5] Stuffed White Caterpillar",
+					1,
+					"Moon Vein Flax Fabric",
+					14,
+					2
+				],
+				[
+					58903,
+					"[Level 5] Stuffed Morpho Butterfly",
+					1,
+					"Deep Tide-Dyed Standardized Timber Square",
+					2,
+					2
+				],
+				[
+					58958,
+					"[Level 3] Blue Candle Bundle",
+					1,
+					"Cox Pirates Extermination Seal",
+					25,
+					2
+				],
+				[
+					58902,
+					"[Level 3] Skull Decorated Teacup",
+					1,
+					"Deep Sea Memory Filled Glue",
+					1,
+					2
+				],
+				[
+					58904,
+					"[Level 4] Opulent Thread Spool",
+					1,
+					"Ruddy Manganese Nodule",
+					1,
+					2
+				],
+				[
+					58967,
+					"[Level 2] Opulent Marble",
+					1,
+					"Cox Pirates' Artifact (Parley Beginner)",
+					1,
+					2
+				],
+				[
+					58907,
+					"[Level 3] Old Hourglass",
+					1,
+					"Deep Sea Memory Filled Glue",
+					1,
+					2
+				],
+				[
+					58911,
+					"[Level 3] Round Knife",
+					1,
+					"Oquilla's Flower",
+					1,
+					2
+				],
+				[
+					58912,
+					"[Level 3] Torn Pirate Treasure Map",
+					1,
+					"Bright Reef Piece",
+					1,
+					2
+				],
+				[
+					58913,
+					"[Level 2] Sea Survival Kit",
+					1,
+					"Cobalt Ingot",
+					1,
+					2
+				],
+				[
+					58906,
+					"[Level 3] Round Knife",
+					1,
+					"Pure Pearl Crystal",
+					1,
+					2
+				],
+				[
+					58905,
+					"[Level 5] Azure Quartz",
+					1,
+					"Brilliant Pearl Shard",
+					1,
+					2
+				],
+				[
+					58953,
+					"[Level 3] Lopters Fishnet",
+					1,
+					"Bright Reef Piece",
+					1,
+					2
+				],
+				[
+					58921,
+					"[Level 4] Panacea",
+					1,
+					"Oquilla's Flower",
+					1,
+					3
+				],
+				[
+					58920,
+					"[Level 4] Solidified Lava",
+					1,
+					"Luminous Cobalt Ingot",
+					1,
+					2
+				],
+				[
+					58918,
+					"Rock Salt Ingot",
+					50,
+					"Island Tree Coated Plywood",
+					50,
+					2
+				],
+				[
+					58963,
+					"[Level 2] Balanced Stone Pagoda",
+					1,
+					"Rock Salt Ingot",
+					50,
+					2
+				],
+				[
+					58964,
+					"[Level 2] Narvo Sea Cucumber",
+					1,
+					"Cobalt Ingot",
+					1,
+					2
+				],
+				[
+					58932,
+					"[Level 2] Islanders' Lunchbox",
+					1,
+					"Island Tree Coated Plywood",
+					50,
+					2
+				],
+				[
+					58942,
+					"[Level 4] Marine Knights' Helm",
+					1,
+					"Ruddy Manganese Nodule",
+					1,
+					2
+				],
+				[
+					58950,
+					"[Level 4] Green Salt Lump",
+					1,
+					"Seaweed Stalk",
+					1,
+					2
+				],
+				[
+					58933,
+					"[Level 2] Cron Castle Gold Coin",
+					1,
+					"Rock Salt Ingot",
+					50,
+					2
+				],
+				[
+					58935,
+					"[Level 4] Stolen Pirate Dagger",
+					1,
+					"Great Ocean Dark Iron",
+					3,
+					2
+				],
+				[
+					58936,
+					"[Level 4] Headless Dragon Figurine",
+					1,
+					"Oquilla's Flower",
+					1,
+					3
+				],
+				[
+					58930,
+					"[Level 2] Filtered Drinking Water",
+					1,
+					"Island Tree Coated Plywood",
+					50,
+					2
+				],
+				[
+					58931,
+					"[Level 2] Supreme Oyster Box",
+					1,
+					"Cox Pirates' Artifact (Parley Beginner)",
+					1,
+					2
+				],
+				[
+					58923,
+					"[Level 3] Gooey Monster Blood",
+					1,
+					"Oquilla's Flower",
+					1,
+					2
+				],
+				[
+					58939,
+					"[Level 3] Rare Herb Pile",
+					1,
+					"Cox Pirates Extermination Seal",
+					46,
+					2
+				],
+				[
+					58955,
+					"[Level 3] Scout Binoculars",
+					1,
+					"Bright Reef Piece",
+					1,
+					2
+				],
+				[
+					58941,
+					"[Level 4] Pirate's Key",
+					1,
+					"Seaweed Stalk",
+					1,
+					2
+				],
+				[
+					58914,
+					"[Level 2] Pirate Ship Mast",
+					1,
+					"Cobalt Ingot",
+					1,
+					2
+				],
+				[
+					58954,
+					"[Level 4] Old Chest with Gold Coins",
+					1,
+					"Cox Pirates' Artifact (Parley Expert)",
+					1,
+					2
+				],
+				[
+					58928,
+					"[Level 4] Bronze Candlestick",
+					1,
+					"Enhanced Island Tree Coated Plywood",
+					10,
+					2
+				],
+				[
+					58925,
+					"[Level 5] Azure Quartz",
+					1,
+					"Moon Scale Plywood",
+					10,
+					2
+				],
+				[
+					58924,
+					"[Level 4] Headless Dragon Figurine",
+					1,
+					"Cox Pirates' Artifact (Parley Expert)",
+					1,
+					2
+				],
+				[
+					58926,
+					"Island Tree Coated Plywood",
+					50,
+					"Rock Salt Ingot",
+					50,
+					2
+				]
+			]
+		},
+		{
+			"id": "D",
+			"offers": [
+				[
+					58956,
+					"[Level 5] Azure Quartz",
+					1,
+					"Moon Scale Plywood",
+					10,
+					2
+				],
+				[
+					58962,
+					"[Level 4] Headless Dragon Figurine",
+					1,
+					"Cox Pirates' Artifact (Parley Expert)",
+					1,
+					2
+				],
+				[
+					58983,
+					"Gold Bar 100G",
+					1,
+					"Tidal Black Stone",
+					20,
+					2
+				],
+				[
+					58915,
+					"[Level 5] 102 Year Old Golden Herb",
+					1,
+					"Deep Tide-Dyed Standardized Timber Square",
+					1,
+					2
+				],
+				[
+					58917,
+					"[Level 4] Marine Knights' Helm",
+					1,
+					"Ruddy Manganese Nodule",
+					1,
+					2
+				],
+				[
+					58945,
+					"[Level 4] Marine Knights' Spear",
+					1,
+					"Enhanced Island Tree Coated Plywood",
+					10,
+					2
+				],
+				[
+					58947,
+					"[Level 4] Panacea",
+					1,
+					"Great Ocean Dark Iron",
+					3,
+					2
+				],
+				[
+					58968,
+					"[Level 5] Octagonal Box",
+					1,
+					"Cox Pirates' Artifact (Combat)",
+					1,
+					2
+				],
+				[
+					58951,
+					"[Level 4] Pirate's Key",
+					1,
+					"Seaweed Stalk",
+					1,
+					2
+				],
+				[
+					58906,
+					"[Level 4] Green Salt Lump",
+					1,
+					"Seaweed Stalk",
+					1,
+					2
+				],
+				[
+					58903,
+					"[Level 5] Stuffed White Caterpillar",
+					1,
+					"Moon Vein Flax Fabric",
+					12,
+					2
+				],
+				[
+					58958,
+					"[Level 4] Bronze Candlestick",
+					1,
+					"Enhanced Island Tree Coated Plywood",
+					10,
+					2
+				],
+				[
+					58902,
+					"[Level 4] Solidified Lava",
+					1,
+					"Luminous Cobalt Ingot",
+					1,
+					2
+				],
+				[
+					58901,
+					"[Level 2] Islanders' Lunchbox",
+					1,
+					"Island Tree Coated Plywood",
+					50,
+					2
+				],
+				[
+					58916,
+					"[Level 3] Round Knife",
+					1,
+					"Pure Pearl Crystal",
+					1,
+					2
+				],
+				[
+					58963,
+					"[Level 2] Pirate Ship Mast",
+					1,
+					"Cobalt Ingot",
+					1,
+					2
+				],
+				[
+					58964,
+					"[Level 2] Cron Castle Gold Coin",
+					1,
+					"Rock Salt Ingot",
+					50,
+					2
+				],
+				[
+					58907,
+					"[Level 3] Skull Decorated Teacup",
+					1,
+					"Deep Sea Memory Filled Glue",
+					1,
+					2
+				],
+				[
+					58911,
+					"[Level 3] Stalactite Fragment",
+					1,
+					"Oquilla's Flower",
+					1,
+					2
+				],
+				[
+					58912,
+					"[Level 4] Old Chest with Gold Coins",
+					1,
+					"Cox Pirates' Artifact (Parley Expert)",
+					1,
+					2
+				],
+				[
+					58913,
+					"[Level 2] Opulent Marble",
+					1,
+					"Cox Pirates' Artifact (Parley Beginner)",
+					1,
+					2
+				],
+				[
+					58943,
+					"[Level 4] Amethyst Fragment",
+					1,
+					"Tide-Dyed Standardized Timber Square",
+					1,
+					2
+				],
+				[
+					58953,
+					"[Level 3] Blue Candle Bundle",
+					1,
+					"Cox Pirates Extermination Seal",
+					46,
+					2
+				],
+				[
+					58922,
+					"[Level 5] Supreme Gold Candlestick",
+					1,
+					"Brilliant Rock Salt Ingot",
+					1,
+					2
+				],
+				[
+					58921,
+					"[Level 4] Boatman's Manual",
+					1,
+					"Oquilla's Flower",
+					1,
+					3
+				],
+				[
+					58920,
+					"[Level 3] Weasel Leather Coat",
+					1,
+					"Pure Pearl Crystal",
+					1,
+					2
+				],
+				[
+					58918,
+					"[Level 2] Filtered Drinking Water",
+					1,
+					"Island Tree Coated Plywood",
+					50,
+					2
+				],
+				[
+					58942,
+					"[Level 3] Old Hourglass",
+					1,
+					"Deep Sea Memory Filled Glue",
+					1,
+					2
+				],
+				[
+					58950,
+					"[Level 3] Torn Pirate Treasure Map",
+					1,
+					"Bright Reef Piece",
+					1,
+					2
+				],
+				[
+					58933,
+					"Rock Salt Ingot",
+					50,
+					"Island Tree Coated Plywood",
+					50,
+					2
+				],
+				[
+					58935,
+					"[Level 3] Scout Binoculars",
+					1,
+					"Bright Reef Piece",
+					1,
+					2
+				],
+				[
+					58936,
+					"[Level 4] Seashell Deco",
+					1,
+					"Oquilla's Flower",
+					1,
+					3
+				],
+				[
+					58937,
+					"[Level 5] Stuffed Morpho Butterfly",
+					1,
+					"Cox Pirates' Artifact (Combat)",
+					1,
+					2
+				],
+				[
+					58923,
+					"[Level 3] Skull Decorated Teacup",
+					1,
+					"Oquilla's Flower",
+					1,
+					2
+				],
+				[
+					58939,
+					"[Level 3] Ancient Orders",
+					1,
+					"Cox Pirates Extermination Seal",
+					27,
+					2
+				],
+				[
+					58955,
+					"[Level 4] Stolen Pirate Dagger",
+					1,
+					"Great Ocean Dark Iron",
+					3,
+					2
+				],
+				[
+					58940,
+					"[Level 5] Mysterious Rock",
+					1,
+					"Brilliant Pearl Shard",
+					1,
+					2
+				],
+				[
+					58941,
+					"[Level 3] Lopters Fishnet",
+					1,
+					"Bright Reef Piece",
+					1,
+					2
+				],
+				[
+					58932,
+					"[Level 2] Sea Survival Kit",
+					1,
+					"Cobalt Ingot",
+					1,
+					2
+				],
+				[
+					58914,
+					"Island Tree Coated Plywood",
+					50,
+					"Rock Salt Ingot",
+					50,
+					2
+				],
+				[
+					58954,
+					"[Level 4] Opulent Thread Spool",
+					1,
+					"Ruddy Manganese Nodule",
+					1,
+					2
+				],
+				[
+					58928,
+					"[Level 3] Rare Herb Pile",
+					1,
+					"Cox Pirates Extermination Seal",
+					45,
+					2
+				],
+				[
+					58927,
+					"[Level 2] Supreme Oyster Box",
+					1,
+					"Cox Pirates' Artifact (Parley Beginner)",
+					1,
+					2
+				],
+				[
+					58929,
+					"[Level 2] Narvo Sea Cucumber",
+					1,
+					"Cobalt Ingot",
+					1,
+					2
+				],
+				[
+					58931,
+					"[Level 2] Balanced Stone Pagoda",
+					1,
+					"Rock Salt Ingot",
+					50,
 					2
 				]
 			]
