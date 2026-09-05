@@ -11,7 +11,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { npcById, ports } from '../js/barter_npcs.js';
-import { toGame, fromGame, bookmarkXML, BOOKMARK_SLOTS, CAMERA_SLOTS } from '../js/worldmap.js';
+import { toGame, fromGame, bookmarkXML, BOOKMARK_SLOTS, CAMERA_SLOTS, readGameXML, looksLikeGameXML } from '../js/worldmap.js';
 
 // World positions from the client's knowledge data (Barterers.xml in
 // Flockenberger's bdo-knowledge-waypoints, read 2026-08-30), paired
@@ -228,4 +228,62 @@ test('choosing the favourites again is always possible', () => {
 	assert.equal(writeMode('-1'), 'favorites');
 	assert.equal(writeMode('1.5'), 'favorites');
 	assert.equal(writeMode('nonsense'), 'favorites');
+});
+
+/* ------------------------------------------------------------------ *
+ * the file read back
+ * ------------------------------------------------------------------ */
+
+test('what the export writes, the reader gets back: favourites, camera slots and a loop', () => {
+	const pts = Array.from({ length: 8 }, (_, i) => ({ name: `Stop ${i + 1}`, x: 60000 + i * 500, y: 60000 - i * 250 }));
+	const fav = readGameXML(bookmarkXML(pts).xml);
+	assert.equal(fav.favorites.length, BOOKMARK_SLOTS);
+	assert.equal(fav.cameras.length, 3);
+	assert.deepEqual(fav.favorites.map(p => p.name), pts.slice(0, 5).map(p => p.name));
+	for (let i = 0; i < 8; i++) {
+		const got = i < 5 ? fav.favorites[i] : fav.cameras[i - 5];
+		assert.ok(Math.abs(got.x - pts[i].x) < 0.01 && Math.abs(got.y - pts[i].y) < 0.01, `point ${i + 1} lands where it left`);
+	}
+	assert.deepEqual(fav.cameras.map(c => c.index), [0, 1, 2]);
+	const loop = readGameXML(bookmarkXML(pts, { loop: 2, bookmarks: false, cameras: false }).xml);
+	assert.equal(loop.favorites.length, 0);
+	assert.equal(loop.loops.length, 1);
+	assert.equal(loop.loops[0].slot, 2);
+	assert.equal(loop.loops[0].points.length, 8);
+	// A loop is written at six significant digits of a number in the
+	// billions: back on the chart that is within a pixel.
+	for (let i = 0; i < 8; i++) {
+		assert.ok(Math.abs(loop.loops[0].points[i].x - pts[i].x) < 1, `loop point ${i + 1} x`);
+		assert.ok(Math.abs(loop.loops[0].points[i].y - pts[i].y) < 1, `loop point ${i + 1} y`);
+	}
+});
+
+test('a few lines copied out of the file are enough, in any attribute order, with the game\'s own float form', () => {
+	const text = `・Bookmark
+<BookMark BookMarkName="Crocs01" PosX="-963714" PosY="-8208" PosZ="1.40533e+06"/>
+<BookMark PosZ="1.45382e+06" PosY="-8208" PosX="-982551" BookMarkName="Crocs &amp; co"/>
+・WMQSP
+<WorldMapQuickScreenPosition index="2" positionX="-982551" positionY="-8208" positionZ="1.45382e+06" cameraDistance="40000"/>
+<WorldMapQuickScreenPosition index="1" positionX="-963714" positionY="-8208" positionZ="1.40533e+06" cameraDistance="40000"/>
+`;
+	assert.ok(looksLikeGameXML(text));
+	assert.ok(!looksLikeGameXML('{"kind":"barter-route"}'));
+	const r = readGameXML(text);
+	assert.deepEqual(r.favorites.map(p => p.name), ['Crocs01', 'Crocs & co']);
+	const g = fromGame(-963714, 1.40533e+06);
+	assert.ok(Math.abs(r.favorites[0].x - g.x) < 0.01 && Math.abs(r.favorites[0].y - g.y) < 0.01);
+	// Camera slots come back in slot order whatever order they were in.
+	assert.deepEqual(r.cameras.map(c => c.index), [1, 2]);
+	assert.equal(r.cameras[0].x, r.favorites[0].x);
+	assert.equal(r.loops.length, 0);
+	assert.equal(r.dropped, 0);
+});
+
+test('the whole file reads the same as the block, and a point off the chart is counted, not kept', () => {
+	const block = bookmarkXML([{ name: 'A', x: 61554, y: 60679 }]).xml;
+	const file = '<?xml version="1.0"?>\r\n<Root>\r\n<Setting a="1"/>\r\n' + block + '</Root>\r\n';
+	assert.deepEqual(readGameXML(file), readGameXML(block));
+	const off = readGameXML('<BookMark BookMarkName="Nowhere" PosX="9e9" PosY="0" PosZ="0"/><BookMark BookMarkName="x" PosX="nope" PosY="0" PosZ="0"/>');
+	assert.equal(off.favorites.length, 0);
+	assert.equal(off.dropped, 2);
 });

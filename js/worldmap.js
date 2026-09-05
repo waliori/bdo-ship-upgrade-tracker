@@ -235,3 +235,77 @@ export function spliceBlock(text, xml) {
 		previous: m[0]
 	};
 }
+
+/* ------------------------------------------------------------------ *
+ * the file read back
+ * ------------------------------------------------------------------ */
+
+function unattr(s) {
+	return String(s).replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+}
+
+/** A tag's attributes, whatever order the file has them in. */
+function attrs(s) {
+	const out = {};
+	for (const m of s.matchAll(/([\w:-]+)\s*=\s*"([^"]*)"/g)) out[m[1]] = m[2];
+	return out;
+}
+
+/** A world position on the chart, or null when the numbers are not
+ *  numbers or the point is nowhere the chart goes. */
+function chartPoint(gx, gz, scale = 1) {
+	const x = Number(gx), z = Number(gz);
+	if (!Number.isFinite(x) || !Number.isFinite(z)) return null;
+	const p = fromGame(x / scale, z / scale);
+	if (p.x < 0 || p.y < 0 || p.x > 200000 || p.y > 200000) return null;
+	return { x: Math.round(p.x * 100) / 100, y: Math.round(p.y * 100) / 100 };
+}
+
+/**
+ * What the game's favourites block holds, back in chart space:
+ * `favorites` are the named bookmarks in the order the file has them,
+ * `cameras` the numbered camera slots in slot order, `loops` the
+ * navigation paths by slot. The text may be the whole gameVariable.xml,
+ * the block alone, or a few lines copied out of it -- each tag is read
+ * on its own, so nothing has to be well-formed around it. The count of
+ * points that were not on the chart comes back as `dropped`.
+ */
+export function readGameXML(text) {
+	const s = String(text || '');
+	let dropped = 0;
+	const favorites = [];
+	for (const m of s.matchAll(/<BookMark\b([^>]*?)\/?>/g)) {
+		const a = attrs(m[1]);
+		const p = chartPoint(a.PosX, a.PosZ);
+		if (!p) { dropped++; continue; }
+		favorites.push({ name: unattr(a.BookMarkName || '').slice(0, 40), ...p });
+	}
+	const cameras = [];
+	for (const m of s.matchAll(/<WorldMapQuickScreenPosition\b([^>]*?)\/>/g)) {
+		const a = attrs(m[1]);
+		if (a.index === undefined) continue;
+		const p = chartPoint(a.positionX, a.positionZ);
+		if (!p) { dropped++; continue; }
+		cameras.push({ index: Number(a.index), ...p });
+	}
+	cameras.sort((a, b) => a.index - b.index);
+	const loops = [];
+	for (const m of s.matchAll(/<WorldmapNaviPath\b([^>]*)>([\s\S]*?)<\/WorldmapNaviPath>/g)) {
+		const slot = Number(attrs(m[1]).Index);
+		const points = [];
+		for (const r of m[2].matchAll(/<Path\b([^>]*?)\/?>/g)) {
+			const a = attrs(r[1]);
+			const p = chartPoint(a.PosX, a.PosZ, PATH_SCALE);
+			if (!p) { dropped++; continue; }
+			points.push(p);
+		}
+		if (points.length) loops.push({ slot: Number.isInteger(slot) ? slot : loops.length, points });
+	}
+	loops.sort((a, b) => a.slot - b.slot);
+	return { favorites, cameras, loops, dropped };
+}
+
+/** Whether a text is the game's file, or a piece of it, at all. */
+export function looksLikeGameXML(text) {
+	return /<(?:BookMark|WorldMapQuickScreenPosition|WorldmapNaviPath|WorldmapBookMark)\b/.test(String(text || ''));
+}

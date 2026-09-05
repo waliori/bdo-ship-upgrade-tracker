@@ -26,7 +26,7 @@ import { vellPlan } from './today.js';
 import { openPicker } from './picker.js';
 import * as store from './state.js';
 import { legLengths, pathLength, sailRange, fmtRange, calibrate, fmtDistance, DEFAULT_CAL } from './sailing.js';
-import { bookmarkXML, writeMode, BOOKMARK_SLOTS, CAMERA_SLOTS, LOOP_SLOTS, FILE_HINT, toGame } from './worldmap.js';
+import { bookmarkXML, writeMode, BOOKMARK_SLOTS, CAMERA_SLOTS, LOOP_SLOTS, FILE_HINT, toGame, readGameXML, looksLikeGameXML } from './worldmap.js';
 import { encodeAny, decodeAny } from './share.js';
 import { canWriteFiles, gameFolderName, previousBlock } from './gamefile.js';
 import { parleyPerTrade, PARLEY, GOODS, amount, bestExchange, levelOf, triesFor } from './barter.js';
@@ -97,6 +97,8 @@ let libOnly = 'all';          // all | shown
 let libOpen = false;          // the library is the dialog on screen
 let editing = 0;              // the seq of the word being typed on the chart, 0 for none
 let markDrag = null;          // a stop or a word being carried elsewhere: { kind, seq, from, x, y, moved }
+let fullOn = false;           // the chart is the whole screen, over the app
+let fullTurned = false;       // and turned on its side, for a phone held upright that cannot be told to turn
 
 /** The barter day, on the standing region's clock -- the same one the
  *  Resets dialog corrects, so the countdown and the "sailed today" ticks
@@ -389,6 +391,7 @@ export function renderMap() {
 			<button class="ghost-btn" data-act="map-fit" aria-label="Fit the marked islands in view">⌖</button>
 			<button class="ghost-btn" data-act="map-measure" aria-pressed="${measuring}" aria-label="Measure a distance" title="Ruler: click two points on the sea">⟷</button>
 			<button class="ghost-btn" data-act="map-mini" aria-pressed="${miniOn}" aria-label="Show or hide the minimap" title="Minimap: show or hide it; drag its grip to move it">▭</button>
+			<button class="ghost-btn" data-act="map-full" aria-pressed="${fullOn}" aria-label="Show the chart over the whole screen" title="Full screen: the chart over everything; ✕ or Esc brings the page back">⛶</button>
 		</div>
 	</div>`;
 
@@ -403,13 +406,22 @@ export function renderMap() {
 		<span title="The weekly quests reset">weeklies <b data-until="weekly"></b></span>
 		${vell ? `<span title="Vell's next spawn on your servers, ${esc(vell.label)}">Vell <b data-until="at" data-at="${vell.at}"></b></span>` : ''}
 	</div>`;
-	return head + `<div class="panel map-panel"><div class="map${measuring ? ' measuring' : ''}${sideRight ? ' side-right' : ''}${mode === 'trace' ? ' free-hand' : ''}${traceTool ? ` tracing tool-${traceTool}` : ''}" id="map" data-map>
+	// Over the whole screen, the header's buttons are out of reach, so
+	// the chart carries the few that matter and the way back.
+	const fullBar = `<div class="map-full-bar" data-map-fullbar>
+		<button class="ghost-btn" data-act="map-zoom" data-step="-1" aria-label="Zoom out">−</button>
+		<button class="ghost-btn" data-act="map-zoom" data-step="1" aria-label="Zoom in">+</button>
+		<button class="ghost-btn" data-act="map-fit" aria-label="Fit the marked islands in view">⌖</button>
+		<button class="ghost-btn" data-act="map-full" aria-label="Back to the page" title="Back to the page (Esc)">✕</button>
+	</div>`;
+	return head + `<div class="panel map-panel"><div class="map${measuring ? ' measuring' : ''}${sideRight ? ' side-right' : ''}${mode === 'trace' ? ' free-hand' : ''}${traceTool ? ` tracing tool-${traceTool}` : ''}${fullOn ? ' full' : ''}${fullTurned ? ' turned' : ''}" id="map" data-map>
 		<div class="map-layer" data-map-layer></div>
 		<div class="map-side-slot" data-map-side>${sideHTML(marks)}</div>
 		<div class="map-tip" data-map-tip hidden></div>
 		<div class="map-steps" data-map-steps hidden></div>
 		<div class="map-coords" data-map-coords hidden></div>
 		${clocks}
+		${fullBar}
 		${miniHTML(marks)}
 	</div></div>`;
 }
@@ -631,9 +643,12 @@ function routeHTML(marks) {
 		<div class="map-side-btns">
 			<button class="ghost-btn" data-act="map-route-link" title="A link that opens this route on this chart">Copy link</button>
 			<button class="ghost-btn" data-act="map-route-export" title="Save this route as a small JSON file to share or bring back later">Export</button>
-			<button class="ghost-btn" data-act="map-route-import" title="Load a route saved from here">Import</button>
+			<button class="ghost-btn" data-act="map-route-import" title="Load a route saved from here, or the game's own gameVariable.xml">Import</button>
 		</div>
-		<button class="ghost-btn wide" data-act="map-route-game" title="Write these stops into the game's world map as favourites">⚑ Put it on the game's map</button>` : `<div class="map-side-btns"><button class="ghost-btn" data-act="map-route-import" title="Load a route saved from here">Import a route</button></div>`;
+		<button class="ghost-btn wide" data-act="map-route-game" title="Write these stops into the game's world map as favourites">⚑ Put it on the game's map</button>` : `<div class="map-side-btns">
+			<button class="ghost-btn" data-act="map-route-import" title="Load a route saved from here">Import a route</button>
+			<button class="ghost-btn" data-act="map-game-in" title="Read the favourites, camera slots and loops out of gameVariable.xml">From the game's map</button>
+		</div>`;
 	// Nothing is plotted until you say so; this is the offer, next to
 	// the other ways of choosing what to look at.
 	const seedBtn = !stops.length && marks.size > 1
@@ -1573,9 +1588,26 @@ function onWater(p) {
 	return { x: Math.round(wet.x), y: Math.round(wet.y) };
 }
 
+/**
+ * Where a screen point falls in the map box's own space. The two are
+ * the same offset until the chart is turned on its side for a phone
+ * held upright (see enterFull): then the box's x runs down the screen
+ * and its y runs leftward, and every pointer has to be turned back.
+ */
+function inBox(host, clientX, clientY) {
+	const r = host.getBoundingClientRect();
+	if (!fullTurned) return { x: clientX - r.left, y: clientY - r.top };
+	return { x: clientY - r.top, y: r.right - clientX };
+}
+
+/** A movement on the screen, as a movement in the box. */
+function boxDelta(dx, dy) {
+	return fullTurned ? { x: dy, y: -dx } : { x: dx, y: dy };
+}
+
 function atSea(host, clientX, clientY) {
-	const box = host.getBoundingClientRect();
-	const p = unproject({ w: box.width, h: box.height }, clientX - box.left, clientY - box.top);
+	const at = inBox(host, clientX, clientY);
+	const p = unproject(hostSize(host), at.x, at.y);
 	return { x: Math.round(p.x), y: Math.round(p.y) };
 }
 
@@ -1655,8 +1687,8 @@ function areaAdd(host, clientX, clientY) {
 	const p = atSea(host, clientX, clientY);
 	if (areaDraft && areaDraft.length >= 6) {
 		const first = project(mapState, hostSize(host), areaDraft[0], areaDraft[1]);
-		const box = host.getBoundingClientRect();
-		if (Math.hypot(clientX - box.left - first.left, clientY - box.top - first.top) < 14) return areaClose();
+		const at = inBox(host, clientX, clientY);
+		if (Math.hypot(at.x - first.left, at.y - first.top) < 14) return areaClose();
 	}
 	if (!areaDraft) areaDraft = [];
 	if (areaDraft.length >= AREA_CORNERS * 2) return toast(`${AREA_CORNERS} corners is the most an area holds`);
@@ -1676,7 +1708,9 @@ function areaClose() {
 	paintMap();
 }
 
-const hostSize = host => { const r = host.getBoundingClientRect(); return { w: r.width, h: r.height }; };
+// The box's own size, which a turned box keeps -- its bounding rect is
+// the screen's shape, not its own.
+const hostSize = host => ({ w: host.clientWidth, h: host.clientHeight });
 
 /** The map box wears what is going on: which tool has the pointer, and
  *  whether the chart's own markers are listening at all. */
@@ -2011,6 +2045,82 @@ function tracePoints(withWords = false) {
 }
 
 /* ------------------------------------------------------------------ *
+ * the whole screen
+ * ------------------------------------------------------------------ */
+
+const phone = () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+const upright = () => typeof window !== 'undefined' && window.innerHeight > window.innerWidth;
+
+/**
+ * The chart over the whole app, as one modal box with its own way out.
+ *
+ * On a phone it is the whole screen too, where the browser allows it
+ * -- no address bar -- and the screen is asked to turn to landscape,
+ * which Chrome and Firefox on Android do once the page is full screen.
+ * Safari on an iPhone can be asked neither; there the box is turned
+ * on its side by CSS instead, so the sea is still wide, and every
+ * pointer is turned back to match (inBox, boxDelta).
+ */
+export async function enterFull() {
+	if (fullOn) return;
+	fullOn = true;
+	dressFull();
+	if (phone() && document.documentElement.requestFullscreen) {
+		try {
+			await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+		} catch { /* the box over the page is what there is */ }
+		if (window.screen && window.screen.orientation && window.screen.orientation.lock) {
+			try {
+				await window.screen.orientation.lock('landscape');
+			} catch { /* not granted, or not a thing here: the CSS turn stands in */ }
+		}
+	}
+	settleTurn();
+}
+
+export async function exitFull() {
+	if (!fullOn) return;
+	fullOn = false;
+	fullTurned = false;
+	if (window.screen && window.screen.orientation && window.screen.orientation.unlock) {
+		try { window.screen.orientation.unlock(); } catch { /* nothing was held */ }
+	}
+	if (document.fullscreenElement && document.exitFullscreen) {
+		try { await document.exitFullscreen(); } catch { /* already out */ }
+	}
+	dressFull();
+	paintMap();
+}
+
+export function toggleFull() {
+	return fullOn ? exitFull() : enterFull();
+}
+
+export function mapIsFull() {
+	return fullOn;
+}
+
+/** Turned on its side when the phone is held upright: a screen the
+ *  browser turned for us, or one the person turned, is wide already. */
+function settleTurn() {
+	fullTurned = fullOn && phone() && upright();
+	dressFull();
+	paintMap();
+}
+
+/** The classes that make it so, on the box and on the page around it. */
+function dressFull() {
+	const host = document.querySelector('[data-map]');
+	if (host) {
+		host.classList.toggle('full', fullOn);
+		host.classList.toggle('turned', fullTurned);
+	}
+	document.body.classList.toggle('map-full', fullOn);
+	document.body.classList.toggle('map-turned', fullTurned);
+	for (const b of document.querySelectorAll('.map-zoom [data-act="map-full"]')) b.setAttribute('aria-pressed', String(fullOn));
+}
+
+/* ------------------------------------------------------------------ *
  * the ruler
  * ------------------------------------------------------------------ */
 
@@ -2050,8 +2160,8 @@ function unproject(size, left, top) {
 }
 
 function measureAt(host, clientX, clientY) {
-	const box = host.getBoundingClientRect();
-	const p = unproject({ w: box.width, h: box.height }, clientX - box.left, clientY - box.top);
+	const at = inBox(host, clientX, clientY);
+	const p = unproject(hostSize(host), at.x, at.y);
 	measurePts = measurePts.length >= 2 ? [p] : [...measurePts, p];
 	paintMap();
 }
@@ -2098,8 +2208,8 @@ function paintMeasure(layer, size) {
 function paintCoords(host, clientX, clientY) {
 	const el = host.querySelector('[data-map-coords]');
 	if (!el || !mapState) return;
-	const box = host.getBoundingClientRect();
-	const p = unproject({ w: box.width, h: box.height }, clientX - box.left, clientY - box.top);
+	const at = inBox(host, clientX, clientY);
+	const p = unproject(hostSize(host), at.x, at.y);
 	const g = toGame(p.x, p.y);
 	el.textContent = `X ${F(Math.round(g.x))} · Z ${F(Math.round(g.z))}`;
 	el.hidden = false;
@@ -2271,10 +2381,8 @@ function onWheel(evt) {
 	cancelFly();
 	// Anchored under the cursor, and continuous: a notch of the wheel is
 	// a quarter-step of magnification, not a lurch to the next level.
-	const box = evt.currentTarget.getBoundingClientRect();
-	if (zoomAt(mapState, -evt.deltaY * 0.0024,
-		{ w: box.width, h: box.height },
-		evt.clientX - box.left, evt.clientY - box.top)) schedulePaint();
+	const at = inBox(evt.currentTarget, evt.clientX, evt.clientY);
+	if (zoomAt(mapState, -evt.deltaY * 0.0024, hostSize(evt.currentTarget), at.x, at.y)) schedulePaint();
 }
 
 /**
@@ -2505,7 +2613,9 @@ function declutterPins(pool, pins) {
 			const r = el.getBoundingClientRect();
 			if (!r.width) continue;
 			const host = layer.getBoundingClientRect();
-			shown.push({ l: r.left - host.left, r: r.right - host.left, t: r.top - host.top, b: r.bottom - host.top });
+			shown.push(fullTurned
+				? { l: r.top - host.top, r: r.bottom - host.top, t: host.right - r.right, b: host.right - r.left }
+				: { l: r.left - host.left, r: r.right - host.left, t: r.top - host.top, b: r.bottom - host.top });
 		}
 	}
 	// The name hangs east of a dot that sits exactly on the coordinate:
@@ -3325,7 +3435,7 @@ export function wireMap() {
 
 	// The panel, the card, the minimap: furniture on top of the sea.
 	// A gesture that starts on them is for them, not for the chart.
-	const CHROME = '.map-side, .map-side-pill, .map-tip, .map-mini, .map-steps, .map-trace-write';
+	const CHROME = '.map-side, .map-side-pill, .map-tip, .map-mini, .map-steps, .map-trace-write, .map-full-bar';
 const MARKERS = '[data-act="map-pin"], [data-act="map-port"], [data-act="map-stash"], .map-habitat';
 		// Tracing, the markers are scenery: a line drawn across a barterer
 	// must not stop dead there and open his trades instead.
@@ -3420,10 +3530,8 @@ const furniture = () => CHROME;
 			const [a, b] = [...touching.values()];
 			const dist = Math.hypot(a.x - b.x, a.y - b.y);
 			if (dist > 1 && pinch.dist > 1) {
-				const box = host.getBoundingClientRect();
-				if (zoomAt(mapState, Math.log2(dist / pinch.dist),
-					{ w: box.width, h: box.height },
-					(a.x + b.x) / 2 - box.left, (a.y + b.y) / 2 - box.top)) schedulePaint();
+				const at = inBox(host, (a.x + b.x) / 2, (a.y + b.y) / 2);
+				if (zoomAt(mapState, Math.log2(dist / pinch.dist), hostSize(host), at.x, at.y)) schedulePaint();
 			}
 			pinch.dist = dist;
 			return;
@@ -3434,7 +3542,8 @@ const furniture = () => CHROME;
 			if (host && !evt.target.closest(furniture())) paintCoords(host, evt.clientX, evt.clientY);
 			return;
 		}
-		pan(mapState, evt.clientX - dragging.x, evt.clientY - dragging.y);
+		const d = boxDelta(evt.clientX - dragging.x, evt.clientY - dragging.y);
+		pan(mapState, d.x, d.y);
 		dragging = { x: evt.clientX, y: evt.clientY };
 		// A tooltip that opened on the touch-down is noise once the
 		// finger is clearly sailing, not asking.
@@ -3529,16 +3638,16 @@ const furniture = () => CHROME;
 		if (!grip) return;
 		const mini = grip.closest('[data-map-mini]');
 		const host = mini.closest('[data-map]');
-		const r = mini.getBoundingClientRect();
-		const h = host.getBoundingClientRect();
-		miniDrag = { mini, host, dx: evt.clientX - r.left, dy: evt.clientY - r.top, w: r.width, hgt: r.height, hx: h.left, hy: h.top, hw: h.width, hh: h.height, moved: false };
+		const at = inBox(host, evt.clientX, evt.clientY);
+		miniDrag = { mini, host, dx: at.x - mini.offsetLeft, dy: at.y - mini.offsetTop, w: mini.offsetWidth, hgt: mini.offsetHeight, hw: host.clientWidth, hh: host.clientHeight, moved: false };
 		grip.setPointerCapture(evt.pointerId);
 		evt.preventDefault();
 	});
 	document.addEventListener('pointermove', evt => {
 		if (!miniDrag) return;
-		const x = Math.max(0, Math.min(miniDrag.hw - miniDrag.w, evt.clientX - miniDrag.hx - miniDrag.dx));
-		const y = Math.max(0, Math.min(miniDrag.hh - miniDrag.hgt, evt.clientY - miniDrag.hy - miniDrag.dy));
+		const at = inBox(miniDrag.host, evt.clientX, evt.clientY);
+		const x = Math.max(0, Math.min(miniDrag.hw - miniDrag.w, at.x - miniDrag.dx));
+		const y = Math.max(0, Math.min(miniDrag.hh - miniDrag.hgt, at.y - miniDrag.dy));
 		miniPos = { x, y };
 		miniDrag.moved = true;
 		Object.assign(miniDrag.mini.style, { left: `${Math.round(x)}px`, top: `${Math.round(y)}px`, right: 'auto', bottom: 'auto' });
@@ -3557,28 +3666,36 @@ const furniture = () => CHROME;
 	document.addEventListener('click', evt => {
 		const mini = evt.target.closest('[data-map-mini]');
 		if (!mini || !mapState || evt.target.closest('[data-mini-grip], [data-act]')) return;
-		const r = mini.getBoundingClientRect();
+		const at = inBox(mini, evt.clientX, evt.clientY);
 		const b = npcBox();
 		flyTo(
-			b.x0 + (evt.clientX - r.left) / r.width * (b.x1 - b.x0),
-			b.y0 + (evt.clientY - r.top) / r.height * (b.y1 - b.y0)
+			b.x0 + at.x / mini.clientWidth * (b.x1 - b.x0),
+			b.y0 + at.y / mini.clientHeight * (b.y1 - b.y0)
 		);
 	});
 
 	window.addEventListener('resize', () => {
 		if (view !== 'map') return;
+		// A phone turned in the hand: the chart over the whole screen
+		// turns with it, or stops having to.
+		if (fullOn) settleTurn();
 		// The box changed size under the minimap; keep it inside.
 		const mini = document.querySelector('[data-map-mini]');
 		const host = mini && mini.closest('[data-map]');
 		if (mini && host && miniPos) {
-			const r = mini.getBoundingClientRect();
 			miniPos = {
-				x: Math.max(0, Math.min(host.clientWidth - r.width, miniPos.x)),
-				y: Math.max(0, Math.min(host.clientHeight - r.height, miniPos.y))
+				x: Math.max(0, Math.min(host.clientWidth - mini.offsetWidth, miniPos.x)),
+				y: Math.max(0, Math.min(host.clientHeight - mini.offsetHeight, miniPos.y))
 			};
 			Object.assign(mini.style, { left: `${Math.round(miniPos.x)}px`, top: `${Math.round(miniPos.y)}px`, right: 'auto', bottom: 'auto' });
 		}
 		paintMap();
+	});
+
+	// The browser's own way out of full screen -- Esc, the back gesture --
+	// is the chart's way out too.
+	document.addEventListener('fullscreenchange', () => {
+		if (!document.fullscreenElement && fullOn) exitFull();
 	});
 
 	// A route file dropped on the sea is a route file opened.
@@ -3593,6 +3710,7 @@ const furniture = () => CHROME;
 		if (!file) return;
 		try {
 			const r = importRoute(await file.text());
+			if (r.game) return;
 			toast(`Route loaded: ${r.stops} stop${r.stops === 1 ? '' : 's'}${r.dropped ? `, ${r.dropped} not on this chart` : ''}`);
 			refreshSide();
 			paintMap();
@@ -3972,6 +4090,12 @@ export function exportRoute() {
  * is plotted under whatever the chart is currently showing.
  */
 export function importRoute(text) {
+	// The game's own file, or a piece of it, is read the other way round.
+	if (looksLikeGameXML(text)) {
+		const r = gameImportRead(text);
+		openGameImport();
+		return { stops: r.sets.reduce((n, g) => n + g.points.length, 0), dropped: r.dropped, game: true };
+	}
 	let data;
 	try {
 		data = JSON.parse(text);
@@ -4006,6 +4130,212 @@ export function importRoute(text) {
 	stepIdx = 0;
 	persist();
 	return { stops: ids.length, dropped };
+}
+
+/* ------------------------------------------------------------------ *
+ * the game's map, read back
+ * ------------------------------------------------------------------ */
+
+/** A point this near a barterer on the chart is that barterer: 60
+ *  pixels is 15 m of sea, less than an island and more than a hand
+ *  that clicked the map near where he stands. */
+const SNAP = 60;
+
+let gameIn = null;   // what the last paste read: { sets, dropped, text }
+
+/** The barterer or wharf a chart point stands on, if any. */
+function snapPoint(p) {
+	let best = null;
+	for (const n of npcs) {
+		const d = Math.hypot(n.x - p.x, n.y - p.y);
+		if (d <= SNAP && (!best || d < best.d)) best = { kind: 'npc', id: n.id, d };
+	}
+	if (best) return best;
+	const w = nearestWharf(p.x, p.y);
+	return w && w.d <= SNAP ? { kind: 'wharf', wharf: w, d: w.d } : null;
+}
+
+/**
+ * The game's favourites, camera slots and loops as things the chart
+ * can hold. Each set can be a trace -- the points in order, named
+ * where the file names them -- and, when its points sit on barterers,
+ * the route: those barterers in that order, a wharf call where a point
+ * sits on a wharf. What the export wrote comes back whole that way;
+ * favourites a person set by hand come back as the trace they are.
+ */
+export function gameImportRead(text) {
+	const r = readGameXML(text);
+	const sets = [];
+	const add = (key, name, points) => {
+		if (!points.length) return;
+		const stops = [];
+		const calls = [];
+		let onNpc = 0;
+		for (const p of points) {
+			const at = snapPoint(p);
+			if (at && at.kind === 'npc') {
+				onNpc++;
+				if (!stops.includes(at.id)) stops.push(at.id);
+			} else if (at && at.kind === 'wharf') {
+				calls.push({ after: stops.length, wharf: at.wharf });
+			}
+		}
+		const bends = points.length - onNpc - calls.length;
+		sets.push({
+			key, name, points, stops, calls,
+			// A route is on offer once a barterer is in it; it is the
+			// answer when every point is one, or a wharf on the way.
+			route: stops.length > 0,
+			as: stops.length > 0 && bends === 0 ? 'route' : 'trace',
+			bends
+		});
+	};
+	add('favorites', 'Favourites', r.favorites.map(p => ({ x: p.x, y: p.y, note: p.name })));
+	add('cameras', 'Camera slots', r.cameras.map(p => ({ x: p.x, y: p.y, note: `Camera ${p.index}` })));
+	for (const l of r.loops) add(`loop${l.slot}`, `Loop ${l.slot + 1}`, l.points.map(p => ({ x: p.x, y: p.y })));
+	gameIn = { sets, dropped: r.dropped, text };
+	return gameIn;
+}
+
+/** A set as a kept trace: stops while they fit, a drawn line past that. */
+function gameSetTrace(g, when) {
+	const raw = { name: `${g.name} (game)`, notes: `From gameVariable.xml, ${when}`, points: [], strokes: [], texts: [], areas: [], shown: true, at: Date.now() };
+	if (g.points.length <= TRACE_STOPS) raw.points = g.points.map(p => ({ x: p.x, y: p.y, note: p.note }));
+	else raw.strokes = [{ pts: g.points.flatMap(p => [p.x, p.y]), colour: inkColour, width: inkWidth }];
+	return cleanTrace(raw);
+}
+
+/**
+ * What was read, brought onto the chart: `choice` says for each set's
+ * key whether it comes as `trace`, as `route`, or not at all. Traces
+ * go to the library, shown, and the first of them is opened for
+ * drawing on; a route is plotted the way a route file is.
+ */
+export function gameImportApply(choice) {
+	if (!gameIn) return null;
+	const when = new Date().toISOString().slice(0, 10);
+	let first = null;
+	let routed = null;
+	let n = 0;
+	for (const g of gameIn.sets) {
+		const as = choice[g.key];
+		if (as === 'route' && g.route) {
+			if (stops.length && stops.join('.') !== g.stops.join('.')) stashRoute();
+			stops = g.stops.slice();
+			runTrades = {};
+			runStash = readStash(g.calls.map(c => [c.after, c.wharf.name, c.wharf.at, c.wharf.x, c.wharf.y, [], 0, 0]));
+			stopsPick = mapPick || '';
+			startPort = 0;
+			returnHome = false;
+			mode = 'route';
+			stepIdx = 0;
+			routed = g;
+			n++;
+		} else if (as === 'trace') {
+			const t = gameSetTrace(g, when);
+			if (!t) continue;
+			traces = [t, ...traces.filter(r => r.name !== t.name)].slice(0, TRACES_MAX);
+			tracesOn = true;
+			if (!first) first = t;
+			n++;
+		}
+	}
+	if (!n) return { n: 0 };
+	// The chart opens on what came in: the route when one did, else the
+	// first trace, ready to be drawn on.
+	if (routed) {
+		pendingFit = true;
+	} else if (first) {
+		trace = cleanTrace(first);
+		editing = 0;
+		mode = 'trace';
+		panelOpen = true;
+		pendingFit = { points: trace.points.length ? trace.points : traceAnchors(trace) };
+	}
+	persist();
+	gameIn = null;
+	return { n, routed: routed ? routed.stops.length : 0, first: first ? first.name : null };
+}
+
+/** The dialog: a box to paste into, or a file, and then what was
+ *  found, each with its way onto the chart. */
+export function openGameImport() {
+	const found = gameIn && gameIn.sets.length ? gameIn : null;
+	const text = gameIn ? gameIn.text : '';
+	const sets = found ? `<div class="map-game-sets">
+		${found.sets.map(g => {
+			const names = g.points.map(p => p.note).filter(Boolean);
+			const what = `${g.points.length} point${g.points.length === 1 ? '' : 's'}${names.length ? ': ' + esc(names.slice(0, 4).join(', ')) + (names.length > 4 ? ', …' : '') : ''}`;
+			const on = g.route
+				? ` · ${g.stops.length} barterer${g.stops.length === 1 ? '' : 's'}${g.calls.length ? `, ${g.calls.length} wharf call${g.calls.length === 1 ? '' : 's'}` : ''}${g.bends ? `, ${g.bends} on open sea` : ''}`
+				: ' · none on a barterer';
+			return `<label class="map-game-set">
+				<span class="map-game-set-name"><b>${esc(g.name)}</b><small>${what}${on}</small></span>
+				<select class="purse-inline" data-game-set="${esc(g.key)}">
+					<option value="trace"${g.as === 'trace' ? ' selected' : ''}>as a trace</option>
+					${g.route ? `<option value="route"${g.as === 'route' ? ' selected' : ''}>as the route</option>` : ''}
+					<option value="skip">leave out</option>
+				</select>
+			</label>`;
+		}).join('')}
+		${found.dropped ? `<p class="map-game-loopnote">${found.dropped} point${found.dropped === 1 ? ' was' : 's were'} off the chart and left out.</p>` : ''}
+	</div>` : gameIn ? '<p class="map-game-fit">Nothing the chart can use in that: no bookmark, camera slot or loop.</p>' : '';
+	openDialog(`<h2>Bring the game's map here</h2>
+		<p>The favourites, camera slots and loops the game keeps in <code>gameVariable.xml</code>, back onto this chart. Paste the whole file, the <code>&lt;WorldMapQuickScreenPosition&gt;</code> block, or just the lines you want — or open the file. Each set comes in as a trace, or as the route when its points sit on barterers.</p>
+		<textarea class="map-xml" rows="7" spellcheck="false" data-game-in aria-label="The block from gameVariable.xml" placeholder='&lt;BookMark BookMarkName="…" PosX="…" PosY="…" PosZ="…"/&gt;'>${esc(text)}</textarea>
+		<div class="map-game-btns">
+			<button class="ghost-btn" data-act="map-game-in-file">Open gameVariable.xml…</button>
+			<button class="ghost-btn" data-act="map-game-in-read">Read it</button>
+		</div>
+		${sets}
+		<div class="dialog-actions">
+			<button class="ghost-btn" data-close>Close</button>
+			${found ? '<button class="act" data-act="map-game-in-go">Bring them in</button>' : ''}
+		</div>`);
+}
+
+/** The dialog's buttons. */
+export async function gameImportAction(act, el) {
+	switch (act) {
+		case 'map-game-in':
+			gameIn = null;
+			return openGameImport();
+		case 'map-game-in-read': {
+			const box = el.closest('.dialog-box').querySelector('[data-game-in]');
+			const text = box ? box.value : '';
+			if (!text.trim()) return toast('Paste the block first');
+			if (!looksLikeGameXML(text)) return toast('That is not the game’s map: no bookmark, camera slot or loop in it');
+			gameImportRead(text);
+			return openGameImport();
+		}
+		case 'map-game-in-file': {
+			const input = document.createElement('input');
+			input.type = 'file';
+			input.accept = 'text/xml,application/xml,.xml';
+			input.addEventListener('change', async () => {
+				const file = input.files && input.files[0];
+				if (!file) return;
+				const text = await file.text();
+				if (!looksLikeGameXML(text)) return toast('That file holds no bookmark, camera slot or loop');
+				gameImportRead(text);
+				openGameImport();
+			});
+			input.click();
+			return;
+		}
+		case 'map-game-in-go': {
+			const choice = {};
+			for (const sel of el.closest('.dialog-box').querySelectorAll('[data-game-set]')) choice[sel.dataset.gameSet] = sel.value;
+			const r = gameImportApply(choice);
+			if (!r || !r.n) return toast('Nothing chosen to bring in');
+			closeDialog();
+			toast(r.routed
+				? `Route plotted: ${r.routed} stop${r.routed === 1 ? '' : 's'} from the game's map${r.n > 1 ? `, and ${r.n - 1} trace${r.n === 2 ? '' : 's'} kept` : ''}`
+				: `${r.n} trace${r.n === 1 ? '' : 's'} kept from the game's map`);
+			return true;
+		}
+	}
+	return false;
 }
 
 /* ------------------------------------------------------------------ *
@@ -4153,7 +4483,10 @@ export async function openGameExport(source) {
 			</ol>
 			<p>The trick is the fishing community's — Flockenberger's <em>bdo-fish-waypoints</em> is where the file format was worked out.</p>
 		</details>
-		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`);
+		<div class="dialog-actions">
+			<button class="ghost-btn" data-act="map-game-in" title="Read favourites, camera slots and loops back out of the game's file">The other way: bring the game's map here</button>
+			<button class="ghost-btn" data-close>Close</button>
+		</div>`);
 }
 
 

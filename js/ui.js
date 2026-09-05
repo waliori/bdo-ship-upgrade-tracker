@@ -55,7 +55,8 @@ import {
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
 	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
-	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite
+	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite,
+	toggleFull, exitFull, mapIsFull, gameImportAction
 } from './screen-map.js';
 
 // Two groups: the yard, where a build is planned and made, and the
@@ -305,6 +306,8 @@ function setQueryFor(id, text) {
 function showView(id) {
 	// The phone menu, if it was standing open, goes with the old screen.
 	closeBar();
+	// So does a chart standing over the whole screen.
+	if (id !== 'map') exitFull();
 	queries[view] = query;
 	setView(id);
 	setQuery(queries[id] || '');
@@ -369,6 +372,7 @@ function applyHash() {
 	applyingHash = true;
 	// Back and forward switch screens like a tab press does.
 	closeBar();
+	if (m[1] !== 'map') exitFull();
 	queries[view] = query;
 	setView(m[1]);
 	setQuery(queries[m[1]] || '');
@@ -697,6 +701,7 @@ function wire() {
 			case 'map-trades': setTradesMode(el.dataset.id); return;
 			case 'map-measure': toggleMeasure(); return;
 			case 'map-mini': toggleMini(); return;
+			case 'map-full': toggleFull(); return;
 			case 'map-sail-cal': return openSailCal();
 			case 'map-route-link':
 				try {
@@ -732,6 +737,9 @@ function wire() {
 				return;
 			}
 			case 'map-route-game': return openGameExport('route');
+			case 'map-game-in': case 'map-game-in-read': case 'map-game-in-file': case 'map-game-in-go':
+				if (await gameImportAction(act, el)) render();
+				return;
 			case 'map-hunt-game': return openGameExport('hunt');
 			case 'map-game': return openGameExport(el.dataset.source);
 			case 'map-game-pick': {
@@ -787,12 +795,13 @@ function wire() {
 			case 'map-route-import': {
 				const input = document.createElement('input');
 				input.type = 'file';
-				input.accept = 'application/json,.json';
+				input.accept = 'application/json,.json,application/xml,text/xml,.xml';
 				input.addEventListener('change', async () => {
 					const file = input.files && input.files[0];
 					if (!file) return;
 					try {
 						const r = importRoute(await file.text());
+						if (r.game) return;
 						toast(`Route loaded — ${r.stops} stops${r.dropped ? `, ${r.dropped} not on this chart` : ''}`);
 						render();
 					} catch (err) {
@@ -1162,6 +1171,8 @@ function wire() {
 				dismissDialog();
 			} else if (evt.target.closest('input, textarea, select')) {
 				evt.target.blur();
+			} else if (mapIsFull()) {
+				exitFull();
 			} else if (selected) {
 				setSelected(null);
 				render();

@@ -1379,3 +1379,110 @@ test('an item says which other screens know it, and opens them pointed at it', a
 	assert.deepEqual(errors, []);
 	await context.close();
 });
+
+test('the chart goes over the whole screen and comes back on Esc, ✕, or leaving the tab', async () => {
+	const { page, context, errors } = await open('#map');
+	await seed(page); await wait(1200);
+	const before = await page.$eval('[data-map]', el => ({ w: el.clientWidth, h: el.clientHeight }));
+	await page.click('.map-zoom [data-act="map-full"]'); await wait(300);
+	const full = await page.$eval('[data-map]', el => ({
+		full: el.classList.contains('full'), turned: el.classList.contains('turned'),
+		w: el.clientWidth, h: el.clientHeight, bar: getComputedStyle(el.querySelector('.map-full-bar')).display,
+		body: document.body.classList.contains('map-full')
+	}));
+	assert.ok(full.full && full.body && !full.turned, JSON.stringify(full));
+	assert.equal(full.w, 1280); assert.equal(full.h, 900);
+	assert.equal(full.bar, 'flex', 'the way back is on the chart');
+	assert.ok(full.w > before.w && full.h > before.h, 'bigger than the panel it left');
+	// The sea still answers: a drag pans, a wheel zooms, without a fault.
+	await page.mouse.move(640, 450); await page.mouse.down(); await page.mouse.move(700, 480, { steps: 4 }); await page.mouse.up(); await wait(200);
+	await page.keyboard.press('Escape'); await wait(300);
+	assert.equal(await page.$eval('[data-map]', el => el.classList.contains('full')), false, 'Esc brings the page back');
+	assert.equal(await page.$eval('body', el => el.classList.contains('map-full')), false);
+	await page.click('.map-zoom [data-act="map-full"]'); await wait(200);
+	await page.click('.map-full-bar [data-act="map-full"]'); await wait(200);
+	assert.equal(await page.$eval('[data-map]', el => el.classList.contains('full')), false, '✕ brings it back');
+	await page.click('.map-zoom [data-act="map-full"]'); await wait(200);
+	// Back, or a link, to another tab: the chart does not stay over it.
+	await page.evaluate(() => { location.hash = '#plan'; }); await wait(400);
+	assert.equal(await page.$eval('body', el => el.classList.contains('map-full')), false, 'another tab is not under the chart');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('on a phone held upright the full chart turns on its side, and the pointer is turned with it', async () => {
+	const { page, context, errors } = await open('#map', { touch: true });
+	await seed(page); await wait(1200);
+	await page.click('.map-zoom [data-act="map-full"]'); await wait(400);
+	const box = await page.$eval('[data-map]', el => {
+		const r = el.getBoundingClientRect();
+		return { full: el.classList.contains('full'), turned: el.classList.contains('turned'), w: el.clientWidth, h: el.clientHeight, sw: Math.round(r.width), sh: Math.round(r.height) };
+	});
+	// Its own width is the screen's height: the sea is wide again.
+	assert.ok(box.full && box.turned, JSON.stringify(box));
+	assert.equal(box.w, 860); assert.equal(box.h, 400);
+	assert.equal(box.sw, 400); assert.equal(box.sh, 860);
+	// The readout under the pointer runs the box's way: down the screen
+	// is east on the chart, and leftward is south.
+	const read = async (x, y) => {
+		await page.mouse.move(x, y); await wait(120);
+		const t = await text(page, '[data-map-coords]');
+		const m = /X (-?[\d,.\s]+) · Z (-?[\d,.\s]+)/.exec(t);
+		assert.ok(m, `a readout: ${t}`);
+		return { x: Number(m[1].replace(/[^\d-]/g, '')), z: Number(m[2].replace(/[^\d-]/g, '')) };
+	};
+	const a = await read(200, 300);
+	const down = await read(200, 500);
+	const left = await read(100, 300);
+	assert.ok(down.x > a.x && Math.abs(down.z - a.z) < 1000, `down the screen is east: ${JSON.stringify([a, down])}`);
+	assert.ok(left.z < a.z && Math.abs(left.x - a.x) < 1000, `leftward is south: ${JSON.stringify([a, left])}`);
+	// A finger dragged down the screen carries the sea down the screen:
+	// what was under it at the start is under it at the end.
+	const under = async (x, y) => { const p = await read(x, y); return p; };
+	const start = await under(200, 300);
+	await page.touchscreen.touchStart(200, 300);
+	await page.touchscreen.touchMove(200, 400); await page.touchscreen.touchMove(200, 500);
+	await page.touchscreen.touchEnd(); await wait(300);
+	const end = await under(200, 500);
+	assert.ok(Math.abs(end.x - start.x) < 2500 && Math.abs(end.z - start.z) < 2500, `the sea followed the finger: ${JSON.stringify([start, end])}`);
+	// Turned the other way, the phone is wide already and the box is not turned.
+	await page.setViewport({ width: 860, height: 400, isMobile: true, hasTouch: true }); await wait(400);
+	assert.equal(await page.$eval('[data-map]', el => el.classList.contains('turned')), false, 'a wide phone needs no turning');
+	assert.equal(await page.$eval('[data-map]', el => el.classList.contains('full')), true);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('the game\'s favourites come back as the route they were written from, and a loop as a trace', async () => {
+	const { page, context, errors } = await open('#map');
+	await seed(page); await wait(1200);
+	// A route of five written out as the game's favourites, plus a loop
+	// of the same five with a bend on open sea.
+	const xml = await page.evaluate(async () => {
+		const w = await import('/js/worldmap.js');
+		const { npcs } = await import('/js/barter_npcs.js');
+		const pts = npcs.slice(0, 5).map((n, i) => ({ name: `${i + 1}: ${n.name}`, x: n.x, y: n.y }));
+		const fav = w.bookmarkXML(pts).xml;
+		const loop = w.bookmarkXML([...pts, { name: 'bend', x: 50000, y: 50000 }], { loop: 0, bookmarks: false, cameras: false }).xml;
+		return { fav, loop, ids: npcs.slice(0, 5).map(n => n.id) };
+	});
+	await page.click('[data-act="map-mode"][data-id="route"]'); await wait(300);
+	await page.click('[data-act="map-game-in"]'); await wait(300);
+	assert.equal(await count(page, '[data-game-in]'), 1, 'the paste box');
+	await page.evaluate(x => { document.querySelector('[data-game-in]').value = x; }, xml.fav + xml.loop);
+	await page.click('[data-act="map-game-in-read"]'); await wait(300);
+	const rows = await page.$$eval('.map-game-set', els => els.map(el => ({ name: el.querySelector('b').textContent, as: el.querySelector('select').value, opts: [...el.querySelectorAll('option')].map(o => o.value) })));
+	assert.deepEqual(rows.map(r => r.name), ['Favourites', 'Loop 1']);
+	assert.equal(rows[0].as, 'route', 'five barterers is the route');
+	assert.equal(rows[1].as, 'trace', 'a bend on open sea makes it a trace by default');
+	assert.ok(rows[1].opts.includes('route'), 'though the route is on offer');
+	await page.click('[data-act="map-game-in-go"]'); await wait(500);
+	const after = await page.evaluate(() => JSON.parse(localStorage.getItem('bdo-tracker/map-view')));
+	assert.deepEqual(after.stops, xml.ids, 'the route is back, in order');
+	assert.equal(after.traces[0].name, 'Loop 1 (game)');
+	assert.equal(after.traces[0].points.length, 6);
+	assert.equal(after.traces[0].shown, true);
+	assert.match(await text(page, '#toast'), /Route plotted: 5 stops/);
+	assert.deepEqual(errors, []);
+	await context.close();
+});

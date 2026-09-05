@@ -517,7 +517,12 @@ of slots and holds every stop in order. It is one or the other, never
 both — whichever you do not write is left exactly as it was, loops in
 the other slots included. The Grounds tab writes the same way: the
 courses and monster grounds you have ticked, several courses sailed as
-one run.
+one run. The file reads back too: paste its favourites block, or a few
+lines of it, or open the file, and the bookmarks, camera slots and loops
+come onto the chart — as the route when their points sit on barterers
+(wharf calls included), as a kept trace otherwise. The chart itself can
+be put over the whole screen; on a phone that is the whole screen, in
+landscape.
 
 Every line the chart draws, and every loop it writes, is bent round the
 land in its way: `tools/build-seamask.mjs` reads the shipped tiles and
