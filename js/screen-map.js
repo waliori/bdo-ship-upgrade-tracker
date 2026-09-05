@@ -13,7 +13,7 @@ import {
 	createMap, frame, marksFor, pan, zoomAt, clampView, fitTo,
 	routeFor, routePath, project, placeTile, zoomRange
 } from './map.js';
-import { npcs, npcById, ports, MAX_ZOOM } from './barter_npcs.js';
+import { npcs, npcById, ports, MAX_ZOOM, TILE } from './barter_npcs.js';
 import { seaRoute, setLanes, openSea, nearestWater } from './searoute.js';
 import { wharves, nearestWharf } from './wharves.js';
 import { habitatsOf, habitatsOfMany } from './habitats.js';
@@ -2446,7 +2446,7 @@ export function paintMap() {
 	const { tiles, pins } = frame(mapState, size, marks);
 	// A layer that faults says so in the console and leaves the others
 	// to paint; nothing on the chart depends on another layer's luck.
-	const guarded = (fn, ...args) => { try { fn(...args); } catch (err) { console.warn(`[map] ${fn.name} failed:`, err); } };
+	const guarded = (fn, ...args) => { const t0 = performance.now(); try { fn(...args); } catch (err) { console.warn(`[map] ${fn.name} failed:`, err); } if (window.__paintProf) window.__paintProf[fn.name] = (window.__paintProf[fn.name] || 0) + performance.now() - t0; };
 
 	// The route as it is sailed: the islands with the run's wharf calls
 	// among them. The step player walks it, the pins take their numbers
@@ -2481,8 +2481,39 @@ export function paintMap() {
 	guarded(paintMini, host, size);
 }
 
+/**
+ * The tiles, one box per zoom level. A tile is placed once, at its
+ * grid position in its level's own pixel space, and never touched
+ * again; what a pan or a zoom moves is the level's box -- one
+ * transform a frame instead of a hundred, and one layer the
+ * compositor slides rather than a hundred images it re-places. On a
+ * wide screen at a close zoom, over water the chart covers on every
+ * side (the hekaru's, say -- the ocean stalker's is cut short by the
+ * chart's edge), that hundred was most of what a pan frame cost.
+ */
 function paintTiles(layer, tiles, size) {
 	const pool = layer._tiles || (layer._tiles = new Map());
+	const levels = layer._levels || (layer._levels = new Map());
+	const levelBox = z => {
+		let d = levels.get(z);
+		if (!d) {
+			d = document.createElement('div');
+			d.className = 'map-tiles';
+			d.dataset.z = z;
+			levels.set(z, d);
+			// At the front of the layer, always: everything drawn over the
+			// sea shares its z-index with the tiles or beats it, so a level
+			// appended after the course line would cover it -- which is
+			// what happened on every zoom.
+			layer.insertBefore(d, layer.firstChild);
+		}
+		return d;
+	};
+	// Where a level's box goes so that its tile (x, y) lands at (left,
+	// top) on the screen, drawn at `scale`.
+	const place = (d, z, x, y, at) => {
+		d.style.transform = `translate3d(${at.left - x * TILE * at.scale}px, ${at.top - y * TILE * at.scale}px, 0) scale(${at.scale})`;
+	};
 	const live = new Set();
 	let loading = false;
 	for (const t of tiles) {
@@ -2494,35 +2525,42 @@ function paintTiles(layer, tiles, size) {
 			img.src = t.src;
 			img.alt = '';
 			img.draggable = false;
+			img.style.transform = `translate(${t.x * TILE}px, ${t.y * TILE}px)`;
 			// Fading in over the sea colour is what a zoom step looks
 			// like while its tiles arrive; popping from dark was a bug
-			// report.
-			img.addEventListener('load', () => img.classList.add('on'), { once: true });
-			if (img.complete && img.naturalWidth) img.classList.add('on');
+			// report. A tile that fails to arrive counts as arrived, or
+			// the level under it would be kept for ever.
+			const settle = () => img.classList.add('on');
+			img.addEventListener('load', settle, { once: true });
+			img.addEventListener('error', settle, { once: true });
+			if (img.complete && img.naturalWidth) settle();
 			pool.set(t.src, (e = { img, z: t.z, x: t.x, y: t.y }));
-			// At the front of the layer, always: everything drawn over the
-			// sea shares its z-index with the tiles or beats it, so a tile
-			// appended after the course line would cover it -- which is
-			// what happened on every zoom.
-			layer.insertBefore(img, layer.firstChild);
+			levelBox(t.z).appendChild(img);
 		}
 		if (!e.img.classList.contains('on')) loading = true;
-		e.img.style.zIndex = 1;
-		e.img.style.transform = `translate3d(${t.left}px, ${t.top}px, 0) scale(${t.scale})`;
+	}
+	const top = tiles[0];
+	if (top) {
+		const d = levelBox(top.z);
+		d.style.zIndex = 1;
+		place(d, top.z, top.x, top.y, top);
 	}
 	// While the new level is still arriving, the old level stays put
 	// underneath -- rescaled to line up -- so a zoom crossfades between
 	// magnifications instead of blinking through open sea.
 	for (const [src, e] of pool) {
-		if (live.has(src)) continue;
-		if (loading) {
-			const at = placeTile(mapState, size, e.z, e.x, e.y);
-			e.img.style.zIndex = 0;
-			e.img.style.transform = `translate3d(${at.left}px, ${at.top}px, 0) scale(${at.scale})`;
-		} else {
-			e.img.remove();
-			pool.delete(src);
-		}
+		if (live.has(src) || loading) continue;
+		e.img.remove();
+		pool.delete(src);
+	}
+	for (const [z, d] of levels) {
+		if (top && z === top.z) continue;
+		const first = d.firstElementChild;
+		if (!first) { d.remove(); levels.delete(z); continue; }
+		const e = pool.get(first.getAttribute('src')) || [...pool.values()].find(v => v.z === z);
+		if (!e) { d.remove(); levels.delete(z); continue; }
+		d.style.zIndex = 0;
+		place(d, z, e.x, e.y, placeTile(mapState, size, z, e.x, e.y));
 	}
 }
 
@@ -2630,8 +2668,8 @@ function declutterPins(pool, pins) {
 			if (!el) continue;
 			if (!el._box) el._box = { w: el.offsetWidth, h: el.offsetHeight };
 			if (!el._box.w) { el._box = null; continue; }
-			const left = parseFloat(port.style.left), top = parseFloat(port.style.top);
-			if (!Number.isFinite(left) || !Number.isFinite(top)) continue;
+			if (!port._at) continue;
+			const { left, top } = port._at;
 			const t = top + 4.5 + 3;
 			shown.push({ l: left - el._box.w / 2, r: left + el._box.w / 2, t, b: t + el._box.h });
 		}
@@ -2781,25 +2819,60 @@ function paintCourse(layer, size) {
  *  not be as elements. The legend's shapes: a cross for a grown
  *  monster, a square for a young one, a diamond for a ship, a ring for
  *  a boss. */
+const HUNT_MARGIN = 240;   // css px of sea drawn past each edge of the box
+
 function paintHunt(layer, size) {
 	let cv = layer._hunt;
-	if (!huntsOn.length) { if (cv) cv.style.display = 'none'; return; }
+	if (!huntsOn.length) { if (cv) cv.style.display = 'none'; layer._huntAt = null; return; }
 	if (!cv) {
 		cv = layer._hunt = document.createElement('canvas');
 		cv.className = 'map-hunt-layer';
 		layer.appendChild(cv);
 	}
 	cv.style.display = '';
+	// A canvas the size of the screen, cleared and redrawn and handed
+	// to the GPU again on every frame of a pan, is a cost a pan does
+	// not need to pay: the dots do not change, they slide. So it is
+	// drawn a margin wider than the box and slid by transform until the
+	// pan runs past the margin, the zoom changes, or the grounds do;
+	// then once more.
+	const was = layer._huntAt;
+	const origin = project(mapState, size, 0, 0);
+	const key = `${huntsOn.join(',')}|${size.w}x${size.h}`;
+	if (was && was.key === key) {
+		const r = Math.pow(2, mapState.zoom - was.zoom);
+		if (r === 1) {
+			const dx = origin.left - was.left, dy = origin.top - was.top;
+			if (Math.abs(dx) < HUNT_MARGIN && Math.abs(dy) < HUNT_MARGIN) {
+				cv.style.transform = `translate3d(${dx - HUNT_MARGIN}px, ${dy - HUNT_MARGIN}px, 0)`;
+				return;
+			}
+		} else if (r > 0.5 && r < 2) {
+			// Mid-zoom, the last drawing is stretched to fit -- the dots
+			// grow a little soft for a moment -- and drawn afresh once the
+			// wheel has stopped. A ground the size of the hekaru's, filled
+			// and outlined wide, is too much to rasterise per notch.
+			cv.style.transform = `translate3d(${origin.left - r * (HUNT_MARGIN + was.left)}px, ${origin.top - r * (HUNT_MARGIN + was.top)}px, 0) scale(${r})`;
+			clearTimeout(layer._huntSettle);
+			layer._huntSettle = setTimeout(() => { layer._huntAt = null; schedulePaint(); }, 140);
+			return;
+		}
+	}
+	clearTimeout(layer._huntSettle);
+	layer._huntAt = { key, zoom: mapState.zoom, left: origin.left, top: origin.top };
+	cv.style.transform = `translate3d(${-HUNT_MARGIN}px, ${-HUNT_MARGIN}px, 0)`;
 	const dpr = window.devicePixelRatio || 1;
-	if (cv.width !== Math.round(size.w * dpr) || cv.height !== Math.round(size.h * dpr)) {
-		cv.width = Math.round(size.w * dpr);
-		cv.height = Math.round(size.h * dpr);
-		cv.style.width = `${size.w}px`;
-		cv.style.height = `${size.h}px`;
+	const W = size.w + HUNT_MARGIN * 2, H = size.h + HUNT_MARGIN * 2;
+	if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) {
+		cv.width = Math.round(W * dpr);
+		cv.height = Math.round(H * dpr);
+		cv.style.width = `${W}px`;
+		cv.style.height = `${H}px`;
 	}
 	const g = cv.getContext('2d');
-	g.setTransform(dpr, 0, 0, dpr, 0, 0);
-	g.clearRect(0, 0, size.w, size.h);
+	// Drawn in the box's own coordinates, shifted by the margin.
+	g.setTransform(dpr, 0, 0, dpr, HUNT_MARGIN * dpr, HUNT_MARGIN * dpr);
+	g.clearRect(-HUNT_MARGIN, -HUNT_MARGIN, W, H);
 	const r = Math.max(2.5, Math.min(6, 1.2 * Math.pow(2, mapState.zoom - 4)));
 	// A ground as an area first: the outline round each cluster of
 	// spawns, filled faintly and padded by about a spawn's reach, so a
@@ -2818,7 +2891,7 @@ function paintHunt(layer, size) {
 			// wider than the view has every corner out of sight and still
 			// fills it.
 			const xs = pts.map(p => p.left), ys = pts.map(p => p.top);
-			if (Math.max(...xs) < -pad || Math.max(...ys) < -pad || Math.min(...xs) > size.w + pad || Math.min(...ys) > size.h + pad) continue;
+			if (Math.max(...xs) < -pad - HUNT_MARGIN || Math.max(...ys) < -pad - HUNT_MARGIN || Math.min(...xs) > size.w + pad + HUNT_MARGIN || Math.min(...ys) > size.h + pad + HUNT_MARGIN) continue;
 			g.beginPath();
 			pts.forEach((p, i) => (i ? g.lineTo(p.left, p.top) : g.moveTo(p.left, p.top)));
 			g.closePath();
@@ -2844,8 +2917,8 @@ function paintHunt(layer, size) {
 		if (!m) continue;
 		g.strokeStyle = m.colour;
 		g.fillStyle = m.colour;
-		g.shadowColor = 'rgba(0,0,0,0.7)';
-		g.shadowBlur = 3;
+		// No shadow blur: a blurred shadow is an offscreen pass per mark,
+		// and a hundred of them per redraw was most of the redraw.
 		// A species the codex has no points for -- the crocodiles since
 		// their move -- is drawn at its ground instead: a dashed ring,
 		// since the spot is approximate, so picking it never shows an
@@ -2853,7 +2926,7 @@ function paintHunt(layer, size) {
 		if (!m.points.length && m.zones) {
 			for (const [x, y] of m.zones) {
 				const at = project(mapState, size, x, y);
-				if (at.left < -60 || at.top < -60 || at.left > size.w + 60 || at.top > size.h + 60) continue;
+				if (at.left < -60 - HUNT_MARGIN || at.top < -60 - HUNT_MARGIN || at.left > size.w + 60 + HUNT_MARGIN || at.top > size.h + 60 + HUNT_MARGIN) continue;
 				g.save();
 				g.setLineDash([6, 5]);
 				g.lineWidth = 2;
@@ -2865,7 +2938,7 @@ function paintHunt(layer, size) {
 		}
 		for (const [x, y, w] of m.points) {
 			const at = project(mapState, size, x, y);
-			if (at.left < -10 || at.top < -10 || at.left > size.w + 10 || at.top > size.h + 10) continue;
+			if (at.left < -10 - HUNT_MARGIN || at.top < -10 - HUNT_MARGIN || at.left > size.w + 10 + HUNT_MARGIN || at.top > size.h + 10 + HUNT_MARGIN) continue;
 			// A point can carry how many spawn there (the crocodiles' map
 			// counts one, three or four); the mark grows with it.
 			const rr = w > 1 ? r * (1 + 0.3 * Math.min(w - 1, 3)) : r;
@@ -2911,8 +2984,8 @@ function paintPorts(layer, size) {
 		}
 		el.hidden = false;
 		el.classList.toggle('start', p.id === startPort);
-		el.style.left = `${Math.round(at.left)}px`;
-		el.style.top = `${Math.round(at.top)}px`;
+		el._at = { left: Math.round(at.left), top: Math.round(at.top) };
+		el.style.transform = `translate(${el._at.left}px, ${el._at.top}px)`;
 	}
 }
 
@@ -3003,8 +3076,7 @@ function paintHabitats(layer, size) {
 			}
 			el.hidden = false;
 			el.classList.toggle('on', on);
-			el.style.left = `${Math.round(g.at.left)}px`;
-			el.style.top = `${Math.round(g.at.top)}px`;
+			el.style.transform = `translate(${Math.round(g.at.left)}px, ${Math.round(g.at.top)}px)`;
 		}
 	}
 	for (const [key, el] of pool) if (!live.has(key)) el.hidden = true;
@@ -3097,8 +3169,7 @@ function paintLabels(layer, size) {
 		}
 		el.hidden = false;
 		// A touch below the island's middle, where the pins are not.
-		el.style.left = `${Math.round(at.left)}px`;
-		el.style.top = `${Math.round(at.top) + 18}px`;
+		el.style.transform = `translate(${Math.round(at.left)}px, ${Math.round(at.top) + 18}px) translate(-50%, -50%)`;
 	}
 }
 
@@ -3127,8 +3198,7 @@ function paintWharves(layer, size) {
 			layer.appendChild(el);
 		}
 		el.hidden = false;
-		el.style.left = `${Math.round(at.left)}px`;
-		el.style.top = `${Math.round(at.top)}px`;
+		el.style.transform = `translate(${Math.round(at.left)}px, ${Math.round(at.top)}px)`;
 	});
 }
 
@@ -3199,8 +3269,7 @@ function paintStash(layer, size, seq, current) {
 				: 'sells the goods aboard'}`}`;
 		el.classList.toggle('current', g.calls.includes(current));
 		el.classList.toggle('many', g.calls.length > 1);
-		el.style.left = `${Math.round(at.left)}px`;
-		el.style.top = `${Math.round(at.top)}px`;
+		el.style.transform = `translate(${Math.round(at.left)}px, ${Math.round(at.top)}px)`;
 		el.querySelector('.map-stash-badge').textContent = g.calls.length > 1 ? `${g.calls.length}×` : String(stops[0]);
 		el.querySelector('.map-stash-who').textContent = g.name;
 		el.querySelector('.map-stash-at').textContent = g.calls.length > 1

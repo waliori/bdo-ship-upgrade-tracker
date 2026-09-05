@@ -1937,6 +1937,8 @@ select.purse-inline { width: auto; cursor: pointer; }
    and stretching a 40px sliver to 256 smeared the coastline. The zoom
    is continuous, so a tile is also fractionally rescaled in transform
    -- never by more than half a level. */
+/* One box per zoom level holds its tiles and is what a pan moves. */
+.map-tiles { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; will-change: transform; }
 .map-tile {
   position: absolute;
   left: 0;
@@ -2546,6 +2548,8 @@ select.purse-inline { width: auto; cursor: pointer; }
    the route's home. */
 .map-port {
   position: absolute;
+  left: 0;
+  top: 0;
   width: 9px;
   height: 9px;
   margin: -4.5px 0 0 -4.5px;
@@ -3020,7 +3024,7 @@ select.purse-inline { width: auto; cursor: pointer; }
 .map-hunt-dot.pirate { border-radius: 50%; background: var(--hunt); border-color: transparent; }
 .map-hunt.on .map-hunt-dot { background: var(--hunt); opacity: 1; box-shadow: 0 0 8px var(--hunt); }
 .map-hunt .map-row-sub { white-space: normal; }
-.map-hunt-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.map-hunt-layer { position: absolute; left: 0; top: 0; z-index: 1; pointer-events: none; will-change: transform; transform-origin: 0 0; }
 .map-course-layer { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
 .map-waypoint[hidden] { display: none; }
 
@@ -3028,7 +3032,7 @@ select.purse-inline { width: auto; cursor: pointer; }
    display, which would otherwise outrank the attribute and leave a
    culled pin standing where it last was. */
 .map-port[hidden], .map-pin[hidden], .map-steps[hidden], .map-tip[hidden], .map-wharf[hidden], .map-stash[hidden], .map-habitat[hidden], .map-label[hidden] { display: none; }
-.map-label { position: absolute; transform: translate(-50%, -50%); pointer-events: none; z-index: 1; font-family: var(--font-display); font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(214, 232, 246, 0.5); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.6); white-space: nowrap; }
+.map-label { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); pointer-events: none; z-index: 1; font-family: var(--font-display); font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(214, 232, 246, 0.5); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.6); white-space: nowrap; }
 .map-side-head-btns { display: flex; gap: 2px; }
 .map.side-right .map-side, .map.side-right .map-side-pill { left: auto; right: 12px; }
 .map.tracing { cursor: crosshair; }
@@ -3041,7 +3045,9 @@ select.purse-inline { width: auto; cursor: pointer; }
 /* A stop or a word already on the sea is picked up and carried. */
 .map.free-hand .map-trace-dot, .map.free-hand .map-trace-word { pointer-events: auto; cursor: grab; user-select: none; touch-action: none; }
 .map.moving-mark, .map.moving-mark .map-trace-dot, .map.moving-mark .map-trace-word { cursor: grabbing; }
-.map-trace-layer { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.map-trace-layer { position: absolute;
+  left: 0;
+  top: 0; inset: 0; pointer-events: none; z-index: 2; }
 .map-trace-art { position: absolute; inset: 0; }
 .map-trace-glow { fill: none; stroke: #7ef0d4; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; opacity: 0.14; }
 .map-trace-path { fill: none; stroke: #7ef0d4; stroke-width: 2; stroke-dasharray: 7 5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.9; }
@@ -3407,7 +3413,7 @@ select.purse-inline { width: auto; cursor: pointer; }
 .field.select.inline { display: inline-block; width: auto; padding: 2px 6px; font-size: 12px; }
 
 /* ---- Wharves ---- */
-.map-wharf { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; pointer-events: none; z-index: 2; font-size: 10.5px; color: #cfe3f5; text-shadow: 0 1px 4px #000; white-space: nowrap; }
+.map-wharf { position: absolute; left: 0; top: 0; width: 14px; height: 14px; margin: -7px 0 0 -7px; pointer-events: none; z-index: 2; font-size: 10.5px; color: #cfe3f5; text-shadow: 0 1px 4px #000; white-space: nowrap; }
 .map-wharf-name { position: absolute; left: calc(100% + 4px); top: 50%; transform: translateY(-50%); }
 .map-wharf-dot { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 13px; line-height: 1; filter: drop-shadow(0 1px 2px #000); }
 .map-wharf.guild { color: #d9c4ff; }
@@ -3589,7 +3595,7 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .dialog-box { overflow-x: hidden; }
 
 /* ---- The chart: habitat markers and the currents ---- */
-.map-habitat { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; z-index: 3; padding: 0; border: 0; background: none; color: #f3e35a; font: inherit; cursor: pointer; text-shadow: 0 1px 4px #000, 0 0 8px rgba(0, 0, 0, 0.8); }
+.map-habitat { position: absolute; left: 0; top: 0; width: 44px; height: 44px; margin: -22px 0 0 -22px; z-index: 3; padding: 0; border: 0; background: none; color: #f3e35a; font: inherit; cursor: pointer; text-shadow: 0 1px 4px #000, 0 0 8px rgba(0, 0, 0, 0.8); }
 .map-habitat.young { width: 34px; height: 34px; margin: -17px 0 0 -17px; }
 .map-habitat-name { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 1px; }
 .map-habitat-sub { position: absolute; top: calc(100% + 15px); left: 50%; transform: translateX(-50%); }

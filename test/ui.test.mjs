@@ -358,10 +358,11 @@ test('the hunt courses and grounds stay above the tiles through a zoom', async (
 		const layer = document.querySelector('[data-map-layer]');
 		const kids = [...layer.children];
 		const zi = e => { const z = getComputedStyle(e).zIndex; return z === 'auto' ? 0 : Number(z); };
-		const above = el => kids.filter(t => t.classList.contains('map-tile') && getComputedStyle(t).opacity === '1'
+		// The tiles sit in one box per zoom level; the box is what stacks.
+		const above = el => kids.filter(t => t.classList.contains('map-tiles') && [...t.children].some(i => getComputedStyle(i).opacity === '1')
 			&& (zi(t) > zi(el) || (zi(t) === zi(el) && kids.indexOf(t) > kids.indexOf(el)))).length;
 		const course = layer.querySelector('.map-course-layer');
-		return { course: above(course), hunt: above(layer.querySelector('.map-hunt-layer')), tiles: kids.filter(t => t.classList.contains('map-tile')).length };
+		return { course: above(course), hunt: above(layer.querySelector('.map-hunt-layer')), tiles: layer.querySelectorAll('.map-tile').length };
 	});
 	const zoom = () => page.evaluate(async () => { const m = await import('/js/screen-map.js'); m.mapZoomStep(1); });
 	for (let i = 0; i < 4; i++) {
@@ -757,7 +758,7 @@ test('habitat markers never print on top of one another, at any zoom', async () 
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.map-habitat'); await wait(800);
 	const gaps = () => page.evaluate(() => {
 		const els = [...document.querySelectorAll('.map-habitat')].filter(e => getComputedStyle(e).display !== 'none');
-		const at = els.map(e => [parseFloat(e.style.left), parseFloat(e.style.top)]);
+		const at = els.map(e => { const m = /translate\((-?[\d.]+)px, (-?[\d.]+)px\)/.exec(e.style.transform); return [parseFloat(m[1]), parseFloat(m[2])]; });
 		// Two labels touch when both their horizontal and vertical gaps are small.
 		let touching = 0;
 		for (let i = 0; i < at.length; i++) for (let j = i + 1; j < at.length; j++) {
@@ -780,7 +781,7 @@ test('habitat markers follow a pan, hide and return once, and the Lyngbakr stand
 	const { page, context, errors } = await open('#map');
 	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: false, habitatsOn: true })); });
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('#pouch .pouch-item'); await wait(1500);
-	const marker = () => page.evaluate(() => { const e = document.querySelector('.map-habitat:not([hidden])'); return e ? [e.dataset.key, e.style.left] : null; });
+	const marker = () => page.evaluate(() => { const e = document.querySelector('.map-habitat:not([hidden])'); return e ? [e.dataset.key, e.style.transform] : null; });
 	const pin = () => page.evaluate(() => { const e = document.querySelector('[data-act="map-pin"]:not([hidden])'); return e ? e.style.transform : null; });
 	const before = { m: await marker(), p: await pin() };
 	// A drag on open sea: a spot inside the box that no pin, marker or
