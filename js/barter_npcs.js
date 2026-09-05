@@ -41,6 +41,12 @@ export const TILE = 256;
  *  chart pans to every coast rather than stopping at the sea's, and
  *  nothing outside is fetched: a pan past the edge draws sea, not a
  *  404. */
+/** When the set under map/ was fetched. Part of every tile's URL, so
+ *  the caches that hold tiles for a year let go of them the day this
+ *  changes; bump it whenever tools/fetch-map-tiles.mjs is rerun after
+ *  the game's map has moved. */
+export const TILES_STAMP = '20260905';
+
 export const TILES = Object.fromEntries([1, 2, 3, 4, 5, 6, 7].map(z => [z, { x0: 0, x1: (1 << z) - 1, y0: 0, y1: (1 << z) - 1 }]));
 
 /** The wharves inside the charted sea, for anchoring a route to where

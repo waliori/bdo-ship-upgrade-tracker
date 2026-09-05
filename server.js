@@ -152,9 +152,14 @@ const REVALIDATE = { maxAge: 0, etag: true, setHeaders: res => res.set('Cache-Co
 const LONG = { maxAge: '7d' };
 
 app.use('/icons', express.static(path.join(__dirname, 'icons'), LONG));
-// Map tiles are named by zoom and grid position, so a given name is a
-// given square of sea forever. They cache like the icons do.
-app.use('/map', express.static(path.join(__dirname, 'map'), LONG));
+// Map tiles are named by zoom and grid position, and asked for with
+// the set's date on the query string (TILES_STAMP in js/barter_npcs.js),
+// so a given URL is a given square of sea forever: a year, immutable,
+// and no revalidation -- the browser, the service worker, the proxy
+// and the CDN in front all keep a tile on that word, and the origin
+// sees each one about once.
+const FOREVER = { maxAge: '365d', immutable: true };
+app.use('/map', express.static(path.join(__dirname, 'map'), FOREVER));
 // The walkthrough film the Help dialog plays. It lives beside the rest of
 // the documentation media so the README and the app show the same thing,
 // and only the video is copied into the image -- the README's GIFs are

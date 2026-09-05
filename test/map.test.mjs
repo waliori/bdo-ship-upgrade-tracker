@@ -16,7 +16,7 @@ const shipbarters = JSON.parse(
 	await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
 import { npcs, npcById, ports, TILES, TILE, MAX_ZOOM } from '../js/barter_npcs.js';
 import {
-	toPixel, frame, marksFor, pan, zoomBy, zoomAt, createMap, zoomRange, tileFile,
+	toPixel, frame, marksFor, pan, zoomBy, zoomAt, createMap, zoomRange, tileFile, tileSrc, tilesFor, levelFor,
 	clampView, routeFor, fitTo, routePath, project, placeTile
 } from '../js/map.js';
 
@@ -453,4 +453,45 @@ test('without a viewport the path is the plain line it always was', () => {
 	const pts = [{ left: 0, top: 0 }, { left: 10, top: 0 }];
 	assert.match(routePath(pts), /^M 0\.0 0\.0 Q /);
 	assert.equal(routePath([{ left: 1, top: 1 }]), '');
+});
+
+/* ------------------------------------------------------------------ *
+ * what a frame asks for, and in what order
+ * ------------------------------------------------------------------ */
+
+test('a frame asks for the middle of the screen first and the margin last', () => {
+	const state = createMap({ zoom: 7 });
+	const { tiles } = frame(state, SIZE);
+	const inView = tiles.filter(t => !t.ahead), margin = tiles.filter(t => t.ahead);
+	assert.ok(inView.length > 0 && margin.length > 0, 'both kinds present');
+	assert.ok(tiles.indexOf(margin[0]) > tiles.indexOf(inView[inView.length - 1]), 'every margin tile after every visible one');
+	const mid = t => Math.hypot(t.left + TILE * t.scale / 2 - SIZE.w / 2, t.top + TILE * t.scale / 2 - SIZE.h / 2);
+	for (let i = 1; i < inView.length; i++) assert.ok(mid(inView[i]) >= mid(inView[i - 1]) - 1e-6, 'visible tiles by distance from the middle');
+	for (const t of margin) assert.ok(t.left + TILE * t.scale <= 0 || t.top + TILE * t.scale <= 0 || t.left >= SIZE.w || t.top >= SIZE.h, `${t.key} marked margin but visible`);
+});
+
+test('a held level is drawn scaled instead of the nearest', () => {
+	// A wheel from 3 to 7 must fetch 7, not 4, 5 and 6 on the way: while
+	// the zoom is in motion the caller holds the level on screen.
+	const state = createMap({ zoom: 6.4 });
+	assert.equal(levelFor(state.zoom), 6);
+	const held = frame(state, SIZE, new Map(), 3).tiles;
+	assert.ok(held.every(t => t.z === 3), 'every tile from the held level');
+	assert.ok(Math.abs(held[0].scale - Math.pow(2, 6.4 - 3)) < 1e-9, 'scaled the whole way');
+	assert.ok(held.length < frame(state, SIZE).tiles.length, 'fewer, larger tiles');
+});
+
+test('the tiles of a destination cover its view at its own level', () => {
+	const dest = createMap({ zoom: 7 });
+	const tiles = tilesFor(dest, SIZE, levelFor(dest.zoom));
+	assert.ok(tiles.every(t => t.z === 7));
+	const cover = Math.ceil(SIZE.w / TILE) * Math.ceil(SIZE.h / TILE);
+	assert.ok(tiles.filter(t => !t.ahead).length >= cover, 'the visible box is covered');
+});
+
+test('a tile is asked for with the set\'s stamp, and the file behind it is on disk', async () => {
+	const src = tileSrc(7, 66, 56);
+	assert.match(src, /^map\/7_\d+_\d+\.webp\?v=\d{8}$/);
+	const fs = await import('node:fs/promises');
+	await fs.access(new URL(`../${tileFile(7, 66, 56)}`, import.meta.url));
 });

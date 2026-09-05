@@ -20,7 +20,7 @@
 // a slide carousel, not a sea -- and the shipped levels are just where
 // the pixels come from.
 
-import { npcs, npcById, TILES, TILE, MAX_ZOOM } from './barter_npcs.js';
+import { npcs, npcById, TILES, TILE, MAX_ZOOM, TILES_STAMP } from './barter_npcs.js';
 import { ALIAS } from './tile_alias.js';
 
 const ZOOMS = Object.keys(TILES).map(Number).sort((a, b) => a - b);
@@ -49,6 +49,15 @@ export function toPixel(coord, zoom) {
 export function tileFile(z, x, y) {
 	const key = `${z}_${x}_${y}`;
 	return `map/${ALIAS[key] || key}.webp`;
+}
+
+/** The URL a tile is asked for by: its file, stamped with the set's
+ *  date. The server says a tile never changes, and every cache between
+ *  it and the screen -- the browser's, the service worker's, the
+ *  proxies' -- keeps it for a year on that word; a refetched set is
+ *  told apart by its stamp, not by anyone checking. */
+export function tileSrc(z, x, y) {
+	return `${tileFile(z, x, y)}?v=${TILES_STAMP}`;
 }
 
 /** The tile range that covers a pixel box, clamped to what we shipped. */
@@ -97,6 +106,43 @@ export function placeTile(state, size, z, x, y) {
 	return { left: x * TILE * g + at.left, top: y * TILE * g + at.top, scale: g };
 }
 
+/** The nearest shipped level to a zoom. */
+export function levelFor(zoom) {
+	return Math.max(MIN_Z, Math.min(MAX_Z, Math.round(zoom)));
+}
+
+/**
+ * The tiles of one level under the viewport, in viewport pixels, the
+ * nearest to the middle first -- so the middle of the screen fills
+ * before the corners. Half a tile past the edge on every side, so a
+ * pan reveals coastline that is already loaded rather than a flash of
+ * sea; a tile wholly in that margin is marked `ahead`, for the
+ * painter to ask for last and at low priority.
+ */
+export function tilesFor(state, size, level) {
+	const { zoom } = state;
+	const left = toPixel(state.centre.x, zoom) - size.w / 2;
+	const top = toPixel(state.centre.y, zoom) - size.h / 2;
+	const f = Math.pow(2, zoom - level);
+	const pad = TILE / 2;
+	const r = tileRange(level, left / f - pad, top / f - pad, size.w / f + pad * 2, size.h / f + pad * 2);
+	const tiles = [];
+	for (let x = r.x0; x <= r.x1; x++) {
+		for (let y = r.y0; y <= r.y1; y++) {
+			const l = x * TILE * f - left, t = y * TILE * f - top, w = TILE * f;
+			const ahead = l + w <= 0 || t + w <= 0 || l >= size.w || t >= size.h;
+			const d = Math.hypot(l + w / 2 - size.w / 2, t + w / 2 - size.h / 2);
+			tiles.push({
+				key: `${level}_${x}_${y}`,
+				src: tileSrc(level, x, y),
+				z: level, x, y, scale: f, left: l, top: t, ahead, d
+			});
+		}
+	}
+	tiles.sort((a, b) => a.ahead - b.ahead || a.d - b.d);
+	return tiles;
+}
+
 /**
  * Everything needed to draw one frame: the tiles under the viewport and
  * the markers on top, both already in viewport pixels.
@@ -104,36 +150,19 @@ export function placeTile(state, size, z, x, y) {
  * Kept a pure function of (state, size, marks) so the view can be redrawn
  * on a pan without touching the DOM structure, and so it is testable
  * without a browser.
+ *
+ * The zoom is continuous but the shipped tiles are not: the frame
+ * draws one level, scaled the rest of the way. Left to itself that is
+ * the nearest level -- never more than half a step of stretch. While
+ * a zoom is in motion the caller passes the level it is holding
+ * instead: the tiles already on screen carry the animation, and the
+ * levels passed through on the way are never asked for.
  */
-export function frame(state, size, marks = new Map()) {
+export function frame(state, size, marks = new Map(), level = null) {
 	const { zoom } = state;
-	const cx = toPixel(state.centre.x, zoom);
-	const cy = toPixel(state.centre.y, zoom);
-	const left = cx - size.w / 2;
-	const top = cy - size.h / 2;
-
-	// The zoom is continuous but the shipped tiles are not: draw the
-	// nearest level, scaled the rest of the way -- never more than
-	// half a step, so the stretch stays invisible.
-	const tileZ = Math.max(MIN_Z, Math.min(MAX_Z, Math.round(zoom)));
-	const f = Math.pow(2, zoom - tileZ);
-
-	// One tile beyond the viewport on every side, so a pan reveals
-	// coastline that is already loaded rather than a flash of sea.
-	const r = tileRange(tileZ, left / f - TILE, top / f - TILE,
-		size.w / f + TILE * 2, size.h / f + TILE * 2);
-	const tiles = [];
-	for (let x = r.x0; x <= r.x1; x++) {
-		for (let y = r.y0; y <= r.y1; y++) {
-			tiles.push({
-				key: `${tileZ}_${x}_${y}`,
-				src: tileFile(tileZ, x, y),
-				z: tileZ, x, y, scale: f,
-				left: x * TILE * f - left,
-				top: y * TILE * f - top
-			});
-		}
-	}
+	const left = toPixel(state.centre.x, zoom) - size.w / 2;
+	const top = toPixel(state.centre.y, zoom) - size.h / 2;
+	const tiles = tilesFor(state, size, level === null ? levelFor(zoom) : levelFor(level));
 
 	// Markers are placed even when slightly outside, so one at the edge
 	// half-shows rather than popping in.

@@ -1930,6 +1930,36 @@ select.purse-inline { width: auto; cursor: pointer; }
 
 .map.dragging { cursor: grabbing; }
 
+/* Tiles on their way: a thread of light along the chart's top edge,
+   and only once they have been in flight long enough to notice, so a
+   fast connection never sees it. Nothing is dimmed and nothing is
+   blocked -- the chart can be panned while it fills. */
+.map::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%;
+  height: 2px;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(125, 200, 255, 0.85) 45%, rgba(125, 200, 255, 0.85) 55%, transparent 100%);
+  background-size: 40% 100%;
+  background-repeat: no-repeat;
+  transition: opacity 0.25s;
+}
+.map.is-loading::after {
+  opacity: 1;
+  animation: map-loading 1.1s linear infinite;
+}
+@keyframes map-loading {
+  from { background-position: -40% 0; }
+  to { background-position: 140% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .map.is-loading::after { animation: none; background: rgba(125, 200, 255, 0.5); }
+}
+
 .map-layer { position: absolute; inset: 0; }
 
 /* Tiles are placed, not flowed, and drawn at their own size: most are

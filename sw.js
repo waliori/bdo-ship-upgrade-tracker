@@ -185,11 +185,13 @@ async function cacheFirst(req) {
 		const res = await fetch(req);
 		if (keepable(res)) {
 			const cache = await caches.open(ASSET_CACHE);
-			// The sea is large and the tiles add up. Shed the oldest
-			// tenth rather than growing forever.
+			// The sea is large and the tiles add up: a full-screen view
+			// at the closest zoom is fifty of them, at 9 KB each. Room
+			// for forty such views (~20 MB), shedding the oldest tenth
+			// rather than growing forever.
 			const keys = await cache.keys();
-			if (keys.length > 800) {
-				await Promise.all(keys.slice(0, 100).map(key => cache.delete(key)));
+			if (keys.length > 2000) {
+				await Promise.all(keys.slice(0, 200).map(key => cache.delete(key)));
 			}
 			await cache.put(req, res.clone());
 		}

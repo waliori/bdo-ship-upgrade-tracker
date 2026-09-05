@@ -11,7 +11,7 @@ import { currentShip } from './ship.js';
 import { img } from './ui-bits.js';
 import {
 	createMap, frame, marksFor, pan, zoomAt, clampView, fitTo,
-	routeFor, routePath, project, placeTile, zoomRange, CLOSE_ZOOM
+	routeFor, routePath, project, placeTile, zoomRange, CLOSE_ZOOM, levelFor, tilesFor
 } from './map.js';
 import { npcs, npcById, ports, MAX_ZOOM, TILE } from './barter_npcs.js';
 import { seaRoute, setLanes, openSea, nearestWater } from './searoute.js';
@@ -58,6 +58,10 @@ let pinnedNpc = null;
 let hoverStash = -1;          // a wharf call under the pointer, by its place in runStash
 let pinnedStash = -1;         // one whose card was opened by a click
 let fly = null;               // the rAF handle of a flight in progress
+let flightTo = null;          // where it is bound: a map state, for fetching ahead
+let drawnLevel = null;        // the tile level the last paint drew
+let heldLevel = null;         // the level kept on screen while a zoom is in motion
+let settleTimer = null;       // the wheel's quiet moment, after which the zoom lands
 
 let startPort = 0;            // wharf the route sails from; 0 = first stop
 let returnHome = false;       // close the loop back to that wharf
@@ -2382,7 +2386,26 @@ function onWheel(evt) {
 	// Anchored under the cursor, and continuous: a notch of the wheel is
 	// a quarter-step of magnification, not a lurch to the next level.
 	const at = inBox(evt.currentTarget, evt.clientX, evt.clientY);
+	zoomMoving();
 	if (zoomAt(mapState, -evt.deltaY * 0.0024, hostSize(evt.currentTarget), at.x, at.y)) schedulePaint();
+}
+
+/**
+ * A zoom gesture is under way. The level on screen is held -- its
+ * tiles carry the magnification, scaled -- and the level the zoom
+ * lands on is asked for only once the wheel has been quiet for a
+ * moment. A wheel from 3 to 7 fetches 7, not 4, 5 and 6 on the way.
+ */
+function zoomMoving() {
+	if (heldLevel === null) heldLevel = drawnLevel === null ? levelFor(mapState.zoom) : drawnLevel;
+	clearTimeout(settleTimer);
+	settleTimer = setTimeout(zoomSettled, 160);
+}
+
+function zoomSettled() {
+	settleTimer = null;
+	heldLevel = null;
+	schedulePaint();
 }
 
 /**
@@ -2443,7 +2466,12 @@ export function paintMap() {
 	// The view never leaves the charted sea, whatever the gesture did.
 	clampView(mapState, size);
 
-	const { tiles, pins } = frame(mapState, size, marks);
+	// In motion, the level already on screen is what is drawn, scaled;
+	// at rest, the nearest. A flight also asks for where it is going.
+	const level = heldLevel === null ? levelFor(mapState.zoom) : heldLevel;
+	const { tiles, pins } = frame(mapState, size, marks, level);
+	drawnLevel = level;
+	const ahead = flightTo ? tilesFor(flightTo, size, levelFor(flightTo.zoom)).filter(t => !t.ahead) : [];
 	// A layer that faults says so in the console and leaves the others
 	// to paint; nothing on the chart depends on another layer's luck.
 	const guarded = (fn, ...args) => { const t0 = performance.now(); try { fn(...args); } catch (err) { console.warn(`[map] ${fn.name} failed:`, err); } if (window.__paintProf) window.__paintProf[fn.name] = (window.__paintProf[fn.name] || 0) + performance.now() - t0; };
@@ -2458,7 +2486,7 @@ export function paintMap() {
 	const currentId = current && current.kind === 'npc' ? current.id : null;
 	const nums = new Map(seq.filter(s => s.kind === 'npc').map(s => [s.id, s.n]));
 
-	guarded(paintTiles, layer, tiles, size);
+	guarded(paintTiles, layer, tiles, size, { hold: heldLevel !== null, ahead });
 	// Ports before pins, and both before the island names: each of these
 	// three writes words on the sea, and each one gives way to the ones
 	// already written. The wharves name themselves permanently and so go
@@ -2490,10 +2518,34 @@ export function paintMap() {
  * wide screen at a close zoom, over water the chart covers on every
  * side (the hekaru's, say -- the ocean stalker's is cut short by the
  * chart's edge), that hundred was most of what a pan frame cost.
+ *
+ * What is asked for, and when, is the bandwidth of the whole chart:
+ *
+ * - `tiles` is the level being drawn, nearest the middle first, and
+ *   each one not yet in the pool is requested in that order -- the
+ *   middle of the screen fills before the corners, and the margin
+ *   past the edge is asked for last and at low priority.
+ * - `hold` is a zoom in motion. Nothing new is requested: the tiles
+ *   already on screen carry the animation, scaled, and the levels a
+ *   wheel passes through on its way are never fetched. What is still
+ *   arriving for a level no longer drawn is cancelled.
+ * - `ahead` is where a flight is going: its tiles are requested at
+ *   once, in their own level's box, so they are on screen by the time
+ *   the flight lands rather than starting to load then.
+ * - A tile that scrolls off stays, up to a couple of hundred, so a
+ *   pan back is instant and silent rather than a fade-in from the
+ *   cache; a tile that scrolls off before it arrived is cancelled.
+ * - While the drawn level is still arriving, the level under it stays
+ *   put, rescaled to line up, so a zoom crossfades between
+ *   magnifications instead of blinking through open sea; and once
+ *   the tiles have been in flight for a third of a second the chart
+ *   says so, quietly, with a thread of light along its top edge.
  */
-function paintTiles(layer, tiles, size) {
+const KEEP_TILES = 192;
+function paintTiles(layer, tiles, size, { hold = false, ahead = [] } = {}) {
 	const pool = layer._tiles || (layer._tiles = new Map());
 	const levels = layer._levels || (layer._levels = new Map());
+	const tick = layer._tick = (layer._tick || 0) + 1;
 	const levelBox = z => {
 		let d = levels.get(z);
 		if (!d) {
@@ -2514,58 +2566,115 @@ function paintTiles(layer, tiles, size) {
 	const place = (d, z, x, y, at) => {
 		d.style.transform = `translate3d(${at.left - x * TILE * at.scale}px, ${at.top - y * TILE * at.scale}px, 0) scale(${at.scale})`;
 	};
+	const request = t => {
+		const img = document.createElement('img');
+		img.className = 'map-tile';
+		img.alt = '';
+		img.draggable = false;
+		img.decoding = 'async';
+		img.fetchPriority = t.ahead ? 'low' : 'high';
+		img.style.transform = `translate(${t.x * TILE}px, ${t.y * TILE}px)`;
+		const e = { img, z: t.z, x: t.x, y: t.y, on: false, seen: tick };
+		// Fading in over the sea colour is what a zoom step looks like
+		// while its tiles arrive; popping from dark was a bug report. A
+		// tile that fails to arrive counts as arrived, or the level
+		// under it would be kept for ever.
+		const settle = () => { e.on = true; img.classList.add('on'); landed(); };
+		img.addEventListener('load', settle, { once: true });
+		img.addEventListener('error', settle, { once: true });
+		img.src = t.src;
+		if (img.complete && img.naturalWidth) settle();
+		pool.set(t.key, e);
+		levelBox(t.z).appendChild(img);
+		return e;
+	};
+	// Letting go of an image still on its way cancels the request: a
+	// level wheeled past, a tile panned away from, costs nothing more.
+	const drop = (key, e) => {
+		if (!e.on) e.img.src = '';
+		e.img.remove();
+		pool.delete(key);
+	};
+
 	const live = new Set();
-	let loading = false;
-	// Keyed by grid position, not by file: the open sea is one file
-	// standing in for thousands of tiles, each of which needs its own
-	// image at its own place.
+	let loading = 0;
 	for (const t of tiles) {
 		live.add(t.key);
 		let e = pool.get(t.key);
-		if (!e) {
-			const img = document.createElement('img');
-			img.className = 'map-tile';
-			img.src = t.src;
-			img.dataset.key = t.key;
-			img.alt = '';
-			img.draggable = false;
-			img.style.transform = `translate(${t.x * TILE}px, ${t.y * TILE}px)`;
-			// Fading in over the sea colour is what a zoom step looks
-			// like while its tiles arrive; popping from dark was a bug
-			// report. A tile that fails to arrive counts as arrived, or
-			// the level under it would be kept for ever.
-			const settle = () => img.classList.add('on');
-			img.addEventListener('load', settle, { once: true });
-			img.addEventListener('error', settle, { once: true });
-			if (img.complete && img.naturalWidth) settle();
-			pool.set(t.key, (e = { img, z: t.z, x: t.x, y: t.y }));
-			levelBox(t.z).appendChild(img);
-		}
-		if (!e.img.classList.contains('on')) loading = true;
+		if (!e && !hold) e = request(t);
+		if (!e) continue;
+		e.seen = tick;
+		if (!e.on && !t.ahead) loading++;
 	}
 	const top = tiles[0];
+	const going = ahead.length ? ahead[0].z : -1;
+	for (const t of ahead) {
+		live.add(t.key);
+		const e = pool.get(t.key) || request(t);
+		e.seen = tick;
+	}
 	if (top) {
 		const d = levelBox(top.z);
 		d.style.zIndex = 1;
 		place(d, top.z, top.x, top.y, top);
 	}
-	// While the new level is still arriving, the old level stays put
-	// underneath -- rescaled to line up -- so a zoom crossfades between
-	// magnifications instead of blinking through open sea.
+
+	// What leaves: unfinished tiles of any level, at once; finished
+	// tiles of the drawn level beyond the keep; finished tiles of other
+	// levels once the drawn level is whole, except the level a flight
+	// is bound for.
+	const spare = [];
 	for (const [key, e] of pool) {
-		if (live.has(key) || loading) continue;
-		e.img.remove();
-		pool.delete(key);
+		if (live.has(key)) continue;
+		if (!e.on) { drop(key, e); continue; }
+		if (top && e.z === top.z) { spare.push([key, e]); continue; }
+		if (e.z === going || (loading && !hold)) continue;
+		drop(key, e);
+	}
+	if (spare.length > KEEP_TILES) {
+		spare.sort((a, b) => a[1].seen - b[1].seen);
+		for (const [key, e] of spare.slice(0, spare.length - KEEP_TILES)) drop(key, e);
 	}
 	for (const [z, d] of levels) {
 		if (top && z === top.z) continue;
-		const first = d.firstElementChild;
-		if (!first) { d.remove(); levels.delete(z); continue; }
-		const e = pool.get(first.dataset.key) || [...pool.values()].find(v => v.z === z);
+		const e = [...pool.values()].find(v => v.z === z);
 		if (!e) { d.remove(); levels.delete(z); continue; }
-		d.style.zIndex = 0;
+		// The level a flight is bound for sharpens over the one carrying
+		// it as its tiles land -- by standing after it in the layer, not
+		// by a higher z-index, which would put it over the course line
+		// too; any other level waits underneath.
+		if (z === going && top) {
+			d.style.zIndex = 1;
+			const carrier = levels.get(top.z);
+			if (carrier && d.previousElementSibling !== carrier) carrier.after(d);
+		} else {
+			d.style.zIndex = 0;
+		}
 		place(d, z, e.x, e.y, placeTile(mapState, size, z, e.x, e.y));
 	}
+
+	// The thread of light: shown only once the wait is long enough to
+	// notice, so a fast connection never sees it flicker.
+	const host = layer.parentElement;
+	if (host) {
+		if (loading && !hold) {
+			if (!host._loadingTimer && !host.classList.contains('is-loading')) {
+				host._loadingTimer = setTimeout(() => { host._loadingTimer = null; host.classList.add('is-loading'); }, 300);
+			}
+		} else {
+			if (host._loadingTimer) { clearTimeout(host._loadingTimer); host._loadingTimer = null; }
+			host.classList.remove('is-loading');
+		}
+	}
+}
+
+/** A tile has arrived: repaint soon, so the level under it is let go
+ *  and the thread of light goes out when the last one lands -- at most
+ *  a few times a second, whatever the burst. */
+let landedTimer = null;
+function landed() {
+	if (landedTimer) return;
+	landedTimer = setTimeout(() => { landedTimer = null; schedulePaint(); }, 100);
 }
 
 function paintPins(layer, pins, marks, currentId, nums = new Map()) {
@@ -3493,6 +3602,10 @@ function flyTo(x, y, zoom = mapState.zoom) {
 	};
 	clampView(probe, size);   // do not fly somewhere the clamp will yank back from
 	cancelFly();
+	// The level on screen carries the flight; the level at the far end
+	// is asked for now, so it is there when the flight lands.
+	heldLevel = drawnLevel === null ? levelFor(from.zoom) : drawnLevel;
+	flightTo = probe;
 	let t0 = null;                // rAF hands us the clock; no other is needed
 	const step = t => {
 		if (t0 === null) t0 = t;
@@ -3502,6 +3615,7 @@ function flyTo(x, y, zoom = mapState.zoom) {
 		mapState.centre.x = from.x + (probe.centre.x - from.x) * e;
 		mapState.centre.y = from.y + (probe.centre.y - from.y) * e;
 		fly = p < 1 ? requestAnimationFrame(step) : null;
+		if (!fly) { heldLevel = null; flightTo = null; }
 		paintMap();
 	};
 	fly = requestAnimationFrame(step);
@@ -3510,6 +3624,8 @@ function flyTo(x, y, zoom = mapState.zoom) {
 function cancelFly() {
 	if (fly) cancelAnimationFrame(fly);
 	fly = null;
+	flightTo = null;
+	if (settleTimer === null) heldLevel = null;
 }
 
 /* ------------------------------------------------------------------ *
@@ -3622,6 +3738,7 @@ const furniture = () => CHROME;
 			const dist = Math.hypot(a.x - b.x, a.y - b.y);
 			if (dist > 1 && pinch.dist > 1) {
 				const at = inBox(host, (a.x + b.x) / 2, (a.y + b.y) / 2);
+				zoomMoving();
 				if (zoomAt(mapState, Math.log2(dist / pinch.dist), hostSize(host), at.x, at.y)) schedulePaint();
 			}
 			pinch.dist = dist;
