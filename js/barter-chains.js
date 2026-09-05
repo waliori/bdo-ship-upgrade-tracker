@@ -87,9 +87,10 @@ const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);
  * [Level 7]s, which nothing takes further, are sold at every wharf
  * call, between chains, and at a last one when the run is done; every
  * other good aboard at the end is carried home, and the run says what
- * it would sell for.
+ * it would sell for. `keep` names goods never sold, whatever the orders:
+ * the good a material run sent the sailor here for.
  */
-export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {} } = {}) {
+export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [] } = {}) {
 	// What an island was seen to pay this run, tapped on the checklist,
 	// replaces the range the table gives for it: counted and weighed at
 	// that, no longer at the least and the most.
@@ -200,7 +201,7 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 	const saleAt = i => {
 		const need = needFrom(i);
 		return [...held].map(([name, n]) => [name, Math.min(n - (need.get(name) || 0), n - floorOf(name, orders))])
-			.filter(([name, n]) => n > 1e-9 && sellable(name, orders));
+			.filter(([name, n]) => n > 1e-9 && sellable(name, orders) && !keep.includes(name));
 	};
 
 	// A wharf call: the goods in `sale` sold, the goods in `drop` (from
