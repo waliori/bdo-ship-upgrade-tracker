@@ -3298,8 +3298,13 @@ function paintWharves(layer, size) {
 		if (off) { if (el) el.hidden = true; return; }
 		// Most piers keep two managers, the harbour's and the guild's, a
 		// few steps apart: the second prints a line below the first.
-		while (placed.some(p => Math.abs(p.left - at.left) < 70 && Math.abs(p.top - at.top) < 14)) at.top += 15;
-		placed.push({ left: at.left, top: at.top });
+		// Only a pier-mate is stepped down -- judged on the ground, not
+		// on the screen, or zoomed out every wharf in the sea is within
+		// a line of another and the column runs off the chart.
+		const mate = p => Math.hypot(p.x - w.x, p.y - w.y) < 400
+			&& Math.abs(p.left - at.left) < 70 && Math.abs(p.top - at.top) < 14;
+		while (placed.some(mate)) at.top += 15;
+		placed.push({ left: at.left, top: at.top, x: w.x, y: w.y });
 		if (!el) {
 			el = document.createElement('div');
 			el.className = `map-wharf ${w.kind}`;
