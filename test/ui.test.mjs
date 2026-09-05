@@ -1509,7 +1509,7 @@ test('one run for several materials: each keeps its ticks and its want, and a gi
 	await page.click('[data-act="barter-mat-calls"]'); await wait(400);
 	stops = await page.$$eval('.run-stop', els => els.length);
 	assert.equal(stops, 0, 'no call, no run');
-	assert.match(await text(page, '.run-tiles'), /To get first/i);
+	assert.match(await text(page, '.run-tiles'), /Bring to the harbour.*held at Velia, where the run cannot load it/i);
 	await page.click('[data-act="barter-mat-calls"]'); await wait(400);
 	// A second material through the picker: its own ticks, its own want.
 	await page.evaluate(() => document.querySelector('[data-act="barter-mat-add"]').click()); await wait(300);
@@ -1591,6 +1591,48 @@ test('the material run is one route through every island ticked: a full run goes
 	await page.evaluate(() => document.querySelector('[data-act="barter-mat-pace-set"]').click()); await wait(500);
 	assert.equal(await page.$eval('[data-act="barter-mat-pace"]', el => el.value), 'full');
 	assert.equal(await count(page, '.run-list.amber'), 0);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('before casting off: a gold bar an island takes is bought ashore and priced, and a give kept where the run cannot load it is to be brought to the harbour first', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.evaluate(() => { localStorage.setItem('bdo-tracker/barter-view', JSON.stringify({ goal: 'material', item: 'Golden Turtle Shell', qty: 4, port: 1, matOrders: { reach: 'want', calls: true, pace: 'full' } })); });
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.mat-list.hero', { timeout: 15000 });
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)');
+		// Amethyst at Heidel, which has no wharf: out of the run's reach.
+		store.setStockAt('[Level 4] Amethyst Fragment', 'Heidel', 2, 'ashore');
+	});
+	await wait(500);
+	const tickFor = give => page.evaluate(g => { const grp = [...document.querySelectorAll('.mat-give')].find(el => el.querySelector('.mat-give-head b').textContent.includes(g)); grp.querySelector('[data-act="barter-mat-tick"]').click(); }, give);
+	await tickFor('Gold Bar 100G'); await wait(400);
+	let stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
+	assert.equal(stops.length, 1, `one island, no harbour call: ${stops.join(', ')}`);
+	assert.match(await text(page, '.run-tiles'), /buys 2× Gold Bar 100G ashore first for 20m/i);
+	const before = await text(page, '.run-list.amber');
+	assert.match(before, /Before casting off/i);
+	assert.match(before, /2× Gold Bar 100G.*buy ashore.*storage keeper.*20m/i);
+	assert.equal(await count(page, '.run-list.orange'), 0, 'nothing to climb for');
+	// A second material whose give sits at Heidel.
+	await page.evaluate(() => document.querySelector('[data-act="barter-mat-add"]').click()); await wait(300);
+	await page.type('.picker-in', 'Golden Galley Figurine'); await wait(150);
+	await page.keyboard.press('Enter'); await wait(500);
+	await tickFor('Amethyst Fragment'); await wait(400);
+	const bring = await text(page, '.run-list.amber');
+	assert.match(bring, /Amethyst Fragment.*at Heidel \(2\).*bring it to Velia/i);
+	assert.match(await text(page, '.run-tiles'), /Bring to the harbour/i);
+	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
+	assert.equal(stops.length, 1, 'the Figurine island is not sailed: its give is out of reach');
+	// Moved to Velia, the give is loaded at the first stop and the island joins the route.
+	await page.evaluate(async () => { const store = await import('/js/state.js'); store.setStockAt('[Level 4] Amethyst Fragment', 'Heidel', 0, 'moved'); store.setStockAt('[Level 4] Amethyst Fragment', 'Velia', 2, 'moved'); });
+	await wait(500);
+	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
+	assert.equal(stops[0], 'Velia wharf|wharf', `loads at Velia first: ${stops.join(', ')}`);
+	assert.equal(stops.length, 3, stops.join(', '));
+	assert.match(await text(page, '.run-stop.wharf'), /Loads from storage.*Amethyst Fragment/i);
+	assert.doesNotMatch(await text(page, '.run-list.amber'), /Amethyst/);
 	assert.deepEqual(errors, []);
 	await context.close();
 });

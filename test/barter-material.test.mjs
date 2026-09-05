@@ -17,6 +17,10 @@ import { tour, materialRun } from '../js/barter-material.js';
 // that takes a [Level 5] for a few Scales. Ticked in a scrambled
 // order, so the route has to be found, not read off.
 const L5 = '[Level 5] Faded Gold Dragon Figurine';
+const L4 = '[Level 4] Amethyst Fragment';
+const BAR = 'Gold Bar 100G';
+const PLY = 'Ship Material Nobody Sells';   // a give that is neither a trade good nor a land good
+const SALT = 'Rock Salt Ingot';
 const L7 = '[Level 7] Crystal Ball of Fortune';
 const SCALE = "Violent Sea Monster's Scale";
 const REEF = 'Bright Reef Piece';
@@ -122,8 +126,8 @@ test('a give kept at another harbour is called for before the island that takes 
 	// The Figurine only at Iliya's storage, north of C: the run sails
 	// the islands fed from aboard, calls north, then deals the rest.
 	const picks = [pick(1), pick(2), pick(3), pick(4)];
-	const elsewhere = [{ town: 'Iliya Island', wharf: northWharf, goods: { [L5]: 4 } }];
-	const plan = materialRun({ picks, wants: { [SCALE]: 99 }, reach: 'all', stock: { [L5]: 4 }, elsewhere, hold, start: velia, startWharf: veliaWharf, npcById });
+	const stores = [{ town: 'Iliya Island', wharf: northWharf, goods: { [L5]: 4 } }];
+	const plan = materialRun({ picks, wants: { [SCALE]: 99 }, reach: 'all', stock: { [L5]: 4 }, stores, hold, start: velia, startWharf: veliaWharf, npcById });
 	assert.equal(plan.calls, 1);
 	assert.equal(plan.trades, 8);
 	const seq = names(plan.stops);
@@ -134,7 +138,7 @@ test('a give kept at another harbour is called for before the island that takes 
 	assert.ok(plan.stops.every(s => s.weightAfter <= hold.deal));
 	// The harbour's goods are a stop's loads, so the trip records the move.
 	assert.deepEqual(plan.stops[call].loads, [{ item: L5, n: 4 }]);
-	const off = materialRun({ picks, wants: { [SCALE]: 99 }, reach: 'all', stock: { [L5]: 4 }, elsewhere, calls: false, hold, start: velia, startWharf: veliaWharf, npcById });
+	const off = materialRun({ picks, wants: { [SCALE]: 99 }, reach: 'all', stock: { [L5]: 4 }, stores, calls: false, hold, start: velia, startWharf: veliaWharf, npcById });
 	assert.equal(off.calls, 0);
 	assert.equal(off.trades, 4);
 	assert.equal(off.missing[0].n, 4, 'the four at Iliya are missing to a run that will not call there');
@@ -147,4 +151,50 @@ test('without a start harbour the run begins at the island that makes the shorte
 	assert.ok(seq === 'ABC' || seq === 'CBA', seq);
 	assert.equal(plan.trades, 6, 'the storage of a harbour not sailed from is not aboard');
 	assert.equal(plan.calls, 0);
+});
+
+test('the start harbour comes first: its storage is loaded and what the run will not spend left there before casting off, and no island is sailed twice', () => {
+	// A Figurine aboard for A, two at Velia for B and C, and a Ball
+	// aboard that nothing takes: one departure, the harbour first.
+	const picks = [pick(1), pick(2), pick(3)];
+	const plan = materialRun({ picks: picks.map(x => ({ ...x, tries: 1 })), wants: { [SCALE]: 99 }, reach: 'all', stock: { [L5]: 1, [L7]: 1 }, dock: { [L5]: 2 }, hold: { free: 3000, deal: 3000, max: 4000 }, start: velia, startWharf: veliaWharf, npcById });
+	assert.deepEqual(names(plan.stops), ['Velia+2-1', 'A', 'B', 'C']);
+	assert.equal(plan.returns, 0);
+	assert.equal(plan.weightPeak, 3000, 'what the run sails with, not what sat aboard at the pier');
+	assert.equal(plan.weightStart, 3000);
+});
+
+test('a give that is no trade good comes out of the bags or the shop: gold bars are bought before casting off and priced, a material short is said to be one', () => {
+	const bars = [pick(1, REEF, { give: BAR, recv: '1' }), pick(2, REEF, { give: BAR, recv: '1' })];
+	const prices = { [BAR]: { each: 10000000, how: 'fixed' } };
+	const plan = materialRun({ picks: bars, wants: { [REEF]: 99 }, reach: 'all', bags: { [BAR]: 1 }, prices, hold, start: velia, startWharf: veliaWharf, npcById });
+	assert.deepEqual(names(plan.stops), ['A', 'B'], 'no call: nothing to load at the harbour');
+	assert.equal(plan.trades, 4);
+	assert.deepEqual(plan.bought, [{ item: BAR, n: 3, each: 10000000, how: 'fixed', total: 30000000 }], 'one from the bags, three bought');
+	assert.equal(plan.cost, 30000000);
+	assert.deepEqual(plan.missing, []);
+	assert.ok(plan.stops.every(s => s.weightAfter === 0), 'a gold bar weighs nothing the hold counts');
+	// With buying off, the bars are missing and said to be a land good.
+	const off = materialRun({ picks: bars, wants: { [REEF]: 99 }, reach: 'all', bags: { [BAR]: 1 }, buy: false, hold, start: velia, startWharf: veliaWharf, npcById });
+	assert.equal(off.trades, 1);
+	assert.equal(off.missing[0].kind, 'land');
+	assert.equal(off.missing[0].n, 3);
+	// A material for a material, out of the bags: a shortfall is a material to find, not a good to climb for or a thing to buy.
+	const salt = materialRun({ picks: [pick(1, SALT, { give: PLY, giveN: 2, recv: '1', tries: 3 })], wants: { [SALT]: 99 }, reach: 'all', bags: { [PLY]: 3 }, hold, start: velia, startWharf: veliaWharf, npcById });
+	assert.equal(salt.trades, 1);
+	assert.equal(salt.missing[0].kind, 'material');
+	assert.equal(salt.missing[0].n, 4);
+});
+
+test('a give kept where the run cannot load it -- a town without a wharf, or a harbour when calls are off -- is short, and the run says where it sits', () => {
+	const picks = [pick(1, REEF, { give: L4 })];
+	const stores = [{ town: 'Heidel', wharf: null, goods: { [L4]: 5 } }, { town: 'Iliya Island', wharf: northWharf, goods: { [L4]: 1 } }];
+	const plan = materialRun({ picks, wants: { [REEF]: 99 }, reach: 'all', stores, hold, start: velia, startWharf: veliaWharf, npcById });
+	assert.equal(plan.trades, 1, 'the one at Iliya, called for');
+	assert.equal(plan.missing[0].kind, 'good');
+	assert.equal(plan.missing[0].n, 1);
+	assert.deepEqual(plan.missing[0].heldAt, [{ town: 'Heidel', n: 5 }]);
+	const off = materialRun({ picks, wants: { [REEF]: 99 }, reach: 'all', stores, calls: false, hold, start: velia, startWharf: veliaWharf, npcById });
+	assert.equal(off.trades, 0);
+	assert.deepEqual(off.missing[0].heldAt, [{ town: 'Heidel', n: 5 }, { town: 'Iliya Island', n: 1 }]);
 });

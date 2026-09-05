@@ -538,7 +538,11 @@ run's pace says what happens when every give does not fit at once. The
 left in storage to make room, the hold is loaded to the barter ceiling,
 and the run goes out in several departures, back to the harbour for the
 rest between them; the *fast* pace sails once, under the limit the ship
-still sails at full speed under, and lists what stays ashore.
+still sails at full speed under, and lists what stays ashore. Before
+casting off, the run lists what it hands over that is not aboard yet:
+the Gold Bars a few islands take, bought ashore and priced; a give kept
+in a storage the run cannot load from, to bring to the harbour first;
+and, for what is held nowhere, the way to the item board.
 
 Every line the chart draws, and every loop it writes, is bent round the
 land in its way: `tools/build-seamask.mjs` reads the shipped tiles and

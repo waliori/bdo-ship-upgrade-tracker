@@ -15,6 +15,11 @@
 // the run goes out in several departures, back to the harbour for the
 // rest between them.
 //
+// Not every give is a trade good. A few islands take a Gold Bar 100G,
+// which is bought ashore before casting off, and a few take a ship
+// material -- Rock Salt Ingot for Cobalt Ingot -- out of the bags. The
+// run counts both, and says what to buy and what it lacks.
+//
 // Pure: the ticked exchanges, the wants, what is held where, the hold
 // and the harbours come in; the stops in sailing order go out.
 // Distances are straight lines, which is enough to order the stops;
@@ -22,6 +27,7 @@
 
 import { levelOf } from './barter.js';
 import { goodsHeld, weightHeld, weightOf } from './barter-plan.js';
+import { isLandGood } from './land_goods.js';
 
 const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);
 
@@ -96,46 +102,62 @@ export function tour(points, { start = null, end = null } = {}) {
 /**
  * The run. `picks` are the exchanges ticked as showing today, rows as
  * exchanges() lists them; `wants` is material -> how many. `stock` is
- * what is aboard, `dock` the storage of the start harbour (loaded at
- * the start, which is `start` with `startWharf` its wharf), and
- * `elsewhere` the other harbours with a storage and a wharf, each
- * { town, wharf, goods }, called at for a give kept there when `calls`
- * is set. `reach` is 'want' to stop once the wants are met or 'all'
- * to deal every attempt ticked. `hold` is { free, deal, max }.
+ * what is aboard, `dock` the storage of the start harbour (`start`,
+ * with `startWharf` its wharf), and `stores` every other storage with
+ * trade goods in it, each { town, wharf, goods } -- `wharf` null where
+ * the town has none. A store with a wharf is called at for a give kept
+ * there when `calls` is set; anything else is held out of the run's
+ * reach and said so. `bags` is the inventory of everything that is not
+ * a trade good -- the Gold Bars and materials a few islands take -- and
+ * `prices` (name -> { each, how }, as land-cost.js gives them) is what a
+ * land good costs to buy ashore when `buy` is set. `reach` is 'want' to
+ * stop once the wants are met or 'all' to deal every attempt ticked.
+ * `hold` is { free, deal, max }.
  *
- * Returns { stops, got, waits, missing, noRoom, trades, islands,
- * calls, returns, weightStart, weightPeak, ticked }: the stops in
- * sailing order -- an island with its `times`, or a wharf with what
- * is loaded from and left in its storage -- each weighed after it;
- * per material the least and most that comes aboard and what is still
- * wanted; the gives not held at all (`missing`, to climb for) and the
- * gives held that the hold could not carry (`noRoom`); how many times
- * the run went back to a harbour for more (`returns`).
+ * Returns { stops, got, waits, missing, noRoom, bought, cost, trades,
+ * islands, calls, returns, weightStart, weightPeak, ticked }: the stops
+ * in sailing order -- an island with its `times`, or a wharf with what
+ * is loaded from and left in its storage -- each weighed after it; per
+ * material the least and most that comes aboard and what is still
+ * wanted; the gives short (`missing`: { give, n, kind, heldAt,
+ * islands }, `kind` 'good' for a trade good to climb for, 'material'
+ * for a ship material, 'land' for a land good not bought, `heldAt` the
+ * storages holding some out of the run's reach); the gives held that
+ * the hold could not carry (`noRoom`); the land goods to buy before
+ * casting off (`bought`: { item, n, each, how, total }) and their
+ * `cost`; how many times the run went back to a harbour (`returns`).
  */
-export function materialRun({ picks = [], wants = new Map(), reach = 'want', pace = 'full', calls = true, stock = {}, dock = {}, elsewhere = [], hold, start = null, startWharf = null, npcById } = {}) {
+export function materialRun({ picks = [], wants = new Map(), reach = 'want', pace = 'full', calls = true, buy = true, stock = {}, dock = {}, stores = [], bags = {}, prices = {}, hold, start = null, startWharf = null, npcById } = {}) {
 	const wantOf = wants instanceof Map ? wants : new Map(Object.entries(wants));
 	const limit = pace === 'fast' ? hold.free : (hold.deal ?? hold.free);
 	const place = x => npcById.get(x.npcId);
+	const isGood = name => levelOf(name) !== null;
 
-	// Where each give can come from: aboard, the start harbour's
-	// storage, and -- when the orders allow a call -- the other
-	// harbours, nearest to the start first.
+	// Where each give can come from. A trade good: aboard, the start
+	// harbour's storage, and -- when the orders allow a call -- the
+	// other harbours, nearest to the start first. Anything else: the
+	// bags, and for a land good the shop ashore.
 	const aboard = goodsHeld(stock);
 	const harbours = new Map();   // town -> { town, wharf, goods: Map }
+	const stranded = [];          // storages the run cannot load from
 	if (start && startWharf && Object.keys(dock).length) harbours.set(start.name, { town: start.name, wharf: startWharf, goods: goodsHeld(dock) });
-	if (calls) {
-		for (const h of [...elsewhere].sort((a, b) => dist(start, a.wharf) - dist(start, b.wharf))) {
-			if (harbours.has(h.town) || !h.wharf) continue;
-			const goods = goodsHeld(h.goods);
-			if (goods.size) harbours.set(h.town, { town: h.town, wharf: h.wharf, goods });
-		}
+	for (const st of [...stores].sort((a, b) => dist(start, a.wharf) - dist(start, b.wharf))) {
+		const goods = goodsHeld(st.goods);
+		if (!goods.size || harbours.has(st.town)) continue;
+		if (calls && st.wharf) harbours.set(st.town, { town: st.town, wharf: st.wharf, goods });
+		else stranded.push({ town: st.town, goods });
 	}
 	const supply = new Map();   // give -> [{ src, n }], aboard first
 	const supplyOf = give => {
 		if (!supply.has(give)) {
 			const out = [];
-			if (aboard.get(give) > 0) out.push({ src: 'aboard', n: aboard.get(give) });
-			for (const h of harbours.values()) if (h.goods.get(give) > 0) out.push({ src: h.town, n: h.goods.get(give) });
+			if (isGood(give)) {
+				if (aboard.get(give) > 0) out.push({ src: 'aboard', n: aboard.get(give) });
+				for (const h of harbours.values()) if (h.goods.get(give) > 0) out.push({ src: h.town, n: h.goods.get(give) });
+			} else {
+				if (bags[give] > 0) out.push({ src: 'bags', n: Number(bags[give]) });
+				if (buy && isLandGood(give)) out.push({ src: 'shop', n: Infinity });
+			}
 			supply.set(give, out);
 		}
 		return supply.get(give);
@@ -145,12 +167,13 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	// How many times each ticked island deals: the want left of its
 	// material, its attempts and what is held of its give allow. The
 	// best rate is served first, then the nearest; what a give lacks is
-	// what the item board has to climb for.
+	// what the item board has to climb for, or the bags to find.
 	const mine = picks.filter(x => wantOf.has(x.item) && npcById.has(x.npcId));
 	const need = new Map(wantOf);
 	const missing = new Map();   // give -> { n, islands }
 	mine.sort((a, b) => Number(availOf(b.give) > 0) - Number(availOf(a.give) > 0) || (b.recv / b.giveN) - (a.recv / a.giveN) || dist(start, place(a)) - dist(start, place(b)));
 	const isles = [];
+	const bought = new Map();   // land good -> n
 	for (const x of mine) {
 		const left = need.get(x.item) || 0;
 		const want = reach === 'all' ? x.tries : Math.max(0, Math.ceil(left / x.recvMin - 1e-9));
@@ -170,16 +193,21 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 			const take = Math.min(s.n, due);
 			if (take <= 1e-9) continue;
 			s.n -= take; due -= take;
-			needs.push({ src: s.src, give: x.give, n: take, loaded: s.src === 'aboard' });
+			if (s.src === 'shop') bought.set(x.give, (bought.get(x.give) || 0) + take);
+			// What is aboard or in the bags, or bought ashore, sails with
+			// the run from the start; the rest waits at a harbour.
+			needs.push({ src: s.src, give: x.give, n: take, loaded: s.src === 'aboard' || s.src === 'bags' || s.src === 'shop' });
 		}
 		need.set(x.item, left - times * x.recvMin);
 		isles.push({ ...x, times, needs, level: levelOf(x.give) || 0, hold });
 	}
 
-	// The run, sailed: the islands whose gives are aboard, by the
-	// shortest way; then the nearest harbour a give waits at, loaded
-	// with as much as the hold takes; and so on until every island is
-	// dealt with or set aside.
+	// The run, sailed. First the start harbour, where the ship is: what
+	// the run will not spend is left in its storage when the room is
+	// wanted, and what its storage keeps for the run is loaded, as much
+	// as the hold takes. Then the islands whose gives are aboard, by the
+	// shortest way; then the nearest harbour a give waits at, loaded the
+	// same way; and so on until every island is dealt with or set aside.
 	const heldMax = new Map(aboard);   // aboard, weighed at the most
 	let weight = weightHeld(heldMax);
 	const weightStart = weight;
@@ -198,10 +226,10 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 	};
 	const drop = isle => { pending.splice(pending.indexOf(isle), 1); };
 	// What is aboard that no pending island spends: dead weight, left
-	// ashore under a full pace when the room is wanted.
+	// ashore when the room is wanted.
 	const spare = () => {
 		const spent = new Map();
-		for (const i of pending) for (const nd of i.needs) if (nd.loaded) spent.set(nd.give, (spent.get(nd.give) || 0) + nd.n);
+		for (const i of pending) for (const nd of i.needs) if (nd.loaded && isGood(nd.give)) spent.set(nd.give, (spent.get(nd.give) || 0) + nd.n);
 		return [...heldMax].map(([name, n]) => [name, n - (spent.get(name) || 0)]).filter(([, n]) => n > 1e-9);
 	};
 	const nextHarbour = () => {
@@ -213,36 +241,19 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 		}
 		return best;
 	};
+	const weighs = nds => nds.reduce((a, nd) => a + nd.n * weightOf(nd.give), 0);
 
-	let guard = 0;
-	while (pending.length && guard++ < 1000) {
-		const ready = pending.filter(i => i.needs.every(nd => nd.loaded));
-		if (ready.length) {
-			const H = nextHarbour();
-			const order = tour(ready.map(place), { start: pos, end: H ? H.wharf : null });
-			for (const k of order) {
-				const isle = ready[k];
-				for (const nd of isle.needs) { heldMax.set(nd.give, (heldMax.get(nd.give) || 0) - nd.n); if (heldMax.get(nd.give) <= 1e-9) heldMax.delete(nd.give); }
-				if (weightOf(isle.item) > 0) heldMax.set(isle.item, (heldMax.get(isle.item) || 0) + isle.times * isle.recvMax);
-				weight = weightHeld(heldMax);
-				peak = Math.max(peak, weight);
-				stops.push({ ...isle, weightAfter: weight });
-				pos = place(isle);
-				drop(isle);
-			}
-			continue;
-		}
-		const H = nextHarbour();
-		if (!H) break;
+	// A call at harbour `H`: the islands it feeds in the order a run
+	// from here would take them, so a departure that cannot take them
+	// all takes the ones that go together; what is not spent left
+	// ashore when the room is wanted; then each island's gives loaded
+	// while they fit. Returns whether anything happened.
+	const callAt = H => {
 		const stop = { wharf: H.wharf, dropped: [], sale: null, loads: [], hold };
-		// The islands this harbour feeds, in the order a run from here
-		// would take them, so a departure that cannot take them all
-		// takes the ones that go together.
 		const feeds = pending.filter(i => i.needs.some(nd => !nd.loaded && nd.src === H.town));
 		const seq = tour(feeds.map(place), { start: H.wharf }).map(k => feeds[k]);
 		const loadOf = i => i.needs.filter(nd => !nd.loaded && nd.src === H.town);
-		const weighs = nds => nds.reduce((a, nd) => a + nd.n * weightOf(nd.give), 0);
-		if (pace === 'full' && weight + weighs(seq.flatMap(loadOf)) > limit + 1e-6) {
+		if (weight + weighs(seq.flatMap(loadOf)) > limit + 1e-6) {
 			for (const [name, n] of spare()) {
 				heldMax.set(name, heldMax.get(name) - n);
 				if (heldMax.get(name) <= 1e-9) heldMax.delete(name);
@@ -251,17 +262,17 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 			weight = weightHeld(heldMax);
 		}
 		let loaded = 0;
+		const load = nd => {
+			nd.loaded = true;
+			H.goods.set(nd.give, H.goods.get(nd.give) - nd.n);
+			const l = stop.loads.find(x => x.item === nd.give);
+			if (l) l.n += nd.n; else stop.loads.push({ item: nd.give, n: nd.n });
+			heldMax.set(nd.give, (heldMax.get(nd.give) || 0) + nd.n);
+		};
 		for (const isle of seq) {
 			const nds = loadOf(isle);
-			const lw = weighs(nds);
-			if (weight + lw <= limit + 1e-6) {
-				for (const nd of nds) {
-					nd.loaded = true;
-					H.goods.set(nd.give, H.goods.get(nd.give) - nd.n);
-					const l = stop.loads.find(x => x.item === nd.give);
-					if (l) l.n += nd.n; else stop.loads.push({ item: nd.give, n: nd.n });
-					heldMax.set(nd.give, (heldMax.get(nd.give) || 0) + nd.n);
-				}
+			if (weight + weighs(nds) <= limit + 1e-6) {
+				nds.forEach(load);
 				weight = weightHeld(heldMax);
 				loaded++;
 				continue;
@@ -278,17 +289,12 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 				const cut = (isle.times - fit) * isle.giveN;
 				isle.times = fit;
 				nds[0].n -= cut;
-				need.set(isle.item, (need.get(isle.item) || 0) + (cut / isle.giveN) * isle.recvMin);
 				setAside(isle, cut, isle.give);
-				nds[0].loaded = true;
-				H.goods.set(nds[0].give, H.goods.get(nds[0].give) - nds[0].n);
-				stop.loads.push({ item: nds[0].give, n: nds[0].n });
-				heldMax.set(nds[0].give, (heldMax.get(nds[0].give) || 0) + nds[0].n);
+				load(nds[0]);
 				weight = weightHeld(heldMax);
 				loaded++;
 			} else {
 				for (const nd of isle.needs) if (!nd.loaded) setAside(isle, nd.n, nd.give);
-				need.set(isle.item, (need.get(isle.item) || 0) + isle.times * isle.recvMin);
 				drop(isle);
 			}
 		}
@@ -299,7 +305,7 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 				for (const nd of isle.needs) if (!nd.loaded) setAside(isle, nd.n, nd.give);
 				drop(isle);
 			}
-			continue;
+			return false;
 		}
 		peak = Math.max(peak, weight);
 		stop.weightAfter = weight;
@@ -307,16 +313,78 @@ export function materialRun({ picks = [], wants = new Map(), reach = 'want', pac
 		if (called.get(H.town)) returns++;
 		called.set(H.town, (called.get(H.town) || 0) + 1);
 		pos = H.wharf;
+		return true;
+	};
+
+	// The start harbour first: its storage is loaded before casting
+	// off, and what the run will not spend is left there rather than
+	// carried round the sea.
+	if (start && startWharf) {
+		const home = harbours.get(start.name);
+		if (home) callAt(home);
+		else if (weight > limit + 1e-6 && spare().length) {
+			const stop = { wharf: startWharf, dropped: [], sale: null, loads: [], hold };
+			for (const [name, n] of spare()) {
+				heldMax.set(name, heldMax.get(name) - n);
+				if (heldMax.get(name) <= 1e-9) heldMax.delete(name);
+				stop.dropped.push({ item: name, n });
+			}
+			weight = weightHeld(heldMax);
+			stop.weightAfter = weight;
+			stops.push(stop);
+			called.set(start.name, 1);
+			pos = startWharf;
+		}
+	}
+
+	// The hold at its fullest is what the run sails with, not what was
+	// aboard at the pier before the storage took its share.
+	peak = weight;
+
+	let guard = 0;
+	while (pending.length && guard++ < 1000) {
+		const ready = pending.filter(i => i.needs.every(nd => nd.loaded));
+		if (ready.length) {
+			const H = nextHarbour();
+			const order = tour(ready.map(place), { start: pos, end: H ? H.wharf : null });
+			for (const k of order) {
+				const isle = ready[k];
+				for (const nd of isle.needs) {
+					if (!isGood(nd.give)) continue;
+					heldMax.set(nd.give, (heldMax.get(nd.give) || 0) - nd.n);
+					if (heldMax.get(nd.give) <= 1e-9) heldMax.delete(nd.give);
+				}
+				if (weightOf(isle.item) > 0) heldMax.set(isle.item, (heldMax.get(isle.item) || 0) + isle.times * isle.recvMax);
+				weight = weightHeld(heldMax);
+				peak = Math.max(peak, weight);
+				stops.push({ ...isle, weightAfter: weight });
+				pos = place(isle);
+				drop(isle);
+			}
+			continue;
+		}
+		const H = nextHarbour();
+		if (!H) break;
+		callAt(H);
 	}
 
 	const islands = stops.filter(s => s.npcId);
 	const got = new Map([...wantOf.keys()].map(m => [m, { min: 0, max: 0 }]));
 	for (const s of islands) { const g = got.get(s.item); g.min += s.times * s.recvMin; g.max += s.times * s.recvMax; }
 	const waits = new Map([...wantOf].map(([m, q]) => [m, Math.max(0, q - got.get(m).min)]));
+	// What is short, and where some of it sits out of the run's reach:
+	// a storage without a wharf, or a harbour the orders do not call at.
+	const heldAt = give => stranded.filter(st => st.goods.get(give) > 0).map(st => ({ town: st.town, n: st.goods.get(give) }));
+	const boughtRows = [...bought].map(([item, n]) => {
+		const p = prices[item] || { each: 0, how: 'unpriced' };
+		return { item, n, each: p.each, how: p.how, total: Math.ceil(n) * p.each };
+	});
 	return {
 		stops, got, waits,
-		missing: [...missing].map(([give, m]) => ({ give, ...m })),
+		missing: [...missing].map(([give, m]) => ({ give, ...m, kind: isGood(give) ? 'good' : isLandGood(give) ? 'land' : 'material', heldAt: isGood(give) ? heldAt(give) : [] })),
 		noRoom: [...noRoom].map(([give, m]) => ({ give, ...m })),
+		bought: boughtRows,
+		cost: boughtRows.reduce((a, b) => a + b.total, 0),
 		trades: islands.reduce((a, s) => a + s.times, 0),
 		islands: islands.length,
 		calls: stops.filter(s => s.wharf).length,
