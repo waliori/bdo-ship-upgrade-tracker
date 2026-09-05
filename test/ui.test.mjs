@@ -1516,28 +1516,28 @@ test('one run for several materials: each keeps its ticks and its want, and a gi
 	await page.type('.picker-in', 'Bright Reef Piece'); await wait(150);
 	await page.keyboard.press('Enter'); await wait(500);
 	// Its own want: what the builds are short of, not the Scale's twenty.
-	const want = await page.$eval('.run-pick-qty .purse-inline', el => el.value);
+	const want = await page.$eval('.mat-want .purse-inline', el => el.value);
 	assert.ok(want !== '20' && Number(want) > 0, `a fresh want for a fresh material: ${want}`);
 	// Hold the give its first group takes, and tick that group's island.
 	await page.evaluate(async () => {
 		const store = await import('/js/state.js');
-		const give = document.querySelector('.mat-give-head b').textContent.replace(/^[\d.–-]+× /, '');
+		const give = document.querySelector('.mat-give-head b').title;
 		store.setStock(give, 5);
 	});
 	await wait(400);
 	await page.evaluate(() => document.querySelector('[data-act="barter-mat-tick"]').click()); await wait(400);
-	const strip = await page.$$eval('.mat-chip', els => els.map(c => c.textContent.replace(/\s+/g, ' ').trim()));
+	const strip = await page.$$eval('.mat-tile:not(.add)', els => els.map(c => c.textContent.replace(/\s+/g, ' ').trim()));
 	assert.equal(strip.length, 2, 'both materials on the strip');
-	assert.ok(strip.some(t => /Violent Sea Monster's Scale.*1 ticked.*20 wanted/.test(t)), strip.join(' / '));
-	assert.ok(strip.some(t => new RegExp(`Bright Reef Piece.*1 ticked.*${want} wanted`).test(t)), strip.join(' / '));
+	assert.ok(strip.some(t => /Violent Sea Monster's Scale.*20 wanted.*1 ticked/.test(t)), strip.join(' / '));
+	assert.ok(strip.some(t => new RegExp(`Bright Reef Piece.*${want} wanted.*1 ticked`).test(t)), strip.join(' / '));
 	assert.match(await text(page, '.run-head'), new RegExp(`${want}× Bright Reef Piece, 20× Violent Sea Monster's Scale`));
 	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
 	assert.equal(stops.length, 3, `the harbour and both islands: ${stops.join(', ')}`);
 	// Back to the first material: its want and ticks are as they were.
-	await page.click('.mat-chip:not(.active)'); await wait(400);
-	const back = await page.$eval('.mat-chip.active', el => el.textContent.replace(/\s+/g, ' ').trim());
-	assert.match(back, /Violent Sea Monster's Scale.*1 ticked.*20 wanted/);
-	assert.equal(await page.$eval('.run-pick-qty .purse-inline', el => el.value), '20');
+	await page.click('.mat-tile:not(.active):not(.add)'); await wait(400);
+	const back = await page.$eval('.mat-tile.active', el => el.textContent.replace(/\s+/g, ' ').trim());
+	assert.match(back, /Violent Sea Monster's Scale.*20 wanted.*1 ticked/);
+	assert.equal(await page.$eval('.mat-want .purse-inline', el => el.value), '20');
 	// "Every island ticked" sails past the want.
 	await page.select('[data-act="barter-mat-reach"]', 'all'); await wait(400);
 	assert.equal(await page.$eval('[data-act="barter-mat-reach"]', el => el.value), 'all');

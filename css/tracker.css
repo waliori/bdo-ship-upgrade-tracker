@@ -4625,47 +4625,9 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .ashore-places { text-transform: none; letter-spacing: 0; }
 .map-tip-check { margin-top: 6px; }
 
-/* Today's material list: the islands that can deal a material, ticked. */
-.mat-list .panel-head { flex-wrap: wrap; }
-.mat-hint { padding: 0 20px 10px; font-size: 12px; color: var(--ink-mute); line-height: 1.5; }
-.mat-gives { display: flex; flex-direction: column; gap: 10px; padding: 0 14px 14px; }
-.mat-give { background: var(--panel-inset); border-radius: 10px; border-left: 3px solid var(--tier); padding: 9px 12px; display: flex; flex-direction: column; gap: 8px; }
-.mat-give-head { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; font-size: 12.5px; }
-.mat-give-head b { color: var(--ink-hi); font-weight: 600; }
-.mat-give-head .run-arrow { color: var(--ink-faint); }
-.mat-give-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: -2px; }
-.mat-give-meta .faint { color: var(--ink-faint); font-size: 11px; margin-left: auto; }
-.mat-give.on .mat-give-meta .faint { color: var(--teal); }
-.chip.mat-isle { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 5px 10px; line-height: 1.2; font-size: 12px; }
-.chip.mat-isle span { font-size: 10px; color: var(--ink-faint); font-weight: 400; }
-.chip.mat-isle.active { background: rgba(78, 201, 174, 0.18); border-color: var(--teal); color: var(--teal-hi); }
-.chip.mat-isle.other { opacity: 0.5; text-decoration: line-through; }
 .chain.rung.waits { border-style: dashed; opacity: 0.85; }
 
-/* The material list as the run: what is held on each group, the way to the item board. */
-.mat-filters { padding: 0 14px 8px; }
 
-/* The list as the page's hero: the width of the page, the material,
-   the want and the harbour on it, the give groups laid out in columns
-   rather than one long stack -- a page of chips wants a shelf, not a
-   column. The run and the hold share the row under it. */
-.mat-list.hero .panel-head .panel-sub b { color: var(--teal-hi); font-weight: 600; }
-.mat-list.hero .run-picks { margin: 12px 20px 0; grid-template-columns: repeat(auto-fit, minmax(190px, 300px)); }
-.mat-list.hero .mat-hint { padding-top: 12px; }
-.mat-list.hero .mat-hint .faint { color: var(--ink-faint); }
-.mat-list.hero .mat-gives { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr)); gap: 10px; align-items: start; }
-.mat-list.hero .mat-give { min-width: 0; }
-.mat-list.hero .mat-give.on { box-shadow: inset 0 0 0 1px var(--teal-edge); }
-.barter-layout.material { grid-template-columns: minmax(360px, 1.15fr) minmax(300px, 0.85fr); }
-@media (max-width: 900px) {
-  .barter-layout.material { grid-template-columns: 1fr; }
-  .mat-list.hero .run-picks { margin: 10px 14px 0; }
-}
-.mat-give.on { border-left-color: var(--teal); background: rgba(78, 201, 174, 0.06); }
-.mat-held { font-size: 11.5px; color: var(--ink-mute); padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-soft); }
-.mat-held.ok { color: var(--teal-hi); border-color: var(--teal-edge); }
-.mat-held.none { color: var(--amber); border-color: rgba(232, 182, 97, 0.35); }
-.mat-held .linky { font-size: 11.5px; }
 .reach-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; padding: 9px 12px; border-radius: var(--r-btn); border: 1px solid rgba(232, 182, 97, 0.4); background: rgba(232, 182, 97, 0.08); font-size: 12.5px; color: var(--ink-mid); }
 .reach-bar b { color: var(--amber); }
 .reach-bar span { flex: 1 1 260px; }
@@ -4717,16 +4679,112 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .map-game-set-name small { font-size: 11.5px; color: var(--ink-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .map-game-set .purse-inline { flex: none; }
 
-/* ---- Several materials on one list: a chip each, the run for all ---- */
-.mat-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 12px 20px 0; }
-.chip.mat-chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 6px; line-height: 1.2; }
-.chip.mat-chip .row-icon.sm { flex: none; }
-.chip.mat-chip .mat-chip-name { font-size: 12.5px; }
-.chip.mat-chip .mat-chip-sub { font-size: 10.5px; color: var(--ink-faint); font-weight: 400; }
-.chip.mat-chip.active { background: rgba(78, 201, 174, 0.18); border-color: var(--teal); color: var(--teal-hi); }
-.chip.mat-chip.active .mat-chip-sub { color: var(--teal); }
-.chip.mat-chip-add { color: var(--ink-mute); }
-.mat-orders { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 12px; padding: 8px 11px; border-radius: var(--r-btn); background: var(--panel-inset); font-size: 12.5px; color: var(--ink-mid); }
+/* ---- Today's material list: the page's hero ----
+   The width of the page and the first thing on it. A row of tiles for
+   the materials ticked today; the material's head with its want; the
+   filters; then one row a give -- what it is and what is held of it
+   on the left, the islands that can deal it as chips on the right.
+   Ticking is the work, so a row ticked wears the teal edge. */
+.mat-list.hero { padding: 0; overflow: hidden; }
+.mat-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line-head); }
+.mat-tile { display: flex; align-items: center; gap: 9px; background: var(--panel-inset); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px 6px 7px; text-align: left; color: var(--ink-mid); font: inherit; cursor: pointer; }
+.mat-tile:hover { border-color: rgba(88, 168, 232, 0.5); }
+.mat-tile.active { background: rgba(88, 168, 232, 0.12); border-color: rgba(88, 168, 232, 0.55); color: var(--ink-hi); }
+.mat-tile .row-icon.md { flex: none; }
+.mat-tile-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mat-tile-name { font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.mat-tile-sub { display: flex; gap: 8px; font-size: 11px; color: var(--ink-mute); font-weight: 400; }
+.mat-tile-tick { color: var(--ink-faint); font-weight: 600; }
+.mat-tile-tick.some { color: var(--teal); }
+.mat-tile.add { border-style: dashed; border-color: var(--line-btn); color: var(--ink-faint); padding: 12px 14px; font-size: 12px; font-weight: 600; }
+.mat-tile.add:hover { color: var(--ink-dim); border-color: var(--line-btn-hi); }
+.mat-strip .linky.faint, .mat-filters .linky.faint { color: var(--ink-faint); text-decoration: none; font-size: 11.5px; font-weight: 600; }
+.mat-strip .linky.faint:hover { color: var(--red); }
+.mat-filters .linky.faint:hover { color: var(--ink-dim); }
+
+.mat-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 18px; border-bottom: 1px solid var(--line-head); }
+.mat-head .row-icon.mat-head-icon { width: 34px; height: 34px; border-radius: 7px; flex: none; }
+.mat-head-text { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mat-head-name { background: none; border: none; padding: 0; font: inherit; font-weight: 700; font-size: 14px; color: var(--ink-hi); text-align: left; cursor: pointer; }
+.mat-head-name .caret { font-size: 11px; color: var(--ink-faint); }
+.mat-head-name:hover .caret { color: var(--blue-hi); }
+.mat-head-sub { font-size: 11.5px; color: var(--ink-faint); line-height: 1.45; }
+.mat-head-sub b { color: var(--teal-hi); font-weight: 600; }
+.mat-want { display: flex; align-items: center; gap: 7px; }
+.mat-want .run-pick-k { margin: 0; }
+.mat-want .purse-inline { width: 64px; text-align: right; font-family: var(--font-display); font-size: 13px; font-weight: 600; color: var(--ink-hi); }
+.chip.mat-short { background: rgba(232, 122, 109, 0.1); border-color: rgba(232, 122, 109, 0.4); color: var(--red); border-radius: 7px; padding: 5px 10px; font-size: 11.5px; }
+.chip.mat-short:hover { background: rgba(232, 122, 109, 0.2); color: var(--red-soft); }
+
+.mat-filters { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 9px 12px; border-bottom: 1px solid var(--line-soft); }
+.mat-filters .field.hold-q { flex: 1 1 200px; padding: 7px 12px; font-size: 12.5px; border-radius: 8px; }
+.mat-filters .chip.tiny { border-radius: 8px; padding: 6px 11px; font-size: 11.5px; white-space: nowrap; }
+.mat-filters .chip.tiny.active { background: rgba(78, 201, 174, 0.16); border-color: rgba(78, 201, 174, 0.55); color: var(--teal-hi); }
+.mat-filters-rule { width: 1px; height: 18px; background: var(--line-btn); margin: 0 3px; }
+.mat-filters .chip.tiny.lvl { width: 26px; height: 26px; min-width: 0; padding: 0; border-radius: 6px; font-size: 11px; border-color: var(--line-btn); color: var(--ink-mute); }
+.mat-filters .chip.tiny.lvl.active { background: var(--tier); border-color: var(--tier); color: #08131f; }
+.mat-filters .linky.faint { padding: 0 6px; }
+
+.mat-gives { display: flex; flex-direction: column; }
+.mat-gives .empty { padding: 28px; font-size: 12.5px; }
+.mat-give { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: 8px 18px; padding: 10px 18px 11px 15px; border-left: 3px solid transparent; border-bottom: 1px solid var(--line-soft); }
+.mat-give:last-child { border-bottom: none; }
+.mat-give.on { border-left-color: var(--teal); background: rgba(78, 201, 174, 0.05); }
+.mat-give-left { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mat-give-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mat-give-head b { font-weight: 600; font-size: 13.5px; color: var(--ink-row); }
+.mat-give-head .run-arrow { color: var(--ink-faint); font-size: 12px; }
+.mat-give-head b.mat-get { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--blue-hi); }
+.tier-badge { font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; color: #08131f; background: var(--tier, var(--track)); border-radius: 4px; padding: 2px 5px; }
+.mat-give-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 11.5px; }
+.mat-give-meta .faint { color: var(--ink-faint); }
+.mat-held { font-weight: 600; color: var(--ink-mute); }
+.mat-held.ok { color: var(--teal); }
+.mat-held.none { color: var(--ink-mute); }
+.mat-board-link { font-size: 11.5px; font-weight: 600; color: var(--blue); text-decoration-color: rgba(124, 195, 238, 0.4); }
+.mat-board-link:hover { color: var(--ink-hi); }
+.mat-isles { align-content: flex-start; gap: 5px; }
+.chip.mat-isle { display: inline-flex; align-items: baseline; gap: 5px; border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 600; background: rgba(125, 175, 225, 0.06); border-color: rgba(125, 175, 225, 0.14); color: var(--ink); line-height: 1.3; }
+.chip.mat-isle:hover { border-color: rgba(78, 201, 174, 0.6); }
+.chip.mat-isle .mat-isle-who { font-size: 10.5px; font-weight: 500; color: var(--ink-mute); }
+.chip.mat-isle .mat-isle-seen { font-size: 10px; font-family: var(--font-display); font-weight: 600; color: var(--ink-faint); }
+.chip.mat-isle .mat-isle-seen.some { color: var(--blue-hi); }
+.chip.mat-isle.active { background: rgba(78, 201, 174, 0.16); border-color: rgba(78, 201, 174, 0.6); color: var(--teal-hi); }
+.chip.mat-isle.active .mat-isle-who { color: #6fc9b3; }
+.chip.mat-isle.other { opacity: 0.4; text-decoration: line-through; }
+@media (max-width: 720px) {
+  .mat-give { grid-template-columns: 1fr; gap: 6px; padding: 10px 14px 11px 11px; }
+  .mat-strip, .mat-head { padding-left: 14px; padding-right: 14px; }
+}
+
+/* ---- The run for a material, and the hold beside it ---- */
+.barter-layout.material { grid-template-columns: minmax(340px, 1.2fr) minmax(300px, 0.8fr); }
+@media (max-width: 900px) {
+  .barter-layout.material { grid-template-columns: 1fr; }
+}
+.mat-run { padding: 0; overflow: hidden; }
+.mat-run .run-head { padding: 12px 18px; margin: 0; align-items: center; gap: 10px; }
+.mat-run .run-head .panel-sub { flex: 1 1 200px; }
+.run-head .run-pick { flex: none; }
+.run-head .run-pick .run-pick-k { margin: 0; letter-spacing: 0; text-transform: none; font-size: 11.5px; color: var(--ink-mute); }
+.run-head .run-pick .select { padding: 5px 9px; font-size: 12px; }
+.mat-orders { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 9px 18px; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; color: var(--ink-mid); }
 .mat-order { display: inline-flex; align-items: center; gap: 8px; }
 .mat-order .run-pick-k { margin: 0; }
-@media (max-width: 720px) { .mat-strip { padding: 10px 14px 0; } }
+.mat-orders .purse-inline { text-transform: none; letter-spacing: 0; }
+.run-tiles.flat { display: flex; flex-wrap: wrap; gap: 0; margin: 0; }
+.run-tiles.flat > div { flex: 1 1 130px; padding: 13px 18px; border-radius: 0; background: transparent; border-right: 1px solid var(--line-soft); }
+.run-tiles.flat > div:last-child { border-right: none; }
+.run-tiles.flat .summary-k { font-size: 10px; letter-spacing: 0.12em; margin-bottom: 4px; }
+.run-tiles.flat .summary-v.orange { color: var(--tier-7); }
+.run-tiles.flat .summary-v.names { font-size: 14.5px; }
+.run-list.orange { border-color: rgba(232, 144, 93, 0.25); }
+.run-list.orange .panel-title { color: var(--tier-7); }
+.run-seg-head .mat-seg-icons { display: inline-flex; align-items: center; gap: 4px; flex: none; }
+.run-seg-head .mat-seg-icons .row-icon.xs { width: 24px; height: 24px; border-radius: 5px; }
+.run-seg-head em.mat-got { flex: none; font-family: var(--font-display); font-size: 12.5px; font-weight: 700; color: var(--amber); }
+.run-seg-head em.mat-got.met { color: var(--teal); }
+.mat-sail { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: var(--r-panel); border: 1px solid var(--line-btn); background: var(--panel); }
+.mat-sail.sailing { border-color: var(--teal-edge); }
+.mat-sail .sail-bar { flex: 1 1 320px; padding: 0; border: none; background: transparent; }
+.mat-sail .ghost-btn.run-chart { flex: none; }
