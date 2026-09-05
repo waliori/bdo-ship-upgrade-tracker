@@ -183,7 +183,7 @@ export function renderGet() {
 				if (entry.qty > 1 && entry.coins) sub += ` \u00b7 ${FC(entry.coins)} coins for ${F(entry.qty)}`;
 				else if (entry.qty > 1 && entry.silver) sub += ` \u00b7 ${FC(entry.silver)} silver for ${F(entry.qty)}`;
 				if (entry.barter) {
-					const t = `barter from ${entry.barter.npcs.length} NPCs for ${entry.barter.gives.slice(0, 2).join(' / ')}`;
+					const t = `barter at ${entry.barter.npcs.length} islands for ${entry.barter.gives.slice(0, 2).join(' / ')}`;
 					sub = sub ? `${sub} · ${t}` : t;
 				}
 				// The trade count is the half of the decision the shop

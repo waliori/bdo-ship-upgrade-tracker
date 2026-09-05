@@ -19,7 +19,7 @@ import { snapshot, barterData, barterProfile, combos, matBoards, SILVER } from '
 import { barterKey } from './clock.js';
 import { candidates, askable, offersAt, boardData } from './barter-board.js';
 import { currentShip } from './ship.js';
-import { npcById, ports } from './barter_npcs.js';
+import { npcById, ports, isleOf, whoOf, isleShort } from './barter_npcs.js';
 import { seaRoute } from './searoute.js';
 import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, DEFAULT_CAL, sailSeconds } from './sailing.js';
 import { PRESETS, SELL_CHOICES, HOUR_CHOICES, COUNT_CHOICES, readOrders, presetOrders, onPreset, yardsticks, countAs, ratioKey } from './barter-orders.js';
@@ -281,7 +281,7 @@ function boardHTML(b) {
 	const since = new Date(combos.sample.since + 'T00:00:00Z').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 	// Each answer wears the good it handed back, so a mistyped island is
 	// spotted without hovering for the tooltip.
-	const seen = board.answers.map(a => `<span class="chip tiny active board-seen" title="${esc(a.give)} → ${esc(a.recv)}">${img(a.recv, 'row-icon xs')}${esc(npcById.get(a.npcId).name)}</span>`).join('')
+	const seen = board.answers.map(a => `<span class="chip tiny active board-seen" title="${esc(a.give)} → ${esc(a.recv)}">${img(a.recv, 'row-icon xs')}${esc(isleShort(npcById.get(a.npcId)))}</span>`).join('')
 		+ (board.answers.length ? '<button class="chip tiny" data-act="barter-board-undo" title="Take back the last island looked at">↶ Undo</button>' : '');
 	if (b.combo) {
 		return bar('known',
@@ -302,7 +302,7 @@ function boardHTML(b) {
 	const lead = board.answers.length
 		? `<b>${b.standing.length} layouts fit</b><span>one more look settles it</span>`
 		: '<b>Which board?</b><span>today’s board</span>';
-	const acts = `${first ? `<button class="chip primary" data-act="barter-board-ask" data-npc="${first.id}" title="The island whose offer tells the layouts apart best${ask[0].worst > 1 ? ` — leaves ${ask[0].worst} at worst` : ''}">What does <b>${esc(first.name)}</b> show? ▾</button>` : ''}<button class="chip" data-act="barter-board-island" title="Look at an island of your own choosing instead">another island…</button>`;
+	const acts = `${first ? `<button class="chip primary" data-act="barter-board-ask" data-npc="${first.id}" title="The island whose offer tells the layouts apart best${ask[0].worst > 1 ? ` — leaves ${ask[0].worst} at worst` : ''}">What does <b>${esc(isleOf(first))}</b> show? ▾</button>` : ''}<button class="chip" data-act="barter-board-island" title="Look at an island of your own choosing instead">another island…</button>`;
 	return bar('', lead, `Look at one island in the game and tap what it offers; the whole board follows, since every refresh is one of ${combos.combos.length} layouts.`, seen, acts);
 }
 
@@ -423,7 +423,7 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null } = {}) {
 		return `<div class="run-stop${s.wharf ? ' wharf' : ''}${s.sale ? ' sale' : ''}${i === stops.length - 1 ? ' last' : ''}${sailing && sailing.done.includes(stopKey(s, k, sailing.stops || stops)) ? ' done' : ''}">
 			<div class="run-rail"><i></i><b>${k + 1}</b><i></i></div>
 			<div class="run-main">
-				<div class="run-stop-head">${s.wharf ? '<span class="run-anchor" title="A pause at a wharf, not a barter">⚓</span>' : ''}<b>${esc(place.name)}</b><span>${esc(place.at)}${s.wharf ? ' wharf' : ''}</span>${leg}</div>
+				<div class="run-stop-head">${s.wharf ? '<span class="run-anchor" title="A pause at a wharf, not a barter">⚓</span>' : ''}<b>${esc(s.wharf ? `${place.at} wharf` : isleOf(place))}</b><span>${esc(s.wharf ? place.name : whoOf(place))}</span>${leg}</div>
 				${did}
 				${check(s, k)}
 			</div>
@@ -544,7 +544,7 @@ function chainRow(c, on, solo, dockName, from) {
 		<span class="chain-main">
 			<span class="chain-start">${start}</span>
 			<span class="chain-pips">${pips}<em>Level ${c.top}</em></span>
-			<span class="chain-route">${c.rungs.map(r => esc(r.npc)).join(' › ')}</span>
+			<span class="chain-route">${c.rungs.map(r => esc(isleShort(npcById.get(r.npcId)) || r.npc)).join(' › ')}</span>
 			<span class="chain-goods">${c.rungs.map(r => img(r.item, 'row-icon sm')).join('')}</span>
 		</span>
 		<span class="chain-right">
@@ -859,7 +859,7 @@ function silverParts(me, b) {
 	}
 	lastSearch = { chains: all, opts, ship, timeCap: o.hours };
 	const solos = proposed.solos;
-	all.sort((x, y) => y.top - x.top || (solos.get(y.id).yard.perUnit - solos.get(x.id).yard.perUnit) || x.rungs.length - y.rungs.length || x.rungs[0].npc.localeCompare(y.rungs[0].npc));
+	all.sort((x, y) => y.top - x.top || (solos.get(y.id).yard.perUnit - solos.get(x.id).yard.perUnit) || x.rungs.length - y.rungs.length || isleOf(npcById.get(x.rungs[0].npcId)).localeCompare(isleOf(npcById.get(y.rungs[0].npcId))));
 	const key = `${board.day}|${b.combo.id}`;
 	if (routes.key !== key) routes = { key, ids: proposed.best ? proposed.best.ids : all.length ? [all[0].id] : [] };
 	const chosen = all.filter(c => routes.ids.includes(c.id));
@@ -933,7 +933,7 @@ function silverParts(me, b) {
 		const soldHere = plan.sold.filter(s => s.chain === k).reduce((a, s) => a + s.total, 0);
 		const leftHere = plan.stashed.filter(s => s.chain === k).reduce((a, s) => a + s.total, 0);
 		return `<section class="panel run-seg" style="--tier:${TIER(c.top)}">
-			<div class="run-seg-head"><i></i><b>${esc(c.rungs[0].npc)} chain</b><em>Level ${c.top}</em><span>${soldHere ? `${FC(Math.round(soldHere))} sold` : 'nothing sold'}${leftHere ? ` · ${FC(Math.round(leftHere))} left on the way` : ''}${mine.length ? '' : ' · every island already dealt'}</span><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="Untick this chain">×</button></div>
+			<div class="run-seg-head"><i></i><b>${esc(isleShort(npcById.get(c.rungs[0].npcId)) || c.rungs[0].npc)} chain</b><em>Level ${c.top}</em><span>${soldHere ? `${FC(Math.round(soldHere))} sold` : 'nothing sold'}${leftHere ? ` · ${FC(Math.round(leftHere))} left on the way` : ''}${mine.length ? '' : ' · every island already dealt'}</span><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="Untick this chain">×</button></div>
 			${mine.length ? `<div class="run-stops">${stopRows(mine, legs, { k0: first, board: true, sailing: sailing() })}</div>` : ''}
 		</section>`;
 	}).join('');
@@ -998,12 +998,12 @@ function matListHTML(it, data) {
 	const elsewhere = npcId => mb.answers.find(a => a.npcId === npcId && !(a.recv === it));
 	const groups = [...byGive].sort((a, b) => (b[1][0].recv / b[1][0].giveN) - (a[1][0].recv / a[1][0].giveN) || a[0].localeCompare(b[0])).map(([give, xs]) => {
 		const lv = levelOf(give);
-		const chips = xs.sort((a, b) => a.npc.localeCompare(b.npc)).map(x => {
+		const chips = xs.sort((a, b) => isleOf(npcById.get(a.npcId)).localeCompare(isleOf(npcById.get(b.npcId)))).map(x => {
 			const on = ticked(x.npcId, give);
 			const other = elsewhere(x.npcId);
 			const seen = matSeenOn(x.npcId, give, it);
 			const npc = npcById.get(x.npcId);
-			return `<button class="chip mat-isle${on ? ' active' : ''}${other ? ' other' : ''}" data-act="barter-mat-tick" data-npc="${x.npcId}" data-give="${esc(give)}" title="${esc(npc.at)}${other ? ` · today it shows ${other.give} → ${other.recv}` : ''}${seen && seen.of ? ` · on ${seen.n} of ${seen.of} recorded boards` : ''}">${on ? '✓ ' : ''}${esc(npc.name)}<span>${esc(npc.at.replace(/ Island$/, ''))}${seen && seen.of ? ` · ${seen.n}/${seen.of}` : ''}</span></button>`;
+			return `<button class="chip mat-isle${on ? ' active' : ''}${other ? ' other' : ''}" data-act="barter-mat-tick" data-npc="${x.npcId}" data-give="${esc(give)}" title="${esc(npc.at)} — ${esc(npc.name)}${other ? ` · today it shows ${other.give} → ${other.recv}` : ''}${seen && seen.of ? ` · on ${seen.n} of ${seen.of} recorded boards` : ''}">${on ? '✓ ' : ''}${esc(isleShort(npc))}<span>${esc(whoOf(npc))}${seen && seen.of ? ` · ${seen.n}/${seen.of}` : ''}</span></button>`;
 		}).join('');
 		return `<div class="mat-give" style="--tier:${TIER(lv || 1)}">
 			<div class="mat-give-head">${img(give, 'row-icon sm')}<b>${esc(xs[0].giveText)}× ${esc(give)}</b><span class="run-arrow">→</span><b>${esc(xs[0].recvText)}× ${esc(it)}</b><span class="faint">${xs.length} island${xs.length === 1 ? '' : 's'} can</span></div>
@@ -1062,7 +1062,7 @@ function materialParts(me, data, known) {
 	const legs = legsOf(plan.stops);
 	const coin = it === 'Crow Coin' ? coinWorth() : null;
 	const rungs = [...plan.rungs].reverse();   // the shore first
-	const isl = r => (r.stops.length ? r.stops.map(s => `${s.npc}${s.times > 1 ? ` ×${s.times}` : ''}`).join(' › ') : 'no island deals it');
+	const isl = r => (r.stops.length ? r.stops.map(s => `${isleShort(npcById.get(s.npcId)) || s.npc}${s.times > 1 ? ` ×${s.times}` : ''}`).join(' › ') : 'no island deals it');
 
 	// The ladder: one row a rung, in the chain rows' clothes, with the
 	// level climbed to as the pips and the hold's answer on the right.
@@ -1201,8 +1201,8 @@ function pickOffer(npcId, then) {
 	}));
 	items.push({ id: '', label: 'Something else', sub: 'an offer the record has never seen there', group: '' });
 	openPicker({
-		title: `What does ${npc.name} show?`,
-		hint: `${npc.at}. The offer on the barter window right now.`,
+		title: `What does ${isleOf(npc)} show?`,
+		hint: `${whoOf(npc)}, its barterer. The offer on the barter window right now.`,
 		items,
 		onPick: id => {
 			if (!id) { toast('The record has no layout with that offer; the run stays on the whole table'); return; }
@@ -1223,7 +1223,7 @@ function pickIsland(then) {
 		hint: 'The ones whose offer tells the layouts apart best come first.',
 		items: list.map(a => {
 			const n = npcById.get(a.npcId);
-			return { id: String(a.npcId), label: n.name, sub: n.at, icon: '', meta: a.worst > 1 ? `${a.worst} left at worst` : 'settles it' };
+			return { id: String(a.npcId), label: isleOf(n), sub: whoOf(n), icon: '', meta: a.worst > 1 ? `${a.worst} left at worst` : 'settles it' };
 		}),
 		onPick: id => pickOffer(Number(id), then)
 	});

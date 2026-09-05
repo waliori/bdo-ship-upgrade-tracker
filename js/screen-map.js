@@ -482,8 +482,8 @@ function rowHTML(npc, sub, right, act = 'map-row') {
 	return `<button class="map-row" data-act="${act}" data-npc="${npc.id}">
 		<span class="map-row-dot"></span>
 		<span class="map-row-main">
-			<span class="map-row-name">${esc(npc.name)}</span>
-			<span class="map-row-sub">${sub}</span>
+			<span class="map-row-name">${esc(npc.at)}</span>
+			<span class="map-row-sub">${esc(npc.name)} · ${sub}</span>
 		</span>
 		<span class="map-row-right">${right}</span>
 	</button>`;
@@ -495,7 +495,7 @@ function sailHTML(marks) {
 		.map(([id, m]) => ({ npc: npcById.get(id), m }))
 		.filter(r => r.npc && (!q || r.npc.name.toLowerCase().includes(q)
 			|| r.npc.at.toLowerCase().includes(q)))
-		.sort((a, b) => b.m.items.size - a.m.items.size || a.npc.name.localeCompare(b.npc.name))
+		.sort((a, b) => b.m.items.size - a.m.items.size || a.npc.at.localeCompare(b.npc.at))
 		.map(({ npc, m }) => {
 			const items = [...m.items.keys()];
 			const gives = [...new Set([...m.items.values()].flatMap(s => [...s]))];
@@ -503,7 +503,7 @@ function sailHTML(marks) {
 			const pool = new Set(goodsOf(npc.id).filter(g => barterKind(g.item) === kind)
 				.map(g => g.item)).size;
 			return rowHTML(npc,
-				`${esc(npc.at)}${pool > 1 ? ` · 1 of ${pool} a refresh` : ''} · for ${esc(gives.slice(0, 2).join(' / ') || '—')}`,
+				`${pool > 1 ? `1 of ${pool} a refresh · ` : ''}for ${esc(gives.slice(0, 2).join(' / ') || '—')}`,
 				iconStrip(items));
 		}).join('');
 	const list = rows
@@ -576,15 +576,15 @@ function routeHTML(marks) {
 		return `<div class="map-stop-row${over ? ' over' : ''}">
 			<span class="map-stop-n">${s.n}</span>
 			<span class="map-row-main">
-				<span class="map-row-name">${esc(n.name)}${leg}</span>
-				<span class="map-row-sub">${esc(n.at)}${runTrades[id]
+				<span class="map-row-name">${esc(n.at)}${leg}</span>
+				<span class="map-row-sub">${esc(n.name)}${runTrades[id]
 					? ''
 					: has ? ' · ' + esc([...has.items.keys()].join(', ')) : ' · nothing on your list here'}</span>
 				${runTrades[id] ? runLine(runTrades[id]) : cargoLine(id, has)}${holdAfter(ledger.stops[isle], me.hold)}${over ? `<span class="map-row-sub warn">past what your Parley covers</span>` : ''}
 			</span>
 			<span class="map-row-right">${runTrades[id] ? img(runTrades[id].item, 'map-icon') : has ? iconStrip([...has.items.keys()]) : ''}</span>
 			<button class="map-x" data-act="map-stop" data-npc="${id}"
-				aria-label="Remove ${esc(n.name)} from the route">×</button>
+				aria-label="Remove ${esc(n.at)} from the route">×</button>
 		</div>`;
 	}).join('');
 
@@ -2113,7 +2113,7 @@ export function openSailCal() {
 	const legs = legLengths(world);
 	const port = ports.find(p => p.id === startPort);
 	const names = [];
-	const pts = routeIds(marks).map(id => npcById.get(id).name);
+	const pts = routeIds(marks).map(id => npcById.get(id).at);
 	if (port) names.push(port.name);
 	names.push(...pts);
 	if (port && returnHome) names.push(port.name);
@@ -2162,8 +2162,8 @@ function todayHTML(marks) {
 		return `<button class="map-row today${is ? ' done' : ''}" data-act="map-done" data-npc="${n.id}">
 			<span class="map-check">✓</span>
 			<span class="map-row-main">
-				<span class="map-row-name">${esc(n.name)}</span>
-				<span class="map-row-sub">${esc(n.at)} · ${esc([...marks.get(n.id).items.keys()].join(', '))}</span>
+				<span class="map-row-name">${esc(n.at)}</span>
+				<span class="map-row-sub">${esc(n.name)} · ${esc([...marks.get(n.id).items.keys()].join(', '))}</span>
 			</span>
 			<span class="map-row-right">${iconStrip([...marks.get(n.id).items.keys()])}</span>
 		</button>`;
@@ -2452,7 +2452,8 @@ function paintPins(layer, pins, marks, currentId, nums = new Map()) {
 		btn.classList.toggle('current', p.id === currentId);
 		btn.classList.toggle('done', visited && (!!m || stopAt >= 0));
 		btn.classList.toggle('dim', marks.size > 0 && !m && stopAt < 0);
-		btn.title = m ? `${p.name} — ${what.join(', ')}` : p.name;
+		const isle = npcById.get(p.id).at;
+		btn.title = m ? `${isle} (${p.name}) — ${what.join(', ')}` : `${isle} (${p.name})`;
 		// z-index rather than DOM order does what the wanted-last sort in
 		// frame() used to: a lit pin paints over a plain one.
 		btn.style.zIndex = m || stopAt >= 0 ? 4 : 3;
@@ -2462,8 +2463,8 @@ function paintPins(layer, pins, marks, currentId, nums = new Map()) {
 		badge.textContent = stopAt >= 0 ? String(nums.get(p.id) || stopAt + 1) : visited && m ? '✓' : '';
 		badge.classList.toggle('is-done', stopAt < 0 && visited);
 		btn.querySelector('.map-pin-npc').textContent =
-			p.name + (m && what.length > 1 ? ` ·${what.length}` : '');
-		btn.querySelector('.map-pin-at').textContent = npcById.get(p.id).at;
+			isle.replace(/ Islands?$/, '') + (m && what.length > 1 ? ` ·${what.length}` : '');
+		btn.querySelector('.map-pin-at').textContent = p.name;
 	}
 	for (const [id, btn] of pool) {
 		if (!live.has(id)) {
@@ -2911,7 +2912,7 @@ function paintLabels(layer, size) {
 	// and paintPins have just finished with.
 	const spoken = new Set();
 	if (show) {
-		for (const el of layer.querySelectorAll('.map-port-name, .map-pin.wanted .map-pin-at')) {
+		for (const el of layer.querySelectorAll('.map-port-name, .map-pin.wanted .map-pin-npc')) {
 			const t = (el.textContent || '').trim().replace(/ Islands?$/, '');
 			if (t) spoken.add(t.toLowerCase());
 		}
@@ -3097,9 +3098,9 @@ function paintSteps(host, seq) {
 	el.innerHTML = `<button class="map-step-nav" data-act="map-step-prev" aria-label="Previous stop">‹</button>
 		<div class="map-step-chips">${seq.map((s, i) =>
 			`<button class="map-step-chip${i === stepIdx ? ' on' : ''}${s.kind === 'stash' ? ' stash' : ''}" data-act="map-step" data-i="${i}"
-				title="${esc(s.place.name)}${s.kind === 'stash' ? ' — a wharf call' : ''}">${i + 1}</button>`).join('')}</div>
+				title="${esc(s.place.at)} · ${esc(s.place.name)}${s.kind === 'stash' ? ' — a wharf call' : ''}">${i + 1}</button>`).join('')}</div>
 		<button class="map-step-nav" data-act="map-step-next" aria-label="Next stop">›</button>
-		<span class="map-step-name">${esc(cur.place.name)} · ${esc(cur.place.at)}${cur.kind === 'stash' ? ' wharf' : ''}</span>
+		<span class="map-step-name">${esc(cur.place.at)}${cur.kind === 'stash' ? ' wharf' : ''} · ${esc(cur.place.name)}</span>
 		<button class="map-step-follow${follow ? ' on' : ''}" data-act="map-follow">follow</button>`;
 	const on = el.querySelector('.map-step-chip.on');
 	if (on) on.scrollIntoView({ block: 'nearest', inline: 'center' });
@@ -3224,14 +3225,14 @@ function paintTip(host, size, marks) {
 		const rate = kinds.length === 1
 			? `${F(parleyPerTrade({ ...prof, kind: kinds[0] }))} parley a trade`
 			: `${F(parleyPerTrade({ ...prof, kind: 'trade' }))}–${F(parleyPerTrade({ ...prof, kind: 'material' }))} parley a trade`;
-		const sub = `${esc(npc.at)} · ${rate}`
+		const sub = `${esc(npc.name)} · ${rate}`
 			+ (pool > 1 ? ` · draws 1 of its ${pool} offers a refresh` : '');
 		const onRoute = stopsLive() && stops.includes(id);
 		const btns = `<div class="map-tip-btns">
 			<button class="ghost-btn" data-act="map-stop" data-npc="${id}">${onRoute ? '− Remove stop' : '+ Add stop'}</button>
 			${m ? `<button class="ghost-btn" data-act="map-done" data-npc="${id}">${dn.has(id) ? '✓ Sailed' : 'Mark sailed'}</button>` : ''}
 		</div>`;
-		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">${esc(npc.name)}</span>
+		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">${esc(npc.at)}</span>
 			${pinned ? `<button class="map-x" data-act="map-tip-close" aria-label="Close">×</button>` : ''}</div>
 			<div class="map-tip-sub">${sub}</div>
 			${runTrades[id] ? runTip(runTrades[id], id) : ''}

@@ -145,3 +145,14 @@ export const npcs = [
 
 /** Every barterer, by the id all_barter.json uses. */
 export const npcById = new Map(npcs.map(n => [n.id, n]));
+
+/**
+ * How a barterer is named on screen: the island first, since that is
+ * what the game's list and the chart both go by, the barterer's own
+ * name second. `isle` is the island; `who` the barterer; `label` both.
+ */
+export const isleOf = n => (n ? n.at : '');
+export const whoOf = n => (n ? n.name : '');
+export const labelOf = n => (n ? `${n.at} · ${n.name}` : '');
+/** The island's name without the word Island, for a tight chip. */
+export const isleShort = n => (n ? n.at.replace(/ Islands?$/, '') : '');
