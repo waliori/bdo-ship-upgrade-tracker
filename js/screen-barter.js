@@ -571,6 +571,83 @@ function coinWorth() {
 }
 
 /* ------------------------------------------------------------------ *
+ * the days ahead: which boards take a good, and where
+ * ------------------------------------------------------------------ */
+
+const takenCache = new Map();
+
+/**
+ * How many of the forty boards have an island that takes this good,
+ * and the harbour most of those islands are nearest -- so a good left
+ * behind can be left where the boards to come will want it.
+ */
+function takenOn(good) {
+	if (!combos) return null;
+	if (takenCache.has(good)) return takenCache.get(good);
+	const near = npc => ports.reduce((a, p) => (Math.hypot(p.x - npc.x, p.y - npc.y) < Math.hypot(a.x - npc.x, a.y - npc.y) ? p : a));
+	let n = 0;
+	const harbours = new Map();
+	for (const c of combos.combos) {
+		const here = c.offers.filter(o => o[1] === good);
+		if (!here.length) continue;
+		n++;
+		for (const o of here) {
+			const npc = npcById.get(o[0]);
+			if (!npc) continue;
+			const p = near(npc);
+			harbours.set(p.name, (harbours.get(p.name) || 0) + 1);
+		}
+	}
+	const best = [...harbours].sort((a, b) => b[1] - a[1])[0];
+	const out = { n, of: combos.combos.length, harbour: best ? best[0] : '' };
+	takenCache.set(good, out);
+	return out;
+}
+
+/** The note on a good kept: the boards that take it, and where. */
+function takenNote(good) {
+	const t = takenOn(good);
+	if (!t) return '';
+	if (!t.n) return levelOf(good) === 7 ? '' : '<span class="faint">no board takes it further</span>';
+	return `<span class="faint">taken on ${t.n} of ${t.of} boards${t.harbour ? `, mostly near ${esc(t.harbour)}` : ''}</span>`;
+}
+
+/**
+ * The runs sailed lately: the last seven days, silver and trades a
+ * day, from the trips recorded off the checklist.
+ */
+function weekHTML() {
+	const runs = store.getProfile('runs', []) || [];
+	if (!runs.length) return '';
+	const days = [];
+	const today = barterKey();
+	for (let i = 6; i >= 0; i--) {
+		const d = new Date(`${today}T00:00:00Z`);
+		d.setUTCDate(d.getUTCDate() - i);
+		days.push(d.toISOString().slice(0, 10));
+	}
+	const byDay = new Map(days.map(d => [d, { silver: 0, cost: 0, trades: 0, runs: 0 }]));
+	for (const r of runs) {
+		const b = byDay.get(r.day);
+		if (!b) continue;
+		b.silver += r.silver; b.cost += r.cost; b.trades += r.trades; b.runs++;
+	}
+	const week = [...byDay.values()].reduce((a, b) => ({ silver: a.silver + b.silver, cost: a.cost + b.cost, trades: a.trades + b.trades, runs: a.runs + b.runs }), { silver: 0, cost: 0, trades: 0, runs: 0 });
+	if (!week.runs) return '';
+	const top = Math.max(1, ...[...byDay.values()].map(b => b.silver - b.cost));
+	const bars = days.map(d => {
+		const b = byDay.get(d);
+		const net = b.silver - b.cost;
+		const label = new Date(`${d}T00:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', timeZone: 'UTC' });
+		return `<div class="week-day${b.runs ? '' : ' none'}" title="${esc(label)}: ${b.runs ? `${FC(net)} net, ${b.trades} trades, ${b.runs} run${b.runs === 1 ? '' : 's'}` : 'no run recorded'}"><i style="height:${Math.max(2, Math.round(net / top * 40))}px"></i><span>${esc(label.slice(0, 2))}</span></div>`;
+	}).join('');
+	return `<section class="panel week">
+		<div class="panel-head"><h2 class="panel-title">The week</h2><span class="panel-sub">${week.runs} run${week.runs === 1 ? '' : 's'} recorded · ${FC(week.silver - week.cost)} net · ${F(week.trades)} trades</span></div>
+		<div class="week-bars">${bars}</div>
+	</section>`;
+}
+
+/* ------------------------------------------------------------------ *
  * sailing the run: the checklist, and the trip recorded
  * ------------------------------------------------------------------ */
 
@@ -749,7 +826,7 @@ function silverParts(me, b) {
 		</section>`;
 	}).join('');
 	const worth = s => (s.total ? `would sell for ${FC(Math.round(s.total))}` : 'cannot be sold');
-	const goodLine = (s, at) => `<div class="run-good"><i style="--tier:${TIER(levelOf(s.item))}">${levelOf(s.item) ? `L${levelOf(s.item)}` : '·'}</i>${img(s.item, 'row-icon sm')}<b>${n1(s.n)}×</b><span>${esc(s.item)}</span>${at ? `<span class="faint">at ${esc(at)}</span>` : ''}<span class="run-good-worth">${worth(s)}</span></div>`;
+	const goodLine = (s, at) => `<div class="run-good"><i style="--tier:${TIER(levelOf(s.item))}">${levelOf(s.item) ? `L${levelOf(s.item)}` : '·'}</i>${img(s.item, 'row-icon sm')}<b>${n1(s.n)}×</b><span>${esc(s.item)}</span>${at ? `<span class="faint">at ${esc(at)}</span>` : ''}${takenNote(s.item)}<span class="run-good-worth">${worth(s)}</span></div>`;
 	const list = (title, sub, rows, cls = '') => (rows.length ? `<section class="panel run-list ${cls}"><div class="panel-head"><h2 class="panel-title">${title}</h2><span class="panel-sub">${sub}</span></div>${rows}</section>` : '');
 	const mk = marketStatus();
 	const priceText = b => (b.how === 'made' ? 'made by your workers · costs the run nothing'
@@ -892,7 +969,7 @@ export function renderBarter() {
 	return `<div class="barter-screen">
 		${boardHTML(b)}
 		<div class="barter-layout">
-			<div class="barter-left">${holdHTML(me)}${parts.chains}</div>
+			<div class="barter-left">${holdHTML(me)}${parts.chains}${weekHTML()}</div>
 			<div class="barter-right">${parts.run}</div>
 		</div>
 	</div>`;
