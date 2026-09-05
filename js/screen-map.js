@@ -11,7 +11,7 @@ import { currentShip } from './ship.js';
 import { img } from './ui-bits.js';
 import {
 	createMap, frame, marksFor, pan, zoomAt, clampView, fitTo,
-	routeFor, routePath, project, placeTile, zoomRange
+	routeFor, routePath, project, placeTile, zoomRange, CLOSE_ZOOM
 } from './map.js';
 import { npcs, npcById, ports, MAX_ZOOM, TILE } from './barter_npcs.js';
 import { seaRoute, setLanes, openSea, nearestWater } from './searoute.js';
@@ -2516,13 +2516,17 @@ function paintTiles(layer, tiles, size) {
 	};
 	const live = new Set();
 	let loading = false;
+	// Keyed by grid position, not by file: the open sea is one file
+	// standing in for thousands of tiles, each of which needs its own
+	// image at its own place.
 	for (const t of tiles) {
-		live.add(t.src);
-		let e = pool.get(t.src);
+		live.add(t.key);
+		let e = pool.get(t.key);
 		if (!e) {
 			const img = document.createElement('img');
 			img.className = 'map-tile';
 			img.src = t.src;
+			img.dataset.key = t.key;
 			img.alt = '';
 			img.draggable = false;
 			img.style.transform = `translate(${t.x * TILE}px, ${t.y * TILE}px)`;
@@ -2534,7 +2538,7 @@ function paintTiles(layer, tiles, size) {
 			img.addEventListener('load', settle, { once: true });
 			img.addEventListener('error', settle, { once: true });
 			if (img.complete && img.naturalWidth) settle();
-			pool.set(t.src, (e = { img, z: t.z, x: t.x, y: t.y }));
+			pool.set(t.key, (e = { img, z: t.z, x: t.x, y: t.y }));
 			levelBox(t.z).appendChild(img);
 		}
 		if (!e.img.classList.contains('on')) loading = true;
@@ -2548,16 +2552,16 @@ function paintTiles(layer, tiles, size) {
 	// While the new level is still arriving, the old level stays put
 	// underneath -- rescaled to line up -- so a zoom crossfades between
 	// magnifications instead of blinking through open sea.
-	for (const [src, e] of pool) {
-		if (live.has(src) || loading) continue;
+	for (const [key, e] of pool) {
+		if (live.has(key) || loading) continue;
 		e.img.remove();
-		pool.delete(src);
+		pool.delete(key);
 	}
 	for (const [z, d] of levels) {
 		if (top && z === top.z) continue;
 		const first = d.firstElementChild;
 		if (!first) { d.remove(); levels.delete(z); continue; }
-		const e = pool.get(first.getAttribute('src')) || [...pool.values()].find(v => v.z === z);
+		const e = pool.get(first.dataset.key) || [...pool.values()].find(v => v.z === z);
 		if (!e) { d.remove(); levels.delete(z); continue; }
 		d.style.zIndex = 0;
 		place(d, z, e.x, e.y, placeTile(mapState, size, z, e.x, e.y));
@@ -3838,7 +3842,7 @@ export function mapCentreOn(npcId) {
 	pinnedNpc = npcId;
 	pinnedStash = -1;
 	hoverNpc = null;
-	flyTo(at.x, at.y, Math.max(mapState.zoom, zoomRange.max - 0.35));
+	flyTo(at.x, at.y, Math.max(mapState.zoom, CLOSE_ZOOM));
 }
 
 export function setMapMode(id) {
@@ -3934,7 +3938,7 @@ export function mapCentreOnStash(i) {
 	pinnedStash = i;
 	pinnedNpc = null;
 	hoverNpc = null;
-	flyTo(call.x, call.y, Math.max(mapState.zoom, zoomRange.max - 0.35));
+	flyTo(call.x, call.y, Math.max(mapState.zoom, CLOSE_ZOOM));
 }
 
 /**
@@ -3991,7 +3995,7 @@ function moveStep(i) {
 			pinnedStash = s.kind === 'stash' ? s.k : -1;
 			hoverNpc = null;
 			hoverStash = -1;
-			flyTo(s.place.x, s.place.y, Math.max(mapState.zoom, zoomRange.max - 0.5));
+			flyTo(s.place.x, s.place.y, Math.max(mapState.zoom, CLOSE_ZOOM - 0.15));
 		}
 	}
 	paintMap();

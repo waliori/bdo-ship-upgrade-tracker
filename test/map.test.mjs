@@ -16,7 +16,7 @@ const shipbarters = JSON.parse(
 	await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
 import { npcs, npcById, ports, TILES, TILE, MAX_ZOOM } from '../js/barter_npcs.js';
 import {
-	toPixel, frame, marksFor, pan, zoomBy, zoomAt, createMap, zoomRange,
+	toPixel, frame, marksFor, pan, zoomBy, zoomAt, createMap, zoomRange, tileFile,
 	clampView, routeFor, fitTo, routePath, project, placeTile
 } from '../js/map.js';
 
@@ -146,7 +146,7 @@ test('a refused zoom step does not move the centre either', () => {
 test('the map opens wide enough to show nearly every island', () => {
 	// The point of the screen is how spread out the sea is; opening on a
 	// corner of it hides the answer. Since the shore joined, the whole
-	// sea is wider than a laptop view holds at the widest zoom -- Haemo
+	// sea is wider than a laptop view holds at the opening zoom -- Haemo
 	// Island to Arehaza is 1,600 pixels at zoom 3 -- so the outermost
 	// ports may start just off-screen; the heart of it must not.
 	const { pins } = frame(createMap(), SIZE);
@@ -189,11 +189,13 @@ test('every tile the ranges promise is actually on disk', async () => {
 	for (const [z, b] of Object.entries(TILES)) {
 		for (let x = b.x0; x <= b.x1; x++) {
 			for (let y = b.y0; y <= b.y1; y++) {
-				const name = `${z}_${x}_${y}.webp`;
+				// Through the alias table: an open-sea tile is one file
+				// standing in for many, and it is that file that must exist.
+				const name = tileFile(z, x, y);
 				try {
-					await fs.access(new URL(`../map/${name}`, import.meta.url));
+					await fs.access(new URL(`../${name}`, import.meta.url));
 				} catch {
-					missing.push(name);
+					missing.push(`${z}_${x}_${y} -> ${name}`);
 				}
 			}
 		}
@@ -207,9 +209,9 @@ test('a frame only asks for tiles that exist', () => {
 	pan(state, -100000, -100000);
 	const { tiles } = frame(state, SIZE);
 	for (const t of tiles) {
-		const [z, x, y] = t.src.replace('map/', '').replace('.webp', '').split('_').map(Number);
+		const [z, x, y] = t.key.split('_').map(Number);
 		const b = TILES[z];
-		assert.ok(x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1, `${t.src} was not downloaded`);
+		assert.ok(x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1, `${t.key} was not downloaded`);
 	}
 });
 
@@ -268,9 +270,12 @@ test('every pin still carries its mark for the painter to layer by', () => {
 
 test('a clamped view has a tile under every pixel, at every zoom', () => {
 	// The bug this pins down: pan to an edge, or zoom in near one, and
-	// the viewport hangs off the chart showing bare background.
-	const cover = Math.ceil(SIZE.w / TILE) * Math.ceil(SIZE.h / TILE);
-	for (const z of [zoomRange.min, zoomRange.max]) {
+	// the viewport hangs off the chart showing bare background. At the
+	// widest zooms the whole world is smaller than the view and sits
+	// centred in open sea; there, every pixel of the world is covered.
+	for (const z of [zoomRange.min, 3, zoomRange.max]) {
+		const world = Math.pow(2, z) * TILE;
+		const cover = Math.ceil(Math.min(SIZE.w, world) / TILE) * Math.ceil(Math.min(SIZE.h, world) / TILE);
 		for (const [dx, dy] of [[1e6, 1e6], [-1e6, -1e6], [1e6, -1e6]]) {
 			const state = createMap({ zoom: z });
 			pan(state, dx, dy);

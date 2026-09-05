@@ -32,12 +32,16 @@
 export const MAX_ZOOM = 9;
 export const TILE = 256;
 
-/** The tile ranges downloaded, per zoom: the whole world square now,
- *  8x8 at zoom 3 up to 32x32 at zoom 5 -- BDOCodex draws real ground
- *  out to exactly that edge and flat filler beyond it, so the chart
- *  pans to every coast rather than stopping at the sea's. Nothing
- *  outside is fetched, so a pan past the edge draws sea, not a 404. */
-export const TILES = { 3: { x0: 0, x1: 7, y0: 0, y1: 7 }, 4: { x0: 0, x1: 15, y0: 0, y1: 15 }, 5: { x0: 0, x1: 31, y0: 0, y1: 31 } };
+/** The tile ranges downloaded, per zoom: the whole world square at
+ *  every zoom BDOCodex draws real ground for. Zoom 1 is the world in
+ *  two tiles a side; zoom 7 is 128 a side, the deepest it cuts -- its
+ *  8 and 9 are the 7 tiles blown up and blurred, which the browser
+ *  does as well itself, and 10 is a placeholder. The codex draws real
+ *  ground out to the square's edge and flat filler beyond it, so the
+ *  chart pans to every coast rather than stopping at the sea's, and
+ *  nothing outside is fetched: a pan past the edge draws sea, not a
+ *  404. */
+export const TILES = Object.fromEntries([1, 2, 3, 4, 5, 6, 7].map(z => [z, { x0: 0, x1: (1 << z) - 1, y0: 0, y1: (1 << z) - 1 }]));
 
 /** The wharves inside the charted sea, for anchoring a route to where
  *  a ship actually starts. Same BDOCodex map layer as the island match,

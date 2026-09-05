@@ -11,25 +11,44 @@
 // twenty times the size of the map data and would have to be fetched
 // from somewhere, which this app does not do.
 //
-// The tiles under map/ are the game's own, cut at three zooms across
-// the barter region only -- 779 of them, 3.7 MB, since the shore
-// barterers pulled the chart out to Haemo Island and the O'dyllita
-// coast (tools/fetch-map-tiles.mjs says where they come from). Coordinates are the game's: a position divided by 2^(9 - zoom)
-// is its pixel on that zoom's grid. The zoom itself is continuous --
-// a chart that snaps between three magnifications feels like a slide
-// carousel, not a sea -- and the shipped levels are just where the
-// pixels come from.
+// The tiles under map/ are the game's own, the whole world at every
+// zoom the codex cuts real ground for -- 1 to 7, the world in two
+// tiles a side up to 128 (tools/fetch-map-tiles.mjs says where they
+// come from). Coordinates are the game's: a position divided by
+// 2^(9 - zoom) is its pixel on that zoom's grid. The zoom itself is
+// continuous -- a chart that snaps between magnifications feels like
+// a slide carousel, not a sea -- and the shipped levels are just where
+// the pixels come from.
 
 import { npcs, npcById, TILES, TILE, MAX_ZOOM } from './barter_npcs.js';
+import { ALIAS } from './tile_alias.js';
 
 const ZOOMS = Object.keys(TILES).map(Number).sort((a, b) => a - b);
 const MIN_Z = ZOOMS[0];
 const MAX_Z = ZOOMS[ZOOMS.length - 1];
 
+/** The zoom the chart opens at: the world at 2,048 pixels a side, so
+ *  the whole sea is in view on any screen without shrinking it to a
+ *  stamp -- the widest level shipped is for stepping back further. */
+export const OPEN_ZOOM = 3;
+
+/** How close a call on an island flies in: the island and its
+ *  neighbours, the way the chart showed them when 5 was as deep as it
+ *  went. Rooftops are for the wheel. */
+export const CLOSE_ZOOM = 4.65;
+
 /** A world position to its pixel on `zoom`'s grid. Works for fractional
  *  zooms, which is what makes the zoom continuous. */
 export function toPixel(coord, zoom) {
 	return coord / Math.pow(2, MAX_ZOOM - zoom);
+}
+
+/** The file holding tile (z, x, y). The open sea is one texture the
+ *  codex repeats, so identical tiles are shipped once and the rest
+ *  point at that one (tools/fetch-map-tiles.mjs keeps the table). */
+export function tileFile(z, x, y) {
+	const key = `${z}_${x}_${y}`;
+	return `map/${ALIAS[key] || key}.webp`;
 }
 
 /** The tile range that covers a pixel box, clamped to what we shipped. */
@@ -48,10 +67,10 @@ function tileRange(zoom, left, top, width, height) {
  * middle. Panning moves the centre, so a zoom change keeps whatever you
  * were looking at rather than jumping to a corner.
  */
-export function createMap({ zoom = MIN_Z, centre = null } = {}) {
-	// Opening at the widest zoom is deliberate: the first thing this
-	// screen has to answer is "how spread out is this", and starting
-	// close in shows a corner of the sea and hides the answer.
+export function createMap({ zoom = OPEN_ZOOM, centre = null } = {}) {
+	// Opening wide is deliberate: the first thing this screen has to
+	// answer is "how spread out is this", and starting close in shows
+	// a corner of the sea and hides the answer.
 	const all = npcs;
 	const mid = centre || {
 		x: (Math.min(...all.map(n => n.x)) + Math.max(...all.map(n => n.x))) / 2,
@@ -107,7 +126,8 @@ export function frame(state, size, marks = new Map()) {
 	for (let x = r.x0; x <= r.x1; x++) {
 		for (let y = r.y0; y <= r.y1; y++) {
 			tiles.push({
-				src: `map/${tileZ}_${x}_${y}.webp`,
+				key: `${tileZ}_${x}_${y}`,
+				src: tileFile(tileZ, x, y),
 				z: tileZ, x, y, scale: f,
 				left: x * TILE * f - left,
 				top: y * TILE * f - top

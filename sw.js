@@ -115,6 +115,7 @@ const SHELL = [
 	'/js/ships.js',
 	'/js/state.js',
 	'/js/sync.js',
+	'/js/tile_alias.js',
 	'/js/today.js',
 	'/js/trade_goods.js',
 	'/js/triplog.js',
