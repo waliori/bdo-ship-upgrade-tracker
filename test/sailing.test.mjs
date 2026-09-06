@@ -59,3 +59,18 @@ test('a time is a range: a fifth either way, a tenth once a leg was timed', asyn
 	assert.equal(fmtRange(3600, 4800), '1 h 00 min – 1 h 20 min');
 	assert.equal(fmtRange(10, 20), 'under a minute');
 });
+
+import { overweightFactor, OVERLOAD_SLOWEST } from '../js/sailing.js';
+
+test('an overweight hull keeps less of its speed, in a straight line to the overload cap', () => {
+	// A 10,000 LT limit that moves under up to 17,000.
+	assert.equal(overweightFactor(0, 10000, 17000), 1);
+	assert.equal(overweightFactor(10000, 10000, 17000), 1);
+	assert.equal(overweightFactor(13500, 10000, 17000), 0.75);
+	assert.equal(overweightFactor(17000, 10000, 17000), OVERLOAD_SLOWEST);
+	// Past the cap it does not move at all; that is a warning elsewhere,
+	// so the factor stops at its floor rather than going to nothing.
+	assert.equal(overweightFactor(30000, 10000, 17000), OVERLOAD_SLOWEST);
+	// A hold with no room over its limit is never slowed.
+	assert.equal(overweightFactor(12000, 10000, 10000), 1);
+});

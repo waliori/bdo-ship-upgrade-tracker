@@ -54,3 +54,25 @@ test('an empty loop is an empty ledger, and an hour is an hour', () => {
 	assert.equal(perHour(3_600_000, 1800), 7_200_000);
 	assert.equal(perHour(1, 0), null);
 });
+
+test('given the hull, the ledger says how much speed each leg keeps', () => {
+	// A 1,000 LT hold that moves under up to 1,700: two Lv5 aboard is
+	// 2,000, so the leg out of port is at the floor; the first stop
+	// hands one over and the leg out of it is half way; the second
+	// hands over the other and the hold is light again.
+	const l = routeLedger({
+		stops: [1, 2],
+		tradesAt: () => [{ item: 'Tidal Black Stone', give: '[Level 5] Pearl', recv: 2, giveN: 1 }],
+		aboard: 2 * GOODS[5].weight,
+		hold: { free: 1000, max: 1700 }
+	});
+	assert.equal(l.slowStart, 0.5);
+	assert.equal(l.stops[0].after, 1000);
+	assert.equal(l.stops[0].slow, 1);
+	assert.equal(l.stops[1].slow, 1);
+	const heavy = routeLedger({ stops: [1], tradesAt: () => [], aboard: 1350, hold: { free: 1000, max: 1700 } });
+	assert.equal(heavy.slowStart, 0.75);
+	assert.equal(heavy.stops[0].slow, 0.75);
+	// Without the hull nothing is slowed and the entries are as they were.
+	assert.equal('slow' in routeLedger({ stops: [1], tradesAt: () => [] }).stops[0], false);
+});

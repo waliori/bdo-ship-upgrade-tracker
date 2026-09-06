@@ -287,3 +287,25 @@ test('the whole file reads the same as the block, and a point off the chart is c
 	assert.equal(off.favorites.length, 0);
 	assert.equal(off.dropped, 2);
 });
+
+import { putBlock } from '../js/worldmap.js';
+
+test('a block of any Version is found and written back with its own number', () => {
+	const v5 = '<A/>\r\n<WorldMapQuickScreenPosition Version="5">\r\n\t<WorldmapBookMark/>\r\n</WorldMapQuickScreenPosition>\r\n';
+	const r = spliceBlock(v5, bookmarkXML([{ name: '1: x', x: 60000, y: 60000 }]).xml);
+	assert.ok(r, 'a Version="5" block was not found');
+	assert.ok(r.text.includes('<WorldMapQuickScreenPosition Version="5">'));
+	assert.ok(!r.text.includes('Version="4"'));
+	assert.ok(spliceBlock('<WorldMapQuickScreenPosition Version="12"/>\n', bookmarkXML([]).xml).text.startsWith('<WorldMapQuickScreenPosition Version="12">'));
+});
+
+test('putBlock swaps the block verbatim, merging nothing', () => {
+	const old = '<WorldMapQuickScreenPosition Version="4">\r\n\t<WorldmapBookMark/>\r\n</WorldMapQuickScreenPosition>';
+	const now = '<X/>\r\n<WorldMapQuickScreenPosition Version="4">\r\n\t<WorldMapQuickScreenPosition index="0" x="1" y="2" z="3"/>\r\n\t<WorldmapBookMark>\r\n\t\t<BookMark BookMarkName="a" x="1" z="2"/>\r\n\t</WorldmapBookMark>\r\n</WorldMapQuickScreenPosition>\r\n<Y/>\r\n';
+	const r = putBlock(now, old);
+	assert.equal(r.text, `<X/>\r\n${old}\r\n<Y/>\r\n`);
+	// Whereas the merge would have kept the camera slot.
+	assert.ok(spliceBlock(now, old).text.includes('index="0"'));
+	assert.equal(putBlock('<X/>\n', old), null);
+	assert.equal(putBlock(now, '<nonsense/>'), null);
+});

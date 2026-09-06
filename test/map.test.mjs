@@ -495,3 +495,26 @@ test('a tile is asked for with the set\'s stamp, and the file behind it is on di
 	const fs = await import('node:fs/promises');
 	await fs.access(new URL(`../${tileFile(7, 66, 56)}`, import.meta.url));
 });
+
+import { pinTiles, PIN_MAX } from '../js/map.js';
+
+test('an area kept offline is the view at its level and one either side, each file once', () => {
+	const state = createMap({ zoom: 4, centre: { x: 70000, y: 68000 } });
+	const size = { w: 800, h: 600 };
+	const tiles = pinTiles(state, size);
+	const levels = [...new Set(tiles.map(t => t.z))].sort();
+	assert.deepEqual(levels, [3, 4, 5]);
+	// Every tile of the drawn level is there, and none twice.
+	const own = tilesFor(state, size, 4).map(t => t.src);
+	for (const src of own) assert.ok(tiles.some(t => t.src === src), `${src} missing`);
+	assert.equal(new Set(tiles.map(t => t.src)).size, tiles.length);
+	// The nearest level comes first, so a refused set still names what mattered most.
+	assert.equal(tiles[0].z, 4);
+	// Wide open at the widest level there is no level below to add.
+	const wide = pinTiles(createMap({ zoom: zoomRange.min }), size);
+	assert.ok(wide.every(t => t.z <= zoomRange.min + 1));
+	// A phone's screen at the middle zoom is well inside the cap; a
+	// desktop at the closest zoom, three levels deep, is what the cap is for.
+	assert.ok(tiles.length < PIN_MAX);
+	assert.ok(pinTiles(createMap({ zoom: 7, centre: { x: 70000, y: 68000 } }), { w: 2560, h: 1440 }).length > 0);
+});

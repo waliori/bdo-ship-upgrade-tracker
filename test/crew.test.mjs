@@ -202,3 +202,31 @@ test('every roll a level could make is counted, so a typed roll has a rank', asy
 	assert.equal(rollRank('Cleia', 'speed', 10, 0.5), null, 'a first mate has no rolls');
 	assert.deepEqual(statBand('Innocent', 'speed', 1), { min: 1.2, avg: 1.2, max: 1.2 });
 });
+
+import { logLevel, levelSteps, LEVEL_LOG_MAX } from '../js/sailors.js';
+
+test('a sailor levelled writes one line in the log; the same level again writes none', () => {
+	const s = { id: 'a', name: 'Ann', type: 'Ambitious', lv: 3, cond: 100, stats: { speed: 1.2 } };
+	const up = logLevel(s, 4, 1000);
+	assert.equal(up.lv, 4);
+	assert.deepEqual(up.log, [{ t: 1000, level: 4, stats: { speed: 1.2 } }]);
+	// The typed stats are a copy, not a reference.
+	assert.notEqual(up.log[0].stats, s.stats);
+	// Typing 4 again, or nonsense, logs nothing more.
+	assert.deepEqual(logLevel(up, 4, 2000).log, up.log);
+	assert.deepEqual(logLevel(up, 'x', 2000).log, up.log);
+	// Down and back up is two steps, each read newest first.
+	const down = logLevel(logLevel(up, 3, 3000), 5, 4000);
+	assert.deepEqual(levelSteps(down).map(x => [x.from, x.to, x.t]), [[3, 5, 4000], [4, 3, 3000], [null, 4, 1000]]);
+	// A sailor with no typed stats logs no stats.
+	assert.equal('stats' in logLevel({ ...s, stats: undefined }, 5).log[0], false);
+	assert.deepEqual(levelSteps({}), []);
+});
+
+test('the log keeps the last thirty steps', () => {
+	let s = { id: 'b', type: 'Honest', lv: 1 };
+	for (let i = 0; i < 50; i++) s = logLevel(s, (i % 10) + 1, i);
+	assert.equal(s.log.length, LEVEL_LOG_MAX);
+	assert.equal(s.log[s.log.length - 1].t, 49);
+	assert.equal(s.log[0].t, 50 - LEVEL_LOG_MAX);
+});

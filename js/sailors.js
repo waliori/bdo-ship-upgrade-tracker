@@ -355,6 +355,44 @@ export function rollRank(type, key, lv, value) {
 
 export const STAT_KEYS = ['speed', 'accel', 'turn', 'brake', 'force', 'focus', 'vision'];
 
+/* ---- the level log ---------------------------------------------------- *
+   A sailor's level is typed in as it changes, and what it was before is
+   lost with it -- which is a pity, since the level a sailor reached on
+   what day is how a player tells a fast grower from a slow one. So
+   each roster entry can carry a small log: when the level changed,
+   to what, and the typed stats at the time when there were any. */
+
+export const LEVEL_LOG_MAX = 30;
+
+/**
+ * The sailor with `level` written in and the change logged: a new
+ * entry when the level differs from the last one logged (or, with no
+ * log yet, from the level the sailor had), nothing when it does not,
+ * and never more than LEVEL_LOG_MAX entries, the oldest going first.
+ * The entry keeps the stats as typed at the moment of the change, so
+ * a roll can be read against the level it was rolled at.
+ */
+export function logLevel(sailor, level, now = Date.now()) {
+	const lv = Math.min(10, Math.max(1, Math.floor(Number(level) || sailor.lv || 1)));
+	const log = Array.isArray(sailor.log) ? sailor.log : [];
+	const last = log.length ? log[log.length - 1].level : sailor.lv;
+	if (lv === last) return { ...sailor, lv };
+	const entry = { t: now, level: lv };
+	if (sailor.stats && Object.keys(sailor.stats).length) entry.stats = { ...sailor.stats };
+	return { ...sailor, lv, log: [...log, entry].slice(-LEVEL_LOG_MAX) };
+}
+
+/** The log as steps, newest first: what it went from, to, and when. */
+export function levelSteps(sailor) {
+	const log = Array.isArray(sailor && sailor.log) ? sailor.log : [];
+	const out = [];
+	for (let i = log.length - 1; i >= 0; i--) {
+		const from = i > 0 ? log[i - 1].level : null;
+		out.push({ from, to: log[i].level, t: log[i].t, stats: log[i].stats || null });
+	}
+	return out;
+}
+
 /**
  * What a seated crew adds to the hull. A Sail seat doubles speed and
  * acceleration, the Wheel doubles turning and braking, the Deck pays

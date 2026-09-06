@@ -17,6 +17,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readProfile } from '../js/profile-shape.js';
 
 // state.js writes through localStorage and only touches `window` inside
 // init(), which nothing here calls. A stub keeps the writes quiet.
@@ -231,3 +232,12 @@ test('where an item is kept adds up to the count owned', () => {
 	assert.equal(store.getProfile('stash')['Tidal Black Stone'].Velia, 250, 'the places come back with the count');
 });
 
+
+test('a sailor keeps a level log of thirty steps at most, each a time, a level and the stats typed then', () => {
+	const log = Array.from({ length: 40 }, (_, i) => ({ t: 1000 + i, level: (i % 10) + 1, stats: { speed: 1.5, bogus: 9 } }));
+	const shaped = readProfile({ roster: [{ id: 's1', type: 'Innocent', lv: 4, log: [...log, { t: 'x', level: 3 }, { t: 5, level: 99 }] }] });
+	const kept = shaped.roster[0].log;
+	assert.equal(kept.length, 30);
+	assert.deepEqual(kept[kept.length - 1], { t: 1039, level: 10, stats: { speed: 1.5 } });
+	assert.equal(readProfile({ roster: [{ id: 's1', type: 'Innocent', lv: 4, log: 'no' }] }).roster[0].log, undefined);
+});

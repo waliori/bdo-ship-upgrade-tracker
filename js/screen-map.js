@@ -11,7 +11,7 @@ import { currentShip } from './ship.js';
 import { img } from './ui-bits.js';
 import {
 	createMap, frame, marksFor, pan, zoomAt, clampView, fitTo,
-	routeFor, routePath, project, placeTile, zoomRange, CLOSE_ZOOM, levelFor, tilesFor
+	routeFor, routePath, project, placeTile, zoomRange, CLOSE_ZOOM, levelFor, tilesFor, pinTiles, PIN_MAX
 } from './map.js';
 import { npcs, npcById, ports, MAX_ZOOM, TILE } from './barter_npcs.js';
 import { seaRoute, setLanes, openSea, nearestWater } from './searoute.js';
@@ -26,13 +26,17 @@ import { vellPlan } from './today.js';
 import { openPicker } from './picker.js';
 import * as store from './state.js';
 import { legLengths, pathLength, sailRange, fmtRange, calibrate, fmtDistance, DEFAULT_CAL } from './sailing.js';
+import { rationPlan, calibrateRations, fmtRations, fmtRationRange, DEFAULT_RATION_RATE, RATION_RESERVE } from './rations.js';
 import { bookmarkXML, writeMode, BOOKMARK_SLOTS, CAMERA_SLOTS, LOOP_SLOTS, FILE_HINT, toGame, readGameXML, looksLikeGameXML } from './worldmap.js';
 import { encodeAny, decodeAny } from './share.js';
 import { canWriteFiles, gameFolderName, previousBlock } from './gamefile.js';
 import { parleyPerTrade, PARLEY, GOODS, amount, bestExchange, levelOf, triesFor } from './barter.js';
+import { aboardStock } from './barter-plan.js';
+import { SAVED_MAX, PREVIOUS, keepNamed, replaceAt, splitPrevious } from './saved-routes.js';
 import { marketPrice } from './market.js';
 import { routeLedger, perHour } from './route-ledger.js';
 import { snapshot, barterData, barterProfile, view } from './ui-state.js';
+import { readView } from './profile-shape.js';
 
 let mapState = null;
 let mapPick = null;
@@ -51,6 +55,7 @@ let stopsPick = '';           // the "Showing" view they were plotted under
 let runTrades = {};           // npc id -> what a Barter-tab run calls there for: { give, giveText, item, recvText, recv, giveN, times }
 let runStash = [];            // the run's wharf calls, threaded between the islands: { i, name, at, x, y, drops, sale, silver }
 let done = { day: '', ids: [] };
+let rationsAboard = null;     // rations in the pool right now, as typed; null means full
 let restored = false;
 
 let hoverNpc = null;
@@ -77,7 +82,7 @@ let stepIdx = 0;              // which stop the step player is on
 let stepKey = '';             // the route it was on, to reset when it changes
 let tradesMode = 'one';       // one | all -- how many trades a stop is costed at
 let savedRoutes = [];         // { name, stops, startPort, returnHome, pick, at }
-const SAVED_MAX = 8;
+let prevRoute = null;         // the plot before the last replot, in a slot of its own -- never one of the eight
 let miniOn = true;            // the minimap is shown
 let miniPos = null;           // where it was dragged to, { x, y } from the box's corner, else the default corner
 let measuring = false;        // the ruler is armed
@@ -119,9 +124,33 @@ function barterDay() {
 	return barterKey();
 }
 
+/* ---- what is kept where ------------------------------------------------ *
+   The chart keeps two kinds of thing. Preferences -- which tab, which
+   layers, which side the panel sits, the ink -- are this browser's and
+   stay under STORE_KEY in localStorage. Data -- the route plotted, the
+   run's trades and calls, the routes kept by name, the traces, what
+   was sailed today, the rations aboard -- is the player's and lives in
+   the profile's view, so it exports, syncs and switches with the
+   profile. The first restore on a build that knows the difference
+   lifts the data out of the old key into the view. */
+const VIEW_NS = 'map';
+const DATA_KEYS = ['stops', 'stopsPick', 'runTrades', 'runStash', 'done', 'startPort', 'returnHome', 'savedRoutes', 'prevRoute', 'rationsAboard', 'trace', 'traces'];
+let readSig = null;      // the view as last read or written, as text, so a synced change is read and an own write is not
+let writeTimer = null;   // the view write owed, a moment after the last change
+
 function restore() {
-	if (restored) return;
-	restored = true;
+	if (!restored) {
+		restored = true;
+		restorePrefs();
+		// The write inside migrateView redraws the page through the
+		// store's listeners, once, the first time a profile is opened
+		// on this build; the redraw reads the view then.
+		store.migrateView(VIEW_NS, STORE_KEY, s => Object.fromEntries(DATA_KEYS.filter(k => s[k] !== undefined).map(k => [k, s[k]])));
+	}
+	restoreData();
+}
+
+function restorePrefs() {
 	try {
 		const s = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
 		if (['sail', 'route', 'today', 'hunt', 'trace'].includes(s.mode)) mode = s.mode;
@@ -131,13 +160,6 @@ function restore() {
 		panelOpen = s.panelOpen === undefined
 			? !(typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 720px)').matches)
 			: s.panelOpen !== false;
-		if (Array.isArray(s.stops)) stops = s.stops.filter(id => npcById.has(id));
-		if (typeof s.stopsPick === 'string') stopsPick = s.stopsPick;
-		if (s.runTrades && typeof s.runTrades === 'object') runTrades = readTrades(Object.entries(s.runTrades).map(([id, t]) => [Number(id), t.give, t.giveText, t.item, t.recvText, t.recv, t.giveN, t.times]));
-		if (Array.isArray(s.runStash)) runStash = readStash(s.runStash.map(c => [c.i, c.name, c.at, c.x, c.y, (c.drops || []).map(d => [d.item, d.n]), c.sale, c.silver, c.quests || []]));
-		if (s.done && s.done.day === barterDay()) done = s.done;
-		if (ports.some(p => p.id === s.startPort)) startPort = s.startPort;
-		returnHome = s.returnHome === true;
 		follow = s.follow !== false;
 		nextOnly = s.nextOnly === true;
 		if (Array.isArray(s.coursesOn)) coursesOn = s.coursesOn.filter(id => courseById[id]);
@@ -153,8 +175,6 @@ function restore() {
 			: s.layersOpen !== false;
 		hugWater = s.hugWater !== false;
 		tracesOn = s.tracesOn !== false;
-		if (s.trace && typeof s.trace === 'object') trace = cleanTrace(s.trace);
-		if (Array.isArray(s.traces)) traces = s.traces.map(cleanTrace).filter(Boolean).slice(0, TRACES_MAX);
 		if (INKS.includes(s.inkColour)) inkColour = s.inkColour;
 		if (WIDTHS.some(w => w.v === s.inkWidth)) inkWidth = s.inkWidth;
 		if (SIZES.some(z => z.v === s.inkSize)) inkSize = s.inkSize;
@@ -163,21 +183,99 @@ function restore() {
 		if (s.tradesMode === 'all') tradesMode = 'all';
 		miniOn = s.miniOn !== false;
 		if (s.miniPos && Number.isFinite(s.miniPos.x) && Number.isFinite(s.miniPos.y)) miniPos = { x: s.miniPos.x, y: s.miniPos.y };
-		if (Array.isArray(s.savedRoutes)) {
-			savedRoutes = s.savedRoutes.filter(r => r && typeof r.name === 'string' && Array.isArray(r.stops))
-				.map(r => ({ ...r, name: r.name.slice(0, 40), stops: r.stops.filter(id => npcById.has(id)) }))
-				.filter(r => r.stops.length).slice(0, SAVED_MAX);
-		}
 	} catch { /* a fresh chart, then */ }
+}
+
+/**
+ * The data, from the profile's view. Read again whenever the view has
+ * changed under us -- a sync from another device, an import, a profile
+ * switched -- and never when the change is our own write, which is
+ * what is in memory already. Starts from the defaults each time, so a
+ * field the new view lacks does not keep the old one's value.
+ */
+function restoreData() {
+	if (writeTimer) return;
+	const v = store.getView(VIEW_NS);
+	const sig = v ? JSON.stringify(v) : null;
+	if (sig === readSig) return;
+	readSig = sig;
+	stops = []; stopsPick = ''; runTrades = {}; runStash = []; done = { day: '', ids: [] };
+	startPort = 0; returnHome = false; savedRoutes = []; prevRoute = null; rationsAboard = null;
+	trace = null; traces = [];
+	stepIdx = 0;
+	const s = v || {};
+	try {
+		if (Array.isArray(s.stops)) stops = s.stops.filter(id => npcById.has(id));
+		if (typeof s.stopsPick === 'string') stopsPick = s.stopsPick;
+		if (s.runTrades && typeof s.runTrades === 'object') runTrades = readTrades(Object.entries(s.runTrades).map(([id, t]) => [Number(id), t.give, t.giveText, t.item, t.recvText, t.recv, t.giveN, t.times]));
+		if (Array.isArray(s.runStash)) runStash = readStash(s.runStash.map(c => [c.i, c.name, c.at, c.x, c.y, (c.drops || []).map(d => [d.item, d.n]), c.sale, c.silver, c.quests || [], c.rations ? 'rations' : '']));
+		if (s.done && s.done.day === barterDay() && Array.isArray(s.done.ids)) done = { day: s.done.day, ids: s.done.ids.filter(id => npcById.has(id)) };
+		if (Number.isFinite(s.rationsAboard) && s.rationsAboard >= 0) rationsAboard = s.rationsAboard;
+		if (ports.some(p => p.id === s.startPort)) startPort = s.startPort;
+		returnHome = s.returnHome === true;
+		if (s.trace && typeof s.trace === 'object') trace = cleanTrace(s.trace);
+		if (Array.isArray(s.traces)) traces = s.traces.map(cleanTrace).filter(Boolean).slice(0, TRACES_MAX);
+		const cleanRoute = r => ({ ...r, name: r.name.slice(0, 40), stops: r.stops.filter(id => npcById.has(id)) });
+		const isRoute = r => r && typeof r.name === 'string' && Array.isArray(r.stops);
+		if (Array.isArray(s.savedRoutes)) {
+			// A chart from before the previous route had its own slot
+			// kept it among the named ones; it is lifted out here.
+			const split = splitPrevious(s.savedRoutes.filter(isRoute).map(cleanRoute).filter(r => r.stops.length));
+			savedRoutes = split.routes.slice(0, SAVED_MAX);
+			if (split.previous) prevRoute = split.previous;
+		}
+		if (isRoute(s.prevRoute)) {
+			const r = cleanRoute(s.prevRoute);
+			if (r.stops.length) prevRoute = r;
+		}
+	} catch { /* a view this build does not read: the defaults stand */ }
 	syncLanes();
 }
 
+/** The preferences to this browser now, and the data to the profile a
+ *  moment later -- so a burst of clicks is one write and, since the
+ *  store redraws the page on every profile write, one redraw. */
 function persist() {
 	syncLanes();
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, runTrades, runStash, done, startPort, returnHome, follow, nextOnly, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, hugWater, layersOpen, sideRight, tradesMode, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
+			JSON.stringify({ mode, panelOpen, follow, nextOnly, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, hugWater, layersOpen, sideRight, tradesMode, miniOn, miniPos, inkColour, inkWidth, inkSize, inkPlate }));
 	} catch { /* private mode; the session still works */ }
+	if (writeTimer) clearTimeout(writeTimer);
+	writeTimer = setTimeout(flushView, 250);
+}
+
+function flushView() {
+	if (!writeTimer) return;
+	clearTimeout(writeTimer);
+	writeTimer = null;
+	store.setView(VIEW_NS, { stops, stopsPick, runTrades, runStash, done, startPort, returnHome, savedRoutes, prevRoute, rationsAboard, trace, traces });
+	// What was just written is what is in memory: not to be read back.
+	const v = store.getView(VIEW_NS);
+	readSig = v ? JSON.stringify(v) : null;
+}
+
+// A write still owed when the page goes is made before it does.
+if (typeof window !== 'undefined') {
+	window.addEventListener('pagehide', flushView);
+	window.addEventListener('beforeunload', flushView);
+}
+
+/**
+ * Whether a trace kept now would come back shorter: the save holds a
+ * stroke to 300 points and a view to a size, and a trace past either
+ * is clipped on the way in. Said when it is kept, not found out later.
+ */
+function traceClipNote(t) {
+	const longStroke = (t.strokes || []).some(st => st.pts.length > 600);
+	let fits = true;
+	try {
+		const kept = readView(VIEW_NS, { traces: [t] });
+		fits = !!kept && JSON.stringify(kept.traces[0]).length >= JSON.stringify(t).length * 0.98;
+	} catch { /* the shape said nothing; the stroke check stands */ }
+	if (longStroke) return 'its longest stroke is more than the 300 points the save keeps of one, and will be shortened';
+	if (!fits) return 'it is more than the save keeps of a trace, and will be clipped';
+	return '';
 }
 
 /** The kept traces marked as lanes, handed to the router as the water
@@ -301,6 +399,22 @@ export function seaBent(points) {
 	return bent.get(key);
 }
 
+/** The legs of a bent route the router had to give up on -- each a
+ *  straight line through whatever is in the way -- by leg number from
+ *  1, with the two ends of each. A stop reached by such a leg carries
+ *  the router's `straight` mark. */
+export function straightLegs(world) {
+	const out = [];
+	let leg = 0, from = null;
+	for (const p of world || []) {
+		if (p.bend) continue;
+		if (from && p.straight) out.push({ n: leg, from, to: p });
+		leg++;
+		from = p;
+	}
+	return out;
+}
+
 /** Those stops as world points -- the run's wharf calls among them --
  *  with the start wharf prepended, and appended when the route is to
  *  end where the ship lives. */
@@ -364,6 +478,7 @@ function huntHTML() {
  * ------------------------------------------------------------------ */
 
 export function renderMap() {
+	countPinned();
 	restore();
 	if (!mapState) mapState = createMap();
 
@@ -398,6 +513,7 @@ export function renderMap() {
 			<button class="ghost-btn" data-act="map-measure" aria-pressed="${measuring}" aria-label="Measure a distance" title="Ruler: click two points on the sea">⟷</button>
 			<button class="ghost-btn" data-act="map-mini" aria-pressed="${miniOn}" aria-label="Show or hide the minimap" title="Minimap: show or hide it; drag its grip to move it">▭</button>
 			<button class="ghost-btn" data-act="map-full" aria-pressed="${fullOn}" aria-label="Show the chart over the whole screen" title="Full screen: the chart over everything; ✕ or Esc brings the page back">⛶</button>
+			<span class="map-pins" data-map-pins>${pinButtonsHTML()}</span>
 		</div>
 	</div>`;
 
@@ -564,15 +680,60 @@ function routeHTML(marks) {
 	// A crystal that works in its own sea only lifts the quick end of the
 	// range: the slow end is the route sailed where it does nothing.
 	const localBoost = me.crystal && gradeById[me.crystal.grade].local ? me.speed.crystal : 0;
-	const timeOf = m => m != null ? fmtRange(sailRange(m, speed.total, cal, measured)[0], sailRange(m, speed.total - localBoost, cal, measured)[1]) : '';
+	// Seconds for a leg, quick end and slow end, at the share of its
+	// speed the hull keeps with what is aboard at the start of the leg.
+	const secsOf = (m, slow = 1) => [sailRange(m, speed.total * slow, cal, measured)[0], sailRange(m, (speed.total - localBoost) * slow, cal, measured)[1]];
+	const timeOf = (m, slow = 1) => m != null ? fmtRange(...secsOf(m, slow)) : '';
 	const costs = stops.map(id => stopParley(id, marks, prof));
 	const ledger = routeLedger({
 		stops,
 		tradesAt: id => (runTrades[id] ? [runTrades[id]] : stopTrades(id, marks)),
 		timesAt: id => (runTrades[id] ? runTrades[id].times : tradesMode === 'all' ? triesAt(id, marks) : 1),
 		aboard: heldGoods().reduce((a, g) => a + g.weight, 0),
-		price: marketPrice
+		price: marketPrice,
+		hold: me.hold
 	});
+	// Every leg in sailing order with the hold at its start -- the leg
+	// into each row of the run, and the leg home when the loop closes --
+	// so the times slow where the hold is overweight and the rations
+	// fall leg by leg. `k` is the row the leg arrives at; the leg home
+	// arrives at no row.
+	const seq = routeSeq(marks);
+	const legList = [];
+	let isles = 0;
+	seq.forEach((s, k) => {
+		const m = legTo(k);
+		const before = isles ? ledger.stops[isles - 1] : null;
+		if (m != null) legList.push({ k, m, holdAt: before ? before.after : ledger.start, slow: before ? before.slow : ledger.slowStart });
+		if (s.kind === 'npc') isles++;
+	});
+	if (port && returnHome && legs.length > legList.length) {
+		const last = ledger.stops[ledger.stops.length - 1];
+		legList.push({ k: seq.length, m: legs[legs.length - 1], holdAt: last ? last.after : ledger.start, slow: last ? last.slow : ledger.slowStart });
+	}
+	for (const l of legList) l.secs = secsOf(l.m, l.slow);
+	const legAt = k => legList.find(l => l.k === k) || null;
+	// The chip on a row: the leg's length and minutes, and why the
+	// minutes are what they are when the hold slows it.
+	const legChip = l => {
+		if (!l) return '';
+		const pct = Math.round(l.holdAt / me.hold.free * 100);
+		const slowed = l.slow < 1;
+		const title = slowed ? `slower: hold at ${pct} % — an estimate, ${Math.round(l.slow * 100)} % of the speed with ${F(Math.round(l.holdAt))} LT aboard` : '';
+		return `<span class="map-leg${slowed ? ' slow' : ''}"${title ? ` title="${esc(title)}"` : ''}>${esc(fmtDistance(l.m))} · ${esc(timeOf(l.m, l.slow))}${slowed ? ' · slower' : ''}</span>`;
+	};
+	// Rations: the pool as typed (full when nothing is), the estimated
+	// drain over the legs, and the stop after which it would run below
+	// the reserve at the pessimistic end.
+	const rRate = rationRate();
+	const rMeasured = Number(store.getSetting('rationCal', null)) > 0;
+	const rations = rationPlan({
+		legs: legList.map(l => ({ minutes: [l.secs[0] / 60, l.secs[1] / 60], refill: !!(seq[l.k] && seq[l.k].kind === 'stash' && seq[l.k].place.rations) })),
+		aboard: rationsAboard === null ? me.rations : Math.min(me.rations, rationsAboard),
+		full: me.rations, rate: rRate, measured: rMeasured, appetite: me.crew.appetite
+	});
+	const lowLeg = rations.lowAfter ? legList[rations.lowAfter - 1] : null;
+	const lowRow = lowLeg ? seq[lowLeg.k] : null;
 	const held = prof.parleyHeld;
 	const need = costs.reduce((a, b) => a + b, 0);
 	let afford = 0;
@@ -583,10 +744,10 @@ function routeHTML(marks) {
 	// between the two islands it comes between and wears the number the
 	// chart gives it.
 	let isle = -1;
-	const list = routeSeq(marks).map((s, k) => {
-		const m = legTo(k);
-		const leg = m != null ? `<span class="map-leg">${esc(fmtDistance(m))}${timeOf(m) ? ` · ${esc(timeOf(m))}` : ''}</span>` : '';
-		if (s.kind === 'stash') return stashRow(s, leg, k);
+	const list = seq.map((s, k) => {
+		const leg = legChip(legAt(k));
+		const lowHere = lowRow && lowRow.n === s.n ? `<span class="map-row-sub warn">rations run low after this stop — ${esc(fmtRationRange(rations.legs[rations.lowAfter - 1].left))} left of ${esc(fmtRations(me.rations))}, an estimate</span>` : '';
+		if (s.kind === 'stash') return stashRow(s, leg, k, lowHere);
 		const id = s.id, n = s.place;
 		isle++;
 		const has = marks.get(id);
@@ -600,7 +761,7 @@ function routeHTML(marks) {
 				<span class="map-row-sub">${esc(n.name)}${runTrades[id]
 					? ''
 					: has ? ' · ' + esc([...has.items.keys()].join(', ')) : ' · nothing on your list here'}</span>
-				${runTrades[id] ? runLine(runTrades[id]) : cargoLine(id, has)}${holdAfter(ledger.stops[isle], me.hold)}${over ? `<span class="map-row-sub warn">past what your Parley covers</span>` : ''}
+				${runTrades[id] ? runLine(runTrades[id]) : cargoLine(id, has)}${holdAfter(ledger.stops[isle], me.hold)}${lowHere}${over ? `<span class="map-row-sub warn">past what your Parley covers</span>` : ''}
 			</span>
 			<span class="map-row-right">${runTrades[id] ? img(runTrades[id].item, 'map-icon') : has ? iconStrip([...has.items.keys()]) : ''}</span>
 			<button class="map-x" data-act="map-stop" data-npc="${id}"
@@ -616,32 +777,39 @@ function routeHTML(marks) {
 	// The hold: what the ship as fitted can carry once the crew is
 	// aboard, and how many goods of each level that is. A route is only
 	// as long as the deck allows.
-	const rations = me.crew.appetite
-		? `<div class="summary-sub">rations: the crew eats ${F(me.crew.appetite)} a day · a full ${F(me.rations)} lasts ${Math.floor(me.rations / me.crew.appetite)} days</div>`
-		: `<div class="summary-sub">rations: ${F(me.rations)} when full · nobody aboard eats</div>`;
 	const hold = `<div><div class="summary-k">Hold</div><div class="summary-v">${F(me.hold.free)} LT</div>
-				<div class="summary-sub">${F(me.hold.limit)} as fitted${me.hold.crew ? ` less ${F(me.hold.crew)} of crew` : ''} · ${Math.floor(me.hold.free / GOODS[5].weight)} of Lv4–5 · ${Math.floor(me.hold.free / GOODS[6].weight)} of Lv6–7 a run · sails slower to ${F(me.hold.max)}</div>${rations}</div>`;
+				<div class="summary-sub">${F(me.hold.limit)} as fitted${me.hold.crew ? ` less ${F(me.hold.crew)} of crew` : ''} · ${Math.floor(me.hold.free / GOODS[5].weight)} of Lv4–5 · ${Math.floor(me.hold.free / GOODS[6].weight)} of Lv6–7 a run · sails slower to ${F(me.hold.max)}, by the chart's estimate</div></div>`;
+	const rationsTile = rationsTileHTML(me, rations, legList, lowRow, rRate, rMeasured);
 	const total = pathLength(world);
 	const lastStop = npcById.get(stops[stops.length - 1]);
 	const wharf = lastStop && !returnHome ? nearestWharf(lastStop.x, lastStop.y, 'wharf') : null;
 	const wharfLine = wharf ? `<div class="summary-sub">nearest wharf to the last stop: ${esc(wharf.name)}, ${esc(fmtDistance(wharf.d * 0.25))}</div>` : '';
+	const totalSecs = legList.reduce((a, l) => [a[0] + l.secs[0], a[1] + l.secs[1]], [0, 0]);
+	const slowedLegs = legList.filter(l => l.slow < 1).length;
 	const distance = world.length > 1 ? `<div><div class="summary-k">Distance</div><div class="summary-v">${esc(fmtDistance(total))}</div>
-				<div class="summary-sub">≈ ${esc(timeOf(total))} at ${speed.total}% · 100% ≈ ${cal} m/s ${measured ? '±10%' : '±20%'} · <button class="linky" data-act="map-sail-cal">timed a leg?</button></div>${wharfLine}</div>` : '';
+				<div class="summary-sub">≈ ${esc(fmtRange(...totalSecs))} at ${speed.total}%${slowedLegs ? `, ${slowedLegs} leg${slowedLegs === 1 ? '' : 's'} slowed by the hold` : ''} · 100% ≈ ${cal} m/s ${measured ? '±10%' : '±20%'} · <button class="linky" data-act="map-sail-cal">timed a leg?</button></div>${wharfLine}</div>` : '';
 	const cargo = cargoTile({ weight: me.hold.free });
-	const mid = world.length > 1 ? sailRange(total, speed.total, cal, measured).reduce((a, b) => a + b) / 2 : 0;
+	// A leg the router could not bend round the land is drawn straight
+	// and said so: its metres and minutes are a floor, not a reading.
+	const unrouted = straightLegs(world);
+	const unroutedNote = unrouted.length
+		? `<p class="map-hint warn map-unrouted">${unrouted.length === 1 ? `Leg ${unrouted[0].n}` : `Legs ${unrouted.map(l => l.n).join(', ')}`} could not be routed round the land and ${unrouted.length === 1 ? 'is' : 'are'} drawn straight, dashed on the chart; the distance and time for ${unrouted.length === 1 ? 'it' : 'them'} are a floor.</p>`
+		: '';
+	const mid = world.length > 1 ? (totalSecs[0] + totalSecs[1]) / 2 : 0;
 	const worth = worthTile(ledger, mid);
 	const carry = carryBlock(ledger);
 	const sailingAs = stops.length ? `<p class="map-hint map-as">Sailing as <b>${esc(me.name)}</b> <button class="linky" data-act="map-setup-pick" title="Sail a saved setup instead — the times follow its speed">switch setup ▾</button> · ${speed.total}% · ${F(me.hold.free)} LT free${me.crew.seated ? ` · ${me.crew.seated} aboard` : ''} · <button class="linky" data-act="view" data-id="crew">change</button></p>` : '';
 	const stats = stops.length ? `<div class="map-stats">
 			<div><div class="summary-k">Stops</div><div class="summary-v">${stops.length}</div>
-				${stashLive() ? `<div class="summary-sub">islands · and ${runStash.length} wharf call${runStash.length === 1 ? '' : 's'} to lighten the hold</div>` : ''}</div>
+				${stashLive() ? `<div class="summary-sub">islands · and ${runStash.length} wharf call${runStash.length === 1 ? '' : 's'}${runStash.some(c => c.rations) ? (runStash.every(c => c.rations) ? ' for rations' : ', for rations and to lighten the hold') : ' to lighten the hold'}</div>` : ''}</div>
 			${distance}
 			${hold}
+			${rationsTile}
 			<div><div class="summary-k"><span class="gterm" role="button" tabindex="0" data-guide="parley">Parley</span></div><div class="summary-v">${F(need)}</div>
 				<div class="summary-sub">${cover}</div><div class="chips">${tradesBtn('one')}${tradesBtn('all')}</div></div>
 			${worth}
 			${cargo}
-		</div>${carry}
+		</div>${carry}${unroutedNote}
 		${overBudget ? `<button class="ghost-btn wide" data-act="map-route-trim" title="Drop the stops past what your Parley covers">Trim to the ${afford} stop${afford === 1 ? '' : 's'} Parley covers</button>` : ''}
 		<div class="map-side-btns">
 			<button class="ghost-btn" data-act="map-route-reverse">⇆ Reverse</button>
@@ -718,6 +886,42 @@ function sailCal() {
 	return v > 0 ? v : DEFAULT_CAL;
 }
 
+/** Rations a minute under sail: the player's own figure if they watched
+ *  the pool over a leg, else the working estimate. */
+function rationRate() {
+	const v = Number(store.getSetting('rationCal', null));
+	return v > 0 ? v : DEFAULT_RATION_RATE;
+}
+
+/**
+ * The Rations tile: the pool aboard, what the run eats of it, and --
+ * when it would run below the reserve before the end -- the stop after
+ * which it does and the nearest wharf manager to call at, with the
+ * detour that costs, and a button that puts the call in.
+ */
+function rationsTileHTML(me, plan, legList, lowRow, rate, measured) {
+	if (!legList.length) return '';
+	const aboard = plan.start;
+	const eats = me.crew.appetite ? `the crew eats ${F(me.crew.appetite)} a day` : 'nobody aboard eats';
+	const head = `<div class="summary-k">Rations</div>
+		<div class="summary-v${plan.lowAfter ? ' amber' : ''}"><input class="purse-inline rations-in" type="text" inputmode="numeric" value="${F(Math.round(aboard))}" data-act="map-rations-aboard" aria-label="Rations aboard now" title="What the pool shows now; blank for full"> <span class="summary-of">of ${esc(fmtRations(me.rations))}</span></div>`;
+	const use = `<div class="summary-sub">the run eats ≈ ${esc(fmtRationRange(plan.use))} · ${esc(fmtRationRange(plan.left))} left at the end · ${eats} · drain ${F(rate)} a minute under sail, ${measured ? 'as you watched it ±15%' : 'the chart\'s estimate ±50%'} · <button class="linky" data-act="map-ration-cal">watched the pool?</button></div>`;
+	let low = '';
+	if (plan.lowAfter && lowRow) {
+		const at = lowRow.place;
+		const wharf = nearestWharf(at.x, at.y, 'wharf');
+		// The detour: from the stop to the wharf and on to the next stop,
+		// less the leg that would have been sailed anyway.
+		const nextLeg = legList.find(l => l.k === lowRow.k + 1);
+		const next = nextLeg ? routeSeq(marksNow())[nextLeg.k] : null;
+		const detour = wharf ? (Math.hypot(wharf.x - at.x, wharf.y - at.y) + (next ? Math.hypot(next.place.x - wharf.x, next.place.y - wharf.y) : 0)) * 0.25 - (nextLeg ? nextLeg.m : 0) : 0;
+		low = `<div class="summary-sub warn">runs low after stop ${lowRow.n}, ${esc(at.name || at.at)}: under a ${Math.round(RATION_RESERVE * 100)} % reserve at the slow end of the range</div>
+			${wharf ? `<div class="summary-sub">nearest wharf manager: ${esc(wharf.name)} at ${esc(wharf.at)}, ${esc(fmtDistance(Math.hypot(wharf.x - at.x, wharf.y - at.y) * 0.25))} off — a detour of about ${esc(fmtDistance(Math.max(0, detour)))}</div>
+			<button class="ghost-btn wide" data-act="map-rations-call" data-k="${lowRow.k}" title="Thread a call at ${esc(wharf.name)} into the run before the pool runs low">Put in a rations call after stop ${lowRow.n}</button>` : ''}`;
+	}
+	return `<div>${head}${use}${low}</div>`;
+}
+
 /** How many exchanges a stop allows for what you are there for: the
  *  most any of its offers allows, the rung's cap where the codex
  *  states none. */
@@ -727,16 +931,23 @@ function triesAt(id, marks) {
 	return Math.max(0, ...goods.map(g => triesFor(g.item, Number(g.tries) || 0))) || 2;
 }
 
-/** The trade goods in the hold right now: name, level, count, weight. */
+/** The trade goods in the hold right now: name, level, count, weight.
+ *  The hold, not every storage: a good put ashore at Velia weighs
+ *  nothing on a run out of Iliya, and the Barter tab reads it the same
+ *  way. */
 function heldGoods() {
 	const out = [];
-	for (const [name, qty] of Object.entries(store.getAllStock())) {
-		const m = /^\[Level (\d)\]/.exec(name);
-		if (!m || !qty) continue;
-		const lv = Number(m[1]);
+	for (const [name, qty] of Object.entries(aboardStock(store))) {
+		const lv = levelOf(name);
+		if (!lv || !qty) continue;
 		out.push({ name, lv, qty, weight: (GOODS[lv] ? GOODS[lv].weight : 0) * qty });
 	}
 	return out.sort((a, b) => b.lv - a.lv || a.name.localeCompare(b.name));
+}
+
+/** How many of one good are aboard. */
+function aboardOf(name) {
+	return aboardStock(store)[name] || 0;
 }
 
 /** What a stop wants handed over, against what is aboard. */
@@ -751,19 +962,19 @@ const n1 = v => F(Math.round(v * 10) / 10);
 /** A wharf call on the route list: what is left in storage there, and
  *  what the [Level 7]s aboard fetch, with none of a barterer's
  *  furniture -- there is nothing to trade at a wharf. */
-function stashRow(s, leg, k = -1) {
+function stashRow(s, leg, k = -1, extra = '') {
 	const c = s.place;
 	const drops = c.drops.map(d => `<span class="map-drop">${img(d.item, 'map-icon')}<b>${n1(d.n)}×</b>${esc(d.item)}</span>`).join('');
 	const questsHere = (c.quests || []).length ? `<span class="map-quests">${c.quests.map(q => `<span class="map-quest">📜 ${esc(q)}</span>`).join('')}</span>` : '';
 	const questOnly = questsHere && !c.drops.length && !c.sale;
 	return `<div class="map-stop-row stash${questOnly ? ' quest' : ''}${k === stepIdx ? ' on' : ''}"${k >= 0 ? ` data-act="map-step" data-i="${k}" data-step-row role="button" tabindex="0" title="Step to ${esc(c.at)}"` : ''}>
-		<span class="map-stop-n stash" title="${questOnly ? 'A stop put in for a quest' : 'A pause at a wharf'}">${questOnly ? '📜' : '⚓'}</span>
+		<span class="map-stop-n stash" title="${questOnly ? 'A stop put in for a quest' : c.rations ? 'A call for rations' : 'A pause at a wharf'}">${questOnly ? '📜' : c.rations ? '🍞' : '⚓'}</span>
 		<span class="map-row-main">
 			<span class="map-row-name"><span class="map-row-name-t">${esc(c.name)}</span>${leg}</span>
-			<span class="map-row-sub">stop ${s.n} · ${esc(c.at)}${questOnly ? ' · a quest handed in here' : ` wharf${c.drops.length ? ' · the hold is lightened here' : ' · the hold is sold down here'}`}</span>
+			<span class="map-row-sub">stop ${s.n} · ${esc(c.at)}${questOnly ? ' · a quest handed in here' : c.rations ? ' wharf · rations bought here, the pool full again' : ` wharf${c.drops.length ? ' · the hold is lightened here' : ' · the hold is sold down here'}`}</span>
 			${drops ? `<span class="map-drops">${drops}</span>` : ''}
 			${c.sale ? `<span class="map-row-sub ok">sells ${n1(c.sale)} [Level 7]${c.silver ? ` for ${FC(c.silver)}` : ''}</span>` : ''}
-			${questsHere}
+			${questsHere}${extra}
 		</span>
 	</div>`;
 }
@@ -772,9 +983,9 @@ function cargoLine(id, has) {
 	if (!has || !has.items.size) return '';
 	const gives = [...new Set([...has.items.values()].flatMap(set => [...set]))].filter(g => /^\[Level/.test(g));
 	if (!gives.length) return '';
-	const aboard = gives.filter(g => store.getStock(g) > 0);
+	const aboard = gives.filter(g => aboardOf(g) > 0);
 	return aboard.length
-		? `<span class="map-row-sub ok">aboard: ${esc(aboard.map(g => `${F(store.getStock(g))}× ${g}`).join(', '))}</span>`
+		? `<span class="map-row-sub ok">aboard: ${esc(aboard.map(g => `${F(aboardOf(g))}× ${g}`).join(', '))}</span>`
 		: `<span class="map-row-sub warn">hands over ${esc(gives.join(' or '))} — none aboard</span>`;
 }
 
@@ -820,9 +1031,12 @@ function readStash(rows) {
 	const out = [];
 	for (const r of Array.isArray(rows) ? rows : []) {
 		if (!Array.isArray(r)) continue;
-		const [i, name, at, x, y, drops, sale, silver, quests] = r;
+		const [i, name, at, x, y, drops, sale, silver, quests, why] = r;
 		if (!Number.isFinite(Number(x)) || !Number.isFinite(Number(y))) continue;
 		out.push({
+			// A call put in for rations: nothing is dropped or sold, the
+			// pool is filled, and the row says so.
+			rations: why === 'rations',
 			// The quests handed in at this call, as the Barter tab laid
 			// them: a call put in for a quest carries them and nothing else.
 			quests: (Array.isArray(quests) ? quests : []).filter(q => typeof q === 'string' && q).map(q => q.slice(0, 80)).slice(0, 12),
@@ -843,7 +1057,7 @@ function readStash(rows) {
 /** The wharf calls as readStash takes them back: what a link, a saved
  *  route and the browser's own copy all carry. */
 function stashRows() {
-	return runStash.map(c => [c.i, c.name, c.at, c.x, c.y, c.drops.map(d => [d.item, d.n]), c.sale, c.silver, c.quests || []]);
+	return runStash.map(c => [c.i, c.name, c.at, c.x, c.y, c.drops.map(d => [d.item, d.n]), c.sale, c.silver, c.quests || [], c.rations ? 'rations' : '']);
 }
 
 /** Whether the run's wharf calls belong to the route as it stands.
@@ -939,7 +1153,7 @@ function carryBlock(l) {
 	if (!l.carry.size) return '';
 	const rows = [...l.carry].sort((a, b) => (levelOf(b[0]) || 0) - (levelOf(a[0]) || 0) || a[0].localeCompare(b[0])).map(([give, n]) => {
 		const need = Math.ceil(n);
-		const have = store.getStock(give);
+		const have = aboardOf(give);
 		const short = Math.max(0, need - have);
 		const lower = bestExchange(give, barterData);
 		const from = lower ? `${lower.npc} hands it over for ${lower.give}` : 'bought on land';
@@ -950,7 +1164,7 @@ function carryBlock(l) {
 		</div>`;
 	}).join('');
 	const kinds = l.carry.size;
-	const short = [...l.carry].filter(([give, q]) => store.getStock(give) < Math.ceil(q)).length;
+	const short = [...l.carry].filter(([give, q]) => aboardOf(give) < Math.ceil(q)).length;
 	return `<details class="map-carry"${kinds <= 6 ? ' open' : ''}><summary class="summary-k">Carry out of port <span class="map-courses-credit">${kinds} kind${kinds === 1 ? '' : 's'} the loop hands over${short ? `, ${short} not aboard` : ', all aboard'}</span></summary>${rows}</details>`;
 }
 
@@ -959,29 +1173,69 @@ function carryBlock(l) {
  * routes kept by name
  * ------------------------------------------------------------------ */
 
-function savedHTML() {
-	if (!savedRoutes.length) return '';
-	const rows = savedRoutes.map((r, i) => `<div class="map-saved-row">
-		<button class="map-row saved" data-act="map-route-load" data-i="${i}" title="Plot this route${r.pick ? ` (for ${esc(r.pick)})` : ''}">
+function savedRow(r, load, del, sub = '') {
+	return `<div class="map-saved-row${sub ? ' prev' : ''}">
+		<button class="map-row saved" data-act="${load.act}"${load.i !== undefined ? ` data-i="${load.i}"` : ''} title="Plot this route${r.pick ? ` (for ${esc(r.pick)})` : ''}">
 			<span class="map-row-main"><span class="map-row-name">${esc(r.name)}</span>
-			<span class="map-row-sub">${r.stops.length} stop${r.stops.length === 1 ? '' : 's'}${r.pick ? ` · ${esc(r.pick)}` : ''}${r.startPort && ports.find(p => p.id === r.startPort) ? ` · from ${esc(ports.find(p => p.id === r.startPort).name)}` : ''}</span></span>
+			<span class="map-row-sub">${r.stops.length} stop${r.stops.length === 1 ? '' : 's'}${r.pick ? ` · ${esc(r.pick)}` : ''}${r.startPort && ports.find(p => p.id === r.startPort) ? ` · from ${esc(ports.find(p => p.id === r.startPort).name)}` : ''}${sub}</span></span>
 		</button>
-		<button class="map-x" data-act="map-route-del" data-i="${i}" aria-label="Forget ${esc(r.name)}">×</button>
-	</div>`).join('');
-	return `<div class="map-saved"><div class="summary-k">Saved routes</div>${rows}</div>`;
+		<button class="map-x" data-act="${del.act}"${del.i !== undefined ? ` data-i="${del.i}"` : ''} aria-label="Forget ${esc(r.name)}">×</button>
+	</div>`;
 }
 
+function savedHTML() {
+	if (!savedRoutes.length && !prevRoute) return '';
+	const rows = savedRoutes.map((r, i) => savedRow(r, { act: 'map-route-load', i }, { act: 'map-route-del', i })).join('');
+	// The previous plot is offered under the named ones, apart from
+	// them: it is the one the next replot overwrites, and it takes none
+	// of the eight.
+	const prev = prevRoute ? savedRow(prevRoute, { act: 'map-route-prev' }, { act: 'map-route-prev-del' }, ' · the plot before this one; the next replot overwrites it') : '';
+	return `<div class="map-saved"><div class="summary-k">Saved routes${savedRoutes.length ? ` <span class="map-courses-credit">${savedRoutes.length} of ${SAVED_MAX}</span>` : ''}</div>${rows}${prev}</div>`;
+}
+
+/** The route as it stands, as a kept entry under `name`. */
+function routeEntry(name, ids = stops) {
+	return { name, stops: [...ids], startPort, returnHome, pick: stopsPick || '', trades: Object.fromEntries(ids.filter(id => runTrades[id]).map(id => [id, runTrades[id]])), calls: stashRows(), at: new Date().toISOString().slice(0, 10) };
+}
+
+/** Keep the route under a name. False when the eight are taken by
+ *  other names -- the caller asks which one to let go. */
 function keepRoute(name, ids = stops) {
-	if (!ids.length) return;
-	const entry = { name, stops: [...ids], startPort, returnHome, pick: stopsPick || '', trades: Object.fromEntries(ids.filter(id => runTrades[id]).map(id => [id, runTrades[id]])), calls: stashRows(), at: new Date().toISOString().slice(0, 10) };
-	savedRoutes = [entry, ...savedRoutes.filter(r => r.name !== name)].slice(0, SAVED_MAX);
+	if (!ids.length) return true;
+	const kept = keepNamed(savedRoutes, routeEntry(name, ids));
+	if (kept.full) return false;
+	savedRoutes = kept.list;
+	return true;
 }
 
-/** A plot that is about to be replaced is kept as "Previous route"
+/** A plot that is about to be replaced is kept as the previous route
  *  rather than thrown away -- one click to make is no reason to lose
- *  twenty minutes of choosing. */
+ *  twenty minutes of choosing. It has a slot of its own, so keeping it
+ *  never costs a route kept by name. */
 function stashRoute() {
-	if (stops.length > 1) keepRoute('Previous route');
+	if (stops.length > 1) prevRoute = routeEntry(PREVIOUS);
+}
+
+/** The eight are taken: which one goes, to make room for `name`? */
+function replaceRouteDialog(name) {
+	const rows = savedRoutes.map((r, i) => `<button class="map-row saved" data-replace="${i}">
+			<span class="map-row-main"><span class="map-row-name">${esc(r.name)}</span>
+			<span class="map-row-sub">${r.stops.length} stop${r.stops.length === 1 ? '' : 's'}${r.at ? ` · kept ${esc(r.at)}` : ''}</span></span>
+		</button>`).join('');
+	const host = openDialog(`
+		<h2>Which route makes room?</h2>
+		<p class="dialog-copy">${SAVED_MAX} routes are kept by name and all ${SAVED_MAX} are taken. Choose the one to let go for “${esc(name)}”, or cancel and keep them all.</p>
+		<div class="map-saved dialog-list">${rows}</div>
+		<div class="dialog-actions"><button class="ghost-btn" data-close>Cancel</button></div>`);
+	host.querySelectorAll('[data-replace]').forEach(btn => btn.addEventListener('click', () => {
+		const i = Number(btn.dataset.replace);
+		const gone = savedRoutes[i];
+		savedRoutes = replaceAt(savedRoutes, i, routeEntry(name));
+		persist();
+		closeDialog();
+		refreshSide();
+		toast(`Kept as “${name}”${gone ? `, in place of “${gone.name}”` : ''}`);
+	}));
 }
 
 export function saveRouteDialog() {
@@ -999,9 +1253,10 @@ export function saveRouteDialog() {
 	const save = () => {
 		const name = input.value.trim();
 		if (!name) return toast('Give it a name');
-		keepRoute(name);
-		persist();
+		if (name === PREVIOUS) return toast('That name is the chart\'s own — give it another');
 		closeDialog();
+		if (!keepRoute(name)) return replaceRouteDialog(name);
+		persist();
 		refreshSide();
 		toast(`Kept as “${name}”`);
 	};
@@ -1009,9 +1264,24 @@ export function saveRouteDialog() {
 	input.addEventListener('keydown', evt => { if (evt.key === 'Enter') save(); });
 }
 
+export function loadPreviousRoute() {
+	if (prevRoute) plotSaved(prevRoute);
+}
+
+export function deletePreviousRoute() {
+	if (!prevRoute) return;
+	prevRoute = null;
+	persist();
+	refreshSide();
+	toast('Forgot the previous route');
+}
+
 export function loadSavedRoute(i) {
 	const r = savedRoutes[i];
-	if (!r) return;
+	if (r) plotSaved(r);
+}
+
+function plotSaved(r) {
 	if (stops.length && stops.join('.') !== r.stops.join('.')) stashRoute();
 	stops = r.stops.filter(id => npcById.has(id));
 	runTrades = readTrades(Object.entries(r.trades || {}).map(([id, t]) => [Number(id), t.give, t.giveText, t.item, t.recvText, t.recv, t.giveN, t.times]));
@@ -1801,7 +2071,8 @@ export function traceAction(act, el) {
 			// A copy, not the live object: a kept trace has to stand still
 			// while the next stroke goes on the one being drawn.
 			traces = [{ ...JSON.parse(JSON.stringify(t)), at: Date.now() }, ...traces.filter(r => r.name !== name)].slice(0, TRACES_MAX);
-			toast(`Kept “${name}”`);
+			const clip = traceClipNote(t);
+			toast(clip ? `Kept “${name}” — ${clip}` : `Kept “${name}”`);
 			break;
 		}
 		case 'trace-hug': hugWater = !hugWater; break;
@@ -2272,6 +2543,70 @@ export function openSailCal() {
 	});
 }
 
+/** The pool as typed on the Route tab; blank or nonsense means full. */
+export function setRationsAboard(value) {
+	const n = Number(String(value).replace(/[^\d.]/g, ''));
+	rationsAboard = Number.isFinite(n) && n >= 0 && String(value).trim() !== '' ? Math.round(n) : null;
+	persist();
+	refreshSide();
+}
+
+/**
+ * Thread a call for rations into the run after the row at `k`: at the
+ * nearest wharf manager to that stop, the way the Barter tab's storage
+ * calls are threaded -- as a call that drops nothing and sells nothing,
+ * marked for what it is.
+ */
+export function putRationsCall(k) {
+	const seq = routeSeq(marksNow());
+	const row = seq[k];
+	if (!row) return;
+	const wharf = nearestWharf(row.place.x, row.place.y, 'wharf');
+	if (!wharf) return;
+	// `i` is how many islands are sailed before the call.
+	const isles = seq.slice(0, k + 1).filter(r => r.kind === 'npc').length;
+	const call = readStash([[isles, wharf.name, wharf.at, wharf.x, wharf.y, [], 0, 0, [], 'rations']])[0];
+	if (!call) return;
+	if (runStash.some(c => c.rations && c.i === call.i && c.name === call.name)) return toast('That call is already in the run');
+	runStash = [...runStash, call].sort((a, b) => a.i - b.i);
+	persist();
+	refreshSide();
+	paintMap();
+	toast(`A call at ${wharf.name} for rations, after stop ${row.n}`);
+}
+
+/** The ration drain, calibrated: the pool fell N over a leg of M
+ *  minutes -- the same shape as timing a leg for the speed. */
+export function openRationCal() {
+	const me = currentShip();
+	const host = openDialog(`
+		<h2>How fast does the pool fall?</h2>
+		<p class="dialog-copy">The game never says what a minute under sail costs in rations. The chart assumes <b>${F(DEFAULT_RATION_RATE)} a minute</b> at full sail and shows every figure as a range half either way; you are using <b>${F(rationRate())} a minute</b>. Watch the pool over one leg — what it read when you set off and when you arrived — and the rest follow from it, with the range narrowed to ±15%. ${me.crew.appetite ? `The crew's ${F(me.crew.appetite)} a day is taken out of the figure.` : ''}</p>
+		<label class="dialog-label">The pool fell by <input class="field" type="text" inputmode="numeric" placeholder="rations, e.g. 45000" data-rcal-fell></label>
+		<label class="dialog-label">over <input class="field" type="text" inputmode="decimal" placeholder="minutes, e.g. 6.5" data-rcal-min> minutes under sail</label>
+		<div class="dialog-actions">
+			<button class="ghost-btn" data-rcal-reset>Back to ${F(DEFAULT_RATION_RATE)} a minute</button>
+			<button class="ghost-btn" data-close>Cancel</button>
+			<button class="act" data-rcal-save>Set</button>
+		</div>`);
+	host.querySelector('[data-rcal-reset]').addEventListener('click', () => {
+		store.setSetting('rationCal', null);
+		closeDialog();
+		refreshSide();
+		toast(`Back to ${F(DEFAULT_RATION_RATE)} rations a minute`);
+	});
+	host.querySelector('[data-rcal-save]').addEventListener('click', () => {
+		const fell = Number(String(host.querySelector('[data-rcal-fell]').value).replace(/[^\d.]/g, ''));
+		const minutes = Number(String(host.querySelector('[data-rcal-min]').value).replace(',', '.'));
+		const v = calibrateRations(fell, minutes, me.crew.appetite);
+		if (!v) return toast('Give how far the pool fell, and over how many minutes');
+		store.setSetting('rationCal', v);
+		closeDialog();
+		refreshSide();
+		toast(`The pool falls ${F(v)} a minute on this chart`);
+	});
+}
+
 function todayHTML(marks) {
 	const dn = doneSet();
 	const all = [...marks.keys()].map(id => npcById.get(id)).filter(Boolean)
@@ -2430,6 +2765,95 @@ function zoomSettled() {
  * the layer element, so a re-render of the screen (which builds a fresh
  * layer) starts them clean.
  */
+/* ---- an area kept offline ------------------------------------------- *
+   A cache of the browser's own, apart from the service worker's: the
+   worker looks there first for a tile and its sweep never touches it,
+   so what is fetched here stays until it is let go here. */
+const PINNED_CACHE = 'tiles-pinned';
+let pinnedN = 0;   // tiles in that cache, as last counted, for the button
+
+function canPin() {
+	return typeof caches !== 'undefined' && typeof window !== 'undefined' && window.isSecureContext;
+}
+
+/** The two chart buttons: keep this area, and forget what is kept --
+ *  the second only once something is. */
+function pinButtonsHTML() {
+	if (!canPin()) return '';
+	const kept = pinnedN ? ` — ${pinnedN} tile${pinnedN === 1 ? '' : 's'} kept so far` : '';
+	return `<button class="ghost-btn map-pin-btn" data-act="map-pin-area" aria-label="Keep this area offline" title="Keep this area offline: the tiles in view and one zoom level either side, fetched now and never shed${kept}">⇩${pinnedN ? `<span class="map-pin-n">${pinnedN}</span>` : ''}</button>${pinnedN
+		? `<button class="ghost-btn map-pin-btn" data-act="map-pin-forget" aria-label="Forget the offline area" title="Forget the offline area: let the ${pinnedN} kept tiles go">⌫</button>` : ''}`;
+}
+
+function refreshPinButtons() {
+	const slot = document.querySelector('[data-map-pins]');
+	if (slot) slot.innerHTML = pinButtonsHTML();
+}
+
+/** Count what is kept, and redraw the button when the count changed. */
+async function countPinned() {
+	if (!canPin()) return 0;
+	try {
+		const cache = await caches.open(PINNED_CACHE);
+		const n = (await cache.keys()).length;
+		if (n !== pinnedN) {
+			pinnedN = n;
+			refreshPinButtons();
+		}
+		return n;
+	} catch {
+		return pinnedN;
+	}
+}
+
+/**
+ * Keep the area in view offline: every tile under the viewport at the
+ * level drawn and one either side, fetched into the pinned cache. A
+ * view that would take more than PIN_MAX tiles is refused with a word
+ * -- zoom in, or keep it in two goes.
+ */
+export async function pinArea() {
+	if (!canPin()) return toast('This browser cannot keep tiles offline');
+	const host = document.querySelector('[data-map]');
+	if (!host || !mapState) return;
+	const tiles = pinTiles(mapState, hostSize(host));
+	if (tiles.length > PIN_MAX) return toast(`That is ${tiles.length} tiles — more than the ${PIN_MAX} an area may keep. Zoom in, or keep it in two goes.`);
+	if (!tiles.length) return toast('Nothing in view to keep');
+	toast(`Keeping ${tiles.length} tile${tiles.length === 1 ? '' : 's'}…`);
+	let got = 0, failed = 0;
+	try {
+		const cache = await caches.open(PINNED_CACHE);
+		// Six at a time: enough to be quick, not enough to starve the
+		// tiles the chart is drawing right now.
+		const queue = tiles.slice();
+		await Promise.all(Array.from({ length: 6 }, async () => {
+			while (queue.length) {
+				const t = queue.shift();
+				try {
+					if (await cache.match(t.src)) { got++; continue; }
+					const res = await fetch(t.src);
+					if (res.ok) { await cache.put(t.src, res); got++; } else failed++;
+				} catch { failed++; }
+			}
+		}));
+	} catch {
+		return toast('The browser would not keep the tiles');
+	}
+	await countPinned();
+	toast(failed ? `${got} tile${got === 1 ? '' : 's'} kept offline; ${failed} could not be fetched` : `${got} tile${got === 1 ? '' : 's'} kept offline — ${pinnedN} in all`);
+}
+
+/** Let the kept area go. */
+export async function forgetPinned() {
+	if (!canPin()) return;
+	try {
+		await caches.delete(PINNED_CACHE);
+	} catch { /* nothing kept, then */ }
+	pinnedN = 0;
+	refreshPinButtons();
+	toast('The offline area is forgotten');
+}
+
 export function paintMap() {
 	const host = document.querySelector('[data-map]');
 	const layer = host && host.querySelector('[data-map-layer]');
@@ -2884,6 +3308,16 @@ function paintRoute(layer, size, marks) {
 		next.setAttribute('class', 'map-route-next');
 		svg.appendChild(next);
 	}
+	// The legs the router gave up on, over the line in a warning dash,
+	// so a line through a headland is never mistaken for a passage.
+	let unrouted = svg._unrouted;
+	if (!unrouted) {
+		unrouted = svg._unrouted = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+		unrouted.setAttribute('class', 'map-route-unrouted');
+		svg.appendChild(unrouted);
+	}
+	unrouted.setAttribute('d', straightLegs(seaBent(routeWorld(marks)))
+		.map(l => routePath([l.from, l.to].map(p => project(mapState, size, p.x, p.y)), size, 0)).filter(Boolean).join(' '));
 	const world = routeWorld(marks);
 	const seq = routeSeq(marks);
 	const at = seq.length > 1 ? Math.min(stepIdx, seq.length - 1) + (world.length > seq.length ? 1 : 0) : -1;
@@ -3484,7 +3918,7 @@ function runTip(t, id) {
  * storage, and what the [Level 7]s aboard fetch at the counter.
  */
 function paintStashTip(host, tip, size, g, pinned) {
-	const key = ['stash', g.key, pinned, g.calls.map(s => `${s.n}:${s.place.drops.length}:${s.place.sale}:${(s.place.quests || []).length}`).join(',')].join('|');
+	const key = ['stash', g.key, pinned, g.calls.map(s => `${s.n}:${s.place.drops.length}:${s.place.sale}:${(s.place.quests || []).length}:${s.place.rations ? 'r' : ''}`).join(',')].join('|');
 	if (tip._for !== key) {
 		tip._for = key;
 		const visit = s => {
@@ -3497,7 +3931,8 @@ function paintStashTip(host, tip, size, g, pinned) {
 			return `<span class="map-tip-k stash">Stop ${s.n}</span>
 				${c.sale ? `<div class="map-tip-sub sell">sells ${n1(c.sale)} [Level 7]${c.silver ? ` for ${FC(c.silver)}` : ''}</div>` : ''}
 				${questRows}
-				${rows || (c.sale || questRows ? '' : '<div class="map-tip-sub none">Nothing left ashore this time.</div>')}`;
+				${c.rations ? '<div class="map-tip-sub">🍞 rations bought here — the pool is full again</div>' : ''}
+				${rows || (c.sale || questRows || c.rations ? '' : '<div class="map-tip-sub none">Nothing left ashore this time.</div>')}`;
 		};
 		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">⚓ ${esc(g.name)}</span>
 			${pinned ? '<button class="map-x" data-act="map-tip-close" aria-label="Close">×</button>' : ''}</div>

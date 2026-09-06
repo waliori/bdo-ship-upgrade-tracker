@@ -170,7 +170,10 @@ export const FILE_HINT = {
 	linux: '~/.local/share/Steam/steamapps/compatdata/582660/pfx/drive_c/users/steamuser/Documents/Black Desert/UserCache/<account number>/gameVariable.xml'
 };
 
-const BLOCK = /<WorldMapQuickScreenPosition Version="4">[\s\S]*?<\/WorldMapQuickScreenPosition>|<WorldMapQuickScreenPosition Version="4"\/>/;
+// The block's Version has been 4 for years; the file's own number is
+// matched whatever it is and written back as found, so a client that
+// bumps it is still read and not handed a downgraded block.
+const BLOCK = /<WorldMapQuickScreenPosition Version="(\d+)">[\s\S]*?<\/WorldMapQuickScreenPosition>|<WorldMapQuickScreenPosition Version="(\d+)"\/>/;
 
 /**
  * gameVariable.xml with its favourites block swapped for `xml`. The
@@ -197,7 +200,7 @@ function parseBlock(block) {
 
 /** And put back together, in the order the client writes: the camera
  *  slots, then the loops, then the bookmarks. */
-function emitBlock({ cameras, loops, marks }, nl) {
+function emitBlock({ cameras, loops, marks }, nl, version = '4') {
 	// An element's own tags sit one tab in, its children two -- however
 	// the piece was indented in the file it came from.
 	const indent = t => {
@@ -205,7 +208,7 @@ function emitBlock({ cameras, loops, marks }, nl) {
 		if (body.length === 1) return '\t' + body[0];
 		return ['\t' + body[0], ...body.slice(1, -1).map(l => '\t\t' + l), '\t' + body[body.length - 1]].join(nl);
 	};
-	const rows = ['<WorldMapQuickScreenPosition Version="4">'];
+	const rows = [`<WorldMapQuickScreenPosition Version="${version}">`];
 	for (const i of [...cameras.keys()].sort((a, b) => a - b)) rows.push('\t' + cameras.get(i));
 	for (const i of [...loops.keys()].sort((a, b) => a - b)) rows.push(indent(loops.get(i)));
 	rows.push(marks ? indent(marks) : '\t<WorldmapBookMark/>');
@@ -229,7 +232,22 @@ export function spliceBlock(text, xml) {
 		loops: new Map([...was.loops, ...now.loops]),
 		marks: now.marks || was.marks
 	};
-	const block = emitBlock(merged, nl).replace(/\r?\n$/, '');
+	const block = emitBlock(merged, nl, m[1] || m[2] || '4').replace(/\r?\n$/, '');
+	return {
+		text: text.slice(0, m.index) + block + text.slice(m.index + m[0].length),
+		previous: m[0]
+	};
+}
+
+/**
+ * gameVariable.xml with its favourites block put back exactly as
+ * `block` has it -- no merging, no re-indenting: what Restore needs,
+ * since a restore that keeps today's camera slots is not a restore.
+ * Null when the file has no block to replace, as spliceBlock is.
+ */
+export function putBlock(text, block) {
+	const m = BLOCK.exec(text);
+	if (!m || !BLOCK.test(block)) return null;
 	return {
 		text: text.slice(0, m.index) + block + text.slice(m.index + m[0].length),
 		previous: m[0]

@@ -143,6 +143,41 @@ export function tilesFor(state, size, level) {
 	return tiles;
 }
 
+/* ---- an area kept offline ------------------------------------------- *
+   The service worker keeps the tiles it has served, but sheds the
+   oldest once they add up; a player sailing somewhere with no signal
+   wants a stretch of sea that is never shed. That is a set of tile
+   files -- the view as it stands and one level either side of it, so a
+   zoom in or out still draws -- fetched on purpose into a cache of
+   their own. This lists them; the screen fetches. */
+
+/** No more than this many tiles for one area: about four screens of
+ *  the closest zoom at every one of three levels, or 3–4 MB. */
+export const PIN_MAX = 400;
+
+/**
+ * The tile files under the viewport at the level the view draws and
+ * `spread` levels either side of it, each once -- the open sea's
+ * repeated squares share one file, and a file is only fetched once.
+ * Ordered near level first, the middle of the screen first within it.
+ */
+export function pinTiles(state, size, spread = 1) {
+	const at = levelFor(state.zoom);
+	const seen = new Set();
+	const out = [];
+	for (let d = 0; d <= spread; d++) {
+		for (const z of d ? [at - d, at + d] : [at]) {
+			if (z < MIN_Z || z > MAX_Z) continue;
+			for (const t of tilesFor(state, size, z)) {
+				if (seen.has(t.src)) continue;
+				seen.add(t.src);
+				out.push({ z: t.z, x: t.x, y: t.y, src: t.src });
+			}
+		}
+	}
+	return out;
+}
+
 /**
  * Everything needed to draw one frame: the tiles under the viewport and
  * the markers on top, both already in viewport pixels.

@@ -243,3 +243,45 @@ test('a leg once bent is kept: the same two points come back the same way at onc
 	const back = seaRoute([b, a]);
 	assert.deepEqual(back.map(p => [p.x, p.y]), first.slice().reverse().map(p => [p.x, p.y]));
 });
+
+import { legStraight, setSearchLimit, dropScratch } from '../js/searoute.js';
+
+test('a leg the search gives up on is flagged, not passed off as a passage', () => {
+	const velia = at('Velia'), iliya = at('Iliya Island');
+	// With no patience at all the search cannot get out of the harbour:
+	// the leg comes back straight and says so, on the leg and on the
+	// route's stop alike.
+	const was = setSearchLimit(20);
+	try {
+		assert.deepEqual(seaLeg(velia, iliya), [velia, iliya]);
+		assert.equal(legStraight(velia, iliya), true);
+		const route = seaRoute([velia, iliya]);
+		assert.equal(route[route.length - 1].straight, true);
+		assert.equal(route[route.length - 1].name, iliya.name);
+	} finally {
+		setSearchLimit(was);
+	}
+	// With its patience back the same leg is found, and is not flagged
+	// -- nor is a leg that is straight because the water allows it.
+	assert.ok(seaLeg(velia, iliya).length > 2);
+	assert.equal(legStraight(velia, iliya), false);
+	const a = { x: 30000, y: 30000 }, b = { x: 40000, y: 40000 };
+	assert.deepEqual(seaLeg(a, b), [a, b]);
+	assert.equal(legStraight(a, b), false);
+	assert.equal(seaRoute([a, b])[1], b);
+});
+
+test('the search scratch reused across legs gives the same paths as fresh arrays', () => {
+	const pairs = [['Velia', 'Iliya Island'], ['Velia', 'Rian'], ['Iliya Island', 'Sikario'], ['Velia', 'Sikario']].map(p => p.map(at));
+	// Once through, all on the one set of arrays -- the second search
+	// onwards runs on scratch the first has written in.
+	setSearchLimit(0);   // forgets the kept legs, so each is searched again
+	const reused = pairs.map(([a, b]) => JSON.stringify(seaLeg(a, b)));
+	// Then each on arrays of its own.
+	const fresh = pairs.map(([a, b]) => {
+		setSearchLimit(0);
+		dropScratch();
+		return JSON.stringify(seaLeg(a, b));
+	});
+	assert.deepEqual(reused, fresh);
+});

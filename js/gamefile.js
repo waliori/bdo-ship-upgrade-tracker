@@ -10,10 +10,11 @@
 // what there is.
 //
 // The favourites block each write replaced is kept in localStorage as
-// well, so Restore can put the favourites back without also reverting
-// whatever else the game wrote to the file since.
+// well, byte for byte, so Restore can put the favourites back exactly
+// as they were without also reverting whatever else the game wrote to
+// the file since.
 
-import { spliceBlock } from './worldmap.js';
+import { spliceBlock, putBlock } from './worldmap.js';
 
 const DB = 'bdo-tracker/files';
 const KEY = 'gameFolder';
@@ -63,9 +64,26 @@ export async function gameFolderName() {
 	return h ? h.name : null;
 }
 
+const BOM = '\uFEFF';
+
+/** The file's bytes as text, with whether they began with a byte-order
+ *  mark -- which the decoder eats, and which the client may well
+ *  expect to find again when it reads the file back. */
+export function decodeXML(bytes) {
+	const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+	const bom = b.length >= 3 && b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF;
+	return { text: new TextDecoder('utf-8').decode(b), bom };
+}
+
+/** The text as it is written back: the mark put in front again when
+ *  the file had one. */
+export function encodeXML(text, bom) {
+	return (bom ? BOM : '') + text.replace(/^\uFEFF/, '');
+}
+
 async function readFile(dir) {
 	const fh = await dir.getFileHandle(FILE);
-	return (await fh.getFile()).text();
+	return decodeXML(await (await fh.getFile()).arrayBuffer());
 }
 
 /**
@@ -77,7 +95,7 @@ export async function pickGameFolder() {
 	const dir = await window.showDirectoryPicker({ mode: 'readwrite', id: 'bdo-account' });
 	let text;
 	try {
-		text = await readFile(dir);
+		text = (await readFile(dir)).text;
 	} catch {
 		throw new Error(`No ${FILE} in "${dir.name}" — choose the account-number folder inside UserCache.`);
 	}
@@ -101,42 +119,59 @@ async function writeText(dir, name, text) {
 	await w.close();
 }
 
+// The block the last write replaced, kept in memory as well as in
+// localStorage, so a browser that refuses the latter can still restore
+// within the session.
+let lastPrevious = null;
+
+function rememberPrevious(block) {
+	lastPrevious = block;
+	try {
+		if (block === null) localStorage.removeItem(PREV_KEY);
+		else localStorage.setItem(PREV_KEY, block);
+	} catch { /* the .bak still has it */ }
+}
+
+/** Read the file, swap its block by `swap(text)`, write it back with a
+ *  backup first -- what a write and a restore share. `dir` is the
+ *  folder handle; the kept one when none is given. */
+async function rewrite(swap, dir = null) {
+	dir = dir || await loadHandle();
+	if (!dir) throw new Error('Choose the account folder first.');
+	if (!await permitted(dir)) throw new Error('The browser was not allowed to write in the folder.');
+	const { text, bom } = await readFile(dir);
+	const out = swap(text);
+	if (!out) throw new Error(`${FILE} has no world-map favourites block any more — choose the folder again.`);
+	await writeText(dir, BACKUP, encodeXML(text, bom));
+	rememberPrevious(out.previous);
+	await writeText(dir, FILE, encodeXML(out.text, bom));
+	return { folder: dir.name, backup: BACKUP };
+}
+
 /**
  * Put `xml` into gameVariable.xml in place of its favourites block,
  * after copying the whole file to gameVariable.xml.bak. Throws with a
  * sentence a person can act on.
  */
-export async function writeGameFile(xml) {
-	const dir = await loadHandle();
-	if (!dir) throw new Error('Choose the account folder first.');
-	if (!await permitted(dir)) throw new Error('The browser was not allowed to write in the folder.');
-	const text = await readFile(dir);
-	const out = spliceBlock(text, xml);
-	if (!out) throw new Error(`${FILE} has no world-map favourites block any more — choose the folder again.`);
-	await writeText(dir, BACKUP, text);
-	try {
-		localStorage.setItem(PREV_KEY, out.previous);
-	} catch { /* the .bak still has it */ }
-	await writeText(dir, FILE, out.text);
-	return { folder: dir.name, backup: BACKUP };
+export function writeGameFile(xml, dir = null) {
+	return rewrite(text => spliceBlock(text, xml), dir);
 }
 
 /** The block the last write replaced, if any. */
 export function previousBlock() {
 	try {
-		return localStorage.getItem(PREV_KEY);
+		return localStorage.getItem(PREV_KEY) || lastPrevious;
 	} catch {
-		return null;
+		return lastPrevious;
 	}
 }
 
-/** Put the last write's predecessor back (the block only). */
-export async function restoreGameFile() {
+/** Put the last write's predecessor back -- the block only, and that
+ *  block exactly as it was, not merged with what is there now. */
+export async function restoreGameFile(dir = null) {
 	const prev = previousBlock();
 	if (!prev) throw new Error('Nothing to restore.');
-	const r = await writeGameFile(prev);
-	try {
-		localStorage.removeItem(PREV_KEY);
-	} catch { /* fine */ }
+	const r = await rewrite(text => putBlock(text, prev), dir);
+	rememberPrevious(null);
 	return r;
 }

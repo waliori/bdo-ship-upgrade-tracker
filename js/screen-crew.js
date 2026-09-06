@@ -26,7 +26,7 @@ import { encodeShare, shareLink } from './share.js';
 import { enhancedName } from './planner.js';
 import {
 	pool, mateTypes, anyType, care, rations, expSplit, firstMates, slotSources, statBand, rollRank,
-	contract, SAILOR_CAP, seatsFor, fitSeats, statOf, crewTotals, autoAssign } from './sailors.js';
+	contract, SAILOR_CAP, seatsFor, fitSeats, statOf, crewTotals, autoAssign, logLevel, levelSteps, STAT_KEYS } from './sailors.js';
 
 // Session state: who is picked up, and how the roster is ordered.
 let selId = null;
@@ -303,6 +303,7 @@ function selectedPanel(ship) {
 		<div class="sel-stats">${stats.join('')}</div>
 		<div class="sel-note">Each level-up rolls inside a hidden range, so these are estimates — type what the sailor window shows and they outrank it, judged against the level's band.</div>
 		<div class="sel-facts">cabins <b>${t.cabin ?? '—'}</b> · eats <b>${t.appetite ?? '—'}</b>/day · weight <b>+${t.weight ?? 0} LT</b></div>
+		${levelLogHTML(s)}
 		${t.mate
 		? '<div class="sel-facts sel-seats" data-tip="Seats double a sailor\'s matching growths; the First Mate seat is where a named mate\'s skill switches on.">at the <b>First Mate</b> seat ★ their skill switches on</div>'
 		: `<div class="sel-facts sel-seats" data-tip="What each seat does with this sailor's own numbers — hover a seat on the ship for the same. Deck and Mess pay by cabin cost.">at a seat: Sail <b>+${dbl(statOf(s, 'speed'))}%</b> spd · Wheel <b>+${dbl(statOf(s, 'turn'))}%</b> turn${t.force !== undefined ? ` · Cannon <b>+${dbl(statOf(s, 'focus'))}%</b> focus` : ''} · Deck <b>+${F((t.cabin || 0) * 10000)}</b> dura · Mess <b>+${F((t.cabin || 0) * 5000)}</b> rations</div>`}
@@ -313,6 +314,19 @@ function selectedPanel(ship) {
 			<button class="act quiet small" data-act="crew-dismiss" data-id="${esc(s.id)}" title="Strike this sailor off the roster">Dismiss</button>
 		</div>
 	</div>`;
+}
+
+/** The sailor's levels as they were typed in, newest first: "levelled
+ *  3 → 4 on 2 Sep". Only the last few are shown; the rest are kept. */
+function levelLogHTML(s) {
+	const steps = levelSteps(s);
+	if (!steps.length) return '';
+	const when = t => {
+		const d = new Date(t);
+		return Number.isFinite(d.getTime()) ? d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '';
+	};
+	const rows = steps.slice(0, 5).map(st => `<div class="sel-log-row">levelled ${st.from !== null ? `${st.from} → ` : ''}<b>${st.to}</b>${when(st.t) ? ` on ${esc(when(st.t))}` : ''}${st.stats ? `<span class="sel-log-stats" title="The stats as typed at the time">${esc(STAT_KEYS.filter(k => Number.isFinite(st.stats[k])).map(k => `${k} ${st.stats[k]}`).join(' · '))}</span>` : ''}</div>`).join('');
+	return `<details class="sel-log"${steps.length <= 2 ? ' open' : ''}><summary class="sel-facts">levelled ${steps.length} time${steps.length === 1 ? '' : 's'} on this roster</summary>${rows}${steps.length > 5 ? `<div class="sel-log-row quiet">and ${steps.length - 5} more, kept</div>` : ''}</details>`;
 }
 
 function presetsPanel(ship) {
@@ -1057,7 +1071,7 @@ export function crewChange(el) {
 			if (!Object.keys(stats).length) delete out.stats;
 			return out;
 		}
-		if (act === 'crew-lv') return { ...s, lv: Math.min(10, Math.max(1, Math.floor(Number(el.value) || s.lv))) };
+		if (act === 'crew-lv') return logLevel(s, Number(el.value) || s.lv);
 		const cond = Number(el.value);
 		return { ...s, cond: Number.isFinite(cond) ? Math.min(100, Math.max(0, Math.floor(cond))) : s.cond };
 	}));

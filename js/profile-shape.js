@@ -72,6 +72,27 @@ export function readProfile(raw) {
 				}
 				if (Object.keys(st).length) entry.stats = st;
 			}
+			// The level log: when the level changed, to what, and the stats
+			// typed at the time. Thirty steps at most, the oldest dropped.
+			if (Array.isArray(r.log)) {
+				const log = [];
+				for (const e of r.log.slice(-60)) {
+					if (!e || typeof e !== 'object') continue;
+					const t = Number(e.t), level = Math.floor(Number(e.level));
+					if (!Number.isFinite(t) || t <= 0 || !(level >= 1 && level <= 10)) continue;
+					const step = { t, level };
+					if (isProfile(e.stats)) {
+						const st = {};
+						for (const k of ['speed', 'accel', 'turn', 'brake', 'force', 'focus', 'vision']) {
+							const v = Number(e.stats[k]);
+							if (Number.isFinite(v) && v >= 0 && v <= 500) st[k] = Math.round(v * 10) / 10;
+						}
+						if (Object.keys(st).length) step.stats = st;
+					}
+					log.push(step);
+				}
+				if (log.length) entry.log = log.slice(-30);
+			}
 			roster.push(entry);
 		}
 		if (roster.length) out.roster = roster;

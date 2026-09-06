@@ -8,18 +8,24 @@
 // the panel's numbers can be checked without a chart.
 
 import { GOODS, levelOf } from './barter.js';
+import { overweightFactor } from './sailing.js';
 
 /**
  * `stops` in sailing order; `tradesAt(id)` the exchanges the stop is
  * sailed for, each `{ item, give, recv, giveN }` per press; `timesAt(id)`
  * how many presses; `aboard` the weight of goods already in the hold;
  * `price(item)` silver a unit for something that is not a levelled
- * good, or 0 when nobody has said.
+ * good, or 0 when nobody has said; `hold` the hull's `{ free, max }`,
+ * when the legs are to be slowed by what is aboard -- each stop then
+ * carries `slow`, the share of its speed the hull keeps on the leg out
+ * of it, and `slowStart` is the same for the leg out of port.
  */
-export function routeLedger({ stops = [], tradesAt, timesAt = () => 1, aboard = 0, price = () => 0 } = {}) {
+export function routeLedger({ stops = [], tradesAt, timesAt = () => 1, aboard = 0, price = () => 0, hold = null } = {}) {
+	const slowAt = w => (hold ? overweightFactor(w, hold.free, hold.max) : 1);
 	const out = {
 		stops: [],
 		start: aboard,
+		slowStart: slowAt(aboard),
 		goodsIn: 0, goodsOut: 0,
 		inValue: 0,          // silver the goods received would fetch
 		outValue: 0,         // silver the goods handed over would have fetched
@@ -57,7 +63,9 @@ export function routeLedger({ stops = [], tradesAt, timesAt = () => 1, aboard = 
 			}
 		}
 		weight += change;
-		out.stops.push({ id, change, after: weight, trades: trades.length });
+		const entry = { id, change, after: weight, trades: trades.length };
+		if (hold) entry.slow = slowAt(weight);
+		out.stops.push(entry);
 	}
 	out.net = out.inValue + out.matValue - out.outValue;
 	return out;

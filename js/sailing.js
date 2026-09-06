@@ -61,6 +61,24 @@ export function speedPct(ship, stock = {}, roster = [], seats = {}) {
 
 export const speedMs = (pct, cal = DEFAULT_CAL) => cal * pct / 100;
 
+/* How much of its speed a hull keeps at the most it will move under.
+   An estimate: the game says an overweight ship is slower and gives no
+   curve, so the chart takes it as a straight line from full speed at
+   the limit to half at the overload cap. Replace when someone times it. */
+export const OVERLOAD_SLOWEST = 0.5;
+
+/**
+ * The speed a hull keeps with `weight` aboard, as a share of its
+ * speed unladen: 1 up to the limit, falling in a straight line to
+ * OVERLOAD_SLOWEST at `max`, and no lower -- past `max` it does not
+ * move at all, which is the ledger's warning, not a speed.
+ */
+export function overweightFactor(weight, limit, max) {
+	if (!(weight > limit) || !(max > limit)) return 1;
+	const over = Math.min(1, (weight - limit) / (max - limit));
+	return Math.round((1 - over * (1 - OVERLOAD_SLOWEST)) * 1000) / 1000;
+}
+
 // How far to trust the calibration: a fifth either way around the
 // working estimate, a tenth around a leg someone actually timed --
 // turns, currents and the wharf approach vary between runs.

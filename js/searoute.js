@@ -53,8 +53,9 @@ export function openSea(x, y) {
 }
 
 /* ---- which water is which ------------------------------------------ *
-   Not all water is the same water. At 256 units to a cell a harbour is
-   often a single wet cell walled in by its own shore -- Velia's is --
+   Not all water is the same water. At 128 units to a cell a harbour
+   can still be a few wet cells walled in by their own shore -- at the
+   256 the mask had before, Velia's was a single one --
    and a search that starts there has nowhere to go, gives up, and the
    leg is drawn straight. Which is how the route out of Velia used to
    cross Balenos on foot.
@@ -416,23 +417,72 @@ function toll(i) {
 	return t;
 }
 
-/** The cells of a water path between two cells, or null. */
-function search(from, to, limit = 220000) {
+/* How many cells a search may take off the heap before it gives up. A
+   leg across the whole sea is a few tens of thousands; past this the
+   two ends are on water that is joined only by a way no ship would
+   take, and the leg is better drawn straight and said so. */
+export const SEARCH_LIMIT = 220000;
+let limitNow = SEARCH_LIMIT;
+
+/** Set how long a search may run, for a test that wants to see one
+ *  give up; the legs found so far are forgotten, since they were found
+ *  under the old patience. Returns the limit as it was. */
+export function setSearchLimit(n) {
+	const was = limitNow;
+	limitNow = n > 0 ? n : SEARCH_LIMIT;
+	legs.clear();
+	return was;
+}
+
+/* ---- the search's scratch -------------------------------------------- *
+   Three arrays over every cell of the mask -- where each was reached
+   from, what it cost, whether it is settled -- come to nine megabytes,
+   and a route of forty legs searched them forty times over, allocating
+   and zeroing the lot for each. They are made once and kept; a search
+   writes down the cells it touched and puts only those back, which is
+   the few thousand it visited rather than the million there are. */
+let came = null, cost = null, done = null;
+let touched = [];
+
+function scratch() {
+	if (came) return;
+	const n = SEA_SIDE * SEA_SIDE;
+	came = new Int32Array(n).fill(-1);
+	cost = new Float32Array(n).fill(Infinity);
+	done = new Uint8Array(n);
+}
+
+function scrub() {
+	for (const i of touched) { came[i] = -1; cost[i] = Infinity; done[i] = 0; }
+	touched = [];
+}
+
+/** Forget the kept scratch, so the next search starts from fresh
+ *  arrays -- for a test that wants to prove the reuse changes nothing. */
+export function dropScratch() {
+	came = cost = done = null;
+	touched = [];
+}
+
+/** The cells of a water path between two cells, or null when there is
+ *  none to be had within `limit` expansions. */
+function search(from, to, limit = limitNow) {
+	scratch();
+	scrub();
 	const start = from[1] * SEA_SIDE + from[0];
 	const goal = to[1] * SEA_SIDE + to[0];
-	const came = new Int32Array(SEA_SIDE * SEA_SIDE).fill(-1);
-	const cost = new Float32Array(SEA_SIDE * SEA_SIDE).fill(Infinity);
-	const done = new Uint8Array(SEA_SIDE * SEA_SIDE);
 	const open = heap();
 	cost[start] = 0;
+	touched.push(start);
 	open.push(0, start);
 	let seen = 0;
+	let found = false;
 	while (open.size) {
 		const at = open.pop();
-		if (at === goal) break;
+		if (at === goal) { found = true; break; }
 		if (done[at]) continue;
 		done[at] = 1;
-		if (++seen > limit) return null;
+		if (++seen > limit) break;
 		const cx = at % SEA_SIDE, cy = (at / SEA_SIDE) | 0;
 		for (const [dx, dy] of NEAR) {
 			const nx = cx + dx, ny = cy + dy;
@@ -444,13 +494,14 @@ function search(from, to, limit = 220000) {
 			const step = (dx && dy ? 1.4142 : 1) * (1 + toll(n));
 			const next = cost[at] + step;
 			if (next >= cost[n]) continue;
+			if (came[n] === -1) touched.push(n);
 			cost[n] = next;
 			came[n] = at;
 			const hx = Math.abs(nx - to[0]), hy = Math.abs(ny - to[1]);
 			open.push(next + Math.max(hx, hy) + 0.4142 * Math.min(hx, hy), n);
 		}
 	}
-	if (came[goal] === -1 && goal !== start) return null;
+	if (!found && goal !== start) return null;
 	const path = [];
 	for (let at = goal; at !== -1; at = came[at]) {
 		path.push([at % SEA_SIDE, (at / SEA_SIDE) | 0]);
@@ -504,49 +555,70 @@ function simplify(pts) {
  * One leg, as world points from `a` to `b`. The straight line when the
  * water allows it, a way round when it does not, and -- when there is
  * no way round at all, or the search runs long -- the straight line
- * again, since a drawn line that is wrong beats no line.
+ * again, since a drawn line that is wrong beats no line. That last
+ * case is not silent: legStraight says so, and seaRoute marks the
+ * stop such a leg arrives at, so a chart can draw it as the guess it is.
  */
-const legs = new Map();   // "ax,ay|bx,by" -> the bends between, [] for a straight leg
+const legs = new Map();   // "ax,ay|bx,by" -> { bends: the points between, straight: true when the water could not be found }
+
+function legKey(a, b) {
+	return `${a.x},${a.y}|${b.x},${b.y}`;
+}
+
+/** The kept answer for a leg, either way round, finding it if need be. */
+function legOf(a, b) {
+	const kept = legs.get(legKey(a, b));
+	if (kept) return kept;
+	const back = legs.get(legKey(b, a));
+	if (back) return { bends: back.bends.slice().reverse(), straight: back.straight };
+	const found = bendLeg(a, b);
+	if (legs.size >= 4000) legs.clear();
+	legs.set(legKey(a, b), found);
+	return found;
+}
 
 export function seaLeg(a, b) {
 	// The same two points bend the same way every time, and a run or a
 	// route is redrawn far more often than its legs change: a leg once
 	// searched is kept, both ways round, until the lanes change.
-	const key = `${a.x},${a.y}|${b.x},${b.y}`;
-	const kept = legs.get(key);
-	if (kept) return [a, ...kept, b];
-	const back = legs.get(`${b.x},${b.y}|${a.x},${a.y}`);
-	if (back) return [a, ...back.slice().reverse(), b];
-	const bends = bendLeg(a, b);
-	if (legs.size >= 4000) legs.clear();
-	legs.set(key, bends);
-	return [a, ...bends, b];
+	return [a, ...legOf(a, b).bends, b];
 }
 
-/** The bends of one leg, found: none when the straight line is water. */
+/** Whether a leg is drawn straight only because no water line could be
+ *  found for it -- through the land, in other words. A leg that is
+ *  straight because the water allows it answers false. */
+export function legStraight(a, b) {
+	return legOf(a, b).straight === true;
+}
+
+/** The bends of one leg, found: none when the straight line is water,
+ *  and none -- flagged -- when the search came back empty-handed. */
 function bendLeg(a, b) {
-	if (clearLine(a.x, a.y, b.x, b.y)) return [];
+	if (clearLine(a.x, a.y, b.x, b.y)) return { bends: [], straight: false };
 	const ends = sharedWater(a, b);
-	if (!ends) return [];
+	if (!ends) return { bends: [], straight: true };
 	const [from, to] = ends;
 	const cells = search(from, to);
-	if (!cells) return [];
+	if (!cells) return { bends: [], straight: true };
 	const pts = [a, ...cells.map(([cx, cy]) => ({ x: mid(cx), y: mid(cy) })), b];
-	return simplify(pts).slice(1, -1).map(p => ({ x: p.x, y: p.y }));
+	return { bends: simplify(pts).slice(1, -1).map(p => ({ x: p.x, y: p.y })), straight: false };
 }
 
 /**
  * A whole route, leg by leg, with the stops kept and the bends between
  * them added. Points that were already there keep whatever else they
- * carry -- a name, above all -- and the bends are plain positions.
+ * carry -- a name, above all -- and the bends are plain positions. A
+ * stop reached by a leg the router had to give up on is a copy of the
+ * point with `straight: true` on it, so the chart and the panel can
+ * say the line into it is a guess.
  */
 export function seaRoute(points) {
 	if (points.length < 2) return points;
 	const out = [points[0]];
 	for (let i = 1; i < points.length; i++) {
-		const leg = seaLeg(points[i - 1], points[i]);
-		for (let k = 1; k < leg.length - 1; k++) out.push({ ...leg[k], bend: true });
-		out.push(points[i]);
+		const leg = legOf(points[i - 1], points[i]);
+		for (const p of leg.bends) out.push({ ...p, bend: true });
+		out.push(leg.straight ? { ...points[i], straight: true } : points[i]);
 	}
 	return out;
 }

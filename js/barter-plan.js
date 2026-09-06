@@ -64,6 +64,25 @@ export function exchanges(barterData) {
 	return out;
 }
 
+/**
+ * What is aboard, read from a store: the goods noted in the ship's hold
+ * and the goods no storage claims -- a good just bartered is in the
+ * ship's inventory until it is put ashore. Goods noted at a harbour are
+ * ashore, and a run loads them only from the harbour it sails from. The
+ * Barter tab and the Map read the same hold through this, so the two
+ * never disagree about what a hull is carrying. The store is handed in
+ * rather than imported, to keep this file free of the screen's state.
+ */
+export function aboardStock(store) {
+	const out = {};
+	for (const [name, qty] of Object.entries(store.getAllStock())) {
+		if (levelOf(name) === null || !(qty > 0)) continue;
+		const n = store.stockAt(name, '') + store.stockAt(name, store.ABOARD);
+		if (n > 0) out[name] = n;
+	}
+	return out;
+}
+
 /** The trade goods in a stock, as a Map of name to count. */
 export function goodsHeld(stock) {
 	const out = new Map();
