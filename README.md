@@ -548,10 +548,11 @@ The silver run has a way round among its orders. The shortest way
 climbs every chain ticked at once: one route through every rung, each
 still after the rung beneath it in its own chain, so the ship deals the
 nearest island it holds the give for whatever chain it belongs to --
-the [Level 1]s off the harbour, then the [Level 2]s -- and a fast run
-shares the hold out among the chains before casting off. Chain after
-chain climbs each to its top before the next, as a run along the
-proposals does. The route is built nearest-first and shortened by
+the [Level 1]s off the harbour, then the [Level 2]s. The chains go in
+lots, as many at once as the hold carries with every top keeping at
+least half its attempts, the tops sold before the next lot, and within
+a lot the hold is shared out before casting off. Chain after chain
+climbs each to its top before the next. The route is built nearest-first and shortened by
 moving runs of rungs wherever they save distance without passing a
 rung they depend on.
 

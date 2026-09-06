@@ -182,7 +182,7 @@ test('the shortest way round: every chain climbed at once, each rung after the o
 		// Interleaved: the chain changes hands more often than a chain-after-chain run does.
 		const swaps = p => p.stops.filter(s => s.npcId).reduce((n, s, i, a) => n + (i && a[i - 1].chain !== s.chain ? 1 : 0), 0);
 		assert.ok(swaps(bySea) > swaps(byChain), `${pace}: ${swaps(bySea)} changes of chain against ${swaps(byChain)}`);
-		assert.ok(length(bySea) < length(byChain) * 0.8, `${pace}: ${Math.round(length(bySea))} against ${Math.round(length(byChain))}`);
+		assert.ok(length(bySea) < length(byChain) * 0.9, `${pace}: ${Math.round(length(bySea))} against ${Math.round(length(byChain))}`);
 		// The hold: never over the barter ceiling on a full run, never over the limit on a fast one, and something sold.
 		const ceiling = pace === 'fast' ? hold.free : hold.deal;
 		for (const s of bySea.stops) if (s.npcId) assert.ok(s.weightAfter - s.times * (s.recvMax * GOODS[levelOf(s.item)].weight - (levelOf(s.give) ? s.giveN * GOODS[levelOf(s.give)].weight : 0)) <= ceiling + 1e-6, `${pace}: ${s.npc} starts under the ceiling`);
