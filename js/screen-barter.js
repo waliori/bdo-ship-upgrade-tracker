@@ -59,6 +59,7 @@ let board = { day: '', answers: [] };   // what islands were seen to show today:
 let reach = '';   // a good the item board is asked to reach, for the material run
 let matBoard = { day: '', answers: [] };   // what the material list was seen to show today: { npcId, give, recv }
 let questSkip = { day: '', ids: [] };   // quests left out of today's runs by hand
+let sailAll = { open: false, stops: true, quests: true };   // the ask before every stop and quest is ticked off at once
 let sail = null;   // the run being sailed: { key, done: [stop keys], seen: { npcId: paid }, got: { npcId: item }, stops: [...] }
 // The filters on the hold and the chain list, for the session.
 let holdQ = '', holdLv = new Set(), holdAt = '';
@@ -957,11 +958,23 @@ function sailBar(plan) {
 	const on = sailing();
 	if (!on) return `<div class="sail-bar"><button class="act" data-act="barter-sail" title="Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change">⛵ Sail this run</button><span class="faint">tick each stop off as you sail; what an island paid re-counts the rest; Record at the end puts the whole trip in the Inventory in one Undo</span></div>`;
 	const n = plan.stops.filter((s, k) => on.done.includes(stopKey(s, k, plan.stops))).length;
+	const questsLeft = [...(plan.questsHome || []), ...plan.stops.flatMap(s => s.quests || [])].map(x => x.q).filter(q => !questDone(q)).length;
+	// The whole run done at once: which of it, asked in place.
+	const all = sailAll.open ? `<div class="sail-all">
+		<span class="sail-all-k">Tick off, all at once</span>
+		<label class="inline-check"><input type="checkbox" data-act="barter-sail-all-pick" data-id="stops"${sailAll.stops ? ' checked' : ''}> every stop, ${plan.stops.length - n} still to go</label>
+		<label class="inline-check"><input type="checkbox" data-act="barter-sail-all-pick" data-id="quests"${sailAll.quests ? ' checked' : ''}${questsLeft ? '' : ' disabled'}> the quests handed in, ${questsLeft} still open</label>
+		<span class="panel-spacer"></span>
+		<button class="ghost-btn sm" data-act="barter-sail-all-drop">Cancel</button>
+		<button class="act" data-act="barter-sail-all-go" title="Every stop ticked, every quest handed in and its reward recorded, in one go">Tick them all</button>
+	</div>` : '';
 	return `<div class="sail-bar sailing">
-		<span class="sail-n"><b>${n}</b> of ${plan.stops.length} stops done</span>
+		<span class="sail-n"><b>${n}</b> of ${plan.stops.length} stops done${questsLeft ? ` · ${questsLeft} quest${questsLeft === 1 ? '' : 's'} open` : ''}</span>
 		<span class="panel-spacer"></span>
 		<button class="ghost-btn sm" data-act="barter-sail-drop" title="Drop the checklist; nothing is recorded">Abandon</button>
+		${sailAll.open ? '' : `<button class="ghost-btn sm" data-act="barter-sail-all" title="Tick every stop and every quest off at once">All done…</button>`}
 		<button class="act" data-act="barter-record" ${n ? '' : 'disabled'} title="The stops done go into the Inventory as one change">Record the trip</button>
+		${all}
 	</div>`;
 }
 
@@ -1169,6 +1182,7 @@ function silverParts(me, b) {
 	// off the route: the run's stops from here on are those.
 	const qp = questPlan(plan.stops, o.quests, me.hold, plan.weightStart);
 	plan.stops = qp.stops;
+	plan.questsHome = qp.home;
 	shownPlan = plan;
 	const legs = legsOf(plan.stops);
 	const yard = yardsticks(plan.net, plan.parleyUsed, legs.mid / 3600);
@@ -1420,7 +1434,8 @@ function materialParts(me, data) {
 	for (const s of plan.stops) s.hold = me.hold;
 	const qp = questPlan(plan.stops, matOrders.quests, me.hold, plan.weightStart);
 	plan.stops = qp.stops;
-	shownPlan = plan.stops.length ? { stops: plan.stops, cost: plan.cost, parleyUsed: 0 } : null;
+	plan.questsHome = qp.home;
+	shownPlan = plan.stops.length ? { stops: plan.stops, cost: plan.cost, parleyUsed: 0, questsHome: qp.home } : null;
 	const legs = legsOf(plan.stops);
 	// What is short splits two ways: some of it may sit in a storage the
 	// run cannot load from -- to bring to the harbour first -- and the
@@ -1816,7 +1831,32 @@ export function barterAction(act, el, redraw) {
 			persist();
 			return true;
 		}
-		case 'barter-sail-drop': sail = null; persist(); return true;
+		case 'barter-sail-drop': sail = null; sailAll.open = false; persist(); return true;
+		case 'barter-sail-all': sailAll.open = true; return true;
+		case 'barter-sail-all-drop': sailAll.open = false; return true;
+		case 'barter-sail-all-go': {
+			const on = sailing();
+			if (!on || !shownPlan) return false;
+			// The quests first: handing them in redraws the run without the
+			// stops put in for them, and the stops ticked are the ones left.
+			// Handing a lot in frees the way for takers left out before,
+			// and the run laid again takes them in: so again, until the run
+			// has nothing left to hand in.
+			let claimed = 0;
+			for (let round = 0; sailAll.quests && round < 6; round++) {
+				const list = [...(shownPlan.questsHome || []), ...shownPlan.stops.flatMap(s => s.quests || [])].map(x => x.q).filter((q, i, a) => a.indexOf(q) === i && !questDone(q) && rewardOf(q));
+				if (!list.length) break;
+				store.claimQuests(list.map(q => ({ id: q.id, delta: rewardOf(q), key: periodKey(cadenceOf(q)) })), `Handed in ${list.length} quest${list.length === 1 ? '' : 's'} along the run`);
+				claimed += list.length;
+			}
+			const stops = shownPlan.stops;
+			if (sailAll.stops) on.done = [...new Set([...on.done, ...stops.map((s, i) => stopKey(s, i, stops))])];
+			sailAll.open = false;
+			persist();
+			if (!claimed) cheer({ big: true });
+			toast(`${sailAll.stops ? `Every stop ticked off` : 'Nothing ticked'}${claimed ? ` · ${claimed} quest${claimed === 1 ? '' : 's'} handed in, the rewards in the bags` : ''}${sailAll.stops ? ' — Record the trip puts it in the Inventory' : ''}`, claimed > 0);
+			return true;
+		}
 		case 'barter-stop-done': {
 			const on = sailing() || (el.dataset.map ? sail : null);
 			if (!on) return false;
@@ -1890,6 +1930,7 @@ export function barterChange(el, parseAmount) {
 		}
 		case 'barter-pace': setOrders({ pace: el.value === 'full' ? 'full' : 'fast' }); return true;
 		case 'barter-way': setOrders({ way: el.value === 'chain' ? 'chain' : 'sea' }); return true;
+		case 'barter-sail-all-pick': sailAll[el.dataset.id === 'quests' ? 'quests' : 'stops'] = !!el.checked; return false;
 		case 'barter-quests': setOrders({ quests: QUEST_CHOICES.some(([q]) => q === el.value) ? el.value : 'no' }); return true;
 		case 'barter-mat-quests': matOrders = { ...matOrders, quests: QUEST_CHOICES.some(([q]) => q === el.value) ? el.value : 'no' }; persist(); return true;
 		case 'barter-sell': setOrders({ sell: Number(el.value) }); return true;

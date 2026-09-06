@@ -1683,6 +1683,14 @@ test('the run laid out is a sheet over the Barter tab: a strip along the foot ap
 	assert.ok(await page.$('.cheer'), 'a burst of light for the stop done');
 	await wait(1000);
 	assert.match(await text(page, '#dialog .run-foot .sail-n'), /1 of \d+ stops done/);
+	// The rest at once: asked in place which of it, then every stop ticked and every quest handed in.
+	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-sail-all"]').click()); await wait(800);
+	assert.match(await text(page, '#dialog .sail-all'), /Tick off, all at once.*every stop.*the quests handed in/i);
+	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-sail-all-go"]').click()); await wait(1200);
+	const allText = await text(page, '#dialog .run-foot .sail-n');
+	assert.match(allText, /(\d+) of \1 stops done/, allText);
+	// A quest with a pick-one reward not remembered stays open, to be asked; every other is handed in.
+	assert.equal(await page.evaluate(() => [...document.querySelectorAll('#dialog .run-quest:not(.hunt):not(.off):not(.done)')].length), await page.evaluate(async () => { const { questById } = await import('/js/quests.js'); return [...document.querySelectorAll('#dialog .run-quest:not(.hunt):not(.off):not(.done) [data-quest]')].filter(el => questById[el.dataset.quest] && questById[el.dataset.quest].choice).length; }), 'only pick-one quests are left open');
 	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-sail-drop"]').click()); await wait(800);
 	assert.ok(await page.$('#dialog [data-act="barter-chart"]'), 'and the way to the chart');
 	// A chain unticked from inside the sheet: the sheet stays, one chain fewer.
