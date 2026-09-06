@@ -556,6 +556,13 @@ climbs each to its top before the next. The route is built nearest-first and sho
 moving runs of rungs wherever they save distance without passing a
 rung they depend on.
 
+The quests come along. Every quest of the sea is placed on the chart --
+its giver a harbour, an island's barterer or a wharf manager, a hunt
+its grounds -- and the run laid out says at each stop which are taken,
+done or handed in there, and on each leg which grounds it passes; goods
+taken for an island the run never reaches are not noted, and a quest
+that ends at a stop can be claimed from there.
+
 The tab is one column: the board, the hold as a line that opens over
 the page, the run's orders and figures, then what is on offer -- the
 chains as cards, or the material list. The run laid out is a sheet over

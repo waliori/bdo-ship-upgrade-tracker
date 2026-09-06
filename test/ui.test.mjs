@@ -1650,6 +1650,15 @@ test('the run laid out is a sheet over the Barter tab: a strip along the foot ap
 	assert.equal(await count(page, '#dialog .run-seg-all'), 0);
 	assert.equal(await count(page, '#dialog .run-seg'), 2);
 	assert.ok(await page.$('#dialog .sail-bar'), 'the sail bar is in the sheet');
+	assert.equal(await page.$eval('#dialog .sail-bar', el => getComputedStyle(el).position), 'sticky', 'and stays in view as the sheet scrolls');
+	// The quests along the run: Iliya's dailies at the harbour it sails from, and a count on the strip.
+	assert.match(await text(page, '#dialog .run-quests-home'), /Quests at Iliya Island.*Sailing to a Wider World/i);
+	assert.match(await text(page, '.run-dock'), /\d+ quests/);
+	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-quests"]').click()); await wait(800);
+	assert.equal(await count(page, '#dialog .run-quests-home'), 0, 'switched off in the sheet');
+	assert.doesNotMatch(await text(page, '.run-dock'), /quests/);
+	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-quests"]').click()); await wait(800);
+	assert.equal(await count(page, '#dialog .run-quests-home'), 1);
 	assert.ok(await page.$('#dialog [data-act="barter-chart"]'), 'and the way to the chart');
 	// A chain unticked from inside the sheet: the sheet stays, one chain fewer.
 	await page.evaluate(() => document.querySelector('#dialog .run-seg-head [data-act="barter-chain"]').click()); await wait(1500);

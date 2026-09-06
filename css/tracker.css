@@ -4159,7 +4159,29 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .run-dialog .run-sheet-head .panel-sub { flex: 1 1 200px; }
 .run-dialog .run-empty { padding: 28px 18px; }
 .run-dialog .dialog-actions { margin-top: 6px; }
-.run-dialog .sail-bar, .run-dialog .run-chart { margin: 0; }
+.run-dialog .run-chart { margin: 0; }
+/* The way to sail the run stays in view as the sheet scrolls: the bar
+   sits at the foot of the box until the sheet's own end comes up. */
+.run-dialog .sail-bar, .run-dialog .mat-sail { position: sticky; bottom: 0; z-index: 3; margin: 0; background: #0a1826; box-shadow: 0 -10px 24px rgba(3, 9, 16, 0.55); }
+.run-dialog .sail-bar { border-style: solid; border-color: rgba(88, 168, 232, 0.35); }
+
+/* The quests along the run: on a stop, what is taken, done or handed in
+   there; on a leg, the grounds it passes. A wanted one -- paying what
+   the plan is short of -- is lit. */
+.run-quests { display: flex; flex-direction: column; gap: 4px; margin-top: 7px; }
+.run-quests-home .run-quests { padding: 10px 18px 12px; margin: 0; }
+.run-quest { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 7px; font-size: 12px; color: var(--ink-mid); background: rgba(232, 182, 97, 0.07); border: 1px solid rgba(232, 182, 97, 0.22); border-radius: 8px; padding: 4px 9px 4px 7px; }
+.run-quest > i { font-style: normal; font-size: 12px; }
+.run-quest > b { font-weight: 700; color: var(--amber); text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.06em; }
+.run-quest-name { color: var(--ink); }
+.run-quest small { font-size: 11px; color: var(--ink-mute); }
+.run-quest .chip.tiny { margin-left: auto; }
+.run-quest.wanted { border-color: rgba(126, 240, 212, 0.45); background: rgba(126, 240, 212, 0.07); }
+.run-quest.wanted > b { color: var(--teal); }
+.run-quest.hunt { background: rgba(88, 168, 232, 0.07); border-color: rgba(88, 168, 232, 0.25); }
+.run-quest.hunt > b { color: var(--blue); }
+.run-quests-toggle { margin-left: auto; font-size: 12px; color: var(--ink-mute); }
+.run-quests-toggle b { color: var(--amber); }
 /* In the sheet a goods row wraps rather than cuts its name: the note
    takes a line of its own under the name, and on a phone so does what
    can be done about it. */

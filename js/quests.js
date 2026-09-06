@@ -15,13 +15,19 @@
 // the set you pick one from; `monster` names the species in
 // sea_monsters.js whose grounds the Map can show for it (a young-one
 // quest points at whichever young species has grounds nearest the
-// quest giver). The Quests screen groups them by how often
-// they can be done, and records a reward with one press, so a claimed
-// letter lands in stock like a craft does.
+// quest giver); `at` is where it is done, as steps of
+// [kind, place, who, what] -- the kind a 'port', an 'isle' (its
+// barterer's spot) or a 'wharf' (by the wharf manager's name), all
+// placed on the chart already -- so a run on the Barter tab can say
+// which quests are taken, done or handed in at each of its stops. The
+// Quests screen groups them by how often they can be done, and records
+// a reward with one press, so a claimed letter lands in stock like a
+// craft does.
 
 export const quests = [
 	{
 		id: 'ravinia-1',
+		at: [['wharf', 'Anax', 'Ravinia', 'take'], ['wharf', 'Ravikel', 'Carpuro', 'hand in']],
 		codex: '3709/7',
 		name: "Ravinia's Ship Upgrade Log I — Wiggly-Waggly Letter",
 		where: "Ravinia, Crow's Nest; then Carpuro at Oquilla's Eye",
@@ -31,6 +37,7 @@ export const quests = [
 	},
 	{
 		id: 'ravinia-3',
+		at: [['wharf', 'Ravikel', 'Curio', 'talk']],
 		codex: '3711/2',
 		name: "Ravinia's Ship Upgrade Log III — Lovey-Dovey Letter",
 		where: "Curio, Oquilla's Eye",
@@ -39,6 +46,7 @@ export const quests = [
 	},
 	{
 		id: 'ravinia-4',
+		at: [['wharf', 'Chadwick', 'Wale, at the farm inland', 'talk']],
 		codex: '3709/7',
 		name: "Ravinia's Ship Upgrade Log IV — Wiggly-Waggly Letter",
 		where: 'Wale, Wale Farm near Olvia',
@@ -47,6 +55,7 @@ export const quests = [
 	},
 	{
 		id: 'ravinia-6',
+		at: [['port', 'Iliya Island', 'Chief Diega', 'talk']],
 		codex: '3711/2',
 		name: "Ravinia's Ship Upgrade Log VI — Lovey-Dovey Letter",
 		where: 'Chief Diega, Iliya Island',
@@ -55,6 +64,7 @@ export const quests = [
 	},
 	{
 		id: 'ravinia-7',
+		at: [['wharf', 'Bolhi', 'Dichzy Borne', 'talk']],
 		codex: '3712/1',
 		name: "Ravinia's Ship Upgrade Log VII — Sparkly-Shiny Letter",
 		where: 'Dichzy Borne, Lema Island',
@@ -64,6 +74,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-young',
+		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/23',
 		monster: 'young-nineshark',
 		name: "[Daily] Old Moon Guild's Young Sea Monster Hunter",
@@ -74,6 +85,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-candidum',
+		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/9',
 		monster: 'candidum',
 		name: "[Daily] Old Moon Guild's Candidum Hunter",
@@ -84,6 +96,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-nineshark',
+		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/10',
 		monster: 'nineshark',
 		name: "[Daily] Old Moon Guild's Nineshark Hunter",
@@ -94,6 +107,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-blackrust',
+		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/11',
 		monster: 'black-rust',
 		name: "[Daily] Old Moon Guild's Black Rust Hunter",
@@ -104,6 +118,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-w-candidum',
+		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/19',
 		monster: 'candidum',
 		name: "[Weekly] Old Moon Guild's Candidum Hunter",
@@ -114,6 +129,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-w-nineshark',
+		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/20',
 		monster: 'nineshark',
 		name: "[Weekly] Old Moon Guild's Nineshark Hunter",
@@ -124,6 +140,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-w-blackrust',
+		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/21',
 		monster: 'black-rust',
 		name: "[Weekly] Old Moon Guild's Black Rust Hunter",
@@ -134,6 +151,7 @@ export const quests = [
 	},
 	{
 		id: 'charity',
+		at: [['wharf', 'Ravikel', 'the soldier', 'take and hand in']],
 		codex: '3707/6',
 		monster: 'young-hekaru',
 		name: '[Daily] Our Guild is Not a Charity Group',
@@ -144,6 +162,7 @@ export const quests = [
 	},
 	{
 		id: 'hekaru',
+		at: [['wharf', 'Ravikel', 'the soldier', 'take and hand in']],
 		codex: '3707/7',
 		monster: 'hekaru',
 		name: '[Daily] Do You Have What it Takes?',
@@ -154,6 +173,7 @@ export const quests = [
 	},
 	{
 		id: 'winwin',
+		at: [['wharf', 'Ravikel', 'the soldier', 'take and hand in']],
 		codex: '3707/8',
 		monster: 'ocean-stalker',
 		name: '[Daily] Win-win Situation',
@@ -164,6 +184,7 @@ export const quests = [
 	},
 	{
 		id: 'increase',
+		at: [['wharf', 'Ravikel', 'the soldier', 'take and hand in']],
 		codex: '3707/22',
 		monster: 'young-ocean-stalker',
 		name: '[Weekly] Monster Increase Report',
@@ -173,6 +194,7 @@ export const quests = [
 	},
 	{
 		id: 'swordfish',
+		at: [['wharf', 'Ravikel', 'Kario', 'hand in']],
 		codex: '3707/24',
 		name: '[Weekly] So You Wanna Live in Oquilla?',
 		where: "Kario, Oquilla's Eye — hand in one Yellow Swordfish",
@@ -181,6 +203,7 @@ export const quests = [
 	},
 	{
 		id: 'otters',
+		at: [['wharf', 'Ravikel', 'Kario', 'hand in']],
 		codex: '3707/25',
 		name: '[Weekly] For the Young Otter Merchants',
 		where: "Kario, Oquilla's Eye — hand in 5 Iridescent Coral Piece and 50 Coral Piece",
@@ -189,6 +212,7 @@ export const quests = [
 	},
 	{
 		id: 'margoria',
+		at: [['wharf', 'Elro', 'Elro', 'take and hand in']],
 		codex: '3740/1',
 		monster: 'nineshark',
 		name: "[Weekly] Old Moon Guild's Request: Defeat Margoria Sea Monsters",
@@ -199,6 +223,7 @@ export const quests = [
 	},
 	{
 		id: 'khan',
+		at: [['wharf', 'Elro', 'Elro', 'take and hand in']],
 		codex: '3740/2',
 		monster: 'khan',
 		name: "[Weekly] Old Moon Guild's Request: Uncover Oquilla's Eye's Secret",
@@ -209,6 +234,7 @@ export const quests = [
 	},
 	{
 		id: 'hampering',
+		at: [['wharf', 'Ravikel', 'Haeran', 'take and hand in']],
 		codex: '3726/1',
 		monster: 'black-rust',
 		name: '[Daily] Hampering Monsters in the Sea',
@@ -219,6 +245,7 @@ export const quests = [
 	},
 	{
 		id: 'darkseas',
+		at: [['wharf', 'Ravikel', 'Haeran', 'take and hand in']],
 		codex: '3726/2',
 		monster: 'black-rust',
 		name: '[Weekly] They Came from Dark High Seas',
@@ -229,6 +256,7 @@ export const quests = [
 	},
 	{
 		id: 'crocodile',
+		at: [['wharf', 'Ravikel', 'Bave Ricksa', 'take and hand in']],
 		codex: '3839/1',
 		monster: 'saltwater-crocodile',
 		name: '[Weekly] Ferocious Saltwater Crocodile',
@@ -239,6 +267,7 @@ export const quests = [
 	},
 	{
 		id: 'hungry',
+		at: [['port', 'Velia', 'Proix', 'take and hand in']],
 		codex: '3704/10',
 		monster: 'hekaru',
 		name: '[Daily] Wanted: Hungry Sea Creatures',
@@ -248,6 +277,7 @@ export const quests = [
 	},
 	{
 		id: 'coxscouts',
+		at: [['port', 'Velia', 'Proix', 'take and hand in']],
 		codex: '3704/11',
 		monster: 'cox-pirates',
 		name: '[Daily] Wanted: Cox Scouts in Disguise',
@@ -257,6 +287,7 @@ export const quests = [
 	},
 	{
 		id: 'recover',
+		at: [['port', 'Velia', 'Proix', 'hand in']],
 		codex: '3704/13',
 		name: '[Weekly] How to Recover Sailors',
 		where: 'Proix, Velia — hand in 20 Chowder',
@@ -266,6 +297,7 @@ export const quests = [
 	},
 	{
 		id: 'goods-baremi',
+		at: [['port', 'Velia', 'Miya', 'take'], ['isle', 'Baremi Island', 'Serapu', 'hand in']],
 		codex: '3704/7',
 		name: '[Daily] Delivering Goods: Baremi Island',
 		where: 'Miya, Velia — deliver Barter Trade Goods (1) to Serapu on Baremi',
@@ -274,6 +306,7 @@ export const quests = [
 	},
 	{
 		id: 'goods-narvo',
+		at: [['port', 'Velia', 'Miya', 'take'], ['isle', 'Narvo Island', 'Akenisi', 'hand in']],
 		codex: '3704/8',
 		name: '[Daily] Delivering Goods: Narvo Island',
 		where: 'Miya, Velia — deliver Barter Trade Goods (1) to Akenisi on Narvo',
@@ -282,6 +315,7 @@ export const quests = [
 	},
 	{
 		id: 'goods-tinberra',
+		at: [['port', 'Velia', 'Miya', 'take'], ['isle', 'Tinberra Island', 'Mulicia', 'hand in']],
 		codex: '3704/9',
 		name: '[Daily] Delivering Goods: Tinberra Island',
 		where: 'Miya, Velia — deliver Barter Trade Goods (1) to Mulicia on Tinberra',
@@ -290,6 +324,7 @@ export const quests = [
 	},
 	{
 		id: 'supplies-iliya',
+		at: [['wharf', 'Croix', 'Croix', 'take'], ['wharf', 'Dario', 'Dario', 'hand in']],
 		codex: '3736/1',
 		name: '[Daily] Supplies Delivery (Iliya Island)',
 		where: "Croix, Velia — deliver Croix's supplies to Dario on Iliya",
@@ -298,6 +333,7 @@ export const quests = [
 	},
 	{
 		id: 'supplies-tinberra',
+		at: [['port', 'Velia', 'Rovinia', 'take'], ['isle', 'Tinberra Island', 'Shanjo', 'hand in']],
 		codex: '3727/1',
 		name: '[Daily] Supplies Delivery (Tinberra Island)',
 		where: 'Rovinia, Velia — deliver her supplies to Shanjo on Tinberra',
@@ -306,6 +342,7 @@ export const quests = [
 	},
 	{
 		id: 'supplies-oquilla',
+		at: [['wharf', 'Dario', 'Dario', 'take'], ['wharf', 'Ravikel', 'Ravikel', 'hand in']],
 		codex: '3727/2',
 		name: "[Daily] Supplies Delivery (Oquilla's Eye)",
 		where: "Dario, Iliya Island — deliver his supplies to Ravikel at Oquilla's Eye",
@@ -314,6 +351,7 @@ export const quests = [
 	},
 	{
 		id: 'lively',
+		at: [['port', 'Iliya Island', 'the villager', 'take and hand in']],
 		codex: '3736/12',
 		name: '[Barter] [Daily] Lively Iliya Island',
 		where: 'the villager on Iliya Island — barter fifteen times',
@@ -322,6 +360,7 @@ export const quests = [
 	},
 	{
 		id: 'wider',
+		at: [['wharf', 'Dario', 'Dario', 'take and hand in']],
 		codex: '3841/1',
 		name: '[Barter] [Daily] Sailing to a Wider World',
 		where: 'Dario, Iliya Island — barter twenty times',
@@ -331,6 +370,7 @@ export const quests = [
 	},
 	{
 		id: 'nexus',
+		at: [['isle', 'Iliya Island', 'Priko', 'take and hand in']],
 		codex: '3736/9',
 		name: '[Barter] [Weekly] Iliya Island, the Barter Nexus',
 		where: 'Priko, Iliya Island — barter a hundred times',
@@ -340,6 +380,7 @@ export const quests = [
 	},
 	{
 		id: 'worldsend-1',
+		at: [['isle', 'Iliya Island', 'Priko', 'take'], ['wharf', 'Samia', 'Samia', 'hand in']],
 		codex: '3736/10',
 		name: "[Daily] At World's End I: Ancado Inner Harbor",
 		where: 'Priko, Iliya Island — deliver supplies to Samia in Ancado Inner Harbor',
@@ -349,6 +390,7 @@ export const quests = [
 	},
 	{
 		id: 'worldsend-2',
+		at: [['isle', 'Iliya Island', 'Priko', 'take'], ['isle', 'Hakoven Island', 'Rosina', 'hand in']],
 		codex: '3736/11',
 		name: "[Daily] At World's End II: Hakoven Island",
 		where: 'Priko, Iliya Island — deliver supplies to Rosina on Hakoven Island',
@@ -358,6 +400,7 @@ export const quests = [
 	},
 	{
 		id: 'pirates',
+		at: [['isle', 'Kuit Islands', 'Haim', 'hand in']],
 		codex: '3720/1',
 		name: '[Daily] Subjugating the Pirates',
 		where: 'Haim, Kuit Islands — hand over 1,000 Pirate Bandanas',
@@ -366,6 +409,7 @@ export const quests = [
 	},
 	{
 		id: 'lyngbakr',
+		at: [['wharf', 'Gangman', 'Gangman', 'take and hand in']],
 		codex: '3707/26',
 		name: '[Weekly] Lyngbakr Ecology Survey',
 		where: 'Gangman, Cheongsa Island wharf — two Lyngbakr',
