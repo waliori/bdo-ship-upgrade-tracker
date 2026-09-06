@@ -80,13 +80,13 @@ function toSegment(p, a, b) {
  * and when none does, a stop is put in at the cheapest such place
  * on the way, if that is under `detour` longer and the stops put in
  * together under `share` of the run's length (one full detour at the
- * least); else the quest goes to
+ * least) -- a quest in `forced` whatever the way round; else the quest goes to
  * `off` with why: 'far' and the distance, 'grounds' when no leg
  * passes them, 'short' with how many barters are still wanted after
  * this run. `legs` notes each hunt on the leg that passes its grounds
  * closest, by the index of the entry the leg ends at.
  */
-export function layQuests(quests, points, { near = 1200, off = 8000, detour = 8000, share = 0.15, trades = null, progress = () => 0 } = {}) {
+export function layQuests(quests, points, { near = 1200, off = 8000, detour = 8000, share = 0.15, trades = null, progress = () => 0, forced = new Set() } = {}) {
 	let route = points.map((p, i) => ({ x: p.x, y: p.y, fixed: true, i, steps: [] }));
 	// The stops put in may lengthen the run by `share` of it in all --
 	// a long leg would otherwise take a taker in cheaply, and the next,
@@ -153,8 +153,9 @@ export function layQuests(quests, points, { near = 1200, off = 8000, detour = 80
 		wants.forEach((w, i) => { const p = place(w); if (!at || p.cost < at.cost) { at = p; pick = i; } });
 		const [w] = wants.splice(pick, 1);
 		if (at.k >= 0) { route[at.k].steps.push({ q: w.q, step: w.step }); continue; }
-		if (at.where < 0 || at.cost > detour || at.cost > budget) { skipped.push({ q: w.q, step: w.step, why: 'far', dist: at.cost }); continue; }
-		budget -= at.cost;
+		// A taker asked for by name is taken in whatever the way round.
+		if (at.where < 0 || (!forced.has(w.q.id) && (at.cost > detour || at.cost > budget))) { skipped.push({ q: w.q, step: w.step, why: 'far', dist: at.cost }); continue; }
+		if (!forced.has(w.q.id)) budget -= at.cost;
 		route = [...route.slice(0, at.where), { x: w.step.x, y: w.step.y, quest: true, place: w.step.place, who: w.step.who, steps: [{ q: w.q, step: w.step }] }, ...route.slice(at.where)];
 	}
 	return { route, off: skipped, legs: new Map([...legs].map(([end, list]) => [route.indexOf(end), list])) };

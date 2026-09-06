@@ -1656,7 +1656,8 @@ test('the run laid out is a sheet over the Barter tab: a strip along the foot ap
 	// handed in at Iliya before casting off, a count on the strip and in
 	// the sheet's head, the quests the run cannot take in listed; none
 	// of it when the orders say none.
-	assert.equal(await page.$eval('[data-act="barter-quests"]', el => el.value), 'yes');
+	assert.equal(await page.$eval('[data-act="barter-quests"]', el => el.value), 'near', 'on the way only, by default');
+	assert.equal(await count(page, '#dialog .run-stop.quest'), 0, 'no stop put in on the way only');
 	assert.match(await text(page, '#dialog .run-quests-home'), /Quests at Iliya Island.*Supplies Delivery \(Iliya Island\)/i);
 	assert.match(await text(page, '#dialog .run-sheet-head'), /\d+ handed in on the way/);
 	assert.match(await text(page, '.run-dock'), /\d+ quests/);
@@ -1665,8 +1666,18 @@ test('the run laid out is a sheet over the Barter tab: a strip along the foot ap
 	assert.equal(await count(page, '#dialog .run-quests-home'), 0, 'none under those orders');
 	assert.equal(await count(page, '#dialog .run-stop.quest'), 0);
 	assert.doesNotMatch(await text(page, '.run-dock'), /quests/);
-	await page.select('[data-act="barter-quests"]', 'yes'); await wait(1500);
+	await page.select('[data-act="barter-quests"]', 'near'); await wait(1500);
 	assert.equal(await count(page, '#dialog .run-quests-home'), 1);
+	// A taker off the way, asked for by name: a stop put in for it whatever the way round; the cross takes it out again.
+	const far = await page.$eval('#dialog .run-quests-off [data-act="barter-quest-pull"]', el => el.dataset.quest);
+	await page.evaluate(() => document.querySelector('#dialog .run-quests-off [data-act="barter-quest-pull"]').click()); await wait(1500);
+	assert.ok(await page.$(`#dialog .run-stop.quest [data-act="barter-quest-skip"][data-quest="${far}"]`), 'a stop put in for it');
+	await page.evaluate(id => document.querySelector(`#dialog .run-stop.quest [data-act="barter-quest-skip"][data-quest="${id}"]`).click(), far); await wait(1500);
+	assert.equal(await count(page, `#dialog .run-stop.quest [data-quest="${far}"]`), 0, 'and taken out again');
+	await page.evaluate(id => document.querySelector(`#dialog [data-act="barter-quest-unskip"][data-quest="${id}"]`).click(), far); await wait(1200);
+	// With a short way round: stops put in for takers close by.
+	await page.select('[data-act="barter-quests"]', 'yes'); await wait(1500);
+	assert.ok(await count(page, '#dialog .run-stop.quest') > 0, 'stops put in');
 	// A quest left out by hand goes to the off-the-way list, and comes back from there.
 	const first = await page.$eval('#dialog .run-quests-home .run-quest [data-act="barter-quest-skip"]', el => el.dataset.quest);
 	await page.evaluate(() => document.querySelector('#dialog .run-quests-home .run-quest [data-act="barter-quest-skip"]').click()); await wait(1200);

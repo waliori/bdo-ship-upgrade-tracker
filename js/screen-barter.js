@@ -51,7 +51,7 @@ let goal = 'silver';     // silver | material
 let item = null;         // the material a run is for
 let qty = 1;             // how many of it
 let wants = {};          // and of every other material ticked today: material -> how many
-let matOrders = { reach: 'want', calls: true, pace: 'full', quests: 'yes' };   // sail for the wants, or every island ticked; call at a harbour for a give held there; one departure, or as many as the hold needs
+let matOrders = { reach: 'want', calls: true, pace: 'full', quests: 'near' };   // sail for the wants, or every island ticked; call at a harbour for a give held there; one departure, or as many as the hold needs
 let port = 0;            // the wharf the run sails from, 0 for none
 let routes = { key: '', ids: [] };     // the chains ticked, for one board (day|layout)
 let stash = '';          // the wharf goods are left at, '' for the nearest
@@ -59,6 +59,7 @@ let board = { day: '', answers: [] };   // what islands were seen to show today:
 let reach = '';   // a good the item board is asked to reach, for the material run
 let matBoard = { day: '', answers: [] };   // what the material list was seen to show today: { npcId, give, recv }
 let questSkip = { day: '', ids: [] };   // quests left out of today's runs by hand
+let questPull = { day: '', ids: [] };   // quests taken in by hand today, whatever the way round
 let sailAll = { open: false, stops: true, quests: true };   // the ask before every stop and quest is ticked off at once
 let sail = null;   // the run being sailed: { key, done: [stop keys], seen: { npcId: paid }, got: { npcId: item }, stops: [...] }
 // The filters on the hold and the chain list, for the session.
@@ -79,7 +80,7 @@ function restore() {
 		if (typeof s.item === 'string') item = s.item;
 		if (Number(s.qty) > 0) qty = Math.min(9999, Math.floor(Number(s.qty)));
 		if (s.wants && typeof s.wants === 'object') for (const [k, v] of Object.entries(s.wants)) if (typeof k === 'string' && Number(v) > 0) wants[k] = Math.min(9999, Math.floor(Number(v)));
-		if (s.matOrders && typeof s.matOrders === 'object') matOrders = { reach: s.matOrders.reach === 'all' ? 'all' : 'want', calls: s.matOrders.calls !== false, pace: s.matOrders.pace === 'fast' ? 'fast' : 'full', quests: QUEST_CHOICES.some(([q]) => q === s.matOrders.quests) ? s.matOrders.quests : 'yes' };
+		if (s.matOrders && typeof s.matOrders === 'object') matOrders = { reach: s.matOrders.reach === 'all' ? 'all' : 'want', calls: s.matOrders.calls !== false, pace: s.matOrders.pace === 'fast' ? 'fast' : 'full', quests: QUEST_CHOICES.some(([q]) => q === s.matOrders.quests) ? s.matOrders.quests : 'near' };
 		if (ports.some(p => p.id === Number(s.port))) port = Number(s.port);
 		if (STASHES.includes(s.stash)) stash = s.stash;
 		if (s.routes && typeof s.routes.key === 'string' && Array.isArray(s.routes.ids)) routes = { key: s.routes.key, ids: s.routes.ids.filter(id => typeof id === 'string') };
@@ -90,6 +91,7 @@ function restore() {
 		}
 		if (typeof s.reach === 'string') reach = s.reach;
 		if (s.questSkip && typeof s.questSkip.day === 'string' && Array.isArray(s.questSkip.ids)) questSkip = { day: s.questSkip.day, ids: s.questSkip.ids.filter(id => typeof id === 'string') };
+		if (s.questPull && typeof s.questPull.day === 'string' && Array.isArray(s.questPull.ids)) questPull = { day: s.questPull.day, ids: s.questPull.ids.filter(id => typeof id === 'string') };
 		if (s.matBoard && Array.isArray(s.matBoard.answers)) {
 			matBoard = { day: String(s.matBoard.day || ''), answers: s.matBoard.answers.filter(a => a && npcById.has(Number(a.npcId)) && typeof a.give === 'string' && typeof a.recv === 'string').map(a => ({ npcId: Number(a.npcId), give: a.give, recv: a.recv })) };
 		}
@@ -101,7 +103,7 @@ function restore() {
 
 function persist() {
 	try {
-		localStorage.setItem(STORE_KEY, JSON.stringify({ goal, item, qty, wants, matOrders, port, routes, stash, board, matBoard, sail, reach, questSkip }));
+		localStorage.setItem(STORE_KEY, JSON.stringify({ goal, item, qty, wants, matOrders, port, routes, stash, board, matBoard, sail, reach, questSkip, questPull }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -485,7 +487,8 @@ function questPlan(stops, mode, hold, weightStart = 0) {
 	const live = quests.filter(q => !questDone(q) && !skipped.includes(q.id) && (cadenceOf(q) === 'daily' || cadenceOf(q) === 'weekly') && (mode === 'hunts' || !q.monster));
 	const o = from ? 1 : 0;
 	const trades = pts.map((p, i) => (i < o ? 0 : stops[i - o].times || 0));
-	const laid = layQuests(live, pts.map(p => ({ x: p.x, y: p.y })), { trades, progress: questProgressOf });
+	// On the way only: no stop put in, except for a taker asked for by name.
+	const laid = layQuests(live, pts.map(p => ({ x: p.x, y: p.y })), { trades, progress: questProgressOf, detour: mode === 'near' ? 0 : 8000, forced: new Set(pulledToday()) });
 	const out = [], at = [], legAt = new Map();
 	let home = [], weight = weightStart, chain = 0;
 	laid.route.forEach((e, r) => {
@@ -512,8 +515,10 @@ function questPlan(stops, mode, hold, weightStart = 0) {
 	};
 }
 
-/** The quests left out of today's runs by hand; the list lapses at the refill. */
+/** The quests left out of today's runs by hand, and the ones taken in
+ *  by hand whatever the way round; both lapse at the refill. */
 const skippedToday = () => (questSkip.day === barterKey() ? questSkip.ids : []);
+const pulledToday = () => (questPull.day === barterKey() ? questPull.ids : []);
 
 const questTitle = q => q.name.replace(/^(\[[^\]]+\]\s*)+/, '');
 /** The quest's name as the way to its row on the Quests tab. */
@@ -550,7 +555,7 @@ function questOff(x) {
 	const why = x.why === 'far' ? `${esc(step.who)} at ${esc(step.place)} · ${esc(fmtDistance(x.dist * 0.25))} off the way`
 		: x.why === 'grounds' ? `no leg passes the ${esc((q.monster && q.monster.replace(/-/g, ' ')) || '')} grounds${Number.isFinite(x.dist) ? ` · ${esc(fmtDistance(x.dist * 0.25))} off at the nearest` : ''}`
 			: `${esc(questCount(q, x.adds))} · ${F(x.left)} more after it`;
-	return `<span class="run-quest off"><i>📜</i>${questLink(q)}<small>${why}</small></span>`;
+	return `<span class="run-quest off"><i>📜</i>${questLink(q)}<small>${why}</small>${x.why === 'far' ? `<span class="run-quest-acts"><button class="chip tiny" data-act="barter-quest-pull" data-quest="${esc(q.id)}" title="Put a stop in for it today, whatever the way round">take it in</button></span>` : ''}</span>`;
 }
 
 /** A quest left out by hand, and the way to take it back in. */
@@ -1727,8 +1732,9 @@ export function barterAction(act, el, redraw) {
 		}
 		case 'barter-add': pickGood(redraw); return false;
 		case 'barter-hold-open': openSheet('hold'); return false;
-		case 'barter-quest-skip': questSkip = { day: barterKey(), ids: [...new Set([...skippedToday(), el.dataset.quest])] }; persist(); return true;
+		case 'barter-quest-skip': questSkip = { day: barterKey(), ids: [...new Set([...skippedToday(), el.dataset.quest])] }; questPull = { day: barterKey(), ids: pulledToday().filter(id => id !== el.dataset.quest) }; persist(); return true;
 		case 'barter-quest-unskip': questSkip = { day: barterKey(), ids: skippedToday().filter(id => id !== el.dataset.quest) }; persist(); return true;
+		case 'barter-quest-pull': questPull = { day: barterKey(), ids: [...new Set([...pulledToday(), el.dataset.quest])] }; persist(); return true;
 		case 'barter-run-open': openSheet('run'); return false;
 		case 'barter-item': pickMaterial(redraw); return false;
 		// The hold works the count no storage claims: a trade good is never

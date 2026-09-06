@@ -556,8 +556,9 @@ climbs each to its top before the next. The route is built nearest-first and sho
 moving runs of rungs wherever they save distance without passing a
 rung they depend on.
 
-The quests come along, under an order of the run: none, the dailies
-and weeklies, or those and the hunts. The sailor is taken to have
+The quests come along, under an order of the run: none; on the way
+only, handed in where the run passes anyway; with a short way round, a
+stop put in for a taker close by; or those and the hunts. The sailor is taken to have
 accepted them already, so what counts is where each is handed in, and
 every taker is placed on the chart. The run hands in whatever it
 passes and puts a stop in where a taker lies a short way off the
