@@ -14,9 +14,16 @@ globalThis.localStorage = {
 	key(i) { return [...this.store.keys()][i] ?? null; }
 };
 
-// init() wires window and document listeners; nothing here dispatches.
-globalThis.window = { addEventListener() {} };
+// init() wires window and document listeners. The window keeps them, so
+// a test can play the other tab by firing a storage event by hand.
+globalThis.window = {
+	handlers: {},
+	addEventListener(name, fn) { (this.handlers[name] = this.handlers[name] || []).push(fn); },
+	dispatchEvent() { return true; }
+};
 globalThis.document = { addEventListener() {}, visibilityState: 'visible' };
+/** What the newest init() would hear from another tab's write. */
+const otherTabWrote = () => window.handlers.storage.at(-1)({ key: 'bdo-tracker/v2' });
 
 const store = await import('../js/state.js');
 
@@ -118,4 +125,88 @@ test('a newer schema\'s fields ride along instead of being stripped', () => {
 	const again = JSON.parse(localStorage.getItem(store.STORAGE_KEY));
 	assert.deepEqual(again.fleet, { flagship: 'Panokseon' });
 	assert.equal(again.v, 3);
+});
+
+/* ------------------------------------------------------------------ *
+ * route choices
+ * ------------------------------------------------------------------ */
+
+test('a route choice survives the disk, an adopt and a merge', () => {
+	reset();
+	store.setStrategy('Epheria Caravel', 'improved');
+	store.setStrategy('Epheria Cog', 'pirates');
+	store.setStrategy('Steel', 'buy');
+	store.flush();
+	const s = store.init();
+	assert.equal(s.strategy['Epheria Caravel'], 'improved', 'the route is read back');
+	assert.equal(s.strategy['Epheria Cog'], 'pirates');
+	assert.equal(s.strategy['Steel'], 'buy');
+
+	store.adopt({ stock: {}, targets: [], strategy: { 'Epheria Galleass': 'improved', 'Zinc Ingot': 'nonsense' } });
+	assert.equal(store.getStrategy('Epheria Galleass'), 'improved');
+	assert.equal(store.getStrategy('Zinc Ingot'), 'craft', 'a name no route has is dropped');
+
+	store.merge({ stock: {}, targets: [], strategy: { 'Epheria Cog': 'pirates' } });
+	assert.equal(store.getStrategy('Epheria Cog'), 'pirates');
+	// And the undo stack keeps it too.
+	store.undo();
+	store.undo();
+	assert.equal(store.getStrategy('Epheria Caravel'), 'improved');
+});
+
+/* ------------------------------------------------------------------ *
+ * the other tab
+ * ------------------------------------------------------------------ */
+
+test('a tap inside the write debounce is not lost to another tab\'s save', () => {
+	reset();
+	store.flush();
+	store.init();
+	store.addStock('Steel', 5);              // pending, not yet on the disk
+	assert.equal(store.getStock('Steel'), 15);
+	// The other tab writes a count of its own.
+	const disk = JSON.parse(localStorage.getItem(store.STORAGE_KEY));
+	disk.stock['Cron Stone'] = 3;
+	localStorage.setItem(store.STORAGE_KEY, JSON.stringify(disk));
+	otherTabWrote();
+	assert.equal(store.getStock('Cron Stone'), 3, 'theirs is taken');
+	assert.equal(store.getStock('Steel'), 15, 'and ours is laid back on top');
+	store.flush();
+	const after = JSON.parse(localStorage.getItem(store.STORAGE_KEY));
+	assert.equal(after.stock['Steel'], 15);
+	assert.equal(after.stock['Cron Stone'], 3);
+	assert.equal(after.history.at(-1).label, '+5 Steel', 'the change keeps its undo entry');
+});
+
+test('a preference saved in another tab does not empty this one\'s redo', () => {
+	reset();
+	store.flush();
+	store.init();
+	store.setStock('Steel', 1);
+	store.flush();
+	store.undo();
+	store.flush();
+	assert.ok(store.canRedo());
+	const disk = JSON.parse(localStorage.getItem(store.STORAGE_KEY));
+	disk.settings = { ...disk.settings, view: 'map' };
+	localStorage.setItem(store.STORAGE_KEY, JSON.stringify(disk));
+	otherTabWrote();
+	assert.equal(store.getSetting('view'), 'map', 'the preference arrives');
+	assert.ok(store.canRedo(), 'the redo stands: nothing it rests on moved');
+	disk.stock['Steel'] = 99;
+	localStorage.setItem(store.STORAGE_KEY, JSON.stringify(disk));
+	otherTabWrote();
+	assert.equal(store.getStock('Steel'), 99);
+	assert.equal(store.canRedo(), false, 'a count changed over there forfeits it');
+});
+
+test('a merge keeps this browser\'s views over the file\'s, and takes the file\'s where it has none', () => {
+	reset();
+	store.setView('map', { mode: 'sail', stops: [1, 2] });
+	store.merge({ stock: {}, targets: [], strategy: {}, profile: { views: { map: { mode: 'route' }, barter: { goal: 'material' } } } });
+	assert.deepEqual(store.getView('map'), { mode: 'sail', stops: [1, 2] }, 'local stands');
+	assert.deepEqual(store.getView('barter'), { goal: 'material' }, 'the file\'s arrives where local is silent');
+	store.undo();
+	assert.equal(store.getView('barter'), null);
+	assert.deepEqual(store.getView('map'), { mode: 'sail', stops: [1, 2] });
 });

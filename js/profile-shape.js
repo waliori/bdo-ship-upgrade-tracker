@@ -314,6 +314,10 @@ export function readProfile(raw) {
 		}
 		if (Object.keys(done).length) out.questsDone = done;
 	}
+	// How the Map and the Barter screens were left: the run being sailed,
+	// the traces drawn, the board answered. Bounded below; see readViews.
+	const views = readViews(raw.views);
+	if (views) out.views = views;
 	// How far a counted quest has come in its period -- the barters
 	// done towards a barter quest -- as { key, n } by quest.
 	if (isProfile(raw.questProgress)) {
@@ -324,4 +328,137 @@ export function readProfile(raw) {
 		if (Object.keys(prog).length) out.questProgress = prog;
 	}
 	return out;
+}
+
+/* ------------------------------------------------------------------ *
+ * Screen views
+ * ------------------------------------------------------------------ */
+
+// Which screens may keep their state in the profile. A view is the
+// screen's own shape -- the screen reads it back with its own checks --
+// so the profile only bounds it: known namespaces, strings and numbers
+// that are what they say, and lists no longer than the screen would
+// ever draw, so a hostile file cannot make the save enormous.
+export const VIEW_NAMESPACES = ['map', 'barter'];
+export const VIEW_BYTES = 300_000;
+const VIEW_STRING = 120;
+const VIEW_DEPTH = 8;
+const VIEW_LIST = 200;
+
+// The size a list or a table may have, by its place in the view. A
+// path reads as the keys down from the namespace, with `[]` for "each
+// entry of the list". Anything unnamed here gets VIEW_LIST.
+const VIEW_CAPS = {
+	map: {
+		'savedRoutes': 9, 'savedRoutes[].stops': 40,
+		'traces': 20, 'traces[].points': 2000, 'traces[].strokes': 24, 'traces[].strokes[].pts': 2000,
+		'traces[].areas': 12, 'traces[].areas[].pts': 200, 'traces[].texts': 40,
+		'trace.points': 2000, 'trace.strokes': 24, 'trace.strokes[].pts': 2000, 'trace.areas': 12, 'trace.areas[].pts': 200, 'trace.texts': 40,
+		'stops': 60, 'done.ids': 200, 'runTrades': 60, 'runStash': 20
+	},
+	barter: {
+		'board.answers': 120, 'matBoard.answers': 120, 'wants': 60, 'routes.ids': 40,
+		'sail.stops': 80, 'sail.done': 80, 'questSkip.ids': 100, 'questPull.ids': 100
+	}
+};
+// The one string a player writes at length: a trace's notes.
+const VIEW_LONG = { 'trace.notes': 400, 'traces[].notes': 400 };
+
+function cleanViewValue(value, caps, path, depth) {
+	if (typeof value === 'string') return value.slice(0, VIEW_LONG[path] || VIEW_STRING);
+	if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
+	if (typeof value === 'boolean' || value === null) return value;
+	if (typeof value !== 'object' || depth > VIEW_DEPTH) return undefined;
+	const cap = caps[path] || VIEW_LIST;
+	if (Array.isArray(value)) {
+		const out = [];
+		for (const v of value) {
+			if (out.length >= cap) break;
+			const c = cleanViewValue(v, caps, `${path}[]`, depth + 1);
+			if (c !== undefined) out.push(c);
+		}
+		return out;
+	}
+	const out = {};
+	let n = 0;
+	for (const [k, v] of Object.entries(value)) {
+		if (n >= cap) break;
+		if (k.length > VIEW_STRING) continue;
+		const c = cleanViewValue(v, caps, path ? `${path}.${k}` : k, depth + 1);
+		if (c === undefined) continue;
+		out[k] = c;
+		n++;
+	}
+	return out;
+}
+
+/**
+ * Every list inside a view with the weight that is its own: what it
+ * serialises to, less what the lists inside it do. A list of traces is
+ * light by that measure though it holds everything -- its points are
+ * the weight -- so the points give way and the traces stay, each with
+ * its name and its newest marks. Returns the bytes the lists under
+ * `value` account for; the lists themselves land in `out`.
+ */
+function weighLists(value, out) {
+	if (!value || typeof value !== 'object') return 0;
+	if (Array.isArray(value)) {
+		const total = JSON.stringify(value).length;
+		let inner = 0;
+		for (const v of value) inner += weighLists(v, out);
+		out.push({ list: value, weight: total - inner });
+		return total;
+	}
+	let inner = 0;
+	for (const v of Object.values(value)) inner += weighLists(v, out);
+	return inner;
+}
+
+/**
+ * One screen's view, bounded. The caps above hold each list to what
+ * the screen draws; the byte cap is the backstop for a view that is
+ * within every cap and still too big, where the oldest entries of the
+ * heaviest lists go first -- the last routes traced, not the setting
+ * that says which way the panel folds.
+ */
+export function readView(ns, raw) {
+	if (!VIEW_NAMESPACES.includes(ns) || !isProfile(raw)) return null;
+	const view = cleanViewValue(raw, VIEW_CAPS[ns], '', 0);
+	if (!view || !Object.keys(view).length) return null;
+	let size = JSON.stringify(view).length;
+	while (size > VIEW_BYTES) {
+		const lists = [];
+		weighLists(view, lists);
+		const heavy = lists.filter(l => l.list.length).sort((a, b) => b.weight - a.weight);
+		if (!heavy.length) return null;
+		// The heavy lists are cut together, each to its share of the room
+		// with a little to spare, so a view many times over the cap comes
+		// down in a pass or two rather than a sliver at a time; a light
+		// list -- the traces themselves, the stops -- is left alone.
+		const ratio = (VIEW_BYTES / size) * 0.9;
+		const light = size / heavy.length / 4;
+		let cut = false;
+		for (const l of heavy) {
+			if (l.weight < light) break;
+			const keep = Math.floor(l.list.length * ratio);
+			if (keep < l.list.length) {
+				l.list.splice(0, l.list.length - keep);
+				cut = true;
+			}
+		}
+		if (!cut) heavy[0].list.splice(0, Math.max(1, Math.ceil(heavy[0].list.length / 4)));
+		size = JSON.stringify(view).length;
+	}
+	return view;
+}
+
+/** The views table: known namespaces only, each bounded. */
+export function readViews(raw) {
+	if (!isProfile(raw)) return null;
+	const out = {};
+	for (const ns of VIEW_NAMESPACES) {
+		const view = readView(ns, raw[ns]);
+		if (view) out[ns] = view;
+	}
+	return Object.keys(out).length ? out : null;
 }

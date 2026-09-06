@@ -4,9 +4,10 @@
 // under its own storage key. The main one keeps the key the app has
 // always used, so nobody's save moves. Switching reloads the page,
 // which is the honest way to swap every module's idea of the state.
-// What is shared: the chart's view and saved routes, the Market
-// prices, the pace diary and the preferences -- browser things, not
-// save things. Sync mirrors the main profile only.
+// What is shared: the Market prices and the preferences -- browser
+// things, not save things. The chart's view, its saved routes and the
+// Barter tab's run live in the profile since the views moved there, so
+// an alt's day is not the main's. Sync mirrors the main profile only.
 
 import { esc } from './fmt.js';
 import { keyFor, ACTIVE_PROFILE } from './state.js';
@@ -81,7 +82,7 @@ export function openProfiles({ toast }) {
 	const full = list.length >= PROFILE_MAX;
 	const host = openDialog(`
 		<h2>Profiles</h2>
-		<p class="dialog-copy">A profile is a separate save on this browser — its own stock, builds, crew and undo — for an alt, or for trying a plan without touching your real numbers. Sync mirrors <b>Main</b> only. The chart's view and routes, the prices and the pace diary are shared.</p>
+		<p class="dialog-copy">A profile is a separate save on this browser — its own stock, builds, crew and undo — for an alt, or for trying a plan without touching your real numbers. Sync mirrors <b>Main</b> only. The prices and the preferences are shared; the chart and the Barter tab are each profile's own.</p>
 		<div class="profile-list">${rows}</div>
 		${full ? `<p class="dialog-copy">Up to ${PROFILE_MAX} profiles.</p>` : `<div class="profile-new">
 			<input class="field" type="text" maxlength="30" placeholder="New profile — a name" data-profile-name>

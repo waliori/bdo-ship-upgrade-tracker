@@ -136,3 +136,34 @@ test('a count past any warehouse is held at the cap, not Infinity', () => {
 	assert.equal(store.getStock('Steel'), store.STOCK_CAP);
 	assert.ok(Number.isFinite(store.getStock('Steel')));
 });
+
+test('undo takes back the claim, not the favourite starred after it', () => {
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: {} });
+	store.claimQuest('q1', { 'Cron Stone': 2 }, '2026-09-06', 'Claimed a quest');
+	// The app notes something by itself afterwards -- no history entry.
+	store.setProfileQuiet('questFavs', ['q7']);
+	assert.deepEqual(store.getProfile('questFavs'), ['q7']);
+	assert.equal(store.undo(), 'Claimed a quest');
+	assert.equal(store.getStock('Cron Stone'), 0);
+	assert.equal(store.getProfile('questsDone'), null, 'the claim is gone');
+	assert.deepEqual(store.getProfile('questFavs'), ['q7'], 'the quiet write is not');
+	assert.ok(store.redo());
+	assert.deepEqual(store.getProfile('questsDone'), { q1: '2026-09-06' });
+	assert.equal(store.getStock('Cron Stone'), 2);
+	assert.deepEqual(store.getProfile('questFavs'), ['q7']);
+});
+
+test('a history entry holds only the profile fields the change touched', () => {
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { barterCount: 5, roster: [{ id: 'r1', type: 'Ambitious' }] } });
+	store.setProfile('vouchers', 3);
+	const entry = store.lastChange();
+	assert.ok(!('prevProfile' in entry), 'no whole copy');
+	assert.deepEqual(entry.prevProfileFields, { vouchers: null }, 'the field was absent before');
+	store.setProfile('barterCount', 6);
+	assert.deepEqual(store.lastChange().prevProfileFields, { barterCount: 5 });
+	store.undo();
+	store.undo();
+	assert.equal(store.getProfile('vouchers'), null);
+	assert.equal(store.getProfile('barterCount'), 5);
+	assert.equal(store.getProfile('roster').length, 1, 'an untouched field is untouched');
+});

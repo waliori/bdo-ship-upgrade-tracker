@@ -62,9 +62,12 @@ export let matBoards = null;    // the material boards recorded, js/material_boa
 
 export const setView = id => { view = id; };
 export const setQuery = q => { query = q; };
-export const setPlanFilter = f => { planFilter = f; };
-export const setInvFilter = f => { invFilter = f; };
-export const setInvKind = k => { invKind = k; };
+// The filters and the sort are preferences, so they go to the store's
+// settings and come back on the next load -- silently, since every
+// caller redraws on its own and the settings listener would draw twice.
+export const setPlanFilter = f => { planFilter = f; store.setSetting('planFilter', f, true); };
+export const setInvFilter = f => { invFilter = f; store.setSetting('invFilter', f, true); };
+export const setInvKind = k => { invKind = k; store.setSetting('invKind', k, true); };
 export const setSelected = item => { selected = item; };
 // The Inventory's select mode: several tiles ticked for one action --
 // moved to a storage together, or handed back to the bags.
@@ -79,7 +82,25 @@ export const setMatBoards = data => { matBoards = data; };
 // question the app exists to answer; the others are for finding a thing
 // you already know the name of, or seeing where the bulk is.
 export let sort = 'short';
-export const setSort = mode => { sort = SORTS.some(s => s.id === mode) ? mode : 'short'; };
+export const setSort = mode => { sort = SORTS.some(s => s.id === mode) ? mode : 'short'; store.setSetting('sort', sort, true); };
+
+// The choices as the last session left them. Read once, at the first
+// recompute: the store is empty until ui.js has called its init(), and
+// that happens after this module is evaluated.
+let hydrated = false;
+function hydrate() {
+	if (hydrated) return;
+	hydrated = true;
+	const chip = (key, fallback) => {
+		const v = store.getSetting(key, null);
+		return typeof v === 'string' && v && v.length <= 40 ? v : fallback;
+	};
+	const s = store.getSetting('sort', null);
+	if (SORTS.some(x => x.id === s)) sort = s;
+	planFilter = chip('planFilter', planFilter);
+	invFilter = chip('invFilter', invFilter);
+	invKind = ['all', 'materials', 'parts', 'goods'].includes(store.getSetting('invKind', null)) ? store.getSetting('invKind') : invKind;
+}
 export const SORTS = [
 	{ id: 'short', label: 'Short first' },
 	{ id: 'need', label: 'Most needed' },
@@ -110,6 +131,7 @@ export function sortSelect() {
  * ------------------------------------------------------------------ */
 
 export function recompute() {
+	hydrate();
 	recipes = resolveRoutes(store.getAllStrategy(), allRecipes);
 	const stock = store.getAllStock();
 	// The failstack each yellow part carries into its next attempt, so
