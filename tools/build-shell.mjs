@@ -19,6 +19,9 @@ const walk = name => {
 	seen.add(name);
 	const src = fs.readFileSync(path.join(root, 'js', name), 'utf8');
 	for (const m of src.matchAll(/import[^'"]*['"]\.\/([^'"]+)['"]/g)) walk(m[1]);
+	// A worker is reached by its URL, not an import -- the Barter tab's
+	// search runs in one -- and its own imports are part of the shell too.
+	for (const m of src.matchAll(/new URL\(['"]\.\/([^'"]+)['"], import\.meta\.url\)/g)) walk(m[1]);
 };
 walk('boot.js');
 

@@ -51,6 +51,10 @@ export function hoursOf(run, { start = null, npcById, speed, cal }) {
 	return sailSeconds(pathLength(pts) * 1.25, speed, cal) / 3600;
 }
 
+// A clock for the budget: the monotonic one where there is one, which
+// is every browser and Node, the wall clock otherwise.
+const now = typeof performance !== 'undefined' && performance.now ? () => performance.now() : () => Date.now();
+
 /**
  * The proposals. `chains` are the board's chains as chains() lists
  * them, `opts` the options chainRun takes (stock, dock, hold, parley,
@@ -59,12 +63,20 @@ export function hoursOf(run, { start = null, npcById, speed, cal }) {
  * ids already ticked, which every set grown here keeps; `timeCap` is
  * hours under way a set may not pass, 0 for none.
  *
- * Returns { proposals, best }: up to three { kind, label, ids, run,
- * value, hours, yard } that differ in their ids, most silver first,
- * and `best` the set every search step judged best by value.
+ * `budgetMs` is how long the search may take: once it is spent the
+ * beam stops widening and the best of what was judged is returned,
+ * marked `partial` -- the screen would rather have a good run now
+ * than the best run after the sailor has looked away. Unlimited by
+ * default, so a test judges every set.
+ *
+ * Returns { proposals, best, partial }: up to three { kind, label,
+ * ids, run, value, hours, yard } that differ in their ids, most silver
+ * first, and `best` the set every search step judged best by value.
  */
-export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width = 5, depth = 8 } = {}) {
+export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width = 5, depth = 8, budgetMs = Infinity } = {}) {
 	const orders = opts.orders;
+	const t0 = now();
+	const late = () => budgetMs !== Infinity && now() - t0 >= budgetMs;
 	const byId = new Map(chains.map(c => [c.id, c]));
 	const memo = new Map();
 	const judge = ids => {
@@ -81,18 +93,24 @@ export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width
 	const seen = new Map();
 	const start = judge(seed.filter(id => byId.has(id)));
 	let frontier = [start];
-	for (let step = 0; step < depth && frontier.length; step++) {
+	let partial = false;
+	// The budget is checked after each set judged, not before: a budget
+	// of nothing still judges one set, so there is always a best so far.
+	search: for (let step = 0; step < depth && frontier.length; step++) {
 		const next = [];
 		for (const state of frontier) {
 			for (const c of chains) {
 				if (state.ids.includes(c.id)) continue;
 				const cand = judge([...state.ids, c.id]);
-				if (timeCap > 0 && cand.hours > timeCap) continue;
-				// A chain that adds nothing -- every island already dealt,
-				// or no Parley left -- is not a step worth taking.
-				if (cand.value <= state.value + 1) continue;
-				const key = cand.ids.slice().sort().join('|');
-				if (!seen.has(key)) { seen.set(key, cand); next.push(cand); }
+				const fits = !(timeCap > 0 && cand.hours > timeCap)
+					// A chain that adds nothing -- every island already dealt,
+					// or no Parley left -- is not a step worth taking.
+					&& cand.value > state.value + 1;
+				if (fits) {
+					const key = cand.ids.slice().sort().join('|');
+					if (!seen.has(key)) { seen.set(key, cand); next.push(cand); }
+				}
+				if (late()) { partial = true; break search; }
 			}
 		}
 		next.sort((a, b) => b.value - a.value);
@@ -100,7 +118,7 @@ export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width
 	}
 
 	const all = [...seen.values()].filter(s => s.ids.length && s.run.trades > 0);
-	if (!all.length) return { proposals: [], best: null };
+	if (!all.length) return { proposals: [], best: null, partial };
 	const pick = (kind, label, score) => {
 		const s = all.reduce((a, b) => (score(b) > score(a) ? b : a));
 		return score(s) > 0 ? { kind, label, ...s } : null;
@@ -117,5 +135,5 @@ export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width
 		const key = p.ids.slice().sort().join('|');
 		if (!proposals.some(q => q.ids.slice().sort().join('|') === key)) proposals.push(p);
 	}
-	return { proposals, best: cands[0] || null };
+	return { proposals, best: cands[0] || null, partial };
 }

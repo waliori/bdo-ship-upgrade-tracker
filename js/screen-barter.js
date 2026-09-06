@@ -31,7 +31,7 @@ import { coins as coinShop } from './sea_coins.js';
 import { landPrices } from './land-cost.js';
 import { marketStatus, marketSilver } from './market.js';
 import { GOODS, PARLEY, parleyPerTrade, levelOf } from './barter.js';
-import { exchanges, goodsHeld, weightOf, sellOf } from './barter-plan.js';
+import { exchanges, goodsHeld, weightOf, sellOf, aboardStock as aboardOf } from './barter-plan.js';
 import { TOWNS } from './screen-inventory.js';
 import { chains, chainRun } from './barter-chains.js';
 import { materialRun } from './barter-material.js';
@@ -46,7 +46,12 @@ import { cheer } from './cheer.js';
  * what the tab remembers
  * ------------------------------------------------------------------ */
 
-const STORE_KEY = 'bdo-tracker/barter-view';
+// The tab's view lives in the profile under `views.barter` -- written
+// the quiet way, no history entry, and so kept per profile, synced and
+// exported with the rest. It used to be this localStorage key, which
+// is brought across once and left where it is for an older build.
+const VIEW_NS = 'barter';
+const LEGACY_KEY = 'bdo-tracker/barter-view';
 let goal = 'silver';     // silver | material
 let item = null;         // the material a run is for
 let qty = 1;             // how many of it
@@ -65,17 +70,46 @@ let sail = null;   // the run being sailed: { key, done: [stop keys], seen: { np
 // The filters on the hold and the chain list, for the session.
 let holdQ = '', holdLv = new Set(), holdAt = '';
 let chainQ = '', chainFrom = '', chainTop = 0;
-let proposed = { key: '', proposals: [], best: null, solos: new Map() };   // the runs worth sailing, for one set of inputs
+let proposed = { key: '', proposals: [], best: null, solos: new Map(), partial: false, working: false };   // the runs worth sailing, for one set of inputs; `working` while the worker is still out on them
+let routesAuto = '';   // the routes key whose ticks were left to the search still out, to be set when it answers
+let filling = false;   // "fill the rest" asked and not yet answered
 const legsCache = new Map();   // the legs of a run bent round the land, by its stops
 let lastSearch = null;   // what the last search was given, for "fill the rest
-let restored = false;
+let readSig = null;   // the view as last read from the profile, as text: a different one -- synced in, imported, migrated -- is read again
+let migrated = false;
+let writeTimer = null;   // a write of the view still to be made
 
+/**
+ * The view read from the profile, when the profile holds a different
+ * one from the last read -- the first time, and after a sync or an
+ * import puts another there. Compared as text, not by identity: every
+ * profile write rebuilds the views table, and an equal view read back
+ * mid-action would undo what the action had changed in memory. The
+ * tab starts from its defaults each time, so a field the new view
+ * lacks does not keep the old one's value. A write of this tab's own
+ * still owed is newer than anything read, and is not overwritten.
+ */
 function restore() {
-	if (restored) return;
-	restored = true;
+	if (writeTimer) return;
+	if (!migrated) {
+		migrated = true;
+		// The write inside migrateView redraws the page through the
+		// store's listeners, once, the first time a profile is opened
+		// on this build; the redraw reads the view then and this call
+		// finds it already read.
+		store.migrateView(VIEW_NS, LEGACY_KEY, x => x);
+	}
+	const s = store.getView(VIEW_NS);
+	const sig = s ? JSON.stringify(s) : null;
+	if (sig === readSig) return;
+	readSig = sig;
+	goal = 'silver'; item = null; qty = 1; wants = {};
+	matOrders = { reach: 'want', calls: true, pace: 'full', quests: 'near' };
+	port = 0; routes = { key: '', ids: [] }; stash = ''; sail = null; reach = '';
+	board = { day: '', answers: [] }; matBoard = { day: '', answers: [] };
+	questSkip = { day: '', ids: [] }; questPull = { day: '', ids: [] };
+	if (!s) return;
 	try {
-		const s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
-		if (!s) return;
 		if (s.goal === 'material') goal = 'material';
 		if (typeof s.item === 'string') item = s.item;
 		if (Number(s.qty) > 0) qty = Math.min(9999, Math.floor(Number(s.qty)));
@@ -98,34 +132,43 @@ function restore() {
 		if (s.board && Array.isArray(s.board.answers)) {
 			board = { day: String(s.board.day || ''), answers: s.board.answers.filter(a => a && npcById.has(Number(a.npcId)) && typeof a.give === 'string' && typeof a.recv === 'string').map(a => ({ npcId: Number(a.npcId), give: a.give, recv: a.recv })) };
 		}
-	} catch { /* a fresh tab */ }
+	} catch { /* a view this build does not read: the defaults stand */ }
 }
 
+/**
+ * The view written to the profile -- a moment later, so a burst of
+ * ticks or typing is one write and, since the store redraws the page
+ * on every profile write, one redraw after the action's own. The
+ * session's own things -- the filters, the all-done ask -- stay here.
+ */
 function persist() {
-	try {
-		localStorage.setItem(STORE_KEY, JSON.stringify({ goal, item, qty, wants, matOrders, port, routes, stash, board, matBoard, sail, reach, questSkip, questPull }));
-	} catch { /* private mode; the session still works */ }
+	if (writeTimer) clearTimeout(writeTimer);
+	writeTimer = setTimeout(flushView, 250);
+}
+
+function flushView() {
+	if (!writeTimer) return;
+	clearTimeout(writeTimer);
+	writeTimer = null;
+	store.setView(VIEW_NS, { goal, item, qty, wants, matOrders, port, routes, stash, board, matBoard, sail, reach, questSkip, questPull });
+	// What was just written is what is in memory: not to be read back.
+	const s = store.getView(VIEW_NS);
+	readSig = s ? JSON.stringify(s) : null;
+}
+
+// A write still owed when the page goes is made before it does.
+if (typeof window !== 'undefined') {
+	window.addEventListener('pagehide', flushView);
+	document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushView(); });
 }
 
 /* ------------------------------------------------------------------ *
  * the hold
  * ------------------------------------------------------------------ */
 
-/**
- * What is aboard: the goods noted in the ship's hold, and the goods no
- * storage claims -- a good just bartered is in the ship's inventory
- * until it is put ashore. Goods noted at a harbour are ashore, and a
- * run loads them only from the harbour it sails from.
- */
-function aboardStock() {
-	const out = {};
-	for (const [name, qty] of Object.entries(store.getAllStock())) {
-		if (levelOf(name) === null || !(qty > 0)) continue;
-		const n = store.stockAt(name, '') + store.stockAt(name, store.ABOARD);
-		if (n > 0) out[name] = n;
-	}
-	return out;
-}
+/** What is aboard, as barter-plan reads it: the Map reads the same
+ *  hold through the same function, so the two never disagree. */
+const aboardStock = () => aboardOf(store);
 
 /** The goods at the storage of the harbour the run sails from. */
 function dockStock() {
@@ -799,6 +842,106 @@ function soloRun(c, opts, from, base) {
 	return run;
 }
 
+/* ------------------------------------------------------------------ *
+ * the search, off the main thread
+ * ------------------------------------------------------------------ */
+
+// How long a search may take before it answers with the best so far.
+const SEARCH_BUDGET_MS = 1500;
+// How long past that to wait before the worker is given up on.
+const SEARCH_PATIENCE_MS = 10000;
+
+let worker = null;        // the one long-lived worker, made on first use
+let workerLost = false;   // no Worker here, or it failed: search on this thread
+let reqSeq = 0;
+let pending = null;       // the request out: { id, tag, args, then, timer }
+
+function workerOf() {
+	if (worker || workerLost) return worker;
+	const Ctor = globalThis.Worker;
+	if (typeof Ctor !== 'function') { workerLost = true; return null; }
+	try {
+		worker = new Ctor(new URL('./barter-worker.js', import.meta.url), { type: 'module' });
+	} catch { workerLost = true; return null; }
+	worker.onmessage = evt => {
+		const { id, result, error } = evt.data || {};
+		// An answer to a request since superseded is a straggler.
+		if (!pending || pending.id !== id) return;
+		const req = pending;
+		settle();
+		if (error) answerHere(req); else req.then(result);
+	};
+	worker.onerror = () => {
+		// The module failed to load or threw outside a request: this
+		// thread takes over for the session.
+		const req = pending;
+		dropWorker();
+		workerLost = true;
+		if (req) answerHere(req);
+	};
+	return worker;
+}
+
+function settle() {
+	if (pending && pending.timer) clearTimeout(pending.timer);
+	pending = null;
+}
+
+function dropWorker() {
+	if (worker) worker.terminate();
+	worker = null;
+	settle();
+}
+
+/** A request answered on this thread after all. */
+function answerHere(req) {
+	req.then(propose(req.args));
+}
+
+/**
+ * propose() asked of the worker. Returns the result at once when the
+ * search has to run on this thread -- no Worker, or one that failed --
+ * else null, with `then(result)` called when the answer comes. One
+ * request is out at a time: a new one supersedes the last, whose
+ * worker is stopped rather than left to finish stale work ahead of
+ * the fresh question, and whose `then` is never called. `tag` names
+ * what the request is for, so a render can tell whether the answer
+ * it is waiting for is still on its way.
+ */
+function proposeAsync(args, tag, then) {
+	if (pending) dropWorker();
+	const w = workerOf();
+	if (!w) return propose(args);
+	const id = ++reqSeq;
+	const timer = setTimeout(() => {
+		// Nothing back long past the budget: the worker is stuck. This
+		// thread answers, and the next ask gets a fresh worker.
+		const req = pending;
+		dropWorker();
+		if (req) answerHere(req);
+	}, SEARCH_BUDGET_MS + SEARCH_PATIENCE_MS);
+	pending = { id, tag, args, then, timer };
+	try {
+		w.postMessage({ id, ...args, budgetMs: SEARCH_BUDGET_MS });
+	} catch {
+		// Something in the arguments would not clone: this thread instead.
+		settle();
+		return propose(args);
+	}
+	return null;
+}
+
+const searching = tag => !!pending && pending.tag === tag;
+
+/** The tab redrawn from outside a click -- when the worker answers:
+ *  its own hidden button, pressed, goes through the page's one click
+ *  handler, which redraws after the tab's actions. Nothing happens
+ *  when the tab is not on the page; the answer waits in `proposed`. */
+function redrawSoon() {
+	const btn = document.querySelector('[data-act="barter-redraw"]');
+	if (btn) btn.click();
+}
+
 let expected = { key: '', value: null };
 
 /**
@@ -1076,7 +1219,7 @@ let shownPlan = null;
 function silverParts(me, b) {
 	const from = fromPort();
 	const head = `<div class="panel-head"><h2 class="panel-title">Chains on offer</h2><span class="panel-sub">tick the ones to sail</span><span class="panel-spacer"></span>${routes.ids.length ? '<button class="linky" data-act="barter-chains-clear">clear</button>' : ''}</div>`;
-	const headFill = fill => `<div class="panel-head"><h2 class="panel-title">Chains on offer</h2><span class="panel-sub">tick the ones to sail</span><span class="panel-spacer"></span>${fill ? '<button class="chip tiny primary" data-act="barter-fill" title="Keep what is ticked and add the chains that pay best beside it">fill the rest for me</button>' : ''}${routes.ids.length ? '<button class="linky" data-act="barter-chains-clear">clear</button>' : ''}</div>`;
+	const headFill = fill => `<div class="panel-head"><h2 class="panel-title">Chains on offer</h2><span class="panel-sub">tick the ones to sail</span><span class="panel-spacer"></span>${fill ? `<button class="chip tiny primary" data-act="barter-fill" title="Keep what is ticked and add the chains that pay best beside it"${filling ? ' disabled aria-busy="true"' : ''}>${filling ? 'filling…' : 'fill the rest for me'}</button>` : ''}${routes.ids.length ? '<button class="linky" data-act="barter-chains-clear">clear</button>' : ''}</div>`;
 	const prof = barterProfile();
 	if (!b.combo) {
 		const ev = expectedBest(me, b, prof);
@@ -1124,15 +1267,45 @@ function silverParts(me, b) {
 	// until any of them change; each chain's run on its own likewise.
 	const ship = { speed: me.speed.total, cal: sailCal() };
 	const pkey = JSON.stringify([board.day, b.combo.id, stock, dock, o, port, stash, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, reach]);
-	if (proposed.key !== pkey) {
-		const base = chainRun({ ...opts, chosen: [] });
-		proposed = { key: pkey, solos: new Map(all.map(c => [c.id, soloRun(c, opts, from, base)])), ...propose({ chains: all, opts, ship, timeCap: o.hours }) };
+	const search = { chains: all, opts, ship, timeCap: o.hours };
+	// The search goes to the worker and the page draws meanwhile; asked
+	// again when the inputs change, or when an answer is owed and no
+	// request is out for it -- a fill superseded it, or the worker went.
+	if (proposed.key !== pkey || (proposed.working && !searching(pkey))) {
+		let solos = proposed.solos;
+		if (proposed.key !== pkey) {
+			const base = chainRun({ ...opts, chosen: [] });
+			solos = new Map(all.map(c => [c.id, soloRun(c, opts, from, base)]));
+		}
+		const found = proposeAsync(search, pkey, result => {
+			// The inputs moved on before the answer came: a newer request
+			// is out for them, and this answer is nobody's.
+			if (proposed.key !== pkey) return;
+			proposed = { ...proposed, ...result, working: false };
+			if (routesAuto === routes.key) {
+				routesAuto = '';
+				routes = { key: routes.key, ids: proposed.best ? proposed.best.ids : all.length ? [all[0].id] : [] };
+				persist();
+			}
+			redrawSoon();
+		});
+		// Until the answer comes the last proposals stand in, when they
+		// belong to this board, under a note that the search is out.
+		const onBoard = new Set(all.map(c => c.id));
+		proposed = found
+			? { key: pkey, solos, ...found, working: false }
+			: { key: pkey, solos, proposals: proposed.proposals.filter(p => p.ids.every(id => onBoard.has(id))), best: proposed.key === pkey ? proposed.best : null, partial: false, working: true };
 	}
-	lastSearch = { chains: all, opts, ship, timeCap: o.hours };
+	lastSearch = search;
 	const solos = proposed.solos;
 	all.sort((x, y) => y.top - x.top || (solos.get(y.id).yard.perUnit - solos.get(x.id).yard.perUnit) || x.rungs.length - y.rungs.length || isleOf(npcById.get(x.rungs[0].npcId)).localeCompare(isleOf(npcById.get(y.rungs[0].npcId))));
 	const key = `${board.day}|${b.combo.id}|${reach}`;
-	if (routes.key !== key) routes = { key, ids: proposed.best ? proposed.best.ids : all.length ? [all[0].id] : [] };
+	// A new board's ticks are the best run found; while that is still
+	// being found nothing is ticked, and the answer ticks it.
+	if (routes.key !== key) {
+		routes = { key, ids: proposed.working ? [] : proposed.best ? proposed.best.ids : all.length ? [all[0].id] : [] };
+		routesAuto = proposed.working ? key : '';
+	}
 	const chosen = all.filter(c => routes.ids.includes(c.id));
 	const sameSet = (x, y) => x.length === y.length && x.slice().sort().join('|') === y.slice().sort().join('|');
 	const cards = proposed.proposals.map(p => {
@@ -1145,9 +1318,10 @@ function silverParts(me, b) {
 			<span class="proposal-sub">${p.ids.length} chain${p.ids.length === 1 ? '' : 's'} · ${isl} island${isl === 1 ? '' : 's'} · ${F(p.run.trades)} trades${p.run.cost ? ` · ${FC(Math.round(p.run.cost))} of land goods` : ''}</span>
 		</button>`;
 	}).join('');
-	const proposals = `<div class="proposals">
-		<div class="proposals-head"><span>Runs worth sailing</span><span class="faint">found on today’s board under these orders${o.hours ? `, within ${o.hours} hour${o.hours === 1 ? '' : 's'}` : ''} · the value counts silver net of land goods and the goods kept</span></div>
-		${cards ? `<div class="proposal-cards">${cards}</div>` : '<p class="empty">Nothing on this board pays under these orders.</p>'}
+	const budgetText = `best found in ${(SEARCH_BUDGET_MS / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })} s`;
+	const proposals = `<div class="proposals${proposed.working ? ' working' : ''}">
+		<div class="proposals-head"><span>Runs worth sailing</span><span class="faint">${proposed.working ? 'working out the runs…' : `found on today’s board under these orders${o.hours ? `, within ${o.hours} hour${o.hours === 1 ? '' : 's'}` : ''}${proposed.partial ? ` · ${budgetText}` : ''}`} · the value counts silver net of land goods and the goods kept</span></div>
+		${cards ? `<div class="proposal-cards">${cards}</div>` : proposed.working ? '<div class="proposal-cards"><div class="proposal placeholder" aria-busy="true"><span class="proposal-k">Working out the runs…</span><b>&nbsp;</b><span class="proposal-sub">the board’s chains, searched in the background</span></div></div>' : '<p class="empty">Nothing on this board pays under these orders.</p>'}
 	</div>`;
 	const fillable = chosen.length > 0 && !proposed.proposals.some(p => sameSet(p.ids, routes.ids));
 	// The list, filtered: a word in an island's or a good's name, where
@@ -1577,6 +1751,7 @@ export function renderBarter() {
 	// A sheet up follows the redraw.
 	setTimeout(refreshSheet, 0);
 	return `<div class="barter-screen">
+		<button hidden data-act="barter-redraw" tabindex="-1" aria-hidden="true"></button>
 		${boardHTML(b)}
 		${holdBarHTML(me)}
 		${parts.run}
@@ -1811,10 +1986,11 @@ export function barterAction(act, el, redraw) {
 		case 'barter-chain': {
 			const id = el.dataset.id;
 			routes.ids = routes.ids.includes(id) ? routes.ids.filter(x => x !== id) : [...routes.ids, id];
+			routesAuto = '';
 			persist();
 			return true;
 		}
-		case 'barter-chains-clear': routes.ids = []; persist(); return true;
+		case 'barter-chains-clear': routes.ids = []; routesAuto = ''; persist(); return true;
 		case 'barter-hold-lv': { const lv = Number(el.dataset.lv); if (holdLv.has(lv)) holdLv.delete(lv); else holdLv.add(lv); return true; }
 		case 'barter-hold-at': holdAt = holdAt === el.dataset.town ? '' : el.dataset.town; return true;
 		case 'barter-hold-clear': holdQ = ''; holdLv = new Set(); holdAt = ''; return true;
@@ -1893,11 +2069,19 @@ export function barterAction(act, el, redraw) {
 			return true;
 		}
 		case 'barter-record': recordTrip(shownPlan, fromPort()); return false;
-		case 'barter-propose': routes.ids = String(el.dataset.ids || '').split('\n').filter(Boolean); persist(); return true;
+		case 'barter-propose': routes.ids = String(el.dataset.ids || '').split('\n').filter(Boolean); routesAuto = ''; persist(); return true;
+		// The worker answered: nothing to change, the screen redraws.
+		case 'barter-redraw': return true;
 		case 'barter-fill': {
-			if (!lastSearch) return false;
-			const { best } = propose({ ...lastSearch, seed: routes.ids });
-			if (best) { routes.ids = best.ids; persist(); } else toast('Nothing pays beside what is ticked');
+			if (!lastSearch || filling) return false;
+			routesAuto = '';
+			const seed = routes.ids.slice();
+			const take = ({ best }) => {
+				filling = false;
+				if (best) { routes.ids = best.ids; persist(); } else toast('Nothing pays beside what is ticked');
+			};
+			const found = proposeAsync({ ...lastSearch, seed }, 'fill', result => { take(result); redrawSoon(); });
+			if (found) take(found); else filling = true;
 			return true;
 		}
 		default: return false;

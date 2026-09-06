@@ -75,3 +75,29 @@ test('nothing to propose when nothing pays', () => {
 	assert.deepEqual(proposals, []);
 	assert.equal(best, null);
 });
+
+test('an unlimited search is whole; a budget of nothing still judges one set and says it stopped early', () => {
+	const whole = propose({ chains: all, opts, ship });
+	assert.equal(whole.partial, false);
+	const cut = propose({ chains: all, opts, ship, budgetMs: 0 });
+	assert.equal(cut.partial, true);
+	// The budget is checked after a set is judged, so exactly one set
+	// -- the first chain on its own -- was looked at: whatever comes
+	// back is that one chain, and never more than the whole search.
+	assert.ok(cut.proposals.length <= 1);
+	for (const p of cut.proposals) {
+		assert.equal(p.ids.length, 1);
+		assert.ok(p.value <= whole.best.value + 1e-6, 'the best so far never beats the whole search');
+		assert.ok(p.run.parleyUsed <= parley.bar);
+	}
+	// A seed is kept under a budget as without one.
+	const seeded = propose({ chains: all, opts, ship, seed: [all[0].id], budgetMs: 0 });
+	assert.equal(seeded.partial, true);
+	for (const p of seeded.proposals) assert.ok(p.ids.includes(all[0].id));
+});
+
+test('a budget that is not reached leaves the search whole', () => {
+	const { partial, proposals } = propose({ chains: all, opts, ship, budgetMs: 60000 });
+	assert.equal(partial, false);
+	assert.deepEqual(proposals.map(p => p.ids), propose({ chains: all, opts, ship }).proposals.map(p => p.ids));
+});
