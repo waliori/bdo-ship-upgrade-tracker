@@ -556,12 +556,15 @@ climbs each to its top before the next. The route is built nearest-first and sho
 moving runs of rungs wherever they save distance without passing a
 rung they depend on.
 
-The quests come along. Every quest of the sea is placed on the chart --
-its giver a harbour, an island's barterer or a wharf manager, a hunt
-its grounds -- and the run laid out says at each stop which are taken,
-done or handed in there, and on each leg which grounds it passes; goods
-taken for an island the run never reaches are not noted, and a quest
-that ends at a stop can be claimed from there.
+The quests come along, under an order of the run: none, the dailies
+and weeklies, or those and the hunts. The sailor is taken to have
+accepted them already, so what counts is where each is handed in, and
+every taker is placed on the chart. The run hands in whatever it
+passes and puts a stop in where a taker lies a short way off the
+route; a hunt only after a leg has passed its grounds; a barter quest
+only once the run's trades make its count up, the count kept from run
+to run and made up by itself when a trip is recorded. A stop ticked
+off on the checklist hands in the quests at it.
 
 The tab is one column: the board, the hold as a line that opens over
 the page, the run's orders and figures, then what is on offer -- the

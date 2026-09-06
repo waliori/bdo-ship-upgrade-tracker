@@ -37,16 +37,22 @@ export const PRESETS = [
 	}
 ];
 
-export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, hours: 0, count: 'least', way: 'sea' };
+export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, hours: 0, count: 'least', way: 'sea', quests: 'yes' };
 
 /** The way round the chains ticked: one route through every rung, each
  *  after the rung beneath it in its chain, or chain after chain. */
+/** The quests along the run: none; the dailies and weeklies handed in
+ *  on the way -- deliveries, talks, the barter quests counted off the
+ *  run's trades -- with a stop added where the run does not pass the
+ *  taker; or those and the hunts too, when their grounds lie on the way. */
+export const QUEST_CHOICES = [['no', 'none'], ['yes', 'dailies and weeklies handed in on the way'], ['hunts', 'those, and the hunts whose grounds lie on the way']];
+
 export const WAY_CHOICES = [['sea', 'the shortest way: every chain climbed at once'], ['chain', 'chain after chain, each to its top']];
 
 /** The orders a run has when none are given: the [Level 7]s sold and
  *  nothing else, no floors -- the run as it was before there were
  *  orders, and what the tests pin. */
-export const PLAIN_ORDERS = { preset: 'cash', sell: 7, floors: {}, buy: true, pace: 'fast', hours: 0, count: 'least', way: 'chain' };
+export const PLAIN_ORDERS = { preset: 'cash', sell: 7, floors: {}, buy: true, pace: 'fast', hours: 0, count: 'least', way: 'chain', quests: 'no' };
 
 /** How an exchange that pays a range is counted. */
 export const COUNT_CHOICES = [['least', 'at the least — 2 of a 2-3'], ['average', 'at the average'], ['seen', 'as your own runs saw it']];
@@ -85,13 +91,14 @@ export function readOrders(raw) {
 	if (HOUR_CHOICES.some(([h]) => h === Number(raw.hours))) o.hours = Number(raw.hours);
 	if (COUNT_CHOICES.some(([c]) => c === raw.count)) o.count = raw.count;
 	if (WAY_CHOICES.some(([w]) => w === raw.way)) o.way = raw.way;
+	if (QUEST_CHOICES.some(([q]) => q === raw.quests)) o.quests = raw.quests;
 	return o;
 }
 
 /** The orders a preset sets, keeping nothing of the old ones. */
 export function presetOrders(id) {
 	const p = PRESETS.find(x => x.id === id) || PRESETS[0];
-	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, hours: 0, count: 'least', way: 'sea' };
+	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, hours: 0, count: 'least', way: 'sea', quests: 'yes' };
 }
 
 /** Whether the saved orders still match their preset to the letter. */

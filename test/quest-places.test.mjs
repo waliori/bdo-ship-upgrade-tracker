@@ -1,51 +1,65 @@
-// The sea's quests placed on the chart, and laid along a run: a stop
-// says what is taken, done or handed in there, a leg which grounds it
-// passes.
+// The sea's quests handed in along a run: every taker placed on the
+// chart, a stop put in where one lies a short way off the route, a hunt
+// only after a leg has passed its grounds, a barter quest only once the
+// run's trades have made its count up.
 //
-// What can go wrong: a quest whose place the chart does not know, goods
-// taken for an island the run never reaches, a hunt noted on every leg,
-// an island counted as the harbour next to it.
+// What can go wrong: a quest whose place the chart does not know, a
+// hand-in put before the kill it needs, a taker miles off treated as
+// on the way, an island counted as the harbour next to it, a barter
+// quest handed in short of its count.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { quests, questById } from '../js/quests.js';
-import { placesOf, questsAlong } from '../js/quest-places.js';
+import { placesOf, handIn, layQuests } from '../js/quest-places.js';
 import { ports, npcs } from '../js/barter_npcs.js';
 
 const isle = at => npcs.find(n => n.at === at);
+const daily = quests.filter(q => /daily|weekly/.test(q.repeat));
 
-test('every quest step names a place the chart knows', () => {
+test('every quest step names a place the chart knows, and every quest has a taker', () => {
 	for (const q of quests) {
 		assert.ok(q.at && q.at.length, `${q.id} says where it is done`);
 		assert.equal(placesOf(q).length, q.at.length, `${q.id}: every step placed`);
-		for (const p of placesOf(q)) assert.ok(Number.isFinite(p.x) && Number.isFinite(p.y));
+		assert.ok(handIn(q), `${q.id} is handed in somewhere`);
 	}
 });
 
-test('along a run from Velia past Baremi to Iliya: the goods for Baremi taken at Velia and handed in there, the goods for Narvo not taken, Iliya’s own quests at Iliya and not at Baremi', () => {
-	const route = [ports[0], isle('Baremi Island'), ports[2]];
-	const { at, legs, count } = questsAlong(quests, route);
-	const ids = k => (at.get(k) || []).map(x => `${x.q.id}:${x.step.what}`);
-	assert.ok(ids(0).includes('goods-baremi:take'), ids(0).join(' '));
-	assert.ok(!ids(0).includes('goods-narvo:take'), 'Narvo is not on the run');
-	assert.ok(ids(0).includes('hungry:take and hand in'), 'a hunt reported at Velia');
-	assert.deepEqual(ids(1), ['goods-baremi:hand in'], 'Baremi is not Iliya, though it lies close');
-	assert.ok(ids(2).includes('wider:take and hand in') && ids(2).includes('supplies-iliya:hand in'), ids(2).join(' '));
-	assert.ok(!ids(2).includes('worldsend-1:take'), 'supplies for Ancado are not taken: the run does not go there');
-	// A hunt is noted once, on the leg nearest its grounds, with the distance.
-	const hunts = [...legs.values()].flat();
-	const hungry = hunts.filter(x => x.q.id === 'hungry');
-	assert.equal(hungry.length, 1);
-	assert.ok(hungry[0].dist >= 0 && hungry[0].dist <= 8000);
-	assert.ok(count >= 8, `${count} quests along the run`);
+test('a loop from Velia by Baeza and Tinberra: deliveries handed in where the run passes, a stop put in for Baremi close by, Ancado far off, hunts only after their grounds, barter quests only once made up', () => {
+	const route = [ports[0], isle('Baeza Island'), isle('Tinberra Island'), ports[0]];
+	const trades = [0, 10, 12, 0];
+	const { route: laid, off, legs } = layQuests(daily, route, { trades, progress: () => 0 });
+	const ids = e => e.steps.map(x => x.q.id);
+	const entry = name => laid.find(e => e.quest && e.place === name);
+	assert.ok(ids(laid[0]).includes('recover'), 'the Chowder handed in at Velia before casting off');
+	assert.ok(ids(laid.find(e => e.fixed && e.i === 2)).includes('goods-tinberra'), 'goods for Tinberra handed in there');
+	assert.ok(entry('Baremi Island') && ids(entry('Baremi Island')).includes('goods-baremi'), 'a stop put in at Baremi');
+	assert.ok(off.some(x => x.q.id === 'worldsend-1' && x.why === 'far'), 'Ancado is too far off the way');
+	// The barter quests: fifteen and twenty made up on the way, the hundred not.
+	const iliya = entry('Iliya Island wharf');
+	assert.ok(iliya && ids(iliya).includes('lively') && ids(iliya).includes('wider'), 'the two dailies handed in at Iliya, put in after the trades');
+	assert.ok(laid.indexOf(iliya) > laid.findIndex(e => e.fixed && e.i === 2), 'after the twenty-second trade, at Tinberra');
+	const nexus = off.find(x => x.q.id === 'nexus');
+	assert.ok(nexus && nexus.why === 'short' && nexus.left === 78, 'the hundred: 22 of it this run, 78 more after');
+	// A hunt is handed in only after the leg past its grounds, and noted on that leg.
+	const hungry = laid.find(e => ids(e).includes('hungry'));
+	assert.ok(hungry, 'the Hekaru hunt is handed in');
+	const legEnd = [...legs].find(([, l]) => l.some(x => x.q.id === 'hungry'))[0];
+	assert.ok(laid.indexOf(hungry) >= legEnd, 'handed in at or after the leg past the grounds');
+	assert.ok(off.some(x => x.q.id === 'omg-candidum' && x.why === 'grounds'), 'no leg passes the Candidum grounds');
+	// Baremi lies a mile from Iliya, and is not Iliya.
+	assert.ok(!ids(entry('Baremi Island')).includes('supplies-iliya'));
 });
 
-test('a quest already handed in on the way is not the harbour’s business twice', () => {
-	const q = questById['supplies-oquilla'];
-	const { at } = questsAlong([q], [ports[2], isle('Baremi Island'), ports[2]]);
-	assert.deepEqual([...at.keys()], [], 'taken at Iliya only when Oquilla’s Eye comes later');
-	const { at: at2 } = questsAlong([q], [ports[2], { x: 64378, y: 47067 }]);
-	assert.deepEqual((at2.get(0) || []).map(x => x.step.what), ['take']);
-	assert.deepEqual((at2.get(1) || []).map(x => x.step.what), ['hand in']);
+test('a barter quest already part-way counts its progress, and a run that does not pass its taker puts a stop in only once it is made up', () => {
+	const q = questById['nexus'];
+	const route = [ports[0], isle('Baremi Island'), ports[0]];
+	const short = layQuests([q], route, { trades: [0, 30, 0], progress: () => 60 });
+	assert.equal(short.off.length, 1); assert.equal(short.off[0].left, 10);
+	const made = layQuests([q], route, { trades: [0, 30, 0], progress: () => 70 });
+	assert.equal(made.off.length, 0);
+	const at = made.route.find(e => e.steps.length);
+	assert.ok(at.quest && at.place === 'Iliya Island', 'a stop put in at Iliya, the taker');
+	assert.ok(made.route.indexOf(at) > 1, 'after the trades at Baremi');
 });

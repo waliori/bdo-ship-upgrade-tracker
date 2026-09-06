@@ -292,6 +292,15 @@ function claim(q, choice) {
 	document.dispatchEvent(new CustomEvent('quests-refilter'));
 }
 
+/** The reward a quest hands over when claimed without asking: the fixed
+ *  rewards plus the pick-one remembered for it; null when a pick is
+ *  wanted and none is remembered. */
+export function rewardOf(q) {
+	const last = recalled(q);
+	if (q.choice && !last) return null;
+	return claimDelta(q, last ? last.i : null);
+}
+
 /** Ask which pick-one reward was taken; resolves to the index, or null
  *  when the picker is closed without an answer. */
 function askChoice(q, need, title = 'Which reward did you take?') {

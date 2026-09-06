@@ -314,5 +314,14 @@ export function readProfile(raw) {
 		}
 		if (Object.keys(done).length) out.questsDone = done;
 	}
+	// How far a counted quest has come in its period -- the barters
+	// done towards a barter quest -- as { key, n } by quest.
+	if (isProfile(raw.questProgress)) {
+		const prog = {};
+		for (const [id, v] of Object.entries(raw.questProgress)) {
+			if (id.length <= 40 && isProfile(v) && typeof v.key === 'string' && /^(once|W?\d{4}-\d{2}-\d{2})$/.test(v.key) && Number(v.n) > 0) prog[id] = { key: v.key, n: Math.floor(Number(v.n)) };
+		}
+		if (Object.keys(prog).length) out.questProgress = prog;
+	}
 	return out;
 }

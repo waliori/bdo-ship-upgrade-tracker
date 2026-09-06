@@ -19,7 +19,10 @@
 // [kind, place, who, what] -- the kind a 'port', an 'isle' (its
 // barterer's spot) or a 'wharf' (by the wharf manager's name), all
 // placed on the chart already -- so a run on the Barter tab can say
-// which quests are taken, done or handed in at each of its stops. The
+// which quests are handed in at each of its stops -- the sailor is
+// taken to have accepted them already, at Velia, Iliya or Oquilla's
+// Eye, so only the last step counts; `barters` is how many barters a
+// barter quest asks for, counted off the run's trades. The
 // Quests screen groups them by how often they can be done, and records
 // a reward with one press, so a claimed letter lands in stock like a
 // craft does.
@@ -351,6 +354,7 @@ export const quests = [
 	},
 	{
 		id: 'lively',
+		barters: 15,
 		at: [['port', 'Iliya Island', 'the villager', 'take and hand in']],
 		codex: '3736/12',
 		name: '[Barter] [Daily] Lively Iliya Island',
@@ -360,6 +364,7 @@ export const quests = [
 	},
 	{
 		id: 'wider',
+		barters: 20,
 		at: [['wharf', 'Dario', 'Dario', 'take and hand in']],
 		codex: '3841/1',
 		name: '[Barter] [Daily] Sailing to a Wider World',
@@ -370,6 +375,7 @@ export const quests = [
 	},
 	{
 		id: 'nexus',
+		barters: 100,
 		at: [['isle', 'Iliya Island', 'Priko', 'take and hand in']],
 		codex: '3736/9',
 		name: '[Barter] [Weekly] Iliya Island, the Barter Nexus',
@@ -409,6 +415,7 @@ export const quests = [
 	},
 	{
 		id: 'lyngbakr',
+		monster: 'lyngbakr',
 		at: [['wharf', 'Gangman', 'Gangman', 'take and hand in']],
 		codex: '3707/26',
 		name: '[Weekly] Lyngbakr Ecology Survey',

@@ -1499,7 +1499,7 @@ async function laidOut(page) {
 
 test('one run for several materials: each keeps its ticks and its want, and a give kept at another harbour is called for on the way', async () => {
 	const { page, context, errors } = await open('#barter');
-	await page.evaluate(() => { localStorage.setItem('bdo-tracker/barter-view', JSON.stringify({ goal: 'material', item: "Violent Sea Monster's Scale", qty: 20, port: 0 })); });
+	await page.evaluate(() => { localStorage.setItem('bdo-tracker/barter-view', JSON.stringify({ goal: 'material', item: "Violent Sea Monster's Scale", qty: 20, port: 0, matOrders: { reach: 'want', calls: true, pace: 'full', quests: 'no' } })); });
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.mat-list.hero', { timeout: 15000 });
 	await page.evaluate(async () => {
 		const store = await import('/js/state.js');
@@ -1644,20 +1644,27 @@ test('the run laid out is a sheet over the Barter tab: a strip along the foot ap
 	assert.equal(await page.$eval('[data-act="barter-way"]', el => el.value), 'sea');
 	assert.equal(await count(page, '#dialog .run-seg-all'), 1, 'one timeline for both chains');
 	assert.equal(await count(page, '#dialog .run-seg-chains .run-chain-tag'), 2);
-	assert.equal(await count(page, '#dialog .run-stop:not(.wharf)'), await count(page, '#dialog .run-stop .run-chain-tag.sm'), 'every island stop names its chain');
+	assert.equal(await count(page, '#dialog .run-stop:not(.wharf):not(.quest)'), await count(page, '#dialog .run-stop .run-chain-tag.sm'), 'every island stop names its chain');
 	// Chain after chain: a segment a chain.
 	await page.select('[data-act="barter-way"]', 'chain'); await wait(1500);
 	assert.equal(await count(page, '#dialog .run-seg-all'), 0);
 	assert.equal(await count(page, '#dialog .run-seg'), 2);
 	assert.ok(await page.$('#dialog .sail-bar'), 'the sail bar is in the sheet');
 	assert.equal(await page.$eval('#dialog .sail-bar', el => getComputedStyle(el).position), 'sticky', 'and stays in view as the sheet scrolls');
-	// The quests along the run: Iliya's dailies at the harbour it sails from, and a count on the strip.
-	assert.match(await text(page, '#dialog .run-quests-home'), /Quests at Iliya Island.*Sailing to a Wider World/i);
+	// The quests along the run, under the orders: the supplies for Dario
+	// handed in at Iliya before casting off, a count on the strip and in
+	// the sheet's head, the quests the run cannot take in listed; none
+	// of it when the orders say none.
+	assert.equal(await page.$eval('[data-act="barter-quests"]', el => el.value), 'yes');
+	assert.match(await text(page, '#dialog .run-quests-home'), /Quests at Iliya Island.*Supplies Delivery \(Iliya Island\)/i);
+	assert.match(await text(page, '#dialog .run-sheet-head'), /\d+ handed in on the way/);
 	assert.match(await text(page, '.run-dock'), /\d+ quests/);
-	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-quests"]').click()); await wait(800);
-	assert.equal(await count(page, '#dialog .run-quests-home'), 0, 'switched off in the sheet');
+	assert.ok(await page.$('#dialog .run-quests-off'), 'what the run cannot take in is listed');
+	await page.select('[data-act="barter-quests"]', 'no'); await wait(1500);
+	assert.equal(await count(page, '#dialog .run-quests-home'), 0, 'none under those orders');
+	assert.equal(await count(page, '#dialog .run-stop.quest'), 0);
 	assert.doesNotMatch(await text(page, '.run-dock'), /quests/);
-	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-quests"]').click()); await wait(800);
+	await page.select('[data-act="barter-quests"]', 'yes'); await wait(1500);
 	assert.equal(await count(page, '#dialog .run-quests-home'), 1);
 	assert.ok(await page.$('#dialog [data-act="barter-chart"]'), 'and the way to the chart');
 	// A chain unticked from inside the sheet: the sheet stays, one chain fewer.
@@ -1673,7 +1680,7 @@ test('the run laid out is a sheet over the Barter tab: a strip along the foot ap
 
 test('the material run is one route through every island ticked: a full run goes back to the harbour when the hold cannot carry every give, a fast run sails once and says what stayed ashore', async () => {
 	const { page, context, errors } = await open('#barter');
-	await page.evaluate(() => { localStorage.setItem('bdo-tracker/barter-view', JSON.stringify({ goal: 'material', item: "Violent Sea Monster's Scale", qty: 999, port: 1, matOrders: { reach: 'all', calls: true, pace: 'full' } })); });
+	await page.evaluate(() => { localStorage.setItem('bdo-tracker/barter-view', JSON.stringify({ goal: 'material', item: "Violent Sea Monster's Scale", qty: 999, port: 1, matOrders: { reach: 'all', calls: true, pace: 'full', quests: 'no' } })); });
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.mat-list.hero', { timeout: 15000 });
 	await page.evaluate(async () => {
 		const store = await import('/js/state.js');
@@ -1725,7 +1732,7 @@ test('the material run is one route through every island ticked: a full run goes
 
 test('before casting off: a gold bar an island takes is bought ashore and priced, and a give kept where the run cannot load it is to be brought to the harbour first', async () => {
 	const { page, context, errors } = await open('#barter');
-	await page.evaluate(() => { localStorage.setItem('bdo-tracker/barter-view', JSON.stringify({ goal: 'material', item: 'Golden Turtle Shell', qty: 4, port: 1, matOrders: { reach: 'want', calls: true, pace: 'full' } })); });
+	await page.evaluate(() => { localStorage.setItem('bdo-tracker/barter-view', JSON.stringify({ goal: 'material', item: 'Golden Turtle Shell', qty: 4, port: 1, matOrders: { reach: 'want', calls: true, pace: 'full', quests: 'no' } })); });
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.mat-list.hero', { timeout: 15000 });
 	await page.evaluate(async () => {
 		const store = await import('/js/state.js');

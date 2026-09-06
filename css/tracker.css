@@ -4173,15 +4173,18 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .run-quest { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 7px; font-size: 12px; color: var(--ink-mid); background: rgba(232, 182, 97, 0.07); border: 1px solid rgba(232, 182, 97, 0.22); border-radius: 8px; padding: 4px 9px 4px 7px; }
 .run-quest > i { font-style: normal; font-size: 12px; }
 .run-quest > b { font-weight: 700; color: var(--amber); text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.06em; }
-.run-quest-name { color: var(--ink); }
+.run-quest-name { color: var(--ink); flex: 1 1 140px; min-width: 0; }
 .run-quest small { font-size: 11px; color: var(--ink-mute); }
 .run-quest .chip.tiny { margin-left: auto; }
 .run-quest.wanted { border-color: rgba(126, 240, 212, 0.45); background: rgba(126, 240, 212, 0.07); }
 .run-quest.wanted > b { color: var(--teal); }
 .run-quest.hunt { background: rgba(88, 168, 232, 0.07); border-color: rgba(88, 168, 232, 0.25); }
 .run-quest.hunt > b { color: var(--blue); }
-.run-quests-toggle { margin-left: auto; font-size: 12px; color: var(--ink-mute); }
-.run-quests-toggle b { color: var(--amber); }
+.run-quest.done { opacity: 0.6; }
+.run-quest.off { background: transparent; border-color: var(--line-soft); }
+.run-quest.off > i { opacity: 0.6; }
+.run-quests-line { margin-left: auto; font-size: 12px; color: var(--ink-mute); }
+.run-quests-line b { color: var(--amber); }
 /* In the sheet a goods row wraps rather than cuts its name: the note
    takes a line of its own under the name, and on a phone so does what
    can be done about it. */
@@ -4332,6 +4335,7 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .run-rail i:last-child { flex: 1 1 auto; }
 .run-stop.last .run-rail i:last-child { background: transparent; }
 .run-rail b { width: 24px; height: 24px; border-radius: 50%; flex: none; background: rgba(88, 168, 232, 0.12); border: 1px solid rgba(88, 168, 232, 0.4); color: var(--blue-hi); font-family: var(--font-display); font-size: 11.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.run-stop.quest .run-rail b { background: rgba(232, 182, 97, 0.1); border-color: rgba(232, 182, 97, 0.6); color: var(--amber); }
 .run-stop.wharf .run-rail b { background: rgba(232, 182, 97, 0.14); border-color: rgba(232, 182, 97, 0.5); color: var(--amber); }
 .run-stop.wharf .run-rail i { background: rgba(232, 182, 97, 0.4); }
 .run-stop.sale .run-rail b { background: rgba(232, 144, 93, 0.16); border-color: rgba(232, 144, 93, 0.55); color: var(--tier-7); }
