@@ -46,9 +46,17 @@ export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, hours: 0, 
  *  counted off the run's trades; the same with a stop put in for a
  *  taker a short way off the route; or those and the hunts too, when
  *  their grounds lie on the way. */
-export const QUEST_CHOICES = [['no', 'none'], ['near', 'on the way only: handed in where the run passes'], ['yes', 'with a short way round: a stop put in for a taker close by'], ['hunts', 'those, and the hunts whose grounds lie on the way']];
+export const QUEST_CHOICES = [
+	['no', 'none', 'No quests on the run'],
+	['near', 'on the way', 'Handed in only where the run passes a taker anyway; no stop put in'],
+	['yes', 'short way round', 'A stop put in for a taker a short way off the route'],
+	['hunts', 'and the hunts', 'Those, and a hunt at a stop of its own on its grounds when they lie on the way']
+];
 
-export const WAY_CHOICES = [['sea', 'the shortest way: every chain climbed at once'], ['chain', 'chain after chain, each to its top']];
+export const WAY_CHOICES = [
+	['sea', 'shortest way', 'Every chain climbed at once: one route through every rung, the nearest islands first whatever chain they belong to'],
+	['chain', 'chain by chain', 'Each chain climbed to its top before the next']
+];
 
 /** The orders a run has when none are given: the [Level 7]s sold and
  *  nothing else, no floors -- the run as it was before there were
@@ -56,7 +64,11 @@ export const WAY_CHOICES = [['sea', 'the shortest way: every chain climbed at on
 export const PLAIN_ORDERS = { preset: 'cash', sell: 7, floors: {}, buy: true, pace: 'fast', hours: 0, count: 'least', way: 'chain', quests: 'no' };
 
 /** How an exchange that pays a range is counted. */
-export const COUNT_CHOICES = [['least', 'at the least — 2 of a 2-3'], ['average', 'at the average'], ['seen', 'as your own runs saw it']];
+export const COUNT_CHOICES = [
+	['least', 'at the least', 'A 2-3 counts as 2'],
+	['average', 'at the average', 'A 2-3 counts as 2.5'],
+	['seen', 'as seen', 'As your own runs recorded it']
+];
 
 /** The caps on time under way a sailor can set, in hours; 0 is none. */
 export const HOUR_CHOICES = [[0, 'no limit'], [1, 'an hour'], [2, 'two hours'], [3, 'three hours'], [4, 'four hours'], [6, 'six hours']];

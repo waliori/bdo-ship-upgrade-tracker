@@ -3,7 +3,7 @@
 
 import { routes, routeInfo } from './recipes.js';
 import { shipGroups } from './ships.js';
-import { statsLine } from './ship_stats.js';
+import { statsLine, shipStats } from './ship_stats.js';
 import { esc, F } from './fmt.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
@@ -162,11 +162,13 @@ export function askRoute(item, { onPick } = {}) {
 /** Searchable, icon-led list of everything that can be queued. */
 export function openBuildPicker() {
 	const queued = new Set(store.getTargets().map(t => t.item));
-	// shipGroups[0] is the ships themselves; anything else grouped there is
-	// a trackable part, and everything else is a material.
+	// A hull is a ship whichever group lists it -- the small craft sit in
+	// a group of their own -- anything else grouped there is a trackable
+	// part, and everything else is a material.
 	const kindOf = name => {
-		for (const [i, group] of shipGroups.entries()) {
-			if (group.items.includes(name)) return i === 0 ? 'ship' : 'part';
+		if (shipStats[name]) return 'ship';
+		for (const group of shipGroups) {
+			if (group.items.includes(name)) return 'part';
 		}
 		return 'material';
 	};

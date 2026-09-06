@@ -596,7 +596,7 @@ function routeHTML(marks) {
 		return `<div class="map-stop-row${over ? ' over' : ''}${k === stepIdx ? ' on' : ''}" data-act="map-step" data-i="${k}" data-step-row role="button" tabindex="0" title="Step to ${esc(n.at)}">
 			<span class="map-stop-n">${s.n}</span>
 			<span class="map-row-main">
-				<span class="map-row-name">${esc(n.at)}${leg}</span>
+				<span class="map-row-name"><span class="map-row-name-t">${esc(n.at)}</span>${leg}</span>
 				<span class="map-row-sub">${esc(n.name)}${runTrades[id]
 					? ''
 					: has ? ' · ' + esc([...has.items.keys()].join(', ')) : ' · nothing on your list here'}</span>
@@ -759,7 +759,7 @@ function stashRow(s, leg, k = -1) {
 	return `<div class="map-stop-row stash${questOnly ? ' quest' : ''}${k === stepIdx ? ' on' : ''}"${k >= 0 ? ` data-act="map-step" data-i="${k}" data-step-row role="button" tabindex="0" title="Step to ${esc(c.at)}"` : ''}>
 		<span class="map-stop-n stash" title="${questOnly ? 'A stop put in for a quest' : 'A pause at a wharf'}">${questOnly ? '📜' : '⚓'}</span>
 		<span class="map-row-main">
-			<span class="map-row-name">${esc(c.name)}${leg}</span>
+			<span class="map-row-name"><span class="map-row-name-t">${esc(c.name)}</span>${leg}</span>
 			<span class="map-row-sub">stop ${s.n} · ${esc(c.at)}${questOnly ? ' · a quest handed in here' : ` wharf${c.drops.length ? ' · the hold is lightened here' : ' · the hold is sold down here'}`}</span>
 			${drops ? `<span class="map-drops">${drops}</span>` : ''}
 			${c.sale ? `<span class="map-row-sub ok">sells ${n1(c.sale)} [Level 7]${c.silver ? ` for ${FC(c.silver)}` : ''}</span>` : ''}

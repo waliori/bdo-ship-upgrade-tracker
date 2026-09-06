@@ -192,12 +192,12 @@ function statCards(ship, stats, totals) {
 		? card('Cannon', `${totals.force.toFixed(1)} / ${totals.focus.toFixed(1)} / ${totals.vision.toFixed(1)}`, 'force / focus / vision, doubled at the cannon', 'teal') : '';
 	return `<div class="stats crew-stats">
 		${card('Seated', `${totals.seated} / ${totals.seats}`, `${F(totals.cabins)} of ${F(totals.space)} cabin space${totals.overSpace ? ` — ${F(totals.overSpace)} over` : ''}`, totals.overSpace ? 'amber' : '')}
-		${card('Speed', pct(totals.speed), 'sail seats count double', totals.speed ? 'teal' : '')}
-		${card('Accel', pct(totals.accel), `hull ${stats.accel}% before crew`, totals.accel ? 'teal' : '')}
-		${card('Turn / brake', `${pct(totals.turn)} / ${pct(totals.brake)}`, 'the wheel counts double', totals.turn || totals.brake ? 'teal' : '')}
-		${card('Durability', `+${F(totals.durability)}`, 'the Deck: 10,000 per cabin the sailor costs', totals.durability ? 'amber' : '')}
-		${card('Rations', `+${F(totals.rations)}`, `the Mess: 5,000 per cabin · crew eats ${F(totals.appetite)}/day`, totals.rations ? 'amber' : '')}
-		${card('Aboard', `+${F(totals.weight)} LT`, `${roster().length} hired · ${SAILOR_CAP} at most${totals.sick ? ` · ${totals.sick} sick` : ''}`)}
+		${card('Speed from crew', pct(totals.speed), 'sail seats count double', totals.speed ? 'teal' : '')}
+		${card('Accel from crew', pct(totals.accel), `hull ${stats.accel}% before crew`, totals.accel ? 'teal' : '')}
+		${card('Turn / brake from crew', `${pct(totals.turn)} / ${pct(totals.brake)}`, 'the wheel counts double', totals.turn || totals.brake ? 'teal' : '')}
+		${card('Durability from crew', `+${F(totals.durability)}`, 'the Deck: 10,000 per cabin the sailor costs', totals.durability ? 'amber' : '')}
+		${card('Rations from crew', `+${F(totals.rations)}`, `the Mess: 5,000 per cabin · crew eats ${F(totals.appetite)}/day`, totals.rations ? 'amber' : '')}
+		${card('Weight of crew', `+${F(totals.weight)} LT`, `${roster().length} hired · ${SAILOR_CAP} at most${totals.sick ? ` · ${totals.sick} sick` : ''}`)}
 		${cannon}
 	</div>`;
 }

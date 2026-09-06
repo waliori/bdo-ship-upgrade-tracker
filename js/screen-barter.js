@@ -721,7 +721,14 @@ const perHourText = v => (v > 0 ? `${FC(Math.round(v))}/h` : '');
 function ordersHTML(o) {
 	const adjusted = !onPreset(o);
 	const presets = PRESETS.map(p => `<button class="seg${o.preset === p.id ? ' on' : ''}" data-act="barter-preset" data-id="${p.id}" title="${esc(p.sub)}">${esc(p.label)}</button>`).join('');
-	const sel = (act, label, value, options, title = '') => `<label class="run-pick" ${title ? `title="${esc(title)}"` : ''}><span class="run-pick-k">${label}</span><select class="field select" data-act="${act}">${options.map(([v, t]) => `<option value="${esc(String(v))}"${String(v) === String(value) ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
+	// An option is a short label in the box and, where it needs one, a
+	// sentence under the box saying what the chosen one means -- a
+	// sentence in the box itself is cut off at the arrow.
+	const sel = (act, label, value, options, title = '') => {
+		const chosen = options.find(([v]) => String(v) === String(value)) || options[0];
+		const sub = chosen && chosen[2] ? `<span class="run-pick-sub">${esc(chosen[2])}</span>` : '';
+		return `<label class="run-pick" ${title ? `title="${esc(title)}"` : ''}><span class="run-pick-k">${label}</span><select class="field select" data-act="${act}" aria-label="${esc(label)}">${options.map(([v, t]) => `<option value="${esc(String(v))}"${String(v) === String(value) ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>${sub}</label>`;
+	};
 	const floors = [1, 2, 3, 4, 5, 6].map(lv => `<label class="run-floor" style="--tier:${TIER(lv)}"><i>${lv}</i>${amountInput('purse-inline', o.floors[lv] || '', `data-act="barter-floor" data-lv="${lv}" placeholder="0" aria-label="Keep back of Level ${lv}"`)}</label>`).join('');
 	return `<div class="orders">
 		<div class="orders-head">
@@ -731,8 +738,8 @@ function ordersHTML(o) {
 		</div>
 		<div class="run-picks">
 			${sel('barter-sell', 'a wharf sells', o.sell, SELL_CHOICES, 'Which goods a wharf call turns into silver; Level 1 and 2 never sell')}
-			${sel('barter-buy', 'land goods', o.buy ? 'yes' : 'no', [['yes', 'bought ashore when a chain starts there'], ['no', 'only what is held — no land chains']])}
-			${sel('barter-pace', 'pace', o.pace, [['fast', 'fast: no wharf calls, never slower'], ['full', 'every attempt, storage on the way']])}
+			${sel('barter-buy', 'land goods', o.buy ? 'yes' : 'no', [['yes', 'bought ashore', 'A chain that starts on land buys its first good ashore'], ['no', 'only what is held', 'No land chains: only goods already held']])}
+			${sel('barter-pace', 'pace', o.pace, [['fast', 'fast', 'No wharf calls, never slower than full speed'], ['full', 'full', 'Every attempt, with storage calls on the way']])}
 			${sel('barter-quests', 'quests on the way', o.quests, QUEST_CHOICES, 'The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the barter quests counted off the run\'s trades; the hunts only when their grounds lie on the way')}
 			${sel('barter-way', 'the way round', o.way, WAY_CHOICES, 'One route through every rung of every chain ticked, each after the rung beneath it — the nearest islands first, whatever chain they belong to — or each chain climbed to its top before the next')}
 			${sel('barter-stash', 'storage at', stash, [['', 'the nearest wharf'], ...stashes.map(w => [w.at, w.at])])}
@@ -1462,8 +1469,8 @@ function materialParts(me, data) {
 		</label>
 		<label class="mat-order" title="Full: every give ticked, in as many departures as the hold needs, what the run will not spend left in storage. Fast: one departure under the limit the ship still sails at full speed at; what does not fit stays ashore"><span class="run-pick-k">pace</span>
 			<select class="purse-inline" data-act="barter-mat-pace">
-				<option value="full"${matOrders.pace === 'full' ? ' selected' : ''}>full — several departures if needed</option>
-				<option value="fast"${matOrders.pace === 'fast' ? ' selected' : ''}>fast — one departure, under the limit</option>
+				<option value="full"${matOrders.pace === 'full' ? ' selected' : ''}>full</option>
+				<option value="fast"${matOrders.pace === 'fast' ? ' selected' : ''}>fast</option>
 			</select>
 		</label>
 		<label class="inline-check mat-order" title="Put in at another harbour on the way for a give kept in its storage"><input type="checkbox" data-act="barter-mat-calls"${matOrders.calls ? ' checked' : ''}> harbour calls for a give kept there</label>

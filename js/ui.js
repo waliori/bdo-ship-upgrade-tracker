@@ -370,24 +370,38 @@ function applyHash() {
 	}
 	if (!m || !TABS.some(t => t.id === m[1])) return false;
 	applyingHash = true;
-	// Back and forward switch screens like a tab press does.
-	closeBar();
-	if (m[1] !== 'map') exitFull();
-	queries[view] = query;
-	setView(m[1]);
-	setQuery(queries[m[1]] || '');
-	if (m[1] === 'inventory' && m[2]) setSelected(decodeURIComponent(m[2]));
-	// A route in a link: plotted, the chart flown to it, and the address
-	// cleaned like every other payload -- a reload of the link would
-	// otherwise stash the route as "Previous" again each time, and the
-	// list of saved routes holds eight.
-	if (m[1] === 'map' && m[2]) {
-		const n = applyMapLink(m[2]);
-		if (n) toast(`Route from the link: ${n} stop${n === 1 ? '' : 's'}`);
-		history.replaceState(null, '', `${location.pathname}${location.search}#map`);
+	// The flag is cleared whatever happens below -- a malformed item in
+	// the address (a broken percent-sequence) throws out of the decode,
+	// and a flag left set would freeze the address bar for the session.
+	try {
+		// Back and forward switch screens like a tab press does.
+		closeBar();
+		if (m[1] !== 'map') exitFull();
+		queries[view] = query;
+		setView(m[1]);
+		setQuery(queries[m[1]] || '');
+		if (m[1] === 'inventory') {
+			// A bare #inventory is the grid with nothing open: Back from an
+			// item's address closes the item, as it should.
+			let item = null;
+			if (m[2]) {
+				try { item = decodeURIComponent(m[2]); } catch { item = null; }
+			}
+			setSelected(item);
+		}
+		// A route in a link: plotted, the chart flown to it, and the address
+		// cleaned like every other payload -- a reload of the link would
+		// otherwise stash the route as "Previous" again each time, and the
+		// list of saved routes holds eight.
+		if (m[1] === 'map' && m[2]) {
+			const n = applyMapLink(m[2]);
+			if (n) toast(`Route from the link: ${n} stop${n === 1 ? '' : 's'}`);
+			history.replaceState(null, '', `${location.pathname}${location.search}#map`);
+		}
+		store.setSetting('view', m[1]);
+	} finally {
+		applyingHash = false;
 	}
-	store.setSetting('view', m[1]);
-	applyingHash = false;
 	return true;
 }
 
@@ -627,7 +641,7 @@ function wire() {
 
 		switch (act) {
 			case 'view': if (el.dataset.quest) setQuestFocus(el.dataset.quest); showView(el.dataset.id); return;
-			case 'tab-sheet': return openTabSheet();
+			case 'tab-sheet': closeBar(); return openTabSheet();
 			case 'undo': {
 				const label = store.undo();
 				toast(label ? `Reverted: ${label}` : 'Nothing to undo');
@@ -670,6 +684,10 @@ function wire() {
 				if (pop.hidden) {
 					pop.hidden = false;
 					el.setAttribute('aria-expanded', 'true');
+					// A menu opened from the keyboard is entered, not just
+					// shown: the first item takes the focus, and the arrows
+					// walk it (wired in the keydown handler).
+					if (evt.detail === 0) pop.querySelector('[role="menuitem"]')?.focus();
 				} else closeMore();
 				return;
 			}
@@ -1165,13 +1183,38 @@ function wire() {
 			return;
 		}
 
+		// Inside the More menu the arrows walk the items, Home and End
+		// jump to the ends, as a menu is expected to.
+		if (evt.target.closest && evt.target.closest('#more-menu') && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(evt.key)) {
+			const items = [...document.querySelectorAll('#more-menu [role="menuitem"]')].filter(b => !b.hidden && !b.disabled);
+			if (items.length) {
+				evt.preventDefault();
+				const i = items.indexOf(evt.target);
+				const next = evt.key === 'Home' ? 0 : evt.key === 'End' ? items.length - 1
+					: evt.key === 'ArrowDown' ? (i + 1) % items.length : (i - 1 + items.length) % items.length;
+				items[next].focus();
+			}
+			return;
+		}
+
 		// Escape peels the layers in order: the dialog first, then the
 		// field being typed in, then the inventory detail panel. Someone
 		// abandoning an edit is not asking to lose the panel around it.
 		if (evt.key === 'Escape') {
+			const more = document.getElementById('more-menu');
+			const bar = document.getElementById('masthead-actions');
 			if (!dialog.hidden) {
 				evt.preventDefault();
 				dismissDialog();
+			} else if (more && !more.hidden) {
+				// The menus shut the way they opened, and the focus goes back
+				// to the button that holds them, so the keyboard is not left
+				// on a hidden item.
+				closeMore();
+				document.querySelector('[data-act="more"]')?.focus();
+			} else if (bar && bar.classList.contains('open')) {
+				closeBar();
+				document.querySelector('[data-act="menu"]')?.focus();
 			} else if (evt.target.closest('input, textarea, select')) {
 				evt.target.blur();
 			} else if (mapIsFull()) {

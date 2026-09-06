@@ -169,7 +169,7 @@ export function renderGet() {
 	}
 
 	const body = groups.map(g => {
-		const total = g.coins ? `${F(g.coins)} coins` : g.silver ? `${F(g.silver)} silver` : `${g.items.length} items`;
+		const total = g.coins ? `${F(g.coins)} coins` : g.silver ? `${F(g.silver)} silver` : `${g.items.length} item${g.items.length === 1 ? '' : 's'}`;
 		const col = g.coins ? 'amber' : g.silver ? 'blue' : 'plain';
 		return `<div class="panel">
 			<div class="group-head">
