@@ -4276,6 +4276,20 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .run-seg-head b { font-weight: 700; font-size: 13.5px; color: var(--ink-hi); }
 .run-seg-head em { font-style: normal; font-size: 11.5px; font-weight: 600; color: var(--tier); }
 .run-seg-head span { flex: 1; font-size: 11.5px; color: var(--ink-mute); }
+/* One route through every chain: the chains named under the head, each
+   with its stops and the way to untick it, and every stop tagged with
+   the chain it climbs. */
+.run-seg-chains { display: flex; flex-wrap: wrap; gap: 6px; padding: 9px 18px; border-bottom: 1px solid var(--line-soft); }
+.run-chain-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--ink-mid); background: var(--panel-inset); border: 1px solid var(--line-soft); border-radius: 999px; padding: 3px 6px 3px 8px; }
+.run-chain-tag i { width: 7px; height: 7px; border-radius: 2px; background: var(--tier); flex: none; }
+.run-chain-tag em { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--tier); }
+.run-chain-tag small { font-size: 10.5px; color: var(--ink-faint); }
+.run-chain-tag .map-x { margin-left: 2px; }
+.run-chain-tag.sm { font-size: 10.5px; font-weight: 600; padding: 1px 7px 1px 6px; gap: 5px; color: var(--ink-mute); }
+.run-chain-tag.sm i { width: 6px; height: 6px; }
+@media (max-width: 640px) {
+  .run-seg-chains { padding: 8px 12px; }
+}
 .run-stops { padding: 6px 18px 14px; }
 .barter-run .run-stops { padding: 0; }
 .run-stop { display: flex; gap: 13px; }

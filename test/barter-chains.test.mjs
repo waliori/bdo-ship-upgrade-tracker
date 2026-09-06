@@ -17,6 +17,7 @@ import { boardData, offersOf } from '../js/barter-board.js';
 import { levelOf, GOODS } from '../js/barter.js';
 import { npcById, ports } from '../js/barter_npcs.js';
 import { wharves } from '../js/wharves.js';
+import { PLAIN_ORDERS } from '../js/barter-orders.js';
 
 const barterData = JSON.parse(await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
 const combos = JSON.parse(await readFile(new URL('../js/barter_combos.json', import.meta.url), 'utf8')).combos;
@@ -161,4 +162,31 @@ test('with no wharf in reach the hold never ends over the limit, and the fast pa
 	assert.ok(fast.stops.every(s => s.npcId && s.weightAfter <= small.free + 1e-6), 'never over the limit');
 	assert.ok(fast.stops.length > full.stops.length, 'every attempt at the foot leaves no room to climb');
 	assert.ok(fast.stops.some(s => s.npc === 'Tarin'));
+});
+
+test('the shortest way round: every chain climbed at once, each rung after the one beneath it, a shorter route than chain after chain, and the hold shared out so a fast run still fits', () => {
+	const chosen = chains(data).filter(c => c.from === 'land' && c.top === 7).slice(0, 3);
+	const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+	const length = p => { let L = 0, at = ports[0]; for (const s of p.stops) { const q = s.wharf || npcById.get(s.npcId); L += dist(at, q); at = q; } return L + dist(at, ports[0]); };
+	for (const pace of ['full', 'fast']) {
+		const byChain = chainRun({ chosen, hold, parley, npcById, start: ports[0], stashes, pace, orders: { ...PLAIN_ORDERS, way: 'chain' } });
+		const bySea = chainRun({ chosen, hold, parley, npcById, start: ports[0], stashes, pace, orders: { ...PLAIN_ORDERS, way: 'sea' } });
+		const isles = bySea.stops.filter(s => s.npcId);
+		// Every chain's rungs in climbing order, and no island dealt twice.
+		for (let k = 0; k < chosen.length; k++) {
+			const mine = isles.filter(s => s.chain === k).map(s => s.npcId);
+			const rungs = bySea.order[k].rungs.map(r => r.npcId).filter(id => mine.includes(id));
+			assert.deepEqual(mine, rungs, `${pace}: chain ${k} climbs in order`);
+		}
+		assert.equal(new Set(isles.map(s => s.npcId)).size, isles.length);
+		// Interleaved: the chain changes hands more often than a chain-after-chain run does.
+		const swaps = p => p.stops.filter(s => s.npcId).reduce((n, s, i, a) => n + (i && a[i - 1].chain !== s.chain ? 1 : 0), 0);
+		assert.ok(swaps(bySea) > swaps(byChain), `${pace}: ${swaps(bySea)} changes of chain against ${swaps(byChain)}`);
+		assert.ok(length(bySea) < length(byChain) * 0.8, `${pace}: ${Math.round(length(bySea))} against ${Math.round(length(byChain))}`);
+		// The hold: never over the barter ceiling on a full run, never over the limit on a fast one, and something sold.
+		const ceiling = pace === 'fast' ? hold.free : hold.deal;
+		for (const s of bySea.stops) if (s.npcId) assert.ok(s.weightAfter - s.times * (s.recvMax * GOODS[levelOf(s.item)].weight - (levelOf(s.give) ? s.giveN * GOODS[levelOf(s.give)].weight : 0)) <= ceiling + 1e-6, `${pace}: ${s.npc} starts under the ceiling`);
+		if (pace === 'fast') assert.ok(bySea.weightPeak <= hold.free + 1e-6, `${pace}: peak ${bySea.weightPeak}`);
+		assert.ok(bySea.silver > 0, `${pace}: sells`);
+	}
 });

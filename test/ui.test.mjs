@@ -1640,6 +1640,14 @@ test('the run laid out is a sheet over the Barter tab: a strip along the foot ap
 	await page.evaluate(() => document.querySelector('[data-act="barter-run-open"]').click()); await wait(400);
 	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), false);
 	assert.match(await text(page, '#dialog .run-sheet-head'), /The run.*2 chains/i);
+	// Two chains under the default way round: one route, every stop tagged with its chain.
+	assert.equal(await page.$eval('[data-act="barter-way"]', el => el.value), 'sea');
+	assert.equal(await count(page, '#dialog .run-seg-all'), 1, 'one timeline for both chains');
+	assert.equal(await count(page, '#dialog .run-seg-chains .run-chain-tag'), 2);
+	assert.equal(await count(page, '#dialog .run-stop:not(.wharf)'), await count(page, '#dialog .run-stop .run-chain-tag.sm'), 'every island stop names its chain');
+	// Chain after chain: a segment a chain.
+	await page.select('[data-act="barter-way"]', 'chain'); await wait(1500);
+	assert.equal(await count(page, '#dialog .run-seg-all'), 0);
 	assert.equal(await count(page, '#dialog .run-seg'), 2);
 	assert.ok(await page.$('#dialog .sail-bar'), 'the sail bar is in the sheet');
 	assert.ok(await page.$('#dialog [data-act="barter-chart"]'), 'and the way to the chart');

@@ -544,6 +544,17 @@ the Gold Bars a few islands take, bought ashore and priced; a give kept
 in a storage the run cannot load from, to bring to the harbour first;
 and, for what is held nowhere, the way to the item board.
 
+The silver run has a way round among its orders. The shortest way
+climbs every chain ticked at once: one route through every rung, each
+still after the rung beneath it in its own chain, so the ship deals the
+nearest island it holds the give for whatever chain it belongs to --
+the [Level 1]s off the harbour, then the [Level 2]s -- and a fast run
+shares the hold out among the chains before casting off. Chain after
+chain climbs each to its top before the next, as a run along the
+proposals does. The route is built nearest-first and shortened by
+moving runs of rungs wherever they save distance without passing a
+rung they depend on.
+
 The tab is one column: the board, the hold as a line that opens over
 the page, the run's orders and figures, then what is on offer -- the
 chains as cards, or the material list. The run laid out is a sheet over

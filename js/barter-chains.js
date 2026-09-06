@@ -58,6 +58,78 @@ export function chains(barterData, stock = {}, dock = {}) {
 const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);
 
 /**
+ * The rungs of the chains in sailing order, each tagged with its chain.
+ * Chain after chain (`way` 'chain'): every rung of the first chain,
+ * then the next. The shortest way round ('sea'): the rungs of every
+ * chain merged into one route, each still after the rung beneath it in
+ * its own chain -- so the ship deals whatever is nearest that it holds
+ * the give for, climbing several chains at once, the way a sailor
+ * works the islands off a harbour: the [Level 1]s round Velia, then
+ * the [Level 2]s, rather than out to a [Level 7] and back for the next
+ * chain's first rung. The route is built nearest-first from `start`
+ * and then shortened by moving runs of one to three rungs to wherever
+ * they save distance without passing a rung they depend on; the
+ * distances are straight, and the way home is counted when the run
+ * has a harbour to go home to.
+ */
+function sequence(order, npcById, start, way) {
+	const rungs = order.flatMap((c, k) => c.rungs.map((r, j) => ({ r, chain: k, j })));
+	if (way !== 'sea' || order.length < 2) return rungs;
+	const at = x => npcById.get(x.r.npcId);
+	const D = (a, b) => dist(a, b);
+	// Nearest-first, among the rungs whose rung beneath is done.
+	const next = order.map(() => 0);
+	let seq = [];
+	let here = start;
+	while (seq.length < rungs.length) {
+		let best = -1, bd = Infinity;
+		for (let k = 0; k < order.length; k++) {
+			if (next[k] >= order[k].rungs.length) continue;
+			const d = D(here, npcById.get(order[k].rungs[next[k]].npcId));
+			if (d < bd) { bd = d; best = k; }
+		}
+		const x = rungs.find(y => y.chain === best && y.j === next[best]);
+		seq.push(x); next[best]++; here = at(x);
+	}
+	// Shortened: a block of one to three rungs moved to where it saves
+	// distance, so long as no rung of its chains stands between its old
+	// place and its new one -- the order within a chain never changes.
+	const home = start || null;
+	const P = k => (k < 0 ? start : k >= seq.length ? home : at(seq[k]));
+	const leg = (a, b) => (a && b ? D(a, b) : 0);
+	let passes = 0, improved = true;
+	while (improved && passes++ < 40) {
+		improved = false;
+		outer: for (let size = 1; size <= 3 && size < seq.length; size++) {
+			for (let i = 0; i + size <= seq.length; i++) {
+				const chainsIn = new Set(seq.slice(i, i + size).map(x => x.chain));
+				const b0 = at(seq[i]), b1 = at(seq[i + size - 1]);
+				const saved = leg(P(i - 1), b0) + leg(b1, P(i + size)) - leg(P(i - 1), P(i + size));
+				// Forward, then backward, as far as no rung of the block's chains is passed.
+				for (const dir of [1, -1]) {
+					for (let p = dir > 0 ? i + size : i - 1; dir > 0 ? p < seq.length : p >= 0; p += dir) {
+						if (chainsIn.has(seq[p].chain)) break;
+						// The block set down after seq[p] (forward) or before it (backward).
+						const before = dir > 0 ? at(seq[p]) : P(p - 1);
+						const after = dir > 0 ? P(p + 1) : at(seq[p]);
+						const cost = leg(before, b0) + leg(b1, after) - leg(before, after);
+						if (cost < saved - 1e-6) {
+							const block = seq.slice(i, i + size);
+							const rest = [...seq.slice(0, i), ...seq.slice(i + size)];
+							const q = dir > 0 ? p + 1 - size : p;
+							seq = [...rest.slice(0, q), ...block, ...rest.slice(q)];
+							improved = true;
+							break outer;
+						}
+					}
+				}
+			}
+		}
+	}
+	return seq;
+}
+
+/**
  * The run along `chosen` chains, in the shape the screen draws: stops
  * in sailing order -- islands, and wharves where goods are left and
  * sold -- each tagged with the chain it belongs to, the hold weighed
@@ -68,7 +140,9 @@ const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);
  * the goods handed on are never overstated and the hold never
  * understated.
  *
- * Chains are sailed nearest-first from `start`. `hold` is { free, deal,
+ * Chains are sailed nearest-first from `start`, and by `orders.way`
+ * either chain after chain or -- 'sea' -- as one route through every
+ * rung, each after the rung beneath it (see `sequence`). `hold` is { free, deal,
  * max }: the weight limit, over which the ship sails slower; the most
  * it carries and still barters (an exchange must start under it, and
  * can end over it); and the most the hull moves under at all. Two
@@ -129,6 +203,7 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 		at = npcById.get(c.rungs[c.rungs.length - 1].npcId);
 	}
 	at = start;
+	const way = orders.way === 'sea' || orders.way === 'chain' ? orders.way : 'chain';
 
 	// The attempts a rung is worth: all the island allows, or in a
 	// fast run only what the rungs above can take, counted down from
@@ -137,7 +212,7 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 	const cap = new Map();     // the attempts a rung is for: all the island allows, or a fast run's share
 	for (const c of order) for (const r of c.rungs) cap.set(r, r.tries);
 
-	const rungs = order.flatMap((c, k) => c.rungs.map(r => ({ r, chain: k })));
+	const rungs = sequence(order, npcById, start, way);
 	const dw = r => r.recvMax * weightOf(r.item) - r.giveN * weightOf(r.give);
 	// What the rungs from `i` on can still take of each good.
 	const needFrom = i => {
@@ -151,23 +226,29 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 	// where a leftover is worth carrying -- as many as keep the hold
 	// under the limit through the whole climb. Nothing extra at a rung
 	// whose good sells for nothing: a leftover there is dead weight.
-	const share = c => {
-		const rs = c.rungs.filter(r => !used.has(r.npcId));
+	// `weighs` and `take` are shared with the wharf calls below.
+	// A rung at an island another rung of the run reaches first deals
+	// nothing -- the island has dealt -- so it takes no share.
+	const dup = new Set();
+	{ const isles = new Set(); for (const x of rungs) { if (isles.has(x.r.npcId)) dup.add(x.r); else isles.add(x.r.npcId); } }
+	const rungsLeft = c => c.rungs.filter(r => !used.has(r.npcId) && !dup.has(r));
+	const vec = (rs, topWant, extra) => {
 		const top = rs.length - 1;
-		let topWant = rs[top].tries;
-		const vec = extra => {
-			const a = new Array(rs.length);
-			let need = Infinity;
-			for (let k = top; k >= 0; k--) {
-				const r = rs[k];
-				const feed = need < Infinity ? Math.ceil(Math.max(0, need - (held.get(r.item) || 0)) / r.recvMin - 1e-9) : 0;
-				a[k] = Math.min(r.tries, Math.max(feed, k === top ? topWant : extra[k]));
-				need = a[k] * r.giveN;
-			}
-			return a;
-		};
-		const fits = a => {
-			const goods = new Map(held), most = new Map(heldMax);
+		const a = new Array(rs.length);
+		let need = Infinity;
+		for (let k = top; k >= 0; k--) {
+			const r = rs[k];
+			const feed = need < Infinity ? Math.ceil(Math.max(0, need - (held.get(r.item) || 0)) / r.recvMin - 1e-9) : 0;
+			a[k] = Math.min(r.tries, Math.max(feed, k === top ? topWant : extra[k]));
+			need = a[k] * r.giveN;
+		}
+		return a;
+	};
+	// Whether the climbs given -- [{ rs, a }] -- fit under the limit
+	// together, from what is aboard now.
+	const fitsAll = plans => {
+		const goods = new Map(held), most = new Map(heldMax);
+		for (const { rs, a } of plans) {
 			for (let k = 0; k < rs.length; k++) {
 				const r = rs[k];
 				const t = Math.min(a[k], levelOf(r.give) === null ? Infinity : Math.floor((goods.get(r.give) || 0) / r.giveN + 1e-9));
@@ -176,20 +257,39 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 				most.set(r.item, (most.get(r.item) || 0) + t * r.recvMax);
 				if (weightHeld(most) > hold.free + 1e-6) return false;
 			}
-			return true;
-		};
-		const extra = new Array(rs.length).fill(0);
-		// A hull too small for the top's full attempts takes fewer.
-		while (topWant > 1 && !fits(vec(extra))) topWant--;
-		for (let k = top - 1; k >= 0; k--) {
-			if (!sellOf(rs[k].item)) continue;
-			while (extra[k] < rs[k].tries) {
-				extra[k]++;
-				if (!fits(vec(extra))) { extra[k]--; break; }
+		}
+		return true;
+	};
+	// The hold shared out among `cs` chains climbed together (one, chain
+	// after chain): every top's attempts, cut a chain at a time -- the
+	// one asking most first -- until they fit, a chain that cannot fit
+	// even one attempt at the top left out; then extras at the rungs
+	// below, one at a time round the chains, while the whole still fits.
+	const share = cs => {
+		const plans = cs.map(c => ({ rs: rungsLeft(c), topWant: 0, extra: [] })).filter(p => p.rs.length);
+		for (const p of plans) { p.topWant = p.rs[p.rs.length - 1].tries; p.extra = new Array(p.rs.length).fill(0); p.a = vec(p.rs, p.topWant, p.extra); }
+		const live = () => plans.filter(p => p.topWant > 0);
+		while (live().length && !fitsAll(live())) {
+			const most = live().reduce((x, p) => (p.topWant > x.topWant ? p : x));
+			if (most.topWant > 1) most.topWant--;
+			else live().reduce((x, p) => (weighs([...p.a.map((n, k) => [p.rs[k].item, n * p.rs[k].recvMax])]) > weighs([...x.a.map((n, k) => [x.rs[k].item, n * x.rs[k].recvMax])]) ? p : x)).topWant = 0;
+			for (const p of plans) p.a = p.topWant > 0 ? vec(p.rs, p.topWant, p.extra) : p.rs.map(() => 0);
+		}
+		let more = true;
+		while (more) {
+			more = false;
+			for (const p of live()) {
+				for (let k = p.rs.length - 2; k >= 0; k--) {
+					if (!sellOf(p.rs[k].item) || p.extra[k] >= p.rs[k].tries) continue;
+					p.extra[k]++;
+					const a = vec(p.rs, p.topWant, p.extra);
+					const was = p.a; p.a = a;
+					if (fitsAll(live())) { more = true; break; }
+					p.extra[k]--; p.a = was;
+				}
 			}
 		}
-		const a = vec(extra);
-		rs.forEach((r, k) => cap.set(r, a[k]));
+		for (const p of plans) p.rs.forEach((r, k) => cap.set(r, p.a[k]));
 	};
 	const spare = (goods, need) => [...goods].map(([name, n]) => [name, n - (need.get(name) || 0)]).filter(([, n]) => n > 1e-9);
 	const weighs = list => list.reduce((a, [name, n]) => a + n * weightOf(name), 0);
@@ -238,17 +338,30 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 	};
 	const wharfFor = next => prefer || stashes.reduce((a, w) => (dist(at, w) + dist(w, next) < dist(at, a) + dist(a, next) ? w : a));
 
+	const begun = new Set();   // the chains whose first rung the run has reached
 	for (let i = 0; i < rungs.length; i++) {
 		const { r, chain } = rungs[i];
 		if (used.has(r.npcId)) continue;
 		const npc = npcById.get(r.npcId);
 		const ashore = levelOf(r.give) === null;
-		if (pace === 'fast' && (i === 0 || rungs[i - 1].chain !== chain)) {
-			// A fast run sells the last chain's goods before the next
-			// chain, so they are not carried up another climb, and takes
-			// its share of this one from where the ship then stands.
-			if (i > 0 && stashes.length && saleAt(i).length) call(wharfFor(npc), [], chain, saleAt(i));
-			share(order[chain]);
+		if (pace === 'fast' && !begun.has(chain)) {
+			begun.add(chain);
+			if (way === 'sea') {
+				// Climbing every chain at once, a fast run shares the hold
+				// out before it casts off: each chain in turn, against a
+				// hold already carrying what the chains before it will
+				// bring aboard, so the whole of it fits under the limit at
+				// the top. Nothing is sold on the way -- there is no
+				// between-chains -- so the sale is at the last call.
+				if (i === 0) share(order);
+			} else {
+				// Chain after chain, a fast run sells what a chain has
+				// finished before it takes up the next, so the goods are
+				// not carried up another climb, and takes its share of the
+				// new chain from where the ship then stands.
+				if (i > 0 && stashes.length && saleAt(i).length) call(wharfFor(npc), [], chain, saleAt(i));
+				share([order[chain]]);
+			}
 		}
 		// What is aboard above the floor kept back is what can be spent.
 		const spendable = ashore ? Infinity : Math.max(0, (held.get(r.give) || 0) - floorOf(r.give, orders));
