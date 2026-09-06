@@ -4387,6 +4387,19 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .run-hold b.amber { color: var(--amber); }
 .run-hold b.warn { color: var(--red); }
 .run-bar { display: flex; height: 5px; margin-top: 5px; border-radius: 3px; overflow: hidden; background: var(--track); }
+/* On a phone the hold leaves the side of the stop and goes under it as
+   one line, so the trade and the quests handed in there have the whole
+   width; the rail keeps its place down the left. */
+@media (max-width: 640px) {
+  .run-stop { flex-wrap: wrap; gap: 0 12px; }
+  .run-rail { order: 0; }
+  .run-main { order: 1; flex: 1 1 0; padding-bottom: 6px; }
+  .run-hold { order: 2; flex: 1 1 100%; width: auto; margin-left: 38px; padding: 0 0 12px; display: flex; align-items: center; gap: 10px; }
+  .run-hold > div:first-child { flex: none; gap: 8px; }
+  .run-hold .run-bar { flex: 1 1 auto; margin-top: 0; }
+  .run-stop.last .run-hold { padding-bottom: 4px; }
+  .run-quest { width: 100%; }
+}
 .run-bar i { background: var(--blue-bar); }
 .run-bar i.over { background: var(--amber); }
 .run-bar i.heavy { background: var(--red); }
