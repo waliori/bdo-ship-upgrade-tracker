@@ -29,6 +29,7 @@
 
 import { getSave, writeSave, closePool, transient } from './db.js';
 import { config } from './config.js';
+import { counters } from './log.js';
 
 /* How long to sit on a change before writing it out. Long enough that
  * typing "1", "12", "120" into a quantity is one write instead of three,
@@ -157,6 +158,16 @@ const snapshot = entry => ({
 	updatedAt: entry.updatedAt,
 	device: entry.device
 });
+
+/** What memory is holding ahead of the database, for /healthz: saves
+ *  not yet written, and writes waiting their turn behind the in-flight
+ *  ceiling. Both should read zero moments after any edit; a number that
+ *  stays up is the database not taking writes. */
+export function stats() {
+	let dirty = 0;
+	for (const entry of live.values()) if (entry.dirty) dirty++;
+	return { held: live.size, dirty, queued: queued.length, inFlight };
+}
 
 /* ------------------------------------------------------------------ *
  * What the API calls
@@ -315,6 +326,7 @@ async function flush(userId, entry) {
 	try {
 		await writeSave(userId, sending);
 		entry.failures = 0;
+		counters.savesFlushed++;
 		if (entry.rev === sending.rev) {
 			entry.dirty = false;
 			evictIfCrowded();
@@ -397,7 +409,7 @@ export async function flushAll() {
 		entry.timer = null;
 		if (!entry.dirty || !entry.payload) continue;
 		pending.push(writeSave(userId, snapshot(entry)).then(
-			() => { entry.dirty = false; return true; },
+			() => { entry.dirty = false; counters.savesFlushed++; return true; },
 			error => {
 				console.error(`[saves] ${userId}'s last save did not reach the database:`, error.message);
 				return false;

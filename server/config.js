@@ -55,6 +55,18 @@ const turso = {
 const publicUrl = (read('PUBLIC_URL') || `http://localhost:${read('PORT') || 8000}`)
 	.replace(/\/+$/, '');
 
+// The origin a browser must be on to change anything: scheme, host and
+// port of PUBLIC_URL, and null when none was given -- then the request's
+// own Host is the best that is known, and server.js compares against
+// that instead.
+let publicOrigin = null;
+try {
+	if (read('PUBLIC_URL')) publicOrigin = new URL(publicUrl).origin;
+} catch {
+	// Not a URL at all; sign-in will fail on the redirect anyway, and the
+	// origin check falls back to the request's Host.
+}
+
 // Sync needs an identity provider and somewhere to put the data. Either
 // one alone is useless, so both are required before any of it turns on.
 export const syncEnabled = Boolean(
@@ -83,6 +95,7 @@ export const config = {
 	// How long before a spawn the reminder goes out.
 	pushBeforeMs: num('PUSH_BEFORE_MINUTES', 15) * 60 * 1000,
 	publicUrl,
+	publicOrigin,
 	discord: {
 		...discord,
 		redirectUri: `${publicUrl}/auth/discord/callback`,

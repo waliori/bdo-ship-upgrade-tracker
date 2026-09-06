@@ -4,10 +4,10 @@
 // covers both: point TURSO_DATABASE_URL at `file:./.data/tracker.db` to
 // develop without an account, or at a `libsql://` host to run for real.
 //
-// Two tables and no more. The tracker derives everything it shows from
-// stock and targets, so that is all a save has to carry -- there is no
-// server-side notion of a plan, and nothing here needs to understand a
-// recipe.
+// Three tables and a version row. The tracker derives everything it
+// shows from stock and targets, so that is all a save has to carry --
+// there is no server-side notion of a plan, and nothing here needs to
+// understand a recipe.
 //
 // Nothing in here decides who wins a race. A `libsql://` URL is not a
 // socket -- every statement is a separate HTTPS request -- so treating
@@ -160,34 +160,73 @@ async function exec(statement, tries = config.turso.retries) {
  * Schema
  * ------------------------------------------------------------------ */
 
-const SCHEMA = [
-	`CREATE TABLE IF NOT EXISTS users (
-		id          TEXT PRIMARY KEY,
-		username    TEXT NOT NULL,
-		avatar      TEXT,
-		created_at  INTEGER NOT NULL,
-		seen_at     INTEGER NOT NULL
-	)`,
-	// One save per account, overwritten in place. The tracker already
-	// keeps its own undo history in the browser; duplicating it here
-	// would mean shipping every keystroke to a server for no gain.
-	`CREATE TABLE IF NOT EXISTS saves (
-		user_id     TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-		rev         INTEGER NOT NULL,
-		payload     TEXT NOT NULL,
-		updated_at  INTEGER NOT NULL,
-		device      TEXT
-	)`,
-	// Push subscriptions for the Vell reminder, by the server region
-	// whose timetable they follow. Anonymous: an endpoint is its own key
-	// and says nothing about who holds it.
-	`CREATE TABLE IF NOT EXISTS push_subs (
-		endpoint    TEXT PRIMARY KEY,
-		sub         TEXT NOT NULL,
-		region      TEXT NOT NULL,
-		created_at  INTEGER NOT NULL
-	)`
+// The schema, as an ordered list of steps. Each runs once per database
+// and is recorded in `schema_version`, so a table added later is a new
+// entry at the end rather than an edit to the first one -- the
+// databases already out there have run the first and will not run it
+// again. A step gets `run`, which sends one statement and rides out the
+// weather like everything else here.
+export const MIGRATIONS = [
+	{
+		version: 1,
+		up: async run => {
+			await run(`CREATE TABLE IF NOT EXISTS users (
+				id          TEXT PRIMARY KEY,
+				username    TEXT NOT NULL,
+				avatar      TEXT,
+				created_at  INTEGER NOT NULL,
+				seen_at     INTEGER NOT NULL
+			)`);
+			// One save per account, overwritten in place. The tracker
+			// already keeps its own undo history in the browser;
+			// duplicating it here would mean shipping every keystroke to
+			// a server for no gain.
+			await run(`CREATE TABLE IF NOT EXISTS saves (
+				user_id     TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+				rev         INTEGER NOT NULL,
+				payload     TEXT NOT NULL,
+				updated_at  INTEGER NOT NULL,
+				device      TEXT
+			)`);
+			// Push subscriptions for the Vell reminder, by the server
+			// region whose timetable they follow. Anonymous: an endpoint
+			// is its own key and says nothing about who holds it.
+			await run(`CREATE TABLE IF NOT EXISTS push_subs (
+				endpoint    TEXT PRIMARY KEY,
+				sub         TEXT NOT NULL,
+				region      TEXT NOT NULL,
+				created_at  INTEGER NOT NULL
+			)`);
+		}
+	}
 ];
+
+/** The data tables, in the order a restore has to write them (parents first). */
+export const TABLES = ['users', 'saves', 'push_subs'];
+
+/**
+ * Bring the database up to the newest version. Safe to run any number
+ * of times: every step already applied is skipped by its recorded
+ * version, and step one is written so that it is harmless even on a
+ * database that predates the version table.
+ */
+export async function applyMigrations() {
+	await exec(`CREATE TABLE IF NOT EXISTS schema_version (
+		version     INTEGER PRIMARY KEY,
+		applied_at  INTEGER NOT NULL
+	)`);
+	const { rows } = await exec('SELECT MAX(version) AS v FROM schema_version');
+	const current = Number(rows[0] && rows[0].v) || 0;
+	for (const step of MIGRATIONS) {
+		if (step.version <= current) continue;
+		await step.up(exec);
+		await exec({
+			sql: 'INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (?, ?)',
+			args: [step.version, Date.now()]
+		});
+	}
+	return Math.max(current, ...MIGRATIONS.map(m => m.version));
+}
 
 let schema = null;
 
@@ -198,7 +237,7 @@ let schema = null;
  * unreachable should not stop the tracker from serving the page, since
  * the page works without one. Everything that touches a table awaits it
  * anyway, so the first query after a bad start simply pays for the
- * retry itself.
+ * retry itself. Resolves to the schema version now in place.
  */
 export function migrate() {
 	if (!schema) {
@@ -210,13 +249,22 @@ export function migrate() {
 			// to, so there the parent-row check is made in code instead --
 			// the deleted-account guard in api.js.
 			if (!remote) await exec('PRAGMA foreign_keys = ON');
-			for (const statement of SCHEMA) await exec(statement);
+			return applyMigrations();
 		})().catch(error => {
 			schema = null;   // let the next caller try again
 			throw error;
 		});
 	}
 	return schema;
+}
+
+/**
+ * Is the database answering right now? One statement, one attempt -- a
+ * healthcheck that waited out four retries would report the outage
+ * late, and the point of it is to report it at all.
+ */
+export async function ping() {
+	await exec('SELECT 1', 1);
 }
 
 /* ------------------------------------------------------------------ *

@@ -24,11 +24,12 @@
 //   * The walkthrough films are left alone entirely: a <video> asks in
 //     ranges, and a 206 is something cache.put refuses.
 //
-// The app cache is named for the deploy -- the Docker build stamps
-// VERSION -- and activate sweeps every cache that is not this deploy's
-// or the assets', so an update starts clean.
+// The app cache is named for the deploy -- the server writes the build
+// stamp into VERSION as it serves this file (server.js), and the Docker
+// build bakes one in as well -- and activate sweeps every cache that is
+// not this deploy's or the assets', so an update starts clean.
 
-const VERSION = '__BUILD__';   // stamped at image build; unstamped, the literal names the dev cache
+const VERSION = '__BUILD__';   // replaced with the build stamp when served; the literal is only ever seen on disk
 const APP_CACHE = `sail-${VERSION}`;
 const ASSET_CACHE = 'sail-assets';
 
@@ -238,7 +239,12 @@ self.addEventListener('notificationclick', evt => {
 async function networkFirst(req) {
 	try {
 		const res = await fetch(req);
-		if (keepable(res)) (await caches.open(APP_CACHE)).put(req, res.clone());
+		// Not filed away once a newer worker is installed and waiting.
+		// The network is already serving the new deploy's files by then,
+		// and this cache is the old deploy's: writing one into the other
+		// would build exactly the mixed shell an offline start must never
+		// find. The waiting worker precached the whole new shell itself.
+		if (keepable(res) && !self.registration.waiting) (await caches.open(APP_CACHE)).put(req, res.clone());
 		return res;
 	} catch {
 		const held = await caches.match(req, { ignoreSearch: req.mode === 'navigate' });

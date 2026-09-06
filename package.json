@@ -28,6 +28,8 @@
     "start": "node --env-file-if-exists=.env server.js",
     "test": "node --test \"test/*.test.mjs\"",
     "check": "node --env-file-if-exists=.env tools/check-env.mjs",
+    "backup": "node --env-file-if-exists=.env tools/backup.mjs",
+    "restore": "node --env-file-if-exists=.env tools/backup.mjs --restore",
     "capture": "tools/capture/shoot.sh",
     "lint": "eslint ."
   },

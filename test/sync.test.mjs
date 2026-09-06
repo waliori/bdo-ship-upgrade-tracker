@@ -17,6 +17,8 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sail-sync-'));
 
 process.env.NODE_ENV = 'test';
 process.env.PORT = '0';
+process.env.LOG_REQUESTS = '0';
+delete process.env.PUBLIC_URL;
 process.env.DISCORD_CLIENT_ID = 'test-client';
 process.env.DISCORD_CLIENT_SECRET = 'test-secret';
 process.env.TURSO_DATABASE_URL = `file:${path.join(dir, 'tracker.db')}`;
@@ -45,11 +47,12 @@ test.after(() => {
 	fs.rmSync(dir, { recursive: true, force: true });
 });
 
-const call = (method, url, { cookie, body } = {}) => fetch(base + url, {
+const call = (method, url, { cookie, body, headers } = {}) => fetch(base + url, {
 	method,
 	headers: {
 		...(cookie ? { Cookie: cookie } : {}),
-		...(body ? { 'Content-Type': 'application/json' } : {})
+		...(body ? { 'Content-Type': 'application/json' } : {}),
+		...headers
 	},
 	body: body ? JSON.stringify(body) : undefined,
 	redirect: 'manual'
@@ -397,4 +400,65 @@ test('a profile that is not an object is refused', async () => {
 		});
 		assert.equal(res.status, 400, `profile ${JSON.stringify(bad)} should be refused`);
 	}
+});
+
+/* ------------------------------------------------------------------ *
+ * Operations: where a change may come from, and whether it is up
+ * ------------------------------------------------------------------ */
+
+test('a change from another site is refused, whatever cookie it carries', async () => {
+	// No PUBLIC_URL in this file, so the request's own Host is the site.
+	const { rev } = await (await call('GET', '/api/state', { cookie: alice })).json();
+	const from = origin => call('PUT', '/api/state', { cookie: alice, body: { rev, data: SAVE }, headers: { Origin: origin } });
+	assert.equal((await from('https://evil.example')).status, 403);
+	assert.equal((await from('null')).status, 403);
+	// A browser that names no origin but says the request crossed sites.
+	const crossed = await call('POST', '/auth/logout', { cookie: alice, headers: { 'Sec-Fetch-Site': 'cross-site' } });
+	assert.equal(crossed.status, 403);
+
+	// The same request from this site goes through as before.
+	const ours = await from(base);
+	assert.equal(ours.status, 200);
+	const same = await call('POST', '/auth/logout', { cookie: alice, headers: { 'Sec-Fetch-Site': 'same-origin' } });
+	assert.equal(same.status, 200);
+	// And a refusal never reads the body: the stored save did not move.
+	const after = await (await call('GET', '/api/state', { cookie: alice })).json();
+	assert.equal(after.rev, rev + 1);
+});
+
+test('a read is never asked where it came from', async () => {
+	const res = await call('GET', '/api/me', { cookie: alice, headers: { Origin: 'https://evil.example' } });
+	assert.equal(res.status, 200);
+});
+
+test('the healthcheck says the database is answering, and what memory holds', async () => {
+	const res = await call('GET', '/healthz');
+	assert.equal(res.status, 200);
+	assert.equal(res.headers.get('cache-control'), 'no-store');
+	const body = await res.json();
+	assert.equal(body.ok, true);
+	assert.equal(body.db, 'ok');
+	assert.equal(typeof body.dirty, 'number');
+	assert.equal(typeof body.queued, 'number');
+	assert.equal(typeof body.uptime, 'number');
+	assert.ok(body.version, 'names the build');
+	// Every push above was written out, and counted on the way.
+	assert.ok(body.counters.savesFlushed > 0, 'no save was ever flushed');
+	assert.ok(body.counters.requests['2xx'] > 0);
+	assert.ok(body.counters.requests['4xx'] > 0, 'the refusals above were not counted');
+});
+
+test('the schema is versioned, and running the migrations again changes nothing', async () => {
+	const { db, migrate, applyMigrations, MIGRATIONS } = await import('../server/db.js');
+	const newest = MIGRATIONS[MIGRATIONS.length - 1].version;
+	assert.equal(await migrate(), newest);
+	const versions = async () => (await db().execute('SELECT version FROM schema_version ORDER BY version')).rows.map(r => Number(r.version));
+	assert.deepEqual(await versions(), MIGRATIONS.map(m => m.version));
+	// Not the memoised migrate() -- the runner itself, on a database that
+	// has already had every step.
+	assert.equal(await applyMigrations(), newest);
+	assert.equal(await applyMigrations(), newest);
+	assert.deepEqual(await versions(), MIGRATIONS.map(m => m.version));
+	const { rows } = await db().execute('SELECT COUNT(*) AS n FROM users');
+	assert.ok(Number(rows[0].n) > 0, 'the rows survived a second run');
 });

@@ -29,6 +29,8 @@ COPY server ./server
 
 # Stamp the deploy into the service worker: the offline cache is named
 # for the build it holds, so activate can sweep every other deploy's.
+# The server reads this stamp back at boot and serves it (server.js);
+# APP_VERSION in the environment takes precedence over it.
 RUN sed -i "s/__BUILD__/$(date -u +%Y%m%d%H%M%S)/" sw.js
 
 USER tracker
@@ -37,8 +39,11 @@ EXPOSE 8000
 
 ENV NODE_ENV=production
 
+# /healthz answers 503 when a configured database is not reachable, so
+# the container reads unhealthy for a sync outage and not only for a
+# process that is gone.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8000', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+  CMD node -e "require('http').get('http://localhost:8000/healthz', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
 
 # Start node directly, not through npm. The server flushes every unsaved
 # account to the database when SIGTERM arrives (see server/saves.js), and

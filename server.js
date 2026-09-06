@@ -10,10 +10,13 @@
 
 import express from 'express';
 import compression from 'compression';
+import fs from 'fs';
 import path from 'path';
+import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { config, syncEnabled, pushEnabled, ephemeralSecret, describe } from './server/config.js';
 import { marketRoutes } from './server/market.js';
+import { accessLog, counters } from './server/log.js';
 
 // NOTE: run exactly one of these.
 //
@@ -28,8 +31,13 @@ import { marketRoutes } from './server/market.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+const started = Date.now();
 
 app.disable('x-powered-by');
+
+// First, so that every response is counted -- including the ones the
+// error handler at the bottom writes.
+app.use(accessLog());
 
 // The barter dataset is the reason this is not optional: 1.4 MB of JSON
 // that gzips to a tenth of that. A reverse proxy that compresses would
@@ -79,13 +87,88 @@ app.use((req, res, next) => {
 // this, Express reports every request as plain HTTP.
 if (config.cookieSecure) app.set('trust proxy', 1);
 
+// Anything that changes something must come from this site.
+//
+// The session cookie is SameSite=Lax, which already keeps a cross-site
+// form post from carrying it -- this is the second lock on the same
+// door, for the browsers and proxies that get the first one wrong. A
+// browser names where a request came from in `Origin`; when it says
+// somewhere else, the request is refused whatever cookie it carries.
+// With no Origin at all -- curl, an old browser, a same-origin GET that
+// became a POST -- `Sec-Fetch-Site` is asked, and with neither header
+// the request passes: there is nothing to check it against, and the
+// cookie rule still stands. The OAuth callback is a GET and never sees
+// this.
+const CHANGES = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+function fromThisSite(req) {
+	const origin = req.headers.origin;
+	if (origin === undefined) {
+		const site = req.headers['sec-fetch-site'];
+		return !site || site === 'same-origin' || site === 'none';
+	}
+	if (config.publicOrigin) return origin === config.publicOrigin;
+	// No PUBLIC_URL: the request's own Host is the site. Host alone, not
+	// scheme -- behind a proxy that terminates TLS this server sees http
+	// while the browser says https, and a browser-only or push-only
+	// deployment has no reason to have set PUBLIC_URL.
+	try {
+		return new URL(origin).host.toLowerCase() === String(req.headers.host || '').toLowerCase();
+	} catch {
+		return false;   // `null`, or not a URL at all
+	}
+}
+
+app.use((req, res, next) => {
+	if (!CHANGES.has(req.method)) return next();
+	if (!req.path.startsWith('/api/') && req.path !== '/auth/logout') return next();
+	if (fromThisSite(req)) return next();
+	res.status(403).json({ error: 'That request did not come from this site.' });
+});
+
+// What this build is called, so the service worker's cache can be named
+// for it. The offline cache must turn over with every deploy or a
+// browser that starts offline could run half of one deploy and half of
+// another -- so a plain `npm start` needs a stamp as much as the Docker
+// image does. In order: APP_VERSION when the operator set one, the
+// commit when there is a checkout to ask, whatever the Docker build
+// wrote into sw.js, and failing all of that the package version with
+// the moment this process started, which at least turns over on
+// restart.
+function buildStamp() {
+	if (process.env.APP_VERSION) return process.env.APP_VERSION;
+	try {
+		return execFileSync('git', ['rev-parse', '--short', 'HEAD'],
+			{ cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'], timeout: 2000 }).toString().trim();
+	} catch {
+		// No checkout, or no git: the image, most likely.
+	}
+	try {
+		const baked = fs.readFileSync(path.join(__dirname, 'sw.js'), 'utf8').match(/^const VERSION = '([^']*)';/m);
+		if (baked && baked[1] && baked[1] !== '__BUILD__') return baked[1];
+	} catch {
+		// No sw.js to read; the fallback below still names the build.
+	}
+	const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+	return `${pkg.version}-${started.toString(36)}`;
+}
+// It lands inside a quoted string in the worker, so only characters that
+// cannot end the quote are kept.
+export const VERSION = buildStamp().replace(/[^A-Za-z0-9._-]/g, '').slice(0, 64) || 'dev';
+
+// Filled in below when a database is configured; /healthz reads them.
+let dbPing = null;
+let saveStats = null;
+
 if (syncEnabled) {
-	const [{ migrate }, { flushOnShutdown }, { authRoutes }, { apiRoutes }] = await Promise.all([
+	const [{ migrate, ping }, { flushOnShutdown, stats }, { authRoutes }, { apiRoutes }] = await Promise.all([
 		import('./server/db.js'),
 		import('./server/saves.js'),
 		import('./server/auth.js'),
 		import('./server/api.js')
 	]);
+	dbPing = ping;
+	saveStats = stats;
 	// Not awaited. The tracker works without a database -- the page is a
 	// browser-only tool until you sign in -- so a database that is briefly
 	// unreachable at boot should cost sync, not the site. Everything that
@@ -102,11 +185,12 @@ if (syncEnabled) {
 // Vell reminders by push: a key pair and a table are all it takes, so
 // it can run on a deployment without Discord. Off without the keys.
 if (pushEnabled) {
-	const [{ migrate }, { pushRoutes, startVellPushes }] = await Promise.all([
+	const [{ migrate, ping }, { pushRoutes, startVellPushes }] = await Promise.all([
 		import('./server/db.js'),
 		import('./server/push.js')
 	]);
 	if (!syncEnabled) migrate().catch(err => console.warn('[db] tables not ready yet:', err.message));
+	dbPing = ping;
 	app.use('/api', pushRoutes());
 	if (process.env.NODE_ENV !== 'test') startVellPushes();
 }
@@ -124,19 +208,43 @@ app.get('/api/config', (req, res) => {
 	res.json({ sync: syncEnabled, push: pushEnabled });
 });
 
+// Is it up, and is the database behind it answering? `db` is 'off' on a
+// browser-only deployment, which is healthy; 'down' is a 503, so a
+// supervisor can tell a site that is up from one whose sync is not.
+// One statement, one attempt, and a short leash on it: the container
+// healthcheck gives this three seconds.
+app.get('/healthz', async (req, res) => {
+	res.set('Cache-Control', 'no-store');
+	let db = 'off';
+	if (dbPing) {
+		const leash = new Promise((_, reject) => setTimeout(() => reject(new Error('slow')), 2500).unref());
+		db = await Promise.race([dbPing(), leash]).then(() => 'ok', () => 'down');
+	}
+	const held = saveStats ? saveStats() : { dirty: 0, queued: 0 };
+	res.status(db === 'down' ? 503 : 200).json({
+		ok: db !== 'down',
+		db,
+		dirty: held.dirty,
+		queued: held.queued,
+		uptime: Math.round((Date.now() - started) / 1000),
+		version: VERSION,
+		counters
+	});
+});
+
 // Only what the page actually asks for. Serving the repository root would
 // hand out package.json, the Dockerfile and the capture harness too.
 const PUBLIC = ['css', 'js', 'icons', 'map', 'guide'];
 const FILES = [
 	'index.html', 'icon.png', 'og.png', 'icon_mapping.json',
-	'icon-192.png', 'icon-512.png', 'manifest.webmanifest', 'sw.js'
+	'icon-192.png', 'icon-512.png', 'manifest.webmanifest'
 ];
 
 // The page and everything that steers loading must revalidate: a stale
 // service worker or manifest would defeat the very caching rules it
 // carries, and /index.html is the same page '/' already refuses to let
 // go stale. Images may rest for a week.
-const MUST_REVALIDATE = /\.(html|json|webmanifest)$|^sw\.js$/;
+const MUST_REVALIDATE = /\.(html|json|webmanifest)$/;
 
 // There is no build step, so a module's filename never changes while its
 // contents do -- which makes cache freshness a correctness problem, not a
@@ -178,6 +286,21 @@ for (const file of FILES) {
 	});
 }
 
+// The service worker, with this build's stamp written into it. Read on
+// each request rather than once: it revalidates like the modules do (the
+// browser checks it on every navigation, and `res.send` answers a
+// matching ETag with a 304), and an edit in development should show up
+// without a restart. It is served under `no-cache` for the same reason
+// the modules are -- a stale worker would defeat the rules it carries.
+app.get('/sw.js', (req, res, next) => {
+	fs.readFile(path.join(__dirname, 'sw.js'), 'utf8', (err, source) => {
+		if (err) return next(err);
+		res.set('Cache-Control', 'no-cache');
+		res.type('application/javascript');
+		res.send(source.replace(/^const VERSION = '[^']*';/m, `const VERSION = '${VERSION}';`));
+	});
+});
+
 // Browsers ask for /favicon.ico by name whatever the page says; the
 // anchor answers, rather than a 404 in every log.
 app.get('/favicon.ico', (req, res) => {
@@ -212,7 +335,7 @@ app.use((err, req, res, next) => {
 if (process.env.NODE_ENV !== 'test') {
 	app.listen(config.port, () => {
 		console.log(`BDO Ship Upgrade Tracker running at http://localhost:${config.port}`);
-		console.log(describe());
+		console.log(`${describe()} -- build ${VERSION}`);
 		if (ephemeralSecret) {
 			console.warn('[config] No SESSION_SECRET set -- sign-ins will not survive a restart.');
 		}

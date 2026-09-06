@@ -16,6 +16,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 process.env.NODE_ENV = 'test';
+process.env.LOG_REQUESTS = '0';
+// A stamp of this file's choosing, so the service worker test below can
+// tell the served copy from the one on disk.
+process.env.APP_VERSION = 'test-stamp 1.2/3';
 for (const name of [
 	'DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET',
 	'TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN', 'PUBLIC_URL'
@@ -139,6 +143,53 @@ test('the offline shell is served, and never stale', async () => {
 	}
 	const page = await (await fetch(base + '/')).text();
 	assert.match(page, /rel="manifest"/, 'the page never names its manifest');
+});
+
+test('the service worker is served with this build written into it', async () => {
+	// Only the Docker build used to stamp VERSION, so a plain `npm start`
+	// served the literal and the offline cache was named the same across
+	// every deploy -- a browser that started offline could run half of
+	// one and half of another. The server writes the stamp in as it
+	// serves the file now, whatever started it.
+	const onDisk = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+	assert.match(onDisk, /^const VERSION = '__BUILD__';/m, 'the file on disk carries the placeholder the build replaces');
+
+	const res = await fetch(base + '/sw.js');
+	assert.equal(res.status, 200);
+	assert.match(res.headers.get('content-type'), /javascript/);
+	assert.match(res.headers.get('cache-control'), /no-cache/);
+	const served = await res.text();
+	assert.doesNotMatch(served, /__BUILD__/, 'the placeholder reached the browser');
+	// APP_VERSION wins, with anything that could close the quote dropped.
+	assert.match(served, /^const VERSION = 'test-stamp1.23';/m);
+	// And it is only that one line that changed.
+	assert.equal(served.replace(/^const VERSION = '[^']*';/m, ''), onDisk.replace(/^const VERSION = '[^']*';/m, ''));
+	assert.ok(res.headers.get('etag'), 'a worker with no ETag is re-sent in full on every navigation');
+});
+
+test('a newer worker that is waiting is not written over', () => {
+	// While an installed worker waits, the network serves the new deploy
+	// and the running cache is the old one's; filing one into the other
+	// is the mixed shell the cache exists to prevent.
+	const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+	const networkFirst = sw.slice(sw.indexOf('async function networkFirst'));
+	assert.match(networkFirst, /!self\.registration\.waiting[^;]*cache|waiting\)[^;]*put\(/s);
+});
+
+test('the healthcheck answers without a database, and says so', async () => {
+	const res = await fetch(base + '/healthz');
+	assert.equal(res.status, 200);
+	assert.equal(res.headers.get('cache-control'), 'no-store');
+	const body = await res.json();
+	assert.equal(body.ok, true);
+	assert.equal(body.db, 'off');
+	assert.equal(body.dirty, 0);
+	assert.equal(body.queued, 0);
+	assert.equal(body.version, 'test-stamp1.23');
+	assert.equal(typeof body.counters.requests['2xx'], 'number');
+	// And the container asks this route, not the page.
+	const dockerfile = fs.readFileSync(new URL('../Dockerfile', import.meta.url), 'utf8');
+	assert.match(dockerfile, /HEALTHCHECK[\s\S]*\/healthz/);
 });
 
 test('every window the field guide shows is served, and shipped', async () => {

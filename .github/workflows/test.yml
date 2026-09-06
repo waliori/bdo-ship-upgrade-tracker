@@ -1,8 +1,14 @@
-# The suite is the spec: 129 tests over the planner, the barter maths,
-# the sync protocol and the served headers, plus a real-browser pass.
-# GitHub's runners ship a Chrome at /usr/bin/google-chrome, which
-# browser.test.mjs already knows to look for -- and skips cleanly when
-# it is absent, so this workflow needs no browser setup of its own.
+# The suite is the spec: every test/*.test.mjs, over the planner, the
+# barter maths, the sync protocol and the served headers, plus a
+# real-browser pass. GitHub's runners ship a Chrome at
+# /usr/bin/google-chrome, which browser.test.mjs already knows to look
+# for -- and skips cleanly when it is absent, so this workflow needs no
+# browser setup of its own.
+#
+# The audit is advisory: a fresh advisory against a transitive
+# dependency should show up in the log, not block a fix to the planner.
+# The image build is not -- a Dockerfile that no longer copies what the
+# server serves is a broken deploy, and cheaper to find here.
 name: test
 
 on:
@@ -21,3 +27,6 @@ jobs:
       - run: npm ci
       - run: npx eslint .
       - run: npm test
+      - run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true
+      - run: docker build .

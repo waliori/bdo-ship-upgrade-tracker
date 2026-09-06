@@ -14,6 +14,7 @@ import { config } from './config.js';
 import { putPushSub, deletePushSub, listPushSubs, countPushSubs } from './db.js';
 import { VELL, nextSpawn } from '../js/clock.js';
 import { perAddress } from './limit.js';
+import { counters } from './log.js';
 
 // How many subscriptions the table will hold. Each one is an endpoint
 // the server posts to every Vell, so an open, anonymous route needs a
@@ -21,14 +22,47 @@ import { perAddress } from './limit.js';
 // readership, and reached only by someone filling it on purpose.
 export const MAX_SUBSCRIPTIONS = Number(process.env.PUSH_MAX_SUBSCRIPTIONS) || 10000;
 
-const looksLikeSubscription = s =>
-	s && typeof s === 'object' && typeof s.endpoint === 'string' && /^https:\/\//.test(s.endpoint)
-	&& s.endpoint.length < 2048 && s.keys && typeof s.keys.p256dh === 'string' && typeof s.keys.auth === 'string';
+// The push services browsers actually use. An endpoint is a URL the
+// server will POST to every Vell, forever, on the word of whoever
+// posted it -- an open route that would take any URL is a way to make
+// this deployment knock on someone else's door. So only the services a
+// subscription can genuinely come from are kept: Chrome, Firefox, Edge
+// and Safari, and nothing else.
+const PUSH_SERVICES = [
+	/^fcm\.googleapis\.com$/,
+	/(^|\.)push\.services\.mozilla\.com$/,
+	/\.notify\.windows\.com$/,
+	/(^|\.)push\.apple\.com$/
+];
+
+export function pushService(endpoint) {
+	let url;
+	try {
+		url = new URL(endpoint);
+	} catch {
+		return false;
+	}
+	return url.protocol === 'https:' && PUSH_SERVICES.some(re => re.test(url.hostname));
+}
+
+// The keys are what they are by RFC 8291: an uncompressed P-256 point
+// (87 chars of base64url, 88 with padding) and a 16-byte secret (22 or
+// 24). Anything far off that is not a subscription, and would only sit
+// in the table failing to encrypt at every spawn.
+const b64url = (value, min, max) =>
+	typeof value === 'string' && value.length >= min && value.length <= max && /^[A-Za-z0-9_-]+=*$/.test(value);
+
+export const looksLikeSubscription = s =>
+	s && typeof s === 'object' && typeof s.endpoint === 'string' && s.endpoint.length < 2048
+	&& pushService(s.endpoint) && s.keys && b64url(s.keys.p256dh, 80, 128) && b64url(s.keys.auth, 16, 64);
 
 export function pushRoutes() {
 	const router = express.Router();
-	router.use(express.json({ limit: 8 * 1024 }));
-	router.use((req, res, next) => {
+	// Scoped to these routes rather than to everything under /api: the
+	// sync API's own parser allows a megabyte for a save, and whichever
+	// parser runs first is the one that counts. A subscription is a few
+	// hundred bytes.
+	router.use('/push', express.json({ limit: 8 * 1024 }), (req, res, next) => {
 		res.set('Cache-Control', 'no-store');
 		next();
 	});
@@ -104,6 +138,7 @@ async function notifyRegion(region, at, now = Date.now()) {
 		try {
 			await webpush.sendNotification(s.sub, payload, { TTL: 15 * 60 });
 			sent++;
+			counters.pushSent++;
 		} catch (err) {
 			// Gone: the browser dropped the subscription. Anything else is
 			// weather, and the next spawn is another chance.

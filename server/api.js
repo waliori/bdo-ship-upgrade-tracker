@@ -56,9 +56,13 @@ export function apiRoutes() {
 		next();
 	});
 
-	// Only the three fields that make up a save are stored. Anything else
-	// the client sends is dropped here rather than in the database.
-	router.use(express.json({ limit: config.maxSaveBytes }));
+	// The one route that takes a body gets the one parser that allows a
+	// save's worth of it. Mounted on everything under /api, this parser
+	// used to run first for the push subscription too and let a megabyte
+	// through a route meant to take a few hundred bytes -- Express keeps
+	// the first parse and the 8 KB parser behind it never saw the body.
+	// After the sign-in check, so a stranger's megabyte is never read.
+	const saveBody = express.json({ limit: config.maxSaveBytes });
 
 	// A browser pushes at most twice a second and backs off when refused,
 	// so this is far above anything the app does and only bites something
@@ -129,7 +133,7 @@ export function apiRoutes() {
 	 * with 409 and the newer save comes back in the body, so the client
 	 * can show both and let the user choose instead of quietly losing one.
 	 */
-	router.put('/state', requireUser, pushLimit, wrap(async (req, res) => {
+	router.put('/state', requireUser, saveBody, pushLimit, wrap(async (req, res) => {
 		const body = req.body || {};
 		const complaint = looksLikeSave(body.data);
 		if (complaint) return res.status(400).json({ error: complaint });

@@ -106,11 +106,11 @@ if (syncEnabled) {
 		const { db, migrate } = await import('../server/db.js');
 		await db().execute('select 1');
 		pass('connected');
-		await migrate();
+		const version = await migrate();
 		const { rows } = await db().execute(
 			"select name from sqlite_master where type = 'table' order by name"
 		);
-		pass('schema ready', rows.map(r => r.name).join(', ') || 'no tables');
+		pass('schema ready', `version ${version}: ${rows.map(r => r.name).join(', ') || 'no tables'}`);
 		const { rows: counts } = await db().execute('select count(*) as n from users');
 		pass('accounts stored', String(counts[0].n));
 	} catch (err) {
