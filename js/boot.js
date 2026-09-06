@@ -2,6 +2,7 @@
 // carry a Content-Security-Policy that does not have to allow inline
 // script -- which is most of what a CSP is for.
 import { init } from './ui.js';
+import './cheer.js';   // the burst of light for a thing done, listening from the start
 
 init();
 

@@ -1650,7 +1650,8 @@ test('the run laid out is a sheet over the Barter tab: a strip along the foot ap
 	assert.equal(await count(page, '#dialog .run-seg-all'), 0);
 	assert.equal(await count(page, '#dialog .run-seg'), 2);
 	assert.ok(await page.$('#dialog .sail-bar'), 'the sail bar is in the sheet');
-	assert.equal(await page.$eval('#dialog .sail-bar', el => getComputedStyle(el).position), 'sticky', 'and stays in view as the sheet scrolls');
+	assert.equal(await page.$eval('#dialog .run-foot', el => getComputedStyle(el).position), 'sticky', 'and stays in view as the sheet scrolls, with the chart button beside it');
+	assert.ok(await page.$('#dialog .run-foot [data-act="barter-chart"]'));
 	// The quests along the run, under the orders: the supplies for Dario
 	// handed in at Iliya before casting off, a count on the strip and in
 	// the sheet's head, the quests the run cannot take in listed; none
@@ -1666,6 +1667,23 @@ test('the run laid out is a sheet over the Barter tab: a strip along the foot ap
 	assert.doesNotMatch(await text(page, '.run-dock'), /quests/);
 	await page.select('[data-act="barter-quests"]', 'yes'); await wait(1500);
 	assert.equal(await count(page, '#dialog .run-quests-home'), 1);
+	// A quest left out by hand goes to the off-the-way list, and comes back from there.
+	const first = await page.$eval('#dialog .run-quests-home .run-quest [data-act="barter-quest-skip"]', el => el.dataset.quest);
+	await page.evaluate(() => document.querySelector('#dialog .run-quests-home .run-quest [data-act="barter-quest-skip"]').click()); await wait(1200);
+	assert.equal(await page.evaluate(id => [...document.querySelectorAll('#dialog .run-quests-home [data-act="barter-quest-skip"]')].some(el => el.dataset.quest === id), first), false, 'left out');
+	assert.ok(await page.$(`#dialog [data-act="barter-quest-unskip"][data-quest="${first}"]`), 'listed off the way, with the way back');
+	await page.evaluate(id => document.querySelector(`#dialog [data-act="barter-quest-unskip"][data-quest="${id}"]`).click(), first); await wait(1200);
+	assert.ok(await page.$(`#dialog [data-act="barter-quest-skip"][data-quest="${first}"]`), 'taken back in');
+	// The quest's name leads to its row on the Quests tab.
+	assert.ok(await page.$(`#dialog .run-quest [data-act="view"][data-id="quests"][data-quest="${first}"]`));
+	// Sailing from inside the sheet: the checklist comes up in the pinned foot, and a stop ticked off cheers.
+	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-sail"]').click()); await wait(1200);
+	assert.ok(await page.$('#dialog .run-foot .sail-bar.sailing'), 'the run is being sailed');
+	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-stop-done"]').click()); await wait(300);
+	assert.ok(await page.$('.cheer'), 'a burst of light for the stop done');
+	await wait(1000);
+	assert.match(await text(page, '#dialog .run-foot .sail-n'), /1 of \d+ stops done/);
+	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-sail-drop"]').click()); await wait(800);
 	assert.ok(await page.$('#dialog [data-act="barter-chart"]'), 'and the way to the chart');
 	// A chain unticked from inside the sheet: the sheet stays, one chain fewer.
 	await page.evaluate(() => document.querySelector('#dialog .run-seg-head [data-act="barter-chain"]').click()); await wait(1500);

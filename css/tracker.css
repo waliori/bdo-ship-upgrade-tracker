@@ -4162,8 +4162,18 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .run-dialog .run-chart { margin: 0; }
 /* The way to sail the run stays in view as the sheet scrolls: the bar
    sits at the foot of the box until the sheet's own end comes up. */
-.run-dialog .sail-bar, .run-dialog .mat-sail { position: sticky; bottom: 0; z-index: 3; margin: 0; background: #0a1826; box-shadow: 0 -10px 24px rgba(3, 9, 16, 0.55); }
-.run-dialog .sail-bar { border-style: solid; border-color: rgba(88, 168, 232, 0.35); }
+.run-foot, .run-dialog .mat-sail { position: sticky; bottom: 0; z-index: 3; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 0; padding: 10px 12px; border-radius: var(--r-panel); background: #0a1826; border: 1px solid rgba(88, 168, 232, 0.35); box-shadow: 0 -10px 24px rgba(3, 9, 16, 0.55); }
+.run-foot .sail-bar { flex: 1 1 320px; padding: 0; border: none; background: transparent; }
+.run-foot .run-chart, .run-dialog .mat-sail .run-chart { flex: 0 1 auto; margin: 0; }
+@media (max-width: 640px) {
+  .run-foot .run-chart, .run-dialog .mat-sail .run-chart { flex: 1 1 100%; }
+  .run-foot .sail-bar .faint { display: none; }
+}
+/* The run's sheet is wide, and on anything short of a desk as wide as the screen. */
+.dialog-box.xwide { max-width: 960px; }
+@media (max-width: 900px) {
+  .dialog-box.wide, .dialog-box.xwide { max-width: none; }
+}
 
 /* The quests along the run: on a stop, what is taken, done or handed in
    there; on a leg, the grounds it passes. A wanted one -- paying what
@@ -4174,8 +4184,17 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .run-quest > i { font-style: normal; font-size: 12px; }
 .run-quest > b { font-weight: 700; color: var(--amber); text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.06em; }
 .run-quest-name { color: var(--ink); flex: 1 1 140px; min-width: 0; }
+.run-quest .linky.run-quest-name { text-align: left; font-size: 12px; color: var(--ink); text-decoration: none; border-bottom: 1px dotted rgba(125, 175, 225, 0.4); padding: 0; }
+.run-quest .linky.run-quest-name:hover { color: var(--blue-hi); }
+.run-quest-note { color: var(--ink-mid); }
+.run-quest-acts { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; }
+.run-quest-acts .map-x { width: 20px; height: 20px; font-size: 13px; }
+.quest.focus { background: rgba(88, 168, 232, 0.1); box-shadow: inset 3px 0 0 var(--blue); }
+.map-quests { display: flex; flex-direction: column; gap: 2px; margin-top: 3px; }
+.map-quest { font-size: 11.5px; color: var(--amber); }
+.map-stop-row.stash.quest .map-stop-n { color: var(--amber); }
+.map-tip-sub.quest { color: var(--amber); }
 .run-quest small { font-size: 11px; color: var(--ink-mute); }
-.run-quest .chip.tiny { margin-left: auto; }
 .run-quest.wanted { border-color: rgba(126, 240, 212, 0.45); background: rgba(126, 240, 212, 0.07); }
 .run-quest.wanted > b { color: var(--teal); }
 .run-quest.hunt { background: rgba(88, 168, 232, 0.07); border-color: rgba(88, 168, 232, 0.25); }
@@ -4963,3 +4982,14 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .mat-sail.sailing { border-color: var(--teal-edge); }
 .mat-sail .sail-bar { flex: 1 1 320px; padding: 0; border: none; background: transparent; }
 .mat-sail .ghost-btn.run-chart { flex: none; }
+
+/* ---- The burst of light for a thing done (cheer.js) ---- */
+.cheer { position: fixed; z-index: 1200; width: 0; height: 0; pointer-events: none; }
+.cheer i { position: absolute; left: 0; top: 0; width: var(--s, 6px); height: var(--s, 6px); margin: calc(var(--s, 6px) / -2) 0 0 calc(var(--s, 6px) / -2); border-radius: 50%; background: var(--c, var(--amber)); box-shadow: 0 0 8px var(--c, var(--amber)); opacity: 0; animation: cheer-fly 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
+@keyframes cheer-fly {
+  0% { transform: translate(0, 0) scale(0.6); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translate(var(--dx), calc(var(--dy) + 24px)) scale(0.2); opacity: 0; }
+}
+.cheer.glow::before { content: ''; position: absolute; left: -40px; top: -40px; width: 80px; height: 80px; border-radius: 50%; background: radial-gradient(circle, rgba(232, 182, 97, 0.45), rgba(232, 182, 97, 0)); animation: cheer-glow 0.6s ease-out forwards; }
+@keyframes cheer-glow { from { transform: scale(0.4); opacity: 1; } to { transform: scale(1.4); opacity: 0; } }

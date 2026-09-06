@@ -133,7 +133,7 @@ function restore() {
 		if (Array.isArray(s.stops)) stops = s.stops.filter(id => npcById.has(id));
 		if (typeof s.stopsPick === 'string') stopsPick = s.stopsPick;
 		if (s.runTrades && typeof s.runTrades === 'object') runTrades = readTrades(Object.entries(s.runTrades).map(([id, t]) => [Number(id), t.give, t.giveText, t.item, t.recvText, t.recv, t.giveN, t.times]));
-		if (Array.isArray(s.runStash)) runStash = readStash(s.runStash.map(c => [c.i, c.name, c.at, c.x, c.y, (c.drops || []).map(d => [d.item, d.n]), c.sale, c.silver]));
+		if (Array.isArray(s.runStash)) runStash = readStash(s.runStash.map(c => [c.i, c.name, c.at, c.x, c.y, (c.drops || []).map(d => [d.item, d.n]), c.sale, c.silver, c.quests || []]));
 		if (s.done && s.done.day === barterDay()) done = s.done;
 		if (ports.some(p => p.id === s.startPort)) startPort = s.startPort;
 		returnHome = s.returnHome === true;
@@ -750,13 +750,16 @@ const n1 = v => F(Math.round(v * 10) / 10);
 function stashRow(s, leg) {
 	const c = s.place;
 	const drops = c.drops.map(d => `<span class="map-drop">${img(d.item, 'map-icon')}<b>${n1(d.n)}×</b>${esc(d.item)}</span>`).join('');
-	return `<div class="map-stop-row stash">
-		<span class="map-stop-n stash" title="A pause at a wharf">⚓</span>
+	const questsHere = (c.quests || []).length ? `<span class="map-quests">${c.quests.map(q => `<span class="map-quest">📜 ${esc(q)}</span>`).join('')}</span>` : '';
+	const questOnly = questsHere && !c.drops.length && !c.sale;
+	return `<div class="map-stop-row stash${questOnly ? ' quest' : ''}">
+		<span class="map-stop-n stash" title="${questOnly ? 'A stop put in for a quest' : 'A pause at a wharf'}">${questOnly ? '📜' : '⚓'}</span>
 		<span class="map-row-main">
 			<span class="map-row-name">${esc(c.name)}${leg}</span>
-			<span class="map-row-sub">stop ${s.n} · ${esc(c.at)} wharf${c.drops.length ? ' · the hold is lightened here' : ' · the hold is sold down here'}</span>
+			<span class="map-row-sub">stop ${s.n} · ${esc(c.at)}${questOnly ? ' · a quest handed in here' : ` wharf${c.drops.length ? ' · the hold is lightened here' : ' · the hold is sold down here'}`}</span>
 			${drops ? `<span class="map-drops">${drops}</span>` : ''}
 			${c.sale ? `<span class="map-row-sub ok">sells ${n1(c.sale)} [Level 7]${c.silver ? ` for ${FC(c.silver)}` : ''}</span>` : ''}
+			${questsHere}
 		</span>
 	</div>`;
 }
@@ -813,9 +816,12 @@ function readStash(rows) {
 	const out = [];
 	for (const r of Array.isArray(rows) ? rows : []) {
 		if (!Array.isArray(r)) continue;
-		const [i, name, at, x, y, drops, sale, silver] = r;
+		const [i, name, at, x, y, drops, sale, silver, quests] = r;
 		if (!Number.isFinite(Number(x)) || !Number.isFinite(Number(y))) continue;
 		out.push({
+			// The quests handed in at this call, as the Barter tab laid
+			// them: a call put in for a quest carries them and nothing else.
+			quests: (Array.isArray(quests) ? quests : []).filter(q => typeof q === 'string' && q).map(q => q.slice(0, 80)).slice(0, 12),
 			i: Math.max(0, Math.floor(Number(i)) || 0),
 			name: String(name || 'Wharf').slice(0, 40),
 			at: String(at || '').slice(0, 40),
@@ -833,7 +839,7 @@ function readStash(rows) {
 /** The wharf calls as readStash takes them back: what a link, a saved
  *  route and the browser's own copy all carry. */
 function stashRows() {
-	return runStash.map(c => [c.i, c.name, c.at, c.x, c.y, c.drops.map(d => [d.item, d.n]), c.sale, c.silver]);
+	return runStash.map(c => [c.i, c.name, c.at, c.x, c.y, c.drops.map(d => [d.item, d.n]), c.sale, c.silver, c.quests || []]);
 }
 
 /** Whether the run's wharf calls belong to the route as it stands.
@@ -3453,7 +3459,7 @@ function runTip(t, id) {
  * storage, and what the [Level 7]s aboard fetch at the counter.
  */
 function paintStashTip(host, tip, size, g, pinned) {
-	const key = ['stash', g.key, pinned, g.calls.map(s => `${s.n}:${s.place.drops.length}:${s.place.sale}`).join(',')].join('|');
+	const key = ['stash', g.key, pinned, g.calls.map(s => `${s.n}:${s.place.drops.length}:${s.place.sale}:${(s.place.quests || []).length}`).join(',')].join('|');
 	if (tip._for !== key) {
 		tip._for = key;
 		const visit = s => {
@@ -3462,9 +3468,11 @@ function paintStashTip(host, tip, size, g, pinned) {
 				<span class="map-tip-side ashore" data-peek="${esc(d.item)}"><span class="map-io ashore">${img(d.item, 'map-icon')}</span><span>${esc(d.item)}</span></span>
 				<span class="map-tip-tries">${n1(d.n)}×</span>
 			</div>`).join('');
+			const questRows = (c.quests || []).map(q => `<div class="map-tip-sub quest">📜 ${esc(q)}</div>`).join('');
 			return `<span class="map-tip-k stash">Stop ${s.n}</span>
 				${c.sale ? `<div class="map-tip-sub sell">sells ${n1(c.sale)} [Level 7]${c.silver ? ` for ${FC(c.silver)}` : ''}</div>` : ''}
-				${rows || (c.sale ? '' : '<div class="map-tip-sub none">Nothing left ashore this time.</div>')}`;
+				${questRows}
+				${rows || (c.sale || questRows ? '' : '<div class="map-tip-sub none">Nothing left ashore this time.</div>')}`;
 		};
 		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">⚓ ${esc(g.name)}</span>
 			${pinned ? '<button class="map-x" data-act="map-tip-close" aria-label="Close">×</button>' : ''}</div>

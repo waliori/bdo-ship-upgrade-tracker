@@ -34,7 +34,7 @@ import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from '
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
 import { renderCrew, crewAction, crewChange, applyShipSetup, openSetupPicker } from './screen-crew.js';
 import { statusLine } from './today.js';
-import { renderQuests, questAction, questDone, wantedQuests, setQuestPay } from './screen-quests.js';
+import { renderQuests, questAction, questDone, wantedQuests, setQuestPay, setQuestFocus } from './screen-quests.js';
 import { openVellDialog, openResetsDialog } from './today.js';
 import { startClocks, tickClocks } from './clock.js';
 import { recordProgress } from './pace.js';
@@ -626,7 +626,7 @@ function wire() {
 		if (NAV_ACTS.has(act) && el.closest('.dialog')) closeDialog();
 
 		switch (act) {
-			case 'view': showView(el.dataset.id); return;
+			case 'view': if (el.dataset.quest) setQuestFocus(el.dataset.quest); showView(el.dataset.id); return;
 			case 'tab-sheet': return openTabSheet();
 			case 'undo': {
 				const label = store.undo();

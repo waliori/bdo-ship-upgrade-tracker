@@ -27,6 +27,12 @@ let filter = 'all';
 let payFilter = [];   // reward items the list is narrowed to; empty for all
 let selected = new Set();
 
+let focus = '';   // a quest to show first, sent from another tab
+
+/** A quest sent for from another tab: shown whatever the filters say,
+ *  lit, and scrolled to on the next draw. */
+export function setQuestFocus(id) { focus = questById[id] ? id : ''; if (focus) { filter = 'all'; payFilter = []; } }
+
 export function setQuestPay(items) { payFilter = Array.isArray(items) ? items : items ? [items] : []; }
 
 const CADENCE = [
@@ -107,7 +113,7 @@ function questRow(q, short, wanted, isDone) {
 	const name = url
 		? `<a class="quest-codex" href="${url}" target="_blank" rel="noopener" title="Open on BDOCodex">${esc(q.name)}</a>`
 		: esc(q.name);
-	return `<div class="quest ${wanted ? 'wanted' : ''}${isDone ? ' done' : ''}${selected.has(q.id) ? ' selected' : ''}">
+	return `<div class="quest ${wanted ? 'wanted' : ''}${isDone ? ' done' : ''}${selected.has(q.id) ? ' selected' : ''}${focus === q.id ? ' focus' : ''}" data-quest-id="${esc(q.id)}">
 		<input type="checkbox" class="quest-check" data-act="quest-check" data-quest="${esc(q.id)}" ${selected.has(q.id) ? 'checked' : ''} ${isDone ? 'disabled' : ''} aria-label="Tick ${esc(q.name)} to finish it with others">
 		<button class="quest-star${fav ? ' on' : ''}" data-act="quest-fav" data-quest="${esc(q.id)}" aria-pressed="${fav}" title="${fav ? 'A favourite — click to unstar' : 'Star it: favourites have a chip of their own'}">★</button>
 		<div class="quest-main">
@@ -206,6 +212,10 @@ function shownQuests() {
 
 export function renderQuests() {
 	const { shown, need, wanted, isDone, starred } = shownQuests();
+	if (focus) {
+		const id = focus;
+		setTimeout(() => { const el = [...document.querySelectorAll(".quest[data-quest-id]")].find(x => x.dataset.questId === id); if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); focus = ''; }, 50);
+	}
 	const short = new Set([...need.keys()]);
 	const q = query.toLowerCase();
 	const leftCount = quests.filter(quest => !isDone(quest)).length;

@@ -248,6 +248,18 @@ function commit(type, label, mutate) {
 
 	persist();
 	notify(type);
+	// Something gained is something done: a good more in the bags (a
+	// craft, a claim, a trip, a plain +1), a build taken on, a quest
+	// claimed, a trip recorded. The screen answers with a small burst
+	// of light where the tap landed (cheer.js); taking away, undoing,
+	// re-ordering and imports pass in silence.
+	if (typeof document !== 'undefined' && typeof document.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+		const gained = (entry.delta && Object.values(entry.delta).some(d => d > 0))
+			|| (type === 'quest' && !/not done/i.test(label))
+			|| type === 'trip'
+			|| (type === 'target' && /^Tracking /.test(label));
+		if (gained) document.dispatchEvent(new CustomEvent('accomplished', { detail: { type, label, big: type === 'trip' } }));
+	}
 	return entry;
 }
 
