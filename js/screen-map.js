@@ -72,6 +72,7 @@ let habitatsOn = true;        // the game's habitat markers: a picture per speci
 let labelsOn = true;          // island names, faint, once the chart is close enough to read them
 let sideRight = false;        // the side panel on the right-hand side instead
 let follow = true;            // the step player flies the camera along
+let nextOnly = false;         // the route drawn faint but for the leg into the current stop
 let stepIdx = 0;              // which stop the step player is on
 let stepKey = '';             // the route it was on, to reset when it changes
 let tradesMode = 'one';       // one | all -- how many trades a stop is costed at
@@ -138,6 +139,7 @@ function restore() {
 		if (ports.some(p => p.id === s.startPort)) startPort = s.startPort;
 		returnHome = s.returnHome === true;
 		follow = s.follow !== false;
+		nextOnly = s.nextOnly === true;
 		if (Array.isArray(s.coursesOn)) coursesOn = s.coursesOn.filter(id => courseById[id]);
 		if (Array.isArray(s.huntsOn)) huntsOn = s.huntsOn.filter(k => monsterByKey[k]);
 		if (Array.isArray(s.wharvesOn)) wharvesOn = s.wharvesOn.filter(k => k === 'wharf' || k === 'guild');
@@ -174,7 +176,7 @@ function persist() {
 	syncLanes();
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode, panelOpen, stops, stopsPick, runTrades, runStash, done, startPort, returnHome, follow, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, hugWater, layersOpen, sideRight, tradesMode, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
+			JSON.stringify({ mode, panelOpen, stops, stopsPick, runTrades, runStash, done, startPort, returnHome, follow, nextOnly, kindFilter, coursesOn, huntsOn, wharvesOn, habitatsOn, labelsOn, pinsOn, tracesOn, hugWater, layersOpen, sideRight, tradesMode, savedRoutes, miniOn, miniPos, trace, traces, inkColour, inkWidth, inkSize, inkPlate }));
 	} catch { /* private mode; the session still works */ }
 }
 
@@ -584,12 +586,14 @@ function routeHTML(marks) {
 	const list = routeSeq(marks).map((s, k) => {
 		const m = legTo(k);
 		const leg = m != null ? `<span class="map-leg">${esc(fmtDistance(m))}${timeOf(m) ? ` · ${esc(timeOf(m))}` : ''}</span>` : '';
-		if (s.kind === 'stash') return stashRow(s, leg);
+		if (s.kind === 'stash') return stashRow(s, leg, k);
 		const id = s.id, n = s.place;
 		isle++;
 		const has = marks.get(id);
 		const over = held > 0 && isle >= afford;
-		return `<div class="map-stop-row${over ? ' over' : ''}">
+		// The row is the stop's step: a tap takes the player -- and the
+		// camera, when it follows -- to it, as the chips along the foot do.
+		return `<div class="map-stop-row${over ? ' over' : ''}${k === stepIdx ? ' on' : ''}" data-act="map-step" data-i="${k}" data-step-row role="button" tabindex="0" title="Step to ${esc(n.at)}">
 			<span class="map-stop-n">${s.n}</span>
 			<span class="map-row-main">
 				<span class="map-row-name">${esc(n.at)}${leg}</span>
@@ -747,12 +751,12 @@ const n1 = v => F(Math.round(v * 10) / 10);
 /** A wharf call on the route list: what is left in storage there, and
  *  what the [Level 7]s aboard fetch, with none of a barterer's
  *  furniture -- there is nothing to trade at a wharf. */
-function stashRow(s, leg) {
+function stashRow(s, leg, k = -1) {
 	const c = s.place;
 	const drops = c.drops.map(d => `<span class="map-drop">${img(d.item, 'map-icon')}<b>${n1(d.n)}×</b>${esc(d.item)}</span>`).join('');
 	const questsHere = (c.quests || []).length ? `<span class="map-quests">${c.quests.map(q => `<span class="map-quest">📜 ${esc(q)}</span>`).join('')}</span>` : '';
 	const questOnly = questsHere && !c.drops.length && !c.sale;
-	return `<div class="map-stop-row stash${questOnly ? ' quest' : ''}">
+	return `<div class="map-stop-row stash${questOnly ? ' quest' : ''}${k === stepIdx ? ' on' : ''}"${k >= 0 ? ` data-act="map-step" data-i="${k}" data-step-row role="button" tabindex="0" title="Step to ${esc(c.at)}"` : ''}>
 		<span class="map-stop-n stash" title="${questOnly ? 'A stop put in for a quest' : 'A pause at a wharf'}">${questOnly ? '📜' : '⚓'}</span>
 		<span class="map-row-main">
 			<span class="map-row-name">${esc(c.name)}${leg}</span>
@@ -2871,6 +2875,26 @@ function paintRoute(layer, size, marks) {
 	svg.children[0].setAttribute('d', d);
 	svg.children[1].setAttribute('d', d);
 	svg.style.display = d ? '' : 'none';
+	// The leg into the current stop, bright, with the rest faint: the
+	// world points are the start wharf, the stops, and the wharf again
+	// when the route goes home, so the stop's point is one along.
+	let next = svg._next;
+	if (!next) {
+		next = svg._next = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+		next.setAttribute('class', 'map-route-next');
+		svg.appendChild(next);
+	}
+	const world = routeWorld(marks);
+	const seq = routeSeq(marks);
+	const at = seq.length > 1 ? Math.min(stepIdx, seq.length - 1) + (world.length > seq.length ? 1 : 0) : -1;
+	if (nextOnly && d && at > 0 && at < world.length) {
+		const leg = seaBent([world[at - 1], world[at]]).map(p => project(mapState, size, p.x, p.y));
+		next.setAttribute('d', routePath(leg, size, 0));
+		svg.classList.add('next-only');
+	} else {
+		next.setAttribute('d', '');
+		svg.classList.remove('next-only');
+	}
 
 	// The little ship that sails the route. Its pace scales with the
 	// course so a short hop is not a blur and a grand tour not a crawl;
@@ -3412,7 +3436,7 @@ function paintSteps(host, seq) {
 	if (!el) return;
 	if (seq.length < 2) { el.hidden = true; el._sig = null; return; }
 	const cur = seq[Math.min(stepIdx, seq.length - 1)];
-	const sig = `${stepKey}|${stepIdx}|${follow}`;
+	const sig = `${stepKey}|${stepIdx}|${follow}|${nextOnly}`;
 	if (el._sig === sig) return;
 	el._sig = sig;
 	el.hidden = false;
@@ -3422,7 +3446,8 @@ function paintSteps(host, seq) {
 				title="${esc(s.place.at)} · ${esc(s.place.name)}${s.kind === 'stash' ? ' — a wharf call' : ''}">${i + 1}</button>`).join('')}</div>
 		<button class="map-step-nav" data-act="map-step-next" aria-label="Next stop">›</button>
 		<span class="map-step-name">${esc(cur.place.at)}${cur.kind === 'stash' ? ' wharf' : ''} · ${esc(cur.place.name)}</span>
-		<button class="map-step-follow${follow ? ' on' : ''}" data-act="map-follow">follow</button>`;
+		<button class="map-step-follow${follow ? ' on' : ''}" data-act="map-follow">follow</button>
+		<button class="map-step-follow${nextOnly ? ' on' : ''}" data-act="map-next-only" title="Draw the route faint but for the leg into this stop">next leg</button>`;
 	const on = el.querySelector('.map-step-chip.on');
 	if (on) on.scrollIntoView({ block: 'nearest', inline: 'center' });
 }
@@ -4116,6 +4141,12 @@ function moveStep(i) {
 	const seq = routeSeq(marksNow());
 	if (seq.length < 2) return;
 	stepIdx = ((i % seq.length) + seq.length) % seq.length;
+	// The row in the list follows: lit, and brought into view.
+	for (const row of document.querySelectorAll('[data-step-row]')) {
+		const on = Number(row.dataset.i) === stepIdx;
+		row.classList.toggle('on', on);
+		if (on) row.scrollIntoView({ block: 'nearest' });
+	}
 	if (follow) {
 		const s = seq[stepIdx];
 		if (s) {
@@ -4144,6 +4175,13 @@ export function mapFollowToggle() {
 	persist();
 	if (follow) moveStep(stepIdx);
 	else paintMap();
+}
+
+/** The route drawn faint but for the leg into the current stop, or whole. */
+export function mapNextOnlyToggle() {
+	nextOnly = !nextOnly;
+	persist();
+	paintMap();
 }
 
 /* The route's anchor. */

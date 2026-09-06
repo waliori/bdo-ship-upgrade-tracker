@@ -2012,6 +2012,13 @@ select.purse-inline { width: auto; cursor: pointer; }
   animation: map-dash 1.4s linear infinite;
 }
 
+/* The leg into the current stop, when asked for alone: bright over the
+   rest of the route drawn faint. */
+.map-route-next { fill: none; stroke: var(--amber); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.map-route.next-only .map-route-glow { opacity: 0.05; }
+.map-route.next-only .map-route-dash { opacity: 0.22; animation: none; }
+.map-route.next-only .map-route-next { opacity: 0.95; filter: drop-shadow(0 0 6px rgba(232, 182, 97, 0.7)); }
+
 /* One dash-plus-gap per cycle, so the loop point is invisible. */
 @keyframes map-dash { to { stroke-dashoffset: -22; } }
 
@@ -2696,6 +2703,8 @@ select.purse-inline { width: auto; cursor: pointer; }
   border: 1px solid var(--line-btn);
   color: var(--ink-mute);
   cursor: pointer;
+  white-space: nowrap;
+  flex: none;
 }
 .map-step-follow.on {
   color: var(--amber);
@@ -4194,6 +4203,12 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .map-quests { display: flex; flex-direction: column; gap: 2px; margin-top: 3px; }
 .map-quest { font-size: 11.5px; color: var(--amber); }
 .map-stop-row.stash.quest .map-stop-n { color: var(--amber); }
+/* A stop's row is its step: a tap takes the player to it, and the
+   current one is lit. */
+.map-stop-row[data-step-row] { cursor: pointer; }
+.map-stop-row[data-step-row]:hover { background: rgba(88, 168, 232, 0.06); }
+.map-stop-row.on { background: rgba(232, 182, 97, 0.08); box-shadow: inset 3px 0 0 var(--amber); }
+.map-stop-row.on .map-stop-n { background: rgba(232, 182, 97, 0.9); color: #08131f; border-color: transparent; }
 .map-tip-sub.quest { color: var(--amber); }
 .run-quest small { font-size: 11px; color: var(--ink-mute); }
 .run-quest.wanted { border-color: rgba(126, 240, 212, 0.45); background: rgba(126, 240, 212, 0.07); }

@@ -54,7 +54,7 @@ import {
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
 	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
-	openMapPicker, mapStep, mapStepTo, mapFollowToggle, setMapStart, setMapReturn, mapPortClick,
+	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite,
 	toggleFull, exitFull, mapIsFull, gameImportAction
 } from './screen-map.js';
@@ -822,6 +822,7 @@ function wire() {
 			case 'map-step-next': mapStep(1); return;
 			case 'map-step': mapStepTo(Number(el.dataset.i)); return;
 			case 'map-follow': mapFollowToggle(); return;
+			case 'map-next-only': mapNextOnlyToggle(); return;
 			case 'map-port': mapPortClick(Number(el.dataset.port)); return;
 			// Doors out of an item's detail: each opens the screen that
 			// owns that part of the answer with the screen already
