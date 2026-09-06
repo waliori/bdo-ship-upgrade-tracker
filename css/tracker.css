@@ -4124,10 +4124,51 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
   --tier-5: #b28fe0; --tier-6: #e8b661; --tier-7: #e8905d;
 }
 .barter-screen { display: flex; flex-direction: column; gap: 16px; }
-.barter-layout { display: grid; grid-template-columns: minmax(300px, 0.85fr) minmax(360px, 1.15fr); gap: 16px; align-items: start; }
-.barter-left, .barter-right { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-@media (max-width: 900px) {
-  .barter-layout { grid-template-columns: 1fr; }
+/* A panel carries no padding of its own: what stands under a head on
+   this tab -- the orders, the figures, the chains -- stands in a body
+   that brings it. */
+.barter-screen .panel-body { padding: 12px 18px 16px; }
+.barter-screen .panel-body > :first-child { margin-top: 0; }
+@media (max-width: 640px) {
+  .barter-screen .panel-body { padding: 10px 12px 14px; }
+}
+
+/* The run's strip along the foot of the page while something is
+   ticked: it stays in view above the phone's section bar as the chains
+   or the islands are ticked, and opens the run laid out over the page. */
+.run-dock { position: sticky; bottom: calc(var(--tabbar-h, 0px) + 10px); z-index: 20; display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; padding: 9px 12px 9px 16px; border-radius: var(--r-panel); background: rgba(9, 22, 38, 0.96); border: 1px solid rgba(88, 168, 232, 0.45); box-shadow: 0 10px 34px rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); }
+.run-dock-k { font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue); white-space: nowrap; }
+.run-dock-figs { flex: 1 1 200px; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--ink-mute); }
+.run-dock-figs > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.run-dock-figs b { font-family: var(--font-display); font-weight: 700; color: var(--ink-hi); }
+.run-dock-figs b.gold { color: var(--amber); }
+.run-dock-figs b.teal { color: var(--teal); }
+.run-dock-figs b.amber { color: var(--amber); }
+.run-dock-figs b.warn { color: var(--red); }
+.run-dock-open { flex: none; padding: 8px 16px; }
+@media (max-width: 640px) {
+  .run-dock { padding: 8px 10px 8px 12px; gap: 6px 10px; }
+  .run-dock-k { display: none; }
+  .run-dock-figs { font-size: 12px; gap: 3px 10px; }
+}
+
+/* The run laid out, as a sheet over the page: its head, then the
+   goods to have first, the stops, and the way to sail it. */
+.run-dialog { display: flex; flex-direction: column; gap: 10px; }
+.run-dialog .run-sheet-head { padding: 0 0 10px; margin: 0; }
+.run-dialog .run-sheet-head .panel-sub { flex: 1 1 200px; }
+.run-dialog .run-empty { padding: 28px 18px; }
+.run-dialog .dialog-actions { margin-top: 6px; }
+.run-dialog .sail-bar, .run-dialog .run-chart { margin: 0; }
+/* In the sheet a goods row wraps rather than cuts its name: the note
+   takes a line of its own under the name, and on a phone so does what
+   can be done about it. */
+.run-dialog .run-good { flex-wrap: wrap; gap: 8px 10px; }
+.run-dialog .run-good > span:not(.faint):not(.run-good-worth) { white-space: normal; flex: 1 1 150px; }
+.run-dialog .run-good .faint { flex: 1 1 100%; order: 5; padding-left: 2px; white-space: normal; }
+@media (max-width: 640px) {
+  .run-dialog .run-good { padding-left: 14px; padding-right: 14px; }
+  .run-dialog .run-good .run-good-worth { flex: 1 1 100%; order: 6; margin-left: 0; }
 }
 
 /* the hold, as a line across the page, and the dialog it opens */
@@ -4333,13 +4374,6 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
 .barter-hold > .summary-sub { padding: 6px 20px 0; }
 .barter-hold .barter-goods { padding: 0 14px 14px; }
 .barter-hold > .empty { padding: 0 20px 18px; }
-
-/* Both columns run their full length and the page scrolls as one:
-   nothing on the tab scrolls inside its own box, so a long hold or a
-   long list of chains is read the way the run beside it is. */
-@media (min-width: 901px) {
-  .barter-layout { align-items: start; }
-}
 
 /* the board bar */
 .barter-bar { align-items: center; gap: 12px 22px; }
@@ -4801,10 +4835,6 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 }
 
 /* ---- The run for a material, and the hold beside it ---- */
-.barter-layout.material { grid-template-columns: minmax(340px, 1.2fr) minmax(300px, 0.8fr); }
-@media (max-width: 900px) {
-  .barter-layout.material { grid-template-columns: 1fr; }
-}
 .mat-run { padding: 0; overflow: hidden; }
 .mat-run .run-head { padding: 12px 18px; margin: 0; align-items: center; gap: 10px; }
 .mat-run .run-head .panel-sub { flex: 1 1 200px; }

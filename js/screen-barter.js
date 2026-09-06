@@ -206,29 +206,40 @@ function holdBarHTML(me) {
 			<span class="hold-bar-open">open ›</span>
 		</button>
 		<span class="panel-btns hold-bar-btns">
-			<button class="ghost-btn sm" data-act="trip-log" title="Everything a trip brought back, in one go">＋ Log a trip</button>
 			<button class="ghost-btn sm" data-act="barter-add" title="Record a good that is aboard">＋ A good</button>
 		</span>
 	</section>`;
 }
 
-let holdOpen = false;   // the hold dialog is up, and follows the tab's redraws
+/**
+ * The sheets that open over the page and follow its redraws: the hold,
+ * and the run laid out. Each is drawn from the tab's latest state, so
+ * a change made inside one -- a count in the hold, a stop ticked off
+ * in the run -- redraws it in place, the caret kept where it was.
+ */
+let runSheet = '';   // the run laid out, as the last redraw left it
+const SHEETS = {
+	hold: { cls: 'hold-dialog', box: 'wide', html: () => holdHTML(currentShip()) },
+	run: { cls: 'run-dialog', box: 'wide tall', html: () => runSheet }
+};
+let sheetOpen = null;   // which sheet is up, if any
 
-/** The whole hold, over the page. */
-function openHold() {
-	holdOpen = true;
-	const host = openDialog(`<div class="hold-dialog">${holdHTML(currentShip())}<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div></div>`, { onDismiss: () => { holdOpen = false; } });
-	host.firstElementChild.classList.add('wide');
+function openSheet(id) {
+	const sheet = SHEETS[id];
+	sheetOpen = id;
+	const host = openDialog(`<div class="${sheet.cls}">${sheet.html()}<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div></div>`, { onDismiss: () => { if (sheetOpen === id) sheetOpen = null; } });
+	host.firstElementChild.classList.add(...sheet.box.split(' '));
 }
 
-/** The hold dialog redrawn after a change, the caret kept where it was. */
-function refreshHold() {
-	if (!holdOpen) return;
-	const box = document.querySelector('#dialog:not([hidden]) .hold-dialog');
-	if (!box) { holdOpen = false; return; }
+/** The open sheet redrawn after a change, the caret kept where it was. */
+function refreshSheet() {
+	if (!sheetOpen) return;
+	const sheet = SHEETS[sheetOpen];
+	const box = document.querySelector(`#dialog:not([hidden]) .${sheet.cls}`);
+	if (!box) { sheetOpen = null; return; }
 	const el = document.activeElement;
 	const keep = el && box.contains(el) && el.dataset.act ? { act: el.dataset.act, item: el.dataset.item || '', start: el.selectionStart, end: el.selectionEnd } : null;
-	box.innerHTML = `${holdHTML(currentShip())}<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`;
+	box.innerHTML = `${sheet.html()}<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`;
 	if (!keep) return;
 	const again = [...box.querySelectorAll(`[data-act="${keep.act}"]`)].find(x => (x.dataset.item || '') === keep.item);
 	if (!again) return;
@@ -910,9 +921,9 @@ function silverParts(me, b) {
 		</div>` : '';
 		const reachNote = reach ? `<div class="reach-bar"><span>Reaching <b>${esc(reach)}</b> for the material run. Look at one island first: the chains that pass it follow from the board.</span><button class="chip tiny" data-act="barter-goal" data-id="material">← the material run</button><button class="chip tiny" data-act="barter-reach-clear">clear</button></div>` : '';
 		return {
-			chains: `<section class="panel barter-chains">${head}${reachNote}<p class="empty">The chains follow the board: look at one island in the game and tap what it shows.</p></section>`,
-			run: `<section class="panel barter-run"><div class="panel-head run-head"><h2 class="panel-title plain">The run</h2><span class="panel-sub">what today could pay, before the board is known</span></div>${ordersHTML(ordersNow())}${evHTML || '<p class="empty">Nothing to lay out until the board is known.</p>'}</section>`,
-			rest: ''
+			chains: `<section class="panel barter-chains">${head}${reachNote ? `<div class="panel-body">${reachNote}</div>` : ''}<p class="empty">The chains follow the board: look at one island in the game and tap what it shows.</p></section>`,
+			run: `<section class="panel barter-run"><div class="panel-head run-head"><h2 class="panel-title plain">The run</h2><span class="panel-sub">what today could pay, before the board is known</span></div><div class="panel-body">${ordersHTML(ordersNow())}${evHTML}</div>${evHTML ? '' : '<p class="empty">Nothing to lay out until the board is known.</p>'}</section>`,
+			rest: '', dock: ''
 		};
 	}
 	const o = ordersNow();
@@ -1000,7 +1011,7 @@ function silverParts(me, b) {
 		? `Today ${pays.map(x => `<b>${esc(isleOf(npcById.get(x.npcId)))}</b> pays it for ${esc(x.giveText)}× ${esc(x.give)}${heldOf(x.give).run > 0 ? ` (${F(heldOf(x.give).run)} held)` : ' (none held)'}`).join('; ')}.`
 		: 'No island on today’s board pays it.';
 	const reachBar = reach ? `<div class="reach-bar"><span>Reaching <b>${esc(reach)}</b> for the material run: the chains that pass it, cut there, so it comes home aboard. ${paysText}${all.length ? '' : pays.length ? ' Nothing on this board climbs to that give — wait for a refresh, or clear.' : ' Wait for a refresh, or clear.'}</span><button class="chip tiny" data-act="barter-goal" data-id="material" title="Back to the material run">← the material run</button><button class="chip tiny" data-act="barter-reach-clear">clear</button></div>` : '';
-	const chainsPanel = `<section class="panel barter-chains">${headFill(fillable)}${reachBar}${reach ? '' : proposals}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.buy ? 'Nothing climbs on this board.' : 'Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.') : 'No chain matches.'}</p>`}</div></section>`;
+	const chainsPanel = `<section class="panel barter-chains">${headFill(fillable)}<div class="panel-body">${reachBar}${reach ? '' : proposals}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.buy ? 'Nothing climbs on this board.' : 'Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.') : 'No chain matches.'}</p>`}</div></div></section>`;
 
 	const plan = chainRun({ ...opts, chosen });
 	shownPlan = plan;
@@ -1017,8 +1028,7 @@ function silverParts(me, b) {
 	const runHead = `<div class="panel-head run-head">
 		<h2 class="panel-title plain">The run</h2>
 		<span class="panel-sub">${chosen.length} chain${chosen.length === 1 ? '' : 's'} ticked · aboard ${esc(me.name)}: ${F(me.hold.free)} LT before it slows, barters up to ${F(me.hold.deal)} · goods counted at the least, weighed at the most</span>
-	</div>
-	${ordersHTML(o)}`;
+	</div>`;
 	const tile = (k, v, sub, cls = '') => `<div><div class="summary-k">${k}</div><div class="summary-v${cls ? ` ${cls}` : ''}">${v}</div><div class="summary-sub">${sub}</div></div>`;
 	const tiles = `<div class="run-tiles">
 		${tile(plan.cost ? 'Silver, net' : 'Sold in port', plan.silver ? FC(Math.round(plan.net)) : '—', plan.silver ? `${soldWhat} sold at the wharf${plan.cost ? ` for ${FC(Math.round(plan.silver))} · ${FC(Math.round(plan.cost))} of land goods bought` : ''}${plan.bought.some(b => b.how === 'unpriced') ? ' · some land goods unpriced' : ''}` : chosen.length ? 'no chain ticked sells' : 'pick a chain', plan.net < 0 ? 'warn' : 'gold')}
@@ -1051,11 +1061,22 @@ function silverParts(me, b) {
 	const overRows = plan.kept.filter(s => s.n - s.stock > 1e-9).map(s => goodLine({ ...s, n: s.n - s.stock, total: (s.n - s.stock) * s.each }, '')).join('');
 	const kept = list('Kept for the stock', 'the floor the orders keep back, for the boards to come', stockRows, 'teal')
 		+ list('Carried home', o.sell <= 3 ? 'nothing pays for these, or no wharf was called at' : 'below the level a wharf sells under these orders', overRows);
-	const empty = chosen.length ? '' : '<div class="run-empty">Nothing ticked yet. Pick a chain on the left and the run lays itself out here — every rung, the hold after it, and where it has to call.</div>';
+	const empty = chosen.length ? '' : '<div class="run-empty">Nothing ticked. Tick a chain and the run lays itself out here — every rung, the hold after it, and where it has to call.</div>';
+	// The strip along the foot of the page: the run in a line as the
+	// chains are ticked, and the way into the whole of it.
+	const foot = chosen.length ? runDockHTML([
+		`<b>${chosen.length}</b> chain${chosen.length === 1 ? '' : 's'}`,
+		plan.silver ? `<b class="gold">${FC(Math.round(plan.net))}</b>${plan.cost ? ' net' : ''}` : '',
+		legs.total ? `≈ <b>${esc(legs.time)}</b>` : '',
+		`<b>${islands}</b> island${islands === 1 ? '' : 's'}${wharfs ? `, ${wharfs} call${wharfs === 1 ? '' : 's'}` : ''}`,
+		plan.weightPeak > me.hold.deal ? '<b class="warn">too heavy</b>' : plan.weightPeak > me.hold.free ? '<b class="amber">over the limit</b>' : ''
+	]) : '';
+	const sheetHead = `<div class="panel-head run-sheet-head"><h2 class="panel-title">The run</h2><span class="panel-sub">${chosen.length} chain${chosen.length === 1 ? '' : 's'}${plan.silver ? ` · ${FC(Math.round(plan.net))}${plan.cost ? ' net' : ''}` : ''}${legs.total ? ` · ≈ ${esc(legs.time)}` : ''}${from ? ` · from ${esc(from.name)}` : ''}</span></div>`;
 	return {
 		chains: chainsPanel,
-		run: `<section class="panel barter-run">${runHead}${tiles}</section>`,
-		rest: `${empty}${loaded}${bought}${segs}${stashed}${kept}${sailBar(plan)}${chartButton(plan.stops, '')}`
+		run: `<section class="panel barter-run">${runHead}<div class="panel-body">${ordersHTML(o)}${tiles}</div></section>`,
+		rest: `${sheetHead}${empty}${loaded}${bought}${segs}${stashed}${kept}${sailBar(plan)}${chartButton(plan.stops, '')}`,
+		dock: foot
 	};
 }
 
@@ -1214,7 +1235,8 @@ function materialParts(me, data) {
 	if (!it && !materials().length) {
 		return {
 			chains: '<section class="panel barter-chains"><div class="panel-head"><h2 class="panel-title">Today’s material list</h2></div><p class="empty">The barter table deals no material the app knows.</p></section>',
-			run: '<section class="panel barter-run mat-run"><div class="run-head mat-run-head"><h2 class="panel-title plain">The run</h2><span class="panel-sub">for a material</span></div></section>'
+			run: '<section class="panel barter-run mat-run"><div class="run-head mat-run-head"><h2 class="panel-title plain">The run</h2><span class="panel-sub">for a material</span></div></section>',
+			rest: '', dock: ''
 		};
 	}
 	const short = it ? (snapshot && snapshot.missing && Number(snapshot.missing[it])) || 0 : 0;
@@ -1320,13 +1342,33 @@ function materialParts(me, data) {
 		<div class="run-stops">${stopRows(plan.stops, legs, { sailing: sailing() })}</div>
 	</section>` : '';
 	const empty = !plan.ticked
-		? `<div class="run-empty">${it ? `Nothing ticked yet. Open the barter window in game and tap each island above that shows <b>${esc(it)}</b> today — the run lays itself out here.` : 'Nothing ticked yet. Open a material above and tap each island showing it today — the run lays itself out here.'}</div>`
+		? `<div class="run-empty">${it ? `Nothing ticked. Open the barter window in game and tap each island of the list that shows <b>${esc(it)}</b> today — the run lays itself out here.` : 'Nothing ticked. Open a material and tap each island showing it today — the run lays itself out here.'}</div>`
 		: !plan.stops.length ? '<div class="run-empty">The islands ticked deal nothing today.</div>' : '';
 	const bar = plan.stops.length ? `<div class="mat-sail${sailing() ? ' sailing' : ''}">${sailBar(shownPlan)}${chartButton(plan.stops, it || (mats[0] && mats[0].it) || '')}</div>` : '';
+	const foot = plan.ticked ? runDockHTML([
+		...mats.map(m => { const g = plan.got.get(m.it); return `${img(m.it, 'row-icon xs')}<b class="${g.min >= m.qty ? 'teal' : ''}">${g.max > 0 ? gotText(m) : '0'}</b> of ${F(m.qty)}`; }),
+		plan.stops.length ? `<b>${plan.islands}</b> island${plan.islands === 1 ? '' : 's'}${plan.calls ? `, ${plan.calls} call${plan.calls === 1 ? '' : 's'}` : ''}` : '',
+		legs.total ? `≈ <b>${esc(legs.time)}</b>` : '',
+		holdCls === 'warn' ? '<b class="warn">too heavy</b>' : holdCls === 'amber' ? '<b class="amber">over the limit</b>' : ''
+	]) : '';
+	const sheetHead = `<div class="panel-head run-sheet-head"><h2 class="panel-title">The run</h2><span class="panel-sub">${mats.length ? `for ${esc(mats.map(m => m.it).join(', '))}` : 'for a material'}${legs.total ? ` · ≈ ${esc(legs.time)}` : ''}${from ? ` · from ${esc(from.name)}` : ''}</span></div>`;
 	return {
 		chains: listPanel,
-		run: `<section class="panel barter-run mat-run">${head}${ordersRow}${summary}</section>${empty}${before}${missing}${ashore}${segs}${bar}`
+		run: `<section class="panel barter-run mat-run">${head}${ordersRow}${summary}</section>`,
+		rest: `${sheetHead}${empty}${before}${missing}${ashore}${segs}${bar}`,
+		dock: foot
 	};
+}
+
+/**
+ * The strip along the foot of the page while something is ticked: the
+ * run in a line -- what it comes to, how long, how heavy -- and the
+ * button that opens the whole of it over the page. It stays in view as
+ * the chains or the islands are ticked above, so the answer is never
+ * out of sight and never in the way.
+ */
+function runDockHTML(figs) {
+	return `<div class="run-dock"><span class="run-dock-k">The run</span><span class="run-dock-figs">${figs.filter(Boolean).map(f => `<span>${f}</span>`).join('')}</span><button class="act run-dock-open" data-act="barter-run-open" title="The run laid out: every stop, what to have before casting off, and the chart">Lay it out ›</button></div>`;
 }
 
 export function renderBarter() {
@@ -1334,21 +1376,22 @@ export function renderBarter() {
 	const me = currentShip();
 	const b = boardNow();
 	if (!barterData) return '<p class="empty">Reading the barter table…</p>';
-	// One column, the page's width, for either goal. The hold is a line
-	// across the top that opens over the page; then the board; then for
-	// silver the orders, the chains laid across the page to tick, and
-	// the run they make; for a material the list, then the run. The
-	// week's log closes the page.
-	const html = goal === 'material'
-		? (() => { const parts = materialParts(me, b.data); return `${parts.chains}${parts.run}`; })()
-		: (() => { const parts = silverParts(me, b); return `${parts.run}${parts.chains}${parts.rest}`; })();
-	// The hold dialog, if up, follows the redraw.
-	setTimeout(refreshHold, 0);
+	// One column, the page's width, for either goal: the board, the hold
+	// as a line that opens over the page, the run's orders and figures,
+	// then what is on offer -- the chains to tick, or the material list
+	// -- and the week's log. The run itself, laid out stop by stop, is a
+	// sheet over the page, opened from the strip along the foot.
+	const parts = goal === 'material' ? materialParts(me, b.data) : silverParts(me, b);
+	runSheet = parts.rest || '';
+	// A sheet up follows the redraw.
+	setTimeout(refreshSheet, 0);
 	return `<div class="barter-screen">
 		${boardHTML(b)}
 		${holdBarHTML(me)}
-		${html}
+		${parts.run}
+		${parts.chains}
 		${weekHTML()}
+		${parts.dock || ''}
 	</div>`;
 }
 
@@ -1497,7 +1540,8 @@ export function barterAction(act, el, redraw) {
 			return false;
 		}
 		case 'barter-add': pickGood(redraw); return false;
-		case 'barter-hold-open': openHold(); return false;
+		case 'barter-hold-open': openSheet('hold'); return false;
+		case 'barter-run-open': openSheet('run'); return false;
 		case 'barter-item': pickMaterial(redraw); return false;
 		// The hold works the count no storage claims: a trade good is never
 		// in the bags, so that count is the ship's. Taking away never

@@ -598,6 +598,8 @@ function wire() {
 		if (act === 'barter-chart') {
 			const frag = chartFragment(el);
 			if (!frag) return;
+			// Drawn from the run's sheet, the sheet goes: the chart is the answer.
+			if (el.closest('.dialog')) closeDialog();
 			applyMapLink(frag);
 			showView('map');
 			return;

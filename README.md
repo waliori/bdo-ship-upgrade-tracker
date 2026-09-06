@@ -544,6 +544,13 @@ the Gold Bars a few islands take, bought ashore and priced; a give kept
 in a storage the run cannot load from, to bring to the harbour first;
 and, for what is held nowhere, the way to the item board.
 
+The tab is one column: the board, the hold as a line that opens over
+the page, the run's orders and figures, then what is on offer -- the
+chains as cards, or the material list. The run laid out is a sheet over
+the page: while anything is ticked a strip stays along the foot of the
+window with the run in a line, and opens the whole of it, so the
+answer is never out of sight and never in the way of the ticking.
+
 Every line the chart draws, and every loop it writes, is bent round the
 land in its way: `tools/build-seamask.mjs` reads the shipped tiles and
 records which parts of the chart are sea, and a leg that cannot be

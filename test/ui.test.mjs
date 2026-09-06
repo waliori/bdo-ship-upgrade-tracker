@@ -1488,6 +1488,15 @@ test('the game\'s favourites come back as the route they were written from, and 
 	await context.close();
 });
 
+/** The run laid out is a sheet over the Barter tab: opened from the
+ *  strip along the foot if it is not up, and live while it is. */
+async function laidOut(page) {
+	const up = await page.evaluate(() => !!document.querySelector('#dialog:not([hidden]) .run-dialog'));
+	if (up) return;
+	await page.evaluate(() => document.querySelector('[data-act="barter-run-open"]').click());
+	await wait(300);
+}
+
 test('one run for several materials: each keeps its ticks and its want, and a give kept at another harbour is called for on the way', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.evaluate(() => { localStorage.setItem('bdo-tracker/barter-view', JSON.stringify({ goal: 'material', item: "Violent Sea Monster's Scale", qty: 20, port: 0 })); });
@@ -1502,16 +1511,18 @@ test('one run for several materials: each keeps its ticks and its want, and a gi
 	// The Figurine group deals the Scale: tick its island.
 	const tickFor = give => page.evaluate(g => { const grp = [...document.querySelectorAll('.mat-give')].find(el => el.querySelector('.mat-give-head b').textContent.includes(g)); grp.querySelector('[data-act="barter-mat-tick"]').click(); }, give);
 	await tickFor('Faded Gold Dragon Figurine'); await wait(400);
-	let stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
+	await laidOut(page);
+	let stops = await page.$$eval('#dialog .run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
 	assert.deepEqual(stops, ['Velia wharf|wharf', 'Shipwrecked Ancient Relic Cargo Ship'], 'the harbour first, the island after');
-	assert.match(await text(page, '.run-stop.wharf'), /Loads from storage.*Faded Gold Dragon Figurine/i);
+	assert.match(await text(page, '#dialog .run-stop.wharf'), /Loads from storage.*Faded Gold Dragon Figurine/i);
 	// Without the call, the route is still laid out -- with the give
 	// assumed aboard -- and Velia's Figurines are to bring first.
-	await page.click('[data-act="barter-mat-calls"]'); await wait(400);
-	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
+	await page.evaluate(() => document.querySelector('[data-act="barter-mat-calls"]').click()); await wait(400);
+	await laidOut(page);
+	stops = await page.$$eval('#dialog .run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
 	assert.deepEqual(stops, ['Shipwrecked Ancient Relic Cargo Ship'], 'no call: the island alone, the give assumed aboard');
-	assert.match(await text(page, '.run-list.amber'), /Before casting off.*Faded Gold Dragon Figurine.*at Velia \(2\)/i);
-	await page.click('[data-act="barter-mat-calls"]'); await wait(400);
+	assert.match(await text(page, '#dialog .run-list.amber'), /Before casting off.*Faded Gold Dragon Figurine.*at Velia \(2\)/i);
+	await page.evaluate(() => document.querySelector('[data-act="barter-mat-calls"]').click()); await wait(400);
 	// A second material through the picker: its own ticks, its own want.
 	await page.evaluate(() => document.querySelector('[data-act="barter-mat-add"]').click()); await wait(300);
 	await page.type('.picker-in', 'Bright Reef Piece'); await wait(150);
@@ -1537,7 +1548,8 @@ test('one run for several materials: each keeps its ticks and its want, and a gi
 	assert.match(strip[0], /Violent Sea Monster's Scale/);
 	assert.match(strip[1], /Bright Reef Piece/);
 	assert.ok(await page.$eval('.mat-tile:nth-of-type(2)', el => el.classList.contains('active')), 'the open one is the second tile');
-	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
+	await laidOut(page);
+	stops = await page.$$eval('#dialog .run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
 	assert.equal(stops.length, 3, `the harbour and both islands: ${stops.join(', ')}`);
 	// Back to the first material: its want and ticks are as they were.
 	await page.evaluate(() => document.querySelector('.mat-tile:not(.active):not(.add) .mat-tile-main').click()); await wait(400);
@@ -1592,6 +1604,56 @@ test('the hold is a line across the Barter tab that opens over the page, and the
 	await context.close();
 });
 
+test('the run laid out is a sheet over the Barter tab: a strip along the foot appears as chains are ticked and opens it, and a chain unticked inside it redraws it in place', async () => {
+	const { page, context, errors } = await open('#barter');
+	// One island's offer pins today's layout; the run sails from Iliya.
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		localStorage.setItem('bdo-tracker/barter-view', JSON.stringify({ goal: 'silver', port: 1002, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }] } }));
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.chain', { timeout: 15000 });
+	await page.evaluate(async () => { const store = await import('/js/state.js'); store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); });
+	await wait(500);
+	// The trip is logged from the masthead alone; the hold's line keeps one button.
+	assert.equal(await count(page, '.hold-bar [data-act="trip-log"]'), 0);
+	assert.equal(await count(page, '.hold-bar [data-act="barter-add"]'), 1);
+	// What stands under a head stands in a padded body, not against the edge.
+	const inset = await page.evaluate(() => { const p = document.querySelector('.barter-run'); const o = p.querySelector('.orders'); return o.getBoundingClientRect().left - p.getBoundingClientRect().left; });
+	assert.ok(inset >= 12, `the orders stand ${inset}px in from the panel's edge`);
+	assert.ok(await page.$('.barter-chains .panel-body .chain-list'), 'the chains in a padded body too');
+	// A fresh board comes with the best run ticked; cleared, there is no
+	// strip, and the run is not laid out on the page.
+	await page.evaluate(() => document.querySelector('[data-act="barter-chains-clear"]').click()); await wait(500);
+	assert.equal(await count(page, '.run-dock'), 0);
+	assert.equal(await count(page, '.run-seg'), 0);
+	await page.evaluate(() => document.querySelector('.chain').click()); await wait(1500);
+	const dock = await text(page, '.run-dock');
+	assert.match(dock, /1 chain.*island/i, dock);
+	assert.equal(await count(page, '.barter-screen .run-seg'), 0, 'the stops are not on the page');
+	// The strip stays at the foot of the window as the page scrolls.
+	await page.evaluate(() => window.scrollTo(0, 700)); await wait(200);
+	const rect = await page.evaluate(() => { const r = document.querySelector('.run-dock').getBoundingClientRect(); return { bottom: r.bottom, h: window.innerHeight }; });
+	assert.ok(rect.bottom <= rect.h && rect.bottom > rect.h - 80, `the strip sits at the foot: ${rect.bottom} of ${rect.h}`);
+	await page.evaluate(() => document.querySelector('.chain:not(.on)').click()); await wait(1500);
+	assert.match(await text(page, '.run-dock'), /2 chains/);
+	// Opened, the sheet lays the run out: its head, the stops, the way to sail it.
+	await page.evaluate(() => document.querySelector('[data-act="barter-run-open"]').click()); await wait(400);
+	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), false);
+	assert.match(await text(page, '#dialog .run-sheet-head'), /The run.*2 chains/i);
+	assert.equal(await count(page, '#dialog .run-seg'), 2);
+	assert.ok(await page.$('#dialog .sail-bar'), 'the sail bar is in the sheet');
+	assert.ok(await page.$('#dialog [data-act="barter-chart"]'), 'and the way to the chart');
+	// A chain unticked from inside the sheet: the sheet stays, one chain fewer.
+	await page.evaluate(() => document.querySelector('#dialog .run-seg-head [data-act="barter-chain"]').click()); await wait(1500);
+	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), false, 'still up');
+	assert.equal(await count(page, '#dialog .run-seg'), 1);
+	assert.match(await text(page, '.run-dock'), /1 chain\b/);
+	await page.keyboard.press('Escape'); await wait(300);
+	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), true);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('the material run is one route through every island ticked: a full run goes back to the harbour when the hold cannot carry every give, a fast run sails once and says what stayed ashore', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.evaluate(() => { localStorage.setItem('bdo-tracker/barter-view', JSON.stringify({ goal: 'material', item: "Violent Sea Monster's Scale", qty: 999, port: 1, matOrders: { reach: 'all', calls: true, pace: 'full' } })); });
@@ -1615,29 +1677,31 @@ test('the material run is one route through every island ticked: a full run goes
 		}
 	};
 	await tickAll("Statue's Tear"); await tickAll('Faded Gold Dragon Figurine');
-	let stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
+	await laidOut(page);
+	let stops = await page.$$eval('#dialog .run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
 	assert.equal(stops.filter(n => n !== 'Velia wharf').length, 11, `eleven islands, each once: ${stops.join(', ')}`);
 	assert.equal(stops.filter(n => n === 'Velia wharf').length, 2, `two departures from Velia: ${stops.join(', ')}`);
 	assert.equal(stops[0], 'Velia wharf', 'the first stop loads at the harbour');
 	assert.match(await text(page, '.mat-figs'), /2 departures/);
-	assert.match(await text(page, '.run-seg-head'), /22 trades/);
-	assert.equal(await count(page, '.run-list.amber'), 0, 'nothing stays ashore on a full run');
+	assert.match(await text(page, '#dialog .run-seg-head'), /22 trades/);
+	assert.equal(await count(page, '#dialog .run-list.amber'), 0, 'nothing stays ashore on a full run');
 	// The hold never over the barter ceiling, on any stop.
-	const holds = await page.$$eval('.run-stop .run-hold b', els => els.map(el => Number(el.textContent.replace(/[^\d]/g, ''))));
+	const holds = await page.$$eval('#dialog .run-stop .run-hold b', els => els.map(el => Number(el.textContent.replace(/[^\d]/g, ''))));
 	assert.ok(holds.every(w => w <= 20625), holds.join(', '));
 	// Fast: one departure under the limit the ship still sails fast at.
 	await page.select('[data-act="barter-mat-pace"]', 'fast'); await wait(500);
-	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
+	await laidOut(page);
+	stops = await page.$$eval('#dialog .run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
 	assert.equal(stops.filter(n => n === 'Velia wharf').length, 1, `one departure: ${stops.join(', ')}`);
 	assert.ok(stops.length < 12, 'fewer islands than a full run');
-	assert.equal(await count(page, '.run-list.amber'), 1, 'what stayed ashore is said');
-	assert.match(await text(page, '.run-list.amber'), /Stays ashore/i);
-	const fastHolds = await page.$$eval('.run-stop .run-hold b', els => els.map(el => Number(el.textContent.replace(/[^\d]/g, ''))));
+	assert.equal(await count(page, '#dialog .run-list.amber'), 1, 'what stayed ashore is said');
+	assert.match(await text(page, '#dialog .run-list.amber'), /Stays ashore/i);
+	const fastHolds = await page.$$eval('#dialog .run-stop .run-hold b', els => els.map(el => Number(el.textContent.replace(/[^\d]/g, ''))));
 	assert.ok(fastHolds.every(w => w <= 16500), fastHolds.join(', '));
 	// The way back to the full run is on the panel.
-	await page.evaluate(() => document.querySelector('[data-act="barter-mat-pace-set"]').click()); await wait(500);
+	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-mat-pace-set"]').click()); await wait(500);
 	assert.equal(await page.$eval('[data-act="barter-mat-pace"]', el => el.value), 'full');
-	assert.equal(await count(page, '.run-list.amber'), 0);
+	assert.equal(await count(page, '#dialog .run-list.amber'), 0);
 	assert.deepEqual(errors, []);
 	await context.close();
 });
@@ -1655,31 +1719,34 @@ test('before casting off: a gold bar an island takes is bought ashore and priced
 	await wait(500);
 	const tickFor = give => page.evaluate(g => { const grp = [...document.querySelectorAll('.mat-give')].find(el => el.querySelector('.mat-give-head b').textContent.includes(g)); grp.querySelector('[data-act="barter-mat-tick"]').click(); }, give);
 	await tickFor('Gold Bar 100G'); await wait(400);
-	let stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
+	await laidOut(page);
+	let stops = await page.$$eval('#dialog .run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
 	assert.equal(stops.length, 1, `one island, no harbour call: ${stops.join(', ')}`);
 	assert.match(await text(page, '.mat-figs'), /20m to buy ashore first/i);
-	const before = await text(page, '.run-list.amber');
+	const before = await text(page, '#dialog .run-list.amber');
 	assert.match(before, /Before casting off/i);
 	assert.match(before, /2× Gold Bar 100G.*buy ashore.*storage keeper.*20m/i);
-	assert.equal(await count(page, '.run-list.orange'), 0, 'nothing to climb for');
+	assert.equal(await count(page, '#dialog .run-list.orange'), 0, 'nothing to climb for');
 	// A second material whose give sits at Heidel.
 	await page.evaluate(() => document.querySelector('[data-act="barter-mat-add"]').click()); await wait(300);
 	await page.type('.picker-in', 'Golden Galley Figurine'); await wait(150);
 	await page.keyboard.press('Enter'); await wait(500);
 	await tickFor('Amethyst Fragment'); await wait(400);
-	const bring = await text(page, '.run-list.amber');
+	await laidOut(page);
+	const bring = await text(page, '#dialog .run-list.amber');
 	assert.match(bring, /Amethyst Fragment.*at Heidel \(2\).*bring it to Velia/i);
-	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
+	stops = await page.$$eval('#dialog .run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
 	assert.equal(stops.length, 3, `the route is laid out all the same, the give assumed in Velia's storage: ${stops.join(', ')}`);
 	assert.equal(stops[0], 'Velia wharf|wharf');
 	// Moved to Velia, the give is loaded at the first stop and the island joins the route.
 	await page.evaluate(async () => { const store = await import('/js/state.js'); store.setStockAt('[Level 4] Amethyst Fragment', 'Heidel', 0, 'moved'); store.setStockAt('[Level 4] Amethyst Fragment', 'Velia', 2, 'moved'); });
 	await wait(500);
-	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
+	await laidOut(page);
+	stops = await page.$$eval('#dialog .run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
 	assert.equal(stops[0], 'Velia wharf|wharf', `loads at Velia first: ${stops.join(', ')}`);
 	assert.equal(stops.length, 3, stops.join(', '));
-	assert.match(await text(page, '.run-stop.wharf'), /Loads from storage.*Amethyst Fragment/i);
-	assert.doesNotMatch(await text(page, '.run-list.amber'), /Amethyst/);
+	assert.match(await text(page, '#dialog .run-stop.wharf'), /Loads from storage.*Amethyst Fragment/i);
+	assert.doesNotMatch(await text(page, '#dialog .run-list.amber'), /Amethyst/);
 	assert.deepEqual(errors, []);
 	await context.close();
 });
