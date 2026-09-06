@@ -478,7 +478,7 @@ function questProgressOf(q) {
  * off; `off` the quests the run cannot take in, and why.
  */
 function questPlan(stops, mode, hold, weightStart = 0) {
-	const none = { stops, at: () => [], leg: () => [], home: [], off: [], skipped: [], count: 0, added: 0 };
+	const none = { stops, at: () => [], home: [], off: [], skipped: [], count: 0, added: 0 };
 	if (mode === 'no' || !stops.length) return none;
 	const from = fromPort();
 	const pts = [...(from ? [from] : []), ...stops.map(s => s.wharf || npcById.get(s.npcId))];
@@ -489,7 +489,7 @@ function questPlan(stops, mode, hold, weightStart = 0) {
 	const trades = pts.map((p, i) => (i < o ? 0 : stops[i - o].times || 0));
 	// On the way only: no stop put in, except for a taker asked for by name.
 	const laid = layQuests(live, pts.map(p => ({ x: p.x, y: p.y })), { trades, progress: questProgressOf, detour: mode === 'near' ? 0 : 8000, forced: new Set(pulledToday()) });
-	const out = [], at = [], legAt = new Map();
+	const out = [], at = [];
 	let home = [], weight = weightStart, chain = 0;
 	laid.route.forEach((e, r) => {
 		if (e.fixed && e.i < o) { home = e.steps; return; }
@@ -498,15 +498,13 @@ function questPlan(stops, mode, hold, weightStart = 0) {
 			s.quests = e.steps;
 			out.push(s); at.push(e.steps); weight = s.weightAfter; chain = s.chain;
 		} else {
-			out.push({ quest: true, place: { x: e.x, y: e.y, name: e.place, who: e.who }, quests: e.steps, weightAfter: weight, chain, hold });
+			out.push({ quest: true, hunt: e.hunt || null, place: { x: e.x, y: e.y, name: e.place, who: e.who }, quests: e.steps, weightAfter: weight, chain, hold });
 			at.push(e.steps);
 		}
-		if (laid.legs.has(r)) legAt.set(out.length - 1, laid.legs.get(r));
 	});
 	return {
 		stops: out,
 		at: k => at[k] || [],
-		leg: k => legAt.get(k) || [],
 		home, off: laid.off,
 		skipped: skipped.map(id => quests.find(q => q.id === id)).filter(q => q && !questDone(q)),
 		count: home.length + at.reduce((a, l) => a + l.length, 0),
@@ -537,25 +535,20 @@ function questCount(q, trades) {
 function questChip(x, wanted, trades = 0) {
 	const { q, step } = x;
 	const done = questDone(q);
-	return `<span class="run-quest${wanted.has(q.id) ? ' wanted' : ''}${done ? ' done' : ''}">
-		<i>📜</i><b>${done ? 'done' : 'hand in'}</b>${questLink(q)}<small>${esc(step.who)} · ${esc(cadenceOf(q))}${q.barters ? ` · ${esc(questCount(q, trades))}` : ''}</small>
-		<span class="run-quest-acts">${done ? '' : `<button class="chip tiny" data-act="quest-claim" data-quest="${esc(q.id)}" title="Record the reward as claimed">claimed</button>`}<button class="map-x" data-act="barter-quest-skip" data-quest="${esc(q.id)}" title="Leave this quest out of today's runs" aria-label="Leave this quest out">×</button></span>
+	const hunt = step.what === 'hunt';
+	return `<span class="run-quest${hunt ? ' hunt' : ''}${wanted.has(q.id) ? ' wanted' : ''}${done ? ' done' : ''}">
+		<i>${hunt ? '🎯' : '📜'}</i><b>${done ? 'done' : hunt ? 'hunt' : 'hand in'}</b>${questLink(q)}<small>${hunt ? esc(q.where.replace(/^[^—]*—\s*/, '')) : `${esc(step.who)} · ${esc(cadenceOf(q))}`}${q.barters ? ` · ${esc(questCount(q, trades))}` : ''}</small>
+		<span class="run-quest-acts">${done || hunt ? '' : `<button class="chip tiny" data-act="quest-claim" data-quest="${esc(q.id)}" title="Record the reward as claimed">claimed</button>`}<button class="map-x" data-act="barter-quest-skip" data-quest="${esc(q.id)}" title="Leave this quest out of today's runs" aria-label="Leave this quest out">×</button></span>
 	</span>`;
-}
-
-/** A hunt whose grounds a leg passes. */
-function questLeg(x) {
-	const { q, monster, dist } = x;
-	return `<span class="run-quest hunt"><i>🎯</i><b>${esc(monster.name)} grounds</b><span class="run-quest-note">${dist < 400 ? 'on this leg' : `${esc(fmtDistance(dist * 0.25))} off this leg`} ·</span>${questLink(q)}<small>${esc(cadenceOf(q))}</small></span>`;
 }
 
 /** A quest the run cannot take in, and why. */
 function questOff(x) {
 	const { q, step } = x;
 	const why = x.why === 'far' ? `${esc(step.who)} at ${esc(step.place)} · ${esc(fmtDistance(x.dist * 0.25))} off the way`
-		: x.why === 'grounds' ? `no leg passes the ${esc((q.monster && q.monster.replace(/-/g, ' ')) || '')} grounds${Number.isFinite(x.dist) ? ` · ${esc(fmtDistance(x.dist * 0.25))} off at the nearest` : ''}`
+		: x.why === 'grounds' ? `the ${esc((q.monster && q.monster.replace(/-/g, ' ')) || '')} grounds${Number.isFinite(x.dist) ? ` · ${esc(fmtDistance(x.dist * 0.25))} off the way` : ' lie off the way'}`
 			: `${esc(questCount(q, x.adds))} · ${F(x.left)} more after it`;
-	return `<span class="run-quest off"><i>📜</i>${questLink(q)}<small>${why}</small>${x.why === 'far' ? `<span class="run-quest-acts"><button class="chip tiny" data-act="barter-quest-pull" data-quest="${esc(q.id)}" title="Put a stop in for it today, whatever the way round">take it in</button></span>` : ''}</span>`;
+	return `<span class="run-quest off"><i>📜</i>${questLink(q)}<small>${why}</small>${x.why === 'far' || x.why === 'grounds' ? `<span class="run-quest-acts"><button class="chip tiny" data-act="barter-quest-pull" data-quest="${esc(q.id)}" title="Put a stop in for it today, whatever the way round">take it in</button></span>` : ''}</span>`;
 }
 
 /** A quest left out by hand, and the way to take it back in. */
@@ -626,7 +619,7 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = nu
 			const four = seventhsOf(s.npcId);
 			if (four.length > 1) got = `<span class="run-paid"><span>got</span>${four.map(name => `<button class="chip pay${(sailing.got || {})[s.npcId] === name ? ' active' : ''}" data-act="barter-got" data-npc="${s.npcId}" data-item="${esc(name)}" title="${esc(name)}">${img(name, 'row-icon sm')}</button>`).join('')}</span>`;
 		}
-		return `<div class="run-check">${paid}${got}<button class="run-done${done ? ' on' : ''}" data-act="barter-stop-done" data-k="${esc(key)}" aria-pressed="${done}"><i>${done ? '✓' : ''}</i>${done ? 'Done' : s.wharf ? 'Called here' : s.quest ? 'Handed in' : 'Traded here'}</button></div>`;
+		return `<div class="run-check">${paid}${got}<button class="run-done${done ? ' on' : ''}" data-act="barter-stop-done" data-k="${esc(key)}" aria-pressed="${done}"><i>${done ? '✓' : ''}</i>${done ? 'Done' : s.wharf ? 'Called here' : s.hunt ? 'Hunted here' : s.quest ? 'Handed in' : 'Traded here'}</button></div>`;
 	};
 	return stops.map((s, i) => {
 		const k = k0 + i;
@@ -645,9 +638,9 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = nu
 		return `<div class="run-stop${s.wharf ? ' wharf' : ''}${s.quest ? ' quest' : ''}${s.sale ? ' sale' : ''}${i === stops.length - 1 ? ' last' : ''}${sailing && sailing.done.includes(stopKey(s, k, sailing.stops || stops)) ? ' done' : ''}">
 			<div class="run-rail"><i></i><b>${k + 1}</b><i></i></div>
 			<div class="run-main">
-				<div class="run-stop-head">${s.wharf ? '<span class="run-anchor" title="A pause at a wharf, not a barter">⚓</span>' : s.quest ? '<span class="run-anchor" title="A stop put in for a quest, not a barter">📜</span>' : ''}<b>${esc(s.quest ? place.name : s.wharf ? `${place.at} wharf` : isleOf(place))}</b><span>${esc(s.quest ? place.who : s.wharf ? place.name : whoOf(place))}</span>${tag ? tag(s) : ''}${leg}</div>
+				<div class="run-stop-head">${s.wharf ? '<span class="run-anchor" title="A pause at a wharf, not a barter">⚓</span>' : s.quest ? `<span class="run-anchor" title="${s.hunt ? 'A stop put in to hunt, not a barter' : 'A stop put in for a quest, not a barter'}">${s.hunt ? '🎯' : '📜'}</span>` : ''}<b>${esc(s.quest ? place.name : s.wharf ? `${place.at} wharf` : isleOf(place))}</b><span>${esc(s.quest ? place.who : s.wharf ? place.name : whoOf(place))}</span>${tag ? tag(s) : ''}${leg}</div>
 				${did}
-				${notes && (notes.at(k).length || notes.leg(k).length) ? `<div class="run-quests">${notes.leg(k).map(questLeg).join('')}${notes.at(k).map(x => questChip(x, wanted, notes.trades || 0)).join('')}</div>` : ''}
+				${notes && notes.at(k).length ? `<div class="run-quests">${notes.at(k).map(x => questChip(x, wanted, notes.trades || 0)).join('')}</div>` : ''}
 				${check(s, k)}
 			</div>
 			<div class="run-hold">
@@ -671,10 +664,10 @@ function chartButton(stops, pick) {
 	const trades = isles.map(s => [s.npcId, s.give, s.giveText, s.item, s.recvText, s.recvMin, s.giveN, s.times]);
 	const calls = [];
 	let n = 0;
-	const questsAt = s => (s.quests || []).map(x => `${x.step.who}: ${questTitle(x.q)}`);
+	const questsAt = s => (s.quests || []).map(x => `${x.step.what === 'hunt' ? 'hunt' : x.step.who}: ${questTitle(x.q)}`);
 	for (const s of stops) {
 		if (s.npcId) { n++; continue; }
-		if (s.quest) { calls.push([n, s.place.who, s.place.name, s.place.x, s.place.y, [], 0, 0, questsAt(s)]); continue; }
+		if (s.quest) { calls.push(s.hunt ? [n, s.place.name, 'hunting grounds', s.place.x, s.place.y, [], 0, 0, questsAt(s)] : [n, s.place.who, s.place.name, s.place.x, s.place.y, [], 0, 0, questsAt(s)]); continue; }
 		if (!s.wharf || (!s.dropped.length && !s.sale && !(s.loads && s.loads.length) && !questsAt(s).length)) continue;
 		calls.push([n, s.wharf.name, s.wharf.at, s.wharf.x, s.wharf.y,
 			s.dropped.map(d => [d.item, Math.round(d.n * 10) / 10]),
@@ -1850,7 +1843,7 @@ export function barterAction(act, el, redraw) {
 			// has nothing left to hand in.
 			let claimed = 0;
 			for (let round = 0; sailAll.quests && round < 6; round++) {
-				const list = [...(shownPlan.questsHome || []), ...shownPlan.stops.flatMap(s => s.quests || [])].map(x => x.q).filter((q, i, a) => a.indexOf(q) === i && !questDone(q) && rewardOf(q));
+				const list = [...(shownPlan.questsHome || []), ...shownPlan.stops.flatMap(s => s.quests || [])].filter(x => x.step.what !== 'hunt').map(x => x.q).filter((q, i, a) => a.indexOf(q) === i && !questDone(q) && rewardOf(q));
 				if (!list.length) break;
 				store.claimQuests(list.map(q => ({ id: q.id, delta: rewardOf(q), key: periodKey(cadenceOf(q)) })), `Handed in ${list.length} quest${list.length === 1 ? '' : 's'} along the run`);
 				claimed += list.length;
@@ -1876,7 +1869,7 @@ export function barterAction(act, el, redraw) {
 			// remembered keeps its button, to be asked.
 			if (now && shownPlan) {
 				const stop = shownPlan.stops.find((s, i) => stopKey(s, i, shownPlan.stops) === k);
-				const list = ((stop && stop.quests) || []).map(x => x.q).filter(q => !questDone(q) && rewardOf(q));
+				const list = ((stop && stop.quests) || []).filter(x => x.step.what !== 'hunt').map(x => x.q).filter(q => !questDone(q) && rewardOf(q));
 				if (list.length) {
 					store.claimQuests(list.map(q => ({ id: q.id, delta: rewardOf(q), key: periodKey(cadenceOf(q)) })), `Handed in ${list.length === 1 ? questTitle(list[0]) : `${list.length} quests`} at ${stop.place ? stop.place.name : stop.wharf ? stop.wharf.at : isleOf(npcById.get(stop.npcId))}`);
 					toast(`${list.length === 1 ? questTitle(list[0]) : `${list.length} quests`} handed in — the rewards are in the bags`, true);

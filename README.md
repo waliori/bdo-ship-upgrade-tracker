@@ -562,7 +562,7 @@ stop put in for a taker close by; or those and the hunts. The sailor is taken to
 accepted them already, so what counts is where each is handed in, and
 every taker is placed on the chart. The run hands in whatever it
 passes and puts a stop in where a taker lies a short way off the
-route; a hunt only after a leg has passed its grounds; a barter quest
+route; a hunt at a stop of its own on its grounds and handed in after; a barter quest
 only once the run's trades make its count up, the count kept from run
 to run and made up by itself when a trip is recorded. A stop ticked
 off on the checklist hands in the quests at it.

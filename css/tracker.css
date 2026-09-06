@@ -4164,6 +4164,7 @@ button.status-bit:hover { background: rgba(88, 168, 232, 0.12); color: var(--ink
    sits at the foot of the box until the sheet's own end comes up. */
 .run-foot, .run-dialog .mat-sail { position: sticky; bottom: 0; z-index: 3; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 0; padding: 10px 12px; border-radius: var(--r-panel); background: #0a1826; border: 1px solid rgba(88, 168, 232, 0.35); box-shadow: 0 -10px 24px rgba(3, 9, 16, 0.55); }
 .run-foot .sail-bar { flex: 1 1 320px; padding: 0; border: none; background: transparent; }
+.run-foot .sail-bar .act { flex: none; white-space: nowrap; padding: 9px 16px; }
 .run-foot .run-chart, .run-dialog .mat-sail .run-chart { flex: 0 1 auto; margin: 0; }
 @media (max-width: 640px) {
   .run-foot .run-chart, .run-dialog .mat-sail .run-chart { flex: 1 1 100%; }

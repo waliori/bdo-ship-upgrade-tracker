@@ -42,12 +42,14 @@ test('a loop from Velia by Baeza and Tinberra: deliveries handed in where the ru
 	assert.ok(laid.indexOf(iliya) > laid.findIndex(e => e.fixed && e.i === 2), 'after the twenty-second trade, at Tinberra');
 	const nexus = off.find(x => x.q.id === 'nexus');
 	assert.ok(nexus && nexus.why === 'short' && nexus.left === 78, 'the hundred: 22 of it this run, 78 more after');
-	// A hunt is handed in only after the leg past its grounds, and noted on that leg.
-	const hungry = laid.find(e => ids(e).includes('hungry'));
-	assert.ok(hungry, 'the Hekaru hunt is handed in');
-	const legEnd = [...legs].find(([, l]) => l.some(x => x.q.id === 'hungry'))[0];
-	assert.ok(laid.indexOf(hungry) >= legEnd, 'handed in at or after the leg past the grounds');
-	assert.ok(off.some(x => x.q.id === 'omg-candidum' && x.why === 'grounds'), 'no leg passes the Candidum grounds');
+	// A hunt gets a stop at its grounds, and is handed in only after it.
+	const grounds = laid.find(e => e.hunt && e.hunt.key === 'hekaru');
+	assert.ok(grounds, 'a stop put in at the Hekaru grounds');
+	assert.ok(grounds.steps.some(x => x.q.id === 'hungry' && x.step.what === 'hunt'));
+	const hungry = laid.find(e => e.steps.some(x => x.q.id === 'hungry' && x.step.what !== 'hunt'));
+	assert.ok(hungry && laid.indexOf(hungry) > laid.indexOf(grounds), 'handed in after the grounds');
+	assert.equal([...legs.keys()].includes(laid.indexOf(grounds)), true, 'the grounds stop named for what draws them');
+	assert.ok(off.some(x => x.q.id === 'omg-candidum' && x.why === 'grounds'), 'the Candidum grounds lie too far off the way');
 	// Baremi lies a mile from Iliya, and is not Iliya.
 	assert.ok(!ids(entry('Baremi Island')).includes('supplies-iliya'));
 });

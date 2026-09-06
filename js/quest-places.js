@@ -7,8 +7,8 @@
 // chart already. The sailor is taken to have accepted every quest
 // already -- they are given at Velia, Iliya and Oquilla's Eye, where
 // every run passes -- so only the last step counts: where it is
-// handed in. A hunt names the species whose grounds the Map draws, and
-// is handed in only after a leg has passed them; a barter quest asks
+// handed in. A hunt names the species whose grounds the Map draws: the
+// run gets a stop at the grounds and hands the hunt in after; a barter quest asks
 // for a number of barters, and is handed in only once the run's trades
 // have made the number up.
 //
@@ -20,9 +20,8 @@
 // Pure: the quests, the places and a route come in, the route with the
 // quest stops threaded in goes out. Distances are straight and in the
 // chart's pixels (a quarter of a metre each): a stop counts as at a
-// place within `near` of it, a leg as passing grounds within `off` of
-// its straight line, and a taker is worth a stop when the way round by
-// it is under `detour` longer.
+// place within `near` of it, and a taker or a hunt's grounds are worth
+// a stop when the way round by them is under `detour` longer.
 
 import { ports, npcs } from './barter_npcs.js';
 import { wharves } from './wharves.js';
@@ -54,13 +53,6 @@ export function handIn(q) {
 const d2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 const dist = (a, b) => Math.sqrt(d2(a, b));
 
-/** The distance from a point to the segment a-b. */
-function toSegment(p, a, b) {
-	const l2 = d2(a, b);
-	if (l2 === 0) return dist(p, a);
-	const t = Math.max(0, Math.min(1, ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / l2));
-	return dist(p, { x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) });
-}
 
 /**
  * The quests laid along a route. `points` are the route's stops in
@@ -86,7 +78,7 @@ function toSegment(p, a, b) {
  * this run. `legs` notes each hunt on the leg that passes its grounds
  * closest, by the index of the entry the leg ends at.
  */
-export function layQuests(quests, points, { near = 1200, off = 8000, detour = 8000, share = 0.15, trades = null, progress = () => 0, forced = new Set() } = {}) {
+export function layQuests(quests, points, { near = 1200, detour = 8000, share = 0.15, trades = null, progress = () => 0, forced = new Set() } = {}) {
 	let route = points.map((p, i) => ({ x: p.x, y: p.y, fixed: true, i, steps: [] }));
 	// The stops put in may lengthen the run by `share` of it in all --
 	// a long leg would otherwise take a taker in cheaply, and the next,
@@ -96,31 +88,48 @@ export function layQuests(quests, points, { near = 1200, off = 8000, detour = 80
 	const legs = new Map();
 	// The barters made by the time the run leaves entry k.
 	const made = k => (trades ? route.slice(0, k + 1).reduce((a, e) => a + (e.fixed ? trades[e.i] || 0 : 0), 0) : 0);
-	// Each quest's earliest entry, from its grounds or its count, and
-	// the leg past its grounds; a quest that cannot be taken in at all
-	// is set aside at once.
+	// The cheapest place on the way for a point, after entry `from`:
+	// which entry to set it down before, and what the way round adds.
+	const cheapest = (p, from) => {
+		let best = Infinity, where = -1;
+		for (let j = from > 0 ? from + 1 : 1; j <= route.length; j++) {
+			const a = route[j - 1], b = route[j] || null;
+			const cost = dist(a, p) + (b ? dist(p, b) - dist(a, b) : 0);
+			if (cost < best) { best = cost; where = j; }
+		}
+		return { where, cost: best };
+	};
+	// Each quest's earliest entry, from its grounds or its count. A hunt
+	// gets a stop of its own at the grounds -- the point of them the way
+	// round by costs least, under the same rules as a taker -- and is
+	// handed in after it; a hunt whose grounds lie too far off is set
+	// aside, as is a barter quest the run's trades will not make up.
 	const wants = [];
 	for (const q of quests) {
 		const step = handIn(q);
 		if (!step) continue;
 		let from = 0;
 		const m = q.monster && monsterByKey[q.monster];
-		if (m && m.points && m.points.length) {
-			// The first leg that passes the grounds, so the hand-in can be
-			// as early as the run allows; the closest when none does, to say
-			// how far off they lie.
-			let firstLeg = -1, firstDist = Infinity, best = Infinity;
-			for (let k = 0; k + 1 < route.length; k++) {
-				let d0 = Infinity;
-				for (const [x, y] of m.points) { const d = toSegment({ x, y }, route[k], route[k + 1]); if (d < d0) d0 = d; }
-				if (d0 < best) best = d0;
-				if (d0 <= off) { firstLeg = k; firstDist = d0; break; }
+		const shared = m && route.find(e => e.hunt && e.hunt.key === m.key);
+		if (shared) {
+			// Grounds the run already stops at for another hunt of the same species.
+			shared.steps.push({ q, step: { ...step, what: 'hunt', place: shared.place, who: m.name } });
+			legs.get(shared).push({ q, monster: m, dist: 0 });
+			from = route.indexOf(shared);
+		} else if (m && m.points && m.points.length) {
+			let best = null;
+			for (const [x, y] of m.points) {
+				const c = cheapest({ x, y }, 0);
+				if (!best || c.cost < best.cost) best = { ...c, x, y };
 			}
-			if (firstLeg < 0) { skipped.push({ q, step, why: 'grounds', dist: best }); continue; }
-			from = firstLeg + 1;
-			const end = route[firstLeg + 1];
-			if (!legs.has(end)) legs.set(end, []);
-			legs.get(end).push({ q, monster: m, dist: firstDist });
+			const ok = best && best.where >= 0 && (forced.has(q.id) || (best.cost <= detour && best.cost <= budget));
+			if (!ok) { skipped.push({ q, step, why: 'grounds', dist: best ? best.cost : Infinity }); continue; }
+			if (!forced.has(q.id)) budget -= best.cost;
+			const stop = { x: best.x, y: best.y, quest: true, hunt: { key: m.key, name: m.name }, place: `${m.name} grounds`, who: 'hunt', paid: forced.has(q.id) ? 0 : best.cost, steps: [{ q, step: { ...step, what: 'hunt', place: `${m.name} grounds`, who: m.name } }] };
+			route = [...route.slice(0, best.where), stop, ...route.slice(best.where)];
+			from = best.where;
+			if (!legs.has(stop)) legs.set(stop, []);
+			legs.get(stop).push({ q, monster: m, dist: 0 });
 		}
 		if (q.barters) {
 			const have = progress(q);
@@ -129,24 +138,29 @@ export function layQuests(quests, points, { near = 1200, off = 8000, detour = 80
 			if (k < 0) { skipped.push({ q, step, why: 'short', have, adds: total, left: Math.max(0, q.barters - have - total) }); continue; }
 			from = Math.max(from, k);
 		}
-		wants.push({ q, step, after: from > 0 ? route[from - 1] : null });
+		wants.push({ q, step, after: from > 0 ? route[from - 1] : null, grounds: m ? route.find(e => e.hunt && e.hunt.key === m.key) || null : null });
+	}
+	// A taker shared with a hunt is handed in after the hunt's grounds,
+	// whatever the quest, so the run puts in at Oquilla's Eye once, after
+	// the hunting, rather than once for the letters and once again for
+	// the hunts.
+	for (const w of wants) {
+		if (route.some(e => e.fixed && d2(e, w.step) <= near * near)) continue;   // the run passes it anyway
+		for (const h of wants) {
+			if (h === w || !h.grounds || !h.after || d2(h.step, w.step) > near * near) continue;
+			if (!w.after || route.indexOf(h.after) > route.indexOf(w.after)) w.after = h.after;
+		}
 	}
 	// Handed in where the run already passes, if it passes late enough;
 	// else a stop of its own -- the cheapest first, so a taker close by
 	// is never crowded out by one further off taken in before it.
 	const place = w => {
 		const from = w.after ? route.indexOf(w.after) + 1 : 0;
-		const k = route.findIndex((e, idx) => idx >= from && d2(e, w.step) <= near * near);
+		const k = route.findIndex((e, idx) => idx >= from && !e.hunt && d2(e, w.step) <= near * near);
 		if (k >= 0) return { k, cost: 0 };
-		let best = Infinity, where = -1;
 		// A stop of its own goes after the entry it must follow -- the
-		// leg's end, or the stop whose trades make the count up.
-		for (let j = from > 0 ? from + 1 : 1; j <= route.length; j++) {
-			const a = route[j - 1], b = route[j] || null;
-			const cost = dist(a, w.step) + (b ? dist(w.step, b) - dist(a, b) : 0);
-			if (cost < best) { best = cost; where = j; }
-		}
-		return { k: -1, where, cost: best };
+		// grounds, or the stop whose trades make the count up.
+		return { k: -1, ...cheapest(w.step, from) };
 	};
 	while (wants.length) {
 		let pick = -1, at = null;
@@ -154,7 +168,18 @@ export function layQuests(quests, points, { near = 1200, off = 8000, detour = 80
 		const [w] = wants.splice(pick, 1);
 		if (at.k >= 0) { route[at.k].steps.push({ q: w.q, step: w.step }); continue; }
 		// A taker asked for by name is taken in whatever the way round.
-		if (at.where < 0 || (!forced.has(w.q.id) && (at.cost > detour || at.cost > budget))) { skipped.push({ q: w.q, step: w.step, why: 'far', dist: at.cost }); continue; }
+		if (at.where < 0 || (!forced.has(w.q.id) && (at.cost > detour || at.cost > budget))) {
+			skipped.push({ q: w.q, step: w.step, why: 'far', dist: at.cost });
+			// A hunt that cannot be handed in leaves its grounds again; the
+			// grounds stop goes too when no other hunt keeps it, its cost
+			// given back.
+			if (w.grounds) {
+				w.grounds.steps = w.grounds.steps.filter(x => x.q !== w.q);
+				legs.set(w.grounds, (legs.get(w.grounds) || []).filter(x => x.q !== w.q));
+				if (!w.grounds.steps.length) { budget += w.grounds.paid || 0; legs.delete(w.grounds); route = route.filter(e => e !== w.grounds); }
+			}
+			continue;
+		}
 		if (!forced.has(w.q.id)) budget -= at.cost;
 		route = [...route.slice(0, at.where), { x: w.step.x, y: w.step.y, quest: true, place: w.step.place, who: w.step.who, steps: [{ q: w.q, step: w.step }] }, ...route.slice(at.where)];
 	}
