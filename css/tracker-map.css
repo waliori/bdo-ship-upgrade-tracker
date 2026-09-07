@@ -780,10 +780,16 @@
 }
 .map-step-nav:hover { color: var(--ink-hi); }
 
+/* The name is as wide as its longest fit, whatever the stop, so the
+   bar -- centred on the chart -- keeps one width as the stops are
+   stepped through and the arrows stay under the thumb that pressed
+   them; a name that took only its own width moved everything else
+   with every step. */
 .map-step-name {
   font-size: 11px;
   color: var(--ink-dim);
-  max-width: 150px;
+  flex: 0 0 150px;
+  width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
