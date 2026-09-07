@@ -20,7 +20,7 @@ import {
 import { kindOf } from './kinds.js';
 import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
 import { allItems, CODEX_LANGS, img } from './ui-bits.js';
-import { encodeShare, decodeShare, shareLink } from './share.js';
+import { encodeShare, decodeShare, shareLink, shareSize } from './share.js';
 import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
 import { paintPouch, measurePouch } from './pouch.js';
@@ -41,6 +41,7 @@ import { recordProgress } from './pace.js';
 import { openJump } from './jump.js';
 import { openItemCard } from './item-card.js';
 import { attachSheet } from './sheet.js';
+import { isPhone, onPhoneChange } from './viewport.js';
 
 import { openProfiles, activeProfile } from './profiles.js';
 import { DATA, CHANGES, LATEST, RELEASES, RELEASE } from './about.js';
@@ -48,12 +49,12 @@ import { openTables } from './screen-tables.js';
 import { toggleVellReminder, checkVellReminder } from './today.js';
 import { openTripLog } from './triplog.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
-import { renderGet, shoppingText } from './screen-get.js';
+import { renderGet, shoppingText, shoppingCSV } from './screen-get.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapCentreOnStash,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
-	saveRouteDialog, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
+	saveRouteDialog, loadSavedRoute, deleteSavedRoute, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite,
 	toggleFull, exitFull, mapIsFull, gameImportAction
@@ -90,6 +91,16 @@ let water = null;
 let queryTimer = null;
 // Each tab keeps the search typed on it, so coming back finds it as left.
 const queries = {};
+// And where it was scrolled to: a tab left half-way down a long list
+// comes back there, not at the top. Kept for the session only.
+const scrolls = {};
+let scrollBack = null;   // the position the next render puts back, if any
+
+/** Note where this tab was left, and ask for the next one's place back. */
+function leaveScroll(from, to) {
+	scrolls[from] = window.scrollY || 0;
+	scrollBack = scrolls[to] || 0;
+}
 
 
 /**
@@ -135,6 +146,22 @@ function measureTabBar() {
 	if (!bar) return;
 	const h = getComputedStyle(bar).display === 'none' ? 0 : bar.offsetHeight;
 	document.documentElement.style.setProperty('--tabbar-h', `${h}px`);
+}
+
+/**
+ * Which edges of the tab row have tabs past them. Between a phone and a
+ * desktop the row scrolls sideways, and a row that clips "To Get" at the
+ * edge with no hint reads as a row with six tabs in it: each edge fades
+ * while there is more that way, and only then.
+ */
+function markTabEdges() {
+	const bar = document.getElementById('tabs');
+	if (!bar) return;
+	const more = bar.scrollWidth - bar.clientWidth;
+	const scrolls = more > 1;
+	bar.classList.toggle('scrolls', scrolls);
+	bar.classList.toggle('scrolls-left', scrolls && bar.scrollLeft > 1);
+	bar.classList.toggle('scrolls-right', scrolls && bar.scrollLeft < more - 1);
 }
 
 /** Every section at once, named, counted and grouped the way the tab
@@ -184,7 +211,7 @@ export function render() {
 		<button class="tab ${view === t.id ? 'active' : ''}" role="tab"
 			aria-selected="${view === t.id}" aria-controls="screen"
 			tabindex="${view === t.id ? 0 : -1}"
-			data-act="view" data-id="${t.id}" id="tab-${t.id}" title="${t.label} (${i + 1})">
+			data-act="view" data-id="${t.id}" id="tab-${t.id}" title="${t.label} (${(i + 1) % 10})">
 			<span class="tab-icon" aria-hidden="true">${t.icon}</span>${t.label}${counts[t.id] ? `<span class="tab-count">${counts[t.id]}</span>` : ''}
 		</button>`).join('');
 	// The day's clocks and the ship, in one line, wherever the Plan's
@@ -201,9 +228,17 @@ export function render() {
 	lastCounts = counts;
 	paintTabBar(counts);
 
-	// Only fade the tab row when there is in fact something past the edge.
+	// A tab row that scrolls says so at whichever edge has more behind
+	// it, and keeps the standing tab where it can be seen.
 	const tabBar = document.getElementById('tabs');
-	tabBar.classList.toggle('scrolls', tabBar.scrollWidth > tabBar.clientWidth + 1);
+	const activeTab = tabBar.querySelector('.tab.active');
+	if (activeTab && tabBar.scrollWidth > tabBar.clientWidth + 1) {
+		const left = activeTab.offsetLeft - 24;
+		const right = activeTab.offsetLeft + activeTab.offsetWidth + 24 - tabBar.clientWidth;
+		if (tabBar.scrollLeft > left) tabBar.scrollLeft = Math.max(0, left);
+		else if (tabBar.scrollLeft < right) tabBar.scrollLeft = right;
+	}
+	markTabEdges();
 
 	const undoBtn = document.getElementById('undo-btn');
 	if (undoBtn) {
@@ -246,6 +281,12 @@ export function render() {
 	if (view === 'map') paintMap();
 	tickClocks();
 	syncHash();
+	// The tab just switched to, scrolled back to where it was left.
+	if (scrollBack !== null) {
+		const y = scrollBack;
+		scrollBack = null;
+		window.scrollTo(0, Math.min(y, Math.max(0, document.documentElement.scrollHeight - window.innerHeight)));
+	}
 }
 
 /**
@@ -309,6 +350,7 @@ function showView(id) {
 	// So does a chart standing over the whole screen.
 	if (id !== 'map') exitFull();
 	queries[view] = query;
+	if (id !== view) leaveScroll(view, id);
 	setView(id);
 	setQuery(queries[id] || '');
 	// A search typed on the old tab must not repaint the new one with a
@@ -378,6 +420,7 @@ function applyHash() {
 		closeBar();
 		if (m[1] !== 'map') exitFull();
 		queries[view] = query;
+		if (m[1] !== view) leaveScroll(view, m[1]);
 		setView(m[1]);
 		setQuery(queries[m[1]] || '');
 		if (m[1] === 'inventory') {
@@ -512,6 +555,135 @@ document.addEventListener('dialog-toggle', evt => {
 		else water.play();
 	} catch { /* the shader is decorative */ }
 });
+
+/* ------------------------------------------------------------------ *
+ * whether the save is reaching the disk
+ * ------------------------------------------------------------------ */
+
+/**
+ * A save that fails is the one thing this app must not be quiet about:
+ * every count typed from then on lives in memory only, and closing the
+ * tab loses it. The store says so once per streak (tracker-save-failed)
+ * and again when a write goes through (tracker-save-ok); a red badge
+ * stands in the masthead for as long as it lasts, with Export in reach.
+ */
+function saveBadge(on, reason = null) {
+	let badge = document.getElementById('save-badge');
+	if (!on) {
+		if (badge) badge.remove();
+		return;
+	}
+	if (!badge) {
+		badge = document.createElement('div');
+		badge.id = 'save-badge';
+		badge.className = 'save-badge';
+		badge.setAttribute('role', 'alert');
+		const head = document.querySelector('.masthead');
+		if (head) head.after(badge); else document.body.prepend(badge);
+	}
+	const why = reason === 'quota' ? 'storage full' : 'storage unavailable';
+	badge.innerHTML = `<span>Not saving — ${why}. What you change now is not kept.</span>
+		<button class="ghost-btn" data-act="export">Export now</button>`;
+}
+
+function wireSaveHealth() {
+	window.addEventListener('tracker-save-failed', evt => {
+		const reason = evt.detail && evt.detail.reason;
+		saveBadge(true, reason);
+		toast(reason === 'quota'
+			? 'This browser will not store any more — export a file before you close the tab'
+			: 'This browser is not keeping the save — export a file before you close the tab');
+	});
+	window.addEventListener('tracker-save-ok', () => saveBadge(false));
+	const health = store.saveHealth();
+	if (!health.ok) saveBadge(true, health.reason);
+	if (health.broken) offerBrokenSave();
+}
+
+/**
+ * The save that could not be read at boot, kept beside the key by the
+ * store. It is offered as a download rather than thrown away: it is
+ * someone's inventory, and a text editor may well get it back.
+ */
+function offerBrokenSave() {
+	const broken = store.brokenSave();
+	if (!broken) return;
+	const host = openDialog(`
+		<h2>A save that could not be read</h2>
+		<p class="dialog-copy">The data this browser had was not valid when the page opened, so the tracker started empty rather than write over it. The unreadable copy is kept — ${F(broken.text.length)} characters of it — and can be downloaded as a file to look at, or to send along with a bug report.</p>
+		<div class="dialog-actions">
+			<button class="act" data-broken-save>Download it</button>
+			<button class="ghost-btn" data-close>Later</button>
+		</div>`);
+	host.querySelector('[data-broken-save]').addEventListener('click', () => {
+		const blob = new Blob([broken.text], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `${broken.key.replace(/[^a-z0-9.-]+/gi, '-')}.json`;
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+		setTimeout(() => URL.revokeObjectURL(url), 1000);
+		closeDialog();
+	});
+}
+
+/* ------------------------------------------------------------------ *
+ * theme
+ * ------------------------------------------------------------------ */
+
+/** The three answers, in the order the button walks them. */
+const THEMES = ['dark', 'light', 'system'];
+const THEME_COLOR = { dark: '#0a1728', light: '#eef3f8' };
+let systemTheme = null;   // the matchMedia for "system", once it is wanted
+
+/** What the page is painted as right now: dark or light. */
+function resolvedTheme() {
+	const t = store.getSetting('theme', 'dark');
+	if (t === 'light' || t === 'dark') return t;
+	return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+/**
+ * Put the chosen theme on <html>. "system" takes the attribute off and
+ * lets the stylesheet's prefers-color-scheme branch decide, and keeps
+ * an ear on it so the address-bar colour follows a change of scheme
+ * while the page is open. The page starts dark in the HTML itself, so
+ * nobody who never chose sees a flash of the other one.
+ */
+function applyTheme() {
+	const t = store.getSetting('theme', 'dark');
+	const root = document.documentElement;
+	if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t);
+	else root.removeAttribute('data-theme');
+	const meta = document.querySelector('meta[name="theme-color"]');
+	if (meta) meta.setAttribute('content', THEME_COLOR[resolvedTheme()]);
+	if (t === 'system' && !systemTheme && typeof window.matchMedia === 'function') {
+		systemTheme = window.matchMedia('(prefers-color-scheme: light)');
+		const follow = () => { if (store.getSetting('theme', 'dark') === 'system') applyTheme(); };
+		if (typeof systemTheme.addEventListener === 'function') systemTheme.addEventListener('change', follow);
+		else systemTheme.addListener(follow);
+	}
+	syncThemeButton();
+}
+
+function syncThemeButton() {
+	const btn = document.getElementById('theme-btn');
+	if (!btn) return;
+	const t = store.getSetting('theme', 'dark');
+	const label = btn.querySelector('span') || btn;
+	label.textContent = `Theme: ${t}`;
+}
+
+/** The next theme round: dark, light, system, dark. */
+function cycleTheme() {
+	const t = store.getSetting('theme', 'dark');
+	const next = THEMES[(THEMES.indexOf(t) + 1) % THEMES.length];
+	store.setSetting('theme', next, true);
+	applyTheme();
+	toast(next === 'system' ? `Theme follows the system — ${resolvedTheme()} right now` : `Theme: ${next}`);
+}
 
 function syncWaterButton() {
 	const btn = document.getElementById('water-btn');
@@ -672,6 +844,7 @@ function wire() {
 				loadMarket({ force: true }).then(ok => toast(ok ? 'Market prices refreshed' : 'The Market did not answer — showing the last prices it gave'));
 				return;
 			case 'water': return toggleWater();
+			case 'theme': return cycleTheme();
 			case 'tour': return startTour();
 			case 'whats-new': return openWhatsNew();
 			case 'help': return openHelp();
@@ -717,6 +890,12 @@ function wire() {
 			case 'map-route-save': return saveRouteDialog();
 			case 'map-route-load': loadSavedRoute(Number(el.dataset.i)); return;
 			case 'map-route-del': deleteSavedRoute(Number(el.dataset.i)); return;
+			case 'map-route-prev': loadPreviousRoute(); return;
+			case 'map-route-prev-del': deletePreviousRoute(); return;
+			case 'map-ration-cal': return openRationCal();
+			case 'map-rations-call': putRationsCall(Number(el.dataset.k)); return;
+			case 'map-pin-area': pinArea(); return;
+			case 'map-pin-forget': forgetPinned(); return;
 			case 'map-route-trim': trimRouteToParley(); return;
 			case 'map-trades': setTradesMode(el.dataset.id); return;
 			case 'map-measure': toggleMeasure(); return;
@@ -922,9 +1101,10 @@ function wire() {
 				return;
 			}
 			case 'copy':
+			case 'copy-csv':
 				try {
-					await navigator.clipboard.writeText(shoppingText());
-					toast('Shortfall list copied');
+					await navigator.clipboard.writeText(act === 'copy-csv' ? shoppingCSV() : shoppingText());
+					toast(act === 'copy-csv' ? 'Shortfall list copied as CSV' : 'Shortfall list copied');
 				} catch {
 					toast('Could not reach the clipboard');
 				}
@@ -1119,6 +1299,9 @@ function wire() {
 		const mr = evt.target.closest('[data-act="map-return"]');
 		if (mr) return setMapReturn(mr.checked);
 
+		const mra = evt.target.closest('[data-act="map-rations-aboard"]');
+		if (mra) return setRationsAboard(mra.value);
+
 		const bc = evt.target.closest('[data-act^="barter-"]');
 		if (bc && bc.dataset.act !== 'barter-count' && bc.dataset.act !== 'barter-level' && barterChange(bc, parseAmount)) return render();
 
@@ -1151,21 +1334,32 @@ function wire() {
 	document.addEventListener('keydown', evt => {
 		const dialog = document.getElementById('dialog');
 		const inField = evt.target.closest('input, textarea, select, [contenteditable]');
+		// The single-key shortcuts answer only when nothing that reads
+		// keys of its own has the focus: the page itself, or a tab. A
+		// chip, a tile, a stepper or anything playing a button keeps
+		// its keys -- a "1" typed at a quantity stepper is a quantity.
+		const onBare = evt.target === document.body
+			|| evt.target === document.documentElement
+			|| (evt.target.closest && evt.target.closest('.tab, .tabs') && !evt.target.closest('[role="button"], .chip, [contenteditable]'));
 
 		// Ctrl+K anywhere, / outside a field: find anything. The digits
-		// switch tabs, the way they do in a browser.
+		// switch tabs, the way they do in a browser -- 1 to 9 for the
+		// first nine, 0 for the tenth.
 		if ((evt.ctrlKey || evt.metaKey) && !evt.altKey && evt.key.toLowerCase() === 'k') {
 			evt.preventDefault();
 			return openJumpPalette();
 		}
-		if (!inField && dialog.hidden && !evt.ctrlKey && !evt.metaKey && !evt.altKey) {
+		if (!inField && onBare && dialog.hidden && !evt.ctrlKey && !evt.metaKey && !evt.altKey) {
 			if (evt.key === '/') {
 				evt.preventDefault();
 				return openJumpPalette();
 			}
-			if (/^[1-9]$/.test(evt.key) && TABS[Number(evt.key) - 1]) {
-				evt.preventDefault();
-				return showView(TABS[Number(evt.key) - 1].id);
+			if (/^[0-9]$/.test(evt.key)) {
+				const at = evt.key === '0' ? 9 : Number(evt.key) - 1;
+				if (TABS[at]) {
+					evt.preventDefault();
+					return showView(TABS[at].id);
+				}
 			}
 		}
 
@@ -1241,7 +1435,7 @@ function wire() {
 		// inside it rather than wandering the page behind the veil.
 		if (evt.key === 'Tab' && !dialog.hidden) {
 			const focusable = [...dialog.querySelectorAll(
-				'a[href], input, select, textarea, button:not([disabled]), video[controls]')]
+				'a[href], input, select, textarea, button:not([disabled]), video[controls], [tabindex]:not([tabindex="-1"])')]
 				.filter(el => el.offsetParent !== null);
 			if (!focusable.length) return;
 			const first = focusable[0];
@@ -1277,7 +1471,11 @@ function wire() {
 		if (evt.target.classList && evt.target.classList.contains('amt')) evt.target.select();
 	});
 
-	window.addEventListener('resize', () => { measurePouch(); measureTabBar(); });
+	window.addEventListener('resize', () => { measurePouch(); measureTabBar(); markTabEdges(); });
+	// Turning a phone swaps the tab row for the thumb bar or back; the
+	// sheets stand on the bar's height, so it is measured again.
+	onPhoneChange(() => { measureTabBar(); measurePouch(); markTabEdges(); });
+	document.getElementById('tabs').addEventListener('scroll', markTabEdges, { passive: true });
 
 	// The pouch writes big silver the short way ("1.96b"); under the
 	// caret it swaps to the exact digits, so editing never rounds what
@@ -1444,22 +1642,45 @@ function showSharedBar(save) {
 	};
 }
 
+/** Past this many characters a chat app is likely to cut the link. */
+const LONG_LINK = 2000;
+
 function doExport() {
 	const host = openDialog(`
 		<h2>Take the plan with you</h2>
-		<p class="dialog-copy">A file is a backup and moves between machines. A link opens the same plan on any browser — stock, builds and crew all ride in the address — to look at without saving, or to take in.</p>
+		<p class="dialog-copy">A file is a backup and moves between machines. A link opens the same plan on any browser — stock, builds and crew all ride in the address — to look at without saving, or to take in. The link leaves out the diaries the app keeps for itself, which is what makes one long.</p>
+		<p class="dialog-copy" data-link-size>Measuring the link…</p>
 		<div class="dialog-actions">
 			<button class="act" data-export-file>Download a file</button>
 			<button class="ghost-btn" data-export-link>Copy a link</button>
 			<button class="ghost-btn" data-close>Cancel</button>
 		</div>`);
 	host.querySelector('[data-export-file]').addEventListener('click', () => { closeDialog(); downloadExport(); });
+	// The link is built once, up front, so its length can be said before
+	// it is copied: a chat app cuts a long address short, and a cut link
+	// opens as nothing.
+	const shape = store.saveShape();
+	const built = encodeShare(shape, { slim: true }).then(payload => shareLink(payload));
+	const sizeLine = host.querySelector('[data-link-size]');
+	built.then(link => {
+		const n = shareSize(link);
+		if (!sizeLine || !sizeLine.isConnected) return;
+		if (n > LONG_LINK) {
+			sizeLine.classList.add('warn');
+			sizeLine.textContent = `The link is ${F(n)} characters long. Chat apps often cut a link past ${F(LONG_LINK)}, so a file is the safer way to send this one.`;
+		} else {
+			sizeLine.textContent = `The link is ${F(n)} characters long.`;
+		}
+	}).catch(() => { if (sizeLine) sizeLine.textContent = 'The link could not be built on this browser.'; });
 	host.querySelector('[data-export-link]').addEventListener('click', async () => {
 		try {
-			const link = shareLink(await encodeShare(store.saveShape()));
+			const link = await built;
 			await navigator.clipboard.writeText(link);
 			closeDialog();
-			toast(`Link copied — ${Math.round(link.length / 1024)} KB of address`);
+			const n = shareSize(link);
+			toast(n > LONG_LINK
+				? `Link copied — ${F(n)} characters; a chat app may cut it, so a file is safer`
+				: `Link copied — ${F(n)} characters of address`);
 		} catch {
 			toast('Could not build or copy the link');
 		}
@@ -1503,8 +1724,18 @@ function doImport() {
 		// happens rather than in the past tense afterwards.
 		const items = Object.keys(incoming.stock).length;
 		const builds = Array.isArray(incoming.targets) ? incoming.targets.length : 0;
+		// What the file names that this build does not know -- an item
+		// renamed by a patch, a save from a newer version. Said before the
+		// choice, not after: the counts still come in under those names,
+		// and nothing here will show them.
+		const seen = store.inspectImport(incoming);
+		const strange = [...new Set([...seen.unknownItems, ...seen.unknownTargets])];
+		const strangeLine = strange.length
+			? `<p class="dialog-copy warn">${F(strange.length)} item${strange.length === 1 ? '' : 's'} this version does not know: ${esc(strange.slice(0, 6).join(', '))}${strange.length > 6 ? '…' : ''}. ${strange.length === 1 ? 'Its count comes' : 'Their counts come'} in all the same, but no screen will show ${strange.length === 1 ? 'it' : 'them'} until a version that knows the name${strange.length === 1 ? '' : 's'}.</p>`
+			: '';
 		const host = openDialog(`
 			<h2>Bring in this file?</h2>
+			${strangeLine}
 			<p>It holds ${F(items)} items and ${F(builds)} builds. <b>Replace</b> makes it the whole
 			tracker — your stock, your build queue and your choices. <b>Merge</b> keeps the higher
 			count of any item, adds builds you do not have, and leaves every choice you have
@@ -1668,8 +1899,7 @@ function markReleaseSeen() {
  * tools/capture does in one command.
  */
 function openHelp() {
-	const phone = window.matchMedia('(max-width: 720px)').matches;
-	const file = phone ? 'walkthrough-phone.mp4' : 'walkthrough.mp4';
+	const file = isPhone() ? 'walkthrough-phone.mp4' : 'walkthrough.mp4';
 	const host = openDialog(`
 		<h2>How this works</h2>
 		<p>The whole thing, end to end. The yard first — queue a build, choose how to get there, record what you gathered, make something, see what it will really cost, take the list shopping — and then the sea: the day's free quests, the ship you sail, and the chart, where that list becomes a loop with minutes on it and a blank stretch of water can be drawn on.</p>
@@ -1728,6 +1958,9 @@ export async function init() {
 	store.useKinds(kindOf);
 	store.init();
 
+	// Before anything is drawn, so the first paint is the chosen one.
+	applyTheme();
+
 	const saved = store.getSetting('view');
 	if (saved && TABS.some(t => t.id === saved)) setView(saved);
 	// Someone sent this link. A bare #map is a reload of your own, and so
@@ -1754,6 +1987,7 @@ export async function init() {
 		el.hidden = false;
 	});
 	window.addEventListener('hashchange', applyHash);
+	wireSaveHealth();
 	store.subscribe(() => render());
 	render();
 	// The minute hand on every countdown, a repaint when a reset passes

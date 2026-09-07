@@ -176,7 +176,7 @@ export function openBuildPicker() {
 	const host = openDialog(`
 		<h2>Add a build</h2>
 		<p>Anything with a recipe can be queued — a ship, a part, or a stack of materials.</p>
-		<input class="field picker-search" type="search" placeholder="Search ships, parts and materials…" data-picker-search>
+		<input class="field picker-search" type="search" placeholder="Search ships, parts and materials…" data-picker-search aria-label="Search ships, parts and materials">
 		<div class="picker" data-picker></div>
 		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>
 	`);

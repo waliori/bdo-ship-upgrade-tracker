@@ -140,7 +140,7 @@ export function renderTree() {
 		return `<div class="trow ${state}" style="--depth:${depth}">
 			${guides}
 			${kids && !q
-				? `<button class="tcaret" data-act="tree-fold" data-id="${esc(id)}">${folded.has(id) ? '+' : '−'}</button>`
+				? `<button class="tcaret" data-act="tree-fold" data-id="${esc(id)}" aria-expanded="${!folded.has(id)}" aria-label="${folded.has(id) ? 'Unfold' : 'Fold'} ${esc(node.item)}">${folded.has(id) ? '+' : '−'}</button>`
 				: kids
 					? '<span class="tcaret open" title="Every branch with a match is open while you search"></span>'
 					: '<span class="tcaret empty"></span>'}

@@ -155,11 +155,14 @@ export function renderGet() {
 			${barterProfileTile()}
 			${marketTile()}
 		</div>
-		<button class="ghost-btn" data-act="copy">Copy list</button>
+		<div class="get-copy">
+			<button class="ghost-btn" data-act="copy">Copy list</button>
+			<button class="ghost-btn" data-act="copy-csv" title="The same list as rows for a spreadsheet: group, item, quantity, unit cost, note">Copy as CSV</button>
+		</div>
 	</div>`;
 
 	const controls = `<div class="controls">
-		<input class="field" type="search" placeholder="Search the list…" value="${esc(query)}" data-act="query">
+		<input class="field" type="search" placeholder="Search the list…" value="${esc(query)}" data-act="query" aria-label="Search the list">
 	</div>`;
 
 	if (!groups.length) {
@@ -289,4 +292,26 @@ export function shoppingText() {
 		const lines = [...g.items].sort((a, b) => b.qty - a.qty).map(e => `  ${Math.round(e.qty)}× ${e.item}`);
 		return `${g.key}${total}\n${lines.join('\n')}`;
 	}).join('\n\n');
+}
+
+/**
+ * The same list for a spreadsheet: one row a line, the group it sits
+ * under, the quantity, what one costs, and the note the row shows
+ * (where it is bought, or that it is bartered). Quoted the way RFC 4180
+ * asks, so a name with a comma in it stays one cell.
+ */
+export function shoppingCSV() {
+	const cell = v => {
+		const t = String(v == null ? '' : v);
+		return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+	};
+	const rows = [['group', 'item', 'quantity', 'unit cost', 'note']];
+	for (const g of visibleGroups(query.toLowerCase())) {
+		for (const e of [...g.items].sort((a, b) => b.qty - a.qty)) {
+			const each = e.qty ? (e.coins ? `${Math.round(e.coins / e.qty)} coins` : e.silver ? `${Math.round(e.silver / e.qty)} silver` : '') : '';
+			const note = e.detail || (e.barter ? `barter at ${e.barter.npcs.length} islands` : e.market ? 'Central Market, last sold' : '');
+			rows.push([g.key, e.item, Math.round(e.qty), each, note]);
+		}
+	}
+	return rows.map(r => r.map(cell).join(',')).join('\n');
 }

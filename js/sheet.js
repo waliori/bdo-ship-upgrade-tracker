@@ -17,7 +17,7 @@
 // when there is nothing left to scroll up to, so the two gestures never
 // fight over the same stroke.
 
-const PHONE = '(max-width: 720px)';
+import { isPhone } from './viewport.js';
 
 /** How far a stroke travels before it is a drag and not a tap. */
 const SLOP = 6;
@@ -27,7 +27,7 @@ const FLICK = 0.55;          // px per ms
 /** Up this far and it wants the whole screen; down this far, less. */
 const SNAP = 40;
 
-const phone = () => window.matchMedia(PHONE).matches;
+const phone = isPhone;
 
 /* ------------------------------------------------------------------ *
  * what the keyboard covers

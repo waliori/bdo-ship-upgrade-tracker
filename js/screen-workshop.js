@@ -224,7 +224,7 @@ export function renderWorkshop() {
 		: '');
 
 	return `<div class="controls">
-		<input class="field" type="search" placeholder="Search recipes and parts…" value="${esc(query)}" data-act="query">
+		<input class="field" type="search" placeholder="Search recipes and parts…" value="${esc(query)}" data-act="query" aria-label="Search recipes and parts">
 	</div>
 	<div class="panel">
 		<div class="panel-head">

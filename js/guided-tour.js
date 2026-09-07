@@ -9,8 +9,13 @@
 // where that button is in the bar at the thumb or behind "All".
 
 import * as store from './state.js';
+import { isPhone, isFolded } from './viewport.js';
 
 const DONE_KEY = 'bdo_ship_upgrade-tour_completed';
+
+/** True when the browser has asked for less movement. */
+const stillness = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+	&& window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**
  * A worked-through example to talk over: a Carrack part part-way built,
@@ -167,8 +172,11 @@ class GuidedTour {
 			stagePadding: 8,
 			stageRadius: 12,
 			allowClose: true,
-			animate: true,
-			smoothScroll: true,
+			// A browser that asked for less movement gets the stage cut,
+			// not slid, and the page jumped to each step rather than
+			// scrolled there.
+			animate: !stillness(),
+			smoothScroll: !stillness(),
 			doneBtnText: 'Finish',
 			closeBtnText: 'Skip',
 			nextBtnText: 'Next',
@@ -190,7 +198,7 @@ class GuidedTour {
 	}
 
 	steps() {
-		const onPhone = () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+		const onPhone = () => isPhone();
 		const phone = onPhone();
 		const all = [
 			{
@@ -359,11 +367,12 @@ class GuidedTour {
 			{
 				// The masthead's buttons are behind the hamburger on a phone,
 				// so that is what a phone gets pointed at.
-				// The header folds into the hamburger at 780px (css), which is
-				// wider than the phone the rest of the tour is cut for --
-				// between the two, the actions the step would point at
-				// are hidden, so this step follows the header's own rule.
-				element: typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 780px)').matches ? '.hamburger' : '.masthead-actions',
+				// The header folds into the hamburger a little before the
+				// rest of the page becomes a phone's (MENU_MQ, wider than
+				// PHONE_MQ) -- between the two, the actions the step would
+				// point at are hidden, so this step follows the header's
+				// own rule.
+				element: isFolded() ? '.hamburger' : '.masthead-actions',
 				popover: {
 					title: 'Undo, and your data',
 					description: 'Every change can be undone. <b>Find</b> (Ctrl+K) opens any item or tab, and <b>Log a trip</b> records everything you brought back as one change.<br><br><b>More</b> holds Profiles, Export and Import — a JSON backup, or a link carrying the whole plan — and <b>Help</b>, which plays a film of the whole thing end to end and lists what changed and when each dataset was checked.<br><br>Where the deployment offers it, signing in with Discord keeps this same inventory on your phone as well; without it nothing leaves this browser at all.',

@@ -53,7 +53,7 @@ export function renderPlan() {
 	const filters = [
 		['all', 'Everything'], ['short', 'Missing only'], ['craft', 'To craft'], ['done', 'Covered']
 	].map(([id, label]) =>
-		`<button class="chip ${planFilter === id ? 'active' : ''}" data-act="plan-filter" data-id="${id}">${label}</button>`
+		`<button class="chip ${planFilter === id ? 'active' : ''}" data-act="plan-filter" data-id="${id}" aria-pressed="${planFilter === id}">${label}</button>`
 	).join('');
 
 	const q = query.toLowerCase();
@@ -155,7 +155,7 @@ export function startHere() {
 
 export function controlsHTML(filters) {
 	return `<div class="controls">
-		<input class="field" type="search" placeholder="Search materials…" value="${esc(query)}" data-act="query">
+		<input class="field" type="search" placeholder="Search materials…" value="${esc(query)}" data-act="query" aria-label="Search materials">
 		<div class="chips">${filters}</div>
 		${sortSelect()}
 	</div>`;

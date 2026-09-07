@@ -61,7 +61,7 @@ export function openJump({ tabs, go }) {
 			<input class="field jump-in" type="search" placeholder="Find an item or a tab… (Ctrl+K)" aria-label="Find" autocomplete="off">
 			<div class="chips jump-kinds" data-jump-kinds>${[['all', 'Everything'], ...KINDS.map(k => [k.id, k.label])].map(([id, label]) => `<button class="chip tiny${id === 'all' ? ' active' : ''}" data-kind="${id}" aria-pressed="${id === 'all'}">${label}</button>`).join('')}</div>
 			<div class="jump-list" data-jump-list></div>
-			<div class="jump-hint">↑ ↓ to move · Enter to open · 1–9 switch tabs anywhere</div>
+			<div class="jump-hint">↑ ↓ to move · Enter to open · 1–9, 0 switch tabs anywhere</div>
 		</div>`);
 	const input = host.querySelector('.jump-in');
 	const list = host.querySelector('[data-jump-list]');

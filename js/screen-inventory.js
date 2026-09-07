@@ -69,13 +69,13 @@ export function renderInventory() {
 	const filters = [
 		['all', 'In play'], ['needed', 'Needed'], ['short', 'Short'], ['owned', 'Owned'], ['free', 'Free']
 	].map(([id, label]) =>
-		`<button class="chip ${invFilter === id ? 'active' : ''}" data-act="inv-filter" data-id="${id}">${label}</button>`
+		`<button class="chip ${invFilter === id ? 'active' : ''}" data-act="inv-filter" data-id="${id}" aria-pressed="${invFilter === id}">${label}</button>`
 	).join('');
 	// What sort of thing: a second row, since "the trade goods I hold"
 	// and "the materials I am short of" are different questions and the
 	// list answers both. A lit kind stays lit across searches.
 	const kinds = [['all', 'Everything'], ...KINDS.map(k => [k.id, k.label])].map(([id, label]) =>
-		`<button class="chip ${invKind === id ? 'active' : ''}" data-act="inv-kind" data-id="${id}">${label}</button>`
+		`<button class="chip ${invKind === id ? 'active' : ''}" data-act="inv-kind" data-id="${id}" aria-pressed="${invKind === id}">${label}</button>`
 	).join('');
 
 	// Collapse each enhancement family to a single tile. A search for
@@ -129,11 +129,11 @@ export function renderInventory() {
 	return `<div class="inv-layout">
 		<div class="inv-left">
 			<div class="controls">
-				<input class="field" type="search" placeholder="Search items…" value="${esc(query)}" data-act="query">
+				<input class="field" type="search" placeholder="Search items…" value="${esc(query)}" data-act="query" aria-label="Search items">
 				<div class="chips">${filters}</div>
 				<div class="chips inv-kinds">${kinds}</div>
 				${sortSelect()}
-				<button class="chip inv-select ${invPicking ? 'active' : ''}" data-act="inv-select" title="Tick several tiles and move them to a storage together">${invPicking ? '✓ Selecting' : '☐ Select'}</button>
+				<button class="chip inv-select ${invPicking ? 'active' : ''}" data-act="inv-select" aria-pressed="${invPicking}" title="Tick several tiles and move them to a storage together">${invPicking ? '✓ Selecting' : '☐ Select'}</button>
 			</div>
 			${homesHTML()}
 			${invPicking ? pickBar(shown.filter(k => (stock[k] || 0) > 0 || isEnhanceable(k)).map(k => (isEnhanceable(k) ? familyStats(k).at : k))) : ''}

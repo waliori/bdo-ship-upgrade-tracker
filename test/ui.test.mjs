@@ -1811,3 +1811,56 @@ test('before casting off: a gold bar an island takes is bought ashore and priced
 	assert.deepEqual(errors, []);
 	await context.close();
 });
+
+test('the shell answers the keyboard: digits and 0 switch tabs from the page, not from a chip; a failed save shows a badge; the theme turns', async () => {
+	const { page, context, errors } = await open('#plan');
+	await seed(page); await wait(300);
+	await page.keyboard.press('0'); await wait(300);
+	assert.equal(await page.evaluate(() => location.hash), '#barter', '0 is the tenth tab');
+	await page.keyboard.press('1'); await wait(300);
+	assert.equal(await page.evaluate(() => location.hash), '#plan');
+	await page.focus('.chip'); await page.keyboard.press('3'); await wait(300);
+	assert.equal(await page.evaluate(() => location.hash), '#plan', 'a digit on a chip is the chip\'s');
+	await page.evaluate(() => window.dispatchEvent(new CustomEvent('tracker-save-failed', { detail: { reason: 'quota' } })));
+	assert.match(await text(page, '#save-badge'), /Not saving — storage full/);
+	await page.evaluate(() => window.dispatchEvent(new CustomEvent('tracker-save-ok', { detail: {} })));
+	assert.equal(await count(page, '#save-badge'), 0, 'a save that goes through clears it');
+	await page.click('[data-act="more"]'); await wait(100);
+	await page.click('[data-act="theme"]'); await wait(200);
+	assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'light');
+	assert.equal(await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content), '#eef3f8');
+	assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()), '#eef3f8', 'the light tokens are on');
+	await page.click('[data-act="more"]'); await wait(100);
+	await page.click('[data-act="export"]'); await wait(800);
+	assert.match(await text(page, '[data-link-size]'), /characters long/);
+	assert.equal(await page.evaluate(() => document.getElementById('dialog').getAttribute('aria-labelledby')), await page.evaluate(() => document.querySelector('#dialog h2').id), 'the dialog is named by its heading');
+	assert.equal(await page.evaluate(() => document.getElementById('tabbar').inert), true, 'the thumb bar is behind the veil too');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('a phone on its side is a phone: the thumb bar and the hamburger, and the hover card opens from the keyboard', async () => {
+	const context = await browser.createBrowserContext();
+	const page = await context.newPage();
+	await page.emulate({ viewport: { width: 844, height: 390, isMobile: true, hasTouch: true }, userAgent: 'Mozilla/5.0 (Linux; Android 13) Mobile' });
+	await page.evaluateOnNewDocument(release => { try { localStorage.setItem('bdo_ship_upgrade-tour_completed', 'true'); localStorage.setItem('bdo-tracker/release', release); } catch { /* fine */ } }, RELEASE);
+	await page.goto(base + '/#plan', { waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('#pouch .pouch-item', { timeout: 15000 });
+	const shown = sel => page.evaluate(s => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== 'none'; }, sel);
+	assert.equal(await shown('#tabbar'), true, 'the thumb bar is up');
+	assert.equal(await shown('.hamburger'), true, 'the header is folded');
+	assert.equal(await shown('#tabs'), false, 'the tab row is not');
+	assert.equal(await page.evaluate(async () => (await import('/js/viewport.js')).isPhone()), true);
+	await context.close();
+
+	const desk = await open('#inventory');
+	await seed(desk.page); await wait(300);
+	// A tile the card has something to say about: a stone with a price.
+	await desk.page.focus('.tile[data-peek="Tidal Black Stone"]'); await wait(600);
+	assert.equal(await desk.page.evaluate(() => document.getElementById('peek').hidden), false, 'focus shows the card');
+	assert.equal(await desk.page.evaluate(() => document.activeElement.getAttribute('aria-describedby')), 'peek');
+	await desk.page.keyboard.press('o'); await wait(400);
+	assert.equal(await count(desk.page, '.detail.open'), 1, '"o" opens the item');
+	assert.deepEqual(desk.errors, []);
+	await desk.context.close();
+});

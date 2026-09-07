@@ -39,10 +39,30 @@ function focusable(el) {
 }
 
 /** The page behind the veil, out of the tab order and the screen
- *  reader's reach while a dialog is the whole interface. */
+ *  reader's reach while a dialog is the whole interface. The phone's
+ *  section bar stands outside .shell, and is just as much behind it. */
 function veilShell(on) {
-	const shell = document.querySelector('.shell');
-	if (shell && 'inert' in shell) shell.inert = on;
+	for (const el of document.querySelectorAll('.shell, #tabbar')) {
+		if ('inert' in el) el.inert = on;
+	}
+}
+
+/**
+ * Name the dialog after its own heading, so a screen reader announces
+ * "Bring in this file?" rather than "dialog". Headings are written into
+ * the HTML by every caller; the first one is given an id if it has
+ * none, and the host points at it. A dialog without one falls back to
+ * saying it is a dialog, which is at least not wrong.
+ */
+let headingSeq = 0;
+function nameDialog(host) {
+	const heading = host.querySelector('h2, .dialog-title');
+	if (!heading) {
+		host.removeAttribute('aria-labelledby');
+		return;
+	}
+	if (!heading.id) heading.id = `dialog-title-${++headingSeq}`;
+	host.setAttribute('aria-labelledby', heading.id);
 }
 
 export function openDialog(html, { onDismiss = null } = {}) {
@@ -61,6 +81,7 @@ export function openDialog(html, { onDismiss = null } = {}) {
 	}
 	host.innerHTML = `<div class="dialog-box">${html}</div>`;
 	host.hidden = false;
+	nameDialog(host);
 	dialogDismiss = onDismiss;
 	// On a phone a dialog is a sheet at the bottom edge, and the bar
 	// across the top of it is how a thumb opens it out or puts it away.
@@ -87,6 +108,7 @@ export function closeDialog() {
 	const host = document.getElementById('dialog');
 	host.hidden = true;
 	host.innerHTML = '';
+	host.removeAttribute('aria-labelledby');
 	dialogDismiss = null;
 	veilShell(false);
 	document.dispatchEvent(new CustomEvent('dialog-toggle', { detail: { open: false } }));

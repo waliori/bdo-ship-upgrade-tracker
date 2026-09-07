@@ -6,8 +6,11 @@ import { peekHTML } from './ui-bits.js';
 let peekTimer = null;
 let peekOn = null;
 let rearmTimer = null;
+let leaveTimer = null;
 let lastX = -1;
 let lastY = -1;
+// The element the open card describes, so the link can be undone.
+let describedEl = null;
 
 // A finger cannot hover: the synthetic mouseover after a tap would park
 // the card over the content with nothing to put it away. Tracked from
@@ -18,10 +21,16 @@ let hoverable = !(window.matchMedia && window.matchMedia('(hover: none)').matche
 /** Put the card away and cancel any show on its way. */
 function putAway() {
 	clearTimeout(peekTimer);
+	clearTimeout(leaveTimer);
 	peekTimer = null;
+	leaveTimer = null;
 	peekOn = null;
 	const host = document.getElementById('peek');
 	if (host && !host.hidden) host.hidden = true;
+	if (describedEl) {
+		describedEl.removeAttribute('aria-describedby');
+		describedEl = null;
+	}
 }
 
 /** Whether a card is up, or about to be. */
@@ -47,12 +56,16 @@ export function hidePeek() {
 	clearTimeout(rearmTimer);
 	putAway();
 	// A render tears the card down while the pointer sits still over the
-	// same row, and nothing would ever bring it back -- so one short
-	// beat later, re-arm from where the pointer last was.
-	if (!hoverable || lastX < 0) return;
+	// same row -- or while the keyboard's focus is on it -- and nothing
+	// would ever bring it back. So one short beat later, re-arm from the
+	// focused row if there is one, else from where the pointer last was.
 	rearmTimer = setTimeout(() => {
 		const host = document.getElementById('peek');
 		if (peekTimer || (host && !host.hidden) || !document.hasFocus()) return;
+		const active = document.activeElement;
+		const focused = active && active.closest ? active.closest('[data-peek]') : null;
+		if (focused) return showSoon(focused, true);
+		if (!hoverable || lastX < 0) return;
 		const under = document.elementFromPoint(lastX, lastY);
 		const el = under && under.closest ? under.closest('[data-peek]') : null;
 		if (el) showSoon(el);
@@ -80,12 +93,18 @@ function reveal(host, el) {
 	host.hidden = false;
 	peekOn = el.dataset.peek;
 	placePeek(host, el);
+	// A screen reader on the row hears the card as its description.
+	if (describedEl && describedEl !== el) describedEl.removeAttribute('aria-describedby');
+	describedEl = el;
+	el.setAttribute('aria-describedby', host.id);
 }
 
 // A short delay, so sweeping across a grid of tiles does not flash a
-// card for every one of them.
-function showSoon(el) {
-	if (!hoverable) return;
+// card for every one of them. `keyboard` is the focus path: a keyboard
+// is not a finger, so it shows the card whether or not the device can
+// hover -- a tablet with a keyboard on it still tabs through the tiles.
+function showSoon(el, keyboard = false) {
+	if (!hoverable && !keyboard) return;
 	const host = document.getElementById('peek');
 	if (!host) return;
 	if (el.dataset.peek === peekOn) return;
@@ -126,7 +145,39 @@ function leaveFor(from, to) {
 	// Moving straight onto another one: its own show takes over, and
 	// hiding here would cancel the card before it ever appeared.
 	if (to && to.closest && to.closest('[data-peek]')) return;
-	hidePeek();
+	// Onto the card itself: it stays, so "Open in Inventory" can be
+	// reached. There is a gap of a few pixels between the row and the
+	// card, so the leave is given a beat to arrive there.
+	if (to && to.closest && to.closest('#peek')) return;
+	clearTimeout(leaveTimer);
+	leaveTimer = setTimeout(() => { leaveTimer = null; hidePeek(); }, 140);
+}
+
+/**
+ * The card's one action, from the keyboard. Tabbing onto a row shows
+ * the card; Enter or "o" while it is up takes the item to the
+ * Inventory, the way the card's own button does with a mouse. Enter is
+ * left alone on anything that already answers to it -- a tile is a
+ * button and opens its panel; a chip presses -- so only the plain
+ * rows take it, and "o" works on all of them.
+ */
+function onKey(evt) {
+	if (evt.key === 'Escape') {
+		clearTimeout(rearmTimer);
+		putAway();
+		return;
+	}
+	if (evt.key !== 'Enter' && evt.key !== 'o') return;
+	if (evt.ctrlKey || evt.metaKey || evt.altKey) return;
+	const host = document.getElementById('peek');
+	if (!host || host.hidden || !describedEl) return;
+	if (!evt.target.closest || evt.target.closest('[data-peek]') !== describedEl) return;
+	if (evt.target.closest('input, textarea, select, [contenteditable]')) return;
+	if (evt.key === 'Enter' && evt.target.closest('button, a, summary, [role="button"]')) return;
+	const open = host.querySelector('[data-act="open-item"]');
+	if (!open) return;
+	evt.preventDefault();
+	open.click();
 }
 
 export function wirePeek() {
@@ -141,18 +192,32 @@ export function wirePeek() {
 	document.addEventListener('pointermove', notePointer, true);
 
 	document.addEventListener('mouseover', evt => {
+		// Arriving on the card cancels the leave that was about to hide it.
+		if (evt.target.closest('#peek')) {
+			clearTimeout(leaveTimer);
+			leaveTimer = null;
+			return;
+		}
 		const el = evt.target.closest('[data-peek]');
 		if (el) showSoon(el);
 	});
-	document.addEventListener('mouseout', evt =>
-		leaveFor(evt.target.closest('[data-peek]'), evt.relatedTarget));
+	document.addEventListener('mouseout', evt => {
+		// Off the card to anywhere but a row: put it away.
+		if (evt.target.closest('#peek')) {
+			const to = evt.relatedTarget;
+			if (to && to.closest && (to.closest('#peek') || to.closest('[data-peek]'))) return;
+			hidePeek();
+			return;
+		}
+		leaveFor(evt.target.closest('[data-peek]'), evt.relatedTarget);
+	});
 	document.addEventListener('click', onTap);
 
 	// The same card for the keyboard: tabbing onto a tile or a chip shows
 	// what hovering it would.
 	document.addEventListener('focusin', evt => {
 		const el = evt.target.closest ? evt.target.closest('[data-peek]') : null;
-		if (el) showSoon(el);
+		if (el) showSoon(el, true);
 	});
 	document.addEventListener('focusout', evt =>
 		leaveFor(
@@ -163,10 +228,6 @@ export function wirePeek() {
 	window.addEventListener('blur', hidePeek);
 
 	// Escape puts the card away for good -- no re-arm, or it would be
-	// back before the key was released.
-	document.addEventListener('keydown', evt => {
-		if (evt.key !== 'Escape') return;
-		clearTimeout(rearmTimer);
-		putAway();
-	});
+	// back before the key was released. Enter and "o" open the item.
+	document.addEventListener('keydown', onKey);
 }

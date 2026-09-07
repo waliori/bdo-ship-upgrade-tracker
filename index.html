@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
@@ -81,6 +81,7 @@
                         <button class="more-item" role="menuitem" data-act="help"><span>Help</span><small>the film, the data's dates</small></button>
                         <button class="more-item" role="menuitem" data-act="tables"><span>Enhancement tables</span><small>the seven tables, lit at your stack</small></button>
                         <button class="more-item" role="menuitem" data-act="tour"><span>Tour</span><small>a walk through your own screen</small></button>
+                        <button class="more-item" role="menuitem" id="theme-btn" data-act="theme"><span>Theme: dark</span><small>dark, light, or as the system has it</small></button>
                         <button class="more-item" role="menuitem" id="water-btn" data-act="water"><span>&#8776; Water off</span><small>the shader behind the page</small></button>
                         <button class="more-item danger" role="menuitem" data-act="reset"><span>Start fresh</span><small>clears everything, one Undo away</small></button>
                     </div>
@@ -93,7 +94,7 @@
         <!-- Currencies and enhancement stones are spent from every screen,
              so they live in the shell rather than on any one tab. -->
         <div class="pouch" id="pouch" aria-label="What you are carrying"></div>
-        <div class="status-bar" id="status" hidden></div>
+        <div class="status-bar" id="status" role="status" aria-live="polite" hidden></div>
 
         <main class="screen" id="screen" role="tabpanel" aria-label="Current section"></main>
     </div>

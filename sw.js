@@ -32,6 +32,10 @@
 const VERSION = '__BUILD__';   // replaced with the build stamp when served; the literal is only ever seen on disk
 const APP_CACHE = `sail-${VERSION}`;
 const ASSET_CACHE = 'sail-assets';
+// Tiles the Map was asked to keep offline -- an area fetched on purpose.
+// Filled and emptied by the page, never by this worker: the sweep
+// leaves it alone and the tile cap above does not count it.
+const PINNED_CACHE = 'tiles-pinned';
 
 // The whole app shell: the page, the styles, every module the page can
 // reach, and the data files they fetch. Taken with one addAll so the
@@ -51,14 +55,14 @@ const SHELL = [
 	'/js/barter-board.js',
 	'/js/barter-chains.js',
 	'/js/barter-material.js',
-	'/js/quest-places.js',
-	'/js/cheer.js',
 	'/js/barter-optimizer.js',
 	'/js/barter-orders.js',
 	'/js/barter-plan.js',
+	'/js/barter-worker.js',
 	'/js/barter.js',
 	'/js/barter_npcs.js',
 	'/js/boot.js',
+	'/js/cheer.js',
 	'/js/clock.js',
 	'/js/courses.js',
 	'/js/crystals.js',
@@ -87,13 +91,16 @@ const SHELL = [
 	'/js/pouch.js',
 	'/js/profile-shape.js',
 	'/js/profiles.js',
+	'/js/quest-places.js',
 	'/js/quests.js',
+	'/js/rations.js',
 	'/js/realistic-water-ripples.js',
 	'/js/recipes.js',
 	'/js/route-ledger.js',
 	'/js/sailing.js',
 	'/js/sailor_rolls.js',
 	'/js/sailors.js',
+	'/js/saved-routes.js',
 	'/js/screen-barter.js',
 	'/js/screen-builds.js',
 	'/js/screen-crew.js',
@@ -127,6 +134,7 @@ const SHELL = [
 	'/js/ui-state.js',
 	'/js/ui.js',
 	'/js/vendor_items.js',
+	'/js/viewport.js',
 	'/js/wharves.js',
 	'/js/worldmap.js'
 ];
@@ -153,7 +161,7 @@ self.addEventListener('message', evt => {
 self.addEventListener('activate', evt => {
 	evt.waitUntil((async () => {
 		for (const key of await caches.keys()) {
-			if (key !== APP_CACHE && key !== ASSET_CACHE) await caches.delete(key);
+			if (key !== APP_CACHE && key !== ASSET_CACHE && key !== PINNED_CACHE) await caches.delete(key);
 		}
 		await self.clients.claim();
 	})());
@@ -183,6 +191,10 @@ self.addEventListener('fetch', evt => {
 const keepable = res => res.status === 200;
 
 async function cacheFirst(req) {
+	// An area kept offline answers first: those tiles were asked for by
+	// name, and they are the ones that must still draw with no signal.
+	const pinned = await caches.match(req, { cacheName: PINNED_CACHE });
+	if (pinned) return pinned;
 	const held = await caches.match(req);
 	if (held) return held;
 	try {

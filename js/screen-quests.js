@@ -229,7 +229,7 @@ export function renderQuests() {
 		['fav', `★ Favourites${starred.length ? ` · ${favLeft}` : ''}`],
 		...CADENCE.map(([id, label]) => [id, label]),
 		['done', 'Done']
-	].map(([id, label]) => `<button class="chip ${filter === id ? 'active' : ''}" data-act="quest-filter" data-id="${id}">${label}</button>`).join('');
+	].map(([id, label]) => `<button class="chip ${filter === id ? 'active' : ''}" data-act="quest-filter" data-id="${id}" aria-pressed="${filter === id}">${label}</button>`).join('');
 
 	const groupsHTML = CADENCE.map(([id, label, sub, clock]) => {
 		const list = shown.filter(quest => cadenceOf(quest) === id)
@@ -274,7 +274,7 @@ export function renderQuests() {
 		: 'Nothing pays in what you are short of right now.';
 
 	return `${clocks}<div class="controls">
-		<input class="field" type="search" placeholder="Search quests, places and rewards…" value="${esc(query)}" data-act="query">
+		<input class="field" type="search" placeholder="Search quests, places and rewards…" value="${esc(query)}" data-act="query" aria-label="Search quests, places and rewards">
 		<div class="chips">${chips}</div>
 		<div class="pay-row">${payControl()}</div>
 		${groupsRow()}

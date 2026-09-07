@@ -180,7 +180,8 @@ can be both made and bought, you choose, and the plan follows.
   Help also lists **what changed** and **when each dataset was last
   checked**.
 - **Find** anything with `Ctrl+K` (or `/` on its own): an item opens in
-  the Inventory's panel, a tab opens. The digits `1`–`9` switch tabs.
+  the Inventory's panel, a tab opens. The digits `1`–`9` switch tabs,
+  `0` the tenth.
   Every choice the app asks for — a hull, a part and its level, a
   sailor type, the rewards to narrow the quests to, an item a trip
   brought back — goes through one picker: rows with a picture, a fact
@@ -202,9 +203,11 @@ can be both made and bought, you choose, and the plan follows.
 - **Look-ups in your language**: Help lets you pick the BDOCodex locale
   every item link opens in (French, German, Korean and nine more).
 - Works on a phone — a tap on a row or a chip shows the hover card, a
-  second tap puts it away; the water shader is optional (`≈ Water` in
-  the header). Offline it runs from a snapshot of the last deploy, never
-  a mixture of two.
+  second tap puts it away, and a phone on its side is still a phone;
+  the water shader is optional (`≈ Water` under More), and so is a
+  light theme (`Theme` there: dark, light, or as the system has it).
+  Offline it runs from a snapshot of the last deploy, never a mixture
+  of two.
 
 ---
 
@@ -308,7 +311,10 @@ Cox* — the Cox Pirates' camps (six to eight seals), flags and cargo
 ships, a group of their own on the Grounds tab — and Vell's waters from
 gpw's ocean map. The chart can also draw all 58 **wharf managers**
 (repair, rations, sailors) and guild wharves, named by harbour, and
-**island names** faintly once it is close enough to read them.
+**island names** faintly once it is close enough to read them. The
+chart's `⇩` keeps the area in view offline — its tiles and one zoom
+level either side, up to 400 of them — in a store the service worker's
+tidying never touches, until `⌫` lets them go.
 
 ### Plot the loop, and know how long it takes
 
@@ -319,11 +325,24 @@ length and the minutes it takes at the speed that ship actually makes
 — hull, parts and sail seats — over the line as it is bent round the
 land. What 100% is in metres the game never says, so every time is a
 range: a fifth either way around the chart's 11 m/s estimate, a tenth
-either way once you have timed one leg and told it. Parley is costed at
+either way once you have timed one leg and told it. A leg sailed
+overweight is slowed — the game gives no curve, so the chart takes a
+straight line from full speed at the limit to half at the overload
+cap, says so on the leg, and the total follows. A leg the router
+cannot bend round the land is drawn straight, dashed in red, and named
+in the panel as a floor rather than a reading. The **Rations** line
+does the same for the pool: what the run eats of it and what is left,
+from the crew's appetite and an estimated drain under sail (6,000 a
+minute, replaceable by watching the pool over one leg), and when it
+would run below a tenth before the end, the stop it runs low after and
+the nearest wharf manager to call at, put into the run at one press.
+Parley is costed at
 one trade a stop or at every attempt the offer allows; the stops past
 what your bar covers are marked and a button trims to them. The trade
-goods in your stock are read against what each stop hands over. Routes
-are kept by name, a replaced route is kept as the previous one, a route
+goods aboard — the hold and the bags, not a harbour's storage — are
+read against what each stop hands over. Eight routes are kept by name
+and never dropped unasked (a ninth asks which makes room), a replaced
+route is kept as the previous one in a slot of its own, a route
 travels in a link, and a ruler (`⟷`) measures any two points on the
 sea, with the game's own coordinates under the pointer. The Route tab
 names the nearest wharf to the last stop.
