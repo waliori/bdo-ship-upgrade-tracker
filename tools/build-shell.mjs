@@ -13,15 +13,20 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sw = path.join(root, 'sw.js');
 
+// Every way one module names another: a static import, with or without
+// bindings, a re-export, and a dynamic import(). The path is relative to
+// the importing file, which since js/map/ is not always js/ itself.
+const IMPORTS = /(?:import|export)\s*(?:\(\s*|(?:\{[^}]*\}|\*(?:\s+as\s+[\w$]+)?|[\w$]+(?:\s*,\s*\{[^}]*\})?)?\s*(?:from\s*)?)['"](\.\.?\/[^'"]+)['"]/g;
 const seen = new Set();
 const walk = name => {
 	if (seen.has(name)) return;
 	seen.add(name);
 	const src = fs.readFileSync(path.join(root, 'js', name), 'utf8');
-	for (const m of src.matchAll(/import[^'"]*['"]\.\/([^'"]+)['"]/g)) walk(m[1]);
+	const from = rel => path.posix.normalize(path.posix.join(path.posix.dirname(name), rel));
+	for (const m of src.matchAll(IMPORTS)) walk(from(m[1]));
 	// A worker is reached by its URL, not an import -- the Barter tab's
 	// search runs in one -- and its own imports are part of the shell too.
-	for (const m of src.matchAll(/new URL\(['"]\.\/([^'"]+)['"], import\.meta\.url\)/g)) walk(m[1]);
+	for (const m of src.matchAll(/new URL\(['"](\.\.?\/[^'"]+)['"], import\.meta\.url\)/g)) walk(from(m[1]));
 };
 walk('boot.js');
 

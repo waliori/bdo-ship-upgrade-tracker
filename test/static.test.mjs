@@ -268,7 +268,7 @@ test('no action is worn by both a button and a select', () => {
 	// nothing is listening for, and clicking it does nothing at all --
 	// no toast, no error, no sign that anything happened.
 	const dir = new URL('../js/', import.meta.url);
-	const files = fs.readdirSync(dir)
+	const files = fs.readdirSync(dir, { recursive: true })
 		.filter(f => f.endsWith('.js') && f !== 'driver.iife.js')
 		.map(f => path.join(dir.pathname, f))
 		.concat(path.join(new URL('../', import.meta.url).pathname, 'index.html'));
@@ -292,12 +292,15 @@ test('the offline shell precaches every module the app imports', () => {
 	const dir = new URL('../js/', import.meta.url);
 	// Walk the import graph from the entry point rather than listing the
 	// folder: a module nothing imports is not the shell's problem.
+	// A static import, a re-export or a dynamic import(), each relative
+	// to the file it stands in -- the map's modules live a folder down.
+	const IMPORTS = /(?:import|export)\s*(?:\(\s*|(?:\{[^}]*\}|\*(?:\s+as\s+[\w$]+)?|[\w$]+(?:\s*,\s*\{[^}]*\})?)?\s*(?:from\s*)?)['"](\.\.?\/[^'"]+)['"]/g;
 	const seen = new Set();
 	const walk = name => {
 		if (seen.has(name)) return;
 		seen.add(name);
 		const src = fs.readFileSync(new URL(name, dir), 'utf8');
-		for (const m of src.matchAll(/import[^'"]*['"]\.\/([^'"]+)['"]/g)) walk(m[1]);
+		for (const m of src.matchAll(IMPORTS)) walk(path.posix.normalize(path.posix.join(path.posix.dirname(name), m[1])));
 	};
 	walk('boot.js');
 	const missing = [...seen].filter(n => !shell.has(`/js/${n}`));
