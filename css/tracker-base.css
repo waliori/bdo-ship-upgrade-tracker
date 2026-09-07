@@ -5,9 +5,7 @@
        @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse))
    which is js/viewport.js's PHONE_MQ written out, since a media query
    cannot read a variable. Narrow is a phone; so is a short screen driven
-   by a finger, which is a phone on its side. The header folds into the
-   hamburger a little earlier (780px, MENU_MQ), because the brand and its
-   five buttons do not share a line at 760. Change one, change both. */
+   by a finger, which is a phone on its side. Change one, change both. */
 
 /* tracker-base.css — tokens, both themes, the reset and what every screen shares.
    One of nine sheets that were one file, cut at its section marks and
@@ -289,6 +287,9 @@
 html {
   margin: 0;
   padding: 0;
+  /* The dock sticks over the top edge (ui.js publishes its height), so
+     anything scrolled into view stops beneath it rather than under it. */
+  scroll-padding-top: calc(var(--dock-h, 0px) + 8px);
   background-color: var(--ocean-deep);
   background-image: var(--ocean-gradient);
   min-height: 100%;

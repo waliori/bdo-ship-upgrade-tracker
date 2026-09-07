@@ -70,34 +70,19 @@
                     <div class="brand-sub">One inventory, every build &middot; Black Desert</div>
                 </div>
             </div>
-            <button class="hamburger" data-act="menu" aria-label="Menu" aria-expanded="false">
-                <span></span><span></span><span></span>
-            </button>
+            <!-- The masthead's verbs. Find, the trip log, Undo and Redo
+                 stand here on a wide screen; on a phone Find and the
+                 log move into the menu, which is the one menu the app
+                 has: the same sheet the thumb bar's last slot opens. -->
             <div class="masthead-actions" id="masthead-actions">
-                <button class="ghost-btn" data-act="jump" title="Find an item or a tab (Ctrl+K)">&#8981; Find</button>
-                <button class="ghost-btn" data-act="trip-log" title="Record everything you brought back from a trip, as one change">&#65291; Log a trip</button>
-                <button class="ghost-btn" id="undo-btn" data-act="undo">&#8630; Undo</button>
-                <button class="ghost-btn" id="redo-btn" data-act="redo">&#8631; Redo</button>
+                <button class="ghost-btn wide-only" data-act="jump" title="Find an item or a tab (Ctrl+K)">&#8981; Find</button>
+                <button class="ghost-btn wide-only" data-act="trip-log" title="Record everything you brought back from a trip, as one change">&#65291; Log a trip</button>
+                <button class="ghost-btn" id="undo-btn" data-act="undo" aria-label="Undo">&#8630; <span class="btn-label">Undo</span></button>
+                <button class="ghost-btn wide-only" id="redo-btn" data-act="redo">&#8631; Redo</button>
                 <!-- Sign-in, and who is signed in. Stays empty unless the
                      deployment has been given a Discord app and a database. -->
                 <span class="account" id="account"></span>
-                <div class="more">
-                    <button class="ghost-btn" data-act="more" aria-haspopup="menu" aria-expanded="false" aria-controls="more-menu">&#8943; More</button>
-                    <div class="more-menu" id="more-menu" role="menu" hidden>
-                        <button class="more-item" role="menuitem" data-act="profiles"><span>Profiles</span><small>separate saves on this browser</small></button>
-                        <button class="more-item" role="menuitem" data-act="export"><span>Export</span><small>a file, or a link</small></button>
-                        <button class="more-item" role="menuitem" data-act="import"><span>Import</span><small>a file saved from here</small></button>
-                        <button class="more-item" role="menuitem" data-act="whats-new"><span>What's new</span><small>what arrived since you were last here</small></button>
-                        <button class="more-item" role="menuitem" data-act="help"><span>Help</span><small>the film, the data's dates</small></button>
-                        <button class="more-item" role="menuitem" data-act="tables"><span>Enhancement tables</span><small>the seven tables, lit at your stack</small></button>
-                        <button class="more-item" role="menuitem" data-act="tour"><span>Tour</span><small>a walk through your own screen</small></button>
-                        <button class="more-item" role="menuitem" data-act="feedback"><span>Feedback</span><small>something wrong, or something you want</small></button>
-                        <button class="more-item" role="menuitem" id="inbox-btn" data-act="inbox" hidden><span>Feedback inbox</span><small>what people have written in</small></button>
-                        <button class="more-item" role="menuitem" id="theme-btn" data-act="theme"><span>Theme: dark</span><small>dark, light, or as the system has it</small></button>
-                        <button class="more-item" role="menuitem" id="water-btn" data-act="water"><span>&#8776; Water off</span><small>the shader behind the page</small></button>
-                        <button class="more-item danger" role="menuitem" data-act="reset"><span>Start fresh</span><small>clears everything, one Undo away</small></button>
-                    </div>
-                </div>
+                <button class="ghost-btn menu-btn" data-act="more" aria-haspopup="dialog" aria-label="Menu" title="Every section and everything else (M)">&#8943; <span class="btn-label">Menu</span></button>
             </div>
         </header>
 

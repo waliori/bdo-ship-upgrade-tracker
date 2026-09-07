@@ -473,9 +473,6 @@ function avatarURL(user) {
 function paint() {
 	const host = document.getElementById('account');
 	if (!host) return;
-	// The inbox is on the More menu for the accounts named as admins.
-	const inbox = document.getElementById('inbox-btn');
-	if (inbox) inbox.hidden = !(account && account.admin);
 
 	if (!available) {
 		host.innerHTML = '';

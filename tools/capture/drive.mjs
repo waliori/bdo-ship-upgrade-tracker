@@ -277,12 +277,12 @@ export async function tab(page, id, { after = 900 } = {}) {
 /**
  * A masthead button -- Find, Log a trip, Undo, Redo.
  *
- * On a phone they are folded behind the hamburger, and using one closes
+ * On a phone Find and the log live in the menu, and using one closes
  * it again, so it is opened for each rather than once.
  */
 export async function headerBtn(page, act, { after = 900 } = {}) {
 	const sel = `[data-act="${act}"]`;
-	if (!(await onScreen(page, sel))) await click(page, '[data-act="menu"]', { after: 560 });
+	if (!(await onScreen(page, sel))) await click(page, '[data-act="more"]', { after: 560 });
 	await click(page, sel, { after });
 }
 

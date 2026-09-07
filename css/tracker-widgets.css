@@ -201,9 +201,7 @@
 
 @media (max-width: 480px) {
   .inv-grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
-  .masthead-actions { width: 100%; }
   .ghost-btn { flex: 1 1 auto; text-align: center; }
-  .tab { padding: 10px 11px 12px; font-size: 13px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -369,10 +367,12 @@
   align-items: center;
   gap: 18px;
   flex-wrap: wrap;
+  /* Under the dock, which sticks above it; the dock publishes its
+     height (ui.js), and it is nought where the thumb bar does the job. */
   position: sticky;
-  top: 0;
+  top: var(--dock-h, 0px);
   z-index: 6;
-  margin: -26px 0 22px;
+  margin: 0 0 22px;
   padding: 11px 18px;
   border-radius: var(--r-panel);
   border: 1px solid var(--line);
@@ -475,7 +475,7 @@
 /* One scrolling row beats three stacked ones on a bar that is always on
    screen. Kept here, after the base rules, so it actually wins. */
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .pouch { gap: 10px; padding: 9px 12px; margin: -26px 0 18px; }
+  .pouch { gap: 10px; padding: 9px 12px; margin: 0 0 18px; }
   .pouch-title { display: none; }
   .pouch-list {
     flex-wrap: nowrap;
@@ -748,95 +748,9 @@
 .detail-close:hover { color: var(--ink-hi); border-color: var(--line-btn-hi); }
 
 /* ---- the header on a phone ------------------------------------------ */
-
-/* Hidden until there is not room for the buttons themselves. */
-.hamburger { display: none; }
-
-@media (max-width: 780px), ((max-height: 520px) and (pointer: coarse)) {
-  .masthead { position: relative; }
-
-  .hamburger {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 4px;
-    width: 40px;
-    height: 40px;
-    flex: none;
-    padding: 0 9px;
-    border-radius: var(--r-btn);
-    border: 1px solid var(--line-btn);
-    background: none;
-  }
-
-  .hamburger span {
-    display: block;
-    height: 2px;
-    border-radius: 1px;
-    background: var(--ink-dim);
-  }
-
-  .hamburger[aria-expanded="true"] { border-color: var(--blue-edge); }
-  .hamburger[aria-expanded="true"] span { background: var(--blue-hi); }
-
-  /* Out of the flow entirely, so the header stays one line high. */
-  .masthead-actions {
-    display: none;
-    position: absolute;
-    top: 100%;
-    right: 0;
-    z-index: 20;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 4px;
-    min-width: 210px;
-    padding: 8px;
-    border-radius: var(--r-panel);
-    border: 1px solid var(--line);
-    background: rgba(var(--deep-rgb), 0.97);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 14px 40px rgba(var(--shade-rgb), 0.5);
-  }
-
-  .masthead-actions.open { display: flex; }
-  .masthead-actions .ghost-btn { text-align: left; width: 100%; }
-  .brand-sub { display: none; }
-
-  /* Inside the phone's own menu, More opens as a part of it rather than
-     as a second dropdown floating over the first: a 250px popup hung
-     off a 210px bar reads as a mistake, and a menu that covers the menu
-     it came from leaves nothing to go back to. */
-  .masthead-actions .more { display: block; width: 100%; }
-  .masthead-actions .more-menu {
-    position: static;
-    min-width: 0;
-    width: 100%;
-    margin-top: 4px;
-    box-shadow: none;
-    background: rgba(var(--deep-rgb), 0.6);
-  }
-}
-
-/* Six tabs have to fit a 360px screen, and scroll rather than clip if a
-   seventh ever arrives. */
-@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .tabs {
-    gap: 0;
-    margin-bottom: 20px;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-  .tabs::-webkit-scrollbar { display: none; }
-
-  .tab {
-    padding: 9px 9px 11px;
-    font-size: 12px;
-    letter-spacing: 0.02em;
-    gap: 5px;
-  }
-
-  .tab-count { padding: 1px 5px; font-size: 10px; }
-}
+/* The masthead keeps Undo, the account and the menu on a phone; the
+   rest of its verbs are the first thing in the menu. The sections
+   themselves are the thumb bar's (tracker-sea.css). */
 
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   .tbar { gap: 6px; }
@@ -844,30 +758,6 @@
   .tbar .ghost-btn { flex: 1 1 auto; text-align: center; }
 }
 
-/* A tab row that scrolls should look like one. Each edge fades while
-   there are tabs past it (ui.js marks which, on scroll), so between a
-   phone and a desktop the row never looks like it ends at the last tab
-   that happened to fit. */
-.tabs { position: relative; scroll-behavior: smooth; }
-
-.tabs.scrolls-right {
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 34px), transparent 100%);
-  mask-image: linear-gradient(to right, #000 calc(100% - 34px), transparent 100%);
-}
-
-.tabs.scrolls-left {
-  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 34px);
-  mask-image: linear-gradient(to right, transparent 0, #000 34px);
-}
-
-.tabs.scrolls-left.scrolls-right {
-  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 34px, #000 calc(100% - 34px), transparent 100%);
-  mask-image: linear-gradient(to right, transparent 0, #000 34px, #000 calc(100% - 34px), transparent 100%);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tabs { scroll-behavior: auto; }
-}
 
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   /* The tree has to fit the screen rather than scroll sideways inside a

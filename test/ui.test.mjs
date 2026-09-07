@@ -239,12 +239,17 @@ test('a habitat tap counts once, not twice', async () => {
 	await context.close();
 });
 
-test('the phone menu goes with the screen it was opened over', async () => {
+test('the phone menu is the one sheet, and a section chosen from it closes it', async () => {
 	const { page, context, errors } = await open('#plan', { touch: true });
-	await page.click('[data-act="menu"]'); await wait(200);
-	assert.equal(await count(page, '.masthead-actions.open'), 1, 'the menu opened');
-	await page.click('.tabbar-btn[data-id="inventory"]'); await wait(300);
-	assert.equal(await count(page, '.masthead-actions.open'), 0, 'a tab press closes it');
+	await page.click('[data-act="more"]'); await wait(300);
+	assert.equal(await count(page, '#dialog .menu-sheet'), 1, 'the masthead\'s Menu opens the sheet');
+	assert.ok(await count(page, '.menu-sheet [data-act="jump"]') > 0, 'Find is in it, since the phone masthead has no room for it');
+	await page.keyboard.press('Escape'); await wait(300);
+	await page.click('[data-act="tab-sheet"]'); await wait(300);
+	assert.equal(await count(page, '#dialog .menu-sheet'), 1, 'the thumb bar\'s last slot opens the same sheet');
+	await page.click('.menu-sheet .sheet-tab[data-id="inventory"]'); await wait(300);
+	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), true, 'a section press closes it');
+	assert.equal(await page.evaluate(() => location.hash), '#inventory');
 	assert.deepEqual(errors, []);
 	await context.close();
 });
@@ -289,10 +294,11 @@ test('the day rides under the pouch on every tab but the Plan, and the More menu
 	assert.match(await text(page, '#status'), /Carrack \(Valor\)/);
 	await page.click('#tab-plan'); await wait(200);
 	assert.equal(await page.evaluate(() => document.getElementById('status').hidden), true);
-	await page.click('[data-act="more"]'); await wait(100);
-	assert.equal(await page.evaluate(() => document.getElementById('more-menu').hidden), false);
-	await page.click('[data-act="help"]'); await wait(200);
-	assert.equal(await page.evaluate(() => document.getElementById('more-menu').hidden), true, 'picking an item closes it');
+	await page.click('[data-act="more"]'); await wait(200);
+	assert.equal(await count(page, '#dialog .menu-sheet'), 1);
+	await page.click('.menu-sheet [data-act="help"]'); await wait(300);
+	assert.equal(await count(page, '#dialog .menu-sheet'), 0, 'picking an item closes it');
+	assert.match(await text(page, '#dialog h2'), /how this works/i, 'and what was picked stands in its place');
 	assert.deepEqual(errors, []);
 	await context.close();
 });
@@ -318,17 +324,21 @@ test('the minimap hides, comes back, and stays where it is dragged', async () =>
 	const { page, context, errors } = await open('#map');
 	await seed(page); await wait(1200);
 	assert.equal(await count(page, '[data-map-mini]'), 1);
+	// The whole chart on screen: the grip is at its foot, and the page
+	// above the chart is taller than the window's spare height.
+	await page.evaluate(() => document.querySelector('[data-map]').scrollIntoView({ block: 'center' })); await wait(300);
 	const grip = await page.$('[data-mini-grip]');
 	const g = await grip.boundingBox();
 	await page.mouse.move(g.x + 5, g.y + 5); await page.mouse.down();
 	await page.mouse.move(g.x - 300, g.y - 200, { steps: 6 }); await page.mouse.up(); await wait(200);
 	const box = await page.$eval('[data-map-mini]', el => ({ left: el.style.left, top: el.style.top, moved: el.classList.contains('moved') }));
 	assert.ok(box.moved && parseInt(box.left) >= 0 && parseInt(box.top) >= 0, JSON.stringify(box));
-	await page.click('[data-act="map-mini"][aria-pressed]'); await wait(200);
+	// Pressed from inside the page: the dock sticks over the top edge, and a click scrolled to there would land on it.
+	await page.evaluate(() => document.querySelector('[data-act="map-mini"][aria-pressed]').click()); await wait(200);
 	assert.equal(await count(page, '[data-map-mini]'), 0, 'hidden');
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('#pouch .pouch-item'); await wait(1000);
 	assert.equal(await count(page, '[data-map-mini]'), 0, 'still hidden after a reload');
-	await page.click('[data-act="map-mini"][aria-pressed]'); await wait(300);
+	await page.evaluate(() => document.querySelector('[data-act="map-mini"][aria-pressed]').click()); await wait(300);
 	const again = await page.$eval('[data-map-mini]', el => el.style.left);
 	assert.equal(again, box.left, 'back where it was dragged');
 	assert.deepEqual(errors, []);
@@ -471,6 +481,8 @@ test('the pen has ink: a colour, a width, words on the water -- and undo walks b
 	const { page, context, errors } = await open('#map');
 	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'trace', panelOpen: true, habitatsOn: false })); });
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('[data-act="trace-tool"]'); await wait(600);
+	// The whole chart on screen, so a mark near its foot is not below the window.
+	await page.evaluate(() => document.querySelector('[data-map]').scrollIntoView({ block: 'center' })); await wait(300);
 	const box = await (await page.$('[data-map]')).boundingBox();
 	const sea = (fx, fy) => [box.x + box.width * fx, box.y + box.height * fy];
 
@@ -1255,8 +1267,8 @@ test('a sheet stands on top of the keyboard rather than under it', async () => {
 	const kb = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--kb-h').trim());
 	assert.equal(await kb(), '0px', 'nothing is covered until something is');
 
-	// Find lives in the header, which on a phone is folded behind the
-	// hamburger -- so it is opened the way the keyboard shortcut does.
+	// Find lives in the menu on a phone, so it is opened the way the
+	// keyboard shortcut does.
 	await page.evaluate(() => document.querySelector('[data-act="jump"]').click());
 	await wait(400);
 	await page.keyboard.type('black'); await wait(300);
@@ -1876,7 +1888,7 @@ test('the shell answers the keyboard: digits and 0 switch tabs from the page, no
 	await context.close();
 });
 
-test('a phone on its side is a phone: the thumb bar and the hamburger, and the hover card opens from the keyboard', async () => {
+test('a phone on its side is a phone: the thumb bar and the menu, and the hover card opens from the keyboard', async () => {
 	const context = await browser.createBrowserContext();
 	const page = await context.newPage();
 	await page.emulate({ viewport: { width: 844, height: 390, isMobile: true, hasTouch: true }, userAgent: 'Mozilla/5.0 (Linux; Android 13) Mobile' });
@@ -1885,8 +1897,9 @@ test('a phone on its side is a phone: the thumb bar and the hamburger, and the h
 	await page.waitForSelector('#pouch .pouch-item', { timeout: 15000 });
 	const shown = sel => page.evaluate(s => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== 'none'; }, sel);
 	assert.equal(await shown('#tabbar'), true, 'the thumb bar is up');
-	assert.equal(await shown('.hamburger'), true, 'the header is folded');
-	assert.equal(await shown('#tabs'), false, 'the tab row is not');
+	assert.equal(await shown('[data-act="more"]'), true, 'the menu button is there');
+	assert.equal(await shown('.masthead-actions [data-act="jump"]'), false, 'Find has moved into the menu');
+	assert.equal(await shown('#tabs'), false, 'the dock is not');
 	assert.equal(await page.evaluate(async () => (await import('/js/viewport.js')).isPhone()), true);
 	await context.close();
 

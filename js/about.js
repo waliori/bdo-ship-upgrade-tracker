@@ -244,11 +244,13 @@ export const RELEASE = RELEASES[0].id;
 export const CHANGES = [
 	{
 		date: '2026-09-07',
-		title: 'the harbour: a hall of fame, the fleet in numbers, and a way to write in',
+		title: 'the harbour: a hall of fame, the fleet in numbers, one menu, and a way to write in',
 		notes: [
+			'One way round the app on every screen: a <b>dock</b> of every section across the top of a wide screen, the icon over the name and none past an edge, sticking to the top as the page scrolls; the bar at the thumb on a phone; and one <b>Menu</b> behind both — every section, Find, the trip log, Undo, Redo, the save, the help and the settings — a drawer at the right on a wide screen, the sheet at the thumb on a phone, <kbd>M</kbd> on the keyboard. The hamburger and the More dropdown are gone.',
+			'A full run climbing several chains at once does every attempt the islands allow and leaves the surplus at a wharf on the way up, as chain-after-chain already did; saying what an island paid ticks the stop done. A sailor’s growths are named as the sailor window names them — Endurance, Wits, Awareness, Strength, Patience, Force, Focus, Vision — with what each moves beside.',
 			'A <b>Community</b> tab, where there is sign-in: sixteen boards — mastery, the best ship, the best sailor, the most silver from runs, the most monsters hunted, the luckiest at the anvil and the rest — and the fleet in numbers, the hulls most sailed, the parts most fitted, the islands most plotted, the quests most done. Only the sailors who take part are on it, by name or as an unnamed sailor, and what would be shared is shown before anyone agrees.',
 			'The profile keeps a <b>tally</b> of the career — quests claimed, runs sailed, things made, attempts at the anvil — since the save holds only a quest’s current period and the last sixty runs. Undo takes a count back with the thing it counted.',
-			'<b>More → Feedback</b>: something wrong, an idea, or something else, with the section and the build attached; it reaches whoever runs the site, and the GitHub issues are a link away. Admins get an inbox.',
+			'<b>Menu → Feedback</b>: something wrong, an idea, or something else, with the section and the build attached; it reaches whoever runs the site, and the GitHub issues are a link away. Admins get an inbox.',
 			'The light theme reaches every popup: dialogs, the run’s foot, the crew’s wells, the done marks and the tier chips were navy by hex and are tokens now; a toast’s words and a tier’s name read on white.'
 		]
 	},

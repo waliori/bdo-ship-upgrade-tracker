@@ -17,19 +17,12 @@ export const PHONE_MQ = '(max-width: 720px), ((max-height: 520px) and (pointer: 
  * itself: at 760px the brand and the five buttons do not fit on one line
  * without the header growing a second, so the fold comes first.
  */
-export const MENU_MQ = '(max-width: 780px), ((max-height: 520px) and (pointer: coarse))';
 
 const query = mq => (typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia(mq) : null);
 
 /** True while the page is a phone's, by PHONE_MQ. */
 export function isPhone() {
 	const m = query(PHONE_MQ);
-	return !!(m && m.matches);
-}
-
-/** True while the header is behind the hamburger, by MENU_MQ. */
-export function isFolded() {
-	const m = query(MENU_MQ);
 	return !!(m && m.matches);
 }
 

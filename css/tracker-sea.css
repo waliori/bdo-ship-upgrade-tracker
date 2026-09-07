@@ -412,6 +412,48 @@
 .sheet-icon { font-size: 18px; opacity: 0.85; }
 .sheet-count { position: absolute; top: 6px; right: 8px; font-family: var(--font-body); font-size: 10px; font-weight: 700; background: var(--blue-glow); color: var(--blue); border-radius: 9px; padding: 1px 6px; }
 
+/* The rest of the menu: a list, one line each, the icon at the left
+   and what it does in small type under the name. */
+.sheet-list { display: flex; flex-direction: column; gap: 2px; }
+.sheet-item {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; padding: 8px 10px;
+  border: 1px solid transparent; border-radius: var(--r-btn);
+  background: none; color: var(--ink); text-align: left; font: inherit; cursor: pointer;
+}
+.sheet-item:hover:not(:disabled) { background: rgba(var(--blue-rgb), 0.1); border-color: rgba(var(--blue-rgb), 0.3); }
+.sheet-item:disabled { opacity: 0.45; cursor: default; }
+.sheet-item.danger:hover:not(:disabled) { background: rgba(232, 122, 109, 0.12); border-color: var(--red-edge); }
+.sheet-item.danger .sheet-item-text > span { color: var(--red-soft); }
+.sheet-item-icon { flex: none; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 7px; background: rgba(var(--line-rgb), 0.1); font-size: 14px; color: var(--ink-mid); }
+.sheet-item-text { display: flex; flex-direction: column; min-width: 0; }
+.sheet-item-text > span { font-size: 13px; font-weight: 600; color: var(--ink-hi); }
+.sheet-item-text > small { font-size: 11px; color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* On a wide screen the menu is a drawer at the right edge, the full
+   height of the window, in from the edge rather than up from the
+   bottom; the veil is the same. */
+@media (min-width: 721px) {
+  .dialog:has(> .menu-sheet) { justify-content: flex-end; align-items: stretch; padding: 0; }
+  .dialog-box.menu-sheet {
+    max-width: 380px; width: 380px; max-height: none; height: 100%;
+    border-radius: 0; border-width: 0 0 0 1px;
+    padding: 20px 18px 24px;
+    animation: drawerIn 0.2s ease;
+  }
+  @keyframes drawerIn { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .menu-sheet .sheet-grid { grid-template-columns: repeat(3, 1fr); }
+  .menu-sheet .sheet-tab { padding: 10px 4px 9px; font-size: 11.5px; }
+  /* The dock already shows the sections, so the drawer leads with
+     the verbs and keeps the sections for the end. */
+  .dialog-box.menu-sheet { display: flex; flex-direction: column; }
+  .menu-sheet > h2 { order: 0; }
+  .menu-sheet .sheet-rest { order: 1; }
+  .menu-sheet .sheet-sections { order: 2; margin-top: 8px; }
+  .menu-sheet .dialog-actions { order: 3; }
+}
+@media (prefers-reduced-motion: reduce) { .dialog-box.menu-sheet { animation: none; } }
+
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   .tabs { display: none; }
   .shell { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
@@ -672,17 +714,10 @@
 .picker-actions { align-items: center; }
 .picker-count { flex: 1; font-size: 12px; color: var(--ink-mute); }
 
-/* ---- Masthead: fewer buttons, a More menu; tabs in two groups ---- */
-.more { position: relative; display: inline-flex; }
-.more-menu { position: absolute; right: 0; top: calc(100% + 6px); min-width: 250px; z-index: 60; display: flex; flex-direction: column; padding: 6px; border-radius: 12px; background: rgba(var(--deep-rgb), 0.98); border: 1px solid rgba(var(--line-rgb), 0.22); box-shadow: 0 14px 40px rgba(var(--shade-rgb), 0.5); }
-.more-menu[hidden] { display: none; }
-.more-item { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 8px 10px; border-radius: 8px; border: 0; background: none; color: var(--ink-hi); font: inherit; text-align: left; cursor: pointer; }
-.more-item small { font-size: 11px; color: var(--ink-faint); }
-.more-item:hover { background: rgba(var(--blue-rgb), 0.12); }
-.more-item.danger span { color: var(--red-soft); }
-.tab-icon { margin-right: 6px; opacity: 0.75; font-size: 12px; }
+/* ---- Masthead and the dock: the section cells' icons and gaps ---- */
+.tab-icon { opacity: 0.8; font-size: 16px; line-height: 1; }
 .tab.active .tab-icon { opacity: 1; }
-.tab-gap { width: 1px; height: 18px; align-self: center; margin: 0 8px; background: rgba(var(--line-rgb), 0.25); }
+.tab-gap { width: 1px; align-self: stretch; margin: 6px 4px; background: rgba(var(--line-rgb), 0.25); }
 .status-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 10px 0 12px; padding: 7px 14px; border-radius: var(--r-btn, 10px); background: rgba(var(--deep-rgb), 0.7); border: 1px solid rgba(var(--line-rgb), 0.16); font-size: 12.5px; color: var(--ink-dim); }
 .status-bar[hidden] { display: none; }
 .status-bit { background: none; border: 0; padding: 2px 4px; font: inherit; color: var(--ink-mute); border-radius: 6px; }

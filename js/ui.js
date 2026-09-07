@@ -10,7 +10,7 @@ import { tableFor } from './enhancement.js';
 import { iconLoader } from './icon-loader.js';
 import { esc, F, parseAmount } from './fmt.js';
 import * as store from './state.js';
-import { initSync, openAccount, feature } from './sync.js';
+import { initSync, openAccount, feature, me } from './sync.js';
 import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.js';
 import {
 	view, selected, recipes, barterData, snapshot, query,
@@ -77,14 +77,50 @@ const TABS = [
 	{ id: 'barter', label: 'Barter', icon: '⇄', group: 'sea' },
 	// The harbour: only where there are accounts to stand on its boards.
 	// Past the ten with a digit, and shown once the server has said so.
-	{ id: 'community', label: 'Community', icon: '☸', group: 'sea', when: () => feature('community') }
+	{ id: 'community', label: 'Community', icon: '☸', group: 'harbour', when: () => feature('community') }
 ];
 
 /** The tabs this deployment shows. A tab with a `when` waits on it. */
 const tabs = () => TABS.filter(t => !t.when || t.when());
 
-// The four a phone gets at the thumb; the rest live behind "All".
+// The four a phone gets at the thumb; the rest live behind "Menu".
 const THUMB_TABS = ['plan', 'inventory', 'map', 'quests'];
+
+/**
+ * Everything that is not a section, in the one menu the app has. The
+ * verbs a wide screen keeps in the masthead come first, so that on a
+ * phone -- where the masthead holds only Undo and the account -- they
+ * are the first thing in the sheet; the rest are the settings and the
+ * doors that used to sit behind "More". A `when` keeps an item to the
+ * deployments and accounts it is for; a `label` that is a function
+ * says the current state, for the toggles.
+ */
+const MENU = [
+	{ group: 'Do', items: [
+		{ act: 'jump', icon: '⌕', label: 'Find', hint: 'an item or a section · Ctrl+K' },
+		{ act: 'trip-log', icon: '＋', label: 'Log a trip', hint: 'everything a trip brought back, as one change' },
+		{ act: 'undo', icon: '↶', label: 'Undo', hint: () => (store.canUndo() ? store.lastChange().label : 'nothing to undo') },
+		{ act: 'redo', icon: '↷', label: 'Redo', hint: () => (store.canRedo() ? store.nextRedo().label : 'nothing to redo') }
+	] },
+	{ group: 'Your save', items: [
+		{ act: 'profiles', icon: '👤', label: 'Profiles', hint: 'separate saves on this browser' },
+		{ act: 'export', icon: '⇪', label: 'Export', hint: 'a file, or a link' },
+		{ act: 'import', icon: '⇩', label: 'Import', hint: 'a file saved from here' },
+		{ act: 'reset', icon: '✕', label: 'Start fresh', hint: 'clears everything, one Undo away', danger: true }
+	] },
+	{ group: 'Help', items: [
+		{ act: 'whats-new', icon: '✦', label: 'What’s new', hint: 'what arrived since you were last here' },
+		{ act: 'help', icon: '?', label: 'Help', hint: 'the film, the data’s dates' },
+		{ act: 'tables', icon: '▤', label: 'Enhancement tables', hint: 'the seven tables, lit at your stack' },
+		{ act: 'tour', icon: '➤', label: 'Tour', hint: 'a walk through your own screen' },
+		{ act: 'feedback', icon: '✎', label: 'Feedback', hint: 'something wrong, or something you want' },
+		{ act: 'inbox', icon: '✉', label: 'Feedback inbox', hint: 'what people have written in', when: () => Boolean(me() && me().admin) }
+	] },
+	{ group: 'The page', items: [
+		{ act: 'theme', icon: '◐', label: () => `Theme: ${store.getSetting('theme', 'dark')}`, hint: 'dark, light, or as the system has it', keep: true },
+		{ act: 'water', icon: '≈', label: () => `Water ${store.getSetting('water', false) === true ? 'on' : 'off'}`, hint: 'the shader behind the page', keep: true }
+	] }
+];
 
 /* Everything that answers by going somewhere else. Chosen inside a
    dialog, the dialog has done its job and gets out of the way -- the
@@ -128,13 +164,13 @@ function paintTabBar(counts) {
 	const four = THUMB_TABS.map(id => TABS.find(t => t.id === id)).filter(Boolean);
 	const here = tabs().find(t => t.id === view);
 	// The standing tab always has a seat: an odd one takes the last of
-	// the four rather than hiding behind "All".
+	// the four rather than hiding behind "Menu".
 	const seats = four.some(t => t.id === view) || !here ? four : [...four.slice(0, 3), here];
 	const rest = tabs().filter(t => !seats.some(s => s.id === t.id));
 	const waiting = rest.reduce((n, t) => n + (counts[t.id] || 0), 0);
 	bar.innerHTML = seats.map(t => cell(t)).join('')
-		+ `<button class="tabbar-btn all" data-act="tab-sheet" aria-haspopup="dialog" title="Every section">
-			<span class="tabbar-icon" aria-hidden="true">▦</span><span class="tabbar-label">All</span>
+		+ `<button class="tabbar-btn all" data-act="tab-sheet" aria-haspopup="dialog" title="Every section, and everything else">
+			<span class="tabbar-icon" aria-hidden="true">☰</span><span class="tabbar-label">Menu</span>
 			${waiting ? `<span class="tabbar-count">${waiting}</span>` : ''}</button>`;
 	measureTabBar();
 }
@@ -153,40 +189,69 @@ function measureTabBar() {
 	if (!bar) return;
 	const h = getComputedStyle(bar).display === 'none' ? 0 : bar.offsetHeight;
 	document.documentElement.style.setProperty('--tabbar-h', `${h}px`);
+	// And the dock's, so what sticks under it -- the pouch -- knows
+	// where the top of the page really is.
+	const dock = document.getElementById('tabs');
+	const d = dock && getComputedStyle(dock).display !== 'none' ? dock.offsetHeight : 0;
+	document.documentElement.style.setProperty('--dock-h', `${d}px`);
 }
 
 /**
- * Which edges of the tab row have tabs past them. Between a phone and a
- * desktop the row scrolls sideways, and a row that clips "To Get" at the
- * edge with no hint reads as a row with six tabs in it: each edge fades
- * while there is more that way, and only then.
+ * The menu: every section, named, counted and grouped the way the dock
+ * groups them, and then everything else the app can do. One sheet for
+ * every screen -- the thumb bar's last slot on a phone, the masthead's
+ * Menu on a wide one, M on the keyboard -- so nothing is behind a
+ * second menu anywhere. On a wide screen it stands as a drawer at the
+ * right edge; on a phone it is the sheet at the thumb.
  */
-function markTabEdges() {
-	const bar = document.getElementById('tabs');
-	if (!bar) return;
-	const more = bar.scrollWidth - bar.clientWidth;
-	const scrolls = more > 1;
-	bar.classList.toggle('scrolls', scrolls);
-	bar.classList.toggle('scrolls-left', scrolls && bar.scrollLeft > 1);
-	bar.classList.toggle('scrolls-right', scrolls && bar.scrollLeft < more - 1);
-}
-
-/** Every section at once, named, counted and grouped the way the tab
- *  row groups them. */
 function openTabSheet() {
 	const counts = lastCounts;
 	const group = (id, title, note) => `<div class="sheet-head">${title} <span class="sheet-note">${note}</span></div>
 		<div class="sheet-grid">${tabs().filter(t => t.group === id).map(t => `
-			<button class="sheet-tab${view === t.id ? ' active' : ''}" data-act="view" data-id="${t.id}">
+			<button class="sheet-tab${view === t.id ? ' active' : ''}" data-act="view" data-id="${t.id}" aria-current="${view === t.id}">
 				<span class="sheet-icon" aria-hidden="true">${t.icon}</span>
 				<span class="sheet-name">${t.label}</span>
 				${counts[t.id] ? `<span class="sheet-count">${counts[t.id]}</span>` : ''}
 			</button>`).join('')}</div>`;
-	openDialog(`<h2>Where to</h2>
+	const text = v => (typeof v === 'function' ? v() : v);
+	const items = MENU.map(g => {
+		const list = g.items.filter(i => !i.when || i.when());
+		if (!list.length) return '';
+		return `<div class="sheet-head">${esc(g.group)}</div>
+			<div class="sheet-list">${list.map(i => `
+				<button class="sheet-item${i.danger ? ' danger' : ''}" data-act="${i.act}"${(i.act === 'undo' && !store.canUndo()) || (i.act === 'redo' && !store.canRedo()) ? ' disabled' : ''}>
+					<span class="sheet-item-icon" aria-hidden="true">${i.icon}</span>
+					<span class="sheet-item-text"><span>${esc(text(i.label))}</span><small>${esc(text(i.hint))}</small></span>
+				</button>`).join('')}</div>`;
+	}).join('');
+	const who = me();
+	const account = feature('sync')
+		? `<div class="sheet-head">Account</div><div class="sheet-list">${who
+			? `<button class="sheet-item" data-act="account"><span class="sheet-item-icon" aria-hidden="true">●</span><span class="sheet-item-text"><span>${esc(who.username)}</span><small>synced to your Discord account · sync now, sign out, delete</small></span></button>`
+			: '<button class="sheet-item" data-act="signin"><span class="sheet-item-icon" aria-hidden="true">○</span><span class="sheet-item-text"><span>Sign in with Discord</span><small>the same inventory on every device, and a place on the boards</small></span></button>'}</div>`
+		: '';
+	// Two halves, so a wide screen -- whose dock already shows the
+	// sections -- can put the verbs first and the sections after.
+	const host = openDialog(`<h2>Menu</h2>
+		<div class="sheet-sections">
 		${group('yard', 'The yard', 'planning and making')}
 		${group('sea', 'The sea', 'the day itself')}
+		${tabs().some(t => t.group === 'harbour') ? group('harbour', 'The harbour', 'the other sailors') : ''}
+		</div>
+		<div class="sheet-rest">${items}${account}</div>
 		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`);
+	host.firstElementChild.classList.add('menu-sheet');
+	// The standing section takes the focus, so the keyboard lands where
+	// the eye does; the sheet's own Close is not what anyone came for.
+	const here = isPhone() ? host.querySelector('.sheet-tab.active') || host.querySelector('.sheet-tab') : host.querySelector('.sheet-item:not(:disabled)');
+	if (here) here.focus({ preventScroll: true });
 }
+
+/** Is the menu the dialog standing right now? */
+const menuOpen = () => {
+	const host = document.getElementById('dialog');
+	return Boolean(host && !host.hidden && host.querySelector('.menu-sheet'));
+};
 
 // What the badges said at the last render, for the sheet.
 let lastCounts = {};
@@ -217,13 +282,18 @@ export function render() {
 
 	// A tablist for the keyboard: the active tab is the one Tab stop,
 	// and the arrow keys walk the rest (wired in wire()).
+	// The dock: every section as a cell, the icon over the name, the
+	// count at its corner, the groups told apart by a hairline. The
+	// same cells the phone's thumb bar draws, across the top of a wide
+	// screen instead of the bottom of a narrow one -- and all of them,
+	// so nothing is past an edge.
 	const shown = tabs();
 	document.getElementById('tabs').innerHTML = shown.map((t, i) => `${i > 0 && shown[i - 1].group !== t.group ? '<span class="tab-gap" aria-hidden="true"></span>' : ''}
 		<button class="tab ${view === t.id ? 'active' : ''}" role="tab"
 			aria-selected="${view === t.id}" aria-controls="screen"
 			tabindex="${view === t.id ? 0 : -1}"
 			data-act="view" data-id="${t.id}" id="tab-${t.id}" title="${t.label}${i < 10 ? ` (${(i + 1) % 10})` : ''}">
-			<span class="tab-icon" aria-hidden="true">${t.icon}</span>${t.label}${counts[t.id] ? `<span class="tab-count">${counts[t.id]}</span>` : ''}
+			<span class="tab-icon" aria-hidden="true">${t.icon}</span><span class="tab-label">${t.label}</span>${counts[t.id] ? `<span class="tab-count">${counts[t.id]}</span>` : ''}
 		</button>`).join('');
 	// The day's clocks and the ship, in one line, wherever the Plan's
 	// own strip is not on the page.
@@ -238,18 +308,6 @@ export function render() {
 
 	lastCounts = counts;
 	paintTabBar(counts);
-
-	// A tab row that scrolls says so at whichever edge has more behind
-	// it, and keeps the standing tab where it can be seen.
-	const tabBar = document.getElementById('tabs');
-	const activeTab = tabBar.querySelector('.tab.active');
-	if (activeTab && tabBar.scrollWidth > tabBar.clientWidth + 1) {
-		const left = activeTab.offsetLeft - 24;
-		const right = activeTab.offsetLeft + activeTab.offsetWidth + 24 - tabBar.clientWidth;
-		if (tabBar.scrollLeft > left) tabBar.scrollLeft = Math.max(0, left);
-		else if (tabBar.scrollLeft < right) tabBar.scrollLeft = right;
-	}
-	markTabEdges();
 
 	const undoBtn = document.getElementById('undo-btn');
 	if (undoBtn) {
@@ -680,13 +738,8 @@ function applyTheme() {
 	syncThemeButton();
 }
 
-function syncThemeButton() {
-	const btn = document.getElementById('theme-btn');
-	if (!btn) return;
-	const t = store.getSetting('theme', 'dark');
-	const label = btn.querySelector('span') || btn;
-	label.textContent = `Theme: ${t}`;
-}
+/** The menu draws the theme from the setting each time it opens. */
+function syncThemeButton() {}
 
 /** The next theme round: dark, light, system, dark. */
 function cycleTheme() {
@@ -697,14 +750,8 @@ function cycleTheme() {
 	toast(next === 'system' ? `Theme follows the system — ${resolvedTheme()} right now` : `Theme: ${next}`);
 }
 
-function syncWaterButton() {
-	const btn = document.getElementById('water-btn');
-	if (!btn) return;
-	const on = store.getSetting('water', false) === true;
-	const label = btn.querySelector('span') || btn;
-	label.textContent = `≈ Water ${on ? 'on' : 'off'}`;
-	btn.classList.toggle('on', on);
-}
+/** The menu draws the water switch from the setting each time it opens. */
+function syncWaterButton() {}
 
 function toggleWater() {
 	const next = !(store.getSetting('water', false) === true);
@@ -720,21 +767,9 @@ function targetIdFrom(el) {
 	return row ? row.getAttribute('data-target') : null;
 }
 
-/* The More submenu, shut and told so. */
-const closeMore = () => {
-	const pop = document.getElementById('more-menu');
-	if (pop) pop.hidden = true;
-	const btn = document.querySelector('[data-act="more"]');
-	if (btn) btn.setAttribute('aria-expanded', 'false');
-};
-
-/* The phone's own menu, the same. */
+/* The menu, shut if it is the dialog standing. */
 const closeBar = () => {
-	const bar = document.getElementById('masthead-actions');
-	if (bar) bar.classList.remove('open');
-	const burger = document.querySelector('[data-act="menu"]');
-	if (burger) burger.setAttribute('aria-expanded', 'false');
-	closeMore();
+	if (menuOpen()) closeDialog();
 };
 
 function wire() {
@@ -775,9 +810,6 @@ function wire() {
 
 		const el = evt.target.closest('[data-act]');
 		if (!el) {
-			// A click anywhere else closes the More menu, and the phone's
-			// menu with it.
-			if (!evt.target.closest('#more-menu') && !evt.target.closest('.masthead-actions')) closeBar();
 			// Clicking past the tiles puts the detail panel away. Reading
 			// the panel itself is not clicking past anything, so a click
 			// inside it leaves the selection alone.
@@ -807,15 +839,13 @@ function wire() {
 			return;
 		}
 
-		// Picking anything out of the More menu puts it away.
-		if (act !== 'more' && el.closest('#more-menu')) closeMore();
-
-		// Picking something out of the phone menu puts it away again --
-		// but "More" is a section of that menu, not a choice made from
-		// it. Closing the bar on the way to opening its own submenu is
-		// what used to make the whole thing vanish, and leave the
-		// submenu standing open behind it for the next press.
-		if (act !== 'menu' && act !== 'more' && el.closest('.masthead-actions.open')) closeBar();
+		// Picking anything out of the menu puts it away -- unless the
+		// item is a toggle that is better watched changing, in which
+		// case the sheet is drawn again with the new state on it. What
+		// opens a dialog of its own replaces the sheet anyway.
+		const fromMenu = el.closest('.menu-sheet');
+		const keeps = fromMenu && MENU.some(g => g.items.some(i => i.act === act && i.keep));
+		if (fromMenu && !keeps && act !== 'more') closeDialog();
 
 		// A way through to a screen leaves behind the dialog it was chosen
 		// from: the answer is on the screen now, and the item card that
@@ -825,7 +855,7 @@ function wire() {
 
 		switch (act) {
 			case 'view': if (el.dataset.quest) setQuestFocus(el.dataset.quest); showView(el.dataset.id); return;
-			case 'tab-sheet': closeBar(); return openTabSheet();
+			case 'tab-sheet': return openTabSheet();
 			case 'undo': {
 				const label = store.undo();
 				toast(label ? `Reverted: ${label}` : 'Nothing to undo');
@@ -855,8 +885,8 @@ function wire() {
 			case 'market-refresh':
 				loadMarket({ force: true }).then(ok => toast(ok ? 'Market prices refreshed' : 'The Market did not answer — showing the last prices it gave'));
 				return;
-			case 'water': return toggleWater();
-			case 'theme': return cycleTheme();
+			case 'water': toggleWater(); if (keeps) openTabSheet(); return;
+			case 'theme': cycleTheme(); if (keeps) openTabSheet(); return;
 			case 'tour': return startTour();
 			case 'whats-new': return openWhatsNew();
 			case 'help': return openHelp();
@@ -866,29 +896,9 @@ function wire() {
 			case 'account': return openAccount();
 			case 'feedback': return import('./feedback.js').then(m => m.openFeedback());
 			case 'inbox': return import('./feedback.js').then(m => m.openInbox());
-			case 'more': {
-				const pop = document.getElementById('more-menu');
-				if (pop.hidden) {
-					pop.hidden = false;
-					el.setAttribute('aria-expanded', 'true');
-					// A menu opened from the keyboard is entered, not just
-					// shown: the first item takes the focus, and the arrows
-					// walk it (wired in the keydown handler).
-					if (evt.detail === 0) pop.querySelector('[role="menuitem"]')?.focus();
-				} else closeMore();
-				return;
-			}
-			case 'menu': {
-				// The header's buttons do not fit a phone, so below a certain
-				// width they live behind this and are shown on demand. The
-				// More submenu is inside it, so it goes away with it --
-				// otherwise the bar reopens already expanded.
-				const bar = document.getElementById('masthead-actions');
-				const open = bar.classList.toggle('open');
-				el.setAttribute('aria-expanded', String(open));
-				if (!open) closeMore();
-				return;
-			}
+			// The masthead's Menu and the thumb bar's are the one sheet;
+			// pressed while it stands, it goes.
+			case 'more': if (menuOpen()) closeDialog(); else openTabSheet(); return;
 			case 'map-zoom': mapZoomStep(Number(el.dataset.step)); return;
 			case 'map-fit': mapFit(); return;
 			case 'map-pin':
@@ -1378,6 +1388,11 @@ function wire() {
 				evt.preventDefault();
 				return openJumpPalette();
 			}
+			// M is the menu, from anywhere on the page.
+			if (evt.key === 'm' || evt.key === 'M') {
+				evt.preventDefault();
+				return openTabSheet();
+			}
 			if (/^[0-9]$/.test(evt.key)) {
 				const at = evt.key === '0' ? 9 : Number(evt.key) - 1;
 				if (TABS[at]) {
@@ -1401,10 +1416,10 @@ function wire() {
 			return;
 		}
 
-		// Inside the More menu the arrows walk the items, Home and End
-		// jump to the ends, as a menu is expected to.
-		if (evt.target.closest && evt.target.closest('#more-menu') && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(evt.key)) {
-			const items = [...document.querySelectorAll('#more-menu [role="menuitem"]')].filter(b => !b.hidden && !b.disabled);
+		// Inside the menu the arrows walk the items, Home and End jump
+		// to the ends, as a menu is expected to.
+		if (menuOpen() && evt.target.closest && evt.target.closest('.menu-sheet') && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(evt.key)) {
+			const items = [...document.querySelectorAll('.menu-sheet .sheet-tab, .menu-sheet .sheet-item')].filter(b => !b.hidden && !b.disabled);
 			if (items.length) {
 				evt.preventDefault();
 				const i = items.indexOf(evt.target);
@@ -1419,20 +1434,9 @@ function wire() {
 		// field being typed in, then the inventory detail panel. Someone
 		// abandoning an edit is not asking to lose the panel around it.
 		if (evt.key === 'Escape') {
-			const more = document.getElementById('more-menu');
-			const bar = document.getElementById('masthead-actions');
 			if (!dialog.hidden) {
 				evt.preventDefault();
 				dismissDialog();
-			} else if (more && !more.hidden) {
-				// The menus shut the way they opened, and the focus goes back
-				// to the button that holds them, so the keyboard is not left
-				// on a hidden item.
-				closeMore();
-				document.querySelector('[data-act="more"]')?.focus();
-			} else if (bar && bar.classList.contains('open')) {
-				closeBar();
-				document.querySelector('[data-act="menu"]')?.focus();
 			} else if (evt.target.closest('input, textarea, select')) {
 				evt.target.blur();
 			} else if (mapIsFull()) {
@@ -1496,11 +1500,10 @@ function wire() {
 		if (evt.target.classList && evt.target.classList.contains('amt')) evt.target.select();
 	});
 
-	window.addEventListener('resize', () => { measurePouch(); measureTabBar(); markTabEdges(); });
+	window.addEventListener('resize', () => { measurePouch(); measureTabBar(); });
 	// Turning a phone swaps the tab row for the thumb bar or back; the
 	// sheets stand on the bar's height, so it is measured again.
-	onPhoneChange(() => { measureTabBar(); measurePouch(); markTabEdges(); });
-	document.getElementById('tabs').addEventListener('scroll', markTabEdges, { passive: true });
+	onPhoneChange(() => { measureTabBar(); measurePouch(); });
 
 	// The pouch writes big silver the short way ("1.96b"); under the
 	// caret it swaps to the exact digits, so editing never rounds what

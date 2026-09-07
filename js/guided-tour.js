@@ -6,10 +6,10 @@
 // the quests, the ship, and the chart. Each step switches tab by
 // clicking the real tab button, so there is no second copy of the
 // navigation logic to keep in sync, and it works the same on a phone,
-// where that button is in the bar at the thumb or behind "All".
+// where that button is in the bar at the thumb or behind "Menu".
 
 import * as store from './state.js';
-import { isPhone, isFolded } from './viewport.js';
+import { isPhone } from './viewport.js';
 
 const DONE_KEY = 'bdo_ship_upgrade-tour_completed';
 
@@ -365,17 +365,11 @@ class GuidedTour {
 				before: () => goToMap('route')
 			},
 			{
-				// The masthead's buttons are behind the hamburger on a phone,
-				// so that is what a phone gets pointed at.
-				// The header folds into the hamburger a little before the
-				// rest of the page becomes a phone's (MENU_MQ, wider than
-				// PHONE_MQ) -- between the two, the actions the step would
-				// point at are hidden, so this step follows the header's
-				// own rule.
-				element: isFolded() ? '.hamburger' : '.masthead-actions',
+				// The masthead's verbs, and the menu that holds the rest.
+				element: '.masthead-actions',
 				popover: {
 					title: 'Undo, and your data',
-					description: 'Every change can be undone. <b>Find</b> (Ctrl+K) opens any item or tab, and <b>Log a trip</b> records everything you brought back as one change.<br><br><b>More</b> holds Profiles, Export and Import — a JSON backup, or a link carrying the whole plan — and <b>Help</b>, which plays a film of the whole thing end to end and lists what changed and when each dataset was checked.<br><br>Where the deployment offers it, signing in with Discord keeps this same inventory on your phone as well; without it nothing leaves this browser at all.',
+					description: 'Every change can be undone. <b>Find</b> (Ctrl+K) opens any item or tab, and <b>Log a trip</b> records everything you brought back as one change.<br><br><b>Menu</b> (M) is the one menu the app has — every section, and Profiles, Export and Import — a JSON backup, or a link carrying the whole plan — and <b>Help</b>, which plays a film of the whole thing end to end and lists what changed and when each dataset was checked. On a phone the thumb bar\'s last slot opens the same menu.<br><br>Where the deployment offers it, signing in with Discord keeps this same inventory on your phone as well; without it nothing leaves this browser at all.',
 					side: 'bottom'
 				},
 				before: () => goToTab('plan')

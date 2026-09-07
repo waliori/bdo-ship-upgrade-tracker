@@ -177,16 +177,23 @@ can be both made and bought, you choose, and the plan follows.
   back as a file before anything is written over it.
 - **What's new**, a release's worth of notes with a picture each, shown
   once to a browser that has seen an older version and reachable any
-  time from *More*. The same notes are [`CHANGELOG.md`](CHANGELOG.md).
+  time from the *Menu*. The same notes are [`CHANGELOG.md`](CHANGELOG.md).
   Neither it nor the tour interrupts someone who arrived on a shared
   link — they came to see that one thing.
 - **A guided tour** that walks all nine views on example data, pointing
   at each thing on your own screen, then hands your own data back
   untouched — and reads a phone, where it points at the bar at the thumb
-  and the hamburger the header folds into. Alongside it a **Help** film
+  and the menu behind it. Alongside it a **Help** film
   of the whole thing end to end, for when you would rather just watch.
   Help also lists **what changed** and **when each dataset was last
   checked**.
+- **One way round.** Every section sits in a dock across the top of a
+  wide screen, the icon over the name, all of them at once; on a phone
+  four sit at the thumb and the last slot opens the menu. That **Menu**
+  — the masthead's on a wide screen, `M` on the keyboard — is the one
+  menu the app has: every section, Find, the trip log, Undo and Redo,
+  your save, the help and the settings, as a drawer at the right or a
+  sheet at the thumb.
 - **Find** anything with `Ctrl+K` (or `/` on its own): an item opens in
   the Inventory's panel, a tab opens. The digits `1`–`9` switch tabs,
   `0` the tenth.
@@ -418,7 +425,7 @@ list from the import graph; the test suite refuses a module left out.
 
 `node tools/build-changelog.mjs` rewrites [`CHANGELOG.md`](CHANGELOG.md)
 from the release notes in `js/about.js` — the same ones the app shows
-under **More → What's new**; the suite fails if the file is stale.
+under **Menu → What's new**; the suite fails if the file is stale.
 
 `npm run capture` re-shoots every picture and clip in this README, and
 both cuts of the film, by driving the real app in a headless Chrome —
@@ -745,7 +752,7 @@ for. Behind Cloudflare or nginx, two things are worth knowing:
 
 ### Feedback
 
-**More → Feedback** is a form: something is wrong, an idea, or something
+**Menu → Feedback** is a form: something is wrong, an idea, or something
 else, with the section you were on, the build and the browser attached.
 Wherever there is a database it lands in a table, and when
 `FEEDBACK_WEBHOOK_URL` names a Discord webhook the operator gets a copy
@@ -821,7 +828,7 @@ js/
   sync.js             optional device sync: pull, push, conflict
   digest.js           what a save says about its sailor, for the boards
   screen-community.js the Community tab: the hall of fame, the fleet in numbers
-  feedback.js         More → Feedback, and the admins' inbox
+  feedback.js         Menu → Feedback, and the admins' inbox
   recipes.js          recipes and enhancement chains
   ships.js            what can be queued
   sea_coins.js        Crow Coin prices
