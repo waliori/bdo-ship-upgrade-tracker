@@ -5328,3 +5328,19 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .sel-log-row b { color: var(--ink); }
 .sel-log-row.quiet { opacity: 0.7; }
 .sel-log-stats { display: block; font-size: 10.5px; opacity: 0.8; }
+
+
+/* A phone on its side is 390 pixels tall, and the chart was under
+   every one of them: the header, the purse, the day's line and the
+   summary above it. On the Map, on such a screen, the purse and the
+   day's line step aside and the summary folds to its buttons -- the
+   chart is what the tab is for. */
+@media (max-height: 520px) and (pointer: coarse) {
+  body[data-view="map"] .pouch,
+  body[data-view="map"] .status-bar,
+  body[data-view="map"] .summary .summary-stats > div:first-child,
+  body[data-view="map"] .summary .summary-sub,
+  body[data-view="map"] .summary .summary-title { display: none; }
+  body[data-view="map"] .summary { padding: 6px 12px; margin-bottom: 8px; }
+  body[data-view="map"] .masthead { padding-top: 6px; padding-bottom: 6px; }
+}

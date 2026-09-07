@@ -54,7 +54,7 @@ import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapCentreOnStash,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
-	saveRouteDialog, loadSavedRoute, deleteSavedRoute, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
+	saveRouteDialog, loadSavedRoute, deleteSavedRoute, mapWritingView, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite,
 	toggleFull, exitFull, mapIsFull, gameImportAction
@@ -186,6 +186,9 @@ let lastCounts = {};
 
 export function render() {
 	recompute();
+	// The page says which section it is on, so a stylesheet can make
+	// room where one section needs it -- the chart on a short screen.
+	document.body.dataset.view = view;
 	// Where each build stands today, for the pace -- never the tour's
 	// example numbers.
 	if (!store.isTransient()) recordProgress(snapshot.targets);
@@ -1988,7 +1991,12 @@ export async function init() {
 	});
 	window.addEventListener('hashchange', applyHash);
 	wireSaveHealth();
-	store.subscribe(() => render());
+	// A quiet write that is the Map's own -- its view, a moment after a
+	// stroke -- is not a reason to redraw the Map over the pen.
+	store.subscribe((_, reason) => {
+		if (reason === 'profile-quiet' && mapWritingView()) return;
+		render();
+	});
 	render();
 	// The minute hand on every countdown, a repaint when a reset passes
 	// with the page open, and the Vell reminder if it was asked for.
