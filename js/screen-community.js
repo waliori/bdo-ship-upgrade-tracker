@@ -20,6 +20,7 @@ import { digest, BOARDS, monsterName } from './digest.js';
 import { quests } from './quests.js';
 import { npcById } from './barter_npcs.js';
 import { crystalById } from './sea_crystals.js';
+import { STAT_NAMES } from './sailors.js';
 
 let data = null;          // the last answer from /api/community
 let fetchedAt = 0;
@@ -96,13 +97,14 @@ function headHTML() {
 		const places = data && data.you ? data.you.places : {};
 		const best = Object.entries(places).sort((a, b) => a[1].rank - b[1].rank || b[1].of - a[1].of).slice(0, 3)
 			.map(([id, p]) => { const b = BOARDS.find(x => x.id === id); return b ? `${ordinal(p.rank)} of ${p.of} in ${b.title}` : ''; }).filter(Boolean);
-		you = `<p class="comm-copy">You are on the boards ${who.share === 'named' ? `as <b>${esc(who.username)}</b>` : 'as <b>an unnamed sailor</b>'}${best.length ? ` — ${best.join(', ')}` : ''}. <button class="chip tiny" data-act="community-join">Change</button> <button class="chip tiny" data-act="community-leave">Leave the boards</button></p>`;
+		you = `<p class="comm-copy">You are on the boards ${who.share === 'named' ? `as <b>${esc(who.username)}</b>` : 'as <b>an unnamed sailor</b>'}${best.length ? ` — ${best.join(', ')}` : ''}. ${data && data.you && data.you.ref ? `<button class="chip tiny primary" data-act="community-sailor" data-ref="${esc(data.you.ref)}">My card</button> ` : ''}<button class="chip tiny" data-act="community-places">All my places</button> <button class="chip tiny" data-act="community-join">Change</button> <button class="chip tiny" data-act="community-leave">Leave the boards</button></p>`;
 	}
 	return `<section class="panel comm-head">
 		<div class="panel-head">
 			<h2 class="panel-title">The harbour</h2>
 			<span class="panel-sub">${data ? `${n} sailor${n === 1 ? '' : 's'} on the boards · ${named} by name${built ? ` · drawn up at ${built.toISOString().slice(11, 16)} UTC` : ''}` : loading ? 'fetching the boards…' : failed || ''}</span>
 			<span class="panel-spacer"></span>
+			<button class="chip tiny" data-act="community-find" title="Find a sailor on the boards by name">⌕ Find a sailor</button>
 			<div class="comm-halves" role="tablist">
 				<button class="seg${half === 'fame' ? ' on' : ''}" role="tab" aria-selected="${half === 'fame'}" data-act="community-half" data-id="fame">Hall of fame</button>
 				<button class="seg${half === 'numbers' ? ' on' : ''}" role="tab" aria-selected="${half === 'numbers'}" data-act="community-half" data-id="numbers">The fleet in numbers</button>
@@ -130,16 +132,23 @@ function boardHTML(board) {
 			<h3 class="comm-board-title">${esc(board.title)}</h3>
 			<span class="comm-board-n">${board.n ? `${board.n} sailor${board.n === 1 ? '' : 's'}` : 'nobody yet'}</span>
 		</div>
-		${board.top.length ? `<ol class="comm-rank">${board.top.map(e => `
-			<li class="comm-row${e.you ? ' you' : ''}${e.rank <= 3 ? ` p${e.rank}` : ''}">
-				<span class="comm-pos">${e.rank}</span>
-				${e.avatar ? `<img class="comm-avatar" src="${esc(e.avatar)}" alt="" width="24" height="24" loading="lazy">` : `<span class="comm-avatar anon" aria-hidden="true">${e.named ? esc((e.name || '?').slice(0, 1)) : '☸'}</span>`}
-				<span class="comm-who"><span class="comm-name">${e.named ? esc(e.name) : 'A sailor'}${e.you ? ' <em>you</em>' : ''}</span>${e.detail ? `<span class="comm-detail">${esc(e.detail)}</span>` : ''}</span>
-				<b class="comm-val">${value(board, e.value)}<small>${esc(board.unit)}</small></b>
-			</li>`).join('')}</ol>` : `<p class="comm-empty">${who && who.share ? 'Nobody has earned a place here yet.' : 'Nobody has earned a place here yet — the first to take part will.'}</p>`}
+		${board.top.length ? `<ol class="comm-rank">${board.top.map(e => rowHTML(board, e)).join('')}</ol>` : `<p class="comm-empty">${who && who.share ? 'Nobody has earned a place here yet.' : 'Nobody has earned a place here yet — the first to take part will.'}</p>`}
 		${place && !inTop ? `<div class="comm-yours">You: ${ordinal(place.rank)} of ${place.of} · ${value(board, place.value)} ${esc(board.unit)}</div>` : ''}
+		${board.n > board.top.length ? `<button class="comm-more" data-act="community-board" data-id="${esc(board.id)}">Show all ${board.n} →</button>` : ''}
 	</section>`;
 }
+
+/** One place on a board. A press opens the sailor's card. */
+function rowHTML(board, e) {
+	return `<li class="comm-row${e.you ? ' you' : ''}${e.rank <= 3 ? ` p${e.rank}` : ''}" data-act="community-sailor" data-ref="${esc(e.ref)}" role="button" tabindex="0" title="${e.named ? esc(e.name) : 'A sailor'} — open the card">
+		<span class="comm-pos">${e.rank}</span>
+		${avatarHTML(e)}
+		<span class="comm-who"><span class="comm-name">${e.named ? esc(e.name) : 'A sailor'}${e.you ? ' <em>you</em>' : ''}</span>${e.detail ? `<span class="comm-detail">${esc(e.detail)}</span>` : ''}</span>
+		<b class="comm-val">${value(board, e.value)}<small>${esc(board.unit)}</small></b>
+	</li>`;
+}
+
+const avatarHTML = e => (e.avatar ? `<img class="comm-avatar" src="${esc(e.avatar)}" alt="" width="24" height="24" loading="lazy">` : `<span class="comm-avatar anon" aria-hidden="true">${e.named ? esc((e.name || '?').slice(0, 1)) : '☸'}</span>`);
 
 function fameHTML() {
 	return `<div class="comm-boards">${data.fame.map(boardHTML).join('')}</div>`;
@@ -303,6 +312,120 @@ function confirmLeave() {
 	});
 }
 
+/* ------------------------------------------------------------------ *
+ * A sailor's card
+ * ------------------------------------------------------------------ */
+
+/** A sailor's card: places, the ship, the fleet, the crew, the career. */
+export async function openSailorCard(ref) {
+	const host = openDialog('<h2>A sailor</h2><p class="dialog-copy">Fetching the card…</p>');
+	const res = await call('GET', `/api/community/sailor/${encodeURIComponent(ref)}`).catch(() => null);
+	const box = host.querySelector('.dialog-box');
+	if (!res || !res.ok) {
+		box.innerHTML = `<h2>A sailor</h2><p class="dialog-copy">${esc(res && res.body && res.body.error ? res.body.error : 'The card did not answer.')}</p><div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`;
+		return;
+	}
+	const c = res.body;
+	const d = c.digest;
+	const places = Object.entries(c.places).map(([id, p]) => ({ b: BOARDS.find(x => x.id === id), p })).filter(x => x.b).sort((a, b) => a.p.rank - b.p.rank || b.p.of - a.p.of);
+	const best = d.fleet.best;
+	const slots = ['cannon', 'sail', 'figurehead', 'plating'];
+	const hull = h => `<div class="card-hull${best && h.ship === best.ship ? ' best' : ''}">
+		<b>${esc(h.ship)}</b>${h.ship === d.fleet.sailing ? ' <em>sailing now</em>' : ''}
+		<span class="card-parts">${slots.map(sl => `<i class="${h.parts[sl] ? 'on' : ''}" title="${sl}">${sl.slice(0, 1).toUpperCase()}${h.parts[sl] ? ` +${h.parts[sl]}` : ''}</i>`).join('')}${h.crystal ? `<small>${esc(crystalName(h.crystal))}</small>` : ''}${h.skins ? `<small>${h.skins} of 4 appearance slots</small>` : ''}</span>
+	</div>`;
+	const sailor = m => `<div class="card-sailor">
+		<b>${esc(m.name)}</b><span class="comm-detail">${esc(m.type)} · Lv ${m.lv}</span>
+		${Object.keys(m.stats).length ? `<span class="card-stats">${Object.entries(m.stats).map(([k, v]) => `<i title="${esc((STAT_NAMES[k] || { tip: k }).tip)}">${esc((STAT_NAMES[k] || { game: k }).game)} <small>${esc((STAT_NAMES[k] || { means: '' }).means)}</small> +${v}%</i>`).join('')}</span>` : ''}
+	</div>`;
+	const fig = (k, v, sub = '') => `<div class="card-fig"><span>${esc(k)}</span><b>${v}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
+	box.innerHTML = `
+		<div class="card-head">
+			${c.avatar ? `<img class="comm-avatar big" src="${esc(c.avatar)}" alt="" width="44" height="44">` : `<span class="comm-avatar anon big" aria-hidden="true">${c.named ? esc((c.name || '?').slice(0, 1)) : '☸'}</span>`}
+			<div><h2>${c.named ? esc(c.name) : 'A sailor'}${c.you ? ' <em class="card-you">you</em>' : ''}</h2>
+			<p class="dialog-copy">${d.level ? `${esc(d.level)} · ` : ''}${d.mastery ? `mastery ${F(d.mastery)} · ` : ''}on the boards since ${new Date(c.joinedAt).toISOString().slice(0, 10)}${c.named ? '' : ' · unnamed by choice'}</p></div>
+		</div>
+		<h3 class="card-h">Places</h3>
+		${places.length ? `<div class="card-places">${places.map(({ b, p }) => `<span class="card-place${p.rank <= 3 ? ` p${p.rank}` : ''}"><i>${b.icon}</i><b>${ordinal(p.rank)}</b><small>of ${p.of}</small><span>${esc(b.title)}</span></span>`).join('')}</div>` : '<p class="comm-empty">No place on any board yet.</p>'}
+		<h3 class="card-h">The ship${d.fleet.n > 1 ? ` and the fleet · ${d.fleet.n} hulls` : ''}</h3>
+		${d.fleet.list.length ? `<div class="card-hulls">${d.fleet.list.map(hull).join('')}</div>` : '<p class="comm-empty">No hull recorded.</p>'}
+		<h3 class="card-h">The crew · ${d.crew.n} sailor${d.crew.n === 1 ? '' : 's'}${d.crew.avgLv ? ` · average Lv ${d.crew.avgLv}` : ''}</h3>
+		${d.crew.top.length ? `<div class="card-crew">${d.crew.top.map(sailor).join('')}${d.crew.n > d.crew.top.length ? `<p class="comm-empty">and ${d.crew.n - d.crew.top.length} more</p>` : ''}</div>` : '<p class="comm-empty">Nobody hired yet.</p>'}
+		<h3 class="card-h">The career</h3>
+		<div class="card-figs">
+			${fig('Runs', F(d.runs.n), `${FC(d.runs.silver)} silver · ${F(d.runs.trades)} trades`)}
+			${fig('Barters', F(d.barters))}
+			${fig('Best run', d.runs.best ? FC(d.runs.best.net) : '—', d.runs.best ? d.runs.best.day : '')}
+			${fig('Quests', F(d.quests.n), `${F(d.quests.huntsN)} hunts`)}
+			${fig('Made', F(d.yard.crafts), `${F(d.yard.ships)} ships · ${F(d.yard.parts)} parts`)}
+			${fig('Anvil', d.yard.tries ? `${Math.round((d.yard.wins / d.yard.tries) * 100)}%` : '—', d.yard.tries ? `${F(d.yard.wins)} of ${F(d.yard.tries)}` : 'no attempts')}
+			${fig('Charts', F(d.charts.traces), `${F(d.charts.points)} points · ${F(d.charts.routes)} routes`)}
+			${fig('Hold', F(d.stock.units), `${F(d.stock.items)} kinds`)}
+		</div>
+		${Object.keys(d.quests.hunts).length ? `<p class="card-line">Hunted: ${Object.entries(d.quests.hunts).map(([m, n]) => `${esc(monsterName(m))} ×${F(n)}`).join(', ')}</p>` : ''}
+		${Object.keys(d.yard.shipsMade).length ? `<p class="card-line">Built: ${Object.entries(d.yard.shipsMade).map(([m, n]) => `${esc(m)} ×${F(n)}`).join(', ')}</p>` : ''}
+		<div class="dialog-actions">${c.you ? '<button class="ghost-btn" data-act="community-join">How I am shown</button><span class="fb-space"></span>' : ''}<button class="ghost-btn" data-close>Close</button></div>`;
+}
+
+/** One board whole. */
+async function openBoard(id) {
+	const host = openDialog('<h2>The board</h2><p class="dialog-copy">Fetching…</p>');
+	const res = await call('GET', `/api/community/board/${encodeURIComponent(id)}`).catch(() => null);
+	const box = host.querySelector('.dialog-box');
+	if (!res || !res.ok) {
+		box.innerHTML = `<h2>The board</h2><p class="dialog-copy">${esc(res && res.body && res.body.error ? res.body.error : 'The board did not answer.')}</p><div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`;
+		return;
+	}
+	const b = res.body;
+	box.innerHTML = `<h2>${b.icon} ${esc(b.title)}</h2>
+		<p class="dialog-copy">${b.n} sailor${b.n === 1 ? '' : 's'}${b.n > b.all.length ? ` · the first ${b.all.length}` : ''}</p>
+		<ol class="comm-rank comm-rank-all">${b.all.map(e => rowHTML(b, e)).join('')}</ol>
+		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`;
+}
+
+/** Find a named sailor. */
+function openFind() {
+	const host = openDialog(`<h2>Find a sailor</h2>
+		<input class="field comm-find" type="search" placeholder="A Discord name, or part of one…" aria-label="Find a sailor" autocomplete="off">
+		<p class="dialog-copy comm-find-note">Sailors on the boards by name. Unnamed sailors cannot be found this way — that is what unnamed means.</p>
+		<div class="comm-find-list"></div>
+		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`);
+	const input = host.querySelector('.comm-find');
+	const list = host.querySelector('.comm-find-list');
+	let timer = null, last = '';
+	input.focus();
+	input.addEventListener('input', () => {
+		clearTimeout(timer);
+		timer = setTimeout(async () => {
+			const q = input.value.trim();
+			if (q === last) return;
+			last = q;
+			if (q.length < 2) { list.innerHTML = ''; return; }
+			const res = await call('GET', `/api/community/find?q=${encodeURIComponent(q)}`).catch(() => null);
+			if (input.value.trim() !== q) return;
+			const hits = res && res.ok ? res.body.sailors : [];
+			list.innerHTML = hits.length
+				? `<ol class="comm-rank">${hits.map(h => `<li class="comm-row" data-act="community-sailor" data-ref="${esc(h.ref)}" role="button" tabindex="0"><span class="comm-pos">·</span>${avatarHTML({ ...h, named: true })}<span class="comm-who"><span class="comm-name">${esc(h.name)}</span></span><b class="comm-val">card →</b></li>`).join('')}</ol>`
+				: '<p class="comm-empty">Nobody by that name on the boards.</p>';
+		}, 250);
+	});
+}
+
+/** Every board, with the caller's own place on each. */
+function openPlaces() {
+	const who = me();
+	const places = data && data.you ? data.you.places : {};
+	const rows = BOARDS.map(b => ({ b, p: places[b.id] || null }));
+	openDialog(`<h2>Your places</h2>
+		<p class="dialog-copy">Where ${who ? esc(who.username) : 'you'} stand${who ? 's' : ''} on every board, out of the sailors who have earned a place there.</p>
+		<div class="comm-places">${rows.map(({ b, p }) => `<div class="comm-place-row${p ? '' : ' none'}${p && p.rank <= 3 ? ` p${p.rank}` : ''}">
+			<span class="comm-place-b"><i>${b.icon}</i> ${esc(b.title)}</span>
+			<b>${p ? ordinal(p.rank) : '—'}</b><small>${p ? `of ${p.of}` : 'no place yet'}</small>
+			<span class="comm-place-v">${p ? `${value(b, p.value)} ${esc(b.unit)}` : ''}</span>
+		</div>`).join('')}</div>
+		<div class="dialog-actions">${data && data.you && data.you.ref ? `<button class="ghost-btn" data-act="community-sailor" data-ref="${esc(data.you.ref)}">My card</button><span class="fb-space"></span>` : ''}<button class="ghost-btn" data-close>Close</button></div>`);
+}
+
 /** The tab's own verbs. True when handled; the caller redraws. */
 export function communityAction(act, el) {
 	switch (act) {
@@ -310,6 +433,10 @@ export function communityAction(act, el) {
 		case 'community-join': openShareDialog(); return false;
 		case 'community-leave': confirmLeave(); return false;
 		case 'community-refresh': load(true); return false;
+		case 'community-sailor': openSailorCard(el.dataset.ref); return false;
+		case 'community-board': openBoard(el.dataset.id); return false;
+		case 'community-find': openFind(); return false;
+		case 'community-places': openPlaces(); return false;
 		default: return false;
 	}
 }

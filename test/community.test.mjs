@@ -173,7 +173,7 @@ test('taking part puts the digest of the save on the boards, by name or unnamed'
 	assert.deepEqual(mastery.top.map(e => [e.rank, e.name, e.value, e.you]), [[1, 'Admiral', 1500, false], [2, null, 900, true]]);
 	assert.equal(mastery.top[0].avatar, 'https://cdn.discordapp.com/avatars/2001/abc.png?size=64');
 	assert.equal(mastery.top[1].named, false);
-	assert.equal(mastery.top[1].id, null, 'an unnamed sailor carries no id');
+	assert.equal('id' in mastery.top[1], false, 'no account id leaves the server, named or not');
 	assert.equal('key' in mastery.top[1], false, 'the matching key never leaves the server');
 	assert.deepEqual(body.you.places.mastery, { rank: 2, value: 900, of: 2 });
 	// Signed out, nobody is "you".
@@ -184,6 +184,36 @@ test('taking part puts the digest of the save on the boards, by name or unnamed'
 	assert.equal(out.stats.totals.silver, 5e9 + 1e8);
 	assert.equal(out.stats.totals.runs, 55);
 	assert.deepEqual(out.stats.builds, { Panokseon: 2 });
+});
+
+test('a place opens a card by an opaque handle, a board shows whole, and a name can be found', async () => {
+	const body = await (await call('GET', '/api/community', { cookie: deckhand })).json();
+	const mastery = body.fame.find(f => f.id === 'mastery');
+	const [first, second] = mastery.top;
+	assert.match(first.ref, /^[A-Za-z0-9_-]{16}$/);
+	assert.notEqual(first.ref, second.ref);
+	assert.ok(!/2001|2002/.test(first.ref + second.ref), 'the handle is not the account id');
+	// The named sailor's card, opened by a stranger.
+	const card = await (await call('GET', `/api/community/sailor/${first.ref}`)).json();
+	assert.equal(card.name, 'Admiral');
+	assert.equal(card.named, true);
+	assert.equal(card.you, false);
+	assert.equal(card.digest.mastery, 1500);
+	assert.deepEqual(card.places.mastery, { rank: 1, value: 1500, of: 2 });
+	// The unnamed sailor's card carries no name, and knows its owner.
+	const anon = await (await call('GET', `/api/community/sailor/${second.ref}`, { cookie: deckhand })).json();
+	assert.equal(anon.name, null);
+	assert.equal(anon.you, true);
+	assert.equal((await call('GET', '/api/community/sailor/nope')).status, 404);
+	// The whole board.
+	const board = await (await call('GET', '/api/community/board/mastery', { cookie: deckhand })).json();
+	assert.equal(board.all.length, 2);
+	assert.equal(board.all[1].you, true);
+	assert.equal((await call('GET', '/api/community/board/nothing')).status, 404);
+	// Only named sailors are found by name.
+	assert.deepEqual((await (await call('GET', '/api/community/find?q=adm')).json()).sailors.map(s => s.name), ['Admiral']);
+	assert.deepEqual((await (await call('GET', '/api/community/find?q=deck')).json()).sailors, []);
+	assert.deepEqual((await (await call('GET', '/api/community/find?q=a')).json()).sailors, []);
 });
 
 test('a fresh push reaches the boards, and leaving takes the digest down', async () => {

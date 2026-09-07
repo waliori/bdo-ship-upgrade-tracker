@@ -21,6 +21,7 @@
 // this morning is on them by lunch.
 
 import express from 'express';
+import crypto from 'node:crypto';
 import { digest, BOARDS } from '../js/digest.js';
 import { config } from './config.js';
 import { listCommunity, putCommunity, putDigest, deleteCommunity } from './db.js';
@@ -50,6 +51,32 @@ async function digestOf(userId) {
 
 const avatarURL = r => (r.avatar ? `https://cdn.discordapp.com/avatars/${r.userId}/${r.avatar}.png?size=64` : null);
 
+/**
+ * A sailor's handle on the boards: the account id through a keyed hash,
+ * so a card can be opened -- an unnamed sailor's too -- without the
+ * page ever learning who is behind it. Stable across rebuilds while
+ * the session secret is, which is all a link needs.
+ */
+const refOf = userId => crypto.createHmac('sha256', config.sessionSecret).update(`community:${userId}`).digest('base64url').slice(0, 16);
+
+/** A row as its card shows it: who, where they stand, and the digest. */
+function card(r, boards) {
+	const places = {};
+	for (const f of boards) {
+		const p = f.places.get(r.userId);
+		if (p) places[f.id] = { ...p, of: f.n };
+	}
+	return {
+		ref: r.ref,
+		named: r.share === 'named',
+		name: r.share === 'named' ? r.username : null,
+		avatar: r.share === 'named' ? avatarURL(r) : null,
+		joinedAt: r.joinedAt,
+		places,
+		digest: r.digest
+	};
+}
+
 /** A table of counts cut to its largest rows. */
 const top = (counts, max) => Object.fromEntries(Object.entries(counts).filter(([, c]) => c > 0).sort((a, b) => b[1] - a[1]).slice(0, max));
 const add = (table, key, n = 1) => { if (key !== undefined && key !== null && key !== '') table[key] = (table[key] || 0) + n; };
@@ -70,23 +97,26 @@ function rank(board, rows) {
 		e.rank = place;
 		places.set(e.r.userId, { rank: place, value: e.value });
 	});
+	const entry = e => ({
+		rank: e.rank,
+		value: e.value,
+		detail: board.detail(e.r.digest),
+		named: e.r.share === 'named',
+		name: e.r.share === 'named' ? e.r.username : null,
+		avatar: e.r.share === 'named' ? avatarURL(e.r) : null,
+		ref: e.r.ref,
+		// So the caller can be told "that one is you" without the
+		// server having to know who is asking when the boards are
+		// built. Anonymous entries carry it too; it is matched
+		// against the caller's own id and never shown to anyone else.
+		key: e.r.userId
+	});
 	return {
 		id: board.id, title: board.title, icon: board.icon, unit: board.unit,
 		n: entries.length,
-		top: entries.slice(0, 10).map(e => ({
-			rank: e.rank,
-			value: e.value,
-			detail: board.detail(e.r.digest),
-			named: e.r.share === 'named',
-			name: e.r.share === 'named' ? e.r.username : null,
-			avatar: e.r.share === 'named' ? avatarURL(e.r) : null,
-			id: e.r.share === 'named' ? e.r.userId : null,
-			// So the caller can be told "that one is you" without the
-			// server having to know who is asking when the boards are
-			// built. Anonymous entries carry it too; it is matched
-			// against the caller's own id and never shown to anyone else.
-			key: e.r.userId
-		})),
+		top: entries.slice(0, 10).map(entry),
+		// The whole board, to a hundred, for "show all".
+		all: entries.slice(0, 100).map(entry),
 		places
 	};
 }
@@ -148,12 +178,16 @@ async function build() {
 		r.digest = safeParse(r.stats);
 	}
 	const live = rows.filter(r => r.digest && typeof r.digest === 'object');
+	for (const r of live) r.ref = refOf(r.userId);
+	const fame = BOARDS.map(b => rank(b, live));
 	return {
 		at: Date.now(),
 		sailors: live.length,
 		named: live.filter(r => r.share === 'named').length,
-		fame: BOARDS.map(b => rank(b, live)),
-		stats: aggregate(live)
+		fame,
+		stats: aggregate(live),
+		byRef: new Map(live.map(r => [r.ref, r])),
+		byId: new Map(live.map(r => [r.userId, r]))
 	};
 }
 
@@ -176,20 +210,24 @@ export function leaveBoards() {
 	invalidate();
 }
 
+/** An entry as the page sees it: its key turned into "you" or nothing. */
+const shown = userId => ({ key, ...e }) => ({ ...e, you: Boolean(userId) && key === userId });
+
 /** What the boards say, as the page reads them, with the caller's own places. */
 function answer(b, userId) {
 	const fame = b.fame.map(f => ({
 		id: f.id, title: f.title, icon: f.icon, unit: f.unit, n: f.n,
-		top: f.top.map(({ key, ...e }) => ({ ...e, you: Boolean(userId) && key === userId }))
+		top: f.top.map(shown(userId))
 	}));
 	let you = null;
 	if (userId) {
+		const r = b.byId.get(userId);
 		const places = {};
 		for (const f of b.fame) {
 			const p = f.places.get(userId);
 			if (p) places[f.id] = { ...p, of: f.n };
 		}
-		you = { places };
+		you = { places, ref: r ? r.ref : null };
 	}
 	return { sailors: b.sailors, named: b.named, updatedAt: b.at, fame, stats: b.stats, you };
 }
@@ -227,6 +265,35 @@ export function communityRoutes() {
 		invalidate();
 		res.set('Cache-Control', 'no-store');
 		res.json({ share: share === 'off' ? null : share });
+	}));
+
+	/** One board whole, to a hundred places. */
+	router.get('/community/board/:id', wrap(async (req, res) => {
+		const b = await boards();
+		const f = b.fame.find(x => x.id === req.params.id);
+		res.set('Cache-Control', 'no-store');
+		if (!f) return res.status(404).json({ error: 'No such board.' });
+		res.json({ id: f.id, title: f.title, icon: f.icon, unit: f.unit, n: f.n, all: f.all.map(shown(sessionUser(req))) });
+	}));
+
+	/** A sailor's card: their places, their ship, their crew, their career. */
+	router.get('/community/sailor/:ref', wrap(async (req, res) => {
+		const b = await boards();
+		const r = b.byRef.get(String(req.params.ref));
+		res.set('Cache-Control', 'no-store');
+		if (!r) return res.status(404).json({ error: 'No sailor by that handle is on the boards.' });
+		res.json({ ...card(r, b.fame), you: sessionUser(req) === r.userId });
+	}));
+
+	/** The named sailors whose name holds `q`, ten at most. Unnamed
+	 *  sailors are not found this way: that is what unnamed means. */
+	router.get('/community/find', wrap(async (req, res) => {
+		const q = String(req.query.q || '').trim().toLowerCase();
+		res.set('Cache-Control', 'no-store');
+		if (q.length < 2) return res.json({ sailors: [] });
+		const b = await boards();
+		const hits = [...b.byRef.values()].filter(r => r.share === 'named' && String(r.username).toLowerCase().includes(q)).slice(0, 10);
+		res.json({ sailors: hits.map(r => ({ ref: r.ref, name: r.username, avatar: avatarURL(r) })) });
 	}));
 
 	/** The caller's own digest as the boards would take it right now --

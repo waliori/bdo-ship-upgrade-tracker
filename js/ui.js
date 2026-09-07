@@ -1350,6 +1350,13 @@ function wire() {
 
 	document.addEventListener('keydown', evt => {
 		const dialog = document.getElementById('dialog');
+		// A row playing a button -- a place on a community board --
+		// answers Enter and Space as a button would.
+		if ((evt.key === 'Enter' || evt.key === ' ') && evt.target.matches && evt.target.matches('[role="button"][data-act]:not(button)')) {
+			evt.preventDefault();
+			evt.target.click();
+			return;
+		}
 		const inField = evt.target.closest('input, textarea, select, [contenteditable]');
 		// The single-key shortcuts answer only when nothing that reads
 		// keys of its own has the focus: the page itself, or a tab. A

@@ -79,9 +79,12 @@ function fleetOf(profile) {
 		const score = tier * 100 + levels;
 		if (!best || score > best.score) best = { ship, tier, parts: h.parts, levels, score };
 	}
+	const sorted = [...hulls.keys()].sort((a, b) => (HULL_TIER[b] ?? 1) - (HULL_TIER[a] ?? 1) || a.localeCompare(b));
 	return {
 		n: hulls.size,
-		hulls: [...hulls.keys()].sort((a, b) => (HULL_TIER[b] ?? 1) - (HULL_TIER[a] ?? 1) || a.localeCompare(b)),
+		hulls: sorted,
+		// Each hull with what is on it, for a card that shows the fleet.
+		list: sorted.slice(0, 12).map(ship => ({ ship, tier: HULL_TIER[ship] ?? 1, ...hulls.get(ship) })),
 		sailing: typeof profile.crewShip === 'string' ? profile.crewShip : null,
 		best,
 		// Every part fitted anywhere, with its level, for the fleet-wide
@@ -99,20 +102,31 @@ function fleetOf(profile) {
 /** The crew: who is aboard, the best of them, and the types hired. */
 function crewOf(profile) {
 	const roster = arr(profile.roster).filter(r => r && typeof r === 'object' && typeof r.type === 'string');
-	let best = null;
 	const byType = {};
 	const levels = new Array(11).fill(0);
 	let lvSum = 0;
+	const all = [];
 	for (const r of roster) {
 		const lv = Math.min(10, Math.max(1, n(r.lv) || 1));
-		const sum = Math.round(STAT_KEYS.reduce((a, k) => a + (Number(obj(r.stats)[k]) || 0), 0));
+		const stats = {};
+		for (const k of STAT_KEYS) {
+			const v = Number(obj(r.stats)[k]);
+			if (Number.isFinite(v) && v > 0) stats[k] = Math.round(v * 10) / 10;
+		}
+		const sum = Math.round(Object.values(stats).reduce((a, b) => a + b, 0));
 		byType[r.type] = (byType[r.type] || 0) + 1;
 		levels[lv]++;
 		lvSum += lv;
-		const score = lv * 1000 + sum;
-		if (!best || score > best.score) best = { name: String(r.name || r.type).slice(0, 30), type: r.type, lv, sum, score };
+		all.push({ name: String(r.name || r.type).slice(0, 30), type: r.type, lv, sum, score: lv * 1000 + sum, stats });
 	}
-	return { n: roster.length, best, byType: top(byType, 20), levels: levels.slice(1), avgLv: roster.length ? Math.round((lvSum / roster.length) * 10) / 10 : 0 };
+	all.sort((a, b) => b.score - a.score);
+	return {
+		n: roster.length,
+		best: all[0] || null,
+		// The five best, for a card that shows the crew.
+		top: all.slice(0, 5),
+		byType: top(byType, 20), levels: levels.slice(1), avgLv: roster.length ? Math.round((lvSum / roster.length) * 10) / 10 : 0
+	};
 }
 
 /** The runs: the tally's totals, and what the last sixty say about the best day. */
