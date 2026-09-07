@@ -388,14 +388,16 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 			// A new lot. A fast run sells what the last lot finished
 			// before it takes up the next, so the goods are not carried
 			// up another climb, and takes the new lot's share of the hold
-			// from where the ship then stands; a full run shares the hold
-			// out too when it climbs several chains at once, up to the
-			// ceiling it barters under, and calls at a wharf on the way as
-			// it always does. Chain after chain at the full pace, every
-			// attempt the island allows, as before.
+			// from where the ship then stands. A full run shares nothing
+			// out, whichever way round: every attempt the island allows
+			// at every rung, the hold brought back under the ceiling by a
+			// wharf call whenever that lets more attempts in -- the way a
+			// sailor works a board, ten of everything at the bottom and
+			// the surplus left ashore on the way up. Sharing the hold out
+			// here used to thin a full run to one attempt a rung the
+			// moment two chains climbed together.
 			if (i > 0 && stashes.length && (pace === 'fast' || way === 'sea') && saleAt(i).length) call(wharfFor(npc), [], chain, saleAt(i));
 			if (pace === 'fast') share(lots[lot].map(k => order[k]), hold.free);
-			else if (way === 'sea' && lots[lot].length > 1) share(lots[lot].map(k => order[k]), deal);
 		}
 		// What is aboard above the floor kept back is what can be spent.
 		const spendable = ashore ? Infinity : Math.max(0, (held.get(r.give) || 0) - floorOf(r.give, orders));

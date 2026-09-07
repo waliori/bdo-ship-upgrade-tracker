@@ -1179,6 +1179,24 @@ function tripOf(plan, on, from) {
 	return { delta, moves, silver, trades };
 }
 
+/**
+ * A stop ticked done. At a stop with quests handed in they are claimed
+ * and the rewards recorded -- but one whose pick-one reward is not
+ * remembered keeps its button, to be asked.
+ */
+function markDone(on, k) {
+	on.done = [...on.done, k];
+	persist();
+	cheer();
+	if (!shownPlan) return;
+	const stop = shownPlan.stops.find((s, i) => stopKey(s, i, shownPlan.stops) === k);
+	const list = ((stop && stop.quests) || []).filter(x => x.step.what !== 'hunt').map(x => x.q).filter(q => !questDone(q) && rewardOf(q));
+	if (list.length) {
+		store.claimQuests(list.map(q => ({ id: q.id, delta: rewardOf(q), key: periodKey(cadenceOf(q)) })), `Handed in ${list.length === 1 ? questTitle(list[0]) : `${list.length} quests`} at ${stop.place ? stop.place.name : stop.wharf ? stop.wharf.at : isleOf(npcById.get(stop.npcId))}`);
+		toast(`${list.length === 1 ? questTitle(list[0]) : `${list.length} quests`} handed in — the rewards are in the bags`, true);
+	}
+}
+
 /** The trip recorded: one change, and a line in the log of runs. */
 function recordTrip(plan, from) {
 	const on = sailing();
@@ -2065,21 +2083,7 @@ export function barterAction(act, el, redraw) {
 			const on = sailing() || (el.dataset.map ? sail : null);
 			if (!on) return false;
 			const k = String(el.dataset.k);
-			const now = !on.done.includes(k);
-			on.done = now ? [...on.done, k] : on.done.filter(x => x !== k);
-			persist();
-			if (now) cheer();
-			// Done at a stop with quests handed in: they are claimed, the
-			// rewards recorded -- but one whose pick-one reward is not
-			// remembered keeps its button, to be asked.
-			if (now && shownPlan) {
-				const stop = shownPlan.stops.find((s, i) => stopKey(s, i, shownPlan.stops) === k);
-				const list = ((stop && stop.quests) || []).filter(x => x.step.what !== 'hunt').map(x => x.q).filter(q => !questDone(q) && rewardOf(q));
-				if (list.length) {
-					store.claimQuests(list.map(q => ({ id: q.id, delta: rewardOf(q), key: periodKey(cadenceOf(q)) })), `Handed in ${list.length === 1 ? questTitle(list[0]) : `${list.length} quests`} at ${stop.place ? stop.place.name : stop.wharf ? stop.wharf.at : isleOf(npcById.get(stop.npcId))}`);
-					toast(`${list.length === 1 ? questTitle(list[0]) : `${list.length} quests`} handed in — the rewards are in the bags`, true);
-				}
-			}
+			if (on.done.includes(k)) { on.done = on.done.filter(x => x !== k); persist(); } else markDone(on, k);
 			return true;
 		}
 		case 'barter-paid': {
@@ -2088,6 +2092,9 @@ export function barterAction(act, el, redraw) {
 			const n = Number(el.dataset.n);
 			if (on.seen[el.dataset.npc] === n) delete on.seen[el.dataset.npc]; else on.seen[el.dataset.npc] = n;
 			persist();
+			// Saying what the island paid is saying the exchange was made:
+			// the stop is done with it, one press instead of two.
+			if (on.seen[el.dataset.npc] && !on.done.includes(`n${el.dataset.npc}`)) markDone(on, `n${el.dataset.npc}`);
 			return true;
 		}
 		case 'barter-record': recordTrip(shownPlan, fromPort()); return false;
