@@ -43,6 +43,65 @@ export const DATA = [
  */
 export const RELEASES = [
 	{
+		id: '2.1',
+		name: 'The long haul',
+		date: '2026-09-07',
+		blurb: 'Nothing new to build and nowhere new to sail. This release is about the app keeping faith over a long time: '
+			+ 'a choice that survives a reload, a route that is not quietly dropped, a run that says when the rations run out, '
+			+ 'a page that fits a phone on its side and a screen in daylight — and a good many small things that were wrong and are not now.',
+		sections: [
+			{
+				title: 'What the run does not tell you until it is too late',
+				text: 'The loop is timed; now it is provisioned. The <b>rations</b> aboard drain over the route at an estimated rate '
+					+ '— the game publishes none, so it is a range until you have timed a leg and told it — and the Route tab says '
+					+ 'the stop they run low after, the nearest wharf manager, and puts a <b>rations call</b> in before it at a press.',
+				points: [
+					'An <b>overweight</b> leg sails slower, and its minutes say so — an estimate too, falling to half speed at the most a hull will move under.',
+					'The hold on the Map is <b>what is aboard</b>, as the Barter tab already had it, not everything in every storage.',
+					'A leg the router could not bend round the land is drawn <b>dashed and red</b> and named in the panel, instead of a straight line through an island passed off as a course.',
+					'The runs worth sailing are worked out <b>off the page</b>, in a worker with a budget of a second and a half; the last answer stands, dimmed, until the new one lands.',
+					'<b>Keep this area offline</b>: the tiles of the view you are on, a level either side, kept in a store the cache never sweeps.',
+					'A sailor keeps a <b>log of the levels</b> reached and when, so a fast grower can be told from a slow one.'
+				]
+			},
+			{
+				title: 'What the save keeps',
+				text: 'A build’s <b>route choice</b> — the Improved Sailboat on the way to a Caravel — was lost on every reload; it is kept now. '
+					+ 'So are the Map’s routes and traces and the Barter tab’s board and run, which move into the <b>profile</b>: '
+					+ 'they export, they sync, and each profile has its own.',
+				points: [
+					'A <b>named route</b> is never dropped to make room for “Previous route”, which has a slot of its own; a ninth asks which to replace.',
+					'The undo history remembers only the fields a change touched and is trimmed to a budget in bytes; a write the browser refuses is said out loud, with <b>Export now</b> beside it, and a save that will not parse is copied aside before anything is written over it.',
+					'An import says which names this version does not know. A link travels slim, says how long it is, and warns when a chat would cut it.',
+					'The game file’s <b>Restore</b> puts the old block back byte for byte, whatever Version the client writes, BOM kept.',
+					'The sort and the filters on the Plan and the Inventory are kept; each tab keeps its place on the page.'
+				]
+			},
+			{
+				title: 'The page, in the hand and in the light',
+				text: 'A <b>light theme</b>, under More → Theme, that follows the system when asked. One phone query, so a phone on its side '
+					+ 'gets the phone’s shell — and on the Map, the chart — instead of the desktop’s header eating the screen.',
+				points: [
+					'Hit areas of forty pixels under a finger; the faint inks lifted to read against the ground; the tab row fades at the edge it scrolls past.',
+					'A name on every search box, a state on every filter, a name on every dialog; the hover card stays under the pointer and opens from the keyboard; <kbd>0</kbd> is the tenth tab; Escape shuts the menus.',
+					'The shopping list copies as <b>CSV</b> and prints legibly on white.',
+					'The run’s orders are short words in the box with the sentence under it; a stop’s leg keeps its figures beside a name that gives way; the small craft are ships in the build picker; one item is not “items”.'
+				]
+			},
+			{
+				title: 'Underneath',
+				text: 'For whoever runs one of these.',
+				points: [
+					'<code>/healthz</code> says whether the database answers and what is waiting to be flushed; one log line a request, with counters.',
+					'Push subscriptions go only to the real push services, with their keys bounded; an Origin check on every write; a schema version and a runner for the next change; <code>npm run backup</code> and <code>restore</code>.',
+					'The service worker’s stamp is taken from the deploy however it was started, and a waiting worker’s cache is left alone, so an offline start never mixes two versions.',
+					'The Market relay spends at most twenty-five seconds on a call and answers the rest from the copy it holds.',
+					'A test suite of 530.'
+				]
+			}
+		]
+	},
+	{
 		id: '2.0',
 		name: 'The sea',
 		date: '2026-09-01',
@@ -183,6 +242,17 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-09-07',
+		title: 'the long haul: rations, the save, the page in the hand and in the light',
+		notes: [
+			'The rations aboard drain over the plotted loop at an estimated, calibratable rate; the Route tab says the stop they run low after and puts a rations call in at the nearest wharf manager. An overweight leg sails slower and its minutes say so. The hold on the Map is what is aboard.',
+			'A leg the router could not bend round the land is drawn dashed and red and named in the panel. The runs worth sailing are searched in a worker with a time budget. An area of the chart can be kept offline. A sailor keeps a log of the levels reached.',
+			'A build’s route choice survives a reload. The Map’s routes and traces and the Barter tab’s state live in the profile — exported, synced, per profile. A named route is never dropped for the previous one. The undo history keeps only the fields a change touched, is bounded in bytes, and a refused write is announced; a corrupt save is copied aside. Imports name what they do not know; links travel slim and say their length.',
+			'A light theme; one phone query, a phone on its side included, the Map giving the chart the screen there; hit areas of forty pixels; lifted inks; names on searches, filters and dialogs; the hover card by keyboard; <kbd>0</kbd> for the tenth tab; Escape shuts the menus; CSV and print for the shopping list.',
+			'The server: /healthz, push endpoints allow-listed, an Origin check, schema versions, backup and restore, the worker stamp from any deploy, a request log, a deadline on the Market relay.'
+		]
+	},
 	{
 		date: '2026-09-05',
 		title: 'the material run as one route, and a hold that has its say',
