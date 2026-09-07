@@ -689,6 +689,7 @@ and `docker compose up` read that file on their own:
 | `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | from `turso db show <name> --url` and `turso db tokens create <name>` |
 | `SESSION_SECRET` | any long random string — `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | optional, for Vell reminders by push — `npx web-push generate-vapid-keys`; needs the database, not Discord |
+| `ADMIN_IDS` / `FEEDBACK_WEBHOOK_URL` | optional: the Discord account ids that may read the feedback inbox, and a webhook that gets a copy of each entry |
 
 Then check it before opening a browser:
 
@@ -742,6 +743,55 @@ for. Behind Cloudflare or nginx, two things are worth knowing:
   get wrong. Address-level abuse — sign-in floods, one noisy host — is
   the proxy's job, and it is much better placed to do it.
 
+### Feedback
+
+**More → Feedback** is a form: something is wrong, an idea, or something
+else, with the section you were on, the build and the browser attached.
+Wherever there is a database it lands in a table, and when
+`FEEDBACK_WEBHOOK_URL` names a Discord webhook the operator gets a copy
+the moment it arrives. Signed in, your Discord name goes along so a
+reply has somewhere to go; signed out, there is a field for that. On a
+browser-only copy there is no inbox, so the same dialog opens an issue
+on GitHub instead — that link is there in every case, for anyone who
+would rather write in public.
+
+The accounts listed in `ADMIN_IDS` get **Feedback inbox** on the same
+menu: what came in, open first, and a button to mark each done.
+
+### The community boards
+
+With sign-in on, the **Community** tab shows two things drawn from the
+sailors who chose to be on it, and nobody else:
+
+- **The hall of fame** — sixteen boards: sailing mastery, the best ship,
+  the largest fleet, the best sailor, the largest crew, the most barters,
+  the most silver from runs, the most runs, the best single run, the most
+  quests, the most sea monsters hunted, the most ships built, the most
+  things made, the luckiest at the anvil, the cartographer, the fullest
+  hold. Ties share a rank; the top ten are shown, and a signed-in sailor
+  is told where they stand on every board whether or not they are in it.
+- **The fleet in numbers** — everyone added up: the hulls most sailed and
+  owned, the parts most fitted, the sailors most hired, the islands most
+  plotted, the quests most done, the monsters most hunted, the builds
+  most queued, the ships most built, the crystals most carried, and the
+  spread of mastery, sailor levels, fleet sizes and runs by weekday.
+
+Taking part is a choice made once, by name (Discord name and avatar) or
+as an unnamed sailor (ranked and counted, shown as “a sailor”; only you
+see which one is you). Before agreeing you are shown the digest that
+would be published — the numbers above, worked out from your save by
+the same module the server runs — and what is never shared: your stock,
+your notes, your traces, where things are stored. The server keeps that
+digest and nothing else about you for the boards, refreshes it as you
+sync, and deletes it when you leave. Anyone who opens the page can read
+the boards; only an account can be on them.
+
+The numbers that outlive a save — quests claimed, runs sailed, things
+made, enhancement attempts — are a **tally** the profile keeps as they
+happen, since the save itself holds a quest's current period and the
+last sixty runs and no more. It travels with the save like the rest of
+the profile, and Undo takes a count back with the thing it counted.
+
 ### If the database is lost
 
 Nothing is lost. Every browser keeps its own copy in `localStorage`; the
@@ -769,6 +819,9 @@ js/
   state.js            the store: stock, targets, undo/redo, persistence
   planner.js          pure planning — netting, explosion, costing, enhancement
   sync.js             optional device sync: pull, push, conflict
+  digest.js           what a save says about its sailor, for the boards
+  screen-community.js the Community tab: the hall of fame, the fleet in numbers
+  feedback.js         More → Feedback, and the admins' inbox
   recipes.js          recipes and enhancement chains
   ships.js            what can be queued
   sea_coins.js        Crow Coin prices
@@ -799,6 +852,8 @@ server/               only loaded when sync is configured
   db.js               libSQL schema and queries
   auth.js             the Discord OAuth exchange
   api.js              /api/me and /api/state
+  community.js        /api/community — the boards, built from the digests
+  feedback.js         /api/feedback — the inbox, and a copy to a webhook
   market.js           /api/market — the Market relay, on by default
   session.js          signed session cookies, no session table
 test/                 npm test — the server, the cost model, and a browser

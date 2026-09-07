@@ -479,3 +479,103 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
   body[data-view="map"] .summary { padding: 6px 12px; margin-bottom: 8px; }
   body[data-view="map"] .masthead { padding-top: 6px; padding-bottom: 6px; }
 }
+
+/* ------------------------------------------------------------------ *
+ * Feedback: the form, and the inbox behind it
+ * ------------------------------------------------------------------ */
+
+/* The kind is picked from three cards rather than a select, so the
+   hint under each can say what it means before anything is typed. */
+.fb-kinds { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 12px 0; }
+.fb-kind { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 10px 12px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.35); color: var(--ink-mid); text-align: left; font: inherit; cursor: pointer; }
+.fb-kind b { font-size: 13px; color: var(--ink-hi); }
+.fb-kind small { font-size: 11px; line-height: 1.35; color: var(--ink-faint); }
+.fb-kind:hover { border-color: var(--line-btn-hi); }
+.fb-kind.on { border-color: var(--blue-edge); background: rgba(var(--blue-rgb), 0.12); }
+.fb-kind.on b { color: var(--blue-hi); }
+.fb-text { display: block; width: 100%; resize: vertical; min-height: 110px; line-height: 1.45; margin: 0 0 8px; }
+.fb-contact { display: block; width: 100%; margin: 0 0 8px; }
+.fb-meta { margin: 4px 0 0; font-size: 11.5px; color: var(--ink-faint); }
+.fb-meta b { color: var(--ink-mid); font-weight: 600; }
+.fb-space { flex: 1; }
+.dialog-actions .fb-issues { display: inline-flex; align-items: center; }
+
+.fb-list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.fb-entry { border: 1px solid var(--line); border-left: 3px solid var(--blue-bar); border-radius: var(--r-btn); padding: 9px 12px; background: rgba(var(--deep-rgb), 0.3); }
+.fb-entry.bug { border-left-color: var(--red); }
+.fb-entry.idea { border-left-color: var(--teal); }
+.fb-entry.done { opacity: 0.6; }
+.fb-entry-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 11.5px; color: var(--ink-faint); }
+.fb-entry-kind { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mid); }
+.fb-entry-who { color: var(--ink-mid); font-weight: 600; }
+.fb-entry-when { margin-left: auto; }
+.fb-entry-text { margin: 6px 0; font-size: 13px; line-height: 1.45; color: var(--ink); white-space: pre-wrap; word-break: break-word; }
+.fb-entry-foot { display: flex; gap: 10px; align-items: center; justify-content: space-between; font-size: 11px; color: var(--ink-faint); }
+.fb-done { margin-top: 10px; }
+.fb-done > summary { cursor: pointer; font-size: 12.5px; color: var(--ink-mid); }
+
+/* ------------------------------------------------------------------ *
+ * Community: the harbour, the hall of fame, the fleet in numbers
+ * ------------------------------------------------------------------ */
+
+.community { display: flex; flex-direction: column; gap: 16px; }
+.comm-copy { margin: 0; padding: 12px 20px 14px; font-size: 13px; line-height: 1.55; color: var(--ink-mid); }
+.comm-copy .act.small, .comm-copy .chip.tiny { vertical-align: middle; margin: 0 2px; }
+.comm-head .panel-head { padding-bottom: 12px; }
+.comm-halves { display: flex; gap: 4px; padding: 3px; border-radius: 999px; border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.4); }
+.comm-halves .seg { border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 600; }
+
+.comm-boards { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 14px; }
+.comm-board-head { display: flex; align-items: baseline; gap: 10px; padding: 12px 16px 10px; border-bottom: 1px solid var(--line-head); }
+.comm-board-icon { font-size: 16px; line-height: 1; align-self: center; }
+.comm-board-title { margin: 0; font-family: var(--font-display); font-size: 12.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--blue); }
+.comm-board-n { margin-left: auto; font-size: 11.5px; color: var(--ink-faint); white-space: nowrap; }
+.comm-rank { list-style: none; margin: 0; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px; }
+.comm-row { display: grid; grid-template-columns: 26px 24px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--r-sm); border: 1px solid transparent; }
+.comm-row.you { background: rgba(var(--blue-rgb), 0.12); border-color: rgba(var(--blue-rgb), 0.4); }
+.comm-pos { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--ink-faint); text-align: center; }
+.comm-row.p1 .comm-pos { color: var(--amber); }
+.comm-row.p2 .comm-pos { color: var(--ink-hi); }
+.comm-row.p3 .comm-pos { color: var(--tier-7, #e8905d); }
+.comm-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; background: var(--well); }
+.comm-avatar.anon { display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--ink-mute); border: 1px solid var(--line-btn); }
+.comm-who { display: flex; flex-direction: column; min-width: 0; }
+.comm-name { font-size: 13px; font-weight: 600; color: var(--ink-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.comm-name em { font-style: normal; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue-hi); margin-left: 6px; }
+.comm-detail { font-size: 11px; color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.comm-val { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--ink-hi); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.comm-val small { margin-left: 4px; font-size: 10px; font-weight: 500; color: var(--ink-faint); }
+.comm-empty { margin: 0; padding: 18px 16px; font-size: 12.5px; color: var(--ink-faint); text-align: center; }
+.comm-yours { margin: 0 8px 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(var(--blue-rgb), 0.1); border: 1px dashed rgba(var(--blue-rgb), 0.4); font-size: 12px; color: var(--blue-hi); }
+
+.comm-numbers { display: flex; flex-direction: column; gap: 14px; }
+.comm-totals .stat { flex: 1 1 150px; }
+.comm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 14px; }
+.comm-bar-list { display: flex; flex-direction: column; gap: 5px; padding: 10px 16px 12px; }
+.comm-bar-row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto; align-items: center; gap: 10px; font-size: 12.5px; }
+.comm-bar-name { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.comm-bar { height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; }
+.comm-bar i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--blue-bar), var(--teal)); }
+.comm-bar-n { font-family: var(--font-display); font-size: 12.5px; color: var(--ink-hi); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.comm-bar-n small { margin-left: 3px; font-size: 10px; font-weight: 500; color: var(--ink-faint); }
+.comm-cols { display: flex; align-items: flex-end; gap: 6px; padding: 14px 16px 12px; min-height: 100px; }
+.comm-col { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.comm-col b { font-family: var(--font-display); font-size: 11px; color: var(--ink-mid); min-height: 14px; }
+.comm-col i { display: block; width: 100%; max-width: 34px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, var(--teal), var(--blue-bar)); }
+.comm-col span { font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; }
+
+/* What joining would share, in the dialog. */
+.comm-prev-fold { margin: 12px 0 4px; }
+.comm-prev-fold > summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--ink-mid); }
+.comm-prev { display: flex; flex-direction: column; gap: 2px; margin: 8px 0 4px; max-height: 240px; overflow-y: auto; padding-right: 4px; }
+.comm-prev-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: baseline; padding: 4px 8px; border-radius: var(--r-sm); background: rgba(var(--deep-rgb), 0.3); font-size: 12.5px; color: var(--ink); }
+.comm-prev-row b { font-family: var(--font-display); color: var(--ink-hi); white-space: nowrap; }
+.comm-prev-row small { grid-column: 1 / -1; font-size: 11px; color: var(--ink-faint); }
+.comm-prev-row.none { opacity: 0.55; }
+
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .comm-boards, .comm-grid { grid-template-columns: 1fr; }
+  .comm-halves { width: 100%; }
+  .comm-halves .seg { flex: 1; text-align: center; }
+  .fb-kinds { grid-template-columns: 1fr; }
+}

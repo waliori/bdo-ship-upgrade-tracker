@@ -8,7 +8,9 @@
 
 import express from 'express';
 import { config } from './config.js';
-import { getUser, deleteAccount } from './db.js';
+import { getUser, deleteAccount, getShare } from './db.js';
+import { isAdmin } from './feedback.js';
+import { communityRoutes, leaveBoards } from './community.js';
 import { readSave, writeSaveFor, forget } from './saves.js';
 import { sessionUser, requireUser, endSession } from './session.js';
 import { perAccount } from './limit.js';
@@ -105,9 +107,16 @@ export function apiRoutes() {
 		}
 		res.json({
 			signedIn: true,
-			user: { id: user.id, username: user.username, avatar: user.avatar }
+			user: { id: user.id, username: user.username, avatar: user.avatar },
+			// How the account stands on the community boards, and whether
+			// it may read the feedback inbox. The share is read fresh: it
+			// changes from the boards page and must show there at once.
+			share: await getShare(uid),
+			admin: isAdmin(uid)
 		});
 	}));
+
+	router.use(communityRoutes());
 
 	/** The stored save. `rev` 0 with no data means "nothing synced yet",
 	 *  which the client needs to tell apart from an empty inventory.
@@ -196,6 +205,7 @@ export function apiRoutes() {
 		// the row was dropped.
 		await forget(req.userId);
 		meCache.delete(req.userId);
+		leaveBoards(req.userId);
 		await deleteAccount(req.userId);
 		endSession(res);
 		res.json({ ok: true });

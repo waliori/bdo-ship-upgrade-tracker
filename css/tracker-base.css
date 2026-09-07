@@ -333,7 +333,7 @@ a { color: var(--link); text-decoration: none; }
 a:hover { color: var(--link-hi); }
 ::selection { background: rgba(var(--blue-rgb), 0.3); }
 
-input, select { outline: none; font-family: inherit; }
+input, select, textarea { outline: none; font-family: inherit; }
 button { cursor: pointer; font-family: inherit; }
 button:disabled { cursor: not-allowed; opacity: 0.4; }
 :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }

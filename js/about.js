@@ -244,6 +244,16 @@ export const RELEASE = RELEASES[0].id;
 export const CHANGES = [
 	{
 		date: '2026-09-07',
+		title: 'the harbour: a hall of fame, the fleet in numbers, and a way to write in',
+		notes: [
+			'A <b>Community</b> tab, where there is sign-in: sixteen boards — mastery, the best ship, the best sailor, the most silver from runs, the most monsters hunted, the luckiest at the anvil and the rest — and the fleet in numbers, the hulls most sailed, the parts most fitted, the islands most plotted, the quests most done. Only the sailors who take part are on it, by name or as an unnamed sailor, and what would be shared is shown before anyone agrees.',
+			'The profile keeps a <b>tally</b> of the career — quests claimed, runs sailed, things made, attempts at the anvil — since the save holds only a quest’s current period and the last sixty runs. Undo takes a count back with the thing it counted.',
+			'<b>More → Feedback</b>: something wrong, an idea, or something else, with the section and the build attached; it reaches whoever runs the site, and the GitHub issues are a link away. Admins get an inbox.',
+			'The light theme reaches every popup: dialogs, the run’s foot, the crew’s wells, the done marks and the tier chips were navy by hex and are tokens now; a toast’s words and a tier’s name read on white.'
+		]
+	},
+	{
+		date: '2026-09-07',
 		title: 'the long haul: rations, the save, the page in the hand and in the light',
 		notes: [
 			'The rations aboard drain over the plotted loop at an estimated, calibratable rate; the Route tab says the stop they run low after and puts a rations call in at the nearest wharf manager. An overweight leg sails slower and its minutes say so. The hold on the Map is what is aboard.',

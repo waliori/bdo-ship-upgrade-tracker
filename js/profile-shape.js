@@ -16,6 +16,10 @@ import { readOrders } from './barter-orders.js';
  */
 export const isProfile = raw => Boolean(raw) && typeof raw === 'object' && !Array.isArray(raw);
 
+/** The tally's plain totals, and its tables of name -> count. */
+export const TALLY_TOTALS = ['runs', 'silver', 'cost', 'trades', 'parley', 'stops', 'tries', 'wins', 'drops'];
+export const TALLY_TABLES = ['quests', 'made'];
+
 export function readProfile(raw) {
 	const out = {};
 	if (!isProfile(raw)) return out;
@@ -327,6 +331,31 @@ export function readProfile(raw) {
 	if (Array.isArray(raw.homemade)) {
 		const made = [...new Set(raw.homemade.filter(n => typeof n === 'string' && n && n.length <= 80))].slice(0, 200);
 		if (made.length) out.homemade = made;
+	}
+	// The running totals of a career: quests claimed by id, runs sailed
+	// and what they brought, things made by name, enhancement attempts.
+	// They only go up, and they are what the community boards read,
+	// since the save itself keeps a quest's current period and the last
+	// sixty runs and no more. Bounded so a hostile file cannot make the
+	// save enormous: four hundred names in each table, and totals that
+	// fit a whole number.
+	if (isProfile(raw.tally)) {
+		const tally = {};
+		const total = v => Math.min(Number.MAX_SAFE_INTEGER, Math.max(0, Math.floor(Number(v) || 0)));
+		for (const k of TALLY_TOTALS) {
+			const v = total(raw.tally[k]);
+			if (v > 0) tally[k] = v;
+		}
+		for (const k of TALLY_TABLES) {
+			if (!isProfile(raw.tally[k])) continue;
+			const table = {};
+			for (const [name, c] of Object.entries(raw.tally[k]).slice(0, 400)) {
+				const v = total(c);
+				if (name.length <= 80 && v > 0) table[name] = v;
+			}
+			if (Object.keys(table).length) tally[k] = table;
+		}
+		if (Object.keys(tally).length) out.tally = tally;
 	}
 	if (isProfile(raw.questsDone)) {
 		const done = {};

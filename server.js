@@ -14,7 +14,7 @@ import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { config, syncEnabled, pushEnabled, ephemeralSecret, describe } from './server/config.js';
+import { config, syncEnabled, pushEnabled, feedbackEnabled, communityEnabled, ephemeralSecret, describe } from './server/config.js';
 import { marketRoutes } from './server/market.js';
 import { accessLog, counters } from './server/log.js';
 
@@ -195,6 +195,18 @@ if (pushEnabled) {
 	if (process.env.NODE_ENV !== 'test') startVellPushes();
 }
 
+// Feedback needs a table and nothing else, so like the push reminders it
+// runs wherever there is a database. The community boards ride with sync
+// and are mounted with it above.
+if (feedbackEnabled) {
+	const [{ migrate }, { feedbackRoutes }] = await Promise.all([
+		import('./server/db.js'),
+		import('./server/feedback.js')
+	]);
+	if (!syncEnabled && !pushEnabled) migrate().catch(err => console.warn('[db] tables not ready yet:', err.message));
+	app.use('/api', feedbackRoutes());
+}
+
 // Central Market prices, relayed from the community market API and
 // remembered for a while. Needs no configuration: it is the one network
 // feature that is on by default, because the plan is priced wrong
@@ -205,7 +217,7 @@ app.use('/api', marketRoutes(express));
 // Discord app should not show a button that cannot work.
 app.get('/api/config', (req, res) => {
 	res.set('Cache-Control', 'no-store');
-	res.json({ sync: syncEnabled, push: pushEnabled });
+	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, community: communityEnabled });
 });
 
 // Is it up, and is the database behind it answering? `db` is 'off' on a

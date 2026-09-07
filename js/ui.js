@@ -10,7 +10,7 @@ import { tableFor } from './enhancement.js';
 import { iconLoader } from './icon-loader.js';
 import { esc, F, parseAmount } from './fmt.js';
 import * as store from './state.js';
-import { initSync, openAccount } from './sync.js';
+import { initSync, openAccount, feature } from './sync.js';
 import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.js';
 import {
 	view, selected, recipes, barterData, snapshot, query,
@@ -35,6 +35,7 @@ import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-wor
 import { renderCrew, crewAction, crewChange, applyShipSetup, openSetupPicker } from './screen-crew.js';
 import { statusLine } from './today.js';
 import { renderQuests, questAction, questDone, wantedQuests, setQuestPay, setQuestFocus } from './screen-quests.js';
+import { renderCommunity, communityAction, wireCommunity } from './screen-community.js';
 import { openVellDialog, openResetsDialog } from './today.js';
 import { startClocks, tickClocks } from './clock.js';
 import { recordProgress } from './pace.js';
@@ -73,8 +74,14 @@ const TABS = [
 	{ id: 'quests', label: 'Quests', icon: '✦', group: 'sea' },
 	{ id: 'crew', label: 'Ship', icon: '⚓', group: 'sea' },
 	// Last, so the digit shortcuts the first nine tabs answer to stay put.
-	{ id: 'barter', label: 'Barter', icon: '⇄', group: 'sea' }
+	{ id: 'barter', label: 'Barter', icon: '⇄', group: 'sea' },
+	// The harbour: only where there are accounts to stand on its boards.
+	// Past the ten with a digit, and shown once the server has said so.
+	{ id: 'community', label: 'Community', icon: '☸', group: 'sea', when: () => feature('community') }
 ];
+
+/** The tabs this deployment shows. A tab with a `when` waits on it. */
+const tabs = () => TABS.filter(t => !t.when || t.when());
 
 // The four a phone gets at the thumb; the rest live behind "All".
 const THUMB_TABS = ['plan', 'inventory', 'map', 'quests'];
@@ -119,11 +126,11 @@ function paintTabBar(counts) {
 		<span class="tabbar-icon" aria-hidden="true">${t.icon}</span><span class="tabbar-label">${t.label}</span>
 		${counts[t.id] ? `<span class="tabbar-count">${counts[t.id]}</span>` : ''}</button>`;
 	const four = THUMB_TABS.map(id => TABS.find(t => t.id === id)).filter(Boolean);
-	const here = TABS.find(t => t.id === view);
+	const here = tabs().find(t => t.id === view);
 	// The standing tab always has a seat: an odd one takes the last of
 	// the four rather than hiding behind "All".
 	const seats = four.some(t => t.id === view) || !here ? four : [...four.slice(0, 3), here];
-	const rest = TABS.filter(t => !seats.some(s => s.id === t.id));
+	const rest = tabs().filter(t => !seats.some(s => s.id === t.id));
 	const waiting = rest.reduce((n, t) => n + (counts[t.id] || 0), 0);
 	bar.innerHTML = seats.map(t => cell(t)).join('')
 		+ `<button class="tabbar-btn all" data-act="tab-sheet" aria-haspopup="dialog" title="Every section">
@@ -169,7 +176,7 @@ function markTabEdges() {
 function openTabSheet() {
 	const counts = lastCounts;
 	const group = (id, title, note) => `<div class="sheet-head">${title} <span class="sheet-note">${note}</span></div>
-		<div class="sheet-grid">${TABS.filter(t => t.group === id).map(t => `
+		<div class="sheet-grid">${tabs().filter(t => t.group === id).map(t => `
 			<button class="sheet-tab${view === t.id ? ' active' : ''}" data-act="view" data-id="${t.id}">
 				<span class="sheet-icon" aria-hidden="true">${t.icon}</span>
 				<span class="sheet-name">${t.label}</span>
@@ -210,11 +217,12 @@ export function render() {
 
 	// A tablist for the keyboard: the active tab is the one Tab stop,
 	// and the arrow keys walk the rest (wired in wire()).
-	document.getElementById('tabs').innerHTML = TABS.map((t, i) => `${i > 0 && TABS[i - 1].group !== t.group ? '<span class="tab-gap" aria-hidden="true"></span>' : ''}
+	const shown = tabs();
+	document.getElementById('tabs').innerHTML = shown.map((t, i) => `${i > 0 && shown[i - 1].group !== t.group ? '<span class="tab-gap" aria-hidden="true"></span>' : ''}
 		<button class="tab ${view === t.id ? 'active' : ''}" role="tab"
 			aria-selected="${view === t.id}" aria-controls="screen"
 			tabindex="${view === t.id ? 0 : -1}"
-			data-act="view" data-id="${t.id}" id="tab-${t.id}" title="${t.label} (${(i + 1) % 10})">
+			data-act="view" data-id="${t.id}" id="tab-${t.id}" title="${t.label}${i < 10 ? ` (${(i + 1) % 10})` : ''}">
 			<span class="tab-icon" aria-hidden="true">${t.icon}</span>${t.label}${counts[t.id] ? `<span class="tab-count">${counts[t.id]}</span>` : ''}
 		</button>`).join('');
 	// The day's clocks and the ship, in one line, wherever the Plan's
@@ -270,6 +278,7 @@ export function render() {
 	else if (view === 'barter') root.innerHTML = renderBarter();
 	else if (view === 'crew') root.innerHTML = renderCrew();
 	else if (view === 'quests') root.innerHTML = renderQuests();
+	else if (view === 'community') root.innerHTML = renderCommunity();
 	else root.innerHTML = renderGet();
 	restoreFocus(root, focus);
 	// On a phone the inventory detail is a sheet at the bottom edge, and
@@ -855,6 +864,8 @@ function wire() {
 			case 'guide': return openGuide();
 			case 'signin':
 			case 'account': return openAccount();
+			case 'feedback': return import('./feedback.js').then(m => m.openFeedback());
+			case 'inbox': return import('./feedback.js').then(m => m.openInbox());
 			case 'more': {
 				const pop = document.getElementById('more-menu');
 				if (pop.hidden) {
@@ -1136,7 +1147,8 @@ function wire() {
 					delta[extra] = (delta[extra] || 0) - powder;
 					label = `Mass Processed ${times} × ${item}`;
 				}
-				store.applyDelta(delta, 'craft', label);
+				// Counted for the career, in the same change as the craft.
+				store.applyDelta(delta, 'craft', label, { tally: store.tallied({ made: { [item]: times } }) });
 				toast(`${label}`, true);
 				return;
 			}
@@ -1169,12 +1181,13 @@ function wire() {
 				// the same change as the stones, so the Undo the toast
 				// offers takes back the attempt, not half of it.
 				const tier = (tableFor(base) || { levels: [] }).levels[level - 1];
-				let stackPatch = null;
+				// The attempt is counted for the career in the same change.
+				let stackPatch = { tally: store.tallied({ tries: 1, wins: ok ? 1 : 0, drops: dropped ? 1 : 0 }) };
 				if (tier && tier.base) {
 					const stacks = { ...(store.getProfile('failstacks', {}) || {}) };
 					if (ok) delete stacks[base];
 					else stacks[base] = (stacks[base] ?? tier.stack) + 1;
-					stackPatch = { failstacks: Object.keys(stacks).length ? stacks : null };
+					stackPatch.failstacks = Object.keys(stacks).length ? stacks : null;
 				}
 				store.applyDelta(
 					spend,
@@ -1229,6 +1242,7 @@ function wire() {
 				// (and repaint through it), the rest are session state.
 				if (act.startsWith('crew-') && crewAction(act, el)) return render();
 				if (act.startsWith('quest-') && questAction(act, el)) return render();
+				if (act.startsWith('community-') && communityAction(act, el)) return render();
 		}
 	});
 
@@ -1459,11 +1473,12 @@ function wire() {
 		const step = { ArrowRight: 1, ArrowLeft: -1 }[evt.key];
 		if (step === undefined && evt.key !== 'Home' && evt.key !== 'End') return;
 		evt.preventDefault();
-		const at = TABS.findIndex(t => t.id === view);
+		const row = tabs();
+		const at = row.findIndex(t => t.id === view);
 		const to = evt.key === 'Home' ? 0
-			: evt.key === 'End' ? TABS.length - 1
-			: (at + step + TABS.length) % TABS.length;
-		showView(TABS[to].id);
+			: evt.key === 'End' ? row.length - 1
+			: (at + step + row.length) % row.length;
+		showView(row[to].id);
 		const btn = document.querySelector('.tab.active');
 		if (btn) btn.focus();
 	});
@@ -1524,7 +1539,7 @@ function wire() {
 /** The find box: a tab opens, an item opens in the Inventory's panel. */
 function openJumpPalette() {
 	openJump({
-		tabs: TABS,
+		tabs: tabs(),
 		go: (kind, value) => {
 			if (kind === 'tab') return showView(value);
 			// Not the Inventory any more: an item nobody owns has no row
@@ -2044,6 +2059,7 @@ export async function init() {
 		const acct = document.getElementById('account');
 		if (acct) acct.innerHTML = `<span class="account-chip off" title="Sync mirrors the Main profile only">sync off on this profile</span>`;
 	} else {
+		wireCommunity(render);
 		initSync({ toast, openDialog, closeDialog, rerender: render })
 			.catch(err => console.warn('[ui] sync unavailable:', err));
 	}

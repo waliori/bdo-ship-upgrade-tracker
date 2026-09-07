@@ -5,7 +5,7 @@
 // shortfalls and progress are never stored -- planner.js derives them from
 // these on every read, so nothing can drift out of sync.
 
-import { readProfile, isProfile, readView } from './profile-shape.js';
+import { readProfile, isProfile, readView, TALLY_TOTALS, TALLY_TABLES } from './profile-shape.js';
 // The catalogue, read for two things only: which route names a strategy
 // may hold, and which item names a file being imported is known to
 // mention. Nothing here explodes a recipe; that stays planner.js's.
@@ -902,14 +902,39 @@ export function applyDelta(delta, type, label, profile = null) {
 }
 
 /**
+ * The tally moved on by `delta`: a total per key, or a table of name ->
+ * count under `quests` or `made`. Returns the whole next tally, to go
+ * into a profile patch beside the change it counts -- so one Undo
+ * takes back the count with the thing counted.
+ */
+export function tallied(delta) {
+	const next = { ...(state.profile.tally || {}) };
+	for (const k of TALLY_TOTALS) {
+		const d = Math.floor(Number(delta[k]) || 0);
+		if (d > 0) next[k] = (next[k] || 0) + d;
+	}
+	for (const k of TALLY_TABLES) {
+		if (!delta[k] || typeof delta[k] !== 'object') continue;
+		const table = { ...(next[k] || {}) };
+		for (const [name, c] of Object.entries(delta[k])) {
+			const d = Math.floor(Number(c) || 0);
+			if (d > 0 && name) table[name] = (table[name] || 0) + d;
+		}
+		next[k] = table;
+	}
+	return next;
+}
+
+/**
  * A quest claimed: the reward into stock and the quest onto the done
  * list as one change, so one Undo takes back both. `key` is the period
  * it counts for; a stamp from an earlier period simply stops matching,
- * and there is one per quest at most, so nothing needs sweeping.
+ * and there is one per quest at most, so nothing needs sweeping. The
+ * tally counts the claim, for the career.
  */
 export function claimQuest(id, delta, key, label) {
 	const done = { ...(state.profile.questsDone || {}), [id]: key };
-	const next = readProfile({ ...state.profile, questsDone: done });
+	const next = readProfile({ ...state.profile, questsDone: done, tally: tallied({ quests: { [id]: 1 } }) });
 	return commit('quest', label || 'Claimed a quest', () => {
 		for (const [item, d] of Object.entries(delta || {})) {
 			if (Number(d)) writeStock(item, getStock(item) + Math.floor(d));
@@ -1003,8 +1028,9 @@ export function claimQuests(entries, label) {
 	const list = (entries || []).filter(e => e && e.id);
 	if (!list.length) return null;
 	const done = { ...(state.profile.questsDone || {}) };
-	for (const e of list) done[e.id] = e.key;
-	const next = readProfile({ ...state.profile, questsDone: done });
+	const counts = {};
+	for (const e of list) { done[e.id] = e.key; counts[e.id] = 1; }
+	const next = readProfile({ ...state.profile, questsDone: done, tally: tallied({ quests: counts }) });
 	return commit('quest', label || `Claimed ${list.length} quests`, () => {
 		for (const e of list) {
 			for (const [item, d] of Object.entries(e.delta || {})) {
@@ -1021,7 +1047,13 @@ export function unclaimQuest(id, label) {
 	if (!state.profile.questsDone || !(id in state.profile.questsDone)) return null;
 	const done = { ...state.profile.questsDone };
 	delete done[id];
-	const next = readProfile({ ...state.profile, questsDone: done });
+	// The tick was a mistake, so the career's count of it was too.
+	const tally = { ...(state.profile.tally || {}) };
+	if (tally.quests && tally.quests[id]) {
+		tally.quests = { ...tally.quests, [id]: tally.quests[id] - 1 };
+		if (tally.quests[id] <= 0) delete tally.quests[id];
+	}
+	const next = readProfile({ ...state.profile, questsDone: done, tally });
 	return commit('quest', label || 'Marked a quest not done', () => { state.profile = next; });
 }
 

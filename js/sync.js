@@ -38,8 +38,10 @@ const RETRY_MIN = 1500;
 const RETRY_MAX = 30000;
 
 let hooks = {};
-let account = null;      // { id, username, avatar } once signed in
+let account = null;      // { id, username, avatar, share, admin } once signed in
 let available = false;   // does this deployment offer sync at all
+let features = {};       // what /api/config said this deployment has
+const watchers = new Set();   // told when the account changes
 let status = 'off';      // off | out | idle | syncing | error | conflict
 let detail = '';
 let pushTimer = null;
@@ -123,6 +125,47 @@ function say(next, note = '') {
 	status = next;
 	detail = note;
 	paint();
+}
+
+/** The account changed -- signed in, out, or its standing on the boards. */
+function tell() {
+	for (const fn of watchers) {
+		try { fn(account); } catch { /* one watcher's fault is not another's */ }
+	}
+}
+
+/* ------------------------------------------------------------------ *
+ * What the rest of the page may ask
+ * ------------------------------------------------------------------ */
+
+/** Does this deployment have `name` -- sync, push, feedback, community? */
+export function feature(name) {
+	return features[name] === true;
+}
+
+/** Who is signed in, or null. A copy: nobody edits the account from outside. */
+export function me() {
+	return account ? { ...account } : null;
+}
+
+/** Be told whenever the account changes. Returns the way to stop. */
+export function onAccount(fn) {
+	watchers.add(fn);
+	return () => watchers.delete(fn);
+}
+
+/** A call on the API for another module, with the session cookie along. */
+export function call(method, path, body) {
+	return api(method, path, body);
+}
+
+/** Take part in the community boards, change how you are shown, or leave. */
+export async function setShare(share) {
+	const res = await api('PUT', '/api/community/share', { share });
+	if (!res.ok) throw new Error((res.body && res.body.error) || 'The boards did not answer.');
+	if (account) account = { ...account, share: res.body.share };
+	tell();
+	return res.body.share;
 }
 
 /* ------------------------------------------------------------------ *
@@ -430,6 +473,9 @@ function avatarURL(user) {
 function paint() {
 	const host = document.getElementById('account');
 	if (!host) return;
+	// The inbox is on the More menu for the accounts named as admins.
+	const inbox = document.getElementById('inbox-btn');
+	if (inbox) inbox.hidden = !(account && account.admin);
 
 	if (!available) {
 		host.innerHTML = '';
@@ -455,6 +501,7 @@ function openAccountDialog() {
 	const host = hooks.openDialog(`
 		<h2>${esc(account.username)}</h2>
 		<p>Your inventory is saved to your Discord account, so the same one follows you between machines. ${esc(detail || NOTE[status] || '')}.</p>
+		${feature('community') ? `<p class="dialog-copy">${account.share === 'named' ? 'You are on the <b>community boards</b> by name.' : account.share === 'anon' ? 'You are on the <b>community boards</b> as an unnamed sailor.' : 'You are not on the <b>community boards</b>; nothing about your save is shown to anyone.'} <a href="#community" data-act="view" data-id="community">Open the boards</a></p>` : ''}
 		<div class="dialog-actions">
 			<button class="act quiet" data-forget>Delete my saved data</button>
 			<button class="act quiet" data-signout>Sign out</button>
@@ -473,6 +520,7 @@ function openAccountDialog() {
 		account = null;
 		hooks.closeDialog();
 		say('out');
+		tell();
 		// The local copy stays exactly where it is -- signing out of a
 		// device should not empty it.
 		if (hooks.toast) hooks.toast('Signed out. Your inventory is still here.');
@@ -501,6 +549,7 @@ function confirmDelete() {
 		setRev(0);
 		lastPushed = null;
 		say('out');
+		tell();
 		if (hooks.toast) hooks.toast('Your saved data has been deleted.');
 	});
 }
@@ -580,7 +629,11 @@ export async function initSync(callbacks = {}) {
 	} catch {
 		return;
 	}
-	if (!config.ok || !config.body || !config.body.sync) return;
+	if (!config.ok || !config.body) return;
+	features = config.body;
+	// The Community tab waits on this answer; now it can be drawn.
+	if (features.community && hooks.rerender) hooks.rerender();
+	if (!features.sync) return;
 
 	available = true;
 	readSignInResult();
@@ -591,10 +644,11 @@ export async function initSync(callbacks = {}) {
 		return;
 	}
 
-	account = me.body.user;
+	account = { ...me.body.user, share: me.body.share || null, admin: me.body.admin === true };
 	// Not "Synced" yet -- nothing has been compared. Saying so before the
 	// first pull would be a claim the app cannot make.
 	say('syncing');
+	tell();
 
 	// Watch for changes before the first pull rather than after it. A
 	// quantity typed while that request is in flight is still a change

@@ -37,7 +37,7 @@ const AUTH = 'b'.repeat(22);
 const SUB = { endpoint: 'https://fcm.googleapis.com/fcm/send/abc', keys: { p256dh: P256DH, auth: AUTH } };
 
 test('push is offered without Discord, once the keys are set', async () => {
-	assert.deepEqual(await (await call('GET', '/api/config')).json(), { sync: false, push: true });
+	assert.deepEqual(await (await call('GET', '/api/config')).json(), { sync: false, push: true, feedback: true, community: false });
 	const key = await (await call('GET', '/api/push/key')).json();
 	assert.equal(key.key, keys.publicKey);
 	assert.deepEqual(key.regions, ['eu', 'na']);

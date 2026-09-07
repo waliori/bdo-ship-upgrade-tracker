@@ -1221,7 +1221,10 @@ function recordTrip(plan, from) {
 			} else progress[q.id] = { key, n };
 		}
 	}
-	store.applyTrip({ delta: trip.delta, moves: trip.moves, profile: { runs, ratios, sevens, questProgress: Object.keys(progress).length ? progress : null, questsDone: Object.keys(questsDone).length ? questsDone : null }, label: `Sailed a run: ${on.done.length} stop${on.done.length === 1 ? '' : 's'}${trip.silver ? `, ${FC(trip.silver)} sold` : ''}` });
+	// The career's totals move with the run, in the same change.
+	const last = runs[runs.length - 1];
+	const tally = store.tallied({ runs: 1, silver: last.silver, cost: last.cost, trades: last.trades, parley: last.parley, stops: last.stops, quests: Object.fromEntries(made.map(q => [q.id, 1])) });
+	store.applyTrip({ delta: trip.delta, moves: trip.moves, profile: { runs, ratios, sevens, tally, questProgress: Object.keys(progress).length ? progress : null, questsDone: Object.keys(questsDone).length ? questsDone : null }, label: `Sailed a run: ${on.done.length} stop${on.done.length === 1 ? '' : 's'}${trip.silver ? `, ${FC(trip.silver)} sold` : ''}` });
 	sail = null;
 	persist();
 	toast(`Recorded: ${on.done.length} stop${on.done.length === 1 ? '' : 's'}${trip.silver ? ` · ${FC(trip.silver)} in silver` : ''}${made.length ? ` · ${made.map(questTitle).join(', ')} made up` : ''}`, true);

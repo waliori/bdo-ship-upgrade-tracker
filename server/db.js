@@ -4,10 +4,12 @@
 // covers both: point TURSO_DATABASE_URL at `file:./.data/tracker.db` to
 // develop without an account, or at a `libsql://` host to run for real.
 //
-// Three tables and a version row. The tracker derives everything it
+// Five tables and a version row. The tracker derives everything it
 // shows from stock and targets, so that is all a save has to carry --
 // there is no server-side notion of a plan, and nothing here needs to
-// understand a recipe.
+// understand a recipe. The community table holds a digest of a save
+// for the accounts that asked to be on the boards, and the feedback
+// table what people write in from More -> Feedback.
 //
 // Nothing in here decides who wins a race. A `libsql://` URL is not a
 // socket -- every statement is a separate HTTPS request -- so treating
@@ -198,11 +200,46 @@ export const MIGRATIONS = [
 				created_at  INTEGER NOT NULL
 			)`);
 		}
+	},
+	{
+		version: 2,
+		up: async run => {
+			// What people send from More -> Feedback: a kind, the words,
+			// and where they were. The account is noted when there is
+			// one, so a reply has somewhere to go, and null otherwise --
+			// a stranger may report a bug too.
+			await run(`CREATE TABLE IF NOT EXISTS feedback (
+				id          INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id     TEXT,
+				username    TEXT,
+				kind        TEXT NOT NULL,
+				text        TEXT NOT NULL,
+				page        TEXT,
+				contact     TEXT,
+				version     TEXT,
+				agent       TEXT,
+				status      TEXT NOT NULL DEFAULT 'open',
+				created_at  INTEGER NOT NULL
+			)`);
+			// Who has chosen to stand on the community boards, how they
+			// want to be shown there, and the digest of their save the
+			// boards are drawn from. A row exists only while the account
+			// is opted in; leaving deletes it, so nothing derived is kept
+			// about anyone who has not asked to be seen.
+			await run(`CREATE TABLE IF NOT EXISTS community (
+				user_id     TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+				share       TEXT NOT NULL,
+				stats       TEXT NOT NULL,
+				rev         INTEGER NOT NULL DEFAULT 0,
+				joined_at   INTEGER NOT NULL,
+				updated_at  INTEGER NOT NULL
+			)`);
+		}
 	}
 ];
 
 /** The data tables, in the order a restore has to write them (parents first). */
-export const TABLES = ['users', 'saves', 'push_subs'];
+export const TABLES = ['users', 'saves', 'push_subs', 'feedback', 'community'];
 
 /**
  * Bring the database up to the newest version. Safe to run any number
@@ -377,9 +414,112 @@ export async function writeSave(userId, { rev, payload, updatedAt, device }) {
 	});
 }
 
-/** Forget an account entirely -- the save goes with it. */
+/** Forget an account entirely -- the save and its place on the boards go with it. */
 export async function deleteAccount(userId) {
 	await migrate();
+	await exec({ sql: 'DELETE FROM community WHERE user_id = ?', args: [userId] });
 	await exec({ sql: 'DELETE FROM saves WHERE user_id = ?', args: [userId] });
 	await exec({ sql: 'DELETE FROM users WHERE id = ?', args: [userId] });
+}
+
+/* ------------------------------------------------------------------ *
+ * Feedback
+ * ------------------------------------------------------------------ */
+
+export async function insertFeedback({ userId, username, kind, text, page, contact, version, agent }) {
+	await migrate();
+	const { lastInsertRowid } = await exec({
+		sql: `INSERT INTO feedback (user_id, username, kind, text, page, contact, version, agent, status, created_at)
+		      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`,
+		args: [userId ?? null, username ?? null, kind, text, page ?? null, contact ?? null, version ?? null, agent ?? null, Date.now()]
+	});
+	return Number(lastInsertRowid);
+}
+
+/** The newest entries, open ones first. */
+export async function listFeedback(limit = 200) {
+	await migrate();
+	const { rows } = await exec({
+		sql: `SELECT id, user_id, username, kind, text, page, contact, version, agent, status, created_at
+		      FROM feedback ORDER BY (status = 'open') DESC, created_at DESC LIMIT ?`,
+		args: [limit]
+	});
+	return rows.map(r => ({
+		id: Number(r.id), userId: r.user_id || null, username: r.username || null, kind: r.kind, text: r.text,
+		page: r.page || null, contact: r.contact || null, version: r.version || null, agent: r.agent || null,
+		status: r.status, createdAt: Number(r.created_at)
+	}));
+}
+
+export async function setFeedbackStatus(id, status) {
+	await migrate();
+	await exec({ sql: 'UPDATE feedback SET status = ? WHERE id = ?', args: [status, id] });
+}
+
+export async function countFeedback(status = 'open') {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT COUNT(*) AS n FROM feedback WHERE status = ?', args: [status] });
+	return Number(rows[0] && rows[0].n) || 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Community
+ * ------------------------------------------------------------------ */
+
+/** How an account stands on the boards: 'named', 'anon', or null when it is not on them. */
+export async function getShare(userId) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT share FROM community WHERE user_id = ?', args: [userId] });
+	return rows[0] ? rows[0].share : null;
+}
+
+/** Put an account on the boards, or change how it is shown there. */
+export async function putCommunity(userId, share, stats, rev) {
+	await migrate();
+	const now = Date.now();
+	await exec({
+		sql: `INSERT INTO community (user_id, share, stats, rev, joined_at, updated_at)
+		      VALUES (?, ?, ?, ?, ?, ?)
+		      ON CONFLICT(user_id) DO UPDATE SET
+		        share = excluded.share, stats = excluded.stats, rev = excluded.rev, updated_at = excluded.updated_at`,
+		args: [userId, share, JSON.stringify(stats), rev, now, now]
+	});
+}
+
+/** A fresher digest for an account already on the boards. */
+export async function putDigest(userId, stats, rev) {
+	await migrate();
+	await exec({
+		sql: 'UPDATE community SET stats = ?, rev = ?, updated_at = ? WHERE user_id = ?',
+		args: [JSON.stringify(stats), rev, Date.now(), userId]
+	});
+}
+
+export async function deleteCommunity(userId) {
+	await migrate();
+	await exec({ sql: 'DELETE FROM community WHERE user_id = ?', args: [userId] });
+}
+
+/**
+ * Everyone on the boards, with the name and avatar to show for the
+ * named ones, the digest held, and the revision of the save it was
+ * drawn from beside the save's own -- so the caller can tell which
+ * digests are behind.
+ */
+export async function listCommunity() {
+	await migrate();
+	const { rows } = await exec(`SELECT c.user_id, c.share, c.stats, c.rev, c.joined_at, u.username, u.avatar, s.rev AS save_rev
+		FROM community c
+		JOIN users u ON u.id = c.user_id
+		LEFT JOIN saves s ON s.user_id = c.user_id`);
+	return rows.map(r => ({
+		userId: r.user_id, share: r.share, stats: r.stats, rev: Number(r.rev) || 0, joinedAt: Number(r.joined_at) || 0,
+		username: r.username, avatar: r.avatar || null, saveRev: r.save_rev === null || r.save_rev === undefined ? null : Number(r.save_rev)
+	}));
+}
+
+export async function countCommunity() {
+	await migrate();
+	const { rows } = await exec('SELECT COUNT(*) AS n FROM community');
+	return Number(rows[0] && rows[0].n) || 0;
 }

@@ -89,6 +89,18 @@ const vapid = {
 };
 export const pushEnabled = Boolean(vapid.publicKey && vapid.privateKey && turso.url);
 
+// Feedback needs only somewhere to keep it. A Discord webhook, when one
+// is given, gets a copy of each entry the moment it lands, so the
+// operator hears of a bug without opening the inbox.
+export const feedbackEnabled = Boolean(turso.url);
+
+// The community boards need accounts to stand on them, so they come
+// with sync and not without.
+export const communityEnabled = syncEnabled;
+
+// Who may read the feedback inbox: Discord account ids, comma-separated.
+const adminIds = new Set(read('ADMIN_IDS').split(',').map(s => s.trim()).filter(Boolean));
+
 export const config = {
 	port: num('PORT', 8000),
 	vapid,
@@ -113,6 +125,12 @@ export const config = {
 	// signed-in account from being used as free storage.
 	maxSaveBytes: num('MAX_SAVE_BYTES', 1024 * 1024),
 	sessionDays: num('SESSION_DAYS', 30),
+	feedbackWebhook: read('FEEDBACK_WEBHOOK_URL'),
+	adminIds,
+	// How long the community boards are held between rebuilds. Every
+	// digest on them is re-read when the save behind it has moved, so
+	// a fresh run reaches the boards within this.
+	communityTtlMs: num('COMMUNITY_TTL_MS', 5 * 60_000),
 	// Pushes allowed per account per minute.
 	//
 	// Measured, not guessed. Rapid editing coalesces -- 491 clicks in a
@@ -140,5 +158,6 @@ export const config = {
 export function describe() {
 	if (!syncEnabled) return 'sync off -- browser-only, no account, no database';
 	const where = config.turso.url.startsWith('file:') ? 'local file' : 'Turso';
-	return `sync on -- Discord sign-in, saves in ${where}`;
+	const extras = [config.feedbackWebhook ? 'feedback to a webhook' : 'feedback kept', `${adminIds.size} admin${adminIds.size === 1 ? '' : 's'}`];
+	return `sync on -- Discord sign-in, saves in ${where}, community boards, ${extras.join(', ')}`;
 }
