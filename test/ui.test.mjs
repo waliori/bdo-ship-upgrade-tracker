@@ -176,11 +176,14 @@ test('the hire picker names each race once', async () => {
 	assert.deepEqual(groups, [...new Set(groups)], 'no heading repeats');
 	assert.equal(groups.length, 5, 'four races and the first mates');
 	// Rank by speed: the list goes flat and the fastest growth leads.
-	await page.click('[data-picker-chip="sort:speed"]'); await wait(200);
+	// The chips are clicked from inside the page: the picker redraws on
+	// each, and a handle taken a moment earlier is a node no longer there.
+	const chip = id => page.$eval(`[data-picker-chip="${id}"]`, el => el.click());
+	await chip('sort:speed'); await wait(200);
 	assert.equal(await count(page, '.picker-group'), 0, 'a ranked list has no headings');
 	assert.equal(await text(page, '.picker-row .picker-label'), 'Innocent', 'the best level-10 speed leads');
 	// Narrow to one race.
-	await page.click('[data-picker-chip="sort:speed"]'); await page.click('[data-picker-chip="race:Goblin"]'); await wait(200);
+	await chip('sort:speed'); await wait(200); await chip('race:Goblin'); await wait(200);
 	const left = await page.evaluate(() => [...document.querySelectorAll('.picker-row .picker-sub')].map(s => s.textContent));
 	assert.ok(left.length > 0 && left.every(s => s.startsWith('Goblin')), 'only goblins remain');
 	assert.deepEqual(errors, []);
@@ -1737,7 +1740,14 @@ test('the run laid out is a sheet over the Barter tab: a strip along the foot ap
 
 test('the material run is one route through every island ticked: a full run goes back to the harbour when the hold cannot carry every give, a fast run sails once and says what stayed ashore', async () => {
 	const { page, context, errors } = await open('#barter');
-	await page.evaluate(() => { localStorage.setItem('bdo-tracker/barter-view', JSON.stringify({ goal: 'material', item: "Violent Sea Monster's Scale", qty: 999, port: 1, matOrders: { reach: 'all', calls: true, pace: 'full', quests: 'no' } })); });
+	// The tab's view is the profile's now: seeded there once the tab has
+	// drawn and its first write of the view -- a moment after -- is out.
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.setView('barter', { goal: 'material', item: "Violent Sea Monster's Scale", qty: 999, port: 1, matOrders: { reach: 'all', calls: true, pace: 'full', quests: 'no' } });
+		store.flush();
+	});
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.mat-list.hero', { timeout: 15000 });
 	await page.evaluate(async () => {
 		const store = await import('/js/state.js');
@@ -1789,7 +1799,14 @@ test('the material run is one route through every island ticked: a full run goes
 
 test('before casting off: a gold bar an island takes is bought ashore and priced, and a give kept where the run cannot load it is to be brought to the harbour first', async () => {
 	const { page, context, errors } = await open('#barter');
-	await page.evaluate(() => { localStorage.setItem('bdo-tracker/barter-view', JSON.stringify({ goal: 'material', item: 'Golden Turtle Shell', qty: 4, port: 1, matOrders: { reach: 'want', calls: true, pace: 'full', quests: 'no' } })); });
+	// The tab's view is the profile's now: seeded there once the tab has
+	// drawn and its first write of the view -- a moment after -- is out.
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.setView('barter', { goal: 'material', item: 'Golden Turtle Shell', qty: 4, port: 1, matOrders: { reach: 'want', calls: true, pace: 'full', quests: 'no' } });
+		store.flush();
+	});
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.mat-list.hero', { timeout: 15000 });
 	await page.evaluate(async () => {
 		const store = await import('/js/state.js');
