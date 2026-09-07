@@ -137,6 +137,30 @@ const VIEW_NS = 'map';
 const DATA_KEYS = ['stops', 'stopsPick', 'runTrades', 'runStash', 'done', 'startPort', 'returnHome', 'savedRoutes', 'prevRoute', 'rationsAboard', 'trace', 'traces'];
 let readSig = null;      // the view as last read or written, as text, so a synced change is read and an own write is not
 let writeTimer = null;   // the view write owed, a moment after the last change
+let writingView = false; // inside the map's own write of its view -- see mapWritingView
+
+/**
+ * Whether the store is being written by the Map right now. The page
+ * redraws on every profile write, and a redraw of the Map in the
+ * middle of a stroke, a word being typed or a stop being carried
+ * throws the pen out of the player's hand -- so ui.js asks this and
+ * leaves the Map alone for a write that is the Map's own: what it
+ * wrote is what it is already showing.
+ */
+export function mapWritingView() {
+	return writingView;
+}
+
+/** A write of the view with the flag up, so the redraw it causes is
+ *  known for what it is. */
+function writeView(fn) {
+	writingView = true;
+	try {
+		fn();
+	} finally {
+		writingView = false;
+	}
+}
 
 function restore() {
 	if (!restored) {
@@ -145,7 +169,7 @@ function restore() {
 		// The write inside migrateView redraws the page through the
 		// store's listeners, once, the first time a profile is opened
 		// on this build; the redraw reads the view then.
-		store.migrateView(VIEW_NS, STORE_KEY, s => Object.fromEntries(DATA_KEYS.filter(k => s[k] !== undefined).map(k => [k, s[k]])));
+		writeView(() => store.migrateView(VIEW_NS, STORE_KEY, s => Object.fromEntries(DATA_KEYS.filter(k => s[k] !== undefined).map(k => [k, s[k]]))));
 	}
 	restoreData();
 }
@@ -193,9 +217,16 @@ function restorePrefs() {
  * what is in memory already. Starts from the defaults each time, so a
  * field the new view lacks does not keep the old one's value.
  */
+let readRef = null;   // the view object last read, so an unchanged store costs no stringify
 function restoreData() {
-	if (writeTimer) return;
+	// Not while a write of our own is owed or under way: the store
+	// notifies from inside the write, before the signature below has
+	// been taken, and reading back then would replace the trace under
+	// the pen with a copy -- and drop the blank word being typed.
+	if (writeTimer || writingView) return;
 	const v = store.getView(VIEW_NS);
+	if (v === readRef) return;
+	readRef = v;
 	const sig = v ? JSON.stringify(v) : null;
 	if (sig === readSig) return;
 	readSig = sig;
@@ -249,9 +280,10 @@ function flushView() {
 	if (!writeTimer) return;
 	clearTimeout(writeTimer);
 	writeTimer = null;
-	store.setView(VIEW_NS, { stops, stopsPick, runTrades, runStash, done, startPort, returnHome, savedRoutes, prevRoute, rationsAboard, trace, traces });
+	writeView(() => store.setView(VIEW_NS, { stops, stopsPick, runTrades, runStash, done, startPort, returnHome, savedRoutes, prevRoute, rationsAboard, trace, traces }));
 	// What was just written is what is in memory: not to be read back.
 	const v = store.getView(VIEW_NS);
+	readRef = v;
 	readSig = v ? JSON.stringify(v) : null;
 }
 
@@ -1800,7 +1832,8 @@ function paintTrace(layer, size) {
 	}
 	let html = '';
 	for (const g of ghosts) html += `<div class="map-trace-ghost">${traceArt(g, size, false)}</div>`;
-	if (!empty) html += traceArt(t, size, true);
+	// The first stroke is drawn before there is a trace to hold it.
+	if (!empty) html += traceArt(t || blankTrace(), size, true);
 	art.innerHTML = html;
 	paintWriting(box, size);
 }
@@ -2289,6 +2322,13 @@ const traceAnchors = t => [
 	}),
 	...(t.texts || []).map(w => ({ x: w.x, y: w.y }))
 ];
+
+/** The Map's data as it stands in memory -- what the view holds once
+ *  the write owed has gone through -- as a copy, for a test or a tool
+ *  that wants to read it without waiting on the debounce. */
+export function currentMapData() {
+	return JSON.parse(JSON.stringify({ stops, stopsPick, runTrades, runStash, done, startPort, returnHome, savedRoutes, prevRoute, rationsAboard, trace, traces }));
+}
 
 function traceExportObject() {
 	const t = trace || blankTrace();
@@ -5185,6 +5225,11 @@ export async function openGameExport(source) {
 
 
 // The lanes are the router's to know about whichever screen draws a
-// route first, and they live in this screen's store -- so it is read
-// as soon as the module is, not on the first look at the chart.
-restore();
+// route first, and they live in this screen's data -- which is in the
+// profile now, and the profile is not loaded when this module is. So
+// the read waits for the store: a tick after boot has opened it, and
+// again on every change to it, which is also what brings a route
+// synced from another device onto the chart. restore() is cheap once
+// it has run: it compares the view's identity, then its text.
+store.subscribe(() => restore());
+if (typeof window !== 'undefined') setTimeout(restore, 0);

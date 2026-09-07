@@ -451,10 +451,12 @@ test('a route traced by hand: stops by click, a note, a link back, and it stays 
 	// Through a link and back.
 	const payload = await page.evaluate(async () => {
 		const { encodeAny } = await import('/js/share.js');
-		const t = JSON.parse(localStorage.getItem('bdo-tracker/map-view')).trace;
+		// The trace lives in the profile's view now, written a moment
+		// after each change; the screen hands over what it holds.
+		const t = (await import('/js/screen-map.js')).currentMapData().trace;
 		return encodeAny({ kind: 'trace', name: 'Test run', notes: '', points: t.points, strokes: t.strokes });
 	});
-	await page.evaluate(() => localStorage.removeItem('bdo-tracker/map-view'));
+	await page.evaluate(() => localStorage.removeItem('bdo-tracker/v2'));
 	await page.goto(base + '/#trace/' + payload, { waitUntil: 'domcontentloaded' }); await page.waitForSelector('.map-trace-dot', { timeout: 15000 }); await wait(500);
 	assert.equal(await count(page, '.map-trace-dot'), 2, 'the link carried both stops');
 	assert.equal(await page.evaluate(() => document.querySelector('[data-act="trace-name"]').value), 'Test run');
@@ -522,7 +524,7 @@ test('the pen has ink: a colour, a width, words on the water -- and undo walks b
 	// The ink travels with the trace.
 	const back = await page.evaluate(async () => {
 		const { encodeAny, decodeAny } = await import('/js/share.js');
-		const t = JSON.parse(localStorage.getItem('bdo-tracker/map-view')).trace;
+		const t = (await import('/js/screen-map.js')).currentMapData().trace;
 		return decodeAny(await encodeAny({ kind: 'trace', name: 'Ink run', notes: '', points: t.points, strokes: t.strokes, texts: t.texts }));
 	});
 	assert.equal(back.strokes[0].colour, '#c6a0ff');
@@ -537,7 +539,7 @@ test('a stop and a word are picked up and carried to where they belong', async (
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('[data-act="trace-tool"]'); await wait(600);
 	const box = await (await page.$('[data-map]')).boundingBox();
 	const sea = (fx, fy) => [box.x + box.width * fx, box.y + box.height * fy];
-	const held = () => page.evaluate(() => JSON.parse(localStorage.getItem('bdo-tracker/map-view')).trace);
+	const held = () => page.evaluate(async () => (await import('/js/screen-map.js')).currentMapData().trace);
 	const carry = async (sel, dx, dy) => {
 		const at = await page.evaluate(s => { const r = document.querySelector(s).getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }, sel);
 		await page.mouse.move(...at);
@@ -1478,7 +1480,7 @@ test('the game\'s favourites come back as the route they were written from, and 
 	assert.equal(rows[1].as, 'trace', 'a bend on open sea makes it a trace by default');
 	assert.ok(rows[1].opts.includes('route'), 'though the route is on offer');
 	await page.click('[data-act="map-game-in-go"]'); await wait(500);
-	const after = await page.evaluate(() => JSON.parse(localStorage.getItem('bdo-tracker/map-view')));
+	const after = await page.evaluate(async () => (await import('/js/screen-map.js')).currentMapData());
 	assert.deepEqual(after.stops, xml.ids, 'the route is back, in order');
 	assert.equal(after.traces[0].name, 'Loop 1 (game)');
 	assert.equal(after.traces[0].points.length, 6);
@@ -1499,7 +1501,14 @@ async function laidOut(page) {
 
 test('one run for several materials: each keeps its ticks and its want, and a give kept at another harbour is called for on the way', async () => {
 	const { page, context, errors } = await open('#barter');
-	await page.evaluate(() => { localStorage.setItem('bdo-tracker/barter-view', JSON.stringify({ goal: 'material', item: "Violent Sea Monster's Scale", qty: 20, port: 0, matOrders: { reach: 'want', calls: true, pace: 'full', quests: 'no' } })); });
+	// The tab's view is the profile's now: seeded there once the tab has
+	// drawn and its first write of the view -- a moment after -- is out.
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.setView('barter', { goal: 'material', item: "Violent Sea Monster's Scale", qty: 20, port: 0, matOrders: { reach: 'want', calls: true, pace: 'full', quests: 'no' } });
+		store.flush();
+	});
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.mat-list.hero', { timeout: 15000 });
 	await page.evaluate(async () => {
 		const store = await import('/js/state.js');
@@ -1607,13 +1616,24 @@ test('the hold is a line across the Barter tab that opens over the page, and the
 test('the run laid out is a sheet over the Barter tab: a strip along the foot appears as chains are ticked and opens it, and a chain unticked inside it redraws it in place', async () => {
 	const { page, context, errors } = await open('#barter');
 	// One island's offer pins today's layout; the run sails from Iliya.
+	// The view is the profile's, seeded once the tab has drawn and its
+	// first write of the view -- a moment after -- is out.
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
 	await page.evaluate(async () => {
 		const { barterKey } = await import('/js/clock.js');
-		localStorage.setItem('bdo-tracker/barter-view', JSON.stringify({ goal: 'silver', port: 1002, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }] } }));
+		const store = await import('/js/state.js');
+		store.setView('barter', { goal: 'silver', port: 1002, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }] } });
+		store.flush();
 	});
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.chain', { timeout: 15000 });
 	await page.evaluate(async () => { const store = await import('/js/state.js'); store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); });
 	await wait(500);
+	// The runs worth sailing are searched in a module worker, which
+	// stays up between searches; the cards it answered with are on the
+	// page and no longer marked as being worked out.
+	assert.ok(page.workers().some(w => w.url().endsWith('/js/barter-worker.js')), `the search worker is running: ${page.workers().map(w => w.url()).join(', ') || 'no workers'}`);
+	assert.equal(await count(page, '.proposals.working'), 0, 'the worker has answered');
+	assert.ok(await count(page, '.proposal') >= 1, 'with runs worth sailing');
 	// The trip is logged from the masthead alone; the hold's line keeps one button.
 	assert.equal(await count(page, '.hold-bar [data-act="trip-log"]'), 0);
 	assert.equal(await count(page, '.hold-bar [data-act="barter-add"]'), 1);
