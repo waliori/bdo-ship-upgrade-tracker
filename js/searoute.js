@@ -417,11 +417,19 @@ function toll(i) {
 	return t;
 }
 
-/* How many cells a search may take off the heap before it gives up. A
-   leg across the whole sea is a few tens of thousands; past this the
-   two ends are on water that is joined only by a way no ship would
-   take, and the leg is better drawn straight and said so. */
-export const SEARCH_LIMIT = 220000;
+/* How many cells a search may take off the heap before it gives up.
+   The two ends are on the same water, so the way is always there; the
+   limit is how long the search is given to find it, and a leg is drawn
+   straight and said so only past it. A leg across open sea settles in
+   a few tens of thousands. One that has to go the long way round a
+   continent takes far more: Arehaza, on the east coast of Valencia, to
+   Starry Midnight Port on the south coast of O'dyllita is sailed north
+   round Valencia and down the west side -- the sea south of the desert
+   is off the chart -- and the search opens most of the eastern and
+   northern water before it finds that, some 235,000 cells. The limit
+   is nearly the whole sea, which is 650,000 cells, so no leg on the
+   same water is ever given up on for want of patience. */
+export const SEARCH_LIMIT = 600000;
 let limitNow = SEARCH_LIMIT;
 
 /** Set how long a search may run, for a test that wants to see one

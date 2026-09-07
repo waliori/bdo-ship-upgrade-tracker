@@ -285,3 +285,19 @@ test('the search scratch reused across legs gives the same paths as fresh arrays
 	});
 	assert.deepEqual(reused, fresh);
 });
+
+test('the long way round is sailed, not given up on: Arehaza to Starry Midnight Port', () => {
+	// Arehaza is on the east coast of Valencia, Starry Midnight Port on
+	// the south coast of O'dyllita, and the sea south of the desert is
+	// off the chart: the only water between them runs north round
+	// Valencia and down the west side, far longer than the straight
+	// line. The search used to run out of patience on it and the leg
+	// was drawn straight across the desert.
+	const arehaza = at('Hanipu'), starry = at('Orchio');
+	const leg = seaLeg(arehaza, starry);
+	assert.equal(legStraight(arehaza, starry), false);
+	assert.ok(leg.length > 6, `only ${leg.length} points`);
+	// Every bend is on water, and the way goes north of Arehaza first.
+	for (const p of leg.slice(1, -1)) assert.ok(isSea(p.x, p.y), `${p.x},${p.y} is not water`);
+	assert.ok(Math.min(...leg.map(p => p.y)) < arehaza.y - 20000, 'the leg does not go north round Valencia');
+});
