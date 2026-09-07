@@ -151,3 +151,22 @@ test('a request that names no region is answered for NA', async () => {
 	assert.equal(DEFAULT_REGION, 'na');
 	assert.ok(REGIONS.includes(DEFAULT_REGION));
 });
+
+test('a relay call has a deadline: past it the remaining batches are not asked and come back from the copy held, stale', async () => {
+	// A slow upstream: every answer takes 30 ms. Sixty ids are more than
+	// one batch; a deadline of 20 ms is spent by the first, so the rest
+	// are neither asked upstream nor of the second source.
+	const table = Object.fromEntries(Array.from({ length: 60 }, (_, i) => [7000 + i, 1000 + i]));
+	const up = upstream(table);
+	const slow = async url => { await new Promise(r => setTimeout(r, 30)); return up.fetchImpl(url); };
+	const ids = Object.keys(table).map(Number);
+	const first = await pricesFor('console_eu', ids, { fetchImpl: slow, now: 5_000_000, deadline: 20 });
+	assert.equal(up.calls.length, 1, 'one batch asked before the deadline fell');
+	const priced = Object.keys(first.prices).length;
+	assert.ok(priced > 0 && priced < 60, 'the first batch answered, the rest not');
+	assert.equal(first.failed, 60 - priced, 'the rest are counted as unanswered');
+	// Asked again later with a proper deadline, the held copies are fresh
+	// and the missing ones are fetched.
+	const again = await pricesFor('console_eu', ids, { fetchImpl: slow, now: 5_000_000 + 1000, deadline: 60_000 });
+	assert.equal(Object.keys(again.prices).length, 60);
+});

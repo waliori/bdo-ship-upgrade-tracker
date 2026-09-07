@@ -30,6 +30,11 @@ const KEEP_MS = 24 * 60 * 60 * 1000;
 const BATCH = 40;
 const MAX_IDS = 400;
 const TIMEOUT_MS = 12_000;
+/** The most one relay call spends asking upstream altogether. Ten
+ *  batches, each retried three times and then asked of the second
+ *  source id by id, ran to nearly four minutes on a bad night; past
+ *  this the rest are answered from the copy held, stale and said so. */
+const DEADLINE_MS = 25_000;
 
 // region -> id -> { price, at }
 const cache = new Map();
@@ -161,7 +166,9 @@ async function askUpstream(region, ids, fetchImpl, tries = 3) {
  * upstream, and anything upstream would not answer from whatever older
  * copy is still held. Never throws for an upstream failure.
  */
-export async function pricesFor(region, ids, { fetchImpl = fetch, now = Date.now() } = {}) {
+export async function pricesFor(region, ids, { fetchImpl = fetch, now = Date.now(), deadline = DEADLINE_MS } = {}) {
+	const started = Date.now();
+	const late = () => Date.now() - started > deadline;
 	const held = bucket(region);
 	const out = {};
 	const want = [];
@@ -175,6 +182,7 @@ export async function pricesFor(region, ids, { fetchImpl = fetch, now = Date.now
 	for (let i = 0; i < want.length; i += BATCH) {
 		const batch = want.slice(i, i + BATCH);
 		try {
+			if (late()) throw new Error('relay deadline');
 			for (const row of await askUpstream(region, batch, fetchImpl)) {
 				held.set(row.id, { price: row, at: now });
 				out[row.id] = { ...row, at: now };
@@ -186,7 +194,7 @@ export async function pricesFor(region, ids, { fetchImpl = fetch, now = Date.now
 			// and an unpriced one.
 			let saved = 0;
 			try {
-				for (const row of await askFallback(region, batch, fetchImpl)) {
+				for (const row of late() ? [] : await askFallback(region, batch, fetchImpl)) {
 					held.set(row.id, { price: row, at: now });
 					out[row.id] = { ...row, at: now };
 					saved++;
@@ -199,7 +207,7 @@ export async function pricesFor(region, ids, { fetchImpl = fetch, now = Date.now
 		}
 		// A breath between batches, so a burst of forty is not what trips
 		// the upstream's limit.
-		if (i + BATCH < want.length) await wait(120);
+		if (i + BATCH < want.length && !late()) await wait(120);
 		for (const id of batch) {
 			if (out[id]) continue;
 			const old = held.get(id);
