@@ -70,7 +70,7 @@ export function readProfile(raw) {
 			// The sailor's real stats as the game shows them, when typed in.
 			if (isProfile(r.stats)) {
 				const st = {};
-				for (const k of ['speed', 'accel', 'turn', 'brake', 'force', 'focus', 'vision']) {
+				for (const k of ['speed', 'accel', 'turn', 'brake', 'patience', 'force', 'focus', 'vision']) {
 					const v = Number(r.stats[k]);
 					if (Number.isFinite(v) && v >= 0 && v <= 500) st[k] = Math.round(v * 10) / 10;
 				}
@@ -87,7 +87,7 @@ export function readProfile(raw) {
 					const step = { t, level };
 					if (isProfile(e.stats)) {
 						const st = {};
-						for (const k of ['speed', 'accel', 'turn', 'brake', 'force', 'focus', 'vision']) {
+						for (const k of ['speed', 'accel', 'turn', 'brake', 'patience', 'force', 'focus', 'vision']) {
 							const v = Number(e.stats[k]);
 							if (Number.isFinite(v) && v >= 0 && v <= 500) st[k] = Math.round(v * 10) / 10;
 						}

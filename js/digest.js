@@ -36,7 +36,7 @@ const QUEST_IDS = new Set(quests.map(q => q.id));
 /** A monster's name from its key, for a line of detail. */
 export const monsterName = key => (monsterByKey[key] ? monsterByKey[key].name : key);
 const SLOTS = ['cannon', 'sail', 'figurehead', 'plating'];
-const STAT_KEYS = ['speed', 'accel', 'turn', 'brake', 'force', 'focus', 'vision'];
+const STAT_KEYS = ['speed', 'accel', 'turn', 'brake', 'patience', 'force', 'focus', 'vision'];
 
 const n = v => (Number.isFinite(Number(v)) && Number(v) > 0 ? Math.floor(Number(v)) : 0);
 const obj = v => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});

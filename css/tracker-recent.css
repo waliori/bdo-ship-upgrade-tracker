@@ -579,3 +579,4 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
   .comm-halves .seg { flex: 1; text-align: center; }
   .fb-kinds { grid-template-columns: 1fr; }
 }
+.stat-means { font-size: 10px; font-weight: 500; color: var(--ink-faint); margin-left: 3px; }

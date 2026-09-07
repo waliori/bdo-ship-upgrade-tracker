@@ -26,7 +26,7 @@ import { encodeShare, shareLink } from './share.js';
 import { enhancedName } from './planner.js';
 import {
 	pool, mateTypes, anyType, care, rations, expSplit, firstMates, slotSources, statBand, rollRank,
-	contract, SAILOR_CAP, seatsFor, fitSeats, statOf, crewTotals, autoAssign, logLevel, levelSteps, STAT_KEYS } from './sailors.js';
+	contract, SAILOR_CAP, seatsFor, fitSeats, statOf, crewTotals, autoAssign, logLevel, levelSteps, STAT_KEYS, STAT_NAMES } from './sailors.js';
 
 // Session state: who is picked up, and how the roster is ordered.
 let selId = null;
@@ -281,11 +281,16 @@ function selectedPanel(ship) {
 				: word ? ` — ${word} for Lv ${s.lv}` : ''}. Clear to go back to the estimate`
 			: band ? `Estimate at Lv ${s.lv}: ${band.min}–${band.max}, usually ${band.avg}. Type what the sailor window shows`
 				: 'Type what the sailor window shows';
-		return `<div class="sel-stat${typed ? ' typed' : ''}"><span><span>${k}</span>${word ? `<em class="roll-note ${v >= band.avg ? 'good' : 'low'}">${word}</em>` : ''}<b>+<input class="purse-inline narrow stat-in" type="text" inputmode="decimal" value="${v}"
-			data-act="crew-stat" data-id="${esc(s.id)}" data-key="${key}" aria-label="${k}, as the game shows it" title="${title}">%</b></span><i><b style="width:${Math.min(100, v / max * 100)}%"></b></i></div>`;
+		// The window's word, with what it moves beside it in small type.
+		const name = STAT_NAMES[key] || { game: k, means: '', tip: '' };
+		return `<div class="sel-stat${typed ? ' typed' : ''}"><span><span data-tip="${esc(name.tip)}">${esc(name.game)}${name.means ? ` <small class="stat-means">${esc(name.means)}</small>` : ''}</span>${word ? `<em class="roll-note ${v >= band.avg ? 'good' : 'low'}">${word}</em>` : ''}<b>+<input class="purse-inline narrow stat-in" type="text" inputmode="decimal" value="${v}"
+			data-act="crew-stat" data-id="${esc(s.id)}" data-key="${key}" aria-label="${esc(name.game)}, as the sailor window shows it" title="${title}">%</b></span><i><b style="width:${Math.min(100, v / max * 100)}%"></b></i></div>`;
 	};
 	const stats = [bar('Speed', 'speed', 5), bar('Accel', 'accel', 8), bar('Turn', 'turn', 10), bar('Brake', 'brake', 10)];
-	if (t.force !== undefined) stats.push(bar('Force', 'force', 6), bar('Focus', 'focus', 14), bar('Vision', 'vision', 50));
+	// The cannon growths, as the window lists them: Patience has no
+	// estimate -- no type's rolls for it are known -- so it shows only
+	// when typed, or as a blank to type into.
+	if (t.force !== undefined) stats.push(bar('Patience', 'patience', 10), bar('Force', 'force', 6), bar('Focus', 'focus', 14), bar('Vision', 'vision', 50));
 	return `<div class="panel crew-panel crew-sel">
 		<div class="panel-head"><h2 class="panel-title">Selected sailor</h2><span class="panel-spacer"></span>
 			<button class="sq-btn" data-act="crew-clear-sel" title="Put down">×</button></div>
@@ -325,7 +330,7 @@ function levelLogHTML(s) {
 		const d = new Date(t);
 		return Number.isFinite(d.getTime()) ? d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '';
 	};
-	const rows = steps.slice(0, 5).map(st => `<div class="sel-log-row">levelled ${st.from !== null ? `${st.from} → ` : ''}<b>${st.to}</b>${when(st.t) ? ` on ${esc(when(st.t))}` : ''}${st.stats ? `<span class="sel-log-stats" title="The stats as typed at the time">${esc(STAT_KEYS.filter(k => Number.isFinite(st.stats[k])).map(k => `${k} ${st.stats[k]}`).join(' · '))}</span>` : ''}</div>`).join('');
+	const rows = steps.slice(0, 5).map(st => `<div class="sel-log-row">levelled ${st.from !== null ? `${st.from} → ` : ''}<b>${st.to}</b>${when(st.t) ? ` on ${esc(when(st.t))}` : ''}${st.stats ? `<span class="sel-log-stats" title="The stats as typed at the time">${esc(STAT_KEYS.filter(k => Number.isFinite(st.stats[k])).map(k => `${(STAT_NAMES[k] || { game: k }).game} ${st.stats[k]}`).join(' · '))}</span>` : ''}</div>`).join('');
 	return `<details class="sel-log"${steps.length <= 2 ? ' open' : ''}><summary class="sel-facts">levelled ${steps.length} time${steps.length === 1 ? '' : 's'} on this roster</summary>${rows}${steps.length > 5 ? `<div class="sel-log-row quiet">and ${steps.length - 5} more, kept</div>` : ''}</details>`;
 }
 
@@ -728,7 +733,7 @@ function hireDialog() {
 	// still reads best-first, and every race is named once.
 	const races = [...new Set(pool.map(t => t.race))];
 	const byRace = [...pool].sort((a, b) => races.indexOf(a.race) - races.indexOf(b.race));
-	const STATS = [['speed', 'Speed'], ['accel', 'Accel'], ['turn', 'Turn'], ['brake', 'Brake']];
+	const STATS = [['speed', STAT_NAMES.speed.game], ['accel', STAT_NAMES.accel.game], ['turn', STAT_NAMES.turn.game], ['brake', STAT_NAMES.brake.game]];
 	let race = null;      // one race, or all of them
 	let sortBy = null;    // a growth to rank by, or the authored order
 	const chips = () => [

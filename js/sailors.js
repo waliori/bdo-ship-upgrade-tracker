@@ -353,7 +353,27 @@ export function rollRank(type, key, lv, value) {
 	return { below, at, above, mode: mode / 10, mean: Math.round(mean) / 10, paths: o.paths };
 }
 
-export const STAT_KEYS = ['speed', 'accel', 'turn', 'brake', 'force', 'focus', 'vision'];
+export const STAT_KEYS = ['speed', 'accel', 'turn', 'brake', 'patience', 'force', 'focus', 'vision'];
+
+/**
+ * What the sailor window calls each growth, and what it does to the
+ * ship -- the game names a virtue, the app the number it moves. Both
+ * are shown wherever a stat is: the window's word first, so a sailor
+ * can be read straight off the game, and the effect beside it.
+ */
+export const STAT_NAMES = {
+	speed: { game: 'Endurance', means: 'speed', tip: 'Endurance: increases the ship’s Speed.' },
+	accel: { game: 'Wits', means: 'acceleration', tip: 'Wits: increases the ship’s Acceleration.' },
+	turn: { game: 'Awareness', means: 'turn', tip: 'Awareness: increases the ship’s Turn.' },
+	brake: { game: 'Strength', means: 'brake', tip: 'Strength: increases the ship’s Brake.' },
+	patience: { game: 'Patience', means: 'cannon reload', tip: 'Patience: reduces the reload cooldown of cannons.' },
+	force: { game: 'Force', means: 'FocusFire range', tip: 'Force: increases the range of FocusFire.' },
+	focus: { game: 'Focus', means: 'cannon spread', tip: 'Focus: reduces the cannon spread of FocusFire.' },
+	vision: { game: 'Vision', means: 'firing angle', tip: 'Vision: broadens the left and right firing angle of your cannons.' }
+};
+
+/** "Endurance (speed)", for a label that has room for both. */
+export const statLabel = key => (STAT_NAMES[key] ? `${STAT_NAMES[key].game} (${STAT_NAMES[key].means})` : key);
 
 /* ---- the level log ---------------------------------------------------- *
    A sailor's level is typed in as it changes, and what it was before is
