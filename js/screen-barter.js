@@ -78,6 +78,7 @@ let lastSearch = null;   // what the last search was given, for "fill the rest
 let readSig = null;   // the view as last read from the profile, as text: a different one -- synced in, imported, migrated -- is read again
 let migrated = false;
 let writeTimer = null;   // a write of the view still to be made
+let writing = false;     // the write under way: the store redraws the page from inside it
 
 /**
  * The view read from the profile, when the profile holds a different
@@ -90,7 +91,7 @@ let writeTimer = null;   // a write of the view still to be made
  * still owed is newer than anything read, and is not overwritten.
  */
 function restore() {
-	if (writeTimer) return;
+	if (writeTimer || writing) return;
 	if (!migrated) {
 		migrated = true;
 		// The write inside migrateView redraws the page through the
@@ -150,7 +151,15 @@ function flushView() {
 	if (!writeTimer) return;
 	clearTimeout(writeTimer);
 	writeTimer = null;
-	store.setView(VIEW_NS, { goal, item, qty, wants, matOrders, port, routes, stash, board, matBoard, sail, reach, questSkip, questPull });
+	// The store redraws the page from inside the write, before what was
+	// written can be noted here; that redraw must not read it back over
+	// the memory it came from.
+	writing = true;
+	try {
+		store.setView(VIEW_NS, { goal, item, qty, wants, matOrders, port, routes, stash, board, matBoard, sail, reach, questSkip, questPull });
+	} finally {
+		writing = false;
+	}
 	// What was just written is what is in memory: not to be read back.
 	const s = store.getView(VIEW_NS);
 	readSig = s ? JSON.stringify(s) : null;
@@ -1073,7 +1082,17 @@ function weekHTML() {
  * ------------------------------------------------------------------ */
 
 /** The key a checklist belongs to: the goal and what it lays out. */
-const sailKey = () => (goal === 'material' ? `material|${itemNow()}|${qty}|${port}` : `silver|${routes.key}|${routes.ids.slice().sort().join('.')}|${port}`);
+// The checklist belongs to one run: the goal, the board, the chains
+// ticked and the harbour. Two chain ids side by side already run past
+// the length the profile keeps a string at, so the key is a short
+// digest of them -- it is only ever compared, never read.
+const sailKey = () => digest(goal === 'material' ? `material|${itemNow()}|${qty}|${port}` : `silver|${routes.key}|${routes.ids.slice().sort().join('.')}|${port}`);
+function digest(str) {
+	// FNV-1a, 32 bits: the same short key for the same run, always.
+	let h = 0x811c9dc5;
+	for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+	return `${str.slice(0, str.indexOf('|'))}:${h.toString(16)}`;
+}
 /** The checklist for the run on screen, or null when not sailing it. */
 const sailing = () => (sail && sail.key === sailKey() ? sail : null);
 /** A stop's name on the checklist: the island, or the wharf and how
