@@ -29,7 +29,7 @@ import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
 import { renderBuilds, openBuildPicker, askRoute, toggleBlockers } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
-import { renderBarter, barterAction, barterChange, barterType, chartFragment } from './screen-barter.js';
+import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart } from './screen-barter.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
 import { renderCrew, crewAction, crewChange, applyShipSetup, openSetupPicker, selectSailor } from './screen-crew.js';
@@ -58,7 +58,7 @@ import {
 	saveRouteDialog, loadSavedRoute, deleteSavedRoute, mapWritingView, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite,
-	toggleFull, exitFull, mapIsFull, gameImportAction
+	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet
 } from './screen-map.js';
 
 // Two groups: the yard, where a build is planned and made, and the
@@ -834,6 +834,26 @@ function wire() {
 			showView('map');
 			return;
 		}
+		// Sailing a run is done on the Map: the checklist is kept, the
+		// route drawn on the chart, and the chart's panel becomes the
+		// sheet -- the same rows the run popup had, chart in view.
+		if (act === 'barter-sail') {
+			if (!barterAction(act, el, render)) return;
+			const frag = sailChart();
+			if (el.closest('.dialog')) closeDialog();
+			if (frag) applyMapLink(frag);
+			setMapMode('route');
+			showView('map');
+			return;
+		}
+		// Done ticked on the Map's sheet steps the chart to the next stop.
+		if (act === 'barter-stop-done' && el.closest('.map-run')) {
+			const row = el.closest('.run-stop');
+			const was = barterAction(act, el, render);
+			if (row && !row.classList.contains('done')) mapStepTo(Number(row.dataset.i) + 1);
+			if (was) render();
+			return;
+		}
 		if (act.startsWith('barter-') && act !== 'barter-level') {
 			if (barterAction(act, el, render)) render();
 			return;
@@ -902,7 +922,14 @@ function wire() {
 			case 'map-zoom': mapZoomStep(Number(el.dataset.step)); return;
 			case 'map-fit': mapFit(); return;
 			case 'map-pin':
-			case 'map-row': mapCentreOn(Number(el.dataset.npc)); return;
+			case 'map-row': {
+				const npc = Number(el.dataset.npc);
+				mapCentreOn(npc);
+				// A pin pressed brings its stop up the sheet.
+				const row = document.querySelector(`.map-run .run-stop[data-npc="${npc}"]`);
+				if (row) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+				return;
+			}
 			case 'map-stash': mapCentreOnStash(Number(el.dataset.i)); return;
 			case 'map-mode': setMapMode(el.dataset.id); return;
 			case 'map-panel': toggleMapPanel(); return;
@@ -1050,7 +1077,7 @@ function wire() {
 			case 'map-pick-set': setMapPick(el.dataset.item || null); closeDialog(); return render();
 			case 'map-step-prev': mapStep(-1); return;
 			case 'map-step-next': mapStep(1); return;
-			case 'map-step': mapStepTo(Number(el.dataset.i)); return;
+			case 'map-step': mapStepTo(Number(el.dataset.i), el.closest('.map-run') ? true : undefined); return;
 			case 'map-follow': mapFollowToggle(); return;
 			case 'map-next-only': mapNextOnlyToggle(); return;
 			case 'map-port': mapPortClick(Number(el.dataset.port)); return;
@@ -2095,6 +2122,7 @@ export async function init() {
 		if (acct) acct.innerHTML = `<span class="account-chip off" title="Sync mirrors the Main profile only">sync off on this profile</span>`;
 	} else {
 		wireCommunity(render, { look: lookAtShip });
+		setRunSheet(runSheetHTML);
 		initSync({ toast, openDialog, closeDialog, rerender: render })
 			.catch(err => console.warn('[ui] sync unavailable:', err));
 	}

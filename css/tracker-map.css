@@ -947,3 +947,26 @@
 .chart-link:hover { text-decoration: underline; }
 .map-zoom .ghost-btn { min-width: 34px; font-size: 15px; line-height: 1; }
 
+
+/* The run sheet in the chart's panel: the Barter tab's rows, the panel
+   wide enough for them, the stop the chart stands at lit. */
+.map-side:has(.map-run) { width: min(440px, calc(100% - 24px)); }
+.map-run { display: flex; flex-direction: column; gap: 10px; }
+.map-run-head { display: flex; flex-direction: column; gap: 6px; }
+.map-run-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.map-run-title > b { font-family: var(--font-display); font-size: 13.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--blue); }
+.map-run-title span { font-size: 12px; color: var(--ink-faint); }
+.map-run-fold { border: 1px solid var(--line); border-radius: var(--r-btn); padding: 6px 10px; font-size: 12px; color: var(--ink-mid); }
+.map-run-fold > summary { cursor: pointer; font-weight: 600; color: var(--ink-mid); }
+.map-run-fold.tools { margin-top: 10px; }
+.map-run-fold.tools .map-stats { margin-top: 8px; }
+.map-run .sail-bar { flex-wrap: wrap; }
+.map-run-stops .run-stop { padding-right: 4px; }
+.map-run-stops .run-stop.on { background: rgba(var(--blue-rgb), 0.08); border-radius: var(--r-sm); box-shadow: inset 3px 0 0 var(--blue-bar); }
+.run-stop-fly { padding: 0; border: 0; background: none; color: var(--ink-hi); font: inherit; font-weight: 700; cursor: pointer; text-align: left; }
+.run-stop-fly:hover { color: var(--blue-hi); text-decoration: underline; }
+.map-run-hint { font-size: 11.5px; }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .map-run-stops .run-hold { margin-left: 0; }
+  .map-run .sail-bar .act { flex: 1 1 100%; }
+}

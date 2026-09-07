@@ -26,6 +26,15 @@ import { paintMap } from './paint.js';
 import { iconStrip, refreshSide } from './render.js';
 import { applyTraceObject } from './trace.js';
 
+// The run sheet the Barter tab draws for a run being sailed, handed in
+// by ui.js (the Barter screen cannot be imported here without a cycle).
+// It takes the chart's islands in order and answers with the sheet when
+// the run sailed is the one on the chart, or null.
+let runSheet = null;
+export function setRunSheet(fn) {
+	runSheet = typeof fn === 'function' ? fn : null;
+}
+
 export function routeHTML(marks) {
 	if (mv.stops.length && !stopsLive()) {
 		return `<p class="map-hint">You plotted ${mv.stops.length} stops while showing
@@ -168,7 +177,7 @@ export function routeHTML(marks) {
 	const mid = world.length > 1 ? (totalSecs[0] + totalSecs[1]) / 2 : 0;
 	const worth = worthTile(ledger, mid);
 	const carry = carryBlock(ledger);
-	const sailingAs = mv.stops.length ? `<p class="map-hint map-as">Sailing as <b>${esc(me.name)}</b> <button class="linky" data-act="map-setup-pick" title="Sail a saved setup instead — the times follow its speed">switch setup ▾</button> · ${speed.total}% · ${F(me.hold.free)} LT free${me.crew.seated ? ` · ${me.crew.seated} aboard` : ''} · <button class="linky" data-act="view" data-id="crew">change</button></p>` : '';
+	const sailingAs = mv.stops.length ? `<p class="map-hint map-as">Sailing as <b>${esc(me.name)}</b> <button class="linky" data-act="map-setup-pick" title="Sail a saved setup instead — the times follow its speed">switch setup ▾</button> · ${speed.total}% · limit ${F(me.hold.limit)} LT${me.crew.seated ? ` · ${me.crew.seated} aboard` : ''} · <button class="linky" data-act="view" data-id="crew">change</button></p>` : '';
 	const stats = mv.stops.length ? `<div class="map-stats">
 			<div><div class="summary-k">Stops</div><div class="summary-v">${mv.stops.length}</div>
 				${stashLive() ? `<div class="summary-sub">islands · and ${mv.runStash.length} wharf call${mv.runStash.length === 1 ? '' : 's'}${mv.runStash.some(c => c.rations) ? (mv.runStash.every(c => c.rations) ? ' for rations' : ', for rations and to lighten the hold') : ' to lighten the hold'}</div>` : ''}</div>
@@ -210,6 +219,14 @@ export function routeHTML(marks) {
 	const empty = !mv.stops.length
 		? `<p class="map-hint">No route plotted. Click a pin and “Add stop”, or take the loop below and change it from there.</p>`
 		: `<p class="map-hint">Click a pin, then “Add stop”. The numbers sail in this order.</p>`;
+	// A run being sailed takes the panel: the Barter tab's own sheet --
+	// the rail, the trades, the hold and the Parley after each stop, the
+	// calls, the quests, Done -- with the plotting tools folded under it.
+	const sheet = runSheet && mv.stops.length ? runSheet(routeIds(marks)) : null;
+	if (sheet) {
+		return `${sailingAs}<div class="map-run">${sheet}</div>
+		<details class="map-run-fold tools"><summary>Route tools</summary>${stats}${savedHTML()}</details>`;
+	}
 	return `${empty}${sailingAs}
 		${startRow}${seedBtn}<div class="map-list">${list}</div>${stats}${savedHTML()}`;
 }

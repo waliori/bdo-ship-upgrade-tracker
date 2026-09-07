@@ -590,6 +590,15 @@ the Gold Bars a few islands take, bought ashore and priced; a give kept
 in a storage the run cannot load from, to bring to the harbour first;
 and, for what is held nowhere, the way to the item board.
 
+A run is sailed on the **Map**. *Sail this run* draws the route on the
+chart and the chart's panel becomes the run sheet: the numbered rail,
+each stop's trade and count, the hold and the Parley after it, the wharf
+calls with what is left in storage, the quests handed in, Done, and
+Record the trip at the end. A stop's name flies the chart to it; Done
+steps the chart on to the next; a pin pressed on the chart brings its
+stop up the sheet. The plotting tools fold under it. The Barter tab is
+where the run is chosen; the Map is where it is sailed.
+
 The silver run has three paces, compared in numbers under its tiles
 so the choice is made on silver, minutes and calls rather than on a
 word. *Fast* keeps the hold under the limit and makes no wharf call, so

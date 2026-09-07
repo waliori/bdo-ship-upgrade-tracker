@@ -1722,22 +1722,34 @@ test('the run laid out is a sheet over the Barter tab: a strip along the foot ap
 	assert.ok(await page.$(`#dialog [data-act="barter-quest-skip"][data-quest="${first}"]`), 'taken back in');
 	// The quest's name leads to its row on the Quests tab.
 	assert.ok(await page.$(`#dialog .run-quest [data-act="view"][data-id="quests"][data-quest="${first}"]`));
-	// Sailing from inside the sheet: the checklist comes up in the pinned foot, and a stop ticked off cheers.
-	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-sail"]').click()); await wait(1200);
-	assert.ok(await page.$('#dialog .run-foot .sail-bar.sailing'), 'the run is being sailed');
-	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-stop-done"]').click()); await wait(300);
+	// Sailing from inside the sheet lands on the Map: the route drawn on
+	// the chart, the chart's panel now the same sheet -- the rows, the
+	// hold and the Parley after each stop, Done -- and a stop ticked
+	// off cheers and steps the chart to the next.
+	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-sail"]').click()); await wait(2500);
+	assert.equal(await page.evaluate(() => location.hash), '#map', 'sailing is done on the Map');
+	assert.ok(await page.$('.map-run .sail-bar.sailing'), 'the run is being sailed, on the chart\'s panel');
+	assert.ok(await count(page, '.map-run .run-stop') > 0, 'the rows are the run popup\'s');
+	assert.ok(await page.$('.map-run .run-stop .run-parley'), 'with the Parley bar under the hold');
+	assert.ok(await page.$('.map-run .run-stop[data-step-row]'), 'each row a step of the chart');
+	await page.evaluate(() => document.querySelector('.map-run [data-act="barter-stop-done"]').click()); await wait(300);
 	assert.ok(await page.$('.cheer'), 'a burst of light for the stop done');
 	await wait(1000);
-	assert.match(await text(page, '#dialog .run-foot .sail-n'), /1 of \d+ stops done/);
+	assert.match(await text(page, '.map-run .sail-n'), /1 of \d+ stops done/);
+	assert.equal(await page.evaluate(async () => (await import('/js/map/state.js')).mv.stepIdx), 1, 'the chart stepped on to the next stop');
 	// The rest at once: asked in place which of it, then every stop ticked and every quest handed in.
-	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-sail-all"]').click()); await wait(800);
-	assert.match(await text(page, '#dialog .sail-all'), /Tick off, all at once.*every stop.*the quests handed in/i);
-	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-sail-all-go"]').click()); await wait(1200);
-	const allText = await text(page, '#dialog .run-foot .sail-n');
+	await page.evaluate(() => document.querySelector('.map-run [data-act="barter-sail-all"]').click()); await wait(800);
+	assert.match(await text(page, '.map-run .sail-all'), /Tick off, all at once.*every stop.*the quests handed in/i);
+	await page.evaluate(() => document.querySelector('.map-run [data-act="barter-sail-all-go"]').click()); await wait(1500);
+	const allText = await text(page, '.map-run .sail-n');
 	assert.match(allText, /(\d+) of \1 stops done/, allText);
 	// A quest with a pick-one reward not remembered stays open, to be asked; every other is handed in.
-	assert.equal(await page.evaluate(() => [...document.querySelectorAll('#dialog .run-quest:not(.hunt):not(.off):not(.done)')].length), await page.evaluate(async () => { const { questById } = await import('/js/quests.js'); return [...document.querySelectorAll('#dialog .run-quest:not(.hunt):not(.off):not(.done) [data-quest]')].filter(el => questById[el.dataset.quest] && questById[el.dataset.quest].choice).length; }), 'only pick-one quests are left open');
-	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-sail-drop"]').click()); await wait(800);
+	assert.equal(await page.evaluate(() => [...document.querySelectorAll('.map-run .run-quest:not(.hunt):not(.off):not(.done)')].length), await page.evaluate(async () => { const { questById } = await import('/js/quests.js'); return [...document.querySelectorAll('.map-run .run-quest:not(.hunt):not(.off):not(.done) [data-quest]')].map(el => el.dataset.quest).filter((id, i, a) => a.indexOf(id) === i).filter(id => questById[id] && questById[id].choice).length; }), 'only the pick-one rewards not remembered are left open');
+	await page.evaluate(() => document.querySelector('.map-run [data-act="barter-sail-drop"]').click()); await wait(800);
+	assert.equal(await count(page, '.map-run'), 0, 'the panel is the plotting tool again');
+	// Back on the Barter tab the sheet opens as before.
+	await page.evaluate(() => document.querySelector('.tab[data-id="barter"]').click()); await wait(1500);
+	await page.evaluate(() => document.querySelector('[data-act="barter-run-open"]').click()); await wait(1500);
 	assert.ok(await page.$('#dialog [data-act="barter-chart"]'), 'and the way to the chart');
 	// A chain unticked from inside the sheet: the sheet stays, one chain fewer.
 	await page.evaluate(() => document.querySelector('#dialog .run-seg-head [data-act="barter-chain"]').click()); await wait(1500);

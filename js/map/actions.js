@@ -188,7 +188,7 @@ export function openMapPicker() {
 
 /* The step player. */
 
-function moveStep(i) {
+function moveStep(i, fly = mv.follow) {
 	const seq = routeSeq(marksNow());
 	if (seq.length < 2) return;
 	mv.stepIdx = ((i % seq.length) + seq.length) % seq.length;
@@ -198,7 +198,7 @@ function moveStep(i) {
 		row.classList.toggle('on', on);
 		if (on) row.scrollIntoView({ block: 'nearest' });
 	}
-	if (mv.follow) {
+	if (fly) {
 		const s = seq[mv.stepIdx];
 		if (s) {
 			// The card follows the camera: an island's trades, or what
@@ -217,8 +217,9 @@ export function mapStep(delta) {
 	moveStep(mv.stepIdx + delta);
 }
 
-export function mapStepTo(i) {
-	moveStep(i);
+/** Step to `i`; `fly` takes the camera there whether or not it follows. */
+export function mapStepTo(i, fly = undefined) {
+	moveStep(i, fly === undefined ? mv.follow : fly);
 }
 
 export function mapFollowToggle() {

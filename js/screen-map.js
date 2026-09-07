@@ -17,7 +17,7 @@ export {
 	renderMap
 } from './map/render.js';
 export {
-	saveRouteDialog, loadPreviousRoute, deletePreviousRoute, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, openSailCal, setRationsAboard, putRationsCall, openRationCal, exportRoute, importRoute
+	saveRouteDialog, loadPreviousRoute, deletePreviousRoute, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, openSailCal, setRationsAboard, putRationsCall, openRationCal, exportRoute, importRoute, setRunSheet
 } from './map/route.js';
 export {
 	setTraceTool, traceAction, openTraceLibrary, traceChange, currentMapData, traceLink, applyTraceLink, applyTraceObject
