@@ -31,6 +31,7 @@ import { coins as coinShop } from './sea_coins.js';
 import { landPrices } from './land-cost.js';
 import { marketStatus, marketSilver } from './market.js';
 import { GOODS, PARLEY, parleyPerTrade, levelOf } from './barter.js';
+import { parleyLedger } from './parley-ledger.js';
 import { exchanges, goodsHeld, weightOf, sellOf, aboardStock as aboardOf } from './barter-plan.js';
 import { TOWNS } from './screen-inventory.js';
 import { chains, chainRun } from './barter-chains.js';
@@ -236,6 +237,7 @@ function held() {
  * it has the page to itself.
  */
 function holdBarHTML(me) {
+	const prof = barterProfile();
 	const goods = held();
 	const lt = goods.reduce((a, g) => a + g.weight, 0);
 	const free = me.hold.free, max = me.hold.max;
@@ -267,6 +269,7 @@ function holdBarHTML(me) {
 			<span class="hold-bar-open">open ›</span>
 		</button>
 		<span class="panel-btns hold-bar-btns">
+			<label class="hold-parley" title="What the Parley bar holds right now — a full million after the refill, less if some was spent; the run's bars count down from it"><span>Parley</span><input class="purse-inline" type="text" inputmode="numeric" value="${F(prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max)}" data-act="parley-held" aria-label="Parley in the bar right now">${prof.vouchers ? `<small>+ ${prof.vouchers} voucher${prof.vouchers === 1 ? '' : 's'}</small>` : ''}</label>
 			<button class="ghost-btn sm" data-act="barter-add" title="Record a good that is aboard">＋ A good</button>
 		</span>
 	</section>`;
@@ -510,7 +513,7 @@ function legsOf(stops) {
 	const measured = Number(store.getSetting('sailCal', null)) > 0;
 	const range = m => sailRange(m, me.speed.total, sailCal(), measured);
 	const [fast, slow] = range(total);
-	return { total, legs, from, time: fmtRange(fast, slow), mid: (fast + slow) / 2, timeOf: m => fmtRange(...range(m)) };
+	return { total, legs, from, time: fmtRange(fast, slow), mid: (fast + slow) / 2, timeOf: m => fmtRange(...range(m)), secondsOf: m => { const [a, b] = range(m); return (a + b) / 2; } };
 }
 
 /** How far a barter quest has come in its period. */
@@ -646,8 +649,30 @@ function seventhsOf(npcId) {
 	return out.sort();
 }
 
-function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = null, notes = null } = {}) {
+/**
+ * The Parley ledger for these stops, the clock read off the legs: how
+ * far into the run each stop is, at the middle of the leg's range.
+ */
+function ledgerOf(stops, legs) {
+	const prof = barterProfile();
+	const at = [];
+	let t = 0;
+	stops.forEach((s, k) => {
+		const m = legs && legs.from ? legs.legs[k] : k > 0 && legs ? legs.legs[k - 1] : null;
+		if (m != null && legs.secondsOf) t += legs.secondsOf(m) / 60;
+		at[k] = t;
+	});
+	return parleyLedger(stops, { held: prof.parleyHeld, vouchers: prof.vouchers, minutesAt: k => at[k] || 0 });
+}
+
+function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = null, notes = null, ledger = null } = {}) {
 	const wanted = notes ? questWanted() : new Set();
+	// The bar after each stop: the whole run's book when the caller
+	// drew it up -- these stops may be one chain's segment of it, so
+	// the book is read at the stop's place in the run -- else this
+	// list's own, which starts where the list does.
+	const book = ledger || ledgerOf(stops, legs);
+	const rowAt = k => (ledger ? book.rows[k] : book.rows[k - k0]);
 	const sevens = store.getProfile('sevens', {}) || {};
 	const four = s => {
 		if (!board || levelOf(s.item) !== 7) return '';
@@ -699,9 +724,27 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = nu
 				<div><span>hold</span><b class="${heavy ? 'warn' : over ? 'amber' : ''}">${F(Math.max(0, Math.round(s.weightAfter)))} LT</b></div>
 				<div class="run-bar"><i style="width:${fill.toFixed(1)}%"></i><i class="over" style="width:${extra.toFixed(1)}%"></i><i class="heavy" style="width:${worse.toFixed(1)}%"></i></div>
 				${dead ? '<div class="run-note warn">more than the hull will move under</div>' : heavy ? '<div class="run-note warn">too heavy to barter — lighten first</div>' : over ? '<div class="run-note">past the limit — sailing slower</div>' : ''}
+				${parleyBar(rowAt(k), s)}
 			</div>
 		</div>`;
 	}).join('');
+}
+
+/**
+ * The Parley bar after a stop, drawn under the hold's: what is left of
+ * the bar, the quarter a voucher put back, and the stop that would
+ * stall for want of it.
+ */
+function parleyBar(row, s) {
+	if (!row) return '';
+	const low = row.after < row.max * 0.1;
+	const spent = s.npcId && row.spent ? `−${F(row.spent)}` : '';
+	return `<div class="run-parley${row.short ? ' short' : low ? ' low' : ''}">
+		<div><span>parley</span><b class="${row.short ? 'warn' : low ? 'amber' : ''}">${F(row.after)}</b>${spent ? `<small>${spent}</small>` : ''}</div>
+		<div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div>
+		${row.voucher ? '<div class="run-note teal">a voucher drawn on here — a quarter of a bar back</div>' : ''}
+		${row.short ? `<div class="run-note warn">${F(row.short)} Parley short — ${s.parley && s.times ? `${Math.ceil(row.short / (s.parley / s.times))} of the ${s.times} attempts wait` : 'the bar is empty'}${row.voucher ? '' : ', and no voucher is off its cooldown yet'}</div>` : ''}
+	</div>`;
 }
 
 /** The chart button: the islands in order, what each is called at for,
@@ -731,7 +774,17 @@ function chartButton(stops, pick) {
 	return `<button class="ghost-btn run-chart" data-act="barter-chart" data-ids="${ids.join('.')}" data-pick="${esc(pick || '')}" data-trades="${esc(JSON.stringify(trades))}" data-stash="${esc(JSON.stringify(calls))}" title="Plot ${what} on the Map, in this order">Draw it on the chart</button>`;
 }
 
-const parleyOf = prof => ({ bar: PARLEY.max + prof.vouchers * PARLEY.voucher, perTrade: parleyPerTrade({ ...prof, kind: 'trade' }) });
+// The Parley the run can reach in all: what the bar holds now -- full
+// after the refill, less when some was spent already -- and a quarter
+// of a bar for each voucher carried. The ledger drawn beside each stop
+// says where the vouchers are actually drawn on, and where the two-hour
+// cooldown leaves a stop short.
+const parleyOf = prof => ({
+	bar: (prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max) + prof.vouchers * PARLEY.voucher,
+	held: prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max,
+	vouchers: prof.vouchers,
+	perTrade: parleyPerTrade({ ...prof, kind: 'trade' })
+});
 const stashAt = () => stashes.find(w => w.at === stash) || null;
 
 /* ------------------------------------------------------------------ *
@@ -1404,6 +1457,10 @@ function silverParts(me, b) {
 	plan.questsHome = qp.home;
 	shownPlan = plan;
 	const legs = legsOf(plan.stops);
+	// The Parley bar, stop by stop, for the whole run at once -- the
+	// chain segments below draw their own stops from the same book.
+	const book = ledgerOf(plan.stops, legs);
+	const parley = parleyOf(prof);
 	const yard = yardsticks(plan.net, plan.parleyUsed, legs.mid / 3600);
 	const islands = plan.stops.filter(s => s.npcId).length, wharfs = plan.stops.filter(s => s.wharf).length;
 	// A fast run refuses a hold over the limit and trades nothing; say
@@ -1421,6 +1478,7 @@ function silverParts(me, b) {
 		${tile(plan.cost ? 'Silver, net' : 'Sold in port', plan.silver ? FC(Math.round(plan.net)) : '—', plan.silver ? `${soldWhat} sold at the wharf${plan.cost ? ` for ${FC(Math.round(plan.silver))} · ${FC(Math.round(plan.cost))} of land goods bought` : ''}${plan.bought.some(b => b.how === 'unpriced') ? ' · some land goods unpriced' : ''}` : chosen.length ? 'no chain ticked sells' : 'pick a chain', plan.net < 0 ? 'warn' : 'gold')}
 		${tile('A Parley unit pays', yard.perUnit ? FC(Math.round(yard.perUnit)) : '—', yard.perUnit ? `${F(Math.round(plan.parleyUsed))} Parley of ${F(plan.parleyBar)} · ${F(plan.trades)} trade${plan.trades === 1 ? '' : 's'}${yard.perHour ? ` · ≈ ${FC(Math.round(yard.perHour))} an hour` : ''}` : `${F(plan.trades)} trade${plan.trades === 1 ? '' : 's'} · one unit is one normal trade’s Parley`, 'gold')}
 		${tile('Hold at its fullest', plan.stops.length ? `${F(Math.round(plan.weightPeak))} LT` : '—', `${F(me.hold.free)} is the limit · barters to ${F(me.hold.deal)} · moves to ${F(me.hold.max)}`, plan.weightPeak > me.hold.deal ? 'warn' : plan.weightPeak > me.hold.free ? 'amber' : 'teal')}
+		${tile('Parley at the end', plan.stops.length ? F(book.end) : '—', `${F(book.spent)} spent from ${F(parley.held)}${prof.vouchers ? ` · ${book.vouchersUsed} of ${prof.vouchers} voucher${prof.vouchers === 1 ? '' : 's'} drawn on` : ''}${book.short ? ` · <b class="warn">${F(book.short)} short</b>` : ''}`, book.short ? 'warn' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
 		${tile('Under way', legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `≈ ${esc(legs.time)} at ${me.speed.total}% · ${islands} island${islands === 1 ? '' : 's'}${wharfs ? `, ${wharfs} wharf call${wharfs === 1 ? '' : 's'}` : ''}${from ? ` · from ${esc(from.name)}` : ''}` : 'pick a chain')}
 	</div>${notice}`;
 	// One route through every chain: the stops in sailing order, each
@@ -1431,7 +1489,7 @@ function silverParts(me, b) {
 	const segs = oneRoute ? (plan.stops.length ? `<section class="panel run-seg run-seg-all" style="--tier:${TIER(Math.max(...plan.order.map(c => c.top)))}">
 			<div class="run-seg-head"><i></i><b>${plan.lots.length > 1 ? `One route, ${plan.lots.length} lots` : 'One route, every chain at once'}</b><span>${islands} island${islands === 1 ? '' : 's'}${wharfs ? `, ${wharfs} wharf call${wharfs === 1 ? '' : 's'}` : ''} · the nearest rung the ship holds the give for, whatever its chain${plan.lots.length > 1 ? ' · as many chains at once as the hold carries, the tops sold before the next lot' : ''}</span></div>
 			<div class="run-seg-chains">${plan.lots.map(lot => lot.map(k => { const c = plan.order[k]; return `<span class="run-chain-tag" style="--tier:${TIER(c.top)}"><i></i>${chainName(c)}<em>L${c.top}</em><small>${plan.stops.filter(s => s.chain === k && s.npcId).length} stops</small><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="Untick this chain">×</button></span>`; }).join('')).join('<span class="run-lot-sep">then</span>')}</div>
-			<div class="run-stops">${stopRows(plan.stops, legs, { board: true, sailing: sailing(), notes: qp, tag: s => (s.npcId ? `<em class="run-chain-tag sm" style="--tier:${TIER(plan.order[s.chain].top)}"><i></i>${chainName(plan.order[s.chain])}</em>` : '') })}</div>
+			<div class="run-stops">${stopRows(plan.stops, legs, { board: true, sailing: sailing(), notes: qp, ledger: book, tag: s => (s.npcId ? `<em class="run-chain-tag sm" style="--tier:${TIER(plan.order[s.chain].top)}"><i></i>${chainName(plan.order[s.chain])}</em>` : '') })}</div>
 		</section>` : '') : plan.order.map((c, k) => {
 		const first = plan.stops.findIndex(s => s.chain === k);
 		const mine = plan.stops.filter(s => s.chain === k);
@@ -1439,7 +1497,7 @@ function silverParts(me, b) {
 		const leftHere = plan.stashed.filter(s => s.chain === k).reduce((a, s) => a + s.total, 0);
 		return `<section class="panel run-seg" style="--tier:${TIER(c.top)}">
 			<div class="run-seg-head"><i></i><b>${esc(isleShort(npcById.get(c.rungs[0].npcId)) || c.rungs[0].npc)} chain</b><em>Level ${c.top}</em><span>${soldHere ? `${FC(Math.round(soldHere))} sold` : 'nothing sold'}${leftHere ? ` · ${FC(Math.round(leftHere))} left on the way` : ''}${mine.length ? '' : ' · every island already dealt'}</span><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="Untick this chain">×</button></div>
-			${mine.length ? `<div class="run-stops">${stopRows(mine, legs, { k0: first, board: true, sailing: sailing(), notes: qp })}</div>` : ''}
+			${mine.length ? `<div class="run-stops">${stopRows(mine, legs, { k0: first, board: true, sailing: sailing(), notes: qp, ledger: book })}</div>` : ''}
 		</section>`;
 	}).join('');
 	const worth = s => (s.total ? `would sell for ${FC(Math.round(s.total))}` : 'cannot be sold');

@@ -634,3 +634,25 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .comm-place-row small { color: var(--ink-faint); }
 .comm-place-b { color: var(--ink); }
 .comm-place-v { text-align: right; font-family: var(--font-display); color: var(--ink-mid); white-space: nowrap; }
+
+/* The Parley bar under the hold's, in the same column of a stop. */
+.run-parley { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--line); }
+.run-parley > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.run-parley span { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.run-parley b { font-family: var(--font-display); font-size: 12px; font-weight: 600; color: var(--ink-mute); }
+.run-parley b.amber { color: var(--amber); }
+.run-parley b.warn { color: var(--red); }
+.run-parley small { font-size: 10px; color: var(--ink-faint); margin-left: auto; }
+.run-bar.parley i { background: var(--stash); }
+.run-parley.low .run-bar.parley i { background: var(--amber); }
+.run-parley.short .run-bar.parley i { background: var(--red); }
+.run-note.teal { color: var(--teal); }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .run-hold { flex-wrap: wrap; }
+  .run-parley { flex: 1 1 100%; display: flex; align-items: center; gap: 10px; margin-top: 4px; padding-top: 4px; }
+  .run-parley > div:first-child { flex: none; }
+  .run-parley .run-bar { flex: 1 1 auto; margin-top: 0; }
+  .run-parley .run-note { flex: 1 1 100%; }
+}
+.hold-parley { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-mute); white-space: nowrap; }
+.hold-parley .purse-inline { width: 92px; }
