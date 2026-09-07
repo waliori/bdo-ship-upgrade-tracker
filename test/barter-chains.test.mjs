@@ -203,3 +203,32 @@ test('a steady run is every attempt under the limit itself: never heavier than a
 	assert.ok(steady.stops.filter(s => s.wharf).length >= loaded.stops.filter(s => s.wharf).length, 'the surplus is left ashore oftener');
 	assert.ok(fast.weightPeak <= hold.free, 'a fast run never slows');
 });
+
+import { tailOf } from '../js/barter-chains.js';
+
+test('a good held part-way up a chain from the shore is one climb with it: the islands deal once, the good is loaded all the same', () => {
+	// A land chain, and the chain from its own [Level 3] good sitting at
+	// the harbour: the second climbs the tail of the first.
+	const land = chains(data).find(c => c.from === 'land' && c.top === 7 && c.rungs.length >= 5);
+	const third = land.rungs[2].item;
+	const dock = { [third]: 3 };
+	const all = chains(data, {}, dock);
+	const held = all.find(c => c.from === 'dock' && c.item === third && tailOf(land, c));
+	assert.ok(held, 'no chain from the good held climbs the tail of the land chain');
+	assert.equal(tailOf(held, land), false);
+	const start = ports.find(p => p.name === 'Velia');
+	const opts = { dock, hold, parley, npcById, start, stashes, pace: 'full', orders: PLAIN_ORDERS };
+	const both = chainRun({ ...opts, chosen: [land, held] });
+	const alone = chainRun({ ...opts, chosen: [land] });
+	// Both ticked: the same islands as the land chain alone, each once,
+	// and no chain tag past the one climb; the good held is loaded.
+	const isles = run => run.stops.filter(s => s.npcId).map(s => s.npcId);
+	assert.deepEqual(isles(both), isles(alone));
+	assert.equal(new Set(isles(both)).size, isles(both).length);
+	assert.equal(both.order.length, 1);
+	assert.deepEqual(both.loaded, [{ item: third, n: 3 }]);
+	assert.deepEqual(alone.loaded, []);
+	// The load feeds the rungs above it: the run makes at least what the
+	// land chain alone does.
+	assert.ok(both.silver >= alone.silver);
+});

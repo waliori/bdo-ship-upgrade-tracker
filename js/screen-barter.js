@@ -34,7 +34,7 @@ import { GOODS, PARLEY, parleyPerTrade, levelOf, barterLevels, levelDiscount } f
 import { parleyLedger } from './parley-ledger.js';
 import { exchanges, goodsHeld, weightOf, sellOf, aboardStock as aboardOf } from './barter-plan.js';
 import { TOWNS } from './screen-inventory.js';
-import { chains, chainRun } from './barter-chains.js';
+import { chains, chainRun, tailOf } from './barter-chains.js';
 import { materialRun } from './barter-material.js';
 import { wharves } from './wharves.js';
 import { tradeGoodNames } from './trade_goods.js';
@@ -925,7 +925,7 @@ function ordersHTML(o) {
 
 /** One chain of the board, to tick: where it starts, how far it
  *  reaches, the islands, the goods, and what one pass of it pays. */
-function chainRow(c, on, solo, dockName, from) {
+function chainRow(c, on, solo, dockName, from, ladder = null) {
 	// The pips are the rungs this chain climbs: from the shore up for a
 	// land chain, from the good held for the rest -- a [Level 5] aboard
 	// shows 5, 6, 7, not the ladder beneath it.
@@ -937,7 +937,18 @@ function chainRow(c, on, solo, dockName, from) {
 		: c.from === 'dock'
 			? `<b>${n1(c.load)}× ${esc(c.item)}</b><span>at ${esc(dockName || 'the wharf')} · loaded before casting off</span>`
 			: `<b>${n1(c.have)}× ${esc(c.item)}</b><span>already aboard${c.load ? ` · ${n1(c.load)} more at ${esc(dockName || 'the wharf')}` : ''}</span>`;
-	return `<button class="chain${on ? ' on' : ''}" data-act="barter-chain" data-id="${esc(c.id)}" style="--tier:${TIER(c.top)}">
+	// A ladder with more than one start: the card is the start shown,
+	// and a row of the starts beneath it -- the shore, or a good held --
+	// each with what the climb from there pays; one is sailed, since
+	// the islands above deal once.
+	const group = ladder ? ladder.starts.map(x => x.id).join('\n') : '';
+	const startOf = x => (x.from === 'land' ? `the shore · ${F(x.rungs[0].giveN)}× ${esc(x.item)}` : `${esc(x.item)} · ${n1(x.have + x.load)} ${x.from === 'dock' ? 'ashore' : 'aboard'}`);
+	const starts = ladder ? `<div class="chain-starts" style="--tier:${TIER(c.top)}"><span class="chain-starts-k">start from</span>${ladder.starts.map(x => {
+		const sol = ladder.solos.get(x.id);
+		const picked = ladder.chosen.includes(x);
+		return `<button class="chip tiny${picked ? ' active' : x === c ? ' shown' : ''}" data-act="barter-chain-start" data-id="${esc(x.id)}" data-group="${esc(group)}" title="${x.from === 'land' ? `Buy ${F(x.rungs[0].giveN)}× ${esc(x.item)} ashore and climb from Level 1` : `Climb from the ${n1(x.have + x.load)}× ${esc(x.item)} held`} — the islands above deal once, so one start is sailed"><i class="chain-start-lv" style="--tier:${TIER(x.from === 'land' ? 1 : levelOf(x.item))}">${x.from === 'land' ? '⌂' : levelOf(x.item)}</i>${startOf(x)}${sol && sol.silver ? `<em>${FC(Math.round(sol.net))}</em>` : ''}</button>`;
+	}).join('')}</div>` : '';
+	const card = `<button class="chain${on ? ' on' : ''}" data-act="barter-chain" data-id="${esc(c.id)}"${group ? ` data-group="${esc(group)}"` : ''} style="--tier:${TIER(c.top)}">
 		<span class="chain-mark">${on ? '✓' : ''}</span>
 		<span class="chain-main">
 			<span class="chain-start">${start}</span>
@@ -953,6 +964,7 @@ function chainRow(c, on, solo, dockName, from) {
 			<span>${c.rungs.length} island${c.rungs.length === 1 ? '' : 's'}${from ? '' : ''}</span>
 		</span>
 	</button>`;
+	return ladder ? `<div class="chain-ladder${on ? ' on' : ''}">${card}${starts}</div>` : card;
 }
 
 /**
@@ -1570,6 +1582,19 @@ function silverParts(me, b) {
 		&& (!chainFrom || (chainFrom === 'held' ? c.from !== 'land' : c.from === 'land'))
 		&& (!chainTop || c.top === chainTop));
 	const listed = all.filter(passes);
+	// One card a ladder. A good held part-way up a chain from the shore
+	// climbs the same islands to the same top, and the islands deal
+	// once: the chains are one climb with a choice of where to start --
+	// the shore, or the good held -- not two runs at the [Level 7]. So a
+	// chain whose rungs are the tail of a longer one's is folded into
+	// that card, as a start to pick; the longest is the ladder's own.
+	const ladders = new Map();
+	for (const c of all) {
+		const longest = all.reduce((best, d) => (tailOf(d, c) && (!best || d.rungs.length > best.rungs.length) ? d : best), null) || c;
+		if (!ladders.has(longest.id)) ladders.set(longest.id, []);
+		ladders.get(longest.id).push(c);
+	}
+	for (const list of ladders.values()) list.sort((x, y) => y.rungs.length - x.rungs.length);
 	const tops = [...new Set(all.map(c => c.top))].sort((a, b2) => b2 - a);
 	const chainFilters = `<div class="chain-filters">
 		<input class="field hold-q" type="search" placeholder="Find an island, a place or a good…" value="${esc(chainQ)}" data-act="barter-chain-q" aria-label="Find a chain">
@@ -1581,9 +1606,17 @@ function silverParts(me, b) {
 		</span>
 	</div>`;
 	const groups = tops.map(top => {
-		const rows = listed.filter(c => c.top === top);
+		// The ladders at this reach, each with the starts the filters
+		// leave in; the card shows the start ticked, else the best.
+		const rows = [...ladders.values()].filter(list => list[0].top === top).map(list => {
+			const starts = list.filter(c => listed.includes(c));
+			if (!starts.length) return '';
+			const shown = starts.find(c => chosen.includes(c)) || starts.slice().sort((x, y) => all.indexOf(x) - all.indexOf(y))[0];
+			return chainRow(shown, chosen.includes(shown), solos.get(shown.id), from && from.name, from, starts.length > 1 ? { starts, chosen, solos } : null);
+		}).filter(Boolean);
 		if (!rows.length) return '';
-		return `<div class="chain-group"><div class="chain-group-head" style="--tier:${TIER(top)}"><i></i><span>Reaches Level ${top}</span><span>${rows.length}${rows.length !== all.filter(c => c.top === top).length ? ` of ${all.filter(c => c.top === top).length}` : ''}</span></div>${rows.map(c => chainRow(c, chosen.includes(c), solos.get(c.id), from && from.name, from)).join('')}</div>`;
+		const of = [...ladders.values()].filter(list => list[0].top === top).length;
+		return `<div class="chain-group"><div class="chain-group-head" style="--tier:${TIER(top)}"><i></i><span>Reaches Level ${top}</span><span>${rows.length}${rows.length !== of ? ` of ${of}` : ''}</span></div>${rows.join('')}</div>`;
 	}).join('');
 	// What pays the good today, and whether its give is held: the answer
 	// even when no chain from the shore reaches it.
@@ -2248,8 +2281,19 @@ export function barterAction(act, el, redraw) {
 		case 'barter-reach-clear': reach = ''; persist(); return true;
 		case 'barter-board-clear': board.answers = []; persist(); return true;
 		case 'barter-chain': {
+			// Ticked, a start replaces the ladder's other starts: one
+			// climb up those islands, from one place.
 			const id = el.dataset.id;
-			routes.ids = routes.ids.includes(id) ? routes.ids.filter(x => x !== id) : [...routes.ids, id];
+			const group = String(el.dataset.group || '').split('\n').filter(Boolean);
+			routes.ids = routes.ids.includes(id) ? routes.ids.filter(x => x !== id) : [...routes.ids.filter(x => !group.includes(x)), id];
+			routesAuto = '';
+			persist();
+			return true;
+		}
+		case 'barter-chain-start': {
+			const id = el.dataset.id;
+			const group = String(el.dataset.group || '').split('\n').filter(Boolean);
+			routes.ids = [...routes.ids.filter(x => !group.includes(x)), id];
 			routesAuto = '';
 			persist();
 			return true;

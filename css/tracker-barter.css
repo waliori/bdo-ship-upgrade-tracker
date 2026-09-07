@@ -198,6 +198,17 @@
 .chain-pips em { margin-left: 5px; font-style: normal; font-size: 11px; font-weight: 700; color: var(--tier); letter-spacing: 0.03em; }
 .chain-route { font-size: 11.5px; color: var(--ink-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chain-goods { display: flex; flex-wrap: wrap; gap: 3px; }
+/* A ladder with a choice of start: the card, and the starts under it
+   as one piece -- the shore, or a good held part-way up. */
+.chain-ladder { display: flex; flex-direction: column; min-width: 0; }
+.chain-ladder .chain { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.chain-starts { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; padding: 6px 10px 7px 13px; border: 1px solid var(--line-btn); border-top: 0; border-left: 3px solid transparent; border-radius: 0 0 10px 10px; background: rgba(var(--deep-rgb), 0.35); }
+.chain-ladder.on .chain-starts { border-color: rgba(var(--blue-rgb), 0.5); border-top: 0; border-left-color: var(--tier); }
+.chain-starts-k { font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); margin-right: 3px; }
+.chain-starts .chip { gap: 5px; }
+.chain-starts .chip.shown { border-color: var(--line-btn-hi); color: var(--ink-mid); }
+.chain-starts .chip em { font-style: normal; color: var(--amber); font-weight: 600; margin-left: 5px; }
+.chain-start-lv { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 13px; border-radius: 3px; background: var(--tier); color: var(--on-tint); font-family: var(--font-display); font-style: normal; font-size: 9px; font-weight: 700; }
 .chain-right { flex: none; text-align: right; display: flex; flex-direction: column; gap: 2px; }
 .chain-right b { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--amber); }
 .chain-right b.none { color: var(--ink-faint); }
@@ -488,6 +499,20 @@
 .map-tip.stash .map-tip-name { color: var(--stash); }
 .map-tip-sub.sell { color: var(--tier-7); }
 .map-tip-side.ashore { color: var(--ink-dim); }
+/* A wharf's calls, one block each: the stop and its sale on one line,
+   the goods it leaves in a tight list beneath. The card is capped at
+   the chart's height and scrolls, so eight calls do not run off it. */
+.map-tip.stash { max-height: calc(100% - 20px); display: flex; flex-direction: column; }
+.map-tip-calls { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; overflow-y: auto; min-height: 0; scrollbar-width: thin; }
+.map-tip-call { border: 1px solid var(--stash-edge); border-radius: 8px; padding: 5px 8px 6px; background: rgba(178, 143, 224, 0.06); }
+.map-tip-call-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.map-tip-call-head .map-tip-k { margin: 0; }
+.map-tip-call-head .map-tip-sub { margin: 0; font-weight: 600; }
+.map-tip-call .map-tip-sub.quest { margin: 3px 0 0; }
+.map-tip-sub.ashore-k { margin: 4px 0 0; font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+.map-tip-drops .map-tip-row { padding: 2px 0; border-top: 0; font-size: 10.5px; }
+.map-tip-drops .map-tip-row + .map-tip-row { border-top: 1px solid var(--line-soft); }
+.map-tip-drops .map-icon { width: 18px; height: 18px; }
 .map-io.ashore::after { content: '⌂'; background: #2a1c46; color: #ddc9ff; border-color: var(--stash-edge); font-size: 8px; }
 .map-step-chip.stash { color: var(--stash); border-color: var(--stash-edge); background: rgba(178, 143, 224, 0.12); border-radius: 6px; }
 .map-step-chip.stash.on { background: var(--stash); border-color: transparent; color: var(--on-tint); }

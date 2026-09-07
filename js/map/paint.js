@@ -1154,6 +1154,9 @@ function paintStashTip(host, tip, size, g, pinned) {
 	const key = ['stash', g.key, pinned, g.calls.map(s => `${s.n}:${s.place.drops.length}:${s.place.sale}:${(s.place.quests || []).length}:${s.place.rations ? 'r' : ''}`).join(',')].join('|');
 	if (tip._for !== key) {
 		tip._for = key;
+		// Each call is its own block -- the stop, what it sells, what it
+		// leaves -- so a wharf the run comes back to eight times reads as
+		// eight calls, not one long list of goods.
 		const visit = s => {
 			const c = s.place;
 			const rows = c.drops.map(d => `<div class="map-tip-row">
@@ -1161,18 +1164,19 @@ function paintStashTip(host, tip, size, g, pinned) {
 				<span class="map-tip-tries">${n1(d.n)}×</span>
 			</div>`).join('');
 			const questRows = (c.quests || []).map(q => `<div class="map-tip-sub quest">📜 ${esc(q)}</div>`).join('');
-			return `<span class="map-tip-k stash">Stop ${s.n}</span>
-				${c.sale ? `<div class="map-tip-sub sell">sells ${n1(c.sale)} [Level 7]${c.silver ? ` for ${FC(c.silver)}` : ''}</div>` : ''}
+			return `<div class="map-tip-call">
+				<div class="map-tip-call-head"><span class="map-tip-k stash">Stop ${s.n}</span>${c.sale ? `<span class="map-tip-sub sell">sells ${n1(c.sale)} [Level 7]${c.silver ? ` for ${FC(c.silver)}` : ''}</span>` : ''}</div>
 				${questRows}
 				${c.rations ? '<div class="map-tip-sub">🍞 rations bought here — the pool is full again</div>' : ''}
-				${rows || (c.sale || questRows || c.rations ? '' : '<div class="map-tip-sub none">Nothing left ashore this time.</div>')}`;
+				${rows ? `<div class="map-tip-sub ashore-k">leaves in storage</div><div class="map-tip-drops">${rows}</div>` : (c.sale || questRows || c.rations ? '' : '<div class="map-tip-sub none">Nothing left ashore this time.</div>')}
+			</div>`;
 		};
 		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">⚓ ${esc(g.name)}</span>
 			${pinned ? '<button class="map-x" data-act="map-tip-close" aria-label="Close">×</button>' : ''}</div>
 			<div class="map-tip-sub">${esc(g.at)} wharf · ${g.calls.length > 1
 				? `the run calls ${g.calls.length} times`
 				: 'a pause, not a barter'}</div>
-			${g.calls.map(visit).join('')}`;
+			<div class="map-tip-calls">${g.calls.map(visit).join('')}</div>`;
 	}
 	tip.classList.add('stash');
 	tip.classList.toggle('pinned', pinned);

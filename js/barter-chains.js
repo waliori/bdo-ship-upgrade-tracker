@@ -57,6 +57,13 @@ export function chains(barterData, stock = {}, dock = {}) {
 
 const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);
 
+/** Whether `short` climbs the top of `long`'s ladder: its rungs are
+ *  the last of `long`'s, island for island. */
+export function tailOf(long, short) {
+	const off = long.rungs.length - short.rungs.length;
+	return off > 0 && short.rungs.every((r, j) => r.npcId === long.rungs[off + j].npcId);
+}
+
 /**
  * The rungs of the chains in sailing order, each tagged with its chain
  * (its index in `order`) and its lot. `lots` are the chains grouped as
@@ -200,9 +207,14 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 	const bought = new Map();
 	let at = start;
 
+	// Two chains up the same ladder -- one from the shore, one from a
+	// good held part-way up it -- are one climb: the islands deal once,
+	// and the good held feeds the rungs above it. The shorter is folded
+	// into the longer, its good loaded all the same.
+	const climbs = chosen.filter(c => !chosen.some(d => d !== c && tailOf(d, c)));
 	// The chains in sailing order: whichever starts nearest to where
 	// the ship is, then from where that one ends.
-	const queue = [...chosen];
+	const queue = [...climbs];
 	const order = [];
 	while (queue.length) {
 		const i = queue.reduce((best, c, k) => (dist(at, npcById.get(c.rungs[0].npcId)) < dist(at, npcById.get(queue[best].rungs[0].npcId)) ? k : best), 0);
