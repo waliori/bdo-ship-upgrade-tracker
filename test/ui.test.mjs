@@ -1612,7 +1612,7 @@ test('the hold is a line across the Barter tab that opens over the page, and the
 	assert.equal(await count(page, '.barter-layout'), 0);
 	assert.equal(await count(page, '.barter-screen > .barter-hold'), 0, 'the full hold is not on the page');
 	const bar = await text(page, '.hold-bar');
-	assert.match(bar, /The hold.*Carrack \(Advance\).*9,000 of 16,500 LT/i);
+	assert.match(bar, /The hold.*Carrack \(Advance\).*9,000 \/ 16,500 LT/i);
 	assert.match(bar, /L7\s*2.*L5\s*5/);
 	await page.evaluate(() => document.querySelector('[data-act="barter-hold-open"]').click()); await wait(400);
 	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), false);
@@ -1621,7 +1621,7 @@ test('the hold is a line across the Barter tab that opens over the page, and the
 	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-good"][data-item="[Level 7] Crystal Ball of Fortune"][data-delta="1"]').click()); await wait(400);
 	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), false, 'still up');
 	assert.equal(await page.$eval('#dialog [data-act="barter-good-set"][data-item="[Level 7] Crystal Ball of Fortune"]', el => el.value), '3');
-	assert.match(await text(page, '.hold-bar'), /11,000 of 16,500 LT/, 'the bar under it follows');
+	assert.match(await text(page, '.hold-bar'), /11,000 \/ 16,500 LT/, 'the bar under it follows');
 	await page.keyboard.press('Escape'); await wait(300);
 	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), true);
 	assert.deepEqual(errors, []);
@@ -1789,7 +1789,7 @@ test('the material run is one route through every island ticked: a full run goes
 	assert.match(await text(page, '#dialog .run-seg-head'), /22 trades/);
 	assert.equal(await count(page, '#dialog .run-list.amber'), 0, 'nothing stays ashore on a full run');
 	// The hold never over the barter ceiling, on any stop.
-	const holds = await page.$$eval('#dialog .run-stop .run-hold > div:first-child b', els => els.map(el => Number(el.textContent.replace(/[^\d]/g, ''))));
+	const holds = await page.$$eval('#dialog .run-stop .run-hold > div:first-child b', els => els.map(el => Number(el.textContent.split('/')[0].replace(/[^\d]/g, ''))));
 	assert.ok(holds.every(w => w <= 20625), holds.join(', '));
 	// Fast: one departure under the limit the ship still sails fast at.
 	await page.select('[data-act="barter-mat-pace"]', 'fast'); await wait(500);
@@ -1799,7 +1799,7 @@ test('the material run is one route through every island ticked: a full run goes
 	assert.ok(stops.length < 12, 'fewer islands than a full run');
 	assert.equal(await count(page, '#dialog .run-list.amber'), 1, 'what stayed ashore is said');
 	assert.match(await text(page, '#dialog .run-list.amber'), /Stays ashore/i);
-	const fastHolds = await page.$$eval('#dialog .run-stop .run-hold > div:first-child b', els => els.map(el => Number(el.textContent.replace(/[^\d]/g, ''))));
+	const fastHolds = await page.$$eval('#dialog .run-stop .run-hold > div:first-child b', els => els.map(el => Number(el.textContent.split('/')[0].replace(/[^\d]/g, ''))));
 	assert.ok(fastHolds.every(w => w <= 16500), fastHolds.join(', '));
 	// The way back to the full run is on the panel.
 	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-mat-pace-set"]').click()); await wait(500);

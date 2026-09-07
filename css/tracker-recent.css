@@ -685,3 +685,26 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .comm-bars .comm-board-head { flex-wrap: wrap; row-gap: 2px; }
 .comm-bars .comm-board-title { white-space: nowrap; }
 .comm-bars .comm-board-n { white-space: normal; text-align: right; }
+
+/* The three paces, compared, under the run's tiles. */
+.pace-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin: 10px 0 0; }
+.pace-card { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 10px 12px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.3); color: var(--ink-mid); text-align: left; font: inherit; cursor: pointer; }
+.pace-card:hover { border-color: var(--line-btn-hi); }
+.pace-card.on { border-color: var(--blue-edge); background: rgba(var(--blue-rgb), 0.12); }
+.pace-k { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
+.pace-card.on .pace-k { color: var(--blue-hi); }
+.pace-card b { font-family: var(--font-display); font-size: 17px; color: var(--ink-hi); }
+.pace-sub { font-size: 11.5px; color: var(--ink-faint); }
+.pace-sub.amber { color: var(--amber); }
+.pace-sub.warn { color: var(--red); }
+/* Quests off the way fold away; the head is the handle. */
+details.run-quests-off > summary { list-style: none; cursor: pointer; }
+details.run-quests-off > summary::-webkit-details-marker { display: none; }
+details.run-quests-off > summary .panel-title::before { content: '▸ '; color: var(--ink-faint); }
+details.run-quests-off[open] > summary .panel-title::before { content: '▾ '; }
+/* The Parley line on the hold strip: the bar, the level and the trade's price. */
+.hold-parley select { font-size: 12px; }
+/* Room for "23,800 / 18,300 LT" and the Parley's spend beside its bar. */
+.run-hold { width: 152px; }
+.run-hold > div:first-child b, .run-parley > div:first-child b { font-size: 11.5px; white-space: nowrap; }
+.run-parley > div:first-child { flex-wrap: wrap; }

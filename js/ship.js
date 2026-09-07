@@ -181,6 +181,32 @@ export function currentShip() {
 	};
 }
 
+/**
+ * The hold as the game's Ship Info shows it: everything aboard --
+ * goods and the crew's own weight -- over the limit the hull, its parts,
+ * its crystal and its set add up to. The planner works in goods alone
+ * against a limit less the crew, which is the same arithmetic; this is
+ * the one face every screen shows. `goods` is the goods' weight in LT.
+ * The three marks are the game's: the limit, the barter ceiling a
+ * quarter over it, and the most the hull moves under.
+ */
+export function shownHold(hold, goods = 0) {
+	const crew = hold.crew || 0;
+	const total = Math.max(0, Math.round(goods + crew));
+	const limit = hold.limit, deal = hold.deal + crew, max = hold.max + crew;
+	const state = total > max ? 'dead' : total > deal ? 'heavy' : total > limit ? 'over' : '';
+	return {
+		total, limit, deal, max, crew, state,
+		// Shares of the fullest the hull moves under, for a bar.
+		fill: max ? Math.min(100, Math.min(total, limit) / max * 100) : 0,
+		extra: max ? Math.max(0, Math.min(total, deal) - limit) / max * 100 : 0,
+		worse: max ? Math.max(0, Math.min(total, max) - deal) / max * 100 : 0,
+		mark: max ? Math.min(100, limit / max * 100) : 100,
+		text: `${Math.round(total).toLocaleString()} / ${Math.round(limit).toLocaleString()} LT`,
+		note: state === 'dead' ? 'more than the hull will move under' : state === 'heavy' ? 'too heavy to barter — lighten first' : state === 'over' ? 'past the limit — sailing slower' : ''
+	};
+}
+
 /** Fit a part by hand: an item name with its level, '' for an empty
  *  slot, or null to go back to the best owned. */
 export function setFitted(ship, slot, value) {

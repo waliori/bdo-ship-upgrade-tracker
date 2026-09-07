@@ -123,7 +123,7 @@ export function todayStrip() {
 	const me = currentShip();
 	const fitted = me.fit.slots.filter(s => s.part).length + (me.crystal ? 1 : 0);
 	const shipTile = `<div class="today-v">${esc(me.name)}</div>
-		<div class="today-sub">${me.speed.total}% · ${esc(F(me.hold.free))} LT free · ${fitted} of 5 fitted${me.crew.seated ? ` · ${me.crew.seated} aboard` : ''} · <button class="linky" data-act="view" data-id="crew">fit out</button></div>`;
+		<div class="today-sub">${me.speed.total}% · limit ${esc(F(me.hold.limit))} LT · ${fitted} of 5 fitted${me.crew.seated ? ` · ${me.crew.seated} aboard` : ''} · <button class="linky" data-act="view" data-id="crew">fit out</button></div>`;
 	return `<div class="today">
 		<div class="today-k">Today</div>
 		<div class="today-tiles">
@@ -241,7 +241,7 @@ export function statusLine() {
 	const targets = (snapshot.targets || []).filter(t => t.missingUnits > 0);
 	const paced = targets.map(t => ({ t, text: paceText(t) })).find(x => x.text);
 	const bits = [
-		`<button class="status-bit" data-act="view" data-id="crew" title="Your ship — hull, parts, crew and setups, on the Ship tab">⚓ <b>${esc(me.name)}</b> ${me.speed.total}% · ${F(me.hold.free)} LT</button>`,
+		`<button class="status-bit" data-act="view" data-id="crew" title="Your ship — hull, parts, crew and setups, on the Ship tab">⚓ <b>${esc(me.name)}</b> ${me.speed.total}% · ${F(me.hold.limit)} LT</button>`,
 		`<button class="status-bit" data-act="view" data-id="quests" title="Quests still to do this period${wanted.length ? `; ${left} of them pay in what your plan still wants — short of, or still to craft or buy` : ''}">✦ <b>${leftAll}</b> quest${leftAll === 1 ? '' : 's'} left${wanted.length ? ` · <b>${left}</b> for your list` : ''}</button>`,
 		`<span class="status-bit" title="${esc(resetTitle())}">dailies <b data-until="daily"></b> · barter <b data-until="barter"></b></span>`,
 		next ? `<span class="status-bit" title="Vell's next spawn on your servers">Vell <b>${esc(localLabel(next.at))}</b> in <b data-until="at" data-at="${next.at}"></b></span>` : '',

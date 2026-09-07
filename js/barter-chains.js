@@ -212,7 +212,13 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 	}
 	at = start;
 	const way = orders.way === 'sea' || orders.way === 'chain' ? orders.way : 'chain';
-	const deal = hold.deal ?? hold.free;
+	// The ceiling a full run barters under. 'full' takes the game's:
+	// an exchange may start anywhere under the barter ceiling, a
+	// quarter over the limit, and the hull sails slower for it.
+	// 'steady' is every attempt too, but never past the limit itself,
+	// so it never slows -- it calls at a wharf sooner and oftener to
+	// leave the surplus. 'fast' is the limit with no calls at all.
+	const deal = pace === 'steady' ? hold.free : (hold.deal ?? hold.free);
 
 	// The attempts a rung is worth: all the island allows, or in a
 	// fast run only what the rungs above can take, counted down from
@@ -263,7 +269,7 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 	// nothing.
 	const lots = [];
 	if (way === 'sea') {
-		const limit = pace === 'fast' ? hold.free : deal;
+		const limit = pace === 'fast' ? hold.free : deal;   // steady's deal is the limit already
 		const isles = new Set();
 		const ladder = c => { const rs = c.rungs.filter(r => !isles.has(r.npcId)); for (const r of rs) isles.add(r.npcId); return rs.length ? rs : null; };
 		const lotFits = ladders => {

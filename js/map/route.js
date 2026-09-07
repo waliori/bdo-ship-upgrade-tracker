@@ -147,8 +147,8 @@ export function routeHTML(marks) {
 	// The hold: what the ship as fitted can carry once the crew is
 	// aboard, and how many goods of each level that is. A route is only
 	// as long as the deck allows.
-	const hold = `<div><div class="summary-k">Hold</div><div class="summary-v">${F(me.hold.free)} LT</div>
-				<div class="summary-sub">${F(me.hold.limit)} as fitted${me.hold.crew ? ` less ${F(me.hold.crew)} of crew` : ''} · ${Math.floor(me.hold.free / GOODS[5].weight)} of Lv4–5 · ${Math.floor(me.hold.free / GOODS[6].weight)} of Lv6–7 a run · sails slower to ${F(me.hold.max)}, by the chart's estimate</div></div>`;
+	const hold = `<div><div class="summary-k">Hold</div><div class="summary-v">${F(me.hold.limit)} LT</div>
+				<div class="summary-sub">the limit, as fitted${me.hold.crew ? ` · ${F(me.hold.crew)} of it crew` : ''} · ${Math.floor(me.hold.free / GOODS[5].weight)} of Lv4–5 · ${Math.floor(me.hold.free / GOODS[6].weight)} of Lv6–7 a run · sails slower to ${F(me.hold.max)}, by the chart's estimate</div></div>`;
 	const rationsTile = rationsTileHTML(me, rations, legList, lowRow, rRate, rMeasured);
 	const total = pathLength(world);
 	const lastStop = npcById.get(mv.stops[mv.stops.length - 1]);

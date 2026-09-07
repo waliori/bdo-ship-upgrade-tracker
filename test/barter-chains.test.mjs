@@ -190,3 +190,16 @@ test('the shortest way round: every chain climbed at once, each rung after the o
 		assert.ok(bySea.silver > 0, `${pace}: sells`);
 	}
 });
+
+test('a steady run is every attempt under the limit itself: never heavier than a loaded one, never fewer wharf calls', () => {
+	const all = chains(data);
+	const chosen = all.filter(c => c.from === 'land' && c.top === 7).slice(0, 3);
+	const run = pace => chainRun({ chosen, hold, parley, npcById, start: ports.find(p => p.name === 'Velia'), stashes, pace, orders: { ...PLAIN_ORDERS, way: 'sea' } });
+	const loaded = run('full'), steady = run('steady'), fast = run('fast');
+	assert.ok(steady.trades > fast.trades, 'every attempt, not the hold’s share');
+	assert.ok(steady.weightPeak <= loaded.weightPeak, 'the limit, not the barter ceiling');
+	// One exchange may end past the limit before the call that brings it back; never a whole rung's worth.
+	assert.ok(steady.weightPeak <= hold.free + 3 * GOODS[7].weight, `${steady.weightPeak} is past the limit by more than one exchange`);
+	assert.ok(steady.stops.filter(s => s.wharf).length >= loaded.stops.filter(s => s.wharf).length, 'the surplus is left ashore oftener');
+	assert.ok(fast.weightPeak <= hold.free, 'a fast run never slows');
+});

@@ -18,7 +18,7 @@ import { img, codexName, amountInput } from './ui-bits.js';
 import { snapshot, barterData, barterProfile, combos, matBoards, SILVER } from './ui-state.js';
 import { barterKey, periodKey } from './clock.js';
 import { candidates, askable, offersAt, boardData } from './barter-board.js';
-import { currentShip } from './ship.js';
+import { currentShip, shownHold } from './ship.js';
 import { npcById, ports, isleOf, whoOf, isleShort } from './barter_npcs.js';
 import { seaRoute } from './searoute.js';
 import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, DEFAULT_CAL, sailSeconds } from './sailing.js';
@@ -30,7 +30,7 @@ import { propose } from './barter-optimizer.js';
 import { coins as coinShop } from './sea_coins.js';
 import { landPrices } from './land-cost.js';
 import { marketStatus, marketSilver } from './market.js';
-import { GOODS, PARLEY, parleyPerTrade, levelOf } from './barter.js';
+import { GOODS, PARLEY, parleyPerTrade, levelOf, barterLevels, levelDiscount } from './barter.js';
 import { parleyLedger } from './parley-ledger.js';
 import { exchanges, goodsHeld, weightOf, sellOf, aboardStock as aboardOf } from './barter-plan.js';
 import { TOWNS } from './screen-inventory.js';
@@ -240,10 +240,10 @@ function holdBarHTML(me) {
 	const prof = barterProfile();
 	const goods = held();
 	const lt = goods.reduce((a, g) => a + g.weight, 0);
-	const free = me.hold.free, max = me.hold.max;
-	const pct = max > 0 ? Math.min(100, lt / max * 100) : 0;
-	const mark = max > 0 ? Math.min(100, free / max * 100) : 100;
-	const state = lt > max ? 'dead' : lt > free ? 'over' : '';
+	const w = shownHold(me.hold, lt);
+	const pct = w.max > 0 ? Math.min(100, w.total / w.max * 100) : 0;
+	const mark = w.mark;
+	const state = w.state === 'heavy' ? 'over' : w.state;
 	const byLv = new Map();
 	for (const g of goods) byLv.set(g.lv, (byLv.get(g.lv) || 0) + g.n);
 	const levels = [...byLv].sort((a, b) => b[0] - a[0]).map(([lv, n]) => `<span class="hold-bar-lv" style="--tier:${TIER(lv)}" title="${F(n)} of Level ${lv} aboard"><i>L${lv}</i>${F(n)}</span>`).join('');
@@ -255,10 +255,7 @@ function holdBarHTML(me) {
 		here ? `${F(here.goods.reduce((a, g) => a + g.n, 0))} at ${here.town}, to load` : '',
 		elsewhere ? `${F(elsewhere)} ashore elsewhere` : ''
 	].filter(Boolean).join(' · ');
-	const weightText = !goods.length ? `nothing aboard · ${F(free)} LT before it slows`
-		: state === 'dead' ? `${F(lt)} LT — past the ${F(max)} the hull will move under`
-			: state === 'over' ? `${F(lt)} LT — over the ${F(free)} limit, sailing slower`
-				: `${F(lt)} of ${F(free)} LT`;
+	const weightText = `${w.text}${!goods.length ? ` · no goods aboard${w.crew ? `, ${F(w.crew)} of it crew` : ''}` : w.note ? ` — ${w.note}` : ''} · barters to ${F(w.deal)}`;
 	return `<section class="panel hold-bar${state ? ` ${state}` : ''}">
 		<button class="hold-bar-main" data-act="barter-hold-open" title="Open the hold: every good aboard and ashore, with its count">
 			<span class="hold-bar-k">⚓ The hold</span>
@@ -270,6 +267,7 @@ function holdBarHTML(me) {
 		</button>
 		<span class="panel-btns hold-bar-btns">
 			<label class="hold-parley" title="What the Parley bar holds right now — a full million after the refill, less if some was spent; the run's bars count down from it"><span>Parley</span><input class="purse-inline" type="text" inputmode="numeric" value="${F(prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max)}" data-act="parley-held" aria-label="Parley in the bar right now">${prof.vouchers ? `<small>+ ${prof.vouchers} voucher${prof.vouchers === 1 ? '' : 's'}</small>` : ''}</label>
+			<label class="hold-parley" title="Your barter level, as the Barter window shows it: higher levels take a share off every attempt's Parley, and the run's bars are priced at it"><select class="purse-inline" data-act="barter-level" aria-label="Your barter level"><option value=""${prof.level ? '' : ' selected'}>level —</option>${barterLevels().map(l => `<option value="${esc(l)}"${prof.level === l ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select><small>−${(levelDiscount(prof.level) * 100).toFixed(2)}%${prof.valuePack ? ' −10% pack' : ''}${prof.crew ? ' −10% crew' : ''} · ${F(parleyOf(prof).perTrade)} a trade</small></label>
 			<button class="ghost-btn sm" data-act="barter-add" title="Record a good that is aboard">＋ A good</button>
 		</span>
 	</section>`;
@@ -316,15 +314,14 @@ function holdHTML(me) {
 	const lt = goods.reduce((a, g) => a + g.weight, 0);
 	const n = goods.reduce((a, g) => a + g.n, 0);
 	const worth = goods.reduce((a, g) => a + g.n * sellOf(g.name), 0);
-	const free = me.hold.free, max = me.hold.max;
-	const pct = max > 0 ? Math.min(100, lt / max * 100) : 0;
-	const mark = max > 0 ? Math.min(100, free / max * 100) : 100;
-	const state = lt > max ? 'dead' : lt > free ? 'over' : '';
-	const room = lv => Math.max(0, Math.floor((free - lt) / GOODS[lv].weight));
-	const sub = !n ? `nothing aboard · the hold takes ${F(free)} LT, and sails slower to ${F(max)}`
-		: state === 'dead' ? `${F(lt)} LT — past the ${F(max)} the hull will move under`
-			: state === 'over' ? `${F(lt)} LT — over the ${F(free)} limit, sailing slower`
-				: `${F(lt)} LT of ${F(free)} · room for ${room(5)} more Lv4–5 or ${room(6)} Lv6–7`;
+	const w = shownHold(me.hold, lt);
+	const pct = w.max > 0 ? Math.min(100, w.total / w.max * 100) : 0;
+	const mark = w.mark;
+	const state = w.state === 'heavy' ? 'over' : w.state;
+	const room = lv => Math.max(0, Math.floor((w.limit - w.total) / GOODS[lv].weight));
+	const sub = !n ? `${w.text} · no goods aboard${w.crew ? `, ${F(w.crew)} of it crew` : ''} · barters to ${F(w.deal)}, moves to ${F(w.max)}`
+		: w.note ? `${w.text} — ${w.note}`
+			: `${w.text} · room for ${room(5)} more Lv4–5 or ${room(6)} Lv6–7 under the limit`;
 	const q = holdQ.trim().toLowerCase();
 	const passes = g => (!q || g.name.toLowerCase().includes(q)) && (!holdLv.size || holdLv.has(g.lv));
 	const shown = goods.filter(passes);
@@ -625,7 +622,8 @@ function questsLine(qp, mode) {
 function questsPanels(qp, from) {
 	const wanted = questWanted();
 	const home = qp.home.length && from ? `<section class="panel run-list run-quests-home"><div class="panel-head"><h2 class="panel-title">Quests at ${esc(from.name)}</h2><span class="panel-sub">handed in before casting off</span></div><div class="run-quests">${qp.home.map(x => questChip(x, wanted)).join('')}</div></section>` : '';
-	const off = qp.off.length || qp.skipped.length ? `<section class="panel run-list run-quests-off"><div class="panel-head"><h2 class="panel-title">Quests off the way</h2><span class="panel-sub">not taken in by this run</span></div><div class="run-quests">${qp.off.map(questOff).join('')}${qp.skipped.map(questSkipped).join('')}</div></section>` : '';
+	const offN = qp.off.length + qp.skipped.length;
+	const off = offN ? `<details class="panel run-list run-quests-off"><summary class="panel-head"><h2 class="panel-title">Quests off the way</h2><span class="panel-sub">${offN} not taken in by this run · open to take one in</span></summary><div class="run-quests">${qp.off.map(questOff).join('')}${qp.skipped.map(questSkipped).join('')}</div></details>` : '';
 	return home + off;
 }
 
@@ -703,11 +701,9 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = nu
 		const place = s.place || s.wharf || npcById.get(s.npcId);
 		const m = legs.from ? legs.legs[k] : k > 0 ? legs.legs[k - 1] : null;
 		const leg = m != null ? `<span class="run-leg">${esc(fmtDistance(m))} · ${esc(legs.timeOf(m))}</span>` : '';
-		const hold = s.hold;
-		const over = s.weightAfter > hold.free, heavy = s.weightAfter > hold.deal, dead = s.weightAfter > hold.max;
-		const fill = Math.min(100, Math.min(s.weightAfter, hold.free) / hold.max * 100);
-		const extra = Math.max(0, Math.min(s.weightAfter, hold.deal) - hold.free) / hold.max * 100;
-		const worse = Math.max(0, Math.min(s.weightAfter, hold.max) - hold.deal) / hold.max * 100;
+		// The hold as the game shows it: goods and crew over the limit.
+		const w = shownHold(s.hold, s.weightAfter);
+		const over = w.state === 'over', heavy = w.state === 'heavy' || w.state === 'dead', dead = w.state === 'dead';
 		const did = s.quest ? ''
 			: s.wharf
 			? `${s.loads && s.loads.length ? `<div class="run-leave"><span class="run-leave-k">Loads from storage</span>${s.loads.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(d.item)}</span>`).join('')}</div>` : ''}${s.dropped.length ? `<div class="run-leave"><span class="run-leave-k">Leaves in storage</span>${s.dropped.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(d.item)}</span>`).join('')}</div>` : ''}${s.sale ? `<div class="run-sell">sells ${n1(s.sale.n)} ${s.sale.levels && s.sale.levels.length === 1 ? `[Level ${s.sale.levels[0]}]` : 'goods'} here for ${FC(Math.round(s.sale.total))}</div>` : ''}`
@@ -721,9 +717,9 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = nu
 				${check(s, k)}
 			</div>
 			<div class="run-hold">
-				<div><span>hold</span><b class="${heavy ? 'warn' : over ? 'amber' : ''}">${F(Math.max(0, Math.round(s.weightAfter)))} LT</b></div>
-				<div class="run-bar"><i style="width:${fill.toFixed(1)}%"></i><i class="over" style="width:${extra.toFixed(1)}%"></i><i class="heavy" style="width:${worse.toFixed(1)}%"></i></div>
-				${dead ? '<div class="run-note warn">more than the hull will move under</div>' : heavy ? '<div class="run-note warn">too heavy to barter — lighten first</div>' : over ? '<div class="run-note">past the limit — sailing slower</div>' : ''}
+				<div><span>hold</span><b class="${heavy ? 'warn' : over ? 'amber' : ''}" title="Everything aboard, crew included, over the limit — as the game's Ship Info reads">${esc(w.text)}</b></div>
+				<div class="run-bar"><i style="width:${w.fill.toFixed(1)}%"></i><i class="over" style="width:${w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${w.worse.toFixed(1)}%"></i></div>
+				${w.note ? `<div class="run-note${dead || heavy ? ' warn' : ''}">${w.note}</div>` : ''}
 				${parleyBar(rowAt(k), s)}
 			</div>
 		</div>`;
@@ -745,6 +741,28 @@ function parleyBar(row, s) {
 		${row.voucher ? '<div class="run-note teal">a voucher drawn on here — a quarter of a bar back</div>' : ''}
 		${row.short ? `<div class="run-note warn">${F(row.short)} Parley short — ${s.parley && s.times ? `${Math.ceil(row.short / (s.parley / s.times))} of the ${s.times} attempts wait` : 'the bar is empty'}${row.voucher ? '' : ', and no voucher is off its cooldown yet'}</div>` : ''}
 	</div>`;
+}
+
+/**
+ * The three paces side by side for the chains ticked: what each brings
+ * in, how long it takes, how many wharf calls it makes and how full the
+ * hold gets -- so the choice is made on numbers, not on a word. The
+ * one under way is marked; a press on another takes it.
+ */
+function pacesHTML(opts, chosen, pace, me) {
+	const cards = [['fast', 'Fast', 'under the limit, no calls'], ['steady', 'Full, never slower', 'every attempt, under the limit, calls to leave the surplus'], ['full', 'Full, loaded', 'every attempt, up to the barter ceiling, fewest calls']].map(([id, label, sub]) => {
+		const run = chainRun({ ...opts, pace: id, chosen });
+		const legs = legsOf(run.stops);
+		const calls = run.stops.filter(s => s.wharf).length;
+		const peak = shownHold(me.hold, run.weightPeak);
+		return `<button class="pace-card${id === pace ? ' on' : ''}" data-act="barter-pace-set" data-id="${id}" title="${esc(sub)}">
+			<span class="pace-k">${esc(label)}</span>
+			<b>${run.silver ? FC(Math.round(run.net)) : '—'}</b>
+			<span class="pace-sub">${legs.total ? `≈ ${esc(legs.time)}` : 'no way'} · ${F(run.trades)} trade${run.trades === 1 ? '' : 's'} · ${calls} call${calls === 1 ? '' : 's'}</span>
+			<span class="pace-sub ${peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : ''}">hold to ${esc(peak.text)}${peak.note ? ` · ${peak.note}` : ''}</span>
+		</button>`;
+	}).join('');
+	return `<div class="pace-cards" role="group" aria-label="The three paces, compared">${cards}</div>`;
 }
 
 /** The chart button: the islands in order, what each is called at for,
@@ -844,7 +862,7 @@ function ordersHTML(o) {
 		<div class="run-picks">
 			${sel('barter-sell', 'a wharf sells', o.sell, SELL_CHOICES, 'Which goods a wharf call turns into silver; Level 1 and 2 never sell')}
 			${sel('barter-buy', 'land goods', o.buy ? 'yes' : 'no', [['yes', 'bought ashore', 'A chain that starts on land buys its first good ashore'], ['no', 'only what is held', 'No land chains: only goods already held']])}
-			${sel('barter-pace', 'pace', o.pace, [['fast', 'fast', 'No wharf calls, never slower than full speed'], ['full', 'full', 'Every attempt, with storage calls on the way']])}
+			${sel('barter-pace', 'pace', o.pace, [['fast', 'fast', 'No wharf calls, never slower than full speed: only what the hold carries under the limit'], ['steady', 'full, never slower', 'Every attempt, the hold kept under the limit by calling at a wharf to leave the surplus — more calls, full speed'], ['full', 'full, loaded', 'Every attempt, the hold taken up to the barter ceiling — a quarter over the limit, sailing slower — and a wharf call only where the next island would not deal']])}
 			${sel('barter-quests', 'quests on the way', o.quests, QUEST_CHOICES, 'The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the barter quests counted off the run\'s trades; the hunts only when their grounds lie on the way')}
 			${sel('barter-way', 'the way round', o.way, WAY_CHOICES, 'One route through every rung of every chain ticked, each after the rung beneath it — the nearest islands first, whatever chain they belong to — or each chain climbed to its top before the next')}
 			${sel('barter-stash', 'storage at', stash, [['', 'the nearest wharf'], ...stashes.map(w => [w.at, w.at])])}
@@ -1466,21 +1484,22 @@ function silverParts(me, b) {
 	// A fast run refuses a hold over the limit and trades nothing; say
 	// so, since the empty run looks like a board with nothing on it.
 	const heavy = pace === 'fast' && plan.trades === 0 && chosen.length > 0 && plan.weightStart > me.hold.free;
-	const notice = heavy ? `<p class="run-notice warn">The hold is at ${F(Math.round(plan.weightStart))} LT, over the ${F(me.hold.free)} limit, and a fast run makes no wharf call — so nothing trades. Switch the pace to <b>every attempt</b> to call at a wharf first, or leave ${F(Math.round(plan.weightStart - me.hold.free))} LT ashore.</p>` : '';
+	const peak = shownHold(me.hold, plan.weightPeak), atStart = shownHold(me.hold, plan.weightStart);
+	const notice = heavy ? `<p class="run-notice warn">The hold is at ${esc(atStart.text)}, over the limit, and a fast run makes no wharf call — so nothing trades. Switch the pace to a <b>full</b> one to call at a wharf first, or leave ${F(Math.round(atStart.total - atStart.limit))} LT ashore.</p>` : '';
 	const soldLevels = [...new Set(plan.sold.map(x => levelOf(x.item)))].sort((a, b2) => b2 - a);
 	const soldWhat = soldLevels.length ? (soldLevels.length === 1 ? `the [Level ${soldLevels[0]}]s` : `Level ${soldLevels[soldLevels.length - 1]} to ${soldLevels[0]}`) : '';
 	const runHead = `<div class="panel-head run-head">
 		<h2 class="panel-title plain">The run</h2>
-		<span class="panel-sub">${chosen.length} chain${chosen.length === 1 ? '' : 's'} ticked · aboard ${esc(me.name)}: ${F(me.hold.free)} LT before it slows, barters up to ${F(me.hold.deal)} · goods counted at the least, weighed at the most</span>
+		<span class="panel-sub">${chosen.length} chain${chosen.length === 1 ? '' : 's'} ticked · aboard ${esc(me.name)}: the limit is ${F(peak.limit)} LT${peak.crew ? `, ${F(peak.crew)} of it crew` : ''}, barters to ${F(peak.deal)} · goods counted at the least, weighed at the most</span>
 	</div>`;
 	const tile = (k, v, sub, cls = '') => `<div><div class="summary-k">${k}</div><div class="summary-v${cls ? ` ${cls}` : ''}">${v}</div><div class="summary-sub">${sub}</div></div>`;
 	const tiles = `<div class="run-tiles">
 		${tile(plan.cost ? 'Silver, net' : 'Sold in port', plan.silver ? FC(Math.round(plan.net)) : '—', plan.silver ? `${soldWhat} sold at the wharf${plan.cost ? ` for ${FC(Math.round(plan.silver))} · ${FC(Math.round(plan.cost))} of land goods bought` : ''}${plan.bought.some(b => b.how === 'unpriced') ? ' · some land goods unpriced' : ''}` : chosen.length ? 'no chain ticked sells' : 'pick a chain', plan.net < 0 ? 'warn' : 'gold')}
 		${tile('A Parley unit pays', yard.perUnit ? FC(Math.round(yard.perUnit)) : '—', yard.perUnit ? `${F(Math.round(plan.parleyUsed))} Parley of ${F(plan.parleyBar)} · ${F(plan.trades)} trade${plan.trades === 1 ? '' : 's'}${yard.perHour ? ` · ≈ ${FC(Math.round(yard.perHour))} an hour` : ''}` : `${F(plan.trades)} trade${plan.trades === 1 ? '' : 's'} · one unit is one normal trade’s Parley`, 'gold')}
-		${tile('Hold at its fullest', plan.stops.length ? `${F(Math.round(plan.weightPeak))} LT` : '—', `${F(me.hold.free)} is the limit · barters to ${F(me.hold.deal)} · moves to ${F(me.hold.max)}`, plan.weightPeak > me.hold.deal ? 'warn' : plan.weightPeak > me.hold.free ? 'amber' : 'teal')}
+		${tile('Hold at its fullest', plan.stops.length ? esc(peak.text) : '—', `${peak.note || 'under the limit'} · barters to ${F(peak.deal)} · moves to ${F(peak.max)}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
 		${tile('Parley at the end', plan.stops.length ? F(book.end) : '—', `${F(book.spent)} spent from ${F(parley.held)}${prof.vouchers ? ` · ${book.vouchersUsed} of ${prof.vouchers} voucher${prof.vouchers === 1 ? '' : 's'} drawn on` : ''}${book.short ? ` · <b class="warn">${F(book.short)} short</b>` : ''}`, book.short ? 'warn' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
 		${tile('Under way', legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `≈ ${esc(legs.time)} at ${me.speed.total}% · ${islands} island${islands === 1 ? '' : 's'}${wharfs ? `, ${wharfs} wharf call${wharfs === 1 ? '' : 's'}` : ''}${from ? ` · from ${esc(from.name)}` : ''}` : 'pick a chain')}
-	</div>${notice}`;
+	</div>${notice}${chosen.length ? pacesHTML(opts, chosen, pace, me) : ''}`;
 	// One route through every chain: the stops in sailing order, each
 	// tagged with its chain, the chains named in the head with the way
 	// to untick each. Chain after chain: a segment a chain.
@@ -1524,7 +1543,7 @@ function silverParts(me, b) {
 		legs.total ? `≈ <b>${esc(legs.time)}</b>` : '',
 		`<b>${islands}</b> island${islands === 1 ? '' : 's'}${wharfs ? `, ${wharfs} call${wharfs === 1 ? '' : 's'}` : ''}`,
 		qp.count ? `📜 <b>${qp.count}</b> quest${qp.count === 1 ? '' : 's'}` : '',
-		plan.weightPeak > me.hold.deal ? '<b class="warn">too heavy</b>' : plan.weightPeak > me.hold.free ? '<b class="amber">over the limit</b>' : ''
+		peak.state === 'heavy' || peak.state === 'dead' ? '<b class="warn">too heavy</b>' : peak.state === 'over' ? '<b class="amber">over the limit</b>' : ''
 	]) : '';
 	const sheetHead = `<div class="panel-head run-sheet-head"><h2 class="panel-title">The run</h2><span class="panel-sub">${chosen.length} chain${chosen.length === 1 ? '' : 's'}${plan.silver ? ` · ${FC(Math.round(plan.net))}${plan.cost ? ' net' : ''}` : ''}${legs.total ? ` · ≈ ${esc(legs.time)}` : ''}${from ? ` · from ${esc(from.name)}` : ''}</span>${questsLine(qp, o.quests)}</div>`;
 	return {
@@ -1759,12 +1778,13 @@ function materialParts(me, data) {
 		const state = g.max <= 0 ? 'none' : w <= 0 ? 'met' : 'part';
 		return `<div class="mat-yield-row ${state}">${img(m.it, 'row-icon sm')}<span class="mat-yield-name">${esc(m.it)}</span><b class="mat-yield-n">${g.max > 0 ? gotText(m) : '0'}<small> of ${F(m.qty)}</small></b><span class="mat-yield-bar"><i style="width:${pctMax.toFixed(1)}%"></i><i class="least" style="width:${pct.toFixed(1)}%"></i></span><span class="mat-yield-note">${state === 'met' ? 'the want is met' : state === 'none' ? (showing.some(a => a.recv === m.it) ? 'nothing comes of it today' : 'no island ticked') : `${F(Math.ceil(w))} still wanted · another refresh`}</span></div>`;
 	}).join('');
-	const holdCls = plan.weightPeak > me.hold.deal ? 'warn' : plan.weightPeak > me.hold.free ? 'amber' : 'ok';
+	const peakM = shownHold(me.hold, plan.weightPeak);
+	const holdCls = peakM.state === 'heavy' || peakM.state === 'dead' ? 'warn' : peakM.state === 'over' ? 'amber' : 'ok';
 	const fig = (icon, v, sub, cls = '') => `<span class="mat-fig${cls ? ` ${cls}` : ''}"><i>${icon}</i><span class="mat-fig-text"><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</span></span>`;
 	const figs = plan.stops.length ? `<div class="mat-figs">
 		${fig('⛵', `${plan.islands} island${plan.islands === 1 ? '' : 's'}`, `${plan.trades} trade${plan.trades === 1 ? '' : 's'}`)}
 		${plan.calls ? fig('⚓', `${plan.calls} harbour call${plan.calls === 1 ? '' : 's'}`, plan.returns ? `${plan.returns + 1} departures: the hold cannot carry every give at once` : 'to load from storage') : ''}
-		${fig('⚖', `${F(Math.round(plan.weightPeak))} LT`, `at its fullest · ${holdCls === 'ok' ? 'under the limit' : holdCls === 'amber' ? `over ${F(me.hold.free)}: sailing slower` : `over ${F(me.hold.deal)}: too heavy to barter`}`, holdCls)}
+		${fig('⚖', esc(peakM.text), `at its fullest · ${holdCls === 'ok' ? 'under the limit' : holdCls === 'amber' ? 'over the limit: sailing slower' : `over ${F(peakM.deal)}: too heavy to barter`}`, holdCls)}
 		${legs.total ? fig('⏱', esc(legs.time), `${esc(fmtDistance(legs.total))} at ${me.speed.total}%${from ? ` from ${esc(from.name)}` : ''}`) : ''}
 		${plan.cost ? fig(img(SILVER, 'row-icon xs'), FC(plan.cost), 'to buy ashore first') : ''}
 	</div>` : '';
@@ -2057,6 +2077,7 @@ export function barterAction(act, el, redraw) {
 		case 'barter-board-ask': pickOffer(Number(el.dataset.npc), redraw); return false;
 		case 'barter-board-island': pickIsland(redraw); return false;
 		case 'barter-board-undo': board.answers.pop(); persist(); return true;
+		case 'barter-pace-set': setOrders({ pace: el.dataset.id === 'full' ? 'full' : el.dataset.id === 'steady' ? 'steady' : 'fast' }); return true;
 		case 'barter-mat-pace-set': matOrders = { ...matOrders, pace: el.dataset.id === 'fast' ? 'fast' : 'full' }; persist(); return true;
 		case 'barter-mat-tick': {
 			const mb = matBoardNow();
@@ -2205,7 +2226,7 @@ export function barterChange(el, parseAmount) {
 			store.addStock(el.dataset.item, Math.max(0, Math.floor(n)) - have, `${el.dataset.item}: ${F(have)} → ${F(Math.max(0, Math.floor(n)))} aboard`, false);
 			return true;
 		}
-		case 'barter-pace': setOrders({ pace: el.value === 'full' ? 'full' : 'fast' }); return true;
+		case 'barter-pace': setOrders({ pace: el.value === 'full' ? 'full' : el.value === 'steady' ? 'steady' : 'fast' }); return true;
 		case 'barter-way': setOrders({ way: el.value === 'chain' ? 'chain' : 'sea' }); return true;
 		case 'barter-sail-all-pick': sailAll[el.dataset.id === 'quests' ? 'quests' : 'stops'] = !!el.checked; return false;
 		case 'barter-quests': setOrders({ quests: QUEST_CHOICES.some(([q]) => q === el.value) ? el.value : 'no' }); return true;

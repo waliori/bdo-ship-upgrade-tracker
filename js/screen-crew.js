@@ -672,7 +672,7 @@ export function renderCrew() {
 		</div>
 		<div class="ship-card-facts">
 			<div><div class="summary-k">Speed</div><div class="summary-v">${me.speed.total}%</div><div class="summary-sub">hull ${stats.speed}${me.speed.parts ? ` + parts ${me.speed.parts}` : ''}${me.speed.crystal ? ` + crystal ${me.speed.crystal}` : ''}${me.speed.crew ? ` + crew ${me.speed.crew}` : ''}${me.mastery ? ` + mastery ${me.mastery}` : ''}${me.speed.skin ? ` + skin ${me.speed.skin}` : ''}</div></div>
-			<div><div class="summary-k">Hold</div><div class="summary-v">${F(me.hold.free)} LT</div><div class="summary-sub">${F(me.hold.limit)} as fitted${me.hold.crew ? ` less ${F(me.hold.crew)} of crew` : ''}</div></div>
+			<div><div class="summary-k">Hold</div><div class="summary-v">${F(me.hold.limit)} LT</div><div class="summary-sub">the limit, as fitted${me.hold.crew ? ` · ${F(me.hold.crew)} of it crew` : ''} · barters to ${F(me.hold.deal + me.hold.crew)}</div></div>
 			<div><div class="summary-k">Fitted</div><div class="summary-v">${fittedN + (me.crystal ? 1 : 0)} of 5</div><div class="summary-sub">${stats.crew ? `${me.crew.seated} of ${stats.crew} seats taken` : 'carries no sailors'}</div></div>
 		</div>
 		<div class="ship-card-btns">

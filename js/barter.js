@@ -180,6 +180,11 @@ export const BARTER_TIERS = [
  *
  * This stacks with the Value Pack's 10% and, since 2025-03-06, a ship's
  * own 10% while you are aboard.
+ *
+ * Checked 2026-09-07 against GrumpyG's Parley chart
+ * (grumpygreen.cricket/bdo-barter-sailing), which lists the same value
+ * at every level named, and against a live Barter window at Artisan 4,
+ * which read -16.27%: the table's 16.2701.
  */
 const PARLEY_DISCOUNT = [
 	0, 2.7329, 3.8568, 4.7136, 5.4313, 6.0595, 6.6238, 7.1392, 7.6157, 8.0603,

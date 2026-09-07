@@ -100,7 +100,7 @@ export function readOrders(raw) {
 		o.floors = floors;
 	} else o.floors = {};
 	if (typeof raw.buy === 'boolean') o.buy = raw.buy;
-	if (raw.pace === 'full' || raw.pace === 'fast') o.pace = raw.pace;
+	if (raw.pace === 'full' || raw.pace === 'fast' || raw.pace === 'steady') o.pace = raw.pace;
 	if (HOUR_CHOICES.some(([h]) => h === Number(raw.hours))) o.hours = Number(raw.hours);
 	if (COUNT_CHOICES.some(([c]) => c === raw.count)) o.count = raw.count;
 	if (WAY_CHOICES.some(([w]) => w === raw.way)) o.way = raw.way;
