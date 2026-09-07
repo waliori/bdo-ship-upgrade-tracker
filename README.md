@@ -75,7 +75,8 @@ and says so; blank means the quoted rate.
 
 Everything still missing, grouped by how you actually obtain it — Crow
 Coin Shop, Falasi's silver, barter, worker nodes, hunting — with running
-totals measured against what's in your purse.
+totals measured against what's in your purse. The list copies as text
+or as CSV, and prints legibly on white.
 
 ![The To Get screen](docs/media/to-get.png)
 
@@ -165,8 +166,15 @@ can be both made and bought, you choose, and the plan follows.
 - **Your purse** — Crow Coins, silver, Sangpyeong Coins and enhancement
   stones ride along above every tab, since you spend them from every tab.
 - **Export / Import** a JSON backup to move between machines — or
-  **a link**: the whole plan rides in the address, gzipped, to look at
-  on any browser without saving, or to merge or take in.
+  **a link**: the plan rides in the address, gzipped and slimmed of the
+  diaries, to look at on any browser without saving, or to merge or
+  take in; the export says how long the link is and warns when a chat
+  would cut it. An import names the items this version does not know
+  before it asks whether to replace or merge.
+- **A save that cannot be written** — the browser's storage full, or
+  refusing — is said out loud, with *Export now* beside it, rather than
+  lost quietly; a save that will not parse is copied aside and offered
+  back as a file before anything is written over it.
 - **What's new**, a release's worth of notes with a picture each, shown
   once to a browser that has seen an older version and reachable any
   time from *More*. The same notes are [`CHANGELOG.md`](CHANGELOG.md).
@@ -199,7 +207,9 @@ can be both made and bought, you choose, and the plan follows.
   number typed at a place moves the total, and a total typed lower comes
   off the places.
 - **Profiles**: separate saves on one browser for an alt or a what-if;
-  sync mirrors the main one only.
+  sync mirrors the main one only. The Map's routes and traces and the
+  Barter tab's board and run belong to the profile too, so they export,
+  sync and switch with it.
 - **Look-ups in your language**: Help lets you pick the BDOCodex locale
   every item link opens in (French, German, Korean and nine more).
 - Works on a phone — a tap on a row or a chip shows the hover card, a
@@ -392,6 +402,16 @@ Then open <http://localhost:8000>. Set `PORT` to use another port.
 
 `npm test` runs the suite: the sync API against a throwaway libSQL file,
 and the browser half driven in a real Chrome.
+
+`/healthz` answers with whether the database is reachable, how many
+saves are waiting to be flushed, the running version and request
+counters — `200` when all is well, `503` when a configured database is
+down. The container's health check reads it. Every non-static request
+is logged as one JSON line (`LOG_REQUESTS=0` turns that off).
+
+`npm run backup [file]` dumps every table to JSON and `npm run restore
+<file>` puts them back, upserting; stop the server first, since the
+copies it holds in memory would otherwise win.
 
 `node tools/build-shell.mjs` rewrites the service worker's precache
 list from the import graph; the test suite refuses a module left out.
