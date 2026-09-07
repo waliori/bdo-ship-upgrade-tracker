@@ -261,7 +261,7 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 .map-pin-badge:not(:empty) { display: grid; }
-.map-pin-badge.is-done { background: #153b31; color: #5ef0c9; border-color: #2c9a7a; }
+.map-pin-badge.is-done { background: var(--done-bg); color: var(--done-ink); border-color: var(--done-edge); }
 
 .map-zoom { display: flex; gap: 6px; }
 
@@ -282,7 +282,7 @@
   border: 1px solid var(--line-btn);
   border-radius: var(--r-panel);
   backdrop-filter: blur(10px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 12px 40px rgba(var(--shade-rgb), 0.45);
   z-index: 10;
   overflow: hidden;
 }
@@ -476,7 +476,7 @@
   border: 1px solid var(--line-btn);
   color: transparent;
 }
-.map-row.today.done .map-check { background: #153b31; border-color: #2c9a7a; color: #5ef0c9; }
+.map-row.today.done .map-check { background: var(--done-bg); border-color: var(--done-edge); color: var(--done-ink); }
 .map-row.today.done .map-row-name { color: var(--ink-mute); text-decoration: line-through; }
 
 .map-ring-row {
@@ -521,7 +521,7 @@
   border: 1px solid var(--line-btn);
   border-radius: var(--r-tile);
   padding: 10px 12px;
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 14px 40px rgba(var(--shade-rgb), 0.55);
   backdrop-filter: blur(10px);
   pointer-events: none;
 }
@@ -667,15 +667,15 @@
   line-height: 11px;
   text-align: center;
   font-weight: 700;
-  background: #3a1519;
+  background: var(--bad-bg);
   color: var(--red-soft);
   border: 1px solid var(--red-edge);
 }
 .map-io.plus::after {
   content: '+';
-  background: #11332a;
-  color: #5ef0c9;
-  border-color: #2c9a7a;
+  background: var(--done-bg);
+  color: var(--done-ink);
+  border-color: var(--done-edge);
 }
 
 /* A wharf: square where the islands are round, and gold when it is
@@ -823,7 +823,7 @@
   border: 1px solid var(--line-btn);
   border-radius: var(--r-tile);
   padding: 10px 12px;
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 14px 40px rgba(var(--shade-rgb), 0.55);
   backdrop-filter: blur(10px);
   pointer-events: none;
 }

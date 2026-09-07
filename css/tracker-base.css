@@ -91,6 +91,22 @@
   --red-soft: #e0988e;
   --red-edge: rgba(232, 122, 109, 0.35);
 
+  /* Solid wells and marks that were hex in the sheets: an inset well
+     (a taken seat), a deeper one (a level badge), a solid track, a
+     picked card, the "done" green and the "gone" red, the ink laid on
+     a tinted ground (a tier chip, a teal tick) and the star. The light
+     theme darkens the tints, so the ink on them turns white. */
+  --well: #0d2438;
+  --well-deep: #0b1e38;
+  --track-solid: #12263f;
+  --picked: #10304a;
+  --done-bg: #153b31;
+  --done-ink: #5ef0c9;
+  --done-edge: #2c9a7a;
+  --bad-bg: #3a1519;
+  --on-tint: #08131f;
+  --star: #ffd77a;
+
   --font-display: 'Chakra Petch', 'Segoe UI', sans-serif;
   --font-body: 'Noto Sans', system-ui, sans-serif;
 
@@ -170,6 +186,17 @@
   --red: #c23b2b;
   --red-soft: #b0463a;
   --red-edge: rgba(194, 59, 43, 0.35);
+
+  --well: #dfe9f3;
+  --well-deep: #d5e2ef;
+  --track-solid: #c3d4e6;
+  --picked: #d3e9f7;
+  --done-bg: #d5f2e8;
+  --done-ink: #087159;
+  --done-edge: #2c9a7a;
+  --bad-bg: #f6dcd8;
+  --on-tint: #ffffff;
+  --star: #b07f0a;
 }
 
 /* The same, when the browser prefers light and nothing was chosen by hand. */
@@ -230,6 +257,17 @@
     --red: #c23b2b;
     --red-soft: #b0463a;
     --red-edge: rgba(194, 59, 43, 0.35);
+
+    --well: #dfe9f3;
+    --well-deep: #d5e2ef;
+    --track-solid: #c3d4e6;
+    --picked: #d3e9f7;
+    --done-bg: #d5f2e8;
+    --done-ink: #087159;
+    --done-edge: #2c9a7a;
+    --bad-bg: #f6dcd8;
+    --on-tint: #ffffff;
+    --star: #b07f0a;
   }
 }
 

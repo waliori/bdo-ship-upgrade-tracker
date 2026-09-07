@@ -126,7 +126,7 @@
 }
 
 .sq-btn:hover:not(:disabled) { border-color: var(--line-btn-hi); color: var(--ink-hi); }
-.sq-btn.danger { border-color: rgba(232, 122, 109, 0.25); color: #c98a80; }
+.sq-btn.danger { border-color: rgba(232, 122, 109, 0.25); color: var(--red-soft); }
 .sq-btn.danger:hover { border-color: rgba(232, 122, 109, 0.6); color: var(--red); }
 
 .stepper {

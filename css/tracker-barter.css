@@ -9,6 +9,18 @@
   --tier-1: #6f88a3; --tier-2: #4ec9ae; --tier-3: #58a8d8; --tier-4: #7c9ce8;
   --tier-5: #b28fe0; --tier-6: #e8b661; --tier-7: #e8905d;
 }
+/* The same seven, darker on a pale page, so a tier named in text still
+   reads; the ink laid on them is --on-tint, which turns white there. */
+:root[data-theme="light"] {
+  --tier-1: #4d647e; --tier-2: #0f8f76; --tier-3: #1d78ab; --tier-4: #4463c4;
+  --tier-5: #7a4fb8; --tier-6: #a4700e; --tier-7: #c25a1f;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --tier-1: #4d647e; --tier-2: #0f8f76; --tier-3: #1d78ab; --tier-4: #4463c4;
+    --tier-5: #7a4fb8; --tier-6: #a4700e; --tier-7: #c25a1f;
+  }
+}
 .barter-screen { display: flex; flex-direction: column; gap: 16px; }
 /* A panel carries no padding of its own: what stands under a head on
    this tab -- the orders, the figures, the chains -- stands in a body
@@ -22,7 +34,7 @@
 /* The run's strip along the foot of the page while something is
    ticked: it stays in view above the phone's section bar as the chains
    or the islands are ticked, and opens the run laid out over the page. */
-.run-dock { position: sticky; bottom: calc(var(--tabbar-h, 0px) + 10px); z-index: 20; display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; padding: 9px 12px 9px 16px; border-radius: var(--r-panel); background: rgba(var(--deep-rgb), 0.96); border: 1px solid rgba(var(--blue-rgb), 0.45); box-shadow: 0 10px 34px rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); }
+.run-dock { position: sticky; bottom: calc(var(--tabbar-h, 0px) + 10px); z-index: 20; display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; padding: 9px 12px 9px 16px; border-radius: var(--r-panel); background: rgba(var(--deep-rgb), 0.96); border: 1px solid rgba(var(--blue-rgb), 0.45); box-shadow: 0 10px 34px rgba(var(--shade-rgb), 0.5); backdrop-filter: blur(8px); }
 .run-dock-k { font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue); white-space: nowrap; }
 .run-dock-figs { flex: 1 1 200px; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--ink-mute); }
 .run-dock-figs > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
@@ -48,7 +60,7 @@
 .run-dialog .run-chart { margin: 0; }
 /* The way to sail the run stays in view as the sheet scrolls: the bar
    sits at the foot of the box until the sheet's own end comes up. */
-.run-foot, .run-dialog .mat-sail { position: sticky; bottom: 0; z-index: 3; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 0; padding: 10px 12px; border-radius: var(--r-panel); background: #0a1826; border: 1px solid rgba(var(--blue-rgb), 0.35); box-shadow: 0 -10px 24px rgba(var(--deep-rgb), 0.55); }
+.run-foot, .run-dialog .mat-sail { position: sticky; bottom: 0; z-index: 3; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 0; padding: 10px 12px; border-radius: var(--r-panel); background: var(--sheet-solid); border: 1px solid rgba(var(--blue-rgb), 0.35); box-shadow: 0 -10px 24px rgba(var(--deep-rgb), 0.55); }
 .run-foot .sail-bar { flex: 1 1 320px; padding: 0; border: none; background: transparent; }
 .run-foot .sail-bar .act { flex: none; white-space: nowrap; padding: 9px 16px; }
 .run-foot .run-chart, .run-dialog .mat-sail .run-chart { flex: 0 1 auto; margin: 0; }
@@ -123,7 +135,7 @@
 .hold-bar-goods { display: flex; flex-wrap: wrap; gap: 5px; }
 .hold-bar-goods .faint { font-size: 11.5px; color: var(--ink-faint); }
 .hold-bar-lv { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-display); font-size: 11.5px; font-weight: 600; color: var(--ink-mid); padding: 2px 7px 2px 3px; border-radius: 999px; background: var(--panel-inset); border: 1px solid var(--line-soft); }
-.hold-bar-lv i { font-style: normal; font-size: 9.5px; font-weight: 700; color: #08131f; background: var(--tier); border-radius: 4px; padding: 1px 4px; }
+.hold-bar-lv i { font-style: normal; font-size: 9.5px; font-weight: 700; color: var(--on-tint); background: var(--tier); border-radius: 4px; padding: 1px 4px; }
 .hold-bar-ashore { font-size: 11.5px; color: var(--ink-mute); }
 .hold-bar-ashore.faint { color: var(--ink-faint); }
 .hold-bar-open { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--ink-mute); white-space: nowrap; }
@@ -181,7 +193,7 @@
 .chain-start span { font-size: 11px; color: var(--ink-mute); }
 .chain-pips { display: flex; align-items: center; gap: 3px; }
 .chain-pips i { height: 14px; width: 16px; border-radius: 3px; background: var(--track); color: var(--ink-faint); font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-.chain-pips i.on { background: var(--tier); color: #08131f; }
+.chain-pips i.on { background: var(--tier); color: var(--on-tint); }
 .chain-pips i.top { width: 26px; }
 .chain-pips em { margin-left: 5px; font-style: normal; font-size: 11px; font-weight: 700; color: var(--tier); letter-spacing: 0.03em; }
 .chain-route { font-size: 11.5px; color: var(--ink-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -304,7 +316,7 @@
 .run-list.gold .panel-title { color: var(--amber); }
 .run-good { display: flex; align-items: center; gap: 10px; padding: 9px 18px; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; }
 .run-good:last-child { border-bottom: none; }
-.run-good > i { font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; color: #08131f; background: var(--tier, var(--track)); border-radius: 4px; padding: 2px 5px; min-width: 22px; text-align: center; }
+.run-good > i { font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; color: var(--on-tint); background: var(--tier, var(--track)); border-radius: 4px; padding: 2px 5px; min-width: 22px; text-align: center; }
 .run-good b { font-family: var(--font-display); font-weight: 500; color: var(--ink-dim); width: 40px; }
 .run-good > span { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .run-good .faint { color: var(--ink-mute); }
@@ -397,7 +409,7 @@
 /* ---- the chart: a wharf call as its own kind of stop -------------- */
 
 .map-stop-row.stash { border-color: var(--stash-edge); background: rgba(178, 143, 224, 0.07); }
-.map-stop-n.stash { background: var(--stash); color: #1c1030; border-radius: 5px; font-size: 12px; }
+.map-stop-n.stash { background: var(--stash); color: var(--on-tint); border-radius: 5px; font-size: 12px; }
 .map-drops { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; }
 .map-drop { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--ink-dim); }
 .map-drop b { font-family: var(--font-display); font-weight: 600; color: var(--stash); }
@@ -473,10 +485,10 @@
 .map-tip-run .map-tip-row { border-top: 0; }
 .map-tip-run { border-top: 1px solid var(--line-soft); margin-top: 4px; }
 .map-tip.stash { border-color: var(--stash-edge); }
-.map-tip.stash .map-tip-name { color: #ddc9ff; }
+.map-tip.stash .map-tip-name { color: var(--stash); }
 .map-tip-sub.sell { color: var(--tier-7); }
 .map-tip-side.ashore { color: var(--ink-dim); }
 .map-io.ashore::after { content: '⌂'; background: #2a1c46; color: #ddc9ff; border-color: var(--stash-edge); font-size: 8px; }
 .map-step-chip.stash { color: var(--stash); border-color: var(--stash-edge); background: rgba(178, 143, 224, 0.12); border-radius: 6px; }
-.map-step-chip.stash.on { background: var(--stash); border-color: transparent; color: #1c1030; }
+.map-step-chip.stash.on { background: var(--stash); border-color: transparent; color: var(--on-tint); }
 

@@ -142,7 +142,7 @@
 .run-floors { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
 .run-floors .run-pick-k { margin-right: 4px; }
 .run-floor { display: inline-flex; align-items: center; gap: 4px; }
-.run-floor i { width: 16px; height: 14px; border-radius: 3px; background: var(--tier); color: #08131f; font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.run-floor i { width: 16px; height: 14px; border-radius: 3px; background: var(--tier); color: var(--on-tint); font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
 .run-floor .purse-inline { width: 46px; text-align: center; }
 .chain-yard { font-size: 11px; color: var(--ink-mute); }
 .chain-yard em { font-style: normal; color: var(--teal); font-weight: 600; }
@@ -177,13 +177,13 @@
 .chip.pay.active { background: rgba(78, 201, 174, 0.22); border-color: var(--teal); color: var(--teal-hi); }
 /* The mark that says this stop was sailed: a box you can hit. */
 .run-done { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px 0 6px; border-radius: 8px; border: 1px solid var(--line-btn-hi); background: rgba(var(--deep-rgb), 0.6); color: var(--ink-mid); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-.run-done i { width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--line-btn-hi); display: inline-flex; align-items: center; justify-content: center; font-style: normal; font-size: 12px; font-weight: 700; color: #08131f; }
+.run-done i { width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--line-btn-hi); display: inline-flex; align-items: center; justify-content: center; font-style: normal; font-size: 12px; font-weight: 700; color: var(--on-tint); }
 .run-done:hover { border-color: var(--teal); color: var(--ink-hi); }
 .run-done.on { border-color: var(--teal); background: rgba(78, 201, 174, 0.16); color: var(--teal-hi); }
 .run-done.on i { background: var(--teal); border-color: var(--teal); }
 .map-tip-check .run-done { height: 28px; font-size: 12px; }
 .run-stop.done .run-main > .run-trade, .run-stop.done .run-main > .run-leave, .run-stop.done .run-main > .run-sell { opacity: 0.55; }
-.run-stop.done .run-rail b { background: var(--teal); color: #08131f; border-color: var(--teal); }
+.run-stop.done .run-rail b { background: var(--teal); color: var(--on-tint); border-color: var(--teal); }
 .sail-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-radius: var(--r-panel); border: 1px dashed var(--line-btn-hi); font-size: 12.5px; color: var(--ink-mute); }
 .sail-bar .faint { color: var(--ink-faint); font-size: 11.5px; max-width: 60ch; }
 .sail-all { flex: 1 1 100%; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; padding: 8px 10px; border-radius: var(--r-btn); background: rgba(var(--blue-rgb), 0.08); border: 1px solid rgba(var(--blue-rgb), 0.25); font-size: 12.5px; color: var(--ink-mid); }
@@ -209,7 +209,7 @@
 .chain-filters { padding: 10px 0 2px; }
 .hold-filters .field.hold-q, .chain-filters .field.hold-q { flex: 1 1 160px; min-width: 140px; padding: 5px 9px; font-size: 12px; }
 .chip.tiny.lvl { min-width: 22px; padding: 2px 6px; font-family: var(--font-display); font-weight: 700; border-color: var(--tier); color: var(--tier); background: transparent; }
-.chip.tiny.lvl.active { background: var(--tier); color: #08131f; }
+.chip.tiny.lvl.active { background: var(--tier); color: var(--on-tint); }
 .ashore-k { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ashore-places { text-transform: none; letter-spacing: 0; }
 .map-tip-check { margin-top: 6px; }
@@ -315,7 +315,7 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .mat-filters .chip.tiny.active { background: rgba(78, 201, 174, 0.16); border-color: rgba(78, 201, 174, 0.55); color: var(--teal-hi); }
 .mat-filters-rule { width: 1px; height: 18px; background: var(--line-btn); margin: 0 3px; }
 .mat-filters .chip.tiny.lvl { width: 26px; height: 26px; min-width: 0; padding: 0; border-radius: 6px; font-size: 11px; border-color: var(--line-btn); color: var(--ink-mute); }
-.mat-filters .chip.tiny.lvl.active { background: var(--tier); border-color: var(--tier); color: #08131f; }
+.mat-filters .chip.tiny.lvl.active { background: var(--tier); border-color: var(--tier); color: var(--on-tint); }
 .mat-filters .linky.faint { padding: 0 6px; }
 
 .mat-gives { display: flex; flex-direction: column; }
@@ -328,7 +328,7 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .mat-give-head b { font-weight: 600; font-size: 13.5px; color: var(--ink-row); }
 .mat-give-head .run-arrow { color: var(--ink-faint); font-size: 12px; }
 .mat-give-head b.mat-get { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--blue-hi); }
-.tier-badge { font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; color: #08131f; background: var(--tier, var(--track)); border-radius: 4px; padding: 2px 5px; }
+.tier-badge { font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; color: var(--on-tint); background: var(--tier, var(--track)); border-radius: 4px; padding: 2px 5px; }
 .mat-give-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 11.5px; }
 .mat-give-meta .faint { color: var(--ink-faint); }
 .mat-held { font-weight: 600; color: var(--ink-mute); }
@@ -455,7 +455,7 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 /* The chart's offline buttons and their count. */
 .map-pins { display: inline-flex; gap: 6px; }
 .map-pin-btn { position: relative; }
-.map-pin-n { position: absolute; right: -4px; top: -6px; min-width: 16px; padding: 0 4px; border-radius: 8px; font-size: 9.5px; line-height: 16px; font-weight: 700; color: #10202c; background: var(--teal); }
+.map-pin-n { position: absolute; right: -4px; top: -6px; min-width: 16px; padding: 0 4px; border-radius: 8px; font-size: 9.5px; line-height: 16px; font-weight: 700; color: var(--on-tint); background: var(--teal); }
 /* The sailor's level log on the Selected-sailor card. */
 .sel-log summary { cursor: pointer; list-style: none; }
 .sel-log summary::-webkit-details-marker { display: none; }

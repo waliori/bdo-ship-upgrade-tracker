@@ -251,7 +251,7 @@
     touch-action: pan-y;
     transition: max-height 0.18s ease, transform 0.18s ease;
     animation: sheetUp 0.22s ease;
-    box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 -14px 40px rgba(var(--shade-rgb), 0.5);
   }
 
   .detail.open.dragging, .dialog-box.dragging { transition: none; }
@@ -389,7 +389,7 @@
 /* ---- Roll verdicts: a typed stat judged against its level's band ----- */
 .roll-note { font-size: 9.5px; font-style: normal; letter-spacing: 0.05em; text-transform: uppercase; margin-left: 6px; color: var(--ink-faint); }
 .roll-note.good { color: var(--teal); }
-.roll-note.low { color: #e0a86a; }
+.roll-note.low { color: var(--amber); }
 
 /* ---- Fleet rows: the whole line sails ------------------------------- */
 .fleet-icon { width: 34px; height: 34px; border-radius: 8px; object-fit: contain; }
@@ -402,7 +402,7 @@
 .sel-seats b { color: var(--teal); }
 
 /* ---- The app tip: one styled tooltip, moved under the pointer -------- */
-.app-tip { position: fixed; z-index: 90; max-width: 300px; padding: 9px 12px; border-radius: var(--r-btn); background: var(--panel-solid); border: 1px solid var(--line-btn); box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55); font-size: 12px; line-height: 1.45; color: var(--ink-mid); pointer-events: none; }
+.app-tip { position: fixed; z-index: 90; max-width: 300px; padding: 9px 12px; border-radius: var(--r-btn); background: var(--panel-solid); border: 1px solid var(--line-btn); box-shadow: 0 14px 40px rgba(var(--shade-rgb), 0.55); font-size: 12px; line-height: 1.45; color: var(--ink-mid); pointer-events: none; }
 
 /* ---- A ship in a link: the parts, and whether you hold them ---------- */
 .share-parts { display: flex; flex-direction: column; gap: 6px; max-height: 44vh; overflow-y: auto; }
@@ -410,7 +410,7 @@
 .share-part-icon { width: 28px; height: 28px; border-radius: 6px; object-fit: contain; flex: none; }
 .share-part-name { flex: 1; min-width: 0; color: var(--ink-hi); }
 .share-part-name small { color: var(--ink-faint); font-size: 10.5px; text-transform: capitalize; }
-.share-part-have { flex: none; font-size: 11px; color: #e0a86a; }
+.share-part-have { flex: none; font-size: 11px; color: var(--amber); }
 .share-part.held .share-part-have { color: var(--teal); }
 
 /* ---- Crew templates ------------------------------------------------- */
