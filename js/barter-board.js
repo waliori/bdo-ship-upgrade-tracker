@@ -27,11 +27,14 @@ export function offersOf(combo) {
 }
 
 /** The layouts every answer leaves standing. An answer is what one
- *  island was seen to show: { npcId, give, recv }. */
+ *  island was seen to show: { npcId, give, recv }. The record has no
+ *  row for one or two islands on most layouts, and a layout is not
+ *  ruled out by an island it says nothing about -- only by one it
+ *  says shows something else. */
 export function candidates(combos, answers) {
 	return combos.filter(c => answers.every(a => {
 		const o = offersOf(c).get(a.npcId);
-		return !!o && o.give === a.give && o.recv === a.recv;
+		return !o || (o.give === a.give && o.recv === a.recv);
 	}));
 }
 
@@ -83,15 +86,28 @@ export function askable(combos, npcById, near = null) {
  * which of its own four goods each pays was seen to differ from the
  * record on the same layout. Weight and price hang on the level alone;
  * the screen says the good may be another of the island's.
+ *
+ * `answers` are what islands were seen to show today. One at an island
+ * the layout has no row for is put on the board as seen -- the record
+ * lacks a row here and there, and a [Level 5] aboard would otherwise
+ * find no island to take it while the game shows one that does.
  */
-export function boardData(combo, barterData, npcById) {
+export function boardData(combo, barterData, npcById, answers = []) {
 	const codex = new Map();
 	const entries = new Map();
 	for (const e of barterData || []) {
 		if (levelOf(e.name) === null && e.name !== 'Crow Coin') entries.set(e.name, { ...e, sources: [...e.sources] });
 		for (const s of e.sources) codex.set(`${s.npc_id}|${s.give.name}|${e.name}`, { entry: e, source: s });
 	}
-	for (const [id, give, qty, recv] of combo.offers) {
+	const listed = offersOf(combo);
+	const offers = [
+		...combo.offers,
+		...answers.filter(a => !listed.has(a.npcId) && npcById.has(a.npcId)).map(a => {
+			const known = codex.get(`${a.npcId}|${a.give}|${a.recv}`);
+			return [a.npcId, a.give, known ? String(known.source.give.quantity) : '1', a.recv];
+		})
+	];
+	for (const [id, give, qty, recv] of offers) {
 		const known = codex.get(`${id}|${give}|${recv}`);
 		if (!entries.has(recv)) {
 			const e = known ? known.entry : null;

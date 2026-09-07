@@ -28,6 +28,20 @@ const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/150 Safari
 // The sheet's spellings that are not the codex's.
 const SPELLING = { 'Balvege Island': 'Balvage Island' };
 
+// Offers the sheet leaves out of a layout and the game was seen to show
+// on it: by layout id, then [barterer id, give, quantity, receive]. An
+// island the sheet has no row for on a layout is added from here; a
+// row the sheet does have stands. Layout 19 has no row for the two
+// Land of Morning Light islands, and both [Level 6]s their offers make
+// are taken further on that layout by islands the sheet does list --
+// seen on 2026-09-07.
+const SEEN = {
+	19: [
+		[58981, '[Level 5] Golden Fish Scale', '1', '[Level 6] Sharp Safflower Blade Crate'],
+		[58980, "[Level 5] Statue's Tear", '1', '[Level 6] Hanji Country Wild Berry Crate']
+	]
+};
+
 async function tab(gid) {
 	const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET}/export?format=csv&gid=${gid}`, { headers: { 'User-Agent': UA } });
 	if (!res.ok) throw new Error(`tab ${gid}: ${res.status}`);
@@ -199,11 +213,14 @@ const combos = layouts.map(l => ({
 	// own figure and it moved with the May 2026 patch the way the sheet
 	// says the land goods did. The sheet's only where the codex lacks
 	// the exchange altogether.
-	offers: l.offers.map(o => {
-		const id = npcOf.get(o.island).id;
-		const codex = dealt.get(id).qty.get(`${o.give}|${o.recv}`);
-		return [id, o.give, codex !== undefined ? String(codex) : o.qty, o.recv];
-	})
+	offers: [
+		...l.offers.map(o => {
+			const id = npcOf.get(o.island).id;
+			const codex = dealt.get(id).qty.get(`${o.give}|${o.recv}`);
+			return [id, o.give, codex !== undefined ? String(codex) : o.qty, o.recv];
+		}),
+		...(SEEN[l.id] || []).filter(([id]) => !l.offers.some(o => npcOf.get(o.island).id === id))
+	]
 }));
 await writeFile(OUT, JSON.stringify({
 	read: new Date().toISOString().slice(0, 10),

@@ -121,3 +121,37 @@ test('the board’s [Level 6] offers are the layout’s; what a [Level 7] island
 	}
 	assert.ok(data.some(e => e.name === '[Level 6] Valencian Desert Fine Sword' && e.sources[0].npc_name === 'Roshina'));
 });
+
+test('an island a layout has no row for neither rules it out nor is left off its board', () => {
+	// Layout 19 lists no offer for Padix Island. Seen showing something
+	// there, the layout still stands -- the record says nothing about
+	// it, not something else -- and the offer seen goes on the board.
+	const padix = [...npcById.values()].find(n => n.at === 'Padix Island').id;
+	const layout = combos.find(c => c.id === '19');
+	assert.equal(offersOf(layout).has(padix), false);
+	const codex = barterData.flatMap(e => e.sources.filter(s => s.npc_id === padix).map(s => ({ give: s.give.name, recv: e.name, qty: s.give.quantity })))
+		.find(x => levelOf(x.recv));
+	const answer = { npcId: padix, give: codex.give, recv: codex.recv };
+	assert.ok(candidates(combos, [answer]).includes(layout));
+	// Without the answer the board deals no trade good at Padix -- the
+	// material exchanges ride along from the whole table -- and with
+	// it, the exchange seen, at the codex's quantity.
+	const rows = data => data.filter(e => levelOf(e.name)).flatMap(e => e.sources.filter(s => s.npc_id === padix).map(s => [s.give.name, s.give.quantity, e.name]));
+	assert.deepEqual(rows(boardData(layout, barterData, npcById)), []);
+	assert.deepEqual(rows(boardData(layout, barterData, npcById, [answer])), [[codex.give, codex.qty, codex.recv]]);
+	// An answer at an island the layout does list still has to match.
+	const listed = layout.offers[0];
+	assert.equal(candidates([layout], [{ npcId: listed[0], give: listed[1], recv: listed[3] }]).length, 1);
+	assert.equal(candidates([layout], [{ npcId: listed[0], give: listed[1], recv: 'Crow Coin' }]).length, 0);
+});
+
+test('layout 19 takes the two Land of Morning Light [Level 5]s the sheet left out, and they climb to Level 7', () => {
+	const layout = combos.find(c => c.id === '19');
+	const data = boardData(layout, barterData, npcById);
+	const dock = { '[Level 5] Golden Fish Scale': 3, "[Level 5] Statue's Tear": 3 };
+	const held = chains(data, {}, dock).filter(c => c.from === 'dock');
+	assert.deepEqual(held.map(c => [c.item, c.top, c.rungs.map(r => npcById.get(r.npcId).at)]).sort(), [
+		['[Level 5] Golden Fish Scale', 7, ['Dallae Pier', 'Sanctuary Coastal Outpost']],
+		["[Level 5] Statue's Tear", 7, ['Haemo Island', 'Sausan Garrison Wharf']]
+	]);
+});
