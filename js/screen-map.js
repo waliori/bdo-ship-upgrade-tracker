@@ -2687,7 +2687,7 @@ function miniHTML(marks) {
 	// A dragged position was clamped against the box it was dragged in;
 	// this box may be smaller — a window shrunk, a panel grown — so it
 	// is clamped again before it is drawn. 176×110 is the minimap's
-	// fixed size in tracker.css.
+	// fixed size in tracker-map.css.
 	if (miniPos) {
 		const host = document.querySelector('[data-map]');
 		if (host && host.clientWidth) {

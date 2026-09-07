@@ -1,0 +1,531 @@
+/* tracker-extras.css — the item card, the fleet, the appearance set, the doors out of an item, the sheets, the ship guide, templates, and paper.
+   One of nine sheets that were one file, cut at its section marks and
+   linked in the same order (tracker-base, tracker-shell, tracker-yard, tracker-widgets, tracker-map, tracker-sea, tracker-extras, tracker-barter, tracker-recent), so the cascade is what it was: a
+   rule here still loses to the same rule in a later sheet. When moving a
+   rule between sheets, check nothing later relies on beating it. */
+
+/* ---- the item card ------------------------------------------------ *
+   What Find opens: every section the app can fill about one item, each
+   a way through to the screen that owns it properly. Sections with
+   nothing to say are left out in the markup, so this only has to lay
+   out the ones that are there. */
+.item-card { display: flex; flex-direction: column; gap: 4px; min-width: min(520px, 100%); }
+.card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.card-head h2 { margin: 0; }
+.card-icon { width: 44px; height: 44px; flex: none; }
+.card-src { margin: 2px 0 0; font-size: 12px; color: var(--ink-mute); }
+.card-part { padding: 10px 0 2px; border-top: 1px solid var(--line-soft); }
+.card-part h3 {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.card-row { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; font-size: 12.5px; color: var(--ink-mid); }
+.card-row .n { font-family: var(--font-display); color: var(--ink-hi); white-space: nowrap; }
+.card-row .n.amber { color: var(--amber); }
+.card-row .n.teal { color: var(--teal-hi, #4ec9ae); }
+.card-line { font-size: 12.5px; line-height: 1.6; color: var(--ink-mid); }
+.card-more { margin-top: 3px; font-size: 11.5px; color: var(--ink-faint); }
+/* A way through to the screen that owns the section sits under it, not
+   on top of the last line of it. */
+.card-part .chart-link { display: inline-block; margin-top: 8px; }
+.item-card .dialog-actions { margin-top: 14px; }
+
+/* ---- the fleet ------------------------------------------------------ *
+   The screen keeps one line — the ship being sailed, the only one that
+   changes what the Map does — and the rest live in a dialog that can
+   search, filter and page. An inline list grows without limit and
+   pushes the screen below it away; this does not. */
+.setups-panel { margin-bottom: 16px; }
+.fleet-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--blue-edge);
+  border-radius: var(--r-btn);
+  background: rgba(var(--blue-rgb), 0.09);
+}
+.fleet-now {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--ink-hi);
+}
+.fleet-now.none { color: var(--ink-mute); font-size: 12.5px; }
+.setup-flag { color: var(--blue-hi); }
+.setup-fig { font-family: var(--font-body, inherit); font-size: 12.5px; color: var(--ink-mid); white-space: nowrap; }
+.setup-fig b { font-family: var(--font-display); color: var(--ink-hi); font-weight: 600; }
+.setup-diff { margin-left: 4px; font-size: 11px; font-family: var(--font-display); }
+.setup-diff.up { color: var(--teal-hi, #4ec9ae); }
+.setup-diff.down { color: var(--amber); }
+.setup-sailing {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--blue-hi);
+}
+
+/* ---- the fleet dialog ---------------------------------------------- */
+/* A dialog that has columns to line up gets more room than the 560px a
+   paragraph of prose wants. */
+.dialog-box.wide { max-width: 780px; }
+.fleet { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.fleet-search { width: 100%; }
+.fleet-filters { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.fleet-sort { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-mute); }
+.fleet-list { display: flex; flex-direction: column; gap: 3px; min-height: 120px; }
+.fleet-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(120px, 1fr) minmax(0, 2fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--r-btn);
+  background: rgba(var(--deep-rgb), 0.4);
+  font-size: 12.5px;
+  color: var(--ink-mid);
+}
+.fleet-row.on { border-color: var(--blue-edge); background: rgba(var(--blue-rgb), 0.1); }
+.fleet-row.gone { color: var(--ink-faint); }
+.fleet-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-family: var(--font-display);
+  color: var(--ink-hi);
+  overflow: hidden;
+}
+.fleet-name small { font-family: inherit; font-size: 11px; color: var(--ink-faint); }
+/* The figures line up down the list, which is what makes thirty ships
+   comparable rather than thirty things to read one at a time. */
+.fleet-figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); gap: 2px 12px; min-width: 0; }
+.fleet-figs .setup-fig { white-space: nowrap; }
+.fleet-acts { display: flex; align-items: center; gap: 4px; }
+.fleet-acts .act.small { padding: 4px 12px; font-size: 12px; }
+.fleet-pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--ink-mute); }
+.fleet-pager .ghost-btn:disabled { opacity: 0.4; cursor: default; }
+
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .fleet-row { grid-template-columns: auto 1fr auto; row-gap: 4px; }
+  .fleet-figs { grid-column: 1 / -1; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); }
+  .fleet-sort { margin-left: 0; width: 100%; }
+}
+
+}
+
+/* ---- the appearance set -------------------------------------------- *
+   Both sets in the game fill four slots and every slot carries a stat,
+   so this is a fitting card like the crystal's, not a cosmetic note.
+   Ticked per slot because the slots are separate items. */
+.slot-card.skin .skin-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 4px 10px;
+  margin: 8px 0 4px;
+}
+.skin-slot {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-mute);
+  cursor: pointer;
+}
+.skin-slot.on { color: var(--ink-mid); }
+.skin-slot input { accent-color: var(--blue); flex: none; }
+.skin-slot-name { text-transform: capitalize; }
+.skin-slot-val { font-family: var(--font-display); font-size: 11px; color: var(--ink-faint); }
+.skin-slot.on .skin-slot-val { color: var(--blue-hi); }
+
+
+
+/* ---- the doors out of an item --------------------------------------- *
+   What the app knows about one item is spread across nine screens, and
+   each used to keep it to itself. These are the ways through, drawn the
+   same in the item card and in the Inventory panel: a screen's name, and
+   what it has to say about this particular thing. Every one of them
+   opens the screen already pointed at the item. */
+
+.doors { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.door {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 7px 11px;
+  border: 1px solid var(--line-btn);
+  border-radius: var(--r-btn);
+  background: rgba(var(--deep-rgb), 0.4);
+  color: var(--ink-mid);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.door:hover {
+  border-color: var(--blue-edge);
+  background: rgba(var(--blue-rgb), 0.1);
+  color: var(--ink-hi);
+}
+
+.door-icon { color: var(--blue); font-size: 12px; }
+.door-name { font-family: var(--font-display); font-weight: 600; color: var(--ink-hi); }
+/* Only where a door would be ambiguous without it: which build the Tree
+   would open. Never a count -- the section above already said it. */
+.door-note { color: var(--ink-mute); font-size: 11.5px; }
+
+/* ---- sheets: the panels a thumb can move ---------------------------- *
+   Two things come up from the bottom edge on a phone -- the inventory
+   detail, and every dialog. Both used to arrive at one height and stay
+   there, which is how an item card with eight sections in it showed
+   three of them, and how the tab bar came to sit over the last line of
+   the inventory panel: the bar is fixed to the page and the panel lives
+   inside .shell, which has a stacking context of its own, so no z-index
+   the panel could carry would put it over the bar.
+
+   So a sheet stops above the bar, and the bar across the top of it is
+   real: drag it up for the whole screen, down to go back, further to
+   put it away. sheet.js has the gesture; this is the shape of it. */
+
+.sheet-grab { display: none; }
+
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .sheet-grab {
+    display: block;
+    /* It stays at the top while the sheet scrolls under it, so the way
+       out of a long card is never itself below the fold. A sheet has no
+       padding above for that reason: sticky is measured from the top of
+       the content, and padding there would strand the bar below its own
+       edge and let the heading slide up behind it. */
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    /* Out to the sheet's own edges: the whole top of the panel is the
+       handle, not a strip the width of the pill drawn on it. */
+    margin: 0 calc(var(--sheet-pad) * -1) 10px;
+    width: calc(100% + var(--sheet-pad) * 2);
+    padding: 13px 0 10px;
+    border: 0;
+    background: linear-gradient(to bottom, var(--sheet-bg) 72%, transparent);
+    /* The browser must not read a pull on the bar as a scroll. */
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .sheet-grab::after {
+    content: '';
+    display: block;
+    width: 42px;
+    height: 4px;
+    margin: 0 auto;
+    border-radius: 2px;
+    background: rgba(var(--line-rgb), 0.4);
+  }
+
+  .sheet-grab:active::after { background: rgba(var(--line-rgb), 0.7); }
+
+  /* Common to both sheets: rounded at the top only, scrolling inside
+     itself rather than pulling the page behind it, and moving under the
+     finger without a transition arguing with it. */
+  .detail.open, .dialog-box {
+    --sheet-pad: 18px;
+    border-radius: var(--r-panel) var(--r-panel) 0 0;
+    border-bottom: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    transition: max-height 0.18s ease, transform 0.18s ease;
+    animation: sheetUp 0.22s ease;
+    box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  .detail.open.dragging, .dialog-box.dragging { transition: none; }
+
+  @keyframes sheetUp {
+    from { transform: translateY(16px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+
+  /* ---- the inventory detail ---- */
+
+  /* Below this width the layout is one column, so the panel used to land
+     under the whole grid -- tapping a tile looked like it did nothing.
+     It comes up over the page instead, where it can be seen. */
+  .detail { display: none; }
+
+  .detail.open {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: auto;
+    /* Above the tab bar, which would otherwise paint over the bottom of
+       it, and which stays reachable while the sheet is up. */
+    /* Whichever is in the way: the tab bar, or the keyboard that is
+       covering the tab bar as well. */
+    bottom: max(var(--tabbar-h, 0px), var(--kb-h));
+    z-index: 55;
+    /* Opaque, because the grab bar sticks to the top of it and content
+       scrolling under a translucent bar reads as a smear. */
+    --sheet-bg: var(--sheet-solid);
+    background: var(--sheet-bg);
+    padding: 0 var(--sheet-pad) calc(var(--sheet-pad) + 8px);
+    max-height: 62vh;
+    max-height: min(62dvh, calc(100dvh - max(var(--tabbar-h, 0px), var(--kb-h)) - 12px));
+  }
+
+  .detail.open.tall {
+    max-height: calc(100vh - var(--tabbar-h, 0px) - 12px);
+    max-height: calc(100dvh - max(var(--tabbar-h, 0px), var(--kb-h)) - 12px);
+  }
+
+  .detail-veil {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 54;
+    background: rgba(var(--deep-rgb), 0.6);
+    backdrop-filter: blur(2px);
+  }
+
+  /* The grab bar has the top of the panel now, so the close button
+     shares the head's row with the name instead of being lifted out of
+     it -- which leaves the name to shrink rather than push it off. */
+  .detail-name { min-width: 0; }
+
+  /* ---- dialogs ---- */
+
+  /* The keyboard covers the foot of the page, so the sheet stands on
+     top of it rather than under it. */
+  .dialog {
+    align-items: end;
+    padding: 0 0 var(--kb-h);
+  }
+
+  .dialog-box {
+    --sheet-bg: var(--sheet-solid);
+    max-width: none;
+    padding: 0 var(--sheet-pad) calc(var(--sheet-pad) + max(env(safe-area-inset-bottom, 0px), 14px));
+    max-height: 78vh;
+    max-height: min(78dvh, calc(100dvh - var(--kb-h) - 12px));
+  }
+
+  /* A dialog is above the tab bar in the page's own stacking order, so
+     it may have the whole screen when it is asked for. */
+  .dialog-box.tall {
+    max-height: calc(100vh - 12px);
+    max-height: calc(100dvh - var(--kb-h) - 12px);
+  }
+
+  /* Widths a dialog asked for to line its columns up are a desktop
+     matter; a sheet is as wide as the phone. */
+  .dialog-box.wide { max-width: none; }
+
+  /* Buttons that would sit off the edge of a narrow sheet wrap instead,
+     and a card's own minimum width stops arguing with the sheet's. */
+  .item-card { min-width: 0; }
+  .dialog-actions { flex-wrap: wrap; }
+  .dialog-actions > * { flex: 1 1 auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail.open, .dialog-box { animation: none; }
+}
+
+/* ---- Picker chips: the narrows and sorts above the list -------------- */
+.picker-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+.picker-chips .chip { font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.5); color: var(--ink-dim); cursor: pointer; }
+.picker-chips .chip.on { border-color: var(--teal); color: var(--teal); background: rgba(126, 240, 212, 0.08); }
+
+/* ---- Ship guide: care, rations, shares and the named mates ----------- */
+.guide-list { padding: 12px 20px 16px; display: flex; flex-direction: column; gap: 12px; }
+.guide-row { display: flex; align-items: flex-start; gap: 10px; }
+.guide-icon { width: 30px; height: 30px; border-radius: 7px; object-fit: contain; flex: none; margin-top: 1px; }
+.guide-main { flex: 1; min-width: 0; }
+.guide-name { font-size: 12.5px; color: var(--ink-hi); }
+.guide-effect { color: var(--teal); font-weight: 600; }
+.guide-sub { font-size: 11.5px; color: var(--ink-mute); }
+.ration-row { display: flex; flex-direction: column; gap: 7px; padding-top: 10px; border-top: 1px solid rgba(var(--line-rgb), 0.1); }
+.ration-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ration-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-dim); padding: 3px 10px 3px 8px; border-radius: 999px; border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.5); }
+.ration-chip b { font-family: var(--font-display); font-weight: 600; }
+.ration-chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--g, #cfe3f5); box-shadow: 0 0 6px var(--g, #cfe3f5); }
+.ration-chip.g-white { --g: #cfe3f5; }
+.ration-chip.g-green { --g: #5be07a; }
+.ration-chip.g-blue { --g: #4aa8ff; }
+.ration-chip.g-yellow { --g: #f3c14a; }
+.ration-chip.g-orange { --g: #ff9a4a; }
+.exp-row { display: flex; align-items: center; gap: 10px; }
+.exp-aboard { flex: none; width: 68px; font-family: var(--font-display); font-size: 15px; color: var(--ink-hi); }
+.exp-aboard small { font-size: 9.5px; color: var(--ink-faint); margin-left: 4px; letter-spacing: 0.06em; text-transform: uppercase; }
+.exp-bar { flex: 1; min-width: 40px; height: 5px; border-radius: 3px; background: rgba(var(--line-rgb), 0.12); overflow: hidden; }
+.exp-bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #3a89c9, #4ec9ae); }
+.exp-fig { flex: none; font-size: 11.5px; color: var(--ink-mute); }
+.exp-fig b { font-family: var(--font-display); font-size: 12.5px; color: var(--teal); }
+.slot-badge { flex: none; width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--teal); background: rgba(126, 240, 212, 0.1); border: 1px solid rgba(126, 240, 212, 0.3); }
+.mate-cards { padding: 12px 20px 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.mate-card { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.5); }
+.mate-card .guide-name { font-weight: 600; }
+.mate-trait { font-size: 12px; color: var(--teal); margin: 2px 0 3px; }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .guide-list, .mate-cards { padding: 10px 14px 14px; }
+}
+
+/* ---- Roll verdicts: a typed stat judged against its level's band ----- */
+.roll-note { font-size: 9.5px; font-style: normal; letter-spacing: 0.05em; text-transform: uppercase; margin-left: 6px; color: var(--ink-faint); }
+.roll-note.good { color: var(--teal); }
+.roll-note.low { color: #e0a86a; }
+
+/* ---- Fleet rows: the whole line sails ------------------------------- */
+.fleet-icon { width: 34px; height: 34px; border-radius: 8px; object-fit: contain; }
+.fleet-hit { position: absolute; inset: 0; z-index: 0; background: none; border: 0; cursor: pointer; border-radius: inherit; }
+.fleet-row.can .fleet-icon, .fleet-row.can .fleet-name, .fleet-row.can .fleet-figs, .fleet-row.can .fleet-go { pointer-events: none; }
+.fleet-row .map-x { position: relative; z-index: 1; }
+.fleet-row.can:hover { border-color: var(--blue-edge); background: rgba(var(--blue-rgb), 0.12); }
+.fleet-go { font-size: 11px; letter-spacing: 0.04em; color: var(--teal); opacity: 0; transition: opacity 0.15s ease; white-space: nowrap; }
+.fleet-row.can:hover .fleet-go, .fleet-hit:focus-visible ~ .fleet-acts .fleet-go { opacity: 1; }
+.sel-seats b { color: var(--teal); }
+
+/* ---- The app tip: one styled tooltip, moved under the pointer -------- */
+.app-tip { position: fixed; z-index: 90; max-width: 300px; padding: 9px 12px; border-radius: var(--r-btn); background: var(--panel-solid); border: 1px solid var(--line-btn); box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55); font-size: 12px; line-height: 1.45; color: var(--ink-mid); pointer-events: none; }
+
+/* ---- A ship in a link: the parts, and whether you hold them ---------- */
+.share-parts { display: flex; flex-direction: column; gap: 6px; max-height: 44vh; overflow-y: auto; }
+.share-part { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.5); font-size: 12.5px; }
+.share-part-icon { width: 28px; height: 28px; border-radius: 6px; object-fit: contain; flex: none; }
+.share-part-name { flex: 1; min-width: 0; color: var(--ink-hi); }
+.share-part-name small { color: var(--ink-faint); font-size: 10.5px; text-transform: capitalize; }
+.share-part-have { flex: none; font-size: 11px; color: #e0a86a; }
+.share-part.held .share-part-have { color: var(--teal); }
+
+/* ---- Crew templates ------------------------------------------------- */
+.tmpl-tag { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); margin-left: 6px; }
+.tmpl-foot { padding-top: 0; }
+
+/* The hold as a sum of lines, under the fitted-out card. */
+.hold-lines { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 3px 18px; padding: 0 20px 14px; font-size: 11.5px; color: var(--ink-mute); }
+.hold-lines-k { grid-column: 1 / -1; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 2px; }
+.hold-line { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dotted var(--line); padding: 2px 0; }
+.hold-line b { color: var(--ink-hi); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hold-line.minus b { color: var(--amber); }
+.hold-line.total { border-bottom: 0; border-top: 1px solid var(--line); margin-top: 2px; padding-top: 4px; }
+.hold-line.total b { color: var(--teal); }
+.hold-line.sub { border-bottom: 0; }
+.hold-line.sub b { color: var(--ink); font-weight: 500; }
+
+/* The load composer on the route panel: a counter per level of goods. */
+.map-load-btn { width: 20px; height: 20px; border-radius: 4px; border: 1px solid var(--line); background: var(--panel-inset); color: var(--ink); font-size: 13px; line-height: 1; cursor: pointer; flex: none; }
+.map-load-btn:hover { color: var(--ink-hi); border-color: var(--blue-edge); }
+.map-load-bar { position: relative; height: 6px; border-radius: 3px; background: var(--track); margin-top: 8px; overflow: hidden; }
+.map-load-bar > i { position: absolute; top: 0; bottom: 0; left: 0; background: var(--teal); border-radius: 3px; }
+.map-load-bar > i.over { background: var(--amber); }
+.map-load-bar > i.dead { background: var(--red, #e05050); }
+.map-load-bar > s { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--ink-faint); }
+@media (pointer: coarse) { .map-load-btn { width: 28px; height: 28px; } }
+
+.summary-sub.warn { color: var(--amber); }
+
+/* Carry out of port: the goods the loop hands over, on the route panel. */
+.map-carry { margin-top: 10px; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
+.map-carry-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.map-carry-row:last-child { border-bottom: 0; }
+.map-carry-row.ok .map-row-sub { color: var(--teal); }
+.map-row-sub.amber { color: var(--amber); }
+.map-carry > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; }
+.map-carry > summary::before { content: '▸'; font-size: 10px; color: var(--ink-faint); }
+.map-carry[open] > summary::before { content: '▾'; }
+.map-carry > summary::-webkit-details-marker { display: none; }
+
+/* The enhancement tables, printed. */
+.enh-tables h3 { font-size: 13px; margin: 18px 0 2px; color: var(--ink-hi); }
+.enh-tables-note { font-size: 11.5px; color: var(--ink-faint); margin: 0 0 6px !important; }
+.table-wrap { overflow-x: auto; }
+.enh-table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.enh-table th, .enh-table td { padding: 4px 7px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; vertical-align: top; }
+.enh-table th { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute); font-weight: 600; }
+.enh-table th.num, .enh-table td.num { text-align: right; }
+.enh-table td.lit { color: var(--teal); font-weight: 600; }
+.enh-table td small { display: block; font-weight: 400; color: var(--ink-faint); font-size: 10px; }
+
+/* The sea's clocks, a pill on the chart's top corner opposite the panel. */
+.map-clocks { position: absolute; right: 12px; top: 12px; z-index: 4; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 12px; max-width: 46%; padding: 4px 10px; border-radius: var(--r-btn); background: rgba(var(--deep-rgb), 0.78); border: 1px solid rgba(var(--line-rgb), 0.18); font-size: 11px; color: var(--ink-mute); pointer-events: none; }
+.map-clocks b { color: var(--ink-hi); font-variant-numeric: tabular-nums; }
+.map.side-right .map-clocks { right: auto; left: 12px; justify-content: flex-start; }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) { .map-clocks { top: 10px; right: 10px; max-width: 62%; font-size: 10.5px; padding: 3px 8px; gap: 2px 8px; } .map.side-right .map-clocks { left: auto; right: 10px; } }
+
+/* An area shaded on the chart, and one being cornered. */
+.map-trace-area { fill-opacity: 0.18; stroke-width: 1.5; stroke-linejoin: round; opacity: 0.95; }
+.map-trace-draft { fill: none; stroke-width: 1.5; stroke-dasharray: 5 4; stroke-linejoin: round; }
+.map-trace-corner { stroke-width: 1.5; }
+.map-trace-corner.first { cursor: pointer; }
+.map-trace-n.area { font-size: 10px; }
+.map-area-draft { align-items: center; }
+.map-area-draft .map-hint { margin: 0; flex: 1; }
+.map.tool-area .map-layer { cursor: crosshair; }
+
+/* ---- paper ----------------------------------------------------------- *
+   The screen that is up, on white, in black, one panel to a page break:
+   a shopping list is a thing people print. The furniture goes -- header
+   buttons, tab rows, the pouch, the water, the sheets and cards -- and
+   the panels lose their glass, since a translucent navy over white is a
+   grey smear on paper. */
+@media print {
+  html, body, body::before { background: #fff !important; background-image: none !important; color: #000; }
+  body { font-size: 11pt; color: #000; }
+  .shell { max-width: none; padding: 0; }
+  .masthead-actions, .hamburger, .tabs, .tabbar, .pouch, .status-bar, .toast, .peek, .dialog,
+  .app-tip, .shared-bar, .detail, .detail-veil, .controls, .get-copy, .chips, .sq-btn, .stepper,
+  .readybar, .step-cta, .tcaret, .chart-link, .linky, .ghost-btn, .act, .info-dot, canvas,
+  .map-tools, .map-side, .map-clocks, .map-mini, .quest-actions, .get-quests, .brand-sub { display: none !important; }
+  .brand-name { color: #000; }
+  .masthead { padding: 0 0 8pt; border-bottom: 1pt solid #000; margin-bottom: 10pt; }
+  .screen { gap: 10pt; }
+  .panel, .stats, .summary, .stat, .tile, .row, .trow, .quest, .craft, .card, .build, .today, .step,
+  .kv-row, .way, .detail-body, .group, .picker, .item-card {
+    background: none !important;
+    border-color: #999 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    color: #000 !important;
+    break-inside: avoid;
+  }
+  .panel { break-after: page; border: 1pt solid #999; border-radius: 0; }
+  .panel:last-child { break-after: auto; }
+  .panel-head { border-bottom: 1pt solid #999; }
+  .panel-title, .summary-title, .summary-k, .summary-v, .summary-sub, .stat-k, .stat-v, .stat-sub,
+  .row-name, .row-sub, .row-alt, .row-sea, .row-sea-why, .group-total, .qty-out, .empty, .trow-name, .trow-sub,
+  .tab, h1, h2, h3, p, span, small, b, i, a, li, td, th, dt, dd, label, summary, .badge, .tag {
+    color: #000 !important;
+    text-shadow: none !important;
+  }
+  a.codex { border-bottom: none; }
+  .codex-mark { display: none !important; }
+  input, select, textarea { background: none !important; color: #000 !important; border: 1pt solid #999 !important; -webkit-text-fill-color: #000; }
+  .row-icon, .trow-icon, .tile img, img { filter: none; }
+  .row-ways { display: block; }
+  .row-ways summary { display: none; }
+  .row-ways > div { display: block; }
+  .qty-out { font-weight: 700; }
+  .stat, .summary-stats > div { border-color: #999 !important; }
+  /* A screen's own screen colours mean nothing in ink. */
+  .badge, .tag, .chip, .ready-chip, .tab-count, .stat-v.teal, .stat-v.amber, .stat-v.blue, .summary-v.amber, .summary-v.blue {
+    background: none !important;
+    border-color: #999 !important;
+  }
+}
+

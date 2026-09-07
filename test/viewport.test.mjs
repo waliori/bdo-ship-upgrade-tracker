@@ -20,7 +20,8 @@ test('without a window nothing is a phone, and listening is a no-op that can be 
 
 test('the stylesheet repeats the same query, so the two cannot drift', async () => {
 	const fs = await import('node:fs');
-	const css = fs.readFileSync(new URL('../css/tracker.css', import.meta.url), 'utf8');
+	const dir = new URL('../css/', import.meta.url);
+	const css = fs.readdirSync(dir).filter(f => f.startsWith('tracker-')).map(f => fs.readFileSync(new URL(f, dir), 'utf8')).join('\n');
 	assert.ok(css.includes(`@media ${PHONE_MQ}`), 'the phone query is in the CSS as written');
 	assert.ok(css.includes(`@media ${MENU_MQ}`), 'and the header fold');
 	assert.ok(!/@media \(max-width: 6[04]0px\)/.test(css), 'no stray phone breakpoint is left');

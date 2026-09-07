@@ -755,7 +755,7 @@ writes their save back.
 ```
 index.html            the whole shell: masthead, tabs, screen
 server.js             static files, plus the sync API when configured
-css/tracker.css       the design system
+css/tracker-*.css     the design system, nine sheets linked in order
 js/
   ui.js               the shell: render loop, event wiring, boot
   screen-*.js         one module per tab — plan, builds, inventory, tree,

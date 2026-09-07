@@ -73,7 +73,7 @@ test('the modules are never served stale against each other', async () => {
 	// contents change. A cache that holds one file from before a deploy
 	// and another from after it produces a page that dies on an import
 	// that no longer exists -- which is what a max-age on js/ once did.
-	for (const url of ['/js/planner.js', '/js/recipes.js', '/js/ui.js', '/css/tracker.css', '/icon_mapping.json']) {
+	for (const url of ['/js/planner.js', '/js/recipes.js', '/js/ui.js', '/css/tracker-base.css', '/icon_mapping.json']) {
 		const res = await fetch(base + url);
 		assert.equal(res.status, 200, url);
 		const cache = res.headers.get('cache-control') || '';

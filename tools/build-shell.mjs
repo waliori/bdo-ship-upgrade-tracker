@@ -27,7 +27,8 @@ walk('boot.js');
 
 const FIXED = [
 	'/', '/index.html', '/manifest.webmanifest', '/icon_mapping.json',
-	'/css/tracker.css', '/css/driver.css', '/js/all_barter.json', '/js/barter_combos.json', '/js/material_boards.json', '/js/driver.iife.js'
+	'/css/tracker-base.css', '/css/tracker-shell.css', '/css/tracker-yard.css', '/css/tracker-widgets.css', '/css/tracker-map.css', '/css/tracker-sea.css', '/css/tracker-extras.css', '/css/tracker-barter.css', '/css/tracker-recent.css',
+	'/css/driver.css', '/js/all_barter.json', '/js/barter_combos.json', '/js/material_boards.json', '/js/driver.iife.js'
 ];
 const modules = [...seen].sort().map(n => `/js/${n}`);
 const list = [...FIXED, ...modules].map(p => `\t'${p}'`).join(',\n');

@@ -1,0 +1,478 @@
+/* tracker-yard.css — the rows, Builds, Inventory, a level recorded, the Workshop and To Get.
+   One of nine sheets that were one file, cut at its section marks and
+   linked in the same order (tracker-base, tracker-shell, tracker-yard, tracker-widgets, tracker-map, tracker-sea, tracker-extras, tracker-barter, tracker-recent), so the cascade is what it was: a
+   rule here still loses to the same rule in a later sheet. When moving a
+   rule between sheets, check nothing later relies on beating it. */
+
+/* ---- generic rows ------------------------------------------------- */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 20px;
+  border-bottom: 1px solid var(--line-soft);
+  flex-wrap: wrap;
+}
+
+.row:last-child { border-bottom: none; }
+.row:hover { background: rgba(var(--blue-rgb), 0.05); }
+
+.row-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-icon);
+  border: 1px solid rgba(var(--line-rgb), 0.2);
+  flex-shrink: 0;
+  object-fit: contain;
+  background: rgba(var(--line-rgb), 0.05);
+}
+
+.row-icon.sm { width: 28px; height: 28px; border-radius: 5px; }
+.row-icon.md { width: 30px; height: 30px; }
+.row-icon.lg { width: 46px; height: 46px; border-radius: var(--r-btn); }
+
+.row-main { flex: 1 1 200px; min-width: 0; }
+.row-name { font-weight: 600; font-size: 13.5px; color: var(--ink-row); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-sub { font-size: 11.5px; color: var(--ink-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-meter { flex: 2 1 220px; min-width: 160px; }
+.row-tail { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; }
+
+.bar { display: flex; height: 7px; border-radius: 4px; overflow: hidden; background: var(--track); }
+.bar.tall { height: 8px; }
+.bar i { display: block; height: 100%; }
+.bar .take { background: var(--teal); }
+.bar .make { background: var(--blue-bar); }
+.bar .lack { background: var(--red); }
+.bar .fill { background: linear-gradient(90deg, #3a89c9, #4ec9ae); }
+
+.bar-legend { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; color: var(--ink-faint); margin-top: 4px; }
+.bar-legend .n { font-family: var(--font-display); color: var(--ink-dim); }
+
+.badge {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 600;
+  min-width: 86px;
+  text-align: right;
+  color: var(--ink-dim);
+}
+
+.badge.teal { color: var(--teal); }
+.badge.red { color: var(--red); }
+.badge.blue { color: var(--blue); }
+
+.mini-btn {
+  background: var(--blue-glow);
+  border: 1px solid var(--blue-edge);
+  color: var(--blue);
+  border-radius: var(--r-sm);
+  padding: 5px 13px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mini-btn:hover:not(:disabled) { background: rgba(var(--blue-rgb), 0.25); }
+
+/* ---- builds ------------------------------------------------------- */
+
+.queue-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.queue-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-hi);
+}
+
+.queue-note { font-size: 12.5px; color: var(--ink-mute); }
+
+.build {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  backdrop-filter: blur(6px);
+}
+
+.build.paused { opacity: 0.45; }
+.build-main { flex: 1 1 260px; min-width: 0; }
+.build-titles { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.build-name { font-weight: 700; font-size: 15px; color: var(--ink-hi); }
+.build-state { font-size: 11.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--blue); }
+.build-state.done { color: var(--teal); }
+.build-state.paused { color: var(--ink-off); }
+.build .bar { margin: 9px 0 6px; }
+.build-meta { font-size: 11.5px; color: var(--ink-mute); }
+.build-meta .n { font-family: var(--font-display); color: var(--ink-dim); }
+.build-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+.sq-btn {
+  width: 30px;
+  height: 30px;
+  background: none;
+  border: 1px solid rgba(var(--line-rgb), 0.2);
+  color: var(--ink-dim);
+  border-radius: var(--r-sm);
+  font-size: 11px;
+  display: grid;
+  place-items: center;
+}
+
+.sq-btn:hover:not(:disabled) { border-color: var(--line-btn-hi); color: var(--ink-hi); }
+.sq-btn.danger { border-color: rgba(232, 122, 109, 0.25); color: #c98a80; }
+.sq-btn.danger:hover { border-color: rgba(232, 122, 109, 0.6); color: var(--red); }
+
+.stepper {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(var(--line-rgb), 0.2);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  margin: 0 4px;
+}
+
+.stepper button { width: 26px; height: 30px; background: none; border: none; color: var(--ink-dim); }
+.stepper button:hover { color: var(--ink-hi); }
+.stepper .val {
+  width: 46px;
+  height: 30px;
+  border: none;
+  border-left: 1px solid rgba(var(--line-rgb), 0.14);
+  border-right: 1px solid rgba(var(--line-rgb), 0.14);
+  background: rgba(var(--shade-rgb), 0.18);
+  font-family: var(--font-display);
+  font-size: 13px;
+  text-align: center;
+  color: var(--ink-hi);
+}
+
+/* ---- inventory ---------------------------------------------------- */
+
+.inv-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: 20px;
+  align-items: start;
+}
+
+.inv-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+.inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+
+.tile {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-tile);
+  padding: 10px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(6px);
+  text-align: center;
+}
+
+.tile:hover { border-color: rgba(var(--blue-rgb), 0.6); }
+.tile.short { border-color: rgba(232, 122, 109, 0.4); }
+.tile.selected { border-color: rgba(var(--blue-rgb), 0.85); }
+.tile img { width: 38px; height: 38px; border-radius: var(--r-icon); object-fit: contain; }
+.tile-qty { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--ink-hi); }
+.tile-name { font-size: 10px; color: var(--ink-soft); line-height: 1.25; height: 25px; overflow: hidden; }
+.tile .bar { width: 100%; height: 4px; border-radius: 2px; background: rgba(var(--line-rgb), 0.12); }
+
+.detail {
+  background: var(--panel-strong);
+  border: 1px solid rgba(var(--line-rgb), 0.16);
+  border-radius: var(--r-panel);
+  padding: 20px;
+  backdrop-filter: blur(8px);
+  position: sticky;
+  /* Clear the pouch, which sticks above it. */
+  top: calc(var(--pouch-h, 0px) + 16px);
+}
+
+.detail-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.detail-head img { width: 44px; height: 44px; border-radius: var(--r-btn); border: 1px solid rgba(var(--line-rgb), 0.25); object-fit: contain; }
+.detail-name { font-weight: 700; font-size: 15px; color: var(--ink-hi); line-height: 1.3; }
+
+.qty-row { display: flex; align-items: center; gap: 6px; margin-bottom: 18px; }
+
+.qty-btn {
+  height: 32px;
+  min-width: 32px;
+  padding: 0 10px;
+  background: none;
+  border: 1px solid rgba(var(--line-rgb), 0.25);
+  color: var(--ink-dim);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.qty-btn:hover { color: var(--ink-hi); border-color: var(--line-btn-hi); }
+.qty-val {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid rgba(var(--line-rgb), 0.25);
+  border-radius: var(--r-sm);
+  background: rgba(var(--shade-rgb), 0.22);
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ink-hi);
+}
+
+.qty-hint { font-size: 11px; color: var(--ink-faint); margin: -12px 0 16px; text-align: center; }
+
+/* ---- enhancement level, recorded rather than attempted -------------- */
+
+.lvl-strip {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.lvl {
+  min-width: 0;
+  height: 30px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid rgba(var(--line-rgb), 0.18);
+  border-radius: var(--r-sm);
+  background: rgba(var(--shade-rgb), 0.18);
+  color: var(--ink-off);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.lvl:hover { color: var(--ink-hi); border-color: var(--line-btn-hi); }
+.lvl.wanted { border-color: rgba(var(--blue-rgb), 0.35); color: var(--blue); }
+.lvl.has { color: var(--teal-hi); border-color: var(--teal-edge); background: rgba(78, 201, 174, 0.1); }
+.lvl.on { color: var(--ink-hi); border-color: var(--blue-edge); background: rgba(var(--blue-rgb), 0.16); }
+
+.lvl-n {
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 0 4px;
+  background: rgba(var(--shade-rgb), 0.35);
+}
+
+.detail-note { font-size: 11px; color: var(--ink-faint); line-height: 1.5; }
+
+.act.wide { width: 100%; justify-content: center; margin-bottom: 16px; }
+
+/* The level a part is currently at, on its inventory tile. */
+.tile-lvl {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 6px;
+  background: rgba(78, 201, 174, 0.16);
+  border: 1px solid var(--teal-edge);
+  color: var(--teal-hi);
+}
+
+.kv { display: flex; flex-direction: column; gap: 7px; padding-bottom: 14px; border-bottom: 1px solid rgba(var(--line-rgb), 0.12); margin-bottom: 14px; }
+/* A kv list dropped straight into a panel (the Crew reference cards)
+   takes the panel's inner padding; inside a .detail it already has it. */
+.panel > .kv { padding: 12px 20px 14px; margin: 0; border-bottom: none; }
+.kv-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; }
+.kv-row span:first-child { color: var(--ink-mute); }
+.kv-row .n { font-family: var(--font-display); }
+.kv-row .n.blue { color: var(--blue); }
+.kv-row .n.teal { color: var(--teal); }
+.kv-row .n.red { color: var(--red); }
+.kv-row .n.faint { color: var(--ink-faint); }
+
+.detail-label { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 8px; }
+.detail-block { margin-bottom: 14px; }
+.detail-line { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; padding: 4px 0; }
+.detail-line span:first-child { color: var(--ink-mid); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.detail-line .n { font-family: var(--font-display); color: var(--ink-dim); flex-shrink: 0; }
+.detail-src { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; margin-bottom: 16px; }
+.detail-src span:first-child { color: var(--ink-mute); }
+.detail-src span:last-child { color: var(--ink-mid); text-align: right; }
+
+.detail-actions { display: flex; gap: 8px; }
+
+.act {
+  flex: 1;
+  background: rgba(var(--blue-rgb), 0.15);
+  border: 1px solid rgba(var(--blue-rgb), 0.45);
+  color: var(--blue-hi);
+  border-radius: var(--r-btn);
+  padding: 9px 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.act:hover:not(:disabled) { background: rgba(var(--blue-rgb), 0.3); }
+.act.quiet { background: none; border-color: rgba(var(--line-rgb), 0.25); color: var(--ink-dim); font-weight: 600; }
+.act.quiet:hover:not(:disabled) { border-color: var(--line-btn-hi); color: var(--ink-hi); }
+
+/* For the one action in the app that cannot be undone. */
+.act.bad { background: rgba(232, 122, 109, 0.16); border-color: var(--red-edge); color: var(--red-soft); }
+.act.bad:hover:not(:disabled) { background: rgba(232, 122, 109, 0.3); }
+
+/* ---- workshop ----------------------------------------------------- */
+
+.craft-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; padding: 16px 20px; }
+
+.craft-card {
+  background: var(--panel-inset);
+  border: 1px solid rgba(78, 201, 174, 0.25);
+  border-radius: var(--r-tile);
+  padding: 14px;
+}
+
+.craft-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.craft-top img { width: 34px; height: 34px; border-radius: var(--r-icon); object-fit: contain; }
+.craft-name { font-weight: 700; font-size: 13.5px; color: var(--ink-hi); }
+.craft-times { font-size: 11.5px; color: var(--teal); font-family: var(--font-display); }
+.ings { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+
+.ing {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(var(--line-rgb), 0.08);
+  border-radius: var(--r-icon);
+  padding: 3px 7px;
+  font-size: 11px;
+  color: var(--ink-mid);
+}
+
+.ing.short { color: var(--red); }
+.ing img { width: 16px; height: 16px; border-radius: 3px; object-fit: contain; }
+
+.craft-actions { display: flex; gap: 8px; align-items: center; }
+
+.craft-n {
+  width: 56px;
+  flex: none;
+  height: 32px;
+  padding: 0 6px;
+  border: 1px solid rgba(var(--line-rgb), 0.25);
+  border-radius: var(--r-sm);
+  background: rgba(var(--shade-rgb), 0.22);
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-hi);
+}
+
+.act.go {
+  background: rgba(78, 201, 174, 0.14);
+  border-color: var(--teal-edge);
+  color: var(--teal-hi);
+  padding: 7px 0;
+  font-size: 12.5px;
+}
+
+.act.go:hover:not(:disabled) { background: rgba(78, 201, 174, 0.28); }
+
+.enh-level { font-family: var(--font-display); font-size: 13px; color: var(--ink-dim); flex-shrink: 0; }
+.enh-cost { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-mute); flex-shrink: 0; min-width: 70px; }
+.enh-cost img { width: 18px; height: 18px; border-radius: 3px; object-fit: contain; }
+.enh-actions { display: flex; gap: 7px; flex-shrink: 0; }
+
+.pill-btn {
+  border-radius: var(--r-sm);
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--teal-glow);
+  border: 1px solid var(--teal-edge);
+  color: var(--teal-hi);
+}
+
+.pill-btn:hover:not(:disabled) { background: rgba(78, 201, 174, 0.26); }
+.pill-btn.bad { background: rgba(232, 122, 109, 0.08); border-color: var(--red-edge); color: var(--red-soft); }
+.pill-btn.bad:hover:not(:disabled) { background: rgba(232, 122, 109, 0.2); }
+
+/* ---- to get ------------------------------------------------------- */
+
+.summary {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  flex-wrap: wrap;
+  backdrop-filter: blur(6px);
+}
+
+.summary-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-hi);
+}
+
+.summary-stats { display: flex; gap: 26px; flex-wrap: wrap; flex: 1; }
+.get-copy { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* A save that is not reaching the disk: said in red under the header
+   for as long as it lasts, with Export in reach. */
+.save-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+  padding: 10px 16px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--red-edge);
+  background: rgba(232, 122, 109, 0.14);
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 600;
+}
+.save-badge .ghost-btn { color: var(--red); border-color: var(--red-edge); }
+.dialog-copy.warn { color: var(--amber); }
+.summary-k { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); }
+.summary-v { font-family: var(--font-display); font-size: 17px; font-weight: 600; color: var(--ink); }
+.summary-v.amber { color: var(--amber); }
+.summary-v.blue { color: var(--blue-hi); }
+
+.group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 20px 11px;
+  border-bottom: 1px solid var(--line-head);
+}
+
+.group-total { font-family: var(--font-display); font-size: 12.5px; }
+
+.qty-out { font-family: var(--font-display); font-size: 13.5px; font-weight: 600; color: var(--red); }
+

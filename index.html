@@ -32,7 +32,17 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <link href="css/tracker.css" rel="stylesheet" type="text/css" />
+    <!-- Nine sheets, in an order that matters: they were one file, cut at
+         its section marks, and the cascade is the order they are linked. -->
+    <link href="css/tracker-base.css" rel="stylesheet" type="text/css" />
+    <link href="css/tracker-shell.css" rel="stylesheet" type="text/css" />
+    <link href="css/tracker-yard.css" rel="stylesheet" type="text/css" />
+    <link href="css/tracker-widgets.css" rel="stylesheet" type="text/css" />
+    <link href="css/tracker-map.css" rel="stylesheet" type="text/css" />
+    <link href="css/tracker-sea.css" rel="stylesheet" type="text/css" />
+    <link href="css/tracker-extras.css" rel="stylesheet" type="text/css" />
+    <link href="css/tracker-barter.css" rel="stylesheet" type="text/css" />
+    <link href="css/tracker-recent.css" rel="stylesheet" type="text/css" />
 
     <!-- Driver.js powers the guided tour. Vendored (v1.8.0) rather than
          pulled from a CDN: an unpinned @latest was a supply-chain door
