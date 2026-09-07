@@ -783,6 +783,15 @@ sailors who chose to be on it, and nobody else:
   most queued, the ships most built, the crystals most carried, and the
   spread of mastery, sailor levels, fleet sizes and runs by weekday.
 
+A place on a board is a door. The ship boards stand the **Ship tab up on
+that sailor's boat** — hull, parts, crystal, seats and roster, to look at
+and not to keep, one press back to yours; the crew boards open their
+best sailor in the Selected sailor panel; the rest open the sailor's
+card at the section the board is about, where each quest, each monster's
+grounds and each item is itself a door. The fleet in numbers has
+categories, a find box and a sort, and every row that names something
+the app knows opens it.
+
 Taking part is a choice made once, by name (Discord name and avatar) or
 as an unnamed sailor (ranked and counted, shown as “a sailor”; only you
 see which one is you). Before agreeing you are shown the digest that
@@ -792,6 +801,11 @@ your notes, your traces, where things are stored. The server keeps that
 digest and nothing else about you for the boards, refreshes it as you
 sync, and deletes it when you leave. Anyone who opens the page can read
 the boards; only an account can be on them.
+
+What is shared for the look is the ship as the Ship tab needs it: the
+hull, what is fitted, the crystal and appearance set, who sits where,
+the saved setups and the roster with its growths. Nothing else of the
+save leaves.
 
 The numbers that outlive a save — quests claimed, runs sailed, things
 made, enhancement attempts — are a **tally** the profile keeps as they

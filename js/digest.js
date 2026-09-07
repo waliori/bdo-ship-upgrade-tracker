@@ -17,6 +17,7 @@
 import { shipGroups } from './ships.js';
 import { quests } from './quests.js';
 import { monsterByKey } from './sea_monsters.js';
+import { readProfile } from './profile-shape.js';
 
 /** The hulls that sail, from the small ones up. A rank for "best ship". */
 export const HULL_TIER = {
@@ -117,7 +118,7 @@ function crewOf(profile) {
 		byType[r.type] = (byType[r.type] || 0) + 1;
 		levels[lv]++;
 		lvSum += lv;
-		all.push({ name: String(r.name || r.type).slice(0, 30), type: r.type, lv, sum, score: lv * 1000 + sum, stats });
+		all.push({ id: typeof r.id === 'string' ? r.id : '', name: String(r.name || r.type).slice(0, 30), type: r.type, lv, sum, score: lv * 1000 + sum, stats });
 	}
 	all.sort((a, b) => b.score - a.score);
 	return {
@@ -222,6 +223,22 @@ function chartsOf(profile) {
 	return { routes: routes.length, traces: traces.length, points, stops: top(stops, 30) };
 }
 
+/**
+ * The ship as the Ship tab would show it: the hull sailed, what is
+ * fitted on each hull, the crystal and the appearance set, who sits
+ * where, the saved setups and the whole roster with its growths, and
+ * the mastery -- enough for the page to stand up the Ship tab on
+ * another sailor's boat, to look at and not to keep. Already bounded
+ * by the profile's own reading.
+ */
+function shipOf(profile) {
+	const out = {};
+	for (const k of ['crewShip', 'fitted', 'crystal', 'skins', 'seats', 'setups', 'roster', 'sailingMastery']) {
+		if (profile[k] !== undefined) out[k] = profile[k];
+	}
+	return out;
+}
+
 /** The hold: how much is owned, and the silver among it. */
 function stockOf(save) {
 	const stock = obj(save.stock);
@@ -242,7 +259,9 @@ function stockOf(save) {
  */
 export function digest(save) {
 	const s = save && typeof save === 'object' ? save : {};
-	const profile = obj(s.profile);
+	// Through the profile's own reading first, so every string is cut
+	// to its length and every count to its range before it is shared.
+	const profile = readProfile(obj(s.profile));
 	const tally = obj(profile.tally);
 	return {
 		v: 1,
@@ -255,7 +274,8 @@ export function digest(save) {
 		quests: questsOf(profile, tally),
 		yard: yardOf(s, tally),
 		charts: chartsOf(profile),
-		stock: stockOf(s)
+		stock: stockOf(s),
+		ship: shipOf(profile)
 	};
 }
 

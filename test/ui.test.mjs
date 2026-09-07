@@ -1789,7 +1789,7 @@ test('the material run is one route through every island ticked: a full run goes
 	assert.match(await text(page, '#dialog .run-seg-head'), /22 trades/);
 	assert.equal(await count(page, '#dialog .run-list.amber'), 0, 'nothing stays ashore on a full run');
 	// The hold never over the barter ceiling, on any stop.
-	const holds = await page.$$eval('#dialog .run-stop .run-hold b', els => els.map(el => Number(el.textContent.replace(/[^\d]/g, ''))));
+	const holds = await page.$$eval('#dialog .run-stop .run-hold > div:first-child b', els => els.map(el => Number(el.textContent.replace(/[^\d]/g, ''))));
 	assert.ok(holds.every(w => w <= 20625), holds.join(', '));
 	// Fast: one departure under the limit the ship still sails fast at.
 	await page.select('[data-act="barter-mat-pace"]', 'fast'); await wait(500);
@@ -1799,7 +1799,7 @@ test('the material run is one route through every island ticked: a full run goes
 	assert.ok(stops.length < 12, 'fewer islands than a full run');
 	assert.equal(await count(page, '#dialog .run-list.amber'), 1, 'what stayed ashore is said');
 	assert.match(await text(page, '#dialog .run-list.amber'), /Stays ashore/i);
-	const fastHolds = await page.$$eval('#dialog .run-stop .run-hold b', els => els.map(el => Number(el.textContent.replace(/[^\d]/g, ''))));
+	const fastHolds = await page.$$eval('#dialog .run-stop .run-hold > div:first-child b', els => els.map(el => Number(el.textContent.replace(/[^\d]/g, ''))));
 	assert.ok(fastHolds.every(w => w <= 16500), fastHolds.join(', '));
 	// The way back to the full run is on the panel.
 	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-mat-pace-set"]').click()); await wait(500);

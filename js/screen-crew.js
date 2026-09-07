@@ -789,6 +789,12 @@ function hireDetails(type) {
 }
 
 /** Every crew-* click. Returns false for one this screen does not own. */
+/** Put a sailor in the Selected sailor panel, by id -- for a look at
+ *  another sailor's crew that opens on one of them. */
+export function selectSailor(id) {
+	selId = id || null;
+}
+
 export function crewAction(act, el) {
 	const ship = crewShip();
 	const id = el.dataset.id;

@@ -32,7 +32,7 @@ import { renderInventory } from './screen-inventory.js';
 import { renderBarter, barterAction, barterChange, barterType, chartFragment } from './screen-barter.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
-import { renderCrew, crewAction, crewChange, applyShipSetup, openSetupPicker } from './screen-crew.js';
+import { renderCrew, crewAction, crewChange, applyShipSetup, openSetupPicker, selectSailor } from './screen-crew.js';
 import { statusLine } from './today.js';
 import { renderQuests, questAction, questDone, wantedQuests, setQuestPay, setQuestFocus } from './screen-quests.js';
 import { renderCommunity, communityAction, wireCommunity } from './screen-community.js';
@@ -945,6 +945,15 @@ function wire() {
 			case 'map-side-flip': flipMapSide(); return;
 			case 'map-hunt': setMapHunt(el.dataset.id); return;
 			case 'quest-map': showHunt(el.dataset.monster); return showView('map');
+			// An island named on the community boards: the chart, flown there
+			// once it has drawn itself.
+			case 'community-isle': {
+				const npc = Number(el.dataset.npc);
+				if (el.closest('.dialog')) closeDialog();
+				showView('map');
+				setTimeout(() => mapCentreOn(npc), 350);
+				return;
+			}
 			case 'map-route-export': {
 				// A route is a few dozen bytes of ids; a file is how it
 				// reaches a friend, or another optimiser.
@@ -1641,7 +1650,23 @@ async function openSharedShip(payload) {
 	});
 }
 
-function showSharedBar(save) {
+/**
+ * Another sailor's boat, stood up on the Ship tab to look at: their
+ * hull, parts, crystal, seats and roster in place of yours for as long
+ * as the bar stands, and one press brings yours back. Nothing done
+ * meanwhile is kept. `sailorId` opens the look on one of the crew.
+ */
+function lookAtShip(save, { name = 'a sailor', sailorId = null } = {}) {
+	if (sharedKept) store.restore(sharedKept);
+	closeDialog();
+	sharedKept = store.capture();
+	store.applyTransient(JSON.stringify(save));
+	selectSailor(sailorId);
+	showSharedBar(save, { label: `Looking at ${name}’s ship — nothing you do here is kept.`, take: false });
+	showView('crew');
+}
+
+function showSharedBar(save, { label = 'Looking at a shared plan — nothing you do here is saved.', take = true } = {}) {
 	let bar = document.getElementById('shared-bar');
 	if (!bar) {
 		bar = document.createElement('div');
@@ -1649,9 +1674,9 @@ function showSharedBar(save) {
 		bar.className = 'shared-bar';
 		document.body.appendChild(bar);
 	}
-	bar.innerHTML = `<span>Looking at a shared plan — nothing you do here is saved.</span>
-		<button class="ghost-btn" data-shared="merge">Merge into mine</button>
-		<button class="ghost-btn" data-shared="replace">Keep it, replace mine</button>
+	bar.innerHTML = `<span>${esc(label)}</span>
+		${take ? `<button class="ghost-btn" data-shared="merge">Merge into mine</button>
+		<button class="ghost-btn" data-shared="replace">Keep it, replace mine</button>` : ''}
 		<button class="act" data-shared="back">Back to mine</button>`;
 	bar.hidden = false;
 	// The shell leaves room under its last line for the bar -- and on a
@@ -2069,7 +2094,7 @@ export async function init() {
 		const acct = document.getElementById('account');
 		if (acct) acct.innerHTML = `<span class="account-chip off" title="Sync mirrors the Main profile only">sync off on this profile</span>`;
 	} else {
-		wireCommunity(render);
+		wireCommunity(render, { look: lookAtShip });
 		initSync({ toast, openDialog, closeDialog, rerender: render })
 			.catch(err => console.warn('[ui] sync unavailable:', err));
 	}

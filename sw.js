@@ -105,6 +105,7 @@ const SHELL = [
 	'/js/market.js',
 	'/js/monster_art.js',
 	'/js/pace.js',
+	'/js/parley-ledger.js',
 	'/js/part_stats.js',
 	'/js/peek.js',
 	'/js/picker.js',
