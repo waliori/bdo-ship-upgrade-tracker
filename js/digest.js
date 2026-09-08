@@ -78,7 +78,7 @@ function fleetOf(profile) {
 		const tier = HULL_TIER[ship] ?? 1;
 		const levels = Object.values(h.parts).reduce((a, b) => a + b, 0);
 		const score = tier * 100 + levels;
-		if (!best || score > best.score) best = { ship, tier, parts: h.parts, levels, score };
+		if (!best || score > best.score) best = { ship, tier, parts: h.parts, levels, score, crystal: h.crystal || 0 };
 	}
 	const sorted = [...hulls.keys()].sort((a, b) => (HULL_TIER[b] ?? 1) - (HULL_TIER[a] ?? 1) || a.localeCompare(b));
 	return {
@@ -283,41 +283,88 @@ export function digest(save) {
  * The boards, and how each is scored. A board reads one number off a
  * digest and shows it beside a line of detail; `min` is the least
  * that earns a place, so an empty save is not first at nothing.
+ *
+ * `desc` says what is counted, `how` what earns a place on an empty
+ * board, and `face` is what the row shows beside the name: the hull
+ * with its parts and crystal, the sailor's portrait, the monsters
+ * hunted -- structured, so the page can draw the icons. `section`
+ * groups the boards on the tab.
  */
+/** The parts on a hull by name, from the ship the digest carries for a look. */
+export function fittedOn(d, hull) {
+	const ship = obj(d.ship);
+	const byHand = obj(ship.fitted)[hull];
+	if (byHand && typeof byHand === 'object') return byHand;
+	for (const st of Object.values(obj(ship.setups))) {
+		if (st && st.ship === hull && st.fitted && typeof st.fitted === 'object') return st.fitted;
+	}
+	return null;
+}
+const faceShip = d => (d.fleet.best ? { kind: 'ship', item: d.fleet.best.ship, parts: d.fleet.best.parts, fitted: fittedOn(d, d.fleet.best.ship), crystal: d.fleet.best.crystal || 0 } : null);
+const faceItems = names => (names.length ? { kind: 'items', items: names } : null);
 export const BOARDS = [
-	{ id: 'mastery', title: 'Sailing mastery', icon: '⚓', unit: '', min: 1,
-		value: d => d.mastery, detail: d => (d.level ? d.level : '') },
-	{ id: 'ship', title: 'Best ship', icon: '⛵', unit: 'pts', min: 1,
+	{ id: 'mastery', section: 'sea', title: 'Sailing mastery', icon: '⚓', unit: '', min: 1,
+		desc: 'mastery points, as set on the Ship tab', how: 'Set your sailing mastery on the Ship tab.',
+		value: d => d.mastery, detail: d => (d.level ? d.level : ''), face: () => null },
+	{ id: 'ship', section: 'sea', title: 'Best ship', icon: '⛵', unit: 'pts', min: 1,
+		desc: 'the hull, and how far its parts are taken', how: 'Fit a ship on the Ship tab.',
 		value: d => (d.fleet.best ? d.fleet.best.score : 0),
-		detail: d => (d.fleet.best ? `${d.fleet.best.ship}${d.fleet.best.levels ? ` · parts +${d.fleet.best.levels} in all` : ''}` : '') },
-	{ id: 'fleet', title: 'Largest fleet', icon: '🚢', unit: 'hulls', min: 2,
-		value: d => d.fleet.n, detail: d => d.fleet.hulls.slice(0, 3).join(', ') },
-	{ id: 'sailor', title: 'Best sailor', icon: '🧭', unit: 'pts', min: 1001,
+		detail: d => (d.fleet.best ? `${d.fleet.best.ship}${d.fleet.best.levels ? ` · parts +${d.fleet.best.levels} in all` : ''}` : ''),
+		face: faceShip },
+	{ id: 'fleet', section: 'sea', title: 'Largest fleet', icon: '🚢', unit: 'hulls', min: 2,
+		desc: 'hulls owned across every setup', how: 'Own a second hull on the Ship tab.',
+		value: d => d.fleet.n, detail: d => d.fleet.hulls.slice(0, 3).join(', '), face: d => faceItems(d.fleet.hulls.slice(0, 4)) },
+	{ id: 'sailor', section: 'sea', title: 'Best sailor', icon: '🧭', unit: 'pts', min: 1001,
+		desc: 'the strongest hand aboard: level first, then growths', how: 'Hire a sailor on the Ship tab.',
 		value: d => (d.crew.best ? d.crew.best.score : 0),
-		detail: d => (d.crew.best ? `${d.crew.best.name} · ${d.crew.best.type} · Lv ${d.crew.best.lv}${d.crew.best.sum ? ` · stats ${d.crew.best.sum}` : ''}` : '') },
-	{ id: 'crew', title: 'Largest crew', icon: '👥', unit: 'sailors', min: 1,
-		value: d => d.crew.n, detail: d => (d.crew.avgLv ? `average Lv ${d.crew.avgLv}` : '') },
-	{ id: 'barters', title: 'Most barters', icon: '⇄', unit: 'barters', min: 1,
-		value: d => d.barters, detail: () => '' },
-	{ id: 'silver', title: 'Most silver from runs', icon: '💰', unit: 'silver', min: 1,
-		value: d => d.runs.silver, detail: d => `${d.runs.n} run${d.runs.n === 1 ? '' : 's'}` },
-	{ id: 'runs', title: 'Most runs sailed', icon: '🌊', unit: 'runs', min: 1,
-		value: d => d.runs.n, detail: d => `${d.runs.stops} stops · ${d.runs.trades} trades` },
-	{ id: 'bestday', title: 'Best single run', icon: '☀', unit: 'silver net', min: 1,
-		value: d => (d.runs.best ? d.runs.best.net : 0), detail: d => (d.runs.best ? d.runs.best.day : '') },
-	{ id: 'quests', title: 'Most quests done', icon: '✦', unit: 'quests', min: 1,
-		value: d => d.quests.n, detail: d => `${d.quests.distinct} different` },
-	{ id: 'hunts', title: 'Most sea monsters hunted', icon: '🦈', unit: 'hunts', min: 1,
-		value: d => d.quests.huntsN, detail: d => Object.keys(d.quests.hunts).slice(0, 3).map(monsterName).join(', ') },
-	{ id: 'ships', title: 'Most ships built', icon: '⚒', unit: 'ships', min: 1,
-		value: d => d.yard.ships, detail: d => Object.keys(d.yard.shipsMade).slice(0, 2).join(', ') },
-	{ id: 'crafts', title: 'Most things made', icon: '🔨', unit: 'crafts', min: 1,
-		value: d => d.yard.crafts, detail: d => (d.yard.parts ? `${d.yard.parts} ship parts` : '') },
-	{ id: 'luck', title: 'Luckiest at the anvil', icon: '🎲', unit: '% success', min: 1,
+		detail: d => (d.crew.best ? `${d.crew.best.name} · ${d.crew.best.type} · Lv ${d.crew.best.lv}${d.crew.best.sum ? ` · stats ${d.crew.best.sum}` : ''}` : ''),
+		face: d => (d.crew.best ? { kind: 'sailor', type: d.crew.best.type, name: d.crew.best.name, lv: d.crew.best.lv, stats: d.crew.best.stats } : null) },
+	{ id: 'crew', section: 'sea', title: 'Largest crew', icon: '👥', unit: 'sailors', min: 1,
+		desc: 'sailors hired across every roster', how: 'Hire sailors on the Ship tab.',
+		value: d => d.crew.n, detail: d => (d.crew.avgLv ? `average Lv ${d.crew.avgLv}` : ''),
+		face: d => (Object.keys(d.crew.byType).length ? { kind: 'sailors', types: Object.keys(d.crew.byType).slice(0, 4) } : null) },
+	{ id: 'barters', section: 'runs', title: 'Most barters', icon: '⇄', unit: 'barters', min: 1,
+		desc: 'the barter count, as set on the Barter tab', how: 'Set your barter count on the Barter tab.',
+		value: d => d.barters, detail: d => (d.level ? d.level : ''), face: () => null },
+	{ id: 'silver', section: 'runs', title: 'Most silver from runs', icon: '💰', unit: 'silver', min: 1,
+		desc: 'silver over every run logged', how: 'Log a run on the Barter tab.',
+		value: d => d.runs.silver, detail: d => `${d.runs.n} run${d.runs.n === 1 ? '' : 's'} · ${d.runs.trades} trade${d.runs.trades === 1 ? '' : 's'}`, face: () => null },
+	{ id: 'runs', section: 'runs', title: 'Most runs sailed', icon: '🌊', unit: 'runs', min: 1,
+		desc: 'runs logged, over the whole career', how: 'Log a run on the Barter tab.',
+		value: d => d.runs.n, detail: d => `${d.runs.stops} stops · ${d.runs.trades} trades`, face: () => null },
+	{ id: 'bestday', section: 'runs', title: 'Best single run', icon: '☀', unit: 'silver net', min: 1,
+		desc: 'the most silver netted in one run', how: 'Log a run on the Barter tab.',
+		value: d => (d.runs.best ? d.runs.best.net : 0), detail: d => (d.runs.best ? d.runs.best.day : ''), face: () => null },
+	{ id: 'quests', section: 'quests', title: 'Most quests done', icon: '✦', unit: 'quests', min: 1,
+		desc: 'claims over the career, on the Quests tab', how: 'Claim a quest on the Quests tab.',
+		value: d => d.quests.n, detail: d => `${d.quests.distinct} different`, face: () => null },
+	{ id: 'hunts', section: 'quests', title: 'Most sea monsters hunted', icon: '🦈', unit: 'hunts', min: 1,
+		desc: 'from the hunting quests done', how: 'Claim a hunting quest on the Quests tab.',
+		value: d => d.quests.huntsN, detail: d => Object.keys(d.quests.hunts).slice(0, 3).map(monsterName).join(', '),
+		face: d => (Object.keys(d.quests.hunts).length ? { kind: 'monsters', keys: Object.keys(d.quests.hunts).slice(0, 4) } : null) },
+	{ id: 'ships', section: 'yard', title: 'Most ships built', icon: '⚒', unit: 'ships', min: 1,
+		desc: 'hulls made in the Workshop', how: 'Craft a hull in the Workshop.',
+		value: d => d.yard.ships, detail: d => Object.keys(d.yard.shipsMade).slice(0, 2).join(', '), face: d => faceItems(Object.keys(d.yard.shipsMade).slice(0, 4)) },
+	{ id: 'crafts', section: 'yard', title: 'Most things made', icon: '🔨', unit: 'crafts', min: 1,
+		desc: 'everything crafted in the Workshop', how: 'Craft anything in the Workshop.',
+		value: d => d.yard.crafts, detail: d => (d.yard.parts ? `${d.yard.parts} ship parts` : ''), face: () => null },
+	{ id: 'luck', section: 'yard', title: 'Luckiest at the anvil', icon: '🎲', unit: '% success', min: 1,
+		desc: 'successes per attempt, over ten or more tries', how: 'Record ten enhancement attempts in the Workshop.',
 		value: d => (d.yard.tries >= 10 ? Math.round((d.yard.wins / d.yard.tries) * 100) : 0),
-		detail: d => (d.yard.tries ? `${d.yard.wins} of ${d.yard.tries} attempts` : '') },
-	{ id: 'charts', title: 'Cartographer', icon: '✎', unit: 'points', min: 1,
-		value: d => d.charts.points, detail: d => `${d.charts.traces} trace${d.charts.traces === 1 ? '' : 's'} · ${d.charts.routes} route${d.charts.routes === 1 ? '' : 's'}` },
-	{ id: 'hold', title: 'Fullest hold', icon: '📦', unit: 'units', min: 1,
-		value: d => d.stock.units, detail: d => `${d.stock.items} kinds of thing` }
+		detail: d => (d.yard.tries ? `${d.yard.wins} of ${d.yard.tries} attempts` : ''), face: () => null },
+	{ id: 'charts', section: 'charts', title: 'Cartographer', icon: '✎', unit: 'points', min: 1,
+		desc: 'points in the traces drawn on the chart', how: 'Draw a trace on the Map tab.',
+		value: d => d.charts.points, detail: d => `${d.charts.traces} trace${d.charts.traces === 1 ? '' : 's'} · ${d.charts.routes} route${d.charts.routes === 1 ? '' : 's'}`, face: () => null },
+	{ id: 'hold', section: 'charts', title: 'Fullest hold', icon: '📦', unit: 'units', min: 1,
+		desc: 'units in the Inventory, all kinds together', how: 'Add stock on the Inventory tab.',
+		value: d => d.stock.units, detail: d => `${d.stock.items} kinds of thing`, face: () => null }
+];
+
+/** The sections the boards are grouped under on the tab. */
+export const SECTIONS = [
+	{ id: 'sea', icon: '⚓', title: 'The sea' },
+	{ id: 'runs', icon: '⇄', title: 'The runs' },
+	{ id: 'quests', icon: '✦', title: 'Quests & hunts' },
+	{ id: 'yard', icon: '⚒', title: 'The yard' },
+	{ id: 'charts', icon: '✎', title: 'Charts & hold' }
 ];

@@ -11,16 +11,23 @@
 // than once a minute otherwise. Joining shows first what would be
 // published: the same digest the server would take, worked out here
 // from the local save by the same module.
+//
+// A row is never only a number: the hull is its icon with the parts
+// on it and the crystal in its slot, a sailor is their portrait, a
+// monster its picture -- the boards say which Rusalka, not just
+// "Rusalka".
 
 import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { feature, me, call, setShare, onAccount, signIn } from './sync.js';
-import { digest, BOARDS, monsterName } from './digest.js';
+import { digest, BOARDS, SECTIONS, monsterName, fittedOn } from './digest.js';
 import { quests } from './quests.js';
 import { npcById } from './barter_npcs.js';
-import { crystalById } from './sea_crystals.js';
-import { STAT_NAMES } from './sailors.js';
+import { crystalById, crystalVariant, crystalLine, gradeById } from './crystals.js';
+import { STAT_NAMES, anyType } from './sailors.js';
+import { monsterArt } from './monster_art.js';
+import { iconSrc } from './ui-bits.js';
 import { openItemCard } from './item-card.js';
 
 let data = null;          // the last answer from /api/community
@@ -28,9 +35,11 @@ let fetchedAt = 0;
 let loading = null;
 let failed = '';
 let half = 'fame';        // fame | numbers
+let fameSec = 'all';      // the hall of fame: which section is up
 let numCat = 'all';       // the fleet in numbers: which category is up
 let numQ = '';            // and the word typed to find a row
 let numSort = 'count';    // count | name
+const numOpen = new Set();   // the panels unfolded past their first rows
 let rerender = () => {};
 
 const FRESH_MS = 60_000;
@@ -76,11 +85,12 @@ export function wireCommunity(fn, given = {}) {
 }
 
 /* ------------------------------------------------------------------ *
- * Names for what the digest keeps as keys
+ * Names and pictures for what the digest keeps as keys
  * ------------------------------------------------------------------ */
 
+const questById = Object.fromEntries(quests.map(q => [q.id, q]));
 const questName = id => {
-	const q = quests.find(x => x.id === id);
+	const q = questById[id];
 	if (!q) return id;
 	// Short enough for a bar's label: the cadence tags and the guild's
 	// name go, and a Ravinia log keeps its letter.
@@ -92,7 +102,72 @@ const isleName = id => {
 	const n = npcById.get(Number(id));
 	return n ? `${n.at}` : `#${id}`;
 };
-const crystalName = id => (crystalById[Number(id)] ? crystalById[Number(id)].name : `#${id}`);
+const crystalOf = id => crystalById[Number(id)] || null;
+const crystalName = id => (crystalOf(id) ? crystalOf(id).name : `#${id}`);
+const ordinal = n => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][Math.min(n % 10, 4)] || 'th'}`;
+const value = (board, v) => (board.id === 'silver' || board.id === 'bestday' ? FC(v) : F(v));
+const boardById = Object.fromEntries(BOARDS.map(b => [b.id, b]));
+const SLOTS = ['cannon', 'sail', 'figurehead', 'plating'];
+const SLOT_LETTER = { cannon: 'C', sail: 'S', figurehead: 'F', plating: 'P' };
+const day = ms => (ms ? new Date(ms).toISOString().slice(0, 10) : '');
+
+/** An item's icon, or nothing when the mapping has none. */
+const pic = (name, cls = '', title = '') => {
+	const src = iconSrc(name);
+	if (src === 'icon.png') return `<span class="comm-pic glyph ${cls}" title="${esc(title || name)}">${esc(String(name).slice(0, 1))}</span>`;
+	return `<img class="comm-pic ${cls}" src="${esc(src)}" alt="" title="${esc(title || name)}" decoding="sync">`;
+};
+/** A sailor's portrait, by type. */
+const face = (type, cls = '', title = '') => pic(type, `${cls} face`, title || type);
+/** A monster's picture, or its glyph. */
+const monsterPic = (key, cls = '') => (monsterArt[key]
+	? `<img class="comm-pic ${cls} beast" src="icons/${esc(monsterArt[key])}" alt="" title="${esc(monsterName(key))}" decoding="sync">`
+	: `<span class="comm-pic glyph ${cls}" title="${esc(monsterName(key))}">🦈</span>`);
+
+/** A crystal by id: its icon, its name and the one number it is chosen for, in its grade's colour. */
+function crystalHTML(id, { icon = true, name = true } = {}) {
+	const c = crystalOf(id);
+	if (!c) return '';
+	const grade = gradeById[c.grade] || { colour: 'var(--ink-mid)', label: c.grade };
+	const variant = crystalVariant(c);
+	return `<span class="comm-crystal" style="--grade:${esc(grade.colour)}" title="${esc(`${c.name} — ${crystalLine(c)}`)}">${icon ? pic(c.name, 'xs') : ''}${name ? `<span class="comm-crystal-name">${esc(c.name.replace(/ Sea Crystal$/, ''))}</span>` : ''}${variant ? `<b>${esc(variant)}</b>` : ''}</span>`;
+}
+
+/** The parts on a hull as four slots: the icon and level of what is fitted, or the slot's letter, empty. */
+function slotsHTML(levels = {}, fitted = null) {
+	return `<span class="comm-slots">${SLOTS.map(sl => {
+		const item = fitted && typeof fitted[sl] === 'string' ? fitted[sl] : '';
+		const lv = levels[sl] || 0;
+		if (!item && !lv) return `<i class="comm-slot off" title="${esc(sl)}: nothing fitted">${SLOT_LETTER[sl]}</i>`;
+		return `<i class="comm-slot" title="${esc(item || `${sl} +${lv}`)}">${item ? pic(item, 'xs') : `<span class="comm-slot-l">${SLOT_LETTER[sl]}</span>`}${lv ? `<b>+${lv}</b>` : ''}</i>`;
+	}).join('')}</span>`;
+}
+
+/** What a board's row shows beside the name, from the face the server sent. */
+function faceHTML(f) {
+	if (!f) return '';
+	switch (f.kind) {
+		case 'ship': return `<span class="comm-face">${pic(f.item, 'sm')}${slotsHTML(f.parts, f.fitted)}${f.crystal ? crystalHTML(f.crystal) : ''}</span>`;
+		case 'items': return `<span class="comm-face">${f.items.map(i => pic(i, 'sm')).join('')}</span>`;
+		case 'sailor': return `<span class="comm-face">${face(f.type, 'sm', `${f.name} · ${f.type}`)}</span>`;
+		case 'sailors': return `<span class="comm-face">${f.types.map(t => face(t, 'sm')).join('')}</span>`;
+		case 'monsters': return `<span class="comm-face">${f.keys.map(k => monsterPic(k, 'sm')).join('')}</span>`;
+		default: return '';
+	}
+}
+
+/** A sailor's growths as small chips. */
+const statsHTML = stats => {
+	const rows = Object.entries(stats || {});
+	if (!rows.length) return '';
+	return `<span class="comm-stats">${rows.map(([k, v]) => { const n = STAT_NAMES[k] || { game: k, means: '', tip: k }; return `<i title="${esc(n.tip)}">${esc(n.game)}${n.means ? ` <small>${esc(n.means)}</small>` : ''} <b>+${v}%</b></i>`; }).join('')}</span>`;
+};
+
+const avatarURL = who => (who && who.avatar ? `https://cdn.discordapp.com/avatars/${who.id}/${who.avatar}.png?size=64` : null);
+const avatarHTML = (e, cls = '') => (e.avatar
+	? `<img class="comm-avatar ${cls}" src="${esc(e.avatar)}" alt="" loading="lazy">`
+	: `<span class="comm-avatar anon ${cls}" aria-hidden="true">${e.named ? esc((e.name || '?').slice(0, 1)) : '☸'}</span>`);
+const medal = rank => `<span class="comm-pos${rank <= 3 ? ` p${rank}` : ''}">${rank <= 3 ? rank : ordinal(rank)}</span>`;
 
 /* ------------------------------------------------------------------ *
  * The head: who is on the boards, and where you stand
@@ -105,14 +180,29 @@ function headHTML() {
 	const built = data ? new Date(data.updatedAt) : null;
 	let you;
 	if (!who) {
-		you = `<p class="comm-copy">The boards show only what sailors chose to share. <button class="act small" data-act="signin">Sign in with Discord</button> to take part — by name, or as an unnamed sailor.</p>`;
+		you = `<div class="comm-you"><p class="comm-copy">The boards show only what sailors chose to share. <button class="act small" data-act="signin">Sign in with Discord</button> to take part — by name, or as an unnamed sailor.</p></div>`;
 	} else if (!who.share) {
-		you = `<p class="comm-copy">You are not on the boards; nothing about your save is shown to anyone. <button class="act small" data-act="community-join">Take part</button> — you will see exactly what would be shared before you agree.</p>`;
+		you = `<div class="comm-you"><p class="comm-copy">You are not on the boards; nothing about your save is shown to anyone. <button class="act small" data-act="community-join">Take part</button> — you will see exactly what would be shared before you agree.</p></div>`;
 	} else {
-		const places = data && data.you ? data.you.places : {};
-		const best = Object.entries(places).sort((a, b) => a[1].rank - b[1].rank || b[1].of - a[1].of).slice(0, 3)
-			.map(([id, p]) => { const b = BOARDS.find(x => x.id === id); return b ? `${ordinal(p.rank)} of ${p.of} in ${b.title}` : ''; }).filter(Boolean);
-		you = `<p class="comm-copy">You are on the boards ${who.share === 'named' ? `as <b>${esc(who.username)}</b>` : 'as <b>an unnamed sailor</b>'}${best.length ? ` — ${best.join(', ')}` : ''}. ${data && data.you && data.you.ref ? `<button class="chip tiny primary" data-act="community-sailor" data-ref="${esc(data.you.ref)}">My card</button> ` : ''}<button class="chip tiny" data-act="community-places">All my places</button> <button class="chip tiny" data-act="community-join">Change</button> <button class="chip tiny" data-act="community-leave">Leave the boards</button></p>`;
+		const y = data && data.you ? data.you : { places: {} };
+		const places = Object.entries(y.places).map(([id, p]) => ({ b: boardById[id], p })).filter(x => x.b).sort((a, b) => a.p.rank - b.p.rank || b.p.of - a.p.of);
+		const shown = places.slice(0, 4);
+		const src = avatarURL(who);
+		you = `<div class="comm-you on">
+			${src ? `<img class="comm-avatar big" src="${esc(src)}" alt="">` : `<span class="comm-avatar anon big" aria-hidden="true">${who.share === 'named' ? esc(who.username.slice(0, 1)) : '☸'}</span>`}
+			<div class="comm-you-body">
+				<p class="comm-you-line">You are on the boards as <b>${who.share === 'named' ? esc(who.username) : 'an unnamed sailor'}</b>${y.level ? ` <span>· ${esc(y.level)}</span>` : ''}${y.joinedAt ? ` <span>· since ${day(y.joinedAt)}</span>` : ''}</p>
+				<div class="comm-you-places">
+					${shown.length ? shown.map(({ b, p }) => `<button class="comm-place${p.rank <= 3 ? ` p${p.rank}` : ''}" data-act="community-places" title="${esc(`${ordinal(p.rank)} of ${p.of} · ${b.desc}`)}">${medal(p.rank)}<span><i aria-hidden="true">${b.icon}</i> ${esc(b.title)}</span></button>`).join('') : `<span class="comm-you-none">${data ? 'No place on any board yet — the boards below say what earns one.' : 'Fetching your places…'}</span>`}
+					${places.length > shown.length ? `<button class="comm-more-places" data-act="community-places">and ${places.length - shown.length} more</button>` : ''}
+				</div>
+			</div>
+			<div class="comm-you-acts">
+				${y.ref ? `<button class="act small" data-act="community-sailor" data-ref="${esc(y.ref)}">My card</button>` : ''}
+				<button class="chip" data-act="community-join">${who.share === 'named' ? 'Shown by name' : 'Shown unnamed'} · change</button>
+				<button class="chip comm-leave" data-act="community-leave">Leave the boards</button>
+			</div>
+		</div>`;
 	}
 	return `<section class="panel comm-head">
 		<div class="panel-head">
@@ -129,146 +219,183 @@ function headHTML() {
 	</section>`;
 }
 
-const ordinal = n => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][Math.min(n % 10, 4)] || 'th'}`;
-
 /* ------------------------------------------------------------------ *
  * The hall of fame
  * ------------------------------------------------------------------ */
 
-const value = (board, v) => (board.id === 'silver' || board.id === 'bestday' ? FC(v) : F(v));
+const TOP = 3;   // places shown on a board before "show all"
 
-function boardHTML(board) {
+/** The caller's own row on a board they are not in the top of: the
+ *  rank and value from the server, the face from the local save. */
+function yourRow(board) {
 	const who = me();
 	const place = data.you && data.you.places[board.id];
-	const inTop = board.top.some(e => e.you);
-	return `<section class="panel comm-board" data-board="${esc(board.id)}">
+	if (!who || !place || board.top.some(e => e.you)) return null;
+	const b = boardById[board.id];
+	const d = digest(store.saveShape());
+	return { rank: place.rank, value: place.value, you: true, named: who.share === 'named', name: who.username, avatar: who.share === 'named' ? avatarURL(who) : null, ref: data.you.ref, detail: b ? b.detail(d) : '', face: b ? b.face(d) : null };
+}
+
+function boardHTML(board) {
+	const b = boardById[board.id] || board;
+	const who = me();
+	const rows = board.top.slice(0, TOP);
+	const mine = yourRow(board);
+	const top = board.top.length ? board.top[0].value : 0;
+	const first = board.top[0] && board.top[0].you;
+	return `<section class="panel comm-board${first ? ' gold' : ''}" data-board="${esc(board.id)}">
 		<div class="comm-board-head">
 			<span class="comm-board-icon" aria-hidden="true">${board.icon}</span>
-			<h3 class="comm-board-title">${esc(board.title)}</h3>
+			<div class="comm-board-t"><h3 class="comm-board-title">${esc(board.title)}</h3>${b.desc ? `<span class="comm-board-desc">${esc(b.desc)}</span>` : ''}</div>
 			<span class="comm-board-n">${board.n ? `${board.n} sailor${board.n === 1 ? '' : 's'}` : 'nobody yet'}</span>
 		</div>
-		${board.top.length ? `<ol class="comm-rank">${board.top.map(e => rowHTML(board, e)).join('')}</ol>` : `<p class="comm-empty">${who && who.share ? 'Nobody has earned a place here yet.' : 'Nobody has earned a place here yet — the first to take part will.'}</p>`}
-		${place && !inTop ? `<div class="comm-yours">You: ${ordinal(place.rank)} of ${place.of} · ${value(board, place.value)} ${esc(board.unit)}</div>` : ''}
-		${board.n > board.top.length ? `<button class="comm-more" data-act="community-board" data-id="${esc(board.id)}">Show all ${board.n} →</button>` : ''}
+		${rows.length ? `<ol class="comm-rank">${rows.map(e => rowHTML(board, e, top)).join('')}${mine ? rowHTML(board, mine, top, true) : ''}</ol>` : `<div class="comm-empty"><p>Nobody has earned a place here yet.</p>${b.how ? `<small>${esc(b.how)}${who && who.share ? '' : ' Then take part.'}</small>` : ''}</div>`}
+		${board.n > rows.length ? `<button class="comm-more" data-act="community-board" data-id="${esc(board.id)}">Show all ${board.n} →</button>` : ''}
 	</section>`;
 }
 
-/** One place on a board. A press opens the sailor's card. */
-function rowHTML(board, e) {
-	return `<li class="comm-row${e.you ? ' you' : ''}${e.rank <= 3 ? ` p${e.rank}` : ''}" data-act="community-entry" data-board="${esc(board.id)}" data-ref="${esc(e.ref)}" role="button" tabindex="0" title="${e.named ? esc(e.name) : 'A sailor'} — ${OPENS[board.id] || 'open the card'}">
-		<span class="comm-pos">${e.rank}</span>
+/** One place on a board. A press opens the sailor's card at what the board is about. */
+function rowHTML(board, e, top = 0, dashed = false) {
+	const pct = top ? Math.max(3, Math.round((e.value / top) * 100)) : 0;
+	return `<li class="comm-row${e.you ? ' you' : ''}${e.rank <= 3 ? ` p${e.rank}` : ''}${dashed ? ' yours' : ''}" data-act="community-entry" data-board="${esc(board.id)}" data-ref="${esc(e.ref)}" role="button" tabindex="0" title="${e.named ? esc(e.name) : 'A sailor'} — open the card">
+		${medal(e.rank)}
 		${avatarHTML(e)}
-		<span class="comm-who"><span class="comm-name">${e.named ? esc(e.name) : 'A sailor'}${e.you ? ' <em>you</em>' : ''}</span>${e.detail ? `<span class="comm-detail">${esc(e.detail)}</span>` : ''}</span>
-		<b class="comm-val">${value(board, e.value)}<small>${esc(board.unit)}</small></b>
+		<span class="comm-who">
+			<span class="comm-name">${e.named ? esc(e.name) : 'A sailor'}${e.you ? ' <em>you</em>' : ''}</span>
+			${e.detail ? `<span class="comm-detail">${esc(e.detail)}</span>` : ''}
+			${faceHTML(e.face)}
+		</span>
+		<span class="comm-val-col"><b class="comm-val">${value(board, e.value)}<small>${esc(board.unit)}</small></b>${top ? `<span class="comm-val-bar"><i style="width:${pct}%"></i></span>` : ''}</span>
 	</li>`;
 }
 
-/** What a press on a place opens, board by board: the ship itself on
- *  the Ship tab for the ship and the fleet, the crew there for the
- *  sailor boards, and the card at the matching section for the rest. */
-const OPENS = {
-	ship: 'look at the ship on the Ship tab', fleet: 'look at the fleet on the Ship tab',
-	sailor: 'look at the sailor on the Ship tab', crew: 'look at the crew on the Ship tab',
-	quests: 'the quests done', hunts: 'the monsters hunted', ships: 'what was built', crafts: 'what was made', luck: 'the attempts at the anvil',
-	silver: 'the runs', runs: 'the runs', bestday: 'the runs', barters: 'the runs', charts: 'the charts', hold: 'the hold', mastery: 'the card'
-};
-const SECTION_OF = { quests: 'quests', hunts: 'quests', ships: 'yard', crafts: 'yard', luck: 'yard', silver: 'runs', runs: 'runs', bestday: 'runs', barters: 'runs', charts: 'charts', hold: 'hold' };
-
-const avatarHTML = e => (e.avatar ? `<img class="comm-avatar" src="${esc(e.avatar)}" alt="" width="24" height="24" loading="lazy">` : `<span class="comm-avatar anon" aria-hidden="true">${e.named ? esc((e.name || '?').slice(0, 1)) : '☸'}</span>`);
-
 function fameHTML() {
-	return `<div class="comm-boards">${data.fame.map(boardHTML).join('')}</div>`;
+	const chips = [{ id: 'all', icon: '▦', title: 'Everything' }, ...SECTIONS];
+	const sections = SECTIONS.filter(s => fameSec === 'all' || s.id === fameSec).map(s => {
+		const boards = data.fame.filter(f => (boardById[f.id] || {}).section === s.id);
+		if (!boards.length) return '';
+		return `<div class="comm-section">
+			<div class="comm-section-head"><h3><span aria-hidden="true">${s.icon}</span> ${esc(s.title)}</h3><span>${boards.length} board${boards.length === 1 ? '' : 's'}</span><i></i></div>
+			<div class="comm-boards">${boards.map(boardHTML).join('')}</div>
+		</div>`;
+	}).join('');
+	return `<div class="comm-fame">
+		<div class="comm-numbar">
+			<div class="chips comm-cats" role="tablist" aria-label="Sections">${chips.map(c => `<button class="chip${fameSec === c.id ? ' active' : ''}" role="tab" aria-selected="${fameSec === c.id}" data-act="community-sec" data-id="${c.id}"><span aria-hidden="true">${c.icon}</span> ${esc(c.title)}</button>`).join('')}</div>
+			<span class="comm-numbar-note">Top ${TOP} on each board · your own place always shown · press a sailor for the card</span>
+		</div>
+		${sections}
+	</div>`;
 }
 
 /* ------------------------------------------------------------------ *
  * The fleet in numbers
  * ------------------------------------------------------------------ */
 
+const LIM = 7;   // rows a panel shows before "and N more"
+
 /**
  * A list of bars: the largest is the full width, the rest in
- * proportion. A row that names something the app knows -- a hull, a
- * part, a quest, a monster, an island -- is a door to it: the item's
- * card, the Quests tab, the grounds on the chart, the island on the
- * chart. `link(key)` says which, as { act, ...data }.
+ * proportion, each with its picture. A row that names something the
+ * app knows -- a hull, a part, a crystal, a quest, a monster, an
+ * island -- is a door to it: the item's card, the Quests tab, the
+ * grounds on the chart, the island on the chart. `link(key)` says
+ * which, as { act, ...data }.
  */
-function bars({ id, cat, icon, title, note, table, name = k => k, unit = '', link = null }) {
+function bars({ id, cat, icon, title, note, table, name = k => k, sub = null, picture = null, unit = '', link = null }) {
 	let rows = Object.entries(table || {});
 	const max = rows.reduce((m, [, c]) => Math.max(m, c), 0);
 	const q = numQ.trim().toLowerCase();
-	if (q) rows = rows.filter(([k]) => name(k).toLowerCase().includes(q));
-	if (numSort === 'name') rows.sort((x, y) => name(x[0]).localeCompare(name(y[0])));
+	if (q) rows = rows.filter(([k]) => `${name(k)} ${sub ? sub(k) : ''}`.toLowerCase().includes(q));
+	rows.sort(numSort === 'name' ? (x, y) => name(x[0]).localeCompare(name(y[0])) : (x, y) => y[1] - x[1] || name(x[0]).localeCompare(name(y[0])));
 	if ((numCat !== 'all' && numCat !== cat) || (q && !rows.length)) return '';
 	const door = k => {
 		const l = link ? link(k) : null;
 		if (!l) return '';
 		return Object.entries(l).map(([a, v]) => ` data-${a}="${esc(v)}"`).join('');
 	};
+	const total = rows.reduce((a, [, c]) => a + c, 0);
+	const open = numOpen.has(id);
+	const shown = open || rows.length <= LIM ? rows : rows.slice(0, LIM);
 	return `<section class="panel comm-bars" data-cat="${esc(cat)}" data-id="${esc(id)}">
-		<div class="comm-board-head"><span class="comm-board-icon" aria-hidden="true">${icon}</span><h3 class="comm-board-title">${esc(title)}</h3><span class="comm-board-n">${esc(note)}</span></div>
-		${rows.length ? `<div class="comm-bar-list">${rows.map(([k, c]) => `
-			<div class="comm-bar-row${link && link(k) ? ' door' : ''}"${door(k)}${link && link(k) ? ' role="button" tabindex="0"' : ''}>
-				<span class="comm-bar-name">${esc(name(k))}${link && link(k) ? ' <i class="comm-door" aria-hidden="true">›</i>' : ''}</span>
-				<span class="comm-bar"><i style="width:${max ? Math.max(2, Math.round((c / max) * 100)) : 0}%"></i></span>
+		<div class="comm-board-head"><span class="comm-board-icon" aria-hidden="true">${icon}</span><div class="comm-board-t"><h3 class="comm-board-title">${esc(title)}</h3><span class="comm-board-desc">${esc(note)}</span></div><span class="comm-board-n">${rows.length ? F(total) : ''}</span></div>
+		${rows.length ? `<div class="comm-bar-list">${shown.map(([k, c], i) => `
+			<div class="comm-bar-row${link && link(k) ? ' comm-go' : ''}"${door(k)}${link && link(k) ? ' role="button" tabindex="0"' : ''} title="${esc(name(k))}${sub && sub(k) ? ` — ${esc(sub(k))}` : ''}">
+				<span class="comm-bar-name">${picture ? picture(k) : `<span class="comm-bar-i">${i + 1}</span>`}<span class="comm-bar-text"><span>${esc(name(k))}</span>${sub && sub(k) ? `<small>${sub(k)}</small>` : ''}</span>${link && link(k) ? ' <i class="comm-door" aria-hidden="true">›</i>' : ''}</span>
 				<b class="comm-bar-n">${F(c)}${unit ? `<small>${esc(unit)}</small>` : ''}</b>
-			</div>`).join('')}</div>` : '<p class="comm-empty">Nothing counted yet.</p>'}
+				<span class="comm-bar"><i style="width:${max ? Math.max(2, Math.round((c / max) * 100)) : 0}%"></i></span>
+			</div>`).join('')}
+			${rows.length > LIM ? `<button class="comm-fold" data-act="community-fold" data-id="${esc(id)}">${open ? 'Show fewer' : `and ${rows.length - LIM} more…`}</button>` : ''}</div>` : '<p class="comm-empty">Nothing counted yet.</p>'}
 	</section>`;
 }
 
 /** A histogram in a row of columns. */
-function columns({ cat, icon, title, note, counts, labels }) {
+function columns({ cat, icon, title, note, counts, labels, tip = '' }) {
 	if (numCat !== 'all' && numCat !== cat) return '';
 	if (numQ.trim() && !title.toLowerCase().includes(numQ.trim().toLowerCase())) return '';
 	const max = Math.max(...counts, 0);
+	const total = counts.reduce((a, b) => a + b, 0);
 	return `<section class="panel comm-bars" data-cat="${esc(cat)}">
-		<div class="comm-board-head"><span class="comm-board-icon" aria-hidden="true">${icon}</span><h3 class="comm-board-title">${esc(title)}</h3><span class="comm-board-n">${esc(note)}</span></div>
+		<div class="comm-board-head"><span class="comm-board-icon" aria-hidden="true">${icon}</span><div class="comm-board-t"><h3 class="comm-board-title">${esc(title)}</h3><span class="comm-board-desc">${esc(note)}</span></div><span class="comm-board-n">${total ? F(total) : ''}</span></div>
 		${max ? `<div class="comm-cols">${counts.map((c, i) => `
-			<div class="comm-col" title="${esc(labels[i])}: ${F(c)}">
+			<div class="comm-col" title="${F(c)} ${esc(tip)}${esc(labels[i])}">
 				<b>${c ? F(c) : ''}</b><i style="height:${Math.max(2, Math.round((c / max) * 60))}px"></i><span>${esc(labels[i])}</span>
 			</div>`).join('')}</div>` : '<p class="comm-empty">Nothing counted yet.</p>'}
 	</section>`;
 }
 
 const CATS = [
-	['all', '▦', 'Everything'], ['ships', '⛵', 'Ships'], ['crew', '👥', 'Crew'], ['sea', '🌊', 'The sea'], ['yard', '⚒', 'The yard'], ['charts', '✎', 'Charts']
+	['all', '▦', 'Everything'], ['ships', '⛵', 'Ships'], ['crew', '👥', 'Crew'], ['sea', '🌊', 'The sea'], ['quests', '✦', 'Quests'], ['yard', '⚒', 'The yard'], ['charts', '✎', 'Charts']
 ];
 
 const item = k => ({ act: 'community-item', item: k });
+const crystalSub = id => {
+	const c = crystalOf(id);
+	if (!c) return '';
+	const g = gradeById[c.grade];
+	return `<span class="comm-grade" style="--grade:${esc(g ? g.colour : 'currentColor')}"></span>${esc(crystalVariant(c))}`;
+};
+const questPic = id => {
+	const q = questById[id];
+	if (q && q.monster) return monsterPic(q.monster, 'sm');
+	return `<span class="comm-pic glyph sm" aria-hidden="true">${q && /\[Weekly\]/.test(q.name) ? '✧' : '✦'}</span>`;
+};
 
 function numbersHTML() {
 	const s = data.stats;
 	const t = s.totals;
-	const tile = (k, v, sub = '') => `<div class="stat"><div class="stat-k">${esc(k)}</div><div class="stat-v">${v}</div>${sub ? `<div class="stat-sub">${esc(sub)}</div>` : ''}</div>`;
+	const tile = (icon, k, v, sub = '', cls = '') => `<div class="stat comm-stat"><span class="comm-stat-i" aria-hidden="true">${icon}</span><div><div class="stat-k">${esc(k)}</div><div class="stat-v${cls ? ` ${cls}` : ''}">${v}</div>${sub ? `<div class="stat-sub">${esc(sub)}</div>` : ''}</div></div>`;
 	const panels = [
-		bars({ id: 'sailing', cat: 'ships', icon: '⛵', title: 'Hulls most sailed', note: 'the ship each sailor is sailing now', table: s.sailing, unit: 'sailors', link: item }),
-		bars({ id: 'hulls', cat: 'ships', icon: '🚢', title: 'Hulls owned', note: 'across every setup', table: s.hulls, unit: 'sailors', link: item }),
-		bars({ id: 'parts', cat: 'ships', icon: '⚙', title: 'Parts most fitted', note: 'by name, whatever the level', table: s.parts, name: k => k.replace(/^Epheria /, ''), unit: 'sailors', link: item }),
-		bars({ id: 'crystals', cat: 'ships', icon: '💎', title: 'Sea crystals most carried', note: 'in a hull’s slot', table: s.crystals, name: crystalName, unit: 'hulls' }),
-		bars({ id: 'sailors', cat: 'crew', icon: '👥', title: 'Sailors most hired', note: 'across every roster', table: s.sailorTypes, unit: 'hired' }),
-		columns({ cat: 'crew', icon: '📈', title: 'Sailor levels', note: 'every sailor hired, by level', counts: s.crewLevels, labels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'] }),
-		bars({ id: 'islands', cat: 'sea', icon: '⌖', title: 'Islands most plotted', note: 'stops in the routes kept on the chart · a press flies the chart there', table: s.islands, name: isleName, unit: 'plots', link: k => ({ act: 'community-isle', npc: k }) }),
-		bars({ id: 'quests', cat: 'sea', icon: '✦', title: 'Quests most done', note: 'claims, over careers · a press opens the quest', table: s.quests, name: questName, unit: 'done', link: k => ({ act: 'view', id: 'quests', quest: k }) }),
-		bars({ id: 'hunts', cat: 'sea', icon: '🦈', title: 'Sea monsters most hunted', note: 'from the hunting quests done · a press shows the grounds', table: s.hunts, name: monsterName, unit: 'hunts', link: k => ({ act: 'quest-map', monster: k }) }),
+		bars({ id: 'sailing', cat: 'ships', icon: '⛵', title: 'Hulls most sailed', note: 'the ship each sailor is sailing now', table: s.sailing, unit: 'sailors', picture: k => pic(k, 'sm'), link: item }),
+		bars({ id: 'hulls', cat: 'ships', icon: '🚢', title: 'Hulls owned', note: 'across every setup', table: s.hulls, unit: 'sailors', picture: k => pic(k, 'sm'), link: item }),
+		bars({ id: 'parts', cat: 'ships', icon: '⚙', title: 'Parts most fitted', note: 'by name, whatever the level', table: s.parts, name: k => k.replace(/^Epheria /, ''), unit: 'sailors', picture: k => pic(k, 'sm'), link: item }),
+		bars({ id: 'crystals', cat: 'ships', icon: '💎', title: 'Sea crystals most carried', note: 'in a hull’s slot, effect by effect', table: s.crystals, name: crystalName, sub: crystalSub, unit: 'hulls', picture: k => pic(crystalName(k), 'sm'), link: k => (crystalOf(k) ? item(crystalOf(k).name) : null) }),
+		columns({ cat: 'ships', icon: '🚢', title: 'Fleet sizes', note: 'hulls per sailor', counts: s.fleetSizes, labels: ['none', '1', '2', '3+'], tip: 'sailors with ' }),
+		bars({ id: 'sailors', cat: 'crew', icon: '👥', title: 'Sailors most hired', note: 'across every roster', table: s.sailorTypes, unit: 'hired', picture: k => face(k, 'sm', anyType[k] ? `${k} · ${anyType[k].race || ''}` : k) }),
+		columns({ cat: 'crew', icon: '📈', title: 'Sailor levels', note: 'every sailor hired, by level', counts: s.crewLevels, labels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], tip: 'sailors at Lv ' }),
+		bars({ id: 'islands', cat: 'charts', icon: '⌖', title: 'Islands most plotted', note: 'stops in the routes kept on the chart', table: s.islands, name: isleName, unit: 'plots', link: k => ({ act: 'community-isle', npc: k }) }),
+		bars({ id: 'quests', cat: 'quests', icon: '✦', title: 'Quests most done', note: 'claims, over careers', table: s.quests, name: questName, unit: 'done', picture: questPic, link: k => ({ act: 'view', id: 'quests', quest: k }) }),
+		bars({ id: 'hunts', cat: 'quests', icon: '🦈', title: 'Sea monsters most hunted', note: 'from the hunting quests done', table: s.hunts, name: monsterName, unit: 'hunts', picture: k => monsterPic(k, 'sm'), link: k => ({ act: 'quest-map', monster: k }) }),
 		bars({ id: 'levels', cat: 'sea', icon: '⇄', title: 'Barter level', note: 'as set on the Barter tab', table: s.levels, unit: 'sailors' }),
-		columns({ cat: 'sea', icon: '📅', title: 'Runs by weekday', note: 'the last sixty runs of each sailor', counts: s.runDays, labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] }),
-		columns({ cat: 'sea', icon: '⚓', title: 'Sailing mastery', note: 'sailors at each step', counts: s.masteryBuckets, labels: ['<500', '<1000', '<1500', '<2000', '<2500', '2500+'] }),
-		bars({ id: 'builds', cat: 'yard', icon: '⚒', title: 'Builds most queued', note: 'what is on the Builds tab right now', table: s.builds, unit: 'sailors', link: item }),
-		bars({ id: 'made', cat: 'yard', icon: '🔨', title: 'Ships most built', note: 'made in the Workshop', table: s.shipsMade, unit: 'built', link: item }),
-		columns({ cat: 'ships', icon: '🚢', title: 'Fleet sizes', note: 'hulls per sailor', counts: s.fleetSizes, labels: ['none', '1', '2', '3+'] })
+		columns({ cat: 'sea', icon: '📅', title: 'Runs by weekday', note: 'the last sixty runs of each sailor', counts: s.runDays, labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], tip: 'runs on a ' }),
+		columns({ cat: 'sea', icon: '⚓', title: 'Sailing mastery', note: 'sailors at each step', counts: s.masteryBuckets, labels: ['<500', '<1000', '<1500', '<2000', '<2500', '2500+'], tip: 'sailors at ' }),
+		bars({ id: 'builds', cat: 'yard', icon: '⚒', title: 'Builds most queued', note: 'what is on the Builds tab right now', table: s.builds, unit: 'sailors', picture: k => pic(k, 'sm'), link: item }),
+		bars({ id: 'made', cat: 'yard', icon: '🔨', title: 'Ships most built', note: 'made in the Workshop', table: s.shipsMade, unit: 'built', picture: k => pic(k, 'sm'), link: item })
 	].filter(Boolean);
 	return `<div class="comm-numbers">
 		<div class="stats comm-totals">
-			${tile('Sailors on the boards', F(data.sailors), `${data.named} by name`)}
-			${tile('Silver from runs', FC(t.silver), `${F(t.runs)} runs · ${F(t.trades)} trades · ${F(t.barters)} barters`)}
-			${tile('Quests done', F(t.quests), `${F(t.hunts)} sea monster hunts`)}
-			${tile('Things made', F(t.crafts), `${F(t.ships)} ships built`)}
-			${tile('At the anvil', t.tries ? `${Math.round((t.wins / t.tries) * 100)}%` : '—', t.tries ? `${F(t.wins)} of ${F(t.tries)} attempts` : 'no attempts recorded')}
-			${tile('Sailors hired', F(t.sailors), `${F(t.hulls)} hulls in all`)}
-			${tile('Sailing mastery', t.mastery ? F(t.mastery) : '—', 'the average, where it is filled in')}
-			${tile('Traces drawn', F(t.traces), `${F(t.points)} points`)}
+			${tile('👥', 'Sailors on the boards', F(data.sailors), `${data.named} by name`)}
+			${tile('💰', 'Silver from runs', FC(t.silver), `${F(t.runs)} runs · ${F(t.trades)} trades · ${F(t.barters)} barters`, 'blue')}
+			${tile('✦', 'Quests done', F(t.quests), `${F(t.hunts)} sea monster hunts`)}
+			${tile('⚒', 'Things made', F(t.crafts), `${F(t.ships)} ships built`)}
+			${tile('🎲', 'At the anvil', t.tries ? `${Math.round((t.wins / t.tries) * 100)}%` : '—', t.tries ? `${F(t.wins)} of ${F(t.tries)} attempts` : 'no attempts recorded', 'amber')}
+			${tile('⚓', 'Sailors hired', F(t.sailors), `${F(t.hulls)} hulls in all`)}
+			${tile('🧭', 'Sailing mastery', t.mastery ? F(t.mastery) : '—', 'the average, where it is filled in', 'teal')}
+			${tile('✎', 'Traces drawn', F(t.traces), `${F(t.points)} points`)}
 		</div>
 		<div class="comm-numbar">
 			<div class="chips comm-cats" role="tablist" aria-label="Categories">${CATS.map(([id, icon, label]) => `<button class="chip${numCat === id ? ' active' : ''}" role="tab" aria-selected="${numCat === id}" data-act="community-cat" data-id="${id}"><span aria-hidden="true">${icon}</span> ${label}</button>`).join('')}</div>
-			<input class="field comm-numq" type="search" value="${esc(numQ)}" placeholder="Find a hull, a part, a quest, an island…" aria-label="Find a row" data-act="community-numq">
+			<input class="field comm-numq" type="search" value="${esc(numQ)}" placeholder="Find a hull, a part, a crystal, a quest, an island…" aria-label="Find a row" data-act="community-numq">
 			<div class="chips comm-sort"><span class="comm-sort-k">sort</span><button class="chip tiny${numSort === 'count' ? ' active' : ''}" data-act="community-sort" data-id="count">most first</button><button class="chip tiny${numSort === 'name' ? ' active' : ''}" data-act="community-sort" data-id="name">A–Z</button></div>
 		</div>
 		${panels.length ? `<div class="comm-grid">${panels.join('')}</div>` : `<section class="panel"><p class="comm-empty">Nothing here matches “${esc(numQ)}”.</p></section>`}
@@ -301,10 +428,10 @@ function previewHTML() {
 	const d = digest(store.saveShape());
 	const lines = BOARDS.map(b => {
 		const v = b.value(d);
-		return `<div class="comm-prev-row${v >= b.min ? '' : ' none'}"><span>${b.icon} ${esc(b.title)}</span><b>${v >= b.min ? `${value(b, v)} ${esc(b.unit)}` : '—'}</b>${b.detail(d) ? `<small>${esc(b.detail(d))}</small>` : ''}</div>`;
+		return `<div class="comm-prev-row${v >= b.min ? '' : ' none'}"><span>${b.icon} ${esc(b.title)}</span><b>${v >= b.min ? `${value(b, v)} ${esc(b.unit)}` : '—'}</b>${b.detail(d) ? `<small>${esc(b.detail(d))}</small>` : ''}${faceHTML(b.face(d))}</div>`;
 	});
 	const tables = [
-		['hulls', d.fleet.hulls.length], ['parts fitted', Object.keys(d.fleet.parts).length], ['sailor types', Object.keys(d.crew.byType).length],
+		['hulls', d.fleet.hulls.length], ['parts fitted', Object.keys(d.fleet.parts).length], ['crystals', Object.keys(d.fleet.crystals).length], ['sailor types', Object.keys(d.crew.byType).length],
 		['quests by name', Object.keys(d.quests.byId).length], ['islands plotted', Object.keys(d.charts.stops).length], ['builds queued', Object.keys(d.yard.byItem).length]
 	].filter(([, n]) => n).map(([k, n]) => `${n} ${k}`);
 	return `<div class="comm-prev">${lines.join('')}</div>
@@ -384,7 +511,10 @@ function lookAt(c, { hull = null, sailorId = null } = {}) {
 	hooks.look(shipSave(c, hull), { name: c.named ? c.name : 'a sailor', sailorId });
 }
 
-const cards = new Map();   // ref -> the card, for a look opened from the card
+const cards = new Map();      // ref -> the card, for a look opened from the card
+const wholeBoards = new Map();   // board id -> every place, once "show all" fetched it
+let nav = null;               // { boardId, refs, n }: the board a card was opened from, for ‹ ›
+let openRef = null;           // the card on screen, for ‹ › to count from
 
 /** The card, fetched once and held for the session. */
 async function fetchCard(ref) {
@@ -395,29 +525,23 @@ async function fetchCard(ref) {
 	return res.body;
 }
 
-/**
- * A place on a board, pressed. The ship boards go to the Ship tab on
- * that sailor's boat, the crew boards to the Ship tab with that sailor
- * in the Selected sailor panel; every other board opens the card at
- * the section that board is about.
- */
-async function openEntry(boardId, ref) {
-	const host = openDialog('<h2>A sailor</h2><p class="dialog-copy">Fetching…</p>');
-	let c;
-	try {
-		c = await fetchCard(ref);
-	} catch (err) {
-		host.querySelector('.dialog-box').innerHTML = `<h2>A sailor</h2><p class="dialog-copy">${esc(err.message)}</p><div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`;
-		return;
-	}
-	if ((boardId === 'ship' || boardId === 'fleet') && c.digest.ship && c.digest.ship.crewShip) return lookAt(c, { hull: c.digest.fleet.best ? c.digest.fleet.best.ship : null });
-	if ((boardId === 'sailor' || boardId === 'crew') && c.digest.ship && c.digest.ship.crewShip) return lookAt(c, { sailorId: c.digest.crew.best ? c.digest.crew.best.id : null });
-	paintCard(host, c, SECTION_OF[boardId] || null);
+const SECTION_OF = { ship: 'ship', fleet: 'ship', sailor: 'crew', crew: 'crew', quests: 'quests', hunts: 'quests', ships: 'yard', crafts: 'yard', luck: 'yard', silver: 'runs', runs: 'runs', bestday: 'runs', barters: 'runs', charts: 'charts', hold: 'hold' };
+
+/** A place on a board, pressed: the card, at the section the board is
+ *  about, with ‹ › along that board. */
+function openEntry(boardId, ref) {
+	const whole = wholeBoards.get(boardId);
+	const board = data && data.fame.find(f => f.id === boardId);
+	const list = whole || (board ? board.top : []);
+	const refs = list.map(e => e.ref);
+	nav = refs.includes(ref) ? { boardId, refs, n: whole ? whole.length : board ? board.n : refs.length } : null;
+	openSailorCard(ref, SECTION_OF[boardId] || null);
 }
 
 /** A sailor's card: places, the ship, the fleet, the crew, the career. */
 export async function openSailorCard(ref, section = null) {
 	const host = openDialog('<h2>A sailor</h2><p class="dialog-copy">Fetching the card…</p>');
+	host.querySelector('.dialog-box').classList.add('wide', 'comm-card-box');
 	try {
 		paintCard(host, await fetchCard(ref), section);
 	} catch (err) {
@@ -428,71 +552,107 @@ export async function openSailorCard(ref, section = null) {
 function paintCard(host, c, section) {
 	const box = host.querySelector('.dialog-box');
 	const d = c.digest;
+	openRef = c.ref;
 	const canLook = Boolean(d.ship && d.ship.crewShip);
-	const places = Object.entries(c.places).map(([id, p]) => ({ b: BOARDS.find(x => x.id === id), p })).filter(x => x.b).sort((a, b) => a.p.rank - b.p.rank || b.p.of - a.p.of);
+	const places = Object.entries(c.places).map(([id, p]) => ({ b: boardById[id], p })).filter(x => x.b).sort((a, b) => a.p.rank - b.p.rank || b.p.of - a.p.of);
 	const best = d.fleet.best;
-	const slots = ['cannon', 'sail', 'figurehead', 'plating'];
-	const look = (label, data) => (canLook ? `<button class="chip tiny primary" data-act="community-look" data-ref="${esc(c.ref)}"${data}>${label}</button>` : '');
-	const hull = h => `<div class="card-hull${best && h.ship === best.ship ? ' best' : ''}">
-		<b>${esc(h.ship)}</b>${h.ship === d.fleet.sailing ? ' <em>sailing now</em>' : ''}
-		<span class="card-parts">${slots.map(sl => `<i class="${h.parts[sl] ? 'on' : ''}" title="${sl}">${sl.slice(0, 1).toUpperCase()}${h.parts[sl] ? ` +${h.parts[sl]}` : ''}</i>`).join('')}${h.crystal ? `<small>${esc(crystalName(h.crystal))}</small>` : ''}${h.skins ? `<small>${h.skins} of 4 appearance slots</small>` : ''}</span>
-		${look('Look ›', ` data-hull="${esc(h.ship)}"`)}
+	const look = (label, extra, title) => (canLook ? `<button class="chip tiny primary" data-act="community-look" data-ref="${esc(c.ref)}"${extra} title="${esc(title)}">${label}</button>` : '');
+	const hull = h => {
+		const fitted = fittedOn(d, h.ship);
+		const on = SLOTS.filter(sl => h.parts[sl] || (fitted && fitted[sl])).length;
+		const isBest = best && h.ship === best.ship;
+		const now = h.ship === d.fleet.sailing;
+		return `<div class="comm-hull${isBest ? ' best' : ''}${now ? ' now' : ''}">
+			${pic(h.ship, 'md')}
+			<div class="comm-hull-body">
+				<div class="comm-hull-name"><b>${esc(h.ship)}</b>${now ? '<em class="teal">sailing now</em>' : ''}${isBest && !now ? '<em>best</em>' : ''}</div>
+				<div class="comm-hull-sub">${on ? `${on} of 4 parts fitted` : 'bare hull'}${h.skins ? ` · ${h.skins} of 4 appearance slots` : ''}</div>
+				<div class="comm-hull-fit">${slotsHTML(h.parts, fitted)}${h.crystal ? crystalHTML(h.crystal) : '<span class="comm-crystal off" title="No sea crystal in the slot">no crystal</span>'}</div>
+			</div>
+			${look('Look ›', ` data-hull="${esc(h.ship)}"`, 'The Ship tab on this hull, to look at and not to keep')}
+		</div>`;
+	};
+	const sailor = m => `<div class="comm-sailor">
+		${face(m.type, 'md', `${m.name} · ${m.type}`)}
+		<div class="comm-sailor-body">
+			<div class="comm-sailor-name"><b>${esc(m.name)}</b>${m.name !== m.type ? `<span>${esc(m.type)}</span>` : ''}${anyType[m.type] && anyType[m.type].race ? `<small>${esc(anyType[m.type].race)}</small>` : ''}</div>
+			${statsHTML(m.stats)}
+			<span class="comm-lv-bar"><i style="width:${m.lv * 10}%"></i></span>
+		</div>
+		<b class="comm-lv${m.lv >= 10 ? ' max' : ''}">Lv ${m.lv}</b>
+		${look('Look ›', m.id ? ` data-sailor="${esc(m.id)}"` : '', 'The Ship tab with this sailor picked up, to look at and not to keep')}
 	</div>`;
-	const sailor = m => `<div class="card-sailor">
-		<b>${esc(m.name)}</b><span class="comm-detail">${esc(m.type)} · Lv ${m.lv}</span>
-		${look('Look ›', m.id ? ` data-sailor="${esc(m.id)}"` : '')}
-		${Object.keys(m.stats).length ? `<span class="card-stats">${Object.entries(m.stats).map(([k, v]) => `<i title="${esc((STAT_NAMES[k] || { tip: k }).tip)}">${esc((STAT_NAMES[k] || { game: k }).game)} <small>${esc((STAT_NAMES[k] || { means: '' }).means)}</small> +${v}%</i>`).join('')}</span>` : ''}
-	</div>`;
-	const fig = (k, v, sub = '') => `<div class="card-fig"><span>${esc(k)}</span><b>${v}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
-	const h3 = (id, text) => `<h3 class="card-h" id="card-${id}">${text}</h3>`;
-	const questRows = Object.entries(d.quests.byId).map(([id, n]) => `<button class="card-link" data-act="view" data-id="quests" data-quest="${esc(id)}" title="Open the quest on the Quests tab">${esc(questName(id))}<b>×${F(n)}</b></button>`).join('');
-	const huntRows = Object.entries(d.quests.hunts).map(([m, n]) => `<button class="card-link" data-act="quest-map" data-monster="${esc(m)}" title="Show the grounds on the chart">${esc(monsterName(m))}<b>×${F(n)}</b></button>`).join('');
-	const madeRows = Object.entries(d.yard.shipsMade).map(([m, n]) => `<button class="card-link" data-act="community-item" data-item="${esc(m)}" title="The item's card">${esc(m)}<b>×${F(n)}</b></button>`).join('');
+	const fig = (k, v, sub = '', cls = '') => `<div class="comm-fig"><span>${esc(k)}</span><b${cls ? ` class="${cls}"` : ''}>${v}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
+	const h3 = (id, icon, text, sub = '') => `<h3 class="comm-card-h" id="card-${id}"><span aria-hidden="true">${icon}</span> ${text}${sub ? ` <small>· ${esc(sub)}</small>` : ''}</h3>`;
+	const questRows = Object.entries(d.quests.byId).filter(([id]) => !(questById[id] && questById[id].monster)).map(([id, n]) => `<button class="comm-tag" data-act="view" data-id="quests" data-quest="${esc(id)}" title="Open the quest on the Quests tab">${questPic(id)}${esc(questName(id))}<b>×${F(n)}</b></button>`).join('');
+	const huntRows = Object.entries(d.quests.hunts).map(([m, n]) => `<button class="comm-tag hunt" data-act="quest-map" data-monster="${esc(m)}" title="Show the grounds on the chart">${monsterPic(m, 'sm')}${esc(monsterName(m))}<b>×${F(n)}</b></button>`).join('');
+	const madeRows = Object.entries(d.yard.shipsMade).map(([m, n]) => `<button class="comm-tag" data-act="community-item" data-item="${esc(m)}" title="The item's card">${pic(m, 'sm')}${esc(m)}<b>×${F(n)}</b></button>`).join('');
+	const queuedRows = Object.entries(d.yard.byItem).slice(0, 6).map(([m, n]) => `<button class="comm-tag" data-act="community-item" data-item="${esc(m)}" title="The item's card">${pic(m, 'sm')}${esc(m)}${n > 1 ? `<b>×${F(n)}</b>` : ''}</button>`).join('');
+	const at = nav ? nav.refs.indexOf(c.ref) : -1;
+	const navBoard = nav && boardById[nav.boardId];
+	const foot = at >= 0 && navBoard
+		? `${ordinal(at + 1)} of ${nav.n} on ${esc(navBoard.title)} · ‹ › moves along the board`
+		: `${places.length} place${places.length === 1 ? '' : 's'} on ${BOARDS.length} boards`;
 	box.innerHTML = `
-		<div class="card-head">
-			${c.avatar ? `<img class="comm-avatar big" src="${esc(c.avatar)}" alt="" width="44" height="44">` : `<span class="comm-avatar anon big" aria-hidden="true">${c.named ? esc((c.name || '?').slice(0, 1)) : '☸'}</span>`}
-			<div><h2>${c.named ? esc(c.name) : 'A sailor'}${c.you ? ' <em class="card-you">you</em>' : ''}</h2>
-			<p class="dialog-copy">${d.level ? `${esc(d.level)} · ` : ''}${d.mastery ? `mastery ${F(d.mastery)} · ` : ''}on the boards since ${new Date(c.joinedAt).toISOString().slice(0, 10)}${c.named ? '' : ' · unnamed by choice'}</p></div>
-			${canLook ? `<button class="act small card-look" data-act="community-look" data-ref="${esc(c.ref)}" title="The Ship tab on this sailor's boat: hull, parts, crystal, seats and roster, to look at and not to keep">⚓ Look at the ship</button>` : ''}
+		<div class="comm-card-head">
+			${avatarHTML(c, 'big')}
+			<div class="comm-card-who">
+				<h2>${c.named ? esc(c.name) : 'A sailor'}${c.you ? ' <em class="comm-badge">you</em>' : ''}${d.fleet.sailing ? ' <em class="comm-badge teal">at sea</em>' : ''}</h2>
+				<p class="dialog-copy">${d.level ? `${esc(d.level)} · ` : ''}${d.mastery ? `mastery ${F(d.mastery)} · ` : ''}on the boards since ${day(c.joinedAt)}${c.named ? '' : ' · unnamed by choice'}</p>
+			</div>
+			<div class="comm-card-nav">
+				${at > 0 ? `<button class="ghost-btn tiny" data-act="community-nav" data-dir="-1" title="The sailor before on this board">‹</button>` : ''}
+				${at >= 0 && at < nav.refs.length - 1 ? `<button class="ghost-btn tiny" data-act="community-nav" data-dir="1" title="The sailor after on this board">›</button>` : ''}
+				<button class="ghost-btn tiny" data-close title="Close">×</button>
+			</div>
 		</div>
-		${h3('places', 'Places')}
-		${places.length ? `<div class="card-places">${places.map(({ b, p }) => `<span class="card-place${p.rank <= 3 ? ` p${p.rank}` : ''}"><i>${b.icon}</i><b>${ordinal(p.rank)}</b><small>of ${p.of}</small><span>${esc(b.title)}</span></span>`).join('')}</div>` : '<p class="comm-empty">No place on any board yet.</p>'}
-		${h3('ship', `The ship${d.fleet.n > 1 ? ` and the fleet · ${d.fleet.n} hulls` : ''}`)}
-		${d.fleet.list.length ? `<div class="card-hulls">${d.fleet.list.map(hull).join('')}</div>` : '<p class="comm-empty">No hull recorded.</p>'}
-		${h3('crew', `The crew · ${d.crew.n} sailor${d.crew.n === 1 ? '' : 's'}${d.crew.avgLv ? ` · average Lv ${d.crew.avgLv}` : ''}`)}
-		${d.crew.top.length ? `<div class="card-crew">${d.crew.top.map(sailor).join('')}${d.crew.n > d.crew.top.length ? `<p class="comm-empty">and ${d.crew.n - d.crew.top.length} more — ${canLook ? 'all on the Ship tab' : 'not shared'}</p>` : ''}</div>` : '<p class="comm-empty">Nobody hired yet.</p>'}
-		${h3('runs', 'The runs')}
-		<div class="card-figs">
-			${fig('Runs', F(d.runs.n), `${FC(d.runs.silver)} silver · ${F(d.runs.trades)} trades`)}
-			${fig('Barters', F(d.barters))}
-			${fig('Best run', d.runs.best ? FC(d.runs.best.net) : '—', d.runs.best ? d.runs.best.day : '')}
-			${fig('Stops', F(d.runs.stops), `${F(d.runs.parley)} Parley`)}
+		<div class="comm-card-body">
+			${h3('places', '☆', 'Places', `${places.length} of ${BOARDS.length} boards`)}
+			${places.length ? `<div class="comm-places">${places.map(({ b, p }) => `<span class="comm-place${p.rank <= 3 ? ` p${p.rank}` : ''}" title="${esc(`${ordinal(p.rank)} of ${p.of} · ${b.desc}`)}">${medal(p.rank)}<span><i aria-hidden="true">${b.icon}</i> ${esc(b.title)}</span><b>${value(b, p.value)}${b.unit ? ` ${esc(b.unit)}` : ''}</b></span>`).join('')}</div>` : '<p class="comm-empty">No place on any board yet.</p>'}
+			<div class="comm-card-cols">
+				<div>
+					${h3('ship', '⚓', `The ship${d.fleet.n > 1 ? ' and the fleet' : ''}`, d.fleet.n ? `${d.fleet.n} hull${d.fleet.n === 1 ? '' : 's'}` : '')}
+					${canLook ? `<button class="act small comm-look" data-act="community-look" data-ref="${esc(c.ref)}" title="The Ship tab on this sailor's boat: hull, parts, crystal, seats and roster, to look at and not to keep">⚓ Look at the ship</button>` : ''}
+					${d.fleet.list.length ? `<div class="comm-hulls">${d.fleet.list.map(hull).join('')}</div>` : '<p class="comm-empty">No hull recorded.</p>'}
+					${h3('crew', '👥', 'The crew', d.crew.n ? `${d.crew.n} sailor${d.crew.n === 1 ? '' : 's'}${d.crew.avgLv ? ` · average Lv ${d.crew.avgLv}` : ''}` : '')}
+					${d.crew.top.length ? `<div class="comm-sailors">${d.crew.top.map(sailor).join('')}${d.crew.n > d.crew.top.length ? `<p class="comm-empty">and ${d.crew.n - d.crew.top.length} more — ${canLook ? 'all on the Ship tab' : 'not shared'}</p>` : ''}</div>` : '<p class="comm-empty">Nobody hired yet.</p>'}
+				</div>
+				<div>
+					${h3('runs', '⇄', 'The runs')}
+					<div class="comm-figs">
+						${fig('Runs', F(d.runs.n), `${FC(d.runs.silver)} silver · ${F(d.runs.trades)} trades`)}
+						${fig('Barters', F(d.barters), d.level || '')}
+						${fig('Best run', d.runs.best ? FC(d.runs.best.net) : '—', d.runs.best ? d.runs.best.day : 'none logged', d.runs.best ? 'amber' : '')}
+						${fig('Stops', F(d.runs.stops), `${F(d.runs.parley)} Parley`)}
+					</div>
+					${h3('quests', '✦', 'Quests', `${F(d.quests.n)} done · ${F(d.quests.huntsN)} hunts`)}
+					${questRows || huntRows ? `<div class="comm-tags">${huntRows}${questRows}</div>` : '<p class="comm-empty">No quest claimed yet.</p>'}
+					${h3('yard', '⚒', 'The yard')}
+					<div class="comm-figs">
+						${fig('Made', F(d.yard.crafts), `${F(d.yard.ships)} ships · ${F(d.yard.parts)} parts`)}
+						${fig('Anvil', d.yard.tries ? `${Math.round((d.yard.wins / d.yard.tries) * 100)}%` : '—', d.yard.tries ? `${F(d.yard.wins)} of ${F(d.yard.tries)}${d.yard.drops ? ` · ${F(d.yard.drops)} fell` : ''}` : 'no attempts', d.yard.tries ? 'amber' : '')}
+						${fig('Queued', F(d.yard.queued), d.yard.queued ? `${Object.keys(d.yard.byItem).length} kind${Object.keys(d.yard.byItem).length === 1 ? '' : 's'}` : 'nothing queued')}
+					</div>
+					${madeRows ? `<div class="comm-tags"><small>made</small>${madeRows}</div>` : ''}
+					${queuedRows ? `<div class="comm-tags"><small>queued</small>${queuedRows}</div>` : ''}
+					${h3('charts', '✎', 'The charts')}
+					<div class="comm-figs">
+						${fig('Traces', F(d.charts.traces), `${F(d.charts.points)} points`)}
+						${fig('Routes kept', F(d.charts.routes), `${Object.keys(d.charts.stops).length} islands`)}
+					</div>
+					${h3('hold', '📦', 'The hold')}
+					<div class="comm-figs">
+						${fig('Units', F(d.stock.units), `${F(d.stock.items)} kinds of thing`)}
+						${fig('Silver', FC(d.stock.silver), '', 'blue')}
+						${fig('Crow Coins', F(d.stock.crow), '', 'amber')}
+					</div>
+				</div>
+			</div>
 		</div>
-		${h3('quests', `Quests · ${F(d.quests.n)} done, ${F(d.quests.huntsN)} hunts`)}
-		${questRows ? `<div class="card-links">${questRows}</div>` : '<p class="comm-empty">No quest claimed yet.</p>'}
-		${huntRows ? `<div class="card-links hunts">${huntRows}</div>` : ''}
-		${h3('yard', 'The yard')}
-		<div class="card-figs">
-			${fig('Made', F(d.yard.crafts), `${F(d.yard.ships)} ships · ${F(d.yard.parts)} parts`)}
-			${fig('Anvil', d.yard.tries ? `${Math.round((d.yard.wins / d.yard.tries) * 100)}%` : '—', d.yard.tries ? `${F(d.yard.wins)} of ${F(d.yard.tries)}${d.yard.drops ? ` · ${F(d.yard.drops)} fell` : ''}` : 'no attempts')}
-			${fig('Queued', F(d.yard.queued), Object.keys(d.yard.byItem).slice(0, 2).join(', '))}
-		</div>
-		${madeRows ? `<div class="card-links">${madeRows}</div>` : ''}
-		${h3('charts', 'The charts')}
-		<div class="card-figs">
-			${fig('Traces', F(d.charts.traces), `${F(d.charts.points)} points`)}
-			${fig('Routes kept', F(d.charts.routes), `${Object.keys(d.charts.stops).length} islands`)}
-		</div>
-		${h3('hold', 'The hold')}
-		<div class="card-figs">
-			${fig('Units', F(d.stock.units), `${F(d.stock.items)} kinds of thing`)}
-			${fig('Silver', FC(d.stock.silver))}
-			${fig('Crow Coins', F(d.stock.crow))}
-		</div>
-		<div class="dialog-actions">${c.you ? '<button class="ghost-btn" data-act="community-join">How I am shown</button><span class="fb-space"></span>' : ''}<button class="ghost-btn" data-close>Close</button></div>`;
+		<div class="dialog-actions comm-card-foot"><span class="comm-card-footnote">${foot}</span><span class="fb-space"></span>${c.you ? '<button class="ghost-btn" data-act="community-join">How I am shown</button>' : ''}<button class="ghost-btn" data-close>Close</button></div>`;
 	if (section) {
-		const at = box.querySelector(`#card-${section}`);
-		if (at) at.scrollIntoView({ block: 'start' });
+		const to = box.querySelector(`#card-${section}`);
+		if (to) to.scrollIntoView({ block: 'start' });
 	}
 }
 
@@ -506,9 +666,11 @@ async function openBoard(id) {
 		return;
 	}
 	const b = res.body;
-	box.innerHTML = `<h2>${b.icon} ${esc(b.title)}</h2>
-		<p class="dialog-copy">${b.n} sailor${b.n === 1 ? '' : 's'}${b.n > b.all.length ? ` · the first ${b.all.length}` : ''}</p>
-		<ol class="comm-rank comm-rank-all">${b.all.map(e => rowHTML(b, e)).join('')}</ol>
+	const meta = boardById[b.id] || {};
+	wholeBoards.set(b.id, b.all);
+	const top = b.all.length ? b.all[0].value : 0;
+	box.innerHTML = `<div class="comm-board-head dialog"><span class="comm-board-icon" aria-hidden="true">${b.icon}</span><div class="comm-board-t"><h2 class="comm-board-title">${esc(b.title)}</h2>${meta.desc ? `<span class="comm-board-desc">${esc(meta.desc)}</span>` : ''}</div><span class="comm-board-n">${b.n} sailor${b.n === 1 ? '' : 's'}${b.n > b.all.length ? ` · the first ${b.all.length}` : ''}</span></div>
+		<ol class="comm-rank comm-rank-all">${b.all.map(e => rowHTML(b, e, top)).join('')}</ol>
 		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`;
 }
 
@@ -547,9 +709,9 @@ function openPlaces() {
 	const rows = BOARDS.map(b => ({ b, p: places[b.id] || null }));
 	openDialog(`<h2>Your places</h2>
 		<p class="dialog-copy">Where ${who ? esc(who.username) : 'you'} stand${who ? 's' : ''} on every board, out of the sailors who have earned a place there.</p>
-		<div class="comm-places">${rows.map(({ b, p }) => `<div class="comm-place-row${p ? '' : ' none'}${p && p.rank <= 3 ? ` p${p.rank}` : ''}">
-			<span class="comm-place-b"><i>${b.icon}</i> ${esc(b.title)}</span>
-			<b>${p ? ordinal(p.rank) : '—'}</b><small>${p ? `of ${p.of}` : 'no place yet'}</small>
+		<div class="comm-places-list">${rows.map(({ b, p }) => `<div class="comm-place-row${p ? '' : ' none'}${p && p.rank <= 3 ? ` p${p.rank}` : ''}">
+			${p ? medal(p.rank) : '<span class="comm-pos">—</span>'}
+			<span class="comm-place-b"><i aria-hidden="true">${b.icon}</i><span>${esc(b.title)}</span><small>${p ? `of ${p.of}` : esc(b.how || 'no place yet')}</small></span>
 			<span class="comm-place-v">${p ? `${value(b, p.value)} ${esc(b.unit)}` : ''}</span>
 		</div>`).join('')}</div>
 		<div class="dialog-actions">${data && data.you && data.you.ref ? `<button class="ghost-btn" data-act="community-sailor" data-ref="${esc(data.you.ref)}">My card</button><span class="fb-space"></span>` : ''}<button class="ghost-btn" data-close>Close</button></div>`);
@@ -559,11 +721,18 @@ function openPlaces() {
 export function communityAction(act, el) {
 	switch (act) {
 		case 'community-half': half = el.dataset.id === 'numbers' ? 'numbers' : 'fame'; return true;
+		case 'community-sec': fameSec = el.dataset.id || 'all'; return true;
 		case 'community-join': openShareDialog(); return false;
 		case 'community-leave': confirmLeave(); return false;
 		case 'community-refresh': load(true); return false;
-		case 'community-sailor': openSailorCard(el.dataset.ref); return false;
+		case 'community-sailor': nav = null; openSailorCard(el.dataset.ref); return false;
 		case 'community-entry': openEntry(el.dataset.board, el.dataset.ref); return false;
+		case 'community-nav': {
+			if (!nav || !openRef) return false;
+			const next = nav.refs[nav.refs.indexOf(openRef) + Number(el.dataset.dir)];
+			if (next) openSailorCard(next, SECTION_OF[nav.boardId] || null);
+			return false;
+		}
 		case 'community-look': {
 			const c = cards.get(el.dataset.ref);
 			if (c) lookAt(c, { hull: el.dataset.hull || null, sailorId: el.dataset.sailor || null });
@@ -572,6 +741,7 @@ export function communityAction(act, el) {
 		case 'community-item': openItemCard(el.dataset.item); return false;
 		case 'community-cat': numCat = el.dataset.id; return true;
 		case 'community-sort': numSort = el.dataset.id === 'name' ? 'name' : 'count'; return true;
+		case 'community-fold': if (numOpen.has(el.dataset.id)) numOpen.delete(el.dataset.id); else numOpen.add(el.dataset.id); return true;
 		case 'community-board': openBoard(el.dataset.id); return false;
 		case 'community-find': openFind(); return false;
 		case 'community-places': openPlaces(); return false;

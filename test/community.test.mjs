@@ -29,7 +29,7 @@ delete process.env.FEEDBACK_WEBHOOK_URL;
 const app = (await import('../server.js')).default;
 const { startSession } = await import('../server/session.js');
 const { upsertUser } = await import('../server/db.js');
-const { digest, BOARDS } = await import('../js/digest.js');
+const { digest, BOARDS, fittedOn } = await import('../js/digest.js');
 const { readProfile } = await import('../js/profile-shape.js');
 
 function cookieFor(id) {
@@ -100,8 +100,19 @@ test('the digest reads the fleet, the crew and the career off a save', () => {
 	assert.deepEqual(d.charts.stops, { 2: 2, 1: 1, 3: 1 });
 	assert.equal(d.charts.points, 3);
 	assert.equal(d.stock.units, 10);
-	// Every board reads a number off it.
-	for (const b of BOARDS) assert.equal(typeof b.value(d), 'number', b.id);
+	// Every board reads a number off it, and says what it counts.
+	for (const b of BOARDS) {
+		assert.equal(typeof b.value(d), 'number', b.id);
+		assert.ok(b.desc && b.how && b.section, b.id);
+	}
+	// The face a row wears: the best hull with its parts by name and its
+	// crystal, the best sailor's type, the monsters hunted.
+	const face = id => BOARDS.find(b => b.id === id).face(d);
+	assert.deepEqual(face('ship'), { kind: 'ship', item: 'Carrack (Advance)', parts: { cannon: 10, sail: 5 }, fitted: { cannon: '+10 Epheria Carrack: Toro Cannon', sail: '+5 Epheria Carrack: Toro Sail' }, crystal: 0 });
+	assert.deepEqual(face('sailor'), { kind: 'sailor', type: 'Bodil (Goblin)', name: 'Bodil', lv: 9, stats: { speed: 8 } });
+	assert.deepEqual(face('hunts'), { kind: 'monsters', keys: ['nineshark', 'young-hekaru'] });
+	assert.equal(face('mastery'), null);
+	assert.deepEqual(fittedOn(d, 'Carrack (Volante)'), null);
 });
 
 test('an empty save digests to zeros, not to a throw', () => {
@@ -176,6 +187,10 @@ test('taking part puts the digest of the save on the boards, by name or unnamed'
 	assert.equal('id' in mastery.top[1], false, 'no account id leaves the server, named or not');
 	assert.equal('key' in mastery.top[1], false, 'the matching key never leaves the server');
 	assert.deepEqual(body.you.places.mastery, { rank: 2, value: 900, of: 2 });
+	assert.equal(body.you.share, 'anon');
+	assert.equal(body.you.mastery, 900);
+	assert.ok(body.you.joinedAt > 0);
+	assert.equal('face' in mastery.top[0], true, 'a row carries what it shows beside the name');
 	// Signed out, nobody is "you".
 	const out = await (await call('GET', '/api/community')).json();
 	assert.ok(out.fame.every(f => f.top.every(e => e.you === false)));

@@ -101,6 +101,7 @@ function rank(board, rows) {
 		rank: e.rank,
 		value: e.value,
 		detail: board.detail(e.r.digest),
+		face: board.face ? board.face(e.r.digest) : null,
 		named: e.r.share === 'named',
 		name: e.r.share === 'named' ? e.r.username : null,
 		avatar: e.r.share === 'named' ? avatarURL(e.r) : null,
@@ -227,7 +228,9 @@ function answer(b, userId) {
 			const p = f.places.get(userId);
 			if (p) places[f.id] = { ...p, of: f.n };
 		}
-		you = { places, ref: r ? r.ref : null };
+		// The caller's own line on the head of the tab: the level and
+		// the day they joined, beside their places.
+		you = { places, ref: r ? r.ref : null, share: r ? r.share : null, joinedAt: r ? r.joinedAt : null, level: r && r.digest ? r.digest.level : null, mastery: r && r.digest ? r.digest.mastery : 0 };
 	}
 	return { sailors: b.sailors, named: b.named, updatedAt: b.at, fame, stats: b.stats, you };
 }

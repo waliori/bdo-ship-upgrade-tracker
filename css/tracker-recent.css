@@ -206,7 +206,6 @@
 .week-day.none i { background: var(--track); height: 2px !important; }
 .week-day span { font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; }
 
-
 /* Filters on the hold and the chain list: a word, the levels, a place. */
 .hold-filters, .chain-filters { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; padding: 10px 14px 4px; }
 .chain-filters { padding: 10px 0 2px; }
@@ -218,7 +217,6 @@
 .map-tip-check { margin-top: 6px; }
 
 .chain.rung.waits { border-style: dashed; opacity: 0.85; }
-
 
 .reach-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; padding: 9px 12px; border-radius: var(--r-btn); border: 1px solid rgba(232, 182, 97, 0.4); background: rgba(232, 182, 97, 0.08); font-size: 12.5px; color: var(--ink-mid); }
 .reach-bar b { color: var(--amber); }
@@ -467,7 +465,6 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .sel-log-row.quiet { opacity: 0.7; }
 .sel-log-stats { display: block; font-size: 10.5px; opacity: 0.8; }
 
-
 /* A phone on its side is 390 pixels tall, and the chart was under
    every one of them: the header, the purse, the day's line and the
    summary above it. On the Map, on such a screen, the purse and the
@@ -517,126 +514,10 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .fb-done { margin-top: 10px; }
 .fb-done > summary { cursor: pointer; font-size: 12.5px; color: var(--ink-mid); }
 
-/* ------------------------------------------------------------------ *
- * Community: the harbour, the hall of fame, the fleet in numbers
- * ------------------------------------------------------------------ */
-
-.community { display: flex; flex-direction: column; gap: 16px; }
-.comm-copy { margin: 0; padding: 12px 20px 14px; font-size: 13px; line-height: 1.55; color: var(--ink-mid); }
-.comm-copy .act.small, .comm-copy .chip.tiny { vertical-align: middle; margin: 0 2px; }
-.comm-head .panel-head { padding-bottom: 12px; }
-.comm-halves { display: flex; gap: 4px; padding: 3px; border-radius: 999px; border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.4); }
-.comm-halves .seg { border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 600; }
-
-.comm-boards { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 14px; }
-.comm-board-head { display: flex; align-items: baseline; gap: 10px; padding: 12px 16px 10px; border-bottom: 1px solid var(--line-head); }
-.comm-board-icon { font-size: 16px; line-height: 1; align-self: center; }
-.comm-board-title { margin: 0; font-family: var(--font-display); font-size: 12.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--blue); }
-.comm-board-n { margin-left: auto; font-size: 11.5px; color: var(--ink-faint); white-space: nowrap; }
-.comm-rank { list-style: none; margin: 0; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px; }
-.comm-row { display: grid; grid-template-columns: 26px 24px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--r-sm); border: 1px solid transparent; }
-.comm-row.you { background: rgba(var(--blue-rgb), 0.12); border-color: rgba(var(--blue-rgb), 0.4); }
-.comm-pos { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--ink-faint); text-align: center; }
-.comm-row.p1 .comm-pos { color: var(--amber); }
-.comm-row.p2 .comm-pos { color: var(--ink-hi); }
-.comm-row.p3 .comm-pos { color: var(--tier-7, #e8905d); }
-.comm-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; background: var(--well); }
-.comm-avatar.anon { display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--ink-mute); border: 1px solid var(--line-btn); }
-.comm-who { display: flex; flex-direction: column; min-width: 0; }
-.comm-name { font-size: 13px; font-weight: 600; color: var(--ink-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.comm-name em { font-style: normal; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue-hi); margin-left: 6px; }
-.comm-detail { font-size: 11px; color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.comm-val { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--ink-hi); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.comm-val small { margin-left: 4px; font-size: 10px; font-weight: 500; color: var(--ink-faint); }
-.comm-empty { margin: 0; padding: 18px 16px; font-size: 12.5px; color: var(--ink-faint); text-align: center; }
-.comm-yours { margin: 0 8px 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(var(--blue-rgb), 0.1); border: 1px dashed rgba(var(--blue-rgb), 0.4); font-size: 12px; color: var(--blue-hi); }
-
-.comm-numbers { display: flex; flex-direction: column; gap: 14px; }
-.comm-totals .stat { flex: 1 1 150px; }
-.comm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 14px; }
-.comm-bar-list { display: flex; flex-direction: column; gap: 5px; padding: 10px 16px 12px; }
-.comm-bar-row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto; align-items: center; gap: 10px; font-size: 12.5px; }
-.comm-bar-name { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.comm-bar { height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; }
-.comm-bar i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--blue-bar), var(--teal)); }
-.comm-bar-n { font-family: var(--font-display); font-size: 12.5px; color: var(--ink-hi); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.comm-bar-n small { margin-left: 3px; font-size: 10px; font-weight: 500; color: var(--ink-faint); }
-.comm-cols { display: flex; align-items: flex-end; gap: 6px; padding: 14px 16px 12px; min-height: 100px; }
-.comm-col { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
-.comm-col b { font-family: var(--font-display); font-size: 11px; color: var(--ink-mid); min-height: 14px; }
-.comm-col i { display: block; width: 100%; max-width: 34px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, var(--teal), var(--blue-bar)); }
-.comm-col span { font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; }
-
-/* What joining would share, in the dialog. */
-.comm-prev-fold { margin: 12px 0 4px; }
-.comm-prev-fold > summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--ink-mid); }
-.comm-prev { display: flex; flex-direction: column; gap: 2px; margin: 8px 0 4px; max-height: 240px; overflow-y: auto; padding-right: 4px; }
-.comm-prev-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: baseline; padding: 4px 8px; border-radius: var(--r-sm); background: rgba(var(--deep-rgb), 0.3); font-size: 12.5px; color: var(--ink); }
-.comm-prev-row b { font-family: var(--font-display); color: var(--ink-hi); white-space: nowrap; }
-.comm-prev-row small { grid-column: 1 / -1; font-size: 11px; color: var(--ink-faint); }
-.comm-prev-row.none { opacity: 0.55; }
-
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .comm-boards, .comm-grid { grid-template-columns: 1fr; }
-  .comm-halves { width: 100%; }
-  .comm-halves .seg { flex: 1; text-align: center; }
   .fb-kinds { grid-template-columns: 1fr; }
 }
 .stat-means { font-size: 10px; font-weight: 500; color: var(--ink-faint); margin-left: 3px; }
-
-/* The community's cards: a sailor's, a whole board, the places, the find. */
-.comm-row[role="button"] { cursor: pointer; }
-.comm-row[role="button"]:hover { background: rgba(var(--blue-rgb), 0.08); border-color: rgba(var(--blue-rgb), 0.25); }
-.comm-row.you[role="button"]:hover { background: rgba(var(--blue-rgb), 0.18); }
-.comm-more { display: block; width: calc(100% - 16px); margin: 0 8px 8px; padding: 7px; border-radius: var(--r-sm); border: 1px dashed var(--line-btn); background: none; color: var(--blue-hi); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
-.comm-more:hover { border-color: var(--blue-edge); background: rgba(var(--blue-rgb), 0.08); }
-.comm-rank-all { max-height: 60vh; overflow-y: auto; padding: 0; }
-.comm-avatar.big { width: 44px; height: 44px; font-size: 18px; }
-.card-head { display: flex; gap: 14px; align-items: center; margin-bottom: 6px; }
-.card-head h2 { margin: 0 0 2px; }
-.card-head .dialog-copy { margin: 0; }
-.card-you { font-style: normal; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue-hi); margin-left: 8px; vertical-align: middle; }
-.card-h { margin: 16px 0 8px; font-family: var(--font-display); font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); }
-.card-places { display: flex; flex-wrap: wrap; gap: 6px; }
-.card-place { display: inline-grid; grid-template-columns: auto auto; grid-template-rows: auto auto; column-gap: 6px; align-items: baseline; padding: 6px 10px; border-radius: var(--r-sm); border: 1px solid var(--line); background: rgba(var(--deep-rgb), 0.3); font-size: 11.5px; }
-.card-place i { grid-row: 1 / 3; align-self: center; font-style: normal; font-size: 15px; }
-.card-place b { font-family: var(--font-display); font-size: 14px; color: var(--ink-hi); }
-.card-place small { color: var(--ink-faint); margin-left: 4px; }
-.card-place span { grid-column: 2; color: var(--ink-mid); }
-.card-place.p1 b { color: var(--amber); }
-.card-place.p2 b { color: var(--ink-hi); }
-.card-place.p3 b { color: var(--tier-7, #e8905d); }
-.card-hulls, .card-crew { display: flex; flex-direction: column; gap: 6px; }
-.card-hull, .card-sailor { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 8px 10px; border-radius: var(--r-sm); border: 1px solid var(--line); background: rgba(var(--deep-rgb), 0.3); font-size: 12.5px; }
-.card-hull.best { border-color: var(--blue-edge); }
-.card-hull b, .card-sailor b { color: var(--ink-hi); }
-.card-hull em { font-style: normal; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--teal); }
-.card-parts { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; align-items: center; }
-.card-parts i { font-style: normal; font-family: var(--font-display); font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 4px; border: 1px solid var(--line-btn); color: var(--ink-faint); }
-.card-parts i.on { color: var(--blue-hi); border-color: var(--blue-edge); background: rgba(var(--blue-rgb), 0.1); }
-.card-parts small { font-size: 11px; color: var(--ink-faint); }
-.card-stats { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; }
-.card-stats i { font-style: normal; font-size: 11px; padding: 2px 7px; border-radius: 4px; background: rgba(var(--blue-rgb), 0.08); color: var(--ink); }
-.card-stats i small { color: var(--ink-faint); margin: 0 2px; }
-.card-figs { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
-.card-fig { display: flex; flex-direction: column; padding: 8px 10px; border-radius: var(--r-sm); border: 1px solid var(--line); background: rgba(var(--deep-rgb), 0.3); }
-.card-fig span { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); }
-.card-fig b { font-family: var(--font-display); font-size: 16px; color: var(--ink-hi); }
-.card-fig small { font-size: 11px; color: var(--ink-faint); }
-.card-line { margin: 8px 0 0; font-size: 12px; color: var(--ink-mid); }
-.comm-find { width: 100%; margin: 6px 0 4px; }
-.comm-find-note { margin-top: 0; }
-.comm-find-list .comm-rank { padding: 0; }
-.comm-places { display: flex; flex-direction: column; gap: 3px; }
-.comm-place-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto minmax(0, 0.8fr); align-items: baseline; gap: 10px; padding: 6px 10px; border-radius: var(--r-sm); border: 1px solid transparent; font-size: 12.5px; }
-.comm-place-row:nth-child(odd) { background: rgba(var(--deep-rgb), 0.25); }
-.comm-place-row.none { opacity: 0.55; }
-.comm-place-row b { font-family: var(--font-display); font-size: 14px; color: var(--ink-hi); }
-.comm-place-row.p1 b { color: var(--amber); }
-.comm-place-row.p3 b { color: var(--tier-7, #e8905d); }
-.comm-place-row small { color: var(--ink-faint); }
-.comm-place-b { color: var(--ink); }
-.comm-place-v { text-align: right; font-family: var(--font-display); color: var(--ink-mid); white-space: nowrap; }
 
 /* The Parley bar under the hold's, in the same column of a stop. */
 .run-parley { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--line); }
@@ -660,35 +541,6 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .hold-parley { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-mute); white-space: nowrap; }
 .hold-parley .purse-inline { width: 92px; }
 
-/* The fleet in numbers: categories, the find box, the sort, and rows that are doors. */
-.comm-numbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.comm-cats .chip span { margin-right: 2px; }
-.comm-numq { flex: 1 1 220px; max-width: 360px; }
-.comm-sort { align-items: center; }
-.comm-sort-k { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); margin-right: 2px; }
-.comm-bar-row.door { cursor: pointer; border-radius: var(--r-sm); margin: 0 -6px; padding: 2px 6px; }
-.comm-bar-row.door:hover { background: rgba(var(--blue-rgb), 0.1); }
-.comm-bar-row.door:hover .comm-bar-name { color: var(--blue-hi); }
-.comm-door { font-style: normal; color: var(--ink-faint); margin-left: 3px; }
-.comm-bars .comm-board-head .comm-board-icon { font-size: 14px; }
-/* The card: doors to a quest, a monster, an item, and the look at the ship. */
-.card-look { margin-left: auto; align-self: flex-start; white-space: nowrap; }
-.card-links { display: flex; flex-wrap: wrap; gap: 5px; }
-.card-link { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.3); color: var(--ink); font: inherit; font-size: 12px; cursor: pointer; }
-.card-link:hover { border-color: var(--blue-edge); color: var(--blue-hi); }
-.card-link b { font-family: var(--font-display); font-size: 11px; color: var(--ink-faint); }
-.card-links.hunts .card-link { border-color: rgba(232, 122, 109, 0.3); }
-.card-hull .chip.tiny, .card-sailor .chip.tiny { margin-left: auto; }
-.card-sailor .card-stats { order: 3; }
-@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .card-head { flex-wrap: wrap; }
-  .card-look { margin-left: 0; width: 100%; }
-  .comm-numq { max-width: none; }
-}
-.comm-bars .comm-board-head { flex-wrap: wrap; row-gap: 2px; }
-.comm-bars .comm-board-title { white-space: nowrap; }
-.comm-bars .comm-board-n { white-space: normal; text-align: right; }
-
 /* The three paces, compared, under the run's tiles. */
 .pace-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin: 10px 0 0; }
 .pace-card { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 10px 12px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.3); color: var(--ink-mid); text-align: left; font: inherit; cursor: pointer; }
@@ -711,3 +563,246 @@ details.run-quests-off[open] > summary .panel-title::before { content: '▾ '; }
 .run-hold { width: 152px; }
 .run-hold > div:first-child b, .run-parley > div:first-child b { font-size: 11.5px; white-space: nowrap; }
 .run-parley > div:first-child { flex-wrap: wrap; }
+
+/* ------------------------------------------------------------------ *
+ * Community: the harbour, the hall of fame, the fleet in numbers
+ * ------------------------------------------------------------------ */
+
+.community { display: flex; flex-direction: column; gap: 16px; }
+.comm-copy { margin: 0; padding: 12px 20px 14px; font-size: 13px; line-height: 1.55; color: var(--ink-mid); }
+.comm-copy .act.small, .comm-copy .chip.tiny { vertical-align: middle; margin: 0 2px; }
+.comm-head .panel-head { padding-bottom: 12px; }
+.comm-halves { display: flex; gap: 4px; padding: 3px; border-radius: 999px; border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.4); }
+.comm-halves .seg { border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 600; }
+
+/* Your own strip under the head: avatar, name, the best of your places, the verbs. */
+.comm-you.on { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 0 12px 12px; padding: 12px 14px; border-radius: var(--r-btn); border: 1px solid rgba(var(--blue-rgb), 0.28); background: linear-gradient(90deg, rgba(var(--blue-rgb), 0.12), rgba(var(--deep-rgb), 0.2) 60%); }
+.comm-you-body { flex: 1 1 260px; min-width: 0; }
+.comm-you-line { margin: 0; font-size: 13px; color: var(--ink); }
+.comm-you-line b { color: var(--ink-hi); }
+.comm-you-line span { color: var(--ink-faint); }
+.comm-you-places { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 7px; }
+.comm-you-none { font-size: 11.5px; color: var(--ink-faint); }
+.comm-more-places { background: none; border: none; padding: 0 4px; font: inherit; font-size: 11.5px; color: var(--ink-faint); cursor: pointer; }
+.comm-more-places:hover { color: var(--blue-hi); }
+.comm-you-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.comm-leave:hover { color: var(--red); border-color: var(--red-edge); }
+
+/* A place: the medal, the board's icon and name, and on a card the value. */
+.comm-place { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px 3px 4px; border-radius: 16px; border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.35); color: var(--ink); font: inherit; font-size: 11.5px; cursor: default; }
+button.comm-place { cursor: pointer; }
+button.comm-place:hover { border-color: var(--line-btn-hi); color: var(--ink-hi); }
+.comm-place.p1 { border-color: rgba(232, 182, 97, 0.45); }
+.comm-place.p2 { border-color: rgba(195, 210, 224, 0.4); }
+.comm-place.p3 { border-color: rgba(201, 138, 90, 0.45); }
+.comm-place > span i { font-style: normal; margin-right: 2px; }
+.comm-place > b { font-family: var(--font-display); font-weight: 600; font-size: 11.5px; color: var(--ink-mute); }
+.comm-place .comm-pos { width: 20px; height: 20px; font-size: 10px; }
+
+/* The medal: a circle with the place in it, gold, silver and bronze for the podium. */
+.comm-pos { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; flex: none; background: rgba(var(--line-rgb), 0.12); font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--ink-mute); font-variant-numeric: tabular-nums; }
+.comm-pos.p1 { background: #e8b661; color: #2a1d05; box-shadow: 0 0 10px rgba(232, 182, 97, 0.45); }
+.comm-pos.p2 { background: #c3d2e0; color: #152232; box-shadow: 0 0 8px rgba(195, 210, 224, 0.3); }
+.comm-pos.p3 { background: #c98a5a; color: #2a1508; box-shadow: 0 0 8px rgba(201, 138, 90, 0.3); }
+
+/* The hall of fame: sections of boards. */
+.comm-fame { display: flex; flex-direction: column; gap: 14px; }
+.comm-section { display: flex; flex-direction: column; gap: 10px; }
+.comm-section-head { display: flex; align-items: baseline; gap: 10px; padding: 2px 2px 0; }
+.comm-section-head h3 { margin: 0; font-family: var(--font-display); font-size: 12.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); }
+.comm-section-head > span { font-size: 11.5px; color: var(--ink-faint); }
+.comm-section-head i { flex: 1; height: 1px; background: var(--line-head); align-self: center; }
+.comm-boards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; align-items: start; }
+.comm-board.gold { border-color: rgba(232, 182, 97, 0.35); }
+.comm-board-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px 9px; border-bottom: 1px solid var(--line-head); }
+.comm-board-head.dialog { padding: 0 0 10px; margin-bottom: 8px; }
+.comm-board-icon { display: grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: var(--r-btn); border: 1px solid rgba(var(--blue-rgb), 0.22); background: rgba(var(--blue-rgb), 0.1); font-size: 15px; line-height: 1; }
+.comm-board-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.comm-board-title { margin: 0; font-family: var(--font-display); font-size: 12.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+h2.comm-board-title { font-size: 15px; }
+.comm-board-desc { font-size: 11px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.comm-board-n { font-size: 11.5px; color: var(--ink-faint); white-space: nowrap; font-family: var(--font-display); }
+.comm-rank { list-style: none; margin: 0; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px; }
+.comm-row { display: grid; grid-template-columns: 24px 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 7px 8px; border-radius: var(--r-sm); border: 1px solid transparent; }
+.comm-row.you { background: rgba(var(--blue-rgb), 0.1); border-color: rgba(var(--blue-rgb), 0.35); }
+.comm-row.yours { margin-top: 4px; border-style: dashed; }
+.comm-row[role="button"] { cursor: pointer; }
+.comm-row[role="button"]:hover { background: rgba(var(--blue-rgb), 0.1); border-color: rgba(var(--blue-rgb), 0.3); }
+.comm-row.you[role="button"]:hover { background: rgba(var(--blue-rgb), 0.18); }
+.comm-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--well); flex: none; }
+.comm-avatar.anon { display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--ink-mute); border: 1px solid var(--line-btn); }
+.comm-avatar.big { width: 44px; height: 44px; font-size: 18px; }
+.comm-who { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.comm-name { font-size: 13.5px; font-weight: 600; color: var(--ink-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.comm-name em { font-style: normal; font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue-hi); background: rgba(var(--blue-rgb), 0.15); border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: middle; }
+.comm-detail { font-size: 11.5px; color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.comm-val-col { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.comm-val { font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--ink-hi); white-space: nowrap; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.comm-val small { margin-left: 4px; font-size: 10px; font-weight: 500; color: var(--ink-faint); }
+.comm-val-bar { width: 72px; height: 3px; border-radius: 2px; background: var(--track); overflow: hidden; }
+.comm-val-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--blue-bar), var(--teal)); }
+.comm-row.p1 .comm-val-bar i { background: #e8b661; }
+.comm-empty { margin: 0; padding: 16px 16px; font-size: 12.5px; color: var(--ink-faint); text-align: center; }
+.comm-empty p { margin: 0; color: var(--ink-mute); }
+.comm-empty small { display: block; margin-top: 3px; font-size: 11.5px; }
+.comm-more { display: block; width: calc(100% - 16px); margin: 0 8px 8px; padding: 7px; border-radius: var(--r-sm); border: 1px dashed var(--line-btn); background: none; color: var(--blue-hi); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.comm-more:hover { border-color: var(--blue-edge); background: rgba(var(--blue-rgb), 0.08); }
+.comm-rank-all { max-height: 60vh; overflow-y: auto; padding: 0; }
+
+/* Pictures: an item's icon, a sailor's portrait, a monster, or a glyph standing in. */
+.comm-pic { width: 22px; height: 22px; border-radius: 5px; border: 1px solid rgba(var(--line-rgb), 0.2); object-fit: cover; flex: none; vertical-align: middle; background: var(--well); }
+.comm-pic.xs { width: 16px; height: 16px; border-radius: 3px; }
+.comm-pic.sm { width: 22px; height: 22px; }
+.comm-pic.md { width: 36px; height: 36px; border-radius: 7px; }
+.comm-pic.face, .comm-pic.beast { border-radius: 50%; }
+.comm-pic.glyph { display: inline-grid; place-items: center; font-size: 11px; font-weight: 700; color: var(--ink-mute); }
+.comm-face { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-top: 2px; }
+.comm-face .comm-pic.sm + .comm-pic.sm { margin-left: -4px; }
+
+/* The four slots of a hull, and what sits in them. */
+.comm-slots { display: inline-flex; gap: 3px; }
+.comm-slot { display: inline-flex; align-items: center; gap: 2px; height: 20px; padding: 0 4px; border-radius: 5px; border: 1px solid var(--blue-edge); background: rgba(var(--blue-rgb), 0.12); font-style: normal; font-family: var(--font-display); font-size: 10px; font-weight: 700; color: var(--blue-hi); }
+.comm-slot b { font-weight: 700; }
+.comm-slot .comm-pic.xs { border: none; background: none; }
+.comm-slot.off { width: 20px; padding: 0; justify-content: center; border-color: var(--line-btn); background: transparent; color: var(--ink-off, var(--ink-faint)); opacity: 0.6; }
+
+/* The crystal: a dot in its grade's colour, the name and the number it was chosen for. */
+.comm-crystal { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 7px 0 3px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--grade) 45%, transparent); background: color-mix(in srgb, var(--grade) 10%, transparent); font-size: 11px; color: var(--ink); white-space: nowrap; }
+.comm-crystal .comm-pic.xs { border: none; }
+.comm-crystal-name { color: var(--grade); font-weight: 600; }
+.comm-crystal b { font-family: var(--font-display); font-weight: 600; color: var(--ink-hi); }
+.comm-crystal.off { --grade: var(--ink-faint); padding: 0 7px; color: var(--ink-faint); border-style: dashed; background: none; }
+.comm-grade { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--grade); margin-right: 5px; vertical-align: middle; box-shadow: 0 0 5px var(--grade); }
+
+/* A sailor's growths. */
+.comm-stats { display: flex; flex-wrap: wrap; gap: 3px; }
+.comm-stats i { font-style: normal; font-size: 10.5px; padding: 1px 6px; border-radius: 4px; background: rgba(var(--blue-rgb), 0.08); color: var(--ink-mid); white-space: nowrap; }
+.comm-stats i b { font-family: var(--font-display); font-weight: 600; color: var(--ink-hi); }
+
+/* The fleet in numbers. */
+.comm-numbers { display: flex; flex-direction: column; gap: 14px; }
+.comm-totals .stat { flex: 1 1 150px; display: flex; gap: 10px; padding: 14px 18px; }
+.comm-stat-i { font-size: 15px; line-height: 1.5; color: var(--blue); flex: none; }
+.comm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; align-items: start; }
+.comm-numbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.comm-numbar-note { margin-left: auto; font-size: 11.5px; color: var(--ink-faint); }
+.comm-cats .chip span { margin-right: 2px; }
+.comm-numq { flex: 1 1 220px; max-width: 360px; }
+.comm-sort { align-items: center; }
+.comm-sort-k { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); margin-right: 2px; }
+.comm-bar-list { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px 8px; }
+.comm-bar-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; align-items: center; padding: 4px 6px; border-radius: var(--r-sm); font-size: 12.5px; }
+.comm-bar-row.comm-go { cursor: pointer; }
+.comm-bar-row.comm-go:hover { background: rgba(var(--blue-rgb), 0.1); }
+.comm-bar-row.comm-go:hover .comm-bar-text > span { color: var(--blue-hi); }
+.comm-bar-name { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--ink); }
+.comm-bar-i { width: 16px; flex: none; font-family: var(--font-display); font-size: 10.5px; color: var(--ink-faint); text-align: center; }
+.comm-bar-text { display: flex; flex-direction: column; min-width: 0; }
+.comm-bar-text > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.comm-bar-text small { font-size: 11px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.comm-door { font-style: normal; color: var(--ink-faint); }
+.comm-bar { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.comm-bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--blue-bar), var(--teal)); }
+.comm-bar-n { font-family: var(--font-display); font-size: 13px; color: var(--ink-hi); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.comm-bar-n small { margin-left: 3px; font-size: 10px; font-weight: 500; color: var(--ink-faint); }
+.comm-fold { align-self: flex-start; margin: 2px 0 0; padding: 4px 6px; background: none; border: none; font: inherit; font-size: 11.5px; color: var(--ink-faint); cursor: pointer; }
+.comm-fold:hover { color: var(--blue-hi); }
+.comm-cols { display: flex; align-items: flex-end; gap: 6px; padding: 14px 16px 12px; min-height: 100px; }
+.comm-col { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.comm-col b { font-family: var(--font-display); font-size: 11px; color: var(--ink-mid); min-height: 14px; }
+.comm-col i { display: block; width: 100%; max-width: 34px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, var(--teal), var(--blue-bar)); }
+.comm-col span { font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; }
+
+/* What joining would share, in the dialog. */
+.comm-prev-fold { margin: 12px 0 4px; }
+.comm-prev-fold > summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--ink-mid); }
+.comm-prev { display: flex; flex-direction: column; gap: 2px; margin: 8px 0 4px; max-height: 260px; overflow-y: auto; padding-right: 4px; }
+.comm-prev-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: baseline; padding: 5px 8px; border-radius: var(--r-sm); background: rgba(var(--deep-rgb), 0.3); font-size: 12.5px; color: var(--ink); }
+.comm-prev-row b { font-family: var(--font-display); color: var(--ink-hi); white-space: nowrap; }
+.comm-prev-row small { grid-column: 1 / -1; font-size: 11px; color: var(--ink-faint); }
+.comm-prev-row .comm-face { grid-column: 1 / -1; }
+.comm-prev-row.none { opacity: 0.55; }
+
+/* A sailor's card. */
+.comm-card-box { padding: 0; display: flex; flex-direction: column; }
+.comm-card-head { display: flex; align-items: center; gap: 14px; padding: 16px 20px; border-bottom: 1px solid var(--line-head); background: linear-gradient(90deg, rgba(var(--blue-rgb), 0.1), transparent 70%); flex-wrap: wrap; }
+.comm-card-who { flex: 1 1 200px; min-width: 0; }
+.comm-card-who h2 { margin: 0; font-size: 18px; letter-spacing: 0.04em; }
+.comm-card-who .dialog-copy { margin: 2px 0 0; }
+.comm-badge { font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue-hi); background: rgba(var(--blue-rgb), 0.15); border-radius: 4px; padding: 2px 6px; margin-left: 8px; vertical-align: middle; }
+.comm-badge.teal { color: var(--teal); background: rgba(78, 201, 174, 0.12); }
+.comm-card-nav { display: flex; gap: 6px; }
+.comm-card-nav .ghost-btn.tiny { width: 32px; height: 32px; padding: 0; font-size: 16px; line-height: 1; }
+.comm-card-body { padding: 14px 20px 6px; overflow-y: auto; }
+.comm-card-h { display: flex; align-items: baseline; gap: 6px; margin: 16px 0 8px; font-family: var(--font-display); font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); }
+.comm-card-h:first-child { margin-top: 0; }
+.comm-card-h small { font-family: var(--font-body, inherit); font-size: 11px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--ink-faint); }
+.comm-places { display: flex; flex-wrap: wrap; gap: 6px; }
+.comm-card-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0 22px; align-items: start; }
+.comm-card-cols > div { min-width: 0; }
+.comm-look { margin-bottom: 8px; }
+.comm-hulls, .comm-sailors { display: flex; flex-direction: column; gap: 6px; }
+.comm-hull, .comm-sailor { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r-btn); border: 1px solid var(--line); background: rgba(var(--deep-rgb), 0.3); }
+.comm-hull.best { border-color: var(--blue-edge); }
+.comm-hull.now { border-color: rgba(78, 201, 174, 0.4); }
+.comm-hull-body, .comm-sailor-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.comm-hull-name, .comm-sailor-name { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13px; }
+.comm-hull-name b, .comm-sailor-name b { color: var(--ink-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.comm-hull-name em { font-style: normal; font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue-hi); }
+.comm-hull-name em.teal { color: var(--teal); }
+.comm-hull-sub { font-size: 11.5px; color: var(--ink-faint); }
+.comm-hull-fit { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.comm-sailor-name span { font-size: 11.5px; color: var(--ink-mute); }
+.comm-sailor-name small { font-size: 10.5px; color: var(--ink-faint); }
+.comm-lv-bar { display: block; height: 3px; border-radius: 2px; background: var(--track); overflow: hidden; }
+.comm-lv-bar i { display: block; height: 100%; background: var(--blue-bar); }
+.comm-lv { font-family: var(--font-display); font-size: 12px; font-weight: 600; color: var(--blue-hi); white-space: nowrap; }
+.comm-lv.max { color: var(--amber); }
+.comm-figs { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
+.comm-fig { display: flex; flex-direction: column; padding: 8px 10px; border-radius: var(--r-btn); border: 1px solid var(--line); background: rgba(var(--deep-rgb), 0.3); }
+.comm-fig span { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); }
+.comm-fig b { font-family: var(--font-display); font-size: 16px; color: var(--ink-hi); line-height: 1.2; }
+.comm-fig b.amber { color: var(--amber); }
+.comm-fig b.blue { color: var(--blue-hi); }
+.comm-fig small { font-size: 11px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.comm-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.comm-tags + .comm-tags { margin-top: 6px; }
+.comm-tags > small { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); margin-right: 3px; }
+.comm-stats i small { font-size: 9.5px; color: var(--ink-faint); }
+.comm-tag { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 4px; border-radius: 999px; border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.3); color: var(--ink); font: inherit; font-size: 11.5px; cursor: pointer; max-width: 100%; }
+.comm-tag:hover { border-color: var(--blue-edge); color: var(--blue-hi); }
+.comm-tag b { font-family: var(--font-display); font-size: 11px; color: var(--ink-faint); }
+.comm-tag.hunt { border-color: rgba(232, 122, 109, 0.3); }
+.comm-tag .comm-pic.sm { width: 18px; height: 18px; }
+.comm-card-foot { margin: 0; padding: 12px 20px; border-top: 1px solid var(--line-head); align-items: center; }
+.comm-card-footnote { font-size: 11.5px; color: var(--ink-faint); }
+
+/* The find and the places dialogs. */
+.comm-find { width: 100%; margin: 6px 0 4px; }
+.comm-find-note { margin-top: 0; }
+.comm-find-list .comm-rank { padding: 0; }
+.comm-places-list { display: flex; flex-direction: column; gap: 3px; }
+.comm-place-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 10px; border-radius: var(--r-sm); font-size: 12.5px; }
+.comm-place-row:nth-child(odd) { background: rgba(var(--deep-rgb), 0.25); }
+.comm-place-row.none { opacity: 0.6; }
+.comm-place-b { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; align-items: center; color: var(--ink); min-width: 0; }
+.comm-place-b i { grid-row: 1 / 3; font-style: normal; }
+.comm-place-b small { grid-column: 2; font-size: 11px; color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.comm-place-v { text-align: right; font-family: var(--font-display); color: var(--ink-hi); white-space: nowrap; }
+
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .comm-boards, .comm-grid { grid-template-columns: 1fr; }
+  .comm-halves { width: 100%; }
+  .comm-halves .seg { flex: 1; text-align: center; }
+  .comm-numq { max-width: none; }
+  .comm-numbar-note { margin-left: 0; }
+  .comm-you.on { margin: 0 8px 8px; }
+  .comm-you-body { flex-basis: 0; }
+  /* On a phone the card is a sheet like any dialog: the sheet keeps its
+     own edges and the card's bands run to them. */
+  .comm-card-box { padding: 0 var(--sheet-pad) calc(var(--sheet-pad) + max(env(safe-area-inset-bottom, 0px), 14px)); }
+  .comm-card-head { padding: 12px 0; margin-bottom: 0; }
+  .comm-card-body { padding: 12px 0 6px; }
+  .comm-card-foot { padding: 10px 0 0; }
+  .comm-val-bar { width: 52px; }
+}
