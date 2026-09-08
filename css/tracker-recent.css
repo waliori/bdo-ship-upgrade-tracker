@@ -231,6 +231,12 @@
    box is turned on its side instead: as wide as the screen is tall. */
 body.map-full { overflow: hidden; }
 body.map-full .shell { z-index: 50; }
+/* The section dock is sticky at the top of the shell and sits a layer
+   above the chart (40 against 30), so lifting the shell carried it up
+   over the full-screen chart with everything else: a strip of tabs
+   floating across the sea. Full screen means the chart and its own
+   controls, which carry their own way out. */
+body.map-full .tabs { display: none; }
 body.map-full .map-panel { backdrop-filter: none; }
 .map.full { position: fixed; inset: 0; z-index: 30; height: auto; min-height: 0; border-radius: 0; }
 .map-panel .map.full { min-height: 0; }
