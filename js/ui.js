@@ -444,7 +444,6 @@ function showView(id) {
  * a tab only rewrites the entry.
  */
 let applyingHash = false;
-let pendingUpdate = null;   // lets a waiting service worker take over (boot.js)
 
 function syncHash() {
 	if (applyingHash) return;
@@ -1255,11 +1254,6 @@ function wire() {
 				toast(ok ? `${base} is now +${level}` : `Materials spent — ${base} ${held}`, true);
 				return;
 			}
-			case 'app-reload':
-				// The new deploy takes over, and the controller change
-				// that follows reloads the page onto it.
-				if (pendingUpdate) pendingUpdate();
-				return;
 			case 'move': {
 				const id = targetIdFrom(el);
 				if (id) store.moveTarget(id, Number(el.dataset.dir));
@@ -1982,12 +1976,12 @@ function openHelp() {
 	const file = isPhone() ? 'walkthrough-phone.mp4' : 'walkthrough.mp4';
 	const host = openDialog(`
 		<h2>How this works</h2>
-		<p>The whole thing, end to end. The yard first — queue a build, choose how to get there, record what you gathered, make something, see what it will really cost, take the list shopping — and then the sea: the day's free quests, the ship you sail, and the chart, where that list becomes a loop with minutes on it and a blank stretch of water can be drawn on.</p>
+		<p>The whole thing, end to end. The yard first — queue a build, choose how to get there, record what you gathered, make something, see what it will really cost, take the list shopping — then the sea: the day's free quests, the ship you sail, the chart, where that list becomes a loop with minutes on it and a blank stretch of water can be drawn on — and a run planned on today's board, sailed on that chart.</p>
 		<video class="help-film" src="docs/media/${file}" controls autoplay muted playsinline loop></video>
 		<details class="help-more">
 			<summary>Day by day</summary>
-			<p class="dialog-copy">The working diary. What arrived between one <i>version</i> and the next is under <b>More → What's new</b>.</p>
-			${CHANGES.slice(0, 6).map(c => `<div class="help-change"><b>${esc(c.date)}</b> — ${esc(c.title)}<ul>${c.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>`).join('')}
+			<p class="dialog-copy">The working diary. What arrived between one <i>version</i> and the next is under <b>Menu → What's new</b>.</p>
+			${CHANGES.slice(0, 6).map(c => `<div class="help-change"><b>${esc(c.date)}</b> — ${esc(c.title)}<ul>${c.notes.map(n => `<li>${n}</li>`).join('')}</ul></div>`).join('')}
 		</details>
 		<p class="dialog-copy">Look-ups open on BDOCodex in
 			<select class="field select inline" data-act="codex-lang" aria-label="BDOCodex language">${CODEX_LANGS.map(([id, name]) => `<option value="${id}"${(store.getSetting('codexLang', 'us') || 'us') === id ? ' selected' : ''}>${esc(name)}</option>`).join('')}</select>
@@ -2056,16 +2050,6 @@ export async function init() {
 	applyHash();
 
 	wire();
-	// A newer deploy has installed behind this page and is waiting to
-	// be let in (see boot.js). Offered, never forced: the reload is
-	// the player's to take when nothing is half-typed.
-	document.addEventListener('app-update', evt => {
-		pendingUpdate = evt.detail && evt.detail.apply;
-		const el = document.getElementById('toast');
-		if (!el || !pendingUpdate) return;
-		el.innerHTML = '<span>A new version of the tracker is ready.</span><button type="button" data-act="app-reload">Reload</button>';
-		el.hidden = false;
-	});
 	window.addEventListener('hashchange', applyHash);
 	wireSaveHealth();
 	// A quiet write that is the Map's own -- its view, a moment after a

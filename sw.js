@@ -168,17 +168,13 @@ const SHELL = [
 // would delete the old cache from under a tab still running the old
 // modules, and that tab's next on-demand import would come from the
 // new deploy: exactly the mixing the caching exists to prevent. So it
-// installs, and waits; the page notices, offers a reload, and only
-// then asks it to take over.
+// installs, and waits, and the browser lets it in on the next visit
+// once every tab of the old deploy is closed.
 self.addEventListener('install', evt => {
 	evt.waitUntil((async () => {
 		const cache = await caches.open(APP_CACHE);
 		await cache.addAll(SHELL);
 	})());
-});
-
-self.addEventListener('message', evt => {
-	if (evt.data && evt.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', evt => {
