@@ -148,11 +148,73 @@ export const recipes = {
 		"Glue With Traces of Deep Waves": 200,
 	},
 
+	// The small craft. None of these upgrades into anything, but each is
+	// a shipyard build with a bill, and the Cog in particular is the
+	// boat people make while the big one is still a pile of plywood.
+	// Read from the BDOCodex workshop designs on 2026-08-29.
+	//
+	// The Cog has two designs at a Shipyard Lv2 -- the Kalis-Certified
+	// one wants Falasi's seven-million permit and land materials; the
+	// Fallen Vell Pirates' Legacy one wants four bartered materials and
+	// no permit at all. Both make the same boat. See `routes` below.
+	"Epheria Cog": {
+		"Ship Building Permit: Epheria Cog": 1,
+		"Standardized Timber Square": 25,
+		"Zinc Ingot": 50,
+		"Flax Fabric": 60,
+		"Palm Plywood": 50,
+	},
+	"Rowboat": {
+		"Usable Scantling": 10,
+		"Ash Plywood": 20,
+		"Lead Ingot": 10,
+		"Ash Sap": 10,
+		"Black Stone Powder": 10,
+	},
+	"Calpheon Rowboat": {
+		"Usable Scantling": 10,
+		"Fir Plywood": 20,
+		"Iron Ingot": 10,
+		"Cedar Sap": 10,
+		"Black Stone Powder": 15,
+	},
+	"Mediah Rowboat": {
+		"Usable Scantling": 10,
+		"White Cedar Plywood": 20,
+		"Brass Ingot": 10,
+		"Acacia Sap": 10,
+		"Black Stone Powder": 15,
+	},
+	"Raft": {
+		"Log": 25,
+		"Black Stone Powder": 3,
+	},
+
 	// Upgrade parts
 	"Finely Polished Pine Plywood": {"Sangpyeong Coin": 10},
 	"Graphite Ingot for Upgrade": {"Zinc Ingot": 100, "Sea Monster's Ooze": 1},
 	"Timber for Upgrade": {"Old Tree Bark": 100, "Red Tree Lump": 100, "Sea Monster's Ooze": 1},
 	"Adhesive for Upgrade": {"White Cedar Sap": 100, "Acacia Sap": 100, "Elder Tree Sap": 100, "Sea Monster's Ooze": 1},
+
+	// ===== Great Ocean materials the sea monsters' trophies process into =====
+	//
+	// Every one of these is also sold for Crow Coins, bartered for or paid
+	// by a daily, and that is how the plan gets them unless told otherwise
+	// (see `buyFirst` below): the trophy is a side door, not the road. It
+	// is still worth knowing -- the Shadow Ghost's drops are otherwise
+	// things you sell to a vendor -- so the item card says what each one
+	// processes into, and the Workshop can record the processing. Read
+	// off bdocodex's processing table (mrecipes 2094-2101) on 2026-09-07.
+	"Tide-Dyed Standardized Timber Square": {"Wrecked Phantom Ship's Debris": 1}, // Chopping
+	"Deep Tide-Dyed Standardized Timber Square": {"Usable Pirate Ship's Remains": 1}, // Chopping
+	// Simple Alchemy. Two hundred seals is the road most take, since seals
+	// come off every Cox camp and [Level 3] goods barter for 25-50 of
+	// them; ten Broken Cannons is the other way in, under `routes`.
+	"Cox Pirates' Artifact (Combat)": {"Cox Pirates Extermination Seal": 200},
+	// Drying. One tendon or scale makes ten -- see `yields`.
+	"Moon Vein Flax Fabric": {"Khan's Tendon": 1},
+	"Moon Scale Plywood": {"Khan's Scale": 1},
+	"Tear of the Ocean": {"Abyssal Gem": 2}, // Simple Alchemy
 
 	"Epheria Caravel: Black Dragon Figurehead": {
 		"+10 Epheria Caravel: Brass Figurehead": 1,
@@ -336,6 +398,17 @@ export const recipes = {
 	"+2 Epheria Caravel: White Wind Sail": {"+1 Epheria Caravel: White Wind Sail": 1, "Tidal Black Stone": 1},
 	"+1 Epheria Caravel: White Wind Sail": {"Epheria Caravel: White Wind Sail": 1, "Tidal Black Stone": 1},
 
+	"+10 Epheria Caravel: Enhanced Plating": {"+9 Epheria Caravel: Enhanced Plating": 1, "Tidal Black Stone": 2},
+	"+9 Epheria Caravel: Enhanced Plating": {"+8 Epheria Caravel: Enhanced Plating": 1, "Tidal Black Stone": 2},
+	"+8 Epheria Caravel: Enhanced Plating": {"+7 Epheria Caravel: Enhanced Plating": 1, "Tidal Black Stone": 2},
+	"+7 Epheria Caravel: Enhanced Plating": {"+6 Epheria Caravel: Enhanced Plating": 1, "Tidal Black Stone": 2},
+	"+6 Epheria Caravel: Enhanced Plating": {"+5 Epheria Caravel: Enhanced Plating": 1, "Tidal Black Stone": 2},
+	"+5 Epheria Caravel: Enhanced Plating": {"+4 Epheria Caravel: Enhanced Plating": 1, "Tidal Black Stone": 1},
+	"+4 Epheria Caravel: Enhanced Plating": {"+3 Epheria Caravel: Enhanced Plating": 1, "Tidal Black Stone": 1},
+	"+3 Epheria Caravel: Enhanced Plating": {"+2 Epheria Caravel: Enhanced Plating": 1, "Tidal Black Stone": 1},
+	"+2 Epheria Caravel: Enhanced Plating": {"+1 Epheria Caravel: Enhanced Plating": 1, "Tidal Black Stone": 1},
+	"+1 Epheria Caravel: Enhanced Plating": {"Epheria Caravel: Enhanced Plating": 1, "Tidal Black Stone": 1},
+
 	"+10 Epheria Galleass: White Horn Figurehead": {"+9 Epheria Galleass: White Horn Figurehead": 1, "Tidal Black Stone": 2},
 	"+9 Epheria Galleass: White Horn Figurehead": {"+8 Epheria Galleass: White Horn Figurehead": 1, "Tidal Black Stone": 2},
 	"+8 Epheria Galleass: White Horn Figurehead": {"+7 Epheria Galleass: White Horn Figurehead": 1, "Tidal Black Stone": 2},
@@ -377,6 +450,17 @@ export const recipes = {
 	"+2 Epheria Galleass: White Wind Sail": {"+1 Epheria Galleass: White Wind Sail": 1, "Tidal Black Stone": 1},
 	"+1 Epheria Galleass: White Wind Sail": {"Epheria Galleass: White Wind Sail": 1, "Tidal Black Stone": 1},
 
+	"+10 Epheria Galleass: Enhanced Plating": {"+9 Epheria Galleass: Enhanced Plating": 1, "Tidal Black Stone": 2},
+	"+9 Epheria Galleass: Enhanced Plating": {"+8 Epheria Galleass: Enhanced Plating": 1, "Tidal Black Stone": 2},
+	"+8 Epheria Galleass: Enhanced Plating": {"+7 Epheria Galleass: Enhanced Plating": 1, "Tidal Black Stone": 2},
+	"+7 Epheria Galleass: Enhanced Plating": {"+6 Epheria Galleass: Enhanced Plating": 1, "Tidal Black Stone": 2},
+	"+6 Epheria Galleass: Enhanced Plating": {"+5 Epheria Galleass: Enhanced Plating": 1, "Tidal Black Stone": 2},
+	"+5 Epheria Galleass: Enhanced Plating": {"+4 Epheria Galleass: Enhanced Plating": 1, "Tidal Black Stone": 1},
+	"+4 Epheria Galleass: Enhanced Plating": {"+3 Epheria Galleass: Enhanced Plating": 1, "Tidal Black Stone": 1},
+	"+3 Epheria Galleass: Enhanced Plating": {"+2 Epheria Galleass: Enhanced Plating": 1, "Tidal Black Stone": 1},
+	"+2 Epheria Galleass: Enhanced Plating": {"+1 Epheria Galleass: Enhanced Plating": 1, "Tidal Black Stone": 1},
+	"+1 Epheria Galleass: Enhanced Plating": {"Epheria Galleass: Enhanced Plating": 1, "Tidal Black Stone": 1},
+
 	"+10 Epheria Caravel: Black Dragon Figurehead": {"+9 Epheria Caravel: Black Dragon Figurehead": 1, "Tidal Black Stone": 2},
 	"+9 Epheria Caravel: Black Dragon Figurehead": {"+8 Epheria Caravel: Black Dragon Figurehead": 1, "Tidal Black Stone": 2},
 	"+8 Epheria Caravel: Black Dragon Figurehead": {"+7 Epheria Caravel: Black Dragon Figurehead": 1, "Tidal Black Stone": 2},
@@ -387,16 +471,6 @@ export const recipes = {
 	"+3 Epheria Caravel: Black Dragon Figurehead": {"+2 Epheria Caravel: Black Dragon Figurehead": 1, "Tidal Black Stone": 1},
 	"+2 Epheria Caravel: Black Dragon Figurehead": {"+1 Epheria Caravel: Black Dragon Figurehead": 1, "Tidal Black Stone": 1},
 	"+1 Epheria Caravel: Black Dragon Figurehead": {"Epheria Caravel: Black Dragon Figurehead": 1, "Tidal Black Stone": 1},
-	"+10 Epheria Caravel: Upgraded Plating": {"+9 Epheria Caravel: Upgraded Plating": 1, "Tidal Black Stone": 2},
-	"+9 Epheria Caravel: Upgraded Plating": {"+8 Epheria Caravel: Upgraded Plating": 1, "Tidal Black Stone": 2},
-	"+8 Epheria Caravel: Upgraded Plating": {"+7 Epheria Caravel: Upgraded Plating": 1, "Tidal Black Stone": 2},
-	"+7 Epheria Caravel: Upgraded Plating": {"+6 Epheria Caravel: Upgraded Plating": 1, "Tidal Black Stone": 2},
-	"+6 Epheria Caravel: Upgraded Plating": {"+5 Epheria Caravel: Upgraded Plating": 1, "Tidal Black Stone": 2},
-	"+5 Epheria Caravel: Upgraded Plating": {"+4 Epheria Caravel: Upgraded Plating": 1, "Tidal Black Stone": 1},
-	"+4 Epheria Caravel: Upgraded Plating": {"+3 Epheria Caravel: Upgraded Plating": 1, "Tidal Black Stone": 1},
-	"+3 Epheria Caravel: Upgraded Plating": {"+2 Epheria Caravel: Upgraded Plating": 1, "Tidal Black Stone": 1},
-	"+2 Epheria Caravel: Upgraded Plating": {"+1 Epheria Caravel: Upgraded Plating": 1, "Tidal Black Stone": 1},
-	"+1 Epheria Caravel: Upgraded Plating": {"Epheria Caravel: Upgraded Plating": 1, "Tidal Black Stone": 1},
 	"+10 Epheria Caravel: Mayna Cannon": {"+9 Epheria Caravel: Mayna Cannon": 1, "Tidal Black Stone": 2},
 	"+9 Epheria Caravel: Mayna Cannon": {"+8 Epheria Caravel: Mayna Cannon": 1, "Tidal Black Stone": 2},
 	"+8 Epheria Caravel: Mayna Cannon": {"+7 Epheria Caravel: Mayna Cannon": 1, "Tidal Black Stone": 2},
@@ -428,16 +502,6 @@ export const recipes = {
 	"+3 Epheria Galleass: Black Dragon Figurehead": {"+2 Epheria Galleass: Black Dragon Figurehead": 1, "Tidal Black Stone": 1},
 	"+2 Epheria Galleass: Black Dragon Figurehead": {"+1 Epheria Galleass: Black Dragon Figurehead": 1, "Tidal Black Stone": 1},
 	"+1 Epheria Galleass: Black Dragon Figurehead": {"Epheria Galleass: Black Dragon Figurehead": 1, "Tidal Black Stone": 1},
-	"+10 Epheria Galleass: Upgraded Plating": {"+9 Epheria Galleass: Upgraded Plating": 1, "Tidal Black Stone": 2},
-	"+9 Epheria Galleass: Upgraded Plating": {"+8 Epheria Galleass: Upgraded Plating": 1, "Tidal Black Stone": 2},
-	"+8 Epheria Galleass: Upgraded Plating": {"+7 Epheria Galleass: Upgraded Plating": 1, "Tidal Black Stone": 2},
-	"+7 Epheria Galleass: Upgraded Plating": {"+6 Epheria Galleass: Upgraded Plating": 1, "Tidal Black Stone": 2},
-	"+6 Epheria Galleass: Upgraded Plating": {"+5 Epheria Galleass: Upgraded Plating": 1, "Tidal Black Stone": 2},
-	"+5 Epheria Galleass: Upgraded Plating": {"+4 Epheria Galleass: Upgraded Plating": 1, "Tidal Black Stone": 1},
-	"+4 Epheria Galleass: Upgraded Plating": {"+3 Epheria Galleass: Upgraded Plating": 1, "Tidal Black Stone": 1},
-	"+3 Epheria Galleass: Upgraded Plating": {"+2 Epheria Galleass: Upgraded Plating": 1, "Tidal Black Stone": 1},
-	"+2 Epheria Galleass: Upgraded Plating": {"+1 Epheria Galleass: Upgraded Plating": 1, "Tidal Black Stone": 1},
-	"+1 Epheria Galleass: Upgraded Plating": {"Epheria Galleass: Upgraded Plating": 1, "Tidal Black Stone": 1},
 	"+10 Epheria Galleass: Mayna Cannon": {"+9 Epheria Galleass: Mayna Cannon": 1, "Tidal Black Stone": 2},
 	"+9 Epheria Galleass: Mayna Cannon": {"+8 Epheria Galleass: Mayna Cannon": 1, "Tidal Black Stone": 2},
 	"+8 Epheria Galleass: Mayna Cannon": {"+7 Epheria Galleass: Mayna Cannon": 1, "Tidal Black Stone": 2},
@@ -1105,7 +1169,7 @@ export const recipes = {
 	// The three materials every yellow part is built from. Each is one
 	// Lyngbakr drop plus the two Starlight reagents the blue tier
 	// already used; Mass Process turns 10x the materials plus a Black
-	// Stone Powder into 10, which the app does not model.
+	// Stone Powder into 10 (vendor_items.js `massProcess`).
 	"Sturdy Coral Support": {"Lyngbakr's Bone": 1, "Starlight Hardener": 1, "Starlight Emulsifier": 1},
 	"Raging Wave Plywood": {"Lyngbakr's Scale": 1, "Starlight Hardener": 1, "Starlight Emulsifier": 1},
 	"Dormant Crimson Coral Adhesive": {"Lyngbakr's Fluid": 1, "Starlight Hardener": 1, "Starlight Emulsifier": 1},
@@ -1332,6 +1396,40 @@ export const recipes = {
 	"+1 Panokseon: Cheongun's Enhanced Plating": {"Panokseon: Cheongun's Enhanced Plating": 1, "Sunset Tidal Black Stone": 1},
 };
 
+/**
+ * Recipes that make more than one at a time.
+ *
+ * The book above describes one craft; for most that is one item, and
+ * for these it is ten. Kept apart from the recipes so the ingredient
+ * lists stay whole numbers: the planner divides a requirement by the
+ * yield before it multiplies by the recipe, the Workshop records one
+ * craft as ten units, and a unit is priced at a tenth of the tendon.
+ */
+export const yields = {
+	"Moon Vein Flax Fabric": 10,
+	"Moon Scale Plywood": 10
+};
+
+/**
+ * Recipes the plan does not follow unless asked to.
+ *
+ * A recipe normally means "craft it": a Violent Wave Plywood is planned
+ * from its scales even though the Crow Coin Shop sells it. These are the
+ * other way round -- the shop, the barterers and the dailies are how
+ * they are really got, and the trophy recipe is a way to use a drop you
+ * happen to have. So the plan buys them by default, and the Inventory's
+ * "Craft it" switches one over. The Workshop offers the processing
+ * either way, since a trophy in hand is a trophy in hand.
+ */
+export const buyFirst = new Set([
+	"Tide-Dyed Standardized Timber Square",
+	"Deep Tide-Dyed Standardized Timber Square",
+	"Cox Pirates' Artifact (Combat)",
+	"Moon Vein Flax Fabric",
+	"Moon Scale Plywood",
+	"Tear of the Ocean"
+]);
+
 /* ------------------------------------------------------------------ *
  * Two ways to reach a Caravel, and two to reach a Galleass
  * ------------------------------------------------------------------ */
@@ -1367,6 +1465,22 @@ export const routes = {
 	"Epheria Galleass": {
 		direct: recipes["Epheria Galleass"],
 		improved: viaHull(recipes["Epheria Galleass"], "Epheria Frigate", "Improved Epheria Frigate")
+	},
+	// Two different designs for one boat, rather than two hulls into one.
+	"Epheria Cog": {
+		permit: recipes["Epheria Cog"],
+		pirates: {
+			"Island Tree Coated Plywood": 100,
+			"Rock Salt Ingot": 100,
+			"Seaweed Stalk": 1,
+			"Tide-Dyed Standardized Timber Square": 2
+		}
+	},
+	// Two Simple Alchemy recipes for one artifact: the seals every Cox
+	// camp pays out, or the cannons only the Shadow Ghost drops.
+	"Cox Pirates' Artifact (Combat)": {
+		seals: recipes["Cox Pirates' Artifact (Combat)"],
+		cannons: { "Cox Pirates' Broken Cannon": 10 }
 	}
 };
 
@@ -1386,6 +1500,30 @@ export const routeInfo = {
 			label: "By way of the Improved Epheria Frigate",
 			via: "Improved Epheria Frigate",
 			gains: "Adds a solo cannon volley, and the upgrade quests can be done alone."
+		}
+	},
+	"Epheria Cog": {
+		permit: {
+			label: "Kalis-Certified design, with Falasi's permit",
+			via: "Ship Building Permit: Epheria Cog",
+			gains: "Seven million silver for the permit, and land materials the Market sells."
+		},
+		pirates: {
+			label: "Fallen Vell Pirates' Legacy design",
+			via: "Island Tree Coated Plywood",
+			gains: "No permit: four bartered materials instead, for a boat that is the same in every way."
+		}
+	},
+	"Cox Pirates' Artifact (Combat)": {
+		seals: {
+			label: "200 Extermination Seals, by Simple Alchemy",
+			via: "Cox Pirates Extermination Seal",
+			gains: "Seals drop from every Cox Pirates' camp, flag and cargo ship, and a [Level 3] good barters for 25 to 50 of them."
+		},
+		cannons: {
+			label: "Ten Broken Cannons, by Simple Alchemy",
+			via: "Cox Pirates' Broken Cannon",
+			gains: "The cannons only come off the Cox Pirates' Shadow Ghost, and rarely."
 		}
 	}
 };

@@ -8,6 +8,14 @@ npm-debug.log
 .data/
 .DS_Store
 
+# A one-off script left in the test folder while measuring something;
+# the suite's glob already ignores the name, and so does git.
+test/_*.tmp.mjs
+
 # Capture intermediates — the media in docs/media is what ships.
 tools/capture/out/
 *.webm
+
+# Artefacts of old agent tooling, never part of the app.
+.claude-flow/
+.hive-mind/

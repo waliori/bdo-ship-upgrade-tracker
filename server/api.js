@@ -8,7 +8,9 @@
 
 import express from 'express';
 import { config } from './config.js';
-import { getUser, deleteAccount } from './db.js';
+import { getUser, deleteAccount, getShare } from './db.js';
+import { isAdmin } from './feedback.js';
+import { communityRoutes, leaveBoards } from './community.js';
 import { readSave, writeSaveFor, forget } from './saves.js';
 import { sessionUser, requireUser, endSession } from './session.js';
 import { perAccount } from './limit.js';
@@ -33,6 +35,10 @@ function looksLikeSave(body) {
 	if (strategy !== undefined && (typeof strategy !== 'object' || Array.isArray(strategy))) {
 		return 'Strategy must be an object.';
 	}
+	if (body.profile !== undefined
+		&& (typeof body.profile !== 'object' || body.profile === null || Array.isArray(body.profile))) {
+		return 'Profile must be an object.';
+	}
 	return null;
 }
 
@@ -52,21 +58,48 @@ export function apiRoutes() {
 		next();
 	});
 
-	// Only the three fields that make up a save are stored. Anything else
-	// the client sends is dropped here rather than in the database.
-	router.use(express.json({ limit: config.maxSaveBytes }));
+	// The one route that takes a body gets the one parser that allows a
+	// save's worth of it. Mounted on everything under /api, this parser
+	// used to run first for the push subscription too and let a megabyte
+	// through a route meant to take a few hundred bytes -- Express keeps
+	// the first parse and the 8 KB parser behind it never saw the body.
+	// After the sign-in check, so a stranger's megabyte is never read.
+	const saveBody = express.json({ limit: config.maxSaveBytes });
 
 	// A browser pushes at most twice a second and backs off when refused,
 	// so this is far above anything the app does and only bites something
 	// that is not the app.
 	const pushLimit = perAccount(config.maxPushesPerMinute);
 
+	// Every page load asks /me, and it has no limiter of its own -- so the
+	// user row is held briefly instead of read every time. Half a minute of
+	// staleness costs nothing: the row only changes on sign-in, and a
+	// deleted account is dropped from here at the moment of deletion.
+	const ME_TTL_MS = 30_000;
+	const meCache = new Map();   // uid -> { user, until }
+
+	async function cachedUser(uid) {
+		const held = meCache.get(uid);
+		if (held && held.until > Date.now()) return held.user;
+		// Only real accounts get in here -- a uid comes from a signed
+		// cookie -- so the map cannot be grown by strangers. Expired rows
+		// are swept when it gets crowded rather than on a timer.
+		if (meCache.size > 5000) {
+			const now = Date.now();
+			for (const [id, entry] of meCache) if (entry.until <= now) meCache.delete(id);
+		}
+		const user = await getUser(uid);
+		if (user) meCache.set(uid, { user, until: Date.now() + ME_TTL_MS });
+		else meCache.delete(uid);
+		return user;
+	}
+
 	/** Who is signed in, if anyone. Answers 200 either way -- being signed
 	 *  out is a normal state for this app, not an error. */
 	router.get('/me', wrap(async (req, res) => {
 		const uid = sessionUser(req);
 		if (!uid) return res.json({ signedIn: false });
-		const user = await getUser(uid);
+		const user = await cachedUser(uid);
 		if (!user) {
 			// The session outlived the account it names.
 			endSession(res);
@@ -74,9 +107,16 @@ export function apiRoutes() {
 		}
 		res.json({
 			signedIn: true,
-			user: { id: user.id, username: user.username, avatar: user.avatar }
+			user: { id: user.id, username: user.username, avatar: user.avatar },
+			// How the account stands on the community boards, and whether
+			// it may read the feedback inbox. The share is read fresh: it
+			// changes from the boards page and must show there at once.
+			share: await getShare(uid),
+			admin: isAdmin(uid)
 		});
 	}));
+
+	router.use(communityRoutes());
 
 	/** The stored save. `rev` 0 with no data means "nothing synced yet",
 	 *  which the client needs to tell apart from an empty inventory.
@@ -102,7 +142,7 @@ export function apiRoutes() {
 	 * with 409 and the newer save comes back in the body, so the client
 	 * can show both and let the user choose instead of quietly losing one.
 	 */
-	router.put('/state', requireUser, pushLimit, wrap(async (req, res) => {
+	router.put('/state', requireUser, saveBody, pushLimit, wrap(async (req, res) => {
 		const body = req.body || {};
 		const complaint = looksLikeSave(body.data);
 		if (complaint) return res.status(400).json({ error: complaint });
@@ -112,13 +152,34 @@ export function apiRoutes() {
 			return res.status(400).json({ error: 'A push must say which revision it is based on.' });
 		}
 
-		const payload = JSON.stringify({
+		// Rebuilt rather than stored as sent, so a client cannot park
+		// arbitrary keys in another device's save. `profile` is only
+		// written when the client actually sent one -- an older browser
+		// that has not reloaded still pushes three fields, and adding an
+		// empty fourth on its behalf would change the stored bytes out
+		// from under every save that already exists.
+		const shape = {
 			stock: body.data.stock,
 			targets: body.data.targets || [],
 			strategy: body.data.strategy || {}
-		});
+		};
+		if (body.data.profile) shape.profile = body.data.profile;
+		const payload = JSON.stringify(shape);
 		if (Buffer.byteLength(payload) > config.maxSaveBytes) {
 			return res.status(413).json({ error: 'That save is too large to sync.' });
+		}
+
+		// Sessions are stateless, so a cookie outlives the account it names.
+		// A push that would create the first save row is therefore checked
+		// against the users table -- without this, a device still signed in
+		// after DELETE /api/account would push revision 0 and quietly
+		// resurrect the save the owner just asked to be rid of. 410, not
+		// 401: the client reads it as "this account is gone", signs out
+		// locally, and keeps its copy.
+		if (expected === 0 && !await getUser(req.userId)) {
+			meCache.delete(req.userId);
+			endSession(res);
+			return res.status(410).json({ error: 'This account has been deleted.' });
 		}
 
 		const device = typeof body.device === 'string' ? body.device.slice(0, 64) : null;
@@ -143,6 +204,8 @@ export function apiRoutes() {
 		// already in the air must not put the save back a moment after
 		// the row was dropped.
 		await forget(req.userId);
+		meCache.delete(req.userId);
+		leaveBoards(req.userId);
 		await deleteAccount(req.userId);
 		endSession(res);
 		res.json({ ok: true });

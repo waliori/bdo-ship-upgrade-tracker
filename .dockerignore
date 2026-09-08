@@ -1,9 +1,13 @@
 .git
 .github
 node_modules
-# The README's stills and GIFs are not served; the walkthrough film is.
+# The README's full-size stills and GIFs are not served. What the app
+# itself asks for is: the walkthrough films, and the narrow copies the
+# What's New dialog shows.
 docs/**
 !docs/media/*.mp4
+!docs/media/small
+!docs/media/small/*
 tools
 *.md
 !README.md

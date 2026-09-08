@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>BDO Ship Upgrade Tracker</title>
     <meta name="description" content="Track Black Desert Online ship upgrades against one shared inventory: what you own, what every build has reserved, and what you still have to get.">
     <meta name="keywords" content="Black Desert Online, BDO, ship upgrade, material tracker, maritime, sailing">
 
-    <link rel="shortcut icon" type="image/x-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
     <meta name="theme-color" content="#0a1728">
     <link rel="canonical" href="https://sail.walior.it/">
+    <link rel="manifest" href="manifest.webmanifest">
 
     <!-- How the link looks when someone drops it in Discord. -->
     <meta property="og:type" content="website">
@@ -31,11 +32,28 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <link href="css/tracker.css" rel="stylesheet" type="text/css" />
+    <!-- Nine sheets, in an order that matters: they were one file, cut at
+         its section marks, and the cascade is the order they are linked. -->
+    <link href="css/tracker-base.css" rel="stylesheet" type="text/css" />
+    <link href="css/tracker-shell.css" rel="stylesheet" type="text/css" />
+    <link href="css/tracker-yard.css" rel="stylesheet" type="text/css" />
+    <link href="css/tracker-widgets.css" rel="stylesheet" type="text/css" />
+    <link href="css/tracker-map.css" rel="stylesheet" type="text/css" />
+    <link href="css/tracker-sea.css" rel="stylesheet" type="text/css" />
+    <link href="css/tracker-extras.css" rel="stylesheet" type="text/css" />
+    <link href="css/tracker-barter.css" rel="stylesheet" type="text/css" />
+    <link href="css/tracker-recent.css" rel="stylesheet" type="text/css" />
 
-    <!-- Driver.js powers the guided tour, loaded out of the critical path -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.css">
-    <script src="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.js.iife.js" defer></script>
+    <!-- Driver.js powers the guided tour. Vendored (v1.8.0) rather than
+         pulled from a CDN: an unpinned @latest was a supply-chain door
+         the CSP held open, and a tour that only works while someone
+         else's CDN is up is not a tour this app should have.
+
+         Fetched when the tour is actually asked for, not on every load:
+         guided-tour.js is itself imported on demand, and 25 KB of
+         library parsed on a page nobody tours is 25 KB wasted. The
+         service worker still precaches both, so the first tour works
+         offline as well as the rest of the app. -->
 
     <link rel="modulepreload" href="js/ui.js">
     <link rel="modulepreload" href="js/state.js">
@@ -52,30 +70,36 @@
                     <div class="brand-sub">One inventory, every build &middot; Black Desert</div>
                 </div>
             </div>
-            <button class="hamburger" data-act="menu" aria-label="Menu" aria-expanded="false">
-                <span></span><span></span><span></span>
-            </button>
+            <!-- The masthead's verbs. Find, the trip log, Undo and Redo
+                 stand here on a wide screen; on a phone Find and the
+                 log move into the menu, which is the one menu the app
+                 has: the same sheet the thumb bar's last slot opens. -->
             <div class="masthead-actions" id="masthead-actions">
-                <button class="ghost-btn" id="undo-btn" data-act="undo">&#8630; Undo</button>
-                <button class="ghost-btn" data-act="export">Export</button>
-                <button class="ghost-btn" data-act="import">Import</button>
-                <button class="ghost-btn" data-act="help">Help</button>
-                <button class="ghost-btn" data-act="tour">Tour</button>
-                <button class="ghost-btn" id="water-btn" data-act="water">&#8776; Water off</button>
+                <button class="ghost-btn wide-only" data-act="jump" title="Find an item or a tab (Ctrl+K)">&#8981; Find</button>
+                <button class="ghost-btn wide-only" data-act="trip-log" title="Record everything you brought back from a trip, as one change">&#65291; Log a trip</button>
+                <button class="ghost-btn" id="undo-btn" data-act="undo" aria-label="Undo">&#8630; <span class="btn-label">Undo</span></button>
+                <button class="ghost-btn wide-only" id="redo-btn" data-act="redo">&#8631; Redo</button>
                 <!-- Sign-in, and who is signed in. Stays empty unless the
                      deployment has been given a Discord app and a database. -->
                 <span class="account" id="account"></span>
+                <button class="ghost-btn menu-btn" data-act="more" aria-haspopup="dialog" aria-label="Menu" title="Every section and everything else (M)">&#8943; <span class="btn-label">Menu</span></button>
             </div>
         </header>
 
-        <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+        <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
 
         <!-- Currencies and enhancement stones are spent from every screen,
              so they live in the shell rather than on any one tab. -->
         <div class="pouch" id="pouch" aria-label="What you are carrying"></div>
+        <div class="status-bar" id="status" role="status" aria-live="polite" hidden></div>
 
-        <main class="screen" id="screen"></main>
+        <main class="screen" id="screen" role="tabpanel" aria-label="Current section"></main>
     </div>
+
+    <!-- The phone's own way between sections: a bar at the thumb, and
+         a sheet behind "All" holding every one of them. Empty and out
+         of the way on a wide screen, where the tab row above does it. -->
+    <nav class="tabbar" id="tabbar" aria-label="Sections"></nav>
 
     <div class="peek" id="peek" role="tooltip" hidden></div>
     <div class="toast" id="toast" role="status" hidden></div>

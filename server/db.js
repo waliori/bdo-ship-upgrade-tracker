@@ -4,10 +4,12 @@
 // covers both: point TURSO_DATABASE_URL at `file:./.data/tracker.db` to
 // develop without an account, or at a `libsql://` host to run for real.
 //
-// Two tables and no more. The tracker derives everything it shows from
-// stock and targets, so that is all a save has to carry -- there is no
-// server-side notion of a plan, and nothing here needs to understand a
-// recipe.
+// Five tables and a version row. The tracker derives everything it
+// shows from stock and targets, so that is all a save has to carry --
+// there is no server-side notion of a plan, and nothing here needs to
+// understand a recipe. The community table holds a digest of a save
+// for the accounts that asked to be on the boards, and the feedback
+// table what people write in from More -> Feedback.
 //
 // Nothing in here decides who wins a race. A `libsql://` URL is not a
 // socket -- every statement is a separate HTTPS request -- so treating
@@ -160,25 +162,108 @@ async function exec(statement, tries = config.turso.retries) {
  * Schema
  * ------------------------------------------------------------------ */
 
-const SCHEMA = [
-	`CREATE TABLE IF NOT EXISTS users (
-		id          TEXT PRIMARY KEY,
-		username    TEXT NOT NULL,
-		avatar      TEXT,
-		created_at  INTEGER NOT NULL,
-		seen_at     INTEGER NOT NULL
-	)`,
-	// One save per account, overwritten in place. The tracker already
-	// keeps its own undo history in the browser; duplicating it here
-	// would mean shipping every keystroke to a server for no gain.
-	`CREATE TABLE IF NOT EXISTS saves (
-		user_id     TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-		rev         INTEGER NOT NULL,
-		payload     TEXT NOT NULL,
-		updated_at  INTEGER NOT NULL,
-		device      TEXT
-	)`
+// The schema, as an ordered list of steps. Each runs once per database
+// and is recorded in `schema_version`, so a table added later is a new
+// entry at the end rather than an edit to the first one -- the
+// databases already out there have run the first and will not run it
+// again. A step gets `run`, which sends one statement and rides out the
+// weather like everything else here.
+export const MIGRATIONS = [
+	{
+		version: 1,
+		up: async run => {
+			await run(`CREATE TABLE IF NOT EXISTS users (
+				id          TEXT PRIMARY KEY,
+				username    TEXT NOT NULL,
+				avatar      TEXT,
+				created_at  INTEGER NOT NULL,
+				seen_at     INTEGER NOT NULL
+			)`);
+			// One save per account, overwritten in place. The tracker
+			// already keeps its own undo history in the browser;
+			// duplicating it here would mean shipping every keystroke to
+			// a server for no gain.
+			await run(`CREATE TABLE IF NOT EXISTS saves (
+				user_id     TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+				rev         INTEGER NOT NULL,
+				payload     TEXT NOT NULL,
+				updated_at  INTEGER NOT NULL,
+				device      TEXT
+			)`);
+			// Push subscriptions for the Vell reminder, by the server
+			// region whose timetable they follow. Anonymous: an endpoint
+			// is its own key and says nothing about who holds it.
+			await run(`CREATE TABLE IF NOT EXISTS push_subs (
+				endpoint    TEXT PRIMARY KEY,
+				sub         TEXT NOT NULL,
+				region      TEXT NOT NULL,
+				created_at  INTEGER NOT NULL
+			)`);
+		}
+	},
+	{
+		version: 2,
+		up: async run => {
+			// What people send from More -> Feedback: a kind, the words,
+			// and where they were. The account is noted when there is
+			// one, so a reply has somewhere to go, and null otherwise --
+			// a stranger may report a bug too.
+			await run(`CREATE TABLE IF NOT EXISTS feedback (
+				id          INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id     TEXT,
+				username    TEXT,
+				kind        TEXT NOT NULL,
+				text        TEXT NOT NULL,
+				page        TEXT,
+				contact     TEXT,
+				version     TEXT,
+				agent       TEXT,
+				status      TEXT NOT NULL DEFAULT 'open',
+				created_at  INTEGER NOT NULL
+			)`);
+			// Who has chosen to stand on the community boards, how they
+			// want to be shown there, and the digest of their save the
+			// boards are drawn from. A row exists only while the account
+			// is opted in; leaving deletes it, so nothing derived is kept
+			// about anyone who has not asked to be seen.
+			await run(`CREATE TABLE IF NOT EXISTS community (
+				user_id     TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+				share       TEXT NOT NULL,
+				stats       TEXT NOT NULL,
+				rev         INTEGER NOT NULL DEFAULT 0,
+				joined_at   INTEGER NOT NULL,
+				updated_at  INTEGER NOT NULL
+			)`);
+		}
+	}
 ];
+
+/** The data tables, in the order a restore has to write them (parents first). */
+export const TABLES = ['users', 'saves', 'push_subs', 'feedback', 'community'];
+
+/**
+ * Bring the database up to the newest version. Safe to run any number
+ * of times: every step already applied is skipped by its recorded
+ * version, and step one is written so that it is harmless even on a
+ * database that predates the version table.
+ */
+export async function applyMigrations() {
+	await exec(`CREATE TABLE IF NOT EXISTS schema_version (
+		version     INTEGER PRIMARY KEY,
+		applied_at  INTEGER NOT NULL
+	)`);
+	const { rows } = await exec('SELECT MAX(version) AS v FROM schema_version');
+	const current = Number(rows[0] && rows[0].v) || 0;
+	for (const step of MIGRATIONS) {
+		if (step.version <= current) continue;
+		await step.up(exec);
+		await exec({
+			sql: 'INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (?, ?)',
+			args: [step.version, Date.now()]
+		});
+	}
+	return Math.max(current, ...MIGRATIONS.map(m => m.version));
+}
 
 let schema = null;
 
@@ -189,18 +274,64 @@ let schema = null;
  * unreachable should not stop the tracker from serving the page, since
  * the page works without one. Everything that touches a table awaits it
  * anyway, so the first query after a bad start simply pays for the
- * retry itself.
+ * retry itself. Resolves to the schema version now in place.
  */
 export function migrate() {
 	if (!schema) {
 		schema = (async () => {
-			for (const statement of SCHEMA) await exec(statement);
+			// SQLite leaves REFERENCES unenforced unless each connection asks.
+			// A file database is one held handle, so asking once here holds
+			// for the life of the process. Over `libsql://` every statement
+			// is its own HTTPS request with no connection to pin the pragma
+			// to, so there the parent-row check is made in code instead --
+			// the deleted-account guard in api.js.
+			if (!remote) await exec('PRAGMA foreign_keys = ON');
+			return applyMigrations();
 		})().catch(error => {
 			schema = null;   // let the next caller try again
 			throw error;
 		});
 	}
 	return schema;
+}
+
+/**
+ * Is the database answering right now? One statement, one attempt -- a
+ * healthcheck that waited out four retries would report the outage
+ * late, and the point of it is to report it at all.
+ */
+export async function ping() {
+	await exec('SELECT 1', 1);
+}
+
+/* ------------------------------------------------------------------ *
+ * Push subscriptions
+ * ------------------------------------------------------------------ */
+
+export async function putPushSub(endpoint, sub, region) {
+	await migrate();
+	await exec({
+		sql: `INSERT INTO push_subs (endpoint, sub, region, created_at) VALUES (?, ?, ?, ?)
+			ON CONFLICT(endpoint) DO UPDATE SET sub = excluded.sub, region = excluded.region`,
+		args: [endpoint, JSON.stringify(sub), region, Date.now()]
+	});
+}
+
+export async function deletePushSub(endpoint) {
+	await migrate();
+	await exec({ sql: 'DELETE FROM push_subs WHERE endpoint = ?', args: [endpoint] });
+}
+
+export async function listPushSubs(region) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT endpoint, sub FROM push_subs WHERE region = ?', args: [region] });
+	return rows.map(r => ({ endpoint: r.endpoint, sub: JSON.parse(r.sub) }));
+}
+
+export async function countPushSubs() {
+	await migrate();
+	const { rows } = await exec('SELECT COUNT(*) AS n FROM push_subs');
+	return Number(rows[0] && rows[0].n) || 0;
 }
 
 /* ------------------------------------------------------------------ *
@@ -283,9 +414,112 @@ export async function writeSave(userId, { rev, payload, updatedAt, device }) {
 	});
 }
 
-/** Forget an account entirely -- the save goes with it. */
+/** Forget an account entirely -- the save and its place on the boards go with it. */
 export async function deleteAccount(userId) {
 	await migrate();
+	await exec({ sql: 'DELETE FROM community WHERE user_id = ?', args: [userId] });
 	await exec({ sql: 'DELETE FROM saves WHERE user_id = ?', args: [userId] });
 	await exec({ sql: 'DELETE FROM users WHERE id = ?', args: [userId] });
+}
+
+/* ------------------------------------------------------------------ *
+ * Feedback
+ * ------------------------------------------------------------------ */
+
+export async function insertFeedback({ userId, username, kind, text, page, contact, version, agent }) {
+	await migrate();
+	const { lastInsertRowid } = await exec({
+		sql: `INSERT INTO feedback (user_id, username, kind, text, page, contact, version, agent, status, created_at)
+		      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`,
+		args: [userId ?? null, username ?? null, kind, text, page ?? null, contact ?? null, version ?? null, agent ?? null, Date.now()]
+	});
+	return Number(lastInsertRowid);
+}
+
+/** The newest entries, open ones first. */
+export async function listFeedback(limit = 200) {
+	await migrate();
+	const { rows } = await exec({
+		sql: `SELECT id, user_id, username, kind, text, page, contact, version, agent, status, created_at
+		      FROM feedback ORDER BY (status = 'open') DESC, created_at DESC LIMIT ?`,
+		args: [limit]
+	});
+	return rows.map(r => ({
+		id: Number(r.id), userId: r.user_id || null, username: r.username || null, kind: r.kind, text: r.text,
+		page: r.page || null, contact: r.contact || null, version: r.version || null, agent: r.agent || null,
+		status: r.status, createdAt: Number(r.created_at)
+	}));
+}
+
+export async function setFeedbackStatus(id, status) {
+	await migrate();
+	await exec({ sql: 'UPDATE feedback SET status = ? WHERE id = ?', args: [status, id] });
+}
+
+export async function countFeedback(status = 'open') {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT COUNT(*) AS n FROM feedback WHERE status = ?', args: [status] });
+	return Number(rows[0] && rows[0].n) || 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Community
+ * ------------------------------------------------------------------ */
+
+/** How an account stands on the boards: 'named', 'anon', or null when it is not on them. */
+export async function getShare(userId) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT share FROM community WHERE user_id = ?', args: [userId] });
+	return rows[0] ? rows[0].share : null;
+}
+
+/** Put an account on the boards, or change how it is shown there. */
+export async function putCommunity(userId, share, stats, rev) {
+	await migrate();
+	const now = Date.now();
+	await exec({
+		sql: `INSERT INTO community (user_id, share, stats, rev, joined_at, updated_at)
+		      VALUES (?, ?, ?, ?, ?, ?)
+		      ON CONFLICT(user_id) DO UPDATE SET
+		        share = excluded.share, stats = excluded.stats, rev = excluded.rev, updated_at = excluded.updated_at`,
+		args: [userId, share, JSON.stringify(stats), rev, now, now]
+	});
+}
+
+/** A fresher digest for an account already on the boards. */
+export async function putDigest(userId, stats, rev) {
+	await migrate();
+	await exec({
+		sql: 'UPDATE community SET stats = ?, rev = ?, updated_at = ? WHERE user_id = ?',
+		args: [JSON.stringify(stats), rev, Date.now(), userId]
+	});
+}
+
+export async function deleteCommunity(userId) {
+	await migrate();
+	await exec({ sql: 'DELETE FROM community WHERE user_id = ?', args: [userId] });
+}
+
+/**
+ * Everyone on the boards, with the name and avatar to show for the
+ * named ones, the digest held, and the revision of the save it was
+ * drawn from beside the save's own -- so the caller can tell which
+ * digests are behind.
+ */
+export async function listCommunity() {
+	await migrate();
+	const { rows } = await exec(`SELECT c.user_id, c.share, c.stats, c.rev, c.joined_at, u.username, u.avatar, s.rev AS save_rev
+		FROM community c
+		JOIN users u ON u.id = c.user_id
+		LEFT JOIN saves s ON s.user_id = c.user_id`);
+	return rows.map(r => ({
+		userId: r.user_id, share: r.share, stats: r.stats, rev: Number(r.rev) || 0, joinedAt: Number(r.joined_at) || 0,
+		username: r.username, avatar: r.avatar || null, saveRev: r.save_rev === null || r.save_rev === undefined ? null : Number(r.save_rev)
+	}));
+}
+
+export async function countCommunity() {
+	await migrate();
+	const { rows } = await exec('SELECT COUNT(*) AS n FROM community');
+	return Number(rows[0] && rows[0].n) || 0;
 }

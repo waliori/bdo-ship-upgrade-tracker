@@ -1,1502 +1,324 @@
-// The whole interface. Every screen is a projection of state.js through
-// planner.js -- nothing here holds its own copy of anything.
+// The shell. Renders whichever screen is up, owns the event wiring, and
+// starts everything -- while every screen lives in its own module and
+// every piece of shared state in ui-state.js. Nothing here holds its
+// own copy of anything: each screen is a projection of state.js through
+// planner.js, rebuilt on every change.
 
-import { recipes as allRecipes, routes, routeInfo } from './recipes.js';
 import { shipGroups } from './ships.js';
-import { items as vendorItems } from './vendor_items.js';
-import { coins } from './sea_coins.js';
-import { falasi } from './falasi_vendor.js';
+import { routeInfo } from './recipes.js';
 import { tableFor } from './enhancement.js';
 import { iconLoader } from './icon-loader.js';
-import RealisticWaterRipples from './realistic-water-ripples.js';
+import { esc, F, parseAmount } from './fmt.js';
 import * as store from './state.js';
-import { initSync, openAccount } from './sync.js';
+import { initSync, openAccount, feature, me } from './sync.js';
+import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.js';
 import {
-	plan, planOne, craftableNow, maxCraftable, craftDelta,
-	enhanceStep, ownedLevel, shoppingList, bottlenecks,
-	parseEnhanced, enhancedName, enhancementForecast, resolveRoutes, routeOf,
-	waysToGet, outstanding, remainingCost
-} from './planner.js';
+	view, selected, recipes, barterData, snapshot, query,
+	setView, setQuery, setPlanFilter, setInvFilter, setInvKind, setSelected, setBarterData, setCombos, setMatBoards,
+	recompute, readyCrafts, craftStock, CROW_COIN, SILVER, setSort, invPicking, invPicked, setInvPicking
+} from './ui-state.js';
+import { kindOf } from './kinds.js';
+import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
+import { allItems, CODEX_LANGS, img } from './ui-bits.js';
+import { encodeShare, decodeShare, shareLink, shareSize } from './share.js';
+import { massProcess } from './vendor_items.js';
+import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
+import { paintPouch, measurePouch } from './pouch.js';
+import { hidePeek, wirePeek } from './peek.js';
+import { openGuide, wireGuide } from './guide.js';
+import { renderPlan } from './screen-plan.js';
+import { renderBuilds, openBuildPicker, askRoute, toggleBlockers } from './screen-builds.js';
+import { renderInventory } from './screen-inventory.js';
+import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart } from './screen-barter.js';
+import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
+import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
+import { renderCrew, crewAction, crewChange, applyShipSetup, openSetupPicker, selectSailor, setLooking } from './screen-crew.js';
+import { statusLine } from './today.js';
+import { renderQuests, questAction, questDone, wantedQuests, setQuestPay, setQuestFocus } from './screen-quests.js';
+import { renderCommunity, communityAction, wireCommunity } from './screen-community.js';
+import { openVellDialog, openResetsDialog } from './today.js';
+import { startClocks, tickClocks } from './clock.js';
+import { recordProgress } from './pace.js';
+import { openJump } from './jump.js';
+import { openItemCard } from './item-card.js';
+import { attachSheet } from './sheet.js';
+import { isPhone, onPhoneChange } from './viewport.js';
 
-// The recipe book as the user's chosen routes make it. An upgrade with
-// two ways in -- the Caravel, the Galleass -- reads here as whichever one
-// they picked, so nothing downstream has to know routes exist.
-let recipes = allRecipes;
+import { openProfiles, activeProfile } from './profiles.js';
+import { DATA, CHANGES, LATEST, RELEASES, RELEASE } from './about.js';
+import { openTables } from './screen-tables.js';
+import { toggleVellReminder, checkVellReminder } from './today.js';
+import { openTripLog } from './triplog.js';
+import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
+import { renderGet, shoppingText, shoppingCSV } from './screen-get.js';
+import {
+	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapCentreOnStash,
+	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
+	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
+	saveRouteDialog, loadSavedRoute, deleteSavedRoute, mapWritingView, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
+	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
+	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite,
+	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet
+} from './screen-map.js';
 
+// Two groups: the yard, where a build is planned and made, and the
+// sea, where the day is spent. A divider in the tab row says so.
 const TABS = [
-	{ id: 'plan', label: 'Plan' },
-	{ id: 'builds', label: 'Builds' },
-	{ id: 'inventory', label: 'Inventory' },
-	{ id: 'tree', label: 'Tree' },
-	{ id: 'workshop', label: 'Workshop' },
-	{ id: 'get', label: 'To Get' }
+	{ id: 'plan', label: 'Plan', icon: '◈', group: 'yard' },
+	{ id: 'builds', label: 'Builds', icon: '⚒', group: 'yard' },
+	{ id: 'inventory', label: 'Inventory', icon: '▦', group: 'yard' },
+	{ id: 'tree', label: 'Tree', icon: '⌥', group: 'yard' },
+	{ id: 'workshop', label: 'Workshop', icon: '⚙', group: 'yard' },
+	{ id: 'get', label: 'To Get', icon: '☰', group: 'yard' },
+	{ id: 'map', label: 'Map', icon: '⌖', group: 'sea' },
+	{ id: 'quests', label: 'Quests', icon: '✦', group: 'sea' },
+	{ id: 'crew', label: 'Ship', icon: '⚓', group: 'sea' },
+	// Last, so the digit shortcuts the first nine tabs answer to stay put.
+	{ id: 'barter', label: 'Barter', icon: '⇄', group: 'sea' },
+	// The harbour: only where there are accounts to stand on its boards.
+	// Past the ten with a digit, and shown once the server has said so.
+	{ id: 'community', label: 'Community', icon: '☸', group: 'harbour', when: () => feature('community') }
 ];
 
-const SOURCE_LABEL = {
-	coin: 'Crow Coin Shop',
-	falasi: 'Falasi vendor',
-	Market: 'Central Market',
-	Purchase: 'Vendor',
-	'Monster Drop': 'Monster drop',
-	Gathering: 'Gathering',
-	Processing: 'Processing',
-	Crafting: 'Crafting',
-	'Quest Reward': 'Quest reward',
-	Exchange: 'Exchange'
-};
+/** The tabs this deployment shows. A tab with a `when` waits on it. */
+const tabs = () => TABS.filter(t => !t.when || t.when());
 
-// Currencies are held in stock like anything else, so they undo, export
-// and sync for free -- but they are kept out of the item grid, which is
-// for things with recipes and sources.
-const CROW_COIN = 'Crow Coin';
-const SILVER = 'Silver';
+// The four a phone gets at the thumb; the rest live behind "Menu".
+const THUMB_TABS = ['plan', 'inventory', 'map', 'quests'];
 
-// Sangpyeong Coins are money too, even though they sit in your bags like a
-// material: they buy Finely Polished Pine Plywood, which the Panokseon
-// wants 300 of and each Byukgye's part another 50 -- thousands of coins in
-// a build, earned from Moodle Village dailies rather than bought. It stays
-// in the item grid as well, since where it comes from is worth reading.
-const SANGPYEONG = 'Sangpyeong Coin';
+/**
+ * Everything that is not a section, in the one menu the app has. The
+ * verbs a wide screen keeps in the masthead come first, so that on a
+ * phone -- where the masthead holds only Undo and the account -- they
+ * are the first thing in the sheet; the rest are the settings and the
+ * doors that used to sit behind "More". A `when` keeps an item to the
+ * deployments and accounts it is for; a `label` that is a function
+ * says the current state, for the toggles.
+ */
+const MENU = [
+	{ group: 'Do', items: [
+		{ act: 'jump', icon: '⌕', label: 'Find', hint: 'an item or a section · Ctrl+K' },
+		{ act: 'trip-log', icon: '＋', label: 'Log a trip', hint: 'everything a trip brought back, as one change' },
+		{ act: 'undo', icon: '↶', label: 'Undo', hint: () => (store.canUndo() ? store.lastChange().label : 'nothing to undo') },
+		{ act: 'redo', icon: '↷', label: 'Redo', hint: () => (store.canRedo() ? store.nextRedo().label : 'nothing to redo') }
+	] },
+	{ group: 'Your save', items: [
+		{ act: 'profiles', icon: '👤', label: 'Profiles', hint: 'separate saves on this browser' },
+		{ act: 'export', icon: '⇪', label: 'Export', hint: 'a file, or a link' },
+		{ act: 'import', icon: '⇩', label: 'Import', hint: 'a file saved from here' },
+		{ act: 'reset', icon: '✕', label: 'Start fresh', hint: 'clears everything, one Undo away', danger: true }
+	] },
+	{ group: 'Help', items: [
+		{ act: 'whats-new', icon: '✦', label: 'What’s new', hint: 'what arrived since you were last here' },
+		{ act: 'help', icon: '?', label: 'Help', hint: 'the film, the data’s dates' },
+		{ act: 'tables', icon: '▤', label: 'Enhancement tables', hint: 'the seven tables, lit at your stack' },
+		{ act: 'tour', icon: '➤', label: 'Tour', hint: 'a walk through your own screen' },
+		{ act: 'feedback', icon: '✎', label: 'Feedback', hint: 'something wrong, or something you want' },
+		{ act: 'inbox', icon: '✉', label: 'Feedback inbox', hint: 'what people have written in', when: () => Boolean(me() && me().admin) }
+	] },
+	{ group: 'The page', items: [
+		{ act: 'theme', icon: '◐', label: () => `Theme: ${store.getSetting('theme', 'dark')}`, hint: 'dark, light, or as the system has it', keep: true },
+		{ act: 'water', icon: '≈', label: () => `Water ${store.getSetting('water', false) === true ? 'on' : 'off'}`, hint: 'the shader behind the page', keep: true }
+	] }
+];
 
-// Everything an enhancement attempt burns other than the part itself --
-// derived from the recipes, so a new stone in a future update shows up in
-// the pouch without anyone editing this file.
-const STONES = (() => {
-	const set = new Set();
-	for (const [product, recipe] of Object.entries(recipes)) {
-		const made = parseEnhanced(product);
-		if (made.level === 0) continue;
-		for (const item of Object.keys(recipe)) {
-			if (parseEnhanced(item).base === made.base) continue;
-			set.add(item);
-		}
-	}
-	return [...set];
-})();
+/* Everything that answers by going somewhere else. Chosen inside a
+   dialog, the dialog has done its job and gets out of the way -- the
+   item card's "Show the barterers on the map" used to leave the card
+   standing over the map it had just drawn. */
+const NAV_ACTS = new Set(['view', 'open-item', 'goto-map', 'goto-quests', 'goto-tree', 'goto-workshop', 'goto-get', 'quest-map']);
 
-let view = 'plan';
-let query = '';
-let planFilter = 'all';
-let invFilter = 'all';
-let treeTarget = null;
-const folded = new Set();
-let selected = null;
-let snapshot = null;
-let rows = {};
-let barterData = null;
 let water = null;
-let toastTimer = null;
+// Debounces the search box; showView cancels it so a stale query cannot
+// repaint the next tab. Declared here because both need it.
+let queryTimer = null;
+// Each tab keeps the search typed on it, so coming back finds it as left.
+const queries = {};
+// And where it was scrolled to: a tab left half-way down a long list
+// comes back there, not at the top. Kept for the session only.
+const scrolls = {};
+let scrollBack = null;   // the position the next render puts back, if any
 
-/* ------------------------------------------------------------------ *
- * helpers
- * ------------------------------------------------------------------ */
-
-const esc = s => String(s).replace(/[&<>"']/g, c =>
-	({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-
-const F = n => Math.round(n).toLocaleString();
-
-// Silver runs to ten figures; a pouch chip has no room for that.
-/**
- * Read a quantity the way a player would write one: "1.5b", "400m",
- * "12,000". Returns null for anything that is not a number at all, so a
- * typo leaves the stored value alone.
- */
-function parseAmount(raw) {
-	const t = String(raw).trim().toLowerCase().replace(/[\s,_]/g, '');
-	if (!t) return 0;
-	const m = t.match(/^([0-9]*\.?[0-9]+)([kmb])?$/);
-	if (!m) return null;
-	const mult = { k: 1e3, m: 1e6, b: 1e9 }[m[2]] || 1;
-	return Math.max(0, Math.round(Number(m[1]) * mult));
+/** Note where this tab was left, and ask for the next one's place back. */
+function leaveScroll(from, to) {
+	scrolls[from] = window.scrollY || 0;
+	scrollBack = scrolls[to] || 0;
 }
 
-/**
- * Any quantity in the app that you can set is one of these: type into it
- * directly ("4k", "12,000") or nudge it with the buttons beside it.
- */
-const amountInput = (cls, value, attrs) =>
-	`<input class="amt ${cls}" type="text" inputmode="numeric" autocomplete="off" value="${F(value)}" ${attrs}>`;
-
-const FC = n => n >= 1e9
-	? `${(n / 1e9).toFixed(2).replace(/\.?0+$/, '')}b`
-	: n >= 1e6
-		? `${(n / 1e6).toFixed(1).replace(/\.0$/, '')}m`
-		: F(n);
-
-function iconSrc(name) {
-	let info = null;
-	try {
-		info = iconLoader.getIconInfo(name) || iconLoader.getIconInfo(parseEnhanced(name).base);
-	} catch {
-		info = null;
-	}
-	return info && info.filename ? `icons/${info.filename}` : 'icon.png';
-}
-
-const img = (name, cls = 'row-icon') =>
-	`<img class="${cls}" src="${esc(iconSrc(name))}" alt="" loading="lazy">`;
 
 /**
- * BDOCodex has a page for every item in the game, and the icon mapping
- * already carries the URL beside the picture -- so linking a name to the
- * game's own reference costs nothing but the anchor. An enhancement
- * level shares its base item's page, which is where the level table
- * lives anyway.
+ * The phone's section bar. Nine tabs will not fit a thumb's reach, and
+ * a row that scrolls sideways hides whatever is past the edge -- people
+ * did not know the rest were there. So four sit in the bar and the last
+ * slot opens a sheet with every one of them, named and counted. Where
+ * the standing tab is not one of the four, that slot becomes it, so the
+ * bar always says where you are.
  */
-function codexUrl(item) {
-	let info = null;
-	try {
-		info = iconLoader.getIconInfo(item) || iconLoader.getIconInfo(parseEnhanced(item).base);
-	} catch {
-		info = null;
-	}
-	return info && info.url ? info.url : null;
+function paintTabBar(counts) {
+	const bar = document.getElementById('tabbar');
+	if (!bar) return;
+	const cell = (t, extra = '') => `<button class="tabbar-btn${view === t.id ? ' active' : ''}${extra}"
+		data-act="view" data-id="${t.id}" aria-current="${view === t.id}" title="${t.label}">
+		<span class="tabbar-icon" aria-hidden="true">${t.icon}</span><span class="tabbar-label">${t.label}</span>
+		${counts[t.id] ? `<span class="tabbar-count">${counts[t.id]}</span>` : ''}</button>`;
+	const four = THUMB_TABS.map(id => TABS.find(t => t.id === id)).filter(Boolean);
+	const here = tabs().find(t => t.id === view);
+	// The standing tab always has a seat: an odd one takes the last of
+	// the four rather than hiding behind "Menu".
+	const seats = four.some(t => t.id === view) || !here ? four : [...four.slice(0, 3), here];
+	const rest = tabs().filter(t => !seats.some(s => s.id === t.id));
+	const waiting = rest.reduce((n, t) => n + (counts[t.id] || 0), 0);
+	bar.innerHTML = seats.map(t => cell(t)).join('')
+		+ `<button class="tabbar-btn all" data-act="tab-sheet" aria-haspopup="dialog" title="Every section, and everything else">
+			<span class="tabbar-icon" aria-hidden="true">☰</span><span class="tabbar-label">Menu</span>
+			${waiting ? `<span class="tabbar-count">${waiting}</span>` : ''}</button>`;
+	measureTabBar();
 }
 
 /**
- * An item's name, linked to its BDOCodex page. Falls back to plain text
- * for anything the mapping has never heard of, so a name is never
- * missing just because a link is.
+ * Publish the tab bar's height.
+ *
+ * The bar is fixed to the bottom edge and belongs to the page, not to
+ * the shell -- and .shell carries a stacking context of its own, so
+ * nothing inside it can be raised over the bar however high its
+ * z-index. The inventory sheet's last line went under it. Now the sheet
+ * is told where the bar begins and stops there.
  */
-function codexName(item, text = item) {
-	const url = codexUrl(item);
-	if (!url) return esc(text);
-	return `<a class="codex" href="${esc(url)}" target="_blank" rel="noopener noreferrer" data-codex
-		title="Look up ${esc(item)} on BDOCodex">${esc(text)}<span class="codex-mark" aria-hidden="true">\u2197</span></a>`;
-}
-
-function allItems() {
-	const set = new Set();
-	for (const [product, recipe] of Object.entries(recipes)) {
-		set.add(product);
-		Object.keys(recipe).forEach(i => set.add(i));
-	}
-	Object.keys(vendorItems).forEach(i => set.add(i));
-	Object.keys(coins).forEach(i => set.add(i));
-	return [...set];
-}
-
-function buildableItems() {
-	const shipSet = new Set(shipGroups.flatMap(g => g.items));
-	return Object.keys(recipes)
-		.filter(n => !/^\+\d+\s/.test(n))
-		.sort((a, b) => (shipSet.has(a) ? 0 : 1) - (shipSet.has(b) ? 0 : 1) || a.localeCompare(b));
+function measureTabBar() {
+	const bar = document.getElementById('tabbar');
+	if (!bar) return;
+	const h = getComputedStyle(bar).display === 'none' ? 0 : bar.offsetHeight;
+	document.documentElement.style.setProperty('--tabbar-h', `${h}px`);
+	// And the dock's, so what sticks under it -- the pouch -- knows
+	// where the top of the page really is.
+	const dock = document.getElementById('tabs');
+	const d = dock && getComputedStyle(dock).display !== 'none' ? dock.offsetHeight : 0;
+	document.documentElement.style.setProperty('--dock-h', `${d}px`);
 }
 
 /**
- * One ingredient, with how many the recipe wants and how many you hold.
- * Shared by the hover card and the inventory detail panel so the two can
- * never drift apart.
+ * The menu: every section, named, counted and grouped the way the dock
+ * groups them, and then everything else the app can do. One sheet for
+ * every screen -- the thumb bar's last slot on a phone, the masthead's
+ * Menu on a wide one, M on the keyboard -- so nothing is behind a
+ * second menu anywhere. On a wide screen it stands as a drawer at the
+ * right edge; on a phone it is the sheet at the thumb.
  */
-function ingredientLine(name, per, cls = 'peek-line') {
-	const have = store.getStock(name);
-	return `<div class="${cls} ${have >= per ? 'ok' : 'short'}">
-		${img(name, 'peek-icon')}
-		<span class="peek-need">${F(per)}×</span>
-		<span class="peek-name">${codexName(name)}</span>
-		<span class="peek-have">${F(have)}</span>
-	</div>`;
-}
-
-/**
- * The price lists the cost model works from. `recipes` is the resolved
- * book, so a Caravel priced here is the Caravel by the route the player
- * actually chose.
- */
-const costCtx = () => ({ coins, silver: falasi, recipes, strategy: store.getAllStrategy() });
-
-/**
- * A cost said out loud. Coins and silver stay apart -- the game will not
- * trade one for the other -- and anything the data cannot price is named
- * rather than quietly counted as free.
- */
-function costText(cost, times = 1) {
-	const bits = [];
-	if (cost.coins) bits.push(`${FC(Math.round(cost.coins * times))} coins`);
-	if (cost.silver) bits.push(`${FC(Math.round(cost.silver * times))} silver`);
-	const needs = Object.entries(cost.needs);
-	const listed = needs.slice(0, 2);
-	for (const [item, qty] of listed) bits.push(`${F(Math.ceil(qty * times))}\u00d7 ${item}`);
-	const rest = needs.length - listed.length;
-	return (bits.join(' + ') || 'nothing') + (rest > 0 ? `, and ${rest} more` : '');
-}
-
-/**
- * What goes into a thing: its recipe, or -- for an enhancement level --
- * the part and the stones one attempt costs. Returns '' for a raw
- * material, which has nothing to show.
- */
-function makeupHTML(item, cls = 'peek-line') {
-	const { base, level } = parseEnhanced(item);
-	if (level > 0) {
-		const step = enhanceStep(base, level);
-		if (!step) return '';
-		return `<div class="peek-label">+${level - 1} → +${level}, per attempt</div>`
-			+ ingredientLine(step.from, 1, cls)
-			+ Object.entries(step.stones).map(([n, q]) => ingredientLine(n, q, cls)).join('');
-	}
-	const recipe = recipes[item];
-	if (!recipe) return '';
-	return '<div class="peek-label">Made from</div>'
-		+ Object.entries(recipe).map(([n, q]) => ingredientLine(n, q, cls)).join('');
-}
-
-const MAKE_KEYS = new Set(['craft', 'Crafting', 'Processing']);
-
-/** The hover card: what it is made of, or where it comes from. */
-function peekHTML(item) {
-	const body = makeupHTML(item);
-	const src = sourceOf(item);
-
-	// The shop price is already on the source line; what is not written
-	// anywhere in the game is what one costs once its ingredients are
-	// priced too, all the way down. That is the number worth showing.
-	const made = waysToGet(item, costCtx()).routes.find(r => r.parts);
-	const price = made && (made.coins || made.silver || outstanding(made))
-		? `<div class="peek-cost">${esc(made.kind === 'enhance' ? 'One success' : 'Making one')}: ${esc(costText(made))}</div>`
+function openTabSheet() {
+	const counts = lastCounts;
+	const group = (id, title, note) => `<div class="sheet-head">${title} <span class="sheet-note">${note}</span></div>
+		<div class="sheet-grid">${tabs().filter(t => t.group === id).map(t => `
+			<button class="sheet-tab${view === t.id ? ' active' : ''}" data-act="view" data-id="${t.id}" aria-current="${view === t.id}">
+				<span class="sheet-icon" aria-hidden="true">${t.icon}</span>
+				<span class="sheet-name">${t.label}</span>
+				${counts[t.id] ? `<span class="sheet-count">${counts[t.id]}</span>` : ''}
+			</button>`).join('')}</div>`;
+	const text = v => (typeof v === 'function' ? v() : v);
+	const items = MENU.map(g => {
+		const list = g.items.filter(i => !i.when || i.when());
+		if (!list.length) return '';
+		return `<div class="sheet-head">${esc(g.group)}</div>
+			<div class="sheet-list">${list.map(i => `
+				<button class="sheet-item${i.danger ? ' danger' : ''}" data-act="${i.act}"${(i.act === 'undo' && !store.canUndo()) || (i.act === 'redo' && !store.canRedo()) ? ' disabled' : ''}>
+					<span class="sheet-item-icon" aria-hidden="true">${i.icon}</span>
+					<span class="sheet-item-text"><span>${esc(text(i.label))}</span><small>${esc(text(i.hint))}</small></span>
+				</button>`).join('')}</div>`;
+	}).join('');
+	const who = me();
+	const account = feature('sync')
+		? `<div class="sheet-head">Account</div><div class="sheet-list">${who
+			? `<button class="sheet-item" data-act="account"><span class="sheet-item-icon" aria-hidden="true">●</span><span class="sheet-item-text"><span>${esc(who.username)}</span><small>synced to your Discord account · sync now, sign out, delete</small></span></button>`
+			: '<button class="sheet-item" data-act="signin"><span class="sheet-item-icon" aria-hidden="true">○</span><span class="sheet-item-text"><span>Sign in with Discord</span><small>the same inventory on every device, and a place on the boards</small></span></button>'}</div>`
 		: '';
-
-	// With the ingredients already listed, a crafting source is a place,
-	// not an alternative -- only a shop or a drop is an "or".
-	let foot = '';
-	if (src && !body) foot = `${src.label} · ${src.detail}`;
-	else if (src && MAKE_KEYS.has(src.key)) foot = src.key === 'craft' ? '' : src.detail;
-	else if (src) foot = `or ${src.label} · ${src.detail}`;
-
-	if (!body && !foot && !price) return '';
-	return `<div class="peek-head">${img(item, 'peek-icon lg')}<span>${esc(item)}</span></div>`
-		+ body
-		+ price
-		+ (foot ? `<div class="peek-foot">${esc(foot)}</div>` : '');
-}
-
-/** Where an item comes from, and what it costs. */
-function sourceOf(item) {
-	if (coins[item]) return { key: 'coin', label: SOURCE_LABEL.coin, detail: `${F(coins[item])} Crow Coins each`, coins: coins[item] };
-	if (falasi[item]) return { key: 'falasi', label: SOURCE_LABEL.falasi, detail: `${F(falasi[item])} silver each`, silver: falasi[item] };
-	const methods = vendorItems[item];
-	if (methods) {
-		const key = Object.keys(methods)[0];
-		return { key, label: SOURCE_LABEL[key] || key, detail: (methods[key] || []).join(', ') };
-	}
-	if (recipes[item]) return { key: 'craft', label: 'Crafted', detail: 'made from other materials' };
-	return null;
-}
-
-/** An item is a choice only when it can both be made and be bought. */
-function hasBuyOption(item) {
-	if (!recipes[item]) return false;
-	if (coins[item] || falasi[item]) return true;
-	const m = vendorItems[item];
-	return !!(m && (m.Purchase || m.Market));
-}
-
-function toast(message, undoable = false) {
-	const el = document.getElementById('toast');
-	el.innerHTML = `<span>${esc(message)}</span>` +
-		(undoable ? '<button type="button" data-act="undo">Undo</button>' : '');
-	el.hidden = false;
-	clearTimeout(toastTimer);
-	toastTimer = setTimeout(() => { el.hidden = true; }, 3600);
-}
-
-/* ------------------------------------------------------------------ *
- * planning
- * ------------------------------------------------------------------ */
-
-function recompute() {
-	recipes = resolveRoutes(store.getAllStrategy(), allRecipes);
-	snapshot = plan({
-		stock: store.getAllStock(),
-		targets: store.getTargets(),
-		strategy: store.getAllStrategy()
-	});
-
-	// Collapse every build's requirement tree into one row per item.
-	//
-	// Enhancement chains are folded away: a "+10 part" pulls in +9, +8 … +1
-	// and the base item, which would otherwise fill the plan with ten rows
-	// per part. Only the level a build actually asks for is kept -- the
-	// steps in between belong to the Workshop. The base part and the stones
-	// still appear, because those are things you have to go and get.
-	rows = {};
-	for (const target of snapshot.targets) {
-		const walk = (node, root) => {
-			const here = parseEnhanced(node.item);
-			const from = node.via ? parseEnhanced(node.via) : null;
-			const midChain = here.level > 0 && from && from.level > 0 && from.base === here.base;
-
-			if (!midChain) {
-				const r = rows[node.item] || (rows[node.item] = { need: 0, take: 0, craft: 0, short: 0 });
-				r.need += node.need;
-				r.take += node.fromStock;
-				r.craft += node.toCraft;
-				r.short += node.missing;
-				// The thing you queued is the goal, not a material for it.
-				if (root) r.isTarget = true;
-			}
-			node.children.forEach(child => walk(child, false));
-		};
-		walk(target.tree, true);
-	}
-	for (const [item, holders] of Object.entries(snapshot.reservedBy)) {
-		if (rows[item]) rows[item].resv = holders;
-	}
-}
-
-const readyCrafts = () =>
-	craftableNow(store.getAllStock(), snapshot.toCraft, recipes)
-		.filter(c => parseEnhanced(c.item).level === 0);
-
-function totalsToGo() {
-	let c = 0;
-	let s = 0;
-	for (const [item, qty] of Object.entries(snapshot.missing)) {
-		if (coins[item]) c += coins[item] * qty;
-		if (falasi[item]) s += falasi[item] * qty;
-	}
-	return { coins: c, silver: s, lines: Object.keys(snapshot.missing).length };
-}
-
-/* ------------------------------------------------------------------ *
- * Plan
- * ------------------------------------------------------------------ */
-
-function renderPlan() {
-	const totals = totalsToGo();
-	const ready = readyCrafts();
-
-	let need = 0;
-	let have = 0;
-	for (const r of Object.values(rows)) {
-		need += r.need;
-		have += r.need - r.short;
-	}
-	const pct = need ? Math.round((have / need) * 100) : 0;
-
-	// What the money costs is on the pouch, right above these -- To Get
-	// carries the exact breakdown -- so it is not repeated here.
-	const stats = [
-		{ k: 'Fleet progress', v: `${pct}%`, sub: 'of all required units covered', cls: 'teal' },
-		{ k: 'Units covered', v: `${F(have)} / ${F(need)}`, sub: 'across every active build', cls: '' },
-		{ k: 'Still missing', v: F(totals.lines), sub: 'materials with nothing behind them', cls: totals.lines ? 'amber' : 'teal' },
-		{ k: 'Craftable now', v: F(ready.length), sub: 'recipes ready from stock', cls: ready.length ? 'teal' : 'off' }
-	];
-
-	const statHTML = `<div class="stats">${stats.map(s => `
-		<div class="stat">
-			<div class="stat-k">${esc(s.k)}</div>
-			<div class="stat-v ${s.cls}">${esc(s.v)}</div>
-			<div class="stat-sub">${esc(s.sub)}</div>
-		</div>`).join('')}</div>`;
-
-	const readyHTML = ready.length ? `<div class="readybar">
-		<div class="readybar-label">Ready to craft</div>
-		<div class="readybar-list">${ready.slice(0, 8).map(c => `
-			<button class="ready-chip" data-act="craft" data-item="${esc(c.item)}" data-times="1" data-peek="${esc(c.item)}" title="Craft one now">
-				${img(c.item, '')}${F(c.suggested)}× ${esc(c.item)}
-			</button>`).join('')}</div>
-	</div>` : '';
-
-	const filters = [
-		['all', 'Everything'], ['short', 'Missing only'], ['craft', 'To craft'], ['done', 'Covered']
-	].map(([id, label]) =>
-		`<button class="chip ${planFilter === id ? 'active' : ''}" data-act="plan-filter" data-id="${id}">${label}</button>`
-	).join('');
-
-	const q = query.toLowerCase();
-	const entries = Object.entries(rows)
-		.filter(([item]) => !q || item.toLowerCase().includes(q))
-		.map(([item, r]) => ({ item, r, covered: r.short === 0 && r.craft === 0 }));
-
-	const groupsDef = [
-		['What you are building', 'the queued items themselves — everything below feeds these', 'blue',
-			p => p.r.isTarget, 'target'],
-		['Missing', 'buy, barter, gather or hunt these', 'red', p => !p.r.isTarget && p.r.short > 0, 'short'],
-		['To craft', 'recipes standing between you and done', 'blue',
-			p => !p.r.isTarget && p.r.short === 0 && p.r.craft > 0, 'craft'],
-		['Covered', 'fully reserved from stock', 'teal', p => !p.r.isTarget && p.covered, 'done']
-	];
-
-	const groups = groupsDef
-		.filter(([, , , , id]) => planFilter === 'all' || planFilter === id)
-		.map(([title, sub, col, pred]) => {
-			const list = entries.filter(pred).sort((a, b) => b.r.short - a.r.short || b.r.need - a.r.need);
-			return { title, sub: `${list.length} · ${sub}`, col, list };
-		})
-		.filter(g => g.list.length);
-
-	if (!groups.length) {
-		const nothingQueued = !store.getActiveTargets().length;
-		return statHTML + readyHTML + (nothingQueued ? '' : controlsHTML(filters)) +
-			(nothingQueued
-				? startHere()
-				: '<div class="panel"><p class="empty">Nothing matches that filter.</p></div>');
-	}
-
-	const groupHTML = groups.map(g => `<div class="panel">
-		<div class="panel-head">
-			<h2 class="panel-title ${g.col}">${esc(g.title)}</h2>
-			<span class="panel-sub">${esc(g.sub)}</span>
+	// Two halves, so a wide screen -- whose dock already shows the
+	// sections -- can put the verbs first and the sections after.
+	const host = openDialog(`<h2>Menu</h2>
+		<div class="sheet-sections">
+		${group('yard', 'The yard', 'planning and making')}
+		${group('sea', 'The sea', 'the day itself')}
+		${tabs().some(t => t.group === 'harbour') ? group('harbour', 'The harbour', 'the other sailors') : ''}
 		</div>
-		${g.list.map(({ item, r, covered }) => planRow(item, r, covered)).join('')}
-	</div>`).join('');
-
-	return nextStep() + statHTML + readyHTML + controlsHTML(filters) + groupHTML;
+		<div class="sheet-rest">${items}${account}</div>
+		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`);
+	host.firstElementChild.classList.add('menu-sheet');
+	// The standing section takes the focus, so the keyboard lands where
+	// the eye does; the sheet's own Close is not what anyone came for.
+	const here = isPhone() ? host.querySelector('.sheet-tab.active') || host.querySelector('.sheet-tab') : host.querySelector('.sheet-item:not(:disabled)');
+	if (here) here.focus({ preventScroll: true });
 }
 
-/**
- * The pouch: coins, silver, Sangpyeong Coins and enhancement stones, on
- * every tab.
- *
- * These are spent from wherever you happen to be -- buying on To Get,
- * enhancing in the Workshop -- so they sit in the shell above the tabs
- * instead of belonging to one screen. Everything past the two headline
- * currencies only appears once a build needs it or you hold some, so the
- * bar stays short.
- */
-function pouchHTML() {
-	const totals = totalsToGo();
-
-	const entries = [
-		{ item: CROW_COIN, label: 'Crow Coins', need: totals.coins, where: "Crow Coin Shop, Oquilla's Eye" },
-		{ item: SILVER, label: 'Silver', need: totals.silver, where: 'Falasi, port of Epheria', glyph: '\u25C9' }
-	];
-
-	// Coins and stones are earned or dropped, not priced, so they join the
-	// bar only once a build wants them or you are holding some -- that way
-	// a Carrack plan never carries a Panokseon currency it has no use for.
-	const carried = (item, label, where) => {
-		const need = rows[item] ? rows[item].need : 0;
-		return { item, label, need, where };
-	};
-
-	const optional = [carried(SANGPYEONG, 'Sangpyeong Coins', 'Moodle Village dailies')];
-	STONES.forEach(item => optional.push(carried(item, item, 'spent on enhancement attempts')));
-
-	optional
-		.filter(e => e.need > 0 || store.getStock(e.item) > 0)
-		.sort((a, b) => b.need - a.need || a.label.localeCompare(b.label))
-		.forEach(e => entries.push(e));
-
-	const chips = entries.map(e => {
-		const held = store.getStock(e.item);
-		const short = Math.max(0, e.need - held);
-		const state = !e.need ? 'idle' : short ? 'short' : 'ok';
-		const sub = !e.need
-			? 'none needed yet'
-			: short
-				? `${FC(short)} short of ${FC(e.need)}`
-				: `enough for all ${FC(e.need)}`;
-		return `<label class="pouch-item ${state}" title="${esc(e.item)} \u2014 ${esc(e.where)}">
-			${e.glyph ? `<span class="pouch-glyph" aria-hidden="true">${e.glyph}</span>` : img(e.item, 'pouch-icon')}
-			<span class="pouch-body">
-				<span class="pouch-k">${esc(e.label)}</span>
-				<input class="pouch-input" type="text" inputmode="numeric" value="${F(held)}"
-					data-act="purse" data-item="${esc(e.item)}" aria-label="${esc(e.label)} you hold">
-				<span class="pouch-need">${esc(sub)}</span>
-			</span>
-		</label>`;
-	}).join('');
-
-	return `<span class="pouch-title">Carrying</span><div class="pouch-list">${chips}</div>`;
-}
-
-/**
- * Repaint the pouch -- but never while someone is typing in it. A state
- * change re-renders everything, and swapping the inputs out mid-edit would
- * steal the caret; the blur handler in wire() paints the pending update.
- */
-function paintPouch() {
-	const host = document.getElementById('pouch');
-	if (!host) return;
-	if (host.contains(document.activeElement)) return;
-	host.innerHTML = pouchHTML();
-	measurePouch();
-}
-
-/**
- * Publish the pouch's height so anything else that sticks (the inventory
- * detail panel) can clear it instead of sliding underneath.
- */
-function measurePouch() {
-	const host = document.getElementById('pouch');
-	if (!host) return;
-	const h = getComputedStyle(host).position === 'sticky' ? host.offsetHeight : 0;
-	document.documentElement.style.setProperty('--pouch-h', `${h}px`);
-}
-
-/** One concrete thing to do next, based on where the plan actually stands. */
-function nextStep() {
-	if (!store.getActiveTargets().length) return '';
-
-	const ready = readyCrafts();
-	const pending = pendingEnhancements().filter(e => !e.blocked);
-	const shortCount = Object.keys(snapshot.missing).length;
-
-	let msg;
-	let cta = null;
-	if (ready.length) {
-		msg = `You can craft ${ready.length === 1 ? ready[0].item : `${ready.length} recipes`} right now.`;
-		cta = ['Open Workshop', 'workshop'];
-	} else if (pending.length) {
-		msg = `${pending.length} enhancement ${pending.length === 1 ? 'attempt is' : 'attempts are'} affordable.`;
-		cta = ['Open Workshop', 'workshop'];
-	} else if (shortCount) {
-		msg = `Nothing to make yet — ${shortCount} ${shortCount === 1 ? 'item is' : 'items are'} still missing. Record what you gather in the boxes below.`;
-		cta = ['See the shopping list', 'get'];
-	} else {
-		msg = 'Everything your builds need is on hand.';
-	}
-
-	return `<div class="next-step">
-		<span class="next-label">Next</span>
-		<span class="next-msg">${esc(msg)}</span>
-		${cta ? `<button class="act quiet next-cta" data-act="view" data-id="${cta[1]}">${esc(cta[0])}</button>` : ''}
-	</div>`;
-}
-
-/** The loop to follow, for anyone opening the tracker for the first time. */
-function startHere() {
-	const steps = [
-		['Queue what you want to build', 'A ship, a Chiro part, or a stack of materials. Order them by what you want finished first.', 'Add a build', 'builds'],
-		['Say what you already own', 'Set quantities here on the Plan with the − number + box on each row, or from the Inventory grid.', 'Open Inventory', 'inventory'],
-		['Work the list', 'Whatever is left shows as Missing. The Workshop makes anything you have the materials for, and handles enhancing.', 'Open Workshop', 'workshop'],
-		['Take the shopping list with you', 'To Get groups everything outstanding by how you actually obtain it, with Crow Coin and silver totals.', 'Open To Get', 'get']
-	];
-	return `<div class="panel start-here">
-		<div class="panel-head">
-			<h2 class="panel-title plain">How this works</h2>
-			<span class="panel-sub">Four steps, then it is just keeping the numbers current</span>
-		</div>
-		<ol class="steps">${steps.map(([title, body, cta, view], i) => `
-			<li class="step">
-				<span class="step-n">${i + 1}</span>
-				<div>
-					<div class="step-title">${esc(title)}</div>
-					<div class="step-body">${esc(body)}</div>
-				</div>
-				<button class="act quiet step-cta" data-act="view" data-id="${view}">${esc(cta)}</button>
-			</li>`).join('')}</ol>
-	</div>`;
-}
-
-function controlsHTML(filters) {
-	return `<div class="controls">
-		<input class="field" type="search" placeholder="Search materials…" value="${esc(query)}" data-act="query">
-		<div class="chips">${filters}</div>
-	</div>`;
-}
-
-function planRow(item, r, covered) {
-	const total = r.need || 1;
-	const segs = [];
-	if (r.take) segs.push(`<i class="take" style="width:${(r.take / total) * 100}%"></i>`);
-	if (r.craft) segs.push(`<i class="make" style="width:${(r.craft / total) * 100}%"></i>`);
-	if (r.short) segs.push(`<i class="lack" style="width:${(r.short / total) * 100}%"></i>`);
-
-	const legend = [];
-	if (r.take) legend.push(`${F(r.take)} from stock`);
-	if (r.craft) legend.push(`${F(r.craft)} to craft`);
-	if (r.short) legend.push(`${F(r.short)} missing`);
-
-	const enhanced = parseEnhanced(item).level > 0;
-	const who = (r.resv || []).slice(0, 2)
-		.map(v => (v.via && v.via !== item ? `${v.targetItem}, via ${v.via}` : v.targetItem));
-	const src = sourceOf(item);
-	let sub = who.length ? `reserved for ${who.join(' · ')}` : (src ? src.label : 'intermediate craft');
-	if (enhanced) sub = 'enhanced in the Workshop';
-	// Goes first, ahead of the reservation text -- the sub line is
-	// ellipsised, and otherwise a craftable material sitting in Missing
-	// looks like a bug rather than a choice.
-	if (!enhanced && recipes[item] && store.getStrategy(item) === 'buy') {
-		sub = `buying rather than crafting · ${sub}`;
-	}
-
-	// "craftable" means the materials are on hand *now* -- not merely that
-	// the plan has a recipe lined up for it. The two used to be conflated,
-	// which is how the Plan could badge seven rows craftable while the
-	// Workshop said nothing could be made.
-	const can = !enhanced && recipes[item] && r.craft > 0 && maxCraftable(item, store.getAllStock(), recipes) >= 1;
-	const badge = covered
-		? 'covered'
-		: r.short > 0
-			? `${F(r.short)} short`
-			: enhanced
-				? 'to enhance'
-				: can ? 'craftable now' : 'to craft';
-	const badgeCls = covered ? 'teal' : r.short > 0 ? 'red' : can ? 'teal' : 'blue';
-	const own = store.getStock(item);
-
-	return `<div class="row" data-peek="${esc(item)}">
-		${img(item)}
-		<div class="row-main">
-			<div class="row-name">${codexName(item)}</div>
-			<div class="row-sub">${esc(sub)}</div>
-		</div>
-		<div class="row-meter">
-			<div class="bar">${segs.join('')}</div>
-			<div class="bar-legend">
-				<span>${esc(legend.join(' · '))}</span>
-				<span class="n">${F(own)} / ${F(r.need)}</span>
-			</div>
-		</div>
-		<div class="row-tail">
-			<span class="own" title="How many you own">
-				<button class="sq-btn" data-act="own" data-item="${esc(item)}" data-delta="-1" aria-label="One fewer">−</button>
-				${amountInput('own-input', own, `data-act="own-set" data-item="${esc(item)}" aria-label="How many ${esc(item)} you own"`)}
-				<button class="sq-btn" data-act="own" data-item="${esc(item)}" data-delta="1" aria-label="One more">+</button>
-			</span>
-			<span class="badge ${badgeCls}">${esc(badge)}</span>
-			${can ? `<button class="mini-btn" data-act="craft" data-item="${esc(item)}" data-times="1">Craft</button>` : ''}
-		</div>
-	</div>`;
-}
-
-/* ------------------------------------------------------------------ *
- * Builds
- * ------------------------------------------------------------------ */
-
-function renderBuilds() {
-	const targets = store.getTargets();
-	const byId = new Map(snapshot.targets.map(t => [t.id, t]));
-
-	const head = `<div class="queue-head">
-		<span class="queue-title">Build queue</span>
-		<span class="queue-note">Scarce stock goes to the build nearest the top</span>
-		<span class="panel-spacer"></span>
-		<button class="act add-build" data-act="add-build">+ Add a build</button>
-	</div>`;
-
-	const list = targets.length ? targets.map((t, i) => {
-		const r = byId.get(t.id);
-		const pct = r ? r.progress : 0;
-		const state = !t.active ? 'paused' : pct >= 100 ? 'done' : '';
-		const stateLabel = !t.active ? 'Paused' : pct >= 100 ? 'Ready' : 'In progress';
-		const units = r
-			? (r.missingUnits > 0 ? `${F(r.missingUnits)} of ${F(r.totalUnits)} units still needed` : 'everything on hand')
-			: '';
-		return `<div class="build ${t.active ? '' : 'paused'}" data-target="${esc(t.id)}">
-			${img(t.item, 'row-icon lg')}
-			<div class="build-main">
-				<div class="build-titles">
-					<span class="build-name">${codexName(t.item)}</span>
-					<span class="build-state ${state}">${stateLabel}</span>
-				</div>
-				<div class="bar tall"><i class="fill" style="width:${pct.toFixed(1)}%"></i></div>
-				<div class="build-meta">Priority ${i + 1} · <span class="n">${pct.toFixed(1)}%</span> · ${esc(units)}${routeNote(t.item)}</div>
-				${(() => {
-					// The bill for finishing this one: every leaf its tree
-					// could neither cover from stock nor make, priced the
-					// way the plan will actually get it.
-					if (!r || r.missingUnits <= 0) return '';
-					const left = remainingCost(r.tree, costCtx());
-					return `<div class="build-cost">Still to get: ${esc(costText(left))}</div>`;
-				})()}
-			</div>
-			<div class="build-actions">
-				<button class="sq-btn" data-act="move" data-dir="-1" title="Raise priority" ${i === 0 ? 'disabled' : ''}>▲</button>
-				<button class="sq-btn" data-act="move" data-dir="1" title="Lower priority" ${i === targets.length - 1 ? 'disabled' : ''}>▼</button>
-				<span class="stepper">
-					<button data-act="qty" data-delta="-1" aria-label="Fewer">−</button>
-					${amountInput('val', t.qty, `data-act="target-qty" data-target="${esc(t.id)}" aria-label="How many to build"`)}
-					<button data-act="qty" data-delta="1" aria-label="More">+</button>
-				</span>
-				<button class="sq-btn" data-act="pause" title="Pause or resume">${t.active ? '⏸' : '▶'}</button>
-				<button class="sq-btn danger" data-act="remove" title="Remove">×</button>
-			</div>
-		</div>`;
-	}).join('') : '<div class="panel"><p class="empty">Nothing queued yet. Add a ship or a part above and the rest follows from it.</p></div>';
-
-	const blockers = bottlenecks(snapshot, 5);
-	const blockHTML = blockers.length ? `<div class="panel">
-		<div class="panel-head">
-			<h2 class="panel-title amber">Biggest blockers</h2>
-			<span class="panel-sub">Missing items holding up the queue</span>
-		</div>
-		${blockers.map(b => `<div class="row">
-			${img(b.item, 'row-icon md')}
-			<div class="row-main">
-				<div class="row-name">${codexName(b.item)}</div>
-				<div class="row-sub">blocks ${esc(b.targets.join(', '))}</div>
-			</div>
-			<span class="qty-out">${F(b.qty)} short</span>
-		</div>`).join('')}
-	</div>` : '';
-
-	return head + list + blockHTML;
-}
-
-/* ------------------------------------------------------------------ *
- * Inventory
- * ------------------------------------------------------------------ */
-
-/**
- * A ship part and its ten enhancement levels are one thing you own, not
- * eleven. These roll them up: the grid shows one tile per part, and the
- * detail panel is where you pick which level you actually have.
- */
-const isEnhanceable = base => !!recipes[`+1 ${base}`];
-
-/** The base name for anything in an enhancement family. */
-function familyOf(item) {
-	const { base } = parseEnhanced(item);
-	return isEnhanceable(base) ? base : item;
-}
-
-const familyLevels = base =>
-	[base, ...Array.from({ length: 10 }, (_, i) => enhancedName(base, i + 1))];
-
-/** Everything the grid needs about one part, summed over its levels. */
-function familyStats(base) {
-	const stock = store.getAllStock();
-	let own = 0;
-	let reserved = 0;
-	let short = 0;
-	let top = 0;
-	for (const level of familyLevels(base)) {
-		const here = stock[level] || 0;
-		own += here;
-		reserved += snapshot.reserved[level] || 0;
-		short += rows[level] ? rows[level].short : 0;
-		if (here > 0) top = parseEnhanced(level).level;
-	}
-	return { own, reserved, short, top, at: enhancedName(base, top) };
-}
-
-function renderInventory() {
-	const stock = store.getAllStock();
-	const q = query.toLowerCase();
-	const searching = q.length > 0;
-
-	const list = allItems().filter(item => {
-		if (searching) return item.toLowerCase().includes(q);
-		const r = rows[item];
-		if (invFilter === 'owned') return (stock[item] || 0) > 0;
-		if (invFilter === 'needed') return !!r && r.need > 0;
-		if (invFilter === 'short') return !!r && r.short > 0;
-		if (invFilter === 'free') return (snapshot.free[item] || 0) > 0;
-		return (stock[item] || 0) > 0 || (r && r.need > 0);
-	}).sort((a, b) => ((rows[b] && rows[b].short) || 0) - ((rows[a] && rows[a].short) || 0) || a.localeCompare(b));
-
-	const filters = [
-		['all', 'In play'], ['needed', 'Needed'], ['short', 'Short'], ['owned', 'Owned'], ['free', 'Free']
-	].map(([id, label]) =>
-		`<button class="chip ${invFilter === id ? 'active' : ''}" data-act="inv-filter" data-id="${id}">${label}</button>`
-	).join('');
-
-	// Collapse each enhancement family to a single tile. A search for
-	// "toro" used to return forty-four tiles -- eleven levels of four
-	// parts -- which is not a useful way to look at four parts.
-	const seen = new Set();
-	const shown = [];
-	for (const item of list) {
-		const key = familyOf(item);
-		if (seen.has(key)) continue;
-		seen.add(key);
-		shown.push(key);
-	}
-
-	const tiles = shown.map(key => {
-		const family = isEnhanceable(key);
-		const stats = family
-			? familyStats(key)
-			: {
-				own: stock[key] || 0,
-				reserved: snapshot.reserved[key] || 0,
-				short: rows[key] ? rows[key].short : 0,
-				top: 0,
-				at: key
-			};
-		const free = Math.max(0, stats.own - stats.reserved);
-		const denom = Math.max(stats.own, 1);
-		const open = stats.at;   // clicking lands on the level you hold
-		const isOpen = family ? familyOf(selected || '') === key : selected === key;
-		return `<button class="tile ${stats.short > 0 ? 'short' : ''} ${isOpen ? 'selected' : ''}" data-act="select" data-item="${esc(open)}" data-peek="${esc(stats.at)}" title="${esc(key)}">
-			${img(stats.at, '')}
-			${family && stats.top > 0 ? `<span class="tile-lvl">+${stats.top}</span>` : ''}
-			<span class="tile-qty">${F(stats.own)}</span>
-			<span class="tile-name">${esc(key)}</span>
-			<span class="bar">
-				<i class="make" style="width:${(stats.reserved / denom) * 100}%"></i>
-				<i class="take" style="width:${(free / denom) * 100}%"></i>
-			</span>
-		</button>`;
-	}).join('');
-
-	return `<div class="inv-layout">
-		<div class="inv-left">
-			<div class="controls">
-				<input class="field" type="search" placeholder="Search items…" value="${esc(query)}" data-act="query">
-				<div class="chips">${filters}</div>
-			</div>
-			${shown.length
-				? `<div class="inv-grid">${tiles}</div>`
-				: `<div class="panel"><p class="empty">${searching ? 'Nothing matches that search.' : 'Nothing here yet — add a build, or switch to Owned to record what you have.'}</p></div>`}
-		</div>
-		${selected ? '<div class="detail-veil" data-act="deselect" aria-hidden="true"></div>' : ''}
-		<aside class="detail ${selected ? 'open' : ''}">${renderDetail()}</aside>
-	</div>`;
-}
-
-/**
- * Every way of getting the item, priced.
- *
- * The point is the comparison. A Crow Coin shop price is one line in the
- * game already; what the game never tells you is what the same thing
- * costs to make once its ingredients are priced too, recursively, and
- * what that route still leaves you to go and barter for. Both are shown,
- * per unit and against what you are actually short of, and neither is
- * called the right answer unless it beats the other outright.
- */
-function waysBlock(item) {
-	const { routes, best } = waysToGet(item, costCtx());
-	if (!routes.length) return '';
-
-	const short = rows[item] ? Math.ceil(rows[item].short) : 0;
-	const mode = store.getStrategy(item);
-	const inPlan = r => (r.kind === 'coin' || r.kind === 'silver' ? mode === 'buy' : mode !== 'buy');
-
-	const lines = routes.map(r => {
-		const on = routes.length > 1 && hasBuyOption(item) && inPlan(r);
-		// Where each ingredient is coming from, so the total is not a
-		// number you have to take on faith.
-		const via = (r.parts || [])
-			.filter(p => p.via)
-			.map(p => `${F(p.qty)}\u00d7 ${p.item} from ${p.via}`)
-			.join(' \u00b7 ');
-		return `<div class="way ${on ? 'on' : ''}">
-			<div class="way-top">
-				<span class="way-label">${esc(r.label)}</span>
-				${best === r ? '<span class="badge teal">cheapest</span>' : ''}
-				${on ? '<span class="way-tag">in the plan</span>' : ''}
-			</div>
-			<div class="way-cost">${esc(costText(r))} <span class="way-unit">each</span></div>
-			${short > 1 ? `<div class="way-total">${F(short)} short \u2192 ${esc(costText(r, short))}</div>` : ''}
-			${via ? `<div class="way-parts">${esc(via)}</div>` : ''}
-		</div>`;
-	}).join('');
-
-	return `<div class="detail-block">
-		<div class="detail-label">${routes.length > 1 ? 'Ways to get it' : 'What it costs'}</div>
-		${lines}
-	</div>`;
-}
-
-function renderDetail() {
-	if (!selected) {
-		return '<p class="empty">Select an item to see who reserved it and where to get more.</p>';
-	}
-
-	const item = selected;
-	const own = store.getStock(item);
-	const reserved = snapshot.reserved[item] || 0;
-	const free = Math.max(0, own - reserved);
-	const r = rows[item];
-	const short = r ? r.short : 0;
-	const holders = snapshot.reservedBy[item] || [];
-	// An enhancement level is not crafted, it is attempted -- so it gets
-	// the Workshop, not a Craft button and a "made from other materials".
-	const { base, level } = parseEnhanced(item);
-	const step = level > 0 ? enhanceStep(base, level) : null;
-	const src = step ? null : sourceOf(item);
-	const canCraft = !!recipes[item] && !step;
-	const most = canCraft ? maxCraftable(item, store.getAllStock(), recipes) : 0;
-
-	const resvHTML = holders.length ? `<div class="detail-block">
-		<div class="detail-label">Reserved by</div>
-		${holders.map(h => `<div class="detail-line">
-			<span>${esc(h.via && h.via !== item ? `${h.targetItem}, via ${h.via}` : h.targetItem)}</span>
-			<span class="n">${F(h.qty)}</span>
-		</div>`).join('')}
-	</div>` : '';
-
-	const mode = store.getStrategy(item);
-	const toggle = hasBuyOption(item) ? `<div class="detail-block">
-		<div class="detail-label">How you'll get it</div>
-		<div class="detail-actions">
-			<button class="act ${mode === 'craft' ? '' : 'quiet'}" data-act="strategy" data-mode="craft">Craft it</button>
-			<button class="act ${mode === 'buy' ? '' : 'quiet'}" data-act="strategy" data-mode="buy">Buy it</button>
-		</div>
-	</div>` : '';
-
-	return `<div class="detail-head">
-			${img(item, '')}
-			<div class="detail-name">${codexName(item)}</div>
-			<button class="detail-close" data-act="deselect" title="Close (Esc)" aria-label="Close">×</button>
-		</div>
-		${levelPicker(item)}
-		<div class="qty-row">
-			<button class="qty-btn" data-act="bump" data-delta="-10">−10</button>
-			<button class="qty-btn" data-act="bump" data-delta="-1">−</button>
-			${amountInput('qty-val', own, `data-act="own-set" data-item="${esc(item)}" aria-label="How many you own"`)}
-			<button class="qty-btn" data-act="bump" data-delta="1">+</button>
-			<button class="qty-btn" data-act="bump" data-delta="10">+10</button>
-		</div>
-		<div class="qty-hint">Type the number straight in — 4k and 12,000 both work.</div>
-		${moveLevelAction(item)}
-		<div class="kv">
-			<div class="kv-row"><span>Reserved</span><span class="n blue">${F(reserved)}</span></div>
-			<div class="kv-row"><span>Free</span><span class="n teal">${F(free)}</span></div>
-			<div class="kv-row"><span>Still short</span><span class="n ${short > 0 ? 'red' : 'faint'}">${short > 0 ? F(short) : '—'}</span></div>
-		</div>
-		${(() => {
-			const made = makeupHTML(item, 'ing-line');
-			return made ? `<div class="detail-block">${made}</div>` : '';
-		})()}
-		${resvHTML}
-		${src && src.key !== 'coin' && src.key !== 'falasi'
-			? `<div class="detail-src"><span>${esc(src.label)}</span><span>${esc(src.detail)}</span></div>`
-			: ''}
-		${waysBlock(item)}
-		${step ? '<button class="act quiet wide" data-act="view" data-id="workshop">Attempt it in the Workshop</button>' : ''}
-		${toggle}
-		${canCraft ? `<div class="detail-actions">
-			<button class="act" data-act="craft" data-item="${esc(item)}" data-times="1" ${most < 1 ? 'disabled' : ''}>Craft 1</button>
-			<button class="act quiet" data-act="craft" data-item="${esc(item)}" data-times="${most}" ${most < 1 ? 'disabled' : ''}>Craft max (${F(most)})</button>
-		</div>` : ''}`;
-}
-
-/**
- * The eleven levels of an enhanceable part, as a strip you can click
- * through. This is how you tell the app about a part you already
- * levelled in game: pick the level, put the count in. No stones are
- * spent -- the Workshop is for attempts you are actually making.
- */
-function levelPicker(item) {
-	const base = parseEnhanced(item).base;
-	if (!isEnhanceable(base)) return '';
-
-	const stock = store.getAllStock();
-	const here = parseEnhanced(item).level;
-	const chips = familyLevels(base).map(name => {
-		const level = parseEnhanced(name).level;
-		const qty = stock[name] || 0;
-		const need = rows[name] ? rows[name].need : 0;
-		return `<button class="lvl ${level === here ? 'on' : ''} ${qty ? 'has' : ''} ${need ? 'wanted' : ''}"
-			data-act="select" data-item="${esc(name)}"
-			title="${esc(name)}${need ? ` — a build needs ${F(need)}` : ''}">
-			+${level}${qty ? `<span class="lvl-n">${F(qty)}</span>` : ''}
-		</button>`;
-	}).join('');
-
-	return `<div class="detail-block">
-		<div class="detail-label">Which level do you have?</div>
-		<div class="lvl-strip">${chips}</div>
-		<div class="detail-note">Recording a level here costs nothing. The Workshop is for attempts you are really making.</div>
-	</div>`;
-}
-
-/**
- * Offer to move a part you hold at another level onto the one you are
- * looking at, so "I took it to +7 in game" is one click rather than two
- * edits that can leave a phantom part behind.
- */
-function moveLevelAction(item) {
-	const { base, level } = parseEnhanced(item);
-	if (!isEnhanceable(base)) return '';
-	if (store.getStock(item) > 0) return '';
-
-	const stock = store.getAllStock();
-	const from = familyLevels(base)
-		.filter(name => name !== item && (stock[name] || 0) > 0)
-		.pop();
-	if (!from) return '';
-
-	return `<button class="act quiet wide" data-act="move-level" data-from="${esc(from)}" data-to="${esc(item)}">
-		Move one from +${parseEnhanced(from).level} to +${level}
-	</button>`;
-}
-
-/* ------------------------------------------------------------------ *
- * Tree
- * ------------------------------------------------------------------ */
-
-/**
- * The requirement tree, as the planner already built it.
- *
- * The Plan flattens every build into one row per material, which is the
- * right shape for "what do I still need" and the wrong one for "why does
- * it need that". This is the same data unflattened: a Carrack sits above
- * its Caravel, which sits above its Sailboat, with the materials of each
- * hanging off the step that wants them -- so the upgrade path you chose
- * is something you can see rather than infer.
- */
-function nodeState(node) {
-	if (node.missing > 0) return 'missing';
-	if (node.toCraft > 0) return parseEnhanced(node.item).level > 0 ? 'enhance' : 'make';
-	return 'covered';
-}
-
-const STATE_WORD = {
-	missing: 'missing',
-	make: 'to craft',
-	enhance: 'to enhance',
-	covered: 'covered'
+/** Is the menu the dialog standing right now? */
+const menuOpen = () => {
+	const host = document.getElementById('dialog');
+	return Boolean(host && !host.hidden && host.querySelector('.menu-sheet'));
 };
 
-/** Depth-first, carrying enough about ancestors to draw the guide lines. */
-function walkTree(node, rows, depth = 0, path = '', trail = []) {
-	const id = `${path}/${node.item}`;
-	const kids = node.children || [];
-	rows.push({ node, depth, id, trail: [...trail], kids: kids.length });
-	if (!kids.length || folded.has(id)) return rows;
-	kids.forEach((kid, i) => walkTree(kid, rows, depth + 1, id, [...trail, i === kids.length - 1]));
-	return rows;
-}
-
-/** Mid-chain enhancement steps are folded to start with: a +10 pulling in
- *  +9 pulling in +8 is ten rows that all say the same thing. */
-function foldChains(node, path = '') {
-	const id = `${path}/${node.item}`;
-	const here = parseEnhanced(node.item);
-	if (here.level > 1 && node.children.some(k => parseEnhanced(k.item).base === here.base)) {
-		folded.add(id);
-	}
-	node.children.forEach(kid => foldChains(kid, id));
-}
-
-let chainsFolded = false;
-
-function renderTree() {
-	const targets = snapshot.targets;
-	if (!targets.length) return startHere();
-
-	if (!chainsFolded) {
-		targets.forEach(t => foldChains(t.tree));
-		chainsFolded = true;
-	}
-	const current = targets.find(t => t.item === treeTarget) || targets[0];
-
-	// One control, not a wrapping row of them. Seven builds turned the
-	// chips into six rows on a phone before any of the tree was visible,
-	// and the row grows without bound as the queue does.
-	const picker = `<button class="tpick" data-act="tree-pick">
-		${img(current.item, 'tchip-icon')}
-		<span class="tpick-name">${esc(current.item)}</span>
-		<span class="tpick-of">${targets.indexOf(current) + 1} of ${targets.length}</span>
-		<span class="tpick-caret" aria-hidden="true">▾</span>
-	</button>`;
-
-	const rows = walkTree(current.tree, []).map(row => {
-		const { node, depth, id, trail, kids } = row;
-		const state = nodeState(node);
-		const own = store.getStock(node.item);
-		const guides = trail.map(last =>
-			`<span class="tguide ${last ? 'stop' : ''}"></span>`).join('') +
-			(depth ? '<span class="tguide elbow"></span>' : '');
-
-		const bits = [];
-		if (node.fromStock) bits.push(`${F(node.fromStock)} from stock`);
-		if (node.toCraft) bits.push(`${F(node.toCraft)} ${parseEnhanced(node.item).level > 0 ? 'to enhance' : 'to craft'}`);
-		if (node.missing) bits.push(`${F(node.missing)} missing`);
-
-		return `<div class="trow ${state}" style="--depth:${depth}">
-			${guides}
-			${kids
-				? `<button class="tcaret" data-act="tree-fold" data-id="${esc(id)}">${folded.has(id) ? '+' : '−'}</button>`
-				: '<span class="tcaret empty"></span>'}
-			${img(node.item, 'trow-icon')}
-			<span class="trow-main">
-				<span class="trow-name">${codexName(node.item)}</span>
-				<span class="trow-sub">${esc(bits.join(' · ') || 'nothing needed')}</span>
-			</span>
-			<span class="trow-need">${F(node.need)}</span>
-			<span class="trow-own">${F(own)} held</span>
-			<span class="badge ${state === 'missing' ? 'red' : state === 'covered' ? 'teal' : 'blue'}">${STATE_WORD[state]}</span>
-		</div>`;
-	}).join('');
-
-	return `<div class="tbar">
-			${picker}
-			<span class="panel-spacer"></span>
-			<button class="ghost-btn" data-act="tree-all">Expand all</button>
-			<button class="ghost-btn" data-act="tree-none">Collapse</button>
-		</div>
-		<div class="panel tpanel">${rows}</div>
-		<div class="tlegend">
-			<span><i class="dot teal"></i>covered from stock</span>
-			<span><i class="dot blue"></i>to craft or enhance</span>
-			<span><i class="dot red"></i>still missing</span>
-		</div>`;
-}
-
-/** Which build's tree to look at. A list rather than a row of chips, so
- *  it costs the same whether you have two builds queued or twenty. */
-function pickTreeTarget() {
-	const targets = snapshot.targets;
-	const current = targets.find(t => t.item === treeTarget) || targets[0];
-	openDialog(`
-		<h2>Which build</h2>
-		<div class="picker">${targets.map(t => `
-			<button type="button" class="picker-row ${t === current ? 'on' : ''}"
-				data-act="tree-target" data-item="${esc(t.item)}">
-				${img(t.item, 'row-icon sm')}
-				<span class="picker-name">${esc(t.item)}</span>
-				<span class="picker-tag">${Math.round(t.progress)}%</span>
-			</button>`).join('')}</div>
-		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>
-	`);
-}
-
-/* ------------------------------------------------------------------ *
- * Workshop
- * ------------------------------------------------------------------ */
-
-/**
- * Every part worth an enhancement attempt: the ones a build is waiting
- * on, and anything enhanceable already sitting in your inventory --
- * because a part you levelled for its own sake is still a part you want
- * to take further.
- */
-/** The odds on this single attempt, and when the pity meter fills. */
-function odds(e) {
-	const s = e.step1 && e.step1.steps[0];
-	if (!s || s.chance >= 1) return '';
-	const pct = s.chance < 0.01 ? (s.chance * 100).toFixed(1) : Math.round(s.chance * 100);
-	return `<span class="enh-odds">${pct}% · certain after ${s.agris} fails</span>`;
-}
-
-/**
- * What the rest of the climb costs. The recipe only ever describes one
- * successful attempt per level, which for a Chiro part is out by more
- * than tenfold -- so say what it will really take, and what it cannot
- * exceed.
- */
-function outlook(e) {
-	const f = e.forecast;
-	if (!f || e.next >= e.want) return '';
-	return `<span class="enh-outlook" title="Expected cost of every attempt from +${e.have} to +${e.want}, and the most it can possibly take">
-		to +${e.want}: <b>${F(f.expected)}</b> expected · ${F(f.ceiling)} at worst
-	</span>`;
-}
-
-/**
- * Which way round to build something that can be reached two ways.
- *
- * The Caravel takes either an Epheria Sailboat or an Improved one, and
- * the Galleass either Frigate. bdocodex lists both with the same
- * materials, so the step is the same either way -- what differs is
- * whether you build the Improved first, which is a whole upgrade of its
- * own and wants four more Epheria: Old parts.
- *
- * Neither is presented as the right answer. What each costs is shown,
- * and the choice is the user's.
- */
-function routeOptions(item) {
-	const variants = routes[item];
-	if (!variants) return '';
-	const chosen = routeOf(item, store.getAllStrategy());
-	const info = routeInfo[item] || {};
-	const stock = store.getAllStock();
-
-	return Object.keys(variants).map(name => {
-		const meta = info[name] || {};
-		const on = name === chosen;
-		// What this route asks for beyond the step they share, priced from
-		// nothing so the two are comparable.
-		const cost = planOne(item, 1, {}, { ...store.getAllStrategy(), [item]: name });
-		const units = Object.values(cost.missing).reduce((a, b) => a + b, 0);
-		const held = (stock[meta.via] || 0) > 0;
-		return `<button class="route ${on ? 'on' : ''}" data-act="route" data-item="${esc(item)}" data-route="${esc(name)}">
-			<span class="route-head">
-				<span class="route-name">${esc(meta.label || name)}</span>
-				${held ? '<span class="route-have">you have one</span>' : ''}
-			</span>
-			<span class="route-cost">${F(units)} units of material in total</span>
-			${meta.gains ? `<span class="route-gain">${esc(meta.gains)}</span>` : ''}
-		</button>`;
-	}).join('');
-}
-
-/** " · via the Improved Epheria Sailboat — change", on a build that has
- *  more than one way in. */
-function routeNote(item) {
-	if (!routes[item]) return '';
-	const chosen = routeOf(item, store.getAllStrategy());
-	const meta = (routeInfo[item] || {})[chosen] || {};
-	return ` · via <b>${esc(meta.via || chosen)}</b>` +
-		` <button class="linky" data-act="ask-route" data-item="${esc(item)}">change</button>`;
-}
-
-/** The choice, as its own dialog -- asked when a build is queued, and
- *  reachable again from the build afterwards. */
-function askRoute(item, { onPick } = {}) {
-	const host = openDialog(`
-		<h2>${esc(item)}</h2>
-		<p>There are two ways to build this one. Pick either — you can change your mind later from the build.</p>
-		<div class="route-list">${routeOptions(item)}</div>
-		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>
-	`);
-	host.querySelectorAll('[data-act="route"]').forEach(btn => {
-		btn.addEventListener('click', () => {
-			store.setStrategy(item, btn.dataset.route);
-			closeDialog();
-			if (onPick) onPick(btn.dataset.route);
-		});
-	});
-	return host;
-}
-
-/** " -- Crow Coin Shop", when we know where a part comes from. */
-function whereFrom(item) {
-	const src = sourceOf(item);
-	return src ? ` — ${src.label}` : '';
-}
-
-function pendingEnhancements() {
-	const stock = store.getAllStock();
-	const targets = new Map();
-
-	// Levels a build is asking for.
-	for (const item of Object.keys(snapshot.toCraft)) {
-		const { level, base } = parseEnhanced(item);
-		if (level > 0) {
-			targets.set(base, { want: Math.max(targets.get(base)?.want || 0, level), forBuild: true });
-		}
-	}
-
-	// Anything enhanceable you hold, whether or not a build wants it yet.
-	for (const item of Object.keys(stock)) {
-		const { base } = parseEnhanced(item);
-		if (!recipes[`+1 ${base}`]) continue;
-		if (!targets.has(base)) targets.set(base, { want: 10, forBuild: false });
-	}
-
-	const out = [];
-	for (const [base, { want, forBuild }] of targets) {
-		const have = ownedLevel(base, stock);
-		if (have >= want) continue;
-
-		const step = enhanceStep(base, have + 1);
-		if (!step) continue;
-
-		// Yellow gear spends Cron Stones alongside the enhancement stone,
-		// so an attempt costs a list, not one thing.
-		const costs = Object.entries(step.stones);
-		const stoneName = costs[0] ? costs[0][0] : 'Tidal Black Stone';
-		const stoneQty = costs[0] ? costs[0][1] : 0;
-		const affordable = Object.entries(step.stones).every(([st, q]) => (stock[st] || 0) >= q);
-		const holds = (stock[step.from] || 0) > 0;
-
-		out.push({
-			base,
-			have,
-			next: have + 1,
-			want,
-			forecast: enhancementForecast(base, have, want),
-			step1: enhancementForecast(base, have, have + 1),
-			forBuild,
-			costs,
-			stoneName,
-			stoneQty,
-			affordable,
-			holds,
-			blocked: !affordable || !holds,
-			note: !holds
-				? `you do not own ${have > 0 ? `a +${have}` : 'the base'} part yet${whereFrom(step.from)}`
-				: !affordable
-					? `not enough ${stoneName}`
-					: forBuild
-						? `a build needs +${want}`
-						: `yours to enhance · up to +${want}`
-		});
-	}
-
-	// Build-driven work first, then whatever you can actually afford.
-	return out.sort((a, b) =>
-		(b.forBuild - a.forBuild) || (a.blocked - b.blocked) || a.base.localeCompare(b.base));
-}
-
-function renderWorkshop() {
-	const stock = store.getAllStock();
-	const ready = readyCrafts();
-
-	const cards = ready.map(c => {
-		const recipe = recipes[c.item] || {};
-		const ings = Object.entries(recipe).map(([ing, per]) => {
-			const have = stock[ing] || 0;
-			return `<span class="ing ${have < per ? 'short' : ''}" title="${esc(ing)}">
-				${img(ing, '')}${F(have)}/${F(per)}
-			</span>`;
-		}).join('');
-		return `<div class="craft-card" data-peek="${esc(c.item)}">
-			<div class="craft-top">
-				${img(c.item, '')}
-				<div>
-					<div class="craft-name">${codexName(c.item)}</div>
-					<div class="craft-times">×${F(c.possible)} possible now</div>
-				</div>
-			</div>
-			<div class="ings">${ings}</div>
-			<div class="craft-actions">
-				${amountInput('craft-n', 1, `data-act="craft-n" data-item="${esc(c.item)}" aria-label="How many to craft"`)}
-				<button class="act go" data-act="craft" data-item="${esc(c.item)}" data-times="field">Craft</button>
-				<button class="act quiet" data-act="craft" data-item="${esc(c.item)}" data-times="${c.possible}">All ${F(c.possible)}</button>
-			</div>
-		</div>`;
-	}).join('');
-
-	const enhRows = pendingEnhancements().map(e => `
-		<div class="row" data-base="${esc(e.base)}" data-level="${e.next}" data-peek="${esc(enhancedName(e.base, e.next))}" ${e.blocked ? 'style="opacity:.55"' : ''}>
-			${img(enhancedName(e.base, e.have), 'row-icon md')}
-			<div class="row-main">
-				<div class="row-name">${codexName(e.base)}</div>
-				<div class="row-sub" ${e.blocked ? 'style="color:var(--red)"' : ''}>${esc(e.note)}</div>
-			</div>
-			<span class="enh-level">+${e.have} → +${e.next}</span>
-			<span class="enh-cost">${e.costs.map(([n, q]) => `${img(n, '')}×${F(q)}`).join('')}${odds(e)}</span>
-			${outlook(e)}
-			<span class="enh-actions">
-				<button class="pill-btn" data-act="enhance" data-result="success" ${e.blocked ? 'disabled' : ''}>Succeeded</button>
-				<button class="pill-btn bad" data-act="enhance" data-result="fail" ${e.blocked ? 'disabled' : ''}>Failed</button>
-			</span>
-		</div>`).join('');
-
-	return `<div class="panel">
-		<div class="panel-head">
-			<h2 class="panel-title teal">Ready to craft</h2>
-			<span class="panel-sub">Crafting moves real stock: ingredients out, product in</span>
-		</div>
-		${ready.length
-			? `<div class="craft-grid">${cards}</div>`
-			: '<p class="empty">Nothing can be made from what is on hand right now.</p>'}
-	</div>
-	<div class="panel">
-		<div class="panel-head">
-			<h2 class="panel-title">Enhancement</h2>
-			<span class="panel-sub">Everything you own that can go higher. Record what happened — the materials are spent either way. Blue and green parts keep their level on a failure; yellow ones would drop a level, which is what the Cron Stones in the cost are holding</span>
-		</div>
-		${enhRows || '<p class="empty">Nothing in your inventory can be enhanced. Add a ship part and it will show up here.</p>'}
-	</div>`;
-}
-
-/* ------------------------------------------------------------------ *
- * To Get
- * ------------------------------------------------------------------ */
-
-function barterLookup(item) {
-	if (!barterData) return null;
-	const entry = barterData.find(b => b.name === item);
-	if (!entry || !entry.sources || !entry.sources.length) return null;
-	const npcs = [...new Set(entry.sources.map(s => s.npc_name))];
-	const gives = [...new Set(entry.sources.map(s => s.give && s.give.name).filter(Boolean))];
-	return { npcs, gives };
-}
-
-function renderGet() {
-	const totals = totalsToGo();
-	const groups = shoppingList(snapshot.missing, {
-		coins,
-		silver: falasi,
-		acquisition: vendorItems,
-		barter: barterData ? barterLookup : null
-	});
-
-	const purseCoins = store.getStock(CROW_COIN);
-	const purseSilver = store.getStock(SILVER);
-	const coinsShort = Math.max(0, totals.coins - purseCoins);
-	const silverShort = Math.max(0, totals.silver - purseSilver);
-
-	const money = (label, need, held, short, cls, item) => `<div>
-		<div class="summary-k">${esc(label)}</div>
-		<div class="summary-v ${short ? cls : 'teal'}">${F(short)} short</div>
-		<div class="summary-sub">${F(need)} needed · <input class="purse-inline" type="text" inputmode="numeric"
-			value="${F(held)}" data-act="purse" data-item="${esc(item)}" aria-label="${esc(label)} you hold"> held</div>
-	</div>`;
-
-	const summary = `<div class="summary">
-		<span class="summary-title">Still to get</span>
-		<div class="summary-stats">
-			${money('Crow Coins', totals.coins, purseCoins, coinsShort, 'amber', CROW_COIN)}
-			${money('Silver', totals.silver, purseSilver, silverShort, 'blue', SILVER)}
-			<div>
-				<div class="summary-k">Line items</div>
-				<div class="summary-v">${F(totals.lines)}</div>
-				<div class="summary-sub">distinct things to obtain</div>
-			</div>
-		</div>
-		<button class="ghost-btn" data-act="copy">Copy list</button>
-	</div>`;
-
-	if (!groups.length) {
-		return summary + '<div class="panel"><p class="empty">Nothing outstanding — every build has what it needs.</p></div>';
-	}
-
-	const body = groups.map(g => {
-		const total = g.coins ? `${F(g.coins)} coins` : g.silver ? `${F(g.silver)} silver` : `${g.items.length} items`;
-		const col = g.coins ? 'amber' : g.silver ? 'blue' : 'plain';
-		return `<div class="panel">
-			<div class="group-head">
-				<h2 class="panel-title ${col}">${esc(g.key)}</h2>
-				<span class="group-total" style="color:var(--ink-dim)">${esc(total)}</span>
-			</div>
-			${g.items.map(entry => {
-				let sub = entry.unit || entry.detail || '';
-				// The unit price alone leaves the comparison as mental
-				// arithmetic; the line total is the number being decided.
-				if (entry.qty > 1 && entry.coins) sub += ` \u00b7 ${FC(entry.coins)} coins for ${F(entry.qty)}`;
-				else if (entry.qty > 1 && entry.silver) sub += ` \u00b7 ${FC(entry.silver)} silver for ${F(entry.qty)}`;
-				if (entry.barter) {
-					const t = `barter from ${entry.barter.npcs.length} NPCs for ${entry.barter.gives.slice(0, 2).join(' / ')}`;
-					sub = sub ? `${sub} · ${t}` : t;
-				}
-				// The list says where to buy it; the other half of the
-				// decision is what making it would cost instead.
-				const made = waysToGet(entry.item, costCtx()).routes.find(r => r.parts);
-				const alt = made
-					? `<div class="row-alt">or make ${F(entry.qty)}: ${esc(costText(made, entry.qty))}</div>`
-					: '';
-				return `<div class="row" data-peek="${esc(entry.item)}">
-					${img(entry.item, 'row-icon sm')}
-					<div class="row-main">
-						<div class="row-name">${codexName(entry.item)}</div>
-						<div class="row-sub">${esc(sub)}</div>
-						${alt}
-					</div>
-					<span class="qty-out">${F(entry.qty)}</span>
-				</div>`;
-			}).join('')}
-		</div>`;
-	}).join('');
-
-	return summary + body;
-}
-
-function shoppingText() {
-	return Object.entries(snapshot.missing)
-		.filter(([, q]) => q > 0)
-		.sort((a, b) => b[1] - a[1])
-		.map(([item, q]) => `${Math.round(q)}× ${item}`)
-		.join('\n');
-}
-
-/* ------------------------------------------------------------------ *
- * shell
- * ------------------------------------------------------------------ */
+// What the badges said at the last render, for the sheet.
+let lastCounts = {};
 
 export function render() {
 	recompute();
+	// The page says which section it is on, so a stylesheet can make
+	// room where one section needs it -- the chart on a short screen.
+	document.body.dataset.view = view;
+	// Where each build stands today, for the pace -- never the tour's
+	// example numbers.
+	if (!store.isTransient()) recordProgress(snapshot.targets);
 
 	const counts = {
 		builds: store.getTargets().length,
-		inventory: Object.keys(store.getAllStock()).length,
-		workshop: readyCrafts().length,
-		get: Object.keys(snapshot.missing).length
+		// The badge counts what the grid will show: currencies live in the
+		// pouch, so silver alone must not read as one mysterious item.
+		inventory: Object.keys(store.getAllStock())
+			.filter(i => i !== CROW_COIN && i !== SILVER).length,
+		// Anything actionable: a recipe you can make, or an enhancement
+		// attempt you hold the part and the stones for.
+		workshop: readyCrafts().length + pendingEnhancements().filter(e => !e.blocked).length,
+		get: Object.keys(snapshot.missing).length,
+		// The quests that pay in something the plan still wants -- short
+		// of, or still to craft or buy -- and are still to do this period.
+		quests: wantedQuests().filter(q => !questDone(q)).length
 	};
 
-	document.getElementById('tabs').innerHTML = TABS.map(t => `
-		<button class="tab ${view === t.id ? 'active' : ''}" data-act="view" data-id="${t.id}">
-			${t.label}${counts[t.id] ? `<span class="tab-count">${counts[t.id]}</span>` : ''}
+	// A tablist for the keyboard: the active tab is the one Tab stop,
+	// and the arrow keys walk the rest (wired in wire()).
+	// The dock: every section as a cell, the icon over the name, the
+	// count at its corner, the groups told apart by a hairline. The
+	// same cells the phone's thumb bar draws, across the top of a wide
+	// screen instead of the bottom of a narrow one -- and all of them,
+	// so nothing is past an edge.
+	const shown = tabs();
+	document.getElementById('tabs').innerHTML = shown.map((t, i) => `${i > 0 && shown[i - 1].group !== t.group ? '<span class="tab-gap" aria-hidden="true"></span>' : ''}
+		<button class="tab ${view === t.id ? 'active' : ''}" role="tab"
+			aria-selected="${view === t.id}" aria-controls="screen"
+			tabindex="${view === t.id ? 0 : -1}"
+			data-act="view" data-id="${t.id}" id="tab-${t.id}" title="${t.label}${i < 10 ? ` (${(i + 1) % 10})` : ''}">
+			<span class="tab-icon" aria-hidden="true">${t.icon}</span><span class="tab-label">${t.label}</span>${counts[t.id] ? `<span class="tab-count">${counts[t.id]}</span>` : ''}
 		</button>`).join('');
+	// The day's clocks and the ship, in one line, wherever the Plan's
+	// own strip is not on the page.
+	const status = document.getElementById('status');
+	if (status) {
+		const line = view === 'plan' || !store.getActiveTargets().length ? '' : statusLine();
+		status.innerHTML = line;
+		status.hidden = !line;
+	}
+	const screenHost = document.getElementById('screen');
+	if (screenHost) screenHost.setAttribute('aria-labelledby', `tab-${view}`);
 
-	// Only fade the tab row when there is in fact something past the edge.
-	const tabBar = document.getElementById('tabs');
-	tabBar.classList.toggle('scrolls', tabBar.scrollWidth > tabBar.clientWidth + 1);
+	lastCounts = counts;
+	paintTabBar(counts);
 
 	const undoBtn = document.getElementById('undo-btn');
-	if (undoBtn) undoBtn.disabled = !store.canUndo();
+	if (undoBtn) {
+		undoBtn.disabled = !store.canUndo();
+		undoBtn.title = store.canUndo() ? `Undo: ${store.lastChange().label}` : 'Nothing to undo';
+	}
+	const redoBtn = document.getElementById('redo-btn');
+	if (redoBtn) {
+		redoBtn.disabled = !store.canRedo();
+		redoBtn.title = store.canRedo() ? `Redo: ${store.nextRedo().label}` : 'Nothing to redo';
+	}
 
 	paintPouch();
 
@@ -1510,8 +332,31 @@ export function render() {
 	else if (view === 'inventory') root.innerHTML = renderInventory();
 	else if (view === 'tree') root.innerHTML = renderTree();
 	else if (view === 'workshop') root.innerHTML = renderWorkshop();
+	else if (view === 'map') root.innerHTML = renderMap();
+	else if (view === 'barter') root.innerHTML = renderBarter();
+	else if (view === 'crew') root.innerHTML = renderCrew();
+	else if (view === 'quests') root.innerHTML = renderQuests();
+	else if (view === 'community') root.innerHTML = renderCommunity();
 	else root.innerHTML = renderGet();
 	restoreFocus(root, focus);
+	// On a phone the inventory detail is a sheet at the bottom edge, and
+	// a sheet is something a thumb can move: out to the whole screen,
+	// back, or away. Named, so a render -- pressing "+" redraws the
+	// panel -- does not fold it back up under the hand that opened it.
+	const drawer = root.querySelector('.detail.open');
+	if (drawer) attachSheet(drawer, { key: 'inventory', onDismiss: () => { setSelected(null); render(); } });
+	// The map draws itself after the shell exists, since it has to
+	// measure the box it was given before it knows which tiles to ask
+	// for.
+	if (view === 'map') paintMap();
+	tickClocks();
+	syncHash();
+	// The tab just switched to, scrolled back to where it was left.
+	if (scrollBack !== null) {
+		const y = scrollBack;
+		scrollBack = null;
+		window.scrollTo(0, Math.min(y, Math.max(0, document.documentElement.scrollHeight - window.innerHeight)));
+	}
 }
 
 /**
@@ -1521,21 +366,33 @@ export function render() {
  */
 function captureFocus(root) {
 	const el = document.activeElement;
-	if (!el || el.tagName !== 'INPUT' || !root.contains(el) || !el.dataset.act) return null;
+	if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'SELECT')
+		|| !root.contains(el) || !el.dataset.act) return null;
 	const parts = [`[data-act="${el.dataset.act}"]`];
 	if (el.dataset.item) parts.push(`[data-item="${el.dataset.item}"]`);
 	if (el.dataset.target) parts.push(`[data-target="${el.dataset.target}"]`);
-	return { sel: parts.join(''), start: el.selectionStart, end: el.selectionEnd };
+	const sel = parts.join('');
+	// The Tree can show the same item on several branches, so the selector
+	// alone would put the caret back in the first of them. Which occurrence
+	// it was disambiguates.
+	let nth;
+	try {
+		nth = [...root.querySelectorAll(sel)].indexOf(el);
+	} catch {
+		return null;   // an item name that will not survive a selector
+	}
+	return { sel, nth: Math.max(0, nth), start: el.selectionStart, end: el.selectionEnd };
 }
 
 function restoreFocus(root, focus) {
 	if (!focus) return;
-	let next = null;
+	let matches;
 	try {
-		next = root.querySelector(focus.sel);
+		matches = root.querySelectorAll(focus.sel);
 	} catch {
-		return;   // an item name that will not survive a selector
+		return;
 	}
+	const next = matches[focus.nth] || matches[0];
 	if (!next) return;
 	next.focus();
 	try {
@@ -1545,39 +402,188 @@ function restoreFocus(root, focus) {
 	}
 }
 
-function setView(id) {
-	view = id;
-	query = '';
+/**
+ * Put a search on a tab you are not standing on yet.
+ *
+ * showView() takes the tab's remembered query as it arrives, so setting
+ * one has to go through the same store or it is overwritten a line
+ * later. This is how a door into To Get arrives with the item in the
+ * search box.
+ */
+function setQueryFor(id, text) {
+	queries[id] = text;
+}
+
+function showView(id) {
+	// The phone menu, if it was standing open, goes with the old screen.
+	closeBar();
+	// So does a chart standing over the whole screen.
+	if (id !== 'map') exitFull();
+	queries[view] = query;
+	if (id !== view) leaveScroll(view, id);
+	setView(id);
+	setQuery(queries[id] || '');
+	// A search typed on the old tab must not repaint the new one with a
+	// stale query when its debounce fires.
+	clearTimeout(queryTimer);
+	// setSetting notifies, and the render subscription answers -- calling
+	// render() here as well would draw the heaviest path twice per tap.
 	store.setSetting('view', id);
-	render();
+	syncHash();
+	// The button that had focus was just rebuilt; without this, a keyboard
+	// user pressing Enter on a tab lands back at the top of the page.
+	const active = document.querySelector('.tab.active');
+	if (active && document.activeElement === document.body) active.focus({ preventScroll: true });
+	if ((id === 'get' || id === 'map' || id === 'barter') && !barterData) loadBarter();
+}
+
+/**
+ * The address bar names the tab, and the selected item when there is
+ * one, so a place in the app survives a reload and travels in a link.
+ * A tab change is a step Back can retrace; changing the selection within
+ * a tab only rewrites the entry.
+ */
+let applyingHash = false;
+
+function syncHash() {
+	if (applyingHash) return;
+	const want = '#' + view + (view === 'inventory' && selected ? '/' + encodeURIComponent(selected) : '');
+	if (location.hash === want) return;
+	const sameView = (location.hash + '/').startsWith('#' + view + '/') || location.hash === '#' + view;
+	if (sameView) history.replaceState(null, '', want);
+	else location.hash = want;
+}
+
+function applyHash() {
+	const m = location.hash.match(/^#([a-z]+)(?:\/(.*))?$/);
+	// A plan in a link: offered, and the address cleaned so a reload does
+	// not offer it twice.
+	if (m && m[1] === 'share' && m[2]) {
+		const payload = m[2];
+		history.replaceState(null, '', `${location.pathname}${location.search}#plan`);
+		openShared(payload);
+		return true;
+	}
+	// A traced route in a link: onto the chart, and the address cleaned.
+	if (m && m[1] === 'trace' && m[2]) {
+		const payload = m[2];
+		history.replaceState(null, '', `${location.pathname}${location.search}#map`);
+		setView('map');
+		applyTraceLink(payload).then(t => { toast(t ? `Trace from the link: ${t.name || 'untitled'}` : 'That link does not hold a trace'); render(); });
+		return true;
+	}
+	if (m && m[1] === 'ship' && m[2]) {
+		const payload = m[2];
+		history.replaceState(null, '', `${location.pathname}${location.search}#crew`);
+		setView('crew');
+		openSharedShip(payload);
+		return true;
+	}
+	if (!m || !TABS.some(t => t.id === m[1])) return false;
+	applyingHash = true;
+	// The flag is cleared whatever happens below -- a malformed item in
+	// the address (a broken percent-sequence) throws out of the decode,
+	// and a flag left set would freeze the address bar for the session.
+	try {
+		// Back and forward switch screens like a tab press does.
+		closeBar();
+		if (m[1] !== 'map') exitFull();
+		queries[view] = query;
+		if (m[1] !== view) leaveScroll(view, m[1]);
+		setView(m[1]);
+		setQuery(queries[m[1]] || '');
+		if (m[1] === 'inventory') {
+			// A bare #inventory is the grid with nothing open: Back from an
+			// item's address closes the item, as it should.
+			let item = null;
+			if (m[2]) {
+				try { item = decodeURIComponent(m[2]); } catch { item = null; }
+			}
+			setSelected(item);
+		}
+		// A route in a link: plotted, the chart flown to it, and the address
+		// cleaned like every other payload -- a reload of the link would
+		// otherwise stash the route as "Previous" again each time, and the
+		// list of saved routes holds eight.
+		if (m[1] === 'map' && m[2]) {
+			const n = applyMapLink(m[2]);
+			if (n) toast(`Route from the link: ${n} stop${n === 1 ? '' : 's'}`);
+			history.replaceState(null, '', `${location.pathname}${location.search}#map`);
+		}
+		store.setSetting('view', m[1]);
+	} finally {
+		applyingHash = false;
+	}
+	return true;
 }
 
 /**
  * Pull in the barter dataset once, in the background. It is large, so it
  * never blocks a paint -- and loading it up front rather than on entering
  * "To Get" avoids a second render swapping the view out from under you.
+ *
+ * Fetched as JSON rather than imported as a module: it is a megabyte of
+ * pure data, and JSON.parse takes it off the JavaScript compiler's plate.
+ * What the numbers mean, and which patch notes they were read against,
+ * is documented where the dataset is read -- barter.js.
  */
+let barterLoading = null;
+
 async function loadBarter() {
-	if (barterData) return;
+	if (barterData || barterLoading) return;
+	barterLoading = (async () => {
+		// The boards ride with the table: the Barter tab needs both, and
+		// a table without its boards still plans at best.
+		const [table, boards, mats] = await Promise.all([
+			fetch('js/all_barter.json'),
+			fetch('js/barter_combos.json').catch(() => null),
+			fetch('js/material_boards.json').catch(() => null)
+		]);
+		if (!table.ok) throw new Error(String(table.status));
+		setBarterData(await table.json());
+		if (boards && boards.ok) setCombos(await boards.json());
+		if (mats && mats.ok) setMatBoards(await mats.json());
+	})();
 	try {
-		barterData = (await import('./all_barter.js')).shipbarters;
+		await barterLoading;
 	} catch {
-		barterData = [];
+		// Left unset rather than set to [], so opening To Get or the Map
+		// after the network comes back tries again instead of showing an
+		// empty ocean until someone reloads.
+		barterLoading = null;
+		return;
 	}
-	if (view === 'get') render();
+	barterLoading = null;
+	// Barter lines appear on more screens than these two -- the Tree and
+	// the inventory detail draw their buttons from the same data -- so
+	// whichever is up gets the second paint.
+	render();
 }
 
-/* ------------------------------------------------------------------ *
- * water
- * ------------------------------------------------------------------ */
 
-function waterOn() {
+/**
+ * The shader behind the page, fetched the moment it is switched on.
+ *
+ * It is off by default, so a static import made every visitor pay 25 KB
+ * for a canvas most of them never see. Imported here instead, which
+ * costs the people who turn it on one short wait and everybody else
+ * nothing.
+ *
+ * A full-screen animation is also exactly what `prefers-reduced-motion`
+ * is for. The setting still wins if it is set by hand -- it is a
+ * deliberate choice, and refusing to honour it would be its own kind of
+ * rude -- but nothing starts the water on that browser by itself.
+ */
+async function waterOn() {
 	if (water) {
 		water.show();
 		water.play();
 		return;
 	}
 	try {
+		const { default: RealisticWaterRipples } = await import('./realistic-water-ripples.js');
+		// Turned on and off again while the module was in flight.
+		if (store.getSetting('water', false) !== true) return;
 		water = RealisticWaterRipples.create(document.body, {
 			resolution: 512,
 			dropRadius: 30,
@@ -1592,6 +598,12 @@ function waterOn() {
 	}
 }
 
+/** True when the browser has asked for less movement. */
+function wantsStillness() {
+	return typeof window.matchMedia === 'function'
+		&& window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 function waterOff() {
 	if (!water) return;
 	try {
@@ -1602,13 +614,143 @@ function waterOff() {
 	water = null;
 }
 
-function syncWaterButton() {
-	const btn = document.getElementById('water-btn');
-	if (!btn) return;
-	const on = store.getSetting('water', false) === true;
-	btn.textContent = `≈ Water ${on ? 'on' : 'off'}`;
-	btn.classList.toggle('on', on);
+// The dialog's veil blurs the whole viewport, water included, and a
+// blur over a canvas that redraws every frame is a full-screen
+// re-blur every frame. Hold the water still while a dialog is up.
+document.addEventListener('dialog-toggle', evt => {
+	if (!water) return;
+	try {
+		if (evt.detail.open) water.pause();
+		else water.play();
+	} catch { /* the shader is decorative */ }
+});
+
+/* ------------------------------------------------------------------ *
+ * whether the save is reaching the disk
+ * ------------------------------------------------------------------ */
+
+/**
+ * A save that fails is the one thing this app must not be quiet about:
+ * every count typed from then on lives in memory only, and closing the
+ * tab loses it. The store says so once per streak (tracker-save-failed)
+ * and again when a write goes through (tracker-save-ok); a red badge
+ * stands in the masthead for as long as it lasts, with Export in reach.
+ */
+function saveBadge(on, reason = null) {
+	let badge = document.getElementById('save-badge');
+	if (!on) {
+		if (badge) badge.remove();
+		return;
+	}
+	if (!badge) {
+		badge = document.createElement('div');
+		badge.id = 'save-badge';
+		badge.className = 'save-badge';
+		badge.setAttribute('role', 'alert');
+		const head = document.querySelector('.masthead');
+		if (head) head.after(badge); else document.body.prepend(badge);
+	}
+	const why = reason === 'quota' ? 'storage full' : 'storage unavailable';
+	badge.innerHTML = `<span>Not saving — ${why}. What you change now is not kept.</span>
+		<button class="ghost-btn" data-act="export">Export now</button>`;
 }
+
+function wireSaveHealth() {
+	window.addEventListener('tracker-save-failed', evt => {
+		const reason = evt.detail && evt.detail.reason;
+		saveBadge(true, reason);
+		toast(reason === 'quota'
+			? 'This browser will not store any more — export a file before you close the tab'
+			: 'This browser is not keeping the save — export a file before you close the tab');
+	});
+	window.addEventListener('tracker-save-ok', () => saveBadge(false));
+	const health = store.saveHealth();
+	if (!health.ok) saveBadge(true, health.reason);
+	if (health.broken) offerBrokenSave();
+}
+
+/**
+ * The save that could not be read at boot, kept beside the key by the
+ * store. It is offered as a download rather than thrown away: it is
+ * someone's inventory, and a text editor may well get it back.
+ */
+function offerBrokenSave() {
+	const broken = store.brokenSave();
+	if (!broken) return;
+	const host = openDialog(`
+		<h2>A save that could not be read</h2>
+		<p class="dialog-copy">The data this browser had was not valid when the page opened, so the tracker started empty rather than write over it. The unreadable copy is kept — ${F(broken.text.length)} characters of it — and can be downloaded as a file to look at, or to send along with a bug report.</p>
+		<div class="dialog-actions">
+			<button class="act" data-broken-save>Download it</button>
+			<button class="ghost-btn" data-close>Later</button>
+		</div>`);
+	host.querySelector('[data-broken-save]').addEventListener('click', () => {
+		const blob = new Blob([broken.text], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `${broken.key.replace(/[^a-z0-9.-]+/gi, '-')}.json`;
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+		setTimeout(() => URL.revokeObjectURL(url), 1000);
+		closeDialog();
+	});
+}
+
+/* ------------------------------------------------------------------ *
+ * theme
+ * ------------------------------------------------------------------ */
+
+/** The three answers, in the order the button walks them. */
+const THEMES = ['dark', 'light', 'system'];
+const THEME_COLOR = { dark: '#0a1728', light: '#eef3f8' };
+let systemTheme = null;   // the matchMedia for "system", once it is wanted
+
+/** What the page is painted as right now: dark or light. */
+function resolvedTheme() {
+	const t = store.getSetting('theme', 'dark');
+	if (t === 'light' || t === 'dark') return t;
+	return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+/**
+ * Put the chosen theme on <html>. "system" takes the attribute off and
+ * lets the stylesheet's prefers-color-scheme branch decide, and keeps
+ * an ear on it so the address-bar colour follows a change of scheme
+ * while the page is open. The page starts dark in the HTML itself, so
+ * nobody who never chose sees a flash of the other one.
+ */
+function applyTheme() {
+	const t = store.getSetting('theme', 'dark');
+	const root = document.documentElement;
+	if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t);
+	else root.removeAttribute('data-theme');
+	const meta = document.querySelector('meta[name="theme-color"]');
+	if (meta) meta.setAttribute('content', THEME_COLOR[resolvedTheme()]);
+	if (t === 'system' && !systemTheme && typeof window.matchMedia === 'function') {
+		systemTheme = window.matchMedia('(prefers-color-scheme: light)');
+		const follow = () => { if (store.getSetting('theme', 'dark') === 'system') applyTheme(); };
+		if (typeof systemTheme.addEventListener === 'function') systemTheme.addEventListener('change', follow);
+		else systemTheme.addListener(follow);
+	}
+	syncThemeButton();
+}
+
+/** The menu draws the theme from the setting each time it opens. */
+function syncThemeButton() {}
+
+/** The next theme round: dark, light, system, dark. */
+function cycleTheme() {
+	const t = store.getSetting('theme', 'dark');
+	const next = THEMES[(THEMES.indexOf(t) + 1) % THEMES.length];
+	store.setSetting('theme', next, true);
+	applyTheme();
+	toast(next === 'system' ? `Theme follows the system — ${resolvedTheme()} right now` : `Theme: ${next}`);
+}
+
+/** The menu draws the water switch from the setting each time it opens. */
+function syncWaterButton() {}
 
 function toggleWater() {
 	const next = !(store.getSetting('water', false) === true);
@@ -1618,16 +760,48 @@ function toggleWater() {
 	syncWaterButton();
 }
 
-/* ------------------------------------------------------------------ *
- * events
- * ------------------------------------------------------------------ */
 
 function targetIdFrom(el) {
 	const row = el.closest('[data-target]');
 	return row ? row.getAttribute('data-target') : null;
 }
 
+/* The menu, shut if it is the dialog standing. */
+const closeBar = () => {
+	if (menuOpen()) closeDialog();
+};
+
 function wire() {
+	// A styled tip for anything wearing data-tip: the browser's yellow
+	// rectangle reads like a debugger, not like the app. One element,
+	// moved under whatever is pointed at or focused.
+	const tip = document.createElement('div');
+	tip.className = 'app-tip';
+	tip.hidden = true;
+	document.body.appendChild(tip);
+	const showTip = target => {
+		tip.textContent = target.dataset.tip;
+		tip.hidden = false;
+		const w = tip.offsetWidth, h = tip.offsetHeight;
+		const r = target.getBoundingClientRect();
+		const x = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+		const y = r.top - h - 10 >= 4 ? r.top - h - 10 : r.bottom + 10;
+		tip.style.left = `${Math.round(x)}px`;
+		tip.style.top = `${Math.round(y)}px`;
+	};
+	const hideTip = () => { tip.hidden = true; };
+	document.addEventListener('pointerover', evt => {
+		const t = evt.target.closest('[data-tip]');
+		if (t) showTip(t); else if (!tip.hidden) hideTip();
+	});
+	document.addEventListener('focusin', evt => {
+		const t = evt.target.closest('[data-tip]');
+		if (t) showTip(t);
+	});
+	document.addEventListener('focusout', hideTip);
+	document.addEventListener('scroll', hideTip, true);
+	document.addEventListener('pointerdown', hideTip, true);
+
 	document.addEventListener('click', async evt => {
 		// A link out to BDOCodex is the browser's business, not ours --
 		// it must not also select a tile or dismiss a panel on the way.
@@ -1639,71 +813,338 @@ function wire() {
 			// the panel itself is not clicking past anything, so a click
 			// inside it leaves the selection alone.
 			if (view === 'inventory' && selected && !evt.target.closest('.detail')) {
-				selected = null;
+				setSelected(null);
 				render();
 			}
 			return;
 		}
 		const act = el.getAttribute('data-act');
 
-		// Picking something out of the phone menu puts it away again.
-		if (act !== 'menu' && el.closest('.masthead-actions.open')) {
-			document.getElementById('masthead-actions').classList.remove('open');
-			const burger = document.querySelector('[data-act="menu"]');
-			if (burger) burger.setAttribute('aria-expanded', 'false');
+		// Everything the trace panel does answers to the one handler.
+		if (act.startsWith('trace-') && traceAction(act, el)) return;
+		// The Barter tab: a run drawn on the chart goes to the Map; the
+		// rest is the tab's own, redrawn when it says so.
+		if (act === 'barter-chart') {
+			const frag = chartFragment(el);
+			if (!frag) return;
+			// Drawn from the run's sheet, the sheet goes: the chart is the answer.
+			if (el.closest('.dialog')) closeDialog();
+			applyMapLink(frag);
+			showView('map');
+			return;
+		}
+		// Sailing a run is done on the Map: the checklist is kept, the
+		// route drawn on the chart, and the chart's panel becomes the
+		// sheet -- the same rows the run popup had, chart in view.
+		if (act === 'barter-sail') {
+			if (!barterAction(act, el, render)) return;
+			const frag = sailChart();
+			if (el.closest('.dialog')) closeDialog();
+			if (frag) applyMapLink(frag);
+			setMapMode('route');
+			showView('map');
+			return;
+		}
+		// Done ticked on the Map's sheet steps the chart to the next stop.
+		if (act === 'barter-stop-done' && el.closest('.map-run')) {
+			const row = el.closest('.run-stop');
+			const was = barterAction(act, el, render);
+			if (row && !row.classList.contains('done')) mapStepTo(Number(row.dataset.i) + 1);
+			if (was) render();
+			return;
+		}
+		if (act.startsWith('barter-') && act !== 'barter-level') {
+			if (barterAction(act, el, render)) render();
+			return;
 		}
 
+		// Picking anything out of the menu puts it away -- unless the
+		// item is a toggle that is better watched changing, in which
+		// case the sheet is drawn again with the new state on it. What
+		// opens a dialog of its own replaces the sheet anyway.
+		const fromMenu = el.closest('.menu-sheet');
+		const keeps = fromMenu && MENU.some(g => g.items.some(i => i.act === act && i.keep));
+		if (fromMenu && !keeps && act !== 'more') closeDialog();
+
+		// A way through to a screen leaves behind the dialog it was chosen
+		// from: the answer is on the screen now, and the item card that
+		// offered it would otherwise still be standing over the map it
+		// just sent you to.
+		if (NAV_ACTS.has(act) && el.closest('.dialog')) closeDialog();
+
 		switch (act) {
-			case 'view': setView(el.dataset.id); return;
+			case 'view': if (el.dataset.quest) setQuestFocus(el.dataset.quest); showView(el.dataset.id); return;
+			case 'tab-sheet': return openTabSheet();
 			case 'undo': {
 				const label = store.undo();
 				toast(label ? `Reverted: ${label}` : 'Nothing to undo');
 				return;
 			}
-			case 'add-build': return openBuildPicker();
-			case 'export': return doExport();
-			case 'import': return doImport();
-			case 'water': return toggleWater();
-			case 'tour': return startTour();
-			case 'help': return openHelp();
-			case 'signin':
-			case 'account': return openAccount();
-			case 'menu': {
-				// The header's buttons do not fit a phone, so below a certain
-				// width they live behind this and are shown on demand.
-				const bar = document.getElementById('masthead-actions');
-				const open = bar.classList.toggle('open');
-				el.setAttribute('aria-expanded', String(open));
+			case 'redo': {
+				const label = store.redo();
+				toast(label ? `Redone: ${label}` : 'Nothing to redo');
 				return;
 			}
-			case 'plan-filter': planFilter = el.dataset.id; return render();
+			case 'add-build': return openBuildPicker();
+			case 'blockers-all': toggleBlockers(); return render();
+			case 'enh-blocked': toggleBlocked(); return render();
+			case 'open-item': hidePeek(); showView('inventory'); setSelected(el.dataset.item); return render();
+			case 'vell-edit': return openVellDialog();
+			case 'resets-edit': return openResetsDialog();
+			case 'jump': return openJumpPalette();
+			case 'profiles': return openProfiles({ toast });
+			case 'vell-notify': return toggleVellReminder();
+			case 'trip-log': return openTripLog();
+			case 'quest-pay-pick': return questAction(act, el);
+			case 'quest-pay-del': questAction(act, el); return render();
+			case 'stash-del': store.setStash(el.dataset.item, el.dataset.town, null); return;
+			case 'export': return doExport();
+			case 'import': return doImport();
+			case 'reset': return doReset();
+			case 'market-refresh':
+				loadMarket({ force: true }).then(ok => toast(ok ? 'Market prices refreshed' : 'The Market did not answer — showing the last prices it gave'));
+				return;
+			case 'water': toggleWater(); if (keeps) openTabSheet(); return;
+			case 'theme': cycleTheme(); if (keeps) openTabSheet(); return;
+			case 'tour': return startTour();
+			case 'whats-new': return openWhatsNew();
+			case 'help': return openHelp();
+			case 'tables': return openTables(el.dataset.stack ? Number(el.dataset.stack) : null);
+			case 'guide': return openGuide();
+			case 'signin':
+			case 'account': return openAccount();
+			case 'feedback': return import('./feedback.js').then(m => m.openFeedback());
+			case 'inbox': return import('./feedback.js').then(m => m.openInbox());
+			// The masthead's Menu and the thumb bar's are the one sheet;
+			// pressed while it stands, it goes.
+			case 'more': if (menuOpen()) closeDialog(); else openTabSheet(); return;
+			case 'map-zoom': mapZoomStep(Number(el.dataset.step)); return;
+			case 'map-fit': mapFit(); return;
+			case 'map-pin':
+			case 'map-row': {
+				const npc = Number(el.dataset.npc);
+				mapCentreOn(npc);
+				// A pin pressed brings its stop up the sheet.
+				const row = document.querySelector(`.map-run .run-stop[data-npc="${npc}"]`);
+				if (row) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+				return;
+			}
+			case 'map-stash': mapCentreOnStash(Number(el.dataset.i)); return;
+			case 'map-mode': setMapMode(el.dataset.id); return;
+			case 'map-panel': toggleMapPanel(); return;
+			case 'map-stop': toggleMapStop(Number(el.dataset.npc)); return;
+			case 'map-route-use': useSuggestedRoute(); return;
+			case 'map-route-revive': reviveMapRoute(); return render();
+			case 'map-route-reverse': reverseMapRoute(); return;
+			case 'map-route-clear': clearMapRoute(); return;
+			case 'map-route-save': return saveRouteDialog();
+			case 'map-route-load': loadSavedRoute(Number(el.dataset.i)); return;
+			case 'map-route-del': deleteSavedRoute(Number(el.dataset.i)); return;
+			case 'map-route-prev': loadPreviousRoute(); return;
+			case 'map-route-prev-del': deletePreviousRoute(); return;
+			case 'map-ration-cal': return openRationCal();
+			case 'map-rations-call': putRationsCall(Number(el.dataset.k)); return;
+			case 'map-pin-area': pinArea(); return;
+			case 'map-pin-forget': forgetPinned(); return;
+			case 'map-route-trim': trimRouteToParley(); return;
+			case 'map-trades': setTradesMode(el.dataset.id); return;
+			case 'map-measure': toggleMeasure(); return;
+			case 'map-mini': toggleMini(); return;
+			case 'map-full': toggleFull(); return;
+			case 'map-sail-cal': return openSailCal();
+			case 'map-route-link':
+				try {
+					await navigator.clipboard.writeText(routeLink());
+					toast('Route link copied');
+				} catch {
+					toast('Could not reach the clipboard');
+				}
+				return;
+			case 'map-course': setMapCourse(el.dataset.id); return;
+			case 'map-wharves': setMapWharves(el.dataset.id); return;
+			case 'map-habitats': setMapHabitats(); return;
+			case 'map-labels': setMapLabels(); return;
+			case 'map-pins': setMapPins(); return;
+			case 'map-traces': setMapTraces(); return;
+			case 'map-layers': toggleMapLayers(); return;
+			case 'map-setup-pick': openSetupPicker(() => render()); return;
+			case 'map-side-flip': flipMapSide(); return;
+			case 'map-hunt': setMapHunt(el.dataset.id); return;
+			case 'quest-map': showHunt(el.dataset.monster); return showView('map');
+			// An island named on the community boards: the chart, flown there
+			// once it has drawn itself.
+			case 'community-isle': {
+				const npc = Number(el.dataset.npc);
+				if (el.closest('.dialog')) closeDialog();
+				showView('map');
+				setTimeout(() => mapCentreOn(npc), 350);
+				return;
+			}
+			case 'map-route-export': {
+				// A route is a few dozen bytes of ids; a file is how it
+				// reaches a friend, or another optimiser.
+				const blob = new Blob([exportRoute()], { type: 'application/json' });
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = `barter-route-${new Date().toISOString().slice(0, 10)}.json`;
+				document.body.appendChild(a);
+				a.click();
+				a.remove();
+				setTimeout(() => URL.revokeObjectURL(url), 1000);
+				return;
+			}
+			case 'map-route-game': return openGameExport('route');
+			case 'map-game-in': case 'map-game-in-read': case 'map-game-in-file': case 'map-game-in-go':
+				if (await gameImportAction(act, el)) render();
+				return;
+			case 'map-hunt-game': return openGameExport('hunt');
+			case 'map-game': return openGameExport(el.dataset.source);
+			case 'map-game-pick': {
+				try {
+					await pickGameFolder();
+				} catch (err) {
+					if (err && err.name !== 'AbortError') toast(err.message);
+					return;
+				}
+				return openGameExport();
+			}
+			case 'map-game-write': {
+				try {
+					const r = await writeGameFile(gameBookmarks().xml);
+					toast(r.first
+						? `Written — the untouched file is kept as ${r.original}. Load a character and open the map`
+						: `Written — the file as it was is ${r.backup}, the untouched one ${r.original}. Load a character and open the map`);
+				} catch (err) {
+					toast(err.message);
+				}
+				return openGameExport();
+			}
+			case 'map-game-restore': {
+				try {
+					await restoreGameFile();
+					toast('Previous favourites put back');
+				} catch (err) {
+					toast(err.message);
+				}
+				return openGameExport();
+			}
+			case 'map-game-copy': {
+				try {
+					await navigator.clipboard.writeText(gameBookmarks().xml);
+					toast('Copied — paste it over the block in gameVariable.xml');
+				} catch {
+					toast('Could not reach the clipboard');
+				}
+				return;
+			}
+			case 'map-game-save': {
+				// The same block as a file, for a person who would rather
+				// open two editors side by side than trust a clipboard.
+				const blob = new Blob([gameBookmarks().xml], { type: 'application/xml' });
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = `worldmap-favorites-${new Date().toISOString().slice(0, 10)}.xml`;
+				document.body.appendChild(a);
+				a.click();
+				a.remove();
+				setTimeout(() => URL.revokeObjectURL(url), 1000);
+				return;
+			}
+			case 'map-route-import': {
+				const input = document.createElement('input');
+				input.type = 'file';
+				input.accept = 'application/json,.json,application/xml,text/xml,.xml';
+				input.addEventListener('change', async () => {
+					const file = input.files && input.files[0];
+					if (!file) return;
+					try {
+						const r = importRoute(await file.text());
+						if (r.game) return;
+						toast(`Route loaded — ${r.stops} stops${r.dropped ? `, ${r.dropped} not on this chart` : ''}`);
+						render();
+					} catch (err) {
+						toast(err.message);
+					}
+				});
+				input.click();
+				return;
+			}
+			case 'map-done': toggleMapDone(Number(el.dataset.npc)); return;
+			case 'map-tip-close': closeMapTip(); return;
+			case 'map-pick-open': return openMapPicker();
+			case 'map-kind': setMapKind(el.dataset.id); return;
+			case 'map-pick-set': setMapPick(el.dataset.item || null); closeDialog(); return render();
+			case 'map-step-prev': mapStep(-1); return;
+			case 'map-step-next': mapStep(1); return;
+			case 'map-step': mapStepTo(Number(el.dataset.i), el.closest('.map-run') ? true : undefined); return;
+			case 'map-follow': mapFollowToggle(); return;
+			case 'map-next-only': mapNextOnlyToggle(); return;
+			case 'map-port': mapPortClick(Number(el.dataset.port)); return;
+			// Doors out of an item's detail: each opens the screen that
+			// owns that part of the answer with the screen already
+			// pointed at the item, rather than dropping you at the top of
+			// it to find the thing again yourself. ui-bits.waysThrough
+			// draws them; these are what they do.
+			case 'goto-map': mapShowItem(el.dataset.item); showView('map'); return;
+			case 'goto-quests': setQuestPay(el.dataset.item); showView('quests'); return render();
+			case 'goto-tree': {
+				// The Tree unfolds one queued build, so a door into it
+				// carries which build that is -- worked out where the
+				// door was drawn, out of the trees themselves. Searching
+				// for the item keeps the branch leading down to it and
+				// folds the rest away; a build is its own whole tree and
+				// wants no search at all.
+				const build = el.dataset.build || el.dataset.item;
+				setTreeTarget(build);
+				setQueryFor('tree', build === el.dataset.item ? '' : el.dataset.item);
+				showView('tree');
+				return render();
+			}
+			// The Tree, the Workshop and To Get all narrow by the same
+			// search box, so a door into one arrives with the item in it
+			// -- and it is kept as that tab's query, so coming back finds
+			// it as it was left.
+			case 'goto-workshop': setQueryFor('workshop', el.dataset.item); showView('workshop'); return render();
+			case 'goto-get': setQueryFor('get', el.dataset.item); showView('get'); return render();
+			case 'plan-filter': setPlanFilter(el.dataset.id); return render();
 			case 'tree-pick': return pickTreeTarget();
-			case 'tree-target': treeTarget = el.dataset.item; closeDialog(); return render();
+			case 'tree-target': setTreeTarget(el.dataset.item); closeDialog(); return render();
 			case 'tree-fold': {
 				const id = el.dataset.id;
 				if (folded.has(id)) folded.delete(id); else folded.add(id);
 				return render();
 			}
 			case 'tree-all': folded.clear(); return render();
-			case 'tree-none': {
-				folded.clear();
-				snapshot.targets.forEach(t => (t.tree.children || []).forEach(function deep(n) {
-					folded.add(`/${t.tree.item}/${n.item}`);
-				}));
-				chainsFolded = true;
+			case 'tree-none': collapseAll(); return render();
+			case 'inv-filter': setInvFilter(el.dataset.id); return render();
+			case 'inv-kind': setInvKind(el.dataset.id); return render();
+			// Select mode: tiles tick instead of opening, and the bar above
+			// the grid moves the ticked ones to a storage together.
+			case 'inv-select': setInvPicking(!invPicking); if (invPicking) setSelected(null); return render();
+			case 'inv-pick': {
+				const it = el.dataset.item;
+				if (invPicked.has(it)) invPicked.delete(it); else invPicked.add(it);
 				return render();
 			}
-			case 'inv-filter': invFilter = el.dataset.id; return render();
-			case 'select': selected = el.dataset.item; return render();
-			case 'deselect': selected = null; return render();
+			case 'inv-pick-all': {
+				let items;
+				try { items = JSON.parse(el.dataset.items || '[]'); } catch { items = []; }
+				for (const it of items) if (store.getStock(it) > 0) invPicked.add(it);
+				return render();
+			}
+			case 'inv-pick-none': invPicked.clear(); return render();
+			case 'select': setSelected(el.dataset.item); return render();
+			case 'deselect': setSelected(null); return render();
 			case 'strategy':
 				if (selected) store.setStrategy(selected, el.dataset.mode);
 				return;
 			case 'ask-route': return askRoute(el.dataset.item, {
-				onPick: name => toast(
-					`${el.dataset.item} — ${name === 'improved' ? 'by way of the Improved hull' : 'straight from the base hull'}`,
-					true
-				)
+				onPick: name => {
+					const info = routeInfo[el.dataset.item] && routeInfo[el.dataset.item][name];
+					toast(`${el.dataset.item} — ${info ? info.label.charAt(0).toLowerCase() + info.label.slice(1) : name}`, true);
+				}
 			});
 			case 'bump':
 				if (selected) store.addStock(selected, Number(el.dataset.delta));
@@ -1716,14 +1157,15 @@ function wire() {
 				const to = el.dataset.to;
 				store.applyDelta({ [from]: -1, [to]: 1 }, 'level',
 					`${parseEnhanced(to).base} recorded at +${parseEnhanced(to).level}`);
-				selected = to;
+				setSelected(to);
 				toast(`Recorded at +${parseEnhanced(to).level} — no stones spent`, true);
 				return;
 			}
 			case 'copy':
+			case 'copy-csv':
 				try {
-					await navigator.clipboard.writeText(shoppingText());
-					toast('Shortfall list copied');
+					await navigator.clipboard.writeText(act === 'copy-csv' ? shoppingCSV() : shoppingText());
+					toast(act === 'copy-csv' ? 'Shortfall list copied as CSV' : 'Shortfall list copied');
 				} catch {
 					toast('Could not reach the clipboard');
 				}
@@ -1735,10 +1177,26 @@ function wire() {
 					: null;
 				const asked = field ? parseAmount(field.value) : Number(el.dataset.times);
 				const want = Math.max(1, asked || 1);
-				const times = Math.min(want, maxCraftable(item, store.getAllStock(), recipes));
+				const times = Math.min(want, maxCraftable(item, craftStock(item), recipes));
 				if (times < 1) return toast('Not enough materials for that');
-				store.applyDelta(craftDelta(item, times, recipes), 'craft', `Crafted ${times} × ${item}`);
-				toast(`Crafted ${times} × ${item}`, true);
+				const delta = craftDelta(item, times, recipes);
+				// Mass Process is the same recipe run ten at a time, plus a
+				// Black Stone Powder per batch -- recording it that way has
+				// to spend the powder too, or the powder count drifts.
+				const mass = el.closest('.craft-card')?.querySelector('[data-mass-process]');
+				let label = `Crafted ${times} × ${item}`;
+				if (mass && mass.checked && massProcess[item]) {
+					const { extra, batch } = massProcess[item];
+					const powder = Math.ceil(times / batch);
+					if (store.getStock(extra) < powder) {
+						return toast(`Mass Process wants ${F(powder)} ${extra} for that batch — you hold ${F(store.getStock(extra))}`);
+					}
+					delta[extra] = (delta[extra] || 0) - powder;
+					label = `Mass Processed ${times} × ${item}`;
+				}
+				// Counted for the career, in the same change as the craft.
+				store.applyDelta(delta, 'craft', label, { tally: store.tallied({ made: { [item]: times } }) });
+				toast(`${label}`, true);
 				return;
 			}
 			case 'enhance': {
@@ -1748,11 +1206,48 @@ function wire() {
 				const step = enhanceStep(base, level);
 				if (!step) return;
 				const ok = el.dataset.result === 'success';
+				// 'dropped' is the yellow tier's third outcome: the attempt
+				// was made without Cron Stones, so no Crons are spent and
+				// the part falls a level.
+				const dropped = el.dataset.result === 'dropped' && step.onFailureDropped;
+				// Recording an attempt spends real stock; short of it, the
+				// clamp at zero would eat the shortfall and mint the part
+				// from nothing. The level picker is the way to record gear
+				// that was enhanced outside the app.
+				const spend = ok ? step.onSuccess : dropped ? step.onFailureDropped : step.onFailure;
+				const short = Object.entries(spend)
+					.filter(([item, d]) => d < 0 && store.getStock(item) < -d)
+					.map(([item]) => item);
+				if (short.length) {
+					toast(`Not enough ${short.join(', ')} for that attempt — to record a level you already have, open the part and pick the level`);
+					return;
+				}
+				// The failstack moves with the attempt: a failure adds one
+				// (Crons or not), a success spends the stack, and the next
+				// level starts from its own recommended one. It moves in
+				// the same change as the stones, so the Undo the toast
+				// offers takes back the attempt, not half of it.
+				const tier = (tableFor(base) || { levels: [] }).levels[level - 1];
+				// The attempt is counted for the career in the same change.
+				let stackPatch = { tally: store.tallied({ tries: 1, wins: ok ? 1 : 0, drops: dropped ? 1 : 0 }) };
+				if (tier && tier.base) {
+					const stacks = { ...(store.getProfile('failstacks', {}) || {}) };
+					if (ok) delete stacks[base];
+					else stacks[base] = (stacks[base] ?? tier.stack) + 1;
+					stackPatch.failstacks = Object.keys(stacks).length ? stacks : null;
+				}
 				store.applyDelta(
-					ok ? step.onSuccess : step.onFailure,
+					spend,
 					'enhance',
-					ok ? `${base} reached +${level}` : `Failed attempt at +${level} ${base}`
+					ok ? `${base} reached +${level}`
+						: dropped ? `${base} fell to +${level - 2} — no Crons on the attempt`
+						: `Failed attempt at +${level} ${base}`,
+					stackPatch
 				);
+				if (dropped) {
+					toast(`${base} fell to +${level - 2} — the Crons stayed in your pocket`, true);
+					return;
+				}
 				// Only the steps that actually spend Cron are being held by
 				// it; +1 costs none, and has nothing to fall to anyway.
 				const held = (tableFor(base) || {}).keepsLevel !== false || !step.stones['Cron Stone']
@@ -1779,33 +1274,256 @@ function wire() {
 			}
 			case 'remove': {
 				const id = targetIdFrom(el);
-				if (id) store.removeTarget(id);
+				if (!id) return;
+				const entry = store.removeTarget(id);
+				if (entry) toast(`${entry.label} — Undo brings it back`, true);
 				return;
 			}
 			default:
+				// The Crew screen owns its own verbs; most change the save
+				// (and repaint through it), the rest are session state.
+				if (act.startsWith('crew-') && crewAction(act, el)) return render();
+				if (act.startsWith('quest-') && questAction(act, el)) return render();
+				if (act.startsWith('community-') && communityAction(act, el)) return render();
 		}
 	});
 
 	// Every typed-in quantity lands here: stock on the Plan and in the
 	// inventory detail, the pouch, and how many of a build you want.
 	document.addEventListener('change', evt => {
-		const el = evt.target.closest('[data-act="own-set"], [data-act="purse"], [data-act="target-qty"]');
+		// The Value Pack is a tick rather than a number, so it lands first
+		// and on its own.
+		const vp = evt.target.closest('[data-act="value-pack"]');
+		if (vp) return store.setProfile('valuePack', vp.checked);
+
+		const cr = evt.target.closest('[data-act="crew-discount"]');
+		if (cr) return store.setProfile('crew', cr.checked);
+
+		// The level is a name, not a number, so it lands before the
+		// numeric parse below rather than going through it.
+		const lvl = evt.target.closest('[data-act="barter-level"]');
+		if (lvl) return store.setProfile('level', lvl.value || null);
+
+		// How the route is written to the game's map -- favourites or one
+		// of its loops. A select answers on change, not on click.
+		const gw = evt.target.closest('[data-act="map-game-as"]');
+		if (gw) {
+			setGameWrite(gw.value);
+			return openGameExport();
+		}
+
+		const mreg = evt.target.closest('[data-act="market-region"]');
+		if (mreg) return setMarketRegion(mreg.value);
+
+		// The ticked tiles, moved to one storage as one change.
+		const pl = evt.target.closest('[data-act="inv-place"]');
+		if (pl) {
+			const town = pl.value === 'bags' ? '' : pl.value;
+			if (!pl.value) return;
+			const items = [...invPicked];
+			const done = store.placeAll(items, town);
+			invPicked.clear();
+			if (done) toast(town ? `${items.length === 1 ? items[0] : `${items.length} items`} noted at ${town}` : `${items.length === 1 ? items[0] : `${items.length} items`} back in the bags`, true);
+			else render();
+			return;
+		}
+		const hm = evt.target.closest('[data-act="inv-home"]');
+		if (hm) return store.setHome(hm.dataset.kind, hm.value);
+
+		const st = evt.target.closest('[data-act="stash-town"]');
+		// A new place starts empty; the count typed into it is added to
+		// the total, since it is a count you have somewhere.
+		if (st && st.value) return store.setStash(st.dataset.item, st.value, 0);
+
+		const cl = evt.target.closest('[data-act="codex-lang"]');
+		if (cl) return store.setSetting('codexLang', cl.value);
+
+		const so = evt.target.closest('[data-act="sort"]');
+		if (so) {
+			setSort(so.value);
+			return render();
+		}
+
+		const cs = evt.target.closest('[data-act="crew-ship"]');
+		if (cs) return store.setProfile('crewShip', cs.value || null);
+
+		const cw = evt.target.closest('[data-act^="crew-"]');
+		if (cw && crewChange(cw)) return;
+		const tr = evt.target.closest('[data-act^="trace-"]');
+		if (tr && traceChange(tr)) return;
+
+		const ms = evt.target.closest('[data-act="map-start"]');
+		if (ms) return setMapStart(Number(ms.value));
+
+		const mr = evt.target.closest('[data-act="map-return"]');
+		if (mr) return setMapReturn(mr.checked);
+
+		const mra = evt.target.closest('[data-act="map-rations-aboard"]');
+		if (mra) return setRationsAboard(mra.value);
+
+		const bc = evt.target.closest('[data-act^="barter-"]');
+		if (bc && bc.dataset.act !== 'barter-count' && bc.dataset.act !== 'barter-level' && barterChange(bc, parseAmount)) return render();
+
+		const el = evt.target.closest(
+			'[data-act="own-set"], [data-act="purse"], [data-act="target-qty"],'
+			+ ' [data-act="barter-count"], [data-act="vouchers"], [data-act="parley-held"],'
+			+ ' [data-act="failstacks"], [data-act="stash-set"]');
 		if (!el) return;
 		const n = parseAmount(el.value);
 		if (n === null) return render();   // gibberish: put the stored value back
-		if (el.dataset.act === 'target-qty') store.setTargetQty(el.dataset.target, n);
+		if (el.dataset.act === 'stash-set') store.setStash(el.dataset.item, el.dataset.town, n);
+		else if (el.dataset.act === 'target-qty') store.setTargetQty(el.dataset.target, n);
+		else if (el.dataset.act === 'barter-count') store.setProfile('barterCount', n);
+		else if (el.dataset.act === 'vouchers') store.setProfile('vouchers', n);
+		else if (el.dataset.act === 'parley-held') store.setProfile('parleyHeld', n);
+		else if (el.dataset.act === 'failstacks') {
+			const stacks = { ...(store.getProfile('failstacks', {}) || {}) };
+			stacks[el.dataset.base] = n;
+			store.setProfile('failstacks', stacks);
+		}
 		else store.setStock(el.dataset.item, n);
 	});
 
 	// The pouch holds its ground while you type in it; once focus leaves it
 	// entirely, catch it up with whatever the change already recorded.
 	wirePeek();
+	wireGuide();
+	wireMap();
 
 	document.addEventListener('keydown', evt => {
-		if (evt.key !== 'Escape' || !selected) return;
-		if (!document.getElementById('dialog').hidden) return;   // the dialog has first claim
-		selected = null;
-		render();
+		const dialog = document.getElementById('dialog');
+		// A row playing a button -- a place on a community board --
+		// answers Enter and Space as a button would.
+		if ((evt.key === 'Enter' || evt.key === ' ') && evt.target.matches && evt.target.matches('[role="button"][data-act]:not(button)')) {
+			evt.preventDefault();
+			evt.target.click();
+			return;
+		}
+		const inField = evt.target.closest('input, textarea, select, [contenteditable]');
+		// The single-key shortcuts answer only when nothing that reads
+		// keys of its own has the focus: the page itself, or a tab. A
+		// chip, a tile, a stepper or anything playing a button keeps
+		// its keys -- a "1" typed at a quantity stepper is a quantity.
+		const onBare = evt.target === document.body
+			|| evt.target === document.documentElement
+			|| (evt.target.closest && evt.target.closest('.tab, .tabs') && !evt.target.closest('[role="button"], .chip, [contenteditable]'));
+
+		// Ctrl+K anywhere, / outside a field: find anything. The digits
+		// switch tabs, the way they do in a browser -- 1 to 9 for the
+		// first nine, 0 for the tenth.
+		if ((evt.ctrlKey || evt.metaKey) && !evt.altKey && evt.key.toLowerCase() === 'k') {
+			evt.preventDefault();
+			return openJumpPalette();
+		}
+		if (!inField && onBare && dialog.hidden && !evt.ctrlKey && !evt.metaKey && !evt.altKey) {
+			if (evt.key === '/') {
+				evt.preventDefault();
+				return openJumpPalette();
+			}
+			// M is the menu, from anywhere on the page.
+			if (evt.key === 'm' || evt.key === 'M') {
+				evt.preventDefault();
+				return openTabSheet();
+			}
+			if (/^[0-9]$/.test(evt.key)) {
+				const at = evt.key === '0' ? 9 : Number(evt.key) - 1;
+				if (TABS[at]) {
+					evt.preventDefault();
+					return showView(TABS[at].id);
+				}
+			}
+		}
+
+		// Ctrl+Z / Ctrl+Shift+Z (and Ctrl+Y), everywhere except inside a
+		// field -- there the browser's own text undo has first claim.
+		if ((evt.ctrlKey || evt.metaKey) && !evt.altKey
+			&& (evt.key.toLowerCase() === 'z' || evt.key.toLowerCase() === 'y')
+			&& !evt.target.closest('input, textarea, select')) {
+			evt.preventDefault();
+			const redoing = evt.key.toLowerCase() === 'y' || evt.shiftKey;
+			const label = redoing ? store.redo() : store.undo();
+			toast(label
+				? `${redoing ? 'Redone' : 'Reverted'}: ${label}`
+				: `Nothing to ${redoing ? 'redo' : 'undo'}`);
+			return;
+		}
+
+		// Inside the menu the arrows walk the items, Home and End jump
+		// to the ends, as a menu is expected to.
+		if (menuOpen() && evt.target.closest && evt.target.closest('.menu-sheet') && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(evt.key)) {
+			const items = [...document.querySelectorAll('.menu-sheet .sheet-tab, .menu-sheet .sheet-item')].filter(b => !b.hidden && !b.disabled);
+			if (items.length) {
+				evt.preventDefault();
+				const i = items.indexOf(evt.target);
+				const next = evt.key === 'Home' ? 0 : evt.key === 'End' ? items.length - 1
+					: evt.key === 'ArrowDown' ? (i + 1) % items.length : (i - 1 + items.length) % items.length;
+				items[next].focus();
+			}
+			return;
+		}
+
+		// Escape peels the layers in order: the dialog first, then the
+		// field being typed in, then the inventory detail panel. Someone
+		// abandoning an edit is not asking to lose the panel around it.
+		if (evt.key === 'Escape') {
+			if (!dialog.hidden) {
+				evt.preventDefault();
+				dismissDialog();
+			} else if (evt.target.closest('input, textarea, select')) {
+				evt.target.blur();
+			} else if (mapIsFull()) {
+				exitFull();
+			} else if (selected) {
+				setSelected(null);
+				render();
+			}
+			return;
+		}
+
+		// Enter in the Workshop's batch-size field is the same as pressing
+		// the button beside it.
+		if (evt.key === 'Enter' && evt.target.classList && evt.target.classList.contains('craft-n')) {
+			const btn = evt.target.closest('.craft-actions')?.querySelector('[data-act="craft"][data-times="field"]');
+			if (btn) {
+				evt.preventDefault();
+				btn.click();
+			}
+			return;
+		}
+
+		// While a dialog is up it is the whole interface, so Tab cycles
+		// inside it rather than wandering the page behind the veil.
+		if (evt.key === 'Tab' && !dialog.hidden) {
+			const focusable = [...dialog.querySelectorAll(
+				'a[href], input, select, textarea, button:not([disabled]), video[controls], [tabindex]:not([tabindex="-1"])')]
+				.filter(el => el.offsetParent !== null);
+			if (!focusable.length) return;
+			const first = focusable[0];
+			const last = focusable[focusable.length - 1];
+			const outside = !dialog.contains(document.activeElement);
+			if (evt.shiftKey && (document.activeElement === first || outside)) {
+				evt.preventDefault();
+				last.focus();
+			} else if (!evt.shiftKey && (document.activeElement === last || outside)) {
+				evt.preventDefault();
+				first.focus();
+			}
+		}
+	});
+
+	// The tabs are a tablist: arrows move through it, Home and End jump.
+	document.getElementById('tabs').addEventListener('keydown', evt => {
+		const step = { ArrowRight: 1, ArrowLeft: -1 }[evt.key];
+		if (step === undefined && evt.key !== 'Home' && evt.key !== 'End') return;
+		evt.preventDefault();
+		const row = tabs();
+		const at = row.findIndex(t => t.id === view);
+		const to = evt.key === 'Home' ? 0
+			: evt.key === 'End' ? row.length - 1
+			: (at + step + row.length) % row.length;
+		showView(row[to].id);
+		const btn = document.querySelector('.tab.active');
+		if (btn) btn.focus();
 	});
 
 	// Landing in a quantity field selects what is there, so typing a new
@@ -1814,7 +1532,20 @@ function wire() {
 		if (evt.target.classList && evt.target.classList.contains('amt')) evt.target.select();
 	});
 
-	window.addEventListener('resize', measurePouch);
+	window.addEventListener('resize', () => { measurePouch(); measureTabBar(); });
+	// Turning a phone swaps the tab row for the thumb bar or back; the
+	// sheets stand on the bar's height, so it is measured again.
+	onPhoneChange(() => { measureTabBar(); measurePouch(); });
+
+	// The pouch writes big silver the short way ("1.96b"); under the
+	// caret it swaps to the exact digits, so editing never rounds what
+	// you hold. parseAmount reads either form on the way back in.
+	document.addEventListener('focusin', evt => {
+		const el = evt.target.closest('[data-act="purse"]');
+		if (!el || el.dataset.exact === undefined || el.value === el.dataset.exact) return;
+		el.value = el.dataset.exact;
+		el.select();
+	});
 
 	document.addEventListener('focusout', evt => {
 		const host = document.getElementById('pouch');
@@ -1823,160 +1554,226 @@ function wire() {
 		paintPouch();
 	});
 
+	// Debounced: a render rebuilds the whole screen and re-runs the
+	// planner, which is far too much work to do between two keystrokes
+	// of "brilliant". The caret survives because render() restores it.
 	document.addEventListener('input', evt => {
-		const el = evt.target.closest('[data-act="query"]');
+		const el = evt.target.closest('[data-act="query"], [data-act="barter-hold-q"], [data-act="barter-chain-q"], [data-act="barter-mat-q"]');
 		if (!el) return;
-		query = el.value;
-		render();   // the caret is restored by render() itself
+		if (el.dataset.act === 'query') setQuery(el.value);
+		else if (!barterType(el)) return;
+		clearTimeout(queryTimer);
+		queryTimer = setTimeout(render, 120);
+	});
+
+	// The water is pure decoration, and decoration has no business
+	// burning battery in a tab nobody is looking at.
+	document.addEventListener('quests-refilter', () => render());
+	document.addEventListener('app-render', () => render());
+
+	document.addEventListener('visibilitychange', () => {
+		if (!water) return;
+		if (document.visibilityState === 'hidden') water.pause();
+		else water.play();
 	});
 }
 
-/* ------------------------------------------------------------------ *
- * hover card
- * ------------------------------------------------------------------ */
-
-let peekTimer = null;
-let peekOn = null;
-
-function hidePeek() {
-	clearTimeout(peekTimer);
-	peekOn = null;
-	const host = document.getElementById('peek');
-	if (host) host.hidden = true;
-}
-
-/** Park the card under what you are pointing at, inside the viewport. */
-function placePeek(host, el) {
-	const box = el.getBoundingClientRect();
-	const w = host.offsetWidth;
-	const h = host.offsetHeight;
-	let x = box.left;
-	let y = box.bottom + 8;
-	if (y + h > window.innerHeight - 8) y = Math.max(8, box.top - h - 8);
-	if (x + w > window.innerWidth - 8) x = Math.max(8, window.innerWidth - w - 8);
-	host.style.left = `${Math.round(x)}px`;
-	host.style.top = `${Math.round(y)}px`;
-}
-
-function wirePeek() {
-	const host = document.getElementById('peek');
-	if (!host) return;
-
-	document.addEventListener('mouseover', evt => {
-		const el = evt.target.closest('[data-peek]');
-		if (!el || el.dataset.peek === peekOn) return;
-		hidePeek();
-		// A short delay, so sweeping the mouse across a grid of tiles does
-		// not flash a card for every one of them.
-		peekTimer = setTimeout(() => {
-			const html = peekHTML(el.dataset.peek);
-			if (!html) return;
-			host.innerHTML = html;
-			host.hidden = false;
-			peekOn = el.dataset.peek;
-			placePeek(host, el);
-		}, 280);
-	});
-
-	document.addEventListener('mouseout', evt => {
-		const from = evt.target.closest('[data-peek]');
-		if (!from) return;
-		// Moving straight onto another one: its mouseover takes over, and
-		// hiding here would cancel the card before it ever appeared.
-		const to = evt.relatedTarget && evt.relatedTarget.closest
-			? evt.relatedTarget.closest('[data-peek]')
-			: null;
-		if (to) return;
-		hidePeek();
-	});
-	document.addEventListener('scroll', hidePeek, true);
-	window.addEventListener('blur', hidePeek);
-}
-
-/* ------------------------------------------------------------------ *
- * dialogs
- * ------------------------------------------------------------------ */
-
-function openDialog(html) {
-	const host = document.getElementById('dialog');
-	host.innerHTML = `<div class="dialog-box">${html}</div>`;
-	host.hidden = false;
-	host.onclick = evt => {
-		if (evt.target === host || evt.target.hasAttribute('data-close')) closeDialog();
-	};
-	return host;
-}
-
-function closeDialog() {
-	const host = document.getElementById('dialog');
-	host.hidden = true;
-	host.innerHTML = '';
-}
-
-/** Searchable, icon-led list of everything that can be queued. */
-function openBuildPicker() {
-	const queued = new Set(store.getTargets().map(t => t.item));
-	// shipGroups[0] is the ships themselves; anything else grouped there is
-	// a trackable part, and everything else is a material.
-	const kindOf = name => {
-		for (const [i, group] of shipGroups.entries()) {
-			if (group.items.includes(name)) return i === 0 ? 'ship' : 'part';
+/** The find box: a tab opens, an item opens in the Inventory's panel. */
+function openJumpPalette() {
+	openJump({
+		tabs: tabs(),
+		go: (kind, value) => {
+			if (kind === 'tab') return showView(value);
+			// Not the Inventory any more: an item nobody owns has no row
+			// there, so the panel opened empty and Find looked broken.
+			// The card says what the app knows about it either way, and
+			// still opens the Inventory for anyone who wanted that.
+			openItemCard(value);
 		}
-		return 'material';
-	};
+	});
+}
 
+/** A plan in a link: looked at without saving, or taken in. */
+let sharedKept = null;
+
+async function openShared(payload) {
+	let save;
+	try {
+		save = await decodeShare(payload);
+	} catch {
+		return toast('That link does not carry a plan the tracker can read');
+	}
+	const items = Object.keys(save.stock || {}).length;
+	const builds = (save.targets || []).length;
 	const host = openDialog(`
-		<h2>Add a build</h2>
-		<p>Anything with a recipe can be queued — a ship, a part, or a stack of materials.</p>
-		<input class="field picker-search" type="search" placeholder="Search ships, parts and materials…" data-picker-search>
-		<div class="picker" data-picker></div>
-		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>
-	`);
-
-	const listEl = host.querySelector('[data-picker]');
-	const searchEl = host.querySelector('[data-picker-search]');
-
-	const paint = term => {
-		const t = (term || '').trim().toLowerCase();
-		const matches = buildableItems().filter(n => !t || n.toLowerCase().includes(t));
-		listEl.innerHTML = matches.length
-			? matches.slice(0, 200).map(n => {
-				const already = queued.has(n);
-				return `<button type="button" class="picker-row" data-pick="${esc(n)}" data-peek="${esc(n)}" ${already ? 'disabled' : ''}>
-					${img(n, 'row-icon sm')}
-					<span class="picker-name">${esc(n)}</span>
-					<span class="picker-tag">${already ? 'queued' : kindOf(n)}</span>
-				</button>`;
-			}).join('')
-			: '<p class="empty">Nothing matches that search.</p>';
-	};
-
-	paint('');
-	searchEl.addEventListener('input', () => paint(searchEl.value));
-	listEl.addEventListener('click', evt => {
-		const btn = evt.target.closest('[data-pick]');
-		if (!btn || btn.disabled) return;
-		const item = btn.getAttribute('data-pick');
-		store.addTarget(item, 1);
+		<h2>A plan in a link</h2>
+		<p class="dialog-copy">This link carries ${items} item${items === 1 ? '' : 's'} in stock and ${builds} build${builds === 1 ? '' : 's'}. Look around it without touching yours, or take it in.</p>
+		<div class="dialog-actions">
+			<button class="act" data-share-look>Look around</button>
+			<button class="ghost-btn" data-share-merge>Merge into mine</button>
+			<button class="ghost-btn danger" data-share-replace>Replace mine</button>
+			<button class="ghost-btn" data-close>Ignore</button>
+		</div>`);
+	host.querySelector('[data-share-look]').addEventListener('click', () => {
 		closeDialog();
-		// Something with two ways in asks straight away, while the choice
-		// is still the thing you are thinking about -- not later, buried
-		// in a panel about inventory.
-		if (routes[item]) {
-			askRoute(item, { onPick: () => toast(`${item} added to the queue`) });
-			return;
-		}
-		toast(`${item} added to the queue`);
+		sharedKept = store.capture();
+		store.applyTransient(JSON.stringify(save));
+		showSharedBar(save);
 	});
-	searchEl.focus();
+	host.querySelector('[data-share-merge]').addEventListener('click', () => {
+		closeDialog();
+		store.merge(save, 'Merged a shared plan');
+		toast('Merged the shared plan into yours', true);
+	});
+	host.querySelector('[data-share-replace]').addEventListener('click', () => {
+		closeDialog();
+		store.adopt(save, 'Took a shared plan');
+		toast('Replaced yours with the shared plan', true);
+	});
 }
+
+/** A ship setup in a link: shown first, taken only on purpose. */
+async function openSharedShip(payload) {
+	let setup;
+	try {
+		setup = (await decodeShare(payload)).setup;
+	} catch {
+		return toast('That link does not carry a ship setup the tracker can read');
+	}
+	if (!setup || !setup.ship) return toast('That link does not carry a ship setup');
+	const fitted = Object.entries(setup.fitted || {}).filter(([, part]) => part);
+	const missing = fitted.filter(([, part]) => !(store.getStock(part) > 0)).map(([, part]) => part);
+	const sailors = (setup.roster || []).length;
+	const partRows = fitted.length
+		? fitted.map(([slot, part]) => {
+			const held = store.getStock(part) > 0;
+			return `<div class="share-part${held ? ' held' : ''}">${img(part, 'share-part-icon')}
+				<span class="share-part-name">${esc(part)} <small>${esc(slot)}</small></span>
+				<span class="share-part-have">${held ? 'you hold it' : 'not in your inventory'}</span></div>`;
+		}).join('')
+		: '<p class="empty">No parts chosen by hand — the hull as it comes.</p>';
+	const host = openDialog(`
+		<h2>A ship in a link</h2>
+		<p class="dialog-copy">Someone's <b>${esc(setup.ship)}</b>${sailors ? ` · ${sailors} sailor${sailors === 1 ? '' : 's'} on the roster` : ''}${setup.crystal ? ' · a sea crystal chosen' : ''}. Looking costs nothing; taking it replaces that hull's parts and seats and your roster, and one Undo takes it back.</p>
+		<div class="share-parts">${partRows}</div>
+		<div class="dialog-actions">
+			${missing.length ? `<button class="act quiet" data-ship-queue title="Each missing part joins the build queue, so the plan prices the way to this ship">Queue the ${missing.length} missing part${missing.length === 1 ? '' : 's'}</button>` : ''}
+			<button class="ghost-btn" data-close>Just looking</button>
+			<button class="act" data-ship-take>Make it my ship</button>
+		</div>`);
+	host.querySelector('[data-ship-take]').addEventListener('click', () => {
+		closeDialog();
+		if (applyShipSetup(setup)) toast(`Sailing as ${setup.ship} — one Undo takes it back`, true);
+	});
+	const queue = host.querySelector('[data-ship-queue]');
+	if (queue) queue.addEventListener('click', () => {
+		closeDialog();
+		for (const part of missing) store.addTarget(part, 1);
+		toast(`Queued ${missing.length} part${missing.length === 1 ? '' : 's'} to build`, true);
+	});
+}
+
+/**
+ * Another sailor's boat, stood up on the Ship tab to look at: their
+ * hull, parts, crystal, seats and roster in place of yours for as long
+ * as the bar stands, and one press brings yours back. Nothing done
+ * meanwhile is kept. `sailorId` opens the look on one of the crew.
+ */
+function lookAtShip(save, { name = 'a sailor', sailorId = null } = {}) {
+	if (sharedKept) store.restore(sharedKept);
+	closeDialog();
+	sharedKept = store.capture();
+	store.applyTransient(JSON.stringify(save));
+	setLooking(true);
+	selectSailor(sailorId);
+	showSharedBar(save, { label: `Looking at ${name}’s ship — to look at, not to change.`, take: false });
+	showView('crew');
+}
+
+function showSharedBar(save, { label = 'Looking at a shared plan — nothing you do here is saved.', take = true } = {}) {
+	let bar = document.getElementById('shared-bar');
+	if (!bar) {
+		bar = document.createElement('div');
+		bar.id = 'shared-bar';
+		bar.className = 'shared-bar';
+		document.body.appendChild(bar);
+	}
+	bar.innerHTML = `<span>${esc(label)}</span>
+		${take ? `<button class="ghost-btn" data-shared="merge">Merge into mine</button>
+		<button class="ghost-btn" data-shared="replace">Keep it, replace mine</button>` : ''}
+		<button class="act" data-shared="back">Back to mine</button>`;
+	bar.hidden = false;
+	// The shell leaves room under its last line for the bar -- and on a
+	// phone for the section bar the bar now stands on.
+	document.querySelector('.shell')?.classList.add('shared');
+	bar.onclick = evt => {
+		const b = evt.target.closest('[data-shared]');
+		if (!b) return;
+		store.restore(sharedKept);
+		sharedKept = null;
+		setLooking(false);
+		bar.hidden = true;
+		document.querySelector('.shell')?.classList.remove('shared');
+		if (b.dataset.shared === 'merge') { store.merge(save, 'Merged a shared plan'); toast('Merged the shared plan into yours', true); }
+		else if (b.dataset.shared === 'replace') { store.adopt(save, 'Took a shared plan'); toast('Replaced yours with the shared plan', true); }
+		else toast('Back to your own plan');
+	};
+}
+
+/** Past this many characters a chat app is likely to cut the link. */
+const LONG_LINK = 2000;
 
 function doExport() {
+	const host = openDialog(`
+		<h2>Take the plan with you</h2>
+		<p class="dialog-copy">A file is a backup and moves between machines. A link opens the same plan on any browser — stock, builds and crew all ride in the address — to look at without saving, or to take in. The link leaves out the diaries the app keeps for itself, which is what makes one long.</p>
+		<p class="dialog-copy" data-link-size>Measuring the link…</p>
+		<div class="dialog-actions">
+			<button class="act" data-export-file>Download a file</button>
+			<button class="ghost-btn" data-export-link>Copy a link</button>
+			<button class="ghost-btn" data-close>Cancel</button>
+		</div>`);
+	host.querySelector('[data-export-file]').addEventListener('click', () => { closeDialog(); downloadExport(); });
+	// The link is built once, up front, so its length can be said before
+	// it is copied: a chat app cuts a long address short, and a cut link
+	// opens as nothing.
+	const shape = store.saveShape();
+	const built = encodeShare(shape, { slim: true }).then(payload => shareLink(payload));
+	const sizeLine = host.querySelector('[data-link-size]');
+	built.then(link => {
+		const n = shareSize(link);
+		if (!sizeLine || !sizeLine.isConnected) return;
+		if (n > LONG_LINK) {
+			sizeLine.classList.add('warn');
+			sizeLine.textContent = `The link is ${F(n)} characters long. Chat apps often cut a link past ${F(LONG_LINK)}, so a file is the safer way to send this one.`;
+		} else {
+			sizeLine.textContent = `The link is ${F(n)} characters long.`;
+		}
+	}).catch(() => { if (sizeLine) sizeLine.textContent = 'The link could not be built on this browser.'; });
+	host.querySelector('[data-export-link]').addEventListener('click', async () => {
+		try {
+			const link = await built;
+			await navigator.clipboard.writeText(link);
+			closeDialog();
+			const n = shareSize(link);
+			toast(n > LONG_LINK
+				? `Link copied — ${F(n)} characters; a chat app may cut it, so a file is safer`
+				: `Link copied — ${F(n)} characters of address`);
+		} catch {
+			toast('Could not build or copy the link');
+		}
+	});
+}
+
+function downloadExport() {
 	const blob = new Blob([store.exportJSON()], { type: 'application/json' });
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement('a');
 	a.href = url;
-	a.download = 'ship-tracker.json';
+	// Dated, so keeping more than one backup does not mean the second
+	// silently replacing the first in the downloads folder.
+	const stamp = new Date().toISOString().slice(0, 16).replace('T', '-').replace(':', '');
+	a.download = `ship-tracker-${stamp}.json`;
 	document.body.appendChild(a);
 	a.click();
 	a.remove();
@@ -1990,24 +1787,91 @@ function doImport() {
 	input.addEventListener('change', async () => {
 		const file = input.files && input.files[0];
 		if (!file) return;
+		let text;
+		let incoming;
 		try {
-			const result = store.importJSON(await file.text());
-			toast(`Imported ${result.items} items and ${result.targets} builds`);
-		} catch (err) {
-			toast(err.message);
+			text = await file.text();
+			incoming = JSON.parse(text);
+		} catch {
+			return toast('That file is not valid JSON.');
 		}
+		if (!incoming || typeof incoming !== 'object' || !incoming.stock) {
+			return toast('That file does not contain tracker data.');
+		}
+		// Importing replaces everything, which deserves saying before it
+		// happens rather than in the past tense afterwards.
+		const items = Object.keys(incoming.stock).length;
+		const builds = Array.isArray(incoming.targets) ? incoming.targets.length : 0;
+		// What the file names that this build does not know -- an item
+		// renamed by a patch, a save from a newer version. Said before the
+		// choice, not after: the counts still come in under those names,
+		// and nothing here will show them.
+		const seen = store.inspectImport(incoming);
+		const strange = [...new Set([...seen.unknownItems, ...seen.unknownTargets])];
+		const strangeLine = strange.length
+			? `<p class="dialog-copy warn">${F(strange.length)} item${strange.length === 1 ? '' : 's'} this version does not know: ${esc(strange.slice(0, 6).join(', '))}${strange.length > 6 ? '…' : ''}. ${strange.length === 1 ? 'Its count comes' : 'Their counts come'} in all the same, but no screen will show ${strange.length === 1 ? 'it' : 'them'} until a version that knows the name${strange.length === 1 ? '' : 's'}.</p>`
+			: '';
+		const host = openDialog(`
+			<h2>Bring in this file?</h2>
+			${strangeLine}
+			<p>It holds ${F(items)} items and ${F(builds)} builds. <b>Replace</b> makes it the whole
+			tracker — your stock, your build queue and your choices. <b>Merge</b> keeps the higher
+			count of any item, adds builds you do not have, and leaves every choice you have
+			already made alone. Either way, one Undo brings the current data back.</p>
+			<div class="dialog-actions">
+				<button class="act quiet" data-cancel>Keep what I have</button>
+				<button class="act quiet" data-merge>Merge it in</button>
+				<button class="act" data-accept>Replace everything</button>
+			</div>
+		`);
+		host.querySelector('[data-cancel]').addEventListener('click', () => closeDialog());
+		host.querySelector('[data-merge]').addEventListener('click', () => {
+			closeDialog();
+			const result = store.merge(incoming);
+			toast(`Merged — ${result.items} counts raised, ${result.targets} builds added`, true);
+		});
+		host.querySelector('[data-accept]').addEventListener('click', () => {
+			closeDialog();
+			try {
+				const result = store.importJSON(text);
+				toast(`Replaced tracker data — ${result.items} items, ${result.targets} builds`, true);
+			} catch (err) {
+				toast(err.message);
+			}
+		});
 	});
 	input.click();
 }
 
+function doReset() {
+	const items = Object.keys(store.getAllStock()).length;
+	const builds = store.getTargets().length;
+	const host = openDialog(`
+		<h2>Start fresh?</h2>
+		<p>This clears your stock (${F(items)} items), your build queue (${F(builds)} builds),
+		your choices and your barter profile. One Undo brings it all back — but Export first
+		if this is a copy you may ever want again.</p>
+		<div class="dialog-actions">
+			<button class="act quiet" data-cancel>Keep everything</button>
+			<button class="act" data-accept>Start fresh</button>
+		</div>
+	`);
+	host.querySelector('[data-cancel]').addEventListener('click', () => closeDialog());
+	host.querySelector('[data-accept]').addEventListener('click', () => {
+		closeDialog();
+		store.adopt({ stock: {}, targets: [], strategy: {}, profile: {} }, 'Started fresh');
+		toast('Everything cleared — Undo brings it back', true);
+	});
+}
+
 function offerLegacyImport() {
-	if (store.hasImportedLegacy()) return;
+	if (store.hasImportedLegacy()) return false;
 
 	const shipNames = shipGroups.flatMap(g => g.items);
 	const legacy = store.readLegacyData(shipNames, allItems());
 	if (!legacy || !Object.keys(legacy.stock).length) {
 		store.markLegacyImported();
-		return;
+		return false;
 	}
 
 	const list = Object.entries(legacy.stock)
@@ -2036,6 +1900,69 @@ function offerLegacyImport() {
 		closeDialog();
 		toast(`Imported ${Object.keys(legacy.stock).length} items`);
 	});
+	return true;
+}
+
+/**
+ * What arrived since you were last here.
+ *
+ * Shown by hand from the More menu, and once by itself when a browser
+ * that has seen an older release opens a newer one. The notes live in
+ * about.js, which CHANGELOG.md is also generated from -- so what a
+ * player reads here and what a reader finds in the repository are the
+ * same sentences.
+ *
+ * The pictures are the narrow copies under docs/media/small: they are
+ * the only ones inside the Docker image, and a dialog on a phone should
+ * not pull down a two-megabyte GIF to make its point. They load lazily,
+ * so the sections nobody scrolls to cost nothing.
+ */
+function openWhatsNew({ onClose = null } = {}) {
+	const r = RELEASES[0];
+	const headline = r.sections.filter(s => s.media);
+	const rest = r.sections.filter(s => !s.media);
+	const points = list => (list && list.length
+		? `<ul class="news-points">${list.map(p => `<li>${p}</li>`).join('')}</ul>` : '');
+
+	const host = openDialog(`
+		<h2>What's new</h2>
+		<p class="news-rel"><b>${esc(r.name)}</b> · version ${esc(r.id)} · ${esc(r.date)}</p>
+		<p class="dialog-copy">${r.blurb}</p>
+		<div class="news">
+			${headline.map(s => `<section class="news-item">
+				<h3>${s.title}</h3>
+				<img class="news-shot" src="${esc(s.media)}" alt="${esc(s.alt || '')}" loading="lazy">
+				<p>${s.text}</p>
+				${points(s.points)}
+			</section>`).join('')}
+		</div>
+		<details class="help-more">
+			<summary>Everything else in this release</summary>
+			${rest.map(s => `<section class="news-item plain">
+				<h3>${s.title}</h3>
+				${s.text ? `<p>${s.text}</p>` : ''}
+				${points(s.points)}
+			</section>`).join('')}
+		</details>
+		<p class="dialog-copy">The same notes are in
+			<a href="https://github.com/waliori/bdo-ship-upgrade-tracker/blob/main/CHANGELOG.md"
+				target="_blank" rel="noopener">CHANGELOG.md</a>.</p>
+		<div class="dialog-actions">
+			<button class="act quiet" data-close>Close</button>
+			<button class="act" data-act="tour">Show me around</button>
+		</div>
+	`, { onDismiss: onClose });
+	markReleaseSeen();
+	return host;
+}
+
+/** Remember that this release's notes have been read. */
+function markReleaseSeen() {
+	try {
+		localStorage.setItem(RELEASE_KEY, RELEASE);
+	} catch {
+		/* private mode: it will offer again, which is the safe way round */
+	}
 }
 
 /**
@@ -2045,15 +1972,34 @@ function offerLegacyImport() {
  * way to learn a control you are looking at. This is for the other
  * question -- "what is this for" -- answered once, end to end, without
  * having to do anything. It is the real app, driven and captioned, with a
- * narrower cut for a phone.
+ * narrower cut for a phone: neither is a mock-up, so a screen that
+ * changes makes the film wrong until it is shot again, which
+ * tools/capture does in one command.
  */
 function openHelp() {
-	const phone = window.matchMedia('(max-width: 720px)').matches;
-	const file = phone ? 'walkthrough-phone.mp4' : 'walkthrough.mp4';
+	const file = isPhone() ? 'walkthrough-phone.mp4' : 'walkthrough.mp4';
 	const host = openDialog(`
 		<h2>How this works</h2>
-		<p>Two minutes, end to end: queue a build, choose how to get there, record what you gathered, make something, see what it will really cost, and take the list shopping.</p>
+		<p>The whole thing, end to end. The yard first — queue a build, choose how to get there, record what you gathered, make something, see what it will really cost, take the list shopping — then the sea: the day's free quests, the ship you sail, the chart, where that list becomes a loop with minutes on it and a blank stretch of water can be drawn on — and a run planned on today's board, sailed on that chart.</p>
 		<video class="help-film" src="docs/media/${file}" controls autoplay muted playsinline loop></video>
+		<details class="help-more">
+			<summary>Day by day</summary>
+			<p class="dialog-copy">The working diary. What arrived between one <i>version</i> and the next is under <b>Menu → What's new</b>.</p>
+			${CHANGES.slice(0, 6).map(c => `<div class="help-change"><b>${esc(c.date)}</b> — ${esc(c.title)}<ul>${c.notes.map(n => `<li>${n}</li>`).join('')}</ul></div>`).join('')}
+		</details>
+		<p class="dialog-copy">Look-ups open on BDOCodex in
+			<select class="field select inline" data-act="codex-lang" aria-label="BDOCodex language">${CODEX_LANGS.map(([id, name]) => `<option value="${id}"${(store.getSetting('codexLang', 'us') || 'us') === id ? ' selected' : ''}>${esc(name)}</option>`).join('')}</select>
+		</p>
+		<details class="help-more">
+			<summary>The data, and when it was checked</summary>
+			<div class="help-data">${DATA.map(d => `<div class="kv-row"><span>${esc(d.what)}</span><span class="n">${esc(d.asOf)}${d.from ? ` · ${esc(d.from)}` : ''}</span></div>`).join('')}</div>
+			<p class="dialog-copy">A patch can move any of these. The Market prices are live; everything else is a snapshot the app was checked against on the date shown.</p>
+		</details>
+		<p class="dialog-copy help-credit">Built by <b>waliori</b> ·
+			<a href="https://github.com/waliori/bdo-ship-upgrade-tracker" target="_blank" rel="noopener">the source</a>,
+			free to use and to fork under
+			<a href="https://github.com/waliori/bdo-ship-upgrade-tracker/blob/main/LICENSE" target="_blank" rel="noopener">MIT with Attribution</a>
+			— which asks that a fork keep this line.</p>
 		<div class="dialog-actions">
 			<button class="act quiet" data-close>Close</button>
 			<button class="act" data-act="tour">Walk me through my own screen</button>
@@ -2073,9 +2019,12 @@ async function startTour() {
 	closeDialog();
 	try {
 		const { guidedTour } = await import('./guided-tour.js');
-		guidedTour.startTour('main');
+		if (!await guidedTour.startTour('main')) {
+			toast('The tour could not load — check your connection and try again');
+		}
 	} catch (err) {
 		console.warn('[ui] tour unavailable:', err);
+		toast('The tour could not load — check your connection and try again');
 	}
 }
 
@@ -2084,29 +2033,59 @@ async function startTour() {
  * ------------------------------------------------------------------ */
 
 export async function init() {
+	store.useKinds(kindOf);
 	store.init();
 
+	// Before anything is drawn, so the first paint is the chosen one.
+	applyTheme();
+
 	const saved = store.getSetting('view');
-	if (saved && TABS.some(t => t.id === saved)) view = saved;
+	if (saved && TABS.some(t => t.id === saved)) setView(saved);
+	// Someone sent this link. A bare #map is a reload of your own, and so
+	// is #inventory/<item> -- the app writes that itself whenever an item
+	// is open. A hash carrying a shared payload -- #share/, #trace/,
+	// #ship/, #map/ -- is a thing another player wanted you to look at,
+	// and neither the tour nor the notes interrupt that; they wait for
+	// the next plain visit, unmarked. Read before applyHash(), which
+	// rewrites a share link to a plain #plan on the way through.
+	const arrivedOnALink = /^#(share|trace|ship|map)\/.+/.test(location.hash);
+	// A link or a reload with a hash names a place, and the address bar
+	// outranks the remembered tab.
+	applyHash();
 
 	wire();
-	store.subscribe(() => render());
+	window.addEventListener('hashchange', applyHash);
+	wireSaveHealth();
+	// A quiet write that is the Map's own -- its view, a moment after a
+	// stroke -- is not a reason to redraw the Map over the pen.
+	store.subscribe((_, reason) => {
+		if (reason === 'profile-quiet' && mapWritingView()) return;
+		render();
+	});
 	render();
+	// The minute hand on every countdown, a repaint when a reset passes
+	// with the page open, and the Vell reminder if it was asked for.
+	startClocks(render, checkVellReminder);
+	whatsNewToast();
+	// Which save this page is on. Sync mirrors the main profile only:
+	// a second profile is a second save, and the account holds one.
+	const prof = activeProfile();
+	const profBtn = document.querySelector('[data-act="profiles"]');
+	if (profBtn && prof.slug) profBtn.textContent = `Profile: ${prof.name}`;
 
 	loadBarter();
+	// A failed fetch leaves barterData unset on purpose; the network
+	// coming back is the retry signal.
+	window.addEventListener('online', loadBarter);
 
-	if (store.getSetting('water', false) === true) waterOn();
+	if (store.getSetting('water', false) === true && !wantsStillness()) waterOn();
 	syncWaterButton();
 
-	offerLegacyImport();
+	const legacyDialogUp = offerLegacyImport();
 
-	// First-run tour, once the screens are on the page.
-	try {
-		const { guidedTour } = await import('./guided-tour.js');
-		guidedTour.checkAndShowInitialTour();
-	} catch {
-		/* the tour is optional */
-	}
+	// The release notes, then the tour -- or neither, for someone who
+	// followed a link here to see one particular thing.
+	await firstRun({ arrivedOnALink, legacyDialogUp });
 
 	// Icon metadata arrives asynchronously; repaint once it is ready.
 	try {
@@ -2116,8 +2095,113 @@ export async function init() {
 		/* icons fall back to the app mark */
 	}
 
+	// Market prices ride on the icon mapping, which is where an item's
+	// codex id lives -- so they are asked for after it, and repaint the
+	// costs when they land. Offline, the last copy this browser saw
+	// prices the plan until the network is back.
+	onMarket(render);
+	loadMarket();
+	window.addEventListener('online', () => loadMarket());
+
 	// Sync last, and never blocking: on a deployment without it this is
 	// one request that comes back "no" and nothing more happens.
-	initSync({ toast, openDialog, closeDialog, rerender: render })
-		.catch(err => console.warn('[ui] sync unavailable:', err));
+	if (prof.slug) {
+		const acct = document.getElementById('account');
+		if (acct) acct.innerHTML = `<span class="account-chip off" title="Sync mirrors the Main profile only">sync off on this profile</span>`;
+	} else {
+		wireCommunity(render, { look: lookAtShip });
+		setRunSheet(runSheetHTML);
+		initSync({ toast, openDialog, closeDialog, rerender: render })
+			.catch(err => console.warn('[ui] sync unavailable:', err));
+	}
+}
+
+/** One line about what changed since the last visit, once. */
+/**
+ * The day's diary line, for someone who was here yesterday.
+ *
+ * This is the small one: a toast naming the newest working entry. The
+ * release notes are the other thing, and they get a dialog of their own
+ * -- see firstRun().
+ */
+function whatsNewToast() {
+	// The release notes say it better and at more length. When they are
+	// about to open, a toast saying the same thing over the top of them
+	// is just noise.
+	if (releaseSeen() !== RELEASE) return;
+	const KEY = 'bdo-tracker/seen';
+	let seen = null;
+	try { seen = localStorage.getItem(KEY); } catch { /* then say nothing */ }
+	if (seen && seen !== LATEST) toast(`New since your last visit: ${CHANGES[0].title}. The details are under Help.`);
+	try { localStorage.setItem(KEY, LATEST); } catch { /* private mode */ }
+}
+
+/** Which release, if any, this browser last read the notes for. */
+const RELEASE_KEY = 'bdo-tracker/release';
+function releaseSeen() {
+	try {
+		return localStorage.getItem(RELEASE_KEY);
+	} catch {
+		// No storage to ask: treat it as read, so a private window is not
+		// shown the same notes on every load.
+		return RELEASE;
+	}
+}
+
+/**
+ * What greets someone when the page opens, and in what order.
+ *
+ * Three things want the first moment, and only one of them may have it:
+ *
+ *   - A shared link outranks everything. Someone opening a plan, a
+ *     route, a trace or a ship that another player sent them came to
+ *     see that, and a dialog over it -- however new -- is in the way.
+ *     They have not asked to be introduced to the app; they have asked
+ *     to look at one thing in it.
+ *   - Otherwise the release notes, once, for a browser that has seen an
+ *     older version of this app.
+ *   - Then the tour, for a browser that has never seen it -- when the
+ *     notes are closed rather than behind them.
+ *
+ * `arrivedOnALink` is worked out before the address bar is tidied, since
+ * applyHash() rewrites a share link to a plain #plan on the way through.
+ */
+async function firstRun({ arrivedOnALink, legacyDialogUp }) {
+	// The legacy-import question owns the screen when it is up: the tour
+	// would swap demo data in underneath it, and "Import it" would then
+	// merge a player's history into numbers the tour throws away.
+	if (arrivedOnALink || legacyDialogUp) {
+		// Their notes are still waiting under More; nothing is marked read.
+		return;
+	}
+
+	let tourDone = true;
+	try {
+		tourDone = localStorage.getItem('bdo_ship_upgrade-tour_completed') === 'true';
+	} catch { /* then no tour, which is the quiet way round */ }
+
+	const unread = releaseSeen() !== RELEASE;
+	// A browser with nothing in it has never seen an older version of
+	// this app, so "what's new" is a list of things it has never known
+	// was missing. It gets the tour instead, and the notes are marked
+	// read so they do not appear tomorrow as if they were news.
+	const nothingSaved = !Object.keys(store.getAllStock()).length && !store.getTargets().length;
+	const brandNew = !tourDone && nothingSaved;
+
+	if (unread && !brandNew) {
+		// The tour follows the notes rather than fighting them: closing
+		// the dialog is what starts it. "Show me around" is the same
+		// thing said out loud, and closes the dialog on its own way in.
+		openWhatsNew({ onClose: tourDone ? null : () => startTour() });
+		return;
+	}
+	if (unread) markReleaseSeen();
+	if (!tourDone) {
+		try {
+			const { guidedTour } = await import('./guided-tour.js');
+			guidedTour.checkAndShowInitialTour();
+		} catch {
+			/* the tour is optional */
+		}
+	}
 }

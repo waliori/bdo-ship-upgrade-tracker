@@ -16,7 +16,14 @@ const discord = {
 	clientSecret: read('DISCORD_CLIENT_SECRET')
 };
 
-const num = (name, fallback) => Number(read(name)) || fallback;
+// Not `Number(x) || fallback`: an explicit 0 -- FLUSH_DELAY_MS=0, say --
+// is a setting, and `||` would silently hand back the default instead.
+const num = (name, fallback) => {
+	const given = read(name);
+	if (given === '') return fallback;
+	const value = Number(given);
+	return Number.isFinite(value) ? value : fallback;
+};
 
 const turso = {
 	url: read('TURSO_DATABASE_URL'),
@@ -48,6 +55,18 @@ const turso = {
 const publicUrl = (read('PUBLIC_URL') || `http://localhost:${read('PORT') || 8000}`)
 	.replace(/\/+$/, '');
 
+// The origin a browser must be on to change anything: scheme, host and
+// port of PUBLIC_URL, and null when none was given -- then the request's
+// own Host is the best that is known, and server.js compares against
+// that instead.
+let publicOrigin = null;
+try {
+	if (read('PUBLIC_URL')) publicOrigin = new URL(publicUrl).origin;
+} catch {
+	// Not a URL at all; sign-in will fail on the redirect anyway, and the
+	// origin check falls back to the request's Host.
+}
+
 // Sync needs an identity provider and somewhere to put the data. Either
 // one alone is useless, so both are required before any of it turns on.
 export const syncEnabled = Boolean(
@@ -61,9 +80,34 @@ let sessionSecret = read('SESSION_SECRET');
 export const ephemeralSecret = syncEnabled && !sessionSecret;
 if (!sessionSecret) sessionSecret = crypto.randomBytes(32).toString('hex');
 
+// Push reminders need a key pair to sign them and a table to keep the
+// subscriptions in; a database alone is enough -- no Discord needed.
+const vapid = {
+	publicKey: read('VAPID_PUBLIC_KEY'),
+	privateKey: read('VAPID_PRIVATE_KEY'),
+	subject: read('VAPID_SUBJECT') || (publicUrl.startsWith('https://') ? publicUrl : 'mailto:admin@localhost')
+};
+export const pushEnabled = Boolean(vapid.publicKey && vapid.privateKey && turso.url);
+
+// Feedback needs only somewhere to keep it. A Discord webhook, when one
+// is given, gets a copy of each entry the moment it lands, so the
+// operator hears of a bug without opening the inbox.
+export const feedbackEnabled = Boolean(turso.url);
+
+// The community boards need accounts to stand on them, so they come
+// with sync and not without.
+export const communityEnabled = syncEnabled;
+
+// Who may read the feedback inbox: Discord account ids, comma-separated.
+const adminIds = new Set(read('ADMIN_IDS').split(',').map(s => s.trim()).filter(Boolean));
+
 export const config = {
 	port: num('PORT', 8000),
+	vapid,
+	// How long before a spawn the reminder goes out.
+	pushBeforeMs: num('PUSH_BEFORE_MINUTES', 15) * 60 * 1000,
 	publicUrl,
+	publicOrigin,
 	discord: {
 		...discord,
 		redirectUri: `${publicUrl}/auth/discord/callback`,
@@ -81,6 +125,12 @@ export const config = {
 	// signed-in account from being used as free storage.
 	maxSaveBytes: num('MAX_SAVE_BYTES', 1024 * 1024),
 	sessionDays: num('SESSION_DAYS', 30),
+	feedbackWebhook: read('FEEDBACK_WEBHOOK_URL'),
+	adminIds,
+	// How long the community boards are held between rebuilds. Every
+	// digest on them is re-read when the save behind it has moved, so
+	// a fresh run reaches the boards within this.
+	communityTtlMs: num('COMMUNITY_TTL_MS', 5 * 60_000),
 	// Pushes allowed per account per minute.
 	//
 	// Measured, not guessed. Rapid editing coalesces -- 491 clicks in a
@@ -108,5 +158,6 @@ export const config = {
 export function describe() {
 	if (!syncEnabled) return 'sync off -- browser-only, no account, no database';
 	const where = config.turso.url.startsWith('file:') ? 'local file' : 'Turso';
-	return `sync on -- Discord sign-in, saves in ${where}`;
+	const extras = [config.feedbackWebhook ? 'feedback to a webhook' : 'feedback kept', `${adminIds.size} admin${adminIds.size === 1 ? '' : 's'}`];
+	return `sync on -- Discord sign-in, saves in ${where}, community boards, ${extras.join(', ')}`;
 }

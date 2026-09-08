@@ -1,0 +1,978 @@
+/* tracker-map.css — the chart, its furniture and its markers.
+   One of nine sheets that were one file, cut at its section marks and
+   linked in the same order (tracker-base, tracker-shell, tracker-yard, tracker-widgets, tracker-map, tracker-sea, tracker-extras, tracker-barter, tracker-recent), so the cascade is what it was: a
+   rule here still loses to the same rule in a later sheet. When moving a
+   rule between sheets, check nothing later relies on beating it. */
+
+/* ------------------------------------------------------------------ *
+ * Map
+ * ------------------------------------------------------------------ */
+
+/* The chart fills what is left of the window rather than a fixed box,
+   so a wide screen gets more sea instead of more margin. */
+.map-panel { padding: 0; overflow: hidden; }
+
+.map {
+  position: relative;
+  height: min(68vh, 780px);
+  overflow: hidden;
+  cursor: grab;
+  /* The tiles' own ocean colour, so a spot the chart does not cover --
+     past its edge, inside a still-loading tile, under the transparent
+     fringe of an edge tile -- reads as open sea, not as a hole. */
+  background: #1e3636;
+  touch-action: none;
+  contain: strict;
+}
+
+.map.dragging { cursor: grabbing; }
+
+/* Tiles on their way: a thread of light along the chart's top edge,
+   and only once they have been in flight long enough to notice, so a
+   fast connection never sees it. Nothing is dimmed and nothing is
+   blocked -- the chart can be panned while it fills. */
+.map::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%;
+  height: 2px;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(125, 200, 255, 0.85) 45%, rgba(125, 200, 255, 0.85) 55%, transparent 100%);
+  background-size: 40% 100%;
+  background-repeat: no-repeat;
+  transition: opacity 0.25s;
+}
+.map.is-loading::after {
+  opacity: 1;
+  animation: map-loading 1.1s linear infinite;
+}
+@keyframes map-loading {
+  from { background-position: -40% 0; }
+  to { background-position: 140% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .map.is-loading::after { animation: none; background: rgba(125, 200, 255, 0.5); }
+}
+
+.map-layer { position: absolute; inset: 0; }
+
+/* Tiles are placed, not flowed, and drawn at their own size: most are
+   256px, but the chart's edge column was cut short by the source image,
+   and stretching a 40px sliver to 256 smeared the coastline. The zoom
+   is continuous, so a tile is also fractionally rescaled in transform
+   -- never by more than half a level. */
+/* One box per zoom level holds its tiles and is what a pan moves. */
+.map-tiles { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; will-change: transform; }
+.map-tile {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  user-select: none;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s;
+}
+
+.map-tile.on { opacity: 1; }
+
+/* The sailing line through the stops: a soft wake under a run of
+   marching dashes, over the sea and under the pins. */
+.map-route {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.map-route-glow {
+  fill: none;
+  stroke: var(--teal);
+  stroke-width: 7;
+  stroke-linecap: round;
+  opacity: 0.12;
+}
+
+.map-route-dash {
+  fill: none;
+  stroke: var(--teal);
+  stroke-width: 2;
+  stroke-dasharray: 9 13;
+  stroke-linecap: round;
+  opacity: 0.85;
+  animation: map-dash 1.4s linear infinite;
+}
+
+/* The leg into the current stop, when asked for alone: bright over the
+   rest of the route drawn faint. */
+.map-route-next { fill: none; stroke: var(--amber); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.map-route.next-only .map-route-glow { opacity: 0.05; }
+.map-route.next-only .map-route-dash { opacity: 0.22; animation: none; }
+.map-route.next-only .map-route-next { opacity: 0.95; filter: drop-shadow(0 0 6px rgba(232, 182, 97, 0.7)); }
+
+/* One dash-plus-gap per cycle, so the loop point is invisible. */
+@keyframes map-dash { to { stroke-dashoffset: -22; } }
+
+/* The little ship that sails the plotted course, nose along the line. */
+.map-ship {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 15px;
+  height: 15px;
+  z-index: 3;
+  pointer-events: none;
+  background: var(--teal-hi);
+  clip-path: polygon(50% 0, 100% 100%, 50% 78%, 0 100%);
+  offset-rotate: auto 90deg;
+  filter: drop-shadow(0 0 6px var(--teal-edge));
+}
+
+@keyframes map-sail {
+  from { offset-distance: 0%; }
+  to { offset-distance: 100%; }
+}
+
+/* A pin is its own anchor: the button IS the dot, and the name hangs
+   off it absolutely -- so the label never decides where the island is.
+   It used to: the old flex row centred dot-plus-gap-plus-name over the
+   coordinate, and every dot sat half a label to the west. A constant
+   screen error is a growing sea error: sixteen times the displacement,
+   relative to the island, by the time the chart is zoomed out. */
+.map-pin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-mute);
+  font-family: var(--font-display);
+  font-size: 10px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.map-pin.wanted { width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; }
+/* A 7px button is no target for a finger; the pad is, and it is unseen. */
+.map-pin::before { content: ''; position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%, -50%); }
+
+.map-pin-dot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(var(--line-rgb), 0.45);
+  box-shadow: 0 0 0 1px rgba(var(--deep-rgb), 0.9);
+}
+
+.map-pin-name {
+  position: absolute;
+  left: calc(100% + 5px);
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity .12s;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  text-align: left;
+}
+
+/* The island itself, under the barterer who stands on it. */
+.map-pin-at { font-size: 9px; letter-spacing: 0.02em; color: var(--ink-mute); }
+.map-pin.wanted .map-pin-at { color: var(--ink-dim); }
+.map-pin:hover .map-pin-name { opacity: 1; color: var(--ink-hi); }
+
+/* An island that has something you are short of. Named all the time,
+   because that is the whole point of opening this screen; the dot bobs
+   like a buoy and rings like a sounder so it reads across a busy sea. */
+.map-pin.wanted { color: var(--teal); z-index: 2; }
+.map-pin.wanted .map-pin-dot {
+  background: var(--teal);
+  box-shadow: 0 0 0 1px rgba(var(--deep-rgb), 0.9), 0 0 10px var(--teal-glow);
+  animation: map-bob 1.6s ease-in-out infinite;
+}
+.map-pin.wanted .map-pin-dot::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border-radius: 50%;
+  border: 1.5px solid var(--teal);
+  animation: map-sonar 2.2s ease-out infinite;
+  pointer-events: none;
+}
+.map-pin.wanted .map-pin-name { opacity: 1; }
+/* Folded away because a neighbour got there first -- see declutterPins.
+   The pin, its dot and its badge all stay; only the name steps back, and
+   hovering or keyboard-focusing it brings the name straight back, so
+   nothing here is unreachable. */
+.map-pin.wanted.name-off .map-pin-name { opacity: 0; }
+.map-pin.name-off:hover .map-pin-name,
+.map-pin.name-off:focus-visible .map-pin-name { opacity: 1; }
+.map-pin.wanted:hover .map-pin-name { color: var(--teal-hi); }
+
+@keyframes map-sonar {
+  from { transform: scale(0.35); opacity: 0.7; }
+  to { transform: scale(2.4); opacity: 0; }
+}
+
+@keyframes map-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+/* When the list lights some islands, the rest step back. */
+.map-pin.dim { opacity: 0.42; transition: opacity 0.25s; }
+
+/* Already sailed today: the ping stops, the strike-through stands. */
+.map-pin.done .map-pin-dot { background: #2c9a7a; animation: none; }
+.map-pin.done .map-pin-dot::after { display: none; }
+.map-pin.done .map-pin-name { color: var(--ink-mute); text-decoration: line-through; }
+
+/* The stop number of a plotted route, riding the pin's shoulder. */
+.map-pin-badge {
+  position: absolute;
+  left: 6px;
+  top: -17px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 50%;
+  background: var(--amber);
+  color: #241a05;
+  font-size: 10px;
+  font-weight: 700;
+  display: none;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.map-pin-badge:not(:empty) { display: grid; }
+.map-pin-badge.is-done { background: var(--done-bg); color: var(--done-ink); border-color: var(--done-edge); }
+
+.map-zoom { display: flex; gap: 6px; }
+
+/* ------------------------------------------------------------------ *
+ * The chart's furniture: the side panel, the pin's card, the minimap.
+ * All float on the sea inside the map box, in the app's own materials.
+ * ------------------------------------------------------------------ */
+
+.map-side {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  bottom: 12px;
+  width: min(300px, calc(100% - 24px));
+  display: flex;
+  flex-direction: column;
+  background: var(--panel-solid);
+  border: 1px solid var(--line-btn);
+  border-radius: var(--r-panel);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 40px rgba(var(--shade-rgb), 0.45);
+  z-index: 10;
+  overflow: hidden;
+}
+
+.map-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 6px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.map-side-close,
+.map-x {
+  background: none;
+  border: 0;
+  padding: 0 5px;
+  color: var(--ink-mute);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.map-side-close:hover,
+.map-x:hover { color: var(--ink-hi); }
+
+.map-tabs { display: flex; gap: 4px; padding: 0 10px 8px; }
+
+.map-tab {
+  flex: 1;
+  padding: 6px 2px;
+  border-radius: var(--r-btn);
+  border: 1px solid transparent;
+  background: none;
+  color: var(--ink-mute);
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.map-tab.active {
+  background: var(--teal-glow);
+  color: var(--teal-hi);
+  border-color: var(--teal-edge);
+}
+
+.map-side-body { flex: 1; overflow-y: auto; padding: 2px 10px 10px; }
+
+.map-search {
+  width: 100%;
+  padding: 7px 9px;
+  margin-bottom: 8px;
+  border-radius: var(--r-btn);
+  background: var(--panel-inset);
+  border: 1px solid var(--line-btn);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.map-list { display: flex; flex-direction: column; gap: 5px; }
+
+.map-row,
+.map-stop-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  padding: 7px 9px;
+  border-radius: var(--r-btn);
+  background: var(--panel-inset);
+  border: 1px solid var(--line);
+  color: inherit;
+  font: inherit;
+}
+.map-row { cursor: pointer; }
+.map-row:hover { border-color: var(--line-btn-hi); }
+
+.map-row-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 6px var(--teal-glow);
+  flex: none;
+}
+
+.map-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.map-row-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-hi);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-row-sub {
+  font-size: 10.5px;
+  color: var(--ink-mute);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-row-right {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--amber);
+  flex: none;
+}
+
+.map-row-more { font-size: 10px; color: var(--ink-mute); }
+
+/* An item's face, at chart scale. */
+.map-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  object-fit: contain;
+  background: rgba(var(--line-rgb), 0.05);
+  flex: none;
+}
+
+.map-stop-n {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--amber);
+  color: #241a05;
+  font-size: 11px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.map-hint {
+  font-size: 11.5px;
+  color: var(--ink-mute);
+  background: var(--panel-inset);
+  border: 1px dashed var(--line-btn);
+  border-radius: var(--r-btn);
+  padding: 8px 10px;
+  margin: 4px 0 8px;
+}
+
+.map-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+.map-stats > div { background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
+
+.map-side-btns { display: flex; gap: 6px; margin-top: 8px; }
+.map-side-btns .ghost-btn { flex: 1; }
+.ghost-btn.wide { width: 100%; margin: 2px 0 8px; }
+.ghost-btn.danger { color: var(--red-soft); border-color: var(--red-edge); }
+
+.map-side-pill {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 10;
+  padding: 9px 13px;
+  border-radius: var(--r-tile);
+  background: var(--panel-solid);
+  border: 1px solid var(--line-btn);
+  color: var(--teal-hi);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.map-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex: none;
+  background: var(--panel-inset);
+  border: 1px solid var(--line-btn);
+  color: transparent;
+}
+.map-row.today.done .map-check { background: var(--done-bg); border-color: var(--done-edge); color: var(--done-ink); }
+.map-row.today.done .map-row-name { color: var(--ink-mute); text-decoration: line-through; }
+
+.map-ring-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel-inset);
+  border-radius: var(--r-tile);
+  padding: 10px;
+  margin: 4px 0 10px;
+}
+
+.map-ring {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.map-ring span {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--panel-solid);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-hi);
+}
+
+.map-ring-big { font-size: 13px; font-weight: 600; color: var(--ink-hi); }
+
+/* The pin's card: follows the hover, pins on a click. */
+.map-tip {
+  position: absolute;
+  z-index: 12;
+  width: 264px;
+  background: var(--panel-solid);
+  border: 1px solid var(--line-btn);
+  border-radius: var(--r-tile);
+  padding: 10px 12px;
+  box-shadow: 0 14px 40px rgba(var(--shade-rgb), 0.55);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+.map-tip.pinned { pointer-events: auto; }
+
+.map-tip-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+
+.map-tip-name {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-hi);
+}
+
+.map-tip-sub { font-size: 10.5px; color: var(--ink-mute); margin: 2px 0 6px; }
+.map-tip-sub.none { margin: 0; }
+.map-tip-sub.ok { color: var(--teal); }
+
+.map-tip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  padding: 4px 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.map-tip-side {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+  color: var(--ink-dim);
+}
+/* Names wrap rather than vanish: a card you cannot read is furniture. */
+.map-tip-side > span:last-child {
+  min-width: 0;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.map-tip-tries { font-size: 10px; color: var(--ink-mute); flex: none; min-width: 18px; text-align: right; }
+.map-tip-side.get { color: var(--amber); justify-content: flex-end; }
+.map-tip-arrow { color: var(--ink-faint); flex: none; }
+
+.map-tip-btns { display: flex; gap: 6px; margin-top: 8px; }
+.map-tip-btns .ghost-btn { flex: 1; font-size: 11px; padding: 5px 6px; }
+
+/* The minimap: the whole fleet of islands at a glance, the viewport
+   drawn on it, a click to jump. */
+.map-mini {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 10;
+  width: 176px;
+  height: 110px;
+  border-radius: var(--r-tile);
+  background: rgba(var(--deep-rgb), 0.85);
+  border: 1px solid var(--line-btn);
+  overflow: hidden;
+  cursor: crosshair;
+  backdrop-filter: blur(8px);
+}
+
+.mini-dot {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  margin: -1.5px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+}
+.mini-dot.wanted {
+  width: 4px;
+  height: 4px;
+  margin: -2px;
+  background: var(--teal);
+  box-shadow: 0 0 4px var(--teal);
+}
+
+.mini-view {
+  position: absolute;
+  border: 1.5px solid var(--teal);
+  border-radius: 3px;
+  background: var(--teal-glow);
+  pointer-events: none;
+}
+
+/* The "Showing" picker's face: the picked item wears its own icon. */
+.map-pick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 8px;
+  border-radius: var(--r-btn);
+  background: var(--panel-inset);
+  border: 1px solid var(--line-btn);
+  color: var(--ink-hi);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.map-pick-btn:hover { border-color: var(--line-btn-hi); }
+.map-pick-btn > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-pick-caret { color: var(--ink-mute); font-size: 10px; flex: none; }
+
+.map-pick-all {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: rgba(var(--line-rgb), 0.05);
+  color: var(--teal);
+  font-size: 13px;
+  flex: none;
+}
+
+.picker-head {
+  padding: 9px 10px 4px;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+
+/* Give and get, at a glance: minus on what leaves, plus on what boards. */
+.map-io { position: relative; display: inline-flex; flex: none; }
+.map-io::after {
+  content: '−';
+  position: absolute;
+  right: -4px;
+  top: -5px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  font-size: 9px;
+  line-height: 11px;
+  text-align: center;
+  font-weight: 700;
+  background: var(--bad-bg);
+  color: var(--red-soft);
+  border: 1px solid var(--red-edge);
+}
+.map-io.plus::after {
+  content: '+';
+  background: var(--done-bg);
+  color: var(--done-ink);
+  border-color: var(--done-edge);
+}
+
+/* A wharf: square where the islands are round, and gold when it is
+   the route's home. */
+.map-port {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-mute);
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  z-index: 3;
+}
+.map-port::before { content: ''; position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; transform: translate(-50%, -50%); }
+.map-port-name { position: absolute; top: calc(100% + 3px); left: 50%; transform: translateX(-50%); }
+.map-port-dot { display: block; width: 100%; height: 100%; }
+.map-port-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--blue-bar);
+  border: 1.5px solid rgba(240, 250, 255, 0.7);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+.map-port-name { text-shadow: 0 1px 4px #000; }
+.map-port:hover .map-port-name { color: var(--ink-hi); }
+.map-port.start { color: var(--amber); }
+.map-port.start .map-port-dot { background: var(--amber); }
+
+/* The stop the step player is on: a gold ring no sea swallows. */
+.map-pin.current .map-pin-dot {
+  box-shadow: 0 0 0 3px rgba(232, 182, 97, 0.9), 0 0 16px var(--amber);
+}
+
+/* The step player: the route as chips, walked or flown. */
+.map-steps {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(72%, 580px);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--panel-solid);
+  border: 1px solid var(--line-btn);
+  backdrop-filter: blur(8px);
+}
+
+.map-step-chips {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  max-width: 300px;
+  min-width: 0;
+  padding: 0 6px;
+  scrollbar-width: none;
+  /* A clipped chip half-hiding under the arrows read as a bug; fade
+     the ends instead of cutting them. */
+  mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent);
+}
+.map-step-chips::-webkit-scrollbar { display: none; }
+
+.map-step-chip {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--panel-inset);
+  border: 1px solid var(--line-btn);
+  color: var(--ink-dim);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+}
+.map-step-chip.on {
+  background: var(--amber);
+  border-color: transparent;
+  color: #241a05;
+  font-weight: 700;
+}
+
+.map-step-nav {
+  background: none;
+  border: 0;
+  padding: 0 2px;
+  color: var(--ink-mute);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.map-step-nav:hover { color: var(--ink-hi); }
+
+/* The name is as wide as its longest fit, whatever the stop, so the
+   bar -- centred on the chart -- keeps one width as the stops are
+   stepped through and the arrows stay under the thumb that pressed
+   them; a name that took only its own width moved everything else
+   with every step. */
+.map-step-name {
+  font-size: 11px;
+  color: var(--ink-dim);
+  flex: 0 0 150px;
+  width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-step-follow {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: none;
+  border: 1px solid var(--line-btn);
+  color: var(--ink-mute);
+  cursor: pointer;
+  white-space: nowrap;
+  flex: none;
+}
+.map-step-follow.on {
+  color: var(--amber);
+  border-color: rgba(232, 182, 97, 0.5);
+  background: rgba(232, 182, 97, 0.08);
+}
+
+.map-startrow { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+
+/* A term the game defines: dotted underneath, and the game's own
+   window floats up on hover, right where the term is used. */
+.gterm { border-bottom: 1px dotted var(--ink-faint); cursor: help; }
+.gterm:hover { color: var(--teal-hi); border-bottom-color: var(--teal-edge); }
+
+.guide-tip {
+  position: fixed;
+  z-index: 500;
+  background: var(--panel-solid);
+  border: 1px solid var(--line-btn);
+  border-radius: var(--r-tile);
+  padding: 10px 12px;
+  box-shadow: 0 14px 40px rgba(var(--shade-rgb), 0.55);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.guide-tip img {
+  display: block;
+  max-width: 100%;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--line);
+  margin: 4px 0 6px;
+}
+
+.guide-tip p { margin: 0; font-size: 11.5px; color: var(--ink-mid); line-height: 1.45; }
+
+/* The field guide: one quiet dot, and the game's own windows behind it. */
+.info-dot {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line-btn);
+  background: none;
+  color: var(--ink-mute);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: 2px;
+}
+.info-dot:hover { color: var(--teal-hi); border-color: var(--teal-edge); }
+
+.guide { display: flex; flex-direction: column; gap: 14px; max-height: 60vh; overflow-y: auto; padding-right: 4px; }
+
+.guide-card h3 { margin: 0 0 2px; font-size: 14px; color: var(--ink-hi); font-family: var(--font-display); }
+
+.guide-where {
+  font-size: 11px;
+  color: var(--teal);
+  margin-bottom: 6px;
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+}
+
+.guide-card img {
+  display: block;
+  max-width: 100%;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--line);
+  margin-bottom: 6px;
+}
+
+.guide-card p { margin: 0; font-size: 12.5px; color: var(--ink-mid); line-height: 1.5; }
+
+/* One refresh list per run: the chart plans against materials or the
+   trade chain, not a mixture. */
+.map-kinds { display: flex; gap: 4px; margin: 0 0 8px; }
+
+.map-kind-chip {
+  flex: 1;
+  padding: 5px 2px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--line);
+  background: var(--panel-inset);
+  color: var(--ink-mute);
+  font-size: 11px;
+  cursor: pointer;
+}
+.map-kind-chip.on { color: var(--teal-hi); border-color: var(--teal-edge); background: var(--teal-glow); }
+
+.map-kind-tag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid var(--line-btn);
+  color: var(--ink-mute);
+}
+.map-kind-tag.material { color: var(--teal); border-color: var(--teal-edge); }
+.map-kind-tag.trade { color: var(--blue); border-color: var(--blue-edge); }
+.map-kind-tag.coin { color: var(--amber); border-color: rgba(232, 182, 97, 0.4); }
+
+/* The tree's jump to the chart, one glyph wide. */
+.tmap {
+  width: 24px;
+  flex: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--ink-faint);
+  font-size: 14px;
+  cursor: pointer;
+}
+.tmap:hover { color: var(--teal-hi); }
+.tmap.empty { cursor: default; }
+
+.trow-own .own-input { width: 64px; }
+
+/* A phone is all sea: the minimap yields, and so does a leg's name.
+   The panel keeps the full height of the chart, as it does on a wide
+   screen -- capped at 62% it cut its own list off with sea below it,
+   and the tab you were reading scrolled inside a box two thirds of a
+   small screen tall. It is folded away to its pill when the chart is
+   what you want to see. */
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .map-mini { display: none; }
+  .map-step-name { display: none; }
+}
+
+/* The jump from a shopping-list line to its islands. */
+.chart-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--teal);
+  cursor: pointer;
+}
+
+.chart-link:hover { text-decoration: underline; }
+.map-zoom .ghost-btn { min-width: 34px; font-size: 15px; line-height: 1; }
+
+
+/* The run sheet in the chart's panel: the Barter tab's rows, the panel
+   wide enough for them, the stop the chart stands at lit. */
+.map-side:has(.map-run) { width: min(440px, calc(100% - 24px)); }
+.map-run { display: flex; flex-direction: column; gap: 10px; }
+.map-run-head { display: flex; flex-direction: column; gap: 6px; }
+.map-run-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.map-run-title > b { font-family: var(--font-display); font-size: 13.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--blue); }
+.map-run-title span { font-size: 12px; color: var(--ink-faint); }
+.map-run-fold { border: 1px solid var(--line); border-radius: var(--r-btn); padding: 6px 10px; font-size: 12px; color: var(--ink-mid); }
+.map-run-fold > summary { cursor: pointer; font-weight: 600; color: var(--ink-mid); }
+.map-run-fold.tools { margin-top: 10px; }
+.map-run-fold.tools .map-stats { margin-top: 8px; }
+.map-run .sail-bar { flex-wrap: wrap; }
+.map-run-stops .run-stop { padding-right: 4px; }
+.map-run-stops .run-stop.on { background: rgba(var(--blue-rgb), 0.08); border-radius: var(--r-sm); box-shadow: inset 3px 0 0 var(--blue-bar); }
+.run-stop-fly { padding: 0; border: 0; background: none; color: var(--ink-hi); font: inherit; font-weight: 700; cursor: pointer; text-align: left; }
+.run-stop-fly:hover { color: var(--blue-hi); text-decoration: underline; }
+.map-run-hint { font-size: 11.5px; }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .map-run-stops .run-hold { margin-left: 0; }
+  .map-run .sail-bar .act { flex: 1 1 100%; }
+}

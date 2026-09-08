@@ -17,6 +17,8 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sail-sync-'));
 
 process.env.NODE_ENV = 'test';
 process.env.PORT = '0';
+process.env.LOG_REQUESTS = '0';
+delete process.env.PUBLIC_URL;
 process.env.DISCORD_CLIENT_ID = 'test-client';
 process.env.DISCORD_CLIENT_SECRET = 'test-secret';
 process.env.TURSO_DATABASE_URL = `file:${path.join(dir, 'tracker.db')}`;
@@ -45,11 +47,12 @@ test.after(() => {
 	fs.rmSync(dir, { recursive: true, force: true });
 });
 
-const call = (method, url, { cookie, body } = {}) => fetch(base + url, {
+const call = (method, url, { cookie, body, headers } = {}) => fetch(base + url, {
 	method,
 	headers: {
 		...(cookie ? { Cookie: cookie } : {}),
-		...(body ? { 'Content-Type': 'application/json' } : {})
+		...(body ? { 'Content-Type': 'application/json' } : {}),
+		...headers
 	},
 	body: body ? JSON.stringify(body) : undefined,
 	redirect: 'manual'
@@ -74,7 +77,7 @@ test('the page is still served', async () => {
 
 test('the client is told sync is available', async () => {
 	const res = await call('GET', '/api/config');
-	assert.deepEqual(await res.json(), { sync: true });
+	assert.deepEqual(await res.json(), { sync: true, push: false, feedback: true, community: true });
 });
 
 test('being signed out is an answer, not an error', async () => {
@@ -247,6 +250,64 @@ test('deleting an account leaves nothing behind', async () => {
 	assert.equal(await getSave('1003'), null, 'the save came back after deletion');
 });
 
+test('a device still signed in cannot resurrect a deleted account', async () => {
+	const { getSave, upsertUser: addUser } = await import('../server/db.js');
+	await addUser({ id: '1005', username: 'Straggler', avatar: null });
+	// Two devices, one account. Sessions are stateless cookies, so
+	// deleting the account on one cannot invalidate the other's.
+	const desk = cookieFor('1005');
+	const phone = cookieFor('1005');
+
+	await call('PUT', '/api/state', { cookie: desk, body: { rev: 0, data: SAVE, device: 'desk' } });
+	assert.equal((await call('DELETE', '/api/account', { cookie: desk })).status, 200);
+
+	// The phone finds no save, concludes it has never synced, and pushes
+	// revision 0 -- the exact shape that used to re-create the row.
+	const res = await call('PUT', '/api/state', { cookie: phone, body: { rev: 0, data: SAVE, device: 'phone' } });
+	assert.equal(res.status, 410);
+	// It is told to sign out as well as refused.
+	assert.ok(res.headers.getSetCookie().some(c => c.startsWith('sail_session=;')));
+
+	// And nothing came back, not even after any flush had time to land.
+	await new Promise(resolve => setTimeout(resolve, 100));
+	assert.equal(await getSave('1005'), null, 'the save was re-created after deletion');
+});
+
+test('the sign-in hand-off cannot be steered off the site', async () => {
+	const { beginOAuth, finishOAuth } = await import('../server/session.js');
+
+	// The real flow, minus Discord: mint the state and its cookie, then
+	// present both to the callback check as a browser would.
+	const roundTrip = to => {
+		const jar = [];
+		const state = beginOAuth({ append: (_name, value) => jar.push(value) }, to);
+		const cookie = jar.map(c => c.split(';')[0]).join('; ');
+		return finishOAuth({ headers: { cookie } }, { append: () => {} }, state);
+	};
+
+	assert.equal(roundTrip('/inventory?tab=barter').returnTo, '/inventory?tab=barter');
+
+	for (const evil of [
+		'https://evil.example',
+		'//evil.example',
+		// Browsers read `\` as `/` in a Location, so a single slash and a
+		// backslash is `//` in everything but the check.
+		'/\\evil.example',
+		'/\\/evil.example',
+		'/fine\r\nSet-Cookie: stolen=1'
+	]) {
+		assert.equal(roundTrip(evil).returnTo, '/', evil);
+	}
+});
+
+test('an explicit zero in the environment is a zero, not the default', async () => {
+	// FLUSH_DELAY_MS is '0' at the top of this file, and the deletion
+	// test above leans on it: a flush must be in the air immediately,
+	// not after a default 400ms this process never asked for.
+	const { config } = await import('../server/config.js');
+	assert.equal(config.flushDelayMs, 0);
+});
+
 test('a database that refuses a save is not mistaken for one that is unreachable', async () => {
 	const { transient } = await import('../server/db.js');
 
@@ -286,7 +347,9 @@ test('nothing in the API may be cached, whoever is in front of it', async () => 
 	for (const url of ['/api/state', '/api/me']) {
 		const res = await call('GET', url, { cookie: alice });
 		assert.equal(res.headers.get('cache-control'), 'no-store', url);
-		assert.equal(res.headers.get('vary'), 'Cookie', url);
+		// Cookie must be in there; compression is allowed to append
+		// Accept-Encoding, which only makes the caching story stricter.
+		assert.match(res.headers.get('vary'), /\bCookie\b/, url);
 	}
 });
 
@@ -296,4 +359,106 @@ test('every response carries the security headers', async () => {
 	assert.doesNotMatch(res.headers.get('content-security-policy'), /script-src[^;]*unsafe-inline/);
 	assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
 	assert.equal(res.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
+});
+
+/* ------------------------------------------------------------------ *
+ * the barter profile, added to the save after people were using it
+ * ------------------------------------------------------------------ */
+
+test('a save with no profile is stored with no profile', async () => {
+	// The field has to be invisible to anyone who has not set one. If the
+	// server helpfully added an empty object, every stored save would
+	// change shape on its owner's next push, and every already-signed-in
+	// browser would find its own copy no longer matching what is stored.
+	//
+	// Bob deleted his account above, and a deleted account may no longer
+	// push. Signing back in re-creates the user row, which upsertUser
+	// stands in for here.
+	await upsertUser({ id: '1002', username: 'Other', avatar: null });
+	await call('PUT', '/api/state', { cookie: bob, body: { rev: 0, data: SAVE } });
+	const got = await (await call('GET', '/api/state', { cookie: bob })).json();
+	assert.deepEqual(got.data, SAVE);
+	assert.ok(!('profile' in got.data));
+});
+
+test('a profile survives the round trip', async () => {
+	const withProfile = { ...SAVE, profile: { barterCount: 2000, valuePack: true } };
+	const put = await call('PUT', '/api/state', { cookie: bob, body: { rev: 1, data: withProfile } });
+	assert.equal(put.status, 200);
+
+	const got = await (await call('GET', '/api/state', { cookie: bob })).json();
+	assert.deepEqual(got.data.profile, { barterCount: 2000, valuePack: true });
+	// And the rest of the save is untouched by its arrival.
+	assert.deepEqual(got.data.stock, SAVE.stock);
+});
+
+test('a profile that is not an object is refused', async () => {
+	for (const bad of [[], 'yes', 3]) {
+		const res = await call('PUT', '/api/state', {
+			cookie: bob,
+			body: { rev: 2, data: { ...SAVE, profile: bad } }
+		});
+		assert.equal(res.status, 400, `profile ${JSON.stringify(bad)} should be refused`);
+	}
+});
+
+/* ------------------------------------------------------------------ *
+ * Operations: where a change may come from, and whether it is up
+ * ------------------------------------------------------------------ */
+
+test('a change from another site is refused, whatever cookie it carries', async () => {
+	// No PUBLIC_URL in this file, so the request's own Host is the site.
+	const { rev } = await (await call('GET', '/api/state', { cookie: alice })).json();
+	const from = origin => call('PUT', '/api/state', { cookie: alice, body: { rev, data: SAVE }, headers: { Origin: origin } });
+	assert.equal((await from('https://evil.example')).status, 403);
+	assert.equal((await from('null')).status, 403);
+	// A browser that names no origin but says the request crossed sites.
+	const crossed = await call('POST', '/auth/logout', { cookie: alice, headers: { 'Sec-Fetch-Site': 'cross-site' } });
+	assert.equal(crossed.status, 403);
+
+	// The same request from this site goes through as before.
+	const ours = await from(base);
+	assert.equal(ours.status, 200);
+	const same = await call('POST', '/auth/logout', { cookie: alice, headers: { 'Sec-Fetch-Site': 'same-origin' } });
+	assert.equal(same.status, 200);
+	// And a refusal never reads the body: the stored save did not move.
+	const after = await (await call('GET', '/api/state', { cookie: alice })).json();
+	assert.equal(after.rev, rev + 1);
+});
+
+test('a read is never asked where it came from', async () => {
+	const res = await call('GET', '/api/me', { cookie: alice, headers: { Origin: 'https://evil.example' } });
+	assert.equal(res.status, 200);
+});
+
+test('the healthcheck says the database is answering, and what memory holds', async () => {
+	const res = await call('GET', '/healthz');
+	assert.equal(res.status, 200);
+	assert.equal(res.headers.get('cache-control'), 'no-store');
+	const body = await res.json();
+	assert.equal(body.ok, true);
+	assert.equal(body.db, 'ok');
+	assert.equal(typeof body.dirty, 'number');
+	assert.equal(typeof body.queued, 'number');
+	assert.equal(typeof body.uptime, 'number');
+	assert.ok(body.version, 'names the build');
+	// Every push above was written out, and counted on the way.
+	assert.ok(body.counters.savesFlushed > 0, 'no save was ever flushed');
+	assert.ok(body.counters.requests['2xx'] > 0);
+	assert.ok(body.counters.requests['4xx'] > 0, 'the refusals above were not counted');
+});
+
+test('the schema is versioned, and running the migrations again changes nothing', async () => {
+	const { db, migrate, applyMigrations, MIGRATIONS } = await import('../server/db.js');
+	const newest = MIGRATIONS[MIGRATIONS.length - 1].version;
+	assert.equal(await migrate(), newest);
+	const versions = async () => (await db().execute('SELECT version FROM schema_version ORDER BY version')).rows.map(r => Number(r.version));
+	assert.deepEqual(await versions(), MIGRATIONS.map(m => m.version));
+	// Not the memoised migrate() -- the runner itself, on a database that
+	// has already had every step.
+	assert.equal(await applyMigrations(), newest);
+	assert.equal(await applyMigrations(), newest);
+	assert.deepEqual(await versions(), MIGRATIONS.map(m => m.version));
+	const { rows } = await db().execute('SELECT COUNT(*) AS n FROM users');
+	assert.ok(Number(rows[0].n) > 0, 'the rows survived a second run');
 });

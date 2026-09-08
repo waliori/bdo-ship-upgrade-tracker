@@ -178,6 +178,7 @@ export const families = {
 	"Bartali Sailboat: Old Wind Sail": 'sailboat',
 	"Epheria Caravel: Black Dragon Figurehead": 'caravel-blue',
 	"Epheria Caravel: Brass Figurehead": 'caravel-green',
+	"Epheria Caravel: Enhanced Plating": 'caravel-green',
 	"Epheria Caravel: Mayna Cannon": 'caravel-blue',
 	"Epheria Caravel: Stratus Wind Sail": 'caravel-blue',
 	"Epheria Caravel: Upgraded Plating": 'caravel-blue',
@@ -204,6 +205,7 @@ export const families = {
 	"Epheria Carrack: Volante (Chiro's Figurehead)": 'chiro',
 	"Epheria Carrack: Volante (Chiro's Sail)": 'chiro',
 	"Epheria Galleass: Black Dragon Figurehead": 'caravel-blue',
+	"Epheria Galleass: Enhanced Plating": 'caravel-green',
 	"Epheria Galleass: Mayna Cannon": 'caravel-blue',
 	"Epheria Galleass: Stratus Wind Sail": 'caravel-blue',
 	"Epheria Galleass: Upgraded Plating": 'caravel-blue',
@@ -213,7 +215,8 @@ export const families = {
 	"Epheria: Old Cannon": 'epheria',
 	"Epheria: Old Figurehead": 'epheria',
 	"Epheria: Old Plating": 'epheria',
-	"Epheria: Old Wind Sail": 'epheria',	"Panokseon: Haemo's Cannon": 'toro',
+	"Epheria: Old Wind Sail": 'epheria',
+	"Panokseon: Haemo's Cannon": 'toro',
 	"Panokseon: Haemo's Sail": 'toro',
 	"Panokseon: Haemo's Figurehead": 'toro',
 	"Panokseon: Haemo's Plating": 'toro',
@@ -227,4 +230,57 @@ export const families = {
 export function tableFor(base) {
 	const id = families[base];
 	return id ? tables[id] : null;
+}
+
+/** Where the climb slows: past this chance a stack adds a fiftieth of
+ *  base instead of a tenth. And where it stops altogether. */
+export const SOFT_CAP = 0.7;
+export const HARD_CAP = 0.9;
+
+/**
+ * The odds of one attempt at the player's own failstack.
+ *
+ * The game's line, the same for ship parts as for everything else:
+ * each stack adds a tenth of the base rate until the chance reaches
+ * 70%, and from there a fiftieth of base -- a fifth of the pace -- up
+ * to the 90% it never passes. Checked against a community chance table
+ * for every green Caravel level on 2026-09-03: +1 (70% base) climbs at
+ * 1.4 a stack from the first, +5 (40%) at 4 a stack to 72% at eight
+ * stacks and 0.8 a stack after, +10 (30%) reaches 72% at fourteen.
+ *
+ * The yellow rows carry the rate at zero stacks and the stack the quoted
+ * rate was read at, and the quoted numbers all sit on that line, which
+ * is what lets a different stack be priced rather than guessed. Rows
+ * without a `base` (every tier below yellow) quote the bare rate, which
+ * is the base at no stacks.
+ */
+/**
+ * The stacks at which a level's chance reaches the soft cap -- the
+ * last stack that still adds a tenth of base -- and the hard cap. The
+ * first is the stack worth stacking to before an attempt: every stack
+ * up to it buys five times what a stack past it does. Zero when the
+ * base is already there.
+ */
+export function stacksTo(step) {
+	if (!step) return null;
+	const base = step.base || step.chance;
+	if (!(base > 0) || base >= 1) return null;
+	let soft = 0, hard = 0;
+	while (chanceAt(step, soft) < SOFT_CAP - 1e-9) soft++;
+	while (chanceAt(step, hard) < HARD_CAP - 1e-9 && hard < 1000) hard++;
+	return { soft, hard: hard >= 1000 ? null : hard };
+}
+
+export function chanceAt(step, failstack = null) {
+	if (!step) return 0;
+	if (failstack === null || !Number.isFinite(failstack)) return step.chance;
+	const base = step.base || step.chance;
+	const stacks = Math.max(0, Math.floor(failstack));
+	const quick = base / 10, slow = base / 50;
+	// Stacks at the quick pace: as many as it takes to reach the soft
+	// cap, none when the base is already past it.
+	const toSoft = base >= SOFT_CAP ? 0 : Math.ceil((SOFT_CAP - base) / quick - 1e-9);
+	const quickStacks = Math.min(stacks, toSoft);
+	const chance = base + quickStacks * quick + (stacks - quickStacks) * slow;
+	return Math.min(HARD_CAP, Math.round(chance * 1e6) / 1e6);
 }

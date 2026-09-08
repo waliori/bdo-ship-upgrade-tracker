@@ -1,0 +1,519 @@
+/* tracker-barter.css — the Barter tab: the board, the hold, the chains, the run and the wharf calls.
+   One of nine sheets that were one file, cut at its section marks and
+   linked in the same order (tracker-base, tracker-shell, tracker-yard, tracker-widgets, tracker-map, tracker-sea, tracker-extras, tracker-barter, tracker-recent), so the cascade is what it was: a
+   rule here still loses to the same rule in a later sheet. When moving a
+   rule between sheets, check nothing later relies on beating it. */
+
+/* ---- The Barter tab: the board, the hold, the chains and the run ---- */
+:root {
+  --tier-1: #6f88a3; --tier-2: #4ec9ae; --tier-3: #58a8d8; --tier-4: #7c9ce8;
+  --tier-5: #b28fe0; --tier-6: #e8b661; --tier-7: #e8905d;
+}
+/* The same seven, darker on a pale page, so a tier named in text still
+   reads; the ink laid on them is --on-tint, which turns white there. */
+:root[data-theme="light"] {
+  --tier-1: #4d647e; --tier-2: #0f8f76; --tier-3: #1d78ab; --tier-4: #4463c4;
+  --tier-5: #7a4fb8; --tier-6: #a4700e; --tier-7: #c25a1f;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --tier-1: #4d647e; --tier-2: #0f8f76; --tier-3: #1d78ab; --tier-4: #4463c4;
+    --tier-5: #7a4fb8; --tier-6: #a4700e; --tier-7: #c25a1f;
+  }
+}
+.barter-screen { display: flex; flex-direction: column; gap: 16px; }
+/* A panel carries no padding of its own: what stands under a head on
+   this tab -- the orders, the figures, the chains -- stands in a body
+   that brings it. */
+.barter-screen .panel-body { padding: 12px 18px 16px; }
+.barter-screen .panel-body > :first-child { margin-top: 0; }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .barter-screen .panel-body { padding: 10px 12px 14px; }
+}
+
+/* The run's strip along the foot of the page while something is
+   ticked: it stays in view above the phone's section bar as the chains
+   or the islands are ticked, and opens the run laid out over the page. */
+.run-dock { position: sticky; bottom: calc(var(--tabbar-h, 0px) + 10px); z-index: 20; display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; padding: 9px 12px 9px 16px; border-radius: var(--r-panel); background: rgba(var(--deep-rgb), 0.96); border: 1px solid rgba(var(--blue-rgb), 0.45); box-shadow: 0 10px 34px rgba(var(--shade-rgb), 0.5); backdrop-filter: blur(8px); }
+.run-dock-k { font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue); white-space: nowrap; }
+.run-dock-figs { flex: 1 1 200px; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--ink-mute); }
+.run-dock-figs > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.run-dock-figs b { font-family: var(--font-display); font-weight: 700; color: var(--ink-hi); }
+.run-dock-figs b.gold { color: var(--amber); }
+.run-dock-figs b.teal { color: var(--teal); }
+.run-dock-figs b.amber { color: var(--amber); }
+.run-dock-figs b.warn { color: var(--red); }
+.run-dock-open { flex: none; padding: 8px 16px; }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .run-dock { padding: 8px 10px 8px 12px; gap: 6px 10px; }
+  .run-dock-k { display: none; }
+  .run-dock-figs { font-size: 12px; gap: 3px 10px; }
+}
+
+/* The run laid out, as a sheet over the page: its head, then the
+   goods to have first, the stops, and the way to sail it. */
+.run-dialog { display: flex; flex-direction: column; gap: 10px; }
+.run-dialog .run-sheet-head { padding: 0 0 10px; margin: 0; }
+.run-dialog .run-sheet-head .panel-sub { flex: 1 1 200px; }
+.run-dialog .run-empty { padding: 28px 18px; }
+.run-dialog .dialog-actions { margin-top: 6px; }
+.run-dialog .run-chart { margin: 0; }
+/* The way to sail the run stays in view as the sheet scrolls: the bar
+   sits at the foot of the box until the sheet's own end comes up. */
+.run-foot, .run-dialog .mat-sail { position: sticky; bottom: 0; z-index: 3; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 0; padding: 10px 12px; border-radius: var(--r-panel); background: var(--sheet-solid); border: 1px solid rgba(var(--blue-rgb), 0.35); box-shadow: 0 -10px 24px rgba(var(--deep-rgb), 0.55); }
+.run-foot .sail-bar { flex: 1 1 320px; padding: 0; border: none; background: transparent; }
+.run-foot .sail-bar .act { flex: none; white-space: nowrap; padding: 9px 16px; }
+.run-foot .run-chart, .run-dialog .mat-sail .run-chart { flex: 0 1 auto; margin: 0; }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .run-foot .run-chart, .run-dialog .mat-sail .run-chart { flex: 1 1 100%; }
+  .run-foot .sail-bar .faint { display: none; }
+}
+/* The run's sheet is wide, and on anything short of a desk as wide as the screen. */
+.dialog-box.xwide { max-width: 960px; }
+@media (max-width: 900px) {
+  .dialog-box.wide, .dialog-box.xwide { max-width: none; }
+}
+
+/* The quests along the run: on a stop, what is taken, done or handed in
+   there; on a leg, the grounds it passes. A wanted one -- paying what
+   the plan is short of -- is lit. */
+.run-quests { display: flex; flex-direction: column; gap: 4px; margin-top: 7px; }
+.run-quests-home .run-quests { padding: 10px 18px 12px; margin: 0; }
+.run-quest { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 7px; font-size: 12px; color: var(--ink-mid); background: rgba(232, 182, 97, 0.07); border: 1px solid rgba(232, 182, 97, 0.22); border-radius: 8px; padding: 4px 9px 4px 7px; }
+.run-quest > i { font-style: normal; font-size: 12px; }
+.run-quest > b { font-weight: 700; color: var(--amber); text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.06em; }
+.run-quest-name { color: var(--ink); flex: 1 1 140px; min-width: 0; }
+.run-quest .linky.run-quest-name { text-align: left; font-size: 12px; color: var(--ink); text-decoration: none; border-bottom: 1px dotted rgba(var(--line-rgb), 0.4); padding: 0; }
+.run-quest .linky.run-quest-name:hover { color: var(--blue-hi); }
+.run-quest-note { color: var(--ink-mid); }
+.run-quest-acts { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; }
+.run-quest-acts .map-x { width: 20px; height: 20px; font-size: 13px; }
+.quest.focus { background: rgba(var(--blue-rgb), 0.1); box-shadow: inset 3px 0 0 var(--blue); }
+.map-quests { display: flex; flex-direction: column; gap: 2px; margin-top: 3px; }
+.map-quest { font-size: 11.5px; color: var(--amber); }
+.map-stop-row.stash.quest .map-stop-n { color: var(--amber); }
+/* A stop's row is its step: a tap takes the player to it, and the
+   current one is lit. */
+.map-stop-row[data-step-row] { cursor: pointer; }
+.map-stop-row[data-step-row]:hover { background: rgba(var(--blue-rgb), 0.06); }
+.map-stop-row.on { background: rgba(232, 182, 97, 0.08); box-shadow: inset 3px 0 0 var(--amber); }
+.map-stop-row.on .map-stop-n { background: rgba(232, 182, 97, 0.9); color: #08131f; border-color: transparent; }
+.map-tip-sub.quest { color: var(--amber); }
+.run-quest small { font-size: 11px; color: var(--ink-mute); }
+.run-quest.wanted { border-color: rgba(126, 240, 212, 0.45); background: rgba(126, 240, 212, 0.07); }
+.run-quest.wanted > b { color: var(--teal); }
+.run-quest.hunt { background: rgba(var(--blue-rgb), 0.07); border-color: rgba(var(--blue-rgb), 0.25); }
+.run-quest.hunt > b { color: var(--blue); }
+.run-quest.done { opacity: 0.6; }
+.run-quest.off { background: transparent; border-color: var(--line-soft); }
+.run-quest.off > i { opacity: 0.6; }
+.run-quests-line { margin-left: auto; font-size: 12px; color: var(--ink-mute); }
+.run-quests-line b { color: var(--amber); }
+/* In the sheet a goods row wraps rather than cuts its name: the note
+   takes a line of its own under the name, and on a phone so does what
+   can be done about it. */
+.run-dialog .run-good { flex-wrap: wrap; gap: 8px 10px; }
+.run-dialog .run-good > span:not(.faint):not(.run-good-worth) { white-space: normal; flex: 1 1 150px; }
+.run-dialog .run-good .faint { flex: 1 1 100%; order: 5; padding-left: 2px; white-space: normal; }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .run-dialog .run-good { padding-left: 14px; padding-right: 14px; }
+  .run-dialog .run-good .run-good-worth { flex: 1 1 100%; order: 6; margin-left: 0; }
+}
+
+/* the hold, as a line across the page, and the dialog it opens */
+.hold-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 8px 10px 8px 14px; border-color: rgba(78, 201, 174, 0.22); }
+.hold-bar.over { border-color: rgba(232, 182, 97, 0.4); }
+.hold-bar.dead { border-color: var(--red-edge); }
+.hold-bar-main { flex: 1 1 420px; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; padding: 4px 0; background: none; border: none; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: var(--r-btn); }
+.hold-bar-main:hover .hold-bar-open { color: var(--ink-hi); }
+.hold-bar-k { font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); white-space: nowrap; }
+.hold-bar-ship { font-size: 12.5px; font-weight: 600; color: var(--ink-hi); white-space: nowrap; }
+.hold-bar-gauge { display: flex; align-items: center; gap: 10px; flex: 1 1 200px; min-width: 160px; }
+.hold-bar-gauge .map-load-bar { flex: 1 1 90px; margin: 0; }
+.hold-bar-gauge b { font-family: var(--font-display); font-size: 12.5px; font-weight: 600; color: var(--ink-hi); white-space: nowrap; }
+.hold-bar-gauge b.warn { color: var(--amber); }
+.hold-bar-goods { display: flex; flex-wrap: wrap; gap: 5px; }
+.hold-bar-goods .faint { font-size: 11.5px; color: var(--ink-faint); }
+.hold-bar-lv { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-display); font-size: 11.5px; font-weight: 600; color: var(--ink-mid); padding: 2px 7px 2px 3px; border-radius: 999px; background: var(--panel-inset); border: 1px solid var(--line-soft); }
+.hold-bar-lv i { font-style: normal; font-size: 9.5px; font-weight: 700; color: var(--on-tint); background: var(--tier); border-radius: 4px; padding: 1px 4px; }
+.hold-bar-ashore { font-size: 11.5px; color: var(--ink-mute); }
+.hold-bar-ashore.faint { color: var(--ink-faint); }
+.hold-bar-open { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--ink-mute); white-space: nowrap; }
+.hold-bar-btns { flex: none; display: flex; gap: 6px; }
+.hold-dialog .barter-hold { border: none; background: transparent; padding: 0; box-shadow: none; }
+.hold-dialog .dialog-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+.dialog-box.wide { max-width: 720px; }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .hold-bar { padding: 8px 10px; }
+  .hold-bar-main { flex-basis: 100%; }
+  .hold-bar-btns { width: 100%; }
+  .hold-bar-btns .ghost-btn { flex: 1 1 auto; }
+}
+
+/* the board bar */
+.barter-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); padding: 12px 18px; }
+.barter-bar.known { border-color: rgba(126, 240, 212, 0.3); }
+.barter-bar-lead { display: flex; align-items: baseline; gap: 9px; }
+.barter-bar-lead b { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--ink-hi); }
+.barter-bar-lead span { font-size: 11.5px; color: var(--ink-mute); }
+.barter-bar-sub { flex: 1 1 260px; min-width: 200px; font-size: 11.5px; color: var(--ink-mute); line-height: 1.45; }
+.barter-bar .chips { gap: 6px; }
+.segs { display: inline-flex; gap: 4px; background: var(--panel-inset); border: 1px solid var(--line-btn); border-radius: 9px; padding: 3px; }
+.seg { background: transparent; border: 1px solid transparent; color: var(--ink-mute); border-radius: 7px; padding: 5px 13px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.seg.on { background: rgba(var(--blue-rgb), 0.18); border-color: rgba(var(--blue-rgb), 0.55); color: var(--blue-hi); }
+
+/* the hold */
+.barter-hold .panel-head { flex-wrap: wrap; }
+.barter-goods { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+.barter-good { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--r-btn); background: var(--panel-inset); }
+.barter-good .map-row-sub { white-space: normal; }
+.barter-count { display: flex; align-items: center; gap: 3px; flex: none; }
+.barter-count .purse-inline { width: 46px; text-align: center; padding: 2px 3px; }
+
+/* the chains to tick */
+.barter-chains .panel-head { flex-wrap: wrap; }
+.chain-list { margin-top: 8px; }
+/* The chains laid across the page: a card each, as many to a row as
+   fit, the group's head across the whole row; one to a row on a phone. */
+.chain-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.chain-group-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding: 0 4px; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .chain-group { grid-template-columns: minmax(0, 1fr); }
+}
+.chain-group-head i { width: 6px; height: 6px; border-radius: 2px; background: var(--tier); }
+.chain-group-head span + span { color: var(--ink-faint); letter-spacing: 0; }
+.chain { display: flex; gap: 11px; width: 100%; text-align: left; background: var(--panel-inset); border: 1px solid var(--line-btn); border-left: 3px solid transparent; border-radius: 10px; padding: 11px 13px; color: inherit; cursor: pointer; font: inherit; }
+.chain:hover { border-color: rgba(var(--blue-rgb), 0.45); }
+.chain.on { background: rgba(var(--blue-rgb), 0.09); border-color: rgba(var(--blue-rgb), 0.5); border-left-color: var(--tier); }
+.chain-mark { width: 17px; height: 17px; flex: none; margin-top: 2px; border-radius: 5px; border: 1px solid var(--line-btn-hi); color: #08131f; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.chain.on .chain-mark { background: rgba(var(--blue-rgb), 0.9); border-color: rgba(var(--blue-rgb), 0.9); }
+.chain-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.chain-start { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.chain-start b { font-weight: 600; font-size: 13.5px; color: var(--ink-hi); }
+.chain-start span { font-size: 11px; color: var(--ink-mute); }
+.chain-pips { display: flex; align-items: center; gap: 3px; }
+.chain-pips i { height: 14px; width: 16px; border-radius: 3px; background: var(--track); color: var(--ink-faint); font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.chain-pips i.on { background: var(--tier); color: var(--on-tint); }
+.chain-pips i.top { width: 26px; }
+.chain-pips em { margin-left: 5px; font-style: normal; font-size: 11px; font-weight: 700; color: var(--tier); letter-spacing: 0.03em; }
+.chain-route { font-size: 11.5px; color: var(--ink-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chain-goods { display: flex; flex-wrap: wrap; gap: 3px; }
+/* A ladder with a choice of start: the card, and the starts under it
+   as one piece -- the shore, or a good held part-way up. */
+.chain-ladder { display: flex; flex-direction: column; min-width: 0; }
+.chain-ladder .chain { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.chain-starts { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; padding: 6px 10px 7px 13px; border: 1px solid var(--line-btn); border-top: 0; border-left: 3px solid transparent; border-radius: 0 0 10px 10px; background: rgba(var(--deep-rgb), 0.35); }
+.chain-ladder.on .chain-starts { border-color: rgba(var(--blue-rgb), 0.5); border-top: 0; border-left-color: var(--tier); }
+.chain-starts-k { font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); margin-right: 3px; }
+.chain-starts .chip { gap: 5px; }
+.chain-starts .chip.shown { border-color: var(--line-btn-hi); color: var(--ink-mid); }
+.chain-starts .chip em { font-style: normal; color: var(--amber); font-weight: 600; margin-left: 5px; }
+.chain-start-lv { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 13px; border-radius: 3px; background: var(--tier); color: var(--on-tint); font-family: var(--font-display); font-style: normal; font-size: 9px; font-weight: 700; }
+.chain-right { flex: none; text-align: right; display: flex; flex-direction: column; gap: 2px; }
+.chain-right b { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--amber); }
+.chain-right b.none { color: var(--ink-faint); }
+.chain-right span { font-size: 11px; color: var(--ink-mute); }
+.chain-right span + span { color: var(--ink-faint); }
+/* On a phone a chain card is never wider than the page: the route wraps,
+   and the figures come as a row under the goods. */
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .chain { flex-wrap: wrap; min-width: 0; gap: 8px 11px; }
+  .chain-main { flex: 1 1 200px; }
+  .chain-route { white-space: normal; overflow: visible; }
+  .chain-right { flex: 1 1 100%; flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; text-align: left; padding-left: 28px; }
+  .chain-right span + span::before { content: '· '; color: var(--ink-faint); }
+}
+
+/* the run */
+.barter-run .panel-head, .run-head { flex-wrap: wrap; }
+.run-pick { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-mute); }
+.run-pick .select { padding: 4px 8px; font-size: 12px; }
+.run-pick-sub { display: block; margin-top: 4px; font-size: 10.5px; line-height: 1.35; color: var(--ink-faint); }
+.run-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; margin-top: 10px; }
+.run-tiles > div { background: var(--panel-inset); border-radius: var(--r-btn); padding: 9px 11px; }
+.run-tiles .summary-v { font-size: 19px; }
+.run-tiles .summary-v.gold { color: var(--amber); }
+.run-tiles .summary-v.teal { color: var(--teal); }
+.run-tiles .summary-v.amber { color: var(--amber); }
+.run-tiles .summary-v.warn { color: var(--red); }
+/* A tile that names goods rather than counting them: a name is long. */
+.run-tiles .summary-v.names { font-size: 14.5px; line-height: 1.3; }
+.run-tiles .summary-sub { margin-top: 2px; }
+.run-empty { border: 1px dashed var(--line-btn-hi); border-radius: var(--r-panel); padding: 40px 24px; text-align: center; color: var(--ink-mute); font-size: 13px; line-height: 1.6; }
+.run-seg { padding: 0; overflow: hidden; }
+.run-seg-head { display: flex; align-items: center; gap: 9px; padding: 11px 18px; border-bottom: 1px solid var(--line-soft); flex-wrap: wrap; }
+.run-seg-head i { width: 7px; height: 7px; border-radius: 2px; background: var(--tier); }
+.run-seg-head b { font-weight: 700; font-size: 13.5px; color: var(--ink-hi); }
+.run-seg-head em { font-style: normal; font-size: 11.5px; font-weight: 600; color: var(--tier); }
+.run-seg-head span { flex: 1; font-size: 11.5px; color: var(--ink-mute); }
+/* One route through every chain: the chains named under the head, each
+   with its stops and the way to untick it, and every stop tagged with
+   the chain it climbs. */
+.run-seg-chains { display: flex; flex-wrap: wrap; gap: 6px; padding: 9px 18px; border-bottom: 1px solid var(--line-soft); }
+.run-chain-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--ink-mid); background: var(--panel-inset); border: 1px solid var(--line-soft); border-radius: 999px; padding: 3px 6px 3px 8px; }
+.run-chain-tag i { width: 7px; height: 7px; border-radius: 2px; background: var(--tier); flex: none; }
+.run-chain-tag em { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--tier); }
+.run-chain-tag small { font-size: 10.5px; color: var(--ink-faint); }
+.run-chain-tag .map-x { margin-left: 2px; }
+.run-lot-sep { align-self: center; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); padding: 0 4px; }
+.run-got { display: inline-flex; align-items: center; gap: 8px; }
+.run-chain-tag.sm { font-size: 10.5px; font-weight: 600; padding: 1px 7px 1px 6px; gap: 5px; color: var(--ink-mute); }
+.run-chain-tag.sm i { width: 6px; height: 6px; }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .run-seg-chains { padding: 8px 12px; }
+}
+.run-stops { padding: 6px 18px 14px; }
+.barter-run .run-stops { padding: 0; }
+.run-stop { display: flex; gap: 13px; }
+.run-rail { width: 26px; flex: none; display: flex; flex-direction: column; align-items: center; }
+.run-rail i { width: 1px; background: var(--line-btn-hi); }
+.run-rail i:first-child { flex: 0 0 14px; }
+.run-rail i:last-child { flex: 1 1 auto; }
+.run-stop.last .run-rail i:last-child { background: transparent; }
+.run-rail b { width: 24px; height: 24px; border-radius: 50%; flex: none; background: rgba(var(--blue-rgb), 0.12); border: 1px solid rgba(var(--blue-rgb), 0.4); color: var(--blue-hi); font-family: var(--font-display); font-size: 11.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.run-stop.quest .run-rail b { background: rgba(232, 182, 97, 0.1); border-color: rgba(232, 182, 97, 0.6); color: var(--amber); }
+.run-stop.wharf .run-rail b { background: rgba(232, 182, 97, 0.14); border-color: rgba(232, 182, 97, 0.5); color: var(--amber); }
+.run-stop.wharf .run-rail i { background: rgba(232, 182, 97, 0.4); }
+.run-stop.sale .run-rail b { background: rgba(232, 144, 93, 0.16); border-color: rgba(232, 144, 93, 0.55); color: var(--tier-7); }
+.run-main { flex: 1; min-width: 0; padding: 8px 0 10px; }
+.run-stop-head { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.run-stop-head b { font-weight: 700; font-size: 13.5px; color: var(--ink-hi); }
+.run-stop-head span { font-size: 11.5px; color: var(--ink-mute); }
+.run-stop-head .run-leg { font-size: 11px; color: var(--ink-faint); }
+.run-trade { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-dim); }
+.run-arrow { color: var(--ink-faint); font-size: 12px; }
+.run-to { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ink); }
+.run-to i { width: 3px; height: 13px; border-radius: 2px; background: var(--tier); }
+/* On a phone the trade is two lines: what is handed over, then the arrow
+   and what comes back, with its count and icon on a line of their own. */
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .run-trade { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 4px 8px; align-items: center; }
+  .run-trade .run-arrow { justify-self: center; }
+  .run-trade .run-to { flex-wrap: nowrap; align-items: flex-start; min-width: 0; }
+  .run-trade .run-to i { margin-top: 3px; flex: none; }
+  .run-trade .run-got { grid-column: 2; }
+}
+.run-times { font-family: var(--font-display); font-size: 11.5px; font-weight: 700; color: var(--blue); background: rgba(var(--blue-rgb), 0.12); border-radius: 5px; padding: 1px 6px; }
+.run-leave { margin-top: 7px; border-left: 2px solid rgba(232, 182, 97, 0.35); padding-left: 11px; display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--ink-dim); }
+.run-leave span:first-child { font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--amber); }
+.run-sell { margin-top: 7px; display: inline-flex; align-items: center; gap: 7px; background: rgba(232, 144, 93, 0.12); border: 1px solid rgba(232, 144, 93, 0.35); border-radius: 7px; padding: 4px 11px; font-size: 12px; font-weight: 600; color: var(--tier-7); }
+.run-hold { width: 118px; flex: none; padding-top: 10px; }
+.run-hold > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.run-hold span { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.run-hold b { font-family: var(--font-display); font-size: 12px; font-weight: 600; color: var(--ink-mute); }
+.run-hold b.amber { color: var(--amber); }
+.run-hold b.warn { color: var(--red); }
+.run-bar { display: flex; height: 5px; margin-top: 5px; border-radius: 3px; overflow: hidden; background: var(--track); }
+/* On a phone the hold leaves the side of the stop and goes under it as
+   one line, so the trade and the quests handed in there have the whole
+   width; the rail keeps its place down the left. */
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .run-stop { flex-wrap: wrap; gap: 0 12px; }
+  .run-rail { order: 0; }
+  .run-main { order: 1; flex: 1 1 0; padding-bottom: 6px; }
+  .run-hold { order: 2; flex: 1 1 100%; width: auto; margin-left: 38px; padding: 0 0 12px; display: flex; align-items: center; gap: 10px; }
+  .run-hold > div:first-child { flex: none; gap: 8px; }
+  .run-hold .run-bar { flex: 1 1 auto; margin-top: 0; }
+  .run-stop.last .run-hold { padding-bottom: 4px; }
+  .run-quest { width: 100%; }
+}
+.run-bar i { background: var(--blue-bar); }
+.run-bar i.over { background: var(--amber); }
+.run-bar i.heavy { background: var(--red); }
+.run-note { font-size: 10.5px; color: var(--amber); margin-top: 4px; line-height: 1.35; }
+.run-note.warn { color: var(--red); }
+.run-list { padding: 0; overflow: hidden; }
+.run-list .panel-head { padding: 12px 18px 10px; border-bottom: 1px solid var(--line-soft); margin: 0; }
+.run-list.gold .panel-title { color: var(--amber); }
+.run-good { display: flex; align-items: center; gap: 10px; padding: 9px 18px; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; }
+.run-good:last-child { border-bottom: none; }
+.run-good > i { font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; color: var(--on-tint); background: var(--tier, var(--track)); border-radius: 4px; padding: 2px 5px; min-width: 22px; text-align: center; }
+.run-good b { font-family: var(--font-display); font-weight: 500; color: var(--ink-dim); width: 40px; }
+.run-good > span { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.run-good .faint { color: var(--ink-mute); }
+.run-good-worth { margin-left: auto; flex: none; font-size: 11.5px; color: var(--ink-mute); }
+.run-chart { align-self: stretch; }
+
+/* the material run */
+.barter-caveat { display: block; margin: 6px 0 10px; line-height: 1.45; }
+.barter-stats { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 12px; }
+.barter-for { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 6px 0 10px; }
+.barter-for .trip-pick { margin: 0; }
+.barter-qty { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-mute); }
+.barter-qty .purse-inline { width: 54px; text-align: center; }
+.barter-rung { flex-wrap: wrap; align-items: center; }
+.barter-rung > span:first-child { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.barter-rung.ok > span:first-child { color: var(--ink-mute); }
+.barter-rung-sub { width: 100%; font-size: 11.5px; color: var(--ink-faint); padding-left: 2px; }
+.map-hint.ok { color: var(--teal); }
+.detail-line .row-icon.sm { vertical-align: middle; }
+.barter-run .detail-block { margin: 14px 0 0; }
+.barter-run .detail-label { margin-bottom: 6px; }
+.barter-run .detail-line { padding: 7px 10px; border-radius: var(--r-btn); background: var(--panel-inset); margin-bottom: 4px; }
+.barter-run .detail-line span:first-child { display: inline-flex; align-items: center; gap: 6px; }
+.barter-run .map-side-btns { margin-top: 14px; }
+.barter-rung .n { text-align: right; }
+
+
+/* ---- The board bar, the run's choices, and the wharf calls -------- *
+ *
+ * Three things wanted room they were not getting. The bar that names
+ * today's layout ran its explanation, its toggle and its buttons along
+ * one line, and the explanation squeezed the rest into the corner; now
+ * each is a column of its own. The run's three pickers hung off the end
+ * of a heading and wrapped one at a time, leaving the line half empty;
+ * now they are a row of equal cells under it. And a wharf call -- the
+ * pause where goods go into storage -- is a stop like any other, so it
+ * is numbered like one here and drawn on the chart in its own colour,
+ * violet against the route's amber, since nothing is bartered there.
+ * ------------------------------------------------------------------ */
+
+.row-icon.xs { width: 18px; height: 18px; border-radius: 4px; }
+
+/* Who made this, in the app's own About. The licence asks that a fork
+   keep a line like it, so the original had better carry one. */
+.help-credit { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line-soft); font-size: 11.5px; color: var(--ink-mute); }
+.help-credit b { color: var(--ink-dim); font-weight: 600; }
+
+/* A panel carries no padding of its own, so everything under a head
+   has to bring its own. The hold's bar, its line of prose and its
+   goods had none and ran to the panel's edges. */
+.panel-btns { display: flex; gap: 8px; flex: none; }
+.barter-hold .map-load-bar { margin: 12px 20px 0; }
+.barter-hold > .summary-sub { padding: 6px 20px 0; }
+.barter-hold .barter-goods { padding: 0 14px 14px; }
+.barter-hold > .empty { padding: 0 20px 18px; }
+
+/* the board bar */
+.barter-bar { align-items: center; gap: 12px 22px; }
+.barter-bar-info { flex: 1 1 320px; min-width: 220px; display: flex; flex-direction: column; gap: 3px; }
+.barter-bar-sub { flex: none; min-width: 0; max-width: 62ch; }
+.barter-bar-seen { display: flex; align-items: center; gap: 8px; flex: 0 1 auto; min-width: 0; }
+.barter-bar-k { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); flex: none; }
+.barter-bar-acts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-left: auto; }
+.barter-bar.known .barter-bar-lead b { color: var(--teal-hi); }
+.barter-bar.lost { border-color: rgba(232, 122, 109, 0.3); }
+.barter-bar.lost .barter-bar-lead b { color: var(--red-soft); }
+.chip.board-seen { display: inline-flex; align-items: center; gap: 5px; padding-left: 5px; }
+.chip.board-seen .row-icon.xs { width: 15px; height: 15px; }
+/* The one question that moves the board on reads as the thing to press. */
+.chip.primary { background: rgba(var(--blue-rgb), 0.14); border-color: rgba(var(--blue-rgb), 0.5); color: var(--ink-hi); }
+.chip.primary b { color: var(--blue-hi); font-weight: 700; }
+.chip.primary:hover { background: rgba(var(--blue-rgb), 0.22); }
+
+/* the run's choices */
+.run-picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; margin-top: 12px; }
+.run-picks.one { grid-template-columns: minmax(190px, 280px); }
+/* A block, not a flex row: `.field` carries `flex: 1 1 220px`, which in
+   a column would be read as a 220px-tall select. */
+.run-picks .run-pick { display: block; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
+.run-pick-k { display: block; margin-bottom: 4px; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+.run-picks .select { display: block; width: 100%; flex: none; padding: 5px 8px; }
+
+/* a wharf call in the run's timeline */
+.run-anchor { color: var(--amber); font-size: 12px; line-height: 1; }
+.run-leave-k { font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--amber); }
+.run-leave-good { display: inline-flex; align-items: center; gap: 6px; }
+.run-leave-good .row-icon.sm { width: 22px; height: 22px; }
+.run-leave-good b { font-family: var(--font-display); font-weight: 600; color: var(--ink); }
+
+/* ---- the chart: a wharf call as its own kind of stop -------------- */
+
+.map-stop-row.stash { border-color: var(--stash-edge); background: rgba(178, 143, 224, 0.07); }
+.map-stop-n.stash { background: var(--stash); color: var(--on-tint); border-radius: 5px; font-size: 12px; }
+.map-drops { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; }
+.map-drop { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--ink-dim); }
+.map-drop b { font-family: var(--font-display); font-weight: 600; color: var(--stash); }
+.map-drop .map-icon { width: 18px; height: 18px; }
+
+.map-stash {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  margin: -6.5px 0 0 -6.5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--stash);
+  font-family: var(--font-display);
+  font-size: 10px;
+  white-space: nowrap;
+  cursor: pointer;
+  z-index: 4;
+}
+/* The same unseen pad the barterers' pins carry, for a finger. */
+.map-stash::before { content: ''; position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; transform: translate(-50%, -50%); }
+.map-stash-dot {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  font-size: 9px;
+  line-height: 1;
+  color: #1c1030;
+  background: var(--stash);
+  box-shadow: 0 0 0 1px rgba(var(--deep-rgb), 0.9), 0 0 10px rgba(178, 143, 224, 0.45);
+}
+.map-stash-badge {
+  position: absolute;
+  left: 8px;
+  top: -16px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  background: #2a1c46;
+  color: #ddc9ff;
+  border: 1px solid var(--stash-edge);
+  font-size: 10px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.map-stash-name {
+  position: absolute;
+  left: calc(100% + 5px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  text-align: left;
+  text-shadow: 0 1px 4px #000;
+}
+.map-stash-at { font-size: 9px; color: #a98fd0; }
+.map-stash:hover .map-stash-dot { box-shadow: 0 0 0 1px rgba(var(--deep-rgb), 0.9), 0 0 14px rgba(178, 143, 224, 0.8); }
+.map-stash.current .map-stash-dot { animation: map-bob 1.6s ease-in-out infinite; }
+/* A pier the run comes back to: the plate reads as a small stack. */
+.map-stash.many .map-stash-dot { box-shadow: 0 0 0 1px rgba(var(--deep-rgb), 0.9), 2px 2px 0 -1px var(--stash), 0 0 10px rgba(178, 143, 224, 0.45); }
+.map-stash.many .map-stash-badge { border-radius: 6px; }
+
+/* the cards */
+.map-tip-k { display: block; font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); margin: 6px 0 2px; }
+.map-tip-k.stash { color: var(--stash); }
+.map-tip-run .map-tip-row { border-top: 0; }
+.map-tip-run { border-top: 1px solid var(--line-soft); margin-top: 4px; }
+.map-tip.stash { border-color: var(--stash-edge); }
+.map-tip.stash .map-tip-name { color: var(--stash); }
+.map-tip-sub.sell { color: var(--tier-7); }
+.map-tip-side.ashore { color: var(--ink-dim); }
+/* A wharf's calls, one block each: the stop and its sale on one line,
+   the goods it leaves in a tight list beneath. The card is capped at
+   the chart's height and scrolls, so eight calls do not run off it. */
+.map-tip.stash { max-height: calc(100% - 20px); display: flex; flex-direction: column; }
+.map-tip-calls { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; overflow-y: auto; min-height: 0; scrollbar-width: thin; }
+.map-tip-call { border: 1px solid var(--stash-edge); border-radius: 8px; padding: 5px 8px 6px; background: rgba(178, 143, 224, 0.06); }
+.map-tip-call-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.map-tip-call-head .map-tip-k { margin: 0; }
+.map-tip-call-head .map-tip-sub { margin: 0; font-weight: 600; }
+.map-tip-call .map-tip-sub.quest { margin: 3px 0 0; }
+.map-tip-sub.ashore-k { margin: 4px 0 0; font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+.map-tip-drops .map-tip-row { padding: 2px 0; border-top: 0; font-size: 10.5px; }
+.map-tip-drops .map-tip-row + .map-tip-row { border-top: 1px solid var(--line-soft); }
+.map-tip-drops .map-icon { width: 18px; height: 18px; }
+.map-io.ashore::after { content: '⌂'; background: #2a1c46; color: #ddc9ff; border-color: var(--stash-edge); font-size: 8px; }
+.map-step-chip.stash { color: var(--stash); border-color: var(--stash-edge); background: rgba(178, 143, 224, 0.12); border-radius: 6px; }
+.map-step-chip.stash.on { background: var(--stash); border-color: transparent; color: var(--on-tint); }
+

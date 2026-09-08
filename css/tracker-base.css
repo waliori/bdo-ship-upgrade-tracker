@@ -1,0 +1,358 @@
+/* BDO Ship Upgrade Tracker — interface
+   Chakra Petch for display, numbers and labels; Noto Sans for prose.
+
+   One phone. Every phone rule in here sits under the same query,
+       @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse))
+   which is js/viewport.js's PHONE_MQ written out, since a media query
+   cannot read a variable. Narrow is a phone; so is a short screen driven
+   by a finger, which is a phone on its side. Change one, change both. */
+
+/* tracker-base.css — tokens, both themes, the reset and what every screen shares.
+   One of nine sheets that were one file, cut at its section marks and
+   linked in the same order (tracker-base, tracker-shell, tracker-yard, tracker-widgets, tracker-map, tracker-sea, tracker-extras, tracker-barter, tracker-recent), so the cascade is what it was: a
+   rule here still loses to the same rule in a later sheet. When moving a
+   rule between sheets, check nothing later relies on beating it. */
+
+:root {
+  /* The form controls and scrollbars the browser draws itself follow
+     the page: a white <select> on this ground read as a hole in it.
+     The light theme below turns it round. */
+  color-scheme: dark;
+  --bg: #0a1728;
+  --ocean-deep: #0a1728;
+  --ocean-mid: #0f2847;
+  --ocean-surface: #1e3a8a;
+  --ocean-gradient:
+    radial-gradient(circle at 30% 20%, rgba(14, 165, 233, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 70% 60%, rgba(59, 130, 246, 0.10) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+    linear-gradient(180deg,
+      var(--ocean-deep) 0%,
+      var(--ocean-mid) 30%,
+      var(--ocean-surface) 60%,
+      var(--ocean-mid) 100%);
+  --panel: rgba(var(--deep-rgb), 0.66);
+  --panel-solid: rgba(var(--deep-rgb), 0.9);
+  --panel-strong: rgba(var(--deep-rgb), 0.75);
+  --panel-inset: rgba(var(--deep-rgb), 0.6);
+
+  /* The channels behind most of the file's translucent colours: the
+     pale-blue lines, the navy glass the panels and menus are poured
+     from, and the accent blue. Alphas stay where they are written; the
+     light theme swaps only the channels. */
+  --line-rgb: 125, 175, 225;
+  --deep-rgb: 9, 22, 42;
+  --blue-rgb: 88, 168, 232;
+  --shade-rgb: 0, 0, 0;
+  --wash-blue: rgba(24, 62, 96, 0.5);
+  --wash-teal: rgba(30, 80, 70, 0.4);
+  --glass: rgba(var(--deep-rgb), 0.5);
+  --glass-strong: rgba(var(--deep-rgb), 0.9);
+  --sheet-solid: #0b1a2c;
+  --link: #6db9e8;
+  --link-hi: #a5d5f2;
+
+  --line: rgba(var(--line-rgb), 0.13);
+  --line-soft: rgba(var(--line-rgb), 0.06);
+  --line-head: rgba(var(--line-rgb), 0.1);
+  --line-btn: rgba(var(--line-rgb), 0.22);
+  --line-btn-hi: rgba(var(--line-rgb), 0.5);
+  --track: rgba(var(--line-rgb), 0.1);
+
+  --ink: #d9e6f2;
+  --ink-hi: #eef5fb;
+  --ink-row: #e6eff8;
+  --ink-mid: #b7c9da;
+  --ink-dim: #a8bed3;
+  --ink-soft: #9db3c9;
+  --ink-mute: #8aa3bd;
+  --ink-faint: #7690ad;
+  --ink-off: #94aac2;
+
+  --blue: #7cc3ee;
+  --blue-hi: #9fd0f2;
+  --blue-bar: #3a89c9;
+  --blue-glow: rgba(var(--blue-rgb), 0.15);
+  --blue-edge: rgba(var(--blue-rgb), 0.4);
+
+  --teal: #4ec9ae;
+  --teal-hi: #7fe0c9;
+  --teal-edge: rgba(78, 201, 174, 0.4);
+  --teal-glow: rgba(78, 201, 174, 0.12);
+
+  --amber: #e8b661;
+  /* Storage: a wharf call is the one stop on a run where nothing is
+     bartered, so it is never the route's amber. */
+  --stash: #b28fe0;
+  --stash-edge: rgba(178, 143, 224, 0.5);
+  --red: #e87a6d;
+  --red-soft: #e0988e;
+  --red-edge: rgba(232, 122, 109, 0.35);
+
+  /* Solid wells and marks that were hex in the sheets: an inset well
+     (a taken seat), a deeper one (a level badge), a solid track, a
+     picked card, the "done" green and the "gone" red, the ink laid on
+     a tinted ground (a tier chip, a teal tick) and the star. The light
+     theme darkens the tints, so the ink on them turns white. */
+  --well: #0d2438;
+  --well-deep: #0b1e38;
+  --track-solid: #12263f;
+  --picked: #10304a;
+  --done-bg: #153b31;
+  --done-ink: #5ef0c9;
+  --done-edge: #2c9a7a;
+  --bad-bg: #3a1519;
+  --on-tint: #08131f;
+  --star: #ffd77a;
+
+  --font-display: 'Chakra Petch', 'Segoe UI', sans-serif;
+  --font-body: 'Noto Sans', system-ui, sans-serif;
+
+  /* How much of the page an on-screen keyboard is covering, published
+     by sheet.js. 0 everywhere else, and on every browser that cannot
+     say. */
+  --kb-h: 0px;
+
+  --r-panel: 12px;
+  --r-tile: 10px;
+  --r-btn: 8px;
+  --r-sm: 7px;
+  --r-icon: 6px;
+}
+
+/* ---- the light theme ------------------------------------------------- *
+   The same tokens, turned round: a pale sea instead of a deep one, navy
+   ink, the glass poured white. Set by hand as data-theme="light" on
+   <html> (More → Theme), or by the browser's own preference when the
+   choice is "system" -- which is the same list twice, since a media
+   query cannot be a selector. The map's tiles and the water shader are
+   not tokens and keep their colours; the overlays drawn on the tiles
+   stay bright for that reason. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eef3f8;
+  --ocean-deep: #e8eef5;
+  --ocean-mid: #dbe5f0;
+  --ocean-surface: #c9daee;
+  --ocean-gradient:
+    radial-gradient(circle at 30% 20%, rgba(14, 165, 233, 0.10) 0%, transparent 50%),
+    radial-gradient(circle at 70% 60%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(6, 182, 212, 0.06) 0%, transparent 50%),
+    linear-gradient(180deg,
+      var(--ocean-deep) 0%,
+      var(--ocean-mid) 30%,
+      var(--ocean-surface) 60%,
+      var(--ocean-mid) 100%);
+  --line-rgb: 30, 70, 120;
+  --deep-rgb: 255, 255, 255;
+  --shade-rgb: 110, 140, 180;
+  --wash-blue: rgba(26, 111, 176, 0.14);
+  --wash-teal: rgba(8, 113, 89, 0.12);
+  --blue-rgb: 26, 111, 176;
+  --sheet-solid: #ffffff;
+  --link: #1a6fb0;
+  --link-hi: #0d5a95;
+  --panel: rgba(255, 255, 255, 0.72);
+  --panel-solid: rgba(255, 255, 255, 0.95);
+  --panel-strong: rgba(255, 255, 255, 0.84);
+  --panel-inset: rgba(226, 235, 245, 0.7);
+
+  --ink: #17263a;
+  --ink-hi: #0b1626;
+  --ink-row: #14233a;
+  --ink-mid: #2d4159;
+  --ink-dim: #3a5069;
+  --ink-soft: #435a73;
+  --ink-mute: #4d657f;
+  --ink-faint: #586e85;
+  --ink-off: #4b637d;
+
+  --blue: #1a6fb0;
+  --blue-hi: #155f99;
+  --blue-bar: #2b7fc4;
+  --blue-glow: rgba(26, 111, 176, 0.12);
+  --blue-edge: rgba(26, 111, 176, 0.45);
+
+  --teal: #087159;
+  --teal-hi: #0a5f4b;
+  --teal-edge: rgba(8, 113, 89, 0.45);
+  --teal-glow: rgba(8, 113, 89, 0.10);
+
+  --amber: #8a5d0a;
+  --stash: #6a44a6;
+  --stash-edge: rgba(106, 68, 166, 0.5);
+  --red: #c23b2b;
+  --red-soft: #b0463a;
+  --red-edge: rgba(194, 59, 43, 0.35);
+
+  --well: #dfe9f3;
+  --well-deep: #d5e2ef;
+  --track-solid: #c3d4e6;
+  --picked: #d3e9f7;
+  --done-bg: #d5f2e8;
+  --done-ink: #087159;
+  --done-edge: #2c9a7a;
+  --bad-bg: #f6dcd8;
+  --on-tint: #ffffff;
+  --star: #b07f0a;
+}
+
+/* The same, when the browser prefers light and nothing was chosen by hand. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #eef3f8;
+    --ocean-deep: #e8eef5;
+    --ocean-mid: #dbe5f0;
+    --ocean-surface: #c9daee;
+    --ocean-gradient:
+      radial-gradient(circle at 30% 20%, rgba(14, 165, 233, 0.10) 0%, transparent 50%),
+      radial-gradient(circle at 70% 60%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 40% 80%, rgba(6, 182, 212, 0.06) 0%, transparent 50%),
+      linear-gradient(180deg,
+        var(--ocean-deep) 0%,
+        var(--ocean-mid) 30%,
+        var(--ocean-surface) 60%,
+        var(--ocean-mid) 100%);
+    --line-rgb: 30, 70, 120;
+    --deep-rgb: 255, 255, 255;
+    --shade-rgb: 110, 140, 180;
+    --wash-blue: rgba(26, 111, 176, 0.14);
+    --wash-teal: rgba(8, 113, 89, 0.12);
+    --blue-rgb: 26, 111, 176;
+    --sheet-solid: #ffffff;
+    --link: #1a6fb0;
+    --link-hi: #0d5a95;
+    --panel: rgba(255, 255, 255, 0.72);
+    --panel-solid: rgba(255, 255, 255, 0.95);
+    --panel-strong: rgba(255, 255, 255, 0.84);
+    --panel-inset: rgba(226, 235, 245, 0.7);
+
+    --ink: #17263a;
+    --ink-hi: #0b1626;
+    --ink-row: #14233a;
+    --ink-mid: #2d4159;
+    --ink-dim: #3a5069;
+    --ink-soft: #435a73;
+    --ink-mute: #4d657f;
+    --ink-faint: #586e85;
+    --ink-off: #4b637d;
+
+    --blue: #1a6fb0;
+    --blue-hi: #155f99;
+    --blue-bar: #2b7fc4;
+    --blue-glow: rgba(26, 111, 176, 0.12);
+    --blue-edge: rgba(26, 111, 176, 0.45);
+
+    --teal: #087159;
+    --teal-hi: #0a5f4b;
+    --teal-edge: rgba(8, 113, 89, 0.45);
+    --teal-glow: rgba(8, 113, 89, 0.10);
+
+    --amber: #8a5d0a;
+    --stash: #6a44a6;
+    --stash-edge: rgba(106, 68, 166, 0.5);
+    --red: #c23b2b;
+    --red-soft: #b0463a;
+    --red-edge: rgba(194, 59, 43, 0.35);
+
+    --well: #dfe9f3;
+    --well-deep: #d5e2ef;
+    --track-solid: #c3d4e6;
+    --picked: #d3e9f7;
+    --done-bg: #d5f2e8;
+    --done-ink: #087159;
+    --done-edge: #2c9a7a;
+    --bad-bg: #f6dcd8;
+    --on-tint: #ffffff;
+    --star: #b07f0a;
+  }
+}
+
+* { box-sizing: border-box; }
+
+
+/* The ocean ground the water shader ripples over. The shader draws its
+   own gradient in these same colours, so with the effect on or off the
+   page reads as the same body of water.
+ *
+ * The background sits on <html>, not <body>. A root background is painted
+ * onto the canvas itself, beneath everything -- including the shader's
+ * canvas, a z-index:-1 child of body -- and it covers the whole document
+ * and whatever a phone shows past its ends (rubber-band overscroll, the
+ * strip the address bar reveals). Painted on <body> instead, it was fixed
+ * to the first viewport and every phone browser that ignores a fixed
+ * attachment left a white page below it. <body> stays transparent: a
+ * body background would paint over the shader and the water disappears. */
+html {
+  margin: 0;
+  padding: 0;
+  /* The dock sticks over the top edge (ui.js publishes its height), so
+     anything scrolled into view stops beneath it rather than under it. */
+  scroll-padding-top: calc(var(--dock-h, 0px) + 8px);
+  background-color: var(--ocean-deep);
+  background-image: var(--ocean-gradient);
+  min-height: 100%;
+}
+
+/* With a mouse the gradient stays put and the page scrolls over it.
+   Not with background-attachment: fixed, though: Chrome repaints a
+   fixed root background on every scroll step, and with the blurred
+   panels sampling it -- two of them sticky -- that is a layout and a
+   full repaint per tick, which is the flicker people saw scrolled down.
+   A fixed pseudo-element is its own composited layer and scrolls for
+   free. Phones treat a fixed attachment as scroll anyway (and some
+   paint nothing past the first screen), so they keep the gradient
+   stretched over the whole page instead. */
+@media (hover: hover) and (pointer: fine) {
+  html { background-image: none; }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background-color: var(--ocean-deep);
+    background-image: var(--ocean-gradient);
+  }
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: none;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ink);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--link); text-decoration: none; }
+a:hover { color: var(--link-hi); }
+::selection { background: rgba(var(--blue-rgb), 0.3); }
+
+input, select, textarea { outline: none; font-family: inherit; }
+button { cursor: pointer; font-family: inherit; }
+button:disabled { cursor: not-allowed; opacity: 0.4; }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* Only where a scrollbar is furniture. Styling it at all turns a
+   phone's overlay scrollbar into a permanent one, which took a pale
+   ten-pixel gutter out of the right of every screen. */
+@media (pointer: fine) {
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(var(--line-rgb), 0.25); border-radius: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 24px 90px;
+}
+

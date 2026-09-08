@@ -14,6 +14,7 @@
 // say which one is theirs.
 
 import * as store from './state.js';
+import { esc } from './fmt.js';
 
 const REV_KEY = 'sync.rev';
 const DEVICE_KEY = 'sync.device';
@@ -37,8 +38,10 @@ const RETRY_MIN = 1500;
 const RETRY_MAX = 30000;
 
 let hooks = {};
-let account = null;      // { id, username, avatar } once signed in
+let account = null;      // { id, username, avatar, share, admin } once signed in
 let available = false;   // does this deployment offer sync at all
+let features = {};       // what /api/config said this deployment has
+const watchers = new Set();   // told when the account changes
 let status = 'off';      // off | out | idle | syncing | error | conflict
 let detail = '';
 let pushTimer = null;
@@ -74,14 +77,26 @@ async function api(method, path, body) {
  * ------------------------------------------------------------------ */
 
 /** The save as the server will store it, with keys in a stable order so
- *  the same inventory always produces the same text to compare. */
+ *  the same inventory always produces the same text to compare.
+ *
+ *  The profile is appended only when there is one, and `saveShape` omits
+ *  it while it is empty. That is deliberate: this text is what firstPull
+ *  compares against the stored copy to decide whether the two sides
+ *  agree, so a field that appeared unconditionally would make every
+ *  already-signed-in player differ from their own save on the first load
+ *  after this shipped, and each of them would be asked to resolve a
+ *  conflict that does not exist. Nobody who has not set a barter count
+ *  sees any change at all. */
 function localText() {
 	const save = store.saveShape();
 	const stock = {};
 	for (const key of Object.keys(save.stock).sort()) stock[key] = save.stock[key];
 	const strategy = {};
 	for (const key of Object.keys(save.strategy).sort()) strategy[key] = save.strategy[key];
-	return JSON.stringify({ stock, targets: save.targets, strategy });
+
+	const out = { stock, targets: save.targets, strategy };
+	if (save.profile) out.profile = save.profile;
+	return JSON.stringify(out);
 }
 
 const isEmpty = data =>
@@ -112,6 +127,47 @@ function say(next, note = '') {
 	paint();
 }
 
+/** The account changed -- signed in, out, or its standing on the boards. */
+function tell() {
+	for (const fn of watchers) {
+		try { fn(account); } catch { /* one watcher's fault is not another's */ }
+	}
+}
+
+/* ------------------------------------------------------------------ *
+ * What the rest of the page may ask
+ * ------------------------------------------------------------------ */
+
+/** Does this deployment have `name` -- sync, push, feedback, community? */
+export function feature(name) {
+	return features[name] === true;
+}
+
+/** Who is signed in, or null. A copy: nobody edits the account from outside. */
+export function me() {
+	return account ? { ...account } : null;
+}
+
+/** Be told whenever the account changes. Returns the way to stop. */
+export function onAccount(fn) {
+	watchers.add(fn);
+	return () => watchers.delete(fn);
+}
+
+/** A call on the API for another module, with the session cookie along. */
+export function call(method, path, body) {
+	return api(method, path, body);
+}
+
+/** Take part in the community boards, change how you are shown, or leave. */
+export async function setShare(share) {
+	const res = await api('PUT', '/api/community/share', { share });
+	if (!res.ok) throw new Error((res.body && res.body.error) || 'The boards did not answer.');
+	if (account) account = { ...account, share: res.body.share };
+	tell();
+	return res.body.share;
+}
+
 /* ------------------------------------------------------------------ *
  * Pull and push
  * ------------------------------------------------------------------ */
@@ -126,8 +182,27 @@ function say(next, note = '') {
  * something the user is asked rather than guessed at.
  */
 async function firstPull() {
-	const got = await api('GET', '/api/state');
-	if (!got.ok) return say('error', 'could not reach the server');
+	if (!account || resolving) return;
+
+	// `api` throws when the network itself is down, and that must not
+	// escape: initSync awaits this, and an escaped rejection would end
+	// sync for the whole session over a bad first second.
+	let got;
+	try {
+		got = await api('GET', '/api/state');
+	} catch {
+		got = { ok: false };
+	}
+	if (!got.ok) {
+		// This is the one pull that decides everything -- without it the
+		// revision is unknown and every later push is a guess. So it does
+		// not give up: try again, a little later each time.
+		say('error', 'could not reach the server — retrying');
+		failures++;
+		setTimeout(firstPull, Math.min(RETRY_MIN * 2 ** (failures - 1), RETRY_MAX));
+		return;
+	}
+	failures = 0;
 
 	const remote = got.body;
 	const localEmpty = isEmpty(store.saveShape());
@@ -199,9 +274,41 @@ async function push(force = false) {
 		}
 		if (res.status === 409) {
 			// Another browser got there first. Its save came back with the
-			// refusal, so we can show both without a second request.
+			// refusal, so we can show both without a second request -- but
+			// only when it actually did. A refusal with nothing in it (a
+			// proxy's error page, a server that has lost the save) offers
+			// no choice to make, and "Use the saved one" on an empty body
+			// would wipe the inventory it was meant to protect. That is a
+			// bad moment, not a conflict: try again later.
+			if (!res.body || !res.body.data) {
+				retryLater();
+				return say('error', 'that did not save');
+			}
 			failures = 0;
+			// The revision lives in the same key as the save, so another
+			// tab of this browser writing its new revision wakes this one,
+			// which reloads and may already have a push in the air at the
+			// old number. The server refuses it -- and hands back what
+			// that tab saved, which is byte for byte what was sent. Two
+			// identical copies are not a choice to put to anyone: adopt
+			// the revision and go quiet.
+			if (JSON.stringify(res.body.data) === text) {
+				setRev(res.body.rev);
+				lastPushed = text;
+				return say('idle');
+			}
 			return askWhichCopy(res.body, 'Another device saved while you were working.');
+		}
+		// The account behind this session was deleted -- from another
+		// device, since this one still thinks it is signed in. Sign out
+		// here too; the local copy stays, as it does for any sign-out.
+		if (res.status === 410) {
+			account = null;
+			setRev(0);
+			lastPushed = null;
+			say('out');
+			if (hooks.toast) hooks.toast('That account was deleted, so nothing is saved online any more. Your inventory is still here.');
+			return;
 		}
 		if (res.status === 401) {
 			account = null;
@@ -318,7 +425,17 @@ function askWhichCopy(remote, headline) {
 			<button class="act quiet" data-keep-remote>Use the saved one</button>
 			<button class="act" data-keep-local>Keep what is here</button>
 		</div>
-	`);
+	`, {
+		// Clicking past the dialog is not an answer, and it must not jam
+		// the works: `resolving` held pushes only while the question was
+		// on screen. Nothing is decided on the user's behalf -- the two
+		// copies still disagree, so the very next push meets the same
+		// refusal and asks again, and a pull on refocus does too.
+		onDismiss: () => {
+			resolving = false;
+			say('conflict');
+		}
+	});
 
 	host.querySelector('[data-keep-local]').addEventListener('click', async () => {
 		hooks.closeDialog();
@@ -335,9 +452,6 @@ function askWhichCopy(remote, headline) {
 		take(remote, 'Took the saved inventory');
 	});
 }
-
-const esc = s => String(s).replace(/[&<>"']/g, c =>
-	({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* ------------------------------------------------------------------ *
  * The header chip
@@ -384,6 +498,7 @@ function openAccountDialog() {
 	const host = hooks.openDialog(`
 		<h2>${esc(account.username)}</h2>
 		<p>Your inventory is saved to your Discord account, so the same one follows you between machines. ${esc(detail || NOTE[status] || '')}.</p>
+		${feature('community') ? `<p class="dialog-copy">${account.share === 'named' ? 'You are on the <b>community boards</b> by name.' : account.share === 'anon' ? 'You are on the <b>community boards</b> as an unnamed sailor.' : 'You are not on the <b>community boards</b>; nothing about your save is shown to anyone.'} <a href="#community" data-act="view" data-id="community">Open the boards</a></p>` : ''}
 		<div class="dialog-actions">
 			<button class="act quiet" data-forget>Delete my saved data</button>
 			<button class="act quiet" data-signout>Sign out</button>
@@ -398,10 +513,11 @@ function openAccountDialog() {
 	});
 
 	host.querySelector('[data-signout]').addEventListener('click', async () => {
-		await api('POST', '/auth/logout');
+		try { await api('POST', '/auth/logout'); } catch { /* signed out locally all the same */ }
 		account = null;
 		hooks.closeDialog();
 		say('out');
+		tell();
 		// The local copy stays exactly where it is -- signing out of a
 		// device should not empty it.
 		if (hooks.toast) hooks.toast('Signed out. Your inventory is still here.');
@@ -430,6 +546,7 @@ function confirmDelete() {
 		setRev(0);
 		lastPushed = null;
 		say('out');
+		tell();
 		if (hooks.toast) hooks.toast('Your saved data has been deleted.');
 	});
 }
@@ -468,7 +585,20 @@ function readSignInResult() {
 }
 
 export function signIn() {
-	location.href = `/auth/discord?to=${encodeURIComponent(location.pathname + location.search)}`;
+	// One tap used to leave for discord.com with no warning at all --
+	// mid-plan, the whole page gone. Say where the door goes first.
+	const host = hooks.openDialog(`
+		<h2>Sign in with Discord</h2>
+		<p>Sync keeps this inventory on your Discord account, so the same one follows you between machines. You will go to discord.com to sign in, and come straight back here.</p>
+		<div class="dialog-actions">
+			<button class="act quiet" data-cancel>Cancel</button>
+			<button class="act" data-go>Continue to Discord</button>
+		</div>
+	`);
+	host.querySelector('[data-cancel]').addEventListener('click', () => hooks.closeDialog());
+	host.querySelector('[data-go]').addEventListener('click', () => {
+		location.href = `/auth/discord?to=${encodeURIComponent(location.pathname + location.search)}`;
+	});
 }
 
 export function openAccount() {
@@ -496,7 +626,11 @@ export async function initSync(callbacks = {}) {
 	} catch {
 		return;
 	}
-	if (!config.ok || !config.body || !config.body.sync) return;
+	if (!config.ok || !config.body) return;
+	features = config.body;
+	// The Community tab waits on this answer; now it can be drawn.
+	if (features.community && hooks.rerender) hooks.rerender();
+	if (!features.sync) return;
 
 	available = true;
 	readSignInResult();
@@ -507,10 +641,11 @@ export async function initSync(callbacks = {}) {
 		return;
 	}
 
-	account = me.body.user;
+	account = { ...me.body.user, share: me.body.share || null, admin: me.body.admin === true };
 	// Not "Synced" yet -- nothing has been compared. Saying so before the
 	// first pull would be a claim the app cannot make.
 	say('syncing');
+	tell();
 
 	// Watch for changes before the first pull rather than after it. A
 	// quantity typed while that request is in flight is still a change

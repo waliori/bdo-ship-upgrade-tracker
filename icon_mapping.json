@@ -1,1210 +1,2354 @@
 {
-  "Bartali Sailboat: Old Cannon": {
-    "icon": "00049707.webp",
-    "url": "https://bdocodex.com/us/item/49760/"
-  },
-  "Bartali Sailboat: Old Plating": {
-    "icon": "00049706.webp",
-    "url": "https://bdocodex.com/us/item/49759/"
-  },
-  "Epheria Caravel: Mayna Cannon": {
-    "icon": "00049657.webp",
-    "url": "https://bdocodex.com/us/item/49657/"
-  },
-  "Epheria Caravel: Stratus Wind Sail": {
-    "icon": "00049658.webp",
-    "url": "https://bdocodex.com/us/item/49658/"
-  },
-  "Epheria Caravel: Verisha Cannon": {
-    "icon": "00049651.webp",
-    "url": "https://bdocodex.com/us/item/49651/"
-  },
-  "Epheria Caravel: White Wind Sail": {
-    "icon": "00049652.webp",
-    "url": "https://bdocodex.com/us/item/49652/"
-  },
-  "Epheria Galleass: Mayna Cannon": {
-    "icon": "00049669.webp",
-    "url": "https://bdocodex.com/us/item/49669/"
-  },
-  "Epheria Galleass: Stratus Wind Sail": {
-    "icon": "00049670.webp",
-    "url": "https://bdocodex.com/us/item/49670/"
-  },
-  "Epheria Galleass: Verisha Cannon": {
-    "icon": "00049663.webp",
-    "url": "https://bdocodex.com/us/item/49663/"
-  },
-  "Epheria Galleass: White Wind Sail": {
-    "icon": "00049664.webp",
-    "url": "https://bdocodex.com/us/item/49664/"
-  },
-  "Epheria: Old Cannon": {
-    "icon": "00049707.webp",
-    "url": "https://bdocodex.com/us/item/49756/"
-  },
-  "Epheria: Old Figurehead": {
-    "icon": "00049705.webp",
-    "url": "https://bdocodex.com/us/item/49754/"
-  },
-  "Epheria: Old Plating": {
-    "icon": "00049706.webp",
-    "url": "https://bdocodex.com/us/item/49755/"
-  },
-  "Epheria: Old Wind Sail": {
-    "icon": "00049708.webp",
-    "url": "https://bdocodex.com/us/item/49757/"
-  },
-  "Acacia Sap": {
-    "icon": "00005013.webp",
-    "url": "https://bdocodex.com/us/item/5013/"
-  },
-  "Adhesive for Upgrade": {
-    "icon": "00045510.webp",
-    "url": "https://bdocodex.com/us/item/45510/"
-  },
-  "Bartali Sailboat": {
-    "icon": "ship_05.webp",
-    "url": "https://bdocodex.com/us/mount/31053/"
-  },
-  "Black Rust": {
-    "icon": "ic_04968.webp",
-    "url": "https://bdocodex.com/us/npc/21480/"
-  },
-  "Black Stone": {
-    "icon": "00000008.webp",
-    "url": "https://bdocodex.com/us/item/16001/"
-  },
-  "Blueprint: Panokseon": {
-    "icon": "00820891.webp",
-    "url": "https://bdocodex.com/us/item/820891/"
-  },
-  "Bright Reef Piece": {
-    "icon": "00005828.webp",
-    "url": "https://bdocodex.com/us/item/5828/"
-  },
-  "Brilliant Pearl Shard": {
-    "icon": "00005831.webp",
-    "url": "https://bdocodex.com/us/item/5831/"
-  },
-  "Brilliant Rock Salt Ingot": {
-    "icon": "00005815.webp",
-    "url": "https://bdocodex.com/us/item/5815/"
-  },
-  "Candidum": {
-    "icon": "ic_04966.webp",
-    "url": "https://bdocodex.com/us/npc/21417/"
-  },
-  "Carrack (Advance)": {
-    "icon": "ship_14.webp",
-    "url": "https://bdocodex.com/us/mount/31054/"
-  },
-  "Carrack (Balance)": {
-    "icon": "ship_15.webp",
-    "url": "https://bdocodex.com/us/mount/31055/"
-  },
-  "Carrack (Valor)": {
-    "icon": "ship_17.webp",
-    "url": "https://bdocodex.com/us/mount/31085/"
-  },
-  "Carrack (Volante)": {
-    "icon": "ship_16.webp",
-    "url": "https://bdocodex.com/us/mount/31056/"
-  },
-  "Cobalt Ingot": {
-    "icon": "00005819.webp",
-    "url": "https://bdocodex.com/us/item/5819/"
-  },
-  "Cox Pirates' Artifact (Combat)": {
-    "icon": "00005824.webp",
-    "url": "https://bdocodex.com/us/item/5824/"
-  },
-  "Cox Pirates' Artifact (Parley Beginner)": {
-    "icon": "00005822.webp",
-    "url": "https://bdocodex.com/us/item/5822/"
-  },
-  "Cox Pirates' Artifact (Parley Expert)": {
-    "icon": "00005823.webp",
-    "url": "https://bdocodex.com/us/item/5823/"
-  },
-  "Cox Pirates Extermination Seal": {
-    "icon": "00043284.webp",
-    "url": "https://bdocodex.com/us/item/43284/"
-  },
-  "Deep Sea Memory Filled Glue": {
-    "icon": "00005825.webp",
-    "url": "https://bdocodex.com/us/item/5825/"
-  },
-  "Statue's Tear": {
-    "icon": "00800046.webp",
-    "url": "https://bdocodex.com/us/item/800061/"
-  },
-  "Deep Tide-Dyed Standardized Timber Square": {
-    "icon": "00005812.webp",
-    "url": "https://bdocodex.com/us/item/5812/"
-  },
-  "Elder Tree Sap": {
-    "icon": "00005014.webp",
-    "url": "https://bdocodex.com/us/item/5014/"
-  },
-  "Enhanced Flax Fabric": {
-    "icon": "00005860.webp",
-    "url": "https://bdocodex.com/us/item/5860/"
-  },
-  "Enhanced Island Tree Coated Plywood": {
-    "icon": "00005814.webp",
-    "url": "https://bdocodex.com/us/item/5814/"
-  },
-  "Epheria Caravel": {
-    "icon": "ship_12.webp",
-    "url": "https://bdocodex.com/us/mount/31048/"
-  },
-  "Epheria Galleass": {
-    "icon": "ship_13.webp",
-    "url": "https://bdocodex.com/us/mount/31049/"
-  },
-  "Epheria Sailboat": {
-    "icon": "ship_03.webp",
-    "url": "https://bdocodex.com/us/mount/31001/"
-  },
-  "Finely Polished Pine Plywood": {
-    "icon": "00820893.webp",
-    "url": "https://bdocodex.com/us/item/820893/"
-  },
-  "Flax Fabric": {
-    "icon": "00005856.webp",
-    "url": "https://bdocodex.com/us/item/5856/"
-  },
-  "Glue With Traces of Deep Waves": {
-    "icon": "00820894.webp",
-    "url": "https://bdocodex.com/us/item/820894/"
-  },
-  "Gold Bar 1,000G": {
-    "icon": "00000005_special.webp",
-    "url": "https://bdocodex.com/us/item/5/"
-  },
-  "Graphite Ingot for Upgrade": {
-    "icon": "00045508.webp",
-    "url": "https://bdocodex.com/us/item/45508/"
-  },
-  "Great Ocean Dark Iron": {
-    "icon": "00005832.webp",
-    "url": "https://bdocodex.com/us/item/5832/"
-  },
-  "Hard Pillar": {
-    "icon": "00004687.webp",
-    "url": "https://bdocodex.com/us/item/4687/"
-  },
-  "Hekaru": {
-    "icon": "ic_04967.webp",
-    "url": "https://bdocodex.com/us/npc/27579/"
-  },
-  "Island Tree Coated Plywood": {
-    "icon": "00005805.webp",
-    "url": "https://bdocodex.com/us/item/5805/"
-  },
-  "Jade Coral Ingot": {
-    "icon": "00004269.webp",
-    "url": "https://bdocodex.com/us/item/4269/"
-  },
-  "Khan's Concentrated Magic": {
-    "icon": "00045505.webp",
-    "url": "https://bdocodex.com/us/item/45505/"
-  },
-  "Khan's Scale": {
-    "icon": "00005826.webp",
-    "url": "https://bdocodex.com/us/item/5826/"
-  },
-  "Khan's Tendon": {
-    "icon": "00005808.webp",
-    "url": "https://bdocodex.com/us/item/5808/"
-  },
-  "Luminous Cobalt Ingot": {
-    "icon": "00005830.webp",
-    "url": "https://bdocodex.com/us/item/5830/"
-  },
-  "Mandragora Essence": {
-    "icon": "00006397.webp",
-    "url": "https://bdocodex.com/us/item/6397/"
-  },
-  "Moon Scale Plywood": {
-    "icon": "00005827.webp",
-    "url": "https://bdocodex.com/us/item/5827/"
-  },
-  "Moon Vein Flax Fabric": {
-    "icon": "00005809.webp",
-    "url": "https://bdocodex.com/us/item/5809/"
-  },
-  "Nineshark": {
-    "icon": "ic_04969.webp",
-    "url": "https://bdocodex.com/us/npc/27764/"
-  },
-  "Ocean Stalker": {
-    "icon": "ic_04970.webp",
-    "url": "https://bdocodex.com/us/npc/21421/"
-  },
-  "Old Tree Bark": {
-    "icon": "00005008.webp",
-    "url": "https://bdocodex.com/us/item/5008/"
-  },
-  "Panokseon": {
-    "icon": "ship_18.webp",
-    "url": "https://bdocodex.com/us/mount/31025/"
-  },
-  "Pine Coated Plywood": {
-    "icon": "00004691.webp",
-    "url": "https://bdocodex.com/us/item/4691/"
-  },
-  "Pine Plywood": {
-    "icon": "00004658.webp",
-    "url": "https://bdocodex.com/us/item/4658/"
-  },
-  "Pure Pearl Crystal": {
-    "icon": "00005820.webp",
-    "url": "https://bdocodex.com/us/item/5820/"
-  },
-  "Red Tree Lump": {
-    "icon": "00005011.webp",
-    "url": "https://bdocodex.com/us/item/5011/"
-  },
-  "Rock Salt Ingot": {
-    "icon": "00005806.webp",
-    "url": "https://bdocodex.com/us/item/5806/"
-  },
-  "Ruddy Manganese Nodule": {
-    "icon": "00005807.webp",
-    "url": "https://bdocodex.com/us/item/5807/"
-  },
-  "Sangpyeong Coin": {
-    "icon": "00066771.webp",
-    "url": "https://bdocodex.com/us/item/66771/"
-  },
-  "Sea Monster's Ooze": {
-    "icon": "00045507.webp",
-    "url": "https://bdocodex.com/us/item/45507/"
-  },
-  "Seaweed Stalk": {
-    "icon": "00005829.webp",
-    "url": "https://bdocodex.com/us/item/5829/"
-  },
-  "Ship Upgrade Permit: Epheria Caravel": {
-    "icon": "00005796.webp",
-    "url": "https://bdocodex.com/us/item/5796/"
-  },
-  "Ship Upgrade Permit: Epheria Frigate": {
-    "icon": "00049951.webp",
-    "url": "https://bdocodex.com/us/item/49951/"
-  },
-  "Ship Upgrade Permit: Epheria Galleass": {
-    "icon": "00005797.webp",
-    "url": "https://bdocodex.com/us/item/5797/"
-  },
-  "Ship Upgrade Permit: Epheria Sailboat": {
-    "icon": "00049950.webp",
-    "url": "https://bdocodex.com/us/item/49950/"
-  },
-  "Standardized Timber Square": {
-    "icon": "00004685.webp",
-    "url": "https://bdocodex.com/us/item/4685/"
-  },
-  "Steel": {
-    "icon": "00004077.webp",
-    "url": "https://bdocodex.com/us/item/4077/"
-  },
-  "Tear of the Ocean": {
-    "icon": "00005821.webp",
-    "url": "https://bdocodex.com/us/item/5821/"
-  },
-  "Tidal Black Stone": {
-    "icon": "00756005.webp",
-    "url": "https://bdocodex.com/us/item/756001/"
-  },
-  "Tide-Dyed Standardized Timber Square": {
-    "icon": "00005810.webp",
-    "url": "https://bdocodex.com/us/item/5810/"
-  },
-  "Timber for Upgrade": {
-    "icon": "00045509.webp",
-    "url": "https://bdocodex.com/us/item/45509/"
-  },
-  "Ultimate Armor Reform Stone": {
-    "icon": "00004913.webp",
-    "url": "https://bdocodex.com/us/item/950105/"
-  },
-  "Ultimate Weapon Reform Stone": {
-    "icon": "00004912.webp",
-    "url": "https://bdocodex.com/us/item/950104/"
-  },
-  "White Cedar Sap": {
-    "icon": "00005012.webp",
-    "url": "https://bdocodex.com/us/item/5012/"
-  },
-  "Wooden Nail Soaked in Seawater": {
-    "icon": "00820892.webp",
-    "url": "https://bdocodex.com/us/item/820892/"
-  },
-  "Young Black Rust": {
-    "icon": "ic_00559.webp",
-    "url": "https://bdocodex.com/us/npc/21490/"
-  },
-  "Young Candidum": {
-    "icon": "ic_00559.webp",
-    "url": "https://bdocodex.com/us/npc/21422/"
-  },
-  "Young Hekaru": {
-    "icon": "ic_00559.webp",
-    "url": "https://bdocodex.com/us/npc/21442/"
-  },
-  "Young Nineshark": {
-    "icon": "ic_00559.webp",
-    "url": "https://bdocodex.com/us/npc/21441/"
-  },
-  "Young Ocean Stalker": {
-    "icon": "ic_00559.webp",
-    "url": "https://bdocodex.com/us/npc/21443/"
-  },
-  "Zinc Ingot": {
-    "icon": "00004064.webp",
-    "url": "https://bdocodex.com/us/item/4064/"
-  },
-  "Improved Epheria Frigate": {
-    "icon": "ship_13.webp",
-    "url": "https://bdocodex.com/us/mount/31059/"
-  },
-  "Improved Epheria Sailboat": {
-    "icon": "ship_12.webp",
-    "url": "https://bdocodex.com/us/mount/31058/"
-  },
-  "Epheria Frigate": {
-    "icon": "ship_04.webp",
-    "url": "https://bdocodex.com/us/mount/31003/"
-  },
-  "Epheria Carrack": {
-    "icon": "ship_10.webp",
-    "url": "https://bdocodex.com/us/mount/31045/"
-  },
-  "Bartali Sailboat: Old Figurehead": {
-    "icon": "00049705.webp",
-    "url": "https://bdocodex.com/us/item/49758/"
-  },
-  "Bartali Sailboat: Old Wind Sail": {
-    "icon": "00049708.webp",
-    "url": "https://bdocodex.com/us/item/49761/"
-  },
-  "Epheria Caravel: Black Dragon Figurehead": {
-    "icon": "00049655.webp",
-    "url": "https://bdocodex.com/us/item/49655/"
-  },
-  "Epheria Caravel: Brass Figurehead": {
-    "icon": "00049653.webp",
-    "url": "https://bdocodex.com/us/item/49653/"
-  },
-  "Epheria Caravel: Upgraded Plating": {
-    "icon": "00049656.webp",
-    "url": "https://bdocodex.com/us/item/49656/"
-  },
-  "Epheria Galleass: Black Dragon Figurehead": {
-    "icon": "00049667.webp",
-    "url": "https://bdocodex.com/us/item/49667/"
-  },
-  "Epheria Galleass: Upgraded Plating": {
-    "icon": "00049668.webp",
-    "url": "https://bdocodex.com/us/item/49668/"
-  },
-  "Epheria Galleass: White Horn Figurehead": {
-    "icon": "00049665.webp",
-    "url": "https://bdocodex.com/us/item/49665/"
-  },
-  "Epheria Galleass: Enhanced Plating": {
-    "icon": "00049666.webp",
-    "url": "https://bdocodex.com/us/item/49666/"
-  },
-  "Epheria Caravel: Enhanced Plating": {
-    "icon": "00049654.webp",
-    "url": "https://bdocodex.com/us/item/49654/"
-  },
-  "Ancient Orders": {
-    "icon": "00800054.webp",
-    "url": "https://bdocodex.com/us/item/800041/"
-  },
-  "Daily: Ravikel's Test": {
-    "icon": "deepsea_24.webp",
-    "url": "https://bdocodex.com/us/quest/3707/4/"
-  },
-  "102 Year Old Golden Herb": {
-    "icon": "00800011.webp",
-    "url": "https://bdocodex.com/us/item/800066/"
-  },
-  "37 Year Old Herbal Wine": {
-    "icon": "00800058.webp",
-    "url": "https://bdocodex.com/us/item/800058/"
-  },
-  "Amethyst Fragment": {
-    "icon": "00800012.webp",
-    "url": "https://bdocodex.com/us/item/800046/"
-  },
-  "Azure Quartz": {
-    "icon": "00800019.webp",
-    "url": "https://bdocodex.com/us/item/800059/"
-  },
-  "Balanced Stone Pagoda": {
-    "icon": "00800024.webp",
-    "url": "https://bdocodex.com/us/item/800024/"
-  },
-  "Big Stone Slab": {
-    "icon": "00800042.webp",
-    "url": "https://bdocodex.com/us/item/800022/"
-  },
-  "Blue Candle Bundle": {
-    "icon": "00800056.webp",
-    "url": "https://bdocodex.com/us/item/800042/"
-  },
-  "Boatman's Manual": {
-    "icon": "00800069.webp",
-    "url": "https://bdocodex.com/us/item/800050/"
-  },
-  "Bronze Candlestick": {
-    "icon": "00800030.webp",
-    "url": "https://bdocodex.com/us/item/800055/"
-  },
-  "Conch Shell Ornament": {
-    "icon": "00800020.webp",
-    "url": "https://bdocodex.com/us/item/800020/"
-  },
-  "Cron Castle Gold Coin": {
-    "icon": "inhouse_cultivate_coin_cron_01.webp",
-    "url": "https://bdocodex.com/us/item/24838/"
-  },
-  "Elixir of Youth": {
-    "icon": "00800068.webp",
-    "url": "https://bdocodex.com/us/item/800068/"
-  },
-  "Faded Gold Dragon Figurine": {
-    "icon": "00800014.webp",
-    "url": "https://bdocodex.com/us/item/800063/"
-  },
-  "Filtered Drinking Water": {
-    "icon": "00800031.webp",
-    "url": "https://bdocodex.com/us/item/800019/"
-  },
-  "Golden Fish Scale": {
-    "icon": "00800039.webp",
-    "url": "https://bdocodex.com/us/item/800065/"
-  },
-  "Gooey Monster Blood": {
-    "icon": "00800048.webp",
-    "url": "https://bdocodex.com/us/item/800036/"
-  },
-  "Green Salt Lump": {
-    "icon": "00800061.webp",
-    "url": "https://bdocodex.com/us/item/800049/"
-  },
-  "Headless Dragon Figurine": {
-    "icon": "00800041.webp",
-    "url": "https://bdocodex.com/us/item/800054/"
-  },
-  "Lopters Fishnet": {
-    "icon": "00800045.webp",
-    "url": "https://bdocodex.com/us/item/800040/"
-  },
-  "Luxury Patterned Fabric": {
-    "icon": "00800055.webp",
-    "url": "https://bdocodex.com/us/item/800069/"
-  },
-  "Marine Knights' Spear": {
-    "icon": "00800065.webp",
-    "url": "https://bdocodex.com/us/item/800047/"
-  },
-  "Monster Tentacle": {
-    "icon": "00800035.webp",
-    "url": "https://bdocodex.com/us/item/800026/"
-  },
-  "Octagonal Box": {
-    "icon": "00800057.webp",
-    "url": "https://bdocodex.com/us/item/800057/"
-  },
-  "Mysterious Rock": {
-    "icon": "00800009.webp",
-    "url": "https://bdocodex.com/us/item/800070/"
-  },
-  "Narvo Sea Cucumber": {
-    "icon": "00800023.webp",
-    "url": "https://bdocodex.com/us/item/800023/"
-  },
-  "Opulent Marble": {
-    "icon": "00800040.webp",
-    "url": "https://bdocodex.com/us/item/800018/"
-  },
-  "Opulent Thread Spool": {
-    "icon": "00800063.webp",
-    "url": "https://bdocodex.com/us/item/800045/"
-  },
-  "Panacea": {
-    "icon": "00800025.webp",
-    "url": "https://bdocodex.com/us/item/800053/"
-  },
-  "Pirate Gold Coin": {
-    "icon": "00800027.webp",
-    "url": "https://bdocodex.com/us/item/800027/"
-  },
-  "Pirate Ship Mast": {
-    "icon": "00800017.webp",
-    "url": "https://bdocodex.com/us/item/800017/"
-  },
-  "Pirate's Key": {
-    "icon": "00800038.webp",
-    "url": "https://bdocodex.com/us/item/800056/"
-  },
-  "Portrait of the Ancient": {
-    "icon": "00800067.webp",
-    "url": "https://bdocodex.com/us/item/800067/"
-  },
-  "Rare Herb Pile": {
-    "icon": "00800002.webp",
-    "url": "https://bdocodex.com/us/item/800039/"
-  },
-  "Scout Binoculars": {
-    "icon": "00800032.webp",
-    "url": "https://bdocodex.com/us/item/800032/"
-  },
-  "Sea Survival Kit": {
-    "icon": "00800059.webp",
-    "url": "https://bdocodex.com/us/item/800025/"
-  },
-  "Skull Symbol Carpet": {
-    "icon": "00800044.webp",
-    "url": "https://bdocodex.com/us/item/800038/"
-  },
-  "Solidified Lava": {
-    "icon": "00800066.webp",
-    "url": "https://bdocodex.com/us/item/800048/"
-  },
-  "Stolen Pirate Dagger": {
-    "icon": "00800062.webp",
-    "url": "https://bdocodex.com/us/item/800044/"
-  },
-  "Supreme Gold Candlestick": {
-    "icon": "00800028.webp",
-    "url": "https://bdocodex.com/us/item/800062/"
-  },
-  "Supreme Oyster Box": {
-    "icon": "00800021.webp",
-    "url": "https://bdocodex.com/us/item/800021/"
-  },
-  "Torn Pirate Treasure Map": {
-    "icon": "00800052.webp",
-    "url": "https://bdocodex.com/us/item/800030/"
-  },
-  "Urchin Spine": {
-    "icon": "00800049.webp",
-    "url": "https://bdocodex.com/us/item/800028/"
-  },
-  "Weasel Leather Coat": {
-    "icon": "00800070.webp",
-    "url": "https://bdocodex.com/us/item/800037/"
-  },
-  "Cox Pirates' Shadow Ghost": {
-    "icon": "ic_00559.webp",
-    "url": "https://bdocodex.com/us/npc/28836/"
-  },
-  "Falasi": {
-    "icon": "ic_00466.webp",
-    "url": "https://bdocodex.com/us/npc/42307/"
-  },
-  "Hollow Maretta": {
-    "icon": "ic_05249.webp",
-    "url": "https://bdocodex.com/us/npc/27575/"
-  },
-  "Proix": {
-    "icon": "ic_01463.webp",
-    "url": "https://bdocodex.com/us/npc/62169/"
-  },
-  "Storage Keeper": {
-    "icon": "ic_00559.webp",
-    "url": "https://bdocodex.com/us/npc/507/300/"
-  },
-  "Suspicious Cargo Ship": {
-    "icon": "collected_study.webp",
-    "url": "https://bdocodex.com/us/npc/28848/"
-  },
-  "Daily: Do You Have What it Takes?": {
-    "icon": "greatsea_04.webp",
-    "url": "https://bdocodex.com/us/quest/3707/7/"
-  },
-  "Daily: For the Serendian Soldiers": {
-    "icon": "deepsea_24.webp",
-    "url": "https://bdocodex.com/us/quest/3707/5/"
-  },
-  "Daily: For the Young Otter Merchants": {
-    "icon": "greatseasub1.webp",
-    "url": "https://bdocodex.com/us/quest/3707/3/"
-  },
-  "Daily: Our Guild is not a Charity Group": {
-    "icon": "seashipevent_005.webp",
-    "url": "https://bdocodex.com/us/quest/3707/6/"
-  },
-  "Daily: Precious Coral Piece": {
-    "icon": "greatseasub1.webp",
-    "url": "https://bdocodex.com/us/quest/3707/2/"
-  },
-  "Daily: Win-win Situation": {
-    "icon": "greatsea_08.webp",
-    "url": "https://bdocodex.com/us/quest/3707/8/"
-  },
-  "Ravinia's Wiggly-Waggly Letter": {
-    "icon": "rabinia.webp",
-    "url": "https://bdocodex.com/us/quest/3709/3/"
-  },
-  "Weekly: Monster Increase Report": {
-    "icon": "seashipevent_005.webp",
-    "url": "https://bdocodex.com/us/quest/3707/22/"
-  },
-  "Weekly: Pirate Trouble": {
-    "icon": "00820891.webp",
-    "url": "https://bdocodex.com/us/quest/8607/1/"
-  },
-  "Pirates' Supply Box": {
-    "icon": "00800053.webp",
-    "url": "https://bdocodex.com/us/item/800031/"
-  },
-  "Stuffed Morpho Butterfly": {
-    "icon": "00800005.webp",
-    "url": "https://bdocodex.com/us/item/800060/"
-  },
-  "Stuffed White Caterpillar": {
-    "icon": "00800064.webp",
-    "url": "https://bdocodex.com/us/item/800064/"
-  },
-  "Daily: Old Moon Guild's Black Rust Hunter": {
-    "icon": "greatseasub4.webp",
-    "url": "https://bdocodex.com/us/quest/3707/11/"
-  },
-  "Daily: Old Moon Guild's Candidum Hunter": {
-    "icon": "greatseasub3.webp",
-    "url": "https://bdocodex.com/us/quest/3707/9/"
-  },
-  "Daily: Old Moon Guild's Nineshark Hunter": {
-    "icon": "greatseasub2.webp",
-    "url": "https://bdocodex.com/us/quest/3707/10/"
-  },
-  "Daily: Old Moon Guild's Young Sea Monster Hunter": {
-    "icon": "greatseasub3.webp",
-    "url": "https://bdocodex.com/us/quest/3707/23/"
-  },
-  "Weekly: Old Moon Guild's Black Rust Hunter": {
-    "icon": "greatseasub4.webp",
-    "url": "https://bdocodex.com/us/quest/3707/21/"
-  },
-  "Weekly: Old Moon Guild's Candidum Hunter": {
-    "icon": "greatseasub3.webp",
-    "url": "https://bdocodex.com/us/quest/3707/19/"
-  },
-  "Weekly: Old Moon Guild's Nineshark Hunter": {
-    "icon": "greatseasub2.webp",
-    "url": "https://bdocodex.com/us/quest/3707/20/"
-  },
-  "Log": {
-    "icon": "00004605.webp",
-    "url": "https://bdocodex.com/us/item/4605/"
-  },
-  "Iron": {
-    "icon": "00004001.webp",
-    "url": "https://bdocodex.com/us/item/4001/"
-  },
-  "Plywood Hardener": {
-    "icon": "00004684.webp",
-    "url": "https://bdocodex.com/us/item/4684/"
-  },
-  "Pine Timber": {
-    "icon": "00004603.webp",
-    "url": "https://bdocodex.com/us/item/4603/"
-  },
-  "Flax Thread": {
-    "icon": "00005852.webp",
-    "url": "https://bdocodex.com/us/item/5852/"
-  },
-  "Goldmont Small Battleship": {
-    "icon": "ic_04972.webp",
-    "url": "https://bdocodex.com/us/npc/21485/"
-  },
-  "Goldmont Medium Battleship": {
-    "icon": "ic_04973.webp",
-    "url": "https://bdocodex.com/us/npc/61166/"
-  },
-  "Goldmont Large Battleship": {
-    "icon": "ic_04972.webp",
-    "url": "https://bdocodex.com/us/npc/21487/"
-  },
-  "Marine Knights' Helm": {
-    "icon": "00800043.webp",
-    "url": "https://bdocodex.com/us/item/800043/"
-  },
-  "Seashell Deco": {
-    "icon": "00800013.webp",
-    "url": "https://bdocodex.com/us/item/800052/"
-  },
-  "Old Chest with Gold Coins": {
-    "icon": "00800018.webp",
-    "url": "https://bdocodex.com/us/item/800051/"
-  },
-  "Islanders' Lunchbox": {
-    "icon": "00800060.webp",
-    "url": "https://bdocodex.com/us/item/800015/"
-  },
-  "Stalactite Fragment": {
-    "icon": "00800047.webp",
-    "url": "https://bdocodex.com/us/item/800033/"
-  },
-  "Round Knife": {
-    "icon": "00800050.webp",
-    "url": "https://bdocodex.com/us/item/800035/"
-  },
-  "Skull Decorated Teacup": {
-    "icon": "00800034.webp",
-    "url": "https://bdocodex.com/us/item/800034/"
-  },
-  "Crow Coin": {
-    "icon": "00000010_special.webp",
-    "url": "https://bdocodex.com/us/item/10/"
-  },
-  "Old Hourglass": {
-    "icon": "00800004.webp",
-    "url": "https://bdocodex.com/us/item/800029/"
-  },
-  "Central Market": {
-    "icon": "cm.png",
-    "url": "#"
-  },
-  "Epheria Carrack: Toro Cannon": {
-    "icon": "00049742.webp",
-    "url": "https://bdocodex.com/us/item/49742/"
-  },
-  "Epheria Carrack: Toro Sail": {
-    "icon": "00049743.webp",
-    "url": "https://bdocodex.com/us/item/49743/"
-  },
-  "Epheria Carrack: Toro Figurehead": {
-    "icon": "00049744.webp",
-    "url": "https://bdocodex.com/us/item/49744/"
-  },
-  "Epheria Carrack: Toro Plating": {
-    "icon": "00049745.webp",
-    "url": "https://bdocodex.com/us/item/49745/"
-  },
-  "Epheria Carrack: Advance (Chiro's Cannon)": {
-    "icon": "00049746.webp",
-    "url": "https://bdocodex.com/us/item/49746/"
-  },
-  "Epheria Carrack: Advance (Chiro's Sail)": {
-    "icon": "00049747.webp",
-    "url": "https://bdocodex.com/us/item/49747/"
-  },
-  "Epheria Carrack: Advance (Chiro's Figurehead)": {
-    "icon": "00049748.webp",
-    "url": "https://bdocodex.com/us/item/49748/"
-  },
-  "Epheria Carrack: Advance (Chiro's Black Plating)": {
-    "icon": "00049749.webp",
-    "url": "https://bdocodex.com/us/item/49749/"
-  },
-  "Epheria Carrack: Balance (Chiro's Cannon)": {
-    "icon": "00049762.webp",
-    "url": "https://bdocodex.com/us/item/49762/"
-  },
-  "Epheria Carrack: Balance (Chiro's Sail)": {
-    "icon": "00049763.webp",
-    "url": "https://bdocodex.com/us/item/49763/"
-  },
-  "Epheria Carrack: Balance (Chiro's Figurehead)": {
-    "icon": "00049764.webp",
-    "url": "https://bdocodex.com/us/item/49764/"
-  },
-  "Epheria Carrack: Balance (Chiro's Black Plating)": {
-    "icon": "00049765.webp",
-    "url": "https://bdocodex.com/us/item/49765/"
-  },
-  "Epheria Carrack: Volante (Chiro's Cannon)": {
-    "icon": "00049766.webp",
-    "url": "https://bdocodex.com/us/item/49766/"
-  },
-  "Epheria Carrack: Volante (Chiro's Sail)": {
-    "icon": "00049767.webp",
-    "url": "https://bdocodex.com/us/item/49767/"
-  },
-  "Epheria Carrack: Volante (Chiro's Figurehead)": {
-    "icon": "00049768.webp",
-    "url": "https://bdocodex.com/us/item/49768/"
-  },
-  "Epheria Carrack: Volante (Chiro's Black Plating)": {
-    "icon": "00049769.webp",
-    "url": "https://bdocodex.com/us/item/49769/"
-  },
-  "Epheria Carrack: Valor (Chiro's Cannon)": {
-    "icon": "00049770.webp",
-    "url": "https://bdocodex.com/us/item/49770/"
-  },
-  "Epheria Carrack: Valor (Chiro's Sail)": {
-    "icon": "00049771.webp",
-    "url": "https://bdocodex.com/us/item/49771/"
-  },
-  "Epheria Carrack: Valor (Chiro's Figurehead)": {
-    "icon": "00049772.webp",
-    "url": "https://bdocodex.com/us/item/49772/"
-  },
-  "Epheria Carrack: Valor (Chiro's Black Plating)": {
-    "icon": "00049773.webp",
-    "url": "https://bdocodex.com/us/item/49773/"
-  },
-  "Blueprint: Chiro's Cannon": {
-    "icon": "00008012.webp",
-    "url": "https://bdocodex.com/us/item/8012/"
-  },
-  "Blueprint: Chiro's Sail": {
-    "icon": "00008013.webp",
-    "url": "https://bdocodex.com/us/item/8013/"
-  },
-  "Blueprint: Chiro's Figurehead": {
-    "icon": "00008014.webp",
-    "url": "https://bdocodex.com/us/item/8014/"
-  },
-  "Blueprint: Chiro's Black Plating": {
-    "icon": "00008015.webp",
-    "url": "https://bdocodex.com/us/item/8015/"
-  },
-  "Violent Wave Plywood": {
-    "icon": "00008019.webp",
-    "url": "https://bdocodex.com/us/item/8019/"
-  },
-  "Delicately Polished Support": {
-    "icon": "00008020.webp",
-    "url": "https://bdocodex.com/us/item/8020/"
-  },
-  "Wave Residue Adhesive": {
-    "icon": "00008021.webp",
-    "url": "https://bdocodex.com/us/item/8021/"
-  },
-  "Epheria Carrack Parts Upgrade Permit: Advance": {
-    "icon": "00059316.webp",
-    "url": "https://bdocodex.com/us/item/59316/"
-  },
-  "Epheria Carrack Parts Upgrade Permit: Balance": {
-    "icon": "00059317.webp",
-    "url": "https://bdocodex.com/us/item/59317/"
-  },
-  "Epheria Carrack Parts Upgrade Permit: Volante": {
-    "icon": "00059318.webp",
-    "url": "https://bdocodex.com/us/item/59318/"
-  },
-  "Epheria Carrack Parts Upgrade Permit: Valor": {
-    "icon": "00059319.webp",
-    "url": "https://bdocodex.com/us/item/59319/"
-  },
-  "Violent Sea Monster's Scale": {
-    "icon": "00008009.webp",
-    "url": "https://bdocodex.com/us/item/8009/"
-  },
-  "Violent Sea Monster's Bone": {
-    "icon": "00008008.webp",
-    "url": "https://bdocodex.com/us/item/8008/"
-  },
-  "Violent Sea Monster's Ooze": {
-    "icon": "00008011.webp",
-    "url": "https://bdocodex.com/us/item/8011/"
-  },
-  "Saltwater Crocodile's Scale": {
-    "icon": "00008025.webp",
-    "url": "https://bdocodex.com/us/item/8025/"
-  },
-  "Starlight Hardener": {
-    "icon": "00008023.webp",
-    "url": "https://bdocodex.com/us/item/8023/"
-  },
-  "Starlight Emulsifier": {
-    "icon": "00008024.webp",
-    "url": "https://bdocodex.com/us/item/8024/"
-  },
-  "Panokseon: Haemo's Cannon": {
-    "icon": "00059402.webp",
-    "url": "https://bdocodex.com/us/item/59402/"
-  },
-  "Panokseon: Haemo's Sail": {
-    "icon": "00059403.webp",
-    "url": "https://bdocodex.com/us/item/59403/"
-  },
-  "Panokseon: Haemo's Figurehead": {
-    "icon": "00059404.webp",
-    "url": "https://bdocodex.com/us/item/59404/"
-  },
-  "Panokseon: Haemo's Plating": {
-    "icon": "00059405.webp",
-    "url": "https://bdocodex.com/us/item/59405/"
-  },
-  "Panokseon: Byukgye's Enhanced Cannon": {
-    "icon": "00059406.webp",
-    "url": "https://bdocodex.com/us/item/59406/"
-  },
-  "Panokseon: Byukgye's Enhanced Sail": {
-    "icon": "00059407.webp",
-    "url": "https://bdocodex.com/us/item/59407/"
-  },
-  "Panokseon: Byukgye's Enhanced Figurehead": {
-    "icon": "00059408.webp",
-    "url": "https://bdocodex.com/us/item/59408/"
-  },
-  "Panokseon: Byukgye's Enhanced Plating": {
-    "icon": "00059409.webp",
-    "url": "https://bdocodex.com/us/item/59409/"
-  },
-  "Panokseon Enhancement Parts Upgrade Permit": {
-    "icon": "00059414.webp",
-    "url": "https://bdocodex.com/us/item/59414/"
-  },
-  "Blueprint: Byukgye's Enhanced Cannon": {
-    "icon": "00008027.webp",
-    "url": "https://bdocodex.com/us/item/8027/"
-  },
-  "Blueprint: Byukgye's Enhanced Sail": {
-    "icon": "00008028.webp",
-    "url": "https://bdocodex.com/us/item/8028/"
-  },
-  "Blueprint: Byukgye's Enhanced Figurehead": {
-    "icon": "00008029.webp",
-    "url": "https://bdocodex.com/us/item/8029/"
-  },
-  "Blueprint: Byukgye's Enhanced Plating": {
-    "icon": "00008030.webp",
-    "url": "https://bdocodex.com/us/item/8030/"
-  },
-  "Crow Coin Coupon": {
-    "icon": "00752032.webp",
-    "url": "https://bdocodex.com/us/item/752032/"
-  },
-  "Ebenruth's Nol": {
-    "icon": "00059321.webp",
-    "url": "https://bdocodex.com/us/item/59321/"
-  },
-  "Fountain of Divine Melodies": {
-    "icon": "00005153.webp",
-    "url": "https://bdocodex.com/us/item/5153/"
-  },
-  "Hero's Small Lamp": {
-    "icon": "00005161.webp",
-    "url": "https://bdocodex.com/us/item/5161/"
-  },
-  "Oquilla Aquamarine Fresh Water": {
-    "icon": "00008103.webp",
-    "url": "https://bdocodex.com/us/item/8103/"
-  },
-  "Oquilla Crimson Fresh Water": {
-    "icon": "00821170.webp",
-    "url": "https://bdocodex.com/us/item/821170/"
-  },
-  "Oquilla Emerald Fresh Water": {
-    "icon": "00008102.webp",
-    "url": "https://bdocodex.com/us/item/8102/"
-  },
-  "Oquilla Golden Fresh Water": {
-    "icon": "00008104.webp",
-    "url": "https://bdocodex.com/us/item/8104/"
-  },
-  "Oquilla's Flower": {
-    "icon": "00008010.webp",
-    "url": "https://bdocodex.com/us/item/8010/"
-  },
-  "Oquilla's Tear": {
-    "icon": "00008026.webp",
-    "url": "https://bdocodex.com/us/item/8026/"
-  },
-  "Ravinia's Moss Remover": {
-    "icon": "00059329.webp",
-    "url": "https://bdocodex.com/us/item/59329/"
-  },
-  "Sailor Contract Certificate": {
-    "icon": "00752030.webp",
-    "url": "https://bdocodex.com/us/item/752030/"
-  },
-  "Sealed Compass (7 Days)": {
-    "icon": "00018858.webp",
-    "url": "https://bdocodex.com/us/item/751502/"
-  },
-  "Ship Building Permit: Epheria Cog": {
-    "icon": "00009775.webp",
-    "url": "https://bdocodex.com/us/item/9775/"
-  },
-  "Tidal Blue Lamp Post": {
-    "icon": "00005162.webp",
-    "url": "https://bdocodex.com/us/item/5162/"
-  },
-  "Void Sea Crystal": {
-    "icon": "00756424.webp",
-    "url": "https://bdocodex.com/us/item/756424/"
-  },
-  "Epheria Carrack: Advance (Falasi's Cannon)": {
-    "icon": "00049778.webp",
-    "url": "https://bdocodex.com/us/item/49778/"
-  },
-  "Epheria Carrack: Advance (Falasi's Sail)": {
-    "icon": "00049779.webp",
-    "url": "https://bdocodex.com/us/item/49779/"
-  },
-  "Epheria Carrack: Advance (Falasi's Figurehead)": {
-    "icon": "00049780.webp",
-    "url": "https://bdocodex.com/us/item/49780/"
-  },
-  "Epheria Carrack: Advance (Falasi's Plating)": {
-    "icon": "00049781.webp",
-    "url": "https://bdocodex.com/us/item/49781/"
-  },
-  "Epheria Carrack: Balance (Falasi's Cannon)": {
-    "icon": "00049782.webp",
-    "url": "https://bdocodex.com/us/item/49782/"
-  },
-  "Epheria Carrack: Balance (Falasi's Sail)": {
-    "icon": "00049783.webp",
-    "url": "https://bdocodex.com/us/item/49783/"
-  },
-  "Epheria Carrack: Balance (Falasi's Figurehead)": {
-    "icon": "00049784.webp",
-    "url": "https://bdocodex.com/us/item/49784/"
-  },
-  "Epheria Carrack: Balance (Falasi's Plating)": {
-    "icon": "00049785.webp",
-    "url": "https://bdocodex.com/us/item/49785/"
-  },
-  "Epheria Carrack: Volante (Falasi's Cannon)": {
-    "icon": "00049786.webp",
-    "url": "https://bdocodex.com/us/item/49786/"
-  },
-  "Epheria Carrack: Volante (Falasi's Sail)": {
-    "icon": "00049787.webp",
-    "url": "https://bdocodex.com/us/item/49787/"
-  },
-  "Epheria Carrack: Volante (Falasi's Figurehead)": {
-    "icon": "00049788.webp",
-    "url": "https://bdocodex.com/us/item/49788/"
-  },
-  "Epheria Carrack: Volante (Falasi's Plating)": {
-    "icon": "00049789.webp",
-    "url": "https://bdocodex.com/us/item/49789/"
-  },
-  "Epheria Carrack: Valor (Falasi's Cannon)": {
-    "icon": "00049790.webp",
-    "url": "https://bdocodex.com/us/item/49790/"
-  },
-  "Epheria Carrack: Valor (Falasi's Sail)": {
-    "icon": "00049791.webp",
-    "url": "https://bdocodex.com/us/item/49791/"
-  },
-  "Epheria Carrack: Valor (Falasi's Figurehead)": {
-    "icon": "00049792.webp",
-    "url": "https://bdocodex.com/us/item/49792/"
-  },
-  "Epheria Carrack: Valor (Falasi's Plating)": {
-    "icon": "00049793.webp",
-    "url": "https://bdocodex.com/us/item/49793/"
-  },
-  "Panokseon: Cheongun's Enhanced Cannon": {
-    "icon": "00059469.webp",
-    "url": "https://bdocodex.com/us/item/59469/"
-  },
-  "Panokseon: Cheongun's Enhanced Sail": {
-    "icon": "00059470.webp",
-    "url": "https://bdocodex.com/us/item/59470/"
-  },
-  "Panokseon: Cheongun's Enhanced Figurehead": {
-    "icon": "00059471.webp",
-    "url": "https://bdocodex.com/us/item/59471/"
-  },
-  "Panokseon: Cheongun's Enhanced Plating": {
-    "icon": "00059472.webp",
-    "url": "https://bdocodex.com/us/item/59472/"
-  },
-  "Blueprint: Falasi's Cannon": {
-    "icon": "000821354.webp",
-    "url": "https://bdocodex.com/us/item/821354/"
-  },
-  "Blueprint: Falasi's Sail": {
-    "icon": "000821355.webp",
-    "url": "https://bdocodex.com/us/item/821355/"
-  },
-  "Blueprint: Falasi's Figurehead": {
-    "icon": "000821356.webp",
-    "url": "https://bdocodex.com/us/item/821356/"
-  },
-  "Blueprint: Falasi's Plating": {
-    "icon": "000821357.webp",
-    "url": "https://bdocodex.com/us/item/821357/"
-  },
-  "Blueprint: Cheongun's Cannon": {
-    "icon": "000821358.webp",
-    "url": "https://bdocodex.com/us/item/821358/"
-  },
-  "Blueprint: Cheongun's Sail": {
-    "icon": "000821359.webp",
-    "url": "https://bdocodex.com/us/item/821359/"
-  },
-  "Blueprint: Cheongun's Figurehead": {
-    "icon": "000821360.webp",
-    "url": "https://bdocodex.com/us/item/821360/"
-  },
-  "Blueprint: Cheongun's Plating": {
-    "icon": "000821361.webp",
-    "url": "https://bdocodex.com/us/item/821361/"
-  },
-  "Falasi's Epheria Carrack Parts Upgrade Permit: Advance": {
-    "icon": "00059464.webp",
-    "url": "https://bdocodex.com/us/item/59464/"
-  },
-  "Falasi's Epheria Carrack Parts Upgrade Permit: Balance": {
-    "icon": "00059465.webp",
-    "url": "https://bdocodex.com/us/item/59465/"
-  },
-  "Falasi's Epheria Carrack Parts Upgrade Permit: Volante": {
-    "icon": "00059466.webp",
-    "url": "https://bdocodex.com/us/item/59466/"
-  },
-  "Falasi's Epheria Carrack Parts Upgrade Permit: Valor": {
-    "icon": "00059467.webp",
-    "url": "https://bdocodex.com/us/item/59467/"
-  },
-  "Cheongun's Panokseon Parts Upgrade Permit": {
-    "icon": "00059468.webp",
-    "url": "https://bdocodex.com/us/item/59468/"
-  },
-  "Sturdy Coral Support": {
-    "icon": "000821365.webp",
-    "url": "https://bdocodex.com/us/item/821365/"
-  },
-  "Raging Wave Plywood": {
-    "icon": "000821366.webp",
-    "url": "https://bdocodex.com/us/item/821366/"
-  },
-  "Dormant Crimson Coral Adhesive": {
-    "icon": "000821367.webp",
-    "url": "https://bdocodex.com/us/item/821367/"
-  },
-  "Lyngbakr's Bone": {
-    "icon": "000821362.webp",
-    "url": "https://bdocodex.com/us/item/821362/"
-  },
-  "Lyngbakr's Scale": {
-    "icon": "000821363.webp",
-    "url": "https://bdocodex.com/us/item/821363/"
-  },
-  "Lyngbakr's Fluid": {
-    "icon": "000821364.webp",
-    "url": "https://bdocodex.com/us/item/821364/"
-  },
-  "Sunset Coral Essence": {
-    "icon": "000821369.webp",
-    "url": "https://bdocodex.com/us/item/821369/"
-  },
-  "Sunset Tidal Black Stone": {
-    "icon": "00756004.webp",
-    "url": "https://bdocodex.com/us/item/756007/"
-  },
-  "Cron Stone": {
-    "icon": "00016080.webp",
-    "url": "https://bdocodex.com/us/item/16080/"
-  }
+ "102 Year Old Golden Herb": {
+  "icon": "00800011.webp",
+  "url": "https://bdocodex.com/us/item/800066/"
+ },
+ "37 Year Old Herbal Wine": {
+  "icon": "00800058.webp",
+  "url": "https://bdocodex.com/us/item/800058/"
+ },
+ "Abyssal Gem": {
+  "icon": "00005833.webp",
+  "url": "https://bdocodex.com/us/item/5833/"
+ },
+ "Acacia Sap": {
+  "icon": "00005013.webp",
+  "url": "https://bdocodex.com/us/item/5013/"
+ },
+ "Adhesive for Upgrade": {
+  "icon": "00045510.webp",
+  "url": "https://bdocodex.com/us/item/45510/"
+ },
+ "Aloe": {
+  "icon": "00007347.webp",
+  "url": "https://bdocodex.com/us/item/7347/"
+ },
+ "Ambitious": {
+  "icon": "employee_59053.webp",
+  "url": "https://bdocodex.com/us/sailor/59053/"
+ },
+ "Amethyst Fragment": {
+  "icon": "00800012.webp",
+  "url": "https://bdocodex.com/us/item/800046/"
+ },
+ "Ancient Orders": {
+  "icon": "00800054.webp",
+  "url": "https://bdocodex.com/us/item/800041/"
+ },
+ "Ash Plywood": {
+  "icon": "00004652.webp",
+  "url": "https://bdocodex.com/us/item/4652/"
+ },
+ "Ash Sap": {
+  "icon": "00005001.webp",
+  "url": "https://bdocodex.com/us/item/5001/"
+ },
+ "Azure Quartz": {
+  "icon": "00800019.webp",
+  "url": "https://bdocodex.com/us/item/800059/"
+ },
+ "Bag of Muddy Water": {
+  "icon": "00006657.webp",
+  "url": "https://bdocodex.com/us/item/6657/"
+ },
+ "Balanced Stone Pagoda": {
+  "icon": "00800024.webp",
+  "url": "https://bdocodex.com/us/item/800024/"
+ },
+ "Barley Dough": {
+  "icon": "00007202.webp",
+  "url": "https://bdocodex.com/us/item/7202/"
+ },
+ "Bartali Sailboat": {
+  "icon": "ship_05.webp",
+  "url": "https://bdocodex.com/us/mount/31053/"
+ },
+ "Bartali Sailboat: Old Cannon": {
+  "icon": "00049707.webp",
+  "url": "https://bdocodex.com/us/item/49760/"
+ },
+ "Bartali Sailboat: Old Figurehead": {
+  "icon": "00049705.webp",
+  "url": "https://bdocodex.com/us/item/49758/"
+ },
+ "Bartali Sailboat: Old Plating": {
+  "icon": "00049706.webp",
+  "url": "https://bdocodex.com/us/item/49759/"
+ },
+ "Bartali Sailboat: Old Wind Sail": {
+  "icon": "00049708.webp",
+  "url": "https://bdocodex.com/us/item/49761/"
+ },
+ "Beer": {
+  "icon": "00009213.webp",
+  "url": "https://bdocodex.com/us/item/9213/"
+ },
+ "Belladonna Elephant Hide": {
+  "icon": "00006004.webp",
+  "url": "https://bdocodex.com/us/item/6026/"
+ },
+ "Big Stone Slab": {
+  "icon": "00800042.webp",
+  "url": "https://bdocodex.com/us/item/800022/"
+ },
+ "Birch Plywood": {
+  "icon": "00004661.webp",
+  "url": "https://bdocodex.com/us/item/4661/"
+ },
+ "Black Rust": {
+  "icon": "ic_04968.webp",
+  "url": "https://bdocodex.com/us/npc/21480/"
+ },
+ "Black Stone": {
+  "icon": "00000008.webp",
+  "url": "https://bdocodex.com/us/item/16001/"
+ },
+ "Black Stone Powder": {
+  "icon": "00004901.webp",
+  "url": "https://bdocodex.com/us/item/4901/"
+ },
+ "Bloody Tree Knot": {
+  "icon": "00005005.webp",
+  "url": "https://bdocodex.com/us/item/5005/"
+ },
+ "Blue Candle Bundle": {
+  "icon": "00800056.webp",
+  "url": "https://bdocodex.com/us/item/800042/"
+ },
+ "Blueprint: Byukgye's Enhanced Cannon": {
+  "icon": "00008027.webp",
+  "url": "https://bdocodex.com/us/item/8027/"
+ },
+ "Blueprint: Byukgye's Enhanced Figurehead": {
+  "icon": "00008029.webp",
+  "url": "https://bdocodex.com/us/item/8029/"
+ },
+ "Blueprint: Byukgye's Enhanced Plating": {
+  "icon": "00008030.webp",
+  "url": "https://bdocodex.com/us/item/8030/"
+ },
+ "Blueprint: Byukgye's Enhanced Sail": {
+  "icon": "00008028.webp",
+  "url": "https://bdocodex.com/us/item/8028/"
+ },
+ "Blueprint: Cheongun's Cannon": {
+  "icon": "000821358.webp",
+  "url": "https://bdocodex.com/us/item/821358/"
+ },
+ "Blueprint: Cheongun's Figurehead": {
+  "icon": "000821360.webp",
+  "url": "https://bdocodex.com/us/item/821360/"
+ },
+ "Blueprint: Cheongun's Plating": {
+  "icon": "000821361.webp",
+  "url": "https://bdocodex.com/us/item/821361/"
+ },
+ "Blueprint: Cheongun's Sail": {
+  "icon": "000821359.webp",
+  "url": "https://bdocodex.com/us/item/821359/"
+ },
+ "Blueprint: Chiro's Black Plating": {
+  "icon": "00008015.webp",
+  "url": "https://bdocodex.com/us/item/8015/"
+ },
+ "Blueprint: Chiro's Cannon": {
+  "icon": "00008012.webp",
+  "url": "https://bdocodex.com/us/item/8012/"
+ },
+ "Blueprint: Chiro's Figurehead": {
+  "icon": "00008014.webp",
+  "url": "https://bdocodex.com/us/item/8014/"
+ },
+ "Blueprint: Chiro's Sail": {
+  "icon": "00008013.webp",
+  "url": "https://bdocodex.com/us/item/8013/"
+ },
+ "Blueprint: Falasi's Cannon": {
+  "icon": "000821354.webp",
+  "url": "https://bdocodex.com/us/item/821354/"
+ },
+ "Blueprint: Falasi's Figurehead": {
+  "icon": "000821356.webp",
+  "url": "https://bdocodex.com/us/item/821356/"
+ },
+ "Blueprint: Falasi's Plating": {
+  "icon": "000821357.webp",
+  "url": "https://bdocodex.com/us/item/821357/"
+ },
+ "Blueprint: Falasi's Sail": {
+  "icon": "000821355.webp",
+  "url": "https://bdocodex.com/us/item/821355/"
+ },
+ "Blueprint: Panokseon": {
+  "icon": "00820891.webp",
+  "url": "https://bdocodex.com/us/item/820891/"
+ },
+ "Boatman's Manual": {
+  "icon": "00800069.webp",
+  "url": "https://bdocodex.com/us/item/800050/"
+ },
+ "Born-in-the-Sea": {
+  "icon": "employee_59070.webp",
+  "url": "https://bdocodex.com/us/sailor/59070/"
+ },
+ "Brass Ingot": {
+  "icon": "00004066.webp",
+  "url": "https://bdocodex.com/us/item/4066/"
+ },
+ "Bright Reef Piece": {
+  "icon": "00005828.webp",
+  "url": "https://bdocodex.com/us/item/5828/"
+ },
+ "Brilliant Pearl Shard": {
+  "icon": "00005831.webp",
+  "url": "https://bdocodex.com/us/item/5831/"
+ },
+ "Brilliant Rock Salt Ingot": {
+  "icon": "00005815.webp",
+  "url": "https://bdocodex.com/us/item/5815/"
+ },
+ "Bronze Candlestick": {
+  "icon": "00800030.webp",
+  "url": "https://bdocodex.com/us/item/800055/"
+ },
+ "Bronze Ingot": {
+  "icon": "00004067.webp",
+  "url": "https://bdocodex.com/us/item/4067/"
+ },
+ "Cactus Rind": {
+  "icon": "00004612.webp",
+  "url": "https://bdocodex.com/us/item/4612/"
+ },
+ "Cactus Thorn": {
+  "icon": "00004683.webp",
+  "url": "https://bdocodex.com/us/item/4683/"
+ },
+ "Calculating": {
+  "icon": "employee_59058.webp",
+  "url": "https://bdocodex.com/us/sailor/59058/"
+ },
+ "Calpheon Rowboat": {
+  "icon": "00049003.webp",
+  "url": "https://bdocodex.com/us/design/8802/"
+ },
+ "Candidum": {
+  "icon": "ic_04966.webp",
+  "url": "https://bdocodex.com/us/npc/21417/"
+ },
+ "Caphras Tree Plywood": {
+  "icon": "00004725.webp",
+  "url": "https://bdocodex.com/us/item/4725/"
+ },
+ "Carrack (Advance)": {
+  "icon": "ship_14.webp",
+  "url": "https://bdocodex.com/us/mount/31054/"
+ },
+ "Carrack (Balance)": {
+  "icon": "ship_15.webp",
+  "url": "https://bdocodex.com/us/mount/31055/"
+ },
+ "Carrack (Valor)": {
+  "icon": "ship_17.webp",
+  "url": "https://bdocodex.com/us/mount/31085/"
+ },
+ "Carrack (Volante)": {
+  "icon": "ship_16.webp",
+  "url": "https://bdocodex.com/us/mount/31056/"
+ },
+ "Cedar Plywood": {
+  "icon": "00004667.webp",
+  "url": "https://bdocodex.com/us/item/4667/"
+ },
+ "Cedar Sap": {
+  "icon": "00005010.webp",
+  "url": "https://bdocodex.com/us/item/5010/"
+ },
+ "Central Market": {
+  "icon": "cm.png",
+  "url": "#"
+ },
+ "Cheongun's Panokseon Parts Upgrade Permit": {
+  "icon": "00059468.webp",
+  "url": "https://bdocodex.com/us/item/59468/"
+ },
+ "Chicken Meat": {
+  "icon": "00007916.webp",
+  "url": "https://bdocodex.com/us/item/7921/"
+ },
+ "Chowder": {
+  "icon": "00006394.webp",
+  "url": "https://bdocodex.com/us/item/6394/"
+ },
+ "Cinnamon": {
+  "icon": "00007348.webp",
+  "url": "https://bdocodex.com/us/item/7348/"
+ },
+ "Clear Liquid Reagent": {
+  "icon": "00005301.webp",
+  "url": "https://bdocodex.com/us/item/5301/"
+ },
+ "Cleia": {
+  "icon": "ic_00496.webp",
+  "url": "https://bdocodex.com/us/npc/41056/"
+ },
+ "Clown's Blood": {
+  "icon": "00006353.webp",
+  "url": "https://bdocodex.com/us/item/6353/"
+ },
+ "Coal": {
+  "icon": "00004007.webp",
+  "url": "https://bdocodex.com/us/item/4007/"
+ },
+ "Cobalt Ingot": {
+  "icon": "00005819.webp",
+  "url": "https://bdocodex.com/us/item/5819/"
+ },
+ "Coconut": {
+  "icon": "00007026.webp",
+  "url": "https://bdocodex.com/us/item/7026/"
+ },
+ "Conch Shell Ornament": {
+  "icon": "00800020.webp",
+  "url": "https://bdocodex.com/us/item/800020/"
+ },
+ "Confident": {
+  "icon": "employee_59061.webp",
+  "url": "https://bdocodex.com/us/sailor/59061/"
+ },
+ "Cooking Honey": {
+  "icon": "00007702.webp",
+  "url": "https://bdocodex.com/us/item/7702/"
+ },
+ "Copper Ingot": {
+  "icon": "00004058.webp",
+  "url": "https://bdocodex.com/us/item/4058/"
+ },
+ "Corn Dough": {
+  "icon": "00007205.webp",
+  "url": "https://bdocodex.com/us/item/7205/"
+ },
+ "Cotton Fabric": {
+  "icon": "00005855.webp",
+  "url": "https://bdocodex.com/us/item/5855/"
+ },
+ "Cox Pirates Extermination Seal": {
+  "icon": "00043284.webp",
+  "url": "https://bdocodex.com/us/item/43284/"
+ },
+ "Cox Pirates' Artifact (Combat)": {
+  "icon": "00005824.webp",
+  "url": "https://bdocodex.com/us/item/5824/"
+ },
+ "Cox Pirates' Artifact (Parley Beginner)": {
+  "icon": "00005822.webp",
+  "url": "https://bdocodex.com/us/item/5822/"
+ },
+ "Cox Pirates' Artifact (Parley Expert)": {
+  "icon": "00005823.webp",
+  "url": "https://bdocodex.com/us/item/5823/"
+ },
+ "Cox Pirates' Broken Cannon": {
+  "icon": "00043283.webp",
+  "url": "https://bdocodex.com/us/item/43283/"
+ },
+ "Cox Pirates' Shadow Ghost": {
+  "icon": "ic_00559.webp",
+  "url": "https://bdocodex.com/us/npc/28836/"
+ },
+ "Cron Castle Gold Coin": {
+  "icon": "inhouse_cultivate_coin_cron_01.webp",
+  "url": "https://bdocodex.com/us/item/24838/"
+ },
+ "Cron Stone": {
+  "icon": "00016080.webp",
+  "url": "https://bdocodex.com/us/item/16080/"
+ },
+ "Crow Coin": {
+  "icon": "00000010_special.webp",
+  "url": "https://bdocodex.com/us/item/10/"
+ },
+ "Crow Coin Coupon": {
+  "icon": "00752032.webp",
+  "url": "https://bdocodex.com/us/item/752032/"
+ },
+ "Curious": {
+  "icon": "employee_59067.webp",
+  "url": "https://bdocodex.com/us/sailor/59067/"
+ },
+ "Daily: Do You Have What it Takes?": {
+  "icon": "greatsea_04.webp",
+  "url": "https://bdocodex.com/us/quest/3707/7/"
+ },
+ "Daily: For the Serendian Soldiers": {
+  "icon": "deepsea_24.webp",
+  "url": "https://bdocodex.com/us/quest/3707/5/"
+ },
+ "Daily: For the Young Otter Merchants": {
+  "icon": "greatseasub1.webp",
+  "url": "https://bdocodex.com/us/quest/3707/3/"
+ },
+ "Daily: Old Moon Guild's Black Rust Hunter": {
+  "icon": "greatseasub4.webp",
+  "url": "https://bdocodex.com/us/quest/3707/11/"
+ },
+ "Daily: Old Moon Guild's Candidum Hunter": {
+  "icon": "greatseasub3.webp",
+  "url": "https://bdocodex.com/us/quest/3707/9/"
+ },
+ "Daily: Old Moon Guild's Nineshark Hunter": {
+  "icon": "greatseasub2.webp",
+  "url": "https://bdocodex.com/us/quest/3707/10/"
+ },
+ "Daily: Old Moon Guild's Young Sea Monster Hunter": {
+  "icon": "greatseasub3.webp",
+  "url": "https://bdocodex.com/us/quest/3707/23/"
+ },
+ "Daily: Our Guild is not a Charity Group": {
+  "icon": "seashipevent_005.webp",
+  "url": "https://bdocodex.com/us/quest/3707/6/"
+ },
+ "Daily: Precious Coral Piece": {
+  "icon": "greatseasub1.webp",
+  "url": "https://bdocodex.com/us/quest/3707/2/"
+ },
+ "Daily: Ravikel's Test": {
+  "icon": "deepsea_24.webp",
+  "url": "https://bdocodex.com/us/quest/3707/4/"
+ },
+ "Daily: Win-win Situation": {
+  "icon": "greatsea_08.webp",
+  "url": "https://bdocodex.com/us/quest/3707/8/"
+ },
+ "Date Palm": {
+  "icon": "00007016.webp",
+  "url": "https://bdocodex.com/us/item/7016/"
+ },
+ "Deep Sea Memory Filled Glue": {
+  "icon": "00005825.webp",
+  "url": "https://bdocodex.com/us/item/5825/"
+ },
+ "Deep Tide-Dyed Standardized Timber Square": {
+  "icon": "00005812.webp",
+  "url": "https://bdocodex.com/us/item/5812/"
+ },
+ "Deer Hide": {
+  "icon": "00006001.webp",
+  "url": "https://bdocodex.com/us/item/6001/"
+ },
+ "Delicately Polished Support": {
+  "icon": "00008020.webp",
+  "url": "https://bdocodex.com/us/item/8020/"
+ },
+ "Diligent": {
+  "icon": "employee_59054.webp",
+  "url": "https://bdocodex.com/us/sailor/59054/"
+ },
+ "Dormant Crimson Coral Adhesive": {
+  "icon": "000821367.webp",
+  "url": "https://bdocodex.com/us/item/821367/"
+ },
+ "Dreaming of a Full Haul": {
+  "icon": "employee_59068.webp",
+  "url": "https://bdocodex.com/us/sailor/59068/"
+ },
+ "Ebenruth's Nol": {
+  "icon": "00059321.webp",
+  "url": "https://bdocodex.com/us/item/59321/"
+ },
+ "Elaborate Pearl Necklace": {
+  "icon": "00045152.webp",
+  "url": "https://bdocodex.com/us/item/45152/"
+ },
+ "Elder Tree Plywood": {
+  "icon": "00004674.webp",
+  "url": "https://bdocodex.com/us/item/4674/"
+ },
+ "Elder Tree Sap": {
+  "icon": "00005014.webp",
+  "url": "https://bdocodex.com/us/item/5014/"
+ },
+ "Elixir of Regeneration": {
+  "icon": "00006395.webp",
+  "url": "https://bdocodex.com/us/item/6395/"
+ },
+ "Elixir of Youth": {
+  "icon": "00800068.webp",
+  "url": "https://bdocodex.com/us/item/800068/"
+ },
+ "Eltro Sea Crystal": {
+  "icon": "00756425_3.webp",
+  "url": "https://bdocodex.com/us/item/756750/"
+ },
+ "Enamored": {
+  "icon": "employee_59056.webp",
+  "url": "https://bdocodex.com/us/sailor/59056/"
+ },
+ "Enhanced Flax Fabric": {
+  "icon": "00005860.webp",
+  "url": "https://bdocodex.com/us/item/5860/"
+ },
+ "Enhanced Island Tree Coated Plywood": {
+  "icon": "00005814.webp",
+  "url": "https://bdocodex.com/us/item/5814/"
+ },
+ "Epheria Caravel": {
+  "icon": "ship_12.webp",
+  "url": "https://bdocodex.com/us/mount/31048/"
+ },
+ "Epheria Caravel: Black Dragon Figurehead": {
+  "icon": "00049655.webp",
+  "url": "https://bdocodex.com/us/item/49655/"
+ },
+ "Epheria Caravel: Brass Figurehead": {
+  "icon": "00049653.webp",
+  "url": "https://bdocodex.com/us/item/49653/"
+ },
+ "Epheria Caravel: Enhanced Plating": {
+  "icon": "00049654.webp",
+  "url": "https://bdocodex.com/us/item/49654/"
+ },
+ "Epheria Caravel: Mayna Cannon": {
+  "icon": "00049657.webp",
+  "url": "https://bdocodex.com/us/item/49657/"
+ },
+ "Epheria Caravel: Stratus Wind Sail": {
+  "icon": "00049658.webp",
+  "url": "https://bdocodex.com/us/item/49658/"
+ },
+ "Epheria Caravel: Upgraded Plating": {
+  "icon": "00049656.webp",
+  "url": "https://bdocodex.com/us/item/49656/"
+ },
+ "Epheria Caravel: Verisha Cannon": {
+  "icon": "00049651.webp",
+  "url": "https://bdocodex.com/us/item/49651/"
+ },
+ "Epheria Caravel: White Wind Sail": {
+  "icon": "00049652.webp",
+  "url": "https://bdocodex.com/us/item/49652/"
+ },
+ "Epheria Carrack": {
+  "icon": "ship_10.webp",
+  "url": "https://bdocodex.com/us/mount/31045/"
+ },
+ "Epheria Carrack Parts Upgrade Permit: Advance": {
+  "icon": "00059316.webp",
+  "url": "https://bdocodex.com/us/item/59316/"
+ },
+ "Epheria Carrack Parts Upgrade Permit: Balance": {
+  "icon": "00059317.webp",
+  "url": "https://bdocodex.com/us/item/59317/"
+ },
+ "Epheria Carrack Parts Upgrade Permit: Valor": {
+  "icon": "00059319.webp",
+  "url": "https://bdocodex.com/us/item/59319/"
+ },
+ "Epheria Carrack Parts Upgrade Permit: Volante": {
+  "icon": "00059318.webp",
+  "url": "https://bdocodex.com/us/item/59318/"
+ },
+ "Epheria Carrack: Advance (Chiro's Black Plating)": {
+  "icon": "00049749.webp",
+  "url": "https://bdocodex.com/us/item/49749/"
+ },
+ "Epheria Carrack: Advance (Chiro's Cannon)": {
+  "icon": "00049746.webp",
+  "url": "https://bdocodex.com/us/item/49746/"
+ },
+ "Epheria Carrack: Advance (Chiro's Figurehead)": {
+  "icon": "00049748.webp",
+  "url": "https://bdocodex.com/us/item/49748/"
+ },
+ "Epheria Carrack: Advance (Chiro's Sail)": {
+  "icon": "00049747.webp",
+  "url": "https://bdocodex.com/us/item/49747/"
+ },
+ "Epheria Carrack: Advance (Falasi's Cannon)": {
+  "icon": "00049778.webp",
+  "url": "https://bdocodex.com/us/item/49778/"
+ },
+ "Epheria Carrack: Advance (Falasi's Figurehead)": {
+  "icon": "00049780.webp",
+  "url": "https://bdocodex.com/us/item/49780/"
+ },
+ "Epheria Carrack: Advance (Falasi's Plating)": {
+  "icon": "00049781.webp",
+  "url": "https://bdocodex.com/us/item/49781/"
+ },
+ "Epheria Carrack: Advance (Falasi's Sail)": {
+  "icon": "00049779.webp",
+  "url": "https://bdocodex.com/us/item/49779/"
+ },
+ "Epheria Carrack: Balance (Chiro's Black Plating)": {
+  "icon": "00049765.webp",
+  "url": "https://bdocodex.com/us/item/49765/"
+ },
+ "Epheria Carrack: Balance (Chiro's Cannon)": {
+  "icon": "00049762.webp",
+  "url": "https://bdocodex.com/us/item/49762/"
+ },
+ "Epheria Carrack: Balance (Chiro's Figurehead)": {
+  "icon": "00049764.webp",
+  "url": "https://bdocodex.com/us/item/49764/"
+ },
+ "Epheria Carrack: Balance (Chiro's Sail)": {
+  "icon": "00049763.webp",
+  "url": "https://bdocodex.com/us/item/49763/"
+ },
+ "Epheria Carrack: Balance (Falasi's Cannon)": {
+  "icon": "00049782.webp",
+  "url": "https://bdocodex.com/us/item/49782/"
+ },
+ "Epheria Carrack: Balance (Falasi's Figurehead)": {
+  "icon": "00049784.webp",
+  "url": "https://bdocodex.com/us/item/49784/"
+ },
+ "Epheria Carrack: Balance (Falasi's Plating)": {
+  "icon": "00049785.webp",
+  "url": "https://bdocodex.com/us/item/49785/"
+ },
+ "Epheria Carrack: Balance (Falasi's Sail)": {
+  "icon": "00049783.webp",
+  "url": "https://bdocodex.com/us/item/49783/"
+ },
+ "Epheria Carrack: Toro Cannon": {
+  "icon": "00049742.webp",
+  "url": "https://bdocodex.com/us/item/49742/"
+ },
+ "Epheria Carrack: Toro Figurehead": {
+  "icon": "00049744.webp",
+  "url": "https://bdocodex.com/us/item/49744/"
+ },
+ "Epheria Carrack: Toro Plating": {
+  "icon": "00049745.webp",
+  "url": "https://bdocodex.com/us/item/49745/"
+ },
+ "Epheria Carrack: Toro Sail": {
+  "icon": "00049743.webp",
+  "url": "https://bdocodex.com/us/item/49743/"
+ },
+ "Epheria Carrack: Valor (Chiro's Black Plating)": {
+  "icon": "00049773.webp",
+  "url": "https://bdocodex.com/us/item/49773/"
+ },
+ "Epheria Carrack: Valor (Chiro's Cannon)": {
+  "icon": "00049770.webp",
+  "url": "https://bdocodex.com/us/item/49770/"
+ },
+ "Epheria Carrack: Valor (Chiro's Figurehead)": {
+  "icon": "00049772.webp",
+  "url": "https://bdocodex.com/us/item/49772/"
+ },
+ "Epheria Carrack: Valor (Chiro's Sail)": {
+  "icon": "00049771.webp",
+  "url": "https://bdocodex.com/us/item/49771/"
+ },
+ "Epheria Carrack: Valor (Falasi's Cannon)": {
+  "icon": "00049790.webp",
+  "url": "https://bdocodex.com/us/item/49790/"
+ },
+ "Epheria Carrack: Valor (Falasi's Figurehead)": {
+  "icon": "00049792.webp",
+  "url": "https://bdocodex.com/us/item/49792/"
+ },
+ "Epheria Carrack: Valor (Falasi's Plating)": {
+  "icon": "00049793.webp",
+  "url": "https://bdocodex.com/us/item/49793/"
+ },
+ "Epheria Carrack: Valor (Falasi's Sail)": {
+  "icon": "00049791.webp",
+  "url": "https://bdocodex.com/us/item/49791/"
+ },
+ "Epheria Carrack: Volante (Chiro's Black Plating)": {
+  "icon": "00049769.webp",
+  "url": "https://bdocodex.com/us/item/49769/"
+ },
+ "Epheria Carrack: Volante (Chiro's Cannon)": {
+  "icon": "00049766.webp",
+  "url": "https://bdocodex.com/us/item/49766/"
+ },
+ "Epheria Carrack: Volante (Chiro's Figurehead)": {
+  "icon": "00049768.webp",
+  "url": "https://bdocodex.com/us/item/49768/"
+ },
+ "Epheria Carrack: Volante (Chiro's Sail)": {
+  "icon": "00049767.webp",
+  "url": "https://bdocodex.com/us/item/49767/"
+ },
+ "Epheria Carrack: Volante (Falasi's Cannon)": {
+  "icon": "00049786.webp",
+  "url": "https://bdocodex.com/us/item/49786/"
+ },
+ "Epheria Carrack: Volante (Falasi's Figurehead)": {
+  "icon": "00049788.webp",
+  "url": "https://bdocodex.com/us/item/49788/"
+ },
+ "Epheria Carrack: Volante (Falasi's Plating)": {
+  "icon": "00049789.webp",
+  "url": "https://bdocodex.com/us/item/49789/"
+ },
+ "Epheria Carrack: Volante (Falasi's Sail)": {
+  "icon": "00049787.webp",
+  "url": "https://bdocodex.com/us/item/49787/"
+ },
+ "Epheria Cog": {
+  "icon": "00049019.webp",
+  "url": "https://bdocodex.com/us/mount/31027/"
+ },
+ "Epheria Frigate": {
+  "icon": "ship_04.webp",
+  "url": "https://bdocodex.com/us/mount/31003/"
+ },
+ "Epheria Galleass": {
+  "icon": "ship_13.webp",
+  "url": "https://bdocodex.com/us/mount/31049/"
+ },
+ "Epheria Galleass: Black Dragon Figurehead": {
+  "icon": "00049667.webp",
+  "url": "https://bdocodex.com/us/item/49667/"
+ },
+ "Epheria Galleass: Enhanced Plating": {
+  "icon": "00049666.webp",
+  "url": "https://bdocodex.com/us/item/49666/"
+ },
+ "Epheria Galleass: Mayna Cannon": {
+  "icon": "00049669.webp",
+  "url": "https://bdocodex.com/us/item/49669/"
+ },
+ "Epheria Galleass: Stratus Wind Sail": {
+  "icon": "00049670.webp",
+  "url": "https://bdocodex.com/us/item/49670/"
+ },
+ "Epheria Galleass: Upgraded Plating": {
+  "icon": "00049668.webp",
+  "url": "https://bdocodex.com/us/item/49668/"
+ },
+ "Epheria Galleass: Verisha Cannon": {
+  "icon": "00049663.webp",
+  "url": "https://bdocodex.com/us/item/49663/"
+ },
+ "Epheria Galleass: White Horn Figurehead": {
+  "icon": "00049665.webp",
+  "url": "https://bdocodex.com/us/item/49665/"
+ },
+ "Epheria Galleass: White Wind Sail": {
+  "icon": "00049664.webp",
+  "url": "https://bdocodex.com/us/item/49664/"
+ },
+ "Epheria Sailboat": {
+  "icon": "ship_03.webp",
+  "url": "https://bdocodex.com/us/mount/31001/"
+ },
+ "Epheria: Old Cannon": {
+  "icon": "00049707.webp",
+  "url": "https://bdocodex.com/us/item/49756/"
+ },
+ "Epheria: Old Figurehead": {
+  "icon": "00049705.webp",
+  "url": "https://bdocodex.com/us/item/49754/"
+ },
+ "Epheria: Old Plating": {
+  "icon": "00049706.webp",
+  "url": "https://bdocodex.com/us/item/49755/"
+ },
+ "Epheria: Old Wind Sail": {
+  "icon": "00049708.webp",
+  "url": "https://bdocodex.com/us/item/49757/"
+ },
+ "Essence of Liquor": {
+  "icon": "00009057.webp",
+  "url": "https://bdocodex.com/us/item/9057/"
+ },
+ "Experienced": {
+  "icon": "employee_59066.webp",
+  "url": "https://bdocodex.com/us/sailor/59066/"
+ },
+ "Faded Gold Dragon Figurine": {
+  "icon": "00800014.webp",
+  "url": "https://bdocodex.com/us/item/800063/"
+ },
+ "Falasi": {
+  "icon": "ic_00466.webp",
+  "url": "https://bdocodex.com/us/npc/42307/"
+ },
+ "Falasi's Epheria Carrack Parts Upgrade Permit: Advance": {
+  "icon": "00059464.webp",
+  "url": "https://bdocodex.com/us/item/59464/"
+ },
+ "Falasi's Epheria Carrack Parts Upgrade Permit: Balance": {
+  "icon": "00059465.webp",
+  "url": "https://bdocodex.com/us/item/59465/"
+ },
+ "Falasi's Epheria Carrack Parts Upgrade Permit: Valor": {
+  "icon": "00059467.webp",
+  "url": "https://bdocodex.com/us/item/59467/"
+ },
+ "Falasi's Epheria Carrack Parts Upgrade Permit: Volante": {
+  "icon": "00059466.webp",
+  "url": "https://bdocodex.com/us/item/59466/"
+ },
+ "Fancy Feather": {
+  "icon": "00006158.webp",
+  "url": "https://bdocodex.com/us/item/6158/"
+ },
+ "Fig": {
+  "icon": "00007018.webp",
+  "url": "https://bdocodex.com/us/item/7018/"
+ },
+ "Filtered Drinking Water": {
+  "icon": "00800031.webp",
+  "url": "https://bdocodex.com/us/item/800019/"
+ },
+ "Fine Fancy Feather": {
+  "icon": "00006166.webp",
+  "url": "https://bdocodex.com/us/item/6166/"
+ },
+ "Fine Hard Hide": {
+  "icon": "00006161.webp",
+  "url": "https://bdocodex.com/us/item/6161/"
+ },
+ "Fine Lightweight Plume": {
+  "icon": "00006165.webp",
+  "url": "https://bdocodex.com/us/item/6165/"
+ },
+ "Fine Soft Hide": {
+  "icon": "00006159.webp",
+  "url": "https://bdocodex.com/us/item/6159/"
+ },
+ "Fine Thick Fur": {
+  "icon": "00006163.webp",
+  "url": "https://bdocodex.com/us/item/6163/"
+ },
+ "Fine Tough Hide": {
+  "icon": "00006160.webp",
+  "url": "https://bdocodex.com/us/item/6160/"
+ },
+ "Finely Polished Pine Plywood": {
+  "icon": "00820893.webp",
+  "url": "https://bdocodex.com/us/item/820893/"
+ },
+ "Fir Plywood": {
+  "icon": "00004664.webp",
+  "url": "https://bdocodex.com/us/item/4664/"
+ },
+ "Fire Horn": {
+  "icon": "00006185.webp",
+  "url": "https://bdocodex.com/us/item/6185/"
+ },
+ "Flax": {
+  "icon": "00005802.webp",
+  "url": "https://bdocodex.com/us/item/5802/"
+ },
+ "Flax Fabric": {
+  "icon": "00005856.webp",
+  "url": "https://bdocodex.com/us/item/5856/"
+ },
+ "Flax Thread": {
+  "icon": "00005852.webp",
+  "url": "https://bdocodex.com/us/item/5852/"
+ },
+ "Fleece": {
+  "icon": "00005804.webp",
+  "url": "https://bdocodex.com/us/item/5804/"
+ },
+ "Fortune Teller Mushroom": {
+  "icon": "00005407.webp",
+  "url": "https://bdocodex.com/us/item/5407/"
+ },
+ "Fountain of Divine Melodies": {
+  "icon": "00005153.webp",
+  "url": "https://bdocodex.com/us/item/5153/"
+ },
+ "Freekeh": {
+  "icon": "00007021.webp",
+  "url": "https://bdocodex.com/us/item/7021/"
+ },
+ "Gilded Coral": {
+  "icon": "00045154.webp",
+  "url": "https://bdocodex.com/us/item/45154/"
+ },
+ "Glue With Traces of Deep Waves": {
+  "icon": "00820894.webp",
+  "url": "https://bdocodex.com/us/item/820894/"
+ },
+ "Gold Bar 1,000G": {
+  "icon": "00000005_special.webp",
+  "url": "https://bdocodex.com/us/item/5/"
+ },
+ "Gold Bar 100G": {
+  "icon": "00000004_special.webp",
+  "url": "https://bdocodex.com/us/item/4/"
+ },
+ "Golden Fish Scale": {
+  "icon": "00800039.webp",
+  "url": "https://bdocodex.com/us/item/800065/"
+ },
+ "Golden Galley Figurine": {
+  "icon": "00045151.webp",
+  "url": "https://bdocodex.com/us/item/45151/"
+ },
+ "Golden Turtle Shell": {
+  "icon": "00045155.webp",
+  "url": "https://bdocodex.com/us/item/45155/"
+ },
+ "Goldmont Large Battleship": {
+  "icon": "ic_04972.webp",
+  "url": "https://bdocodex.com/us/npc/21487/"
+ },
+ "Goldmont Medium Battleship": {
+  "icon": "ic_04973.webp",
+  "url": "https://bdocodex.com/us/npc/61166/"
+ },
+ "Goldmont Small Battleship": {
+  "icon": "ic_04972.webp",
+  "url": "https://bdocodex.com/us/npc/21485/"
+ },
+ "Gooey Monster Blood": {
+  "icon": "00800048.webp",
+  "url": "https://bdocodex.com/us/item/800036/"
+ },
+ "Graphite Ingot for Upgrade": {
+  "icon": "00045508.webp",
+  "url": "https://bdocodex.com/us/item/45508/"
+ },
+ "Great Ocean Dark Iron": {
+  "icon": "00005832.webp",
+  "url": "https://bdocodex.com/us/item/5832/"
+ },
+ "Green Salt Lump": {
+  "icon": "00800061.webp",
+  "url": "https://bdocodex.com/us/item/800049/"
+ },
+ "Grilled Bird Meat": {
+  "icon": "00009492.webp",
+  "url": "https://bdocodex.com/us/item/9492/"
+ },
+ "Ground Bird Meat": {
+  "icon": "00007958.webp",
+  "url": "https://bdocodex.com/us/item/7958/"
+ },
+ "Hard Hide": {
+  "icon": "00006153.webp",
+  "url": "https://bdocodex.com/us/item/6153/"
+ },
+ "Hard Pillar": {
+  "icon": "00004687.webp",
+  "url": "https://bdocodex.com/us/item/4687/"
+ },
+ "Headless Dragon Figurine": {
+  "icon": "00800041.webp",
+  "url": "https://bdocodex.com/us/item/800054/"
+ },
+ "Hekaru": {
+  "icon": "ic_04967.webp",
+  "url": "https://bdocodex.com/us/npc/27579/"
+ },
+ "Hero's Small Lamp": {
+  "icon": "00005161.webp",
+  "url": "https://bdocodex.com/us/item/5161/"
+ },
+ "Hollow Maretta": {
+  "icon": "ic_05249.webp",
+  "url": "https://bdocodex.com/us/npc/27575/"
+ },
+ "Honest": {
+  "icon": "employee_59063.webp",
+  "url": "https://bdocodex.com/us/sailor/59063/"
+ },
+ "Improved Epheria Frigate": {
+  "icon": "ship_13.webp",
+  "url": "https://bdocodex.com/us/mount/31059/"
+ },
+ "Improved Epheria Sailboat": {
+  "icon": "ship_12.webp",
+  "url": "https://bdocodex.com/us/mount/31058/"
+ },
+ "Innocent": {
+  "icon": "employee_59055.webp",
+  "url": "https://bdocodex.com/us/sailor/59055/"
+ },
+ "Iron": {
+  "icon": "00004001.webp",
+  "url": "https://bdocodex.com/us/item/4001/"
+ },
+ "Iron Ingot": {
+  "icon": "00004052.webp",
+  "url": "https://bdocodex.com/us/item/4052/"
+ },
+ "Island Tree Coated Plywood": {
+  "icon": "00005805.webp",
+  "url": "https://bdocodex.com/us/item/5805/"
+ },
+ "Islanders' Lunchbox": {
+  "icon": "00800060.webp",
+  "url": "https://bdocodex.com/us/item/800015/"
+ },
+ "Jade Coral Ingot": {
+  "icon": "00004269.webp",
+  "url": "https://bdocodex.com/us/item/4269/"
+ },
+ "Khan's Concentrated Magic": {
+  "icon": "00045505.webp",
+  "url": "https://bdocodex.com/us/item/45505/"
+ },
+ "Khan's Scale": {
+  "icon": "00005826.webp",
+  "url": "https://bdocodex.com/us/item/5826/"
+ },
+ "Khan's Tendon": {
+  "icon": "00005808.webp",
+  "url": "https://bdocodex.com/us/item/5808/"
+ },
+ "Knitting Yarn": {
+  "icon": "00005854.webp",
+  "url": "https://bdocodex.com/us/item/5854/"
+ },
+ "Lead Ingot": {
+  "icon": "00004055.webp",
+  "url": "https://bdocodex.com/us/item/4055/"
+ },
+ "Legendary Beast's Blood": {
+  "icon": "00006351.webp",
+  "url": "https://bdocodex.com/us/item/6351/"
+ },
+ "Lightweight Plume": {
+  "icon": "00006157.webp",
+  "url": "https://bdocodex.com/us/item/6157/"
+ },
+ "Llama Hide": {
+  "icon": "00006029.webp",
+  "url": "https://bdocodex.com/us/item/6029/"
+ },
+ "Log": {
+  "icon": "00004605.webp",
+  "url": "https://bdocodex.com/us/item/4605/"
+ },
+ "Loopy Tree Plywood": {
+  "icon": "00004698.webp",
+  "url": "https://bdocodex.com/us/item/4698/"
+ },
+ "Lopters Fishnet": {
+  "icon": "00800045.webp",
+  "url": "https://bdocodex.com/us/item/800040/"
+ },
+ "Lost Trade Box": {
+  "icon": "00049644.webp",
+  "url": "https://bdocodex.com/us/item/752562/"
+ },
+ "Luminous Cobalt Ingot": {
+  "icon": "00005830.webp",
+  "url": "https://bdocodex.com/us/item/5830/"
+ },
+ "Luxury Patterned Fabric": {
+  "icon": "00800055.webp",
+  "url": "https://bdocodex.com/us/item/800069/"
+ },
+ "Lyngbakr's Bone": {
+  "icon": "000821362.webp",
+  "url": "https://bdocodex.com/us/item/821362/"
+ },
+ "Lyngbakr's Fluid": {
+  "icon": "000821364.webp",
+  "url": "https://bdocodex.com/us/item/821364/"
+ },
+ "Lyngbakr's Horn": {
+  "icon": "000821368.webp",
+  "url": "https://bdocodex.com/us/item/821368/"
+ },
+ "Lyngbakr's Scale": {
+  "icon": "000821363.webp",
+  "url": "https://bdocodex.com/us/item/821363/"
+ },
+ "Mandragora Essence": {
+  "icon": "00006397.webp",
+  "url": "https://bdocodex.com/us/item/6397/"
+ },
+ "Maple Plywood": {
+  "icon": "00004655.webp",
+  "url": "https://bdocodex.com/us/item/4655/"
+ },
+ "Margoria Sea Crystal": {
+  "icon": "00756428_3.webp",
+  "url": "https://bdocodex.com/us/item/756780/"
+ },
+ "Marine Knights' Helm": {
+  "icon": "00800043.webp",
+  "url": "https://bdocodex.com/us/item/800043/"
+ },
+ "Marine Knights' Spear": {
+  "icon": "00800065.webp",
+  "url": "https://bdocodex.com/us/item/800047/"
+ },
+ "Mediah Rowboat": {
+  "icon": "00049004.webp",
+  "url": "https://bdocodex.com/us/design/8803/"
+ },
+ "Monster Tentacle": {
+  "icon": "00800035.webp",
+  "url": "https://bdocodex.com/us/item/800026/"
+ },
+ "Moon Scale Plywood": {
+  "icon": "00005827.webp",
+  "url": "https://bdocodex.com/us/item/5827/"
+ },
+ "Moon Vein Flax Fabric": {
+  "icon": "00005809.webp",
+  "url": "https://bdocodex.com/us/item/5809/"
+ },
+ "Moss Tree Plywood": {
+  "icon": "00004695.webp",
+  "url": "https://bdocodex.com/us/item/4695/"
+ },
+ "Mysterious Powder": {
+  "icon": "00820138.webp",
+  "url": "https://bdocodex.com/us/item/820138/"
+ },
+ "Mysterious Rock": {
+  "icon": "00800009.webp",
+  "url": "https://bdocodex.com/us/item/800070/"
+ },
+ "Narvo Sea Cucumber": {
+  "icon": "00800023.webp",
+  "url": "https://bdocodex.com/us/item/800023/"
+ },
+ "Nineshark": {
+  "icon": "ic_04969.webp",
+  "url": "https://bdocodex.com/us/npc/27764/"
+ },
+ "Noc Ingot": {
+  "icon": "00004086.webp",
+  "url": "https://bdocodex.com/us/item/4086/"
+ },
+ "Nutmeg": {
+  "icon": "00007020.webp",
+  "url": "https://bdocodex.com/us/item/7020/"
+ },
+ "Obsidian Crystal Bracelet": {
+  "icon": "00045153.webp",
+  "url": "https://bdocodex.com/us/item/45153/"
+ },
+ "Ocean Essence": {
+  "icon": "00890075.webp",
+  "url": "https://bdocodex.com/us/item/821467/"
+ },
+ "Ocean Stalker": {
+  "icon": "ic_04970.webp",
+  "url": "https://bdocodex.com/us/npc/21421/"
+ },
+ "Oceanteared Ebenruth's Nol": {
+  "icon": "00059440.webp",
+  "url": "https://bdocodex.com/us/item/59446/"
+ },
+ "Octagonal Box": {
+  "icon": "00800057.webp",
+  "url": "https://bdocodex.com/us/item/800057/"
+ },
+ "Old Chest with Gold Coins": {
+  "icon": "00800018.webp",
+  "url": "https://bdocodex.com/us/item/800051/"
+ },
+ "Old Hourglass": {
+  "icon": "00800004.webp",
+  "url": "https://bdocodex.com/us/item/800029/"
+ },
+ "Old Tree Bark": {
+  "icon": "00005008.webp",
+  "url": "https://bdocodex.com/us/item/5008/"
+ },
+ "Opulent Marble": {
+  "icon": "00800040.webp",
+  "url": "https://bdocodex.com/us/item/800018/"
+ },
+ "Opulent Thread Spool": {
+  "icon": "00800063.webp",
+  "url": "https://bdocodex.com/us/item/800045/"
+ },
+ "Oquilla Aquamarine Fresh Water": {
+  "icon": "00008103.webp",
+  "url": "https://bdocodex.com/us/item/8103/"
+ },
+ "Oquilla Coin": {
+  "icon": "00042619.webp",
+  "url": "https://bdocodex.com/us/item/43863/"
+ },
+ "Oquilla Crimson Fresh Water": {
+  "icon": "00821170.webp",
+  "url": "https://bdocodex.com/us/item/821170/"
+ },
+ "Oquilla Emerald Fresh Water": {
+  "icon": "00008102.webp",
+  "url": "https://bdocodex.com/us/item/8102/"
+ },
+ "Oquilla Golden Fresh Water": {
+  "icon": "00008104.webp",
+  "url": "https://bdocodex.com/us/item/8104/"
+ },
+ "Oquilla's Flower": {
+  "icon": "00008010.webp",
+  "url": "https://bdocodex.com/us/item/8010/"
+ },
+ "Oquilla's Tear": {
+  "icon": "00008026.webp",
+  "url": "https://bdocodex.com/us/item/8026/"
+ },
+ "Palm Plywood": {
+  "icon": "00004671.webp",
+  "url": "https://bdocodex.com/us/item/4671/"
+ },
+ "Panacea": {
+  "icon": "00800025.webp",
+  "url": "https://bdocodex.com/us/item/800053/"
+ },
+ "Panokseon": {
+  "icon": "ship_18.webp",
+  "url": "https://bdocodex.com/us/mount/31025/"
+ },
+ "Panokseon Enhancement Parts Upgrade Permit": {
+  "icon": "00059414.webp",
+  "url": "https://bdocodex.com/us/item/59414/"
+ },
+ "Panokseon: Byukgye's Enhanced Cannon": {
+  "icon": "00059406.webp",
+  "url": "https://bdocodex.com/us/item/59406/"
+ },
+ "Panokseon: Byukgye's Enhanced Figurehead": {
+  "icon": "00059408.webp",
+  "url": "https://bdocodex.com/us/item/59408/"
+ },
+ "Panokseon: Byukgye's Enhanced Plating": {
+  "icon": "00059409.webp",
+  "url": "https://bdocodex.com/us/item/59409/"
+ },
+ "Panokseon: Byukgye's Enhanced Sail": {
+  "icon": "00059407.webp",
+  "url": "https://bdocodex.com/us/item/59407/"
+ },
+ "Panokseon: Cheongun's Enhanced Cannon": {
+  "icon": "00059469.webp",
+  "url": "https://bdocodex.com/us/item/59469/"
+ },
+ "Panokseon: Cheongun's Enhanced Figurehead": {
+  "icon": "00059471.webp",
+  "url": "https://bdocodex.com/us/item/59471/"
+ },
+ "Panokseon: Cheongun's Enhanced Plating": {
+  "icon": "00059472.webp",
+  "url": "https://bdocodex.com/us/item/59472/"
+ },
+ "Panokseon: Cheongun's Enhanced Sail": {
+  "icon": "00059470.webp",
+  "url": "https://bdocodex.com/us/item/59470/"
+ },
+ "Panokseon: Haemo's Cannon": {
+  "icon": "00059402.webp",
+  "url": "https://bdocodex.com/us/item/59402/"
+ },
+ "Panokseon: Haemo's Figurehead": {
+  "icon": "00059404.webp",
+  "url": "https://bdocodex.com/us/item/59404/"
+ },
+ "Panokseon: Haemo's Plating": {
+  "icon": "00059405.webp",
+  "url": "https://bdocodex.com/us/item/59405/"
+ },
+ "Panokseon: Haemo's Sail": {
+  "icon": "00059403.webp",
+  "url": "https://bdocodex.com/us/item/59403/"
+ },
+ "Part for Explorer's Compass": {
+  "icon": "00044286.webp",
+  "url": "https://bdocodex.com/us/item/44286/"
+ },
+ "Pig Hide": {
+  "icon": "00006005.webp",
+  "url": "https://bdocodex.com/us/item/6005/"
+ },
+ "Pine Coated Plywood": {
+  "icon": "00004691.webp",
+  "url": "https://bdocodex.com/us/item/4691/"
+ },
+ "Pine Plywood": {
+  "icon": "00004658.webp",
+  "url": "https://bdocodex.com/us/item/4658/"
+ },
+ "Pine Timber": {
+  "icon": "00004603.webp",
+  "url": "https://bdocodex.com/us/item/4603/"
+ },
+ "Pirate Gold Coin": {
+  "icon": "00800027.webp",
+  "url": "https://bdocodex.com/us/item/800027/"
+ },
+ "Pirate Ship Mast": {
+  "icon": "00800017.webp",
+  "url": "https://bdocodex.com/us/item/800017/"
+ },
+ "Pirate's Key": {
+  "icon": "00800038.webp",
+  "url": "https://bdocodex.com/us/item/800056/"
+ },
+ "Pirates' Supply Box": {
+  "icon": "00800053.webp",
+  "url": "https://bdocodex.com/us/item/800031/"
+ },
+ "Pistachio": {
+  "icon": "00007017.webp",
+  "url": "https://bdocodex.com/us/item/7017/"
+ },
+ "Plywood Hardener": {
+  "icon": "00004684.webp",
+  "url": "https://bdocodex.com/us/item/4684/"
+ },
+ "Portrait of the Ancient": {
+  "icon": "00800067.webp",
+  "url": "https://bdocodex.com/us/item/800067/"
+ },
+ "Potato Dough": {
+  "icon": "00007203.webp",
+  "url": "https://bdocodex.com/us/item/7203/"
+ },
+ "Powder of Darkness": {
+  "icon": "00004801.webp",
+  "url": "https://bdocodex.com/us/item/4801/"
+ },
+ "Powder of Earth": {
+  "icon": "00004804.webp",
+  "url": "https://bdocodex.com/us/item/4804/"
+ },
+ "Powder of Flame": {
+  "icon": "00004802.webp",
+  "url": "https://bdocodex.com/us/item/4802/"
+ },
+ "Powder of Rifts": {
+  "icon": "00004803.webp",
+  "url": "https://bdocodex.com/us/item/4803/"
+ },
+ "Powder of Time": {
+  "icon": "00004805.webp",
+  "url": "https://bdocodex.com/us/item/4805/"
+ },
+ "Powerful": {
+  "icon": "employee_59069.webp",
+  "url": "https://bdocodex.com/us/sailor/59069/"
+ },
+ "Processed Coal": {
+  "icon": "00004070.webp",
+  "url": "https://bdocodex.com/us/item/4070/"
+ },
+ "Proix": {
+  "icon": "ic_01463.webp",
+  "url": "https://bdocodex.com/us/npc/62169/"
+ },
+ "Pumpkin": {
+  "icon": "00007306.webp",
+  "url": "https://bdocodex.com/us/item/7306/"
+ },
+ "Pure Pearl Crystal": {
+  "icon": "00005820.webp",
+  "url": "https://bdocodex.com/us/item/5820/"
+ },
+ "Pure Powder Reagent": {
+  "icon": "00005302.webp",
+  "url": "https://bdocodex.com/us/item/5302/"
+ },
+ "Quick": {
+  "icon": "employee_59057.webp",
+  "url": "https://bdocodex.com/us/sailor/59057/"
+ },
+ "Quick-Witted": {
+  "icon": "employee_59072.webp",
+  "url": "https://bdocodex.com/us/sailor/59072/"
+ },
+ "Raft": {
+  "icon": "00049005.webp",
+  "url": "https://bdocodex.com/us/mount/9051/"
+ },
+ "Raging Wave Plywood": {
+  "icon": "000821366.webp",
+  "url": "https://bdocodex.com/us/item/821366/"
+ },
+ "Raisin Bread": {
+  "icon": "00006398.webp",
+  "url": "https://bdocodex.com/us/item/6398/"
+ },
+ "Rare Herb Pile": {
+  "icon": "00800002.webp",
+  "url": "https://bdocodex.com/us/item/800039/"
+ },
+ "Ravinia's Moss Remover": {
+  "icon": "00059329.webp",
+  "url": "https://bdocodex.com/us/item/59329/"
+ },
+ "Ravinia's Wiggly-Waggly Letter": {
+  "icon": "rabinia.webp",
+  "url": "https://bdocodex.com/us/quest/3709/3/"
+ },
+ "Realistic": {
+  "icon": "employee_59060.webp",
+  "url": "https://bdocodex.com/us/sailor/59060/"
+ },
+ "Red Sea Monster Meat": {
+  "icon": "00821468.webp",
+  "url": "https://bdocodex.com/us/item/821468/"
+ },
+ "Red Tree Lump": {
+  "icon": "00005011.webp",
+  "url": "https://bdocodex.com/us/item/5011/"
+ },
+ "Resplendent Jade": {
+  "icon": "00004494.webp",
+  "url": "https://bdocodex.com/us/item/4494/"
+ },
+ "Resplendent Obsidian": {
+  "icon": "00004273.webp",
+  "url": "https://bdocodex.com/us/item/4273/"
+ },
+ "Rhino Hide": {
+  "icon": "00006004.webp",
+  "url": "https://bdocodex.com/us/item/6004/"
+ },
+ "Rhino Meat": {
+  "icon": "00007901.webp",
+  "url": "https://bdocodex.com/us/item/7904/"
+ },
+ "Rice Dough": {
+  "icon": "00820119.webp",
+  "url": "https://bdocodex.com/us/item/820119/"
+ },
+ "Riddle-Me Barter Support Box": {
+  "icon": "00015305.webp",
+  "url": "https://bdocodex.com/us/item/65179/"
+ },
+ "Rock Salt Ingot": {
+  "icon": "00005806.webp",
+  "url": "https://bdocodex.com/us/item/5806/"
+ },
+ "Rough Blue Crystal": {
+  "icon": "00004411.webp",
+  "url": "https://bdocodex.com/us/item/4411/"
+ },
+ "Rough Green Crystal": {
+  "icon": "00004409.webp",
+  "url": "https://bdocodex.com/us/item/4409/"
+ },
+ "Rough Jade": {
+  "icon": "00004414.webp",
+  "url": "https://bdocodex.com/us/item/4414/"
+ },
+ "Rough Obsidian Ore": {
+  "icon": "00004207.webp",
+  "url": "https://bdocodex.com/us/item/4207/"
+ },
+ "Rough Translucent Crystal": {
+  "icon": "00004406.webp",
+  "url": "https://bdocodex.com/us/item/4406/"
+ },
+ "Rough Violet Crystal": {
+  "icon": "00004412.webp",
+  "url": "https://bdocodex.com/us/item/4412/"
+ },
+ "Round Knife": {
+  "icon": "00800050.webp",
+  "url": "https://bdocodex.com/us/item/800035/"
+ },
+ "Rowboat": {
+  "icon": "00049001.webp",
+  "url": "https://bdocodex.com/us/mount/9032/"
+ },
+ "Ruddy Manganese Nodule": {
+  "icon": "00005807.webp",
+  "url": "https://bdocodex.com/us/item/5807/"
+ },
+ "Rusalka Sea Crystal": {
+  "icon": "00756821.webp",
+  "url": "https://bdocodex.com/us/item/756827/"
+ },
+ "Sailor Contract Certificate": {
+  "icon": "00752030.webp",
+  "url": "https://bdocodex.com/us/item/752030/"
+ },
+ "Saltwater Crocodile's Scale": {
+  "icon": "00008025.webp",
+  "url": "https://bdocodex.com/us/item/8025/"
+ },
+ "Sangpyeong Coin": {
+  "icon": "00066771.webp",
+  "url": "https://bdocodex.com/us/item/66771/"
+ },
+ "Scout Binoculars": {
+  "icon": "00800032.webp",
+  "url": "https://bdocodex.com/us/item/800032/"
+ },
+ "Sea Monster's Ooze": {
+  "icon": "00045507.webp",
+  "url": "https://bdocodex.com/us/item/45507/"
+ },
+ "Sea Survival Kit": {
+  "icon": "00800059.webp",
+  "url": "https://bdocodex.com/us/item/800025/"
+ },
+ "Sealed Compass (7 Days)": {
+  "icon": "00018858.webp",
+  "url": "https://bdocodex.com/us/item/751502/"
+ },
+ "Seashell Deco": {
+  "icon": "00800013.webp",
+  "url": "https://bdocodex.com/us/item/800052/"
+ },
+ "Seaweed Stalk": {
+  "icon": "00005829.webp",
+  "url": "https://bdocodex.com/us/item/5829/"
+ },
+ "Serni Sea Crystal": {
+  "icon": "00756426.webp",
+  "url": "https://bdocodex.com/us/item/756751/"
+ },
+ "Shining Powder": {
+  "icon": "00009733.webp",
+  "url": "https://bdocodex.com/us/item/9733/"
+ },
+ "Ship Building Permit: Epheria Cog": {
+  "icon": "00009775.webp",
+  "url": "https://bdocodex.com/us/item/9775/"
+ },
+ "Ship Upgrade Permit: Epheria Caravel": {
+  "icon": "00005796.webp",
+  "url": "https://bdocodex.com/us/item/5796/"
+ },
+ "Ship Upgrade Permit: Epheria Frigate": {
+  "icon": "00049951.webp",
+  "url": "https://bdocodex.com/us/item/49951/"
+ },
+ "Ship Upgrade Permit: Epheria Galleass": {
+  "icon": "00005797.webp",
+  "url": "https://bdocodex.com/us/item/5797/"
+ },
+ "Ship Upgrade Permit: Epheria Sailboat": {
+  "icon": "00049950.webp",
+  "url": "https://bdocodex.com/us/item/49950/"
+ },
+ "Silk": {
+  "icon": "00005857.webp",
+  "url": "https://bdocodex.com/us/item/5857/"
+ },
+ "Silk Thread": {
+  "icon": "00005853.webp",
+  "url": "https://bdocodex.com/us/item/5853/"
+ },
+ "Silkworm Cocoon": {
+  "icon": "00005803.webp",
+  "url": "https://bdocodex.com/us/item/5803/"
+ },
+ "Sinner's Blood": {
+  "icon": "00006354.webp",
+  "url": "https://bdocodex.com/us/item/6354/"
+ },
+ "Skull Decorated Teacup": {
+  "icon": "00800034.webp",
+  "url": "https://bdocodex.com/us/item/800034/"
+ },
+ "Skull Symbol Carpet": {
+  "icon": "00800044.webp",
+  "url": "https://bdocodex.com/us/item/800038/"
+ },
+ "Smart": {
+  "icon": "employee_59071.webp",
+  "url": "https://bdocodex.com/us/sailor/59071/"
+ },
+ "Snowfield Cedar Plywood": {
+  "icon": "00004722.webp",
+  "url": "https://bdocodex.com/us/item/4722/"
+ },
+ "Soft Ferri Feather": {
+  "icon": "00006017.webp",
+  "url": "https://bdocodex.com/us/item/6025/"
+ },
+ "Soft Hide": {
+  "icon": "00006151.webp",
+  "url": "https://bdocodex.com/us/item/6151/"
+ },
+ "Solidified Lava": {
+  "icon": "00800066.webp",
+  "url": "https://bdocodex.com/us/item/800048/"
+ },
+ "Special Balenos Meal": {
+  "icon": "00009602.webp",
+  "url": "https://bdocodex.com/us/item/9602/"
+ },
+ "Spirit's Leaf": {
+  "icon": "00005006.webp",
+  "url": "https://bdocodex.com/us/item/5006/"
+ },
+ "Stalactite Fragment": {
+  "icon": "00800047.webp",
+  "url": "https://bdocodex.com/us/item/800033/"
+ },
+ "Standardized Timber Square": {
+  "icon": "00004685.webp",
+  "url": "https://bdocodex.com/us/item/4685/"
+ },
+ "Star Anise": {
+  "icon": "00007019.webp",
+  "url": "https://bdocodex.com/us/item/7019/"
+ },
+ "Starlight Emulsifier": {
+  "icon": "00008024.webp",
+  "url": "https://bdocodex.com/us/item/8024/"
+ },
+ "Starlight Hardener": {
+  "icon": "00008023.webp",
+  "url": "https://bdocodex.com/us/item/8023/"
+ },
+ "Statue's Tear": {
+  "icon": "00800046.webp",
+  "url": "https://bdocodex.com/us/item/800061/"
+ },
+ "Steel": {
+  "icon": "00004077.webp",
+  "url": "https://bdocodex.com/us/item/4077/"
+ },
+ "Stolen Pirate Dagger": {
+  "icon": "00800062.webp",
+  "url": "https://bdocodex.com/us/item/800044/"
+ },
+ "Storage Keeper": {
+  "icon": "ic_00559.webp",
+  "url": "https://bdocodex.com/us/npc/507/300/"
+ },
+ "Strong": {
+  "icon": "employee_59065.webp",
+  "url": "https://bdocodex.com/us/sailor/59065/"
+ },
+ "Stuffed Morpho Butterfly": {
+  "icon": "00800005.webp",
+  "url": "https://bdocodex.com/us/item/800060/"
+ },
+ "Stuffed White Caterpillar": {
+  "icon": "00800064.webp",
+  "url": "https://bdocodex.com/us/item/800064/"
+ },
+ "Sturdy Coral Support": {
+  "icon": "000821365.webp",
+  "url": "https://bdocodex.com/us/item/821365/"
+ },
+ "Sunset Coral Essence": {
+  "icon": "000821369.webp",
+  "url": "https://bdocodex.com/us/item/821369/"
+ },
+ "Sunset Tidal Black Stone": {
+  "icon": "00756004.webp",
+  "url": "https://bdocodex.com/us/item/756007/"
+ },
+ "Supreme Bear Hide": {
+  "icon": "00820158.webp",
+  "url": "https://bdocodex.com/us/item/820158/"
+ },
+ "Supreme Boar Hide": {
+  "icon": "00820157.webp",
+  "url": "https://bdocodex.com/us/item/820157/"
+ },
+ "Supreme Gold Candlestick": {
+  "icon": "00800028.webp",
+  "url": "https://bdocodex.com/us/item/800062/"
+ },
+ "Supreme Oyster Box": {
+  "icon": "00800021.webp",
+  "url": "https://bdocodex.com/us/item/800021/"
+ },
+ "Suspicious Cargo Ship": {
+  "icon": "collected_study.webp",
+  "url": "https://bdocodex.com/us/npc/28848/"
+ },
+ "Tear of the Ocean": {
+  "icon": "00005821.webp",
+  "url": "https://bdocodex.com/us/item/5821/"
+ },
+ "Tears of the Star": {
+  "icon": "00320083.webp",
+  "url": "https://bdocodex.com/us/item/320083/"
+ },
+ "Teff Flour Dough": {
+  "icon": "00007206.webp",
+  "url": "https://bdocodex.com/us/item/7206/"
+ },
+ "Tenacious": {
+  "icon": "employee_59062.webp",
+  "url": "https://bdocodex.com/us/sailor/59062/"
+ },
+ "Thick Fur": {
+  "icon": "00006155.webp",
+  "url": "https://bdocodex.com/us/item/6155/"
+ },
+ "Thornwood Plywood": {
+  "icon": "00004711.webp",
+  "url": "https://bdocodex.com/us/item/4711/"
+ },
+ "Thuja Plywood": {
+  "icon": "00004702.webp",
+  "url": "https://bdocodex.com/us/item/4702/"
+ },
+ "Tidal Black Stone": {
+  "icon": "00756005.webp",
+  "url": "https://bdocodex.com/us/item/756001/"
+ },
+ "Tidal Blue Lamp Post": {
+  "icon": "00005162.webp",
+  "url": "https://bdocodex.com/us/item/5162/"
+ },
+ "Tide-Dyed Standardized Timber Square": {
+  "icon": "00005810.webp",
+  "url": "https://bdocodex.com/us/item/5810/"
+ },
+ "Tiger Meat": {
+  "icon": "00007959.webp",
+  "url": "https://bdocodex.com/us/item/7959/"
+ },
+ "Timber for Upgrade": {
+  "icon": "00045509.webp",
+  "url": "https://bdocodex.com/us/item/45509/"
+ },
+ "Tin Ingot": {
+  "icon": "00004061.webp",
+  "url": "https://bdocodex.com/us/item/4061/"
+ },
+ "Tin Ore": {
+  "icon": "00004004.webp",
+  "url": "https://bdocodex.com/us/item/4004/"
+ },
+ "Torn Pirate Treasure Map": {
+  "icon": "00800052.webp",
+  "url": "https://bdocodex.com/us/item/800030/"
+ },
+ "Tough": {
+  "icon": "employee_59064.webp",
+  "url": "https://bdocodex.com/us/sailor/59064/"
+ },
+ "Tough Hide": {
+  "icon": "00006152.webp",
+  "url": "https://bdocodex.com/us/item/6152/"
+ },
+ "Tranan Underfoe": {
+  "icon": "ic_00008.webp",
+  "url": "https://bdocodex.com/us/npc/40008/"
+ },
+ "Treasure-Seeking": {
+  "icon": "employee_59059.webp",
+  "url": "https://bdocodex.com/us/sailor/59059/"
+ },
+ "Ultimate Armor Reform Stone": {
+  "icon": "00004913.webp",
+  "url": "https://bdocodex.com/us/item/950105/"
+ },
+ "Ultimate Weapon Reform Stone": {
+  "icon": "00004912.webp",
+  "url": "https://bdocodex.com/us/item/950104/"
+ },
+ "Urchin Spine": {
+  "icon": "00800049.webp",
+  "url": "https://bdocodex.com/us/item/800028/"
+ },
+ "Usable Pirate Ship's Remains": {
+  "icon": "00043292.webp",
+  "url": "https://bdocodex.com/us/item/43292/"
+ },
+ "Usable Scantling": {
+  "icon": "00004669.webp",
+  "url": "https://bdocodex.com/us/item/4669/"
+ },
+ "Vinegar": {
+  "icon": "00009066.webp",
+  "url": "https://bdocodex.com/us/item/9066/"
+ },
+ "Violent Sea Monster's Bone": {
+  "icon": "00008008.webp",
+  "url": "https://bdocodex.com/us/item/8008/"
+ },
+ "Violent Sea Monster's Ooze": {
+  "icon": "00008011.webp",
+  "url": "https://bdocodex.com/us/item/8011/"
+ },
+ "Violent Sea Monster's Scale": {
+  "icon": "00008009.webp",
+  "url": "https://bdocodex.com/us/item/8009/"
+ },
+ "Violent Wave Plywood": {
+  "icon": "00008019.webp",
+  "url": "https://bdocodex.com/us/item/8019/"
+ },
+ "Void Sea Crystal": {
+  "icon": "00756424.webp",
+  "url": "https://bdocodex.com/us/item/756424/"
+ },
+ "Wave Residue Adhesive": {
+  "icon": "00008021.webp",
+  "url": "https://bdocodex.com/us/item/8021/"
+ },
+ "Weasel Leather Coat": {
+  "icon": "00800070.webp",
+  "url": "https://bdocodex.com/us/item/800037/"
+ },
+ "Weekly: Monster Increase Report": {
+  "icon": "seashipevent_005.webp",
+  "url": "https://bdocodex.com/us/quest/3707/22/"
+ },
+ "Weekly: Old Moon Guild's Black Rust Hunter": {
+  "icon": "greatseasub4.webp",
+  "url": "https://bdocodex.com/us/quest/3707/21/"
+ },
+ "Weekly: Old Moon Guild's Candidum Hunter": {
+  "icon": "greatseasub3.webp",
+  "url": "https://bdocodex.com/us/quest/3707/19/"
+ },
+ "Weekly: Old Moon Guild's Nineshark Hunter": {
+  "icon": "greatseasub2.webp",
+  "url": "https://bdocodex.com/us/quest/3707/20/"
+ },
+ "Weekly: Pirate Trouble": {
+  "icon": "00820891.webp",
+  "url": "https://bdocodex.com/us/quest/8607/1/"
+ },
+ "White Cedar Plywood": {
+  "icon": "00004677.webp",
+  "url": "https://bdocodex.com/us/item/4677/"
+ },
+ "White Cedar Sap": {
+  "icon": "00005012.webp",
+  "url": "https://bdocodex.com/us/item/5012/"
+ },
+ "Wise Man's Blood": {
+  "icon": "00006355.webp",
+  "url": "https://bdocodex.com/us/item/6355/"
+ },
+ "Wooden Nail Soaked in Seawater": {
+  "icon": "00820892.webp",
+  "url": "https://bdocodex.com/us/item/820892/"
+ },
+ "Wool": {
+  "icon": "00005858.webp",
+  "url": "https://bdocodex.com/us/item/5858/"
+ },
+ "Wrecked Phantom Ship's Debris": {
+  "icon": "00043282.webp",
+  "url": "https://bdocodex.com/us/item/43282/"
+ },
+ "Young Black Rust": {
+  "icon": "ic_00559.webp",
+  "url": "https://bdocodex.com/us/npc/21490/"
+ },
+ "Young Candidum": {
+  "icon": "ic_00559.webp",
+  "url": "https://bdocodex.com/us/npc/21422/"
+ },
+ "Young Hekaru": {
+  "icon": "ic_00559.webp",
+  "url": "https://bdocodex.com/us/npc/21442/"
+ },
+ "Young Nineshark": {
+  "icon": "ic_00559.webp",
+  "url": "https://bdocodex.com/us/npc/21441/"
+ },
+ "Young Ocean Stalker": {
+  "icon": "ic_00559.webp",
+  "url": "https://bdocodex.com/us/npc/21443/"
+ },
+ "Zinc Ingot": {
+  "icon": "00004064.webp",
+  "url": "https://bdocodex.com/us/item/4064/"
+ },
+ "Zulatia Sea Crystal": {
+  "icon": "00756427_3.webp",
+  "url": "https://bdocodex.com/us/item/756770/"
+ },
+ "[Level 1] Ancient Urn Piece": {
+  "icon": "00800007.webp",
+  "url": "https://bdocodex.com/us/item/800007/"
+ },
+ "[Level 1] Cherry Tree Seed Pouch": {
+  "icon": "00800033.webp",
+  "url": "https://bdocodex.com/us/item/800009/"
+ },
+ "[Level 1] Chewy Raw Gizzard": {
+  "icon": "00800006.webp",
+  "url": "https://bdocodex.com/us/item/800006/"
+ },
+ "[Level 1] Dried Blue Rose": {
+  "icon": "00800001.webp",
+  "url": "https://bdocodex.com/us/item/800001/"
+ },
+ "[Level 1] Fertile Soil": {
+  "icon": "00800036.webp",
+  "url": "https://bdocodex.com/us/item/800013/"
+ },
+ "[Level 1] Giant Fish Bone": {
+  "icon": "00800026.webp",
+  "url": "https://bdocodex.com/us/item/800002/"
+ },
+ "[Level 1] Golden Sand": {
+  "icon": "00800010.webp",
+  "url": "https://bdocodex.com/us/item/800010/"
+ },
+ "[Level 1] Naval Ration": {
+  "icon": "00800003.webp",
+  "url": "https://bdocodex.com/us/item/800003/"
+ },
+ "[Level 1] Pirates' Gunpowder": {
+  "icon": "00800037.webp",
+  "url": "https://bdocodex.com/us/item/800014/"
+ },
+ "[Level 1] Raft Toy": {
+  "icon": "00800051.webp",
+  "url": "https://bdocodex.com/us/item/800005/"
+ },
+ "[Level 1] Rakeflower Seed Pouch": {
+  "icon": "00800016.webp",
+  "url": "https://bdocodex.com/us/item/800012/"
+ },
+ "[Level 1] Roa Flower Seed Pouch": {
+  "icon": "00800015.webp",
+  "url": "https://bdocodex.com/us/item/800011/"
+ },
+ "[Level 1] Stained Seagull Figurine": {
+  "icon": "00800022.webp",
+  "url": "https://bdocodex.com/us/item/800004/"
+ },
+ "[Level 1] Unidentified Ancient Mural": {
+  "icon": "00800008.webp",
+  "url": "https://bdocodex.com/us/item/800008/"
+ },
+ "[Level 2] Balanced Stone Pagoda": {
+  "icon": "00800024.webp",
+  "url": "https://bdocodex.com/us/item/800024/"
+ },
+ "[Level 2] Big Stone Slab": {
+  "icon": "00800042.webp",
+  "url": "https://bdocodex.com/us/item/800022/"
+ },
+ "[Level 2] Conch Shell Ornament": {
+  "icon": "00800020.webp",
+  "url": "https://bdocodex.com/us/item/800020/"
+ },
+ "[Level 2] Cron Castle Gold Coin": {
+  "icon": "00800029.webp",
+  "url": "https://bdocodex.com/us/item/800016/"
+ },
+ "[Level 2] Filtered Drinking Water": {
+  "icon": "00800031.webp",
+  "url": "https://bdocodex.com/us/item/800019/"
+ },
+ "[Level 2] Islanders' Lunchbox": {
+  "icon": "00800060.webp",
+  "url": "https://bdocodex.com/us/item/800015/"
+ },
+ "[Level 2] Monster Tentacle": {
+  "icon": "00800035.webp",
+  "url": "https://bdocodex.com/us/item/800026/"
+ },
+ "[Level 2] Narvo Sea Cucumber": {
+  "icon": "00800023.webp",
+  "url": "https://bdocodex.com/us/item/800023/"
+ },
+ "[Level 2] Opulent Marble": {
+  "icon": "00800040.webp",
+  "url": "https://bdocodex.com/us/item/800018/"
+ },
+ "[Level 2] Pirate Gold Coin": {
+  "icon": "00800027.webp",
+  "url": "https://bdocodex.com/us/item/800027/"
+ },
+ "[Level 2] Pirate Ship Mast": {
+  "icon": "00800017.webp",
+  "url": "https://bdocodex.com/us/item/800017/"
+ },
+ "[Level 2] Sea Survival Kit": {
+  "icon": "00800059.webp",
+  "url": "https://bdocodex.com/us/item/800025/"
+ },
+ "[Level 2] Supreme Oyster Box": {
+  "icon": "00800021.webp",
+  "url": "https://bdocodex.com/us/item/800021/"
+ },
+ "[Level 2] Urchin Spine": {
+  "icon": "00800049.webp",
+  "url": "https://bdocodex.com/us/item/800028/"
+ },
+ "[Level 3] Ancient Orders": {
+  "icon": "00800054.webp",
+  "url": "https://bdocodex.com/us/item/800041/"
+ },
+ "[Level 3] Blue Candle Bundle": {
+  "icon": "00800056.webp",
+  "url": "https://bdocodex.com/us/item/800042/"
+ },
+ "[Level 3] Gooey Monster Blood": {
+  "icon": "00800048.webp",
+  "url": "https://bdocodex.com/us/item/800036/"
+ },
+ "[Level 3] Lopters Fishnet": {
+  "icon": "00800045.webp",
+  "url": "https://bdocodex.com/us/item/800040/"
+ },
+ "[Level 3] Old Hourglass": {
+  "icon": "00800004.webp",
+  "url": "https://bdocodex.com/us/item/800029/"
+ },
+ "[Level 3] Pirates' Supply Box": {
+  "icon": "00800053.webp",
+  "url": "https://bdocodex.com/us/item/800031/"
+ },
+ "[Level 3] Rare Herb Pile": {
+  "icon": "00800002.webp",
+  "url": "https://bdocodex.com/us/item/800039/"
+ },
+ "[Level 3] Round Knife": {
+  "icon": "00800050.webp",
+  "url": "https://bdocodex.com/us/item/800035/"
+ },
+ "[Level 3] Scout Binoculars": {
+  "icon": "00800032.webp",
+  "url": "https://bdocodex.com/us/item/800032/"
+ },
+ "[Level 3] Skull Decorated Teacup": {
+  "icon": "00800034.webp",
+  "url": "https://bdocodex.com/us/item/800034/"
+ },
+ "[Level 3] Skull Symbol Carpet": {
+  "icon": "00800044.webp",
+  "url": "https://bdocodex.com/us/item/800038/"
+ },
+ "[Level 3] Stalactite Fragment": {
+  "icon": "00800047.webp",
+  "url": "https://bdocodex.com/us/item/800033/"
+ },
+ "[Level 3] Torn Pirate Treasure Map": {
+  "icon": "00800052.webp",
+  "url": "https://bdocodex.com/us/item/800030/"
+ },
+ "[Level 3] Weasel Leather Coat": {
+  "icon": "00800070.webp",
+  "url": "https://bdocodex.com/us/item/800037/"
+ },
+ "[Level 4] Amethyst Fragment": {
+  "icon": "00800012.webp",
+  "url": "https://bdocodex.com/us/item/800046/"
+ },
+ "[Level 4] Boatman's Manual": {
+  "icon": "00800069.webp",
+  "url": "https://bdocodex.com/us/item/800050/"
+ },
+ "[Level 4] Bronze Candlestick": {
+  "icon": "00800030.webp",
+  "url": "https://bdocodex.com/us/item/800055/"
+ },
+ "[Level 4] Green Salt Lump": {
+  "icon": "00800061.webp",
+  "url": "https://bdocodex.com/us/item/800049/"
+ },
+ "[Level 4] Headless Dragon Figurine": {
+  "icon": "00800041.webp",
+  "url": "https://bdocodex.com/us/item/800054/"
+ },
+ "[Level 4] Marine Knights' Helm": {
+  "icon": "00800043.webp",
+  "url": "https://bdocodex.com/us/item/800043/"
+ },
+ "[Level 4] Marine Knights' Spear": {
+  "icon": "00800065.webp",
+  "url": "https://bdocodex.com/us/item/800047/"
+ },
+ "[Level 4] Old Chest with Gold Coins": {
+  "icon": "00800018.webp",
+  "url": "https://bdocodex.com/us/item/800051/"
+ },
+ "[Level 4] Opulent Thread Spool": {
+  "icon": "00800063.webp",
+  "url": "https://bdocodex.com/us/item/800045/"
+ },
+ "[Level 4] Panacea": {
+  "icon": "00800025.webp",
+  "url": "https://bdocodex.com/us/item/800053/"
+ },
+ "[Level 4] Pirate's Key": {
+  "icon": "00800038.webp",
+  "url": "https://bdocodex.com/us/item/800056/"
+ },
+ "[Level 4] Seashell Deco": {
+  "icon": "00800013.webp",
+  "url": "https://bdocodex.com/us/item/800052/"
+ },
+ "[Level 4] Solidified Lava": {
+  "icon": "00800066.webp",
+  "url": "https://bdocodex.com/us/item/800048/"
+ },
+ "[Level 4] Stolen Pirate Dagger": {
+  "icon": "00800062.webp",
+  "url": "https://bdocodex.com/us/item/800044/"
+ },
+ "[Level 5] 102 Year Old Golden Herb": {
+  "icon": "00800011.webp",
+  "url": "https://bdocodex.com/us/item/800066/"
+ },
+ "[Level 5] 37 Year Old Herbal Wine": {
+  "icon": "00800058.webp",
+  "url": "https://bdocodex.com/us/item/800058/"
+ },
+ "[Level 5] Azure Quartz": {
+  "icon": "00800019.webp",
+  "url": "https://bdocodex.com/us/item/800059/"
+ },
+ "[Level 5] Cox Pirates' Journal": {
+  "icon": "00800072.webp",
+  "url": "https://bdocodex.com/us/item/800072/"
+ },
+ "[Level 5] Elixir of Youth": {
+  "icon": "00800068.webp",
+  "url": "https://bdocodex.com/us/item/800068/"
+ },
+ "[Level 5] Faded Gold Dragon Figurine": {
+  "icon": "00800014.webp",
+  "url": "https://bdocodex.com/us/item/800063/"
+ },
+ "[Level 5] Golden Fish Scale": {
+  "icon": "00800039.webp",
+  "url": "https://bdocodex.com/us/item/800065/"
+ },
+ "[Level 5] Luxury Patterned Fabric": {
+  "icon": "00800055.webp",
+  "url": "https://bdocodex.com/us/item/800069/"
+ },
+ "[Level 5] Mysterious Rock": {
+  "icon": "00800009.webp",
+  "url": "https://bdocodex.com/us/item/800070/"
+ },
+ "[Level 5] Observatory Report": {
+  "icon": "00800075.webp",
+  "url": "https://bdocodex.com/us/item/800075/"
+ },
+ "[Level 5] Octagonal Box": {
+  "icon": "00800057.webp",
+  "url": "https://bdocodex.com/us/item/800057/"
+ },
+ "[Level 5] Opulent Coral Trinket": {
+  "icon": "00800071.webp",
+  "url": "https://bdocodex.com/us/item/800071/"
+ },
+ "[Level 5] Otters Fish Hook": {
+  "icon": "00800074.webp",
+  "url": "https://bdocodex.com/us/item/800074/"
+ },
+ "[Level 5] Portrait of the Ancient": {
+  "icon": "00800067.webp",
+  "url": "https://bdocodex.com/us/item/800067/"
+ },
+ "[Level 5] Rust Repair Tool": {
+  "icon": "00800073.webp",
+  "url": "https://bdocodex.com/us/item/800073/"
+ },
+ "[Level 5] Statue's Tear": {
+  "icon": "00800046.webp",
+  "url": "https://bdocodex.com/us/item/800061/"
+ },
+ "[Level 5] Stuffed Morpho Butterfly": {
+  "icon": "00800005.webp",
+  "url": "https://bdocodex.com/us/item/800060/"
+ },
+ "[Level 5] Stuffed White Caterpillar": {
+  "icon": "00800064.webp",
+  "url": "https://bdocodex.com/us/item/800064/"
+ },
+ "[Level 5] Supreme Gold Candlestick": {
+  "icon": "00800028.webp",
+  "url": "https://bdocodex.com/us/item/800062/"
+ },
+ "[Level 6] Bamboo Sap Crate": {
+  "icon": "00800225.webp",
+  "url": "https://bdocodex.com/us/item/800217/"
+ },
+ "[Level 6] Black Rose Bouquet": {
+  "icon": "00800221.webp",
+  "url": "https://bdocodex.com/us/item/800213/"
+ },
+ "[Level 6] Brass Bowl Crate": {
+  "icon": "00800231.webp",
+  "url": "https://bdocodex.com/us/item/800223/"
+ },
+ "[Level 6] Fancy Camel Hide": {
+  "icon": "00800215.webp",
+  "url": "https://bdocodex.com/us/item/800203/"
+ },
+ "[Level 6] Forest Fairy Perfume": {
+  "icon": "00800217.webp",
+  "url": "https://bdocodex.com/us/item/800209/"
+ },
+ "[Level 6] Golden Cactus Bouquet": {
+  "icon": "00800248.webp",
+  "url": "https://bdocodex.com/us/item/800208/"
+ },
+ "[Level 6] Golden Sand Ring": {
+  "icon": "00800216.webp",
+  "url": "https://bdocodex.com/us/item/800204/"
+ },
+ "[Level 6] Hanji Country Wild Berry Crate": {
+  "icon": "00800228.webp",
+  "url": "https://bdocodex.com/us/item/800220/"
+ },
+ "[Level 6] High-quality Ink-scented Box": {
+  "icon": "00800227.webp",
+  "url": "https://bdocodex.com/us/item/800219/"
+ },
+ "[Level 6] Kamasylvian Sculpture": {
+  "icon": "00800218.webp",
+  "url": "https://bdocodex.com/us/item/800210/"
+ },
+ "[Level 6] Miniature Arehaza Lighthouse": {
+  "icon": "00800247.webp",
+  "url": "https://bdocodex.com/us/item/800207/"
+ },
+ "[Level 6] Moonlit Crystal Lamp": {
+  "icon": "00800219.webp",
+  "url": "https://bdocodex.com/us/item/800211/"
+ },
+ "[Level 6] Moonlit Crystal Shard": {
+  "icon": "00800222.webp",
+  "url": "https://bdocodex.com/us/item/800214/"
+ },
+ "[Level 6] Moonshade Aged Wine": {
+  "icon": "00800223.webp",
+  "url": "https://bdocodex.com/us/item/800215/"
+ },
+ "[Level 6] Mossy Silver Log Decoration": {
+  "icon": "00800220.webp",
+  "url": "https://bdocodex.com/us/item/800212/"
+ },
+ "[Level 6] Nampo Persimmon Crate": {
+  "icon": "00800226.webp",
+  "url": "https://bdocodex.com/us/item/800218/"
+ },
+ "[Level 6] Shadow Ornament Mirror": {
+  "icon": "00800224.webp",
+  "url": "https://bdocodex.com/us/item/800216/"
+ },
+ "[Level 6] Sharp Safflower Blade Crate": {
+  "icon": "00800232.webp",
+  "url": "https://bdocodex.com/us/item/800224/"
+ },
+ "[Level 6] Top-Quality Blue Underglaze Porcelain Crate": {
+  "icon": "00800229.webp",
+  "url": "https://bdocodex.com/us/item/800221/"
+ },
+ "[Level 6] Top-Quality Coconut Syrup": {
+  "icon": "00800245.webp",
+  "url": "https://bdocodex.com/us/item/800205/"
+ },
+ "[Level 6] Top-Quality Gamtu Crate": {
+  "icon": "00800230.webp",
+  "url": "https://bdocodex.com/us/item/800222/"
+ },
+ "[Level 6] Traditional Arehazan Tea": {
+  "icon": "00800246.webp",
+  "url": "https://bdocodex.com/us/item/800206/"
+ },
+ "[Level 6] Valencia Sand Shield": {
+  "icon": "00800213.webp",
+  "url": "https://bdocodex.com/us/item/800201/"
+ },
+ "[Level 6] Valencian Desert Fine Sword": {
+  "icon": "00800214.webp",
+  "url": "https://bdocodex.com/us/item/800202/"
+ },
+ "[Level 7] Artisan's Seashell Necklace": {
+  "icon": "00800241.webp",
+  "url": "https://bdocodex.com/us/item/800241/"
+ },
+ "[Level 7] Balenos Rainbow Coral": {
+  "icon": "00800235.webp",
+  "url": "https://bdocodex.com/us/item/800247/"
+ },
+ "[Level 7] Balenos Relic Fragment": {
+  "icon": "00800234.webp",
+  "url": "https://bdocodex.com/us/item/800246/"
+ },
+ "[Level 7] Balenos Salt Flower": {
+  "icon": "00800244.webp",
+  "url": "https://bdocodex.com/us/item/800244/"
+ },
+ "[Level 7] Balenos Starlight Salt": {
+  "icon": "00800233.webp",
+  "url": "https://bdocodex.com/us/item/800245/"
+ },
+ "[Level 7] Balenos Whale Sculpture": {
+  "icon": "00800243.webp",
+  "url": "https://bdocodex.com/us/item/800243/"
+ },
+ "[Level 7] Balenosian Sailor's Telescope": {
+  "icon": "00800242.webp",
+  "url": "https://bdocodex.com/us/item/800242/"
+ },
+ "[Level 7] Calpheon Golden Candle Stand": {
+  "icon": "00800207.webp",
+  "url": "https://bdocodex.com/us/item/800231/"
+ },
+ "[Level 7] Calpheon Knights' Combat Manual": {
+  "icon": "00800206.webp",
+  "url": "https://bdocodex.com/us/item/800230/"
+ },
+ "[Level 7] Calpheonian Artisan's Pearl Necklace": {
+  "icon": "00800208.webp",
+  "url": "https://bdocodex.com/us/item/800232/"
+ },
+ "[Level 7] Golden Eagle Brooch": {
+  "icon": "00800205.webp",
+  "url": "https://bdocodex.com/us/item/800229/"
+ },
+ "[Level 7] Golden Flour Sack": {
+  "icon": "00800202.webp",
+  "url": "https://bdocodex.com/us/item/800226/"
+ },
+ "[Level 7] Omar Lava Powder": {
+  "icon": "00800211.webp",
+  "url": "https://bdocodex.com/us/item/800235/"
+ },
+ "[Level 7] Organic Honey Crate": {
+  "icon": "00800203.webp",
+  "url": "https://bdocodex.com/us/item/800227/"
+ },
+ "[Level 7] Rainbow Sea Crystal Piece": {
+  "icon": "00800236.webp",
+  "url": "https://bdocodex.com/us/item/800248/"
+ },
+ "[Level 7] Rusalka's Thorny Bouquet": {
+  "icon": "00800237.webp",
+  "url": "https://bdocodex.com/us/item/800237/"
+ },
+ "[Level 7] Sausan Military Supply": {
+  "icon": "00800209.webp",
+  "url": "https://bdocodex.com/us/item/800233/"
+ },
+ "[Level 7] Stonetail Carrot Healthy Food Crate": {
+  "icon": "00800210.webp",
+  "url": "https://bdocodex.com/us/item/800234/"
+ },
+ "[Level 7] Sturdy Caphras Timber": {
+  "icon": "00800238.webp",
+  "url": "https://bdocodex.com/us/item/800238/"
+ },
+ "[Level 7] Tarif Magic Jar": {
+  "icon": "00800212.webp",
+  "url": "https://bdocodex.com/us/item/800236/"
+ },
+ "[Level 7] Throne of Edana Records": {
+  "icon": "00800240.webp",
+  "url": "https://bdocodex.com/us/item/800240/"
+ },
+ "[Level 7] Top-Quality Hakinza Perfume": {
+  "icon": "00800239.webp",
+  "url": "https://bdocodex.com/us/item/800239/"
+ },
+ "[Level 7] Top-Quality Heidelian Wine": {
+  "icon": "00800201.webp",
+  "url": "https://bdocodex.com/us/item/800225/"
+ },
+ "[Level 7] Traditional Balenos Decorative Anchor": {
+  "icon": "00800204.webp",
+  "url": "https://bdocodex.com/us/item/800228/"
+ }
 }

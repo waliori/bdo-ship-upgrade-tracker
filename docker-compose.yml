@@ -12,6 +12,9 @@
 services:
   bdo-tracker:
     build: .
+    # A real init as PID 1, so SIGTERM reaches node cleanly and the
+    # shutdown flush in server/saves.js actually gets to run.
+    init: true
     ports:
       - "${PORT:-8000}:8000"
     # `required: false` is what lets the file be absent. Everything in it
@@ -22,4 +25,9 @@ services:
         required: false
     environment:
       - NODE_ENV=production
+      # Inside the container the app always listens on 8000 -- the port
+      # map above and the image's healthcheck both point there. A PORT in
+      # .env chooses only the host side, and this line stops env_file
+      # from carrying it into the container and moving the listener.
+      - PORT=8000
     restart: unless-stopped

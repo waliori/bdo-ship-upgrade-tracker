@@ -12,8 +12,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
 
 process.env.NODE_ENV = 'test';
+process.env.LOG_REQUESTS = '0';
+// A stamp of this file's choosing, so the service worker test below can
+// tell the served copy from the one on disk.
+process.env.APP_VERSION = 'test-stamp 1.2/3';
 for (const name of [
 	'DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET',
 	'TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN', 'PUBLIC_URL'
@@ -35,11 +41,12 @@ test('the page and its assets are served', async () => {
 	assert.equal((await fetch(`${base}/`)).status, 200);
 	assert.equal((await fetch(`${base}/js/planner.js`)).status, 200);
 	assert.equal((await fetch(`${base}/icon_mapping.json`)).status, 200);
+	assert.equal((await fetch(`${base}/favicon.ico`)).status, 200);
 });
 
 test('the client is told there is no sync', async () => {
 	const res = await fetch(`${base}/api/config`);
-	assert.deepEqual(await res.json(), { sync: false });
+	assert.deepEqual(await res.json(), { sync: false, push: false, feedback: false, community: false });
 });
 
 test('no sync routes exist at all', async () => {
@@ -66,7 +73,7 @@ test('the modules are never served stale against each other', async () => {
 	// contents change. A cache that holds one file from before a deploy
 	// and another from after it produces a page that dies on an import
 	// that no longer exists -- which is what a max-age on js/ once did.
-	for (const url of ['/js/planner.js', '/js/recipes.js', '/js/ui.js', '/css/tracker.css', '/icon_mapping.json']) {
+	for (const url of ['/js/planner.js', '/js/recipes.js', '/js/ui.js', '/css/tracker-base.css', '/icon_mapping.json']) {
 		const res = await fetch(base + url);
 		assert.equal(res.status, 200, url);
 		const cache = res.headers.get('cache-control') || '';
@@ -103,6 +110,104 @@ test('revalidating a module costs nothing when it has not changed', async () => 
 	assert.equal(bytes, 0);
 });
 
+test('the heavy files travel compressed', async () => {
+	// Asked over node:http with an explicit Accept-Encoding, because
+	// fetch decompresses transparently and hides the evidence.
+	const { encoding } = await new Promise((resolve, reject) => {
+		const url = new URL(base + '/js/all_barter.json');
+		http.get({
+			host: url.hostname, port: url.port, path: url.pathname,
+			headers: { 'Accept-Encoding': 'gzip' }
+		}, res => {
+			res.resume();
+			res.on('end', () => resolve({ encoding: res.headers['content-encoding'] }));
+		}).on('error', reject);
+	});
+	assert.equal(encoding, 'gzip', 'a megabyte of barter data went over the wire raw');
+});
+
+test('the offline shell is served, and never stale', async () => {
+	// The service worker steers every cache decision the page makes, so
+	// a stale copy of it would defeat the rules it carries -- it has to
+	// revalidate like the modules do. Same for the manifest, and for
+	// /index.html, which is the same page '/' already refuses to let go
+	// stale.
+	for (const url of ['/sw.js', '/manifest.webmanifest', '/index.html']) {
+		const res = await fetch(base + url);
+		assert.equal(res.status, 200, url);
+		assert.match(res.headers.get('cache-control') || '', /no-cache/, url);
+	}
+	const manifest = await (await fetch(base + '/manifest.webmanifest')).json();
+	for (const icon of manifest.icons) {
+		assert.equal((await fetch(`${base}/${icon.src}`)).status, 200, icon.src);
+	}
+	const page = await (await fetch(base + '/')).text();
+	assert.match(page, /rel="manifest"/, 'the page never names its manifest');
+});
+
+test('the service worker is served with this build written into it', async () => {
+	// Only the Docker build used to stamp VERSION, so a plain `npm start`
+	// served the literal and the offline cache was named the same across
+	// every deploy -- a browser that started offline could run half of
+	// one and half of another. The server writes the stamp in as it
+	// serves the file now, whatever started it.
+	const onDisk = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+	assert.match(onDisk, /^const VERSION = '__BUILD__';/m, 'the file on disk carries the placeholder the build replaces');
+
+	const res = await fetch(base + '/sw.js');
+	assert.equal(res.status, 200);
+	assert.match(res.headers.get('content-type'), /javascript/);
+	assert.match(res.headers.get('cache-control'), /no-cache/);
+	const served = await res.text();
+	assert.doesNotMatch(served, /__BUILD__/, 'the placeholder reached the browser');
+	// APP_VERSION wins, with anything that could close the quote dropped.
+	assert.match(served, /^const VERSION = 'test-stamp1.23';/m);
+	// And it is only that one line that changed.
+	assert.equal(served.replace(/^const VERSION = '[^']*';/m, ''), onDisk.replace(/^const VERSION = '[^']*';/m, ''));
+	assert.ok(res.headers.get('etag'), 'a worker with no ETag is re-sent in full on every navigation');
+});
+
+test('a newer worker that is waiting is not written over', () => {
+	// While an installed worker waits, the network serves the new deploy
+	// and the running cache is the old one's; filing one into the other
+	// is the mixed shell the cache exists to prevent.
+	const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+	const networkFirst = sw.slice(sw.indexOf('async function networkFirst'));
+	assert.match(networkFirst, /!self\.registration\.waiting[^;]*cache|waiting\)[^;]*put\(/s);
+});
+
+test('the healthcheck answers without a database, and says so', async () => {
+	const res = await fetch(base + '/healthz');
+	assert.equal(res.status, 200);
+	assert.equal(res.headers.get('cache-control'), 'no-store');
+	const body = await res.json();
+	assert.equal(body.ok, true);
+	assert.equal(body.db, 'off');
+	assert.equal(body.dirty, 0);
+	assert.equal(body.queued, 0);
+	assert.equal(body.version, 'test-stamp1.23');
+	assert.equal(typeof body.counters.requests['2xx'], 'number');
+	// And the container asks this route, not the page.
+	const dockerfile = fs.readFileSync(new URL('../Dockerfile', import.meta.url), 'utf8');
+	assert.match(dockerfile, /HEALTHCHECK[\s\S]*\/healthz/);
+});
+
+test('every window the field guide shows is served, and shipped', async () => {
+	// Two failure modes, both already seen: the server not whitelisting
+	// the guide directory, and the Docker image not copying it. The
+	// first shows here as a 404; the second is caught by checking the
+	// Dockerfile carries every directory the guide depends on.
+	const fs = await import('node:fs/promises');
+	const guideSrc = await fs.readFile(new URL('../js/guide.js', import.meta.url), 'utf8');
+	const imgs = [...guideSrc.matchAll(/guide\/[a-z-]+\.webp/g)].map(m => m[0]);
+	assert.ok(imgs.length >= 6, 'the guide lost its pictures');
+	for (const img of new Set(imgs)) {
+		assert.equal((await fetch(`${base}/${img}`)).status, 200, `${img} is not served`);
+	}
+	const dockerfile = await fs.readFile(new URL('../Dockerfile', import.meta.url), 'utf8');
+	assert.match(dockerfile, /COPY guide \.\/guide/, 'the Docker image would ship without the guide');
+});
+
 test('an icon may be cached, but not forever', async () => {
 	// Icons are addressed by the game's item id, so a name really does
 	// keep its contents -- but `immutable` would make a wrong one
@@ -123,14 +228,24 @@ test('the CSP admits every origin the page actually loads from', async () => {
 	const directive = name => (csp.split(';').find(d => d.trim().startsWith(name)) || '').trim();
 
 	for (const [name, origin] of [
-		['script-src', 'https://cdn.jsdelivr.net'],       // the guided tour
-		['style-src', 'https://cdn.jsdelivr.net'],        // and its stylesheet
 		['style-src', 'https://fonts.googleapis.com'],
 		['font-src', 'https://fonts.gstatic.com'],
 		['img-src', 'https://cdn.discordapp.com']         // the signed-in chip
 	]) {
 		assert.ok(directive(name).includes(origin), `${name} must admit ${origin} — got "${directive(name)}"`);
 	}
+
+	// And nothing else may run script. The guided tour's library is
+	// vendored precisely so that no CDN needs to be trusted with
+	// script-src -- this holds the door shut behind it.
+	assert.equal(directive('script-src'), "script-src 'self'");
+});
+
+test('the guided tour library is served from here, not a CDN', async () => {
+	assert.equal((await fetch(`${base}/js/driver.iife.js`)).status, 200);
+	assert.equal((await fetch(`${base}/css/driver.css`)).status, 200);
+	const page = await (await fetch(`${base}/`)).text();
+	assert.doesNotMatch(page, /jsdelivr|unpkg|cdnjs/, 'the page still names a script CDN');
 });
 
 test('the avatar the client builds is an origin the CSP allows', async () => {
@@ -144,5 +259,73 @@ test('the avatar the client builds is an origin the CSP allows', async () => {
 	const csp = (await fetch(base + '/')).headers.get('content-security-policy');
 	for (const host of new Set(hosts)) {
 		assert.ok(csp.includes(host), `${host} is fetched by sync.js but absent from the CSP`);
+	}
+});
+
+test('no action is worn by both a button and a select', () => {
+	// Buttons are answered on click and selects on change, so one name
+	// on both means one of them is dead: the control fires an event
+	// nothing is listening for, and clicking it does nothing at all --
+	// no toast, no error, no sign that anything happened.
+	const dir = new URL('../js/', import.meta.url);
+	const files = fs.readdirSync(dir, { recursive: true })
+		.filter(f => f.endsWith('.js') && f !== 'driver.iife.js')
+		.map(f => path.join(dir.pathname, f))
+		.concat(path.join(new URL('../', import.meta.url).pathname, 'index.html'));
+
+	const on = { button: new Map(), picker: new Map() };
+	for (const file of files) {
+		const src = fs.readFileSync(file, 'utf8');
+		for (const m of src.matchAll(/<(button|select|input)\b[^>]*?data-act="([a-z0-9-]+)"/g)) {
+			const kind = m[1] === 'button' ? 'button' : 'picker';
+			if (!on[kind].has(m[2])) on[kind].set(m[2], path.basename(file));
+		}
+	}
+	const shared = [...on.button.keys()].filter(a => on.picker.has(a));
+	assert.deepEqual(shared, [], shared.map(a =>
+		`"${a}" is a button in ${on.button.get(a)} and a select in ${on.picker.get(a)}`).join('; '));
+});
+
+test('the offline shell precaches every module the app imports', () => {
+	const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+	const shell = new Set([...sw.matchAll(/'(\/js\/[^']+\.js)'/g)].map(m => m[1]));
+	const dir = new URL('../js/', import.meta.url);
+	// Walk the import graph from the entry point rather than listing the
+	// folder: a module nothing imports is not the shell's problem.
+	// A static import, a re-export or a dynamic import(), each relative
+	// to the file it stands in -- the map's modules live a folder down.
+	const IMPORTS = /(?:import|export)\s*(?:\(\s*|(?:\{[^}]*\}|\*(?:\s+as\s+[\w$]+)?|[\w$]+(?:\s*,\s*\{[^}]*\})?)?\s*(?:from\s*)?)['"](\.\.?\/[^'"]+)['"]/g;
+	const seen = new Set();
+	const walk = name => {
+		if (seen.has(name)) return;
+		seen.add(name);
+		const src = fs.readFileSync(new URL(name, dir), 'utf8');
+		for (const m of src.matchAll(IMPORTS)) walk(path.posix.normalize(path.posix.join(path.posix.dirname(name), m[1])));
+	};
+	walk('boot.js');
+	const missing = [...seen].filter(n => !shell.has(`/js/${n}`));
+	assert.deepEqual(missing, [], `not precached: ${missing.join(', ')}`);
+});
+
+test('what only some visitors need is not in the page for all of them', () => {
+	// Two things used to be paid for on every load and used on almost
+	// none: the tour's library, which was a <script> in the head, and the
+	// water shader, which was a static import in ui.js while the setting
+	// that turns it on defaults to off. Both are fetched at the moment
+	// they are wanted now. The service worker still precaches them, so
+	// offline is unaffected -- this is about what the main thread parses
+	// before the first screen is drawn.
+	const page = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+	assert.doesNotMatch(page, /<script[^>]+driver\.iife\.js/, 'the tour library is back in the page for everyone');
+	assert.doesNotMatch(page, /<link[^>]+driver\.css/, 'and so is its stylesheet');
+
+	const ui = fs.readFileSync(new URL('../js/ui.js', import.meta.url), 'utf8');
+	assert.doesNotMatch(ui, /^import .*realistic-water-ripples/m, 'the shader is statically imported again');
+	assert.match(ui, /await import\('\.\/realistic-water-ripples\.js'\)/, 'and nothing fetches it on demand either');
+
+	// Both still belong to the offline shell.
+	const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+	for (const path of ['/js/driver.iife.js', '/css/driver.css', '/js/realistic-water-ripples.js']) {
+		assert.ok(sw.includes(`'${path}'`), `${path} fell out of the offline shell`);
 	}
 });

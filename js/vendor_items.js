@@ -16,12 +16,22 @@ export const items = {
 	"Blueprint: Cheongun's Figurehead": {"Exchange": ["Gangman, Cheongsa Island Wharf — 4x Sunset Coral Essence"]},
 	"Blueprint: Cheongun's Plating": {"Exchange": ["Gangman, Cheongsa Island Wharf — 4x Sunset Coral Essence"]},
 	// The yellow tier all comes off one sea monster. Lyngbakr's drop table
-	// is fourteen items and only these four feed a ship recipe, so the
-	// hunt cannot be aimed -- the other ten are Lyngbakr's Horn, Serni,
-	// Zulatia, Margoria and Coral Crystals, Claws of the Waves, Red Sea
-	// Monster Meat, Blue Whale Oil, Sea Monster's Bizarre Fang and the
-	// Moss-Covered Map. They are left out because nothing here consumes
-	// them; a build could never ask for one.
+	// is fourteen items and five of them matter here: these four, and the
+	// Horn below. The rest -- Serni, Zulatia, Margoria and Coral Crystals,
+	// Claws of the Waves, Red Sea Monster Meat, Blue Whale Oil, Sea
+	// Monster's Bizarre Fang and the Moss-Covered Map -- are left out
+	// because nothing here consumes them; a build could never ask for one.
+	//
+	// The Horn is the one worth knowing about. One of them buys a whole
+	// part's worth of a yellow material outright, which is the same
+	// 125 / 75 / 50 the recipes below ask for, and it skips the two
+	// Starlight reagents entirely: crafting that 125 Sturdy Coral Support
+	// instead wants 125 Lyngbakr's Bone and 250 reagents at 200 Crow
+	// Coins each. Three Horns is a part. A hundred and twenty-five
+	// separate crafts is the same part the long way round.
+	"Lyngbakr's Horn": {"Monster Drop": ["Lyngbakr, Lyngbakr Habitat"], "Exchange": [
+		"Choose one: 125x Sturdy Coral Support, 75x Raging Wave Plywood, or 50x Dormant Crimson Coral Adhesive"
+	]},
 	"Lyngbakr's Bone": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"], "Exchange": ["Crow Coin Exchange — trades for 8x Tidal Black Stone"]},
 	"Lyngbakr's Scale": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"], "Exchange": ["Crow Coin Exchange — trades for 12x Tidal Black Stone"]},
 	"Lyngbakr's Fluid": {"Monster Drop": ["Lyngbakr (one of fourteen things it drops)"], "Exchange": ["Crow Coin Exchange — trades for 20x Tidal Black Stone"]},
@@ -47,9 +57,11 @@ export const items = {
 	"Panokseon: Cheongun's Enhanced Sail": {"Crafting": ["Cheongsa Ship Part Workshop, Cheongsa Island"]},
 	"Panokseon: Cheongun's Enhanced Figurehead": {"Crafting": ["Cheongsa Ship Part Workshop, Cheongsa Island"]},
 	"Panokseon: Cheongun's Enhanced Plating": {"Crafting": ["Cheongsa Ship Part Workshop, Cheongsa Island"]},
-	"Sturdy Coral Support": {"Processing": ["Manufacture"]},
-	"Raging Wave Plywood": {"Processing": ["Manufacture"]},
-	"Dormant Crimson Coral Adhesive": {"Processing": ["Simple Alchemy"]},
+	// Craftable, but rarely the cheap way: one Lyngbakr's Horn is worth
+	// a whole part's supply of any one of these.
+	"Sturdy Coral Support": {"Processing": ["Manufacture"], "Exchange": ["125x for 1x Lyngbakr's Horn"]},
+	"Raging Wave Plywood": {"Processing": ["Manufacture"], "Exchange": ["75x for 1x Lyngbakr's Horn"]},
+	"Dormant Crimson Coral Adhesive": {"Processing": ["Simple Alchemy"], "Exchange": ["50x for 1x Lyngbakr's Horn"]},
 	"Sunset Tidal Black Stone": {"Processing": ["Heating (Processing L)"]},
 
 	"Gold Bar 1,000G": {
@@ -102,9 +114,9 @@ export const items = {
 	"Sea Monster's Ooze": {
 		"Monster Drop": ["Hekaru", "Ocean Stalker"]
 	},
-	"Graphite Ingot for Upgrade": {"Quest Reward": ["Ravinia's Wiggly-Waggly Letter"]},
-	"Timber for Upgrade": {"Quest Reward": ["Ravinia's Wiggly-Waggly Letter"]},
-	"Adhesive for Upgrade": {"Quest Reward": ["Ravinia's Wiggly-Waggly Letter"]},
+	"Graphite Ingot for Upgrade": {"Quest Reward": ["Ravinia's Wiggly-Waggly Letter (25x)"]},
+	"Timber for Upgrade": {"Quest Reward": ["Ravinia's Wiggly-Waggly Letter (25x)"]},
+	"Adhesive for Upgrade": {"Quest Reward": ["Ravinia's Wiggly-Waggly Letter (25x)"]},
 
 	"Zinc Ingot": {"Market": ["Central Market"], "Processing": ["Melting Zinc Ore"]},
 	"Old Tree Bark": {"Market": ["Central Market"], "Gathering": ["Worker Nodes"]},
@@ -114,6 +126,20 @@ export const items = {
 	"Elder Tree Sap": {"Market": ["Central Market"], "Gathering": ["Worker Nodes"]},
 
 	"Standardized Timber Square": {"Market": ["Central Market"], "Processing": ["Chopping Log"]},
+	// What the small craft are built from: everyday land materials the
+	// Market sells, or a worker makes.
+	"Palm Plywood": {"Market": ["Central Market"], "Processing": ["Chopping Palm Plank"]},
+	"Usable Scantling": {"Market": ["Central Market"], "Processing": ["Chopping Log"]},
+	"Ash Plywood": {"Market": ["Central Market"], "Processing": ["Chopping Ash Plank"]},
+	"Fir Plywood": {"Market": ["Central Market"], "Processing": ["Chopping Fir Plank"]},
+	"White Cedar Plywood": {"Market": ["Central Market"], "Processing": ["Chopping White Cedar Plank"]},
+	"Lead Ingot": {"Market": ["Central Market"], "Processing": ["Heating Melted Lead Shard"]},
+	"Iron Ingot": {"Market": ["Central Market"], "Processing": ["Heating Melted Iron Shard"]},
+	"Brass Ingot": {"Market": ["Central Market"], "Processing": ["Heating Melted Copper and Zinc Shards"]},
+	"Ash Sap": {"Market": ["Central Market"], "Gathering": ["Ash trees, with a fluid collector"]},
+	"Cedar Sap": {"Market": ["Central Market"], "Gathering": ["Cedar trees, with a fluid collector"]},
+	"Log": {"Market": ["Central Market"], "Gathering": ["Any tree, with an axe"]},
+	"Black Stone Powder": {"Market": ["Central Market"], "Processing": ["Grinding rough stone or crystals"]},
 	"Steel": {"Market": ["Central Market"], "Processing": ["Heating Iron"]},
 	"Pine Plywood": {"Market": ["Central Market"], "Processing": ["Chopping Pine Timber"]},
 	"Flax Fabric": {
@@ -141,18 +167,39 @@ export const items = {
 	"Enhanced Island Tree Coated Plywood": {"Quest Reward": ["Daily: For the Serendian Soldiers (10x)"], "Monster Drop": ["Sea Monsters"]},
 	"Pure Pearl Crystal": {"Quest Reward": ["Daily: Ravikel's Test (2x)"], "Monster Drop": ["Sea Monsters"]},
 	"Cox Pirates' Artifact (Parley Expert)": {"Quest Reward": ["Daily: For the Serendian Soldiers (1x)"]},
-	"Cox Pirates' Artifact (Combat)": {"Quest Reward": ["Weekly: Old Moon Guild's Black Rust Hunter (6x)", "Daily: Do You Have What it Takes? (3x)", "Weekly: Monster Increase Report (2x)"], "Monster Drop": ["Cox Pirates' Shadow Ghost"], "Exchange": ["Cox Pirates Extermination Seal (200x)"]},
+	"Cox Pirates' Artifact (Combat)": {"Quest Reward": ["Weekly: Old Moon Guild's Black Rust Hunter (6x)", "Daily: Do You Have What it Takes? (3x)", "Weekly: Monster Increase Report (2x)"], "Monster Drop": ["Cox Pirates' Shadow Ghost"], "Processing": ["Simple Alchemy on 200 Cox Pirates Extermination Seals", "Simple Alchemy on 10 Cox Pirates' Broken Cannons"]},
 	"Deep Sea Memory Filled Glue": {"Quest Reward": ["Daily: Ravikel's Test (8x)"], "Monster Drop": ["Young Ocean Stalker"]},
 	"Brilliant Pearl Shard": {"Monster Drop": ["Candidum", "Nineshark"]},
 	"Ruddy Manganese Nodule": {"Quest Reward": ["Weekly: Old Moon Guild's Candidum Hunter (4x)", "Daily: For the Young Otter Merchants (2x)"], "Monster Drop": ["Suspicious Cargo Ship"]},
-	"Tear of the Ocean": {"Quest Reward": ["Weekly: Old Moon Guild's Nineshark Hunter (2x)", "Daily: Old Moon Guild's Black Rust Hunter (1x)", "Daily: Old Moon Guild's Young Sea Monster Hunter (1x)"]},
-	"Tide-Dyed Standardized Timber Square": {"Quest Reward": ["Daily: Our Guild is not a Charity Group (5x)"], "Monster Drop": ["Cox Pirates' Shadow Ghost"]},
-	"Deep Tide-Dyed Standardized Timber Square": {"Quest Reward": ["Daily: Win-win Situation (4x)"], "Monster Drop": ["Cox Pirates' Shadow Ghost"]},
+	"Tear of the Ocean": {"Quest Reward": ["Weekly: Old Moon Guild's Nineshark Hunter (2x)", "Daily: Old Moon Guild's Black Rust Hunter (1x)", "Daily: Old Moon Guild's Young Sea Monster Hunter (1x)"], "Processing": ["Simple Alchemy on 2 Abyssal Gem"]},
+	"Tide-Dyed Standardized Timber Square": {"Quest Reward": ["Daily: Our Guild is not a Charity Group (5x)"], "Monster Drop": ["Cox Pirates' Shadow Ghost"], "Processing": ["Chopping one Wrecked Phantom Ship's Debris"]},
+	"Deep Tide-Dyed Standardized Timber Square": {"Quest Reward": ["Daily: Win-win Situation (4x)"], "Monster Drop": ["Cox Pirates' Shadow Ghost"], "Processing": ["Chopping one Usable Pirate Ship's Remains"]},
+	// One tendon or scale dries into ten, which is why the plan counts
+	// them in crafts of ten (recipes.js `yields`).
 	"Moon Vein Flax Fabric": {
 		"Quest Reward": ["Daily: Old Moon Guild's Nineshark Hunter (3x)", "Daily: Old Moon Guild's Young Sea Monster Hunter (3x)"],
-		"Processing": ["Drying Khan's Tendon (10x)"]
+		"Processing": ["Drying one Khan's Tendon makes 10"]
 	},
-	"Moon Scale Plywood": {"Quest Reward": ["Daily: Old Moon Guild's Candidum Hunter (10x)", "Daily: Old Moon Guild's Young Sea Monster Hunter (10x)"], "Processing": ["Drying Khan's Scale (10x)"]},
+	"Moon Scale Plywood": {"Quest Reward": ["Daily: Old Moon Guild's Candidum Hunter (10x)", "Daily: Old Moon Guild's Young Sea Monster Hunter (10x)"], "Processing": ["Drying one Khan's Scale makes 10"]},
+
+	// The trophies those process from. All three of the Shadow Ghost's
+	// are read off its codex drop table (npc 28834, 2026-09-07): the
+	// Debris and the Broken Cannon at about one in a hundred, the
+	// Remains at one in a thousand. The seals are what the Cox camps,
+	// flags and cargo ships on the map pay out, and what seven [Level 3]
+	// goods barter for. Khan's two are sold for Crow Coins as well as
+	// dropped, and bartered for at the same [Level 5] rungs their
+	// products are. The Abyssal Gem has no live source: the codex lists
+	// no drop, quest or vendor for it today -- it was the reward of a
+	// Young Black Rust Hunter daily that no longer exists -- so it is
+	// here for the tooltip's sake, and for anyone with some left over.
+	"Usable Pirate Ship's Remains": {"Monster Drop": ["Cox Pirates' Shadow Ghost (rare)"]},
+	"Wrecked Phantom Ship's Debris": {"Monster Drop": ["Cox Pirates' Shadow Ghost"]},
+	"Cox Pirates' Broken Cannon": {"Monster Drop": ["Cox Pirates' Shadow Ghost"]},
+	"Cox Pirates Extermination Seal": {"Monster Drop": ["Cox Pirates' camp", "Cox Pirates' flag", "Cox Pirates' cargo ship"]},
+	"Khan's Tendon": {"Purchase": ["Crow Coin Shop (400 Crow Coins)"], "Monster Drop": ["Khan"], "Exchange": ["A barterer, for a [Level 5] Statue's Tear or Supreme Gold Candlestick"]},
+	"Khan's Scale": {"Purchase": ["Crow Coin Shop (160 Crow Coins)"], "Monster Drop": ["Khan"], "Exchange": ["A barterer, for a [Level 5] Faded Gold Dragon Figurine or Stuffed White Caterpillar"]},
+	"Abyssal Gem": {"Quest Reward": ["Nothing pays it today; it was the retired Young Black Rust Hunter daily's reward"]},
 	"Tidal Black Stone": {"Monster Drop": ["Great Ocean Sea Creatures (1-50x)"], "Quest Reward": ["Ravinia's Wiggly-Waggly Letter (10x)"]},
 
 	// ===== Epheria Carrack Chiro's parts (blue) and their materials =====
@@ -205,6 +252,44 @@ export const items = {
 	"Violent Sea Monster's Bone": {"Monster Drop": ["Great Ocean Sea Monsters"]},
 	"Violent Sea Monster's Ooze": {"Monster Drop": ["Great Ocean Sea Monsters"]},
 	"Saltwater Crocodile's Scale": {"Monster Drop": ["Saltwater Crocodile (Great Ocean)"]},
-	"Starlight Hardener": {"Purchase": ["Crow Coin Shop (250 Crow Coins)"]},
-	"Starlight Emulsifier": {"Purchase": ["Crow Coin Shop (250 Crow Coins)"]},
+	"Starlight Hardener": {"Purchase": ["Crow Coin Shop (200 Crow Coins)"]},
+	"Starlight Emulsifier": {"Purchase": ["Crow Coin Shop (200 Crow Coins)"]},
+};
+
+/**
+ * One thing that buys a great many of another.
+ *
+ * These do not fit the recipe book, which makes one unit at a time: a
+ * Lyngbakr's Horn is not an ingredient of a Sturdy Coral Support, it is
+ * a hundred and twenty-five of them at once. Recorded separately so the
+ * To Get screen can put the two ways side by side, which is the whole
+ * point -- the numbers are not close. One Horn is exactly one part's
+ * worth, where crafting the same 125 wants 125 Lyngbakr's Bone and 250
+ * Starlight reagents at 200 Crow Coins each.
+ *
+ * From the 2026-08-27 patch: "Lyngbakr's Horn can be exchanged for
+ * materials used to craft yellow-grade ship parts for an Epheria
+ * Carrack and Panokseon. Choose 1 from the following."
+ */
+export const bulkExchanges = {
+	"Sturdy Coral Support": { give: "Lyngbakr's Horn", gets: 125 },
+	"Raging Wave Plywood": { give: "Lyngbakr's Horn", gets: 75 },
+	"Dormant Crimson Coral Adhesive": { give: "Lyngbakr's Horn", gets: 50 }
+};
+
+/**
+ * Mass Process, for the recipes that allow it: ten crafts in one go,
+ * plus one Black Stone Powder for the batch. The powder is the only
+ * material difference, so the plan does not assume it -- but recording
+ * a craft made that way must spend it, or the powder drifts.
+ */
+export const massProcess = {
+	// The blue trio's batch recipes are on the codex (mrecipes 2400-2402):
+	// ten of each material and one powder for ten.
+	"Violent Wave Plywood": { extra: "Black Stone Powder", batch: 10 },
+	"Delicately Polished Support": { extra: "Black Stone Powder", batch: 10 },
+	"Wave Residue Adhesive": { extra: "Black Stone Powder", batch: 10 },
+	"Sturdy Coral Support": { extra: "Black Stone Powder", batch: 10 },
+	"Raging Wave Plywood": { extra: "Black Stone Powder", batch: 10 },
+	"Dormant Crimson Coral Adhesive": { extra: "Black Stone Powder", batch: 10 }
 };

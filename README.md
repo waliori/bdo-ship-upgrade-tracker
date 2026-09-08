@@ -11,11 +11,18 @@ opt-in, self-hosted and off by default.
 
 ![The Plan screen, part-way through two Carrack parts](docs/media/hero.png)
 
-**In a hurry?** [Watch the two-minute walkthrough](docs/media/walkthrough.mp4)
-— queue a build, choose how to get there, record what you gathered, make
-something, and take the list shopping. It is the real app, captioned, and
-there is a [narrower cut for a phone](docs/media/walkthrough-phone.mp4).
-Both play inside the app too, under **Help**.
+**In a hurry?** [Watch the walkthrough](docs/media/walkthrough.mp4) — the
+yard first: queue a build, choose how to get there, record what you
+gathered, make something, see what it will really cost, take the list
+shopping. Then the sea: the day's free quests, the ship you sail it in,
+the chart, where that list becomes a loop with minutes on it and a
+blank stretch of water can be drawn on, a run planned on today's board
+and sailed on that chart — and the harbour at the end, where the boards
+are. It is the real app, driven and captioned; the only invented thing
+in it is the handful of sailors on those boards, since a machine
+shooting a clip has no deployment with players on it. There is a
+[narrower cut for a phone](docs/media/walkthrough-phone.mp4). Both play
+inside the app too, under **Help**.
 
 ---
 
@@ -60,13 +67,19 @@ drops one, which is why Cron Stones are part of what an attempt there
 costs. Record **Succeeded** or **Failed** and the materials come off your
 stock either way.
 
+Below the yellow tier an attempt takes a **failstack** too. The game
+publishes no per-stack figure for ship parts, so the Workshop assumes
+the standard line — a tenth of the base rate a stack, capped at 90% —
+and says so; blank means the quoted rate.
+
 ![Crafting a batch of 40](docs/media/craft.gif)
 
 ### 4. Take the list shopping
 
 Everything still missing, grouped by how you actually obtain it — Crow
 Coin Shop, Falasi's silver, barter, worker nodes, hunting — with running
-totals measured against what's in your purse.
+totals measured against what's in your purse. The list copies as text
+or as CSV, and prints legibly on white.
 
 ![The To Get screen](docs/media/to-get.png)
 
@@ -143,14 +156,311 @@ can be both made and bought, you choose, and the plan follows.
 
 - **Undo** on every change, and a one-line **Next** banner that tells you
   the single most useful thing to do right now.
+- **Sort** the Plan and the Inventory by shortfall, need, what you own or
+  name; **search** on every list, the Workshop and the shopping list too.
+- **The address bar knows where you are** — the tab, and the item you
+  have open — so a place survives a reload and travels in a link, and
+  Back retraces your steps.
+- **Start fresh** clears everything behind a confirmation, and **Import**
+  asks whether to replace what you have or merge the file in, keeping the
+  higher count of anything counted twice. Exports are dated.
+- Quantities read the way your browser writes them: `12.000` is twelve
+  thousand on a German machine and twelve on an English one.
 - **Your purse** — Crow Coins, silver, Sangpyeong Coins and enhancement
   stones ride along above every tab, since you spend them from every tab.
-- **Export / Import** a JSON backup to move between machines.
-- **A guided tour** that demonstrates on example data, then hands your
-  own data back untouched, and a **Help** film of the whole thing end to
-  end for when you would rather just watch.
-- Works on a phone; the water shader is optional (`≈ Water` in the
-  header).
+- **Export / Import** a JSON backup to move between machines — or
+  **a link**: the plan rides in the address, gzipped and slimmed of the
+  diaries, to look at on any browser without saving, or to merge or
+  take in; the export says how long the link is and warns when a chat
+  would cut it. An import names the items this version does not know
+  before it asks whether to replace or merge.
+- **A save that cannot be written** — the browser's storage full, or
+  refusing — is said out loud, with *Export now* beside it, rather than
+  lost quietly; a save that will not parse is copied aside and offered
+  back as a file before anything is written over it.
+- **What's new**, a release's worth of notes with a picture each, shown
+  once to a browser that has seen an older version and reachable any
+  time from the *Menu*. The same notes are [`CHANGELOG.md`](CHANGELOG.md).
+  Neither it nor the tour interrupts someone who arrived on a shared
+  link — they came to see that one thing.
+- **A guided tour** that walks every section on example data, pointing
+  at each thing on your own screen, then hands your own data back
+  untouched — and reads a phone, where it points at the bar at the thumb
+  and the menu behind it. Alongside it a **Help** film
+  of the whole thing end to end, for when you would rather just watch.
+  Help also lists **what changed** and **when each dataset was last
+  checked**.
+- **One way round.** Every section sits in a dock across the top of a
+  wide screen, the icon over the name, all of them at once; on a phone
+  four sit at the thumb and the last slot opens the menu. That **Menu**
+  — the masthead's on a wide screen, `M` on the keyboard — is the one
+  menu the app has: every section, Find, the trip log, Undo and Redo,
+  your save, the help and the settings, as a drawer at the right or a
+  sheet at the thumb.
+- **Find** anything with `Ctrl+K` (or `/` on its own): an item opens in
+  the Inventory's panel, a tab opens. The digits `1`–`9` switch tabs,
+  `0` the tenth.
+  Every choice the app asks for — a hull, a part and its level, a
+  sailor type, the rewards to narrow the quests to, an item a trip
+  brought back — goes through one picker: rows with a picture, a fact
+  beside the name, a search box that ranks a name starting with your
+  letters first, the keyboard, and ticks where several are wanted.
+- **The masthead** keeps Find, Log a trip, Undo, Redo and the Menu,
+  which holds Profiles, Export, Import, Help, Tour, What's new,
+  Feedback, the theme, the water and Start fresh. The sections sit in
+  three groups: the yard, where a build is planned and made, the sea,
+  and the harbour. Each tab keeps the search typed on it.
+- **Log a trip**: everything you brought back, in one box, as one
+  undoable change.
+- **Where it is**: an item's count is what is in your bags plus every
+  storage you have noted it at — Velia, the ship's hold, wherever — so a
+  number typed at a place moves the total, and a total typed lower comes
+  off the places.
+- **Profiles**: separate saves on one browser for an alt or a what-if;
+  sync mirrors the main one only. The Map's routes and traces and the
+  Barter tab's board and run belong to the profile too, so they export,
+  sync and switch with it.
+- **Look-ups in your language**: Help lets you pick the BDOCodex locale
+  every item link opens in (French, German, Korean and nine more).
+- Works on a phone — a tap on a row or a chip shows the hover card, a
+  second tap puts it away, and a phone on its side is still a phone;
+  the water shader is optional (`≈ Water` under the Menu), and so is a
+  light theme (`Theme` there: dark, light, or as the system has it).
+  Offline it runs from a snapshot of the last deploy, never a mixture
+  of two.
+
+---
+
+## The day itself
+
+The yard is where a build is planned and made. The rest of the game
+happens at sea, and the last four tabs are about that: the quests it
+hands out, the ship you sail, the chart you sail it on, and the run
+you plan on today's board.
+
+### What today can do about it
+
+The plan says what is left; the **Today** strip on the Plan says what
+today can do about it: the quests still open that pay in something on
+your list, how long until the dailies, the weeklies and the barter
+refill reset (00:00 UTC, Thursday 00:00 UTC and 06:00 UTC), when
+**Vell** is next up on your servers — the EU and NA timetables as of
+2026‑08‑30, correctable in place, with a reminder a quarter of an hour
+before while the tab is open — and the **pace** each build has been
+moving at, with the finish that pace implies. The pace is a diary kept
+in this browser, not part of the save.
+
+With a key pair configured (see below) the Vell reminder reaches a
+phone with the tab closed; without one it fires while the tab is open.
+
+### Quests: what the sea hands out free
+
+![Ticking two quests and finishing them together](docs/media/claim-a-quest.gif)
+
+**Quests** are a checklist. Claiming a reward puts it in stock and
+ticks the quest for the day or the week it counts for; the tick wears
+off at the reset by itself. A pick-one reward is remembered, so the
+next claim takes the same one in a single press (an *other reward…*
+link is there for the day you change your mind). Tick several quests
+and **Finish** them together as one undoable change — the ones whose
+choice is not yet known ask, the rest go through — and keep a set you
+run every day as a named **group** (one click ticks it) or **star** the
+ones that matter. Filter to what is still to do, what is done, what
+pays in something your plan still wants, your favourites, or one reward
+in particular — the ones on your own list are offered first; every
+quest's name opens its BDOCodex page. Ravinia's log shows how many of
+its letters you have recorded.
+
+### One ship, every tab
+
+![A Carrack with two of its parts on; typing in the Sailing Mastery moves every number](docs/media/fit-a-ship.gif)
+
+The **Ship** screen opens on the ship as a card — and keeps **setups**:
+a hull with its parts, crystal and seating under a name, to switch
+between here or from the Map's route timing (the crew roster itself is
+shared). Your **Sailing Mastery** goes in beside it and counts toward
+speed, acceleration, turn and brake the way the game's table has it.
+
+The screen fits the hull out as five slot cards — the four parts and
+the **sea crystal**, every one of the codex's 287 variants from Eltro to
+Rusalka plus Ebenruth's Nol and the Oceanteared Nol, chosen by grade
+with its effect beside the name and added to the hull's numbers: each
+slot takes the best part you hold by itself, or one you choose — a part
+you own but have not recorded, or a plan you are weighing, marked as
+such, and recorded in your inventory with one press. The roster can be
+ticked for a bulk recover, disembark or dismiss, and the hull, its
+parts and its crew travel in a link of their own.
+
+From that one setup follow the speed the Map times a route at, the hold
+a run can carry once the crew's own weight is aboard, and the "Your
+ship" tile on the Plan.
+
+![Copy link on the Ship tab; opened on an empty save, the link lists the parts and one press makes the ship yours](docs/media/share-a-ship.gif)
+
+**Your build in a link.** *Copy link* on the ship card carries the
+hull, its four parts, the crystal, the roster and the seating in one
+address. Opened at the other end it says whose ship it is and what is
+on it, marks each part the reader already holds, and offers *Make it my
+ship* — or queues the missing parts as builds, so the Plan prices the
+way to it. Looking costs nothing; taking it is one change, and one Undo
+takes it back.
+
+**Sailors' real numbers.** Growth is a hidden random range per sailor,
+so the type's figures are averages. The Ship screen lets you type what
+the sailor window shows for each stat, and everything downstream — the
+hull's speed, the route's minutes — follows the typed number.
+
+### The chart, and what it draws
+
+![The Map, with a pin for every barterer holding something on the list](docs/media/map.png)
+
+**What the chart draws** is one strip of switches — *On the chart* —
+above the panel's tabs rather than inside any of them, since it is the
+same question whichever tab is open: barterers, habitats, wharves,
+guild wharves, island names, traced routes. It folds away when it is in
+the road, and a phone starts with it folded. The five tabs are named
+for what they do: **Barter** (who has what you are short of),
+**Route** (plot the loop), **Draw**, **Grounds** (monsters and
+community courses) and **Today**; the side panel sits on whichever side
+you like.
+
+The chart draws the game's own **habitat markers** — each species'
+picture from the codex at the centre of its grounds, "Hekaru Habitat",
+"Young Sea Monster Habitat" — which are also in the *Showing* picker.
+Every spawn point is kept to open water — the codex draws a region's
+spawns as a grid that runs straight over islands — and each marker
+stands at the centre of a species' spawn cluster, on the water; markers
+that would print on top of one another at a given zoom share one
+picture with a count. The Lyngbakr Habitat of the 27 August 2026 patch
+is twelve positions bookmarked on the game's own map, north of the
+crocodiles' old ground (the Nineshark and Black Rust spawns the codex
+still lists in that old ground are left out), and the crocodiles' new
+ground is placed off the game map's icon north-north-west of Cheongsa
+Island, roughly, until the codex carries it. Two community maps are on
+the chart too, fitted to it on their island names: Awabi's *Road to
+Cox* — the Cox Pirates' camps (six to eight seals), flags and cargo
+ships, a group of their own on the Grounds tab — and Vell's waters from
+gpw's ocean map. The chart can also draw all 58 **wharf managers**
+(repair, rations, sailors) and guild wharves, named by harbour, and
+**island names** faintly once it is close enough to read them. The
+chart's `⇩` keeps the area in view offline — its tiles and one zoom
+level either side, up to 400 of them — in a store the service worker's
+tidying never touches, until `⌫` lets them go.
+
+### Plot the loop, and know how long it takes
+
+![Plotting a barter loop; every leg gets a distance and a time](docs/media/chart-the-loop.gif)
+
+**Routes** say how long. Every leg on the Map's Route tab carries its
+length and the minutes it takes at the speed that ship actually makes
+— hull, parts and sail seats — over the line as it is bent round the
+land. What 100% is in metres the game never says, so every time is a
+range: a fifth either way around the chart's 11 m/s estimate, a tenth
+either way once you have timed one leg and told it. A leg sailed
+overweight is slowed — the game gives no curve, so the chart takes a
+straight line from full speed at the limit to half at the overload
+cap, says so on the leg, and the total follows. A leg the router
+cannot bend round the land is drawn straight, dashed in red, and named
+in the panel as a floor rather than a reading. The **Rations** line
+does the same for the pool: what the run eats of it and what is left,
+from the crew's appetite and an estimated drain under sail (6,000 a
+minute, replaceable by watching the pool over one leg), and when it
+would run below a tenth before the end, the stop it runs low after and
+the nearest wharf manager to call at, put into the run at one press.
+Parley is costed at
+one trade a stop or at every attempt the offer allows; the stops past
+what your bar covers are marked and a button trims to them. The trade
+goods aboard — the hold and the bags, not a harbour's storage — are
+read against what each stop hands over. Eight routes are kept by name
+and never dropped unasked (a ninth asks which makes room), a replaced
+route is kept as the previous one in a slot of its own, a route
+travels in a link, and a ruler (`⟷`) measures any two points on the
+sea, with the game's own coordinates under the pointer. The Route tab
+names the nearest wharf to the last stop.
+
+### Draw a route the list cannot express
+
+![Three stops, a freehand line and a word, drawn straight onto the sea](docs/media/draw-a-route.gif)
+
+The **Draw** tab is for routes the barter list cannot express: pick
+*Add stops* and click the sea, *Draw* and drag a line, or *Write* and
+type a word straight onto the water — every point is a place on the
+chart, so it all zooms and pans with the tiles. There are eight inks,
+three pen widths and three sizes of writing, and while the tab is open
+the chart's own markers stop answering, so a line can be drawn across a
+barterer without opening his trades. Undo walks back through stops,
+strokes and words in the order they were made, and a stop or a word
+already down is dragged where it belongs — a word tapped rather than
+carried opens to be retyped. Each stop takes a note; a trace is kept by
+name, travels in a `#trace/` link or a JSON file, and its stops go into
+the game's world map like a route's — with the written words as extra
+favourites. Legs are **bent round the land** by the same router the
+barter route uses — two stops with an island between them are not a
+straight line — and a stop clicked onto a headland steps off it,
+because a stop is a place a hull can float; *Straight legs* turns the
+routing off.
+
+![A drawing named and copied as a link; opened on another save, the chart flies to it](docs/media/share-a-drawing.gif)
+
+**A drawing in a link.** *Copy link* puts the whole trace — stops,
+notes, line and words — into one address, and whoever opens it gets the
+chart flown to the drawing, on any browser, with nothing of their own
+touched. The link carries the drawing itself, not a pointer to it, so
+it works for someone who has never opened the app before; a trace taken
+in this way is on the water like one drawn here, to draw on or keep.
+
+Up to twenty traces live on a shelf below, each drawn small with what
+it holds and when it was kept: open one to draw on it, rename it, copy
+a link to it, or open its **eye** to lay it over the chart beside
+whatever else you are drawing. The shelf keeps to the newest few and
+whatever is on the water; **Browse all** opens the library, which has
+the room for a search (names, notes and the words written on them), a
+sort, and every trace as a card.
+
+### A run on today's board
+
+![Answering what one island shows; the whole board follows, a run is laid out, and Sail this run draws it on the Map](docs/media/plan-a-run.gif)
+
+The trade-goods barters are not rolled island by island: every refresh
+the whole sea shows one of forty fixed layouts, which a community
+record of nearly two thousand refreshes writes out island by island. So
+the **Barter** tab asks what *one* island is showing — tap it from that
+island's possible offers, the one that tells the layouts apart best is
+suggested — and the whole board follows: every chain the day allows,
+listed by how far it reaches and what it pays, and the ones ticked are
+one run. The hold is what is actually aboard, weighed against the ship
+as fitted and the ceiling the islands still deal under; the sailing
+orders say what the run is for, which levels a wharf sells and at what
+pace; and a strip along the foot keeps the run in a line. *Lay it out*
+opens every stop, what to buy before casting off and the quests handed
+in on the way; *Sail this run* draws it on the Map, where the chart's
+panel becomes the run sheet and each stop is ticked off as it is dealt.
+*Record the trip* at the end puts the whole of it in the Inventory as
+one undoable change. The details — the material run, the three paces,
+the quests that come along, the wharf calls — are under
+[What's covered](#whats-covered).
+
+### The harbour
+
+![A place on a board opens that sailor's card, and the card stands the Ship tab up on their boat](docs/media/the-boards.gif)
+
+Where the deployment has sign-in there is a **Community** tab: sixteen
+boards drawn from the sailors who chose to be on them — mastery, the
+best ship, the best sailor, the most silver from runs, the most sea
+monsters hunted, the luckiest at the anvil — and the whole fleet added
+up, hull by hull and island by island. A place on a board is a door: it
+opens that sailor's card, and the card stands the **Ship tab up on
+their boat**, fully fitted and crewed, to look at and not to keep, one
+press back to yours.
+
+Taking part is a choice made once, by name or as an unnamed sailor, and
+you are shown the digest that would be published before you agree. What
+is shared, what never is, and how to turn any of it on are under
+[The community boards](#the-community-boards).
+
+*The sailors in that clip are invented — this project runs no public
+deployment to film. The tab, the digest and the ranking are the app's
+own, working on a fleet that does not exist.*
 
 ---
 
@@ -167,6 +477,28 @@ Then open <http://localhost:8000>. Set `PORT` to use another port.
 
 `npm test` runs the suite: the sync API against a throwaway libSQL file,
 and the browser half driven in a real Chrome.
+
+`/healthz` answers with whether the database is reachable, how many
+saves are waiting to be flushed, the running version and request
+counters — `200` when all is well, `503` when a configured database is
+down. The container's health check reads it. Every non-static request
+is logged as one JSON line (`LOG_REQUESTS=0` turns that off).
+
+`npm run backup [file]` dumps every table to JSON and `npm run restore
+<file>` puts them back, upserting; stop the server first, since the
+copies it holds in memory would otherwise win.
+
+`node tools/build-shell.mjs` rewrites the service worker's precache
+list from the import graph; the test suite refuses a module left out.
+
+`node tools/build-changelog.mjs` rewrites [`CHANGELOG.md`](CHANGELOG.md)
+from the release notes in `js/about.js` — the same ones the app shows
+under **Menu → What's new**; the suite fails if the file is stale.
+
+`npm run capture` re-shoots every picture and clip in this README, and
+both cuts of the film, by driving the real app in a headless Chrome —
+so a screen that changes never leaves the documentation quietly lying
+about it. See [`tools/capture/README.md`](tools/capture/README.md).
 
 ### Docker
 
@@ -191,7 +523,30 @@ needs `--env-file .env`. Neither is required to run the tracker itself
 
 **Ships** — Epheria Sailboat, Improved Epheria Sailboat, Epheria Caravel,
 Epheria Frigate, Improved Epheria Frigate, Epheria Galleass, Carrack
-(Advance / Balance / Volante / Valor), Panokseon.
+(Advance / Balance / Volante / Valor), Panokseon — and the small craft:
+the Epheria Cog by either of its two designs (Falasi's permit and land
+materials, or the Fallen Vell Pirates' four bartered ones), the three
+rowboats and the Raft.
+
+**What each hull is** — durability, rations, weight limit, inventory,
+cabin space, sailor seats, cannons and reload, and the four movement
+percentages, read off each hull's codex page. The Builds screen shows the
+line under every ship; the **Ship** screen shows the lot.
+
+**What each part does** — the equip effect of all 72 enhanceable parts at
+every level from +0 to +10: speed, acceleration, turning, braking, DP,
+damage reduction, weight, rations, durability, cannon damage and reload.
+The Workshop says what the next level adds beside every attempt, the hover
+card says what a part does at the level you hold, and the Ship screen
+sums the best part you own in each slot onto the hull — the answer to
+"is +8 worth it" in the game's own numbers.
+
+**The crew** — the twenty sailor types with their race, cabin cost,
+appetite, weight and per-level growth, and where each is hired; the seven
+positions and what each doubles; condition and sickness and what mends
+them; the experience split; the three first mates; where the sailor slots
+come from. Plan a crew against a hull's seats and cabin space, see the
+contracts priced, and put the certificates on the shopping list.
 
 **Carrack parts** — all 16 of the craftable Chiro parts (Advance,
 Balance, Volante and Valor × cannon, sail, figurehead and black plating),
@@ -216,6 +571,22 @@ alone, because the notes write one recipe for all four Carrack variants
 and leave it open whether the Chiro part has to match. It does: an
 Advance Falasi cannon takes an Advance Chiro cannon and an Advance permit.
 
+**Free from quests.** Ravinia's Ship Upgrade Log — fifty of each Upgrade
+material and twenty Tidal Black Stones over its seven days — and the Old
+Moon Guild's dailies and weeklies, the soldier's dailies at Oquilla's Eye
+and the supply runs, with their exact rewards. The shopping list puts the
+ones that pay in what you are short of first, and one press records a
+claimed reward in your stock.
+
+**The Market.** What Falasi and the Crow Coin Shop sell is priced from
+their lists; what only the Central Market sells — plywood, ingots, saps —
+is priced from the Market itself, per region, relayed by the server from
+the community market API and remembered so the plan stays priced offline.
+The shopping list says how old the numbers are and lets you ask again.
+
+**Mass Process** can be ticked when recording a craft of the yellow
+materials, so the Black Stone Powder it takes leaves your stock too.
+
 **What enhancement really costs.** Every enhanceable part carries its real
 per-level success rates, and the Agris Essence pity caps that guarantee an
 attempt after enough failures. So the plan budgets what the climb will
@@ -232,6 +603,123 @@ the last success reset. Compounded over ten levels that runs to around
 52 million Sunset Tidal Black Stones, which is why Cron Stones are
 counted as part of what an attempt costs rather than as an optional
 extra. Protected, the same climb is about 72 stones and 30,000 Cron.
+
+A yellow row in the Workshop has three buttons, not two: **Failed — no
+Crons** records the attempt that was made unprotected, spending the stone
+and dropping the part a level. And because the yellow rates scale with
+the failstack you bring, you can type yours in and every yellow forecast
+follows it; blank means the stack the quoted rates assume. Each row also
+keeps score — attempts won, attempts lost, stones spent — from the undo
+history.
+
+**Bartering** — the whole barter table as it stands: 91 barterers and
+4,397 exchanges across Levels 1 to 7, including the ten coastal barterers
+the April 2026 patch added (Olvia Coast, Arehaza, the Epheria and
+Sanctuary outposts, Sausan, Dallae Pier, Haemo, Grándiha, Starry Midnight
+Port and Crow's Nest), on a chart that reaches their shores. Every barter
+line says what the exchange hands over and what those goods would have
+sold for; the Route tab says how many goods of each level your hull holds
+per run; a route can be exported as a small JSON file and imported again,
+or written straight into the game's world map: **Put it on the game's
+map** hands you the `<WorldMapQuickScreenPosition>` block for
+`Documents\Black Desert\UserCache\<account>\gameVariable.xml`, the
+stops numbered in sailing order as Favorites (five, with the next ten on
+the map's camera slots), each with a locate button in game. The game
+caps Favorites at five, so a longer route can instead be written as one
+of the map's three navigation loops, which is a list rather than a set
+of slots and holds every stop in order. It is one or the other, never
+both — whichever you do not write is left exactly as it was, loops in
+the other slots included. The Grounds tab writes the same way: the
+courses and monster grounds you have ticked, several courses sailed as
+one run. The file reads back too: paste its favourites block, or a few
+lines of it, or open the file, and the bookmarks, camera slots and loops
+come onto the chart — as the route when their points sit on barterers
+(wharf calls included), as a kept trace otherwise. The chart itself can
+be put over the whole screen; on a phone that is the whole screen, in
+landscape.
+
+The material list is the run for **several materials at once**: tick
+the islands showing each material you are after, each with its own
+want, and one run sails for all of them -- one route through every
+island ticked, whatever each deals, in the shortest order from the
+harbour, a give kept at another harbour's storage loaded on the way
+with a wharf call before the island that needs it, and a choice between
+coming home once the wants are met and sailing every island ticked. The
+hold is the constraint: the gives weigh a thousand a piece and the
+materials nothing, so a run leaves heavy and comes home light, and the
+run's pace says what happens when every give does not fit at once. The
+*full* pace sails everything ticked -- what the run will not spend is
+left in storage to make room, the hold is loaded to the barter ceiling,
+and the run goes out in several departures, back to the harbour for the
+rest between them; the *fast* pace sails once, under the limit the ship
+still sails at full speed under, and lists what stays ashore. Before
+casting off, the run lists what it hands over that is not aboard yet:
+the Gold Bars a few islands take, bought ashore and priced; a give kept
+in a storage the run cannot load from, to bring to the harbour first;
+and, for what is held nowhere, the way to the item board.
+
+A run is sailed on the **Map**. *Sail this run* draws the route on the
+chart and the chart's panel becomes the run sheet: the numbered rail,
+each stop's trade and count, the hold and the Parley after it, the wharf
+calls with what is left in storage, the quests handed in, Done, and
+Record the trip at the end. A stop's name flies the chart to it; Done
+steps the chart on to the next; a pin pressed on the chart brings its
+stop up the sheet. The plotting tools fold under it. The Barter tab is
+where the run is chosen; the Map is where it is sailed.
+
+The silver run has three paces, compared in numbers under its tiles
+so the choice is made on silver, minutes and calls rather than on a
+word. *Fast* keeps the hold under the limit and makes no wharf call, so
+the hull never slows. *Full, never slower* does every attempt the
+islands allow and leaves the surplus at a wharf before the hull would
+slow — more calls, full speed. *Full, loaded* does every attempt and
+takes the hold up to the barter ceiling, a quarter over the limit, the
+hull sailing slower for it, and calls at a wharf only where the next
+island would not deal. Under every stop the hold reads as the game's
+Ship Info does — everything aboard, crew included, over the limit —
+and beside it the Parley bar counts down from what it holds now, priced
+at your barter level, a Crow's Trade Voucher drawn on where the bar
+cannot pay and its two-hour cooldown allows.
+
+The silver run has a way round among its orders. The shortest way
+climbs every chain ticked at once: one route through every rung, each
+still after the rung beneath it in its own chain, so the ship deals the
+nearest island it holds the give for whatever chain it belongs to --
+the [Level 1]s off the harbour, then the [Level 2]s. The chains go in
+lots, as many at once as the hold carries with every top keeping at
+least half its attempts, the tops sold before the next lot, and within
+a lot the hold is shared out before casting off. Chain after chain
+climbs each to its top before the next. The route is built nearest-first and shortened by
+moving runs of rungs wherever they save distance without passing a
+rung they depend on.
+
+The quests come along, under an order of the run: none; on the way
+only, handed in where the run passes anyway; with a short way round, a
+stop put in for a taker close by; or those and the hunts. The sailor is taken to have
+accepted them already, so what counts is where each is handed in, and
+every taker is placed on the chart. The run hands in whatever it
+passes and puts a stop in where a taker lies a short way off the
+route; a hunt at a stop of its own on its grounds and handed in after; a barter quest
+only once the run's trades make its count up, the count kept from run
+to run and made up by itself when a trip is recorded. A stop ticked
+off on the checklist hands in the quests at it.
+
+The tab is one column: the board, the hold as a line that opens over
+the page, the run's orders and figures, then what is on offer -- the
+chains as cards, or the material list. The run laid out is a sheet over
+the page: while anything is ticked a strip stays along the foot of the
+window with the run in a line, and opens the whole of it, so the
+answer is never out of sight and never in the way of the ticking.
+
+Every line the chart draws, and every loop it writes, is bent round the
+land in its way: `tools/build-seamask.mjs` reads the shipped tiles and
+records which parts of the chart are sea, and a leg that cannot be
+sailed straight is searched over that mask and reduced to the few turns
+it actually needs. The chart's
+pixels are the game's world position divided by 25, checked against the
+client's own positions for the barterers to within a pixel.
+The day-forecast paces each of the game's two refresh lists on its own
+clock, which is what makes its "at best" honest.
 
 Crow Coin prices were checked against the shop at Oquilla's Eye on
 2026‑08‑25. The yellow tier is from the 2026‑08‑26 patch notes, with the
@@ -281,6 +769,11 @@ What it does and does not do:
   copy you do not keep is one **Undo** away.
 - **Deletable.** The account menu removes the stored copy and the account
   record with it. What is in your browser stays.
+- **Sessions are a signed cookie, good for 30 days.** There is no session
+  table, so a session cannot be revoked from another device — signing out
+  clears that browser and nothing else. The trade is deliberate (no
+  round trip per request, no rows to expire); if a machine you signed in
+  on is lost, rotating `SESSION_SECRET` signs every device out at once.
 
 ### Setting it up
 
@@ -293,6 +786,8 @@ and `docker compose up` read that file on their own:
 | `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | from a [Discord application](https://discord.com/developers/applications) → OAuth2 |
 | `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | from `turso db show <name> --url` and `turso db tokens create <name>` |
 | `SESSION_SECRET` | any long random string — `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | optional, for Vell reminders by push — `npx web-push generate-vapid-keys`; needs the database, not Discord |
+| `ADMIN_IDS` / `FEEDBACK_WEBHOOK_URL` | optional: the Discord account ids that may read the feedback inbox, and a webhook that gets a copy of each entry |
 
 Then check it before opening a browser:
 
@@ -346,6 +841,71 @@ for. Behind Cloudflare or nginx, two things are worth knowing:
   get wrong. Address-level abuse — sign-in floods, one noisy host — is
   the proxy's job, and it is much better placed to do it.
 
+### Feedback
+
+**Menu → Feedback** is a form: something is wrong, an idea, or something
+else, with the section you were on, the build and the browser attached.
+Wherever there is a database it lands in a table, and when
+`FEEDBACK_WEBHOOK_URL` names a Discord webhook the operator gets a copy
+the moment it arrives. Signed in, your Discord name goes along so a
+reply has somewhere to go; signed out, there is a field for that. On a
+browser-only copy there is no inbox, so the same dialog opens an issue
+on GitHub instead — that link is there in every case, for anyone who
+would rather write in public.
+
+The accounts listed in `ADMIN_IDS` get **Feedback inbox** on the same
+menu: what came in, open first, and a button to mark each done.
+
+### The community boards
+
+![The hall of fame, with your own places at the head of it](docs/media/community.png)
+
+With sign-in on, the **Community** tab shows two things drawn from the
+sailors who chose to be on it, and nobody else:
+
+- **The hall of fame** — sixteen boards: sailing mastery, the best ship,
+  the largest fleet, the best sailor, the largest crew, the most barters,
+  the most silver from runs, the most runs, the best single run, the most
+  quests, the most sea monsters hunted, the most ships built, the most
+  things made, the luckiest at the anvil, the cartographer, the fullest
+  hold. Ties share a rank; the top ten are shown, and a signed-in sailor
+  is told where they stand on every board whether or not they are in it.
+- **The fleet in numbers** — everyone added up: the hulls most sailed and
+  owned, the parts most fitted, the sailors most hired, the islands most
+  plotted, the quests most done, the monsters most hunted, the builds
+  most queued, the ships most built, the crystals most carried, and the
+  spread of mastery, sailor levels, fleet sizes and runs by weekday.
+
+A place on a board is a door. The ship boards stand the **Ship tab up on
+that sailor's boat** — hull, parts, crystal, seats and roster, to look at
+and not to keep, one press back to yours; the crew boards open their
+best sailor in the Selected sailor panel; the rest open the sailor's
+card at the section the board is about, where each quest, each monster's
+grounds and each item is itself a door. The fleet in numbers has
+categories, a find box and a sort, and every row that names something
+the app knows opens it.
+
+Taking part is a choice made once, by name (Discord name and avatar) or
+as an unnamed sailor (ranked and counted, shown as “a sailor”; only you
+see which one is you). Before agreeing you are shown the digest that
+would be published — the numbers above, worked out from your save by
+the same module the server runs — and what is never shared: your stock,
+your notes, your traces, where things are stored. The server keeps that
+digest and nothing else about you for the boards, refreshes it as you
+sync, and deletes it when you leave. Anyone who opens the page can read
+the boards; only an account can be on them.
+
+What is shared for the look is the ship as the Ship tab needs it: the
+hull, what is fitted, the crystal and appearance set, who sits where,
+the saved setups and the roster with its growths. Nothing else of the
+save leaves.
+
+The numbers that outlive a save — quests claimed, runs sailed, things
+made, enhancement attempts — are a **tally** the profile keeps as they
+happen, since the save itself holds a quest's current period and the
+last sixty runs and no more. It travels with the save like the rest of
+the profile, and Undo takes a count back with the thing it counted.
+
 ### If the database is lost
 
 Nothing is lost. Every browser keeps its own copy in `localStorage`; the
@@ -359,32 +919,65 @@ writes their save back.
 ```
 index.html            the whole shell: masthead, tabs, screen
 server.js             static files, plus the sync API when configured
-css/tracker.css       the design system
+css/tracker-*.css     the design system, nine sheets linked in order
 js/
-  ui.js               every screen, and the only place that touches the DOM
-  state.js            the store: stock, targets, undo, persistence
+  ui.js               the shell: render loop, event wiring, boot
+  screen-*.js         one module per tab — plan, builds, inventory, tree,
+                      workshop, to-get, map, quests, crew
+  ui-state.js         the shared view state, recomputed from the store
+  ui-bits.js          icons, linked names, priced costs — the screens' vocabulary
+  pouch.js            the currency bar above the tabs
+  peek.js             the hover card
+  dialogs.js          toasts and dialogs
+  fmt.js              escaping and number formats
+  state.js            the store: stock, targets, undo/redo, persistence
   planner.js          pure planning — netting, explosion, costing, enhancement
   sync.js             optional device sync: pull, push, conflict
+  digest.js           what a save says about its sailor, for the boards
+  screen-community.js the Community tab: the hall of fame, the fleet in numbers
+  feedback.js         Menu → Feedback, and the admins' inbox
   recipes.js          recipes and enhancement chains
   ships.js            what can be queued
   sea_coins.js        Crow Coin prices
   falasi_vendor.js    Falasi's silver prices
-  all_barter.js       barter routes
+  all_barter.json     barter routes, scraped from BDOCodex
+  map.js              the tile viewer's arithmetic
+  barter_npcs.js      where the 91 barterers are
+  searoute.js         bending a leg round the land, and timing it
+  wharves.js          the 58 wharf managers and the guild wharves
+  habitats.js         where each species lives, on the water
+  courses.js          the community maps fitted to the chart
+  today.js            the Today strip, the clocks and the Vell timetable
+  clock.js            the resets, ticking in place
+  pace.js             how fast each build has been moving
+  triplog.js          everything one trip brought back, as one change
   guided-tour.js      the guided tour
   enhancement.js      per-level rates, Agris caps, perfect-enhance costs
+  ship_stats.js       what each hull is, in the game's own numbers
+  part_stats.js       what each part does, level by level
+  sailors.js          the hiring pool, positions, condition, first mates
+  quests.js           the quests that pay in ship materials
+  sea_crystals.js     the 287 sea crystal variants, by grade
+  gamefile.js         writing stops into the game's own world map
+  market.js           Central Market prices, per region, kept offline
 tools/check-env.mjs   npm run check -- validates a sync configuration
 server/               only loaded when sync is configured
   config.js           what is switched on, and what is therefore offered
   db.js               libSQL schema and queries
   auth.js             the Discord OAuth exchange
   api.js              /api/me and /api/state
+  community.js        /api/community — the boards, built from the digests
+  feedback.js         /api/feedback — the inbox, and a copy to a webhook
+  market.js           /api/market — the Market relay, on by default
   session.js          signed session cookies, no session table
 test/                 npm test — the server, the cost model, and a browser
 icons/                item and ship icons (WebP)
 icon_mapping.json     item -> icon file and BDOCodex page
 og.png                the social preview card
 docs/media/           the images and clips in this README
-tools/capture/        the harness that generates them, film included
+docs/media/small/     the narrow copies the app itself serves
+CHANGELOG.md          generated from js/about.js by tools/build-changelog.mjs
+tools/capture/        the harness that generates the media, film included
 ```
 
 The planner is pure: given stock, a queue and your craft-or-buy choices,
@@ -412,7 +1005,15 @@ UI so they can be re-shot.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+**MIT with Attribution** — see [LICENSE](LICENSE).
+
+The MIT licence with one condition added. Use it, change it, sell it, fork it,
+host it; no fee, no permission needed. The one thing asked in return is that
+credit travels with it: if you put this code in front of other people — as a
+site, an app, or a release — say that the original is by **waliori** and link
+to <https://github.com/waliori/bdo-ship-upgrade-tracker>, somewhere a person
+using your version can actually find it. An About page, a footer or your README
+all do the job.
 
 ## Thanks
 

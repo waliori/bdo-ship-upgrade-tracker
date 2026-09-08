@@ -47,3 +47,52 @@ export function perAccount(max) {
 		next();
 	};
 }
+
+/**
+ * A ceiling for the routes that have no account to key on.
+ *
+ * The market relay and the push subscription are open by design -- a
+ * price is not a secret, and a push subscription is anonymous -- so the
+ * account limiter above cannot cover them. Two ceilings do instead, and
+ * the second is the one that matters:
+ *
+ *   - per address, `max` a minute. Coarse: behind a proxy that is not
+ *     trusted every caller shares one address, and `trust proxy` is
+ *     only set for an HTTPS deployment (server.js). It is a speed bump
+ *     for one browser gone wrong, not a wall.
+ *   - across the whole process, `total` a minute. This is what stops a
+ *     deployment being used as a lever on the upstream market API, or
+ *     a table being filled with endpoints, whoever is asking.
+ *
+ * Both are ordinary sliding windows kept in memory, swept as they lapse.
+ */
+export function perAddress(max, total = max * 20, message = 'Too many requests; try again shortly.') {
+	const seen = new Map();   // address -> { count, until }
+	let all = { count: 0, until: 0 };
+
+	const sweep = setInterval(() => {
+		const now = Date.now();
+		for (const [key, bucket] of seen) if (bucket.until <= now) seen.delete(key);
+	}, WINDOW_MS);
+	if (sweep.unref) sweep.unref();
+
+	const refuse = (res, until, now) => {
+		res.set('Retry-After', String(Math.max(1, Math.ceil((until - now) / 1000))));
+		return res.status(429).json({ error: message });
+	};
+
+	return (req, res, next) => {
+		const now = Date.now();
+		if (all.until <= now) all = { count: 0, until: now + WINDOW_MS };
+		if (++all.count > total) return refuse(res, all.until, now);
+
+		const key = req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
+		let bucket = seen.get(key);
+		if (!bucket || bucket.until <= now) {
+			bucket = { count: 0, until: now + WINDOW_MS };
+			seen.set(key, bucket);
+		}
+		if (++bucket.count > max) return refuse(res, bucket.until, now);
+		next();
+	};
+}

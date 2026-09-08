@@ -1,0 +1,48 @@
+// Rewrite the service worker's shell list from the import graph.
+//
+// There is no build step, so the list of modules the worker precaches
+// is kept in sw.js by hand -- and a module added without it fails a
+// cold offline start. The static test refuses that; this makes fixing
+// it one command: `node tools/build-shell.mjs`. Everything reachable
+// from boot.js, plus the page's own files, in a stable order.
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const sw = path.join(root, 'sw.js');
+
+// Every way one module names another: a static import, with or without
+// bindings, a re-export, and a dynamic import(). The path is relative to
+// the importing file, which since js/map/ is not always js/ itself.
+const IMPORTS = /(?:import|export)\s*(?:\(\s*|(?:\{[^}]*\}|\*(?:\s+as\s+[\w$]+)?|[\w$]+(?:\s*,\s*\{[^}]*\})?)?\s*(?:from\s*)?)['"](\.\.?\/[^'"]+)['"]/g;
+const seen = new Set();
+const walk = name => {
+	if (seen.has(name)) return;
+	seen.add(name);
+	const src = fs.readFileSync(path.join(root, 'js', name), 'utf8');
+	const from = rel => path.posix.normalize(path.posix.join(path.posix.dirname(name), rel));
+	for (const m of src.matchAll(IMPORTS)) walk(from(m[1]));
+	// A worker is reached by its URL, not an import -- the Barter tab's
+	// search runs in one -- and its own imports are part of the shell too.
+	for (const m of src.matchAll(/new URL\(['"](\.\.?\/[^'"]+)['"], import\.meta\.url\)/g)) walk(from(m[1]));
+};
+walk('boot.js');
+
+const FIXED = [
+	'/', '/index.html', '/manifest.webmanifest', '/icon_mapping.json',
+	'/css/tracker-base.css', '/css/tracker-shell.css', '/css/tracker-yard.css', '/css/tracker-widgets.css', '/css/tracker-map.css', '/css/tracker-sea.css', '/css/tracker-extras.css', '/css/tracker-barter.css', '/css/tracker-recent.css',
+	'/css/driver.css', '/js/all_barter.json', '/js/barter_combos.json', '/js/material_boards.json', '/js/driver.iife.js'
+];
+const modules = [...seen].sort().map(n => `/js/${n}`);
+const list = [...FIXED, ...modules].map(p => `\t'${p}'`).join(',\n');
+
+const text = fs.readFileSync(sw, 'utf8');
+const next = text.replace(/const SHELL = \[[\s\S]*?\n\];/, `const SHELL = [\n${list}\n];`);
+if (next === text) {
+	console.log('shell list already current');
+} else {
+	fs.writeFileSync(sw, next);
+	console.log(`shell list rewritten: ${FIXED.length + modules.length} entries`);
+}

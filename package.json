@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Track Black Desert Online ship upgrades against one shared inventory",
   "author": "waliori",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "homepage": "https://sail.walior.it/",
   "repository": {
     "type": "git",
@@ -19,7 +19,6 @@
     "tracker"
   ],
   "type": "module",
-  "main": "js/ui.js",
   "engines": {
     "node": ">=20.18.1"
   },
@@ -29,14 +28,21 @@
     "start": "node --env-file-if-exists=.env server.js",
     "test": "node --test \"test/*.test.mjs\"",
     "check": "node --env-file-if-exists=.env tools/check-env.mjs",
-    "capture": "node tools/capture/scenes.mjs docs/media"
+    "backup": "node --env-file-if-exists=.env tools/backup.mjs",
+    "restore": "node --env-file-if-exists=.env tools/backup.mjs --restore",
+    "capture": "tools/capture/shoot.sh",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
+    "compression": "^1.8.1",
     "express": "^4.18.2",
-    "undici": "^7.29.0"
+    "undici": "^7.29.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.9.1",
     "puppeteer-core": "^25.9.0"
   }
 }
