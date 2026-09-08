@@ -1,15 +1,17 @@
 // Guided tour, built on Driver.js.
 //
-// The tour walks all nine views in the order someone would actually use
+// The tour walks every section in the order someone would actually use
 // them: the yard first -- see the plan, queue a build, record what you
-// own, craft, go shopping -- and then the sea, where the day is spent:
-// the quests, the ship, and the chart. Each step switches tab by
+// own, craft, go shopping -- then the sea, where the day is spent: the
+// quests, the ship, the chart, and the run planned on today's board --
+// and the harbour, where there is one. Each step switches tab by
 // clicking the real tab button, so there is no second copy of the
 // navigation logic to keep in sync, and it works the same on a phone,
 // where that button is in the bar at the thumb or behind "Menu".
 
 import * as store from './state.js';
 import { isPhone } from './viewport.js';
+import { feature } from './sync.js';
 
 const DONE_KEY = 'bdo_ship_upgrade-tour_completed';
 
@@ -198,8 +200,10 @@ class GuidedTour {
 	}
 
 	steps() {
-		const onPhone = () => isPhone();
-		const phone = onPhone();
+		const phone = isPhone();
+		// The Community tab is only there where the server has accounts
+		// to stand on its boards; the tour says nothing about it otherwise.
+		const harbour = feature('community');
 		const all = [
 			{
 				popover: {
@@ -210,12 +214,13 @@ class GuidedTour {
 				before: () => goToTab('plan')
 			},
 			{
-				// A phone has the bar at the thumb instead of the row above.
+				// A phone has the bar at the thumb instead of the dock above.
 				element: phone ? '#tabbar' : '#tabs',
 				popover: {
-					title: 'The nine views, in two groups',
-					description: 'The <b>yard</b>, where a build is planned and made: <b>Plan</b> is what every build needs, <b>Builds</b> is the queue and its priority, <b>Inventory</b> is what you own, <b>Tree</b> shows why a build needs a thing, <b>Workshop</b> is where you craft and enhance, <b>To Get</b> is the shopping list.<br><br>Then the <b>sea</b>, where the day is spent: <b>Map</b> charts the barterers and plots the loop, <b>Quests</b> is what the sea hands out for free, <b>Ship</b> is the hull\'s own numbers and the crew to fill it.'
-						+ (phone ? '<br><br>Four sit in the bar at your thumb; <b>All</b> opens the rest.' : '<br><br>The digits <b>1</b>–<b>9</b> switch between them.'),
+					title: 'Every section, in one dock',
+					description: 'The <b>yard</b>, where a build is planned and made: <b>Plan</b> is what every build needs, <b>Builds</b> is the queue and its priority, <b>Inventory</b> is what you own, <b>Tree</b> shows why a build needs a thing, <b>Workshop</b> is where you craft and enhance, <b>To Get</b> is the shopping list.<br><br>Then the <b>sea</b>, where the day is spent: <b>Map</b> charts the barterers and plots the loop, <b>Quests</b> is what the sea hands out for free, <b>Ship</b> is the hull\'s own numbers and the crew to fill it, and <b>Barter</b> plans a run on today\'s board.'
+						+ (harbour ? ' And the <b>harbour</b>: <b>Community</b>, the boards every sailor who takes part is on.' : '')
+						+ (phone ? '<br><br>Four sit in the bar at your thumb; <b>Menu</b> opens the rest.' : '<br><br>The digits <b>1</b>–<b>9</b> switch between them, <b>0</b> is the tenth.'),
 					side: phone ? 'top' : 'bottom'
 				}
 			},
@@ -359,18 +364,47 @@ class GuidedTour {
 				element: '.map-tabs',
 				popover: {
 					title: 'Five things to do with a chart',
-					description: '<b>Barter</b> is who has what you are short of. <b>Route</b> plots the loop through them and gives every leg its distance and its minutes, at the speed your ship actually makes — then keeps it by name, in a link, or writes it into the game\'s own world map.<br><br><b>Draw</b> is for the routes a shopping list cannot express: click the sea for a stop, drag to sketch a line, or type a word straight onto the water. <b>Grounds</b> is the monsters and the community courses, and <b>Today</b> is what you have already sailed.',
+					description: '<b>Barter</b> is who has what you are short of. <b>Route</b> plots the loop through them and gives every leg its distance and its minutes, at the speed your ship actually makes — says the stop the rations run low after — then keeps it by name, in a link, or writes it into the game\'s own world map.<br><br><b>Draw</b> is for the routes a shopping list cannot express: click the sea for a stop, drag to sketch a line, or type a word straight onto the water. <b>Grounds</b> is the monsters and the community courses, and <b>Today</b> is what you have already sailed.<br><br>A run laid out on the Barter tab is sailed here too: the route on the chart, and this panel the run sheet, stop by stop.',
 					side: phone ? 'top' : 'left'
 				},
 				before: () => goToMap('route')
 			},
 			{
+				element: '.barter-bar',
+				popover: {
+					title: 'Today\'s board',
+					description: 'The trade-goods barters are not rolled island by island: every refresh the whole sea shows one of forty fixed layouts. So this asks what <i>one</i> island is showing — tap it from that island\'s possible offers — and the whole board follows: every chain the day allows, listed by how far it reaches and what it pays.<br><br><b>Silver</b> is a run along the chains you tick; <b>A material</b> is one route through every island dealing the thing your plan is short of.',
+					side: 'bottom'
+				},
+				before: () => goToTab('barter')
+			},
+			{
+				element: '.hold-bar',
+				popover: {
+					title: 'The hold, and the run',
+					description: 'The hold is what is actually aboard, weighed against the ship as fitted and the ceiling the islands still deal under; goods ashore are listed by harbour with a Load button. Under it, the <b>sailing orders</b> — cash out today or build the stocks, the pace, which levels a wharf sells — and the figures every chain comes to.<br><br>Tick chains and a strip along the foot keeps the run in a line: <b>Lay it out</b> opens every stop, what to buy before casting off, and the quests handed in on the way, and <b>Sail this run</b> takes it to the Map as a checklist. <b>Record the trip</b> at the end puts the whole of it in the Inventory as one change.',
+					side: 'bottom'
+				},
+				before: () => goToTab('barter')
+			},
+			...(harbour ? [{
+				element: '.comm-head',
+				popover: {
+					title: 'The harbour',
+					description: 'Sixteen boards — mastery, the best ship, the best sailor, the most silver from runs, the most monsters hunted, the luckiest at the anvil — and the fleet in numbers: the hulls most sailed, the parts most fitted, the islands most plotted.<br><br>Only the sailors who take part are on it, by name or as an unnamed sailor, and you see exactly what would be shared before you agree. A place on a board opens what it is about: another sailor\'s ship, stood up on the Ship tab to look at.',
+					side: 'bottom'
+				},
+				before: () => goToTab('community')
+			}] : []),
+			{
 				// The masthead's verbs, and the menu that holds the rest.
-				element: '.masthead-actions',
+				element: phone ? '#tabbar' : '.masthead-actions',
 				popover: {
 					title: 'Undo, and your data',
-					description: 'Every change can be undone. <b>Find</b> (Ctrl+K) opens any item or tab, and <b>Log a trip</b> records everything you brought back as one change.<br><br><b>Menu</b> (M) is the one menu the app has — every section, and Profiles, Export and Import — a JSON backup, or a link carrying the whole plan — and <b>Help</b>, which plays a film of the whole thing end to end and lists what changed and when each dataset was checked. On a phone the thumb bar\'s last slot opens the same menu.<br><br>Where the deployment offers it, signing in with Discord keeps this same inventory on your phone as well; without it nothing leaves this browser at all.',
-					side: 'bottom'
+					description: 'Every change can be undone, and redone. <b>Find</b> (Ctrl+K) opens any item or tab, and <b>Log a trip</b> records everything you brought back as one change.<br><br><b>Menu</b> (M) is the one menu the app has: every section, Profiles, Export and Import — a JSON backup, or a link carrying the whole plan — the theme, <b>What\'s new</b>, <b>Feedback</b>, and <b>Help</b>, which plays a film of the whole thing end to end and lists when each dataset was checked.'
+						+ (phone ? ' On a phone the thumb bar\'s last slot opens it.' : '')
+						+ '<br><br>Where the deployment offers it, signing in with Discord keeps this same inventory on your phone as well; without it nothing leaves this browser at all.',
+					side: phone ? 'top' : 'bottom'
 				},
 				before: () => goToTab('plan')
 			}
