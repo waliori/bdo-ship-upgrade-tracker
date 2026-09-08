@@ -777,7 +777,13 @@ async function openBoard(id) {
 	const meta = boardById[b.id] || {};
 	wholeBoards.set(b.id, b.all);
 	const top = b.all.length ? b.all[0].value : 0;
-	box.innerHTML = `<div class="comm-board-head dialog"><span class="comm-board-icon" aria-hidden="true">${b.icon}</span><div class="comm-board-t"><h2 class="comm-board-title">${esc(b.title)}</h2>${meta.desc ? `<span class="comm-board-desc">${esc(meta.desc)}</span>` : ''}</div><span class="comm-board-n">${b.n} sailor${b.n === 1 ? '' : 's'}${b.n > b.all.length ? ` · the first ${b.all.length}` : ''}</span></div>
+	// No modifier class on the head: it used to carry `dialog`, which is
+	// the app's own full-screen overlay class -- `position: fixed;
+	// inset: 0` -- so the header stopped being a row in the box and
+	// became a sheet the size of the window, with the title against one
+	// edge and the count against the other. The dialog's own copy is
+	// selected by where it sits instead.
+	box.innerHTML = `<div class="comm-board-head"><span class="comm-board-icon" aria-hidden="true">${b.icon}</span><div class="comm-board-t"><h2 class="comm-board-title">${esc(b.title)}</h2>${meta.desc ? `<span class="comm-board-desc">${esc(meta.desc)}</span>` : ''}</div><span class="comm-board-n">${b.n} sailor${b.n === 1 ? '' : 's'}${b.n > b.all.length ? ` · the first ${b.all.length}` : ''}</span></div>
 		<ol class="comm-rank comm-rank-all">${b.all.map(e => rowHTML(b, e, top)).join('')}</ol>
 		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`;
 }

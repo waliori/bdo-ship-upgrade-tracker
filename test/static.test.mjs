@@ -286,6 +286,50 @@ test('no action is worn by both a button and a select', () => {
 		`"${a}" is a button in ${on.button.get(a)} and a select in ${on.picker.get(a)}`).join('; '));
 });
 
+test('no element wears a whole-screen class as if it were a modifier', () => {
+	// Some class names are furniture, not decoration: `.dialog` is the
+	// full-screen overlay -- `position: fixed; inset: 0; z-index: 60` --
+	// and so are the veil, the tab bar and the tour's popover. Written as
+	// a second class on a component ("comm-board-head dialog") such a name
+	// reads like a modifier and silently turns the element into a sheet
+	// the size of the window. That is what the Community tab's "show all"
+	// did: its header spread across the viewport, the title against one
+	// edge and the sailor count against the other, on every screen size.
+	//
+	// The dangerous names are not listed here -- they are read out of the
+	// stylesheets, so a new overlay is covered the day it is written. A
+	// class used on its own is the real thing and fine; only a name
+	// riding alongside another is a modifier that isn't.
+	const cssDir = new URL('../css/', import.meta.url);
+	const overlay = new Map();
+	for (const f of fs.readdirSync(cssDir.pathname).filter(n => n.endsWith('.css'))) {
+		const src = fs.readFileSync(path.join(cssDir.pathname, f), 'utf8');
+		for (const m of src.matchAll(/(?:^|\})\s*\.([A-Za-z0-9_-]+)\s*\{([^}]*)\}/g)) {
+			if (/position\s*:\s*fixed/.test(m[2])) overlay.set(m[1], f);
+		}
+	}
+	assert.ok(overlay.has('dialog'), 'the overlay classes were not found in the stylesheets');
+
+	const dir = new URL('../js/', import.meta.url);
+	const files = fs.readdirSync(dir, { recursive: true })
+		.filter(f => f.endsWith('.js') && f !== 'driver.iife.js')
+		.map(f => path.join(dir.pathname, f))
+		.concat(path.join(new URL('../', import.meta.url).pathname, 'index.html'));
+
+	const bad = [];
+	for (const file of files) {
+		const src = fs.readFileSync(file, 'utf8');
+		for (const m of src.matchAll(/class="([^"${}]*)"/g)) {
+			const names = m[1].split(/\s+/).filter(Boolean);
+			if (names.length < 2) continue;
+			for (const n of names) {
+				if (overlay.has(n)) bad.push(`${path.basename(file)}: class="${m[1]}" — .${n} is position:fixed in ${overlay.get(n)}`);
+			}
+		}
+	}
+	assert.deepEqual(bad, [], bad.join('; '));
+});
+
 test('the offline shell precaches every module the app imports', () => {
 	const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 	const shell = new Set([...sw.matchAll(/'(\/js\/[^']+\.js)'/g)].map(m => m[1]));

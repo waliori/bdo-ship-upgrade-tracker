@@ -619,7 +619,11 @@ button.comm-place:hover { border-color: var(--line-btn-hi); color: var(--ink-hi)
 .comm-boards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; align-items: start; }
 .comm-board.gold { border-color: rgba(232, 182, 97, 0.35); }
 .comm-board-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px 9px; border-bottom: 1px solid var(--line-head); }
-.comm-board-head.dialog { padding: 0 0 10px; margin-bottom: 8px; }
+/* The same head inside "show all". Selected by where it is rather than
+   by a modifier class: it wore one called `dialog`, which is also the
+   name of the full-screen overlay, so it inherited `position: fixed;
+   inset: 0` and covered the window. */
+.dialog-box .comm-board-head { padding: 0 0 10px; margin-bottom: 8px; }
 .comm-board-icon { display: grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: var(--r-btn); border: 1px solid rgba(var(--blue-rgb), 0.22); background: rgba(var(--blue-rgb), 0.1); font-size: 15px; line-height: 1; }
 .comm-board-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .comm-board-title { margin: 0; font-family: var(--font-display); font-size: 12.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
