@@ -295,6 +295,16 @@ From that one setup follow the speed the Map times a route at, the hold
 a run can carry once the crew's own weight is aboard, and the "Your
 ship" tile on the Plan.
 
+![Copy link on the Ship tab; opened on an empty save, the link lists the parts and one press makes the ship yours](docs/media/share-a-ship.gif)
+
+**Your build in a link.** *Copy link* on the ship card carries the
+hull, its four parts, the crystal, the roster and the seating in one
+address. Opened at the other end it says whose ship it is and what is
+on it, marks each part the reader already holds, and offers *Make it my
+ship* — or queues the missing parts as builds, so the Plan prices the
+way to it. Looking costs nothing; taking it is one change, and one Undo
+takes it back.
+
 **Sailors' real numbers.** Growth is a hidden random range per sailor,
 so the type's figures are averages. The Ship screen lets you type what
 the sailor window shows for each stat, and everything downstream — the
@@ -389,6 +399,15 @@ barter route uses — two stops with an island between them are not a
 straight line — and a stop clicked onto a headland steps off it,
 because a stop is a place a hull can float; *Straight legs* turns the
 routing off.
+
+![A drawing named and copied as a link; opened on another save, the chart flies to it](docs/media/share-a-drawing.gif)
+
+**A drawing in a link.** *Copy link* puts the whole trace — stops,
+notes, line and words — into one address, and whoever opens it gets the
+chart flown to the drawing, on any browser, with nothing of their own
+touched. The link carries the drawing itself, not a pointer to it, so
+it works for someone who has never opened the app before; a trace taken
+in this way is on the water like one drawn here, to draw on or keep.
 
 Up to twenty traces live on a shelf below, each drawn small with what
 it holds and when it was kept: open one to draw on it, rename it, copy

@@ -97,6 +97,18 @@ export const RELEASES = [
 				]
 			},
 			{
+				title: 'Map — a drawing in a link',
+				media: 'docs/media/small/share-a-drawing.gif',
+				alt: 'Three stops, a line and a word named and copied as a link; opened on another save, the chart flies to the drawing',
+				text: 'A drawing is a thing to hand round. <b>Copy link</b> puts the whole trace — stops, notes, line and words — into one address; '
+					+ 'whoever opens it gets the chart flown to the drawing, on any browser, with nothing to install and nothing of their own touched.',
+				points: [
+					'The link carries the drawing itself, not a pointer to it, so it works for someone who has never opened the app before.',
+					'A trace taken in from a link is on the water like one drawn here: to draw on, keep by name on the shelf, lay over the chart with its eye, or send on again.',
+					'The same drawing goes into the game’s own world map as favourites, and out as a small JSON file for a guild’s records.'
+				]
+			},
+			{
 				title: 'Barter — a run planned on today’s board, and sailed on the chart',
 				media: 'docs/media/small/plan-a-run.gif',
 				alt: 'Answering what one island shows; the whole board follows, a run is laid out, and Sail this run draws it on the Map',
@@ -136,6 +148,18 @@ export const RELEASES = [
 					'A crew planned against the hull’s seats and cabin space: contracts, condition, food, first mates, and the certificates on the shopping list; a sailor’s real numbers can be typed in and are judged against the band their level can hold, and a log of the levels reached tells a fast grower from a slow one.',
 					'Your Sailing Mastery counts toward speed, acceleration, turn and brake; the hold reads as a sum of lines, and says how far past its limit the hull will still sail.',
 					'Keep a whole fit-out as a named <b>setup</b> and switch between them here or from the Map, where the route is timed.'
+				]
+			},
+			{
+				title: 'Ship — your build in a link',
+				media: 'docs/media/small/share-a-ship.gif',
+				alt: 'Copy link on the Ship tab; opened on an empty save, the link says what the ship is, lists its parts, and one press makes it yours',
+				text: 'The hull, its four parts, the crystal, the roster and who sits where, in one <b>Copy link</b>. Opened at the other end it says whose ship it is '
+					+ 'and what is on it, marks each part you already hold, and offers <b>Make it my ship</b> — or queues the missing parts as builds, so the Plan prices the way to it.',
+				points: [
+					'Looking costs nothing; taking it replaces that hull’s parts and seats and your roster, and one Undo takes it back.',
+					'A sailor’s typed numbers travel with the roster, so a crew someone has measured is the crew you get.',
+					'On the Community tab a place on the Best ship board opens the same way: that sailor’s boat stood up on the Ship tab, to look at and not to keep.'
 				]
 			},
 			{
@@ -222,8 +246,9 @@ export const RELEASE = RELEASES[0].id;
 export const CHANGES = [
 	{
 		date: '2026-09-08',
-		title: 'What’s new tells only what is new, and the game file’s original is kept',
+		title: 'What’s new tells only what is new, two clips of a ship and a drawing handed round, and the game file’s original is kept',
 		notes: [
+			'Two more clips, in What’s new and the README: a ship’s whole fit-out copied as a link and made someone else’s boat in one press, and a drawing named, copied, and flown to on another chart. The capture harness shoots them like the rest — the link is read off the clipboard and opened as a real load on an empty save.',
 			'<b>What’s new</b> is the sea, not the yard: a section a tab — the Map, the Barter tab, Quests, the Ship, the Community — each saying what it is and what it does, and the yard named only for what the sea brought back to it; the Plan, the Inventory, the Workshop and To Get were here before and are no longer described as news.',
 			'Writing a route into <code>gameVariable.xml</code> keeps two copies now: the first write puts the untouched file aside as <code>gameVariable.xml.orig</code> and never writes it again, and every write copies the file as it was to <code>gameVariable.xml.bak</code>. Before, the second write copied the first write’s output over the only backup, and the original was gone.'
 		]

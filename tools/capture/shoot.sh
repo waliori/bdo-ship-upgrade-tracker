@@ -33,10 +33,13 @@ echo "== webm -> gif"
 # frame, and is the longest here, so it goes narrower and slower still.
 # The boards clip opens a full-screen card and then a whole other tab,
 # so every frame in it is a new one; it gets the narrower frame too.
+# The two sharing clips reload the page half-way, and the drawing one
+# scrolls to the name field as well, so they go with the boards and the
+# run respectively.
 gif_size() {
 	case "$1" in
-		claim-a-quest|fit-a-ship|the-boards) echo "780 10" ;;
-		plan-a-run) echo "720 8" ;;
+		claim-a-quest|fit-a-ship|the-boards|share-a-ship) echo "780 10" ;;
+		plan-a-run|share-a-drawing) echo "720 8" ;;
 		*) echo "900 13" ;;
 	esac
 }
@@ -60,10 +63,12 @@ cp "$RAW"/*.png "$OUT"/
 # serves and nobody downloads on a phone.
 echo "== the set the app serves"
 mkdir -p "$OUT/small"
-for name in chart-the-loop draw-a-route fit-a-ship; do
+for name in chart-the-loop draw-a-route fit-a-ship share-a-ship; do
 	./tools/capture/togif.sh "$RAW/$name.webm" "$OUT/small/$name.gif" 560 9
 done
-./tools/capture/togif.sh "$RAW/plan-a-run.webm" "$OUT/small/plan-a-run.gif" 480 7
+for name in plan-a-run share-a-drawing; do
+	./tools/capture/togif.sh "$RAW/$name.webm" "$OUT/small/$name.gif" 480 7
+done
 for name in hero map quests community; do
 	ffmpeg -v error -y -i "$OUT/$name.png" -vf scale=560:-2 "$OUT/small/$name.png"
 	ls -la "$OUT/small/$name.png"

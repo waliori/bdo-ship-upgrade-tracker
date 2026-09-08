@@ -49,6 +49,16 @@ Click the sea for a numbered stop, drag to sketch a line, or type a word straigh
 - A trace is kept by name and travels in a link or a file; twenty live on a shelf, and **Browse all** opens a library with a search over names, notes and the words written on them.
 - A kept trace can be a **lane**: every route near it is drawn along it and timed as the game sails it.
 
+### Map — a drawing in a link
+
+![Three stops, a line and a word named and copied as a link; opened on another save, the chart flies to the drawing](docs/media/share-a-drawing.gif)
+
+A drawing is a thing to hand round. **Copy link** puts the whole trace — stops, notes, line and words — into one address; whoever opens it gets the chart flown to the drawing, on any browser, with nothing to install and nothing of their own touched.
+
+- The link carries the drawing itself, not a pointer to it, so it works for someone who has never opened the app before.
+- A trace taken in from a link is on the water like one drawn here: to draw on, keep by name on the shelf, lay over the chart with its eye, or send on again.
+- The same drawing goes into the game’s own world map as favourites, and out as a small JSON file for a guild’s records.
+
 ### Barter — a run planned on today’s board, and sailed on the chart
 
 ![Answering what one island shows; the whole board follows, a run is laid out, and Sail this run draws it on the Map](docs/media/plan-a-run.gif)
@@ -83,6 +93,16 @@ A new tab. The **Ship** screen carries every hull in the game’s own numbers an
 - A crew planned against the hull’s seats and cabin space: contracts, condition, food, first mates, and the certificates on the shopping list; a sailor’s real numbers can be typed in and are judged against the band their level can hold, and a log of the levels reached tells a fast grower from a slow one.
 - Your Sailing Mastery counts toward speed, acceleration, turn and brake; the hold reads as a sum of lines, and says how far past its limit the hull will still sail.
 - Keep a whole fit-out as a named **setup** and switch between them here or from the Map, where the route is timed.
+
+### Ship — your build in a link
+
+![Copy link on the Ship tab; opened on an empty save, the link says what the ship is, lists its parts, and one press makes it yours](docs/media/share-a-ship.gif)
+
+The hull, its four parts, the crystal, the roster and who sits where, in one **Copy link**. Opened at the other end it says whose ship it is and what is on it, marks each part you already hold, and offers **Make it my ship** — or queues the missing parts as builds, so the Plan prices the way to it.
+
+- Looking costs nothing; taking it replaces that hull’s parts and seats and your roster, and one Undo takes it back.
+- A sailor’s typed numbers travel with the roster, so a crew someone has measured is the crew you get.
+- On the Community tab a place on the Best ship board opens the same way: that sailor’s boat stood up on the Ship tab, to look at and not to keep.
 
 ### Community — the harbour
 
