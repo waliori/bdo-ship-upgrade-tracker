@@ -36,6 +36,7 @@ let fetchedAt = 0;
 let loading = null;
 let failed = '';
 let mine = false;         // our own save moved since the boards were fetched
+let triedAt = 0;          // when the boards were last asked, answer or not
 let pushTimer = null;     // the wait between a push landing and asking again
 let half = 'fame';        // fame | numbers
 let fameSec = 'all';      // the hall of fame: which section is up
@@ -58,6 +59,15 @@ const FRESH_MS = 60_000;
 // before it -- and then sit on that for a minute.
 const AFTER_PUSH_MS = 3_500;
 
+// How long to leave a board that did not answer alone.
+//
+// The failure repaints the screen to show it, the repaint asks again,
+// and nothing held it back: a server that is down was met with a
+// request every few milliseconds for as long as the tab was open. It
+// is a held answer that stops the asking, and a failure leaves none --
+// so the refusal has to be remembered on its own.
+const AFTER_FAIL_MS = 10_000;
+
 /**
  * Ask for the boards again if the copy held is old, then redraw.
  *
@@ -68,8 +78,14 @@ const AFTER_PUSH_MS = 3_500;
  */
 async function load(force = false) {
 	if (loading) return loading;
-	if (!force && !mine && data && Date.now() - fetchedAt < FRESH_MS) return data;
+	if (!force && !mine) {
+		if (data && Date.now() - fetchedAt < FRESH_MS) return data;
+		// Nothing held, and the last ask failed: wait before asking
+		// again. "Try again" is a force and does not wait.
+		if (!data && failed && Date.now() - triedAt < AFTER_FAIL_MS) return null;
+	}
 	mine = false;
+	triedAt = Date.now();
 	loading = (async () => {
 		let res;
 		try {
@@ -296,6 +312,7 @@ function boardHTML(board) {
 			<span class="comm-board-icon" aria-hidden="true">${board.icon}</span>
 			<div class="comm-board-t"><h3 class="comm-board-title">${esc(board.title)}</h3>${b.desc ? `<span class="comm-board-desc">${esc(b.desc)}</span>` : ''}</div>
 			<span class="comm-board-n">${board.n ? `${board.n} sailor${board.n === 1 ? '' : 's'}` : 'nobody yet'}</span>
+			${b.note ? `<button class="comm-how" data-act="community-how" data-id="${esc(board.id)}" title="How this is counted" aria-label="How ${esc(board.title)} is counted">?</button>` : ''}
 		</div>
 		${rows.length ? `<ol class="comm-rank">${rows.map(e => rowHTML(board, e, top)).join('')}${mine ? rowHTML(board, mine, top, true) : ''}</ol>` : `<div class="comm-empty"><p>Nobody has earned a place here yet.</p>${b.how ? `<small>${esc(b.how)}${who && who.share ? '' : ' Then take part.'}</small>` : ''}</div>`}
 		${board.n > rows.length ? `<button class="comm-more" data-act="community-board" data-id="${esc(board.id)}">Show all ${board.n} →</button>` : ''}
@@ -313,8 +330,51 @@ function rowHTML(board, e, top = 0, dashed = false) {
 			${e.detail ? `<span class="comm-detail">${esc(e.detail)}</span>` : ''}
 			${faceHTML(e.face)}
 		</span>
-		<span class="comm-val-col"><b class="comm-val">${value(board, e.value)}<small>${esc(board.unit)}</small></b>${top ? `<span class="comm-val-bar"><i style="width:${pct}%"></i></span>` : ''}</span>
+		<span class="comm-val-col"><b class="comm-val"${sumOf(e) ? ` title="${esc(sumOf(e))}"` : ''}>${value(board, e.value)}<small>${esc(board.unit)}</small></b>${top ? `<span class="comm-val-bar"><i style="width:${pct}%"></i></span>` : ''}</span>
 	</li>`;
+}
+
+/**
+ * A row's score as the sum it actually is: "hull 4,000 + parts 194 +
+ * crystal 20". Only the ship board sends the parts of its score, since
+ * it is the only one whose number is not simply the thing it counts.
+ */
+function sumOf(e) {
+	const w = e.face && e.face.worth;
+	if (!w) return '';
+	return [
+		`hull ${F(w.hull)}`,
+		w.gear ? `parts ${F(w.gear)}` : null,
+		w.crystal ? `crystal ${F(w.crystal)}` : null
+	].filter(Boolean).join(' + ');
+}
+
+/**
+ * How a board is counted, said in full.
+ *
+ * A leaderboard that will not say how it ranks people is a leaderboard
+ * nobody believes, and "440 pts" explains nothing at all -- least of all
+ * to the three sailors who were tied on it. So every board carries its
+ * rule, and the ship board, whose number is a sum of three things,
+ * shows the sum for the row at the top and for your own.
+ */
+function openHow(id) {
+	const b = boardById[id];
+	if (!b) return;
+	const board = data && data.fame.find(f => f.id === id);
+	const rows = [];
+	if (board) {
+		const first = board.top[0];
+		if (first && sumOf(first)) rows.push([first.named ? first.name : 'the top of the board', sumOf(first), first.value]);
+		const mine = yourRow(board);
+		if (mine && sumOf(mine) && (!first || !first.you)) rows.push(['yours', sumOf(mine), mine.value]);
+	}
+	openDialog(`<h2>${b.icon} ${esc(b.title)}</h2>
+		<p class="dialog-copy">${esc(b.desc)}.</p>
+		<p class="comm-how-note">${esc(b.note)}</p>
+		${rows.length ? `<div class="comm-how-sums">${rows.map(([who, sum, v]) => `<div class="detail-line"><span>${esc(who)}</span><span class="n">${esc(sum)} = ${value(b, v)}</span></div>`).join('')}</div>` : ''}
+		<p class="dialog-copy comm-how-min">${esc(b.how)} ${b.min > 1 ? `A place needs at least ${F(b.min)} ${esc(b.unit || '')}.` : ''}</p>
+		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`);
 }
 
 function fameHTML() {
@@ -717,7 +777,13 @@ async function openBoard(id) {
 	const meta = boardById[b.id] || {};
 	wholeBoards.set(b.id, b.all);
 	const top = b.all.length ? b.all[0].value : 0;
-	box.innerHTML = `<div class="comm-board-head dialog"><span class="comm-board-icon" aria-hidden="true">${b.icon}</span><div class="comm-board-t"><h2 class="comm-board-title">${esc(b.title)}</h2>${meta.desc ? `<span class="comm-board-desc">${esc(meta.desc)}</span>` : ''}</div><span class="comm-board-n">${b.n} sailor${b.n === 1 ? '' : 's'}${b.n > b.all.length ? ` · the first ${b.all.length}` : ''}</span></div>
+	// No modifier class on the head: it used to carry `dialog`, which is
+	// the app's own full-screen overlay class -- `position: fixed;
+	// inset: 0` -- so the header stopped being a row in the box and
+	// became a sheet the size of the window, with the title against one
+	// edge and the count against the other. The dialog's own copy is
+	// selected by where it sits instead.
+	box.innerHTML = `<div class="comm-board-head"><span class="comm-board-icon" aria-hidden="true">${b.icon}</span><div class="comm-board-t"><h2 class="comm-board-title">${esc(b.title)}</h2>${meta.desc ? `<span class="comm-board-desc">${esc(meta.desc)}</span>` : ''}</div><span class="comm-board-n">${b.n} sailor${b.n === 1 ? '' : 's'}${b.n > b.all.length ? ` · the first ${b.all.length}` : ''}</span></div>
 		<ol class="comm-rank comm-rank-all">${b.all.map(e => rowHTML(b, e, top)).join('')}</ol>
 		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`;
 }
@@ -805,6 +871,7 @@ export function communityAction(act, el) {
 		case 'community-find': openFind(); return false;
 		case 'community-places': openPlaces(); return false;
 		case 'community-told': store.setSetting(TOLD_KEY, true); return true;
+		case 'community-how': openHow(el.dataset.id); return false;
 		default: return false;
 	}
 }

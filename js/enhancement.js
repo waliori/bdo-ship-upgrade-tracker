@@ -151,6 +151,30 @@ export const tables = {
 };
 
 /** Which table each part follows. */
+/**
+ * What a part family is worth against another, and what to call it.
+ *
+ * The game's own colours: the Falasi and Cheongun sets are yellow, the
+ * Chiro and blue Caravel sets blue, Toro and the green Caravel green,
+ * and the plain Epheria and Sailboat parts below those. A slot fitted
+ * with a green part is not the same slot fitted with a yellow one, and
+ * anything that scores or sorts a ship has to know it -- the Ship tab
+ * already ranked families this way to order its part picker; the
+ * community boards did not, and rated a +10 Toro cannon exactly as
+ * highly as a +10 Falasi one.
+ *
+ * `label` is what to call the family on screen, since "caravel-blue"
+ * is a key and not a name.
+ */
+export const FAMILY_RANK = {
+	yellow: 5, chiro: 4, 'caravel-blue': 4, toro: 3, 'caravel-green': 3, epheria: 2, sailboat: 1
+};
+
+export const FAMILY_LABEL = {
+	yellow: 'yellow', chiro: 'Chiro', 'caravel-blue': 'blue', toro: 'Toro',
+	'caravel-green': 'green', epheria: 'Epheria', sailboat: 'Sailboat'
+};
+
 export const families = {
 	"Epheria Carrack: Advance (Falasi's Cannon)": 'yellow',
 	"Epheria Carrack: Advance (Falasi's Figurehead)": 'yellow',

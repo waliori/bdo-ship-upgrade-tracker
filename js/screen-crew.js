@@ -18,10 +18,11 @@ import { describeStats, statsAt } from './part_stats.js';
 import { families, tables } from './enhancement.js';
 import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listFleet, hullOfRow, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, skinWorn, setSkinSlot, setSkinAll, skinTotals, OWNED_PREFIX, OVERLOAD } from './ship.js';
 import { GOODS } from './barter.js';
-import { GRADES, gradeById, crystalById, crystalsOf, crystalVariant, crystalLine } from './crystals.js';
+import { GRADES, gradeById, crystalById, crystalsOf, crystalVariant, crystalLine, crystalStats } from './crystals.js';
 import { skinFor, SKIN_SLOTS } from './ship_skins.js';
 import { openFleet } from './setups.js';
 import { openPicker } from './picker.js';
+import { roleOf, CRYSTAL_FOR, SAILOR_NOTE, PART_PATH } from './ship_roles.js';
 import { encodeShare, shareLink } from './share.js';
 import { enhancedName } from './planner.js';
 import {
@@ -247,6 +248,7 @@ function rosterPanel(ship) {
 			<button class="act quiet small" data-act="crew-recover-all" ${n ? '' : 'disabled'} title="Marks every sailor's condition back at 100">Recover all</button>
 			<button class="act small" data-act="crew-hire" ${n >= SAILOR_CAP ? 'disabled' : ''}>+ Hire</button>
 		</div>
+		<p class="crew-note">${esc(SAILOR_NOTE[roleOf(ship) && roleOf(ship).role === 'bartering' ? 'barter' : 'hunt'])}</p>
 		${bulk}${n ? `<div class="roster-grid">${cards}</div>` : `<p class="empty">Nobody hired yet. A sailor costs a ${esc(contract.item)} (${F(contract.silver)} silver) at ${esc(contract.hireAt)}.</p>`}
 		${n ? `<div class="crew-actions"><button class="act quiet small" data-act="crew-queue" title="Queues one certificate per sailor, so the silver shows in To Get">Put ${n} ${esc(contract.item)}${n === 1 ? '' : 's'} on the list</button></div>` : ''}
 	</div>`;
@@ -591,6 +593,16 @@ function loadoutPanel(ship) {
 		<div class="panel-head"><h2 class="panel-title">Fitted out</h2>
 			<span class="panel-sub">Hull: ${F(s.weight)} LT · ${s.slots} slots · ${s.cannons ? `${s.cannons} cannons a side, ${s.reload} s` : 'no cannons'} · ${F(s.durability)} durability · ${F(s.rations)} rations</span></div>
 		<p class="fit-hint">What the Map sails and the hold it carries follow this. The best part you hold goes in each slot by itself; choose another for one you have not recorded, or to weigh a plan.</p>
+		${(() => {
+		// The order the fleet says to buy the sets in. Only worth saying
+		// on a hull the sets are made for, and only until the top of the
+		// line is on it -- advice about what to do next is noise once
+		// there is no next.
+		const worn = new Set(Object.values(fit.slots).map(x => x.part && families[x.part]).filter(Boolean));
+		if (!roleOf(ship) || worn.has('yellow')) return '';
+		const next = PART_PATH.find(step => !worn.has(step.family));
+		return next ? `<p class="fit-path">${esc(next.line)}</p>` : '';
+	})()}
 		${rows}
 		<div class="sel-facts">with parts${same && me.crew.seated ? ' and crew' : ''}: speed <b>${same ? me.speed.total : s.speed + (Number(fit.total.speed) || 0)}%</b> · accel <b>${same ? me.accel : s.accel + (Number(fit.total.accel) || 0)}%</b> · turn <b>${same ? me.turn : s.turn + (Number(fit.total.turn) || 0)}%</b> · brake <b>${same ? me.brake : s.brake + (Number(fit.total.brake) || 0)}%</b>
 			· hold <b>${F(hold.free)} LT</b>${hold.crew ? ` <span class="fit-tag">(${F(hold.limit)} less ${F(hold.crew)} of crew)</span>` : ''} · <b>${F(same ? me.durability : s.durability + (Number(fit.total.durability) || 0))}</b> durability${fit.total.dp ? ` · DP <b>${fit.total.dp}</b>` : ''}${fit.total.damage ? ` · cannon <b>${F(fit.total.damage)}</b> × ${fit.total.hits}` : ''}</div>
@@ -695,6 +707,14 @@ export function renderCrew() {
 				<div class="summary-k">Your ship</div>
 				<div class="crew-ship-name">${codexName(ship)}</div>
 				<div class="row-sub">${esc(stats.note || '')}</div>
+				${(() => {
+		// What the hull is for, beside what it is. The fleet's reading,
+		// not the game's -- so it says so, and it is a note rather than
+		// anything the app acts on.
+		const r = roleOf(ship);
+		if (!r) return '';
+		return `<div class="ship-role"><b>for ${esc(r.role)}</b> — ${esc(r.why)}${r.note ? `<small>${esc(r.note)}</small>` : ''}</div>`;
+	})()}
 			</div>
 		</div>
 		<div class="ship-card-facts">
@@ -999,16 +1019,23 @@ function shipPicker() {
 	const stock = store.getAllStock();
 	const items = Object.keys(shipStats).map(name => {
 		const s = shipStats[name];
+		const figures = s.crew ? `${s.crew} sailors · ${s.cabins} cabin space · ${F(s.weight)} LT · ${s.slots} slots · speed ${s.speed}%` : `no crew · ${F(s.weight)} LT · speed ${s.speed}%`;
+		const r = roleOf(name);
 		return {
 			id: name, label: name, icon: img(name, ''),
-			sub: s.crew ? `${s.crew} sailors · ${s.cabins} cabin space · ${F(s.weight)} LT · ${s.slots} slots · speed ${s.speed}%` : `no crew · ${F(s.weight)} LT · speed ${s.speed}%`,
+			// What it is, and first what it is for: four Carracks read as
+			// near-identical lists of numbers, and the thing that actually
+			// separates them -- which one pays at bartering -- is nowhere
+			// in those numbers. The picker searches `sub`, so "barter"
+			// finds the barter hulls.
+			sub: r ? `for ${r.role} · ${figures}` : figures,
 			meta: stock[name] ? 'you hold one' : queued.has(name) ? 'in your queue' : '',
 			group: s.crew ? 'Ships' : 'Small craft'
 		};
 	});
 	openPicker({
 		title: 'Which ship do you sail?',
-		hint: 'The Map times routes and sizes the hold from this hull, as fitted and crewed here.',
+		hint: 'The Map times routes and sizes the hold from this hull, as fitted and crewed here. What each is for is the fleet’s reading, not a rule.',
 		items, selected: shipName(),
 		onPick: name => store.setProfile('crewShip', name)
 	});
@@ -1051,19 +1078,28 @@ function levelPicker(ship, slot, part) {
 /** Which crystal: every one the codex knows, by grade, the effect beside it. */
 function crystalPicker(ship) {
 	const now = crystalFor(ship);
+	const role = roleOf(ship);
 	const items = [];
 	for (const g of GRADES) {
 		for (const c of crystalsOf(g.id)) {
+			// Which stat this one carries, and who wants it. A crystal
+			// carries exactly one of eight things, so the grade says how
+			// much and this says of what -- and the second is the choice
+			// that actually matters.
+			const stat = Object.keys(crystalStats(c)).find(k => CRYSTAL_FOR[k]);
+			const use = stat ? CRYSTAL_FOR[stat] : null;
+			const wanted = Boolean(role && stat && role.crystal === stat);
 			items.push({
 				id: String(c.id), label: `${c.name} — ${crystalVariant(c)}`, icon: img(c.name, ''),
-				sub: crystalLine(c), meta: g.local ? 'its sea only' : 'every sea',
+				sub: use ? `${use.label} · for ${use.who}` : crystalLine(c),
+				meta: `${wanted ? '↑ suits this hull · ' : ''}${g.local ? 'its sea only' : 'every sea'}`,
 				group: `${g.label} · ${g.note}`
 			});
 		}
 	}
 	openPicker({
 		title: 'Which sea crystal?',
-		hint: 'One slot. Every grade lifts one stat; Rusalka lifts it most and works in every sea, and the Oceanteared Nol is a Rusalka crystal with the Nol\'s BreezySail on top.',
+		hint: `One slot, and it carries one stat. Rusalka lifts it most and works in every sea, and the Oceanteared Nol is a Rusalka crystal with the Nol's BreezySail on top.${role ? ` A hull for ${role.role} wants ${CRYSTAL_FOR[role.crystal] ? CRYSTAL_FOR[role.crystal].label : role.crystal}: ${CRYSTAL_FOR[role.crystal] ? CRYSTAL_FOR[role.crystal].why : ''}` : ''}`,
 		items, selected: now ? String(now.id) : null,
 		onPick: id => setCrystal(ship, Number(id))
 	});

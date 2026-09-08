@@ -619,7 +619,11 @@ button.comm-place:hover { border-color: var(--line-btn-hi); color: var(--ink-hi)
 .comm-boards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; align-items: start; }
 .comm-board.gold { border-color: rgba(232, 182, 97, 0.35); }
 .comm-board-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px 9px; border-bottom: 1px solid var(--line-head); }
-.comm-board-head.dialog { padding: 0 0 10px; margin-bottom: 8px; }
+/* The same head inside "show all". Selected by where it is rather than
+   by a modifier class: it wore one called `dialog`, which is also the
+   name of the full-screen overlay, so it inherited `position: fixed;
+   inset: 0` and covered the window. */
+.dialog-box .comm-board-head { padding: 0 0 10px; margin-bottom: 8px; }
 .comm-board-icon { display: grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: var(--r-btn); border: 1px solid rgba(var(--blue-rgb), 0.22); background: rgba(var(--blue-rgb), 0.1); font-size: 15px; line-height: 1; }
 .comm-board-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .comm-board-title { margin: 0; font-family: var(--font-display); font-size: 12.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -817,3 +821,28 @@ h2.comm-board-title { font-size: 15px; }
 .sailor-sheet .sel-top { margin-top: 12px; }
 .sel-name.still { font-size: 15px; font-weight: 700; color: var(--ink-hi); margin-bottom: 2px; }
 .stat-in.still { display: inline-block; min-width: 2.2em; text-align: right; font-family: var(--font-display); }
+
+/* What a hull is for, under what it is: the fleet's reading of the four
+   Carracks, which the game's own numbers do not tell you. */
+.ship-role { margin-top: 6px; font-size: 12px; line-height: 1.5; color: var(--ink-mute); }
+.ship-role b { color: var(--ink-hi); font-weight: 600; }
+.ship-role small { display: block; margin-top: 2px; font-size: 11.5px; color: var(--ink-faint); }
+
+/* The note under the sailor list, and the next set to buy under the
+   slots: the fleet's advice, said once and quietly. */
+.crew-note, .fit-path { margin: 0 0 8px; font-size: 12px; line-height: 1.5; color: var(--ink-faint); }
+.fit-path { color: var(--ink-mute); }
+
+/* "How is this counted?" — a small mark on each board, and the panel it
+   opens. A leaderboard that will not say how it ranks people is a
+   leaderboard nobody believes. */
+.comm-how { flex: none; width: 20px; height: 20px; margin-left: 6px; padding: 0; border-radius: 50%;
+	border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.4); color: var(--ink-faint);
+	font: inherit; font-size: 11px; line-height: 1; cursor: pointer; }
+.comm-how:hover { border-color: var(--line-btn-hi); color: var(--ink-hi); }
+.comm-how-note { margin: 0 0 12px; padding: 10px 12px; border-radius: var(--r-btn);
+	border: 1px solid rgba(var(--blue-rgb), 0.22); background: rgba(var(--blue-rgb), 0.07);
+	font-size: 12.5px; line-height: 1.6; color: var(--ink); }
+.comm-how-sums { margin-bottom: 12px; }
+.comm-how-sums .n { font-family: var(--font-display); font-size: 12px; color: var(--ink-hi); }
+.comm-how-min { font-size: 12px; color: var(--ink-faint); }

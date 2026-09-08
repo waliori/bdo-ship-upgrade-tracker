@@ -77,7 +77,7 @@ test('a ship fitted after the boards were drawn is on them without rejoining', a
 	// Read them once, so there is a held copy to go stale.
 	const before = await (await call('GET', '/api/community', { cookie: skipper })).json();
 	assert.equal(before.sailors, 1);
-	assert.equal(before.you.places.ship.value, 100, 'a bare Sailboat: tier 1, no parts');
+	assert.equal(before.you.places.ship.value, 1000, 'a bare Sailboat: tier 1, nothing on it');
 
 	// Fit it, the way the Ship tab does, and push.
 	const rev = (await (await call('GET', '/api/state', { cookie: skipper })).json()).rev;
@@ -87,7 +87,7 @@ test('a ship fitted after the boards were drawn is on them without rejoining', a
 			rev, device: 'test',
 			data: save({
 				sailingMastery: 500, crewShip: 'Epheria Sailboat',
-				fitted: { 'Epheria Sailboat': { cannon: '+10 Epheria Sailboat: Verisha Cannon', sail: '+10 Epheria Sailboat: Stratus Wind Sail' } }
+				fitted: { 'Epheria Sailboat': { cannon: '+10 Epheria: Old Cannon', sail: '+10 Epheria: Old Wind Sail' } }
 			})
 		}
 	});
@@ -96,7 +96,8 @@ test('a ship fitted after the boards were drawn is on them without rejoining', a
 	// No rejoining, no waiting out the window: the next read has it.
 	const after = await (await call('GET', '/api/community', { cookie: skipper })).json();
 	assert.ok(after.updatedAt > before.updatedAt, 'the boards were drawn again');
-	assert.equal(after.you.places.ship.value, 120, 'tier 1, and twenty levels of parts');
+	// Tier 1, and two Epheria parts (rank 2) taken to +10.
+	assert.equal(after.you.places.ship.value, 1000 + 2 * (2 * 11 + 10), 'the hull, and what is on it');
 	const ship = after.fame.find(f => f.id === 'ship');
 	assert.equal(ship.top[0].face.parts.cannon, 10);
 
@@ -105,6 +106,7 @@ test('a ship fitted after the boards were drawn is on them without rejoining', a
 	const card = await (await call('GET', `/api/community/sailor/${after.you.ref}`, { cookie: skipper })).json();
 	assert.equal(card.you, true);
 	assert.equal(card.digest.fleet.best.levels, 20);
+	assert.deepEqual(card.digest.fleet.best.sets, ['Epheria']);
 });
 
 test('a hull in the inventory is a ship in the fleet', async () => {

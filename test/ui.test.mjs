@@ -171,6 +171,12 @@ test('the pouch shortens big silver and hands the caret exact digits', async () 
 
 test('the hire picker names each race once', async () => {
 	const { page, context, errors } = await open('#crew');
+	// Let the screen settle before reaching for a button on it. The Ship
+	// tab redraws once more after its first paint, and a handle taken
+	// before that is a node no longer in the document by the time the
+	// click lands -- which every other test on this screen already waits
+	// out.
+	await wait(600);
 	await page.click('[data-act="crew-hire"]'); await wait(300);
 	const groups = await page.evaluate(() => [...document.querySelectorAll('.picker-group')].map(g => g.textContent.trim()));
 	assert.deepEqual(groups, [...new Set(groups)], 'no heading repeats');

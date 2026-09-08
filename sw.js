@@ -144,6 +144,7 @@ const SHELL = [
 	'/js/share.js',
 	'/js/sheet.js',
 	'/js/ship.js',
+	'/js/ship_roles.js',
 	'/js/ship_skins.js',
 	'/js/ship_stats.js',
 	'/js/ships.js',

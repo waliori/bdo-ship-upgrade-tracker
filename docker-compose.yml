@@ -30,4 +30,15 @@ services:
       # .env chooses only the host side, and this line stops env_file
       # from carrying it into the container and moving the listener.
       - PORT=8000
+    volumes:
+      # The local libSQL file, when TURSO_DATABASE_URL points at one
+      # (file:./.data/tracker.db). A named volume rather than a bind:
+      # rootless Docker maps the container's user to a subuid that has
+      # no claim on a host directory, and the image already makes this
+      # path with the right owner. Unused when the deployment is on
+      # Turso -- an empty volume costs nothing.
+      - tracker-data:/app/.data
     restart: unless-stopped
+
+volumes:
+  tracker-data:

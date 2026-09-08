@@ -20,7 +20,8 @@ import { quests } from './quests.js';
 import { monsterByKey } from './sea_monsters.js';
 import { readProfile } from './profile-shape.js';
 import { loadout } from './part_stats.js';
-import { families } from './enhancement.js';
+import { families, FAMILY_RANK, FAMILY_LABEL } from './enhancement.js';
+import { crystalById } from './sea_crystals.js';
 
 /** The hulls that sail, from the small ones up. A rank for "best ship". */
 export const HULL_TIER = {
@@ -31,6 +32,76 @@ export const HULL_TIER = {
 	'Carrack (Advance)': 4, 'Carrack (Balance)': 4, 'Carrack (Volante)': 4, 'Carrack (Valor)': 4,
 	'Panokseon': 4
 };
+
+/**
+ * How a ship is scored for the "Best ship" board.
+ *
+ * It used to be `tier * 100 + levels` -- the hull's rank, and the
+ * enhancement levels on its four parts. That rated a +10 green Toro
+ * cannon exactly as highly as a +10 yellow Falasi one, so three quite
+ * different Carracks all landed on 440 and shared first place.
+ *
+ * A slot is worth its part's family first and its enhancement second:
+ * `family * SLOT_FAMILY + level`, with SLOT_FAMILY one more than the
+ * ten levels a part can take, so no amount of enhancing carries a green
+ * part past a blue one. That is the order the game puts them in and the
+ * order the Ship tab's picker already offered them in.
+ *
+ * The hull is worth far more than anything bolted to it, so it keeps a
+ * whole order of magnitude to itself. The sea crystal counts as well --
+ * it is a real slot and a real choice -- but deliberately for less than
+ * one family step across the four parts: the best crystal in the game
+ * is a drop, and a full yellow set is a season of work. At four a point
+ * of grade, a Rusalka is worth 20 against the 44 that lifting four
+ * parts from blue to yellow is worth, which is the right way round.
+ *
+ * The appearance set is deliberately left out. It carries stats, but it
+ * is bought rather than earned and not everyone records it, so counting
+ * it would rank the pearl shop.
+ */
+const SLOT_FAMILY = 11;
+const HULL_WORTH = 1000;
+const CRYSTAL_WORTH = 4;
+
+/** The sea crystal grades in the order the game ranks them. */
+const CRYSTAL_RANK = { eltro: 1, serni: 2, zulatia: 3, margoria: 4, rusalka: 5, nol: 5 };
+
+/**
+ * What one slot is worth: nothing when empty, else its family and its
+ * level.
+ *
+ * A name with no family the app knows still counts its enhancement --
+ * every one of the seventy-two parts in the tables has a family today,
+ * but a part added by a patch the app has not caught up with should
+ * score something rather than nothing.
+ */
+function slotWorth(name) {
+	if (typeof name !== 'string' || !name) return 0;
+	const base = name.replace(/^\+\d+\s+/, '');
+	return (FAMILY_RANK[families[base]] || 0) * SLOT_FAMILY + levelOf(name);
+}
+
+/**
+ * Which part sets are on a hull, best first -- "Chiro", or "Chiro, Toro"
+ * for a hull wearing two. This is what makes the difference between two
+ * ships legible on the board: "parts +40 in all" was true of a full
+ * yellow set and of a half-green one alike, and said nothing about
+ * which was which.
+ */
+function setsOf(fitted) {
+	const seen = new Map();
+	for (const name of Object.values(obj(fitted))) {
+		const fam = families[String(name).replace(/^\+\d+\s+/, '')];
+		if (fam && !seen.has(fam)) seen.set(fam, FAMILY_RANK[fam] || 0);
+	}
+	return [...seen.entries()].sort((a, b) => b[1] - a[1]).map(([fam]) => FAMILY_LABEL[fam] || fam);
+}
+
+/** What the crystal in the fifth slot is worth, by its grade. */
+function crystalWorth(id) {
+	const c = crystalById[Number(id)];
+	return c ? (CRYSTAL_RANK[c.grade] || 0) * CRYSTAL_WORTH : 0;
+}
 
 const SHIPS = new Set(shipGroups.filter(g => g.name === 'Ships' || g.name === 'Small craft').flatMap(g => g.items));
 /** Every hull the app knows -- the craftable ones and the Bartali
@@ -109,8 +180,11 @@ function fleetOf(profile, stock) {
 	for (const [ship, h] of hulls) {
 		const tier = HULL_TIER[ship] ?? 1;
 		const levels = Object.values(h.parts).reduce((a, b) => a + b, 0);
-		const score = tier * 100 + levels;
-		if (!best || score > best.score) best = { ship, tier, parts: h.parts, fitted: h.fitted, levels, score, crystal: h.crystal || 0 };
+		const gear = Object.values(h.fitted).reduce((a, name) => a + slotWorth(name), 0);
+		const score = tier * HULL_WORTH + gear + crystalWorth(h.crystal);
+		if (!best || score > best.score) {
+			best = { ship, tier, parts: h.parts, fitted: h.fitted, levels, gear, score, crystal: h.crystal || 0, sets: setsOf(h.fitted) };
+		}
 	}
 	const sorted = [...hulls.keys()].sort((a, b) => (HULL_TIER[b] ?? 1) - (HULL_TIER[a] ?? 1) || a.localeCompare(b));
 	return {
@@ -336,63 +410,99 @@ export function fittedOn(d, hull) {
 	}
 	return null;
 }
-const faceShip = d => (d.fleet.best ? { kind: 'ship', item: d.fleet.best.ship, parts: d.fleet.best.parts, fitted: d.fleet.best.fitted || fittedOn(d, d.fleet.best.ship), crystal: d.fleet.best.crystal || 0 } : null);
+const faceShip = d => (d.fleet.best ? {
+	kind: 'ship', item: d.fleet.best.ship, parts: d.fleet.best.parts,
+	fitted: d.fleet.best.fitted || fittedOn(d, d.fleet.best.ship), crystal: d.fleet.best.crystal || 0,
+	// The score broken into its three parts, so a row can show its own
+	// arithmetic rather than only the rule it was scored by. A digest
+	// written before this carries no `worth` and simply shows less.
+	worth: {
+		hull: (d.fleet.best.tier ?? 1) * HULL_WORTH,
+		gear: d.fleet.best.gear || 0,
+		crystal: crystalWorth(d.fleet.best.crystal)
+	}
+} : null);
 const faceItems = names => (names.length ? { kind: 'items', items: names } : null);
 export const BOARDS = [
 	{ id: 'mastery', section: 'sea', title: 'Sailing mastery', icon: '⚓', unit: '', min: 1,
 		desc: 'mastery points, as set on the Ship tab', how: 'Set your sailing mastery on the Ship tab.',
+		note: 'The number itself, as you set it on the Ship tab. Nothing is worked out from it.',
 		value: d => d.mastery, detail: d => (d.level ? d.level : ''), face: () => null },
 	{ id: 'ship', section: 'sea', title: 'Best ship', icon: '⛵', unit: 'pts', min: 1,
-		desc: 'the hull, and how far its parts are taken', how: 'Fit a ship on the Ship tab.',
+		desc: 'the hull, which parts are on it, and how far they are taken', how: 'Fit a ship on the Ship tab.',
+		note: 'The hull is worth 1,000 a tier — a Carrack 4,000, a Caravel 3,000 — because it outweighs anything bolted to it. Each of the four slots is then worth its part\'s set (yellow 5, blue 4, green 3, Epheria 2, Sailboat 1) times eleven, plus its enhancement level. Eleven is one more than the ten levels a part takes, so no amount of enhancing carries a green part past a blue one. The sea crystal adds four a grade — less than lifting all four parts a tier is worth, since the best crystal is a drop and a yellow set is a season of work. The appearance set is not counted.',
 		value: d => (d.fleet.best ? d.fleet.best.score : 0),
-		detail: d => (d.fleet.best ? `${d.fleet.best.ship}${d.fleet.best.levels ? ` · parts +${d.fleet.best.levels} in all` : ''}` : ''),
+		// Which set, then how far it is taken: "parts +40 in all" was
+		// true of a full yellow set and a half-green one alike, which is
+		// exactly what the old score could not tell apart either. A
+		// digest written before this has no `sets` and simply says less.
+		detail: d => {
+			const b = d.fleet.best;
+			if (!b) return '';
+			const sets = (b.sets || []).join(', ');
+			return `${b.ship}${sets ? ` · ${sets}` : ''}${b.levels ? ` · +${b.levels} in all` : ''}`;
+		},
 		face: faceShip },
 	{ id: 'fleet', section: 'sea', title: 'Largest fleet', icon: '🚢', unit: 'hulls', min: 2,
-		desc: 'hulls owned across every setup', how: 'Own a second hull on the Ship tab.',
+		desc: 'hulls owned, across your setups and your inventory', how: 'Own a second hull on the Ship tab.',
+		note: 'Hulls, counted once each: every hull with a saved setup, with parts fitted by hand, or sitting in your Inventory. Two of the same hull are one hull here.',
 		value: d => d.fleet.n, detail: d => d.fleet.hulls.slice(0, 3).join(', '), face: d => faceItems(d.fleet.hulls.slice(0, 4)) },
 	{ id: 'sailor', section: 'sea', title: 'Best sailor', icon: '🧭', unit: 'pts', min: 1001,
 		desc: 'the strongest hand aboard: level first, then growths', how: 'Hire a sailor on the Ship tab.',
+		note: 'Your single best sailor: their level times a thousand, plus their growth percentages added up. Level decides it; the growths only break a tie.',
 		value: d => (d.crew.best ? d.crew.best.score : 0),
 		detail: d => (d.crew.best ? `${d.crew.best.name} · ${d.crew.best.type} · Lv ${d.crew.best.lv}${d.crew.best.sum ? ` · stats ${d.crew.best.sum}` : ''}` : ''),
 		face: d => (d.crew.best ? { kind: 'sailor', type: d.crew.best.type, name: d.crew.best.name, lv: d.crew.best.lv, stats: d.crew.best.stats } : null) },
 	{ id: 'crew', section: 'sea', title: 'Largest crew', icon: '👥', unit: 'sailors', min: 1,
 		desc: 'sailors hired across every roster', how: 'Hire sailors on the Ship tab.',
+		note: 'Sailors on the roster, however they are seated.',
 		value: d => d.crew.n, detail: d => (d.crew.avgLv ? `average Lv ${d.crew.avgLv}` : ''),
 		face: d => (Object.keys(d.crew.byType).length ? { kind: 'sailors', types: Object.keys(d.crew.byType).slice(0, 4) } : null) },
 	{ id: 'barters', section: 'runs', title: 'Most barters', icon: '⇄', unit: 'barters', min: 1,
 		desc: 'the barter count, as set on the Barter tab', how: 'Set your barter count on the Barter tab.',
+		note: 'The number itself, as you set it on the Barter tab.',
 		value: d => d.barters, detail: d => (d.level ? d.level : ''), face: () => null },
 	{ id: 'silver', section: 'runs', title: 'Most silver from runs', icon: '💰', unit: 'silver', min: 1,
 		desc: 'silver over every run logged', how: 'Log a run on the Barter tab.',
+		note: 'Silver over every run logged. The career tally is used where it is larger than the last sixty runs, since a save keeps only those.',
 		value: d => d.runs.silver, detail: d => `${d.runs.n} run${d.runs.n === 1 ? '' : 's'} · ${d.runs.trades} trade${d.runs.trades === 1 ? '' : 's'}`, face: () => null },
 	{ id: 'runs', section: 'runs', title: 'Most runs sailed', icon: '🌊', unit: 'runs', min: 1,
 		desc: 'runs logged, over the whole career', how: 'Log a run on the Barter tab.',
+		note: 'Runs logged over the career, by the same reckoning as the silver.',
 		value: d => d.runs.n, detail: d => `${d.runs.stops} stops · ${d.runs.trades} trades`, face: () => null },
 	{ id: 'bestday', section: 'runs', title: 'Best single run', icon: '☀', unit: 'silver net', min: 1,
 		desc: 'the most silver netted in one run', how: 'Log a run on the Barter tab.',
+		note: 'The most silver netted in a single run — what it paid, less what it cost — over the last sixty.',
 		value: d => (d.runs.best ? d.runs.best.net : 0), detail: d => (d.runs.best ? d.runs.best.day : ''), face: () => null },
 	{ id: 'quests', section: 'quests', title: 'Most quests done', icon: '✦', unit: 'quests', min: 1,
 		desc: 'claims over the career, on the Quests tab', how: 'Claim a quest on the Quests tab.',
+		note: 'Every quest claim over the career, counting a quest claimed twice as two.',
 		value: d => d.quests.n, detail: d => `${d.quests.distinct} different`, face: () => null },
 	{ id: 'hunts', section: 'quests', title: 'Most sea monsters hunted', icon: '🦈', unit: 'hunts', min: 1,
 		desc: 'from the hunting quests done', how: 'Claim a hunting quest on the Quests tab.',
+		note: 'Claims of the hunting quests only, which is what the app can see of a monster killed.',
 		value: d => d.quests.huntsN, detail: d => Object.keys(d.quests.hunts).slice(0, 3).map(monsterName).join(', '),
 		face: d => (Object.keys(d.quests.hunts).length ? { kind: 'monsters', keys: Object.keys(d.quests.hunts).slice(0, 4) } : null) },
 	{ id: 'ships', section: 'yard', title: 'Most ships built', icon: '⚒', unit: 'ships', min: 1,
 		desc: 'hulls made in the Workshop', how: 'Craft a hull in the Workshop.',
+		note: 'Hulls recorded as made in the Workshop.',
 		value: d => d.yard.ships, detail: d => Object.keys(d.yard.shipsMade).slice(0, 2).join(', '), face: d => faceItems(Object.keys(d.yard.shipsMade).slice(0, 4)) },
 	{ id: 'crafts', section: 'yard', title: 'Most things made', icon: '🔨', unit: 'crafts', min: 1,
 		desc: 'everything crafted in the Workshop', how: 'Craft anything in the Workshop.',
+		note: 'Everything recorded as made in the Workshop, hulls and parts and materials alike.',
 		value: d => d.yard.crafts, detail: d => (d.yard.parts ? `${d.yard.parts} ship parts` : ''), face: () => null },
 	{ id: 'luck', section: 'yard', title: 'Luckiest at the anvil', icon: '🎲', unit: '% success', min: 1,
 		desc: 'successes per attempt, over ten or more tries', how: 'Record ten enhancement attempts in the Workshop.',
+		note: 'Successes per attempt at the anvil, as a percentage, and only once ten attempts are recorded — three lucky tries are not a record.',
 		value: d => (d.yard.tries >= 10 ? Math.round((d.yard.wins / d.yard.tries) * 100) : 0),
 		detail: d => (d.yard.tries ? `${d.yard.wins} of ${d.yard.tries} attempts` : ''), face: () => null },
 	{ id: 'charts', section: 'charts', title: 'Cartographer', icon: '✎', unit: 'points', min: 1,
 		desc: 'points in the traces drawn on the chart', how: 'Draw a trace on the Map tab.',
+		note: 'Points in the traces drawn on the chart, so a long coast counts more than a short one.',
 		value: d => d.charts.points, detail: d => `${d.charts.traces} trace${d.charts.traces === 1 ? '' : 's'} · ${d.charts.routes} route${d.charts.routes === 1 ? '' : 's'}`, face: () => null },
 	{ id: 'hold', section: 'charts', title: 'Fullest hold', icon: '📦', unit: 'units', min: 1,
 		desc: 'units in the Inventory, all kinds together', how: 'Add stock on the Inventory tab.',
+		note: 'Units in the Inventory, every kind added together. Silver and Crow Coin are left out; they would drown everything else.',
 		value: d => d.stock.units, detail: d => `${d.stock.items} kinds of thing`, face: () => null }
 ];
 
