@@ -24,7 +24,7 @@
 
 import express from 'express';
 import crypto from 'node:crypto';
-import { digest, BOARDS } from '../js/digest.js';
+import { digest, BOARDS, DIGEST_V } from '../js/digest.js';
 import { config } from './config.js';
 import { listCommunity, putCommunity, putDigest, deleteCommunity, getShareState, setCommunityOff } from './db.js';
 import { onSaveChanged, readSave } from './saves.js';
@@ -199,7 +199,14 @@ async function build() {
 	const stale = new Set(behind);
 	for (const id of stale) behind.delete(id);
 	for (const r of rows) {
-		if (stale.has(r.userId) || (r.saveRev !== null && r.saveRev > r.rev)) {
+		// Three reasons to work a digest out again: the account saved
+		// since the last build, the stored copy is older than the save it
+		// came from, or it was written by a build that digested saves
+		// differently -- a scoring change has to re-rate everyone, not
+		// only whoever happens to sync next.
+		const stored = safeParse(r.stats);
+		const oldShape = !stored || stored.v !== DIGEST_V;
+		if (stale.has(r.userId) || oldShape || (r.saveRev !== null && r.saveRev > r.rev)) {
 			try {
 				const fresh = await digestOf(r.userId);
 				await putDigest(r.userId, fresh.stats, fresh.rev);
@@ -214,7 +221,7 @@ async function build() {
 				console.warn(`[community] could not refresh ${r.userId}'s digest:`, err.message);
 			}
 		}
-		r.digest = safeParse(r.stats);
+		r.digest = stored;
 	}
 	const live = rows.filter(r => r.digest && typeof r.digest === 'object');
 	// The roll as the database has it. Rebuilt rather than patched, so a

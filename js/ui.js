@@ -326,6 +326,14 @@ export function render() {
 
 	const root = document.getElementById('screen');
 	const focus = captureFocus(root);
+	// The chart's side panel scrolls, and a render replaces it whole.
+	// Ticking a stop Done part-way down a nineteen-stop run records goods
+	// and moves the pouch, so it is a real render and not a redraw of the
+	// panel -- and the reader was put back at the top of the list every
+	// time, with the stop they had just ticked off the screen. refreshSide
+	// keeps the offset for its own redraws; this keeps it for the ones
+	// that go through here.
+	const sideTop = (document.querySelector('.map-side-body') || {}).scrollTop || 0;
 	root.className = 'screen';
 	if (view === 'plan') root.innerHTML = renderPlan();
 	else if (view === 'builds') root.innerHTML = renderBuilds();
@@ -348,7 +356,11 @@ export function render() {
 	// The map draws itself after the shell exists, since it has to
 	// measure the box it was given before it knows which tiles to ask
 	// for.
-	if (view === 'map') paintMap();
+	if (view === 'map') {
+		paintMap();
+		const side = root.querySelector('.map-side-body');
+		if (side && sideTop) side.scrollTop = sideTop;
+	}
 	tickClocks();
 	syncHash();
 	// The tab just switched to, scrolled back to where it was left.

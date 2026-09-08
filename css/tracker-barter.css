@@ -128,9 +128,18 @@
 .hold-bar-main:hover .hold-bar-open { color: var(--ink-hi); }
 .hold-bar-k { font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); white-space: nowrap; }
 .hold-bar-ship { font-size: 12.5px; font-weight: 600; color: var(--ink-hi); white-space: nowrap; }
-.hold-bar-gauge { display: flex; align-items: center; gap: 10px; flex: 1 1 200px; min-width: 160px; }
+/* Wide enough for the weight line to sit beside its bar where there is
+   room. It asks for the whole line rather than 200px because the line
+   it holds is around 420px and the bar beside it wants 90: asking for
+   less did not make the line shorter,
+   it made it overflow the box and paint over whatever had wrapped
+   underneath -- by 23px on a wide screen and 223px on a narrow one. */
+.hold-bar-gauge { display: flex; align-items: center; gap: 10px; flex: 1 1 530px; min-width: 160px; }
 .hold-bar-gauge .map-load-bar { flex: 1 1 90px; margin: 0; }
-.hold-bar-gauge b { font-family: var(--font-display); font-size: 12.5px; font-weight: 600; color: var(--ink-hi); white-space: nowrap; }
+/* And it wraps. Nothing here is short enough to promise one line at
+   every width, and a line that cannot wrap does not shrink -- it spills
+   over its neighbours. */
+.hold-bar-gauge b { font-family: var(--font-display); font-size: 12.5px; font-weight: 600; color: var(--ink-hi); min-width: 0; }
 .hold-bar-gauge b.warn { color: var(--amber); }
 .hold-bar-goods { display: flex; flex-wrap: wrap; gap: 5px; }
 .hold-bar-goods .faint { font-size: 11.5px; color: var(--ink-faint); }
@@ -139,7 +148,10 @@
 .hold-bar-ashore { font-size: 11.5px; color: var(--ink-mute); }
 .hold-bar-ashore.faint { color: var(--ink-faint); }
 .hold-bar-open { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--ink-mute); white-space: nowrap; }
-.hold-bar-btns { flex: none; display: flex; gap: 6px; }
+/* Wraps. Two parley controls and a button do not fit a phone on one
+   line -- they ran to 613px inside a 390px screen, and the row simply
+   ended at the edge of the panel with the rest cut off. */
+.hold-bar-btns { flex: none; display: flex; flex-wrap: wrap; gap: 6px; }
 .hold-dialog .barter-hold { border: none; background: transparent; padding: 0; box-shadow: none; }
 .hold-dialog .dialog-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
 .dialog-box.wide { max-width: 720px; }
@@ -148,6 +160,9 @@
   .hold-bar-main { flex-basis: 100%; }
   .hold-bar-btns { width: 100%; }
   .hold-bar-btns .ghost-btn { flex: 1 1 auto; }
+  /* The parley line wraps within itself too, so its own label, field
+     and note are not what pushes the row over the edge. */
+  .hold-parley { flex: 1 1 auto; min-width: 0; flex-wrap: wrap; white-space: normal; }
 }
 
 /* the board bar */
