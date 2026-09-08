@@ -53,7 +53,7 @@ test('the changelog points at pictures that are really there', () => {
 });
 
 test('the package version and the release the app announces agree', () => {
-	// The dialog says "version 2.0"; npm should not think it is 1.0.0.
+	// The dialog says "version 1.0"; npm should not say something else.
 	const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 	assert.ok(pkg.version.startsWith(`${RELEASE}.`) || pkg.version === RELEASE,
 		`package.json is ${pkg.version}, the app announces ${RELEASE}`);

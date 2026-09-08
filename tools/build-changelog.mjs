@@ -33,7 +33,7 @@ const HEAD = `# Changelog
 
 What arrived between one version of this app and the next, written for
 someone who has been away. The same notes are in the app itself, under
-**More → What's new** — this file is generated from them by
+**Menu → What's new** — this file is generated from them by
 \`node tools/build-changelog.mjs\`, so the two cannot drift apart.
 `;
 
