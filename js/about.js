@@ -246,6 +246,14 @@ export const RELEASE = RELEASES[0].id;
 export const CHANGES = [
 	{
 		date: '2026-09-08',
+		title: 'The Best ship board scores what is on the hull, and every hull says what it is for',
+		notes: [
+			'<b>Best ship</b> was <code>hull tier × 100 + enhancement levels</code>, which rated a +10 green Toro cannon exactly as highly as a +10 yellow Falasi one — so three quite different Carracks all landed on 440 and shared first place. A slot is now worth its part’s set first and its enhancement second, so no amount of enhancing carries a green part past a blue one, and the row says which set it is looking at: “Carrack (Advance) · Chiro, Toro · +40 in all”. The sea crystal counts too, for rather less than lifting the whole set a tier — the best crystal is a drop and a yellow set is a season. Every score on that board has moved; they are not comparable with the old ones.',
+			'Every hull now says <b>what it is for</b>, which the game’s own numbers never do: the Advance for bartering (the biggest hold, and a run pays by what it carries), the Volante for speed, the Valor and the Panokseon for sea monsters, the Balance for not choosing. It is on the ship card, in the picker — where searching “barter” finds the barter hulls — and the crystal picker marks the crystals that suit the hull and says what each stat is for. Under the sailor list, the one sentence that decides a barter roster: every sailor aboard is cargo you cannot carry. Under the slots, the next set worth buying. All of it the fleet’s reading, sourced in js/ship_roles.js, and none of it a rule the app enforces.'
+		]
+	},
+	{
+		date: '2026-09-08',
 		title: 'The boards keep up, and hold you by default; your fleet and your inventory are one thing',
 		notes: [
 			'The <b>Community</b> boards follow your save. What they show about you is worked out from the copy the server holds, and that copy is redrawn within seconds of a save reaching it — so a ship fitted, a sailor hired or a run logged is on the boards, and on your own card, by the time you walk to them. Before, a change waited on the boards’ own window and a card, once opened, never changed at all: leaving the boards and rejoining them was the only way to see it.',

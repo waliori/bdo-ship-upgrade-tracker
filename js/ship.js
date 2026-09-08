@@ -13,7 +13,7 @@ import * as store from './state.js';
 import { skinFor, skinStats, SKIN_SLOTS } from './ship_skins.js';
 import { shipStats } from './ship_stats.js';
 import { partStats, slotOf, fitsShip, statsAt, sumStats, loadout } from './part_stats.js';
-import { families } from './enhancement.js';
+import { families, FAMILY_RANK } from './enhancement.js';
 import { crewTotals } from './sailors.js';
 import { crystalById, crystalStats } from './crystals.js';
 
@@ -31,7 +31,9 @@ export const OVERLOAD = 1.7;
  *  hold was seen dealing up to about 33,750 and refused past 34,000
  *  (2026-09-04), which is the game's usual overweight step. */
 export const BARTER_OVER = 1.25;
-const RANK = { yellow: 5, chiro: 4, 'caravel-blue': 4, toro: 3, 'caravel-green': 3, epheria: 2, sailboat: 1 };
+// The part families ranked, from enhancement.js: the picker offers the
+// best tier first, and the boards score by the same order.
+const RANK = FAMILY_RANK;
 const round1 = n => Math.round(n * 10) / 10;
 
 /** The hull in use: chosen on the Crew screen, else the largest

@@ -20,7 +20,8 @@ import { quests } from './quests.js';
 import { monsterByKey } from './sea_monsters.js';
 import { readProfile } from './profile-shape.js';
 import { loadout } from './part_stats.js';
-import { families } from './enhancement.js';
+import { families, FAMILY_RANK, FAMILY_LABEL } from './enhancement.js';
+import { crystalById } from './sea_crystals.js';
 
 /** The hulls that sail, from the small ones up. A rank for "best ship". */
 export const HULL_TIER = {
@@ -31,6 +32,76 @@ export const HULL_TIER = {
 	'Carrack (Advance)': 4, 'Carrack (Balance)': 4, 'Carrack (Volante)': 4, 'Carrack (Valor)': 4,
 	'Panokseon': 4
 };
+
+/**
+ * How a ship is scored for the "Best ship" board.
+ *
+ * It used to be `tier * 100 + levels` -- the hull's rank, and the
+ * enhancement levels on its four parts. That rated a +10 green Toro
+ * cannon exactly as highly as a +10 yellow Falasi one, so three quite
+ * different Carracks all landed on 440 and shared first place.
+ *
+ * A slot is worth its part's family first and its enhancement second:
+ * `family * SLOT_FAMILY + level`, with SLOT_FAMILY one more than the
+ * ten levels a part can take, so no amount of enhancing carries a green
+ * part past a blue one. That is the order the game puts them in and the
+ * order the Ship tab's picker already offered them in.
+ *
+ * The hull is worth far more than anything bolted to it, so it keeps a
+ * whole order of magnitude to itself. The sea crystal counts as well --
+ * it is a real slot and a real choice -- but deliberately for less than
+ * one family step across the four parts: the best crystal in the game
+ * is a drop, and a full yellow set is a season of work. At four a point
+ * of grade, a Rusalka is worth 20 against the 44 that lifting four
+ * parts from blue to yellow is worth, which is the right way round.
+ *
+ * The appearance set is deliberately left out. It carries stats, but it
+ * is bought rather than earned and not everyone records it, so counting
+ * it would rank the pearl shop.
+ */
+const SLOT_FAMILY = 11;
+const HULL_WORTH = 1000;
+const CRYSTAL_WORTH = 4;
+
+/** The sea crystal grades in the order the game ranks them. */
+const CRYSTAL_RANK = { eltro: 1, serni: 2, zulatia: 3, margoria: 4, rusalka: 5, nol: 5 };
+
+/**
+ * What one slot is worth: nothing when empty, else its family and its
+ * level.
+ *
+ * A name with no family the app knows still counts its enhancement --
+ * every one of the seventy-two parts in the tables has a family today,
+ * but a part added by a patch the app has not caught up with should
+ * score something rather than nothing.
+ */
+function slotWorth(name) {
+	if (typeof name !== 'string' || !name) return 0;
+	const base = name.replace(/^\+\d+\s+/, '');
+	return (FAMILY_RANK[families[base]] || 0) * SLOT_FAMILY + levelOf(name);
+}
+
+/**
+ * Which part sets are on a hull, best first -- "Chiro", or "Chiro, Toro"
+ * for a hull wearing two. This is what makes the difference between two
+ * ships legible on the board: "parts +40 in all" was true of a full
+ * yellow set and of a half-green one alike, and said nothing about
+ * which was which.
+ */
+function setsOf(fitted) {
+	const seen = new Map();
+	for (const name of Object.values(obj(fitted))) {
+		const fam = families[String(name).replace(/^\+\d+\s+/, '')];
+		if (fam && !seen.has(fam)) seen.set(fam, FAMILY_RANK[fam] || 0);
+	}
+	return [...seen.entries()].sort((a, b) => b[1] - a[1]).map(([fam]) => FAMILY_LABEL[fam] || fam);
+}
+
+/** What the crystal in the fifth slot is worth, by its grade. */
+function crystalWorth(id) {
+	const c = crystalById[Number(id)];
+	return c ? (CRYSTAL_RANK[c.grade] || 0) * CRYSTAL_WORTH : 0;
+}
 
 const SHIPS = new Set(shipGroups.filter(g => g.name === 'Ships' || g.name === 'Small craft').flatMap(g => g.items));
 /** Every hull the app knows -- the craftable ones and the Bartali
@@ -109,8 +180,11 @@ function fleetOf(profile, stock) {
 	for (const [ship, h] of hulls) {
 		const tier = HULL_TIER[ship] ?? 1;
 		const levels = Object.values(h.parts).reduce((a, b) => a + b, 0);
-		const score = tier * 100 + levels;
-		if (!best || score > best.score) best = { ship, tier, parts: h.parts, fitted: h.fitted, levels, score, crystal: h.crystal || 0 };
+		const gear = Object.values(h.fitted).reduce((a, name) => a + slotWorth(name), 0);
+		const score = tier * HULL_WORTH + gear + crystalWorth(h.crystal);
+		if (!best || score > best.score) {
+			best = { ship, tier, parts: h.parts, fitted: h.fitted, levels, gear, score, crystal: h.crystal || 0, sets: setsOf(h.fitted) };
+		}
 	}
 	const sorted = [...hulls.keys()].sort((a, b) => (HULL_TIER[b] ?? 1) - (HULL_TIER[a] ?? 1) || a.localeCompare(b));
 	return {
@@ -343,9 +417,18 @@ export const BOARDS = [
 		desc: 'mastery points, as set on the Ship tab', how: 'Set your sailing mastery on the Ship tab.',
 		value: d => d.mastery, detail: d => (d.level ? d.level : ''), face: () => null },
 	{ id: 'ship', section: 'sea', title: 'Best ship', icon: '⛵', unit: 'pts', min: 1,
-		desc: 'the hull, and how far its parts are taken', how: 'Fit a ship on the Ship tab.',
+		desc: 'the hull, which parts are on it, and how far they are taken', how: 'Fit a ship on the Ship tab.',
 		value: d => (d.fleet.best ? d.fleet.best.score : 0),
-		detail: d => (d.fleet.best ? `${d.fleet.best.ship}${d.fleet.best.levels ? ` · parts +${d.fleet.best.levels} in all` : ''}` : ''),
+		// Which set, then how far it is taken: "parts +40 in all" was
+		// true of a full yellow set and a half-green one alike, which is
+		// exactly what the old score could not tell apart either. A
+		// digest written before this has no `sets` and simply says less.
+		detail: d => {
+			const b = d.fleet.best;
+			if (!b) return '';
+			const sets = (b.sets || []).join(', ');
+			return `${b.ship}${sets ? ` · ${sets}` : ''}${b.levels ? ` · +${b.levels} in all` : ''}`;
+		},
 		face: faceShip },
 	{ id: 'fleet', section: 'sea', title: 'Largest fleet', icon: '🚢', unit: 'hulls', min: 2,
 		desc: 'hulls owned across every setup', how: 'Own a second hull on the Ship tab.',

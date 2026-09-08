@@ -115,6 +115,48 @@ test('the digest reads the fleet, the crew and the career off a save', () => {
 	assert.deepEqual(fittedOn(d, 'Carrack (Volante)'), null);
 });
 
+test('the best ship is scored on what is on it, not only how far it is taken', () => {
+	const set = (maker, n) => ({ cannon: maker('Cannon', n), sail: maker('Sail', n), figurehead: maker('Figurehead', n), plating: maker('Plating', n) });
+	const yellow = (slot, n) => `+${n} Epheria Carrack: Advance (Falasi's ${slot})`;
+	const chiro = (slot, n) => `+${n} Epheria Carrack: Advance (Chiro's ${slot === 'Plating' ? 'Black Plating' : slot})`;
+	const toro = (slot, n) => `+${n} Epheria Carrack: Toro ${slot}`;
+	const ship = (fitted, crystal) => digest(save({
+		crewShip: 'Carrack (Advance)',
+		fitted: { 'Carrack (Advance)': fitted },
+		...(crystal ? { crystal: { 'Carrack (Advance)': crystal } } : {})
+	})).fleet.best;
+
+	const full = ship(set(yellow, 10));
+	const blue = ship(set(chiro, 10));
+	const mixed = ship({ ...set(chiro, 10), cannon: toro('Cannon', 10), figurehead: toro('Figurehead', 10) });
+	const bare = ship(set(chiro, 0));
+
+	// The whole point: four sets, all "+40 in all", no longer tie.
+	assert.ok(full.score > blue.score, 'a yellow set must beat a blue one');
+	assert.ok(blue.score > mixed.score, 'an all-blue set must beat a half-green one');
+	assert.ok(mixed.score > bare.score, 'ten levels must still be worth something');
+	// A family step is worth more than every level below it, so no amount
+	// of enhancing carries a green part past a blue one.
+	assert.ok(ship(set(chiro, 0)).score > ship(set(toro, 10)).score, 'a bare blue set outranks a maxed green one');
+
+	// The crystal counts, but for less than lifting the set a tier.
+	const RUSALKA = 756821;
+	assert.ok(ship(set(chiro, 10), RUSALKA).score > blue.score, 'a crystal is worth something');
+	assert.ok(ship(set(chiro, 10), RUSALKA).score < full.score, 'a crystal is worth less than a whole set tier');
+
+	// And the row says which set it is looking at.
+	assert.deepEqual(full.sets, ['yellow']);
+	assert.deepEqual(mixed.sets, ['Chiro', 'Toro']);
+	const b = BOARDS.find(x => x.id === 'ship');
+	assert.equal(b.detail({ fleet: { best: mixed } }), 'Carrack (Advance) · Chiro, Toro · +40 in all');
+	// A digest written before sets existed still reads.
+	assert.equal(b.detail({ fleet: { best: { ship: 'Panokseon', levels: 12 } } }), 'Panokseon · +12 in all');
+
+	// The hull still outweighs anything bolted to it.
+	const caravel = digest(save({ crewShip: 'Epheria Caravel', fitted: { 'Epheria Caravel': {} } })).fleet.best;
+	assert.ok(bare.score > caravel.score, 'a Carrack outranks a Caravel however either is fitted');
+});
+
 test('an empty save digests to zeros, not to a throw', () => {
 	const d = digest({});
 	assert.equal(d.mastery, 0);
