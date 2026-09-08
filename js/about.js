@@ -241,6 +241,13 @@ export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
 	{
+		date: '2026-09-08',
+		title: 'the game file’s original kept',
+		notes: [
+			'Writing a route into <code>gameVariable.xml</code> keeps two copies now: the first write puts the untouched file aside as <code>gameVariable.xml.orig</code> and never writes it again, and every write copies the file as it was to <code>gameVariable.xml.bak</code>. Before, the second write copied the first write’s output over the only backup, and the original was gone.'
+		]
+	},
+	{
 		date: '2026-09-07',
 		title: 'version 1.0: one release, the tour and the film for the whole app',
 		notes: [

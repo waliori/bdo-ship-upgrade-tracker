@@ -1012,7 +1012,9 @@ function wire() {
 			case 'map-game-write': {
 				try {
 					const r = await writeGameFile(gameBookmarks().xml);
-					toast(`Written — the old file is ${r.backup}. Load a character and open the map`);
+					toast(r.first
+						? `Written — the untouched file is kept as ${r.original}. Load a character and open the map`
+						: `Written — the file as it was is ${r.backup}, the untouched one ${r.original}. Load a character and open the map`);
 				} catch (err) {
 					toast(err.message);
 				}

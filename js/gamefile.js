@@ -4,10 +4,13 @@
 // choose the account folder once, the handle is kept in IndexedDB, and
 // each later write asks for read/write permission with one click. A
 // folder rather than the file, because a folder is where a backup can
-// go: gameVariable.xml.bak is a full copy of the file as it was, written
-// before every edit. Nothing else can reach a file on disk from a page,
-// so on Firefox and Safari this module says so and the paste path is
-// what there is.
+// go. Two of them: gameVariable.xml.orig is the file as it was before
+// the app ever touched it, written once and never again, so a second
+// write cannot bury the original under the first write's output; and
+// gameVariable.xml.bak is the file as it was before the latest write,
+// replaced every time. Nothing else can reach a file on disk from a
+// page, so on Firefox and Safari this module says so and the paste
+// path is what there is.
 //
 // The favourites block each write replaced is kept in localStorage as
 // well, byte for byte, so Restore can put the favourites back exactly
@@ -20,6 +23,7 @@ const DB = 'bdo-tracker/files';
 const KEY = 'gameFolder';
 const FILE = 'gameVariable.xml';
 const BACKUP = 'gameVariable.xml.bak';
+const ORIGINAL = 'gameVariable.xml.orig';
 const PREV_KEY = 'bdo-tracker/worldmap-previous';
 
 export function canWriteFiles() {
@@ -112,6 +116,15 @@ async function permitted(dir) {
 	return await dir.requestPermission(opts) === 'granted';
 }
 
+async function exists(dir, name) {
+	try {
+		await dir.getFileHandle(name);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 async function writeText(dir, name, text) {
 	const fh = await dir.getFileHandle(name, { create: true });
 	const w = await fh.createWritable();
@@ -132,9 +145,12 @@ function rememberPrevious(block) {
 	} catch { /* the .bak still has it */ }
 }
 
-/** Read the file, swap its block by `swap(text)`, write it back with a
- *  backup first -- what a write and a restore share. `dir` is the
- *  folder handle; the kept one when none is given. */
+/** Read the file, swap its block by `swap(text)`, write it back with
+ *  the backups first -- what a write and a restore share. `dir` is the
+ *  folder handle; the kept one when none is given. The .orig is only
+ *  ever written when there is none, so it stays the file from before
+ *  the first write; the .bak is written every time. The result says
+ *  which one this write made, for the toast. */
 async function rewrite(swap, dir = null) {
 	dir = dir || await loadHandle();
 	if (!dir) throw new Error('Choose the account folder first.');
@@ -142,16 +158,20 @@ async function rewrite(swap, dir = null) {
 	const { text, bom } = await readFile(dir);
 	const out = swap(text);
 	if (!out) throw new Error(`${FILE} has no world-map favourites block any more — choose the folder again.`);
-	await writeText(dir, BACKUP, encodeXML(text, bom));
+	const bytes = encodeXML(text, bom);
+	const first = !await exists(dir, ORIGINAL);
+	if (first) await writeText(dir, ORIGINAL, bytes);
+	await writeText(dir, BACKUP, bytes);
 	rememberPrevious(out.previous);
 	await writeText(dir, FILE, encodeXML(out.text, bom));
-	return { folder: dir.name, backup: BACKUP };
+	return { folder: dir.name, backup: BACKUP, original: ORIGINAL, first };
 }
 
 /**
  * Put `xml` into gameVariable.xml in place of its favourites block,
- * after copying the whole file to gameVariable.xml.bak. Throws with a
- * sentence a person can act on.
+ * after copying the whole file to gameVariable.xml.bak -- and to
+ * gameVariable.xml.orig too, the first time. Throws with a sentence a
+ * person can act on.
  */
 export function writeGameFile(xml, dir = null) {
 	return rewrite(text => spliceBlock(text, xml), dir);

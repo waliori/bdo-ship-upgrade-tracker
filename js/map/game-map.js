@@ -315,8 +315,8 @@ export async function openGameExport(source) {
 	const direct = canWriteFiles() ? `<div class="map-game-direct">
 			<div class="map-game-direct-head">Or let the app write it</div>
 			<p>${folder
-				? `Writing to <code>gameVariable.xml</code> in folder <code>${esc(folder)}</code>; the file as it was is copied to <code>gameVariable.xml.bak</code> first. The browser asks once per visit before it touches the folder.`
-				: 'Choose the <strong>account-number folder</strong> inside <code>UserCache</code> once; the browser remembers it and asks before each write. Every write first copies the file to <code>gameVariable.xml.bak</code>.'}
+				? `Writing to <code>gameVariable.xml</code> in folder <code>${esc(folder)}</code>. The first write keeps the untouched file as <code>gameVariable.xml.orig</code>, never overwritten; every write copies the file as it was to <code>gameVariable.xml.bak</code> first. The browser asks once per visit before it touches the folder.`
+				: 'Choose the <strong>account-number folder</strong> inside <code>UserCache</code> once; the browser remembers it and asks before each write. The first write keeps the untouched file as <code>gameVariable.xml.orig</code>, never overwritten; every write first copies the file as it was to <code>gameVariable.xml.bak</code>.'}
 				Do it at the character screen — the game rewrites the file when a character loads.</p>
 			<div class="map-game-btns">
 				<button class="ghost-btn" data-act="map-game-pick">${folder ? 'Choose another folder' : 'Choose the account folder…'}</button>

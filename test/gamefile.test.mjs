@@ -47,6 +47,7 @@ test('a write keeps the mark and the rest of the file; a restore puts the block 
 	assert.ok(written.includes('BookMarkName="1: x"'));
 	assert.ok(written.endsWith('</WorldMapQuickScreenPosition>\r\n<B/>\r\n'));
 	assert.equal(dir.files['gameVariable.xml.bak'], file);
+	assert.equal(dir.files['gameVariable.xml.orig'], file);
 	assert.equal(previousBlock(), block);
 	// Meanwhile the game wrote something else into the file, and its
 	// camera slot went: a merge would have carried the slot the write
@@ -56,4 +57,22 @@ test('a write keeps the mark and the rest of the file; a restore puts the block 
 	assert.equal(dir.files['gameVariable.xml'], `${BOM}<A/>\r\n${block}\r\n<B changed="1"/>\r\n`);
 	assert.equal(previousBlock(), null);
 	await assert.rejects(() => restoreGameFile(dir), /Nothing to restore/);
+});
+
+test('the .orig is the file before the first write and stays so; the .bak follows every write', async () => {
+	const dir = fakeDir({ 'gameVariable.xml': file });
+	const one = bookmarkXML([{ name: '1: x', x: 60000, y: 60000 }]).xml;
+	const two = bookmarkXML([{ name: '2: y', x: 61000, y: 61000 }]).xml;
+	const r1 = await writeGameFile(one, dir);
+	assert.equal(r1.first, true);
+	const afterOne = dir.files['gameVariable.xml'];
+	const r2 = await writeGameFile(two, dir);
+	assert.equal(r2.first, false);
+	assert.equal(dir.files['gameVariable.xml.orig'], file);
+	assert.equal(dir.files['gameVariable.xml.bak'], afterOne);
+	assert.ok(dir.files['gameVariable.xml'].includes('BookMarkName="2: y"'));
+	// A restore is a write too: it moves the .bak on and leaves the .orig alone.
+	await restoreGameFile(dir);
+	assert.equal(dir.files['gameVariable.xml.orig'], file);
+	assert.ok(dir.files['gameVariable.xml.bak'].includes('BookMarkName="2: y"'));
 });
