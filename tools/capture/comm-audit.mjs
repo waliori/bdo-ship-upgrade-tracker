@@ -12,11 +12,12 @@ const roster = (types, lvs) => types.map((t, i) => ({ id: `s${i}`, name: ['Bram'
 const runs = (n, silver, day0 = 10) => Array.from({ length: n }, (_, i) => ({ day: `2026-08-${String(day0 + (i % 18)).padStart(2, '0')}`, silver: silver + i * 1e7, cost: 2e7, trades: 40 + i, parley: 900000, stops: 8 }));
 const SAILORS = [
 	{ id: '1001', username: 'waliori', avatar: null, share: 'named', joinedAt: Date.parse('2026-09-07'), save: {
-		stock: { Silver: 1.2e9, 'Crow Coin': 1830, 'Tidal Black Stone': 320, 'Timber for Upgrade': 200, 'Zinc Ingot': 900 },
+		stock: { Silver: 1.2e9, 'Crow Coin': 1830, 'Tidal Black Stone': 320, 'Timber for Upgrade': 200, 'Zinc Ingot': 900, '+10 Epheria Carrack: Toro Cannon': 1, "+10 Epheria Carrack: Advance (Chiro's Sail)": 1, '+10 Epheria Carrack: Toro Figurehead': 1, "+10 Epheria Carrack: Advance (Chiro's Black Plating)": 1, '+7 Epheria Carrack: Toro Cannon': 1 },
 		targets: [{ item: "Epheria Carrack: Advance (Chiro's Figurehead)", qty: 1 }, { item: 'Delicately Polished Support', qty: 4 }],
 		strategy: {},
 		profile: { sailingMastery: 2100, level: 'Artisan 4', barterCount: 3700, crewShip: 'Carrack (Advance)',
-			fitted: { 'Carrack (Advance)': { cannon: "+10 Epheria Carrack: Advance (Chiro's Cannon)", sail: "+10 Epheria Carrack: Advance (Chiro's Sail)", figurehead: "+8 Epheria Carrack: Advance (Chiro's Figurehead)", plating: "+10 Epheria Carrack: Advance (Chiro's Black Plating)" }, 'Panokseon': { cannon: "+5 Panokseon: Byukgye's Enhanced Cannon", sail: "+5 Panokseon: Byukgye's Enhanced Sail" } },
+			fitted: { 'Panokseon': { cannon: "+5 Panokseon: Byukgye's Enhanced Cannon", sail: "+5 Panokseon: Byukgye's Enhanced Sail" } },
+			seats: { 'Carrack (Advance)': { 'sail:0': 's0', 'wheel:0': 's3', 'deck:0': 's4', 'cannon:0': 's2', 'mate:0': 's1' } },
 			crystal: { 'Carrack (Advance)': 756821, 'Panokseon': 756823 },
 			roster: roster(['Innocent', 'Innocent', 'Ambitious', 'Experienced', 'Powerful', 'Innocent', 'Honest', 'Strong', 'Innocent', 'Innocent', 'Innocent', 'Innocent'], [10, 10, 10, 9, 8, 10, 7, 6, 10, 10, 10, 4]),
 			runs: runs(12, 5e8), questsDone: { 'omg-candidum': 1, 'winwin': 1 },
@@ -141,8 +142,36 @@ for (const [label, vp] of [['desk', { width: 1440, height: 1000 }], ['phone', { 
 	await shoot(page, `${label}-card-2`);
 	await page.evaluate(() => { const b = document.querySelector('.comm-card-body'); if (b) b.scrollTop = 1400; });
 	await shoot(page, `${label}-card-3`);
-	await click('.comm-card-foot [data-close]');
+	await page.evaluate(() => { const b = document.querySelector('.comm-card-body'); if (b) b.scrollTop = 0; });
+	await click('[data-act="community-sailor-sheet"]');
+	await wait(500);
+	await shoot(page, `${label}-sailor-sheet`);
+	await page.evaluate(() => { const b = document.querySelector('.dialog-box'); if (b) b.scrollTop = 500; });
+	await shoot(page, `${label}-sailor-sheet-2`);
+	await click('.dialog-actions [data-close]');
 	await wait(300);
+	await page.evaluate(() => { location.hash = '#community'; });
+	await wait(500);
+	await click('[data-act="community-entry"][data-board="ship"]');
+	await wait(600);
+	await click('[data-act="community-look"]');
+	await wait(900);
+	await click('[data-act="crew-select"]');
+	await wait(400);
+	await shoot(page, `${label}-look`);
+	await page.evaluate(() => window.scrollTo(0, 1400));
+	await shoot(page, `${label}-look-2`);
+	const before = await page.evaluate(() => (document.querySelector('.crew-panel .panel-sub, .seated-line') || document.body).textContent.match(/(\d+)\/20 seated/)?.[1]);
+	await click('[data-act="crew-auto"]');
+	await wait(400);
+	const toastText = await page.evaluate(() => (document.getElementById('toast') || {}).textContent || '');
+	const after = await page.evaluate(() => (document.querySelector('.crew-panel .panel-sub, .seated-line') || document.body).textContent.match(/(\d+)\/20 seated/)?.[1]);
+	console.log(label, 'auto assign during a look — seated before/after:', before, after, '| toast:', toastText.trim().slice(0, 80));
+	await page.evaluate(() => window.scrollTo(0, 0));
+	await click('[data-shared="back"]');
+	await wait(500);
+	await page.evaluate(() => { location.hash = '#community'; });
+	await wait(700);
 	await click('[data-act="community-board"][data-id="hunts"]');
 	await wait(600);
 	await shoot(page, `${label}-board`);

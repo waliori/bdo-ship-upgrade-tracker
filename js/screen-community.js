@@ -29,6 +29,7 @@ import { STAT_NAMES, anyType } from './sailors.js';
 import { monsterArt } from './monster_art.js';
 import { iconSrc } from './ui-bits.js';
 import { openItemCard } from './item-card.js';
+import { openSailorSheet } from './screen-crew.js';
 
 let data = null;          // the last answer from /api/community
 let fetchedAt = 0;
@@ -558,7 +559,7 @@ function paintCard(host, c, section) {
 	const best = d.fleet.best;
 	const look = (label, extra, title) => (canLook ? `<button class="chip tiny primary" data-act="community-look" data-ref="${esc(c.ref)}"${extra} title="${esc(title)}">${label}</button>` : '');
 	const hull = h => {
-		const fitted = fittedOn(d, h.ship);
+		const fitted = h.fitted || fittedOn(d, h.ship);
 		const on = SLOTS.filter(sl => h.parts[sl] || (fitted && fitted[sl])).length;
 		const isBest = best && h.ship === best.ship;
 		const now = h.ship === d.fleet.sailing;
@@ -580,7 +581,7 @@ function paintCard(host, c, section) {
 			<span class="comm-lv-bar"><i style="width:${m.lv * 10}%"></i></span>
 		</div>
 		<b class="comm-lv${m.lv >= 10 ? ' max' : ''}">Lv ${m.lv}</b>
-		${look('Look ›', m.id ? ` data-sailor="${esc(m.id)}"` : '', 'The Ship tab with this sailor picked up, to look at and not to keep')}
+		${m.id ? `<button class="chip tiny primary" data-act="community-sailor-sheet" data-ref="${esc(c.ref)}" data-sailor="${esc(m.id)}" title="The sailor's sheet: growths, condition, the seat and what it does with them">Look ›</button>` : ''}
 	</div>`;
 	const fig = (k, v, sub = '', cls = '') => `<div class="comm-fig"><span>${esc(k)}</span><b${cls ? ` class="${cls}"` : ''}>${v}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
 	const h3 = (id, icon, text, sub = '') => `<h3 class="comm-card-h" id="card-${id}"><span aria-hidden="true">${icon}</span> ${text}${sub ? ` <small>· ${esc(sub)}</small>` : ''}</h3>`;
@@ -731,6 +732,17 @@ export function communityAction(act, el) {
 			if (!nav || !openRef) return false;
 			const next = nav.refs[nav.refs.indexOf(openRef) + Number(el.dataset.dir)];
 			if (next) openSailorCard(next, SECTION_OF[nav.boardId] || null);
+			return false;
+		}
+		case 'community-sailor-sheet': {
+			const c = cards.get(el.dataset.ref);
+			if (!c) return false;
+			const ship = c.digest.ship || {};
+			const roster = Array.isArray(ship.roster) ? ship.roster : [];
+			const m = roster.find(r => r && r.id === el.dataset.sailor) || c.digest.crew.top.find(r => r.id === el.dataset.sailor);
+			if (!m) return false;
+			const hull = c.digest.fleet.sailing;
+			openSailorSheet({ cond: 100, ...m }, { ship: hull, seats: hull && ship.seats && typeof ship.seats === 'object' ? ship.seats[hull] : {}, owner: c.named ? c.name : 'a sailor' });
 			return false;
 		}
 		case 'community-look': {

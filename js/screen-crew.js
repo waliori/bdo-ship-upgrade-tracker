@@ -258,9 +258,22 @@ function selectedPanel(ship) {
 		return `<div class="panel crew-panel crew-sel"><div class="panel-head"><h2 class="panel-title">Selected sailor</h2></div>
 			<p class="empty crew-nosel">No sailor selected.<br>Pick one from the list, then tap a seat on the ship.</p></div>`;
 	}
+	return `<div class="panel crew-panel crew-sel">
+		<div class="panel-head"><h2 class="panel-title">Selected sailor</h2><span class="panel-spacer"></span>
+			<button class="sq-btn" data-act="crew-clear-sel" title="Put down">×</button></div>
+		${sailorSheet(s, { ship, where: whereIs(ship, s.id), readOnly: looking })}
+	</div>`;
+}
+
+/**
+ * One sailor, in full: the portrait, the level, the condition, the
+ * growths judged against the level's band, what a seat does with them.
+ * The Selected sailor panel is this with fields to type into; a look
+ * at another sailor's crew is the same sheet read-only.
+ */
+function sailorSheet(s, { ship, where = null, readOnly = false } = {}) {
 	const t = anyType[s.type] || {};
-	const where = whereIs(ship, s.id);
-	const seat = where ? seatsFor(ship, shipStats[ship]).find(x => x.key === where) : null;
+	const seat = where && shipStats[ship] ? seatsFor(ship, shipStats[ship]).find(x => x.key === where) : null;
 	const own = s.stats || {};
 	const bar = (k, key, max) => {
 		const v = statOf(s, key);
@@ -283,42 +296,38 @@ function selectedPanel(ship) {
 				: 'Type what the sailor window shows';
 		// The window's word, with what it moves beside it in small type.
 		const name = STAT_NAMES[key] || { game: k, means: '', tip: '' };
-		return `<div class="sel-stat${typed ? ' typed' : ''}"><span><span data-tip="${esc(name.tip)}">${esc(name.game)}${name.means ? ` <small class="stat-means">${esc(name.means)}</small>` : ''}</span>${word ? `<em class="roll-note ${v >= band.avg ? 'good' : 'low'}">${word}</em>` : ''}<b>+<input class="purse-inline narrow stat-in" type="text" inputmode="decimal" value="${v}"
-			data-act="crew-stat" data-id="${esc(s.id)}" data-key="${key}" aria-label="${esc(name.game)}, as the sailor window shows it" title="${title}">%</b></span><i><b style="width:${Math.min(100, v / max * 100)}%"></b></i></div>`;
+		return `<div class="sel-stat${typed ? ' typed' : ''}"><span><span data-tip="${esc(name.tip)}">${esc(name.game)}${name.means ? ` <small class="stat-means">${esc(name.means)}</small>` : ''}</span>${word ? `<em class="roll-note ${v >= band.avg ? 'good' : 'low'}">${word}</em>` : ''}<b>+${readOnly ? `<span class="stat-in still" title="${title}">${v}</span>` : `<input class="purse-inline narrow stat-in" type="text" inputmode="decimal" value="${v}"
+			data-act="crew-stat" data-id="${esc(s.id)}" data-key="${key}" aria-label="${esc(name.game)}, as the sailor window shows it" title="${title}">`}%</b></span><i><b style="width:${Math.min(100, v / max * 100)}%"></b></i></div>`;
 	};
 	const stats = [bar('Speed', 'speed', 5), bar('Accel', 'accel', 8), bar('Turn', 'turn', 10), bar('Brake', 'brake', 10)];
 	// The cannon growths, as the window lists them: Patience has no
 	// estimate -- no type's rolls for it are known -- so it shows only
 	// when typed, or as a blank to type into.
 	if (t.force !== undefined) stats.push(bar('Patience', 'patience', 10), bar('Force', 'force', 6), bar('Focus', 'focus', 14), bar('Vision', 'vision', 50));
-	return `<div class="panel crew-panel crew-sel">
-		<div class="panel-head"><h2 class="panel-title">Selected sailor</h2><span class="panel-spacer"></span>
-			<button class="sq-btn" data-act="crew-clear-sel" title="Put down">×</button></div>
-		<div class="sel-top">
+	return `<div class="sel-top">
 			<span class="roster-tile big" style="background:${RACE[t.race] || '#8fb4d6'}">${face(t, s)}</span>
 			<div>
-				<input class="field sel-name" value="${esc(s.name)}" data-act="crew-name" data-id="${esc(s.id)}" aria-label="Name" maxlength="30">
+				${readOnly ? `<div class="sel-name still">${esc(s.name)}</div>` : `<input class="field sel-name" value="${esc(s.name)}" data-act="crew-name" data-id="${esc(s.id)}" aria-label="Name" maxlength="30">`}
 				<div class="roster-sub">${esc(s.type)} · <span style="color:${RACE[t.race] || 'inherit'}">${esc(t.race || '')}</span> · Lv
-					<input class="purse-inline narrow" type="text" inputmode="numeric" value="${s.lv}" data-act="crew-lv" data-id="${esc(s.id)}" aria-label="Level"></div>
-				<div class="roster-pos ${where ? 'on' : ''}">${where ? `⚓ seated at the ${esc(seat ? seat.label : where)}` : '(idle) — tap a seat on the ship to place'}</div>
+					${readOnly ? `<b>${s.lv}</b>` : `<input class="purse-inline narrow" type="text" inputmode="numeric" value="${s.lv}" data-act="crew-lv" data-id="${esc(s.id)}" aria-label="Level">`}</div>
+				<div class="roster-pos ${where ? 'on' : ''}">${where ? `⚓ seated at the ${esc(seat ? seat.label : where)}` : readOnly ? '(idle)' : '(idle) — tap a seat on the ship to place'}</div>
 			</div>
 		</div>
-		<div class="sel-cond"><span><span>Condition</span><b style="color:${condColor(s.cond)}"><input class="purse-inline narrow" type="text" inputmode="numeric" value="${s.cond}" data-act="crew-cond" data-id="${esc(s.id)}" aria-label="Condition">%</b></span>
+		<div class="sel-cond"><span><span>Condition</span><b style="color:${condColor(s.cond)}">${readOnly ? s.cond : `<input class="purse-inline narrow" type="text" inputmode="numeric" value="${s.cond}" data-act="crew-cond" data-id="${esc(s.id)}" aria-label="Condition">`}%</b></span>
 			<i><b style="width:${s.cond}%;background:${condColor(s.cond)}"></b></i></div>
 		<div class="sel-stats">${stats.join('')}</div>
-		<div class="sel-note">Each level-up rolls inside a hidden range, so these are estimates — type what the sailor window shows and they outrank it, judged against the level's band.</div>
+		<div class="sel-note">${readOnly ? 'Each level-up rolls inside a hidden range, so a growth not typed in is an estimate; a typed one is judged against the level’s band.' : 'Each level-up rolls inside a hidden range, so these are estimates — type what the sailor window shows and they outrank it, judged against the level\'s band.'}</div>
 		<div class="sel-facts">cabins <b>${t.cabin ?? '—'}</b> · eats <b>${t.appetite ?? '—'}</b>/day · weight <b>+${t.weight ?? 0} LT</b></div>
 		${levelLogHTML(s)}
 		${t.mate
 		? '<div class="sel-facts sel-seats" data-tip="Seats double a sailor\'s matching growths; the First Mate seat is where a named mate\'s skill switches on.">at the <b>First Mate</b> seat ★ their skill switches on</div>'
 		: `<div class="sel-facts sel-seats" data-tip="What each seat does with this sailor's own numbers — hover a seat on the ship for the same. Deck and Mess pay by cabin cost.">at a seat: Sail <b>+${dbl(statOf(s, 'speed'))}%</b> spd · Wheel <b>+${dbl(statOf(s, 'turn'))}%</b> turn${t.force !== undefined ? ` · Cannon <b>+${dbl(statOf(s, 'focus'))}%</b> focus` : ''} · Deck <b>+${F((t.cabin || 0) * 10000)}</b> dura · Mess <b>+${F((t.cabin || 0) * 5000)}</b> rations</div>`}
 		${t.skill ? `<div class="sel-skill">★ ${esc(t.skill)}</div>` : t.note ? `<div class="sel-skill quiet">${esc(t.note)}</div>` : ''}
-		<div class="crew-actions">
+		${readOnly ? '' : `<div class="crew-actions">
 			${where ? `<button class="act quiet small danger" data-act="crew-disembark" data-id="${esc(s.id)}">Disembark</button>` : ''}
 			<button class="act quiet small" data-act="crew-recover" data-id="${esc(s.id)}" ${s.cond >= 100 ? 'disabled' : ''}>Recover</button>
 			<button class="act quiet small" data-act="crew-dismiss" data-id="${esc(s.id)}" title="Strike this sailor off the roster">Dismiss</button>
-		</div>
-	</div>`;
+		</div>`}`;
 }
 
 /** The sailor's levels as they were typed in, newest first: "levelled
@@ -447,14 +456,15 @@ const SLOT_LABEL = { cannon: 'Cannon', sail: 'Sail', figurehead: 'Figurehead', p
 
 /** One slot: what is on it, where that came from, and the ways to change it. */
 function slotCard(ship, x, chosenByHand) {
-	const tag = x.source === 'owned' ? 'from your inventory'
+	const tag = looking ? (x.part ? 'as they sail it' : 'nothing fitted')
+		: x.source === 'owned' ? 'from your inventory'
 		: x.source === 'chosen' ? 'chosen · in your inventory'
 		: x.source === 'chosen-unowned' ? 'chosen · not in your inventory'
 		: chosenByHand ? 'left empty' : 'no part held yet';
 	const item = x.part ? enhancedName(x.part, x.level) : null;
-	return `<div class="slot-card${x.part ? '' : ' empty'}${x.source === 'chosen-unowned' ? ' unowned' : ''}">
+	return `<div class="slot-card${x.part ? '' : ' empty'}${x.source === 'chosen-unowned' && !looking ? ' unowned' : ''}">
 		<div class="slot-head"><span class="slot-glyph" aria-hidden="true">${SLOT_GLYPH[x.slot]}</span><span class="slot-name">${SLOT_LABEL[x.slot]}</span>
-			<span class="fit-tag${x.source === 'chosen-unowned' ? ' warn' : ''}">${tag}</span></div>
+			<span class="fit-tag${x.source === 'chosen-unowned' && !looking ? ' warn' : ''}">${tag}</span></div>
 		<div class="slot-body">
 			${x.part ? img(item, 'slot-icon') : '<span class="slot-icon blank">+</span>'}
 			<div class="slot-text">
@@ -795,9 +805,34 @@ export function selectSailor(id) {
 	selId = id || null;
 }
 
+// A look at another sailor's boat: the tab stands on a copy that is
+// never kept, and nothing on it can be changed either -- a look is a
+// look, so a press on Disembark says so instead of pretending.
+let looking = false;
+export function setLooking(on) {
+	looking = Boolean(on);
+	if (!looking) selId = null;
+}
+const LOOK_ONLY = new Set(['crew-select', 'crew-clear-sel', 'crew-fleet', 'crew-sort', 'crew-check', 'crew-link']);
+
+/**
+ * One sailor's sheet as a popup, read-only: for a look at a sailor on
+ * another sailor's boat. `seats` is that boat's seat map, `ship` the
+ * hull they sail, so the seat and what it does with them are shown.
+ */
+export function openSailorSheet(sailor, { ship = null, seats = {}, owner = '' } = {}) {
+	const where = Object.keys(seats || {}).find(k => seats[k] === sailor.id) || null;
+	openDialog(`<div class="sailor-sheet">
+		<h2>${owner ? `Aboard ${esc(owner)}’s boat` : 'A sailor'}</h2>
+		${sailorSheet(sailor, { ship: ship && shipStats[ship] ? ship : null, where, readOnly: true })}
+		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>
+	</div>`);
+}
+
 export function crewAction(act, el) {
 	const ship = crewShip();
 	const id = el.dataset.id;
+	if (looking && !LOOK_ONLY.has(act)) { toast('Only a look — nothing on this boat can be changed'); return false; }
 	switch (act) {
 		case 'crew-select': selId = selId === id ? null : id; return true;
 		case 'crew-fleet': openFleet(); return true;
@@ -1057,6 +1092,7 @@ export function applyShipSetup(setup) {
 export function crewChange(el) {
 	const act = el.dataset.act;
 	const id = el.dataset.id;
+	if (looking) { toast('Only a look — nothing on this boat can be changed'); return true; }
 	if (act === 'crew-mastery') {
 		const v = Math.floor(Number(el.value));
 		store.setProfile('sailingMastery', Number.isFinite(v) && v > 0 ? Math.min(3000, v) : null);

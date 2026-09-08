@@ -32,7 +32,7 @@ import { renderInventory } from './screen-inventory.js';
 import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart } from './screen-barter.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
-import { renderCrew, crewAction, crewChange, applyShipSetup, openSetupPicker, selectSailor } from './screen-crew.js';
+import { renderCrew, crewAction, crewChange, applyShipSetup, openSetupPicker, selectSailor, setLooking } from './screen-crew.js';
 import { statusLine } from './today.js';
 import { renderQuests, questAction, questDone, wantedQuests, setQuestPay, setQuestFocus } from './screen-quests.js';
 import { renderCommunity, communityAction, wireCommunity } from './screen-community.js';
@@ -1682,8 +1682,9 @@ function lookAtShip(save, { name = 'a sailor', sailorId = null } = {}) {
 	closeDialog();
 	sharedKept = store.capture();
 	store.applyTransient(JSON.stringify(save));
+	setLooking(true);
 	selectSailor(sailorId);
-	showSharedBar(save, { label: `Looking at ${name}’s ship — nothing you do here is kept.`, take: false });
+	showSharedBar(save, { label: `Looking at ${name}’s ship — to look at, not to change.`, take: false });
 	showView('crew');
 }
 
@@ -1708,6 +1709,7 @@ function showSharedBar(save, { label = 'Looking at a shared plan — nothing you
 		if (!b) return;
 		store.restore(sharedKept);
 		sharedKept = null;
+		setLooking(false);
 		bar.hidden = true;
 		document.querySelector('.shell')?.classList.remove('shared');
 		if (b.dataset.shared === 'merge') { store.merge(save, 'Merged a shared plan'); toast('Merged the shared plan into yours', true); }

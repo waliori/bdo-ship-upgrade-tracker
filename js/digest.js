@@ -18,6 +18,8 @@ import { shipGroups } from './ships.js';
 import { quests } from './quests.js';
 import { monsterByKey } from './sea_monsters.js';
 import { readProfile } from './profile-shape.js';
+import { loadout } from './part_stats.js';
+import { families } from './enhancement.js';
 
 /** The hulls that sail, from the small ones up. A rank for "best ship". */
 export const HULL_TIER = {
@@ -56,15 +58,30 @@ function top(counts, max = 20) {
  * The fleet: every hull with a saved setup or a crew plan, and the best
  * of them -- the highest tier, and within a tier the one whose parts
  * add up to the most levels.
+ *
+ * What is on a hull is what the Ship tab would show: the part chosen
+ * by hand for a slot where one was, else the best part held in the
+ * inventory for it. Only that one name per slot is read off the stock;
+ * the stock itself is never shared.
  */
-function fleetOf(profile) {
-	const hulls = new Map();   // ship -> { parts: {slot: level}, crystal, skins }
+function fleetOf(profile, stock) {
+	const hulls = new Map();   // ship -> { parts: {slot: level}, fitted: {slot: name}, crystal, skins }
+	const owned = new Map();   // ship -> the best held part per slot
+	const held = ship => {
+		if (!owned.has(ship)) owned.set(ship, Object.fromEntries(loadout(ship, stock, families).slots.filter(x => x.part).map(x => [x.slot, x.level ? `+${x.level} ${x.part}` : x.part])));
+		return owned.get(ship);
+	};
 	const note = (ship, fitted, crystal, skin) => {
 		if (typeof ship !== 'string' || !ship) return;
-		const h = hulls.get(ship) || { parts: {}, crystal: 0, skins: 0 };
+		const h = hulls.get(ship) || { parts: {}, fitted: {}, crystal: 0, skins: 0 };
+		const chosen = obj(fitted);
 		for (const slot of SLOTS) {
-			const lv = levelOf(obj(fitted)[slot]);
-			if (lv > (h.parts[slot] || 0)) h.parts[slot] = lv;
+			// A name chosen by hand; '' is a slot left empty on purpose;
+			// nothing said means the best held.
+			const name = typeof chosen[slot] === 'string' ? chosen[slot] : held(ship)[slot] || '';
+			if (!name) continue;
+			const lv = levelOf(name);
+			if (!h.fitted[slot] || lv > (h.parts[slot] || 0)) { h.fitted[slot] = name; h.parts[slot] = lv; }
 		}
 		if (n(crystal)) h.crystal = n(crystal);
 		h.skins = Math.max(h.skins, Object.values(obj(skin)).filter(Boolean).length);
@@ -78,7 +95,7 @@ function fleetOf(profile) {
 		const tier = HULL_TIER[ship] ?? 1;
 		const levels = Object.values(h.parts).reduce((a, b) => a + b, 0);
 		const score = tier * 100 + levels;
-		if (!best || score > best.score) best = { ship, tier, parts: h.parts, levels, score, crystal: h.crystal || 0 };
+		if (!best || score > best.score) best = { ship, tier, parts: h.parts, fitted: h.fitted, levels, score, crystal: h.crystal || 0 };
 	}
 	const sorted = [...hulls.keys()].sort((a, b) => (HULL_TIER[b] ?? 1) - (HULL_TIER[a] ?? 1) || a.localeCompare(b));
 	return {
@@ -88,12 +105,10 @@ function fleetOf(profile) {
 		list: sorted.slice(0, 12).map(ship => ({ ship, tier: HULL_TIER[ship] ?? 1, ...hulls.get(ship) })),
 		sailing: typeof profile.crewShip === 'string' ? profile.crewShip : null,
 		best,
-		// Every part fitted anywhere, with its level, for the fleet-wide
-		// "most fitted" -- the base name, since a +7 and a +10 of one
-		// cannon are the same choice.
-		parts: top(Object.values(obj(profile.fitted)).flatMap(f => Object.values(obj(f)))
-			.concat(Object.values(obj(profile.setups)).flatMap(st => Object.values(obj(obj(st).fitted))))
-			.filter(x => typeof x === 'string' && x)
+		// Every part fitted anywhere, for the fleet-wide "most fitted" --
+		// the base name, since a +7 and a +10 of one cannon are the same
+		// choice.
+		parts: top([...hulls.values()].flatMap(h => Object.values(h.fitted))
 			.map(x => x.replace(/^\+\d+\s+/, ''))
 			.reduce((c, name) => ((c[name] = (c[name] || 0) + 1), c), {}), 12),
 		crystals: top([...hulls.values()].map(h => h.crystal).filter(Boolean).reduce((c, id) => ((c[id] = (c[id] || 0) + 1), c), {}), 8)
@@ -231,11 +246,16 @@ function chartsOf(profile) {
  * another sailor's boat, to look at and not to keep. Already bounded
  * by the profile's own reading.
  */
-function shipOf(profile) {
+function shipOf(profile, fleet) {
 	const out = {};
 	for (const k of ['crewShip', 'fitted', 'crystal', 'skins', 'seats', 'setups', 'roster', 'sailingMastery']) {
 		if (profile[k] !== undefined) out[k] = profile[k];
 	}
+	// The parts as resolved, hull by hull -- the ones picked from the
+	// inventory included, since the look has no inventory to pick from.
+	const fitted = { ...obj(out.fitted) };
+	for (const h of fleet.list) if (Object.keys(h.fitted).length) fitted[h.ship] = { ...obj(fitted[h.ship]), ...h.fitted };
+	if (Object.keys(fitted).length) out.fitted = fitted;
 	return out;
 }
 
@@ -263,19 +283,20 @@ export function digest(save) {
 	// to its length and every count to its range before it is shared.
 	const profile = readProfile(obj(s.profile));
 	const tally = obj(profile.tally);
+	const fleet = fleetOf(profile, obj(s.stock));
 	return {
 		v: 1,
 		mastery: Math.min(3000, n(profile.sailingMastery)),
 		level: typeof profile.level === 'string' ? profile.level.slice(0, 20) : null,
 		barters: n(profile.barterCount),
-		fleet: fleetOf(profile),
+		fleet,
 		crew: crewOf(profile),
 		runs: runsOf(profile, tally),
 		quests: questsOf(profile, tally),
 		yard: yardOf(s, tally),
 		charts: chartsOf(profile),
 		stock: stockOf(s),
-		ship: shipOf(profile)
+		ship: shipOf(profile, fleet)
 	};
 }
 
@@ -300,7 +321,7 @@ export function fittedOn(d, hull) {
 	}
 	return null;
 }
-const faceShip = d => (d.fleet.best ? { kind: 'ship', item: d.fleet.best.ship, parts: d.fleet.best.parts, fitted: fittedOn(d, d.fleet.best.ship), crystal: d.fleet.best.crystal || 0 } : null);
+const faceShip = d => (d.fleet.best ? { kind: 'ship', item: d.fleet.best.ship, parts: d.fleet.best.parts, fitted: d.fleet.best.fitted || fittedOn(d, d.fleet.best.ship), crystal: d.fleet.best.crystal || 0 } : null);
 const faceItems = names => (names.length ? { kind: 'items', items: names } : null);
 export const BOARDS = [
 	{ id: 'mastery', section: 'sea', title: 'Sailing mastery', icon: '⚓', unit: '', min: 1,
