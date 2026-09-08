@@ -36,6 +36,7 @@ let fetchedAt = 0;
 let loading = null;
 let failed = '';
 let mine = false;         // our own save moved since the boards were fetched
+let triedAt = 0;          // when the boards were last asked, answer or not
 let pushTimer = null;     // the wait between a push landing and asking again
 let half = 'fame';        // fame | numbers
 let fameSec = 'all';      // the hall of fame: which section is up
@@ -58,6 +59,15 @@ const FRESH_MS = 60_000;
 // before it -- and then sit on that for a minute.
 const AFTER_PUSH_MS = 3_500;
 
+// How long to leave a board that did not answer alone.
+//
+// The failure repaints the screen to show it, the repaint asks again,
+// and nothing held it back: a server that is down was met with a
+// request every few milliseconds for as long as the tab was open. It
+// is a held answer that stops the asking, and a failure leaves none --
+// so the refusal has to be remembered on its own.
+const AFTER_FAIL_MS = 10_000;
+
 /**
  * Ask for the boards again if the copy held is old, then redraw.
  *
@@ -68,8 +78,14 @@ const AFTER_PUSH_MS = 3_500;
  */
 async function load(force = false) {
 	if (loading) return loading;
-	if (!force && !mine && data && Date.now() - fetchedAt < FRESH_MS) return data;
+	if (!force && !mine) {
+		if (data && Date.now() - fetchedAt < FRESH_MS) return data;
+		// Nothing held, and the last ask failed: wait before asking
+		// again. "Try again" is a force and does not wait.
+		if (!data && failed && Date.now() - triedAt < AFTER_FAIL_MS) return null;
+	}
 	mine = false;
+	triedAt = Date.now();
 	loading = (async () => {
 		let res;
 		try {

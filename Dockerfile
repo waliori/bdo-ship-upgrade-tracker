@@ -33,6 +33,15 @@ COPY server ./server
 # APP_VERSION in the environment takes precedence over it.
 RUN sed -i "s/__BUILD__/$(date -u +%Y%m%d%H%M%S)/" sw.js
 
+# Where a local libSQL file lives when the deployment has no Turso, as
+# TURSO_DATABASE_URL=file:./.data/tracker.db asks for. Made here, owned
+# by the user that runs the server: /app itself belongs to root, so the
+# process could not create it at run time and the open failed with
+# SQLITE_CANTOPEN. docker-compose.yml holds a volume over this path, so
+# the file survives a rebuild -- a database that a `--build` deletes is
+# not a database.
+RUN mkdir -p /app/.data && chown tracker:nodejs /app/.data
+
 USER tracker
 
 EXPOSE 8000
