@@ -15,8 +15,9 @@ opt-in, self-hosted and off by default.
 yard first: queue a build, choose how to get there, record what you
 gathered, make something, see what it will really cost, take the list
 shopping. Then the sea: the day's free quests, the ship you sail it in,
-and the chart, where that list becomes a loop with minutes on it and a
-blank stretch of water can be drawn on. It is the real app, driven and
+the chart, where that list becomes a loop with minutes on it and a
+blank stretch of water can be drawn on — and a run planned on today's
+board, sailed on that chart. It is the real app, driven and
 captioned — nothing is staged — and there is a
 [narrower cut for a phone](docs/media/walkthrough-phone.mp4). Both play
 inside the app too, under **Help**.
@@ -180,7 +181,7 @@ can be both made and bought, you choose, and the plan follows.
   time from the *Menu*. The same notes are [`CHANGELOG.md`](CHANGELOG.md).
   Neither it nor the tour interrupts someone who arrived on a shared
   link — they came to see that one thing.
-- **A guided tour** that walks all nine views on example data, pointing
+- **A guided tour** that walks every section on example data, pointing
   at each thing on your own screen, then hands your own data back
   untouched — and reads a phone, where it points at the bar at the thumb
   and the menu behind it. Alongside it a **Help** film
@@ -202,11 +203,11 @@ can be both made and bought, you choose, and the plan follows.
   brought back — goes through one picker: rows with a picture, a fact
   beside the name, a search box that ranks a name starting with your
   letters first, the keyboard, and ticks where several are wanted.
-- **The masthead** keeps five buttons — Find, Log a trip, Undo, Redo,
-  More — and folds Profiles, Export, Import, Help, Tour, the water and
-  Start fresh into *More*. The tabs sit in two groups: the yard, where a
-  build is planned and made, and the sea. Each tab keeps the search
-  typed on it.
+- **The masthead** keeps Find, Log a trip, Undo, Redo and the Menu,
+  which holds Profiles, Export, Import, Help, Tour, What's new,
+  Feedback, the theme, the water and Start fresh. The sections sit in
+  three groups: the yard, where a build is planned and made, the sea,
+  and the harbour. Each tab keeps the search typed on it.
 - **Log a trip**: everything you brought back, in one box, as one
   undoable change.
 - **Where it is**: an item's count is what is in your bags plus every
@@ -221,7 +222,7 @@ can be both made and bought, you choose, and the plan follows.
   every item link opens in (French, German, Korean and nine more).
 - Works on a phone — a tap on a row or a chip shows the hover card, a
   second tap puts it away, and a phone on its side is still a phone;
-  the water shader is optional (`≈ Water` under More), and so is a
+  the water shader is optional (`≈ Water` under the Menu), and so is a
   light theme (`Theme` there: dark, light, or as the system has it).
   Offline it runs from a snapshot of the last deploy, never a mixture
   of two.
@@ -231,8 +232,9 @@ can be both made and bought, you choose, and the plan follows.
 ## The day itself
 
 The yard is where a build is planned and made. The rest of the game
-happens at sea, and the last three tabs are about that: the quests it
-hands out, the ship you sail, and the chart you sail it on.
+happens at sea, and the last four tabs are about that: the quests it
+hands out, the ship you sail, the chart you sail it on, and the run
+you plan on today's board.
 
 ### What today can do about it
 
@@ -393,6 +395,29 @@ whatever else you are drawing. The shelf keeps to the newest few and
 whatever is on the water; **Browse all** opens the library, which has
 the room for a search (names, notes and the words written on them), a
 sort, and every trace as a card.
+
+### A run on today's board
+
+![Answering what one island shows; the whole board follows, a run is laid out, and Sail this run draws it on the Map](docs/media/plan-a-run.gif)
+
+The trade-goods barters are not rolled island by island: every refresh
+the whole sea shows one of forty fixed layouts, which a community
+record of nearly two thousand refreshes writes out island by island. So
+the **Barter** tab asks what *one* island is showing — tap it from that
+island's possible offers, the one that tells the layouts apart best is
+suggested — and the whole board follows: every chain the day allows,
+listed by how far it reaches and what it pays, and the ones ticked are
+one run. The hold is what is actually aboard, weighed against the ship
+as fitted and the ceiling the islands still deal under; the sailing
+orders say what the run is for, which levels a wharf sells and at what
+pace; and a strip along the foot keeps the run in a line. *Lay it out*
+opens every stop, what to buy before casting off and the quests handed
+in on the way; *Sail this run* draws it on the Map, where the chart's
+panel becomes the run sheet and each stop is ticked off as it is dealt.
+*Record the trip* at the end puts the whole of it in the Inventory as
+one undoable change. The details — the material run, the three paces,
+the quests that come along, the wharf calls — are under
+[What's covered](#whats-covered).
 
 ---
 

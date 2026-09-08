@@ -4,9 +4,9 @@
 // the yard first -- queue a build, choose how to get there, record what
 // you gathered, make something, step a mistake back, price a part both
 // ways, read the tree, go shopping -- and then the sea: the day's free
-// quests, the ship the day is sailed in, and the chart, where the
-// shopping list becomes a loop with distances on it and a blank stretch
-// of water can be drawn on.
+// quests, the ship the day is sailed in, the chart, where the shopping
+// list becomes a loop with distances on it and a blank stretch of water
+// can be drawn on -- and a run on today's board, sailed on that chart.
 //
 // Nothing is staged. It drives the real app against a real inventory,
 // so if a screen changes the clip stops being a lie the next time it is
@@ -16,7 +16,7 @@
 
 import {
 	open, seed, tab, click, clickIn, typeInto, drag, say, hush, wait,
-	onScreen, headerBtn
+	onScreen, headerBtn, waitFor
 } from './drive.mjs';
 
 const OUT = process.argv[2];
@@ -41,7 +41,10 @@ const START = {
 	targets: [],
 	strategy: {},
 	history: [],
-	settings: {}
+	settings: {},
+	// A Carrack, so the Ship beat has parts to fit and the run at the
+	// end has a hold worth the name; the save starts on a Sailboat.
+	profile: { crewShip: 'Carrack (Advance)' }
 };
 
 const ctx = await open(PHONE
@@ -143,8 +146,14 @@ await hush(page);
 await say(page, 'Enhancing is separate, because attempts fail.');
 await say(page, 'It shows the real odds, and the most it can ever cost.');
 await hush(page);
+// On a phone the tap on the craft card leaves its hover card up, over
+// the bar at the thumb; Escape puts it away before the next tab press.
+await page.keyboard.press('Escape');
+await wait(400);
 
 await tab(page, 'inventory');
+// The grid fills in a beat after the tab lands under load.
+await waitFor(page, '[data-act="select"][data-item="Violent Wave Plywood"]');
 await click(page, '[data-act="select"][data-item="Violent Wave Plywood"]', { after: 900 });
 await say(page, 'Open anything and every way of getting it is priced.');
 await say(page, 'The shop price, or what making one costs once its');
@@ -252,6 +261,30 @@ if (PHONE) {
 	await page.mouse.wheel({ deltaY: -120 });
 	await wait(1100);
 }
+await hush(page);
+
+/* ---------------------------------------------------------------- *
+ * the run
+ * ---------------------------------------------------------------- */
+
+await tab(page, 'barter');
+await say(page, 'Barter plans a run on today\'s board.');
+await say(page, 'Every refresh, the whole sea shows one of forty layouts --');
+await say(page, 'so look at one island in the game, and tap what it shows.');
+await click(page, '[data-act="barter-board-ask"]', { after: 900 });
+await page.type('.picker-in', 'raft', { delay: 90 });
+await wait(600);
+await click(page, '.picker-row', { after: 800 });
+await say(page, 'The whole board follows: every chain the day allows, and what it pays.');
+// The best run is ticked when the worker's search lands.
+await waitFor(page, '[data-act="barter-run-open"]', { then: 600 });
+await say(page, 'Tick the chains, and they are one run.');
+await hush(page);
+await click(page, '[data-act="barter-run-open"]', { after: 1500 });
+await say(page, 'Every stop, what to buy before casting off, the quests on the way.');
+await click(page, '[data-act="barter-sail"]', { after: 2600 });
+await say(page, 'Sail it, and it is on the chart: a checklist, stop by stop.');
+await say(page, 'Record the trip at the end, and the whole of it lands in the Inventory.');
 await hush(page);
 
 await say(page, 'Your data stays in your browser. Sign in only to sync it.');

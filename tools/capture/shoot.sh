@@ -29,9 +29,12 @@ echo "== webm -> gif"
 # the common settings those come out three times the size of anything
 # else here, so they are given a narrower frame and a slower rate --
 # which costs nothing on a clip whose subject is a number changing.
+# The run clip ends by flying to the Map, whose tiles repaint the whole
+# frame, and is the longest here, so it goes narrower and slower still.
 gif_size() {
 	case "$1" in
 		claim-a-quest|fit-a-ship) echo "780 10" ;;
+		plan-a-run) echo "720 8" ;;
 		*) echo "900 13" ;;
 	esac
 }
@@ -58,7 +61,8 @@ mkdir -p "$OUT/small"
 for name in chart-the-loop draw-a-route fit-a-ship; do
 	./tools/capture/togif.sh "$RAW/$name.webm" "$OUT/small/$name.gif" 560 9
 done
-for name in map quests; do
+./tools/capture/togif.sh "$RAW/plan-a-run.webm" "$OUT/small/plan-a-run.gif" 480 7
+for name in hero map quests; do
 	ffmpeg -v error -y -i "$OUT/$name.png" -vf scale=560:-2 "$OUT/small/$name.png"
 	ls -la "$OUT/small/$name.png"
 done

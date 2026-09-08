@@ -3,7 +3,7 @@
 //
 //   node scenes.mjs <outdir> [sceneName ...]
 
-import { open, seed, tab, click, clickIn, drag, moveTo, typeInto, wait } from './drive.mjs';
+import { open, seed, tab, click, clickIn, drag, moveTo, typeInto, wait, waitFor } from './drive.mjs';
 import { midBuild, readyToCraft, recordLevel, fittedShip, emptyStart } from './states.mjs';
 
 const OUT = process.argv[2];
@@ -182,6 +182,30 @@ const scenes = {
 		await rec(page, 'fit-a-ship', async () => {
 			await wait(500);
 			await typeInto(page, '[data-act="crew-mastery"]', '750', { after: 1500 });
+		});
+	},
+
+	/* A run on today's board: one island looked at, the board follows,
+	 * the chains are ticked into a run, and Sail this run puts it on the
+	 * chart as a checklist. The last beat flies to the Map, whose tiles
+	 * repaint the whole frame, so shoot.sh gives this one the narrower,
+	 * slower encode. */
+	async 'plan-a-run'({ page, url }) {
+		await seed(page, url, fittedShip);
+		await tab(page, 'barter');
+		await wait(1200);
+		await rec(page, 'plan-a-run', async () => {
+			await wait(500);
+			await click(page, '[data-act="barter-board-ask"]', { after: 900 });
+			await page.type('.picker-in', 'raft', { delay: 95 });
+			await wait(700);
+			await click(page, '.picker-row', { after: 800 });
+			// The runs worth sailing come back from a worker; the best
+			// one is ticked when it lands, and that is when there is a
+			// run to lay out.
+			await waitFor(page, '[data-act="barter-run-open"]', { then: 1400 });
+			await click(page, '[data-act="barter-run-open"]', { after: 1800 });
+			await click(page, '[data-act="barter-sail"]', { after: 2600 });
 		});
 	},
 

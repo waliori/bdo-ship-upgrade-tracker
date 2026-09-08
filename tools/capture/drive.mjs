@@ -152,6 +152,20 @@ export async function onScreen(page, sel) {
 }
 
 /**
+ * Wait for something to be on the screen -- the runs worth sailing land
+ * from a worker a second or two after the board is known, and a scene
+ * that presses on before they do finds no run to lay out.
+ */
+export async function waitFor(page, sel, { upTo = 12000, then = 0 } = {}) {
+	const end = Date.now() + upTo;
+	while (!(await onScreen(page, sel))) {
+		if (Date.now() > end) throw new Error(`still nothing visible matching ${sel} after ${upTo} ms`);
+		await wait(200);
+	}
+	if (then) await wait(then);
+}
+
+/**
  * Where to aim, in viewport coordinates -- scrolling the target into
  * view first, since a pointer moved to an off-screen point fires no
  * hover at all.
