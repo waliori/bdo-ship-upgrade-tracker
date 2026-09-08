@@ -46,34 +46,16 @@ export const RELEASES = [
 		id: '1.0',
 		name: 'The yard and the sea',
 		date: '2026-09-07',
-		blurb: 'The first release. One inventory that every build draws from, so the same hundred planks are never promised to two ships at once — '
-			+ 'and the sea you cross to pay for them: a chart with every barterer on it, the loop through them timed at your own hull’s speed, '
-			+ 'a run planned on today’s board and sailed on the chart, the quests the ocean hands out for free, and the ship you sail it in.',
+		blurb: 'The yard was here already: one inventory, the builds that draw on it, the Workshop and the shopping list. This release adds '
+			+ 'the sea you cross to pay for it — a <b>Map</b> with every barterer on it and the loop through them timed at your own hull’s speed, '
+			+ 'a <b>Barter</b> tab that plans a run on today’s board and sails it on the chart, the <b>Quests</b> the ocean hands out free, '
+			+ 'the <b>Ship</b> you sail it in, and a <b>Community</b> harbour — and the yard picks up what the sea brings back.',
 		sections: [
 			{
-				title: 'One inventory, every build',
-				media: 'docs/media/small/hero.png',
-				alt: 'The Plan screen, part-way through two Carrack parts',
-				text: 'Queue any ship, part or material as a <b>build</b> and the <b>Plan</b> is everything the queue needs in one list — '
-					+ 'what is covered from stock, what is still to craft, what is missing — priced end to end, the shop’s number beside '
-					+ 'what making one costs once <i>its</i> ingredients are priced too. Type in what you gathered and every build re-plans at once.',
-				points: [
-					'The <b>Inventory</b> is what you own; each tile says how much is spoken for by a build and how much is free, and a part and its ten enhancement levels are one tile, not eleven.',
-					'The <b>Tree</b> is the same plan unflattened: a Carrack over the Caravel it is made from, over the Sailboat before that, with the materials of each hanging off the step that wants them.',
-					'The <b>Workshop</b> crafts from stock — a batch of forty, or the way Mass Process actually makes it — and enhances with the real odds, the failstack you are on, and the most an attempt can ever cost; the yellow Falasi and Cheongun tier drops a level on a failure, so Cron Stones are part of the price.',
-					'<b>To Get</b> is the shopping list, grouped by how you actually get a thing — Crow Coins, Falasi silver, barter, worker nodes or hunting — with running totals to copy out as text or CSV.',
-					'A ship reachable more than one way — a Caravel from a plain Epheria Sailboat or an Improved one — asks which, shows what each costs, and the build says the route it is taking.',
-					'The small craft too: a Cog two ways, three rowboats and a raft.',
-					'The trophies the sea monsters drop are in the book: a Usable Pirate Ship’s Remains chops into a Deep Tide-Dyed Standardized Timber Square, a Khan’s Tendon dries into ten Moon Vein Flax Fabric, ten Broken Cannons or two hundred seals make a Cox Pirates’ Artifact. The plan still buys those unless you switch one to <i>Craft it</i>, since the shop is the road and the trophy a side door.',
-					'<b>Undo</b> and <b>Redo</b> on every change; Import asks whether to replace or merge, keeping the higher count of anything counted twice; exports are dated.',
-					'A field guide behind one quiet dot: the game’s own windows, so a number here can be traced to the screen it came from.'
-				]
-			},
-			{
-				title: 'A chart of the sea, with your shopping list on it',
+				title: 'Map — a chart of the sea, with your shopping list on it',
 				media: 'docs/media/small/map.png',
 				alt: 'The Map, a pin for every barterer holding something on the list',
-				text: 'The <b>Map</b> is the To Get list drawn on the game’s own chart. Every pin is one of the 91 barterers, '
+				text: 'A new tab. The <b>Map</b> is the To Get list drawn on the game’s own chart. Every pin is one of the 91 barterers, '
 					+ 'holding something you are short of; open one and it says what it hands over, how many exchanges are left '
 					+ 'and what the parley costs at your own Barter level.',
 				points: [
@@ -82,11 +64,12 @@ export const RELEASES = [
 					'Monster habitats stand at the centre of each species’ spawns, kept to open water, each with its picture from the codex, and a ground switched on is drawn as its water.',
 					'Two community maps are fitted to the chart on their island names: Awabi’s <i>Road to Cox</i>, and Vell’s waters from gpw’s ocean map.',
 					'A ruler measures any two points, with the game’s own coordinates under the pointer, and a minimap you can drag out of the way.',
+					'The sea’s clocks sit over the chart: the time to the daily, weekly and barter resets, and when Vell is next up on your servers.',
 					'<b>Keep this area offline</b>: the tiles of the view you are on, a level either side, kept in a store the cache never sweeps.'
 				]
 			},
 			{
-				title: 'A loop that says how long it takes',
+				title: 'Map — a loop that says how long it takes',
 				media: 'docs/media/small/chart-the-loop.gif',
 				alt: 'Plotting a barter loop; every leg gets a distance and a time',
 				text: 'Plot the loop through everything you are short of and every leg comes back with its length and its minutes '
@@ -97,14 +80,27 @@ export const RELEASES = [
 					'Parley is budgeted at one trade a stop or at every attempt the offer allows; the stops past what your bar covers are marked, and a button trims to them.',
 					'A leg the router could not bend round the land is drawn dashed and red and named in the panel, never a straight line through an island passed off as a course.',
 					'Routes are kept by name, a replaced one is kept as the previous, and a route travels in a link or a small JSON file.',
-					'<b>Put it on the game’s map</b> writes the stops into your own world map as favourites, or as one of its three navigation loops — and the game’s map comes the other way, its bookmarks and loops landing on the chart.'
+					'<b>Put it on the game’s map</b> writes the stops into your own world map as favourites, or as one of its three navigation loops, the untouched file kept beside it — and the game’s map comes the other way, its bookmarks and loops landing on the chart.'
 				]
 			},
 			{
-				title: 'A run planned on today’s board, and sailed on the chart',
+				title: 'Map — draw a route the list cannot express',
+				media: 'docs/media/small/draw-a-route.gif',
+				alt: 'Three stops, a freehand line and a word, drawn straight onto the sea',
+				text: 'Click the sea for a numbered stop, drag to sketch a line, or type a word straight onto the water. '
+					+ 'Every mark is a place on the chart, so it all pans and zooms with the tiles.',
+				points: [
+					'Eight inks, three pen widths, three sizes of writing, a shaded area, and an undo that walks back through stops, strokes and words in the order they were made.',
+					'Legs bend round the land like a barter route’s, and a stop dropped on a headland steps off into the water beside it.',
+					'A trace is kept by name and travels in a link or a file; twenty live on a shelf, and <b>Browse all</b> opens a library with a search over names, notes and the words written on them.',
+					'A kept trace can be a <b>lane</b>: every route near it is drawn along it and timed as the game sails it.'
+				]
+			},
+			{
+				title: 'Barter — a run planned on today’s board, and sailed on the chart',
 				media: 'docs/media/small/plan-a-run.gif',
 				alt: 'Answering what one island shows; the whole board follows, a run is laid out, and Sail this run draws it on the Map',
-				text: 'The trade-goods barters are not rolled island by island: every refresh the whole sea shows one of forty fixed layouts. '
+				text: 'A new tab. The trade-goods barters are not rolled island by island: every refresh the whole sea shows one of forty fixed layouts. '
 					+ 'So the <b>Barter</b> tab asks what one island is showing — tap it from that island’s possible offers — and the whole board follows: '
 					+ 'every chain the day allows, listed by how far it reaches and what it pays, and the ones ticked are one run.',
 				points: [
@@ -118,23 +114,10 @@ export const RELEASES = [
 				]
 			},
 			{
-				title: 'Draw a route the list cannot express',
-				media: 'docs/media/small/draw-a-route.gif',
-				alt: 'Three stops, a freehand line and a word, drawn straight onto the sea',
-				text: 'Click the sea for a numbered stop, drag to sketch a line, or type a word straight onto the water. '
-					+ 'Every mark is a place on the chart, so it all pans and zooms with the tiles.',
-				points: [
-					'Eight inks, three pen widths, three sizes of writing, a shaded area, and an undo that walks back through stops, strokes and words in the order they were made.',
-					'Legs bend round the land like a barter route’s, and a stop dropped on a headland steps off into the water beside it.',
-					'A trace is kept by name and travels in a link or a file; twenty live on a shelf, and <b>Browse all</b> opens a library with a search over names, notes and the words written on them.',
-					'A kept trace can be a <b>lane</b>: every route near it is drawn along it and timed as the game sails it.'
-				]
-			},
-			{
-				title: 'What the sea hands out free',
+				title: 'Quests — what the sea hands out free',
 				media: 'docs/media/small/quests.png',
 				alt: 'The Quests screen, grouped by how often each comes round',
-				text: 'Every quest that pays in a ship material, grouped by how often it comes round, with the ones paying in '
+				text: 'A new tab. Every quest that pays in a ship material, grouped by how often it comes round, with the ones paying in '
 					+ 'something your plan still wants marked. Claiming puts the reward in stock and ticks the quest until its own reset.',
 				points: [
 					'Tick several and <b>Finish</b> records them together as one undoable change.',
@@ -143,10 +126,10 @@ export const RELEASES = [
 				]
 			},
 			{
-				title: 'The other half of a ship',
+				title: 'Ship — the other half of a ship',
 				media: 'docs/media/small/fit-a-ship.gif',
 				alt: 'A Carrack with two of its parts on; typing in the Sailing Mastery moves every number',
-				text: 'The <b>Ship</b> screen carries every hull in the game’s own numbers and fits it out as five slots — the four '
+				text: 'A new tab. The <b>Ship</b> screen carries every hull in the game’s own numbers and fits it out as five slots — the four '
 					+ 'parts and the sea crystal — each taking the best you already hold, or one you choose.',
 				points: [
 					'All 287 sea crystals from Eltro to Rusalka, plus Ebenruth’s Nol and the Oceanteared Nol, chosen by grade with the effect beside the name.',
@@ -156,20 +139,10 @@ export const RELEASES = [
 				]
 			},
 			{
-				title: 'What today can do about it',
-				text: 'The Plan carries a <b>Today</b> strip: the quests still open that pay in something on your list, the time to '
-					+ 'the daily, weekly and barter resets, when Vell is next up on your servers, and the pace each build has been moving at.',
-				points: [
-					'Resets at 00:00 UTC, Thursday 00:00 UTC and 06:00 UTC, ticking in place; the sea’s clocks sit over the chart on every Map tab.',
-					'Vell’s EU and NA timetables, correctable where they are shown, with a reminder a quarter of an hour before — by push, where the deployment has a key pair.',
-					'Anything the Central Market sells is priced from the Market itself, per region, and the app says how old the number is; the last prices a browser saw stay on hand offline.'
-				]
-			},
-			{
-				title: 'The harbour',
+				title: 'Community — the harbour',
 				media: 'docs/media/small/community.png',
 				alt: 'The hall of fame: sixteen boards, with your own places at the head of it',
-				text: 'A <b>Community</b> tab, where there is sign-in: sixteen boards — mastery, the best ship, the best sailor, the most silver from runs, '
+				text: 'A new tab, where there is sign-in: sixteen boards — mastery, the best ship, the best sailor, the most silver from runs, '
 					+ 'the most monsters hunted, the luckiest at the anvil and the rest — and the fleet in numbers: the hulls most sailed, the parts most fitted, '
 					+ 'the islands most plotted, the quests most done.',
 				points: [
@@ -180,18 +153,34 @@ export const RELEASES = [
 				]
 			},
 			{
-				title: 'Getting around',
+				title: 'The yard — what the sea brings back to it',
+				text: 'The Plan, the Inventory, the Workshop and To Get are as they were, with what the new tabs feed them: '
+					+ 'a <b>Today</b> strip on the Plan with the quests still open that pay in something on your list, the time to the daily, weekly and barter resets, '
+					+ 'when Vell is next up on your servers, and the pace each build has been moving at.',
+				points: [
+					'Anything the Central Market sells is priced from the Market itself, per region, and the app says how old the number is; the last prices a browser saw stay on hand offline.',
+					'Vell’s EU and NA timetables, correctable where they are shown, with a reminder a quarter of an hour before — by push, where the deployment has a key pair.',
+					'The trophies the sea monsters drop are in the book: a Usable Pirate Ship’s Remains chops into a Deep Tide-Dyed Standardized Timber Square, a Khan’s Tendon dries into ten Moon Vein Flax Fabric, ten Broken Cannons or two hundred seals make a Cox Pirates’ Artifact. The plan still buys those unless you switch one to <i>Craft it</i>, since the shop is the road and the trophy a side door.',
+					'The small craft too: a Cog two ways, three rowboats and a raft.',
+					'Every kind of item has a <b>home</b>: an item’s count is what is in your bags plus every storage you have noted it at, a trade good is never in the bags, and new goods can land at Iliya instead.',
+					'<b>Redo</b> beside Undo; Import asks whether to replace or merge, keeping the higher count of anything counted twice; exports are dated; the shopping list copies as <b>CSV</b> and prints legibly on white.',
+					'A field guide behind one quiet dot: the game’s own windows, so a number here can be traced to the screen it came from.'
+				]
+			},
+			{
+				title: 'Around the app',
 				text: 'Every section sits in a <b>dock</b> across the top of a wide screen, the icon over the name; on a phone four sit at the thumb and the last slot opens the menu. '
 					+ 'That <b>Menu</b> — <kbd>M</kbd> on the keyboard — is the one menu the app has: every section, Find, the trip log, Undo and Redo, your save, the help and the settings.',
 				points: [
 					'<b>Find</b> on Ctrl+K (or <kbd>/</kbd>): an item opens in the Inventory’s panel, a tab opens; the digits 1–9 switch tabs, <kbd>0</kbd> the tenth.',
 					'<b>Log a trip</b> records everything you brought back in one box, as one undoable change.',
 					'<b>Profiles</b>: separate saves on one browser, for an alt or a what-if; the Map’s routes and traces and the Barter tab’s board and run belong to the profile, so they export, sync and switch with it.',
-					'Every kind of item has a <b>home</b>: an item’s count is what is in your bags plus every storage you have noted it at, a trade good is never in the bags, and new goods can land at Iliya instead.',
 					'Every choice the app asks for goes through one picker: pictures, a fact beside each name, a search that ranks a name starting with your letters first.',
 					'The address bar names the tab and the open item, so a place survives a reload, travels in a link, and Back retraces your steps.',
 					'Quantities read the way your browser writes them, and item look-ups open BDOCodex in any of twelve languages.',
-					'Where the deployment offers it, signing in with Discord keeps the same inventory on your phone as well; without it nothing leaves the browser at all.'
+					'A <b>light theme</b>, under Menu → Theme, that follows the system when asked. One phone query, so a phone on its side gets the phone’s shell — and on the Map, the chart — instead of the desktop’s header eating the screen.',
+					'Hit areas of forty pixels under a finger; the faint inks lifted to read against the ground; the bottom sheets clear a phone’s gesture bar; a name on every search box, a state on every filter, a name on every dialog; Escape shuts the menus.',
+					'A thing done is answered with a small burst of light where the tap landed — a soft glow instead when motion is asked to keep still.'
 				]
 			},
 			{
@@ -201,18 +190,7 @@ export const RELEASES = [
 					'A <b>named route</b> is never dropped to make room for “Previous route”, which has a slot of its own; a ninth asks which to replace.',
 					'The undo history remembers only the fields a change touched and is trimmed to a budget in bytes; a write the browser refuses is said out loud, with <b>Export now</b> beside it, and a save that will not parse is copied aside before anything is written over it.',
 					'An import says which names this version does not know. A link travels slim, says how long it is, and warns when a chat would cut it.',
-					'The game file’s <b>Restore</b> puts the old block back byte for byte, whatever Version the client writes, BOM kept.'
-				]
-			},
-			{
-				title: 'The page, in the hand and in the light',
-				text: 'A <b>light theme</b>, under Menu → Theme, that follows the system when asked. One phone query, so a phone on its side '
-					+ 'gets the phone’s shell — and on the Map, the chart — instead of the desktop’s header eating the screen.',
-				points: [
-					'Hit areas of forty pixels under a finger; the faint inks lifted to read against the ground; the bottom sheets clear a phone’s gesture bar.',
-					'A name on every search box, a state on every filter, a name on every dialog; the hover card stays under the pointer and opens from the keyboard; Escape shuts the menus.',
-					'The shopping list copies as <b>CSV</b> and prints legibly on white.',
-					'A thing done is answered with a small burst of light where the tap landed — a soft glow instead when motion is asked to keep still.'
+					'The game file’s <b>Restore</b> puts the old block back byte for byte, whatever Version the client writes, BOM kept; the file from before the first write stays beside it as <code>gameVariable.xml.orig</code>.'
 				]
 			},
 			{
@@ -230,8 +208,8 @@ export const RELEASES = [
 			},
 			{
 				title: 'The tour, and the film',
-				text: 'The guided tour walks every section and points at each thing on your own screen, and the walkthrough film runs '
-					+ 'end to end — the yard, then the sea, then a run on today’s board sailed on the chart. Neither is a mock-up: '
+				text: 'The guided tour walks the new sections as well as the yard, pointing at each thing on your own screen, and the walkthrough film goes on '
+					+ 'from the yard to the sea and the harbour — a run on today’s board, sailed on the chart. Neither is a mock-up: '
 					+ 'they drive the real app, so a screen that changes makes them wrong until they are shot again.'
 			}
 		]
@@ -244,8 +222,9 @@ export const RELEASE = RELEASES[0].id;
 export const CHANGES = [
 	{
 		date: '2026-09-08',
-		title: 'the game file’s original kept',
+		title: 'What’s new tells only what is new, and the game file’s original is kept',
 		notes: [
+			'<b>What’s new</b> is the sea, not the yard: a section a tab — the Map, the Barter tab, Quests, the Ship, the Community — each saying what it is and what it does, and the yard named only for what the sea brought back to it; the Plan, the Inventory, the Workshop and To Get were here before and are no longer described as news.',
 			'Writing a route into <code>gameVariable.xml</code> keeps two copies now: the first write puts the untouched file aside as <code>gameVariable.xml.orig</code> and never writes it again, and every write copies the file as it was to <code>gameVariable.xml.bak</code>. Before, the second write copied the first write’s output over the only backup, and the original was gone.'
 		]
 	},
