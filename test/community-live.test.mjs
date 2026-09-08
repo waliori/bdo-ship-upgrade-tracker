@@ -36,7 +36,7 @@ delete process.env.FEEDBACK_WEBHOOK_URL;
 
 const app = (await import('../server.js')).default;
 const { startSession } = await import('../server/session.js');
-const { upsertUser } = await import('../server/db.js');
+const { upsertUser, putCommunity, listCommunity } = await import('../server/db.js');
 
 function cookieFor(id) {
 	const headers = [];
@@ -128,4 +128,45 @@ test('a hull in the inventory is a ship in the fleet', async () => {
 	assert.deepEqual(body.you.places.fleet, { rank: 1, value: 2, of: 1 });
 	const best = body.fame.find(f => f.id === 'ship').top[0];
 	assert.equal(best.detail.startsWith('Carrack (Valor)'), true);
+});
+
+test('a digest from an older build is re-rated without its owner lifting a finger', async () => {
+	// The case that made this necessary: the ship score began reading
+	// part quality, one sailor pushed a save and was re-rated, and
+	// everyone else sat on the same board still wearing the old number.
+	// Nothing about their save had changed, so nothing asked for it to
+	// be worked out again.
+	await upsertUser({ id: '3002', username: 'Ghost', avatar: null });
+	const ghost = cookieFor('3002');
+	await call('PUT', '/api/state', {
+		cookie: ghost,
+		body: { rev: 0, device: 'test', data: save({ sailingMastery: 700, crewShip: 'Carrack (Valor)' }) }
+	});
+	assert.equal((await (await call('GET', '/api/me', { cookie: ghost })).json()).share, 'named');
+
+	// Put a digest of the old shape on the boards by hand, with a score
+	// worked out the way the old build worked one out, and a revision
+	// that says it is current -- so nothing but the version can flag it.
+	const rev = (await (await call('GET', '/api/state', { cookie: ghost })).json()).rev;
+	await putCommunity('3002', 'named', {
+		v: 1, mastery: 700, level: null, barters: 0,
+		fleet: { n: 1, hulls: ['Carrack (Valor)'], list: [], sailing: 'Carrack (Valor)', parts: {}, crystals: {}, best: { ship: 'Carrack (Valor)', tier: 4, parts: {}, fitted: {}, levels: 0, score: 400 } },
+		crew: { n: 0, best: null, top: [], byType: {}, levels: [], avgLv: 0 },
+		runs: { n: 0, silver: 0, cost: 0, trades: 0, parley: 0, stops: 0, best: null, days: [0, 0, 0, 0, 0, 0, 0], last: null },
+		quests: { n: 0, distinct: 0, byId: {}, hunts: {}, huntsN: 0, favs: [] },
+		yard: { queued: 0, byItem: {}, crafts: 0, ships: 0, parts: 0, shipsMade: {}, tries: 0, wins: 0, drops: 0 },
+		charts: { routes: 0, traces: 0, points: 0, stops: {} },
+		stock: { items: 0, units: 0, silver: 0, crow: 0 },
+		ship: {}
+	}, rev);
+
+	// A read of the boards is all it takes: the stored digest says v1,
+	// this build writes v2, so it is worked out again from the save.
+	const body = await (await call('GET', '/api/community', { cookie: ghost })).json();
+	assert.deepEqual(body.you.places.ship, { rank: 1, value: 4000, of: 2 }, 'the old 400 was re-rated to a v2 score');
+
+	// And it was written back, so the next build does not do it again.
+	const rows = await listCommunity();
+	const row = rows.find(r => r.userId === '3002');
+	assert.equal(JSON.parse(row.stats).v, 2, 'the fresh digest was stored, not only served');
 });

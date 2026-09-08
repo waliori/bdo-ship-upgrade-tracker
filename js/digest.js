@@ -59,6 +59,32 @@ export const HULL_TIER = {
  * is bought rather than earned and not everyone records it, so counting
  * it would rank the pearl shop.
  */
+/**
+ * What version of a digest this build writes.
+ *
+ * A digest is stored, not recomputed on every read -- that is what makes
+ * the boards cheap. So a change to what a digest holds, or to how a
+ * board scores one, leaves every stored digest saying the old thing
+ * until its owner happens to save. That is exactly what happened when
+ * the ship score began reading part quality: the sailor who pushed a
+ * save was re-rated and everybody else stayed on the old number, on the
+ * same board, which reads as a bug because it is one.
+ *
+ * The field has been in every digest since the first one and nothing
+ * ever looked at it. Now the server does: a stored digest of another
+ * version is re-read from the save it came from, so a scoring change
+ * re-rates the whole board on the next rebuild and nobody has to do
+ * anything.
+ *
+ * Bump this whenever a board's `value` changes, or a field a row draws
+ * is added or dropped.
+ *
+ *   1  the first shape.
+ *   2  the ship score reads part quality and the crystal; `sets`,
+ *      `gear` and the face's `worth` are new.
+ */
+export const DIGEST_V = 2;
+
 const SLOT_FAMILY = 11;
 const HULL_WORTH = 1000;
 const CRYSTAL_WORTH = 4;
@@ -374,7 +400,7 @@ export function digest(save) {
 	const tally = obj(profile.tally);
 	const fleet = fleetOf(profile, obj(s.stock));
 	return {
-		v: 1,
+		v: DIGEST_V,
 		mastery: Math.min(3000, n(profile.sailingMastery)),
 		level: typeof profile.level === 'string' ? profile.level.slice(0, 20) : null,
 		barters: n(profile.barterCount),
