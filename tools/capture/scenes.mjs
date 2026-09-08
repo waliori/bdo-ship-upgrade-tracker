@@ -5,6 +5,7 @@
 
 import { open, seed, tab, click, clickIn, drag, moveTo, typeInto, wait, waitFor } from './drive.mjs';
 import { midBuild, readyToCraft, recordLevel, fittedShip, emptyStart } from './states.mjs';
+import { fakeCommunity } from './fleet.mjs';
 
 const OUT = process.argv[2];
 const only = process.argv.slice(3);
@@ -223,6 +224,34 @@ const scenes = {
 			await moveTo(page, '.row[data-peek*="Wave Residue"]', { settle: 1700 });
 			await moveTo(page, '.row[data-peek*="Toro Sail"]', { settle: 1700 });
 		});
+	},
+
+	/* A place on a board is a door: a row on Best ship opens that
+	 * sailor's card, and the card stands the Ship tab up on their boat.
+	 *
+	 * The only staged thing in this harness. The tab, the digest and the
+	 * ranking are the app's own; the four sailors they run on are
+	 * invented, because a capture machine has no deployment with players
+	 * on it. fleet.mjs holds them, and the README says so beside the
+	 * clip. Its own browser, so the faked sign-in cannot leak into a
+	 * scene shot after it. */
+	async 'the-boards'() {
+		const own = await open({ width: 1280, height: 900 });
+		await fakeCommunity(own.page);
+		await seed(own.page, own.url, midBuild);
+		await tab(own.page, 'community');
+		await wait(1200);
+		await rec(own.page, 'the-boards', async () => {
+			await wait(600);
+			await click(own.page, '[data-act="community-entry"][data-board="ship"]', { after: 1800 });
+			// It ends on their boat, held: that is the payoff, and the bar
+			// along the foot is the clip's last word -- a look, not a keep.
+			// Pressing back would spend the closing seconds on whatever
+			// bare hull the seeded save happens to be sailing.
+			await click(own.page, '[data-act="community-look"]', { after: 2600 });
+			await wait(1200);
+		});
+		await own.browser.close();
 	}
 };
 
@@ -253,6 +282,21 @@ const stills = {
 		await wait(900);
 		await page.evaluate(() => document.getElementById('__cur').remove());
 		await page.screenshot({ path: `${OUT}/quests.png` });
+	},
+	async community() {
+		// Wider than the rest of the stills: at 1280 a board row wraps its
+		// hull under its parts, and the boards are the point of the shot.
+		const own = await open({ width: 1440, height: 1000 });
+		await fakeCommunity(own.page);
+		await seed(own.page, own.url, midBuild);
+		await tab(own.page, 'community');
+		await wait(1600);
+		await own.page.evaluate(() => {
+			document.getElementById('__cur').remove();
+			window.scrollTo(0, 0);
+		});
+		await own.page.screenshot({ path: `${OUT}/community.png` });
+		await own.browser.close();
 	},
 	async inventory({ page, url }) {
 		await seed(page, url, midBuild);

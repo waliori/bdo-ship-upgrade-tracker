@@ -8,9 +8,12 @@
 // list becomes a loop with distances on it and a blank stretch of water
 // can be drawn on -- and a run on today's board, sailed on that chart.
 //
-// Nothing is staged. It drives the real app against a real inventory,
-// so if a screen changes the clip stops being a lie the next time it is
-// shot.
+// Nothing is staged but the harbour at the end. It drives the real app
+// against a real inventory, so if a screen changes the clip stops being
+// a lie the next time it is shot -- the one exception being the four
+// sailors on the community boards, who are invented in fleet.mjs
+// because a capture machine has no deployment with players on it. The
+// tab, the digest and the ranking there are the app's own.
 //
 //   node tools/capture/tour.mjs <outdir> [phone]
 
@@ -18,6 +21,7 @@ import {
 	open, seed, tab, click, clickIn, typeInto, drag, say, hush, wait,
 	onScreen, headerBtn, waitFor
 } from './drive.mjs';
+import { fakeCommunity } from './fleet.mjs';
 
 const OUT = process.argv[2];
 const PHONE = process.argv[3] === 'phone';
@@ -92,6 +96,11 @@ const PLACES = PHONE
 		word: [0.40, 0.44]
 	};
 
+// The harbour beat needs a deployment with sign-in and other people on
+// it, which this machine is not: the community API is answered from an
+// example fleet instead. It goes in before the seed so /api/config is
+// already saying `community` when the tab strip is first drawn.
+await fakeCommunity(page);
 await seed(page, url, START);
 const rec = await page.screencast({ path: `${OUT}/walkthrough${PHONE ? '-phone' : ''}.webm`, fps: 25 });
 
@@ -287,7 +296,39 @@ await say(page, 'Sail it, and it is on the chart: a checklist, stop by stop.');
 await say(page, 'Record the trip at the end, and the whole of it lands in the Inventory.');
 await hush(page);
 
-await say(page, 'Your data stays in your browser. Sign in only to sync it.');
+/* ---------------------------------------------------------------- *
+ * the harbour
+ * ---------------------------------------------------------------- */
+
+await tab(page, 'community');
+await wait(900);
+await say(page, 'Where a deployment has sign-in, there is a harbour.');
+await say(page, 'Sixteen boards, from the sailors who chose to be on them.');
+await hush(page);
+
+await click(page, '[data-act="community-entry"][data-board="ship"]', { after: 1900 });
+await say(page, 'A place on a board is a door. This is that sailor\'s card:');
+await say(page, 'their fleet, their crew, their career.');
+await hush(page);
+
+await click(page, '[data-act="community-look"]', { after: 2500 });
+await say(page, 'And their ship on your own Ship tab, fully fitted --');
+await say(page, 'to look at and not to keep, one press back to yours.');
+await click(page, '[data-shared="back"]', { after: 1700 });
+await hush(page);
+
+// Back to your own boat leaves you on the Ship tab, which is the point
+// of it -- the boards are a tab away, the way they were on the way in.
+await tab(page, 'community', { after: 1300 });
+await click(page, '[data-act="community-half"][data-id="numbers"]', { after: 1500 });
+await say(page, 'The other half adds the whole fleet up.');
+await hush(page);
+
+await say(page, 'Nothing goes on the boards that was not offered:');
+await say(page, 'you see the digest before you agree, and leaving deletes it.');
+await hush(page);
+
+await say(page, 'Your data stays in your browser. Sign in to sync it, or to take part.');
 await hush(page);
 
 await wait(700);

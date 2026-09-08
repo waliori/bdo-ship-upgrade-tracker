@@ -127,24 +127,49 @@ export async function seed(page, url, state) {
  * ambiguous, and aiming at the hidden one clicks nothing at all, so the
  * clip comes out showing a dead press.
  */
-async function pick(page, sel) {
+async function pick(page, sel, { upTo = 2500 } = {}) {
 	if (typeof sel !== 'string') return sel;
-	const els = await page.$$(sel);
-	for (const el of els) {
-		const on = await el.evaluate(e => {
-			const r = e.getBoundingClientRect();
-			return r.width > 0 && r.height > 0;
-		});
-		if (on) return el;
-		await el.dispose();
+	const end = Date.now() + upTo;
+	for (;;) {
+		const els = await page.$$(sel);
+		for (const el of els) {
+			let on = false;
+			try {
+				on = await el.evaluate(e => {
+					const r = e.getBoundingClientRect();
+					return r.width > 0 && r.height > 0;
+				});
+			} catch {
+				// The node was replaced between the query and the measure.
+				// A handle to a detached element answers nothing, so this
+				// is not an error -- it is the page having moved on.
+			}
+			if (on) return el;
+			await el.dispose();
+		}
+		// Every screen here is rendered from state, so a section that is
+		// on the page can still be a different element a moment later --
+		// a save landing, a clock rolling over, a mode switch redrawing
+		// the panel. A miss is therefore worth asking about again before
+		// it is called a miss: without this the film dies at whichever
+		// click happened to land in the same millisecond as a re-render,
+		// which is a different one every time it is shot.
+		if (Date.now() > end) throw new Error(`nothing visible matches ${sel}`);
+		await wait(100);
 	}
-	throw new Error(`nothing visible matches ${sel}`);
 }
 
-/** Whether anything visible answers to a selector, without throwing. */
+/**
+ * Whether anything visible answers to a selector, without throwing.
+ *
+ * Asked once, not waited on: this is how a scene tells a wide screen
+ * from a phone, and both answers are ordinary. Waiting two seconds for
+ * the answer "no" would put that wait on every tab press of the phone
+ * cut.
+ */
 export async function onScreen(page, sel) {
 	try {
-		await pick(page, sel);
+		await pick(page, sel, { upTo: 0 });
 		return true;
 	} catch {
 		return false;

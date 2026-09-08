@@ -109,6 +109,8 @@ The Plan carries a **Today** strip: the quests still open that pay in something 
 
 ### The harbour
 
+![The hall of fame: sixteen boards, with your own places at the head of it](docs/media/community.png)
+
 A **Community** tab, where there is sign-in: sixteen boards — mastery, the best ship, the best sailor, the most silver from runs, the most monsters hunted, the luckiest at the anvil and the rest — and the fleet in numbers: the hulls most sailed, the parts most fitted, the islands most plotted, the quests most done.
 
 - Only the sailors who take part are on it, by name or as an unnamed sailor, and what would be shared is shown before anyone agrees.
@@ -157,7 +159,7 @@ None of this is visible, and all of it is why the rest works.
 - The tour’s library is vendored, so the page needs no CDN and the CSP can stay shut.
 - <code>/healthz</code> says whether the database answers; push subscriptions go only to the real push services; an Origin check on every write; a schema version and a runner for the next change; <code>npm run backup</code> and <code>restore</code>.
 - The Market relay spends at most twenty-five seconds on a call and answers the rest from the copy it holds.
-- A test suite of 551, run on every push, covering the cost model, the sync API and the client in a real browser.
+- A test suite of 561, run on every push, covering the cost model, the sync API and the client in a real browser.
 
 ### The tour, and the film
 

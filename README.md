@@ -16,9 +16,11 @@ yard first: queue a build, choose how to get there, record what you
 gathered, make something, see what it will really cost, take the list
 shopping. Then the sea: the day's free quests, the ship you sail it in,
 the chart, where that list becomes a loop with minutes on it and a
-blank stretch of water can be drawn on — and a run planned on today's
-board, sailed on that chart. It is the real app, driven and
-captioned — nothing is staged — and there is a
+blank stretch of water can be drawn on, a run planned on today's board
+and sailed on that chart — and the harbour at the end, where the boards
+are. It is the real app, driven and captioned; the only invented thing
+in it is the handful of sailors on those boards, since a machine
+shooting a clip has no deployment with players on it. There is a
 [narrower cut for a phone](docs/media/walkthrough-phone.mp4). Both play
 inside the app too, under **Help**.
 
@@ -419,6 +421,28 @@ one undoable change. The details — the material run, the three paces,
 the quests that come along, the wharf calls — are under
 [What's covered](#whats-covered).
 
+### The harbour
+
+![A place on a board opens that sailor's card, and the card stands the Ship tab up on their boat](docs/media/the-boards.gif)
+
+Where the deployment has sign-in there is a **Community** tab: sixteen
+boards drawn from the sailors who chose to be on them — mastery, the
+best ship, the best sailor, the most silver from runs, the most sea
+monsters hunted, the luckiest at the anvil — and the whole fleet added
+up, hull by hull and island by island. A place on a board is a door: it
+opens that sailor's card, and the card stands the **Ship tab up on
+their boat**, fully fitted and crewed, to look at and not to keep, one
+press back to yours.
+
+Taking part is a choice made once, by name or as an unnamed sailor, and
+you are shown the digest that would be published before you agree. What
+is shared, what never is, and how to turn any of it on are under
+[The community boards](#the-community-boards).
+
+*The sailors in that clip are invented — this project runs no public
+deployment to film. The tab, the digest and the ranking are the app's
+own, working on a fleet that does not exist.*
+
 ---
 
 ## Running it
@@ -814,6 +838,8 @@ The accounts listed in `ADMIN_IDS` get **Feedback inbox** on the same
 menu: what came in, open first, and a button to mark each done.
 
 ### The community boards
+
+![The hall of fame, with your own places at the head of it](docs/media/community.png)
 
 With sign-in on, the **Community** tab shows two things drawn from the
 sailors who chose to be on it, and nobody else:
