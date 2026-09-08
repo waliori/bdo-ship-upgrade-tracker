@@ -828,3 +828,17 @@ h2.comm-board-title { font-size: 15px; }
    slots: the fleet's advice, said once and quietly. */
 .crew-note, .fit-path { margin: 0 0 8px; font-size: 12px; line-height: 1.5; color: var(--ink-faint); }
 .fit-path { color: var(--ink-mute); }
+
+/* "How is this counted?" — a small mark on each board, and the panel it
+   opens. A leaderboard that will not say how it ranks people is a
+   leaderboard nobody believes. */
+.comm-how { flex: none; width: 20px; height: 20px; margin-left: 6px; padding: 0; border-radius: 50%;
+	border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.4); color: var(--ink-faint);
+	font: inherit; font-size: 11px; line-height: 1; cursor: pointer; }
+.comm-how:hover { border-color: var(--line-btn-hi); color: var(--ink-hi); }
+.comm-how-note { margin: 0 0 12px; padding: 10px 12px; border-radius: var(--r-btn);
+	border: 1px solid rgba(var(--blue-rgb), 0.22); background: rgba(var(--blue-rgb), 0.07);
+	font-size: 12.5px; line-height: 1.6; color: var(--ink); }
+.comm-how-sums { margin-bottom: 12px; }
+.comm-how-sums .n { font-family: var(--font-display); font-size: 12px; color: var(--ink-hi); }
+.comm-how-min { font-size: 12px; color: var(--ink-faint); }

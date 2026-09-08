@@ -410,14 +410,27 @@ export function fittedOn(d, hull) {
 	}
 	return null;
 }
-const faceShip = d => (d.fleet.best ? { kind: 'ship', item: d.fleet.best.ship, parts: d.fleet.best.parts, fitted: d.fleet.best.fitted || fittedOn(d, d.fleet.best.ship), crystal: d.fleet.best.crystal || 0 } : null);
+const faceShip = d => (d.fleet.best ? {
+	kind: 'ship', item: d.fleet.best.ship, parts: d.fleet.best.parts,
+	fitted: d.fleet.best.fitted || fittedOn(d, d.fleet.best.ship), crystal: d.fleet.best.crystal || 0,
+	// The score broken into its three parts, so a row can show its own
+	// arithmetic rather than only the rule it was scored by. A digest
+	// written before this carries no `worth` and simply shows less.
+	worth: {
+		hull: (d.fleet.best.tier ?? 1) * HULL_WORTH,
+		gear: d.fleet.best.gear || 0,
+		crystal: crystalWorth(d.fleet.best.crystal)
+	}
+} : null);
 const faceItems = names => (names.length ? { kind: 'items', items: names } : null);
 export const BOARDS = [
 	{ id: 'mastery', section: 'sea', title: 'Sailing mastery', icon: '⚓', unit: '', min: 1,
 		desc: 'mastery points, as set on the Ship tab', how: 'Set your sailing mastery on the Ship tab.',
+		note: 'The number itself, as you set it on the Ship tab. Nothing is worked out from it.',
 		value: d => d.mastery, detail: d => (d.level ? d.level : ''), face: () => null },
 	{ id: 'ship', section: 'sea', title: 'Best ship', icon: '⛵', unit: 'pts', min: 1,
 		desc: 'the hull, which parts are on it, and how far they are taken', how: 'Fit a ship on the Ship tab.',
+		note: 'The hull is worth 1,000 a tier — a Carrack 4,000, a Caravel 3,000 — because it outweighs anything bolted to it. Each of the four slots is then worth its part\'s set (yellow 5, blue 4, green 3, Epheria 2, Sailboat 1) times eleven, plus its enhancement level. Eleven is one more than the ten levels a part takes, so no amount of enhancing carries a green part past a blue one. The sea crystal adds four a grade — less than lifting all four parts a tier is worth, since the best crystal is a drop and a yellow set is a season of work. The appearance set is not counted.',
 		value: d => (d.fleet.best ? d.fleet.best.score : 0),
 		// Which set, then how far it is taken: "parts +40 in all" was
 		// true of a full yellow set and a half-green one alike, which is
@@ -431,51 +444,65 @@ export const BOARDS = [
 		},
 		face: faceShip },
 	{ id: 'fleet', section: 'sea', title: 'Largest fleet', icon: '🚢', unit: 'hulls', min: 2,
-		desc: 'hulls owned across every setup', how: 'Own a second hull on the Ship tab.',
+		desc: 'hulls owned, across your setups and your inventory', how: 'Own a second hull on the Ship tab.',
+		note: 'Hulls, counted once each: every hull with a saved setup, with parts fitted by hand, or sitting in your Inventory. Two of the same hull are one hull here.',
 		value: d => d.fleet.n, detail: d => d.fleet.hulls.slice(0, 3).join(', '), face: d => faceItems(d.fleet.hulls.slice(0, 4)) },
 	{ id: 'sailor', section: 'sea', title: 'Best sailor', icon: '🧭', unit: 'pts', min: 1001,
 		desc: 'the strongest hand aboard: level first, then growths', how: 'Hire a sailor on the Ship tab.',
+		note: 'Your single best sailor: their level times a thousand, plus their growth percentages added up. Level decides it; the growths only break a tie.',
 		value: d => (d.crew.best ? d.crew.best.score : 0),
 		detail: d => (d.crew.best ? `${d.crew.best.name} · ${d.crew.best.type} · Lv ${d.crew.best.lv}${d.crew.best.sum ? ` · stats ${d.crew.best.sum}` : ''}` : ''),
 		face: d => (d.crew.best ? { kind: 'sailor', type: d.crew.best.type, name: d.crew.best.name, lv: d.crew.best.lv, stats: d.crew.best.stats } : null) },
 	{ id: 'crew', section: 'sea', title: 'Largest crew', icon: '👥', unit: 'sailors', min: 1,
 		desc: 'sailors hired across every roster', how: 'Hire sailors on the Ship tab.',
+		note: 'Sailors on the roster, however they are seated.',
 		value: d => d.crew.n, detail: d => (d.crew.avgLv ? `average Lv ${d.crew.avgLv}` : ''),
 		face: d => (Object.keys(d.crew.byType).length ? { kind: 'sailors', types: Object.keys(d.crew.byType).slice(0, 4) } : null) },
 	{ id: 'barters', section: 'runs', title: 'Most barters', icon: '⇄', unit: 'barters', min: 1,
 		desc: 'the barter count, as set on the Barter tab', how: 'Set your barter count on the Barter tab.',
+		note: 'The number itself, as you set it on the Barter tab.',
 		value: d => d.barters, detail: d => (d.level ? d.level : ''), face: () => null },
 	{ id: 'silver', section: 'runs', title: 'Most silver from runs', icon: '💰', unit: 'silver', min: 1,
 		desc: 'silver over every run logged', how: 'Log a run on the Barter tab.',
+		note: 'Silver over every run logged. The career tally is used where it is larger than the last sixty runs, since a save keeps only those.',
 		value: d => d.runs.silver, detail: d => `${d.runs.n} run${d.runs.n === 1 ? '' : 's'} · ${d.runs.trades} trade${d.runs.trades === 1 ? '' : 's'}`, face: () => null },
 	{ id: 'runs', section: 'runs', title: 'Most runs sailed', icon: '🌊', unit: 'runs', min: 1,
 		desc: 'runs logged, over the whole career', how: 'Log a run on the Barter tab.',
+		note: 'Runs logged over the career, by the same reckoning as the silver.',
 		value: d => d.runs.n, detail: d => `${d.runs.stops} stops · ${d.runs.trades} trades`, face: () => null },
 	{ id: 'bestday', section: 'runs', title: 'Best single run', icon: '☀', unit: 'silver net', min: 1,
 		desc: 'the most silver netted in one run', how: 'Log a run on the Barter tab.',
+		note: 'The most silver netted in a single run — what it paid, less what it cost — over the last sixty.',
 		value: d => (d.runs.best ? d.runs.best.net : 0), detail: d => (d.runs.best ? d.runs.best.day : ''), face: () => null },
 	{ id: 'quests', section: 'quests', title: 'Most quests done', icon: '✦', unit: 'quests', min: 1,
 		desc: 'claims over the career, on the Quests tab', how: 'Claim a quest on the Quests tab.',
+		note: 'Every quest claim over the career, counting a quest claimed twice as two.',
 		value: d => d.quests.n, detail: d => `${d.quests.distinct} different`, face: () => null },
 	{ id: 'hunts', section: 'quests', title: 'Most sea monsters hunted', icon: '🦈', unit: 'hunts', min: 1,
 		desc: 'from the hunting quests done', how: 'Claim a hunting quest on the Quests tab.',
+		note: 'Claims of the hunting quests only, which is what the app can see of a monster killed.',
 		value: d => d.quests.huntsN, detail: d => Object.keys(d.quests.hunts).slice(0, 3).map(monsterName).join(', '),
 		face: d => (Object.keys(d.quests.hunts).length ? { kind: 'monsters', keys: Object.keys(d.quests.hunts).slice(0, 4) } : null) },
 	{ id: 'ships', section: 'yard', title: 'Most ships built', icon: '⚒', unit: 'ships', min: 1,
 		desc: 'hulls made in the Workshop', how: 'Craft a hull in the Workshop.',
+		note: 'Hulls recorded as made in the Workshop.',
 		value: d => d.yard.ships, detail: d => Object.keys(d.yard.shipsMade).slice(0, 2).join(', '), face: d => faceItems(Object.keys(d.yard.shipsMade).slice(0, 4)) },
 	{ id: 'crafts', section: 'yard', title: 'Most things made', icon: '🔨', unit: 'crafts', min: 1,
 		desc: 'everything crafted in the Workshop', how: 'Craft anything in the Workshop.',
+		note: 'Everything recorded as made in the Workshop, hulls and parts and materials alike.',
 		value: d => d.yard.crafts, detail: d => (d.yard.parts ? `${d.yard.parts} ship parts` : ''), face: () => null },
 	{ id: 'luck', section: 'yard', title: 'Luckiest at the anvil', icon: '🎲', unit: '% success', min: 1,
 		desc: 'successes per attempt, over ten or more tries', how: 'Record ten enhancement attempts in the Workshop.',
+		note: 'Successes per attempt at the anvil, as a percentage, and only once ten attempts are recorded — three lucky tries are not a record.',
 		value: d => (d.yard.tries >= 10 ? Math.round((d.yard.wins / d.yard.tries) * 100) : 0),
 		detail: d => (d.yard.tries ? `${d.yard.wins} of ${d.yard.tries} attempts` : ''), face: () => null },
 	{ id: 'charts', section: 'charts', title: 'Cartographer', icon: '✎', unit: 'points', min: 1,
 		desc: 'points in the traces drawn on the chart', how: 'Draw a trace on the Map tab.',
+		note: 'Points in the traces drawn on the chart, so a long coast counts more than a short one.',
 		value: d => d.charts.points, detail: d => `${d.charts.traces} trace${d.charts.traces === 1 ? '' : 's'} · ${d.charts.routes} route${d.charts.routes === 1 ? '' : 's'}`, face: () => null },
 	{ id: 'hold', section: 'charts', title: 'Fullest hold', icon: '📦', unit: 'units', min: 1,
 		desc: 'units in the Inventory, all kinds together', how: 'Add stock on the Inventory tab.',
+		note: 'Units in the Inventory, every kind added together. Silver and Crow Coin are left out; they would drown everything else.',
 		value: d => d.stock.units, detail: d => `${d.stock.items} kinds of thing`, face: () => null }
 ];
 

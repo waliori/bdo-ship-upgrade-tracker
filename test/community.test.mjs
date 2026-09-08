@@ -108,7 +108,20 @@ test('the digest reads the fleet, the crew and the career off a save', () => {
 	// The face a row wears: the best hull with its parts by name and its
 	// crystal, the best sailor's type, the monsters hunted.
 	const face = id => BOARDS.find(b => b.id === id).face(d);
-	assert.deepEqual(face('ship'), { kind: 'ship', item: 'Carrack (Advance)', parts: { cannon: 10, sail: 5 }, fitted: { cannon: '+10 Epheria Carrack: Toro Cannon', sail: '+5 Epheria Carrack: Toro Sail' }, crystal: 0 });
+	// ...and the score broken into its parts, so a row can show its own
+	// arithmetic: a Carrack is 4,000, and two green parts at +10 and +5
+	// come to (3 * 11 + 10) + (3 * 11 + 5).
+	assert.deepEqual(face('ship'), {
+		kind: 'ship', item: 'Carrack (Advance)',
+		parts: { cannon: 10, sail: 5 },
+		fitted: { cannon: '+10 Epheria Carrack: Toro Cannon', sail: '+5 Epheria Carrack: Toro Sail' },
+		crystal: 0,
+		worth: { hull: 4000, gear: 81, crystal: 0 }
+	});
+	assert.equal(BOARDS.find(b => b.id === 'ship').value(d), 4081, 'the sum is the score');
+	// Every board says how it is counted, since a board that will not
+	// say is a board nobody believes.
+	for (const b of BOARDS) assert.ok(b.note && b.note.length > 20, `${b.id} has no note`);
 	assert.deepEqual(face('sailor'), { kind: 'sailor', type: 'Bodil (Goblin)', name: 'Bodil', lv: 9, stats: { speed: 8 } });
 	assert.deepEqual(face('hunts'), { kind: 'monsters', keys: ['nineshark', 'young-hekaru'] });
 	assert.equal(face('mastery'), null);
