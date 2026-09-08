@@ -15,6 +15,7 @@
 // tally is the only witness to a long career.
 
 import { shipGroups } from './ships.js';
+import { shipStats } from './ship_stats.js';
 import { quests } from './quests.js';
 import { monsterByKey } from './sea_monsters.js';
 import { readProfile } from './profile-shape.js';
@@ -32,6 +33,9 @@ export const HULL_TIER = {
 };
 
 const SHIPS = new Set(shipGroups.filter(g => g.name === 'Ships' || g.name === 'Small craft').flatMap(g => g.items));
+/** Every hull the app knows -- the craftable ones and the Bartali
+ *  Sailboat, which is nobody's recipe but everybody's first boat. */
+const HULLS = new Set(Object.keys(shipStats));
 const PARTS = new Set(shipGroups.filter(g => g.name !== 'Ships' && g.name !== 'Small craft').flatMap(g => g.items));
 const MONSTER_OF = Object.fromEntries(quests.filter(q => q.monster).map(q => [q.id, q.monster]));
 const QUEST_IDS = new Set(quests.map(q => q.id));
@@ -55,9 +59,15 @@ function top(counts, max = 20) {
 }
 
 /**
- * The fleet: every hull with a saved setup or a crew plan, and the best
- * of them -- the highest tier, and within a tier the one whose parts
- * add up to the most levels.
+ * The fleet: every hull owned or planned for, and the best of them --
+ * the highest tier, and within a tier the one whose parts add up to the
+ * most levels.
+ *
+ * A hull counts when it is held in the inventory, when a setup was
+ * saved on it, when parts were fitted to it by hand, or when it is the
+ * one being sailed. The inventory is the case that matters most: a
+ * ship recorded in the hold is a ship owned, whether or not its owner
+ * ever went to the Ship tab and named a setup for it.
  *
  * What is on a hull is what the Ship tab would show: the part chosen
  * by hand for a slot where one was, else the best part held in the
@@ -87,6 +97,11 @@ function fleetOf(profile, stock) {
 		h.skins = Math.max(h.skins, Object.values(obj(skin)).filter(Boolean).length);
 		hulls.set(ship, h);
 	};
+	// The hulls in the hold come first, so a ship owned but never set up
+	// is still a ship in the fleet.
+	for (const [item, qty] of Object.entries(obj(stock))) {
+		if (HULLS.has(item) && n(qty) > 0) note(item, obj(profile.fitted)[item], obj(profile.crystal)[item], obj(profile.skins)[item]);
+	}
 	for (const st of Object.values(obj(profile.setups))) note(obj(st).ship, st.fitted, st.crystal, st.skin);
 	for (const [ship, fitted] of Object.entries(obj(profile.fitted))) note(ship, fitted, obj(profile.crystal)[ship], obj(profile.skins)[ship]);
 	if (profile.crewShip) note(profile.crewShip, obj(profile.fitted)[profile.crewShip], obj(profile.crystal)[profile.crewShip], obj(profile.skins)[profile.crewShip]);

@@ -235,6 +235,20 @@ export const MIGRATIONS = [
 				updated_at  INTEGER NOT NULL
 			)`);
 		}
+	},
+	{
+		version: 3,
+		up: async run => {
+			// The boards are opt-out now, not opt-in: an account that
+			// signs in is put on them unless it has said otherwise. That
+			// "otherwise" cannot live in the community table, because
+			// leaving deletes the row -- and a promise that leaving takes
+			// the digest down is worth keeping. So it is a flag on the
+			// account: set when someone leaves, cleared when they come
+			// back, and the one thing that stops the next sign-in from
+			// quietly putting them back.
+			await run('ALTER TABLE users ADD COLUMN community_off INTEGER NOT NULL DEFAULT 0');
+		}
 	}
 ];
 
@@ -466,11 +480,30 @@ export async function countFeedback(status = 'open') {
  * Community
  * ------------------------------------------------------------------ */
 
-/** How an account stands on the boards: 'named', 'anon', or null when it is not on them. */
-export async function getShare(userId) {
+/**
+ * How an account stands on the boards and whether it ever chose to be
+ * off them, in one query -- which is what deciding whether to put a
+ * returning account back on needs, and it is asked on every load.
+ *
+ * `off` is only meaningful while `share` is null: someone on the boards
+ * plainly has not opted out of them.
+ */
+export async function getShareState(userId) {
 	await migrate();
-	const { rows } = await exec({ sql: 'SELECT share FROM community WHERE user_id = ?', args: [userId] });
-	return rows[0] ? rows[0].share : null;
+	const { rows } = await exec({
+		sql: `SELECT u.community_off AS off, c.share AS share
+		      FROM users u LEFT JOIN community c ON c.user_id = u.id
+		      WHERE u.id = ?`,
+		args: [userId]
+	});
+	if (!rows[0]) return { share: null, off: true, known: false };
+	return { share: rows[0].share || null, off: Number(rows[0].off) === 1, known: true };
+}
+
+/** Remember that an account chose to be off the boards, or chose not to be. */
+export async function setCommunityOff(userId, off) {
+	await migrate();
+	await exec({ sql: 'UPDATE users SET community_off = ? WHERE id = ?', args: [off ? 1 : 0, userId] });
 }
 
 /** Put an account on the boards, or change how it is shown there. */

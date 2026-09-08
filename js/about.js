@@ -246,6 +246,16 @@ export const RELEASE = RELEASES[0].id;
 export const CHANGES = [
 	{
 		date: '2026-09-08',
+		title: 'The boards keep up, and hold you by default; your fleet and your inventory are one thing',
+		notes: [
+			'The <b>Community</b> boards follow your save. What they show about you is worked out from the copy the server holds, and that copy is redrawn within seconds of a save reaching it — so a ship fitted, a sailor hired or a run logged is on the boards, and on your own card, by the time you walk to them. Before, a change waited on the boards’ own window and a card, once opened, never changed at all: leaving the boards and rejoining them was the only way to see it.',
+			'Signing in now puts you <b>on the boards by name</b>, rather than leaving them to the few who went looking for the switch. The tab says so the first time you open it, <b>Leave the boards</b> is one press from there, and leaving is remembered — signing in again does not put you back. You can still be shown as an unnamed sailor instead, and what would be shared is still listed before you agree.',
+			'Your <b>fleet and your inventory are one fleet</b>. Keeping a setup on the Ship tab puts its hull in the Inventory if none was recorded there, and a hull recorded in the Inventory is a ship in your fleet — under <i>Your fleet</i>, in the Map’s ship picker, and counted on the boards — whether or not a setup was ever named for it. One Undo takes back both halves.',
+			'Two setups kept in the same moment are two setups: they shared an id before, and the second quietly replaced the first.'
+		]
+	},
+	{
+		date: '2026-09-08',
 		title: 'What’s new tells only what is new, two clips of a ship and a drawing handed round, and the game file’s original is kept',
 		notes: [
 			'Two more clips, in What’s new and the README: a ship’s whole fit-out copied as a link and made someone else’s boat in one press, and a drawing named, copied, and flown to on another chart. The capture harness shoots them like the rest — the link is read off the clipboard and opened as a real load on an empty save.',

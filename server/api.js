@@ -8,9 +8,9 @@
 
 import express from 'express';
 import { config } from './config.js';
-import { getUser, deleteAccount, getShare } from './db.js';
+import { getUser, deleteAccount } from './db.js';
 import { isAdmin } from './feedback.js';
-import { communityRoutes, leaveBoards } from './community.js';
+import { communityRoutes, ensureOnBoards, leaveBoards } from './community.js';
 import { readSave, writeSaveFor, forget } from './saves.js';
 import { sessionUser, requireUser, endSession } from './session.js';
 import { perAccount } from './limit.js';
@@ -110,8 +110,10 @@ export function apiRoutes() {
 			user: { id: user.id, username: user.username, avatar: user.avatar },
 			// How the account stands on the community boards, and whether
 			// it may read the feedback inbox. The share is read fresh: it
-			// changes from the boards page and must show there at once.
-			share: await getShare(uid),
+			// changes from the boards page and must show there at once --
+			// and this is where an account that has never said is put on
+			// them, since the boards are opt-out rather than opt-in.
+			share: await ensureOnBoards(uid),
 			admin: isAdmin(uid)
 		});
 	}));

@@ -127,10 +127,14 @@ export const config = {
 	sessionDays: num('SESSION_DAYS', 30),
 	feedbackWebhook: read('FEEDBACK_WEBHOOK_URL'),
 	adminIds,
-	// How long the community boards are held between rebuilds. Every
-	// digest on them is re-read when the save behind it has moved, so
-	// a fresh run reaches the boards within this.
+	// How long a quiet set of community boards is held between rebuilds:
+	// nobody on them has saved, so nothing on them can have changed.
 	communityTtlMs: num('COMMUNITY_TTL_MS', 5 * 60_000),
+	// And how long they are held once somebody on them has saved, which
+	// is the case that has to feel live. A board known to be wrong is
+	// not worth holding for long -- only long enough that a burst of
+	// pushes does not rebuild it on every request.
+	communityRebuildMs: num('COMMUNITY_REBUILD_MS', 3_000),
 	// Pushes allowed per account per minute.
 	//
 	// Measured, not guessed. Rapid editing coalesces -- 491 clicks in a

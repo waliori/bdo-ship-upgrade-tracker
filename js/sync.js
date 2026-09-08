@@ -42,6 +42,7 @@ let account = null;      // { id, username, avatar, share, admin } once signed i
 let available = false;   // does this deployment offer sync at all
 let features = {};       // what /api/config said this deployment has
 const watchers = new Set();   // told when the account changes
+const pushed = new Set();     // told when a push has landed on the server
 let status = 'off';      // off | out | idle | syncing | error | conflict
 let detail = '';
 let pushTimer = null;
@@ -152,6 +153,30 @@ export function me() {
 export function onAccount(fn) {
 	watchers.add(fn);
 	return () => watchers.delete(fn);
+}
+
+/**
+ * Be told when a push has actually landed -- not when the save changed
+ * here, which is half a second earlier and no use to anything asking
+ * the server a question about it.
+ *
+ * The community boards are the caller: what they show about you is
+ * worked out from the copy the server holds, so the moment to ask them
+ * again is the moment that copy caught up. Returns the way to stop.
+ */
+export function onPushed(fn) {
+	pushed.add(fn);
+	return () => pushed.delete(fn);
+}
+
+function landed() {
+	for (const fn of pushed) {
+		try {
+			fn();
+		} catch {
+			// A watcher's trouble is its own; the save is saved.
+		}
+	}
 }
 
 /** A call on the API for another module, with the session cookie along. */
@@ -270,6 +295,7 @@ async function push(force = false) {
 			setRev(res.body.rev);
 			lastPushed = text;
 			failures = 0;
+			landed();
 			return say('idle');
 		}
 		if (res.status === 409) {

@@ -179,3 +179,46 @@ test('the hold reads as a sum of lines, and says how far over it will still sail
 	assert.ok(crewed.hold.lines.some(l => l.lt === -200 && /sailor/.test(l.label)));
 	assert.equal(crewed.hold.lines.reduce((a, l) => a + l.lt, 0), crewed.hold.free);
 });
+
+test('the fleet and the hold are one thing: a setup buys a hull, a hull kept is a ship', async () => {
+	const { saveSetup, listFleet, ownedHulls, hullOfRow, OWNED_PREFIX } = await import('../js/ship.js');
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { crewShip: 'Epheria Caravel' } });
+	assert.deepEqual(listFleet(), [], 'nothing owned and nothing kept is no fleet');
+
+	// Kept under a name on the Ship tab: the hull goes into the hold too,
+	// and both come back with one Undo.
+	const id = saveSetup('Runner');
+	assert.equal(store.getStock('Epheria Caravel'), 1);
+	assert.deepEqual(listFleet().map(s => s.id), [id]);
+	store.undo();
+	assert.equal(store.getStock('Epheria Caravel'), 0);
+	assert.deepEqual(store.getProfile('setups', null), null);
+	store.redo();
+	assert.equal(store.getStock('Epheria Caravel'), 1);
+
+	// Keeping a second setup on a hull already held buys nothing more.
+	store.setProfile('crewShip', 'Epheria Caravel');
+	saveSetup('Hauler');
+	assert.equal(store.getStock('Epheria Caravel'), 1);
+
+	// A hull recorded in the Inventory and never set up is still a ship
+	// in the fleet, with a row of its own.
+	store.setStock('Carrack (Valor)', 1);
+	assert.deepEqual(ownedHulls().sort(), ['Carrack (Valor)', 'Epheria Caravel']);
+	const bare = listFleet().find(s => s.owned);
+	assert.equal(bare.ship, 'Carrack (Valor)');
+	assert.equal(bare.id, `${OWNED_PREFIX}Carrack (Valor)`);
+	assert.equal(hullOfRow(bare.id), 'Carrack (Valor)');
+	assert.equal(hullOfRow('s123'), null);
+
+	// Saving a setup on it folds the bare row into the setup.
+	store.setProfile('crewShip', 'Carrack (Valor)');
+	saveSetup('Hunter');
+	assert.equal(listFleet().filter(s => s.owned).length, 0);
+	assert.equal(store.getStock('Carrack (Valor)'), 1, 'already held, so nothing was added');
+
+	// And out of the hold, out of the fleet -- the setup aside.
+	store.setStock('Epheria Caravel', 0);
+	assert.equal(ownedHulls().length, 1);
+	assert.equal(listFleet().length, 3, 'the two Caravel setups are still kept');
+});

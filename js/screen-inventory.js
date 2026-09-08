@@ -11,6 +11,8 @@ import {
 import { recipes, snapshot, rows, query, invFilter, invKind, selected, sort, sorter, sortSelect, craftStock, invPicking, invPicked } from './ui-state.js';
 import { routes, routeInfo } from './recipes.js';
 import { KINDS, kindOf } from './kinds.js';
+import { shipStats } from './ship_stats.js';
+import { listSetups, shipName } from './ship.js';
 import { maxCraftable, enhanceStep, parseEnhanced, enhancedName, waysToGet, routeOf } from './planner.js';
 
 
@@ -346,6 +348,7 @@ function renderDetail() {
 				<button class="linky" data-act="ask-route" data-item="${esc(item)}">change</button></div>` : '';
 			return `<div class="detail-block">${made}${which}</div>`;
 		})()}
+		${fleetBlock(item, own)}
 		${resvHTML}
 		${block('Bartered for', barterHTML(item))}
 		${block('Paid by quests', questsPaid(item))}
@@ -360,6 +363,33 @@ function renderDetail() {
 			<button class="act quiet" data-act="craft" data-item="${esc(item)}" data-times="${most}" ${most < 1 ? 'disabled' : ''}>Craft max (${F(most)})</button>
 		</div>` : ''}
 		${block('Where else it turns up', waysThrough(item, { from: 'inventory' }))}`;
+}
+
+/**
+ * A hull, in the panel: the Inventory and the Ship tab are one fleet,
+ * so a hull recorded here says so and offers the tab that fits it out.
+ *
+ * The other direction is in ship.js: keeping a setup puts the hull in
+ * the hold. This is the half a player meets when they record a ship
+ * they bought rather than one they built.
+ */
+function fleetBlock(item, own) {
+	if (!shipStats[item]) return '';
+	if (!(own > 0)) {
+		return `<div class="detail-note">Record one here and it joins your fleet on the Ship tab, where it can be fitted and sailed.</div>`;
+	}
+	const kept = listSetups().filter(s => s.ship === item).length;
+	const sailing = shipName() === item;
+	const line = sailing
+		? 'The ship you are sailing.'
+		: kept
+			? `In your fleet, with ${kept === 1 ? 'one setup' : `${kept} setups`} kept.`
+			: 'In your fleet. No setup kept for it yet.';
+	return `<div class="detail-block">
+		<div class="detail-label">Your fleet</div>
+		<div class="detail-line"><span>${esc(line)}</span></div>
+		<button class="act quiet wide" data-act="view" data-id="crew">${sailing ? 'Open the Ship tab' : 'Fit it on the Ship tab'}</button>
+	</div>`;
 }
 
 /** A labelled block, left out when there is nothing to put in it. */

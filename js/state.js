@@ -902,10 +902,12 @@ export function addStock(item, delta, label, at = true) {
 export function applyDelta(delta, type, label, profile = null) {
 	const entries = Object.entries(delta).filter(([, d]) => Number(d));
 	if (!entries.length && !profile) return null;
-	const next = profile ? readProfile({ ...state.profile, ...profile }) : null;
 	return commit(type || 'stock', label || 'Inventory change', () => {
 		for (const [item, d] of entries) writeStock(item, getStock(item) + Math.floor(d));
-		if (next) state.profile = next;
+		// Laid on the profile as the stock writes left it, not as it was
+		// before them: writeStock keeps the stash, and a patch worked out
+		// beforehand would put the old stash back over it.
+		if (profile) state.profile = readProfile({ ...state.profile, ...profile });
 	});
 }
 
