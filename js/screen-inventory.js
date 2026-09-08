@@ -9,8 +9,9 @@ import {
 	sourceOf, hasBuyOption, allItems, waysThrough, questsPaying
 } from './ui-bits.js';
 import { recipes, snapshot, rows, query, invFilter, invKind, selected, sort, sorter, sortSelect, craftStock, invPicking, invPicked } from './ui-state.js';
+import { routes, routeInfo } from './recipes.js';
 import { KINDS, kindOf } from './kinds.js';
-import { maxCraftable, enhanceStep, parseEnhanced, enhancedName, waysToGet } from './planner.js';
+import { maxCraftable, enhanceStep, parseEnhanced, enhancedName, waysToGet, routeOf } from './planner.js';
 
 
 /**
@@ -171,7 +172,7 @@ function waysBlock(item) {
 		const via = (r.parts || [])
 			.filter(p => p.via)
 			.map(p => `${F(p.qty)}\u00d7 ${p.item} from ${p.via}`)
-			.join(' \u00b7 ');
+			.join(' \u00b7 ') + (r.makes > 1 ? ` \u2014 makes ${F(r.makes)}` : '');
 		return `<div class="way ${on ? 'on' : ''}">
 			<div class="way-top">
 				<span class="way-label">${esc(r.label)}</span>
@@ -302,12 +303,14 @@ function renderDetail() {
 		</div>`).join('')}
 	</div>` : '';
 
+	// Anything but 'buy' is a craft: a route name is which recipe.
 	const mode = store.getStrategy(item);
+	const crafting = mode !== 'buy';
 	const toggle = hasBuyOption(item) ? `<div class="detail-block">
 		<div class="detail-label">How you'll get it</div>
 		<div class="detail-actions">
-			<button class="act ${mode === 'craft' ? '' : 'quiet'}" data-act="strategy" data-mode="craft">Craft it</button>
-			<button class="act ${mode === 'buy' ? '' : 'quiet'}" data-act="strategy" data-mode="buy">Buy it</button>
+			<button class="act ${crafting ? '' : 'quiet'}" data-act="strategy" data-mode="craft">Craft it</button>
+			<button class="act ${crafting ? 'quiet' : ''}" data-act="strategy" data-mode="buy">Buy it</button>
 		</div>
 	</div>` : '';
 
@@ -334,7 +337,14 @@ function renderDetail() {
 		</div>
 		${(() => {
 			const made = makeupHTML(item, 'ing-line');
-			return made ? `<div class="detail-block">${made}</div>` : '';
+			if (!made) return '';
+			// A material with two recipes says which one this is, and
+			// offers the other -- the same dialog a build with two ways
+			// in uses.
+			const info = routes[item] && (routeInfo[item] || {})[routeOf(item, store.getAllStrategy())];
+			const which = info ? `<div class="detail-line"><span>${esc(info.label)}</span>
+				<button class="linky" data-act="ask-route" data-item="${esc(item)}">change</button></div>` : '';
+			return `<div class="detail-block">${made}${which}</div>`;
 		})()}
 		${resvHTML}
 		${block('Bartered for', barterHTML(item))}

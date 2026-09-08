@@ -118,11 +118,11 @@ export function routeOptions(item) {
 		// nothing so the two are comparable.
 		const cost = planOne(item, 1, {}, { ...store.getAllStrategy(), [item]: name });
 		const units = Object.values(cost.missing).reduce((a, b) => a + b, 0);
-		const held = (stock[meta.via] || 0) > 0;
+		const held = stock[meta.via] || 0;
 		return `<button class="route ${on ? 'on' : ''}" data-act="route" data-item="${esc(item)}" data-route="${esc(name)}">
 			<span class="route-head">
 				<span class="route-name">${esc(meta.label || name)}</span>
-				${held ? '<span class="route-have">you have one</span>' : ''}
+				${held > 0 ? `<span class="route-have">you have ${held > 1 ? F(held) : 'one'}</span>` : ''}
 			</span>
 			<span class="route-cost">${F(units)} units of material in total</span>
 			${meta.gains ? `<span class="route-gain">${esc(meta.gains)}</span>` : ''}
@@ -145,7 +145,7 @@ export function routeNote(item) {
 export function askRoute(item, { onPick } = {}) {
 	const host = openDialog(`
 		<h2>${esc(item)}</h2>
-		<p>There are two ways to build this one. Pick either — you can change your mind later from the build.</p>
+		<p>There are two ways to make this one. Pick either — you can change your mind later.</p>
 		<div class="route-list">${routeOptions(item)}</div>
 		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>
 	`);

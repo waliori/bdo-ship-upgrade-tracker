@@ -13,7 +13,7 @@ import { tradeGoodNames } from './trade_goods.js';
 import { iconLoader } from './icon-loader.js';
 import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
-import { parseEnhanced, enhanceStep, waysToGet, outstanding } from './planner.js';
+import { parseEnhanced, enhanceStep, waysToGet, outstanding, yieldOf } from './planner.js';
 import { quests } from './quests.js';
 import { monsters } from './sea_monsters.js';
 import { recipes, barterData, barterProfile, snapshot } from './ui-state.js';
@@ -206,7 +206,8 @@ export function makeupHTML(item, cls = 'peek-line') {
 	}
 	const recipe = recipes[item];
 	if (!recipe) return '';
-	return '<div class="peek-label">Made from</div>'
+	const makes = yieldOf(item);
+	return `<div class="peek-label">Made from${makes > 1 ? ` · one craft makes ${F(makes)}` : ''}</div>`
 		+ Object.entries(recipe).map(([n, q]) => ingredientLine(n, q, cls)).join('');
 }
 

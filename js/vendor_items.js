@@ -167,18 +167,39 @@ export const items = {
 	"Enhanced Island Tree Coated Plywood": {"Quest Reward": ["Daily: For the Serendian Soldiers (10x)"], "Monster Drop": ["Sea Monsters"]},
 	"Pure Pearl Crystal": {"Quest Reward": ["Daily: Ravikel's Test (2x)"], "Monster Drop": ["Sea Monsters"]},
 	"Cox Pirates' Artifact (Parley Expert)": {"Quest Reward": ["Daily: For the Serendian Soldiers (1x)"]},
-	"Cox Pirates' Artifact (Combat)": {"Quest Reward": ["Weekly: Old Moon Guild's Black Rust Hunter (6x)", "Daily: Do You Have What it Takes? (3x)", "Weekly: Monster Increase Report (2x)"], "Monster Drop": ["Cox Pirates' Shadow Ghost"], "Exchange": ["Cox Pirates Extermination Seal (200x)"]},
+	"Cox Pirates' Artifact (Combat)": {"Quest Reward": ["Weekly: Old Moon Guild's Black Rust Hunter (6x)", "Daily: Do You Have What it Takes? (3x)", "Weekly: Monster Increase Report (2x)"], "Monster Drop": ["Cox Pirates' Shadow Ghost"], "Processing": ["Simple Alchemy on 200 Cox Pirates Extermination Seals", "Simple Alchemy on 10 Cox Pirates' Broken Cannons"]},
 	"Deep Sea Memory Filled Glue": {"Quest Reward": ["Daily: Ravikel's Test (8x)"], "Monster Drop": ["Young Ocean Stalker"]},
 	"Brilliant Pearl Shard": {"Monster Drop": ["Candidum", "Nineshark"]},
 	"Ruddy Manganese Nodule": {"Quest Reward": ["Weekly: Old Moon Guild's Candidum Hunter (4x)", "Daily: For the Young Otter Merchants (2x)"], "Monster Drop": ["Suspicious Cargo Ship"]},
-	"Tear of the Ocean": {"Quest Reward": ["Weekly: Old Moon Guild's Nineshark Hunter (2x)", "Daily: Old Moon Guild's Black Rust Hunter (1x)", "Daily: Old Moon Guild's Young Sea Monster Hunter (1x)"]},
-	"Tide-Dyed Standardized Timber Square": {"Quest Reward": ["Daily: Our Guild is not a Charity Group (5x)"], "Monster Drop": ["Cox Pirates' Shadow Ghost"]},
-	"Deep Tide-Dyed Standardized Timber Square": {"Quest Reward": ["Daily: Win-win Situation (4x)"], "Monster Drop": ["Cox Pirates' Shadow Ghost"]},
+	"Tear of the Ocean": {"Quest Reward": ["Weekly: Old Moon Guild's Nineshark Hunter (2x)", "Daily: Old Moon Guild's Black Rust Hunter (1x)", "Daily: Old Moon Guild's Young Sea Monster Hunter (1x)"], "Processing": ["Simple Alchemy on 2 Abyssal Gem"]},
+	"Tide-Dyed Standardized Timber Square": {"Quest Reward": ["Daily: Our Guild is not a Charity Group (5x)"], "Monster Drop": ["Cox Pirates' Shadow Ghost"], "Processing": ["Chopping one Wrecked Phantom Ship's Debris"]},
+	"Deep Tide-Dyed Standardized Timber Square": {"Quest Reward": ["Daily: Win-win Situation (4x)"], "Monster Drop": ["Cox Pirates' Shadow Ghost"], "Processing": ["Chopping one Usable Pirate Ship's Remains"]},
+	// One tendon or scale dries into ten, which is why the plan counts
+	// them in crafts of ten (recipes.js `yields`).
 	"Moon Vein Flax Fabric": {
 		"Quest Reward": ["Daily: Old Moon Guild's Nineshark Hunter (3x)", "Daily: Old Moon Guild's Young Sea Monster Hunter (3x)"],
-		"Processing": ["Drying Khan's Tendon (10x)"]
+		"Processing": ["Drying one Khan's Tendon makes 10"]
 	},
-	"Moon Scale Plywood": {"Quest Reward": ["Daily: Old Moon Guild's Candidum Hunter (10x)", "Daily: Old Moon Guild's Young Sea Monster Hunter (10x)"], "Processing": ["Drying Khan's Scale (10x)"]},
+	"Moon Scale Plywood": {"Quest Reward": ["Daily: Old Moon Guild's Candidum Hunter (10x)", "Daily: Old Moon Guild's Young Sea Monster Hunter (10x)"], "Processing": ["Drying one Khan's Scale makes 10"]},
+
+	// The trophies those process from. All three of the Shadow Ghost's
+	// are read off its codex drop table (npc 28834, 2026-09-07): the
+	// Debris and the Broken Cannon at about one in a hundred, the
+	// Remains at one in a thousand. The seals are what the Cox camps,
+	// flags and cargo ships on the map pay out, and what seven [Level 3]
+	// goods barter for. Khan's two are sold for Crow Coins as well as
+	// dropped, and bartered for at the same [Level 5] rungs their
+	// products are. The Abyssal Gem has no live source: the codex lists
+	// no drop, quest or vendor for it today -- it was the reward of a
+	// Young Black Rust Hunter daily that no longer exists -- so it is
+	// here for the tooltip's sake, and for anyone with some left over.
+	"Usable Pirate Ship's Remains": {"Monster Drop": ["Cox Pirates' Shadow Ghost (rare)"]},
+	"Wrecked Phantom Ship's Debris": {"Monster Drop": ["Cox Pirates' Shadow Ghost"]},
+	"Cox Pirates' Broken Cannon": {"Monster Drop": ["Cox Pirates' Shadow Ghost"]},
+	"Cox Pirates Extermination Seal": {"Monster Drop": ["Cox Pirates' camp", "Cox Pirates' flag", "Cox Pirates' cargo ship"]},
+	"Khan's Tendon": {"Purchase": ["Crow Coin Shop (400 Crow Coins)"], "Monster Drop": ["Khan"], "Exchange": ["A barterer, for a [Level 5] Statue's Tear or Supreme Gold Candlestick"]},
+	"Khan's Scale": {"Purchase": ["Crow Coin Shop (160 Crow Coins)"], "Monster Drop": ["Khan"], "Exchange": ["A barterer, for a [Level 5] Faded Gold Dragon Figurine or Stuffed White Caterpillar"]},
+	"Abyssal Gem": {"Quest Reward": ["Nothing pays it today; it was the retired Young Black Rust Hunter daily's reward"]},
 	"Tidal Black Stone": {"Monster Drop": ["Great Ocean Sea Creatures (1-50x)"], "Quest Reward": ["Ravinia's Wiggly-Waggly Letter (10x)"]},
 
 	// ===== Epheria Carrack Chiro's parts (blue) and their materials =====
@@ -263,6 +284,11 @@ export const bulkExchanges = {
  * a craft made that way must spend it, or the powder drifts.
  */
 export const massProcess = {
+	// The blue trio's batch recipes are on the codex (mrecipes 2400-2402):
+	// ten of each material and one powder for ten.
+	"Violent Wave Plywood": { extra: "Black Stone Powder", batch: 10 },
+	"Delicately Polished Support": { extra: "Black Stone Powder", batch: 10 },
+	"Wave Residue Adhesive": { extra: "Black Stone Powder", batch: 10 },
 	"Sturdy Coral Support": { extra: "Black Stone Powder", batch: 10 },
 	"Raging Wave Plywood": { extra: "Black Stone Powder", batch: 10 },
 	"Dormant Crimson Coral Adhesive": { extra: "Black Stone Powder", batch: 10 }

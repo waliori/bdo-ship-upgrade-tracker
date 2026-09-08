@@ -64,6 +64,7 @@ export const RELEASES = [
 					'<b>To Get</b> is the shopping list, grouped by how you actually get a thing — Crow Coins, Falasi silver, barter, worker nodes or hunting — with running totals to copy out as text or CSV.',
 					'A ship reachable more than one way — a Caravel from a plain Epheria Sailboat or an Improved one — asks which, shows what each costs, and the build says the route it is taking.',
 					'The small craft too: a Cog two ways, three rowboats and a raft.',
+					'The trophies the sea monsters drop are in the book: a Usable Pirate Ship’s Remains chops into a Deep Tide-Dyed Standardized Timber Square, a Khan’s Tendon dries into ten Moon Vein Flax Fabric, ten Broken Cannons or two hundred seals make a Cox Pirates’ Artifact. The plan still buys those unless you switch one to <i>Craft it</i>, since the shop is the road and the trophy a side door.',
 					'<b>Undo</b> and <b>Redo</b> on every change; Import asks whether to replace or merge, keeping the higher count of anything counted twice; exports are dated.',
 					'A field guide behind one quiet dot: the game’s own windows, so a number here can be traced to the screen it came from.'
 				]

@@ -6,10 +6,12 @@
 // these on every read, so nothing can drift out of sync.
 
 import { readProfile, isProfile, readView, TALLY_TOTALS, TALLY_TABLES } from './profile-shape.js';
-// The catalogue, read for two things only: which route names a strategy
-// may hold, and which item names a file being imported is known to
-// mention. Nothing here explodes a recipe; that stays planner.js's.
-import { recipes, routes } from './recipes.js';
+// The catalogue, read for three things only: which route names a
+// strategy may hold, which recipes are bought rather than crafted unless
+// the player says otherwise, and which item names a file being imported
+// is known to mention. Nothing here explodes a recipe; that stays
+// planner.js's.
+import { recipes, routes, buyFirst } from './recipes.js';
 import { items as vendorItems } from './vendor_items.js';
 import { coins } from './sea_coins.js';
 import { tradeGoodNames } from './trade_goods.js';
@@ -625,8 +627,14 @@ export function getTarget(id) {
 	return state.targets.find(t => t.id === id) || null;
 }
 
+/** What the plan does with an item nobody has decided about: craft it,
+ *  unless the catalogue says its recipe is a side door. */
+export function defaultStrategy(item) {
+	return buyFirst.has(item) ? 'buy' : 'craft';
+}
+
 export function getStrategy(item) {
-	return state.strategy[item] || 'craft';
+	return state.strategy[item] || defaultStrategy(item);
 }
 
 export function getAllStrategy() {
@@ -1163,7 +1171,8 @@ export function setStrategy(item, mode) {
 	const how = next === 'buy' ? 'buy it' : next === 'craft' ? 'craft it' : `via ${next}`;
 	return commit('strategy', `${item}: ${how}`, () => {
 		const s = { ...state.strategy };
-		if (next === 'craft') delete s[item];
+		// The default is not stored, so a save only holds decisions.
+		if (next === defaultStrategy(item)) delete s[item];
 		else s[item] = next;
 		state.strategy = s;
 	});

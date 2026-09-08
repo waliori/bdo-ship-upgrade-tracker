@@ -173,7 +173,7 @@ export function renderWorkshop() {
 				${img(c.item, '')}
 				<div>
 					<div class="craft-name">${codexName(c.item)}</div>
-					<div class="craft-times">×${F(c.possible)} possible now</div>
+					<div class="craft-times">×${F(c.possible)} possible now${c.makes > 1 ? ` · ${F(c.makes)} each` : ''}</div>
 				</div>
 			</div>
 			<div class="ings">${ings}</div>

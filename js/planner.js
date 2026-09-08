@@ -6,7 +6,7 @@
 // one draining pool, so the same physical material is never promised to
 // two builds at once.
 
-import { recipes as defaultRecipes, routes } from './recipes.js';
+import { recipes as defaultRecipes, routes, yields, buyFirst } from './recipes.js';
 import { tableFor, chanceAt } from './enhancement.js';
 
 /** Recipes an item can be made from, honouring a "I'll just buy this" choice. */
@@ -41,8 +41,23 @@ export function routeOf(item, strategy = {}) {
 	return names.includes(strategy[item]) ? strategy[item] : names[0];
 }
 
+/**
+ * Whether the plan buys `item` rather than crafting it.
+ *
+ * The player's own choice when they have made one; otherwise the
+ * catalogue's default, which is to craft anything with a recipe except
+ * the few whose recipe is a side door (`buyFirst` in recipes.js).
+ */
+export function buying(item, strategy = {}) {
+	const mode = strategy[item];
+	return mode ? mode === 'buy' : buyFirst.has(item);
+}
+
+/** How many one craft of `item` makes: one, for all but a few. */
+export const yieldOf = item => yields[item] || 1;
+
 function recipeFor(item, strategy, recipes) {
-	if (strategy[item] === 'buy') return null;
+	if (buying(item, strategy)) return null;
 	return recipes[item] || null;
 }
 
@@ -183,8 +198,10 @@ function explode(item, qty, pool, acc, ctx, seen, via) {
 		node.toCraft = outstanding;
 		bump(acc.toCraft, item, outstanding);
 		const deeper = new Set(seen).add(item);
+		// Whole crafts: nine fabric short is still one tendon dried.
+		const crafts = Math.ceil(outstanding / yieldOf(item));
 		for (const [ingredient, per] of Object.entries(recipe)) {
-			const need = Math.ceil(perCraft(item, ingredient, per, ctx.failstacks) * outstanding);
+			const need = Math.ceil(perCraft(item, ingredient, per, ctx.failstacks) * crafts);
 			node.children.push(
 				explode(ingredient, need, pool, acc, ctx, deeper, item)
 			);
@@ -206,9 +223,10 @@ export function totalUnits(item, qty, strategy = {}, recipes = defaultRecipes, s
 	const recipe = recipeFor(item, strategy, recipes);
 	if (!recipe || seen.has(item)) return qty;
 	const deeper = new Set(seen).add(item);
+	const crafts = Math.ceil(qty / yieldOf(item));
 	let sum = 0;
 	for (const [ingredient, per] of Object.entries(recipe)) {
-		const need = Math.ceil(perCraft(item, ingredient, per) * qty);
+		const need = Math.ceil(perCraft(item, ingredient, per) * crafts);
 		sum += totalUnits(ingredient, need, strategy, recipes, deeper);
 	}
 	return sum;
@@ -301,7 +319,8 @@ export function planOne(item, qty, stock = {}, strategy = {}, recipes = defaultR
  * Crafting
  * ------------------------------------------------------------------ */
 
-/** How many of `item` you could make right now from what is on hand. */
+/** How many crafts of `item` you could run right now from what is on
+ *  hand -- crafts, not units: see `yieldOf`. */
 export function maxCraftable(item, stock = {}, recipes = defaultRecipes) {
 	const recipe = recipes[item];
 	if (!recipe) return 0;
@@ -314,11 +333,12 @@ export function maxCraftable(item, stock = {}, recipes = defaultRecipes) {
 	return Number.isFinite(best) ? best : 0;
 }
 
-/** The stock movement one craft would cause: ingredients out, product in. */
+/** The stock movement `times` crafts would cause: ingredients out,
+ *  product in -- ten in, for a recipe that makes ten. */
 export function craftDelta(item, times = 1, recipes = defaultRecipes) {
 	const recipe = recipes[item];
 	if (!recipe || times < 1) return null;
-	const delta = { [item]: times };
+	const delta = { [item]: times * yieldOf(item) };
 	for (const [ingredient, per] of Object.entries(recipe)) {
 		delta[ingredient] = (delta[ingredient] || 0) - per * times;
 	}
@@ -349,15 +369,20 @@ export function stockForCrafting(item, stock = {}, planned = null) {
 
 /**
  * Everything you could make this second that something actually wants.
- * `wanted` is the planner's `toCraft` map; with the plan itself passed
- * as `planned`, reserved stock is not counted as available.
+ * `wanted` is the planner's `toCraft` map, in units; `possible` and
+ * `suggested` are crafts, which is what the Workshop records, and
+ * `makes` says how many units each one is.
+ * With the plan itself passed as `planned`, reserved stock is not
+ * counted as available.
  */
 export function craftableNow(stock = {}, wanted = {}, recipes = defaultRecipes, planned = null) {
 	const out = [];
 	for (const item of Object.keys(wanted)) {
 		const possible = maxCraftable(item, stockForCrafting(item, stock, planned), recipes);
 		if (possible > 0) {
-			out.push({ item, possible, wanted: wanted[item], suggested: Math.min(possible, wanted[item]) });
+			const makes = yieldOf(item);
+			const crafts = Math.ceil(wanted[item] / makes);
+			out.push({ item, possible, wanted: wanted[item], suggested: Math.min(possible, crafts), makes });
 		}
 	}
 	return out.sort((a, b) => b.suggested - a.suggested);
@@ -573,9 +598,9 @@ export function beats(a, b) {
 function pickRoute(item, ctx, seen) {
 	const ways = costRoutes(item, ctx, seen).sort(rank);
 	if (!ways.length) return { kind: 'find', label: null, coins: 0, silver: 0, needs: { [item]: 1 } };
-	const buying = (ctx.strategy || {})[item] === 'buy';
+	const buy = buying(item, ctx.strategy);
 	const shop = r => r.kind === 'coin' || r.kind === 'silver';
-	return ways.find(r => shop(r) === buying) || ways[0];
+	return ways.find(r => shop(r) === buy) || ways[0];
 }
 
 /**
@@ -602,10 +627,14 @@ export function costRoutes(item, ctx = {}, seen = new Set()) {
 		const inner = new Set(seen).add(item);
 		const cost = emptyCost();
 		const parts = [];
+		// A route prices one unit. The parts are listed per craft, which
+		// is how the recipe reads, and the cost is divided by what a
+		// craft makes -- a tenth of a tendon per fabric.
+		const makes = yieldOf(item);
 		for (const [ingredient, quantity] of Object.entries(recipe)) {
 			const per = perCraft(item, ingredient, quantity);
 			const one = pickRoute(ingredient, ctx, inner);
-			mergeCost(cost, one, per);
+			mergeCost(cost, one, per / makes);
 			parts.push({ item: ingredient, qty: per, via: one.label, cost: one });
 		}
 		const enhanced = parseEnhanced(item).level > 0;
@@ -615,6 +644,7 @@ export function costRoutes(item, ctx = {}, seen = new Set()) {
 			coins: cost.coins,
 			silver: cost.silver,
 			needs: cost.needs,
+			makes,
 			parts
 		});
 	}

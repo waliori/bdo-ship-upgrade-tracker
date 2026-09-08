@@ -196,6 +196,26 @@ export const recipes = {
 	"Timber for Upgrade": {"Old Tree Bark": 100, "Red Tree Lump": 100, "Sea Monster's Ooze": 1},
 	"Adhesive for Upgrade": {"White Cedar Sap": 100, "Acacia Sap": 100, "Elder Tree Sap": 100, "Sea Monster's Ooze": 1},
 
+	// ===== Great Ocean materials the sea monsters' trophies process into =====
+	//
+	// Every one of these is also sold for Crow Coins, bartered for or paid
+	// by a daily, and that is how the plan gets them unless told otherwise
+	// (see `buyFirst` below): the trophy is a side door, not the road. It
+	// is still worth knowing -- the Shadow Ghost's drops are otherwise
+	// things you sell to a vendor -- so the item card says what each one
+	// processes into, and the Workshop can record the processing. Read
+	// off bdocodex's processing table (mrecipes 2094-2101) on 2026-09-07.
+	"Tide-Dyed Standardized Timber Square": {"Wrecked Phantom Ship's Debris": 1}, // Chopping
+	"Deep Tide-Dyed Standardized Timber Square": {"Usable Pirate Ship's Remains": 1}, // Chopping
+	// Simple Alchemy. Two hundred seals is the road most take, since seals
+	// come off every Cox camp and [Level 3] goods barter for 25-50 of
+	// them; ten Broken Cannons is the other way in, under `routes`.
+	"Cox Pirates' Artifact (Combat)": {"Cox Pirates Extermination Seal": 200},
+	// Drying. One tendon or scale makes ten -- see `yields`.
+	"Moon Vein Flax Fabric": {"Khan's Tendon": 1},
+	"Moon Scale Plywood": {"Khan's Scale": 1},
+	"Tear of the Ocean": {"Abyssal Gem": 2}, // Simple Alchemy
+
 	"Epheria Caravel: Black Dragon Figurehead": {
 		"+10 Epheria Caravel: Brass Figurehead": 1,
 		"Ruddy Manganese Nodule": 50,
@@ -1149,7 +1169,7 @@ export const recipes = {
 	// The three materials every yellow part is built from. Each is one
 	// Lyngbakr drop plus the two Starlight reagents the blue tier
 	// already used; Mass Process turns 10x the materials plus a Black
-	// Stone Powder into 10, which the app does not model.
+	// Stone Powder into 10 (vendor_items.js `massProcess`).
 	"Sturdy Coral Support": {"Lyngbakr's Bone": 1, "Starlight Hardener": 1, "Starlight Emulsifier": 1},
 	"Raging Wave Plywood": {"Lyngbakr's Scale": 1, "Starlight Hardener": 1, "Starlight Emulsifier": 1},
 	"Dormant Crimson Coral Adhesive": {"Lyngbakr's Fluid": 1, "Starlight Hardener": 1, "Starlight Emulsifier": 1},
@@ -1376,6 +1396,40 @@ export const recipes = {
 	"+1 Panokseon: Cheongun's Enhanced Plating": {"Panokseon: Cheongun's Enhanced Plating": 1, "Sunset Tidal Black Stone": 1},
 };
 
+/**
+ * Recipes that make more than one at a time.
+ *
+ * The book above describes one craft; for most that is one item, and
+ * for these it is ten. Kept apart from the recipes so the ingredient
+ * lists stay whole numbers: the planner divides a requirement by the
+ * yield before it multiplies by the recipe, the Workshop records one
+ * craft as ten units, and a unit is priced at a tenth of the tendon.
+ */
+export const yields = {
+	"Moon Vein Flax Fabric": 10,
+	"Moon Scale Plywood": 10
+};
+
+/**
+ * Recipes the plan does not follow unless asked to.
+ *
+ * A recipe normally means "craft it": a Violent Wave Plywood is planned
+ * from its scales even though the Crow Coin Shop sells it. These are the
+ * other way round -- the shop, the barterers and the dailies are how
+ * they are really got, and the trophy recipe is a way to use a drop you
+ * happen to have. So the plan buys them by default, and the Inventory's
+ * "Craft it" switches one over. The Workshop offers the processing
+ * either way, since a trophy in hand is a trophy in hand.
+ */
+export const buyFirst = new Set([
+	"Tide-Dyed Standardized Timber Square",
+	"Deep Tide-Dyed Standardized Timber Square",
+	"Cox Pirates' Artifact (Combat)",
+	"Moon Vein Flax Fabric",
+	"Moon Scale Plywood",
+	"Tear of the Ocean"
+]);
+
 /* ------------------------------------------------------------------ *
  * Two ways to reach a Caravel, and two to reach a Galleass
  * ------------------------------------------------------------------ */
@@ -1421,6 +1475,12 @@ export const routes = {
 			"Seaweed Stalk": 1,
 			"Tide-Dyed Standardized Timber Square": 2
 		}
+	},
+	// Two Simple Alchemy recipes for one artifact: the seals every Cox
+	// camp pays out, or the cannons only the Shadow Ghost drops.
+	"Cox Pirates' Artifact (Combat)": {
+		seals: recipes["Cox Pirates' Artifact (Combat)"],
+		cannons: { "Cox Pirates' Broken Cannon": 10 }
 	}
 };
 
@@ -1452,6 +1512,18 @@ export const routeInfo = {
 			label: "Fallen Vell Pirates' Legacy design",
 			via: "Island Tree Coated Plywood",
 			gains: "No permit: four bartered materials instead, for a boat that is the same in every way."
+		}
+	},
+	"Cox Pirates' Artifact (Combat)": {
+		seals: {
+			label: "200 Extermination Seals, by Simple Alchemy",
+			via: "Cox Pirates Extermination Seal",
+			gains: "Seals drop from every Cox Pirates' camp, flag and cargo ship, and a [Level 3] good barters for 25 to 50 of them."
+		},
+		cannons: {
+			label: "Ten Broken Cannons, by Simple Alchemy",
+			via: "Cox Pirates' Broken Cannon",
+			gains: "The cannons only come off the Cox Pirates' Shadow Ghost, and rarely."
 		}
 	}
 };

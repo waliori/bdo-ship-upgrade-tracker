@@ -7,6 +7,10 @@
   "icon": "00800058.webp",
   "url": "https://bdocodex.com/us/item/800058/"
  },
+ "Abyssal Gem": {
+  "icon": "00005833.webp",
+  "url": "https://bdocodex.com/us/item/5833/"
+ },
  "Acacia Sap": {
   "icon": "00005013.webp",
   "url": "https://bdocodex.com/us/item/5013/"
@@ -342,6 +346,10 @@
  "Cox Pirates' Artifact (Parley Expert)": {
   "icon": "00005823.webp",
   "url": "https://bdocodex.com/us/item/5823/"
+ },
+ "Cox Pirates' Broken Cannon": {
+  "icon": "00043283.webp",
+  "url": "https://bdocodex.com/us/item/43283/"
  },
  "Cox Pirates' Shadow Ghost": {
   "icon": "ic_00559.webp",
@@ -1739,6 +1747,10 @@
   "icon": "00800049.webp",
   "url": "https://bdocodex.com/us/item/800028/"
  },
+ "Usable Pirate Ship's Remains": {
+  "icon": "00043292.webp",
+  "url": "https://bdocodex.com/us/item/43292/"
+ },
  "Usable Scantling": {
   "icon": "00004669.webp",
   "url": "https://bdocodex.com/us/item/4669/"
@@ -1814,6 +1826,10 @@
  "Wool": {
   "icon": "00005858.webp",
   "url": "https://bdocodex.com/us/item/5858/"
+ },
+ "Wrecked Phantom Ship's Debris": {
+  "icon": "00043282.webp",
+  "url": "https://bdocodex.com/us/item/43282/"
  },
  "Young Black Rust": {
   "icon": "ic_00559.webp",
