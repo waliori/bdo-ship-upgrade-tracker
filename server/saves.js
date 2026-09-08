@@ -170,6 +170,42 @@ export function stats() {
 }
 
 /* ------------------------------------------------------------------ *
+ * Telling the rest of the server that a save moved
+ * ------------------------------------------------------------------ */
+
+/**
+ * Anything derived from a save has to hear when the save changes.
+ *
+ * The community boards are the case this exists for. They used to work
+ * out which digests were behind by comparing the revision they were
+ * drawn from against the one in the `saves` table -- but that table
+ * trails memory by a flush, and the boards themselves are held for
+ * minutes at a time, so a ship fitted now reached the boards some
+ * unpredictable time later, if at all. A push says so here instead, at
+ * the moment it is accepted and from the one place that knows.
+ *
+ * Watchers are called synchronously and must not throw; one that does
+ * would take the push down with it, which is the wrong way round.
+ */
+const changed = new Set();
+
+/** Be told, with the account and its new revision, on every accepted push. */
+export function onSaveChanged(fn) {
+	changed.add(fn);
+	return () => changed.delete(fn);
+}
+
+function told(userId, rev) {
+	for (const fn of changed) {
+		try {
+			fn(userId, rev);
+		} catch (err) {
+			console.warn('[saves] a change watcher threw:', err.message);
+		}
+	}
+}
+
+/* ------------------------------------------------------------------ *
  * What the API calls
  * ------------------------------------------------------------------ */
 
@@ -244,6 +280,7 @@ export async function writeSaveFor(userId, payload, expected, device) {
 	entry.touched = entry.updatedAt;
 
 	schedule(userId, entry);
+	told(userId, entry.rev);
 	return { ok: true, rev: entry.rev, updatedAt: entry.updatedAt };
 }
 

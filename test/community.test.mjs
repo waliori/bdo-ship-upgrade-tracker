@@ -168,14 +168,21 @@ test('taking part puts the digest of the save on the boards, by name or unnamed'
 	assert.equal((await call('PUT', '/api/community/share', { cookie: admiral, body: { share: 'loud' } })).status, 400);
 	assert.deepEqual(await (await call('PUT', '/api/community/share', { cookie: admiral, body: { share: 'named' } })).json(), { share: 'named' });
 	assert.deepEqual(await (await call('PUT', '/api/community/share', { cookie: deckhand, body: { share: 'anon' } })).json(), { share: 'anon' });
-	// The stranger never opted in: the highest mastery of the three, and
-	// not on the boards.
 
 	const me = await (await call('GET', '/api/me', { cookie: admiral })).json();
 	assert.equal(me.share, 'named');
 	assert.equal(me.admin, true);
+
+	// The boards are opt-out: asking who is signed in puts an account
+	// that has never said on them, by name. The stranger -- the highest
+	// mastery of the three -- is put on, then leaves, and is not put
+	// back however often the page asks again.
+	const first = await (await call('GET', '/api/me', { cookie: stranger })).json();
+	assert.equal(first.share, 'named');
+	assert.equal(first.admin, false);
+	assert.deepEqual(await (await call('PUT', '/api/community/share', { cookie: stranger, body: { share: 'off' } })).json(), { share: null });
 	assert.equal((await (await call('GET', '/api/me', { cookie: stranger })).json()).share, null);
-	assert.equal((await (await call('GET', '/api/me', { cookie: stranger })).json()).admin, false);
+	assert.equal((await (await call('GET', '/api/me', { cookie: stranger })).json()).share, null);
 
 	const body = await (await call('GET', '/api/community', { cookie: deckhand })).json();
 	assert.equal(body.sailors, 2);

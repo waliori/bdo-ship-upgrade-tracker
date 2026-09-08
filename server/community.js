@@ -14,25 +14,54 @@
 // by js/digest.js, the same module the page runs to show what it would
 // send before anyone agrees.
 //
-// The boards are built at most once every few minutes and held: a
-// request answers from the held copy, and only the caller's own place
-// on each board is looked up per request. Digests whose save has moved
-// on since are re-read while the boards are rebuilt, so a run sailed
-// this morning is on them by lunch.
+// The boards are held between builds: a request answers from the held
+// copy, and only the caller's own place on each board is looked up per
+// request. A quiet board is rebuilt no more often than the deployment's
+// window; one where somebody has saved since is rebuilt within seconds,
+// because saves.js says the moment a push lands and a board that is
+// known to be wrong is not worth holding. So a ship fitted on the Ship
+// tab is on the boards by the time the player has walked to them.
 
 import express from 'express';
 import crypto from 'node:crypto';
 import { digest, BOARDS } from '../js/digest.js';
 import { config } from './config.js';
-import { listCommunity, putCommunity, putDigest, deleteCommunity } from './db.js';
-import { readSave } from './saves.js';
+import { listCommunity, putCommunity, putDigest, deleteCommunity, getShareState, setCommunityOff } from './db.js';
+import { onSaveChanged, readSave } from './saves.js';
 import { requireUser, sessionUser } from './session.js';
 import { wrap } from './wrap.js';
 
 export const SHARES = ['named', 'anon'];
 
+/** How an account is shown when it has never said. */
+export const DEFAULT_SHARE = 'named';
+
 let held = null;       // the boards as last built
 let building = null;   // the build in progress, so two requests share one
+
+/**
+ * Accounts whose digest is known to be behind their save.
+ *
+ * saves.js says so the moment a push is accepted, which is the only
+ * signal that is both immediate and certain. The `saves` table's own
+ * revision is still compared during a build, as a second line for the
+ * cases this set cannot cover -- a save written by another process, or
+ * one pushed before this process started.
+ */
+const behind = new Set();
+
+/**
+ * Who is on the boards, kept apart from the boards themselves.
+ *
+ * Only these accounts are worth marking behind: everybody else's save
+ * has nothing derived from it, and a set that grew with every player
+ * who ever synced would be a slow leak and a needless rebuild every
+ * few seconds. It is refreshed by each build and written directly on
+ * joining and leaving, so the gap between "joined" and "the boards
+ * were next built" is covered -- which is exactly when a new arrival
+ * is most likely to be changing things.
+ */
+const members = new Set();
 
 function safeParse(text) {
 	try {
@@ -164,8 +193,13 @@ function aggregate(rows) {
 /** Build the boards, refreshing any digest whose save has moved on. */
 async function build() {
 	const rows = await listCommunity();
+	// Taken now, before the first await below: a push that lands while
+	// this build is running must leave its account marked, so the next
+	// build re-reads it rather than trusting what this one wrote.
+	const stale = new Set(behind);
+	for (const id of stale) behind.delete(id);
 	for (const r of rows) {
-		if (r.saveRev !== null && r.saveRev > r.rev) {
+		if (stale.has(r.userId) || (r.saveRev !== null && r.saveRev > r.rev)) {
 			try {
 				const fresh = await digestOf(r.userId);
 				await putDigest(r.userId, fresh.stats, fresh.rev);
@@ -173,13 +207,24 @@ async function build() {
 				r.rev = fresh.rev;
 				continue;
 			} catch (err) {
+				// The digest stays behind, so the account stays marked --
+				// the next build tries again rather than leaving a stale
+				// row on the boards until its save happens to move.
+				behind.add(r.userId);
 				console.warn(`[community] could not refresh ${r.userId}'s digest:`, err.message);
 			}
 		}
 		r.digest = safeParse(r.stats);
 	}
 	const live = rows.filter(r => r.digest && typeof r.digest === 'object');
-	for (const r of live) r.ref = refOf(r.userId);
+	// The roll as the database has it. Rebuilt rather than patched, so a
+	// row deleted by another process -- an account deletion, a restore --
+	// drops off it too.
+	members.clear();
+	for (const r of live) {
+		members.add(r.userId);
+		r.ref = refOf(r.userId);
+	}
 	const fame = BOARDS.map(b => rank(b, live));
 	return {
 		at: Date.now(),
@@ -192,14 +237,34 @@ async function build() {
 	};
 }
 
-/** The boards, built if they are missing or stale. Two callers share one build. */
+/**
+ * The boards, built if they are missing or stale. Two callers share one
+ * build.
+ *
+ * Stale means one of two things. The held copy has simply aged past the
+ * deployment's window -- which is what keeps a quiet board from being
+ * rebuilt on every request -- or somebody on the boards has saved since
+ * it was built, in which case it is wrong now and the window is beside
+ * the point. Only the floor holds that second case back, so a ship
+ * fitted on the Ship tab is on the boards a few seconds later instead
+ * of whenever the window happens to turn over.
+ */
 async function boards(force = false) {
-	if (!force && held && Date.now() - held.at < config.communityTtlMs) return held;
+	if (!force && held) {
+		const age = Date.now() - held.at;
+		if (age < (behind.size ? Math.min(config.communityRebuildMs, config.communityTtlMs) : config.communityTtlMs)) return held;
+	}
 	if (!building) {
 		building = build().then(b => { held = b; return b; }).finally(() => { building = null; });
 	}
 	return building;
 }
+
+/** A push landed: if it was somebody's who is on the boards, theirs is
+ *  now behind, and the next request rebuilds. */
+onSaveChanged(userId => {
+	if (members.has(userId)) behind.add(userId);
+});
 
 /** The boards are stale: the next request builds them afresh. */
 export function invalidate() {
@@ -207,7 +272,11 @@ export function invalidate() {
 }
 
 /** An account is leaving -- or being deleted -- so its place goes. */
-export function leaveBoards() {
+export function leaveBoards(userId) {
+	if (userId) {
+		members.delete(userId);
+		behind.delete(userId);
+	}
 	invalidate();
 }
 
@@ -235,6 +304,32 @@ function answer(b, userId) {
 	return { sailors: b.sailors, named: b.named, updatedAt: b.at, fame, stats: b.stats, you };
 }
 
+/**
+ * Put a signed-in account on the boards unless it has asked not to be.
+ *
+ * The boards were opt-in and nearly empty, which is the usual fate of a
+ * leaderboard nobody is on: there is nothing to look at, so nobody
+ * joins, so there is nothing to look at. They are opt-out instead --
+ * signing in puts you on them by name, and one press on the Community
+ * tab takes you off again and remembers it.
+ *
+ * Called from /api/me, which every load asks: that is the one place
+ * that already knows who is signed in and already reads how they stand.
+ * It writes only when there is no row and no refusal on record, so the
+ * common case is the read it was doing anyway.
+ *
+ * Returns how the account is shown, which is what the caller answers.
+ */
+export async function ensureOnBoards(userId) {
+	const state = await getShareState(userId);
+	if (state.share || state.off || !state.known) return state.share;
+	const { stats, rev } = await digestOf(userId);
+	await putCommunity(userId, DEFAULT_SHARE, stats, rev);
+	members.add(userId);
+	invalidate();
+	return DEFAULT_SHARE;
+}
+
 export function communityRoutes() {
 	const router = express.Router();
 
@@ -260,10 +355,18 @@ export function communityRoutes() {
 			return res.status(400).json({ error: 'Say how you want to be shown: named, anon, or off.' });
 		}
 		if (share === 'off') {
+			// Remembered on the account, so the next sign-in does not
+			// quietly put them back on the boards they just left.
+			await setCommunityOff(req.userId, true);
 			await deleteCommunity(req.userId);
+			members.delete(req.userId);
+			behind.delete(req.userId);
 		} else {
 			const { stats, rev } = await digestOf(req.userId);
 			await putCommunity(req.userId, share, stats, rev);
+			await setCommunityOff(req.userId, false);
+			members.add(req.userId);
+			behind.delete(req.userId);
 		}
 		invalidate();
 		res.set('Cache-Control', 'no-store');

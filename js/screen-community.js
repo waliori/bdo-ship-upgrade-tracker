@@ -20,7 +20,7 @@
 import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
-import { feature, me, call, setShare, onAccount, signIn } from './sync.js';
+import { feature, me, call, setShare, onAccount, onPushed, signIn } from './sync.js';
 import { digest, BOARDS, SECTIONS, monsterName, fittedOn } from './digest.js';
 import { quests } from './quests.js';
 import { npcById } from './barter_npcs.js';
@@ -35,6 +35,8 @@ let data = null;          // the last answer from /api/community
 let fetchedAt = 0;
 let loading = null;
 let failed = '';
+let mine = false;         // our own save moved since the boards were fetched
+let pushTimer = null;     // the wait between a push landing and asking again
 let half = 'fame';        // fame | numbers
 let fameSec = 'all';      // the hall of fame: which section is up
 let numCat = 'all';       // the fleet in numbers: which category is up
@@ -43,12 +45,31 @@ let numSort = 'count';    // count | name
 const numOpen = new Set();   // the panels unfolded past their first rows
 let rerender = () => {};
 
+// Whether this browser has been told that signing in puts you on the
+// boards. Per browser rather than per save: it is a thing to be told
+// once where you are, not a preference to carry about.
+const TOLD_KEY = 'community.told';
+
 const FRESH_MS = 60_000;
 
-/** Ask for the boards again if the copy held is old, then redraw. */
+// After a push, how long to give the server to notice. The boards hold
+// themselves for a few seconds past a change they know about, so asking
+// the instant the push returns would fetch the copy built a moment
+// before it -- and then sit on that for a minute.
+const AFTER_PUSH_MS = 3_500;
+
+/**
+ * Ask for the boards again if the copy held is old, then redraw.
+ *
+ * "Old" is not only a matter of time. A save of our own since the last
+ * answer makes that answer wrong about the one row the player is most
+ * likely to be looking at -- their own -- so it counts as old however
+ * recently it arrived.
+ */
 async function load(force = false) {
 	if (loading) return loading;
-	if (!force && data && Date.now() - fetchedAt < FRESH_MS) return data;
+	if (!force && !mine && data && Date.now() - fetchedAt < FRESH_MS) return data;
+	mine = false;
 	loading = (async () => {
 		let res;
 		try {
@@ -57,6 +78,13 @@ async function load(force = false) {
 			res = null;
 		}
 		if (res && res.ok && res.body) {
+			// The boards were rebuilt since, so every digest behind them
+			// may have moved -- including our own, which is the card held
+			// here that goes most obviously stale.
+			if (!data || res.body.updatedAt !== data.updatedAt) {
+				cards.clear();
+				wholeBoards.clear();
+			}
 			data = res.body;
 			fetchedAt = Date.now();
 			failed = '';
@@ -83,6 +111,21 @@ export function wireCommunity(fn, given = {}) {
 	// The account's standing changed -- joined, left, signed out -- so
 	// the boards it is on did too.
 	onAccount(() => { if (feature('community')) load(true); });
+	// A save of ours reached the server. What the boards say about us is
+	// worked out from that copy, so it has just gone out of date: the
+	// held answer and every card drawn from it are marked stale, and if
+	// the tab is the one on screen it is refreshed then and there rather
+	// than waiting for the player to leave and come back.
+	onPushed(() => {
+		if (!feature('community')) return;
+		const who = me();
+		if (!who || !who.share) return;
+		mine = true;
+		clearTimeout(pushTimer);
+		pushTimer = setTimeout(() => {
+			if (document.querySelector('.community')) load();
+		}, AFTER_PUSH_MS);
+	});
 }
 
 /* ------------------------------------------------------------------ *
@@ -186,10 +229,14 @@ function headHTML() {
 		you = `<div class="comm-you"><p class="comm-copy">You are not on the boards; nothing about your save is shown to anyone. <button class="act small" data-act="community-join">Take part</button> — you will see exactly what would be shared before you agree.</p></div>`;
 	} else {
 		const y = data && data.you ? data.you : { places: {} };
+		// Signing in puts an account on the boards, so the first time
+		// someone opens the tab it has to say so plainly, and say how to
+		// stop -- being on a public board is not a thing to discover.
+		const notice = store.getSetting(TOLD_KEY, false) ? '' : `<p class="comm-notice">Signing in put you on the boards${who.share === 'named' ? ' by name' : ''}. Only the numbers below are shared — never your stock, your notes or your traces. <button class="chip tiny" data-act="community-join">Change how you are shown</button> <button class="chip tiny" data-act="community-leave">Leave the boards</button> <button class="chip tiny" data-act="community-told">Got it</button></p>`;
 		const places = Object.entries(y.places).map(([id, p]) => ({ b: boardById[id], p })).filter(x => x.b).sort((a, b) => a.p.rank - b.p.rank || b.p.of - a.p.of);
 		const shown = places.slice(0, 4);
 		const src = avatarURL(who);
-		you = `<div class="comm-you on">
+		you = `${notice}<div class="comm-you on">
 			${src ? `<img class="comm-avatar big" src="${esc(src)}" alt="">` : `<span class="comm-avatar anon big" aria-hidden="true">${who.share === 'named' ? esc(who.username.slice(0, 1)) : '☸'}</span>`}
 			<div class="comm-you-body">
 				<p class="comm-you-line">You are on the boards as <b>${who.share === 'named' ? esc(who.username) : 'an unnamed sailor'}</b>${y.level ? ` <span>· ${esc(y.level)}</span>` : ''}${y.joinedAt ? ` <span>· since ${day(y.joinedAt)}</span>` : ''}</p>
@@ -445,7 +492,7 @@ export function openShareDialog() {
 	let pick = who.share || 'named';
 	const host = openDialog(`
 		<h2>${who.share ? 'How you are shown' : 'Take part in the boards'}</h2>
-		<p class="dialog-copy">Anyone who opens this page sees the boards. What goes on them is the digest below, worked out from your save here and again from the copy the server holds — the numbers, not the save. It is refreshed as you sync, and leaving takes it down.</p>
+		<p class="dialog-copy">Anyone who opens this page sees the boards. What goes on them is the digest below, worked out from your save here and again from the copy the server holds — the numbers, not the save. It is refreshed every time you sync, and leaving takes it down.</p>
 		<div class="fb-kinds" role="radiogroup" aria-label="How to be shown">
 			<button type="button" class="fb-kind${pick === 'named' ? ' on' : ''}" role="radio" aria-checked="${pick === 'named'}" data-share="named"><b>By name</b><small>your Discord name and avatar beside your places</small></button>
 			<button type="button" class="fb-kind${pick === 'anon' ? ' on' : ''}" role="radio" aria-checked="${pick === 'anon'}" data-share="anon"><b>As an unnamed sailor</b><small>counted and ranked, shown as “a sailor”; only you see which one is you</small></button>
@@ -479,7 +526,7 @@ export function openShareDialog() {
 function confirmLeave() {
 	const host = openDialog(`
 		<h2>Leave the boards?</h2>
-		<p class="dialog-copy">Your places go, and the digest the server holds is deleted. Your save is untouched, and you can take part again whenever you like.</p>
+		<p class="dialog-copy">Your places go, and the digest the server holds is deleted. Your save is untouched, and signing in again will not quietly put you back — you can take part again whenever you choose to.</p>
 		<div class="dialog-actions">
 			<button class="act quiet" data-close>Stay</button>
 			<button class="act bad" data-yes>Leave</button>
@@ -757,6 +804,7 @@ export function communityAction(act, el) {
 		case 'community-board': openBoard(el.dataset.id); return false;
 		case 'community-find': openFind(); return false;
 		case 'community-places': openPlaces(); return false;
+		case 'community-told': store.setSetting(TOLD_KEY, true); return true;
 		default: return false;
 	}
 }

@@ -1107,7 +1107,10 @@ test('a fleet of sixty costs the screen one line, and the dialog searches it', a
 	assert.equal(await count(page, '.fleet-row'), 0, 'the fleet is being drawn inline again');
 	const bar = await page.evaluate(() => document.querySelector('.setups-panel').getBoundingClientRect().height);
 	assert.ok(bar < 200, `the fleet strip grew to ${Math.round(bar)}px`);
-	assert.match(await text(page, '.setups-panel'), /40 kept/);
+	// Forty setups on four hulls, and the four hulls they bought are in
+	// the inventory -- not four more rows beside them.
+	assert.match(await text(page, '.setups-panel'), /40 ships across 4 hulls/);
+	assert.equal(await page.evaluate(async () => (await import('/js/ship.js')).ownedHulls().length), 4);
 
 	await page.click('[data-act="crew-fleet"]'); await wait(700);
 	// A page at a time, and it says where you are in the whole.

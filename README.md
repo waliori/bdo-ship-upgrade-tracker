@@ -281,6 +281,13 @@ between here or from the Map's route timing (the crew roster itself is
 shared). Your **Sailing Mastery** goes in beside it and counts toward
 speed, acceleration, turn and brake the way the game's table has it.
 
+**Your fleet is your inventory.** Keeping a setup puts its hull in the
+Inventory if none was recorded there, and a hull recorded in the
+Inventory is a ship in the fleet — listed under *Your fleet*, ready to
+sail, and counted on the community boards — whether or not a setup was
+ever named for it. One Undo takes back both halves; a hull dropped from
+the fleet comes out of the hold.
+
 The screen fits the hull out as five slot cards — the four parts and
 the **sea crystal**, every one of the codex's 287 variants from Eltro to
 Rusalka plus Ebenruth's Nol and the Oceanteared Nol, chosen by grade
@@ -861,7 +868,7 @@ menu: what came in, open first, and a button to mark each done.
 ![The hall of fame, with your own places at the head of it](docs/media/community.png)
 
 With sign-in on, the **Community** tab shows two things drawn from the
-sailors who chose to be on it, and nobody else:
+sailors on the boards:
 
 - **The hall of fame** — sixteen boards: sailing mastery, the best ship,
   the largest fleet, the best sailor, the largest crew, the most barters,
@@ -885,15 +892,20 @@ grounds and each item is itself a door. The fleet in numbers has
 categories, a find box and a sort, and every row that names something
 the app knows opens it.
 
-Taking part is a choice made once, by name (Discord name and avatar) or
-as an unnamed sailor (ranked and counted, shown as “a sailor”; only you
-see which one is you). Before agreeing you are shown the digest that
-would be published — the numbers above, worked out from your save by
-the same module the server runs — and what is never shared: your stock,
-your notes, your traces, where things are stored. The server keeps that
-digest and nothing else about you for the boards, refreshes it as you
-sync, and deletes it when you leave. Anyone who opens the page can read
-the boards; only an account can be on them.
+Signing in puts you on the boards by name — the Community tab says so
+the first time you open it, and **Leave the boards** is one press from
+there and from your card. Leaving deletes the digest the server holds
+and is remembered: signing in again does not put you back. In between
+the two you can be shown as an unnamed sailor instead — ranked and
+counted, shown as “a sailor”; only you see which one is you. **How you
+are shown** lists the digest that would be published — the numbers
+above, worked out from your save by the same module the server runs —
+and what is never shared: your stock, your notes, your traces, where
+things are stored. The server keeps that digest and nothing else about
+you for the boards, and redraws it within seconds of a save reaching it,
+so a ship fitted on the Ship tab is on the boards by the time you walk
+to them. Anyone who opens the page can read the boards; only an account
+can be on them.
 
 What is shared for the look is the ship as the Ship tab needs it: the
 hull, what is fitted, the crystal and appearance set, who sits where,

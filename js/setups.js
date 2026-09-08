@@ -1,4 +1,4 @@
-// The fleet: every ship you have kept, and the way through them.
+// The fleet: every ship you own or have kept, and the way through them.
 //
 // Setups started as chips, then became cards, then rows grouped by hull
 // -- and each of those was fine at three and wrong at thirty. A list
@@ -15,8 +15,9 @@
 import { esc, F } from './fmt.js';
 import { img } from './ui-bits.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
+import * as store from './state.js';
 import {
-	listSetups, setupSummary, loadSetup, deleteSetup, activeSetupId
+	listFleet, listSetups, setupSummary, loadSetup, deleteSetup, activeSetupId, hullOfRow, shipName, OWNED_PREFIX
 } from './ship.js';
 
 const PAGE = 8;
@@ -35,9 +36,14 @@ const SORTS = [
 	['fitted', 'Most fitted']
 ];
 
-/** Every setup with its figures worked out, and its hull. */
+/**
+ * Every ship in the fleet with its figures worked out: the saved setups
+ * first, then the hulls the inventory says are owned that no setup
+ * covers. An owned hull is a real ship -- it can be sailed, and it
+ * counts on the boards -- it simply has no parts named for it yet.
+ */
 function fleet() {
-	return listSetups().map(s => ({ ...s, sum: setupSummary(s) }));
+	return listFleet().map(s => ({ ...s, sum: setupSummary(s) }));
 }
 
 /** The rows that match the search and the hull filter, in order. */
@@ -79,14 +85,20 @@ function rowHTML(s, active, here) {
 			<button class="map-x" data-act="fleet-del" data-id="${esc(s.id)}" aria-label="Forget ${esc(s.name)}">×</button></div>`;
 	}
 	const on = s.id === active;
+	// An owned hull is not a setup: it is named for its hull, it has no
+	// name of its own to forget, and the × takes it out of the hold
+	// rather than out of a list.
+	const drop = s.owned
+		? `Take the ${s.ship} out of the inventory`
+		: `Forget the setup ${s.name}`;
 	// The whole line is the way aboard: a full-row button underneath,
 	// the way a roster tile takes its tap, with only the × standing
 	// clear of it. The row being sailed offers no way to sail it again.
-	return `<div class="fleet-row${on ? ' on' : ' can'}" data-id="${esc(s.id)}">
+	return `<div class="fleet-row${on ? ' on' : ' can'}${s.owned ? ' bare' : ''}" data-id="${esc(s.id)}">
 		${on ? '' : `<button class="fleet-hit" data-act="fleet-sail" data-id="${esc(s.id)}" title="Sail ${esc(s.name)} — the Map times its routes at this ship" aria-label="Sail ${esc(s.name)}"></button>`}
 		${img(s.ship, 'fleet-icon')}
 		<span class="fleet-name">${on ? '<span class="setup-flag">⚓</span>' : ''}${esc(s.name)}
-			<small>${esc(s.ship)}</small></span>
+			<small>${s.owned ? 'in your inventory · no setup kept' : esc(s.ship)}</small></span>
 		<span class="fleet-figs">
 			<span class="setup-fig">speed <b>${s.sum.speed}%</b>${on ? '' : diff(s.sum, here, 'speed', '%')}</span>
 			<span class="setup-fig">hold <b>${F(s.sum.hold)} LT</b>${on ? '' : diff(s.sum, here, 'hold', ' LT')}</span>
@@ -96,7 +108,7 @@ function rowHTML(s, active, here) {
 		</span>
 		<span class="fleet-acts">
 			${on ? '<span class="setup-sailing">sailing</span>' : '<span class="fleet-go" aria-hidden="true">sail ⛵</span>'}
-			<button class="map-x" data-act="fleet-del" data-id="${esc(s.id)}" aria-label="Forget the setup ${esc(s.name)}">×</button>
+			<button class="map-x" data-act="fleet-del" data-id="${esc(s.id)}" aria-label="${esc(drop)}">×</button>
 		</span>
 	</div>`;
 }
@@ -123,7 +135,10 @@ export function openFleet() {
 
 function paint(host) {
 	const all = fleet();
-	const active = activeSetupId();
+	// What is sailed: the setup that matches it exactly, or -- when none
+	// does -- the owned hull it is, so an unfitted ship still shows as
+	// the one under way.
+	const active = activeSetupId() || `${OWNED_PREFIX}${shipName()}`;
 	const here = (all.find(s => s.id === active) || {}).sum || null;
 	const rows = shown(all, active);
 	const pages = Math.max(1, Math.ceil(rows.length / PAGE));
@@ -139,7 +154,7 @@ function paint(host) {
 	const box = host.querySelector('.fleet');
 	box.innerHTML = `
 		<h2>Your fleet</h2>
-		<p class="dialog-copy">${all.length === 1 ? 'One ship kept' : `${all.length} ships kept`}. The one being sailed is what the Map times its routes at, and what the others are measured against.</p>
+		<p class="dialog-copy">${all.length === 1 ? 'One ship' : `${all.length} ships`} — the setups you have kept, and the hulls in your inventory that no setup covers. The one being sailed is what the Map times its routes at, and what the others are measured against.</p>
 		<input class="field fleet-search" type="search" placeholder="Search by name or hull…" aria-label="Search the fleet" value="${esc(query)}" autocomplete="off">
 		<div class="fleet-filters">
 			<button class="chip${hull ? '' : ' active'}" data-act="fleet-hull" data-hull="">All ${all.length}</button>
@@ -182,8 +197,21 @@ function paint(host) {
 		const act = el.dataset.act;
 		if (act === 'fleet-hull') { hull = el.dataset.hull; page = 0; return paint(host); }
 		if (act === 'fleet-page') { page = Number(el.dataset.to); return paint(host); }
-		if (act === 'fleet-del') { deleteSetup(el.dataset.id); return paint(host); }
+		if (act === 'fleet-del') {
+			const bare = hullOfRow(el.dataset.id);
+			// Out of the hold, which is where an owned hull lives; the
+			// change is one step, so the toast's Undo puts the ship back.
+			if (bare) store.setStock(bare, 0, `Took the ${bare} out of the inventory`);
+			else deleteSetup(el.dataset.id);
+			return paint(host);
+		}
 		if (act === 'fleet-sail') {
+			const bare = hullOfRow(el.dataset.id);
+			if (bare) {
+				store.setProfile('crewShip', bare, `Sailing the ${bare}`);
+				closeDialog();
+				return toast(`Sailing the ${bare}`);
+			}
 			const s = listSetups().find(x => x.id === el.dataset.id);
 			if (loadSetup(el.dataset.id)) {
 				closeDialog();

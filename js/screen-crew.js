@@ -16,7 +16,7 @@ import { openDialog, closeDialog, toast } from './dialogs.js';
 import { shipStats } from './ship_stats.js';
 import { describeStats, statsAt } from './part_stats.js';
 import { families, tables } from './enhancement.js';
-import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listSetups, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, skinWorn, setSkinSlot, setSkinAll, skinTotals, OVERLOAD } from './ship.js';
+import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listFleet, hullOfRow, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, skinWorn, setSkinSlot, setSkinAll, skinTotals, OWNED_PREFIX, OVERLOAD } from './ship.js';
 import { GOODS } from './barter.js';
 import { GRADES, gradeById, crystalById, crystalsOf, crystalVariant, crystalLine } from './crystals.js';
 import { skinFor, SKIN_SLOTS } from './ship_skins.js';
@@ -627,8 +627,12 @@ function loadoutPanel(ship) {
  * grows without limit; a door does not.
  */
 function setupsRow() {
-	const list = listSetups();
+	// The fleet is the setups kept and the hulls the inventory holds: a
+	// ship recorded in the hold is a ship you have, whether or not a
+	// setup was ever named for it.
+	const list = listFleet();
 	if (!list.length) return '';
+	const setups = list.filter(s => !s.owned).length;
 	const active = activeSetupId();
 	const now = list.find(s => s.id === active);
 	const sum = now ? setupSummary(now) : null;
@@ -642,9 +646,12 @@ function setupsRow() {
 			${sum.skinned ? `<span class="setup-fig">skin <b>${sum.skinned}/4</b></span>` : ''}</span>`
 		: '<span class="fleet-now none">This hull is not one of your saved setups yet</span>';
 
+	const owned = list.length - setups;
+	const sub = `${list.length === 1 ? 'One ship' : `${list.length} ships`} across ${hulls === 1 ? 'one hull' : `${hulls} hulls`}${owned ? ` · ${owned} in your inventory without a setup` : ''}`;
+
 	return `<div class="panel setups-panel">
 		<div class="panel-head"><h2 class="panel-title">Fleet</h2>
-			<span class="panel-sub">${list.length === 1 ? 'One ship kept' : `${list.length} kept across ${hulls === 1 ? 'one hull' : `${hulls} hulls`}`}</span></div>
+			<span class="panel-sub">${sub}</span></div>
 		<div class="fleet-bar">
 			${sailing}
 			<button class="act quiet small" data-act="crew-fleet">Your fleet${list.length > 1 ? ` (${list.length})` : ''}…</button>
@@ -652,15 +659,25 @@ function setupsRow() {
 	</div>`;
 }
 
-/** The picker of setups, for the Map: sail one without leaving the chart. */
+/** The picker of ships, for the Map: sail one without leaving the chart.
+ *  The setups kept, and the hulls held with no setup on them. */
 export function openSetupPicker(after) {
-	const list = listSetups();
-	const active = activeSetupId();
+	const list = listFleet();
+	const active = activeSetupId() || `${OWNED_PREFIX}${shipName()}`;
 	openPicker({
-		title: 'Sail which setup?',
-		hint: list.length ? 'The Map times routes at the speed of the setup sailed; the roster is shared.' : 'No setups kept yet — on the Ship tab, "Save as setup…" keeps the current hull with its parts, crystal and seating.',
-		items: list.map(s => ({ id: s.id, label: s.name, icon: img(s.ship, ''), sub: s.ship, meta: s.id === active ? 'sailing now' : '' })),
-		onPick: id => { if (loadSetup(id)) { toast(`Sailing ${(list.find(s => s.id === id) || {}).name}`); if (after) after(); } }
+		title: 'Sail which ship?',
+		hint: list.length ? 'The Map times routes at the speed of the ship sailed; the roster is shared.' : 'No ships yet — on the Ship tab, "Save as setup…" keeps the current hull with its parts, crystal and seating.',
+		items: list.map(s => ({ id: s.id, label: s.name, icon: img(s.ship, ''), sub: s.owned ? 'in your inventory' : s.ship, meta: s.id === active ? 'sailing now' : '' })),
+		onPick: id => {
+			const bare = hullOfRow(id);
+			if (bare) {
+				store.setProfile('crewShip', bare, `Sailing the ${bare}`);
+				toast(`Sailing the ${bare}`);
+				if (after) after();
+				return;
+			}
+			if (loadSetup(id)) { toast(`Sailing ${(list.find(s => s.id === id) || {}).name}`); if (after) after(); }
+		}
 	});
 }
 

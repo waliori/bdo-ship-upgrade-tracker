@@ -289,16 +289,65 @@ export function currentSetup() {
 	};
 }
 
-/** Keep the current ship under a name; the same name replaces. */
+/**
+ * Keep the current ship under a name; the same name replaces.
+ *
+ * A hull kept as a setup is a hull owned, so it goes into the inventory
+ * along with the setup unless one is already recorded there. That is the
+ * whole of the fleet and the hold being one thing rather than two: the
+ * Ship tab and the Inventory disagreed about how many ships a player
+ * had, and the boards, which read the inventory, sided with neither.
+ * Both writes are one step, so one Undo takes back both.
+ */
 export function saveSetup(name) {
 	const clean = String(name || '').trim().slice(0, 40) || shipName();
 	const all = { ...(store.getProfile('setups', {}) || {}) };
-	const existing = Object.keys(all).find(id => all[id].name === clean);
-	const id = existing || `s${Date.now().toString(36)}`;
+	// The same name replaces; anything else is a new id. The clock alone
+	// is not enough for that -- two setups kept in the same millisecond
+	// would be one setup, the second silently over the first -- so a
+	// taken id is walked past.
+	let id = Object.keys(all).find(key => all[key].name === clean);
+	if (!id) {
+		const stamp = `s${Date.now().toString(36)}`;
+		id = stamp;
+		for (let i = 1; id in all; i++) id = `${stamp}-${i.toString(36)}`;
+	}
 	const cur = currentSetup();
 	all[id] = { name: clean, ship: cur.ship, ...(Object.keys(cur.fitted).length ? { fitted: cur.fitted } : {}), ...(cur.crystal ? { crystal: cur.crystal } : {}), ...(Object.keys(cur.seats).length ? { seats: cur.seats } : {}), ...(Object.keys(cur.skin).length ? { skin: cur.skin } : {}) };
-	store.setProfile('setups', all);
+	const gained = store.getStock(cur.ship) > 0 ? {} : { [cur.ship]: 1 };
+	store.applyDelta(gained, 'profile', `Kept "${clean}"${gained[cur.ship] ? ` and put the ${cur.ship} in the hold` : ''}`, { setups: all });
 	return id;
+}
+
+/**
+ * The hulls the inventory says are owned.
+ *
+ * The other half of the same idea: a ship recorded in the hold is in
+ * the fleet, whether or not a setup was ever named for it. The Ship
+ * tab lists these beside the setups, and the digest counts them.
+ */
+export function ownedHulls() {
+	const stock = store.getAllStock();
+	return Object.keys(shipStats).filter(ship => (stock[ship] || 0) > 0);
+}
+
+/**
+ * The fleet as a whole: the saved setups, and after them every owned
+ * hull that no setup covers, as a row of its own.
+ *
+ * An owned hull carries a synthetic id so the list can be keyed and
+ * acted on; nothing is written under it, and it disappears the moment
+ * a setup for that hull is saved or the hull leaves the hold.
+ */
+export const OWNED_PREFIX = 'hull:';
+export const hullOfRow = id => (String(id || '').startsWith(OWNED_PREFIX) ? String(id).slice(OWNED_PREFIX.length) : null);
+
+export function listFleet() {
+	const setups = listSetups();
+	const covered = new Set(setups.map(s => s.ship));
+	const bare = ownedHulls().filter(ship => !covered.has(ship))
+		.map(ship => ({ id: `${OWNED_PREFIX}${ship}`, name: ship, ship, owned: true }));
+	return [...setups, ...bare];
 }
 
 /** Sail a saved setup: its hull becomes the current one, with its parts,
