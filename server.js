@@ -56,7 +56,11 @@ app.use(compression());
 // which counts.
 const CSP = [
 	"default-src 'self'",
-	"script-src 'self'",
+	// The sailor reader is WebAssembly, and a policy that names no
+	// wasm at all forbids compiling it. This is the narrow word for it:
+	// it permits WebAssembly and nothing else -- `eval` and its friends
+	// stay shut, which is what 'unsafe-eval' would have opened.
+	"script-src 'self' 'wasm-unsafe-eval'",
 	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
 	"font-src 'self' https://fonts.gstatic.com",
 	// The signed-in chip shows the player's Discord avatar, which is the
@@ -246,7 +250,7 @@ app.get('/healthz', async (req, res) => {
 
 // Only what the page actually asks for. Serving the repository root would
 // hand out package.json, the Dockerfile and the capture harness too.
-const PUBLIC = ['css', 'js', 'icons', 'map', 'guide'];
+const PUBLIC = ['css', 'js', 'icons', 'map', 'guide', 'reader'];
 const FILES = [
 	'index.html', 'icon.png', 'og.png', 'icon_mapping.json',
 	'icon-192.png', 'icon-512.png', 'manifest.webmanifest'
@@ -280,13 +284,18 @@ app.use('/icons', express.static(path.join(__dirname, 'icons'), LONG));
 // sees each one about once.
 const FOREVER = { maxAge: '365d', immutable: true };
 app.use('/map', express.static(path.join(__dirname, 'map'), FOREVER));
+// The vendored OCR engine: six megabytes that never change under a
+// name, because the name carries the version (reader/README.md). Kept
+// like the tiles rather than like the code -- it has no business being
+// fetched again on a deploy that did not touch it.
+app.use('/reader', express.static(path.join(__dirname, 'reader'), FOREVER));
 // The walkthrough film the Help dialog plays. It lives beside the rest of
 // the documentation media so the README and the app show the same thing,
 // and only the video is copied into the image -- the README's GIFs are
 // several megabytes and nothing serves them. It is re-shot under the same
 // name whenever the UI moves, so it revalidates like the modules do.
 app.use('/docs/media', express.static(path.join(__dirname, 'docs', 'media'), REVALIDATE));
-for (const dir of PUBLIC.filter(d => d !== 'icons' && d !== 'map')) {
+for (const dir of PUBLIC.filter(d => d !== 'icons' && d !== 'map' && d !== 'reader')) {
 	app.use(`/${dir}`, express.static(path.join(__dirname, dir), REVALIDATE));
 }
 for (const file of FILES) {

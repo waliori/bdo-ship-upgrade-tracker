@@ -22,6 +22,7 @@ import { GRADES, gradeById, crystalById, crystalsOf, crystalVariant, crystalLine
 import { skinFor, SKIN_SLOTS } from './ship_skins.js';
 import { openFleet } from './setups.js';
 import { openPicker } from './picker.js';
+import { openSailorImport } from './sailor-import.js';
 import { roleOf, CRYSTAL_FOR, SAILOR_NOTE, PART_PATH } from './ship_roles.js';
 import { encodeShare, shareLink } from './share.js';
 import { enhancedName } from './planner.js';
@@ -246,6 +247,7 @@ function rosterPanel(ship) {
 			<span class="panel-spacer"></span>
 			<div class="chips">${tabs}</div>
 			<button class="act quiet small" data-act="crew-recover-all" ${n ? '' : 'disabled'} title="Marks every sailor's condition back at 100">Recover all</button>
+			<button class="act quiet small" data-act="crew-import" title="Read a crew off screenshots of the game's own Manage Sailors window — in this browser; nothing is uploaded">📷 Read screenshots</button>
 			<button class="act small" data-act="crew-hire" ${n >= SAILOR_CAP ? 'disabled' : ''}>+ Hire</button>
 		</div>
 		<p class="crew-note">${esc(SAILOR_NOTE[roleOf(ship) && roleOf(ship).role === 'bartering' ? 'barter' : 'hunt'])}</p>
@@ -875,6 +877,7 @@ export function crewAction(act, el) {
 	if (looking && !LOOK_ONLY.has(act)) { toast('Only a look — nothing on this boat can be changed'); return false; }
 	switch (act) {
 		case 'crew-select': selId = selId === id ? null : id; return true;
+		case 'crew-import': openSailorImport(); return false;
 		case 'crew-fleet': openFleet(); return true;
 		case 'crew-skin-all': {
 			const on = el.dataset.on === '1';

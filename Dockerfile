@@ -17,6 +17,8 @@ RUN npm ci --omit=dev
 COPY icons ./icons
 COPY map ./map
 COPY guide ./guide
+# The vendored OCR engine: large, and it changes only when a version does.
+COPY reader ./reader
 # Only the walkthrough films: .dockerignore filters the README's stills
 # and GIFs out of this copy, since nothing serves them.
 COPY docs/media ./docs/media

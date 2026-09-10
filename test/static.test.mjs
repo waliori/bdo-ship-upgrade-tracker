@@ -237,8 +237,12 @@ test('the CSP admits every origin the page actually loads from', async () => {
 
 	// And nothing else may run script. The guided tour's library is
 	// vendored precisely so that no CDN needs to be trusted with
-	// script-src -- this holds the door shut behind it.
-	assert.equal(directive('script-src'), "script-src 'self'");
+	// script-src -- this holds the door shut behind it. The one addition
+	// is the word that lets the vendored sailor reader compile its
+	// WebAssembly; it opens wasm and nothing else, and in particular not
+	// eval, which is what 'unsafe-eval' would have opened alongside it.
+	assert.equal(directive('script-src'), "script-src 'self' 'wasm-unsafe-eval'");
+	assert.ok(!directive('script-src').split(/\s+/).includes("'unsafe-eval'"), 'script-src must not admit eval');
 });
 
 test('the guided tour library is served from here, not a CDN', async () => {
