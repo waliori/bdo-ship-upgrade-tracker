@@ -25,6 +25,21 @@ import { shoppingList, waysToGet } from './planner.js';
 import { coinBuyButton } from './coin-shop.js';
 import { mateAtTheHelm } from './ship.js';
 import { anyType } from './sailors.js';
+import { PRESETS, DAY_CHOICES, wayText, groupLegs } from './get-plan.js';
+import { theWay, getOrders, questDoneNow } from './get-way.js';
+
+// Which of its two readings the screen gives: the way to get each
+// thing -- one route an item, chosen against the others -- or every
+// way, grouped by source. A preference, kept between sessions.
+let mode = null;
+function getMode() {
+	if (mode === null) mode = store.getSetting('getMode', 'plan') === 'source' ? 'source' : 'plan';
+	return mode;
+}
+export function setGetMode(m) {
+	mode = m === 'source' ? 'source' : 'plan';
+	store.setSetting('getMode', mode, true);
+}
 
 
 
@@ -148,7 +163,6 @@ const ageText = ms => ms < 60_000 ? 'just now'
 export function renderGet() {
 	const totals = totalsToGo();
 	const q = query.toLowerCase();
-	const groups = visibleGroups(q);
 
 	const purseCoins = store.getStock(CROW_COIN);
 	const purseSilver = store.getStock(SILVER);
@@ -181,10 +195,15 @@ export function renderGet() {
 		</div>
 	</div>`;
 
+	const modes = [['plan', 'The way to get it', 'One way an item, chosen against the others: the quests, the purse, the lists, in the days it takes'], ['source', 'Every way', 'Everything outstanding grouped by where it is got, with every other way under each']];
 	const controls = `<div class="controls">
 		<input class="field" type="search" placeholder="Search the list…" value="${esc(query)}" data-act="query" aria-label="Search the list">
+		<div class="chips">${modes.map(([id, label, title]) => `<button class="chip${getMode() === id ? ' active' : ''}" data-act="get-mode" data-id="${id}" title="${esc(title)}">${esc(label)}</button>`).join('')}</div>
 	</div>`;
 
+	if (getMode() === 'plan') return summary + controls + renderWay(q);
+
+	const groups = visibleGroups(q);
 	if (!groups.length) {
 		return summary + controls + `<div class="panel"><p class="empty">${q
 			? 'Nothing outstanding matches that search.'
@@ -287,6 +306,144 @@ export function renderGet() {
 	return summary + controls + hint + body;
 }
 
+/* ------------------------------------------------------------------ *
+ * the way to get it
+ * ------------------------------------------------------------------ */
+
+const dayWord = n => n === 1 ? 'a day' : `${F(n)} days`;
+
+/**
+ * The plan: what to do about the list, one way an item. The orders it
+ * follows sit at the top where they can be changed, because the answer
+ * is only as good as the goal; then the quests to run, since those are
+ * the actions; then the items by the way each is got, every one with
+ * its reason on the line.
+ */
+function renderWay(q) {
+	const way = theWay();
+	if (!way || !way.legs.length) {
+		return `<div class="panel"><p class="empty">${!way ? 'Nothing to plan yet.' : 'Nothing outstanding — every build has what it needs.'}</p></div>`;
+	}
+	const o = way.orders;
+	const preset = PRESETS.find(p => p.id === o.preset) || PRESETS[0];
+	const head = way.stalled ? 'Not inside a year'
+		: way.reachable ? `Done in ${dayWord(way.days)}`
+		: `Done in ${dayWord(way.days)}, but for ${way.residual.length} item${way.residual.length === 1 ? '' : 's'}`;
+	const pole = way.longPole ? way.longPole.text
+		: way.days === 1 ? 'Everything fits in today: the quests below, and the purse for the rest.' : '';
+	const presetChips = PRESETS.map(p => `<button class="chip${p.id === o.preset ? ' active' : ''}" data-act="get-preset" data-id="${p.id}" title="${esc(p.sub)}">${esc(p.label)}</button>`).join('');
+	const days = DAY_CHOICES.map(([n, label]) => `<option value="${n}"${n === o.days ? ' selected' : ''}>${esc(label)}</option>`).join('');
+	const c = way.coins;
+	const coinLine = c && (c.spend || c.short)
+		? `<span>Crow Coins: <b>${F(c.spend)}</b> spent of ${F(c.purse)} held${c.income ? ` + ${F(c.income)} the quests pay` : ''}${c.reserve ? ` · ${F(c.reserve)} kept back` : ''}${c.short ? ` · <span class="warn">${F(c.short)} short</span>` : ''}</span>`
+		: '';
+	const s = way.silver;
+	const silverLine = s && s.spend ? `<span>Silver: <b>${FC(s.spend)}</b>${s.purse ? ` of ${FC(s.purse)} held` : ''}</span>` : '';
+	const r = way.refreshes;
+	const drawLine = r && (r.material || r.trade)
+		? `<span>Draws: ${r.material ? `<b>${F(Math.ceil(r.material))}</b> of the material list` : ''}${r.material && r.trade ? ', ' : ''}${r.trade ? `<b>${F(Math.ceil(r.trade))}</b> of the trade list` : ''} over ${dayWord(way.days)}</span>`
+		: '';
+	const orders = `<div class="panel way-orders">
+		<div class="panel-head">
+			<h2 class="panel-title plain">${esc(head)}</h2>
+			<span class="panel-sub">at ${esc(preset.label)}${way.days > 1 ? `, sailing ${esc(DAY_CHOICES.find(([n]) => n === o.days)[1])}` : ''}</span>
+		</div>
+		<div class="way-body">
+			${pole ? `<p class="way-pole">${esc(pole)}</p>` : ''}
+			<div class="way-knobs">
+				<div class="chips">${presetChips}</div>
+				<label class="way-knob">At sea <select class="purse-inline" data-act="get-days" aria-label="How many days a week you sail">${days}</select></label>
+				<label class="way-knob">Keep back <input class="purse-inline" type="text" inputmode="numeric" value="${F(o.reserve)}" data-act="get-reserve" aria-label="Crow Coins to keep back"> coins</label>
+			</div>
+			<div class="way-facts">${[coinLine, silverLine, drawLine].filter(Boolean).join('')}</div>
+			<p class="way-note">${esc(preset.sub)}. Barter is counted at best — the offer on every draw — and a drop or a worker node is named, not timed.</p>
+		</div>
+	</div>`;
+
+	const picks = store.getProfile('questPicks', {}) || {};
+	const questRows = way.quests.filter(x => !q || x.name.toLowerCase().includes(q) || x.pays.some(p => p.item.toLowerCase().includes(q))).map(x => {
+		const done = questDoneNow(x.quest);
+		const choice = x.quest.choice && x.pick !== null ? Object.entries(x.quest.choice[x.pick]) : null;
+		const take = choice ? `take ${choice.map(([item, n]) => `${F(n)}× ${esc(item)}`).join(', ')}` : '';
+		const mine = choice && picks[x.id] === x.pick;
+		const pickBtn = choice && !mine
+			? `<button class="ghost-btn tiny" data-act="get-pick" data-quest="${esc(x.id)}" data-i="${x.pick}" title="Remember it: Claimed on the Quests screen then records this reward in one press">make it my pick</button>`
+			: choice ? '<span class="way-mine">your pick</span>' : '';
+		const toward = x.pays.map(p => `${F(p.qty)} ${esc(p.item)}`).join(', ');
+		const sub = [take, toward ? `toward ${toward}` : '', x.forCoins ? `for the ${F(x.coins)} coins` : x.coins ? `and ${F(x.coins)} coins` : ''].filter(Boolean).join(' · ');
+		const times = x.cadence === 'once' ? 'once' : `${x.cadence} × ${F(x.completions)}`;
+		return `<div class="row way-quest${done ? ' done' : ''}">
+			<div class="row-main">
+				<div class="row-name"><button class="linky" data-act="get-quest" data-quest="${esc(x.id)}" title="Open it on the Quests screen">${esc(x.name)}</button> <span class="tag">${esc(times)}</span>${done ? `<span class="quest-done-tag">✓ ${x.cadence === 'weekly' ? 'done this week' : 'done today'}</span>` : ''}</div>
+				<div class="row-sub">${sub}</div>
+			</div>
+			${pickBtn}
+		</div>`;
+	});
+	const questsPanel = questRows.length ? `<div class="panel">
+		<div class="group-head">
+			<h2 class="panel-title teal">Quests to run</h2>
+			<span class="group-total" style="color:var(--ink-dim)">${questRows.length} quest${questRows.length === 1 ? '' : 's'}</span>
+		</div>
+		${questRows.join('')}
+	</div>` : '';
+
+	const legs = q ? way.legs.filter(l => l.item.toLowerCase().includes(q)) : way.legs;
+	const groups = groupLegs(legs);
+	const body = groups.map(g => {
+		const total = g.coins ? `${F(g.coins)} coins` : g.silver ? `${F(g.silver)} silver` : `${g.items.length} item${g.items.length === 1 ? '' : 's'}`;
+		const col = g.kind === 'coin' ? 'amber' : g.kind === 'falasi' || g.kind === 'market' ? 'blue' : g.kind === 'short' ? 'red' : g.kind === 'quest' ? 'teal' : 'plain';
+		return `<div class="panel">
+			<div class="group-head">
+				<h2 class="panel-title ${col}">${esc(g.label)}</h2>
+				<span class="group-total" style="color:var(--ink-dim)">${esc(total)}</span>
+			</div>
+			${g.items.map(l => {
+				const door = l.kind === 'barter' ? `<button class="chart-link" data-act="goto-map" data-item="${esc(l.item)}">on the map</button>`
+					: l.kind === 'quest' ? `<button class="chart-link" data-act="goto-quests" data-item="${esc(l.item)}">the quests</button>`
+					: '';
+				const shop = l.kind === 'coin' && !l.unpriced ? coinBuyButton(l.item, Math.ceil(l.qty)) : '';
+				return `<div class="row" data-peek="${esc(l.item)}">
+					${img(l.item, 'row-icon sm')}
+					<div class="row-main">
+						<div class="row-name">${codexName(l.item)}</div>
+						<div class="row-sub way-why">${esc(l.why)}${door ? ` · ${door}` : ''}</div>
+					</div>
+					${shop}
+					<span class="qty-out">${F(Math.ceil(l.qty))}</span>
+				</div>`;
+			}).join('')}
+		</div>`;
+	}).join('');
+	if (q && !legs.length && !questRows.length) return orders + `<div class="panel"><p class="empty">Nothing in the plan matches that search.</p></div>`;
+	return orders + questsPanel + body;
+}
+
+/** The plan's own verbs. True when the screen should redraw. */
+export function getAction(act, el) {
+	switch (act) {
+		case 'get-mode': setGetMode(el.dataset.id); return true;
+		case 'get-preset': store.setProfile('getOrders', { ...getOrders(), preset: el.dataset.id }); return false;
+		case 'get-pick': {
+			const picks = store.getProfile('questPicks', {}) || {};
+			store.setProfileQuiet('questPicks', { ...picks, [el.dataset.quest]: Number(el.dataset.i) });
+			return true;
+		}
+		default: return false;
+	}
+}
+
+/** A typed order: the days a week, the coins kept back. */
+export function getChange(el, parseAmount) {
+	if (el.dataset.act === 'get-days') { store.setProfile('getOrders', { ...getOrders(), days: Number(el.value) }); return true; }
+	if (el.dataset.act === 'get-reserve') {
+		const n = parseAmount(el.value);
+		store.setProfile('getOrders', { ...getOrders(), reserve: n === null ? 0 : n });
+		return true;
+	}
+	return false;
+}
+
 /** The list as the screen shows it: grouped by how each thing is got,
  *  narrowed to a search when there is one, each group total re-summed
  *  so the head still describes what is under it. */
@@ -313,6 +470,7 @@ function visibleGroups(q) {
  *  shown -- the same groups, the same search -- so a narrowed list
  *  copies narrow, and the headings say where each thing comes from. */
 export function shoppingText() {
+	if (getMode() === 'plan') return wayText(theWay());
 	return visibleGroups(query.toLowerCase()).map(g => {
 		const total = g.coins ? ` — ${F(g.coins)} coins` : g.silver ? ` — ${F(g.silver)} silver` : '';
 		const lines = [...g.items].sort((a, b) => b.qty - a.qty).map(e => `  ${Math.round(e.qty)}× ${e.item}`);
@@ -332,6 +490,16 @@ export function shoppingCSV() {
 		return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
 	};
 	const rows = [['group', 'item', 'quantity', 'unit cost', 'note']];
+	if (getMode() === 'plan') {
+		const way = theWay();
+		for (const g of (way ? way.groups : [])) {
+			for (const l of g.items) {
+				const each = l.qty ? (l.coins ? `${Math.round(l.coins / l.qty)} coins` : l.silver ? `${Math.round(l.silver / l.qty)} silver` : '') : '';
+				rows.push([g.label, l.item, Math.ceil(l.qty), each, l.why]);
+			}
+		}
+		return rows.map(r => r.map(cell).join(',')).join('\n');
+	}
 	for (const g of visibleGroups(query.toLowerCase())) {
 		for (const e of [...g.items].sort((a, b) => b.qty - a.qty)) {
 			const each = e.qty ? (e.coins ? `${Math.round(e.coins / e.qty)} coins` : e.silver ? `${Math.round(e.silver / e.qty)} silver` : '') : '';

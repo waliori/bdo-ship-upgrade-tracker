@@ -98,6 +98,10 @@ test('a Crow Coin purchase moves the goods and the coins together, and undoes as
 		store.addTarget('Carrack (Valor)', 1);
 		store.setStock('Crow Coin', 5000);
 	});
+	// The plan may get the stones off the quests; the Buy is on the
+	// by-source reading, where every coin-priced line carries one.
+	await page.waitForSelector('[data-act="get-mode"][data-id="source"]', { timeout: 10000 });
+	await page.evaluate(() => document.querySelector('[data-act="get-mode"][data-id="source"]').click());
 	await page.waitForSelector('.coin-buy', { timeout: 10000 });
 	// Tidal Black Stone: ten coins each, and a Carrack wants hundreds.
 	await page.evaluate(() => [...document.querySelectorAll('.row')]
@@ -124,6 +128,38 @@ test('a Crow Coin purchase moves the goods and the coins together, and undoes as
 	await context.close();
 });
 
+test('To Get opens on the way to get it, follows the goal picked, and hands a pick to the Quests screen', async () => {
+	const { page, context, errors } = await open('#get');
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.addTarget('Carrack (Valor)', 1);
+		store.setStock('Crow Coin', 5000);
+	});
+	await page.waitForSelector('.way-orders', { timeout: 10000 });
+	assert.match(await text(page, '.way-orders .panel-title'), /done in|not inside/i);
+	// Every missing item is on the page exactly as many times as it has
+	// legs, and each leg says why.
+	const whys = await page.evaluate(() => [...document.querySelectorAll('.way-why')].map(e => e.textContent.trim()));
+	assert.ok(whys.length > 5 && whys.every(w => w.length > 8), 'a reason on every line');
+	// A goal is one press, and the chip lights.
+	await page.evaluate(() => document.querySelector('[data-act="get-preset"][data-id="coins"]').click()); await wait(300);
+	assert.equal(await page.evaluate(() => document.querySelector('[data-act="get-preset"].active').dataset.id), 'coins');
+	assert.equal(await page.evaluate(async () => (await import('/js/state.js')).getProfile('getOrders').preset), 'coins');
+	// A pick the plan would take is remembered for the Quests screen.
+	const pick = await page.$('[data-act="get-pick"]');
+	if (pick) {
+		const { quest, i } = await pick.evaluate(e => ({ quest: e.dataset.quest, i: Number(e.dataset.i) }));
+		await pick.click(); await wait(300);
+		assert.equal(await page.evaluate(async q => (await import('/js/state.js')).getProfile('questPicks')[q], quest), i);
+	}
+	// The other reading is a chip away, and Copy follows it.
+	await page.evaluate(() => document.querySelector('[data-act="get-mode"][data-id="source"]').click()); await wait(300);
+	assert.equal(await count(page, '.way-orders'), 0);
+	assert.ok(await count(page, '.group-head') > 0);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('too dear to buy is said, not clamped', async () => {
 	const { page, context, errors } = await open('#get');
 	await page.evaluate(async () => {
@@ -131,6 +167,8 @@ test('too dear to buy is said, not clamped', async () => {
 		store.addTarget('Carrack (Valor)', 1);
 		store.setStock('Crow Coin', 50);
 	});
+	await page.waitForSelector('[data-act="get-mode"][data-id="source"]', { timeout: 10000 });
+	await page.evaluate(() => document.querySelector('[data-act="get-mode"][data-id="source"]').click());
 	await page.waitForSelector('.coin-buy', { timeout: 10000 });
 	await page.evaluate(() => [...document.querySelectorAll('.row')]
 		.find(r => /Tidal Black Stone/.test(r.textContent)).querySelector('.coin-buy').click());

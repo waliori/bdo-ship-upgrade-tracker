@@ -20,6 +20,7 @@ import { rows, query } from './ui-state.js';
 import { quests, questById, cadenceOf } from './quests.js';
 import { periodKey } from './clock.js';
 import { openPicker } from './picker.js';
+import { plannedPick } from './get-way.js';
 
 // Session state: which chip is lit, which rewards the list is narrowed
 // to, and which quests are ticked for finishing together.
@@ -123,11 +124,21 @@ function questRow(q, short, wanted, isDone) {
 			<div class="quest-rewards">${rewardChips(q.rewards, short)}${q.choice
 				? `<span class="quest-or">and one of</span>${q.choice.map(c => rewardChips(c, short)).join('<span class="quest-or">or</span>')}` : ''}</div>
 			${q.choice ? (last
-				? `<div class="quest-recall">You take ${F(last.item[1])}× ${esc(last.item[0])} — Claimed records that again. <button class="link-btn" data-act="quest-pick-set" data-quest="${esc(q.id)}" title="Keep a different reward as the favourite">change</button></div>`
-				: `<div class="quest-recall">Claimed will ask which reward. <button class="link-btn" data-act="quest-pick-set" data-quest="${esc(q.id)}" title="Answer once now; every claim after is one press">choose ahead</button></div>`) : ''}
+				? `<div class="quest-recall">You take ${F(last.item[1])}× ${esc(last.item[0])} — Claimed records that again. <button class="link-btn" data-act="quest-pick-set" data-quest="${esc(q.id)}" title="Keep a different reward as the favourite">change</button>${planSays(q, last.i)}</div>`
+				: `<div class="quest-recall">Claimed will ask which reward. <button class="link-btn" data-act="quest-pick-set" data-quest="${esc(q.id)}" title="Answer once now; every claim after is one press">choose ahead</button>${planSays(q, null)}</div>`) : ''}
 		</div>
 		<div class="quest-actions">${buttons}</div>
 	</div>`;
+}
+
+/** What To Get's plan would take on this quest, when it differs from
+ *  the remembered pick: the reward that does the list the most good
+ *  once every other way to it is counted. */
+function planSays(q, have) {
+	const i = plannedPick(q.id);
+	if (i === null || i === have || !q.choice[i]) return '';
+	const [item, n] = Object.entries(q.choice[i])[0];
+	return ` <span class="quest-plan">The plan would take ${F(n)}× ${esc(item)}. <button class="link-btn" data-act="quest-pick-plan" data-quest="${esc(q.id)}" data-i="${i}" title="Remember it: Claimed then records this reward">use it</button></span>`;
 }
 
 /** Every item any quest pays, with how many pay it. */
@@ -411,6 +422,10 @@ function saveGroupDialog() {
 export function questAction(act, el) {
 	if (act === 'quest-filter') {
 		filter = el.dataset.id;
+		return true;
+	}
+	if (act === 'quest-pick-plan') {
+		store.setProfileQuiet('questPicks', { ...picks(), [el.dataset.quest]: Number(el.dataset.i) });
 		return true;
 	}
 	if (act === 'quest-pay-pick') {

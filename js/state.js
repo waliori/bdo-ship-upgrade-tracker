@@ -681,6 +681,7 @@ const PROFILE_LABELS = {
 	stash: 'Changed where things are kept',
 	homes: 'Changed where new things land',
 	orders: 'Changed the sailing orders',
+	getOrders: 'Changed how the list is to be got',
 	homemade: 'Changed what your workers make',
 	matSeen: 'Noted what the material list shows'
 };

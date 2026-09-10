@@ -6,6 +6,7 @@
 // range the game itself allows. state.js calls this on every read.
 
 import { readOrders } from './barter-orders.js';
+import { readGetOrders } from './get-plan.js';
 
 /**
  * The profile, keyed and bounded.
@@ -275,6 +276,9 @@ export function readProfile(raw) {
 	// The sailing orders: what a barter run is for. Cleaned by the
 	// module that owns the shape.
 	if (isProfile(raw.orders)) out.orders = readOrders(raw.orders);
+	// How the shopping list is to be got: the goal, the days a week the
+	// sea gets, the coins kept back. Cleaned by the module that owns it.
+	if (isProfile(raw.getOrders)) out.getOrders = readGetOrders(raw.getOrders);
 	// The runs sailed: day, silver, cost, trades, Parley, stops -- the
 	// last sixty, for the week's view.
 	if (Array.isArray(raw.runs)) {

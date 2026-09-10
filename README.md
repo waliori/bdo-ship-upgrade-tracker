@@ -110,6 +110,29 @@ the Inventory panel for any coin-priced thing.
 
 ![The To Get screen](docs/media/to-get.png)
 
+**And which way each thing *should* be got.** Every line above can say
+where a thing comes from; the sources compete, and that is the question
+the list cannot answer one line at a time. A Candidum daily pays
+fourteen Tidal Black Stones *or* one Violent Wave Plywood, the coins
+spent on plywood are not there for the tendons, and two materials off
+the ship-material list wait on the same three draws a day. So To Get
+opens on **The way to get it**: the whole list read at once, one way an
+item — from the quests, the Crow Coin Shop, barter, Falasi, the Market,
+or go and get — with its reason on the line, how many days that is,
+and what sets the pace.
+
+It follows a goal you state, because what is scarce is yours to say:
+**Soonest** spends the purse wherever it buys days, **Keep the coins**
+spends them only where nothing else sells the thing, **Keep the
+silver** leaves the Market alone; beside them, how many days a week the
+sea gets and coins to keep back. The quests to run are listed as the
+actions they are, each with the reward the plan would take off a
+pick-one — *make it my pick* remembers it, so Claimed on the Quests
+screen records it in one press — and a short purse is stretched by the
+coin quests, with the horizon saying how long that takes. Barter is
+counted at best, as everywhere else, and a drop or a worker node is
+named, never timed. **Every way** is the old reading, one chip away.
+
 ---
 
 ## What else it does

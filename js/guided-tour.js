@@ -328,7 +328,7 @@ class GuidedTour {
 				element: '.summary',
 				popover: {
 					title: 'The shopping list',
-					description: 'Everything still missing, grouped by how you actually get it — Crow Coins, Falasi silver, barter, worker nodes or hunting — with running totals you can copy out.<br><br>Each line prices the whole quantity, and where a thing can be made instead it says what that would cost, so the choice is one glance rather than arithmetic.',
+					description: 'Everything still missing, with running totals you can copy out. <b>The way to get it</b> reads the whole list at once and gives each thing one way — the quests, the Crow Coin Shop, barter, Falasi, the Market — with its reason on the line and the days it takes, following the goal you pick above it.<br><br><b>Every way</b> is the other reading: grouped by where a thing is got, each line pricing the whole quantity, with what making it instead would cost.',
 					side: 'bottom'
 				},
 				before: () => goToTab('get')

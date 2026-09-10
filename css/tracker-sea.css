@@ -164,6 +164,25 @@
 .crew-mastery .field { width: 90px; }
 .quest-total { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 12px 22px 16px; border-top: 1px solid rgba(var(--line-rgb), 0.08); font-size: 12px; color: var(--ink-mute); }
 .get-quests { margin: 0 0 14px; font-size: 12.5px; color: var(--ink-mute); }
+
+/* The way to get it: the orders at the top, the quests to run, then
+   the items by the way each is got, its reason on the line. The reason
+   is the point of the row, so it wraps rather than ellipsises. */
+.way-body { padding: 12px 20px 14px; }
+.way-pole { margin: 0 0 12px; font-size: 13px; color: var(--ink-row); }
+.way-knobs { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-bottom: 10px; }
+.way-knob { font-size: 12px; color: var(--ink-mute); display: inline-flex; align-items: center; gap: 6px; }
+.way-facts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--ink-mute); }
+.way-facts b { color: var(--ink-hi); font-weight: 600; }
+.way-facts .warn { color: var(--amber); }
+.way-note { margin: 10px 0 0; font-size: 11.5px; color: var(--ink-faint); }
+.way-why { white-space: normal; overflow: visible; text-overflow: clip; }
+.way-mine { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
+.way-quest.done .row-name .linky { color: var(--ink-mute); }
+.way-quest .tag { margin-left: 8px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+.way-quest .quest-done-tag { margin-left: 8px; }
+.way-quest .row-name, .way-quest .row-sub { white-space: normal; overflow: visible; text-overflow: clip; }
+.quest-plan { color: var(--teal); }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   /* The row holds: tick, star and name share the first line, and only
      the buttons drop to a line of their own. Stacked as a column, one

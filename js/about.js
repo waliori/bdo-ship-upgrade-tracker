@@ -245,6 +245,16 @@ export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
 	{
+		date: '2026-09-10',
+		title: 'To Get says how each thing should be got, not only how it can be',
+		notes: [
+			'<b>The way to get it.</b> To Get used to answer “where does this come from?” for every line and leave “so what do I do?” to you — and the sources compete: a Candidum daily pays fourteen Tidal Black Stones <i>or</i> one Violent Wave Plywood, the coins spent on plywood are not there for the tendons, and two materials off the ship-material list wait on the same three draws. The new first view of To Get reads the whole list at once and gives every item one way — from the quests, the Crow Coin Shop, barter, Falasi, the Market, or go and get — with its reason on the line, and says how many days that is and what sets the pace.',
+			'It follows a <b>goal</b>, as the crew and the sailing orders do, because what is scarce is yours to say: <b>Soonest</b> spends the purse wherever it buys days; <b>Keep the coins</b> spends them only where nothing else sells the thing; <b>Keep the silver</b> leaves the Market alone. Beside them, how many days a week the sea gets, and coins to keep back.',
+			'The quests to run are listed as the actions they are, each with the reward the plan would take off a pick-one and what it goes toward — <b>make it my pick</b> remembers it, so Claimed on the Quests screen records it in one press. The Quests screen says the same thing beside a quest whose remembered pick differs, and the Plan’s <b>Next</b> line names today’s first quest. A short purse is stretched by the coin quests, and the horizon says how long that takes.',
+			'The old reading is one chip away — <b>Every way</b> — and Copy and CSV follow whichever is showing. Barter is counted at best, as it always was, and a drop or a worker node is named, never timed.'
+		]
+	},
+	{
 		date: '2026-09-09',
 		title: 'Crow Coins are spent where they are counted, the sailor list sorts by any growth, and Auto assign asks what the boat is for',
 		notes: [

@@ -51,7 +51,7 @@ import { openTables } from './screen-tables.js';
 import { toggleVellReminder, checkVellReminder } from './today.js';
 import { openTripLog } from './triplog.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
-import { renderGet, shoppingText, shoppingCSV } from './screen-get.js';
+import { renderGet, shoppingText, shoppingCSV, getAction, getChange } from './screen-get.js';
 import { openCoinBuy } from './coin-shop.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapCentreOnStash,
@@ -1103,6 +1103,8 @@ function wire() {
 			// draws them; these are what they do.
 			case 'goto-map': mapShowItem(el.dataset.item); showView('map'); return;
 			case 'goto-quests': setQuestPay(el.dataset.item); showView('quests'); return render();
+			// The plan's quest rows open the quest itself, lit and scrolled to.
+			case 'get-quest': setQuestFocus(el.dataset.quest); showView('quests'); return render();
 			case 'goto-tree': {
 				// The Tree unfolds one queued build, so a door into it
 				// carries which build that is -- worked out where the
@@ -1303,6 +1305,7 @@ function wire() {
 				// (and repaint through it), the rest are session state.
 				if (act.startsWith('crew-') && crewAction(act, el)) return render();
 				if (act.startsWith('quest-') && questAction(act, el)) return render();
+				if (act.startsWith('get-') && getAction(act, el)) return render();
 				if (act.startsWith('community-') && communityAction(act, el)) return render();
 		}
 	});
@@ -1331,6 +1334,10 @@ function wire() {
 
 		const mreg = evt.target.closest('[data-act="market-region"]');
 		if (mreg) return setMarketRegion(mreg.value);
+
+		// The plan's orders: the days a week at sea, the coins kept back.
+		const gc = evt.target.closest('[data-act="get-days"], [data-act="get-reserve"]');
+		if (gc) return getChange(gc, parseAmount);
 
 		// The ticked tiles, moved to one storage as one change.
 		const pl = evt.target.closest('[data-act="inv-place"]');
