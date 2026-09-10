@@ -38,9 +38,10 @@ const ENTRIES = [
 		title: 'The level discount',
 		where: 'Profile (P) → Life Skill → hover “Barter”',
 		text: 'Higher Barter levels cut the parley of every exchange — the tooltip states '
-			+ 'the exact percentage. It adds with the Value Pack’s −10% and a parley-crew '
-			+ 'member’s −10%; the sum comes off the base price. Pick your level in the '
-			+ 'Bartering tile and every parley figure in the app uses it.'
+			+ 'the exact percentage. It adds with the Value Pack’s −10% and Cleia’s −10%; '
+			+ 'the sum comes off the base price. Pick your level in the Bartering tile and '
+			+ 'every parley figure in the app uses it. Cleia’s cut is not asked for: seat '
+			+ 'her at the First Mate seat on the Ship tab and it is taken as read.'
 	},
 	{
 		id: 'voucher',

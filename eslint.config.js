@@ -28,7 +28,9 @@ const browserGlobals = {
 
 export default [
 	{
-		ignores: ['node_modules/**', 'js/driver.iife.js', 'js/all_barter.json']
+		// Vendored, minified and none of our business: the guided tour's
+		// library and the sailor reader's engine.
+		ignores: ['node_modules/**', 'js/driver.iife.js', 'js/all_barter.json', 'reader/**']
 	},
 	js.configs.recommended,
 	{
