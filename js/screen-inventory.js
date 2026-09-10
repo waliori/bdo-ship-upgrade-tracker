@@ -3,6 +3,7 @@
 // reserved it and every priced way of getting more.
 
 import { esc, F } from './fmt.js';
+import { T, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import {
 	img, codexName, amountInput, costCtx, costText, makeupHTML, barterHTML,
@@ -70,14 +71,14 @@ export function renderInventory() {
 	}).sort(sorter(sort, stock));
 
 	const filters = [
-		['all', 'In play'], ['needed', 'Needed'], ['short', 'Short'], ['owned', 'Owned'], ['free', 'Free']
+		['all', T('In play')], ['needed', T('Needed')], ['short', T('Short')], ['owned', T('Owned')], ['free', T('Free')]
 	].map(([id, label]) =>
 		`<button class="chip ${invFilter === id ? 'active' : ''}" data-act="inv-filter" data-id="${id}" aria-pressed="${invFilter === id}">${label}</button>`
 	).join('');
 	// What sort of thing: a second row, since "the trade goods I hold"
 	// and "the materials I am short of" are different questions and the
 	// list answers both. A lit kind stays lit across searches.
-	const kinds = [['all', 'Everything'], ...KINDS.map(k => [k.id, k.label])].map(([id, label]) =>
+	const kinds = [['all', T('Everything')], ...KINDS.map(k => [k.id, said(k.label)])].map(([id, label]) =>
 		`<button class="chip ${invKind === id ? 'active' : ''}" data-act="inv-kind" data-id="${id}" aria-pressed="${invKind === id}">${label}</button>`
 	).join('');
 
@@ -113,15 +114,15 @@ export function renderInventory() {
 		// at the level held, which is the one a storage would take.
 		const picked = invPicking && invPicked.has(open);
 		const act = invPicking ? 'inv-pick' : 'select';
-		return `<button class="tile ${stats.short > 0 ? 'short' : ''} ${isOpen && !invPicking ? 'selected' : ''} ${picked ? 'picked' : ''}" data-act="${act}" data-item="${esc(open)}" data-peek="${esc(stats.at)}" title="${esc(key)}" ${invPicking ? `aria-pressed="${picked}"` : ''}>
+		return `<button class="tile ${stats.short > 0 ? 'short' : ''} ${isOpen && !invPicking ? 'selected' : ''} ${picked ? 'picked' : ''}" data-act="${act}" data-item="${esc(open)}" data-peek="${esc(stats.at)}" title="${esc(gameName(key))}" ${invPicking ? `aria-pressed="${picked}"` : ''}>
 			${invPicking ? `<span class="tile-tick">${picked ? '✓' : ''}</span>` : ''}
 			${img(stats.at, '')}
 			${family && stats.top > 0 ? `<span class="tile-lvl">+${stats.top}</span>` : ''}
 			${whereTag(open, stats.own, stashAll)}
 			${stats.own === 0 && stats.short > 0
-				? `<span class="tile-qty short">${F(stats.short)} short</span>`
+				? `<span class="tile-qty short">${T('{n} short', { n: F(stats.short) })}</span>`
 				: `<span class="tile-qty">${F(stats.own)}</span>`}
-			<span class="tile-name">${esc(key)}</span>
+			<span class="tile-name">${esc(gameName(key))}</span>
 			<span class="bar">
 				<i class="make" style="width:${(stats.reserved / denom) * 100}%"></i>
 				<i class="take" style="width:${(free / denom) * 100}%"></i>
@@ -132,17 +133,17 @@ export function renderInventory() {
 	return `<div class="inv-layout">
 		<div class="inv-left">
 			<div class="controls">
-				<input class="field" type="search" placeholder="Search items…" value="${esc(query)}" data-act="query" aria-label="Search items">
+				<input class="field" type="search" placeholder="${T('Search items…')}" value="${esc(query)}" data-act="query" aria-label="${T('Search items')}">
 				<div class="chips">${filters}</div>
 				<div class="chips inv-kinds">${kinds}</div>
 				${sortSelect()}
-				<button class="chip inv-select ${invPicking ? 'active' : ''}" data-act="inv-select" aria-pressed="${invPicking}" title="Tick several tiles and move them to a storage together">${invPicking ? '✓ Selecting' : '☐ Select'}</button>
+				<button class="chip inv-select ${invPicking ? 'active' : ''}" data-act="inv-select" aria-pressed="${invPicking}" title="${T('Tick several tiles and move them to a storage together')}">${invPicking ? T('✓ Selecting') : T('☐ Select')}</button>
 			</div>
 			${homesHTML()}
 			${invPicking ? pickBar(shown.filter(k => (stock[k] || 0) > 0 || isEnhanceable(k)).map(k => (isEnhanceable(k) ? familyStats(k).at : k))) : ''}
 			${shown.length
 				? `<div class="inv-grid">${tiles}</div>`
-				: `<div class="panel"><p class="empty">${searching ? 'Nothing matches that search.' : invKind === 'goods' ? 'No trade goods in play — search one to record what is aboard, or log a trip.' : 'Nothing here yet — add a build, or switch to Owned to record what you have.'}</p></div>`}
+				: `<div class="panel"><p class="empty">${searching ? T('Nothing matches that search.') : invKind === 'goods' ? T('No trade goods in play — search one to record what is aboard, or log a trip.') : T('Nothing here yet — add a build, or switch to Owned to record what you have.')}</p></div>`}
 		</div>
 		${selected ? '<div class="detail-veil" data-act="deselect" aria-hidden="true"></div>' : ''}
 		<aside class="detail ${selected ? 'open' : ''}">${renderDetail()}</aside>
@@ -173,22 +174,22 @@ function waysBlock(item) {
 		// number you have to take on faith.
 		const via = (r.parts || [])
 			.filter(p => p.via)
-			.map(p => `${F(p.qty)}\u00d7 ${p.item} from ${p.via}`)
-			.join(' \u00b7 ') + (r.makes > 1 ? ` \u2014 makes ${F(r.makes)}` : '');
+			.map(p => T('{n}\u00d7 {item} from {via}', { n: F(p.qty), item: gameName(p.item), via: p.via }))
+			.join(' \u00b7 ') + (r.makes > 1 ? ` ${T('\u2014 makes {n}', { n: F(r.makes) })}` : '');
 		return `<div class="way ${on ? 'on' : ''}">
 			<div class="way-top">
 				<span class="way-label">${esc(r.label)}</span>
-				${best === r ? '<span class="badge teal">cheapest</span>' : ''}
-				${on ? '<span class="way-tag">in the plan</span>' : ''}
+				${best === r ? `<span class="badge teal">${T('cheapest')}</span>` : ''}
+				${on ? `<span class="way-tag">${T('in the plan')}</span>` : ''}
 			</div>
-			<div class="way-cost">${esc(costText(r))} <span class="way-unit">each</span></div>
-			${short > 1 ? `<div class="way-total">${F(short)} short \u2192 ${esc(costText(r, short))}</div>` : ''}
+			<div class="way-cost">${esc(costText(r))} <span class="way-unit">${T('each')}</span></div>
+			${short > 1 ? `<div class="way-total">${T('{n} short \u2192 {cost}', { n: F(short), cost: esc(costText(r, short)) })}</div>` : ''}
 			${via ? `<div class="way-parts">${esc(via)}</div>` : ''}
 		</div>`;
 	}).join('');
 
 	return `<div class="detail-block">
-		<div class="detail-label">${routes.length > 1 ? 'Ways to get it' : 'What it costs'}</div>
+		<div class="detail-label">${routes.length > 1 ? T('Ways to get it') : T('What it costs')}</div>
 		${lines}
 	</div>`;
 }
@@ -205,8 +206,8 @@ function whereTag(item, own, stashAll) {
 	if (!placed) return '';
 	const short = t => t.replace(/^Port |^Ancado | Island$| City$| Harbor$/g, '').replace("Ship's hold", 'hold');
 	const at = places.length === 1 && placed >= own ? short(places[0][0]) : 'split';
-	const title = places.length === 1 && placed >= own ? `all at ${places[0][0]}` : `${F(Math.max(0, own - placed))} in the bags · ${places.map(([t, n]) => `${F(n)} at ${t}`).join(' · ')}`;
-	return `<span class="tile-at ${at === 'split' ? 'split' : ''}" title="${esc(title)}">${esc(at)}</span>`;
+	const title = places.length === 1 && placed >= own ? T('all at {town}', { town: gameName(places[0][0]) }) : `${T('{n} in the bags', { n: F(Math.max(0, own - placed)) })} · ${places.map(([t, n]) => T('{n} at {town}', { n: F(n), town: gameName(t) })).join(' · ')}`;
+	return `<span class="tile-at ${at === 'split' ? 'split' : ''}" title="${esc(title)}">${esc(at === 'split' ? T('split') : at)}</span>`;
 }
 
 /**
@@ -216,11 +217,11 @@ function whereTag(item, own, stashAll) {
  */
 function homesHTML() {
 	const homes = store.getProfile('homes', {}) || {};
-	const word = k => homes[k.id] || (k.id === 'goods' ? 'the ship' : 'the bags');
-	const summary = KINDS.map(k => `${k.label.toLowerCase()} → ${word(k)}`).join(' · ');
-	const sel = k => `<label class="inv-home"><span>${esc(k.label)}</span><select class="field select" data-act="inv-home" data-kind="${k.id}" aria-label="Where new ${esc(k.label.toLowerCase())} land"><option value="">${k.id === 'goods' ? 'the ship' : 'the bags'}</option>${TOWNS.filter(t => !(k.id === 'goods' && t === store.ABOARD)).map(t => `<option${homes[k.id] === t ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
-	return `<details class="inv-homes"><summary><span class="inv-homes-k">New things land in</span><span class="inv-homes-v">${esc(summary)}</span></summary>
-		<div class="inv-homes-row">${KINDS.map(sel).join('')}<span class="detail-note">A count added from here or a trip is noted at that storage; a count taken away comes off the bags, or the ship for a trade good, first. The Barter tab's hold always works the ship.</span></div>
+	const word = k => gameName(homes[k.id]) || (k.id === 'goods' ? T('the ship') : T('the bags'));
+	const summary = KINDS.map(k => `${said(k.label).toLowerCase()} → ${word(k)}`).join(' · ');
+	const sel = k => `<label class="inv-home"><span>${esc(said(k.label))}</span><select class="field select" data-act="inv-home" data-kind="${k.id}" aria-label="${T('Where new {kind} land', { kind: esc(said(k.label).toLowerCase()) })}"><option value="">${k.id === 'goods' ? T('the ship') : T('the bags')}</option>${TOWNS.filter(t => !(k.id === 'goods' && t === store.ABOARD)).map(t => `<option value="${esc(t)}"${homes[k.id] === t ? ' selected' : ''}>${esc(gameName(t))}</option>`).join('')}</select></label>`;
+	return `<details class="inv-homes"><summary><span class="inv-homes-k">${T('New things land in')}</span><span class="inv-homes-v">${esc(summary)}</span></summary>
+		<div class="inv-homes-row">${KINDS.map(sel).join('')}<span class="detail-note">${T('A count added from here or a trip is noted at that storage; a count taken away comes off the bags, or the ship for a trade good, first. The Barter tab\'s hold always works the ship.')}</span></div>
 	</details>`;
 }
 
@@ -230,14 +231,14 @@ function pickBar(shownItems) {
 	const n = invPicked.size;
 	const own = [...invPicked].reduce((a, it) => a + store.getStock(it), 0);
 	return `<div class="inv-pickbar">
-		<span class="inv-pickbar-n"><b>${F(n)}</b> ${n === 1 ? 'item' : 'items'} ticked${n ? ` · ${F(own)} in all` : ''}</span>
-		<button class="chip tiny" data-act="inv-pick-all" data-items="${esc(JSON.stringify(shownItems))}">all shown</button>
-		<button class="chip tiny" data-act="inv-pick-none" ${n ? '' : 'disabled'}>none</button>
+		<span class="inv-pickbar-n">${n === 1 ? T('<b>{n}</b> item ticked', { n: F(n) }) : T('<b>{n}</b> items ticked', { n: F(n) })}${n ? ` · ${T('{n} in all', { n: F(own) })}` : ''}</span>
+		<button class="chip tiny" data-act="inv-pick-all" data-items="${esc(JSON.stringify(shownItems))}">${T('all shown')}</button>
+		<button class="chip tiny" data-act="inv-pick-none" ${n ? '' : 'disabled'}>${T('none')}</button>
 		<span class="panel-spacer"></span>
-		<label class="inv-place"><span>move ${n === 1 ? 'it' : 'them all'} to</span>
-			<select class="field select" data-act="inv-place" ${n ? '' : 'disabled'} aria-label="Move the ticked items to a storage"><option value="">choose a storage…</option><option value="bags">the bags · the ship, for trade goods</option>${TOWNS.filter(t => t !== store.ABOARD).map(t => `<option>${esc(t)}</option>`).join('')}</select>
+		<label class="inv-place"><span>${n === 1 ? T('move it to') : T('move them all to')}</span>
+			<select class="field select" data-act="inv-place" ${n ? '' : 'disabled'} aria-label="${T('Move the ticked items to a storage')}"><option value="">${T('choose a storage…')}</option><option value="bags">${T('the bags · the ship, for trade goods')}</option>${TOWNS.filter(t => t !== store.ABOARD).map(t => `<option value="${esc(t)}">${esc(gameName(t))}</option>`).join('')}</select>
 		</label>
-		<button class="ghost-btn sm" data-act="inv-select">Done</button>
+		<button class="ghost-btn sm" data-act="inv-select">${T('Done')}</button>
 	</div>`;
 }
 
@@ -257,29 +258,29 @@ function whereBlock(item, own) {
 	const placed = Object.values(stash).reduce((a, b) => a + b, 0);
 	const bags = Math.max(0, own - placed);
 	const line = (town, n, fixed) => `<div class="detail-line where-line">
-		<span>${esc(town)}</span>
+		<span>${esc(fixed ? town : gameName(town))}</span>
 		<span class="where-edit">${fixed
-			? `<span class="n teal" title="What is not at a noted storage is in your bags">${F(n)}</span>`
-			: amountInput('where-val', n, `data-act="stash-set" data-item="${esc(item)}" data-town="${esc(town)}" aria-label="How many at ${esc(town)}"`)}
-		${fixed ? '' : `<button class="map-x" data-act="stash-del" data-item="${esc(item)}" data-town="${esc(town)}" aria-label="Forget ${esc(town)} — its count goes back to your bags">×</button>`}</span>
+			? `<span class="n teal" title="${T('What is not at a noted storage is in your bags')}">${F(n)}</span>`
+			: amountInput('where-val', n, `data-act="stash-set" data-item="${esc(item)}" data-town="${esc(town)}" aria-label="${T('How many at {town}', { town: esc(gameName(town)) })}"`)}
+		${fixed ? '' : `<button class="map-x" data-act="stash-del" data-item="${esc(item)}" data-town="${esc(town)}" aria-label="${T('Forget {town} — its count goes back to your bags', { town: esc(gameName(town)) })}">×</button>`}</span>
 	</div>`;
 	// A trade good is never in the bags: what no storage claims is
 	// aboard, so the fixed line is the ship's hold and the ship is not
 	// offered again as a storage.
 	const goods = kindOf(item) === 'goods';
-	const lines = line(goods ? "Ship's hold (aboard)" : 'Inventory (bags)', bags, true)
+	const lines = line(goods ? T("Ship's hold (aboard)") : T('Inventory (bags)'), bags, true)
 		+ Object.entries(stash).sort((a, b) => b[1] - a[1]).map(([town, n]) => line(town, n, false)).join('');
-	const options = TOWNS.filter(t => !(t in stash) && !(goods && t === store.ABOARD)).map(t => `<option>${esc(t)}</option>`).join('');
+	const options = TOWNS.filter(t => !(t in stash) && !(goods && t === store.ABOARD)).map(t => `<option value="${esc(t)}">${esc(gameName(t))}</option>`).join('');
 	return `<div class="detail-block">
-		<div class="detail-label">Where it is <span class="detail-note">· ${F(own)} in all</span></div>
+		<div class="detail-label">${T('Where it is')} <span class="detail-note">· ${T('{n} in all', { n: F(own) })}</span></div>
 		${lines}
-		<select class="field select where-add" data-act="stash-town" data-item="${esc(item)}" aria-label="Note a storage this is kept in"><option value="">+ a storage…</option>${options}</select>
+		<select class="field select where-add" data-act="stash-town" data-item="${esc(item)}" aria-label="${T('Note a storage this is kept in')}"><option value="">${T('+ a storage…')}</option>${options}</select>
 	</div>`;
 }
 
 function renderDetail() {
 	if (!selected) {
-		return '<p class="empty">Select an item to see who reserved it and where to get more.</p>';
+		return `<p class="empty">${T('Select an item to see who reserved it and where to get more.')}</p>`;
 	}
 
 	const item = selected;
@@ -298,9 +299,9 @@ function renderDetail() {
 	const most = canCraft ? maxCraftable(item, craftStock(item), recipes) : 0;
 
 	const resvHTML = holders.length ? `<div class="detail-block">
-		<div class="detail-label">Reserved by</div>
+		<div class="detail-label">${T('Reserved by')}</div>
 		${holders.map(h => `<div class="detail-line">
-			<span>${esc(h.via && h.via !== item ? `${h.targetItem}, via ${h.via}` : h.targetItem)}</span>
+			<span>${esc(h.via && h.via !== item ? T('{item}, via {via}', { item: gameName(h.targetItem), via: gameName(h.via) }) : gameName(h.targetItem))}</span>
 			<span class="n">${F(h.qty)}</span>
 		</div>`).join('')}
 	</div>` : '';
@@ -309,33 +310,33 @@ function renderDetail() {
 	const mode = store.getStrategy(item);
 	const crafting = mode !== 'buy';
 	const toggle = hasBuyOption(item) ? `<div class="detail-block">
-		<div class="detail-label">How you'll get it</div>
+		<div class="detail-label">${T('How you\'ll get it')}</div>
 		<div class="detail-actions">
-			<button class="act ${crafting ? '' : 'quiet'}" data-act="strategy" data-mode="craft">Craft it</button>
-			<button class="act ${crafting ? 'quiet' : ''}" data-act="strategy" data-mode="buy">Buy it</button>
+			<button class="act ${crafting ? '' : 'quiet'}" data-act="strategy" data-mode="craft">${T('Craft it')}</button>
+			<button class="act ${crafting ? 'quiet' : ''}" data-act="strategy" data-mode="buy">${T('Buy it')}</button>
 		</div>
 	</div>` : '';
 
 	return `<div class="detail-head">
 			${img(item, '')}
 			<div class="detail-name">${codexName(item)}</div>
-			<button class="detail-close" data-act="deselect" title="Close (Esc)" aria-label="Close">×</button>
+			<button class="detail-close" data-act="deselect" title="${T('Close (Esc)')}" aria-label="${T('Close')}">×</button>
 		</div>
 		${levelPicker(item)}
 		<div class="qty-row">
 			<button class="qty-btn" data-act="bump" data-delta="-10">−10</button>
 			<button class="qty-btn" data-act="bump" data-delta="-1">−</button>
-			${amountInput('qty-val', own, `data-act="own-set" data-item="${esc(item)}" aria-label="How many you own"`)}
+			${amountInput('qty-val', own, `data-act="own-set" data-item="${esc(item)}" aria-label="${T('How many you own')}"`)}
 			<button class="qty-btn" data-act="bump" data-delta="1">+</button>
 			<button class="qty-btn" data-act="bump" data-delta="10">+10</button>
 		</div>
-		<div class="qty-hint">Type the number straight in — 4k and 12,000 both work.</div>
+		<div class="qty-hint">${T('Type the number straight in — 4k and 12,000 both work.')}</div>
 		${moveLevelAction(item)}
 		${whereBlock(item, own)}
 		<div class="kv">
-			<div class="kv-row"><span>Reserved</span><span class="n blue">${F(reserved)}</span></div>
-			<div class="kv-row"><span>Free</span><span class="n teal">${F(free)}</span></div>
-			<div class="kv-row"><span>Still short</span><span class="n ${short > 0 ? 'red' : 'faint'}">${short > 0 ? F(short) : '—'}</span></div>
+			<div class="kv-row"><span>${T('Reserved')}</span><span class="n blue">${F(reserved)}</span></div>
+			<div class="kv-row"><span>${T('Free')}</span><span class="n teal">${F(free)}</span></div>
+			<div class="kv-row"><span>${T('Still short')}</span><span class="n ${short > 0 ? 'red' : 'faint'}">${short > 0 ? F(short) : '—'}</span></div>
 		</div>
 		${(() => {
 			const made = makeupHTML(item, 'ing-line');
@@ -344,25 +345,25 @@ function renderDetail() {
 			// offers the other -- the same dialog a build with two ways
 			// in uses.
 			const info = routes[item] && (routeInfo[item] || {})[routeOf(item, store.getAllStrategy())];
-			const which = info ? `<div class="detail-line"><span>${esc(info.label)}</span>
-				<button class="linky" data-act="ask-route" data-item="${esc(item)}">change</button></div>` : '';
+			const which = info ? `<div class="detail-line"><span>${esc(said(info.label))}</span>
+				<button class="linky" data-act="ask-route" data-item="${esc(item)}">${T('change')}</button></div>` : '';
 			return `<div class="detail-block">${made}${which}</div>`;
 		})()}
 		${fleetBlock(item, own)}
 		${resvHTML}
-		${block('Bartered for', barterHTML(item))}
-		${block('Paid by quests', questsPaid(item))}
+		${block(T('Bartered for'), barterHTML(item))}
+		${block(T('Paid by quests'), questsPaid(item))}
 		${src && src.key !== 'coin' && src.key !== 'falasi'
 			? `<div class="detail-src"><span>${esc(src.label)}</span><span>${esc(src.detail)}</span></div>`
 			: ''}
 		${waysBlock(item)}
-		${step ? '<button class="act quiet wide" data-act="view" data-id="workshop">Attempt it in the Workshop</button>' : ''}
+		${step ? `<button class="act quiet wide" data-act="view" data-id="workshop">${T('Attempt it in the Workshop')}</button>` : ''}
 		${toggle}
 		${canCraft ? `<div class="detail-actions">
-			<button class="act" data-act="craft" data-item="${esc(item)}" data-times="1" ${most < 1 ? 'disabled' : ''}>Craft 1</button>
-			<button class="act quiet" data-act="craft" data-item="${esc(item)}" data-times="${most}" ${most < 1 ? 'disabled' : ''}>Craft max (${F(most)})</button>
+			<button class="act" data-act="craft" data-item="${esc(item)}" data-times="1" ${most < 1 ? 'disabled' : ''}>${T('Craft 1')}</button>
+			<button class="act quiet" data-act="craft" data-item="${esc(item)}" data-times="${most}" ${most < 1 ? 'disabled' : ''}>${T('Craft max ({n})', { n: F(most) })}</button>
 		</div>` : ''}
-		${block('Where else it turns up', waysThrough(item, { from: 'inventory' }))}`;
+		${block(T('Where else it turns up'), waysThrough(item, { from: 'inventory' }))}`;
 }
 
 /**
@@ -376,19 +377,19 @@ function renderDetail() {
 function fleetBlock(item, own) {
 	if (!shipStats[item]) return '';
 	if (!(own > 0)) {
-		return `<div class="detail-note">Record one here and it joins your fleet on the Ship tab, where it can be fitted and sailed.</div>`;
+		return `<div class="detail-note">${T('Record one here and it joins your fleet on the Ship tab, where it can be fitted and sailed.')}</div>`;
 	}
 	const kept = listSetups().filter(s => s.ship === item).length;
 	const sailing = shipName() === item;
 	const line = sailing
-		? 'The ship you are sailing.'
+		? T('The ship you are sailing.')
 		: kept
-			? `In your fleet, with ${kept === 1 ? 'one setup' : `${kept} setups`} kept.`
-			: 'In your fleet. No setup kept for it yet.';
+			? (kept === 1 ? T('In your fleet, with one setup kept.') : T('In your fleet, with {n} setups kept.', { n: kept }))
+			: T('In your fleet. No setup kept for it yet.');
 	return `<div class="detail-block">
-		<div class="detail-label">Your fleet</div>
+		<div class="detail-label">${T('Your fleet')}</div>
 		<div class="detail-line"><span>${esc(line)}</span></div>
-		<button class="act quiet wide" data-act="view" data-id="crew">${sailing ? 'Open the Ship tab' : 'Fit it on the Ship tab'}</button>
+		<button class="act quiet wide" data-act="view" data-id="crew">${sailing ? T('Open the Ship tab') : T('Fit it on the Ship tab')}</button>
 	</div>`;
 }
 
@@ -402,10 +403,10 @@ function questsPaid(item) {
 	const pays = questsPaying(item);
 	if (!pays.length) return '';
 	return pays.slice(0, 5).map(q => `<div class="detail-line">
-			<span>${esc(q.name)}</span>
+			<span>${esc(gameName(q.name))}</span>
 			<span class="n">${F(Number(q.rewards[item]) || Number((q.choice || []).map(c => c[item]).find(Boolean)) || 0)}</span>
 		</div>`).join('')
-		+ (pays.length > 5 ? `<div class="detail-note">and ${pays.length - 5} more</div>` : '');
+		+ (pays.length > 5 ? `<div class="detail-note">${T('and {n} more', { n: pays.length - 5 })}</div>` : '');
 }
 
 /**
@@ -426,15 +427,15 @@ function levelPicker(item) {
 		const need = rows[name] ? rows[name].need : 0;
 		return `<button class="lvl ${level === here ? 'on' : ''} ${qty ? 'has' : ''} ${need ? 'wanted' : ''}"
 			data-act="select" data-item="${esc(name)}"
-			title="${esc(name)}${need ? ` — a build needs ${F(need)}` : ''}">
+			title="${esc(gameName(name))}${need ? ` ${T('— a build needs {n}', { n: F(need) })}` : ''}">
 			+${level}${qty ? `<span class="lvl-n">${F(qty)}</span>` : ''}
 		</button>`;
 	}).join('');
 
 	return `<div class="detail-block">
-		<div class="detail-label">Which level do you have?</div>
+		<div class="detail-label">${T('Which level do you have?')}</div>
 		<div class="lvl-strip">${chips}</div>
-		<div class="detail-note">Recording a level here costs nothing. The Workshop is for attempts you are really making.</div>
+		<div class="detail-note">${T('Recording a level here costs nothing. The Workshop is for attempts you are really making.')}</div>
 	</div>`;
 }
 
@@ -455,6 +456,6 @@ function moveLevelAction(item) {
 	if (!from) return '';
 
 	return `<button class="act quiet wide" data-act="move-level" data-from="${esc(from)}" data-to="${esc(item)}">
-		Move one from +${parseEnhanced(from).level} to +${level}
+		${T('Move one from +{from} to +{to}', { from: parseEnhanced(from).level, to: level })}
 	</button>`;
 }

@@ -144,6 +144,35 @@ the Workshop, the shopping list, and in the ingredient lists inside the
 detail panel. Enhancement levels link to the base item, which is where
 the level table lives.
 
+### Read it in your own language
+
+**Menu → Language** offers the same sixteen BDOCodex does — US English,
+Deutsch, Français, Русский, Español (NA/EU), Español (SA), Português,
+日本語, 한국어, 中文, 繁體中文, ภาษาไทย, Türkçe, Basa Indonesia, SEA
+English and Global Lab — and one choice moves both halves of the screen:
+the app's own words, and the database its look-ups open in.
+
+The two halves come from different places. The app's words are ours, and
+live in `js/lang/<code>.json` keyed by the English sentence itself, so an
+untranslated line falls back to the English that was already there rather
+than to a blank or a key. The game's words — every item, ship, part,
+quest, sailor, barterer and harbour — are not ours to write: they are
+whatever your client prints, pulled from BDOCodex per language by
+`tools/fetch-names.mjs` into `js/lang/names.<code>.json`.
+
+**The English name stays the key.** A save, a share link, a saved route
+and a recipe are all written in English names, on every language, so a
+route planned in Korean opens in German and a shared build reads the same
+on both. Only the pixels change.
+
+Three of the sixteen — Basa Indonesia, SEA English and Global Lab — are
+English databases on BDOCodex, so they draw the English interface and
+differ only in where a look-up lands, which is what a player on those
+servers wants.
+
+Japanese, Korean, Chinese and Thai pull the matching Noto face when they
+are chosen, and only then.
+
 ### See who reserved what
 
 Every material shows how much is spoken for by a build and how much is
@@ -942,6 +971,12 @@ js/
   peek.js             the hover card
   dialogs.js          toasts and dialogs
   fmt.js              escaping and number formats
+  i18n.js             the sixteen languages: T() for the app's own words,
+                      gameName() for the game's, and nothing imported so
+                      a tool can use it in Node
+  lang/en.json        the English catalogue, generated from the T() calls
+  lang/<code>.json    one interface pack per language
+  lang/names.<code>.json  the game's own item and ship names, per language
   state.js            the store: stock, targets, undo/redo, persistence
   planner.js          pure planning — netting, explosion, costing, enhancement
   sync.js             optional device sync: pull, push, conflict
@@ -973,6 +1008,9 @@ js/
   gamefile.js         writing stops into the game's own world map
   market.js           Central Market prices, per region, kept offline
 tools/check-env.mjs   npm run check -- validates a sync configuration
+tools/build-lang.mjs  reads every T() call into js/lang/en.json, and checks
+                      each pack for dead keys and lost {placeholders}
+tools/fetch-names.mjs the game's own names per language, from BDOCodex
 server/               only loaded when sync is configured
   config.js           what is switched on, and what is therefore offered
   db.js               libSQL schema and queries

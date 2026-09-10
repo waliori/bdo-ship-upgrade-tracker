@@ -9,6 +9,7 @@
 // lets a player who has timed a leg replace it with their own -- one
 // timed leg calibrates every other.
 
+import { T } from './i18n.js';
 import { shipStats } from './ship_stats.js';
 import { loadout } from './part_stats.js';
 import { families } from './enhancement.js';
@@ -101,9 +102,9 @@ export function sailRange(metres, pct, cal = DEFAULT_CAL, measured = false) {
 export function fmtRange(fast, slow) {
 	if (!Number.isFinite(fast) || !Number.isFinite(slow)) return '';
 	const a = Math.round(fast / 60), b = Math.round(slow / 60);
-	if (b < 1) return 'under a minute';
+	if (b < 1) return T('under a minute');
 	if (a === b) return fmtDuration(slow);
-	if (b < 60) return `${Math.max(1, a)}–${b} min`;
+	if (b < 60) return T('{a}–{b} min', { a: Math.max(1, a), b });
 	return `${fmtDuration(fast)} – ${fmtDuration(slow)}`;
 }
 
@@ -121,13 +122,13 @@ export function calibrate(metres, seconds, pct) {
 
 export function fmtDistance(m) {
 	if (!(m >= 0)) return '';
-	return m < 950 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(m < 9950 ? 1 : 0)} km`;
+	return m < 950 ? T('{n} m', { n: Math.round(m / 10) * 10 }) : T('{n} km', { n: (m / 1000).toFixed(m < 9950 ? 1 : 0) });
 }
 
 export function fmtDuration(s) {
 	if (!Number.isFinite(s) || s < 0) return '';
 	const min = Math.round(s / 60);
-	if (min < 1) return 'under a minute';
-	if (min < 60) return `${min} min`;
-	return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
+	if (min < 1) return T('under a minute');
+	if (min < 60) return T('{n} min', { n: min });
+	return T('{h} h {m} min', { h: Math.floor(min / 60), m: String(min % 60).padStart(2, '0') });
 }

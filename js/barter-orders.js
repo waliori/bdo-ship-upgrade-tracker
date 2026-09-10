@@ -12,6 +12,7 @@
 // profile-shape.js the same way the stash is.
 
 import { GOODS, levelOf } from './barter.js';
+import { TT } from './i18n.js';
 
 /** One normal trade's Parley at Beginner 1: the guide's "barter
  *  unit", which every silver-per-Parley figure is quoted in. */
@@ -26,13 +27,13 @@ export const PARLEY_UNIT = 14286;
  */
 export const PRESETS = [
 	{
-		id: 'cash', label: 'Cash out today',
-		sub: 'the most silver at the wharf tonight, with what is aboard and at the harbour',
+		id: 'cash', label: TT('Cash out today'),
+		sub: TT('the most silver at the wharf tonight, with what is aboard and at the harbour'),
 		orders: { sell: 5, floors: {}, buy: true, pace: 'fast' }
 	},
 	{
-		id: 'stock', label: 'Build the stocks',
-		sub: 'finish every island, sell the top, keep a floor of every level for tomorrow’s board',
+		id: 'stock', label: TT('Build the stocks'),
+		sub: TT('finish every island, sell the top, keep a floor of every level for tomorrow’s board'),
 		orders: { sell: 7, floors: { 1: 10, 2: 30, 3: 30, 4: 40, 5: 4 }, buy: true, pace: 'full' }
 	}
 ];
@@ -47,15 +48,15 @@ export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, hours: 0, 
  *  taker a short way off the route; or those and the hunts too, when
  *  their grounds lie on the way. */
 export const QUEST_CHOICES = [
-	['no', 'none', 'No quests on the run'],
-	['near', 'on the way', 'Handed in only where the run passes a taker anyway; no stop put in'],
-	['yes', 'short way round', 'A stop put in for a taker a short way off the route'],
-	['hunts', 'and the hunts', 'Those, and a hunt at a stop of its own on its grounds when they lie on the way']
+	['no', TT('none'), TT('No quests on the run')],
+	['near', TT('on the way'), TT('Handed in only where the run passes a taker anyway; no stop put in')],
+	['yes', TT('short way round'), TT('A stop put in for a taker a short way off the route')],
+	['hunts', TT('and the hunts'), TT('Those, and a hunt at a stop of its own on its grounds when they lie on the way')]
 ];
 
 export const WAY_CHOICES = [
-	['sea', 'shortest way', 'Every chain climbed at once: one route through every rung, the nearest islands first whatever chain they belong to'],
-	['chain', 'chain by chain', 'Each chain climbed to its top before the next']
+	['sea', TT('shortest way'), TT('Every chain climbed at once: one route through every rung, the nearest islands first whatever chain they belong to')],
+	['chain', TT('chain by chain'), TT('Each chain climbed to its top before the next')]
 ];
 
 /** The orders a run has when none are given: the [Level 7]s sold and
@@ -65,20 +66,20 @@ export const PLAIN_ORDERS = { preset: 'cash', sell: 7, floors: {}, buy: true, pa
 
 /** How an exchange that pays a range is counted. */
 export const COUNT_CHOICES = [
-	['least', 'at the least', 'A 2-3 counts as 2'],
-	['average', 'at the average', 'A 2-3 counts as 2.5'],
-	['seen', 'as seen', 'As your own runs recorded it']
+	['least', TT('at the least'), TT('A 2-3 counts as 2')],
+	['average', TT('at the average'), TT('A 2-3 counts as 2.5')],
+	['seen', TT('as seen'), TT('As your own runs recorded it')]
 ];
 
 /** The caps on time under way a sailor can set, in hours; 0 is none. */
-export const HOUR_CHOICES = [[0, 'no limit'], [1, 'an hour'], [2, 'two hours'], [3, 'three hours'], [4, 'four hours'], [6, 'six hours']];
+export const HOUR_CHOICES = [[0, TT('no limit')], [1, TT('an hour')], [2, TT('two hours')], [3, TT('three hours')], [4, TT('four hours')], [6, TT('six hours')]];
 
 /** The choices a sailor can make for what a wharf sells. */
 export const SELL_CHOICES = [
-	[7, '[Level 7] only'],
-	[6, 'Level 6 and up'],
-	[5, 'Level 5 and up'],
-	[3, 'everything that pays']
+	[7, TT('[Level 7] only')],
+	[6, TT('Level 6 and up')],
+	[5, TT('Level 5 and up')],
+	[3, TT('everything that pays')]
 ];
 
 /**

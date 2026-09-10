@@ -13,6 +13,7 @@
 // out. Distances are straight lines stretched a quarter for the land,
 // as on the chain rows; the run itself bends its legs round the coast.
 
+import { T } from './i18n.js';
 import { chainRun } from './barter-chains.js';
 import { yardsticks } from './barter-orders.js';
 import { levelOf } from './barter.js';
@@ -124,9 +125,9 @@ export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width
 		return score(s) > 0 ? { kind, label, ...s } : null;
 	};
 	const cands = [
-		pick('silver', 'The most silver', s => s.value),
-		pick('hour', 'The most an hour', s => (s.hours > 0 ? s.value / s.hours : 0)),
-		pick('parley', 'The most a Parley unit', s => s.yard.perUnit)
+		pick('silver', T('The most silver'), s => s.value),
+		pick('hour', T('The most an hour'), s => (s.hours > 0 ? s.value / s.hours : 0)),
+		pick('parley', T('The most a Parley unit'), s => s.yard.perUnit)
 	].filter(Boolean);
 	// Three that differ: a set already proposed under another name is
 	// not proposed twice.

@@ -2,6 +2,7 @@
 // sits in the shell above the tabs instead of belonging to one screen.
 
 import { esc, F, FC } from './fmt.js';
+import { T, gameName } from './i18n.js';
 import * as store from './state.js';
 import { img } from './ui-bits.js';
 import { rows, totalsToGo, CROW_COIN, SILVER, SANGPYEONG, STONES } from './ui-state.js';
@@ -20,8 +21,8 @@ export function pouchHTML() {
 	const totals = totalsToGo();
 
 	const entries = [
-		{ item: CROW_COIN, label: 'Crow Coins', need: totals.coins, where: "Crow Coin Shop, Oquilla's Eye" },
-		{ item: SILVER, label: 'Silver', need: totals.silver, where: 'Falasi, port of Epheria', glyph: '\u25C9' }
+		{ item: CROW_COIN, label: T('Crow Coins'), need: totals.coins, where: T("Crow Coin Shop, Oquilla's Eye") },
+		{ item: SILVER, label: T('Silver'), need: totals.silver, where: T('Falasi, port of Epheria'), glyph: '\u25C9' }
 	];
 
 	// Coins and stones are earned or dropped, not priced, so they join the
@@ -32,8 +33,8 @@ export function pouchHTML() {
 		return { item, label, need, where };
 	};
 
-	const optional = [carried(SANGPYEONG, 'Sangpyeong Coins', 'Moodle Village dailies')];
-	STONES.forEach(item => optional.push(carried(item, item, 'spent on enhancement attempts')));
+	const optional = [carried(SANGPYEONG, T('Sangpyeong Coins'), T('Moodle Village dailies'))];
+	STONES.forEach(item => optional.push(carried(item, item, T('spent on enhancement attempts'))));
 
 	optional
 		.filter(e => e.need > 0 || store.getStock(e.item) > 0)
@@ -45,23 +46,23 @@ export function pouchHTML() {
 		const short = Math.max(0, e.need - held);
 		const state = !e.need ? 'idle' : short ? 'short' : 'ok';
 		const sub = !e.need
-			? 'none needed yet'
+			? T('none needed yet')
 			: short
-				? `${FC(short)} short of ${FC(e.need)}`
-				: `enough for all ${FC(e.need)}`;
-		return `<label class="pouch-item ${state}" title="${esc(e.item)} \u2014 ${esc(e.where)}">
+				? T('{short} short of {need}', { short: FC(short), need: FC(e.need) })
+				: T('enough for all {need}', { need: FC(e.need) });
+		return `<label class="pouch-item ${state}" title="${esc(gameName(e.item))} \u2014 ${esc(e.where)}">
 			${e.glyph ? `<span class="pouch-glyph" aria-hidden="true">${e.glyph}</span>` : img(e.item, 'pouch-icon')}
 			<span class="pouch-body">
-				<span class="pouch-k">${esc(e.label)}</span>
+				<span class="pouch-k">${esc(gameName(e.label))}</span>
 				<input class="pouch-input" type="text" inputmode="numeric" value="${FC(held)}"
 					data-act="purse" data-item="${esc(e.item)}" data-exact="${held}" title="${F(held)}"
-					aria-label="${esc(e.label)} you hold">
+					aria-label="${T('{name} you hold', { name: esc(gameName(e.label)) })}">
 				<span class="pouch-need">${esc(sub)}</span>
 			</span>
 		</label>`;
 	}).join('');
 
-	return `<span class="pouch-title">Carrying</span><div class="pouch-list">${chips}</div>`;
+	return `<span class="pouch-title">${T('Carrying')}</span><div class="pouch-list">${chips}</div>`;
 }
 
 /**

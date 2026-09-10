@@ -44,6 +44,8 @@
 // trip costs if the game offers you what you need -- and the UI says
 // "at best" out loud rather than implying a precision it lacks.
 
+import { T, gameName } from './i18n.js';
+
 /* ------------------------------------------------------------------ *
  * the game's numbers
  * ------------------------------------------------------------------ */
@@ -734,15 +736,16 @@ export function forecast(item, qty, barterData, opts = {}) {
 export function summarise(f) {
 	if (!f) return '';
 	if (f.gate) {
-		return `locked — ${fmt(f.gate.short)} more barters to reach ${fmt(f.gate.barters)}`;
+		return T('locked — {n} more barters to reach {total}', { n: fmt(f.gate.short), total: fmt(f.gate.barters) });
 	}
 
-	const trades = `${fmt(Math.ceil(f.trades))} ${Math.ceil(f.trades) === 1 ? 'trade' : 'trades'}`;
-	if (f.days < 0.5) return `${trades} — one sitting`;
+	const count = Math.ceil(f.trades);
+	const trades = count === 1 ? T('{n} trade', { n: fmt(count) }) : T('{n} trades', { n: fmt(count) });
+	if (f.days < 0.5) return T('{trades} — one sitting', { trades });
 
 	const days = Math.ceil(f.days);
-	if (days <= 1) return `${trades} — a day's sailing at best`;
-	return `${trades} — ${fmt(days)} days at best`;
+	if (days <= 1) return T('{trades} — a day\'s sailing at best', { trades });
+	return T('{trades} — {n} days at best', { trades, n: fmt(days) });
 }
 
 /** Why the forecast lands where it does, for the row that wants detail. */
@@ -752,8 +755,9 @@ export function explain(f) {
 	// Naming the rung is only worth the words when it is not the thing
 	// you asked for -- being told that Brilliant Pearl Shards are
 	// limited by Brilliant Pearl Shards teaches nobody anything.
-	const where = f.limit.item === f.item ? '' : ` on ${f.limit.item}`;
-	return `${fmt(f.limit.perRefresh)} a refresh${where}, ${f.capacity.lists[f.limit.list]} refreshes of its list a day`;
+	return f.limit.item === f.item
+		? T('{n} a refresh, {lists} refreshes of its list a day', { n: fmt(f.limit.perRefresh), lists: f.capacity.lists[f.limit.list] })
+		: T('{n} a refresh on {item}, {lists} refreshes of its list a day', { n: fmt(f.limit.perRefresh), item: gameName(f.limit.item), lists: f.capacity.lists[f.limit.list] });
 }
 
 function fmt(n) {

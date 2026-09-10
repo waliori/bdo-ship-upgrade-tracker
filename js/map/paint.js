@@ -6,6 +6,7 @@ import { sailFor } from '../screen-barter.js';
 import { courseById } from '../courses.js';
 import { monsters, monsterByKey } from '../sea_monsters.js';
 import { esc, F, FC } from '../fmt.js';
+import { T, gameName } from '../i18n.js';
 import { img } from '../ui-bits.js';
 import { frame, pan, zoomAt, clampView, fitTo, routePath, project, placeTile, zoomRange, levelFor, tilesFor } from '../map.js';
 import { npcs, npcById, ports, TILE } from '../barter_npcs.js';
@@ -385,7 +386,7 @@ function paintPins(layer, pins, marks, currentId, nums = new Map()) {
 		// text node re-laid, and eighty islands over a busy corner of
 		// the Ross Sea -- the hekaru's and the ocean stalker's water --
 		// re-laid three lines each per frame was the stutter there.
-		const title = m ? `${isle} (${p.name}) — ${what.join(', ')}` : `${isle} (${p.name})`;
+		const title = m ? `${gameName(isle)} (${gameName(p.name)}) — ${what.map(w => gameName(w)).join(', ')}` : `${gameName(isle)} (${gameName(p.name)})`;
 		if (btn.title !== title) btn.title = title;
 		// z-index rather than DOM order does what the wanted-last sort in
 		// frame() used to: a lit pin paints over a plain one.
@@ -396,11 +397,12 @@ function paintPins(layer, pins, marks, currentId, nums = new Map()) {
 		const mark = stopAt >= 0 ? String(nums.get(p.id) || stopAt + 1) : visited && m ? '✓' : '';
 		if (badge.textContent !== mark) badge.textContent = mark;
 		badge.classList.toggle('is-done', stopAt < 0 && visited);
-		const npcText = isle.replace(/ Islands?$/, '') + (m && what.length > 1 ? ` ·${what.length}` : '');
+		const npcText = gameName(isle.replace(/ Islands?$/, '')) + (m && what.length > 1 ? ` ·${what.length}` : '');
 		const npcEl = btn.querySelector('.map-pin-npc');
 		if (npcEl.textContent !== npcText) npcEl.textContent = npcText;
 		const atEl = btn.querySelector('.map-pin-at');
-		if (atEl.textContent !== p.name) atEl.textContent = p.name;
+		const atText = gameName(p.name);
+		if (atEl.textContent !== atText) atEl.textContent = atText;
 	}
 	for (const [id, btn] of pool) {
 		if (!live.has(id)) {
@@ -616,9 +618,9 @@ function paintCourse(layer, size) {
 			if (!p.name) continue;
 			const at = project(mv.mapState, size, p.x, p.y);
 			if (at.left < -80 || at.top < -40 || at.left > size.w + 80 || at.top > size.h + 40) continue;
-			html += `<span class="map-waypoint${p.stop ? ' stop' : ''}" title="${esc(p.name)}"
+			html += `<span class="map-waypoint${p.stop ? ' stop' : ''}" title="${esc(gameName(p.name))}"
 				style="left:${Math.round(at.left)}px;top:${Math.round(at.top)}px">
-				<span class="map-waypoint-dot"></span><span class="map-waypoint-name">${esc(p.name)}</span></span>`;
+				<span class="map-waypoint-dot"></span><span class="map-waypoint-name">${esc(gameName(p.name))}</span></span>`;
 		}
 	}
 	box.innerHTML = html;
@@ -786,9 +788,9 @@ function paintPorts(layer, size) {
 			el.className = 'map-port';
 			el.dataset.act = 'map-port';
 			el.dataset.port = p.id;
-			el.title = `Sail the route from ${p.name}`;
+			el.title = T('Sail the route from {name}', { name: gameName(p.name) });
 			el.innerHTML = '<span class="map-port-dot"></span><span class="map-port-name"></span>';
-			el.querySelector('.map-port-name').textContent = p.name;
+			el.querySelector('.map-port-name').textContent = gameName(p.name);
 			pool.set(p.id, el);
 			layer.appendChild(el);
 		}
@@ -872,14 +874,16 @@ function paintHabitats(layer, size) {
 				el.dataset.id = keys.join(',');
 				const subs = g.members.map(m => m.sub.replace(/ · about here$/, ''));
 				el.title = many
-					? `${subs.join(' · ')} — click to show or hide their spawn points`
-					: `${lead.sub} — ${lead.n} spawn point${lead.n === 1 ? '' : 's'} here · click to show or hide them`;
+					? T('{who} — click to show or hide their spawn points', { who: subs.join(' · ') })
+					: lead.n === 1
+						? T('{who} — {n} spawn point here · click to show or hide them', { who: lead.sub, n: lead.n })
+						: T('{who} — {n} spawn points here · click to show or hide them', { who: lead.sub, n: lead.n });
 				const pic = lead.art
 					? `<img class="map-habitat-pic" src="icons/${lead.art}" alt="">`
 					: `<span class="map-habitat-glyph" style="border-color:${lead.colour};color:${lead.colour}">${lead.kind === 'ship' ? '⛵' : '◎'}</span>`;
 				const badge = many ? `<span class="map-habitat-count">${g.members.length}</span>` : '';
 				el.innerHTML = `<span class="map-habitat-art">${pic}${badge}</span>`
-					+ `<span class="map-habitat-name">${esc(many ? `${g.members.length} habitats` : lead.name)}</span>`
+					+ `<span class="map-habitat-name">${esc(many ? T('{n} habitats', { n: g.members.length }) : lead.name)}</span>`
 					+ `<span class="map-habitat-sub">${esc(many ? [...new Set(subs)].join(', ') : lead.sub)}</span>`;
 				pool.set(key, el);
 				layer.appendChild(el);
@@ -960,20 +964,21 @@ function paintLabels(layer, size) {
 			- ((b.at.left - mid.x) ** 2 + (b.at.top - mid.y) ** 2));
 
 	for (const { l, at } of placed) {
+		const shown = gameName(l.name);
 		let el = pool.get(l.name);
-		const off = !show || spoken.has(l.name.toLowerCase())
+		const off = !show || spoken.has(shown.toLowerCase())
 			|| at.left < -80 || at.top < -30 || at.left > size.w + 80 || at.top > size.h + 30;
 		if (off) { if (el) el.hidden = true; continue; }
 		// The label sits 18px below the point, which is where it has to
 		// be measured for a collision to mean anything.
-		const box = clear(at.left, at.top + 18, l.name);
+		const box = clear(at.left, at.top + 18, shown);
 		if (!box) { if (el) el.hidden = true; continue; }
 		taken.push(box);
 		if (!el) {
 			el = document.createElement('span');
 			el.className = 'map-label';
 			el.dataset.name = l.name;
-			el.textContent = l.name;
+			el.textContent = shown;
 			pool.set(l.name, el);
 			layer.appendChild(el);
 		}
@@ -1006,9 +1011,9 @@ function paintWharves(layer, size) {
 			el = document.createElement('div');
 			el.className = `map-wharf ${w.kind}`;
 			el.dataset.i = i;
-			el.title = `${w.name}${w.at ? ` — ${w.at}` : ''} — ${w.kind === 'guild' ? 'guild wharf manager' : 'wharf manager: repair, rations, sailors'}`;
+			el.title = `${gameName(w.name)}${w.at ? ` — ${gameName(w.at)}` : ''} — ${w.kind === 'guild' ? T('guild wharf manager') : T('wharf manager: repair, rations, sailors')}`;
 			el.innerHTML = '<span class="map-wharf-dot">⚓</span><span class="map-wharf-name"></span>';
-			el.querySelector('.map-wharf-name').textContent = w.name;
+			el.querySelector('.map-wharf-name').textContent = gameName(w.name);
 			pool.set(i, el);
 			layer.appendChild(el);
 		}
@@ -1077,19 +1082,19 @@ function paintStash(layer, size, seq, current) {
 		el.hidden = off;
 		if (off) continue;
 		const stops = g.calls.map(s => s.n);
-		el.title = `${g.name}, ${g.at} wharf — ${g.calls.length > 1
-			? `${g.calls.length} calls on this run, at stops ${stops.join(', ')}`
-			: `stop ${stops[0]}: ${g.calls[0].place.drops.length
-				? `leaves ${g.calls[0].place.drops.map(d => `${n1(d.n)}× ${d.item}`).join(', ')} in storage`
-				: g.calls[0].place.sale ? 'sells the goods aboard' : 'a call at the wharf'}`}`;
+		el.title = T('{who}, {at} wharf — {what}', { who: gameName(g.name), at: gameName(g.at), what: g.calls.length > 1
+			? T('{n} calls on this run, at stops {stops}', { n: g.calls.length, stops: stops.join(', ') })
+			: T('stop {n}: {what}', { n: stops[0], what: g.calls[0].place.drops.length
+				? T('leaves {goods} in storage', { goods: g.calls[0].place.drops.map(d => `${n1(d.n)}× ${gameName(d.item)}`).join(', ') })
+				: g.calls[0].place.sale ? T('sells the goods aboard') : T('a call at the wharf') }) });
 		el.classList.toggle('current', g.calls.includes(current));
 		el.classList.toggle('many', g.calls.length > 1);
 		el.style.transform = `translate(${Math.round(at.left)}px, ${Math.round(at.top)}px)`;
 		el.querySelector('.map-stash-badge').textContent = g.calls.length > 1 ? `${g.calls.length}×` : String(stops[0]);
-		el.querySelector('.map-stash-who').textContent = g.name;
+		el.querySelector('.map-stash-who').textContent = gameName(g.name);
 		el.querySelector('.map-stash-at').textContent = g.calls.length > 1
-			? `${g.at} · storage, ${g.calls.length} calls`
-			: `${g.at} · storage`;
+			? T('{at} · storage, {n} calls', { at: gameName(g.at), n: g.calls.length })
+			: T('{at} · storage', { at: gameName(g.at) });
 	}
 	for (const [k, el] of pool) {
 		if (!live.has(k)) { el.remove(); pool.delete(k); }
@@ -1107,14 +1112,14 @@ function paintSteps(host, seq) {
 	if (el._sig === sig) return;
 	el._sig = sig;
 	el.hidden = false;
-	el.innerHTML = `<button class="map-step-nav" data-act="map-step-prev" aria-label="Previous stop">‹</button>
+	el.innerHTML = `<button class="map-step-nav" data-act="map-step-prev" aria-label="${T('Previous stop')}">‹</button>
 		<div class="map-step-chips">${seq.map((s, i) =>
 			`<button class="map-step-chip${i === mv.stepIdx ? ' on' : ''}${s.kind === 'stash' ? ' stash' : ''}" data-act="map-step" data-i="${i}"
-				title="${esc(s.place.at)} · ${esc(s.place.name)}${s.kind === 'stash' ? ' — a wharf call' : ''}">${i + 1}</button>`).join('')}</div>
-		<button class="map-step-nav" data-act="map-step-next" aria-label="Next stop">›</button>
-		<span class="map-step-name">${esc(cur.place.at)}${cur.kind === 'stash' ? ' wharf' : ''} · ${esc(cur.place.name)}</span>
-		<button class="map-step-follow${mv.follow ? ' on' : ''}" data-act="map-follow">follow</button>
-		<button class="map-step-follow${mv.nextOnly ? ' on' : ''}" data-act="map-next-only" title="Draw the route faint but for the leg into this stop">next leg</button>`;
+				title="${esc(gameName(s.place.at))} · ${esc(gameName(s.place.name))}${s.kind === 'stash' ? ` — ${T('a wharf call')}` : ''}">${i + 1}</button>`).join('')}</div>
+		<button class="map-step-nav" data-act="map-step-next" aria-label="${T('Next stop')}">›</button>
+		<span class="map-step-name">${cur.kind === 'stash' ? T('{at} wharf', { at: esc(gameName(cur.place.at)) }) : esc(gameName(cur.place.at))} · ${esc(gameName(cur.place.name))}</span>
+		<button class="map-step-follow${mv.follow ? ' on' : ''}" data-act="map-follow">${T('follow')}</button>
+		<button class="map-step-follow${mv.nextOnly ? ' on' : ''}" data-act="map-next-only" title="${T('Draw the route faint but for the leg into this stop')}">${T('next leg')}</button>`;
 	const on = el.querySelector('.map-step-chip.on');
 	if (on) on.scrollIntoView({ block: 'nearest', inline: 'center' });
 }
@@ -1130,15 +1135,15 @@ function runTip(t, id) {
 	// sailed: what it paid, and done -- the same marks as on the tab.
 	const on = id ? sailFor(id) : null;
 	const check = on ? `<div class="run-check map-tip-check">
-		${on.options.length ? `<span class="run-paid"><span>paid</span>${on.options.map(n => `<button class="chip pay${on.paid === n ? ' active' : ''}" data-act="barter-paid" data-map="1" data-npc="${id}" data-n="${n}">${n}</button>`).join('')}</span>` : ''}
-		<button class="run-done${on.done ? ' on' : ''}" data-act="barter-stop-done" data-map="1" data-k="n${id}" aria-pressed="${on.done}"><i>${on.done ? '✓' : ''}</i>${on.done ? 'Done' : 'Traded here'}</button>
+		${on.options.length ? `<span class="run-paid"><span>${T('paid')}</span>${on.options.map(n => `<button class="chip pay${on.paid === n ? ' active' : ''}" data-act="barter-paid" data-map="1" data-npc="${id}" data-n="${n}">${n}</button>`).join('')}</span>` : ''}
+		<button class="run-done${on.done ? ' on' : ''}" data-act="barter-stop-done" data-map="1" data-k="n${id}" aria-pressed="${on.done}"><i>${on.done ? '✓' : ''}</i>${on.done ? T('Done') : T('Traded here')}</button>
 	</div>` : '';
 	return `<div class="map-tip-run">
-		<span class="map-tip-k">The run${on ? ' · being sailed' : ''}</span>
+		<span class="map-tip-k">${T('The run')}${on ? ` · ${T('being sailed')}` : ''}</span>
 		<div class="map-tip-row">
-			<span class="map-tip-side" data-peek="${esc(t.give)}"><span class="map-io minus">${img(t.give, 'map-icon')}</span><span>${esc(t.giveText)}× ${esc(t.give)}</span></span>
+			<span class="map-tip-side" data-peek="${esc(t.give)}"><span class="map-io minus">${img(t.give, 'map-icon')}</span><span>${esc(t.giveText)}× ${esc(gameName(t.give))}</span></span>
 			<span class="map-tip-arrow">→</span>
-			<span class="map-tip-side get" data-peek="${esc(t.item)}"><span class="map-io plus">${img(t.item, 'map-icon')}</span><span>${esc(on && on.paid ? String(on.paid) : t.recvText)}× ${esc(t.item)}</span></span>
+			<span class="map-tip-side get" data-peek="${esc(t.item)}"><span class="map-io plus">${img(t.item, 'map-icon')}</span><span>${esc(on && on.paid ? String(on.paid) : t.recvText)}× ${esc(gameName(t.item))}</span></span>
 			<span class="map-tip-tries">${t.times > 1 ? `×${t.times}` : ''}</span>
 		</div>
 		${check}
@@ -1160,22 +1165,22 @@ function paintStashTip(host, tip, size, g, pinned) {
 		const visit = s => {
 			const c = s.place;
 			const rows = c.drops.map(d => `<div class="map-tip-row">
-				<span class="map-tip-side ashore" data-peek="${esc(d.item)}"><span class="map-io ashore">${img(d.item, 'map-icon')}</span><span>${esc(d.item)}</span></span>
+				<span class="map-tip-side ashore" data-peek="${esc(d.item)}"><span class="map-io ashore">${img(d.item, 'map-icon')}</span><span>${esc(gameName(d.item))}</span></span>
 				<span class="map-tip-tries">${n1(d.n)}×</span>
 			</div>`).join('');
-			const questRows = (c.quests || []).map(q => `<div class="map-tip-sub quest">📜 ${esc(q)}</div>`).join('');
+			const questRows = (c.quests || []).map(q => `<div class="map-tip-sub quest">📜 ${esc(gameName(q))}</div>`).join('');
 			return `<div class="map-tip-call">
-				<div class="map-tip-call-head"><span class="map-tip-k stash">Stop ${s.n}</span>${c.sale ? `<span class="map-tip-sub sell">sells ${n1(c.sale)} [Level 7]${c.silver ? ` for ${FC(c.silver)}` : ''}</span>` : ''}</div>
+				<div class="map-tip-call-head"><span class="map-tip-k stash">${T('Stop {n}', { n: s.n })}</span>${c.sale ? `<span class="map-tip-sub sell">${c.silver ? T('sells {n} [Level 7] for {silver}', { n: n1(c.sale), silver: FC(c.silver) }) : T('sells {n} [Level 7]', { n: n1(c.sale) })}</span>` : ''}</div>
 				${questRows}
-				${c.rations ? '<div class="map-tip-sub">🍞 rations bought here — the pool is full again</div>' : ''}
-				${rows ? `<div class="map-tip-sub ashore-k">leaves in storage</div><div class="map-tip-drops">${rows}</div>` : (c.sale || questRows || c.rations ? '' : '<div class="map-tip-sub none">Nothing left ashore this time.</div>')}
+				${c.rations ? `<div class="map-tip-sub">🍞 ${T('rations bought here — the pool is full again')}</div>` : ''}
+				${rows ? `<div class="map-tip-sub ashore-k">${T('leaves in storage')}</div><div class="map-tip-drops">${rows}</div>` : (c.sale || questRows || c.rations ? '' : `<div class="map-tip-sub none">${T('Nothing left ashore this time.')}</div>`)}
 			</div>`;
 		};
-		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">⚓ ${esc(g.name)}</span>
-			${pinned ? '<button class="map-x" data-act="map-tip-close" aria-label="Close">×</button>' : ''}</div>
-			<div class="map-tip-sub">${esc(g.at)} wharf · ${g.calls.length > 1
-				? `the run calls ${g.calls.length} times`
-				: 'a pause, not a barter'}</div>
+		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">⚓ ${esc(gameName(g.name))}</span>
+			${pinned ? `<button class="map-x" data-act="map-tip-close" aria-label="${T('Close')}">×</button>` : ''}</div>
+			<div class="map-tip-sub">${T('{at} wharf', { at: esc(gameName(g.at)) })} · ${g.calls.length > 1
+				? T('the run calls {n} times', { n: g.calls.length })
+				: T('a pause, not a barter')}</div>
 			<div class="map-tip-calls">${g.calls.map(visit).join('')}</div>`;
 	}
 	tip.classList.add('stash');
@@ -1228,11 +1233,11 @@ function paintTip(host, size, marks) {
 		const trades = m ? goodsOf(id).filter(g => m.items.has(g.item)) : [];
 		const qty = q => (q && q !== '1' ? `${q}× ` : '');
 		const rows = trades.slice(0, 5).map(g => `<div class="map-tip-row">
-				<span class="map-tip-side"${g.give ? ` data-peek="${esc(g.give)}"` : ''}><span class="map-io minus">${img(g.give || '', 'map-icon')}</span><span>${qty(g.giveQty)}${esc(g.give || '—')}</span></span>
+				<span class="map-tip-side"${g.give ? ` data-peek="${esc(g.give)}"` : ''}><span class="map-io minus">${img(g.give || '', 'map-icon')}</span><span>${qty(g.giveQty)}${esc(g.give ? gameName(g.give) : '—')}</span></span>
 				<span class="map-tip-arrow">→</span>
-				<span class="map-tip-side get" data-peek="${esc(g.item)}"><span class="map-io plus">${img(g.item, 'map-icon')}</span><span>${qty(g.recvQty)}${esc(g.item)}</span></span>
+				<span class="map-tip-side get" data-peek="${esc(g.item)}"><span class="map-io plus">${img(g.item, 'map-icon')}</span><span>${qty(g.recvQty)}${esc(gameName(g.item))}</span></span>
 				<span class="map-tip-tries">${g.tries ? `×${g.tries}` : ''}<span class="map-kind-tag ${barterKind(g.item)}">${
-					{ material: 'mat', trade: 'good', coin: 'coin' }[barterKind(g.item)]}</span></span>
+					{ material: T('kind|mat'), trade: T('kind|good'), coin: T('kind|coin') }[barterKind(g.item)]}</span></span>
 			</div>`).join('');
 		// The game deals each island one offer per list per refresh, drawn
 		// from its own pool -- so the size of that pool is the honest way
@@ -1243,20 +1248,20 @@ function paintTip(host, size, marks) {
 		const kinds = [...new Set((trades.length ? trades.map(g => g.item) : goodsOf(id).map(g => g.item))
 			.map(barterKind))];
 		const rate = kinds.length === 1
-			? `${F(parleyPerTrade({ ...prof, kind: kinds[0] }))} parley a trade`
-			: `${F(parleyPerTrade({ ...prof, kind: 'trade' }))}–${F(parleyPerTrade({ ...prof, kind: 'material' }))} parley a trade`;
-		const sub = `${esc(npc.name)} · ${rate}`
-			+ (pool > 1 ? ` · draws 1 of its ${pool} offers a refresh` : '');
+			? T('{n} parley a trade', { n: F(parleyPerTrade({ ...prof, kind: kinds[0] })) })
+			: T('{lo}–{hi} parley a trade', { lo: F(parleyPerTrade({ ...prof, kind: 'trade' })), hi: F(parleyPerTrade({ ...prof, kind: 'material' })) });
+		const sub = `${esc(gameName(npc.name))} · ${rate}`
+			+ (pool > 1 ? ` · ${T('draws 1 of its {n} offers a refresh', { n: pool })}` : '');
 		const onRoute = stopsLive() && mv.stops.includes(id);
 		const btns = `<div class="map-tip-btns">
-			<button class="ghost-btn" data-act="map-stop" data-npc="${id}">${onRoute ? '− Remove stop' : '+ Add stop'}</button>
-			${m ? `<button class="ghost-btn" data-act="map-done" data-npc="${id}">${dn.has(id) ? '✓ Sailed' : 'Mark sailed'}</button>` : ''}
+			<button class="ghost-btn" data-act="map-stop" data-npc="${id}">${onRoute ? `− ${T('Remove stop')}` : `+ ${T('Add stop')}`}</button>
+			${m ? `<button class="ghost-btn" data-act="map-done" data-npc="${id}">${dn.has(id) ? `✓ ${T('Sailed')}` : T('Mark sailed')}</button>` : ''}
 		</div>`;
-		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">${esc(npc.at)}</span>
-			${pinned ? `<button class="map-x" data-act="map-tip-close" aria-label="Close">×</button>` : ''}</div>
+		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">${esc(gameName(npc.at))}</span>
+			${pinned ? `<button class="map-x" data-act="map-tip-close" aria-label="${T('Close')}">×</button>` : ''}</div>
 			<div class="map-tip-sub">${sub}</div>
 			${mv.runTrades[id] ? runTip(mv.runTrades[id], id) : ''}
-			${rows || (mv.runTrades[id] ? '' : '<div class="map-tip-sub none">Nothing on your list here.</div>')}
+			${rows || (mv.runTrades[id] ? '' : `<div class="map-tip-sub none">${T('Nothing on your list here.')}</div>`)}
 			${pinned ? btns : ''}`;
 	}
 

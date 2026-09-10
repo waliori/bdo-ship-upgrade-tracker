@@ -12,24 +12,29 @@ import { forecast as barterForecast, GOODS, levelOf } from './barter.js';
 import { tradeGoodNames } from './trade_goods.js';
 import { iconLoader } from './icon-loader.js';
 import { esc, F, FC } from './fmt.js';
+import { T, gameName, LANGS, langById } from './i18n.js';
 import * as store from './state.js';
 import { parseEnhanced, enhanceStep, waysToGet, outstanding, yieldOf } from './planner.js';
 import { quests } from './quests.js';
 import { monsters } from './sea_monsters.js';
 import { recipes, barterData, barterProfile, snapshot } from './ui-state.js';
 
-const SOURCE_LABEL = {
-	coin: 'Crow Coin Shop',
-	falasi: 'Falasi vendor',
-	Market: 'Central Market',
-	Purchase: 'Vendor',
-	'Monster Drop': 'Monster drop',
-	Gathering: 'Gathering',
-	Processing: 'Processing',
-	Crafting: 'Crafting',
-	'Quest Reward': 'Quest reward',
-	Exchange: 'Exchange'
-};
+// Read when a source is asked for rather than at import: the language
+// pack is loaded after the modules are, so a label fixed here at import
+// time would stay English. The keys are the data's own words and stay
+// English -- only the labels move.
+const sourceLabels = () => ({
+	coin: T('Crow Coin Shop'),
+	falasi: T('Falasi vendor'),
+	Market: T('Central Market'),
+	Purchase: T('Vendor'),
+	'Monster Drop': T('Monster drop'),
+	Gathering: T('Gathering'),
+	Processing: T('Processing'),
+	Crafting: T('Crafting'),
+	'Quest Reward': T('Quest reward'),
+	Exchange: T('Exchange')
+});
 
 /**
  * Any quantity in the app that you can set is one of these: type into it
@@ -78,24 +83,28 @@ export function codexUrl(item) {
  * for anything the mapping has never heard of, so a name is never
  * missing just because a link is.
  */
-/** BDOCodex locale codes the look-ups can open in. */
-export const CODEX_LANGS = [
-	['us', 'English'], ['de', 'Deutsch'], ['fr', 'Français'], ['es', 'Español'], ['pt', 'Português'],
-	['ru', 'Русский'], ['tr', 'Türkçe'], ['jp', '日本語'], ['kr', '한국어'], ['tw', '繁體中文'], ['th', 'ไทย'], ['id', 'Bahasa Indonesia']
-];
+/**
+ * The look-ups' languages, which are also the app's: one list, so the
+ * screen and the database it links to are never in two different
+ * languages. Kept here as a pair for the pickers that had it.
+ */
+export const CODEX_LANGS = LANGS.map(l => [l.id, l.label]);
 
 /** The same codex page in the language the player chose. */
 export function localiseCodex(url) {
-	const lang = store.getSetting('codexLang', 'us');
-	if (!url || !lang || lang === 'us' || !CODEX_LANGS.some(([id]) => id === lang)) return url;
-	return url.replace('bdocodex.com/us/', `bdocodex.com/${lang}/`);
+	const id = store.getSetting('lang') || store.getSetting('codexLang', 'us');
+	if (!url || !id || id === 'us' || !langById[id]) return url;
+	return url.replace('bdocodex.com/us/', `bdocodex.com/${id}/`);
 }
 
 export function codexName(item, text = item) {
 	const url = localiseCodex(codexUrl(item));
-	if (!url) return esc(text);
+	// The English name stays the key -- it is what state, share links
+	// and recipes are written in -- and only the printed text moves.
+	const shown = gameName(text);
+	if (!url) return esc(shown);
 	return `<a class="codex" href="${esc(url)}" target="_blank" rel="noopener noreferrer" data-codex
-		title="Look up ${esc(item)} on BDOCodex">${esc(text)}<span class="codex-mark" aria-hidden="true">\u2197</span></a>`;
+		title="${esc(T('Look up {name} on BDOCodex', { name: gameName(item) }))}">${esc(shown)}<span class="codex-mark" aria-hidden="true">\u2197</span></a>`;
 }
 
 export function allItems() {
@@ -181,13 +190,13 @@ export const costCtx = () => ({ coins, silver: { ...marketSilver(), ...falasi },
  */
 export function costText(cost, times = 1) {
 	const bits = [];
-	if (cost.coins) bits.push(`${FC(Math.round(cost.coins * times))} coins`);
-	if (cost.silver) bits.push(`${FC(Math.round(cost.silver * times))} silver`);
+	if (cost.coins) bits.push(T('{n} coins', { n: FC(Math.round(cost.coins * times)) }));
+	if (cost.silver) bits.push(T('{n} silver', { n: FC(Math.round(cost.silver * times)) }));
 	const needs = Object.entries(cost.needs);
 	const listed = needs.slice(0, 2);
-	for (const [item, qty] of listed) bits.push(`${F(Math.ceil(qty * times))}\u00d7 ${item}`);
+	for (const [item, qty] of listed) bits.push(T('{n}× {item}', { n: F(Math.ceil(qty * times)), item: gameName(item) }));
 	const rest = needs.length - listed.length;
-	return (bits.join(' + ') || 'nothing') + (rest > 0 ? `, and ${rest} more` : '');
+	return (bits.join(' + ') || T('nothing')) + (rest > 0 ? T(', and {n} more', { n: rest }) : '');
 }
 
 /**
@@ -200,14 +209,14 @@ export function makeupHTML(item, cls = 'peek-line') {
 	if (level > 0) {
 		const step = enhanceStep(base, level);
 		if (!step) return '';
-		return `<div class="peek-label">+${level - 1} → +${level}, per attempt</div>`
+		return `<div class="peek-label">${T('+{from} → +{to}, per attempt', { from: level - 1, to: level })}</div>`
 			+ ingredientLine(step.from, 1, cls)
 			+ Object.entries(step.stones).map(([n, q]) => ingredientLine(n, q, cls)).join('');
 	}
 	const recipe = recipes[item];
 	if (!recipe) return '';
 	const makes = yieldOf(item);
-	return `<div class="peek-label">Made from${makes > 1 ? ` · one craft makes ${F(makes)}` : ''}</div>`
+	return `<div class="peek-label">${makes > 1 ? T('Made from · one craft makes {n}', { n: F(makes) }) : T('Made from')}</div>`
 		+ Object.entries(recipe).map(([n, q]) => ingredientLine(n, q, cls)).join('');
 }
 
@@ -241,15 +250,15 @@ export function barterHTML(item) {
 	const lines = climb.map(r => `<div class="peek-line ok">
 		${img(r.item, 'peek-icon')}
 		<span class="peek-name">${codexName(r.item)}</span>
-		<span class="peek-have">pays ${esc(r.receivedText)}</span>
+		<span class="peek-have">${T('pays {what}', { what: esc(r.receivedText) })}</span>
 	</div>`).join('');
 
 	const start = plan.seed
-		? `<div class="peek-label">Starting from ${esc(plan.seed.item)}</div>`
+		? `<div class="peek-label">${T('Starting from {item}', { item: esc(gameName(plan.seed.item)) })}</div>`
 		: '';
 
 	return start + lines
-		+ `<div class="peek-cost">${esc(plan.perUnit.toFixed(2))} barter trades each</div>`;
+		+ `<div class="peek-cost">${T('{n} barter trades each', { n: esc(plan.perUnit.toFixed(2)) })}</div>`;
 }
 
 /** The hover card: what it is made of, or where it comes from. */
@@ -262,7 +271,7 @@ export function peekHTML(item) {
 	// priced too, all the way down. That is the number worth showing.
 	const made = waysToGet(item, costCtx()).routes.find(r => r.parts);
 	const price = made && (made.coins || made.silver || outstanding(made))
-		? `<div class="peek-cost">${esc(made.kind === 'enhance' ? 'One success' : 'Making one')}: ${esc(costText(made))}</div>`
+		? `<div class="peek-cost">${esc(made.kind === 'enhance' ? T('One success') : T('Making one'))}: ${esc(costText(made))}</div>`
 		: '';
 
 	// With the ingredients already listed, a crafting source is a place,
@@ -270,7 +279,7 @@ export function peekHTML(item) {
 	let foot = '';
 	if (src && !body) foot = `${src.label} · ${src.detail}`;
 	else if (src && MAKE_KEYS.has(src.key)) foot = src.key === 'craft' ? '' : src.detail;
-	else if (src) foot = `or ${src.label} · ${src.detail}`;
+	else if (src) foot = T('or {label} · {detail}', { label: src.label, detail: src.detail });
 
 	// A hundred at a time from one item is not a recipe and cannot be
 	// one -- the book makes a single unit -- but for the yellow tier it
@@ -280,23 +289,23 @@ export function peekHTML(item) {
 	// because the planner resolves them into their ingredients first.
 	const bulk = bulkExchanges[item];
 	const inBulk = bulk
-		? `<div class="peek-cost">or ${F(bulk.gets)} at once for one ${esc(bulk.give)}</div>`
+		? `<div class="peek-cost">${T('or {n} at once for one {item}', { n: F(bulk.gets), item: esc(gameName(bulk.give)) })}</div>`
 		: '';
 
 	// A part says what it does for the hull at this level: the reason
 	// for the stones above it.
 	const lv = parseEnhanced(item);
 	const fit = statsAt(lv.base, lv.level);
-	const does = fit ? `<div class="peek-cost">at +${lv.level}: ${esc(describeStats(fit, { signed: false }))}</div>` : '';
+	const does = fit ? `<div class="peek-cost">${T('at +{level}: {stats}', { level: lv.level, stats: esc(describeStats(fit, { signed: false })) })}</div>` : '';
 
 	if (!body && !foot && !price && !inBulk && !does) return '';
-	return `<div class="peek-head">${img(item, 'peek-icon lg')}<span>${esc(item)}</span></div>`
+	return `<div class="peek-head">${img(item, 'peek-icon lg')}<span>${esc(gameName(item))}</span></div>`
 		+ body
 		+ price
 		+ inBulk
 		+ does
 		+ (foot ? `<div class="peek-foot">${esc(foot)}</div>` : '')
-		+ `<button class="peek-open" data-act="open-item" data-item="${esc(item)}">Open in Inventory →</button>`;
+		+ `<button class="peek-open" data-act="open-item" data-item="${esc(item)}">${T('Open in Inventory →')}</button>`;
 }
 
 /** Where an item comes from, and what it costs. */
@@ -304,23 +313,25 @@ export function sourceOf(item) {
 	const lv = levelOf(item);
 	if (lv && GOODS[lv]) {
 		const g = GOODS[lv];
-		return { key: 'barter', label: 'Bartered at sea',
-			detail: `a [Level ${lv}] trade good \u00b7 ${F(g.weight)} LT each${g.sell ? ` \u00b7 a barterer pays ${F(g.sell)} silver` : ' \u00b7 cannot be sold'}` };
+		return { key: 'barter', label: T('Bartered at sea'),
+			detail: g.sell
+				? T('a [Level {lv}] trade good · {weight} LT each · a barterer pays {silver} silver', { lv, weight: F(g.weight), silver: F(g.sell) })
+				: T('a [Level {lv}] trade good · {weight} LT each · cannot be sold', { lv, weight: F(g.weight) }) };
 	}
-	if (coins[item]) return { key: 'coin', label: SOURCE_LABEL.coin, detail: `${F(coins[item])} Crow Coins each`, coins: coins[item] };
-	if (falasi[item]) return { key: 'falasi', label: SOURCE_LABEL.falasi, detail: `${F(falasi[item])} silver each`, silver: falasi[item] };
+	if (coins[item]) return { key: 'coin', label: sourceLabels().coin, detail: T('{n} Crow Coins each', { n: F(coins[item]) }), coins: coins[item] };
+	if (falasi[item]) return { key: 'falasi', label: sourceLabels().falasi, detail: T('{n} silver each', { n: F(falasi[item]) }), silver: falasi[item] };
 	const methods = vendorItems[item];
 	if (methods) {
 		const key = Object.keys(methods)[0];
 		const price = methods.Market ? marketPrice(item) : 0;
 		if (price) {
 			const s = marketStatus();
-			return { key: 'Market', label: SOURCE_LABEL.Market,
-				detail: `about ${F(price)} silver each on the ${s.region.toUpperCase()} Market`, silver: price };
+			return { key: 'Market', label: sourceLabels().Market,
+				detail: T('about {n} silver each on the {region} Market', { n: F(price), region: s.region.toUpperCase() }), silver: price };
 		}
-		return { key, label: SOURCE_LABEL[key] || key, detail: (methods[key] || []).join(', ') };
+		return { key, label: sourceLabels()[key] || key, detail: (methods[key] || []).join(', ') };
 	}
-	if (recipes[item]) return { key: 'craft', label: 'Crafted', detail: 'made from other materials' };
+	if (recipes[item]) return { key: 'craft', label: T('Crafted'), detail: T('made from other materials') };
 	return null;
 }
 
@@ -412,27 +423,27 @@ export function waysThrough(item, { from = '' } = {}) {
 	const doors = [];
 
 	if (from !== 'inventory') {
-		doors.push(door('open-item', '▦', 'Inventory', 'what you hold, and where it is kept', { attrs: has }));
+		doors.push(door('open-item', '▦', T('Inventory'), T('what you hold, and where it is kept'), { attrs: has }));
 	}
 
 	const barterers = barterersFor(item);
 	if (barterers) {
-		doors.push(door('goto-map', '⌖', 'Map',
-			barterers === 1 ? 'the one barterer who hands it over'
-				: `the ${barterers} barterers who hand it over`, { attrs: has }));
+		doors.push(door('goto-map', '⌖', T('Map'),
+			barterers === 1 ? T('the one barterer who hands it over')
+				: T('the {n} barterers who hand it over', { n: barterers }), { attrs: has }));
 	}
 
 	// The ground's name is the door, because which ground it is is the
 	// whole answer -- and the chart can be flown to one at a time.
 	for (const m of groundsFor(item).slice(0, 2)) {
-		doors.push(door('quest-map', '≈', m.name, 'where it swims',
+		doors.push(door('quest-map', '≈', gameName(m.name), T('where it swims'),
 			{ attrs: `data-monster="${esc(m.key)}"` }));
 	}
 
 	const pays = questsPaying(item).length;
 	if (pays) {
-		doors.push(door('goto-quests', '✦', 'Quests',
-			pays === 1 ? 'the quest that pays in it' : `the ${pays} quests that pay in it`,
+		doors.push(door('goto-quests', '✦', T('Quests'),
+			pays === 1 ? T('the quest that pays in it') : T('the {n} quests that pay in it', { n: pays }),
 			{ attrs: has }));
 	}
 
@@ -445,26 +456,26 @@ export function waysThrough(item, { from = '' } = {}) {
 	const inside = buildsUsing(item);
 	if (inside.length && from !== 'tree') {
 		const root = inside[0] === item;
-		doors.push(door('goto-tree', '⌥', 'Tree',
-			root ? 'everything under it'
-				: `where it sits under ${inside.join(' and ')}`,
+		doors.push(door('goto-tree', '⌥', T('Tree'),
+			root ? T('everything under it')
+				: T('where it sits under {builds}', { builds: inside.map(gameName).join(T(' and ')) }),
 			// Which build, but only when there is a choice to make: the
 			// Tree opens one at a time, so with two the door has to say
 			// which it means -- and with one the panel's "Reserved by"
 			// has already said the same words a line above.
-			{ qualifier: inside.length > 1 ? inside[0] : '',
+			{ qualifier: inside.length > 1 ? gameName(inside[0]) : '',
 				attrs: `${has} data-build="${esc(inside[0])}"` }));
 	}
 
 	const step = parseEnhanced(item).level > 0;
 	if ((recipes[item] || step) && from !== 'workshop') {
-		doors.push(door('goto-workshop', '⚙', 'Workshop',
-			step ? 'attempt the next level' : 'make it from what you hold', { attrs: has }));
+		doors.push(door('goto-workshop', '⚙', T('Workshop'),
+			step ? T('attempt the next level') : T('make it from what you hold'), { attrs: has }));
 	}
 
 	const short = Number((snapshot && snapshot.missing && snapshot.missing[item]) || 0);
 	if (short && from !== 'get') {
-		doors.push(door('goto-get', '☰', 'To Get', 'the shopping list, priced', { attrs: has }));
+		doors.push(door('goto-get', '☰', T('To Get'), T('the shopping list, priced'), { attrs: has }));
 	}
 
 	if (!doors.length) return '';

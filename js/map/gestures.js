@@ -1,6 +1,7 @@
 // The gestures that move the chart: drag, pinch, tap, the pen and the
 // marks carried under it, the minimap's grip, a file dropped on the sea.
 
+import { T } from '../i18n.js';
 import { pan, zoomAt } from '../map.js';
 import { toast } from '../dialogs.js';
 import { view } from '../ui-state.js';
@@ -162,7 +163,7 @@ const furniture = () => CHROME;
 					// back where it was picked up, as a click that far
 					// inland would have been refused.
 					m.x = carried.x; m.y = carried.y;
-					toast('A stop belongs on the water');
+					toast(T('A stop belongs on the water'));
 				}
 			}
 			if (!moved && kind === 'word' && markBySeq('word', seq)) mv.editing = seq;
@@ -302,7 +303,8 @@ const furniture = () => CHROME;
 		try {
 			const r = importRoute(await file.text());
 			if (r.game) return;
-			toast(`Route loaded: ${r.stops} stop${r.stops === 1 ? '' : 's'}${r.dropped ? `, ${r.dropped} not on this chart` : ''}`);
+			const loaded = r.stops === 1 ? T('Route loaded: {n} stop', { n: r.stops }) : T('Route loaded: {n} stops', { n: r.stops });
+			toast(r.dropped ? T('{loaded}, {n} not on this chart', { loaded, n: r.dropped }) : loaded);
 			refreshSide();
 			paintMap();
 		} catch (err) {

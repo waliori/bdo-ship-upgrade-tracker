@@ -66,8 +66,8 @@
             <div class="brand">
                 <div class="brand-mark" aria-hidden="true">&#9875;</div>
                 <div>
-                    <div class="brand-name">Ship Upgrade Tracker</div>
-                    <div class="brand-sub">One inventory, every build &middot; Black Desert</div>
+                    <div class="brand-name" data-t>Ship Upgrade Tracker</div>
+                    <div class="brand-sub" data-t>One inventory, every build &middot; Black Desert</div>
                 </div>
             </div>
             <!-- The masthead's verbs. Find, the trip log, Undo and Redo
@@ -75,31 +75,31 @@
                  log move into the menu, which is the one menu the app
                  has: the same sheet the thumb bar's last slot opens. -->
             <div class="masthead-actions" id="masthead-actions">
-                <button class="ghost-btn wide-only" data-act="jump" title="Find an item or a tab (Ctrl+K)">&#8981; Find</button>
-                <button class="ghost-btn wide-only" data-act="trip-log" title="Record everything you brought back from a trip, as one change">&#65291; Log a trip</button>
-                <button class="ghost-btn" id="undo-btn" data-act="undo" aria-label="Undo">&#8630; <span class="btn-label">Undo</span></button>
-                <button class="ghost-btn wide-only" id="redo-btn" data-act="redo">&#8631; Redo</button>
+                <button class="ghost-btn wide-only" data-act="jump" data-t-title="Find an item or a tab (Ctrl+K)" title="Find an item or a tab (Ctrl+K)">&#8981; <span data-t>Find</span></button>
+                <button class="ghost-btn wide-only" data-act="trip-log" data-t-title="Record everything you brought back from a trip, as one change" title="Record everything you brought back from a trip, as one change">&#65291; <span data-t>Log a trip</span></button>
+                <button class="ghost-btn" id="undo-btn" data-act="undo" data-t-aria="Undo" aria-label="Undo">&#8630; <span class="btn-label" data-t>Undo</span></button>
+                <button class="ghost-btn wide-only" id="redo-btn" data-act="redo">&#8631; <span data-t>Redo</span></button>
                 <!-- Sign-in, and who is signed in. Stays empty unless the
                      deployment has been given a Discord app and a database. -->
                 <span class="account" id="account"></span>
-                <button class="ghost-btn menu-btn" data-act="more" aria-haspopup="dialog" aria-label="Menu" title="Every section and everything else (M)">&#8943; <span class="btn-label">Menu</span></button>
+                <button class="ghost-btn menu-btn" data-act="more" aria-haspopup="dialog" data-t-aria="Menu" aria-label="Menu" data-t-title="Every section and everything else (M)" title="Every section and everything else (M)">&#8943; <span class="btn-label" data-t>Menu</span></button>
             </div>
         </header>
 
-        <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
+        <nav class="tabs" id="tabs" role="tablist" data-t-aria="Sections" aria-label="Sections"></nav>
 
         <!-- Currencies and enhancement stones are spent from every screen,
              so they live in the shell rather than on any one tab. -->
-        <div class="pouch" id="pouch" aria-label="What you are carrying"></div>
+        <div class="pouch" id="pouch" data-t-aria="What you are carrying" aria-label="What you are carrying"></div>
         <div class="status-bar" id="status" role="status" aria-live="polite" hidden></div>
 
-        <main class="screen" id="screen" role="tabpanel" aria-label="Current section"></main>
+        <main class="screen" id="screen" role="tabpanel" data-t-aria="Current section" aria-label="Current section"></main>
     </div>
 
     <!-- The phone's own way between sections: a bar at the thumb, and
          a sheet behind "All" holding every one of them. Empty and out
          of the way on a wide screen, where the tab row above does it. -->
-    <nav class="tabbar" id="tabbar" aria-label="Sections"></nav>
+    <nav class="tabbar" id="tabbar" data-t-aria="Sections" aria-label="Sections"></nav>
 
     <div class="peek" id="peek" role="tooltip" hidden></div>
     <div class="toast" id="toast" role="status" hidden></div>

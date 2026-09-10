@@ -40,6 +40,13 @@ const PINNED_CACHE = 'tiles-pinned';
 // The whole app shell: the page, the styles, every module the page can
 // reach, and the data files they fetch. Taken with one addAll so the
 // offline copy is atomic -- all of a deploy or none of it.
+//
+// The language packs are deliberately not here. There are sixteen of
+// them in two halves, and precaching thirty-two files to serve the one
+// a player reads would pay for fifteen languages nobody on this browser
+// will ever open. They are js/ paths like any other, so the first time
+// a language is chosen online its pack is filed away with the rest of
+// the code -- and works offline from then on.
 const SHELL = [
 	'/',
 	'/index.html',
@@ -84,6 +91,7 @@ const SHELL = [
 	'/js/guide.js',
 	'/js/guided-tour.js',
 	'/js/habitats.js',
+	'/js/i18n.js',
 	'/js/icon-loader.js',
 	'/js/item-card.js',
 	'/js/jump.js',

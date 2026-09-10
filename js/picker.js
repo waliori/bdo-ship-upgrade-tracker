@@ -9,6 +9,7 @@
 // by typing, ticked when several are wanted.
 
 import { esc } from './fmt.js';
+import { T } from './i18n.js';
 import { openDialog, closeDialog } from './dialogs.js';
 
 /**
@@ -32,13 +33,13 @@ export function openPicker(o) {
 		<div class="picker picker-dialog">
 			<h2>${esc(o.title)}</h2>
 			${o.hint ? `<p class="dialog-copy">${o.hint}</p>` : ''}
-			<input class="field picker-in" type="search" placeholder="Type to find…" aria-label="Find" autocomplete="off">
+			<input class="field picker-in" type="search" placeholder="${T('Type to find…')}" aria-label="${T('Find')}" autocomplete="off">
 			${o.chips ? '<div class="picker-chips" data-picker-chips></div>' : ''}
 			<div class="picker-list" data-picker-list role="listbox" aria-multiselectable="${multi}"></div>
 			<div class="dialog-actions picker-actions">
-				${multi ? `<span class="picker-count" data-picker-count></span><button class="ghost-btn" data-picker-clear>Clear</button>` : ''}
-				<button class="ghost-btn" data-close>Cancel</button>
-				${multi ? `<button class="act" data-picker-apply>${esc(o.apply || 'Apply')}</button>` : ''}
+				${multi ? `<span class="picker-count" data-picker-count></span><button class="ghost-btn" data-picker-clear>${T('Clear')}</button>` : ''}
+				<button class="ghost-btn" data-close>${T('Cancel')}</button>
+				${multi ? `<button class="act" data-picker-apply>${esc(o.apply || T('Apply'))}</button>` : ''}
 			</div>
 		</div>`, { onDismiss: () => { if (typeof o.onClose === 'function') o.onClose(); } });
 	const input = host.querySelector('.picker-in');
@@ -105,9 +106,9 @@ export function openPicker(o) {
 				${it.meta ? `<span class="picker-meta">${esc(it.meta)}</span>` : ''}
 			</button>`;
 		});
-		list.innerHTML = html || `<p class="empty">${esc(o.empty || 'Nothing by that name.')}</p>`;
+		list.innerHTML = html || `<p class="empty">${esc(o.empty || T('Nothing by that name.'))}</p>`;
 		const count = host.querySelector('[data-picker-count]');
-		if (count) count.textContent = picked.size ? `${picked.size} chosen` : '';
+		if (count) count.textContent = picked.size ? T('{n} chosen', { n: picked.size }) : '';
 		const cur = list.querySelector('.picker-row.on');
 		if (cur) cur.scrollIntoView({ block: 'nearest' });
 	};

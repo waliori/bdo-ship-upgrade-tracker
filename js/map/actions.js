@@ -4,6 +4,7 @@
 import { courseById } from '../courses.js';
 import { monsters, monsterByKey } from '../sea_monsters.js';
 import { F } from '../fmt.js';
+import { T, gameName } from '../i18n.js';
 import { img } from '../ui-bits.js';
 import { CLOSE_ZOOM } from '../map.js';
 import { npcById, ports } from '../barter_npcs.js';
@@ -159,21 +160,25 @@ export function openMapPicker() {
 	const short = names.filter(n => snapshot.missing[n] > 0)
 		.sort((a, b) => snapshot.missing[b] - snapshot.missing[a]);
 	const rest = names.filter(n => !(snapshot.missing[n] > 0)).sort();
-	const kindWord = { material: 'material', trade: 'trade good', coin: 'crow coin' };
+	const kindWord = { material: T('material'), trade: T('trade good'), coin: T('crow coin') };
 	const items = [
-		{ id: '', label: 'Everything I am short of', icon: '<span class="row-icon sm map-pick-all">⚓</span>', meta: `${short.length} goods` },
-		...short.map(n => ({ id: n, label: n, icon: img(n, ''), meta: `${F(snapshot.missing[n])} short`, group: 'On your build list' })),
-		...rest.map(n => ({ id: n, label: n, icon: img(n, ''), sub: kindWord[barterKind(n)], group: 'The rest of the sea' })),
+		{ id: '', label: T('Everything I am short of'), icon: '<span class="row-icon sm map-pick-all">⚓</span>', meta: T('{n} goods', { n: short.length }) },
+		...short.map(n => ({ id: n, label: gameName(n), icon: img(n, ''), meta: T('{n} short', { n: F(snapshot.missing[n]) }), group: T('On your build list') })),
+		...rest.map(n => ({ id: n, label: gameName(n), icon: img(n, ''), sub: kindWord[barterKind(n)], group: T('The rest of the sea') })),
 		...monsters.filter(m => m.points.length || m.zones).map(m => ({
-			id: `hunt:${m.key}`, label: m.name,
+			id: `hunt:${m.key}`, label: gameName(m.name),
 			icon: monsterArt[m.key] ? `<img src="icons/${monsterArt[m.key]}" alt="">` : `<span class="row-icon sm map-pick-all" style="color:${m.colour}">◎</span>`,
-			sub: m.points.length ? `${m.points.length} spawn points · ${(m.zones || habitats(m)).length} habitat${(m.zones || habitats(m)).length === 1 ? '' : 's'}` : 'the habitat marker only, so far',
-			meta: mv.huntsOn.includes(m.key) ? 'shown' : '', group: 'Hunting grounds'
+			sub: m.points.length
+				? ((m.zones || habitats(m)).length === 1
+					? T('{spawns} spawn points · {habitats} habitat', { spawns: m.points.length, habitats: (m.zones || habitats(m)).length })
+					: T('{spawns} spawn points · {habitats} habitats', { spawns: m.points.length, habitats: (m.zones || habitats(m)).length }))
+				: T('the habitat marker only, so far'),
+			meta: mv.huntsOn.includes(m.key) ? T('shown') : '', group: T('Hunting grounds')
 		}))
 	];
 	openPicker({
-		title: 'What to look for',
-		hint: 'The chart lights the islands that barter it, or the waters a species swims in.',
+		title: T('What to look for'),
+		hint: T('The chart lights the islands that barter it, or the waters a species swims in.'),
 		items, selected: mv.mapPick || '',
 		onPick: id => {
 			if (id.startsWith('hunt:')) {

@@ -6,6 +6,7 @@
 // one draining pool, so the same physical material is never promised to
 // two builds at once.
 
+import { T } from './i18n.js';
 import { recipes as defaultRecipes, routes, yields, buyFirst } from './recipes.js';
 import { tableFor, chanceAt } from './enhancement.js';
 
@@ -614,10 +615,10 @@ export function costRoutes(item, ctx = {}, seen = new Set()) {
 	const out = [];
 
 	if (coins[item] > 0) {
-		out.push({ kind: 'coin', label: 'Crow Coin Shop', coins: coins[item], silver: 0, needs: {} });
+		out.push({ kind: 'coin', label: T('Crow Coin Shop'), coins: coins[item], silver: 0, needs: {} });
 	}
 	if (silver[item] > 0) {
-		out.push({ kind: 'silver', label: 'Falasi vendor', coins: 0, silver: silver[item], needs: {} });
+		out.push({ kind: 'silver', label: T('Falasi vendor'), coins: 0, silver: silver[item], needs: {} });
 	}
 
 	// `seen` is a path guard, not a memo: a recipe that reached itself
@@ -640,7 +641,7 @@ export function costRoutes(item, ctx = {}, seen = new Set()) {
 		const enhanced = parseEnhanced(item).level > 0;
 		out.push({
 			kind: enhanced ? 'enhance' : 'craft',
-			label: enhanced ? 'Enhance it' : 'Make it',
+			label: enhanced ? T('Enhance it') : T('Make it'),
 			coins: cost.coins,
 			silver: cost.silver,
 			needs: cost.needs,
@@ -727,19 +728,19 @@ export function shoppingList(missing, sources = {}) {
 
 		if (coins[item]) {
 			entry.coins = coins[item] * qty;
-			entry.unit = `${coins[item].toLocaleString()} coins each`;
+			entry.unit = T('{n} coins each', { n: coins[item].toLocaleString() });
 			add('Crow Coins', entry);
 			continue;
 		}
 		if (silver[item]) {
 			entry.silver = silver[item] * qty;
-			entry.unit = `${silver[item].toLocaleString()} silver each`;
+			entry.unit = T('{n} silver each', { n: silver[item].toLocaleString() });
 			add('Falasi (silver)', entry);
 			continue;
 		}
 		if (market[item]) {
 			entry.silver = market[item] * qty;
-			entry.unit = `about ${market[item].toLocaleString()} silver each, last sold`;
+			entry.unit = T('about {n} silver each, last sold', { n: market[item].toLocaleString() });
 			entry.market = true;
 			add('Central Market (silver)', entry);
 			continue;

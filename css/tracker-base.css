@@ -105,8 +105,13 @@
   --on-tint: #08131f;
   --star: #ffd77a;
 
-  --font-display: 'Chakra Petch', 'Segoe UI', sans-serif;
-  --font-body: 'Noto Sans', system-ui, sans-serif;
+  /* Japanese, Korean, Chinese and Thai have no glyphs in either face.
+     i18n.js publishes --script-font when one of those languages is
+     chosen, and fetches the matching Noto; every other language leaves
+     it at the body face, so the two stacks stay what they were. */
+  --script-font: 'Noto Sans';
+  --font-display: 'Chakra Petch', var(--script-font), 'Segoe UI', sans-serif;
+  --font-body: 'Noto Sans', var(--script-font), system-ui, sans-serif;
 
   /* How much of the page an on-screen keyboard is covering, published
      by sheet.js. 0 everywhere else, and on every browser that cannot

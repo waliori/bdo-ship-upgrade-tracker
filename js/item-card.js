@@ -14,6 +14,7 @@
 // each one is a way through to the screen that does it properly.
 
 import { esc, F } from './fmt.js';
+import { T, gameName } from './i18n.js';
 import * as store from './state.js';
 import { openDialog } from './dialogs.js';
 import { snapshot } from './ui-state.js';
@@ -38,10 +39,10 @@ function questsPaid(item) {
 		const flat = Number(q.rewards[item]) || 0;
 		const pick = (q.choice || []).find(c => c[item]);
 		const many = flat || Number(pick && pick[item]) || 0;
-		return `<div class="card-row"><span>${esc(q.name)}</span><span class="n">${many ? `${F(many)}${pick ? ' (choice)' : ''}` : ''}</span></div>`;
+		return `<div class="card-row"><span>${esc(gameName(q.name))}</span><span class="n">${many ? `${F(many)}${pick ? ` ${T('(choice)')}` : ''}` : ''}</span></div>`;
 	};
 	return `${pays.slice(0, 6).map(line).join('')}
-		${pays.length > 6 ? `<div class="card-more">and ${pays.length - 6} more</div>` : ''}`;
+		${pays.length > 6 ? `<div class="card-more">${T('and {n} more', { n: pays.length - 6 })}</div>` : ''}`;
 }
 
 /**
@@ -55,7 +56,7 @@ function questsPaid(item) {
 function dropsFrom(item) {
 	const drops = (vendorItems[item] && vendorItems[item]['Monster Drop']) || [];
 	if (!drops.length || groundsFor(item).length) return '';
-	return `<div class="card-line">${drops.slice(0, 6).map(esc).join(' · ')}</div>`;
+	return `<div class="card-line">${drops.slice(0, 6).map(d => esc(gameName(d))).join(' · ')}</div>`;
 }
 
 /** What the Market is asking, when the Market is a way to get it. */
@@ -65,20 +66,20 @@ function priceLine(item) {
 	const st = marketStatus();
 	const where = (MARKET_REGIONS.find(r => r[0] === marketRegion()) || ['', ''])[1];
 	if (!p) {
-		return `<div class="card-line">No price yet for ${esc(where)}. <button class="chart-link" data-act="view" data-id="get">To Get refreshes them →</button></div>`;
+		return `<div class="card-line">${T('No price yet for {where}.', { where: esc(where) })} <button class="chart-link" data-act="view" data-id="get">${T('To Get refreshes them →')}</button></div>`;
 	}
-	return `<div class="card-row"><span>Central Market · ${esc(where)}</span><span class="n">${F(p)} silver</span></div>`
-		+ (st && st.stale ? '<div class="card-more">last checked a while ago</div>' : '');
+	return `<div class="card-row"><span>${T('Central Market · {where}', { where: esc(where) })}</span><span class="n">${T('{n} silver', { n: F(p) })}</span></div>`
+		+ (st && st.stale ? `<div class="card-more">${T('last checked a while ago')}</div>` : '');
 }
 
 /** Where this stands against the plan: held, reserved, still short. */
 function standing(item) {
 	const held = store.getStock(item) || 0;
 	const short = Number((snapshot && snapshot.missing && snapshot.missing[item]) || 0);
-	const rows = [`<div class="card-row"><span>You hold</span><span class="n">${F(held)}</span></div>`];
-	if (short) rows.push(`<div class="card-row"><span>Your builds still need</span><span class="n amber">${F(short)} more</span></div>`);
-	else if (held) rows.push('<div class="card-row"><span>Your builds</span><span class="n teal">nothing outstanding</span></div>');
-	else rows.push('<div class="card-row"><span>Your builds</span><span class="n">do not ask for this</span></div>');
+	const rows = [`<div class="card-row"><span>${T('You hold')}</span><span class="n">${F(held)}</span></div>`];
+	if (short) rows.push(`<div class="card-row"><span>${T('Your builds still need')}</span><span class="n amber">${T('{n} more', { n: F(short) })}</span></div>`);
+	else if (held) rows.push(`<div class="card-row"><span>${T('Your builds')}</span><span class="n teal">${T('nothing outstanding')}</span></div>`);
+	else rows.push(`<div class="card-row"><span>${T('Your builds')}</span><span class="n">${T('do not ask for this')}</span></div>`);
 	return rows.join('');
 }
 
@@ -94,7 +95,7 @@ export function openItemCard(item) {
 	const fit = statsAt(lv.base, lv.level);
 	const made = waysToGet(item, costCtx()).routes.find(r => r.parts);
 	const cost = made && (made.coins || made.silver || outstanding(made))
-		? `<div class="card-row"><span>${esc(made.kind === 'enhance' ? 'One success' : 'Making one')}</span><span class="n">${costText(made)}</span></div>`
+		? `<div class="card-row"><span>${esc(made.kind === 'enhance' ? T('One success') : T('Making one'))}</span><span class="n">${costText(made)}</span></div>`
 		: '';
 	const bulk = bulkExchanges[item];
 	const src = sourceOf(item);
@@ -105,18 +106,18 @@ export function openItemCard(item) {
 				<div><h2>${codexName(item)}</h2>
 				${src ? `<p class="card-src">${esc(src.label)} · ${esc(src.detail)}</p>` : ''}</div></div>
 
-			${part('Where it stands', standing(item))}
-			${part('What it costs', priceLine(item) + cost
-				+ (bulk ? `<div class="card-row"><span>or in bulk</span><span class="n">${F(bulk.gets)} for one ${esc(bulk.give)}</span></div>` : ''))}
-			${part('How it is made', makeupHTML(item, 'card-line'))}
-			${part('Bartered for', barterHTML(item))}
-			${part('Dropped by', dropsFrom(item))}
-			${part('Paid by quests', questsPaid(item))}
-			${part('What it does', fit ? `<div class="card-line">at +${lv.level}: ${esc(describeStats(fit, { signed: false }))}</div>` : '')}
-			${part('Where else it turns up', waysThrough(item))}
+			${part(T('Where it stands'), standing(item))}
+			${part(T('What it costs'), priceLine(item) + cost
+				+ (bulk ? `<div class="card-row"><span>${T('or in bulk')}</span><span class="n">${T('{n} for one {item}', { n: F(bulk.gets), item: esc(gameName(bulk.give)) })}</span></div>` : ''))}
+			${part(T('How it is made'), makeupHTML(item, 'card-line'))}
+			${part(T('Bartered for'), barterHTML(item))}
+			${part(T('Dropped by'), dropsFrom(item))}
+			${part(T('Paid by quests'), questsPaid(item))}
+			${part(T('What it does'), fit ? `<div class="card-line">${T('at +{level}: {stats}', { level: lv.level, stats: esc(describeStats(fit, { signed: false })) })}</div>` : '')}
+			${part(T('Where else it turns up'), waysThrough(item))}
 
 			<div class="dialog-actions">
-				<button class="ghost-btn" data-close>Close</button>
+				<button class="ghost-btn" data-close>${T('Close')}</button>
 			</div>
 		</div>`);
 }

@@ -10,6 +10,7 @@
 // aboard, the numbers the Crew screen sums.
 
 import * as store from './state.js';
+import { T, gameName } from './i18n.js';
 import { skinFor, skinStats, SKIN_SLOTS } from './ship_skins.js';
 import { shipStats } from './ship_stats.js';
 import { partStats, slotOf, fitsShip, statsAt, sumStats, loadout } from './part_stats.js';
@@ -161,11 +162,11 @@ export function currentShip() {
 	const limit = stats.weight + parts('weight') + gem('weight') + skin('weight');
 	// The hold as a sum, line by line, the way the speed already reads:
 	// what each thing aboard adds or takes.
-	const lines = [{ label: 'hull', lt: stats.weight }];
-	for (const s of fit.slots) if (s.stats && Number(s.stats.weight)) lines.push({ label: `${s.level ? `+${s.level} ` : ''}${s.part.replace(/^.*?: /, '')}`, lt: Number(s.stats.weight) });
-	if (gem('weight')) lines.push({ label: crystal.name, lt: gem('weight') });
-	if (skin('weight')) lines.push({ label: 'appearance set', lt: skin('weight') });
-	if (crew.weight) lines.push({ label: `${crew.seated} sailor${crew.seated === 1 ? '' : 's'} aboard`, lt: -crew.weight });
+	const lines = [{ label: T('hull'), lt: stats.weight }];
+	for (const s of fit.slots) if (s.stats && Number(s.stats.weight)) lines.push({ label: `${s.level ? `+${s.level} ` : ''}${gameName(s.part).replace(/^.*?: /, '')}`, lt: Number(s.stats.weight) });
+	if (gem('weight')) lines.push({ label: gameName(crystal.name), lt: gem('weight') });
+	if (skin('weight')) lines.push({ label: T('appearance set'), lt: skin('weight') });
+	if (crew.weight) lines.push({ label: crew.seated === 1 ? T('{n} sailor aboard', { n: crew.seated }) : T('{n} sailors aboard', { n: crew.seated }), lt: -crew.weight });
 	return {
 		name, stats, fit, crew, crystal, mastery, skin: skinT, skinWorn: skinWorn(name),
 		speed: { hull: stats.speed, parts: parts('speed'), crystal: gem('speed'), crew: crew.speed, mastery, skin: skin('speed'), total: round1(stats.speed + parts('speed') + gem('speed') + crew.speed + mastery + skin('speed')) },
@@ -204,8 +205,8 @@ export function shownHold(hold, goods = 0) {
 		extra: max ? Math.max(0, Math.min(total, deal) - limit) / max * 100 : 0,
 		worse: max ? Math.max(0, Math.min(total, max) - deal) / max * 100 : 0,
 		mark: max ? Math.min(100, limit / max * 100) : 100,
-		text: `${Math.round(total).toLocaleString()} / ${Math.round(limit).toLocaleString()} LT`,
-		note: state === 'dead' ? 'more than the hull will move under' : state === 'heavy' ? 'too heavy to barter — lighten first' : state === 'over' ? 'past the limit — sailing slower' : ''
+		text: T('{total} / {limit} LT', { total: Math.round(total).toLocaleString(), limit: Math.round(limit).toLocaleString() }),
+		note: state === 'dead' ? T('more than the hull will move under') : state === 'heavy' ? T('too heavy to barter — lighten first') : state === 'over' ? T('past the limit — sailing slower') : ''
 	};
 }
 
@@ -317,7 +318,7 @@ export function saveSetup(name) {
 	const cur = currentSetup();
 	all[id] = { name: clean, ship: cur.ship, ...(Object.keys(cur.fitted).length ? { fitted: cur.fitted } : {}), ...(cur.crystal ? { crystal: cur.crystal } : {}), ...(Object.keys(cur.seats).length ? { seats: cur.seats } : {}), ...(Object.keys(cur.skin).length ? { skin: cur.skin } : {}) };
 	const gained = store.getStock(cur.ship) > 0 ? {} : { [cur.ship]: 1 };
-	store.applyDelta(gained, 'profile', `Kept "${clean}"${gained[cur.ship] ? ` and put the ${cur.ship} in the hold` : ''}`, { setups: all });
+	store.applyDelta(gained, 'profile', gained[cur.ship] ? T('Kept "{name}" and put the {ship} in the hold', { name: clean, ship: gameName(cur.ship) }) : T('Kept "{name}"', { name: clean }), { setups: all });
 	return id;
 }
 
@@ -373,7 +374,7 @@ export function loadSetup(id) {
 		seats: Object.keys(seats).length ? seats : null,
 		skins: Object.keys(skins).length ? skins : null,
 		crewShip: s.ship
-	}, `Sailed the setup "${s.name}"`);
+	}, T('Sailed the setup "{name}"', { name: s.name }));
 	return true;
 }
 

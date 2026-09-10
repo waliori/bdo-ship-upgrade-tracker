@@ -5,6 +5,7 @@
 // shell's event handling needs to steer it.
 
 import { esc, F } from './fmt.js';
+import { T, TT, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { openDialog } from './dialogs.js';
 import { img, codexName, amountInput } from './ui-bits.js';
@@ -51,10 +52,10 @@ function nodeState(node) {
 }
 
 const STATE_WORD = {
-	missing: 'missing',
-	make: 'to craft',
-	enhance: 'to enhance',
-	covered: 'covered'
+	missing: TT('missing'),
+	make: TT('to craft'),
+	enhance: TT('to enhance'),
+	covered: TT('covered')
 };
 
 /** Depth-first, carrying enough about ancestors to draw the guide lines. */
@@ -105,8 +106,8 @@ export function renderTree() {
 	// and the row grows without bound as the queue does.
 	const picker = `<button class="tpick" data-act="tree-pick">
 		${img(current.item, 'tchip-icon')}
-		<span class="tpick-name">${esc(current.item)}</span>
-		<span class="tpick-of">${targets.indexOf(current) + 1} of ${targets.length}</span>
+		<span class="tpick-name">${esc(gameName(current.item))}</span>
+		<span class="tpick-of">${T('{n} of {total}', { n: targets.indexOf(current) + 1, total: targets.length })}</span>
 		<span class="tpick-caret" aria-hidden="true">▾</span>
 	</button>`;
 
@@ -133,45 +134,45 @@ export function renderTree() {
 			(depth ? '<span class="tguide elbow"></span>' : '');
 
 		const bits = [];
-		if (node.fromStock) bits.push(`${F(node.fromStock)} from stock`);
-		if (node.toCraft) bits.push(`${F(node.toCraft)} ${parseEnhanced(node.item).level > 0 ? 'to enhance' : 'to craft'}`);
-		if (node.missing) bits.push(`${F(node.missing)} missing`);
+		if (node.fromStock) bits.push(T('{n} from stock', { n: F(node.fromStock) }));
+		if (node.toCraft) bits.push(parseEnhanced(node.item).level > 0 ? T('{n} to enhance', { n: F(node.toCraft) }) : T('{n} to craft', { n: F(node.toCraft) }));
+		if (node.missing) bits.push(T('{n} missing', { n: F(node.missing) }));
 
 		return `<div class="trow ${state}" style="--depth:${depth}">
 			${guides}
 			${kids && !q
-				? `<button class="tcaret" data-act="tree-fold" data-id="${esc(id)}" aria-expanded="${!folded.has(id)}" aria-label="${folded.has(id) ? 'Unfold' : 'Fold'} ${esc(node.item)}">${folded.has(id) ? '+' : '−'}</button>`
+				? `<button class="tcaret" data-act="tree-fold" data-id="${esc(id)}" aria-expanded="${!folded.has(id)}" aria-label="${folded.has(id) ? T('Unfold {name}', { name: esc(gameName(node.item)) }) : T('Fold {name}', { name: esc(gameName(node.item)) })}">${folded.has(id) ? '+' : '−'}</button>`
 				: kids
-					? '<span class="tcaret open" title="Every branch with a match is open while you search"></span>'
+					? `<span class="tcaret open" title="${T('Every branch with a match is open while you search')}"></span>`
 					: '<span class="tcaret empty"></span>'}
 			${img(node.item, 'trow-icon')}
 			<span class="trow-main">
 				<span class="trow-name">${codexName(node.item)}</span>
-				<span class="trow-sub">${esc(bits.join(' · ') || 'nothing needed')}</span>
+				<span class="trow-sub">${esc(bits.join(' · ') || T('nothing needed'))}</span>
 			</span>
 			<span class="trow-need">${F(node.need)}</span>
 			<span class="trow-own">${amountInput('own-input', own,
-				`data-act="own-set" data-item="${esc(node.item)}" aria-label="How many ${esc(node.item)} you hold"`)} held</span>
+				`data-act="own-set" data-item="${esc(node.item)}" aria-label="${T('How many {name} you hold', { name: esc(gameName(node.item)) })}"`)} ${T('held')}</span>
 			${barterData && barterData.some(b => b.name === node.item)
 				? `<button class="tmap" data-act="goto-map" data-item="${esc(node.item)}"
-					title="Where to barter it" aria-label="Show ${esc(node.item)} on the map">⌖</button>`
+					title="${T('Where to barter it')}" aria-label="${T('Show {name} on the map', { name: esc(gameName(node.item)) })}">⌖</button>`
 				: '<span class="tmap empty"></span>'}
-			<span class="badge ${state === 'missing' ? 'red' : state === 'covered' ? 'teal' : 'blue'}">${STATE_WORD[state]}</span>
+			<span class="badge ${state === 'missing' ? 'red' : state === 'covered' ? 'teal' : 'blue'}">${said(STATE_WORD[state])}</span>
 		</div>`;
 	}).join('');
 
 	return `<div class="tbar">
 			${picker}
-			<input class="field tsearch" type="search" placeholder="Find in this tree…" value="${esc(query)}" data-act="query" aria-label="Find in this tree">
+			<input class="field tsearch" type="search" placeholder="${T('Find in this tree…')}" value="${esc(query)}" data-act="query" aria-label="${T('Find in this tree')}">
 			<span class="panel-spacer"></span>
-			<button class="ghost-btn" data-act="tree-all">Expand all</button>
-			<button class="ghost-btn" data-act="tree-none">Collapse</button>
+			<button class="ghost-btn" data-act="tree-all">${T('Expand all')}</button>
+			<button class="ghost-btn" data-act="tree-none">${T('Collapse')}</button>
 		</div>
-		<div class="panel tpanel">${rows || `<p class="empty">Nothing in this tree matches “${esc(query)}”.</p>`}</div>
+		<div class="panel tpanel">${rows || `<p class="empty">${T('Nothing in this tree matches “{q}”.', { q: esc(query) })}</p>`}</div>
 		<div class="tlegend">
-			<span><i class="dot teal"></i>covered from stock</span>
-			<span><i class="dot blue"></i>to craft or enhance</span>
-			<span><i class="dot red"></i>still missing</span>
+			<span><i class="dot teal"></i>${T('covered from stock')}</span>
+			<span><i class="dot blue"></i>${T('to craft or enhance')}</span>
+			<span><i class="dot red"></i>${T('still missing')}</span>
 		</div>`;
 }
 
@@ -181,14 +182,14 @@ export function pickTreeTarget() {
 	const targets = snapshot.targets;
 	const current = targets.find(t => t.item === treeTarget) || targets[0];
 	openDialog(`
-		<h2>Which build</h2>
+		<h2>${T('Which build')}</h2>
 		<div class="picker">${targets.map(t => `
 			<button type="button" class="picker-row ${t === current ? 'on' : ''}"
 				data-act="tree-target" data-item="${esc(t.item)}">
 				${img(t.item, 'row-icon sm')}
-				<span class="picker-name">${esc(t.item)}</span>
+				<span class="picker-name">${esc(gameName(t.item))}</span>
 				<span class="picker-tag">${Math.round(t.progress)}%</span>
 			</button>`).join('')}</div>
-		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>
+		<div class="dialog-actions"><button class="act quiet" data-close>${T('Close')}</button></div>
 	`);
 }

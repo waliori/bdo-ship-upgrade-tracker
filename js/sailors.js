@@ -19,13 +19,14 @@
 // the roster, they outrank every estimate here.
 
 import { sailorRolls } from './sailor_rolls.js';
+import { T, TT } from './i18n.js';
 
 /** The one item every sailor costs, and where it is sold. */
 export const contract = {
 	item: 'Sailor Contract Certificate',
 	silver: 3000000,
 	sellers: 'Philaberto Falasi (Port Epheria), Islin Bartali and Proix (Velia), and the wharf managers',
-	hireAt: 'the wharf managers at Velia, Port Epheria and Iliya Island'
+	hireAt: TT('the wharf managers at Velia, Port Epheria and Iliya Island')
 };
 
 /**
@@ -48,7 +49,7 @@ export const pool = [
 		l10: { speed: [2.7, 3.1, 3.4], accel: [1.1, 1.3, 1.5], turn: [1.1, 1.3, 1.5], brake: [1.1, 1.3, 1.5] } },
 	{ type: 'Innocent', codex: 59055, race: 'Goblin', appetite: 150, cabin: 10, weight: 200, speed: 1.2, accel: 0.3, turn: 0.3, brake: 0.3, at: ['Velia', 'Epheria'],
 		l10: { speed: [2.8, 3.4, 4.0], accel: [1.2, 1.4, 1.6], turn: [1.4, 2.0, 2.5], brake: [1.4, 2.0, 2.5] },
-		note: 'Slower to start than an Ambitious one, and the best speed of any sailor by the time it is levelled.' },
+		note: TT('Slower to start than an Ambitious one, and the best speed of any sailor by the time it is levelled.') },
 	{ type: 'Experienced', codex: 59066, race: 'Human', appetite: 150, cabin: 10, weight: 250, speed: 1.0, accel: 1.0, turn: 0.3, brake: 0.3, at: ['Velia', 'Epheria'],
 		l10: { speed: [2.1, 2.5, 2.8], accel: [2.1, 2.5, 2.8], turn: [1.3, 1.5, 1.7], brake: [1.3, 1.5, 1.7] } },
 	{ type: 'Powerful', codex: 59069, race: 'Giant', appetite: 150, cabin: 8, weight: 500, speed: 1.0, accel: 1.0, turn: 1.0, brake: 1.0, at: ['Iliya'],
@@ -103,10 +104,10 @@ export const positions = [
 
 /** Condition and sickness, and what mends each. */
 export const care = [
-	{ item: 'Raisin Bread', effect: '+1 condition', from: 'a wharf manager, for silver' },
-	{ item: 'Chowder', effect: '+10 condition', from: 'cooking: Dried Pearl Oyster Flesh ×1 (or Dried Shellfish ×5), Pepper ×2, Pork ×2, Milk ×1, Teff Bread ×1' },
-	{ item: 'Elixir of Regeneration', effect: 'cures a sick sailor and restores condition to 100%', from: 'alchemy: Mandragora Essence ×1, Essence of Nature ×1, Oil of Regeneration ×1, Troll Blood ×2, Grape ×4' },
-	{ item: 'Tears of the Star', effect: 'cures a sick sailor', from: 'the Pearl Shop, 50 pearls' }
+	{ item: 'Raisin Bread', effect: TT('+1 condition'), from: TT('a wharf manager, for silver') },
+	{ item: 'Chowder', effect: TT('+10 condition'), from: TT('cooking: Dried Pearl Oyster Flesh ×1 (or Dried Shellfish ×5), Pepper ×2, Pork ×2, Milk ×1, Teff Bread ×1') },
+	{ item: 'Elixir of Regeneration', effect: TT('cures a sick sailor and restores condition to 100%'), from: TT('alchemy: Mandragora Essence ×1, Essence of Nature ×1, Oil of Regeneration ×1, Troll Blood ×2, Grape ×4') },
+	{ item: 'Tears of the Star', effect: TT('cures a sick sailor'), from: TT('the Pearl Shop, 50 pearls') }
 ];
 
 /** Emergency rations, by the grade of food thrown at them. */
@@ -135,9 +136,9 @@ export const expSplit = [
 // `npc` is the first mate's page on BDOCodex (they are people before they
 // are sailors), which is where their portrait comes from.
 export const firstMates = [
-	{ name: 'Proix', npc: 58045, portrait: '/items/ui_artwork/ic_01463.webp', trait: 'Breezy Sail lasts longer', from: 'finish the "[The Great Expedition] In Search of Khan" questline' },
-	{ name: 'Cleia', npc: 41056, portrait: '/items/ui_artwork/ic_00496.webp', trait: 'Parley costs 10% less', from: 'obtain the Golden Pocket Watch from a Special Barter' },
-	{ name: 'Tranan Underfoe', npc: 40008, portrait: '/items/ui_artwork/ic_00008.webp', trait: 'the ship repairs itself from repair materials in its inventory', from: 'obtain the Fancy Figurehead where the Saltwater Crocodiles are' }
+	{ name: 'Proix', npc: 58045, portrait: '/items/ui_artwork/ic_01463.webp', trait: TT('Breezy Sail lasts longer'), from: TT('finish the "[The Great Expedition] In Search of Khan" questline') },
+	{ name: 'Cleia', npc: 41056, portrait: '/items/ui_artwork/ic_00496.webp', trait: TT('Parley costs 10% less'), from: TT('obtain the Golden Pocket Watch from a Special Barter') },
+	{ name: 'Tranan Underfoe', npc: 40008, portrait: '/items/ui_artwork/ic_00008.webp', trait: TT('the ship repairs itself from repair materials in its inventory'), from: TT('obtain the Fancy Figurehead where the Saltwater Crocodiles are') }
 ];
 
 /**
@@ -147,9 +148,9 @@ export const firstMates = [
  * and a Captain's Medallion for 7,000 Loyalties buys another.
  */
 export const slotSources = [
-	{ from: '[The Great Expedition] First Sailboat into Oquilla\'s Eye and the main sailing questline', oaths: 5 },
-	{ from: 'Chulong\'s Gift (Chulong, Moodle Village in Nampo)', oaths: 3 },
-	{ from: 'Captain\'s Medallion, 7,000 Loyalties', oaths: 1 }
+	{ from: TT('[The Great Expedition] First Sailboat into Oquilla\'s Eye and the main sailing questline'), oaths: 5 },
+	{ from: TT('Chulong\'s Gift (Chulong, Moodle Village in Nampo)'), oaths: 3 },
+	{ from: TT('Captain\'s Medallion, 7,000 Loyalties'), oaths: 1 }
 ];
 
 export const SAILOR_CAP = 60;
@@ -210,13 +211,13 @@ export const anyType = Object.fromEntries([...pool, ...mateTypes].map(s => [s.ty
 
 /** The seats a hull has, in the order the board draws them. */
 const POSITIONS = [
-	{ pos: 'sail', label: 'Sail', n: 1, effect: 'speed and acceleration count double' },
-	{ pos: 'wheel', label: 'Wheel', n: 1, effect: 'turning and braking count double' },
-	{ pos: 'cannon', label: 'Cannon', n: 1, effect: 'cannon damage, reload and range' },
-	{ pos: 'deck', label: 'Deck', n: 1, effect: '+10,000 durability for every cabin the sailor costs' },
-	{ pos: 'mess', label: 'Mess', n: 1, effect: '+5,000 rations for every cabin the sailor costs' },
-	{ pos: 'firstmate', label: 'First Mate', n: 1, effect: "the sailor's own skill switches on" },
-	{ pos: 'fish', label: 'Fish', n: 1, effect: 'auto-fishing under way — a Carrack only' }
+	{ pos: 'sail', label: TT('Sail'), n: 1, effect: TT('speed and acceleration count double') },
+	{ pos: 'wheel', label: TT('Wheel'), n: 1, effect: TT('turning and braking count double') },
+	{ pos: 'cannon', label: TT('Cannon'), n: 1, effect: TT('cannon damage, reload and range') },
+	{ pos: 'deck', label: TT('Deck'), n: 1, effect: TT('+10,000 durability for every cabin the sailor costs') },
+	{ pos: 'mess', label: TT('Mess'), n: 1, effect: TT('+5,000 rations for every cabin the sailor costs') },
+	{ pos: 'firstmate', label: TT('First Mate'), n: 1, effect: TT("the sailor's own skill switches on") },
+	{ pos: 'fish', label: TT('Fish'), n: 1, effect: TT('auto-fishing under way — a Carrack only') }
 ];
 
 /**
@@ -246,7 +247,7 @@ export function seatsFor(ship, stats) {
 		const n = p.n + (extra[p.pos] || 0);
 		for (let i = 0; i < n && out.length < crew; i++) out.push({ key: `${p.pos}:${i}`, pos: p.pos, label: p.label, effect: p.effect });
 	}
-	for (let i = 0; out.length < crew; i++) out.push({ key: `cabin:${i}`, pos: 'cabin', label: 'Cabin', effect: 'no role, but aboard: weight and appetite count, and they level along' });
+	for (let i = 0; out.length < crew; i++) out.push({ key: `cabin:${i}`, pos: 'cabin', label: T('Cabin'), effect: T('no role, but aboard: weight and appetite count, and they level along') });
 	return out;
 }
 
@@ -362,14 +363,14 @@ export const STAT_KEYS = ['speed', 'accel', 'turn', 'brake', 'patience', 'force'
  * can be read straight off the game, and the effect beside it.
  */
 export const STAT_NAMES = {
-	speed: { game: 'Endurance', means: 'speed', tip: 'Endurance: increases the ship’s Speed.' },
-	accel: { game: 'Wits', means: 'acceleration', tip: 'Wits: increases the ship’s Acceleration.' },
-	turn: { game: 'Awareness', means: 'turn', tip: 'Awareness: increases the ship’s Turn.' },
-	brake: { game: 'Strength', means: 'brake', tip: 'Strength: increases the ship’s Brake.' },
-	patience: { game: 'Patience', means: 'cannon reload', tip: 'Patience: reduces the reload cooldown of cannons.' },
-	force: { game: 'Force', means: 'FocusFire range', tip: 'Force: increases the range of FocusFire.' },
-	focus: { game: 'Focus', means: 'cannon spread', tip: 'Focus: reduces the cannon spread of FocusFire.' },
-	vision: { game: 'Vision', means: 'firing angle', tip: 'Vision: broadens the left and right firing angle of your cannons.' }
+	speed: { game: TT('Endurance'), means: TT('speed'), tip: TT('Endurance: increases the ship’s Speed.') },
+	accel: { game: TT('Wits'), means: TT('acceleration'), tip: TT('Wits: increases the ship’s Acceleration.') },
+	turn: { game: TT('Awareness'), means: TT('turn'), tip: TT('Awareness: increases the ship’s Turn.') },
+	brake: { game: TT('Strength'), means: TT('brake'), tip: TT('Strength: increases the ship’s Brake.') },
+	patience: { game: TT('Patience'), means: TT('cannon reload'), tip: TT('Patience: reduces the reload cooldown of cannons.') },
+	force: { game: TT('Force'), means: TT('FocusFire range'), tip: TT('Force: increases the range of FocusFire.') },
+	focus: { game: TT('Focus'), means: TT('cannon spread'), tip: TT('Focus: reduces the cannon spread of FocusFire.') },
+	vision: { game: TT('Vision'), means: TT('firing angle'), tip: TT('Vision: broadens the left and right firing angle of your cannons.') }
 };
 
 /** "Endurance (speed)", for a label that has room for both. */

@@ -5,6 +5,7 @@
 import { courses } from '../courses.js';
 import { monsters } from '../sea_monsters.js';
 import { esc, F } from '../fmt.js';
+import { T, gameName, said } from '../i18n.js';
 import { img } from '../ui-bits.js';
 import { createMap } from '../map.js';
 import { npcs, npcById } from '../barter_npcs.js';
@@ -39,10 +40,10 @@ function huntHTML() {
 		const on = mv.coursesOn.includes(c.id);
 		return `<button class="map-course${on ? ' on' : ''}" data-act="map-course" data-id="${esc(c.id)}" aria-pressed="${on}">
 			<span class="map-course-dot"></span>
-			<span class="map-row-main"><span class="map-row-name">${esc(c.name)}</span><span class="map-row-sub">${esc(c.sub)}</span></span>
-		</button>${on ? `<p class="map-course-note">${esc(c.note)}</p>` : ''}`;
+			<span class="map-row-main"><span class="map-row-name">${esc(said(c.name))}</span><span class="map-row-sub">${esc(said(c.sub))}</span></span>
+		</button>${on ? `<p class="map-course-note">${esc(said(c.note))}</p>` : ''}`;
 	}).join('');
-	const kinds = [['adult', 'Sea monsters'], ['young', 'Young ones'], ['ship', 'Ships'], ['boss', 'Bosses'], ['pirate', "Cox Pirates' seals"]];
+	const kinds = [['adult', T('Sea monsters')], ['young', T('Young ones')], ['ship', T('Ships')], ['boss', T('Bosses')], ['pirate', T("Cox Pirates' seals")]];
 	const huntRows = kinds.map(([kind, label]) => {
 		const list = monsters.filter(m => m.kind === kind);
 		if (!list.length) return '';
@@ -51,26 +52,26 @@ function huntHTML() {
 			const qs = byMonster[m.key] || [];
 			const pic = monsterArt[m.key] ? `<img class="map-hunt-pic" src="icons/${monsterArt[m.key]}" alt="">` : `<span class="map-hunt-dot ${m.kind}"></span>`;
 			return `<button class="map-hunt${on ? ' on' : ''}" data-act="map-hunt" data-id="${esc(m.key)}" aria-pressed="${on}"
-				style="--hunt: ${m.colour}" ${m.points.length || m.zones ? '' : 'disabled title="Its ground is not on the chart yet"'}>
+				style="--hunt: ${m.colour}" ${m.points.length || m.zones ? '' : `disabled title="${T('Its ground is not on the chart yet')}"`}>
 				${pic}
-				<span class="map-row-main"><span class="map-row-name">${esc(m.name)}</span>
-					<span class="map-row-sub">${m.points.length ? `${m.points.length} spawn point${m.points.length === 1 ? '' : 's'}` : m.zones ? 'the habitat marker; no spawn points on the codex yet' : 'ground not charted yet'}${qs.length
-						? ' · ' + qs.map(q => q.name.replace(/^\[(Daily|Weekly)\] /, '')).join(', ') : ''}</span>
-					${m.note ? `<span class="map-row-sub note">${esc(m.note)}</span>` : ''}</span>
+				<span class="map-row-main"><span class="map-row-name">${esc(gameName(m.name))}</span>
+					<span class="map-row-sub">${m.points.length ? (m.points.length === 1 ? T('{n} spawn point', { n: m.points.length }) : T('{n} spawn points', { n: m.points.length })) : m.zones ? T('the habitat marker; no spawn points on the codex yet') : T('ground not charted yet')}${qs.length
+						? ' · ' + qs.map(q => gameName(q.name).replace(/^\[(Daily|Weekly)\] /, '')).join(', ') : ''}</span>
+					${m.note ? `<span class="map-row-sub note">${esc(said(m.note))}</span>` : ''}</span>
 			</button>`;
 		}).join('');
 	}).join('');
 	const picked = mv.coursesOn.length + mv.huntsOn.length;
 	const toGame = picked ? `<div class="map-side-btns">
 		<button class="ghost-btn wide" data-act="map-hunt-game"
-			title="Write what is ticked here into the game's world map">⚑ Put ${picked === 1 ? 'it' : 'these'} on the game's map</button>
+			title="${T("Write what is ticked here into the game's world map")}">⚑ ${picked === 1 ? T("Put it on the game's map") : T("Put these on the game's map")}</button>
 	</div>` : '';
 	return `<div class="map-courses">
-		<div class="map-courses-head">Courses <span class="map-courses-credit">from gpw’s ocean map (Snuggle Sailies Route)</span></div>
+		<div class="map-courses-head">${T('Courses')} <span class="map-courses-credit">${T('from gpw’s ocean map (Snuggle Sailies Route)')}</span></div>
 		${courseRows}
 	</div>
 	<div class="map-courses">
-		<div class="map-courses-head">Grounds <span class="map-courses-credit">every spawn point on BDOCodex</span></div>
+		<div class="map-courses-head">${T('Grounds')} <span class="map-courses-credit">${T('every spawn point on BDOCodex')}</span></div>
 		${huntRows}
 	</div>${toGame}`;
 }
@@ -85,36 +86,36 @@ export function renderMap() {
 	if (!mv.mapState) mv.mapState = createMap();
 
 	if (!barterData) {
-		return '<div class="panel"><p class="empty">Loading the barter routes…</p></div>';
+		return `<div class="panel"><p class="empty">${T('Loading the barter routes…')}</p></div>`;
 	}
 
 	const marks = marksNow();
 
 	const head = `<div class="summary">
-		<span class="summary-title">Where to sail <button class="info-dot" data-act="guide"
-			aria-label="Where to see these numbers in game">?</button></span>
+		<span class="summary-title">${T('Where to sail')} <button class="info-dot" data-act="guide"
+			aria-label="${T('Where to see these numbers in game')}">?</button></span>
 		<div class="summary-stats">
 			<div>
-				<div class="summary-k">Barterers</div>
-				<div class="summary-v">${F(marks.size)} of ${npcs.length}</div>
-				<div class="summary-sub">${mv.mapPick ? 'trade this' : 'have something on your list'}</div>
+				<div class="summary-k">${T('Barterers')}</div>
+				<div class="summary-v">${T('{n} of {max}', { n: F(marks.size), max: npcs.length })}</div>
+				<div class="summary-sub">${mv.mapPick ? T('trade this') : T('have something on your list')}</div>
 			</div>
 			<div>
-				<div class="summary-k">Showing</div>
+				<div class="summary-k">${T('Showing')}</div>
 				<div class="summary-v"><button class="map-pick-btn" data-act="map-pick-open"
-					aria-label="Choose what to look for">${mv.mapPick
-						? `${img(mv.mapPick, 'map-icon')}<span>${esc(mv.mapPick)}</span>`
-						: '<span>Everything I am short of</span>'}<span class="map-pick-caret">▾</span></button></div>
-				<div class="summary-sub">drag to pan · scroll to zoom</div>
+					aria-label="${T('Choose what to look for')}">${mv.mapPick
+						? `${img(mv.mapPick, 'map-icon')}<span>${esc(gameName(mv.mapPick))}</span>`
+						: `<span>${T('Everything I am short of')}</span>`}<span class="map-pick-caret">▾</span></button></div>
+				<div class="summary-sub">${T('drag to pan · scroll to zoom')}</div>
 			</div>
 		</div>
 		<div class="map-zoom">
-			<button class="ghost-btn" data-act="map-zoom" data-step="-1" aria-label="Zoom out">−</button>
-			<button class="ghost-btn" data-act="map-zoom" data-step="1" aria-label="Zoom in">+</button>
-			<button class="ghost-btn" data-act="map-fit" aria-label="Fit the marked islands in view">⌖</button>
-			<button class="ghost-btn" data-act="map-measure" aria-pressed="${mv.measuring}" aria-label="Measure a distance" title="Ruler: click two points on the sea">⟷</button>
-			<button class="ghost-btn" data-act="map-mini" aria-pressed="${mv.miniOn}" aria-label="Show or hide the minimap" title="Minimap: show or hide it; drag its grip to move it">▭</button>
-			<button class="ghost-btn" data-act="map-full" aria-pressed="${mv.fullOn}" aria-label="Show the chart over the whole screen" title="Full screen: the chart over everything; ✕ or Esc brings the page back">⛶</button>
+			<button class="ghost-btn" data-act="map-zoom" data-step="-1" aria-label="${T('Zoom out')}">−</button>
+			<button class="ghost-btn" data-act="map-zoom" data-step="1" aria-label="${T('Zoom in')}">+</button>
+			<button class="ghost-btn" data-act="map-fit" aria-label="${T('Fit the marked islands in view')}">⌖</button>
+			<button class="ghost-btn" data-act="map-measure" aria-pressed="${mv.measuring}" aria-label="${T('Measure a distance')}" title="${T('Ruler: click two points on the sea')}">⟷</button>
+			<button class="ghost-btn" data-act="map-mini" aria-pressed="${mv.miniOn}" aria-label="${T('Show or hide the minimap')}" title="${T('Minimap: show or hide it; drag its grip to move it')}">▭</button>
+			<button class="ghost-btn" data-act="map-full" aria-pressed="${mv.fullOn}" aria-label="${T('Show the chart over the whole screen')}" title="${T('Full screen: the chart over everything; ✕ or Esc brings the page back')}">⛶</button>
 			<span class="map-pins" data-map-pins>${pinButtonsHTML()}</span>
 		</div>
 	</div>`;
@@ -125,18 +126,18 @@ export function renderMap() {
 	// chart's own corner, so the chart keeps every pixel of its height.
 	const vell = vellNext();
 	const clocks = `<div class="map-clocks" role="status">
-		<span title="Every barterer's list redraws">barter <b data-until="barter"></b></span>
-		<span title="The daily quests reset">dailies <b data-until="daily"></b></span>
-		<span title="The weekly quests reset">weeklies <b data-until="weekly"></b></span>
-		${vell ? `<span title="Vell's next spawn on your servers, ${esc(vell.label)}">Vell <b data-until="at" data-at="${vell.at}"></b></span>` : ''}
+		<span title="${T("Every barterer's list redraws")}">${T('barter')} <b data-until="barter"></b></span>
+		<span title="${T('The daily quests reset')}">${T('dailies')} <b data-until="daily"></b></span>
+		<span title="${T('The weekly quests reset')}">${T('weeklies')} <b data-until="weekly"></b></span>
+		${vell ? `<span title="${T("Vell's next spawn on your servers, {when}", { when: esc(vell.label) })}">${gameName('Vell')} <b data-until="at" data-at="${vell.at}"></b></span>` : ''}
 	</div>`;
 	// Over the whole screen, the header's buttons are out of reach, so
 	// the chart carries the few that matter and the way back.
 	const fullBar = `<div class="map-full-bar" data-map-fullbar>
-		<button class="ghost-btn" data-act="map-zoom" data-step="-1" aria-label="Zoom out">−</button>
-		<button class="ghost-btn" data-act="map-zoom" data-step="1" aria-label="Zoom in">+</button>
-		<button class="ghost-btn" data-act="map-fit" aria-label="Fit the marked islands in view">⌖</button>
-		<button class="ghost-btn" data-act="map-full" aria-label="Back to the page" title="Back to the page (Esc)">✕</button>
+		<button class="ghost-btn" data-act="map-zoom" data-step="-1" aria-label="${T('Zoom out')}">−</button>
+		<button class="ghost-btn" data-act="map-zoom" data-step="1" aria-label="${T('Zoom in')}">+</button>
+		<button class="ghost-btn" data-act="map-fit" aria-label="${T('Fit the marked islands in view')}">⌖</button>
+		<button class="ghost-btn" data-act="map-full" aria-label="${T('Back to the page')}" title="${T('Back to the page (Esc)')}">✕</button>
 	</div>`;
 	return head + `<div class="panel map-panel"><div class="map${mv.measuring ? ' measuring' : ''}${mv.sideRight ? ' side-right' : ''}${mv.mode === 'trace' ? ' free-hand' : ''}${mv.traceTool ? ` tracing tool-${mv.traceTool}` : ''}${mv.fullOn ? ' full' : ''}${mv.fullTurned ? ' turned' : ''}" id="map" data-map>
 		<div class="map-layer" data-map-layer></div>
@@ -156,9 +157,9 @@ export function renderMap() {
 
 function sideHTML(marks) {
 	if (!mv.panelOpen) {
-		return `<button class="map-side-pill" data-act="map-panel">☰ Where to sail</button>`;
+		return `<button class="map-side-pill" data-act="map-panel">☰ ${T('Where to sail')}</button>`;
 	}
-	const tabs = [['sail', 'Barter'], ['route', 'Route'], ['trace', 'Draw'], ['hunt', 'Grounds'], ['today', 'Today']]
+	const tabs = [['sail', T('Barter')], ['route', T('Route')], ['trace', T('Draw')], ['hunt', T('Grounds')], ['today', T('Today')]]
 		.map(([id, label]) => `<button class="map-tab${mv.mode === id ? ' active' : ''}"
 			data-act="map-mode" data-id="${id}">${label}</button>`).join('');
 	const body = mv.mode === 'route' ? routeHTML(marks)
@@ -168,8 +169,8 @@ function sideHTML(marks) {
 		: sailHTML(marks);
 	return `<div class="map-side">
 		<div class="map-side-head"><span>${
-			mv.mode === 'route' ? 'Plot the loop' : mv.mode === 'trace' ? 'Trace a route' : mv.mode === 'hunt' ? 'Hunting grounds' : mv.mode === 'today' ? 'Sailed today' : 'Who has it'
-		}</span><span class="map-side-head-btns"><button class="map-side-close" data-act="map-side-flip" aria-label="Move the panel to the other side" title="Move the panel to the ${mv.sideRight ? 'left' : 'right'}">⇄</button><button class="map-side-close" data-act="map-panel" aria-label="Hide the panel">${mv.sideRight ? '›' : '‹'}</button></span></div>
+			mv.mode === 'route' ? T('Plot the loop') : mv.mode === 'trace' ? T('Trace a route') : mv.mode === 'hunt' ? T('Hunting grounds') : mv.mode === 'today' ? T('Sailed today') : T('Who has it')
+		}</span><span class="map-side-head-btns"><button class="map-side-close" data-act="map-side-flip" aria-label="${T('Move the panel to the other side')}" title="${mv.sideRight ? T('Move the panel to the left') : T('Move the panel to the right')}">⇄</button><button class="map-side-close" data-act="map-panel" aria-label="${T('Hide the panel')}">${mv.sideRight ? '›' : '‹'}</button></span></div>
 		<div class="map-tabs" role="tablist">${tabs}</div>
 		${layersHTML()}
 		<div class="map-side-body">${body}</div>
@@ -190,19 +191,19 @@ function layersHTML() {
 	const chip = (act, id, on, dot, label, title) => `<button class="map-chip${on ? ' on' : ''}" data-act="${act}"${id ? ` data-id="${id}"` : ''}
 		aria-pressed="${on}" title="${esc(title)}"><span class="map-chip-dot" style="background:${dot}"></span>${esc(label)}</button>`;
 	const chips = [
-		chip('map-pins', '', mv.pinsOn, '#7ef0d4', 'Barterers', `The ${npcs.length} island marks`),
-		chip('map-habitats', '', mv.habitatsOn, '#ffd77a', 'Habitats', "A picture where each species lives, as the game's map shows them"),
-		chip('map-wharves', 'wharf', mv.wharvesOn.includes('wharf'), '#9fd0f0', 'Wharves', `${wharfN('wharf')} wharf managers — repair, rations, sailor contracts`),
-		chip('map-wharves', 'guild', mv.wharvesOn.includes('guild'), '#c6a0ff', 'Guild', `${wharfN('guild')} guild wharves — the Old Moon Guild's, for a guild ship`),
-		chip('map-labels', '', mv.labelsOn, '#cfe3f5', 'Islands', 'Island names, faint, once the chart is close enough to read them'),
-		chip('map-traces', '', mv.tracesOn, '#ffd77a', 'Traces', 'What you drew by hand, and every kept trace with its eye open')
+		chip('map-pins', '', mv.pinsOn, '#7ef0d4', T('Barterers'), T('The {n} island marks', { n: npcs.length })),
+		chip('map-habitats', '', mv.habitatsOn, '#ffd77a', T('Habitats'), T("A picture where each species lives, as the game's map shows them")),
+		chip('map-wharves', 'wharf', mv.wharvesOn.includes('wharf'), '#9fd0f0', T('Wharves'), T('{n} wharf managers — repair, rations, sailor contracts', { n: wharfN('wharf') })),
+		chip('map-wharves', 'guild', mv.wharvesOn.includes('guild'), '#c6a0ff', T('Guild'), T("{n} guild wharves — the Old Moon Guild's, for a guild ship", { n: wharfN('guild') })),
+		chip('map-labels', '', mv.labelsOn, '#cfe3f5', T('Islands'), T('Island names, faint, once the chart is close enough to read them')),
+		chip('map-traces', '', mv.tracesOn, '#ffd77a', T('Traces'), T('What you drew by hand, and every kept trace with its eye open'))
 	].join('');
 	const on = [mv.pinsOn, mv.habitatsOn, mv.labelsOn, mv.tracesOn].filter(Boolean).length + mv.wharvesOn.length;
 	return `<div class="map-layers${mv.layersOpen ? ' open' : ''}">
 		<button class="map-layers-head" data-act="map-layers" aria-expanded="${mv.layersOpen}"
-			title="What the chart draws, on every tab">
+			title="${T('What the chart draws, on every tab')}">
 			<span class="map-layers-caret" aria-hidden="true">${mv.layersOpen ? '▾' : '▸'}</span>
-			<span>On the chart</span><span class="map-courses-credit">${on} of 6</span></button>
+			<span>${T('On the chart')}</span><span class="map-courses-credit">${T('{n} of {max}', { n: on, max: 6 })}</span></button>
 		${mv.layersOpen ? `<div class="map-chips">${chips}</div>` : ''}
 	</div>`;
 }
@@ -218,8 +219,8 @@ function rowHTML(npc, sub, right, act = 'map-row') {
 	return `<button class="map-row" data-act="${act}" data-npc="${npc.id}">
 		<span class="map-row-dot"></span>
 		<span class="map-row-main">
-			<span class="map-row-name">${esc(npc.at)}</span>
-			<span class="map-row-sub">${esc(npc.name)} · ${sub}</span>
+			<span class="map-row-name">${esc(gameName(npc.at))}</span>
+			<span class="map-row-sub">${esc(gameName(npc.name))} · ${sub}</span>
 		</span>
 		<span class="map-row-right">${right}</span>
 	</button>`;
@@ -239,22 +240,19 @@ function sailHTML(marks) {
 			const pool = new Set(goodsOf(npc.id).filter(g => barterKind(g.item) === kind)
 				.map(g => g.item)).size;
 			return rowHTML(npc,
-				`${pool > 1 ? `1 of ${pool} a refresh · ` : ''}for ${esc(gives.slice(0, 2).join(' / ') || '—')}`,
+				`${pool > 1 ? `${T('1 of {n} a refresh', { n: pool })} · ` : ''}${T('for {items}', { items: esc(gives.slice(0, 2).map(g => gameName(g)).join(' / ') || '—') })}`,
 				iconStrip(items));
 		}).join('');
 	const list = rows
-		|| `<p class="empty">${q ? 'No island by that name has it.'
-			: 'Nothing on your list is bartered at sea.'}</p>`;
-	const draw = rows && !q ? `<p class="map-hint">Today's list is <span class="gterm" role="button" tabindex="0"
-		data-guide="draw">a draw</span>: each island deals one offer per list from its own
-		pool, so these are the islands where it <em>can</em> appear — the “1 of N” is that
-		pool.</p>` : '';
+		|| `<p class="empty">${q ? T('No island by that name has it.')
+			: T('Nothing on your list is bartered at sea.')}</p>`;
+	const draw = rows && !q ? `<p class="map-hint">${T('Today\'s list is <span class="gterm" role="button" tabindex="0" data-guide="draw">a draw</span>: each island deals one offer per list from its own pool, so these are the islands where it <em>can</em> appear — the “1 of N” is that pool.')}</p>` : '';
 	const kinds = !mv.mapPick ? `<div class="map-kinds">${[
-			['all', 'All'], ['material', 'Materials'], ['trade', 'Trade goods']
+			['all', T('All')], ['material', T('Materials')], ['trade', T('Trade goods')]
 		].map(([id, label]) => `<button class="map-kind-chip${mv.kindFilter === id ? ' on' : ''}"
 			data-act="map-kind" data-id="${id}">${label}</button>`).join('')}</div>` : '';
 	return `${kinds}<input class="map-search" type="search" data-act="map-search"
-			value="${esc(mv.searchQ)}" placeholder="Filter islands…" aria-label="Filter islands">
+			value="${esc(mv.searchQ)}" placeholder="${T('Filter islands…')}" aria-label="${T('Filter islands')}">
 		${draw}<div class="map-list" data-map-list>${list}</div>`;
 }
 
@@ -263,7 +261,7 @@ function todayHTML(marks) {
 	const all = [...marks.keys()].map(id => npcById.get(id)).filter(Boolean)
 		.sort((a, b) => a.name.localeCompare(b.name));
 	if (!all.length) {
-		return '<p class="empty">Nothing marked to sail for — pick an item or add a build.</p>';
+		return `<p class="empty">${T('Nothing marked to sail for — pick an item or add a build.')}</p>`;
 	}
 	const doneCount = all.filter(n => dn.has(n.id)).length;
 	const pct = Math.round(doneCount / all.length * 100);
@@ -272,8 +270,8 @@ function todayHTML(marks) {
 		return `<button class="map-row today${is ? ' done' : ''}" data-act="map-done" data-npc="${n.id}">
 			<span class="map-check">✓</span>
 			<span class="map-row-main">
-				<span class="map-row-name">${esc(n.at)}</span>
-				<span class="map-row-sub">${esc(n.name)} · ${esc([...marks.get(n.id).items.keys()].join(', '))}</span>
+				<span class="map-row-name">${esc(gameName(n.at))}</span>
+				<span class="map-row-sub">${esc(gameName(n.name))} · ${esc([...marks.get(n.id).items.keys()].map(i => gameName(i)).join(', '))}</span>
 			</span>
 			<span class="map-row-right">${iconStrip([...marks.get(n.id).items.keys()])}</span>
 		</button>`;
@@ -281,8 +279,8 @@ function todayHTML(marks) {
 	return `<div class="map-ring-row">
 			<div class="map-ring" style="background:conic-gradient(var(--teal) ${pct * 3.6}deg, var(--track) 0deg)">
 				<span>${pct}%</span></div>
-			<div><div class="map-ring-big">${doneCount} of ${all.length} visited</div>
-				<div class="map-row-sub"><span class="gterm" role="button" tabindex="0" data-guide="refresh">resets with the game</span> in <b data-until="barter"></b></div></div>
+			<div><div class="map-ring-big">${T('{n} of {max} visited', { n: doneCount, max: all.length })}</div>
+				<div class="map-row-sub">${T('<span class="gterm" role="button" tabindex="0" data-guide="refresh">resets with the game</span> in <b data-until="barter"></b>')}</div></div>
 		</div>
 		<div class="map-list">${rows}</div>`;
 }
@@ -309,9 +307,9 @@ export function miniHTML(marks) {
 		}
 	}
 	const at = mv.miniPos ? ` style="left:${Math.round(mv.miniPos.x)}px;top:${Math.round(mv.miniPos.y)}px;right:auto;bottom:auto"` : '';
-	return `<div class="map-mini${mv.miniPos ? ' moved' : ''}" data-map-mini title="Jump there"${at}>
-		<span class="mini-grip" data-mini-grip title="Drag to move the minimap" aria-hidden="true">⋮⋮</span>
-		<button class="mini-hide" data-act="map-mini" title="Hide the minimap" aria-label="Hide the minimap">×</button>
+	return `<div class="map-mini${mv.miniPos ? ' moved' : ''}" data-map-mini title="${T('Jump there')}"${at}>
+		<span class="mini-grip" data-mini-grip title="${T('Drag to move the minimap')}" aria-hidden="true">⋮⋮</span>
+		<button class="mini-hide" data-act="map-mini" title="${T('Hide the minimap')}" aria-label="${T('Hide the minimap')}">×</button>
 		${dots}<i class="mini-view" data-map-view></i></div>`;
 }
 

@@ -5,6 +5,7 @@ import { routes, routeInfo } from './recipes.js';
 import { shipGroups } from './ships.js';
 import { statsLine, shipStats } from './ship_stats.js';
 import { esc, F } from './fmt.js';
+import { T, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { img, codexName, amountInput, costCtx, costText, buildableItems } from './ui-bits.js';
@@ -22,19 +23,19 @@ export function renderBuilds() {
 	const byId = new Map(snapshot.targets.map(t => [t.id, t]));
 
 	const head = `<div class="queue-head">
-		<span class="queue-title">Build queue</span>
-		<span class="queue-note">Scarce stock goes to the build nearest the top</span>
+		<span class="queue-title">${T('Build queue')}</span>
+		<span class="queue-note">${T('Scarce stock goes to the build nearest the top')}</span>
 		<span class="panel-spacer"></span>
-		<button class="act add-build" data-act="add-build">+ Add a build</button>
+		<button class="act add-build" data-act="add-build">${T('+ Add a build')}</button>
 	</div>`;
 
 	const list = targets.length ? targets.map((t, i) => {
 		const r = byId.get(t.id);
 		const pct = r ? r.progress : 0;
 		const state = !t.active ? 'paused' : pct >= 100 ? 'done' : '';
-		const stateLabel = !t.active ? 'Paused' : pct >= 100 ? 'Ready' : 'In progress';
+		const stateLabel = !t.active ? T('Paused') : pct >= 100 ? T('Ready') : T('In progress');
 		const units = r
-			? (r.missingUnits > 0 ? `${F(r.missingUnits)} of ${F(r.totalUnits)} units still needed` : 'everything on hand')
+			? (r.missingUnits > 0 ? T('{missing} of {total} units still needed', { missing: F(r.missingUnits), total: F(r.totalUnits) }) : T('everything on hand'))
 			: '';
 		return `<div class="build ${t.active ? '' : 'paused'}" data-target="${esc(t.id)}">
 			${img(t.item, 'row-icon lg')}
@@ -44,8 +45,8 @@ export function renderBuilds() {
 					<span class="build-state ${state}">${stateLabel}</span>
 				</div>
 				<div class="bar tall"><i class="fill" style="width:${pct.toFixed(1)}%"></i></div>
-				<div class="build-meta">Priority ${i + 1} · <span class="n">${pct.toFixed(1)}%</span> · ${esc(units)}${routeNote(t.item)}</div>
-				${statsLine(t.item) ? `<div class="build-meta build-stats" title="What this hull is, in the game's own numbers — see Crew for the rest">${esc(statsLine(t.item))}</div>` : ''}
+				<div class="build-meta">${T('Priority {n}', { n: i + 1 })} · <span class="n">${pct.toFixed(1)}%</span> · ${esc(units)}${routeNote(t.item)}</div>
+				${statsLine(t.item) ? `<div class="build-meta build-stats" title="${T('What this hull is, in the game\'s own numbers — see Crew for the rest')}">${esc(statsLine(t.item))}</div>` : ''}
 				${(() => {
 					// The bill for finishing this one: every leaf its tree
 					// could neither cover from stock nor make, priced the
@@ -53,39 +54,39 @@ export function renderBuilds() {
 					if (!r || r.missingUnits <= 0) return '';
 					const left = remainingCost(r.tree, costCtx());
 					const pace = paceText(r);
-					return `<div class="build-cost">Still to get: ${esc(costText(left))}</div>${pace
-						? `<div class="build-meta build-pace" title="Units covered over the last fortnight, against what is left">${esc(pace)}</div>` : ''}`;
+					return `<div class="build-cost">${T('Still to get: {cost}', { cost: esc(costText(left)) })}</div>${pace
+						? `<div class="build-meta build-pace" title="${T('Units covered over the last fortnight, against what is left')}">${esc(pace)}</div>` : ''}`;
 				})()}
 			</div>
 			<div class="build-actions">
-				<button class="sq-btn" data-act="move" data-dir="-1" title="Raise priority" ${i === 0 ? 'disabled' : ''}>▲</button>
-				<button class="sq-btn" data-act="move" data-dir="1" title="Lower priority" ${i === targets.length - 1 ? 'disabled' : ''}>▼</button>
+				<button class="sq-btn" data-act="move" data-dir="-1" title="${T('Raise priority')}" ${i === 0 ? 'disabled' : ''}>▲</button>
+				<button class="sq-btn" data-act="move" data-dir="1" title="${T('Lower priority')}" ${i === targets.length - 1 ? 'disabled' : ''}>▼</button>
 				<span class="stepper">
-					<button data-act="qty" data-delta="-1" aria-label="Fewer">−</button>
-					${amountInput('val', t.qty, `data-act="target-qty" data-target="${esc(t.id)}" aria-label="How many to build"`)}
-					<button data-act="qty" data-delta="1" aria-label="More">+</button>
+					<button data-act="qty" data-delta="-1" aria-label="${T('Fewer')}">−</button>
+					${amountInput('val', t.qty, `data-act="target-qty" data-target="${esc(t.id)}" aria-label="${T('How many to build')}"`)}
+					<button data-act="qty" data-delta="1" aria-label="${T('More')}">+</button>
 				</span>
-				<button class="sq-btn" data-act="pause" title="Pause or resume">${t.active ? '⏸' : '▶'}</button>
-				<button class="sq-btn danger" data-act="remove" title="Remove">×</button>
+				<button class="sq-btn" data-act="pause" title="${T('Pause or resume')}">${t.active ? '⏸' : '▶'}</button>
+				<button class="sq-btn danger" data-act="remove" title="${T('Remove')}">×</button>
 			</div>
 		</div>`;
-	}).join('') : '<div class="panel"><p class="empty">Nothing queued yet. Add a ship or a part above and the rest follows from it.</p></div>';
+	}).join('') : `<div class="panel"><p class="empty">${T('Nothing queued yet. Add a ship or a part above and the rest follows from it.')}</p></div>`;
 
 	const every = bottlenecks(snapshot, Infinity);
 	const blockers = allBlockers ? every : every.slice(0, 5);
 	const blockHTML = blockers.length ? `<div class="panel">
 		<div class="panel-head">
-			<h2 class="panel-title amber">Biggest blockers</h2>
-			<span class="panel-sub">Missing items holding up the queue${every.length > 5
-				? ` · <button class="linky" data-act="blockers-all">${allBlockers ? 'the worst five' : `all ${every.length}`}</button>` : ''}</span>
+			<h2 class="panel-title amber">${T('Biggest blockers')}</h2>
+			<span class="panel-sub">${T('Missing items holding up the queue')}${every.length > 5
+				? ` · <button class="linky" data-act="blockers-all">${allBlockers ? T('the worst five') : T('all {n}', { n: every.length })}</button>` : ''}</span>
 		</div>
 		${blockers.map(b => `<div class="row">
 			${img(b.item, 'row-icon md')}
 			<div class="row-main">
 				<div class="row-name">${codexName(b.item)}</div>
-				<div class="row-sub">blocks ${esc(b.targets.join(', '))}</div>
+				<div class="row-sub">${T('blocks {targets}', { targets: esc(b.targets.map(gameName).join(', ')) })}</div>
 			</div>
-			<span class="qty-out">${F(b.qty)} short</span>
+			<span class="qty-out">${T('{n} short', { n: F(b.qty) })}</span>
 		</div>`).join('')}
 	</div>` : '';
 
@@ -121,11 +122,11 @@ export function routeOptions(item) {
 		const held = stock[meta.via] || 0;
 		return `<button class="route ${on ? 'on' : ''}" data-act="route" data-item="${esc(item)}" data-route="${esc(name)}">
 			<span class="route-head">
-				<span class="route-name">${esc(meta.label || name)}</span>
-				${held > 0 ? `<span class="route-have">you have ${held > 1 ? F(held) : 'one'}</span>` : ''}
+				<span class="route-name">${esc(said(meta.label || name))}</span>
+				${held > 0 ? `<span class="route-have">${held > 1 ? T('you have {n}', { n: F(held) }) : T('you have one')}</span>` : ''}
 			</span>
-			<span class="route-cost">${F(units)} units of material in total</span>
-			${meta.gains ? `<span class="route-gain">${esc(meta.gains)}</span>` : ''}
+			<span class="route-cost">${T('{n} units of material in total', { n: F(units) })}</span>
+			${meta.gains ? `<span class="route-gain">${esc(said(meta.gains))}</span>` : ''}
 		</button>`;
 	}).join('');
 }
@@ -136,18 +137,18 @@ export function routeNote(item) {
 	if (!routes[item]) return '';
 	const chosen = routeOf(item, store.getAllStrategy());
 	const meta = (routeInfo[item] || {})[chosen] || {};
-	return ` · via <b>${esc(meta.via || chosen)}</b>` +
-		` <button class="linky" data-act="ask-route" data-item="${esc(item)}">change</button>`;
+	return ` · ${T('via <b>{name}</b>', { name: esc(gameName(meta.via || chosen)) })}` +
+		` <button class="linky" data-act="ask-route" data-item="${esc(item)}">${T('change')}</button>`;
 }
 
 /** The choice, as its own dialog -- asked when a build is queued, and
  *  reachable again from the build afterwards. */
 export function askRoute(item, { onPick } = {}) {
 	const host = openDialog(`
-		<h2>${esc(item)}</h2>
-		<p>There are two ways to make this one. Pick either — you can change your mind later.</p>
+		<h2>${esc(gameName(item))}</h2>
+		<p>${T('There are two ways to make this one. Pick either — you can change your mind later.')}</p>
 		<div class="route-list">${routeOptions(item)}</div>
-		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>
+		<div class="dialog-actions"><button class="act quiet" data-close>${T('Close')}</button></div>
 	`);
 	host.querySelectorAll('[data-act="route"]').forEach(btn => {
 		btn.addEventListener('click', () => {
@@ -166,19 +167,19 @@ export function openBuildPicker() {
 	// a group of their own -- anything else grouped there is a trackable
 	// part, and everything else is a material.
 	const kindOf = name => {
-		if (shipStats[name]) return 'ship';
+		if (shipStats[name]) return T('ship');
 		for (const group of shipGroups) {
-			if (group.items.includes(name)) return 'part';
+			if (group.items.includes(name)) return T('part');
 		}
-		return 'material';
+		return T('material');
 	};
 
 	const host = openDialog(`
-		<h2>Add a build</h2>
-		<p>Anything with a recipe can be queued — a ship, a part, or a stack of materials.</p>
-		<input class="field picker-search" type="search" placeholder="Search ships, parts and materials…" data-picker-search aria-label="Search ships, parts and materials">
+		<h2>${T('Add a build')}</h2>
+		<p>${T('Anything with a recipe can be queued — a ship, a part, or a stack of materials.')}</p>
+		<input class="field picker-search" type="search" placeholder="${T('Search ships, parts and materials…')}" data-picker-search aria-label="${T('Search ships, parts and materials')}">
 		<div class="picker" data-picker></div>
-		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>
+		<div class="dialog-actions"><button class="act quiet" data-close>${T('Close')}</button></div>
 	`);
 
 	const listEl = host.querySelector('[data-picker]');
@@ -193,14 +194,14 @@ export function openBuildPicker() {
 				const already = queued.has(n);
 				return `<button type="button" class="picker-row" data-pick="${esc(n)}" data-peek="${esc(n)}" ${already ? 'disabled' : ''}>
 					${img(n, 'row-icon sm')}
-					<span class="picker-name">${esc(n)}</span>
-					<span class="picker-tag">${already ? 'queued' : kindOf(n)}</span>
+					<span class="picker-name">${esc(gameName(n))}</span>
+					<span class="picker-tag">${already ? T('queued') : kindOf(n)}</span>
 				</button>`;
 			}).join('')
 				+ (over > 0
-					? `<p class="empty">…${F(over)} more — keep typing to narrow it.</p>`
+					? `<p class="empty">${T('…{n} more — keep typing to narrow it.', { n: F(over) })}</p>`
 					: '')
-			: '<p class="empty">Nothing matches that search.</p>';
+			: `<p class="empty">${T('Nothing matches that search.')}</p>`;
 	};
 
 	paint('');
@@ -215,10 +216,10 @@ export function openBuildPicker() {
 		// is still the thing you are thinking about -- not later, buried
 		// in a panel about inventory.
 		if (routes[item]) {
-			askRoute(item, { onPick: () => toast(`${item} added to the queue`) });
+			askRoute(item, { onPick: () => toast(T('{item} added to the queue', { item: gameName(item) })) });
 			return;
 		}
-		toast(`${item} added to the queue`);
+		toast(T('{item} added to the queue', { item: gameName(item) }));
 	});
 	searchEl.focus();
 }

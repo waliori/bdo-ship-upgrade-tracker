@@ -16,6 +16,7 @@ import {
 	ROUTE_UNLOCKS
 } from './barter.js';
 import { esc, F, FC } from './fmt.js';
+import { T, gameName } from './i18n.js';
 import * as store from './state.js';
 import { img, codexName, costCtx, costText, groundsFor } from './ui-bits.js';
 import {
@@ -66,30 +67,30 @@ function barterProfileTile() {
 	// It is still worth showing: it is the one number a barter level
 	// visibly moves, and the game never adds up what a bar buys you.
 	return `<div>
-		<div class="summary-k">Bartering <button class="info-dot" data-act="guide"
-			aria-label="Where to see these numbers in game">?</button></div>
+		<div class="summary-k">${T('Bartering')} <button class="info-dot" data-act="guide"
+			aria-label="${T('Where to see these numbers in game')}">?</button></div>
 		<div class="summary-v">${F(day.lists.trade)}+${F(day.lists.material)} <span class="gterm" role="button" tabindex="0"
 			data-guide="refresh"
-			title="${F(day.lists.trade)} draws of the trade-goods list and ${F(day.lists.material)} of the ship-materials list — the two refresh on their own clocks">refreshes/day</span>
-			<span class="summary-sub"> · refill in <b data-until="barter"></b></span></div>
+			title="${T('{trade} draws of the trade-goods list and {material} of the ship-materials list — the two refresh on their own clocks', { trade: F(day.lists.trade), material: F(day.lists.material) })}">${T('refreshes/day')}</span>
+			<span class="summary-sub"> · ${T('refill in')} <b data-until="barter"></b></span></div>
 		<div class="summary-sub"><input class="purse-inline" type="text" inputmode="numeric"
 			value="${F(barterCount)}" data-act="barter-count"
-			aria-label="Your Total Barters, as the Barter Information window shows it"> <span class="gterm" role="button" tabindex="0"
-			data-guide="parley">Total Barters</span>${next ? ` · ${esc(next)}` : ''}
+			aria-label="${T('Your Total Barters, as the Barter Information window shows it')}"> <span class="gterm" role="button" tabindex="0"
+			data-guide="parley">${T('Total Barters')}</span>${next ? ` · ${esc(next)}` : ''}
 			· <label class="inline-check"><input type="checkbox" data-act="value-pack"
-			${valuePack ? 'checked' : ''}> Value Pack</label>
+			${valuePack ? 'checked' : ''}> ${T('Value Pack')}</label>
 			· <label class="inline-check"><input type="checkbox" data-act="crew-discount"
-			${crew ? 'checked' : ''}> Crew −10%</label></div>
+			${crew ? 'checked' : ''}> ${T('Crew −10%')}</label></div>
 		<div class="summary-sub"><select class="purse-inline" data-act="barter-level"
-			aria-label="Your barter level"><option value=""${level ? '' : ' selected'}>—</option>${levels}</select>
-			· ${F(day.perTrade)} <span class="gterm" role="button" tabindex="0" data-guide="level">Parley a trade</span>
+			aria-label="${T('Your barter level')}"><option value=""${level ? '' : ' selected'}>—</option>${levels}</select>
+			· ${F(day.perTrade)} <span class="gterm" role="button" tabindex="0" data-guide="level">${T('Parley a trade')}</span>
 			· <input class="purse-inline narrow" type="text" inputmode="numeric"
 			value="${F(vouchers)}" data-act="vouchers"
-			aria-label="Crow's Trade Vouchers you carry"> <span class="gterm" role="button" tabindex="0" data-guide="voucher">vouchers</span>
-			· ${F(day.tradesPerBar)} trades a refill</div>
+			aria-label="${T("Crow's Trade Vouchers you carry")}"> <span class="gterm" role="button" tabindex="0" data-guide="voucher">${T('vouchers')}</span>
+			· ${T('{n} trades a refill', { n: F(day.tradesPerBar) })}</div>
 		<div class="summary-sub"><input class="purse-inline" type="text" inputmode="numeric"
 			value="${F(parleyHeld)}" data-act="parley-held"
-			aria-label="Parley in the bar right now"> <span class="gterm" role="button" tabindex="0" data-guide="parley">Parley in the bar right now</span></div>
+			aria-label="${T('Parley in the bar right now')}"> <span class="gterm" role="button" tabindex="0" data-guide="parley">${T('Parley in the bar right now')}</span></div>
 	</div>`;
 }
 
@@ -99,7 +100,7 @@ function nextUnlock(count) {
 	if (!next) return null;
 	// "10 more barters open Kashuma Island": the running barter count
 	// unlocks trade routes at fixed thresholds, and this is the next one.
-	return `${F(next.barters - count)} more open ${next.opens}`;
+	return T('{n} more open {place}', { n: F(next.barters - count), place: next.opens });
 }
 
 /**
@@ -111,19 +112,19 @@ function marketTile() {
 	const s = marketStatus();
 	const options = MARKET_REGIONS.map(([id, label]) =>
 		`<option value="${id}"${id === s.region ? ' selected' : ''}>${label}</option>`).join('');
-	const age = !s.at ? 'no prices yet'
-		: `${s.count} priced · ${ageText(Date.now() - s.at)}${s.failed ? ' · some unanswered' : ''}`;
+	const age = !s.at ? T('no prices yet')
+		: `${T('{n} priced', { n: s.count })} · ${ageText(Date.now() - s.at)}${s.failed ? ` · ${T('some unanswered')}` : ''}`;
 	return `<div>
-		<div class="summary-k">Market prices</div>
-		<div class="summary-v"><select class="purse-inline" data-act="market-region" aria-label="Which region's Central Market">${options}</select></div>
-		<div class="summary-sub">${esc(age)} · <button class="linky" data-act="market-refresh">refresh</button></div>
+		<div class="summary-k">${T('Market prices')}</div>
+		<div class="summary-v"><select class="purse-inline" data-act="market-region" aria-label="${T("Which region's Central Market")}">${options}</select></div>
+		<div class="summary-sub">${esc(age)} · <button class="linky" data-act="market-refresh">${T('refresh')}</button></div>
 	</div>`;
 }
 
-const ageText = ms => ms < 60_000 ? 'just now'
-	: ms < 3_600_000 ? `${Math.round(ms / 60_000)} min ago`
-	: ms < 86_400_000 ? `${Math.round(ms / 3_600_000)} h ago`
-	: `${Math.round(ms / 86_400_000)} d ago`;
+const ageText = ms => ms < 60_000 ? T('just now')
+	: ms < 3_600_000 ? T('{n} min ago', { n: Math.round(ms / 60_000) })
+	: ms < 86_400_000 ? T('{n} h ago', { n: Math.round(ms / 3_600_000) })
+	: T('{n} d ago', { n: Math.round(ms / 86_400_000) });
 
 export function renderGet() {
 	const totals = totalsToGo();
@@ -137,42 +138,43 @@ export function renderGet() {
 
 	const money = (label, need, held, short, cls, item) => `<div>
 		<div class="summary-k">${esc(label)}</div>
-		<div class="summary-v ${short ? cls : 'teal'}">${F(short)} short</div>
-		<div class="summary-sub">${F(need)} needed · <input class="purse-inline" type="text" inputmode="numeric"
-			value="${F(held)}" data-act="purse" data-item="${esc(item)}" aria-label="${esc(label)} you hold"> held</div>
+		<div class="summary-v ${short ? cls : 'teal'}">${T('{n} short', { n: F(short) })}</div>
+		<div class="summary-sub">${T('{n} needed', { n: F(need) })} · <input class="purse-inline" type="text" inputmode="numeric"
+			value="${F(held)}" data-act="purse" data-item="${esc(item)}" aria-label="${T('{label} you hold', { label: esc(label) })}"> ${T('held')}</div>
 	</div>`;
 
 	const summary = `<div class="summary">
-		<span class="summary-title">Still to get</span>
+		<span class="summary-title">${T('Still to get')}</span>
 		<div class="summary-stats">
-			${money('Crow Coins', totals.coins, purseCoins, coinsShort, 'amber', CROW_COIN)}
-			${money('Silver', totals.silver, purseSilver, silverShort, 'blue', SILVER)}
+			${money(T('Crow Coins'), totals.coins, purseCoins, coinsShort, 'amber', CROW_COIN)}
+			${money(T('Silver'), totals.silver, purseSilver, silverShort, 'blue', SILVER)}
 			<div>
-				<div class="summary-k">Line items</div>
+				<div class="summary-k">${T('Line items')}</div>
 				<div class="summary-v">${F(totals.lines)}</div>
-				<div class="summary-sub">distinct things to obtain</div>
+				<div class="summary-sub">${T('distinct things to obtain')}</div>
 			</div>
 			${barterProfileTile()}
 			${marketTile()}
 		</div>
 		<div class="get-copy">
-			<button class="ghost-btn" data-act="copy">Copy list</button>
-			<button class="ghost-btn" data-act="copy-csv" title="The same list as rows for a spreadsheet: group, item, quantity, unit cost, note">Copy as CSV</button>
+			<button class="ghost-btn" data-act="copy">${T('Copy list')}</button>
+			<button class="ghost-btn" data-act="copy-csv" title="${T('The same list as rows for a spreadsheet: group, item, quantity, unit cost, note')}">${T('Copy as CSV')}</button>
 		</div>
 	</div>`;
 
 	const controls = `<div class="controls">
-		<input class="field" type="search" placeholder="Search the list…" value="${esc(query)}" data-act="query" aria-label="Search the list">
+		<input class="field" type="search" placeholder="${T('Search the list…')}" value="${esc(query)}" data-act="query" aria-label="${T('Search the list')}">
 	</div>`;
 
 	if (!groups.length) {
 		return summary + controls + `<div class="panel"><p class="empty">${q
-			? 'Nothing outstanding matches that search.'
-			: 'Nothing outstanding — every build has what it needs.'}</p></div>`;
+			? T('Nothing outstanding matches that search.')
+			: T('Nothing outstanding — every build has what it needs.')}</p></div>`;
 	}
 
 	const body = groups.map(g => {
-		const total = g.coins ? `${F(g.coins)} coins` : g.silver ? `${F(g.silver)} silver` : `${g.items.length} item${g.items.length === 1 ? '' : 's'}`;
+		const total = g.coins ? T('{n} coins', { n: F(g.coins) }) : g.silver ? T('{n} silver', { n: F(g.silver) })
+			: g.items.length === 1 ? T('{n} item', { n: g.items.length }) : T('{n} items', { n: g.items.length });
 		const col = g.coins ? 'amber' : g.silver ? 'blue' : 'plain';
 		return `<div class="panel">
 			<div class="group-head">
@@ -183,10 +185,10 @@ export function renderGet() {
 				let sub = entry.unit || entry.detail || '';
 				// The unit price alone leaves the comparison as mental
 				// arithmetic; the line total is the number being decided.
-				if (entry.qty > 1 && entry.coins) sub += ` \u00b7 ${FC(entry.coins)} coins for ${F(entry.qty)}`;
-				else if (entry.qty > 1 && entry.silver) sub += ` \u00b7 ${FC(entry.silver)} silver for ${F(entry.qty)}`;
+				if (entry.qty > 1 && entry.coins) sub += ` \u00b7 ${T('{cost} coins for {n}', { cost: FC(entry.coins), n: F(entry.qty) })}`;
+				else if (entry.qty > 1 && entry.silver) sub += ` \u00b7 ${T('{cost} silver for {n}', { cost: FC(entry.silver), n: F(entry.qty) })}`;
 				if (entry.barter) {
-					const t = `barter at ${entry.barter.npcs.length} islands for ${entry.barter.gives.slice(0, 2).join(' / ')}`;
+					const t = T('barter at {n} islands for {goods}', { n: entry.barter.npcs.length, goods: entry.barter.gives.slice(0, 2).map(gameName).join(' / ') });
 					sub = sub ? `${sub} · ${t}` : t;
 				}
 				// The trade count is the half of the decision the shop
@@ -201,25 +203,25 @@ export function renderGet() {
 				// those goods would have sold for: the cost of a barter the
 				// shop price never mentions.
 				const cargo = plan && !plan.gate && plan.cargo && plan.cargo.worth
-					? ` <span class="row-sea-why">· hands over ${F(plan.cargo.count)}× [Level ${plan.cargo.level}] worth ${FC(plan.cargo.worth)} silver sold</span>`
+					? ` <span class="row-sea-why">· ${T('hands over {n}× [Level {level}] worth {silver} silver sold', { n: F(plan.cargo.count), level: plan.cargo.level, silver: FC(plan.cargo.worth) })}</span>`
 					: '';
 				const seed = plan && !plan.gate && plan.seed
-					? ` <span class="row-sea-why">from ${F(Math.ceil(plan.seed.qty))}× ${esc(plan.seed.item)}</span>`
+					? ` <span class="row-sea-why">${T('from {n}× {item}', { n: F(Math.ceil(plan.seed.qty)), item: esc(gameName(plan.seed.item)) })}</span>`
 					: '';
 				// The barter line names the sea; this link opens it. The
 				// map picks the item and frames its islands, which is the
 				// answer "from 6 NPCs" only gestures at.
-				const chart = `<button class="chart-link" data-act="goto-map" data-item="${esc(entry.item)}">on the map</button>`;
+				const chart = `<button class="chart-link" data-act="goto-map" data-item="${esc(entry.item)}">${T('on the map')}</button>`;
 				const sea = plan
-					? `<div class="row-sea${plan.gate ? ' locked' : ''}">by barter: ${esc(barterLine(plan))}${
+					? `<div class="row-sea${plan.gate ? ' locked' : ''}">${T('by barter: {line}', { line: esc(barterLine(plan)) })}${
 						why ? ` <span class="row-sea-why">${esc(why)}</span>` : ''}${
-						plan.gate ? '' : ' <span class="row-sea-why">· if the offer turns up</span>'}${cargo}${seed} ${chart}</div>`
+						plan.gate ? '' : ` <span class="row-sea-why">· ${T('if the offer turns up')}</span>`}${cargo}${seed} ${chart}</div>`
 					: '';
 				// The list says where to buy it; the other half of the
 				// decision is what making it would cost instead.
 				const made = waysToGet(entry.item, costCtx()).routes.find(r => r.parts);
 				const alt = made
-					? `<div class="row-alt">or make ${F(entry.qty)}: ${esc(costText(made, entry.qty))}</div>`
+					? `<div class="row-alt">${T('or make {n}: {cost}', { n: F(entry.qty), cost: esc(costText(made, entry.qty)) })}</div>`
 					: '';
 
 				// Some things come a hundred at a time from one item. That
@@ -230,15 +232,15 @@ export function renderGet() {
 				// Same reading as the item card's, from the same place.
 				const grounds = groundsFor(entry.item).slice(0, 3);
 				const hunt = grounds.length
-					? `<div class="row-alt">hunt: ${grounds.map(m => `<button class="chart-link" data-act="quest-map" data-monster="${esc(m.key)}">${esc(m.name)}</button>`).join(' · ')}</div>`
+					? `<div class="row-alt">${T('hunt:')} ${grounds.map(m => `<button class="chart-link" data-act="quest-map" data-monster="${esc(m.key)}">${esc(gameName(m.name))}</button>`).join(' · ')}</div>`
 					: '';
 				const bulk = bulkExchanges[entry.item];
 				const inBulk = bulk
-					? `<div class="row-alt">or ${F(Math.ceil(entry.qty / bulk.gets))}× ${esc(bulk.give)}, ${F(bulk.gets)} a time</div>`
+					? `<div class="row-alt">${T('or {n}× {item}, {gets} a time', { n: F(Math.ceil(entry.qty / bulk.gets)), item: esc(gameName(bulk.give)), gets: F(bulk.gets) })}</div>`
 					: '';
 				const ways = [alt, inBulk, hunt, sea].filter(Boolean);
 				const waysHTML = ways.length ? `<details class="row-ways"${ways.length === 1 && !sea ? ' open' : ''}>
-					<summary>${ways.length === 1 ? 'another way' : `${ways.length} other ways`}${sea ? ' · by barter' : ''}${hunt ? ' · by hunting' : ''}</summary>
+					<summary>${ways.length === 1 ? T('another way') : T('{n} other ways', { n: ways.length })}${sea ? ` · ${T('by barter')}` : ''}${hunt ? ` · ${T('by hunting')}` : ''}</summary>
 					${ways.join('')}
 				</details>` : '';
 				return `<div class="row" data-peek="${esc(entry.item)}">
@@ -257,7 +259,9 @@ export function renderGet() {
 	// The quests that pay in what is short are a screen of their own; a
 	// line here says how many, so the list is not read as the whole story.
 	const free = questsFor(snapshot.missing).length;
-	const hint = free ? `<p class="get-quests"><button class="linky" data-act="view" data-id="quests">${free} quest${free === 1 ? '' : 's'} pay in something on this list</button> — Quests records a claimed reward in your stock.</p>` : '';
+	const hint = free ? `<p class="get-quests"><button class="linky" data-act="view" data-id="quests">${free === 1
+		? T('{n} quest pay in something on this list', { n: free })
+		: T('{n} quests pay in something on this list', { n: free })}</button> — ${T('Quests records a claimed reward in your stock.')}</p>` : '';
 	return summary + controls + hint + body;
 }
 
@@ -288,8 +292,8 @@ function visibleGroups(q) {
  *  copies narrow, and the headings say where each thing comes from. */
 export function shoppingText() {
 	return visibleGroups(query.toLowerCase()).map(g => {
-		const total = g.coins ? ` — ${F(g.coins)} coins` : g.silver ? ` — ${F(g.silver)} silver` : '';
-		const lines = [...g.items].sort((a, b) => b.qty - a.qty).map(e => `  ${Math.round(e.qty)}× ${e.item}`);
+		const total = g.coins ? ` — ${T('{n} coins', { n: F(g.coins) })}` : g.silver ? ` — ${T('{n} silver', { n: F(g.silver) })}` : '';
+		const lines = [...g.items].sort((a, b) => b.qty - a.qty).map(e => `  ${Math.round(e.qty)}× ${gameName(e.item)}`);
 		return `${g.key}${total}\n${lines.join('\n')}`;
 	}).join('\n\n');
 }
@@ -305,12 +309,12 @@ export function shoppingCSV() {
 		const t = String(v == null ? '' : v);
 		return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
 	};
-	const rows = [['group', 'item', 'quantity', 'unit cost', 'note']];
+	const rows = [[T('group'), T('item'), T('quantity'), T('unit cost'), T('note')]];
 	for (const g of visibleGroups(query.toLowerCase())) {
 		for (const e of [...g.items].sort((a, b) => b.qty - a.qty)) {
-			const each = e.qty ? (e.coins ? `${Math.round(e.coins / e.qty)} coins` : e.silver ? `${Math.round(e.silver / e.qty)} silver` : '') : '';
-			const note = e.detail || (e.barter ? `barter at ${e.barter.npcs.length} islands` : e.market ? 'Central Market, last sold' : '');
-			rows.push([g.key, e.item, Math.round(e.qty), each, note]);
+			const each = e.qty ? (e.coins ? T('{n} coins', { n: Math.round(e.coins / e.qty) }) : e.silver ? T('{n} silver', { n: Math.round(e.silver / e.qty) }) : '') : '';
+			const note = e.detail || (e.barter ? T('barter at {n} islands', { n: e.barter.npcs.length }) : e.market ? T('Central Market, last sold') : '');
+			rows.push([g.key, gameName(e.item), Math.round(e.qty), each, note]);
 		}
 	}
 	return rows.map(r => r.map(cell).join(',')).join('\n');

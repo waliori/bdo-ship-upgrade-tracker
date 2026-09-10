@@ -2,6 +2,7 @@
 // two buttons that fill and forget it.
 
 import { pinTiles, PIN_MAX } from '../map.js';
+import { T } from '../i18n.js';
 import { toast } from '../dialogs.js';
 import { mv } from './state.js';
 import { hostSize } from './view.js';
@@ -21,9 +22,9 @@ function canPin() {
  *  the second only once something is. */
 export function pinButtonsHTML() {
 	if (!canPin()) return '';
-	const kept = pinnedN ? ` — ${pinnedN} tile${pinnedN === 1 ? '' : 's'} kept so far` : '';
-	return `<button class="ghost-btn map-pin-btn" data-act="map-pin-area" aria-label="Keep this area offline" title="Keep this area offline: the tiles in view and one zoom level either side, fetched now and never shed${kept}">⇩${pinnedN ? `<span class="map-pin-n">${pinnedN}</span>` : ''}</button>${pinnedN
-		? `<button class="ghost-btn map-pin-btn" data-act="map-pin-forget" aria-label="Forget the offline area" title="Forget the offline area: let the ${pinnedN} kept tiles go">⌫</button>` : ''}`;
+	const kept = pinnedN ? ` — ${pinnedN === 1 ? T('{n} tile kept so far', { n: pinnedN }) : T('{n} tiles kept so far', { n: pinnedN })}` : '';
+	return `<button class="ghost-btn map-pin-btn" data-act="map-pin-area" aria-label="${T('Keep this area offline')}" title="${T('Keep this area offline: the tiles in view and one zoom level either side, fetched now and never shed')}${kept}">⇩${pinnedN ? `<span class="map-pin-n">${pinnedN}</span>` : ''}</button>${pinnedN
+		? `<button class="ghost-btn map-pin-btn" data-act="map-pin-forget" aria-label="${T('Forget the offline area')}" title="${T('Forget the offline area: let the {n} kept tiles go', { n: pinnedN })}">⌫</button>` : ''}`;
 }
 
 function refreshPinButtons() {
@@ -54,13 +55,13 @@ export async function countPinned() {
  * -- zoom in, or keep it in two goes.
  */
 export async function pinArea() {
-	if (!canPin()) return toast('This browser cannot keep tiles offline');
+	if (!canPin()) return toast(T('This browser cannot keep tiles offline'));
 	const host = document.querySelector('[data-map]');
 	if (!host || !mv.mapState) return;
 	const tiles = pinTiles(mv.mapState, hostSize(host));
-	if (tiles.length > PIN_MAX) return toast(`That is ${tiles.length} tiles — more than the ${PIN_MAX} an area may keep. Zoom in, or keep it in two goes.`);
-	if (!tiles.length) return toast('Nothing in view to keep');
-	toast(`Keeping ${tiles.length} tile${tiles.length === 1 ? '' : 's'}…`);
+	if (tiles.length > PIN_MAX) return toast(T('That is {n} tiles — more than the {max} an area may keep. Zoom in, or keep it in two goes.', { n: tiles.length, max: PIN_MAX }));
+	if (!tiles.length) return toast(T('Nothing in view to keep'));
+	toast(tiles.length === 1 ? T('Keeping {n} tile…', { n: tiles.length }) : T('Keeping {n} tiles…', { n: tiles.length }));
 	let got = 0, failed = 0;
 	try {
 		const cache = await caches.open(PINNED_CACHE);
@@ -78,10 +79,12 @@ export async function pinArea() {
 			}
 		}));
 	} catch {
-		return toast('The browser would not keep the tiles');
+		return toast(T('The browser would not keep the tiles'));
 	}
 	await countPinned();
-	toast(failed ? `${got} tile${got === 1 ? '' : 's'} kept offline; ${failed} could not be fetched` : `${got} tile${got === 1 ? '' : 's'} kept offline — ${pinnedN} in all`);
+	toast(failed
+		? (got === 1 ? T('{n} tile kept offline; {failed} could not be fetched', { n: got, failed }) : T('{n} tiles kept offline; {failed} could not be fetched', { n: got, failed }))
+		: (got === 1 ? T('{n} tile kept offline — {all} in all', { n: got, all: pinnedN }) : T('{n} tiles kept offline — {all} in all', { n: got, all: pinnedN })));
 }
 
 /** Let the kept area go. */
@@ -92,5 +95,5 @@ export async function forgetPinned() {
 	} catch { /* nothing kept, then */ }
 	pinnedN = 0;
 	refreshPinButtons();
-	toast('The offline area is forgotten');
+	toast(T('The offline area is forgotten'));
 }

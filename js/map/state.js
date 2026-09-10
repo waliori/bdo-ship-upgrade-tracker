@@ -2,6 +2,7 @@
 // share, the preferences kept in this browser, the data kept in the
 // profile's view, and the reads and writes between them.
 
+import { T } from '../i18n.js';
 import { courseById } from '../courses.js';
 import { monsterByKey } from '../sea_monsters.js';
 import { npcById, ports } from '../barter_npcs.js';
@@ -281,8 +282,8 @@ export function traceClipNote(t) {
 		const kept = readView(VIEW_NS, { traces: [t] });
 		fits = !!kept && JSON.stringify(kept.traces[0]).length >= JSON.stringify(t).length * 0.98;
 	} catch { /* the shape said nothing; the stroke check stands */ }
-	if (longStroke) return 'its longest stroke is more than the 300 points the save keeps of one, and will be shortened';
-	if (!fits) return 'it is more than the save keeps of a trace, and will be clipped';
+	if (longStroke) return T('its longest stroke is more than the 300 points the save keeps of one, and will be shortened');
+	if (!fits) return T('it is more than the save keeps of a trace, and will be clipped');
 	return '';
 }
 

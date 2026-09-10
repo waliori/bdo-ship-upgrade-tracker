@@ -18,6 +18,7 @@
 // the file since.
 
 import { spliceBlock, putBlock } from './worldmap.js';
+import { T } from './i18n.js';
 
 const DB = 'bdo-tracker/files';
 const KEY = 'gameFolder';
@@ -101,10 +102,10 @@ export async function pickGameFolder() {
 	try {
 		text = (await readFile(dir)).text;
 	} catch {
-		throw new Error(`No ${FILE} in "${dir.name}" — choose the account-number folder inside UserCache.`);
+		throw new Error(T('No {file} in "{folder}" — choose the account-number folder inside UserCache.', { file: FILE, folder: dir.name }));
 	}
 	if (!spliceBlock(text, '')) {
-		throw new Error(`The ${FILE} in "${dir.name}" has no world-map favourites block — choose the account-number folder, not UserCache itself.`);
+		throw new Error(T('The {file} in "{folder}" has no world-map favourites block — choose the account-number folder, not UserCache itself.', { file: FILE, folder: dir.name }));
 	}
 	await saveHandle(dir);
 	return dir.name;
@@ -153,11 +154,11 @@ function rememberPrevious(block) {
  *  which one this write made, for the toast. */
 async function rewrite(swap, dir = null) {
 	dir = dir || await loadHandle();
-	if (!dir) throw new Error('Choose the account folder first.');
-	if (!await permitted(dir)) throw new Error('The browser was not allowed to write in the folder.');
+	if (!dir) throw new Error(T('Choose the account folder first.'));
+	if (!await permitted(dir)) throw new Error(T('The browser was not allowed to write in the folder.'));
 	const { text, bom } = await readFile(dir);
 	const out = swap(text);
-	if (!out) throw new Error(`${FILE} has no world-map favourites block any more — choose the folder again.`);
+	if (!out) throw new Error(T('{file} has no world-map favourites block any more — choose the folder again.', { file: FILE }));
 	const bytes = encodeXML(text, bom);
 	const first = !await exists(dir, ORIGINAL);
 	if (first) await writeText(dir, ORIGINAL, bytes);
@@ -190,7 +191,7 @@ export function previousBlock() {
  *  block exactly as it was, not merged with what is there now. */
 export async function restoreGameFile(dir = null) {
 	const prev = previousBlock();
-	if (!prev) throw new Error('Nothing to restore.');
+	if (!prev) throw new Error(T('Nothing to restore.'));
 	const r = await rewrite(text => putBlock(text, prev), dir);
 	rememberPrevious(null);
 	return r;

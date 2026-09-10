@@ -10,6 +10,7 @@
 // came in, open first, and a button to mark each done.
 
 import { esc } from './fmt.js';
+import { T, TT, said } from './i18n.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { feature, me, call } from './sync.js';
 import { view } from './ui-state.js';
@@ -18,9 +19,9 @@ import { RELEASE } from './about.js';
 const ISSUES = 'https://github.com/waliori/bdo-ship-upgrade-tracker/issues';
 
 const KINDS = [
-	{ id: 'bug', label: 'Something is wrong', hint: 'a number that is off, a button that does nothing, a screen that breaks' },
-	{ id: 'idea', label: 'An idea', hint: 'something the app should do, or do differently' },
-	{ id: 'other', label: 'Something else', hint: 'a question, a thank-you, a correction to the data' }
+	{ id: 'bug', label: TT('Something is wrong'), hint: TT('a number that is off, a button that does nothing, a screen that breaks') },
+	{ id: 'idea', label: TT('An idea'), hint: TT('something the app should do, or do differently') },
+	{ id: 'other', label: TT('Something else'), hint: TT('a question, a thank-you, a correction to the data') }
 ];
 
 /** What the browser is, in a few words -- for a bug that only happens on one. */
@@ -40,21 +41,21 @@ export function openFeedback(kind = 'bug') {
 	const inbox = feature('feedback');
 	const who = me();
 	const host = openDialog(`
-		<h2>Feedback</h2>
+		<h2>${T('Feedback')}</h2>
 		<p class="dialog-copy">${inbox
-			? 'Say what is wrong, or what you want. It goes straight to whoever runs this copy of the app, with the section you are on and the build you are running attached.'
-			: 'This copy of the app has no inbox of its own, so feedback goes to the project on GitHub — the button below opens an issue with the section and the build filled in.'}</p>
-		<div class="fb-kinds" role="radiogroup" aria-label="What kind of feedback">
-			${KINDS.map(k => `<button type="button" class="fb-kind${k.id === kind ? ' on' : ''}" role="radio" aria-checked="${k.id === kind}" data-kind="${k.id}"><b>${esc(k.label)}</b><small>${esc(k.hint)}</small></button>`).join('')}
+			? T('Say what is wrong, or what you want. It goes straight to whoever runs this copy of the app, with the section you are on and the build you are running attached.')
+			: T('This copy of the app has no inbox of its own, so feedback goes to the project on GitHub — the button below opens an issue with the section and the build filled in.')}</p>
+		<div class="fb-kinds" role="radiogroup" aria-label="${T('What kind of feedback')}">
+			${KINDS.map(k => `<button type="button" class="fb-kind${k.id === kind ? ' on' : ''}" role="radio" aria-checked="${k.id === kind}" data-kind="${k.id}"><b>${esc(said(k.label))}</b><small>${esc(said(k.hint))}</small></button>`).join('')}
 		</div>
-		<textarea class="field fb-text" rows="6" maxlength="4000" placeholder="What happened, or what you would like — and if it went wrong, what you had done just before" aria-label="Your feedback"></textarea>
-		${inbox && !who ? '<input class="field fb-contact" maxlength="120" placeholder="Where a reply can reach you — a Discord name, say (optional)" aria-label="How to reach you">' : ''}
-		<p class="fb-meta">${inbox ? `Sent ${who ? `as <b>${esc(who.username)}</b>` : 'without a name'} · ` : ''}on <b>${esc(view)}</b> · build <b>${esc(RELEASE)}</b> · ${esc(agent())}</p>
+		<textarea class="field fb-text" rows="6" maxlength="4000" placeholder="${T('What happened, or what you would like — and if it went wrong, what you had done just before')}" aria-label="${T('Your feedback')}"></textarea>
+		${inbox && !who ? `<input class="field fb-contact" maxlength="120" placeholder="${T('Where a reply can reach you — a Discord name, say (optional)')}" aria-label="${T('How to reach you')}">` : ''}
+		<p class="fb-meta">${inbox ? `${who ? T('Sent as <b>{name}</b>', { name: esc(who.username) }) : T('Sent without a name')} · ` : ''}${T('on <b>{view}</b>', { view: esc(view) })} · ${T('build <b>{build}</b>', { build: esc(RELEASE) })} · ${esc(agent())}</p>
 		<div class="dialog-actions">
-			<a class="ghost-btn fb-issues" href="${ISSUES}/new" target="_blank" rel="noopener">Open an issue on GitHub ↗</a>
+			<a class="ghost-btn fb-issues" href="${ISSUES}/new" target="_blank" rel="noopener">${T('Open an issue on GitHub ↗')}</a>
 			<span class="fb-space"></span>
-			<button class="act quiet" data-close>Cancel</button>
-			${inbox ? '<button class="act" data-send>Send</button>' : ''}
+			<button class="act quiet" data-close>${T('Cancel')}</button>
+			${inbox ? `<button class="act" data-send>${T('Send')}</button>` : ''}
 		</div>`);
 
 	let picked = kind;
@@ -81,7 +82,7 @@ export function openFeedback(kind = 'bug') {
 	if (!send) return;
 	send.addEventListener('click', async () => {
 		const words = text.value.trim();
-		if (words.length < 3) return toast('Say a little more than that');
+		if (words.length < 3) return toast(T('Say a little more than that'));
 		send.disabled = true;
 		const contact = host.querySelector('.fb-contact');
 		let res;
@@ -96,19 +97,19 @@ export function openFeedback(kind = 'bug') {
 		}
 		if (!res || !res.ok) {
 			send.disabled = false;
-			return toast(res && res.body && res.body.error ? res.body.error : 'That did not send — the server did not answer. The GitHub link still works.');
+			return toast(res && res.body && res.body.error ? said(res.body.error) : T('That did not send — the server did not answer. The GitHub link still works.'));
 		}
 		closeDialog();
-		toast(picked === 'bug' ? 'Sent — thank you for saying' : 'Sent — thank you');
+		toast(picked === 'bug' ? T('Sent — thank you for saying') : T('Sent — thank you'));
 	});
 }
 
 /** The inbox, for admins. */
 export async function openInbox() {
-	const host = openDialog('<h2>Feedback inbox</h2><p class="dialog-copy">Fetching…</p>');
+	const host = openDialog(`<h2>${T('Feedback inbox')}</h2><p class="dialog-copy">${T('Fetching…')}</p>`);
 	const res = await call('GET', '/api/feedback').catch(() => null);
 	if (!res || !res.ok) {
-		host.querySelector('.dialog-box').innerHTML = `<h2>Feedback inbox</h2><p class="dialog-copy">${esc(res && res.body && res.body.error ? res.body.error : 'The inbox did not answer.')}</p><div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`;
+		host.querySelector('.dialog-box').innerHTML = `<h2>${T('Feedback inbox')}</h2><p class="dialog-copy">${esc(res && res.body && res.body.error ? said(res.body.error) : T('The inbox did not answer.'))}</p><div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button></div>`;
 		return;
 	}
 	paintInbox(host, res.body.entries || []);
@@ -120,27 +121,27 @@ function paintInbox(host, entries) {
 	const when = t => new Date(t).toISOString().slice(0, 16).replace('T', ' ');
 	const row = e => `<div class="fb-entry ${esc(e.kind)}${e.status === 'open' ? '' : ' done'}" data-id="${e.id}">
 		<div class="fb-entry-head">
-			<span class="fb-entry-kind">${esc({ bug: 'wrong', idea: 'idea', other: 'other' }[e.kind] || e.kind)}</span>
-			<span class="fb-entry-who">${e.username ? esc(e.username) : 'a visitor'}${e.contact ? ` · ${esc(e.contact)}` : ''}</span>
+			<span class="fb-entry-kind">${esc({ bug: T('wrong'), idea: T('idea'), other: T('other') }[e.kind] || e.kind)}</span>
+			<span class="fb-entry-who">${e.username ? esc(e.username) : T('a visitor')}${e.contact ? ` · ${esc(e.contact)}` : ''}</span>
 			<span class="fb-entry-when">#${e.id} · ${when(e.createdAt)}</span>
 		</div>
 		<div class="fb-entry-text">${esc(e.text)}</div>
 		<div class="fb-entry-foot">
-			<span>${[e.page ? `on ${e.page}` : '', e.version ? `build ${e.version}` : '', e.agent ? e.agent.replace(/^Mozilla\/5\.0 /, '').slice(0, 70) : ''].filter(Boolean).map(esc).join(' · ')}</span>
-			<button class="chip tiny" data-status="${e.status === 'open' ? 'done' : 'open'}">${e.status === 'open' ? 'Mark done' : 'Reopen'}</button>
+			<span>${[e.page ? T('on {page}', { page: e.page }) : '', e.version ? T('build {version}', { version: e.version }) : '', e.agent ? e.agent.replace(/^Mozilla\/5\.0 /, '').slice(0, 70) : ''].filter(Boolean).map(esc).join(' · ')}</span>
+			<button class="chip tiny" data-status="${e.status === 'open' ? 'done' : 'open'}">${e.status === 'open' ? T('Mark done') : T('Reopen')}</button>
 		</div>
 	</div>`;
-	host.querySelector('.dialog-box').innerHTML = `<h2>Feedback inbox</h2>
-		<p class="dialog-copy">${open.length} open · ${done.length} done · the newest ${entries.length} entries</p>
-		<div class="fb-list">${open.map(row).join('') || '<p class="dialog-copy">Nothing open.</p>'}</div>
-		${done.length ? `<details class="fb-done"><summary>Done (${done.length})</summary><div class="fb-list">${done.map(row).join('')}</div></details>` : ''}
-		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`;
+	host.querySelector('.dialog-box').innerHTML = `<h2>${T('Feedback inbox')}</h2>
+		<p class="dialog-copy">${T('{open} open · {done} done · the newest {n} entries', { open: open.length, done: done.length, n: entries.length })}</p>
+		<div class="fb-list">${open.map(row).join('') || `<p class="dialog-copy">${T('Nothing open.')}</p>`}</div>
+		${done.length ? `<details class="fb-done"><summary>${T('Done ({n})', { n: done.length })}</summary><div class="fb-list">${done.map(row).join('')}</div></details>` : ''}
+		<div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button></div>`;
 	host.querySelectorAll('[data-status]').forEach(btn => btn.addEventListener('click', async () => {
 		const id = Number(btn.closest('.fb-entry').dataset.id);
 		const status = btn.dataset.status;
 		btn.disabled = true;
 		const res = await call('POST', `/api/feedback/${id}/status`, { status }).catch(() => null);
-		if (!res || !res.ok) { btn.disabled = false; return toast('That did not stick.'); }
+		if (!res || !res.ok) { btn.disabled = false; return toast(T('That did not stick.')); }
 		const entry = entries.find(e => e.id === id);
 		if (entry) entry.status = status;
 		paintInbox(host, entries);

@@ -19,7 +19,8 @@ import {
 } from './ui-state.js';
 import { kindOf } from './kinds.js';
 import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
-import { allItems, CODEX_LANGS, img } from './ui-bits.js';
+import { allItems, img } from './ui-bits.js';
+import { T, TT, said, gameName, LANGS, langById, setLang, startingLang, lang as currentLang } from './i18n.js';
 import { encodeShare, decodeShare, shareLink, shareSize } from './share.js';
 import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
@@ -64,20 +65,20 @@ import {
 // Two groups: the yard, where a build is planned and made, and the
 // sea, where the day is spent. A divider in the tab row says so.
 const TABS = [
-	{ id: 'plan', label: 'Plan', icon: '◈', group: 'yard' },
-	{ id: 'builds', label: 'Builds', icon: '⚒', group: 'yard' },
-	{ id: 'inventory', label: 'Inventory', icon: '▦', group: 'yard' },
-	{ id: 'tree', label: 'Tree', icon: '⌥', group: 'yard' },
-	{ id: 'workshop', label: 'Workshop', icon: '⚙', group: 'yard' },
-	{ id: 'get', label: 'To Get', icon: '☰', group: 'yard' },
-	{ id: 'map', label: 'Map', icon: '⌖', group: 'sea' },
-	{ id: 'quests', label: 'Quests', icon: '✦', group: 'sea' },
-	{ id: 'crew', label: 'Ship', icon: '⚓', group: 'sea' },
+	{ id: 'plan', label: TT('Plan'), icon: '◈', group: 'yard' },
+	{ id: 'builds', label: TT('Builds'), icon: '⚒', group: 'yard' },
+	{ id: 'inventory', label: TT('Inventory'), icon: '▦', group: 'yard' },
+	{ id: 'tree', label: TT('Tree'), icon: '⌥', group: 'yard' },
+	{ id: 'workshop', label: TT('Workshop'), icon: '⚙', group: 'yard' },
+	{ id: 'get', label: TT('To Get'), icon: '☰', group: 'yard' },
+	{ id: 'map', label: TT('Map'), icon: '⌖', group: 'sea' },
+	{ id: 'quests', label: TT('Quests'), icon: '✦', group: 'sea' },
+	{ id: 'crew', label: TT('Ship'), icon: '⚓', group: 'sea' },
 	// Last, so the digit shortcuts the first nine tabs answer to stay put.
-	{ id: 'barter', label: 'Barter', icon: '⇄', group: 'sea' },
+	{ id: 'barter', label: TT('Barter'), icon: '⇄', group: 'sea' },
 	// The harbour: only where there are accounts to stand on its boards.
 	// Past the ten with a digit, and shown once the server has said so.
-	{ id: 'community', label: 'Community', icon: '☸', group: 'harbour', when: () => feature('community') }
+	{ id: 'community', label: TT('Community'), icon: '☸', group: 'harbour', when: () => feature('community') }
 ];
 
 /** The tabs this deployment shows. A tab with a `when` waits on it. */
@@ -96,29 +97,30 @@ const THUMB_TABS = ['plan', 'inventory', 'map', 'quests'];
  * says the current state, for the toggles.
  */
 const MENU = [
-	{ group: 'Do', items: [
-		{ act: 'jump', icon: '⌕', label: 'Find', hint: 'an item or a section · Ctrl+K' },
-		{ act: 'trip-log', icon: '＋', label: 'Log a trip', hint: 'everything a trip brought back, as one change' },
-		{ act: 'undo', icon: '↶', label: 'Undo', hint: () => (store.canUndo() ? store.lastChange().label : 'nothing to undo') },
-		{ act: 'redo', icon: '↷', label: 'Redo', hint: () => (store.canRedo() ? store.nextRedo().label : 'nothing to redo') }
+	{ group: TT('Do'), items: [
+		{ act: 'jump', icon: '⌕', label: TT('Find'), hint: TT('an item or a section · Ctrl+K') },
+		{ act: 'trip-log', icon: '＋', label: TT('Log a trip'), hint: TT('everything a trip brought back, as one change') },
+		{ act: 'undo', icon: '↶', label: TT('Undo'), hint: () => (store.canUndo() ? store.lastChange().label : T('nothing to undo')) },
+		{ act: 'redo', icon: '↷', label: TT('Redo'), hint: () => (store.canRedo() ? store.nextRedo().label : T('nothing to redo')) }
 	] },
-	{ group: 'Your save', items: [
-		{ act: 'profiles', icon: '👤', label: 'Profiles', hint: 'separate saves on this browser' },
-		{ act: 'export', icon: '⇪', label: 'Export', hint: 'a file, or a link' },
-		{ act: 'import', icon: '⇩', label: 'Import', hint: 'a file saved from here' },
-		{ act: 'reset', icon: '✕', label: 'Start fresh', hint: 'clears everything, one Undo away', danger: true }
+	{ group: TT('Your save'), items: [
+		{ act: 'profiles', icon: '👤', label: TT('Profiles'), hint: TT('separate saves on this browser') },
+		{ act: 'export', icon: '⇪', label: TT('Export'), hint: TT('a file, or a link') },
+		{ act: 'import', icon: '⇩', label: TT('Import'), hint: TT('a file saved from here') },
+		{ act: 'reset', icon: '✕', label: TT('Start fresh'), hint: TT('clears everything, one Undo away'), danger: true }
 	] },
-	{ group: 'Help', items: [
-		{ act: 'whats-new', icon: '✦', label: 'What’s new', hint: 'what arrived since you were last here' },
-		{ act: 'help', icon: '?', label: 'Help', hint: 'the film, the data’s dates' },
-		{ act: 'tables', icon: '▤', label: 'Enhancement tables', hint: 'the seven tables, lit at your stack' },
-		{ act: 'tour', icon: '➤', label: 'Tour', hint: 'a walk through your own screen' },
-		{ act: 'feedback', icon: '✎', label: 'Feedback', hint: 'something wrong, or something you want' },
-		{ act: 'inbox', icon: '✉', label: 'Feedback inbox', hint: 'what people have written in', when: () => Boolean(me() && me().admin) }
+	{ group: TT('Help'), items: [
+		{ act: 'whats-new', icon: '✦', label: TT('What’s new'), hint: TT('what arrived since you were last here') },
+		{ act: 'help', icon: '?', label: TT('Help'), hint: TT('the film, the data’s dates') },
+		{ act: 'tables', icon: '▤', label: TT('Enhancement tables'), hint: TT('the seven tables, lit at your stack') },
+		{ act: 'tour', icon: '➤', label: TT('Tour'), hint: TT('a walk through your own screen') },
+		{ act: 'feedback', icon: '✎', label: TT('Feedback'), hint: TT('something wrong, or something you want') },
+		{ act: 'inbox', icon: '✉', label: TT('Feedback inbox'), hint: TT('what people have written in'), when: () => Boolean(me() && me().admin) }
 	] },
-	{ group: 'The page', items: [
-		{ act: 'theme', icon: '◐', label: () => `Theme: ${store.getSetting('theme', 'dark')}`, hint: 'dark, light, or as the system has it', keep: true },
-		{ act: 'water', icon: '≈', label: () => `Water ${store.getSetting('water', false) === true ? 'on' : 'off'}`, hint: 'the shader behind the page', keep: true }
+	{ group: TT('The page'), items: [
+		{ act: 'theme', icon: '◐', label: () => (store.getSetting('theme', 'dark') === 'light' ? T('Theme: light') : store.getSetting('theme', 'dark') === 'system' ? T('Theme: system') : T('Theme: dark')), hint: TT('dark, light, or as the system has it'), keep: true },
+		{ act: 'water', icon: '≈', label: () => (store.getSetting('water', false) === true ? T('Water on') : T('Water off')), hint: TT('the shader behind the page'), keep: true },
+		{ act: 'language', icon: '⌘', label: () => T('Language: {name}', { name: (langById[currentLang()] || {}).label || 'US English' }), hint: TT('the app, and the database its look-ups open in'), keep: true }
 	] }
 ];
 
@@ -158,8 +160,8 @@ function paintTabBar(counts) {
 	const bar = document.getElementById('tabbar');
 	if (!bar) return;
 	const cell = (t, extra = '') => `<button class="tabbar-btn${view === t.id ? ' active' : ''}${extra}"
-		data-act="view" data-id="${t.id}" aria-current="${view === t.id}" title="${t.label}">
-		<span class="tabbar-icon" aria-hidden="true">${t.icon}</span><span class="tabbar-label">${t.label}</span>
+		data-act="view" data-id="${t.id}" aria-current="${view === t.id}" title="${said(t.label)}">
+		<span class="tabbar-icon" aria-hidden="true">${t.icon}</span><span class="tabbar-label">${said(t.label)}</span>
 		${counts[t.id] ? `<span class="tabbar-count">${counts[t.id]}</span>` : ''}</button>`;
 	const four = THUMB_TABS.map(id => TABS.find(t => t.id === id)).filter(Boolean);
 	const here = tabs().find(t => t.id === view);
@@ -169,8 +171,8 @@ function paintTabBar(counts) {
 	const rest = tabs().filter(t => !seats.some(s => s.id === t.id));
 	const waiting = rest.reduce((n, t) => n + (counts[t.id] || 0), 0);
 	bar.innerHTML = seats.map(t => cell(t)).join('')
-		+ `<button class="tabbar-btn all" data-act="tab-sheet" aria-haspopup="dialog" title="Every section, and everything else">
-			<span class="tabbar-icon" aria-hidden="true">☰</span><span class="tabbar-label">Menu</span>
+		+ `<button class="tabbar-btn all" data-act="tab-sheet" aria-haspopup="dialog" title="${T('Every section, and everything else')}">
+			<span class="tabbar-icon" aria-hidden="true">☰</span><span class="tabbar-label">${T('Menu')}</span>
 			${waiting ? `<span class="tabbar-count">${waiting}</span>` : ''}</button>`;
 	measureTabBar();
 }
@@ -210,14 +212,14 @@ function openTabSheet() {
 		<div class="sheet-grid">${tabs().filter(t => t.group === id).map(t => `
 			<button class="sheet-tab${view === t.id ? ' active' : ''}" data-act="view" data-id="${t.id}" aria-current="${view === t.id}">
 				<span class="sheet-icon" aria-hidden="true">${t.icon}</span>
-				<span class="sheet-name">${t.label}</span>
+				<span class="sheet-name">${said(t.label)}</span>
 				${counts[t.id] ? `<span class="sheet-count">${counts[t.id]}</span>` : ''}
 			</button>`).join('')}</div>`;
-	const text = v => (typeof v === 'function' ? v() : v);
+	const text = v => (typeof v === 'function' ? v() : said(v));
 	const items = MENU.map(g => {
 		const list = g.items.filter(i => !i.when || i.when());
 		if (!list.length) return '';
-		return `<div class="sheet-head">${esc(g.group)}</div>
+		return `<div class="sheet-head">${esc(said(g.group))}</div>
 			<div class="sheet-list">${list.map(i => `
 				<button class="sheet-item${i.danger ? ' danger' : ''}" data-act="${i.act}"${(i.act === 'undo' && !store.canUndo()) || (i.act === 'redo' && !store.canRedo()) ? ' disabled' : ''}>
 					<span class="sheet-item-icon" aria-hidden="true">${i.icon}</span>
@@ -226,20 +228,20 @@ function openTabSheet() {
 	}).join('');
 	const who = me();
 	const account = feature('sync')
-		? `<div class="sheet-head">Account</div><div class="sheet-list">${who
-			? `<button class="sheet-item" data-act="account"><span class="sheet-item-icon" aria-hidden="true">●</span><span class="sheet-item-text"><span>${esc(who.username)}</span><small>synced to your Discord account · sync now, sign out, delete</small></span></button>`
-			: '<button class="sheet-item" data-act="signin"><span class="sheet-item-icon" aria-hidden="true">○</span><span class="sheet-item-text"><span>Sign in with Discord</span><small>the same inventory on every device, and a place on the boards</small></span></button>'}</div>`
+		? `<div class="sheet-head">${T('Account')}</div><div class="sheet-list">${who
+			? `<button class="sheet-item" data-act="account"><span class="sheet-item-icon" aria-hidden="true">●</span><span class="sheet-item-text"><span>${esc(who.username)}</span><small>${T('synced to your Discord account · sync now, sign out, delete')}</small></span></button>`
+			: `<button class="sheet-item" data-act="signin"><span class="sheet-item-icon" aria-hidden="true">○</span><span class="sheet-item-text"><span>${T('Sign in with Discord')}</span><small>${T('the same inventory on every device, and a place on the boards')}</small></span></button>`}</div>`
 		: '';
 	// Two halves, so a wide screen -- whose dock already shows the
 	// sections -- can put the verbs first and the sections after.
-	const host = openDialog(`<h2>Menu</h2>
+	const host = openDialog(`<h2>${T('Menu')}</h2>
 		<div class="sheet-sections">
-		${group('yard', 'The yard', 'planning and making')}
-		${group('sea', 'The sea', 'the day itself')}
-		${tabs().some(t => t.group === 'harbour') ? group('harbour', 'The harbour', 'the other sailors') : ''}
+		${group('yard', T('The yard'), T('planning and making'))}
+		${group('sea', T('The sea'), T('the day itself'))}
+		${tabs().some(t => t.group === 'harbour') ? group('harbour', T('The harbour'), T('the other sailors')) : ''}
 		</div>
 		<div class="sheet-rest">${items}${account}</div>
-		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`);
+		<div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button></div>`);
 	host.firstElementChild.classList.add('menu-sheet');
 	// The standing section takes the focus, so the keyboard lands where
 	// the eye does; the sheet's own Close is not what anyone came for.
@@ -292,8 +294,8 @@ export function render() {
 		<button class="tab ${view === t.id ? 'active' : ''}" role="tab"
 			aria-selected="${view === t.id}" aria-controls="screen"
 			tabindex="${view === t.id ? 0 : -1}"
-			data-act="view" data-id="${t.id}" id="tab-${t.id}" title="${t.label}${i < 10 ? ` (${(i + 1) % 10})` : ''}">
-			<span class="tab-icon" aria-hidden="true">${t.icon}</span><span class="tab-label">${t.label}</span>${counts[t.id] ? `<span class="tab-count">${counts[t.id]}</span>` : ''}
+			data-act="view" data-id="${t.id}" id="tab-${t.id}" title="${said(t.label)}${i < 10 ? ` (${(i + 1) % 10})` : ''}">
+			<span class="tab-icon" aria-hidden="true">${t.icon}</span><span class="tab-label">${said(t.label)}</span>${counts[t.id] ? `<span class="tab-count">${counts[t.id]}</span>` : ''}
 		</button>`).join('');
 	// The day's clocks and the ship, in one line, wherever the Plan's
 	// own strip is not on the page.
@@ -312,12 +314,12 @@ export function render() {
 	const undoBtn = document.getElementById('undo-btn');
 	if (undoBtn) {
 		undoBtn.disabled = !store.canUndo();
-		undoBtn.title = store.canUndo() ? `Undo: ${store.lastChange().label}` : 'Nothing to undo';
+		undoBtn.title = store.canUndo() ? T('Undo: {name}', { name: store.lastChange().label }) : T('Nothing to undo');
 	}
 	const redoBtn = document.getElementById('redo-btn');
 	if (redoBtn) {
 		redoBtn.disabled = !store.canRedo();
-		redoBtn.title = store.canRedo() ? `Redo: ${store.nextRedo().label}` : 'Nothing to redo';
+		redoBtn.title = store.canRedo() ? T('Redo: {name}', { name: store.nextRedo().label }) : T('Nothing to redo');
 	}
 
 	paintPouch();
@@ -481,7 +483,7 @@ function applyHash() {
 		const payload = m[2];
 		history.replaceState(null, '', `${location.pathname}${location.search}#map`);
 		setView('map');
-		applyTraceLink(payload).then(t => { toast(t ? `Trace from the link: ${t.name || 'untitled'}` : 'That link does not hold a trace'); render(); });
+		applyTraceLink(payload).then(t => { toast(t ? T('Trace from the link: {name}', { name: t.name || T('untitled') }) : T('That link does not hold a trace')); render(); });
 		return true;
 	}
 	if (m && m[1] === 'ship' && m[2]) {
@@ -519,7 +521,7 @@ function applyHash() {
 		// list of saved routes holds eight.
 		if (m[1] === 'map' && m[2]) {
 			const n = applyMapLink(m[2]);
-			if (n) toast(`Route from the link: ${n} stop${n === 1 ? '' : 's'}`);
+			if (n) toast(n === 1 ? T('Route from the link: {n} stop', { n }) : T('Route from the link: {n} stops', { n }));
 			history.replaceState(null, '', `${location.pathname}${location.search}#map`);
 		}
 		store.setSetting('view', m[1]);
@@ -662,9 +664,9 @@ function saveBadge(on, reason = null) {
 		const head = document.querySelector('.masthead');
 		if (head) head.after(badge); else document.body.prepend(badge);
 	}
-	const why = reason === 'quota' ? 'storage full' : 'storage unavailable';
-	badge.innerHTML = `<span>Not saving — ${why}. What you change now is not kept.</span>
-		<button class="ghost-btn" data-act="export">Export now</button>`;
+	const why = reason === 'quota' ? T('storage full') : T('storage unavailable');
+	badge.innerHTML = `<span>${T('Not saving — {why}. What you change now is not kept.', { why })}</span>
+		<button class="ghost-btn" data-act="export">${T('Export now')}</button>`;
 }
 
 function wireSaveHealth() {
@@ -672,8 +674,8 @@ function wireSaveHealth() {
 		const reason = evt.detail && evt.detail.reason;
 		saveBadge(true, reason);
 		toast(reason === 'quota'
-			? 'This browser will not store any more — export a file before you close the tab'
-			: 'This browser is not keeping the save — export a file before you close the tab');
+			? T('This browser will not store any more — export a file before you close the tab')
+			: T('This browser is not keeping the save — export a file before you close the tab'));
 	});
 	window.addEventListener('tracker-save-ok', () => saveBadge(false));
 	const health = store.saveHealth();
@@ -690,11 +692,11 @@ function offerBrokenSave() {
 	const broken = store.brokenSave();
 	if (!broken) return;
 	const host = openDialog(`
-		<h2>A save that could not be read</h2>
-		<p class="dialog-copy">The data this browser had was not valid when the page opened, so the tracker started empty rather than write over it. The unreadable copy is kept — ${F(broken.text.length)} characters of it — and can be downloaded as a file to look at, or to send along with a bug report.</p>
+		<h2>${T('A save that could not be read')}</h2>
+		<p class="dialog-copy">${T('The data this browser had was not valid when the page opened, so the tracker started empty rather than write over it. The unreadable copy is kept — {n} characters of it — and can be downloaded as a file to look at, or to send along with a bug report.', { n: F(broken.text.length) })}</p>
 		<div class="dialog-actions">
-			<button class="act" data-broken-save>Download it</button>
-			<button class="ghost-btn" data-close>Later</button>
+			<button class="act" data-broken-save>${T('Download it')}</button>
+			<button class="ghost-btn" data-close>${T('Later')}</button>
 		</div>`);
 	host.querySelector('[data-broken-save]').addEventListener('click', () => {
 		const blob = new Blob([broken.text], { type: 'application/json' });
@@ -758,7 +760,46 @@ function cycleTheme() {
 	const next = THEMES[(THEMES.indexOf(t) + 1) % THEMES.length];
 	store.setSetting('theme', next, true);
 	applyTheme();
-	toast(next === 'system' ? `Theme follows the system — ${resolvedTheme()} right now` : `Theme: ${next}`);
+	toast(next === 'system'
+		? (resolvedTheme() === 'light' ? T('Theme follows the system — light right now') : T('Theme follows the system — dark right now'))
+		: next === 'light' ? T('Theme: light') : T('Theme: dark'));
+}
+
+/**
+ * The language the app speaks, and the database its look-ups open in.
+ *
+ * One choice for both: a player reading a Portuguese screen wants the
+ * item page in Portuguese too. The pack is loaded before the redraw, so
+ * the screen changes language in one paint rather than in two.
+ */
+async function chooseLang(id) {
+	if (id === currentLang()) return;
+	store.setSetting('lang', id, true);
+	// Older builds kept the look-up language under its own name; keep it
+	// in step so a save opened on either build says the same thing.
+	store.setSetting('codexLang', id, true);
+	await setLang(id);
+	render();
+	toast(T('Language: {name}', { name: (LANGS.find(l => l.id === id) || {}).label || id }));
+}
+
+/**
+ * The sixteen, as a list to press rather than a drop-down to hunt in.
+ *
+ * They are BDOCodex's own: what the app is read in and what its
+ * look-ups open in are one choice, and the three English databases
+ * are on the list because a SEA or Global Lab player wants the item
+ * page on their own server even though the words on it are English.
+ */
+function openLanguages() {
+	return openDialog(`
+		<h2>${esc(T('Language'))}</h2>
+		<p class="dialog-copy">${esc(T('The app, and the BDOCodex page a name links to. Item and ship names come from the game itself, so they read as they do in your client.'))}</p>
+		<div class="lang-grid">
+			${LANGS.map(l => `<button class="act quiet lang-pick${currentLang() === l.id ? ' on' : ''}" data-act="pick-lang" data-id="${l.id}">${esc(l.label)}</button>`).join('')}
+		</div>
+		<div class="dialog-actions"><button class="act quiet" data-close>${esc(T('Close'))}</button></div>
+	`);
 }
 
 /** The menu draws the water switch from the setting each time it opens. */
@@ -889,12 +930,12 @@ function wire() {
 			case 'tab-sheet': return openTabSheet();
 			case 'undo': {
 				const label = store.undo();
-				toast(label ? `Reverted: ${label}` : 'Nothing to undo');
+				toast(label ? T('Reverted: {what}', { what: label }) : T('Nothing to undo'));
 				return;
 			}
 			case 'redo': {
 				const label = store.redo();
-				toast(label ? `Redone: ${label}` : 'Nothing to redo');
+				toast(label ? T('Redone: {what}', { what: label }) : T('Nothing to redo'));
 				return;
 			}
 			case 'add-build': return openBuildPicker();
@@ -914,10 +955,12 @@ function wire() {
 			case 'import': return doImport();
 			case 'reset': return doReset();
 			case 'market-refresh':
-				loadMarket({ force: true }).then(ok => toast(ok ? 'Market prices refreshed' : 'The Market did not answer — showing the last prices it gave'));
+				loadMarket({ force: true }).then(ok => toast(ok ? T('Market prices refreshed') : T('The Market did not answer — showing the last prices it gave')));
 				return;
 			case 'water': toggleWater(); if (keeps) openTabSheet(); return;
 			case 'theme': cycleTheme(); if (keeps) openTabSheet(); return;
+			case 'language': return openLanguages();
+			case 'pick-lang': closeDialog(); return chooseLang(el.dataset.id);
 			case 'tour': return startTour();
 			case 'whats-new': return openWhatsNew();
 			case 'help': return openHelp();
@@ -967,9 +1010,9 @@ function wire() {
 			case 'map-route-link':
 				try {
 					await navigator.clipboard.writeText(routeLink());
-					toast('Route link copied');
+					toast(T('Route link copied'));
 				} catch {
-					toast('Could not reach the clipboard');
+					toast(T('Could not reach the clipboard'));
 				}
 				return;
 			case 'map-course': setMapCourse(el.dataset.id); return;
@@ -1025,8 +1068,8 @@ function wire() {
 				try {
 					const r = await writeGameFile(gameBookmarks().xml);
 					toast(r.first
-						? `Written — the untouched file is kept as ${r.original}. Load a character and open the map`
-						: `Written — the file as it was is ${r.backup}, the untouched one ${r.original}. Load a character and open the map`);
+						? T('Written — the untouched file is kept as {original}. Load a character and open the map', { original: r.original })
+						: T('Written — the file as it was is {backup}, the untouched one {original}. Load a character and open the map', { backup: r.backup, original: r.original }));
 				} catch (err) {
 					toast(err.message);
 				}
@@ -1035,7 +1078,7 @@ function wire() {
 			case 'map-game-restore': {
 				try {
 					await restoreGameFile();
-					toast('Previous favourites put back');
+					toast(T('Previous favourites put back'));
 				} catch (err) {
 					toast(err.message);
 				}
@@ -1044,9 +1087,9 @@ function wire() {
 			case 'map-game-copy': {
 				try {
 					await navigator.clipboard.writeText(gameBookmarks().xml);
-					toast('Copied — paste it over the block in gameVariable.xml');
+					toast(T('Copied — paste it over the block in gameVariable.xml'));
 				} catch {
-					toast('Could not reach the clipboard');
+					toast(T('Could not reach the clipboard'));
 				}
 				return;
 			}
@@ -1074,7 +1117,7 @@ function wire() {
 					try {
 						const r = importRoute(await file.text());
 						if (r.game) return;
-						toast(`Route loaded — ${r.stops} stops${r.dropped ? `, ${r.dropped} not on this chart` : ''}`);
+						toast(r.dropped ? T('Route loaded — {n} stops, {dropped} not on this chart', { n: r.stops, dropped: r.dropped }) : T('Route loaded — {n} stops', { n: r.stops }));
 						render();
 					} catch (err) {
 						toast(err.message);
@@ -1155,7 +1198,7 @@ function wire() {
 			case 'ask-route': return askRoute(el.dataset.item, {
 				onPick: name => {
 					const info = routeInfo[el.dataset.item] && routeInfo[el.dataset.item][name];
-					toast(`${el.dataset.item} — ${info ? info.label.charAt(0).toLowerCase() + info.label.slice(1) : name}`, true);
+					toast(T('{item} — {route}', { item: gameName(el.dataset.item), route: info ? said(info.label).charAt(0).toLowerCase() + said(info.label).slice(1) : name }), true);
 				}
 			});
 			case 'bump':
@@ -1168,18 +1211,18 @@ function wire() {
 				const from = el.dataset.from;
 				const to = el.dataset.to;
 				store.applyDelta({ [from]: -1, [to]: 1 }, 'level',
-					`${parseEnhanced(to).base} recorded at +${parseEnhanced(to).level}`);
+					T('{name} recorded at +{level}', { name: parseEnhanced(to).base, level: parseEnhanced(to).level }));
 				setSelected(to);
-				toast(`Recorded at +${parseEnhanced(to).level} — no stones spent`, true);
+				toast(T('Recorded at +{level} — no stones spent', { level: parseEnhanced(to).level }), true);
 				return;
 			}
 			case 'copy':
 			case 'copy-csv':
 				try {
 					await navigator.clipboard.writeText(act === 'copy-csv' ? shoppingCSV() : shoppingText());
-					toast(act === 'copy-csv' ? 'Shortfall list copied as CSV' : 'Shortfall list copied');
+					toast(act === 'copy-csv' ? T('Shortfall list copied as CSV') : T('Shortfall list copied'));
 				} catch {
-					toast('Could not reach the clipboard');
+					toast(T('Could not reach the clipboard'));
 				}
 				return;
 			case 'craft': {
@@ -1190,21 +1233,21 @@ function wire() {
 				const asked = field ? parseAmount(field.value) : Number(el.dataset.times);
 				const want = Math.max(1, asked || 1);
 				const times = Math.min(want, maxCraftable(item, craftStock(item), recipes));
-				if (times < 1) return toast('Not enough materials for that');
+				if (times < 1) return toast(T('Not enough materials for that'));
 				const delta = craftDelta(item, times, recipes);
 				// Mass Process is the same recipe run ten at a time, plus a
 				// Black Stone Powder per batch -- recording it that way has
 				// to spend the powder too, or the powder count drifts.
 				const mass = el.closest('.craft-card')?.querySelector('[data-mass-process]');
-				let label = `Crafted ${times} × ${item}`;
+				let label = T('Crafted {n} × {item}', { n: times, item });
 				if (mass && mass.checked && massProcess[item]) {
 					const { extra, batch } = massProcess[item];
 					const powder = Math.ceil(times / batch);
 					if (store.getStock(extra) < powder) {
-						return toast(`Mass Process wants ${F(powder)} ${extra} for that batch — you hold ${F(store.getStock(extra))}`);
+						return toast(T('Mass Process wants {n} {item} for that batch — you hold {held}', { n: F(powder), item: gameName(extra), held: F(store.getStock(extra)) }));
 					}
 					delta[extra] = (delta[extra] || 0) - powder;
-					label = `Mass Processed ${times} × ${item}`;
+					label = T('Mass Processed {n} × {item}', { n: times, item });
 				}
 				// Counted for the career, in the same change as the craft.
 				store.applyDelta(delta, 'craft', label, { tally: store.tallied({ made: { [item]: times } }) });
@@ -1231,7 +1274,7 @@ function wire() {
 					.filter(([item, d]) => d < 0 && store.getStock(item) < -d)
 					.map(([item]) => item);
 				if (short.length) {
-					toast(`Not enough ${short.join(', ')} for that attempt — to record a level you already have, open the part and pick the level`);
+					toast(T('Not enough {items} for that attempt — to record a level you already have, open the part and pick the level', { items: short.map(name => gameName(name)).join(', ') }));
 					return;
 				}
 				// The failstack moves with the attempt: a failure adds one
@@ -1251,21 +1294,21 @@ function wire() {
 				store.applyDelta(
 					spend,
 					'enhance',
-					ok ? `${base} reached +${level}`
-						: dropped ? `${base} fell to +${level - 2} — no Crons on the attempt`
-						: `Failed attempt at +${level} ${base}`,
+					ok ? T('{name} reached +{level}', { name: base, level })
+						: dropped ? T('{name} fell to +{level} — no Crons on the attempt', { name: base, level: level - 2 })
+						: T('Failed attempt at +{level} {name}', { level, name: base }),
 					stackPatch
 				);
 				if (dropped) {
-					toast(`${base} fell to +${level - 2} — the Crons stayed in your pocket`, true);
+					toast(T('{name} fell to +{level} — the Crons stayed in your pocket', { name: gameName(base), level: level - 2 }), true);
 					return;
 				}
 				// Only the steps that actually spend Cron are being held by
 				// it; +1 costs none, and has nothing to fall to anyway.
 				const held = (tableFor(base) || {}).keepsLevel !== false || !step.stones['Cron Stone']
-					? 'kept its level'
-					: 'held its level on the Cron Stones';
-				toast(ok ? `${base} is now +${level}` : `Materials spent — ${base} ${held}`, true);
+					? T('kept its level')
+					: T('held its level on the Cron Stones');
+				toast(ok ? T('{name} is now +{level}', { name: gameName(base), level }) : T('Materials spent — {name} {held}', { name: gameName(base), held }), true);
 				return;
 			}
 			case 'move': {
@@ -1288,7 +1331,7 @@ function wire() {
 				const id = targetIdFrom(el);
 				if (!id) return;
 				const entry = store.removeTarget(id);
-				if (entry) toast(`${entry.label} — Undo brings it back`, true);
+				if (entry) toast(T('{what} — Undo brings it back', { what: entry.label }), true);
 				return;
 			}
 			default:
@@ -1335,7 +1378,9 @@ function wire() {
 			const items = [...invPicked];
 			const done = store.placeAll(items, town);
 			invPicked.clear();
-			if (done) toast(town ? `${items.length === 1 ? items[0] : `${items.length} items`} noted at ${town}` : `${items.length === 1 ? items[0] : `${items.length} items`} back in the bags`, true);
+			if (done) toast(town
+				? T('{what} noted at {town}', { what: items.length === 1 ? gameName(items[0]) : T('{n} items', { n: items.length }), town: gameName(town) })
+				: T('{what} back in the bags', { what: items.length === 1 ? gameName(items[0]) : T('{n} items', { n: items.length }) }), true);
 			else render();
 			return;
 		}
@@ -1348,7 +1393,7 @@ function wire() {
 		if (st && st.value) return store.setStash(st.dataset.item, st.value, 0);
 
 		const cl = evt.target.closest('[data-act="codex-lang"]');
-		if (cl) return store.setSetting('codexLang', cl.value);
+		if (cl) return chooseLang(cl.value);
 
 		const so = evt.target.closest('[data-act="sort"]');
 		if (so) {
@@ -1455,8 +1500,8 @@ function wire() {
 			const redoing = evt.key.toLowerCase() === 'y' || evt.shiftKey;
 			const label = redoing ? store.redo() : store.undo();
 			toast(label
-				? `${redoing ? 'Redone' : 'Reverted'}: ${label}`
-				: `Nothing to ${redoing ? 'redo' : 'undo'}`);
+				? (redoing ? T('Redone: {what}', { what: label }) : T('Reverted: {what}', { what: label }))
+				: (redoing ? T('Nothing to redo') : T('Nothing to undo')));
 			return;
 		}
 
@@ -1613,18 +1658,18 @@ async function openShared(payload) {
 	try {
 		save = await decodeShare(payload);
 	} catch {
-		return toast('That link does not carry a plan the tracker can read');
+		return toast(T('That link does not carry a plan the tracker can read'));
 	}
 	const items = Object.keys(save.stock || {}).length;
 	const builds = (save.targets || []).length;
 	const host = openDialog(`
-		<h2>A plan in a link</h2>
-		<p class="dialog-copy">This link carries ${items} item${items === 1 ? '' : 's'} in stock and ${builds} build${builds === 1 ? '' : 's'}. Look around it without touching yours, or take it in.</p>
+		<h2>${T('A plan in a link')}</h2>
+		<p class="dialog-copy">${T('This link carries {items} in stock and {builds}. Look around it without touching yours, or take it in.', { items: items === 1 ? T('{n} item', { n: items }) : T('{n} items', { n: items }), builds: builds === 1 ? T('{n} build', { n: builds }) : T('{n} builds', { n: builds }) })}</p>
 		<div class="dialog-actions">
-			<button class="act" data-share-look>Look around</button>
-			<button class="ghost-btn" data-share-merge>Merge into mine</button>
-			<button class="ghost-btn danger" data-share-replace>Replace mine</button>
-			<button class="ghost-btn" data-close>Ignore</button>
+			<button class="act" data-share-look>${T('Look around')}</button>
+			<button class="ghost-btn" data-share-merge>${T('Merge into mine')}</button>
+			<button class="ghost-btn danger" data-share-replace>${T('Replace mine')}</button>
+			<button class="ghost-btn" data-close>${T('Ignore')}</button>
 		</div>`);
 	host.querySelector('[data-share-look]').addEventListener('click', () => {
 		closeDialog();
@@ -1634,13 +1679,13 @@ async function openShared(payload) {
 	});
 	host.querySelector('[data-share-merge]').addEventListener('click', () => {
 		closeDialog();
-		store.merge(save, 'Merged a shared plan');
-		toast('Merged the shared plan into yours', true);
+		store.merge(save, T('Merged a shared plan'));
+		toast(T('Merged the shared plan into yours'), true);
 	});
 	host.querySelector('[data-share-replace]').addEventListener('click', () => {
 		closeDialog();
-		store.adopt(save, 'Took a shared plan');
-		toast('Replaced yours with the shared plan', true);
+		store.adopt(save, T('Took a shared plan'));
+		toast(T('Replaced yours with the shared plan'), true);
 	});
 }
 
@@ -1650,9 +1695,9 @@ async function openSharedShip(payload) {
 	try {
 		setup = (await decodeShare(payload)).setup;
 	} catch {
-		return toast('That link does not carry a ship setup the tracker can read');
+		return toast(T('That link does not carry a ship setup the tracker can read'));
 	}
-	if (!setup || !setup.ship) return toast('That link does not carry a ship setup');
+	if (!setup || !setup.ship) return toast(T('That link does not carry a ship setup'));
 	const fitted = Object.entries(setup.fitted || {}).filter(([, part]) => part);
 	const missing = fitted.filter(([, part]) => !(store.getStock(part) > 0)).map(([, part]) => part);
 	const sailors = (setup.roster || []).length;
@@ -1660,28 +1705,28 @@ async function openSharedShip(payload) {
 		? fitted.map(([slot, part]) => {
 			const held = store.getStock(part) > 0;
 			return `<div class="share-part${held ? ' held' : ''}">${img(part, 'share-part-icon')}
-				<span class="share-part-name">${esc(part)} <small>${esc(slot)}</small></span>
-				<span class="share-part-have">${held ? 'you hold it' : 'not in your inventory'}</span></div>`;
+				<span class="share-part-name">${esc(gameName(part))} <small>${esc(slot)}</small></span>
+				<span class="share-part-have">${held ? T('you hold it') : T('not in your inventory')}</span></div>`;
 		}).join('')
-		: '<p class="empty">No parts chosen by hand — the hull as it comes.</p>';
+		: `<p class="empty">${T('No parts chosen by hand — the hull as it comes.')}</p>`;
 	const host = openDialog(`
-		<h2>A ship in a link</h2>
-		<p class="dialog-copy">Someone's <b>${esc(setup.ship)}</b>${sailors ? ` · ${sailors} sailor${sailors === 1 ? '' : 's'} on the roster` : ''}${setup.crystal ? ' · a sea crystal chosen' : ''}. Looking costs nothing; taking it replaces that hull's parts and seats and your roster, and one Undo takes it back.</p>
+		<h2>${T('A ship in a link')}</h2>
+		<p class="dialog-copy">${T("Someone's <b>{ship}</b>{extra}. Looking costs nothing; taking it replaces that hull's parts and seats and your roster, and one Undo takes it back.", { ship: esc(gameName(setup.ship)), extra: `${sailors ? ` · ${sailors === 1 ? T('{n} sailor on the roster', { n: sailors }) : T('{n} sailors on the roster', { n: sailors })}` : ''}${setup.crystal ? ` · ${T('a sea crystal chosen')}` : ''}` })}</p>
 		<div class="share-parts">${partRows}</div>
 		<div class="dialog-actions">
-			${missing.length ? `<button class="act quiet" data-ship-queue title="Each missing part joins the build queue, so the plan prices the way to this ship">Queue the ${missing.length} missing part${missing.length === 1 ? '' : 's'}</button>` : ''}
-			<button class="ghost-btn" data-close>Just looking</button>
-			<button class="act" data-ship-take>Make it my ship</button>
+			${missing.length ? `<button class="act quiet" data-ship-queue title="${T('Each missing part joins the build queue, so the plan prices the way to this ship')}">${missing.length === 1 ? T('Queue the {n} missing part', { n: missing.length }) : T('Queue the {n} missing parts', { n: missing.length })}</button>` : ''}
+			<button class="ghost-btn" data-close>${T('Just looking')}</button>
+			<button class="act" data-ship-take>${T('Make it my ship')}</button>
 		</div>`);
 	host.querySelector('[data-ship-take]').addEventListener('click', () => {
 		closeDialog();
-		if (applyShipSetup(setup)) toast(`Sailing as ${setup.ship} — one Undo takes it back`, true);
+		if (applyShipSetup(setup)) toast(T('Sailing as {ship} — one Undo takes it back', { ship: gameName(setup.ship) }), true);
 	});
 	const queue = host.querySelector('[data-ship-queue]');
 	if (queue) queue.addEventListener('click', () => {
 		closeDialog();
 		for (const part of missing) store.addTarget(part, 1);
-		toast(`Queued ${missing.length} part${missing.length === 1 ? '' : 's'} to build`, true);
+		toast(missing.length === 1 ? T('Queued {n} part to build', { n: missing.length }) : T('Queued {n} parts to build', { n: missing.length }), true);
 	});
 }
 
@@ -1691,18 +1736,18 @@ async function openSharedShip(payload) {
  * as the bar stands, and one press brings yours back. Nothing done
  * meanwhile is kept. `sailorId` opens the look on one of the crew.
  */
-function lookAtShip(save, { name = 'a sailor', sailorId = null } = {}) {
+function lookAtShip(save, { name = T('a sailor'), sailorId = null } = {}) {
 	if (sharedKept) store.restore(sharedKept);
 	closeDialog();
 	sharedKept = store.capture();
 	store.applyTransient(JSON.stringify(save));
 	setLooking(true);
 	selectSailor(sailorId);
-	showSharedBar(save, { label: `Looking at ${name}’s ship — to look at, not to change.`, take: false });
+	showSharedBar(save, { label: T('Looking at {name}’s ship — to look at, not to change.', { name }), take: false });
 	showView('crew');
 }
 
-function showSharedBar(save, { label = 'Looking at a shared plan — nothing you do here is saved.', take = true } = {}) {
+function showSharedBar(save, { label = T('Looking at a shared plan — nothing you do here is saved.'), take = true } = {}) {
 	let bar = document.getElementById('shared-bar');
 	if (!bar) {
 		bar = document.createElement('div');
@@ -1711,9 +1756,9 @@ function showSharedBar(save, { label = 'Looking at a shared plan — nothing you
 		document.body.appendChild(bar);
 	}
 	bar.innerHTML = `<span>${esc(label)}</span>
-		${take ? `<button class="ghost-btn" data-shared="merge">Merge into mine</button>
-		<button class="ghost-btn" data-shared="replace">Keep it, replace mine</button>` : ''}
-		<button class="act" data-shared="back">Back to mine</button>`;
+		${take ? `<button class="ghost-btn" data-shared="merge">${T('Merge into mine')}</button>
+		<button class="ghost-btn" data-shared="replace">${T('Keep it, replace mine')}</button>` : ''}
+		<button class="act" data-shared="back">${T('Back to mine')}</button>`;
 	bar.hidden = false;
 	// The shell leaves room under its last line for the bar -- and on a
 	// phone for the section bar the bar now stands on.
@@ -1726,9 +1771,9 @@ function showSharedBar(save, { label = 'Looking at a shared plan — nothing you
 		setLooking(false);
 		bar.hidden = true;
 		document.querySelector('.shell')?.classList.remove('shared');
-		if (b.dataset.shared === 'merge') { store.merge(save, 'Merged a shared plan'); toast('Merged the shared plan into yours', true); }
-		else if (b.dataset.shared === 'replace') { store.adopt(save, 'Took a shared plan'); toast('Replaced yours with the shared plan', true); }
-		else toast('Back to your own plan');
+		if (b.dataset.shared === 'merge') { store.merge(save, T('Merged a shared plan')); toast(T('Merged the shared plan into yours'), true); }
+		else if (b.dataset.shared === 'replace') { store.adopt(save, T('Took a shared plan')); toast(T('Replaced yours with the shared plan'), true); }
+		else toast(T('Back to your own plan'));
 	};
 }
 
@@ -1737,13 +1782,13 @@ const LONG_LINK = 2000;
 
 function doExport() {
 	const host = openDialog(`
-		<h2>Take the plan with you</h2>
-		<p class="dialog-copy">A file is a backup and moves between machines. A link opens the same plan on any browser — stock, builds and crew all ride in the address — to look at without saving, or to take in. The link leaves out the diaries the app keeps for itself, which is what makes one long.</p>
-		<p class="dialog-copy" data-link-size>Measuring the link…</p>
+		<h2>${T('Take the plan with you')}</h2>
+		<p class="dialog-copy">${T('A file is a backup and moves between machines. A link opens the same plan on any browser — stock, builds and crew all ride in the address — to look at without saving, or to take in. The link leaves out the diaries the app keeps for itself, which is what makes one long.')}</p>
+		<p class="dialog-copy" data-link-size>${T('Measuring the link…')}</p>
 		<div class="dialog-actions">
-			<button class="act" data-export-file>Download a file</button>
-			<button class="ghost-btn" data-export-link>Copy a link</button>
-			<button class="ghost-btn" data-close>Cancel</button>
+			<button class="act" data-export-file>${T('Download a file')}</button>
+			<button class="ghost-btn" data-export-link>${T('Copy a link')}</button>
+			<button class="ghost-btn" data-close>${T('Cancel')}</button>
 		</div>`);
 	host.querySelector('[data-export-file]').addEventListener('click', () => { closeDialog(); downloadExport(); });
 	// The link is built once, up front, so its length can be said before
@@ -1757,11 +1802,11 @@ function doExport() {
 		if (!sizeLine || !sizeLine.isConnected) return;
 		if (n > LONG_LINK) {
 			sizeLine.classList.add('warn');
-			sizeLine.textContent = `The link is ${F(n)} characters long. Chat apps often cut a link past ${F(LONG_LINK)}, so a file is the safer way to send this one.`;
+			sizeLine.textContent = T('The link is {n} characters long. Chat apps often cut a link past {max}, so a file is the safer way to send this one.', { n: F(n), max: F(LONG_LINK) });
 		} else {
-			sizeLine.textContent = `The link is ${F(n)} characters long.`;
+			sizeLine.textContent = T('The link is {n} characters long.', { n: F(n) });
 		}
-	}).catch(() => { if (sizeLine) sizeLine.textContent = 'The link could not be built on this browser.'; });
+	}).catch(() => { if (sizeLine) sizeLine.textContent = T('The link could not be built on this browser.'); });
 	host.querySelector('[data-export-link]').addEventListener('click', async () => {
 		try {
 			const link = await built;
@@ -1769,10 +1814,10 @@ function doExport() {
 			closeDialog();
 			const n = shareSize(link);
 			toast(n > LONG_LINK
-				? `Link copied — ${F(n)} characters; a chat app may cut it, so a file is safer`
-				: `Link copied — ${F(n)} characters of address`);
+				? T('Link copied — {n} characters; a chat app may cut it, so a file is safer', { n: F(n) })
+				: T('Link copied — {n} characters of address', { n: F(n) }));
 		} catch {
-			toast('Could not build or copy the link');
+			toast(T('Could not build or copy the link'));
 		}
 	});
 }
@@ -1805,10 +1850,10 @@ function doImport() {
 			text = await file.text();
 			incoming = JSON.parse(text);
 		} catch {
-			return toast('That file is not valid JSON.');
+			return toast(T('That file is not valid JSON.'));
 		}
 		if (!incoming || typeof incoming !== 'object' || !incoming.stock) {
-			return toast('That file does not contain tracker data.');
+			return toast(T('That file does not contain tracker data.'));
 		}
 		// Importing replaces everything, which deserves saying before it
 		// happens rather than in the past tense afterwards.
@@ -1821,32 +1866,31 @@ function doImport() {
 		const seen = store.inspectImport(incoming);
 		const strange = [...new Set([...seen.unknownItems, ...seen.unknownTargets])];
 		const strangeLine = strange.length
-			? `<p class="dialog-copy warn">${F(strange.length)} item${strange.length === 1 ? '' : 's'} this version does not know: ${esc(strange.slice(0, 6).join(', '))}${strange.length > 6 ? '…' : ''}. ${strange.length === 1 ? 'Its count comes' : 'Their counts come'} in all the same, but no screen will show ${strange.length === 1 ? 'it' : 'them'} until a version that knows the name${strange.length === 1 ? '' : 's'}.</p>`
+			? `<p class="dialog-copy warn">${strange.length === 1
+				? T('{n} item this version does not know: {names}. Its count comes in all the same, but no screen will show it until a version that knows the name.', { n: F(strange.length), names: `${esc(strange.slice(0, 6).join(', '))}${strange.length > 6 ? '…' : ''}` })
+				: T('{n} items this version does not know: {names}. Their counts come in all the same, but no screen will show them until a version that knows the names.', { n: F(strange.length), names: `${esc(strange.slice(0, 6).join(', '))}${strange.length > 6 ? '…' : ''}` })}</p>`
 			: '';
 		const host = openDialog(`
-			<h2>Bring in this file?</h2>
+			<h2>${T('Bring in this file?')}</h2>
 			${strangeLine}
-			<p>It holds ${F(items)} items and ${F(builds)} builds. <b>Replace</b> makes it the whole
-			tracker — your stock, your build queue and your choices. <b>Merge</b> keeps the higher
-			count of any item, adds builds you do not have, and leaves every choice you have
-			already made alone. Either way, one Undo brings the current data back.</p>
+			<p>${T('It holds {items} items and {builds} builds. <b>Replace</b> makes it the whole tracker — your stock, your build queue and your choices. <b>Merge</b> keeps the higher count of any item, adds builds you do not have, and leaves every choice you have already made alone. Either way, one Undo brings the current data back.', { items: F(items), builds: F(builds) })}</p>
 			<div class="dialog-actions">
-				<button class="act quiet" data-cancel>Keep what I have</button>
-				<button class="act quiet" data-merge>Merge it in</button>
-				<button class="act" data-accept>Replace everything</button>
+				<button class="act quiet" data-cancel>${T('Keep what I have')}</button>
+				<button class="act quiet" data-merge>${T('Merge it in')}</button>
+				<button class="act" data-accept>${T('Replace everything')}</button>
 			</div>
 		`);
 		host.querySelector('[data-cancel]').addEventListener('click', () => closeDialog());
 		host.querySelector('[data-merge]').addEventListener('click', () => {
 			closeDialog();
 			const result = store.merge(incoming);
-			toast(`Merged — ${result.items} counts raised, ${result.targets} builds added`, true);
+			toast(T('Merged — {items} counts raised, {builds} builds added', { items: result.items, builds: result.targets }), true);
 		});
 		host.querySelector('[data-accept]').addEventListener('click', () => {
 			closeDialog();
 			try {
 				const result = store.importJSON(text);
-				toast(`Replaced tracker data — ${result.items} items, ${result.targets} builds`, true);
+				toast(T('Replaced tracker data — {items} items, {builds} builds', { items: result.items, builds: result.targets }), true);
 			} catch (err) {
 				toast(err.message);
 			}
@@ -1859,20 +1903,18 @@ function doReset() {
 	const items = Object.keys(store.getAllStock()).length;
 	const builds = store.getTargets().length;
 	const host = openDialog(`
-		<h2>Start fresh?</h2>
-		<p>This clears your stock (${F(items)} items), your build queue (${F(builds)} builds),
-		your choices and your barter profile. One Undo brings it all back — but Export first
-		if this is a copy you may ever want again.</p>
+		<h2>${T('Start fresh?')}</h2>
+		<p>${T('This clears your stock ({items} items), your build queue ({builds} builds), your choices and your barter profile. One Undo brings it all back — but Export first if this is a copy you may ever want again.', { items: F(items), builds: F(builds) })}</p>
 		<div class="dialog-actions">
-			<button class="act quiet" data-cancel>Keep everything</button>
-			<button class="act" data-accept>Start fresh</button>
+			<button class="act quiet" data-cancel>${T('Keep everything')}</button>
+			<button class="act" data-accept>${T('Start fresh')}</button>
 		</div>
 	`);
 	host.querySelector('[data-cancel]').addEventListener('click', () => closeDialog());
 	host.querySelector('[data-accept]').addEventListener('click', () => {
 		closeDialog();
-		store.adopt({ stock: {}, targets: [], strategy: {}, profile: {} }, 'Started fresh');
-		toast('Everything cleared — Undo brings it back', true);
+		store.adopt({ stock: {}, targets: [], strategy: {}, profile: {} }, T('Started fresh'));
+		toast(T('Everything cleared — Undo brings it back'), true);
 	});
 }
 
@@ -1888,17 +1930,17 @@ function offerLegacyImport() {
 
 	const list = Object.entries(legacy.stock)
 		.sort((a, b) => b[1] - a[1])
-		.map(([item, qty]) => `<div class="dialog-row"><span>${esc(item)}</span><span class="n">${F(qty)}</span></div>`)
+		.map(([item, qty]) => `<div class="dialog-row"><span>${esc(gameName(item))}</span><span class="n">${F(qty)}</span></div>`)
 		.join('');
 
 	const host = openDialog(`
-		<h2>Bring your progress across?</h2>
-		<p>Your old per-ship counts can become one shared inventory. The same material was counted separately for each ship, so the highest count found is used rather than the sum — this may under-count, and you can correct anything afterwards in Inventory.</p>
+		<h2>${T('Bring your progress across?')}</h2>
+		<p>${T('Your old per-ship counts can become one shared inventory. The same material was counted separately for each ship, so the highest count found is used rather than the sum — this may under-count, and you can correct anything afterwards in Inventory.')}</p>
 		<div class="dialog-list">${list}</div>
-		<p>${legacy.keys} saved values across ${legacy.ships.length} ships. Your old data stays untouched either way.</p>
+		<p>${T('{keys} saved values across {ships} ships. Your old data stays untouched either way.', { keys: legacy.keys, ships: legacy.ships.length })}</p>
 		<div class="dialog-actions">
-			<button class="act quiet" data-skip>Start fresh</button>
-			<button class="act" data-accept>Import it</button>
+			<button class="act quiet" data-skip>${T('Start fresh')}</button>
+			<button class="act" data-accept>${T('Import it')}</button>
 		</div>
 	`);
 
@@ -1910,7 +1952,7 @@ function offerLegacyImport() {
 	host.querySelector('[data-accept]').addEventListener('click', () => {
 		store.applyLegacyImport(legacy.stock, legacy.ships);
 		closeDialog();
-		toast(`Imported ${Object.keys(legacy.stock).length} items`);
+		toast(T('Imported {n} items', { n: Object.keys(legacy.stock).length }));
 	});
 	return true;
 }
@@ -1934,34 +1976,32 @@ function openWhatsNew({ onClose = null } = {}) {
 	const headline = r.sections.filter(s => s.media);
 	const rest = r.sections.filter(s => !s.media);
 	const points = list => (list && list.length
-		? `<ul class="news-points">${list.map(p => `<li>${p}</li>`).join('')}</ul>` : '');
+		? `<ul class="news-points">${list.map(p => `<li>${said(p)}</li>`).join('')}</ul>` : '');
 
 	const host = openDialog(`
-		<h2>What's new</h2>
-		<p class="news-rel"><b>${esc(r.name)}</b> · version ${esc(r.id)} · ${esc(r.date)}</p>
-		<p class="dialog-copy">${r.blurb}</p>
+		<h2>${T("What's new")}</h2>
+		<p class="news-rel">${T('<b>{name}</b> · version {id} · {date}', { name: esc(said(r.name)), id: esc(r.id), date: esc(r.date) })}</p>
+		<p class="dialog-copy">${said(r.blurb)}</p>
 		<div class="news">
 			${headline.map(s => `<section class="news-item">
-				<h3>${s.title}</h3>
-				<img class="news-shot" src="${esc(s.media)}" alt="${esc(s.alt || '')}" loading="lazy">
-				<p>${s.text}</p>
+				<h3>${said(s.title)}</h3>
+				<img class="news-shot" src="${esc(s.media)}" alt="${esc(said(s.alt || ''))}" loading="lazy">
+				<p>${said(s.text)}</p>
 				${points(s.points)}
 			</section>`).join('')}
 		</div>
 		<details class="help-more">
-			<summary>Everything else in this release</summary>
+			<summary>${T('Everything else in this release')}</summary>
 			${rest.map(s => `<section class="news-item plain">
-				<h3>${s.title}</h3>
-				${s.text ? `<p>${s.text}</p>` : ''}
+				<h3>${said(s.title)}</h3>
+				${s.text ? `<p>${said(s.text)}</p>` : ''}
 				${points(s.points)}
 			</section>`).join('')}
 		</details>
-		<p class="dialog-copy">The same notes are in
-			<a href="https://github.com/waliori/bdo-ship-upgrade-tracker/blob/main/CHANGELOG.md"
-				target="_blank" rel="noopener">CHANGELOG.md</a>.</p>
+		<p class="dialog-copy">${T('The same notes are in {link}.', { link: '<a href="https://github.com/waliori/bdo-ship-upgrade-tracker/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>' })}</p>
 		<div class="dialog-actions">
-			<button class="act quiet" data-close>Close</button>
-			<button class="act" data-act="tour">Show me around</button>
+			<button class="act quiet" data-close>${T('Close')}</button>
+			<button class="act" data-act="tour">${T('Show me around')}</button>
 		</div>
 	`, { onDismiss: onClose });
 	markReleaseSeen();
@@ -1991,30 +2031,25 @@ function markReleaseSeen() {
 function openHelp() {
 	const file = isPhone() ? 'walkthrough-phone.mp4' : 'walkthrough.mp4';
 	const host = openDialog(`
-		<h2>How this works</h2>
-		<p>The whole thing, end to end. The yard first — queue a build, choose how to get there, record what you gathered, make something, see what it will really cost, take the list shopping — then the sea: the day's free quests, the ship you sail, the chart, where that list becomes a loop with minutes on it and a blank stretch of water can be drawn on — and a run planned on today's board, sailed on that chart.</p>
+		<h2>${T('How this works')}</h2>
+		<p>${T("The whole thing, end to end. The yard first — queue a build, choose how to get there, record what you gathered, make something, see what it will really cost, take the list shopping — then the sea: the day's free quests, the ship you sail, the chart, where that list becomes a loop with minutes on it and a blank stretch of water can be drawn on — and a run planned on today's board, sailed on that chart.")}</p>
 		<video class="help-film" src="docs/media/${file}" controls autoplay muted playsinline loop></video>
 		<details class="help-more">
-			<summary>Day by day</summary>
-			<p class="dialog-copy">The working diary. What arrived between one <i>version</i> and the next is under <b>Menu → What's new</b>.</p>
-			${CHANGES.slice(0, 6).map(c => `<div class="help-change"><b>${esc(c.date)}</b> — ${esc(c.title)}<ul>${c.notes.map(n => `<li>${n}</li>`).join('')}</ul></div>`).join('')}
+			<summary>${T('Day by day')}</summary>
+			<p class="dialog-copy">${T("The working diary. What arrived between one <i>version</i> and the next is under <b>Menu → What's new</b>.")}</p>
+			${CHANGES.slice(0, 6).map(c => `<div class="help-change"><b>${esc(c.date)}</b> — ${esc(said(c.title))}<ul>${c.notes.map(n => `<li>${said(n)}</li>`).join('')}</ul></div>`).join('')}
 		</details>
-		<p class="dialog-copy">Look-ups open on BDOCodex in
-			<select class="field select inline" data-act="codex-lang" aria-label="BDOCodex language">${CODEX_LANGS.map(([id, name]) => `<option value="${id}"${(store.getSetting('codexLang', 'us') || 'us') === id ? ' selected' : ''}>${esc(name)}</option>`).join('')}</select>
+		<p class="dialog-copy">${T('Look-ups open on BDOCodex in {language}', { language: `<select class="field select inline" data-act="codex-lang" aria-label="${esc(T('Language'))}">${LANGS.map(l => `<option value="${l.id}"${currentLang() === l.id ? ' selected' : ''}>${esc(l.label)}</option>`).join('')}</select>` })}
 		</p>
 		<details class="help-more">
-			<summary>The data, and when it was checked</summary>
-			<div class="help-data">${DATA.map(d => `<div class="kv-row"><span>${esc(d.what)}</span><span class="n">${esc(d.asOf)}${d.from ? ` · ${esc(d.from)}` : ''}</span></div>`).join('')}</div>
-			<p class="dialog-copy">A patch can move any of these. The Market prices are live; everything else is a snapshot the app was checked against on the date shown.</p>
+			<summary>${T('The data, and when it was checked')}</summary>
+			<div class="help-data">${DATA.map(d => `<div class="kv-row"><span>${esc(said(d.what))}</span><span class="n">${esc(d.asOf)}${d.from ? ` · ${esc(said(d.from))}` : ''}</span></div>`).join('')}</div>
+			<p class="dialog-copy">${T('A patch can move any of these. The Market prices are live; everything else is a snapshot the app was checked against on the date shown.')}</p>
 		</details>
-		<p class="dialog-copy help-credit">Built by <b>waliori</b> ·
-			<a href="https://github.com/waliori/bdo-ship-upgrade-tracker" target="_blank" rel="noopener">the source</a>,
-			free to use and to fork under
-			<a href="https://github.com/waliori/bdo-ship-upgrade-tracker/blob/main/LICENSE" target="_blank" rel="noopener">MIT with Attribution</a>
-			— which asks that a fork keep this line.</p>
+		<p class="dialog-copy help-credit">${T('Built by <b>waliori</b> · {source}, free to use and to fork under {license} — which asks that a fork keep this line.', { source: `<a href="https://github.com/waliori/bdo-ship-upgrade-tracker" target="_blank" rel="noopener">${T('the source')}</a>`, license: '<a href="https://github.com/waliori/bdo-ship-upgrade-tracker/blob/main/LICENSE" target="_blank" rel="noopener">MIT with Attribution</a>' })}</p>
 		<div class="dialog-actions">
-			<button class="act quiet" data-close>Close</button>
-			<button class="act" data-act="tour">Walk me through my own screen</button>
+			<button class="act quiet" data-close>${T('Close')}</button>
+			<button class="act" data-act="tour">${T('Walk me through my own screen')}</button>
 		</div>
 	`);
 	// The captions are the narration, so it starts muted and stays that
@@ -2032,11 +2067,11 @@ async function startTour() {
 	try {
 		const { guidedTour } = await import('./guided-tour.js');
 		if (!await guidedTour.startTour('main')) {
-			toast('The tour could not load — check your connection and try again');
+			toast(T('The tour could not load — check your connection and try again'));
 		}
 	} catch (err) {
 		console.warn('[ui] tour unavailable:', err);
-		toast('The tour could not load — check your connection and try again');
+		toast(T('The tour could not load — check your connection and try again'));
 	}
 }
 
@@ -2048,8 +2083,11 @@ export async function init() {
 	store.useKinds(kindOf);
 	store.init();
 
-	// Before anything is drawn, so the first paint is the chosen one.
+	// Before anything is drawn, so the first paint is the chosen one --
+	// the theme, and the language. A screen half in one language and
+	// half in another is worse than a moment's wait for a small file.
 	applyTheme();
+	await setLang(startingLang(store.getSetting('lang'), store.getSetting('codexLang')));
 
 	const saved = store.getSetting('view');
 	if (saved && TABS.some(t => t.id === saved)) setView(saved);
@@ -2083,7 +2121,7 @@ export async function init() {
 	// a second profile is a second save, and the account holds one.
 	const prof = activeProfile();
 	const profBtn = document.querySelector('[data-act="profiles"]');
-	if (profBtn && prof.slug) profBtn.textContent = `Profile: ${prof.name}`;
+	if (profBtn && prof.slug) profBtn.textContent = T('Profile: {name}', { name: prof.name });
 
 	loadBarter();
 	// A failed fetch leaves barterData unset on purpose; the network
@@ -2119,7 +2157,7 @@ export async function init() {
 	// one request that comes back "no" and nothing more happens.
 	if (prof.slug) {
 		const acct = document.getElementById('account');
-		if (acct) acct.innerHTML = `<span class="account-chip off" title="Sync mirrors the Main profile only">sync off on this profile</span>`;
+		if (acct) acct.innerHTML = `<span class="account-chip off" title="${T('Sync mirrors the Main profile only')}">${T('sync off on this profile')}</span>`;
 	} else {
 		wireCommunity(render, { look: lookAtShip });
 		setRunSheet(runSheetHTML);
@@ -2144,7 +2182,7 @@ function whatsNewToast() {
 	const KEY = 'bdo-tracker/seen';
 	let seen = null;
 	try { seen = localStorage.getItem(KEY); } catch { /* then say nothing */ }
-	if (seen && seen !== LATEST) toast(`New since your last visit: ${CHANGES[0].title}. The details are under Help.`);
+	if (seen && seen !== LATEST) toast(T('New since your last visit: {what}. The details are under Help.', { what: said(CHANGES[0].title) }));
 	try { localStorage.setItem(KEY, LATEST); } catch { /* private mode */ }
 }
 

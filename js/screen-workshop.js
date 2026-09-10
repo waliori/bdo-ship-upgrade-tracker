@@ -2,6 +2,7 @@
 // enhancement attempt.
 
 import { esc, F } from './fmt.js';
+import { T, gameName } from './i18n.js';
 import * as store from './state.js';
 import { img, codexName, amountInput, whereFrom } from './ui-bits.js';
 import { recipes, snapshot, query, readyCrafts, craftStock } from './ui-state.js';
@@ -20,9 +21,9 @@ import { tableFor, stacksTo } from './enhancement.js';
 export function odds(e) {
 	const s = e.step1 && e.step1.steps[0];
 	if (!s) return '';
-	if (s.chance >= 1) return '<span class="enh-odds sure">always succeeds</span>';
+	if (s.chance >= 1) return `<span class="enh-odds sure">${T('always succeeds')}</span>`;
 	const pct = s.chance < 0.01 ? (s.chance * 100).toFixed(1) : Math.round(s.chance * 100);
-	return `<span class="enh-odds">${pct}% · certain after ${s.agris} fails</span>`;
+	return `<span class="enh-odds">${T('{pct}% · certain after {n} fails', { pct, n: s.agris })}</span>`;
 }
 
 /**
@@ -34,8 +35,10 @@ export function odds(e) {
 export function outlook(e) {
 	const f = e.forecast;
 	if (!f || e.next >= e.want) return '';
-	return `<span class="enh-outlook" title="Expected cost of every attempt from +${e.have} to +${e.want}, the most it can possibly take, and the durability the failures can cost at the very worst — a repair each time the part runs out">
-		to +${e.want}: <b>${F(f.expected)}</b> expected · ${F(f.ceiling)} at worst${f.durabilityCeiling ? ` · up to ${F(f.durabilityCeiling)} durability lost` : ''}
+	return `<span class="enh-outlook" title="${T('Expected cost of every attempt from +{have} to +{want}, the most it can possibly take, and the durability the failures can cost at the very worst — a repair each time the part runs out', { have: e.have, want: e.want })}">
+		${f.durabilityCeiling
+			? T('to +{want}: <b>{expected}</b> expected · {ceiling} at worst · up to {durability} durability lost', { want: e.want, expected: F(f.expected), ceiling: F(f.ceiling), durability: F(f.durabilityCeiling) })
+			: T('to +{want}: <b>{expected}</b> expected · {ceiling} at worst', { want: e.want, expected: F(f.expected), ceiling: F(f.ceiling) })}
 	</span>`;
 }
 
@@ -135,12 +138,14 @@ export function pendingEnhancements() {
 			holds,
 			blocked: !affordable || !holds,
 			note: !holds
-				? `you do not own ${have > 0 ? `a +${have}` : 'the base'} part yet${whereFrom(step.from)}`
+				? (have > 0
+					? T('you do not own a +{have} part yet{where}', { have, where: whereFrom(step.from) })
+					: T('you do not own the base part yet{where}', { where: whereFrom(step.from) }))
 				: !affordable
-					? `not enough ${stoneName}`
+					? T('not enough {stone}', { stone: gameName(stoneName) })
 					: forBuild
-						? `a build needs +${want}`
-						: `yours to enhance · up to +${want}`
+						? T('a build needs +{want}', { want })
+						: T('yours to enhance · up to +{want}', { want })
 		});
 	}
 
@@ -164,7 +169,7 @@ export function renderWorkshop() {
 		const bench = craftStock(c.item);
 		const ings = Object.entries(recipe).map(([ing, per]) => {
 			const have = bench[ing] || 0;
-			return `<span class="ing ${have < per ? 'short' : ''}" title="${esc(ing)}">
+			return `<span class="ing ${have < per ? 'short' : ''}" title="${esc(gameName(ing))}">
 				${img(ing, '')}${F(have)}/${F(per)}
 			</span>`;
 		}).join('');
@@ -173,18 +178,20 @@ export function renderWorkshop() {
 				${img(c.item, '')}
 				<div>
 					<div class="craft-name">${codexName(c.item)}</div>
-					<div class="craft-times">×${F(c.possible)} possible now${c.makes > 1 ? ` · ${F(c.makes)} each` : ''}</div>
+					<div class="craft-times">${c.makes > 1
+						? T('×{n} possible now · {makes} each', { n: F(c.possible), makes: F(c.makes) })
+						: T('×{n} possible now', { n: F(c.possible) })}</div>
 				</div>
 			</div>
 			<div class="ings">${ings}</div>
 			<div class="craft-actions">
-				${amountInput('craft-n', 1, `data-act="craft-n" data-item="${esc(c.item)}" aria-label="How many to craft"`)}
-				<button class="act go" data-act="craft" data-item="${esc(c.item)}" data-times="field">Craft</button>
-				<button class="act quiet" data-act="craft" data-item="${esc(c.item)}" data-times="${c.possible}">All ${F(c.possible)}</button>
+				${amountInput('craft-n', 1, `data-act="craft-n" data-item="${esc(c.item)}" aria-label="${T('How many to craft')}"`)}
+				<button class="act go" data-act="craft" data-item="${esc(c.item)}" data-times="field">${T('Craft')}</button>
+				<button class="act quiet" data-act="craft" data-item="${esc(c.item)}" data-times="${c.possible}">${T('All {n}', { n: F(c.possible) })}</button>
 			</div>
 			${massProcess[c.item] ? `<label class="inline-check"
-				title="Ten crafts in one go, plus one ${esc(massProcess[c.item].extra)} for each batch of ${massProcess[c.item].batch}">
-				<input type="checkbox" data-mass-process> via Mass Process
+				title="${T('Ten crafts in one go, plus one {extra} for each batch of {n}', { extra: esc(gameName(massProcess[c.item].extra)), n: massProcess[c.item].batch })}">
+				<input type="checkbox" data-mass-process> ${T('via Mass Process')}
 			</label>` : ''}
 		</div>`;
 	}).join('');
@@ -202,49 +209,51 @@ export function renderWorkshop() {
 				<div class="row-name">${codexName(e.base)}</div>
 				<div class="row-sub" ${e.blocked ? 'style="color:var(--red)"' : ''}>${esc(e.note)}</div>
 			</div>
-			<span class="enh-level">+${e.have} → +${e.next}${e.gain ? `<span class="enh-gain" title="What +${e.next} adds over +${e.have}">${esc(e.gain)}</span>` : ''}</span>
+			<span class="enh-level">+${e.have} → +${e.next}${e.gain ? `<span class="enh-gain" title="${T('What +{next} adds over +{have}', { next: e.next, have: e.have })}">${esc(e.gain)}</span>` : ''}</span>
 			<span class="enh-cost">${e.costs.map(([n, q]) => `${img(n, '')}×${F(q)}`).join('')}${odds(e)}${e.recommended !== null ? `
-				<label class="enh-fs" title="The failstack this part carries into its next attempt. Starts at the stack the quoted rate assumes (${e.recommended}); each failure recorded here adds one, a success resets it for the next level. Type to correct it.${e.recommended === 0 ? ' Each stack adds a tenth of the base rate until the chance reaches 70%, a fiftieth after that, and 90% is the ceiling — the enhancement window shows the same figure.' : ''}">
-					FS ${amountInput('purse-inline narrow', e.failstacks, `data-act="failstacks" data-base="${esc(e.base)}" aria-label="Failstack for ${esc(e.base)}"`)}
-					<span class="enh-fs-note">${e.carriedStack ? `recommended ${e.recommended}` : 'recommended'}${e.soft && e.soft.soft ? ` · <span title="Every stack up to ${e.soft.soft} adds a tenth of the base rate; past it a fiftieth. ${e.soft.hard ? `90% at ${e.soft.hard}.` : ''}">70% at ${e.soft.soft}</span>` : ''}</span>
+				<label class="enh-fs" title="${T('The failstack this part carries into its next attempt. Starts at the stack the quoted rate assumes ({n}); each failure recorded here adds one, a success resets it for the next level. Type to correct it.', { n: e.recommended })}${e.recommended === 0 ? ` ${T('Each stack adds a tenth of the base rate until the chance reaches 70%, a fiftieth after that, and 90% is the ceiling — the enhancement window shows the same figure.')}` : ''}">
+					${T('FS')} ${amountInput('purse-inline narrow', e.failstacks, `data-act="failstacks" data-base="${esc(e.base)}" aria-label="${T('Failstack for {name}', { name: esc(gameName(e.base)) })}"`)}
+					<span class="enh-fs-note">${e.carriedStack ? T('recommended {n}', { n: e.recommended }) : T('recommended')}${e.soft && e.soft.soft ? ` · <span title="${T('Every stack up to {n} adds a tenth of the base rate; past it a fiftieth.', { n: e.soft.soft })} ${e.soft.hard ? T('90% at {n}.', { n: e.soft.hard }) : ''}">${T('70% at {n}', { n: e.soft.soft })}</span>` : ''}</span>
 				</label>` : ''}</span>
 			${outlook(e)}
-			${e.log.won + e.log.lost ? `<span class="enh-log" title="From the undo history, which keeps the last two hundred changes">${e.log.won} won · ${e.log.lost} lost · ${F(e.log.stones)} ${esc(e.stoneName)} spent</span>` : ''}
+			${e.log.won + e.log.lost ? `<span class="enh-log" title="${T('From the undo history, which keeps the last two hundred changes')}">${T('{won} won · {lost} lost · {n} {stone} spent', { won: e.log.won, lost: e.log.lost, n: F(e.log.stones), stone: esc(gameName(e.stoneName)) })}</span>` : ''}
 			<span class="enh-actions">
-				<button class="pill-btn" data-act="enhance" data-result="success" ${e.blocked ? 'disabled' : ''}>Succeeded</button>
-				<button class="pill-btn bad" data-act="enhance" data-result="fail" ${e.blocked ? 'disabled' : ''}>Failed</button>
+				<button class="pill-btn" data-act="enhance" data-result="success" ${e.blocked ? 'disabled' : ''}>${T('Succeeded')}</button>
+				<button class="pill-btn bad" data-act="enhance" data-result="fail" ${e.blocked ? 'disabled' : ''}>${T('Failed')}</button>
 				${e.canDrop ? `<button class="pill-btn bad" data-act="enhance" data-result="dropped"
 					${e.affordableDropped ? '' : 'disabled'}
-					title="The attempt was made without Cron Stones: none are spent, and the part falls a level">Failed — no Crons</button>` : ''}
+					title="${T('The attempt was made without Cron Stones: none are spent, and the part falls a level')}">${T('Failed — no Crons')}</button>` : ''}
 			</span>
 		</div>`;
 	const enhRows = open.map(enhRow).join('') + (blocked.length
-		? `<button class="row-fold" data-act="enh-blocked" aria-expanded="${showBlocked}">${showBlocked ? '▾' : '▸'} ${blocked.length} you cannot attempt yet${showBlocked ? '' : ' — show'}</button>`
+		? `<button class="row-fold" data-act="enh-blocked" aria-expanded="${showBlocked}">${showBlocked ? '▾' : '▸'} ${showBlocked
+				? T('{n} you cannot attempt yet', { n: blocked.length })
+				: T('{n} you cannot attempt yet — show', { n: blocked.length })}</button>`
 			+ (showBlocked ? blocked.map(enhRow).join('') : '')
 		: '');
 
 	return `<div class="controls">
-		<input class="field" type="search" placeholder="Search recipes and parts…" value="${esc(query)}" data-act="query" aria-label="Search recipes and parts">
+		<input class="field" type="search" placeholder="${T('Search recipes and parts…')}" value="${esc(query)}" data-act="query" aria-label="${T('Search recipes and parts')}">
 	</div>
 	<div class="panel">
 		<div class="panel-head">
-			<h2 class="panel-title teal">Ready to craft</h2>
-			<span class="panel-sub">Crafting moves real stock: ingredients out, product in</span>
+			<h2 class="panel-title teal">${T('Ready to craft')}</h2>
+			<span class="panel-sub">${T('Crafting moves real stock: ingredients out, product in')}</span>
 		</div>
 		${ready.length
 			? `<div class="craft-grid">${cards}</div>`
 			: `<p class="empty">${q
-				? 'Nothing craftable matches that search.'
-				: 'Nothing can be made from what is on hand right now.'}</p>`}
+				? T('Nothing craftable matches that search.')
+				: T('Nothing can be made from what is on hand right now.')}</p>`}
 	</div>
 	<div class="panel">
 		<div class="panel-head">
-			<h2 class="panel-title">Enhancement</h2>
-			<span class="panel-sub">Everything you own that can go higher. Record what happened — the materials are spent either way. Blue and green parts keep their level on a failure; yellow ones fall a level unless Cron Stones held it, so a yellow row has both failures to choose from · <button class="linky" data-act="tables" title="The seven tables every part follows, lit at your stack">the tables</button></span>
+			<h2 class="panel-title">${T('Enhancement')}</h2>
+			<span class="panel-sub">${T('Everything you own that can go higher. Record what happened — the materials are spent either way. Blue and green parts keep their level on a failure; yellow ones fall a level unless Cron Stones held it, so a yellow row has both failures to choose from')} · <button class="linky" data-act="tables" title="${T('The seven tables every part follows, lit at your stack')}">${T('the tables')}</button></span>
 		</div>
 
 		${enhRows || `<p class="empty">${q
-			? 'No enhanceable part matches that search.'
-			: 'Nothing in your inventory can be enhanced. Add a ship part and it will show up here.'}</p>`}
+			? T('No enhanceable part matches that search.')
+			: T('Nothing in your inventory can be enhanced. Add a ship part and it will show up here.')}</p>`}
 	</div>`;
 }

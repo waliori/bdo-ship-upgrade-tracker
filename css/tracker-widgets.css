@@ -175,6 +175,13 @@
 .dialog-row .n { font-family: var(--font-display); color: var(--ink-hi); }
 .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 
+/* The sixteen languages, as a grid of cells to press. A drop-down of
+   sixteen scripts is a thing to hunt through; laid out, the one you
+   read is the one you can see. */
+.lang-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; margin-top: 12px; }
+.lang-pick { justify-content: flex-start; text-align: left; }
+.lang-pick.on { border-color: var(--blue); color: var(--ink-hi); }
+
 /* ---- responsive --------------------------------------------------- */
 
 @media (max-width: 960px) {

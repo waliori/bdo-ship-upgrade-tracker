@@ -15,6 +15,8 @@
 // within about a thousand units -- half an island -- of where the line
 // was drawn.
 
+import { TT } from './i18n.js';
+
 const VELIA = { name: 'Velia', x: 69152, y: 69120 };
 const OQUILLA = { name: "Oquilla's Eye", x: 64400, y: 47000, stop: true };
 const LEKRASHAN = { name: 'Lekrashan', x: 16416, y: 37893, stop: true };
@@ -22,9 +24,9 @@ const LEKRASHAN = { name: 'Lekrashan', x: 16416, y: 37893, stop: true };
 export const courses = [
 	{
 		id: 'balenos',
-		name: 'Balenos islands loop',
-		sub: 'Velia round the islands to Oquilla’s Eye and back',
-		note: 'The dailies close to home: young sea monsters and Hekaru for the soldier at Oquilla’s Eye, the delivery quests to Narvo, Baremi and Tinberra on the way. Goldmont ships patrol the middle of it.',
+		name: TT('Balenos islands loop'),
+		sub: TT('Velia round the islands to Oquilla’s Eye and back'),
+		note: TT('The dailies close to home: young sea monsters and Hekaru for the soldier at Oquilla’s Eye, the delivery quests to Narvo, Baremi and Tinberra on the way. Goldmont ships patrol the middle of it.'),
 		points: [
 			VELIA,
 			{ name: 'Narvo Island', x: 61554, y: 60679 },
@@ -38,9 +40,9 @@ export const courses = [
 	},
 	{
 		id: 'lekrashan',
-		name: 'Ross Sea loop to Lekrashan',
-		sub: 'west from Oquilla’s Eye, home on the current',
-		note: 'Nineshark, Candidum and Black Rust grounds west of Oquilla’s Eye for the Old Moon Guild hunts; Lekrashan itself at the far end. The way back rides the fast current north-east past the Margoria wrecks.',
+		name: TT('Ross Sea loop to Lekrashan'),
+		sub: TT('west from Oquilla’s Eye, home on the current'),
+		note: TT('Nineshark, Candidum and Black Rust grounds west of Oquilla’s Eye for the Old Moon Guild hunts; Lekrashan itself at the far end. The way back rides the fast current north-east past the Margoria wrecks.'),
 		points: [
 			OQUILLA,
 			{ x: 55754, y: 50048 },
@@ -54,9 +56,9 @@ export const courses = [
 	},
 	{
 		id: 'crocodile',
-		name: 'Lyngbakr run',
-		sub: 'the northern detour through the wrecks -- the old crocodile run',
-		note: 'Off the current at Pakio’s raft, north to the Lyngbakr Habitat (the crocodiles’ ground until 27 August 2026, when the Lyngbakrs took it), then down the chain of wrecks -- Lantinia, Heracio, Popo -- to Lekrashan.',
+		name: TT('Lyngbakr run'),
+		sub: TT('the northern detour through the wrecks -- the old crocodile run'),
+		note: TT('Off the current at Pakio’s raft, north to the Lyngbakr Habitat (the crocodiles’ ground until 27 August 2026, when the Lyngbakrs took it), then down the chain of wrecks -- Lantinia, Heracio, Popo -- to Lekrashan.'),
 		points: [
 			{ name: 'Pakio (combat raft)', x: 55120, y: 25866 },
 			{ name: 'Lyngbakr Habitat', x: 49933, y: 10654, stop: true },

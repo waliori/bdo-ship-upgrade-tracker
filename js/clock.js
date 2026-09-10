@@ -23,6 +23,8 @@
 // Vell keeps a timetable of its own per region, read off mmotimer.com on
 // 2026-08-30, on the same correctable footing.
 
+import { T, TT, said } from './i18n.js';
+
 export const DAILY_RESET_UTC = 0;
 export const BARTER_RESET_UTC = 6;
 export const WEEKLY_RESET = { day: 4, hour: 0 };   // Thursday 00:00 UTC
@@ -78,7 +80,7 @@ export function resetPlan(region, override = null) {
 }
 
 const DAY = 86400e3;
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAYS = [TT('Sun'), TT('Mon'), TT('Tue'), TT('Wed'), TT('Thu'), TT('Fri'), TT('Sat')];
 
 /** The day a daily is on: a date that turns over at the reset, not at
  *  the player's midnight. */
@@ -151,15 +153,15 @@ export function untilWeekly(now = Date.now(), plan = null) {
 
 /** "2 d 3 h", "5 h 12 m", "48 m", "under a minute". */
 export function countdown(ms) {
-	if (!(ms > 0)) return 'now';
+	if (!(ms > 0)) return T('now');
 	const m = Math.floor(ms / 60000);
-	if (m < 1) return 'under a minute';
+	if (m < 1) return T('under a minute');
 	const d = Math.floor(m / 1440);
 	const h = Math.floor((m % 1440) / 60);
 	const min = m % 60;
-	if (d) return `${d} d ${h} h`;
-	if (h) return `${h} h ${min} m`;
-	return `${min} m`;
+	if (d) return T('{d} d {h} h', { d, h });
+	if (h) return T('{h} h {min} m', { h, min });
+	return T('{min} m', { min });
 }
 
 /* ------------------------------------------------------------------ *
@@ -221,13 +223,13 @@ export const VELL_CHECKED = '2026-08-30';
 
 /** "Wed 19:00" on whatever clock the entry is kept in. */
 export function timeLabel(t) {
-	return `${DAYS[t.day]} ${String(t.hour).padStart(2, '0')}:${String(t.minute || 0).padStart(2, '0')}`;
+	return `${said(DAYS[t.day])} ${String(t.hour).padStart(2, '0')}:${String(t.minute || 0).padStart(2, '0')}`;
 }
 
 /** The same instant on the player's own clock: "Sun 13:00". */
 export function localLabel(at) {
 	const d = new Date(at);
-	return `${DAYS[d.getDay()]} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+	return `${said(DAYS[d.getDay()])} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 /* ------------------------------------------------------------------ *

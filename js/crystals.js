@@ -7,14 +7,15 @@
 // one sum -- and names the grades in the order the game ranks them.
 
 import { crystals, crystalById } from './sea_crystals.js';
+import { T, TT, said } from './i18n.js';
 
 export const GRADES = [
-	{ id: 'eltro', label: 'Eltro', colour: '#cfe3f5', note: 'white · drops from sea monsters', local: true },
-	{ id: 'serni', label: 'Serni', colour: '#5be07a', note: 'green · Serni Crystal, or ten Origins of Eltro', local: true },
-	{ id: 'zulatia', label: 'Zulatia', colour: '#4aa8ff', note: 'blue · Zulatia Crystal, or ten Origins of Serni', local: true },
-	{ id: 'margoria', label: 'Margoria', colour: '#f3c14a', note: 'yellow · Margoria Crystal, or Origins of Zulatia', local: true },
-	{ id: 'rusalka', label: 'Rusalka', colour: '#f04a4a', note: 'red · Rusalka Crystal, or ten Origins of Margoria · works in every sea', local: false },
-	{ id: 'nol', label: "Ebenruth's Nol", colour: '#8ff0e0', note: 'the Nol shares the slot; the Oceanteared Nol is a Rusalka crystal and the Nol in one', local: false }
+	{ id: 'eltro', label: 'Eltro', colour: '#cfe3f5', note: TT('white · drops from sea monsters'), local: true },
+	{ id: 'serni', label: 'Serni', colour: '#5be07a', note: TT('green · Serni Crystal, or ten Origins of Eltro'), local: true },
+	{ id: 'zulatia', label: 'Zulatia', colour: '#4aa8ff', note: TT('blue · Zulatia Crystal, or ten Origins of Serni'), local: true },
+	{ id: 'margoria', label: 'Margoria', colour: '#f3c14a', note: TT('yellow · Margoria Crystal, or Origins of Zulatia'), local: true },
+	{ id: 'rusalka', label: 'Rusalka', colour: '#f04a4a', note: TT('red · Rusalka Crystal, or ten Origins of Margoria · works in every sea'), local: false },
+	{ id: 'nol', label: "Ebenruth's Nol", colour: '#8ff0e0', note: TT('the Nol shares the slot; the Oceanteared Nol is a Rusalka crystal and the Nol in one'), local: false }
 ];
 export const gradeById = Object.fromEntries(GRADES.map(g => [g.id, g]));
 
@@ -37,16 +38,16 @@ export function crystalStats(c) {
 	return out;
 }
 
-const WORD = { speed: 'speed', accel: 'acceleration', turn: 'turn', brake: 'brake', weight: 'weight limit', durability: 'durability', damage: 'damage' };
+const WORD = { speed: TT('speed +{n}%'), accel: TT('acceleration +{n}%'), turn: TT('turn +{n}%'), brake: TT('brake +{n}%'), weight: TT('weight limit'), durability: TT('durability'), damage: TT('damage') };
 
 /** "Speed +4.5%" -- the one number a crystal is chosen for. */
 export function crystalVariant(c) {
 	const s = crystalStats(c);
-	for (const k of ['speed', 'accel', 'turn', 'brake']) if (s[k] !== undefined) return `${WORD[k]} +${s[k]}%`;
-	if (s.weight !== undefined) return `weight +${s.weight.toLocaleString('en-US')} LT`;
-	if (s.durability !== undefined) return `durability +${s.durability.toLocaleString('en-US')}`;
-	if (s.damage !== undefined) return `damage +${s.damage.toLocaleString('en-US')} × hits`;
-	if (s.breezy) return 'BreezySail twice, +50% distance';
+	for (const k of ['speed', 'accel', 'turn', 'brake']) if (s[k] !== undefined) return said(WORD[k], { n: s[k] });
+	if (s.weight !== undefined) return T('weight +{n} LT', { n: s.weight.toLocaleString('en-US') });
+	if (s.durability !== undefined) return T('durability +{n}', { n: s.durability.toLocaleString('en-US') });
+	if (s.damage !== undefined) return T('damage +{n} × hits', { n: s.damage.toLocaleString('en-US') });
+	if (s.breezy) return T('BreezySail twice, +50% distance');
 	return '';
 }
 

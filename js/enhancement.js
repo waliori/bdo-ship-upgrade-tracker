@@ -21,9 +21,11 @@
 // the yellow tier, is the one that breaks the pattern: a failed attempt
 // there takes a level, not just durability.
 
+import { TT } from './i18n.js';
+
 export const tables = {
 	'sailboat': {
-		label: 'Bartali Sailboat gear',
+		label: TT('Bartali Sailboat gear'),
 		material: 'Black Stone',
 		// index = the level you are at; the attempt takes you to index + 1
 		levels: [
@@ -40,7 +42,7 @@ export const tables = {
 		]
 	},
 	'caravel-blue': {
-		label: 'Caravel / Galleass blue',
+		label: TT('Caravel / Galleass blue'),
 		material: 'Tidal Black Stone',
 		// index = the level you are at; the attempt takes you to index + 1
 		levels: [
@@ -57,7 +59,7 @@ export const tables = {
 		]
 	},
 	'caravel-green': {
-		label: 'Caravel / Galleass green',
+		label: TT('Caravel / Galleass green'),
 		material: 'Tidal Black Stone',
 		// index = the level you are at; the attempt takes you to index + 1
 		levels: [
@@ -74,7 +76,7 @@ export const tables = {
 		]
 	},
 	'chiro': {
-		label: 'Carrack Chiro / Panokseon Byukgye (blue)',
+		label: TT('Carrack Chiro / Panokseon Byukgye (blue)'),
 		material: 'Tidal Black Stone',
 		// index = the level you are at; the attempt takes you to index + 1
 		levels: [
@@ -91,7 +93,7 @@ export const tables = {
 		]
 	},
 	'toro': {
-		label: 'Carrack Toro / Panokseon Haemo (green)',
+		label: TT('Carrack Toro / Panokseon Haemo (green)'),
 		material: 'Tidal Black Stone',
 		// index = the level you are at; the attempt takes you to index + 1
 		levels: [
@@ -108,7 +110,7 @@ export const tables = {
 		]
 	},
 	'epheria': {
-		label: 'Epheria (old) gear',
+		label: TT('Epheria (old) gear'),
 		material: 'Tidal Black Stone',
 		// index = the level you are at; the attempt takes you to index + 1
 		levels: [
@@ -125,7 +127,7 @@ export const tables = {
 		]
 	},
 	'yellow': {
-		label: 'Falasi / Cheongun yellow',
+		label: TT('Falasi / Cheongun yellow'),
 		material: 'Sunset Tidal Black Stone',
 		// The rule that makes this tier different: a failure takes a
 		// level as well as durability, which no tier below it does.

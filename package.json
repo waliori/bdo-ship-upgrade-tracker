@@ -28,6 +28,8 @@
     "start": "node --env-file-if-exists=.env server.js",
     "test": "node --test \"test/*.test.mjs\"",
     "check": "node --env-file-if-exists=.env tools/check-env.mjs",
+    "lang": "node tools/build-lang.mjs",
+    "names": "node tools/fetch-names.mjs",
     "backup": "node --env-file-if-exists=.env tools/backup.mjs",
     "restore": "node --env-file-if-exists=.env tools/backup.mjs --restore",
     "capture": "tools/capture/shoot.sh",
@@ -42,6 +44,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "acorn": "^8.18.0",
     "eslint": "^10.9.1",
     "puppeteer-core": "^25.9.0"
   }

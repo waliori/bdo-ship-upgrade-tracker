@@ -2,6 +2,7 @@
 // whole screen, the ruler, the coordinates readout and the minimap's
 // switch.
 
+import { T } from '../i18n.js';
 import { F } from '../fmt.js';
 import { routePath, project } from '../map.js';
 import { MAX_ZOOM } from '../barter_npcs.js';
@@ -144,7 +145,7 @@ export function toggleMeasure() {
 	if (btn) btn.setAttribute('aria-pressed', String(mv.measuring));
 	const host = document.querySelector('[data-map]');
 	if (host) host.classList.toggle('measuring', mv.measuring);
-	if (mv.measuring) toast('Click two points on the sea');
+	if (mv.measuring) toast(T('Click two points on the sea'));
 	paintMap();
 }
 

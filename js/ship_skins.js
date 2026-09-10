@@ -31,15 +31,17 @@
 // ship parts and already lives in part_stats.js, not an appearance set.
 // The Panokseon has no appearance set at all.
 
+import { TT } from './i18n.js';
+
 export const SKIN_SLOTS = ['figurehead', 'plating', 'cannon', 'sail'];
 
 export const shipSkins = {
 	'Benelois Ship Parts': {
-		source: 'Crafted',
-		where: 'Ship Part Workshop, Port Epheria 1-4, 2F',
+		source: TT('Crafted'),
+		where: TT('Ship Part Workshop, Port Epheria 1-4, 2F'),
 		skill: 'Beginner 0',
 		codex: 336020,
-		note: 'Blue and white sails. Crafted a slot at a time at Port Epheria.',
+		note: TT('Blue and white sails. Crafted a slot at a time at Port Epheria.'),
 		ships: [
 			'Bartali Sailboat', 'Epheria Sailboat', 'Improved Epheria Sailboat',
 			'Epheria Frigate', 'Improved Epheria Frigate', 'Epheria Caravel', 'Epheria Galleass'
@@ -64,10 +66,10 @@ export const shipSkins = {
 		}
 	},
 	'Oquilla Carrack Overlay': {
-		source: 'Pearl Shop',
+		source: TT('Pearl Shop'),
 		pearls: 6370,
 		codex: 602210,
-		note: 'One look per Carrack; the stats are the same on all four. BreezySail gets its own effect.',
+		note: TT('One look per Carrack; the stats are the same on all four. BreezySail gets its own effect.'),
 		variants: [
 			{ name: 'Advance', codex: 602210, ship: 'Carrack (Advance)' },
 			{ name: 'Balance', codex: 602211, ship: 'Carrack (Balance)' },

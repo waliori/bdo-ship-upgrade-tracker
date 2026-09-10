@@ -15,6 +15,7 @@ import { recipes, routes, buyFirst } from './recipes.js';
 import { items as vendorItems } from './vendor_items.js';
 import { coins } from './sea_coins.js';
 import { tradeGoodNames } from './trade_goods.js';
+import { T } from './i18n.js';
 const BASE_KEY = 'bdo-tracker/v2';
 const ACTIVE_PROFILE_KEY = 'bdo-tracker/profile';
 
@@ -533,7 +534,7 @@ export function undo() {
 
 	persist();
 	notify('undo');
-	return entry.label || 'Change';
+	return entry.label || T('Change');
 }
 
 /** Put back the most recently undone change, itself undoable again. */
@@ -579,7 +580,7 @@ export function redo() {
 
 	persist();
 	notify('redo');
-	return entry.label || 'Change';
+	return entry.label || T('Change');
 }
 
 export function canUndo() {
@@ -661,34 +662,34 @@ export function getProfile(key, fallback = null) {
 // as two barter facts and grew the whole ship and crew; a sailor renamed
 // or a hull swapped is not "your barter profile" to the person undoing it.
 const PROFILE_LABELS = {
-	barterCount: 'Changed your barter count',
-	valuePack: 'Changed the Value Pack',
-	crew: 'Changed the crew discount',
-	level: 'Changed your barter level',
-	vouchers: 'Changed your vouchers',
-	parleyHeld: 'Changed the parley you hold',
-	failstacks: 'Changed a failstack',
-	crewShip: 'Changed the ship you sail',
-	roster: 'Changed the roster',
-	seats: 'Changed who sits where',
-	presets: 'Changed a crew preset',
-	fitted: 'Changed what is fitted',
-	crystal: 'Changed the sea crystal',
-	skins: 'Changed the appearance set',
-	setups: 'Changed your saved setups',
-	sailingMastery: 'Changed your sailing mastery',
-	questFavs: 'Changed your favourite quests',
-	questGroups: 'Changed a quest group',
-	stash: 'Changed where things are kept',
-	homes: 'Changed where new things land',
-	orders: 'Changed the sailing orders',
-	homemade: 'Changed what your workers make',
-	matSeen: 'Noted what the material list shows'
+	barterCount: () => T('Changed your barter count'),
+	valuePack: () => T('Changed the Value Pack'),
+	crew: () => T('Changed the crew discount'),
+	level: () => T('Changed your barter level'),
+	vouchers: () => T('Changed your vouchers'),
+	parleyHeld: () => T('Changed the parley you hold'),
+	failstacks: () => T('Changed a failstack'),
+	crewShip: () => T('Changed the ship you sail'),
+	roster: () => T('Changed the roster'),
+	seats: () => T('Changed who sits where'),
+	presets: () => T('Changed a crew preset'),
+	fitted: () => T('Changed what is fitted'),
+	crystal: () => T('Changed the sea crystal'),
+	skins: () => T('Changed the appearance set'),
+	setups: () => T('Changed your saved setups'),
+	sailingMastery: () => T('Changed your sailing mastery'),
+	questFavs: () => T('Changed your favourite quests'),
+	questGroups: () => T('Changed a quest group'),
+	stash: () => T('Changed where things are kept'),
+	homes: () => T('Changed where new things land'),
+	orders: () => T('Changed the sailing orders'),
+	homemade: () => T('Changed what your workers make'),
+	matSeen: () => T('Noted what the material list shows')
 };
 
 export function setProfile(key, value, label = null) {
 	const next = readProfile({ ...state.profile, [key]: value });
-	commit('profile', label || PROFILE_LABELS[key] || 'Changed your profile', () => {
+	commit('profile', label || (PROFILE_LABELS[key] ? PROFILE_LABELS[key]() : T('Changed your profile')), () => {
 		state.profile = next;
 	});
 }
@@ -702,7 +703,7 @@ export function setProfile(key, value, label = null) {
 export function setProfileMany(patch, label) {
 	const next = readProfile({ ...state.profile, ...patch });
 	if (JSON.stringify(next) === JSON.stringify(state.profile)) return null;
-	return commit('profile', label || 'Changed your profile', () => {
+	return commit('profile', label || T('Changed your profile'), () => {
 		state.profile = next;
 	});
 }
@@ -902,7 +903,7 @@ export function addStock(item, delta, label, at = true) {
 export function applyDelta(delta, type, label, profile = null) {
 	const entries = Object.entries(delta).filter(([, d]) => Number(d));
 	if (!entries.length && !profile) return null;
-	return commit(type || 'stock', label || 'Inventory change', () => {
+	return commit(type || 'stock', label || T('Inventory change'), () => {
 		for (const [item, d] of entries) writeStock(item, getStock(item) + Math.floor(d));
 		// Laid on the profile as the stock writes left it, not as it was
 		// before them: writeStock keeps the stash, and a patch worked out
@@ -945,7 +946,7 @@ export function tallied(delta) {
 export function claimQuest(id, delta, key, label) {
 	const done = { ...(state.profile.questsDone || {}), [id]: key };
 	const next = readProfile({ ...state.profile, questsDone: done, tally: tallied({ quests: { [id]: 1 } }) });
-	return commit('quest', label || 'Claimed a quest', () => {
+	return commit('quest', label || T('Claimed a quest'), () => {
 		for (const [item, d] of Object.entries(delta || {})) {
 			if (Number(d)) writeStock(item, getStock(item) + Math.floor(d));
 		}
@@ -1005,7 +1006,7 @@ export function placeAll(items, town, label) {
  * '' for the ship), and a profile patch, the run's entry in the log.
  * One Undo takes the whole trip back.
  */
-export function applyTrip({ delta = {}, moves = [], profile = null, label = 'Sailed a run' } = {}) {
+export function applyTrip({ delta = {}, moves = [], profile = null, label = T('Sailed a run') } = {}) {
 	const entries = Object.entries(delta).filter(([, d]) => Number(d));
 	return commit('trip', label, () => {
 		for (const [item, d] of entries) writeStock(item, getStock(item) + Math.floor(d), false);
@@ -1041,7 +1042,7 @@ export function claimQuests(entries, label) {
 	const counts = {};
 	for (const e of list) { done[e.id] = e.key; counts[e.id] = 1; }
 	const next = readProfile({ ...state.profile, questsDone: done, tally: tallied({ quests: counts }) });
-	return commit('quest', label || `Claimed ${list.length} quests`, () => {
+	return commit('quest', label || T('Claimed {n} quests', { n: list.length }), () => {
 		for (const e of list) {
 			for (const [item, d] of Object.entries(e.delta || {})) {
 				if (Number(d)) writeStock(item, getStock(item) + Math.floor(d));
@@ -1069,7 +1070,7 @@ export function unclaimQuest(id, label) {
 
 /** Replace the whole stock table (used by the v1 import review screen). */
 export function replaceStock(next, label) {
-	return commit('stock', label || 'Inventory replaced', () => {
+	return commit('stock', label || T('Inventory replaced'), () => {
 		state.stock = {};
 		for (const [item, qty] of Object.entries(next || {})) writeStock(item, qty, false);
 		// The places noted can never hold more than the total: an item no
@@ -1149,7 +1150,7 @@ export function reorderTargets(ids) {
 	const next = ids.map(id => byId.get(id)).filter(Boolean);
 	for (const t of state.targets) if (!next.includes(t)) next.push(t);
 	if (next.length !== state.targets.length) return null;
-	return commit('target', 'Reordered priorities', () => {
+	return commit('target', T('Reordered priorities'), () => {
 		state.targets = next;
 	});
 }
@@ -1215,7 +1216,7 @@ export function importJSON(text) {
 	if (!parsed || typeof parsed !== 'object' || !parsed.stock) {
 		throw new Error('That file does not contain tracker data.');
 	}
-	return adopt(parsed, 'Imported tracker data');
+	return adopt(parsed, T('Imported tracker data'));
 }
 
 // Every name the app knows: what the recipes make and eat, what the
@@ -1303,7 +1304,7 @@ export function saveShape() {
  * every other device. An empty object still clears it, so a deliberate
  * reset survives the round trip.
  */
-export function adopt(data, label = 'Replaced tracker data') {
+export function adopt(data, label = T('Replaced tracker data')) {
 	const incoming = normalise(data);
 	// `isProfile` and not a bare typeof check: an array is an object to
 	// JavaScript but is not a profile, and treating one as a deliberate
@@ -1367,7 +1368,7 @@ function pruneStash(profile, stock) {
  * at this browser, looking at this one's screens. One undo reverses
  * the lot.
  */
-export function merge(data, label = 'Merged tracker data') {
+export function merge(data, label = T('Merged tracker data')) {
 	const incoming = normalise(data);
 	let items = 0;
 	let targets = 0;
@@ -1599,7 +1600,7 @@ export function markLegacyImported() {
 
 /** Apply a reviewed legacy import. */
 export function applyLegacyImport(stock, shipNames) {
-	commit('import', 'Imported your previous progress', () => {
+	commit('import', T('Imported your previous progress'), () => {
 		for (const [item, qty] of Object.entries(stock)) {
 			writeStock(item, Math.max(getStock(item), qty), false);
 		}

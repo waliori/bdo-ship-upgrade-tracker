@@ -3,6 +3,7 @@
 // a route in a link and a route as a file.
 
 import { esc, F, FC } from '../fmt.js';
+import { T, gameName } from '../i18n.js';
 import { currentShip } from '../ship.js';
 import { img } from '../ui-bits.js';
 import { npcById, ports } from '../barter_npcs.js';
@@ -37,12 +38,10 @@ export function setRunSheet(fn) {
 
 export function routeHTML(marks) {
 	if (mv.stops.length && !stopsLive()) {
-		return `<p class="map-hint">You plotted ${mv.stops.length} stops while showing
-			<strong>${esc(mv.stopsPick || 'everything you are short of')}</strong>; the chart
-			is on something else now, so they are not drawn.</p>
+		return `<p class="map-hint">${T('You plotted {n} stops while showing <strong>{pick}</strong>; the chart is on something else now, so they are not drawn.', { n: mv.stops.length, pick: esc(mv.stopsPick ? gameName(mv.stopsPick) : T('everything you are short of')) })}</p>
 			<div class="map-side-btns">
-				<button class="ghost-btn" data-act="map-route-revive">Show that again</button>
-				<button class="ghost-btn danger" data-act="map-route-clear">Clear it</button>
+				<button class="ghost-btn" data-act="map-route-revive">${T('Show that again')}</button>
+				<button class="ghost-btn danger" data-act="map-route-clear">${T('Clear it')}</button>
 			</div>${savedHTML()}`;
 	}
 	const prof = barterProfile();
@@ -98,8 +97,8 @@ export function routeHTML(marks) {
 		if (!l) return '';
 		const pct = Math.round(l.holdAt / me.hold.free * 100);
 		const slowed = l.slow < 1;
-		const title = slowed ? `slower: hold at ${pct} % — an estimate, ${Math.round(l.slow * 100)} % of the speed with ${F(Math.round(l.holdAt))} LT aboard` : '';
-		return `<span class="map-leg${slowed ? ' slow' : ''}"${title ? ` title="${esc(title)}"` : ''}>${esc(fmtDistance(l.m))} · ${esc(timeOf(l.m, l.slow))}${slowed ? ' · slower' : ''}</span>`;
+		const title = slowed ? T('slower: hold at {pct} % — an estimate, {share} % of the speed with {lt} LT aboard', { pct, share: Math.round(l.slow * 100), lt: F(Math.round(l.holdAt)) }) : '';
+		return `<span class="map-leg${slowed ? ' slow' : ''}"${title ? ` title="${esc(title)}"` : ''}>${esc(fmtDistance(l.m))} · ${esc(timeOf(l.m, l.slow))}${slowed ? ` · ${T('slower')}` : ''}</span>`;
 	};
 	// Rations: the pool as typed (full when nothing is), the estimated
 	// drain over the legs, and the stop after which it would run below
@@ -125,7 +124,7 @@ export function routeHTML(marks) {
 	let isle = -1;
 	const list = seq.map((s, k) => {
 		const leg = legChip(legAt(k));
-		const lowHere = lowRow && lowRow.n === s.n ? `<span class="map-row-sub warn">rations run low after this stop — ${esc(fmtRationRange(rations.legs[rations.lowAfter - 1].left))} left of ${esc(fmtRations(me.rations))}, an estimate</span>` : '';
+		const lowHere = lowRow && lowRow.n === s.n ? `<span class="map-row-sub warn">${T('rations run low after this stop — {left} left of {full}, an estimate', { left: esc(fmtRationRange(rations.legs[rations.lowAfter - 1].left)), full: esc(fmtRations(me.rations)) })}</span>` : '';
 		if (s.kind === 'stash') return stashRow(s, leg, k, lowHere);
 		const id = s.id, n = s.place;
 		isle++;
@@ -133,99 +132,109 @@ export function routeHTML(marks) {
 		const over = held > 0 && isle >= afford;
 		// The row is the stop's step: a tap takes the player -- and the
 		// camera, when it follows -- to it, as the chips along the foot do.
-		return `<div class="map-stop-row${over ? ' over' : ''}${k === mv.stepIdx ? ' on' : ''}" data-act="map-step" data-i="${k}" data-step-row role="button" tabindex="0" title="Step to ${esc(n.at)}">
+		return `<div class="map-stop-row${over ? ' over' : ''}${k === mv.stepIdx ? ' on' : ''}" data-act="map-step" data-i="${k}" data-step-row role="button" tabindex="0" title="${T('Step to {place}', { place: esc(gameName(n.at)) })}">
 			<span class="map-stop-n">${s.n}</span>
 			<span class="map-row-main">
-				<span class="map-row-name"><span class="map-row-name-t">${esc(n.at)}</span>${leg}</span>
-				<span class="map-row-sub">${esc(n.name)}${mv.runTrades[id]
+				<span class="map-row-name"><span class="map-row-name-t">${esc(gameName(n.at))}</span>${leg}</span>
+				<span class="map-row-sub">${esc(gameName(n.name))}${mv.runTrades[id]
 					? ''
-					: has ? ' · ' + esc([...has.items.keys()].join(', ')) : ' · nothing on your list here'}</span>
-				${mv.runTrades[id] ? runLine(mv.runTrades[id]) : cargoLine(id, has)}${holdAfter(ledger.stops[isle], me.hold)}${lowHere}${over ? `<span class="map-row-sub warn">past what your Parley covers</span>` : ''}
+					: has ? ' · ' + esc([...has.items.keys()].map(gameName).join(', ')) : ` · ${T('nothing on your list here')}`}</span>
+				${mv.runTrades[id] ? runLine(mv.runTrades[id]) : cargoLine(id, has)}${holdAfter(ledger.stops[isle], me.hold)}${lowHere}${over ? `<span class="map-row-sub warn">${T('past what your Parley covers')}</span>` : ''}
 			</span>
 			<span class="map-row-right">${mv.runTrades[id] ? img(mv.runTrades[id].item, 'map-icon') : has ? iconStrip([...has.items.keys()]) : ''}</span>
 			<button class="map-x" data-act="map-stop" data-npc="${id}"
-				aria-label="Remove ${esc(n.at)} from the route">×</button>
+				aria-label="${T('Remove {place} from the route', { place: esc(gameName(n.at)) })}">×</button>
 		</div>`;
 	}).join('');
 
-	const cover = !held ? `of ${F(PARLEY.max)}`
-		: held >= need ? `your ${F(held)} covers it`
-		: `your ${F(held)} covers ${afford} of ${mv.stops.length}`;
+	const cover = !held ? T('of {max}', { max: F(PARLEY.max) })
+		: held >= need ? T('your {held} covers it', { held: F(held) })
+		: T('your {held} covers {n} of {total}', { held: F(held), n: afford, total: mv.stops.length });
 	const tradesBtn = m => `<button class="chip tiny ${mv.tradesMode === m ? 'active' : ''}" data-act="map-trades" data-id="${m}"
-		title="${m === 'one' ? 'One exchange at each stop' : 'Every attempt the offer allows at each stop'}">${m === 'one' ? 'one trade' : 'all attempts'}</button>`;
+		title="${m === 'one' ? T('One exchange at each stop') : T('Every attempt the offer allows at each stop')}">${m === 'one' ? T('one trade') : T('all attempts')}</button>`;
 	// The hold: what the ship as fitted can carry once the crew is
 	// aboard, and how many goods of each level that is. A route is only
 	// as long as the deck allows.
-	const hold = `<div><div class="summary-k">Hold</div><div class="summary-v">${F(me.hold.limit)} LT</div>
-				<div class="summary-sub">the limit, as fitted${me.hold.crew ? ` · ${F(me.hold.crew)} of it crew` : ''} · ${Math.floor(me.hold.free / GOODS[5].weight)} of Lv4–5 · ${Math.floor(me.hold.free / GOODS[6].weight)} of Lv6–7 a run · sails slower to ${F(me.hold.max)}, by the chart's estimate</div></div>`;
+	const hold = `<div><div class="summary-k">${T('Hold')}</div><div class="summary-v">${F(me.hold.limit)} LT</div>
+				<div class="summary-sub">${T('the limit, as fitted')}${me.hold.crew ? ` · ${T('{lt} of it crew', { lt: F(me.hold.crew) })}` : ''} · ${T('{n} of Lv4–5', { n: Math.floor(me.hold.free / GOODS[5].weight) })} · ${T('{n} of Lv6–7 a run', { n: Math.floor(me.hold.free / GOODS[6].weight) })} · ${T('sails slower to {lt}, by the chart\'s estimate', { lt: F(me.hold.max) })}</div></div>`;
 	const rationsTile = rationsTileHTML(me, rations, legList, lowRow, rRate, rMeasured);
 	const total = pathLength(world);
 	const lastStop = npcById.get(mv.stops[mv.stops.length - 1]);
 	const wharf = lastStop && !mv.returnHome ? nearestWharf(lastStop.x, lastStop.y, 'wharf') : null;
-	const wharfLine = wharf ? `<div class="summary-sub">nearest wharf to the last stop: ${esc(wharf.name)}, ${esc(fmtDistance(wharf.d * 0.25))}</div>` : '';
+	const wharfLine = wharf ? `<div class="summary-sub">${T('nearest wharf to the last stop: {name}, {dist}', { name: esc(gameName(wharf.name)), dist: esc(fmtDistance(wharf.d * 0.25)) })}</div>` : '';
 	const totalSecs = legList.reduce((a, l) => [a[0] + l.secs[0], a[1] + l.secs[1]], [0, 0]);
 	const slowedLegs = legList.filter(l => l.slow < 1).length;
-	const distance = world.length > 1 ? `<div><div class="summary-k">Distance</div><div class="summary-v">${esc(fmtDistance(total))}</div>
-				<div class="summary-sub">≈ ${esc(fmtRange(...totalSecs))} at ${speed.total}%${slowedLegs ? `, ${slowedLegs} leg${slowedLegs === 1 ? '' : 's'} slowed by the hold` : ''} · 100% ≈ ${cal} m/s ${measured ? '±10%' : '±20%'} · <button class="linky" data-act="map-sail-cal">timed a leg?</button></div>${wharfLine}</div>` : '';
+	const distance = world.length > 1 ? `<div><div class="summary-k">${T('Distance')}</div><div class="summary-v">${esc(fmtDistance(total))}</div>
+				<div class="summary-sub">${!slowedLegs
+					? T('≈ {time} at {pct}%', { time: esc(fmtRange(...totalSecs)), pct: speed.total })
+					: slowedLegs === 1
+						? T('≈ {time} at {pct}%, {n} leg slowed by the hold', { time: esc(fmtRange(...totalSecs)), pct: speed.total, n: slowedLegs })
+						: T('≈ {time} at {pct}%, {n} legs slowed by the hold', { time: esc(fmtRange(...totalSecs)), pct: speed.total, n: slowedLegs })} · ${T('100% ≈ {v} m/s', { v: cal })} ${measured ? '±10%' : '±20%'} · <button class="linky" data-act="map-sail-cal">${T('timed a leg?')}</button></div>${wharfLine}</div>` : '';
 	const cargo = cargoTile({ weight: me.hold.free });
 	// A leg the router could not bend round the land is drawn straight
 	// and said so: its metres and minutes are a floor, not a reading.
 	const unrouted = straightLegs(world);
 	const unroutedNote = unrouted.length
-		? `<p class="map-hint warn map-unrouted">${unrouted.length === 1 ? `Leg ${unrouted[0].n}` : `Legs ${unrouted.map(l => l.n).join(', ')}`} could not be routed round the land and ${unrouted.length === 1 ? 'is' : 'are'} drawn straight, dashed on the chart; the distance and time for ${unrouted.length === 1 ? 'it' : 'them'} are a floor.</p>`
+		? `<p class="map-hint warn map-unrouted">${unrouted.length === 1
+			? T('Leg {n} could not be routed round the land and is drawn straight, dashed on the chart; the distance and time for it are a floor.', { n: unrouted[0].n })
+			: T('Legs {list} could not be routed round the land and are drawn straight, dashed on the chart; the distance and time for them are a floor.', { list: unrouted.map(l => l.n).join(', ') })}</p>`
 		: '';
 	const mid = world.length > 1 ? (totalSecs[0] + totalSecs[1]) / 2 : 0;
 	const worth = worthTile(ledger, mid);
 	const carry = carryBlock(ledger);
-	const sailingAs = mv.stops.length ? `<p class="map-hint map-as">Sailing as <b>${esc(me.name)}</b> <button class="linky" data-act="map-setup-pick" title="Sail a saved setup instead — the times follow its speed">switch setup ▾</button> · ${speed.total}% · limit ${F(me.hold.limit)} LT${me.crew.seated ? ` · ${me.crew.seated} aboard` : ''} · <button class="linky" data-act="view" data-id="crew">change</button></p>` : '';
+	const sailingAs = mv.stops.length ? `<p class="map-hint map-as">${T('Sailing as <b>{name}</b>', { name: esc(gameName(me.name)) })} <button class="linky" data-act="map-setup-pick" title="${T('Sail a saved setup instead — the times follow its speed')}">${T('switch setup ▾')}</button> · ${speed.total}% · ${T('limit {lt} LT', { lt: F(me.hold.limit) })}${me.crew.seated ? ` · ${T('crew|{n} aboard', { n: me.crew.seated })}` : ''} · <button class="linky" data-act="view" data-id="crew">${T('change')}</button></p>` : '';
 	const stats = mv.stops.length ? `<div class="map-stats">
-			<div><div class="summary-k">Stops</div><div class="summary-v">${mv.stops.length}</div>
-				${stashLive() ? `<div class="summary-sub">islands · and ${mv.runStash.length} wharf call${mv.runStash.length === 1 ? '' : 's'}${mv.runStash.some(c => c.rations) ? (mv.runStash.every(c => c.rations) ? ' for rations' : ', for rations and to lighten the hold') : ' to lighten the hold'}</div>` : ''}</div>
+			<div><div class="summary-k">${T('Stops')}</div><div class="summary-v">${mv.stops.length}</div>
+				${stashLive() ? `<div class="summary-sub">${mv.runStash.some(c => c.rations)
+					? (mv.runStash.every(c => c.rations)
+						? (mv.runStash.length === 1 ? T('islands · and {n} wharf call for rations', { n: mv.runStash.length }) : T('islands · and {n} wharf calls for rations', { n: mv.runStash.length }))
+						: (mv.runStash.length === 1 ? T('islands · and {n} wharf call, for rations and to lighten the hold', { n: mv.runStash.length }) : T('islands · and {n} wharf calls, for rations and to lighten the hold', { n: mv.runStash.length })))
+					: (mv.runStash.length === 1 ? T('islands · and {n} wharf call to lighten the hold', { n: mv.runStash.length }) : T('islands · and {n} wharf calls to lighten the hold', { n: mv.runStash.length }))}</div>` : ''}</div>
 			${distance}
 			${hold}
 			${rationsTile}
-			<div><div class="summary-k"><span class="gterm" role="button" tabindex="0" data-guide="parley">Parley</span></div><div class="summary-v">${F(need)}</div>
+			<div><div class="summary-k"><span class="gterm" role="button" tabindex="0" data-guide="parley">${T('Parley')}</span></div><div class="summary-v">${F(need)}</div>
 				<div class="summary-sub">${cover}</div><div class="chips">${tradesBtn('one')}${tradesBtn('all')}</div></div>
 			${worth}
 			${cargo}
 		</div>${carry}${unroutedNote}
-		${overBudget ? `<button class="ghost-btn wide" data-act="map-route-trim" title="Drop the stops past what your Parley covers">Trim to the ${afford} stop${afford === 1 ? '' : 's'} Parley covers</button>` : ''}
+		${overBudget ? `<button class="ghost-btn wide" data-act="map-route-trim" title="${T('Drop the stops past what your Parley covers')}">${afford === 1 ? T('Trim to the {n} stop Parley covers', { n: afford }) : T('Trim to the {n} stops Parley covers', { n: afford })}</button>` : ''}
 		<div class="map-side-btns">
-			<button class="ghost-btn" data-act="map-route-reverse">⇆ Reverse</button>
-			<button class="ghost-btn" data-act="map-route-save" title="Keep this route by name, to come back to">Save…</button>
-			<button class="ghost-btn danger" data-act="map-route-clear">Clear</button>
+			<button class="ghost-btn" data-act="map-route-reverse">${T('⇆ Reverse')}</button>
+			<button class="ghost-btn" data-act="map-route-save" title="${T('Keep this route by name, to come back to')}">${T('Save…')}</button>
+			<button class="ghost-btn danger" data-act="map-route-clear">${T('Clear')}</button>
 		</div>
 		<div class="map-side-btns">
-			<button class="ghost-btn" data-act="map-route-link" title="A link that opens this route on this chart">Copy link</button>
-			<button class="ghost-btn" data-act="map-route-export" title="Save this route as a small JSON file to share or bring back later">Export</button>
-			<button class="ghost-btn" data-act="map-route-import" title="Load a route saved from here, or the game's own gameVariable.xml">Import</button>
+			<button class="ghost-btn" data-act="map-route-link" title="${T('A link that opens this route on this chart')}">${T('Copy link')}</button>
+			<button class="ghost-btn" data-act="map-route-export" title="${T('Save this route as a small JSON file to share or bring back later')}">${T('Export')}</button>
+			<button class="ghost-btn" data-act="map-route-import" title="${T('Load a route saved from here, or the game\'s own gameVariable.xml')}">${T('Import')}</button>
 		</div>
-		<button class="ghost-btn wide" data-act="map-route-game" title="Write these stops into the game's world map as favourites">⚑ Put it on the game's map</button>` : `<div class="map-side-btns">
-			<button class="ghost-btn" data-act="map-route-import" title="Load a route saved from here">Import a route</button>
-			<button class="ghost-btn" data-act="map-game-in" title="Read the favourites, camera slots and loops out of gameVariable.xml">From the game's map</button>
+		<button class="ghost-btn wide" data-act="map-route-game" title="${T('Write these stops into the game\'s world map as favourites')}">${T('⚑ Put it on the game\'s map')}</button>` : `<div class="map-side-btns">
+			<button class="ghost-btn" data-act="map-route-import" title="${T('Load a route saved from here')}">${T('Import a route')}</button>
+			<button class="ghost-btn" data-act="map-game-in" title="${T('Read the favourites, camera slots and loops out of gameVariable.xml')}">${T('From the game\'s map')}</button>
 		</div>`;
 	// Nothing is plotted until you say so; this is the offer, next to
 	// the other ways of choosing what to look at.
 	const seedBtn = !mv.stops.length && marks.size > 1
-		? `<button class="ghost-btn wide" data-act="map-route-use">Plot the loop through all ${marks.size} I am short of</button>`
+		? `<button class="ghost-btn wide" data-act="map-route-use">${T('Plot the loop through all {n} I am short of', { n: marks.size })}</button>`
 		: '';
 	const startRow = `<div class="map-startrow">
-		<select class="purse-inline" data-act="map-start" aria-label="Start the route from">
-			<option value="0">Start at the first stop</option>
-			${ports.map(p => `<option value="${p.id}"${p.id === mv.startPort ? ' selected' : ''}>from ${esc(p.name)}</option>`).join('')}
+		<select class="purse-inline" data-act="map-start" aria-label="${T('Start the route from')}">
+			<option value="0">${T('Start at the first stop')}</option>
+			${ports.map(p => `<option value="${p.id}"${p.id === mv.startPort ? ' selected' : ''}>${T('from {port}', { port: esc(gameName(p.name)) })}</option>`).join('')}
 		</select>
-		<label class="inline-check"><input type="checkbox" data-act="map-return"${mv.returnHome ? ' checked' : ''}> and back</label>
+		<label class="inline-check"><input type="checkbox" data-act="map-return"${mv.returnHome ? ' checked' : ''}> ${T('and back')}</label>
 	</div>`;
 	const empty = !mv.stops.length
-		? `<p class="map-hint">No route plotted. Click a pin and “Add stop”, or take the loop below and change it from there.</p>`
-		: `<p class="map-hint">Click a pin, then “Add stop”. The numbers sail in this order.</p>`;
+		? `<p class="map-hint">${T('No route plotted. Click a pin and “Add stop”, or take the loop below and change it from there.')}</p>`
+		: `<p class="map-hint">${T('Click a pin, then “Add stop”. The numbers sail in this order.')}</p>`;
 	// A run being sailed takes the panel: the Barter tab's own sheet --
 	// the rail, the trades, the hold and the Parley after each stop, the
 	// calls, the quests, Done -- with the plotting tools folded under it.
 	const sheet = runSheet && mv.stops.length ? runSheet(routeIds(marks)) : null;
 	if (sheet) {
 		return `${sailingAs}<div class="map-run">${sheet}</div>
-		<details class="map-run-fold tools"><summary>Route tools</summary>${stats}${savedHTML()}</details>`;
+		<details class="map-run-fold tools"><summary>${T('Route tools')}</summary>${stats}${savedHTML()}</details>`;
 	}
 	return `${empty}${sailingAs}
 		${startRow}${seedBtn}<div class="map-list">${list}</div>${stats}${savedHTML()}`;
@@ -289,10 +298,10 @@ function rationRate() {
 function rationsTileHTML(me, plan, legList, lowRow, rate, measured) {
 	if (!legList.length) return '';
 	const aboard = plan.start;
-	const eats = me.crew.appetite ? `the crew eats ${F(me.crew.appetite)} a day` : 'nobody aboard eats';
-	const head = `<div class="summary-k">Rations</div>
-		<div class="summary-v${plan.lowAfter ? ' amber' : ''}"><input class="purse-inline rations-in" type="text" inputmode="numeric" value="${F(Math.round(aboard))}" data-act="map-rations-aboard" aria-label="Rations aboard now" title="What the pool shows now; blank for full"> <span class="summary-of">of ${esc(fmtRations(me.rations))}</span></div>`;
-	const use = `<div class="summary-sub">the run eats ≈ ${esc(fmtRationRange(plan.use))} · ${esc(fmtRationRange(plan.left))} left at the end · ${eats} · drain ${F(rate)} a minute under sail, ${measured ? 'as you watched it ±15%' : 'the chart\'s estimate ±50%'} · <button class="linky" data-act="map-ration-cal">watched the pool?</button></div>`;
+	const eats = me.crew.appetite ? T('the crew eats {n} a day', { n: F(me.crew.appetite) }) : T('nobody aboard eats');
+	const head = `<div class="summary-k">${T('Rations')}</div>
+		<div class="summary-v${plan.lowAfter ? ' amber' : ''}"><input class="purse-inline rations-in" type="text" inputmode="numeric" value="${F(Math.round(aboard))}" data-act="map-rations-aboard" aria-label="${T('Rations aboard now')}" title="${T('What the pool shows now; blank for full')}"> <span class="summary-of">${T('of {full}', { full: esc(fmtRations(me.rations)) })}</span></div>`;
+	const use = `<div class="summary-sub">${T('the run eats ≈ {use}', { use: esc(fmtRationRange(plan.use)) })} · ${T('{left} left at the end', { left: esc(fmtRationRange(plan.left)) })} · ${eats} · ${measured ? T('drain {rate} a minute under sail, as you watched it ±15%', { rate: F(rate) }) : T('drain {rate} a minute under sail, the chart\'s estimate ±50%', { rate: F(rate) })} · <button class="linky" data-act="map-ration-cal">${T('watched the pool?')}</button></div>`;
 	let low = '';
 	if (plan.lowAfter && lowRow) {
 		const at = lowRow.place;
@@ -302,9 +311,9 @@ function rationsTileHTML(me, plan, legList, lowRow, rate, measured) {
 		const nextLeg = legList.find(l => l.k === lowRow.k + 1);
 		const next = nextLeg ? routeSeq(marksNow())[nextLeg.k] : null;
 		const detour = wharf ? (Math.hypot(wharf.x - at.x, wharf.y - at.y) + (next ? Math.hypot(next.place.x - wharf.x, next.place.y - wharf.y) : 0)) * 0.25 - (nextLeg ? nextLeg.m : 0) : 0;
-		low = `<div class="summary-sub warn">runs low after stop ${lowRow.n}, ${esc(at.name || at.at)}: under a ${Math.round(RATION_RESERVE * 100)} % reserve at the slow end of the range</div>
-			${wharf ? `<div class="summary-sub">nearest wharf manager: ${esc(wharf.name)} at ${esc(wharf.at)}, ${esc(fmtDistance(Math.hypot(wharf.x - at.x, wharf.y - at.y) * 0.25))} off — a detour of about ${esc(fmtDistance(Math.max(0, detour)))}</div>
-			<button class="ghost-btn wide" data-act="map-rations-call" data-k="${lowRow.k}" title="Thread a call at ${esc(wharf.name)} into the run before the pool runs low">Put in a rations call after stop ${lowRow.n}</button>` : ''}`;
+		low = `<div class="summary-sub warn">${T('runs low after stop {n}, {place}: under a {pct} % reserve at the slow end of the range', { n: lowRow.n, place: esc(gameName(at.name || at.at)), pct: Math.round(RATION_RESERVE * 100) })}</div>
+			${wharf ? `<div class="summary-sub">${T('nearest wharf manager: {name} at {place}, {dist} off — a detour of about {detour}', { name: esc(gameName(wharf.name)), place: esc(gameName(wharf.at)), dist: esc(fmtDistance(Math.hypot(wharf.x - at.x, wharf.y - at.y) * 0.25)), detour: esc(fmtDistance(Math.max(0, detour))) })}</div>
+			<button class="ghost-btn wide" data-act="map-rations-call" data-k="${lowRow.k}" title="${T('Thread a call at {name} into the run before the pool runs low', { name: esc(gameName(wharf.name)) })}">${T('Put in a rations call after stop {n}', { n: lowRow.n })}</button>` : ''}`;
 	}
 	return `<div>${head}${use}${low}</div>`;
 }
@@ -340,7 +349,7 @@ function aboardOf(name) {
 /** What a stop wants handed over, against what is aboard. */
 /** What a Barter-tab run calls at a stop for, on its row. */
 function runLine(t) {
-	return `<span class="map-row-sub ok">${esc(t.giveText)}× ${esc(t.give)} → ${esc(t.recvText)}× ${esc(t.item)}${t.times > 1 ? `, ${t.times} times` : ''}</span>`;
+	return `<span class="map-row-sub ok">${esc(t.giveText)}× ${esc(gameName(t.give))} → ${esc(t.recvText)}× ${esc(gameName(t.item))}${t.times > 1 ? T(', {n} times', { n: t.times }) : ''}</span>`;
 }
 
 /** A count that may be a fraction of a good, kept to one place. */
@@ -351,16 +360,16 @@ export const n1 = v => F(Math.round(v * 10) / 10);
  *  furniture -- there is nothing to trade at a wharf. */
 function stashRow(s, leg, k = -1, extra = '') {
 	const c = s.place;
-	const drops = c.drops.map(d => `<span class="map-drop">${img(d.item, 'map-icon')}<b>${n1(d.n)}×</b>${esc(d.item)}</span>`).join('');
-	const questsHere = (c.quests || []).length ? `<span class="map-quests">${c.quests.map(q => `<span class="map-quest">📜 ${esc(q)}</span>`).join('')}</span>` : '';
+	const drops = c.drops.map(d => `<span class="map-drop">${img(d.item, 'map-icon')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('');
+	const questsHere = (c.quests || []).length ? `<span class="map-quests">${c.quests.map(q => `<span class="map-quest">📜 ${esc(gameName(q))}</span>`).join('')}</span>` : '';
 	const questOnly = questsHere && !c.drops.length && !c.sale;
-	return `<div class="map-stop-row stash${questOnly ? ' quest' : ''}${k === mv.stepIdx ? ' on' : ''}"${k >= 0 ? ` data-act="map-step" data-i="${k}" data-step-row role="button" tabindex="0" title="Step to ${esc(c.at)}"` : ''}>
-		<span class="map-stop-n stash" title="${questOnly ? 'A stop put in for a quest' : c.rations ? 'A call for rations' : 'A pause at a wharf'}">${questOnly ? '📜' : c.rations ? '🍞' : '⚓'}</span>
+	return `<div class="map-stop-row stash${questOnly ? ' quest' : ''}${k === mv.stepIdx ? ' on' : ''}"${k >= 0 ? ` data-act="map-step" data-i="${k}" data-step-row role="button" tabindex="0" title="${T('Step to {place}', { place: esc(gameName(c.at)) })}"` : ''}>
+		<span class="map-stop-n stash" title="${questOnly ? T('A stop put in for a quest') : c.rations ? T('A call for rations') : T('A pause at a wharf')}">${questOnly ? '📜' : c.rations ? '🍞' : '⚓'}</span>
 		<span class="map-row-main">
-			<span class="map-row-name"><span class="map-row-name-t">${esc(c.name)}</span>${leg}</span>
-			<span class="map-row-sub">stop ${s.n} · ${esc(c.at)}${questOnly ? ' · a quest handed in here' : c.rations ? ' wharf · rations bought here, the pool full again' : ` wharf${c.drops.length ? ' · the hold is lightened here' : ' · the hold is sold down here'}`}</span>
+			<span class="map-row-name"><span class="map-row-name-t">${esc(gameName(c.name))}</span>${leg}</span>
+			<span class="map-row-sub">${T('stop {n}', { n: s.n })} · ${questOnly ? esc(gameName(c.at)) : T('{place} wharf', { place: esc(gameName(c.at)) })}${questOnly ? ` · ${T('a quest handed in here')}` : c.rations ? ` · ${T('rations bought here, the pool full again')}` : c.drops.length ? ` · ${T('the hold is lightened here')}` : ` · ${T('the hold is sold down here')}`}</span>
 			${drops ? `<span class="map-drops">${drops}</span>` : ''}
-			${c.sale ? `<span class="map-row-sub ok">sells ${n1(c.sale)} [Level 7]${c.silver ? ` for ${FC(c.silver)}` : ''}</span>` : ''}
+			${c.sale ? `<span class="map-row-sub ok">${c.silver ? T('sells {n} [Level 7] for {silver}', { n: n1(c.sale), silver: FC(c.silver) }) : T('sells {n} [Level 7]', { n: n1(c.sale) })}</span>` : ''}
 			${questsHere}${extra}
 		</span>
 	</div>`;
@@ -372,8 +381,8 @@ function cargoLine(id, has) {
 	if (!gives.length) return '';
 	const aboard = gives.filter(g => aboardOf(g) > 0);
 	return aboard.length
-		? `<span class="map-row-sub ok">aboard: ${esc(aboard.map(g => `${F(aboardOf(g))}× ${g}`).join(', '))}</span>`
-		: `<span class="map-row-sub warn">hands over ${esc(gives.join(' or '))} — none aboard</span>`;
+		? `<span class="map-row-sub ok">${T('aboard: {list}', { list: esc(aboard.map(g => `${F(aboardOf(g))}× ${gameName(g)}`).join(', ')) })}</span>`
+		: `<span class="map-row-sub warn">${T('hands over {list} — none aboard', { list: esc(gives.map(gameName).join(` ${T('or')} `)) })}</span>`;
 }
 
 function cargoTile(hold) {
@@ -382,8 +391,8 @@ function cargoTile(hold) {
 	const n = goods.reduce((a, g) => a + g.qty, 0);
 	const w = goods.reduce((a, g) => a + g.weight, 0);
 	const overW = hold && w > hold.weight;
-	return `<div><div class="summary-k">Cargo</div><div class="summary-v${overW ? ' amber' : ''}">${F(n)} goods</div>
-		<div class="summary-sub">${F(w)} LT${hold ? ` of ${F(hold.weight)} free` : ''}${overW ? ' · over the limit — the ship slows' : ''} · ${esc(goods.map(g => `${F(g.qty)}× Lv${g.lv}`).join(', '))}</div></div>`;
+	return `<div><div class="summary-k">${T('Cargo')}</div><div class="summary-v${overW ? ' amber' : ''}">${T('{n} goods', { n: F(n) })}</div>
+		<div class="summary-sub">${hold ? T('{lt} LT of {free} free', { lt: F(w), free: F(hold.weight) }) : T('{lt} LT', { lt: F(w) })}${overW ? ` · ${T('over the limit — the ship slows')}` : ''} · ${esc(goods.map(g => `${F(g.qty)}× Lv${g.lv}`).join(', '))}</div></div>`;
 }
 
 /* ------------------------------------------------------------------ *
@@ -497,7 +506,7 @@ function holdAfter(entry, hold) {
 	if (!entry || !entry.trades || !entry.change) return '';
 	const over = entry.after > hold.free;
 	const dead = entry.after > hold.max;
-	return `<span class="map-row-sub${dead ? ' warn' : over ? ' amber' : ''}" title="Goods only: what this stop takes aboard and hands over, on top of what was there">hold after: ${F(Math.max(0, entry.after))} LT${dead ? ' — more than the hull will move under' : over ? ' — overweight, slower' : ''}</span>`;
+	return `<span class="map-row-sub${dead ? ' warn' : over ? ' amber' : ''}" title="${T('Goods only: what this stop takes aboard and hands over, on top of what was there')}">${dead ? T('hold after: {lt} LT — more than the hull will move under', { lt: F(Math.max(0, entry.after)) }) : over ? T('hold after: {lt} LT — overweight, slower', { lt: F(Math.max(0, entry.after)) }) : T('hold after: {lt} LT', { lt: F(Math.max(0, entry.after)) })}</span>`;
 }
 
 /**
@@ -511,23 +520,25 @@ function worthTile(l, seconds) {
 	const n = v => F(Math.round(v));
 	const priced = l.inValue + l.matValue;
 	const bits = [];
-	if (l.goodsIn) bits.push(`${n(l.goodsIn)} good${l.goodsIn === 1 ? '' : 's'} aboard, worth ${F0(l.inValue)}`);
+	if (l.goodsIn) bits.push(l.goodsIn === 1 ? T('{n} good aboard, worth {value}', { n: n(l.goodsIn), value: F0(l.inValue) }) : T('{n} goods aboard, worth {value}', { n: n(l.goodsIn), value: F0(l.inValue) }));
 	if (l.mats) {
 		const some = l.unpriced && l.unpriced < l.mats;
-		bits.push(`${n(l.mats)} material${l.mats === 1 ? '' : 's'}${l.matValue ? ` at the market's ${F0(l.matValue)}` : ''}${some ? `, ${n(l.unpriced)} of them unpriced` : l.unpriced ? ', none the market prices' : ''}`);
+		bits.push(`${l.matValue
+			? (l.mats === 1 ? T('{n} material at the market\'s {value}', { n: n(l.mats), value: F0(l.matValue) }) : T('{n} materials at the market\'s {value}', { n: n(l.mats), value: F0(l.matValue) }))
+			: (l.mats === 1 ? T('{n} material', { n: n(l.mats) }) : T('{n} materials', { n: n(l.mats) }))}${some ? T(', {n} of them unpriced', { n: n(l.unpriced) }) : l.unpriced ? T(', none the market prices') : ''}`);
 	}
-	if (l.goodsOut) bits.push(`${n(l.goodsOut)} good${l.goodsOut === 1 ? '' : 's'} handed over, worth ${F0(l.outValue)} had they been sold`);
+	if (l.goodsOut) bits.push(l.goodsOut === 1 ? T('{n} good handed over, worth {value} had they been sold', { n: n(l.goodsOut), value: F0(l.outValue) }) : T('{n} goods handed over, worth {value} had they been sold', { n: n(l.goodsOut), value: F0(l.outValue) }));
 	// A headline only when something coming aboard has a price: a loop
 	// for stones the market never sells is not "worth minus the goods".
 	let head, sub = '';
 	if (priced > 0) {
 		head = `<div class="summary-v${l.net < 0 ? ' amber' : ''}">${l.net < 0 ? '−' : ''}${F0(l.net)}</div>`;
 		const rate = perHour(l.net, seconds);
-		if (rate !== null && l.net > 0) sub = `<div class="summary-sub">≈ <b>${F0(rate)}</b> an hour under way, at the middle of the time range</div>`;
+		if (rate !== null && l.net > 0) sub = `<div class="summary-sub">${T('≈ <b>{rate}</b> an hour under way, at the middle of the time range', { rate: F0(rate) })}</div>`;
 	} else {
-		head = `<div class="summary-v">${n(l.mats)} material${l.mats === 1 ? '' : 's'}</div>`;
+		head = `<div class="summary-v">${l.mats === 1 ? T('{n} material', { n: n(l.mats) }) : T('{n} materials', { n: n(l.mats) })}</div>`;
 	}
-	return `<div><div class="summary-k">Worth</div>${head}
+	return `<div><div class="summary-k">${T('Worth')}</div>${head}
 		<div class="summary-sub">${esc(bits.join(' · '))}</div>${sub}</div>`;
 }
 
@@ -543,16 +554,16 @@ function carryBlock(l) {
 		const have = aboardOf(give);
 		const short = Math.max(0, need - have);
 		const lower = bestExchange(give, barterData);
-		const from = lower ? `${lower.npc} hands it over for ${lower.give}` : 'bought on land';
+		const from = lower ? T('{npc} hands it over for {give}', { npc: gameName(lower.npc), give: gameName(lower.give) }) : T('bought on land');
 		return `<div class="map-carry-row${short ? '' : ' ok'}">
 			${img(give, 'map-icon')}
-			<span class="map-row-main"><span class="map-row-name">${F(need)}× ${esc(give)}</span>
-				<span class="map-row-sub">${have ? `${F(have)} aboard` : 'none aboard'}${short ? ` · ${F(short)} to get — ${esc(from)}` : ' · enough'}</span></span>
+			<span class="map-row-main"><span class="map-row-name">${F(need)}× ${esc(gameName(give))}</span>
+				<span class="map-row-sub">${have ? T('goods|{n} aboard', { n: F(have) }) : T('none aboard')}${short ? ` · ${T('{n} to get — {from}', { n: F(short), from: esc(from) })}` : ` · ${T('enough')}`}</span></span>
 		</div>`;
 	}).join('');
 	const kinds = l.carry.size;
 	const short = [...l.carry].filter(([give, q]) => aboardOf(give) < Math.ceil(q)).length;
-	return `<details class="map-carry"${kinds <= 6 ? ' open' : ''}><summary class="summary-k">Carry out of port <span class="map-courses-credit">${kinds} kind${kinds === 1 ? '' : 's'} the loop hands over${short ? `, ${short} not aboard` : ', all aboard'}</span></summary>${rows}</details>`;
+	return `<details class="map-carry"${kinds <= 6 ? ' open' : ''}><summary class="summary-k">${T('Carry out of port')} <span class="map-courses-credit">${kinds === 1 ? T('{n} kind the loop hands over', { n: kinds }) : T('{n} kinds the loop hands over', { n: kinds })}${short ? T(', {n} not aboard', { n: short }) : T(', all aboard')}</span></summary>${rows}</details>`;
 }
 
 /* ------------------------------------------------------------------ *
@@ -561,11 +572,11 @@ function carryBlock(l) {
 
 function savedRow(r, load, del, sub = '') {
 	return `<div class="map-saved-row${sub ? ' prev' : ''}">
-		<button class="map-row saved" data-act="${load.act}"${load.i !== undefined ? ` data-i="${load.i}"` : ''} title="Plot this route${r.pick ? ` (for ${esc(r.pick)})` : ''}">
+		<button class="map-row saved" data-act="${load.act}"${load.i !== undefined ? ` data-i="${load.i}"` : ''} title="${r.pick ? T('Plot this route (for {pick})', { pick: esc(gameName(r.pick)) }) : T('Plot this route')}">
 			<span class="map-row-main"><span class="map-row-name">${esc(r.name)}</span>
-			<span class="map-row-sub">${r.stops.length} stop${r.stops.length === 1 ? '' : 's'}${r.pick ? ` · ${esc(r.pick)}` : ''}${r.startPort && ports.find(p => p.id === r.startPort) ? ` · from ${esc(ports.find(p => p.id === r.startPort).name)}` : ''}${sub}</span></span>
+			<span class="map-row-sub">${r.stops.length === 1 ? T('{n} stop', { n: r.stops.length }) : T('{n} stops', { n: r.stops.length })}${r.pick ? ` · ${esc(gameName(r.pick))}` : ''}${r.startPort && ports.find(p => p.id === r.startPort) ? ` · ${T('from {port}', { port: esc(gameName(ports.find(p => p.id === r.startPort).name)) })}` : ''}${sub}</span></span>
 		</button>
-		<button class="map-x" data-act="${del.act}"${del.i !== undefined ? ` data-i="${del.i}"` : ''} aria-label="Forget ${esc(r.name)}">×</button>
+		<button class="map-x" data-act="${del.act}"${del.i !== undefined ? ` data-i="${del.i}"` : ''} aria-label="${T('Forget {name}', { name: esc(r.name) })}">×</button>
 	</div>`;
 }
 
@@ -575,8 +586,8 @@ function savedHTML() {
 	// The previous plot is offered under the named ones, apart from
 	// them: it is the one the next replot overwrites, and it takes none
 	// of the eight.
-	const prev = mv.prevRoute ? savedRow(mv.prevRoute, { act: 'map-route-prev' }, { act: 'map-route-prev-del' }, ' · the plot before this one; the next replot overwrites it') : '';
-	return `<div class="map-saved"><div class="summary-k">Saved routes${mv.savedRoutes.length ? ` <span class="map-courses-credit">${mv.savedRoutes.length} of ${SAVED_MAX}</span>` : ''}</div>${rows}${prev}</div>`;
+	const prev = mv.prevRoute ? savedRow(mv.prevRoute, { act: 'map-route-prev' }, { act: 'map-route-prev-del' }, ` · ${T('the plot before this one; the next replot overwrites it')}`) : '';
+	return `<div class="map-saved"><div class="summary-k">${T('Saved routes')}${mv.savedRoutes.length ? ` <span class="map-courses-credit">${T('{n} of {max}', { n: mv.savedRoutes.length, max: SAVED_MAX })}</span>` : ''}</div>${rows}${prev}</div>`;
 }
 
 /** The route as it stands, as a kept entry under `name`. */
@@ -606,13 +617,13 @@ export function stashRoute() {
 function replaceRouteDialog(name) {
 	const rows = mv.savedRoutes.map((r, i) => `<button class="map-row saved" data-replace="${i}">
 			<span class="map-row-main"><span class="map-row-name">${esc(r.name)}</span>
-			<span class="map-row-sub">${r.stops.length} stop${r.stops.length === 1 ? '' : 's'}${r.at ? ` · kept ${esc(r.at)}` : ''}</span></span>
+			<span class="map-row-sub">${r.stops.length === 1 ? T('{n} stop', { n: r.stops.length }) : T('{n} stops', { n: r.stops.length })}${r.at ? ` · ${T('kept {date}', { date: esc(r.at) })}` : ''}</span></span>
 		</button>`).join('');
 	const host = openDialog(`
-		<h2>Which route makes room?</h2>
-		<p class="dialog-copy">${SAVED_MAX} routes are kept by name and all ${SAVED_MAX} are taken. Choose the one to let go for “${esc(name)}”, or cancel and keep them all.</p>
+		<h2>${T('Which route makes room?')}</h2>
+		<p class="dialog-copy">${T('{max} routes are kept by name and all {max} are taken. Choose the one to let go for “{name}”, or cancel and keep them all.', { max: SAVED_MAX, name: esc(name) })}</p>
 		<div class="map-saved dialog-list">${rows}</div>
-		<div class="dialog-actions"><button class="ghost-btn" data-close>Cancel</button></div>`);
+		<div class="dialog-actions"><button class="ghost-btn" data-close>${T('Cancel')}</button></div>`);
 	host.querySelectorAll('[data-replace]').forEach(btn => btn.addEventListener('click', () => {
 		const i = Number(btn.dataset.replace);
 		const gone = mv.savedRoutes[i];
@@ -620,31 +631,33 @@ function replaceRouteDialog(name) {
 		persist();
 		closeDialog();
 		refreshSide();
-		toast(`Kept as “${name}”${gone ? `, in place of “${gone.name}”` : ''}`);
+		toast(gone ? T('Kept as “{name}”, in place of “{gone}”', { name, gone: gone.name }) : T('Kept as “{name}”', { name }));
 	}));
 }
 
 export function saveRouteDialog() {
 	if (!mv.stops.length) return;
 	const host = openDialog(`
-		<h2>Keep this route</h2>
-		<p class="dialog-copy">${mv.stops.length} stop${mv.stops.length === 1 ? '' : 's'}${mv.stopsPick ? ` for ${esc(mv.stopsPick)}` : ''}. Up to ${SAVED_MAX} routes are kept on this browser; the game itself keeps three loops.</p>
-		<input class="field" type="text" maxlength="40" placeholder="A name — “Tuesday coral run”" data-route-name>
+		<h2>${T('Keep this route')}</h2>
+		<p class="dialog-copy">${mv.stopsPick
+			? (mv.stops.length === 1 ? T('{n} stop for {pick}', { n: mv.stops.length, pick: esc(gameName(mv.stopsPick)) }) : T('{n} stops for {pick}', { n: mv.stops.length, pick: esc(gameName(mv.stopsPick)) }))
+			: (mv.stops.length === 1 ? T('{n} stop', { n: mv.stops.length }) : T('{n} stops', { n: mv.stops.length }))}. ${T('Up to {max} routes are kept on this browser; the game itself keeps three loops.', { max: SAVED_MAX })}</p>
+		<input class="field" type="text" maxlength="40" placeholder="${T('A name — “Tuesday coral run”')}" data-route-name>
 		<div class="dialog-actions">
-			<button class="ghost-btn" data-close>Cancel</button>
-			<button class="act" data-route-save>Save</button>
+			<button class="ghost-btn" data-close>${T('Cancel')}</button>
+			<button class="act" data-route-save>${T('Save')}</button>
 		</div>`);
 	const input = host.querySelector('[data-route-name]');
 	input.focus();
 	const save = () => {
 		const name = input.value.trim();
-		if (!name) return toast('Give it a name');
-		if (name === PREVIOUS) return toast('That name is the chart\'s own — give it another');
+		if (!name) return toast(T('Give it a name'));
+		if (name === PREVIOUS) return toast(T('That name is the chart\'s own — give it another'));
 		closeDialog();
 		if (!keepRoute(name)) return replaceRouteDialog(name);
 		persist();
 		refreshSide();
-		toast(`Kept as “${name}”`);
+		toast(T('Kept as “{name}”', { name }));
 	};
 	host.querySelector('[data-route-save]').addEventListener('click', save);
 	input.addEventListener('keydown', evt => { if (evt.key === 'Enter') save(); });
@@ -659,7 +672,7 @@ export function deletePreviousRoute() {
 	mv.prevRoute = null;
 	persist();
 	refreshSide();
-	toast('Forgot the previous route');
+	toast(T('Forgot the previous route'));
 }
 
 export function loadSavedRoute(i) {
@@ -690,7 +703,7 @@ export function deleteSavedRoute(i) {
 	mv.savedRoutes = mv.savedRoutes.filter((_, k) => k !== i);
 	persist();
 	refreshSide();
-	toast(`Forgot “${r.name}”`);
+	toast(T('Forgot “{name}”', { name: r.name }));
 }
 
 export function setTradesMode(m) {
@@ -719,7 +732,7 @@ export function trimRouteToParley() {
 	persist();
 	refreshSide();
 	paintMap();
-	toast(`Trimmed to ${kept.length} stop${kept.length === 1 ? '' : 's'} — the full route is kept as “Previous route”`);
+	toast(kept.length === 1 ? T('Trimmed to {n} stop — the full route is kept as “Previous route”', { n: kept.length }) : T('Trimmed to {n} stops — the full route is kept as “Previous route”', { n: kept.length }));
 }
 
 /* ------------------------------------------------------------------ *
@@ -790,33 +803,35 @@ export function openSailCal() {
 	names.push(...pts);
 	if (port && mv.returnHome) names.push(port.name);
 	const speed = routeSpeed();
-	const options = legs.map((m, i) => `<option value="${m}">${esc(names[i] || '?')} → ${esc(names[i + 1] || '?')} · ${esc(fmtDistance(m))}</option>`).join('');
+	const options = legs.map((m, i) => `<option value="${m}">${esc(gameName(names[i]) || '?')} → ${esc(gameName(names[i + 1]) || '?')} · ${esc(fmtDistance(m))}</option>`).join('');
 	const host = openDialog(`
-		<h2>How fast is 100%?</h2>
-		<p class="dialog-copy">The game gives speed as a percentage and never says what 100% is in metres. The chart assumes <b>${DEFAULT_CAL} m/s</b> and shows every time as a range a fifth either way; you are using <b>${sailCal()} m/s</b>. Time one leg in game${speed ? ` at your ${speed.total}%` : ''} and the rest are corrected from it, with the range narrowed to a tenth.</p>
-		${legs.length ? `<label class="dialog-label">Leg <select class="field select" data-cal-leg>${options}</select></label>` : '<p class="dialog-copy">Plot a route first, then time one of its legs.</p>'}
-		<label class="dialog-label">Took <input class="field" type="text" inputmode="decimal" placeholder="minutes, e.g. 6.5" data-cal-min> minutes</label>
+		<h2>${T('How fast is 100%?')}</h2>
+		<p class="dialog-copy">${speed
+			? T('The game gives speed as a percentage and never says what 100% is in metres. The chart assumes <b>{def} m/s</b> and shows every time as a range a fifth either way; you are using <b>{now} m/s</b>. Time one leg in game at your {pct}% and the rest are corrected from it, with the range narrowed to a tenth.', { def: DEFAULT_CAL, now: sailCal(), pct: speed.total })
+			: T('The game gives speed as a percentage and never says what 100% is in metres. The chart assumes <b>{def} m/s</b> and shows every time as a range a fifth either way; you are using <b>{now} m/s</b>. Time one leg in game and the rest are corrected from it, with the range narrowed to a tenth.', { def: DEFAULT_CAL, now: sailCal() })}</p>
+		${legs.length ? `<label class="dialog-label">${T('Leg {select}', { select: `<select class="field select" data-cal-leg>${options}</select>` })}</label>` : `<p class="dialog-copy">${T('Plot a route first, then time one of its legs.')}</p>`}
+		<label class="dialog-label">${T('Took {input} minutes', { input: `<input class="field" type="text" inputmode="decimal" placeholder="${T('minutes, e.g. 6.5')}" data-cal-min>` })}</label>
 		<div class="dialog-actions">
-			<button class="ghost-btn" data-cal-reset>Back to ${DEFAULT_CAL} m/s</button>
-			<button class="ghost-btn" data-close>Cancel</button>
-			<button class="act" data-cal-save${legs.length ? '' : ' disabled'}>Set</button>
+			<button class="ghost-btn" data-cal-reset>${T('Back to {v} m/s', { v: DEFAULT_CAL })}</button>
+			<button class="ghost-btn" data-close>${T('Cancel')}</button>
+			<button class="act" data-cal-save${legs.length ? '' : ' disabled'}>${T('Set')}</button>
 		</div>`);
 	host.querySelector('[data-cal-reset]').addEventListener('click', () => {
 		store.setSetting('sailCal', null);
 		closeDialog();
 		refreshSide();
-		toast(`Back to ${DEFAULT_CAL} m/s at 100%`);
+		toast(T('Back to {v} m/s at 100%', { v: DEFAULT_CAL }));
 	});
 	host.querySelector('[data-cal-save]').addEventListener('click', () => {
 		const metres = Number(host.querySelector('[data-cal-leg]').value);
 		const minutes = Number(String(host.querySelector('[data-cal-min]').value).replace(',', '.'));
 		const v = calibrate(metres, minutes * 60, speed ? speed.total : 100);
-		if (!v) return toast('Give the minutes that leg took');
+		if (!v) return toast(T('Give the minutes that leg took'));
 		store.setSetting('sailCal', v);
 		closeDialog();
 		refreshSide();
 		paintMap();
-		toast(`100% is now ${v} m/s on this chart`);
+		toast(T('100% is now {v} m/s on this chart', { v }));
 	});
 }
 
@@ -844,12 +859,12 @@ export function putRationsCall(k) {
 	const isles = seq.slice(0, k + 1).filter(r => r.kind === 'npc').length;
 	const call = readStash([[isles, wharf.name, wharf.at, wharf.x, wharf.y, [], 0, 0, [], 'rations']])[0];
 	if (!call) return;
-	if (mv.runStash.some(c => c.rations && c.i === call.i && c.name === call.name)) return toast('That call is already in the run');
+	if (mv.runStash.some(c => c.rations && c.i === call.i && c.name === call.name)) return toast(T('That call is already in the run'));
 	mv.runStash = [...mv.runStash, call].sort((a, b) => a.i - b.i);
 	persist();
 	refreshSide();
 	paintMap();
-	toast(`A call at ${wharf.name} for rations, after stop ${row.n}`);
+	toast(T('A call at {name} for rations, after stop {n}', { name: gameName(wharf.name), n: row.n }));
 }
 
 /** The ration drain, calibrated: the pool fell N over a leg of M
@@ -857,30 +872,30 @@ export function putRationsCall(k) {
 export function openRationCal() {
 	const me = currentShip();
 	const host = openDialog(`
-		<h2>How fast does the pool fall?</h2>
-		<p class="dialog-copy">The game never says what a minute under sail costs in rations. The chart assumes <b>${F(DEFAULT_RATION_RATE)} a minute</b> at full sail and shows every figure as a range half either way; you are using <b>${F(rationRate())} a minute</b>. Watch the pool over one leg — what it read when you set off and when you arrived — and the rest follow from it, with the range narrowed to ±15%. ${me.crew.appetite ? `The crew's ${F(me.crew.appetite)} a day is taken out of the figure.` : ''}</p>
-		<label class="dialog-label">The pool fell by <input class="field" type="text" inputmode="numeric" placeholder="rations, e.g. 45000" data-rcal-fell></label>
-		<label class="dialog-label">over <input class="field" type="text" inputmode="decimal" placeholder="minutes, e.g. 6.5" data-rcal-min> minutes under sail</label>
+		<h2>${T('How fast does the pool fall?')}</h2>
+		<p class="dialog-copy">${T('The game never says what a minute under sail costs in rations. The chart assumes <b>{def} a minute</b> at full sail and shows every figure as a range half either way; you are using <b>{now} a minute</b>. Watch the pool over one leg — what it read when you set off and when you arrived — and the rest follow from it, with the range narrowed to ±15%.', { def: F(DEFAULT_RATION_RATE), now: F(rationRate()) })} ${me.crew.appetite ? T('The crew\'s {n} a day is taken out of the figure.', { n: F(me.crew.appetite) }) : ''}</p>
+		<label class="dialog-label">${T('The pool fell by {input}', { input: `<input class="field" type="text" inputmode="numeric" placeholder="${T('rations, e.g. 45000')}" data-rcal-fell>` })}</label>
+		<label class="dialog-label">${T('over {input} minutes under sail', { input: `<input class="field" type="text" inputmode="decimal" placeholder="${T('minutes, e.g. 6.5')}" data-rcal-min>` })}</label>
 		<div class="dialog-actions">
-			<button class="ghost-btn" data-rcal-reset>Back to ${F(DEFAULT_RATION_RATE)} a minute</button>
-			<button class="ghost-btn" data-close>Cancel</button>
-			<button class="act" data-rcal-save>Set</button>
+			<button class="ghost-btn" data-rcal-reset>${T('Back to {v} a minute', { v: F(DEFAULT_RATION_RATE) })}</button>
+			<button class="ghost-btn" data-close>${T('Cancel')}</button>
+			<button class="act" data-rcal-save>${T('Set')}</button>
 		</div>`);
 	host.querySelector('[data-rcal-reset]').addEventListener('click', () => {
 		store.setSetting('rationCal', null);
 		closeDialog();
 		refreshSide();
-		toast(`Back to ${F(DEFAULT_RATION_RATE)} rations a minute`);
+		toast(T('Back to {v} rations a minute', { v: F(DEFAULT_RATION_RATE) }));
 	});
 	host.querySelector('[data-rcal-save]').addEventListener('click', () => {
 		const fell = Number(String(host.querySelector('[data-rcal-fell]').value).replace(/[^\d.]/g, ''));
 		const minutes = Number(String(host.querySelector('[data-rcal-min]').value).replace(',', '.'));
 		const v = calibrateRations(fell, minutes, me.crew.appetite);
-		if (!v) return toast('Give how far the pool fell, and over how many minutes');
+		if (!v) return toast(T('Give how far the pool fell, and over how many minutes'));
 		store.setSetting('rationCal', v);
 		closeDialog();
 		refreshSide();
-		toast(`The pool falls ${F(v)} a minute on this chart`);
+		toast(T('The pool falls {v} a minute on this chart', { v: F(v) }));
 	});
 }
 

@@ -9,6 +9,7 @@
 // and nobody would want to undo it.
 
 import * as store from './state.js';
+import { T } from './i18n.js';
 
 const WINDOW_DAYS = 14;
 const KEEP_DAYS = 30;
@@ -65,10 +66,10 @@ export function paceText(target, now = Date.now()) {
 	const p = paceOf(target, now);
 	if (!p) return '';
 	if (target.missingUnits <= 0) return '';
-	if (p.perDay <= 0) return `no progress in the last ${p.span === 1 ? 'day' : `${p.span} days`}`;
+	if (p.perDay <= 0) return p.span === 1 ? T('no progress in the last day') : T('no progress in the last {n} days', { n: p.span });
 	const d = p.daysLeft;
-	const when = d < 1 ? 'less than a day' : d < 1.5 ? 'about a day' : `about ${Math.round(d)} days`;
-	return `${when} at the last ${p.span === 1 ? "day's" : `${p.span} days'`} pace`;
+	const when = d < 1 ? T('less than a day') : d < 1.5 ? T('about a day') : T('about {n} days', { n: Math.round(d) });
+	return p.span === 1 ? T("{when} at the last day's pace", { when }) : T("{when} at the last {n} days' pace", { when, n: p.span });
 }
 
 /** For tests: forget everything. */

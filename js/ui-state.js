@@ -7,6 +7,7 @@
 // recompute() go through the setters below, because an imported
 // binding cannot be assigned from the importing side.
 
+import { T, TT, said } from './i18n.js';
 import { recipes as allRecipes } from './recipes.js';
 import { coins } from './sea_coins.js';
 import { falasi } from './falasi_vendor.js';
@@ -102,10 +103,10 @@ function hydrate() {
 	invKind = ['all', 'materials', 'parts', 'goods'].includes(store.getSetting('invKind', null)) ? store.getSetting('invKind') : invKind;
 }
 export const SORTS = [
-	{ id: 'short', label: 'Short first' },
-	{ id: 'need', label: 'Most needed' },
-	{ id: 'have', label: 'Most owned' },
-	{ id: 'name', label: 'A to Z' }
+	{ id: 'short', label: TT('Short first') },
+	{ id: 'need', label: TT('Most needed') },
+	{ id: 'have', label: TT('Most owned') },
+	{ id: 'name', label: TT('A to Z') }
 ];
 
 /** A comparator over item names for the chosen order. */
@@ -122,8 +123,8 @@ export function sorter(mode, stock) {
 
 /** The sort control, the same on every screen that has one. */
 export function sortSelect() {
-	return `<select class="select" data-act="sort" aria-label="Order the rows by">${SORTS.map(s =>
-		`<option value="${s.id}"${s.id === sort ? ' selected' : ''}>${s.label}</option>`).join('')}</select>`;
+	return `<select class="select" data-act="sort" aria-label="${T('Order the rows by')}">${SORTS.map(s =>
+		`<option value="${s.id}"${s.id === sort ? ' selected' : ''}>${said(s.label)}</option>`).join('')}</select>`;
 }
 
 /* ------------------------------------------------------------------ *

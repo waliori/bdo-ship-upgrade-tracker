@@ -8,83 +8,68 @@
 
 import { openDialog } from './dialogs.js';
 import { esc } from './fmt.js';
+import { T } from './i18n.js';
 
-const ENTRIES = [
+// Built when a card is asked for rather than at import: the language
+// pack is loaded after the modules are, so a sentence fixed here at
+// import time would stay English.
+const entries = () => [
 	{
 		id: 'parley',
 		img: 'guide/parley-window.webp',
-		title: 'Parley, and the bar it fills',
-		where: 'World Map (M) → Barter Information',
-		text: 'The bar refills to 1,000,000 at the 06:00 UTC reset. Every row prints '
-			+ '“Parley: N required” — the rate depends on which list the row is on, and '
-			+ 'your discounts are already applied to it. “Total Barters” in the header is '
-			+ 'the number this app calls Total Barters in the Bartering tile: type it there '
-			+ 'and the route-unlock line will agree with your game.'
+		title: T('Parley, and the bar it fills'),
+		where: T('World Map (M) → Barter Information'),
+		text: T('The bar refills to 1,000,000 at the 06:00 UTC reset. Every row prints “Parley: N required” — the rate depends on which list the row is on, and your discounts are already applied to it. “Total Barters” in the header is the number this app calls Total Barters in the Bartering tile: type it there and the route-unlock line will agree with your game.')
 	},
 	{
 		id: 'refresh',
 		img: 'guide/refresh.webp',
-		title: 'Two lists, refreshed apart',
-		where: 'the ↻ button in Barter Information',
-		text: 'Trade items and ship materials are separate lists with separate refresh '
-			+ 'costs — 20/40/50 points and 10/30 — plus 30 to skip the two-hour cooldown, '
-			+ 'and parley can buy the cooldown down a minute per 10,000. The point pool is '
-			+ '100 a day, 150 with a Value Pack. The map’s Materials / Trade goods filter '
-			+ 'exists because of this split.'
+		title: T('Two lists, refreshed apart'),
+		where: T('the ↻ button in Barter Information'),
+		text: T('Trade items and ship materials are separate lists with separate refresh costs — 20/40/50 points and 10/30 — plus 30 to skip the two-hour cooldown, and parley can buy the cooldown down a minute per 10,000. The point pool is 100 a day, 150 with a Value Pack. The map’s Materials / Trade goods filter exists because of this split.')
 	},
 	{
 		id: 'level',
 		img: 'guide/barter-level.webp',
-		title: 'The level discount',
-		where: 'Profile (P) → Life Skill → hover “Barter”',
-		text: 'Higher Barter levels cut the parley of every exchange — the tooltip states '
-			+ 'the exact percentage. It adds with the Value Pack’s −10% and a parley-crew '
-			+ 'member’s −10%; the sum comes off the base price. Pick your level in the '
-			+ 'Bartering tile and every parley figure in the app uses it.'
+		title: T('The level discount'),
+		where: T('Profile (P) → Life Skill → hover “Barter”'),
+		text: T('Higher Barter levels cut the parley of every exchange — the tooltip states the exact percentage. It adds with the Value Pack’s −10% and a parley-crew member’s −10%; the sum comes off the base price. Pick your level in the Bartering tile and every parley figure in the app uses it.')
 	},
 	{
 		id: 'voucher',
 		img: 'guide/voucher.webp',
-		title: 'Crow’s Trade Voucher',
-		where: 'a Special Item, processed from an Item Collection Increase Scroll',
-		text: 'Using one recovers 250,000 Parley — a quarter of the bar — on its own '
-			+ 'two-hour cooldown, and refuses a full bar. The “vouchers” count in the '
-			+ 'Bartering tile is how many you keep; it raises the trades-a-refill figure.'
+		title: T('Crow’s Trade Voucher'),
+		where: T('a Special Item, processed from an Item Collection Increase Scroll'),
+		text: T('Using one recovers 250,000 Parley — a quarter of the bar — on its own two-hour cooldown, and refuses a full bar. The “vouchers” count in the Bartering tile is how many you keep; it raises the trades-a-refill figure.')
 	},
 	{
 		id: 'draw',
 		img: 'guide/exchanges-left.webp',
-		title: 'One offer per island, so many tries',
-		where: 'the rows of Barter Information',
-		text: 'Each refresh deals every island one offer per list, drawn from that '
-			+ 'island’s own pool — the map’s “1 of N a refresh” is that pool. '
-			+ '“Exchanges Left” caps how many times you can take the offer: ten for the '
-			+ 'low rungs, as few as one or two at the top, which is why the forecast '
-			+ 'counts refreshes rather than parley.'
+		title: T('One offer per island, so many tries'),
+		where: T('the rows of Barter Information'),
+		text: T('Each refresh deals every island one offer per list, drawn from that island’s own pool — the map’s “1 of N a refresh” is that pool. “Exchanges Left” caps how many times you can take the offer: ten for the low rungs, as few as one or two at the top, which is why the forecast counts refreshes rather than parley.')
 	},
 	{
 		id: 'island',
 		img: 'guide/island.webp',
-		title: 'What a pin is in the game',
-		where: 'the World Map, zoomed to any barter island',
-		text: 'Every pin on this app’s chart is one of these: an island — or a wreck '
-			+ 'adrift in Margoria — with a barterer on it. The count on the node is the '
-			+ 'exchange allowance still standing there today.'
+		title: T('What a pin is in the game'),
+		where: T('the World Map, zoomed to any barter island'),
+		text: T('Every pin on this app’s chart is one of these: an island — or a wreck adrift in Margoria — with a barterer on it. The count on the node is the exchange allowance still standing there today.')
 	}
 ];
 
 export function openGuide() {
-	openDialog(`<h2>The game’s own numbers</h2>
-		<p>Where each thing this app tracks lives in Black Desert.</p>
+	openDialog(`<h2>${T('The game’s own numbers')}</h2>
+		<p>${T('Where each thing this app tracks lives in Black Desert.')}</p>
 		<div class="guide">
-			${ENTRIES.map(e => `<section class="guide-card">
+			${entries().map(e => `<section class="guide-card">
 				<h3>${esc(e.title)}</h3>
 				<div class="guide-where">${esc(e.where)}</div>
 				<img src="${esc(e.img)}" alt="" loading="lazy">
 				<p>${esc(e.text)}</p>
 			</section>`).join('')}
 		</div>
-		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>`);
+		<div class="dialog-actions"><button class="act quiet" data-close>${T('Close')}</button></div>`);
 }
 
 /**
@@ -126,7 +111,7 @@ export function wireGuide() {
 	};
 
 	const show = el => {
-		const e = ENTRIES.find(x => x.id === el.dataset.guide);
+		const e = entries().find(x => x.id === el.dataset.guide);
 		if (!e) return;
 		const t = card();
 		if (showing !== e.id) {

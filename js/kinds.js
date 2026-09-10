@@ -8,6 +8,7 @@
 // of scrolling. This is the one place the split is decided, so the
 // Inventory's chips, the Find box and the trip log agree on it.
 
+import { TT } from './i18n.js';
 import { recipes } from './recipes.js';
 import { shipGroups } from './ships.js';
 import { shipStats } from './ship_stats.js';
@@ -18,9 +19,9 @@ const hulls = new Set([...shipGroups.flatMap(g => g.items), ...Object.keys(shipS
 
 /** The kinds, in the order a chip row shows them. */
 export const KINDS = [
-	{ id: 'materials', label: 'Materials' },
-	{ id: 'parts', label: 'Ship parts' },
-	{ id: 'goods', label: 'Trade goods' }
+	{ id: 'materials', label: TT('Materials') },
+	{ id: 'parts', label: TT('Ship parts') },
+	{ id: 'goods', label: TT('Trade goods') }
 ];
 
 /** 'goods' for a [Level N] trade good, 'parts' for a hull or an
@@ -35,5 +36,5 @@ export function kindOf(name) {
 /** The label a row can wear, or '' for the plain case. */
 export function kindTag(name) {
 	const k = kindOf(name);
-	return k === 'goods' ? 'trade good' : k === 'parts' ? 'ship part' : '';
+	return k === 'goods' ? TT('trade good') : k === 'parts' ? TT('ship part') : '';
 }

@@ -4,6 +4,7 @@
 import { courses } from '../courses.js';
 import { monsters } from '../sea_monsters.js';
 import { esc } from '../fmt.js';
+import { T, said, gameName } from '../i18n.js';
 import { npcs } from '../barter_npcs.js';
 import { nearestWharf } from '../wharves.js';
 import { openDialog, closeDialog, toast } from '../dialogs.js';
@@ -72,16 +73,16 @@ export function gameImportRead(text) {
 			bends
 		});
 	};
-	add('favorites', 'Favourites', r.favorites.map(p => ({ x: p.x, y: p.y, note: p.name })));
-	add('cameras', 'Camera slots', r.cameras.map(p => ({ x: p.x, y: p.y, note: `Camera ${p.index}` })));
-	for (const l of r.loops) add(`loop${l.slot}`, `Loop ${l.slot + 1}`, l.points.map(p => ({ x: p.x, y: p.y })));
+	add('favorites', T('Favourites'), r.favorites.map(p => ({ x: p.x, y: p.y, note: p.name })));
+	add('cameras', T('Camera slots'), r.cameras.map(p => ({ x: p.x, y: p.y, note: T('Camera {n}', { n: p.index }) })));
+	for (const l of r.loops) add(`loop${l.slot}`, T('Loop {n}', { n: l.slot + 1 }), l.points.map(p => ({ x: p.x, y: p.y })));
 	gameIn = { sets, dropped: r.dropped, text };
 	return gameIn;
 }
 
 /** A set as a kept trace: stops while they fit, a drawn line past that. */
 function gameSetTrace(g, when) {
-	const raw = { name: `${g.name} (game)`, notes: `From gameVariable.xml, ${when}`, points: [], strokes: [], texts: [], areas: [], shown: true, at: Date.now() };
+	const raw = { name: T('{name} (game)', { name: g.name }), notes: T('From gameVariable.xml, {when}', { when }), points: [], strokes: [], texts: [], areas: [], shown: true, at: Date.now() };
 	if (g.points.length <= TRACE_STOPS) raw.points = g.points.map(p => ({ x: p.x, y: p.y, note: p.note }));
 	else raw.strokes = [{ pts: g.points.flatMap(p => [p.x, p.y]), colour: mv.inkColour, width: mv.inkWidth }];
 	return cleanTrace(raw);
@@ -147,32 +148,32 @@ export function openGameImport() {
 	const sets = found ? `<div class="map-game-sets">
 		${found.sets.map(g => {
 			const names = g.points.map(p => p.note).filter(Boolean);
-			const what = `${g.points.length} point${g.points.length === 1 ? '' : 's'}${names.length ? ': ' + esc(names.slice(0, 4).join(', ')) + (names.length > 4 ? ', …' : '') : ''}`;
+			const what = `${g.points.length === 1 ? T('{n} point', { n: g.points.length }) : T('{n} points', { n: g.points.length })}${names.length ? ': ' + esc(names.slice(0, 4).join(', ')) + (names.length > 4 ? ', …' : '') : ''}`;
 			const on = g.route
-				? ` · ${g.stops.length} barterer${g.stops.length === 1 ? '' : 's'}${g.calls.length ? `, ${g.calls.length} wharf call${g.calls.length === 1 ? '' : 's'}` : ''}${g.bends ? `, ${g.bends} on open sea` : ''}`
-				: ' · none on a barterer';
+				? ` · ${g.stops.length === 1 ? T('{n} barterer', { n: g.stops.length }) : T('{n} barterers', { n: g.stops.length })}${g.calls.length ? `, ${g.calls.length === 1 ? T('{n} wharf call', { n: g.calls.length }) : T('{n} wharf calls', { n: g.calls.length })}` : ''}${g.bends ? `, ${T('{n} on open sea', { n: g.bends })}` : ''}`
+				: ` · ${T('none on a barterer')}`;
 			return `<label class="map-game-set">
 				<span class="map-game-set-name"><b>${esc(g.name)}</b><small>${what}${on}</small></span>
 				<select class="purse-inline" data-game-set="${esc(g.key)}">
-					<option value="trace"${g.as === 'trace' ? ' selected' : ''}>as a trace</option>
-					${g.route ? `<option value="route"${g.as === 'route' ? ' selected' : ''}>as the route</option>` : ''}
-					<option value="skip">leave out</option>
+					<option value="trace"${g.as === 'trace' ? ' selected' : ''}>${T('as a trace')}</option>
+					${g.route ? `<option value="route"${g.as === 'route' ? ' selected' : ''}>${T('as the route')}</option>` : ''}
+					<option value="skip">${T('leave out')}</option>
 				</select>
 			</label>`;
 		}).join('')}
-		${found.dropped ? `<p class="map-game-loopnote">${found.dropped} point${found.dropped === 1 ? ' was' : 's were'} off the chart and left out.</p>` : ''}
-	</div>` : gameIn ? '<p class="map-game-fit">Nothing the chart can use in that: no bookmark, camera slot or loop.</p>' : '';
-	openDialog(`<h2>Bring the game's map here</h2>
-		<p>The favourites, camera slots and loops the game keeps in <code>gameVariable.xml</code>, back onto this chart. Paste the whole file, the <code>&lt;WorldMapQuickScreenPosition&gt;</code> block, or just the lines you want — or open the file. Each set comes in as a trace, or as the route when its points sit on barterers.</p>
-		<textarea class="map-xml" rows="7" spellcheck="false" data-game-in aria-label="The block from gameVariable.xml" placeholder='&lt;BookMark BookMarkName="…" PosX="…" PosY="…" PosZ="…"/&gt;'>${esc(text)}</textarea>
+		${found.dropped ? `<p class="map-game-loopnote">${found.dropped === 1 ? T('{n} point was off the chart and left out.', { n: found.dropped }) : T('{n} points were off the chart and left out.', { n: found.dropped })}</p>` : ''}
+	</div>` : gameIn ? `<p class="map-game-fit">${T('Nothing the chart can use in that: no bookmark, camera slot or loop.')}</p>` : '';
+	openDialog(`<h2>${T('Bring the game\'s map here')}</h2>
+		<p>${T('The favourites, camera slots and loops the game keeps in <code>gameVariable.xml</code>, back onto this chart. Paste the whole file, the <code>&lt;WorldMapQuickScreenPosition&gt;</code> block, or just the lines you want — or open the file. Each set comes in as a trace, or as the route when its points sit on barterers.')}</p>
+		<textarea class="map-xml" rows="7" spellcheck="false" data-game-in aria-label="${T('The block from gameVariable.xml')}" placeholder='&lt;BookMark BookMarkName="…" PosX="…" PosY="…" PosZ="…"/&gt;'>${esc(text)}</textarea>
 		<div class="map-game-btns">
-			<button class="ghost-btn" data-act="map-game-in-file">Open gameVariable.xml…</button>
-			<button class="ghost-btn" data-act="map-game-in-read">Read it</button>
+			<button class="ghost-btn" data-act="map-game-in-file">${T('Open gameVariable.xml…')}</button>
+			<button class="ghost-btn" data-act="map-game-in-read">${T('Read it')}</button>
 		</div>
 		${sets}
 		<div class="dialog-actions">
-			<button class="ghost-btn" data-close>Close</button>
-			${found ? '<button class="act" data-act="map-game-in-go">Bring them in</button>' : ''}
+			<button class="ghost-btn" data-close>${T('Close')}</button>
+			${found ? `<button class="act" data-act="map-game-in-go">${T('Bring them in')}</button>` : ''}
 		</div>`);
 }
 
@@ -185,8 +186,8 @@ export async function gameImportAction(act, el) {
 		case 'map-game-in-read': {
 			const box = el.closest('.dialog-box').querySelector('[data-game-in]');
 			const text = box ? box.value : '';
-			if (!text.trim()) return toast('Paste the block first');
-			if (!looksLikeGameXML(text)) return toast('That is not the game’s map: no bookmark, camera slot or loop in it');
+			if (!text.trim()) return toast(T('Paste the block first'));
+			if (!looksLikeGameXML(text)) return toast(T('That is not the game’s map: no bookmark, camera slot or loop in it'));
 			gameImportRead(text);
 			return openGameImport();
 		}
@@ -198,7 +199,7 @@ export async function gameImportAction(act, el) {
 				const file = input.files && input.files[0];
 				if (!file) return;
 				const text = await file.text();
-				if (!looksLikeGameXML(text)) return toast('That file holds no bookmark, camera slot or loop');
+				if (!looksLikeGameXML(text)) return toast(T('That file holds no bookmark, camera slot or loop'));
 				gameImportRead(text);
 				openGameImport();
 			});
@@ -209,11 +210,11 @@ export async function gameImportAction(act, el) {
 			const choice = {};
 			for (const sel of el.closest('.dialog-box').querySelectorAll('[data-game-set]')) choice[sel.dataset.gameSet] = sel.value;
 			const r = gameImportApply(choice);
-			if (!r || !r.n) return toast('Nothing chosen to bring in');
+			if (!r || !r.n) return toast(T('Nothing chosen to bring in'));
 			closeDialog();
 			toast(r.routed
-				? `Route plotted: ${r.routed} stop${r.routed === 1 ? '' : 's'} from the game's map${r.n > 1 ? `, and ${r.n - 1} trace${r.n === 2 ? '' : 's'} kept` : ''}`
-				: `${r.n} trace${r.n === 1 ? '' : 's'} kept from the game's map`);
+				? `${r.routed === 1 ? T('Route plotted: {n} stop from the game\'s map', { n: r.routed }) : T('Route plotted: {n} stops from the game\'s map', { n: r.routed })}${r.n > 1 ? (r.n === 2 ? T(', and {n} trace kept', { n: r.n - 1 }) : T(', and {n} traces kept', { n: r.n - 1 })) : ''}`
+				: (r.n === 1 ? T('{n} trace kept from the game\'s map', { n: r.n }) : T('{n} traces kept from the game\'s map', { n: r.n })));
 			return true;
 		}
 	}
@@ -240,12 +241,12 @@ function huntPoints() {
 	const out = [];
 	for (const c of courses) {
 		if (!mv.coursesOn.includes(c.id)) continue;
-		for (const p of c.points) out.push({ name: p.name || c.name, x: p.x, y: p.y });
+		for (const p of c.points) out.push({ name: p.name || said(c.name), x: p.x, y: p.y });
 	}
 	for (const m of monsters) {
 		if (!mv.huntsOn.includes(m.key) || !m.points.length) continue;
 		const mid = m.points.reduce((a, p) => [a[0] + p[0], a[1] + p[1]], [0, 0]);
-		out.push({ name: `${m.name} grounds`, x: mid[0] / m.points.length, y: mid[1] / m.points.length });
+		out.push({ name: T('{name} grounds', { name: gameName(m.name) }), x: mid[0] / m.points.length, y: mid[1] / m.points.length });
 	}
 	return out.map((p, i) => ({ ...p, name: `${i + 1}: ${p.name}` }));
 }
@@ -257,8 +258,8 @@ function routePoints() {
 	if (!stopsLive()) return [];
 	return routeSeq(marksNow()).map(s => ({
 		name: s.kind === 'stash'
-			? `${s.n}: ⚓ ${s.place.name} (${s.place.at})`
-			: `${s.n}: ${s.place.name} (${s.place.at})`,
+			? `${s.n}: ⚓ ${gameName(s.place.name)} (${gameName(s.place.at)})`
+			: `${s.n}: ${gameName(s.place.name)} (${gameName(s.place.at)})`,
 		x: s.place.x, y: s.place.y
 	}));
 }
@@ -306,67 +307,69 @@ export async function openGameExport(source) {
 	const r = gameBookmarks();
 	if (!r.stops) {
 		return toast(gameSource === 'hunt'
-			? 'Nothing to put on the map: the grounds ticked have no fixed spawn points on the chart'
-			: 'Nothing to put on the map yet — plot a stop first');
+			? T('Nothing to put on the map: the grounds ticked have no fixed spawn points on the chart')
+			: T('Nothing to put on the map yet — plot a stop first'));
 	}
 	const what = r.source === 'hunt' ? 'hunt' : r.source === 'trace' ? 'traced route' : 'route';
 	// Chromium can hold the folder itself; elsewhere the block is pasted.
 	const folder = canWriteFiles() ? await gameFolderName() : null;
 	const direct = canWriteFiles() ? `<div class="map-game-direct">
-			<div class="map-game-direct-head">Or let the app write it</div>
+			<div class="map-game-direct-head">${T('Or let the app write it')}</div>
 			<p>${folder
-				? `Writing to <code>gameVariable.xml</code> in folder <code>${esc(folder)}</code>. The first write keeps the untouched file as <code>gameVariable.xml.orig</code>, never overwritten; every write copies the file as it was to <code>gameVariable.xml.bak</code> first. The browser asks once per visit before it touches the folder.`
-				: 'Choose the <strong>account-number folder</strong> inside <code>UserCache</code> once; the browser remembers it and asks before each write. The first write keeps the untouched file as <code>gameVariable.xml.orig</code>, never overwritten; every write first copies the file as it was to <code>gameVariable.xml.bak</code>.'}
-				Do it at the character screen — the game rewrites the file when a character loads.</p>
+				? T('Writing to <code>gameVariable.xml</code> in folder <code>{folder}</code>. The first write keeps the untouched file as <code>gameVariable.xml.orig</code>, never overwritten; every write copies the file as it was to <code>gameVariable.xml.bak</code> first. The browser asks once per visit before it touches the folder.', { folder: esc(folder) })
+				: T('Choose the <strong>account-number folder</strong> inside <code>UserCache</code> once; the browser remembers it and asks before each write. The first write keeps the untouched file as <code>gameVariable.xml.orig</code>, never overwritten; every write first copies the file as it was to <code>gameVariable.xml.bak</code>.')}
+				${T('Do it at the character screen — the game rewrites the file when a character loads.')}</p>
 			<div class="map-game-btns">
-				<button class="ghost-btn" data-act="map-game-pick">${folder ? 'Choose another folder' : 'Choose the account folder…'}</button>
-				<button class="ghost-btn" data-act="map-game-write"${folder ? '' : ' disabled'}>Write it into the game file</button>
-				${previousBlock() ? '<button class="ghost-btn" data-act="map-game-restore" title="Put back the favourites the last write replaced">Restore previous</button>' : ''}
+				<button class="ghost-btn" data-act="map-game-pick">${folder ? T('Choose another folder') : T('Choose the account folder…')}</button>
+				<button class="ghost-btn" data-act="map-game-write"${folder ? '' : ' disabled'}>${T('Write it into the game file')}</button>
+				${previousBlock() ? `<button class="ghost-btn" data-act="map-game-restore" title="${T('Put back the favourites the last write replaced')}">${T('Restore previous')}</button>` : ''}
 			</div>
-		</div>` : `<p class="map-game-nodirect">Only Chromium browsers (Chrome, Edge, Brave) can write the file for you; this one cannot, so paste the block by hand.</p>`;
+		</div>` : `<p class="map-game-nodirect">${T('Only Chromium browsers (Chrome, Edge, Brave) can write the file for you; this one cannot, so paste the block by hand.')}</p>`;
 	const held = r.bookmarks + r.cameras;
 	const fit = r.loop
-		? `Loop ${r.loop.slot + 1} carries all ${r.stops} in order${r.loop.bends
-			? `, with ${r.loop.bends} turn${r.loop.bends === 1 ? '' : 's'} added to keep the line off the rocks`
-			: ''} — a loop is a list, not five slots. Your favourites and the map's other two loops are left as they are.`
+		? r.loop.bends
+			? (r.loop.bends === 1
+				? T('Loop {slot} carries all {stops} in order, with {n} turn added to keep the line off the rocks — a loop is a list, not five slots. Your favourites and the map\'s other two loops are left as they are.', { slot: r.loop.slot + 1, stops: r.stops, n: r.loop.bends })
+				: T('Loop {slot} carries all {stops} in order, with {n} turns added to keep the line off the rocks — a loop is a list, not five slots. Your favourites and the map\'s other two loops are left as they are.', { slot: r.loop.slot + 1, stops: r.stops, n: r.loop.bends }))
+			: T('Loop {slot} carries all {n} in order — a loop is a list, not five slots. Your favourites and the map\'s other two loops are left as they are.', { slot: r.loop.slot + 1, n: r.stops })
 		: r.stops <= BOOKMARK_SLOTS
-			? `All ${r.stops} fit the map's ${BOOKMARK_SLOTS} favourite slots, named.`
-			: `The map's Favorites list holds ${BOOKMARK_SLOTS}; ${
-				`points ${BOOKMARK_SLOTS + 1}–${held} go on the ${CAMERA_SLOTS} camera slots (the number keys on the map), unnamed but in order`
-			}${r.dropped ? `, and ${r.dropped} more do not fit — a loop would hold them all` : ''}.`;
+			? T('All {n} fit the map\'s {slots} favourite slots, named.', { n: r.stops, slots: BOOKMARK_SLOTS })
+			: r.dropped
+				? T('The map\'s Favorites list holds {slots}; points {from}–{to} go on the {cameras} camera slots (the number keys on the map), unnamed but in order, and {n} more do not fit — a loop would hold them all.', { slots: BOOKMARK_SLOTS, from: BOOKMARK_SLOTS + 1, to: held, cameras: CAMERA_SLOTS, n: r.dropped })
+				: T('The map\'s Favorites list holds {slots}; points {from}–{to} go on the {cameras} camera slots (the number keys on the map), unnamed but in order.', { slots: BOOKMARK_SLOTS, from: BOOKMARK_SLOTS + 1, to: held, cameras: CAMERA_SLOTS });
 	const loopRow = `<div class="map-game-loop">
-		<label>Write it as
+		<label>${T('Write it as')}
 			<select class="purse-inline" data-act="map-game-as">
-				<option value=""${gameWrite === 'favorites' ? ' selected' : ''}>favourites — ${BOOKMARK_SLOTS} named, ${CAMERA_SLOTS} camera slots</option>
-				${Array.from({ length: LOOP_SLOTS }, (_, i) => `<option value="${i}"${gameWrite === i ? ' selected' : ''}>loop ${i + 1} — every point, in order</option>`).join('')}
+				<option value=""${gameWrite === 'favorites' ? ' selected' : ''}>${T('favourites — {slots} named, {cameras} camera slots', { slots: BOOKMARK_SLOTS, cameras: CAMERA_SLOTS })}</option>
+				${Array.from({ length: LOOP_SLOTS }, (_, i) => `<option value="${i}"${gameWrite === i ? ' selected' : ''}>${T('loop {n} — every point, in order', { n: i + 1 })}</option>`).join('')}
 			</select>
 		</label>
 	</div>`;
-	openDialog(`<h2>Put the ${what} on the game's map</h2>
-		<p>Black Desert reads its world map from a file. Paste this block in and the
-		${what === 'hunt' ? 'courses and grounds you ticked' : 'stops'} appear
-		${r.loop ? 'as one of the map\'s three navigation loops' : 'under <strong>World Map → Favorites</strong>, numbered in order, each with a locate button'}.</p>
+	openDialog(`<h2>${r.source === 'hunt' ? T('Put the hunt on the game\'s map') : r.source === 'trace' ? T('Put the traced route on the game\'s map') : T('Put the route on the game\'s map')}</h2>
+		<p>${T('Black Desert reads its world map from a file. Paste this block in and the {subject} appear {where}.', {
+			subject: what === 'hunt' ? T('courses and grounds you ticked') : T('stops'),
+			where: r.loop ? T('as one of the map\'s three navigation loops') : T('under <strong>World Map → Favorites</strong>, numbered in order, each with a locate button')
+		})}</p>
 		<p class="map-game-fit">${esc(fit)}</p>
 		${loopRow}
-		<textarea class="map-xml" readonly rows="10" spellcheck="false" aria-label="The XML block for gameVariable.xml">${esc(r.xml)}</textarea>
+		<textarea class="map-xml" readonly rows="10" spellcheck="false" aria-label="${T('The XML block for gameVariable.xml')}">${esc(r.xml)}</textarea>
 		<div class="map-game-btns">
-			<button class="ghost-btn" data-act="map-game-copy">Copy</button>
-			<button class="ghost-btn" data-act="map-game-save">Download .xml</button>
+			<button class="ghost-btn" data-act="map-game-copy">${T('Copy')}</button>
+			<button class="ghost-btn" data-act="map-game-save">${T('Download .xml')}</button>
 		</div>
 		${direct}
 		<details class="map-game-how">
-			<summary>How to install it</summary>
+			<summary>${T('How to install it')}</summary>
 			<ol>
-				<li>Go to the <strong>character selection screen</strong>, or close the game — it rewrites this file whenever a character loads, so a paste made while playing is lost.</li>
-				<li>Open <code>${esc(FILE_HINT.windows)}</code>. On Linux under Steam it is
-					<code>${esc(FILE_HINT.linux)}</code>. The account folder is a number; the <code>gameVariable.xml</code> <em>inside</em> it is the one the map reads, not the one beside it.</li>
-				<li>Find the <code>&lt;WorldMapQuickScreenPosition Version="4"&gt;</code> block near the end and replace the whole block with this one. It replaces any favourites and camera positions you saved before; to keep camera positions, paste only the <code>&lt;WorldmapBookMark&gt;</code> part.</li>
-				<li>Save, load a character, open the map: the stops are in Favorites.</li>
+				<li>${T('Go to the <strong>character selection screen</strong>, or close the game — it rewrites this file whenever a character loads, so a paste made while playing is lost.')}</li>
+				<li>${T('Open <code>{windows}</code>. On Linux under Steam it is <code>{linux}</code>. The account folder is a number; the <code>gameVariable.xml</code> <em>inside</em> it is the one the map reads, not the one beside it.', { windows: esc(FILE_HINT.windows), linux: esc(FILE_HINT.linux) })}</li>
+				<li>${T('Find the <code>&lt;WorldMapQuickScreenPosition Version="4"&gt;</code> block near the end and replace the whole block with this one. It replaces any favourites and camera positions you saved before; to keep camera positions, paste only the <code>&lt;WorldmapBookMark&gt;</code> part.')}</li>
+				<li>${T('Save, load a character, open the map: the stops are in Favorites.')}</li>
 			</ol>
-			<p>The trick is the fishing community's — Flockenberger's <em>bdo-fish-waypoints</em> is where the file format was worked out.</p>
+			<p>${T('The trick is the fishing community\'s — Flockenberger\'s <em>bdo-fish-waypoints</em> is where the file format was worked out.')}</p>
 		</details>
 		<div class="dialog-actions">
-			<button class="ghost-btn" data-act="map-game-in" title="Read favourites, camera slots and loops back out of the game's file">The other way: bring the game's map here</button>
-			<button class="ghost-btn" data-close>Close</button>
+			<button class="ghost-btn" data-act="map-game-in" title="${T('Read favourites, camera slots and loops back out of the game\'s file')}">${T('The other way: bring the game\'s map here')}</button>
+			<button class="ghost-btn" data-close>${T('Close')}</button>
 		</div>`);
 }

@@ -4,6 +4,7 @@
 // shell -- ui.js, sync.js and every screen all talk through here.
 
 import { esc } from './fmt.js';
+import { T } from './i18n.js';
 import { attachSheet } from './sheet.js';
 
 let toastTimer = null;
@@ -11,7 +12,7 @@ let toastTimer = null;
 export function toast(message, undoable = false) {
 	const el = document.getElementById('toast');
 	el.innerHTML = `<span>${esc(message)}</span>` +
-		(undoable ? '<button type="button" data-act="undo">Undo</button>' : '');
+		(undoable ? `<button type="button" data-act="undo">${T('Undo')}</button>` : '');
 	el.hidden = false;
 	clearTimeout(toastTimer);
 	toastTimer = setTimeout(() => { el.hidden = true; }, 3600);

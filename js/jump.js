@@ -7,6 +7,7 @@
 // count, its reservations and every way to get it already live.
 
 import { esc, F } from './fmt.js';
+import { T, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { img, allItems, offerableItems } from './ui-bits.js';
 import { snapshot } from './ui-state.js';
@@ -58,10 +59,10 @@ export function openJump({ tabs, go }) {
 	if (!items) items = allItems().sort((a, b) => a.localeCompare(b));
 	const host = openDialog(`
 		<div class="jump">
-			<input class="field jump-in" type="search" placeholder="Find an item or a tab… (Ctrl+K)" aria-label="Find" autocomplete="off">
-			<div class="chips jump-kinds" data-jump-kinds>${[['all', 'Everything'], ...KINDS.map(k => [k.id, k.label])].map(([id, label]) => `<button class="chip tiny${id === 'all' ? ' active' : ''}" data-kind="${id}" aria-pressed="${id === 'all'}">${label}</button>`).join('')}</div>
+			<input class="field jump-in" type="search" placeholder="${T('Find an item or a tab… (Ctrl+K)')}" aria-label="${T('Find')}" autocomplete="off">
+			<div class="chips jump-kinds" data-jump-kinds>${[['all', T('Everything')], ...KINDS.map(k => [k.id, said(k.label)])].map(([id, label]) => `<button class="chip tiny${id === 'all' ? ' active' : ''}" data-kind="${id}" aria-pressed="${id === 'all'}">${label}</button>`).join('')}</div>
 			<div class="jump-list" data-jump-list></div>
-			<div class="jump-hint">↑ ↓ to move · Enter to open · 1–9, 0 switch tabs anywhere</div>
+			<div class="jump-hint">${T('↑ ↓ to move · Enter to open · 1–9, 0 switch tabs anywhere')}</div>
 		</div>`);
 	const input = host.querySelector('.jump-in');
 	const list = host.querySelector('[data-jump-list]');
@@ -90,11 +91,11 @@ export function openJump({ tabs, go }) {
 		rows = [...tabHits, ...itemHits];
 		on = Math.min(on, Math.max(0, rows.length - 1));
 		list.innerHTML = rows.length ? rows.map((r, i) => `<button class="jump-row${i === on ? ' on' : ''}" data-i="${i}">
-			${r.kind === 'item' ? img(r.value, 'row-icon sm') : '<span class="jump-tab">tab</span>'}
-			<span class="jump-name">${esc(r.label)}</span>
-			${r.kind === 'item' && kind === 'all' && kindTag(r.value) ? `<span class="jump-kind">${esc(kindTag(r.value))}</span>` : ''}
-			${r.kind === 'item' && store.getStock(r.value) ? `<span class="jump-own">${F(store.getStock(r.value))} owned</span>` : ''}
-		</button>`).join('') : (q ? '<p class="empty">Nothing by that name.</p>' : '');
+			${r.kind === 'item' ? img(r.value, 'row-icon sm') : `<span class="jump-tab">${T('badge|tab')}</span>`}
+			<span class="jump-name">${esc(r.kind === 'item' ? gameName(r.label) : said(r.label))}</span>
+			${r.kind === 'item' && kind === 'all' && kindTag(r.value) ? `<span class="jump-kind">${esc(said(kindTag(r.value)))}</span>` : ''}
+			${r.kind === 'item' && store.getStock(r.value) ? `<span class="jump-own">${T('{n} owned', { n: F(store.getStock(r.value)) })}</span>` : ''}
+		</button>`).join('') : (q ? `<p class="empty">${T('Nothing by that name.')}</p>` : '');
 	};
 	const pick = i => {
 		const r = rows[i];

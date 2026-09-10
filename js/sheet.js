@@ -17,6 +17,7 @@
 // when there is nothing left to scroll up to, so the two gestures never
 // fight over the same stroke.
 
+import { T } from './i18n.js';
 import { isPhone } from './viewport.js';
 
 /** How far a stroke travels before it is a drag and not a tap. */
@@ -126,7 +127,7 @@ export function attachSheet(el, { onDismiss = null, key = '' } = {}) {
 	const grab = document.createElement('button');
 	grab.type = 'button';
 	grab.className = 'sheet-grab';
-	grab.setAttribute('aria-label', 'Resize this panel');
+	grab.setAttribute('aria-label', T('Resize this panel'));
 	el.prepend(grab);
 
 	if (key && heights.get(key) === 'tall') el.classList.add('tall');
