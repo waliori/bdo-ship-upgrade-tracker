@@ -6,6 +6,7 @@
 
 import puppeteer from 'puppeteer-core';
 import { RELEASE } from '../../js/about.js';
+import * as voice from './voice.mjs';
 
 // Override for a different Chrome or a different port:
 //   CHROME=/usr/bin/chromium PORT=9000 node scenes.mjs out
@@ -34,6 +35,15 @@ const CURSOR = `
 		if (window.__touch) cap.classList.add('phone');
 		cap.innerHTML = '<span></span>';
 		document.body.appendChild(cap);
+
+		// A chapter card. The guide films are a series, and a viewer
+		// dropped into the middle of one should be told which part they
+		// are watching before anything moves.
+		const card = document.createElement('div');
+		card.id = '__card';
+		card.innerHTML = '<div><b></b><i></i></div>';
+		if (window.__touch) card.classList.add('phone');
+		document.body.appendChild(card);
 
 		const css = document.createElement('style');
 		css.textContent = \`
@@ -68,6 +78,23 @@ const CURSOR = `
 			#__cap.phone { padding: 0 10px 18px; }
 			#__cap.phone span { padding: 11px 16px; border-radius: 12px;
 				font-size: 20px; line-height: 1.3; }
+			/* The chapter card: the app dimmed behind it, so the frame is
+			   still recognisably this app and not a title sequence. */
+			#__card { position: fixed; inset: 0; z-index: 2147483645;
+				display: flex; align-items: center; justify-content: center;
+				background: rgba(4, 12, 22, .82); backdrop-filter: blur(3px);
+				opacity: 0; transition: opacity .45s ease; pointer-events: none; }
+			#__card.on { opacity: 1; }
+			#__card > div { text-align: center; padding: 0 32px;
+				font-family: 'Chakra Petch', 'Noto Sans', system-ui, sans-serif; }
+			#__card b { display: block; font-size: 54px; font-weight: 700;
+				letter-spacing: .4px; color: #eef6fd;
+				text-shadow: 0 4px 24px rgba(0,0,0,.6); }
+			#__card i { display: block; margin-top: 14px; font-style: normal;
+				font-size: 25px; font-weight: 500; letter-spacing: .2px;
+				color: rgba(170, 205, 235, .95); }
+			#__card.phone b { font-size: 34px; }
+			#__card.phone i { font-size: 17px; margin-top: 10px; }
 			/* On a phone the pointer reads better as a fingertip. */
 			#__cur.touch svg { display: none; }
 			#__cur.touch { width: 34px; height: 34px; margin: -17px 0 0 -17px;
@@ -231,16 +258,41 @@ export async function moveTo(page, sel, { settle = 620 } = {}) {
 const press = page => page.evaluate(() => document.getElementById('__cur').classList.add('down'));
 const lift = page => page.evaluate(() => document.getElementById('__cur').classList.remove('down'));
 
-export async function click(page, sel, { after = 700 } = {}) {
-	const el = await pick(page, sel);
-	const at = await centreOf(page, el);
-	await aim(page, at);
-	await wait(620);
-	await press(page);
-	await wait(140);
-	await el.click();
-	await lift(page);
-	await wait(after);
+/**
+ * Aim at something and press it.
+ *
+ * A handle can go stale between being found and being pressed: every
+ * screen here is drawn from state, so a save landing or a clock rolling
+ * over replaces the very node the pointer just glided onto, and the
+ * click lands on an element no longer in the document. `pick` already
+ * asks again when it cannot *find* a match; this is the same courtesy
+ * one step later, for a match that was found and then swapped out.
+ *
+ * Only ever retried on that one error, and only from a fresh `pick`.
+ * Puppeteer raises it while asserting the node is still connected --
+ * before any event is dispatched -- so a retry cannot press twice.
+ */
+export async function click(page, sel, { after = 700, tries = 3 } = {}) {
+	for (let go = 1; ; go++) {
+		const el = await pick(page, sel);
+		const at = await centreOf(page, el);
+		await aim(page, at);
+		await wait(620);
+		await press(page);
+		await wait(140);
+		try {
+			await el.click();
+		} catch (e) {
+			await lift(page);
+			if (go >= tries || !/detached|not connected/i.test(e.message)) throw e;
+			// Redrawn under the pointer. Let it settle and go again.
+			await wait(400);
+			continue;
+		}
+		await lift(page);
+		await wait(after);
+		return;
+	}
 }
 
 /**
@@ -325,21 +377,121 @@ export async function headerBtn(page, act, { after = 900 } = {}) {
 	await click(page, sel, { after });
 }
 
+/* ------------------------------------------------------------------ *
+ * the tape, and the narration laid along it
+ * ------------------------------------------------------------------ */
+
 /**
- * Put a line on screen, and leave it there.
+ * The film being shot, if one is.
  *
- * Reading rate is the thing to get right: too fast and the clip is
- * useless, too slow and it drags. Roughly 17 characters a second with a
- * floor -- the upper end of what a broadcast subtitle asks of a reader,
- * which this one can afford because it is set half again as large.
+ * Module state rather than something threaded through every verb,
+ * because the whole point is that a narrated chapter reads exactly like
+ * the silent scenes do: `say(page, '...')` and nothing else. A scene
+ * shot without `film()` around it -- every README clip -- finds no reel
+ * here and falls back to holding the caption for a reading time, which
+ * is what those clips have always done.
+ */
+let reel = null;
+
+/**
+ * The beat of silence left after a line finishes.
+ *
+ * Narration that butts one sentence against the next is exhausting to
+ * listen to, and the pictures need a moment to be looked at anyway.
+ */
+const GAP = Number(process.env.VOICE_GAP || 280);
+
+/**
+ * How far the recording lags the moment `screencast()` hands back.
+ *
+ * Chrome is asked for frames and then starts sending them, so the tape's
+ * time zero is a little after this process thinks it started rolling.
+ * Everything downstream is measured from that same instant, so a wrong
+ * value here slides the whole soundtrack rather than smearing it --
+ * one number to calibrate, not a per-line problem.
+ *
+ * Measured at -84ms here, by flipping a full-screen div from black to
+ * white at a known moment and asking ffmpeg's blackdetect when the
+ * black ended: the flip at wall +2004ms landed at 1.92s of video. Two
+ * frames' worth, and rounded to -80 because a 25fps screencast cannot
+ * resolve finer than 40ms anyway.
+ */
+const LEAD = Number(process.env.VOICE_LEAD || -80);
+
+/**
+ * Start the tape, and the timeline the narration is laid on.
+ *
+ * Returns nothing useful on purpose: the reel is module state, and what
+ * a caller wants back is at `cut()`, when the line list is complete.
+ */
+export async function film(page, path, { fps = 25, narrate = true } = {}) {
+	const rec = await page.screencast({ path, fps });
+	reel = { rec, path, narrate, lines: [], t0: Date.now() };
+}
+
+/**
+ * Stop the tape and hand back what was said and when.
+ *
+ * The trailing beat is the same one every README clip ends on -- a
+ * moment to read the result before it loops or cuts away.
+ */
+export async function cut({ tail = 900 } = {}) {
+	const r = reel;
+	reel = null;
+	await wait(tail);
+	await r.rec.stop();
+	return { path: r.path, ms: Date.now() - r.t0, lead: LEAD, lines: r.lines };
+}
+
+/**
+ * Put a line on screen, say it aloud, and leave it there.
+ *
+ * With a film rolling the hold is the length of the synthesised audio,
+ * so a beat lasts exactly as long as its sentence takes to speak and
+ * the pictures can never drift from the words. Without one -- the
+ * README clips, which are silent GIFs -- it falls back to a reading
+ * rate: roughly 17 characters a second with a floor, the upper end of
+ * what a broadcast subtitle asks of a reader, which this one can afford
+ * because it is set half again as large.
  */
 export async function say(page, text, { hold = null } = {}) {
+	const cue = reel && reel.narrate && text ? await voice.clip(text) : null;
 	await page.evaluate(t => {
 		const cap = document.getElementById('__cap');
 		cap.querySelector('span').textContent = t;
 		cap.classList.toggle('on', Boolean(t));
 	}, text);
-	if (text) await wait(hold ?? Math.max(1400, Math.round(text.length * 58)));
+	if (!text) return;
+	if (cue) {
+		// Timed from after the caption is up, so the word and the line
+		// under it arrive together.
+		reel.lines.push({ text, at: Date.now() - reel.t0, ms: cue.ms, file: cue.path });
+		await wait(cue.ms + GAP);
+	} else {
+		await wait(hold ?? Math.max(1400, Math.round(text.length * 58)));
+	}
+}
+
+/**
+ * A chapter card, over the dimmed app.
+ *
+ * `line` is spoken while it is up, which is what keeps a series from
+ * opening every part on two seconds of silence; without a film rolling
+ * it simply holds long enough to be read.
+ */
+export async function card(page, title, sub = '', { line = '', hold = 2400 } = {}) {
+	await page.evaluate((t, u) => {
+		const c = document.getElementById('__card');
+		c.querySelector('b').textContent = t;
+		c.querySelector('i').textContent = u;
+		c.classList.add('on');
+	}, title, sub);
+	await wait(520);
+	if (line) await say(page, line);
+	else await wait(hold);
+	await page.evaluate(() => document.getElementById('__card').classList.remove('on'));
+	if (line) await hush(page);
+	await wait(520);
 }
 
 /** Clear the caption and wait for it to fade. */

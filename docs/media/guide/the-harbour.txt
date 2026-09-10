@@ -1,0 +1,11 @@
+Everything so far runs in your browser alone. This last part only exists where a deployment has sign-in.
+And a note before it does: the sailors on these boards are invented. A machine shooting a film has no server with real players on it. The tab, the digest and the ranking are the app's own.
+Sixteen boards, built from the sailors who chose to stand on them.
+A place on a board is a door. This is that sailor's card:
+their fleet, their crew, and what they have done at sea.
+And this is their ship, on your own Ship tab, fully fitted.
+To look at, and not to keep. One press puts you back on yours.
+The other half of the tab adds the whole fleet up.
+Nothing goes onto a board that was not offered.
+You see the exact digest before you agree to it, and leaving deletes it again.
+Your data stays in your browser. You sign in to sync it between machines, or to take part in this. Neither is required to use anything else.

@@ -68,6 +68,108 @@ palette is generated per clip with `stats_mode=diff` and applied with
 bayer dithering, because a flat global palette bands badly across the
 app's ocean gradient.
 
+## The guide films
+
+Everything above shoots the silent clips the README embeds. The other
+half of this harness shoots **five narrated chapters** — the thing to
+send someone who asks how one part of the app works, rather than what
+the app is:
+
+| Chapter | What it covers |
+|---|---|
+| `the-yard` | Queue a build, record what you gather, craft, undo, price a part, record a level, the Tree, To Get |
+| `the-sea` | The day's quests, the Map's pins and layers, a plotted loop with distances, and drawing on the water |
+| `your-ship` | Hull, parts, crystal and crew — including reading a crew off the game's own screenshots |
+| `a-run` | Answering one island, the board that follows, and sailing the run it lays out |
+| `the-harbour` | The community boards, what a place on one opens, and what is and is not shared |
+
+```bash
+PORT=8765 node server.js &
+npm run guide                       # all five
+./tools/capture/guide.sh the-sea    # just one
+```
+
+Each chapter leaves `docs/media/guide/<name>.mp4` and, beside it, a
+`.vtt` and `.srt` of the same lines and a `.txt` transcript. The mp4
+already carries its words on screen — the caption bar is drawn in the
+page, and most people meet these muted — so the sidecars are for a
+player's own caption track and for whatever a video host wants to index.
+
+### Narration, and why it is synthesised first
+
+Every line a chapter speaks is spoken **before** a frame is shot, and
+the film then holds each beat for exactly as long as its sentence takes
+to say. That order is the whole trick. It means the script is the
+source and the audio is a build artefact, so rewording a sentence
+re-renders rather than sending anyone back to a microphone — and it
+means the pictures can never drift from the words, because the words
+are what set the pace.
+
+`voice.mjs` does the saying, behind four engines. Two run on this
+machine and cost nothing:
+
+```bash
+VOICE=kokoro VOICE_NAME=am_michael   npm run guide   # the default
+VOICE=piper  VOICE_NAME=en_GB-alba-medium npm run guide
+VOICE=openai VOICE_NAME=nova         npm run guide   # OPENAI_API_KEY
+VOICE=eleven VOICE_NAME=<voice id>   npm run guide   # ELEVENLABS_API_KEY
+```
+
+Clips are cached by what was said and who said it, under
+`tools/capture/voice/` — so a second shoot only synthesises the lines
+that actually changed, and switching narrator re-says everything rather
+than handing back the old one's reading.
+
+The models live in `~/.local/share/tts-voices` (override with
+`VOICE_MODELS`). Fetch them once:
+
+```bash
+# kokoro — 310 MB, the default, and the one that sounds like a person
+curl -L -o ~/.local/share/tts-voices/kokoro-v1.0.onnx \
+  https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
+curl -L -o ~/.local/share/tts-voices/voices-v1.0.bin \
+  https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
+
+# piper — 60 MB a voice, quicker, more obviously a machine
+uv tool install piper-tts
+python -m piper.download_voices en_GB-alba-medium --data-dir ~/.local/share/tts-voices
+```
+
+Both are Python wheels with C extensions in them, which on NixOS cannot
+find `libstdc++.so.6` by themselves. `voice.mjs` puts the child on
+nix-ld's library directory when there is one, so this needs no shell of
+its own — but it **appends** rather than sets, because a nix shell
+often exports an `LD_LIBRARY_PATH` that has some libraries and not that
+one.
+
+### Writing a chapter
+
+A chapter is a `say` block and a `shoot` function, and the split is not
+tidiness. The whole script has to be readable in one place so it can be
+synthesised in one batch before the browser opens: loading the model is
+most of the cost of saying anything, so a hundred lines said one process
+at a time is a quarter of an hour where the same hundred in one process
+is a couple of minutes — and a line synthesised mid-take would freeze
+the picture while it was thought about.
+
+Past that it is the same five rules as a scene, plus two:
+
+- **`say()` is the pacer.** With a film rolling it holds for the length
+  of the audio, so a beat is as long as its sentence and no longer. Say
+  the thing that is happening while it happens.
+- **`hush()` between subjects**, not between sentences. It clears the
+  bar and lets the picture stand on its own for a moment, and the
+  caption sidecars use it to decide where one caption ends.
+
+### The sailor screenshots
+
+`your-ship` ends by reading a crew off `tools/capture/shots/*.webp` —
+the game's own **Manage Sailors** window, cropped to the dialog. The
+crop is deliberate and worth keeping: the full screenshot carries the
+chat log, other players' names and the character's own, none of which
+belongs in a film on a README. They go through the real reader, in the
+page, the way a player's would.
+
 ## How the pointer gets into the recording
 
 Headless Chrome draws no cursor, so `drive.mjs` injects a fake one
@@ -127,6 +229,11 @@ Five things are worth knowing.
 | `fleet.mjs` | The example sailors on the community boards, and the `/api` answers about them |
 | `comm-audit.mjs` | A headless look over the Community tab on that same fleet |
 | `scenes.mjs` | One entry per clip and per still |
+| `guides.mjs` | The five narrated chapters — a `say` block and a `shoot` each |
+| `voice.mjs` | Saying a line, and the cache that keeps it |
+| `mix.mjs` | Narration under a film, and the `.vtt` / `.srt` / `.txt` beside it |
+| `guide.sh` | The chapters, shot and mixed |
+| `shots/` | Cropped **Manage Sailors** screenshots the crew reader is shown |
 | `tour.mjs` | The captioned film, end to end; `phone` for the narrow cut |
 | `shoot.sh` | The whole shoot, and the conversions |
 | `togif.sh` | `webm` → `gif` |

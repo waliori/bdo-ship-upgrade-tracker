@@ -1,0 +1,15 @@
+A ship in this game is a hull, four parts, a sea crystal and a crew. The Ship tab is all five at once.
+Each slot takes the best part you already hold, or one you pick yourself.
+Your Sailing Mastery counts toward speed as well, so it is a number you type in.
+And every figure on the card moves with it.
+The crew is the part nobody enjoys entering. Eighteen sailors, four growths each.
+It is also the part that cannot be estimated: a levelled sailor's real rolls are what make the speed the game's, rather than a guess.
+So it reads them off the screenshots you already took.
+Drop in the game's own Manage Sailors window, one sailor a shot.
+The reading happens here in the browser. The files never leave the machine.
+It works through them, and comes back with a table rather than a roster,
+because a scan that misreads a level should cost you a glance, not a crew.
+Check them against the game, and take the ones that are right.
+A whole fit-out can be kept under a name, and switched between.
+And the lot of it copies as a link, if someone asks what you are sailing.
+That is your ship: every number on it either yours, or read off your own screen.

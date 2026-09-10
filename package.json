@@ -31,6 +31,7 @@
     "backup": "node --env-file-if-exists=.env tools/backup.mjs",
     "restore": "node --env-file-if-exists=.env tools/backup.mjs --restore",
     "capture": "tools/capture/shoot.sh",
+    "guide": "tools/capture/guide.sh",
     "lint": "eslint ."
   },
   "dependencies": {

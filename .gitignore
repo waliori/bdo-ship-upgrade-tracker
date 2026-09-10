@@ -16,6 +16,10 @@ test/_*.tmp.mjs
 tools/capture/out/
 *.webm
 
+# Synthesised narration, keyed by what was said. Rebuilt on demand and
+# large; the mp4s it ends up inside are what ship.
+tools/capture/voice/
+
 # Artefacts of old agent tooling, never part of the app.
 .claude-flow/
 .hive-mind/

@@ -1,0 +1,93 @@
+WEBVTT
+
+1
+00:00:00.655 --> 00:00:06.270
+Every build in this app draws on one inventory: the one you actually have.
+
+2
+00:00:12.325 --> 00:00:15.849
+You start by queueing something you want to build.
+
+3
+00:00:27.480 --> 00:00:31.493
+Some ships can be reached more than one way, so it asks which.
+
+4
+00:00:31.493 --> 00:00:36.702
+It shows what each route costs. Neither of them is the right answer.
+
+5
+00:00:48.331 --> 00:00:54.714
+Queue a second thing, and the order matters. When stock is short, the build at the top gets it.
+
+6
+00:00:58.568 --> 00:01:02.765
+The Plan is everything the queue needs, gathered into one list.
+
+7
+00:01:02.765 --> 00:01:07.472
+Red is missing. Blue is still to make. Green is already covered.
+
+8
+00:01:07.472 --> 00:01:10.783
+As you gather, you type in what you have.
+
+9
+00:01:14.796 --> 00:01:18.363
+And every build re-plans around it, at once.
+
+10
+00:01:21.607 --> 00:01:27.008
+A whole trip can go in as one change, rather than a box at a time.
+
+11
+00:01:32.783 --> 00:01:37.374
+Anything you have the materials for can be made in the Workshop.
+
+12
+00:01:39.798 --> 00:01:44.730
+Crafting moves real stock. Ingredients out, the product in.
+
+13
+00:01:44.730 --> 00:01:48.937
+Slipped? Every change here steps back, and forward again.
+
+14
+00:01:56.360 --> 00:02:00.078
+Enhancing is kept separate, because attempts fail.
+
+15
+00:02:00.078 --> 00:02:05.991
+So it shows the real odds at your stack, and the most the part can ever cost you.
+
+16
+00:02:10.260 --> 00:02:15.000
+The Inventory is one tile per thing you own, or still need.
+
+17
+00:02:17.690 --> 00:02:21.612
+Open any of them and every way of getting it is priced:
+
+18
+00:02:21.612 --> 00:02:29.659
+what the shop wants, against what making one costs once its own ingredients are priced too, all the way down.
+
+19
+00:02:35.349 --> 00:02:40.750
+A part you already levelled in the game is recorded, not re-enhanced.
+
+20
+00:02:44.204 --> 00:02:49.243
+You tell it where the part got to, and it spends nothing to agree with you.
+
+21
+00:02:57.246 --> 00:03:02.519
+The Tree is there for the other question: why a build needs what it needs.
+
+22
+00:03:09.950 --> 00:03:14.209
+And To Get is the shopping list, grouped by where you would go for it.
+
+23
+00:03:14.209 --> 00:03:19.632
+That is the yard. What you want, what it takes, and what you still have to find.

@@ -1,0 +1,43 @@
+1
+00:00:00,472 --> 00:00:08,775
+Everything so far runs in your browser alone. This last part only exists where a deployment has sign-in.
+
+2
+00:00:13,576 --> 00:00:26,749
+And a note before it does: the sailors on these boards are invented. A machine shooting a film has no server with real players on it. The tab, the digest and the ranking are the app's own.
+
+3
+00:00:26,749 --> 00:00:31,724
+Sixteen boards, built from the sailors who chose to stand on them.
+
+4
+00:00:35,926 --> 00:00:40,120
+A place on a board is a door. This is that sailor's card:
+
+5
+00:00:40,120 --> 00:00:44,028
+their fleet, their crew, and what they have done at sea.
+
+6
+00:00:48,959 --> 00:00:53,088
+And this is their ship, on your own Ship tab, fully fitted.
+
+7
+00:00:53,088 --> 00:00:57,892
+To look at, and not to keep. One press puts you back on yours.
+
+8
+00:01:09,842 --> 00:01:13,793
+The other half of the tab adds the whole fleet up.
+
+9
+00:01:13,906 --> 00:01:17,244
+Nothing goes onto a board that was not offered.
+
+10
+00:01:17,244 --> 00:01:22,467
+You see the exact digest before you agree to it, and leaving deletes it again.
+
+11
+00:01:22,467 --> 00:01:32,818
+Your data stays in your browser. You sign in to sync it between machines, or to take part in this. Neither is required to use anything else.
