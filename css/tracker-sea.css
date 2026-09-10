@@ -869,3 +869,62 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .map-hunt[disabled] { opacity: 0.55; cursor: default; }
 .map-row-sub.note { white-space: normal; color: var(--amber); }
 
+
+/* Reading a crew off screenshots: the drop, the bar and the table that
+   asks whether the scan got it right before anything is written. */
+/* Wider than the wide dialog: six columns, four of them fields. Guarded
+   above the phone breakpoint, where every dialog is the screen anyway. */
+@media (min-width: 721px) { .dialog-box.wide.shot-box { max-width: 940px; } }
+.shot-drop { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 26px 16px; margin: 4px 0 10px; border-radius: 12px; border: 1.5px dashed var(--line-btn-hi); background: rgba(var(--deep-rgb), 0.35); cursor: pointer; text-align: center; }
+.shot-drop:hover, .shot-drop:focus-visible, .shot-drop.over { border-color: var(--teal); background: rgba(78, 201, 174, 0.09); }
+.shot-drop-mark { font-size: 26px; line-height: 1; opacity: 0.8; }
+.shot-bar { height: 8px; border-radius: 4px; background: rgba(var(--deep-rgb), 0.7); border: 1px solid var(--line-btn); overflow: hidden; margin: 10px 0 4px; }
+.shot-bar i { display: block; height: 100%; background: var(--teal); transition: width 0.2s ease; }
+.shot-table-wrap { max-height: min(52vh, 460px); overflow: auto; margin: 8px 0; border: 1px solid var(--line-btn); border-radius: var(--r-sm); }
+.shot-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.shot-table th { position: sticky; top: 0; z-index: 1; background: rgba(var(--deep-rgb), 0.98); text-align: left; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); padding: 7px 8px; border-bottom: 1px solid var(--line-btn); }
+.shot-table td:nth-child(5) { min-width: 200px; }
+.shot-table td { padding: 6px 8px; border-bottom: 1px solid rgba(var(--line-rgb), 0.16); vertical-align: middle; }
+.shot-row.off { opacity: 0.45; }
+.shot-name { min-width: 110px; padding: 3px 6px; font-size: 12.5px; }
+.shot-stat { display: inline-block; margin: 0 4px 2px 0; padding: 1px 5px; border-radius: 5px; background: rgba(var(--blue-rgb), 0.12); color: var(--ink-mid); font-size: 11px; white-space: nowrap; }
+.shot-stat.odd { background: rgba(232, 182, 97, 0.16); color: var(--amber); }
+.shot-note { min-width: 118px; font-size: 11.5px; color: var(--ink-mute); }
+.shot-warn { display: inline-block; margin-left: 6px; white-space: normal; color: var(--amber); cursor: help; }
+.shot-skipped { margin: 6px 0; font-size: 12px; color: var(--ink-mute); }
+.shot-skipped summary { cursor: pointer; }
+@media (max-width: 620px) {
+	.shot-table { font-size: 12px; }
+	.shot-table td, .shot-table th { padding: 5px 5px; }
+	.shot-table td:nth-child(5) { min-width: 130px; }
+	.shot-name { min-width: 78px; }
+}
+
+/* The sailor list's order, and the growth it was ordered by shown on
+   each card so the order can be read rather than trusted. */
+.crew-sort { max-width: 190px; }
+.roster-stat { margin-left: 6px; padding: 0 5px; border-radius: 5px; background: rgba(78, 201, 174, 0.16); color: var(--teal-hi); font-family: var(--font-display); font-size: 11px; font-weight: 700; }
+
+/* "What is this crew for?" — the goals, each with what the crew would
+   come to under it, one press to the arrangement. */
+.auto-rows { display: flex; flex-direction: column; gap: 6px; margin: 12px 0 4px; }
+.auto-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 12px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.45); color: var(--ink-mid); font: inherit; text-align: left; cursor: pointer; }
+.auto-row:hover { border-color: var(--teal); background: rgba(78, 201, 174, 0.09); }
+.auto-row.picked { border-color: rgba(78, 201, 174, 0.45); }
+.auto-name { flex: 1 1 auto; min-width: 0; font-family: var(--font-display); font-size: 13.5px; font-weight: 600; color: var(--ink-hi); }
+.auto-name em { margin-left: 7px; padding: 1px 5px; border-radius: 4px; background: rgba(78, 201, 174, 0.18); color: var(--teal-hi); font-size: 9.5px; font-style: normal; letter-spacing: 0.06em; text-transform: uppercase; }
+.auto-name small, .auto-crew small { display: block; margin-top: 1px; font-family: var(--font-body, inherit); font-size: 11px; font-weight: 400; color: var(--ink-faint); }
+.auto-figs { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 4px 8px; }
+.auto-fig { font-size: 11px; color: var(--ink-faint); }
+.auto-fig b { font-family: var(--font-display); font-size: 12.5px; color: var(--ink-mute); }
+.auto-fig.on b { color: var(--teal-hi); }
+.auto-delta { flex: 0 0 62px; text-align: right; font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--ink-faint); }
+.auto-delta.up { color: var(--teal); }
+.auto-delta.down { color: var(--amber); }
+.auto-delta small { display: block; font-family: var(--font-body, inherit); font-size: 9.5px; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-faint); }
+.auto-crew { flex: 0 0 auto; text-align: right; font-size: 11.5px; color: var(--ink-mute); }
+@media (max-width: 620px) {
+	.auto-row { flex-wrap: wrap; gap: 4px 10px; }
+	.auto-name { flex: 1 1 100%; }
+	.auto-figs { flex: 1 1 auto; }
+}

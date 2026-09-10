@@ -22,12 +22,13 @@ import { GRADES, gradeById, crystalById, crystalsOf, crystalVariant, crystalLine
 import { skinFor, SKIN_SLOTS } from './ship_skins.js';
 import { openFleet } from './setups.js';
 import { openPicker } from './picker.js';
+import { openSailorImport } from './sailor-import.js';
 import { roleOf, CRYSTAL_FOR, SAILOR_NOTE, PART_PATH } from './ship_roles.js';
 import { encodeShare, shareLink } from './share.js';
 import { enhancedName } from './planner.js';
 import {
 	pool, mateTypes, anyType, care, rations, expSplit, firstMates, slotSources, statBand, rollRank,
-	contract, SAILOR_CAP, seatsFor, fitSeats, statOf, crewTotals, autoAssign, logLevel, levelSteps, STAT_KEYS, STAT_NAMES } from './sailors.js';
+	contract, SAILOR_CAP, seatsFor, fitSeats, statOf, crewTotals, autoAssign, logLevel, levelSteps, STAT_KEYS, STAT_NAMES, statLabel, CREW_GOALS } from './sailors.js';
 
 // Session state: who is picked up, and how the roster is ordered.
 let selId = null;
@@ -159,7 +160,7 @@ function board(ship, stats, totals) {
 			<h2 class="panel-title teal">Manage sailors</h2>
 			<span class="panel-sub">${esc(hint)}</span>
 			<span class="panel-spacer"></span>
-			<button class="act quiet small" data-act="crew-auto" ${roster().length ? '' : 'disabled'}>Auto assign</button>
+			<button class="act quiet small" data-act="crew-auto" ${roster().length ? '' : 'disabled'} title="Arrange the roster for what this boat is for">Auto assign…</button>
 			<button class="act quiet small" data-act="crew-disembark-all" ${totals.seated ? '' : 'disabled'}>Disembark all</button>
 		</div>
 		<div class="crew-board">
@@ -203,10 +204,29 @@ function statCards(ship, stats, totals) {
 	</div>`;
 }
 
+/**
+ * How the sailor list is ordered. The four movement growths and the
+ * four cannon ones are each an order of their own: a barter roster is
+ * chosen on Endurance, a gunnery one on Focus, and reading a list of
+ * eighteen to find the fastest was the only way to do it before.
+ */
+const SORTS = [
+	{ id: 'stats', label: 'Best all round', group: 'By' },
+	{ id: 'type', label: 'Type', group: 'By' },
+	{ id: 'cond', label: 'Condition', group: 'By' },
+	{ id: 'lv', label: 'Level', group: 'By' },
+	...STAT_KEYS.map(k => ({ id: k, label: statLabel(k), group: 'By growth', stat: k }))
+];
+
+const sortStat = id => (SORTS.find(x => x.id === id) || {}).stat || '';
+
 function rosterPanel(ship) {
+	const by = sortStat(sort);
 	const list = [...roster()].sort((a, b) => {
+		if (by) return statOf(b, by) - statOf(a, by) || b.lv - a.lv || a.name.localeCompare(b.name);
 		if (sort === 'type') return a.type.localeCompare(b.type) || b.lv - a.lv;
 		if (sort === 'cond') return b.cond - a.cond;
+		if (sort === 'lv') return b.lv - a.lv || a.name.localeCompare(b.name);
 		const sum = s => statOf(s, 'speed') + statOf(s, 'accel') + statOf(s, 'turn') + statOf(s, 'brake');
 		return sum(b) - sum(a);
 	});
@@ -221,7 +241,8 @@ function rosterPanel(ship) {
 			<span class="roster-tile" style="background:${RACE[t.race] || '#8fb4d6'}">${face(t, s)}<i class="roster-cond" style="width:${s.cond}%;background:${condColor(s.cond)}"></i></span>
 			<span class="roster-main">
 				<span class="roster-name">${esc(s.name)} <span class="crew-race" style="color:${RACE[t.race] || 'inherit'}">${esc(t.race || '')}</span></span>
-				<span class="roster-sub">${esc(s.type)} · Lv ${s.lv}${t.mate ? ' · first mate' : ''}</span>
+				<span class="roster-sub">${esc(s.type)} · Lv ${s.lv}${t.mate ? ' · first mate' : ''}${by
+		? `<b class="roster-stat" title="${esc(statLabel(by))}">${statOf(s, by)}%</b>` : ''}</span>
 				<span class="roster-pos ${where ? 'on' : ''}">${where ? `⚓ ${esc(seatName ? seatName.label : where)}` : '(idle)'}</span>
 			</span>
 		</div>`;
@@ -236,8 +257,10 @@ function rosterPanel(ship) {
 		<button class="act quiet small" data-act="crew-bulk" data-op="all">Tick all</button>
 		<button class="act quiet small" data-act="crew-bulk" data-op="clear">Untick</button>
 	</div>` : '';
-	const tabs = [['stats', 'By stats'], ['type', 'By type'], ['cond', 'By condition']].map(([id, label]) =>
-		`<button class="chip ${sort === id ? 'active' : ''}" data-act="crew-sort" data-id="${id}">${label}</button>`).join('');
+	const groups = [...new Set(SORTS.map(x => x.group))].map(g =>
+		`<optgroup label="${esc(g)}">${SORTS.filter(x => x.group === g).map(x =>
+			`<option value="${esc(x.id)}"${x.id === sort ? ' selected' : ''}>${esc(x.label)}</option>`).join('')}</optgroup>`).join('');
+	const tabs = `<select class="purse-inline crew-sort" data-act="crew-sort" aria-label="Order the sailor list">${groups}</select>`;
 	const n = roster().length;
 	return `<div class="panel crew-panel">
 		<div class="panel-head crew-head">
@@ -246,6 +269,7 @@ function rosterPanel(ship) {
 			<span class="panel-spacer"></span>
 			<div class="chips">${tabs}</div>
 			<button class="act quiet small" data-act="crew-recover-all" ${n ? '' : 'disabled'} title="Marks every sailor's condition back at 100">Recover all</button>
+			<button class="act quiet small" data-act="crew-import" title="Read a crew off screenshots of the game's own Manage Sailors window — in this browser; nothing is uploaded">📷 Read screenshots</button>
 			<button class="act small" data-act="crew-hire" ${n >= SAILOR_CAP ? 'disabled' : ''}>+ Hire</button>
 		</div>
 		<p class="crew-note">${esc(SAILOR_NOTE[roleOf(ship) && roleOf(ship).role === 'bartering' ? 'barter' : 'hunt'])}</p>
@@ -301,11 +325,14 @@ function sailorSheet(s, { ship, where = null, readOnly = false } = {}) {
 		return `<div class="sel-stat${typed ? ' typed' : ''}"><span><span data-tip="${esc(name.tip)}">${esc(name.game)}${name.means ? ` <small class="stat-means">${esc(name.means)}</small>` : ''}</span>${word ? `<em class="roll-note ${v >= band.avg ? 'good' : 'low'}">${word}</em>` : ''}<b>+${readOnly ? `<span class="stat-in still" title="${title}">${v}</span>` : `<input class="purse-inline narrow stat-in" type="text" inputmode="decimal" value="${v}"
 			data-act="crew-stat" data-id="${esc(s.id)}" data-key="${key}" aria-label="${esc(name.game)}, as the sailor window shows it" title="${title}">`}%</b></span><i><b style="width:${Math.min(100, v / max * 100)}%"></b></i></div>`;
 	};
-	const stats = [bar('Speed', 'speed', 5), bar('Accel', 'accel', 8), bar('Turn', 'turn', 10), bar('Brake', 'brake', 10)];
+	// A named mate's panel in game has no growths on it at all -- the
+	// seat pays their skill, not numbers -- so there is nothing to show
+	// or to type.
+	const stats = t.mate ? [] : [bar('Speed', 'speed', 5), bar('Accel', 'accel', 8), bar('Turn', 'turn', 10), bar('Brake', 'brake', 10)];
 	// The cannon growths, as the window lists them: Patience has no
 	// estimate -- no type's rolls for it are known -- so it shows only
 	// when typed, or as a blank to type into.
-	if (t.force !== undefined) stats.push(bar('Patience', 'patience', 10), bar('Force', 'force', 6), bar('Focus', 'focus', 14), bar('Vision', 'vision', 50));
+	if (!t.mate && t.force !== undefined) stats.push(bar('Patience', 'patience', 10), bar('Force', 'force', 6), bar('Focus', 'focus', 14), bar('Vision', 'vision', 50));
 	return `<div class="sel-top">
 			<span class="roster-tile big" style="background:${RACE[t.race] || '#8fb4d6'}">${face(t, s)}</span>
 			<div>
@@ -317,8 +344,8 @@ function sailorSheet(s, { ship, where = null, readOnly = false } = {}) {
 		</div>
 		<div class="sel-cond"><span><span>Condition</span><b style="color:${condColor(s.cond)}">${readOnly ? s.cond : `<input class="purse-inline narrow" type="text" inputmode="numeric" value="${s.cond}" data-act="crew-cond" data-id="${esc(s.id)}" aria-label="Condition">`}%</b></span>
 			<i><b style="width:${s.cond}%;background:${condColor(s.cond)}"></b></i></div>
-		<div class="sel-stats">${stats.join('')}</div>
-		<div class="sel-note">${readOnly ? 'Each level-up rolls inside a hidden range, so a growth not typed in is an estimate; a typed one is judged against the level’s band.' : 'Each level-up rolls inside a hidden range, so these are estimates — type what the sailor window shows and they outrank it, judged against the level\'s band.'}</div>
+		${stats.length ? `<div class="sel-stats">${stats.join('')}</div>` : ''}
+		<div class="sel-note">${t.mate ? 'A named mate has no growths of their own: the First Mate seat pays their skill instead.' : readOnly ? 'Each level-up rolls inside a hidden range, so a growth not typed in is an estimate; a typed one is judged against the level’s band.' : 'Each level-up rolls inside a hidden range, so these are estimates — type what the sailor window shows and they outrank it, judged against the level\'s band.'}</div>
 		<div class="sel-facts">cabins <b>${t.cabin ?? '—'}</b> · eats <b>${t.appetite ?? '—'}</b>/day · weight <b>+${t.weight ?? 0} LT</b></div>
 		${levelLogHTML(s)}
 		${t.mate
@@ -773,6 +800,51 @@ function typeRow(t, flat = false) {
 	};
 }
 
+/**
+ * What is this crew for?
+ *
+ * The old Auto assign answered a question nobody had asked -- it added
+ * the growths a seat doubles and took the biggest sum, which put a
+ * sailor with 1.1 speed and 4.8 acceleration at the sail ahead of one
+ * with 3.9 and 1.5, and cost the ship speed while the sum went up. So
+ * it asks. Every goal is laid out with what the crew would actually
+ * come to under it, against what it comes to now, and the arrangement
+ * is one press on the line that reads best.
+ */
+function autoDialog(ship) {
+	const stats = shipStats[ship];
+	const list = roster();
+	const now = crewTotals(list, (store.getProfile('seats', {}) || {})[ship] || {}, stats);
+	const role = roleOf(ship);
+	// The hull's own job is a fair guess at the answer, and the one the
+	// player chose last is a better one.
+	const suggested = store.getProfile('crewGoal', null)
+		|| (role && /monster/.test(role.role) ? 'cannon' : role && /barter|speed/.test(role.role) ? 'speed' : 'balanced');
+	const KEYS = [['speed', 'spd'], ['accel', 'acc'], ['turn', 'turn'], ['brake', 'brk']];
+	const rows = CREW_GOALS.map(g => {
+		const seats = autoAssign(list, ship, stats, g.id);
+		const t = crewTotals(list, seats, stats);
+		const own = g.id === 'cannon' ? t.force + t.focus + t.vision : g.id === 'balanced' ? t.speed + t.accel + t.turn + t.brake : t[g.id];
+		const was = g.id === 'cannon' ? now.force + now.focus + now.vision : g.id === 'balanced' ? now.speed + now.accel + now.turn + now.brake : now[g.id];
+		const d = Math.round((own - was) * 10) / 10;
+		const figures = (g.id === 'cannon'
+			? [['force', 'force'], ['focus', 'focus'], ['vision', 'vision']]
+			: KEYS).map(([k, short]) => `<span class="auto-fig${g.weights[k] ? ' on' : ''}">${esc(short)} <b>${t[k]}</b></span>`).join('');
+		return `<button class="auto-row${g.id === suggested ? ' picked' : ''}" data-act="crew-auto-go" data-goal="${esc(g.id)}" data-label="${esc(g.label)}">
+			<span class="auto-name">${esc(g.label)}${g.id === suggested ? '<em>suggested</em>' : ''}<small>${esc(g.of)}</small></span>
+			<span class="auto-figs">${figures}</span>
+			<span class="auto-delta ${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d > 0 ? `+${d}` : d < 0 ? d : '—'}<small>${esc(g.id === 'balanced' ? 'in all' : g.id === 'cannon' ? 'gunnery' : g.label.toLowerCase())}</small></span>
+			<span class="auto-crew">${t.seated} aboard<small>${F(t.cabins)}/${F(t.space || 0)} cabins</small></span>
+		</button>`;
+	}).join('');
+	openDialog(`
+		<h2>Arrange the crew</h2>
+		<p class="dialog-copy">A seat's whole effect is a <b>second copy</b> of what it doubles — the Sail doubles Endurance and Wits, the Wheel Awareness and Strength — so there is no best crew, only the best crew for something. Pick what this boat is for and the roster is arranged for it: who comes aboard as well as who sits where.</p>
+		<div class="auto-rows">${rows}</div>
+		<p class="dialog-note quiet">The figure on the right is what the crew would add to that, against ${now.seated ? 'the arrangement you have now' : 'an empty boat'}. One Undo takes it back.</p>
+		<div class="dialog-actions"><button class="act quiet" data-close>Cancel</button></div>`);
+}
+
 function hireDialog() {
 	// The pool is authored best-growth-first, which scatters the races;
 	// the picker groups adjacent runs, so it printed fifteen headings.
@@ -872,6 +944,7 @@ export function crewAction(act, el) {
 	if (looking && !LOOK_ONLY.has(act)) { toast('Only a look — nothing on this boat can be changed'); return false; }
 	switch (act) {
 		case 'crew-select': selId = selId === id ? null : id; return true;
+		case 'crew-import': openSailorImport(); return false;
 		case 'crew-fleet': openFleet(); return true;
 		case 'crew-skin-all': {
 			const on = el.dataset.on === '1';
@@ -942,7 +1015,7 @@ export function crewAction(act, el) {
 		}
 		case 'crew-link': copyShipLink(); return true;
 		case 'crew-clear-sel': selId = null; return true;
-		case 'crew-sort': sort = el.dataset.id; return true;
+		case 'crew-sort': sort = el.value || el.dataset.id; return true;
 		case 'crew-hire': hireDialog(); return true;
 		case 'crew-seat': {
 			const key = el.dataset.seat;
@@ -969,7 +1042,14 @@ export function crewAction(act, el) {
 			return true;
 		}
 		case 'crew-disembark-all': setSeats(ship, {}); return true;
-		case 'crew-auto': setSeats(ship, autoAssign(roster(), ship, shipStats[ship])); return true;
+		case 'crew-auto': autoDialog(ship); return false;
+		case 'crew-auto-go': {
+			setSeats(ship, autoAssign(roster(), ship, shipStats[ship], el.dataset.goal));
+			store.setProfileQuiet('crewGoal', el.dataset.goal);
+			closeDialog();
+			toast(`Arranged for ${el.dataset.label || el.dataset.goal}`, true);
+			return true;
+		}
 		case 'crew-recover': setRoster(roster().map(s => (s.id === id ? { ...s, cond: 100 } : s))); return true;
 		case 'crew-recover-all': setRoster(roster().map(s => ({ ...s, cond: 100 }))); return true;
 		case 'crew-dismiss': {

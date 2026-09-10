@@ -30,7 +30,7 @@ import { propose } from './barter-optimizer.js';
 import { coins as coinShop } from './sea_coins.js';
 import { landPrices } from './land-cost.js';
 import { marketStatus, marketSilver } from './market.js';
-import { GOODS, PARLEY, parleyPerTrade, levelOf, barterLevels, levelDiscount } from './barter.js';
+import { GOODS, PARLEY, parleyPerTrade, levelOf, barterLevels, levelDiscount, ROUTE_UNLOCKS } from './barter.js';
 import { parleyLedger } from './parley-ledger.js';
 import { exchanges, goodsHeld, weightOf, sellOf, aboardStock as aboardOf } from './barter-plan.js';
 import { TOWNS } from './screen-inventory.js';
@@ -1409,6 +1409,19 @@ export function runSheetHTML(chartIds = []) {
 }
 
 /** The trip recorded: one change, and a line in the log of runs. */
+/**
+ * What this run's trades opened, if they opened anything: the trade
+ * route the count crossed a threshold for. Worth a second toast --
+ * a route opening is the one thing the barter count is actually for,
+ * and it happens on the sea while the player is looking at a checklist.
+ */
+function justOpened(before, after) {
+	// The last threshold crossed, not the first: a long run can pass
+	// two, and the newest route is the news.
+	const rows = ROUTE_UNLOCKS.filter(r => r.opens && r.barters > before && r.barters <= after);
+	return rows.length ? rows[rows.length - 1].opens : null;
+}
+
 function recordTrip(plan, from) {
 	const on = sailing();
 	if (!on || !plan) return;
@@ -1453,10 +1466,25 @@ function recordTrip(plan, from) {
 	// The career's totals move with the run, in the same change.
 	const last = runs[runs.length - 1];
 	const tally = store.tallied({ runs: 1, silver: last.silver, cost: last.cost, trades: last.trades, parley: last.parley, stops: last.stops, quests: Object.fromEntries(made.map(q => [q.id, 1])) });
-	store.applyTrip({ delta: trip.delta, moves: trip.moves, profile: { runs, ratios, sevens, tally, questProgress: Object.keys(progress).length ? progress : null, questsDone: Object.keys(questsDone).length ? questsDone : null }, label: `Sailed a run: ${on.done.length} stop${on.done.length === 1 ? '' : 's'}${trip.silver ? `, ${FC(trip.silver)} sold` : ''}` });
+	// Total Barters is the game's own lifetime count, and every exchange
+	// on the run is one of them -- it is what opens the next trade route
+	// and what the barter quests are counted against. It was typed in
+	// once and then left to rot while the app watched the very trades it
+	// counts go by, so a player who sailed with the checklist had to
+	// remember to go and read the number out of the Barter Information
+	// window again. It moves with the run now, and can still be typed
+	// over when the two drift.
+	const counted = trip.trades > 0
+		? { barterCount: (Number(store.getProfile('barterCount', 0)) || 0) + Math.round(trip.trades) }
+		: {};
+	store.applyTrip({ delta: trip.delta, moves: trip.moves, profile: { runs, ratios, sevens, tally, ...counted, questProgress: Object.keys(progress).length ? progress : null, questsDone: Object.keys(questsDone).length ? questsDone : null }, label: `Sailed a run: ${on.done.length} stop${on.done.length === 1 ? '' : 's'}${trip.silver ? `, ${FC(trip.silver)} sold` : ''}` });
 	sail = null;
 	persist();
-	toast(`Recorded: ${on.done.length} stop${on.done.length === 1 ? '' : 's'}${trip.silver ? ` · ${FC(trip.silver)} in silver` : ''}${made.length ? ` · ${made.map(questTitle).join(', ')} made up` : ''}`, true);
+	// One toast, since a second would only paint over the first and take
+	// its Undo with it -- and a route opening is news that belongs beside
+	// what opened it.
+	const opened = counted.barterCount ? justOpened(counted.barterCount - Math.round(trip.trades), counted.barterCount) : null;
+	toast(`Recorded: ${on.done.length} stop${on.done.length === 1 ? '' : 's'}${trip.silver ? ` · ${FC(trip.silver)} in silver` : ''}${trip.trades ? ` · ${F(Math.round(trip.trades))} barter${trip.trades === 1 ? '' : 's'}, ${F(counted.barterCount)} in all` : ''}${made.length ? ` · ${made.map(questTitle).join(', ')} made up` : ''}${opened ? ` — ${opened} is open now` : ''}`, true);
 }
 
 // The plan on screen, for the record button to read back.

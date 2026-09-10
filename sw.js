@@ -72,6 +72,7 @@ const SHELL = [
 	'/js/boot.js',
 	'/js/cheer.js',
 	'/js/clock.js',
+	'/js/coin-shop.js',
 	'/js/courses.js',
 	'/js/crystals.js',
 	'/js/dialogs.js',
@@ -121,6 +122,8 @@ const SHELL = [
 	'/js/route-ledger.js',
 	'/js/sailing.js',
 	'/js/sailor_rolls.js',
+	'/js/sailor-import.js',
+	'/js/sailor-shot.js',
 	'/js/sailors.js',
 	'/js/saved-routes.js',
 	'/js/screen-barter.js',
@@ -141,6 +144,9 @@ const SHELL = [
 	'/js/seamask.js',
 	'/js/searoute.js',
 	'/js/setups.js',
+	// shot-reader.js is precached with the rest; the six megabytes of
+	// engine it pulls in are not, and only arrive when a screenshot is.
+	'/js/shot-reader.js',
 	'/js/share.js',
 	'/js/sheet.js',
 	'/js/ship.js',
@@ -190,7 +196,10 @@ self.addEventListener('activate', evt => {
 // The barter table is precached with the shell and only changes with a
 // deploy, which is when the shell cache is replaced -- so it is served
 // from the cache first rather than re-fetched on every load.
-const contentAddressed = path => path.startsWith('/icons/') || path.startsWith('/map/') || path === '/js/all_barter.json' || path === '/js/barter_combos.json';
+// The vendored OCR engine belongs here too: its filenames carry their
+// versions, so a given URL is a given six megabytes forever, and it
+// must not be fetched again every time the app is deployed.
+const contentAddressed = path => path.startsWith('/icons/') || path.startsWith('/map/') || path.startsWith('/reader/') || path === '/js/all_barter.json' || path === '/js/barter_combos.json';
 const neverCached = path =>
 	path.startsWith('/api/') || path.startsWith('/auth/') || path.startsWith('/docs/media/');
 

@@ -22,6 +22,9 @@ import {
 	snapshot, barterData, barterProfile, totalsToGo, query, CROW_COIN, SILVER
 } from './ui-state.js';
 import { shoppingList, waysToGet } from './planner.js';
+import { coinBuyButton } from './coin-shop.js';
+import { mateAtTheHelm } from './ship.js';
+import { anyType } from './sailors.js';
 
 
 
@@ -52,9 +55,26 @@ export function barterLookup(item, qty = 1) {
  * unlocks next, because the raw number means nothing until you know
  * what it buys.
  */
+/**
+ * The ten per cent off Parley, said as where it comes from. It is
+ * Cleia's skill and nothing else, so it is read off the First Mate seat
+ * rather than ticked: aboard, the row says so; hired but ashore, it says
+ * what seating her would be worth; unmet, it says nothing at all.
+ */
+function mateCut() {
+	const mate = mateAtTheHelm();
+	if (mate && Number(mate.type.parley) > 0) {
+		return ` · <span class="gterm" title="${esc(mate.sailor.name)} is at the First Mate seat: her skill takes ten per cent off every Parley cost">Crew −10% · ${esc(mate.sailor.name)} at the helm</span>`;
+	}
+	const ashore = (store.getProfile('roster', []) || []).find(s => Number((anyType[s.type] || {}).parley) > 0);
+	return ashore
+		? ` · <span class="gterm" title="Put ${esc(ashore.name)} at the First Mate seat on the Ship tab and every Parley cost drops ten per cent">Crew −10% · seat ${esc(ashore.name)} for it</span>`
+		: '';
+}
+
 function barterProfileTile() {
 	const profile = barterProfile();
-	const { barterCount, valuePack, crew, level, vouchers, parleyHeld } = profile;
+	const { barterCount, valuePack, level, vouchers, parleyHeld } = profile;
 	const day = barterDay(profile);
 	const next = nextUnlock(barterCount);
 
@@ -74,12 +94,12 @@ function barterProfileTile() {
 			<span class="summary-sub"> · refill in <b data-until="barter"></b></span></div>
 		<div class="summary-sub"><input class="purse-inline" type="text" inputmode="numeric"
 			value="${F(barterCount)}" data-act="barter-count"
+			title="Your Total Barters, as the Barter Information window shows it. A run recorded on the Barter tab adds its trades to this; type over it whenever the two drift."
 			aria-label="Your Total Barters, as the Barter Information window shows it"> <span class="gterm" role="button" tabindex="0"
 			data-guide="parley">Total Barters</span>${next ? ` · ${esc(next)}` : ''}
 			· <label class="inline-check"><input type="checkbox" data-act="value-pack"
 			${valuePack ? 'checked' : ''}> Value Pack</label>
-			· <label class="inline-check"><input type="checkbox" data-act="crew-discount"
-			${crew ? 'checked' : ''}> Crew −10%</label></div>
+			${mateCut()}</div>
 		<div class="summary-sub"><select class="purse-inline" data-act="barter-level"
 			aria-label="Your barter level"><option value=""${level ? '' : ' selected'}>—</option>${levels}</select>
 			· ${F(day.perTrade)} <span class="gterm" role="button" tabindex="0" data-guide="level">Parley a trade</span>
@@ -241,6 +261,11 @@ export function renderGet() {
 					<summary>${ways.length === 1 ? 'another way' : `${ways.length} other ways`}${sea ? ' · by barter' : ''}${hunt ? ' · by hunting' : ''}</summary>
 					${ways.join('')}
 				</details>` : '';
+				// The shop, where the shop sells it. The list already knows
+				// the price and the purse already knows the coins; this is
+				// the one press that stops a player doing the subtraction
+				// by hand and getting it wrong.
+				const shop = entry.coins ? coinBuyButton(entry.item, entry.qty) : '';
 				return `<div class="row" data-peek="${esc(entry.item)}">
 					${img(entry.item, 'row-icon sm')}
 					<div class="row-main">
@@ -248,6 +273,7 @@ export function renderGet() {
 						<div class="row-sub">${esc(sub)}</div>
 						${waysHTML}
 					</div>
+					${shop}
 					<span class="qty-out">${F(entry.qty)}</span>
 				</div>`;
 			}).join('')}

@@ -81,6 +81,19 @@ Coin Shop, Falasi's silver, barter, worker nodes, hunting — with running
 totals measured against what's in your purse. The list copies as text
 or as CSV, and prints legibly on white.
 
+**Total Barters follows your runs.** Recording a run adds its trades to
+the count that opens the next trade route, in the same change as the
+goods and the silver — one Undo takes back all of it — and a run that
+carries you past a threshold says which route it opened. It stays a
+field you can type over when it and the game drift apart.
+
+Anything the **Crow Coin Shop** sells carries a *Buy*: it asks how many,
+says what that costs and what is left of the purse, and records the
+goods in and the coins out as one change — so one Undo takes back both
+halves. It opens on what the purse can actually cover, and a sum that
+does not work is said rather than quietly clamped. The same button is in
+the Inventory panel for any coin-priced thing.
+
 ![The To Get screen](docs/media/to-get.png)
 
 ---
@@ -312,10 +325,44 @@ ship* — or queues the missing parts as builds, so the Plan prices the
 way to it. Looking costs nothing; taking it is one change, and one Undo
 takes it back.
 
+**Auto assign asks what the boat is for.** There is no best crew, only
+the best crew for something: a seat's whole effect is a *second copy* of
+what it doubles, and the Sail doubles Endurance and Wits together — so
+adding the pair and taking the biggest sum puts a 1.1-speed sailor where
+a 3.9-speed one should have been. Pressing it lays out every goal —
+speed, acceleration, turn, brake, cannons, all round — with what the
+crew would come to under each against what it comes to now, and one
+press arranges the roster: who comes aboard as well as who sits where,
+since a hull's cabin space is a knapsack. The sailor list can be ordered
+by any growth, with the figure shown on each card.
+
 **Sailors' real numbers.** Growth is a hidden random range per sailor,
 so the type's figures are averages. The Ship screen lets you type what
 the sailor window shows for each stat, and everything downstream — the
-hull's speed, the route's minutes — follows the typed number.
+hull's speed, the route's minutes — follows the typed number. On a full
+Carrack the difference between the average and the real rolls is over a
+point of speed, which is the whole gap between the app's figure and the
+game's.
+
+**Or read the crew off a screenshot.** *Read screenshots* on the sailor
+list takes the game's own windows — Manage Sailors whole, or a cropped
+Selected Sailor panel, or a mixture — and comes back with names, levels,
+condition and every growth in a table to check before anything is
+written; a sailor already on the roster is brought up to date rather
+than hired twice. Twenty at a time. The window never prints a sailor's
+*type*, so it is worked out from the appetite, the cabin cost and the
+weight, and where three types share all three (Confident, Tough and
+Tenacious all cost five cabins and 300 LT) from where the growths went —
+with anything less than certain marked for a look, and a dropdown to
+correct it.
+
+It is read **in the browser**: Tesseract is vendored under `reader/` and
+served from this origin, the shots are decoded by the browser's own
+image decoders and handed on as pixels, and nothing is uploaded — so
+there is no file on any server to delete afterwards, and it works
+offline once the engine has been fetched the first time (about 6 MB,
+cached across deploys). The page's Content-Security-Policy gains
+`'wasm-unsafe-eval'` for it, which admits WebAssembly and nothing else.
 
 ### The chart, and what it draws
 
@@ -951,6 +998,7 @@ js/
   recipes.js          recipes and enhancement chains
   ships.js            what can be queued
   sea_coins.js        Crow Coin prices
+  coin-shop.js        spending them: the dialog, and the one change it writes
   falasi_vendor.js    Falasi's silver prices
   all_barter.json     barter routes, scraped from BDOCodex
   map.js              the tile viewer's arithmetic
@@ -967,11 +1015,16 @@ js/
   enhancement.js      per-level rates, Agris caps, perfect-enhance costs
   ship_stats.js       what each hull is, in the game's own numbers
   part_stats.js       what each part does, level by level
-  sailors.js          the hiring pool, positions, condition, first mates
+  sailors.js          the hiring pool, positions, condition, first mates,
+                      and arranging a crew for a stated goal
+  sailor-shot.js      a sailor read out of a screenshot's words -- pure, and tested
+  shot-reader.js      the vendored OCR engine, and the two passes over a screenshot
+  sailor-import.js    the drop, the reading and the table that checks it
   quests.js           the quests that pay in ship materials
   sea_crystals.js     the 287 sea crystal variants, by grade
   gamefile.js         writing stops into the game's own world map
   market.js           Central Market prices, per region, kept offline
+reader/               Tesseract, vendored: the sailor import reads in the browser
 tools/check-env.mjs   npm run check -- validates a sync configuration
 server/               only loaded when sync is configured
   config.js           what is switched on, and what is therefore offered

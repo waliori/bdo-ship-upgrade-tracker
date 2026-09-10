@@ -136,7 +136,7 @@ export const expSplit = [
 // are sailors), which is where their portrait comes from.
 export const firstMates = [
 	{ name: 'Proix', npc: 58045, portrait: '/items/ui_artwork/ic_01463.webp', trait: 'Breezy Sail lasts longer', from: 'finish the "[The Great Expedition] In Search of Khan" questline' },
-	{ name: 'Cleia', npc: 41056, portrait: '/items/ui_artwork/ic_00496.webp', trait: 'Parley costs 10% less', from: 'obtain the Golden Pocket Watch from a Special Barter' },
+	{ name: 'Cleia', npc: 41056, portrait: '/items/ui_artwork/ic_00496.webp', trait: 'Parley costs 10% less', parley: 0.1, from: 'obtain the Golden Pocket Watch from a Special Barter' },
 	{ name: 'Tranan Underfoe', npc: 40008, portrait: '/items/ui_artwork/ic_00008.webp', trait: 'the ship repairs itself from repair materials in its inventory', from: 'obtain the Fancy Figurehead where the Saltwater Crocodiles are' }
 ];
 
@@ -199,10 +199,17 @@ export function planCrew(crew, ship) {
  * the game gives them fixed, modest stats, no cabin cost, and a skill
  * the First Mate seat switches on.
  */
+// A mate's own figures, read off the game's Selected Sailor panel for
+// Proix (2026-09-09): 150 rations a day, 200 LT, no Cabin Cost line at
+// all -- and no growths. The panel a mate gets has no Endurance, Wits,
+// Awareness or Strength row on it; the seat pays their skill, not
+// numbers. (The app used to credit each mate half a point of all four,
+// which put the ship's speed under what the game reads.) The other two
+// mates are taken to match Proix.
 export const mateTypes = firstMates.map(m => ({
 	type: m.name, race: m.name === 'Tranan Underfoe' ? 'Dwarf' : 'Human', mate: true,
-	appetite: 100, cabin: 0, weight: 200,   // each adds 200 LT, read off the sailor window
-	speed: 0.5, accel: 0.5, turn: 0.5, brake: 0.5,
+	appetite: 150, cabin: 0, weight: 200,
+	parley: m.parley || 0,
 	skill: `${m.trait} — ${m.from}`
 }));
 
@@ -459,39 +466,133 @@ export function crewTotals(roster, seats, stats) {
 }
 
 /**
- * Fill the seats sensibly from a roster: the first mate to their seat,
- * the fastest to the sails, the best handler to the wheel, the gunners
- * to the cannons, the costliest cabins to the Deck and the Mess (where
- * cabin cost is the whole point), and everyone left to a cabin.
+ * The named mate at the First Mate seat, if one is sitting there. That
+ * seat is the only place a mate's skill is switched on, so this is what
+ * answers "is Cleia's Parley discount running" -- read off the crew
+ * rather than asked for. A mate in bad condition gives the seat
+ * nothing, as any sailor does.
  */
-export function autoAssign(roster, ship, stats) {
+export function mateAboard(roster, seats) {
+	const byId = new Map((roster || []).map(s => [s.id, s]));
+	for (const [key, id] of Object.entries(seats || {})) {
+		if (key.split(':')[0] !== 'firstmate') continue;
+		const s = byId.get(id);
+		const t = s && anyType[s.type];
+		if (t && t.mate && (s.cond ?? 100) > 0) return { sailor: s, type: t };
+	}
+	return null;
+}
+
+/**
+ * What a crew can be arranged for.
+ *
+ * There is no such thing as the best crew, only the best crew for
+ * something: the sail seat doubles Endurance and Wits together, so
+ * filling it with the highest pair of the two puts a sailor with 1.1
+ * speed and 4.8 acceleration where a 3.9-speed one should have been,
+ * and costs the ship five and a half per cent of its speed while the
+ * arithmetic says it gained. So the goal is asked for, and everything
+ * below follows from it.
+ */
+export const CREW_GOALS = [
+	{ id: 'speed', label: 'Speed', of: 'how fast the ship sails', weights: { speed: 1 } },
+	{ id: 'accel', label: 'Acceleration', of: 'how quickly it gets there', weights: { accel: 1 } },
+	{ id: 'turn', label: 'Turn', of: 'how tightly it comes round', weights: { turn: 1 } },
+	{ id: 'brake', label: 'Brake', of: 'how short it stops', weights: { brake: 1 } },
+	{ id: 'cannon', label: 'Cannons', of: 'range, spread and firing angle', weights: { force: 1, focus: 1, vision: 1 } },
+	{ id: 'balanced', label: 'All round', of: 'the four movement growths equally', weights: { speed: 1, accel: 1, turn: 1, brake: 1 } }
+];
+
+const goalOf = want => CREW_GOALS.find(g => g.id === want) || CREW_GOALS[CREW_GOALS.length - 1];
+
+/** What each seat doubles -- the only thing a seat decides. */
+const DOUBLES = { sail: ['speed', 'accel'], wheel: ['turn', 'brake'], cannon: ['force', 'focus', 'vision'] };
+
+/**
+ * Fill the seats from a roster, for a stated goal.
+ *
+ * Two decisions, in order, and they are not the same one:
+ *
+ *   1. **Who comes aboard.** Every sailor aboard pays their growths
+ *      once whatever seat they take, so this is a knapsack against the
+ *      hull's cabin space -- best value per cabin first, which is the
+ *      standard answer to a knapsack and the reason a 13-cabin sailor
+ *      with one point of speed stays ashore while three 10-cabin ones
+ *      with four apiece do not.
+ *   2. **Where they sit.** A seat's whole effect is a second copy of
+ *      what it doubles, so each doubling seat goes to whoever gains the
+ *      most from it -- the seat with the most to gain choosing first,
+ *      which for four seats is as good as trying every arrangement.
+ *
+ * Then the Deck and the Mess, which pay by cabin cost rather than by
+ * growth, take the costliest cabins left, and everyone else sits down.
+ */
+export function autoAssign(roster, ship, stats, want = 'balanced') {
+	const w = goalOf(want).weights;
 	const seats = seatsFor(ship, stats);
-	const left = [...(roster || [])].filter(s => anyType[s.type]);
-	const out = {};
+	const all = [...(roster || [])].filter(s => anyType[s.type]);
 	const t = s => anyType[s.type];
-	const gunner = s => t(s).force !== undefined;
-	// The cabin budget is kept: a sailor who would not fit stays ashore,
-	// however good, because the game will not seat them either.
+	const out = {};
+
+	// The mate first: nobody else can take that seat, and they cost no
+	// cabin space, so they are not part of either decision below.
+	const mates = all.filter(s => t(s).mate);
+	for (const seat of seats.filter(x => x.pos === 'firstmate')) {
+		const m = mates.shift();
+		if (m) out[seat.key] = m.id;
+	}
+
+	const crewSeats = seats.filter(x => x.pos !== 'firstmate');
+	const hands = all.filter(s => !t(s).mate);
+	const value = s => Object.entries(w).reduce((a, [k, x]) => a + x * statOf(s, k), 0);
+	// A goal nobody on the roster serves -- cannons, with no gunner
+	// hired -- would otherwise leave every sailor tied on nothing, so
+	// the whole of what they grow breaks the tie.
+	const whole = s => STAT_KEYS.reduce((a, k) => a + statOf(s, k), 0);
+	const worth = s => value(s) / Math.max(1, t(s).cabin);
+
 	const space = stats && stats.cabins > 0 ? stats.cabins : Infinity;
 	let used = 0;
-	const take = (seat, score, only = () => true) => {
-		if (out[seat.key]) return;
-		const pick = left.filter(s => only(s) && used + t(s).cabin <= space).sort((a, b) => score(b) - score(a))[0];
-		if (!pick) return;
-		out[seat.key] = pick.id;
-		used += t(pick).cabin;
-		left.splice(left.indexOf(pick), 1);
-	};
-	const of = pos => seats.filter(x => x.pos === pos);
-	// Specialists first, so a gunner is not swept up by a sail: the mate
-	// to the bow, the gunners to the cannons, then the fastest to the
-	// sails, the best handler to the wheel, the costliest cabins to the
-	// Deck and the Mess, and everyone left wherever is free.
-	for (const seat of of('firstmate')) take(seat, s => statOf(s, 'speed'), s => t(s).mate);
-	for (const seat of of('cannon')) take(seat, s => statOf(s, 'force') + statOf(s, 'focus') + statOf(s, 'vision'), s => gunner(s) && !t(s).mate);
-	for (const seat of of('sail')) take(seat, s => statOf(s, 'speed') + statOf(s, 'accel'), s => !t(s).mate);
-	for (const seat of of('wheel')) take(seat, s => statOf(s, 'turn') + statOf(s, 'brake'), s => !t(s).mate);
-	for (const seat of [...of('deck'), ...of('mess')]) take(seat, s => t(s).cabin, s => !t(s).mate);
-	for (const seat of seats) take(seat, () => 0);
+	const aboard = [];
+	for (const s of [...hands].sort((a, b) => worth(b) - worth(a) || whole(b) - whole(a))) {
+		if (aboard.length >= crewSeats.length) break;
+		if (used + t(s).cabin > space) continue;
+		aboard.push(s);
+		used += t(s).cabin;
+	}
+
+	const gain = (s, pos) => (DOUBLES[pos] || []).reduce((a, k) => a + (w[k] || 0) * statOf(s, k), 0);
+	// A seat the goal does not care about -- the Wheel, when the goal is
+	// speed -- has nothing to weigh, and would otherwise be filled by
+	// whoever came to hand. It still doubles something, so it goes to
+	// whoever doubles the most of it: free turn, at no cost to the speed.
+	const spare = (s, pos) => (DOUBLES[pos] || []).reduce((a, k) => a + statOf(s, k), 0);
+	const left = [...aboard];
+	const doubling = crewSeats.filter(x => DOUBLES[x.pos]);
+	while (doubling.length && left.length) {
+		let best = null;
+		for (const seat of doubling) {
+			for (const s of left) {
+				const g = gain(s, seat.pos), g2 = spare(s, seat.pos);
+				if (!best || g > best.g || (g === best.g && g2 > best.g2)) best = { seat, s, g, g2 };
+			}
+		}
+		out[best.seat.key] = best.s.id;
+		left.splice(left.indexOf(best.s), 1);
+		doubling.splice(doubling.indexOf(best.seat), 1);
+	}
+
+	// The Deck pays ten thousand durability a cabin and the Mess five
+	// thousand rations, so those two want the sailors who cost the most
+	// to bring -- the one place a big cabin is the point.
+	left.sort((a, b) => t(b).cabin - t(a).cabin);
+	for (const seat of crewSeats.filter(x => x.pos === 'deck' || x.pos === 'mess')) {
+		if (out[seat.key] || !left.length) continue;
+		out[seat.key] = left.shift().id;
+	}
+	for (const seat of crewSeats) {
+		if (out[seat.key] || !left.length) continue;
+		out[seat.key] = left.shift().id;
+	}
 	return out;
 }

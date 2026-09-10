@@ -171,7 +171,11 @@
 
 /* Sailing the run: the checklist on the stops, and the bar beneath. */
 .run-check { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; margin-top: 8px; }
-.run-paid { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--ink-mute); }
+/* The chips wrap inside the row rather than running past it: a stop's
+   column is narrower than an island's four [Level 7]s laid in a line,
+   and a chip that overflowed sat under the hold column beside it --
+   drawn after, so it took the click and the fourth chip was dead. */
+.run-paid { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; min-width: 0; max-width: 100%; font-size: 11.5px; color: var(--ink-mute); }
 .run-paid > span { margin-right: 2px; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; }
 .chip.pay { min-width: 30px; height: 28px; padding: 0 9px; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 13px; }
 .chip.pay.active { background: rgba(78, 201, 174, 0.22); border-color: var(--teal); color: var(--teal-hi); }
@@ -836,8 +840,12 @@ h2.comm-board-title { font-size: 15px; }
 
 /* The note under the sailor list, and the next set to buy under the
    slots: the fleet's advice, said once and quietly. */
+/* Both stand in from the panel's edge, with the rows they sit above:
+   the sailor grid at 14px, the slot cards' hint at 22px. Neither had
+   any inset at all and read as if it had fallen off the left edge. */
 .crew-note, .fit-path { margin: 0 0 8px; font-size: 12px; line-height: 1.5; color: var(--ink-faint); }
-.fit-path { color: var(--ink-mute); }
+.crew-note { margin: 0 14px 8px; }
+.fit-path { margin: 0 22px 8px; color: var(--ink-mute); }
 
 /* "How is this counted?" — a small mark on each board, and the panel it
    opens. A leaderboard that will not say how it ranks people is a
