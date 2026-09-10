@@ -25,7 +25,7 @@ shooting a clip has no deployment with players on it. There is a
 inside the app too, under **Help**.
 
 **Want one part of it, not the whole thing?** The same app, narrated, in
-five chapters — two to four minutes each, with subtitles and a
+five chapters — two to six minutes each, with subtitles and a
 transcript beside every one:
 
 | Chapter | What it covers |
@@ -33,7 +33,7 @@ transcript beside every one:
 | [One — The Yard](docs/media/guide/the-yard.mp4) | Queue a build, record what you gather, craft it, step a mistake back, price a part both ways, read the tree, take the list shopping |
 | [Two — The Sea](docs/media/guide/the-sea.mp4) | The day's free quests, every barterer holding something you need, a plotted loop with real minutes on it, and a blank stretch of water to draw on |
 | [Three — Your Ship](docs/media/guide/your-ship.mp4) | Hull, four parts, a crystal and a crew — including reading a whole crew off the game's own screenshots, in your browser |
-| [Four — A Run](docs/media/guide/a-run.mp4) | Answer what one island is showing, and sail the run the whole board lays out from it |
+| [Four — A Run](docs/media/guide/a-run.mp4) | The long one, and the one to send a barterer: silver or a material, naming today's layout off the game's own barter window, saying what the day is for, picking the chains, reading the sheet it lays out, sailing it, and recording it |
 | [Five — The Harbour](docs/media/guide/the-harbour.mp4) | The boards, what a place on one opens, and what is and is not shared |
 
 Same rule as the walkthrough: it is the real app being driven, and the

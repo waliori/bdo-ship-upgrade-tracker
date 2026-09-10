@@ -1,39 +1,167 @@
 1
-00:00:00,496 --> 00:00:07,540
-Bartering is how most of these materials actually arrive. The Barter tab plans a day of it.
+00:00:00,445 --> 00:00:07,553
+Bartering is how most of what the yard wants actually arrives. This tab plans a whole day of it.
 
 2
-00:00:13,982 --> 00:00:18,046
-Every refresh, the whole sea shows one of forty layouts.
+00:00:14,375 --> 00:00:19,648
+A run is for one of two things, and it asks which before anything else.
 
 3
-00:00:18,046 --> 00:00:22,850
-So you look at one island in the game, and tap what it is showing.
+00:00:22,442 --> 00:00:29,593
+A material: the ladder up to one thing you are short of, counted against what is already aboard.
 
 4
-00:00:29,239 --> 00:00:35,280
-And the whole board follows: every chain the day allows, and what each of them pays.
+00:00:33,828 --> 00:00:42,301
+Or silver: every chain today's board allows, and a run along the ones you tick. That is the one to follow here.
 
 5
-00:00:35,512 --> 00:00:41,425
-The runs worth sailing are worked out for you. Tick the chains, and they are one run.
+00:00:44,906 --> 00:00:51,526
+Tell it your barter level, because that is what every Parley figure after this is priced at.
 
 6
-00:00:45,735 --> 00:00:53,504
-Which opens as a sheet: every stop, what to buy before you cast off, and the quests you pass on the way.
+00:00:51,526 --> 00:00:56,652
+Now the board. Every refresh, the whole sea shows one of forty layouts.
 
 7
-00:00:58,647 --> 00:01:02,869
-Sail it, and it is on the chart as a checklist, stop by stop.
+00:00:56,652 --> 00:01:04,507
+It cannot know which. So it asks about a single island — the one whose offer tells the forty apart best.
 
 8
-00:01:02,869 --> 00:01:07,863
-Record the trip at the end, and the whole of it lands back in the Inventory,
+00:01:07,409 --> 00:01:16,032
+The answer is on the game's own barter list, set from Normal to Level 1: find that island's row, and read across.
 
 9
-00:01:07,863 --> 00:01:11,905
-as one change, against the builds that were waiting on it.
+00:01:16,645 --> 00:01:18,996
+Tap the same thing here.
 
 10
-00:01:11,905 --> 00:01:18,224
-That is a run. The board answers, the route follows, and the yard gets what it asked for.
+00:01:22,244 --> 00:01:29,992
+One look usually names the layout. Where two of the forty still fit, it says so, and asks for one more.
+
+11
+00:01:41,456 --> 00:01:49,025
+And the whole board follows from that one answer: every chain the day allows, and what each of them pays.
+
+12
+00:01:49,025 --> 00:01:51,930
+Next, what you want out of the day.
+
+13
+00:01:58,113 --> 00:02:07,683
+Cash out today is the most silver at the wharf tonight. Build the stocks finishes every island and keeps a floor of each level back for tomorrow.
+
+14
+00:02:07,683 --> 00:02:19,954
+Watch the row along the bottom as it does: that is what the preset keeps back at each level — never sold, never spent below it, so tomorrow's board has something to start from.
+
+15
+00:02:22,756 --> 00:02:30,525
+Pace is the real choice. Fast and light, full but never slower than full speed, or full and loaded —
+
+16
+00:02:32,595 --> 00:02:40,343
+a quarter over the limit, sailing slower for it, and calling at a wharf only where the next island would not deal.
+
+17
+00:02:43,067 --> 00:02:54,634
+Quests on the way: the dailies and weeklies you have already taken, handed in where the run passes their taker — or with a stop put in a short way off the route.
+
+18
+00:02:58,072 --> 00:03:06,213
+The way round: nearest islands first whatever chain they belong to, or each chain climbed to its top before the next.
+
+19
+00:03:06,213 --> 00:03:11,919
+Where you sail from, where your storage is, and how long you are willing to be out.
+
+20
+00:03:11,919 --> 00:03:17,022
+Then the chains on offer, and three runs already worked out for you:
+
+21
+00:03:17,047 --> 00:03:24,006
+the most silver, the most an hour, and the most a Parley unit. They are rarely the same run.
+
+22
+00:03:24,132 --> 00:03:26,845
+Take one of them as it stands,
+
+23
+00:03:30,908 --> 00:03:33,835
+tick the chains you want yourself,
+
+24
+00:03:36,051 --> 00:03:40,471
+or keep what is ticked and let it fill the rest around them.
+
+25
+00:03:44,628 --> 00:03:51,971
+The bar along the foot keeps the running total: chains, silver net, hours, islands, wharf calls.
+
+26
+00:03:52,937 --> 00:03:56,802
+Lay it out, and every stop of it is written down.
+
+27
+00:04:02,892 --> 00:04:06,712
+What you hand over at each island, and what comes back.
+
+28
+00:04:06,712 --> 00:04:14,053
+The hold after every trade, against the limit — and where it says past the limit, that is you sailing slower for it.
+
+29
+00:04:14,053 --> 00:04:19,869
+Where it says too heavy to barter, the next island will not deal until you lighten first.
+
+30
+00:04:19,869 --> 00:04:26,374
+Which is what a wharf call is for: the surplus goes into storage, and the run carries on.
+
+31
+00:04:26,374 --> 00:04:31,876
+And the Parley bar, falling toward whatever you have left of the day's million.
+
+32
+00:04:31,876 --> 00:04:37,427
+If it all looks right, sail it. The run goes onto the chart as a checklist.
+
+33
+00:04:51,202 --> 00:04:55,153
+Full screen, when you would rather have the sea than the sheet.
+
+34
+00:04:55,167 --> 00:05:00,888
+It follows you leg by leg, and every stop is a card with the trade on it.
+
+35
+00:05:11,390 --> 00:05:17,986
+Tick each one off as you make it. What an island actually paid re-counts everything after it.
+
+36
+00:05:24,225 --> 00:05:29,925
+At the end — or all at once, for a run sailed faster than it can be filmed —
+
+37
+00:05:49,473 --> 00:05:51,760
+you record the trip.
+
+38
+00:05:54,838 --> 00:06:02,669
+The silver goes to the purse, the goods left over into the Inventory, the quests handed in with their rewards.
+
+39
+00:06:02,669 --> 00:06:06,300
+All of it as one change, and one Undo.
+
+40
+00:06:09,826 --> 00:06:16,317
+And none of these figures are generic. The hold, the speed and every minute on that route are your ship:
+
+41
+00:06:16,317 --> 00:06:21,068
+its hull, the four parts fitted, the crystal and the crew that is aboard.
+
+42
+00:06:21,068 --> 00:06:24,720
+One island answered, and the day is planned.

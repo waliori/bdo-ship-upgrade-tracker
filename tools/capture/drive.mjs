@@ -4,6 +4,7 @@
 // the page and moved alongside the real mouse: the recording shows where
 // the click lands, and the app still gets genuine hover and click events.
 
+import { readFile } from 'node:fs/promises';
 import puppeteer from 'puppeteer-core';
 import { RELEASE } from '../../js/about.js';
 import * as voice from './voice.mjs';
@@ -44,6 +45,14 @@ const CURSOR = `
 		card.innerHTML = '<div><b></b><i></i></div>';
 		if (window.__touch) card.classList.add('phone');
 		document.body.appendChild(card);
+
+		// A still from the game itself. Half of what this app does is
+		// answer a question about a window in Black Desert, and the
+		// honest way to show that is to put the window on screen.
+		const still = document.createElement('figure');
+		still.id = '__still';
+		still.innerHTML = '<img alt=""><figcaption></figcaption>';
+		document.body.appendChild(still);
 
 		const css = document.createElement('style');
 		css.textContent = \`
@@ -95,6 +104,23 @@ const CURSOR = `
 				color: rgba(170, 205, 235, .95); }
 			#__card.phone b { font-size: 34px; }
 			#__card.phone i { font-size: 17px; margin-top: 10px; }
+			/* A game screenshot, held over the dimmed app. Bounded by the
+			   viewport on both axes so a tall window and a wide one are
+			   both whole -- a still that is cropped to fit is worse than
+			   no still, since the point of it is a thing you are meant
+			   to read. */
+			#__still { position: fixed; inset: 0; z-index: 2147483644; margin: 0;
+				display: flex; flex-direction: column; align-items: center;
+				justify-content: center; gap: 14px; padding: 42px 42px 120px;
+				background: rgba(4, 12, 22, .9); backdrop-filter: blur(4px);
+				opacity: 0; transition: opacity .4s ease; pointer-events: none; }
+			#__still.on { opacity: 1; }
+			#__still img { max-width: 100%; max-height: 100%; object-fit: contain;
+				border-radius: 10px; border: 1px solid rgba(120, 180, 230, .3);
+				box-shadow: 0 18px 60px rgba(0,0,0,.7); }
+			#__still figcaption { display: none; font-family: 'Noto Sans', system-ui, sans-serif;
+				font-size: 19px; font-weight: 600; color: rgba(180, 212, 240, .96); }
+			#__still.titled figcaption { display: block; }
 			/* On a phone the pointer reads better as a fingertip. */
 			#__cur.touch svg { display: none; }
 			#__cur.touch { width: 34px; height: 34px; margin: -17px 0 0 -17px;
@@ -498,6 +524,58 @@ export async function card(page, title, sub = '', { line = '', hold = 2400 } = {
 export async function hush(page) {
 	await page.evaluate(() => document.getElementById('__cap').classList.remove('on'));
 	await wait(320);
+}
+
+/**
+ * Hold a screenshot of the game over the app.
+ *
+ * Read off disk and handed over as a data URI rather than fetched: the
+ * capture server serves the app, not this harness's own folder, and a
+ * still that only appears when the file happens to be reachable is a
+ * still that will silently stop appearing.
+ *
+ * `line` is spoken while it is up, so a beat that says "this is the
+ * window the app is asking you about" can show that window as it says
+ * it.
+ */
+export async function still(page, file, { line = '', label = '', hold = 2800 } = {}) {
+	const bytes = await readFile(file);
+	const ext = /\.png$/i.test(file) ? 'png' : /\.jpe?g$/i.test(file) ? 'jpeg' : 'webp';
+	await page.evaluate((src, cap) => {
+		const s = document.getElementById('__still');
+		s.querySelector('img').src = src;
+		s.querySelector('figcaption').textContent = cap;
+		s.classList.toggle('titled', Boolean(cap));
+		s.classList.add('on');
+	}, `data:image/${ext};base64,${bytes.toString('base64')}`, label);
+	await wait(640);
+	if (line) await say(page, line);
+	else await wait(hold);
+	await page.evaluate(() => document.getElementById('__still').classList.remove('on'));
+	if (line) await hush(page);
+	await wait(460);
+}
+
+/**
+ * Answer a dropdown.
+ *
+ * The pointer is walked onto it and pressed, because a select that
+ * changes with no hand near it reads as the film doing something to
+ * itself. Headless Chrome will not open a native select's list, so
+ * what the recording shows is the box and its new value -- which is
+ * the part that matters, and the sentence under it changing with it.
+ */
+export async function choose(page, sel, value, { after = 1000 } = {}) {
+	const el = await pick(page, sel);
+	const at = await centreOf(page, el);
+	await aim(page, at);
+	await wait(560);
+	await press(page);
+	await wait(160);
+	await el.select(String(value));
+	await lift(page);
+	await repaint(page);
+	await wait(after);
 }
 
 /**

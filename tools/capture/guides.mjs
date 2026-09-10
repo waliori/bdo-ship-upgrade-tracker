@@ -25,7 +25,7 @@ import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
 	open, seed, tab, click, clickIn, typeInto, drag, say, hush, wait,
-	onScreen, headerBtn, waitFor, film, cut, card
+	onScreen, headerBtn, waitFor, film, cut, card, still, choose
 } from './drive.mjs';
 import { warm, engine } from './voice.mjs';
 import { fittedShip } from './states.mjs';
@@ -393,21 +393,77 @@ const CHAPTERS = {
 
 	/* ============================================================== *
 	 * Four -- a run
+	 *
+	 * The longest of the five, and deliberately so. Bartering is the
+	 * half of this app people arrive for, and a clip that ticks three
+	 * boxes and sails teaches nobody how to plan a day of it. This runs
+	 * the whole way: which of the two kinds of run, telling it what
+	 * today's board shows, saying what the run is for, choosing the
+	 * chains, reading the sheet it lays out, sailing it, and recording
+	 * it at the end.
 	 * ============================================================== */
 	'a-run': {
 		n: 'Four', title: 'A Run', at: 'barter',
-		blurb: 'Answer one island, and the whole board follows into a route you can sail.',
+		blurb: 'Answer one island, say what the day is for, and sail the run the whole board lays out.',
 		say: {
-			open: 'Bartering is how most of these materials actually arrive. The Barter tab plans a day of it.',
-			board: 'Every refresh, the whole sea shows one of forty layouts.',
-			ask: 'So you look at one island in the game, and tap what it is showing.',
-			follows: 'And the whole board follows: every chain the day allows, and what each of them pays.',
-			tick: 'The runs worth sailing are worked out for you. Tick the chains, and they are one run.',
-			sheet: 'Which opens as a sheet: every stop, what to buy before you cast off, and the quests you pass on the way.',
-			sail: 'Sail it, and it is on the chart as a checklist, stop by stop.',
-			record: 'Record the trip at the end, and the whole of it lands back in the Inventory,',
-			one: 'as one change, against the builds that were waiting on it.',
-			close: 'That is a run. The board answers, the route follows, and the yard gets what it asked for.'
+			open: 'Bartering is how most of what the yard wants actually arrives. This tab plans a whole day of it.',
+
+			/* --- 1. the two kinds of run --- */
+			kinds: 'A run is for one of two things, and it asks which before anything else.',
+			mat: 'A material: the ladder up to one thing you are short of, counted against what is already aboard.',
+			silver: 'Or silver: every chain today\'s board allows, and a run along the ones you tick. That is the one to follow here.',
+			level: 'Tell it your barter level, because that is what every Parley figure after this is priced at.',
+
+			/* --- 2. what today's board shows --- */
+			board: 'Now the board. Every refresh, the whole sea shows one of forty layouts.',
+			ask: 'It cannot know which. So it asks about a single island — the one whose offer tells the forty apart best.',
+			game: 'The answer is on the game\'s own barter list, set from Normal to Level 1: find that island\'s row, and read across.',
+			pick: 'Tap the same thing here.',
+			again: 'One look usually names the layout. Where two of the forty still fit, it says so, and asks for one more.',
+			follows: 'And the whole board follows from that one answer: every chain the day allows, and what each of them pays.',
+
+			/* --- 3. what the run is for --- */
+			orders: 'Next, what you want out of the day.',
+			presets: 'Cash out today is the most silver at the wharf tonight. Build the stocks finishes every island and keeps a floor of each level back for tomorrow.',
+			pace: 'Pace is the real choice. Fast and light, full but never slower than full speed, or full and loaded —',
+			loaded: 'a quarter over the limit, sailing slower for it, and calling at a wharf only where the next island would not deal.',
+			quests: 'Quests on the way: the dailies and weeklies you have already taken, handed in where the run passes their taker — or with a stop put in a short way off the route.',
+			way: 'The way round: nearest islands first whatever chain they belong to, or each chain climbed to its top before the next.',
+			where: 'Where you sail from, where your storage is, and how long you are willing to be out.',
+			floors: 'Watch the row along the bottom as it does: that is what the preset keeps back at each level — never sold, never spent below it, so tomorrow\'s board has something to start from.',
+
+			/* --- 4. the chains --- */
+			chains: 'Then the chains on offer, and three runs already worked out for you:',
+			three: 'the most silver, the most an hour, and the most a Parley unit. They are rarely the same run.',
+			take: 'Take one of them as it stands,',
+			tick: 'tick the chains you want yourself,',
+			fill: 'or keep what is ticked and let it fill the rest around them.',
+			dock: 'The bar along the foot keeps the running total: chains, silver net, hours, islands, wharf calls.',
+
+			/* --- 5. laid out --- */
+			lay: 'Lay it out, and every stop of it is written down.',
+			stops: 'What you hand over at each island, and what comes back.',
+			hold: 'The hold after every trade, against the limit — and where it says past the limit, that is you sailing slower for it.',
+			heavy: 'Where it says too heavy to barter, the next island will not deal until you lighten first.',
+			wharf: 'Which is what a wharf call is for: the surplus goes into storage, and the run carries on.',
+			parley: 'And the Parley bar, falling toward whatever you have left of the day\'s million.',
+
+			/* --- 6. sailing it --- */
+			sail: 'If it all looks right, sail it. The run goes onto the chart as a checklist.',
+			full: 'Full screen, when you would rather have the sea than the sheet.',
+			leg: 'It follows you leg by leg, and every stop is a card with the trade on it.',
+			done: 'Tick each one off as you make it. What an island actually paid re-counts everything after it.',
+
+			/* --- 7. recording it --- */
+			all: 'At the end — or all at once, for a run sailed faster than it can be filmed —',
+			record: 'you record the trip.',
+			lands: 'The silver goes to the purse, the goods left over into the Inventory, the quests handed in with their rewards.',
+			undo: 'All of it as one change, and one Undo.',
+
+			/* --- the ship under all of it --- */
+			ship: 'And none of these figures are generic. The hold, the speed and every minute on that route are your ship:',
+			setup: 'its hull, the four parts fitted, the crystal and the crew that is aboard.',
+			close: 'One island answered, and the day is planned.'
 		},
 		async shoot(ctx, s) {
 			const { page, url } = ctx;
@@ -416,27 +472,137 @@ const CHAPTERS = {
 			await card(page, 'Four', 'A Run', { line: s.open });
 
 			await tab(page, 'barter');
-			await wait(1200);
-			await say(page, s.board);
-			await say(page, s.ask);
-			await click(page, '[data-act="barter-board-ask"]', { after: 900 });
-			await page.type('.picker-in', 'raft', { delay: 90 });
-			await wait(650);
-			await click(page, '.picker-row', { after: 900 });
-			await say(page, s.follows);
-			// The runs worth sailing come back from a worker; the best is
-			// ticked when it lands, and that is when there is one to open.
-			await waitFor(page, '[data-act="barter-run-open"]', { then: 700 });
-			await say(page, s.tick);
+			await wait(1400);
+
+			/* --- 1. the two kinds ------------------------------------- */
+			await say(page, s.kinds);
+			await click(page, '[data-act="barter-goal"][data-id="material"]', { after: 1200 });
+			await say(page, s.mat);
+			await click(page, '[data-act="barter-goal"][data-id="silver"]', { after: 1200 });
+			await say(page, s.silver);
+			await hush(page);
+			await choose(page, '[data-act="barter-level"]', 'Master 5', { after: 900 });
+			await say(page, s.level);
 			await hush(page);
 
-			await click(page, '[data-act="barter-run-open"]', { after: 1600 });
-			await say(page, s.sheet);
+			/* --- 2. today's board ------------------------------------- */
+			await say(page, s.board);
+			await say(page, s.ask);
+			await click(page, '[data-act="barter-board-ask"]', { after: 1100 });
+			// The game's own window, held over the app while the picker it
+			// belongs to is open behind it: the question and where the
+			// answer is read from, in one beat.
+			await still(page, 'tools/capture/shots/barter-window.webp', { line: s.game });
+			await say(page, s.pick);
+			await click(page, '.picker-row', { after: 1400 });
+
+			// One island is usually enough to name the layout, but not
+			// always: where two of the forty still fit, the tab keeps
+			// asking. Which is the real flow, so the film waits it out
+			// rather than being seeded into a board that settles first
+			// time.
+			const settled = () => onScreen(page, 'button.chain[data-act="barter-chain"]');
+			for (let go = 0; go < 4 && !(await settled()); go++) {
+				// The chip goes as soon as the board is named, and the
+				// chains it names take a moment more to draw. Asked for
+				// rather than assumed, or the loop reaches for a button
+				// that answered its last question a frame ago.
+				if (!(await onScreen(page, '[data-act="barter-board-ask"]'))) break;
+				if (go === 0) await say(page, s.again);
+				await click(page, '[data-act="barter-board-ask"]', { after: 1000 });
+				await click(page, '.picker-row', { after: 1500 });
+			}
+			await waitFor(page, 'button.chain[data-act="barter-chain"]', { upTo: 30000, then: 700 });
+			await say(page, s.follows);
 			await hush(page);
-			await click(page, '[data-act="barter-sail"]', { after: 2600 });
+
+			/* --- 3. what the run is for -------------------------------- */
+			await say(page, s.orders);
+			await click(page, '[data-act="barter-preset"][data-id="stock"]', { after: 1100 });
+			await say(page, s.presets);
+			// The preset is also the honest way to show the floors: it
+			// fills all six boxes at once and empties them again. Typing
+			// one in by hand does the same thing to the screen and, at a
+			// level 1 floor of ten against an empty hold, leaves no run
+			// worth sailing at all -- so the panel the next beat points
+			// at would be empty.
+			await say(page, s.floors);
+			await click(page, '[data-act="barter-preset"][data-id="cash"]', { after: 1300 });
+			await hush(page);
+
+			await say(page, s.pace);
+			await choose(page, '[data-act="barter-pace"]', 'full', { after: 900 });
+			await say(page, s.loaded);
+			await choose(page, '[data-act="barter-quests"]', 'yes', { after: 900 });
+			await say(page, s.quests);
+			await choose(page, '[data-act="barter-way"]', 'chain', { after: 900 });
+			await say(page, s.way);
+			await say(page, s.where);
+			await hush(page);
+
+			/* --- 4. the chains ---------------------------------------- */
+			await say(page, s.chains);
+			// The three proposals come back from a worker a beat after the
+			// board is known; there is nothing to point at until they land.
+			await waitFor(page, '[data-act="barter-propose"]', { upTo: 60000, then: 500 });
+			await say(page, s.three);
+			await say(page, s.take);
+			await click(page, '[data-act="barter-propose"]', { after: 1600 });
+			await say(page, s.tick);
+			await click(page, 'button.chain:not(.on)[data-act="barter-chain"]', { after: 1400 });
+			await say(page, s.fill);
+			await click(page, '[data-act="barter-fill"]', { after: 2600 });
+			await say(page, s.dock);
+			await hush(page);
+
+			/* --- 5. laid out ------------------------------------------ */
+			await waitFor(page, '[data-act="barter-run-open"]', { upTo: 30000, then: 500 });
+			await say(page, s.lay);
+			await click(page, '[data-act="barter-run-open"]', { after: 1800 });
+			await say(page, s.stops);
+			await say(page, s.hold);
+			await say(page, s.heavy);
+			await say(page, s.wharf);
+			await say(page, s.parley);
+			await hush(page);
+
+			/* --- 6. sailing it ---------------------------------------- */
 			await say(page, s.sail);
+			await click(page, '[data-act="barter-sail"]', { after: 2800 });
+			await hush(page);
+			// Sailing lands on the Map. Full screen is the chart without the
+			// shell around it, and it is a toggle, so it is turned back off
+			// before the run sheet is wanted again.
+			if (await onScreen(page, '[data-act="map-full"]')) {
+				await click(page, '[data-act="map-full"]', { after: 1800 });
+				await say(page, s.full);
+				await say(page, s.leg);
+				await click(page, '[data-act="map-full"]', { after: 1600 });
+			} else {
+				await say(page, s.full);
+				await say(page, s.leg);
+			}
+			await hush(page);
+			await say(page, s.done);
+			if (await onScreen(page, '[data-act="barter-stop-done"]')) {
+				await click(page, '[data-act="barter-stop-done"]', { after: 1600 });
+			}
+			await hush(page);
+
+			/* --- 7. recording it -------------------------------------- */
+			await say(page, s.all);
+			await click(page, '[data-act="barter-sail-all"]', { after: 1100 });
+			await click(page, '[data-act="barter-sail-all-go"]', { after: 2200 });
 			await say(page, s.record);
-			await say(page, s.one);
+			await click(page, '[data-act="barter-record"]', { after: 2600 });
+			await say(page, s.lands);
+			await say(page, s.undo);
+			await hush(page);
+
+			/* --- the ship under all of it ------------------------------ */
+			await tab(page, 'crew', { after: 1400 });
+			await say(page, s.ship);
+			await say(page, s.setup);
 			await say(page, s.close);
 			await hush(page);
 		}

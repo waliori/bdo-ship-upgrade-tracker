@@ -80,7 +80,7 @@ the app is:
 | `the-yard` | Queue a build, record what you gather, craft, undo, price a part, record a level, the Tree, To Get |
 | `the-sea` | The day's quests, the Map's pins and layers, a plotted loop with distances, and drawing on the water |
 | `your-ship` | Hull, parts, crystal and crew — including reading a crew off the game's own screenshots |
-| `a-run` | Answering one island, the board that follows, and sailing the run it lays out |
+| `a-run` | The whole of bartering: which kind of run, naming today's layout off the game's barter window, the orders, the chains, the sheet, sailing it, recording it |
 | `the-harbour` | The community boards, what a place on one opens, and what is and is not shared |
 
 ```bash
@@ -163,12 +163,19 @@ Past that it is the same five rules as a scene, plus two:
 
 ### The sailor screenshots
 
-`your-ship` ends by reading a crew off `tools/capture/shots/*.webp` —
-the game's own **Manage Sailors** window, cropped to the dialog. The
-crop is deliberate and worth keeping: the full screenshot carries the
-chat log, other players' names and the character's own, none of which
-belongs in a film on a README. They go through the real reader, in the
-page, the way a player's would.
+`your-ship` ends by reading a crew off `tools/capture/shots/sailor-*.webp`
+— the game's own **Manage Sailors** window — and `a-run` holds
+`barter-window.webp`, the **Barter Information** list, over the app at
+the moment it asks which layout the sea is on. Both are cropped to the
+dialog, and the crop is deliberate: a full screenshot carries the chat
+log, other players' names and the character's own, none of which
+belongs in a film on a README. Crop first, always.
+
+The sailor shots go through the real reader, in the page, the way a
+player's would. The barter window is shown with `still()`, which reads
+the file off disk and hands it over as a data URI — the capture server
+serves the app, not this folder, and a still that only appears when the
+file happens to be reachable is one that will quietly stop appearing.
 
 ## How the pointer gets into the recording
 
