@@ -43,6 +43,7 @@ import { openJump } from './jump.js';
 import { openItemCard } from './item-card.js';
 import { attachSheet } from './sheet.js';
 import { isPhone, onPhoneChange } from './viewport.js';
+import { film } from './film.js';
 
 import { openProfiles, activeProfile } from './profiles.js';
 import { DATA, CHANGES, LATEST, RELEASES, RELEASE } from './about.js';
@@ -1989,22 +1990,6 @@ function markReleaseSeen() {
 }
 
 /**
- * The chapters of the guide, and where each one starts in the film.
- *
- * The film is the six of them joined, so these are offsets into it --
- * kept beside it rather than read out of it, because a browser will not
- * hand back an mp4's chapter track.
- */
-const FILM = [
-	[0, 'The Yard', 'queue a build, record what you gather, make it, price it'],
-	[122, 'Quests', 'the free rewards, and recording a batch of them at once'],
-	[196, 'Your Ship', 'parts, crystal, appearance, and a crew read off your screenshots'],
-	[379, 'The Map', 'the chart full screen, and all five of its tabs'],
-	[549, 'A Run', 'answer one island, and sail what the board lays out'],
-	[752, 'The Harbour', 'the boards, and what is and is not shared']
-];
-
-/**
  * The walkthrough, as a film.
  *
  * The guided tour points at things on your own screen, which is the right
@@ -2015,7 +2000,7 @@ const FILM = [
  * machine shooting a film has no deployment with players on it.
  *
  * Six chapters joined rather than the single run this used to be, which
- * buys two things: fourteen minutes can be entered at the part you
+ * buys two things: eleven minutes can be entered at the part you
  * actually wanted, and each part is a file of its own under
  * docs/media/guide for linking at.
  *
@@ -2029,13 +2014,28 @@ const FILM = [
  */
 function openHelp() {
 	const at = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+	// The offsets are generated beside the film; what each part is for is
+	// copy, and stays here.
+	const WHAT = {
+		'The Yard': 'queue a build, record what you gather, make it, price it',
+		Quests: 'the free rewards, and recording a batch of them at once',
+		'Your Ship': 'parts, crystal, appearance, and a crew read off your screenshots',
+		'The Map': 'the chart full screen, and all five of its tabs',
+		'A Run': 'answer one island, and sail what the board lays out',
+		'The Harbour': 'the boards, and what is and is not shared'
+	};
 	const host = openDialog(`
 		<h2>How this works</h2>
-		<p>Fourteen minutes, in six parts — the real app, driven and narrated. Start anywhere.</p>
+		<p>Eleven minutes, in six parts — the real app, driven and narrated. Start anywhere.</p>
 		<video class="help-film" src="docs/media/walkthrough.mp4" controls preload="metadata" playsinline>
 			<track kind="captions" srclang="en" label="English" src="docs/media/walkthrough.vtt">
 		</video>
-		<ol class="film-chapters">${FILM.map(([t, title, what], i) => `<li><button data-seek="${t}"><b>${i + 1}. ${esc(title)}</b><span>${esc(what)}</span><em>${at(t)}</em></button></li>`).join('')}</ol>
+		<ol class="film-chapters">${film.map((c, i) => {
+		// "Three — Your Ship" is the mark's own label; the number is
+		// already in the list, so the list shows the name.
+		const name = c.title.split('—').pop().trim();
+		return `<li><button data-seek="${c.at}"><b>${i + 1}. ${esc(name)}</b><span>${esc(WHAT[name] || '')}</span><em>${at(c.at)}</em></button></li>`;
+	}).join('')}</ol>
 		<details class="help-more">
 			<summary>Day by day</summary>
 			<p class="dialog-copy">The working diary. What arrived between one <i>version</i> and the next is under <b>Menu → What's new</b>.</p>
@@ -2062,14 +2062,18 @@ function openHelp() {
 	// The chapter list is the only way into the middle of it: a browser
 	// will not surface an mp4's own chapter marks, so the offsets are
 	// kept beside the film and seeking is done by hand. Playing from a
-	// standing start is the viewer's business -- fourteen minutes is not
+	// standing start is the viewer's business -- eleven minutes is not
 	// something to begin without being asked.
-	const film = host.querySelector('video');
-	if (film) {
+	// `player`, not `film`: the chapter offsets imported above are called
+	// that, and a const here of the same name shadows them for the whole
+	// function -- including the template above, which reads them before
+	// this line runs.
+	const player = host.querySelector('video');
+	if (player) {
 		for (const b of host.querySelectorAll('[data-seek]')) {
 			b.addEventListener('click', () => {
-				film.currentTime = Number(b.dataset.seek);
-				film.play().catch(() => { /* a browser that would rather not */ });
+				player.currentTime = Number(b.dataset.seek);
+				player.play().catch(() => { /* a browser that would rather not */ });
 			});
 		}
 	}

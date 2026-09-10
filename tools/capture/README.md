@@ -157,11 +157,24 @@ one.
 
 ### The pace of a chapter
 
-`guide.sh` exports three knobs, each with the scenes' own value behind
-it so the README clips are untouched: `VOICE_RATE` (1.12), `VOICE_GAP`
-(140 ms of silence between lines) and `GLIDE` (380 ms for the pointer to
-travel, against the scenes' 620). Sixty presses at the scenes' pace is
-half a minute of watching a cursor.
+`guide.sh` exports four knobs, each with a default behind it so the
+README clips are untouched: `VOICE_RATE` (1.12, how fast the narrator is
+synthesised), `VOICE_GAP` (140 ms of silence between lines), `GLIDE`
+(380 ms for the pointer to travel, against the scenes' 620) and `SPEED`
+(1.3, how much faster than life the finished film runs). Sixty presses
+at the scenes' pace is half a minute of watching a cursor.
+
+`SPEED` is applied inside `mix.mjs`, in the one encode that already
+stands between the raw screencast and the mp4 — `setpts` for the
+pictures, `atempo` for the narration, and the caption timings divided to
+match. Speeding up the finished mp4 instead would lay a second
+generation of h264 over an already-compressed recording of flat UI
+colour, which is the material that shows it worst. The two rates
+multiply: at the defaults the narration lands at about 1.45× a natural
+reading, which is brisk. If it ever wants slowing, `VOICE_RATE` is the
+better knob of the two — it re-synthesises rather than time-stretching,
+though it does mean a re-shoot, since the film is paced by how long the
+audio runs.
 
 ### Writing a chapter
 

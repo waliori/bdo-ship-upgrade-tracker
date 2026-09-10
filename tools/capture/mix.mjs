@@ -21,6 +21,23 @@ import path from 'node:path';
 
 const exec = promisify(execFile);
 
+/**
+ * How much faster than life the finished film runs.
+ *
+ * Applied here rather than to the finished mp4, because this step is
+ * already the one encode between the raw screencast and what ships --
+ * folding the speed-up into it costs nothing, where doing it afterwards
+ * would put a second generation of h264 over an already-compressed
+ * recording of flat UI colour, which is exactly the material that shows
+ * it.
+ *
+ * The pictures are re-timed with `setpts` and the narration with
+ * `atempo`, which stretches without moving the pitch -- the same voice,
+ * talking faster, rather than a chipmunk. Both scale by the same
+ * factor, so nothing drifts; the caption timings are divided to match.
+ */
+const SPEED = Number(process.env.SPEED || 1);
+
 /** hh:mm:ss.mmm, which is what WebVTT wants; SRT wants a comma for the dot. */
 function stamp(ms, comma = false) {
 	const t = Math.max(0, ms);
@@ -44,13 +61,16 @@ function stamp(ms, comma = false) {
  * else entirely.
  */
 function cues(lines, lead, total) {
+	// Everything here is on the recording's own clock, so the whole set
+	// is divided at the end rather than each bound as it is worked out.
+	const scale = n => Math.round(n / SPEED);
 	return lines.map((l, i) => {
 		const from = l.at + lead;
 		const next = lines[i + 1];
 		const held = from + l.ms + 900;
 		return {
-			from,
-			to: Math.min(next ? next.at + lead : total, held, total),
+			from: scale(from),
+			to: scale(Math.min(next ? next.at + lead : total, held, total)),
 			text: l.text
 		};
 	});
@@ -91,13 +111,22 @@ export async function mix(stem, outDir = null) {
 	const args = ['-v', 'error', '-y', '-i', webm];
 	for (const l of lines) args.push('-i', l.file);
 
+	// The delays are on the original clock and `atempo` scales them with
+	// everything else, so the soundtrack is laid out first and sped up
+	// whole -- which keeps every line against the frame it belongs to.
+	const faster = SPEED !== 1;
+	const vf = faster ? `[0:v]setpts=PTS/${SPEED}[v]` : null;
 	if (lines.length) {
 		const parts = lines.map((l, i) =>
 			`[${i + 1}:a]adelay=${Math.max(0, Math.round(l.at + lead))}:all=1[d${i}]`);
 		const sum = lines.map((_, i) => `[d${i}]`).join('');
 		parts.push(`${sum}amix=inputs=${lines.length}:normalize=0:dropout_transition=0[m]`);
-		parts.push('[m]loudnorm=I=-16:TP=-1.5:LRA=11,apad[a]');
-		args.push('-filter_complex', parts.join(';'), '-map', '0:v', '-map', '[a]');
+		parts.push(`[m]loudnorm=I=-16:TP=-1.5:LRA=11${faster ? `,atempo=${SPEED}` : ''},apad[a]`);
+		if (vf) parts.unshift(vf);
+		args.push('-filter_complex', parts.join(';'),
+			'-map', vf ? '[v]' : '0:v', '-map', '[a]');
+	} else if (vf) {
+		args.push('-filter_complex', vf, '-map', '[v]', '-an');
 	} else {
 		args.push('-map', '0:v', '-an');
 	}
@@ -119,7 +148,7 @@ export async function mix(stem, outDir = null) {
 	// read the thing than watch it.
 	await writeFile(path.join(dir, `${name}.txt`), lines.map(l => l.text).join('\n') + '\n');
 
-	return { mp4, lines: lines.length, ms: total };
+	return { mp4, lines: lines.length, ms: Math.round(total / SPEED) };
 }
 
 // Run directly: mix one stem, or a whole directory's worth.

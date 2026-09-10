@@ -1,93 +1,93 @@
 WEBVTT
 
 1
-00:00:00.661 --> 00:00:06.446
+00:00:00.508 --> 00:00:04.958
 This is the Yard. It works out what your builds need, and what you still have to find.
 
 2
-00:00:06.589 --> 00:00:09.388
+00:00:05.068 --> 00:00:07.222
 Start by queueing something to build.
 
 3
-00:00:16.509 --> 00:00:19.696
+00:00:12.699 --> 00:00:15.151
 Some ships can be built two ways, so it asks which.
 
 4
-00:00:19.696 --> 00:00:22.767
+00:00:15.151 --> 00:00:17.513
 It shows what each route costs. Either is fine.
 
 5
-00:00:22.767 --> 00:00:29.022
+00:00:17.513 --> 00:00:22.325
 Queue a second one. Order matters: if stock runs short, the build at the top gets it first.
 
 6
-00:00:29.537 --> 00:00:33.338
+00:00:22.721 --> 00:00:25.645
 The Plan is everything your queue needs, in one list.
 
 7
-00:00:34.358 --> 00:00:37.821
+00:00:26.429 --> 00:00:29.093
 Red is missing. Blue you can make. Green you already have.
 
 8
-00:00:37.821 --> 00:00:40.748
+00:00:29.093 --> 00:00:31.345
 As you gather, type in what you have.
 
 9
-00:00:43.336 --> 00:00:45.915
+00:00:33.335 --> 00:00:35.319
 Every build re-plans around it straight away.
 
 10
-00:00:45.915 --> 00:00:50.527
+00:00:35.319 --> 00:00:38.867
 Or log a whole trip at once, instead of a box at a time.
 
 11
-00:00:51.349 --> 00:00:54.430
+00:00:39.499 --> 00:00:41.869
 The Workshop makes anything you have the materials for.
 
 12
-00:00:54.430 --> 00:00:58.642
+00:00:41.869 --> 00:00:45.109
 Crafting moves real stock. Ingredients out, the product in.
 
 13
-00:00:58.642 --> 00:01:03.254
+00:00:45.109 --> 00:00:48.657
 Made a mistake? Undo steps it back, and Redo puts it forward.
 
 14
-00:01:03.901 --> 00:01:07.194
+00:00:49.155 --> 00:00:51.688
 Enhancing is kept separate, because attempts can fail.
 
 15
-00:01:07.194 --> 00:01:12.909
+00:00:51.688 --> 00:00:56.084
 It shows your real odds at your failstack, and the most the part can end up costing.
 
 16
-00:01:12.909 --> 00:01:16.680
+00:00:56.084 --> 00:00:58.985
 The Inventory is one tile per thing you own, or still need.
 
 17
-00:01:16.680 --> 00:01:20.524
+00:00:58.985 --> 00:01:01.942
 Open one, and every way of getting it is priced.
 
 18
-00:01:22.638 --> 00:01:29.703
+00:01:03.568 --> 00:01:09.002
 What the shop charges, against what making it costs — including its own ingredients, all the way down.
 
 19
-00:01:30.087 --> 00:01:33.803
+00:01:09.298 --> 00:01:12.156
 Already levelled a part in game? Record it here.
 
 20
-00:01:39.248 --> 00:01:44.073
+00:01:16.345 --> 00:01:20.056
 Tell it the level you reached. It spends no stones to agree with you.
 
 21
-00:01:46.251 --> 00:01:49.775
+00:01:21.732 --> 00:01:24.442
 The Tree shows why a build needs what it needs.
 
 22
-00:01:52.912 --> 00:01:57.197
+00:01:26.855 --> 00:01:30.152
 And To Get is your shopping list, grouped by where to go for it.
 
 23
-00:01:57.197 --> 00:02:02.001
+00:01:30.152 --> 00:01:33.847
 That is the Yard. What you want, what it takes, and what is left to find.

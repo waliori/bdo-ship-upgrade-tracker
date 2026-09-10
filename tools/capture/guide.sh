@@ -25,6 +25,10 @@ cd "$(dirname "$0")/../.."
 export VOICE_RATE="${VOICE_RATE:-1.12}"
 export VOICE_GAP="${VOICE_GAP:-140}"
 export GLIDE="${GLIDE:-380}"
+# And the finished film runs a little faster than it was shot. This is
+# applied in the one encode mix.mjs already does, so it costs no extra
+# generation; `atempo` keeps the narrator's pitch where it was.
+export SPEED="${SPEED:-1.3}"
 
 RAW=tools/capture/out
 OUT=docs/media/guide
