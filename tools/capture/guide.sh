@@ -45,5 +45,20 @@ for name in "${CHAPTERS[@]}"; do
 	node tools/capture/mix.mjs "$RAW/$name" "$OUT"
 done
 
+# The six end to end, as the README's walkthrough and the film the app
+# plays under Help. Rebuilt whenever all six are on disk, so re-shooting
+# one chapter replaces it in the joined cut too -- there is no separate
+# thing to remember to re-render.
+missing=0
+for name in the-yard quests your-ship the-map a-run the-harbour; do
+	[ -f "$OUT/$name.mp4" ] || missing=1
+done
+if [ "$missing" -eq 0 ]; then
+	echo "== the whole film"
+	node tools/capture/join.mjs "$OUT" docs/media/walkthrough
+else
+	echo "== skipping the joined film: not all six chapters are shot yet"
+fi
+
 echo "done -- $OUT"
 ls -la "$OUT"

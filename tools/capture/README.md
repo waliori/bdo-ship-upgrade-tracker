@@ -60,18 +60,16 @@ can be re-encoded without re-shooting it:
 ```bash
 ./tools/capture/togif.sh tools/capture/out/craft.webm docs/media/craft.gif 900 13
 #                        <in>                         <out>                 <width> <fps>
-./tools/capture/tomp4.sh tools/capture/out/walkthrough.webm docs/media/walkthrough.mp4
 ```
 
 900px at 13fps keeps a 6–10 second clip around half a megabyte. The
 palette is generated per clip with `stats_mode=diff` and applied with
 bayer dithering, because a flat global palette bands badly across the
 app's ocean gradient.
-
 ## The guide films
 
 Everything above shoots the silent clips the README embeds. The other
-half of this harness shoots **five narrated chapters** — the thing to
+half of this harness shoots **six narrated chapters** — the thing to
 send someone who asks how one part of the app works, rather than what
 the app is:
 
@@ -86,68 +84,8 @@ the app is:
 
 ```bash
 PORT=8765 node server.js &
-```
-
-Then shoot everything — every scene, both cuts of the film, and the
-conversions — with:
-
-```bash
-npm run capture
-```
-
-That is `tools/capture/shoot.sh`, which takes about ten minutes. While
-iterating on one clip it is quicker to drive the pieces directly:
-
-```bash
-node tools/capture/scenes.mjs tools/capture/out craft      # one scene
-node tools/capture/scenes.mjs tools/capture/out community  # one still
-node tools/capture/tour.mjs   tools/capture/out            # the film
-node tools/capture/tour.mjs   tools/capture/out phone      # the phone cut
-```
-
-The two community captures — the `the-boards` scene and the `community`
-still — open a browser of their own and close it again, because the
-faked sign-in they install must not leak into a scene shot after them.
-
-Point it at a different browser or port with environment variables:
-
-```bash
-CHROME=/usr/bin/chromium PORT=9000 npm run capture
-```
-
-Clips land as `.webm`. The conversions are separate scripts, so a clip
-can be re-encoded without re-shooting it:
-
-```bash
-./tools/capture/togif.sh tools/capture/out/craft.webm docs/media/craft.gif 900 13
-#                        <in>                         <out>                 <width> <fps>
-./tools/capture/tomp4.sh tools/capture/out/walkthrough.webm docs/media/walkthrough.mp4
-```
-
-900px at 13fps keeps a 6–10 second clip around half a megabyte. The
-palette is generated per clip with `stats_mode=diff` and applied with
-bayer dithering, because a flat global palette bands badly across the
-app's ocean gradient.
-
-## The guide films
-
-Everything above shoots the silent clips the README embeds. The other
-half of this harness shoots **five narrated chapters** — the thing to
-send someone who asks how one part of the app works, rather than what
-the app is:
-
-| Chapter | What it covers |
-|---|---|
-| `the-yard` | Queue a build, record what you gather, craft, undo, price a part, record a level, the Tree, To Get |
-| `the-sea` | The day's quests, the Map's pins and layers, a plotted loop with distances, and drawing on the water |
-| `your-ship` | Hull, parts, crystal and crew — including reading a crew off the game's own screenshots |
-| `a-run` | The whole of bartering: which kind of run, naming this refresh's layout off the game's barter window, the orders, the chains, the sheet, sailing it, recording it |
-| `the-harbour` | The community boards, what a place on one opens, and what is and is not shared |
-
-```bash
-PORT=8765 node server.js &
-npm run guide                       # all five
-./tools/capture/guide.sh the-sea    # just one
+npm run guide                       # all six, and the joined film
+./tools/capture/guide.sh the-map    # just one
 ```
 
 Each chapter leaves `docs/media/guide/<name>.mp4` and, beside it, a
@@ -155,6 +93,20 @@ Each chapter leaves `docs/media/guide/<name>.mp4` and, beside it, a
 already carries its words on screen — the caption bar is drawn in the
 page, and most people meet these muted — so the sidecars are for a
 player's own caption track and for whatever a video host wants to index.
+
+Once all six are on disk, `guide.sh` joins them into
+**`docs/media/walkthrough.mp4`** — the film the README links to and the
+app plays under **Help** — with chapter marks and one merged caption
+track. That join is a stream copy, not a re-encode, so re-shooting one
+chapter replaces it in the joined cut for the cost of an `ffmpeg -c
+copy`. The app's Help dialog lists the six as jump-to points; their
+offsets live in `FILM` in `js/ui.js`, because a browser will not surface
+an mp4's own chapter marks.
+
+`tour.mjs` used to be the walkthrough. Nothing builds from it now — the
+chapters say the same things at greater length, and `shoot.sh` no longer
+runs it. It is left in place because it still works, and because it is
+the only thing here that knows how to shoot a narrow cut for a phone.
 
 ### Narration, and why it is synthesised first
 
@@ -203,6 +155,14 @@ its own — but it **appends** rather than sets, because a nix shell
 often exports an `LD_LIBRARY_PATH` that has some libraries and not that
 one.
 
+### The pace of a chapter
+
+`guide.sh` exports three knobs, each with the scenes' own value behind
+it so the README clips are untouched: `VOICE_RATE` (1.12), `VOICE_GAP`
+(140 ms of silence between lines) and `GLIDE` (380 ms for the pointer to
+travel, against the scenes' 620). Sixty presses at the scenes' pace is
+half a minute of watching a cursor.
+
 ### Writing a chapter
 
 A chapter is a `say` block and a `shoot` function, and the split is not
@@ -213,7 +173,7 @@ at a time is a quarter of an hour where the same hundred in one process
 is a couple of minutes — and a line synthesised mid-take would freeze
 the picture while it was thought about.
 
-Past that it is the same five rules as a scene, plus four:
+Past that it is the same five rules as a scene, plus five:
 
 - **`doing()`, not `say()` then click.** `doing(page, line, act)` runs
   the interaction against the same stretch of audio, so the pointer is
@@ -222,15 +182,15 @@ Past that it is the same five rules as a scene, plus four:
   happens — which is most of what makes one of these feel slow, and
   worse, means every sentence is about a screen that has not changed
   yet. Reach for `say()` only where there is genuinely nothing to do.
+- **`spot()` when naming one thing among many.** It scrolls the target
+  into view, lights it and dims the rest. Half the value is the
+  scrolling: a line about the keep-back boxes is worse than useless
+  while they are eight hundred pixels below the fold, which is exactly
+  how the first cut of `a-run` shipped.
 - **Say what a control does, in the order someone meets it.** Not what
   it means. "Orange means you are over the limit — you still sail, just
   slower" beats anything with a clause in it. These are watched by
   someone who wants to use the tab this evening.
-- **`spot()` when naming one thing among many.** It scrolls the target
-  into view, lights it, and dims the rest. Half the value is the
-  scrolling: a line about the keep-back boxes is worse than useless
-  while they are eight hundred pixels below the fold, which is exactly
-  how the first cut of `a-run` shipped.
 - **`hush()` between subjects**, not between sentences. It clears the
   bar and lets the picture stand on its own for a moment, and the
   caption sidecars use it to decide where one caption ends.
@@ -238,15 +198,15 @@ Past that it is the same five rules as a scene, plus four:
   board. A player pays to turn it over, and several times a day is
   normal. Quests are the other way round: those really are daily.
 
-### The sailor screenshots
+### The game's own windows
 
-`your-ship` ends by reading a crew off `tools/capture/shots/sailor-*.webp`
-— the game's own **Manage Sailors** window — and `a-run` holds
+`your-ship` reads a crew off `tools/capture/shots/sailor-*.webp` — the
+game's **Manage Sailors** window — and `a-run` holds
 `barter-window.webp`, the **Barter Information** list, over the app at
 the moment it asks which layout the sea is on. Both are cropped to the
 dialog, and the crop is deliberate: a full screenshot carries the chat
-log, other players' names and the character's own, none of which
-belongs in a film on a README. Crop first, always.
+log, other players' names and the character's own, none of which belongs
+in a film on a README. Crop first, always.
 
 The sailor shots go through the real reader, in the page, the way a
 player's would. The barter window is shown with `still()`, which reads
@@ -308,17 +268,18 @@ Five things are worth knowing.
 
 | File | What it is |
 |---|---|
-| `drive.mjs` | Browser, fake cursor, captions, and the `click` / `typeInto` / `moveTo` / `clickIn` / `drag` verbs |
+| `drive.mjs` | Browser, fake cursor, captions, chapter cards, the spotlight, and the `click` / `doing` / `spot` / `still` / `choose` / `typeInto` / `drag` verbs |
 | `states.mjs` | Seeded inventories, so every clip shows a believable part-built fleet |
 | `fleet.mjs` | The example sailors on the community boards, and the `/api` answers about them |
 | `comm-audit.mjs` | A headless look over the Community tab on that same fleet |
 | `scenes.mjs` | One entry per clip and per still |
-| `guides.mjs` | The five narrated chapters — a `say` block and a `shoot` each |
+| `guides.mjs` | The six narrated chapters — a `say` block and a `shoot` each |
 | `voice.mjs` | Saying a line, and the cache that keeps it |
 | `mix.mjs` | Narration under a film, and the `.vtt` / `.srt` / `.txt` beside it |
-| `guide.sh` | The chapters, shot and mixed |
-| `shots/` | Cropped **Manage Sailors** screenshots the crew reader is shown |
-| `tour.mjs` | The captioned film, end to end; `phone` for the narrow cut |
+| `guide.sh` | The chapters, shot and mixed, then joined into the walkthrough |
+| `shots/` | Cropped game windows: the **Manage Sailors** shots the reader is given, and the **Barter Information** list `a-run` holds up |
+| `tour.mjs` | The old single-run film; superseded by the chapters, still runnable |
+| `join.mjs` | The six chapters end to end, with chapter marks and merged captions |
 | `shoot.sh` | The whole shoot, and the conversions |
 | `togif.sh` | `webm` → `gif` |
 | `tomp4.sh` | `webm` → `mp4` |

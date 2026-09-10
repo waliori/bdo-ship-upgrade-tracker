@@ -791,6 +791,37 @@
   .help-film { max-height: 42vh; }
 }
 
+/* The six chapters under the film, as the way into the middle of it. */
+.film-chapters { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; }
+.film-chapters button {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--r-chip);
+  background: rgba(var(--line-rgb), 0.07);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.film-chapters button:hover,
+.film-chapters button:focus-visible {
+  border-color: rgba(var(--line-rgb), 0.34);
+  background: rgba(var(--line-rgb), 0.13);
+}
+.film-chapters b { flex: none; font-weight: 600; }
+.film-chapters span { flex: 1; min-width: 0; color: var(--ink-dim); font-size: 12.5px; }
+.film-chapters em { flex: none; font-style: normal; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 560px) {
+  /* The description is the first thing to go: the number, the name and
+     the time are what a thumb is aiming at. */
+  .film-chapters span { display: none; }
+}
+
 /* The inventory detail is one of the sheets at the foot of this file. */
 .detail-veil { display: none; }
 

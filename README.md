@@ -11,22 +11,19 @@ opt-in, self-hosted and off by default.
 
 ![The Plan screen, part-way through two Carrack parts](docs/media/hero.png)
 
-**In a hurry?** [Watch the walkthrough](docs/media/walkthrough.mp4) — the
-yard first: queue a build, choose how to get there, record what you
-gathered, make something, see what it will really cost, take the list
-shopping. Then the sea: the day's free quests, the ship you sail it in,
-the chart, where that list becomes a loop with minutes on it and a
-blank stretch of water can be drawn on, a run planned on today's board
-and sailed on that chart — and the harbour at the end, where the boards
-are. It is the real app, driven and captioned; the only invented thing
-in it is the handful of sailors on those boards, since a machine
-shooting a clip has no deployment with players on it. There is a
-[narrower cut for a phone](docs/media/walkthrough-phone.mp4). Both play
-inside the app too, under **Help**.
+**In a hurry?** [Watch the guide](docs/media/walkthrough.mp4) — fourteen
+minutes, in six parts, and you can start at whichever one you came for.
+It is the real app being driven and narrated, not a mock-up; the only
+invented thing anywhere in it is the handful of sailors on the community
+boards, since a machine shooting a film has no deployment with players
+on it. It plays inside the app too, under **Help**, where the six parts
+are listed as jump-to points. There is a
+[transcript](docs/media/walkthrough.txt) and a
+[caption track](docs/media/walkthrough.vtt) beside it.
 
-**Want one part of it, not the whole thing?** The same app, narrated, in
-six chapters — with subtitles and a transcript beside every one, and
-whatever is being talked about lit up on screen:
+The six parts are also files of their own, if you would rather link at
+one than at a timestamp — each with subtitles and a transcript, and
+whatever is being talked about lit up on screen as it is named:
 
 | Chapter | What it covers |
 |---|---|

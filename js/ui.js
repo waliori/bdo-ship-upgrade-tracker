@@ -1989,22 +1989,53 @@ function markReleaseSeen() {
 }
 
 /**
+ * The chapters of the guide, and where each one starts in the film.
+ *
+ * The film is the six of them joined, so these are offsets into it --
+ * kept beside it rather than read out of it, because a browser will not
+ * hand back an mp4's chapter track.
+ */
+const FILM = [
+	[0, 'The Yard', 'queue a build, record what you gather, make it, price it'],
+	[122, 'Quests', 'the free rewards, and recording a batch of them at once'],
+	[196, 'Your Ship', 'parts, crystal, appearance, and a crew read off your screenshots'],
+	[379, 'The Map', 'the chart full screen, and all five of its tabs'],
+	[549, 'A Run', 'answer one island, and sail what the board lays out'],
+	[752, 'The Harbour', 'the boards, and what is and is not shared']
+];
+
+/**
  * The walkthrough, as a film.
  *
  * The guided tour points at things on your own screen, which is the right
  * way to learn a control you are looking at. This is for the other
  * question -- "what is this for" -- answered once, end to end, without
- * having to do anything. It is the real app, driven and captioned, with a
- * narrower cut for a phone: neither is a mock-up, so a screen that
- * changes makes the film wrong until it is shot again, which
- * tools/capture does in one command.
+ * having to do anything. It is the real app, driven and narrated; the
+ * only invented thing in it is the sailors on the boards, since a
+ * machine shooting a film has no deployment with players on it.
+ *
+ * Six chapters joined rather than the single run this used to be, which
+ * buys two things: fourteen minutes can be entered at the part you
+ * actually wanted, and each part is a file of its own under
+ * docs/media/guide for linking at.
+ *
+ * One cut for every screen now. The narrow cut existed because the
+ * captions are drawn into the picture at a size a phone cannot read;
+ * the film carries a caption track of its own instead, which a phone
+ * renders at its own size. And a fourteen-minute film neither autoplays
+ * nor loops -- `preload="metadata"` keeps it off the wire until it is
+ * asked for, which matters rather more at thirty megabytes than it did
+ * at seven.
  */
 function openHelp() {
-	const file = isPhone() ? 'walkthrough-phone.mp4' : 'walkthrough.mp4';
+	const at = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 	const host = openDialog(`
 		<h2>How this works</h2>
-		<p>The whole thing, end to end. The yard first — queue a build, choose how to get there, record what you gathered, make something, see what it will really cost, take the list shopping — then the sea: the day's free quests, the ship you sail, the chart, where that list becomes a loop with minutes on it and a blank stretch of water can be drawn on — and a run planned on today's board, sailed on that chart.</p>
-		<video class="help-film" src="docs/media/${file}" controls autoplay muted playsinline loop></video>
+		<p>Fourteen minutes, in six parts — the real app, driven and narrated. Start anywhere.</p>
+		<video class="help-film" src="docs/media/walkthrough.mp4" controls preload="metadata" playsinline>
+			<track kind="captions" srclang="en" label="English" src="docs/media/walkthrough.vtt">
+		</video>
+		<ol class="film-chapters">${FILM.map(([t, title, what], i) => `<li><button data-seek="${t}"><b>${i + 1}. ${esc(title)}</b><span>${esc(what)}</span><em>${at(t)}</em></button></li>`).join('')}</ol>
 		<details class="help-more">
 			<summary>Day by day</summary>
 			<p class="dialog-copy">The working diary. What arrived between one <i>version</i> and the next is under <b>Menu → What's new</b>.</p>
@@ -2028,10 +2059,20 @@ function openHelp() {
 			<button class="act" data-act="tour">Walk me through my own screen</button>
 		</div>
 	`);
-	// The captions are the narration, so it starts muted and stays that
-	// way; unmuting an autoplaying video is a good way to be hated.
+	// The chapter list is the only way into the middle of it: a browser
+	// will not surface an mp4's own chapter marks, so the offsets are
+	// kept beside the film and seeking is done by hand. Playing from a
+	// standing start is the viewer's business -- fourteen minutes is not
+	// something to begin without being asked.
 	const film = host.querySelector('video');
-	if (film) film.play().catch(() => { /* a browser that would rather not */ });
+	if (film) {
+		for (const b of host.querySelectorAll('[data-seek]')) {
+			b.addEventListener('click', () => {
+				film.currentTime = Number(b.dataset.seek);
+				film.play().catch(() => { /* a browser that would rather not */ });
+			});
+		}
+	}
 	return host;
 }
 

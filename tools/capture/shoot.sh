@@ -18,9 +18,10 @@ mkdir -p "$RAW" "$OUT"
 echo "== scenes"
 node tools/capture/scenes.mjs "$RAW"
 
-echo "== the film, both cuts"
-node tools/capture/tour.mjs "$RAW"
-node tools/capture/tour.mjs "$RAW" phone
+# The walkthrough is no longer shot here. It is the six narrated
+# chapters joined end to end -- ./tools/capture/guide.sh, which writes
+# docs/media/walkthrough.mp4 as its last step. tour.mjs still runs and
+# still works; nothing builds from it.
 
 echo "== webm -> gif"
 # 900px at 13fps keeps most clips near half a megabyte. Two of them are
@@ -49,10 +50,6 @@ for f in "$RAW"/*.webm; do
 	# shellcheck disable=SC2046
 	./tools/capture/togif.sh "$f" "$OUT/$name.gif" $(gif_size "$name")
 done
-
-echo "== webm -> mp4"
-./tools/capture/tomp4.sh "$RAW/walkthrough.webm" "$OUT/walkthrough.mp4"
-./tools/capture/tomp4.sh "$RAW/walkthrough-phone.webm" "$OUT/walkthrough-phone.mp4"
 
 echo "== stills"
 cp "$RAW"/*.png "$OUT"/

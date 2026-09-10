@@ -1,0 +1,190 @@
+== One — The Yard ==
+
+This is the Yard. It works out what your builds need, and what you still have to find.
+Start by queueing something to build.
+Some ships can be built two ways, so it asks which.
+It shows what each route costs. Either is fine.
+Queue a second one. Order matters: if stock runs short, the build at the top gets it first.
+The Plan is everything your queue needs, in one list.
+Red is missing. Blue you can make. Green you already have.
+As you gather, type in what you have.
+Every build re-plans around it straight away.
+Or log a whole trip at once, instead of a box at a time.
+The Workshop makes anything you have the materials for.
+Crafting moves real stock. Ingredients out, the product in.
+Made a mistake? Undo steps it back, and Redo puts it forward.
+Enhancing is kept separate, because attempts can fail.
+It shows your real odds at your failstack, and the most the part can end up costing.
+The Inventory is one tile per thing you own, or still need.
+Open one, and every way of getting it is priced.
+What the shop charges, against what making it costs — including its own ingredients, all the way down.
+Already levelled a part in game? Record it here.
+Tell it the level you reached. It spends no stones to agree with you.
+The Tree shows why a build needs what it needs.
+And To Get is your shopping list, grouped by where to go for it.
+That is the Yard. What you want, what it takes, and what is left to find.
+
+== Two — Quests ==
+
+This is the Quests tab. It tracks the quests that pay in things you are already short of.
+These are the sailing dailies and weeklies, all in one list.
+The ones paying something on your build list are marked, so you can see which are worth the detour.
+Filter them by what they pay, or by who gives them.
+Each row shows what it pays, and how much of it you still need.
+Some quests let you pick your reward. Those ask you which when you finish.
+Tick off the ones you did in game.
+Then click Finish.
+The rewards go straight into your stock, as one change.
+Got one wrong? Undo puts the whole batch back.
+The ticks clear themselves at the daily reset, so you start each day fresh.
+And these clocks tell you how long you have: dailies, weeklies, and the barter refresh.
+Star the ones you always do, and they sort to the top.
+Or save a set you run together, and tick the whole group at once.
+Every quest knows where its giver stands, so a run can hand them in as it passes.
+That is Quests. Free materials, tracked against what you are building.
+
+== Three — Your Ship ==
+
+This is the Ship tab. Everything the app knows about how fast you sail comes from this one screen.
+Start with the hull. Pick the ship you actually sail.
+A ship has four part slots: figurehead, plating, cannon and sail.
+Each one fills itself with the best part you own.
+Click Change to pick a different one.
+It lists every part that fits the slot, with what each does, and marks the ones you actually hold.
+The fifth slot is your sea crystal.
+Pick the one you have socketed, and its bonus goes into the numbers.
+Below that is the appearance set.
+Skins are cosmetic in most games. Here they are not: a full set adds real durability and rations, so tick the pieces you are wearing.
+And this panel at the top is the ship itself: its speed, its hold limit, and how many of the five slots are filled.
+The small print under each figure says where it came from — hull, parts, crystal, crew and mastery, added up.
+Your Sailing Mastery goes in here, and those figures move with it.
+Now the crew. This roster starts empty.
+Typing eighteen sailors in, four growths each, is an evening you will not enjoy. So it reads them off your screenshots instead.
+Screenshot the Manage Sailors window in game, one sailor a shot, and drop them in. It reads them in your browser — nothing is uploaded.
+Check the table against the game, then take the ones that are right.
+And there they are, hired, with their real levels and growths.
+Sort the list by whatever you are fitting for. Best all round, best for speed, and so on.
+To seat one by hand, click the sailor, then click the seat you want them in.
+Where they sit matters. A sail seat doubles their speed growth, and the wheel doubles turn and brake.
+Or let it arrange the whole crew for you. Click Auto assign.
+It asks what the boat is for, and shows what each answer would actually give you.
+Pick one, and it seats everybody.
+And the row under the ship fills in. That is what the crew is adding, on top of the hull.
+Two hot presets, for swapping crews quickly. Save the current one to a slot.
+And click it to put that crew straight back on.
+A setup is bigger: the whole fit-out, hull, parts, crystal and seating, under a name.
+The fleet lists every setup you have kept, and every hull you own without one.
+The one you are sailing is what the Map times its routes at.
+And you can copy the whole thing as a link, if someone asks what you sail.
+That is your ship. Get this screen right, and every distance and every minute in the app is yours.
+
+== Four — The Map ==
+
+This is the Map. It is the whole sea, with everything you need marked on it.
+Every pin is a barterer holding something you are short of.
+This says what it is marking. Everything you are short of, or one item you choose.
+These buttons across the top are the chart controls.
+Zoom out, and zoom in. You can also just scroll on the sea.
+This one fits everything marked back into view, if you get lost.
+This toggles the minimap in the corner.
+And this is full screen. That is where the chart is worth using, so let us go there.
+Now the sea has the whole window.
+Hit fit again, now that the chart has the room. That pulls back until every mark is in view at once.
+Which is most of the sea, so zoom back in a couple of steps to where you actually work.
+The panel on the left is what drives it.
+Start with "On the chart". This controls what gets drawn.
+Barterers, habitats, wharves, guild wharves, island names, and your own drawings. Turn off what you do not need.
+There is a search, for finding an island or a good by name.
+And these five tabs are the tools. We will take them in order.
+Barter is the default. Every island that has something on your list, with what it trades.
+Click a row and the chart flies to that island.
+Route turns that list into a sailing route.
+Plot the loop, and it draws one, bent around the land rather than through it.
+Every leg gets a distance and a time, at the speed your ship actually sails.
+Save the route, share it as a link, or send it to the game map as bookmarks.
+Draw is for routes the list cannot describe. It gives you three tools.
+The pin drops a numbered stop, in the order you mean to sail.
+The pen draws a freehand line.
+And the text tool types a note straight onto the water.
+Name it and keep it, and it joins your library. Traces share as links too.
+Grounds is for hunting.
+It lists every species: sea monsters, young ones, ships, bosses and the Cox Pirates.
+Click one, and every spawn point it has goes on the chart.
+Tick as many as you like, and send the lot to the game map.
+Above them are the known sailing courses, each with a note.
+Today is your checklist for this refresh.
+Every island you need, ticked off as you visit it, with the total at the top.
+Drag to pan, scroll to zoom. The drawings and pins move with the chart.
+Escape, or the cross, brings the page back.
+That is the Map. Everything you are short of, where it is, and how long it takes to get there.
+
+== Five — A Run ==
+
+This is the Barter tab. Show it one island, and it plans a whole run for you.
+First, pick what you are running for.
+A material climbs the ladder to one thing you are short of.
+Silver runs the chains on the board and sells at the end. That is the one we want.
+Set your barter level here. It sets the Parley cost of every trade below.
+Next, tell it what the board looks like.
+Every refresh, the sea uses one of forty layouts.
+The app cannot know which one. So you show it a single island.
+Click "another island", and pick the one you are looking at.
+Now check that island in game. Open Barter Information, set the filter to Normal to Level 1, and find its row. Eveto Island is offering Essence of Liquor, for a Level 1 Cherry Tree Seed Pouch.
+Pick that same trade here.
+That names the layout. Every chain this refresh allows is now listed below.
+Now tell it what you want out of the run.
+Build the stocks keeps goods back for the next refresh.
+These boxes are how much it keeps back at each level.
+Cash out sells everything for silver instead.
+Pace. Fast keeps you light and quick.
+Full and loaded fills the hold past the limit. More goods, slower sailing.
+Quests on the way hands in dailies you have already taken, as you pass them.
+The way round sets the route order: nearest island first, or one chain at a time.
+And here: where you sail from, where your storage is, and a time limit if you want one.
+Now the chains. It has already worked out three runs for you.
+The most silver, the most per hour, and the most per Parley. They are rarely the same run.
+Click one to use it.
+Or tick chains yourself.
+Fill the rest adds the best chains around the ones you picked.
+The bar at the bottom totals it up: chains, silver, hours, islands.
+Click "Lay it out".
+Every stop is listed, in order. What you hand over, and what you get back.
+This bar is your hold after each trade.
+Orange means you are over the limit. You still sail, just slower.
+Red means too heavy to barter. You have to lighten first.
+That is what a wharf stop is for. Drop the extra into storage, and carry on.
+And this bar is your Parley going down as you trade.
+Happy with it? Click "Sail this run".
+It goes onto the map as a checklist.
+Full screen, if you want more sea and less panel.
+It follows you leg by leg, and every stop is a card with the trade on it.
+Tick each stop as you make it. If an island pays a different amount, everything after it re-counts.
+Finished sailing? Tick them all off at once.
+Then click "Record the trip".
+Silver goes to your purse, leftover goods to your inventory, and the quests are claimed.
+All as one change, so one undo puts it back.
+One last thing. The hold size, the speed and every time on that route come from your ship.
+Hull, the four parts, the crystal and the crew aboard. Change the ship, and the whole run re-times.
+That is it. Show it one island, and it plans the rest.
+
+== Six — The Harbour ==
+
+Everything so far runs in your browser alone. This last part is the one that needs sign-in.
+One note first: the sailors on these boards are invented. A machine recording this has no server with real players on it. The tab, the digest and the ranking are the app's own.
+Sixteen boards, built from the players who chose to join them.
+They come in five sections: the sea, the runs, quests and hunts, the yard, and charts and hold.
+The question mark on a board tells you exactly how that one is counted.
+Your own places sit at the top, so you can see where you stand without hunting for yourself.
+And there is a search, if you are after one sailor by name.
+Click any place on a board to open that player's card.
+Their fleet, their crew, their places, and what they have done at sea.
+Click Look, and their ship loads onto your own Ship tab, fully fitted.
+To look at, not to keep. One click puts yours back.
+The other half of the tab adds the whole fleet up.
+Which hulls people sail, which parts they fit, which crystals, which quests they run.
+Search it for anything, and sort by most-first or A to Z.
+It is the closest thing to an answer when you are wondering what everyone else fits.
+Nothing goes onto a board that you did not offer.
+You see the exact digest before you agree to it — the numbers, and nothing else.
+And leaving takes it back off again.
+Your data stays in your browser. Sign in to sync it between machines, or to join in. Neither is required for anything else in the app.
