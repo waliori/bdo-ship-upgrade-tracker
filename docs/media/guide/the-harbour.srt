@@ -1,43 +1,75 @@
 1
-00:00:00,443 --> 00:00:06,164
-Everything so far runs in your browser alone. This last part needs sign-in.
+00:00:00,442 --> 00:00:07,187
+Everything so far runs in your browser alone. This last part is the one that needs sign-in.
 
 2
-00:00:06,251 --> 00:00:16,811
-One note first: these sailors are made up. A machine recording this has no server with real players on it. The tab, the digest and the ranking are the app's own.
+00:00:07,383 --> 00:00:18,920
+One note first: the sailors on these boards are invented. A machine recording this has no server with real players on it. The tab, the digest and the ranking are the app's own.
 
 3
-00:00:16,811 --> 00:00:21,022
-Sixteen boards, built from the players who chose to stand on them.
+00:00:18,920 --> 00:00:22,937
+Sixteen boards, built from the players who chose to join them.
 
 4
-00:00:21,022 --> 00:00:24,380
-Click a place on a board to open that player's card.
+00:00:22,937 --> 00:00:29,448
+They come in five sections: the sea, the runs, quests and hunts, the yard, and charts and hold.
 
 5
-00:00:24,380 --> 00:00:27,351
-Their fleet, their crew, and what they have done at sea.
+00:00:29,460 --> 00:00:34,456
+The question mark on a board tells you exactly how that one is counted.
 
 6
-00:00:27,351 --> 00:00:31,371
-Click Look, and their ship loads onto your own Ship tab, fully fitted.
+00:00:34,557 --> 00:00:40,371
+Your own places sit at the top, so you can see where you stand without hunting for yourself.
 
 7
-00:00:31,371 --> 00:00:35,010
-To look at, not to keep. One click puts yours back.
+00:00:40,371 --> 00:00:44,468
+And there is a search, if you are after one sailor by name.
 
 8
-00:00:35,010 --> 00:00:38,747
-The other half of the tab adds the whole fleet up.
+00:00:44,468 --> 00:00:47,831
+Click any place on a board to open that player's card.
 
 9
-00:00:40,858 --> 00:00:43,867
-Nothing goes onto a board that you did not offer.
+00:00:47,831 --> 00:00:51,474
+Their fleet, their crew, their places, and what they have done at sea.
 
 10
-00:00:43,867 --> 00:00:48,548
-You see the exact digest before you agree to it, and leaving deletes it again.
+00:00:51,474 --> 00:00:55,414
+Click Look, and their ship loads onto your own Ship tab, fully fitted.
 
 11
-00:00:48,548 --> 00:00:57,107
-Your data stays in your browser. Sign in to sync it between machines, or to join in. Neither is required for anything else.
+00:00:55,414 --> 00:00:58,971
+To look at, not to keep. One click puts yours back.
+
+12
+00:00:58,971 --> 00:01:02,708
+The other half of the tab adds the whole fleet up.
+
+13
+00:01:03,943 --> 00:01:09,479
+Which hulls people sail, which parts they fit, which crystals, which quests they run.
+
+14
+00:01:09,479 --> 00:01:13,337
+Search it for anything, and sort by most-first or A to Z.
+
+15
+00:01:13,337 --> 00:01:18,595
+It is the closest thing to an answer when you are wondering what everyone else fits.
+
+16
+00:01:18,595 --> 00:01:21,922
+Nothing goes onto a board that you did not offer.
+
+17
+00:01:21,922 --> 00:01:27,376
+You see the exact digest before you agree to it — the numbers, and nothing else.
+
+18
+00:01:27,376 --> 00:01:29,892
+And leaving takes it back off again.
+
+19
+00:01:29,892 --> 00:01:39,091
+Your data stays in your browser. Sign in to sync it between machines, or to join in. Neither is required for anything else in the app.

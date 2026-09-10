@@ -878,23 +878,37 @@ const CHAPTERS = {
 
 	/* ============================================================== *
 	 * Six -- the harbour
+	 *
+	 * The one chapter that cannot be shot honestly: a capture machine
+	 * has no deployment with players on it, so fleet.mjs invents four
+	 * and answers the community API with them. The tab, the digest and
+	 * the ranking are the app's own, and the film says so in its second
+	 * line rather than in a caption nobody reads.
 	 * ============================================================== */
 	'the-harbour': {
 		n: 'Six', title: 'The Harbour', at: 'community',
-		blurb: 'Where a deployment has sign-in: sixteen boards, and nothing on them you did not offer.',
+		blurb: 'Sixteen boards, what a place on one opens, and exactly what is and is not shared.',
 		staged: true,
 		say: {
-			open: 'Everything so far runs in your browser alone. This last part needs sign-in.',
-			fleet: 'One note first: these sailors are made up. A machine recording this has no server with real players on it. The tab, the digest and the ranking are the app\'s own.',
-			boards: 'Sixteen boards, built from the players who chose to stand on them.',
-			door: 'Click a place on a board to open that player\'s card.',
-			card: 'Their fleet, their crew, and what they have done at sea.',
+			open: 'Everything so far runs in your browser alone. This last part is the one that needs sign-in.',
+			fleet: 'One note first: the sailors on these boards are invented. A machine recording this has no server with real players on it. The tab, the digest and the ranking are the app\'s own.',
+			boards: 'Sixteen boards, built from the players who chose to join them.',
+			sections: 'They come in five sections: the sea, the runs, quests and hunts, the yard, and charts and hold.',
+			how: 'The question mark on a board tells you exactly how that one is counted.',
+			yours: 'Your own places sit at the top, so you can see where you stand without hunting for yourself.',
+			find: 'And there is a search, if you are after one sailor by name.',
+			door: 'Click any place on a board to open that player\'s card.',
+			card: 'Their fleet, their crew, their places, and what they have done at sea.',
 			look: 'Click Look, and their ship loads onto your own Ship tab, fully fitted.',
 			back: 'To look at, not to keep. One click puts yours back.',
 			numbers: 'The other half of the tab adds the whole fleet up.',
+			cats: 'Which hulls people sail, which parts they fit, which crystals, which quests they run.',
+			sort: 'Search it for anything, and sort by most-first or A to Z.',
+			useful: 'It is the closest thing to an answer when you are wondering what everyone else fits.',
 			offered: 'Nothing goes onto a board that you did not offer.',
-			digest: 'You see the exact digest before you agree to it, and leaving deletes it again.',
-			close: 'Your data stays in your browser. Sign in to sync it between machines, or to join in. Neither is required for anything else.'
+			digest: 'You see the exact digest before you agree to it — the numbers, and nothing else.',
+			leave: 'And leaving takes it back off again.',
+			close: 'Your data stays in your browser. Sign in to sync it between machines, or to join in. Neither is required for anything else in the app.'
 		},
 		async shoot(ctx, s) {
 			const { page, url } = ctx;
@@ -905,24 +919,42 @@ const CHAPTERS = {
 			await film(page, `${OUT}/the-harbour.webm`);
 			await card(page, 'Six', 'The Harbour', { line: s.open });
 
-			await doing(page, s.fleet, () => tab(page, 'community', { after: 800 }));
+			await doing(page, s.fleet, () => tab(page, 'community', { after: 900 }));
 			await say(page, s.boards);
+
+			/* --- finding your way round the boards --------------------- */
+			const point = async (sel, line, opts = {}) => {
+				if (await onScreen(page, sel)) await spot(page, sel, line, opts);
+				else await say(page, line);
+			};
+			await point('.comm-cats', s.sections, { pad: 6 });
+			await point('[data-act="community-how"]', s.how, { pad: 12 });
+			await point('.comm-you', s.yours, { pad: 6 });
+			await point('[data-act="community-find"]', s.find, { pad: 10 });
 			await hush(page);
 
+			/* --- a place on a board is a door -------------------------- */
 			await doing(page, s.door, () =>
-				click(page, '[data-act="community-entry"][data-board="ship"]', { after: 1300 }));
+				click(page, '[data-act="community-entry"][data-board="ship"]', { after: 1400 }));
 			await say(page, s.card);
 			await doing(page, s.look, () => click(page, '[data-act="community-look"]', { after: 1800 }));
 			await doing(page, s.back, () => click(page, '[data-shared="back"]', { after: 1100 }));
 			await hush(page);
 
+			/* --- the fleet in numbers ---------------------------------- */
 			await doing(page, s.numbers, async () => {
-				await tab(page, 'community', { after: 900 });
-				await click(page, '[data-act="community-half"][data-id="numbers"]', { after: 900 });
+				await tab(page, 'community', { after: 800 });
+				await click(page, '[data-act="community-half"][data-id="numbers"]', { after: 1000 });
 			});
+			await point('.comm-cats', s.cats, { pad: 6 });
+			await point('.comm-numq', s.sort, { pad: 10 });
+			await say(page, s.useful);
 			await hush(page);
-			await say(page, s.offered);
+
+			/* --- what is and is not shared ----------------------------- */
+			await point('[data-act="community-join"]', s.offered, { pad: 10 });
 			await say(page, s.digest);
+			await point('[data-act="community-leave"]', s.leave, { pad: 10 });
 			await say(page, s.close);
 			await hush(page);
 		}
