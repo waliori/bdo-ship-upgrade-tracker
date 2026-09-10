@@ -92,15 +92,18 @@ test('an empty profile is a deliberate clear, and is obeyed', () => {
 	assert.equal(store.getProfile('barterCount', 0), 0);
 });
 
-test('the crew tick and the parley you hold survive the whitelist', () => {
-	// Both arrived after the whitelist did, and the whitelist eats what
-	// it does not know: the symptom was a checkbox that refused to stay
-	// ticked, because every render read the profile back.
-	store.setProfile('crew', true);
+test('the parley you hold survives the whitelist', () => {
+	// It arrived after the whitelist did, and the whitelist eats what it
+	// does not know: the symptom was a field that refused to keep what
+	// was typed into it, because every render read the profile back.
 	store.setProfile('parleyHeld', 850000);
-	assert.equal(store.getProfile('crew', false), true);
 	assert.equal(store.getProfile('parleyHeld', 0), 850000);
-	assert.deepEqual(store.saveShape().profile, { crew: true, parleyHeld: 850000 });
+	assert.deepEqual(store.saveShape().profile, { parleyHeld: 850000 });
+	// The crew discount used to be a tick of its own here. It is read off
+	// the First Mate seat now, so the whitelist drops it: a save written
+	// by an older build must not bring a stale one back.
+	store.setProfile('crew', true);
+	assert.equal(store.saveShape().profile.crew, undefined);
 });
 
 test('a profile that is there is taken', () => {

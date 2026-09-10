@@ -315,7 +315,30 @@ takes it back.
 **Sailors' real numbers.** Growth is a hidden random range per sailor,
 so the type's figures are averages. The Ship screen lets you type what
 the sailor window shows for each stat, and everything downstream — the
-hull's speed, the route's minutes — follows the typed number.
+hull's speed, the route's minutes — follows the typed number. On a full
+Carrack the difference between the average and the real rolls is over a
+point of speed, which is the whole gap between the app's figure and the
+game's.
+
+**Or read the crew off a screenshot.** *Read screenshots* on the sailor
+list takes the game's own windows — Manage Sailors whole, or a cropped
+Selected Sailor panel, or a mixture — and comes back with names, levels,
+condition and every growth in a table to check before anything is
+written; a sailor already on the roster is brought up to date rather
+than hired twice. Twenty at a time. The window never prints a sailor's
+*type*, so it is worked out from the appetite, the cabin cost and the
+weight, and where three types share all three (Confident, Tough and
+Tenacious all cost five cabins and 300 LT) from where the growths went —
+with anything less than certain marked for a look, and a dropdown to
+correct it.
+
+It is read **in the browser**: Tesseract is vendored under `reader/` and
+served from this origin, the shots are decoded by the browser's own
+image decoders and handed on as pixels, and nothing is uploaded — so
+there is no file on any server to delete afterwards, and it works
+offline once the engine has been fetched the first time (about 6 MB,
+cached across deploys). The page's Content-Security-Policy gains
+`'wasm-unsafe-eval'` for it, which admits WebAssembly and nothing else.
 
 ### The chart, and what it draws
 
@@ -968,10 +991,14 @@ js/
   ship_stats.js       what each hull is, in the game's own numbers
   part_stats.js       what each part does, level by level
   sailors.js          the hiring pool, positions, condition, first mates
+  sailor-shot.js      a sailor read out of a screenshot's words -- pure, and tested
+  shot-reader.js      the vendored OCR engine, and the two passes over a screenshot
+  sailor-import.js    the drop, the reading and the table that checks it
   quests.js           the quests that pay in ship materials
   sea_crystals.js     the 287 sea crystal variants, by grade
   gamefile.js         writing stops into the game's own world map
   market.js           Central Market prices, per region, kept offline
+reader/               Tesseract, vendored: the sailor import reads in the browser
 tools/check-env.mjs   npm run check -- validates a sync configuration
 server/               only loaded when sync is configured
   config.js           what is switched on, and what is therefore offered
