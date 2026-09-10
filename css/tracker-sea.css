@@ -872,6 +872,9 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 
 /* Reading a crew off screenshots: the drop, the bar and the table that
    asks whether the scan got it right before anything is written. */
+/* Wider than the wide dialog: six columns, four of them fields. Guarded
+   above the phone breakpoint, where every dialog is the screen anyway. */
+@media (min-width: 721px) { .dialog-box.wide.shot-box { max-width: 940px; } }
 .shot-drop { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 26px 16px; margin: 4px 0 10px; border-radius: 12px; border: 1.5px dashed var(--line-btn-hi); background: rgba(var(--deep-rgb), 0.35); cursor: pointer; text-align: center; }
 .shot-drop:hover, .shot-drop:focus-visible, .shot-drop.over { border-color: var(--teal); background: rgba(78, 201, 174, 0.09); }
 .shot-drop-mark { font-size: 26px; line-height: 1; opacity: 0.8; }
@@ -880,18 +883,19 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .shot-table-wrap { max-height: min(52vh, 460px); overflow: auto; margin: 8px 0; border: 1px solid var(--line-btn); border-radius: var(--r-sm); }
 .shot-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .shot-table th { position: sticky; top: 0; z-index: 1; background: rgba(var(--deep-rgb), 0.98); text-align: left; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); padding: 7px 8px; border-bottom: 1px solid var(--line-btn); }
-.shot-table td:nth-child(5) { min-width: 210px; }
+.shot-table td:nth-child(5) { min-width: 200px; }
 .shot-table td { padding: 6px 8px; border-bottom: 1px solid rgba(var(--line-rgb), 0.16); vertical-align: middle; }
 .shot-row.off { opacity: 0.45; }
 .shot-name { min-width: 110px; padding: 3px 6px; font-size: 12.5px; }
 .shot-stat { display: inline-block; margin: 0 4px 2px 0; padding: 1px 5px; border-radius: 5px; background: rgba(var(--blue-rgb), 0.12); color: var(--ink-mid); font-size: 11px; white-space: nowrap; }
 .shot-stat.odd { background: rgba(232, 182, 97, 0.16); color: var(--amber); }
-.shot-note { font-size: 11.5px; color: var(--ink-mute); white-space: nowrap; }
-.shot-warn { display: inline-block; margin-left: 6px; color: var(--amber); cursor: help; }
+.shot-note { min-width: 118px; font-size: 11.5px; color: var(--ink-mute); }
+.shot-warn { display: inline-block; margin-left: 6px; white-space: normal; color: var(--amber); cursor: help; }
 .shot-skipped { margin: 6px 0; font-size: 12px; color: var(--ink-mute); }
 .shot-skipped summary { cursor: pointer; }
 @media (max-width: 620px) {
 	.shot-table { font-size: 12px; }
 	.shot-table td, .shot-table th { padding: 5px 5px; }
-	.shot-note { white-space: normal; }
+	.shot-table td:nth-child(5) { min-width: 130px; }
+	.shot-name { min-width: 78px; }
 }

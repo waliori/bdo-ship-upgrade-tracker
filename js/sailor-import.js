@@ -61,7 +61,7 @@ export function openSailorImport(after = () => {}) {
 			// A row of a dozen sailors, each with a name, a type, a level
 			// and four growths, does not fit a dialog's 560px -- the fleet
 			// asks for the same room for the same reason.
-			if (box) box.classList.add('wide');
+			if (box) box.classList.add('wide', 'shot-box');
 		}
 		wire();
 	};
