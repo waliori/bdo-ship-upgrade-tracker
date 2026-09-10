@@ -486,3 +486,4 @@
 .buy-sum b { font-family: var(--font-display); font-size: 16px; color: var(--amber); }
 .buy-sum.over { background: rgba(232, 122, 109, 0.1); border-color: var(--red-edge); }
 .buy-sum.over b { color: var(--red); }
+.coin-block .coin-buy { width: 100%; justify-content: center; margin-top: 6px; }

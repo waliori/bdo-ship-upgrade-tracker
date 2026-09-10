@@ -356,12 +356,11 @@ function renderDetail() {
 		${src && src.key !== 'coin' && src.key !== 'falasi'
 			? `<div class="detail-src"><span>${esc(src.label)}</span><span>${esc(src.detail)}</span></div>`
 			: ''}
-		${coinPrice(item) ? `<div class="detail-block">
-			<div class="detail-label">Crow Coin Shop <span class="detail-note">· ${F(coinPrice(item))} coins each</span></div>
+		${waysBlock(item)}
+		${coinPrice(item) ? `<div class="detail-block coin-block">
 			<div class="detail-line"><span>You hold ${F(store.getStock(CROW_COIN))} coins — enough for ${F(Math.floor(store.getStock(CROW_COIN) / coinPrice(item)))}</span></div>
 			${coinBuyButton(item, Math.max(1, short), { small: false, label: short > 0 ? `Buy the ${F(short)} you are short` : 'Buy with coins' })}
 		</div>` : ''}
-		${waysBlock(item)}
 		${step ? '<button class="act quiet wide" data-act="view" data-id="workshop">Attempt it in the Workshop</button>' : ''}
 		${toggle}
 		${canCraft ? `<div class="detail-actions">
