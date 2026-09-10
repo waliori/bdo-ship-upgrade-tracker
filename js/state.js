@@ -663,7 +663,6 @@ export function getProfile(key, fallback = null) {
 const PROFILE_LABELS = {
 	barterCount: 'Changed your barter count',
 	valuePack: 'Changed the Value Pack',
-	crew: 'Changed the crew discount',
 	level: 'Changed your barter level',
 	vouchers: 'Changed your vouchers',
 	parleyHeld: 'Changed the parley you hold',

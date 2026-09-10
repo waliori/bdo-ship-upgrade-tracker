@@ -1308,8 +1308,6 @@ function wire() {
 		const vp = evt.target.closest('[data-act="value-pack"]');
 		if (vp) return store.setProfile('valuePack', vp.checked);
 
-		const cr = evt.target.closest('[data-act="crew-discount"]');
-		if (cr) return store.setProfile('crew', cr.checked);
 
 		// The level is a name, not a number, so it lands before the
 		// numeric parse below rather than going through it.

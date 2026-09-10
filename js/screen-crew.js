@@ -301,11 +301,14 @@ function sailorSheet(s, { ship, where = null, readOnly = false } = {}) {
 		return `<div class="sel-stat${typed ? ' typed' : ''}"><span><span data-tip="${esc(name.tip)}">${esc(name.game)}${name.means ? ` <small class="stat-means">${esc(name.means)}</small>` : ''}</span>${word ? `<em class="roll-note ${v >= band.avg ? 'good' : 'low'}">${word}</em>` : ''}<b>+${readOnly ? `<span class="stat-in still" title="${title}">${v}</span>` : `<input class="purse-inline narrow stat-in" type="text" inputmode="decimal" value="${v}"
 			data-act="crew-stat" data-id="${esc(s.id)}" data-key="${key}" aria-label="${esc(name.game)}, as the sailor window shows it" title="${title}">`}%</b></span><i><b style="width:${Math.min(100, v / max * 100)}%"></b></i></div>`;
 	};
-	const stats = [bar('Speed', 'speed', 5), bar('Accel', 'accel', 8), bar('Turn', 'turn', 10), bar('Brake', 'brake', 10)];
+	// A named mate's panel in game has no growths on it at all -- the
+	// seat pays their skill, not numbers -- so there is nothing to show
+	// or to type.
+	const stats = t.mate ? [] : [bar('Speed', 'speed', 5), bar('Accel', 'accel', 8), bar('Turn', 'turn', 10), bar('Brake', 'brake', 10)];
 	// The cannon growths, as the window lists them: Patience has no
 	// estimate -- no type's rolls for it are known -- so it shows only
 	// when typed, or as a blank to type into.
-	if (t.force !== undefined) stats.push(bar('Patience', 'patience', 10), bar('Force', 'force', 6), bar('Focus', 'focus', 14), bar('Vision', 'vision', 50));
+	if (!t.mate && t.force !== undefined) stats.push(bar('Patience', 'patience', 10), bar('Force', 'force', 6), bar('Focus', 'focus', 14), bar('Vision', 'vision', 50));
 	return `<div class="sel-top">
 			<span class="roster-tile big" style="background:${RACE[t.race] || '#8fb4d6'}">${face(t, s)}</span>
 			<div>
@@ -317,8 +320,8 @@ function sailorSheet(s, { ship, where = null, readOnly = false } = {}) {
 		</div>
 		<div class="sel-cond"><span><span>Condition</span><b style="color:${condColor(s.cond)}">${readOnly ? s.cond : `<input class="purse-inline narrow" type="text" inputmode="numeric" value="${s.cond}" data-act="crew-cond" data-id="${esc(s.id)}" aria-label="Condition">`}%</b></span>
 			<i><b style="width:${s.cond}%;background:${condColor(s.cond)}"></b></i></div>
-		<div class="sel-stats">${stats.join('')}</div>
-		<div class="sel-note">${readOnly ? 'Each level-up rolls inside a hidden range, so a growth not typed in is an estimate; a typed one is judged against the level’s band.' : 'Each level-up rolls inside a hidden range, so these are estimates — type what the sailor window shows and they outrank it, judged against the level\'s band.'}</div>
+		${stats.length ? `<div class="sel-stats">${stats.join('')}</div>` : ''}
+		<div class="sel-note">${t.mate ? 'A named mate has no growths of their own: the First Mate seat pays their skill instead.' : readOnly ? 'Each level-up rolls inside a hidden range, so a growth not typed in is an estimate; a typed one is judged against the level’s band.' : 'Each level-up rolls inside a hidden range, so these are estimates — type what the sailor window shows and they outrank it, judged against the level\'s band.'}</div>
 		<div class="sel-facts">cabins <b>${t.cabin ?? '—'}</b> · eats <b>${t.appetite ?? '—'}</b>/day · weight <b>+${t.weight ?? 0} LT</b></div>
 		${levelLogHTML(s)}
 		${t.mate

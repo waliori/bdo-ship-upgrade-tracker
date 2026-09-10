@@ -14,7 +14,7 @@ import { skinFor, skinStats, SKIN_SLOTS } from './ship_skins.js';
 import { shipStats } from './ship_stats.js';
 import { partStats, slotOf, fitsShip, statsAt, sumStats, loadout } from './part_stats.js';
 import { families, FAMILY_RANK } from './enhancement.js';
-import { crewTotals } from './sailors.js';
+import { crewTotals, mateAboard } from './sailors.js';
 import { crystalById, crystalStats } from './crystals.js';
 
 export const SLOTS = ['cannon', 'sail', 'figurehead', 'plating'];
@@ -94,6 +94,24 @@ export function setCrystal(ship, id) {
 	const all = { ...(store.getProfile('crystal', {}) || {}) };
 	if (id && crystalById[id]) all[ship] = Number(id); else delete all[ship];
 	return store.setProfile('crystal', Object.keys(all).length ? all : null);
+}
+
+/**
+ * What the mate at the wheel takes off every Parley cost, as a fraction:
+ * Cleia's skill is ten per cent, and nobody else's is anything. It is a
+ * fact about who is seated, not a preference, so the barter figures read
+ * it here instead of asking for a tick.
+ */
+export function parleyOff(ship = shipName()) {
+	const seats = (store.getProfile('seats', {}) || {})[ship] || {};
+	const m = mateAboard(store.getProfile('roster', []) || [], seats);
+	return m ? Number(m.type.parley) || 0 : 0;
+}
+
+/** The mate whose skill is switched on, for a screen that wants to name them. */
+export function mateAtTheHelm(ship = shipName()) {
+	const seats = (store.getProfile('seats', {}) || {})[ship] || {};
+	return mateAboard(store.getProfile('roster', []) || [], seats);
 }
 
 /** The whole setup, summed: hull, parts, the crystal, the crew. */

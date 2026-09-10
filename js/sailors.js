@@ -136,7 +136,7 @@ export const expSplit = [
 // are sailors), which is where their portrait comes from.
 export const firstMates = [
 	{ name: 'Proix', npc: 58045, portrait: '/items/ui_artwork/ic_01463.webp', trait: 'Breezy Sail lasts longer', from: 'finish the "[The Great Expedition] In Search of Khan" questline' },
-	{ name: 'Cleia', npc: 41056, portrait: '/items/ui_artwork/ic_00496.webp', trait: 'Parley costs 10% less', from: 'obtain the Golden Pocket Watch from a Special Barter' },
+	{ name: 'Cleia', npc: 41056, portrait: '/items/ui_artwork/ic_00496.webp', trait: 'Parley costs 10% less', parley: 0.1, from: 'obtain the Golden Pocket Watch from a Special Barter' },
 	{ name: 'Tranan Underfoe', npc: 40008, portrait: '/items/ui_artwork/ic_00008.webp', trait: 'the ship repairs itself from repair materials in its inventory', from: 'obtain the Fancy Figurehead where the Saltwater Crocodiles are' }
 ];
 
@@ -199,10 +199,17 @@ export function planCrew(crew, ship) {
  * the game gives them fixed, modest stats, no cabin cost, and a skill
  * the First Mate seat switches on.
  */
+// A mate's own figures, read off the game's Selected Sailor panel for
+// Proix (2026-09-09): 150 rations a day, 200 LT, no Cabin Cost line at
+// all -- and no growths. The panel a mate gets has no Endurance, Wits,
+// Awareness or Strength row on it; the seat pays their skill, not
+// numbers. (The app used to credit each mate half a point of all four,
+// which put the ship's speed under what the game reads.) The other two
+// mates are taken to match Proix.
 export const mateTypes = firstMates.map(m => ({
 	type: m.name, race: m.name === 'Tranan Underfoe' ? 'Dwarf' : 'Human', mate: true,
-	appetite: 100, cabin: 0, weight: 200,   // each adds 200 LT, read off the sailor window
-	speed: 0.5, accel: 0.5, turn: 0.5, brake: 0.5,
+	appetite: 150, cabin: 0, weight: 200,
+	parley: m.parley || 0,
 	skill: `${m.trait} — ${m.from}`
 }));
 
@@ -456,6 +463,24 @@ export function crewTotals(roster, seats, stats) {
 	t.space = stats ? stats.cabins : 0;
 	t.overSpace = Math.max(0, t.cabins - t.space);
 	return t;
+}
+
+/**
+ * The named mate at the First Mate seat, if one is sitting there. That
+ * seat is the only place a mate's skill is switched on, so this is what
+ * answers "is Cleia's Parley discount running" -- read off the crew
+ * rather than asked for. A mate in bad condition gives the seat
+ * nothing, as any sailor does.
+ */
+export function mateAboard(roster, seats) {
+	const byId = new Map((roster || []).map(s => [s.id, s]));
+	for (const [key, id] of Object.entries(seats || {})) {
+		if (key.split(':')[0] !== 'firstmate') continue;
+		const s = byId.get(id);
+		const t = s && anyType[s.type];
+		if (t && t.mate && (s.cond ?? 100) > 0) return { sailor: s, type: t };
+	}
+	return null;
 }
 
 /**

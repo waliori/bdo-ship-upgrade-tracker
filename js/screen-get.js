@@ -22,6 +22,8 @@ import {
 	snapshot, barterData, barterProfile, totalsToGo, query, CROW_COIN, SILVER
 } from './ui-state.js';
 import { shoppingList, waysToGet } from './planner.js';
+import { mateAtTheHelm } from './ship.js';
+import { anyType } from './sailors.js';
 
 
 
@@ -52,9 +54,26 @@ export function barterLookup(item, qty = 1) {
  * unlocks next, because the raw number means nothing until you know
  * what it buys.
  */
+/**
+ * The ten per cent off Parley, said as where it comes from. It is
+ * Cleia's skill and nothing else, so it is read off the First Mate seat
+ * rather than ticked: aboard, the row says so; hired but ashore, it says
+ * what seating her would be worth; unmet, it says nothing at all.
+ */
+function mateCut() {
+	const mate = mateAtTheHelm();
+	if (mate && Number(mate.type.parley) > 0) {
+		return ` · <span class="gterm" title="${esc(mate.sailor.name)} is at the First Mate seat: her skill takes ten per cent off every Parley cost">Crew −10% · ${esc(mate.sailor.name)} at the helm</span>`;
+	}
+	const ashore = (store.getProfile('roster', []) || []).find(s => Number((anyType[s.type] || {}).parley) > 0);
+	return ashore
+		? ` · <span class="gterm" title="Put ${esc(ashore.name)} at the First Mate seat on the Ship tab and every Parley cost drops ten per cent">Crew −10% · seat ${esc(ashore.name)} for it</span>`
+		: '';
+}
+
 function barterProfileTile() {
 	const profile = barterProfile();
-	const { barterCount, valuePack, crew, level, vouchers, parleyHeld } = profile;
+	const { barterCount, valuePack, level, vouchers, parleyHeld } = profile;
 	const day = barterDay(profile);
 	const next = nextUnlock(barterCount);
 
@@ -78,8 +97,7 @@ function barterProfileTile() {
 			data-guide="parley">Total Barters</span>${next ? ` · ${esc(next)}` : ''}
 			· <label class="inline-check"><input type="checkbox" data-act="value-pack"
 			${valuePack ? 'checked' : ''}> Value Pack</label>
-			· <label class="inline-check"><input type="checkbox" data-act="crew-discount"
-			${crew ? 'checked' : ''}> Crew −10%</label></div>
+			${mateCut()}</div>
 		<div class="summary-sub"><select class="purse-inline" data-act="barter-level"
 			aria-label="Your barter level"><option value=""${level ? '' : ' selected'}>—</option>${levels}</select>
 			· ${F(day.perTrade)} <span class="gterm" role="button" tabindex="0" data-guide="level">Parley a trade</span>

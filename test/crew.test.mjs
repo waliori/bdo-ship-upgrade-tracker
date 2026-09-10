@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { shipStats, crewedShips, statsLine } from '../js/ship_stats.js';
 import {
 	pool, poolByType, anyType, mateTypes, contract, SAILOR_CAP,
-	seatsFor, statOf, statBand, crewTotals, autoAssign
+	seatsFor, statOf, statBand, crewTotals, autoAssign, mateAboard
 } from '../js/sailors.js';
 import { shipGroups } from '../js/ships.js';
 import { recipes, routes, routeInfo } from '../js/recipes.js';
@@ -46,6 +46,29 @@ test('every sailor in the pool is whole, and the first mates can be hired', () =
 	assert.equal(mateTypes.length, 3);
 	assert.ok(anyType['Cleia'].mate);
 	assert.equal(anyType['Cleia'].cabin, 0);
+	// A mate's own panel in game carries no growths, 150 rations a day
+	// and 200 LT -- and only Cleia's skill touches Parley.
+	for (const m of mateTypes) {
+		assert.equal(m.appetite, 150, `${m.type} appetite`);
+		assert.equal(m.weight, 200, `${m.type} weight`);
+		for (const k of ['speed', 'accel', 'turn', 'brake']) assert.equal(m[k], undefined, `${m.type} ${k}`);
+	}
+	assert.equal(anyType['Cleia'].parley, 0.1);
+	assert.equal(anyType['Proix'].parley, 0);
+});
+
+test('the Parley cut is read off the First Mate seat, not asked for', () => {
+	const roster = [
+		{ id: 'c', name: 'Cleia', type: 'Cleia', lv: 1, cond: 100 },
+		{ id: 'p', name: 'Proix', type: 'Proix', lv: 1, cond: 100 },
+		{ id: 's', name: 'Roe', type: 'Innocent', lv: 10, cond: 100 }
+	];
+	assert.equal(mateAboard(roster, { 'sail:0': 's' }), null, 'nobody at the seat, no skill');
+	assert.equal(mateAboard(roster, { 'cabin:0': 'c' }), null, 'a mate in a cabin is only ballast');
+	assert.equal(mateAboard(roster, { 'firstmate:0': 'c' }).type.parley, 0.1);
+	assert.equal(mateAboard(roster, { 'firstmate:0': 'p' }).type.parley, 0, 'another mate, another skill');
+	const ill = roster.map(x => (x.id === 'c' ? { ...x, cond: 0 } : x));
+	assert.equal(mateAboard(ill, { 'firstmate:0': 'c' }), null, 'a sick mate works no seat');
 });
 
 test('a hull offers the seats the game draws, then cabins', () => {
@@ -169,7 +192,7 @@ test('growth is a band summed from the rolls, not a line through it', () => {
 	assert.deepEqual(statBand('Innocent', 'speed', 5), { min: 1.7, avg: 2.0, max: 2.2 });
 	assert.deepEqual(statBand('Innocent', 'speed', 10), { min: 2.8, avg: 3.4, max: 4.0 });
 	assert.equal(statBand('Cleia', 'speed', 10), null, 'a first mate has no band');
-	assert.equal(statOf({ type: 'Cleia', lv: 10 }, 'speed'), 0.5, 'and holds their fixed figure');
+	assert.equal(statOf({ type: 'Cleia', lv: 10 }, 'speed'), 0, 'and no growth of their own — the game shows a mate none');
 	// The level-10 averages carry the true ranking: an Innocent ends
 	// faster than a Born-in-the-Sea, though it starts slower.
 	assert.ok(statOf({ type: 'Innocent', lv: 10 }, 'speed') > statOf({ type: 'Born-in-the-Sea', lv: 10 }, 'speed'));
@@ -199,7 +222,7 @@ test('every roll a level could make is counted, so a typed roll has a rank', asy
 	assert.equal(floor.below, 0);
 	const mid = rollRank('Innocent', 'speed', 10, 3.6);
 	assert.ok(mid.below > 0.6 && mid.below < 0.9, `a 3.6 beats most: ${mid.below}`);
-	assert.equal(rollRank('Cleia', 'speed', 10, 0.5), null, 'a first mate has no rolls');
+	assert.equal(rollRank('Cleia', 'speed', 10, 0), null, 'a first mate has no rolls');
 	assert.deepEqual(statBand('Innocent', 'speed', 1), { min: 1.2, avg: 1.2, max: 1.2 });
 });
 
