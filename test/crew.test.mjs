@@ -119,7 +119,7 @@ test('a sailor the roster does not know is simply not counted', () => {
 	assert.equal(t.seated, 0);
 });
 
-test('auto assign puts the mate at the bow, the fast at the sails, the gunner at the cannon', () => {
+test('auto assign seats everyone, the mate at the bow, and follows the goal it is given', () => {
 	const roster = [
 		{ id: 'm', name: 'Cleia', type: 'Cleia', lv: 10, cond: 100 },
 		{ id: 'f', name: 'Bahar', type: 'Ambitious', lv: 8, cond: 100 },
@@ -127,14 +127,69 @@ test('auto assign puts the mate at the bow, the fast at the sails, the gunner at
 		{ id: 'w', name: 'Brann', type: 'Tenacious', lv: 6, cond: 100 },
 		{ id: 'd', name: 'Full', type: 'Dreaming of a Full Haul', lv: 2, cond: 100 }
 	];
-	const a = autoAssign(roster, 'Carrack (Advance)', shipStats['Carrack (Advance)']);
-	assert.equal(a['firstmate:0'], 'm');
-	assert.equal(a['sail:0'], 'f');
-	assert.equal(a['wheel:0'], 'w');
-	assert.equal(a['cannon:0'], 'g');
-	assert.equal(a['deck:0'], 'd', 'the last hand goes where a seat is still open');
-	assert.equal(Object.keys(a).length, 5);
+	const ship = 'Carrack (Advance)';
+	const at = (a, key) => a[key];
+	const speed = autoAssign(roster, ship, shipStats[ship], 'speed');
+	assert.equal(at(speed, 'firstmate:0'), 'm', 'the mate has a seat nobody else can take');
+	assert.equal(at(speed, 'sail:0'), 'f', 'the fastest goes where speed is doubled');
+	// The Wheel doubles nothing this goal values, so it goes to whoever
+	// doubles the most of what it does double -- free turn and brake.
+	assert.equal(at(speed, 'wheel:0'), 'w');
+	assert.equal(Object.keys(speed).length, 5, 'everyone is seated; nobody is left ashore');
+
+	const guns = autoAssign(roster, ship, shipStats[ship], 'cannon');
+	assert.equal(at(guns, 'cannon:0'), 'g', 'the gunner goes to the gun when the guns are the point');
+
+	const turn = autoAssign(roster, ship, shipStats[ship], 'turn');
+	assert.equal(at(turn, 'wheel:0'), 'w', 'and the best handler to the wheel when turning is');
 	assert.ok(SAILOR_CAP >= 20);
+});
+
+test('the goal decides the sail seat, not the sum of what it doubles', () => {
+	// The case that started this: the Sail doubles Endurance and Wits
+	// together, so a sailor with 1.1 speed and 4.8 acceleration beat one
+	// with 3.9 and 1.5 on the sum -- and cost the ship five per cent of
+	// its speed while the arithmetic said it had gained.
+	const roster = [
+		{ id: 'utto', name: 'Utto', type: 'Dreaming of a Full Haul', lv: 9, cond: 100, stats: { speed: 1.1, accel: 4.8, turn: 1.1, brake: 1 } },
+		{ id: 'jeff', name: 'Jeff', type: 'Innocent', lv: 10, cond: 100, stats: { speed: 3.9, accel: 1.5, turn: 1.8, brake: 2 } }
+	];
+	const ship = 'Carrack (Advance)';
+	const stats = shipStats[ship];
+	assert.equal(autoAssign(roster, ship, stats, 'speed')['sail:0'], 'jeff');
+	assert.equal(autoAssign(roster, ship, stats, 'accel')['sail:0'], 'utto');
+	// And the crew's speed follows: the seat is a second copy of what it
+	// doubles, so the sail seat is worth its sailor's Endurance again.
+	const forSpeed = crewTotals(roster, autoAssign(roster, ship, stats, 'speed'), stats);
+	const forAccel = crewTotals(roster, autoAssign(roster, ship, stats, 'accel'), stats);
+	assert.equal(forSpeed.speed, 8.9);    // 5.0 aboard + Jeff's 3.9 again
+	assert.equal(forAccel.speed, 6.1);
+	assert.ok(forAccel.accel > forSpeed.accel);
+});
+
+test('who comes aboard follows the goal too, against the cabin space', () => {
+	// A Carrack seats twenty and has room for eleven goblins. Twelve
+	// goblins and a Giant is one crew too many either way, so the goal
+	// is what decides which of them stays ashore -- and thirteen cabins
+	// for one point of Endurance is a poor trade when speed is the point.
+	const roster = [
+		{ id: 'heavy', name: 'Heavy', type: 'Dreaming of a Full Haul', lv: 10, cond: 100, stats: { speed: 1.1, accel: 5, turn: 1, brake: 1 } },
+		...Array.from({ length: 12 }, (_, i) => ({
+			id: `g${i}`, name: `Goblin ${i}`, type: 'Innocent', lv: 10, cond: 100,
+			stats: { speed: 4 - i * 0.1, accel: 1.4, turn: 2, brake: 2 }
+		}))
+	];
+	const ship = 'Carrack (Advance)';
+	const stats = shipStats[ship];
+	const seated = goal => new Set(Object.values(autoAssign(roster, ship, stats, goal)));
+	assert.ok(!seated('speed').has('heavy'), 'thirteen cabins for one point of speed stays ashore');
+	assert.ok(seated('accel').has('heavy'), 'and comes aboard when acceleration is the point');
+	for (const goal of ['speed', 'accel', 'balanced']) {
+		const crew = [...seated(goal)];
+		const used = crew.reduce((a, id) => a + anyType[roster.find(s => s.id === id).type].cabin, 0);
+		assert.ok(used <= stats.cabins, `${goal}: ${used} of ${stats.cabins} cabins`);
+		assert.ok(crew.length <= stats.crew, `${goal}: ${crew.length} in ${stats.crew} seats`);
+	}
 });
 
 test('the contract is priced where the plan will look for it', () => {

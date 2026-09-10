@@ -51,6 +51,7 @@ import { toggleVellReminder, checkVellReminder } from './today.js';
 import { openTripLog } from './triplog.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
 import { renderGet, shoppingText, shoppingCSV } from './screen-get.js';
+import { openCoinBuy } from './coin-shop.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapCentreOnStash,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
@@ -1182,6 +1183,11 @@ function wire() {
 					toast('Could not reach the clipboard');
 				}
 				return;
+			// The Crow Coin Shop, wherever it is offered from: the To Get
+			// list, the Inventory panel. One dialog, one change.
+			case 'coin-buy':
+				openCoinBuy(el.dataset.item, Number(el.dataset.n) || 1);
+				return;
 			case 'craft': {
 				const item = el.dataset.item;
 				const field = el.dataset.times === 'field'
@@ -1356,6 +1362,13 @@ function wire() {
 
 		const cs = evt.target.closest('[data-act="crew-ship"]');
 		if (cs) return store.setProfile('crewShip', cs.value || null);
+
+		// The sailor list's order is a select now that a growth can be
+		// picked to sort by, and a select answers on change -- but the
+		// order is this screen's own state, so nothing writes and nothing
+		// would redraw without asking for it.
+		const cso = evt.target.closest('[data-act="crew-sort"]');
+		if (cso) { crewAction('crew-sort', cso); return render(); }
 
 		const cw = evt.target.closest('[data-act^="crew-"]');
 		if (cw && crewChange(cw)) return;

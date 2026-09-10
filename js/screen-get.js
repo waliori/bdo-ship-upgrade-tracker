@@ -22,6 +22,7 @@ import {
 	snapshot, barterData, barterProfile, totalsToGo, query, CROW_COIN, SILVER
 } from './ui-state.js';
 import { shoppingList, waysToGet } from './planner.js';
+import { coinBuyButton } from './coin-shop.js';
 import { mateAtTheHelm } from './ship.js';
 import { anyType } from './sailors.js';
 
@@ -259,6 +260,11 @@ export function renderGet() {
 					<summary>${ways.length === 1 ? 'another way' : `${ways.length} other ways`}${sea ? ' · by barter' : ''}${hunt ? ' · by hunting' : ''}</summary>
 					${ways.join('')}
 				</details>` : '';
+				// The shop, where the shop sells it. The list already knows
+				// the price and the purse already knows the coins; this is
+				// the one press that stops a player doing the subtraction
+				// by hand and getting it wrong.
+				const shop = entry.coins ? coinBuyButton(entry.item, entry.qty) : '';
 				return `<div class="row" data-peek="${esc(entry.item)}">
 					${img(entry.item, 'row-icon sm')}
 					<div class="row-main">
@@ -266,6 +272,7 @@ export function renderGet() {
 						<div class="row-sub">${esc(sub)}</div>
 						${waysHTML}
 					</div>
+					${shop}
 					<span class="qty-out">${F(entry.qty)}</span>
 				</div>`;
 			}).join('')}

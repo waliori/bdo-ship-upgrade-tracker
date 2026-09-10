@@ -81,6 +81,58 @@ test('a slot is fitted through the picker, and an unheld part can be recorded', 
 	await context.close();
 });
 
+test('a Crow Coin purchase moves the goods and the coins together, and undoes as one', async () => {
+	const { page, context, errors } = await open('#get');
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.addTarget('Carrack (Valor)', 1);
+		store.setStock('Crow Coin', 5000);
+	});
+	await page.waitForSelector('.coin-buy', { timeout: 10000 });
+	// Tidal Black Stone: ten coins each, and a Carrack wants hundreds.
+	await page.evaluate(() => [...document.querySelectorAll('.row')]
+		.find(r => /Tidal Black Stone/.test(r.textContent)).querySelector('.coin-buy').click());
+	await page.waitForFunction(() => /Buy with Crow Coins/i.test(document.querySelector('#dialog h2')?.textContent || ''), { timeout: 10000 });
+	// It opens on what the purse can actually cover, not on the shortfall.
+	assert.equal(await page.evaluate(() => document.querySelector('.buy-n').value.replace(/,/g, '')), '500');
+	await page.evaluate(() => { const f = document.querySelector('.buy-n'); f.value = '120'; f.dispatchEvent(new Event('input', { bubbles: true })); });
+	await wait(100);
+	assert.match(await text(page, '.buy-sum'), /1,200 coins/);
+	await page.click('[data-buy]'); await wait(400);
+	const after = await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		return { stone: store.getStock('Tidal Black Stone'), coins: store.getStock('Crow Coin') };
+	});
+	assert.deepEqual(after, { stone: 120, coins: 3800 }, 'the goods in and the coins out');
+	const back = await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.undo();
+		return { stone: store.getStock('Tidal Black Stone'), coins: store.getStock('Crow Coin') };
+	});
+	assert.deepEqual(back, { stone: 0, coins: 5000 }, 'and one Undo takes back both halves');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('too dear to buy is said, not clamped', async () => {
+	const { page, context, errors } = await open('#get');
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.addTarget('Carrack (Valor)', 1);
+		store.setStock('Crow Coin', 50);
+	});
+	await page.waitForSelector('.coin-buy', { timeout: 10000 });
+	await page.evaluate(() => [...document.querySelectorAll('.row')]
+		.find(r => /Tidal Black Stone/.test(r.textContent)).querySelector('.coin-buy').click());
+	await page.waitForSelector('.buy-n', { timeout: 10000 });
+	await page.evaluate(() => { const f = document.querySelector('.buy-n'); f.value = '600'; f.dispatchEvent(new Event('input', { bubbles: true })); });
+	await wait(100);
+	assert.match(await text(page, '.buy-sum'), /you hold 50 . enough for 5/);
+	assert.equal(await page.evaluate(() => document.querySelector('[data-buy]').disabled), true);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('sailors are hired with a portrait, ticked together, and dismissed after a second ask', async () => {
 	const { page, context, errors } = await open('#crew');
 	await seed(page); await wait(400);

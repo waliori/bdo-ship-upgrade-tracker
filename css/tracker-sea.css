@@ -899,3 +899,32 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 	.shot-table td:nth-child(5) { min-width: 130px; }
 	.shot-name { min-width: 78px; }
 }
+
+/* The sailor list's order, and the growth it was ordered by shown on
+   each card so the order can be read rather than trusted. */
+.crew-sort { max-width: 190px; }
+.roster-stat { margin-left: 6px; padding: 0 5px; border-radius: 5px; background: rgba(78, 201, 174, 0.16); color: var(--teal-hi); font-family: var(--font-display); font-size: 11px; font-weight: 700; }
+
+/* "What is this crew for?" — the goals, each with what the crew would
+   come to under it, one press to the arrangement. */
+.auto-rows { display: flex; flex-direction: column; gap: 6px; margin: 12px 0 4px; }
+.auto-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 12px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.45); color: var(--ink-mid); font: inherit; text-align: left; cursor: pointer; }
+.auto-row:hover { border-color: var(--teal); background: rgba(78, 201, 174, 0.09); }
+.auto-row.picked { border-color: rgba(78, 201, 174, 0.45); }
+.auto-name { flex: 1 1 auto; min-width: 0; font-family: var(--font-display); font-size: 13.5px; font-weight: 600; color: var(--ink-hi); }
+.auto-name em { margin-left: 7px; padding: 1px 5px; border-radius: 4px; background: rgba(78, 201, 174, 0.18); color: var(--teal-hi); font-size: 9.5px; font-style: normal; letter-spacing: 0.06em; text-transform: uppercase; }
+.auto-name small, .auto-crew small { display: block; margin-top: 1px; font-family: var(--font-body, inherit); font-size: 11px; font-weight: 400; color: var(--ink-faint); }
+.auto-figs { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 4px 8px; }
+.auto-fig { font-size: 11px; color: var(--ink-faint); }
+.auto-fig b { font-family: var(--font-display); font-size: 12.5px; color: var(--ink-mute); }
+.auto-fig.on b { color: var(--teal-hi); }
+.auto-delta { flex: 0 0 62px; text-align: right; font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--ink-faint); }
+.auto-delta.up { color: var(--teal); }
+.auto-delta.down { color: var(--amber); }
+.auto-delta small { display: block; font-family: var(--font-body, inherit); font-size: 9.5px; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-faint); }
+.auto-crew { flex: 0 0 auto; text-align: right; font-size: 11.5px; color: var(--ink-mute); }
+@media (max-width: 620px) {
+	.auto-row { flex-wrap: wrap; gap: 4px 10px; }
+	.auto-name { flex: 1 1 100%; }
+	.auto-figs { flex: 1 1 auto; }
+}

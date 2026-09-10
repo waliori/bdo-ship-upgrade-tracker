@@ -8,7 +8,8 @@ import {
 	img, codexName, amountInput, costCtx, costText, makeupHTML, barterHTML,
 	sourceOf, hasBuyOption, allItems, waysThrough, questsPaying
 } from './ui-bits.js';
-import { recipes, snapshot, rows, query, invFilter, invKind, selected, sort, sorter, sortSelect, craftStock, invPicking, invPicked } from './ui-state.js';
+import { recipes, snapshot, rows, query, invFilter, invKind, selected, sort, sorter, sortSelect, craftStock, invPicking, invPicked, CROW_COIN } from './ui-state.js';
+import { coinPrice, coinBuyButton } from './coin-shop.js';
 import { routes, routeInfo } from './recipes.js';
 import { KINDS, kindOf } from './kinds.js';
 import { shipStats } from './ship_stats.js';
@@ -355,6 +356,11 @@ function renderDetail() {
 		${src && src.key !== 'coin' && src.key !== 'falasi'
 			? `<div class="detail-src"><span>${esc(src.label)}</span><span>${esc(src.detail)}</span></div>`
 			: ''}
+		${coinPrice(item) ? `<div class="detail-block">
+			<div class="detail-label">Crow Coin Shop <span class="detail-note">· ${F(coinPrice(item))} coins each</span></div>
+			<div class="detail-line"><span>You hold ${F(store.getStock(CROW_COIN))} coins — enough for ${F(Math.floor(store.getStock(CROW_COIN) / coinPrice(item)))}</span></div>
+			${coinBuyButton(item, Math.max(1, short), { small: false, label: short > 0 ? `Buy the ${F(short)} you are short` : 'Buy with coins' })}
+		</div>` : ''}
 		${waysBlock(item)}
 		${step ? '<button class="act quiet wide" data-act="view" data-id="workshop">Attempt it in the Workshop</button>' : ''}
 		${toggle}
