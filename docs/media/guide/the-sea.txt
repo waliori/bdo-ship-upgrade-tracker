@@ -1,20 +1,20 @@
-The yard says what you need. The sea is where you go and get it.
-Quests is what the sea hands you for free, every day.
-The ones paying in something on your list are marked, so you can tell at a glance which are worth the detour.
-Tick a few off, and Finish records them together.
-The rewards land in your stock as one change, which undo can take back.
-The ticks wear off at the daily reset by themselves.
-The Map is that same shopping list, drawn on the sea.
+The Yard says what you need. The Sea is where you go and get it.
+Quests are what the sea gives you for free each day.
+The ones paying something on your list are marked, so you can see which are worth the detour.
+Tick a few off, then click Finish.
+The rewards go into your stock as one change, which Undo can take back.
+The ticks clear themselves at the daily reset.
+The Map is that shopping list, drawn on the sea.
 Every pin is a barterer holding something you are short of.
-Plot the loop, and it draws you one, bent round the land rather than through it.
-Every leg carries its distance and its minutes,
-worked out at the speed the ship you are actually sailing makes.
-One strip along the top says what the chart draws:
-barterers, habitats, wharves, island names, and anything you have drawn yourself.
-Because some routes a shopping list cannot express.
-Click the water for a numbered stop, in the order you mean to sail it.
-Drag to draw a line, freehand.
-Or type a word straight onto the sea.
-It all lives on the chart, so it pans and zooms with everything else.
-Keep it under a name, share it as a link, or send it to the game's own map as bookmarks.
-That is the sea: what is out there, how far, and how long it takes to get to.
+Switch to Route, and plot the loop.
+It draws a route around the land, with the distance and the minutes on every leg —
+worked out at the speed your ship actually sails.
+This strip sets what the chart draws:
+barterers, habitats, wharves, island names, and anything you drew yourself.
+The Draw tab is for routes a shopping list cannot describe.
+Click the sea to drop a numbered stop, in the order you will sail it.
+Take the pen and drag to draw a line.
+Or type a word straight onto the water.
+It all sits on the chart, so it pans and zooms with everything else.
+Save it under a name, share it as a link, or send it to the game map as bookmarks.
+That is the Sea. What is out there, how far, and how long it takes.

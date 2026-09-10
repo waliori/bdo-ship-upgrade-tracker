@@ -1,93 +1,93 @@
 WEBVTT
 
 1
-00:00:00.655 --> 00:00:06.270
-Every build in this app draws on one inventory: the one you actually have.
+00:00:00.661 --> 00:00:06.446
+This is the Yard. It works out what your builds need, and what you still have to find.
 
 2
-00:00:12.325 --> 00:00:15.849
-You start by queueing something you want to build.
+00:00:06.589 --> 00:00:09.388
+Start by queueing something to build.
 
 3
-00:00:27.480 --> 00:00:31.493
-Some ships can be reached more than one way, so it asks which.
+00:00:16.509 --> 00:00:19.696
+Some ships can be built two ways, so it asks which.
 
 4
-00:00:31.493 --> 00:00:36.702
-It shows what each route costs. Neither of them is the right answer.
+00:00:19.696 --> 00:00:22.767
+It shows what each route costs. Either is fine.
 
 5
-00:00:48.331 --> 00:00:54.714
-Queue a second thing, and the order matters. When stock is short, the build at the top gets it.
+00:00:22.767 --> 00:00:29.022
+Queue a second one. Order matters: if stock runs short, the build at the top gets it first.
 
 6
-00:00:58.568 --> 00:01:02.765
-The Plan is everything the queue needs, gathered into one list.
+00:00:29.537 --> 00:00:33.338
+The Plan is everything your queue needs, in one list.
 
 7
-00:01:02.765 --> 00:01:07.472
-Red is missing. Blue is still to make. Green is already covered.
+00:00:34.358 --> 00:00:37.821
+Red is missing. Blue you can make. Green you already have.
 
 8
-00:01:07.472 --> 00:01:10.783
-As you gather, you type in what you have.
+00:00:37.821 --> 00:00:40.748
+As you gather, type in what you have.
 
 9
-00:01:14.796 --> 00:01:18.363
-And every build re-plans around it, at once.
+00:00:43.336 --> 00:00:45.915
+Every build re-plans around it straight away.
 
 10
-00:01:21.607 --> 00:01:27.008
-A whole trip can go in as one change, rather than a box at a time.
+00:00:45.915 --> 00:00:50.527
+Or log a whole trip at once, instead of a box at a time.
 
 11
-00:01:32.783 --> 00:01:37.374
-Anything you have the materials for can be made in the Workshop.
+00:00:51.349 --> 00:00:54.430
+The Workshop makes anything you have the materials for.
 
 12
-00:01:39.798 --> 00:01:44.730
+00:00:54.430 --> 00:00:58.642
 Crafting moves real stock. Ingredients out, the product in.
 
 13
-00:01:44.730 --> 00:01:48.937
-Slipped? Every change here steps back, and forward again.
+00:00:58.642 --> 00:01:03.254
+Made a mistake? Undo steps it back, and Redo puts it forward.
 
 14
-00:01:56.360 --> 00:02:00.078
-Enhancing is kept separate, because attempts fail.
+00:01:03.901 --> 00:01:07.194
+Enhancing is kept separate, because attempts can fail.
 
 15
-00:02:00.078 --> 00:02:05.991
-So it shows the real odds at your stack, and the most the part can ever cost you.
+00:01:07.194 --> 00:01:12.909
+It shows your real odds at your failstack, and the most the part can end up costing.
 
 16
-00:02:10.260 --> 00:02:15.000
+00:01:12.909 --> 00:01:16.680
 The Inventory is one tile per thing you own, or still need.
 
 17
-00:02:17.690 --> 00:02:21.612
-Open any of them and every way of getting it is priced:
+00:01:16.680 --> 00:01:20.524
+Open one, and every way of getting it is priced.
 
 18
-00:02:21.612 --> 00:02:29.659
-what the shop wants, against what making one costs once its own ingredients are priced too, all the way down.
+00:01:22.638 --> 00:01:29.703
+What the shop charges, against what making it costs — including its own ingredients, all the way down.
 
 19
-00:02:35.349 --> 00:02:40.750
-A part you already levelled in the game is recorded, not re-enhanced.
+00:01:30.087 --> 00:01:33.803
+Already levelled a part in game? Record it here.
 
 20
-00:02:44.204 --> 00:02:49.243
-You tell it where the part got to, and it spends nothing to agree with you.
+00:01:39.248 --> 00:01:44.073
+Tell it the level you reached. It spends no stones to agree with you.
 
 21
-00:02:57.246 --> 00:03:02.519
-The Tree is there for the other question: why a build needs what it needs.
+00:01:46.251 --> 00:01:49.775
+The Tree shows why a build needs what it needs.
 
 22
-00:03:09.950 --> 00:03:14.209
-And To Get is the shopping list, grouped by where you would go for it.
+00:01:52.912 --> 00:01:57.197
+And To Get is your shopping list, grouped by where to go for it.
 
 23
-00:03:14.209 --> 00:03:19.632
-That is the yard. What you want, what it takes, and what you still have to find.
+00:01:57.197 --> 00:02:02.001
+That is the Yard. What you want, what it takes, and what is left to find.

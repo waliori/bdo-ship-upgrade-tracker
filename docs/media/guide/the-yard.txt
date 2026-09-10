@@ -1,23 +1,23 @@
-Every build in this app draws on one inventory: the one you actually have.
-You start by queueing something you want to build.
-Some ships can be reached more than one way, so it asks which.
-It shows what each route costs. Neither of them is the right answer.
-Queue a second thing, and the order matters. When stock is short, the build at the top gets it.
-The Plan is everything the queue needs, gathered into one list.
-Red is missing. Blue is still to make. Green is already covered.
-As you gather, you type in what you have.
-And every build re-plans around it, at once.
-A whole trip can go in as one change, rather than a box at a time.
-Anything you have the materials for can be made in the Workshop.
+This is the Yard. It works out what your builds need, and what you still have to find.
+Start by queueing something to build.
+Some ships can be built two ways, so it asks which.
+It shows what each route costs. Either is fine.
+Queue a second one. Order matters: if stock runs short, the build at the top gets it first.
+The Plan is everything your queue needs, in one list.
+Red is missing. Blue you can make. Green you already have.
+As you gather, type in what you have.
+Every build re-plans around it straight away.
+Or log a whole trip at once, instead of a box at a time.
+The Workshop makes anything you have the materials for.
 Crafting moves real stock. Ingredients out, the product in.
-Slipped? Every change here steps back, and forward again.
-Enhancing is kept separate, because attempts fail.
-So it shows the real odds at your stack, and the most the part can ever cost you.
+Made a mistake? Undo steps it back, and Redo puts it forward.
+Enhancing is kept separate, because attempts can fail.
+It shows your real odds at your failstack, and the most the part can end up costing.
 The Inventory is one tile per thing you own, or still need.
-Open any of them and every way of getting it is priced:
-what the shop wants, against what making one costs once its own ingredients are priced too, all the way down.
-A part you already levelled in the game is recorded, not re-enhanced.
-You tell it where the part got to, and it spends nothing to agree with you.
-The Tree is there for the other question: why a build needs what it needs.
-And To Get is the shopping list, grouped by where you would go for it.
-That is the yard. What you want, what it takes, and what you still have to find.
+Open one, and every way of getting it is priced.
+What the shop charges, against what making it costs — including its own ingredients, all the way down.
+Already levelled a part in game? Record it here.
+Tell it the level you reached. It spends no stones to agree with you.
+The Tree shows why a build needs what it needs.
+And To Get is your shopping list, grouped by where to go for it.
+That is the Yard. What you want, what it takes, and what is left to find.

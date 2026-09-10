@@ -94,29 +94,29 @@ const CHAPTERS = {
 		n: 'One', title: 'The Yard', at: 'plan',
 		blurb: 'Queue a build, record what you gather, make what you can, and price the rest.',
 		say: {
-			open: 'Every build in this app draws on one inventory: the one you actually have.',
-			queue: 'You start by queueing something you want to build.',
-			asks: 'Some ships can be reached more than one way, so it asks which.',
-			costs: 'It shows what each route costs. Neither of them is the right answer.',
-			order: 'Queue a second thing, and the order matters. When stock is short, the build at the top gets it.',
-			plan: 'The Plan is everything the queue needs, gathered into one list.',
-			colours: 'Red is missing. Blue is still to make. Green is already covered.',
-			own: 'As you gather, you type in what you have.',
-			replan: 'And every build re-plans around it, at once.',
-			trip: 'A whole trip can go in as one change, rather than a box at a time.',
-			shop: 'Anything you have the materials for can be made in the Workshop.',
+			open: 'This is the Yard. It works out what your builds need, and what you still have to find.',
+			queue: 'Start by queueing something to build.',
+			asks: 'Some ships can be built two ways, so it asks which.',
+			costs: 'It shows what each route costs. Either is fine.',
+			order: 'Queue a second one. Order matters: if stock runs short, the build at the top gets it first.',
+			plan: 'The Plan is everything your queue needs, in one list.',
+			colours: 'Red is missing. Blue you can make. Green you already have.',
+			own: 'As you gather, type in what you have.',
+			replan: 'Every build re-plans around it straight away.',
+			trip: 'Or log a whole trip at once, instead of a box at a time.',
+			shop: 'The Workshop makes anything you have the materials for.',
 			craft: 'Crafting moves real stock. Ingredients out, the product in.',
-			undo: 'Slipped? Every change here steps back, and forward again.',
-			enh: 'Enhancing is kept separate, because attempts fail.',
-			odds: 'So it shows the real odds at your stack, and the most the part can ever cost you.',
+			undo: 'Made a mistake? Undo steps it back, and Redo puts it forward.',
+			enh: 'Enhancing is kept separate, because attempts can fail.',
+			odds: 'It shows your real odds at your failstack, and the most the part can end up costing.',
 			inv: 'The Inventory is one tile per thing you own, or still need.',
-			ways: 'Open any of them and every way of getting it is priced:',
-			deep: 'what the shop wants, against what making one costs once its own ingredients are priced too, all the way down.',
-			level: 'A part you already levelled in the game is recorded, not re-enhanced.',
-			nostones: 'You tell it where the part got to, and it spends nothing to agree with you.',
-			tree: 'The Tree is there for the other question: why a build needs what it needs.',
-			get: 'And To Get is the shopping list, grouped by where you would go for it.',
-			close: 'That is the yard. What you want, what it takes, and what you still have to find.'
+			ways: 'Open one, and every way of getting it is priced.',
+			deep: 'What the shop charges, against what making it costs — including its own ingredients, all the way down.',
+			level: 'Already levelled a part in game? Record it here.',
+			nostones: 'Tell it the level you reached. It spends no stones to agree with you.',
+			tree: 'The Tree shows why a build needs what it needs.',
+			get: 'And To Get is your shopping list, grouped by where to go for it.',
+			close: 'That is the Yard. What you want, what it takes, and what is left to find.'
 		},
 		async shoot(ctx, s) {
 			const { page, url } = ctx;
@@ -124,91 +124,76 @@ const CHAPTERS = {
 			await film(page, `${OUT}/the-yard.webm`);
 			await card(page, 'One', 'The Yard', { line: s.open });
 
-			await tab(page, 'builds');
-			await say(page, s.queue);
-			await click(page, '[data-act="add-build"]', { after: 700 });
-			await page.type('.picker-search', 'caravel', { delay: 80 });
-			await wait(700);
-			await click(page, '[data-pick="Epheria Caravel"]', { after: 900 });
+			await doing(page, s.queue, async () => {
+				await tab(page, 'builds', { after: 400 });
+				await click(page, '[data-act="add-build"]', { after: 400 });
+				await page.type('.picker-search', 'caravel', { delay: 70 });
+				await wait(500);
+				await click(page, '[data-pick="Epheria Caravel"]', { after: 600 });
+			});
 			await say(page, s.asks);
-			await say(page, s.costs);
-			await click(page, '.route:not(.on)', { after: 900 });
+			await doing(page, s.costs, () => click(page, '.route:not(.on)', { after: 500 }));
+			await doing(page, s.order, async () => {
+				await click(page, '[data-act="add-build"]', { after: 400 });
+				await page.type('.picker-search', "chiro's sail", { delay: 70 });
+				await wait(500);
+				await click(page, '[data-pick="Epheria Carrack: Advance (Chiro\'s Sail)"]', { after: 600 });
+			});
 			await hush(page);
 
-			await click(page, '[data-act="add-build"]', { after: 700 });
-			await page.type('.picker-search', "chiro's sail", { delay: 80 });
-			await wait(700);
-			await click(page, '[data-pick="Epheria Carrack: Advance (Chiro\'s Sail)"]', { after: 900 });
-			await say(page, s.order);
-			await hush(page);
-
-			await tab(page, 'plan');
-			await say(page, s.plan);
+			await doing(page, s.plan, () => tab(page, 'plan', { after: 500 }));
 			await say(page, s.colours);
-			await hush(page);
-
-			await say(page, s.own);
-			await typeInto(page, '.own-input[data-item="Violent Wave Plywood"]', '300', { after: 800 });
+			await doing(page, s.own, () =>
+				typeInto(page, '.own-input[data-item="Violent Wave Plywood"]', '300', { after: 400 }));
 			await say(page, s.replan);
-			await hush(page);
-
-			// The trip log is a dialog, and dismissing it is what puts the
-			// Plan back under the pointer for the tab press that follows.
-			await headerBtn(page, 'trip-log', { after: 1100 });
-			await say(page, s.trip);
+			await doing(page, s.trip, () => headerBtn(page, 'trip-log', { after: 600 }));
 			await page.keyboard.press('Escape');
-			await wait(500);
+			await wait(400);
 			await hush(page);
 
-			await tab(page, 'workshop');
-			await say(page, s.shop);
-			await click(page, '.craft-card [data-times="field"]', { after: 1400 });
-			await say(page, s.craft);
+			await doing(page, s.shop, () => tab(page, 'workshop', { after: 500 }));
+			await doing(page, s.craft, () => click(page, '.craft-card [data-times="field"]', { after: 900 }));
+			await doing(page, s.undo, async () => {
+				await headerBtn(page, 'undo', { after: 700 });
+				await headerBtn(page, 'redo', { after: 700 });
+			});
 			await hush(page);
-
-			await say(page, s.undo);
-			await headerBtn(page, 'undo', { after: 1200 });
-			await headerBtn(page, 'redo', { after: 1200 });
-			await hush(page);
-
 			await say(page, s.enh);
 			await say(page, s.odds);
 			await hush(page);
 			await page.keyboard.press('Escape');
-			await wait(400);
+			await wait(300);
 
-			await tab(page, 'inventory');
+			await doing(page, s.inv, () => tab(page, 'inventory', { after: 500 }));
 			await waitFor(page, '[data-act="select"][data-item="Violent Wave Plywood"]');
-			await say(page, s.inv);
-			await click(page, '[data-act="select"][data-item="Violent Wave Plywood"]', { after: 900 });
-			await say(page, s.ways);
+			await doing(page, s.ways, () =>
+				click(page, '[data-act="select"][data-item="Violent Wave Plywood"]', { after: 600 }));
 			await say(page, s.deep);
 			await hush(page);
 			await page.keyboard.press('Escape');
-			await wait(600);
+			await wait(400);
 
-			// The part that came back from the game at +7, recorded rather
-			// than re-enhanced: the app's answer to a level you already have.
-			await click(page, '[data-act="query"]', { after: 200 });
-			await page.type('[data-act="query"]', 'toro plating', { delay: 90 });
-			await wait(900);
-			await say(page, s.level);
-			await click(page, '.tile', { after: 900 });
-			await click(page, '.lvl:nth-child(8)', { after: 900 });
-			await say(page, s.nostones);
-			await click(page, '[data-act="move-level"]', { after: 1400 });
+			await doing(page, s.level, async () => {
+				await click(page, '[data-act="query"]', { after: 200 });
+				await page.type('[data-act="query"]', 'toro plating', { delay: 70 });
+				await wait(600);
+				await click(page, '.tile', { after: 500 });
+			});
+			await doing(page, s.nostones, async () => {
+				await click(page, '.lvl:nth-child(8)', { after: 500 });
+				await click(page, '[data-act="move-level"]', { after: 800 });
+			});
 			await hush(page);
 			await page.keyboard.press('Escape');
-			await wait(500);
+			await wait(400);
 
-			await tab(page, 'tree');
-			await say(page, s.tree);
-			await click(page, '[data-act="tree-pick"]', { after: 700 });
-			await click(page, '[data-act="tree-target"][data-item="Epheria Carrack: Advance (Chiro\'s Sail)"]', { after: 1200 });
+			await doing(page, s.tree, async () => {
+				await tab(page, 'tree', { after: 500 });
+				await click(page, '[data-act="tree-pick"]', { after: 500 });
+				await click(page, '[data-act="tree-target"][data-item="Epheria Carrack: Advance (Chiro\'s Sail)"]', { after: 800 });
+			});
 			await hush(page);
-
-			await tab(page, 'get');
-			await say(page, s.get);
+			await doing(page, s.get, () => tab(page, 'get', { after: 600 }));
 			await say(page, s.close);
 			await hush(page);
 		}
@@ -219,28 +204,28 @@ const CHAPTERS = {
 	 * ============================================================== */
 	'the-sea': {
 		n: 'Two', title: 'The Sea', at: 'map',
-		blurb: 'The day\'s free rewards, and the shopping list drawn on the water.',
+		blurb: 'The day\'s free rewards, and your shopping list drawn on the water.',
 		say: {
-			open: 'The yard says what you need. The sea is where you go and get it.',
-			quests: 'Quests is what the sea hands you for free, every day.',
-			marked: 'The ones paying in something on your list are marked, so you can tell at a glance which are worth the detour.',
-			tick: 'Tick a few off, and Finish records them together.',
-			land: 'The rewards land in your stock as one change, which undo can take back.',
-			reset: 'The ticks wear off at the daily reset by themselves.',
-			map: 'The Map is that same shopping list, drawn on the sea.',
+			open: 'The Yard says what you need. The Sea is where you go and get it.',
+			quests: 'Quests are what the sea gives you for free each day.',
+			marked: 'The ones paying something on your list are marked, so you can see which are worth the detour.',
+			tick: 'Tick a few off, then click Finish.',
+			land: 'The rewards go into your stock as one change, which Undo can take back.',
+			reset: 'The ticks clear themselves at the daily reset.',
+			map: 'The Map is that shopping list, drawn on the sea.',
 			pins: 'Every pin is a barterer holding something you are short of.',
-			route: 'Plot the loop, and it draws you one, bent round the land rather than through it.',
-			legs: 'Every leg carries its distance and its minutes,',
-			speed: 'worked out at the speed the ship you are actually sailing makes.',
-			layers: 'One strip along the top says what the chart draws:',
-			what: 'barterers, habitats, wharves, island names, and anything you have drawn yourself.',
-			draw: 'Because some routes a shopping list cannot express.',
-			stops: 'Click the water for a numbered stop, in the order you mean to sail it.',
-			pen: 'Drag to draw a line, freehand.',
-			word: 'Or type a word straight onto the sea.',
-			chart: 'It all lives on the chart, so it pans and zooms with everything else.',
-			keep: 'Keep it under a name, share it as a link, or send it to the game\'s own map as bookmarks.',
-			close: 'That is the sea: what is out there, how far, and how long it takes to get to.'
+			route: 'Switch to Route, and plot the loop.',
+			legs: 'It draws a route around the land, with the distance and the minutes on every leg —',
+			speed: 'worked out at the speed your ship actually sails.',
+			layers: 'This strip sets what the chart draws:',
+			what: 'barterers, habitats, wharves, island names, and anything you drew yourself.',
+			draw: 'The Draw tab is for routes a shopping list cannot describe.',
+			stops: 'Click the sea to drop a numbered stop, in the order you will sail it.',
+			pen: 'Take the pen and drag to draw a line.',
+			word: 'Or type a word straight onto the water.',
+			chart: 'It all sits on the chart, so it pans and zooms with everything else.',
+			keep: 'Save it under a name, share it as a link, or send it to the game map as bookmarks.',
+			close: 'That is the Sea. What is out there, how far, and how long it takes.'
 		},
 		async shoot(ctx, s) {
 			const { page, url } = ctx;
@@ -248,31 +233,27 @@ const CHAPTERS = {
 			await film(page, `${OUT}/the-sea.webm`);
 			await card(page, 'Two', 'The Sea', { line: s.open });
 
-			await tab(page, 'quests');
-			await wait(700);
-			await say(page, s.quests);
+			await doing(page, s.quests, () => tab(page, 'quests', { after: 600 }));
 			await say(page, s.marked);
-			// Only the quests paying one fixed reward: a pick-one quest
-			// stops Finish to ask which, which is true but not this beat.
+			// Only the quests paying one fixed reward: a pick-one quest stops
+			// Finish to ask which, which is true but not this beat.
 			const plain = '.quest:not(.done):not(.selected):has([data-act="quest-claim"]) .quest-check';
-			await click(page, plain, { after: 600 });
-			await click(page, plain, { after: 800 });
-			await say(page, s.tick);
-			await click(page, '[data-act="quest-finish"]', { after: 1500 });
+			await doing(page, s.tick, async () => {
+				await click(page, plain, { after: 400 });
+				await click(page, plain, { after: 500 });
+				await click(page, '[data-act="quest-finish"]', { after: 900 });
+			});
 			await say(page, s.land);
 			await say(page, s.reset);
 			await hush(page);
 
-			await tab(page, 'map');
-			await wait(1400);
-			if (!(await onScreen(page, '.map-side'))) await click(page, '[data-act="map-panel"]', { after: 900 });
-			await say(page, s.map);
+			await doing(page, s.map, () => tab(page, 'map', { after: 1200 }));
+			if (!(await onScreen(page, '.map-side'))) await click(page, '[data-act="map-panel"]', { after: 700 });
 			await say(page, s.pins);
-			await hush(page);
-
-			await click(page, '[data-act="map-mode"][data-id="route"]', { after: 1000 });
-			await say(page, s.route);
-			await click(page, '[data-act="map-route-use"]', { after: 2400 });
+			await doing(page, s.route, async () => {
+				await click(page, '[data-act="map-mode"][data-id="route"]', { after: 600 });
+				await click(page, '[data-act="map-route-use"]', { after: 1800 });
+			});
 			await say(page, s.legs);
 			await say(page, s.speed);
 			await hush(page);
@@ -281,34 +262,37 @@ const CHAPTERS = {
 			// clean sheet the drawing beat needs: three traced stops are
 			// invisible under fifty-eight pins.
 			if (!(await onScreen(page, '[data-act="map-pins"]'))) {
-				await click(page, '[data-act="map-layers"]', { after: 800 });
+				await click(page, '[data-act="map-layers"]', { after: 600 });
 			}
 			await say(page, s.layers);
-			await say(page, s.what);
-			await click(page, '[data-act="map-pins"]', { after: 1400 });
+			await doing(page, s.what, () => click(page, '[data-act="map-pins"]', { after: 900 }));
 			await hush(page);
 
-			await click(page, '[data-act="map-mode"][data-id="trace"]', { after: 1000 });
-			await say(page, s.draw);
-			await click(page, '[data-act="trace-tool"][data-id="point"]', { after: 700 });
-			for (const [fx, fy] of [[0.362, 0.16], [0.50, 0.29], [0.435, 0.54]]) {
-				await clickIn(page, '#map', fx, fy, { after: 700 });
-			}
-			await say(page, s.stops);
-			await click(page, '[data-act="trace-tool"][data-id="pen"]', { after: 700 });
-			await drag(page, '#map', 140, -70, { from: [0.56, 0.66], after: 900 });
-			await say(page, s.pen);
-			await click(page, '[data-act="trace-tool"][data-id="text"]', { after: 700 });
-			await clickIn(page, '#map', 0.40, 0.44, { after: 700 });
-			await page.keyboard.type('the long way home', { delay: 85 });
-			await wait(900);
-			await say(page, s.word);
+			await doing(page, s.draw, async () => {
+				await click(page, '[data-act="map-mode"][data-id="trace"]', { after: 600 });
+				await click(page, '[data-act="trace-tool"][data-id="point"]', { after: 500 });
+			});
+			await doing(page, s.stops, async () => {
+				for (const [fx, fy] of [[0.362, 0.16], [0.50, 0.29], [0.435, 0.54]]) {
+					await clickIn(page, '#map', fx, fy, { after: 450 });
+				}
+			});
+			await doing(page, s.pen, async () => {
+				await click(page, '[data-act="trace-tool"][data-id="pen"]', { after: 500 });
+				await drag(page, '#map', 140, -70, { from: [0.56, 0.66], after: 600 });
+			});
+			await doing(page, s.word, async () => {
+				await click(page, '[data-act="trace-tool"][data-id="text"]', { after: 500 });
+				await clickIn(page, '#map', 0.40, 0.44, { after: 500 });
+				await page.keyboard.type('the long way home', { delay: 75 });
+				await wait(600);
+			});
 			await say(page, s.chart);
 			await say(page, s.keep);
 			await hush(page);
 
-			await drag(page, '#map', -200, -90, { after: 500 });
-			await drag(page, '#map', 160, 50, { after: 500 });
+			await drag(page, '#map', -180, -80, { after: 400 });
+			await drag(page, '#map', 150, 45, { after: 400 });
 			await say(page, s.close);
 			await hush(page);
 		}
@@ -321,21 +305,21 @@ const CHAPTERS = {
 		n: 'Three', title: 'Your Ship', at: 'crew',
 		blurb: 'A hull, four parts, a crystal and a crew — read off the game\'s own screenshots.',
 		say: {
-			open: 'A ship in this game is a hull, four parts, a sea crystal and a crew. The Ship tab is all five at once.',
-			slots: 'Each slot takes the best part you already hold, or one you pick yourself.',
-			mastery: 'Your Sailing Mastery counts toward speed as well, so it is a number you type in.',
-			moves: 'And every figure on the card moves with it.',
-			crew: 'The crew is the part nobody enjoys entering. Eighteen sailors, four growths each.',
-			why: 'It is also the part that cannot be estimated: a levelled sailor\'s real rolls are what make the speed the game\'s, rather than a guess.',
-			shots: 'So it reads them off the screenshots you already took.',
-			drop: 'Drop in the game\'s own Manage Sailors window, one sailor a shot.',
-			local: 'The reading happens here in the browser. The files never leave the machine.',
-			wait: 'It works through them, and comes back with a table rather than a roster,',
-			check: 'because a scan that misreads a level should cost you a glance, not a crew.',
-			take: 'Check them against the game, and take the ones that are right.',
-			setups: 'A whole fit-out can be kept under a name, and switched between.',
-			link: 'And the lot of it copies as a link, if someone asks what you are sailing.',
-			close: 'That is your ship: every number on it either yours, or read off your own screen.'
+			open: 'This is the Ship tab. A ship is a hull, four parts, a sea crystal and a crew.',
+			slots: 'Each slot takes the best part you own, or one you pick yourself.',
+			mastery: 'Type your Sailing Mastery in here. It counts toward speed.',
+			moves: 'And every number on the card moves with it.',
+			crew: 'Now the crew. Eighteen sailors with four growths each is a lot of typing.',
+			why: 'And you cannot guess them: a sailor\'s real rolls are what make the speed match the game.',
+			shots: 'So it reads them off your screenshots instead.',
+			drop: 'Screenshot the Manage Sailors window in game, one sailor per shot, and drop them in.',
+			local: 'It reads them here in your browser. Nothing is uploaded.',
+			wait: 'It works through them and gives you a table, not a roster.',
+			check: 'Check it against the game first — a misread level should cost you a glance, not your crew.',
+			take: 'Then take the ones that are right.',
+			setups: 'Save a whole fit-out under a name, and switch between them.',
+			link: 'And copy the lot as a link, if someone asks what you sail.',
+			close: 'That is your ship. Every number on it is either yours, or read off your own screen.'
 		},
 		async shoot(ctx, s) {
 			const { page, url } = ctx;
@@ -344,48 +328,41 @@ const CHAPTERS = {
 			await card(page, 'Three', 'Your Ship', { line: s.open });
 
 			await tab(page, 'crew');
-			await wait(900);
+			await wait(700);
 			await say(page, s.slots);
-			await hush(page);
-			await say(page, s.mastery);
-			await typeInto(page, '[data-act="crew-mastery"]', '750', { after: 1200 });
+			await doing(page, s.mastery, () =>
+				typeInto(page, '[data-act="crew-mastery"]', '750', { after: 500 }));
 			await say(page, s.moves);
 			await hush(page);
 
 			await say(page, s.crew);
 			await say(page, s.why);
-			await say(page, s.shots);
-			await click(page, '[data-act="crew-import"]', { after: 1100 });
+			await doing(page, s.shots, () => click(page, '[data-act="crew-import"]', { after: 700 }));
 			await say(page, s.drop);
-			await say(page, s.local);
-
 			// The real thing: the game's own window, cropped to the dialog
 			// and handed to the file input the way a person would hand it
 			// over. Everything past here is the reader actually reading.
-			const input = await page.$('input[data-files]');
-			await input.uploadFile(
-				path.resolve('tools/capture/shots/sailor-1.webp'),
-				path.resolve('tools/capture/shots/sailor-2.webp'),
-				path.resolve('tools/capture/shots/sailor-3.webp')
-			);
+			await doing(page, s.local, async () => {
+				const input = await page.$('input[data-files]');
+				await input.uploadFile(
+					path.resolve('tools/capture/shots/sailor-1.webp'),
+					path.resolve('tools/capture/shots/sailor-2.webp'),
+					path.resolve('tools/capture/shots/sailor-3.webp')
+				);
+			});
 			await say(page, s.wait);
 			await say(page, s.check);
-			// The first read fetches the engine -- about six megabytes --
-			// and then does three passes of OCR, so this is the one beat
-			// in the series that genuinely takes its time.
-			await waitFor(page, '.shot-table', { upTo: 180000, then: 1200 });
-			await say(page, s.take);
-			await click(page, '[data-add]', { after: 1800 });
+			// The first read fetches the engine -- about six megabytes -- and
+			// then does three passes of OCR, so this is the one beat in the
+			// series that genuinely takes its time.
+			await waitFor(page, '.shot-table', { upTo: 180000, then: 800 });
+			await doing(page, s.take, () => click(page, '[data-add]', { after: 1200 }));
 			await hush(page);
 
-			await say(page, s.setups);
-			await click(page, '[data-act="crew-setup-save"]', { after: 1100 });
+			await doing(page, s.setups, () => click(page, '[data-act="crew-setup-save"]', { after: 700 }));
 			await page.keyboard.press('Escape');
-			await wait(500);
-			await hush(page);
-
-			await say(page, s.link);
-			await click(page, '[data-act="crew-link"]', { after: 1400 });
+			await wait(400);
+			await doing(page, s.link, () => click(page, '[data-act="crew-link"]', { after: 900 }));
 			await say(page, s.close);
 			await hush(page);
 		}
@@ -610,17 +587,17 @@ const CHAPTERS = {
 		blurb: 'Where a deployment has sign-in: sixteen boards, and nothing on them you did not offer.',
 		staged: true,
 		say: {
-			open: 'Everything so far runs in your browser alone. This last part only exists where a deployment has sign-in.',
-			fleet: 'And a note before it does: the sailors on these boards are invented. A machine shooting a film has no server with real players on it. The tab, the digest and the ranking are the app\'s own.',
-			boards: 'Sixteen boards, built from the sailors who chose to stand on them.',
-			door: 'A place on a board is a door. This is that sailor\'s card:',
-			card: 'their fleet, their crew, and what they have done at sea.',
-			look: 'And this is their ship, on your own Ship tab, fully fitted.',
-			back: 'To look at, and not to keep. One press puts you back on yours.',
+			open: 'Everything so far runs in your browser alone. This last part needs sign-in.',
+			fleet: 'One note first: these sailors are made up. A machine recording this has no server with real players on it. The tab, the digest and the ranking are the app\'s own.',
+			boards: 'Sixteen boards, built from the players who chose to stand on them.',
+			door: 'Click a place on a board to open that player\'s card.',
+			card: 'Their fleet, their crew, and what they have done at sea.',
+			look: 'Click Look, and their ship loads onto your own Ship tab, fully fitted.',
+			back: 'To look at, not to keep. One click puts yours back.',
 			numbers: 'The other half of the tab adds the whole fleet up.',
-			offered: 'Nothing goes onto a board that was not offered.',
+			offered: 'Nothing goes onto a board that you did not offer.',
 			digest: 'You see the exact digest before you agree to it, and leaving deletes it again.',
-			close: 'Your data stays in your browser. You sign in to sync it between machines, or to take part in this. Neither is required to use anything else.'
+			close: 'Your data stays in your browser. Sign in to sync it between machines, or to join in. Neither is required for anything else.'
 		},
 		async shoot(ctx, s) {
 			const { page, url } = ctx;
@@ -631,34 +608,29 @@ const CHAPTERS = {
 			await film(page, `${OUT}/the-harbour.webm`);
 			await card(page, 'Five', 'The Harbour', { line: s.open });
 
-			await tab(page, 'community');
-			await wait(1000);
-			await say(page, s.fleet);
+			await doing(page, s.fleet, () => tab(page, 'community', { after: 800 }));
 			await say(page, s.boards);
 			await hush(page);
 
-			await click(page, '[data-act="community-entry"][data-board="ship"]', { after: 1900 });
-			await say(page, s.door);
+			await doing(page, s.door, () =>
+				click(page, '[data-act="community-entry"][data-board="ship"]', { after: 1300 }));
 			await say(page, s.card);
+			await doing(page, s.look, () => click(page, '[data-act="community-look"]', { after: 1800 }));
+			await doing(page, s.back, () => click(page, '[data-shared="back"]', { after: 1100 }));
 			await hush(page);
 
-			await click(page, '[data-act="community-look"]', { after: 2500 });
-			await say(page, s.look);
-			await say(page, s.back);
-			await click(page, '[data-shared="back"]', { after: 1700 });
+			await doing(page, s.numbers, async () => {
+				await tab(page, 'community', { after: 900 });
+				await click(page, '[data-act="community-half"][data-id="numbers"]', { after: 900 });
+			});
 			await hush(page);
-
-			await tab(page, 'community', { after: 1300 });
-			await click(page, '[data-act="community-half"][data-id="numbers"]', { after: 1500 });
-			await say(page, s.numbers);
-			await hush(page);
-
 			await say(page, s.offered);
 			await say(page, s.digest);
 			await say(page, s.close);
 			await hush(page);
 		}
 	}
+
 };
 
 /* ------------------------------------------------------------------ *
