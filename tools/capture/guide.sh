@@ -16,6 +16,16 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
+# The pace of a narrated chapter, which is not the pace of a six-second
+# GIF. The voice reads a little above its natural rate, the silence
+# between lines is trimmed to a breath, and the pointer stops touring
+# the screen between presses -- sixty glides at the scenes' 620ms is
+# half a minute of watching a cursor travel. Every one of these is an
+# override with a default behind it, so the README scenes keep theirs.
+export VOICE_RATE="${VOICE_RATE:-1.12}"
+export VOICE_GAP="${VOICE_GAP:-140}"
+export GLIDE="${GLIDE:-380}"
+
 RAW=tools/capture/out
 OUT=docs/media/guide
 mkdir -p "$RAW" "$OUT"

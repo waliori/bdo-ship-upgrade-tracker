@@ -15,6 +15,16 @@ const CHROME = process.env.CHROME || '/usr/bin/google-chrome';
 const PORT = process.env.PORT || 8765;
 export const wait = ms => new Promise(r => setTimeout(r, ms));
 
+/**
+ * How long the pointer takes to glide onto a thing before pressing it.
+ *
+ * The README scenes are cut at 620ms and stay there -- this is their
+ * pace, and it reads well in a six-second GIF. A narrated chapter makes
+ * sixty of these presses, though, where the same 620 is half a minute
+ * of watching a cursor travel, so `guide.sh` winds it down.
+ */
+const GLIDE = Number(process.env.GLIDE || 620);
+
 const CURSOR = `
 (() => {
 	const draw = () => {
@@ -303,7 +313,7 @@ export async function click(page, sel, { after = 700, tries = 3 } = {}) {
 		const el = await pick(page, sel);
 		const at = await centreOf(page, el);
 		await aim(page, at);
-		await wait(620);
+		await wait(GLIDE);
 		await press(page);
 		await wait(140);
 		try {
@@ -322,6 +332,25 @@ export async function click(page, sel, { after = 700, tries = 3 } = {}) {
 }
 
 /**
+ * Click the first visible match whose text contains every fragment given.
+ *
+ * A filtered list is ordered by the app's own idea of relevance, not by
+ * what a film needs, so "the first row after typing Cherry Tree" is
+ * whichever trade the app ranks first -- which was Powder of Darkness
+ * where the screenshot beside it said Essence of Liquor. Naming both
+ * ends of the trade is the only way to press the row a viewer is
+ * looking at in the game window.
+ */
+export async function clickText(page, sel, needles, { after = 700 } = {}) {
+	const want = [].concat(needles).map(w => w.toLowerCase());
+	for (const el of await page.$$(sel)) {
+		const txt = (await el.evaluate(e => e.innerText || '')).toLowerCase();
+		if (want.every(w => txt.includes(w))) return click(page, el, { after });
+	}
+	throw new Error(`no ${sel} containing ${want.join(' + ')}`);
+}
+
+/**
  * Click a bare point on the chart, given as a fraction of the map's box.
  *
  * The sea carries no selectors -- a traced stop or a written word goes
@@ -334,7 +363,7 @@ export async function clickIn(page, sel, fx, fy, { after = 650 } = {}) {
 	const box = await el.boundingBox();
 	const at = { x: box.x + box.width * fx, y: box.y + box.height * fy };
 	await aim(page, at);
-	await wait(520);
+	await wait(GLIDE * 0.84);
 	await press(page);
 	await wait(140);
 	await page.mouse.click(at.x, at.y);
@@ -499,6 +528,34 @@ export async function say(page, text, { hold = null } = {}) {
 }
 
 /**
+ * Say a line *while* doing the thing it describes.
+ *
+ * `say` followed by an action means the narrator describes something
+ * and then, in silence, it happens -- which is most of what makes a
+ * screencast feel slow, and worse, means the sentence is always about
+ * a screen that has not changed yet. Here the caption goes up, the
+ * clock starts, and the interaction runs against the same stretch of
+ * audio, so the pointer is moving while the words are being said.
+ *
+ * The beat is over when both are: a line longer than its action holds
+ * on the result, and an action longer than its line simply finishes.
+ */
+export async function doing(page, text, act) {
+	const cue = reel && reel.narrate && text ? await voice.clip(text) : null;
+	await page.evaluate(t => {
+		const cap = document.getElementById('__cap');
+		cap.querySelector('span').textContent = t;
+		cap.classList.toggle('on', Boolean(t));
+	}, text);
+	const from = Date.now();
+	if (cue) reel.lines.push({ text, at: from - reel.t0, ms: cue.ms, file: cue.path });
+	const hold = cue ? cue.ms + GAP : Math.max(1400, Math.round(text.length * 58));
+	if (act) await act();
+	const left = hold - (Date.now() - from);
+	if (left > 0) await wait(left);
+}
+
+/**
  * A chapter card, over the dimmed app.
  *
  * `line` is spoken while it is up, which is what keeps a series from
@@ -569,7 +626,7 @@ export async function choose(page, sel, value, { after = 1000 } = {}) {
 	const el = await pick(page, sel);
 	const at = await centreOf(page, el);
 	await aim(page, at);
-	await wait(560);
+	await wait(GLIDE * 0.9);
 	await press(page);
 	await wait(160);
 	await el.select(String(value));

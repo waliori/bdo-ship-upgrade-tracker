@@ -80,7 +80,7 @@ the app is:
 | `the-yard` | Queue a build, record what you gather, craft, undo, price a part, record a level, the Tree, To Get |
 | `the-sea` | The day's quests, the Map's pins and layers, a plotted loop with distances, and drawing on the water |
 | `your-ship` | Hull, parts, crystal and crew — including reading a crew off the game's own screenshots |
-| `a-run` | The whole of bartering: which kind of run, naming today's layout off the game's barter window, the orders, the chains, the sheet, sailing it, recording it |
+| `a-run` | The whole of bartering: which kind of run, naming this refresh's layout off the game's barter window, the orders, the chains, the sheet, sailing it, recording it |
 | `the-harbour` | The community boards, what a place on one opens, and what is and is not shared |
 
 ```bash
@@ -152,14 +152,25 @@ at a time is a quarter of an hour where the same hundred in one process
 is a couple of minutes — and a line synthesised mid-take would freeze
 the picture while it was thought about.
 
-Past that it is the same five rules as a scene, plus two:
+Past that it is the same five rules as a scene, plus four:
 
-- **`say()` is the pacer.** With a film rolling it holds for the length
-  of the audio, so a beat is as long as its sentence and no longer. Say
-  the thing that is happening while it happens.
+- **`doing()`, not `say()` then click.** `doing(page, line, act)` runs
+  the interaction against the same stretch of audio, so the pointer is
+  moving while the words are being said. `say()` followed by an action
+  means the narrator describes a thing and then, in silence, it
+  happens — which is most of what makes one of these feel slow, and
+  worse, means every sentence is about a screen that has not changed
+  yet. Reach for `say()` only where there is genuinely nothing to do.
+- **Say what a control does, in the order someone meets it.** Not what
+  it means. "Orange means you are over the limit — you still sail, just
+  slower" beats anything with a clause in it. These are watched by
+  someone who wants to use the tab this evening.
 - **`hush()` between subjects**, not between sentences. It clears the
   bar and lets the picture stand on its own for a moment, and the
   caption sidecars use it to decide where one caption ends.
+- **"The refresh", not "the day"** — for anything about the barter
+  board. A player pays to turn it over, and several times a day is
+  normal. Quests are the other way round: those really are daily.
 
 ### The sailor screenshots
 

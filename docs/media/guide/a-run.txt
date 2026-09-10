@@ -1,42 +1,46 @@
-Bartering is how most of what the yard wants actually arrives. This tab plans a whole day of it.
-A run is for one of two things, and it asks which before anything else.
-A material: the ladder up to one thing you are short of, counted against what is already aboard.
-Or silver: every chain today's board allows, and a run along the ones you tick. That is the one to follow here.
-Tell it your barter level, because that is what every Parley figure after this is priced at.
-Now the board. Every refresh, the whole sea shows one of forty layouts.
-It cannot know which. So it asks about a single island — the one whose offer tells the forty apart best.
-The answer is on the game's own barter list, set from Normal to Level 1: find that island's row, and read across.
-Tap the same thing here.
-One look usually names the layout. Where two of the forty still fit, it says so, and asks for one more.
-And the whole board follows from that one answer: every chain the day allows, and what each of them pays.
-Next, what you want out of the day.
-Cash out today is the most silver at the wharf tonight. Build the stocks finishes every island and keeps a floor of each level back for tomorrow.
-Watch the row along the bottom as it does: that is what the preset keeps back at each level — never sold, never spent below it, so tomorrow's board has something to start from.
-Pace is the real choice. Fast and light, full but never slower than full speed, or full and loaded —
-a quarter over the limit, sailing slower for it, and calling at a wharf only where the next island would not deal.
-Quests on the way: the dailies and weeklies you have already taken, handed in where the run passes their taker — or with a stop put in a short way off the route.
-The way round: nearest islands first whatever chain they belong to, or each chain climbed to its top before the next.
-Where you sail from, where your storage is, and how long you are willing to be out.
-Then the chains on offer, and three runs already worked out for you:
-the most silver, the most an hour, and the most a Parley unit. They are rarely the same run.
-Take one of them as it stands,
-tick the chains you want yourself,
-or keep what is ticked and let it fill the rest around them.
-The bar along the foot keeps the running total: chains, silver net, hours, islands, wharf calls.
-Lay it out, and every stop of it is written down.
-What you hand over at each island, and what comes back.
-The hold after every trade, against the limit — and where it says past the limit, that is you sailing slower for it.
-Where it says too heavy to barter, the next island will not deal until you lighten first.
-Which is what a wharf call is for: the surplus goes into storage, and the run carries on.
-And the Parley bar, falling toward whatever you have left of the day's million.
-If it all looks right, sail it. The run goes onto the chart as a checklist.
-Full screen, when you would rather have the sea than the sheet.
+This is the Barter tab. Show it one island, and it plans a whole run for you.
+First, pick what you are running for.
+A material climbs the ladder to one thing you are short of.
+Silver runs the chains on the board and sells at the end. That is the one we want.
+Set your barter level here. It sets the Parley cost of every trade below.
+Next, tell it what the board looks like.
+Every refresh, the sea uses one of forty layouts.
+The app cannot know which one. So you show it a single island.
+Click "another island", and pick the one you are looking at.
+Now check that island in game. Open Barter Information, set the filter to Normal to Level 1, and find its row. Eveto Island is offering Essence of Liquor, for a Level 1 Cherry Tree Seed Pouch.
+Pick that same trade here.
+That names the layout. Every chain this refresh allows is now listed below.
+Now tell it what you want out of the run.
+Build the stocks keeps goods back for the next refresh.
+These boxes are how much it keeps back at each level.
+Cash out sells everything for silver instead.
+Pace. Fast keeps you light and quick.
+Full and loaded fills the hold past the limit. More goods, slower sailing.
+Quests on the way hands in dailies you have already taken, as you pass them.
+The way round sets the route order: nearest island first, or one chain at a time.
+And here: where you sail from, where your storage is, and a time limit if you want one.
+Now the chains. It has already worked out three runs for you.
+The most silver, the most per hour, and the most per Parley. They are rarely the same run.
+Click one to use it.
+Or tick chains yourself.
+Fill the rest adds the best chains around the ones you picked.
+The bar at the bottom totals it up: chains, silver, hours, islands.
+Click "Lay it out".
+Every stop is listed, in order. What you hand over, and what you get back.
+This bar is your hold after each trade.
+Orange means you are over the limit. You still sail, just slower.
+Red means too heavy to barter. You have to lighten first.
+That is what a wharf stop is for. Drop the extra into storage, and carry on.
+And this bar is your Parley going down as you trade.
+Happy with it? Click "Sail this run".
+It goes onto the map as a checklist.
+Full screen, if you want more sea and less panel.
 It follows you leg by leg, and every stop is a card with the trade on it.
-Tick each one off as you make it. What an island actually paid re-counts everything after it.
-At the end — or all at once, for a run sailed faster than it can be filmed —
-you record the trip.
-The silver goes to the purse, the goods left over into the Inventory, the quests handed in with their rewards.
-All of it as one change, and one Undo.
-And none of these figures are generic. The hold, the speed and every minute on that route are your ship:
-its hull, the four parts fitted, the crystal and the crew that is aboard.
-One island answered, and the day is planned.
+Tick each stop as you make it. If an island pays a different amount, everything after it re-counts.
+Finished sailing? Tick them all off at once.
+Then click "Record the trip".
+Silver goes to your purse, leftover goods to your inventory, and the quests are claimed.
+All as one change, so one undo puts it back.
+One last thing. The hold size, the speed and every time on that route come from your ship.
+Hull, the four parts, the crystal and the crew aboard. Change the ship, and the whole run re-times.
+That is it. Show it one island, and it plans the rest.
