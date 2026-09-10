@@ -81,6 +81,12 @@ Coin Shop, Falasi's silver, barter, worker nodes, hunting — with running
 totals measured against what's in your purse. The list copies as text
 or as CSV, and prints legibly on white.
 
+**Total Barters follows your runs.** Recording a run adds its trades to
+the count that opens the next trade route, in the same change as the
+goods and the silver — one Undo takes back all of it — and a run that
+carries you past a threshold says which route it opened. It stays a
+field you can type over when it and the game drift apart.
+
 Anything the **Crow Coin Shop** sells carries a *Buy*: it asks how many,
 says what that costs and what is left of the purse, and records the
 goods in and the coins out as one change — so one Undo takes back both

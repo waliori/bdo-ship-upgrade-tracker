@@ -1678,7 +1678,10 @@ test('the hold is a line across the Barter tab that opens over the page, and the
 		store.setStock('[Level 7] Crystal Ball of Fortune', 2);
 		store.setStockAt('[Level 5] Luxury Patterned Fabric', 'Iliya Island', 12, 'ashore');
 	});
-	await wait(500);
+	// Waited for rather than slept on: the tab redraws when the stock
+	// above lands, and half a second is comfortable until the machine is
+	// running the rest of this file beside it.
+	await page.waitForFunction(() => /16,500 LT/.test(document.querySelector('.hold-bar')?.textContent || ''), { timeout: 15000 });
 	// One column: no two-column layout left on the tab.
 	assert.equal(await count(page, '.barter-layout'), 0);
 	assert.equal(await count(page, '.barter-screen > .barter-hold'), 0, 'the full hold is not on the page');
@@ -1699,6 +1702,45 @@ test('the hold is a line across the Barter tab that opens over the page, and the
 	await context.close();
 });
 
+test('a run recorded adds its trades to Total Barters, and says what that opened', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		store.setView('barter', { goal: 'silver', port: 1002, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }] } });
+		// Nine barters short of the first route the count opens.
+		store.setProfile('barterCount', 1);
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('.chain', { timeout: 15000 });
+	await page.evaluate(async () => { const store = await import('/js/state.js'); store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); });
+	await page.waitForFunction(() => document.querySelector('[data-act="barter-run-open"]'), { timeout: 20000 });
+	await page.evaluate(() => document.querySelector('[data-act="barter-run-open"]').click()); await wait(1500);
+	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-sail"]').click()); await wait(2500);
+	// Every stop ticked off, then recorded.
+	await page.evaluate(() => document.querySelector('.map-run [data-act="barter-sail-all"]').click()); await wait(600);
+	await page.evaluate(() => document.querySelector('.map-run [data-act="barter-sail-all-go"]').click()); await wait(1500);
+	const trades = await page.evaluate(() => Number(document.querySelector('.map-run .sail-n').textContent.match(/(\d+) of/)[1]));
+	assert.ok(trades > 0, 'stops were ticked off');
+	await page.evaluate(() => document.querySelector('.map-run [data-act="barter-record"]').click()); await wait(1500);
+	const count2 = await page.evaluate(async () => (await import('/js/state.js')).getProfile('barterCount', 0));
+	assert.ok(count2 > 1, `Total Barters moved: ${count2}`);
+	// The toast names the newest trade route the count opened -- the last
+	// threshold crossed, since a long run can pass more than one.
+	const { ROUTE_UNLOCKS } = await import('../js/barter.js');
+	const opened = ROUTE_UNLOCKS.filter(r => r.opens && r.barters > 1 && r.barters <= count2).pop();
+	const said = await text(page, '#toast');
+	assert.match(said, /barter/i);
+	if (opened) assert.ok(said.includes(opened.opens), `${said} names ${opened.opens}`);
+	// And one Undo takes the count back with the goods.
+	const back = await page.evaluate(async () => { const store = await import('/js/state.js'); store.undo(); return store.getProfile('barterCount', 0); });
+	assert.equal(back, 1, 'the count comes back with everything else the run wrote');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('the run laid out is a sheet over the Barter tab: a strip along the foot appears as chains are ticked and opens it, and a chain unticked inside it redraws it in place', async () => {
 	const { page, context, errors } = await open('#barter');
 	// One island's offer pins today's layout; the run sails from Iliya.
@@ -1713,10 +1755,13 @@ test('the run laid out is a sheet over the Barter tab: a strip along the foot ap
 	});
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.chain', { timeout: 15000 });
 	await page.evaluate(async () => { const store = await import('/js/state.js'); store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); });
-	await wait(500);
 	// The runs worth sailing are searched in a module worker, which
 	// stays up between searches; the cards it answered with are on the
-	// page and no longer marked as being worked out.
+	// page and no longer marked as being worked out. Waited for rather
+	// than slept on: how long the search takes depends on the board and
+	// on what else the machine is doing, so a fixed pause is a test that
+	// fails under a full parallel run and nowhere else.
+	await page.waitForFunction(() => document.querySelector('.proposal') && !document.querySelector('.proposals.working'), { timeout: 20000 });
 	assert.ok(page.workers().some(w => w.url().endsWith('/js/barter-worker.js')), `the search worker is running: ${page.workers().map(w => w.url()).join(', ') || 'no workers'}`);
 	assert.equal(await count(page, '.proposals.working'), 0, 'the worker has answered');
 	assert.ok(await count(page, '.proposal') >= 1, 'with runs worth sailing');

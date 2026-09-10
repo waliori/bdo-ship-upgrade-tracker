@@ -94,6 +94,7 @@ function barterProfileTile() {
 			<span class="summary-sub"> · refill in <b data-until="barter"></b></span></div>
 		<div class="summary-sub"><input class="purse-inline" type="text" inputmode="numeric"
 			value="${F(barterCount)}" data-act="barter-count"
+			title="Your Total Barters, as the Barter Information window shows it. A run recorded on the Barter tab adds its trades to this; type over it whenever the two drift."
 			aria-label="Your Total Barters, as the Barter Information window shows it"> <span class="gterm" role="button" tabindex="0"
 			data-guide="parley">Total Barters</span>${next ? ` · ${esc(next)}` : ''}
 			· <label class="inline-check"><input type="checkbox" data-act="value-pack"
