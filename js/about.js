@@ -246,6 +246,16 @@ export const RELEASE = RELEASES[0].id;
 export const CHANGES = [
 	{
 		date: '2026-09-09',
+		title: 'Crow Coins are spent where they are counted, the sailor list sorts by any growth, and Auto assign asks what the boat is for',
+		notes: [
+			'<b>Buy with coins.</b> The app knew what a thing costs at Oquilla’s Eye and knew how many coins you held, and still made you do both halves of the sum by hand. Now every Crow Coin line on <b>To Get</b> — and every coin-priced thing in the <b>Inventory</b> panel — carries a Buy: it asks how many, says what that costs and what is left of the purse, and records the goods in and the coins out as <b>one change</b>. One Undo takes back both halves, which is the whole point: a purchase undone by halves is worse than one never recorded. It opens on what the purse can actually cover, and a sum that does not work is said rather than quietly clamped.',
+			'The <b>sailor list can be ordered by any growth</b> — Endurance, Wits, Awareness, Strength, and the four cannon ones — as well as by type, condition and level. The growth it was ordered by is shown on every card, so the order can be read rather than trusted. Finding the fastest of eighteen sailors was a matter of opening them one at a time before.',
+			'<b>Auto assign asks what the boat is for.</b> It used to add up the growths a seat doubles and take the biggest sum, which is a question nobody asked: the Sail doubles Endurance and Wits together, so a sailor with 1.1 speed and 4.8 acceleration beat one with 3.9 and 1.5, and the ship lost five per cent of its speed while the arithmetic said it had gained. It now lays out every goal — speed, acceleration, turn, brake, cannons, all round — with what the crew would actually come to under each, against what it comes to now, and arranges the roster for the one you press: <b>who comes aboard</b> as well as who sits where, since a hull’s cabin space is a knapsack and thirteen cabins for one point of Endurance is a poor trade when speed is the point. A seat the goal does not value still goes to whoever doubles the most of what it does double, so nothing is wasted.',
+			'The note under the sailor list stands in from the panel’s edge with the cards it sits above, rather than against the glass.'
+		]
+	},
+	{
+		date: '2026-09-09',
 		title: 'A crew read off your own screenshots, the Parley cut read off the First Mate seat, and the fourth of an island’s four can be tapped',
 		notes: [
 			'The Ship tab will <b>read a crew off screenshots</b>. Open Manage Sailors in game, screenshot it — or crop the Selected Sailor panel, either reads, and a mixture of both is fine — and drop the lot in: names, levels, condition and every growth come back in a table to check before a single thing is written, and a sailor already on the roster is brought up to date rather than hired twice. It is read <b>here, in the page</b>: the vendored engine is served from this site, the shots are decoded by the browser and never uploaded, and there is nothing on any server to delete afterwards. The window does not print a sailor’s type, so it is worked out from the appetite, the cabin cost and the weight — and where three types share all three, from where the growths went. Twenty at a time, and every guess is marked for a look.',

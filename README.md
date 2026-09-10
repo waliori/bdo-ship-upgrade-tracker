@@ -81,6 +81,13 @@ Coin Shop, Falasi's silver, barter, worker nodes, hunting — with running
 totals measured against what's in your purse. The list copies as text
 or as CSV, and prints legibly on white.
 
+Anything the **Crow Coin Shop** sells carries a *Buy*: it asks how many,
+says what that costs and what is left of the purse, and records the
+goods in and the coins out as one change — so one Undo takes back both
+halves. It opens on what the purse can actually cover, and a sum that
+does not work is said rather than quietly clamped. The same button is in
+the Inventory panel for any coin-priced thing.
+
 ![The To Get screen](docs/media/to-get.png)
 
 ---
@@ -311,6 +318,17 @@ on it, marks each part the reader already holds, and offers *Make it my
 ship* — or queues the missing parts as builds, so the Plan prices the
 way to it. Looking costs nothing; taking it is one change, and one Undo
 takes it back.
+
+**Auto assign asks what the boat is for.** There is no best crew, only
+the best crew for something: a seat's whole effect is a *second copy* of
+what it doubles, and the Sail doubles Endurance and Wits together — so
+adding the pair and taking the biggest sum puts a 1.1-speed sailor where
+a 3.9-speed one should have been. Pressing it lays out every goal —
+speed, acceleration, turn, brake, cannons, all round — with what the
+crew would come to under each against what it comes to now, and one
+press arranges the roster: who comes aboard as well as who sits where,
+since a hull's cabin space is a knapsack. The sailor list can be ordered
+by any growth, with the figure shown on each card.
 
 **Sailors' real numbers.** Growth is a hidden random range per sailor,
 so the type's figures are averages. The Ship screen lets you type what
@@ -974,6 +992,7 @@ js/
   recipes.js          recipes and enhancement chains
   ships.js            what can be queued
   sea_coins.js        Crow Coin prices
+  coin-shop.js        spending them: the dialog, and the one change it writes
   falasi_vendor.js    Falasi's silver prices
   all_barter.json     barter routes, scraped from BDOCodex
   map.js              the tile viewer's arithmetic
@@ -990,7 +1009,8 @@ js/
   enhancement.js      per-level rates, Agris caps, perfect-enhance costs
   ship_stats.js       what each hull is, in the game's own numbers
   part_stats.js       what each part does, level by level
-  sailors.js          the hiring pool, positions, condition, first mates
+  sailors.js          the hiring pool, positions, condition, first mates,
+                      and arranging a crew for a stated goal
   sailor-shot.js      a sailor read out of a screenshot's words -- pure, and tested
   shot-reader.js      the vendored OCR engine, and the two passes over a screenshot
   sailor-import.js    the drop, the reading and the table that checks it

@@ -51,6 +51,16 @@ const seed = page => page.evaluate(async () => {
 	store.setStock("+4 Epheria Carrack: Valor (Chiro's Sail)", 1);
 	store.setStock('Tidal Black Stone', 300);
 });
+// Clicking through the page rather than through a handle: every screen
+// here is drawn from the store and redrawn when it changes, so an
+// element found a tick ago may be detached by the time a real mouse
+// click reaches it -- which is a test that fails one run in five for a
+// reason that has nothing to do with what it is testing.
+const tap = (page, sel) => page.evaluate(s => {
+	const el = document.querySelector(s);
+	if (!el) throw new Error(`nothing matches ${s}`);
+	el.click();
+}, sel);
 const text = (page, sel) => page.evaluate(s => { const e = document.querySelector(s); return e ? e.innerText.replace(/\s+/g, ' ').trim() : null; }, sel);
 const count = (page, sel) => page.evaluate(s => document.querySelectorAll(s).length, sel);
 
@@ -62,7 +72,7 @@ test('a slot is fitted through the picker, and an unheld part can be recorded', 
 	// and a fixed 200ms went from comfortable to marginal under a full
 	// parallel run, which is how a test starts failing one time in ten.
 	await page.waitForSelector('[data-act="crew-fit-pick"][data-slot="cannon"]', { timeout: 10000 });
-	await page.click('[data-act="crew-fit-pick"][data-slot="cannon"]');
+	await tap(page, '[data-act="crew-fit-pick"][data-slot="cannon"]');
 	await page.waitForSelector('.picker-row', { timeout: 10000 });
 	assert.ok(await count(page, '.picker-row') >= 3, 'parts to choose from');
 	await page.type('.picker-in', 'chiro');
@@ -174,9 +184,9 @@ test('a trip is logged through the picker, lines can go, and it is one undo', as
 
 test('the quests narrow to the rewards ticked, and a pick-one claim asks which', async () => {
 	const { page, context, errors } = await open('#quests');
-	await page.click('[data-act="quest-pay-pick"]'); await wait(200);
+	await tap(page, '[data-act="quest-pay-pick"]'); await wait(200);
 	await page.evaluate(() => [...document.querySelectorAll('.picker-row')].find(r => r.textContent.includes('Tidal Black Stone')).click());
-	await page.click('[data-picker-apply]'); await wait(300);
+	await tap(page, '[data-picker-apply]'); await wait(300);
 	assert.equal(await count(page, '.pay-chip'), 1);
 	const shown = await count(page, '.quest');
 	assert.ok(shown > 0 && shown < 37, `${shown} quests narrowed`);
@@ -191,7 +201,7 @@ test('the quests narrow to the rewards ticked, and a pick-one claim asks which',
 test('a pick-one favourite chosen ahead claims in one press', async () => {
 	const { page, context, errors } = await open('#quests');
 	// Choose ahead: the picker opens, the pick is kept, nothing claimed.
-	await page.click('[data-act="quest-pick-set"]'); await wait(300);
+	await tap(page, '[data-act="quest-pick-set"]'); await wait(300);
 	assert.match(await text(page, '#dialog h2'), /which reward do you take/i);
 	await page.evaluate(() => document.querySelector('.picker-row').click()); await wait(300);
 	assert.equal(await count(page, '.quest.done'), 0, 'choosing ahead claims nothing');

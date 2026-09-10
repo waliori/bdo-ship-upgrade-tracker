@@ -72,6 +72,7 @@ const SHELL = [
 	'/js/boot.js',
 	'/js/cheer.js',
 	'/js/clock.js',
+	'/js/coin-shop.js',
 	'/js/courses.js',
 	'/js/crystals.js',
 	'/js/dialogs.js',
