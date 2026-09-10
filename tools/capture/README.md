@@ -78,6 +78,67 @@ the app is:
 | Chapter | What it covers |
 |---|---|
 | `the-yard` | Queue a build, record what you gather, craft, undo, price a part, record a level, the Tree, To Get |
+| `quests` | The sailing dailies and weeklies, which pay something on your list, and recording a batch at once |
+| `your-ship` | Hull, the four parts, the crystal, the appearance set, the figures — and the crew, read off screenshots then seated by hand and automatically, with presets and setups |
+| `the-map` | The chart, mostly full screen: toolbar, minimap, layers, and all five map tabs |
+| `a-run` | The whole of bartering: which kind of run, naming this refresh's layout off the game's barter window, the orders, the chains, the sheet, sailing it, recording it |
+| `the-harbour` | The community boards, what a place on one opens, and what is and is not shared |
+
+```bash
+PORT=8765 node server.js &
+```
+
+Then shoot everything — every scene, both cuts of the film, and the
+conversions — with:
+
+```bash
+npm run capture
+```
+
+That is `tools/capture/shoot.sh`, which takes about ten minutes. While
+iterating on one clip it is quicker to drive the pieces directly:
+
+```bash
+node tools/capture/scenes.mjs tools/capture/out craft      # one scene
+node tools/capture/scenes.mjs tools/capture/out community  # one still
+node tools/capture/tour.mjs   tools/capture/out            # the film
+node tools/capture/tour.mjs   tools/capture/out phone      # the phone cut
+```
+
+The two community captures — the `the-boards` scene and the `community`
+still — open a browser of their own and close it again, because the
+faked sign-in they install must not leak into a scene shot after them.
+
+Point it at a different browser or port with environment variables:
+
+```bash
+CHROME=/usr/bin/chromium PORT=9000 npm run capture
+```
+
+Clips land as `.webm`. The conversions are separate scripts, so a clip
+can be re-encoded without re-shooting it:
+
+```bash
+./tools/capture/togif.sh tools/capture/out/craft.webm docs/media/craft.gif 900 13
+#                        <in>                         <out>                 <width> <fps>
+./tools/capture/tomp4.sh tools/capture/out/walkthrough.webm docs/media/walkthrough.mp4
+```
+
+900px at 13fps keeps a 6–10 second clip around half a megabyte. The
+palette is generated per clip with `stats_mode=diff` and applied with
+bayer dithering, because a flat global palette bands badly across the
+app's ocean gradient.
+
+## The guide films
+
+Everything above shoots the silent clips the README embeds. The other
+half of this harness shoots **five narrated chapters** — the thing to
+send someone who asks how one part of the app works, rather than what
+the app is:
+
+| Chapter | What it covers |
+|---|---|
+| `the-yard` | Queue a build, record what you gather, craft, undo, price a part, record a level, the Tree, To Get |
 | `the-sea` | The day's quests, the Map's pins and layers, a plotted loop with distances, and drawing on the water |
 | `your-ship` | Hull, parts, crystal and crew — including reading a crew off the game's own screenshots |
 | `a-run` | The whole of bartering: which kind of run, naming this refresh's layout off the game's barter window, the orders, the chains, the sheet, sailing it, recording it |
@@ -165,6 +226,11 @@ Past that it is the same five rules as a scene, plus four:
   it means. "Orange means you are over the limit — you still sail, just
   slower" beats anything with a clause in it. These are watched by
   someone who wants to use the tab this evening.
+- **`spot()` when naming one thing among many.** It scrolls the target
+  into view, lights it, and dims the rest. Half the value is the
+  scrolling: a line about the keep-back boxes is worse than useless
+  while they are eight hundred pixels below the fold, which is exactly
+  how the first cut of `a-run` shipped.
 - **`hush()` between subjects**, not between sentences. It clears the
   bar and lets the picture stand on its own for a moment, and the
   caption sidecars use it to decide where one caption ends.

@@ -25,16 +25,17 @@ shooting a clip has no deployment with players on it. There is a
 inside the app too, under **Help**.
 
 **Want one part of it, not the whole thing?** The same app, narrated, in
-five chapters — under four minutes each, with subtitles and a
-transcript beside every one:
+six chapters — with subtitles and a transcript beside every one, and
+whatever is being talked about lit up on screen:
 
 | Chapter | What it covers |
 |---|---|
 | [One — The Yard](docs/media/guide/the-yard.mp4) | Queue a build, record what you gather, craft it, step a mistake back, price a part both ways, read the tree, take the list shopping |
-| [Two — The Sea](docs/media/guide/the-sea.mp4) | The day's free quests, every barterer holding something you need, a plotted loop with real minutes on it, and a blank stretch of water to draw on |
-| [Three — Your Ship](docs/media/guide/your-ship.mp4) | Hull, four parts, a crystal and a crew — including reading a whole crew off the game's own screenshots, in your browser |
-| [Four — A Run](docs/media/guide/a-run.mp4) | The one to send a barterer: silver or a material, naming this refresh's layout off the game's own barter window, setting the orders, picking the chains, reading the sheet, sailing it, and recording the trip |
-| [Five — The Harbour](docs/media/guide/the-harbour.mp4) | The boards, what a place on one opens, and what is and is not shared |
+| [Two — Quests](docs/media/guide/quests.mp4) | The sailing dailies and weeklies, which of them pay something you need, and recording a batch of them in one change |
+| [Three — Your Ship](docs/media/guide/your-ship.mp4) | Hull, the four part slots, the sea crystal, the appearance set, where every figure comes from — and the crew: read off the game's own screenshots, then seated by hand or automatically, with presets and saved setups |
+| [Four — The Map](docs/media/guide/the-map.mp4) | The chart, mostly full screen: the toolbar, the minimap, the layers, and all five of its tabs — Barter, Route, Draw, Grounds and Today |
+| [Five — A Run](docs/media/guide/a-run.mp4) | The one to send a barterer: silver or a material, naming this refresh's layout off the game's own barter window, setting the orders, picking the chains, reading the sheet, sailing it, and recording the trip |
+| [Six — The Harbour](docs/media/guide/the-harbour.mp4) | The boards, what a place on one opens, and what is and is not shared |
 
 Same rule as the walkthrough: it is the real app being driven, and the
 only invented thing anywhere in it is the handful of sailors on those
@@ -1057,7 +1058,7 @@ icon_mapping.json     item -> icon file and BDOCodex page
 og.png                the social preview card
 docs/media/           the images and clips in this README
 docs/media/small/     the narrow copies the app itself serves
-docs/media/guide/     the five narrated chapters, with their captions
+docs/media/guide/     the six narrated chapters, with their captions
 CHANGELOG.md          generated from js/about.js by tools/build-changelog.mjs
 tools/capture/        the harness that generates the media, film included
 ```

@@ -64,6 +64,15 @@ const CURSOR = `
 		still.innerHTML = '<img alt=""><figcaption></figcaption>';
 		document.body.appendChild(still);
 
+		// The spotlight: a box the size of one control, with everything
+		// outside it dimmed. A narrated chapter names a great many small
+		// things -- a bar, a row of boxes, one button among nine -- and
+		// saying "this bar" over an undifferentiated screenshot of the
+		// whole app tells nobody which bar.
+		const spot = document.createElement('div');
+		spot.id = '__spot';
+		document.body.appendChild(spot);
+
 		const css = document.createElement('style');
 		css.textContent = \`
 			#__cur { position: fixed; left: 0; top: 0; z-index: 2147483647; pointer-events: none;
@@ -131,6 +140,19 @@ const CURSOR = `
 			#__still figcaption { display: none; font-family: 'Noto Sans', system-ui, sans-serif;
 				font-size: 19px; font-weight: 600; color: rgba(180, 212, 240, .96); }
 			#__still.titled figcaption { display: block; }
+			/* One control lit, the rest of the page dimmed. The dimming is
+			   a 9999px shadow spread rather than four rectangles or a
+			   clip-path: one element, and it animates from one control to
+			   the next instead of blinking between them. */
+			#__spot { position: fixed; left: 0; top: 0; width: 0; height: 0;
+				z-index: 2147483643; pointer-events: none; border-radius: 10px;
+				border: 2px solid rgba(150, 210, 255, .95);
+				box-shadow: 0 0 0 9999px rgba(4, 12, 22, .74),
+					0 0 22px 3px rgba(120, 195, 255, .45);
+				opacity: 0;
+				transition: opacity .3s ease, left .34s cubic-bezier(.33,.1,.25,1),
+					top .34s cubic-bezier(.33,.1,.25,1), width .34s ease, height .34s ease; }
+			#__spot.on { opacity: 1; }
 			/* On a phone the pointer reads better as a fingertip. */
 			#__cur.touch svg { display: none; }
 			#__cur.touch { width: 34px; height: 34px; margin: -17px 0 0 -17px;
@@ -195,21 +217,42 @@ async function pick(page, sel, { upTo = 2500 } = {}) {
 	const end = Date.now() + upTo;
 	for (;;) {
 		const els = await page.$$(sel);
+		let sized = null;              // on the page, but something is over it
 		for (const el of els) {
-			let on = false;
+			let how = 'gone';
 			try {
-				on = await el.evaluate(e => {
+				how = await el.evaluate(e => {
 					const r = e.getBoundingClientRect();
-					return r.width > 0 && r.height > 0;
+					if (!(r.width > 0 && r.height > 0)) return 'gone';
+					// Sized is not the same as reachable. Full screen puts
+					// the chart over the page, and the page's own toolbar
+					// keeps its width and height underneath it -- so the
+					// old test picked a button that was there, measured
+					// fine, and swallowed every click into the overlay on
+					// top of it. Ask the document what is actually at that
+					// point instead. The injected cursor, caption, card,
+					// still and spotlight are all pointer-events: none, so
+					// none of them answers here.
+					const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+					return top === e || e.contains(top) || (top && top.contains(e)) ? 'free' : 'under';
 				});
 			} catch {
 				// The node was replaced between the query and the measure.
 				// A handle to a detached element answers nothing, so this
 				// is not an error -- it is the page having moved on.
 			}
-			if (on) return el;
-			await el.dispose();
+			if (how === 'free') {
+				if (sized) await sized.dispose();
+				return el;
+			}
+			// Kept as a fallback rather than dropped: a control can be
+			// covered by something harmless -- a tooltip, a shadow -- and
+			// clicking it still works. Better to press the covered one
+			// than to report that nothing matches.
+			if (how === 'under' && !sized) sized = el;
+			else await el.dispose();
 		}
+		if (sized) return sized;
 		// Every screen here is rendered from state, so a section that is
 		// on the page can still be a different element a moment later --
 		// a save landing, a clock rolling over, a mode switch redrawing
@@ -553,6 +596,43 @@ export async function doing(page, text, act) {
 	if (act) await act();
 	const left = hold - (Date.now() - from);
 	if (left > 0) await wait(left);
+}
+
+/**
+ * Light one thing up and talk about it.
+ *
+ * Scrolls the target into view first, which is the other half of the
+ * job: a line that says "these boxes keep goods back" is worse than
+ * useless if the boxes are eight hundred pixels below the fold. `pick`
+ * finds it, `centreOf` brings it on screen, and the box is measured
+ * only once both have happened.
+ *
+ * `act` runs against the same stretch of audio, the way `doing` does,
+ * for the cases where the thing being pointed at is also being used.
+ */
+export async function spot(page, sel, text, { pad = 10, act = null, hold = null } = {}) {
+	const el = await pick(page, sel);
+	await centreOf(page, el);
+	const box = await el.evaluate(e => {
+		const r = e.getBoundingClientRect();
+		return { x: r.left, y: r.top, w: r.width, h: r.height };
+	});
+	await page.evaluate((b, p) => {
+		const s = document.getElementById('__spot');
+		s.style.left = `${b.x - p}px`;
+		s.style.top = `${b.y - p}px`;
+		s.style.width = `${b.w + p * 2}px`;
+		s.style.height = `${b.h + p * 2}px`;
+		s.classList.add('on');
+	}, box, pad);
+	await wait(340);
+	if (text) await doing(page, text, act);
+	else {
+		if (act) await act();
+		await wait(hold ?? 1400);
+	}
+	await page.evaluate(() => document.getElementById('__spot').classList.remove('on'));
+	await wait(260);
 }
 
 /**

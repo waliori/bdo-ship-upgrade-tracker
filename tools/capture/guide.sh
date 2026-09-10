@@ -32,14 +32,16 @@ mkdir -p "$RAW" "$OUT"
 
 CHAPTERS=("$@")
 if [ ${#CHAPTERS[@]} -eq 0 ]; then
-	CHAPTERS=(the-yard the-sea your-ship a-run the-harbour)
+	CHAPTERS=(the-yard quests your-ship the-map a-run the-harbour)
 fi
 
-echo "== shooting ${CHAPTERS[*]}"
-node tools/capture/guides.mjs "$RAW" "${CHAPTERS[@]}"
-
-echo "== narration and captions"
+# Shot and mixed one at a time, rather than every shoot and then every
+# mix. A chapter that dies half way used to take the finished ones down
+# with it -- they were shot, and the mix loop behind them never ran --
+# which is a poor trade for a step that costs seconds.
 for name in "${CHAPTERS[@]}"; do
+	echo "== $name"
+	node tools/capture/guides.mjs "$RAW" "$name"
 	node tools/capture/mix.mjs "$RAW/$name" "$OUT"
 done
 

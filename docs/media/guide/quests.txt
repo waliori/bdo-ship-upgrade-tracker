@@ -1,0 +1,16 @@
+This is the Quests tab. It tracks the quests that pay in things you are already short of.
+These are the sailing dailies and weeklies, all in one list.
+The ones paying something on your build list are marked, so you can see which are worth the detour.
+Filter them by what they pay, or by who gives them.
+Each row shows what it pays, and how much of it you still need.
+Some quests let you pick your reward. Those ask you which when you finish.
+Tick off the ones you did in game.
+Then click Finish.
+The rewards go straight into your stock, as one change.
+Got one wrong? Undo puts the whole batch back.
+The ticks clear themselves at the daily reset, so you start each day fresh.
+And these clocks tell you how long you have: dailies, weeklies, and the barter refresh.
+Star the ones you always do, and they sort to the top.
+Or save a set you run together, and tick the whole group at once.
+Every quest knows where its giver stands, so a run can hand them in as it passes.
+That is Quests. Free materials, tracked against what you are building.
