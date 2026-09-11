@@ -8,6 +8,15 @@
 // showing. The material islands are the exception: they roll on their
 // own and are not part of any layout.
 //
+// A layout is not frozen forever: the game edits one island's slot at
+// a maintenance without renumbering the layout, so a give that was
+// right last month can be wrong today -- and a wrong give is worse
+// than a missing one here, because `candidates` rules a layout out on
+// an island that disagrees. When the board answers with something no
+// layout shows, suspect the record before the code, and refetch it
+// with tools/fetch-barter-combos.mjs; the drift, and the changes we
+// have been told about, are written up at the top of that tool.
+//
 // Pure: the layouts, the answers and the codex table come in, the
 // standing layouts, the island worth asking about next, and the board
 // as a barter table go out.

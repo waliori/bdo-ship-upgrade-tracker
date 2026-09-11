@@ -86,7 +86,9 @@ test('the trade list is read off four hundred refreshes, and the top rungs are t
 	const high = oddsFor('[Level 3] Rare Herb Pile', index);
 	assert.ok(low.per < 0.25, `${low.per}`);
 	assert.ok(high.per > 0.9, `${high.per}`);
-	assert.match(oddsText(low), /% of refreshes, over 420 recorded/);
+	// The sample grows with every refetch of the sheet, so it is read
+	// off the record rather than written in.
+	assert.match(oddsText(low), new RegExp(`% of refreshes, over ${index.refreshes} recorded`));
 });
 
 test('the rung that paces a climb is chosen on how often it is there, not on bulk alone', () => {
