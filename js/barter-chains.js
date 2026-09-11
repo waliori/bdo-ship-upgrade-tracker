@@ -17,7 +17,7 @@
 // the run go out. Distances are straight lines here, for choosing a
 // wharf; the screen bends the legs round the land.
 
-import { levelOf, npcGate } from './barter.js';
+import { levelOf, npcGate, gatesKnown } from './barter.js';
 import { exchanges, goodsHeld, weightHeld, weightOf, sellOf } from './barter-plan.js';
 import { sellable, floorOf, PLAIN_ORDERS } from './barter-orders.js';
 
@@ -68,7 +68,9 @@ export function chains(barterData, stock = {}, dock = {}, barterCount = null) {
 /** The rung of a climb that is shut, and what opens it: the dearest,
  *  because that is the count that opens the whole chain. */
 function gateOn(rungs, barterCount) {
-	if (barterCount === null) return null;
+	// Null is "no player in hand"; nought is "nobody has said yet", and
+	// both leave the board whole (see gatesKnown in barter.js).
+	if (barterCount === null || !gatesKnown(barterCount)) return null;
 	let worst = null;
 	for (const r of rungs) {
 		const barters = npcGate(r.npcId);

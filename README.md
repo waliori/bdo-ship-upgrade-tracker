@@ -99,7 +99,19 @@ or as CSV, and prints legibly on white.
 the count that opens the next trade route, in the same change as the
 goods and the silver — one Undo takes back all of it — and a run that
 carries you past a threshold says which route it opened. It stays a
-field you can type over when it and the game drift apart.
+field you can type over when it and the game drift apart; it lives in
+the bar above the tabs, with the barter level, the Parley and the
+vouchers, because it is read by every screen and not only this one.
+
+**And it decides which islands exist.** The game opens the trade routes
+island by island as that count climbs — 600 barters opens Lantinia's
+Combat Raft, 3,000 the Wandering Merchant's Ship — so nothing is ever
+planned through a barterer you have not reached: chains that climb
+through one are left out of the run and said out loud above the list,
+a material's islands show the shut ones locked with the count beside
+them, the chart lights no pin there, and a thing dealt nowhere else
+reads as *locked — 2,520 more barters open the Wandering Merchant's
+Ship* instead of a number of days you could not spend.
 
 Anything the **Crow Coin Shop** sells carries a *Buy*: it asks how many,
 says what that costs and what is left of the purse, and records the

@@ -129,3 +129,16 @@ test('what a board shuts out is listed soonest first', () => {
 	assert.equal(shut[0].short, 120);
 	assert.equal(shutOut(barterData, 20_000).length, 0);
 });
+
+test('a save that has never been told a count is not a sailor with nothing open', () => {
+	// Nought is "nobody has said", not "this player has bartered nothing":
+	// the sea stays whole until the count is given.
+	assert.equal(openTable(barterData, 0), barterData);
+	assert.equal(gateOfItem('Tear of the Ocean', barterData, 0), null);
+	assert.equal(shutOut(barterData, 0).length, 0);
+	assert.ok(npcOpen(50826, 0), 'the Wandering Merchant is not shut on a blank save');
+	assert.ok(!npcOpen(50826, 480), 'and is shut once 480 is typed');
+	const board = combos.find(c => c.offers.some(([id]) => npcGate(id) > 480));
+	assert.equal(chains(boardData(board, barterData, npcById), {}, {}, 0).filter(c => c.gate).length, 0);
+	assert.equal(forecast('Tear of the Ocean', 1, barterData, { barterCount: 0 }).gate, null);
+});

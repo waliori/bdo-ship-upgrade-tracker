@@ -13,7 +13,7 @@ import { openSea } from '../searoute.js';
 import { wharves } from '../wharves.js';
 import { habitatsOf, habitatsOfMany } from '../habitats.js';
 import { monsterArt } from '../monster_art.js';
-import { parleyPerTrade, npcGate } from '../barter.js';
+import { parleyPerTrade, npcGate, npcOpen } from '../barter.js';
 import { barterData, barterProfile } from '../ui-state.js';
 import { mv, doneSet } from './state.js';
 import { mapZoomStep } from './actions.js';
@@ -1247,7 +1247,7 @@ function paintTip(host, size, marks) {
 			: `${F(parleyPerTrade({ ...prof, kind: 'trade' }))}–${F(parleyPerTrade({ ...prof, kind: 'material' }))} parley a trade`;
 		// An island the barter count has not opened: said before anything
 		// it deals, since none of it is for sale to this sailor yet.
-		const gate = npcGate(id) > prof.barterCount
+		const gate = !npcOpen(id, prof.barterCount)
 			? `<div class="map-tip-sub shut">Opens at ${F(npcGate(id))} Total Barters — ${F(npcGate(id) - prof.barterCount)} more</div>`
 			: '';
 		const sub = `${esc(npc.name)} · ${rate}`

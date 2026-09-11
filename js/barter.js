@@ -200,8 +200,22 @@ export function npcGates() {
 /** The count that opens this barterer, or 0 if nothing gates it. */
 export const npcGate = npcId => npcGates().get(npcId) || 0;
 
+/**
+ * Whether the gates are applied at all.
+ *
+ * A save that has never been told a barter count reads as nought, and
+ * nought is not "this player has bartered nothing" -- it is "nobody has
+ * said". Shutting the sea on that reading would greet a new player by
+ * hiding four fifths of the map over a field they have not found yet,
+ * and the same rule holds here as everywhere else in this file:
+ * guessing a gate would grey out a route a player can sail today. So
+ * the gates wait until the count is given, and the bar in the shell
+ * says what the next one opens the moment it is.
+ */
+export const gatesKnown = barterCount => Number(barterCount) > 0;
+
 /** Whether a barterer is open to someone who has made this many. */
-export const npcOpen = (npcId, barterCount = 0) => npcGate(npcId) <= barterCount;
+export const npcOpen = (npcId, barterCount = 0) => !gatesKnown(barterCount) || npcGate(npcId) <= barterCount;
 
 /** A threshold as the gate the screens print. */
 function gateAt(barters, barterCount) {
@@ -227,7 +241,7 @@ function gateAt(barters, barterCount) {
  */
 const openMemo = new WeakMap();
 export function openTable(barterData, barterCount = 0) {
-	if (!barterData) return barterData;
+	if (!barterData || !gatesKnown(barterCount)) return barterData;
 	let byCount = openMemo.get(barterData);
 	if (!byCount) openMemo.set(barterData, byCount = new Map());
 	if (byCount.has(barterCount)) return byCount.get(barterCount);
@@ -248,6 +262,7 @@ export function openTable(barterData, barterCount = 0) {
  */
 export function shutOut(barterData, barterCount = 0) {
 	const seen = new Map();
+	if (!gatesKnown(barterCount)) return [];
 	for (const e of barterData || []) {
 		for (const s of e.sources || []) {
 			const g = npcGate(s.npc_id);
@@ -267,6 +282,7 @@ export function shutOut(barterData, barterCount = 0) {
  * islands, and what a sailor wants told is the next door, not the last.
  */
 export function gateOfItem(item, barterData, barterCount = 0) {
+	if (!gatesKnown(barterCount)) return null;
 	const entry = (barterData || []).find(b => b.name === item);
 	if (!entry || !entry.sources || !entry.sources.length) return null;
 	let needed = null;

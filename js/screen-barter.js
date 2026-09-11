@@ -1862,7 +1862,7 @@ function matListHTML(it, data, { short = 0, boards = 0 } = {}) {
 					// dealt, and worth knowing -- but it cannot be ticked
 					// and it says what opens it.
 					const gate = npcGate(x.npcId);
-					if (gate > barters) {
+					if (!npcOpen(x.npcId, barters)) {
 						return `<button class="chip mat-isle shut" disabled title="${esc(npc.at)} — ${esc(npc.name)} · opens at ${F(gate)} Total Barters, ${F(gate - barters)} more">🔒 ${esc(isleShort(npc))}<span class="mat-isle-who">${F(gate)}</span></button>`;
 					}
 					return `<button class="chip mat-isle${on ? ' active' : ''}${other ? ' other' : ''}" data-act="barter-mat-tick" data-npc="${x.npcId}" data-give="${esc(give)}" title="${esc(npc.at)} — ${esc(npc.name)}${other ? ` · today it shows ${other.give} → ${other.recv}` : ''}${seen && seen.of ? ` · showed this on ${seen.n} of ${seen.of} recorded boards` : ''}">${on ? '✓ ' : ''}${esc(isleShort(npc))}<span class="mat-isle-who">${esc(whoOf(npc))}</span>${seen && seen.of ? `<span class="mat-isle-seen${seen.n ? ' some' : ''}">${seen.n}/${seen.of}</span>` : ''}</button>`;
