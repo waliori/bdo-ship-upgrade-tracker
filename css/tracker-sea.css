@@ -177,12 +177,25 @@
 .way-facts .warn { color: var(--amber); }
 .way-note { margin: 10px 0 0; font-size: 11.5px; color: var(--ink-faint); }
 .way-why { white-space: normal; overflow: visible; text-overflow: clip; }
-.way-mine { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
 .way-quest.done .row-name .linky { color: var(--ink-mute); }
 .way-quest .tag { margin-left: 8px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
 .way-quest .quest-done-tag { margin-left: 8px; }
 .way-quest .row-name, .way-quest .row-sub { white-space: normal; overflow: visible; text-overflow: clip; }
 .quest-plan { color: var(--teal); }
+
+/* A quest in the plan is an action with a picture on it: what to take
+   first, lit where the list wants it, then what else it hands over. */
+.way-doing { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 10px 0; font-size: 12px; color: var(--ink-mute); }
+.way-where { margin-top: 3px; font-size: 11.5px; color: var(--ink-mute); }
+.way-pays { margin-top: 6px; }
+.way-pays .reward.take { border-color: rgba(78, 201, 174, 0.55); background: rgba(78, 201, 174, 0.1); color: var(--ink-hi); }
+.way-pays .reward.coin-chip { border-color: rgba(255, 215, 122, 0.35); }
+.way-pays .quest-or { text-transform: uppercase; letter-spacing: 0.1em; font-style: normal; margin-right: 2px; }
+.way-over { margin-top: 5px; font-size: 11.5px; color: var(--ink-faint); }
+.way-also { margin-top: 3px; color: var(--ink-faint); white-space: normal; }
+.way-mine { font-size: 11px; color: var(--teal); white-space: nowrap; }
+.way-quest { align-items: flex-start; }
+.way-quest .row-name { padding-top: 1px; }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   /* The row holds: tick, star and name share the first line, and only
      the buttons drop to a line of their own. Stacked as a column, one

@@ -25,6 +25,7 @@
 // barter forecaster and the quests, and reads back legs.
 
 import { cadenceOf } from './quests.js';
+import { oddsText } from './barter-odds.js';
 
 export const PRESETS = [
 	{
@@ -44,7 +45,24 @@ export const PRESETS = [
 /** How many days a week the sea gets: the dailies and the draws. */
 export const DAY_CHOICES = [[7, 'every day'], [5, 'five days a week'], [3, 'three days a week'], [2, 'two days a week'], [1, 'one day a week']];
 
-export const DEFAULT_ORDERS = { preset: 'soon', days: 7, reserve: 0 };
+/**
+ * What the player is actually willing to do.
+ *
+ * A plan that assumes every activity is on the table is a plan for
+ * somebody else. Bartering is hours at sea; the dailies are a circuit
+ * of errands; hunting a sea monster for what it drops is a fight and a
+ * guild. Turning one off does not make the plan worse, it makes it
+ * theirs -- and hunting turned ON is the one that changes the answer
+ * most, because it takes every dropped material off the shopping list
+ * without the app ever pretending to know a drop rate.
+ */
+export const DOING = [
+	['quests', 'Dailies & weeklies', 'The sailing quests, on the days you are at sea'],
+	['barter', 'Bartering', 'The trade-good and ship-material lists'],
+	['hunt', 'Hunt what drops', 'Anything a sea monster drops is yours to go and kill for, not to buy']
+];
+
+export const DEFAULT_ORDERS = { preset: 'soon', days: 7, reserve: 0, quests: true, barter: true, hunt: false };
 
 /** The longest horizon looked for, in days. Past it the plan says so. */
 export const HORIZON = 365;
@@ -57,6 +75,7 @@ export function readGetOrders(raw) {
 	if (DAY_CHOICES.some(([d]) => d === Number(raw.days))) o.days = Number(raw.days);
 	const reserve = Math.floor(Number(raw.reserve));
 	if (Number.isFinite(reserve) && reserve > 0) o.reserve = Math.min(Number.MAX_SAFE_INTEGER, reserve);
+	for (const [id] of DOING) if (typeof raw[id] === 'boolean') o[id] = raw[id];
 	return o;
 }
 
@@ -93,6 +112,12 @@ function factsFor(item, qty, sources, orders) {
 	if (grounds) f.grounds = grounds(item) || [];
 	const methods = acquisition[item] || {};
 	if (methods.Gathering) f.node = methods.Gathering.join(', ');
+	// What drops it, as the catalogue names it. The chart only knows the
+	// water for the species it has habitats for, so `grounds` is a subset
+	// of this and never a replacement: Khan drops a tendon whether or not
+	// the map can point at him.
+	f.drops = (methods['Monster Drop'] || []).slice();
+	f.quested = (methods['Quest Reward'] || []).slice();
 	// Sold, but at a price the app does not hold: the Market before its
 	// prices are fetched, a vendor the data only names.
 	if (methods.Market && !f.market && !f.falasi) f.unpriced = 'market';
@@ -120,7 +145,7 @@ function worth(f, lists) {
  * days would help with what is left.
  */
 function allocate(H, facts, sources, state, orders) {
-	const { quests = [] } = sources;
+	const quests = orders.quests ? (sources.quests || []) : [];
 	const { purse = { coins: 0, silver: 0 }, isDone = () => false, capacity = null } = state;
 	const lists = capacity && capacity.lists ? capacity.lists : { trade: 4, material: 4 };
 	const playDays = Math.max(1, Math.ceil(H * orders.days / 7));
@@ -144,8 +169,8 @@ function allocate(H, facts, sources, state, orders) {
 		if (isDone(q)) groupLeft[q.group] = Math.max(0, groupLeft[q.group] - 1);
 	}
 	const sched = new Map();   // id -> { q, completions, picks: {i: n}, pays: {item: n}, coins }
-	const take = (q, pick) => {
-		const s = sched.get(q.id) || { q, completions: 0, picks: {}, pays: {}, coins: 0, forCoins: false };
+	const take = (q, pick, over = null) => {
+		const s = sched.get(q.id) || { q, completions: 0, picks: {}, pays: {}, coins: 0, forCoins: false, over: null };
 		s.completions += 1;
 		for (const { item, n } of fixed(q)) {
 			if (item === COIN) { s.coins += n; continue; }
@@ -158,6 +183,7 @@ function allocate(H, facts, sources, state, orders) {
 		}
 		if (pick !== null && pick !== undefined) {
 			s.picks[pick] = (s.picks[pick] || 0) + 1;
+			if (over && !s.over) s.over = over;
 			for (const { item, n } of options(q)[pick]) {
 				const left = short.get(item);
 				if (left > 0) {
@@ -176,21 +202,28 @@ function allocate(H, facts, sources, state, orders) {
 	// what it pays and then by what that would otherwise cost; null when
 	// none of them pays anything still short.
 	const bestPick = q => {
-		let best = null;
+		const scored = [];
 		options(q).forEach((opt, i) => {
 			let tier = 9;
 			let mag = 0;
+			const pays = [];
 			for (const { item, n } of opt) {
 				const left = short.get(item) || 0;
 				if (left <= 0) continue;
 				const f = byItem.get(item);
 				tier = Math.min(tier, f.tier);
 				mag += Math.min(n, left) * worth(f, lists);
+				pays.push({ item, n: Math.min(n, left) });
 			}
 			if (tier === 9) return;
-			if (!best || tier < best.tier || (tier === best.tier && mag > best.mag)) best = { i, tier, mag };
+			scored.push({ i, tier, mag, pays });
 		});
-		return best;
+		if (!scored.length) return null;
+		scored.sort((a, b) => a.tier - b.tier || b.mag - a.mag);
+		// The runner-up is kept so the plan can say what the pick was
+		// made against. A choice with nothing on the other side of it is
+		// not a choice, and saying so would be noise.
+		return { ...scored[0], over: scored[1] || null };
 	};
 	const paysShort = q => fixed(q).some(({ item }) => (short.get(item) || 0) > 0);
 	// Round by round, so competing quests share the days rather than
@@ -203,7 +236,7 @@ function allocate(H, facts, sources, state, orders) {
 			if (!room(q)) continue;
 			const pick = q.choice ? bestPick(q) : null;
 			if (!paysShort(q) && !pick) continue;
-			take(q, pick ? pick.i : null);
+			take(q, pick ? pick.i : null, pick ? pick.over : null);
 			took = true;
 		}
 		if (!took) break;
@@ -242,12 +275,25 @@ function allocate(H, facts, sources, state, orders) {
 		}
 	}
 
+	/* ---- what the player said they would go and kill for ---- */
+	if (orders.hunt) {
+		for (const f of facts) {
+			const left = short.get(f.item);
+			if (left <= 0 || !f.drops.length) continue;
+			leg(f.item, {
+				kind: 'find', qty: left, hunted: true,
+				why: `yours to hunt · drops from ${f.drops.slice(0, 3).join(', ')}`
+			});
+			short.set(f.item, 0);
+		}
+	}
+
 	/* ---- coins and the lists ---- */
 	const purseCoins = Math.max(0, (purse.coins || 0) - orders.reserve);
 	const scheduledCoins = () => [...sched.values()].reduce((a, s) => a + s.coins, 0);
 	let coinSpend = 0;
 	const buy = (f, units, why) => {
-		leg(f.item, { kind: 'coin', qty: units, coins: f.coin * units, why: `${fmt(f.coin)} coins each · ${why}` });
+		leg(f.item, { kind: 'coin', qty: units, coins: f.coin * units, unit: `${fmt(f.coin)} coins each`, why });
 		coinSpend += f.coin * units;
 		short.set(f.item, short.get(f.item) - units);
 	};
@@ -258,15 +304,21 @@ function allocate(H, facts, sources, state, orders) {
 		const left = short.get(f.item);
 		if (left <= 0) continue;
 		const units = Math.min(left, Math.floor(budget() / f.coin));
-		if (units > 0) buy(f, units, 'nothing else sells it');
+		// "Nothing else sells it" was said of things a sea monster drops
+		// all day long, which is false in the way that matters. The shop
+		// is the only route the app can put a number on; what drops it is
+		// named on the row instead of being written out of the answer.
+		if (units > 0) buy(f, units, f.drops.length ? 'the only way with a price on it' : 'nothing else sells it');
 	}
 	// The lists: the days' draws, shared out. What only barter sells
 	// goes first; then what is dearest in coins, since every draw spent
 	// on it is coins kept.
 	const cap = { trade: playDays * lists.trade, material: playDays * lists.material };
 	const usedRefreshes = { trade: 0, material: 0 };
-	const bartered = facts.filter(f => f.timed && short.get(f.item) > 0)
-		.sort((a, b) => (a.coin ? 1 : 0) - (b.coin ? 1 : 0) || b.coin - a.coin);
+	const bartered = orders.barter
+		? facts.filter(f => f.timed && short.get(f.item) > 0)
+			.sort((a, b) => (a.coin ? 1 : 0) - (b.coin ? 1 : 0) || b.coin - a.coin)
+		: [];
 	for (const f of bartered) {
 		const left = short.get(f.item);
 		const avail = cap[f.list] - usedRefreshes[f.list];
@@ -277,9 +329,18 @@ function allocate(H, facts, sources, state, orders) {
 		const days = refreshes / lists[f.list];
 		usedRefreshes[f.list] += refreshes;
 		short.set(f.item, left - units);
+		const chance = f.forecast && f.forecast.limit && f.forecast.limit.odds;
+		const span = days < 1 ? 'a day' : plural(Math.ceil(days), 'day');
+		const rare = chance && chance.recorded && chance.per < 1;
+		// Three different sentences, because there are three different
+		// states of knowledge and reading them as one was the whole
+		// problem: measured and scarce, measured and always there, and
+		// never measured at all. The last one keeps the old best-case
+		// number and says out loud that that is what it is.
 		leg(f.item, {
-			kind: 'barter', qty: units, refreshes, list: f.list, days,
-			why: `${plural(Math.ceil(refreshes), 'draw')} of the ${f.list} list · ${days < 1 ? 'a day' : plural(Math.ceil(days), 'day')} at best, if the offer turns up`
+			kind: 'barter', qty: units, refreshes, list: f.list, days, odds: chance,
+			why: `${plural(Math.ceil(refreshes), 'draw')} of the ${f.list} list · ${rare ? `about ${span}` : `${span} at best`}`
+				+ ` · ${oddsText(chance)}`
 		});
 	}
 	// The rest, with coins where the goal allows.
@@ -293,6 +354,7 @@ function allocate(H, facts, sources, state, orders) {
 			const fc = f.forecast;
 			const why = hadBarter ? `the ${f.list} list is full for these days`
 				: f.timed && fc ? `bartering would take ${plural(Math.ceil(fc.days), 'day')}`
+					+ (fc.bestDays && fc.days > fc.bestDays + 0.5 ? ' at the rate the boards show' : '')
 				: 'the lists will not carry it in time';
 			buy(f, units, why);
 		}
@@ -309,7 +371,7 @@ function allocate(H, facts, sources, state, orders) {
 				// A pick-one still picks: the coins are the reason for
 				// the run, not a reason to waste the reward.
 				const pick = q.choice ? bestPick(q) : null;
-				take(q, pick ? pick.i : null);
+				take(q, pick ? pick.i : null, pick ? pick.over : null);
 				sched.get(q.id).forCoins = true;
 			}
 		}
@@ -338,7 +400,7 @@ function allocate(H, facts, sources, state, orders) {
 			growable = growable || quests.some(q => (q.rewards || {})[COIN] > 0 && cadenceOf(q) !== 'once');
 			continue;
 		}
-		if (f.timed || repeating) {
+		if ((f.timed && orders.barter) || repeating) {
 			leg(f.item, { kind: 'short', qty: left, why: 'more days than this horizon holds' });
 			residual.push({ item: f.item, qty: left, reason: 'days' });
 			growable = true;
@@ -356,6 +418,8 @@ function allocate(H, facts, sources, state, orders) {
 		if (f.forecast && f.forecast.gate) ways.push(`barter opens after ${fmt(f.forecast.gate.short)} more barters`);
 		if (quests.some(q => fixed(q).some(r => r.item === f.item) || options(q).some(o => o.some(r => r.item === f.item)))) ways.push('its quests are done for now');
 		if (f.coin && orders.preset === 'coins') ways.push(`${fmt(f.coin)} coins each at the shop, kept back by your orders`);
+		if (f.timed && !orders.barter) ways.push('bartered for at sea, which you have switched off');
+		if (!orders.quests && f.quested.length) ways.push('a quest reward, which you have switched off');
 		const unrated = f.grounds.length || f.node;
 		leg(f.item, {
 			kind: 'find', qty: left,
@@ -368,7 +432,7 @@ function allocate(H, facts, sources, state, orders) {
 	return {
 		legs, sched, residual, feasible: !growable,
 		coins: { spend: coinSpend, purse: purse.coins || 0, reserve: orders.reserve, income: scheduledCoins(), short: Math.max(0, coinsShort() - budget()) },
-		silver: { spend: silverSpend, purse: purse.silver || 0 },
+		silver: { spend: silverSpend, purse: purse.silver || 0, short: Math.max(0, silverSpend - (purse.silver || 0)) },
 		refreshes: { ...usedRefreshes, cap, lists },
 		playDays
 	};
@@ -421,17 +485,66 @@ export function wayToGet({ missing = {}, sources = {}, state = {}, orders = {} }
 	// Stalled: a year was not enough for something more days would help.
 	const reachable = result.feasible && !result.residual.length;
 
+	// One row an item a way. The purse is spent in two passes -- what
+	// nothing else sells, then what the coin quests later pay for -- and
+	// unmerged that put the same material in the same shop twice, at the
+	// same price, with two different reasons. Both reasons are true and
+	// they belong on one line.
 	const legs = [];
-	for (const [item, list] of result.legs) for (const l of list) legs.push({ item, ...l });
+	for (const [item, list] of result.legs) {
+		const byKind = new Map();
+		for (const l of list) {
+			const had = byKind.get(l.kind);
+			if (!had) { byKind.set(l.kind, { item, ...l, whys: [l.why] }); continue; }
+			had.qty += l.qty;
+			had.coins = (had.coins || 0) + (l.coins || 0);
+			had.silver = (had.silver || 0) + (l.silver || 0);
+			had.refreshes = (had.refreshes || 0) + (l.refreshes || 0);
+			had.days = Math.max(had.days || 0, l.days || 0);
+			if (!had.whys.includes(l.why)) had.whys.push(l.why);
+		}
+		for (const l of byKind.values()) {
+			l.why = l.whys.join(' · ');
+			delete l.whys;
+			legs.push(l);
+		}
+	}
+
+	// The ways the plan did not count, said once an item, on the leg that
+	// carries most of it. A sea monster drops a great many of these
+	// materials and no rate for that exists anywhere, so it can never be
+	// a leg -- but leaving it out entirely is how a shopping list ends up
+	// telling somebody to buy a thing they could have killed for.
+	for (const f of facts) {
+		const mine = legs.filter(l => l.item === f.item).sort((a, b) => b.qty - a.qty);
+		if (!mine.length) continue;
+		const also = [];
+		if (f.drops.length) also.push(`drops from ${f.drops.slice(0, 3).join(', ')}`);
+		if (f.bulk) also.push(`${f.bulk.give} exchanges for ${fmt(f.bulk.gets)} at once`);
+		if (f.node && !mine.some(l => l.kind === 'find')) also.push(f.node);
+		if (f.coin && !mine.some(l => l.kind === 'coin')) also.push(`${fmt(f.coin)} coins each at the shop`);
+		if (f.timed && !mine.some(l => l.kind === 'barter')) also.push('bartered for at sea');
+		if (also.length) mine[0].also = also.join(' · ');
+	}
 
 	const quests = [...result.sched.values()].map(s => ({
 		id: s.q.id, quest: s.q, name: shortName(s.q), cadence: cadenceOf(s.q), completions: s.completions,
 		pick: Object.keys(s.picks).length ? Number(Object.keys(s.picks).sort((a, b) => s.picks[b] - s.picks[a])[0]) : null,
 		pays: Object.entries(s.pays).map(([it, n]) => ({ item: it, qty: n })),
+		// What the reward it takes was chosen over, when the other side
+		// of the choice was also something the plan wants. Without this
+		// the pick reads as arbitrary, which is exactly how it read.
+		over: s.over ? s.over.pays.map(x => ({ item: x.item, qty: x.n })) : [],
 		coins: s.coins,
 		// "For the coins" only when the coins are all it pays toward.
 		forCoins: s.forCoins && !Object.keys(s.pays).length
-	})).sort((a, b) => ['daily', 'weekly', 'once'].indexOf(a.cadence) - ['daily', 'weekly', 'once'].indexOf(b.cadence) || b.completions - a.completions);
+	})).sort((a, b) =>
+		// The errands that pay in materials come first; the ones run only
+		// to fill the purse are still errands, but they are not why any
+		// of this is being done.
+		(a.pays.length ? 0 : 1) - (b.pays.length ? 0 : 1)
+		|| ['daily', 'weekly', 'once'].indexOf(a.cadence) - ['daily', 'weekly', 'once'].indexOf(b.cadence)
+		|| b.completions - a.completions);
 
 	return {
 		orders: o,
@@ -522,7 +635,11 @@ function longPole(result, legs, quests, orders) {
 	}
 	if (kind === 'quest') return { kind, text: `The quests set the pace: ${item.quest ? `${item.quest} comes ` : ''}over ${stretch} of them` };
 	const draws = Math.ceil(refreshes[kind]);
-	return { kind: `barter-${kind}`, text: `The ${kind} list sets the pace: ${plural(draws, 'draw')} for ${item[kind]}, ${stretch} at best` };
+	// "At best" belongs only where the draws were not measured. Where the
+	// boards have counted how often the offer is up, the figure already
+	// carries it and calling it a best case would understate it twice.
+	const measured = legs.some(l => l.kind === 'barter' && l.list === kind && l.odds && l.odds.recorded && l.odds.per < 1);
+	return { kind: `barter-${kind}`, text: `The ${kind} list sets the pace: ${plural(draws, 'draw')} for ${item[kind]}, ${measured ? 'about ' : ''}${stretch}${measured ? '' : ' at best'}` };
 }
 
 /**
@@ -537,11 +654,13 @@ export function wayText(way) {
 		: `Done in ${plural(way.days, 'day')} at ${at}, but for ${plural(way.residual.length, 'item')}`;
 	const pole = way.longPole ? `\n${way.longPole.text}` : '';
 	const quests = way.quests.length
-		? `\n\nQuests\n${way.quests.map(q => `  ${q.name}${q.pick !== null && q.quest.choice ? ` — take ${Object.entries(q.quest.choice[q.pick]).map(([i, n]) => `${n}× ${i}`).join(', ')}` : ''}${q.forCoins ? ' — for the coins' : ''} · ${q.cadence === 'once' ? 'once' : `${q.completions}×`}`).join('\n')}`
+		? `\n\nQuests\n${way.quests.map(q => `  ${q.name}${q.pick !== null && q.quest.choice ? ` — take ${Object.entries(q.quest.choice[q.pick]).map(([i, n]) => `${n}× ${i}`).join(', ')}` : ''}${q.forCoins ? ' — for the coins' : ''} · ${q.cadence === 'once' ? 'once' : `${q.completions}×`}`
+			+ (q.over.length ? `\n      chosen over ${q.over.map(o => `${fmt(o.qty)}× ${o.item}`).join(', ')}` : '')).join('\n')}`
 		: '';
 	const groups = way.groups.map(g => {
 		const total = g.coins ? ` — ${fmt(g.coins)} coins` : g.silver ? ` — ${fmt(g.silver)} silver` : '';
-		return `${g.label}${total}\n${g.items.map(l => `  ${fmt(l.qty)}× ${l.item} · ${l.why}`).join('\n')}`;
+		return `${g.label}${total}\n${g.items.map(l => `  ${fmt(l.qty)}× ${l.item} · ${[l.unit, l.why].filter(Boolean).join(' · ')}`
+			+ (l.also ? `\n      also: ${l.also}` : '')).join('\n')}`;
 	}).join('\n\n');
 	return `${head}${pole}${quests}\n\n${groups}`;
 }

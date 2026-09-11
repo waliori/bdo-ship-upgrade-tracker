@@ -19,13 +19,13 @@ import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
 import { img, codexName, costCtx, costText, groundsFor } from './ui-bits.js';
 import {
-	snapshot, barterData, barterProfile, totalsToGo, query, CROW_COIN, SILVER
+	snapshot, barterData, barterProfile, barterOpts, totalsToGo, query, CROW_COIN, SILVER
 } from './ui-state.js';
 import { shoppingList, waysToGet } from './planner.js';
 import { coinBuyButton } from './coin-shop.js';
 import { mateAtTheHelm } from './ship.js';
 import { anyType } from './sailors.js';
-import { PRESETS, DAY_CHOICES, wayText, groupLegs } from './get-plan.js';
+import { PRESETS, DAY_CHOICES, DOING, wayText, groupLegs } from './get-plan.js';
 import { theWay, getOrders, questDoneNow } from './get-way.js';
 
 // Which of its two readings the screen gives: the way to get each
@@ -58,7 +58,7 @@ export function barterLookup(item, qty = 1) {
 	if (!entry || !entry.sources || !entry.sources.length) return null;
 	const npcs = [...new Set(entry.sources.map(s => s.npc_name))];
 	const gives = [...new Set(entry.sources.map(s => s.give && s.give.name).filter(Boolean))];
-	return { npcs, gives, plan: barterForecast(item, qty, barterData, barterProfile()) };
+	return { npcs, gives, plan: barterForecast(item, qty, barterData, barterOpts()) };
 }
 
 /**
@@ -338,7 +338,9 @@ function renderWay(q) {
 		? `<span>Crow Coins: <b>${F(c.spend)}</b> spent of ${F(c.purse)} held${c.income ? ` + ${F(c.income)} the quests pay` : ''}${c.reserve ? ` · ${F(c.reserve)} kept back` : ''}${c.short ? ` · <span class="warn">${F(c.short)} short</span>` : ''}</span>`
 		: '';
 	const s = way.silver;
-	const silverLine = s && s.spend ? `<span>Silver: <b>${FC(s.spend)}</b>${s.purse ? ` of ${FC(s.purse)} held` : ''}</span>` : '';
+	const silverLine = s && s.spend
+		? `<span>Silver: <b>${FC(s.spend)}</b>${s.purse ? ` of ${FC(s.purse)} held` : ''}${s.short ? ` · <span class="warn">${FC(s.short)} short</span>` : ''}</span>`
+		: '';
 	const r = way.refreshes;
 	const drawLine = r && (r.material || r.trade)
 		? `<span>Draws: ${r.material ? `<b>${F(Math.ceil(r.material))}</b> of the material list` : ''}${r.material && r.trade ? ', ' : ''}${r.trade ? `<b>${F(Math.ceil(r.trade))}</b> of the trade list` : ''} over ${dayWord(way.days)}</span>`
@@ -355,35 +357,56 @@ function renderWay(q) {
 				<label class="way-knob">At sea <select class="purse-inline" data-act="get-days" aria-label="How many days a week you sail">${days}</select></label>
 				<label class="way-knob">Keep back <input class="purse-inline" type="text" inputmode="numeric" value="${F(o.reserve)}" data-act="get-reserve" aria-label="Crow Coins to keep back"> coins</label>
 			</div>
+			<div class="way-doing">${DOING.map(([id, label, title]) => `<label class="inline-check" title="${esc(title)}">
+				<input type="checkbox" data-act="get-doing" data-id="${id}"${o[id] ? ' checked' : ''}> ${esc(label)}</label>`).join('')}</div>
 			<div class="way-facts">${[coinLine, silverLine, drawLine].filter(Boolean).join('')}</div>
-			<p class="way-note">${esc(preset.sub)}. Barter is counted at best — the offer on every draw — and a drop or a worker node is named, not timed.</p>
+			<p class="way-note">${esc(preset.sub)}. Barter is paced by how often the boards recorded each offer on the list, and by best case where none has; a drop or a worker node is named on the row, never timed.</p>
 		</div>
 	</div>`;
 
 	const picks = store.getProfile('questPicks', {}) || {};
+	const wanted = new Set(Object.keys(snapshot.missing || {}));
+	const chip = (item, n, cls = '') => `<span class="reward${wanted.has(item) ? ' wanted' : ''}${cls}" data-peek="${esc(item)}">${img(item, 'reward-icon')}<b>${F(n)}×</b> ${esc(item)}</span>`;
+	const coinChip = n => `<span class="reward coin-chip">${img(CROW_COIN, 'reward-icon')}<b>${F(n)}</b> Crow Coins</span>`;
+
 	const questRows = way.quests.filter(x => !q || x.name.toLowerCase().includes(q) || x.pays.some(p => p.item.toLowerCase().includes(q))).map(x => {
 		const done = questDoneNow(x.quest);
 		const choice = x.quest.choice && x.pick !== null ? Object.entries(x.quest.choice[x.pick]) : null;
-		const take = choice ? `take ${choice.map(([item, n]) => `${F(n)}× ${esc(item)}`).join(', ')}` : '';
 		const mine = choice && picks[x.id] === x.pick;
 		const pickBtn = choice && !mine
 			? `<button class="ghost-btn tiny" data-act="get-pick" data-quest="${esc(x.id)}" data-i="${x.pick}" title="Remember it: Claimed on the Quests screen then records this reward in one press">make it my pick</button>`
-			: choice ? '<span class="way-mine">your pick</span>' : '';
-		const toward = x.pays.map(p => `${F(p.qty)} ${esc(p.item)}`).join(', ');
-		const sub = [take, toward ? `toward ${toward}` : '', x.forCoins ? `for the ${F(x.coins)} coins` : x.coins ? `and ${F(x.coins)} coins` : ''].filter(Boolean).join(' · ');
-		const times = x.cadence === 'once' ? 'once' : `${x.cadence} × ${F(x.completions)}`;
+			: choice ? '<span class="way-mine">✓ your pick</span>' : '';
+		// What it pays, with pictures: the reward to take first, then the
+		// coins, then anything else it hands over that the plan wants.
+		const takeChips = choice ? choice.map(([item, n]) => chip(item, n, ' take')).join('') : '';
+		const fixedChips = x.pays.filter(p => !choice || !choice.some(([item]) => item === p.item))
+			.map(p => chip(p.item, p.qty)).join('');
+		const chips = takeChips + fixedChips + (x.coins ? coinChip(x.coins) : '');
+		// The other side of the choice, when it was also something on the
+		// list. A pick with nothing to weigh it against is not explained,
+		// because there was nothing to explain.
+		const over = x.over.length
+			? `<div class="way-over">chosen over ${x.over.map(o => `${F(o.qty)}× ${esc(o.item)}`).join(', ')}, which the plan gets another way</div>`
+			: '';
+		const times = x.cadence === 'once' ? 'once' : `${x.cadence === 'daily' ? 'daily' : 'weekly'} × ${F(x.completions)}`;
+		// Where it is done. The plan is a list of errands, and an errand
+		// without a place on it is a name to go and look up somewhere else.
+		const where = x.quest.where ? `<div class="way-where">${esc(x.quest.where)}</div>` : '';
 		return `<div class="row way-quest${done ? ' done' : ''}">
 			<div class="row-main">
 				<div class="row-name"><button class="linky" data-act="get-quest" data-quest="${esc(x.id)}" title="Open it on the Quests screen">${esc(x.name)}</button> <span class="tag">${esc(times)}</span>${done ? `<span class="quest-done-tag">✓ ${x.cadence === 'weekly' ? 'done this week' : 'done today'}</span>` : ''}</div>
-				<div class="row-sub">${sub}</div>
+				${where}
+				${chips ? `<div class="quest-rewards way-pays">${choice ? '<span class="quest-or">take</span>' : ''}${chips}</div>` : ''}
+				${over}
 			</div>
 			${pickBtn}
 		</div>`;
 	});
+	const runs = way.quests.reduce((a, x) => a + x.completions, 0);
 	const questsPanel = questRows.length ? `<div class="panel">
 		<div class="group-head">
 			<h2 class="panel-title teal">Quests to run</h2>
-			<span class="group-total" style="color:var(--ink-dim)">${questRows.length} quest${questRows.length === 1 ? '' : 's'}</span>
+			<span class="group-total" style="color:var(--ink-dim)">${questRows.length} quest${questRows.length === 1 ? '' : 's'} · ${F(runs)} run${runs === 1 ? '' : 's'}</span>
 		</div>
 		${questRows.join('')}
 	</div>` : '';
@@ -403,11 +426,17 @@ function renderWay(q) {
 					: l.kind === 'quest' ? `<button class="chart-link" data-act="goto-quests" data-item="${esc(l.item)}">the quests</button>`
 					: '';
 				const shop = l.kind === 'coin' && !l.unpriced ? coinBuyButton(l.item, Math.ceil(l.qty)) : '';
+				const why = [l.unit, l.why].filter(Boolean).join(' · ');
+				// Everything the plan could not put a number on. It is the
+				// quiet line rather than the loud one because it is not an
+				// instruction: it is what the answer above leaves out.
+				const also = l.also ? `<div class="row-alt way-also">also: ${esc(l.also)}</div>` : '';
 				return `<div class="row" data-peek="${esc(l.item)}">
 					${img(l.item, 'row-icon sm')}
 					<div class="row-main">
 						<div class="row-name">${codexName(l.item)}</div>
-						<div class="row-sub way-why">${esc(l.why)}${door ? ` · ${door}` : ''}</div>
+						<div class="row-sub way-why">${esc(why)}${door ? ` · ${door}` : ''}</div>
+						${also}
 					</div>
 					${shop}
 					<span class="qty-out">${F(Math.ceil(l.qty))}</span>
@@ -435,6 +464,7 @@ export function getAction(act, el) {
 
 /** A typed order: the days a week, the coins kept back. */
 export function getChange(el, parseAmount) {
+	if (el.dataset.act === 'get-doing') { store.setProfile('getOrders', { ...getOrders(), [el.dataset.id]: el.checked }); return true; }
 	if (el.dataset.act === 'get-days') { store.setProfile('getOrders', { ...getOrders(), days: Number(el.value) }); return true; }
 	if (el.dataset.act === 'get-reserve') {
 		const n = parseAmount(el.value);
@@ -495,7 +525,7 @@ export function shoppingCSV() {
 		for (const g of (way ? way.groups : [])) {
 			for (const l of g.items) {
 				const each = l.qty ? (l.coins ? `${Math.round(l.coins / l.qty)} coins` : l.silver ? `${Math.round(l.silver / l.qty)} silver` : '') : '';
-				rows.push([g.label, l.item, Math.ceil(l.qty), each, l.why]);
+				rows.push([g.label, l.item, Math.ceil(l.qty), each, [l.why, l.also ? `also: ${l.also}` : ''].filter(Boolean).join(' · ')]);
 			}
 		}
 		return rows.map(r => r.map(cell).join(',')).join('\n');

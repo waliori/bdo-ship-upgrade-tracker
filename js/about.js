@@ -246,6 +246,17 @@ export const RELEASE = RELEASES[0].id;
 export const CHANGES = [
 	{
 		date: '2026-09-10',
+		title: 'The barter forecast counts how often the offer is really there, and the plan takes your word for what you will do',
+		notes: [
+			'<b>“At best” was doing too much work.</b> Every barter figure in the app assumed the exchange you want is on the list every time you draw it. It is not: of the four whole ship-material boards recorded, a Saltwater Crocodile’s Scale was on <i>one</i>. So a hundred of them read as five days when the boards say about eleven, and a plan wanting four materials off one list quietly assumed all four turned up, every day. The forecast now reads both records the app already keeps — the four complete material boards, and the forty trade-list layouts seen across four hundred and twenty refreshes — and paces every rung by how often it was actually there. The old number survives as the floor: <i>about 11 days, 5 if the offer is always up</i>, with the sample named beside it.',
+			'What is measured is <b>presence</b>, not how many islands showed it, so the change can only ever lengthen a forecast and never shorten one; a thing on every board recorded reads exactly as it did. Anything no board has recorded keeps the old best-case figure and <b>says so on the row</b> rather than passing it off as measured. Your own material-board diary is deliberately left out of the arithmetic: it records where a thing was and never where it was not, and a sample with no absences in it cannot measure absence.',
+			'<b>What drops it is named.</b> Khan’s Tendon read as “nothing else sells it” beside a price, which is true of shops and false of Khan. Every row now carries an <i>also</i> line with the ways the plan could not put a number on — what drops it, the worker node, the bulk exchange, the shop it did not use — because a list that leaves those out is how somebody ends up buying a thing they could have killed for.',
+			'<b>Three switches for what you will actually do</b>: the dailies and weeklies, bartering, and <i>hunt what drops</i>. The last takes every dropped material off the shopping list and never claims a rate for it, since none is published anywhere — on a two-part Carrack that was forty-three days and a hundred thousand coins, and with hunting on it is thirty.',
+			'The <b>quests to run</b> are drawn as errands now: the reward to take with its picture, what else it hands over, the coins, and where it is done — and when a pick-one was a real choice, what it was chosen over and why the other one is got another way. A material bought in two passes of the purse used to appear twice in the Crow Coin Shop at the same price with two different reasons; it is one row with both.'
+		]
+	},
+	{
+		date: '2026-09-10',
 		title: 'To Get says how each thing should be got, not only how it can be',
 		notes: [
 			'<b>The way to get it.</b> To Get used to answer “where does this come from?” for every line and leave “so what do I do?” to you — and the sources compete: a Candidum daily pays fourteen Tidal Black Stones <i>or</i> one Violent Wave Plywood, the coins spent on plywood are not there for the tendons, and two materials off the ship-material list wait on the same three draws. The new first view of To Get reads the whole list at once and gives every item one way — from the quests, the Crow Coin Shop, barter, Falasi, the Market, or go and get — with its reason on the line, and says how many days that is and what sets the pace.',

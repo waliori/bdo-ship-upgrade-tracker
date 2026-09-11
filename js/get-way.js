@@ -16,7 +16,7 @@ import { quests, cadenceOf } from './quests.js';
 import { forecast, dailyCapacity } from './barter.js';
 import { periodKey } from './clock.js';
 import * as store from './state.js';
-import { snapshot, barterData, barterProfile, CROW_COIN, SILVER } from './ui-state.js';
+import { snapshot, barterData, barterProfile, oddsIndex, CROW_COIN, SILVER } from './ui-state.js';
 import { groundsFor } from './ui-bits.js';
 import { wayToGet, readGetOrders } from './get-plan.js';
 
@@ -42,7 +42,7 @@ export function theWay() {
 	const orders = getOrders();
 	const key = JSON.stringify([
 		snapshot.missing, store.getStock(CROW_COIN), store.getStock(SILVER), done, profile, orders,
-		marketStatus().at, !!barterData, periodKey('daily'), periodKey('weekly')
+		marketStatus().at, !!barterData, !!oddsIndex(), periodKey('daily'), periodKey('weekly')
 	]);
 	if (memo && memo.key === key) return memo.way;
 	const way = wayToGet({
@@ -51,7 +51,7 @@ export function theWay() {
 			coins,
 			silver: falasi,
 			market: marketSilver(),
-			barter: barterData ? (item, qty) => forecast(item, qty, barterData, profile) : null,
+			barter: barterData ? (item, qty) => forecast(item, qty, barterData, { ...profile, odds: oddsIndex() }) : null,
 			quests,
 			grounds: groundsFor,
 			bulk: bulkExchanges,

@@ -40,7 +40,43 @@ const got = (way, item, kind) => legsOf(way, item).filter(l => l.kind === kind).
 test('the orders are cleaned: unknown goals fall back, days are one of the choices, a reserve is a whole number', () => {
 	assert.deepEqual(readGetOrders(null), DEFAULT_ORDERS);
 	assert.deepEqual(readGetOrders({ preset: 'gold', days: 4, reserve: -3 }), DEFAULT_ORDERS);
-	assert.deepEqual(readGetOrders({ preset: 'coins', days: '5', reserve: '1200.7' }), { preset: 'coins', days: 5, reserve: 1200 });
+	assert.deepEqual(readGetOrders({ preset: 'coins', days: '5', reserve: '1200.7' }),
+		{ ...DEFAULT_ORDERS, preset: 'coins', days: 5, reserve: 1200 });
+	// The activity switches are booleans or they are the default; a
+	// string is not a "yes", however truthy the language thinks it is.
+	assert.equal(readGetOrders({ hunt: true }).hunt, true);
+	assert.equal(readGetOrders({ barter: 'yes' }).barter, true);
+	assert.equal(readGetOrders({ barter: false }).barter, false);
+});
+
+test('an activity switched off is not planned with, and is named as the reason', () => {
+	const barter = barterer({ X: { per: 2, list: 'material' } });
+	const sources = { barter, quests: [daily('hunt', [{ X: 14 }])], grounds: () => [], acquisition: {} };
+	const on = wayToGet({ missing: { X: 12 }, sources, state: { purse: { coins: 0 }, capacity } });
+	const off = wayToGet({ missing: { X: 12 }, sources, state: { purse: { coins: 0 }, capacity }, orders: { barter: false, quests: false } });
+	assert.equal(got(on, 'X', 'barter') + got(on, 'X', 'quest'), 12);
+	assert.equal(got(off, 'X', 'barter'), 0);
+	assert.equal(got(off, 'X', 'quest'), 0);
+	assert.equal(legsOf(off, 'X')[0].kind, 'find');
+	assert.match(legsOf(off, 'X')[0].why, /switched off/);
+	// With nothing left that more days would mend, the plan says so
+	// rather than searching a year for a way it was told not to take.
+	assert.equal(off.stalled, false);
+	assert.equal(off.days, 1);
+});
+
+test('hunting turned on takes a dropped material off the shopping list, and claims no rate for it', () => {
+	const sources = { coins: { D: 400 }, acquisition: { D: { 'Monster Drop': ['Khan'] } } };
+	const buy = wayToGet({ missing: { D: 50 }, sources, state: { purse: { coins: 99999 }, capacity } });
+	const kill = wayToGet({ missing: { D: 50 }, sources, state: { purse: { coins: 99999 }, capacity }, orders: { hunt: true } });
+	assert.equal(got(buy, 'D', 'coin'), 50);
+	assert.equal(buy.coins.spend, 20000);
+	assert.equal(got(kill, 'D', 'find'), 50);
+	assert.equal(kill.coins.spend, 0);
+	assert.match(legsOf(kill, 'D')[0].why, /yours to hunt · drops from Khan/);
+	// A hunt has no published rate, so it can never lengthen the horizon.
+	assert.equal(kill.days, 1);
+	assert.equal(kill.reachable, true);
 });
 
 test('a pick-one goes to the item nothing else pays, not to the dearer one', () => {

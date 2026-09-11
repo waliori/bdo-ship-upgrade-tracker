@@ -44,6 +44,8 @@
 // trip costs if the game offers you what you need -- and the UI says
 // "at best" out loud rather than implying a precision it lacks.
 
+import { oddsFor, oddsText } from './barter-odds.js';
+
 /* ------------------------------------------------------------------ *
  * the game's numbers
  * ------------------------------------------------------------------ */
@@ -615,12 +617,17 @@ export function triesFor(item, stated) {
  * list's draws, a trade rung by the trade list's -- and a redraw of one
  * list is not a redraw of the other.
  *
- * The assumption, and it is a real one: that the exchange turns up on
- * every refresh. It will not -- the list is drawn at random from a pool
- * whose weights the game does not publish -- so this is the best case
- * and the UI says so.
+ * How often the exchange is on the list at all is the other half, and
+ * it used to be missing. It was left out because the game publishes no
+ * weights -- but the app records boards, and those are evidence: a
+ * Saltwater Crocodile's Scale was on one of the four whole material
+ * boards read, so a forecast that assumed it every draw was four times
+ * too fast. `odds` is the index from barter-odds.js; with it, every
+ * rung is paced by how often it is really there, and `bestRefreshes`
+ * keeps the old figure as what the trip takes if the sea is kind.
+ * Without it the two are equal and the behaviour is exactly as before.
  */
-export function bottleneck(top, qty, lists = null) {
+export function bottleneck(top, qty, lists = null, odds = null) {
 	const pace = lists || {
 		trade: 1 + REFRESH.tradeItem.perDay,
 		material: 1 + REFRESH.shipMaterial.perDay
@@ -631,11 +638,21 @@ export function bottleneck(top, qty, lists = null) {
 	for (let r = top; r; r = r.from) {
 		const attempts = triesFor(r.item, r.attempts);
 		const list = exchangeKind(r.item) === 'material' ? 'material' : 'trade';
+		const chance = oddsFor(r.item, odds);
 		const perRefresh = attempts * r.received;
-		const refreshes = needed / perRefresh;
+		const bestRefreshes = needed / perRefresh;
+		// A draw the exchange is absent from buys nothing, so the draws
+		// needed are the best case over the share of draws it is on.
+		const refreshes = bestRefreshes / (chance.per > 0 ? chance.per : 1);
 		const days = refreshes / pace[list];
+		// The scarcest rung is the one that paces the climb, and scarcity
+		// is now part of what makes a rung slow -- a common rung wanted in
+		// bulk and a rare one wanted once are compared on the same axis.
 		if (!worst || days > worst.days) {
-			worst = { item: r.item, needed, perRefresh, refreshes, days, list, attempts };
+			worst = {
+				item: r.item, needed, perRefresh, refreshes, days, list, attempts,
+				bestRefreshes, bestDays: bestRefreshes / pace[list], odds: chance
+			};
 		}
 		needed *= r.givePerUnit;
 	}
@@ -676,7 +693,7 @@ export function gateFor(item, barterCount) {
  * the caller already knows how to say "not bartered".
  */
 export function forecast(item, qty, barterData, opts = {}) {
-	const { barterCount = 0, valuePack = false, vouchers = 0, level = null, crew = false } = opts;
+	const { barterCount = 0, valuePack = false, vouchers = 0, level = null, crew = false, odds = null } = opts;
 
 	const top = ladder(item, barterData);
 	if (!top) return null;
@@ -688,7 +705,7 @@ export function forecast(item, qty, barterData, opts = {}) {
 	// its own list's clock. Parley is not that rung and is not modelled
 	// as one -- see dailyCapacity -- so it is priced only where a patch
 	// note prices it: the top exchange.
-	const limit = bottleneck(top, qty, day.lists);
+	const limit = bottleneck(top, qty, day.lists, odds);
 	const days = limit ? limit.days : 0;
 
 	// Every rung is checked, not just the one asked for: a ladder can
@@ -698,11 +715,23 @@ export function forecast(item, qty, barterData, opts = {}) {
 		.filter(Boolean)
 		.sort((a, b) => b.barters - a.barters)[0] || null;
 
+	// The rarest rung on the whole climb, which is not always the one
+	// that paces it: a [Level 7] wanted once can be scarcer than the
+	// [Level 3] whose bulk sets the days, and a sailor should know.
+	const scarcest = rungs(top)
+		.map(r => ({ item: r.item, ...oddsFor(r.item, odds) }))
+		.filter(o => o.recorded)
+		.sort((a, b) => a.per - b.per)[0] || null;
+
 	return {
 		item,
 		qty,
 		trades,
 		days,
+		// What the trip takes if every draw offers what you want, which
+		// is what this forecast used to quote as the whole answer.
+		bestDays: limit ? limit.bestDays : 0,
+		scarcest,
 		limit,
 		perUnit: top.totalTrades,
 		// What the top rung alone costs in Parley, which is the only
@@ -738,9 +767,18 @@ export function summarise(f) {
 	}
 
 	const trades = `${fmt(Math.ceil(f.trades))} ${Math.ceil(f.trades) === 1 ? 'trade' : 'trades'}`;
-	if (f.days < 0.5) return `${trades} — one sitting`;
-
 	const days = Math.ceil(f.days);
+	const best = Math.ceil(f.bestDays || f.days);
+
+	// Where the boards say the offer is not always there, the two figures
+	// are different and both are said: the first is what to plan on, the
+	// second what a kind sea would allow. Where they agree there is
+	// nothing to add, and the sentence reads as it always did.
+	if (days > best) {
+		const span = days === 1 ? 'about a day' : `about ${fmt(days)} days`;
+		return `${trades} — ${span}, ${best <= 1 ? 'one' : fmt(best)} if the offer is always up`;
+	}
+	if (f.days < 0.5) return `${trades} — one sitting`;
 	if (days <= 1) return `${trades} — a day's sailing at best`;
 	return `${trades} — ${fmt(days)} days at best`;
 }
@@ -753,7 +791,11 @@ export function explain(f) {
 	// you asked for -- being told that Brilliant Pearl Shards are
 	// limited by Brilliant Pearl Shards teaches nobody anything.
 	const where = f.limit.item === f.item ? '' : ` on ${f.limit.item}`;
-	return `${fmt(f.limit.perRefresh)} a refresh${where}, ${f.capacity.lists[f.limit.list]} refreshes of its list a day`;
+	const pace = `${fmt(f.limit.perRefresh)} a refresh${where}, ${f.capacity.lists[f.limit.list]} refreshes of its list a day`;
+	const seen = f.limit.odds && f.limit.odds.recorded && f.limit.odds.per < 1
+		? ` · ${oddsText(f.limit.odds)}`
+		: '';
+	return pace + seen;
 }
 
 function fmt(n) {

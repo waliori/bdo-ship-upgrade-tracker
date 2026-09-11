@@ -129,9 +129,36 @@ sea gets and coins to keep back. The quests to run are listed as the
 actions they are, each with the reward the plan would take off a
 pick-one — *make it my pick* remembers it, so Claimed on the Quests
 screen records it in one press — and a short purse is stretched by the
-coin quests, with the horizon saying how long that takes. Barter is
-counted at best, as everywhere else, and a drop or a worker node is
-named, never timed. **Every way** is the old reading, one chip away.
+coin quests, with the horizon saying how long that takes. **Every way**
+is the old reading, one chip away.
+
+Three switches say what you are actually willing to do: the dailies and
+weeklies, bartering, and **hunt what drops**. The last takes every
+dropped material off the shopping list without ever claiming a rate for
+it, because none is published — on a two-part Carrack that is the
+difference between forty-three days and thirty.
+
+**How often the offer is really there.** Every barter figure in this app
+used to assume the exchange you want is on the list each time you draw
+it. It is not: of the four whole ship-material boards recorded, a
+Saltwater Crocodile's Scale was on *one*. So the forecast now reads both
+records that ride with the barter table — those four complete boards,
+and the forty trade-list layouts seen across four hundred and twenty
+refreshes — and paces every rung by how often it was actually there. The
+old figure survives as the floor, with the sample beside it: *about 11
+days, 5 if the offer is always up · on 1 of the 4 boards recorded*.
+
+What is measured is presence rather than how many islands showed it, so
+the change can only ever lengthen a forecast and never shorten one; a
+thing on every board reads exactly as it did, and anything no board has
+recorded keeps the best case and says so. Your own board diary is left
+out of the arithmetic on purpose: it records where a thing was and never
+where it was not, and a sample with no absences in it cannot measure
+absence.
+
+Every row also carries the ways the plan could not put a number on —
+what drops it, the worker node, the bulk exchange — because *nothing
+else sells it* is true of shops and false of Khan.
 
 ---
 
