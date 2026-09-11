@@ -65,7 +65,9 @@ function priceLine(item) {
 	const st = marketStatus();
 	const where = (MARKET_REGIONS.find(r => r[0] === marketRegion()) || ['', ''])[1];
 	if (!p) {
-		return `<div class="card-line">No price yet for ${esc(where)}. <button class="chart-link" data-act="view" data-id="get">To Get refreshes them →</button></div>`;
+		// The asking used to live on To Get; it is the Region chip in the
+		// bar now, which is on whatever screen this card was opened over.
+		return `<div class="card-line">No price yet for ${esc(where)} — the Region chip in the bar above asks again.</div>`;
 	}
 	return `<div class="card-row"><span>Central Market · ${esc(where)}</span><span class="n">${F(p)} silver</span></div>`
 		+ (st && st.stale ? '<div class="card-more">last checked a while ago</div>' : '');

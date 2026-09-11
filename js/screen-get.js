@@ -3,13 +3,13 @@
 // price.
 //
 // What the forecast needs to know about the player -- the barter count,
-// the level, the Parley and the pack -- used to be typed into a tile in
-// this screen's summary. It is in the shell's bar now (js/profile-bar.js),
-// where every screen that reads it can be corrected from, so this one
-// keeps to the list.
+// the level, the Parley, the pack, and the region every Market price is
+// quoted in -- used to be typed into tiles in this screen's summary. It
+// is in the shell's bar now (js/profile-bar.js), where every screen that
+// reads it can be corrected from, so this one keeps to the list.
 
 import { items as vendorItems, bulkExchanges } from './vendor_items.js';
-import { marketSilver, marketStatus, REGIONS as MARKET_REGIONS } from './market.js';
+import { marketSilver } from './market.js';
 import { questsFor } from './quests.js';
 import { coins } from './sea_coins.js';
 import { falasi } from './falasi_vendor.js';
@@ -23,7 +23,7 @@ import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
 import { img, codexName, costCtx, costText, groundsFor } from './ui-bits.js';
 import {
-	snapshot, barterData, barterOpts, totalsToGo, query, recipes, CROW_COIN, SILVER
+	snapshot, barterData, barterOpts, totalsToGo, query, setQuery, rows, recipes, CROW_COIN, SILVER
 } from './ui-state.js';
 import { shoppingList, waysToGet, yieldOf } from './planner.js';
 import { coinBuyButton } from './coin-shop.js';
@@ -71,62 +71,97 @@ export function barterLookup(item, qty = 1) {
 	return { npcs, gives, plan };
 }
 
+/* ------------------------------------------------------------------ *
+ * still to get
+ * ------------------------------------------------------------------ */
+
+// How many of the outstanding things the band shows before it asks. A
+// full Carrack short-list runs to forty-odd icons, which is four rows
+// of the window before the plan below it starts; eighteen is two rows
+// on a laptop and says "and twenty-seven more" for the rest. A glance,
+// not a preference, so it is not kept.
+const FIRST = 18;
+let allWanted = false;
+
 /**
- * The Market's prices: which region, how old, and a way to ask again.
- * Shown as a fact about the numbers above it, because a plan priced off
- * last Tuesday's plywood should say so.
+ * Still to get: every outstanding thing as its own icon and number.
+ *
+ * This band used to be four tiles -- the coins, the silver, the line
+ * count, the Market region -- and every one of them was said better
+ * somewhere else by the time the bar and the plan card existed: the
+ * purse chips hold the coins and the silver, the plan card totals what
+ * it is going to spend, and the region belongs to the sailor rather
+ * than to this screen (it is a chip in the bar now, beside the pouch).
+ *
+ * What was left unsaid was the shape of the job: how many distinct
+ * things are short, and which. So that is what it says now -- the
+ * icons and the numbers, biggest shortfall first, tinted by the money
+ * each one wants. It is also the screen's coarse filter: a press puts
+ * one thing in the search below, which is the fastest way from "what
+ * am I missing" to "so how do I get that one".
  */
-function marketTile() {
-	const s = marketStatus();
-	const options = MARKET_REGIONS.map(([id, label]) =>
-		`<option value="${id}"${id === s.region ? ' selected' : ''}>${label}</option>`).join('');
-	const age = !s.at ? 'no prices yet'
-		: `${s.count} priced · ${ageText(Date.now() - s.at)}${s.failed ? ' · some unanswered' : ''}`;
-	return `<div>
-		<div class="summary-k">Market prices</div>
-		<div class="summary-v"><select class="purse-inline" data-act="market-region" aria-label="Which region's Central Market">${options}</select></div>
-		<div class="summary-sub">${esc(age)} · <button class="linky" data-act="market-refresh">refresh</button></div>
+function stillToGet(q) {
+	const totals = totalsToGo();
+	const market = marketSilver();
+	// The two currencies are in the pouch above, priced and held; here
+	// they would be two icons with no source and no recipe.
+	const wanted = Object.entries(snapshot.missing || {})
+		.filter(([item, qty]) => qty > 0 && item !== CROW_COIN && item !== SILVER)
+		.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
+	const cost = [
+		totals.coins ? `${F(totals.coins)} coins` : '',
+		totals.silver ? `${FC(totals.silver)} silver` : ''
+	].filter(Boolean).join(' and ');
+	const said = !wanted.length
+		? 'nothing outstanding'
+		: `${F(wanted.length)} thing${wanted.length === 1 ? '' : 's'} short${cost ? ` · ${cost} to cover what is bought` : ''}`;
+
+	const shown = allWanted ? wanted : wanted.slice(0, FIRST);
+	const tiles = shown.map(([item, n]) => {
+		const r = rows[item] || {};
+		// A yield of ten from one batch leaves fractions in the plan; a
+		// manifest is a thing you carry, so it says whole items.
+		const qty = Math.ceil(n);
+		const need = Math.ceil(r.need || n);
+		const have = Math.max(0, need - qty);
+		const each = coins[item] || 0;
+		const silver = falasi[item] || market[item] || 0;
+		const tone = each ? 'amber' : silver ? 'blue' : '';
+		const on = q && item.toLowerCase() === q;
+		const price = each ? `${F(each)} coins each` : silver ? `${FC(silver)} silver each` : 'no shop sells it';
+		return `<button class="want ${tone}${on ? ' on' : ''}" data-act="get-only" data-item="${esc(item)}"
+			data-peek="${esc(item)}" aria-pressed="${on ? 'true' : 'false'}"
+			title="${esc(item)} — ${F(qty)} short of ${F(need)} · ${esc(price)}. Press to show only this below.">
+			${img(item, 'want-icon')}
+			<span class="want-n">${F(qty)}</span>
+			<span class="want-name">${esc(item)}</span>
+			<span class="want-of">${have ? `${F(have)} of ${F(need)} in hand` : 'none in hand'}</span>
+		</button>`;
+	}).join('');
+
+	const more = wanted.length > FIRST
+		? `<button class="linky want-more" data-act="get-all-wanted">${allWanted
+			? 'show fewer'
+			: `and ${F(wanted.length - FIRST)} more`}</button>`
+		: '';
+
+	return `<div class="summary want-band">
+		<div class="want-head">
+			<span class="summary-title">Still to get</span>
+			<span class="want-said">${esc(said)}</span>
+			<div class="get-copy">
+				<button class="ghost-btn" data-act="copy">Copy list</button>
+				<button class="ghost-btn" data-act="copy-csv" title="The same list as rows for a spreadsheet: group, item, quantity, unit cost, note">Copy as CSV</button>
+			</div>
+		</div>
+		${wanted.length ? `<div class="want-grid">${tiles}${more}</div>` : ''}
 	</div>`;
 }
 
-const ageText = ms => ms < 60_000 ? 'just now'
-	: ms < 3_600_000 ? `${Math.round(ms / 60_000)} min ago`
-	: ms < 86_400_000 ? `${Math.round(ms / 3_600_000)} h ago`
-	: `${Math.round(ms / 86_400_000)} d ago`;
-
 export function renderGet() {
-	const totals = totalsToGo();
 	const q = query.toLowerCase();
-
-	const purseCoins = store.getStock(CROW_COIN);
-	const purseSilver = store.getStock(SILVER);
-	const coinsShort = Math.max(0, totals.coins - purseCoins);
-	const silverShort = Math.max(0, totals.silver - purseSilver);
-
-	const money = (label, need, held, short, cls, item) => `<div>
-		<div class="summary-k">${esc(label)}</div>
-		<div class="summary-v ${short ? cls : 'teal'}">${F(short)} short</div>
-		<div class="summary-sub">${F(need)} needed · <input class="purse-inline" type="text" inputmode="numeric"
-			value="${F(held)}" data-act="purse" data-item="${esc(item)}" aria-label="${esc(label)} you hold"> held</div>
-	</div>`;
-
-	const summary = `<div class="summary">
-		<span class="summary-title">Still to get</span>
-		<div class="summary-stats">
-			${money('Crow Coins', totals.coins, purseCoins, coinsShort, 'amber', CROW_COIN)}
-			${money('Silver', totals.silver, purseSilver, silverShort, 'blue', SILVER)}
-			<div>
-				<div class="summary-k">Line items</div>
-				<div class="summary-v">${F(totals.lines)}</div>
-				<div class="summary-sub">distinct things to obtain</div>
-			</div>
-			${marketTile()}
-		</div>
-		<div class="get-copy">
-			<button class="ghost-btn" data-act="copy">Copy list</button>
-			<button class="ghost-btn" data-act="copy-csv" title="The same list as rows for a spreadsheet: group, item, quantity, unit cost, note">Copy as CSV</button>
-		</div>
-	</div>`;
+	const summary = stillToGet(q);
 
 	const modes = [['plan', 'The way to get it', 'One way an item, chosen against the others: the quests, the purse, the lists, in the days it takes'], ['source', 'Every way', 'Everything outstanding grouped by where it is got, with every other way under each']];
 	const controls = `<div class="controls">
@@ -261,7 +296,7 @@ const STEPS = {
 	coin: { tone: 'amber', title: 'Buy at the Crow Coin Shop', sub: "The shop is at Oquilla's Eye. Pay with what you hold and what the quests bring in." },
 	barter: { tone: 'blue', title: 'Barter for these at sea', sub: 'Paced by how often the boards recorded each offer on the list.' },
 	falasi: { tone: 'blue', title: 'Buy from Falasi', sub: 'Philaberto Falasi, at the port of Epheria.' },
-	market: { tone: 'blue', title: 'Buy on the Central Market', sub: 'Priced as the market last sold them, in the region you picked above.' },
+	market: { tone: 'blue', title: 'Buy on the Central Market', sub: 'Priced as the market last sold them, in the region set on the sailor chip in the bar.' },
 	find: { tone: 'red', title: 'Go and get these', sub: 'Nothing publishes a rate for any of these, so none of them is counted in the days.' },
 	hunt: { tone: 'red', title: 'Hunt these at sea', sub: 'Sea monster drops. No timer on them — they come when they come.' },
 	short: { tone: 'red', title: 'Not reachable yet', sub: 'What the purse and the horizon between them could not cover.' }
@@ -560,6 +595,15 @@ function coinFoot(way) {
 export function getAction(act, el) {
 	switch (act) {
 		case 'get-mode': setGetMode(el.dataset.id); return true;
+		// A press on one of the icons in Still to get: the coarse filter
+		// this screen never had. The same press again gives the whole
+		// list back, so the band is a toggle rather than a trap.
+		case 'get-only': {
+			const item = el.dataset.item || '';
+			setQuery(query.toLowerCase() === item.toLowerCase() ? '' : item);
+			return true;
+		}
+		case 'get-all-wanted': allWanted = !allWanted; return true;
 		case 'get-fold': {
 			const id = el.dataset.id;
 			if (folded.has(id)) folded.delete(id); else folded.add(id);

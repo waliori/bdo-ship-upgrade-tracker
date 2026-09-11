@@ -953,6 +953,14 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 	.readybar-list { flex-wrap: nowrap; overflow-x: auto; }
 	.summary { padding: 12px 14px; }
 	.summary-stats { gap: 12px 18px; }
+	/* The manifest: narrower tiles, and the count on its own line --
+	   the summary's title takes the width here, and what is left is a
+	   column two words wide. */
+	.want { width: 72px; }
+	.want-grid { gap: 6px; }
+	.want-icon { width: 30px; height: 30px; }
+	#screen .want-said { flex: 1 1 100%; }
+	.want-head { gap: 8px 14px; }
 	.map-side { width: min(300px, 82vw); }
 	.map-panel .map { min-height: 60vh; }
 	.status-bar { font-size: 11.5px; padding: 6px 10px; }

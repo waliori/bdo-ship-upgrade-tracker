@@ -92,16 +92,20 @@ and says so; blank means the quoted rate.
 
 Everything still missing, grouped by how you actually obtain it — Crow
 Coin Shop, Falasi's silver, barter, worker nodes, hunting — with running
-totals measured against what's in your purse. The list copies as text
-or as CSV, and prints legibly on white.
+totals measured against what's in your purse. It opens on **Still to
+get**: the icons and the numbers of everything short, biggest first,
+tinted by the money each one wants — and a press on any of them narrows
+the whole screen to that one thing. The list copies as text or as CSV,
+and prints legibly on white.
 
 **Total Barters follows your runs.** Recording a run adds its trades to
 the count that opens the next trade route, in the same change as the
 goods and the silver — one Undo takes back all of it — and a run that
 carries you past a threshold says which route it opened. It stays a
 field you can type over when it and the game drift apart; it lives in
-the bar above the tabs, with the barter level, the Parley and the
-vouchers, because it is read by every screen and not only this one.
+the bar above the tabs, with the barter level, the Parley, the vouchers,
+the Sailing Mastery and the region the prices are quoted in, because
+they are read by every screen and not only this one.
 
 **And it decides which islands exist.** The game opens the trade routes
 island by island as that count climbs — 600 barters opens Lantinia's
@@ -723,7 +727,9 @@ claimed reward in your stock.
 their lists; what only the Central Market sells — plywood, ingots, saps —
 is priced from the Market itself, per region, relayed by the server from
 the community market API and remembered so the plan stays priced offline.
-The shopping list says how old the numbers are and lets you ask again.
+The region is the sailor's own — a chip in the bar above the tabs, beside
+the barter count — and it says how old the numbers are and lets you ask
+again from wherever you are standing.
 
 **Mass Process** can be ticked when recording a craft of the yellow
 materials, so the Black Stone Powder it takes leaves your stock too.

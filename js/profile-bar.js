@@ -1,15 +1,17 @@
 // The sailor's own numbers, on every tab.
 //
-// Seven things about the player decide what half the app says: how many
+// Eight things about the player decide what half the app says: how many
 // barters they have made, what barter level they hold, the Parley in
 // the bar, the vouchers in the bag, whether a Value Pack is up, how
-// many draws that buys a day, and their Sailing Mastery. The barter
-// count alone decides which islands exist for them, which chains are
-// sailable, and which materials can be got at all.
+// many draws that buys a day, their Sailing Mastery, and the region
+// they play. The barter count alone decides which islands exist for
+// them, which chains are sailable, and which materials can be got at
+// all; the region is what every Market price in the app is quoted in.
 //
 // They used to be typed into a tile on To Get and a field on the Ship
 // tab -- read everywhere, corrected in two places neither of which is
-// where the answer is read. So they sit beside the pouch instead, in
+// where the answer is read. The region was worse: it priced the whole
+// app from a select in one screen's summary. So they sit beside the pouch instead, in
 // the shell above the tabs: entered once, in view from every screen.
 // Nothing here is per-screen state; every chip writes to the profile
 // through the same data-act the rest of the app already answers.
@@ -18,8 +20,8 @@
 // to the top of every screen, and seven fields down there would cost a
 // second row of the window on every tab for something typed once a
 // week. Folded, the numbers are still said -- the count, the level,
-// the day's draws, the next island it opens -- and one press puts the
-// fields under them.
+// the day's draws, the region the prices are in, the next island it
+// opens -- and one press puts the fields under them.
 
 import { esc, F } from './fmt.js';
 import * as store from './state.js';
@@ -30,6 +32,7 @@ import { npcById } from './barter_npcs.js';
 import { mateAtTheHelm, masteryBonus } from './ship.js';
 import { anyType } from './sailors.js';
 import { openDialog } from './dialogs.js';
+import { REGIONS as MARKET_REGIONS, region as marketRegion, priceAge } from './market.js';
 
 /** Open for typing, or folded into the line that reports it. Kept. */
 const open = () => store.getSetting('sailBarOpen', false) === true;
@@ -64,6 +67,10 @@ function mateCut() {
 	return ashore ? `seat ${esc(ashore.name)} as First Mate for −10%` : '';
 }
 
+/** The region as the chip says it: "NA", not "na". */
+const regionLabel = () =>
+	(MARKET_REGIONS.find(([id]) => id === marketRegion()) || ['', '—'])[1];
+
 /** Folded: everything the chips say, in one chip, with the fields one
  *  press away. */
 function summaryHTML(p) {
@@ -72,7 +79,8 @@ function summaryHTML(p) {
 	const said = [
 		`${F(p.barterCount)} barters`,
 		p.level || 'no level',
-		`${F(day.lists.trade)}+${F(day.lists.material)} draws`
+		`${F(day.lists.trade)}+${F(day.lists.material)} draws`,
+		regionLabel()
 	].join(' · ');
 	// Nought barters is what the game gives a sailor who has never
 	// bartered -- three routes and no more -- and the app plans on it.
@@ -80,7 +88,7 @@ function summaryHTML(p) {
 	// number the sea is planned from asks for itself until it is given.
 	const blank = !p.barterCount;
 	return `<button class="pouch-item sail summary${blank ? ' asking' : ''}" data-act="sail-bar" aria-expanded="false"
-		title="Your barter count, level, Parley, vouchers, Value Pack and Sailing Mastery — everything the sea is planned from. Press to set them.">
+		title="Your barter count, level, Parley, vouchers, Value Pack, Sailing Mastery and region — everything the sea is planned and priced from. Press to set them.">
 		<span class="pouch-glyph" aria-hidden="true">⇄</span>
 		<span class="pouch-body">
 			<span class="pouch-k">The sailor</span>
@@ -133,6 +141,9 @@ export function profileHTML() {
 	const levels = barterLevels().map(name =>
 		`<option${name === p.level ? ' selected' : ''}>${esc(name)}</option>`).join('');
 
+	const regions = MARKET_REGIONS.map(([id, label]) =>
+		`<option value="${id}"${id === marketRegion() ? ' selected' : ''}>${esc(label)}</option>`).join('');
+
 	return [
 		title,
 		chip('barters', '⇄', 'Total barters', num('barter-count', p.barterCount, 'Your Total Barters'),
@@ -171,7 +182,19 @@ export function profileHTML() {
 		chip('mastery', '⚓', 'Sailing mastery',
 			num('crew-mastery', mastery, 'Sailing mastery', ' data-from="bar"'),
 			mastery ? `+${masteryBonus(mastery)}% speed, turn, brake` : 'adds to speed, turn and brake',
-			'Sailing Mastery as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000')
+			'Sailing Mastery as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000'),
+
+		// The server you play on, which is a fact about the sailor and
+		// not about any one screen: every Market price in the app -- the
+		// buy list, the item cards, what a barter's cargo would have
+		// sold for -- is quoted in this region's silver, and Vell's
+		// timetable is read from it too. It lived in a tile on To Get,
+		// which priced the whole app from a select most people never
+		// scrolled to.
+		chip('region', '⊕', 'Region',
+			`<select class="pouch-input select" data-act="market-region" aria-label="Which region's Central Market prices the plan">${regions}</select>`,
+			`${esc(priceAge())} · <button class="linky" data-act="market-refresh">refresh</button>`,
+			"The region your Central Market prices come from, and the one Vell's times are read for. Every silver figure in the app is this region's.")
 	].join('');
 }
 

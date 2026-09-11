@@ -937,7 +937,14 @@ function wire() {
 			case 'import': return doImport();
 			case 'reset': return doReset();
 			case 'market-refresh':
-				loadMarket({ force: true }).then(ok => toast(ok ? 'Market prices refreshed' : 'The Market did not answer — showing the last prices it gave'));
+				loadMarket({ force: true }).then(ok => {
+					toast(ok ? 'Market prices refreshed' : 'The Market did not answer — showing the last prices it gave');
+					// The button that asked is in the bar, and so is the
+					// line that says how old the prices are: the render
+					// the new prices fire cannot repaint a bar the focus
+					// is standing in, so this one asks for it.
+					paintPouch({ force: true });
+				});
 				return;
 			case 'water': toggleWater(); if (keeps) openTabSheet(); return;
 			case 'theme': cycleTheme(); if (keeps) openTabSheet(); return;
@@ -1364,8 +1371,14 @@ function wire() {
 			return openGameExport();
 		}
 
+		// The region every Market price in the app is quoted in. It is a
+		// chip in the bar, so the age line beside it is repainted here
+		// rather than waiting for the focus to leave the select.
 		const mreg = evt.target.closest('[data-act="market-region"]');
-		if (mreg) return setMarketRegion(mreg.value);
+		if (mreg) {
+			setMarketRegion(mreg.value);
+			return paintPouch({ force: true });
+		}
 
 		// The plan's orders: the days a week at sea, and the coins kept
 		// back. The activity chips are buttons and answer a click.

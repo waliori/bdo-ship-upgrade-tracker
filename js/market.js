@@ -162,3 +162,19 @@ export function setRegion(id) {
 	store.setSetting('marketRegion', id);
 	loadMarket({ force: true });
 }
+
+/**
+ * How old the prices in hand are, in the words every screen says it
+ * with. One phrase in one place, because the region chip in the bar and
+ * the item card both report it and they must not disagree.
+ */
+export function priceAge() {
+	const s = marketStatus();
+	if (!s.at) return 'no prices yet';
+	const ms = Date.now() - s.at;
+	const when = ms < 60_000 ? 'just now'
+		: ms < 3_600_000 ? `${Math.round(ms / 60_000)} min ago`
+		: ms < 86_400_000 ? `${Math.round(ms / 3_600_000)} h ago`
+		: `${Math.round(ms / 86_400_000)} d ago`;
+	return `${s.count} priced · ${when}${s.failed ? ' · some unanswered' : ''}`;
+}

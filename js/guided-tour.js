@@ -262,7 +262,7 @@ class GuidedTour {
 				element: '#pouch',
 				popover: {
 					title: 'What you are carrying',
-					description: 'Coins, silver and enhancement stones sit above every tab, because you spend them from every tab. Type in what you have and each one tells you whether it covers your builds or how far <b>short</b> you are.',
+					description: 'Coins, silver and enhancement stones sit above every tab, because you spend them from every tab. Type in what you have and each one tells you whether it covers your builds or how far <b>short</b> you are.<br><br>Beside them, <b>The sailor</b>: your total barters, barter level, Parley, vouchers, Value Pack, Sailing Mastery and the region your Market prices come from. Press it to open the fields — they are read by every screen, so they are set once, here.',
 					side: 'bottom'
 				},
 				before: () => goToTab('plan')
@@ -328,7 +328,7 @@ class GuidedTour {
 				element: '.summary',
 				popover: {
 					title: 'The shopping list',
-					description: 'Everything still missing, with running totals you can copy out. <b>The way to get it</b> reads the whole list at once and gives each thing one way — the quests, the Crow Coin Shop, barter, Falasi, the Market — with its reason on the line and the days it takes, following the goal you pick above it.<br><br><b>Every way</b> is the other reading: grouped by where a thing is got, each line pricing the whole quantity, with what making it instead would cost.',
+					description: 'Everything still missing, as its own icon and number — biggest shortfall first, tinted by the money it wants, and a press on any of them narrows the screen to that one thing. The whole list copies out as text or CSV. <b>The way to get it</b> reads the whole list at once and gives each thing one way — the quests, the Crow Coin Shop, barter, Falasi, the Market — with its reason on the line and the days it takes, following the goal you pick above it.<br><br><b>Every way</b> is the other reading: grouped by where a thing is got, each line pricing the whole quantity, with what making it instead would cost.',
 					side: 'bottom'
 				},
 				before: () => goToTab('get')
