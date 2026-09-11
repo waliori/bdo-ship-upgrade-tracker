@@ -29,9 +29,9 @@ import { img } from './ui-bits.js';
 import { barterProfile } from './ui-state.js';
 import { dailyCapacity, barterLevels, levelDiscount, npcGates, ROUTE_UNLOCKS } from './barter.js';
 import { npcById } from './barter_npcs.js';
-import { mateAtTheHelm, masteryBonus, bosnJacks, bosnAlpha, petWeight } from './ship.js';
+import { mateAtTheHelm, masteryBonus, bosnJacks, bosnAlpha, petLT, setPets, PET_SLOTS } from './ship.js';
 import { anyType } from './sailors.js';
-import { openDialog } from './dialogs.js';
+import { openDialog, closeDialog } from './dialogs.js';
 import { REGIONS as MARKET_REGIONS, region as marketRegion, priceAge } from './market.js';
 
 /** Open for typing, or folded into the line that reports it. Kept. */
@@ -104,40 +104,46 @@ function summaryHTML(p) {
 /** The tier names, as the pet window says them. */
 const TIER_NAME = ['no pet', 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4', 'Tier 5'];
 
+/** The birds themselves, filled or not, at whatever size they are being
+ *  read at. Shown, never pressed: the row is a picture of the nest, and
+ *  the editor behind it is where it is changed. */
+const petBirds = (tiers, cls = '') => `<span class="pet-pips${cls ? ` ${cls}` : ''}">${tiers
+	.map(t => `<span class="pet-pip t${t}" title="${esc(TIER_NAME[t])}">${img("Bos'n Jack", 'pet-pic')}<i aria-hidden="true">${t || ''}</i></span>`)
+	.join('')}</span>`;
+
+/** What the birds are worth, said the way the hold will say it. */
+function petSub(tiers, alpha) {
+	const lt = petLT(tiers, alpha);
+	return lt ? `+${F(lt)} LT on big ships` : 'adds to a big ship\'s hold';
+}
+
 /**
- * The five pets as five birds, each pressed round its tiers.
+ * The nest, as one chip that opens onto the editor.
  *
- * A count and a tier typed as numbers would have been two fields for
- * something that is really one picture -- five slots, filled or not --
- * and the game itself shows it as a row of pets. So: press a bird,
- * it steps to the next tier and round to empty again. The ring is the
- * grade colour the tier wears in the pet window, and the numeral is
- * there because colour alone is no answer to anyone who cannot see it.
+ * It was five buttons pressed round their tiers, which is up to twenty
+ * presses to say "five tier fours" -- each of them a write to the save
+ * and a redraw of every screen that reads the hold. So the row of birds
+ * is only ever read here now, and the choosing happens in a grid where
+ * a tier is one press and the whole nest is one.
  */
-function petPips() {
-	const jacks = bosnJacks();
+function petsHTML() {
+	const tiers = bosnJacks();
 	const alpha = bosnAlpha();
-	const pips = jacks.map((t, i) => `<button type="button" class="pet-pip t${t}" data-act="pet-tier" data-slot="${i}" data-tier="${t}"
-		title="${esc(TIER_NAME[t])}${t ? ` — Big Ship Inventory Weight +${50 * Math.min(t, 4)} LT` : ' in this slot'}. Press for the next tier."
-		aria-label="Pet ${i + 1}: ${esc(TIER_NAME[t])}">${img("Bos'n Jack", 'pet-pic')}<i aria-hidden="true">${t || ''}</i></button>`).join('');
-	// The Alpha is only ever worth anything on a tier 5, so the star is
-	// only ever offered when there is one to put it on.
-	const star = jacks.includes(5)
-		? `<button type="button" class="pet-alpha${alpha ? ' on' : ''}" data-act="pet-alpha"
-			title="Your Alpha Pet's talent goes up one level, which on a Tier 5 Bos'n Jack is +250 LT instead of +200. Only one pet can be the Alpha."
-			aria-pressed="${alpha}" aria-label="One of them is the Alpha Pet">★</button>`
-		: '';
-	return `<span class="pet-pips">${pips}${star}</span>`;
-}
-
-/** What the birds are worth, said against the hull it is worth it on. */
-function petSub() {
-	const lt = petWeight('Epheria Caravel');
-	if (!lt) return 'adds to a big ship\'s hold';
-	return `+${F(lt)} LT on big ships`;
+	const on = tiers.filter(Boolean).length;
+	return `<button class="pouch-item sail pets" data-act="pets"
+		title="The Bos'n Jacks you have summoned. Each one's talent is Big Ship Inventory Weight — +50 LT a tier, stacking across the five pets the game lets out at once. It counts on the Epheria line, the Carracks and the Panokseon only. Press to set them.">
+		${img("Bos'n Jack", 'pouch-icon')}
+		<span class="pouch-body">
+			<span class="pouch-k">Bos'n Jacks</span>
+			${petBirds(tiers)}
+			<span class="pouch-need">${esc(petSub(tiers, alpha))}${on && alpha ? ' · one Alpha' : ''}</span>
+		</span>
+		<span class="pouch-fold" aria-hidden="true">✎</span>
+	</button>`;
 }
 
 /**
+ * The chips, built to the pouch's own shape/**
  * The chips, built to the pouch's own shape -- picture, label, value, a
  * line of consequence under it -- because they are read the same way
  * and sit in the same strip. The consequence is the point of each one:
@@ -231,18 +237,99 @@ export function profileHTML() {
 		// game whose talent is ship weight, and it is the player's
 		// rather than the ship's -- the same five birds follow you onto
 		// whichever hull you sail -- so it is asked for here and not on
-		// the Ship tab. Five slots, one a pet, each pressed round its
-		// tiers; the tier is said in the game's own grade colours,
-		// white through orange, because that is how it is read in the
-		// pet window.
-		chip('pets', img("Bos'n Jack", 'pouch-icon'), "Bos'n Jacks", petPips(), petSub(),
-			"The Bos'n Jacks you have summoned. Each one's talent is Big Ship Inventory Weight — +50 LT a tier, and they stack across the five pets the game lets out at once. It counts on the Epheria line, the Carracks and the Panokseon only; nothing is added to a Cog, a rowboat or the Bartali. Press a bird to step it through its tiers."),
+		// the Ship tab.
+		petsHTML(),
 
 		chip('region', '⊕', 'Region',
 			`<select class="pouch-input select" data-act="market-region" aria-label="Which region's Central Market prices the plan">${regions}</select>`,
 			`${esc(priceAge())} · <button class="linky" data-act="market-refresh">refresh</button>`,
 			"The region your Central Market prices come from, and the one Vell's times are read for. Every silver figure in the app is this region's.")
 	].join('');
+}
+
+/**
+ * The pets aboard: a grid, because a nest is a small table of facts.
+ *
+ * Five slots down the side, the six tiers across -- none, then 1 to 5 --
+ * and every cell one press. The header row sets all five at once, which
+ * is the answer most of the time: pets are fed up together, and a
+ * player with five Bos'n Jacks usually has five of the same tier. The
+ * mixed nest is still one press a bird, and never more.
+ *
+ * The whole thing is a draft until Save. Nothing touches the profile
+ * while it is open, so pressing around costs a class on a button and
+ * nothing else -- no write, no history entry, and no redraw of the
+ * screens that plan against the hold.
+ */
+export function openPets() {
+	let tiers = bosnJacks();
+	let alpha = bosnAlpha();
+
+	const cell = (tier, slot) => `<button type="button" class="pet-cell t${tier}"
+		data-slot="${slot === null ? '' : slot}" data-tier="${tier}"
+		aria-label="${slot === null ? `All five at ${TIER_NAME[tier]}` : `Pet ${slot + 1}: ${TIER_NAME[tier]}`}"
+		title="${slot === null ? `Set all five to ${TIER_NAME[tier]}` : TIER_NAME[tier]}">${tier || '—'}</button>`;
+
+	const head = `<div class="pet-row head">
+		<span class="pet-row-k">all five</span>
+		${[0, 1, 2, 3, 4, 5].map(t => cell(t, null)).join('')}
+	</div>`;
+
+	const rows = Array.from({ length: PET_SLOTS }, (_, i) => `<div class="pet-row" data-row="${i}">
+		<span class="pet-row-k">${img("Bos'n Jack", 'pet-row-pic')}<b>Pet ${i + 1}</b></span>
+		${[0, 1, 2, 3, 4, 5].map(t => cell(t, i)).join('')}
+	</div>`).join('');
+
+	const host = openDialog(`
+		<h2>The pets aboard</h2>
+		<p class="dialog-copy"><b>Bos'n Jack</b> is the one pet in the game whose talent is ship weight: <i>Big Ship Inventory Weight</i>, fifty LT a tier, and it stacks across the five pets you can have out at once. It counts on the Epheria line, the Carracks and the Panokseon — not on a Cog, a rowboat or the Bartali.</p>
+		<div class="pet-grid">${head}${rows}</div>
+		<label class="pet-alpha-row"><input type="checkbox" data-pet-alpha> <span>One of them is my <b>Alpha Pet</b><i>The Alpha's talent goes up a level, which on a Tier 5 is +250 LT instead of +200. Only one pet can be the Alpha.</i></span></label>
+		<div class="pet-sum"><span class="pet-sum-birds"></span><b class="pet-sum-lt"></b></div>
+		<div class="dialog-actions">
+			<button class="ghost-btn" data-close>Cancel</button>
+			<button class="act" data-pet-save>Save</button>
+		</div>`);
+
+	// The draft, drawn. Only classes, a checkbox and two spans move, so
+	// a press is a repaint of this dialog and nothing else.
+	const paint = () => {
+		for (const b of host.querySelectorAll('.pet-row:not(.head) .pet-cell')) {
+			b.classList.toggle('on', tiers[Number(b.dataset.slot)] === Number(b.dataset.tier));
+		}
+		const five = tiers.every(t => t === tiers[0]) ? tiers[0] : -1;
+		for (const b of host.querySelectorAll('.pet-row.head .pet-cell')) {
+			b.classList.toggle('on', Number(b.dataset.tier) === five);
+		}
+		const box = host.querySelector('[data-pet-alpha]');
+		// An Alpha is only ever worth anything on a tier 5, so the offer
+		// is only ever live when there is one for it to sit on.
+		box.disabled = !tiers.includes(5);
+		box.checked = alpha && !box.disabled;
+		host.querySelector('.pet-alpha-row').classList.toggle('off', box.disabled);
+		host.querySelector('.pet-sum-birds').innerHTML = petBirds(tiers, 'lg');
+		host.querySelector('.pet-sum-lt').textContent = petSub(tiers, alpha && tiers.includes(5));
+	};
+
+	host.addEventListener('click', evt => {
+		const b = evt.target.closest('.pet-cell');
+		if (!b) return;
+		const tier = Number(b.dataset.tier);
+		if (b.dataset.slot === '') tiers = tiers.map(() => tier);
+		else tiers[Number(b.dataset.slot)] = tier;
+		if (!tiers.includes(5)) alpha = false;
+		paint();
+	});
+	host.querySelector('[data-pet-alpha]').addEventListener('change', e => { alpha = e.target.checked; paint(); });
+	host.querySelector('[data-pet-save]').addEventListener('click', () => {
+		setPets(tiers, alpha);
+		closeDialog();
+	});
+	paint();
+	// The dialog focuses its first control by itself, which here is
+	// "set all five to none" -- a ring around the one cell that undoes
+	// the nest, and one Space from doing it. Save is the safe landing.
+	host.querySelector('[data-pet-save]').focus({ preventScroll: true });
 }
 
 /**

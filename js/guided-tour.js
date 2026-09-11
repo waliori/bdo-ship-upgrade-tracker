@@ -262,7 +262,7 @@ class GuidedTour {
 				element: '#pouch',
 				popover: {
 					title: 'What you are carrying',
-					description: 'Coins, silver and enhancement stones sit above every tab, because you spend them from every tab. Type in what you have and each one tells you whether it covers your builds or how far <b>short</b> you are.<br><br>Beside them, <b>The sailor</b>: your total barters, barter level, Parley, vouchers, Value Pack, Sailing Mastery, the Bos'n Jacks you have out and the region your Market prices come from. Press it to open the fields — they are read by every screen, so they are set once, here.',
+					description: 'Coins, silver and enhancement stones sit above every tab, because you spend them from every tab. Type in what you have and each one tells you whether it covers your builds or how far <b>short</b> you are.<br><br>Beside them, <b>The sailor</b>: your total barters, barter level, Parley, vouchers, Value Pack, Sailing Mastery, the Bos\'n Jacks you have out and the region your Market prices come from. Press it to open the fields — they are read by every screen, so they are set once, here.',
 					side: 'bottom'
 				},
 				before: () => goToTab('plan')

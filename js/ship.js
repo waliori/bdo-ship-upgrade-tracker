@@ -179,31 +179,37 @@ export function bosnAlpha() {
 	return store.getProfile('bosnAlpha', false) === true && bosnJacks().includes(5);
 }
 
-/** What the pets add to a hull's limit, in LT: nothing at all on
- *  anything the game does not call a Big Ship. */
-export function petWeight(ship, tiers = bosnJacks(), alpha = bosnAlpha()) {
-	if (!bigShips.has(ship)) return 0;
+/** What a nest of birds is worth, in LT, before any hull is named: what
+ *  the editor counts up as it is being set out. */
+export function petLT(tiers = bosnJacks(), alpha = bosnAlpha()) {
 	const lt = tiers.reduce((sum, t) => sum + (PET_LT[t] || 0), 0);
 	return lt + (alpha && tiers.includes(5) ? ALPHA_LT : 0);
 }
 
-/** Set one of the five slots to a tier, 0 for an empty slot. The Alpha
- *  goes with the last tier 5 to leave. */
-export function setBosnJack(slot, tier) {
-	if (!(slot >= 0 && slot < PET_SLOTS)) return null;
-	const next = bosnJacks();
-	next[slot] = Math.max(0, Math.min(5, Math.floor(Number(tier) || 0)));
+/** And what they add to a hull's limit: the same, or nothing at all on
+ *  anything the game does not call a Big Ship. */
+export function petWeight(ship, tiers = bosnJacks(), alpha = bosnAlpha()) {
+	return bigShips.has(ship) ? petLT(tiers, alpha) : 0;
+}
+
+/**
+ * The whole row at once, and the Alpha with it.
+ *
+ * One write, not five: the editor holds its own draft while it is open
+ * and lands it here when it is done, so setting out a full nest of
+ * birds is a single change, a single entry in the history, and a
+ * single pass over the screens that read the hold. Pressing each bird
+ * round its tiers wrote the save and redrew the app twenty times to
+ * say "five tier fours", which is what an editor is for.
+ */
+export function setPets(tiers, alpha = false) {
+	const next = Array.from({ length: PET_SLOTS }, (_, i) =>
+		Math.max(0, Math.min(5, Math.floor(Number((tiers || [])[i]) || 0))));
 	while (next.length && !next[next.length - 1]) next.pop();
 	return store.setProfileMany({
 		bosnJacks: next.length ? next : null,
-		bosnAlpha: next.includes(5) && store.getProfile('bosnAlpha', false) === true ? true : null
+		bosnAlpha: alpha === true && next.includes(5) ? true : null
 	}, 'Changed the pets aboard');
-}
-
-/** Make one of the tier 5s your Alpha Pet, or stop. */
-export function toggleBosnAlpha() {
-	if (!bosnJacks().includes(5)) return null;
-	return store.setProfile('bosnAlpha', !(store.getProfile('bosnAlpha', false) === true), 'Changed the Alpha Pet');
 }
 
 

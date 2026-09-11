@@ -579,31 +579,31 @@ button.pouch-group i { font-style: normal; font-size: 9px; }
    icon is a square tile with a tail in the corner of it: a circle cuts
    the bird, and the game's own slots are square anyway.
 
+   The birds are read, never pressed. They were five buttons stepped
+   round their tiers, which is twenty presses to say "five tier fours"
+   and a write to the save behind every one of them; the whole nest is
+   set in the grid below instead, and this is the picture of it.
+
    The white of tier 1 is the one colour that cannot be a colour: pure
    white is invisible on the light theme's ground. It takes the sheet's
    own hairline channel instead, which is pale on the dark theme and
    navy on the light one and reads as the plain grade on both. */
-.pouch-item.sail.pets { cursor: default; }
 .pet-pips { display: inline-flex; align-items: center; gap: 5px; padding: 1px 0; }
 
 .pet-pip {
   --tier: rgba(var(--line-rgb), 0.3);
   position: relative;
-  width: 26px;
-  height: 26px;
+  display: block;
+  width: 24px;
+  height: 24px;
   flex: none;
-  padding: 0;
   border: 1.5px solid var(--tier);
   border-radius: var(--r-icon);
   background: rgba(var(--shade-rgb), 0.25);
-  cursor: pointer;
   line-height: 0;
 }
 
-.pet-pip:hover { background: rgba(var(--blue-rgb), 0.18); }
-.pet-pip:focus { outline: none; }
-.pet-pip:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 2px; }
-
+.pet-pips.lg .pet-pip { width: 34px; height: 34px; }
 .pet-pic { width: 100%; height: 100%; object-fit: contain; }
 .pet-pip.t0 { border-style: dashed; }
 .pet-pip.t0 .pet-pic { opacity: 0.26; filter: grayscale(1); }
@@ -630,31 +630,133 @@ button.pouch-group i { font-style: normal; font-size: 9px; }
 }
 
 .pet-pip.t0 i { display: none; }
-.pet-pip.t1 { --tier: rgba(var(--line-rgb), 0.85); }
-.pet-pip.t2 { --tier: #6fce72; }
-.pet-pip.t3 { --tier: #5aa9e6; }
-.pet-pip.t4 { --tier: #f0c04a; }
-.pet-pip.t5 { --tier: #e2622c; }
+.pet-pip.t1, .pet-cell.t1 { --tier: rgba(var(--line-rgb), 0.85); }
+.pet-pip.t2, .pet-cell.t2 { --tier: #6fce72; }
+.pet-pip.t3, .pet-cell.t3 { --tier: #5aa9e6; }
+.pet-pip.t4, .pet-cell.t4 { --tier: #f0c04a; }
+.pet-pip.t5, .pet-cell.t5 { --tier: #e2622c; }
 .pet-pip.t2 i, .pet-pip.t3 i, .pet-pip.t4 i { color: #0b1a2c; }
 .pet-pip.t5 i { color: #fff1e8; }
 
-/* The Alpha is one pet out of five, so it is a mark you put on the row
-   rather than a sixth slot: off, it is the offer; on, it is the star. */
-.pet-alpha {
-  margin-left: 3px;
-  padding: 0 4px;
-  border: none;
-  background: none;
-  color: rgba(var(--line-rgb), 0.45);
+/* The chip is a way in, like the folded sailor line, so it wears that
+   one's manners rather than a text field's. */
+button.pouch-item.sail.pets {
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+button.pouch-item.sail.pets:hover { border-color: rgba(var(--line-rgb), 0.28); }
+button.pouch-item.sail.pets:focus { outline: none; }
+button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 3px; }
+
+/* ---- the editor ------------------------------------------------------ *
+   Five slots down the side, the six tiers across, every cell one press:
+   a nest is a small table of facts and reads best as one. The head row
+   sets all five at once, which is the answer most of the time -- pets
+   are fed up together, so five Bos'n Jacks are usually five of a tier. */
+.pet-grid { margin: 14px 0 10px; display: flex; flex-direction: column; gap: 5px; }
+
+.pet-row {
+  display: grid;
+  grid-template-columns: minmax(64px, 1fr) repeat(6, minmax(34px, 46px));
+  align-items: center;
+  gap: 5px;
+}
+
+.pet-row-k {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--ink-mute);
+}
+
+.pet-row-k b { font-weight: 600; color: var(--ink-row); white-space: nowrap; }
+.pet-row-pic { width: 24px; height: 24px; flex: none; object-fit: contain; }
+
+/* The head row is a row of shortcuts, not a row of labels, so it is
+   told apart by its words and not by being drawn differently. */
+.pet-row.head .pet-row-k {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  justify-content: flex-end;
+  padding-right: 2px;
+}
+
+.pet-cell {
+  --tier: rgba(var(--line-rgb), 0.3);
+  height: 32px;
+  padding: 0;
+  border: 1px solid rgba(var(--line-rgb), 0.16);
+  border-radius: var(--r-sm);
+  background: rgba(var(--shade-rgb), 0.18);
+  color: var(--ink-mute);
+  font-family: var(--font-display);
   font-size: 14px;
-  line-height: 1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
 
-.pet-alpha:hover { color: var(--star); }
-.pet-alpha.on { color: var(--star); text-shadow: 0 0 8px rgba(255, 215, 122, 0.5); }
-.pet-alpha:focus { outline: none; }
-.pet-alpha:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 2px; border-radius: 4px; }
+.pet-cell:hover { border-color: var(--tier); color: var(--ink-hi); background: rgba(var(--blue-rgb), 0.1); }
+.pet-cell:focus { outline: none; }
+.pet-cell:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 2px; }
+
+/* The chosen cell wears its grade, which is the same colour the bird in
+   that slot is framed in -- the two halves of the dialog say the same
+   thing the same way. */
+.pet-cell.on { background: var(--tier); border-color: var(--tier); color: var(--on-tint); }
+.pet-cell.t2.on, .pet-cell.t3.on, .pet-cell.t4.on { color: #0b1a2c; }
+.pet-cell.t5.on { color: #fff1e8; }
+.pet-cell.t0.on { background: rgba(var(--line-rgb), 0.14); border-color: rgba(var(--line-rgb), 0.3); color: var(--ink-mid); }
+
+.pet-alpha-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 9px 11px;
+  border-radius: var(--r-btn);
+  background: rgba(var(--shade-rgb), 0.16);
+  font-size: 12.5px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.pet-alpha-row input { width: 15px; height: 15px; margin: 2px 0 0; flex: none; accent-color: var(--star); cursor: pointer; }
+.pet-alpha-row i { display: block; margin-top: 2px; font-style: normal; font-size: 11px; color: var(--ink-faint); }
+/* Nothing to be the Alpha of: the offer stays on the page, since its
+   own line is the answer to "why can I not", and stops being an offer. */
+.pet-alpha-row.off { opacity: 0.45; cursor: default; }
+.pet-alpha-row.off input { cursor: default; }
+
+/* What it all comes to, in the two ways it is read elsewhere: the nest
+   as the bar draws it, and the LT as the hold counts it. */
+.pet-sum {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 11px 13px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--blue-edge);
+  background: rgba(var(--blue-rgb), 0.08);
+}
+
+.pet-sum-lt { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--blue-hi); }
+
+@media (max-width: 460px) {
+  .pet-row { grid-template-columns: minmax(44px, 1fr) repeat(6, minmax(28px, 40px)); gap: 4px; }
+  .pet-row-k b { display: none; }
+  .pet-row.head .pet-row-k { font-size: 9px; }
+}
 
 /* A figure that is only read keeps the value's type, and the words
    inside it stay out of the way of the numbers. */
