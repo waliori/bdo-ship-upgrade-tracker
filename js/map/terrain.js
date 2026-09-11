@@ -51,7 +51,7 @@ const KEEP = 700;
 const state = {
 	on: false, gl: null, canvas: null, host: null,
 	index: null, indexTried: false,
-	tiles: new Map(), pending: new Set(),
+	tiles: new Map(), pending: new Set(), queue: [],
 	prog: null, sea: null, seaBuf: null,
 	skin: null, skinBox: null, skinTex: null, skinLevel: null, skinDirty: false,
 	images: new Map(),
@@ -219,14 +219,11 @@ export function seaAt(size, px, py) {
  * ------------------------------------------------------------------ */
 
 /**
- * The level to draw at a zoom.
+ * A level for a zoom, taken as a whole.
  *
- * Tuned so that the chart's deepest zoom -- 7, which is as far as the
- * flat tiles are cut -- lands on level 0, the mesh as the game ships
- * it. That puts a grid node about every five pixels at any zoom and
- * roughly 160 px tiles, which is more of both than a map needs to look
- * right, and is the point: the ground is the thing being looked at
- * here. Each step out doubles the ground a tile covers.
+ * The ground itself no longer uses this -- visibleTiles picks a level
+ * per tile, by how big it lands -- but the offline area and anything
+ * else that wants one number for "how close is this view" still does.
  */
 export function levelForZoom(zoom) {
 	const lv = state.index ? state.index.levels : [];
@@ -384,26 +381,58 @@ async function inflate(buf) {
 	return await new Response(stream).arrayBuffer();
 }
 
-async function want(level, x, y) {
+/**
+ * Ask for a tile, eventually.
+ *
+ * Not straight to fetch: a lean at a deep zoom wants a good many tiles
+ * at once, and a browser given two hundred of them at once spends its
+ * six connections on them and starves the flat squares the ground is
+ * wearing -- which is exactly how the view ended up drawn in the
+ * client's own grey. So they queue, a few at a time, nearest first
+ * (visibleTiles is sorted), and the queue is emptied at the start of
+ * every frame so that what is asked for is always what is in view now
+ * rather than what was in view three zooms ago.
+ */
+const IN_FLIGHT = 6;
+
+function want(level, x, y) {
 	const key = `${level}_${x}_${y}`;
-	if (state.tiles.has(key) || state.pending.has(key)) return;
+	if (state.tiles.has(key) || state.pending.has(key) || state.queue.includes(key)) return;
 	const info = levelInfo(level);
 	if (!tileExists(info, x, y)) {
 		state.tiles.set(key, null);   // remembered as empty sea
 		return;
 	}
+	state.queue.push(key);
+	pump();
+}
+
+function pump() {
+	while (state.pending.size < IN_FLIGHT && state.queue.length) {
+		const key = state.queue.shift();
+		if (state.tiles.has(key) || state.pending.has(key)) continue;
+		fetchTile(key);
+	}
+}
+
+async function fetchTile(key) {
+	// The parts can be negative, so this is not a plain split on '_':
+	// "1_-5_-31" has four pieces by that reading.
+	const m = /^(\d+)_(-?\d+)_(-?\d+)$/.exec(key);
+	if (!m) { state.tiles.set(key, null); return; }
+	const level = Number(m[1]), x = Number(m[2]), y = Number(m[3]);
 	state.pending.add(key);
 	try {
 		const res = await fetch(`map3d/${level}/${x}_${y}.ter?v=${state.index.stamp}`);
 		if (!res.ok) throw new Error(res.status);
 		const mesh = parseTile(await inflate(await res.arrayBuffer()), level, x, y);
 		state.tiles.set(key, mesh && state.gl ? upload(state.gl, mesh) : null);
-		schedule();
 	} catch {
 		// A tile that will not load is sea until the view is rebuilt.
 		state.tiles.set(key, null);
 	} finally {
 		state.pending.delete(key);
+		if (state.on) { pump(); schedule(); }
 	}
 }
 
@@ -443,26 +472,41 @@ function skinCanvas() {
 	return state.skin;
 }
 
-/** The image for one flat tile, fetched once and kept. Drawing happens
- *  when it lands, not before -- the skin is redrawn on each arrival. */
+/**
+ * The image for one flat tile, fetched once and kept.
+ *
+ * Kept by when it was last *drawn*, not by when it was fetched. Order
+ * of arrival is the wrong rule here: one skin wants about eighty
+ * squares at once, and an eviction that throws out the oldest throws
+ * out squares the skin is using right now, which fetches them again,
+ * which evicts more of them. That thrash is what left the ground
+ * wearing the client's own grey at the deepest zooms -- the canvas was
+ * nearly empty every time it was uploaded.
+ */
+const SKIN_KEEP = 320;
+let skinTick = 0;
+
 function tileImage(z, x, y) {
 	const b = TILES[z];
 	if (!b || x < b.x0 || x > b.x1 || y < b.y0 || y > b.y1) return null;
 	const src = tileSrc(z, x, y);
 	let img = state.images.get(src);
-	if (img) return img.complete && img.naturalWidth ? img : null;
-	img = new Image();
-	img.decoding = 'async';
-	img.onload = () => { state.skinDirty = true; schedule(); };
-	img.onerror = () => { /* a square that will not come is open sea */ };
-	img.src = src;
-	state.images.set(src, img);
-	// The flat chart keeps a couple of hundred squares; so does this.
-	if (state.images.size > 600) {
-		const oldest = state.images.keys().next().value;
-		state.images.delete(oldest);
+	if (!img) {
+		img = new Image();
+		img.decoding = 'async';
+		img.onload = () => { state.skinDirty = true; schedule(); };
+		img.onerror = () => { /* a square that will not come is open sea */ };
+		img.src = src;
+		state.images.set(src, img);
 	}
-	return null;
+	img.tick = skinTick;
+	return img.complete && img.naturalWidth ? img : null;
+}
+
+function trimImages() {
+	if (state.images.size <= SKIN_KEEP) return;
+	const live = [...state.images.entries()].sort((a, b) => (a[1].tick || 0) - (b[1].tick || 0));
+	for (const [src] of live.slice(0, live.length - SKIN_KEEP)) state.images.delete(src);
 }
 
 /**
@@ -474,7 +518,9 @@ function tileImage(z, x, y) {
  */
 function ensureSkin(gl, view, size) {
 	const per = Math.pow(2, MAX_ZOOM - view.zoom);        // chart units per screen px
-	const span = Math.max(size.w, size.h) * per * 2.4;
+	// Wide enough that an ordinary pan does not redraw it, narrow enough
+	// that it is eighty squares rather than a hundred and fifty.
+	const span = Math.max(size.w, size.h) * per * 1.8;
 	const level = levelFor(view.zoom);
 	const box = state.skinBox;
 	const need = !box || level !== state.skinLevel
@@ -486,6 +532,7 @@ function ensureSkin(gl, view, size) {
 	const next = need
 		? { cx: view.centre.x, cy: view.centre.y, span, x0: view.centre.x - span / 2, y0: view.centre.y - span / 2 }
 		: box;
+	skinTick++;
 	const { canvas, ctx } = skinCanvas();
 	const unit = next.span / SKIN;                         // chart units per texel
 	const tileChart = TILE * Math.pow(2, MAX_ZOOM - level);
@@ -507,6 +554,7 @@ function ensureSkin(gl, view, size) {
 	state.skinBox = next;
 	state.skinLevel = level;
 	state.skinDirty = false;
+	trimImages();
 	if (!had) return;
 
 	if (!state.skinTex) {
@@ -771,6 +819,7 @@ export function exitTerrain() {
 	for (const [, tile] of state.tiles) if (tile) drop(gl, tile);
 	state.tiles.clear();
 	state.pending.clear();
+	state.queue.length = 0;
 	if (state.raf) cancelAnimationFrame(state.raf);
 	state.raf = null;
 	loadingLight(false);
@@ -785,6 +834,21 @@ export function exitTerrain() {
 }
 
 export const terrainOn = () => state.on;
+
+/** What the last frame actually did: which levels it drew, how many
+ *  tiles are still coming, and whether the ground is wearing the flat
+ *  chart's squares yet. For working out why a view looks wrong. */
+export function terrainDiag() {
+	return {
+		on: state.on,
+		levels: state.levelsDrawn || null,
+		drawn: state.drawn || 0,
+		waiting: state.waiting || 0,
+		queued: state.queue.length,
+		cached: state.tiles.size,
+		skin: state.skinBox ? { level: state.skinLevel, span: Math.round(state.skinBox.span), tex: !!state.skinTex, images: state.images.size } : null
+	};
+}
 export const terrainTrouble = () => state.failed;
 
 export function setStyle(style) {
@@ -834,45 +898,83 @@ function schedule() {
 	});
 }
 
-/** The tiles under the view, nearest the camera first.
+/**
+ * The tiles to draw, chosen by how big they land on the screen.
  *
- *  A leaning camera sees a trapezoid of sea, so the corners of the
- *  screen are dropped onto the water and the box around them is what
- *  gets drawn. The far corners of a steep view land past the horizon
- *  and come back null; then the box is capped at what the fog hides
- *  anyway. */
-function visibleTiles(view, size, level) {
-	const span = (1 << level) * SECTOR;
+ * One level for the whole view is the wrong answer the moment the
+ * camera leans: the water at your feet and the water at the horizon are
+ * the same tiles at wildly different sizes, and picking a level for the
+ * middle means either a blurry foreground or -- what this did at first
+ * -- four hundred of the finest tiles requested at once, most of them
+ * for ground a pixel high at the back of the view.
+ *
+ * So the pyramid is walked instead of indexed. Start at the coarsest
+ * level, and split a tile into its four children only while one of its
+ * grid cells would still cover more than a few pixels. Near the camera
+ * that descends all the way to level 0, the mesh the game itself draws
+ * from; at the horizon it stops three or four levels up. This is what
+ * every terrain renderer does, and it is what keeps the count in the
+ * dozens instead of the hundreds.
+ */
+const SPLIT_PX = 5;      // a grid cell bigger than this is worth splitting
+const MAX_TILES = 260;
+
+function visibleTiles(view, size) {
 	const ix = state.index;
-	const cap = size.h * 2.2 / Math.pow(2, view.zoom - MAX_ZOOM);
+	if (!ix || !state.cam) return [];
+	const levels = ix.levels.map(l => l.level);
+	const top = Math.max(...levels), bottom = Math.min(...levels);
+
+	// The water the screen can see, as a box. A leaning camera's far
+	// corners land past the horizon and come back null, so the box is
+	// capped at the distance the fog closes anyway.
+	const cap = size.h * 3 / Math.pow(2, view.zoom - MAX_ZOOM);
 	const pts = [];
 	for (const [px, py] of [[0, 0], [size.w, 0], [0, size.h], [size.w, size.h], [size.w / 2, size.h / 2]]) {
 		const p = seaAt(size, px, py);
 		if (p) pts.push(p);
 	}
 	if (!pts.length) return [];
-	let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+	let vx0 = Infinity, vx1 = -Infinity, vy0 = Infinity, vy1 = -Infinity;
 	for (const p of pts) {
-		x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x);
-		y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y);
+		vx0 = Math.min(vx0, p.x); vx1 = Math.max(vx1, p.x);
+		vy0 = Math.min(vy0, p.y); vy1 = Math.max(vy1, p.y);
 	}
-	x0 = Math.max(x0, view.centre.x - cap); x1 = Math.min(x1, view.centre.x + cap);
-	y0 = Math.max(y0, view.centre.y - cap); y1 = Math.min(y1, view.centre.y + cap);
+	vx0 = Math.max(vx0, view.centre.x - cap); vx1 = Math.min(vx1, view.centre.x + cap);
+	vy0 = Math.max(vy0, view.centre.y - cap); vy1 = Math.min(vy1, view.centre.y + cap);
 
-	const tx0 = Math.floor((x0 - ix.offX) / span), tx1 = Math.floor((x1 - ix.offX) / span);
-	const ty0 = Math.floor((ix.offY - y1) / span), ty1 = Math.floor((ix.offY - y0) / span);
+	/** How many pixels one of a tile's grid cells covers, where it is.
+	 *  A tile behind the camera answers 0, which stops the descent. */
+	const cellPx = (box, span) => {
+		const cx = (box.x0 + box.x1) / 2, cy = (box.y0 + box.y1) / 2;
+		const cell = span / (ix.grid - 1);
+		const a = projectThrough(state.cam, size, cx, cy);
+		if (a.behind) return 0;
+		const b = projectThrough(state.cam, size, cx + cell, cy);
+		if (b.behind) return 0;
+		return Math.hypot(b.left - a.left, b.top - a.top);
+	};
+
 	const out = [];
-	for (let tx = tx0; tx <= tx1; tx++) {
-		for (let ty = ty0; ty <= ty1; ty++) {
-			const box = tileBox(level, tx, ty);
-			const cx = (box.x0 + box.x1) / 2, cy = (box.y0 + box.y1) / 2;
-			out.push({ x: tx, y: ty, d: Math.hypot(cx - view.centre.x, cy - view.centre.y) });
+	const walk = (level, x, y) => {
+		if (out.length >= MAX_TILES) return;
+		const box = tileBox(level, x, y);
+		if (box.x1 < vx0 || box.x0 > vx1 || box.y1 < vy0 || box.y0 > vy1) return;
+		const fine = level > bottom && cellPx(box, box.span) > SPLIT_PX;
+		if (fine) {
+			for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) walk(level - 1, x * 2 + dx, y * 2 + dy);
+			return;
 		}
+		const cx = (box.x0 + box.x1) / 2, cy = (box.y0 + box.y1) / 2;
+		out.push({ level, x, y, d: Math.hypot(cx - view.centre.x, cy - view.centre.y) });
+	};
+	const topInfo = levelInfo(top);
+	if (!topInfo) return [];
+	for (let x = topInfo.x0; x < topInfo.x0 + topInfo.w; x++) {
+		for (let y = topInfo.y0; y < topInfo.y0 + topInfo.h; y++) walk(top, x, y);
 	}
 	out.sort((a, b) => a.d - b.d);
-	// A pathological view (fully level, looking at the horizon) can ask
-	// for thousands; the near ones are the ones that matter.
-	return out.slice(0, 400);
+	return out;
 }
 
 export function drawTerrain(view, size) {
@@ -904,8 +1006,10 @@ export function drawTerrain(view, size) {
 	gl.viewport(0, 0, w, h);
 
 	const cam = state.cam = camera(view, size);
-	const level = levelForZoom(view.zoom);
-	const tiles = visibleTiles(view, size, level);
+	// Whatever was queued for the view as it was is no longer the
+	// question; what is in front of the camera now is.
+	state.queue.length = 0;
+	const tiles = visibleTiles(view, size);
 	if (state.style === 'real') ensureSkin(gl, view, size);
 	const neon = state.style === 'neon' ? 1 : 0;
 	const sky = neon ? [0.023, 0.026, 0.045] : [0.055, 0.098, 0.13];
@@ -990,17 +1094,17 @@ export function drawTerrain(view, size) {
 	let drawn = 0, waiting = 0;
 	const ready = [];
 	for (const w of tiles) {
-		const tile = state.tiles.get(`${level}_${w.x}_${w.y}`);
+		const tile = state.tiles.get(`${w.level}_${w.x}_${w.y}`);
 		if (tile) { ready.push(tile); continue; }
 		if (tile === undefined) {
-			want(level, w.x, w.y);
+			want(w.level, w.x, w.y);
 			waiting++;
-			for (let up = level + 1, x = w.x, y = w.y; up <= 8; up++) {
+			for (let up = w.level + 1, x = w.x, y = w.y; up <= 8; up++) {
 				x = Math.floor(x / 2); y = Math.floor(y / 2);
 				const key = `${up}_${x}_${y}`;
 				const coarse = state.tiles.get(key);
 				if (coarse) { held.set(key, coarse); break; }
-				if (coarse === undefined && up === level + 1) want(up, x, y);
+				if (coarse === undefined && up === w.level + 1) want(up, x, y);
 			}
 		}
 	}
@@ -1013,6 +1117,9 @@ export function drawTerrain(view, size) {
 		gl.disable(gl.POLYGON_OFFSET_FILL);
 	}
 	for (const tile of ready) { one(tile); drawn++; }
+	const byLevel = {};
+	for (const w of tiles) byLevel[w.level] = (byLevel[w.level] || 0) + 1;
+	state.levelsDrawn = byLevel;
 	state.drawn = drawn;
 	state.waiting = waiting + state.pending.size;
 	loadingLight(state.waiting > 0);
@@ -1034,12 +1141,15 @@ export function pinList(view, size) {
 	if (!state.on || !state.index) return [];
 	const out = [];
 	const seen = new Set();
-	const at = levelForZoom(view.zoom);
-	for (const level of [at, at + 1]) {
-		if (!levelInfo(level)) continue;
-		for (const t of visibleTiles(view, size, level)) {
-			if (!tileExists(levelInfo(level), t.x, t.y)) continue;
-			const src = `map3d/${level}/${t.x}_${t.y}.ter?v=${state.index.stamp}`;
+	for (const t of visibleTiles(view, size)) {
+		// The tile the view would draw, and the one above it, so a step
+		// back still has ground under it.
+		for (const level of [t.level, t.level + 1]) {
+			const info = levelInfo(level);
+			const x = level === t.level ? t.x : Math.floor(t.x / 2);
+			const y = level === t.level ? t.y : Math.floor(t.y / 2);
+			if (!tileExists(info, x, y)) continue;
+			const src = `map3d/${level}/${x}_${y}.ter?v=${state.index.stamp}`;
 			if (seen.has(src)) continue;
 			seen.add(src);
 			out.push({ src });
@@ -1052,6 +1162,5 @@ export function pinList(view, size) {
  *  courtesy the flat chart pays a flight. */
 export function prefetch(view, size) {
 	if (!state.on || !state.index) return;
-	const level = levelForZoom(view.zoom);
-	for (const t of visibleTiles(view, size, level).slice(0, 40)) want(level, t.x, t.y);
+	for (const t of visibleTiles(view, size).slice(0, 40)) want(t.level, t.x, t.y);
 }

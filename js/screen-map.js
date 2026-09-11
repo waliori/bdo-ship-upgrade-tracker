@@ -33,6 +33,9 @@ export {
 	paintMap
 } from './map/paint.js';
 export {
+	terrainDiag
+} from './map/terrain.js';
+export {
 	wireMap
 } from './map/gestures.js';
 export {
