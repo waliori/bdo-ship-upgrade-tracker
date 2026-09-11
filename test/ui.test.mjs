@@ -21,6 +21,10 @@ if (!CHROME) {
 process.env.NODE_ENV = 'test';
 for (const name of ['DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET', 'TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN', 'PUBLIC_URL']) delete process.env[name];
 const { RELEASE } = await import('../js/about.js');
+// The hold's ceilings are the app's to state, not this file's to
+// remember -- see the material run test.
+const { BARTER_OVER } = await import('../js/ship.js');
+const { shipStats } = await import('../js/ship_stats.js');
 const app = (await import('../server.js')).default;
 const server = app.listen(0);
 await new Promise(resolve => server.once('listening', resolve));
@@ -1939,9 +1943,16 @@ test('the material run is one route through every island ticked: a full run goes
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.mat-list.hero', { timeout: 15000 });
 	await page.evaluate(async () => {
 		const store = await import('/js/state.js');
-		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); store.setProfile('barterCount', 20000);
-		// Twenty-two thousand weight of gives at Velia, against a hold
-		// that barters under twenty thousand six hundred.
+		store.addTarget('Epheria Caravel', 1); store.setProfile('crewShip', 'Epheria Caravel'); store.setProfile('barterCount', 20000);
+		// Twenty-two thousand weight of gives at Velia -- twenty-two
+		// Level 5 goods at a thousand each -- against a Caravel, which
+		// holds ten thousand and barters to seventeen. It has to be a
+		// hull the load will not fit in: the ticked islands want exactly
+		// twenty-two trades however much is in storage, so the hold is
+		// the only end of this that can be moved, and a Carrack barters
+		// to twenty-eight thousand now that BARTER_OVER is the seventy
+		// per cent the game really allows rather than the twenty-five
+		// this test was written against.
 		store.setStockAt("[Level 5] Statue's Tear", 'Velia', 18, 'ashore');
 		store.setStockAt('[Level 5] Faded Gold Dragon Figurine', 'Velia', 4, 'ashore');
 	});
@@ -1964,9 +1975,12 @@ test('the material run is one route through every island ticked: a full run goes
 	assert.match(await text(page, '.mat-figs'), /2 departures/);
 	assert.match(await text(page, '#dialog .run-seg-head'), /22 trades/);
 	assert.equal(await count(page, '#dialog .run-list.amber'), 0, 'nothing stays ashore on a full run');
-	// The hold never over the barter ceiling, on any stop.
+	// The hold never over the barter ceiling, on any stop. Read off the
+	// hull and the constant: pinning the number here is how this test
+	// came to be asserting a ceiling the app had stopped using.
+	const DEAL = Math.round(shipStats['Epheria Caravel'].weight * BARTER_OVER);
 	const holds = await page.$$eval('#dialog .run-stop .run-hold > div:first-child b', els => els.map(el => Number(el.textContent.split('/')[0].replace(/[^\d]/g, ''))));
-	assert.ok(holds.every(w => w <= 20625), holds.join(', '));
+	assert.ok(holds.every(w => w <= DEAL), `${holds.join(', ')} against ${DEAL}`);
 	// Fast: one departure under the limit the ship still sails fast at.
 	await page.select('[data-act="barter-mat-pace"]', 'fast'); await wait(500);
 	await laidOut(page);
@@ -1976,7 +1990,8 @@ test('the material run is one route through every island ticked: a full run goes
 	assert.equal(await count(page, '#dialog .run-list.amber'), 1, 'what stayed ashore is said');
 	assert.match(await text(page, '#dialog .run-list.amber'), /Stays ashore/i);
 	const fastHolds = await page.$$eval('#dialog .run-stop .run-hold > div:first-child b', els => els.map(el => Number(el.textContent.split('/')[0].replace(/[^\d]/g, ''))));
-	assert.ok(fastHolds.every(w => w <= 16500), fastHolds.join(', '));
+	const FREE = shipStats['Epheria Caravel'].weight;
+	assert.ok(fastHolds.every(w => w <= FREE), `${fastHolds.join(', ')} against ${FREE}`);
 	// The way back to the full run is on the panel.
 	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-mat-pace-set"]').click()); await wait(500);
 	assert.equal(await page.$eval('[data-act="barter-mat-pace"]', el => el.value), 'full');
