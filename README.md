@@ -129,8 +129,9 @@ goods and the silver — one Undo takes back all of it — and a run that
 carries you past a threshold says which route it opened. It stays a
 field you can type over when it and the game drift apart; it lives in
 the bar above the tabs, with the barter level, the Parley, the vouchers,
-the Sailing Mastery and the region the prices are quoted in, because
-they are read by every screen and not only this one.
+the Sailing Mastery, the Bos'n Jacks you have out and the region the
+prices are quoted in, because they are read by every screen and not
+only this one.
 
 **And it decides which islands exist.** The game opens the trade routes
 island by island as that count climbs — 600 barters opens Lantinia's
@@ -414,6 +415,17 @@ turn and brake the way the game's table has it; the card reads it, and
 it is typed once in the bar above the tabs, where every screen reads
 the same number.
 
+**And the pets count too.** A **Bos'n Jack** is the one pet in the game
+whose talent is ship weight — *Big Ship Inventory Weight*, +50 LT a
+tier, stacking across the five pets you can have out at once, and one
+step more again on the tier 5 you make your Alpha. They are yours and
+not the hull's, so they are set in the same bar as the mastery: five
+slots, pressed round their tiers in the grade colours the pet window
+uses. The hold counts them on the Epheria line, the Carracks and the
+Panokseon, and on nothing smaller — which is what the talent's own
+*Big Ships only* means — and the Ship screen shows them as their own
+line in the sum.
+
 **Your fleet is your inventory.** Keeping a setup puts its hull in the
 Inventory if none was recorded there, and a hull recorded in the
 Inventory is a ship in the fleet — listed under *Your fleet*, ready to
@@ -475,6 +487,17 @@ weight, and where three types share all three (Confident, Tough and
 Tenacious all cost five cabins and 300 LT) from where the growths went —
 with anything less than certain marked for a look, and a dropdown to
 correct it.
+
+**In any language the game runs in.** Say which of the sixteen the
+client's own menu lists is yours and the reader speaks it: 식성 and
+生活物資 and Требуется кают are labels like any other, and a Cyrillic,
+Hangul, Han or Thai name comes back as the name. The ten Latin services
+read on the model already aboard; Русский, 日本語, 한국어, 中文, 繁體中文
+and ภาษาไทย each fetch one to three megabytes more, once. Under the
+words is a shape none of the sixteen change — the weight carries LT, the
+condition is a pair over a slash, and the eight growths sit in the same
+order whatever they are called — so a label the scan could not make out
+costs nothing: the figure is still the fifth down the column.
 
 It is read **in the browser**: Tesseract is vendored under `reader/` and
 served from this origin, the shots are decoded by the browser's own
@@ -1157,6 +1180,7 @@ js/
   part_stats.js       what each part does, level by level
   sailors.js          the hiring pool, positions, condition, first mates,
                       and arranging a crew for a stated goal
+  sailor-locales.js   the sailor window's words in every language the game runs in
   sailor-shot.js      a sailor read out of a screenshot's words -- pure, and tested
   shot-reader.js      the vendored OCR engine, and the two passes over a screenshot
   sailor-import.js    the drop, the reading and the table that checks it

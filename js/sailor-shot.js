@@ -132,6 +132,7 @@ export function labelMatch(text, locale = EN) {
 	return bestD <= cap ? { field: best, d: bestD } : null;
 }
 
+/** The same, when how close it was does not matter. */
 export function labelOf(text, locale = EN) {
 	const hit = labelMatch(text, locale);
 	return hit ? hit.field : null;
@@ -139,73 +140,6 @@ export function labelOf(text, locale = EN) {
 
 /** The second or third word of a label, which is not one on its own. */
 const isTail = (text, locale) => vocabOf(locale).tails.has(letters(text));
-
-/**
- * The label a run of words spells out, whole.
- *
- * A label is one word in English and four in Chinese -- and the scan
- * breaks a Chinese one up further still, handing back 食物 | 消耗 | 量
- * where the window printed one phrase. So a run of words with no figure
- * among them is glued back together and matched as a whole, from each
- * starting point in turn, because whatever the last value left behind
- * ("。", a bar's end) sits at the head of the run and is no part of it.
- */
-function runLabel(run, locale) {
-	if (!run.length || run.length > 6) return null;
-	const said = run.map(w => letters(w.text));
-	for (let i = 0; i < said.length; i++) {
-		const key = said.slice(i).join('');
-		if (!key) continue;
-		const dense = DENSE.test(key);
-		if (key.length < (dense ? 2 : 3)) continue;
-		const cap = dense ? Math.min(2, Math.floor(key.length / 3)) : (key.length <= 5 ? 1 : 2);
-		let best = null, bestD = cap + 1;
-		for (const { key: label, field } of vocabOf(locale).whole) {
-			const d = editDistance(key, label, cap);
-			if (d < bestD) { bestD = d; best = field; }
-		}
-		if (bestD <= cap) return best;
-	}
-	return null;
-}
-
-/**
- * Every label on a line and the figure that follows it.
- *
- * The line is walked across: words with no figure in them pile up into
- * a run, and the first figure after that run is the run's value. It
- * reads both columns of the Manage Sailors window in one pass, it needs
- * no geometry beyond the line itself, and -- because the label is
- * matched whole -- it holds where the word-by-word reading gives up: a
- * label the scan broke into three, a two-word label in a language whose
- * second word we never listed.
- */
-function lineFacts(lines, locale) {
-	const out = {};
-	const take = (field, value, line) => {
-		if (field && field !== 'trait' && out[field] === undefined && value !== null) out[field] = { value, line };
-	};
-	for (const line of lines) {
-		let run = [];
-		for (const w of line.words) {
-			const pcts = percentsIn(w.text);
-			const v = pcts.length ? pcts[pcts.length - 1] : weightIn(w.text) ?? numberIn(w.text);
-			if (v === null) {
-				if (letters(w.text)) run.push(w);
-				continue;
-			}
-			take(runLabel(run, locale), v, line);
-			run = [];
-		}
-		// What is left at the end of a line carries no figure of its own:
-		// the condition is written as a pair over a slash, which is no
-		// kind of number, and its label is all that is left standing.
-		const field = runLabel(run, locale);
-		if (field && PAIR.test(line.text)) take(field, null, line);
-		else if (field && out[field] === undefined) out[field] = { value: null, line };
-	}
-	return out;
-}
 
 /* ------------------------------------------------------------------ *
  * the figures every client prints the same
@@ -330,6 +264,73 @@ function linesOf(words, lh) {
 	}
 	for (const l of out) l.words.sort((a, b) => a.x0 - b.x0);
 	return out.map(l => ({ ...l, text: l.words.map(w => clean(w.text)).join(' ').trim() }));
+}
+
+/**
+ * The label a run of words spells out, whole.
+ *
+ * A label is one word in English and four in Chinese -- and the scan
+ * breaks a Chinese one up further still, handing back 食物 | 消耗 | 量
+ * where the window printed one phrase. So a run of words with no figure
+ * among them is glued back together and matched as a whole, from each
+ * starting point in turn, because whatever the last value left behind
+ * ("。", a bar's end) sits at the head of the run and is no part of it.
+ */
+function runLabel(run, locale) {
+	if (!run.length || run.length > 6) return null;
+	const said = run.map(w => letters(w.text));
+	for (let i = 0; i < said.length; i++) {
+		const key = said.slice(i).join('');
+		if (!key) continue;
+		const dense = DENSE.test(key);
+		if (key.length < (dense ? 2 : 3)) continue;
+		const cap = dense ? Math.min(2, Math.floor(key.length / 3)) : (key.length <= 5 ? 1 : 2);
+		let best = null, bestD = cap + 1;
+		for (const { key: label, field } of vocabOf(locale).whole) {
+			const d = editDistance(key, label, cap);
+			if (d < bestD) { bestD = d; best = field; }
+		}
+		if (bestD <= cap) return best;
+	}
+	return null;
+}
+
+/**
+ * Every label on a line and the figure that follows it.
+ *
+ * The line is walked across: words with no figure in them pile up into
+ * a run, and the first figure after that run is the run's value. It
+ * reads both columns of the Manage Sailors window in one pass, it needs
+ * no geometry beyond the line itself, and -- because the label is
+ * matched whole -- it holds where the word-by-word reading gives up: a
+ * label the scan broke into three, a two-word label in a language whose
+ * second word we never listed.
+ */
+function lineFacts(lines, locale) {
+	const out = {};
+	const take = (field, value, line) => {
+		if (field && field !== 'trait' && out[field] === undefined && value !== null) out[field] = { value, line };
+	};
+	for (const line of lines) {
+		let run = [];
+		for (const w of line.words) {
+			const pcts = percentsIn(w.text);
+			const v = pcts.length ? pcts[pcts.length - 1] : weightIn(w.text) ?? numberIn(w.text);
+			if (v === null) {
+				if (letters(w.text)) run.push(w);
+				continue;
+			}
+			take(runLabel(run, locale), v, line);
+			run = [];
+		}
+		// What is left at the end of a line carries no figure of its own:
+		// the condition is written as a pair over a slash, which is no
+		// kind of number, and its label is all that is left standing.
+		const field = runLabel(run, locale);
+		if (field && PAIR.test(line.text)) take(field, null, line);
+		else if (field && out[field] === undefined) out[field] = { value: null, line };
+	}
+	return out;
 }
 
 /* ------------------------------------------------------------------ *

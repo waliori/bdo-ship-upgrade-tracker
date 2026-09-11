@@ -16,7 +16,7 @@ import { openDialog, closeDialog, toast } from './dialogs.js';
 import { shipStats } from './ship_stats.js';
 import { describeStats, statsAt } from './part_stats.js';
 import { families, tables } from './enhancement.js';
-import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listFleet, hullOfRow, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, skinWorn, setSkinSlot, setSkinAll, skinTotals, OWNED_PREFIX, OVERLOAD } from './ship.js';
+import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listFleet, hullOfRow, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, skinWorn, setSkinSlot, setSkinAll, skinTotals, OWNED_PREFIX, OVERLOAD, petWeight } from './ship.js';
 import { GOODS } from './barter.js';
 import { GRADES, gradeById, crystalById, crystalsOf, crystalVariant, crystalLine, crystalStats } from './crystals.js';
 import { skinFor, SKIN_SLOTS } from './ship_skins.js';
@@ -615,7 +615,10 @@ function loadoutPanel(ship) {
 	const rows = `<div class="slot-grid">${fit.slots.map(x => slotCard(ship, x, chosen[x.slot] !== undefined)).join('')}${crystalCard(ship)}${skinCard(ship)}</div>`;
 	const me = currentShip();
 	const same = me.name === ship;
-	const hold = same ? me.hold : { limit: s.weight + (Number(fit.total.weight) || 0), crew: 0, free: s.weight + (Number(fit.total.weight) || 0) };
+	// A hull you are not sailing is shown empty of crew, but the pets
+	// would come with you, so they are counted here as they are there.
+	const other = s.weight + (Number(fit.total.weight) || 0) + petWeight(ship);
+	const hold = same ? me.hold : { limit: other, crew: 0, free: other };
 	return `<div class="panel crew-panel">
 		<div class="panel-head"><h2 class="panel-title">Fitted out</h2>
 			<span class="panel-sub">Hull: ${F(s.weight)} LT · ${s.slots} slots · ${s.cannons ? `${s.cannons} cannons a side, ${s.reload} s` : 'no cannons'} · ${F(s.durability)} durability · ${F(s.rations)} rations</span></div>

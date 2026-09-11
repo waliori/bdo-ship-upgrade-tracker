@@ -11,7 +11,7 @@
 
 import * as store from './state.js';
 import { skinFor, skinStats, SKIN_SLOTS } from './ship_skins.js';
-import { shipStats } from './ship_stats.js';
+import { shipStats, bigShips } from './ship_stats.js';
 import { partStats, slotOf, fitsShip, statsAt, sumStats, loadout } from './part_stats.js';
 import { families, FAMILY_RANK } from './enhancement.js';
 import { crewTotals, mateAboard } from './sailors.js';
@@ -142,6 +142,72 @@ export function masteryBonus(mastery = store.getProfile('sailingMastery', 0) || 
 
 
 /* ------------------------------------------------------------------ *
+ * The pets aboard
+ * ------------------------------------------------------------------ */
+
+/**
+ * Bos'n Jack: the one pet in the game whose talent is ship weight.
+ *
+ * "Big Ship Inventory Weight", fifty LT a tier -- 50, 100, 150, 200 --
+ * and a tier 5 still reads 200, because the fifth step of the talent
+ * is what being the Alpha Pet buys and not what the fifth tier gives.
+ * The talent stacks across the five pets the game lets out at once, so
+ * five tier 4s are a thousand LT, and a tier 5 set as Alpha makes one
+ * of them 250. BDOCodex skills 49167-49170 are the four steps and its
+ * pet entries carry them; the 250 is community-sourced and has no
+ * entry of its own, which is why it is added here rather than listed.
+ *
+ * It is a fact about the player and not about any one hull -- the pets
+ * follow you onto whichever ship you sail -- so it is kept in the
+ * profile beside the sailing mastery and asked for in the same bar.
+ */
+const PET_LT = [0, 50, 100, 150, 200, 200];
+/** What being the Alpha Pet is worth on a tier 5: one more step. */
+export const ALPHA_LT = 50;
+/** How many pets the game lets you have out at once. */
+export const PET_SLOTS = 5;
+
+/** The Bos'n Jacks you have summoned, as five slots of tier, 0 empty. */
+export function bosnJacks() {
+	const saved = store.getProfile('bosnJacks', []) || [];
+	return Array.from({ length: PET_SLOTS }, (_, i) => Number(saved[i]) || 0);
+}
+
+/** Whether one of them is your Alpha Pet, which only a tier 5 can be
+ *  worth anything as. */
+export function bosnAlpha() {
+	return store.getProfile('bosnAlpha', false) === true && bosnJacks().includes(5);
+}
+
+/** What the pets add to a hull's limit, in LT: nothing at all on
+ *  anything the game does not call a Big Ship. */
+export function petWeight(ship, tiers = bosnJacks(), alpha = bosnAlpha()) {
+	if (!bigShips.has(ship)) return 0;
+	const lt = tiers.reduce((sum, t) => sum + (PET_LT[t] || 0), 0);
+	return lt + (alpha && tiers.includes(5) ? ALPHA_LT : 0);
+}
+
+/** Set one of the five slots to a tier, 0 for an empty slot. The Alpha
+ *  goes with the last tier 5 to leave. */
+export function setBosnJack(slot, tier) {
+	if (!(slot >= 0 && slot < PET_SLOTS)) return null;
+	const next = bosnJacks();
+	next[slot] = Math.max(0, Math.min(5, Math.floor(Number(tier) || 0)));
+	while (next.length && !next[next.length - 1]) next.pop();
+	return store.setProfileMany({
+		bosnJacks: next.length ? next : null,
+		bosnAlpha: next.includes(5) && store.getProfile('bosnAlpha', false) === true ? true : null
+	}, 'Changed the pets aboard');
+}
+
+/** Make one of the tier 5s your Alpha Pet, or stop. */
+export function toggleBosnAlpha() {
+	if (!bosnJacks().includes(5)) return null;
+	return store.setProfile('bosnAlpha', !(store.getProfile('bosnAlpha', false) === true), 'Changed the Alpha Pet');
+}
+
+
+/* ------------------------------------------------------------------ *
  * The appearance set
  * ------------------------------------------------------------------ */
 
@@ -188,13 +254,21 @@ export function currentShip() {
 	// weight, turn and durability, so it belongs in the same sum.
 	const skinT = skinStats(name, skinWorn(name));
 	const skin = k => Number(skinT[k]) || 0;
-	const limit = stats.weight + parts('weight') + gem('weight') + skin('weight');
+	// The pets are the player's, not the hull's, and they only count on
+	// a Big Ship -- but on one they are simply more hold, so they go in
+	// the same sum as everything else bolted on.
+	const pets = petWeight(name);
+	const limit = stats.weight + parts('weight') + gem('weight') + skin('weight') + pets;
 	// The hold as a sum, line by line, the way the speed already reads:
 	// what each thing aboard adds or takes.
 	const lines = [{ label: 'hull', lt: stats.weight }];
 	for (const s of fit.slots) if (s.stats && Number(s.stats.weight)) lines.push({ label: `${s.level ? `+${s.level} ` : ''}${s.part.replace(/^.*?: /, '')}`, lt: Number(s.stats.weight) });
 	if (gem('weight')) lines.push({ label: crystal.name, lt: gem('weight') });
 	if (skin('weight')) lines.push({ label: 'appearance set', lt: skin('weight') });
+	if (pets) {
+		const jacks = bosnJacks().filter(Boolean).length;
+		lines.push({ label: `${jacks} Bos'n Jack${jacks === 1 ? '' : 's'}${bosnAlpha() ? ', one Alpha' : ''}`, lt: pets });
+	}
 	if (crew.weight) lines.push({ label: `${crew.seated} sailor${crew.seated === 1 ? '' : 's'} aboard`, lt: -crew.weight });
 	return {
 		name, stats, fit, crew, crystal, mastery, skin: skinT, skinWorn: skinWorn(name),
@@ -294,7 +368,7 @@ export function setupSummary(setup) {
 	// actually are.
 	const skinT = skinStats(setup.ship, setup.skin || {});
 	const skin = k => Number(skinT[k]) || 0;
-	const limit = stats.weight + got('weight') + gem('weight') + skin('weight');
+	const limit = stats.weight + got('weight') + gem('weight') + skin('weight') + petWeight(setup.ship);
 	return {
 		ship: setup.ship,
 		skinned: Object.values(setup.skin || {}).filter(Boolean).length,

@@ -569,6 +569,93 @@ button.pouch-group i { font-style: normal; font-size: 9px; }
 }
 .pouch-item.sail.pack input:checked + b { color: var(--teal); }
 
+/* The five pets, as five birds rather than two numbers. Each is the
+   same parrot; what the tier changes is the frame around it and the
+   numeral on it, in the grade colours the pet window uses -- white,
+   green, blue, yellow, orange -- so the row is read at a glance and
+   still answers anyone who cannot take the colour. An empty slot is a
+   faded bird in a dashed frame, which is what "no pet here" looks like
+   without needing a word for it. Framed square, not round, because the
+   icon is a square tile with a tail in the corner of it: a circle cuts
+   the bird, and the game's own slots are square anyway.
+
+   The white of tier 1 is the one colour that cannot be a colour: pure
+   white is invisible on the light theme's ground. It takes the sheet's
+   own hairline channel instead, which is pale on the dark theme and
+   navy on the light one and reads as the plain grade on both. */
+.pouch-item.sail.pets { cursor: default; }
+.pet-pips { display: inline-flex; align-items: center; gap: 5px; padding: 1px 0; }
+
+.pet-pip {
+  --tier: rgba(var(--line-rgb), 0.3);
+  position: relative;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  padding: 0;
+  border: 1.5px solid var(--tier);
+  border-radius: var(--r-icon);
+  background: rgba(var(--shade-rgb), 0.25);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.pet-pip:hover { background: rgba(var(--blue-rgb), 0.18); }
+.pet-pip:focus { outline: none; }
+.pet-pip:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 2px; }
+
+.pet-pic { width: 100%; height: 100%; object-fit: contain; }
+.pet-pip.t0 { border-style: dashed; }
+.pet-pip.t0 .pet-pic { opacity: 0.26; filter: grayscale(1); }
+
+/* The tier, on the bird rather than beside it: there is no room in the
+   strip for five labels, and the numeral only has to be legible, not
+   large. The ink is the tint's own -- dark on the four bright grades,
+   pale on the orange, and the theme's answer on the plain one. */
+.pet-pip i {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 13px;
+  height: 13px;
+  border-radius: 7px;
+  background: var(--tier);
+  color: var(--on-tint);
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 13px;
+  text-align: center;
+}
+
+.pet-pip.t0 i { display: none; }
+.pet-pip.t1 { --tier: rgba(var(--line-rgb), 0.85); }
+.pet-pip.t2 { --tier: #6fce72; }
+.pet-pip.t3 { --tier: #5aa9e6; }
+.pet-pip.t4 { --tier: #f0c04a; }
+.pet-pip.t5 { --tier: #e2622c; }
+.pet-pip.t2 i, .pet-pip.t3 i, .pet-pip.t4 i { color: #0b1a2c; }
+.pet-pip.t5 i { color: #fff1e8; }
+
+/* The Alpha is one pet out of five, so it is a mark you put on the row
+   rather than a sixth slot: off, it is the offer; on, it is the star. */
+.pet-alpha {
+  margin-left: 3px;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: rgba(var(--line-rgb), 0.45);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pet-alpha:hover { color: var(--star); }
+.pet-alpha.on { color: var(--star); text-shadow: 0 0 8px rgba(255, 215, 122, 0.5); }
+.pet-alpha:focus { outline: none; }
+.pet-alpha:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 2px; border-radius: 4px; }
+
 /* A figure that is only read keeps the value's type, and the words
    inside it stay out of the way of the numbers. */
 .pouch-input.plain small { font-size: 10px; font-weight: 500; color: var(--ink-faint); }

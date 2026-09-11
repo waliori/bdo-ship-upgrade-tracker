@@ -161,7 +161,8 @@ const furniture = () => CHROME;
 				const slide = mid - (pinch.mid === undefined ? mid : pinch.mid);
 				const spread = Math.abs(dist - pinch.dist);
 				if (Math.abs(turn) > 0.008 || (spread < 2.5 && Math.abs(slide) > 1)) {
-					tiltMap(spread < 2.5 ? -slide * 0.28 : 0, -turn * 180 / Math.PI);
+					// The chart turns the way the fingers turn.
+					tiltMap(spread < 2.5 ? -slide * 0.28 : 0, turn * 180 / Math.PI);
 				}
 			}
 			pinch.dist = dist;

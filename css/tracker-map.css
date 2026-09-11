@@ -92,6 +92,11 @@
   backdrop-filter: blur(6px);
 }
 .map-tilt[hidden] { display: none; }
+/* The step player runs along the bottom of the chart, centred, and a
+   plotted route makes it wide enough to reach this corner at any width
+   -- so these switches stand above it whenever it is there, rather than
+   sharing the row with NEXT LEG. */
+.map:has(.map-steps:not([hidden])) .map-tilt { bottom: 56px; }
 .map-tilt-btn {
   font: inherit;
   font-size: 11.5px;

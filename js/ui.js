@@ -25,6 +25,7 @@ import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
 import { paintPouch, measurePouch } from './pouch.js';
 import { toggleSailBar, openRoutes } from './profile-bar.js';
+import { setBosnJack, toggleBosnAlpha } from './ship.js';
 import { hidePeek, wirePeek } from './peek.js';
 import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
@@ -920,6 +921,16 @@ function wire() {
 				}
 				return;
 			}
+			// A pet pressed round its tiers, and the star that says one
+			// of them is the Alpha. Both change the hold every screen
+			// plans against, so the store's own render does the screens
+			// and this repaints the bar the press is standing in.
+			case 'pet-tier':
+				setBosnJack(Number(el.dataset.slot), (Number(el.dataset.tier) + 1) % 6);
+				return paintPouch({ force: true });
+			case 'pet-alpha':
+				toggleBosnAlpha();
+				return paintPouch({ force: true });
 			// Every threshold and where the count stands among them.
 			case 'routes': return openRoutes();
 			case 'blockers-all': toggleBlockers(); return render();

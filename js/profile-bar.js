@@ -1,10 +1,10 @@
 // The sailor's own numbers, on every tab.
 //
-// Eight things about the player decide what half the app says: how many
+// Nine things about the player decide what half the app says: how many
 // barters they have made, what barter level they hold, the Parley in
 // the bar, the vouchers in the bag, whether a Value Pack is up, how
-// many draws that buys a day, their Sailing Mastery, and the region
-// they play. The barter count alone decides which islands exist for
+// many draws that buys a day, their Sailing Mastery, the Bos'n Jacks
+// they have out, and the region they play. The barter count alone decides which islands exist for
 // them, which chains are sailable, and which materials can be got at
 // all; the region is what every Market price in the app is quoted in.
 //
@@ -29,7 +29,7 @@ import { img } from './ui-bits.js';
 import { barterProfile } from './ui-state.js';
 import { dailyCapacity, barterLevels, levelDiscount, npcGates, ROUTE_UNLOCKS } from './barter.js';
 import { npcById } from './barter_npcs.js';
-import { mateAtTheHelm, masteryBonus } from './ship.js';
+import { mateAtTheHelm, masteryBonus, bosnJacks, bosnAlpha, petWeight } from './ship.js';
 import { anyType } from './sailors.js';
 import { openDialog } from './dialogs.js';
 import { REGIONS as MARKET_REGIONS, region as marketRegion, priceAge } from './market.js';
@@ -99,6 +99,42 @@ function summaryHTML(p) {
 		</span>
 		<span class="pouch-fold" aria-hidden="true">✎</span>
 	</button>`;
+}
+
+/** The tier names, as the pet window says them. */
+const TIER_NAME = ['no pet', 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4', 'Tier 5'];
+
+/**
+ * The five pets as five birds, each pressed round its tiers.
+ *
+ * A count and a tier typed as numbers would have been two fields for
+ * something that is really one picture -- five slots, filled or not --
+ * and the game itself shows it as a row of pets. So: press a bird,
+ * it steps to the next tier and round to empty again. The ring is the
+ * grade colour the tier wears in the pet window, and the numeral is
+ * there because colour alone is no answer to anyone who cannot see it.
+ */
+function petPips() {
+	const jacks = bosnJacks();
+	const alpha = bosnAlpha();
+	const pips = jacks.map((t, i) => `<button type="button" class="pet-pip t${t}" data-act="pet-tier" data-slot="${i}" data-tier="${t}"
+		title="${esc(TIER_NAME[t])}${t ? ` — Big Ship Inventory Weight +${50 * Math.min(t, 4)} LT` : ' in this slot'}. Press for the next tier."
+		aria-label="Pet ${i + 1}: ${esc(TIER_NAME[t])}">${img("Bos'n Jack", 'pet-pic')}<i aria-hidden="true">${t || ''}</i></button>`).join('');
+	// The Alpha is only ever worth anything on a tier 5, so the star is
+	// only ever offered when there is one to put it on.
+	const star = jacks.includes(5)
+		? `<button type="button" class="pet-alpha${alpha ? ' on' : ''}" data-act="pet-alpha"
+			title="Your Alpha Pet's talent goes up one level, which on a Tier 5 Bos'n Jack is +250 LT instead of +200. Only one pet can be the Alpha."
+			aria-pressed="${alpha}" aria-label="One of them is the Alpha Pet">★</button>`
+		: '';
+	return `<span class="pet-pips">${pips}${star}</span>`;
+}
+
+/** What the birds are worth, said against the hull it is worth it on. */
+function petSub() {
+	const lt = petWeight('Epheria Caravel');
+	if (!lt) return 'adds to a big ship\'s hold';
+	return `+${F(lt)} LT on big ships`;
 }
 
 /**
@@ -191,6 +227,17 @@ export function profileHTML() {
 		// timetable is read from it too. It lived in a tile on To Get,
 		// which priced the whole app from a select most people never
 		// scrolled to.
+		// The pets out at the moment. Bos'n Jack is the only pet in the
+		// game whose talent is ship weight, and it is the player's
+		// rather than the ship's -- the same five birds follow you onto
+		// whichever hull you sail -- so it is asked for here and not on
+		// the Ship tab. Five slots, one a pet, each pressed round its
+		// tiers; the tier is said in the game's own grade colours,
+		// white through orange, because that is how it is read in the
+		// pet window.
+		chip('pets', img("Bos'n Jack", 'pouch-icon'), "Bos'n Jacks", petPips(), petSub(),
+			"The Bos'n Jacks you have summoned. Each one's talent is Big Ship Inventory Weight — +50 LT a tier, and they stack across the five pets the game lets out at once. It counts on the Epheria line, the Carracks and the Panokseon only; nothing is added to a Cog, a rowboat or the Bartali. Press a bird to step it through its tiers."),
+
 		chip('region', '⊕', 'Region',
 			`<select class="pouch-input select" data-act="market-region" aria-label="Which region's Central Market prices the plan">${regions}</select>`,
 			`${esc(priceAge())} · <button class="linky" data-act="market-refresh">refresh</button>`,

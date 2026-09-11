@@ -676,6 +676,8 @@ const PROFILE_LABELS = {
 	skins: 'Changed the appearance set',
 	setups: 'Changed your saved setups',
 	sailingMastery: 'Changed your sailing mastery',
+	bosnJacks: 'Changed the pets aboard',
+	bosnAlpha: 'Changed the Alpha Pet',
 	questFavs: 'Changed your favourite quests',
 	questGroups: 'Changed a quest group',
 	stash: 'Changed where things are kept',
