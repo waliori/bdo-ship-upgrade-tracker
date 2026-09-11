@@ -39,8 +39,12 @@ echo "== webm -> gif"
 # run respectively.
 gif_size() {
 	case "$1" in
-		claim-a-quest|fit-a-ship|the-boards|share-a-ship) echo "780 10" ;;
+		claim-a-quest|fit-a-ship|the-boards|share-a-ship|the-way) echo "780 10" ;;
 		plan-a-run|share-a-drawing) echo "720 8" ;;
+		# A tilting heightmap is the worst case a GIF can be handed:
+		# every pixel of every frame is new, and there is no flat colour
+		# anywhere to pay for it.
+		stand-it-up) echo "640 7" ;;
 		*) echo "900 13" ;;
 	esac
 }

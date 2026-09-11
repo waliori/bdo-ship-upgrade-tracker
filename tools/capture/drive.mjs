@@ -273,9 +273,10 @@ async function pick(page, sel, { upTo = 2500 } = {}) {
  * the answer "no" would put that wait on every tab press of the phone
  * cut.
  */
-export async function onScreen(page, sel) {
+export async function onScreen(page, sel, { upTo = 0 } = {}) {
 	try {
-		await pick(page, sel, { upTo: 0 });
+		const el = await pick(page, sel, { upTo });
+		if (typeof sel === 'string') await el.dispose();
 		return true;
 	} catch {
 		return false;
@@ -458,7 +459,14 @@ export async function typeInto(page, sel, text, { after = 800 } = {}) {
  */
 export async function tab(page, id, { after = 900 } = {}) {
 	const sel = `[data-act="view"][data-id="${id}"]`;
-	if (await onScreen(page, sel)) return click(page, sel, { after });
+	// Asked for with a budget rather than once. The shell redraws on its
+	// own -- a clock ticking over, the market answering, a save landing
+	// -- and a tab press that happened to land inside one of those
+	// redraws used to decide the row was not there at all and go looking
+	// for the phone's sheet, which on a wide screen is not there either.
+	// A phone pays the budget before falling through, which is the right
+	// way round: a wide screen is the common case and never waits.
+	if (await onScreen(page, sel, { upTo: 1200 })) return click(page, sel, { after });
 	await click(page, '[data-act="tab-sheet"]', { after: 700 });
 	await click(page, sel, { after });
 }

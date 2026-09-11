@@ -24,7 +24,7 @@ export {
 } from './map/trace.js';
 export {
 	enterFull, exitFull, toggleFull, mapIsFull, toggleMini, toggleMeasure,
-	toggle3D, tiltMap, levelMap, setMapStyle, map3D
+	toggle3D, tiltMap, levelMap, setMapStyle, setMapSight, map3D
 } from './map/view.js';
 export {
 	pinArea, forgetPinned

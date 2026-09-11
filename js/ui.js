@@ -62,7 +62,7 @@ import {
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite,
 	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet,
-	toggle3D, levelMap, setMapStyle
+	toggle3D, levelMap, setMapStyle, setMapSight
 } from './screen-map.js';
 
 // Two groups: the yard, where a build is planned and made, and the
@@ -997,6 +997,7 @@ function wire() {
 			case 'map-3d': toggle3D(); return;
 			case 'map-level': levelMap(); return;
 			case 'map-style': setMapStyle(el.dataset.id); return;
+			case 'map-sight': setMapSight(el.dataset.id); return;
 			case 'map-sail-cal': return openSailCal();
 			case 'map-route-link':
 				try {

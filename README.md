@@ -91,13 +91,37 @@ and says so; blank means the quoted rate.
 
 ### 4. Take the list shopping
 
-Everything still missing, grouped by how you actually obtain it — Crow
-Coin Shop, Falasi's silver, barter, worker nodes, hunting — with running
-totals measured against what's in your purse. It opens on **Still to
-get**: the icons and the numbers of everything short, biggest first,
-tinted by the money each one wants — and a press on any of them narrows
-the whole screen to that one thing. The list copies as text or as CSV,
-and prints legibly on white.
+![Three goals, and the day count moving under each one](docs/media/the-way.gif)
+
+It opens on **Still to get**: the icons and the numbers of everything
+short, biggest first, tinted by the money each one wants — and a press
+on any of them narrows the whole screen to that one thing.
+
+Under it, **the way to get it**: not every way each thing *can* be had,
+but one way it *should* be, chosen against all the others and counted
+in days. *Done in 11 days* is the headline; beneath it, what it will
+cost in coins and silver, and how many things are left across how many
+steps. Because there is no right answer to what that should cost you,
+it asks: **Soonest** spends the purse wherever that buys a day, **Keep
+the coins** spends them only where nothing else sells the thing, **Keep
+the silver** leaves the Central Market alone — and the day count moves
+as you choose, which is the trade in the only unit that matters. Tell
+it how many days a week you actually sail, hold coins back, and say
+what you are willing to do at all: turn bartering off and the lists
+stop counting; turn hunting on and a sea monster's drop becomes
+something to go and kill for rather than something to buy.
+
+A barter step is paced by how often that offer was really seen on the
+list, not by how often it could appear — presence only, never
+multiplicity, so it can lengthen an estimate and never shorten one. And
+the plan says plainly **what it will never do**, drawn from the orders
+in force, so you know what it is not counting.
+
+**Every way** is the other reading: everything outstanding grouped by
+how you actually obtain it — Crow Coin Shop, Falasi's silver, barter,
+worker nodes, hunting — with running totals measured against what's in
+your purse. Either reading copies as text or as CSV, and prints legibly
+on white.
 
 **Total Barters follows your runs.** Recording a run adds its trades to
 the count that opens the next trade route, in the same change as the
@@ -385,8 +409,10 @@ its letters you have recorded.
 The **Ship** screen opens on the ship as a card — and keeps **setups**:
 a hull with its parts, crystal and seating under a name, to switch
 between here or from the Map's route timing (the crew roster itself is
-shared). Your **Sailing Mastery** goes in beside it and counts toward
-speed, acceleration, turn and brake the way the game's table has it.
+shared). Your **Sailing Mastery** counts toward speed, acceleration,
+turn and brake the way the game's table has it; the card reads it, and
+it is typed once in the bar above the tabs, where every screen reads
+the same number.
 
 **Your fleet is your inventory.** Keeping a setup puts its hull in the
 Inventory if none was recorded there, and a hull recorded in the
@@ -494,6 +520,24 @@ gpw's ocean map. The chart can also draw all 58 **wharf managers**
 chart's `⇩` keeps the area in view offline — its tiles and one zoom
 level either side, up to 400 of them — in a store the service worker's
 tidying never touches, until `⌫` lets them go.
+
+### Stand the chart up
+
+![The chart standing up on the game's own terrain, leaned over and painted both ways](docs/media/stand-it-up.gif)
+
+The `⛰` button takes the chart off the flat and stands it on **the
+game's own terrain** — not a picture of the world map, but the terrain
+meshes read out of your client and baked into a heightmap the browser
+can draw. Shift-drag leans it; `⤓ Level` looks straight down again,
+facing north. Two ways to paint it: **Ground**, in the colours the
+client ships on the terrain itself, and **Neon**, contours drawn the
+way the game's own 3D map draws them. Every pin, route, habitat and
+trace you had on the flat chart is still there, standing on the
+landscape it belongs to.
+
+The terrain is a build artefact, not something the app fetches from
+anyone: `tools/build-terrain.mjs` bakes it out of an extracted client,
+and a deployment without that bake simply has no `⛰`.
 
 ### Plot the loop, and know how long it takes
 

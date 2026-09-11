@@ -51,11 +51,11 @@ const KEEP = 700;
 const state = {
 	on: false, gl: null, canvas: null, host: null,
 	index: null, indexTried: false,
-	tiles: new Map(), pending: new Set(), queue: [],
+	tiles: new Map(), pending: new Set(), queue: [], floor: new Set(), floorList: [],
 	prog: null, sea: null, seaBuf: null,
 	skin: null, skinBox: null, skinTex: null, skinLevel: null, skinDirty: false,
 	images: new Map(),
-	pitch: 52, bearing: 0, style: 'real',
+	pitch: 52, bearing: 0, style: 'real', sight: 'near',
 	clock: 0, raf: null, lastSize: { w: 0, h: 0 },
 	cam: null, failed: null
 };
@@ -158,7 +158,8 @@ function camera(view, size) {
 	// enough for a hill in front of the camera.
 	const far = dist * (2 + 40 * Math.sin(pitch));
 	const proj = perspective(fovy, size.w / size.h, dist / 32, far);
-	const fogFar = dist * (1.05 + 2.2 * Math.sin(pitch));
+	const fog = SIGHT[state.sight].fog;
+	const fogFar = dist * (fog[0] + fog[1] * Math.sin(pitch));
 	return { s, dist, eye, axes: ax, mvp: mul(proj, basisView(eye, ax.x, ax.y, ax.z)), far, fogFar, centre: view.centre };
 }
 
@@ -387,12 +388,17 @@ async function inflate(buf) {
  *
  * Not straight to fetch: a lean at a deep zoom wants a good many tiles
  * at once, and a browser given two hundred of them at once spends its
- * six connections on them and starves the flat squares the ground is
- * wearing -- which is exactly how the view ended up drawn in the
- * client's own grey. So they queue, a few at a time, nearest first
- * (visibleTiles is sorted), and the queue is emptied at the start of
- * every frame so that what is asked for is always what is in view now
- * rather than what was in view three zooms ago.
+ * connections on them and starves the flat squares the ground is
+ * wearing. So they queue, a few at a time, and the queue is emptied at
+ * the start of every frame so that what is asked for is always what is
+ * in view now rather than what was in view three zooms ago.
+ *
+ * The order is coarse first (see sortQueue). A zoom throws away the
+ * whole selection, and filling two hundred tiles takes ten seconds --
+ * during which, fine-first, the chart has almost nothing on it and
+ * reads as broken. One coarse tile covers sixteen times the ground of
+ * a tile two levels down for the same five kilobytes, so coarse first
+ * puts ground everywhere within a second and sharpens it after.
  */
 // Four, not six. Six is a browser's whole per-origin budget on HTTP/1.1
 // -- which is what a plain http://localhost is, where the deployed site
@@ -410,7 +416,13 @@ function want(level, x, y) {
 		return;
 	}
 	state.queue.push(key);
-	pump();
+}
+
+/** Coarsest first, and nearest within a level: what covers the most
+ *  ground per tile, where the camera is looking. */
+function sortQueue() {
+	const level = key => Number(key.slice(0, key.indexOf('_')));
+	state.queue.sort((a, b) => level(b) - level(a));
 }
 
 function pump() {
@@ -442,10 +454,40 @@ async function fetchTile(key) {
 	}
 }
 
-/** Forget the tiles nobody has looked at for longest. */
+/**
+ * The whole world at its coarsest, fetched once and never let go.
+ *
+ * Without it, swinging the camera onto ground it has not seen draws
+ * nothing at all -- not the tiles, which have not arrived, and not a
+ * coarser stand-in, because that had never been asked for either. The
+ * chart went blank until it was nudged. The top three levels are about
+ * sixty tiles and a few hundred kilobytes for the entire world, so they
+ * are simply always in hand: the view can be short of detail, but it is
+ * never short of ground.
+ */
+const FLOOR_LEVELS = 3;
+
+function keepFloor() {
+	if (!state.index) return;
+	const levels = state.index.levels.map(l => l.level).sort((a, b) => b - a).slice(0, FLOOR_LEVELS);
+	for (const level of levels) {
+		const info = levelInfo(level);
+		if (!info) continue;
+		for (let x = info.x0; x < info.x0 + info.w; x++) {
+			for (let y = info.y0; y < info.y0 + info.h; y++) {
+				if (!tileExists(info, x, y)) continue;
+				state.floor.add(`${level}_${x}_${y}`);
+				state.floorList.push([level, x, y]);
+			}
+		}
+	}
+}
+
+/** Forget the tiles nobody has looked at for longest -- except the
+ *  floor, which is the whole point of it. */
 function evict() {
 	if (state.tiles.size <= KEEP) return;
-	const live = [...state.tiles.entries()].filter(([, t]) => t);
+	const live = [...state.tiles.entries()].filter(([k, t]) => t && !state.floor.has(k));
 	if (live.length <= KEEP) return;
 	live.sort((a, b) => a[1].used - b[1].used);
 	for (const [key, tile] of live.slice(0, live.length - KEEP)) {
@@ -811,6 +853,7 @@ export async function enterTerrain(host) {
 
 	state.on = true;
 	host.classList.add('map-has-3d');
+	keepFloor();
 	setProjector((view, size, x, y) => {
 		const cam = state.cam || camera(view, size);
 		return projectThrough(cam, size, x, y);
@@ -827,6 +870,8 @@ export function exitTerrain() {
 	state.tiles.clear();
 	state.pending.clear();
 	state.queue.length = 0;
+	state.floor.clear();
+	state.floorList.length = 0;
 	if (state.raf) cancelAnimationFrame(state.raf);
 	state.raf = null;
 	loadingLight(false);
@@ -851,8 +896,15 @@ export function terrainDiag() {
 		levels: state.levelsDrawn || null,
 		drawn: state.drawn || 0,
 		waiting: state.waiting || 0,
+		exists: state.exists || 0,
 		queued: state.queue.length,
 		cached: state.tiles.size,
+		floor: `${[...state.floor].filter(k => state.tiles.get(k)).length}/${state.floor.size}`,
+		holes: [...state.tiles].filter(([k, t]) => {
+			if (t) return false;
+			const m = /^(\d+)_(-?\d+)_(-?\d+)$/.exec(k);
+			return m && tileExists(levelInfo(Number(m[1])), Number(m[2]), Number(m[3]));
+		}).length,
 		frameMs: state.frameMs ? Number(state.frameMs.toFixed(1)) : 0,
 		uploads: state.uploads || 0,
 		dpr: state.dpr || 0,
@@ -866,6 +918,13 @@ export function setStyle(style) {
 	schedule();
 }
 export const terrainStyle = () => state.style;
+
+/** How far the ground is drawn: 'near' or 'far'. */
+export function setSight(how) {
+	state.sight = how === 'far' ? 'far' : 'near';
+	schedule();
+}
+export const terrainSight = () => state.sight;
 
 export function tilt(dPitch, dBearing) {
 	state.pitch = Math.max(0, Math.min(MAX_PITCH, state.pitch + dPitch));
@@ -930,15 +989,24 @@ function schedule() {
 // eight: at the chart's deepest zoom a level 1 cell is eight pixels, and
 // if that does not split there is never any reason to load level 0 and
 // the mesh the game draws from is never seen.
-const SPLIT_PX = 5;
+const SPLIT_PX = 6;
 
-/** How far past the middle of the view the ground is drawn at all, as a
- *  multiple of the box's height. Generous on purpose: with the split
- *  test reading the haze (worthSplitting), distance is drawn at four
- *  and five levels up and costs a handful of tiles, so the ground can
- *  run to the horizon instead of stopping in the middle of the sea and
- *  needing fog thick enough to hide the cut. */
-const REACH = 3.5;
+/**
+ * How far past the middle of the view the ground is drawn, as a
+ * multiple of the box's height, and how quickly the haze closes on it.
+ *
+ * Two settings rather than one, because the right answer depends on
+ * what the view is for. Near is the default: the horizon closes a
+ * little way out, which is what a chart wants and what keeps the tile
+ * count down. Far opens it up for the view of the whole archipelago
+ * that the ground was baked for -- it costs more tiles, but they are
+ * coarse ones, since the split test already spends less detail where
+ * the haze is thick.
+ */
+const SIGHT = {
+	near: { reach: 3.5, fog: [1.05, 2.2] },
+	far: { reach: 7.5, fog: [1.5, 4.0] }
+};
 
 const MAX_TILES = 200;
 
@@ -951,7 +1019,7 @@ function visibleTiles(view, size) {
 	// The water the screen can see, as a box. A leaning camera's far
 	// corners land past the horizon and come back null, so the box is
 	// capped at the distance the fog closes anyway.
-	const cap = size.h * REACH / Math.pow(2, view.zoom - MAX_ZOOM);
+	const cap = size.h * SIGHT[state.sight].reach / Math.pow(2, view.zoom - MAX_ZOOM);
 	const pts = [];
 	for (const [px, py] of [[0, 0], [size.w, 0], [0, size.h], [size.w, size.h], [size.w / 2, size.h / 2]]) {
 		const p = seaAt(size, px, py);
@@ -1051,8 +1119,11 @@ export function drawTerrain(view, size) {
 
 	const cam = state.cam = camera(view, size);
 	// Whatever was queued for the view as it was is no longer the
-	// question; what is in front of the camera now is.
+	// question; what is in front of the camera now is. The floor asks
+	// again first: it is what stands in for everything else, so it is
+	// worth having before any of the detail.
 	state.queue.length = 0;
+	for (const [l, x, y] of state.floorList) want(l, x, y);
 	const tiles = visibleTiles(view, size);
 	if (state.style === 'real') ensureSkin(gl, view, size);
 	const neon = state.style === 'neon' ? 1 : 0;
@@ -1143,12 +1214,15 @@ export function drawTerrain(view, size) {
 		if (tile === undefined) {
 			want(w.level, w.x, w.y);
 			waiting++;
+			// Up the chain for the first one that is in hand. Anything
+			// missing on the way is asked for too: the nearer the level,
+			// the sooner the stand-in gets better.
 			for (let up = w.level + 1, x = w.x, y = w.y; up <= 8; up++) {
 				x = Math.floor(x / 2); y = Math.floor(y / 2);
 				const key = `${up}_${x}_${y}`;
 				const coarse = state.tiles.get(key);
 				if (coarse) { held.set(key, coarse); break; }
-				if (coarse === undefined && up === w.level + 1) want(up, x, y);
+				if (coarse === undefined) want(up, x, y);
 			}
 		}
 	}
@@ -1162,11 +1236,20 @@ export function drawTerrain(view, size) {
 	}
 	for (const tile of ready) { one(tile); drawn++; }
 	const byLevel = {};
-	for (const w of tiles) byLevel[w.level] = (byLevel[w.level] || 0) + 1;
+	let exists = 0;
+	for (const w of tiles) {
+		byLevel[w.level] = (byLevel[w.level] || 0) + 1;
+		if (tileExists(levelInfo(w.level), w.x, w.y)) exists++;
+	}
 	state.levelsDrawn = byLevel;
+	state.exists = exists;
 	state.drawn = drawn;
 	state.waiting = waiting + state.pending.size;
 	loadingLight(state.waiting > 0);
+	// Everything this frame wants is in the queue now; order it and let
+	// the next few go.
+	sortQueue();
+	pump();
 	evict();
 
 	// The swell only animates while something is moving anyway; a still

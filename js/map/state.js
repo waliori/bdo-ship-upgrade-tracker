@@ -249,7 +249,7 @@ export function persist() {
 	syncLanes();
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode: mv.mode, panelOpen: mv.panelOpen, follow: mv.follow, nextOnly: mv.nextOnly, kindFilter: mv.kindFilter, coursesOn: mv.coursesOn, huntsOn: mv.huntsOn, wharvesOn: mv.wharvesOn, habitatsOn: mv.habitatsOn, labelsOn: mv.labelsOn, pinsOn: mv.pinsOn, tracesOn: mv.tracesOn, hugWater: mv.hugWater, layersOpen: mv.layersOpen, sideRight: mv.sideRight, tradesMode: mv.tradesMode, miniOn: mv.miniOn, miniPos: mv.miniPos, inkColour: mv.inkColour, inkWidth: mv.inkWidth, inkSize: mv.inkSize, inkPlate: mv.inkPlate, threeD: mv.threeD, pitch: mv.pitch, bearing: mv.bearing }));
+			JSON.stringify({ mode: mv.mode, panelOpen: mv.panelOpen, follow: mv.follow, nextOnly: mv.nextOnly, kindFilter: mv.kindFilter, coursesOn: mv.coursesOn, huntsOn: mv.huntsOn, wharvesOn: mv.wharvesOn, habitatsOn: mv.habitatsOn, labelsOn: mv.labelsOn, pinsOn: mv.pinsOn, tracesOn: mv.tracesOn, hugWater: mv.hugWater, layersOpen: mv.layersOpen, sideRight: mv.sideRight, tradesMode: mv.tradesMode, miniOn: mv.miniOn, miniPos: mv.miniPos, inkColour: mv.inkColour, inkWidth: mv.inkWidth, inkSize: mv.inkSize, inkPlate: mv.inkPlate, threeD: mv.threeD, pitch: mv.pitch, bearing: mv.bearing, farSight: mv.farSight }));
 	} catch { /* private mode; the session still works */ }
 	if (writeTimer) clearTimeout(writeTimer);
 	writeTimer = setTimeout(flushView, 250);
