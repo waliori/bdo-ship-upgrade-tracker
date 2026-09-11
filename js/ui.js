@@ -24,7 +24,7 @@ import { encodeShare, decodeShare, shareLink, shareSize } from './share.js';
 import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
 import { paintPouch, measurePouch } from './pouch.js';
-import { toggleSailBar } from './profile-bar.js';
+import { toggleSailBar, openRoutes } from './profile-bar.js';
 import { hidePeek, wirePeek } from './peek.js';
 import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
@@ -919,6 +919,8 @@ function wire() {
 				}
 				return;
 			}
+			// Every threshold and where the count stands among them.
+			case 'routes': return openRoutes();
 			case 'blockers-all': toggleBlockers(); return render();
 			case 'enh-blocked': toggleBlocked(); return render();
 			case 'open-item': hidePeek(); showView('inventory'); setSelected(el.dataset.item); return render();
@@ -1335,13 +1337,24 @@ function wire() {
 		// The Value Pack is a tick rather than a number, so it lands first
 		// and on its own.
 		const vp = evt.target.closest('[data-act="value-pack"]');
-		if (vp) return store.setProfile('valuePack', vp.checked);
+		if (vp) {
+			store.setProfile('valuePack', vp.checked);
+			// The tick is in the bar, and so are the two chips it moves
+			// -- the word beside it and the draws a day. The render the
+			// store fires cannot repaint a bar the focus is standing in,
+			// so this one asks for it.
+			return paintPouch({ force: true });
+		}
 
 
 		// The level is a name, not a number, so it lands before the
 		// numeric parse below rather than going through it.
 		const lvl = evt.target.closest('[data-act="barter-level"]');
-		if (lvl) return store.setProfile('level', lvl.value || null);
+		if (lvl) {
+			store.setProfile('level', lvl.value || null);
+			// Same: the Parley a trade under the select is the bar's own.
+			return paintPouch({ force: true });
+		}
 
 		// How the route is written to the game's map -- favourites or one
 		// of its loops. A select answers on change, not on click.
@@ -1433,6 +1446,11 @@ function wire() {
 			store.setProfile('failstacks', stacks);
 		}
 		else store.setStock(el.dataset.item, n);
+		// A number typed in the bar and committed with Enter keeps the
+		// focus where it is, so the chips around it are repainted here
+		// rather than waiting for the focus to leave the bar.
+		const bar = document.getElementById('pouch');
+		if (bar && bar.contains(el)) paintPouch({ force: true });
 	});
 
 	// The pouch holds its ground while you type in it; once focus leaves it

@@ -1636,7 +1636,7 @@ test('one run for several materials: each keeps its ticks and its want, and a gi
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.mat-list.hero', { timeout: 15000 });
 	await page.evaluate(async () => {
 		const store = await import('/js/state.js');
-		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)');
+		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); store.setProfile('barterCount', 20000);
 		// The Figurine only at Velia's storage: a run has to put in there for it.
 		store.setStockAt('[Level 5] Faded Gold Dragon Figurine', 'Velia', 2, 'ashore');
 	});
@@ -1711,7 +1711,7 @@ test('the hold is a line across the Barter tab that opens over the page, and the
 	const { page, context, errors } = await open('#barter');
 	await page.evaluate(async () => {
 		const store = await import('/js/state.js');
-		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)');
+		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); store.setProfile('barterCount', 20000);
 		store.setStock('[Level 5] Azure Quartz', 5);
 		store.setStock('[Level 7] Crystal Ball of Fortune', 2);
 		store.setStockAt('[Level 5] Luxury Patterned Fabric', 'Iliya Island', 12, 'ashore');
@@ -1792,7 +1792,7 @@ test('the run laid out is a sheet over the Barter tab: a strip along the foot ap
 		store.flush();
 	});
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.chain', { timeout: 15000 });
-	await page.evaluate(async () => { const store = await import('/js/state.js'); store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); });
+	await page.evaluate(async () => { const store = await import('/js/state.js'); store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); store.setProfile('barterCount', 20000); });
 	// The runs worth sailing are searched in a module worker, which
 	// stays up between searches; the cards it answered with are on the
 	// page and no longer marked as being worked out. Waited for rather
@@ -1929,7 +1929,7 @@ test('the material run is one route through every island ticked: a full run goes
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.mat-list.hero', { timeout: 15000 });
 	await page.evaluate(async () => {
 		const store = await import('/js/state.js');
-		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)');
+		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); store.setProfile('barterCount', 20000);
 		// Twenty-two thousand weight of gives at Velia, against a hold
 		// that barters under twenty thousand six hundred.
 		store.setStockAt("[Level 5] Statue's Tear", 'Velia', 18, 'ashore');
@@ -1988,7 +1988,7 @@ test('before casting off: a gold bar an island takes is bought ashore and priced
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.mat-list.hero', { timeout: 15000 });
 	await page.evaluate(async () => {
 		const store = await import('/js/state.js');
-		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)');
+		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); store.setProfile('barterCount', 20000);
 		// Amethyst at Heidel, which has no wharf: out of the run's reach.
 		store.setStockAt('[Level 4] Amethyst Fragment', 'Heidel', 2, 'ashore');
 	});

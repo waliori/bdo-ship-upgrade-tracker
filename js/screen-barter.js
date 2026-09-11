@@ -927,7 +927,7 @@ function ordersHTML(o) {
 
 /** One chain of the board, to tick: where it starts, how far it
  *  reaches, the islands, the goods, and what one pass of it pays. */
-function chainRow(c, on, solo, dockName, from, ladder = null) {
+function chainRow(c, on, solo, dockName, from, ladder = null, shut = null) {
 	// The pips are the rungs this chain climbs: from the shore up for a
 	// land chain, from the good held for the rest -- a [Level 5] aboard
 	// shows 5, 6, 7, not the ladder beneath it.
@@ -950,6 +950,28 @@ function chainRow(c, on, solo, dockName, from, ladder = null) {
 		const picked = ladder.chosen.includes(x);
 		return `<button class="chip tiny${picked ? ' active' : x === c ? ' shown' : ''}" data-act="barter-chain-start" data-id="${esc(x.id)}" data-group="${esc(group)}" title="${x.from === 'land' ? `Buy ${F(x.rungs[0].giveN)}× ${esc(x.item)} ashore and climb from Level 1` : `Climb from the ${n1(x.have + x.load)}× ${esc(x.item)} held`} — the islands above deal once, so one start is sailed"><i class="chain-start-lv" style="--tier:${TIER(x.from === 'land' ? 1 : levelOf(x.item))}">${x.from === 'land' ? '⌂' : levelOf(x.item)}</i>${startOf(x)}${sol && sol.silver ? `<em>${FC(Math.round(sol.net))}</em>` : ''}</button>`;
 	}).join('')}</div>` : '';
+	// A climb through an island the barter count has not opened is shown
+	// rather than dropped -- it is what the day's board holds, and what
+	// the next threshold is worth -- but it cannot be ticked, and where
+	// the silver would be it says what opens it.
+	if (shut) {
+		const npc = npcById.get(shut.npcId);
+		return `<button class="chain shut" disabled style="--tier:${TIER(c.top)}" title="${esc(isleOf(npc) || shut.npc)} opens at ${F(shut.barters)} Total Barters">
+			<span class="chain-mark">🔒</span>
+			<span class="chain-main">
+				<span class="chain-start">${start}</span>
+				<span class="chain-pips">${pips}<em>Level ${c.top}</em></span>
+				<span class="chain-route">${c.rungs.map(r => `<span class="${r.npcId === shut.npcId ? 'chain-shut-isle' : ''}">${esc(isleShort(npcById.get(r.npcId)) || r.npc)}</span>`).join(' › ')}</span>
+				<span class="chain-goods">${c.rungs.map(r => img(r.item, 'row-icon sm')).join('')}</span>
+			</span>
+			<span class="chain-right">
+				<b class="none">locked</b>
+				<span class="chain-yard"><em>${esc(isleOf(npc) || shut.npc)}</em></span>
+				<span>opens at ${F(shut.barters)} Total Barters</span>
+				<span>${F(shut.short)} more to go</span>
+			</span>
+		</button>`;
+	}
 	const card = `<button class="chain${on ? ' on' : ''}" data-act="barter-chain" data-id="${esc(c.id)}"${group ? ` data-group="${esc(group)}"` : ''} style="--tier:${TIER(c.top)}">
 		<span class="chain-mark">${on ? '✓' : ''}</span>
 		<span class="chain-main">
@@ -1098,7 +1120,7 @@ function expectedBest(me, b, prof) {
 	const stock = aboardStock(), dock = dockStock();
 	const made = store.getProfile('homemade', []) || [];
 	const ship = { speed: me.speed.total, cal: sailCal() };
-	const key = JSON.stringify([board.day, b.standing.map(c => c.id), stock, dock, o, port, stash, made, me.hold, ship, Object.keys(marketSilver()).length]);
+	const key = JSON.stringify([board.day, b.standing.map(c => c.id), stock, dock, o, port, stash, made, me.hold, ship, Object.keys(marketSilver()).length, prof.barterCount]);
 	if (expected.key === key) return expected.value;
 	const parley = parleyOf(prof);
 	let sum = 0, weight = 0, min = Infinity, max = -Infinity, best = null;
@@ -1553,7 +1575,12 @@ function silverParts(me, b) {
 	// The runs worth sailing, searched once for these inputs and kept
 	// until any of them change; each chain's run on its own likewise.
 	const ship = { speed: me.speed.total, cal: sailCal() };
-	const pkey = JSON.stringify([board.day, b.combo.id, stock, dock, o, port, stash, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, reach]);
+	// The barter count is part of the key, and has to be: it decides
+	// which chains exist at all. Without it, raising the count left the
+	// solo runs keyed to the old, shorter set -- and the first chain the
+	// new count opened had no run in the map, which threw inside the
+	// render and froze the tab on the old board.
+	const pkey = JSON.stringify([board.day, b.combo.id, stock, dock, o, port, stash, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, reach, prof.barterCount]);
 	const search = { chains: all, opts, ship, timeCap: o.hours };
 	// The search goes to the worker and the page draws meanwhile; asked
 	// again when the inputs change, or when an answer is owed and no
@@ -1631,7 +1658,10 @@ function silverParts(me, b) {
 		ladders.get(longest.id).push(c);
 	}
 	for (const list of ladders.values()) list.sort((x, y) => y.rungs.length - x.rungs.length);
-	const tops = [...new Set(all.map(c => c.top))].sort((a, b2) => b2 - a);
+	// The levels the list shows are the ones anything reaches, shut or
+	// not: a reach whose only climbs are behind a door still has a group,
+	// so the door is where a reader looks for it.
+	const tops = [...new Set([...all, ...shutChains].map(c => c.top))].sort((a, b2) => b2 - a);
 	const chainFilters = `<div class="chain-filters">
 		<input class="field hold-q" type="search" placeholder="Find an island, a place or a good…" value="${esc(chainQ)}" data-act="barter-chain-q" aria-label="Find a chain">
 		<span class="chips">
@@ -1648,11 +1678,19 @@ function silverParts(me, b) {
 			const starts = list.filter(c => listed.includes(c));
 			if (!starts.length) return '';
 			const shown = starts.find(c => chosen.includes(c)) || starts.slice().sort((x, y) => all.indexOf(x) - all.indexOf(y))[0];
-			return chainRow(shown, chosen.includes(shown), solos.get(shown.id), from && from.name, from, starts.length > 1 ? { starts, chosen, solos } : null);
+			// A chain with no run of its own yet -- the set moved under a
+			// memo -- is drawn as nothing rather than thrown over.
+			const solo = solos.get(shown.id);
+			if (!solo) return '';
+			return chainRow(shown, chosen.includes(shown), solo, from && from.name, from, starts.length > 1 ? { starts, chosen, solos } : null);
 		}).filter(Boolean);
-		if (!rows.length) return '';
+		// The climbs at this reach that are not this sailor's yet: the
+		// same search filters them, so a word typed finds them too.
+		const locked = shutChains.filter(c => c.top === top && passes(c))
+			.map(c => chainRow(c, false, null, from && from.name, from, null, c.gate));
+		if (!rows.length && !locked.length) return '';
 		const of = [...ladders.values()].filter(list => list[0].top === top).length;
-		return `<div class="chain-group"><div class="chain-group-head" style="--tier:${TIER(top)}"><i></i><span>Reaches Level ${top}</span><span>${rows.length}${rows.length !== of ? ` of ${of}` : ''}</span></div>${rows.join('')}</div>`;
+		return `<div class="chain-group"><div class="chain-group-head" style="--tier:${TIER(top)}"><i></i><span>Reaches Level ${top}</span><span>${rows.length}${rows.length !== of ? ` of ${of}` : ''}${locked.length ? ` · ${locked.length} locked` : ''}</span></div>${rows.join('')}${locked.join('')}</div>`;
 	}).join('');
 	// What pays the good today, and whether its give is held: the answer
 	// even when no chain from the shore reaches it.
@@ -1667,7 +1705,7 @@ function silverParts(me, b) {
 	// same lie the app used to tell, only in the other direction.
 	const shutIsles = [...new Map(shutChains.map(c => [c.gate.npcId, c.gate])).values()].sort((a, b) => a.barters - b.barters);
 	const shutNote = shutIsles.length
-		? `<div class="barter-shut"><b>${shutChains.length} chain${shutChains.length === 1 ? '' : 's'} on this board ${shutChains.length === 1 ? 'is' : 'are'} not yours to sail yet</b> — ${shutIsles.map(g => `${esc(isleOf(npcById.get(g.npcId)) || g.npc)} opens at ${F(g.barters)} Total Barters, ${F(g.short)} more`).join('; ')}. ${shutChains.length === 1 ? 'It is' : 'They are'} left out of the run and of the runs worth sailing.</div>`
+		? `<div class="barter-shut"><b>${shutChains.length} chain${shutChains.length === 1 ? '' : 's'} on this board ${shutChains.length === 1 ? 'is' : 'are'} not yours to sail yet</b> — ${shutIsles.map(g => `${esc(isleOf(npcById.get(g.npcId)) || g.npc)} opens at ${F(g.barters)} Total Barters, ${F(g.short)} more`).join('; ')}. ${shutChains.length === 1 ? 'It is' : 'They are'} listed below, locked, and left out of the run and of the runs worth sailing.${prof.barterCount ? '' : ' Your Total Barters read nought — set them in the bar at the top of the page.'} <button class="linky" data-act="routes">every route and its count →</button></div>`
 		: '';
 	const chainsPanel = `<section class="panel barter-chains">${headFill(fillable)}<div class="panel-body">${shutNote}${reachBar}${reach ? '' : proposals}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.buy ? 'Nothing climbs on this board.' : 'Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.') : 'No chain matches.'}</p>`}</div></div></section>`;
 
@@ -2233,13 +2271,25 @@ function pickOffer(npcId, then) {
 /** An island of the player's own choosing, the telling ones first. */
 function pickIsland(then) {
 	const { standing } = boardNow();
-	const list = askable(standing, npcById, fromPort()).filter(a => npcOpen(a.npcId, barterProfile().barterCount));
+	// The islands this sailor has not opened are listed too -- greyed,
+	// unpickable, and saying what opens them. Hiding them made the list
+	// look short for no reason a reader could see; shown, it is a map of
+	// what the count is worth.
+	const barters = barterProfile().barterCount;
+	const list = askable(standing, npcById, fromPort());
 	openPicker({
 		title: 'Which island are you looking at?',
-		hint: 'The ones whose offer tells the layouts apart best come first.',
-		items: list.map(a => {
+		hint: 'The ones whose offer tells the layouts apart best come first. The ones your Total Barters have not opened are greyed, with the count that opens them.',
+		items: [...list].sort((a, b) => Number(npcOpen(b.npcId, barters)) - Number(npcOpen(a.npcId, barters))).map(a => {
 			const n = npcById.get(a.npcId);
-			return { id: String(a.npcId), label: isleOf(n), sub: whoOf(n), icon: '', meta: a.worst > 1 ? `${a.worst} left at worst` : 'settles it' };
+			const gate = npcGate(a.npcId);
+			const shut = gate > barters;
+			return {
+				id: String(a.npcId), label: isleOf(n), icon: '',
+				sub: shut ? `${whoOf(n)} · opens at ${F(gate)} Total Barters` : whoOf(n),
+				meta: shut ? `${F(gate - barters)} more` : a.worst > 1 ? `${a.worst} left at worst` : 'settles it',
+				disabled: shut
+			};
 		}),
 		onPick: id => pickOffer(Number(id), then)
 	});

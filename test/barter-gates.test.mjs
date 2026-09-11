@@ -130,15 +130,31 @@ test('what a board shuts out is listed soonest first', () => {
 	assert.equal(shutOut(barterData, 20_000).length, 0);
 });
 
-test('a save that has never been told a count is not a sailor with nothing open', () => {
-	// Nought is "nobody has said", not "this player has bartered nothing":
-	// the sea stays whole until the count is given.
-	assert.equal(openTable(barterData, 0), barterData);
-	assert.equal(gateOfItem('Tear of the Ocean', barterData, 0), null);
-	assert.equal(shutOut(barterData, 0).length, 0);
-	assert.ok(npcOpen(50826, 0), 'the Wandering Merchant is not shut on a blank save');
-	assert.ok(!npcOpen(50826, 480), 'and is shut once 480 is typed');
-	const board = combos.find(c => c.offers.some(([id]) => npcGate(id) > 480));
-	assert.equal(chains(boardData(board, barterData, npcById), {}, {}, 0).filter(c => c.gate).length, 0);
-	assert.equal(forecast('Tear of the Ocean', 1, barterData, { barterCount: 0 }).gate, null);
+test('nought barters is a real answer: the fewest islands, not the most', () => {
+	// A sailor who has never bartered has the three routes the game
+	// starts them with. Every threshold is ahead of them, and the app
+	// plans on that rather than on an optimistic blank.
+	assert.notEqual(openTable(barterData, 0), barterData);
+	assert.equal(shutOut(barterData, 0).length, 12, 'all twelve are ahead of them');
+	assert.equal(shutOut(barterData, 0)[0].barters, 10);
+	assert.ok(!npcOpen(58960, 0), 'Kashuma opens at 10');
+	assert.ok(npcOpen(58960, 10));
+	assert.equal(gateOfItem('Tear of the Ocean', barterData, 0).barters, 3000);
+	assert.ok(forecast('Tear of the Ocean', 1, barterData, { barterCount: 0 }).gate);
+	// And the board's chains are gated from the first barter.
+	const board = combos.find(c => c.offers.some(([id]) => npcGate(id) > 0));
+	assert.ok(chains(boardData(board, barterData, npcById), {}, {}, 0).filter(c => c.gate).length > 0);
+	// A caller with no player in hand still gets the whole board.
+	assert.equal(chains(boardData(board, barterData, npcById)).filter(c => c.gate).length, 0);
+});
+
+test('a chain opens on the barter that opens its island, and not before', () => {
+	// Layout 16 holds a climb whose [Level 4] rung is dealt at the
+	// Wandering Merchant's Ship, which opens at 3,000.
+	const data = boardData(combos.find(c => c.id === '16'), barterData, npcById);
+	const at = n => chains(data, {}, {}, n);
+	assert.equal(at(2999).filter(c => c.gate).length, 1);
+	assert.equal(at(2999).find(c => c.gate).gate.barters, 3000);
+	assert.equal(at(3000).filter(c => c.gate).length, 0, 'one barter opens it');
+	assert.equal(at(2999).length, at(3000).length, 'the board holds the same climbs either side');
 });

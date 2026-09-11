@@ -32,6 +32,30 @@ for (const [name, w, h] of [['desk', 1440, 1000], ['phone', 390, 844]]) {
 		await fold.click();
 		await wait(600);
 		await page.screenshot({ path: `${out}-bar-open.png`, clip: { x: 0, y: 0, width: 1440, height: 420 } });
+		// The Value Pack moves two chips: its own word and the draws a
+		// day. Both must follow the tick without a second press.
+		const packBefore = await page.evaluate(() => document.querySelector('.pouch-item.sail.pack').textContent.replace(/\s+/g, ' ').trim()
+			+ ' | ' + document.querySelector('.pouch-item.sail.draws').textContent.replace(/\s+/g, ' ').trim());
+		const box = await page.$('.pouch-item.sail.pack input');
+		await box.click();
+		await wait(500);
+		const packAfter = await page.evaluate(() => document.querySelector('.pouch-item.sail.pack').textContent.replace(/\s+/g, ' ').trim()
+			+ ' | ' + document.querySelector('.pouch-item.sail.draws').textContent.replace(/\s+/g, ' ').trim());
+		console.log('pack before:', packBefore);
+		console.log('pack after: ', packAfter);
+		// The chip was replaced by the repaint, so the second press has
+		// to find it again.
+		const box2 = await page.$('.pouch-item.sail.pack input');
+		await box2.click();
+		await wait(400);
+
+		// The table of thresholds.
+		await page.evaluate(() => document.querySelector('[data-act="routes"]').click());
+		await wait(700);
+		await page.screenshot({ path: `${out}-routes.png` });
+		await page.evaluate(() => { const b = document.querySelector('.dialog [data-close]'); if (b) b.click(); });
+		await wait(400);
+
 		const shutBtn = await page.$('[data-act="sail-bar"]');
 		await shutBtn.click();
 		await wait(400);

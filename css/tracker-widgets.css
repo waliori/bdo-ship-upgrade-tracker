@@ -518,6 +518,24 @@
   color: inherit;
 }
 .pouch-item.sail.summary:hover { border-color: rgba(var(--line-rgb), 0.28); }
+/* Nought barters is a real answer and an unanswered question at once,
+   so the chip asks until it is told. */
+.pouch-item.sail.summary.asking { border-color: rgba(232, 182, 97, 0.45); }
+.pouch-item.sail.summary.asking .pouch-need { color: var(--amber); }
+
+/* The table of thresholds, from the bar's ? and from the Barter tab. */
+.routes-table { max-height: 52vh; overflow: auto; margin: 12px 0; }
+.routes-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.routes-table td { padding: 7px 10px; border-bottom: 1px solid rgba(var(--line-rgb), 0.35); vertical-align: middle; }
+.routes-table tr:last-child td { border-bottom: none; }
+.routes-table td b { display: block; color: var(--ink-hi); font-weight: 600; }
+.routes-table td span { font-size: 11px; color: var(--ink-faint); }
+.routes-n { font-family: var(--font-display); font-weight: 700; color: var(--ink-mute); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.routes-state { text-align: right; white-space: nowrap; font-size: 12px; color: var(--amber); }
+.routes-table tr.open .routes-n { color: var(--teal); }
+.routes-table tr.open .routes-state { color: var(--teal); }
+.routes-table tr.shut td b { color: var(--ink-mute); }
+.routes-state i { font-style: normal; }
 
 /* The group title doubles as the way back. */
 button.pouch-group {

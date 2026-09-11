@@ -29,6 +29,7 @@ import { dailyCapacity, barterLevels, levelDiscount, npcGates, ROUTE_UNLOCKS } f
 import { npcById } from './barter_npcs.js';
 import { mateAtTheHelm, masteryBonus } from './ship.js';
 import { anyType } from './sailors.js';
+import { openDialog } from './dialogs.js';
 
 /** Open for typing, or folded into the line that reports it. Kept. */
 const open = () => store.getSetting('sailBarOpen', false) === true;
@@ -73,13 +74,20 @@ function summaryHTML(p) {
 		p.level || 'no level',
 		`${F(day.lists.trade)}+${F(day.lists.material)} draws`
 	].join(' · ');
-	return `<button class="pouch-item sail summary" data-act="sail-bar" aria-expanded="false"
+	// Nought barters is what the game gives a sailor who has never
+	// bartered -- three routes and no more -- and the app plans on it.
+	// It is also what a save that has never been told says, so the one
+	// number the sea is planned from asks for itself until it is given.
+	const blank = !p.barterCount;
+	return `<button class="pouch-item sail summary${blank ? ' asking' : ''}" data-act="sail-bar" aria-expanded="false"
 		title="Your barter count, level, Parley, vouchers, Value Pack and Sailing Mastery — everything the sea is planned from. Press to set them.">
 		<span class="pouch-glyph" aria-hidden="true">⇄</span>
 		<span class="pouch-body">
 			<span class="pouch-k">The sailor</span>
 			<span class="pouch-input plain">${esc(said)}</span>
-			<span class="pouch-need">${next ? esc(next) : 'every route open'} · refill in <b data-until="barter"></b></span>
+			<span class="pouch-need">${blank
+				? 'set your Total Barters — it decides which islands you can sail to'
+				: `${esc(next || 'every route open')} · refill in <b data-until="barter"></b>`}</span>
 		</span>
 		<span class="pouch-fold" aria-hidden="true">✎</span>
 	</button>`;
@@ -110,10 +118,10 @@ export function profileHTML() {
 	const title = `<button class="pouch-group fold" data-act="sail-bar" aria-expanded="true"
 		title="Fold these back into one line">The sailor <i aria-hidden="true">▴</i></button>`;
 
-	const chip = (cls, face, label, field, sub, title2) => `<label class="pouch-item sail ${cls}" title="${esc(title2)}">
+	const chip = (cls, face, label, field, sub, title2, after = '') => `<label class="pouch-item sail ${cls}" title="${esc(title2)}">
 		<span class="pouch-glyph" aria-hidden="true">${face}</span>
 		<span class="pouch-body">
-			<span class="pouch-k">${esc(label)}</span>
+			<span class="pouch-k">${esc(label)}${after}</span>
 			${field}
 			<span class="pouch-need">${sub}</span>
 		</span>
@@ -129,7 +137,8 @@ export function profileHTML() {
 		title,
 		chip('barters', '⇄', 'Total barters', num('barter-count', p.barterCount, 'Your Total Barters'),
 			next ? esc(next) : 'every route open',
-			'Your Total Barters, as the Barter Information window shows it. It decides which islands you can barter at — a run is never planned through one you have not opened. A trip recorded on the Barter tab adds its trades; type over it whenever the two drift.'),
+			'Your Total Barters, as the Barter Information window shows it. It decides which islands you can barter at — a run is never planned through one you have not opened. A trip recorded on the Barter tab adds its trades; type over it whenever the two drift.',
+			' <button class="info-dot" data-act="routes" aria-label="Every trade route and the count that opens it">?</button>'),
 
 		chip('level', '✲', 'Barter level',
 			`<select class="pouch-input select" data-act="barter-level" aria-label="Your barter level"><option value=""${p.level ? '' : ' selected'}>—</option>${levels}</select>`,
@@ -164,4 +173,33 @@ export function profileHTML() {
 			mastery ? `+${masteryBonus(mastery)}% speed, turn, brake` : 'adds to speed, turn and brake',
 			'Sailing Mastery as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000')
 	].join('');
+}
+
+/**
+ * Every threshold, and where your count stands among them.
+ *
+ * The one table the game never shows you in one piece: which island
+ * each total opens, which are yours already, and how far off the next
+ * one is. Opened from the bar and from the line on the Barter tab that
+ * says a chain is not yours to sail yet.
+ */
+export function openRoutes() {
+	const count = barterProfile().barterCount;
+	const gates = npcGates();
+	const rows = ROUTE_UNLOCKS.filter(r => r.opens).map(r => {
+		const id = [...gates].find(([, barters]) => barters === r.barters);
+		const npc = id ? npcById.get(id[0]) : null;
+		const open = count >= r.barters;
+		return `<tr class="${open ? 'open' : 'shut'}">
+			<td class="routes-n">${F(r.barters)}</td>
+			<td>${npc ? `<b>${esc(npc.at)}</b><span>${esc(npc.name)}</span>` : `<b>${esc(r.opens)}</b><span>not an island — a pair of goods</span>`}</td>
+			<td class="routes-state">${open ? '<i>✓</i> open' : `${F(r.barters - count)} more`}</td>
+		</tr>`;
+	}).join('');
+	const open = ROUTE_UNLOCKS.filter(r => r.opens && count >= r.barters).length;
+	openDialog(`<h2>The trade routes</h2>
+		<p class="dialog-copy">The game opens the sea island by island as your <b>Total Barters</b> climb. At <b>${F(count)}</b> you have <b>${open}</b> of the ${ROUTE_UNLOCKS.filter(r => r.opens).length} the patch notes name — and nothing in this app is ever planned through one you have not opened.</p>
+		<div class="routes-table"><table><tbody>${rows}</tbody></table></div>
+		<p class="dialog-copy faint">Three routes are open from the first day, before any of these. The coastal barterers that deal the [Level 6] and [Level 7] goods are not on this table: no patch note states a count for them, so the app treats them as open to everyone.</p>
+		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`);
 }

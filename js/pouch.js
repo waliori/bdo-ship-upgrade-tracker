@@ -80,17 +80,40 @@ export function pouchHTML() {
 export function paintPouch({ force = false } = {}) {
 	const host = document.getElementById('pouch');
 	if (!host) return;
-	// `force` is for the one change that comes from inside the bar and
-	// means to redraw it: folding the sailing numbers open or shut. The
-	// press leaves the focus on the button, which would otherwise look
-	// exactly like someone typing in a purse.
+	// `force` is for a change that comes from inside the bar and means
+	// to redraw it -- the fold, the Value Pack, the barter level. Those
+	// leave the focus on the control that did it, which would otherwise
+	// look exactly like someone typing in a purse, and the chips around
+	// them would keep yesterday's figures until the focus left the bar:
+	// a Value Pack ticked on but still reading "off" beside three draws
+	// a day. The focus is put back on the same control afterwards.
 	if (!force && host.contains(document.activeElement)) return;
+	const keep = force ? holdFocus(host) : null;
 	host.innerHTML = pouchHTML();
+	if (keep) keep();
 	// The bar carries a countdown to the barter refill, and a paint of
 	// its own -- a fold, a blur -- lands between two beats of the minute
 	// hand. Without this the figure is blank until the next one.
 	tickClocks();
 	measurePouch();
+}
+
+/**
+ * What has the focus in the bar, as a way to put it back after the
+ * markup under it is replaced. Keyed by the data-act, which is what the
+ * chips are told apart by; a caret in a field is kept where it was.
+ */
+function holdFocus(host) {
+	const el = document.activeElement;
+	if (!el || !host.contains(el) || !el.dataset.act) return null;
+	const sel = `[data-act="${el.dataset.act}"]${el.dataset.item ? `[data-item="${el.dataset.item}"]` : ''}`;
+	const start = el.selectionStart, end = el.selectionEnd;
+	return () => {
+		const next = host.querySelector(sel);
+		if (!next) return;
+		next.focus({ preventScroll: true });
+		try { next.setSelectionRange(start, end); } catch { /* not a field with a caret */ }
+	};
 }
 
 /**
