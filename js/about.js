@@ -410,7 +410,13 @@ export const CHANGES = [
 			'The <b>nest</b> and the <b>table of thresholds</b> can both be opened from inside that sheet, and they stand in front of it — so when one is saved, cancelled or dismissed, the sheet comes back at the row it was scrolled to instead of leaving the screen bare.'
 		]
 	},
-
+	{
+		date: '2026-09-11',
+		title: 'The sailors’ server is one press from every screen',
+		notes: [
+			'The app was written for a room it never named. <b>Discord</b> now stands in the masthead beside Help — the community server at <code>discord.gg/bdo-sailing</code>, where the routes, the crew builds and the changes a patch brings are actually worked out. On a phone it keeps its mark and drops the word, like the rest of the masthead, and the menu carries the same door under <b>Help</b> for anyone who goes looking there first.'
+		]
+	},
 	{
 		date: '2026-09-11',
 		title: 'version 1.1: the plan, and the sea you can actually reach',

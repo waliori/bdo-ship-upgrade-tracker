@@ -58,6 +58,37 @@
 .ghost-btn:hover:not(:disabled) { color: var(--ink-hi); border-color: var(--line-btn-hi); }
 .ghost-btn.on { color: var(--teal); }
 
+/* ---- the sailors' server ------------------------------------------ *
+   A door out of the app standing among its verbs, so it carries the
+   mark rather than a glyph and the one colour nobody mistakes for a
+   button of ours. An anchor, not a button: middle-click and "copy
+   link" are half of what anyone wants from it. */
+
+a.ghost-btn { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; }
+
+.discord-btn {
+  --discord-ink: #8b9bf0;
+  --discord-ink-hi: #c3cbfb;
+  color: var(--discord-ink);
+  border-color: rgba(88, 101, 242, 0.42);
+}
+
+.discord-btn:hover {
+  color: var(--discord-ink-hi);
+  border-color: rgba(88, 101, 242, 0.85);
+  background: rgba(88, 101, 242, 0.12);
+}
+
+.discord-mark { flex: none; }
+
+/* Blurple is a dark-screen colour; on the light theme it has to come
+   down to stay legible on white. Two selectors for the one rule, as
+   everywhere else here: chosen by hand, and preferred by the browser. */
+:root[data-theme="light"] .discord-btn { --discord-ink: #4650d0; --discord-ink-hi: #2c34a4; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .discord-btn { --discord-ink: #4650d0; --discord-ink-hi: #2c34a4; }
+}
+
 /* ---- who else is out ---------------------------------------------- *
    A count, not a control: no border, no press, nothing to do with it.
    Empty until the server answers, so it costs nothing on a deployment
