@@ -110,31 +110,6 @@
   background: rgba(var(--line-rgb), 0.12);
 }
 .map-tilt-hint { font-size: 10.5px; color: var(--ink-faint); letter-spacing: 0.03em; padding-right: 4px; }
-
-/* How far the ground is drawn, as a choice: the ground is drawn in the
-   viewer's own browser, so what it costs is theirs to spend. */
-.map-sight {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 4px 0 6px;
-  font-size: 11.5px;
-  letter-spacing: 0.04em;
-  color: var(--ink-dim);
-  border-left: 1px solid rgba(var(--line-rgb), 0.18);
-}
-.map-sight input[type="range"] {
-  width: 84px;
-  accent-color: var(--teal, #7ef0d4);
-  cursor: pointer;
-}
-.map-sight input[type="range"]:focus-visible { outline: 2px solid var(--cyan, #7ef0d4); outline-offset: 3px; }
-.map-sight b {
-  font-weight: 600;
-  color: var(--ink-hi);
-  font-variant-numeric: tabular-nums;
-  min-width: 30px;
-}
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   /* A phone leans the chart with two fingers, not with shift. */
   .map-tilt-hint { display: none; }

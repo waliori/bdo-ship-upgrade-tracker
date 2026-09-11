@@ -62,7 +62,7 @@ import {
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite,
 	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet,
-	toggle3D, levelMap, setMapStyle, setMapSight
+	toggle3D, levelMap, setMapStyle
 } from './screen-map.js';
 
 // Two groups: the yard, where a build is planned and made, and the
@@ -1643,13 +1643,6 @@ function wire() {
 	// Debounced: a render rebuilds the whole screen and re-runs the
 	// planner, which is far too much work to do between two keystrokes
 	// of "brilliant". The caret survives because render() restores it.
-	// The sight slider redraws as it is dragged; the chart is already
-	// drawing every frame, so there is nothing to debounce.
-	document.addEventListener('input', evt => {
-		const slider = evt.target.closest('[data-act="map-sight"]');
-		if (slider) return setMapSight(slider.value);
-	});
-
 	document.addEventListener('input', evt => {
 		const el = evt.target.closest('[data-act="query"], [data-act="barter-hold-q"], [data-act="barter-chain-q"], [data-act="barter-mat-q"]');
 		if (!el) return;

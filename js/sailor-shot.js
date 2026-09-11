@@ -454,10 +454,14 @@ export function panelBox(words, { width = Infinity, height = Infinity, locale = 
 	}
 	const box = {
 		x0: Math.max(0, left - lh * 1.5),
-		// Seven lines above the topmost thing found -- ten when nothing
-		// was found by name at all, because then the topmost thing is the
-		// weight and the sailor's name is further up than usual.
-		y0: Math.max(0, Math.min(...seeds.map(w => w.y0)) - lh * (found.length >= 2 ? 7 : 10)),
+		// Ten lines above the topmost thing found. The name is the first
+		// line of the panel and the highest label under it is the
+		// condition, so how far up the crop has to reach depends on which
+		// labels the first pass happened to make out -- and on a phone's
+		// screenshot of a Korean panel it made out none of them until the
+		// appetite, six rows down. Ten covers that; a crop that takes in
+		// the row above the name costs nothing.
+		y0: Math.max(0, Math.min(...seeds.map(w => w.y0)) - lh * 10),
 		x1: Math.min(width, Math.max(valueRight, right + lh * 8) + lh * 2),
 		y1: Math.min(height, Math.max(...seeds.map(w => w.y1)) + lh * 9)
 	};

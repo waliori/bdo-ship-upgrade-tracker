@@ -43,14 +43,16 @@ const EXAG = 2.6;
  *  view and the tile count runs away. */
 export const MAX_PITCH = 68;
 
-const REACH_MIN = 2, REACH_MAX = 10, REACH_DEFAULT = 3.5;
-
-/** The haze that goes with a reach: it has to close inside the ground
- *  that is drawn, or the far edge of the ground is a straight line
- *  across the sea instead of a horizon. */
-function fogOf(reach) {
-	return [0.9 + 0.09 * reach, 1.5 + 0.35 * reach];
-}
+/**
+ * How far past the middle of the view the ground is drawn, in box
+ * heights, and the haze that goes with it.
+ *
+ * The haze has to close inside the ground that is drawn, or the far
+ * edge is a straight line across the sea instead of a horizon -- so the
+ * two are written together and move together.
+ */
+const REACH = 3.5;
+const FOG = [0.9 + 0.09 * REACH, 1.5 + 0.35 * REACH];
 
 /** Tiles kept parsed on the GPU. Each is a few hundred kilobytes of
  *  buffer at most; four hundred covers several screens at every level
@@ -64,7 +66,7 @@ const state = {
 	prog: null, sea: null, seaBuf: null,
 	skin: null, skinBox: null, skinTex: null, skinLevel: null, skinDirty: false,
 	images: new Map(),
-	pitch: 52, bearing: 0, style: 'real', reach: 3.5,
+	pitch: 52, bearing: 0, style: 'real',
 	clock: 0, raf: null, lastSize: { w: 0, h: 0 },
 	cam: null, failed: null
 };
@@ -167,8 +169,7 @@ function camera(view, size) {
 	// enough for a hill in front of the camera.
 	const far = dist * (2 + 40 * Math.sin(pitch));
 	const proj = perspective(fovy, size.w / size.h, dist / 32, far);
-	const fog = fogOf(state.reach);
-	const fogFar = dist * (fog[0] + fog[1] * Math.sin(pitch));
+	const fogFar = dist * (FOG[0] + FOG[1] * Math.sin(pitch));
 	return { s, dist, eye, axes: ax, mvp: mul(proj, basisView(eye, ax.x, ax.y, ax.z)), far, fogFar, centre: view.centre };
 }
 
@@ -917,7 +918,6 @@ export function terrainDiag() {
 		frameMs: state.frameMs ? Number(state.frameMs.toFixed(1)) : 0,
 		uploads: state.uploads || 0,
 		dpr: state.dpr || 0,
-		reach: state.reach,
 		skin: state.skinBox ? { level: state.skinLevel, span: Math.round(state.skinBox.span), tex: !!state.skinTex, images: state.images.size } : null
 	};
 }
@@ -928,17 +928,6 @@ export function setStyle(style) {
 	schedule();
 }
 export const terrainStyle = () => state.style;
-
-/** How far the ground is drawn, as a multiple of the box's height.
- *  Clamped rather than trusted: it comes from a slider and from
- *  whatever was in storage the last time. */
-export function setReach(reach) {
-	const r = Number(reach);
-	state.reach = Number.isFinite(r) ? Math.max(REACH_MIN, Math.min(REACH_MAX, r)) : REACH_DEFAULT;
-	schedule();
-}
-export const terrainReach = () => state.reach;
-export const reachRange = { min: REACH_MIN, max: REACH_MAX, dflt: REACH_DEFAULT };
 
 export function tilt(dPitch, dBearing) {
 	state.pitch = Math.max(0, Math.min(MAX_PITCH, state.pitch + dPitch));
@@ -1028,7 +1017,7 @@ function visibleTiles(view, size) {
 	// The water the screen can see, as a box. A leaning camera's far
 	// corners land past the horizon and come back null, so the box is
 	// capped at the distance the fog closes anyway.
-	const cap = size.h * state.reach / Math.pow(2, view.zoom - MAX_ZOOM);
+	const cap = size.h * REACH / Math.pow(2, view.zoom - MAX_ZOOM);
 	const pts = [];
 	for (const [px, py] of [[0, 0], [size.w, 0], [0, size.h], [size.w, size.h], [size.w / 2, size.h / 2]]) {
 		const p = seaAt(size, px, py);
