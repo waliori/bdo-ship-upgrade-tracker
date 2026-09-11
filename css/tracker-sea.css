@@ -1026,6 +1026,11 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 /* Wider than the wide dialog: six columns, four of them fields. Guarded
    above the phone breakpoint, where every dialog is the screen anyway. */
 @media (min-width: 721px) { .dialog-box.wide.shot-box { max-width: 940px; } }
+.shot-kinds { margin: 6px 0 10px; padding-left: 18px; font-size: 12.5px; color: var(--ink-mid); }
+.shot-kinds li { margin: 3px 0; }
+.shot-lang { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 2px; padding: 8px 10px; border-radius: var(--r-sm); border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.35); }
+.shot-lang label { font-size: 12.5px; color: var(--ink-mid); }
+.shot-lang .row-sub { flex: 1 1 100%; }
 .shot-drop { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 26px 16px; margin: 4px 0 10px; border-radius: 12px; border: 1.5px dashed var(--line-btn-hi); background: rgba(var(--deep-rgb), 0.35); cursor: pointer; text-align: center; }
 .shot-drop:hover, .shot-drop:focus-visible, .shot-drop.over { border-color: var(--teal); background: rgba(78, 201, 174, 0.09); }
 .shot-drop-mark { font-size: 26px; line-height: 1; opacity: 0.8; }

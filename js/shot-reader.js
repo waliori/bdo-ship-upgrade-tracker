@@ -19,6 +19,7 @@
 // those pixels is WebAssembly in a worker with no network of its own.
 
 import { panelBox, sailorFrom } from './sailor-shot.js';
+import { localeFor, DEFAULT_LANG } from './sailor-locales.js';
 
 /** Where the vendored engine lives. Versioned: see reader/README.md. */
 const LIB = '/reader/tesseract-7.0.0.esm.min.js';
@@ -95,14 +96,22 @@ let engine = null;
  * The engine, started once and kept: six megabytes of it arrive the
  * first time a player asks to read a screenshot and never on an
  * ordinary load, and the service worker keeps them across deploys.
+ *
+ * Which letters it can make out is the model's, not the engine's, so a
+ * language is part of what is kept: the Latin services all read on the
+ * English model that comes with the rest, and Cyrillic, Thai and the
+ * three CJK scripts each fetch a megabyte or two more the first time
+ * they are asked for. Changing language lets the old one go -- a
+ * player reads a batch in one language, not two.
  */
-async function open(onProgress) {
-	if (engine) return engine;
-	engine = (async () => {
+async function open(tess, onProgress) {
+	if (engine && engine.tess === tess) return engine.ready;
+	if (engine) await close();
+	const ready = (async () => {
 		const say = onProgress || (() => {});
 		say({ stage: 'engine', text: 'fetching the reader' });
 		const { default: Tesseract } = await import(LIB);
-		const worker = await Tesseract.createWorker('eng', 1, {
+		const worker = await Tesseract.createWorker(tess, 1, {
 			workerPath: WORKER,
 			workerBlobURL: false,   // a blob: worker is not 'self', and this page's policy says 'self'
 			corePath: CORE,
@@ -114,7 +123,8 @@ async function open(onProgress) {
 		});
 		return { Tesseract, worker };
 	})().catch(err => { engine = null; throw err; });
-	return engine;
+	engine = { tess, ready };
+	return ready;
 }
 
 /** Let the engine and its six megabytes go. */
@@ -122,7 +132,7 @@ export async function close() {
 	const e = engine;
 	engine = null;
 	if (e) {
-		try { (await e).worker.terminate(); } catch { /* already gone */ }
+		try { (await e.ready).worker.terminate(); } catch { /* already gone */ }
 	}
 }
 
@@ -194,8 +204,19 @@ async function scan(worker, canvas, psm) {
 	return out;
 }
 
-/** How big a first pass may be: enough to find labels, cheap to scan. */
-const PROBE = 1400;
+/**
+ * How big a first pass may be: enough to find the panel, cheap to scan.
+ *
+ * An alphabet is legible at a tenth of the pixels a Han character needs
+ * -- 食物消耗量 at 1400 across a 1080p window comes back as anything at
+ * all -- so a dense script is given half again as much to work with.
+ * Small screenshots are blown up to meet it rather than only shrunk
+ * down: a phone's crop of the sailor panel is 375 pixels wide, and the
+ * probe that finds nothing in it finds everything at three times the
+ * size.
+ */
+const PROBE = { alphabet: 1400, dense: 2200 };
+const MAX_UP = 3;
 /** The line height the engine reads best at. */
 const WANT_LINE = 40;
 
@@ -206,7 +227,7 @@ const WANT_LINE = 40;
  * sailor panel in it -- which is the answer for a screenshot of the sea
  * and should not read as a failure.
  */
-async function readOne(worker, PSM, file) {
+async function readOne(worker, PSM, file, locale) {
 	let bitmap;
 	try {
 		bitmap = await createImageBitmap(file);
@@ -215,10 +236,12 @@ async function readOne(worker, PSM, file) {
 	}
 	try {
 		if (bitmap.width * bitmap.height > LIMITS.pixels) return { sailor: null, why: 'far too large to be a screenshot' };
-		const probeScale = Math.min(1, PROBE / Math.max(bitmap.width, bitmap.height));
+		const probe = PROBE[locale.dense ? 'dense' : 'alphabet'];
+		const probeScale = Math.min(MAX_UP, probe / Math.max(bitmap.width, bitmap.height));
 		const found = panelBox(await scan(worker, paint(bitmap, { scale: probeScale }), PSM.SPARSE_TEXT), {
 			width: bitmap.width * probeScale,
-			height: bitmap.height * probeScale
+			height: bitmap.height * probeScale,
+			locale
 		});
 		if (!found) return { sailor: null, why: 'no sailor panel in it' };
 		const crop = {
@@ -230,7 +253,7 @@ async function readOne(worker, PSM, file) {
 		crop.w = Math.min(crop.w, bitmap.width - crop.x);
 		crop.h = Math.min(crop.h, bitmap.height - crop.y);
 		const scale = Math.max(1, Math.min(3, WANT_LINE / (found.lineH / probeScale)));
-		const sailor = sailorFrom(await scan(worker, paint(bitmap, { crop, scale }), PSM.SINGLE_BLOCK));
+		const sailor = sailorFrom(await scan(worker, paint(bitmap, { crop, scale }), PSM.SINGLE_BLOCK), locale);
 		return sailor ? { sailor } : { sailor: null, why: 'the panel could not be read' };
 	} finally {
 		bitmap.close();
@@ -245,8 +268,9 @@ async function readOne(worker, PSM, file) {
  * a frozen page. `onProgress` is called with the file being read and
  * how far along the batch is; `signal` stops it between shots.
  */
-export async function readShots(files, { onProgress = () => {}, signal = null } = {}) {
-	const { worker, Tesseract } = await open(onProgress);
+export async function readShots(files, { onProgress = () => {}, signal = null, lang = DEFAULT_LANG } = {}) {
+	const locale = localeFor(lang);
+	const { worker, Tesseract } = await open(locale.tess, onProgress);
 	const out = [];
 	for (let i = 0; i < files.length; i++) {
 		if (signal && signal.aborted) break;
@@ -254,7 +278,7 @@ export async function readShots(files, { onProgress = () => {}, signal = null } 
 		onProgress({ stage: 'reading', at: i / files.length, i, n: files.length, name: file.name });
 		let res;
 		try {
-			res = await readOne(worker, Tesseract.PSM, file);
+			res = await readOne(worker, Tesseract.PSM, file, locale);
 		} catch (err) {
 			res = { sailor: null, why: err && err.message ? err.message : 'could not be read' };
 		}

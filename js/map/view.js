@@ -10,7 +10,7 @@ import * as store from '../state.js';
 import { pathLength, sailRange, fmtRange, fmtDistance } from '../sailing.js';
 import { toGame } from '../worldmap.js';
 import { mv, persist } from './state.js';
-import { enterTerrain, exitTerrain, terrainOn, terrainTrouble, setStyle, terrainStyle, setSight, terrainSight, setTilt, tilt as tiltBy, tiltNow, MAX_PITCH } from './terrain.js';
+import { enterTerrain, exitTerrain, terrainOn, terrainTrouble, setStyle, terrainStyle, setReach, terrainReach, setTilt, tilt as tiltBy, tiltNow, MAX_PITCH } from './terrain.js';
 import { marksNow, seaBent } from './marks.js';
 import { paintMap, clearTiles } from './paint.js';
 import { miniHTML } from './render.js';
@@ -144,7 +144,7 @@ export async function toggle3D() {
 		return;
 	}
 	setTilt(mv.pitch, mv.bearing);
-	setSight(mv.farSight ? 'far' : 'near');
+	setReach(mv.sightReach);
 	const up = await enterTerrain(host);
 	if (!up) {
 		toast(terrainTrouble() || 'The terrain view is not available here');
@@ -171,7 +171,7 @@ export function restore3D() {
 	if (!host) return;
 	reviving = true;
 	setTilt(mv.pitch, mv.bearing);
-	setSight(mv.farSight ? 'far' : 'near');
+	setReach(mv.sightReach);
 	enterTerrain(host).then(up => {
 		reviving = false;
 		if (!up) { mv.threeD = false; return; }
@@ -212,15 +212,20 @@ export function setMapStyle(style) {
 	paintMap();
 }
 
-/** How far the ground is drawn. Near keeps the horizon close, which is
- *  what a chart wants; Far opens it for the view of the whole
- *  archipelago, at the cost of more (coarse) tiles. */
-export function setMapSight(how) {
-	setSight(how);
-	mv.farSight = terrainSight() === 'far';
-	for (const b of document.querySelectorAll('[data-act="map-sight"]')) {
-		b.setAttribute('aria-pressed', String(b.dataset.id === terrainSight()));
-	}
+/**
+ * How far the ground is drawn, from the slider.
+ *
+ * A choice rather than a constant because it is a trade the viewer
+ * should make, not the app: the ground is drawn in their browser, not
+ * on a server, so what it costs is their machine's and what it is worth
+ * is their business -- a chart wants a near horizon and a view of the
+ * whole archipelago wants a distant one.
+ */
+export function setMapSight(reach) {
+	setReach(reach);
+	mv.sightReach = terrainReach();
+	const label = document.querySelector('[data-map-sight-n]');
+	if (label) label.textContent = `${Math.round(mv.sightReach * 10) / 10}×`;
 	persist();
 	paintMap();
 }

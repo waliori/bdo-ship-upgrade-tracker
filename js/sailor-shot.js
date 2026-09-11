@@ -19,9 +19,9 @@
 // holds at any resolution, at any UI scale, cropped or whole, and it is
 // why the same code reads both windows.
 //
-// Those labels are the client's own words, and the client is played in
-// fourteen languages (sailor-locales.js). Underneath them is something
-// none of the fourteen change: the weight carries "LT", the condition
+// Those labels are the client's own words, and the client's language
+// menu lists sixteen (sailor-locales.js). Underneath them is something
+// none of the sixteen change: the weight carries "LT", the condition
 // is a pair over a slash, a growth is a figure with a per-cent sign,
 // and the eight growths are laid out in the same order whatever they
 // are called -- one column of eight in the panel, two columns six rows
@@ -49,11 +49,12 @@ const clean = s => String(s || '').replace(/[^\p{L}\p{M}\p{N}_'’.,%/()+<>«»:
 const mid = w => ({ x: (w.x0 + w.x1) / 2, y: (w.y0 + w.y1) / 2 });
 
 /**
- * How far apart two words are as a fraction of a line: the panel sets
- * a value half a line below its label, and the next label a whole line
- * below that, so "within nine tenths of a line" separates them.
+ * How far apart two words on the same row may be, as a fraction of a
+ * line. Half a line: the next row is a whole one away, and the slack
+ * has to stop short of it -- at nine tenths a Russian sailor's
+ * Awareness was read off the Strength on the row below.
  */
-const NEAR = 0.9;
+const NEAR = 0.55;
 
 /** Levenshtein distance, capped -- a word is either close or it is not. */
 export function editDistance(a, b, cap = 4) {
@@ -89,7 +90,7 @@ export function editDistance(a, b, cap = 4) {
  */
 function vocabOf(locale) {
 	if (locale._vocab) return locale._vocab;
-	const heads = [], tails = new Set();
+	const heads = [], tails = new Set(), whole = [];
 	for (const [field, phrases] of Object.entries(locale.labels || {})) {
 		for (const phrase of phrases) {
 			const parts = String(phrase).split(/\s+/).filter(Boolean);
@@ -97,11 +98,13 @@ function vocabOf(locale) {
 			// A trait is one of the four the window prints beside a growth
 			// and we do not model: named here only so a growth's value
 			// stops before them.
-			heads.push({ word: parts[0], field: field === 'traits' ? 'trait' : field });
+			const at = field === 'traits' ? 'trait' : field;
+			heads.push({ word: parts[0], field: at });
 			for (const rest of parts.slice(1)) tails.add(letters(rest));
+			whole.push({ key: letters(phrase), field: at });
 		}
 	}
-	const vocab = { heads, tails };
+	const vocab = { heads, tails, whole };
 	Object.defineProperty(locale, '_vocab', { value: vocab, enumerable: false });
 	return vocab;
 }
@@ -116,7 +119,7 @@ const letters = s => clean(s).replace(/[^\p{L}\p{M}]/gu, '').toLowerCase();
  * label out in eight or ten letters and can spare two of them; 건강 is
  * the whole of "Condition" in two, and one wrong is a different word.
  */
-export function labelOf(text, locale = EN) {
+export function labelMatch(text, locale = EN) {
 	const w = letters(text);
 	const dense = DENSE.test(w);
 	if (w.length < (dense ? 2 : 3)) return null;
@@ -126,11 +129,83 @@ export function labelOf(text, locale = EN) {
 		const d = editDistance(w, letters(word), cap);
 		if (d < bestD) { bestD = d; best = field; }
 	}
-	return bestD <= cap ? best : null;
+	return bestD <= cap ? { field: best, d: bestD } : null;
+}
+
+export function labelOf(text, locale = EN) {
+	const hit = labelMatch(text, locale);
+	return hit ? hit.field : null;
 }
 
 /** The second or third word of a label, which is not one on its own. */
 const isTail = (text, locale) => vocabOf(locale).tails.has(letters(text));
+
+/**
+ * The label a run of words spells out, whole.
+ *
+ * A label is one word in English and four in Chinese -- and the scan
+ * breaks a Chinese one up further still, handing back 食物 | 消耗 | 量
+ * where the window printed one phrase. So a run of words with no figure
+ * among them is glued back together and matched as a whole, from each
+ * starting point in turn, because whatever the last value left behind
+ * ("。", a bar's end) sits at the head of the run and is no part of it.
+ */
+function runLabel(run, locale) {
+	if (!run.length || run.length > 6) return null;
+	const said = run.map(w => letters(w.text));
+	for (let i = 0; i < said.length; i++) {
+		const key = said.slice(i).join('');
+		if (!key) continue;
+		const dense = DENSE.test(key);
+		if (key.length < (dense ? 2 : 3)) continue;
+		const cap = dense ? Math.min(2, Math.floor(key.length / 3)) : (key.length <= 5 ? 1 : 2);
+		let best = null, bestD = cap + 1;
+		for (const { key: label, field } of vocabOf(locale).whole) {
+			const d = editDistance(key, label, cap);
+			if (d < bestD) { bestD = d; best = field; }
+		}
+		if (bestD <= cap) return best;
+	}
+	return null;
+}
+
+/**
+ * Every label on a line and the figure that follows it.
+ *
+ * The line is walked across: words with no figure in them pile up into
+ * a run, and the first figure after that run is the run's value. It
+ * reads both columns of the Manage Sailors window in one pass, it needs
+ * no geometry beyond the line itself, and -- because the label is
+ * matched whole -- it holds where the word-by-word reading gives up: a
+ * label the scan broke into three, a two-word label in a language whose
+ * second word we never listed.
+ */
+function lineFacts(lines, locale) {
+	const out = {};
+	const take = (field, value, line) => {
+		if (field && field !== 'trait' && out[field] === undefined && value !== null) out[field] = { value, line };
+	};
+	for (const line of lines) {
+		let run = [];
+		for (const w of line.words) {
+			const pcts = percentsIn(w.text);
+			const v = pcts.length ? pcts[pcts.length - 1] : weightIn(w.text) ?? numberIn(w.text);
+			if (v === null) {
+				if (letters(w.text)) run.push(w);
+				continue;
+			}
+			take(runLabel(run, locale), v, line);
+			run = [];
+		}
+		// What is left at the end of a line carries no figure of its own:
+		// the condition is written as a pair over a slash, which is no
+		// kind of number, and its label is all that is left standing.
+		const field = runLabel(run, locale);
+		if (field && PAIR.test(line.text)) take(field, null, line);
+		else if (field && out[field] === undefined) out[field] = { value: null, line };
+	}
+	return out;
+}
 
 /* ------------------------------------------------------------------ *
  * the figures every client prints the same
@@ -162,6 +237,24 @@ export function weightIn(text) {
 }
 
 /**
+ * The weight a token carries when the "LT" beside it did not survive.
+ *
+ * A Korean or Russian model makes what it can of two Latin letters and
+ * sometimes makes "1" of them -- "200.0LT" comes back "200.01". But a
+ * figure written to exactly one decimal, with two characters at most
+ * after it, is the weight and nothing else in this panel: a growth
+ * carries a per-cent sign, the condition a slash, the appetite and the
+ * cabin cost no point at all. Used only as a last resort, and only
+ * where the growths have already vouched for the panel.
+ */
+function looseWeight(text) {
+	const m = /^(\d{2,4})[.,](\d)(?:\s*\S{1,2})?$/.exec(clean(text));
+	if (!m) return null;
+	const n = Number(m[1]) + Number(m[2]) / 10;
+	return Number.isFinite(n) ? n : null;
+}
+
+/**
  * Every percentage in a token, in order.
  *
  * The game prints a growth to one decimal, always -- so a figure that
@@ -182,17 +275,44 @@ export function percentsIn(text) {
 const PAIR = /(\d{1,4})\s*[/|]\s*(\d{1,4})/;
 
 /**
- * The line height the panel is set in, from the words themselves: the
- * median height of a word box. Everything geometric here is measured in
- * these, so a 4K screenshot and a cropped panel read the same.
+ * The line height the panel is set in, from the words themselves.
+ *
+ * Everything geometric here is measured in these, so a 4K screenshot
+ * and a cropped panel read the same. A word box is about the cap
+ * height and the line the panel sets is nearer twice that -- but only
+ * for an alphabet: 건강 and 韌性 fill a box as tall as it is wide, and a
+ * line height guessed from those runs one row of a Korean panel into
+ * the next, which is how a Chinese sailor's Endurance came back as the
+ * Wits underneath it.
+ *
+ * So the rows are measured instead, where there are enough of them to
+ * measure: the middling distance from one to the next is the line, and
+ * the guess from the glyphs only says how far that is allowed to be
+ * out.
  */
 export function lineHeight(words) {
 	const hs = words.map(w => w.y1 - w.y0).filter(h => h > 2).sort((a, b) => a - b);
 	if (!hs.length) return 0;
-	// A word box is about the cap height; the line the panel sets is
-	// nearer twice that, which is the distance between one label and the
-	// next.
-	return hs[Math.floor(hs.length / 2)] * 1.9;
+	const byGlyph = hs[Math.floor(hs.length / 2)] * 1.9;
+	const rows = [];
+	for (const w of [...words].sort((a, b) => mid(a).y - mid(b).y)) {
+		const row = rows[rows.length - 1];
+		const y = mid(w).y;
+		if (row && Math.abs(y - row.y) <= byGlyph * 0.35) { row.n++; row.y += (y - row.y) / row.n; }
+		else rows.push({ y, n: 1 });
+	}
+	// A gap of three lines is the space the panel leaves above the
+	// cannon growths, not a line; a gap of a third of one is two halves
+	// of a row the clustering did not quite join.
+	const gaps = [];
+	for (let i = 1; i < rows.length; i++) {
+		const g = rows[i].y - rows[i - 1].y;
+		if (g > byGlyph * 0.3 && g < byGlyph * 2.5) gaps.push(g);
+	}
+	if (gaps.length < 6) return byGlyph;
+	gaps.sort((a, b) => a - b);
+	const pitch = gaps[Math.floor(gaps.length / 2)];
+	return Math.min(byGlyph * 1.4, Math.max(byGlyph * 0.6, pitch));
 }
 
 /** The words that share a line, in reading order. */
@@ -306,7 +426,7 @@ export function panelBox(words, { width = Infinity, height = Infinity, locale = 
 	// The figures vouch for it too, and they are the same figures in
 	// every language: nothing else in the game puts a weight in LT over
 	// a column of per-cents.
-	const byShape = weights.length > 0 && pcts.length >= 4;
+	const byShape = pcts.length >= 8 || (weights.length > 0 && pcts.length >= 4);
 	if (found.length < (vouched ? 2 : 3) && !byShape) return null;
 
 	const anchorWords = found.map(x => x.w);
@@ -334,7 +454,10 @@ export function panelBox(words, { width = Infinity, height = Infinity, locale = 
 	}
 	const box = {
 		x0: Math.max(0, left - lh * 1.5),
-		y0: Math.max(0, Math.min(...seeds.map(w => w.y0)) - lh * 7),
+		// Seven lines above the topmost thing found -- ten when nothing
+		// was found by name at all, because then the topmost thing is the
+		// weight and the sailor's name is further up than usual.
+		y0: Math.max(0, Math.min(...seeds.map(w => w.y0)) - lh * (found.length >= 2 ? 7 : 10)),
 		x1: Math.min(width, Math.max(valueRight, right + lh * 8) + lh * 2),
 		y1: Math.min(height, Math.max(...seeds.map(w => w.y1)) + lh * 9)
 	};
@@ -369,7 +492,8 @@ function rightOf(words, label, locale) {
 		const field = labelOf(w.text, locale);
 		if (field && field !== label.field) break;
 		if (out.length) break;
-		if (!field && !isTail(w.text, locale) && letters(w.text).length >= 3) break;
+		const l = letters(w.text);
+		if (!field && !isTail(w.text, locale) && l.length >= (DENSE.test(l) ? 2 : 3)) break;
 	}
 	return out;
 }
@@ -512,8 +636,12 @@ export function readPanel(words, locale = EN) {
 	const kept = (words || []).filter(w => clean(w.text));
 	const lh = lineHeight(kept);
 	if (!lh) return null;
-	const labels = kept.map(w => ({ w, field: labelOf(w.text, locale), lh })).filter(x => x.field);
-	const at = field => labels.find(x => x.field === field) || null;
+	const labels = kept.map(w => ({ w, lh, ...(labelMatch(w.text, locale) || {}) })).filter(x => x.field);
+	// The word that spells a label out best is the label: "силач" is a
+	// letter away from "Сила", and the window prints both -- one as the
+	// Force the app keeps and one as the tail of a trait it does not.
+	const at = field => labels.filter(x => x.field === field)
+		.sort((a, b) => a.d - b.d || a.w.y0 - b.w.y0)[0] || null;
 	const lines = linesOf(kept, lh);
 
 	// A panel is either three of its labels or the two figures no other
@@ -521,12 +649,20 @@ export function readPanel(words, locale = EN) {
 	// per-cents.
 	const ltWord = kept.find(w => weightIn(w.text) !== null) || null;
 	const grid = growthGrid(kept, lh);
-	if (ANCHORS.filter(f => at(f)).length < 2 && !(ltWord && grid)) return null;
+	// Two of its labels, or the grid of growths on its own: eight
+	// figures with per-cent signs, laid in one column or two, is a
+	// sailor's growths and nothing else in the game is.
+	if (ANCHORS.filter(f => at(f)).length < 2 && !grid && !ltWord) return null;
+
+	// The labels again, read a line at a time rather than a word at a
+	// time: what one misses the other often has.
+	const facts = lineFacts(lines, locale);
 
 	const warnings = [];
 	const num = (field, lo, hi) => {
+		const ok0 = v => (v !== null && v !== undefined && v >= lo && v <= hi ? v : null);
 		const l = at(field);
-		if (!l) return null;
+		if (!l) return ok0(facts[field] ? facts[field].value : null);
 		const ok = v => (v !== null && v >= lo && v <= hi ? v : null);
 		const v = ok(valueFor(kept, l, locale));
 		if (v !== null) return v;
@@ -538,7 +674,7 @@ export function readPanel(words, locale = EN) {
 		const below = kept.filter(w => w.x1 > l.w.x0 && mid(w).y - mid(l.w).y > 0 && mid(w).y - mid(l.w).y <= lh * 1.5);
 		if (below.some(w => labelOf(w.text, locale) && numberIn(w.text) === null)) return null;
 		const ns = below.map(w => ({ w, n: ok(weightIn(w.text) ?? numberIn(w.text)) })).filter(x => x.n !== null).sort((a, b) => a.w.x0 - b.w.x0);
-		return ns.length ? ns[0].n : null;
+		return ns.length ? ns[0].n : ok0(facts[field] ? facts[field].value : null);
 	};
 
 	const stats = {};
@@ -547,6 +683,10 @@ export function readPanel(words, locale = EN) {
 		if (!l) continue;
 		const v = growthFor(kept, l, locale);
 		if (v !== null && v >= 0 && v <= 100) stats[key] = Math.round(v * 10) / 10;
+	}
+	for (const key of GROWTH_KEYS) {
+		const f = facts[key];
+		if (stats[key] === undefined && f && f.value !== null && f.value >= 0 && f.value <= 100) stats[key] = Math.round(f.value * 10) / 10;
 	}
 	// Whatever the labels did not give up, the grid does: the eight are
 	// laid out in the same order in every language, so a growth whose
@@ -568,6 +708,17 @@ export function readPanel(words, locale = EN) {
 		const w = weightIn(ltWord.text);
 		if (w !== null && w >= 50 && w <= 900) weight = w;
 	}
+	if (weight === null && grid) {
+		const above = Math.min(...kept.filter(w => percentsIn(w.text).length).map(w => mid(w).y));
+		for (const w of kept) {
+			if (mid(w).y >= above) continue;
+			const n = looseWeight(w.text);
+			if (n !== null && n >= 50 && n <= 900) { weight = n; break; }
+		}
+	}
+	// A sailor weighs a whole number of LT and the game prints the
+	// tenth anyway; a "200.0LT" whose T came back as a 1 is 200.
+	if (weight !== null) weight = Math.round(weight);
 	// And the two above it are, in every client, the cabin cost and the
 	// appetite in that order going up -- so when neither word was made
 	// out, the rows are read instead. Only when neither: a mate's panel
@@ -607,26 +758,51 @@ export function readPanel(words, locale = EN) {
 			if (lv === null && found.lv !== null) lv = found.lv;
 			continue;
 		}
-		if (found.rest && /[\p{L}]{2}/u.test(found.rest) && !name) { name = found.rest; lv = found.lv; }
+		if (found.rest && letters(found.rest).length >= 2 && !name) { name = found.rest; lv = found.lv; }
 		else if (lv === null) lv = found.lv;
 	}
 	const title = titleIn(lines, locale);
-	const standing = new RegExp(`(${[...locale.aboard, ...locale.idle].map(a => a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'i');
+	// Where the sailor is standing, said in the client's own words --
+	// with the spaces taken out, because a dense script comes back a
+	// syllable at a time and "[탑승중]" arrives as "탑 승 중]".
+	const tight = s => s.replace(/\s+/g, '').toLowerCase();
+	const standing = [...locale.aboard, ...locale.idle].map(tight);
+	const standsOn = line => standing.some(a => tight(line.text).includes(a))
+		|| /on\s*board|idle/i.test(line.text.replace(/[^A-Za-z ]/g, ''));
 	if (!name) {
-		// A mate: no level, and the name is the line above the one that
-		// says where they are standing.
-		const idx = lines.findIndex(l => standing.test(l.text) || /on\s*board|idle/i.test(l.text.replace(/[^A-Za-z ]/g, '')));
+		// A mate has no level at all, and neither has a sailor whose
+		// "Lv.10" the scan lost among the glyphs of another script. Either
+		// way the name is the line above the one that says where they are
+		// standing, less anything numeric at the head of it -- the roster's
+		// own "18/20", or what is left of the level.
+		const idx = lines.findIndex(standsOn);
 		const above = idx > 0 ? lines[idx - 1] : null;
-		if (above && !/[<«(]/.test(above.text) && /[\p{L}]{3}/u.test(above.text)) name = above.text;
+		if (above && !/[<«(]/.test(above.text) && letters(above.text).length >= 3) {
+			const last = above.words.map(w => /\d/.test(w.text)).lastIndexOf(true);
+			name = above.words.slice(last + 1).map(w => clean(w.text)).join(' ').trim() || above.text;
+			// "Lv.10" scanned down to ".10": a figure of one or two digits
+			// on the name's own line is the level and nothing else is.
+			if (lv === null) {
+				for (const w of above.words.slice(0, last + 1)) {
+					const d = digits(w.text);
+					if (d.length >= 1 && d.length <= 2 && Number(d) >= 1 && Number(d) <= 10) lv = Number(d);
+				}
+			}
+		}
 	}
 	// The Manage Sailors window sets "18/20" on the same line as the
 	// name it has selected, and a mate's line has no level to cut it
 	// off, so anything numeric at the head of a name is the window's.
 	name = clean(name).replace(/^(?:\d+\s*[/|]\s*\d+|\d+)\s*/, '')
-		.replace(/[^\p{L}\p{M}\p{N}_'’ .-]/gu, '').replace(/\s+/g, ' ').trim()
+		.replace(/[^\p{L}\p{M}\p{N}_'’ .-]/gu, '').replace(/\s+/g, ' ').trim();
+	// A name in a script that sets no spaces comes back one glyph at a
+	// time -- 迪 萊 因 -- and is one word: 迪萊因.
+	name = DENSE.test(name)
+		? name.replace(/\s+/g, '')
 		// A stray mark beside the name comes back as a word of one
 		// letter, and no sailor's name ends in one.
-		.replace(/\s+\S$/, '').slice(0, 30);
+		: name.replace(/\s+\S$/, '');
+	name = name.slice(0, 30);
 	if (!name) warnings.push('no name');
 	if (lv === null && !(title === 'First Mate' || (title && anyType[title] && anyType[title].mate))) warnings.push('no level');
 
@@ -638,11 +814,12 @@ export function readPanel(words, locale = EN) {
 	const ceiling = at('appetite') ? mid(at('appetite').w).y : ltWord ? mid(ltWord).y : Infinity;
 	const condLine = condLabel
 		? lines.find(l => l.words.includes(condLabel.w))
-		: lines.filter(l => PAIR.test(l.text) && l.y < ceiling).pop();
+		: facts.condition ? facts.condition.line
+			: lines.filter(l => PAIR.test(l.text) && l.y < ceiling).pop();
 	const m = condLine ? PAIR.exec(condLine.text) : null;
 	if (m && Number(m[2]) > 0) cond = Math.max(0, Math.min(100, Math.round(Number(m[1]) / Number(m[2]) * 100)));
 
-	const aboard = lines.some(l => locale.aboard.some(a => l.text.toLowerCase().includes(a.toLowerCase())))
+	const aboard = lines.some(l => locale.aboard.some(a => tight(l.text).includes(tight(a))))
 		|| lines.some(l => /on\s*board/i.test(l.text.replace(/[^A-Za-z ]/g, '')));
 
 	return {

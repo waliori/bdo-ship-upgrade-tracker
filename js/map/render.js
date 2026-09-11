@@ -17,7 +17,7 @@ import { barterData } from '../ui-state.js';
 import { mv, restore, doneSet } from './state.js';
 import { marksNow, barterKind, goodsOf } from './marks.js';
 import { countPinned, pinButtonsHTML } from './offline.js';
-import { terrainStyle, terrainSight } from './terrain.js';
+import { terrainStyle, terrainReach, reachRange } from './terrain.js';
 import { routeHTML } from './route.js';
 import { traceHTML } from './trace.js';
 
@@ -151,9 +151,12 @@ export function renderMap() {
 		<button class="map-tilt-btn" data-act="map-style" data-id="neon" aria-pressed="${terrainStyle() === 'neon'}"
 			title="Contours, the way the game's own 3D map draws them">Neon</button>
 		<button class="map-tilt-btn" data-act="map-level" title="Look straight down again, facing north">⤓ Level</button>
-		<button class="map-tilt-btn" data-act="map-sight" data-id="${terrainSight() === 'far' ? 'near' : 'far'}"
-			aria-pressed="${terrainSight() === 'far'}"
-			title="How far the ground is drawn. Far shows the whole archipelago to the horizon; near keeps a chart's horizon and fewer tiles">◈ Far</button>
+		<label class="map-sight" title="How far the ground is drawn. Further shows the archipelago to the horizon and asks for more tiles; nearer keeps a chart's horizon">
+			<span>Sight</span>
+			<input type="range" id="map-sight" data-act="map-sight" min="${reachRange.min}" max="${reachRange.max}"
+				step="0.5" value="${terrainReach()}" aria-label="How far the ground is drawn">
+			<b data-map-sight-n>${Math.round(terrainReach() * 10) / 10}×</b>
+		</label>
 		<span class="map-tilt-hint">shift-drag to lean</span>
 	</div>`;
 	return head + `<div class="panel map-panel"><div class="map${mv.measuring ? ' measuring' : ''}${mv.sideRight ? ' side-right' : ''}${mv.mode === 'trace' ? ' free-hand' : ''}${mv.traceTool ? ` tracing tool-${mv.traceTool}` : ''}${mv.fullOn ? ' full' : ''}${mv.fullTurned ? ' turned' : ''}" id="map" data-map>

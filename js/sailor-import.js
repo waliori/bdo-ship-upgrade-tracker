@@ -20,6 +20,7 @@ import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { anyType, pool, mateTypes, SAILOR_CAP, logLevel, STAT_NAMES, statBand } from './sailors.js';
 import { LIMITS, triage, readShots, close as closeReader } from './shot-reader.js';
+import { LANGS, langByTag, DEFAULT_LANG } from './sailor-locales.js';
 
 const MOVES = ['speed', 'accel', 'turn', 'brake'];
 const CANNON = ['patience', 'force', 'focus', 'vision'];
@@ -37,6 +38,12 @@ function alreadyHired(read, list) {
 
 /** Every type a row can be set to, mates last -- the picker for a misread. */
 const TYPE_OPTIONS = [...pool.map(t => t.type).sort(), ...mateTypes.map(t => t.type)];
+
+/**
+ * Which language the game is in, remembered: a player changes service
+ * about once, and being asked every time would be its own chore.
+ */
+const shotLang = () => (langByTag[store.getSetting('shotLang', DEFAULT_LANG)] ? store.getSetting('shotLang', DEFAULT_LANG) : DEFAULT_LANG);
 
 /* ------------------------------------------------------------------ *
  * the dialog
@@ -67,8 +74,29 @@ export function openSailorImport(after = () => {}) {
 	};
 
 	/* --- what to drop ------------------------------------------------ */
-	const pickView = () => `
-		<p class="dialog-note">Open <b>Manage Sailors</b> in game and screenshot it, or crop the <b>Selected Sailor</b> panel — either reads, and a mixture of both is fine. One sailor a shot.</p>
+	// Two windows in the game show a sailor and the reader takes either,
+	// but only if the player knows which two -- the panel is easy to
+	// miss, and a shot of the roster list alone has nothing in it to
+	// read. So both are named, and what a crop has to keep is said
+	// outright: everything from the name down to the last growth.
+	const pickView = () => {
+		const lang = langByTag[shotLang()];
+		return `
+		<p class="dialog-note">Either of these reads, and a mixture of both is fine — <b>one sailor a shot</b>.</p>
+		<ul class="shot-kinds">
+			<li><b>Manage Sailors</b> — the whole window as it is on screen, or the right-hand pane cropped out of it.</li>
+			<li><b>Selected Sailor</b> — the smaller panel on its own, the one with the type in angle brackets.</li>
+		</ul>
+		<p class="dialog-note quiet">Whichever it is, keep the sailor's name at the top and the last growth at the bottom inside the crop: the name, the condition, the appetite, the cabin cost, the weight and the growths are all read off it.</p>
+		<div class="shot-lang">
+			<label for="shot-lang">Your game's language</label>
+			<select id="shot-lang" class="purse-inline" data-lang>
+				${LANGS.map(l => `<option value="${esc(l.tag)}"${l.tag === lang.tag ? ' selected' : ''}>${esc(l.label)}</option>`).join('')}
+			</select>
+			<span class="row-sub">${lang.mb
+		? `${esc(lang.label)} is another script — about ${lang.mb} MB of reader, fetched once.`
+		: 'Reads on the reader already aboard.'}</span>
+		</div>
 		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="Choose screenshots to read">
 			<div class="shot-drop-mark">⛵</div>
 			<div><b>Drop screenshots here</b></div>
@@ -78,6 +106,7 @@ export function openSailorImport(after = () => {}) {
 		<p class="dialog-note quiet">Up to ${LIMITS.files} at a time, ${Math.round(LIMITS.bytes / 1024 / 1024)} MB each, PNG, JPEG or WebP.
 			They are read in this browser and never uploaded — the first read fetches about 6 MB of reader, once.</p>
 		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>`;
+	};
 
 	/* --- reading ----------------------------------------------------- */
 	const readingView = (at, text) => `
@@ -151,7 +180,7 @@ export function openSailorImport(after = () => {}) {
 		};
 		let results;
 		try {
-			results = await readShots(take, { onProgress, signal: stop.signal });
+			results = await readShots(take, { onProgress, signal: stop.signal, lang: shotLang() });
 		} catch (err) {
 			draw(`<p class="dialog-note warn">The reader could not start: ${esc(err && err.message ? err.message : String(err))}</p>
 				<div class="dialog-actions"><button class="act quiet" data-again>Try again</button><button class="act" data-close>Close</button></div>`);
@@ -220,6 +249,10 @@ export function openSailorImport(after = () => {}) {
 			});
 		}
 		const on = (sel, ev, fn) => box.querySelectorAll(sel).forEach(el => el.addEventListener(ev, fn));
+		on('[data-lang]', 'change', e => {
+			store.setSetting('shotLang', e.target.value, true);
+			draw(pickView());
+		});
 		on('[data-stop]', 'click', () => { if (stop) stop.abort(); });
 		on('[data-again]', 'click', () => draw(pickView()));
 		on('[data-add]', 'click', commit);

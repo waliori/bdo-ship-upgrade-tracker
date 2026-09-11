@@ -43,6 +43,15 @@ const EXAG = 2.6;
  *  view and the tile count runs away. */
 export const MAX_PITCH = 68;
 
+const REACH_MIN = 2, REACH_MAX = 10, REACH_DEFAULT = 3.5;
+
+/** The haze that goes with a reach: it has to close inside the ground
+ *  that is drawn, or the far edge of the ground is a straight line
+ *  across the sea instead of a horizon. */
+function fogOf(reach) {
+	return [0.9 + 0.09 * reach, 1.5 + 0.35 * reach];
+}
+
 /** Tiles kept parsed on the GPU. Each is a few hundred kilobytes of
  *  buffer at most; four hundred covers several screens at every level
  *  the view passes through on a zoom. */
@@ -55,7 +64,7 @@ const state = {
 	prog: null, sea: null, seaBuf: null,
 	skin: null, skinBox: null, skinTex: null, skinLevel: null, skinDirty: false,
 	images: new Map(),
-	pitch: 52, bearing: 0, style: 'real', sight: 'near',
+	pitch: 52, bearing: 0, style: 'real', reach: 3.5,
 	clock: 0, raf: null, lastSize: { w: 0, h: 0 },
 	cam: null, failed: null
 };
@@ -158,7 +167,7 @@ function camera(view, size) {
 	// enough for a hill in front of the camera.
 	const far = dist * (2 + 40 * Math.sin(pitch));
 	const proj = perspective(fovy, size.w / size.h, dist / 32, far);
-	const fog = SIGHT[state.sight].fog;
+	const fog = fogOf(state.reach);
 	const fogFar = dist * (fog[0] + fog[1] * Math.sin(pitch));
 	return { s, dist, eye, axes: ax, mvp: mul(proj, basisView(eye, ax.x, ax.y, ax.z)), far, fogFar, centre: view.centre };
 }
@@ -908,6 +917,7 @@ export function terrainDiag() {
 		frameMs: state.frameMs ? Number(state.frameMs.toFixed(1)) : 0,
 		uploads: state.uploads || 0,
 		dpr: state.dpr || 0,
+		reach: state.reach,
 		skin: state.skinBox ? { level: state.skinLevel, span: Math.round(state.skinBox.span), tex: !!state.skinTex, images: state.images.size } : null
 	};
 }
@@ -919,12 +929,16 @@ export function setStyle(style) {
 }
 export const terrainStyle = () => state.style;
 
-/** How far the ground is drawn: 'near' or 'far'. */
-export function setSight(how) {
-	state.sight = how === 'far' ? 'far' : 'near';
+/** How far the ground is drawn, as a multiple of the box's height.
+ *  Clamped rather than trusted: it comes from a slider and from
+ *  whatever was in storage the last time. */
+export function setReach(reach) {
+	const r = Number(reach);
+	state.reach = Number.isFinite(r) ? Math.max(REACH_MIN, Math.min(REACH_MAX, r)) : REACH_DEFAULT;
 	schedule();
 }
-export const terrainSight = () => state.sight;
+export const terrainReach = () => state.reach;
+export const reachRange = { min: REACH_MIN, max: REACH_MAX, dflt: REACH_DEFAULT };
 
 export function tilt(dPitch, dBearing) {
 	state.pitch = Math.max(0, Math.min(MAX_PITCH, state.pitch + dPitch));
@@ -1003,11 +1017,6 @@ const SPLIT_PX = 6;
  * coarse ones, since the split test already spends less detail where
  * the haze is thick.
  */
-const SIGHT = {
-	near: { reach: 3.5, fog: [1.05, 2.2] },
-	far: { reach: 7.5, fog: [1.5, 4.0] }
-};
-
 const MAX_TILES = 200;
 
 function visibleTiles(view, size) {
@@ -1019,7 +1028,7 @@ function visibleTiles(view, size) {
 	// The water the screen can see, as a box. A leaning camera's far
 	// corners land past the horizon and come back null, so the box is
 	// capped at the distance the fog closes anyway.
-	const cap = size.h * SIGHT[state.sight].reach / Math.pow(2, view.zoom - MAX_ZOOM);
+	const cap = size.h * state.reach / Math.pow(2, view.zoom - MAX_ZOOM);
 	const pts = [];
 	for (const [px, py] of [[0, 0], [size.w, 0], [0, size.h], [size.w, size.h], [size.w / 2, size.h / 2]]) {
 		const p = seaAt(size, px, py);
@@ -1064,29 +1073,62 @@ function visibleTiles(view, size) {
 		// reckoning: detail nobody can see is not detail.
 		const away = Math.hypot(nx - view.centre.x, ny - view.centre.y) / per;
 		const fog = Math.min(1, away / (state.cam.fogFar || 1));
-		return px > SPLIT_PX * (1 + 5 * fog * fog);
+		// The ratio rather than a yes or no: the budget below spends its
+		// splits on the worst offender first.
+		return px / (SPLIT_PX * (1 + 5 * fog * fog));
 	};
 
-	const out = [];
-	const walk = (level, x, y) => {
-		if (out.length >= MAX_TILES) return;
+	const seen = (level, x, y) => {
 		const box = tileBox(level, x, y);
-		if (box.x1 < vx0 || box.x0 > vx1 || box.y1 < vy0 || box.y0 > vy1) return;
-		const fine = level > bottom && worthSplitting(box, box.span);
-		if (fine) {
-			for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) walk(level - 1, x * 2 + dx, y * 2 + dy);
-			return;
-		}
+		if (box.x1 < vx0 || box.x0 > vx1 || box.y1 < vy0 || box.y0 > vy1) return null;
 		const cx = (box.x0 + box.x1) / 2, cy = (box.y0 + box.y1) / 2;
-		out.push({ level, x, y, d: Math.hypot(cx - view.centre.x, cy - view.centre.y) });
+		return { level, x, y, box, d: Math.hypot(cx - view.centre.x, cy - view.centre.y), err: -1 };
 	};
+	const errorOf = node => {
+		if (node.err < 0) node.err = node.level > bottom ? worthSplitting(node.box, node.box.span) : 0;
+		return node.err;
+	};
+
+	// Start from the whole world at its coarsest and spend the budget on
+	// whichever tile is furthest from being good enough, until nothing is
+	// worth splitting or the budget is gone.
+	//
+	// The budget used to be a limit on a depth-first walk, which dropped
+	// whatever the walk happened to reach last -- an arbitrary patch of
+	// the view, different every time the camera moved a little, which is
+	// exactly what "the ground keeps disappearing" was. Refining by
+	// priority cannot do that: every tile that is dropped is replaced by
+	// its own parent, so the view is always covered, and a busy frame
+	// gets coarser rather than holed.
 	const topInfo = levelInfo(top);
 	if (!topInfo) return [];
+	let nodes = [];
 	for (let x = topInfo.x0; x < topInfo.x0 + topInfo.w; x++) {
-		for (let y = topInfo.y0; y < topInfo.y0 + topInfo.h; y++) walk(top, x, y);
+		for (let y = topInfo.y0; y < topInfo.y0 + topInfo.h; y++) {
+			const n = seen(top, x, y);
+			if (n) nodes.push(n);
+		}
 	}
-	out.sort((a, b) => a.d - b.d);
-	return out;
+	while (nodes.length < MAX_TILES) {
+		let best = -1, worst = 1;
+		for (let i = 0; i < nodes.length; i++) {
+			const e = errorOf(nodes[i]);
+			if (e > worst) { worst = e; best = i; }
+		}
+		if (best < 0) break;
+		const n = nodes[best];
+		const kids = [];
+		for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+			const k = seen(n.level - 1, n.x * 2 + dx, n.y * 2 + dy);
+			if (k) kids.push(k);
+		}
+		// A parent whose children are all outside the view is done with.
+		if (!kids.length) { n.err = 0; continue; }
+		if (nodes.length - 1 + kids.length > MAX_TILES) { n.err = 0; continue; }
+		nodes.splice(best, 1, ...kids);
+	}
+	nodes.sort((a, b) => a.d - b.d);
+	return nodes;
 }
 
 export function drawTerrain(view, size) {

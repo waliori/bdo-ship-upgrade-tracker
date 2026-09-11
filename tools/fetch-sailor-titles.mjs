@@ -38,7 +38,7 @@ const unescapeHTML = s => s
 async function rows(code) {
 	const res = await fetch(`https://bdocodex.com/query.php?a=sailors&l=${code}`, { headers: { 'User-Agent': UA } });
 	if (!res.ok) throw new Error(`sailors/${code}: HTTP ${res.status}`);
-	const data = JSON.parse((await res.text()).replace(/^﻿/, ''));
+	const data = JSON.parse((await res.text()).replace(/^\uFEFF/, ''));
 	const out = new Map();
 	for (const row of data.aaData || []) {
 		const m = /<b>(.*?)<\/b><br>(.*?)<\/a>/s.exec(String(row[2] || ''));

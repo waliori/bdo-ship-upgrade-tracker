@@ -1,4 +1,4 @@
-// The sailor window in the fourteen languages the game runs in.
+// The sailor window in every language the game runs in.
 //
 // The reader in sailor-shot.js finds every value by the label beside
 // it, and those labels are the client's, not ours: a player on the
@@ -16,6 +16,11 @@
 //   * every other label here is BDOCodex's sailor page, which prints
 //     the generic character-stat names in two or three places where the
 //     sailor window prints something else -- 슈퍼아머 for 완력, say.
+//
+// A word listed under two fields would be worse than a missing one --
+// "Stärke" is what BDOCodex calls both the German Strength and the
+// German Force, and only one of them can be right -- so where the two
+// sources disagree the word is left off rather than guessed at.
 //
 // So the labels are a help, not a foundation. What actually holds the
 // reader up in a language nobody here can check is the shape of the
@@ -76,7 +81,7 @@ export const LANGS = [
 	{ tag: 'en', label: 'US English', tess: 'eng', labels: {} },
 	{ tag: 'de', label: 'Deutsch', tess: 'eng', labels: {
 		condition: ['Gesundheit'], appetite: ['Vorliebe'], cabin: ['Benötigte Kajüte'], weight: ['Last'],
-		speed: ['Ausdauer'], accel: ['Wahrnehmung'], turn: ['Instinkt'], brake: ['Super-Rüstung', 'Stärke'],
+		speed: ['Ausdauer'], accel: ['Wahrnehmung'], turn: ['Instinkt'], brake: ['Super-Rüstung'],
 		patience: ['Geduldigkeit'], force: ['Stärke'], focus: ['Fokus'], vision: ['Sehkraft'] } },
 	{ tag: 'fr', label: 'Français', tess: 'eng', labels: {
 		condition: ['Santé'], appetite: ['Préférence'], cabin: ['Coût de la cabine'], weight: ['Poids'],
@@ -102,7 +107,7 @@ export const LANGS = [
 	{ tag: 'ja', label: '日本語', tess: 'jpn', mb: 2.0, labels: {
 		exp: ['経験値'], condition: ['健康'], appetite: ['食性'], cabin: ['要求船室'], weight: ['生活物資', '重量'],
 		speed: ['持久力'], accel: ['目端'], turn: ['感覚'], brake: ['腕力', 'スーパーアーマー'],
-		patience: ['忍耐'], force: ['迫力', '力'], focus: ['集中'], vision: ['視野'] } },
+		patience: ['忍耐'], force: ['迫力'], focus: ['集中'], vision: ['視野'] } },
 	{ tag: 'ko', label: '한국어', tess: 'kor', mb: 1.5, aboard: ['탑승중'], idle: ['대기중'], labels: {
 		exp: ['경험치'], condition: ['건강'], appetite: ['식성'], cabin: ['요구 선실'], weight: ['생활 물자'],
 		speed: ['끈기'], accel: ['눈치'], turn: ['감각'], brake: ['완력'],
@@ -139,6 +144,13 @@ export const langByTag = Object.fromEntries(LANGS.map(l => [l.tag, l]));
 export const DEFAULT_LANG = 'en';
 
 /**
+ * The models whose scripts set no spaces and pack a word into two or
+ * three square glyphs. They need more pixels to be made out at all,
+ * which is what the reader's first pass has to know.
+ */
+const DENSE_MODELS = new Set(['jpn', 'kor', 'chi_sim', 'chi_tra', 'tha']);
+
+/**
  * One language, ready for the reader: every label phrase it can print,
  * English alongside it, and the type titles it prints in brackets.
  *
@@ -163,7 +175,10 @@ export function localeFor(tag) {
 	}
 	return {
 		tag: lang.tag,
+		label: lang.label,
 		tess: lang.tess,
+		mb: lang.mb || 0,
+		dense: DENSE_MODELS.has(lang.tess),
 		labels,
 		titles,
 		level: [...(lang.level || []), 'Lv'],
