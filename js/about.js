@@ -246,6 +246,14 @@ export const RELEASE = RELEASES[0].id;
 export const CHANGES = [
 	{
 		date: '2026-09-11',
+		title: 'A hold barters to seventy per cent over, not a quarter, and the ways you are willing to use answer a press',
+		notes: [
+			'<b>The barter ceiling was wrong, and it was costing every run a third of its hold.</b> The islands were taken to stop dealing at a quarter over the weight limit. They do not: they deal right up to the 170% at which the hull stops moving, so there is no band where you can sail but not trade. The old figure came from one session in which a 27,000 LT hold seemed to refuse past about 34,000 — which is what a quarter over looks like, and is why it was believed. Every barter plan reads differently for it: chains that were cut short climb further, material runs that were split into several departures go out in one, and a hold at its fullest is quoted against the mark that is really there.',
+			'<b>The three ways you are willing to use are clickable.</b> They began as tickboxes and became chips in the same release, and the press was left behind in the handler that only tickboxes ever reach — so they showed the state and did nothing. Now each one re-plans as it is pressed, and <i>hunt what drops</i> has a step of its own rather than sharing one with the things nothing publishes a rate for: a fight you asked for and a shrug are different errands.'
+		]
+	},
+	{
+		date: '2026-09-11',
 		title: 'The way to get it is a plan you carry out, step by step',
 		notes: [
 			'<b>The plan is numbered now.</b> It was a set of groups under headings, which is a catalogue: true, and no help at all with the question a shopping list exists to answer — <i>so what do I do first?</i> It reads as steps in the order they are done, because the quests pay the Crow Coins that buy the shop’s half, and a player who buys first finds the purse empty when the quests come round. <b>1 Run these quests · 2 Take these as quest rewards · 3 Buy at the Crow Coin Shop · 4 Barter for these at sea</b>, and so on down to what has no rate at all. Each step says where it happens, carries its own total, and folds away when you are done with it.',

@@ -1367,9 +1367,9 @@ function wire() {
 		const mreg = evt.target.closest('[data-act="market-region"]');
 		if (mreg) return setMarketRegion(mreg.value);
 
-		// The plan's orders: the days a week at sea, the coins kept back,
-		// and which activities it may plan with.
-		const gc = evt.target.closest('[data-act="get-days"], [data-act="get-reserve"], [data-act="get-doing"]');
+		// The plan's orders: the days a week at sea, and the coins kept
+		// back. The activity chips are buttons and answer a click.
+		const gc = evt.target.closest('[data-act="get-days"], [data-act="get-reserve"]');
 		if (gc) return getChange(gc, parseAmount);
 
 		// The ticked tiles, moved to one storage as one change.

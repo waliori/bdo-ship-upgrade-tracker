@@ -71,7 +71,7 @@ test('hunting turned on takes a dropped material off the shopping list, and clai
 	const kill = wayToGet({ missing: { D: 50 }, sources, state: { purse: { coins: 99999 }, capacity }, orders: { hunt: true } });
 	assert.equal(got(buy, 'D', 'coin'), 50);
 	assert.equal(buy.coins.spend, 20000);
-	assert.equal(got(kill, 'D', 'find'), 50);
+	assert.equal(got(kill, 'D', 'hunt'), 50);
 	assert.equal(kill.coins.spend, 0);
 	assert.match(legsOf(kill, 'D')[0].why, /yours to hunt · drops from Khan/);
 	// A hunt has no published rate, so it can never lengthen the horizon.

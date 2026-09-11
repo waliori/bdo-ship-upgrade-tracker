@@ -814,9 +814,9 @@ word. *Fast* keeps the hold under the limit and makes no wharf call, so
 the hull never slows. *Full, never slower* does every attempt the
 islands allow and leaves the surplus at a wharf before the hull would
 slow — more calls, full speed. *Full, loaded* does every attempt and
-takes the hold up to the barter ceiling, a quarter over the limit, the
-hull sailing slower for it, and calls at a wharf only where the next
-island would not deal. Under every stop the hold reads as the game's
+takes the hold up to the barter ceiling — seventy per cent over the
+limit, the same point the hull stops moving at — sailing slower for it,
+and calls at a wharf only where the next island would not deal. Under every stop the hold reads as the game's
 Ship Info does — everything aboard, crew included, over the limit —
 and beside it the Parley bar counts down from what it holds now, priced
 at your barter level, a Crow's Trade Voucher drawn on where the bar

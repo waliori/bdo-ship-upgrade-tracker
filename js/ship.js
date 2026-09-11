@@ -26,11 +26,23 @@ export const SLOTS = ['cannon', 'sail', 'figurehead', 'plating'];
  * the game's own tooltip gives only the limit.
  */
 export const OVERLOAD = 1.7;
-/** How far past its limit a ship still barters: the islands stop
- *  dealing above this. No patch note gives the figure; a 27,000 LT
- *  hold was seen dealing up to about 33,750 and refused past 34,000
- *  (2026-09-04), which is the game's usual overweight step. */
-export const BARTER_OVER = 1.25;
+/**
+ * How far past its limit a ship still barters.
+ *
+ * The same 170%: the islands deal right up to the point the hull stops
+ * moving, and there is no band in between where you can sail but not
+ * trade. This was 125% until 2026-09-11, read off a single session in
+ * which a 27,000 LT hold seemed to refuse past about 34,000 -- which is
+ * what a quarter over looks like, and is why it was believed. It was
+ * wrong, and it was costing every barter route a third of its hold:
+ * chains were cut short, material runs were split, and a plan said a
+ * second trip was needed where one would have done.
+ *
+ * Kept as a name of its own rather than folded into OVERLOAD, because
+ * the two are different facts about the game that happen to agree, and
+ * a patch that moved one would not necessarily move the other.
+ */
+export const BARTER_OVER = OVERLOAD;
 // The part families ranked, from enhancement.js: the picker offers the
 // best tier first, and the boards score by the same order.
 const RANK = FAMILY_RANK;
@@ -207,8 +219,10 @@ export function currentShip() {
  * its crystal and its set add up to. The planner works in goods alone
  * against a limit less the crew, which is the same arithmetic; this is
  * the one face every screen shows. `goods` is the goods' weight in LT.
- * The three marks are the game's: the limit, the barter ceiling a
- * quarter over it, and the most the hull moves under.
+ * Two marks, not three: the limit, and the 170% at which the hull stops
+ * moving and the islands stop dealing together. `deal` and `max` are
+ * both kept -- callers ask each by name, and they are separate facts --
+ * so the band between them is simply empty while the two agree.
  */
 export function shownHold(hold, goods = 0) {
 	const crew = hold.crew || 0;
@@ -223,7 +237,9 @@ export function shownHold(hold, goods = 0) {
 		worse: max ? Math.max(0, Math.min(total, max) - deal) / max * 100 : 0,
 		mark: max ? Math.min(100, limit / max * 100) : 100,
 		text: `${Math.round(total).toLocaleString()} / ${Math.round(limit).toLocaleString()} LT`,
-		note: state === 'dead' ? 'more than the hull will move under' : state === 'heavy' ? 'too heavy to barter — lighten first' : state === 'over' ? 'past the limit — sailing slower' : ''
+		note: state === 'dead' ? 'more than the hull will move under, and past dealing — lighten first'
+			: state === 'heavy' ? 'too heavy to barter — lighten first'
+			: state === 'over' ? 'past the limit — sailing slower' : ''
 	};
 }
 

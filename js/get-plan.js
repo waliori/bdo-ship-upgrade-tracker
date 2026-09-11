@@ -294,7 +294,7 @@ function allocate(H, facts, sources, state, orders) {
 			const left = short.get(f.item);
 			if (left <= 0 || !f.drops.length) continue;
 			leg(f.item, {
-				kind: 'find', qty: left, hunted: true,
+				kind: 'hunt', qty: left,
 				why: `yours to hunt · drops from ${f.drops.slice(0, 3).join(', ')}`
 			});
 			short.set(f.item, 0);
@@ -536,7 +536,7 @@ export function wayToGet({ missing = {}, sources = {}, state = {}, orders = {} }
 		const also = [];
 		if (f.drops.length) also.push(`drops from ${f.drops.slice(0, 3).join(', ')}`);
 		if (f.bulk) also.push(`${f.bulk.give} exchanges for ${fmt(f.bulk.gets)} at once`);
-		if (f.node && !mine.some(l => l.kind === 'find')) also.push(f.node);
+		if (f.node && !mine.some(l => l.kind === 'find' || l.kind === 'hunt')) also.push(f.node);
 		if (f.coin && !mine.some(l => l.kind === 'coin')) also.push(`${fmt(f.coin)} coins each at the shop`);
 		if (f.timed && !mine.some(l => l.kind === 'barter')) also.push('bartered for at sea');
 		if (also.length) mine[0].also = also.join(' · ');
@@ -584,6 +584,10 @@ export const WAYS = [
 	['barter', 'Barter for'],
 	['falasi', "Falasi's silver"],
 	['market', 'Central Market'],
+	// A hunt you chose and a thing with no rate at all are two different
+	// errands: one is a fight you asked for, the other a shrug. Keeping
+	// them apart is why they are separate kinds and not a flag.
+	['hunt', 'Hunt what drops'],
 	['find', 'Go and get'],
 	['short', 'Not reachable yet']
 ];

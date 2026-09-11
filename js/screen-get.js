@@ -466,7 +466,7 @@ function wayRow(l) {
 	// -- a tendon dries into ten fabric -- and the recipe is the half the
 	// drop does not tell you. Shown inline, each ingredient carrying the
 	// app's own hover card.
-	const recipe = l.kind === 'find' && recipes[l.item] ? recipes[l.item] : null;
+	const recipe = (l.kind === 'find' || l.kind === 'hunt') && recipes[l.item] ? recipes[l.item] : null;
 	const how = recipe ? ((vendorItems[l.item] || {}).Processing || (vendorItems[l.item] || {}).Crafting || [])[0] : '';
 	const makes = recipe ? yieldOf(l.item) : 1;
 	const strip = recipe ? `<div class="way-recipe">
@@ -508,8 +508,7 @@ function renderWay(q) {
 	let n = questsHTML ? 1 : 0;
 
 	const body = groups.map(g => {
-		const hunted = g.kind === 'find' && g.items.every(l => l.hunted);
-		const meta = STEPS[hunted ? 'hunt' : g.kind] || STEPS.find;
+		const meta = STEPS[g.kind] || STEPS.find;
 		n += 1;
 		// The draws are the barter step's real price, and they are shared
 		// across its rows -- so they belong on the step, not on any one of
@@ -566,6 +565,14 @@ export function getAction(act, el) {
 			if (folded.has(id)) folded.delete(id); else folded.add(id);
 			return true;
 		}
+		// The activity switches are chips, so they answer a click. They
+		// were ticks once and were left in the `change` handler when they
+		// became buttons, where nothing a button does ever reaches them.
+		case 'get-doing': {
+			const o = getOrders();
+			store.setProfile('getOrders', { ...o, [el.dataset.id]: !o[el.dataset.id] });
+			return false;
+		}
 		case 'get-preset': store.setProfile('getOrders', { ...getOrders(), preset: el.dataset.id }); return false;
 		case 'get-pick': {
 			const picks = store.getProfile('questPicks', {}) || {};
@@ -578,7 +585,6 @@ export function getAction(act, el) {
 
 /** A typed order: the days a week, the coins kept back. */
 export function getChange(el, parseAmount) {
-	if (el.dataset.act === 'get-doing') { store.setProfile('getOrders', { ...getOrders(), [el.dataset.id]: el.checked }); return true; }
 	if (el.dataset.act === 'get-days') { store.setProfile('getOrders', { ...getOrders(), days: Number(el.value) }); return true; }
 	if (el.dataset.act === 'get-reserve') {
 		const n = parseAmount(el.value);
