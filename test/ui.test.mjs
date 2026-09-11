@@ -984,9 +984,9 @@ test('a dialog opened from the More menu hands focus back to More, not to the pa
 		'focus went back to the menu the dialog was chosen from');
 	// A dialog opened from a button that is still on screen still returns
 	// to that button, which is the case that already worked.
-	await page.click('[data-act="jump"]'); await wait(400);
+	await page.click('.masthead-actions [data-act="help"]'); await wait(400);
 	await page.keyboard.press('Escape'); await wait(400);
-	assert.equal(await page.evaluate(() => document.activeElement?.dataset?.act), 'jump');
+	assert.equal(await page.evaluate(() => document.activeElement?.dataset?.act), 'help');
 	assert.deepEqual(errors, []);
 	await context.close();
 });
@@ -1390,9 +1390,9 @@ test('a sheet stands on top of the keyboard rather than under it', async () => {
 	const kb = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--kb-h').trim());
 	assert.equal(await kb(), '0px', 'nothing is covered until something is');
 
-	// Find lives in the menu on a phone, so it is opened the way the
-	// keyboard shortcut does.
-	await page.evaluate(() => document.querySelector('[data-act="jump"]').click());
+	// Find is in the menu and nowhere in the masthead, so it is opened
+	// the way the keyboard shortcut does.
+	await page.keyboard.down('Control'); await page.keyboard.press('KeyK'); await page.keyboard.up('Control');
 	await wait(400);
 	await page.keyboard.type('black'); await wait(300);
 	const floor = () => page.evaluate(() => Math.round(document.querySelector('.dialog-box').getBoundingClientRect().bottom));

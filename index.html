@@ -70,15 +70,21 @@
                     <div class="brand-sub">One inventory, every build &middot; Black Desert</div>
                 </div>
             </div>
-            <!-- The masthead's verbs. Find, the trip log, Undo and Redo
-                 stand here on a wide screen; on a phone Find and the
-                 log move into the menu, which is the one menu the app
-                 has: the same sheet the thumb bar's last slot opens. -->
+            <!-- The masthead's verbs. The trip log, Undo, Redo and Help
+                 stand here on a wide screen; on a phone the log and Help
+                 move into the menu, which is the one menu the app has:
+                 the same sheet the thumb bar's last slot opens. Find is
+                 not among them -- it answers to Ctrl+K and to the search
+                 box each screen carries, and the menu keeps it. -->
             <div class="masthead-actions" id="masthead-actions">
-                <button class="ghost-btn wide-only" data-act="jump" title="Find an item or a tab (Ctrl+K)">&#8981; Find</button>
                 <button class="ghost-btn wide-only" data-act="trip-log" title="Record everything you brought back from a trip, as one change">&#65291; Log a trip</button>
                 <button class="ghost-btn" id="undo-btn" data-act="undo" aria-label="Undo">&#8630; <span class="btn-label">Undo</span></button>
                 <button class="ghost-btn wide-only" id="redo-btn" data-act="redo">&#8631; Redo</button>
+                <!-- Help stands here rather than Find: Find has a key of
+                     its own (Ctrl+K) and a slash on every screen, while
+                     the first thing a newcomer looks for is the one
+                     thing that was three presses deep in the menu. -->
+                <button class="ghost-btn wide-only" data-act="help" title="How the tracker works: the film, and where the data comes from">&#63; Help</button>
                 <!-- How many have the tracker open right now. Empty until
                      the server answers, and on a deployment with the count
                      switched off it stays empty. -->
