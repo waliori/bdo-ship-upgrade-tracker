@@ -9,14 +9,16 @@ someone who has been away. The same notes are in the app itself, under
 
 *2026-09-11*
 
-Two players asked for this one, and both asks turned out to be the same complaint from different ends: the app knew a great deal and left the deciding to you. **To Get** now says how each thing *should* be got rather than only how it can be — one route through everything left, in the order it is done — and every barter plan is cut to the islands your own **total barters** have opened. Around those: the barter forecast counts how often the offer is really on the list, a crew reads off your own screenshots, the numbers about you are typed once and read everywhere, and the boards keep up with your save.
+Two players asked for the two big things in this one, and both asks turned out to be the same complaint from different ends: the app knew a great deal and left the deciding to you. **To Get** now says how each thing *should* be got rather than only how it can be — one route through everything left, in the order it is done — and every barter plan is cut to the islands your own **total barters** have opened. Around those: the chart **stands up** on the game’s own terrain, the barter forecast counts how often the offer is really on the list, a crew reads off your own screenshots, the numbers about you — the nest of Bos’n Jacks among them — are typed once and read everywhere, and the boards keep up with your save.
 
 ### Asked for by you
 
-Both of the big things here came from players writing in, and both were better questions than the ones being asked inside. Thank you.
+Four players wrote in. Two of them set the shape of this release; two more put right things the app had wrong — a barter slot the game had quietly changed, and a nest of birds it was not counting at all. Every one of the four was a better question than the ones being asked inside. Thank you.
 
 - **Kristofer** — *“it would be really convenient if, after you input what you currently have, it could suggest the most efficient way to obtain the remaining resources … it tells you how each **can** be obtained, but a logic to suggest how each remaining resource **should** be obtained would be fantastic.”* That is the whole of **the way to get it**, and the word *should* is what sent it after the places the sources compete rather than after a longer list.
 - **Zelpha** — *“I wanna use the barter planning page but I’m only at 480 total barters, it would be nice if I could put that in somewhere and it’d limit the routes based on what I have available.”* That is **the barter count deciding which islands exist** — and it was worth more than a filter: fifteen of the forty recorded boards’ chains climb through an island 480 barters cannot reach, so that page had been quietly wrong for everyone below the thresholds.
+- **RENGEREL** — *“They did change the octagonal box from my combo 16 in grandiha to a statue’s tear. Not sure when they did that, but must have missed it. Next maint they should be changing the tear in my combo 31 at dallae pier … also 7A, just finally got the wandering merchant trade”* That is a **layout drifting**, and it is the one way this record goes wrong: the game edits a single slot at a maintenance and leaves the layout’s number alone, so the island and the reward still match and only the good the slot eats has moved. A stale give is worse than a missing one — the board rules a layout out on an island that disagrees, and one wrong row can leave a real refresh unnamed. The record was refetched the same day, 444 refreshes now where it had 420, and both of his were already in it: Sabnipu at **Grándiha** on layout 16 eats a *Statue’s Tear* for the same Moonlit Crystal Lamp, and **7A** has the Wandering Merchant’s row at last — a Green Salt Lump for Crow Coins, at the barterer three thousand barters opens. The fetching tool carries an override now for a change reported before the sheet has it, and says at every run which of its entries the sheet has caught up with. Gangdalpo at **Dallae Pier** on layout 31 is the one being watched for.
+- **NatSoFun** — *“is there a way to a[dd] pet weight stats for boat, its showing I got 200 less weight than I’m supposed to have … I was thinking maybe I take off one of my sailors but the boat speed would drop”* There was not, and the app was wrong for it. **Bos’n Jack** is the one pet in the game whose talent is ship weight — *Big Ship Inventory Weight*, fifty LT a tier, stacking across the five pets the game lets out at once — so a hold was short by the whole nest, and two hundred is exactly what one tier-4 bird carries. The birds are in the bar now with the rest of the numbers about you — and the second half of what he wrote is the reason it mattered: he was about to unseat a sailor, and pay for a wrong number in speed.
 
 The box is under **Menu → Feedback**: something wrong, an idea, or something else, with the section and the build attached. It reaches whoever runs the site.
 
@@ -53,11 +55,15 @@ Every barter figure in the app assumed that what you want is on the list every t
 - What is measured is **presence**, not how many islands showed it, so the change can only ever lengthen a forecast and never shorten one. A thing on every board recorded reads exactly as it did.
 - Anything **no board has recorded** keeps the old best-case number and says so on the row, rather than passing it off as measured.
 - Your own material-board diary is deliberately left out of the arithmetic: it records where a thing was and never where it was not, and a sample with no absences in it cannot measure absence.
+- **A layout is not frozen.** The game edits one island’s slot at a maintenance and leaves the layout’s number alone — the island and the reward stay, only the good the slot eats changes — and a record that has not caught up is worse than no record, since the board rules a layout out on an island that disagrees. The forty layouts were **refetched**, 444 refreshes deep now: layout 16’s Grándiha slot takes a Statue’s Tear, and 7A carries the Wandering Merchant’s row that was missing from it. The tool that fetches them holds a correction for a drift reported before the sheet has it, and says at every run which of them the sheet has caught up with.
 
 ### The sailor — the numbers about you, typed once
 
-The barter count, your level, the Parley, the vouchers and the Value Pack were entered on To Get — the one screen that is not about the sea — with a second copy of two of them on the Barter tab and Sailing Mastery off on the Ship tab, all of them read everywhere. They are **the sailor** now: one group beside the pouch, in the strip that follows you from tab to tab, typed once and read by every plan.
+The barter count, your level, the Parley, the vouchers and the Value Pack were entered on To Get — the one screen that is not about the sea — with a second copy of two of them on the Barter tab and Sailing Mastery off on the Ship tab, all of them read everywhere. They are **the sailor** now: one group beside the pouch, in the strip that follows you from tab to tab, typed once and read by every plan. Folded, that group still says the lot — *4,205 barters · Master 5 · 3+3 draws · NA* — and one press opens the fields.
 
+- **The nest of Bos’n Jacks is part of the hold.** It is the one pet talent in the game that is ship weight — fifty LT a tier, stacking across the five the game lets out at once, and a tier 5 set as your Alpha carries 250 — so a sailor with five of them was being told a limit two hundred to a thousand LT under the one the game shows. It counts on the Epheria line, the Carracks and the Panokseon, and on nothing smaller: a Cog, a rowboat and the Bartali are not Big Ships, and the game does not pay them either. Five slots and six tiers, one press a bird and one for all five, and the whole nest lands as a single change.
+- **The region belongs to the sailor**, not to a screen. Every Market price in the app is quoted in one region’s silver and Vell’s times are read off it, and it used to be set from a select inside one summary card. It is a chip in the bar now, with how old the prices are beside it and a refresh that says so.
+- **On a phone the strip is one line.** Nine chips will not fit across 390 pixels, so the row scrolled sideways and half of it was a swipe away. A phone gets the reading — what is held, in red what is short, and the barter count — on a single line, and pressing it opens **Carrying** as a sheet where every field has the width of the screen.
 - **How many sailors are out**, in the masthead, and beside it the crew — the accounts that have ever signed in. The first counts the browsers with the tracker open this minute. It needs no sign-in and keeps no address: a random token the browser makes for itself and two timestamps, which is why it says browsers rather than people.
 
 ### Ship — a crew read off your own screenshots, in any language the game is played in
@@ -78,6 +84,8 @@ Every hull now says what it is for, which the game’s own numbers never do: the
 
 ### Map — the chart, stood up
 
+![The chart leaning over onto the game’s own terrain, and painted both ways](docs/media/stand-it-up.gif)
+
 The chart has always drawn the sea from directly overhead, which is the right way to read a route and the wrong way to read a coast. The game’s own 3D map is not a picture anyone can copy — the client builds it on the graphics card every frame — but the terrain it is built *from* is in your own installed client, one mesh per 12,800-unit sector, on exactly the grid the flat chart’s squares are cut on. So the chart can be stood up: **⛰** on the zoom bar leans it over and puts the real ground under the sea.
 
 - It is the **same chart**, not a second one. The same centre, the same zoom, the same barterers, wharves, habitats, traces and plotted loop — every one of them placed by the camera now instead of by the flat scaling, so they sit on the ground rather than beside it, and the switch either way lands on the water you were already looking at.
@@ -86,12 +94,21 @@ The chart has always drawn the sea from directly overhead, which is the right wa
 - **Shift-drag leans and turns it**, an ordinary drag takes hold of the water and carries it, and **Level** puts you straight back overhead facing north. Where you left it is where it opens next time.
 - The terrain is cut into the same kind of pyramid as the tiles — the far view draws a few hundred tiles instead of thirty thousand, and the closest zoom draws **the mesh the game itself draws from**, vertex for vertex. Tiles travel packed, a few kilobytes each, with the chart’s own thread of light along the top edge while they are coming — and **Keep this area offline** keeps the ground with the squares, so a crossing with no signal still has islands in it.
 
+### The guide — seven chapters, narrated, and shot against the app as it is
+
+The film was one thirteen-minute run at the whole app. It is **seven chapters** now, each a file of its own with its own subtitles and transcript, and it plays inside the app under **Help** with the seven listed as jump-to points — so the answer to “how does a run work?” is ninety seconds in, not a scrub through a film. Whatever is being named is lit on screen as it is said.
+
+- **To Get has a chapter of its own**, because it is a planner now and not a list: the goal, the days a week you actually sail, the coins held back, what you are willing to do at all, and the day count moving under every one of those choices.
+- The Yard opens on **the sailor’s numbers** and types them in, since the barter count decides which islands will deal with you at all and a plan made before it is given is a plan for somebody else’s account. The Map chapter leans the chart over onto the terrain, and the Ship chapter reads a crew off the game’s own screenshots.
+- None of it is a mock-up: every frame is the real app being driven, and the only invented thing anywhere in it is the handful of sailors on the community boards, since a machine shooting a film has no deployment with players on it. Every picture in the README was re-shot the same way.
+
 ### Community — boards that keep up, and say how they count
 
 What the boards show about you is worked out from the copy the server holds, and that copy is redrawn within seconds of a save reaching it — so a ship fitted, a sailor hired or a run logged is on the boards by the time you walk to them. Before, a change waited on the boards’ own window, and a card once opened never changed at all.
 
 - Signing in puts you **on the boards by name** rather than leaving it to whoever went looking for the switch. The tab says so the first time you open it, **Leave the boards** is one press from there, and leaving is remembered — signing in again does not put you back. You can still be shown as an unnamed sailor, and what would be shared is still listed before you agree.
 - Every board says **how it is counted**: a “?” opens the rule in full, and Best ship shows the sum behind the number — *hull 4,000 + parts 194 + crystal 20* — for the top of the board and for your own row.
+- **The room the app was written for has a door now.** Discord stands in the masthead beside Help — the sailing server where the routes, the crew builds and what a patch moved are actually worked out, and where three of the four corrections in this release came from. On a phone it keeps its mark and drops the word.
 - Your **fleet and your inventory are one fleet**. Keeping a setup puts its hull in the Inventory if none was recorded there, and a hull in the Inventory is a ship in your fleet, listed, sailable and counted on the boards, whether or not a setup was ever named for it.
 
 ### The yard — buying with coins, and a count that keeps itself
@@ -113,6 +130,8 @@ Things that were wrong, and are not now.
 - On a run’s checklist the **fourth** of an island’s four [Level 7]s can be tapped: the chips ran wider than the column and the last one sat under the hold beside it, taking every click aimed at it.
 - Writing a route into <code>gameVariable.xml</code> keeps the untouched original aside as <code>.orig</code> and never writes it again. Before, the second write copied the first write’s output over the only backup.
 - Two setups kept in the same moment are two setups; they shared an id before, and the second quietly replaced the first.
+- Setting a nest of pets was **twenty presses and twenty saves**: each bird was a button stepped round its six tiers, and every step wrote the save, added an entry to the history and redrew every screen that plans against the hold. That is where the lag came from. The editor holds a draft and lands it in one change.
+- On the chart, **Ground, Neon and Level shared a row with the step player** whenever a route was plotted — at twelve hundred pixels as well as on a phone — and the two-finger twist turned the chart against the fingers.
 - A stored digest from an older build is **worked out again** rather than left standing, so a scoring change does not leave half a board wearing its old number.
 
 ## 1.0 — The yard and the sea

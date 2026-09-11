@@ -74,6 +74,11 @@ done
 for name in plan-a-run share-a-drawing; do
 	./tools/capture/togif.sh "$RAW/$name.webm" "$OUT/small/$name.gif" 480 7
 done
+# The stood-up chart is the hard case twice over -- a tilting heightmap,
+# and one of the pictures the dialog itself serves -- so the narrow copy
+# goes narrower and slower again. At the settings above it is a
+# two-megabyte headline on a phone.
+./tools/capture/togif.sh "$RAW/stand-it-up.webm" "$OUT/small/stand-it-up.gif" 440 5
 for name in hero map quests community the-plan; do
 	ffmpeg -v error -y -i "$OUT/$name.png" -vf scale=560:-2 "$OUT/small/$name.png"
 	ls -la "$OUT/small/$name.png"

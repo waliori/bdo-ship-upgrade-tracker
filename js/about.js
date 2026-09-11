@@ -10,7 +10,7 @@ export const DATA = [
 	{ what: 'Sea monster spawn points', asOf: '2026-08-30', from: 'BDOCodex; the Lyngbakr Habitat from in-game bookmarks, 2026-08-31' },
 	{ what: 'What islands paid on your runs', asOf: 'live', from: 'your own record, from the Barter tab’s checklist' },
 	{ what: 'The ship-material board — four whole boards', asOf: '2026-09-05', from: 'the barter window, read off screenshots of four refreshes; how often each offer is up comes from these' },
-	{ what: 'The trade-good list — forty layouts', asOf: '2026-09-03', from: 'a community sheet, 420 refreshes since 2026-04-16' },
+	{ what: 'The trade-good list — forty layouts', asOf: '2026-09-11', from: 'a community sheet, 444 refreshes since 2026-04-16; refetched after a player reported the game moving a slot inside one' },
 	{ what: 'Monster ground markers', asOf: '2026-08-31', from: 'the centre of each species’ codex spawns, kept to open water; the crocodiles from the patch note' },
 	{ what: 'Wharf managers — the full roll, 58 of them', asOf: '2026-08-31', from: 'BDOCodex NPC pages' },
 	{ what: 'Cox Pirates’ camps, flags and cargo ships', asOf: '2026-08-31', from: 'Awabi’s “The Road to Cox” map, fitted to the chart on its island names' },
@@ -54,11 +54,11 @@ export const RELEASES = [
 		id: '1.1',
 		name: 'The plan, and the sea you can actually reach',
 		date: '2026-09-11',
-		blurb: 'Two players asked for this one, and both asks turned out to be the same complaint from different ends: the app knew a great deal and left the deciding to you. '
+		blurb: 'Two players asked for the two big things in this one, and both asks turned out to be the same complaint from different ends: the app knew a great deal and left the deciding to you. '
 			+ '<b>To Get</b> now says how each thing <i>should</i> be got rather than only how it can be — one route through everything left, in the order it is done — and every barter plan is cut to the islands your own <b>total barters</b> have opened. '
-			+ 'Around those: the barter forecast counts how often the offer is really on the list, a crew reads off your own screenshots, the numbers about you are typed once and read everywhere, and the boards keep up with your save.',
+			+ 'Around those: the chart <b>stands up</b> on the game’s own terrain, the barter forecast counts how often the offer is really on the list, a crew reads off your own screenshots, the numbers about you — the nest of Bos’n Jacks among them — are typed once and read everywhere, and the boards keep up with your save.',
 		thanks: {
-			text: 'Both of the big things here came from players writing in, and both were better questions than the ones being asked inside. Thank you.',
+			text: 'Four players wrote in. Two of them set the shape of this release; two more put right things the app had wrong — a barter slot the game had quietly changed, and a nest of birds it was not counting at all. Every one of the four was a better question than the ones being asked inside. Thank you.',
 			who: [
 				{
 					name: 'Kristofer',
@@ -69,6 +69,16 @@ export const RELEASES = [
 					name: 'Zelpha',
 					said: 'I wanna use the barter planning page but I’m only at 480 total barters, it would be nice if I could put that in somewhere and it’d limit the routes based on what I have available.',
 					did: 'That is <b>the barter count deciding which islands exist</b> — and it was worth more than a filter: fifteen of the forty recorded boards’ chains climb through an island 480 barters cannot reach, so that page had been quietly wrong for everyone below the thresholds.'
+				},
+				{
+					name: 'RENGEREL',
+					said: 'They did change the octagonal box from my combo 16 in grandiha to a statue’s tear. Not sure when they did that, but must have missed it. Next maint they should be changing the tear in my combo 31 at dallae pier … also 7A, just finally got the wandering merchant trade',
+					did: 'That is a <b>layout drifting</b>, and it is the one way this record goes wrong: the game edits a single slot at a maintenance and leaves the layout’s number alone, so the island and the reward still match and only the good the slot eats has moved. A stale give is worse than a missing one — the board rules a layout out on an island that disagrees, and one wrong row can leave a real refresh unnamed. The record was refetched the same day, 444 refreshes now where it had 420, and both of his were already in it: Sabnipu at <b>Grándiha</b> on layout 16 eats a <i>Statue’s Tear</i> for the same Moonlit Crystal Lamp, and <b>7A</b> has the Wandering Merchant’s row at last — a Green Salt Lump for Crow Coins, at the barterer three thousand barters opens. The fetching tool carries an override now for a change reported before the sheet has it, and says at every run which of its entries the sheet has caught up with. Gangdalpo at <b>Dallae Pier</b> on layout 31 is the one being watched for.'
+				},
+				{
+					name: 'NatSoFun',
+					said: 'is there a way to a[dd] pet weight stats for boat, its showing I got 200 less weight than I’m supposed to have … I was thinking maybe I take off one of my sailors but the boat speed would drop',
+					did: 'There was not, and the app was wrong for it. <b>Bos’n Jack</b> is the one pet in the game whose talent is ship weight — <i>Big Ship Inventory Weight</i>, fifty LT a tier, stacking across the five pets the game lets out at once — so a hold was short by the whole nest, and two hundred is exactly what one tier-4 bird carries. The birds are in the bar now with the rest of the numbers about you — and the second half of what he wrote is the reason it mattered: he was about to unseat a sailor, and pay for a wrong number in speed.'
 				}
 			],
 			foot: 'The box is under <b>Menu → Feedback</b>: something wrong, an idea, or something else, with the section and the build attached. It reaches whoever runs the site.'
@@ -118,15 +128,20 @@ export const RELEASES = [
 					'The old figure survives as the floor, with the sample named beside it: <i>about 11 days, 5 if the offer is always up · on 1 of the 4 boards recorded</i>.',
 					'What is measured is <b>presence</b>, not how many islands showed it, so the change can only ever lengthen a forecast and never shorten one. A thing on every board recorded reads exactly as it did.',
 					'Anything <b>no board has recorded</b> keeps the old best-case number and says so on the row, rather than passing it off as measured.',
-					'Your own material-board diary is deliberately left out of the arithmetic: it records where a thing was and never where it was not, and a sample with no absences in it cannot measure absence.'
+					'Your own material-board diary is deliberately left out of the arithmetic: it records where a thing was and never where it was not, and a sample with no absences in it cannot measure absence.',
+					'<b>A layout is not frozen.</b> The game edits one island’s slot at a maintenance and leaves the layout’s number alone — the island and the reward stay, only the good the slot eats changes — and a record that has not caught up is worse than no record, since the board rules a layout out on an island that disagrees. The forty layouts were <b>refetched</b>, 444 refreshes deep now: layout 16’s Grándiha slot takes a Statue’s Tear, and 7A carries the Wandering Merchant’s row that was missing from it. The tool that fetches them holds a correction for a drift reported before the sheet has it, and says at every run which of them the sheet has caught up with.'
 				]
 			},
 			{
 				title: 'The sailor — the numbers about you, typed once',
 				text: 'The barter count, your level, the Parley, the vouchers and the Value Pack were entered on To Get — the one screen that is not about the sea — '
 					+ 'with a second copy of two of them on the Barter tab and Sailing Mastery off on the Ship tab, all of them read everywhere. '
-					+ 'They are <b>the sailor</b> now: one group beside the pouch, in the strip that follows you from tab to tab, typed once and read by every plan.',
+					+ 'They are <b>the sailor</b> now: one group beside the pouch, in the strip that follows you from tab to tab, typed once and read by every plan. '
+					+ 'Folded, that group still says the lot — <i>4,205 barters · Master 5 · 3+3 draws · NA</i> — and one press opens the fields.',
 				points: [
+					'<b>The nest of Bos’n Jacks is part of the hold.</b> It is the one pet talent in the game that is ship weight — fifty LT a tier, stacking across the five the game lets out at once, and a tier 5 set as your Alpha carries 250 — so a sailor with five of them was being told a limit two hundred to a thousand LT under the one the game shows. It counts on the Epheria line, the Carracks and the Panokseon, and on nothing smaller: a Cog, a rowboat and the Bartali are not Big Ships, and the game does not pay them either. Five slots and six tiers, one press a bird and one for all five, and the whole nest lands as a single change.',
+					'<b>The region belongs to the sailor</b>, not to a screen. Every Market price in the app is quoted in one region’s silver and Vell’s times are read off it, and it used to be set from a select inside one summary card. It is a chip in the bar now, with how old the prices are beside it and a refresh that says so.',
+					'<b>On a phone the strip is one line.</b> Nine chips will not fit across 390 pixels, so the row scrolled sideways and half of it was a swipe away. A phone gets the reading — what is held, in red what is short, and the barter count — on a single line, and pressing it opens <b>Carrying</b> as a sheet where every field has the width of the screen.',
 					'<b>How many sailors are out</b>, in the masthead, and beside it the crew — the accounts that have ever signed in. The first counts the browsers with the tracker open this minute. It needs no sign-in and keeps no address: a random token the browser makes for itself and two timestamps, which is why it says browsers rather than people.'
 				]
 			},
@@ -153,6 +168,8 @@ export const RELEASES = [
 			},
 			{
 				title: 'Map — the chart, stood up',
+				media: 'docs/media/small/stand-it-up.gif',
+				alt: 'The chart leaning over onto the game’s own terrain, and painted both ways',
 				text: 'The chart has always drawn the sea from directly overhead, which is the right way to read a route and the wrong way to read a coast. '
 					+ 'The game’s own 3D map is not a picture anyone can copy — the client builds it on the graphics card every frame — but the terrain it is built <i>from</i> is in your own installed client, one mesh per 12,800-unit sector, '
 					+ 'on exactly the grid the flat chart’s squares are cut on. So the chart can be stood up: <b>⛰</b> on the zoom bar leans it over and puts the real ground under the sea.',
@@ -165,6 +182,17 @@ export const RELEASES = [
 				]
 			},
 			{
+				title: 'The guide — seven chapters, narrated, and shot against the app as it is',
+				text: 'The film was one thirteen-minute run at the whole app. It is <b>seven chapters</b> now, each a file of its own with its own subtitles and transcript, '
+					+ 'and it plays inside the app under <b>Help</b> with the seven listed as jump-to points — so the answer to “how does a run work?” is ninety seconds in, not a scrub through a film. '
+					+ 'Whatever is being named is lit on screen as it is said.',
+				points: [
+					'<b>To Get has a chapter of its own</b>, because it is a planner now and not a list: the goal, the days a week you actually sail, the coins held back, what you are willing to do at all, and the day count moving under every one of those choices.',
+					'The Yard opens on <b>the sailor’s numbers</b> and types them in, since the barter count decides which islands will deal with you at all and a plan made before it is given is a plan for somebody else’s account. The Map chapter leans the chart over onto the terrain, and the Ship chapter reads a crew off the game’s own screenshots.',
+					'None of it is a mock-up: every frame is the real app being driven, and the only invented thing anywhere in it is the handful of sailors on the community boards, since a machine shooting a film has no deployment with players on it. Every picture in the README was re-shot the same way.'
+				]
+			},
+			{
 				title: 'Community — boards that keep up, and say how they count',
 				text: 'What the boards show about you is worked out from the copy the server holds, and that copy is redrawn within seconds of a save reaching it — '
 					+ 'so a ship fitted, a sailor hired or a run logged is on the boards by the time you walk to them. '
@@ -172,6 +200,7 @@ export const RELEASES = [
 				points: [
 					'Signing in puts you <b>on the boards by name</b> rather than leaving it to whoever went looking for the switch. The tab says so the first time you open it, <b>Leave the boards</b> is one press from there, and leaving is remembered — signing in again does not put you back. You can still be shown as an unnamed sailor, and what would be shared is still listed before you agree.',
 					'Every board says <b>how it is counted</b>: a “?” opens the rule in full, and Best ship shows the sum behind the number — <i>hull 4,000 + parts 194 + crystal 20</i> — for the top of the board and for your own row.',
+					'<b>The room the app was written for has a door now.</b> Discord stands in the masthead beside Help — the sailing server where the routes, the crew builds and what a patch moved are actually worked out, and where three of the four corrections in this release came from. On a phone it keeps its mark and drops the word.',
 					'Your <b>fleet and your inventory are one fleet</b>. Keeping a setup puts its hull in the Inventory if none was recorded there, and a hull in the Inventory is a ship in your fleet, listed, sailable and counted on the boards, whether or not a setup was ever named for it.'
 				]
 			},
@@ -195,6 +224,8 @@ export const RELEASES = [
 					'On a run’s checklist the <b>fourth</b> of an island’s four [Level 7]s can be tapped: the chips ran wider than the column and the last one sat under the hold beside it, taking every click aimed at it.',
 					'Writing a route into <code>gameVariable.xml</code> keeps the untouched original aside as <code>.orig</code> and never writes it again. Before, the second write copied the first write’s output over the only backup.',
 					'Two setups kept in the same moment are two setups; they shared an id before, and the second quietly replaced the first.',
+					'Setting a nest of pets was <b>twenty presses and twenty saves</b>: each bird was a button stepped round its six tiers, and every step wrote the save, added an entry to the history and redrew every screen that plans against the hold. That is where the lag came from. The editor holds a draft and lands it in one change.',
+					'On the chart, <b>Ground, Neon and Level shared a row with the step player</b> whenever a route was plotted — at twelve hundred pixels as well as on a phone — and the two-finger twist turned the chart against the fingers.',
 					'A stored digest from an older build is <b>worked out again</b> rather than left standing, so a scoring change does not leave half a board wearing its old number.'
 				]
 			},

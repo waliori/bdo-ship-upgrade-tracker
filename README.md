@@ -419,12 +419,13 @@ the same number.
 whose talent is ship weight — *Big Ship Inventory Weight*, +50 LT a
 tier, stacking across the five pets you can have out at once, and one
 step more again on the tier 5 you make your Alpha. They are yours and
-not the hull's, so they are set in the same bar as the mastery: five
-slots, pressed round their tiers in the grade colours the pet window
-uses. The hold counts them on the Epheria line, the Carracks and the
-Panokseon, and on nothing smaller — which is what the talent's own
-*Big Ships only* means — and the Ship screen shows them as their own
-line in the sum.
+not the hull's, so they are set in the same bar as the mastery: the row
+of birds there is read, and one press opens the nest — five slots down
+the side, the six tiers across, a head row that sets all five at once,
+and the whole thing a draft until Save. The hold counts them on the
+Epheria line, the Carracks and the Panokseon, and on nothing smaller —
+which is what the talent's own *Big Ships only* means — and the Ship
+screen shows them as their own line in the sum.
 
 **Your fleet is your inventory.** Keeping a setup puts its hull in the
 Inventory if none was recorded there, and a hull recorded in the
