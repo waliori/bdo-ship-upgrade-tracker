@@ -87,10 +87,17 @@
 
 .crowd-word { font-weight: 500; color: var(--ink-faint); }
 
+/* The crew -- how many have ever signed in -- beside the live count.
+   Fainter, because it is the number that hardly moves. */
+.crowd-roll { color: var(--ink-faint); font-weight: 500; }
+.crowd-roll .crowd-word { color: inherit; }
+
 /* On a phone the masthead is already four buttons wide; the words go
-   and the dot and the number stay. */
+   and the dot and the number stay, and the crew goes with them -- it is
+   in the tooltip either way. */
 @media (max-width: 720px) {
   .crowd-word { display: none; }
+  .crowd-roll { display: none; }
   .crowd-chip { font-size: 11.5px; padding: 0; }
 }
 

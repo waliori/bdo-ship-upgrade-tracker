@@ -379,16 +379,24 @@ export async function touchPresence(token, now = Date.now()) {
 	});
 }
 
-/** How many browsers have said hello since `since`, and how many ever. */
+/** How many browsers have said hello since `since`, how many ever, and
+ *  how many accounts have ever signed in. The third is a different kind
+ *  of number from the first two -- a browser is a browser, an account is
+ *  a person who came back often enough to want their save kept -- and it
+ *  is counted here because the three are read together and one round
+ *  trip is enough for all of them. */
 export async function countPresence(since) {
 	await migrate();
 	const { rows } = await exec({
-		sql: 'SELECT (SELECT COUNT(*) FROM presence WHERE seen_at >= ?) AS online, (SELECT COUNT(*) FROM presence) AS sailors',
+		sql: `SELECT (SELECT COUNT(*) FROM presence WHERE seen_at >= ?) AS online,
+			(SELECT COUNT(*) FROM presence) AS sailors,
+			(SELECT COUNT(*) FROM users) AS crew`,
 		args: [since]
 	});
 	return {
 		online: Number(rows[0] && rows[0].online) || 0,
-		sailors: Number(rows[0] && rows[0].sailors) || 0
+		sailors: Number(rows[0] && rows[0].sailors) || 0,
+		crew: Number(rows[0] && rows[0].crew) || 0
 	};
 }
 

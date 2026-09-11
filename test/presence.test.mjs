@@ -22,7 +22,7 @@ delete process.env.DISCORD_CLIENT_SECRET;
 process.env.TURSO_DATABASE_URL = `file:${path.join(dir, 'tracker.db')}`;
 
 const app = (await import('../server.js')).default;
-const { touchPresence, countPresence } = await import('../server/db.js');
+const { touchPresence, countPresence, upsertUser } = await import('../server/db.js');
 
 const server = app.listen(0);
 await new Promise(resolve => server.once('listening', resolve));
@@ -70,6 +70,17 @@ test('anything that is not a token is refused rather than stored', async () => {
 	}
 	const counts = await countPresence(0);
 	assert.equal(counts.sailors, 3, 'nothing new was written');
+});
+
+test('the crew is the accounts, counted apart from the browsers', async () => {
+	const before = await countPresence(0);
+	assert.equal(before.crew, 0, 'nobody has signed in yet');
+	await upsertUser({ id: 'user-one', username: 'One', avatar: null });
+	await upsertUser({ id: 'user-two', username: 'Two', avatar: null });
+	await upsertUser({ id: 'user-one', username: 'One again', avatar: null });
+	const after = await countPresence(0);
+	assert.equal(after.crew, 2, 'signing in twice is one account');
+	assert.equal(after.sailors, 3, 'and an account is not a browser on the roll');
 });
 
 test('the page is told the count is on', async () => {

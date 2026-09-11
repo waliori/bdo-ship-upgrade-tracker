@@ -52,17 +52,25 @@ async function hello() {
 	} catch { /* offline, or the server has better things to do */ }
 }
 
-/** The count, in the masthead. */
-function paint({ online = 0, sailors = 0 }) {
-	last = { online, sailors };
+/** The counts, in the masthead: how many are out now, and beside it the
+ *  crew -- the accounts that have ever signed in. The second number is
+ *  the steady one and the first is the live one, so the live one leads
+ *  and keeps the dot; on a phone only it survives. */
+function paint({ online = 0, sailors = 0, crew = 0 }) {
+	last = { online, sailors, crew };
 	const host = document.getElementById('crowd');
 	if (!host) return;
 	if (!online) { host.innerHTML = ''; return; }
 	// "you" included, because the reader is one of them and a count that
 	// said 0 while they were plainly here would read as broken.
 	const roll = sailors > 1 ? ` · ${F(sailors)} browsers have opened it` : '';
-	host.innerHTML = `<span class="crowd-chip" title="${F(online)} browser${online === 1 ? '' : 's'} have the tracker open right now, yours among them${esc(roll)}. Nobody is named and nothing of your save is counted.">
-		<i aria-hidden="true"></i>${F(online)} <span class="crowd-word">at sea</span></span>`;
+	const signed = crew > 0 ? ` · ${F(crew)} ${crew === 1 ? 'has' : 'have'} signed in and keep a save` : '';
+	const title = `${F(online)} browser${online === 1 ? '' : 's'} have the tracker open right now, yours among them${roll}${signed}. Nobody is named and nothing of your save is counted.`;
+	const fleet = crew > 0
+		? `<span class="crowd-roll"> · ${F(crew)} <span class="crowd-word">crew</span></span>`
+		: '';
+	host.innerHTML = `<span class="crowd-chip" title="${esc(title)}">
+		<i aria-hidden="true"></i>${F(online)} <span class="crowd-word">at sea</span>${fleet}</span>`;
 }
 
 /** Say hello, and keep saying it while the tab is being looked at. */

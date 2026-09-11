@@ -11,6 +11,11 @@
 // silent, and a line saying seven others are at sea right now is worth
 // more to the person reading it than anything else that small could be.
 //
+// Three numbers go back: how many browsers are out now, how many have
+// ever opened it, and how many accounts have signed in. The last is the
+// only one that counts people rather than browsers, which is why it is
+// named apart from the other two rather than added to them.
+//
 // With a database the roll survives a restart; without one it is held
 // in memory for as long as the process lives, which still answers "how
 // many now" honestly and simply cannot answer "how many ever".
@@ -53,7 +58,7 @@ export function presenceRoutes({ db = null } = {}) {
 		} catch {
 			// A database that is asleep is not worth a 500 over a number
 			// nobody is depending on: the page simply shows nothing.
-			res.json({ online: 0, sailors: 0, off: true });
+			res.json({ online: 0, sailors: 0, crew: 0, off: true });
 		}
 	});
 
@@ -68,7 +73,8 @@ function viaMemory(token) {
 		if (now - at > ONLINE_MS) local.delete(key);
 		else online++;
 	}
-	return { online, sailors: 0 };
+	// No database, so no roll and no accounts: only the here and now.
+	return { online, sailors: 0, crew: 0 };
 }
 
 async function viaDb(db, token) {
