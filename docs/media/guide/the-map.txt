@@ -5,6 +5,12 @@ These buttons across the top are the chart controls.
 Zoom out, and zoom in. You can also just scroll on the sea.
 This one fits everything marked back into view, if you get lost.
 This toggles the minimap in the corner.
+And this one stands the chart up.
+That is the game's own terrain, read out of your client. Not a picture of it — the real heightmap.
+Shift-drag to lean, and the islands come up out of the water.
+Ground paints it in the colours the client ships.
+Neon draws it as contours, the way the game's own world map does.
+And Level looks straight down again, facing north.
 And this is full screen. That is where the chart is worth using, so let us go there.
 Now the sea has the whole window.
 Hit fit again, now that the chart has the room. That pulls back until every mark is in view at once.

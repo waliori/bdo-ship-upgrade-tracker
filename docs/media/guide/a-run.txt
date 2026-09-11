@@ -2,7 +2,7 @@ This is the Barter tab. Show it one island, and it plans a whole run for you.
 First, pick what you are running for.
 A material climbs the ladder to one thing you are short of.
 Silver runs the chains on the board and sells at the end. That is the one we want.
-Set your barter level here. It sets the Parley cost of every trade below.
+The barter count and level you set at the start are doing real work here: the count decides which islands are on the board at all, and the level prices every Parley figure below.
 Next, tell it what the board looks like.
 Every refresh, the sea uses one of forty layouts.
 The app cannot know which one. So you show it a single island.

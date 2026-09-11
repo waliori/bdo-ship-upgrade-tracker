@@ -727,7 +727,7 @@ export async function choose(page, sel, value, { after = 1000 } = {}) {
  * `from` starts the gesture at a fraction of the target's box instead of
  * its centre, which is how a stroke gets drawn somewhere in particular.
  */
-export async function drag(page, sel, dx, dy, { steps = 24, after = 700, from = null } = {}) {
+export async function drag(page, sel, dx, dy, { steps = 24, after = 700, from = null, hold = null } = {}) {
 	let start;
 	if (from) {
 		const el = await pick(page, sel);
@@ -743,6 +743,9 @@ export async function drag(page, sel, dx, dy, { steps = 24, after = 700, from = 
 		cur.classList.add('down');
 		cur.style.transition = 'transform .06s linear';
 	});
+	// A modifier held for the length of the gesture: the chart leans
+	// under shift-drag, and pans under the same drag without it.
+	if (hold) await page.keyboard.down(hold);
 	await page.mouse.down();
 	for (let i = 1; i <= steps; i++) {
 		const at = { x: start.x + dx * i / steps, y: start.y + dy * i / steps };
@@ -750,6 +753,7 @@ export async function drag(page, sel, dx, dy, { steps = 24, after = 700, from = 
 		await wait(30);
 	}
 	await page.mouse.up();
+	if (hold) await page.keyboard.up(hold);
 	await page.evaluate(() => {
 		const cur = document.getElementById('__cur');
 		cur.classList.remove('down');

@@ -35,7 +35,7 @@ const RAW = process.env.RAW || 'tools/capture/out';
  * of each chapter's own timeline, so a chapter renamed in guides.mjs
  * cannot end up captioned one thing and marked another.
  */
-const ORDER = ['the-yard', 'quests', 'your-ship', 'the-map', 'a-run', 'the-harbour'];
+const ORDER = ['the-yard', 'to-get', 'quests', 'your-ship', 'the-map', 'a-run', 'the-harbour'];
 
 const seconds = async file => {
 	const { stdout } = await exec('ffprobe', [

@@ -69,22 +69,23 @@ app's ocean gradient.
 ## The guide films
 
 Everything above shoots the silent clips the README embeds. The other
-half of this harness shoots **six narrated chapters** — the thing to
+half of this harness shoots **seven narrated chapters** — the thing to
 send someone who asks how one part of the app works, rather than what
 the app is:
 
 | Chapter | What it covers |
 |---|---|
-| `the-yard` | Queue a build, record what you gather, craft, undo, price a part, record a level, the Tree, To Get |
+| `the-yard` | The sailor bar — the numbers the app plans from — then queue a build, record what you gather, craft, undo, price a part, record a level, the Tree |
+| `to-get` | The plan: the goal, the days a week, what you are willing to do, the steps, and what it will never do |
 | `quests` | The sailing dailies and weeklies, which pay something on your list, and recording a batch at once |
 | `your-ship` | Hull, the four parts, the crystal, the appearance set, the figures — and the crew, read off screenshots then seated by hand and automatically, with presets and setups |
-| `the-map` | The chart, mostly full screen: toolbar, minimap, layers, and all five map tabs |
+| `the-map` | The chart, mostly full screen: toolbar, minimap, layers, all five map tabs, and stood up on the game's terrain in Ground or Neon |
 | `a-run` | The whole of bartering: which kind of run, naming this refresh's layout off the game's barter window, the orders, the chains, the sheet, sailing it, recording it |
 | `the-harbour` | The community boards, what a place on one opens, and what is and is not shared |
 
 ```bash
 PORT=8765 node server.js &
-npm run guide                       # all six, and the joined film
+npm run guide                       # all seven, and the joined film
 ./tools/capture/guide.sh the-map    # just one
 ```
 
@@ -94,7 +95,7 @@ already carries its words on screen — the caption bar is drawn in the
 page, and most people meet these muted — so the sidecars are for a
 player's own caption track and for whatever a video host wants to index.
 
-Once all six are on disk, `guide.sh` joins them into
+Once all seven are on disk, `guide.sh` joins them into
 **`docs/media/walkthrough.mp4`** — the film the README links to and the
 app plays under **Help** — with chapter marks and one merged caption
 track. That join is a stream copy, not a re-encode, so re-shooting one
@@ -207,6 +208,13 @@ Past that it is the same five rules as a scene, plus five:
 - **`hush()` between subjects**, not between sentences. It clears the
   bar and lets the picture stand on its own for a moment, and the
   caption sidecars use it to decide where one caption ends.
+- **The sailor's numbers live in the shell now**, beside the pouch:
+  the barter count, level, Parley, vouchers, Value Pack, Sailing Mastery
+  and region. `crew-mastery` and `barter-level` used to be fields on the
+  Ship and Barter tabs and are not any more — the Ship tab *reads*
+  mastery (`.crew-mastery.read`) and the bar sets it. The Yard types
+  them in on camera; every later chapter gets them from the seed, or
+  half its figures read as dashes.
 - **"The refresh", not "the day"** — for anything about the barter
   board. A player pays to turn it over, and several times a day is
   normal. Quests are the other way round: those really are daily.
@@ -286,13 +294,13 @@ Five things are worth knowing.
 | `fleet.mjs` | The example sailors on the community boards, and the `/api` answers about them |
 | `comm-audit.mjs` | A headless look over the Community tab on that same fleet |
 | `scenes.mjs` | One entry per clip and per still |
-| `guides.mjs` | The six narrated chapters — a `say` block and a `shoot` each |
+| `guides.mjs` | The seven narrated chapters — a `say` block and a `shoot` each |
 | `voice.mjs` | Saying a line, and the cache that keeps it |
 | `mix.mjs` | Narration under a film, and the `.vtt` / `.srt` / `.txt` beside it |
 | `guide.sh` | The chapters, shot and mixed, then joined into the walkthrough |
 | `shots/` | Cropped game windows: the **Manage Sailors** shots the reader is given, and the **Barter Information** list `a-run` holds up |
 | `tour.mjs` | The old single-run film; superseded by the chapters, still runnable |
-| `join.mjs` | The six chapters end to end, with chapter marks and merged captions |
+| `join.mjs` | The seven chapters end to end, with chapter marks and merged captions |
 | `shoot.sh` | The whole shoot, and the conversions |
 | `togif.sh` | `webm` → `gif` |
 | `tomp4.sh` | `webm` → `mp4` |

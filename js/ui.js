@@ -2073,8 +2073,8 @@ function markReleaseSeen() {
  * only invented thing in it is the sailors on the boards, since a
  * machine shooting a film has no deployment with players on it.
  *
- * Six chapters joined rather than the single run this used to be, which
- * buys two things: eleven minutes can be entered at the part you
+ * Seven chapters joined rather than the single run this used to be, which
+ * buys two things: thirteen minutes can be entered at the part you
  * actually wanted, and each part is a file of its own under
  * docs/media/guide for linking at.
  *
@@ -2091,16 +2091,17 @@ function openHelp() {
 	// The offsets are generated beside the film; what each part is for is
 	// copy, and stays here.
 	const WHAT = {
-		'The Yard': 'queue a build, record what you gather, make it, price it',
+		'The Yard': 'set your numbers, queue a build, record what you gather, make it',
+		'To Get': 'one way to each thing you are short of, in the days it takes',
 		Quests: 'the free rewards, and recording a batch of them at once',
 		'Your Ship': 'parts, crystal, appearance, and a crew read off your screenshots',
-		'The Map': 'the chart full screen, and all five of its tabs',
 		'A Run': 'answer one island, and sail what the board lays out',
+		'The Map': 'the chart full screen and stood up, and all five of its tabs',
 		'The Harbour': 'the boards, and what is and is not shared'
 	};
 	const host = openDialog(`
 		<h2>How this works</h2>
-		<p>Eleven minutes, in six parts — the real app, driven and narrated. Start anywhere.</p>
+		<p>Thirteen minutes, in seven parts — the real app, driven and narrated. Start anywhere.</p>
 		<video class="help-film" src="docs/media/walkthrough.mp4" controls preload="metadata" playsinline>
 			<track kind="captions" srclang="en" label="English" src="docs/media/walkthrough.vtt">
 		</video>
@@ -2136,7 +2137,7 @@ function openHelp() {
 	// The chapter list is the only way into the middle of it: a browser
 	// will not surface an mp4's own chapter marks, so the offsets are
 	// kept beside the film and seeking is done by hand. Playing from a
-	// standing start is the viewer's business -- eleven minutes is not
+	// standing start is the viewer's business -- thirteen minutes is not
 	// something to begin without being asked.
 	// `player`, not `film`: the chapter offsets imported above are called
 	// that, and a const here of the same name shadows them for the whole

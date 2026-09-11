@@ -28,7 +28,7 @@ import {
 	onScreen, headerBtn, waitFor, film, cut, card, still, choose, doing, moveTo, clickText, spot
 } from './drive.mjs';
 import { warm, engine } from './voice.mjs';
-import { fittedShip } from './states.mjs';
+import { fittedShip, onePartToGo } from './states.mjs';
 import { fakeCommunity } from './fleet.mjs';
 
 const OUT = process.argv[2] || 'tools/capture/out';
@@ -79,7 +79,18 @@ const withPlating = {
  * list joined up. Shot against an empty queue, the pins read "0 of 91"
  * and there is no loop to plot at all, which is how this was found.
  */
-const QUEUED = fittedShip;
+const QUEUED = {
+	...fittedShip,
+	// The sailor's own numbers, which the Yard sets on camera and every
+	// chapter after it needs already set: the barter count gates which
+	// islands deal at all, the level prices every Parley figure, and the
+	// mastery is in the ship's speed. Shot without them, half the
+	// figures in the later chapters read as dashes.
+	profile: { ...fittedShip.profile, barterCount: 4205, level: 'Master 5', sailingMastery: 750 }
+};
+
+/** One part to go, for the chapter about planning the way to it. */
+const TO_GET = { ...onePartToGo, profile: QUEUED.profile };
 
 /* ------------------------------------------------------------------ *
  * the chapters
@@ -95,7 +106,13 @@ const CHAPTERS = {
 		blurb: 'Queue a build, record what you gather, make what you can, and price the rest.',
 		say: {
 			open: 'This is the Yard. It works out what your builds need, and what you still have to find.',
-			queue: 'Start by queueing something to build.',
+			sailor: 'But start with the bar under the tabs. These are the numbers the whole app plans from.',
+			count: 'Your total barter count matters most. It decides which islands will even deal with you.',
+			blevel: 'Your barter level, which sets what every exchange costs in Parley.',
+			bmastery: 'Your Sailing Mastery, which counts toward how fast your ship sails.',
+			bregion: 'And your region, because every silver price in the app is quoted in it.',
+			once: 'Type them once here and every screen reads them. Then fold it away.',
+			queue: 'Now queue something to build.',
 			asks: 'Some ships can be built two ways, so it asks which.',
 			costs: 'It shows what each route costs. Either is fine.',
 			order: 'Queue a second one. Order matters: if stock runs short, the build at the top gets it first.',
@@ -115,7 +132,7 @@ const CHAPTERS = {
 			level: 'Already levelled a part in game? Record it here.',
 			nostones: 'Tell it the level you reached. It spends no stones to agree with you.',
 			tree: 'The Tree shows why a build needs what it needs.',
-			get: 'And To Get is your shopping list, grouped by where to go for it.',
+			get: 'And To Get turns all of that into a plan — which is the whole of the next part.',
 			close: 'That is the Yard. What you want, what it takes, and what is left to find.'
 		},
 		async shoot(ctx, s) {
@@ -123,6 +140,23 @@ const CHAPTERS = {
 			await seed(page, url, withPlating);
 			await film(page, `${OUT}/the-yard.webm`);
 			await card(page, 'One', 'The Yard', { line: s.open });
+
+			/* --- the sailor's own numbers, before anything is planned -- */
+			// Set first because the barter count gates the sea: a plan
+			// made before it is given is a plan for somebody else's
+			// account. The seed carries them for every later chapter;
+			// here they are typed in, which is how a player meets them.
+			await spot(page, '[data-act="sail-bar"]', s.sailor,
+				{ act: () => click(page, '[data-act="sail-bar"]', { after: 600 }) });
+			await spot(page, '.pouch-item.sail.barters', s.count,
+				{ act: () => typeInto(page, '[data-act="barter-count"]', '4205', { after: 400 }) });
+			await spot(page, '.pouch-item.sail.level', s.blevel,
+				{ act: () => choose(page, '[data-act="barter-level"]', 'Master 5', { after: 400 }) });
+			await spot(page, '.pouch-item.sail.mastery', s.bmastery,
+				{ act: () => typeInto(page, '[data-act="crew-mastery"]', '750', { after: 400 }) });
+			await spot(page, '.pouch-item.sail.region', s.bregion);
+			await doing(page, s.once, () => click(page, '[data-act="sail-bar"]', { after: 600 }));
+			await hush(page);
 
 			await doing(page, s.queue, async () => {
 				await tab(page, 'builds', { after: 400 });
@@ -200,7 +234,98 @@ const CHAPTERS = {
 	},
 
 	/* ============================================================== *
-	 * Two -- quests
+	 * Two -- to get
+	 *
+	 * The planner is To Get's default reading and the app's answer to
+	 * "what do I actually do next", so it gets a chapter rather than the
+	 * one line the Yard used to give it.
+	 * ============================================================== */
+	'to-get': {
+		n: 'Two', title: 'To Get', at: 'get',
+		blurb: 'One way to each thing you are short of, under a goal you set, in the days it takes.',
+		say: {
+			open: 'This is To Get. It answers the only question that matters once a build is queued: what do I actually do next.',
+			short: 'Up here is what you are still short of, and what the shop would want for the part of it that can be bought.',
+			modes: 'Two readings. "Every way" lists each thing and every source it has. "The way to get it" picks one.',
+			plan: 'And the plan is the one it opens on.',
+			done: 'This is the headline: how many days until you have the lot.',
+			figures: 'What it will cost in coins, and how many things are left across how many steps.',
+			matters: 'It asks what matters most to you, because there is no right answer.',
+			soon: 'Soonest spends the purse wherever that buys a day.',
+			coins: 'Keep the coins spends them only where nothing else sells the thing.',
+			silver: 'Keep the silver leaves the Central Market alone.',
+			watch: 'Watch the day count as you choose. That is the trade, in the only unit that matters.',
+			days: 'Tell it how many days a week you actually sail, and the estimate follows.',
+			reserve: 'Hold coins back, and it plans around what is left.',
+			doing: 'And say what you are willing to do at all.',
+			hunt: 'Turn hunting on and a sea monster drop becomes something to go and kill for, instead of something to buy.',
+			barter: 'Turn bartering off and the lists stop counting. The plan gets longer and says so.',
+			steps: 'Below that are the steps themselves, in order, each one saying where it comes from and how long it takes.',
+			odds: 'A barter step is paced by how often that offer was really on the list, not by how often it could be.',
+			never: 'And it tells you what it will never do, so you know what it is not counting.',
+			every: 'If you would rather see the whole spread, Every way groups it by source instead.',
+			copy: 'Either reading copies out, as a list or as a spreadsheet.',
+			close: 'That is To Get. Not what you could do, but what to do, and when it ends.'
+		},
+		async shoot(ctx, s) {
+			const { page, url } = ctx;
+			await seed(page, url, TO_GET);
+			await film(page, `${OUT}/to-get.webm`);
+			await card(page, 'Two', 'To Get', { line: s.open });
+
+			await tab(page, 'get');
+			await wait(1400);
+			await spot(page, '.summary', s.short, { pad: 6 });
+			await spot(page, '[data-act="get-mode"]', s.modes, { pad: 8 });
+			await say(page, s.plan);
+			await hush(page);
+
+			/* --- the headline ------------------------------------------ */
+			await spot(page, '.way-headline', s.done, { pad: 8 });
+			await spot(page, '.way-tiles', s.figures, { pad: 8 });
+			await hush(page);
+
+			/* --- the goal ----------------------------------------------- */
+			await spot(page, '.way-prefs', s.matters, { pad: 8 });
+			await doing(page, s.soon, () => click(page, '[data-act="get-preset"][data-id="soon"]', { after: 700 }));
+			await doing(page, s.coins, () => click(page, '[data-act="get-preset"][data-id="coins"]', { after: 900 }));
+			await doing(page, s.silver, () => click(page, '[data-act="get-preset"][data-id="silver"]', { after: 900 }));
+			await say(page, s.watch);
+			await click(page, '[data-act="get-preset"][data-id="soon"]', { after: 700 });
+			await hush(page);
+
+			/* --- the knobs ---------------------------------------------- */
+			await spot(page, '[data-act="get-days"]', s.days,
+				{ act: () => choose(page, '[data-act="get-days"]', '3', { after: 600 }).catch(() => {}) });
+			if (await onScreen(page, '[data-act="get-reserve"]')) {
+				await spot(page, '[data-act="get-reserve"]', s.reserve, { pad: 10 });
+			} else {
+				await say(page, s.reserve);
+			}
+			await spot(page, '.way-opts', s.doing, { pad: 8 });
+			await doing(page, s.hunt, () => click(page, '[data-act="get-doing"][data-id="hunt"]', { after: 900 }));
+			await doing(page, s.barter, () => click(page, '[data-act="get-doing"][data-id="barter"]', { after: 1100 }));
+			// Put it back: the steps beat below is about a plan that barters.
+			await click(page, '[data-act="get-doing"][data-id="barter"]', { after: 900 });
+			await hush(page);
+
+			/* --- the steps ---------------------------------------------- */
+			await spot(page, '.way-step-head', s.steps, { pad: 6 });
+			await say(page, s.odds);
+			if (await onScreen(page, '.way-rules')) await spot(page, '.way-rules', s.never, { pad: 8 });
+			else await say(page, s.never);
+			await hush(page);
+
+			/* --- the other reading -------------------------------------- */
+			await doing(page, s.every, () => click(page, '[data-act="get-mode"][data-id="source"]', { after: 1200 }));
+			await spot(page, '[data-act="copy"], [data-act="copy-csv"]', s.copy, { pad: 10 });
+			await say(page, s.close);
+			await hush(page);
+		}
+	},
+
+	/* ============================================================== *
+	 * Three -- quests
 	 *
 	 * Was the front half of a "Sea" chapter that also tried to cover the
 	 * Map. The Map is its own chapter now, and this is what was left --
@@ -208,7 +333,7 @@ const CHAPTERS = {
 	 * preamble to one.
 	 * ============================================================== */
 	'quests': {
-		n: 'Two', title: 'Quests', at: 'quests',
+		n: 'Three', title: 'Quests', at: 'quests',
 		blurb: 'The free rewards the sea hands out, and how to record a batch of them at once.',
 		say: {
 			open: 'This is the Quests tab. It tracks the quests that pay in things you are already short of.',
@@ -232,7 +357,7 @@ const CHAPTERS = {
 			const { page, url } = ctx;
 			await seed(page, url, QUEUED);
 			await film(page, `${OUT}/quests.webm`);
-			await card(page, 'Two', 'Quests', { line: s.open });
+			await card(page, 'Three', 'Quests', { line: s.open });
 
 			await tab(page, 'quests');
 			await wait(800);
@@ -285,7 +410,7 @@ const CHAPTERS = {
 	},
 
 	/* ============================================================== *
-	 * Three -- your ship
+	 * Four -- your ship
 	 *
 	 * The first cut of this showed a hull and a screenshot reader and
 	 * called it a chapter. The tab is five slots, an appearance set, a
@@ -294,7 +419,7 @@ const CHAPTERS = {
 	 * lights up whichever one it is talking about.
 	 * ============================================================== */
 	'your-ship': {
-		n: 'Three', title: 'Your Ship', at: 'crew',
+		n: 'Four', title: 'Your Ship', at: 'crew',
 		blurb: 'Parts, crystal, appearance, crew and presets — and where every number on the ship comes from.',
 		say: {
 			open: 'This is the Ship tab. Everything the app knows about how fast you sail comes from this one screen.',
@@ -335,7 +460,7 @@ const CHAPTERS = {
 			const { page, url } = ctx;
 			await seed(page, url, QUEUED);
 			await film(page, `${OUT}/your-ship.webm`);
-			await card(page, 'Three', 'Your Ship', { line: s.open });
+			await card(page, 'Four', 'Your Ship', { line: s.open });
 
 			await tab(page, 'crew');
 			await wait(900);
@@ -379,8 +504,10 @@ const CHAPTERS = {
 			// once there is a crew to make it non-zero.
 			await spot(page, '.ship-card', s.stats, { pad: 6 });
 			await spot(page, '.ship-card-facts', s.breakdown, { pad: 6 });
-			await spot(page, '[data-act="crew-mastery"]', s.mastery,
-				{ act: () => typeInto(page, '[data-act="crew-mastery"]', '750', { after: 400 }) });
+			// Mastery moved into the shell: the Ship tab reads it now, and
+			// the field that sets it is in the sailor bar, which the Yard
+			// fills in on camera and the seed carries here.
+			await spot(page, '.crew-mastery.read', s.mastery, { pad: 8 });
 			await hush(page);
 
 			/* --- the crew: read it in, then arrange it ------------------ */
@@ -452,7 +579,7 @@ const CHAPTERS = {
 	},
 
 	/* ============================================================== *
-	 * Four -- the map
+	 * Five -- the map
 	 *
 	 * Shot almost entirely full screen, because that is how the chart is
 	 * actually used: the toolbar is explained on the page, the last
@@ -460,7 +587,7 @@ const CHAPTERS = {
 	 * with the sea filling the frame.
 	 * ============================================================== */
 	'the-map': {
-		n: 'Four', title: 'The Map', at: 'map',
+		n: 'Five', title: 'The Map', at: 'map',
 		blurb: 'The chart, full screen: the toolbar, the layers, and all five of its tabs.',
 		say: {
 			open: 'This is the Map. It is the whole sea, with everything you need marked on it.',
@@ -470,6 +597,12 @@ const CHAPTERS = {
 			zoom: 'Zoom out, and zoom in. You can also just scroll on the sea.',
 			fit: 'This one fits everything marked back into view, if you get lost.',
 			mini: 'This toggles the minimap in the corner.',
+			stand: 'And this one stands the chart up.',
+			terrain: 'That is the game\'s own terrain, read out of your client. Not a picture of it — the real heightmap.',
+			lean: 'Shift-drag to lean, and the islands come up out of the water.',
+			ground: 'Ground paints it in the colours the client ships.',
+			neon: 'Neon draws it as contours, the way the game\'s own world map does.',
+			flat: 'And Level looks straight down again, facing north.',
 			full: 'And this is full screen. That is where the chart is worth using, so let us go there.',
 			now: 'Now the sea has the whole window.',
 			refit: 'Hit fit again, now that the chart has the room. That pulls back until every mark is in view at once.',
@@ -505,7 +638,7 @@ const CHAPTERS = {
 			const { page, url } = ctx;
 			await seed(page, url, QUEUED);
 			await film(page, `${OUT}/the-map.webm`);
-			await card(page, 'Four', 'The Map', { line: s.open });
+			await card(page, 'Five', 'The Map', { line: s.open });
 
 			await doing(page, s.pins, () => tab(page, 'map', { after: 1600 }));
 			await wait(900);
@@ -524,6 +657,27 @@ const CHAPTERS = {
 				{ act: () => click(page, '[data-act="map-fit"]', { after: 900 }) });
 			await spot(page, '[data-act="map-mini"]', s.mini,
 				{ act: () => click(page, '[data-act="map-mini"]', { after: 700 }) });
+
+			/* --- the chart stood up ------------------------------------ */
+			// The terrain is meshes off the client, fetched per tile, so
+			// this is the one control in the series that needs real time
+			// to answer before there is anything to talk about.
+			await spot(page, '[data-act="map-3d"]', s.stand,
+				{ act: () => click(page, '[data-act="map-3d"]', { after: 4200 }) });
+			await say(page, s.terrain);
+			await doing(page, s.lean, () => drag(page, '#map', 0, -150, { hold: 'Shift', after: 900 }));
+			await doing(page, s.ground, () =>
+				click(page, '[data-act="map-style"][data-id="real"]', { after: 1400 }));
+			await doing(page, s.neon, () =>
+				click(page, '[data-act="map-style"][data-id="neon"]', { after: 1800 }));
+			await doing(page, s.flat, async () => {
+				await click(page, '[data-act="map-style"][data-id="real"]', { after: 900 });
+				await click(page, '[data-act="map-level"]', { after: 1200 });
+			});
+			// Back to looking down for the rest of it: the tabs below are
+			// about what the chart draws, not how it is drawn.
+			await click(page, '[data-act="map-3d"]', { after: 1600 });
+			await hush(page);
 			await spot(page, '[data-act="map-full"]', s.full,
 				{ act: () => click(page, '[data-act="map-full"]', { after: 1500 }) });
 			await hush(page);
@@ -656,7 +810,7 @@ const CHAPTERS = {
 	},
 
 	/* ============================================================== *
-	 * Five -- a run
+	 * Six -- a run
 	 *
 	 * The longest of the five, and deliberately so: bartering is the
 	 * half of this app people arrive for, and a clip that ticks three
@@ -673,7 +827,7 @@ const CHAPTERS = {
 	 * player pays to turn it over, and several times a day is normal.
 	 * ============================================================== */
 	'a-run': {
-		n: 'Five', title: 'A Run', at: 'barter',
+		n: 'Six', title: 'A Run', at: 'barter',
 		blurb: 'Show it one island, and it plans the whole run: chains, route, checklist and the trip recorded at the end.',
 		say: {
 			open: 'This is the Barter tab. Show it one island, and it plans a whole run for you.',
@@ -682,7 +836,7 @@ const CHAPTERS = {
 			kinds: 'First, pick what you are running for.',
 			mat: 'A material climbs the ladder to one thing you are short of.',
 			silver: 'Silver runs the chains on the board and sells at the end. That is the one we want.',
-			level: 'Set your barter level here. It sets the Parley cost of every trade below.',
+			level: 'The barter count and level you set at the start are doing real work here: the count decides which islands are on the board at all, and the level prices every Parley figure below.',
 
 			/* --- 2. which board --- */
 			board: 'Next, tell it what the board looks like.',
@@ -744,7 +898,7 @@ const CHAPTERS = {
 			const { page, url } = ctx;
 			await seed(page, url, QUEUED);
 			await film(page, `${OUT}/a-run.webm`);
-			await card(page, 'Five', 'A Run', { line: s.open });
+			await card(page, 'Six', 'A Run', { line: s.open });
 
 			await tab(page, 'barter');
 			await wait(1200);
@@ -753,7 +907,7 @@ const CHAPTERS = {
 			await say(page, s.kinds);
 			await doing(page, s.mat, () => click(page, '[data-act="barter-goal"][data-id="material"]', { after: 300 }));
 			await doing(page, s.silver, () => click(page, '[data-act="barter-goal"][data-id="silver"]', { after: 300 }));
-			await doing(page, s.level, () => choose(page, '[data-act="barter-level"]', 'Master 5', { after: 300 }));
+			await say(page, s.level);
 			await hush(page);
 
 			/* --- 2. which board ---------------------------------------- */
@@ -877,7 +1031,7 @@ const CHAPTERS = {
 	},
 
 	/* ============================================================== *
-	 * Six -- the harbour
+	 * Seven -- the harbour
 	 *
 	 * The one chapter that cannot be shot honestly: a capture machine
 	 * has no deployment with players on it, so fleet.mjs invents four
@@ -886,7 +1040,7 @@ const CHAPTERS = {
 	 * line rather than in a caption nobody reads.
 	 * ============================================================== */
 	'the-harbour': {
-		n: 'Six', title: 'The Harbour', at: 'community',
+		n: 'Seven', title: 'The Harbour', at: 'community',
 		blurb: 'Sixteen boards, what a place on one opens, and exactly what is and is not shared.',
 		staged: true,
 		say: {
@@ -917,7 +1071,7 @@ const CHAPTERS = {
 			await fakeCommunity(page);
 			await seed(page, url, QUEUED);
 			await film(page, `${OUT}/the-harbour.webm`);
-			await card(page, 'Six', 'The Harbour', { line: s.open });
+			await card(page, 'Seven', 'The Harbour', { line: s.open });
 
 			await doing(page, s.fleet, () => tab(page, 'community', { after: 900 }));
 			await say(page, s.boards);

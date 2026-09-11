@@ -1,7 +1,13 @@
 == One — The Yard ==
 
 This is the Yard. It works out what your builds need, and what you still have to find.
-Start by queueing something to build.
+But start with the bar under the tabs. These are the numbers the whole app plans from.
+Your total barter count matters most. It decides which islands will even deal with you.
+Your barter level, which sets what every exchange costs in Parley.
+Your Sailing Mastery, which counts toward how fast your ship sails.
+And your region, because every silver price in the app is quoted in it.
+Type them once here and every screen reads them. Then fold it away.
+Now queue something to build.
 Some ships can be built two ways, so it asks which.
 It shows what each route costs. Either is fine.
 Queue a second one. Order matters: if stock runs short, the build at the top gets it first.
@@ -21,10 +27,35 @@ What the shop charges, against what making it costs — including its own ingred
 Already levelled a part in game? Record it here.
 Tell it the level you reached. It spends no stones to agree with you.
 The Tree shows why a build needs what it needs.
-And To Get is your shopping list, grouped by where to go for it.
+And To Get turns all of that into a plan — which is the whole of the next part.
 That is the Yard. What you want, what it takes, and what is left to find.
 
-== Two — Quests ==
+== Two — To Get ==
+
+This is To Get. It answers the only question that matters once a build is queued: what do I actually do next.
+Up here is what you are still short of, and what the shop would want for the part of it that can be bought.
+Two readings. "Every way" lists each thing and every source it has. "The way to get it" picks one.
+And the plan is the one it opens on.
+This is the headline: how many days until you have the lot.
+What it will cost in coins, and how many things are left across how many steps.
+It asks what matters most to you, because there is no right answer.
+Soonest spends the purse wherever that buys a day.
+Keep the coins spends them only where nothing else sells the thing.
+Keep the silver leaves the Central Market alone.
+Watch the day count as you choose. That is the trade, in the only unit that matters.
+Tell it how many days a week you actually sail, and the estimate follows.
+Hold coins back, and it plans around what is left.
+And say what you are willing to do at all.
+Turn hunting on and a sea monster drop becomes something to go and kill for, instead of something to buy.
+Turn bartering off and the lists stop counting. The plan gets longer and says so.
+Below that are the steps themselves, in order, each one saying where it comes from and how long it takes.
+A barter step is paced by how often that offer was really on the list, not by how often it could be.
+And it tells you what it will never do, so you know what it is not counting.
+If you would rather see the whole spread, Every way groups it by source instead.
+Either reading copies out, as a list or as a spreadsheet.
+That is To Get. Not what you could do, but what to do, and when it ends.
+
+== Three — Quests ==
 
 This is the Quests tab. It tracks the quests that pay in things you are already short of.
 These are the sailing dailies and weeklies, all in one list.
@@ -43,7 +74,7 @@ Or save a set you run together, and tick the whole group at once.
 Every quest knows where its giver stands, so a run can hand them in as it passes.
 That is Quests. Free materials, tracked against what you are building.
 
-== Three — Your Ship ==
+== Four — Your Ship ==
 
 This is the Ship tab. Everything the app knows about how fast you sail comes from this one screen.
 Start with the hull. Pick the ship you actually sail.
@@ -78,7 +109,7 @@ The one you are sailing is what the Map times its routes at.
 And you can copy the whole thing as a link, if someone asks what you sail.
 That is your ship. Get this screen right, and every distance and every minute in the app is yours.
 
-== Four — The Map ==
+== Five — The Map ==
 
 This is the Map. It is the whole sea, with everything you need marked on it.
 Every pin is a barterer holding something you are short of.
@@ -87,6 +118,12 @@ These buttons across the top are the chart controls.
 Zoom out, and zoom in. You can also just scroll on the sea.
 This one fits everything marked back into view, if you get lost.
 This toggles the minimap in the corner.
+And this one stands the chart up.
+That is the game's own terrain, read out of your client. Not a picture of it — the real heightmap.
+Shift-drag to lean, and the islands come up out of the water.
+Ground paints it in the colours the client ships.
+Neon draws it as contours, the way the game's own world map does.
+And Level looks straight down again, facing north.
 And this is full screen. That is where the chart is worth using, so let us go there.
 Now the sea has the whole window.
 Hit fit again, now that the chart has the room. That pulls back until every mark is in view at once.
@@ -118,13 +155,13 @@ Drag to pan, scroll to zoom. The drawings and pins move with the chart.
 Escape, or the cross, brings the page back.
 That is the Map. Everything you are short of, where it is, and how long it takes to get there.
 
-== Five — A Run ==
+== Six — A Run ==
 
 This is the Barter tab. Show it one island, and it plans a whole run for you.
 First, pick what you are running for.
 A material climbs the ladder to one thing you are short of.
 Silver runs the chains on the board and sells at the end. That is the one we want.
-Set your barter level here. It sets the Parley cost of every trade below.
+The barter count and level you set at the start are doing real work here: the count decides which islands are on the board at all, and the level prices every Parley figure below.
 Next, tell it what the board looks like.
 Every refresh, the sea uses one of forty layouts.
 The app cannot know which one. So you show it a single island.
@@ -167,7 +204,7 @@ One last thing. The hold size, the speed and every time on that route come from 
 Hull, the four parts, the crystal and the crew aboard. Change the ship, and the whole run re-times.
 That is it. Show it one island, and it plans the rest.
 
-== Six — The Harbour ==
+== Seven — The Harbour ==
 
 Everything so far runs in your browser alone. This last part is the one that needs sign-in.
 One note first: the sailors on these boards are invented. A machine recording this has no server with real players on it. The tab, the digest and the ranking are the app's own.

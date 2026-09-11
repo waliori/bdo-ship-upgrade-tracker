@@ -36,7 +36,7 @@ mkdir -p "$RAW" "$OUT"
 
 CHAPTERS=("$@")
 if [ ${#CHAPTERS[@]} -eq 0 ]; then
-	CHAPTERS=(the-yard quests your-ship the-map a-run the-harbour)
+	CHAPTERS=(the-yard to-get quests your-ship the-map a-run the-harbour)
 fi
 
 # Shot and mixed one at a time, rather than every shoot and then every
@@ -54,7 +54,7 @@ done
 # one chapter replaces it in the joined cut too -- there is no separate
 # thing to remember to re-render.
 missing=0
-for name in the-yard quests your-ship the-map a-run the-harbour; do
+for name in the-yard to-get quests your-ship the-map a-run the-harbour; do
 	[ -f "$OUT/$name.mp4" ] || missing=1
 done
 if [ "$missing" -eq 0 ]; then

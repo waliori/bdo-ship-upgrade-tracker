@@ -1,691 +1,827 @@
 1
-00:00:00,508 --> 00:00:04,958
+00:00:00,560 --> 00:00:05,010
 This is the Yard. It works out what your builds need, and what you still have to find.
 
 2
-00:00:05,068 --> 00:00:07,222
-Start by queueing something to build.
+00:00:05,565 --> 00:00:09,835
+But start with the bar under the tabs. These are the numbers the whole app plans from.
 
 3
-00:00:12,699 --> 00:00:15,151
-Some ships can be built two ways, so it asks which.
+00:00:10,393 --> 00:00:15,106
+Your total barter count matters most. It decides which islands will even deal with you.
 
 4
-00:00:15,151 --> 00:00:17,513
-It shows what each route costs. Either is fine.
+00:00:15,618 --> 00:00:19,280
+Your barter level, which sets what every exchange costs in Parley.
 
 5
-00:00:17,513 --> 00:00:22,325
-Queue a second one. Order matters: if stock runs short, the build at the top gets it first.
+00:00:19,825 --> 00:00:23,455
+Your Sailing Mastery, which counts toward how fast your ship sails.
 
 6
-00:00:22,721 --> 00:00:25,645
-The Plan is everything your queue needs, in one list.
+00:00:23,529 --> 00:00:27,122
+And your region, because every silver price in the app is quoted in it.
 
 7
-00:00:26,429 --> 00:00:29,093
-Red is missing. Blue you can make. Green you already have.
+00:00:27,122 --> 00:00:30,502
+Type them once here and every screen reads them. Then fold it away.
 
 8
-00:00:29,093 --> 00:00:31,345
-As you gather, type in what you have.
+00:00:30,502 --> 00:00:32,425
+Now queue something to build.
 
 9
-00:00:33,335 --> 00:00:35,319
-Every build re-plans around it straight away.
+00:00:34,932 --> 00:00:37,383
+Some ships can be built two ways, so it asks which.
 
 10
-00:00:35,319 --> 00:00:38,867
-Or log a whole trip at once, instead of a box at a time.
+00:00:37,383 --> 00:00:40,015
+It shows what each route costs. Either is fine.
 
 11
-00:00:39,499 --> 00:00:41,869
-The Workshop makes anything you have the materials for.
+00:00:40,015 --> 00:00:44,826
+Queue a second one. Order matters: if stock runs short, the build at the top gets it first.
 
 12
-00:00:41,869 --> 00:00:45,109
-Crafting moves real stock. Ingredients out, the product in.
+00:00:44,952 --> 00:00:47,305
+The Plan is everything your queue needs, in one list.
 
 13
-00:00:45,109 --> 00:00:48,657
-Made a mistake? Undo steps it back, and Redo puts it forward.
+00:00:47,305 --> 00:00:50,302
+Red is missing. Blue you can make. Green you already have.
 
 14
-00:00:49,155 --> 00:00:51,688
-Enhancing is kept separate, because attempts can fail.
+00:00:50,302 --> 00:00:52,553
+As you gather, type in what you have.
 
 15
-00:00:51,688 --> 00:00:56,084
-It shows your real odds at your failstack, and the most the part can end up costing.
+00:00:53,204 --> 00:00:55,171
+Every build re-plans around it straight away.
 
 16
-00:00:56,084 --> 00:00:58,985
-The Inventory is one tile per thing you own, or still need.
+00:00:55,171 --> 00:00:58,718
+Or log a whole trip at once, instead of a box at a time.
 
 17
-00:00:58,985 --> 00:01:01,942
-Open one, and every way of getting it is priced.
+00:00:59,622 --> 00:01:02,468
+The Workshop makes anything you have the materials for.
 
 18
-00:01:03,568 --> 00:01:09,002
-What the shop charges, against what making it costs — including its own ingredients, all the way down.
+00:01:02,468 --> 00:01:05,581
+Crafting moves real stock. Ingredients out, the product in.
 
 19
-00:01:09,298 --> 00:01:12,156
-Already levelled a part in game? Record it here.
+00:01:05,581 --> 00:01:09,128
+Made a mistake? Undo steps it back, and Redo puts it forward.
 
 20
-00:01:16,345 --> 00:01:20,056
-Tell it the level you reached. It spends no stones to agree with you.
+00:01:09,655 --> 00:01:12,127
+Enhancing is kept separate, because attempts can fail.
 
 21
-00:01:21,732 --> 00:01:24,442
-The Tree shows why a build needs what it needs.
+00:01:12,127 --> 00:01:16,577
+It shows your real odds at your failstack, and the most the part can end up costing.
 
 22
-00:01:26,855 --> 00:01:30,152
-And To Get is your shopping list, grouped by where to go for it.
+00:01:16,604 --> 00:01:19,810
+The Inventory is one tile per thing you own, or still need.
 
 23
-00:01:30,152 --> 00:01:33,847
-That is the Yard. What you want, what it takes, and what is left to find.
+00:01:19,810 --> 00:01:22,761
+Open one, and every way of getting it is priced.
 
 24
-00:01:34,587 --> 00:01:39,037
-This is the Quests tab. It tracks the quests that pay in things you are already short of.
+00:01:22,761 --> 00:01:28,195
+What the shop charges, against what making it costs — including its own ingredients, all the way down.
 
 25
-00:01:41,619 --> 00:01:44,637
-These are the sailing dailies and weeklies, all in one list.
+00:01:28,198 --> 00:01:31,057
+Already levelled a part in game? Record it here.
 
 26
-00:01:44,637 --> 00:01:49,121
-The ones paying something on your build list are marked, so you can see which are worth the detour.
+00:01:31,645 --> 00:01:35,357
+Tell it the level you reached. It spends no stones to agree with you.
 
 27
-00:01:49,121 --> 00:01:51,811
-Filter them by what they pay, or by who gives them.
+00:01:35,918 --> 00:01:38,629
+The Tree shows why a build needs what it needs.
 
 28
-00:01:51,811 --> 00:01:54,766
-Each row shows what it pays, and how much of it you still need.
+00:01:39,787 --> 00:01:43,275
+And To Get turns all of that into a plan — which is the whole of the next part.
 
 29
-00:01:54,766 --> 00:01:58,247
-Some quests let you pick your reward. Those ask you which when you finish.
+00:01:43,275 --> 00:01:46,971
+That is the Yard. What you want, what it takes, and what is left to find.
 
 30
-00:01:58,247 --> 00:02:00,334
-Tick off the ones you did in game.
+00:01:48,305 --> 00:01:54,216
+This is To Get. It answers the only question that matters once a build is queued: what do I actually do next.
 
 31
-00:02:02,040 --> 00:02:03,652
-Then click Finish.
+00:01:58,323 --> 00:02:03,200
+Up here is what you are still short of, and what the shop would want for the part of it that can be bought.
 
 32
-00:02:03,910 --> 00:02:06,447
-The rewards go straight into your stock, as one change.
+00:02:03,539 --> 00:02:08,337
+Two readings. "Every way" lists each thing and every source it has. "The way to get it" picks one.
 
 33
-00:02:06,447 --> 00:02:09,306
-Got one wrong? Undo puts the whole batch back.
+00:02:08,337 --> 00:02:10,802
+And the plan is the one it opens on.
 
 34
-00:02:09,752 --> 00:02:13,326
-The ticks clear themselves at the daily reset, so you start each day fresh.
+00:02:11,075 --> 00:02:14,310
+This is the headline: how many days until you have the lot.
 
 35
-00:02:13,326 --> 00:02:17,400
-And these clocks tell you how long you have: dailies, weeklies, and the barter refresh.
+00:02:14,310 --> 00:02:18,449
+What it will cost in coins, and how many things are left across how many steps.
 
 36
-00:02:17,400 --> 00:02:20,126
-Star the ones you always do, and they sort to the top.
+00:02:19,310 --> 00:02:22,956
+It asks what matters most to you, because there is no right answer.
 
 37
-00:02:20,126 --> 00:02:23,127
-Or save a set you run together, and tick the whole group at once.
+00:02:23,397 --> 00:02:25,819
+Soonest spends the purse wherever that buys a day.
 
 38
-00:02:23,127 --> 00:02:26,871
-Every quest knows where its giver stands, so a run can hand them in as it passes.
+00:02:25,819 --> 00:02:28,845
+Keep the coins spends them only where nothing else sells the thing.
 
 39
-00:02:26,871 --> 00:02:30,435
-That is Quests. Free materials, tracked against what you are building.
+00:02:28,845 --> 00:02:31,114
+Keep the silver leaves the Central Market alone.
 
 40
-00:02:31,151 --> 00:02:36,258
-This is the Ship tab. Everything the app knows about how fast you sail comes from this one screen.
+00:02:31,114 --> 00:02:35,597
+Watch the day count as you choose. That is the trade, in the only unit that matters.
 
 41
-00:02:39,143 --> 00:02:42,066
-Start with the hull. Pick the ship you actually sail.
+00:02:36,598 --> 00:02:40,573
+Tell it how many days a week you actually sail, and the estimate follows.
 
 42
-00:02:42,593 --> 00:02:46,353
-A ship has four part slots: figurehead, plating, cannon and sail.
+00:02:40,697 --> 00:02:43,583
+Hold coins back, and it plans around what is left.
 
 43
-00:02:46,603 --> 00:02:49,485
-Each one fills itself with the best part you own.
+00:02:43,583 --> 00:02:45,674
+And say what you are willing to do at all.
 
 44
-00:02:49,485 --> 00:02:51,277
-Click Change to pick a different one.
+00:02:45,674 --> 00:02:50,638
+Turn hunting on and a sea monster drop becomes something to go and kill for, instead of something to buy.
 
 45
-00:02:51,277 --> 00:02:56,450
-It lists every part that fits the slot, with what each does, and marks the ones you actually hold.
+00:02:50,638 --> 00:02:55,088
+Turn bartering off and the lists stop counting. The plan gets longer and says so.
 
 46
-00:02:57,399 --> 00:02:59,513
-The fifth slot is your sea crystal.
+00:02:56,804 --> 00:03:01,884
+Below that are the steps themselves, in order, each one saying where it comes from and how long it takes.
 
 47
-00:02:59,513 --> 00:03:03,076
-Pick the one you have socketed, and its bonus goes into the numbers.
+00:03:01,884 --> 00:03:07,303
+A barter step is paced by how often that offer was really on the list, not by how often it could be.
 
 48
-00:03:04,219 --> 00:03:06,106
-Below that is the appearance set.
+00:03:07,539 --> 00:03:11,300
+And it tells you what it will never do, so you know what it is not counting.
 
 49
-00:03:06,106 --> 00:03:13,690
-Skins are cosmetic in most games. Here they are not: a full set adds real durability and rations, so tick the pieces you are wearing.
+00:03:12,006 --> 00:03:15,822
+If you would rather see the whole spread, Every way groups it by source instead.
 
 50
-00:03:14,458 --> 00:03:20,698
-And this panel at the top is the ship itself: its speed, its hold limit, and how many of the five slots are filled.
+00:03:15,822 --> 00:03:18,976
+Either reading copies out, as a list or as a spreadsheet.
 
 51
-00:03:20,698 --> 00:03:26,240
-The small print under each figure says where it came from — hull, parts, crystal, crew and mastery, added up.
+00:03:19,217 --> 00:03:22,896
+That is To Get. Not what you could do, but what to do, and when it ends.
 
 52
-00:03:26,240 --> 00:03:29,788
-Your Sailing Mastery goes in here, and those figures move with it.
+00:03:24,000 --> 00:03:28,450
+This is the Quests tab. It tracks the quests that pay in things you are already short of.
 
 53
-00:03:30,649 --> 00:03:33,380
-Now the crew. This roster starts empty.
+00:03:31,015 --> 00:03:34,300
+These are the sailing dailies and weeklies, all in one list.
 
 54
-00:03:33,380 --> 00:03:39,749
-Typing eighteen sailors in, four growths each, is an evening you will not enjoy. So it reads them off your screenshots instead.
+00:03:34,400 --> 00:03:38,981
+The ones paying something on your build list are marked, so you can see which are worth the detour.
 
 55
-00:03:39,749 --> 00:03:46,857
-Screenshot the Manage Sailors window in game, one sailor a shot, and drop them in. It reads them in your browser — nothing is uploaded.
+00:03:39,386 --> 00:03:42,458
+Filter them by what they pay, or by who gives them.
 
 56
-00:03:51,074 --> 00:03:54,157
-Check the table against the game, then take the ones that are right.
+00:03:42,612 --> 00:03:46,080
+Each row shows what it pays, and how much of it you still need.
 
 57
-00:03:54,157 --> 00:03:57,524
-And there they are, hired, with their real levels and growths.
+00:03:46,080 --> 00:03:49,567
+Some quests let you pick your reward. Those ask you which when you finish.
 
 58
-00:03:57,560 --> 00:04:01,920
-Sort the list by whatever you are fitting for. Best all round, best for speed, and so on.
+00:03:49,567 --> 00:03:51,654
+Tick off the ones you did in game.
 
 59
-00:04:01,920 --> 00:04:05,446
-To seat one by hand, click the sailor, then click the seat you want them in.
+00:03:53,288 --> 00:03:54,900
+Then click Finish.
 
 60
-00:04:05,446 --> 00:04:10,603
-Where they sit matters. A sail seat doubles their speed growth, and the wheel doubles turn and brake.
+00:03:55,111 --> 00:03:57,982
+The rewards go straight into your stock, as one change.
 
 61
-00:04:11,003 --> 00:04:14,183
-Or let it arrange the whole crew for you. Click Auto assign.
+00:03:57,982 --> 00:04:00,840
+Got one wrong? Undo puts the whole batch back.
 
 62
-00:04:14,183 --> 00:04:17,746
-It asks what the boat is for, and shows what each answer would actually give you.
+00:04:01,346 --> 00:04:04,930
+The ticks clear themselves at the daily reset, so you start each day fresh.
 
 63
-00:04:17,746 --> 00:04:19,673
-Pick one, and it seats everybody.
+00:04:04,930 --> 00:04:09,299
+And these clocks tell you how long you have: dailies, weeklies, and the barter refresh.
 
 64
-00:04:19,673 --> 00:04:23,993
-And the row under the ship fills in. That is what the crew is adding, on top of the hull.
+00:04:09,864 --> 00:04:12,596
+Star the ones you always do, and they sort to the top.
 
 65
-00:04:24,147 --> 00:04:28,368
-Two hot presets, for swapping crews quickly. Save the current one to a slot.
+00:04:12,596 --> 00:04:16,177
+Or save a set you run together, and tick the whole group at once.
 
 66
-00:04:28,910 --> 00:04:31,423
-And click it to put that crew straight back on.
+00:04:16,396 --> 00:04:20,581
+Every quest knows where its giver stands, so a run can hand them in as it passes.
 
 67
-00:04:31,950 --> 00:04:36,466
-A setup is bigger: the whole fit-out, hull, parts, crystal and seating, under a name.
+00:04:20,581 --> 00:04:24,145
+That is Quests. Free materials, tracked against what you are building.
 
 68
-00:04:36,492 --> 00:04:39,965
-The fleet lists every setup you have kept, and every hull you own without one.
+00:04:25,040 --> 00:04:30,147
+This is the Ship tab. Everything the app knows about how fast you sail comes from this one screen.
 
 69
-00:04:39,965 --> 00:04:43,119
-The one you are sailing is what the Map times its routes at.
+00:04:33,377 --> 00:04:36,301
+Start with the hull. Pick the ship you actually sail.
 
 70
-00:04:43,119 --> 00:04:46,570
-And you can copy the whole thing as a link, if someone asks what you sail.
+00:04:37,139 --> 00:04:40,814
+A ship has four part slots: figurehead, plating, cannon and sail.
 
 71
-00:04:46,570 --> 00:04:51,446
-That is your ship. Get this screen right, and every distance and every minute in the app is yours.
+00:04:40,814 --> 00:04:43,722
+Each one fills itself with the best part you own.
 
 72
-00:04:52,122 --> 00:04:56,030
-This is the Map. It is the whole sea, with everything you need marked on it.
+00:04:44,285 --> 00:04:46,207
+Click Change to pick a different one.
 
 73
-00:04:56,112 --> 00:04:59,430
-Every pin is a barterer holding something you are short of.
+00:04:46,207 --> 00:04:51,380
+It lists every part that fits the slot, with what each does, and marks the ones you actually hold.
 
 74
-00:04:59,893 --> 00:05:04,376
-This says what it is marking. Everything you are short of, or one item you choose.
+00:04:53,447 --> 00:04:55,557
+The fifth slot is your sea crystal.
 
 75
-00:05:04,427 --> 00:05:07,402
-These buttons across the top are the chart controls.
+00:04:55,557 --> 00:04:59,121
+Pick the one you have socketed, and its bonus goes into the numbers.
 
 76
-00:05:07,402 --> 00:05:10,711
-Zoom out, and zoom in. You can also just scroll on the sea.
+00:05:00,377 --> 00:05:02,365
+Below that is the appearance set.
 
 77
-00:05:10,711 --> 00:05:14,144
-This one fits everything marked back into view, if you get lost.
+00:05:02,861 --> 00:05:10,445
+Skins are cosmetic in most games. Here they are not: a full set adds real durability and rations, so tick the pieces you are wearing.
 
 78
-00:05:14,144 --> 00:05:16,281
-This toggles the minimap in the corner.
+00:05:11,200 --> 00:05:17,455
+And this panel at the top is the ship itself: its speed, its hold limit, and how many of the five slots are filled.
 
 79
-00:05:16,281 --> 00:05:20,657
-And this is full screen. That is where the chart is worth using, so let us go there.
+00:05:17,727 --> 00:05:23,375
+The small print under each figure says where it came from — hull, parts, crystal, crew and mastery, added up.
 
 80
-00:05:20,657 --> 00:05:22,744
-Now the sea has the whole window.
+00:05:23,454 --> 00:05:27,001
+Your Sailing Mastery goes in here, and those figures move with it.
 
 81
-00:05:23,154 --> 00:05:28,337
-Hit fit again, now that the chart has the room. That pulls back until every mark is in view at once.
+00:05:27,767 --> 00:05:30,475
+Now the crew. This roster starts empty.
 
 82
-00:05:28,337 --> 00:05:32,256
-Which is most of the sea, so zoom back in a couple of steps to where you actually work.
+00:05:30,475 --> 00:05:36,863
+Typing eighteen sailors in, four growths each, is an evening you will not enjoy. So it reads them off your screenshots instead.
 
 83
-00:05:32,256 --> 00:05:34,720
-The panel on the left is what drives it.
+00:05:36,863 --> 00:05:43,971
+Screenshot the Manage Sailors window in game, one sailor a shot, and drop them in. It reads them in your browser — nothing is uploaded.
 
 84
-00:05:35,087 --> 00:05:38,372
-Start with "On the chart". This controls what gets drawn.
+00:05:48,315 --> 00:05:51,184
+Check the table against the game, then take the ones that are right.
 
 85
-00:05:38,932 --> 00:05:44,851
-Barterers, habitats, wharves, guild wharves, island names, and your own drawings. Turn off what you do not need.
+00:05:51,184 --> 00:05:54,517
+And there they are, hired, with their real levels and growths.
 
 86
-00:05:44,851 --> 00:05:48,235
-There is a search, for finding an island or a good by name.
+00:05:54,517 --> 00:05:58,867
+Sort the list by whatever you are fitting for. Best all round, best for speed, and so on.
 
 87
-00:05:48,742 --> 00:05:52,156
-And these five tabs are the tools. We will take them in order.
+00:05:58,867 --> 00:06:02,378
+To seat one by hand, click the sailor, then click the seat you want them in.
 
 88
-00:05:52,156 --> 00:05:56,230
-Barter is the default. Every island that has something on your list, with what it trades.
+00:06:02,378 --> 00:06:07,534
+Where they sit matters. A sail seat doubles their speed growth, and the wheel doubles turn and brake.
 
 89
-00:05:56,230 --> 00:05:58,990
-Click a row and the chart flies to that island.
+00:06:07,848 --> 00:06:11,103
+Or let it arrange the whole crew for you. Click Auto assign.
 
 90
-00:05:59,545 --> 00:06:01,430
-Route turns that list into a sailing route.
+00:06:11,103 --> 00:06:14,678
+It asks what the boat is for, and shows what each answer would actually give you.
 
 91
-00:06:01,430 --> 00:06:04,630
-Plot the loop, and it draws one, bent around the land rather than through it.
+00:06:14,678 --> 00:06:16,545
+Pick one, and it seats everybody.
 
 92
-00:06:04,630 --> 00:06:08,851
-Every leg gets a distance and a time, at the speed your ship actually sails.
+00:06:16,545 --> 00:06:20,864
+And the row under the ship fills in. That is what the crew is adding, on top of the hull.
 
 93
-00:06:09,167 --> 00:06:13,109
-Save the route, share it as a link, or send it to the game map as bookmarks.
+00:06:21,112 --> 00:06:25,333
+Two hot presets, for swapping crews quickly. Save the current one to a slot.
 
 94
-00:06:14,625 --> 00:06:17,968
-Draw is for routes the list cannot describe. It gives you three tools.
+00:06:25,849 --> 00:06:28,363
+And click it to put that crew straight back on.
 
 95
-00:06:17,968 --> 00:06:21,335
-The pin drops a numbered stop, in the order you mean to sail.
+00:06:28,877 --> 00:06:33,394
+A setup is bigger: the whole fit-out, hull, parts, crystal and seating, under a name.
 
 96
-00:06:21,578 --> 00:06:23,665
-The pen draws a freehand line.
+00:06:33,515 --> 00:06:36,993
+The fleet lists every setup you have kept, and every hull you own without one.
 
 97
-00:06:24,209 --> 00:06:27,199
-And the text tool types a note straight onto the water.
+00:06:36,993 --> 00:06:40,173
+The one you are sailing is what the Map times its routes at.
 
 98
-00:06:27,200 --> 00:06:30,996
-Name it and keep it, and it joins your library. Traces share as links too.
+00:06:40,173 --> 00:06:43,741
+And you can copy the whole thing as a link, if someone asks what you sail.
 
 99
-00:06:30,996 --> 00:06:32,854
-Grounds is for hunting.
+00:06:43,741 --> 00:06:48,617
+That is your ship. Get this screen right, and every distance and every minute in the app is yours.
 
 100
-00:06:32,934 --> 00:06:37,297
-It lists every species: sea monsters, young ones, ships, bosses and the Cox Pirates.
+00:06:49,298 --> 00:06:53,206
+This is the Map. It is the whole sea, with everything you need marked on it.
 
 101
-00:06:37,297 --> 00:06:39,853
-Click one, and every spawn point it has goes on the chart.
+00:06:53,339 --> 00:06:56,657
+Every pin is a barterer holding something you are short of.
 
 102
-00:06:39,853 --> 00:06:42,597
-Tick as many as you like, and send the lot to the game map.
+00:06:57,113 --> 00:07:01,494
+This says what it is marking. Everything you are short of, or one item you choose.
 
 103
-00:06:42,597 --> 00:06:45,403
-Above them are the known sailing courses, each with a note.
+00:07:01,494 --> 00:07:04,408
+These buttons across the top are the chart controls.
 
 104
-00:06:45,403 --> 00:06:47,324
-Today is your checklist for this refresh.
+00:07:04,408 --> 00:07:07,728
+Zoom out, and zoom in. You can also just scroll on the sea.
 
 105
-00:06:47,324 --> 00:06:51,030
-Every island you need, ticked off as you visit it, with the total at the top.
+00:07:07,728 --> 00:07:11,168
+This one fits everything marked back into view, if you get lost.
 
 106
-00:06:51,030 --> 00:06:55,070
-Drag to pan, scroll to zoom. The drawings and pins move with the chart.
+00:07:11,168 --> 00:07:13,297
+This toggles the minimap in the corner.
 
 107
-00:06:55,505 --> 00:06:57,554
-Escape, or the cross, brings the page back.
+00:07:13,297 --> 00:07:15,466
+And this one stands the chart up.
 
 108
-00:06:57,554 --> 00:07:02,200
-That is the Map. Everything you are short of, where it is, and how long it takes to get there.
+00:07:17,202 --> 00:07:21,587
+That is the game's own terrain, read out of your client. Not a picture of it — the real heightmap.
 
 109
-00:07:02,921 --> 00:07:06,994
-This is the Barter tab. Show it one island, and it plans a whole run for you.
+00:07:21,587 --> 00:07:24,922
+Shift-drag to lean, and the islands come up out of the water.
 
 110
-00:07:10,638 --> 00:07:12,257
-First, pick what you are running for.
+00:07:28,015 --> 00:07:30,069
+Ground paints it in the colours the client ships.
 
 111
-00:07:12,257 --> 00:07:14,912
-A material climbs the ladder to one thing you are short of.
+00:07:30,069 --> 00:07:33,525
+Neon draws it as contours, the way the game's own world map does.
 
 112
-00:07:14,912 --> 00:07:18,714
-Silver runs the chains on the board and sells at the end. That is the one we want.
+00:07:33,525 --> 00:07:36,384
+And Level looks straight down again, facing north.
 
 113
-00:07:18,714 --> 00:07:22,486
-Set your barter level here. It sets the Parley cost of every trade below.
+00:07:39,059 --> 00:07:43,355
+And this is full screen. That is where the chart is worth using, so let us go there.
 
 114
-00:07:22,486 --> 00:07:24,346
-Next, tell it what the board looks like.
+00:07:43,355 --> 00:07:45,442
+Now the sea has the whole window.
 
 115
-00:07:24,346 --> 00:07:26,853
-Every refresh, the sea uses one of forty layouts.
+00:07:45,770 --> 00:07:50,854
+Hit fit again, now that the chart has the room. That pulls back until every mark is in view at once.
 
 116
-00:07:26,853 --> 00:07:29,912
-The app cannot know which one. So you show it a single island.
+00:07:50,854 --> 00:07:54,838
+Which is most of the sea, so zoom back in a couple of steps to where you actually work.
 
 117
-00:07:29,912 --> 00:07:32,983
-Click "another island", and pick the one you are looking at.
+00:07:54,838 --> 00:07:57,302
+The panel on the left is what drives it.
 
 118
-00:07:33,011 --> 00:07:44,124
-Now check that island in game. Open Barter Information, set the filter to Normal to Level 1, and find its row. Eveto Island is offering Essence of Liquor, for a Level 1 Cherry Tree Seed Pouch.
+00:07:57,732 --> 00:08:01,018
+Start with "On the chart". This controls what gets drawn.
 
 119
-00:07:44,143 --> 00:07:45,983
-Pick that same trade here.
+00:08:01,529 --> 00:08:07,538
+Barterers, habitats, wharves, guild wharves, island names, and your own drawings. Turn off what you do not need.
 
 120
-00:07:47,115 --> 00:07:51,087
-That names the layout. Every chain this refresh allows is now listed below.
+00:08:07,538 --> 00:08:10,922
+There is a search, for finding an island or a good by name.
 
 121
-00:07:51,087 --> 00:07:52,919
-Now tell it what you want out of the run.
+00:08:11,432 --> 00:08:14,841
+And these five tabs are the tools. We will take them in order.
 
 122
-00:07:52,919 --> 00:07:55,696
-Build the stocks keeps goods back for the next refresh.
+00:08:14,841 --> 00:08:18,912
+Barter is the default. Every island that has something on your list, with what it trades.
 
 123
-00:07:55,996 --> 00:07:58,859
-These boxes are how much it keeps back at each level.
+00:08:18,912 --> 00:08:21,672
+Click a row and the chart flies to that island.
 
 124
-00:07:58,859 --> 00:08:01,085
-Cash out sells everything for silver instead.
+00:08:22,212 --> 00:08:24,129
+Route turns that list into a sailing route.
 
 125
-00:08:01,085 --> 00:08:02,818
-Pace. Fast keeps you light and quick.
+00:08:24,129 --> 00:08:27,327
+Plot the loop, and it draws one, bent around the land rather than through it.
 
 126
-00:08:02,818 --> 00:08:06,472
-Full and loaded fills the hold past the limit. More goods, slower sailing.
+00:08:27,327 --> 00:08:31,548
+Every leg gets a distance and a time, at the speed your ship actually sails.
 
 127
-00:08:06,472 --> 00:08:09,840
-Quests on the way hands in dailies you have already taken, as you pass them.
+00:08:31,878 --> 00:08:35,819
+Save the route, share it as a link, or send it to the game map as bookmarks.
 
 128
-00:08:09,840 --> 00:08:13,999
-The way round sets the route order: nearest island first, or one chain at a time.
+00:08:37,335 --> 00:08:40,689
+Draw is for routes the list cannot describe. It gives you three tools.
 
 129
-00:08:13,999 --> 00:08:18,535
-And here: where you sail from, where your storage is, and a time limit if you want one.
+00:08:40,689 --> 00:08:44,056
+The pin drops a numbered stop, in the order you mean to sail.
 
 130
-00:08:18,535 --> 00:08:21,303
-Now the chains. It has already worked out three runs for you.
+00:08:44,287 --> 00:08:46,374
+The pen draws a freehand line.
 
 131
-00:08:21,303 --> 00:08:25,449
-The most silver, the most per hour, and the most per Parley. They are rarely the same run.
+00:08:47,232 --> 00:08:50,222
+And the text tool types a note straight onto the water.
 
 132
-00:08:25,449 --> 00:08:27,142
-Click one to use it.
+00:08:50,267 --> 00:08:54,079
+Name it and keep it, and it joins your library. Traces share as links too.
 
 133
-00:08:27,223 --> 00:08:28,529
-Or tick chains yourself.
+00:08:54,079 --> 00:08:55,937
+Grounds is for hunting.
 
 134
-00:08:28,529 --> 00:08:30,936
-Fill the rest adds the best chains around the ones you picked.
+00:08:56,135 --> 00:09:00,445
+It lists every species: sea monsters, young ones, ships, bosses and the Cox Pirates.
 
 135
-00:08:30,936 --> 00:08:34,872
-The bar at the bottom totals it up: chains, silver, hours, islands.
+00:09:00,445 --> 00:09:03,002
+Click one, and every spawn point it has goes on the chart.
 
 136
-00:08:34,872 --> 00:08:36,565
-Click "Lay it out".
+00:09:03,002 --> 00:09:05,800
+Tick as many as you like, and send the lot to the game map.
 
 137
-00:08:36,879 --> 00:08:40,417
-Every stop is listed, in order. What you hand over, and what you get back.
+00:09:05,800 --> 00:09:08,624
+Above them are the known sailing courses, each with a note.
 
 138
-00:08:40,417 --> 00:08:42,898
-This bar is your hold after each trade.
+00:09:08,624 --> 00:09:10,623
+Today is your checklist for this refresh.
 
 139
-00:08:43,409 --> 00:08:46,984
-Orange means you are over the limit. You still sail, just slower.
+00:09:10,623 --> 00:09:14,328
+Every island you need, ticked off as you visit it, with the total at the top.
 
 140
-00:08:46,984 --> 00:08:50,253
-Red means too heavy to barter. You have to lighten first.
+00:09:14,328 --> 00:09:18,368
+Drag to pan, scroll to zoom. The drawings and pins move with the chart.
 
 141
-00:08:50,786 --> 00:08:54,940
-That is what a wharf stop is for. Drop the extra into storage, and carry on.
+00:09:19,247 --> 00:09:21,308
+Escape, or the cross, brings the page back.
 
 142
-00:08:55,462 --> 00:08:58,401
-And this bar is your Parley going down as you trade.
+00:09:21,308 --> 00:09:25,955
+That is the Map. Everything you are short of, where it is, and how long it takes to get there.
 
 143
-00:08:58,401 --> 00:09:00,812
-Happy with it? Click "Sail this run".
+00:09:27,010 --> 00:09:31,083
+This is the Barter tab. Show it one island, and it plans a whole run for you.
 
 144
-00:09:00,812 --> 00:09:02,510
-It goes onto the map as a checklist.
+00:09:35,074 --> 00:09:36,830
+First, pick what you are running for.
 
 145
-00:09:02,510 --> 00:09:04,903
-Full screen, if you want more sea and less panel.
+00:09:36,830 --> 00:09:39,532
+A material climbs the ladder to one thing you are short of.
 
 146
-00:09:04,903 --> 00:09:09,058
-It follows you leg by leg, and every stop is a card with the trade on it.
+00:09:39,532 --> 00:09:43,390
+Silver runs the chains on the board and sells at the end. That is the one we want.
 
 147
-00:09:09,702 --> 00:09:14,593
-Tick each stop as you make it. If an island pays a different amount, everything after it re-counts.
+00:09:43,390 --> 00:09:51,945
+The barter count and level you set at the start are doing real work here: the count decides which islands are on the board at all, and the level prices every Parley figure below.
 
 148
-00:09:14,593 --> 00:09:17,140
-Finished sailing? Tick them all off at once.
+00:09:51,945 --> 00:09:53,831
+Next, tell it what the board looks like.
 
 149
-00:09:17,226 --> 00:09:19,113
-Then click "Record the trip".
+00:09:53,831 --> 00:09:56,572
+Every refresh, the sea uses one of forty layouts.
 
 150
-00:09:19,113 --> 00:09:23,471
-Silver goes to your purse, leftover goods to your inventory, and the quests are claimed.
+00:09:56,572 --> 00:09:59,635
+The app cannot know which one. So you show it a single island.
 
 151
-00:09:23,471 --> 00:09:26,249
-All as one change, so one undo puts it back.
+00:09:59,635 --> 00:10:02,707
+Click "another island", and pick the one you are looking at.
 
 152
-00:09:26,249 --> 00:09:30,348
-One last thing. The hold size, the speed and every time on that route come from your ship.
+00:10:03,156 --> 00:10:14,269
+Now check that island in game. Open Barter Information, set the filter to Normal to Level 1, and find its row. Eveto Island is offering Essence of Liquor, for a Level 1 Cherry Tree Seed Pouch.
 
 153
-00:09:30,348 --> 00:09:35,061
-Hull, the four parts, the crystal and the crew aboard. Change the ship, and the whole run re-times.
+00:10:14,351 --> 00:10:16,191
+Pick that same trade here.
 
 154
-00:09:35,061 --> 00:09:38,018
-That is it. Show it one island, and it plans the rest.
+00:10:16,838 --> 00:10:20,762
+That names the layout. Every chain this refresh allows is now listed below.
 
 155
-00:09:38,797 --> 00:09:43,985
-Everything so far runs in your browser alone. This last part is the one that needs sign-in.
+00:10:20,762 --> 00:10:22,704
+Now tell it what you want out of the run.
 
 156
-00:09:44,136 --> 00:09:53,011
-One note first: the sailors on these boards are invented. A machine recording this has no server with real players on it. The tab, the digest and the ranking are the app's own.
+00:10:22,704 --> 00:10:25,480
+Build the stocks keeps goods back for the next refresh.
 
 157
-00:09:53,011 --> 00:09:56,101
-Sixteen boards, built from the players who chose to join them.
+00:10:25,804 --> 00:10:28,794
+These boxes are how much it keeps back at each level.
 
 158
-00:09:56,101 --> 00:10:01,109
-They come in five sections: the sea, the runs, quests and hunts, the yard, and charts and hold.
+00:10:28,910 --> 00:10:31,145
+Cash out sells everything for silver instead.
 
 159
-00:10:01,119 --> 00:10:04,962
-The question mark on a board tells you exactly how that one is counted.
+00:10:31,145 --> 00:10:32,871
+Pace. Fast keeps you light and quick.
 
 160
-00:10:05,039 --> 00:10:09,512
-Your own places sit at the top, so you can see where you stand without hunting for yourself.
+00:10:32,871 --> 00:10:36,578
+Full and loaded fills the hold past the limit. More goods, slower sailing.
 
 161
-00:10:09,512 --> 00:10:12,663
-And there is a search, if you are after one sailor by name.
+00:10:36,578 --> 00:10:39,975
+Quests on the way hands in dailies you have already taken, as you pass them.
 
 162
-00:10:12,663 --> 00:10:15,250
-Click any place on a board to open that player's card.
+00:10:39,975 --> 00:10:44,309
+The way round sets the route order: nearest island first, or one chain at a time.
 
 163
-00:10:15,250 --> 00:10:18,052
-Their fleet, their crew, their places, and what they have done at sea.
+00:10:44,309 --> 00:10:48,940
+And here: where you sail from, where your storage is, and a time limit if you want one.
 
 164
-00:10:18,052 --> 00:10:21,083
-Click Look, and their ship loads onto your own Ship tab, fully fitted.
+00:10:49,005 --> 00:10:52,016
+Now the chains. It has already worked out three runs for you.
 
 165
-00:10:21,083 --> 00:10:23,819
-To look at, not to keep. One click puts yours back.
+00:10:52,016 --> 00:10:56,255
+The most silver, the most per hour, and the most per Parley. They are rarely the same run.
 
 166
-00:10:23,819 --> 00:10:26,694
-The other half of the tab adds the whole fleet up.
+00:10:56,255 --> 00:10:57,948
+Click one to use it.
 
 167
-00:10:27,644 --> 00:10:31,902
-Which hulls people sail, which parts they fit, which crystals, which quests they run.
+00:10:58,096 --> 00:10:59,648
+Or tick chains yourself.
 
 168
-00:10:31,902 --> 00:10:34,870
-Search it for anything, and sort by most-first or A to Z.
+00:10:59,648 --> 00:11:02,086
+Fill the rest adds the best chains around the ones you picked.
 
 169
-00:10:34,870 --> 00:10:38,915
-It is the closest thing to an answer when you are wondering what everyone else fits.
+00:11:02,086 --> 00:11:06,044
+The bar at the bottom totals it up: chains, silver, hours, islands.
 
 170
-00:10:38,915 --> 00:10:41,474
-Nothing goes onto a board that you did not offer.
+00:11:06,144 --> 00:11:07,837
+Click "Lay it out".
 
 171
-00:10:41,474 --> 00:10:45,669
-You see the exact digest before you agree to it — the numbers, and nothing else.
+00:11:08,096 --> 00:11:11,675
+Every stop is listed, in order. What you hand over, and what you get back.
 
 172
-00:10:45,669 --> 00:10:47,605
-And leaving takes it back off again.
+00:11:11,675 --> 00:11:14,155
+This bar is your hold after each trade.
 
 173
-00:10:47,605 --> 00:10:54,681
+00:11:15,243 --> 00:11:18,566
+Orange means you are over the limit. You still sail, just slower.
+
+174
+00:11:18,566 --> 00:11:21,683
+Red means too heavy to barter. You have to lighten first.
+
+175
+00:11:21,683 --> 00:11:25,838
+That is what a wharf stop is for. Drop the extra into storage, and carry on.
+
+176
+00:11:26,561 --> 00:11:29,633
+And this bar is your Parley going down as you trade.
+
+177
+00:11:30,088 --> 00:11:32,536
+Happy with it? Click "Sail this run".
+
+178
+00:11:32,688 --> 00:11:34,344
+It goes onto the map as a checklist.
+
+179
+00:11:34,344 --> 00:11:36,616
+Full screen, if you want more sea and less panel.
+
+180
+00:11:36,616 --> 00:11:40,771
+It follows you leg by leg, and every stop is a card with the trade on it.
+
+181
+00:11:42,008 --> 00:11:47,030
+Tick each stop as you make it. If an island pays a different amount, everything after it re-counts.
+
+182
+00:11:47,030 --> 00:11:49,577
+Finished sailing? Tick them all off at once.
+
+183
+00:11:49,662 --> 00:11:51,557
+Then click "Record the trip".
+
+184
+00:11:51,557 --> 00:11:55,783
+Silver goes to your purse, leftover goods to your inventory, and the quests are claimed.
+
+185
+00:11:55,783 --> 00:11:58,871
+All as one change, so one undo puts it back.
+
+186
+00:11:58,875 --> 00:12:03,058
+One last thing. The hold size, the speed and every time on that route come from your ship.
+
+187
+00:12:03,058 --> 00:12:07,741
+Hull, the four parts, the crystal and the crew aboard. Change the ship, and the whole run re-times.
+
+188
+00:12:07,741 --> 00:12:10,698
+That is it. Show it one island, and it plans the rest.
+
+189
+00:12:11,440 --> 00:12:16,628
+Everything so far runs in your browser alone. This last part is the one that needs sign-in.
+
+190
+00:12:16,719 --> 00:12:25,825
+One note first: the sailors on these boards are invented. A machine recording this has no server with real players on it. The tab, the digest and the ranking are the app's own.
+
+191
+00:12:25,825 --> 00:12:28,955
+Sixteen boards, built from the players who chose to join them.
+
+192
+00:12:28,955 --> 00:12:33,908
+They come in five sections: the sea, the runs, quests and hunts, the yard, and charts and hold.
+
+193
+00:12:33,908 --> 00:12:37,727
+The question mark on a board tells you exactly how that one is counted.
+
+194
+00:12:37,727 --> 00:12:42,308
+Your own places sit at the top, so you can see where you stand without hunting for yourself.
+
+195
+00:12:42,308 --> 00:12:45,494
+And there is a search, if you are after one sailor by name.
+
+196
+00:12:45,494 --> 00:12:48,154
+Click any place on a board to open that player's card.
+
+197
+00:12:48,154 --> 00:12:51,067
+Their fleet, their crew, their places, and what they have done at sea.
+
+198
+00:12:51,067 --> 00:12:54,205
+Click Look, and their ship loads onto your own Ship tab, fully fitted.
+
+199
+00:12:54,205 --> 00:12:56,982
+To look at, not to keep. One click puts yours back.
+
+200
+00:12:56,982 --> 00:12:59,856
+The other half of the tab adds the whole fleet up.
+
+201
+00:13:00,844 --> 00:13:05,208
+Which hulls people sail, which parts they fit, which crystals, which quests they run.
+
+202
+00:13:05,208 --> 00:13:08,200
+Search it for anything, and sort by most-first or A to Z.
+
+203
+00:13:08,200 --> 00:13:12,305
+It is the closest thing to an answer when you are wondering what everyone else fits.
+
+204
+00:13:12,401 --> 00:13:15,090
+Nothing goes onto a board that you did not offer.
+
+205
+00:13:15,090 --> 00:13:19,255
+You see the exact digest before you agree to it — the numbers, and nothing else.
+
+206
+00:13:19,255 --> 00:13:21,219
+And leaving takes it back off again.
+
+207
+00:13:21,219 --> 00:13:28,295
 Your data stays in your browser. Sign in to sync it between machines, or to join in. Neither is required for anything else in the app.

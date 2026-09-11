@@ -11,28 +11,29 @@ opt-in, self-hosted and off by default.
 
 ![The Plan screen, part-way through two Carrack parts](docs/media/hero.png)
 
-**In a hurry?** [Watch the guide](docs/media/walkthrough.mp4) — eleven
-minutes, in six parts, and you can start at whichever one you came for.
-It is the real app being driven and narrated, not a mock-up; the only
-invented thing anywhere in it is the handful of sailors on the community
-boards, since a machine shooting a film has no deployment with players
-on it. It plays inside the app too, under **Help**, where the six parts
-are listed as jump-to points. There is a
+**In a hurry?** [Watch the guide](docs/media/walkthrough.mp4) — thirteen
+minutes, in seven parts, and you can start at whichever one you came
+for. It is the real app being driven and narrated, not a mock-up; the
+only invented thing anywhere in it is the handful of sailors on the
+community boards, since a machine shooting a film has no deployment
+with players on it. It plays inside the app too, under **Help**, where
+the seven parts are listed as jump-to points. There is a
 [transcript](docs/media/walkthrough.txt) and a
 [caption track](docs/media/walkthrough.vtt) beside it.
 
-The six parts are also files of their own, if you would rather link at
+The seven parts are also files of their own, if you would rather link at
 one than at a timestamp — each with subtitles and a transcript, and
 whatever is being talked about lit up on screen as it is named:
 
 | Chapter | What it covers |
 |---|---|
-| [One — The Yard](docs/media/guide/the-yard.mp4) | Queue a build, record what you gather, craft it, step a mistake back, price a part both ways, read the tree, take the list shopping |
-| [Two — Quests](docs/media/guide/quests.mp4) | The sailing dailies and weeklies, which of them pay something you need, and recording a batch of them in one change |
-| [Three — Your Ship](docs/media/guide/your-ship.mp4) | Hull, the four part slots, the sea crystal, the appearance set, where every figure comes from — and the crew: read off the game's own screenshots, then seated by hand or automatically, with presets and saved setups |
-| [Four — The Map](docs/media/guide/the-map.mp4) | The chart, mostly full screen: the toolbar, the minimap, the layers, and all five of its tabs — Barter, Route, Draw, Grounds and Today |
-| [Five — A Run](docs/media/guide/a-run.mp4) | The one to send a barterer: silver or a material, naming this refresh's layout off the game's own barter window, setting the orders, picking the chains, reading the sheet, sailing it, and recording the trip |
-| [Six — The Harbour](docs/media/guide/the-harbour.mp4) | The boards, what a place on one opens, and what is and is not shared |
+| [One — The Yard](docs/media/guide/the-yard.mp4) | The sailor's own numbers in the bar — the barter count that decides which islands deal with you at all — then queue a build, record what you gather, craft it, step a mistake back, price a part, read the tree |
+| [Two — To Get](docs/media/guide/to-get.mp4) | The plan: one way to each thing you are short of, under a goal you choose, with the day count that follows every choice — and what it will never do |
+| [Three — Quests](docs/media/guide/quests.mp4) | The sailing dailies and weeklies, which of them pay something you need, and recording a batch of them in one change |
+| [Four — Your Ship](docs/media/guide/your-ship.mp4) | Hull, the four part slots, the sea crystal, the appearance set, where every figure comes from — and the crew: read off the game's own screenshots, then seated by hand or automatically, with presets and saved setups |
+| [Five — The Map](docs/media/guide/the-map.mp4) | The chart, mostly full screen: the toolbar, the minimap, the layers, all five of its tabs — and stood up on the game's own terrain, in Ground or Neon |
+| [Six — A Run](docs/media/guide/a-run.mp4) | The one to send a barterer: silver or a material, naming this refresh's layout off the game's own barter window, setting the orders, picking the chains, reading the sheet, sailing it, and recording the trip |
+| [Seven — The Harbour](docs/media/guide/the-harbour.mp4) | The boards, what a place on one opens, and what is and is not shared |
 
 Same rule as the walkthrough: it is the real app being driven, and the
 only invented thing anywhere in it is the handful of sailors on those
