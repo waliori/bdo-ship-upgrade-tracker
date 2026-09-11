@@ -4,7 +4,7 @@
 //   node scenes.mjs <outdir> [sceneName ...]
 
 import { open, seed, tab, click, clickIn, drag, moveTo, typeInto, wait, waitFor } from './drive.mjs';
-import { midBuild, readyToCraft, recordLevel, fittedShip, emptyStart } from './states.mjs';
+import { midBuild, readyToCraft, recordLevel, fittedShip, emptyStart, onePartToGo } from './states.mjs';
 import { fakeCommunity, FLEET } from './fleet.mjs';
 
 const OUT = process.argv[2];
@@ -334,8 +334,36 @@ const stills = {
 	async 'to-get'({ page, url }) {
 		await seed(page, url, midBuild);
 		await tab(page, 'get');
+		await click(page, '[data-act="get-mode"][data-id="source"]');
+		await wait(500);
 		await page.evaluate(() => document.getElementById('__cur').remove());
 		await page.screenshot({ path: `${OUT}/to-get.png` });
+	},
+	/**
+	 * The plan, which is what To Get opens on: the card that says where
+	 * it lands and the first steps under it. The quest list is folded so
+	 * the whole shape fits one frame -- a day's dailies would push the
+	 * steps a screen and a half down.
+	 */
+	async 'the-plan'({ page, url }) {
+		await page.setViewport({ width: 1180, height: 1180, deviceScaleFactor: 1 });
+		await seed(page, url, onePartToGo);
+		await tab(page, 'get');
+		await wait(900);
+		await page.evaluate(() => {
+			const b = document.querySelector('[data-act="get-fold"][data-id="quests"]');
+			if (b) b.click();
+		});
+		await wait(500);
+		await page.evaluate(() => {
+			const el = document.querySelector('.way-head');
+			if (el) window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top - 178);
+			const cur = document.getElementById('__cur');
+			if (cur) cur.remove();
+		});
+		await wait(350);
+		await page.screenshot({ path: `${OUT}/the-plan.png` });
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
 	},
 	async map({ page, url }) {
 		await seed(page, url, midBuild);

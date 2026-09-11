@@ -2006,10 +2006,22 @@ function openWhatsNew({ onClose = null } = {}) {
 	const points = list => (list && list.length
 		? `<ul class="news-points">${list.map(p => `<li>${p}</li>`).join('')}</ul>` : '');
 
+	// Who asked for it, in their own words, above the fold. A player who
+	// wrote in and then had to open "everything else" to find themselves
+	// has been thanked in a drawer.
+	const t = r.thanks;
+	const thanks = t && t.who && t.who.length ? `<section class="news-thanks">
+		<h3>Asked for by you</h3>
+		<p>${t.text}</p>
+		<ul class="news-points">${t.who.map(w => `<li><b>${esc(w.name)}</b> — <i>“${w.said}”</i> ${w.did}</li>`).join('')}</ul>
+		${t.foot ? `<p class="news-thanks-foot">${t.foot}</p>` : ''}
+	</section>` : '';
+
 	const host = openDialog(`
 		<h2>What's new</h2>
 		<p class="news-rel"><b>${esc(r.name)}</b> · version ${esc(r.id)} · ${esc(r.date)}</p>
 		<p class="dialog-copy">${r.blurb}</p>
+		${thanks}
 		<div class="news">
 			${headline.map(s => `<section class="news-item">
 				<h3>${s.title}</h3>

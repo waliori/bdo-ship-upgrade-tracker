@@ -34,6 +34,25 @@ export const midBuild = {
 	settings: {}
 };
 
+/**
+ * One Carrack part to go, with a purse that nearly covers it.
+ *
+ * For the plan still: a single build keeps the steps to a handful, and
+ * the coins are set just under what the shop wants so the card has a
+ * real figure to show for what the quests bring in.
+ */
+export const onePartToGo = {
+	...midBuild,
+	stock: {
+		'Crow Coin': 44852,
+		Silver: 1000000000,
+		'Tidal Black Stone': 2885,
+		'Violent Wave Plywood': 87,
+		'Wave Residue Adhesive': 80
+	},
+	targets: [T('a', "Epheria Carrack: Advance (Chiro's Cannon)")]
+};
+
 /** Enough on hand that the Workshop has something to make. */
 export const readyToCraft = {
 	...midBuild,

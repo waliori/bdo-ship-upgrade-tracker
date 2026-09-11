@@ -66,7 +66,7 @@ done
 for name in plan-a-run share-a-drawing; do
 	./tools/capture/togif.sh "$RAW/$name.webm" "$OUT/small/$name.gif" 480 7
 done
-for name in hero map quests community; do
+for name in hero map quests community the-plan; do
 	ffmpeg -v error -y -i "$OUT/$name.png" -vf scale=560:-2 "$OUT/small/$name.png"
 	ls -la "$OUT/small/$name.png"
 done

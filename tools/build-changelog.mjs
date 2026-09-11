@@ -42,6 +42,13 @@ someone who has been away. The same notes are in the app itself, under
 // without a blank line above it is not a list at all.
 const body = RELEASES.flatMap(r => {
 	const blocks = [`## ${r.id} — ${r.name}`, `*${r.date}*`, md(r.blurb)];
+	// Who asked for it goes first, as it does in the dialog.
+	const t = r.thanks;
+	if (t && t.who && t.who.length) {
+		blocks.push('### Asked for by you', md(t.text));
+		blocks.push(t.who.map(w => `- **${w.name}** — *“${md(w.said)}”* ${md(w.did)}`).join('\n'));
+		if (t.foot) blocks.push(md(t.foot));
+	}
 	for (const s of r.sections) {
 		blocks.push(`### ${md(s.title)}`);
 		if (s.media) blocks.push(`![${s.alt || ''}](${wide(s.media)})`);

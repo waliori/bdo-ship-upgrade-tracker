@@ -126,6 +126,8 @@ the Inventory panel for any coin-priced thing.
 
 ![The To Get screen](docs/media/to-get.png)
 
+![The plan: where it lands, what it costs, and the steps in order](docs/media/the-plan.png)
+
 **And which way each thing *should* be got.** Every line above can say
 where a thing comes from; the sources compete, and that is the question
 the list cannot answer one line at a time. A Candidum daily pays

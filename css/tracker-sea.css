@@ -791,6 +791,14 @@
   background: rgba(var(--deep-rgb), 0.5);
 }
 .news-points { margin: 8px 0 0 18px; padding: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink-dim); }
+/* Who asked for the release. Set apart from the sections and never
+   folded: a thank-you inside a drawer is not one. */
+.news-thanks { margin: 14px 0 2px; padding: 13px 16px; border: 1px solid var(--teal-edge); border-radius: var(--r-panel); background: var(--teal-glow); }
+.news-thanks h3 { margin: 0 0 6px; font-family: var(--font-display); font-size: 13px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--teal); }
+.news-thanks p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--ink); }
+.news-thanks .news-points li { margin: 7px 0; color: var(--ink-dim); }
+.news-thanks .news-points b { color: var(--teal-hi); }
+.news-thanks-foot { margin-top: 9px !important; font-size: 12px !important; color: var(--ink-faint) !important; }
 .news-points li { margin: 4px 0; }
 .news-points b { color: var(--ink); }
 
