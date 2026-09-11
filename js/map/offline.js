@@ -5,6 +5,7 @@ import { pinTiles, PIN_MAX } from '../map.js';
 import { toast } from '../dialogs.js';
 import { mv } from './state.js';
 import { hostSize } from './view.js';
+import { terrainOn, pinList } from './terrain.js';
 
 /* ---- an area kept offline ------------------------------------------- *
    A cache of the browser's own, apart from the service worker's: the
@@ -57,7 +58,11 @@ export async function pinArea() {
 	if (!canPin()) return toast('This browser cannot keep tiles offline');
 	const host = document.querySelector('[data-map]');
 	if (!host || !mv.mapState) return;
-	const tiles = pinTiles(mv.mapState, hostSize(host));
+	// Standing up, the ground is part of the area too: a stretch of sea
+	// kept for a crossing with no signal is no use if the islands in it
+	// are flat squares again.
+	const tiles = [...pinTiles(mv.mapState, hostSize(host)),
+		...(terrainOn() ? pinList(mv.mapState, hostSize(host)) : [])];
 	if (tiles.length > PIN_MAX) return toast(`That is ${tiles.length} tiles — more than the ${PIN_MAX} an area may keep. Zoom in, or keep it in two goes.`);
 	if (!tiles.length) return toast('Nothing in view to keep');
 	toast(`Keeping ${tiles.length} tile${tiles.length === 1 ? '' : 's'}…`);

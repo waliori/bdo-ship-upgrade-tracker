@@ -13,7 +13,7 @@ import { openSea } from '../searoute.js';
 import { wharves } from '../wharves.js';
 import { habitatsOf, habitatsOfMany } from '../habitats.js';
 import { monsterArt } from '../monster_art.js';
-import { parleyPerTrade } from '../barter.js';
+import { parleyPerTrade, npcGate, npcOpen } from '../barter.js';
 import { barterData, barterProfile } from '../ui-state.js';
 import { mv, doneSet } from './state.js';
 import { mapZoomStep } from './actions.js';
@@ -21,7 +21,8 @@ import { marksNow, stopsLive, seaBent, routeWorld, straightLegs, goodsOf, barter
 import { npcBox } from './render.js';
 import { routeSeq, n1, stashLive } from './route.js';
 import { paintTrace } from './trace.js';
-import { inBox, hostSize, paintMeasure } from './view.js';
+import { inBox, hostSize, paintMeasure, restore3D } from './view.js';
+import { drawTerrain, terrainOn, prefetch as prefetchTerrain } from './terrain.js';
 
 /* ------------------------------------------------------------------ *
  * painting
@@ -116,6 +117,9 @@ export function paintMap() {
 		});
 	}
 
+	// Left standing up last time: put it back before anything is placed.
+	if (mv.threeD && !terrainOn()) restore3D();
+
 	const marks = marksNow();
 
 	// A fit was asked for; now the box exists to measure, sail there.
@@ -139,6 +143,10 @@ export function paintMap() {
 	const { tiles, pins } = frame(mv.mapState, size, marks, level);
 	mv.drawnLevel = level;
 	const ahead = mv.flightTo ? tilesFor(mv.flightTo, size, levelFor(mv.flightTo.zoom)).filter(t => !t.ahead) : [];
+	// A flight asks for the ground it is heading for as well, so an
+	// island flown to has its relief when it arrives rather than a
+	// moment later.
+	if (mv.flightTo && terrainOn()) prefetchTerrain(mv.flightTo, size);
 	// A layer that faults says so in the console and leaves the others
 	// to paint; nothing on the chart depends on another layer's luck.
 	const guarded = (fn, ...args) => { const t0 = performance.now(); try { fn(...args); } catch (err) { console.warn(`[map] ${fn.name} failed:`, err); } if (window.__paintProf) window.__paintProf[fn.name] = (window.__paintProf[fn.name] || 0) + performance.now() - t0; };
@@ -153,7 +161,13 @@ export function paintMap() {
 	const currentId = current && current.kind === 'npc' ? current.id : null;
 	const nums = new Map(seq.filter(s => s.kind === 'npc').map(s => [s.id, s.n]));
 
-	guarded(paintTiles, layer, tiles, size, { hold: mv.heldLevel !== null, ahead });
+	// Stood up, the ground is the ground: the terrain draws into its own
+	// canvas behind the layer and the flat squares stand down. Every
+	// layer after this one is placed by project(), which the terrain
+	// view has taken over, so they land on the ground rather than beside
+	// it -- see setProjector in map.js.
+	if (terrainOn()) guarded(drawTerrain, mv.mapState, size);
+	else guarded(paintTiles, layer, tiles, size, { hold: mv.heldLevel !== null, ahead });
 	// Ports before pins, and both before the island names: each of these
 	// three writes words on the sea, and each one gives way to the ones
 	// already written. The wharves name themselves permanently and so go
@@ -208,6 +222,17 @@ export function paintMap() {
  *   the tiles have been in flight for a third of a second the chart
  *   says so, quietly, with a thread of light along its top edge.
  */
+/** Take the flat squares out of the layer. Standing the chart up draws
+ *  ground where they were, and a square left behind shows through every
+ *  hole in a coastline. */
+export function clearTiles() {
+	const layer = document.querySelector('[data-map-layer]');
+	if (!layer) return;
+	for (const d of layer.querySelectorAll('.map-tiles')) d.remove();
+	layer._tiles = null;
+	layer._levels = null;
+}
+
 const KEEP_TILES = 192;
 function paintTiles(layer, tiles, size, { hold = false, ahead = [] } = {}) {
 	const pool = layer._tiles || (layer._tiles = new Map());
@@ -646,7 +671,12 @@ function paintHunt(layer, size) {
 	// drawn a margin wider than the box and slid by transform until the
 	// pan runs past the margin, the zoom changes, or the grounds do;
 	// then once more.
-	const was = layer._huntAt;
+	// Flat, a pan slides the drawing rather than redrawing it. Stood up
+	// there is no such shortcut: every point moves by a different amount
+	// under a camera with a horizon, so the grounds are drawn afresh on
+	// every frame -- which is also why the fast paths below are skipped
+	// rather than adjusted.
+	const was = terrainOn() ? null : layer._huntAt;
 	const origin = project(mv.mapState, size, 0, 0);
 	const key = `${mv.huntsOn.join(',')}|${size.w}x${size.h}`;
 	if (was && was.key === key) {
@@ -688,7 +718,8 @@ function paintHunt(layer, size) {
 	// spawns, filled faintly and padded by about a spawn's reach, so a
 	// species' water reads at a glance the way the game's own map
 	// shades it. The points go on top.
-	const o = project(mv.mapState, size, 0, 0), o2 = project(mv.mapState, size, 1000, 0);
+	const c = mv.mapState.centre;
+	const o = project(mv.mapState, size, c.x, c.y), o2 = project(mv.mapState, size, c.x + 1000, c.y);
 	const pxPerK = Math.abs(o2.left - o.left);
 	const pad = Math.max(6, Math.min(40, 1.5 * pxPerK));
 	for (const key of mv.huntsOn) {
@@ -1245,6 +1276,11 @@ function paintTip(host, size, marks) {
 		const rate = kinds.length === 1
 			? `${F(parleyPerTrade({ ...prof, kind: kinds[0] }))} parley a trade`
 			: `${F(parleyPerTrade({ ...prof, kind: 'trade' }))}–${F(parleyPerTrade({ ...prof, kind: 'material' }))} parley a trade`;
+		// An island the barter count has not opened: said before anything
+		// it deals, since none of it is for sale to this sailor yet.
+		const gate = !npcOpen(id, prof.barterCount)
+			? `<div class="map-tip-sub shut">Opens at ${F(npcGate(id))} Total Barters — ${F(npcGate(id) - prof.barterCount)} more</div>`
+			: '';
 		const sub = `${esc(npc.name)} · ${rate}`
 			+ (pool > 1 ? ` · draws 1 of its ${pool} offers a refresh` : '');
 		const onRoute = stopsLive() && mv.stops.includes(id);
@@ -1255,6 +1291,7 @@ function paintTip(host, size, marks) {
 		tip.innerHTML = `<div class="map-tip-head"><span class="map-tip-name">${esc(npc.at)}</span>
 			${pinned ? `<button class="map-x" data-act="map-tip-close" aria-label="Close">×</button>` : ''}</div>
 			<div class="map-tip-sub">${sub}</div>
+			${gate}
 			${mv.runTrades[id] ? runTip(mv.runTrades[id], id) : ''}
 			${rows || (mv.runTrades[id] ? '' : '<div class="map-tip-sub none">Nothing on your list here.</div>')}
 			${pinned ? btns : ''}`;

@@ -17,13 +17,13 @@
 // the run go out. Distances are straight lines here, for choosing a
 // wharf; the screen bends the legs round the land.
 
-import { levelOf } from './barter.js';
+import { levelOf, npcGate } from './barter.js';
 import { exchanges, goodsHeld, weightHeld, weightOf, sellOf } from './barter-plan.js';
 import { sellable, floorOf, PLAIN_ORDERS } from './barter-orders.js';
 
 /**
  * Every chain the table allows, highest top first. A chain is
- * { id, from: 'land' | 'hold' | 'dock', item, have, load, rungs, top }:
+ * { id, from: 'land' | 'hold' | 'dock', item, have, load, rungs, top, gate }:
  * `rungs` are the exchanges in climbing order, `item` the good a chain
  * that does not start ashore starts from, `have` how many of it are
  * aboard and `load` how many wait in the start port's storage (`dock`)
@@ -31,8 +31,18 @@ import { sellable, floorOf, PLAIN_ORDERS } from './barter-orders.js';
  * aboard, 'dock' when it all has to be loaded. `top` is the level of
  * the last rung's good. The id does not carry `from`, so a chain
  * stays ticked when its goods are loaded.
+ *
+ * `gate` is the island on the climb that the sailor has not opened yet
+ * -- the furthest one, since that is the count that would open the
+ * whole chain -- or null when every rung is theirs to sail. The barter
+ * count decides it: a climb whose [Level 4] rung is dealt at the
+ * Wandering Merchant's Ship is not a run at all until three thousand
+ * barters are behind you, and a list that offered it anyway was the
+ * one thing on this tab that could not be sailed. Left null when no
+ * count is given, so a caller that has no player in hand still gets
+ * the whole board.
  */
-export function chains(barterData, stock = {}, dock = {}) {
+export function chains(barterData, stock = {}, dock = {}, barterCount = null) {
 	const rows = exchanges(barterData).filter(r => levelOf(r.item) !== null);
 	const takes = name => rows.filter(r => r.give === name);
 	const walk = (r, path) => {
@@ -51,8 +61,24 @@ export function chains(barterData, stock = {}, dock = {}) {
 		for (const r of takes(item)) for (const rungs of walk(r, [])) out.push({ from: have > 0 ? 'hold' : 'dock', item, have, load, rungs });
 	}
 	return out
-		.map(c => ({ ...c, id: `${c.from === 'land' ? 'land' : 'hold'}:${c.item}:${c.rungs.map(r => r.npcId).join('.')}`, top: levelOf(c.rungs[c.rungs.length - 1].item) }))
+		.map(c => ({ ...c, id: `${c.from === 'land' ? 'land' : 'hold'}:${c.item}:${c.rungs.map(r => r.npcId).join('.')}`, top: levelOf(c.rungs[c.rungs.length - 1].item), gate: gateOn(c.rungs, barterCount) }))
 		.sort((a, b) => b.top - a.top || a.rungs.length - b.rungs.length || a.rungs[0].npc.localeCompare(b.rungs[0].npc));
+}
+
+/** The rung of a climb that is shut, and what opens it: the dearest,
+ *  because that is the count that opens the whole chain. */
+function gateOn(rungs, barterCount) {
+	// Null is "no player in hand", which leaves the board whole; nought
+	// is a sailor who has never bartered, and the table has an answer
+	// for them.
+	if (barterCount === null) return null;
+	let worst = null;
+	for (const r of rungs) {
+		const barters = npcGate(r.npcId);
+		if (barters <= barterCount) continue;
+		if (!worst || barters > worst.barters) worst = { barters, short: barters - barterCount, npc: r.npc, npcId: r.npcId };
+	}
+	return worst;
 }
 
 const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);

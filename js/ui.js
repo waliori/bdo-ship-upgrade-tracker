@@ -23,7 +23,8 @@ import { allItems, CODEX_LANGS, img } from './ui-bits.js';
 import { encodeShare, decodeShare, shareLink, shareSize } from './share.js';
 import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
-import { paintPouch, measurePouch } from './pouch.js';
+import { paintPouch, measurePouch, openPouch, returnToPouch } from './pouch.js';
+import { toggleSailBar, openRoutes, openPets } from './profile-bar.js';
 import { hidePeek, wirePeek } from './peek.js';
 import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
@@ -43,6 +44,7 @@ import { openJump } from './jump.js';
 import { openItemCard } from './item-card.js';
 import { attachSheet } from './sheet.js';
 import { isPhone, onPhoneChange } from './viewport.js';
+import { film } from './film.js';
 
 import { openProfiles, activeProfile } from './profiles.js';
 import { DATA, CHANGES, LATEST, RELEASES, RELEASE } from './about.js';
@@ -50,7 +52,7 @@ import { openTables } from './screen-tables.js';
 import { toggleVellReminder, checkVellReminder } from './today.js';
 import { openTripLog } from './triplog.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
-import { renderGet, shoppingText, shoppingCSV } from './screen-get.js';
+import { renderGet, shoppingText, shoppingCSV, getAction, getChange } from './screen-get.js';
 import { openCoinBuy } from './coin-shop.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapCentreOnStash,
@@ -59,7 +61,8 @@ import {
 	saveRouteDialog, loadSavedRoute, deleteSavedRoute, mapWritingView, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite,
-	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet
+	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet,
+	toggle3D, levelMap, setMapStyle
 } from './screen-map.js';
 
 // Two groups: the yard, where a build is planned and made, and the
@@ -86,6 +89,11 @@ const tabs = () => TABS.filter(t => !t.when || t.when());
 
 // The four a phone gets at the thumb; the rest live behind "Menu".
 const THUMB_TABS = ['plan', 'inventory', 'map', 'quests'];
+
+/* The sailors' own server (412710365475110953) -- the room this app was
+   written for. The masthead links it on every screen; this is the same
+   door for the menu and for anywhere else that wants to point at it. */
+export const DISCORD_INVITE = 'https://discord.gg/bdo-sailing';
 
 /**
  * Everything that is not a section, in the one menu the app has. The
@@ -115,6 +123,7 @@ const MENU = [
 		{ act: 'tables', icon: '▤', label: 'Enhancement tables', hint: 'the seven tables, lit at your stack' },
 		{ act: 'tour', icon: '➤', label: 'Tour', hint: 'a walk through your own screen' },
 		{ act: 'feedback', icon: '✎', label: 'Feedback', hint: 'something wrong, or something you want' },
+		{ act: 'discord', icon: '◉', label: 'Sailing Discord', hint: 'the sailors’ own server — discord.gg/bdo-sailing' },
 		{ act: 'inbox', icon: '✉', label: 'Feedback inbox', hint: 'what people have written in', when: () => Boolean(me() && me().admin) }
 	] },
 	{ group: 'The page', items: [
@@ -899,6 +908,35 @@ function wire() {
 				return;
 			}
 			case 'add-build': return openBuildPicker();
+			// The sailing numbers, folded into their line or open for
+			// typing. The pouch alone is repainted -- nothing about the
+			// screens below it has changed -- and the keyboard is put
+			// back on the button that did it, which both states have.
+			case 'sail-bar': {
+				toggleSailBar();
+				paintPouch({ force: true });
+				// The keyboard is put back on the button that did it,
+				// which both states have -- but only for the keyboard.
+				// `detail` is 0 when a press came from Enter or Space;
+				// giving a mouse the focus ring back would leave a box
+				// standing in the bar after every fold.
+				if (evt.detail === 0) {
+					const back = document.querySelector('#pouch [data-act="sail-bar"]');
+					if (back) back.focus({ preventScroll: true });
+				}
+				return;
+			}
+			// The phone's pouch: one line that reads, and this sheet
+			// that edits. The bar itself is the whole of it anywhere
+			// there is room for the chips.
+			case 'pouch': return openPouch();
+			// The nest, set in one go. The bar's chip only reads it out.
+			// Both of these can be opened from inside the phone's own
+			// sheet, which they replace -- so the sheet is told to come
+			// back when they are answered.
+			case 'pets': returnToPouch(); return openPets();
+			// Every threshold and where the count stands among them.
+			case 'routes': returnToPouch(); return openRoutes();
 			case 'blockers-all': toggleBlockers(); return render();
 			case 'enh-blocked': toggleBlocked(); return render();
 			case 'open-item': hidePeek(); showView('inventory'); setSelected(el.dataset.item); return render();
@@ -915,7 +953,14 @@ function wire() {
 			case 'import': return doImport();
 			case 'reset': return doReset();
 			case 'market-refresh':
-				loadMarket({ force: true }).then(ok => toast(ok ? 'Market prices refreshed' : 'The Market did not answer — showing the last prices it gave'));
+				loadMarket({ force: true }).then(ok => {
+					toast(ok ? 'Market prices refreshed' : 'The Market did not answer — showing the last prices it gave');
+					// The button that asked is in the bar, and so is the
+					// line that says how old the prices are: the render
+					// the new prices fire cannot repaint a bar the focus
+					// is standing in, so this one asks for it.
+					paintPouch({ force: true });
+				});
 				return;
 			case 'water': toggleWater(); if (keeps) openTabSheet(); return;
 			case 'theme': cycleTheme(); if (keeps) openTabSheet(); return;
@@ -927,6 +972,10 @@ function wire() {
 			case 'signin':
 			case 'account': return openAccount();
 			case 'feedback': return import('./feedback.js').then(m => m.openFeedback());
+			// The masthead carries this on every screen; the sheet has it
+			// as well because on a phone the masthead is three glyphs and
+			// the menu is where anyone goes looking.
+			case 'discord': window.open(DISCORD_INVITE, '_blank', 'noopener'); return;
 			case 'inbox': return import('./feedback.js').then(m => m.openInbox());
 			// The masthead's Menu and the thumb bar's are the one sheet;
 			// pressed while it stands, it goes.
@@ -964,6 +1013,9 @@ function wire() {
 			case 'map-measure': toggleMeasure(); return;
 			case 'map-mini': toggleMini(); return;
 			case 'map-full': toggleFull(); return;
+			case 'map-3d': toggle3D(); return;
+			case 'map-level': levelMap(); return;
+			case 'map-style': setMapStyle(el.dataset.id); return;
 			case 'map-sail-cal': return openSailCal();
 			case 'map-route-link':
 				try {
@@ -1102,6 +1154,8 @@ function wire() {
 			// draws them; these are what they do.
 			case 'goto-map': mapShowItem(el.dataset.item); showView('map'); return;
 			case 'goto-quests': setQuestPay(el.dataset.item); showView('quests'); return render();
+			// The plan's quest rows open the quest itself, lit and scrolled to.
+			case 'get-quest': setQuestFocus(el.dataset.quest); showView('quests'); return render();
 			case 'goto-tree': {
 				// The Tree unfolds one queued build, so a door into it
 				// carries which build that is -- worked out where the
@@ -1302,6 +1356,7 @@ function wire() {
 				// (and repaint through it), the rest are session state.
 				if (act.startsWith('crew-') && crewAction(act, el)) return render();
 				if (act.startsWith('quest-') && questAction(act, el)) return render();
+				if (act.startsWith('get-') && getAction(act, el)) return render();
 				if (act.startsWith('community-') && communityAction(act, el)) return render();
 		}
 	});
@@ -1312,13 +1367,24 @@ function wire() {
 		// The Value Pack is a tick rather than a number, so it lands first
 		// and on its own.
 		const vp = evt.target.closest('[data-act="value-pack"]');
-		if (vp) return store.setProfile('valuePack', vp.checked);
+		if (vp) {
+			store.setProfile('valuePack', vp.checked);
+			// The tick is in the bar, and so are the two chips it moves
+			// -- the word beside it and the draws a day. The render the
+			// store fires cannot repaint a bar the focus is standing in,
+			// so this one asks for it.
+			return paintPouch({ force: true });
+		}
 
 
 		// The level is a name, not a number, so it lands before the
 		// numeric parse below rather than going through it.
 		const lvl = evt.target.closest('[data-act="barter-level"]');
-		if (lvl) return store.setProfile('level', lvl.value || null);
+		if (lvl) {
+			store.setProfile('level', lvl.value || null);
+			// Same: the Parley a trade under the select is the bar's own.
+			return paintPouch({ force: true });
+		}
 
 		// How the route is written to the game's map -- favourites or one
 		// of its loops. A select answers on change, not on click.
@@ -1328,8 +1394,19 @@ function wire() {
 			return openGameExport();
 		}
 
+		// The region every Market price in the app is quoted in. It is a
+		// chip in the bar, so the age line beside it is repainted here
+		// rather than waiting for the focus to leave the select.
 		const mreg = evt.target.closest('[data-act="market-region"]');
-		if (mreg) return setMarketRegion(mreg.value);
+		if (mreg) {
+			setMarketRegion(mreg.value);
+			return paintPouch({ force: true });
+		}
+
+		// The plan's orders: the days a week at sea, and the coins kept
+		// back. The activity chips are buttons and answer a click.
+		const gc = evt.target.closest('[data-act="get-days"], [data-act="get-reserve"]');
+		if (gc) return getChange(gc, parseAmount);
 
 		// The ticked tiles, moved to one storage as one change.
 		const pl = evt.target.closest('[data-act="inv-place"]');
@@ -1405,6 +1482,11 @@ function wire() {
 			store.setProfile('failstacks', stacks);
 		}
 		else store.setStock(el.dataset.item, n);
+		// A number typed in the bar and committed with Enter keeps the
+		// focus where it is, so the chips around it are repainted here
+		// rather than waiting for the focus to leave the bar. The
+		// phone's sheet is the same bar in another host.
+		if (el.closest('#pouch, .pouch-sheet')) paintPouch({ force: true });
 	});
 
 	// The pouch holds its ground while you type in it; once focus leaves it
@@ -1557,8 +1639,11 @@ function wire() {
 
 	window.addEventListener('resize', () => { measurePouch(); measureTabBar(); });
 	// Turning a phone swaps the tab row for the thumb bar or back; the
-	// sheets stand on the bar's height, so it is measured again.
-	onPhoneChange(() => { measureTabBar(); measurePouch(); });
+	// sheets stand on the bar's height, so it is measured again. The
+	// pouch is two different things either side of that line -- a row
+	// of chips, or one line that opens a sheet -- so it is redrawn and
+	// not merely re-measured.
+	onPhoneChange(() => { measureTabBar(); paintPouch({ force: true }); });
 
 	// The pouch writes big silver the short way ("1.96b"); under the
 	// caret it swaps to the exact digits, so editing never rounds what
@@ -1571,8 +1656,8 @@ function wire() {
 	});
 
 	document.addEventListener('focusout', evt => {
-		const host = document.getElementById('pouch');
-		if (!host || !host.contains(evt.target)) return;
+		const host = evt.target.closest && evt.target.closest('#pouch, .pouch-sheet');
+		if (!host) return;
 		if (host.contains(evt.relatedTarget)) return;
 		paintPouch();
 	});
@@ -1947,10 +2032,22 @@ function openWhatsNew({ onClose = null } = {}) {
 	const points = list => (list && list.length
 		? `<ul class="news-points">${list.map(p => `<li>${p}</li>`).join('')}</ul>` : '');
 
+	// Who asked for it, in their own words, above the fold. A player who
+	// wrote in and then had to open "everything else" to find themselves
+	// has been thanked in a drawer.
+	const t = r.thanks;
+	const thanks = t && t.who && t.who.length ? `<section class="news-thanks">
+		<h3>Asked for by you</h3>
+		<p>${t.text}</p>
+		<ul class="news-points">${t.who.map(w => `<li><b>${esc(w.name)}</b> — <i>“${w.said}”</i> ${w.did}</li>`).join('')}</ul>
+		${t.foot ? `<p class="news-thanks-foot">${t.foot}</p>` : ''}
+	</section>` : '';
+
 	const host = openDialog(`
 		<h2>What's new</h2>
 		<p class="news-rel"><b>${esc(r.name)}</b> · version ${esc(r.id)} · ${esc(r.date)}</p>
 		<p class="dialog-copy">${r.blurb}</p>
+		${thanks}
 		<div class="news">
 			${headline.map(s => `<section class="news-item">
 				<h3>${s.title}</h3>
@@ -1994,17 +2091,48 @@ function markReleaseSeen() {
  * The guided tour points at things on your own screen, which is the right
  * way to learn a control you are looking at. This is for the other
  * question -- "what is this for" -- answered once, end to end, without
- * having to do anything. It is the real app, driven and captioned, with a
- * narrower cut for a phone: neither is a mock-up, so a screen that
- * changes makes the film wrong until it is shot again, which
- * tools/capture does in one command.
+ * having to do anything. It is the real app, driven and narrated; the
+ * only invented thing in it is the sailors on the boards, since a
+ * machine shooting a film has no deployment with players on it.
+ *
+ * Seven chapters joined rather than the single run this used to be, which
+ * buys two things: thirteen minutes can be entered at the part you
+ * actually wanted, and each part is a file of its own under
+ * docs/media/guide for linking at.
+ *
+ * One cut for every screen now. The narrow cut existed because the
+ * captions are drawn into the picture at a size a phone cannot read;
+ * the film carries a caption track of its own instead, which a phone
+ * renders at its own size. And a fourteen-minute film neither autoplays
+ * nor loops -- `preload="metadata"` keeps it off the wire until it is
+ * asked for, which matters rather more at thirty megabytes than it did
+ * at seven.
  */
 function openHelp() {
-	const file = isPhone() ? 'walkthrough-phone.mp4' : 'walkthrough.mp4';
+	const at = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+	// The offsets are generated beside the film; what each part is for is
+	// copy, and stays here.
+	const WHAT = {
+		'The Yard': 'set your numbers, queue a build, record what you gather, make it',
+		'To Get': 'one way to each thing you are short of, in the days it takes',
+		Quests: 'the free rewards, and recording a batch of them at once',
+		'Your Ship': 'parts, crystal, appearance, and a crew read off your screenshots',
+		'A Run': 'answer one island, and sail what the board lays out',
+		'The Map': 'the chart full screen and stood up, and all five of its tabs',
+		'The Harbour': 'the boards, and what is and is not shared'
+	};
 	const host = openDialog(`
 		<h2>How this works</h2>
-		<p>The whole thing, end to end. The yard first — queue a build, choose how to get there, record what you gathered, make something, see what it will really cost, take the list shopping — then the sea: the day's free quests, the ship you sail, the chart, where that list becomes a loop with minutes on it and a blank stretch of water can be drawn on — and a run planned on today's board, sailed on that chart.</p>
-		<video class="help-film" src="docs/media/${file}" controls autoplay muted playsinline loop></video>
+		<p>Thirteen minutes, in seven parts — the real app, driven and narrated. Start anywhere.</p>
+		<video class="help-film" src="docs/media/walkthrough.mp4" controls preload="metadata" playsinline>
+			<track kind="captions" srclang="en" label="English" src="docs/media/walkthrough.vtt">
+		</video>
+		<ol class="film-chapters">${film.map((c, i) => {
+		// "Three — Your Ship" is the mark's own label; the number is
+		// already in the list, so the list shows the name.
+		const name = c.title.split('—').pop().trim();
+		return `<li><button data-seek="${c.at}"><b>${i + 1}. ${esc(name)}</b><span>${esc(WHAT[name] || '')}</span><em>${at(c.at)}</em></button></li>`;
+	}).join('')}</ol>
 		<details class="help-more">
 			<summary>Day by day</summary>
 			<p class="dialog-copy">The working diary. What arrived between one <i>version</i> and the next is under <b>Menu → What's new</b>.</p>
@@ -2018,6 +2146,8 @@ function openHelp() {
 			<div class="help-data">${DATA.map(d => `<div class="kv-row"><span>${esc(d.what)}</span><span class="n">${esc(d.asOf)}${d.from ? ` · ${esc(d.from)}` : ''}</span></div>`).join('')}</div>
 			<p class="dialog-copy">A patch can move any of these. The Market prices are live; everything else is a snapshot the app was checked against on the date shown.</p>
 		</details>
+		<p class="dialog-copy">Questions, routes and anything the game has moved go to the sailors' server:
+			<a href="${DISCORD_INVITE}" target="_blank" rel="noopener">discord.gg/bdo-sailing</a> — the masthead's mark is the same door.</p>
 		<p class="dialog-copy help-credit">Built by <b>waliori</b> ·
 			<a href="https://github.com/waliori/bdo-ship-upgrade-tracker" target="_blank" rel="noopener">the source</a>,
 			free to use and to fork under
@@ -2028,10 +2158,24 @@ function openHelp() {
 			<button class="act" data-act="tour">Walk me through my own screen</button>
 		</div>
 	`);
-	// The captions are the narration, so it starts muted and stays that
-	// way; unmuting an autoplaying video is a good way to be hated.
-	const film = host.querySelector('video');
-	if (film) film.play().catch(() => { /* a browser that would rather not */ });
+	// The chapter list is the only way into the middle of it: a browser
+	// will not surface an mp4's own chapter marks, so the offsets are
+	// kept beside the film and seeking is done by hand. Playing from a
+	// standing start is the viewer's business -- thirteen minutes is not
+	// something to begin without being asked.
+	// `player`, not `film`: the chapter offsets imported above are called
+	// that, and a const here of the same name shadows them for the whole
+	// function -- including the template above, which reads them before
+	// this line runs.
+	const player = host.querySelector('video');
+	if (player) {
+		for (const b of host.querySelectorAll('[data-seek]')) {
+			b.addEventListener('click', () => {
+				player.currentTime = Number(b.dataset.seek);
+				player.play().catch(() => { /* a browser that would rather not */ });
+			});
+		}
+	}
 	return host;
 }
 

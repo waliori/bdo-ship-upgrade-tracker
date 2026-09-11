@@ -30,7 +30,7 @@ import { propose } from './barter-optimizer.js';
 import { coins as coinShop } from './sea_coins.js';
 import { landPrices } from './land-cost.js';
 import { marketStatus, marketSilver } from './market.js';
-import { GOODS, PARLEY, parleyPerTrade, levelOf, barterLevels, levelDiscount, ROUTE_UNLOCKS } from './barter.js';
+import { GOODS, PARLEY, parleyPerTrade, levelOf, levelDiscount, ROUTE_UNLOCKS, npcGate, npcOpen } from './barter.js';
 import { parleyLedger } from './parley-ledger.js';
 import { exchanges, goodsHeld, weightOf, sellOf, aboardStock as aboardOf } from './barter-plan.js';
 import { TOWNS } from './screen-inventory.js';
@@ -270,8 +270,7 @@ function holdBarHTML(me) {
 			<span class="hold-bar-open">open ›</span>
 		</button>
 		<span class="panel-btns hold-bar-btns">
-			<label class="hold-parley" title="What the Parley bar holds right now — a full million after the refill, less if some was spent; the run's bars count down from it"><span>Parley</span><input class="purse-inline" type="text" inputmode="numeric" value="${F(prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max)}" data-act="parley-held" aria-label="Parley in the bar right now">${prof.vouchers ? `<small>+ ${prof.vouchers} voucher${prof.vouchers === 1 ? '' : 's'}</small>` : ''}</label>
-			<label class="hold-parley" title="Your barter level, as the Barter window shows it: higher levels take a share off every attempt's Parley, and the run's bars are priced at it"><select class="purse-inline" data-act="barter-level" aria-label="Your barter level"><option value=""${prof.level ? '' : ' selected'}>level —</option>${barterLevels().map(l => `<option value="${esc(l)}"${prof.level === l ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select><small>−${(levelDiscount(prof.level) * 100).toFixed(2)}%${prof.valuePack ? ' −10% pack' : ''}${prof.crew ? ' −10% crew' : ''} · ${F(parleyOf(prof).perTrade)} a trade</small></label>
+			<span class="hold-parley read" title="The Parley in the bar and what an attempt costs at your level — set both in the bar at the top of the page, where every screen reads them"><span>Parley</span><b>${F(prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max)}</b><small>${esc(prof.level || 'no level set')} · −${(levelDiscount(prof.level) * 100).toFixed(2)}%${prof.valuePack ? ' −10% pack' : ''}${prof.crew ? ' −10% crew' : ''} · ${F(parleyOf(prof).perTrade)} a trade${prof.vouchers ? ` · ${prof.vouchers} voucher${prof.vouchers === 1 ? '' : 's'}` : ''}</small></span>
 			<button class="ghost-btn sm" data-act="barter-add" title="Record a good that is aboard">＋ A good</button>
 		</span>
 	</section>`;
@@ -323,7 +322,7 @@ function holdHTML(me) {
 	const mark = w.mark;
 	const state = w.state === 'heavy' ? 'over' : w.state;
 	const room = lv => Math.max(0, Math.floor((w.limit - w.total) / GOODS[lv].weight));
-	const sub = !n ? `${w.text} · no goods aboard${w.crew ? `, ${F(w.crew)} of it crew` : ''} · barters to ${F(w.deal)}, moves to ${F(w.max)}`
+	const sub = !n ? `${w.text} · no goods aboard${w.crew ? `, ${F(w.crew)} of it crew` : ''} · ${w.deal === w.max ? `barters and moves to ${F(w.max)}` : `barters to ${F(w.deal)}, moves to ${F(w.max)}`}`
 		: w.note ? `${w.text} — ${w.note}`
 			: `${w.text} · room for ${room(5)} more Lv4–5 or ${room(6)} Lv6–7 under the limit`;
 	const q = holdQ.trim().toLowerCase();
@@ -418,6 +417,7 @@ const fromPort = () => ports.find(p => p.id === port) || null;
  * finds it, with the goal toggle and the refresh beside it.
  */
 function boardHTML(b) {
+	const prof = barterProfile();
 	const goalChip = (id, label, title) => `<button class="seg${goal === id ? ' on' : ''}" data-act="barter-goal" data-id="${id}" title="${esc(title)}">${label}</button>`;
 	const goals = `<span class="segs" role="group" aria-label="What the run is for">${goalChip('silver', 'Silver', 'The chains of today’s board, and a run along the ones ticked')}${goalChip('material', 'A material', 'The ladder to one material, against what is aboard')}</span>`;
 	// The bar is one row of three parts: what the board is, what was
@@ -445,7 +445,9 @@ function boardHTML(b) {
 			seen,
 			'<button class="ghost-btn sm" data-act="barter-board-clear" title="The board was refreshed in game: start again">↻ Refreshed in game</button>');
 	}
-	const ask = askable(b.standing, npcById, fromPort());
+	// Never asked about an island this sailor cannot sail to: its offer
+	// is not on any barter window they can open.
+	const ask = askable(b.standing, npcById, fromPort()).filter(a => npcOpen(a.npcId, prof.barterCount));
 	if (!b.standing.length) {
 		return bar('lost',
 			'<b>No layout shows that</b><span>nothing in the record fits</span>',
@@ -925,7 +927,7 @@ function ordersHTML(o) {
 
 /** One chain of the board, to tick: where it starts, how far it
  *  reaches, the islands, the goods, and what one pass of it pays. */
-function chainRow(c, on, solo, dockName, from, ladder = null) {
+function chainRow(c, on, solo, dockName, from, ladder = null, shut = null) {
 	// The pips are the rungs this chain climbs: from the shore up for a
 	// land chain, from the good held for the rest -- a [Level 5] aboard
 	// shows 5, 6, 7, not the ladder beneath it.
@@ -948,6 +950,28 @@ function chainRow(c, on, solo, dockName, from, ladder = null) {
 		const picked = ladder.chosen.includes(x);
 		return `<button class="chip tiny${picked ? ' active' : x === c ? ' shown' : ''}" data-act="barter-chain-start" data-id="${esc(x.id)}" data-group="${esc(group)}" title="${x.from === 'land' ? `Buy ${F(x.rungs[0].giveN)}× ${esc(x.item)} ashore and climb from Level 1` : `Climb from the ${n1(x.have + x.load)}× ${esc(x.item)} held`} — the islands above deal once, so one start is sailed"><i class="chain-start-lv" style="--tier:${TIER(x.from === 'land' ? 1 : levelOf(x.item))}">${x.from === 'land' ? '⌂' : levelOf(x.item)}</i>${startOf(x)}${sol && sol.silver ? `<em>${FC(Math.round(sol.net))}</em>` : ''}</button>`;
 	}).join('')}</div>` : '';
+	// A climb through an island the barter count has not opened is shown
+	// rather than dropped -- it is what the day's board holds, and what
+	// the next threshold is worth -- but it cannot be ticked, and where
+	// the silver would be it says what opens it.
+	if (shut) {
+		const npc = npcById.get(shut.npcId);
+		return `<button class="chain shut" disabled style="--tier:${TIER(c.top)}" title="${esc(isleOf(npc) || shut.npc)} opens at ${F(shut.barters)} Total Barters">
+			<span class="chain-mark">🔒</span>
+			<span class="chain-main">
+				<span class="chain-start">${start}</span>
+				<span class="chain-pips">${pips}<em>Level ${c.top}</em></span>
+				<span class="chain-route">${c.rungs.map(r => `<span class="${r.npcId === shut.npcId ? 'chain-shut-isle' : ''}">${esc(isleShort(npcById.get(r.npcId)) || r.npc)}</span>`).join(' › ')}</span>
+				<span class="chain-goods">${c.rungs.map(r => img(r.item, 'row-icon sm')).join('')}</span>
+			</span>
+			<span class="chain-right">
+				<b class="none">locked</b>
+				<span class="chain-yard"><em>${esc(isleOf(npc) || shut.npc)}</em></span>
+				<span>opens at ${F(shut.barters)} Total Barters</span>
+				<span>${F(shut.short)} more to go</span>
+			</span>
+		</button>`;
+	}
 	const card = `<button class="chain${on ? ' on' : ''}" data-act="barter-chain" data-id="${esc(c.id)}"${group ? ` data-group="${esc(group)}"` : ''} style="--tier:${TIER(c.top)}">
 		<span class="chain-mark">${on ? '✓' : ''}</span>
 		<span class="chain-main">
@@ -1096,13 +1120,13 @@ function expectedBest(me, b, prof) {
 	const stock = aboardStock(), dock = dockStock();
 	const made = store.getProfile('homemade', []) || [];
 	const ship = { speed: me.speed.total, cal: sailCal() };
-	const key = JSON.stringify([board.day, b.standing.map(c => c.id), stock, dock, o, port, stash, made, me.hold, ship, Object.keys(marketSilver()).length]);
+	const key = JSON.stringify([board.day, b.standing.map(c => c.id), stock, dock, o, port, stash, made, me.hold, ship, Object.keys(marketSilver()).length, prof.barterCount]);
 	if (expected.key === key) return expected.value;
 	const parley = parleyOf(prof);
 	let sum = 0, weight = 0, min = Infinity, max = -Infinity, best = null;
 	for (const combo of b.standing) {
 		const data = boardData(combo, barterData, npcById, board.answers);
-		const all = chains(data, stock, dock).filter(c => o.buy || c.from !== 'land');
+		const all = chains(data, stock, dock, prof.barterCount).filter(c => (o.buy || c.from !== 'land') && !c.gate);
 		const prices = landPrices(all.filter(c => c.from === 'land').map(c => c.item), made);
 		const opts = { stock, dock, hold: me.hold, parley, npcById, start: from, stashes, prefer: stashAt(), pace: o.pace, orders: o, prices };
 		const { best: top } = propose({ chains: all, opts, ship, timeCap: o.hours, width: 1, depth: 6 });
@@ -1520,7 +1544,13 @@ function silverParts(me, b) {
 	const pace = o.pace;
 	const stock = aboardStock(), dock = dockStock();
 	// Land chains only when the orders buy ashore.
-	let all = chains(b.data, stock, dock).filter(c => o.buy || c.from !== 'land');
+	// The board's chains, less the ones that climb through an island
+	// this sailor has not opened: those are not runs, they are doors,
+	// and they are counted for the line that says so rather than laid
+	// out as if they could be sailed today.
+	const everything = chains(b.data, stock, dock, prof.barterCount);
+	const shutChains = everything.filter(c => c.gate && (o.buy || c.from !== 'land'));
+	let all = everything.filter(c => (o.buy || c.from !== 'land') && !c.gate);
 	// Asked to reach a good for the material run: only the chains that
 	// pass it, each cut there, so the run ends with that good aboard.
 	if (reach) {
@@ -1545,7 +1575,12 @@ function silverParts(me, b) {
 	// The runs worth sailing, searched once for these inputs and kept
 	// until any of them change; each chain's run on its own likewise.
 	const ship = { speed: me.speed.total, cal: sailCal() };
-	const pkey = JSON.stringify([board.day, b.combo.id, stock, dock, o, port, stash, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, reach]);
+	// The barter count is part of the key, and has to be: it decides
+	// which chains exist at all. Without it, raising the count left the
+	// solo runs keyed to the old, shorter set -- and the first chain the
+	// new count opened had no run in the map, which threw inside the
+	// render and froze the tab on the old board.
+	const pkey = JSON.stringify([board.day, b.combo.id, stock, dock, o, port, stash, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, reach, prof.barterCount]);
 	const search = { chains: all, opts, ship, timeCap: o.hours };
 	// The search goes to the worker and the page draws meanwhile; asked
 	// again when the inputs change, or when an answer is owed and no
@@ -1623,7 +1658,10 @@ function silverParts(me, b) {
 		ladders.get(longest.id).push(c);
 	}
 	for (const list of ladders.values()) list.sort((x, y) => y.rungs.length - x.rungs.length);
-	const tops = [...new Set(all.map(c => c.top))].sort((a, b2) => b2 - a);
+	// The levels the list shows are the ones anything reaches, shut or
+	// not: a reach whose only climbs are behind a door still has a group,
+	// so the door is where a reader looks for it.
+	const tops = [...new Set([...all, ...shutChains].map(c => c.top))].sort((a, b2) => b2 - a);
 	const chainFilters = `<div class="chain-filters">
 		<input class="field hold-q" type="search" placeholder="Find an island, a place or a good…" value="${esc(chainQ)}" data-act="barter-chain-q" aria-label="Find a chain">
 		<span class="chips">
@@ -1640,11 +1678,19 @@ function silverParts(me, b) {
 			const starts = list.filter(c => listed.includes(c));
 			if (!starts.length) return '';
 			const shown = starts.find(c => chosen.includes(c)) || starts.slice().sort((x, y) => all.indexOf(x) - all.indexOf(y))[0];
-			return chainRow(shown, chosen.includes(shown), solos.get(shown.id), from && from.name, from, starts.length > 1 ? { starts, chosen, solos } : null);
+			// A chain with no run of its own yet -- the set moved under a
+			// memo -- is drawn as nothing rather than thrown over.
+			const solo = solos.get(shown.id);
+			if (!solo) return '';
+			return chainRow(shown, chosen.includes(shown), solo, from && from.name, from, starts.length > 1 ? { starts, chosen, solos } : null);
 		}).filter(Boolean);
-		if (!rows.length) return '';
+		// The climbs at this reach that are not this sailor's yet: the
+		// same search filters them, so a word typed finds them too.
+		const locked = shutChains.filter(c => c.top === top && passes(c))
+			.map(c => chainRow(c, false, null, from && from.name, from, null, c.gate));
+		if (!rows.length && !locked.length) return '';
 		const of = [...ladders.values()].filter(list => list[0].top === top).length;
-		return `<div class="chain-group"><div class="chain-group-head" style="--tier:${TIER(top)}"><i></i><span>Reaches Level ${top}</span><span>${rows.length}${rows.length !== of ? ` of ${of}` : ''}</span></div>${rows.join('')}</div>`;
+		return `<div class="chain-group"><div class="chain-group-head" style="--tier:${TIER(top)}"><i></i><span>Reaches Level ${top}</span><span>${rows.length}${rows.length !== of ? ` of ${of}` : ''}${locked.length ? ` · ${locked.length} locked` : ''}</span></div>${rows.join('')}${locked.join('')}</div>`;
 	}).join('');
 	// What pays the good today, and whether its give is held: the answer
 	// even when no chain from the shore reaches it.
@@ -1653,7 +1699,15 @@ function silverParts(me, b) {
 		? `Today ${pays.map(x => `<b>${esc(isleOf(npcById.get(x.npcId)))}</b> pays it for ${esc(x.giveText)}× ${esc(x.give)}${heldOf(x.give).run > 0 ? ` (${F(heldOf(x.give).run)} held)` : ' (none held)'}`).join('; ')}.`
 		: 'No island on today’s board pays it.';
 	const reachBar = reach ? `<div class="reach-bar"><span>Reaching <b>${esc(reach)}</b> for the material run: the chains that pass it, cut there, so it comes home aboard. ${paysText}${all.length ? '' : pays.length ? ' Nothing on this board climbs to that give — wait for a refresh, or clear.' : ' Wait for a refresh, or clear.'}</span><button class="chip tiny" data-act="barter-goal" data-id="material" title="Back to the material run">← the material run</button><button class="chip tiny" data-act="barter-reach-clear">clear</button></div>` : '';
-	const chainsPanel = `<section class="panel barter-chains">${headFill(fillable)}<div class="panel-body">${reachBar}${reach ? '' : proposals}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.buy ? 'Nothing climbs on this board.' : 'Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.') : 'No chain matches.'}</p>`}</div></div></section>`;
+	// The chains left out because a rung of theirs stands at an island
+	// this sailor has not opened. Said out loud and by name: a board
+	// that quietly showed three fewer chains than it holds would be the
+	// same lie the app used to tell, only in the other direction.
+	const shutIsles = [...new Map(shutChains.map(c => [c.gate.npcId, c.gate])).values()].sort((a, b) => a.barters - b.barters);
+	const shutNote = shutIsles.length
+		? `<div class="barter-shut"><b>${shutChains.length} chain${shutChains.length === 1 ? '' : 's'} on this board ${shutChains.length === 1 ? 'is' : 'are'} not yours to sail yet</b> — ${shutIsles.map(g => `${esc(isleOf(npcById.get(g.npcId)) || g.npc)} opens at ${F(g.barters)} Total Barters, ${F(g.short)} more`).join('; ')}. ${shutChains.length === 1 ? 'It is' : 'They are'} listed below, locked, and left out of the run and of the runs worth sailing.${prof.barterCount ? '' : ' Your Total Barters read nought — set them in the bar at the top of the page.'} <button class="linky" data-act="routes">every route and its count →</button></div>`
+		: '';
+	const chainsPanel = `<section class="panel barter-chains">${headFill(fillable)}<div class="panel-body">${shutNote}${reachBar}${reach ? '' : proposals}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.buy ? 'Nothing climbs on this board.' : 'Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.') : 'No chain matches.'}</p>`}</div></div></section>`;
 
 	const plan = chainRun({ ...opts, chosen });
 	for (const s of plan.stops) s.hold = me.hold;
@@ -1685,7 +1739,7 @@ function silverParts(me, b) {
 	const tiles = `<div class="run-tiles">
 		${tile(plan.cost ? 'Silver, net' : 'Sold in port', plan.silver ? FC(Math.round(plan.net)) : '—', plan.silver ? `${soldWhat} sold at the wharf${plan.cost ? ` for ${FC(Math.round(plan.silver))} · ${FC(Math.round(plan.cost))} of land goods bought` : ''}${plan.bought.some(b => b.how === 'unpriced') ? ' · some land goods unpriced' : ''}` : chosen.length ? 'no chain ticked sells' : 'pick a chain', plan.net < 0 ? 'warn' : 'gold')}
 		${tile('A Parley unit pays', yard.perUnit ? FC(Math.round(yard.perUnit)) : '—', yard.perUnit ? `${F(Math.round(plan.parleyUsed))} Parley of ${F(plan.parleyBar)} · ${F(plan.trades)} trade${plan.trades === 1 ? '' : 's'}${yard.perHour ? ` · ≈ ${FC(Math.round(yard.perHour))} an hour` : ''}` : `${F(plan.trades)} trade${plan.trades === 1 ? '' : 's'} · one unit is one normal trade’s Parley`, 'gold')}
-		${tile('Hold at its fullest', plan.stops.length ? esc(peak.text) : '—', `${peak.note || 'under the limit'} · barters to ${F(peak.deal)} · moves to ${F(peak.max)}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
+		${tile('Hold at its fullest', plan.stops.length ? esc(peak.text) : '—', `${peak.note || 'under the limit'} · ${peak.deal === peak.max ? `barters and moves to ${F(peak.max)}` : `barters to ${F(peak.deal)} · moves to ${F(peak.max)}`}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
 		${tile('Parley at the end', plan.stops.length ? F(book.end) : '—', `${F(book.spent)} spent from ${F(parley.held)}${prof.vouchers ? ` · ${book.vouchersUsed} of ${prof.vouchers} voucher${prof.vouchers === 1 ? '' : 's'} drawn on` : ''}${book.short ? ` · <b class="warn">${F(book.short)} short</b>` : ''}`, book.short ? 'warn' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
 		${tile('Under way', legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `≈ ${esc(legs.time)} at ${me.speed.total}% · ${islands} island${islands === 1 ? '' : 's'}${wharfs ? `, ${wharfs} wharf call${wharfs === 1 ? '' : 's'}` : ''}${from ? ` · from ${esc(from.name)}` : ''}` : 'pick a chain')}
 	</div>${notice}${chosen.length ? pacesHTML(opts, chosen, pace, me) : ''}`;
@@ -1814,6 +1868,7 @@ function matStripHTML(mats, it) {
  */
 function matListHTML(it, data, { short = 0, boards = 0 } = {}) {
 	const mb = matBoardNow();
+	const barters = barterProfile().barterCount;
 	const rows = exchanges(data).filter(x => x.item === it && npcById.has(x.npcId));
 	if (!rows.length) return '';
 	const byGive = new Map();
@@ -1840,6 +1895,14 @@ function matListHTML(it, data, { short = 0, boards = 0 } = {}) {
 					const other = elsewhere(x.npcId);
 					const seen = matSeenOn(x.npcId, give, it);
 					const npc = npcById.get(x.npcId);
+					// An island the barter count has not opened is shown
+					// rather than hidden -- it is where this material is
+					// dealt, and worth knowing -- but it cannot be ticked
+					// and it says what opens it.
+					const gate = npcGate(x.npcId);
+					if (!npcOpen(x.npcId, barters)) {
+						return `<button class="chip mat-isle shut" disabled title="${esc(npc.at)} — ${esc(npc.name)} · opens at ${F(gate)} Total Barters, ${F(gate - barters)} more">🔒 ${esc(isleShort(npc))}<span class="mat-isle-who">${F(gate)}</span></button>`;
+					}
 					return `<button class="chip mat-isle${on ? ' active' : ''}${other ? ' other' : ''}" data-act="barter-mat-tick" data-npc="${x.npcId}" data-give="${esc(give)}" title="${esc(npc.at)} — ${esc(npc.name)}${other ? ` · today it shows ${other.give} → ${other.recv}` : ''}${seen && seen.of ? ` · showed this on ${seen.n} of ${seen.of} recorded boards` : ''}">${on ? '✓ ' : ''}${esc(isleShort(npc))}<span class="mat-isle-who">${esc(whoOf(npc))}</span>${seen && seen.of ? `<span class="mat-isle-seen${seen.n ? ' some' : ''}">${seen.n}/${seen.of}</span>` : ''}</button>`;
 				}).join('');
 			const have = held.run > 0
@@ -1909,7 +1972,11 @@ function materialParts(me, data) {
 		${it ? matListHTML(it, data, { short, boards: matBoards && matBoards.boards ? matBoards.boards.length : 0 }) : `<div class="mat-pick-hint">${mats.length ? 'No material is open. Tap one above to tick its islands, or add another; the run below sails for every one ticked.' : 'Nothing on the run yet. Add a material and tick the islands showing it today.'}</div>`}
 	</section>`;
 	const rows = exchanges(data).filter(x => npcById.has(x.npcId));
-	const picks = showing.map(a => rows.find(x => x.npcId === a.npcId && x.give === a.give && x.item === a.recv)).filter(Boolean);
+	// A tick kept from before a save was moved, or from before the
+	// gate was known, is not a stop: the run only calls where the
+	// barter count says it may.
+	const picks = showing.map(a => rows.find(x => x.npcId === a.npcId && x.give === a.give && x.item === a.recv))
+		.filter(x => x && npcOpen(x.npcId, barterProfile().barterCount));
 	const plan = materialRun({
 		picks, wants: new Map(mats.map(m => [m.it, m.qty])), reach: matOrders.reach, pace: matOrders.pace, calls: matOrders.calls,
 		stock: aboardStock(), dock: dockStock(), stores: storesElsewhere(), bags: bagsNow(),
@@ -2204,13 +2271,25 @@ function pickOffer(npcId, then) {
 /** An island of the player's own choosing, the telling ones first. */
 function pickIsland(then) {
 	const { standing } = boardNow();
+	// The islands this sailor has not opened are listed too -- greyed,
+	// unpickable, and saying what opens them. Hiding them made the list
+	// look short for no reason a reader could see; shown, it is a map of
+	// what the count is worth.
+	const barters = barterProfile().barterCount;
 	const list = askable(standing, npcById, fromPort());
 	openPicker({
 		title: 'Which island are you looking at?',
-		hint: 'The ones whose offer tells the layouts apart best come first.',
-		items: list.map(a => {
+		hint: 'The ones whose offer tells the layouts apart best come first. The ones your Total Barters have not opened are greyed, with the count that opens them.',
+		items: [...list].sort((a, b) => Number(npcOpen(b.npcId, barters)) - Number(npcOpen(a.npcId, barters))).map(a => {
 			const n = npcById.get(a.npcId);
-			return { id: String(a.npcId), label: isleOf(n), sub: whoOf(n), icon: '', meta: a.worst > 1 ? `${a.worst} left at worst` : 'settles it' };
+			const gate = npcGate(a.npcId);
+			const shut = gate > barters;
+			return {
+				id: String(a.npcId), label: isleOf(n), icon: '',
+				sub: shut ? `${whoOf(n)} · opens at ${F(gate)} Total Barters` : whoOf(n),
+				meta: shut ? `${F(gate - barters)} more` : a.worst > 1 ? `${a.worst} left at worst` : 'settles it',
+				disabled: shut
+			};
 		}),
 		onPick: id => pickOffer(Number(id), then)
 	});

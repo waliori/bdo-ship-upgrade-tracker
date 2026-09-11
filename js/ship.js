@@ -11,7 +11,7 @@
 
 import * as store from './state.js';
 import { skinFor, skinStats, SKIN_SLOTS } from './ship_skins.js';
-import { shipStats } from './ship_stats.js';
+import { shipStats, bigShips } from './ship_stats.js';
 import { partStats, slotOf, fitsShip, statsAt, sumStats, loadout } from './part_stats.js';
 import { families, FAMILY_RANK } from './enhancement.js';
 import { crewTotals, mateAboard } from './sailors.js';
@@ -26,11 +26,23 @@ export const SLOTS = ['cannon', 'sail', 'figurehead', 'plating'];
  * the game's own tooltip gives only the limit.
  */
 export const OVERLOAD = 1.7;
-/** How far past its limit a ship still barters: the islands stop
- *  dealing above this. No patch note gives the figure; a 27,000 LT
- *  hold was seen dealing up to about 33,750 and refused past 34,000
- *  (2026-09-04), which is the game's usual overweight step. */
-export const BARTER_OVER = 1.25;
+/**
+ * How far past its limit a ship still barters.
+ *
+ * The same 170%: the islands deal right up to the point the hull stops
+ * moving, and there is no band in between where you can sail but not
+ * trade. This was 125% until 2026-09-11, read off a single session in
+ * which a 27,000 LT hold seemed to refuse past about 34,000 -- which is
+ * what a quarter over looks like, and is why it was believed. It was
+ * wrong, and it was costing every barter route a third of its hold:
+ * chains were cut short, material runs were split, and a plan said a
+ * second trip was needed where one would have done.
+ *
+ * Kept as a name of its own rather than folded into OVERLOAD, because
+ * the two are different facts about the game that happen to agree, and
+ * a patch that moved one would not necessarily move the other.
+ */
+export const BARTER_OVER = OVERLOAD;
 // The part families ranked, from enhancement.js: the picker offers the
 // best tier first, and the boards score by the same order.
 const RANK = FAMILY_RANK;
@@ -130,6 +142,78 @@ export function masteryBonus(mastery = store.getProfile('sailingMastery', 0) || 
 
 
 /* ------------------------------------------------------------------ *
+ * The pets aboard
+ * ------------------------------------------------------------------ */
+
+/**
+ * Bos'n Jack: the one pet in the game whose talent is ship weight.
+ *
+ * "Big Ship Inventory Weight", fifty LT a tier -- 50, 100, 150, 200 --
+ * and a tier 5 still reads 200, because the fifth step of the talent
+ * is what being the Alpha Pet buys and not what the fifth tier gives.
+ * The talent stacks across the five pets the game lets out at once, so
+ * five tier 4s are a thousand LT, and a tier 5 set as Alpha makes one
+ * of them 250. BDOCodex skills 49167-49170 are the four steps and its
+ * pet entries carry them; the 250 is community-sourced and has no
+ * entry of its own, which is why it is added here rather than listed.
+ *
+ * It is a fact about the player and not about any one hull -- the pets
+ * follow you onto whichever ship you sail -- so it is kept in the
+ * profile beside the sailing mastery and asked for in the same bar.
+ */
+const PET_LT = [0, 50, 100, 150, 200, 200];
+/** What being the Alpha Pet is worth on a tier 5: one more step. */
+export const ALPHA_LT = 50;
+/** How many pets the game lets you have out at once. */
+export const PET_SLOTS = 5;
+
+/** The Bos'n Jacks you have summoned, as five slots of tier, 0 empty. */
+export function bosnJacks() {
+	const saved = store.getProfile('bosnJacks', []) || [];
+	return Array.from({ length: PET_SLOTS }, (_, i) => Number(saved[i]) || 0);
+}
+
+/** Whether one of them is your Alpha Pet, which only a tier 5 can be
+ *  worth anything as. */
+export function bosnAlpha() {
+	return store.getProfile('bosnAlpha', false) === true && bosnJacks().includes(5);
+}
+
+/** What a nest of birds is worth, in LT, before any hull is named: what
+ *  the editor counts up as it is being set out. */
+export function petLT(tiers = bosnJacks(), alpha = bosnAlpha()) {
+	const lt = tiers.reduce((sum, t) => sum + (PET_LT[t] || 0), 0);
+	return lt + (alpha && tiers.includes(5) ? ALPHA_LT : 0);
+}
+
+/** And what they add to a hull's limit: the same, or nothing at all on
+ *  anything the game does not call a Big Ship. */
+export function petWeight(ship, tiers = bosnJacks(), alpha = bosnAlpha()) {
+	return bigShips.has(ship) ? petLT(tiers, alpha) : 0;
+}
+
+/**
+ * The whole row at once, and the Alpha with it.
+ *
+ * One write, not five: the editor holds its own draft while it is open
+ * and lands it here when it is done, so setting out a full nest of
+ * birds is a single change, a single entry in the history, and a
+ * single pass over the screens that read the hold. Pressing each bird
+ * round its tiers wrote the save and redrew the app twenty times to
+ * say "five tier fours", which is what an editor is for.
+ */
+export function setPets(tiers, alpha = false) {
+	const next = Array.from({ length: PET_SLOTS }, (_, i) =>
+		Math.max(0, Math.min(5, Math.floor(Number((tiers || [])[i]) || 0))));
+	while (next.length && !next[next.length - 1]) next.pop();
+	return store.setProfileMany({
+		bosnJacks: next.length ? next : null,
+		bosnAlpha: alpha === true && next.includes(5) ? true : null
+	}, 'Changed the pets aboard');
+}
+
+
+/* ------------------------------------------------------------------ *
  * The appearance set
  * ------------------------------------------------------------------ */
 
@@ -176,13 +260,21 @@ export function currentShip() {
 	// weight, turn and durability, so it belongs in the same sum.
 	const skinT = skinStats(name, skinWorn(name));
 	const skin = k => Number(skinT[k]) || 0;
-	const limit = stats.weight + parts('weight') + gem('weight') + skin('weight');
+	// The pets are the player's, not the hull's, and they only count on
+	// a Big Ship -- but on one they are simply more hold, so they go in
+	// the same sum as everything else bolted on.
+	const pets = petWeight(name);
+	const limit = stats.weight + parts('weight') + gem('weight') + skin('weight') + pets;
 	// The hold as a sum, line by line, the way the speed already reads:
 	// what each thing aboard adds or takes.
 	const lines = [{ label: 'hull', lt: stats.weight }];
 	for (const s of fit.slots) if (s.stats && Number(s.stats.weight)) lines.push({ label: `${s.level ? `+${s.level} ` : ''}${s.part.replace(/^.*?: /, '')}`, lt: Number(s.stats.weight) });
 	if (gem('weight')) lines.push({ label: crystal.name, lt: gem('weight') });
 	if (skin('weight')) lines.push({ label: 'appearance set', lt: skin('weight') });
+	if (pets) {
+		const jacks = bosnJacks().filter(Boolean).length;
+		lines.push({ label: `${jacks} Bos'n Jack${jacks === 1 ? '' : 's'}${bosnAlpha() ? ', one Alpha' : ''}`, lt: pets });
+	}
 	if (crew.weight) lines.push({ label: `${crew.seated} sailor${crew.seated === 1 ? '' : 's'} aboard`, lt: -crew.weight });
 	return {
 		name, stats, fit, crew, crystal, mastery, skin: skinT, skinWorn: skinWorn(name),
@@ -207,8 +299,10 @@ export function currentShip() {
  * its crystal and its set add up to. The planner works in goods alone
  * against a limit less the crew, which is the same arithmetic; this is
  * the one face every screen shows. `goods` is the goods' weight in LT.
- * The three marks are the game's: the limit, the barter ceiling a
- * quarter over it, and the most the hull moves under.
+ * Two marks, not three: the limit, and the 170% at which the hull stops
+ * moving and the islands stop dealing together. `deal` and `max` are
+ * both kept -- callers ask each by name, and they are separate facts --
+ * so the band between them is simply empty while the two agree.
  */
 export function shownHold(hold, goods = 0) {
 	const crew = hold.crew || 0;
@@ -223,7 +317,9 @@ export function shownHold(hold, goods = 0) {
 		worse: max ? Math.max(0, Math.min(total, max) - deal) / max * 100 : 0,
 		mark: max ? Math.min(100, limit / max * 100) : 100,
 		text: `${Math.round(total).toLocaleString()} / ${Math.round(limit).toLocaleString()} LT`,
-		note: state === 'dead' ? 'more than the hull will move under' : state === 'heavy' ? 'too heavy to barter — lighten first' : state === 'over' ? 'past the limit — sailing slower' : ''
+		note: state === 'dead' ? 'more than the hull will move under, and past dealing — lighten first'
+			: state === 'heavy' ? 'too heavy to barter — lighten first'
+			: state === 'over' ? 'past the limit — sailing slower' : ''
 	};
 }
 
@@ -278,7 +374,7 @@ export function setupSummary(setup) {
 	// actually are.
 	const skinT = skinStats(setup.ship, setup.skin || {});
 	const skin = k => Number(skinT[k]) || 0;
-	const limit = stats.weight + got('weight') + gem('weight') + skin('weight');
+	const limit = stats.weight + got('weight') + gem('weight') + skin('weight') + petWeight(setup.ship);
 	return {
 		ship: setup.ship,
 		skinned: Object.values(setup.skin || {}).filter(Boolean).length,

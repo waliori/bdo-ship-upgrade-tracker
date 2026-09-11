@@ -1,0 +1,127 @@
+1
+00:00:00,551 --> 00:00:05,658
+This is the Ship tab. Everything the app knows about how fast you sail comes from this one screen.
+
+2
+00:00:08,888 --> 00:00:11,812
+Start with the hull. Pick the ship you actually sail.
+
+3
+00:00:12,650 --> 00:00:16,325
+A ship has four part slots: figurehead, plating, cannon and sail.
+
+4
+00:00:16,325 --> 00:00:19,233
+Each one fills itself with the best part you own.
+
+5
+00:00:19,796 --> 00:00:21,718
+Click Change to pick a different one.
+
+6
+00:00:21,718 --> 00:00:26,891
+It lists every part that fits the slot, with what each does, and marks the ones you actually hold.
+
+7
+00:00:28,958 --> 00:00:31,068
+The fifth slot is your sea crystal.
+
+8
+00:00:31,068 --> 00:00:34,632
+Pick the one you have socketed, and its bonus goes into the numbers.
+
+9
+00:00:35,888 --> 00:00:37,876
+Below that is the appearance set.
+
+10
+00:00:38,372 --> 00:00:45,956
+Skins are cosmetic in most games. Here they are not: a full set adds real durability and rations, so tick the pieces you are wearing.
+
+11
+00:00:46,711 --> 00:00:52,966
+And this panel at the top is the ship itself: its speed, its hold limit, and how many of the five slots are filled.
+
+12
+00:00:53,238 --> 00:00:58,886
+The small print under each figure says where it came from — hull, parts, crystal, crew and mastery, added up.
+
+13
+00:00:58,965 --> 00:01:02,512
+Your Sailing Mastery goes in here, and those figures move with it.
+
+14
+00:01:03,278 --> 00:01:05,986
+Now the crew. This roster starts empty.
+
+15
+00:01:05,986 --> 00:01:12,374
+Typing eighteen sailors in, four growths each, is an evening you will not enjoy. So it reads them off your screenshots instead.
+
+16
+00:01:12,374 --> 00:01:19,482
+Screenshot the Manage Sailors window in game, one sailor a shot, and drop them in. It reads them in your browser — nothing is uploaded.
+
+17
+00:01:23,826 --> 00:01:26,695
+Check the table against the game, then take the ones that are right.
+
+18
+00:01:26,695 --> 00:01:30,028
+And there they are, hired, with their real levels and growths.
+
+19
+00:01:30,028 --> 00:01:34,378
+Sort the list by whatever you are fitting for. Best all round, best for speed, and so on.
+
+20
+00:01:34,378 --> 00:01:37,889
+To seat one by hand, click the sailor, then click the seat you want them in.
+
+21
+00:01:37,889 --> 00:01:43,045
+Where they sit matters. A sail seat doubles their speed growth, and the wheel doubles turn and brake.
+
+22
+00:01:43,359 --> 00:01:46,614
+Or let it arrange the whole crew for you. Click Auto assign.
+
+23
+00:01:46,614 --> 00:01:50,189
+It asks what the boat is for, and shows what each answer would actually give you.
+
+24
+00:01:50,189 --> 00:01:52,056
+Pick one, and it seats everybody.
+
+25
+00:01:52,056 --> 00:01:56,375
+And the row under the ship fills in. That is what the crew is adding, on top of the hull.
+
+26
+00:01:56,623 --> 00:02:00,844
+Two hot presets, for swapping crews quickly. Save the current one to a slot.
+
+27
+00:02:01,360 --> 00:02:03,874
+And click it to put that crew straight back on.
+
+28
+00:02:04,388 --> 00:02:08,905
+A setup is bigger: the whole fit-out, hull, parts, crystal and seating, under a name.
+
+29
+00:02:09,026 --> 00:02:12,504
+The fleet lists every setup you have kept, and every hull you own without one.
+
+30
+00:02:12,504 --> 00:02:15,684
+The one you are sailing is what the Map times its routes at.
+
+31
+00:02:15,684 --> 00:02:19,252
+And you can copy the whole thing as a link, if someone asks what you sail.
+
+32
+00:02:19,252 --> 00:02:24,128
+That is your ship. Get this screen right, and every distance and every minute in the app is yours.

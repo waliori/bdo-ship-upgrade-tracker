@@ -249,11 +249,28 @@ export const MIGRATIONS = [
 			// quietly putting them back.
 			await run('ALTER TABLE users ADD COLUMN community_off INTEGER NOT NULL DEFAULT 0');
 		}
+	},
+	{
+		version: 4,
+		up: async run => {
+			// Who has the page open, and how many have ever opened it.
+			// A row is a browser, not a person and not an account: the
+			// token is one the browser invented for itself, and the two
+			// timestamps are the whole of the rest. No address is kept,
+			// and nothing here can be joined to a save or a sign-in.
+			await run(`CREATE TABLE IF NOT EXISTS presence (
+				token       TEXT PRIMARY KEY,
+				first_at    INTEGER NOT NULL,
+				seen_at     INTEGER NOT NULL
+			)`);
+			// The only question asked of it is "how many lately".
+			await run('CREATE INDEX IF NOT EXISTS presence_seen ON presence (seen_at)');
+		}
 	}
 ];
 
 /** The data tables, in the order a restore has to write them (parents first). */
-export const TABLES = ['users', 'saves', 'push_subs', 'feedback', 'community'];
+export const TABLES = ['users', 'saves', 'push_subs', 'feedback', 'community', 'presence'];
 
 /**
  * Bring the database up to the newest version. Safe to run any number
@@ -346,6 +363,41 @@ export async function countPushSubs() {
 	await migrate();
 	const { rows } = await exec('SELECT COUNT(*) AS n FROM push_subs');
 	return Number(rows[0] && rows[0].n) || 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Who is out
+ * ------------------------------------------------------------------ */
+
+/** This browser said hello. First time in, it joins the roll. */
+export async function touchPresence(token, now = Date.now()) {
+	await migrate();
+	await exec({
+		sql: `INSERT INTO presence (token, first_at, seen_at) VALUES (?, ?, ?)
+			ON CONFLICT(token) DO UPDATE SET seen_at = excluded.seen_at`,
+		args: [token, now, now]
+	});
+}
+
+/** How many browsers have said hello since `since`, how many ever, and
+ *  how many accounts have ever signed in. The third is a different kind
+ *  of number from the first two -- a browser is a browser, an account is
+ *  a person who came back often enough to want their save kept -- and it
+ *  is counted here because the three are read together and one round
+ *  trip is enough for all of them. */
+export async function countPresence(since) {
+	await migrate();
+	const { rows } = await exec({
+		sql: `SELECT (SELECT COUNT(*) FROM presence WHERE seen_at >= ?) AS online,
+			(SELECT COUNT(*) FROM presence) AS sailors,
+			(SELECT COUNT(*) FROM users) AS crew`,
+		args: [since]
+	});
+	return {
+		online: Number(rows[0] && rows[0].online) || 0,
+		sailors: Number(rows[0] && rows[0].sailors) || 0,
+		crew: Number(rows[0] && rows[0].crew) || 0
+	};
 }
 
 /* ------------------------------------------------------------------ *

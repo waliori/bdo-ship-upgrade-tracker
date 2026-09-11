@@ -202,6 +202,13 @@
 .chain.on { background: rgba(var(--blue-rgb), 0.09); border-color: rgba(var(--blue-rgb), 0.5); border-left-color: var(--tier); }
 .chain-mark { width: 17px; height: 17px; flex: none; margin-top: 2px; border-radius: 5px; border: 1px solid var(--line-btn-hi); color: #08131f; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 .chain.on .chain-mark { background: rgba(var(--blue-rgb), 0.9); border-color: rgba(var(--blue-rgb), 0.9); }
+
+/* A climb behind a threshold: there to be read, not to be ticked. */
+.chain.shut { opacity: 0.55; cursor: not-allowed; border-style: dashed; }
+.chain.shut:hover { opacity: 0.75; }
+.chain.shut .chain-mark { border-color: rgba(232, 182, 97, 0.5); background: none; color: var(--amber); font-size: 9px; }
+.chain.shut .chain-right b.none { color: var(--amber); }
+.chain-shut-isle { color: var(--amber); font-weight: 600; }
 .chain-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .chain-start { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .chain-start b { font-weight: 600; font-size: 13.5px; color: var(--ink-hi); }

@@ -5,7 +5,8 @@
 import { marksFor, routeFor } from '../map.js';
 import { npcById, ports } from '../barter_npcs.js';
 import { seaRoute } from '../searoute.js';
-import { snapshot, barterData } from '../ui-state.js';
+import { snapshot, barterData, barterProfile } from '../ui-state.js';
+import { openTable } from '../barter.js';
 import { mv } from './state.js';
 import { routeSeq } from './route.js';
 
@@ -38,7 +39,11 @@ function wantedNow() {
 }
 
 export function marksNow() {
-	return marksFor(wantedNow(), barterData);
+	// Lit on the table this sailor can sail: a pin on an island the
+	// barter count has not opened is a detour to a barter window that
+	// will not deal. The island is still drawn, and its card says what
+	// opens it.
+	return marksFor(wantedNow(), openTable(barterData, barterProfile().barterCount));
 }
 
 /** Everything each barterer trades, keyed by npc id -- built once from

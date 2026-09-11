@@ -9,7 +9,8 @@ import { cancelFly, schedulePaint, zoomMoving, paintMap, flyTo } from './paint.j
 import { refreshSide, refreshSideList, npcBox } from './render.js';
 import { importRoute } from './route.js';
 import { markBySeq, penStart, penMove, onWater, penEnd, traceAdd, textAdd, areaAdd } from './trace.js';
-import { atSea, inBox, hostSize, paintCoords, boxDelta, measureAt, settleTurn, exitFull } from './view.js';
+import { atSea, inBox, hostSize, paintCoords, boxDelta, measureAt, settleTurn, exitFull, tiltMap } from './view.js';
+import { terrainOn, seaAt } from './terrain.js';
 
 /* ------------------------------------------------------------------ *
  * gestures
@@ -25,7 +26,7 @@ export function wireMap() {
 
 	// The panel, the card, the minimap: furniture on top of the sea.
 	// A gesture that starts on them is for them, not for the chart.
-	const CHROME = '.map-side, .map-side-pill, .map-tip, .map-mini, .map-steps, .map-trace-write, .map-full-bar';
+	const CHROME = '.map-side, .map-side-pill, .map-tip, .map-mini, .map-steps, .map-trace-write, .map-full-bar, .map-tilt';
 const MARKERS = '[data-act="map-pin"], [data-act="map-port"], [data-act="map-stash"], .map-habitat';
 		// Tracing, the markers are scenery: a line drawn across a barterer
 	// must not stop dead there and open his trades instead.
@@ -76,7 +77,18 @@ const furniture = () => CHROME;
 			const [a, b] = [...touching.values()];
 			pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y) };
 		} else {
-			dragging = { x: evt.clientX, y: evt.clientY };
+			// Stood up, a drag does one of two things. Held plain it takes
+			// hold of the water under the pointer and carries it, which is
+			// the only pan that feels right once the ground has a horizon
+			// -- a fixed number of pixels moves the near sea and the far
+			// sea by quite different amounts. Held with shift, or with the
+			// right button, it leans the camera instead.
+			const lean = terrainOn() && (evt.shiftKey || evt.button === 2);
+			const at = inBox(host, evt.clientX, evt.clientY);
+			dragging = {
+				x: evt.clientX, y: evt.clientY, lean,
+				grab: terrainOn() && !lean ? seaAt(hostSize(host), at.x, at.y) : null
+			};
 		}
 		// Firefox hands the click after a captured gesture to the capture
 		// target, not the button it began on -- so a press that starts on
@@ -84,6 +96,17 @@ const furniture = () => CHROME;
 		// every engine. The document-level listeners pan it all the same.
 		if (!(mv.mode !== 'trace' && evt.target.closest(MARKERS))) host.setPointerCapture(evt.pointerId);
 		host.classList.add('dragging');
+	});
+
+	// Stood up, the right button leans the camera, so the menu it would
+	// otherwise open is in the way of the gesture rather than beside it.
+	// Only over the sea: the panel, the cards and the buttons keep
+	// theirs, where copying a name or opening a link is the point.
+	document.addEventListener('contextmenu', evt => {
+		if (!terrainOn()) return;
+		const host = evt.target.closest('[data-map]');
+		if (!host || evt.target.closest(furniture())) return;
+		evt.preventDefault();
 	});
 
 	document.addEventListener('pointermove', evt => {
@@ -124,7 +147,27 @@ const furniture = () => CHROME;
 				zoomMoving();
 				if (zoomAt(mv.mapState, Math.log2(dist / pinch.dist), hostSize(host), at.x, at.y)) schedulePaint();
 			}
+			// Stood up, the same two fingers do what shift-drag does on a
+			// keyboard, which a phone has not got: slid together they lean
+			// the camera, twisted they turn it. Leaning is only read while
+			// the fingers are not spreading, so a plain pinch stays a
+			// plain pinch.
+			const mid = (a.y + b.y) / 2;
+			const angle = Math.atan2(b.y - a.y, b.x - a.x);
+			if (terrainOn()) {
+				let turn = angle - (pinch.angle === undefined ? angle : pinch.angle);
+				while (turn > Math.PI) turn -= Math.PI * 2;
+				while (turn < -Math.PI) turn += Math.PI * 2;
+				const slide = mid - (pinch.mid === undefined ? mid : pinch.mid);
+				const spread = Math.abs(dist - pinch.dist);
+				if (Math.abs(turn) > 0.008 || (spread < 2.5 && Math.abs(slide) > 1)) {
+					// The chart turns the way the fingers turn.
+					tiltMap(spread < 2.5 ? -slide * 0.28 : 0, turn * 180 / Math.PI);
+				}
+			}
 			pinch.dist = dist;
+			pinch.mid = mid;
+			pinch.angle = angle;
 			return;
 		}
 
@@ -134,8 +177,29 @@ const furniture = () => CHROME;
 			return;
 		}
 		const d = boxDelta(evt.clientX - dragging.x, evt.clientY - dragging.y);
-		pan(mv.mapState, d.x, d.y);
-		dragging = { x: evt.clientX, y: evt.clientY };
+		if (dragging.lean) {
+			// Dragging up leans the camera towards the horizon, which is
+			// the way every map that tilts has taught people to expect.
+			tiltMap(-d.y * 0.28, -d.x * 0.35);
+			dragging = { ...dragging, x: evt.clientX, y: evt.clientY };
+			return;
+		}
+		if (dragging.grab) {
+			// Where the water the finger took hold of has got to, and the
+			// centre moved back by the difference. Worked out against the
+			// camera as it stands each frame, so it converges instead of
+			// drifting.
+			const host = document.querySelector('[data-map]');
+			const at = host && inBox(host, evt.clientX, evt.clientY);
+			const now = host && seaAt(hostSize(host), at.x, at.y);
+			if (now) {
+				mv.mapState.centre.x += dragging.grab.x - now.x;
+				mv.mapState.centre.y += dragging.grab.y - now.y;
+			}
+		} else {
+			pan(mv.mapState, d.x, d.y);
+		}
+		dragging = { ...dragging, x: evt.clientX, y: evt.clientY };
 		// A tooltip that opened on the touch-down is noise once the
 		// finger is clearly sailing, not asking.
 		if (mv.hoverNpc) mv.hoverNpc = null;

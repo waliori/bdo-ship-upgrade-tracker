@@ -1,0 +1,171 @@
+1
+00:00:00,348 --> 00:00:04,256
+This is the Map. It is the whole sea, with everything you need marked on it.
+
+2
+00:00:04,389 --> 00:00:07,707
+Every pin is a barterer holding something you are short of.
+
+3
+00:00:08,163 --> 00:00:12,544
+This says what it is marking. Everything you are short of, or one item you choose.
+
+4
+00:00:12,544 --> 00:00:15,458
+These buttons across the top are the chart controls.
+
+5
+00:00:15,458 --> 00:00:18,778
+Zoom out, and zoom in. You can also just scroll on the sea.
+
+6
+00:00:18,778 --> 00:00:22,218
+This one fits everything marked back into view, if you get lost.
+
+7
+00:00:22,218 --> 00:00:24,347
+This toggles the minimap in the corner.
+
+8
+00:00:24,347 --> 00:00:26,516
+And this one stands the chart up.
+
+9
+00:00:28,252 --> 00:00:32,637
+That is the game's own terrain, read out of your client. Not a picture of it — the real heightmap.
+
+10
+00:00:32,637 --> 00:00:35,972
+Shift-drag to lean, and the islands come up out of the water.
+
+11
+00:00:39,065 --> 00:00:41,119
+Ground paints it in the colours the client ships.
+
+12
+00:00:41,119 --> 00:00:44,575
+Neon draws it as contours, the way the game's own world map does.
+
+13
+00:00:44,575 --> 00:00:47,434
+And Level looks straight down again, facing north.
+
+14
+00:00:50,109 --> 00:00:54,405
+And this is full screen. That is where the chart is worth using, so let us go there.
+
+15
+00:00:54,405 --> 00:00:56,492
+Now the sea has the whole window.
+
+16
+00:00:56,820 --> 00:01:01,904
+Hit fit again, now that the chart has the room. That pulls back until every mark is in view at once.
+
+17
+00:01:01,904 --> 00:01:05,888
+Which is most of the sea, so zoom back in a couple of steps to where you actually work.
+
+18
+00:01:05,888 --> 00:01:08,352
+The panel on the left is what drives it.
+
+19
+00:01:08,782 --> 00:01:12,068
+Start with "On the chart". This controls what gets drawn.
+
+20
+00:01:12,579 --> 00:01:18,588
+Barterers, habitats, wharves, guild wharves, island names, and your own drawings. Turn off what you do not need.
+
+21
+00:01:18,588 --> 00:01:21,972
+There is a search, for finding an island or a good by name.
+
+22
+00:01:22,482 --> 00:01:25,891
+And these five tabs are the tools. We will take them in order.
+
+23
+00:01:25,891 --> 00:01:29,962
+Barter is the default. Every island that has something on your list, with what it trades.
+
+24
+00:01:29,962 --> 00:01:32,722
+Click a row and the chart flies to that island.
+
+25
+00:01:33,262 --> 00:01:35,179
+Route turns that list into a sailing route.
+
+26
+00:01:35,179 --> 00:01:38,377
+Plot the loop, and it draws one, bent around the land rather than through it.
+
+27
+00:01:38,377 --> 00:01:42,598
+Every leg gets a distance and a time, at the speed your ship actually sails.
+
+28
+00:01:42,928 --> 00:01:46,869
+Save the route, share it as a link, or send it to the game map as bookmarks.
+
+29
+00:01:48,385 --> 00:01:51,739
+Draw is for routes the list cannot describe. It gives you three tools.
+
+30
+00:01:51,739 --> 00:01:55,106
+The pin drops a numbered stop, in the order you mean to sail.
+
+31
+00:01:55,337 --> 00:01:57,424
+The pen draws a freehand line.
+
+32
+00:01:58,282 --> 00:02:01,272
+And the text tool types a note straight onto the water.
+
+33
+00:02:01,317 --> 00:02:05,129
+Name it and keep it, and it joins your library. Traces share as links too.
+
+34
+00:02:05,129 --> 00:02:06,987
+Grounds is for hunting.
+
+35
+00:02:07,185 --> 00:02:11,495
+It lists every species: sea monsters, young ones, ships, bosses and the Cox Pirates.
+
+36
+00:02:11,495 --> 00:02:14,052
+Click one, and every spawn point it has goes on the chart.
+
+37
+00:02:14,052 --> 00:02:16,850
+Tick as many as you like, and send the lot to the game map.
+
+38
+00:02:16,850 --> 00:02:19,674
+Above them are the known sailing courses, each with a note.
+
+39
+00:02:19,674 --> 00:02:21,673
+Today is your checklist for this refresh.
+
+40
+00:02:21,673 --> 00:02:25,378
+Every island you need, ticked off as you visit it, with the total at the top.
+
+41
+00:02:25,378 --> 00:02:29,418
+Drag to pan, scroll to zoom. The drawings and pins move with the chart.
+
+42
+00:02:30,297 --> 00:02:32,358
+Escape, or the cross, brings the page back.
+
+43
+00:02:32,358 --> 00:02:37,005
+That is the Map. Everything you are short of, where it is, and how long it takes to get there.

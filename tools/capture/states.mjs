@@ -31,7 +31,33 @@ export const midBuild = {
 	],
 	strategy: {},
 	history: [],
-	settings: {}
+	settings: {},
+	// The sailor's own numbers, which live in the shell and are therefore
+	// in every frame of every clip. Left unset they read "0 barters · no
+	// level", which is the bar asking to be filled in -- a fair thing for
+	// a new save to show and a poor thing for a picture in a README to
+	// be stuck on. The count is high enough that no route is shut, so a
+	// clip never explains a gate it did not mean to.
+	profile: { barterCount: 4205, level: 'Master 5', sailingMastery: 750 }
+};
+
+/**
+ * One Carrack part to go, with a purse that nearly covers it.
+ *
+ * For the plan still: a single build keeps the steps to a handful, and
+ * the coins are set just under what the shop wants so the card has a
+ * real figure to show for what the quests bring in.
+ */
+export const onePartToGo = {
+	...midBuild,
+	stock: {
+		'Crow Coin': 44852,
+		Silver: 1000000000,
+		'Tidal Black Stone': 2885,
+		'Violent Wave Plywood': 87,
+		'Wave Residue Adhesive': 80
+	},
+	targets: [T('a', "Epheria Carrack: Advance (Chiro's Cannon)")]
 };
 
 /** Enough on hand that the Workshop has something to make. */
@@ -62,7 +88,7 @@ export const recordLevel = {
  */
 export const fittedShip = {
 	...midBuild,
-	profile: { crewShip: 'Carrack (Advance)' }
+	profile: { ...midBuild.profile, crewShip: 'Carrack (Advance)' }
 };
 
 export const emptyStart = {

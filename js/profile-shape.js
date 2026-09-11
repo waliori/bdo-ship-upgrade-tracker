@@ -6,6 +6,7 @@
 // range the game itself allows. state.js calls this on every read.
 
 import { readOrders } from './barter-orders.js';
+import { readGetOrders } from './get-plan.js';
 
 /**
  * The profile, keyed and bounded.
@@ -226,6 +227,19 @@ export function readProfile(raw) {
 	}
 	const mastery = Math.floor(Number(raw.sailingMastery));
 	if (Number.isFinite(mastery) && mastery > 0) out.sailingMastery = Math.min(3000, mastery);
+	// The Bos'n Jacks out at the moment, by tier, and whether one of
+	// them is the Alpha Pet. Five slots because five pets is what the
+	// game lets out; trailing empties are not kept, and the Alpha only
+	// survives while there is a tier 5 for it to be.
+	if (Array.isArray(raw.bosnJacks)) {
+		const jacks = raw.bosnJacks.slice(0, 5).map(n => {
+			const t = Math.floor(Number(n));
+			return Number.isFinite(t) && t > 0 ? Math.min(5, t) : 0;
+		});
+		while (jacks.length && !jacks[jacks.length - 1]) jacks.pop();
+		if (jacks.length) out.bosnJacks = jacks;
+	}
+	if (raw.bosnAlpha === true && (out.bosnJacks || []).includes(5)) out.bosnAlpha = true;
 	// Where each build stood, day by day, for the pace: build id -> date
 	// -> units covered. Bounded to a month per build and twenty builds.
 	if (isProfile(raw.progress)) {
@@ -275,6 +289,9 @@ export function readProfile(raw) {
 	// The sailing orders: what a barter run is for. Cleaned by the
 	// module that owns the shape.
 	if (isProfile(raw.orders)) out.orders = readOrders(raw.orders);
+	// How the shopping list is to be got: the goal, the days a week the
+	// sea gets, the coins kept back. Cleaned by the module that owns it.
+	if (isProfile(raw.getOrders)) out.getOrders = readGetOrders(raw.getOrders);
 	// The runs sailed: day, silver, cost, trades, Parley, stops -- the
 	// last sixty, for the week's view.
 	if (Array.isArray(raw.runs)) {

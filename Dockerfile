@@ -16,6 +16,10 @@ RUN npm ci --omit=dev
 # The heavy, rarely-changing assets first.
 COPY icons ./icons
 COPY map ./map
+# The terrain the chart stands up on. Sixty megabytes of tiles that
+# change only when the bake is rerun against a patched client, so it
+# sits up here with the rest of the ballast rather than beside the code.
+COPY map3d ./map3d
 COPY guide ./guide
 # The vendored OCR engine: large, and it changes only when a version does.
 COPY reader ./reader

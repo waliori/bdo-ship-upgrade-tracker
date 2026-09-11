@@ -472,63 +472,453 @@
 .pouch-need { font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; }
 .pouch-item.short .pouch-need { color: var(--red); }
 
-/* One scrolling row beats three stacked ones on a bar that is always on
-   screen. Kept here, after the base rules, so it actually wins. */
+/* The sailor's own numbers, in the same strip as the purse: what the
+   player is, after what the player carries. Quieter than a currency --
+   these are settings that happen to be worth reading, not balances that
+   move -- so no icon tile, a hairline to mark the group, and narrower
+   fields, since a barter count is four digits where silver is eleven. */
+.pouch-group {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  padding-left: 12px;
+  margin-left: 2px;
+  border-left: 1px solid var(--line);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.pouch-item.sail { padding-left: 10px; background: rgba(var(--shade-rgb), 0.12); }
+.pouch-item.sail .pouch-glyph {
+  width: 22px;
+  height: 22px;
+  font-size: 14px;
+  background: rgba(120, 160, 200, 0.09);
+}
+.pouch-item.sail .pouch-input { width: 104px; font-size: 15px; }
+.pouch-item.sail.parley .pouch-input { width: 118px; }
+.pouch-item.sail .pouch-need { font-size: 10px; }
+/* A game icon where the game has one -- the voucher, the Value Pack,
+   the refresh button -- sized like the purse's own. */
+.pouch-item.sail .pouch-icon { width: 22px; height: 22px; border-radius: 5px; }
+
+/* Folded, it is one chip that reads out the lot, with the fields a
+   press away; open, the group's own name folds it back. Both are
+   buttons, so neither wears the text caret the purse chips do. */
+.pouch-item.sail.summary {
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.pouch-item.sail.summary:hover { border-color: rgba(var(--line-rgb), 0.28); }
+/* Nought barters is a real answer and an unanswered question at once,
+   so the chip asks until it is told. */
+.pouch-item.sail.summary.asking { border-color: rgba(232, 182, 97, 0.45); }
+.pouch-item.sail.summary.asking .pouch-need { color: var(--amber); }
+
+/* The table of thresholds, from the bar's ? and from the Barter tab. */
+.routes-table { max-height: 52vh; overflow: auto; margin: 12px 0; }
+.routes-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.routes-table td { padding: 7px 10px; border-bottom: 1px solid rgba(var(--line-rgb), 0.35); vertical-align: middle; }
+.routes-table tr:last-child td { border-bottom: none; }
+.routes-table td b { display: block; color: var(--ink-hi); font-weight: 600; }
+.routes-table td span { font-size: 11px; color: var(--ink-faint); }
+.routes-n { font-family: var(--font-display); font-weight: 700; color: var(--ink-mute); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.routes-state { text-align: right; white-space: nowrap; font-size: 12px; color: var(--amber); }
+.routes-table tr.open .routes-n { color: var(--teal); }
+.routes-table tr.open .routes-state { color: var(--teal); }
+.routes-table tr.shut td b { color: var(--ink-mute); }
+.routes-state i { font-style: normal; }
+
+/* The group title doubles as the way back. */
+button.pouch-group {
+  cursor: pointer;
+  gap: 6px;
+  /* A button carries the browser's own border unless it is told not to,
+     and here that drew an empty chip around the group's name. The
+     hairline is the one the group title already has. */
+  border: none;
+  border-left: 1px solid var(--line);
+  padding: 0 12px;
+  background: none;
+  font-family: var(--font-display);
+}
+button.pouch-group:hover { color: var(--ink); }
+/* The press leaves the focus here, so the ring has to be the app's own
+   rather than the browser's white box -- and only for the keyboard. */
+button.pouch-group:focus { outline: none; }
+button.pouch-group:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 3px; border-radius: 4px; }
+button.pouch-group i { font-style: normal; font-size: 9px; }
+
+/* A Value Pack is a thing you have or have not: a switch that says
+   which, in words, rather than a tick crammed under another number. */
+.pouch-switch { display: inline-flex; align-items: center; gap: 7px; }
+.pouch-switch input { width: 15px; height: 15px; margin: 0; cursor: pointer; accent-color: var(--teal); }
+.pouch-switch b {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-faint);
+}
+.pouch-item.sail.pack input:checked + b { color: var(--teal); }
+
+/* The five pets, as five birds rather than two numbers. Each is the
+   same parrot; what the tier changes is the frame around it and the
+   numeral on it, in the grade colours the pet window uses -- white,
+   green, blue, yellow, orange -- so the row is read at a glance and
+   still answers anyone who cannot take the colour. An empty slot is a
+   faded bird in a dashed frame, which is what "no pet here" looks like
+   without needing a word for it. Framed square, not round, because the
+   icon is a square tile with a tail in the corner of it: a circle cuts
+   the bird, and the game's own slots are square anyway.
+
+   The birds are read, never pressed. They were five buttons stepped
+   round their tiers, which is twenty presses to say "five tier fours"
+   and a write to the save behind every one of them; the whole nest is
+   set in the grid below instead, and this is the picture of it.
+
+   The white of tier 1 is the one colour that cannot be a colour: pure
+   white is invisible on the light theme's ground. It takes the sheet's
+   own hairline channel instead, which is pale on the dark theme and
+   navy on the light one and reads as the plain grade on both. */
+.pet-pips { display: inline-flex; align-items: center; gap: 5px; padding: 1px 0; }
+
+.pet-pip {
+  --tier: rgba(var(--line-rgb), 0.3);
+  position: relative;
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border: 1.5px solid var(--tier);
+  border-radius: var(--r-icon);
+  background: rgba(var(--shade-rgb), 0.25);
+  line-height: 0;
+}
+
+.pet-pips.lg .pet-pip { width: 34px; height: 34px; }
+.pet-pic { width: 100%; height: 100%; object-fit: contain; }
+.pet-pip.t0 { border-style: dashed; }
+.pet-pip.t0 .pet-pic { opacity: 0.26; filter: grayscale(1); }
+
+/* The tier, on the bird rather than beside it: there is no room in the
+   strip for five labels, and the numeral only has to be legible, not
+   large. The ink is the tint's own -- dark on the four bright grades,
+   pale on the orange, and the theme's answer on the plain one. */
+.pet-pip i {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 13px;
+  height: 13px;
+  border-radius: 7px;
+  background: var(--tier);
+  color: var(--on-tint);
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 13px;
+  text-align: center;
+}
+
+.pet-pip.t0 i { display: none; }
+.pet-pip.t1, .pet-cell.t1 { --tier: rgba(var(--line-rgb), 0.85); }
+.pet-pip.t2, .pet-cell.t2 { --tier: #6fce72; }
+.pet-pip.t3, .pet-cell.t3 { --tier: #5aa9e6; }
+.pet-pip.t4, .pet-cell.t4 { --tier: #f0c04a; }
+.pet-pip.t5, .pet-cell.t5 { --tier: #e2622c; }
+.pet-pip.t2 i, .pet-pip.t3 i, .pet-pip.t4 i { color: #0b1a2c; }
+.pet-pip.t5 i { color: #fff1e8; }
+
+/* The chip is a way in, like the folded sailor line, so it wears that
+   one's manners rather than a text field's. */
+button.pouch-item.sail.pets {
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+button.pouch-item.sail.pets:hover { border-color: rgba(var(--line-rgb), 0.28); }
+button.pouch-item.sail.pets:focus { outline: none; }
+button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 3px; }
+
+/* ---- the editor ------------------------------------------------------ *
+   Five slots down the side, the six tiers across, every cell one press:
+   a nest is a small table of facts and reads best as one. The head row
+   sets all five at once, which is the answer most of the time -- pets
+   are fed up together, so five Bos'n Jacks are usually five of a tier. */
+.pet-grid { margin: 14px 0 10px; display: flex; flex-direction: column; gap: 5px; }
+
+.pet-row {
+  display: grid;
+  grid-template-columns: minmax(64px, 1fr) repeat(6, minmax(34px, 46px));
+  align-items: center;
+  gap: 5px;
+}
+
+.pet-row-k {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--ink-mute);
+}
+
+.pet-row-k b { font-weight: 600; color: var(--ink-row); white-space: nowrap; }
+.pet-row-pic { width: 24px; height: 24px; flex: none; object-fit: contain; }
+
+/* The head row is a row of shortcuts, not a row of labels, so it is
+   told apart by its words and not by being drawn differently. */
+.pet-row.head .pet-row-k {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  justify-content: flex-end;
+  padding-right: 2px;
+}
+
+.pet-cell {
+  --tier: rgba(var(--line-rgb), 0.3);
+  height: 32px;
+  padding: 0;
+  border: 1px solid rgba(var(--line-rgb), 0.16);
+  border-radius: var(--r-sm);
+  background: rgba(var(--shade-rgb), 0.18);
+  color: var(--ink-mute);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.pet-cell:hover { border-color: var(--tier); color: var(--ink-hi); background: rgba(var(--blue-rgb), 0.1); }
+.pet-cell:focus { outline: none; }
+.pet-cell:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 2px; }
+
+/* The chosen cell wears its grade, which is the same colour the bird in
+   that slot is framed in -- the two halves of the dialog say the same
+   thing the same way. */
+.pet-cell.on { background: var(--tier); border-color: var(--tier); color: var(--on-tint); }
+.pet-cell.t2.on, .pet-cell.t3.on, .pet-cell.t4.on { color: #0b1a2c; }
+.pet-cell.t5.on { color: #fff1e8; }
+.pet-cell.t0.on { background: rgba(var(--line-rgb), 0.14); border-color: rgba(var(--line-rgb), 0.3); color: var(--ink-mid); }
+
+.pet-alpha-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 9px 11px;
+  border-radius: var(--r-btn);
+  background: rgba(var(--shade-rgb), 0.16);
+  font-size: 12.5px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.pet-alpha-row input { width: 15px; height: 15px; margin: 2px 0 0; flex: none; accent-color: var(--star); cursor: pointer; }
+.pet-alpha-row i { display: block; margin-top: 2px; font-style: normal; font-size: 11px; color: var(--ink-faint); }
+/* Nothing to be the Alpha of: the offer stays on the page, since its
+   own line is the answer to "why can I not", and stops being an offer. */
+.pet-alpha-row.off { opacity: 0.45; cursor: default; }
+.pet-alpha-row.off input { cursor: default; }
+
+/* What it all comes to, in the two ways it is read elsewhere: the nest
+   as the bar draws it, and the LT as the hold counts it. */
+.pet-sum {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 11px 13px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--blue-edge);
+  background: rgba(var(--blue-rgb), 0.08);
+}
+
+.pet-sum-lt { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--blue-hi); }
+
+@media (max-width: 460px) {
+  .pet-row { grid-template-columns: minmax(44px, 1fr) repeat(6, minmax(28px, 40px)); gap: 4px; }
+  .pet-row-k b { display: none; }
+  .pet-row.head .pet-row-k { font-size: 9px; }
+}
+
+/* A figure that is only read keeps the value's type, and the words
+   inside it stay out of the way of the numbers. */
+.pouch-input.plain small { font-size: 10px; font-weight: 500; color: var(--ink-faint); }
+.pouch-item.sail.summary .pouch-input.plain { width: auto; max-width: none; font-size: 15px; white-space: nowrap; }
+/* The hairline the group title carries when the fields are open, so
+   the two halves of the strip stay told apart either way. */
+.pouch-item.sail.summary { position: relative; margin-left: 15px; }
+.pouch-item.sail.summary::before {
+  content: '';
+  position: absolute;
+  left: -15px;
+  top: 3px;
+  bottom: 3px;
+  width: 1px;
+  background: var(--line);
+}
+.pouch-fold { flex: none; align-self: center; font-size: 12px; color: var(--ink-faint); }
+
+/* A select and a figure that is only read, both wearing the input's
+   type so the row reads as one row of values. */
+.pouch-input.select {
+  width: auto;
+  max-width: 150px;
+  padding-right: 2px;
+  appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+}
+.pouch-input.plain { cursor: default; }
+
+.pouch-item.sail .pouch-need .inline-check {
+  display: inline-flex;
+  font-size: 10px;
+  color: inherit;
+}
+.pouch-item.sail .pouch-need .inline-check input { width: 11px; height: 11px; }
+
+/* ---- the phone: one line that reads, a sheet that edits ------------ *
+ *
+ * The chips are a good bar and a poor phone. Nine of them will not fit
+ * across 390 pixels, so the row used to scroll sideways -- half of a
+ * strip that stands on top of every screen, a swipe away, on a bar
+ * nobody visits to read: silver is glanced at, and typed over once a
+ * week. So a phone gets the glance -- what is held, and in red what is
+ * missing -- on one line the height of a single chip, and the typing
+ * happens in a sheet where every field has the width of the screen. */
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .pouch { gap: 10px; padding: 9px 12px; margin: 0 0 18px; }
+  .pouch { gap: 10px; padding: 6px 10px; margin: 0 0 16px; }
   .pouch-title { display: none; }
-  .pouch-list {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 2px;
-    /* A swipeable row has to look like one. Without this the last purse
-       in view is simply cut off mid-digit at the edge, which reads as a
-       rendering fault rather than an invitation -- so the row fades out
-       where it continues, and only where it continues: the mask is tied
-       to how far it has actually been scrolled, so a row with nothing
-       more to show has hard edges like everything else.
-
-       scroll-driven animations do the tying; a browser without them
-       keeps a plain, always-on fade at the right, which is still the
-       honest hint and costs nothing. */
-    --pouch-fade: 22px;
-    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - var(--pouch-fade)), transparent 100%);
-    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - var(--pouch-fade)), transparent 100%);
-    scrollbar-width: none;
-  }
-  .pouch-list::-webkit-scrollbar { display: none; }
-  .pouch-item { flex: none; }
-  /* The row scrolls here, so the extra width costs nothing but a swipe,
-     and ten-figure silver no longer loses its last two digits. */
-  .pouch-input { width: 124px; font-size: 15px; }
 }
 
-/* The fade, told where the row actually is: none at the very start on
-   the left, none at the very end on the right, both in the middle. */
-@supports (animation-timeline: scroll(self inline)) {
-  @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-    .pouch-list {
-      --pouch-fade-l: 0px;
-      --pouch-fade-r: 22px;
-      -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--pouch-fade-l), #000 calc(100% - var(--pouch-fade-r)), transparent 100%);
-      mask-image: linear-gradient(to right, transparent 0, #000 var(--pouch-fade-l), #000 calc(100% - var(--pouch-fade-r)), transparent 100%);
-      animation: pouch-edges linear both;
-      animation-timeline: scroll(self inline);
-    }
-    /* Held still for anyone who has asked for that: the always-on
-       right-hand fade says "there is more" without moving. */
-    @media (prefers-reduced-motion: reduce) {
-      .pouch-list { animation: none; --pouch-fade-l: 0px; --pouch-fade-r: 22px; }
-    }
-  }
+.pouch-peek {
+  display: flex;
+  align-items: center;
+  /* It wraps rather than clips. One line is what this is for, and one
+     line is what every phone gets -- until a screen 360 wide is asked
+     to carry two shortfalls and a barter count at once, and then the
+     sailor drops to a second line instead of the count being cut off
+     mid-digit, which is how the scrolling row read in the first place. */
+  flex-wrap: wrap;
+  gap: 4px 11px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 3px 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
+.pouch-peek:focus { outline: none; }
+.pouch-peek:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 3px; border-radius: 6px; }
 
-@property --pouch-fade-l { syntax: '<length>'; inherits: false; initial-value: 0px; }
-@property --pouch-fade-r { syntax: '<length>'; inherits: false; initial-value: 22px; }
+/* The purses keep their width -- what is short is the whole point of
+   the line -- and the sailor's count gives way first if a screen is
+   narrower than the four numbers on it. */
+.peek-bit { display: inline-flex; align-items: baseline; gap: 6px; flex: none; min-width: 0; }
+.peek-bit b {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-hi);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* What is missing, which is the only thing on this line worth acting
+   on, so it is the only thing on it wearing a colour. */
+.peek-bit i {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.peek-bit.short i { color: var(--red); }
+.peek-bit.ok b { color: var(--teal); }
 
-@keyframes pouch-edges {
-  from { --pouch-fade-l: 0px;  --pouch-fade-r: 22px; }
-  to   { --pouch-fade-l: 22px; --pouch-fade-r: 0px; }
+.peek-icon, .peek-glyph {
+  flex: none;
+  align-self: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+}
+.peek-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--ink-mute);
+  background: rgba(120, 160, 200, 0.09);
+}
+/* The stones and the Sangpyeong: counted here, read in the sheet. */
+.peek-bit.more {
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--line-rgb), 0.35);
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+/* The sailor stands at the far end, against the purses: the bags on one
+   side of the line, the person carrying them on the other. */
+.peek-bit.sail { margin-left: auto; flex: 0 1 auto; }
+.peek-bit.sail b { font-size: 14px; color: var(--ink-row); overflow: hidden; text-overflow: ellipsis; }
+.peek-bit.sail.asking b { font-size: 12px; color: var(--amber); }
+.pouch-peek .pouch-fold { margin-left: 2px; }
+
+/* The sheet behind it: the same chips, one to a row, the label and what
+   it means on the left and the value at the right edge where a thumb
+   is. */
+.pouch-sheet { margin: 14px 0 4px; }
+.pouch-sheet .pouch-list { flex-direction: column; align-items: stretch; gap: 8px; flex: none; }
+.pouch-sheet .pouch-item { width: 100%; padding: 9px 12px; }
+.pouch-sheet .pouch-body {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+}
+.pouch-sheet .pouch-k { grid-area: 1 / 1; white-space: normal; }
+.pouch-sheet .pouch-need { grid-area: 2 / 1; white-space: normal; }
+.pouch-sheet .pouch-body > :nth-child(2) { grid-area: 1 / 2 / 3 / 3; justify-self: end; }
+/* 16px, because anything smaller is what makes an iPhone zoom the page
+   the moment the field is tapped. */
+.pouch-sheet .pouch-input,
+.pouch-sheet .pouch-item.sail .pouch-input {
+  width: 136px;
+  max-width: 46vw;
+  font-size: 16px;
+  text-align: right;
+}
+.pouch-sheet .pouch-input.select { width: auto; text-align: left; }
+.pouch-sheet .pouch-input.plain { width: auto; max-width: none; text-align: right; }
+.pouch-sheet .pouch-group {
+  align-self: auto;
+  margin: 14px 0 0;
+  padding-left: 0;
+  border-left: none;
 }
 
 .summary-sub { font-size: 11px; color: var(--ink-faint); margin-top: 3px; }
@@ -789,6 +1179,37 @@
   /* Leave room for the buttons under it: the dialog scrolls, but the
      thing you are meant to press should not start below the fold. */
   .help-film { max-height: 42vh; }
+}
+
+/* The six chapters under the film, as the way into the middle of it. */
+.film-chapters { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; }
+.film-chapters button {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--r-chip);
+  background: rgba(var(--line-rgb), 0.07);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.film-chapters button:hover,
+.film-chapters button:focus-visible {
+  border-color: rgba(var(--line-rgb), 0.34);
+  background: rgba(var(--line-rgb), 0.13);
+}
+.film-chapters b { flex: none; font-weight: 600; }
+.film-chapters span { flex: 1; min-width: 0; color: var(--ink-dim); font-size: 12.5px; }
+.film-chapters em { flex: none; font-style: normal; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 560px) {
+  /* The description is the first thing to go: the number, the name and
+     the time are what a thumb is aiming at. */
+  .film-chapters span { display: none; }
 }
 
 /* The inventory detail is one of the sheets at the foot of this file. */

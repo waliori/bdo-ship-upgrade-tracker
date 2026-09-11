@@ -1,0 +1,29 @@
+This is the Yard. It works out what your builds need, and what you still have to find.
+But start with the bar under the tabs. These are the numbers the whole app plans from.
+Your total barter count matters most. It decides which islands will even deal with you.
+Your barter level, which sets what every exchange costs in Parley.
+Your Sailing Mastery, which counts toward how fast your ship sails.
+And your region, because every silver price in the app is quoted in it.
+Type them once here and every screen reads them. Then fold it away.
+Now queue something to build.
+Some ships can be built two ways, so it asks which.
+It shows what each route costs. Either is fine.
+Queue a second one. Order matters: if stock runs short, the build at the top gets it first.
+The Plan is everything your queue needs, in one list.
+Red is missing. Blue you can make. Green you already have.
+As you gather, type in what you have.
+Every build re-plans around it straight away.
+Or log a whole trip at once, instead of a box at a time.
+The Workshop makes anything you have the materials for.
+Crafting moves real stock. Ingredients out, the product in.
+Made a mistake? Undo steps it back, and Redo puts it forward.
+Enhancing is kept separate, because attempts can fail.
+It shows your real odds at your failstack, and the most the part can end up costing.
+The Inventory is one tile per thing you own, or still need.
+Open one, and every way of getting it is priced.
+What the shop charges, against what making it costs — including its own ingredients, all the way down.
+Already levelled a part in game? Record it here.
+Tell it the level you reached. It spends no stones to agree with you.
+The Tree shows why a build needs what it needs.
+And To Get turns all of that into a plan — which is the whole of the next part.
+That is the Yard. What you want, what it takes, and what is left to find.

@@ -14,7 +14,8 @@ import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { config, syncEnabled, pushEnabled, feedbackEnabled, communityEnabled, ephemeralSecret, describe } from './server/config.js';
+import { config, syncEnabled, pushEnabled, feedbackEnabled, communityEnabled, presenceEnabled, ephemeralSecret, describe } from './server/config.js';
+import { presenceRoutes } from './server/presence.js';
 import { marketRoutes } from './server/market.js';
 import { accessLog, counters } from './server/log.js';
 
@@ -217,11 +218,27 @@ if (feedbackEnabled) {
 // without it and it never carries anyone's data.
 app.use('/api', marketRoutes(express));
 
+// Who else is out there. The one thing here that asks nothing of the
+// reader and tells them something: how many browsers have the page open
+// right now, and how many have ever opened it. It needs no sign-in and
+// keeps no address -- see server/presence.js -- and it runs on a
+// database when there is one and in this process's memory when there is
+// not. PRESENCE=0 turns it off entirely.
+if (presenceEnabled) {
+	let presenceDb = null;
+	if (config.turso.url) {
+		const m = await import('./server/db.js');
+		if (!syncEnabled && !pushEnabled && !feedbackEnabled) m.migrate().catch(err => console.warn('[db] tables not ready yet:', err.message));
+		presenceDb = { touchPresence: m.touchPresence, countPresence: m.countPresence };
+	}
+	app.use('/api', presenceRoutes({ db: presenceDb }));
+}
+
 // So the page knows whether to offer sign-in at all. A deployment with no
 // Discord app should not show a button that cannot work.
 app.get('/api/config', (req, res) => {
 	res.set('Cache-Control', 'no-store');
-	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, community: communityEnabled });
+	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, community: communityEnabled, presence: presenceEnabled });
 });
 
 // Is it up, and is the database behind it answering? `db` is 'off' on a
@@ -250,7 +267,7 @@ app.get('/healthz', async (req, res) => {
 
 // Only what the page actually asks for. Serving the repository root would
 // hand out package.json, the Dockerfile and the capture harness too.
-const PUBLIC = ['css', 'js', 'icons', 'map', 'guide', 'reader'];
+const PUBLIC = ['css', 'js', 'icons', 'map', 'map3d', 'guide', 'reader'];
 const FILES = [
 	'index.html', 'icon.png', 'og.png', 'icon_mapping.json',
 	'icon-192.png', 'icon-512.png', 'manifest.webmanifest'
@@ -284,6 +301,14 @@ app.use('/icons', express.static(path.join(__dirname, 'icons'), LONG));
 // sees each one about once.
 const FOREVER = { maxAge: '365d', immutable: true };
 app.use('/map', express.static(path.join(__dirname, 'map'), FOREVER));
+// The terrain the chart stands up on, cut on the same grid and asked
+// for with the bake's own stamp, so a tile keeps like a tile. Its index
+// is the one file that must be re-read -- it is what carries the stamp.
+app.get('/map3d/index.json', (req, res) => {
+	res.set('Cache-Control', 'no-cache');
+	res.sendFile(path.join(__dirname, 'map3d', 'index.json'));
+});
+app.use('/map3d', express.static(path.join(__dirname, 'map3d'), FOREVER));
 // The vendored OCR engine: six megabytes that never change under a
 // name, because the name carries the version (reader/README.md). Kept
 // like the tiles rather than like the code -- it has no business being
@@ -295,7 +320,7 @@ app.use('/reader', express.static(path.join(__dirname, 'reader'), FOREVER));
 // several megabytes and nothing serves them. It is re-shot under the same
 // name whenever the UI moves, so it revalidates like the modules do.
 app.use('/docs/media', express.static(path.join(__dirname, 'docs', 'media'), REVALIDATE));
-for (const dir of PUBLIC.filter(d => d !== 'icons' && d !== 'map' && d !== 'reader')) {
+for (const dir of PUBLIC.filter(d => d !== 'icons' && d !== 'map' && d !== 'map3d' && d !== 'reader')) {
 	app.use(`/${dir}`, express.static(path.join(__dirname, dir), REVALIDATE));
 }
 for (const file of FILES) {

@@ -15,7 +15,9 @@
 // the set you pick one from; `monster` names the species in
 // sea_monsters.js whose grounds the Map can show for it (a young-one
 // quest points at whichever young species has grounds nearest the
-// quest giver); `at` is where it is done, as steps of
+// quest giver); `group` names a set of which the game allows one a
+// day -- the Old Moon Guild's four hunts -- so a plan does not count
+// all four; `at` is where it is done, as steps of
 // [kind, place, who, what] -- the kind a 'port', an 'isle' (its
 // barterer's spot) or a 'wharf' (by the wharf manager's name), all
 // placed on the chart already -- so a run on the Barter tab can say
@@ -77,6 +79,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-young',
+		group: 'omg-hunt',
 		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/23',
 		monster: 'young-nineshark',
@@ -88,6 +91,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-candidum',
+		group: 'omg-hunt',
 		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/9',
 		monster: 'candidum',
@@ -99,6 +103,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-nineshark',
+		group: 'omg-hunt',
 		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/10',
 		monster: 'nineshark',
@@ -110,6 +115,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-blackrust',
+		group: 'omg-hunt',
 		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/11',
 		monster: 'black-rust',

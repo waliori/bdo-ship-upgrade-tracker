@@ -656,6 +656,10 @@ export async function initSync(callbacks = {}) {
 	features = config.body;
 	// The Community tab waits on this answer; now it can be drawn.
 	if (features.community && hooks.rerender) hooks.rerender();
+	// How many are out is nothing to do with signing in, so it starts
+	// here and not below the return: a browser-only deployment still
+	// counts its sailors.
+	if (features.presence) import('./presence.js').then(m => m.startPresence()).catch(() => { /* a count nobody needs */ });
 	if (!features.sync) return;
 
 	available = true;

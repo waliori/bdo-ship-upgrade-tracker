@@ -44,6 +44,9 @@
 // trip costs if the game offers you what you need -- and the UI says
 // "at best" out loud rather than implying a precision it lacks.
 
+import { oddsFor, oddsText } from './barter-odds.js';
+import { npcs } from './barter_npcs.js';
+
 /* ------------------------------------------------------------------ *
  * the game's numbers
  * ------------------------------------------------------------------ */
@@ -155,6 +158,134 @@ export const ROUTE_UNLOCKS = [
 // exchanges without one. Until a threshold is published they are
 // treated as open -- guessing a gate would grey out a route that a
 // player can sail to today.
+
+/**
+ * Which barterer each threshold opens: npc id -> the count that opens
+ * it.
+ *
+ * The join is the patch note's own words. `opens` names a place --
+ * "Margoria's Star — Shipwrecked Haran's Cargo Ship", "Kashuma Island
+ * — Crow Coin" -- and barter_npcs.js says which barterer stands there,
+ * so the two halves either side of the dash are matched against `at`
+ * and whichever hits is the barterer that opens. Nothing is guessed:
+ * a row naming no place (the Brilliant pair) matches nothing and gates
+ * nobody, and every barterer the table never names is open from the
+ * first day, which is the great majority of the ninety-one.
+ *
+ * Built on first use rather than at import, so this file can be loaded
+ * by anything without the chart's data being walked for nothing.
+ */
+let gateMemo = null;
+export function npcGates() {
+	if (gateMemo) return gateMemo;
+	const where = new Map();
+	for (const n of npcs) {
+		if (!where.has(n.at)) where.set(n.at, []);
+		where.get(n.at).push(n.id);
+	}
+	gateMemo = new Map();
+	for (const row of ROUTE_UNLOCKS) {
+		if (!row.opens) continue;
+		for (const part of row.opens.split('\u2014').map(x => x.trim())) {
+			for (const id of where.get(part) || []) {
+				// The lowest threshold that names a barterer is the one that
+				// opens it; a later row naming it again only adds a route.
+				if (!gateMemo.has(id) || gateMemo.get(id) > row.barters) gateMemo.set(id, row.barters);
+			}
+		}
+	}
+	return gateMemo;
+}
+
+/** The count that opens this barterer, or 0 if nothing gates it. */
+export const npcGate = npcId => npcGates().get(npcId) || 0;
+
+/**
+ * Whether a barterer is open to someone who has made this many.
+ *
+ * Nought is a real answer, not a missing one: a sailor who has never
+ * bartered has the three routes the game starts them with and no more,
+ * which is exactly what the table says. So the gates apply from the
+ * first barter, and what they shut is shown greyed with the count
+ * beside it rather than hidden -- the shell's bar says whose count is
+ * being read, and asks for it when it is nought.
+ */
+export const npcOpen = (npcId, barterCount = 0) => npcGate(npcId) <= Number(barterCount || 0);
+
+/** A threshold as the gate the screens print. */
+function gateAt(barters, barterCount) {
+	const row = ROUTE_UNLOCKS.find(r => r.barters === barters);
+	return { barters, short: barters - barterCount, opens: row && row.opens };
+}
+
+/**
+ * The table as this player can actually sail it: every exchange at a
+ * barterer they have not opened yet taken out.
+ *
+ * This is the honest input to every plan. A run laid out through
+ * Shipwrecked Rickun's Ship is not a run a sailor at 480 barters can
+ * make, and a forecast that folds through it is quoting a route that
+ * is not there -- the whole reason this exists. What the gate hides,
+ * `gateOfItem` explains, so nothing vanishes without a reason beside
+ * it.
+ *
+ * Memoised per table and count, and the very common case -- a player
+ * past every threshold the table names -- gets the table back
+ * unchanged, identity and all, so nothing downstream that keys a memo
+ * on it has to rebuild.
+ */
+const openMemo = new WeakMap();
+export function openTable(barterData, barterCount = 0) {
+	if (!barterData) return barterData;
+	let byCount = openMemo.get(barterData);
+	if (!byCount) openMemo.set(barterData, byCount = new Map());
+	if (byCount.has(barterCount)) return byCount.get(barterCount);
+
+	const shut = id => npcGate(id) > barterCount;
+	const any = barterData.some(e => (e.sources || []).some(s => shut(s.npc_id)));
+	const out = !any ? barterData : barterData
+		.map(e => ({ ...e, sources: (e.sources || []).filter(s => !shut(s.npc_id)) }))
+		.filter(e => e.sources.length);
+	byCount.set(barterCount, out);
+	return out;
+}
+
+/**
+ * The barterers on a table this player cannot reach, each with what it
+ * waits on: `{ npcId, npc, barters, opens }`, soonest first. The Barter
+ * tab says this out loud rather than quietly drawing a shorter board.
+ */
+export function shutOut(barterData, barterCount = 0) {
+	const seen = new Map();
+	for (const e of barterData || []) {
+		for (const s of e.sources || []) {
+			const g = npcGate(s.npc_id);
+			if (g <= barterCount || seen.has(s.npc_id)) continue;
+			seen.set(s.npc_id, { npcId: s.npc_id, npc: s.npc_name, ...gateAt(g, barterCount) });
+		}
+	}
+	return [...seen.values()].sort((a, b) => a.barters - b.barters);
+}
+
+/**
+ * The unlock an item waits on because every island that deals it is
+ * shut, or null if anywhere open deals it.
+ *
+ * The cheapest of the thresholds, not the first: Oquilla's Flower is
+ * dealt at Pakio (1,200) and at Donalia (20,000) as well as at six open
+ * islands, and what a sailor wants told is the next door, not the last.
+ */
+export function gateOfItem(item, barterData, barterCount = 0) {
+	const entry = (barterData || []).find(b => b.name === item);
+	if (!entry || !entry.sources || !entry.sources.length) return null;
+	let needed = null;
+	for (const s of entry.sources) {
+		const g = npcGate(s.npc_id);
+		if (g <= barterCount) return null;
+		if (needed === null || g < needed) needed = g;
+	}
+	return needed === null ? null : gateAt(needed, barterCount);
+}
 
 /**
  * Barter levels, in order, and how many steps each tier holds.
@@ -615,12 +746,17 @@ export function triesFor(item, stated) {
  * list's draws, a trade rung by the trade list's -- and a redraw of one
  * list is not a redraw of the other.
  *
- * The assumption, and it is a real one: that the exchange turns up on
- * every refresh. It will not -- the list is drawn at random from a pool
- * whose weights the game does not publish -- so this is the best case
- * and the UI says so.
+ * How often the exchange is on the list at all is the other half, and
+ * it used to be missing. It was left out because the game publishes no
+ * weights -- but the app records boards, and those are evidence: a
+ * Saltwater Crocodile's Scale was on one of the four whole material
+ * boards read, so a forecast that assumed it every draw was four times
+ * too fast. `odds` is the index from barter-odds.js; with it, every
+ * rung is paced by how often it is really there, and `bestRefreshes`
+ * keeps the old figure as what the trip takes if the sea is kind.
+ * Without it the two are equal and the behaviour is exactly as before.
  */
-export function bottleneck(top, qty, lists = null) {
+export function bottleneck(top, qty, lists = null, odds = null) {
 	const pace = lists || {
 		trade: 1 + REFRESH.tradeItem.perDay,
 		material: 1 + REFRESH.shipMaterial.perDay
@@ -631,19 +767,36 @@ export function bottleneck(top, qty, lists = null) {
 	for (let r = top; r; r = r.from) {
 		const attempts = triesFor(r.item, r.attempts);
 		const list = exchangeKind(r.item) === 'material' ? 'material' : 'trade';
+		const chance = oddsFor(r.item, odds);
 		const perRefresh = attempts * r.received;
-		const refreshes = needed / perRefresh;
+		const bestRefreshes = needed / perRefresh;
+		// A draw the exchange is absent from buys nothing, so the draws
+		// needed are the best case over the share of draws it is on.
+		const refreshes = bestRefreshes / (chance.per > 0 ? chance.per : 1);
 		const days = refreshes / pace[list];
+		// The scarcest rung is the one that paces the climb, and scarcity
+		// is now part of what makes a rung slow -- a common rung wanted in
+		// bulk and a rare one wanted once are compared on the same axis.
 		if (!worst || days > worst.days) {
-			worst = { item: r.item, needed, perRefresh, refreshes, days, list, attempts };
+			worst = {
+				item: r.item, needed, perRefresh, refreshes, days, list, attempts,
+				bestRefreshes, bestDays: bestRefreshes / pace[list], odds: chance
+			};
 		}
 		needed *= r.givePerUnit;
 	}
 	return worst;
 }
 
-/** The unlock this item is waiting on, or null if nothing gates it. */
-export function gateFor(item, barterCount) {
+/**
+ * The unlock this item is waiting on, or null if nothing gates it.
+ *
+ * Two kinds of gate, and the harder one wins: the thresholds the patch
+ * note states for a good by name, and -- when the table is handed in --
+ * the islands that deal it, which is how a thing dealt nowhere but a
+ * Margoria wreck says so.
+ */
+export function gateFor(item, barterCount, barterData = null) {
 	let needed = null;
 
 	// Only thresholds the current patch notes still state are claimed.
@@ -659,9 +812,11 @@ export function gateFor(item, barterCount) {
 		if (first) needed = first.barters;
 	}
 
-	if (needed === null || barterCount >= needed) return null;
-	const row = ROUTE_UNLOCKS.find(r => r.barters === needed);
-	return { barters: needed, short: needed - barterCount, opens: row && row.opens };
+	const named = needed !== null && barterCount < needed ? gateAt(needed, barterCount) : null;
+	const byIsland = barterData ? gateOfItem(item, barterData, barterCount) : null;
+	if (!named) return byIsland;
+	if (!byIsland) return named;
+	return byIsland.barters > named.barters ? byIsland : named;
 }
 
 /**
@@ -676,33 +831,59 @@ export function gateFor(item, barterCount) {
  * the caller already knows how to say "not bartered".
  */
 export function forecast(item, qty, barterData, opts = {}) {
-	const { barterCount = 0, valuePack = false, vouchers = 0, level = null, crew = false } = opts;
-
-	const top = ladder(item, barterData);
-	if (!top) return null;
+	const { barterCount = 0, valuePack = false, vouchers = 0, level = null, crew = false, odds = null } = opts;
 
 	const day = dailyCapacity({ valuePack, vouchers, level, crew });
+
+	// Folded on the table this player can actually sail. A ladder
+	// through an island they have not opened is not a cost, it is a
+	// door -- so the rung is priced at whichever open island deals it,
+	// and where none does the answer is the door itself.
+	const top = ladder(item, openTable(barterData, barterCount));
+	if (!top) {
+		const shut = gateFor(item, barterCount, barterData);
+		return shut
+			? {
+				item, qty, gate: shut, trades: 0, days: 0, bestDays: 0,
+				scarcest: null, limit: null, perUnit: 0, topParley: 0,
+				seed: null, cargo: null, rungs: [], capacity: day
+			}
+			: null;
+	}
+
 	const trades = top.totalTrades * qty;
 
 	// The trip is paced by the rung that runs out first, each rung on
 	// its own list's clock. Parley is not that rung and is not modelled
 	// as one -- see dailyCapacity -- so it is priced only where a patch
 	// note prices it: the top exchange.
-	const limit = bottleneck(top, qty, day.lists);
+	const limit = bottleneck(top, qty, day.lists, odds);
 	const days = limit ? limit.days : 0;
 
 	// Every rung is checked, not just the one asked for: a ladder can
 	// walk through something the player cannot reach yet.
 	const gate = rungs(top)
-		.map(r => gateFor(r.item, barterCount))
+		.map(r => gateFor(r.item, barterCount, barterData))
 		.filter(Boolean)
 		.sort((a, b) => b.barters - a.barters)[0] || null;
+
+	// The rarest rung on the whole climb, which is not always the one
+	// that paces it: a [Level 7] wanted once can be scarcer than the
+	// [Level 3] whose bulk sets the days, and a sailor should know.
+	const scarcest = rungs(top)
+		.map(r => ({ item: r.item, ...oddsFor(r.item, odds) }))
+		.filter(o => o.recorded)
+		.sort((a, b) => a.per - b.per)[0] || null;
 
 	return {
 		item,
 		qty,
 		trades,
 		days,
+		// What the trip takes if every draw offers what you want, which
+		// is what this forecast used to quote as the whole answer.
+		bestDays: limit ? limit.bestDays : 0,
+		scarcest,
 		limit,
 		perUnit: top.totalTrades,
 		// What the top rung alone costs in Parley, which is the only
@@ -734,13 +915,25 @@ export function forecast(item, qty, barterData, opts = {}) {
 export function summarise(f) {
 	if (!f) return '';
 	if (f.gate) {
-		return `locked — ${fmt(f.gate.short)} more barters to reach ${fmt(f.gate.barters)}`;
+		// Naming the door is the point: "2,520 more barters" is a wall,
+		// "2,520 more open the Wandering Merchant's Ship" is a plan.
+		const opens = f.gate.opens ? ` open ${f.gate.opens.replace(/^[^\u2014]*\u2014\s*/, '')}` : ` to reach ${fmt(f.gate.barters)}`;
+		return `locked — ${fmt(f.gate.short)} more barters${opens}`;
 	}
 
 	const trades = `${fmt(Math.ceil(f.trades))} ${Math.ceil(f.trades) === 1 ? 'trade' : 'trades'}`;
-	if (f.days < 0.5) return `${trades} — one sitting`;
-
 	const days = Math.ceil(f.days);
+	const best = Math.ceil(f.bestDays || f.days);
+
+	// Where the boards say the offer is not always there, the two figures
+	// are different and both are said: the first is what to plan on, the
+	// second what a kind sea would allow. Where they agree there is
+	// nothing to add, and the sentence reads as it always did.
+	if (days > best) {
+		const span = days === 1 ? 'about a day' : `about ${fmt(days)} days`;
+		return `${trades} — ${span}, ${best <= 1 ? 'one' : fmt(best)} if the offer is always up`;
+	}
+	if (f.days < 0.5) return `${trades} — one sitting`;
 	if (days <= 1) return `${trades} — a day's sailing at best`;
 	return `${trades} — ${fmt(days)} days at best`;
 }
@@ -753,7 +946,11 @@ export function explain(f) {
 	// you asked for -- being told that Brilliant Pearl Shards are
 	// limited by Brilliant Pearl Shards teaches nobody anything.
 	const where = f.limit.item === f.item ? '' : ` on ${f.limit.item}`;
-	return `${fmt(f.limit.perRefresh)} a refresh${where}, ${f.capacity.lists[f.limit.list]} refreshes of its list a day`;
+	const pace = `${fmt(f.limit.perRefresh)} a refresh${where}, ${f.capacity.lists[f.limit.list]} refreshes of its list a day`;
+	const seen = f.limit.odds && f.limit.odds.recorded && f.limit.odds.per < 1
+		? ` · ${oddsText(f.limit.odds)}`
+		: '';
+	return pace + seen;
 }
 
 function fmt(n) {

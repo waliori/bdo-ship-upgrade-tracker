@@ -18,9 +18,10 @@ mkdir -p "$RAW" "$OUT"
 echo "== scenes"
 node tools/capture/scenes.mjs "$RAW"
 
-echo "== the film, both cuts"
-node tools/capture/tour.mjs "$RAW"
-node tools/capture/tour.mjs "$RAW" phone
+# The walkthrough is no longer shot here. It is the six narrated
+# chapters joined end to end -- ./tools/capture/guide.sh, which writes
+# docs/media/walkthrough.mp4 as its last step. tour.mjs still runs and
+# still works; nothing builds from it.
 
 echo "== webm -> gif"
 # 900px at 13fps keeps most clips near half a megabyte. Two of them are
@@ -38,21 +39,25 @@ echo "== webm -> gif"
 # run respectively.
 gif_size() {
 	case "$1" in
-		claim-a-quest|fit-a-ship|the-boards|share-a-ship) echo "780 10" ;;
+		claim-a-quest|fit-a-ship|the-boards|share-a-ship|the-way) echo "780 10" ;;
 		plan-a-run|share-a-drawing) echo "720 8" ;;
+		# A tilting heightmap is the worst case a GIF can be handed:
+		# every pixel of every frame is new, and there is no flat colour
+		# anywhere to pay for it.
+		stand-it-up) echo "560 6" ;;
 		*) echo "900 13" ;;
 	esac
 }
+# Only what is beside this script's own recordings: the guide chapters
+# live in "$RAW"/guide, which this glob does not reach, and a
+# two-minute chapter converted at these settings is fifty megabytes of
+# GIF nobody asked for.
 for f in "$RAW"/*.webm; do
 	name=$(basename "$f" .webm)
 	case "$name" in walkthrough*) continue ;; esac
 	# shellcheck disable=SC2046
 	./tools/capture/togif.sh "$f" "$OUT/$name.gif" $(gif_size "$name")
 done
-
-echo "== webm -> mp4"
-./tools/capture/tomp4.sh "$RAW/walkthrough.webm" "$OUT/walkthrough.mp4"
-./tools/capture/tomp4.sh "$RAW/walkthrough-phone.webm" "$OUT/walkthrough-phone.mp4"
 
 echo "== stills"
 cp "$RAW"/*.png "$OUT"/
@@ -69,7 +74,12 @@ done
 for name in plan-a-run share-a-drawing; do
 	./tools/capture/togif.sh "$RAW/$name.webm" "$OUT/small/$name.gif" 480 7
 done
-for name in hero map quests community; do
+# The stood-up chart is the hard case twice over -- a tilting heightmap,
+# and one of the pictures the dialog itself serves -- so the narrow copy
+# goes narrower and slower again. At the settings above it is a
+# two-megabyte headline on a phone.
+./tools/capture/togif.sh "$RAW/stand-it-up.webm" "$OUT/small/stand-it-up.gif" 440 5
+for name in hero map quests community the-plan; do
 	ffmpeg -v error -y -i "$OUT/$name.png" -vf scale=560:-2 "$OUT/small/$name.png"
 	ls -la "$OUT/small/$name.png"
 done

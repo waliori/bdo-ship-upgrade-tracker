@@ -16,7 +16,7 @@ import { openDialog, closeDialog, toast } from './dialogs.js';
 import { shipStats } from './ship_stats.js';
 import { describeStats, statsAt } from './part_stats.js';
 import { families, tables } from './enhancement.js';
-import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listFleet, hullOfRow, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, skinWorn, setSkinSlot, setSkinAll, skinTotals, OWNED_PREFIX, OVERLOAD } from './ship.js';
+import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listFleet, hullOfRow, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, skinWorn, setSkinSlot, setSkinAll, skinTotals, OWNED_PREFIX, OVERLOAD, petWeight } from './ship.js';
 import { GOODS } from './barter.js';
 import { GRADES, gradeById, crystalById, crystalsOf, crystalVariant, crystalLine, crystalStats } from './crystals.js';
 import { skinFor, SKIN_SLOTS } from './ship_skins.js';
@@ -615,7 +615,10 @@ function loadoutPanel(ship) {
 	const rows = `<div class="slot-grid">${fit.slots.map(x => slotCard(ship, x, chosen[x.slot] !== undefined)).join('')}${crystalCard(ship)}${skinCard(ship)}</div>`;
 	const me = currentShip();
 	const same = me.name === ship;
-	const hold = same ? me.hold : { limit: s.weight + (Number(fit.total.weight) || 0), crew: 0, free: s.weight + (Number(fit.total.weight) || 0) };
+	// A hull you are not sailing is shown empty of crew, but the pets
+	// would come with you, so they are counted here as they are there.
+	const other = s.weight + (Number(fit.total.weight) || 0) + petWeight(ship);
+	const hold = same ? me.hold : { limit: other, crew: 0, free: other };
 	return `<div class="panel crew-panel">
 		<div class="panel-head"><h2 class="panel-title">Fitted out</h2>
 			<span class="panel-sub">Hull: ${F(s.weight)} LT · ${s.slots} slots · ${s.cannons ? `${s.cannons} cannons a side, ${s.reload} s` : 'no cannons'} · ${F(s.durability)} durability · ${F(s.rations)} rations</span></div>
@@ -754,11 +757,11 @@ export function renderCrew() {
 			<button class="act quiet small" data-act="crew-setup-save" title="Keep this hull with its parts, crystal and seating under a name, to come back to">Save as setup…</button>
 			<button class="act quiet small" data-act="crew-link" title="A link that carries this hull, its parts and its crew">Copy link</button>
 		</div>
-		<label class="crew-mastery" title="Sailing Mastery, as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000">
+		<div class="crew-mastery read" title="Sailing Mastery, as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000. It is set in the bar at the top of the page, where every screen reads it.">
 			<span class="summary-k">Sailing mastery</span>
-			<input class="field purse-inline narrow" type="number" min="0" max="3000" step="50" inputmode="numeric" value="${store.getProfile('sailingMastery', 0) || ''}" placeholder="0" data-act="crew-mastery" aria-label="Sailing mastery">
-			<span class="summary-sub">${me.mastery ? `+${me.mastery}% speed, acceleration, turn and brake` : 'adds to speed, acceleration, turn and brake'}</span>
-		</label>
+			<b>${store.getProfile('sailingMastery', 0) ? F(store.getProfile('sailingMastery', 0)) : '—'}</b>
+			<span class="summary-sub">${me.mastery ? `+${me.mastery}% speed, acceleration, turn and brake` : 'set it in the bar above, with the rest of your own numbers'}</span>
+		</div>
 	</div>`;
 	if (!stats.crew) {
 		return head + setupsRow() + `<div class="panel"><p class="empty">${esc(ship)} carries no sailors. Pick a crewed hull to plan one.</p></div>` + loadoutPanel(ship);

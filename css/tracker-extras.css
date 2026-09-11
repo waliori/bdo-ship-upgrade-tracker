@@ -495,7 +495,7 @@
   .brand-name { color: #000; }
   .masthead { padding: 0 0 8pt; border-bottom: 1pt solid #000; margin-bottom: 10pt; }
   .screen { gap: 10pt; }
-  .panel, .stats, .summary, .stat, .tile, .row, .trow, .quest, .craft, .card, .build, .today, .step,
+  .panel, .stats, .summary, .stat, .tile, .want, .row, .trow, .quest, .craft, .card, .build, .today, .step,
   .kv-row, .way, .detail-body, .group, .picker, .item-card {
     background: none !important;
     border-color: #999 !important;
@@ -516,7 +516,7 @@
   a.codex { border-bottom: none; }
   .codex-mark { display: none !important; }
   input, select, textarea { background: none !important; color: #000 !important; border: 1pt solid #999 !important; -webkit-text-fill-color: #000; }
-  .row-icon, .trow-icon, .tile img, img { filter: none; }
+  .row-icon, .trow-icon, .tile img, .want-icon, img { filter: none; }
   .row-ways { display: block; }
   .row-ways summary { display: none; }
   .row-ways > div { display: block; }

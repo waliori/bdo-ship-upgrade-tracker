@@ -439,6 +439,42 @@
 .summary-stats { display: flex; gap: 26px; flex-wrap: wrap; flex: 1; }
 .get-copy { display: flex; gap: 8px; flex-wrap: wrap; }
 
+/* Still to get, as the manifest it always wanted to be: the icons and
+   the numbers of what is short. A block rather than the summary's row,
+   because the head is one line and the icons are the body. */
+.summary.want-band { display: block; padding: 14px 18px 16px; }
+.want-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.want-said { flex: 1; font-size: 12.5px; color: var(--ink-mute); }
+.want-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+.want {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 98px;
+  padding: 8px 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-btn);
+  background: rgba(var(--shade-rgb), 0.16);
+  cursor: pointer;
+  text-align: center;
+}
+.want:hover { border-color: rgba(var(--blue-rgb), 0.6); }
+/* The one thing the list below is narrowed to. */
+.want.on { border-color: rgba(var(--blue-rgb), 0.85); background: rgba(var(--blue-rgb), 0.1); }
+.want-icon { width: 34px; height: 34px; border-radius: var(--r-icon); object-fit: contain; }
+/* Red is the shortfall the app writes everywhere; amber and blue mean
+   money will answer this one -- the shop's coins, or silver. */
+.want-n { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--red); font-variant-numeric: tabular-nums; }
+.want.amber .want-n { color: var(--amber); }
+.want.blue .want-n { color: var(--blue-hi); }
+/* Three lines: half the ship materials are "Violent Sea Monster's
+   something", and two lines cut every one of them at the same word. */
+.want-name { font-size: 10px; color: var(--ink-soft); line-height: 1.2; max-height: 36px; overflow: hidden; }
+.want-of { font-size: 9.5px; color: var(--ink-faint); }
+.want-more { align-self: center; padding: 0 8px; }
+
 /* A save that is not reaching the disk: said in red under the header
    for as long as it lasts, with Export in reach. */
 .save-badge {

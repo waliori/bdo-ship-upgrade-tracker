@@ -18,8 +18,9 @@ const ENTRIES = [
 		text: 'The bar refills to 1,000,000 at the 06:00 UTC reset. Every row prints '
 			+ '“Parley: N required” — the rate depends on which list the row is on, and '
 			+ 'your discounts are already applied to it. “Total Barters” in the header is '
-			+ 'the number this app calls Total Barters in the Bartering tile: type it there '
-			+ 'and the route-unlock line will agree with your game.'
+			+ 'the number this app calls Total Barters in the bar above the tabs: type it '
+			+ 'there and the routes it has opened — and the islands every run is planned '
+			+ 'through — will agree with your game.'
 	},
 	{
 		id: 'refresh',
@@ -39,7 +40,7 @@ const ENTRIES = [
 		where: 'Profile (P) → Life Skill → hover “Barter”',
 		text: 'Higher Barter levels cut the parley of every exchange — the tooltip states '
 			+ 'the exact percentage. It adds with the Value Pack’s −10% and Cleia’s −10%; '
-			+ 'the sum comes off the base price. Pick your level in the Bartering tile and '
+			+ 'the sum comes off the base price. Pick your level in the bar above the tabs and '
 			+ 'every parley figure in the app uses it. Cleia’s cut is not asked for: seat '
 			+ 'her at the First Mate seat on the Ship tab and it is taken as read.'
 	},
@@ -50,7 +51,7 @@ const ENTRIES = [
 		where: 'a Special Item, processed from an Item Collection Increase Scroll',
 		text: 'Using one recovers 250,000 Parley — a quarter of the bar — on its own '
 			+ 'two-hour cooldown, and refuses a full bar. The “vouchers” count in the '
-			+ 'Bartering tile is how many you keep; it raises the trades-a-refill figure.'
+			+ 'bar above the tabs is how many you keep; it raises the trades-a-refill figure.'
 	},
 	{
 		id: 'draw',

@@ -4,7 +4,7 @@
 //   node scenes.mjs <outdir> [sceneName ...]
 
 import { open, seed, tab, click, clickIn, drag, moveTo, typeInto, wait, waitFor } from './drive.mjs';
-import { midBuild, readyToCraft, recordLevel, fittedShip, emptyStart } from './states.mjs';
+import { midBuild, readyToCraft, recordLevel, fittedShip, emptyStart, onePartToGo } from './states.mjs';
 import { fakeCommunity, FLEET } from './fleet.mjs';
 
 const OUT = process.argv[2];
@@ -184,7 +184,11 @@ const scenes = {
 	},
 
 	/* A hull is five slots and a crew, and its speed is a real number:
-	 * type in the Sailing Mastery and the whole card moves.
+	 * type the Sailing Mastery into the bar and the whole card moves.
+	 *
+	 * The field moved out of this screen and into the shell, so the clip
+	 * opens the sailor bar first -- which is the honest picture anyway:
+	 * one number, typed once, that every tab reads.
 	 *
 	 * The pointer is kept off the slot cards -- hovering one opens the
 	 * peek card over half the screen, and a full-width overlay appearing
@@ -193,9 +197,43 @@ const scenes = {
 		await seed(page, url, fittedShip);
 		await tab(page, 'crew');
 		await wait(900);
+		await click(page, '[data-act="sail-bar"]', { after: 700 });
 		await rec(page, 'fit-a-ship', async () => {
 			await wait(500);
-			await typeInto(page, '[data-act="crew-mastery"]', '750', { after: 1500 });
+			await typeInto(page, '[data-act="crew-mastery"]', '750', { after: 1600 });
+		});
+	},
+
+	/* The chart stood up on the game's own terrain, and painted both
+	 * ways. Every pixel moves in this one -- a tilting heightmap is the
+	 * worst case a GIF can be given -- so it is kept to a few seconds
+	 * and shoot.sh gives it the narrowest, slowest encode here. */
+	async 'stand-it-up'({ page, url }) {
+		await seed(page, url, midBuild);
+		await tab(page, 'map');
+		await wait(2200);
+		await rec(page, 'stand-it-up', async () => {
+			await wait(300);
+			await click(page, '[data-act="map-3d"]', { after: 3800 });
+			await drag(page, '#map', 0, -130, { hold: 'Shift', after: 700 });
+			await click(page, '[data-act="map-style"][data-id="neon"]', { after: 1500 });
+		});
+		// Back down, so a scene shot after this one is not tilted.
+		await click(page, '[data-act="map-3d"]', { after: 900 });
+	},
+
+	/* What the plan costs in days, and how that answer moves with the
+	 * goal you give it. The headline and the steps both redraw, so this
+	 * one is given a narrower frame than the default. */
+	async 'the-way'({ page, url }) {
+		await seed(page, url, onePartToGo);
+		await tab(page, 'get');
+		await wait(1100);
+		await rec(page, 'the-way', async () => {
+			await wait(400);
+			await click(page, '[data-act="get-preset"][data-id="coins"]', { after: 1500 });
+			await click(page, '[data-act="get-preset"][data-id="silver"]', { after: 1500 });
+			await click(page, '[data-act="get-preset"][data-id="soon"]', { after: 1400 });
 		});
 	},
 
@@ -334,8 +372,36 @@ const stills = {
 	async 'to-get'({ page, url }) {
 		await seed(page, url, midBuild);
 		await tab(page, 'get');
+		await click(page, '[data-act="get-mode"][data-id="source"]');
+		await wait(500);
 		await page.evaluate(() => document.getElementById('__cur').remove());
 		await page.screenshot({ path: `${OUT}/to-get.png` });
+	},
+	/**
+	 * The plan, which is what To Get opens on: the card that says where
+	 * it lands and the first steps under it. The quest list is folded so
+	 * the whole shape fits one frame -- a day's dailies would push the
+	 * steps a screen and a half down.
+	 */
+	async 'the-plan'({ page, url }) {
+		await page.setViewport({ width: 1180, height: 1180, deviceScaleFactor: 1 });
+		await seed(page, url, onePartToGo);
+		await tab(page, 'get');
+		await wait(900);
+		await page.evaluate(() => {
+			const b = document.querySelector('[data-act="get-fold"][data-id="quests"]');
+			if (b) b.click();
+		});
+		await wait(500);
+		await page.evaluate(() => {
+			const el = document.querySelector('.way-head');
+			if (el) window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top - 178);
+			const cur = document.getElementById('__cur');
+			if (cur) cur.remove();
+		});
+		await wait(350);
+		await page.screenshot({ path: `${OUT}/the-plan.png` });
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
 	},
 	async map({ page, url }) {
 		await seed(page, url, midBuild);

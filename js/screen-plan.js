@@ -11,6 +11,7 @@ import {
 } from './ui-state.js';
 import { maxCraftable, parseEnhanced } from './planner.js';
 import { pendingEnhancements } from './screen-workshop.js';
+import { todaysQuests } from './get-way.js';
 
 
 export function renderPlan() {
@@ -115,8 +116,16 @@ export function nextStep() {
 		msg = `${pending.length} enhancement ${pending.length === 1 ? 'attempt is' : 'attempts are'} affordable.`;
 		cta = ['Open Workshop', 'workshop'];
 	} else if (shortCount) {
-		msg = `Nothing to make yet — ${shortCount} ${shortCount === 1 ? 'item is' : 'items are'} still missing. Record what you gather in the boxes below.`;
-		cta = ['See the shopping list', 'get'];
+		// The way To Get would go about it, said as today's first step:
+		// a quest still to do, and what to take off it.
+		const today = todaysQuests().filter(q => q.cadence !== 'once')[0];
+		const take = today && today.quest.choice && today.pick !== null
+			? Object.entries(today.quest.choice[today.pick]).map(([item, n]) => `take ${F(n)}× ${item}`).join(', ')
+			: '';
+		msg = today
+			? `${shortCount} ${shortCount === 1 ? 'item is' : 'items are'} still missing. Today: ${today.name}${take ? ` and ${take}` : ''}${today.forCoins ? ', for the coins' : ''}.`
+			: `Nothing to make yet — ${shortCount} ${shortCount === 1 ? 'item is' : 'items are'} still missing. Record what you gather in the boxes below.`;
+		cta = [today ? 'See the way to get it' : 'See the shopping list', 'get'];
 	} else {
 		msg = 'Everything your builds need is on hand.';
 	}

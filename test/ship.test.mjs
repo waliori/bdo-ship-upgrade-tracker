@@ -222,3 +222,64 @@ test('the fleet and the hold are one thing: a setup buys a hull, a hull kept is 
 	assert.equal(ownedHulls().length, 1);
 	assert.equal(listFleet().length, 3, 'the two Caravel setups are still kept');
 });
+
+test("the Bos'n Jacks are the player's, and only a big ship carries them", async () => {
+	const { petWeight, setPets, bosnJacks } = await import('../js/ship.js');
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { crewShip: 'Epheria Caravel' } });
+	const bare = currentShip().hold.limit;
+
+	// Fifty a tier, stacking across the five slots the game lets out --
+	// and the whole nest is one change, so one Undo takes it back.
+	setPets([4, 2]);
+	assert.equal(petWeight('Epheria Caravel'), 300);
+	assert.equal(currentShip().hold.limit, bare + 300);
+	assert.equal(currentShip().hold.lines.find(l => /Bos/.test(l.label)).lt, 300);
+	store.undo();
+	assert.equal(petWeight('Epheria Caravel'), 0);
+	store.redo();
+	assert.equal(petWeight('Epheria Caravel'), 300);
+
+	// A tier 5 is still 200 until it is the one wearing the star, and the
+	// star cannot be given to a nest that has no tier 5 in it.
+	setPets([4, 5]);
+	assert.equal(petWeight('Epheria Caravel'), 400);
+	setPets([4, 5], true);
+	assert.equal(petWeight('Epheria Caravel'), 450);
+	setPets([4, 4], true);
+	assert.equal(petWeight('Epheria Caravel'), 400);
+	assert.equal(store.getProfile('bosnAlpha', false), false);
+	setPets([4, 5], true);
+
+	// Nothing at all on the hulls the talent does not call big.
+	assert.equal(petWeight('Bartali Sailboat'), 0);
+	assert.equal(petWeight('Epheria Cog'), 0);
+	assert.equal(petWeight('Rowboat'), 0);
+	store.setProfile('crewShip', 'Bartali Sailboat');
+	const small = currentShip();
+	assert.equal(small.hold.limit, shipStats['Bartali Sailboat'].weight);
+	assert.equal(small.hold.lines.some(l => /Bos/.test(l.label)), false);
+
+	// The star cannot outlive the tier 5 that earned it, and the birds
+	// come back as five slots however few were kept.
+	store.setProfile('crewShip', 'Epheria Caravel');
+	setPets([4]);
+	assert.equal(store.getProfile('bosnAlpha', false), false);
+	assert.equal(bosnJacks().length, 5);
+	assert.deepEqual(bosnJacks(), [4, 0, 0, 0, 0]);
+	assert.equal(petWeight('Epheria Caravel'), 200);
+
+	// Five of a tier is what the editor's head row writes, and it is the
+	// ceiling: a sixth bird is not a thing the game lets out.
+	setPets([4, 4, 4, 4, 4]);
+	assert.equal(petWeight('Epheria Caravel'), 1000);
+	setPets([5, 5, 5, 5, 5], true);
+	assert.equal(petWeight('Epheria Caravel'), 1050, 'four at 200 and the Alpha at 250');
+	setPets([4, 4, 4, 4, 4, 4]);
+	assert.equal(petWeight('Epheria Caravel'), 1000, 'the sixth is dropped');
+
+	// And a save cannot smuggle a sixth bird or a tier 9 past the shape.
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { bosnJacks: [9, 1, 1, 1, 1, 4], bosnAlpha: true } });
+	assert.deepEqual(store.getProfile('bosnJacks', []), [5, 1, 1, 1, 1]);
+	assert.equal(store.getProfile('bosnAlpha', false), true);
+	assert.equal(petWeight('Epheria Caravel'), 200 + 50 * 4 + 50);
+});

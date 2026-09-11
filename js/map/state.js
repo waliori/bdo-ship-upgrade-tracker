@@ -89,6 +89,9 @@ export const mv = {
 	libOpen: false,          // the library is the dialog on screen
 	editing: 0,              // the seq of the word being typed on the chart, 0 for none
 	markDrag: null,          // a stop or a word being carried elsewhere: { kind, seq, from, x, y, moved }
+	threeD: false,           // the chart is stood up: the game's own terrain, drawn (js/map/terrain.js)
+	pitch: 52,               // how far the camera leans over in that view, in degrees
+	bearing: 0,              // and which way it faces, clockwise from north
 	fullOn: false,           // the chart is the whole screen, over the app
 	fullTurned: false,       // and turned on its side, for a phone held upright that cannot be told to turn
 };
@@ -246,7 +249,7 @@ export function persist() {
 	syncLanes();
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode: mv.mode, panelOpen: mv.panelOpen, follow: mv.follow, nextOnly: mv.nextOnly, kindFilter: mv.kindFilter, coursesOn: mv.coursesOn, huntsOn: mv.huntsOn, wharvesOn: mv.wharvesOn, habitatsOn: mv.habitatsOn, labelsOn: mv.labelsOn, pinsOn: mv.pinsOn, tracesOn: mv.tracesOn, hugWater: mv.hugWater, layersOpen: mv.layersOpen, sideRight: mv.sideRight, tradesMode: mv.tradesMode, miniOn: mv.miniOn, miniPos: mv.miniPos, inkColour: mv.inkColour, inkWidth: mv.inkWidth, inkSize: mv.inkSize, inkPlate: mv.inkPlate }));
+			JSON.stringify({ mode: mv.mode, panelOpen: mv.panelOpen, follow: mv.follow, nextOnly: mv.nextOnly, kindFilter: mv.kindFilter, coursesOn: mv.coursesOn, huntsOn: mv.huntsOn, wharvesOn: mv.wharvesOn, habitatsOn: mv.habitatsOn, labelsOn: mv.labelsOn, pinsOn: mv.pinsOn, tracesOn: mv.tracesOn, hugWater: mv.hugWater, layersOpen: mv.layersOpen, sideRight: mv.sideRight, tradesMode: mv.tradesMode, miniOn: mv.miniOn, miniPos: mv.miniPos, inkColour: mv.inkColour, inkWidth: mv.inkWidth, inkSize: mv.inkSize, inkPlate: mv.inkPlate, threeD: mv.threeD, pitch: mv.pitch, bearing: mv.bearing }));
 	} catch { /* private mode; the session still works */ }
 	if (writeTimer) clearTimeout(writeTimer);
 	writeTimer = setTimeout(flushView, 250);

@@ -11,18 +11,33 @@ opt-in, self-hosted and off by default.
 
 ![The Plan screen, part-way through two Carrack parts](docs/media/hero.png)
 
-**In a hurry?** [Watch the walkthrough](docs/media/walkthrough.mp4) — the
-yard first: queue a build, choose how to get there, record what you
-gathered, make something, see what it will really cost, take the list
-shopping. Then the sea: the day's free quests, the ship you sail it in,
-the chart, where that list becomes a loop with minutes on it and a
-blank stretch of water can be drawn on, a run planned on today's board
-and sailed on that chart — and the harbour at the end, where the boards
-are. It is the real app, driven and captioned; the only invented thing
-in it is the handful of sailors on those boards, since a machine
-shooting a clip has no deployment with players on it. There is a
-[narrower cut for a phone](docs/media/walkthrough-phone.mp4). Both play
-inside the app too, under **Help**.
+**In a hurry?** [Watch the guide](docs/media/walkthrough.mp4) — thirteen
+minutes, in seven parts, and you can start at whichever one you came
+for. It is the real app being driven and narrated, not a mock-up; the
+only invented thing anywhere in it is the handful of sailors on the
+community boards, since a machine shooting a film has no deployment
+with players on it. It plays inside the app too, under **Help**, where
+the seven parts are listed as jump-to points. There is a
+[transcript](docs/media/walkthrough.txt) and a
+[caption track](docs/media/walkthrough.vtt) beside it.
+
+The seven parts are also files of their own, if you would rather link at
+one than at a timestamp — each with subtitles and a transcript, and
+whatever is being talked about lit up on screen as it is named:
+
+| Chapter | What it covers |
+|---|---|
+| [One — The Yard](docs/media/guide/the-yard.mp4) | The sailor's own numbers in the bar — the barter count that decides which islands deal with you at all — then queue a build, record what you gather, craft it, step a mistake back, price a part, read the tree |
+| [Two — To Get](docs/media/guide/to-get.mp4) | The plan: one way to each thing you are short of, under a goal you choose, with the day count that follows every choice — and what it will never do |
+| [Three — Quests](docs/media/guide/quests.mp4) | The sailing dailies and weeklies, which of them pay something you need, and recording a batch of them in one change |
+| [Four — Your Ship](docs/media/guide/your-ship.mp4) | Hull, the four part slots, the sea crystal, the appearance set, where every figure comes from — and the crew: read off the game's own screenshots, then seated by hand or automatically, with presets and saved setups |
+| [Five — The Map](docs/media/guide/the-map.mp4) | The chart, mostly full screen: the toolbar, the minimap, the layers, all five of its tabs — and stood up on the game's own terrain, in Ground or Neon |
+| [Six — A Run](docs/media/guide/a-run.mp4) | The one to send a barterer: silver or a material, naming this refresh's layout off the game's own barter window, setting the orders, picking the chains, reading the sheet, sailing it, and recording the trip |
+| [Seven — The Harbour](docs/media/guide/the-harbour.mp4) | The boards, what a place on one opens, and what is and is not shared |
+
+Same rule as the walkthrough: it is the real app being driven, and the
+only invented thing anywhere in it is the handful of sailors on those
+boards.
 
 ---
 
@@ -76,16 +91,57 @@ and says so; blank means the quoted rate.
 
 ### 4. Take the list shopping
 
-Everything still missing, grouped by how you actually obtain it — Crow
-Coin Shop, Falasi's silver, barter, worker nodes, hunting — with running
-totals measured against what's in your purse. The list copies as text
-or as CSV, and prints legibly on white.
+![Three goals, and the day count moving under each one](docs/media/the-way.gif)
+
+It opens on **Still to get**: the icons and the numbers of everything
+short, biggest first, tinted by the money each one wants — and a press
+on any of them narrows the whole screen to that one thing.
+
+Under it, **the way to get it**: not every way each thing *can* be had,
+but one way it *should* be, chosen against all the others and counted
+in days. *Done in 11 days* is the headline; beneath it, what it will
+cost in coins and silver, and how many things are left across how many
+steps. Because there is no right answer to what that should cost you,
+it asks: **Soonest** spends the purse wherever that buys a day, **Keep
+the coins** spends them only where nothing else sells the thing, **Keep
+the silver** leaves the Central Market alone — and the day count moves
+as you choose, which is the trade in the only unit that matters. Tell
+it how many days a week you actually sail, hold coins back, and say
+what you are willing to do at all: turn bartering off and the lists
+stop counting; turn hunting on and a sea monster's drop becomes
+something to go and kill for rather than something to buy.
+
+A barter step is paced by how often that offer was really seen on the
+list, not by how often it could appear — presence only, never
+multiplicity, so it can lengthen an estimate and never shorten one. And
+the plan says plainly **what it will never do**, drawn from the orders
+in force, so you know what it is not counting.
+
+**Every way** is the other reading: everything outstanding grouped by
+how you actually obtain it — Crow Coin Shop, Falasi's silver, barter,
+worker nodes, hunting — with running totals measured against what's in
+your purse. Either reading copies as text or as CSV, and prints legibly
+on white.
 
 **Total Barters follows your runs.** Recording a run adds its trades to
 the count that opens the next trade route, in the same change as the
 goods and the silver — one Undo takes back all of it — and a run that
 carries you past a threshold says which route it opened. It stays a
-field you can type over when it and the game drift apart.
+field you can type over when it and the game drift apart; it lives in
+the bar above the tabs, with the barter level, the Parley, the vouchers,
+the Sailing Mastery, the Bos'n Jacks you have out and the region the
+prices are quoted in, because they are read by every screen and not
+only this one.
+
+**And it decides which islands exist.** The game opens the trade routes
+island by island as that count climbs — 600 barters opens Lantinia's
+Combat Raft, 3,000 the Wandering Merchant's Ship — so nothing is ever
+planned through a barterer you have not reached: chains that climb
+through one are left out of the run and said out loud above the list,
+a material's islands show the shut ones locked with the count beside
+them, the chart lights no pin there, and a thing dealt nowhere else
+reads as *locked — 2,520 more barters open the Wandering Merchant's
+Ship* instead of a number of days you could not spend.
 
 Anything the **Crow Coin Shop** sells carries a *Buy*: it asks how many,
 says what that costs and what is left of the purse, and records the
@@ -95,6 +151,69 @@ does not work is said rather than quietly clamped. The same button is in
 the Inventory panel for any coin-priced thing.
 
 ![The To Get screen](docs/media/to-get.png)
+
+![The plan: where it lands, what it costs, and the steps in order](docs/media/the-plan.png)
+
+**And which way each thing *should* be got.** Every line above can say
+where a thing comes from; the sources compete, and that is the question
+the list cannot answer one line at a time. A Candidum daily pays
+fourteen Tidal Black Stones *or* one Violent Wave Plywood, the coins
+spent on plywood are not there for the tendons, and two materials off
+the ship-material list wait on the same three draws a day. So To Get
+opens on **The way to get it**: the whole list read at once, one way an
+item — from the quests, the Crow Coin Shop, barter, Falasi, the Market,
+or go and get — with its reason on the line, how many days that is,
+and what sets the pace.
+
+**It reads as steps, in the order they are done.** The quests pay the
+Crow Coins that buy the shop's half, so buying first empties the purse
+before the quests come round. So the plan is numbered: run these quests,
+take these as quest rewards, buy at the Crow Coin Shop, barter for these
+at sea, and on down to what has no rate at all. Each step says where it
+happens, carries its own total, and folds away when you are done with
+it. Above them, one card holds where the plan lands, the thing that sets
+that pace, what it costs against what you can spare, and every dial that
+moved it there — including a line you can open that says what this
+particular plan will never do.
+
+It follows a goal you state, because what is scarce is yours to say:
+**Soonest** spends the purse wherever it buys days, **Keep the coins**
+spends them only where nothing else sells the thing, **Keep the
+silver** leaves the Market alone; beside them, how many days a week the
+sea gets and coins to keep back. The quests to run are listed as the
+actions they are, each with the reward the plan would take off a
+pick-one — *make it my pick* remembers it, so Claimed on the Quests
+screen records it in one press — and a short purse is stretched by the
+coin quests, with the horizon saying how long that takes. **Every way**
+is the old reading, one chip away.
+
+Three switches say what you are actually willing to do: the dailies and
+weeklies, bartering, and **hunt what drops**. The last takes every
+dropped material off the shopping list without ever claiming a rate for
+it, because none is published — on a two-part Carrack that is the
+difference between forty-three days and thirty.
+
+**How often the offer is really there.** Every barter figure in this app
+used to assume the exchange you want is on the list each time you draw
+it. It is not: of the four whole ship-material boards recorded, a
+Saltwater Crocodile's Scale was on *one*. So the forecast now reads both
+records that ride with the barter table — those four complete boards,
+and the forty trade-list layouts seen across four hundred and twenty
+refreshes — and paces every rung by how often it was actually there. The
+old figure survives as the floor, with the sample beside it: *about 11
+days, 5 if the offer is always up · on 1 of the 4 boards recorded*.
+
+What is measured is presence rather than how many islands showed it, so
+the change can only ever lengthen a forecast and never shorten one; a
+thing on every board reads exactly as it did, and anything no board has
+recorded keeps the best case and says so. Your own board diary is left
+out of the arithmetic on purpose: it records where a thing was and never
+where it was not, and a sample with no absences in it cannot measure
+absence.
+
+Every row also carries the ways the plan could not put a number on —
+what drops it, the worker node, the bulk exchange — because *nothing
+else sells it* is true of shops and false of Khan.
 
 ---
 
@@ -291,8 +410,22 @@ its letters you have recorded.
 The **Ship** screen opens on the ship as a card — and keeps **setups**:
 a hull with its parts, crystal and seating under a name, to switch
 between here or from the Map's route timing (the crew roster itself is
-shared). Your **Sailing Mastery** goes in beside it and counts toward
-speed, acceleration, turn and brake the way the game's table has it.
+shared). Your **Sailing Mastery** counts toward speed, acceleration,
+turn and brake the way the game's table has it; the card reads it, and
+it is typed once in the bar above the tabs, where every screen reads
+the same number.
+
+**And the pets count too.** A **Bos'n Jack** is the one pet in the game
+whose talent is ship weight — *Big Ship Inventory Weight*, +50 LT a
+tier, stacking across the five pets you can have out at once, and one
+step more again on the tier 5 you make your Alpha. They are yours and
+not the hull's, so they are set in the same bar as the mastery: the row
+of birds there is read, and one press opens the nest — five slots down
+the side, the six tiers across, a head row that sets all five at once,
+and the whole thing a draft until Save. The hold counts them on the
+Epheria line, the Carracks and the Panokseon, and on nothing smaller —
+which is what the talent's own *Big Ships only* means — and the Ship
+screen shows them as their own line in the sum.
 
 **Your fleet is your inventory.** Keeping a setup puts its hull in the
 Inventory if none was recorded there, and a hull recorded in the
@@ -356,6 +489,17 @@ Tenacious all cost five cabins and 300 LT) from where the growths went —
 with anything less than certain marked for a look, and a dropdown to
 correct it.
 
+**In any language the game runs in.** Say which of the sixteen the
+client's own menu lists is yours and the reader speaks it: 식성 and
+生活物資 and Требуется кают are labels like any other, and a Cyrillic,
+Hangul, Han or Thai name comes back as the name. The ten Latin services
+read on the model already aboard; Русский, 日本語, 한국어, 中文, 繁體中文
+and ภาษาไทย each fetch one to three megabytes more, once. Under the
+words is a shape none of the sixteen change — the weight carries LT, the
+condition is a pair over a slash, and the eight growths sit in the same
+order whatever they are called — so a label the scan could not make out
+costs nothing: the figure is still the fifth down the column.
+
 It is read **in the browser**: Tesseract is vendored under `reader/` and
 served from this origin, the shots are decoded by the browser's own
 image decoders and handed on as pixels, and nothing is uploaded — so
@@ -400,6 +544,24 @@ gpw's ocean map. The chart can also draw all 58 **wharf managers**
 chart's `⇩` keeps the area in view offline — its tiles and one zoom
 level either side, up to 400 of them — in a store the service worker's
 tidying never touches, until `⌫` lets them go.
+
+### Stand the chart up
+
+![The chart standing up on the game's own terrain, leaned over and painted both ways](docs/media/stand-it-up.gif)
+
+The `⛰` button takes the chart off the flat and stands it on **the
+game's own terrain** — not a picture of the world map, but the terrain
+meshes read out of your client and baked into a heightmap the browser
+can draw. Shift-drag leans it; `⤓ Level` looks straight down again,
+facing north. Two ways to paint it: **Ground**, in the colours the
+client ships on the terrain itself, and **Neon**, contours drawn the
+way the game's own 3D map draws them. Every pin, route, habitat and
+trace you had on the flat chart is still there, standing on the
+landscape it belongs to.
+
+The terrain is a build artefact, not something the app fetches from
+anyone: `tools/build-terrain.mjs` bakes it out of an extracted client,
+and a deployment without that bake simply has no `⛰`.
 
 ### Plot the loop, and know how long it takes
 
@@ -636,7 +798,9 @@ claimed reward in your stock.
 their lists; what only the Central Market sells — plywood, ingots, saps —
 is priced from the Market itself, per region, relayed by the server from
 the community market API and remembered so the plan stays priced offline.
-The shopping list says how old the numbers are and lets you ask again.
+The region is the sailor's own — a chip in the bar above the tabs, beside
+the barter count — and it says how old the numbers are and lets you ask
+again from wherever you are standing.
 
 **Mass Process** can be ticked when recording a craft of the yellow
 materials, so the Black Stone Powder it takes leaves your stock too.
@@ -727,9 +891,9 @@ word. *Fast* keeps the hold under the limit and makes no wharf call, so
 the hull never slows. *Full, never slower* does every attempt the
 islands allow and leaves the surplus at a wharf before the hull would
 slow — more calls, full speed. *Full, loaded* does every attempt and
-takes the hold up to the barter ceiling, a quarter over the limit, the
-hull sailing slower for it, and calls at a wharf only where the next
-island would not deal. Under every stop the hold reads as the game's
+takes the hold up to the barter ceiling — seventy per cent over the
+limit, the same point the hull stops moving at — sailing slower for it,
+and calls at a wharf only where the next island would not deal. Under every stop the hold reads as the game's
 Ship Info does — everything aboard, crew included, over the limit —
 and beside it the Parley bar counts down from what it holds now, priced
 at your barter level, a Crow's Trade Voucher drawn on where the bar
@@ -1017,6 +1181,7 @@ js/
   part_stats.js       what each part does, level by level
   sailors.js          the hiring pool, positions, condition, first mates,
                       and arranging a crew for a stated goal
+  sailor-locales.js   the sailor window's words in every language the game runs in
   sailor-shot.js      a sailor read out of a screenshot's words -- pure, and tested
   shot-reader.js      the vendored OCR engine, and the two passes over a screenshot
   sailor-import.js    the drop, the reading and the table that checks it
@@ -1041,6 +1206,7 @@ icon_mapping.json     item -> icon file and BDOCodex page
 og.png                the social preview card
 docs/media/           the images and clips in this README
 docs/media/small/     the narrow copies the app itself serves
+docs/media/guide/     the six narrated chapters, with their captions
 CHANGELOG.md          generated from js/about.js by tools/build-changelog.mjs
 tools/capture/        the harness that generates the media, film included
 ```

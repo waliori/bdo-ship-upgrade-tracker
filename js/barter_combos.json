@@ -1,14 +1,14 @@
 {
-	"read": "2026-09-03",
+	"read": "2026-09-11",
 	"source": "https://docs.google.com/spreadsheets/d/1X4HGo40R1kfbEDZlpxo5biIVQjmDYXPYKl_J2gF37fA",
 	"sample": {
 		"since": "2026-04-16",
-		"refreshes": 420
+		"refreshes": 444
 	},
 	"combos": [
 		{
 			"id": "1",
-			"seen": 13,
+			"seen": 17,
 			"offers": [
 				[
 					58948,
@@ -518,7 +518,7 @@
 		},
 		{
 			"id": "2",
-			"seen": 2,
+			"seen": 4,
 			"offers": [
 				[
 					58948,
@@ -2054,7 +2054,7 @@
 		},
 		{
 			"id": "5",
-			"seen": 9,
+			"seen": 10,
 			"offers": [
 				[
 					58948,
@@ -2570,7 +2570,7 @@
 		},
 		{
 			"id": "6",
-			"seen": 13,
+			"seen": 14,
 			"offers": [
 				[
 					58948,
@@ -3080,7 +3080,7 @@
 		},
 		{
 			"id": "7",
-			"seen": 15,
+			"seen": 16,
 			"offers": [
 				[
 					58948,
@@ -3590,7 +3590,7 @@
 		},
 		{
 			"id": "7A",
-			"seen": 7,
+			"seen": 8,
 			"offers": [
 				[
 					58948,
@@ -4023,6 +4023,12 @@
 					"[Level 5] Statue's Tear",
 					"1",
 					"[Level 6] Black Rose Bouquet"
+				],
+				[
+					50826,
+					"[Level 4] Green Salt Lump",
+					"1",
+					"Crow Coin"
 				],
 				[
 					50819,
@@ -5132,7 +5138,7 @@
 		},
 		{
 			"id": "9B",
-			"seen": 8,
+			"seen": 10,
 			"offers": [
 				[
 					58948,
@@ -6668,7 +6674,7 @@
 		},
 		{
 			"id": "12",
-			"seen": 10,
+			"seen": 11,
 			"offers": [
 				[
 					58948,
@@ -7682,7 +7688,7 @@
 		},
 		{
 			"id": "14",
-			"seen": 10,
+			"seen": 12,
 			"offers": [
 				[
 					58948,
@@ -8192,7 +8198,7 @@
 		},
 		{
 			"id": "15",
-			"seen": 7,
+			"seen": 8,
 			"offers": [
 				[
 					58948,
@@ -8702,7 +8708,7 @@
 		},
 		{
 			"id": "16",
-			"seen": 10,
+			"seen": 11,
 			"offers": [
 				[
 					58948,
@@ -9150,7 +9156,7 @@
 				],
 				[
 					58977,
-					"[Level 5] Octagonal Box",
+					"[Level 5] Statue's Tear",
 					"1",
 					"[Level 6] Moonlit Crystal Lamp"
 				],
@@ -11762,7 +11768,7 @@
 		},
 		{
 			"id": "23",
-			"seen": 10,
+			"seen": 11,
 			"offers": [
 				[
 					58948,
@@ -12782,7 +12788,7 @@
 		},
 		{
 			"id": "25",
-			"seen": 11,
+			"seen": 12,
 			"offers": [
 				[
 					58948,
@@ -13292,7 +13298,7 @@
 		},
 		{
 			"id": "26",
-			"seen": 8,
+			"seen": 9,
 			"offers": [
 				[
 					58948,
@@ -16346,7 +16352,7 @@
 		},
 		{
 			"id": "32",
-			"seen": 11,
+			"seen": 13,
 			"offers": [
 				[
 					58948,
@@ -16850,7 +16856,7 @@
 		},
 		{
 			"id": "33",
-			"seen": 7,
+			"seen": 8,
 			"offers": [
 				[
 					58948,
@@ -17360,7 +17366,7 @@
 		},
 		{
 			"id": "34",
-			"seen": 13,
+			"seen": 14,
 			"offers": [
 				[
 					58948,

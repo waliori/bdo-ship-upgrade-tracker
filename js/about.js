@@ -9,6 +9,8 @@ export const DATA = [
 	{ what: 'Barterers’ positions on the chart', asOf: '2026-08-30', from: 'client positions, within a pixel' },
 	{ what: 'Sea monster spawn points', asOf: '2026-08-30', from: 'BDOCodex; the Lyngbakr Habitat from in-game bookmarks, 2026-08-31' },
 	{ what: 'What islands paid on your runs', asOf: 'live', from: 'your own record, from the Barter tab’s checklist' },
+	{ what: 'The ship-material board — four whole boards', asOf: '2026-09-05', from: 'the barter window, read off screenshots of four refreshes; how often each offer is up comes from these' },
+	{ what: 'The trade-good list — forty layouts', asOf: '2026-09-11', from: 'a community sheet, 444 refreshes since 2026-04-16; refetched after a player reported the game moving a slot inside one' },
 	{ what: 'Monster ground markers', asOf: '2026-08-31', from: 'the centre of each species’ codex spawns, kept to open water; the crocodiles from the patch note' },
 	{ what: 'Wharf managers — the full roll, 58 of them', asOf: '2026-08-31', from: 'BDOCodex NPC pages' },
 	{ what: 'Cox Pirates’ camps, flags and cargo ships', asOf: '2026-08-31', from: 'Awabi’s “The Road to Cox” map, fitted to the chart on its island names' },
@@ -40,8 +42,195 @@ export const DATA = [
  * A section with `media` is a headline: the dialog shows its picture.
  * The rest are folded away behind "everything else", and printed in
  * full in the file.
+ *
+ * `thanks` names the players who asked for what is in the release, in
+ * their own words. It is a field of its own rather than a section
+ * because it must not be foldable: a person who wrote in and then had
+ * to open "everything else" to find themselves has been thanked in a
+ * drawer.
  */
 export const RELEASES = [
+	{
+		id: '1.1',
+		name: 'The plan, and the sea you can actually reach',
+		date: '2026-09-11',
+		blurb: 'Two players asked for the two big things in this one, and both asks turned out to be the same complaint from different ends: the app knew a great deal and left the deciding to you. '
+			+ '<b>To Get</b> now says how each thing <i>should</i> be got rather than only how it can be — one route through everything left, in the order it is done — and every barter plan is cut to the islands your own <b>total barters</b> have opened. '
+			+ 'Around those: the chart <b>stands up</b> on the game’s own terrain, the barter forecast counts how often the offer is really on the list, a crew reads off your own screenshots, the numbers about you — the nest of Bos’n Jacks among them — are typed once and read everywhere, and the boards keep up with your save.',
+		thanks: {
+			text: 'Four players wrote in. Two of them set the shape of this release; two more put right things the app had wrong — a barter slot the game had quietly changed, and a nest of birds it was not counting at all. Every one of the four was a better question than the ones being asked inside. Thank you.',
+			who: [
+				{
+					name: 'Kristofer',
+					said: 'it would be really convenient if, after you input what you currently have, it could suggest the most efficient way to obtain the remaining resources … it tells you how each <b>can</b> be obtained, but a logic to suggest how each remaining resource <b>should</b> be obtained would be fantastic.',
+					did: 'That is the whole of <b>the way to get it</b>, and the word <i>should</i> is what sent it after the places the sources compete rather than after a longer list.'
+				},
+				{
+					name: 'Zelpha',
+					said: 'I wanna use the barter planning page but I’m only at 480 total barters, it would be nice if I could put that in somewhere and it’d limit the routes based on what I have available.',
+					did: 'That is <b>the barter count deciding which islands exist</b> — and it was worth more than a filter: fifteen of the forty recorded boards’ chains climb through an island 480 barters cannot reach, so that page had been quietly wrong for everyone below the thresholds.'
+				},
+				{
+					name: 'RENGEREL',
+					said: 'They did change the octagonal box from my combo 16 in grandiha to a statue’s tear. Not sure when they did that, but must have missed it. Next maint they should be changing the tear in my combo 31 at dallae pier … also 7A, just finally got the wandering merchant trade',
+					did: 'That is a <b>layout drifting</b>, and it is the one way this record goes wrong: the game edits a single slot at a maintenance and leaves the layout’s number alone, so the island and the reward still match and only the good the slot eats has moved. A stale give is worse than a missing one — the board rules a layout out on an island that disagrees, and one wrong row can leave a real refresh unnamed. The record was refetched the same day, 444 refreshes now where it had 420, and both of his were already in it: Sabnipu at <b>Grándiha</b> on layout 16 eats a <i>Statue’s Tear</i> for the same Moonlit Crystal Lamp, and <b>7A</b> has the Wandering Merchant’s row at last — a Green Salt Lump for Crow Coins, at the barterer three thousand barters opens. The fetching tool carries an override now for a change reported before the sheet has it, and says at every run which of its entries the sheet has caught up with. Gangdalpo at <b>Dallae Pier</b> on layout 31 is the one being watched for.'
+				},
+				{
+					name: 'NatSoFun',
+					said: 'is there a way to a[dd] pet weight stats for boat, its showing I got 200 less weight than I’m supposed to have … I was thinking maybe I take off one of my sailors but the boat speed would drop',
+					did: 'There was not, and the app was wrong for it. <b>Bos’n Jack</b> is the one pet in the game whose talent is ship weight — <i>Big Ship Inventory Weight</i>, fifty LT a tier, stacking across the five pets the game lets out at once — so a hold was short by the whole nest, and two hundred is exactly what one tier-4 bird carries. The birds are in the bar now with the rest of the numbers about you — and the second half of what he wrote is the reason it mattered: he was about to unseat a sailor, and pay for a wrong number in speed.'
+				}
+			],
+			foot: 'The box is under <b>Menu → Feedback</b>: something wrong, an idea, or something else, with the section and the build attached. It reaches whoever runs the site.'
+		},
+		sections: [
+			{
+				title: 'To Get — one route through what is left, in the order you do it',
+				media: 'docs/media/small/the-plan.png',
+				alt: 'The plan: where it lands, what it costs, and the steps in order',
+				text: 'To Get answered “where does this come from?” for every line and left “so what do I do?” to you. '
+					+ 'The trouble is that the sources compete: a Candidum daily pays fourteen Tidal Black Stones <i>or</i> one Violent Wave Plywood and never both, '
+					+ 'the Crow Coins spent on plywood are not there for the tendons, and two materials off the ship-material list wait on the same three draws a day. '
+					+ 'Read one line at a time, every material’s best answer is “buy it”. Read together, the purse runs out and the answer changes. '
+					+ 'So the first view of To Get reads the whole list at once and gives every thing <b>one</b> way, with its reason on the line.',
+				points: [
+					'It reads as <b>numbered steps in the order they are done</b> — run these quests, take these as quest rewards, buy at the Crow Coin Shop, barter for these at sea, hunt these, and on down to what has no rate at all — because the quests pay the coins that buy the shop’s half, and buying first empties the purse before the quests come round. Each step says where it happens, carries its own total, and folds away when you are done with it.',
+					'Where the plan lands and every dial that moved it there are <b>one card</b>: <i>done in seven days</i>, the thing that sets that pace, the coins and silver it wants against what you can spare, and how many things across how many steps.',
+					'It follows a <b>goal you state</b>, because what is scarce is yours to say and not the app’s to decide: <b>Soonest</b> spends the purse wherever it buys days, <b>Keep the coins</b> spends them only where nothing else sells the thing, <b>Keep the silver</b> leaves the Central Market alone. Beside them, how many days a week you are at sea, and coins you keep back that the plan will never spend.',
+					'Three switches for <b>what you are actually willing to do</b>: the dailies and weeklies, bartering, and <i>hunt what drops</i>. The last takes every dropped material off the shopping list and never claims a rate for it, because none is published anywhere — on a two-part Carrack that is the difference between forty-three days and thirty.',
+					'The quests are <b>errands</b>, not a list of names: how often, where it is done, the reward to take with its picture, the coins it pays — and when a pick-one was a real choice, what it was chosen over and why the other one is got another way. <b>Make it my pick</b> remembers it, so Claimed on the Quests screen records that reward in one press, and the Quests screen says the same thing beside a quest whose remembered pick differs.',
+					'<b>What this plan will never do</b> is a line you can open, and it describes <i>this</i> plan rather than the idea of one: the rules in force right now, including the ones your own orders added.',
+					'Every row names the ways the plan <b>could not put a number on</b> — what drops it, the worker node, the bulk exchange, the shop it did not use. Khan’s Tendon read as “nothing else sells it” beside a price, which is true of shops and false of Khan, and that is how somebody ends up buying a thing they could have killed for.',
+					'The old reading is one chip away as <b>Every way</b>, and Copy and Copy as CSV follow whichever is showing. The Plan’s <b>Next</b> line names today’s first quest and what to take off it.'
+				]
+			},
+			{
+				title: 'Barter — only the islands your count has opened',
+				text: 'The game opens the trade routes as your total barters climb: 150 opens Shipwrecked Haran’s Cargo Ship, 600 Lantinia’s Combat Raft, 3,000 the Wandering Merchant’s Ship. '
+					+ 'The app knew that table only well enough to print what the next threshold unlocks, and planned everything as though all ninety-one barterers were open to everyone. '
+					+ 'On the forty recorded boards, fifteen chains climb through an island a sailor at 480 barters cannot reach — and Tear of the Ocean is dealt at exactly one barterer, the one that opens at three thousand. '
+					+ 'Your count is part of every plan now.',
+				points: [
+					'The join is the patch note’s own words: <i>opens</i> names a place and the chart says who stands there, so <b>twelve barterers are gated at the twelve counts the note states</b> and nothing is guessed. The seventy-nine it never names — the coastal [Level 6] and [Level 7] dealers among them — are open from the first day.',
+					'What is behind a door is <b>said, not hidden</b>: the chains on the Barter tab sit locked and untickable under the ones that are yours, with a line above saying how many and what opens them; so do a material’s island chips and the islands the board question offers. The Map still draws the island and its card says what opens it, but no pin is lit there for something on your list.',
+					'A forecast folds through the islands you can actually reach — a rung dealt in two places is priced at the open one — so where none is open the answer is the door itself: <i>locked, 2,520 more barters open the Wandering Merchant’s Ship</i>.',
+					'<b>The whole table</b> is one press away, from the bar and from that line: every threshold, the island it opens and its barterer, ticked where it is already yours.',
+					'<b>Nought barters is a real answer</b>, not a missing one. A sailor who has never bartered has the three routes the game starts them with and no more, and the app plans on that — so the bar asks for the number until it is given.'
+				]
+			},
+			{
+				title: 'Barter — how often the offer is really there',
+				text: 'Every barter figure in the app assumed that what you want is on the list every time you draw it. It is not, and it is not a rounding error: '
+					+ 'of the four whole ship-material boards recorded, a Saltwater Crocodile’s Scale exchange was on <i>one</i>. '
+					+ 'A hundred of them read as five days where the boards say about eleven, and a plan wanting four materials off one list quietly assumed all four turned up, every day. '
+					+ 'The forecast now reads both records that ride with the barter table — those four complete boards, and the forty trade-list layouts seen across four hundred and twenty refreshes — and paces every rung by how often it was actually there.',
+				points: [
+					'The old figure survives as the floor, with the sample named beside it: <i>about 11 days, 5 if the offer is always up · on 1 of the 4 boards recorded</i>.',
+					'What is measured is <b>presence</b>, not how many islands showed it, so the change can only ever lengthen a forecast and never shorten one. A thing on every board recorded reads exactly as it did.',
+					'Anything <b>no board has recorded</b> keeps the old best-case number and says so on the row, rather than passing it off as measured.',
+					'Your own material-board diary is deliberately left out of the arithmetic: it records where a thing was and never where it was not, and a sample with no absences in it cannot measure absence.',
+					'<b>A layout is not frozen.</b> The game edits one island’s slot at a maintenance and leaves the layout’s number alone — the island and the reward stay, only the good the slot eats changes — and a record that has not caught up is worse than no record, since the board rules a layout out on an island that disagrees. The forty layouts were <b>refetched</b>, 444 refreshes deep now: layout 16’s Grándiha slot takes a Statue’s Tear, and 7A carries the Wandering Merchant’s row that was missing from it. The tool that fetches them holds a correction for a drift reported before the sheet has it, and says at every run which of them the sheet has caught up with.'
+				]
+			},
+			{
+				title: 'The sailor — the numbers about you, typed once',
+				text: 'The barter count, your level, the Parley, the vouchers and the Value Pack were entered on To Get — the one screen that is not about the sea — '
+					+ 'with a second copy of two of them on the Barter tab and Sailing Mastery off on the Ship tab, all of them read everywhere. '
+					+ 'They are <b>the sailor</b> now: one group beside the pouch, in the strip that follows you from tab to tab, typed once and read by every plan. '
+					+ 'Folded, that group still says the lot — <i>4,205 barters · Master 5 · 3+3 draws · NA</i> — and one press opens the fields.',
+				points: [
+					'<b>The nest of Bos’n Jacks is part of the hold.</b> It is the one pet talent in the game that is ship weight — fifty LT a tier, stacking across the five the game lets out at once, and a tier 5 set as your Alpha carries 250 — so a sailor with five of them was being told a limit two hundred to a thousand LT under the one the game shows. It counts on the Epheria line, the Carracks and the Panokseon, and on nothing smaller: a Cog, a rowboat and the Bartali are not Big Ships, and the game does not pay them either. Five slots and six tiers, one press a bird and one for all five, and the whole nest lands as a single change.',
+					'<b>The region belongs to the sailor</b>, not to a screen. Every Market price in the app is quoted in one region’s silver and Vell’s times are read off it, and it used to be set from a select inside one summary card. It is a chip in the bar now, with how old the prices are beside it and a refresh that says so.',
+					'<b>On a phone the strip is one line.</b> Nine chips will not fit across 390 pixels, so the row scrolled sideways and half of it was a swipe away. A phone gets the reading — what is held, in red what is short, and the barter count — on a single line, and pressing it opens <b>Carrying</b> as a sheet where every field has the width of the screen.',
+					'<b>How many sailors are out</b>, in the masthead, and beside it the crew — the accounts that have ever signed in. The first counts the browsers with the tracker open this minute. It needs no sign-in and keeps no address: a random token the browser makes for itself and two timestamps, which is why it says browsers rather than people.'
+				]
+			},
+			{
+				title: 'Ship — a crew read off your own screenshots, in any language the game is played in',
+				text: 'Open Manage Sailors in game, screenshot it — or crop the Selected Sailor panel, either reads, and a mixture of both is fine — and drop the lot in. '
+					+ 'Names, levels, condition and every growth come back in a table to check before a single thing is written, and a sailor already on the roster is brought up to date rather than hired twice.',
+				points: [
+					'<b>It reads every language the game runs in.</b> Say which one yours is and the reader speaks it: 식성 and 생활 물자 and Требуется кают are labels like any other, and a Cyrillic or Hangul or Han name comes back as the name. The Latin services read on the model already aboard; Русский, 日本語, 한국어, 中文, 繁體中文 and ภาษาไทย each fetch a megabyte or two more, once, the first time you pick them.',
+					'Under the words is something none of the fifteen change — the weight carries LT, the condition is a pair over a slash, and the eight growths sit in the same order whatever they are called. So a label the scan could not make out costs nothing: the figure is still the fifth down the column, and a screenshot in a language nobody here can check still reads.',
+					'It matters because the growths are the one thing the app could never estimate its way round. A levelled sailor rolls inside a hidden band, so a crew was worth its <b>average</b> roll and the ship’s speed came out under the game’s — 196.4% against 198.1% on a full Carrack, all of it in the crew. Read in, the rolls are the game’s and so is the number.',
+					'The <b>ten per cent off Parley</b> is no longer a tick. It is Cleia’s skill and nothing else, so it is read off who is sitting at the First Mate seat: aboard, the Bartering line says so and names her; hired but ashore, it says what seating her would be worth.'
+				]
+			},
+			{
+				title: 'Ship — what a boat is for',
+				text: 'Every hull now says what it is for, which the game’s own numbers never do: the Advance for bartering (the biggest hold, and a run pays by what it carries), '
+					+ 'the Volante for speed, the Valor and the Panokseon for sea monsters, the Balance for not choosing. '
+					+ 'It is on the ship card and in the picker — where searching “barter” finds the barter hulls — and the crystal picker marks the crystals that suit each.',
+				points: [
+					'<b>Auto assign asks what the boat is for.</b> It used to add up the growths a seat doubles and take the biggest sum, which is a question nobody asked: the Sail doubles Endurance and Wits together, so a sailor with 1.1 speed and 4.8 acceleration beat one with 3.9 and 1.5, and the ship lost five per cent of its speed while the arithmetic said it had gained. It lays out every goal now and seats the crew for the one you pick.',
+					'The <b>sailor list sorts by any growth</b> — Endurance, Wits, Awareness, Strength and the four cannon ones — as well as by type, condition and level, and the growth it was ordered by is shown on every card. Finding the fastest of eighteen sailors meant opening them one at a time before.'
+				]
+			},
+			{
+				title: 'Map — the chart, stood up',
+				media: 'docs/media/small/stand-it-up.gif',
+				alt: 'The chart leaning over onto the game’s own terrain, and painted both ways',
+				text: 'The chart has always drawn the sea from directly overhead, which is the right way to read a route and the wrong way to read a coast. '
+					+ 'The game’s own 3D map is not a picture anyone can copy — the client builds it on the graphics card every frame — but the terrain it is built <i>from</i> is in your own installed client, one mesh per 12,800-unit sector, '
+					+ 'on exactly the grid the flat chart’s squares are cut on. So the chart can be stood up: <b>⛰</b> on the zoom bar leans it over and puts the real ground under the sea.',
+				points: [
+					'It is the <b>same chart</b>, not a second one. The same centre, the same zoom, the same barterers, wharves, habitats, traces and plotted loop — every one of them placed by the camera now instead of by the flat scaling, so they sit on the ground rather than beside it, and the switch either way lands on the water you were already looking at.',
+					'<b>The world curves away</b> towards a hazed horizon, the way the game’s own map does and the way a planet does — it is what makes it read as a world rather than a diagram, and the pins, the route and the traces all bend with it.',
+					'The ground <b>wears the chart’s own squares</b>: the islands are the colours you know, with the relief of the actual terrain under them. <b>Neon</b> draws contour lines over dark water instead, the way the game’s own world map does, and the interval widens as you step back so the lines stay lines.',
+					'<b>Shift-drag leans and turns it</b>, an ordinary drag takes hold of the water and carries it, and <b>Level</b> puts you straight back overhead facing north. Where you left it is where it opens next time.',
+					'The terrain is cut into the same kind of pyramid as the tiles — the far view draws a few hundred tiles instead of thirty thousand, and the closest zoom draws <b>the mesh the game itself draws from</b>, vertex for vertex. Tiles travel packed, a few kilobytes each, with the chart’s own thread of light along the top edge while they are coming — and <b>Keep this area offline</b> keeps the ground with the squares, so a crossing with no signal still has islands in it.'
+				]
+			},
+			{
+				title: 'The guide — seven chapters, narrated, and shot against the app as it is',
+				text: 'The film was one thirteen-minute run at the whole app. It is <b>seven chapters</b> now, each a file of its own with its own subtitles and transcript, '
+					+ 'and it plays inside the app under <b>Help</b> with the seven listed as jump-to points — so the answer to “how does a run work?” is ninety seconds in, not a scrub through a film. '
+					+ 'Whatever is being named is lit on screen as it is said.',
+				points: [
+					'<b>To Get has a chapter of its own</b>, because it is a planner now and not a list: the goal, the days a week you actually sail, the coins held back, what you are willing to do at all, and the day count moving under every one of those choices.',
+					'The Yard opens on <b>the sailor’s numbers</b> and types them in, since the barter count decides which islands will deal with you at all and a plan made before it is given is a plan for somebody else’s account. The Map chapter leans the chart over onto the terrain, and the Ship chapter reads a crew off the game’s own screenshots.',
+					'None of it is a mock-up: every frame is the real app being driven, and the only invented thing anywhere in it is the handful of sailors on the community boards, since a machine shooting a film has no deployment with players on it. Every picture in the README was re-shot the same way.'
+				]
+			},
+			{
+				title: 'Community — boards that keep up, and say how they count',
+				text: 'What the boards show about you is worked out from the copy the server holds, and that copy is redrawn within seconds of a save reaching it — '
+					+ 'so a ship fitted, a sailor hired or a run logged is on the boards by the time you walk to them. '
+					+ 'Before, a change waited on the boards’ own window, and a card once opened never changed at all.',
+				points: [
+					'Signing in puts you <b>on the boards by name</b> rather than leaving it to whoever went looking for the switch. The tab says so the first time you open it, <b>Leave the boards</b> is one press from there, and leaving is remembered — signing in again does not put you back. You can still be shown as an unnamed sailor, and what would be shared is still listed before you agree.',
+					'Every board says <b>how it is counted</b>: a “?” opens the rule in full, and Best ship shows the sum behind the number — <i>hull 4,000 + parts 194 + crystal 20</i> — for the top of the board and for your own row.',
+					'<b>The room the app was written for has a door now.</b> Discord stands in the masthead beside Help — the sailing server where the routes, the crew builds and what a patch moved are actually worked out, and where three of the four corrections in this release came from. On a phone it keeps its mark and drops the word.',
+					'Your <b>fleet and your inventory are one fleet</b>. Keeping a setup puts its hull in the Inventory if none was recorded there, and a hull in the Inventory is a ship in your fleet, listed, sailable and counted on the boards, whether or not a setup was ever named for it.'
+				]
+			},
+			{
+				title: 'The yard — buying with coins, and a count that keeps itself',
+				text: 'The app knew what a thing costs at Oquilla’s Eye and knew how many coins you held, and still made you do both halves of the sum by hand.',
+				points: [
+					'Every Crow Coin line on <b>To Get</b>, and every coin-priced thing in the <b>Inventory</b> panel, carries a <b>Buy</b>: it asks how many, says what that costs and what is left of the purse, records the goods in and the coins out as one change, and opens on what the purse can actually cover. A sum that does not work is said rather than quietly clamped.',
+					'<b>Total Barters follows the runs you sail.</b> The count that opens the next trade route was typed once and then left to rot while the app watched the very trades it counts go by. Recording a run adds its trades to it in the same change as the goods and the silver, so one Undo takes back all of it, and a run that carries you past a threshold says which route it opened. It is still a field you can type over.'
+				]
+			},
+			{
+				title: 'Put right',
+				text: 'Things that were wrong, and are not now.',
+				points: [
+					'<b>A hold barters to seventy per cent over its limit, not a quarter.</b> The islands deal right up to the point the hull stops moving, so there is no band where you can sail but not trade. The old figure came from one session in which a 27,000 LT hold seemed to refuse past about 34,000 — which is what a quarter over looks like, and is why it was believed. Chains that were cut short climb further for it, and material runs that were split into several departures go out in one.',
+					'A <b>named first mate</b> has no growths of their own. The app credited each of the three half a point of speed, acceleration, turn and brake, which the game’s own panel shows none of, and fed them 100 rations a day where they eat 150.',
+					'<b>Best ship</b> was <code>hull tier × 100 + enhancement levels</code>, which rated a +10 green Toro cannon exactly as highly as a +10 yellow Falasi one — three quite different Carracks all landed on 440 and shared first place. A slot is worth its part’s set first and its enhancement second.',
+					'Ticking a stop <b>Done</b> on the Map’s run sheet no longer throws the list back to the top — on a nineteen-stop run that was a scroll back down every single time.',
+					'The <b>hold bar</b> no longer prints its weight over its own second line, and the parley controls no longer run 613 pixels wide inside a 390-pixel screen.',
+					'On a run’s checklist the <b>fourth</b> of an island’s four [Level 7]s can be tapped: the chips ran wider than the column and the last one sat under the hold beside it, taking every click aimed at it.',
+					'Writing a route into <code>gameVariable.xml</code> keeps the untouched original aside as <code>.orig</code> and never writes it again. Before, the second write copied the first write’s output over the only backup.',
+					'Two setups kept in the same moment are two setups; they shared an id before, and the second quietly replaced the first.',
+					'Setting a nest of pets was <b>twenty presses and twenty saves</b>: each bird was a button stepped round its six tiers, and every step wrote the save, added an entry to the history and redrew every screen that plans against the hold. That is where the lag came from. The editor holds a draft and lands it in one change.',
+					'On the chart, <b>Ground, Neon and Level shared a row with the step player</b> whenever a route was plotted — at twelve hundred pixels as well as on a phone — and the two-finger twist turned the chart against the fingers.',
+					'A stored digest from an older build is <b>worked out again</b> rather than left standing, so a scoring change does not leave half a board wearing its old number.'
+				]
+			},
+		]
+	},
 	{
 		id: '1.0',
 		name: 'The yard and the sea',
@@ -245,6 +434,79 @@ export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
 	{
+		date: '2026-09-11',
+		title: 'On a phone the pouch is one line, and the numbers are typed in a sheet',
+		notes: [
+			'<b>The strip of chips was a good bar and a poor phone.</b> Nine of them will not fit across 390 pixels, so the row scrolled sideways — half of a bar that stands on top of every screen was a swipe away, on the one bar nobody visits to read: the silver is glanced at, and typed over once a week. A phone gets the glance now. One line the height of a single chip: what is in the purse, in red what it is short of, how many other currencies are aboard, and the barter count. Pressing it opens <b>Carrying</b> as a sheet, where every field has the width of the screen and the sailor’s numbers are already open rather than folded into a line.',
+			'The <b>nest</b> and the <b>table of thresholds</b> can both be opened from inside that sheet, and they stand in front of it — so when one is saved, cancelled or dismissed, the sheet comes back at the row it was scrolled to instead of leaving the screen bare.'
+		]
+	},
+	{
+		date: '2026-09-11',
+		title: 'The sailors’ server is one press from every screen',
+		notes: [
+			'The app was written for a room it never named. <b>Discord</b> now stands in the masthead beside Help — the community server at <code>discord.gg/bdo-sailing</code>, where the routes, the crew builds and the changes a patch brings are actually worked out. On a phone it keeps its mark and drops the word, like the rest of the masthead, and the menu carries the same door under <b>Help</b> for anyone who goes looking there first.'
+		]
+	},
+	{
+		date: '2026-09-11',
+		title: 'version 1.1: the plan, and the sea you can actually reach',
+		notes: [
+			'Everything since 1.0 is written up as a release: <b>Menu → What’s new</b>, and <code>CHANGELOG.md</code>, which is generated from the same words. The two things it is named for both came from players writing in, and they are credited by name at the top of the notes — a release can say who asked for it now, in their own words, above the fold rather than behind “everything else”.',
+			'The Help page’s dataset list gains the two records the barter forecast now reads: the four whole ship-material boards, and the forty trade-list layouts seen across four hundred and twenty refreshes.'
+		]
+	},
+	{
+		date: '2026-09-11',
+		title: 'A hold barters to seventy per cent over, not a quarter, and the ways you are willing to use answer a press',
+		notes: [
+			'<b>The barter ceiling was wrong, and it was costing every run a third of its hold.</b> The islands were taken to stop dealing at a quarter over the weight limit. They do not: they deal right up to the 170% at which the hull stops moving, so there is no band where you can sail but not trade. The old figure came from one session in which a 27,000 LT hold seemed to refuse past about 34,000 — which is what a quarter over looks like, and is why it was believed. Every barter plan reads differently for it: chains that were cut short climb further, material runs that were split into several departures go out in one, and a hold at its fullest is quoted against the mark that is really there.',
+			'<b>The three ways you are willing to use are clickable.</b> They began as tickboxes and became chips in the same release, and the press was left behind in the handler that only tickboxes ever reach — so they showed the state and did nothing. Now each one re-plans as it is pressed, and <i>hunt what drops</i> has a step of its own rather than sharing one with the things nothing publishes a rate for: a fight you asked for and a shrug are different errands.'
+		]
+	},
+	{
+		date: '2026-09-11',
+		title: 'The way to get it is a plan you carry out, step by step',
+		notes: [
+			'<b>The plan is numbered now.</b> It was a set of groups under headings, which is a catalogue: true, and no help at all with the question a shopping list exists to answer — <i>so what do I do first?</i> It reads as steps in the order they are done, because the quests pay the Crow Coins that buy the shop’s half, and a player who buys first finds the purse empty when the quests come round. <b>1 Run these quests · 2 Take these as quest rewards · 3 Buy at the Crow Coin Shop · 4 Barter for these at sea</b>, and so on down to what has no rate at all. Each step says where it happens, carries its own total, and folds away when you are done with it.',
+			'<b>Where the plan lands, and every dial that moved it there, are one card.</b> <i>Done in 22 days</i> at the top, the thing that sets that pace under it, then what it costs: coins to spend against what you can spare, silver, and how many things across how many steps. Under that, <b>what matters most to you</b> as three cards that say what each choice will do to you rather than three words; how often you sail; the coins you keep back; and the ways you are willing to use.',
+			'<b>What this plan will never do</b> is a line you can open, and it describes <i>this</i> plan rather than the idea of one: the rules in force right now, including the ones your own orders added — nothing off the Central Market, the coins you keep back, an activity you switched off.',
+			'The quests are <b>grouped by how often they come round</b>, each with the number of runs, where it is done, the reward to take with its picture, and the coins it pays; a material a step below says which quest hands it over, one line a quest. A thing you are going to go and get shows <b>the recipe it feeds</b> beside it, ingredients and batch count, since a drop is half the answer and the processing is the other half.'
+		]
+	},
+	{
+		date: '2026-09-11',
+		title: 'The barter count decides which islands exist, and the numbers about you are typed once',
+		notes: [
+			'<b>A run is never planned through an island you have not opened.</b> The game opens the trade routes as the total barters climb — 150 opens Shipwrecked Haran’s Cargo Ship, 600 Lantinia’s Combat Raft, 3,000 the Wandering Merchant’s Ship — and the app knew that table only well enough to print what the next threshold unlocks. Everything it planned was laid out as though all ninety-one barterers were open to everyone: on the forty recorded boards, fifteen chains climb through an island a sailor at 480 barters cannot reach, and Tear of the Ocean is dealt at exactly one barterer, the one that opens at three thousand. Now the count is part of every plan. The join is the patch note’s own words — <i>opens</i> names a place and the chart says who stands there — so twelve barterers are gated at the twelve counts the note states and nothing is guessed: the seventy-nine it never names, the coastal [Level 6] and [Level 7] dealers among them, are open from the first day.',
+			'What is behind a door is <b>said, not hidden</b>. Every list shows what is shut, greyed, with the count that opens it: the chains on the Barter tab, locked and untickable under the ones that are yours, with a line above saying how many and what opens them; a material’s island chips; the islands the board question offers. The Map still draws the island and its card says what opens it, but no pin is lit there for something on your list. A forecast folds through the islands you can actually reach — a rung dealt in two places is priced at the open one — so where none is open the answer is the door itself: <i>locked, 2,520 more barters open the Wandering Merchant’s Ship</i>. And <b>the whole table</b> is one press away, from the bar and from that line: every threshold, the island it opens and its barterer, ticked where it is yours already.',
+			'Nought barters is <b>a real answer</b>, not a missing one — a sailor who has never bartered has the three routes the game starts them with and no more, and the app plans on that. Since that is also what a save that has never been told says, the bar asks for the number until it is given.',
+			'<b>The numbers about you are typed once.</b> The barter count, the level, the Parley, the vouchers and the Value Pack were entered on To Get — the one screen that is not about the sea — with a second copy of two of them on the Barter tab and Sailing Mastery off on the Ship tab, all of them read everywhere. They are <b>the sailor</b> now: one group beside the pouch, in the strip that follows you across every tab, folded into a line that still says the lot — <i>480 barters · Artisan 5 · 4+3 draws</i>, and under it what the next threshold opens and when the lists refill. One press opens the fields and the choice is remembered; the Ship tab and the hold bar read the same figures rather than offering a second place to type them. The Value Pack is its own switch instead of a tick crammed under the draws, the draws say which list is which, the vouchers add up the Parley they are worth, and the first mate’s ten per cent comes along with who to seat for it. The voucher, the Value Pack and the refresh wear the game’s own icons.',
+			'<b>How many sailors are out</b>, in the masthead, and beside it the crew — the accounts that have ever signed in. The first is a count of the browsers with the tracker open at this moment, and the tooltip adds how many browsers have ever opened it. It needs no sign-in and keeps no address: a random token the browser makes for itself and two timestamps, which is why the live count says browsers and not people.'
+		]
+	},
+	{
+		date: '2026-09-10',
+		title: 'The barter forecast counts how often the offer is really there, and the plan takes your word for what you will do',
+		notes: [
+			'<b>“At best” was doing too much work.</b> Every barter figure in the app assumed the exchange you want is on the list every time you draw it. It is not: of the four whole ship-material boards recorded, a Saltwater Crocodile’s Scale was on <i>one</i>. So a hundred of them read as five days when the boards say about eleven, and a plan wanting four materials off one list quietly assumed all four turned up, every day. The forecast now reads both records the app already keeps — the four complete material boards, and the forty trade-list layouts seen across four hundred and twenty refreshes — and paces every rung by how often it was actually there. The old number survives as the floor: <i>about 11 days, 5 if the offer is always up</i>, with the sample named beside it.',
+			'What is measured is <b>presence</b>, not how many islands showed it, so the change can only ever lengthen a forecast and never shorten one; a thing on every board recorded reads exactly as it did. Anything no board has recorded keeps the old best-case figure and <b>says so on the row</b> rather than passing it off as measured. Your own material-board diary is deliberately left out of the arithmetic: it records where a thing was and never where it was not, and a sample with no absences in it cannot measure absence.',
+			'<b>What drops it is named.</b> Khan’s Tendon read as “nothing else sells it” beside a price, which is true of shops and false of Khan. Every row now carries an <i>also</i> line with the ways the plan could not put a number on — what drops it, the worker node, the bulk exchange, the shop it did not use — because a list that leaves those out is how somebody ends up buying a thing they could have killed for.',
+			'<b>Three switches for what you will actually do</b>: the dailies and weeklies, bartering, and <i>hunt what drops</i>. The last takes every dropped material off the shopping list and never claims a rate for it, since none is published anywhere — on a two-part Carrack that was forty-three days and a hundred thousand coins, and with hunting on it is thirty.',
+			'The <b>quests to run</b> are drawn as errands now: the reward to take with its picture, what else it hands over, the coins, and where it is done — and when a pick-one was a real choice, what it was chosen over and why the other one is got another way. A material bought in two passes of the purse used to appear twice in the Crow Coin Shop at the same price with two different reasons; it is one row with both.'
+		]
+	},
+	{
+		date: '2026-09-10',
+		title: 'To Get says how each thing should be got, not only how it can be',
+		notes: [
+			'<b>The way to get it.</b> To Get used to answer “where does this come from?” for every line and leave “so what do I do?” to you — and the sources compete: a Candidum daily pays fourteen Tidal Black Stones <i>or</i> one Violent Wave Plywood, the coins spent on plywood are not there for the tendons, and two materials off the ship-material list wait on the same three draws. The new first view of To Get reads the whole list at once and gives every item one way — from the quests, the Crow Coin Shop, barter, Falasi, the Market, or go and get — with its reason on the line, and says how many days that is and what sets the pace.',
+			'It follows a <b>goal</b>, as the crew and the sailing orders do, because what is scarce is yours to say: <b>Soonest</b> spends the purse wherever it buys days; <b>Keep the coins</b> spends them only where nothing else sells the thing; <b>Keep the silver</b> leaves the Market alone. Beside them, how many days a week the sea gets, and coins to keep back.',
+			'The quests to run are listed as the actions they are, each with the reward the plan would take off a pick-one and what it goes toward — <b>make it my pick</b> remembers it, so Claimed on the Quests screen records it in one press. The Quests screen says the same thing beside a quest whose remembered pick differs, and the Plan’s <b>Next</b> line names today’s first quest. A short purse is stretched by the coin quests, and the horizon says how long that takes.',
+			'The old reading is one chip away — <b>Every way</b> — and Copy and CSV follow whichever is showing. Barter is counted at best, as it always was, and a drop or a worker node is named, never timed.'
+		]
+	},
+	{
 		date: '2026-09-09',
 		title: 'Crow Coins are spent where they are counted, the sailor list sorts by any growth, and Auto assign asks what the boat is for',
 		notes: [
@@ -259,7 +521,7 @@ export const CHANGES = [
 		date: '2026-09-09',
 		title: 'A crew read off your own screenshots, the Parley cut read off the First Mate seat, and the fourth of an island’s four can be tapped',
 		notes: [
-			'The Ship tab will <b>read a crew off screenshots</b>. Open Manage Sailors in game, screenshot it — or crop the Selected Sailor panel, either reads, and a mixture of both is fine — and drop the lot in: names, levels, condition and every growth come back in a table to check before a single thing is written, and a sailor already on the roster is brought up to date rather than hired twice. It is read <b>here, in the page</b>: the vendored engine is served from this site, the shots are decoded by the browser and never uploaded, and there is nothing on any server to delete afterwards. The window does not print a sailor’s type, so it is worked out from the appetite, the cabin cost and the weight — and where three types share all three, from where the growths went. Twenty at a time, and every guess is marked for a look.',
+			'The Ship tab will <b>read a crew off screenshots</b>, in any of the sixteen languages the game’s own menu lists. Open Manage Sailors in game, screenshot it — or crop the Selected Sailor panel, either reads, and a mixture of both is fine — and drop the lot in: names, levels, condition and every growth come back in a table to check before a single thing is written, and a sailor already on the roster is brought up to date rather than hired twice. It is read <b>here, in the page</b>: the vendored engine is served from this site, the shots are decoded by the browser and never uploaded, and there is nothing on any server to delete afterwards. The window does not print a sailor’s type, so it is worked out from the appetite, the cabin cost and the weight — and where three types share all three, from where the growths went. Twenty at a time, and every guess is marked for a look.',
 			'Which matters because the growths are what the app could never estimate its way round. A levelled sailor rolls inside a hidden band, so a crew was worth its <b>average</b> roll and the ship’s speed came out under the game’s — 196.4% against 198.1% on a full Carrack, all of it in the crew. Typed in, or now read in, the rolls are the game’s and so is the number.',
 			'A <b>named first mate</b> has no growths of their own. The app was crediting each of the three half a point of speed, acceleration, turn and brake, which the game’s own panel shows none of — a mate’s seat pays their skill, not numbers — and eating 100 rations a day where they eat 150. Both corrected off the game.',
 			'The <b>ten per cent off Parley</b> is no longer a tick. It is Cleia’s skill and nothing else, so it is read off who is sitting at the First Mate seat: aboard, the Bartering line says so and names her; hired but ashore, it says what seating her would be worth. Nobody has to remember to tell the app about their own crew.',

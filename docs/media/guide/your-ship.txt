@@ -1,0 +1,32 @@
+This is the Ship tab. Everything the app knows about how fast you sail comes from this one screen.
+Start with the hull. Pick the ship you actually sail.
+A ship has four part slots: figurehead, plating, cannon and sail.
+Each one fills itself with the best part you own.
+Click Change to pick a different one.
+It lists every part that fits the slot, with what each does, and marks the ones you actually hold.
+The fifth slot is your sea crystal.
+Pick the one you have socketed, and its bonus goes into the numbers.
+Below that is the appearance set.
+Skins are cosmetic in most games. Here they are not: a full set adds real durability and rations, so tick the pieces you are wearing.
+And this panel at the top is the ship itself: its speed, its hold limit, and how many of the five slots are filled.
+The small print under each figure says where it came from — hull, parts, crystal, crew and mastery, added up.
+Your Sailing Mastery goes in here, and those figures move with it.
+Now the crew. This roster starts empty.
+Typing eighteen sailors in, four growths each, is an evening you will not enjoy. So it reads them off your screenshots instead.
+Screenshot the Manage Sailors window in game, one sailor a shot, and drop them in. It reads them in your browser — nothing is uploaded.
+Check the table against the game, then take the ones that are right.
+And there they are, hired, with their real levels and growths.
+Sort the list by whatever you are fitting for. Best all round, best for speed, and so on.
+To seat one by hand, click the sailor, then click the seat you want them in.
+Where they sit matters. A sail seat doubles their speed growth, and the wheel doubles turn and brake.
+Or let it arrange the whole crew for you. Click Auto assign.
+It asks what the boat is for, and shows what each answer would actually give you.
+Pick one, and it seats everybody.
+And the row under the ship fills in. That is what the crew is adding, on top of the hull.
+Two hot presets, for swapping crews quickly. Save the current one to a slot.
+And click it to put that crew straight back on.
+A setup is bigger: the whole fit-out, hull, parts, crystal and seating, under a name.
+The fleet lists every setup you have kept, and every hull you own without one.
+The one you are sailing is what the Map times its routes at.
+And you can copy the whole thing as a link, if someone asks what you sail.
+That is your ship. Get this screen right, and every distance and every minute in the app is yours.

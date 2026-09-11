@@ -125,6 +125,20 @@ export const shipStats = {
 /** Every hull that seats a sailor, in the order the app lists ships. */
 export const crewedShips = Object.keys(shipStats).filter(s => shipStats[s].crew > 0);
 
+/**
+ * The hulls the game calls Big Ships, which is the one thing a Bos'n
+ * Jack's talent asks about: the Epheria line and the Panokseon.
+ *
+ * The Cog, the rowboats and the Raft are not ships in that sense at
+ * all -- no cabins, no sailors, no bartering. The Bartali Sailboat is
+ * the borderline one: it seats two and it barters, but it is the hull
+ * bought before the line begins, and no source states either way, so
+ * it is left out with the small boats rather than counted with the
+ * Epherias. Guild hulls the talent excludes by its own wording, and
+ * the app does not model them.
+ */
+export const bigShips = new Set(crewedShips.filter(s => s !== 'Bartali Sailboat'));
+
 /** A short line of the numbers a player compares hulls by. */
 export function statsLine(ship) {
 	const s = shipStats[ship];
