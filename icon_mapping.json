@@ -371,6 +371,10 @@
   "icon": "00752032.webp",
   "url": "https://bdocodex.com/us/item/752032/"
  },
+ "Crow's Trade Voucher": {
+  "icon": "00320105.webp",
+  "url": "https://bdocodex.com/us/item/320106/"
+ },
  "Curious": {
   "icon": "employee_59067.webp",
   "url": "https://bdocodex.com/us/sailor/59067/"
@@ -1754,6 +1758,10 @@
  "Usable Scantling": {
   "icon": "00004669.webp",
   "url": "https://bdocodex.com/us/item/4669/"
+ },
+ "Value Pack": {
+  "icon": "00017583.webp",
+  "url": "https://bdocodex.com/us/item/17583/"
  },
  "Vinegar": {
   "icon": "00009066.webp",

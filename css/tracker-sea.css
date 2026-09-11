@@ -162,6 +162,8 @@
 .crew-setups { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 0 0; width: 100%; }
 .crew-mastery { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 0 0; width: 100%; }
 .crew-mastery .field { width: 90px; }
+/* Read here, set in the bar at the top of the page. */
+.crew-mastery.read b { font-family: var(--font-display); font-size: 15px; color: var(--ink-hi); font-variant-numeric: tabular-nums; }
 .quest-total { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 12px 22px 16px; border-top: 1px solid rgba(var(--line-rgb), 0.08); font-size: 12px; color: var(--ink-mute); }
 .get-quests { margin: 0 0 14px; font-size: 12.5px; color: var(--ink-mute); }
 

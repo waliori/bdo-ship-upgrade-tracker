@@ -503,20 +503,57 @@
 .pouch-item.sail .pouch-input { width: 104px; font-size: 15px; }
 .pouch-item.sail.parley .pouch-input { width: 118px; }
 .pouch-item.sail .pouch-need { font-size: 10px; }
+/* A game icon where the game has one -- the voucher, the Value Pack,
+   the refresh button -- sized like the purse's own. */
+.pouch-item.sail .pouch-icon { width: 22px; height: 22px; border-radius: 5px; }
 
 /* Folded, it is one chip that reads out the lot, with the fields a
-   press away; open, a caret at the end folds it back. Both are
+   press away; open, the group's own name folds it back. Both are
    buttons, so neither wears the text caret the purse chips do. */
-.pouch-item.sail.summary,
-.pouch-item.sail.fold-shut {
+.pouch-item.sail.summary {
   cursor: pointer;
   border: 1px solid transparent;
   text-align: left;
   font: inherit;
   color: inherit;
 }
-.pouch-item.sail.summary:hover,
-.pouch-item.sail.fold-shut:hover { border-color: rgba(var(--line-rgb), 0.28); }
+.pouch-item.sail.summary:hover { border-color: rgba(var(--line-rgb), 0.28); }
+
+/* The group title doubles as the way back. */
+button.pouch-group {
+  cursor: pointer;
+  gap: 6px;
+  /* A button carries the browser's own border unless it is told not to,
+     and here that drew an empty chip around the group's name. The
+     hairline is the one the group title already has. */
+  border: none;
+  border-left: 1px solid var(--line);
+  padding: 0 12px;
+  background: none;
+  font-family: var(--font-display);
+}
+button.pouch-group:hover { color: var(--ink); }
+/* The press leaves the focus here, so the ring has to be the app's own
+   rather than the browser's white box -- and only for the keyboard. */
+button.pouch-group:focus { outline: none; }
+button.pouch-group:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 3px; border-radius: 4px; }
+button.pouch-group i { font-style: normal; font-size: 9px; }
+
+/* A Value Pack is a thing you have or have not: a switch that says
+   which, in words, rather than a tick crammed under another number. */
+.pouch-switch { display: inline-flex; align-items: center; gap: 7px; }
+.pouch-switch input { width: 15px; height: 15px; margin: 0; cursor: pointer; accent-color: var(--teal); }
+.pouch-switch b {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-faint);
+}
+.pouch-item.sail.pack input:checked + b { color: var(--teal); }
+
+/* A figure that is only read keeps the value's type, and the words
+   inside it stay out of the way of the numbers. */
+.pouch-input.plain small { font-size: 10px; font-weight: 500; color: var(--ink-faint); }
 .pouch-item.sail.summary .pouch-input.plain { width: auto; max-width: none; font-size: 15px; white-space: nowrap; }
 /* The hairline the group title carries when the fields are open, so
    the two halves of the strip stay told apart either way. */
@@ -531,7 +568,6 @@
   background: var(--line);
 }
 .pouch-fold { flex: none; align-self: center; font-size: 12px; color: var(--ink-faint); }
-.pouch-item.sail.fold-shut { padding: 6px 8px; align-self: center; background: none; }
 
 /* A select and a figure that is only read, both wearing the input's
    type so the row reads as one row of values. */

@@ -908,8 +908,15 @@ function wire() {
 			case 'sail-bar': {
 				toggleSailBar();
 				paintPouch({ force: true });
-				const back = document.querySelector('#pouch [data-act="sail-bar"]');
-				if (back) back.focus({ preventScroll: true });
+				// The keyboard is put back on the button that did it,
+				// which both states have -- but only for the keyboard.
+				// `detail` is 0 when a press came from Enter or Space;
+				// giving a mouse the focus ring back would leave a box
+				// standing in the bar after every fold.
+				if (evt.detail === 0) {
+					const back = document.querySelector('#pouch [data-act="sail-bar"]');
+					if (back) back.focus({ preventScroll: true });
+				}
 				return;
 			}
 			case 'blockers-all': toggleBlockers(); return render();

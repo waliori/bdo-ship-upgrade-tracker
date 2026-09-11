@@ -6,6 +6,7 @@ import * as store from './state.js';
 import { img } from './ui-bits.js';
 import { rows, totalsToGo, CROW_COIN, SILVER, SANGPYEONG, STONES } from './ui-state.js';
 import { profileHTML } from './profile-bar.js';
+import { tickClocks } from './clock.js';
 
 /**
  * The pouch: coins, silver, Sangpyeong Coins and enhancement stones, on
@@ -85,6 +86,10 @@ export function paintPouch({ force = false } = {}) {
 	// exactly like someone typing in a purse.
 	if (!force && host.contains(document.activeElement)) return;
 	host.innerHTML = pouchHTML();
+	// The bar carries a countdown to the barter refill, and a paint of
+	// its own -- a fold, a blur -- lands between two beats of the minute
+	// hand. Without this the figure is blank until the next one.
+	tickClocks();
 	measurePouch();
 }
 

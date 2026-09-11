@@ -31,7 +31,7 @@ for (const [name, w, h] of [['desk', 1440, 1000], ['phone', 390, 844]]) {
 		const fold = await page.$('[data-act="sail-bar"]');
 		await fold.click();
 		await wait(600);
-		await page.screenshot({ path: `${out}-bar-open.png`, clip: { x: 0, y: 0, width: 1440, height: 330 } });
+		await page.screenshot({ path: `${out}-bar-open.png`, clip: { x: 0, y: 0, width: 1440, height: 420 } });
 		const shutBtn = await page.$('[data-act="sail-bar"]');
 		await shutBtn.click();
 		await wait(400);
