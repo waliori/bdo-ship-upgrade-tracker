@@ -23,7 +23,8 @@ export {
 	setTraceTool, traceAction, openTraceLibrary, traceChange, currentMapData, traceLink, applyTraceLink, applyTraceObject
 } from './map/trace.js';
 export {
-	enterFull, exitFull, toggleFull, mapIsFull, toggleMini, toggleMeasure
+	enterFull, exitFull, toggleFull, mapIsFull, toggleMini, toggleMeasure,
+	toggle3D, tiltMap, levelMap, setMapStyle, map3D
 } from './map/view.js';
 export {
 	pinArea, forgetPinned

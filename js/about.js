@@ -150,6 +150,18 @@ export const RELEASES = [
 				]
 			},
 			{
+				title: 'Map — the chart, stood up',
+				text: 'The chart has always drawn the sea from directly overhead, which is the right way to read a route and the wrong way to read a coast. '
+					+ 'The game’s own 3D map is not a picture anyone can copy — the client builds it on the graphics card every frame — but the terrain it is built <i>from</i> is in your own installed client, one mesh per 12,800-unit sector, '
+					+ 'on exactly the grid the flat chart’s squares are cut on. So the chart can be stood up: <b>⛰</b> on the zoom bar leans it over and puts the real ground under the sea.',
+				points: [
+					'It is the <b>same chart</b>, not a second one. The same centre, the same zoom, the same barterers, wharves, habitats, traces and plotted loop — every one of them placed by the camera now instead of by the flat scaling, so they sit on the ground rather than beside it, and the switch either way lands on the water you were already looking at.',
+					'The ground <b>wears the chart’s own squares</b>: the islands are the colours you know, with the relief of the actual terrain under them. <b>Neon</b> draws contour lines over dark water instead, the way the game’s own world map does, and the interval widens as you step back so the lines stay lines.',
+					'<b>Shift-drag leans and turns it</b>, an ordinary drag takes hold of the water and carries it, and <b>Level</b> puts you straight back overhead facing north. Where you left it is where it opens next time.',
+					'The terrain is cut into the same kind of pyramid as the tiles — the far view draws a few hundred tiles instead of thirty thousand — and <b>Keep this area offline</b> now keeps the ground with the squares, so a crossing with no signal still has islands in it.'
+				]
+			},
+			{
 				title: 'Community — boards that keep up, and say how they count',
 				text: 'What the boards show about you is worked out from the copy the server holds, and that copy is redrawn within seconds of a save reaching it — '
 					+ 'so a ship fitted, a sailor hired or a run logged is on the boards by the time you walk to them. '

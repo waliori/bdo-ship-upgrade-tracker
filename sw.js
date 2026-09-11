@@ -105,6 +105,7 @@ const SHELL = [
 	'/js/map/render.js',
 	'/js/map/route.js',
 	'/js/map/state.js',
+	'/js/map/terrain.js',
 	'/js/map/trace.js',
 	'/js/map/view.js',
 	'/js/market.js',
@@ -205,7 +206,7 @@ self.addEventListener('activate', evt => {
 // The vendored OCR engine belongs here too: its filenames carry their
 // versions, so a given URL is a given six megabytes forever, and it
 // must not be fetched again every time the app is deployed.
-const contentAddressed = path => path.startsWith('/icons/') || path.startsWith('/map/') || path.startsWith('/reader/') || path === '/js/all_barter.json' || path === '/js/barter_combos.json';
+const contentAddressed = path => path.startsWith('/icons/') || path.startsWith('/map/') || (path.startsWith('/map3d/') && path !== '/map3d/index.json') || path.startsWith('/reader/') || path === '/js/all_barter.json' || path === '/js/barter_combos.json';
 const neverCached = path =>
 	path.startsWith('/api/') || path.startsWith('/auth/') || path.startsWith('/docs/media/');
 

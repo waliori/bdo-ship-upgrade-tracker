@@ -74,6 +74,15 @@ Every hull now says what it is for, which the game’s own numbers never do: the
 - **Auto assign asks what the boat is for.** It used to add up the growths a seat doubles and take the biggest sum, which is a question nobody asked: the Sail doubles Endurance and Wits together, so a sailor with 1.1 speed and 4.8 acceleration beat one with 3.9 and 1.5, and the ship lost five per cent of its speed while the arithmetic said it had gained. It lays out every goal now and seats the crew for the one you pick.
 - The **sailor list sorts by any growth** — Endurance, Wits, Awareness, Strength and the four cannon ones — as well as by type, condition and level, and the growth it was ordered by is shown on every card. Finding the fastest of eighteen sailors meant opening them one at a time before.
 
+### Map — the chart, stood up
+
+The chart has always drawn the sea from directly overhead, which is the right way to read a route and the wrong way to read a coast. The game’s own 3D map is not a picture anyone can copy — the client builds it on the graphics card every frame — but the terrain it is built *from* is in your own installed client, one mesh per 12,800-unit sector, on exactly the grid the flat chart’s squares are cut on. So the chart can be stood up: **⛰** on the zoom bar leans it over and puts the real ground under the sea.
+
+- It is the **same chart**, not a second one. The same centre, the same zoom, the same barterers, wharves, habitats, traces and plotted loop — every one of them placed by the camera now instead of by the flat scaling, so they sit on the ground rather than beside it, and the switch either way lands on the water you were already looking at.
+- The ground **wears the chart’s own squares**: the islands are the colours you know, with the relief of the actual terrain under them. **Neon** draws contour lines over dark water instead, the way the game’s own world map does, and the interval widens as you step back so the lines stay lines.
+- **Shift-drag leans and turns it**, an ordinary drag takes hold of the water and carries it, and **Level** puts you straight back overhead facing north. Where you left it is where it opens next time.
+- The terrain is cut into the same kind of pyramid as the tiles — the far view draws a few hundred tiles instead of thirty thousand — and **Keep this area offline** now keeps the ground with the squares, so a crossing with no signal still has islands in it.
+
 ### Community — boards that keep up, and say how they count
 
 What the boards show about you is worked out from the copy the server holds, and that copy is redrawn within seconds of a save reaching it — so a ship fitted, a sailor hired or a run logged is on the boards by the time you walk to them. Before, a change waited on the boards’ own window, and a card once opened never changed at all.

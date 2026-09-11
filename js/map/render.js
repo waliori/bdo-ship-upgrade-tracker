@@ -17,6 +17,7 @@ import { barterData } from '../ui-state.js';
 import { mv, restore, doneSet } from './state.js';
 import { marksNow, barterKind, goodsOf } from './marks.js';
 import { countPinned, pinButtonsHTML } from './offline.js';
+import { terrainStyle } from './terrain.js';
 import { routeHTML } from './route.js';
 import { traceHTML } from './trace.js';
 
@@ -113,6 +114,8 @@ export function renderMap() {
 			<button class="ghost-btn" data-act="map-zoom" data-step="1" aria-label="Zoom in">+</button>
 			<button class="ghost-btn" data-act="map-fit" aria-label="Fit the marked islands in view">⌖</button>
 			<button class="ghost-btn" data-act="map-measure" aria-pressed="${mv.measuring}" aria-label="Measure a distance" title="Ruler: click two points on the sea">⟷</button>
+			<button class="ghost-btn" data-act="map-3d" aria-pressed="${mv.threeD}" aria-label="Stand the chart up"
+				title="Stand the chart up: the game's own terrain, read out of your client">⛰</button>
 			<button class="ghost-btn" data-act="map-mini" aria-pressed="${mv.miniOn}" aria-label="Show or hide the minimap" title="Minimap: show or hide it; drag its grip to move it">▭</button>
 			<button class="ghost-btn" data-act="map-full" aria-pressed="${mv.fullOn}" aria-label="Show the chart over the whole screen" title="Full screen: the chart over everything; ✕ or Esc brings the page back">⛶</button>
 			<span class="map-pins" data-map-pins>${pinButtonsHTML()}</span>
@@ -136,7 +139,19 @@ export function renderMap() {
 		<button class="ghost-btn" data-act="map-zoom" data-step="-1" aria-label="Zoom out">−</button>
 		<button class="ghost-btn" data-act="map-zoom" data-step="1" aria-label="Zoom in">+</button>
 		<button class="ghost-btn" data-act="map-fit" aria-label="Fit the marked islands in view">⌖</button>
+		<button class="ghost-btn" data-act="map-3d" aria-pressed="${mv.threeD}" aria-label="Stand the chart up" title="Stand the chart up">⛰</button>
 		<button class="ghost-btn" data-act="map-full" aria-label="Back to the page" title="Back to the page (Esc)">✕</button>
+	</div>`;
+
+	// Shown only while the chart is standing up: which way the ground is
+	// painted, and the way back to looking straight down at it.
+	const tiltBar = `<div class="map-tilt" data-map-tiltbar${mv.threeD ? '' : ' hidden'}>
+		<button class="map-tilt-btn" data-act="map-style" data-id="real" aria-pressed="${terrainStyle() === 'real'}"
+			title="The colours the client ships on the terrain itself">Ground</button>
+		<button class="map-tilt-btn" data-act="map-style" data-id="neon" aria-pressed="${terrainStyle() === 'neon'}"
+			title="Contours, the way the game's own 3D map draws them">Neon</button>
+		<button class="map-tilt-btn" data-act="map-level" title="Look straight down again, facing north">⤓ Level</button>
+		<span class="map-tilt-hint">shift-drag to lean</span>
 	</div>`;
 	return head + `<div class="panel map-panel"><div class="map${mv.measuring ? ' measuring' : ''}${mv.sideRight ? ' side-right' : ''}${mv.mode === 'trace' ? ' free-hand' : ''}${mv.traceTool ? ` tracing tool-${mv.traceTool}` : ''}${mv.fullOn ? ' full' : ''}${mv.fullTurned ? ' turned' : ''}" id="map" data-map>
 		<div class="map-layer" data-map-layer></div>
@@ -146,6 +161,7 @@ export function renderMap() {
 		<div class="map-coords" data-map-coords hidden></div>
 		${clocks}
 		${fullBar}
+		${tiltBar}
 		${miniHTML(marks)}
 	</div></div>`;
 }

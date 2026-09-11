@@ -61,7 +61,8 @@ import {
 	saveRouteDialog, loadSavedRoute, deleteSavedRoute, mapWritingView, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite,
-	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet
+	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet,
+	toggle3D, levelMap, setMapStyle
 } from './screen-map.js';
 
 // Two groups: the yard, where a build is planned and made, and the
@@ -993,6 +994,9 @@ function wire() {
 			case 'map-measure': toggleMeasure(); return;
 			case 'map-mini': toggleMini(); return;
 			case 'map-full': toggleFull(); return;
+			case 'map-3d': toggle3D(); return;
+			case 'map-level': levelMap(); return;
+			case 'map-style': setMapStyle(el.dataset.id); return;
 			case 'map-sail-cal': return openSailCal();
 			case 'map-route-link':
 				try {

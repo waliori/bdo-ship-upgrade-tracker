@@ -90,8 +90,22 @@ export function createMap({ zoom = OPEN_ZOOM, centre = null } = {}) {
 
 export const zoomRange = { min: MIN_Z, max: MAX_Z };
 
+/**
+ * Who decides where a world position lands on the screen.
+ *
+ * Flat, it is the scaling below and nothing else. Stood up -- the
+ * terrain view in js/map/terrain.js -- it is that view's camera, and
+ * every layer that draws on the chart follows the ground without
+ * knowing anything has changed. Set back to null on the way out.
+ */
+let projector = null;
+export function setProjector(fn) {
+	projector = fn;
+}
+
 /** A viewport point for a world position, under the current view. */
 export function project(state, size, x, y) {
+	if (projector) return projector(state, size, x, y);
 	return {
 		left: toPixel(x, state.zoom) - (toPixel(state.centre.x, state.zoom) - size.w / 2),
 		top: toPixel(y, state.zoom) - (toPixel(state.centre.y, state.zoom) - size.h / 2)
@@ -102,8 +116,11 @@ export function project(state, size, x, y) {
  *  to keep the old level's tiles beneath the new one while it loads. */
 export function placeTile(state, size, z, x, y) {
 	const g = Math.pow(2, state.zoom - z);
-	const at = project(state, size, 0, 0);
-	return { left: x * TILE * g + at.left, top: y * TILE * g + at.top, scale: g };
+	// Deliberately the flat scaling and not project(): these are the
+	// squares of the flat chart, which the stood-up view does not draw.
+	const left = -(toPixel(state.centre.x, state.zoom) - size.w / 2);
+	const top = -(toPixel(state.centre.y, state.zoom) - size.h / 2);
+	return { left: x * TILE * g + left, top: y * TILE * g + top, scale: g };
 }
 
 /** The nearest shipped level to a zoom. */
@@ -195,8 +212,6 @@ export function pinTiles(state, size, spread = 1) {
  */
 export function frame(state, size, marks = new Map(), level = null) {
 	const { zoom } = state;
-	const left = toPixel(state.centre.x, zoom) - size.w / 2;
-	const top = toPixel(state.centre.y, zoom) - size.h / 2;
 	const tiles = tilesFor(state, size, level === null ? levelFor(zoom) : levelFor(level));
 
 	// Markers are placed even when slightly outside, so one at the edge
@@ -204,11 +219,10 @@ export function frame(state, size, marks = new Map(), level = null) {
 	const pad = 40;
 	const pins = [];
 	for (const n of npcs) {
-		const px = toPixel(n.x, zoom) - left;
-		const py = toPixel(n.y, zoom) - top;
-		if (px < -pad || py < -pad || px > size.w + pad || py > size.h + pad) continue;
+		const at = project(state, size, n.x, n.y);
+		if (at.left < -pad || at.top < -pad || at.left > size.w + pad || at.top > size.h + pad) continue;
 		const mark = marks.get(n.id);
-		pins.push({ id: n.id, name: n.name, left: Math.round(px), top: Math.round(py), mark });
+		pins.push({ id: n.id, name: n.name, left: Math.round(at.left), top: Math.round(at.top), mark });
 	}
 	// No layering order here: the painter keys pins by id and reuses the
 	// nodes across frames, so DOM order could not track a sort anyway --
@@ -217,10 +231,10 @@ export function frame(state, size, marks = new Map(), level = null) {
 	// The sailing line through the marked islands, in viewport pixels
 	// and never culled: a leg between two off-screen stops still
 	// crosses the view, and cutting it would break the line.
-	const route = routeFor(marks).map(n => ({
-		left: Math.round(toPixel(n.x, zoom) - left),
-		top: Math.round(toPixel(n.y, zoom) - top)
-	}));
+	const route = routeFor(marks).map(n => {
+		const at = project(state, size, n.x, n.y);
+		return { left: Math.round(at.left), top: Math.round(at.top) };
+	});
 
 	return { tiles, pins, route };
 }

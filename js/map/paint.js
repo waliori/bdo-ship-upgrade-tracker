@@ -21,7 +21,8 @@ import { marksNow, stopsLive, seaBent, routeWorld, straightLegs, goodsOf, barter
 import { npcBox } from './render.js';
 import { routeSeq, n1, stashLive } from './route.js';
 import { paintTrace } from './trace.js';
-import { inBox, hostSize, paintMeasure } from './view.js';
+import { inBox, hostSize, paintMeasure, restore3D } from './view.js';
+import { drawTerrain, terrainOn } from './terrain.js';
 
 /* ------------------------------------------------------------------ *
  * painting
@@ -116,6 +117,9 @@ export function paintMap() {
 		});
 	}
 
+	// Left standing up last time: put it back before anything is placed.
+	if (mv.threeD && !terrainOn()) restore3D();
+
 	const marks = marksNow();
 
 	// A fit was asked for; now the box exists to measure, sail there.
@@ -153,7 +157,13 @@ export function paintMap() {
 	const currentId = current && current.kind === 'npc' ? current.id : null;
 	const nums = new Map(seq.filter(s => s.kind === 'npc').map(s => [s.id, s.n]));
 
-	guarded(paintTiles, layer, tiles, size, { hold: mv.heldLevel !== null, ahead });
+	// Stood up, the ground is the ground: the terrain draws into its own
+	// canvas behind the layer and the flat squares stand down. Every
+	// layer after this one is placed by project(), which the terrain
+	// view has taken over, so they land on the ground rather than beside
+	// it -- see setProjector in map.js.
+	if (terrainOn()) guarded(drawTerrain, mv.mapState, size);
+	else guarded(paintTiles, layer, tiles, size, { hold: mv.heldLevel !== null, ahead });
 	// Ports before pins, and both before the island names: each of these
 	// three writes words on the sea, and each one gives way to the ones
 	// already written. The wharves name themselves permanently and so go
@@ -208,6 +218,17 @@ export function paintMap() {
  *   the tiles have been in flight for a third of a second the chart
  *   says so, quietly, with a thread of light along its top edge.
  */
+/** Take the flat squares out of the layer. Standing the chart up draws
+ *  ground where they were, and a square left behind shows through every
+ *  hole in a coastline. */
+export function clearTiles() {
+	const layer = document.querySelector('[data-map-layer]');
+	if (!layer) return;
+	for (const d of layer.querySelectorAll('.map-tiles')) d.remove();
+	layer._tiles = null;
+	layer._levels = null;
+}
+
 const KEEP_TILES = 192;
 function paintTiles(layer, tiles, size, { hold = false, ahead = [] } = {}) {
 	const pool = layer._tiles || (layer._tiles = new Map());

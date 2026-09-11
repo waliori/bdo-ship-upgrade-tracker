@@ -267,7 +267,7 @@ app.get('/healthz', async (req, res) => {
 
 // Only what the page actually asks for. Serving the repository root would
 // hand out package.json, the Dockerfile and the capture harness too.
-const PUBLIC = ['css', 'js', 'icons', 'map', 'guide', 'reader'];
+const PUBLIC = ['css', 'js', 'icons', 'map', 'map3d', 'guide', 'reader'];
 const FILES = [
 	'index.html', 'icon.png', 'og.png', 'icon_mapping.json',
 	'icon-192.png', 'icon-512.png', 'manifest.webmanifest'
@@ -301,6 +301,14 @@ app.use('/icons', express.static(path.join(__dirname, 'icons'), LONG));
 // sees each one about once.
 const FOREVER = { maxAge: '365d', immutable: true };
 app.use('/map', express.static(path.join(__dirname, 'map'), FOREVER));
+// The terrain the chart stands up on, cut on the same grid and asked
+// for with the bake's own stamp, so a tile keeps like a tile. Its index
+// is the one file that must be re-read -- it is what carries the stamp.
+app.get('/map3d/index.json', (req, res) => {
+	res.set('Cache-Control', 'no-cache');
+	res.sendFile(path.join(__dirname, 'map3d', 'index.json'));
+});
+app.use('/map3d', express.static(path.join(__dirname, 'map3d'), FOREVER));
 // The vendored OCR engine: six megabytes that never change under a
 // name, because the name carries the version (reader/README.md). Kept
 // like the tiles rather than like the code -- it has no business being
@@ -312,7 +320,7 @@ app.use('/reader', express.static(path.join(__dirname, 'reader'), FOREVER));
 // several megabytes and nothing serves them. It is re-shot under the same
 // name whenever the UI moves, so it revalidates like the modules do.
 app.use('/docs/media', express.static(path.join(__dirname, 'docs', 'media'), REVALIDATE));
-for (const dir of PUBLIC.filter(d => d !== 'icons' && d !== 'map' && d !== 'reader')) {
+for (const dir of PUBLIC.filter(d => d !== 'icons' && d !== 'map' && d !== 'map3d' && d !== 'reader')) {
 	app.use(`/${dir}`, express.static(path.join(__dirname, dir), REVALIDATE));
 }
 for (const file of FILES) {

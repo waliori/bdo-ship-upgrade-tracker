@@ -10,8 +10,9 @@ import * as store from '../state.js';
 import { pathLength, sailRange, fmtRange, fmtDistance } from '../sailing.js';
 import { toGame } from '../worldmap.js';
 import { mv, persist } from './state.js';
+import { enterTerrain, exitTerrain, terrainOn, terrainTrouble, setStyle, terrainStyle, setTilt, tilt as tiltBy, tiltNow, MAX_PITCH } from './terrain.js';
 import { marksNow, seaBent } from './marks.js';
-import { paintMap } from './paint.js';
+import { paintMap, clearTiles } from './paint.js';
 import { miniHTML } from './render.js';
 import { routeSpeed, sailCal } from './route.js';
 
@@ -116,6 +117,109 @@ function dressFull() {
 	document.body.classList.toggle('map-full', mv.fullOn);
 	document.body.classList.toggle('map-turned', mv.fullTurned);
 	for (const b of document.querySelectorAll('.map-zoom [data-act="map-full"]')) b.setAttribute('aria-pressed', String(mv.fullOn));
+}
+
+/* ------------------------------------------------------------------ *
+ * the chart stood up
+ * ------------------------------------------------------------------ */
+
+/**
+ * Into the terrain view and back out again.
+ *
+ * Nothing about the chart's own state changes on the way: the same
+ * centre, the same zoom, the same everything drawn on it. What changes
+ * is who answers "where does this world position land on the screen" --
+ * so the switch lands on the same water you were looking at, seen from
+ * a different chair.
+ */
+export async function toggle3D() {
+	const host = document.querySelector('[data-map]');
+	if (!host) return;
+	if (terrainOn()) {
+		exitTerrain();
+		mv.threeD = false;
+		dress3D();
+		persist();
+		paintMap();
+		return;
+	}
+	setTilt(mv.pitch, mv.bearing);
+	const up = await enterTerrain(host);
+	if (!up) {
+		toast(terrainTrouble() || 'The terrain view is not available here');
+		return;
+	}
+	mv.threeD = true;
+	// The flat squares are still in the layer, under the ground that has
+	// just been drawn; they would show through every hole in a coastline.
+	clearTiles();
+	dress3D();
+	persist();
+	paintMap();
+}
+
+/** A chart left standing up comes back standing up: the preference
+ *  survives the reload, the WebGL context does not, so the first paint
+ *  after a render puts it back. Failing quietly matters here -- a
+ *  browser that cannot do it should show the flat chart, not an error
+ *  on every repaint. */
+let reviving = false;
+export function restore3D() {
+	if (reviving || !mv.threeD || terrainOn()) return;
+	const host = document.querySelector('[data-map]');
+	if (!host) return;
+	reviving = true;
+	setTilt(mv.pitch, mv.bearing);
+	enterTerrain(host).then(up => {
+		reviving = false;
+		if (!up) { mv.threeD = false; return; }
+		clearTiles();
+		dress3D();
+		paintMap();
+	}, () => { reviving = false; mv.threeD = false; });
+}
+
+/** The lean, from a drag or a key. Persisted, so the view comes back
+ *  the way it was left. */
+export function tiltMap(dPitch, dBearing) {
+	if (!terrainOn()) return;
+	tiltBy(dPitch, dBearing);
+	const now = tiltNow();
+	mv.pitch = now.pitch;
+	mv.bearing = now.bearing;
+	persist();
+	paintMap();
+}
+
+/** Straight down and facing north: the flat chart's own angle, which is
+ *  the way back to a view you can read coordinates off. */
+export function levelMap() {
+	if (!terrainOn()) return;
+	setTilt(0, 0);
+	mv.pitch = 0;
+	mv.bearing = 0;
+	persist();
+	paintMap();
+}
+
+export function setMapStyle(style) {
+	setStyle(style);
+	for (const b of document.querySelectorAll('[data-act="map-style"]')) {
+		b.setAttribute('aria-pressed', String(b.dataset.id === terrainStyle()));
+	}
+	paintMap();
+}
+
+export const mapStyleNow = () => terrainStyle();
+export const map3D = () => terrainOn();
+export const maxPitch = () => MAX_PITCH;
+
+function dress3D() {
+	const host = document.querySelector('[data-map]');
+	if (host) host.classList.toggle('three-d', mv.threeD);
+	for (const b of document.querySelectorAll('[data-act="map-3d"]')) b.setAttribute('aria-pressed', String(mv.threeD));
+	const bar = document.querySelector('[data-map-tiltbar]');
+	if (bar) bar.hidden = !mv.threeD;
 }
 
 /* ------------------------------------------------------------------ *
