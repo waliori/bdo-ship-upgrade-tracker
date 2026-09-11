@@ -60,8 +60,6 @@ const state = {
 	cam: null, failed: null
 };
 
-export const terrainState = state;
-
 /* ------------------------------------------------------------------ *
  * a little matrix arithmetic
  * ------------------------------------------------------------------ */

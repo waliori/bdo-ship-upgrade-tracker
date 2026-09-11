@@ -22,7 +22,7 @@ import { npcBox } from './render.js';
 import { routeSeq, n1, stashLive } from './route.js';
 import { paintTrace } from './trace.js';
 import { inBox, hostSize, paintMeasure, restore3D } from './view.js';
-import { drawTerrain, terrainOn } from './terrain.js';
+import { drawTerrain, terrainOn, prefetch as prefetchTerrain } from './terrain.js';
 
 /* ------------------------------------------------------------------ *
  * painting
@@ -143,6 +143,10 @@ export function paintMap() {
 	const { tiles, pins } = frame(mv.mapState, size, marks, level);
 	mv.drawnLevel = level;
 	const ahead = mv.flightTo ? tilesFor(mv.flightTo, size, levelFor(mv.flightTo.zoom)).filter(t => !t.ahead) : [];
+	// A flight asks for the ground it is heading for as well, so an
+	// island flown to has its relief when it arrives rather than a
+	// moment later.
+	if (mv.flightTo && terrainOn()) prefetchTerrain(mv.flightTo, size);
 	// A layer that faults says so in the console and leaves the others
 	// to paint; nothing on the chart depends on another layer's luck.
 	const guarded = (fn, ...args) => { const t0 = performance.now(); try { fn(...args); } catch (err) { console.warn(`[map] ${fn.name} failed:`, err); } if (window.__paintProf) window.__paintProf[fn.name] = (window.__paintProf[fn.name] || 0) + performance.now() - t0; };
