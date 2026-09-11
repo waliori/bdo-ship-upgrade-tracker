@@ -26,7 +26,7 @@ const exec = promisify(execFile);
 
 const IN = process.argv[2] || 'docs/media/guide';
 const OUT = process.argv[3] || 'docs/media/walkthrough';
-const RAW = process.env.RAW || 'tools/capture/out';
+const RAW = process.env.RAW || 'tools/capture/out/guide';
 
 /**
  * The running order.

@@ -7,7 +7,7 @@
 //
 //   * the Selected Sailor panel, usually cropped: a title in angle
 //     brackets, "Lv.8 Polnis", the bars, then Appetite, Cabin Cost,
-//     Weight and the growths in one column;
+//     Weight and the growths;
 //   * the whole Manage Sailors window at whatever the screen is: the
 //     same facts in the right-hand pane, laid in two columns, with the
 //     title missing and Condition spelt out.
@@ -19,37 +19,33 @@
 // holds at any resolution, at any UI scale, cropped or whole, and it is
 // why the same code reads both windows.
 //
+// Those labels are the client's own words, and the client is played in
+// fourteen languages (sailor-locales.js). Underneath them is something
+// none of the fourteen change: the weight carries "LT", the condition
+// is a pair over a slash, a growth is a figure with a per-cent sign,
+// and the eight growths are laid out in the same order whatever they
+// are called -- one column of eight in the panel, two columns six rows
+// deep in the window. So the labels are read first and this shape
+// second, and the second is what carries a language whose words we
+// could not check.
+//
 // This module is pure: words in, a sailor out. The engine that produces
 // the words lives in shot-reader.js, and nothing here needs it -- which
 // is what lets the parsing be tested on fixtures.
 
 import { pool, mateTypes, anyType, statBand } from './sailors.js';
+import { localeFor, DEFAULT_LANG, GROWTH_KEYS, GRID_TWO_COL, GRID_ONE_COL } from './sailor-locales.js';
 
-/** What the sailor window calls each growth, and what we call it. */
-const GROWTHS = {
-	Endurance: 'speed',
-	Wits: 'accel',
-	Awareness: 'turn',
-	Strength: 'brake',
-	Patience: 'patience',
-	Force: 'force',
-	Focus: 'focus',
-	Vision: 'vision'
-};
-
-/** Every word the panel prints as a label, growths included. */
-// "Cost" is deliberately absent: it is the second half of "Cabin Cost",
-// and treating it as a label of its own stops the reader before it ever
-// reaches the number on the far side of it.
-const LABELS = ['Appetite', 'Cabin', 'Condition', 'Weight', 'EXP', ...Object.keys(GROWTHS),
-	// The second column of the Manage Sailors window: four traits we do
-	// not model, named here only so a growth's value stops before them.
-	'Seasoned', 'Sailor', 'Son', 'Wind', 'Abstain', 'Natural', 'Born', 'Soldier'];
+/** The English client, which is what a caller that names none gets. */
+const EN = localeFor(DEFAULT_LANG);
 
 /** The labels that anchor the panel: three of these and it is a sailor. */
-const ANCHORS = ['Appetite', 'Weight', 'Endurance', 'Condition', 'Cabin'];
+const ANCHORS = ['appetite', 'weight', 'speed', 'condition', 'cabin'];
 
-const clean = s => String(s || '').replace(/[^\w'’.,%/()+<>«»: -]/g, '').replace(/\s+/g, ' ').trim();
+/** A script that sets no spaces between its words, and few letters. */
+const DENSE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}]/u;
+
+const clean = s => String(s || '').replace(/[^\p{L}\p{M}\p{N}_'’.,%/()+<>«»: -]/gu, '').replace(/\s+/g, ' ').trim();
 const mid = w => ({ x: (w.x0 + w.x1) / 2, y: (w.y0 + w.y1) / 2 });
 
 /**
@@ -77,18 +73,68 @@ export function editDistance(a, b, cap = 4) {
 	return prev[b.length];
 }
 
-/** The label this word is, if it is one: OCR misses a letter often enough. */
-function labelOf(text) {
-	const w = clean(text).replace(/[^A-Za-z]/g, '');
-	if (w.length < 3) return null;
-	const cap = w.length <= 5 ? 1 : 2;
+/* ------------------------------------------------------------------ *
+ * the words a client prints
+ * ------------------------------------------------------------------ */
+
+/**
+ * A language's labels, taken apart into what the reader needs.
+ *
+ * A label can be more than one word -- "Cabin Cost", "요구 선실",
+ * "Требуется кают" -- and only the first of them anchors anything; the
+ * rest have to be stepped over on the way to the value, which is why
+ * they are kept apart rather than left in with the heads. Treating
+ * "Cost" as a label of its own is what once stopped the reader before
+ * it ever reached the number on the far side of it.
+ */
+function vocabOf(locale) {
+	if (locale._vocab) return locale._vocab;
+	const heads = [], tails = new Set();
+	for (const [field, phrases] of Object.entries(locale.labels || {})) {
+		for (const phrase of phrases) {
+			const parts = String(phrase).split(/\s+/).filter(Boolean);
+			if (!parts.length) continue;
+			// A trait is one of the four the window prints beside a growth
+			// and we do not model: named here only so a growth's value
+			// stops before them.
+			heads.push({ word: parts[0], field: field === 'traits' ? 'trait' : field });
+			for (const rest of parts.slice(1)) tails.add(letters(rest));
+		}
+	}
+	const vocab = { heads, tails };
+	Object.defineProperty(locale, '_vocab', { value: vocab, enumerable: false });
+	return vocab;
+}
+
+const letters = s => clean(s).replace(/[^\p{L}\p{M}]/gu, '').toLowerCase();
+
+/**
+ * The field this word labels, if it labels one: OCR misses a letter
+ * often enough that a label has to be recognised through one.
+ *
+ * How much slack there is depends on the script. An alphabet spells a
+ * label out in eight or ten letters and can spare two of them; 건강 is
+ * the whole of "Condition" in two, and one wrong is a different word.
+ */
+export function labelOf(text, locale = EN) {
+	const w = letters(text);
+	const dense = DENSE.test(w);
+	if (w.length < (dense ? 2 : 3)) return null;
+	const cap = dense ? (w.length <= 2 ? 0 : 1) : (w.length <= 5 ? 1 : 2);
 	let best = null, bestD = cap + 1;
-	for (const l of LABELS) {
-		const d = editDistance(w.toLowerCase(), l.toLowerCase(), cap);
-		if (d < bestD) { bestD = d; best = l; }
+	for (const { word, field } of vocabOf(locale).heads) {
+		const d = editDistance(w, letters(word), cap);
+		if (d < bestD) { bestD = d; best = field; }
 	}
 	return bestD <= cap ? best : null;
 }
+
+/** The second or third word of a label, which is not one on its own. */
+const isTail = (text, locale) => vocabOf(locale).tails.has(letters(text));
+
+/* ------------------------------------------------------------------ *
+ * the figures every client prints the same
+ * ------------------------------------------------------------------ */
 
 /** The number a token carries, ignoring the game's %, +, brackets and LT. */
 function numberIn(text) {
@@ -97,6 +143,21 @@ function numberIn(text) {
 	// A comma is a thousands mark and a dot is a decimal point, which is
 	// the one place the two windows agree with each other.
 	const n = Number(m[1].replace(/,/g, ''));
+	return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * The weight a token carries, if it is the one with "LT" on it.
+ *
+ * Every client writes it that way -- "300.0LT", "200.0L T" where the
+ * scan split it -- and no other line in the panel ends in those two
+ * letters. It is the surest thing in the window, and it is what tells
+ * the reader where the panel is when it cannot read a word of it.
+ */
+export function weightIn(text) {
+	const m = /(?:^|\s)(\d{2,4}(?:[.,]\d)?)\s*L\s*T\b/i.exec(clean(text));
+	if (!m) return null;
+	const n = Number(m[1].replace(',', '.'));
 	return Number.isFinite(n) ? n : null;
 }
 
@@ -117,6 +178,9 @@ export function percentsIn(text) {
 	return out;
 }
 
+/** The pair over a slash the condition is written as, anywhere in a line. */
+const PAIR = /(\d{1,4})\s*[/|]\s*(\d{1,4})/;
+
 /**
  * The line height the panel is set in, from the words themselves: the
  * median height of a word box. Everything geometric here is measured in
@@ -129,92 +193,6 @@ export function lineHeight(words) {
 	// nearer twice that, which is the distance between one label and the
 	// next.
 	return hs[Math.floor(hs.length / 2)] * 1.9;
-}
-
-/**
- * Where the sailor panel is in a screenshot, from the labels that only
- * it prints. Returned in the image's own pixels, generously bounded --
- * this is what the reader crops to before it reads the panel properly,
- * and a crop that takes in a little of the sea costs nothing while one
- * that clips the name costs the name.
- */
-export function panelBox(words, { width = Infinity, height = Infinity } = {}) {
-	const found = words.map(w => ({ w, label: labelOf(w.text) })).filter(x => ANCHORS.includes(x.label));
-	// A named first mate's panel prints no cabin cost and no growths at
-	// all, so it can only muster two of these -- and then the title or
-	// the line saying where they are standing has to vouch for it.
-	const vouched = words.some(w => /^[<«]/.test(clean(w.text)))
-		|| /on\s*board|\(idle\)/i.test(words.map(w => clean(w.text)).join(' '));
-	if (found.length < (vouched ? 2 : 3)) return null;
-	const lh = lineHeight(words.filter(w => ANCHORS.includes(labelOf(w.text)))) || lineHeight(words);
-	if (!lh) return null;
-	// The anchors are the label column. The panel runs from a little to
-	// their left, out to the values and no further, up past the name and
-	// down past the last growth.
-	// The growths are set further left than the three facts above them,
-	// in both windows -- so when one of their labels was found the left
-	// edge is already right. When none was (a cursor over the row, a
-	// tooltip across it) the panel still reaches out that far, and the
-	// crop has to reach with it.
-	const sawGrowth = found.some(x => Object.keys(GROWTHS).includes(x.label));
-	const left = Math.min(...found.map(x => x.w.x0)) - (sawGrowth ? 0 : lh * 5);
-	const right = Math.max(...found.map(x => x.w.x1));
-	let valueRight = right;
-	for (const { w } of found) {
-		for (const v of words) {
-			if (v.x0 < w.x1 || Math.abs(mid(v).y - mid(w).y) > lh * NEAR) continue;
-			if (numberIn(v.text) === null && !/\d/.test(v.text)) continue;
-			if (v.x1 > valueRight && v.x0 < w.x1 + lh * 14) valueRight = v.x1;
-		}
-	}
-	const box = {
-		x0: Math.max(0, left - lh * 1.5),
-		y0: Math.max(0, Math.min(...found.map(x => x.w.y0)) - lh * 7),
-		x1: Math.min(width, Math.max(valueRight, right + lh * 8) + lh * 2),
-		y1: Math.min(height, Math.max(...found.map(x => x.w.y1)) + lh * 9)
-	};
-	return box.x1 > box.x0 + lh && box.y1 > box.y0 + lh ? { ...box, lineH: lh } : null;
-}
-
-/** The words to the right of a label, up to the next label along. */
-function rightOf(words, label) {
-	const lh = label.lh;
-	const row = words.filter(w => w !== label.w
-		&& w.x0 >= label.w.x1 - lh * 0.2
-		&& Math.abs(mid(w).y - mid(label.w).y) <= lh * NEAR)
-		.sort((a, b) => a.x0 - b.x0);
-	const out = [];
-	for (const w of row) {
-		// Another label ends this one's value -- the second column of the
-		// Manage Sailors window sits right of the first.
-		if (labelOf(w.text) && numberIn(w.text) === null && !percentsIn(w.text).length) break;
-		out.push(w);
-	}
-	return out;
-}
-
-/** The plain number that belongs to a label: appetite, cabins, weight. */
-function valueFor(words, label) {
-	for (const w of rightOf(words, label)) {
-		const n = numberIn(w.text);
-		if (n !== null) return n;
-	}
-	return null;
-}
-
-/**
- * The growth that belongs to a label. Only a figure with a per-cent
- * sign counts: the panel draws small marks in the same row -- a seat's
- * icon, the edge of a bar -- and they read as stray digits, which is
- * how a Strength of 1.8 became a 1. Where nothing carries a sign, a
- * plain number is taken rather than nothing at all.
- */
-function growthFor(words, label) {
-	const row = rightOf(words, label);
-	const pcts = row.flatMap(w => percentsIn(w.text));
-	if (pcts.length) return pcts[pcts.length - 1];
-	const ns = row.map(w => numberIn(w.text)).filter(n => n !== null);
-	return ns.length ? ns[ns.length - 1] : null;
 }
 
 /** The words that share a line, in reading order. */
@@ -234,23 +212,233 @@ function linesOf(words, lh) {
 	return out.map(l => ({ ...l, text: l.words.map(w => clean(w.text)).join(' ').trim() }));
 }
 
+/* ------------------------------------------------------------------ *
+ * the shape of the panel, which no language changes
+ * ------------------------------------------------------------------ */
+
+/**
+ * The grid of growths: every per-cent in the panel, put back into the
+ * rows and columns the window set it in.
+ *
+ * The window lays eight growths and four traits in two columns six rows
+ * deep; the panel lays the same eight in one column. Which is which is
+ * settled by how many columns the figures fall into, and a column is a
+ * run of them with no great gap across it -- "(+3.9%) 3.9%", the
+ * applied growth and the rolled one, is one column and not two.
+ *
+ * Returns the keys that could be filled, or nothing when the figures do
+ * not make either shape: a first mate's panel has four traits and no
+ * growths at all, and guessing at that would invent a whole crew.
+ */
+export function growthGrid(words, lh) {
+	const marks = [];
+	for (const w of words) {
+		const pcts = percentsIn(w.text);
+		// The last of them: an applied growth is written "(+3.9%) 3.9%"
+		// and the figure that counts is the one on the right.
+		if (pcts.length) marks.push({ w, v: pcts[pcts.length - 1], x: mid(w).x, y: mid(w).y });
+	}
+	if (marks.length < 8) return null;
+
+	const rows = [];
+	for (const m of [...marks].sort((a, b) => a.y - b.y)) {
+		const row = rows[rows.length - 1];
+		if (row && Math.abs(m.y - row.y) <= lh * 0.5) { row.marks.push(m); row.y = (row.y + m.y) / 2; }
+		else rows.push({ y: m.y, marks: [m] });
+	}
+
+	// Columns: sort every figure by where it sits across the panel and
+	// cut wherever the gap is wider than a couple of lines. The two
+	// columns of the window are a third of the panel apart; the two
+	// figures of an applied growth are a word apart.
+	const cols = [];
+	for (const m of [...marks].sort((a, b) => a.x - b.x)) {
+		const col = cols[cols.length - 1];
+		if (col && m.x - col.max <= lh * 3) { col.max = Math.max(col.max, m.x); col.marks.push(m); }
+		else cols.push({ min: m.x, max: m.x, marks: [m] });
+	}
+	const colOf = m => cols.findIndex(c => c.marks.includes(m));
+
+	// The rightmost figure of a row and column is the one that counts.
+	const cell = (row, col) => {
+		const inCell = rows[row]?.marks.filter(m => colOf(m) === col).sort((a, b) => a.x - b.x);
+		return inCell && inCell.length ? inCell[inCell.length - 1].v : null;
+	};
+
+	const out = {};
+	if (cols.length === 2 && rows.length === 6) {
+		GRID_TWO_COL.left.forEach((key, i) => { const v = cell(i, 0); if (key && v !== null) out[key] = v; });
+		GRID_TWO_COL.right.forEach((key, i) => { const v = cell(i, 1); if (key && v !== null) out[key] = v; });
+	} else if (cols.length === 1 && rows.length === 8) {
+		GRID_ONE_COL.forEach((key, i) => { const v = cell(i, 0); if (v !== null) out[key] = v; });
+	} else {
+		return null;
+	}
+	return Object.keys(out).length >= 6 ? out : null;
+}
+
+/* ------------------------------------------------------------------ *
+ * where the panel is
+ * ------------------------------------------------------------------ */
+
+/**
+ * Where the sailor panel is in a screenshot, from the labels that only
+ * it prints -- or, where none of them were made out, from the figures
+ * only it prints: a weight in LT with a grid of growths under it.
+ *
+ * Returned in the image's own pixels, generously bounded -- this is
+ * what the reader crops to before it reads the panel properly, and a
+ * crop that takes in a little of the sea costs nothing while one that
+ * clips the name costs the name.
+ */
+export function panelBox(words, { width = Infinity, height = Infinity, locale = EN } = {}) {
+	const found = words.map(w => ({ w, field: labelOf(w.text, locale) })).filter(x => ANCHORS.includes(x.field));
+	const weights = words.filter(w => weightIn(w.text) !== null);
+	const pcts = words.filter(w => percentsIn(w.text).length);
+	// A named first mate's panel prints no cabin cost and no growths at
+	// all, so it can only muster two of these -- and then the title or
+	// the line saying where they are standing has to vouch for it.
+	const said = words.map(w => clean(w.text)).join(' ');
+	const vouched = words.some(w => /^[<«]/.test(clean(w.text)))
+		|| locale.aboard.some(a => said.toLowerCase().includes(a.toLowerCase()))
+		|| locale.idle.some(a => said.toLowerCase().includes(a.toLowerCase()))
+		|| /on\s*board|\(idle\)/i.test(said);
+	// The figures vouch for it too, and they are the same figures in
+	// every language: nothing else in the game puts a weight in LT over
+	// a column of per-cents.
+	const byShape = weights.length > 0 && pcts.length >= 4;
+	if (found.length < (vouched ? 2 : 3) && !byShape) return null;
+
+	const anchorWords = found.map(x => x.w);
+	const lh = lineHeight(anchorWords.length >= 3 ? anchorWords : [...anchorWords, ...weights, ...pcts]) || lineHeight(words);
+	if (!lh) return null;
+	// The panel runs from a little left of its labels, out to the values
+	// and no further, up past the name and down past the last growth.
+	// The growths are set further left than the three facts above them,
+	// in both windows -- so when one of their labels was found the left
+	// edge is already right. When none was -- a cursor over the row, a
+	// tooltip across it, or a language whose words for them we could not
+	// check -- the panel still reaches out that far, and the crop has to
+	// reach with it: ten or eleven lines, measured off the windows.
+	const seeds = [...anchorWords, ...weights, ...pcts];
+	const sawGrowth = found.some(x => GROWTH_KEYS.includes(x.field));
+	const left = Math.min(...seeds.map(w => w.x0)) - (sawGrowth ? 0 : lh * 11);
+	const right = Math.max(...seeds.map(w => w.x1));
+	let valueRight = right;
+	for (const w of anchorWords) {
+		for (const v of words) {
+			if (v.x0 < w.x1 || Math.abs(mid(v).y - mid(w).y) > lh * NEAR) continue;
+			if (numberIn(v.text) === null && !/\d/.test(v.text)) continue;
+			if (v.x1 > valueRight && v.x0 < w.x1 + lh * 14) valueRight = v.x1;
+		}
+	}
+	const box = {
+		x0: Math.max(0, left - lh * 1.5),
+		y0: Math.max(0, Math.min(...seeds.map(w => w.y0)) - lh * 7),
+		x1: Math.min(width, Math.max(valueRight, right + lh * 8) + lh * 2),
+		y1: Math.min(height, Math.max(...seeds.map(w => w.y1)) + lh * 9)
+	};
+	return box.x1 > box.x0 + lh && box.y1 > box.y0 + lh ? { ...box, lineH: lh } : null;
+}
+
+/* ------------------------------------------------------------------ *
+ * the values beside the labels
+ * ------------------------------------------------------------------ */
+
+/**
+ * The words to the right of a label, up to the value's end.
+ *
+ * What ends it is either another label -- the second column of the
+ * Manage Sailors window sits right of the first -- or, once a figure
+ * has been found, any word at all: past the figure there is nothing of
+ * this label's left, and that rule needs no vocabulary, which is what
+ * makes it hold in a language whose words for the traits we never saw.
+ * Before the figure a plain word is stepped over, because that is where
+ * the rest of a two-word label lives.
+ */
+function rightOf(words, label, locale) {
+	const lh = label.lh;
+	const row = words.filter(w => w !== label.w
+		&& w.x0 >= label.w.x1 - lh * 0.2
+		&& Math.abs(mid(w).y - mid(label.w).y) <= lh * NEAR)
+		.sort((a, b) => a.x0 - b.x0);
+	const out = [];
+	for (const w of row) {
+		const num = numberIn(w.text) !== null || percentsIn(w.text).length > 0 || weightIn(w.text) !== null;
+		if (num) { out.push(w); continue; }
+		const field = labelOf(w.text, locale);
+		if (field && field !== label.field) break;
+		if (out.length) break;
+		if (!field && !isTail(w.text, locale) && letters(w.text).length >= 3) break;
+	}
+	return out;
+}
+
+/** The plain number that belongs to a label: appetite, cabins, weight. */
+function valueFor(words, label, locale) {
+	// The scan sometimes hands a CJK label back glued to its own figure.
+	const own = /(\d[\d,.]*)\s*$/.exec(clean(label.w.text));
+	if (own) {
+		const n = numberIn(own[1]);
+		if (n !== null) return n;
+	}
+	for (const w of rightOf(words, label, locale)) {
+		const n = weightIn(w.text) ?? numberIn(w.text);
+		if (n !== null) return n;
+	}
+	return null;
+}
+
+/**
+ * The growth that belongs to a label. Only a figure with a per-cent
+ * sign counts: the panel draws small marks in the same row -- a seat's
+ * icon, the edge of a bar -- and they read as stray digits, which is
+ * how a Strength of 1.8 became a 1. Where nothing carries a sign, a
+ * plain number is taken rather than nothing at all.
+ */
+function growthFor(words, label, locale) {
+	const row = rightOf(words, label, locale);
+	const pcts = row.flatMap(w => percentsIn(w.text));
+	if (pcts.length) return pcts[pcts.length - 1];
+	const ns = row.map(w => numberIn(w.text)).filter(n => n !== null);
+	return ns.length ? ns[ns.length - 1] : null;
+}
+
 // What the scan makes of a digit when it is small and light on dark.
 const DIGITY = { ']': '1', '[': '1', '|': '1', l: '1', I: '1', i: '1', O: '0', o: '0', S: '5', s: '5', B: '8' };
 const digits = s => [...String(s)].map(c => (/\d/.test(c) ? c : DIGITY[c] || '')).join('');
 
 /**
+ * What can stand before the level on the name line.
+ *
+ * Every client but the Russian one writes "Lv."; that one writes "Ур.".
+ * Both are two letters small enough for the scan to take a run at, so
+ * each is matched through one confusion and no more -- "Ly.8" for
+ * "Lv.8", a Latin "Yp." where the Cyrillic "Ур." was. Anything looser
+ * and an ordinary word starting "li" is read as a level.
+ */
+const LEVEL_MARKS = {
+	Lv: /^L[vy][.,]?(.*)$/i,
+	'Ур': /^[УY][рpR][.,]?(.*)$/i
+};
+
+const levelMarks = locale => locale.level.map(p => LEVEL_MARKS[p]
+	|| new RegExp(`^${p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[.,]?(.*)$`, 'i')).filter(Boolean);
+
+/**
  * The level on a line, and everything after it -- which is the name.
  *
- * Returns null when the line has no "Lv." on it at all. `lv` can still
- * be null when the number beside it was lost, which the panel's own
- * badge usually makes good.
+ * Returns null when the line carries no level mark at all. `lv` can
+ * still be null when the number beside it was lost, which the panel's
+ * own badge usually makes good.
  */
-function levelIn(words) {
+function levelIn(words, locale) {
+	const marks = levelMarks(locale);
 	for (let i = 0; i < words.length; i++) {
 		// Raw, not cleaned: a bracket is how a small "1" often comes back,
 		// and cleaning would throw the level away with it.
 		const t = String(words[i].text || '').trim();
-		const m = /^L[vy][.,]?(.*)$/i.exec(t);
+		const m = marks.map(re => re.exec(t)).find(Boolean);
 		if (!m) continue;
 		const tail = m[1];
 		// "Lv.1Proix": the level and the name in one word.
@@ -276,33 +464,41 @@ function levelIn(words) {
 	return null;
 }
 
-/** Every type name the title can be, mates included. */
-const TYPE_NAMES = [...pool.map(t => t.type), ...mateTypes.map(t => t.type), 'First Mate'];
-
 /** The title in angle brackets, matched to a type the app knows. */
-function titleIn(lines) {
+function titleIn(lines, locale) {
 	for (const line of lines) {
-		const m = /[<«(]\s*([A-Za-z][A-Za-z'’ -]{2,32}?)\s*[>»)]/.exec(line.text);
+		const m = /[<«(]\s*([\p{L}][\p{L}\p{M}'’ -]{1,32}?)\s*[>»)]/u.exec(line.text);
 		const raw = m ? m[1] : null;
 		if (!raw) continue;
-		const hit = closestType(raw);
+		const hit = closestType(raw, locale);
 		if (hit) return hit;
 	}
 	return null;
 }
 
-/** The type name closest to what was read, or nothing if none is close. */
-export function closestType(raw) {
-	const s = clean(raw).replace(/[^A-Za-z' -]/g, '').trim();
-	if (s.length < 3) return null;
-	const cap = Math.max(2, Math.round(s.length / 5));
+/**
+ * The type name closest to what was read, or nothing if none is close.
+ *
+ * The panel prints the type in the client's own language, so every
+ * language's word for it is matched and the English name returned.
+ */
+export function closestType(raw, locale = EN) {
+	const s = clean(raw).replace(/[^\p{L}\p{M}' -]/gu, '').trim();
+	const dense = DENSE.test(s);
+	if (s.length < (dense ? 2 : 3)) return null;
+	const cap = dense ? (s.length <= 3 ? 0 : 1) : Math.max(2, Math.round(s.length / 5));
+	const names = [...Object.entries(locale.titles), ...mateTypes.map(t => [t.type, t.type]), ['First Mate', 'First Mate']];
 	let best = null, bestD = cap + 1;
-	for (const t of TYPE_NAMES) {
-		const d = editDistance(s.toLowerCase(), t.toLowerCase(), cap);
-		if (d < bestD) { bestD = d; best = t; }
+	for (const [said, type] of names) {
+		const d = editDistance(s.toLowerCase(), said.toLowerCase(), cap);
+		if (d < bestD) { bestD = d; best = type; }
 	}
 	return bestD <= cap ? best : null;
 }
+
+/* ------------------------------------------------------------------ *
+ * the sailor
+ * ------------------------------------------------------------------ */
 
 /**
  * One sailor, read off a panel's words.
@@ -312,21 +508,27 @@ export function closestType(raw) {
  * the facts kept apart from the growths -- the facts are what name the
  * type when the window does not.
  */
-export function readPanel(words) {
+export function readPanel(words, locale = EN) {
 	const kept = (words || []).filter(w => clean(w.text));
 	const lh = lineHeight(kept);
 	if (!lh) return null;
-	const labels = kept.map(w => ({ w, label: labelOf(w.text), lh })).filter(x => x.label);
-	const at = name => labels.find(x => x.label === name) || null;
-	if (ANCHORS.filter(a => at(a)).length < 2) return null;
-
+	const labels = kept.map(w => ({ w, field: labelOf(w.text, locale), lh })).filter(x => x.field);
+	const at = field => labels.find(x => x.field === field) || null;
 	const lines = linesOf(kept, lh);
+
+	// A panel is either three of its labels or the two figures no other
+	// window in the game puts together: a weight in LT over a grid of
+	// per-cents.
+	const ltWord = kept.find(w => weightIn(w.text) !== null) || null;
+	const grid = growthGrid(kept, lh);
+	if (ANCHORS.filter(f => at(f)).length < 2 && !(ltWord && grid)) return null;
+
 	const warnings = [];
-	const num = (name, lo, hi) => {
-		const l = at(name);
+	const num = (field, lo, hi) => {
+		const l = at(field);
 		if (!l) return null;
 		const ok = v => (v !== null && v >= lo && v <= hi ? v : null);
-		const v = ok(valueFor(kept, l));
+		const v = ok(valueFor(kept, l, locale));
 		if (v !== null) return v;
 		// The Selected Sailor panel sets Weight's figure under its label
 		// rather than beside it, right-aligned; the row below is the only
@@ -334,18 +536,22 @@ export function readPanel(words) {
 		// not some other label's, or a missed Cabin Cost would be read as
 		// the Weight underneath it.
 		const below = kept.filter(w => w.x1 > l.w.x0 && mid(w).y - mid(l.w).y > 0 && mid(w).y - mid(l.w).y <= lh * 1.5);
-		if (below.some(w => labelOf(w.text) && numberIn(w.text) === null)) return null;
-		const ns = below.map(w => ({ w, n: ok(numberIn(w.text)) })).filter(x => x.n !== null).sort((a, b) => a.w.x0 - b.w.x0);
+		if (below.some(w => labelOf(w.text, locale) && numberIn(w.text) === null)) return null;
+		const ns = below.map(w => ({ w, n: ok(weightIn(w.text) ?? numberIn(w.text)) })).filter(x => x.n !== null).sort((a, b) => a.w.x0 - b.w.x0);
 		return ns.length ? ns[0].n : null;
 	};
 
 	const stats = {};
-	for (const [word, key] of Object.entries(GROWTHS)) {
-		const l = at(word);
+	for (const key of GROWTH_KEYS) {
+		const l = at(key);
 		if (!l) continue;
-		const v = growthFor(kept, l);
+		const v = growthFor(kept, l, locale);
 		if (v !== null && v >= 0 && v <= 100) stats[key] = Math.round(v * 10) / 10;
 	}
+	// Whatever the labels did not give up, the grid does: the eight are
+	// laid out in the same order in every language, so a growth whose
+	// name we could not read is still the fifth figure down the column.
+	if (grid) for (const [key, v] of Object.entries(grid)) if (stats[key] === undefined) stats[key] = Math.round(v * 10) / 10;
 	const moves = ['speed', 'accel', 'turn', 'brake'].filter(k => stats[k] !== undefined).length;
 	if (!moves) warnings.push('no growths read');
 	else if (moves < 4) warnings.push('some growths not read');
@@ -354,9 +560,32 @@ export function readPanel(words) {
 	// costs twenty cabins, or weighs half a ton and a bit. A figure
 	// outside these was not read, whatever the scan says, and saying so
 	// is better than naming the wrong type on the strength of it.
-	const appetite = num('Appetite', 50, 200);
-	const cabin = num('Cabin', 0, 20);
-	const weight = num('Weight', 50, 900);
+	let appetite = num('appetite', 50, 200);
+	let cabin = num('cabin', 0, 20);
+	// The weight is the one fact that needs no label at all.
+	let weight = num('weight', 50, 900);
+	if (weight === null && ltWord) {
+		const w = weightIn(ltWord.text);
+		if (w !== null && w >= 50 && w <= 900) weight = w;
+	}
+	// And the two above it are, in every client, the cabin cost and the
+	// appetite in that order going up -- so when neither word was made
+	// out, the rows are read instead. Only when neither: a mate's panel
+	// prints an appetite and no cabin cost at all, and reading the row
+	// above the weight there would invent one. A row with a pair over a
+	// slash is the condition and not one of them.
+	if (appetite === null && cabin === null && ltWord) {
+		const from = mid(ltWord).y;
+		const above = lines.filter(l => from - l.y > lh * 0.5 && from - l.y < lh * 3.6 && !PAIR.test(l.text))
+			.sort((a, b) => b.y - a.y);
+		const plain = l => {
+			const ns = l.words.map(w => numberIn(w.text)).filter(n => n !== null && Number.isInteger(n));
+			return ns.length === 1 ? ns[0] : null;
+		};
+		const [first, second] = [plain(above[0] || { words: [] }), plain(above[1] || { words: [] })];
+		if (cabin === null && first !== null && first >= 0 && first <= 20) cabin = first;
+		if (appetite === null && second !== null && second >= 50 && second <= 200) appetite = second;
+	}
 
 	// The level and the name share a line: "Lv.8 Polnis". The badge on
 	// the portrait says "Lv.8" on its own, so the line with words after
@@ -367,12 +596,10 @@ export function readPanel(words) {
 	// "Lv.1Proix" -- and whatever is left of the window (the roster's
 	// own "18/20") can land at the head of the same line. So the level
 	// is found as a word and the name is whatever follows it: nothing
-	// before it belongs to the sailor. The badge on the portrait says
-	// the level on its own with nothing after it; the line with a name
-	// after it is the one that carries the name.
+	// before it belongs to the sailor.
 	let lv = null, name = '';
 	for (const line of lines) {
-		const found = levelIn(line.words);
+		const found = levelIn(line.words, locale);
 		if (!found) continue;
 		// The title sits beside the portrait's badge on the same line;
 		// a name never has angle brackets round it.
@@ -380,22 +607,23 @@ export function readPanel(words) {
 			if (lv === null && found.lv !== null) lv = found.lv;
 			continue;
 		}
-		if (found.rest && /[A-Za-z]{2}/.test(found.rest) && !name) { name = found.rest; lv = found.lv; }
+		if (found.rest && /[\p{L}]{2}/u.test(found.rest) && !name) { name = found.rest; lv = found.lv; }
 		else if (lv === null) lv = found.lv;
 	}
-	const title = titleIn(lines);
+	const title = titleIn(lines, locale);
+	const standing = new RegExp(`(${[...locale.aboard, ...locale.idle].map(a => a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'i');
 	if (!name) {
 		// A mate: no level, and the name is the line above the one that
 		// says where they are standing.
-		const idx = lines.findIndex(l => /on\s*board|idle/i.test(l.text.replace(/[^A-Za-z ]/g, '')));
+		const idx = lines.findIndex(l => standing.test(l.text) || /on\s*board|idle/i.test(l.text.replace(/[^A-Za-z ]/g, '')));
 		const above = idx > 0 ? lines[idx - 1] : null;
-		if (above && !/[<«(]/.test(above.text) && /[A-Za-z]{3}/.test(above.text)) name = above.text;
+		if (above && !/[<«(]/.test(above.text) && /[\p{L}]{3}/u.test(above.text)) name = above.text;
 	}
 	// The Manage Sailors window sets "18/20" on the same line as the
 	// name it has selected, and a mate's line has no level to cut it
 	// off, so anything numeric at the head of a name is the window's.
 	name = clean(name).replace(/^(?:\d+\s*[/|]\s*\d+|\d+)\s*/, '')
-		.replace(/[^\w'’ .-]/g, '').replace(/\s+/g, ' ').trim()
+		.replace(/[^\p{L}\p{M}\p{N}_'’ .-]/gu, '').replace(/\s+/g, ' ').trim()
 		// A stray mark beside the name comes back as a word of one
 		// letter, and no sailor's name ends in one.
 		.replace(/\s+\S$/, '').slice(0, 30);
@@ -406,15 +634,16 @@ export function readPanel(words) {
 	// under it in the panel. Either way it is the pair, not the EXP
 	// percentage above it.
 	let cond = null;
-	const pair = /(\d{1,4})\s*[/|]\s*(\d{1,4})/;
-	const condLabel = at('Condition');
+	const condLabel = at('condition');
+	const ceiling = at('appetite') ? mid(at('appetite').w).y : ltWord ? mid(ltWord).y : Infinity;
 	const condLine = condLabel
 		? lines.find(l => l.words.includes(condLabel.w))
-		: lines.filter(l => pair.test(l.text) && (!at('Appetite') || l.y < mid(at('Appetite').w).y)).pop();
-	const m = condLine ? pair.exec(condLine.text) : null;
+		: lines.filter(l => PAIR.test(l.text) && l.y < ceiling).pop();
+	const m = condLine ? PAIR.exec(condLine.text) : null;
 	if (m && Number(m[2]) > 0) cond = Math.max(0, Math.min(100, Math.round(Number(m[1]) / Number(m[2]) * 100)));
 
-	const aboard = lines.some(l => /on\s*board/i.test(l.text.replace(/[^A-Za-z ]/g, '')));
+	const aboard = lines.some(l => locale.aboard.some(a => l.text.toLowerCase().includes(a.toLowerCase())))
+		|| lines.some(l => /on\s*board/i.test(l.text.replace(/[^A-Za-z ]/g, '')));
 
 	return {
 		name, lv, title, cond, aboard,
@@ -486,8 +715,8 @@ export function matchType(read) {
  * `id` is left to the caller: whether this is a new sailor or one
  * already hired is the roster's business, not the reader's.
  */
-export function sailorFrom(words) {
-	const read = readPanel(words);
+export function sailorFrom(words, locale = EN) {
+	const read = readPanel(words, locale);
 	if (!read) return null;
 	const { type, sure } = matchType(read);
 	const t = type ? anyType[type] : null;

@@ -30,7 +30,10 @@ export GLIDE="${GLIDE:-380}"
 # generation; `atempo` keeps the narrator's pitch where it was.
 export SPEED="${SPEED:-1.3}"
 
-RAW=tools/capture/out
+# A folder of its own, not shared with the README scenes. shoot.sh
+# converts every webm it finds beside it, and a two-minute chapter
+# handed to a GIF encoder comes out at fifty megabytes.
+RAW=tools/capture/out/guide
 OUT=docs/media/guide
 mkdir -p "$RAW" "$OUT"
 

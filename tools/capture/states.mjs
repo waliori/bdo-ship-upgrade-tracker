@@ -31,7 +31,14 @@ export const midBuild = {
 	],
 	strategy: {},
 	history: [],
-	settings: {}
+	settings: {},
+	// The sailor's own numbers, which live in the shell and are therefore
+	// in every frame of every clip. Left unset they read "0 barters · no
+	// level", which is the bar asking to be filled in -- a fair thing for
+	// a new save to show and a poor thing for a picture in a README to
+	// be stuck on. The count is high enough that no route is shut, so a
+	// clip never explains a gate it did not mean to.
+	profile: { barterCount: 4205, level: 'Master 5', sailingMastery: 750 }
 };
 
 /**
@@ -81,7 +88,7 @@ export const recordLevel = {
  */
 export const fittedShip = {
 	...midBuild,
-	profile: { crewShip: 'Carrack (Advance)' }
+	profile: { ...midBuild.profile, crewShip: 'Carrack (Advance)' }
 };
 
 export const emptyStart = {

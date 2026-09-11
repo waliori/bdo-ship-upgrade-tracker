@@ -44,10 +44,14 @@ gif_size() {
 		# A tilting heightmap is the worst case a GIF can be handed:
 		# every pixel of every frame is new, and there is no flat colour
 		# anywhere to pay for it.
-		stand-it-up) echo "640 7" ;;
+		stand-it-up) echo "560 6" ;;
 		*) echo "900 13" ;;
 	esac
 }
+# Only what is beside this script's own recordings: the guide chapters
+# live in "$RAW"/guide, which this glob does not reach, and a
+# two-minute chapter converted at these settings is fifty megabytes of
+# GIF nobody asked for.
 for f in "$RAW"/*.webm; do
 	name=$(basename "$f" .webm)
 	case "$name" in walkthrough*) continue ;; esac
