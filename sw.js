@@ -115,6 +115,7 @@ const SHELL = [
 	'/js/peek.js',
 	'/js/picker.js',
 	'/js/planner.js',
+	'/js/presence.js',
 	'/js/pouch.js',
 	'/js/profile-bar.js',
 	'/js/profile-shape.js',

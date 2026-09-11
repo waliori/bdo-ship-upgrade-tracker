@@ -14,7 +14,8 @@ import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { config, syncEnabled, pushEnabled, feedbackEnabled, communityEnabled, ephemeralSecret, describe } from './server/config.js';
+import { config, syncEnabled, pushEnabled, feedbackEnabled, communityEnabled, presenceEnabled, ephemeralSecret, describe } from './server/config.js';
+import { presenceRoutes } from './server/presence.js';
 import { marketRoutes } from './server/market.js';
 import { accessLog, counters } from './server/log.js';
 
@@ -217,11 +218,27 @@ if (feedbackEnabled) {
 // without it and it never carries anyone's data.
 app.use('/api', marketRoutes(express));
 
+// Who else is out there. The one thing here that asks nothing of the
+// reader and tells them something: how many browsers have the page open
+// right now, and how many have ever opened it. It needs no sign-in and
+// keeps no address -- see server/presence.js -- and it runs on a
+// database when there is one and in this process's memory when there is
+// not. PRESENCE=0 turns it off entirely.
+if (presenceEnabled) {
+	let presenceDb = null;
+	if (config.turso.url) {
+		const m = await import('./server/db.js');
+		if (!syncEnabled && !pushEnabled && !feedbackEnabled) m.migrate().catch(err => console.warn('[db] tables not ready yet:', err.message));
+		presenceDb = { touchPresence: m.touchPresence, countPresence: m.countPresence };
+	}
+	app.use('/api', presenceRoutes({ db: presenceDb }));
+}
+
 // So the page knows whether to offer sign-in at all. A deployment with no
 // Discord app should not show a button that cannot work.
 app.get('/api/config', (req, res) => {
 	res.set('Cache-Control', 'no-store');
-	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, community: communityEnabled });
+	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, community: communityEnabled, presence: presenceEnabled });
 });
 
 // Is it up, and is the database behind it answering? `db` is 'off' on a

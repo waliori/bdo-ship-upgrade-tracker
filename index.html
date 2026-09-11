@@ -79,6 +79,10 @@
                 <button class="ghost-btn wide-only" data-act="trip-log" title="Record everything you brought back from a trip, as one change">&#65291; Log a trip</button>
                 <button class="ghost-btn" id="undo-btn" data-act="undo" aria-label="Undo">&#8630; <span class="btn-label">Undo</span></button>
                 <button class="ghost-btn wide-only" id="redo-btn" data-act="redo">&#8631; Redo</button>
+                <!-- How many have the tracker open right now. Empty until
+                     the server answers, and on a deployment with the count
+                     switched off it stays empty. -->
+                <span class="crowd" id="crowd"></span>
                 <!-- Sign-in, and who is signed in. Stays empty unless the
                      deployment has been given a Discord app and a database. -->
                 <span class="account" id="account"></span>

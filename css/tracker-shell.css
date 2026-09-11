@@ -58,6 +58,42 @@
 .ghost-btn:hover:not(:disabled) { color: var(--ink-hi); border-color: var(--line-btn-hi); }
 .ghost-btn.on { color: var(--teal); }
 
+/* ---- who else is out ---------------------------------------------- *
+   A count, not a control: no border, no press, nothing to do with it.
+   Empty until the server answers, so it costs nothing on a deployment
+   that does not keep one. */
+
+.crowd { display: inline-flex; }
+
+.crowd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-mute);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.crowd-chip i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 0 3px rgba(78, 201, 174, 0.14);
+}
+
+.crowd-word { font-weight: 500; color: var(--ink-faint); }
+
+/* On a phone the masthead is already four buttons wide; the words go
+   and the dot and the number stay. */
+@media (max-width: 720px) {
+  .crowd-word { display: none; }
+  .crowd-chip { font-size: 11.5px; padding: 0; }
+}
+
 /* ---- account ------------------------------------------------------ *
    Present only where the deployment offers sync; otherwise #account is
    empty and this costs nothing. The chip is the sync status as much as
