@@ -1667,7 +1667,7 @@ function silverParts(me, b) {
 	// same lie the app used to tell, only in the other direction.
 	const shutIsles = [...new Map(shutChains.map(c => [c.gate.npcId, c.gate])).values()].sort((a, b) => a.barters - b.barters);
 	const shutNote = shutIsles.length
-		? `<div class="barter-shut"><b>${shutChains.length} chain${shutChains.length === 1 ? '' : 's'} on this board ${shutChains.length === 1 ? 'is' : 'are'} not yours to sail yet</b> — ${shutIsles.map(g => `${esc(isleOf(npcById.get(g.npcId)) || g.npc)} opens at ${F(g.barters)} Total Barters, ${F(g.short)} more`).join('; ')}. They are left out of the run and of the runs worth sailing.</div>`
+		? `<div class="barter-shut"><b>${shutChains.length} chain${shutChains.length === 1 ? '' : 's'} on this board ${shutChains.length === 1 ? 'is' : 'are'} not yours to sail yet</b> — ${shutIsles.map(g => `${esc(isleOf(npcById.get(g.npcId)) || g.npc)} opens at ${F(g.barters)} Total Barters, ${F(g.short)} more`).join('; ')}. ${shutChains.length === 1 ? 'It is' : 'They are'} left out of the run and of the runs worth sailing.</div>`
 		: '';
 	const chainsPanel = `<section class="panel barter-chains">${headFill(fillable)}<div class="panel-body">${shutNote}${reachBar}${reach ? '' : proposals}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.buy ? 'Nothing climbs on this board.' : 'Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.') : 'No chain matches.'}</p>`}</div></div></section>`;
 

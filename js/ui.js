@@ -902,9 +902,16 @@ function wire() {
 			}
 			case 'add-build': return openBuildPicker();
 			// The sailing numbers, folded into their line or open for
-			// typing. The pouch alone is repainted: nothing about the
-			// screens below it has changed.
-			case 'sail-bar': toggleSailBar(); return paintPouch();
+			// typing. The pouch alone is repainted -- nothing about the
+			// screens below it has changed -- and the keyboard is put
+			// back on the button that did it, which both states have.
+			case 'sail-bar': {
+				toggleSailBar();
+				paintPouch({ force: true });
+				const back = document.querySelector('#pouch [data-act="sail-bar"]');
+				if (back) back.focus({ preventScroll: true });
+				return;
+			}
 			case 'blockers-all': toggleBlockers(); return render();
 			case 'enh-blocked': toggleBlocked(); return render();
 			case 'open-item': hidePeek(); showView('inventory'); setSelected(el.dataset.item); return render();

@@ -16,7 +16,8 @@ import { falasi } from './falasi_vendor.js';
 import {
 	forecast as barterForecast,
 	summarise as barterLine,
-	explain as barterWhy
+	explain as barterWhy,
+	openTable
 } from './barter.js';
 import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
@@ -55,11 +56,19 @@ export function setGetMode(m) {
  */
 export function barterLookup(item, qty = 1) {
 	if (!barterData) return null;
-	const entry = barterData.find(b => b.name === item);
+	const plan = barterForecast(item, qty, barterData, barterOpts());
+	// Who deals it, counted on the islands this sailor has opened: "from
+	// 27 barterers" is no comfort when twenty-six of them are the whole
+	// Great Ocean and the twenty-seventh opens at three thousand. Where
+	// none is open the forecast carries the gate and the row says that
+	// instead, so the full table's names are still the right answer to
+	// "where is this dealt at all".
+	const table = plan && plan.gate ? barterData : openTable(barterData, barterOpts().barterCount);
+	const entry = (table || []).find(b => b.name === item);
 	if (!entry || !entry.sources || !entry.sources.length) return null;
 	const npcs = [...new Set(entry.sources.map(s => s.npc_name))];
 	const gives = [...new Set(entry.sources.map(s => s.give && s.give.name).filter(Boolean))];
-	return { npcs, gives, plan: barterForecast(item, qty, barterData, barterOpts()) };
+	return { npcs, gives, plan };
 }
 
 /**

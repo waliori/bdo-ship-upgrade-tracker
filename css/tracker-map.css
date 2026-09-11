@@ -539,6 +539,8 @@
 .map-tip-sub { font-size: 10.5px; color: var(--ink-mute); margin: 2px 0 6px; }
 .map-tip-sub.none { margin: 0; }
 .map-tip-sub.ok { color: var(--teal); }
+/* An island the barter count has not opened yet. */
+.map-tip-sub.shut { color: var(--amber); font-weight: 600; }
 
 .map-tip-row {
   display: flex;

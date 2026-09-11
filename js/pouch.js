@@ -76,10 +76,14 @@ export function pouchHTML() {
  * change re-renders everything, and swapping the inputs out mid-edit would
  * steal the caret; the blur handler in wire() paints the pending update.
  */
-export function paintPouch() {
+export function paintPouch({ force = false } = {}) {
 	const host = document.getElementById('pouch');
 	if (!host) return;
-	if (host.contains(document.activeElement)) return;
+	// `force` is for the one change that comes from inside the bar and
+	// means to redraw it: folding the sailing numbers open or shut. The
+	// press leaves the focus on the button, which would otherwise look
+	// exactly like someone typing in a purse.
+	if (!force && host.contains(document.activeElement)) return;
 	host.innerHTML = pouchHTML();
 	measurePouch();
 }
