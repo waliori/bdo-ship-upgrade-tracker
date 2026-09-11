@@ -133,6 +133,17 @@ item — from the quests, the Crow Coin Shop, barter, Falasi, the Market,
 or go and get — with its reason on the line, how many days that is,
 and what sets the pace.
 
+**It reads as steps, in the order they are done.** The quests pay the
+Crow Coins that buy the shop's half, so buying first empties the purse
+before the quests come round. So the plan is numbered: run these quests,
+take these as quest rewards, buy at the Crow Coin Shop, barter for these
+at sea, and on down to what has no rate at all. Each step says where it
+happens, carries its own total, and folds away when you are done with
+it. Above them, one card holds where the plan lands, the thing that sets
+that pace, what it costs against what you can spare, and every dial that
+moved it there — including a line you can open that says what this
+particular plan will never do.
+
 It follows a goal you state, because what is scarce is yours to say:
 **Soonest** spends the purse wherever it buys days, **Keep the coins**
 spends them only where nothing else sells the thing, **Keep the

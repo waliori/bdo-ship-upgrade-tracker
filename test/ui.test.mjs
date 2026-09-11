@@ -135,15 +135,18 @@ test('To Get opens on the way to get it, follows the goal picked, and hands a pi
 		store.addTarget('Carrack (Valor)', 1);
 		store.setStock('Crow Coin', 5000);
 	});
-	await page.waitForSelector('.way-orders', { timeout: 10000 });
-	assert.match(await text(page, '.way-orders .panel-title'), /done in|not inside/i);
+	await page.waitForSelector('.way-head', { timeout: 10000 });
+	assert.match(await text(page, '.way-headline'), /done in|not inside/i);
+	// The plan is a numbered run of steps, not a heap of groups.
+	assert.ok(await count(page, '.way-step') >= 2, 'more than one step');
+	assert.equal(await page.evaluate(() => document.querySelector('.way-step-n').textContent.trim()), '1');
 	// Every missing item is on the page exactly as many times as it has
 	// legs, and each leg says why.
 	const whys = await page.evaluate(() => [...document.querySelectorAll('.way-why')].map(e => e.textContent.trim()));
 	assert.ok(whys.length > 5 && whys.every(w => w.length > 8), 'a reason on every line');
 	// A goal is one press, and the chip lights.
 	await page.evaluate(() => document.querySelector('[data-act="get-preset"][data-id="coins"]').click()); await wait(300);
-	assert.equal(await page.evaluate(() => document.querySelector('[data-act="get-preset"].active').dataset.id), 'coins');
+	assert.equal(await page.evaluate(() => document.querySelector('.way-pref.on').dataset.id), 'coins');
 	assert.equal(await page.evaluate(async () => (await import('/js/state.js')).getProfile('getOrders').preset), 'coins');
 	// A pick the plan would take is remembered for the Quests screen.
 	const pick = await page.$('[data-act="get-pick"]');
@@ -152,9 +155,16 @@ test('To Get opens on the way to get it, follows the goal picked, and hands a pi
 		await pick.click(); await wait(300);
 		assert.equal(await page.evaluate(async q => (await import('/js/state.js')).getProfile('questPicks')[q], quest), i);
 	}
+	// A step folds away and comes back.
+	const before = await count(page, '.way-row');
+	await page.evaluate(() => document.querySelector('.way-step-head[data-id^="step-"]').click()); await wait(300);
+	assert.ok(await count(page, '.way-row') < before, 'folding a step hides its rows');
+	await page.evaluate(() => document.querySelector('.way-step-head[data-id^="step-"]').click()); await wait(300);
+	assert.equal(await count(page, '.way-row'), before, 'and unfolding brings them back');
+
 	// The other reading is a chip away, and Copy follows it.
 	await page.evaluate(() => document.querySelector('[data-act="get-mode"][data-id="source"]').click()); await wait(300);
-	assert.equal(await count(page, '.way-orders'), 0);
+	assert.equal(await count(page, '.way-head'), 0);
 	assert.ok(await count(page, '.group-head') > 0);
 	assert.deepEqual(errors, []);
 	await context.close();

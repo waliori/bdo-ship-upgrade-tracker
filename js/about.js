@@ -246,6 +246,16 @@ export const RELEASE = RELEASES[0].id;
 export const CHANGES = [
 	{
 		date: '2026-09-11',
+		title: 'The way to get it is a plan you carry out, step by step',
+		notes: [
+			'<b>The plan is numbered now.</b> It was a set of groups under headings, which is a catalogue: true, and no help at all with the question a shopping list exists to answer — <i>so what do I do first?</i> It reads as steps in the order they are done, because the quests pay the Crow Coins that buy the shop’s half, and a player who buys first finds the purse empty when the quests come round. <b>1 Run these quests · 2 Take these as quest rewards · 3 Buy at the Crow Coin Shop · 4 Barter for these at sea</b>, and so on down to what has no rate at all. Each step says where it happens, carries its own total, and folds away when you are done with it.',
+			'<b>Where the plan lands, and every dial that moved it there, are one card.</b> <i>Done in 22 days</i> at the top, the thing that sets that pace under it, then what it costs: coins to spend against what you can spare, silver, and how many things across how many steps. Under that, <b>what matters most to you</b> as three cards that say what each choice will do to you rather than three words; how often you sail; the coins you keep back; and the ways you are willing to use.',
+			'<b>What this plan will never do</b> is a line you can open, and it describes <i>this</i> plan rather than the idea of one: the rules in force right now, including the ones your own orders added — nothing off the Central Market, the coins you keep back, an activity you switched off.',
+			'The quests are <b>grouped by how often they come round</b>, each with the number of runs, where it is done, the reward to take with its picture, and the coins it pays; a material a step below says which quest hands it over, one line a quest. A thing you are going to go and get shows <b>the recipe it feeds</b> beside it, ingredients and batch count, since a drop is half the answer and the processing is the other half.'
+		]
+	},
+	{
+		date: '2026-09-11',
 		title: 'The barter count decides which islands exist, and the numbers about you are typed once',
 		notes: [
 			'<b>A run is never planned through an island you have not opened.</b> The game opens the trade routes as the total barters climb — 150 opens Shipwrecked Haran’s Cargo Ship, 600 Lantinia’s Combat Raft, 3,000 the Wandering Merchant’s Ship — and the app knew that table only well enough to print what the next threshold unlocks. Everything it planned was laid out as though all ninety-one barterers were open to everyone: on the forty recorded boards, fifteen chains climb through an island a sailor at 480 barters cannot reach, and Tear of the Ocean is dealt at exactly one barterer, the one that opens at three thousand. Now the count is part of every plan. The join is the patch note’s own words — <i>opens</i> names a place and the chart says who stands there — so twelve barterers are gated at the twelve counts the note states and nothing is guessed: the seventy-nine it never names, the coastal [Level 6] and [Level 7] dealers among them, are open from the first day.',

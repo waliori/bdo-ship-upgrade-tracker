@@ -249,6 +249,19 @@ function allocate(H, facts, sources, state, orders) {
 			kind: 'quest', qty,
 			quests: from.map(s => ({ id: s.q.id, name: shortName(s.q), completions: s.completions, qty: s.pays[item], cadence: cadenceOf(s.q),
 				pick: Object.keys(s.picks).length ? Number(Object.keys(s.picks).sort((a, b) => s.picks[b] - s.picks[a])[0]) : null })),
+			// One line a quest, not one sentence for all of them: four
+			// quests paying into the same material is four facts, and
+			// strung together with dots they read as one long one.
+			lines: from.slice(0, 5).map(s => {
+				const c = cadenceOf(s.q);
+				const each = s.pays[item] / s.completions;
+				const per = c === 'daily' ? `${fmt(each)} a day` : c === 'weekly' ? `${fmt(each)} a week` : `${fmt(each)} once`;
+				const pick = Object.keys(s.picks).length ? ' (take it)' : '';
+				// The count only earns its place when several quests are
+				// paying into the same material and the shares differ.
+				const share = from.length > 1 ? `${fmt(s.pays[item])} of them · ` : '';
+				return `${share}${per} from ${shortName(s.q)}${pick}`;
+			}).concat(from.length > 5 ? [`and ${plural(from.length - 5, 'more quest')}`] : []),
 			why: from.slice(0, 4).map(s => {
 				const c = cadenceOf(s.q);
 				const each = s.pays[item] / s.completions;
@@ -495,17 +508,19 @@ export function wayToGet({ missing = {}, sources = {}, state = {}, orders = {} }
 		const byKind = new Map();
 		for (const l of list) {
 			const had = byKind.get(l.kind);
-			if (!had) { byKind.set(l.kind, { item, ...l, whys: [l.why] }); continue; }
+			if (!had) { byKind.set(l.kind, { item, ...l, whys: [l.why], lines: (l.lines || []).slice() }); continue; }
 			had.qty += l.qty;
 			had.coins = (had.coins || 0) + (l.coins || 0);
 			had.silver = (had.silver || 0) + (l.silver || 0);
 			had.refreshes = (had.refreshes || 0) + (l.refreshes || 0);
 			had.days = Math.max(had.days || 0, l.days || 0);
 			if (!had.whys.includes(l.why)) had.whys.push(l.why);
+			for (const line of l.lines || []) if (!had.lines.includes(line)) had.lines.push(line);
 		}
 		for (const l of byKind.values()) {
 			l.why = l.whys.join(' · ');
 			delete l.whys;
+			if (!l.lines.length) l.lines = [l.why];
 			legs.push(l);
 		}
 	}

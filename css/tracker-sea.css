@@ -167,27 +167,128 @@
 .quest-total { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 12px 22px 16px; border-top: 1px solid rgba(var(--line-rgb), 0.08); font-size: 12px; color: var(--ink-mute); }
 .get-quests { margin: 0 0 14px; font-size: 12.5px; color: var(--ink-mute); }
 
-/* The way to get it: the orders at the top, the quests to run, then
-   the items by the way each is got, its reason on the line. The reason
-   is the point of the row, so it wraps rather than ellipsises. */
-.way-body { padding: 12px 20px 14px; }
-.way-pole { margin: 0 0 12px; font-size: 13px; color: var(--ink-row); }
-.way-knobs { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-bottom: 10px; }
-.way-knob { font-size: 12px; color: var(--ink-mute); display: inline-flex; align-items: center; gap: 6px; }
-.way-facts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--ink-mute); }
-.way-facts b { color: var(--ink-hi); font-weight: 600; }
-.way-facts .warn { color: var(--amber); }
-.way-note { margin: 10px 0 0; font-size: 11.5px; color: var(--ink-faint); }
+/* The way to get it.
+   A plan, not a catalogue: where it lands and every dial that moved it
+   there in one card, then the steps in the order they are done, each
+   numbered and foldable. Colours come from the theme's own tokens so
+   the light theme is not a second design. */
+.way-head { margin-bottom: 4px; }
+.way-head-top { display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap; padding: 18px 20px 16px; border-bottom: 1px solid var(--line-head); }
+.way-head-say { flex: 1 1 260px; min-width: 0; }
+.way-eyebrow { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 4px; }
+.way-headline { font-family: var(--font-display); font-size: 29px; font-weight: 600; color: var(--ink-hi); line-height: 1.1; }
+.way-pace { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; max-width: 62ch; text-wrap: pretty; }
+.way-tiles { display: flex; gap: 10px; flex-wrap: wrap; }
+.way-tile { background: rgba(var(--line-rgb), 0.06); border: 1px solid rgba(var(--line-rgb), 0.18); border-radius: 10px; padding: 10px 14px; min-width: 150px; }
+.way-tile.amber { background: rgba(232, 182, 97, 0.08); border-color: rgba(232, 182, 97, 0.22); }
+.way-tile.blue { background: rgba(var(--blue-rgb), 0.08); border-color: rgba(var(--blue-rgb), 0.24); }
+.way-tile.blue .way-tile-k { color: var(--blue-hi); opacity: 0.8; }
+.way-tile.blue .way-tile-v { color: var(--blue-hi); }
+.way-tile-k { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); }
+.way-tile.amber .way-tile-k { color: var(--amber); opacity: 0.8; }
+.way-tile-v { font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--ink); }
+.way-tile.amber .way-tile-v { color: var(--amber); }
+.way-tile-sub { font-size: 11px; color: var(--ink-faint); }
+.way-tile-sub.warn { color: var(--red); }
+.way-tile-sub.good { color: var(--teal); }
+
+.way-band { padding: 16px 20px 6px; }
+.way-band-k { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 9px; }
+.way-prefs { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.way-pref { text-align: left; display: flex; flex-direction: column; gap: 5px; background: var(--panel-inset); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; cursor: pointer; font: inherit; }
+.way-pref:hover { border-color: rgba(var(--line-rgb), 0.42); }
+.way-pref.on { background: rgba(var(--blue-rgb), 0.09); border-color: var(--blue-edge); }
+.way-pref-title { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--ink-soft); }
+.way-pref.on .way-pref-title { color: var(--blue-hi); }
+.way-pref-tick { font-size: 12px; }
+.way-pref-why { font-size: 11.5px; color: var(--ink-dim); line-height: 1.45; }
+
+.way-knobs { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; padding-bottom: 16px; }
+.way-knob-wide { flex: 1 1 250px; min-width: 0; }
+.way-knob-row { display: flex; align-items: center; gap: 8px; }
+.way-knob-note { font-size: 11.5px; color: var(--ink-faint); }
+.way-knob-wide .way-knob-note { margin-top: 7px; display: block; }
+.way-field { background: var(--panel-inset); border: 1px solid rgba(var(--line-rgb), 0.2); color: var(--ink); border-radius: var(--r-btn); padding: 7px 10px; font: inherit; font-size: 12.5px; }
+.way-field.coins { width: 96px; font-family: var(--font-display); color: var(--amber); }
+.way-opts { display: flex; gap: 7px; flex-wrap: wrap; }
+.way-opt { display: flex; align-items: center; gap: 7px; background: var(--panel-inset); border: 1px solid var(--line); color: var(--ink-mute); border-radius: 18px; padding: 6px 13px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.way-opt.on { background: var(--teal-glow); border-color: var(--teal-edge); color: var(--teal-hi); }
+.way-opt:hover { border-color: var(--line-btn-hi); }
+
+.way-rules { padding: 0 20px 16px; }
+.way-rule-grid { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.way-rule { background: var(--panel-inset); border: 1px solid rgba(var(--line-rgb), 0.1); border-radius: 9px; padding: 10px 12px; }
+.way-rule-t { font-size: 11.5px; font-weight: 600; color: var(--ink-mid); margin-bottom: 3px; }
+.way-rule-d { font-size: 11.5px; color: var(--ink-faint); line-height: 1.5; }
+
+.way-order { display: flex; align-items: center; gap: 10px; padding: 4px; }
+.way-order-k { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); }
+.way-order i { flex: 1; height: 1px; background: rgba(var(--line-rgb), 0.12); }
+.way-order-n { font-size: 11.5px; color: var(--ink-faint); }
+
+.way-step-head { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line-head); display: flex; align-items: center; gap: 13px; padding: 14px 20px; cursor: pointer; font: inherit; }
+.way-step-head:hover { background: rgba(var(--blue-rgb), 0.04); }
+.way-step-n { width: 26px; height: 26px; flex: none; border-radius: 50%; font-family: var(--font-display); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.way-step-n.teal { background: var(--teal-glow); border: 1px solid var(--teal-edge); color: var(--teal); }
+.way-step-n.amber { background: rgba(232, 182, 97, 0.12); border: 1px solid rgba(232, 182, 97, 0.35); color: var(--amber); }
+.way-step-n.blue { background: rgba(var(--blue-rgb), 0.1); border: 1px solid var(--blue-edge); color: var(--blue-hi); }
+.way-step-n.red { background: rgba(232, 122, 109, 0.12); border: 1px solid var(--red-edge); color: var(--red); }
+.way-step-say { flex: 1 1 200px; min-width: 0; }
+.way-step-title { display: block; font-family: var(--font-display); font-size: 14.5px; font-weight: 600; color: var(--ink-hi); }
+.way-step-sub { display: block; font-size: 11.5px; color: var(--ink-dim); }
+.way-step-count { font-family: var(--font-display); font-size: 12.5px; flex: none; }
+.way-step-count.teal { color: var(--teal); }
+.way-step-count.amber { color: var(--amber); }
+.way-step-count.blue { color: var(--blue-hi); }
+.way-step-count.red { color: var(--red); }
+.way-caret { color: var(--ink-mute); font-size: 11px; flex: none; }
+.way-step-foot { padding: 11px 20px; font-size: 11.5px; color: var(--ink-faint); }
+
+.way-legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 11px 20px; background: var(--panel-inset); border-bottom: 1px solid var(--line-soft); font-size: 11.5px; color: var(--ink-dim); }
+.way-legend span { display: flex; align-items: center; gap: 7px; }
+.way-legend i.sw { width: 9px; height: 9px; border-radius: 2px; }
+.way-legend i.sw.teal { background: rgba(78, 201, 174, 0.5); }
+.way-legend i.sw.amber { background: rgba(232, 182, 97, 0.55); }
+
+.way-q-group-head { display: flex; align-items: baseline; gap: 10px; padding: 11px 20px 8px; }
+.way-q-group-k { font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--blue-hi); }
+.way-q-group-note { font-size: 11.5px; color: var(--ink-faint); }
+.way-q { display: flex; align-items: flex-start; gap: 13px; padding: 10px 20px; border-top: 1px solid var(--line-soft); }
+.way-q.done { opacity: 0.55; }
+.way-q-times { flex: none; min-width: 34px; text-align: center; font-family: var(--font-display); font-size: 12.5px; font-weight: 600; color: var(--blue-hi); background: rgba(var(--line-rgb), 0.08); border: 1px solid rgba(var(--line-rgb), 0.16); border-radius: 7px; padding: 4px 6px; }
+.way-q-main { flex: 1; min-width: 0; }
+.way-q-name { font-weight: 600; font-size: 13px; color: var(--ink-row); }
+.way-q-name .quest-done-tag { margin-left: 8px; }
+.way-where { margin-top: 2px; font-size: 11.5px; color: var(--ink-faint); }
+.way-pays { margin-top: 7px; }
+.way-pays .reward.take { border-color: var(--teal-edge); background: var(--teal-glow); color: var(--ink-hi); }
+.way-pays .reward.coin-chip { border-color: rgba(232, 182, 97, 0.28); color: var(--amber); }
+.way-over { margin-top: 5px; font-size: 11.5px; color: var(--ink-faint); }
+.way-mine { font-size: 11px; color: var(--teal); }
+
+.way-row { align-items: flex-start; }
 .way-why { white-space: normal; overflow: visible; text-overflow: clip; }
-.way-quest.done .row-name .linky { color: var(--ink-mute); }
-.way-quest .tag { margin-left: 8px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
-.way-quest .quest-done-tag { margin-left: 8px; }
-.way-quest .row-name, .way-quest .row-sub { white-space: normal; overflow: visible; text-overflow: clip; }
+.way-also { margin-top: 3px; color: var(--ink-faint); white-space: normal; }
+.way-qty { flex: none; text-align: right; }
+.way-qty-cost { font-size: 11px; color: var(--amber); opacity: 0.85; }
+.way-coin-row { background: rgba(232, 182, 97, 0.06); }
+.way-coin-row .row-name.amber, .way-coin-row .qty-out.amber { color: var(--amber); }
+.way-recipe { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; background: var(--panel-inset); border: 1px solid rgba(var(--line-rgb), 0.14); border-radius: 9px; padding: 5px 10px 5px 7px; }
+.way-ing { display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; color: var(--ink-mid); }
+.way-ing-note { font-size: 11px; color: var(--ink-faint); border-left: 1px solid rgba(var(--line-rgb), 0.16); padding-left: 8px; }
+
+@media (max-width: 720px) {
+  .way-headline { font-size: 23px; }
+  .way-head-top, .way-band, .way-knobs, .way-rules { padding-left: 14px; padding-right: 14px; }
+  .way-step-head { padding: 12px 14px; gap: 10px; flex-wrap: wrap; }
+  .way-step-count { order: 3; }
+  .way-q { padding: 10px 14px; }
+}
+
 .quest-plan { color: var(--teal); }
 
 /* A quest in the plan is an action with a picture on it: what to take
    first, lit where the list wants it, then what else it hands over. */
-.way-doing { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 10px 0; font-size: 12px; color: var(--ink-mute); }
 .way-where { margin-top: 3px; font-size: 11.5px; color: var(--ink-mute); }
 .way-pays { margin-top: 6px; }
 .way-pays .reward.take { border-color: rgba(78, 201, 174, 0.55); background: rgba(78, 201, 174, 0.1); color: var(--ink-hi); }
