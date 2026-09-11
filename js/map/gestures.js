@@ -26,7 +26,7 @@ export function wireMap() {
 
 	// The panel, the card, the minimap: furniture on top of the sea.
 	// A gesture that starts on them is for them, not for the chart.
-	const CHROME = '.map-side, .map-side-pill, .map-tip, .map-mini, .map-steps, .map-trace-write, .map-full-bar';
+	const CHROME = '.map-side, .map-side-pill, .map-tip, .map-mini, .map-steps, .map-trace-write, .map-full-bar, .map-tilt';
 const MARKERS = '[data-act="map-pin"], [data-act="map-port"], [data-act="map-stash"], .map-habitat';
 		// Tracing, the markers are scenery: a line drawn across a barterer
 	// must not stop dead there and open his trades instead.
@@ -96,6 +96,17 @@ const furniture = () => CHROME;
 		// every engine. The document-level listeners pan it all the same.
 		if (!(mv.mode !== 'trace' && evt.target.closest(MARKERS))) host.setPointerCapture(evt.pointerId);
 		host.classList.add('dragging');
+	});
+
+	// Stood up, the right button leans the camera, so the menu it would
+	// otherwise open is in the way of the gesture rather than beside it.
+	// Only over the sea: the panel, the cards and the buttons keep
+	// theirs, where copying a name or opening a link is the point.
+	document.addEventListener('contextmenu', evt => {
+		if (!terrainOn()) return;
+		const host = evt.target.closest('[data-map]');
+		if (!host || evt.target.closest(furniture())) return;
+		evt.preventDefault();
 	});
 
 	document.addEventListener('pointermove', evt => {

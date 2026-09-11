@@ -11,6 +11,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
+import { gunzipSync } from 'node:zlib';
 
 import { fromGame } from '../js/worldmap.js';
 import { npcs } from '../js/barter_npcs.js';
@@ -61,6 +62,7 @@ test('a sector is 512 chart units, which is a round number of tile pixels', () =
 
 test('the index describes levels that exist, coarser as they go up', { skip: !index }, () => {
 	assert.ok(index.levels.length >= 1);
+	assert.equal(index.gzip, true, 'the reader is told the tiles are packed');
 	assert.equal(index.sector, 512);
 	assert.equal(index.offX, 68600);
 	assert.equal(index.offY, 72200);
@@ -90,7 +92,11 @@ test('every tile the index claims is on disk, and reads back', { skip: !index },
 	for (const [x, y] of claimed) {
 		const url = new URL(`map3d/${lv.level}/${x}_${y}.ter`, ROOT);
 		assert.ok((await stat(url)).size > 32, `${lv.level}/${x}_${y} is more than a header`);
-		const buf = await readFile(url);
+		// Tiles are written gzipped and inflated by the reader rather
+		// than by Content-Encoding -- see writeTile in the bake for why.
+		const raw = await readFile(url);
+		assert.ok(raw[0] === 0x1f && raw[1] === 0x8b, `${lv.level}/${x}_${y} is gzipped`);
+		const buf = gunzipSync(raw);
 		assert.equal(buf.readUInt32LE(0), 0x31544442, 'BDT1');
 		assert.equal(buf.readUInt16LE(4), lv.level);
 		assert.equal(buf.readInt16LE(6), x);
@@ -118,6 +124,36 @@ test('every tile the index claims is on disk, and reads back', { skip: !index },
 			assert.ok(h >= minH - 1 && h <= maxH + 1, `height ${h} outside ${minH}..${maxH}`);
 		}
 		assert.ok(covered > 0, 'a written tile has ground in it');
+	}
+});
+
+test('the deepest level is the mesh as the game ships it', { skip: !index || !index.levels.some(l => l.level === 0) }, async () => {
+	// Level 0 is the only level that carries its own vertices rather
+	// than a lattice, so it is the only one where a wrong stride draws
+	// a plausible-looking mess instead of nothing at all.
+	const lv = index.levels.find(l => l.level === 0);
+	const bits = Buffer.from(lv.bits, 'base64');
+	let found = null;
+	for (let i = 0; i < lv.w * lv.h && !found; i++) {
+		if ((bits[i >> 3] >> (i & 7)) & 1) found = [lv.x0 + (i % lv.w), lv.y0 + Math.floor(i / lv.w)];
+	}
+	assert.ok(found, 'level 0 claims at least one tile');
+	const buf = gunzipSync(await readFile(new URL(`map3d/0/${found[0]}_${found[1]}.ter`, ROOT)));
+	assert.equal(buf.readUInt32LE(0), 0x31544442);
+	assert.equal(buf.readUInt16LE(12), 0, 'a native tile has no grid');
+	const nv = buf.readUInt16LE(10), tris = buf.readUInt32LE(14);
+	assert.ok(nv > 0 && tris > 0);
+	const cOff = 32 + nv * 6, iOff = cOff + Math.ceil(nv * 3 / 4) * 4;
+	assert.equal(buf.length, iOff + tris * 6, 'the three blocks account for the whole file');
+	// Every index has to name a vertex that is there, or the draw call
+	// reads past the buffer.
+	for (let i = 0; i < tris * 3; i++) assert.ok(buf.readUInt16LE(iOff + i * 2) < nv);
+	// And the vertices have to sit in their own sector, give or take the
+	// skirt the meshes carry past their cell.
+	const q = new Int16Array(buf.buffer.slice(buf.byteOffset + 32, buf.byteOffset + 32 + nv * 6));
+	for (let i = 0; i < nv; i++) {
+		assert.ok(Math.abs(q[i * 3] / 32) < 512 + 200, 'x within its sector');
+		assert.ok(Math.abs(q[i * 3 + 1] / 32) < 512 + 200, 'y within its sector');
 	}
 });
 

@@ -38,6 +38,7 @@
 // from the zoom exactly as the flat chart picks one.
 
 import { readdir, readFile, writeFile, mkdir, rm } from 'node:fs/promises';
+import { gzipSync } from 'node:zlib';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -259,6 +260,23 @@ function packGrid(level, tx, ty, grid) {
 	return out;
 }
 
+/**
+ * A tile on disk: the packed bytes, gzipped.
+ *
+ * Deliberately not `Content-Encoding: gzip` on a plain file. An encoded
+ * body is decoded by whatever is in the way -- a proxy, a CDN, the
+ * service worker's cache on replay -- and when two of them disagree
+ * about whether it has been decoded already the tile arrives as
+ * nonsense with no error anywhere. Opaque bytes that the reader
+ * inflates itself cannot be got wrong by anything in between, and it
+ * costs a fraction of a millisecond a tile.
+ */
+async function writeTile(file, packed) {
+	const gz = gzipSync(packed, { level: 9 });
+	await writeFile(file, gz);
+	return gz.length;
+}
+
 /* ------------------------------------------------------------------ *
  * sampling a mesh onto a grid
  * ------------------------------------------------------------------ */
@@ -386,12 +404,12 @@ async function main() {
 	const out = arg('out', 'map3d');
 	const maxLevel = Number(arg('levels', 8));
 	const box = arg('bbox');
-	// Level 0 is the mesh as the game ships it -- about 25 KB a sector,
-	// which over the whole world is most of a gigabyte for detail only
-	// the two deepest zooms can show. It is off unless asked for.
-	const native = process.argv.includes('--native');
+	// Level 0 is the mesh exactly as the game ships it, which is what
+	// the two deepest zooms want; --flat leaves it out for a smaller
+	// bake that stops short of rooftops.
+	const native = !process.argv.includes('--flat');
 	if (!src) {
-		console.error('usage: node tools/build-terrain.mjs --src <dir of *_0_lod.mapdata> [--out map3d] [--levels 8] [--bbox sx0,sy0,sx1,sy1]');
+		console.error('usage: node tools/build-terrain.mjs --src <dir of *_0_lod.mapdata> [--out map3d] [--levels 8] [--flat] [--bbox sx0,sy0,sx1,sy1]');
 		process.exit(1);
 	}
 	const limit = box ? box.split(',').map(Number) : null;
@@ -430,9 +448,7 @@ async function main() {
 		kept++;
 
 		if (native) {
-			const packed = packTile(0, sx, sy, 1, mesh);
-			bytes += packed.length;
-			await writeFile(path.join(out, '0', `${sx}_${sy}.ter`), packed);
+			bytes += await writeTile(path.join(out, '0', `${sx}_${sy}.ter`), packTile(0, sx, sy, 1, mesh));
 			level0.add(`${sx}_${sy}`);
 		}
 
@@ -457,7 +473,7 @@ async function main() {
 	}
 	if (native) {
 		levels.push({ level: 0, span: 1, tiles: level0.size, ...bitmapFor(level0) });
-		console.log(`level 0: ${level0.size} tiles, ${(bytes / 1e6).toFixed(1)} MB (native mesh)`);
+		console.log(`level 0: ${level0.size} tiles, ${(bytes / 1e6).toFixed(1)} MB (the mesh as the game ships it)`);
 	}
 	console.log(`${kept} sectors with terrain${skipped ? `, ${skipped} empty (open sea)` : ''}`);
 
@@ -470,8 +486,7 @@ async function main() {
 			const [tx, ty] = key.split('_').map(Number);
 			const packed = packGrid(level, tx, ty, grid);
 			if (!packed) continue;
-			lvlBytes += packed.length;
-			await writeFile(path.join(out, String(level), `${tx}_${ty}.ter`), packed);
+			lvlBytes += await writeTile(path.join(out, String(level), `${tx}_${ty}.ter`), packed);
 			keys.add(key);
 		}
 		if (!keys.size) break;
@@ -494,7 +509,7 @@ async function main() {
 
 	const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
 	await writeFile(path.join(out, 'index.json'), JSON.stringify({
-		stamp, sector: SECTOR, grid: GRID, offX: OFF_X, offY: OFF_Y, scale: SCALE,
+		stamp, sector: SECTOR, grid: GRID, offX: OFF_X, offY: OFF_Y, scale: SCALE, gzip: true,
 		height: { min: seaMin, max: seaMax },
 		levels
 	}));

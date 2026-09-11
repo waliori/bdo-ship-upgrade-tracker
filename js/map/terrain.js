@@ -46,7 +46,7 @@ export const MAX_PITCH = 68;
 /** Tiles kept parsed on the GPU. Each is a few hundred kilobytes of
  *  buffer at most; four hundred covers several screens at every level
  *  the view passes through on a zoom. */
-const KEEP = 400;
+const KEEP = 700;
 
 const state = {
 	on: false, gl: null, canvas: null, host: null,
@@ -218,13 +218,21 @@ export function seaAt(size, px, py) {
  * the tile pyramid
  * ------------------------------------------------------------------ */
 
-/** The level to draw at a zoom: the one whose tiles land near 320 px,
- *  the same bargain the flat chart strikes with its 256 px squares. */
+/**
+ * The level to draw at a zoom.
+ *
+ * Tuned so that the chart's deepest zoom -- 7, which is as far as the
+ * flat tiles are cut -- lands on level 0, the mesh as the game ships
+ * it. That puts a grid node about every five pixels at any zoom and
+ * roughly 160 px tiles, which is more of both than a map needs to look
+ * right, and is the point: the ground is the thing being looked at
+ * here. Each step out doubles the ground a tile covers.
+ */
 export function levelForZoom(zoom) {
 	const lv = state.index ? state.index.levels : [];
 	if (!lv.length) return 1;
 	const lo = lv[0].level, hi = lv[lv.length - 1].level;
-	return Math.max(lo, Math.min(hi, Math.round(8.32 - zoom)));
+	return Math.max(lo, Math.min(hi, Math.round(7.32 - zoom)));
 }
 
 function levelInfo(level) {
@@ -277,7 +285,31 @@ function parseTile(buf, level, tx, ty) {
 	const minH = dv.getFloat32(22, true);
 	const maxH = dv.getFloat32(26, true);
 	const hScale = dv.getUint16(30, true) / 256;
-	if (!gridN) return null;   // native meshes are not baked by default
+	const box = tileBox(level, tx, ty);
+
+	// Level 0 is the mesh the game itself draws from: every vertex it
+	// placed, where it placed it, with the colour it gave it. The
+	// levels above are a lattice and carry only what a lattice cannot
+	// work out (see the grid branch below).
+	if (!gridN) {
+		const nv = count;
+		const tris = dv.getUint32(14, true);
+		const pOff = 32, cOff = pOff + nv * 6, iOff = cOff + Math.ceil(nv * 3 / 4) * 4;
+		if (!nv || !tris || buf.byteLength < iOff + tris * 6) return null;
+		const q = new Int16Array(buf, pOff, nv * 3);
+		const pos = new Float32Array(nv * 3);
+		for (let i = 0; i < nv; i++) {
+			pos[i * 3] = q[i * 3] / 32;
+			pos[i * 3 + 1] = q[i * 3 + 2] / hScale + baseH;
+			pos[i * 3 + 2] = q[i * 3 + 1] / 32;
+		}
+		return {
+			pos,
+			col: new Uint8Array(buf.slice(cOff, cOff + nv * 3)),
+			idx: new Uint16Array(buf.slice(iOff, iOff + tris * 6)),
+			box, minH, maxH
+		};
+	}
 
 	const n = gridN * gridN;
 	if (count !== n) return null;
@@ -287,7 +319,6 @@ function parseTile(buf, level, tx, ty) {
 	const colours = new Uint8Array(buf, cOff, n * 3);
 	const mask = new Uint8Array(buf, mOff, Math.ceil(n / 8));
 
-	const box = tileBox(level, tx, ty);
 	const step = box.span / (gridN - 1);
 	const pos = new Float32Array(n * 3);
 	const col = new Uint8Array(n * 3);
@@ -334,6 +365,25 @@ function drop(gl, tile) {
 	gl.deleteBuffer(tile.idx);
 }
 
+/**
+ * A tile's bytes, inflated.
+ *
+ * The bake writes gzip rather than leaning on Content-Encoding: an
+ * encoded body gets decoded by whatever is in the way -- a proxy, a
+ * CDN, the service worker's cache when it replays -- and two of them
+ * disagreeing about whether that has happened yet produces nonsense
+ * with no error. Opaque bytes cannot be got wrong on the way, so they
+ * are inflated here. A tile written before this (or by hand) still
+ * reads: the check is the gzip magic, not a promise in the index.
+ */
+async function inflate(buf) {
+	const head = new Uint8Array(buf, 0, Math.min(2, buf.byteLength));
+	if (head.length < 2 || head[0] !== 0x1f || head[1] !== 0x8b) return buf;
+	if (typeof DecompressionStream !== 'function') throw new Error('no gzip decoder');
+	const stream = new Response(buf).body.pipeThrough(new DecompressionStream('gzip'));
+	return await new Response(stream).arrayBuffer();
+}
+
 async function want(level, x, y) {
 	const key = `${level}_${x}_${y}`;
 	if (state.tiles.has(key) || state.pending.has(key)) return;
@@ -346,7 +396,7 @@ async function want(level, x, y) {
 	try {
 		const res = await fetch(`map3d/${level}/${x}_${y}.ter?v=${state.index.stamp}`);
 		if (!res.ok) throw new Error(res.status);
-		const mesh = parseTile(await res.arrayBuffer(), level, x, y);
+		const mesh = parseTile(await inflate(await res.arrayBuffer()), level, x, y);
 		state.tiles.set(key, mesh && state.gl ? upload(state.gl, mesh) : null);
 		schedule();
 	} catch {
@@ -636,6 +686,10 @@ function program(gl, vs, fs, attrs) {
 
 export function terrainSupported() {
 	if (state.failed) return false;
+	if (typeof DecompressionStream !== 'function') {
+		state.failed = 'this browser cannot unpack the terrain tiles';
+		return false;
+	}
 	try {
 		const c = document.createElement('canvas');
 		return !!(c.getContext('webgl2'));
@@ -719,6 +773,8 @@ export function exitTerrain() {
 	state.pending.clear();
 	if (state.raf) cancelAnimationFrame(state.raf);
 	state.raf = null;
+	loadingLight(false);
+	if (state.host) state.host.classList.remove('is-loading');
 	if (state.skinTex) gl.deleteTexture(state.skinTex);
 	state.skinTex = state.skin = state.skinBox = state.skinLevel = null;
 	state.images.clear();
@@ -751,6 +807,23 @@ export const tiltNow = () => ({ pitch: state.pitch, bearing: state.bearing });
 /* ------------------------------------------------------------------ *
  * drawing
  * ------------------------------------------------------------------ */
+
+/** The chart's own "something is coming" thread, lit for the terrain
+ *  too -- and only once the wait is long enough to notice, so a tile
+ *  off the disk never makes it flicker. */
+let lightTimer = null;
+function loadingLight(on) {
+	const host = state.host;
+	if (!host) return;
+	if (on) {
+		if (!lightTimer && !host.classList.contains('is-loading')) {
+			lightTimer = setTimeout(() => { lightTimer = null; if (state.on) host.classList.add('is-loading'); }, 300);
+		}
+		return;
+	}
+	if (lightTimer) { clearTimeout(lightTimer); lightTimer = null; }
+	host.classList.remove('is-loading');
+}
 
 let pendingDraw = null;
 function schedule() {
@@ -799,7 +872,7 @@ function visibleTiles(view, size, level) {
 	out.sort((a, b) => a.d - b.d);
 	// A pathological view (fully level, looking at the horizon) can ask
 	// for thousands; the near ones are the ones that matter.
-	return out.slice(0, 220);
+	return out.slice(0, 400);
 }
 
 export function drawTerrain(view, size) {
@@ -895,15 +968,9 @@ export function drawTerrain(view, size) {
 	}
 
 	const now = performance.now();
-	let drawn = 0, missing = 0;
-	for (const want_ of tiles) {
-		const key = `${level}_${want_.x}_${want_.y}`;
-		const tile = state.tiles.get(key);
-		if (tile === undefined) { want(level, want_.x, want_.y); missing++; continue; }
-		if (!tile) continue;
+	const one = tile => {
 		tile.used = now;
-		const org = { x: tile.box.x0 - view.centre.x, y: tile.box.y0 - view.centre.y };
-		gl.uniform2f(t.u.uOrigin, org.x, org.y);
+		gl.uniform2f(t.u.uOrigin, tile.box.x0 - view.centre.x, tile.box.y0 - view.centre.y);
 		gl.bindBuffer(gl.ARRAY_BUFFER, tile.pos);
 		gl.enableVertexAttribArray(0);
 		gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
@@ -912,10 +979,43 @@ export function drawTerrain(view, size) {
 		gl.vertexAttribPointer(1, 3, gl.UNSIGNED_BYTE, false, 0, 0);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, tile.idx);
 		gl.drawElements(gl.TRIANGLES, tile.count, gl.UNSIGNED_SHORT, 0);
-		drawn++;
+	};
+
+	// What is not here yet is asked for, and the coarser tile covering
+	// the same ground stands in meanwhile -- the same bargain the flat
+	// chart strikes when a zoom outruns its squares. Without it a zoom
+	// opens a hole in the world and fills it a second later, which reads
+	// as breakage rather than as loading.
+	const held = new Map();
+	let drawn = 0, waiting = 0;
+	const ready = [];
+	for (const w of tiles) {
+		const tile = state.tiles.get(`${level}_${w.x}_${w.y}`);
+		if (tile) { ready.push(tile); continue; }
+		if (tile === undefined) {
+			want(level, w.x, w.y);
+			waiting++;
+			for (let up = level + 1, x = w.x, y = w.y; up <= 8; up++) {
+				x = Math.floor(x / 2); y = Math.floor(y / 2);
+				const key = `${up}_${x}_${y}`;
+				const coarse = state.tiles.get(key);
+				if (coarse) { held.set(key, coarse); break; }
+				if (coarse === undefined && up === level + 1) want(up, x, y);
+			}
+		}
 	}
+	// The stand-ins first and pushed a little further away, so the real
+	// tile wins every pixel they share the moment it lands.
+	if (held.size) {
+		gl.enable(gl.POLYGON_OFFSET_FILL);
+		gl.polygonOffset(2, 2);
+		for (const tile of held.values()) { one(tile); drawn++; }
+		gl.disable(gl.POLYGON_OFFSET_FILL);
+	}
+	for (const tile of ready) { one(tile); drawn++; }
 	state.drawn = drawn;
-	state.missing = missing;
+	state.waiting = waiting + state.pending.size;
+	loadingLight(state.waiting > 0);
 	evict();
 
 	// The swell only animates while something is moving anyway; a still

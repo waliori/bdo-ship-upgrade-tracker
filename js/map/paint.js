@@ -671,7 +671,12 @@ function paintHunt(layer, size) {
 	// drawn a margin wider than the box and slid by transform until the
 	// pan runs past the margin, the zoom changes, or the grounds do;
 	// then once more.
-	const was = layer._huntAt;
+	// Flat, a pan slides the drawing rather than redrawing it. Stood up
+	// there is no such shortcut: every point moves by a different amount
+	// under a camera with a horizon, so the grounds are drawn afresh on
+	// every frame -- which is also why the fast paths below are skipped
+	// rather than adjusted.
+	const was = terrainOn() ? null : layer._huntAt;
 	const origin = project(mv.mapState, size, 0, 0);
 	const key = `${mv.huntsOn.join(',')}|${size.w}x${size.h}`;
 	if (was && was.key === key) {
@@ -713,7 +718,8 @@ function paintHunt(layer, size) {
 	// spawns, filled faintly and padded by about a spawn's reach, so a
 	// species' water reads at a glance the way the game's own map
 	// shades it. The points go on top.
-	const o = project(mv.mapState, size, 0, 0), o2 = project(mv.mapState, size, 1000, 0);
+	const c = mv.mapState.centre;
+	const o = project(mv.mapState, size, c.x, c.y), o2 = project(mv.mapState, size, c.x + 1000, c.y);
 	const pxPerK = Math.abs(o2.left - o.left);
 	const pad = Math.max(6, Math.min(40, 1.5 * pxPerK));
 	for (const key of mv.huntsOn) {

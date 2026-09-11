@@ -81,7 +81,7 @@ The chart has always drawn the sea from directly overhead, which is the right wa
 - It is the **same chart**, not a second one. The same centre, the same zoom, the same barterers, wharves, habitats, traces and plotted loop — every one of them placed by the camera now instead of by the flat scaling, so they sit on the ground rather than beside it, and the switch either way lands on the water you were already looking at.
 - The ground **wears the chart’s own squares**: the islands are the colours you know, with the relief of the actual terrain under them. **Neon** draws contour lines over dark water instead, the way the game’s own world map does, and the interval widens as you step back so the lines stay lines.
 - **Shift-drag leans and turns it**, an ordinary drag takes hold of the water and carries it, and **Level** puts you straight back overhead facing north. Where you left it is where it opens next time.
-- The terrain is cut into the same kind of pyramid as the tiles — the far view draws a few hundred tiles instead of thirty thousand — and **Keep this area offline** now keeps the ground with the squares, so a crossing with no signal still has islands in it.
+- The terrain is cut into the same kind of pyramid as the tiles — the far view draws a few hundred tiles instead of thirty thousand, and the closest zoom draws **the mesh the game itself draws from**, vertex for vertex. Tiles travel packed, a few kilobytes each, with the chart’s own thread of light along the top edge while they are coming — and **Keep this area offline** keeps the ground with the squares, so a crossing with no signal still has islands in it.
 
 ### Community — boards that keep up, and say how they count
 
