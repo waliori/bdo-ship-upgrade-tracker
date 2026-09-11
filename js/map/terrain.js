@@ -52,6 +52,21 @@ export const MAX_PITCH = 68;
  * two are written together and move together.
  */
 const REACH = 3.5;
+
+/**
+ * How hard the world curves away.
+ *
+ * The game's own map is not flat: the ground bends down towards a hazed
+ * horizon, the way a planet does, and that bend is most of why it reads
+ * as a world rather than a diagram. It is the usual trick -- drop every
+ * point by the square of its distance over twice a radius.
+ *
+ * The radius is in box heights rather than chart units or pixels, so
+ * the curve looks the same at every zoom and in every window: the
+ * ground is drawn REACH box-heights out, and at that edge this radius
+ * drops it by about a fifth of a height. Bigger is flatter.
+ */
+const CURVE_K = 27;
 const FOG = [0.9 + 0.09 * REACH, 1.5 + 0.35 * REACH];
 
 /** Tiles kept parsed on the GPU. Each is a few hundred kilobytes of
@@ -63,7 +78,7 @@ const state = {
 	on: false, gl: null, canvas: null, host: null,
 	index: null, indexTried: false,
 	tiles: new Map(), pending: new Set(), queue: [], floor: new Set(), floorList: [],
-	prog: null, sea: null, seaBuf: null,
+	prog: null, sea: null, seaBuf: null, seaIdx: null, seaCount: 0,
 	skin: null, skinBox: null, skinTex: null, skinLevel: null, skinDirty: false,
 	images: new Map(),
 	pitch: 52, bearing: 0, style: 'real',
@@ -170,7 +185,7 @@ function camera(view, size) {
 	const far = dist * (2 + 40 * Math.sin(pitch));
 	const proj = perspective(fovy, size.w / size.h, dist / 32, far);
 	const fogFar = dist * (FOG[0] + FOG[1] * Math.sin(pitch));
-	return { s, dist, eye, axes: ax, mvp: mul(proj, basisView(eye, ax.x, ax.y, ax.z)), far, fogFar, centre: view.centre };
+	return { s, dist, eye, axes: ax, mvp: mul(proj, basisView(eye, ax.x, ax.y, ax.z)), far, fogFar, curve: size.h * CURVE_K, centre: view.centre };
 }
 
 /**
@@ -184,7 +199,10 @@ function camera(view, size) {
 function projectThrough(cam, size, x, y, h = SEA) {
 	const px = (x - cam.centre.x) * cam.s;
 	const pz = (y - cam.centre.y) * cam.s;
-	const py = h * cam.s * EXAG;
+	// The same curve the shaders bend the ground by, or every pin and
+	// every leg of a route would float above water that has dropped
+	// away beneath it.
+	const py = h * cam.s * EXAG - (px * px + pz * pz) / (2 * cam.curve);
 	const m = cam.mvp;
 	const cx = m[0] * px + m[4] * py + m[8] * pz + m[12];
 	const cy = m[1] * px + m[5] * py + m[9] * pz + m[13];
@@ -218,8 +236,19 @@ export function seaAt(size, px, py) {
 	]);
 	const planeY = SEA * cam.s * EXAG;
 	if (Math.abs(dir[1]) < 1e-6) return null;
-	const t = (planeY - cam.eye[1]) / dir[1];
+	// Where the ray meets the water, which is a curve and not a plane.
+	// Start with the flat answer and let it fall towards the curved one:
+	// each pass drops the plane by the bend at the distance the last
+	// pass found. Three is past the point of seeing a difference.
+	let t = (planeY - cam.eye[1]) / dir[1];
 	if (t <= 0) return null;
+	for (let i = 0; i < 3; i++) {
+		const hx = cam.eye[0] + dir[0] * t, hz = cam.eye[2] + dir[2] * t;
+		const drop = (hx * hx + hz * hz) / (2 * cam.curve);
+		const next = (planeY - drop - cam.eye[1]) / dir[1];
+		if (!(next > 0)) break;
+		t = next;
+	}
 	return {
 		x: cam.centre.x + (cam.eye[0] + dir[0] * t) / cam.s,
 		y: cam.centre.y + (cam.eye[2] + dir[2] * t) / cam.s
@@ -643,6 +672,7 @@ uniform float uScale;
 uniform float uExag;
 uniform vec2 uCentre;
 uniform vec3 uSkinBox;      // x0, y0, span -- the chart box the skin covers
+uniform float uCurve;
 out vec3 vCol;
 out vec3 vWorld;
 out vec2 vSkin;
@@ -652,6 +682,10 @@ void main() {
 	vec2 chart = uCentre + vec2(uOrigin.x + aPos.x, uOrigin.y + aPos.z);
 	vSkin = (chart - uSkinBox.xy) / uSkinBox.z;
 	vec3 p = vec3((uOrigin.x + aPos.x) * uScale, aPos.y * uScale * uExag, (uOrigin.y + aPos.z) * uScale);
+	// The world curves away: every point drops by the square of how far
+	// it is from the middle of the view. The sea does the same, or the
+	// land would sink through it.
+	p.y -= dot(p.xz, p.xz) / (2.0 * uCurve);
 	vWorld = p;
 	vCol = aCol;
 	gl_Position = uMVP * vec4(p, 1.0);
@@ -720,6 +754,7 @@ uniform float uSea;
 uniform float uSpan;
 uniform vec2 uCentre;
 uniform vec3 uSkinBox;
+uniform float uCurve;
 out vec2 vXZ;
 out vec2 vSkin;
 void main() {
@@ -727,7 +762,7 @@ void main() {
 	vXZ = p;
 	vec2 chart = uCentre + p / uScale;
 	vSkin = (chart - uSkinBox.xy) / uSkinBox.z;
-	gl_Position = uMVP * vec4(p.x, uSea * uScale * uExag, p.y, 1.0);
+	gl_Position = uMVP * vec4(p.x, uSea * uScale * uExag - dot(p, p) / (2.0 * uCurve), p.y, 1.0);
 }`;
 
 // The sea wears the same squares the land does, so the water is the
@@ -850,9 +885,34 @@ export async function enterTerrain(host) {
 	state.host = host;
 	state.prog = program(gl, TERRAIN_VS, TERRAIN_FS, ['aPos', 'aCol']);
 	state.sea = program(gl, SEA_VS, SEA_FS, ['aXZ']);
+	// A grid, not a quad. The sea is bent in the vertex shader with the
+	// same curve as the ground, and four corners have nothing to bend:
+	// the shader would tilt a flat sheet and the land would stand proud
+	// of it at the horizon. 64 x 64 is smooth to the eye and is one
+	// draw call either way.
 	state.seaBuf = gl.createBuffer();
+	state.seaIdx = gl.createBuffer();
+	const N = 64;
+	const grid = new Float32Array((N + 1) * (N + 1) * 2);
+	for (let y = 0, i = 0; y <= N; y++) {
+		for (let x = 0; x <= N; x++) {
+			grid[i++] = x / N * 2 - 1;
+			grid[i++] = y / N * 2 - 1;
+		}
+	}
+	const idx = new Uint32Array(N * N * 6);
+	for (let y = 0, i = 0; y < N; y++) {
+		for (let x = 0; x < N; x++) {
+			const a = y * (N + 1) + x;
+			idx[i++] = a; idx[i++] = a + N + 1; idx[i++] = a + 1;
+			idx[i++] = a + 1; idx[i++] = a + N + 1; idx[i++] = a + N + 2;
+		}
+	}
+	state.seaCount = idx.length;
 	gl.bindBuffer(gl.ARRAY_BUFFER, state.seaBuf);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+	gl.bufferData(gl.ARRAY_BUFFER, grid, gl.STATIC_DRAW);
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, state.seaIdx);
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
 	gl.enable(gl.DEPTH_TEST);
 	// Nothing here is a solid: the terrain is a sheet with holes in it
 	// where the coast ends, and the sea is one quad seen from above or
@@ -1175,6 +1235,7 @@ export function drawTerrain(view, size) {
 	gl.uniform1f(s.u.uScale, cam.s);
 	gl.uniform1f(s.u.uExag, EXAG);
 	gl.uniform1f(s.u.uSea, SEA);
+	gl.uniform1f(s.u.uCurve, cam.curve);
 	gl.uniform1f(s.u.uSpan, cam.far * 1.2);
 	gl.uniform1f(s.u.uTime, state.clock);
 	gl.uniform1f(s.u.uNeon, neon);
@@ -1190,7 +1251,8 @@ export function drawTerrain(view, size) {
 		gl.bindTexture(gl.TEXTURE_2D, state.skinTex);
 		gl.uniform1i(s.u.uSkinTex, 0);
 	}
-	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, state.seaIdx);
+	gl.drawElements(gl.TRIANGLES, state.seaCount, gl.UNSIGNED_INT, 0);
 
 	const t = state.prog;
 	gl.useProgram(t.p);
@@ -1198,6 +1260,7 @@ export function drawTerrain(view, size) {
 	gl.uniform1f(t.u.uScale, cam.s);
 	gl.uniform1f(t.u.uExag, EXAG);
 	gl.uniform1f(t.u.uSea, SEA);
+	gl.uniform1f(t.u.uCurve, cam.curve);
 	gl.uniform1f(t.u.uNeon, neon);
 	// Contours are only contours while you can see between them. The
 	// interval doubles with the scale so the lines stay about ten pixels
