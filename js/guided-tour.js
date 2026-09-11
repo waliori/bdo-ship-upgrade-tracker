@@ -262,7 +262,11 @@ class GuidedTour {
 				element: '#pouch',
 				popover: {
 					title: 'What you are carrying',
-					description: 'Coins, silver and enhancement stones sit above every tab, because you spend them from every tab. Type in what you have and each one tells you whether it covers your builds or how far <b>short</b> you are.<br><br>Beside them, <b>The sailor</b>: your total barters, barter level, Parley, vouchers, Value Pack, Sailing Mastery, the Bos\'n Jacks you have out and the region your Market prices come from. Press it to open the fields — they are read by every screen, so they are set once, here.',
+					description: 'Coins, silver and enhancement stones sit above every tab, because you spend them from every tab. Type in what you have and each one tells you whether it covers your builds or how far <b>short</b> you are.'
+						+ (phone
+							? '<br><br>On a phone it is one line — what is held, and in red what is missing. Press it and <b>Carrying</b> opens with the fields in it, the numbers about you among them: total barters, barter level, Parley, vouchers, Value Pack, Sailing Mastery, the Bos\'n Jacks you have out and the region your Market prices come from.'
+							: '<br><br>Beside them, <b>The sailor</b>: your total barters, barter level, Parley, vouchers, Value Pack, Sailing Mastery, the Bos\'n Jacks you have out and the region your Market prices come from. Press it to open the fields.')
+						+ ' They are read by every screen, so they are set once, here — and the barter count decides which islands will deal with you at all.',
 					side: 'bottom'
 				},
 				before: () => goToTab('plan')
@@ -325,7 +329,12 @@ class GuidedTour {
 				before: () => goToTab('workshop')
 			},
 			{
-				element: '.summary',
+				// Scoped to the screen: the pouch above it carries a
+				// `.summary` of its own -- the sailor's numbers, folded
+				// into their line -- and a bare '.summary' picked that
+				// instead, so the tour lit the bar while talking about
+				// the shopping list.
+				element: '#screen .summary',
 				popover: {
 					title: 'The shopping list',
 					description: 'Everything still missing, as its own icon and number — biggest shortfall first, tinted by the money it wants, and a press on any of them narrows the screen to that one thing. The whole list copies out as text or CSV. <b>The way to get it</b> reads the whole list at once and gives each thing one way — the quests, the Crow Coin Shop, barter, Falasi, the Market — with its reason on the line and the days it takes, following the goal you pick above it.<br><br><b>Every way</b> is the other reading: grouped by where a thing is got, each line pricing the whole quantity, with what making it instead would cost.',
@@ -346,7 +355,7 @@ class GuidedTour {
 				element: '.ship-card-main',
 				popover: {
 					title: 'The other half of a ship',
-					description: 'Every hull in the game\'s own numbers — weight, slots, cannons, speed — fitted out as five slots: the four parts and the <b>sea crystal</b>. Each takes the best you hold, or one you choose. Your <b>Sailing Mastery</b> goes in beside it and counts toward speed, acceleration, turn and brake.<br><br>Below sits the crew: sailors against the hull\'s seats and cabin space, what their contracts cost, and the certificates on the shopping list. Keep a whole fit-out as a named <b>setup</b> and switch between them here or from the Map.',
+					description: 'Every hull in the game\'s own numbers — weight, slots, cannons, speed — fitted out as five slots: the four parts and the <b>sea crystal</b>. Each takes the best you hold, or one you choose. Your <b>Sailing Mastery</b> goes in beside it and counts toward speed, acceleration, turn and brake.<br><br>Below sits the crew: sailors against the hull\'s seats and cabin space, what their contracts cost, and the certificates on the shopping list.<br><br>A crew is <b>read off your own screenshots</b>: open Manage Sailors in game, drop the picture in, and the names, levels, condition and every growth come back in a table to check before a thing is written — in whichever of the sixteen languages the game is played in. <b>Auto assign</b> asks what the boat is <i>for</i> — bartering, speed, sea monsters — and seats them for that, since the seat that doubles two growths at once makes the sums disagree. Keep a whole fit-out as a named <b>setup</b> and switch between them here or from the Map.',
 					side: 'bottom'
 				},
 				before: () => goToTab('crew')
@@ -356,6 +365,19 @@ class GuidedTour {
 				popover: {
 					title: 'The list, drawn on the sea',
 					description: 'Every pin is a barterer holding something you are short of, on the game\'s own chart. Drag to pan, scroll or pinch to zoom.<br><br>The strip above the tabs — <b>On the chart</b> — is what gets drawn: barterers, monster habitats, the 58 wharf managers, guild wharves, island names, and any route you have traced.',
+					side: phone ? 'top' : 'left'
+				},
+				before: () => goToMap('sail')
+			},
+			{
+				// The ⛰ in the zoom bar. The step describes the lean
+				// rather than performing it: standing the chart up
+				// fetches terrain, and the tour has no business pulling
+				// down a few hundred tiles to make a point.
+				element: '[data-act="map-3d"]',
+				popover: {
+					title: 'And stood up on the real ground',
+					description: 'Overhead is the right way to read a route and the wrong way to read a coast. <b>⛰</b> leans the chart over and puts the game\'s own terrain under the sea — the same chart, the same pins and the same plotted loop, placed on the ground instead of beside it.<br><br>Shift-drag leans and turns it, an ordinary drag carries the water, and <b>Level</b> puts you back overhead facing north. <b>Ground</b> paints the islands in the colours you know; <b>Neon</b> draws contour lines over dark water instead. Where you leave it is where it opens next time.',
 					side: phone ? 'top' : 'left'
 				},
 				before: () => goToMap('sail')
@@ -373,7 +395,7 @@ class GuidedTour {
 				element: '.barter-bar',
 				popover: {
 					title: 'Today\'s board',
-					description: 'The trade-goods barters are not rolled island by island: every refresh the whole sea shows one of forty fixed layouts. So this asks what <i>one</i> island is showing — tap it from that island\'s possible offers — and the whole board follows: every chain the day allows, listed by how far it reaches and what it pays.<br><br><b>Silver</b> is a run along the chains you tick; <b>A material</b> is one route through every island dealing the thing your plan is short of.',
+					description: 'The trade-goods barters are not rolled island by island: every refresh the whole sea shows one of forty fixed layouts. So this asks what <i>one</i> island is showing — tap it from that island\'s possible offers — and the whole board follows: every chain the day allows, listed by how far it reaches and what it pays.<br><br><b>Silver</b> is a run along the chains you tick; <b>A material</b> is one route through every island dealing the thing your plan is short of.<br><br>Only the islands your <b>total barters</b> have opened are planned through: the rest sit locked under the list, with a line saying how many more barters open them. Nothing is ever routed through a barterer you cannot reach.',
 					side: 'bottom'
 				},
 				before: () => goToTab('barter')
@@ -401,7 +423,7 @@ class GuidedTour {
 				element: phone ? '#tabbar' : '.masthead-actions',
 				popover: {
 					title: 'Undo, and your data',
-					description: 'Every change can be undone, and redone. <b>Find</b> (Ctrl+K) opens any item or tab, and <b>Log a trip</b> records everything you brought back as one change.<br><br><b>Menu</b> (M) is the one menu the app has: every section, Profiles, Export and Import — a JSON backup, or a link carrying the whole plan — the theme, <b>What\'s new</b>, <b>Feedback</b>, and <b>Help</b>, which plays a film of the whole thing end to end and lists when each dataset was checked.'
+					description: 'Every change can be undone, and redone. <b>Log a trip</b> records everything you brought back as one change, <b>Help</b> plays a film of the whole app end to end and lists when each dataset was checked, and <b>Discord</b> is the sailors\' own server — the room this was written for.<br><br><b>Menu</b> (M) is the one menu the app has: every section, <b>Find</b> (Ctrl+K) for any item or tab, Profiles, Export and Import — a JSON backup, or a link carrying the whole plan — the theme, <b>What\'s new</b> and <b>Feedback</b>.'
 						+ (phone ? ' On a phone the thumb bar\'s last slot opens it.' : '')
 						+ '<br><br>Where the deployment offers it, signing in with Discord keeps this same inventory on your phone as well; without it nothing leaves this browser at all.',
 					side: phone ? 'top' : 'bottom'
