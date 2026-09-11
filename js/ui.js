@@ -23,7 +23,7 @@ import { allItems, CODEX_LANGS, img } from './ui-bits.js';
 import { encodeShare, decodeShare, shareLink, shareSize } from './share.js';
 import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
-import { paintPouch, measurePouch } from './pouch.js';
+import { paintPouch, measurePouch, openPouch, returnToPouch } from './pouch.js';
 import { toggleSailBar, openRoutes, openPets } from './profile-bar.js';
 import { hidePeek, wirePeek } from './peek.js';
 import { openGuide, wireGuide } from './guide.js';
@@ -90,6 +90,11 @@ const tabs = () => TABS.filter(t => !t.when || t.when());
 // The four a phone gets at the thumb; the rest live behind "Menu".
 const THUMB_TABS = ['plan', 'inventory', 'map', 'quests'];
 
+/* The sailors' own server (412710365475110953) -- the room this app was
+   written for. The masthead links it on every screen; this is the same
+   door for the menu and for anywhere else that wants to point at it. */
+export const DISCORD_INVITE = 'https://discord.gg/bdo-sailing';
+
 /**
  * Everything that is not a section, in the one menu the app has. The
  * verbs a wide screen keeps in the masthead come first, so that on a
@@ -118,6 +123,7 @@ const MENU = [
 		{ act: 'tables', icon: '▤', label: 'Enhancement tables', hint: 'the seven tables, lit at your stack' },
 		{ act: 'tour', icon: '➤', label: 'Tour', hint: 'a walk through your own screen' },
 		{ act: 'feedback', icon: '✎', label: 'Feedback', hint: 'something wrong, or something you want' },
+		{ act: 'discord', icon: '◉', label: 'Sailing Discord', hint: 'the sailors’ own server — discord.gg/bdo-sailing' },
 		{ act: 'inbox', icon: '✉', label: 'Feedback inbox', hint: 'what people have written in', when: () => Boolean(me() && me().admin) }
 	] },
 	{ group: 'The page', items: [
@@ -920,10 +926,17 @@ function wire() {
 				}
 				return;
 			}
+			// The phone's pouch: one line that reads, and this sheet
+			// that edits. The bar itself is the whole of it anywhere
+			// there is room for the chips.
+			case 'pouch': return openPouch();
 			// The nest, set in one go. The bar's chip only reads it out.
-			case 'pets': return openPets();
+			// Both of these can be opened from inside the phone's own
+			// sheet, which they replace -- so the sheet is told to come
+			// back when they are answered.
+			case 'pets': returnToPouch(); return openPets();
 			// Every threshold and where the count stands among them.
-			case 'routes': return openRoutes();
+			case 'routes': returnToPouch(); return openRoutes();
 			case 'blockers-all': toggleBlockers(); return render();
 			case 'enh-blocked': toggleBlocked(); return render();
 			case 'open-item': hidePeek(); showView('inventory'); setSelected(el.dataset.item); return render();
@@ -959,6 +972,10 @@ function wire() {
 			case 'signin':
 			case 'account': return openAccount();
 			case 'feedback': return import('./feedback.js').then(m => m.openFeedback());
+			// The masthead carries this on every screen; the sheet has it
+			// as well because on a phone the masthead is three glyphs and
+			// the menu is where anyone goes looking.
+			case 'discord': window.open(DISCORD_INVITE, '_blank', 'noopener'); return;
 			case 'inbox': return import('./feedback.js').then(m => m.openInbox());
 			// The masthead's Menu and the thumb bar's are the one sheet;
 			// pressed while it stands, it goes.
@@ -1467,9 +1484,9 @@ function wire() {
 		else store.setStock(el.dataset.item, n);
 		// A number typed in the bar and committed with Enter keeps the
 		// focus where it is, so the chips around it are repainted here
-		// rather than waiting for the focus to leave the bar.
-		const bar = document.getElementById('pouch');
-		if (bar && bar.contains(el)) paintPouch({ force: true });
+		// rather than waiting for the focus to leave the bar. The
+		// phone's sheet is the same bar in another host.
+		if (el.closest('#pouch, .pouch-sheet')) paintPouch({ force: true });
 	});
 
 	// The pouch holds its ground while you type in it; once focus leaves it
@@ -1622,8 +1639,11 @@ function wire() {
 
 	window.addEventListener('resize', () => { measurePouch(); measureTabBar(); });
 	// Turning a phone swaps the tab row for the thumb bar or back; the
-	// sheets stand on the bar's height, so it is measured again.
-	onPhoneChange(() => { measureTabBar(); measurePouch(); });
+	// sheets stand on the bar's height, so it is measured again. The
+	// pouch is two different things either side of that line -- a row
+	// of chips, or one line that opens a sheet -- so it is redrawn and
+	// not merely re-measured.
+	onPhoneChange(() => { measureTabBar(); paintPouch({ force: true }); });
 
 	// The pouch writes big silver the short way ("1.96b"); under the
 	// caret it swaps to the exact digits, so editing never rounds what
@@ -1636,8 +1656,8 @@ function wire() {
 	});
 
 	document.addEventListener('focusout', evt => {
-		const host = document.getElementById('pouch');
-		if (!host || !host.contains(evt.target)) return;
+		const host = evt.target.closest && evt.target.closest('#pouch, .pouch-sheet');
+		if (!host) return;
 		if (host.contains(evt.relatedTarget)) return;
 		paintPouch();
 	});
@@ -2126,6 +2146,8 @@ function openHelp() {
 			<div class="help-data">${DATA.map(d => `<div class="kv-row"><span>${esc(d.what)}</span><span class="n">${esc(d.asOf)}${d.from ? ` · ${esc(d.from)}` : ''}</span></div>`).join('')}</div>
 			<p class="dialog-copy">A patch can move any of these. The Market prices are live; everything else is a snapshot the app was checked against on the date shown.</p>
 		</details>
+		<p class="dialog-copy">Questions, routes and anything the game has moved go to the sailors' server:
+			<a href="${DISCORD_INVITE}" target="_blank" rel="noopener">discord.gg/bdo-sailing</a> — the masthead's mark is the same door.</p>
 		<p class="dialog-copy help-credit">Built by <b>waliori</b> ·
 			<a href="https://github.com/waliori/bdo-ship-upgrade-tracker" target="_blank" rel="noopener">the source</a>,
 			free to use and to fork under

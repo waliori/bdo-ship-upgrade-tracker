@@ -404,6 +404,15 @@ export const RELEASE = RELEASES[0].id;
 export const CHANGES = [
 	{
 		date: '2026-09-11',
+		title: 'On a phone the pouch is one line, and the numbers are typed in a sheet',
+		notes: [
+			'<b>The strip of chips was a good bar and a poor phone.</b> Nine of them will not fit across 390 pixels, so the row scrolled sideways — half of a bar that stands on top of every screen was a swipe away, on the one bar nobody visits to read: the silver is glanced at, and typed over once a week. A phone gets the glance now. One line the height of a single chip: what is in the purse, in red what it is short of, how many other currencies are aboard, and the barter count. Pressing it opens <b>Carrying</b> as a sheet, where every field has the width of the screen and the sailor’s numbers are already open rather than folded into a line.',
+			'The <b>nest</b> and the <b>table of thresholds</b> can both be opened from inside that sheet, and they stand in front of it — so when one is saved, cancelled or dismissed, the sheet comes back at the row it was scrolled to instead of leaving the screen bare.'
+		]
+	},
+
+	{
+		date: '2026-09-11',
 		title: 'version 1.1: the plan, and the sea you can actually reach',
 		notes: [
 			'Everything since 1.0 is written up as a release: <b>Menu → What’s new</b>, and <code>CHANGELOG.md</code>, which is generated from the same words. The two things it is named for both came from players writing in, and they are credited by name at the top of the notes — a release can say who asked for it now, in their own words, above the fold rather than behind “everything else”.',

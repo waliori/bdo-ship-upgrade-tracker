@@ -795,66 +795,130 @@ button.pouch-item.sail.pets:focus-visible { outline: 2px solid var(--blue-hi); o
 }
 .pouch-item.sail .pouch-need .inline-check input { width: 11px; height: 11px; }
 
-/* One scrolling row beats three stacked ones on a bar that is always on
-   screen. Kept here, after the base rules, so it actually wins. */
+/* ---- the phone: one line that reads, a sheet that edits ------------ *
+ *
+ * The chips are a good bar and a poor phone. Nine of them will not fit
+ * across 390 pixels, so the row used to scroll sideways -- half of a
+ * strip that stands on top of every screen, a swipe away, on a bar
+ * nobody visits to read: silver is glanced at, and typed over once a
+ * week. So a phone gets the glance -- what is held, and in red what is
+ * missing -- on one line the height of a single chip, and the typing
+ * happens in a sheet where every field has the width of the screen. */
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .pouch { gap: 10px; padding: 9px 12px; margin: 0 0 18px; }
+  .pouch { gap: 10px; padding: 6px 10px; margin: 0 0 16px; }
   .pouch-title { display: none; }
-  .pouch-list {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 2px;
-    /* A swipeable row has to look like one. Without this the last purse
-       in view is simply cut off mid-digit at the edge, which reads as a
-       rendering fault rather than an invitation -- so the row fades out
-       where it continues, and only where it continues: the mask is tied
-       to how far it has actually been scrolled, so a row with nothing
-       more to show has hard edges like everything else.
-
-       scroll-driven animations do the tying; a browser without them
-       keeps a plain, always-on fade at the right, which is still the
-       honest hint and costs nothing. */
-    --pouch-fade: 22px;
-    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - var(--pouch-fade)), transparent 100%);
-    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - var(--pouch-fade)), transparent 100%);
-    scrollbar-width: none;
-  }
-  .pouch-list::-webkit-scrollbar { display: none; }
-  .pouch-item { flex: none; }
-  /* The row scrolls here, so the extra width costs nothing but a swipe,
-     and ten-figure silver no longer loses its last two digits. */
-  .pouch-input { width: 124px; font-size: 15px; }
-  .pouch-group { padding-left: 10px; font-size: 9px; }
-  .pouch-item.sail .pouch-input { width: 92px; font-size: 14px; }
-  .pouch-item.sail.parley .pouch-input { width: 108px; }
 }
 
-/* The fade, told where the row actually is: none at the very start on
-   the left, none at the very end on the right, both in the middle. */
-@supports (animation-timeline: scroll(self inline)) {
-  @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-    .pouch-list {
-      --pouch-fade-l: 0px;
-      --pouch-fade-r: 22px;
-      -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--pouch-fade-l), #000 calc(100% - var(--pouch-fade-r)), transparent 100%);
-      mask-image: linear-gradient(to right, transparent 0, #000 var(--pouch-fade-l), #000 calc(100% - var(--pouch-fade-r)), transparent 100%);
-      animation: pouch-edges linear both;
-      animation-timeline: scroll(self inline);
-    }
-    /* Held still for anyone who has asked for that: the always-on
-       right-hand fade says "there is more" without moving. */
-    @media (prefers-reduced-motion: reduce) {
-      .pouch-list { animation: none; --pouch-fade-l: 0px; --pouch-fade-r: 22px; }
-    }
-  }
+.pouch-peek {
+  display: flex;
+  align-items: center;
+  /* It wraps rather than clips. One line is what this is for, and one
+     line is what every phone gets -- until a screen 360 wide is asked
+     to carry two shortfalls and a barter count at once, and then the
+     sailor drops to a second line instead of the count being cut off
+     mid-digit, which is how the scrolling row read in the first place. */
+  flex-wrap: wrap;
+  gap: 4px 11px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 3px 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
+.pouch-peek:focus { outline: none; }
+.pouch-peek:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 3px; border-radius: 6px; }
 
-@property --pouch-fade-l { syntax: '<length>'; inherits: false; initial-value: 0px; }
-@property --pouch-fade-r { syntax: '<length>'; inherits: false; initial-value: 22px; }
+/* The purses keep their width -- what is short is the whole point of
+   the line -- and the sailor's count gives way first if a screen is
+   narrower than the four numbers on it. */
+.peek-bit { display: inline-flex; align-items: baseline; gap: 6px; flex: none; min-width: 0; }
+.peek-bit b {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-hi);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* What is missing, which is the only thing on this line worth acting
+   on, so it is the only thing on it wearing a colour. */
+.peek-bit i {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.peek-bit.short i { color: var(--red); }
+.peek-bit.ok b { color: var(--teal); }
 
-@keyframes pouch-edges {
-  from { --pouch-fade-l: 0px;  --pouch-fade-r: 22px; }
-  to   { --pouch-fade-l: 22px; --pouch-fade-r: 0px; }
+.peek-icon, .peek-glyph {
+  flex: none;
+  align-self: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+}
+.peek-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--ink-mute);
+  background: rgba(120, 160, 200, 0.09);
+}
+/* The stones and the Sangpyeong: counted here, read in the sheet. */
+.peek-bit.more {
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--line-rgb), 0.35);
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+/* The sailor stands at the far end, against the purses: the bags on one
+   side of the line, the person carrying them on the other. */
+.peek-bit.sail { margin-left: auto; flex: 0 1 auto; }
+.peek-bit.sail b { font-size: 14px; color: var(--ink-row); overflow: hidden; text-overflow: ellipsis; }
+.peek-bit.sail.asking b { font-size: 12px; color: var(--amber); }
+.pouch-peek .pouch-fold { margin-left: 2px; }
+
+/* The sheet behind it: the same chips, one to a row, the label and what
+   it means on the left and the value at the right edge where a thumb
+   is. */
+.pouch-sheet { margin: 14px 0 4px; }
+.pouch-sheet .pouch-list { flex-direction: column; align-items: stretch; gap: 8px; flex: none; }
+.pouch-sheet .pouch-item { width: 100%; padding: 9px 12px; }
+.pouch-sheet .pouch-body {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+}
+.pouch-sheet .pouch-k { grid-area: 1 / 1; white-space: normal; }
+.pouch-sheet .pouch-need { grid-area: 2 / 1; white-space: normal; }
+.pouch-sheet .pouch-body > :nth-child(2) { grid-area: 1 / 2 / 3 / 3; justify-self: end; }
+/* 16px, because anything smaller is what makes an iPhone zoom the page
+   the moment the field is tapped. */
+.pouch-sheet .pouch-input,
+.pouch-sheet .pouch-item.sail .pouch-input {
+  width: 136px;
+  max-width: 46vw;
+  font-size: 16px;
+  text-align: right;
+}
+.pouch-sheet .pouch-input.select { width: auto; text-align: left; }
+.pouch-sheet .pouch-input.plain { width: auto; max-width: none; text-align: right; }
+.pouch-sheet .pouch-group {
+  align-self: auto;
+  margin: 14px 0 0;
+  padding-left: 0;
+  border-left: none;
 }
 
 .summary-sub { font-size: 11px; color: var(--ink-faint); margin-top: 3px; }

@@ -944,16 +944,10 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .seat-line .seat-lv, .seat-line .seat-cond { display: none; }
 
 /* ---- The phone: denser rows, a compact pouch, a map that shows the sea ---- */
-.pouch-list::after { content: ''; flex: none; width: 1px; }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
 	.crew-board { display: none; }
 	.cabin-row { display: none; }
 	.seat-list { display: flex; }
-	.pouch { padding: 8px 10px; }
-	.pouch-title { display: none; }
-	.pouch-list { gap: 6px; }
-	.pouch-item { padding: 6px 10px; min-width: 0; }
-	.pouch-item .pouch-sub, .pouch-item .pouch-state { font-size: 10px; }
 	.row { padding: 8px 12px; gap: 8px; }
 	.row .row-meter { order: 3; flex: 1 1 100%; }
 	.row .row-tail { gap: 6px; }

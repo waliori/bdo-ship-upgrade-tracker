@@ -101,6 +101,22 @@ function summaryHTML(p) {
 	</button>`;
 }
 
+/**
+ * The sailor in a phone's one line: the barter count, and nothing else.
+ *
+ * The count is the one number the sea is planned from -- it decides
+ * which islands exist -- and a line 390 pixels wide has room for one
+ * number after the purses, so the level, the Parley and the rest wait
+ * in the sheet where they are typed. A save that has never been told
+ * says nought barters, which plans three routes and no more and is as
+ * much an unanswered question as an answer, so it asks for itself.
+ */
+export function profilePeekHTML() {
+	const p = barterProfile();
+	if (!p.barterCount) return '<span class="peek-bit sail asking" title="Your Total Barters decide which islands you can sail to — nothing is planned through one you have not opened"><span class="peek-glyph" aria-hidden="true">⇄</span><b>set your barters</b></span>';
+	return `<span class="peek-bit sail" title="${esc(`${F(p.barterCount)} barters${p.level ? ` · ${p.level}` : ' · no level'}`)}"><span class="peek-glyph" aria-hidden="true">⇄</span><b>${F(p.barterCount)}</b></span>`;
+}
+
 /** The tier names, as the pet window says them. */
 const TIER_NAME = ['no pet', 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4', 'Tier 5'];
 
@@ -150,9 +166,11 @@ function petsHTML() {
  * a barter count means nothing until it is told what it opens next, and
  * a barter level nothing until it is told what an exchange now costs.
  */
-export function profileHTML() {
+export function profileHTML({ sheet = false } = {}) {
 	const p = barterProfile();
-	if (!open()) return summaryHTML(p);
+	// A sheet is already one press from being gone, so there is nothing
+	// worth folding inside it: the fields are what it was opened for.
+	if (!sheet && !open()) return summaryHTML(p);
 
 	const day = dailyCapacity(p);
 	const next = nextUnlock(p.barterCount);
@@ -165,7 +183,9 @@ export function profileHTML() {
 
 	// The group's name is also the way back: one control, at the head of
 	// what it folds, instead of a caret adrift at the end of the row.
-	const title = `<button class="pouch-group fold" data-act="sail-bar" aria-expanded="true"
+	const title = sheet
+		? '<span class="pouch-group">The sailor</span>'
+		: `<button class="pouch-group fold" data-act="sail-bar" aria-expanded="true"
 		title="Fold these back into one line">The sailor <i aria-hidden="true">▴</i></button>`;
 
 	const chip = (cls, face, label, field, sub, title2, after = '') => `<label class="pouch-item sail ${cls}" title="${esc(title2)}">

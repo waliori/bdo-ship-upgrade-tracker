@@ -34,6 +34,12 @@ test.after(async () => { await browser.close(); server.close(); });
 
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
+// The bar the app is judged up by. It is drawn one of two ways -- a row
+// of chips, or, on a phone, the one line that opens the sheet -- and
+// either of them means the shell has rendered.
+const POUCH_READY = '#pouch .pouch-item, #pouch .pouch-peek';
+
+
 async function open(hash = '#plan', { touch = false } = {}) {
 	const context = await browser.createBrowserContext();
 	const page = await context.newPage();
@@ -45,7 +51,7 @@ async function open(hash = '#plan', { touch = false } = {}) {
 	page.on('request', req => (req.url().startsWith(base) || req.url().startsWith('data:')) ? req.continue() : req.abort().catch(() => {}));
 	await page.evaluateOnNewDocument(release => { try { localStorage.setItem('bdo_ship_upgrade-tour_completed', 'true'); localStorage.setItem('bdo-tracker/release', release); } catch { /* fine */ } }, RELEASE);
 	await page.goto(base + '/' + hash, { waitUntil: 'domcontentloaded' });
-	await page.waitForSelector('#pouch .pouch-item', { timeout: 15000 });
+	await page.waitForSelector(POUCH_READY, { timeout: 15000 });
 	return { page, context, errors };
 }
 const seed = page => page.evaluate(async () => {
@@ -283,6 +289,43 @@ test('the pouch shortens big silver and hands the caret exact digits', async () 
 	await context.close();
 });
 
+test('on a phone the pouch is one line, the sheet holds the fields, and a dialog opened from it puts it back', async () => {
+	const { page, context, errors } = await open('#plan', { touch: true });
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.setStock('Crow Coin', 12000);
+		store.setStock('Silver', 1960000000);
+		store.setProfile('barterCount', 4205);
+	});
+	await wait(500);
+	assert.equal(await count(page, '#pouch .pouch-item'), 0, 'no row of chips on a phone');
+	assert.match(await text(page, '.pouch-peek'), /12,000.*1\.96b.*4,205/s, 'what is held, on one line');
+	assert.ok(await page.evaluate(() => document.getElementById('pouch').offsetHeight) < 56, 'and one line high');
+
+	await tap(page, '.pouch-peek'); await wait(400);
+	assert.equal(await count(page, '.pouch-sheet [data-act="purse"]'), 2, 'both purses are fields in the sheet');
+	assert.ok(await count(page, '.pouch-sheet [data-act="barter-count"]') === 1, 'the sailor is open in it, not folded');
+	// Typing in the sheet moves the line behind it.
+	await page.$eval('.pouch-sheet [data-act="purse"][data-item="Crow Coin"]', el => {
+		el.value = '70000';
+		el.dispatchEvent(new Event('change', { bubbles: true }));
+		el.blur();
+	});
+	await wait(400);
+	assert.match(await text(page, '.pouch-peek'), /70,000/, 'the line behind it keeps up');
+
+	// The nest replaces the sheet; answering it brings the sheet back.
+	await tap(page, '.pouch-sheet [data-act="pets"]'); await wait(400);
+	assert.equal(await count(page, '.pouch-sheet'), 0, 'the nest stands in front of it');
+	await tap(page, '[data-pet-save]'); await wait(500);
+	assert.equal(await count(page, '.pouch-sheet'), 1, 'and the sheet is underneath again');
+	// Closing the sheet itself is the end of it.
+	await tap(page, '.dialog-box [data-close]'); await wait(500);
+	assert.equal(await count(page, '#dialog:not([hidden])'), 0, 'Done closes it for good');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('the hire picker names each race once', async () => {
 	const { page, context, errors } = await open('#crew');
 	// Let the screen settle before reaching for a button on it. The Ship
@@ -456,7 +499,7 @@ test('the minimap hides, comes back, and stays where it is dragged', async () =>
 	// Pressed from inside the page: the dock sticks over the top edge, and a click scrolled to there would land on it.
 	await page.evaluate(() => document.querySelector('[data-act="map-mini"][aria-pressed]').click()); await wait(200);
 	assert.equal(await count(page, '[data-map-mini]'), 0, 'hidden');
-	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('#pouch .pouch-item'); await wait(1000);
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector(POUCH_READY); await wait(1000);
 	assert.equal(await count(page, '[data-map-mini]'), 0, 'still hidden after a reload');
 	await page.evaluate(() => document.querySelector('[data-act="map-mini"][aria-pressed]').click()); await wait(300);
 	const again = await page.$eval('[data-map-mini]', el => el.style.left);
@@ -917,7 +960,7 @@ test('habitat markers never print on top of one another, at any zoom', async () 
 test('habitat markers follow a pan, hide and return once, and the Lyngbakr stands alone', async () => {
 	const { page, context, errors } = await open('#map');
 	await page.evaluate(() => { localStorage.setItem('bdo-tracker/map-view', JSON.stringify({ mode: 'hunt', panelOpen: false, habitatsOn: true })); });
-	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('#pouch .pouch-item'); await wait(1500);
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector(POUCH_READY); await wait(1500);
 	const marker = () => page.evaluate(() => { const e = document.querySelector('.map-habitat:not([hidden])'); return e ? [e.dataset.key, e.style.transform] : null; });
 	const pin = () => page.evaluate(() => { const e = document.querySelector('[data-act="map-pin"]:not([hidden])'); return e ? e.style.transform : null; });
 	const before = { m: await marker(), p: await pin() };
@@ -2085,7 +2128,7 @@ test('a phone on its side is a phone: the thumb bar and the menu, and the hover 
 	await page.emulate({ viewport: { width: 844, height: 390, isMobile: true, hasTouch: true }, userAgent: 'Mozilla/5.0 (Linux; Android 13) Mobile' });
 	await page.evaluateOnNewDocument(release => { try { localStorage.setItem('bdo_ship_upgrade-tour_completed', 'true'); localStorage.setItem('bdo-tracker/release', release); } catch { /* fine */ } }, RELEASE);
 	await page.goto(base + '/#plan', { waitUntil: 'domcontentloaded' });
-	await page.waitForSelector('#pouch .pouch-item', { timeout: 15000 });
+	await page.waitForSelector(POUCH_READY, { timeout: 15000 });
 	const shown = sel => page.evaluate(s => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== 'none'; }, sel);
 	assert.equal(await shown('#tabbar'), true, 'the thumb bar is up');
 	assert.equal(await shown('[data-act="more"]'), true, 'the menu button is there');
