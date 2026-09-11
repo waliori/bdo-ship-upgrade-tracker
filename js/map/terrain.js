@@ -158,7 +158,8 @@ function camera(view, size) {
 	// enough for a hill in front of the camera.
 	const far = dist * (2 + 40 * Math.sin(pitch));
 	const proj = perspective(fovy, size.w / size.h, dist / 32, far);
-	return { s, dist, eye, axes: ax, mvp: mul(proj, basisView(eye, ax.x, ax.y, ax.z)), far, centre: view.centre };
+	const fogFar = dist * (1.05 + 2.2 * Math.sin(pitch));
+	return { s, dist, eye, axes: ax, mvp: mul(proj, basisView(eye, ax.x, ax.y, ax.z)), far, fogFar, centre: view.centre };
 }
 
 /**
@@ -393,7 +394,12 @@ async function inflate(buf) {
  * every frame so that what is asked for is always what is in view now
  * rather than what was in view three zooms ago.
  */
-const IN_FLIGHT = 6;
+// Four, not six. Six is a browser's whole per-origin budget on HTTP/1.1
+// -- which is what a plain http://localhost is, where the deployed site
+// is HTTP/2 and multiplexed -- so terrain streaming at six would leave
+// nothing for the flat squares, the icons or the modules, and the whole
+// page would stall behind ground nobody had asked to see yet.
+const IN_FLIGHT = 4;
 
 function want(level, x, y) {
 	const key = `${level}_${x}_${y}`;
@@ -568,6 +574,7 @@ function ensureSkin(gl, view, size) {
 	gl.bindTexture(gl.TEXTURE_2D, state.skinTex);
 	gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+	state.uploads = (state.uploads || 0) + 1;
 }
 
 /* ------------------------------------------------------------------ *
@@ -846,6 +853,9 @@ export function terrainDiag() {
 		waiting: state.waiting || 0,
 		queued: state.queue.length,
 		cached: state.tiles.size,
+		frameMs: state.frameMs ? Number(state.frameMs.toFixed(1)) : 0,
+		uploads: state.uploads || 0,
+		dpr: state.dpr || 0,
 		skin: state.skinBox ? { level: state.skinLevel, span: Math.round(state.skinBox.span), tex: !!state.skinTex, images: state.images.size } : null
 	};
 }
@@ -916,8 +926,21 @@ function schedule() {
  * every terrain renderer does, and it is what keeps the count in the
  * dozens instead of the hundreds.
  */
-const SPLIT_PX = 5;      // a grid cell bigger than this is worth splitting
-const MAX_TILES = 260;
+// A grid cell bigger than this is worth splitting. It has to stay under
+// eight: at the chart's deepest zoom a level 1 cell is eight pixels, and
+// if that does not split there is never any reason to load level 0 and
+// the mesh the game draws from is never seen.
+const SPLIT_PX = 5;
+
+/** How far past the middle of the view the ground is drawn at all, as a
+ *  multiple of the box's height. Generous on purpose: with the split
+ *  test reading the haze (worthSplitting), distance is drawn at four
+ *  and five levels up and costs a handful of tiles, so the ground can
+ *  run to the horizon instead of stopping in the middle of the sea and
+ *  needing fog thick enough to hide the cut. */
+const REACH = 3.5;
+
+const MAX_TILES = 200;
 
 function visibleTiles(view, size) {
 	const ix = state.index;
@@ -928,7 +951,7 @@ function visibleTiles(view, size) {
 	// The water the screen can see, as a box. A leaning camera's far
 	// corners land past the horizon and come back null, so the box is
 	// capped at the distance the fog closes anyway.
-	const cap = size.h * 3 / Math.pow(2, view.zoom - MAX_ZOOM);
+	const cap = size.h * REACH / Math.pow(2, view.zoom - MAX_ZOOM);
 	const pts = [];
 	for (const [px, py] of [[0, 0], [size.w, 0], [0, size.h], [size.w, size.h], [size.w / 2, size.h / 2]]) {
 		const p = seaAt(size, px, py);
@@ -943,16 +966,37 @@ function visibleTiles(view, size) {
 	vx0 = Math.max(vx0, view.centre.x - cap); vx1 = Math.min(vx1, view.centre.x + cap);
 	vy0 = Math.max(vy0, view.centre.y - cap); vy1 = Math.min(vy1, view.centre.y + cap);
 
-	/** How many pixels one of a tile's grid cells covers, where it is.
-	 *  A tile behind the camera answers 0, which stops the descent. */
-	const cellPx = (box, span) => {
-		const cx = (box.x0 + box.x1) / 2, cy = (box.y0 + box.y1) / 2;
+	/**
+	 * Whether a tile is worth splitting: how many pixels one of its grid
+	 * cells covers, against how much of it the fog is going to eat.
+	 *
+	 * Perspective alone already makes distant cells small, but not small
+	 * enough -- at a lean the back half of the view was a hundred and
+	 * fifty tiles of ground behind haze, fetched ahead of the ground
+	 * underfoot. Detail nobody can see is not detail. A tile behind the
+	 * camera answers false, which stops the descent.
+	 */
+	const per = Math.pow(2, MAX_ZOOM - view.zoom);
+	const worthSplitting = (box, span) => {
+		// Measured at the corner of the tile nearest the middle of the
+		// view, not at its centre. A tile at the top of the pyramid is
+		// the size of the world and its centre can be behind the camera
+		// or a continent away -- judging it there answered "not worth
+		// splitting" for the tile the view is standing on, and the walk
+		// never descended at all.
+		const nx = Math.min(Math.max(view.centre.x, box.x0), box.x1);
+		const ny = Math.min(Math.max(view.centre.y, box.y0), box.y1);
 		const cell = span / (ix.grid - 1);
-		const a = projectThrough(state.cam, size, cx, cy);
-		if (a.behind) return 0;
-		const b = projectThrough(state.cam, size, cx + cell, cy);
-		if (b.behind) return 0;
-		return Math.hypot(b.left - a.left, b.top - a.top);
+		const a = projectThrough(state.cam, size, nx, ny);
+		if (a.behind) return false;
+		const b = projectThrough(state.cam, size, nx + cell, ny);
+		if (b.behind) return false;
+		const px = Math.hypot(b.left - a.left, b.top - a.top);
+		// How far into the haze that corner sits, on the shader's own
+		// reckoning: detail nobody can see is not detail.
+		const away = Math.hypot(nx - view.centre.x, ny - view.centre.y) / per;
+		const fog = Math.min(1, away / (state.cam.fogFar || 1));
+		return px > SPLIT_PX * (1 + 5 * fog * fog);
 	};
 
 	const out = [];
@@ -960,7 +1004,7 @@ function visibleTiles(view, size) {
 		if (out.length >= MAX_TILES) return;
 		const box = tileBox(level, x, y);
 		if (box.x1 < vx0 || box.x0 > vx1 || box.y1 < vy0 || box.y0 > vy1) return;
-		const fine = level > bottom && cellPx(box, box.span) > SPLIT_PX;
+		const fine = level > bottom && worthSplitting(box, box.span);
 		if (fine) {
 			for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) walk(level - 1, x * 2 + dx, y * 2 + dy);
 			return;
@@ -996,7 +1040,7 @@ export function drawTerrain(view, size) {
 		state.host = host;
 	}
 
-	const dpr = Math.min(window.devicePixelRatio || 1, 2);
+	const dpr = state.dpr = Math.min(window.devicePixelRatio || 1, 2);
 	const w = Math.max(1, Math.round(size.w * dpr)), h = Math.max(1, Math.round(size.h * dpr));
 	if (canvas.width !== w || canvas.height !== h) {
 		canvas.width = w; canvas.height = h;
@@ -1016,7 +1060,7 @@ export function drawTerrain(view, size) {
 	gl.clearColor(sky[0], sky[1], sky[2], 1);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-	const fogFar = cam.dist * (1.1 + 2.6 * Math.sin(state.pitch * Math.PI / 180));
+	const fogFar = cam.fogFar;
 
 	// The sea first, so terrain draws over it and the depth buffer keeps
 	// an island's far shore from showing through the water in front.
@@ -1128,6 +1172,9 @@ export function drawTerrain(view, size) {
 	// The swell only animates while something is moving anyway; a still
 	// chart is a still chart, and a phone's battery is not free.
 	state.clock = now / 1000;
+	// A rough cost for the frame, smoothed: what the governor reads.
+	const spent = performance.now() - now;
+	state.frameMs = state.frameMs ? state.frameMs * 0.8 + spent * 0.2 : spent;
 }
 
 /**
