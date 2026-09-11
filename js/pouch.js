@@ -5,6 +5,7 @@ import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
 import { img } from './ui-bits.js';
 import { rows, totalsToGo, CROW_COIN, SILVER, SANGPYEONG, STONES } from './ui-state.js';
+import { profileHTML } from './profile-bar.js';
 
 /**
  * The pouch: coins, silver, Sangpyeong Coins and enhancement stones, on
@@ -61,7 +62,13 @@ export function pouchHTML() {
 		</label>`;
 	}).join('');
 
-	return `<span class="pouch-title">Carrying</span><div class="pouch-list">${chips}</div>`;
+	// One strip, two groups: what is in the bags, and what is true of
+	// the sailor carrying them. They are in the same row rather than
+	// stacked because the row already scrolls on a phone -- a second
+	// bar would cost another line of the screen on every tab -- and
+	// because both are the same kind of thing: a number you keep
+	// correct once and every screen then reads.
+	return `<span class="pouch-title">Carrying</span><div class="pouch-list">${chips}${profileHTML()}</div>`;
 }
 
 /**

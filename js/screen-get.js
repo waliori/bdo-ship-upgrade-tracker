@@ -1,6 +1,12 @@
 // To Get: everything outstanding grouped by how it is actually
 // obtained, with the barter's real cost in sea time beside every shop
-// price, and the profile facts that quietly improve the forecast.
+// price.
+//
+// What the forecast needs to know about the player -- the barter count,
+// the level, the Parley and the pack -- used to be typed into a tile in
+// this screen's summary. It is in the shell's bar now (js/profile-bar.js),
+// where every screen that reads it can be corrected from, so this one
+// keeps to the list.
 
 import { items as vendorItems, bulkExchanges } from './vendor_items.js';
 import { marketSilver, marketStatus, REGIONS as MARKET_REGIONS } from './market.js';
@@ -10,21 +16,16 @@ import { falasi } from './falasi_vendor.js';
 import {
 	forecast as barterForecast,
 	summarise as barterLine,
-	explain as barterWhy,
-	dailyCapacity as barterDay,
-	barterLevels,
-	ROUTE_UNLOCKS
+	explain as barterWhy
 } from './barter.js';
 import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
 import { img, codexName, costCtx, costText, groundsFor } from './ui-bits.js';
 import {
-	snapshot, barterData, barterProfile, barterOpts, totalsToGo, query, CROW_COIN, SILVER
+	snapshot, barterData, barterOpts, totalsToGo, query, CROW_COIN, SILVER
 } from './ui-state.js';
 import { shoppingList, waysToGet } from './planner.js';
 import { coinBuyButton } from './coin-shop.js';
-import { mateAtTheHelm } from './ship.js';
-import { anyType } from './sailors.js';
 import { PRESETS, DAY_CHOICES, DOING, wayText, groupLegs } from './get-plan.js';
 import { theWay, getOrders, questDoneNow } from './get-way.js';
 
@@ -59,82 +60,6 @@ export function barterLookup(item, qty = 1) {
 	const npcs = [...new Set(entry.sources.map(s => s.npc_name))];
 	const gives = [...new Set(entry.sources.map(s => s.give && s.give.name).filter(Boolean))];
 	return { npcs, gives, plan: barterForecast(item, qty, barterData, barterOpts()) };
-}
-
-/**
- * The two things about you that the barter forecast cannot know.
- *
- * Both are one-off answers that then quietly improve every barter line
- * below, so they sit in the summary bar with the purse rather than
- * behind a settings screen -- and the barter count is shown as what it
- * unlocks next, because the raw number means nothing until you know
- * what it buys.
- */
-/**
- * The ten per cent off Parley, said as where it comes from. It is
- * Cleia's skill and nothing else, so it is read off the First Mate seat
- * rather than ticked: aboard, the row says so; hired but ashore, it says
- * what seating her would be worth; unmet, it says nothing at all.
- */
-function mateCut() {
-	const mate = mateAtTheHelm();
-	if (mate && Number(mate.type.parley) > 0) {
-		return ` · <span class="gterm" title="${esc(mate.sailor.name)} is at the First Mate seat: her skill takes ten per cent off every Parley cost">Crew −10% · ${esc(mate.sailor.name)} at the helm</span>`;
-	}
-	const ashore = (store.getProfile('roster', []) || []).find(s => Number((anyType[s.type] || {}).parley) > 0);
-	return ashore
-		? ` · <span class="gterm" title="Put ${esc(ashore.name)} at the First Mate seat on the Ship tab and every Parley cost drops ten per cent">Crew −10% · seat ${esc(ashore.name)} for it</span>`
-		: '';
-}
-
-function barterProfileTile() {
-	const profile = barterProfile();
-	const { barterCount, valuePack, level, vouchers, parleyHeld } = profile;
-	const day = barterDay(profile);
-	const next = nextUnlock(barterCount);
-
-	const levels = barterLevels().map(name =>
-		`<option${name === level ? ' selected' : ''}>${esc(name)}</option>`).join('');
-
-	// Parley is not what paces the trip -- the refresh cap is -- so it
-	// sits under the headline as a fact rather than above it as a limit.
-	// It is still worth showing: it is the one number a barter level
-	// visibly moves, and the game never adds up what a bar buys you.
-	return `<div>
-		<div class="summary-k">Bartering <button class="info-dot" data-act="guide"
-			aria-label="Where to see these numbers in game">?</button></div>
-		<div class="summary-v">${F(day.lists.trade)}+${F(day.lists.material)} <span class="gterm" role="button" tabindex="0"
-			data-guide="refresh"
-			title="${F(day.lists.trade)} draws of the trade-goods list and ${F(day.lists.material)} of the ship-materials list — the two refresh on their own clocks">refreshes/day</span>
-			<span class="summary-sub"> · refill in <b data-until="barter"></b></span></div>
-		<div class="summary-sub"><input class="purse-inline" type="text" inputmode="numeric"
-			value="${F(barterCount)}" data-act="barter-count"
-			title="Your Total Barters, as the Barter Information window shows it. A run recorded on the Barter tab adds its trades to this; type over it whenever the two drift."
-			aria-label="Your Total Barters, as the Barter Information window shows it"> <span class="gterm" role="button" tabindex="0"
-			data-guide="parley">Total Barters</span>${next ? ` · ${esc(next)}` : ''}
-			· <label class="inline-check"><input type="checkbox" data-act="value-pack"
-			${valuePack ? 'checked' : ''}> Value Pack</label>
-			${mateCut()}</div>
-		<div class="summary-sub"><select class="purse-inline" data-act="barter-level"
-			aria-label="Your barter level"><option value=""${level ? '' : ' selected'}>—</option>${levels}</select>
-			· ${F(day.perTrade)} <span class="gterm" role="button" tabindex="0" data-guide="level">Parley a trade</span>
-			· <input class="purse-inline narrow" type="text" inputmode="numeric"
-			value="${F(vouchers)}" data-act="vouchers"
-			aria-label="Crow's Trade Vouchers you carry"> <span class="gterm" role="button" tabindex="0" data-guide="voucher">vouchers</span>
-			· ${F(day.tradesPerBar)} trades a refill</div>
-		<div class="summary-sub"><input class="purse-inline" type="text" inputmode="numeric"
-			value="${F(parleyHeld)}" data-act="parley-held"
-			aria-label="Parley in the bar right now"> <span class="gterm" role="button" tabindex="0" data-guide="parley">Parley in the bar right now</span></div>
-	</div>`;
-}
-
-/** The next thing your barter count opens, phrased as the wait for it. */
-function nextUnlock(count) {
-	const next = ROUTE_UNLOCKS.filter(r => r.opens && r.barters > count)[0];
-	if (!next) return null;
-	// "10 more barters open Kashuma Island": the running barter count
-	// unlocks trade routes at fixed thresholds, and this is the next one.
-	return `${F(next.barters - count)} more open ${next.opens}`;
 }
 
 /**
@@ -186,7 +111,6 @@ export function renderGet() {
 				<div class="summary-v">${F(totals.lines)}</div>
 				<div class="summary-sub">distinct things to obtain</div>
 			</div>
-			${barterProfileTile()}
 			${marketTile()}
 		</div>
 		<div class="get-copy">

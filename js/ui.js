@@ -24,6 +24,7 @@ import { encodeShare, decodeShare, shareLink, shareSize } from './share.js';
 import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
 import { paintPouch, measurePouch } from './pouch.js';
+import { toggleSailBar } from './profile-bar.js';
 import { hidePeek, wirePeek } from './peek.js';
 import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
@@ -900,6 +901,10 @@ function wire() {
 				return;
 			}
 			case 'add-build': return openBuildPicker();
+			// The sailing numbers, folded into their line or open for
+			// typing. The pouch alone is repainted: nothing about the
+			// screens below it has changed.
+			case 'sail-bar': toggleSailBar(); return paintPouch();
 			case 'blockers-all': toggleBlockers(); return render();
 			case 'enh-blocked': toggleBlocked(); return render();
 			case 'open-item': hidePeek(); showView('inventory'); setSelected(el.dataset.item); return render();
