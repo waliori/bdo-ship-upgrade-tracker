@@ -65,7 +65,7 @@ test('value counts silver net of land goods and the goods kept; the stock orders
 	assert.equal(valueOf(run, presetOrders('cash')), run.net + run.kept.reduce((a, k) => a + k.total, 0) + run.stashed.reduce((a, k) => a + k.total, 0));
 	const low = { net: 0, kept: [{ item: '[Level 1] Raft Toy', n: 4, total: 0 }, { item: '[Level 2] Urchin Spine', n: 2, total: 0 }], stashed: [] };
 	assert.equal(valueOf(low, presetOrders('cash')), 0);
-	assert.equal(valueOf(low, presetOrders('stock')), 4 * STOCK_WORTH[1] + 2 * STOCK_WORTH[2]);
+	assert.equal(valueOf(low, presetOrders('floor')), 4 * STOCK_WORTH[1] + 2 * STOCK_WORTH[2]);
 	assert.equal(hoursOf({ stops: [] }, { start: iliya, npcById, ...ship }), 0);
 	assert.ok(hoursOf(run, { start: iliya, npcById, ...ship }) > 0);
 });
@@ -125,7 +125,7 @@ test('a stock run is judged by what it banks, not by what it would sell for', ()
 	const targets = { 1: 20, 2: 20, 3: 20 };
 	const targetOf = name => targets[levelOf(name)] || 0;
 	const low = chains(data, {}, {}, null, ceiling);
-	const stockOrders = { ...presetOrders('stock'), sell: 8, floors: targets };
+	const stockOrders = { ...presetOrders('floor'), sell: 8, floors: targets };
 	const mine = { ...opts, dock: {}, orders: stockOrders, pace: 'full' };
 	const aim = { targets, held: [], kind: 'fill' };
 	const { proposals, best } = propose({ chains: low, opts: mine, ship, aim });

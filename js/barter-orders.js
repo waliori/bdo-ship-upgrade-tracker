@@ -31,11 +31,19 @@ export const PRESETS = [
 		orders: { sell: 5, floors: {}, buy: true, pace: 'fast' }
 	},
 	{
-		id: 'stock', label: 'Build the stocks',
+		// Called "Build the stocks" until the Barter tab grew a goal that
+		// actually builds one. This is the other day: it sells, and the
+		// floors are there so that selling does not strip the pile. A
+		// save from before the rename is brought across in readOrders.
+		id: 'floor', label: 'Sell the top, keep a floor',
 		sub: 'finish every island, sell the top, keep a floor of every level for tomorrow’s board',
 		orders: { sell: 7, floors: { 1: 10, 2: 30, 3: 30, 4: 40, 5: 4 }, buy: true, pace: 'full' }
 	}
 ];
+
+/** What a preset was called before, so a save that names the old one
+ *  still lands on the same set of orders. */
+const RENAMED = { stock: 'floor' };
 
 export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, landFrom: 'buy', hours: 0, count: 'least', way: 'sea', quests: 'near' };
 
@@ -108,7 +116,8 @@ export const SELL_CHOICES = [
 export function readOrders(raw) {
 	const o = { ...DEFAULT_ORDERS };
 	if (!raw || typeof raw !== 'object') return o;
-	if (PRESETS.some(p => p.id === raw.preset)) o.preset = raw.preset;
+	const named = RENAMED[raw.preset] || raw.preset;
+	if (PRESETS.some(p => p.id === named)) o.preset = named;
 	if (SELL_CHOICES.some(([v]) => v === Number(raw.sell))) o.sell = Number(raw.sell);
 	if (raw.floors && typeof raw.floors === 'object') {
 		const floors = {};

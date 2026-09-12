@@ -1155,6 +1155,7 @@ function ordersHTML(o, stocking = false) {
 		</div>
 		${stocking ? '' : `<div class="run-floors" title="Kept back for the boards to come: never sold, never spent below this many">
 			<span class="run-pick-k">keep back, of every good at a level</span>${floors}
+			<span class="orders-sub floors-note">a floor is what the selling never touches — to sell nothing at all and fill the pile to a number, <button class="linky" data-act="barter-goal" data-id="stock">build a stock</button> instead</span>
 		</div>`}
 		${savedHTML()}
 	</div>`;

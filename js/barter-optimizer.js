@@ -20,10 +20,12 @@ import { sellOf, goodsHeld } from './barter-plan.js';
 import { pathLength, sailSeconds } from './sailing.js';
 
 /**
- * What a Level 1 or 2 good is worth kept, under "build the stocks":
+ * What a Level 1 or 2 good is worth kept, on a day that keeps a floor:
  * nothing pays for them, but each becomes part of a Level 3 that pays
  * a million -- a quarter and a half of that, for the two rungs and
  * the two or three an exchange pays. Under "cash out" they are weight.
+ * A stock run does not come through here at all: it is scored in goods
+ * by `fillOf`, and silver never enters into it.
  */
 export const STOCK_WORTH = { 1: 250000, 2: 500000 };
 
@@ -34,7 +36,7 @@ export const STOCK_WORTH = { 1: 250000, 2: 500000 };
  * that pay nothing yet.
  */
 export function valueOf(run, orders) {
-	const stock = orders && orders.preset === 'stock';
+	const stock = orders && orders.preset === 'floor';
 	let v = run.net;
 	for (const g of [...run.kept, ...run.stashed]) {
 		const lv = levelOf(g.item);

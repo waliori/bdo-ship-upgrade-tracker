@@ -144,6 +144,7 @@
 .run-floor { display: inline-flex; align-items: center; gap: 4px; }
 .run-floor i { width: 16px; height: 14px; border-radius: 3px; background: var(--tier); color: var(--on-tint); font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
 .run-floor .purse-inline { width: 46px; text-align: center; }
+.floors-note { flex: 1 1 260px; min-width: 0; }
 
 /* ---- the stock: a row a level, what is held against what is kept --- */
 .stock-sheet { display: flex; flex-direction: column; gap: 8px; }
