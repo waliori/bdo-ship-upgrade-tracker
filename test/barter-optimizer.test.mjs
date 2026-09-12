@@ -101,3 +101,49 @@ test('a budget that is not reached leaves the search whole', () => {
 	assert.equal(partial, false);
 	assert.deepEqual(proposals.map(p => p.ids), propose({ chains: all, opts, ship }).proposals.map(p => p.ids));
 });
+
+import { fullness, fillOf } from '../js/barter-optimizer.js';
+import { levelOf } from '../js/barter.js';
+
+test('a stock is as full as its targets, and no fuller: what is over a target adds nothing', () => {
+	const to = { '[Level 1] Bronze Statue': 10, '[Level 2] Bronze Coin': 10 };
+	const targetOf = name => to[name] || 0;
+	const held = new Map([['[Level 1] Bronze Statue', 4]]);
+	assert.equal(fullness(held, targetOf), 4);
+	assert.equal(fullness(new Map([['[Level 1] Bronze Statue', 10]]), targetOf), 10);
+	// Over the target counts for no more, and a good with no target for nothing.
+	assert.equal(fullness(new Map([['[Level 1] Bronze Statue', 40]]), targetOf), 10);
+	assert.equal(fullness(new Map([['[Level 7] Ruby', 9]]), targetOf), 0);
+	// A [Level 2] is two rungs of work, so it counts double.
+	assert.equal(fullness(new Map([['[Level 2] Bronze Coin', 3]]), targetOf), 6);
+});
+
+test('a stock run is judged by what it banks, not by what it would sell for', () => {
+	// Targets on the low goods only, and a ceiling to match: the run
+	// that fills them beats the run that climbs past them.
+	const ceiling = 3;
+	const targets = { 1: 20, 2: 20, 3: 20 };
+	const targetOf = name => targets[levelOf(name)] || 0;
+	const low = chains(data, {}, {}, null, ceiling);
+	const stockOrders = { ...presetOrders('stock'), sell: 8, floors: targets };
+	const mine = { ...opts, dock: {}, orders: stockOrders, pace: 'full' };
+	const score = run => fillOf(run, { targetOf, held: new Map(), stock: mine.stock });
+	const { proposals, best } = propose({
+		chains: low, opts: mine, ship, score,
+		kinds: [{ kind: 'stock', label: 'The fullest stock', of: s => s.value }]
+	});
+	assert.ok(best && best.value > 0, 'a run that banks nothing is no proposal');
+	assert.equal(proposals[0].kind, 'stock');
+	// Nothing is sold, so the run is worth nothing in silver and every
+	// good it makes is still in hand at the end.
+	const run = best.run;
+	assert.equal(run.silver, 0);
+	assert.ok(run.trades > 0);
+	for (const c of best.ids.map(id => low.find(x => x.id === id))) assert.ok(c.top <= ceiling);
+	// The score is exactly the goods banked, each counted to its target.
+	const banked = [...run.kept, ...run.stashed].reduce((a, g) => a + Math.min(g.n, targetOf(g.item)) * (levelOf(g.item) || 0), 0);
+	assert.ok(banked >= best.value, 'nothing counted that the run did not end holding');
+	// A stock already at its targets has nothing to gain from the same run.
+	const full = new Map([...run.kept, ...run.stashed].map(g => [g.item, targets[levelOf(g.item)] || 0]));
+	assert.equal(fillOf(run, { targetOf, held: full, stock: {} }), 0);
+});

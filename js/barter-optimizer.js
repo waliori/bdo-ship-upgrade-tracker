@@ -16,7 +16,7 @@
 import { chainRun } from './barter-chains.js';
 import { yardsticks } from './barter-orders.js';
 import { levelOf } from './barter.js';
-import { sellOf } from './barter-plan.js';
+import { sellOf, goodsHeld } from './barter-plan.js';
 import { pathLength, sailSeconds } from './sailing.js';
 
 /**
@@ -41,6 +41,46 @@ export function valueOf(run, orders) {
 		v += g.n * (sellOf(g.item) || (stock ? STOCK_WORTH[lv] || 0 : 0));
 	}
 	return v;
+}
+
+/**
+ * How full a stock stands, as one number: every good counted up to the
+ * target it is kept to and no further, weighted by its level, since a
+ * [Level 4] is four rungs of work where a [Level 1] is one. A good
+ * over its target adds nothing more -- which is the whole rule of a
+ * stock run, written as arithmetic: the surplus above a target is free
+ * to climb, and what is still short is not.
+ */
+export function fullness(goods, targetOf) {
+	let v = 0;
+	for (const [name, n] of goods) {
+		const lv = levelOf(name);
+		if (!lv) continue;
+		v += Math.min(n, targetOf(name)) * lv;
+	}
+	return v;
+}
+
+/**
+ * What a run adds to the stock: how full it stands after, less how
+ * full it stood before. `held` is everything the sailor keeps, aboard
+ * and ashore, as a Map; the run's own goods are counted out of it and
+ * what the run ends with counted back in, so a good left at a wharf
+ * and a good carried home weigh the same. Goods sold are gone from the
+ * end and so are worth nothing here: in a stock run, selling is not a
+ * win. Spending a good still short of its target costs what it was
+ * worth, which is why a level fills before the run climbs from it.
+ */
+export function fillOf(run, { targetOf, held = new Map(), stock = {} } = {}) {
+	const before = new Map(held);
+	const after = new Map(held);
+	const move = (goods, name, n) => goods.set(name, (goods.get(name) || 0) + n);
+	// What the run began with in hand: the hold, and what it loaded at
+	// the harbour it sailed from.
+	for (const [name, n] of goodsHeld(stock)) move(after, name, -n);
+	for (const l of run.loaded) move(after, l.item, -l.n);
+	for (const g of [...run.kept, ...run.stashed]) move(after, g.item, g.n);
+	return fullness(after, targetOf) - fullness(before, targetOf);
 }
 
 /** A rough time under way for a run: straight legs through its stops
@@ -69,11 +109,24 @@ const now = typeof performance !== 'undefined' && performance.now ? () => perfor
  * than the best run after the sailor has looked away. Unlimited by
  * default, so a test judges every set.
  *
+ * `score` is what a set is judged by, `valueOf` -- silver, and what
+ * the goods kept would fetch -- when nothing else is given; a stock
+ * run hands in `fillOf` instead, and then not one number on the page
+ * is silver. `kinds` are the proposals made from the sets judged,
+ * [{ kind, label, of }] with `of` reading a judged set; the three
+ * below are the silver run's.
+ *
  * Returns { proposals, best, partial }: up to three { kind, label,
  * ids, run, value, hours, yard } that differ in their ids, most silver
  * first, and `best` the set every search step judged best by value.
  */
-export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width = 5, depth = 8, budgetMs = Infinity } = {}) {
+export const SILVER_KINDS = [
+	{ kind: 'silver', label: 'The most silver', of: s => s.value },
+	{ kind: 'hour', label: 'The most an hour', of: s => (s.hours > 0 ? s.value / s.hours : 0) },
+	{ kind: 'parley', label: 'The most a Parley unit', of: s => s.yard.perUnit }
+];
+
+export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width = 5, depth = 8, budgetMs = Infinity, score = null, kinds = SILVER_KINDS } = {}) {
 	const orders = opts.orders;
 	const t0 = now();
 	const late = () => budgetMs !== Infinity && now() - t0 >= budgetMs;
@@ -85,7 +138,7 @@ export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width
 		const chosen = ids.map(id => byId.get(id)).filter(Boolean);
 		const run = chainRun({ ...opts, chosen });
 		const hours = hoursOf(run, { start: opts.start, npcById: opts.npcById, speed: ship.speed, cal: ship.cal });
-		const out = { ids: [...ids], run, value: valueOf(run, orders), hours, yard: yardsticks(run.net, run.parleyUsed, hours) };
+		const out = { ids: [...ids], run, value: score ? score(run) : valueOf(run, orders), hours, yard: yardsticks(run.net, run.parleyUsed, hours) };
 		memo.set(key, out);
 		return out;
 	};
@@ -119,15 +172,11 @@ export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width
 
 	const all = [...seen.values()].filter(s => s.ids.length && s.run.trades > 0);
 	if (!all.length) return { proposals: [], best: null, partial };
-	const pick = (kind, label, score) => {
-		const s = all.reduce((a, b) => (score(b) > score(a) ? b : a));
-		return score(s) > 0 ? { kind, label, ...s } : null;
+	const pick = ({ kind, label, of }) => {
+		const s = all.reduce((a, b) => (of(b) > of(a) ? b : a));
+		return of(s) > 0 ? { kind, label, ...s } : null;
 	};
-	const cands = [
-		pick('silver', 'The most silver', s => s.value),
-		pick('hour', 'The most an hour', s => (s.hours > 0 ? s.value / s.hours : 0)),
-		pick('parley', 'The most a Parley unit', s => s.yard.perUnit)
-	].filter(Boolean);
+	const cands = kinds.map(pick).filter(Boolean);
 	// Three that differ: a set already proposed under another name is
 	// not proposed twice.
 	const proposals = [];
