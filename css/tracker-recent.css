@@ -245,6 +245,7 @@
    run is can be read without reading the numbers. */
 .sail-timer-bar { position: absolute; inset: auto 0 0 0; height: 2px; background: rgba(255, 255, 255, 0.06); }
 .sail-timer-bar i { display: block; height: 100%; background: var(--teal); transition: width 1s linear; }
+.sail-timer .chip.tiny.warn { border-color: var(--red-edge); color: var(--amber); }
 .sail-timer-modes { display: inline-flex; gap: 2px; }
 .sail-timer-modes .chip.tiny { padding: 2px 7px; font-size: 10.5px; }
 .sail-timer.over { background: rgba(232, 184, 109, 0.1); }

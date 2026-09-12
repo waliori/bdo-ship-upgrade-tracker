@@ -242,26 +242,113 @@ export function chime(beeps = 3) {
  *  the thing that sounds like an ending. */
 export const chimeStop = () => chime(1);
 
-/** Whether a notification can be shown without asking again. */
-export const canNotify = () => typeof Notification !== 'undefined' && Notification.permission === 'granted';
+/* ------------------------------------------------------------------ *
+ * Notifications, as the four engines actually do them
+ * ------------------------------------------------------------------ *
+ *
+ * The plain `new Notification(...)` works on a desktop and on nothing
+ * else. Chrome and Brave on Android throw on the constructor outright
+ * -- a notification there has to come from the service worker -- and
+ * Safari has the API only once the app is on the Home Screen, where it
+ * is again the worker that shows it. Firefox for Android has no
+ * Notification API at all. So: the worker first, the constructor as the
+ * fallback, and a plain answer when neither is going to happen, because
+ * a button that quietly does nothing is worse than one that is not
+ * there.
+ */
 
-/** Ask for notifications, if the browser has them and has not been
- *  asked. Returns what it ended up as. */
+/** Whether the app is running as its own window rather than in a tab.
+ *  On Safari this is the difference between having notifications and
+ *  not having them. */
+export const installed = () => {
+	try {
+		return window.navigator.standalone === true
+			|| (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+	} catch {
+		return false;
+	}
+};
+
+/**
+ * What this browser will do about notifications, right now:
+ *
+ *   'granted'  -- yes, and it has said so
+ *   'default'  -- it will ask
+ *   'denied'   -- it has been asked and said no
+ *   'install'  -- Safari in a tab: they arrive with the Home Screen app
+ *   'none'     -- this browser does not do them at all
+ */
+export function notifySupport() {
+	// A page served over plain http to anything but localhost is not a
+	// secure context, and no browser will show a notification from one
+	// -- nor register the worker that would have shown it. Testing the
+	// app from a phone at the desktop's address on the local network is
+	// exactly that case, and it is worth saying so rather than leaving a
+	// button that does nothing.
+	if (typeof window !== 'undefined' && window.isSecureContext === false) return 'insecure';
+	if (typeof Notification === 'undefined') return installed() ? 'none' : 'install';
+	return Notification.permission === 'granted' ? 'granted'
+		: Notification.permission === 'denied' ? 'denied' : 'default';
+}
+
+/** Whether a notification can be shown without asking again. */
+export const canNotify = () => notifySupport() === 'granted';
+
+/**
+ * Ask the browser, and say what it answered. Safari's older form takes
+ * a callback and returns nothing, the rest return a promise; both are
+ * accepted here rather than guessing which is in front of us.
+ */
 export async function askNotify() {
-	if (typeof Notification === 'undefined') return 'unsupported';
-	if (Notification.permission !== 'default') return Notification.permission;
-	try { return await Notification.requestPermission(); } catch { return Notification.permission; }
+	const state = notifySupport();
+	if (state !== 'default') return state;
+	return new Promise(resolve => {
+		let done = false;
+		const settle = perm => { if (!done) { done = true; resolve(perm || Notification.permission || 'denied'); } };
+		try {
+			const asked = Notification.requestPermission(settle);
+			if (asked && typeof asked.then === 'function') asked.then(settle, () => settle(Notification.permission));
+		} catch {
+			settle(Notification.permission);
+		}
+	});
+}
+
+/**
+ * Show one. The worker is asked first because on a phone it is the only
+ * thing that can; the constructor is there for a desktop with no worker
+ * registered yet. Returns whether anything was actually shown, so the
+ * caller can say so.
+ */
+export async function showNote(title, body, tag = 'bdo-sail-timer') {
+	if (!canNotify()) return false;
+	const opts = { body, tag, icon: 'icon-192.png', badge: 'icon-192.png', data: { url: '/#barter' } };
+	try {
+		// getRegistration rather than `ready`: `ready` never settles when
+		// no worker is registered, and this must not hang a chime.
+		const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+		if (reg && typeof reg.showNotification === 'function') {
+			await reg.showNotification(title, opts);
+			return true;
+		}
+	} catch { /* fall through to the constructor */ }
+	try {
+		const n = new Notification(title, opts);
+		n.onclick = () => { try { window.focus(); n.close(); } catch { /* the tab is gone */ } };
+		return true;
+	} catch {
+		// Android Chrome and Brave land here: the constructor is illegal
+		// and the worker was not there. Nothing to show.
+		return false;
+	}
 }
 
 function notify(title, body) {
 	// With the account's own chimes armed, the same words are on their
 	// way to every device -- this one included -- and saying it twice
 	// here would be two notifications for one stop.
-	if (!canNotify() || pushOn()) return;
-	try {
-		const n = new Notification(title, { body, tag: 'bdo-sail-timer', icon: 'icon-192.png' });
-		n.onclick = () => { try { window.focus(); n.close(); } catch { /* the tab is gone */ } };
-	} catch { /* the browser said no after all */ }
+	if (pushOn()) return;
+	showNote(title, body);
 }
 
 /* ------------------------------------------------------------------ *
@@ -361,7 +448,19 @@ export function spanText(secs) {
  */
 export function timerHTML({ suggest = 0, label = '', marks = [] } = {}) {
 	const t = timerState();
-	const bell = canNotify() ? '' : '<button class="chip tiny" data-act="barter-timer-notify" title="Ask the browser for a notification as well, so it lands with the tab in the background">🔔 notify me too</button>';
+	// The bell says what this browser is actually going to do: ask,
+	// explain why it cannot, or nothing at all once it has said yes.
+	const support = notifySupport();
+	const bellText = { default: '🔔 notify me too', denied: '🔔 blocked', install: '🔔 on the Home Screen', insecure: '🔔 needs https', none: '' };
+	const bellWhy = {
+		default: 'Ask the browser for a notification as well, so a chime lands with the tab in the background',
+		denied: 'This site is blocked from showing notifications — press to see where to change it',
+		install: 'Safari shows notifications once the app is on the Home Screen — press to see how',
+		insecure: 'This page is served over plain http, where no browser allows notifications — press to see what does work',
+		none: ''
+	};
+	const bell = support === 'granted' || support === 'none' ? ''
+		: `<button class="chip tiny${support === 'denied' || support === 'insecure' ? ' warn' : ''}" data-act="barter-timer-notify" title="${esc(bellWhy[support])}">${bellText[support]}</button>`;
 	// Signed in, the chimes can be said again on every device the
 	// account has -- the phone in a pocket while the game has the screen.
 	const devices = canPush()
@@ -422,6 +521,41 @@ export function tickTimer() {
 	const text = clockText(t);
 	for (const el of els) el.textContent = text;
 	if (!beat) beat = setInterval(tickTimer, 1000);
+}
+
+/**
+ * The bell pressed: ask, say what came of it, and -- when the answer is
+ * yes -- show one there and then, so the sailor sees what a chime looks
+ * like on this device rather than finding out ten minutes into a run.
+ */
+export async function wantNotify() {
+	const before = notifySupport();
+	if (before === 'insecure') {
+		toast('Notifications need a secure page. This one is plain http, so no browser will allow them — they work on the live site, or at localhost. The clock still beeps here.', true);
+		return 'insecure';
+	}
+	if (before === 'none') {
+		toast('This browser has no notifications — the clock will still beep while this tab is open');
+		return 'none';
+	}
+	if (before === 'install') {
+		toast('On iPhone, notifications arrive once the app is added to the Home Screen — Share ▸ Add to Home Screen', true);
+		return 'install';
+	}
+	if (before === 'denied') {
+		toast('Notifications are blocked for this site — turn them on in the browser’s site settings', true);
+		return 'denied';
+	}
+	const perm = await askNotify();
+	if (perm !== 'granted') {
+		toast(perm === 'denied' ? 'The browser said no — it can be changed in the site settings' : 'No answer from the browser, so nothing has changed');
+		return perm;
+	}
+	const shown = await showNote('Notifications are on', 'This is what a chime will look like when the ship is in.', 'bdo-sail-hello');
+	toast(shown
+		? 'Notifications are on — one just came through to show you'
+		: 'The browser allowed them but would not show one; the clock will still beep here', true);
+	return 'granted';
 }
 
 /**
@@ -491,8 +625,10 @@ export function timerAction(act, el, then = null) {
 	}
 	if (act === 'barter-timer-notify') {
 		// The browser's own prompt is answered in its own time: the chip
-		// is drawn again when it has been, so the ask goes away.
-		askNotify().then(() => { if (then) then(); });
+		// is drawn again when it has been, so the ask goes away -- and
+		// whatever it answered is said out loud, because a button that
+		// looks like it did nothing is the one thing worse than a no.
+		wantNotify().then(() => { if (then) then(); });
 		return true;
 	}
 	return false;
