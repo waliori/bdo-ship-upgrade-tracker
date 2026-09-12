@@ -56,3 +56,50 @@ test('a timer is bounded, and one from yesterday is not shown', () => {
 	assert.equal(timerNow().label, 'this one');
 	stopTimer();
 });
+
+import { passedStop, marksMode, setMarksMode, MARK_CHOICES } from '../js/sail-timer.js';
+
+test('a run’s stops each get their own moment, and the last of them is the end', () => {
+	const marks = [{ at: 120, label: 'Baeza' }, { at: 300, label: 'Narvo' }, { at: 540, label: 'Iliya' }];
+	const end = startTimer(0, 'Baeza and 2 more', marks);
+	assert.equal(end, 540, 'the run is over when its last stop is');
+	const t0 = timerNow();
+	const at = s => timerState(t0.startedAt + s * 1000);
+
+	// On the way to the first: the clock says which stop and how far.
+	assert.equal(at(0).next.label, 'Baeza');
+	assert.equal(at(0).next.left, 120);
+	assert.equal(clockText(at(30)), '1 m 30 s to Baeza · stop 1 of 3');
+	// Past the first, it is making for the second.
+	assert.equal(at(150).next.label, 'Narvo');
+	assert.equal(at(150).next.i, 1);
+	// Past the last there is no next, and the end has gone by.
+	assert.equal(at(600).next, null);
+	assert.equal(at(600).over, true);
+	stopTimer();
+});
+
+test('ticking a stop off puts the rest of the run back by however late it was', () => {
+	const marks = [{ at: 100, label: 'A' }, { at: 200, label: 'B' }, { at: 300, label: 'C' }];
+	startTimer(0, 'A and 2 more', marks);
+	const started = timerNow().startedAt;
+	// The first stop is ticked off when it is reached -- but the clock is
+	// rewound so that "now" is a hundred seconds late.
+	store.setView('timer', { ...timerNow(), startedAt: started - 200_000 });
+	passedStop(0);
+	const t = timerNow();
+	assert.equal(t.done, 1);
+	assert.equal(t.marks[0].at, 100, 'a stop already behind keeps the moment it had');
+	assert.deepEqual(t.marks.slice(1).map(m => m.at), [300, 400], 'the rest are put back by the hundred seconds lost');
+	assert.equal(t.seconds, 400, 'and the run ends later than it was going to');
+	stopTimer();
+});
+
+test('which stops make a sound is a choice, and the marks are kept either way', () => {
+	assert.equal(marksMode(), 'each', 'stop by stop is the default: it is the one for sailing away from the keyboard');
+	setMarksMode('whole');
+	assert.equal(marksMode(), 'whole');
+	setMarksMode('nonsense');
+	assert.equal(marksMode(), 'each', 'anything else falls back to stop by stop');
+	assert.deepEqual(MARK_CHOICES.map(c => c[0]), ['each', 'whole']);
+});

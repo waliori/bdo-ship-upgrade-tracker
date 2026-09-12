@@ -266,11 +266,50 @@ export const MIGRATIONS = [
 			// The only question asked of it is "how many lately".
 			await run('CREATE INDEX IF NOT EXISTS presence_seen ON presence (seen_at)');
 		}
+	},
+	{
+		version: 5,
+		up: async run => {
+			// A subscription can now belong to an account as well as to a
+			// region. The region is the Vell timetable it follows, which
+			// wants no account at all; the account is what lets one
+			// device's clock reach the others -- a chime set on the
+			// desktop reaching the phone in a pocket. Null for anyone who
+			// subscribed without signing in, which is still allowed.
+			await run('ALTER TABLE push_subs ADD COLUMN user_id TEXT');
+			// The chimes an account has asked for, each at its own
+			// moment. Rows are short-lived: the sweep sends them and
+			// deletes them, and a run is over in minutes. Nothing here
+			// says what the chime is for beyond the words to show.
+			await run(`CREATE TABLE IF NOT EXISTS push_alerts (
+				id          INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				at          INTEGER NOT NULL,
+				title       TEXT NOT NULL,
+				body        TEXT NOT NULL,
+				tag         TEXT NOT NULL,
+				created_at  INTEGER NOT NULL
+			)`);
+			// The sweep asks one question, every few seconds: what is due.
+			await run('CREATE INDEX IF NOT EXISTS push_alerts_at ON push_alerts (at)');
+		}
+	},
+	{
+		version: 6,
+		up: async run => {
+			// What a subscription is for. A browser has one endpoint and
+			// this app has two things to say through it, so a device
+			// subscribed only so that its owner's chimes can reach it must
+			// not also start getting the Vell reminder. Everyone already
+			// subscribed asked for Vell -- that was the only reason to
+			// subscribe -- so the default says so.
+			await run('ALTER TABLE push_subs ADD COLUMN vell INTEGER NOT NULL DEFAULT 1');
+		}
 	}
 ];
 
 /** The data tables, in the order a restore has to write them (parents first). */
-export const TABLES = ['users', 'saves', 'push_subs', 'feedback', 'community', 'presence'];
+export const TABLES = ['users', 'saves', 'push_subs', 'push_alerts', 'feedback', 'community', 'presence'];
 
 /**
  * Bring the database up to the newest version. Safe to run any number
@@ -339,12 +378,22 @@ export async function ping() {
  * Push subscriptions
  * ------------------------------------------------------------------ */
 
-export async function putPushSub(endpoint, sub, region) {
+/**
+ * Keep a subscription, or bring it up to date. `vell` is whether the
+ * Vell reminder is wanted through it; null leaves whatever the row
+ * already said, so a device subscribing for its owner's chimes does
+ * not turn the reminder off, or on.
+ */
+export async function putPushSub(endpoint, sub, region, userId = null, vell = null) {
 	await migrate();
 	await exec({
-		sql: `INSERT INTO push_subs (endpoint, sub, region, created_at) VALUES (?, ?, ?, ?)
-			ON CONFLICT(endpoint) DO UPDATE SET sub = excluded.sub, region = excluded.region`,
-		args: [endpoint, JSON.stringify(sub), region, Date.now()]
+		sql: `INSERT INTO push_subs (endpoint, sub, region, created_at, user_id, vell) VALUES (?, ?, ?, ?, ?, ?)
+			ON CONFLICT(endpoint) DO UPDATE SET sub = excluded.sub, region = excluded.region, user_id = excluded.user_id,
+				vell = COALESCE(?, push_subs.vell)`,
+		// A row made for the sailor's own chimes asks for nothing from the
+		// timetable: only an explicit yes puts a new one on the Vell
+		// round. An update says nothing either way and leaves it alone.
+		args: [endpoint, JSON.stringify(sub), region, Date.now(), userId, vell === true ? 1 : 0, vell === null ? null : (vell ? 1 : 0)]
 	});
 }
 
@@ -355,8 +404,61 @@ export async function deletePushSub(endpoint) {
 
 export async function listPushSubs(region) {
 	await migrate();
-	const { rows } = await exec({ sql: 'SELECT endpoint, sub FROM push_subs WHERE region = ?', args: [region] });
+	const { rows } = await exec({ sql: 'SELECT endpoint, sub FROM push_subs WHERE region = ? AND vell = 1', args: [region] });
 	return rows.map(r => ({ endpoint: r.endpoint, sub: JSON.parse(r.sub) }));
+}
+
+/** Every subscription an account has: the devices a chime reaches. */
+export async function listUserPushSubs(userId) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT endpoint, sub FROM push_subs WHERE user_id = ?', args: [userId] });
+	return rows.map(r => ({ endpoint: r.endpoint, sub: JSON.parse(r.sub) }));
+}
+
+/* ------------------------------------------------------------------ *
+ * The chimes an account has asked for
+ * ------------------------------------------------------------------ */
+
+/** Put a set of alerts in, having taken out whatever was there under
+ *  the same tag: a clock restarted replaces its own schedule rather
+ *  than chiming twice for the same run. */
+export async function putPushAlerts(userId, tag, alerts) {
+	await migrate();
+	await exec({ sql: 'DELETE FROM push_alerts WHERE user_id = ? AND tag = ?', args: [userId, tag] });
+	const now = Date.now();
+	for (const a of alerts) {
+		await exec({
+			sql: 'INSERT INTO push_alerts (user_id, at, title, body, tag, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+			args: [userId, Math.round(a.at), a.title, a.body, tag, now]
+		});
+	}
+}
+
+export async function deletePushAlerts(userId, tag = null) {
+	await migrate();
+	if (tag) await exec({ sql: 'DELETE FROM push_alerts WHERE user_id = ? AND tag = ?', args: [userId, tag] });
+	else await exec({ sql: 'DELETE FROM push_alerts WHERE user_id = ?', args: [userId] });
+}
+
+export async function countPushAlerts(userId) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT COUNT(*) AS n FROM push_alerts WHERE user_id = ?', args: [userId] });
+	return Number(rows[0] && rows[0].n) || 0;
+}
+
+/** What is due to be sent, oldest first. A row long past its moment is
+ *  due as much as one that has just come round: a server that was down
+ *  for a minute should still say what it was going to say. */
+export async function duePushAlerts(now, limit = 100) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT id, user_id, at, title, body, tag FROM push_alerts WHERE at <= ? ORDER BY at LIMIT ?', args: [now, limit] });
+	return rows.map(r => ({ id: Number(r.id), userId: r.user_id, at: Number(r.at), title: r.title, body: r.body, tag: r.tag }));
+}
+
+export async function dropPushAlerts(ids) {
+	if (!ids.length) return;
+	await migrate();
+	await exec({ sql: `DELETE FROM push_alerts WHERE id IN (${ids.map(() => '?').join(',')})`, args: ids });
 }
 
 export async function countPushSubs() {

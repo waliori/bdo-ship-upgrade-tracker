@@ -43,7 +43,7 @@ import { openPicker } from './picker.js';
 import { openTripLog } from './triplog.js';
 import { toast, openDialog, closeDialog } from './dialogs.js';
 import { cheer } from './cheer.js';
-import { timerHTML, timerAction, timerState, startTimer } from './sail-timer.js';
+import { timerHTML, timerAction, timerState, startTimer, passedStop } from './sail-timer.js';
 
 /* ------------------------------------------------------------------ *
  * what the tab remembers
@@ -1576,6 +1576,31 @@ function runLabel(plan) {
 	return isles.length === 1 ? isles[0] : `${isles[0]} and ${isles.length - 1} more`;
 }
 
+/** What one stop is called, for a chime that names it. */
+const stopLabel = s => (s.npcId ? isleShort(npcById.get(s.npcId)) || s.npc : s.wharf ? s.wharf.at : s.place ? s.place.name : 'a stop');
+
+/**
+ * The stops of a run as the clock keeps them: each at its own second
+ * from casting off, the last of them the end of the run.
+ *
+ * The legs are already bent round the coast and already have a time on
+ * them; this only adds them up. Where the run has no harbour to sail
+ * from, the first stop is where the ship already is and carries no leg
+ * -- it is not something to wait for, so it is not a mark.
+ */
+function runMarks(plan, legs) {
+	if (!legs || !legs.legs.length) return [];
+	const out = [];
+	let at = 0;
+	plan.stops.forEach((s, i) => {
+		const leg = legs.from ? legs.legs[i] : legs.legs[i - 1];
+		if (!(leg > 0)) return;
+		at += legs.secondsOf(leg);
+		out.push({ at: Math.round(at), label: stopLabel(s) });
+	});
+	return out;
+}
+
 function sailBar(plan) {
 	if (!plan || !plan.stops.length) return '';
 	const on = sailing();
@@ -1583,7 +1608,7 @@ function sailBar(plan) {
 	// estimate: the page cannot see the ship, so the one thing it can do
 	// is say when the time is up.
 	const legs = legsOf(plan.stops);
-	const clock = timerHTML({ suggest: legs.mid || 0, label: runLabel(plan) });
+	const clock = timerHTML({ suggest: legs.mid || 0, label: runLabel(plan), marks: runMarks(plan, legs) });
 	if (!on) return `<div class="sail-bar"><button class="act" data-act="barter-sail" title="Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change">⛵ Sail this run</button><span class="faint">tick each stop off as you sail; what an island paid re-counts the rest; Record at the end puts the whole trip in the Inventory in one Undo</span><span class="panel-spacer"></span>${clock}</div>`;
 	const n = plan.stops.filter((s, k) => on.done.includes(stopKey(s, k, plan.stops))).length;
 	const questsLeft = [...(plan.questsHome || []), ...plan.stops.flatMap(s => s.quests || [])].map(x => x.q).filter(q => !questDone(q)).length;
@@ -1654,7 +1679,13 @@ function markDone(on, k) {
 	cheer();
 	const plan = shownPlan || planOfSail(on);
 	if (!plan) return;
-	const stop = plan.stops.find((s, i) => stopKey(s, i, plan.stops) === k);
+	const at = plan.stops.findIndex((s, i) => stopKey(s, i, plan.stops) === k);
+	// The clock is told where the ship really is: the legs still ahead
+	// are counted from now rather than from an estimate made before the
+	// ship left, so a run that ran late does not chime early all the way
+	// to the end.
+	if (at >= 0) passedStop(at);
+	const stop = plan.stops[at];
 	const list = ((stop && stop.quests) || []).filter(x => x.step.what !== 'hunt').map(x => x.q).filter(q => !questDone(q) && rewardOf(q));
 	if (list.length) {
 		store.claimQuests(list.map(q => ({ id: q.id, delta: rewardOf(q), key: periodKey(cadenceOf(q)) })), `Handed in ${list.length === 1 ? questTitle(list[0]) : `${list.length} quests`} at ${stop.place ? stop.place.name : stop.wharf ? stop.wharf.at : isleOf(npcById.get(stop.npcId))}`);
@@ -2848,7 +2879,7 @@ export function barterAction(act, el, redraw) {
 			// ship leaves -- and it is the gesture the browser wants before
 			// the page is allowed to make a sound.
 			const legs = legsOf(shownPlan.stops);
-			if (legs.mid > 0 && !timerState()) startTimer(legs.mid, runLabel(shownPlan));
+			if (legs.mid > 0 && !timerState()) startTimer(legs.mid, runLabel(shownPlan), runMarks(shownPlan, legs));
 			persist();
 			return true;
 		}

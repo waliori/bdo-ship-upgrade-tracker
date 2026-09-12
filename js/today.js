@@ -7,6 +7,7 @@
 
 import { esc, F } from './fmt.js';
 import * as store from './state.js';
+import { subscribeFor, dropSubscription } from './push-sub.js';
 import { snapshot } from './ui-state.js';
 import { quests } from './quests.js';
 import { questDone, wantedQuests } from './screen-quests.js';
@@ -142,52 +143,29 @@ export function todayStrip() {
 const REMIND_BEFORE = 15 * 60e3;
 let remindedFor = 0;
 
-const b64ToBytes = s => {
-	const b = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - s.length % 4) % 4));
-	return Uint8Array.from(b, c => c.charCodeAt(0));
-};
-
 /** The server region the push timetable would follow, if it has one. */
-function pushRegion() {
+export function pushRegion() {
 	const r = String(store.getSetting('marketRegion', DEFAULT_REGION) || DEFAULT_REGION).replace('console_', '');
 	return VELL[r] ? r : null;
 }
 
-/** Try for a push subscription: the server must offer it, the browser
- *  must have a worker, and the region must have a timetable. True when
- *  the reminder is now the server's job. */
+/** Try for a push subscription for the Vell reminder: the server must
+ *  offer it, the browser must have a worker, and the region must have a
+ *  timetable. True when the reminder is now the server's job. */
 async function subscribePush() {
 	const region = pushRegion();
-	if (!region || !('serviceWorker' in navigator) || !('PushManager' in window)) return false;
-	try {
-		const cfg = await (await fetch('/api/config')).json();
-		if (!cfg || !cfg.push) return false;
-		const { key } = await (await fetch('/api/push/key')).json();
-		const reg = await navigator.serviceWorker.ready;
-		const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(key) });
-		const res = await fetch('/api/push/subscribe', {
-			method: 'POST', headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ subscription: sub.toJSON(), region })
-		});
-		return res.ok;
-	} catch {
-		return false;
-	}
+	if (!region) return false;
+	return subscribeFor({ region, vell: true });
 }
 
+/** Give up the Vell half. The subscription itself stays where the
+ *  sailor's own chimes are still going through it; it is only the
+ *  timetable that is let go. */
 async function unsubscribePush() {
 	if (store.getSetting('vellPush', false) !== true) return;
-	try {
-		const reg = await navigator.serviceWorker.ready;
-		const sub = await reg.pushManager.getSubscription();
-		if (sub) {
-			await fetch('/api/push/subscribe', {
-				method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ endpoint: sub.endpoint })
-			}).catch(() => {});
-			await sub.unsubscribe();
-		}
-	} catch { /* then the server's copy dies of a 410 on its next send */ }
+	const region = pushRegion();
+	if (store.getSetting('timerPush', false) === true && region) await subscribeFor({ region, vell: false });
+	else await dropSubscription();
 }
 
 /** Turn the reminder on (asking the browser first) or off. By push
