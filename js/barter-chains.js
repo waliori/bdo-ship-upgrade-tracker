@@ -41,13 +41,21 @@ import { sellable, floorOf, PLAIN_ORDERS } from './barter-orders.js';
  * one thing on this tab that could not be sailed. Left null when no
  * count is given, so a caller that has no player in hand still gets
  * the whole board.
+ *
+ * `ceiling` is the level the climbs stop at, 0 for the top of the
+ * board. A sailor building a stock of the low goods does not want the
+ * run carrying them up to a [Level 7] that pays: the chains are cut
+ * where the ceiling is, two that differed only above it become one,
+ * and a good already held at the ceiling or above starts nothing --
+ * it is the stock, not the fuel.
  */
-export function chains(barterData, stock = {}, dock = {}, barterCount = null) {
+export function chains(barterData, stock = {}, dock = {}, barterCount = null, ceiling = 0) {
 	const rows = exchanges(barterData).filter(r => levelOf(r.item) !== null);
 	const takes = name => rows.filter(r => r.give === name);
+	const top = ceiling > 0 ? ceiling : Infinity;
 	const walk = (r, path) => {
 		const here = [...path, r];
-		const up = takes(r.item);
+		const up = levelOf(r.item) >= top ? [] : takes(r.item);
 		return up.length ? up.flatMap(n => walk(n, here)) : [here];
 	};
 	const out = [];
@@ -57,11 +65,14 @@ export function chains(barterData, stock = {}, dock = {}, barterCount = null) {
 	}
 	const aboard = goodsHeld(stock), ashore = goodsHeld(dock);
 	for (const item of new Set([...aboard.keys(), ...ashore.keys()])) {
+		if (levelOf(item) >= top) continue;
 		const have = aboard.get(item) || 0, load = ashore.get(item) || 0;
 		for (const r of takes(item)) for (const rungs of walk(r, [])) out.push({ from: have > 0 ? 'hold' : 'dock', item, have, load, rungs });
 	}
+	const seen = new Set();
 	return out
 		.map(c => ({ ...c, id: `${c.from === 'land' ? 'land' : 'hold'}:${c.item}:${c.rungs.map(r => r.npcId).join('.')}`, top: levelOf(c.rungs[c.rungs.length - 1].item), gate: gateOn(c.rungs, barterCount) }))
+		.filter(c => !seen.has(c.id) && seen.add(c.id))
 		.sort((a, b) => b.top - a.top || a.rungs.length - b.rungs.length || a.rungs[0].npc.localeCompare(b.rungs[0].npc));
 }
 

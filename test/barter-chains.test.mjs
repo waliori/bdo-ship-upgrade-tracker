@@ -232,3 +232,26 @@ test('a good held part-way up a chain from the shore is one climb with it: the i
 	// land chain alone does.
 	assert.ok(both.silver >= alone.silver);
 });
+
+test('a ceiling cuts every climb where the stock ends: nothing above it, and a good already there is not fuel', () => {
+	const four = '[Level 4] Amethyst Fragment';
+	const whole = chains(data, { [four]: 4 });
+	assert.ok(whole.some(c => c.top === 7), 'the board reaches a [Level 7] when nothing stops it');
+	assert.ok(whole.some(c => c.from === 'hold' && c.item === four), 'the [Level 4] held climbs when nothing stops it');
+	for (const ceiling of [1, 2, 3, 4]) {
+		const cut = chains(data, { [four]: 4 }, {}, null, ceiling);
+		assert.ok(cut.length > 0, `ceiling ${ceiling}: the board still climbs`);
+		for (const c of cut) {
+			assert.ok(c.top <= ceiling, `ceiling ${ceiling}: ${c.rungs[0].npc} stops at ${c.top}`);
+			assert.ok(levelOf(c.item) === null || levelOf(c.item) < ceiling, `ceiling ${ceiling}: ${c.item} is stock, not fuel`);
+			// Cut or whole, a chain is still a climb a rung at a time.
+			c.rungs.forEach((r, i) => { if (i) assert.equal(r.give, c.rungs[i - 1].item); });
+		}
+		// Two climbs that differed only above the ceiling are one chain.
+		assert.equal(new Set(cut.map(c => c.id)).size, cut.length, `ceiling ${ceiling}: no chain listed twice`);
+		assert.equal(cut.filter(c => c.from === 'hold' && c.item === four).length, ceiling > 4 ? 1 : 0);
+	}
+	// The land chains are all still there, just shorter.
+	const land = c => c.from === 'land';
+	assert.equal(chains(data, {}, {}, null, 1).filter(land).length, whole.filter(land).map(c => c.rungs[0].npcId).filter((x, i, a) => a.indexOf(x) === i).length);
+});
