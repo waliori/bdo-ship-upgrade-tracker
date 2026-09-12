@@ -16,7 +16,7 @@ import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
 import { img, codexName, amountInput } from './ui-bits.js';
 import { snapshot, barterData, barterProfile, combos, matBoards, SILVER } from './ui-state.js';
-import { barterKey, periodKey, BARTER_RESET_UTC } from './clock.js';
+import { barterKey, periodKey, currentPlan } from './clock.js';
 import { candidates, askable, offersAt, boardData } from './barter-board.js';
 import { currentShip, shownHold } from './ship.js';
 import { npcById, ports, isleOf, whoOf, isleShort } from './barter_npcs.js';
@@ -1432,10 +1432,6 @@ function takenNote(good) {
 }
 
 /**
- * The runs sailed lately: the last seven days, silver and trades a
- * day, from the trips recorded off the checklist.
- */
-/**
  * The day's boards, one under the other: what each run took out of the
  * storage, what it put back, and the totals across the lot.
  *
@@ -1468,6 +1464,10 @@ function todayHTML() {
 		silver: a.silver + r.silver, cost: a.cost + r.cost, stops: a.stops + r.stops
 	}), { trades: 0, parley: 0, silver: 0, cost: 0, stops: 0 });
 	const bar = parleyOf(barterProfile()).bar;
+	// The refill is the region's own: the clock knows which, and every
+	// region the app has been told about keeps the UTC one so far.
+	const plan = currentPlan();
+	const refill = `${String(plan.barter).padStart(2, '0')}:00 ${plan.zone === 'UTC' ? 'UTC' : plan.zone}`;
 	const rows = runs.map((r, i) => `<div class="day-run">
 		<span class="day-n">${i + 1}</span>
 		<span class="day-what">${r.layout ? `layout ${esc(r.layout)}` : 'a board'}${r.goal === 'stock' ? ' · for the stock' : r.goal === 'material' && r.item ? ` · for ${esc(r.item)}` : ''}<em>${F(r.trades)} trade${r.trades === 1 ? '' : 's'} · ${F(r.parley)} Parley${r.silver ? ` · ${FC(r.silver)} sold` : ''}</em></span>
@@ -1477,7 +1477,7 @@ function todayHTML() {
 	return `<section class="panel day-boards">
 		<div class="panel-head">
 			<h2 class="panel-title">Today’s boards</h2>
-			<span class="panel-sub">${runs.length === 1 ? 'one board' : `${runs.length} boards`} since the ${String(BARTER_RESET_UTC).padStart(2, '0')}:00 UTC refill · ${F(totals.trades)} trade${totals.trades === 1 ? '' : 's'} · ${F(totals.parley)} Parley of the ${F(bar)} the bar holds${totals.silver ? ` · ${FC(totals.silver - totals.cost)} net` : ''}</span>
+			<span class="panel-sub">${runs.length === 1 ? 'one board' : `${runs.length} boards`} since the ${esc(refill)} refill · ${F(totals.trades)} trade${totals.trades === 1 ? '' : 's'} · ${F(totals.parley)} Parley of the ${F(bar)} the bar holds${totals.silver ? ` · ${FC(totals.silver - totals.cost)} net` : ''}</span>
 		</div>
 		<p class="panel-sub barter-caveat day-note">What to load for the <b>next</b> board is in the run’s own sheet, under <b>Lay it out</b>: a refresh deals a different board, so what it will want cannot be known until you have looked at an island on it.</p>
 		<div class="day-runs">${rows}</div>
@@ -1490,6 +1490,10 @@ function todayHTML() {
 	</section>`;
 }
 
+/**
+ * The runs sailed lately: the last seven days, silver and trades a
+ * day, from the trips recorded off the checklist.
+ */
 function weekHTML() {
 	const runs = store.getProfile('runs', []) || [];
 	if (!runs.length) return '';
