@@ -539,3 +539,58 @@
 .map-step-chip.stash { color: var(--stash); border-color: var(--stash-edge); background: rgba(178, 143, 224, 0.12); border-radius: 6px; }
 .map-step-chip.stash.on { background: var(--stash); border-color: transparent; color: var(--on-tint); }
 
+
+
+/* ------------------------------------------------------------------ *
+ * The run as two shelves: what to load, and what is in the storage
+ * after. Shaped like the game's own storage window -- one tile a kind,
+ * the count on it -- so it can be read against the screen while
+ * loading.
+ * ------------------------------------------------------------------ */
+.run-shelves { display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; gap: 10px; padding: 12px; }
+.shelf { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.shelf-head { display: flex; flex-direction: column; gap: 2px; }
+.shelf-head .panel-title { font-size: 12px; }
+.shelf-arrow { align-self: center; font-size: 20px; color: var(--ink-faint); }
+.shelf-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; align-content: start; }
+.shelf-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px 6px; border-radius: var(--r-btn); background: var(--panel-inset); border: 1px solid var(--line-btn); text-align: center; }
+.shelf-tile .shelf-icon { width: 34px; height: 34px; }
+.shelf-tile b { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--ink-hi); line-height: 1; }
+.shelf-tile span { font-size: 10.5px; color: var(--ink-mute); line-height: 1.25; overflow-wrap: anywhere; }
+.shelf-tile em { font-style: normal; font-size: 9.5px; color: var(--ink-faint); }
+.shelf-lv { position: absolute; top: 4px; left: 4px; padding: 1px 4px; border-radius: 3px; background: var(--tier, var(--panel-sunk)); color: var(--on-tint); font-family: var(--font-display); font-style: normal; font-size: 9px; font-weight: 700; }
+.shelf-lv.shore { background: var(--panel-sunk, rgba(255, 255, 255, 0.1)); color: var(--ink-mute); }
+.shelf-tile.silver { border-color: var(--gold-edge); }
+.shelf-tile.silver b { color: var(--gold); }
+.shelf-tile.silver .shelf-lv { background: var(--gold); }
+.shelf-none { font-size: 11.5px; color: var(--ink-faint); }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .run-shelves { grid-template-columns: 1fr; }
+  .shelf-arrow { transform: rotate(90deg); }
+  .shelf-tiles { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
+}
+
+
+/* ------------------------------------------------------------------ *
+ * The day's boards: what each run loaded and brought back, and the
+ * totals across the Parley bar.
+ * ------------------------------------------------------------------ */
+.day-boards { padding: 0 0 10px; }
+.day-note { margin: 0 14px 8px; }
+.day-runs { display: flex; flex-direction: column; }
+.day-run { display: grid; grid-template-columns: 26px minmax(130px, 0.9fr) 1.4fr 1.4fr; gap: 10px; align-items: start; padding: 9px 14px; border-top: 1px solid var(--line-soft, rgba(255, 255, 255, 0.06)); }
+.day-n { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--panel-inset); color: var(--ink-mute); font-family: var(--font-display); font-size: 11px; font-weight: 700; }
+.day-what { font-size: 12px; color: var(--ink-mid); }
+.day-what em { display: block; font-style: normal; font-size: 10.5px; color: var(--ink-faint); }
+.day-side { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 11.5px; color: var(--ink-mute); }
+.day-k { display: block; width: 100%; font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.day-good { display: inline-flex; align-items: center; gap: 4px; }
+.day-good b { font-family: var(--font-display); color: var(--ink-hi); font-weight: 600; }
+.day-good .row-icon.xs { width: 18px; height: 18px; }
+.day-total { background: var(--panel-inset); border-radius: 0 0 var(--r-panel) var(--r-panel); }
+.day-total .day-n { background: var(--teal); color: var(--on-tint); }
+.day-total .day-what { color: var(--ink-hi); }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .day-run { grid-template-columns: 26px 1fr; row-gap: 6px; }
+  .day-side { grid-column: 2 / -1; }
+}

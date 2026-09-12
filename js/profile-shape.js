@@ -21,6 +21,17 @@ export const isProfile = raw => Boolean(raw) && typeof raw === 'object' && !Arra
 export const TALLY_TOTALS = ['runs', 'silver', 'cost', 'trades', 'parley', 'stops', 'tries', 'wins', 'drops'];
 export const TALLY_TABLES = ['quests', 'made'];
 
+/** A small table of item -> count, as a run's record keeps one. */
+function goodsMap(raw) {
+	if (!isProfile(raw)) return {};
+	const out = {};
+	for (const [item, n] of Object.entries(raw).slice(0, 20)) {
+		const k = Math.floor(Number(n));
+		if (typeof item === 'string' && item.length <= 80 && Number.isFinite(k) && k > 0) out[item] = Math.min(99999, k);
+	}
+	return out;
+}
+
 export function readProfile(raw) {
 	const out = {};
 	if (!isProfile(raw)) return out;
@@ -320,8 +331,14 @@ export function readProfile(raw) {
 			trades: Math.max(0, Math.floor(Number(r.trades) || 0)),
 			parley: Math.max(0, Math.floor(Number(r.parley) || 0)),
 			stops: Math.max(0, Math.floor(Number(r.stops) || 0)),
-			goal: r.goal === 'material' ? 'material' : 'silver',
-			item: typeof r.item === 'string' && r.item.length <= 80 ? r.item : ''
+			goal: ['material', 'stock'].includes(r.goal) ? r.goal : 'silver',
+			item: typeof r.item === 'string' && r.item.length <= 80 ? r.item : '',
+			layout: typeof r.layout === 'string' && r.layout.length <= 8 ? r.layout : '',
+			// What the run spent and what it brought back, so the day's
+			// boards can be read one under the other. Twenty kinds each is
+			// more than a board can deal in one run.
+			load: goodsMap(r.load),
+			got: goodsMap(r.got)
 		}));
 		if (runs.length) out.runs = runs;
 	}
@@ -423,7 +440,7 @@ export function readProfile(raw) {
 // so the profile only bounds it: known namespaces, strings and numbers
 // that are what they say, and lists no longer than the screen would
 // ever draw, so a hostile file cannot make the save enormous.
-export const VIEW_NAMESPACES = ['map', 'barter'];
+export const VIEW_NAMESPACES = ['map', 'barter', 'timer'];
 export const VIEW_BYTES = 300_000;
 const VIEW_STRING = 120;
 const VIEW_DEPTH = 8;
@@ -440,6 +457,7 @@ const VIEW_CAPS = {
 		'trace.points': 2000, 'trace.strokes': 24, 'trace.strokes[].pts': 2000, 'trace.areas': 12, 'trace.areas[].pts': 200, 'trace.texts': 40,
 		'stops': 60, 'done.ids': 200, 'runTrades': 60, 'runStash': 20
 	},
+	timer: {},
 	barter: {
 		'board.answers': 120, 'matBoard.answers': 120, 'wants': 60, 'routes.ids': 40,
 		'sail.stops': 80, 'sail.done': 80, 'questSkip.ids': 100, 'questPull.ids': 100

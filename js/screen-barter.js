@@ -16,7 +16,7 @@ import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
 import { img, codexName, amountInput } from './ui-bits.js';
 import { snapshot, barterData, barterProfile, combos, matBoards, SILVER } from './ui-state.js';
-import { barterKey, periodKey } from './clock.js';
+import { barterKey, periodKey, currentPlan } from './clock.js';
 import { candidates, askable, offersAt, boardData } from './barter-board.js';
 import { currentShip, shownHold } from './ship.js';
 import { npcById, ports, isleOf, whoOf, isleShort } from './barter_npcs.js';
@@ -43,6 +43,7 @@ import { openPicker } from './picker.js';
 import { openTripLog } from './triplog.js';
 import { toast, openDialog, closeDialog } from './dialogs.js';
 import { cheer } from './cheer.js';
+import { timerHTML, timerAction, timerState, startTimer } from './sail-timer.js';
 
 /* ------------------------------------------------------------------ *
  * what the tab remembers
@@ -299,6 +300,7 @@ function holdBarHTML(me) {
 			<span class="hold-parley read" title="The Parley in the bar and what an attempt costs at your level — set both in the bar at the top of the page, where every screen reads them"><span>Parley</span><b>${F(prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max)}</b><small>${esc(prof.level || 'no level set')} · −${(levelDiscount(prof.level) * 100).toFixed(2)}%${prof.valuePack ? ' −10% pack' : ''}${prof.crew ? ' −10% crew' : ''} · ${F(parleyOf(prof).perTrade)} a trade${prof.vouchers ? ` · ${prof.vouchers} voucher${prof.vouchers === 1 ? '' : 's'}` : ''}</small></span>
 			<button class="ghost-btn sm" data-act="barter-add" title="Record a good that is aboard">＋ A good</button>
 		</span>
+		<span class="hold-bar-timer">${timerHTML()}</span>
 	</section>`;
 }
 
@@ -1430,6 +1432,65 @@ function takenNote(good) {
 }
 
 /**
+ * The day's boards, one under the other: what each run took out of the
+ * storage, what it put back, and the totals across the lot.
+ *
+ * A sailor with a full Parley bar gets two or three boards out of it
+ * before the refill, and the question at the second one is always the
+ * same -- what do I load now, and what have I actually gained today?
+ * The plan at the top of the page answers the first for the board in
+ * front of you; this answers the second, and it can only be honest
+ * about boards already sailed: the next refresh deals a different
+ * board, and what it will want loaded is not knowable until it is
+ * looked at.
+ */
+function todayHTML() {
+	const today = barterKey();
+	const runs = (store.getProfile('runs', []) || []).filter(r => r.day === today);
+	if (!runs.length) return '';
+	const goods = m => Object.entries(m || {}).sort((a, b) => b[1] - a[1]);
+	const line = (m, none) => {
+		const list = goods(m);
+		if (!list.length) return `<span class="faint">${none}</span>`;
+		return list.map(([item, n]) => `<span class="day-good">${img(item, 'row-icon xs')}<b>${F(n)}</b>${esc(item)}</span>`).join('');
+	};
+	const sum = key => {
+		const out = {};
+		for (const r of runs) for (const [item, n] of Object.entries(r[key] || {})) out[item] = (out[item] || 0) + n;
+		return out;
+	};
+	const totals = runs.reduce((a, r) => ({
+		trades: a.trades + r.trades, parley: a.parley + r.parley,
+		silver: a.silver + r.silver, cost: a.cost + r.cost, stops: a.stops + r.stops
+	}), { trades: 0, parley: 0, silver: 0, cost: 0, stops: 0 });
+	const bar = parleyOf(barterProfile()).bar;
+	// The refill is the region's own: the clock knows which, and every
+	// region the app has been told about keeps the UTC one so far.
+	const plan = currentPlan();
+	const refill = `${String(plan.barter).padStart(2, '0')}:00 ${plan.zone === 'UTC' ? 'UTC' : plan.zone}`;
+	const rows = runs.map((r, i) => `<div class="day-run">
+		<span class="day-n">${i + 1}</span>
+		<span class="day-what">${r.layout ? `layout ${esc(r.layout)}` : 'a board'}${r.goal === 'stock' ? ' · for the stock' : r.goal === 'material' && r.item ? ` · for ${esc(r.item)}` : ''}<em>${F(r.trades)} trade${r.trades === 1 ? '' : 's'} · ${F(r.parley)} Parley${r.silver ? ` · ${FC(r.silver)} sold` : ''}</em></span>
+		<span class="day-side"><span class="day-k">loaded</span>${line(r.load, 'nothing loaded')}</span>
+		<span class="day-side"><span class="day-k">came back with</span>${line(r.got, 'nothing came back')}</span>
+	</div>`).join('');
+	return `<section class="panel day-boards">
+		<div class="panel-head">
+			<h2 class="panel-title">Today’s boards</h2>
+			<span class="panel-sub">${runs.length === 1 ? 'one board' : `${runs.length} boards`} since the ${esc(refill)} refill · ${F(totals.trades)} trade${totals.trades === 1 ? '' : 's'} · ${F(totals.parley)} Parley of the ${F(bar)} the bar holds${totals.silver ? ` · ${FC(totals.silver - totals.cost)} net` : ''}</span>
+		</div>
+		<p class="panel-sub barter-caveat day-note">What to load for the <b>next</b> board is in the run’s own sheet, under <b>Lay it out</b>: a refresh deals a different board, so what it will want cannot be known until you have looked at an island on it.</p>
+		<div class="day-runs">${rows}</div>
+		<div class="day-run day-total">
+			<span class="day-n">Σ</span>
+			<span class="day-what">the day so far<em>${F(totals.stops)} stops · ${runs.length} board${runs.length === 1 ? '' : 's'}</em></span>
+			<span class="day-side"><span class="day-k">loaded in all</span>${line(sum('load'), 'nothing')}</span>
+			<span class="day-side"><span class="day-k">gained in all</span>${line(sum('got'), 'nothing')}</span>
+		</div>
+	</section>`;
+}
+
+/**
  * The runs sailed lately: the last seven days, silver and trades a
  * day, from the trips recorded off the checklist.
  */
@@ -1507,10 +1568,22 @@ export function sailFor(npcId) {
  * count of stops done and the two ways off the water when it is being
  * sailed -- the trip recorded, or the checklist dropped.
  */
+/** What the chime calls a run: where it starts and how far it goes. */
+function runLabel(plan) {
+	const isles = plan.stops.filter(s => s.npcId).map(s => isleShort(npcById.get(s.npcId)) || s.npc);
+	if (!isles.length) return 'the run';
+	return isles.length === 1 ? isles[0] : `${isles[0]} and ${isles.length - 1} more`;
+}
+
 function sailBar(plan) {
 	if (!plan || !plan.stops.length) return '';
 	const on = sailing();
-	if (!on) return `<div class="sail-bar"><button class="act" data-act="barter-sail" title="Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change">⛵ Sail this run</button><span class="faint">tick each stop off as you sail; what an island paid re-counts the rest; Record at the end puts the whole trip in the Inventory in one Undo</span></div>`;
+	// The clock for the time the ship is out, set to this run's own
+	// estimate: the page cannot see the ship, so the one thing it can do
+	// is say when the time is up.
+	const legs = legsOf(plan.stops);
+	const clock = timerHTML({ suggest: legs.mid || 0, label: runLabel(plan) });
+	if (!on) return `<div class="sail-bar"><button class="act" data-act="barter-sail" title="Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change">⛵ Sail this run</button><span class="faint">tick each stop off as you sail; what an island paid re-counts the rest; Record at the end puts the whole trip in the Inventory in one Undo</span><span class="panel-spacer"></span>${clock}</div>`;
 	const n = plan.stops.filter((s, k) => on.done.includes(stopKey(s, k, plan.stops))).length;
 	const questsLeft = [...(plan.questsHome || []), ...plan.stops.flatMap(s => s.quests || [])].map(x => x.q).filter(q => !questDone(q)).length;
 	// The whole run done at once: which of it, asked in place.
@@ -1524,6 +1597,7 @@ function sailBar(plan) {
 	</div>` : '';
 	return `<div class="sail-bar sailing">
 		<span class="sail-n"><b>${n}</b> of ${plan.stops.length} stops done${questsLeft ? ` · ${questsLeft} quest${questsLeft === 1 ? '' : 's'} open` : ''}</span>
+		${clock}
 		<span class="panel-spacer"></span>
 		<button class="ghost-btn sm" data-act="barter-sail-drop" title="Drop the checklist; nothing is recorded">Abandon</button>
 		${sailAll.open ? '' : `<button class="ghost-btn sm" data-act="barter-sail-all" title="Tick every stop and every quest off at once">All done…</button>`}
@@ -1683,9 +1757,20 @@ function recordTrip(plan, from) {
 	const on = sailing();
 	if (!on || !plan) return;
 	const trip = tripOf(plan, on, from);
+	// What the run took and what it brought back, from the one honest
+	// record of it: the change it made to the Inventory. Spent goods are
+	// what had to be loaded, gained goods are what is in the storage
+	// now. Kept so the day's boards can be read back one under the
+	// other -- what went into the first, what came out of it, and so on.
+	const moved = (sign, drop) => Object.fromEntries(Object.entries(trip.delta)
+		.filter(([item, n]) => item !== drop && Math.sign(n) === sign && Math.abs(n) >= 1)
+		.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+		.slice(0, 20)
+		.map(([item, n]) => [item, Math.abs(Math.round(n))]));
 	const runs = [...(store.getProfile('runs', []) || []), {
 		day: barterKey(), silver: trip.silver, cost: Math.round(plan.cost || 0), trades: trip.trades, parley: Math.round(plan.parleyUsed || 0),
-		stops: on.done.length, goal, item: goal === 'material' ? itemNow() || '' : ''
+		stops: on.done.length, goal, item: goal === 'material' ? itemNow() || '' : '',
+		load: moved(-1, SILVER), got: moved(1, SILVER), layout: (boardNow().combo || {}).id || ''
 	}].slice(-60);
 	// What the islands were seen to pay goes into the record, so the
 	// counting can follow the sailor's own runs.
@@ -1742,6 +1827,62 @@ function recordTrip(plan, from) {
 	// what opened it.
 	const opened = counted.barterCount ? justOpened(counted.barterCount - Math.round(trip.trades), counted.barterCount) : null;
 	toast(`Recorded: ${on.done.length} stop${on.done.length === 1 ? '' : 's'}${trip.silver ? ` · ${FC(trip.silver)} in silver` : ''}${trip.trades ? ` · ${F(Math.round(trip.trades))} barter${trip.trades === 1 ? '' : 's'}, ${F(counted.barterCount)} in all` : ''}${made.length ? ` · ${made.map(questTitle).join(', ')} made up` : ''}${opened ? ` — ${opened} is open now` : ''}`, true);
+}
+
+/**
+ * What to load before casting off, and what is in the storage after:
+ * the run as two shelves, with an arrow between them.
+ *
+ * Everything here is already in the sheet further down, item by item
+ * with its price and its buttons. This is the other thing a sailor
+ * wants from a plan and could not get: the two ends of it, side by
+ * side, in the shape the game's own storage window has -- one tile a
+ * kind, the count on it -- so it can be read against the screen while
+ * loading, or sent to a guildmate as one picture.
+ */
+function shelvesHTML(plan, from) {
+	if (!plan || !plan.kept) return '';
+	const tile = (item, n, note = '') => {
+		const lv = levelOf(item);
+		return `<span class="shelf-tile"${note ? ` title="${esc(note)}"` : ''}>
+			<i class="shelf-lv${lv ? '' : ' shore'}"${lv ? ` style="--tier:${TIER(lv)}"` : ''}>${lv ? `L${lv}` : '⌂'}</i>
+			${img(item, 'shelf-icon')}
+			<b>${n1(n)}</b>
+			<span>${esc(item)}</span>
+			${note ? `<em>${esc(note)}</em>` : ''}
+		</span>`;
+	};
+	// The load: what comes off the harbour's storage, what comes off the
+	// pile of shore goods, and what has to be bought first.
+	const load = [
+		...(plan.loaded || []).map(l => ({ item: l.item, n: l.n, note: from ? `from ${from.name}` : 'from the storage' })),
+		...(plan.taken || []).map(t => ({ item: t.item, n: t.n, note: `from your pile · ${F(t.left)} left` })),
+		...(plan.bought || []).map(b => ({ item: b.item, n: Math.ceil(b.n), note: b.how === 'made' ? 'your workers make it' : b.each ? `bought · ${FC(b.total)}` : 'bought' }))
+	].filter(x => x.n > 0);
+	// What is in hand at the end: carried home, and left at a wharf on
+	// the way. The two are one pile as far as tomorrow's board cares.
+	const back = new Map();
+	for (const g of [...(plan.kept || []), ...(plan.stashed || [])]) {
+		const at = g.at || (from ? from.name : '');
+		const key = `${g.item}|${at}`;
+		back.set(key, { item: g.item, n: (back.get(key) ? back.get(key).n : 0) + g.n, at });
+	}
+	const backRows = [...back.values()].filter(x => x.n > 0).sort((a, b) => (levelOf(b.item) || 0) - (levelOf(a.item) || 0) || b.n - a.n);
+	if (!load.length && !backRows.length) return '';
+	const lt = list => list.reduce((a, x) => a + x.n * weightOf(x.item), 0);
+	const kinds = n => `${n} kind${n === 1 ? '' : 's'}`;
+	const sold = plan.silver > 0 ? `<span class="shelf-tile silver"><i class="shelf-lv">◎</i><b>${FC(Math.round(plan.silver))}</b><span>sold at the wharf</span></span>` : '';
+	return `<section class="panel run-shelves">
+		<div class="shelf">
+			<div class="shelf-head"><h2 class="panel-title">Load before casting off</h2><span class="panel-sub">${load.length ? `${kinds(load.length)}${lt(load) > 0 ? ` · ${F(Math.round(lt(load)))} LT` : ''}${plan.cost ? ` · ${FC(Math.round(plan.cost))} to buy` : ''}` : 'nothing to load'}</span></div>
+			<div class="shelf-tiles">${load.map(x => tile(x.item, x.n, x.note)).join('') || '<span class="shelf-none">nothing: the run starts from what is aboard</span>'}</div>
+		</div>
+		<div class="shelf-arrow" aria-hidden="true">➜</div>
+		<div class="shelf">
+			<div class="shelf-head"><h2 class="panel-title">In the storage after</h2><span class="panel-sub">${backRows.length ? `${kinds(backRows.length)} · ${F(Math.round(backRows.reduce((a, x) => a + x.n, 0)))} goods${plan.silver ? ` · ${FC(Math.round(plan.silver))} sold` : ''}` : plan.silver ? 'all of it sold at the wharf' : 'nothing comes back'}</span></div>
+			<div class="shelf-tiles">${sold}${backRows.map(x => tile(x.item, x.n, x.at && (!from || x.at !== from.name) ? `at ${x.at}` : '')).join('') || (sold ? '' : '<span class="shelf-none">nothing: everything is spent on the way</span>')}</div>
+		</div>
+	</section>`;
 }
 
 // The plan on screen, for the record button to read back.
@@ -2064,7 +2205,7 @@ function silverParts(me, b) {
 	return {
 		chains: chainsPanel,
 		run: `<section class="panel barter-run">${runHead}<div class="panel-body">${ordersHTML(o, stocking)}${tiles}</div></section>`,
-		rest: `${sheetHead}${empty}${loaded}${taken}${bought}${questsPanels(qp, from)}${segs}${stashed}${kept}${plan.stops.length ? `<div class="run-foot${sailing() ? ' sailing' : ''}">${sailBar(plan)}${chartButton(plan.stops, '')}</div>` : ''}`,
+		rest: `${sheetHead}${empty}${shelvesHTML(plan, from)}${loaded}${taken}${bought}${questsPanels(qp, from)}${segs}${stashed}${kept}${plan.stops.length ? `<div class="run-foot${sailing() ? ' sailing' : ''}">${sailBar(plan)}${chartButton(plan.stops, '')}</div>` : ''}`,
 		dock: foot
 	};
 }
@@ -2402,6 +2543,7 @@ export function renderBarter() {
 		${holdBarHTML(me)}
 		${parts.run}
 		${parts.chains}
+		${todayHTML()}
 		${weekHTML()}
 		${parts.dock || ''}
 	</div>`;
@@ -2580,6 +2722,7 @@ function pickIsland(then) {
  *  screen to be redrawn by the caller. */
 export function barterAction(act, el, redraw) {
 	restore();
+	if (act.startsWith('barter-timer-')) return timerAction(act, el, redraw);
 	switch (act) {
 		case 'barter-goal': goal = ['material', 'stock'].includes(el.dataset.id) ? el.dataset.id : 'silver'; persist(); return true;
 		case 'barter-save': askSaveOrders(redraw); return false;
@@ -2700,6 +2843,11 @@ export function barterAction(act, el, redraw) {
 		case 'barter-sail': {
 			if (!shownPlan) return false;
 			sail = { key: sailKey(), done: [], seen: {}, got: {}, kept: [], ...sailRecord(shownPlan) };
+			// Sailing starts the clock, since that press is the moment the
+			// ship leaves -- and it is the gesture the browser wants before
+			// the page is allowed to make a sound.
+			const legs = legsOf(shownPlan.stops);
+			if (legs.mid > 0 && !timerState()) startTimer(legs.mid, runLabel(shownPlan));
 			persist();
 			return true;
 		}

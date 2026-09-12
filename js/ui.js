@@ -31,6 +31,7 @@ import { renderPlan } from './screen-plan.js';
 import { renderBuilds, openBuildPicker, askRoute, toggleBlockers } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
 import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart } from './screen-barter.js';
+import { tickTimer, watchTimer } from './sail-timer.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
 import { renderCrew, crewAction, crewChange, applyShipSetup, openSetupPicker, selectSailor, setLooking } from './screen-crew.js';
@@ -372,6 +373,9 @@ export function render() {
 		if (side && sideTop) side.scrollTop = sideTop;
 	}
 	tickClocks();
+	// The sailing clock's second hand, and the interval that moves it,
+	// wanted only while one is running.
+	tickTimer();
 	syncHash();
 	// The tab just switched to, scrolled back to where it was left.
 	if (scrollBack !== null) {
@@ -2233,6 +2237,9 @@ export async function init() {
 	// The minute hand on every countdown, a repaint when a reset passes
 	// with the page open, and the Vell reminder if it was asked for.
 	startClocks(render, checkVellReminder);
+	// The sailing clock chimes on its own schedule, whichever screen is
+	// up, and the page is drawn again when it does.
+	watchTimer(render);
 	whatsNewToast();
 	// Which save this page is on. Sync mirrors the main profile only:
 	// a second profile is a second save, and the account holds one.
