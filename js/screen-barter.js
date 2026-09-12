@@ -2722,7 +2722,7 @@ function pickIsland(then) {
  *  screen to be redrawn by the caller. */
 export function barterAction(act, el, redraw) {
 	restore();
-	if (act.startsWith('barter-timer-')) return timerAction(act, el);
+	if (act.startsWith('barter-timer-')) return timerAction(act, el, redraw);
 	switch (act) {
 		case 'barter-goal': goal = ['material', 'stock'].includes(el.dataset.id) ? el.dataset.id : 'silver'; persist(); return true;
 		case 'barter-save': askSaveOrders(redraw); return false;

@@ -264,7 +264,7 @@ export function tickTimer() {
 
 /** A press on one of the chip's buttons. True when it was one of ours
  *  and the screen should be drawn again. */
-export function timerAction(act, el) {
+export function timerAction(act, el, then = null) {
 	if (act === 'barter-timer-start') {
 		startTimer(Number(el.dataset.secs) || 600, el.dataset.label || '');
 		// The press that starts the clock is also what lets the page make
@@ -275,6 +275,11 @@ export function timerAction(act, el) {
 		return true;
 	}
 	if (act === 'barter-timer-stop') { stopTimer(); return true; }
-	if (act === 'barter-timer-notify') { askNotify(); return true; }
+	if (act === 'barter-timer-notify') {
+		// The browser's own prompt is answered in its own time: the chip
+		// is drawn again when it has been, so the ask goes away.
+		askNotify().then(() => { if (then) then(); });
+		return true;
+	}
 	return false;
 }
