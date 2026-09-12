@@ -43,6 +43,7 @@ import { openPicker } from './picker.js';
 import { openTripLog } from './triplog.js';
 import { toast, openDialog, closeDialog } from './dialogs.js';
 import { cheer } from './cheer.js';
+import { timerHTML, timerAction, timerState, startTimer } from './sail-timer.js';
 
 /* ------------------------------------------------------------------ *
  * what the tab remembers
@@ -299,6 +300,7 @@ function holdBarHTML(me) {
 			<span class="hold-parley read" title="The Parley in the bar and what an attempt costs at your level — set both in the bar at the top of the page, where every screen reads them"><span>Parley</span><b>${F(prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max)}</b><small>${esc(prof.level || 'no level set')} · −${(levelDiscount(prof.level) * 100).toFixed(2)}%${prof.valuePack ? ' −10% pack' : ''}${prof.crew ? ' −10% crew' : ''} · ${F(parleyOf(prof).perTrade)} a trade${prof.vouchers ? ` · ${prof.vouchers} voucher${prof.vouchers === 1 ? '' : 's'}` : ''}</small></span>
 			<button class="ghost-btn sm" data-act="barter-add" title="Record a good that is aboard">＋ A good</button>
 		</span>
+		${timerState() ? `<span class="hold-bar-timer">${timerHTML()}</span>` : ''}
 	</section>`;
 }
 
@@ -1507,10 +1509,22 @@ export function sailFor(npcId) {
  * count of stops done and the two ways off the water when it is being
  * sailed -- the trip recorded, or the checklist dropped.
  */
+/** What the chime calls a run: where it starts and how far it goes. */
+function runLabel(plan) {
+	const isles = plan.stops.filter(s => s.npcId).map(s => isleShort(npcById.get(s.npcId)) || s.npc);
+	if (!isles.length) return 'the run';
+	return isles.length === 1 ? isles[0] : `${isles[0]} and ${isles.length - 1} more`;
+}
+
 function sailBar(plan) {
 	if (!plan || !plan.stops.length) return '';
 	const on = sailing();
-	if (!on) return `<div class="sail-bar"><button class="act" data-act="barter-sail" title="Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change">⛵ Sail this run</button><span class="faint">tick each stop off as you sail; what an island paid re-counts the rest; Record at the end puts the whole trip in the Inventory in one Undo</span></div>`;
+	// The clock for the time the ship is out, set to this run's own
+	// estimate: the page cannot see the ship, so the one thing it can do
+	// is say when the time is up.
+	const legs = legsOf(plan.stops);
+	const clock = timerHTML({ suggest: legs.mid || 0, label: runLabel(plan) });
+	if (!on) return `<div class="sail-bar"><button class="act" data-act="barter-sail" title="Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change">⛵ Sail this run</button><span class="faint">tick each stop off as you sail; what an island paid re-counts the rest; Record at the end puts the whole trip in the Inventory in one Undo</span><span class="panel-spacer"></span>${clock}</div>`;
 	const n = plan.stops.filter((s, k) => on.done.includes(stopKey(s, k, plan.stops))).length;
 	const questsLeft = [...(plan.questsHome || []), ...plan.stops.flatMap(s => s.quests || [])].map(x => x.q).filter(q => !questDone(q)).length;
 	// The whole run done at once: which of it, asked in place.
@@ -1524,6 +1538,7 @@ function sailBar(plan) {
 	</div>` : '';
 	return `<div class="sail-bar sailing">
 		<span class="sail-n"><b>${n}</b> of ${plan.stops.length} stops done${questsLeft ? ` · ${questsLeft} quest${questsLeft === 1 ? '' : 's'} open` : ''}</span>
+		${clock}
 		<span class="panel-spacer"></span>
 		<button class="ghost-btn sm" data-act="barter-sail-drop" title="Drop the checklist; nothing is recorded">Abandon</button>
 		${sailAll.open ? '' : `<button class="ghost-btn sm" data-act="barter-sail-all" title="Tick every stop and every quest off at once">All done…</button>`}
@@ -2580,6 +2595,7 @@ function pickIsland(then) {
  *  screen to be redrawn by the caller. */
 export function barterAction(act, el, redraw) {
 	restore();
+	if (act.startsWith('barter-timer-')) return timerAction(act, el);
 	switch (act) {
 		case 'barter-goal': goal = ['material', 'stock'].includes(el.dataset.id) ? el.dataset.id : 'silver'; persist(); return true;
 		case 'barter-save': askSaveOrders(redraw); return false;
@@ -2700,6 +2716,11 @@ export function barterAction(act, el, redraw) {
 		case 'barter-sail': {
 			if (!shownPlan) return false;
 			sail = { key: sailKey(), done: [], seen: {}, got: {}, kept: [], ...sailRecord(shownPlan) };
+			// Sailing starts the clock, since that press is the moment the
+			// ship leaves -- and it is the gesture the browser wants before
+			// the page is allowed to make a sound.
+			const legs = legsOf(shownPlan.stops);
+			if (legs.mid > 0 && !timerState()) startTimer(legs.mid, runLabel(shownPlan));
 			persist();
 			return true;
 		}

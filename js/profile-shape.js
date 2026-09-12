@@ -423,7 +423,7 @@ export function readProfile(raw) {
 // so the profile only bounds it: known namespaces, strings and numbers
 // that are what they say, and lists no longer than the screen would
 // ever draw, so a hostile file cannot make the save enormous.
-export const VIEW_NAMESPACES = ['map', 'barter'];
+export const VIEW_NAMESPACES = ['map', 'barter', 'timer'];
 export const VIEW_BYTES = 300_000;
 const VIEW_STRING = 120;
 const VIEW_DEPTH = 8;
@@ -440,6 +440,7 @@ const VIEW_CAPS = {
 		'trace.points': 2000, 'trace.strokes': 24, 'trace.strokes[].pts': 2000, 'trace.areas': 12, 'trace.areas[].pts': 200, 'trace.texts': 40,
 		'stops': 60, 'done.ids': 200, 'runTrades': 60, 'runStash': 20
 	},
+	timer: {},
 	barter: {
 		'board.answers': 120, 'matBoard.answers': 120, 'wants': 60, 'routes.ids': 40,
 		'sail.stops': 80, 'sail.done': 80, 'questSkip.ids': 100, 'questPull.ids': 100
