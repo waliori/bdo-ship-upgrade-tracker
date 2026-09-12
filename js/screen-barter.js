@@ -275,9 +275,15 @@ function holdBarHTML(me) {
 	const shore = ashore();
 	const here = shore.find(t => t.here);
 	const elsewhere = shore.filter(t => !t.here).reduce((a, t) => a + t.goods.reduce((x, g) => x + g.n, 0), 0);
+	// The shore goods are not trade goods and never go in the hold's
+	// weight, but a sailor who has typed a pile of them in should see
+	// it counted somewhere: a chain from the shore starts on this.
+	const pile = landHeld(store.getAllStock());
+	const pileN = [...pile.values()].reduce((a, n) => a + n, 0);
 	const ashoreText = [
 		here ? `${F(here.goods.reduce((a, g) => a + g.n, 0))} at ${here.town}, to load` : '',
-		elsewhere ? `${F(elsewhere)} ashore elsewhere` : ''
+		elsewhere ? `${F(elsewhere)} ashore elsewhere` : '',
+		pileN ? `${F(pileN)} shore goods over ${pile.size} kind${pile.size === 1 ? '' : 's'}` : ''
 	].filter(Boolean).join(' · ');
 	const weightText = `${w.text}${!goods.length ? ` · no goods aboard${w.crew ? `, ${F(w.crew)} of it crew` : ''}` : w.note ? ` — ${w.note}` : ''} · barters to ${F(w.deal)}`;
 	return `<section class="panel hold-bar${state ? ` ${state}` : ''}">
@@ -1101,7 +1107,10 @@ function aheadHTML(gains, plan, prof) {
 	// refreshes -- and no more than the Parley pays for.
 	const perDay = Math.max(1, Math.min(day.lists.trade, Math.floor(day.parley / Math.max(1, plan.parleyUsed))));
 	const days = Math.ceil(runs / perDay);
-	return `<p class="run-ahead"><b>${F(short)}</b> goods short of the targets · <b>${F(runs)}</b> more run${runs === 1 ? '' : 's'} like this one · about <b>${F(days)}</b> day${days === 1 ? '' : 's'} at ${F(perDay)} board${perDay === 1 ? '' : 's'} a day${prof.barterCount ? ` · <b>${F(prof.barterCount + runs * plan.trades)}</b> barters by then` : ''}</p>`;
+	// A storage counts slots, not weight: one to a kind, however many of
+	// it. That is the limit a stock like this one actually runs into.
+	const slots = STOCK_LEVELS.filter(lv => lv <= stockGoal.ceiling && (stockGoal.targets[lv] || 0) > 0).reduce((a, lv) => a + (kinds.get(lv) || 0), 0);
+	return `<p class="run-ahead"><b>${F(short)}</b> goods short of the targets · <b>${F(runs)}</b> more run${runs === 1 ? '' : 's'} like this one · about <b>${F(days)}</b> day${days === 1 ? '' : 's'} at ${F(perDay)} board${perDay === 1 ? '' : 's'} a day${prof.barterCount ? ` · <b>${F(prof.barterCount + runs * plan.trades)}</b> barters by then` : ''}${slots ? ` · the full stock is <b>${F(slots)}</b> storage slots, one to a kind` : ''}</p>`;
 }
 
 function ordersHTML(o, stocking = false) {
