@@ -266,7 +266,7 @@ self.addEventListener('push', evt => {
 	} catch {
 		data = { body: evt.data ? evt.data.text() : '' };
 	}
-	evt.waitUntil(self.registration.showNotification(data.title || 'Ship Upgrade Tracker', {
+	evt.waitUntil(self.registration.showNotification(data.title || 'Sailor’s Log', {
 		body: data.body || '',
 		icon: '/icon-192.png',
 		badge: '/icon-192.png',

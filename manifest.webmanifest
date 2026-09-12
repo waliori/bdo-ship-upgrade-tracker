@@ -1,8 +1,8 @@
 {
 	"id": "/",
-	"name": "BDO Ship Upgrade Tracker",
+	"name": "Sailor’s Log — Black Desert sailing",
 	"short_name": "Sail",
-	"description": "Track Black Desert Online ship upgrades against one shared inventory.",
+	"description": "One inventory behind every ship part, the sailing quests, an optimized barter route, and a map you can draw on, share and export into the game.",
 	"start_url": "/",
 	"display": "standalone",
 	"background_color": "#0a1728",

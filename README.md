@@ -1,9 +1,12 @@
-# ⚓ BDO Ship Upgrade Tracker
+# ⚓ Sailor’s Log — Black Desert sailing
 
-Plan Black Desert Online ship upgrades against **one shared inventory**.
-Queue as many ships and parts as you like; the tracker works out what
-each one still needs, what you can make right now, and what you have to
-go and get — without ever promising the same 100 planks to two builds.
+Everything a Black Desert sailor plans, in one page. Queue as many ships
+and parts as you like against **one shared inventory** — the log works out
+what each one still needs, what you can make right now, and what you have
+to go and get, without ever promising the same 100 planks to two builds.
+Then the sea: the sailing quests, a barter run laid out for today's board
+and the route to sail it, your ship and its crew, and a map you can draw
+on, share, and export into the game as bookmarks or a loop.
 
 Runs entirely in your browser. No account, no server, nothing leaves your
 machine — [unless you turn on sync](#syncing-across-devices), which is

@@ -190,14 +190,19 @@ if (syncEnabled) {
 // Vell reminders by push: a key pair and a table are all it takes, so
 // it can run on a deployment without Discord. Off without the keys.
 if (pushEnabled) {
-	const [{ migrate, ping }, { pushRoutes, startVellPushes }] = await Promise.all([
+	const [{ migrate, ping }, { pushRoutes, startVellPushes, startAlertPushes }] = await Promise.all([
 		import('./server/db.js'),
 		import('./server/push.js')
 	]);
 	if (!syncEnabled) migrate().catch(err => console.warn('[db] tables not ready yet:', err.message));
 	dbPing = ping;
 	app.use('/api', pushRoutes());
-	if (process.env.NODE_ENV !== 'test') startVellPushes();
+	if (process.env.NODE_ENV !== 'test') {
+		startVellPushes();
+		// An account's own chimes: a clock set on one device reaching the
+		// rest. Needs sign-in, so it only runs where sync does.
+		if (syncEnabled) startAlertPushes();
+	}
 }
 
 // Feedback needs a table and nothing else, so like the push reminders it
@@ -380,7 +385,7 @@ app.use((err, req, res, next) => {
 // Importing this file for a test should not open a port.
 if (process.env.NODE_ENV !== 'test') {
 	app.listen(config.port, () => {
-		console.log(`BDO Ship Upgrade Tracker running at http://localhost:${config.port}`);
+		console.log(`Sailor’s Log running at http://localhost:${config.port}`);
 		console.log(`${describe()} -- build ${VERSION}`);
 		if (ephemeralSecret) {
 			console.warn('[config] No SESSION_SECRET set -- sign-ins will not survive a restart.');

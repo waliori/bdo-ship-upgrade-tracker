@@ -207,7 +207,7 @@ class GuidedTour {
 		const all = [
 			{
 				popover: {
-					title: '⚓ One inventory, every build',
+					title: '⚓ Parts, quests, routes and the map',
 					description: 'This tracker keeps a single record of what you own. Every build draws from it, so the same 100 planks are never promised to two ships at once.<br><br><b>The next few screens show an example so there is something to point at — your own data comes back when the tour ends.</b>',
 					align: 'center'
 				},

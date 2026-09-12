@@ -72,7 +72,7 @@ const bob = cookieFor('1002');
 test('the page is still served', async () => {
 	const res = await call('GET', '/');
 	assert.equal(res.status, 200);
-	assert.match(await res.text(), /Ship Upgrade Tracker/);
+	assert.match(await res.text(), /Sailor’s Log/);
 });
 
 test('the client is told sync is available', async () => {
