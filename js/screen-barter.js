@@ -300,7 +300,7 @@ function holdBarHTML(me) {
 			<span class="hold-parley read" title="The Parley in the bar and what an attempt costs at your level — set both in the bar at the top of the page, where every screen reads them"><span>Parley</span><b>${F(prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max)}</b><small>${esc(prof.level || 'no level set')} · −${(levelDiscount(prof.level) * 100).toFixed(2)}%${prof.valuePack ? ' −10% pack' : ''}${prof.crew ? ' −10% crew' : ''} · ${F(parleyOf(prof).perTrade)} a trade${prof.vouchers ? ` · ${prof.vouchers} voucher${prof.vouchers === 1 ? '' : 's'}` : ''}</small></span>
 			<button class="ghost-btn sm" data-act="barter-add" title="Record a good that is aboard">＋ A good</button>
 		</span>
-		${timerState() ? `<span class="hold-bar-timer">${timerHTML()}</span>` : ''}
+		<span class="hold-bar-timer">${timerHTML()}</span>
 	</section>`;
 }
 

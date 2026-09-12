@@ -222,7 +222,7 @@ export function timerHTML({ suggest = 0, label = '' } = {}) {
 		const run = mins
 			? `<button class="chip tiny primary" data-act="barter-timer-start" data-secs="${Math.round(suggest)}" data-label="${esc(label)}" title="Start the clock at this run's own estimate">⏱ start · ≈ ${mins} m</button>`
 			: '';
-		return `<span class="sail-timer">${run}<span class="sail-timer-k">${run ? 'or' : '⏱'}</span>${TIMER_PRESETS.map(m => `<button class="chip tiny" data-act="barter-timer-start" data-secs="${m * 60}" data-label="${esc(label)}" title="Chime in ${m} minutes">${m}</button>`).join('')}<span class="sail-timer-k">m</span>${bell}</span>`;
+		return `<span class="sail-timer">${run}<span class="sail-timer-k">${run ? 'or' : '⏱ chime in'}</span>${TIMER_PRESETS.map(m => `<button class="chip tiny" data-act="barter-timer-start" data-secs="${m * 60}" data-label="${esc(label)}" title="Chime in ${m} minutes">${m}</button>`).join('')}<span class="sail-timer-k">m</span>${bell}</span>`;
 	}
 	const pct = Math.max(0, Math.min(100, (t.ran / t.seconds) * 100));
 	const over = t.over;
