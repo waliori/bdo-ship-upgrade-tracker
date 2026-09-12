@@ -1479,6 +1479,7 @@ function todayHTML() {
 			<h2 class="panel-title">Today’s boards</h2>
 			<span class="panel-sub">${runs.length === 1 ? 'one board' : `${runs.length} boards`} since the ${String(BARTER_RESET_UTC).padStart(2, '0')}:00 UTC refill · ${F(totals.trades)} trade${totals.trades === 1 ? '' : 's'} · ${F(totals.parley)} Parley of the ${F(bar)} the bar holds${totals.silver ? ` · ${FC(totals.silver - totals.cost)} net` : ''}</span>
 		</div>
+		<p class="panel-sub barter-caveat day-note">What to load for the <b>next</b> board is in the run’s own sheet, under <b>Lay it out</b>: a refresh deals a different board, so what it will want cannot be known until you have looked at an island on it.</p>
 		<div class="day-runs">${rows}</div>
 		<div class="day-run day-total">
 			<span class="day-n">Σ</span>

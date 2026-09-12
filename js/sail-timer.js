@@ -89,6 +89,21 @@ let ctx = null;
  * pressed something, which is why this is only ever reached from a
  * timer the sailor started by hand -- that press is the permission.
  */
+/**
+ * The audio woken without a sound. A browser will not let a page make
+ * a noise until somebody has pressed something, and the press that
+ * starts the clock is the only one that is going to come -- so the
+ * context is made and resumed there, minutes before it is needed.
+ */
+export function unlockSound() {
+	try {
+		const Ctor = window.AudioContext || window.webkitAudioContext;
+		if (!Ctor) return;
+		ctx = ctx || new Ctor();
+		if (ctx.state === 'suspended') ctx.resume();
+	} catch { /* no audio on this device */ }
+}
+
 export function chime() {
 	if (!soundOn()) return;
 	try {
@@ -253,8 +268,10 @@ export function timerAction(act, el) {
 	if (act === 'barter-timer-start') {
 		startTimer(Number(el.dataset.secs) || 600, el.dataset.label || '');
 		// The press that starts the clock is also what lets the page make
-		// a sound later: the browser wants a gesture, and this is it.
-		if (soundOn()) { try { chime(); } catch { /* no audio here */ } }
+		// a sound later: the browser wants a gesture, and this is it. It
+		// wakes the audio without making a noise -- a beep on starting
+		// would be the timer crying wolf.
+		if (soundOn()) unlockSound();
 		return true;
 	}
 	if (act === 'barter-timer-stop') { stopTimer(); return true; }
