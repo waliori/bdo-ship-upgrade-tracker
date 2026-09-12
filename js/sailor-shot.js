@@ -33,6 +33,7 @@
 // the words lives in shot-reader.js, and nothing here needs it -- which
 // is what lets the parsing be tested on fixtures.
 
+import { TT } from './i18n.js';
 import { pool, mateTypes, anyType, statBand } from './sailors.js';
 import { localeFor, DEFAULT_LANG, GROWTH_KEYS, GRID_TWO_COL, GRID_ONE_COL } from './sailor-locales.js';
 
@@ -698,8 +699,8 @@ export function readPanel(words, locale = EN) {
 	// name we could not read is still the fifth figure down the column.
 	if (grid) for (const [key, v] of Object.entries(grid)) if (stats[key] === undefined) stats[key] = Math.round(v * 10) / 10;
 	const moves = ['speed', 'accel', 'turn', 'brake'].filter(k => stats[k] !== undefined).length;
-	if (!moves) warnings.push('no growths read');
-	else if (moves < 4) warnings.push('some growths not read');
+	if (!moves) warnings.push(TT('no growths read'));
+	else if (moves < 4) warnings.push(TT('some growths not read'));
 
 	// Bounded by what the game can print: no sailor eats two hundred, or
 	// costs twenty cabins, or weighs half a ton and a bit. A figure
@@ -808,8 +809,8 @@ export function readPanel(words, locale = EN) {
 		// letter, and no sailor's name ends in one.
 		: name.replace(/\s+\S$/, '');
 	name = name.slice(0, 30);
-	if (!name) warnings.push('no name');
-	if (lv === null && !(title === 'First Mate' || (title && anyType[title] && anyType[title].mate))) warnings.push('no level');
+	if (!name) warnings.push(TT('no name'));
+	if (lv === null && !(title === 'First Mate' || (title && anyType[title] && anyType[title].mate))) warnings.push(TT('no level'));
 
 	// Condition: spelt out in the window, and only a bar with "170/170"
 	// under it in the panel. Either way it is the pair, not the EXP
@@ -903,11 +904,11 @@ export function sailorFrom(words, locale = EN) {
 	const { type, sure } = matchType(read);
 	const t = type ? anyType[type] : null;
 	const warnings = [...read.warnings];
-	if (!type) warnings.push('type unknown');
-	else if (!sure) warnings.push('type guessed');
+	if (!type) warnings.push(TT('type unknown'));
+	else if (!sure) warnings.push(TT('type guessed'));
 	// The facts are the game's; where they disagree with the type we
 	// matched, the type is the doubtful half.
-	if (t && read.weight !== null && Math.round(read.weight) !== t.weight) warnings.push('weight does not match the type');
+	if (t && read.weight !== null && Math.round(read.weight) !== t.weight) warnings.push(TT('weight does not match the type'));
 	const stats = {};
 	for (const [k, v] of Object.entries(read.stats)) if (v > 0) stats[k] = v;
 	return {

@@ -15,7 +15,7 @@
 
 import * as store from './state.js';
 import { esc } from './fmt.js';
-import { T, said } from './i18n.js';
+import { T, TT, said } from './i18n.js';
 
 const REV_KEY = 'sync.rev';
 const DEVICE_KEY = 'sync.device';
@@ -113,12 +113,12 @@ function deviceName() {
 	let name = store.getSetting(DEVICE_KEY, null);
 	if (name) return name;
 	const ua = navigator.userAgent || '';
-	name = /Mobi|Android|iPhone/.test(ua) ? 'phone'
-		: /iPad|Tablet/.test(ua) ? 'tablet'
-		: /Mac/.test(ua) ? 'Mac'
-		: /Windows/.test(ua) ? 'Windows'
-		: /Linux/.test(ua) ? 'Linux'
-		: 'this browser';
+	name = /Mobi|Android|iPhone/.test(ua) ? TT('phone')
+		: /iPad|Tablet/.test(ua) ? TT('tablet')
+		: /Mac/.test(ua) ? TT('Mac')
+		: /Windows/.test(ua) ? TT('Windows')
+		: /Linux/.test(ua) ? TT('Linux')
+		: TT('this browser');
 	store.setSetting(DEVICE_KEY, name);
 	return name;
 }
@@ -439,13 +439,13 @@ function askWhichCopy(remote, headline) {
 
 	const mine = countOf(store.saveShape());
 	const theirs = countOf(remote.data);
-	const from = remote.device ? T('on {device}', { device: remote.device }) : T('elsewhere');
+	const from = remote.device ? T('on {device}', { device: said(remote.device) }) : T('elsewhere');
 
 	const host = hooks.openDialog(`
 		<h2>${T('Two copies of your inventory')}</h2>
 		<p>${esc(headline)} ${T('Nothing has been changed yet — pick the one to keep, and the other is still one Undo away.')}</p>
 		<div class="dialog-list">
-			<div class="dialog-row"><span>${T('Here on {device}', { device: esc(deviceName()) })}</span><span class="n">${T('{items} items · {builds} builds', { items: mine.items, builds: mine.builds })}</span></div>
+			<div class="dialog-row"><span>${T('Here on {device}', { device: esc(said(deviceName())) })}</span><span class="n">${T('{items} items · {builds} builds', { items: mine.items, builds: mine.builds })}</span></div>
 			<div class="dialog-row"><span>${T('Saved {where}, {when}', { where: esc(from), when: esc(when(remote.updatedAt)) })}</span><span class="n">${T('{items} items · {builds} builds', { items: theirs.items, builds: theirs.builds })}</span></div>
 		</div>
 		<div class="dialog-actions">

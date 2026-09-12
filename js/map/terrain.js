@@ -26,6 +26,7 @@
 // draws everything.
 
 import { MAX_ZOOM, TILE, TILES } from '../barter_npcs.js';
+import { T } from '../i18n.js';
 import { setProjector, tileSrc, levelFor } from '../map.js';
 
 /** Sea level, in chart units. js/worldmap.js has it in the game's own
@@ -829,7 +830,7 @@ function program(gl, vs, fs, attrs) {
 export function terrainSupported() {
 	if (state.failed) return false;
 	if (typeof DecompressionStream !== 'function') {
-		state.failed = 'this browser cannot unpack the terrain tiles';
+		state.failed = T('this browser cannot unpack the terrain tiles');
 		return false;
 	}
 	try {
@@ -856,7 +857,7 @@ async function loadIndex() {
 		ix.levels.sort((a, b) => a.level - b.level);
 		state.index = ix;
 	} catch (err) {
-		state.failed = `the terrain is not baked here (${err.message})`;
+		state.failed = T('the terrain is not baked here ({why})', { why: err.message });
 	}
 	return state.index;
 }
@@ -865,7 +866,7 @@ async function loadIndex() {
  *  nothing to show -- no WebGL2, or no bake on this deployment. */
 export async function enterTerrain(host) {
 	if (state.on) return true;
-	if (!terrainSupported()) { state.failed = 'this browser has no WebGL2'; return false; }
+	if (!terrainSupported()) { state.failed = T('this browser has no WebGL2'); return false; }
 	if (!await loadIndex()) return false;
 
 	const canvas = document.createElement('canvas');
@@ -878,7 +879,7 @@ export async function enterTerrain(host) {
 		alpha: false, antialias: true, depth: true,
 		powerPreference: 'high-performance'
 	});
-	if (!gl) { canvas.remove(); state.failed = 'this browser has no WebGL2'; return false; }
+	if (!gl) { canvas.remove(); state.failed = T('this browser has no WebGL2'); return false; }
 
 	state.canvas = canvas;
 	state.gl = gl;

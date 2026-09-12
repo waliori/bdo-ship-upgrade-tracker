@@ -13,6 +13,7 @@
 // failed request simply leaves it as it was.
 
 import { esc, F } from './fmt.js';
+import { T } from './i18n.js';
 
 const KEY = 'bdo-tracker/visitor';
 // The client says hello on this beat; the server counts a browser as
@@ -63,14 +64,17 @@ function paint({ online = 0, sailors = 0, crew = 0 }) {
 	if (!online) { host.innerHTML = ''; return; }
 	// "you" included, because the reader is one of them and a count that
 	// said 0 while they were plainly here would read as broken.
-	const roll = sailors > 1 ? ` · ${F(sailors)} browsers have opened it` : '';
-	const signed = crew > 0 ? ` · ${F(crew)} ${crew === 1 ? 'has' : 'have'} signed in and keep a save` : '';
-	const title = `${F(online)} browser${online === 1 ? '' : 's'} have the tracker open right now, yours among them${roll}${signed}. Nobody is named and nothing of your save is counted.`;
+	const roll = sailors > 1 ? ` · ${T('{n} browsers have opened it', { n: F(sailors) })}` : '';
+	const signed = crew > 0 ? ` · ${crew === 1 ? T('{n} has signed in and keep a save', { n: F(crew) }) : T('{n} have signed in and keep a save', { n: F(crew) })}` : '';
+	const head = online === 1
+		? T('{n} browser have the tracker open right now, yours among them', { n: F(online) })
+		: T('{n} browsers have the tracker open right now, yours among them', { n: F(online) });
+	const title = `${head}${roll}${signed}. ${T('Nobody is named and nothing of your save is counted.')}`;
 	const fleet = crew > 0
-		? `<span class="crowd-roll"> · ${F(crew)} <span class="crowd-word">crew</span></span>`
+		? `<span class="crowd-roll"> · ${F(crew)} <span class="crowd-word">${T('crew')}</span></span>`
 		: '';
 	host.innerHTML = `<span class="crowd-chip" title="${esc(title)}">
-		<i aria-hidden="true"></i>${F(online)} <span class="crowd-word">at sea</span>${fleet}</span>`;
+		<i aria-hidden="true"></i>${F(online)} <span class="crowd-word">${T('at sea')}</span>${fleet}</span>`;
 }
 
 /** Say hello, and keep saying it while the tab is being looked at. */

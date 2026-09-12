@@ -18,7 +18,7 @@ import { paceText } from './pace.js';
 import { currentShip } from './ship.js';
 import { REGIONS, DEFAULT_REGION } from './market.js';
 
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAYS = [TT('Sunday'), TT('Monday'), TT('Tuesday'), TT('Wednesday'), TT('Thursday'), TT('Friday'), TT('Saturday')];
 
 const zoneShort = zone => T('{zone} time', { zone: zone.split('/').pop().replace(/_/g, ' ') });
 

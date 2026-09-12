@@ -33,24 +33,34 @@
  * interface pack it reads, so the three English databases share one;
  * `font` names a Google face for a script Chakra Petch and Noto Sans
  * have no glyphs for, fetched only when that language is chosen.
+ *
+ * `reader` is the same language as js/sailor-locales.js calls it. That
+ * module has a list of these sixteen too, and it is not a duplicate of
+ * this one: it answers a different question. This list is what language
+ * the app is read in; that one is what language the GAME was in when a
+ * screenshot was taken, which decides the words the sailor reader looks
+ * for and the model it fetches to make out the glyphs. They are the same
+ * sixteen because the game ships in sixteen, and someone reading the app
+ * in Korean is almost certainly playing in Korean -- so this field is
+ * how the reader starts on the right one instead of on English.
  */
 export const LANGS = [
-	{ id: 'us', label: 'US English', ui: 'en' },
-	{ id: 'de', label: 'Deutsch', ui: 'de' },
-	{ id: 'fr', label: 'Français', ui: 'fr' },
-	{ id: 'ru', label: 'Русский', ui: 'ru' },
-	{ id: 'es', label: 'Español (NA/EU)', ui: 'es' },
-	{ id: 'sp', label: 'Español (SA)', ui: 'sp' },
-	{ id: 'pt', label: 'Português', ui: 'pt' },
-	{ id: 'jp', label: '日本語', ui: 'jp', font: 'Noto+Sans+JP' },
-	{ id: 'kr', label: '한국어', ui: 'kr', font: 'Noto+Sans+KR' },
-	{ id: 'cn', label: '中文', ui: 'cn', font: 'Noto+Sans+SC' },
-	{ id: 'tw', label: '繁體中文', ui: 'tw', font: 'Noto+Sans+TC' },
-	{ id: 'th', label: 'ภาษาไทย', ui: 'th', font: 'Noto+Sans+Thai' },
-	{ id: 'tr', label: 'Türkçe', ui: 'tr' },
-	{ id: 'id', label: 'Basa Indonesia', ui: 'en' },
-	{ id: 'seaen', label: 'SEA English', ui: 'en' },
-	{ id: 'gl', label: 'Global Lab', ui: 'en' }
+	{ id: 'us', label: 'US English', ui: 'en', reader: 'en' },
+	{ id: 'de', label: 'Deutsch', ui: 'de', reader: 'de' },
+	{ id: 'fr', label: 'Français', ui: 'fr', reader: 'fr' },
+	{ id: 'ru', label: 'Русский', ui: 'ru', reader: 'ru' },
+	{ id: 'es', label: 'Español (NA/EU)', ui: 'es', reader: 'es' },
+	{ id: 'sp', label: 'Español (SA)', ui: 'sp', reader: 'es-419' },
+	{ id: 'pt', label: 'Português', ui: 'pt', reader: 'pt' },
+	{ id: 'jp', label: '日本語', ui: 'jp', font: 'Noto+Sans+JP', reader: 'ja' },
+	{ id: 'kr', label: '한국어', ui: 'kr', font: 'Noto+Sans+KR', reader: 'ko' },
+	{ id: 'cn', label: '中文', ui: 'cn', font: 'Noto+Sans+SC', reader: 'zh' },
+	{ id: 'tw', label: '繁體中文', ui: 'tw', font: 'Noto+Sans+TC', reader: 'zh-Hant' },
+	{ id: 'th', label: 'ภาษาไทย', ui: 'th', font: 'Noto+Sans+Thai', reader: 'th' },
+	{ id: 'tr', label: 'Türkçe', ui: 'tr', reader: 'tr' },
+	{ id: 'id', label: 'Basa Indonesia', ui: 'en', reader: 'id' },
+	{ id: 'seaen', label: 'SEA English', ui: 'en', reader: 'sea' },
+	{ id: 'gl', label: 'Global Lab', ui: 'en', reader: 'gl' }
 ];
 
 export const langById = Object.fromEntries(LANGS.map(l => [l.id, l]));
@@ -78,6 +88,14 @@ export const uiLang = () => (langById[current] || LANGS[0]).ui;
 
 /** Its BCP 47 tag, for Intl. */
 export const locale = () => BCP47[uiLang()] || 'en';
+
+/**
+ * The game language a screenshot is most likely to be in, as
+ * js/sailor-locales.js names it. Only a starting point: the sailor
+ * import keeps its own setting, because a player can read the app in
+ * one language and run the client in another.
+ */
+export const readerLang = () => (langById[current] || LANGS[0]).reader;
 
 /* ------------------------------------------------------------------ *
  * The app's own words

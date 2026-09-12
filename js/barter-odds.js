@@ -48,6 +48,8 @@
 //
 // Pure: no store, no screen, no fetch. Hand it the datasets.
 
+import { T } from './i18n.js';
+
 // The kind test is inlined rather than imported from barter.js, which
 // imports this: a leaf module cannot be half-evaluated by a cycle.
 const LEVEL = /^\[Level (\d)\]/;
@@ -145,15 +147,15 @@ export function oddsFor(item, index) {
  * player can weigh; "0.4 offers a draw" is a number they cannot.
  */
 export function oddsText(odds) {
-	if (!odds || !odds.recorded) return 'no board has recorded this one yet';
+	if (!odds || !odds.recorded) return T('no board has recorded this one yet');
 	if (odds.kind === 'material') {
-		const where = odds.islands >= 2 ? `, at ${Math.round(odds.islands)} islands when it is` : '';
+		const where = odds.islands >= 2 ? T(', at {n} islands when it is', { n: Math.round(odds.islands) }) : '';
 		return odds.seen >= odds.of
-			? `on every one of the ${odds.of} boards recorded${where}`
-			: `on ${odds.seen} of the ${odds.of} boards recorded${where}`;
+			? T('on every one of the {of} boards recorded{where}', { of: odds.of, where })
+			: T('on {seen} of the {of} boards recorded{where}', { seen: odds.seen, of: odds.of, where });
 	}
 	const pct = Math.round((odds.seen / odds.of) * 100);
-	return `on about ${pct}% of refreshes, over ${odds.of.toLocaleString('en-GB')} recorded`;
+	return T('on about {pct}% of refreshes, over {n} recorded', { pct, n: odds.of.toLocaleString('en-GB') });
 }
 
 /**

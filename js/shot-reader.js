@@ -20,6 +20,7 @@
 
 import { panelBox, sailorFrom } from './sailor-shot.js';
 import { localeFor, DEFAULT_LANG } from './sailor-locales.js';
+import { T } from './i18n.js';
 
 /** Where the vendored engine lives. Versioned: see reader/README.md. */
 const LIB = '/reader/tesseract-7.0.0.esm.min.js';
@@ -75,11 +76,11 @@ export async function triage(files) {
 	const take = [], skipped = [];
 	let total = 0;
 	for (const file of files) {
-		if (take.length >= LIMITS.files) { skipped.push({ file, why: `more than ${LIMITS.files} at once` }); continue; }
-		if (file.size > LIMITS.bytes) { skipped.push({ file, why: `bigger than ${Math.round(LIMITS.bytes / 1024 / 1024)} MB` }); continue; }
-		if (total + file.size > LIMITS.total) { skipped.push({ file, why: 'the batch is already full' }); continue; }
+		if (take.length >= LIMITS.files) { skipped.push({ file, why: T('more than {n} at once', { n: LIMITS.files }) }); continue; }
+		if (file.size > LIMITS.bytes) { skipped.push({ file, why: T('bigger than {n} MB', { n: Math.round(LIMITS.bytes / 1024 / 1024) }) }); continue; }
+		if (total + file.size > LIMITS.total) { skipped.push({ file, why: T('the batch is already full') }); continue; }
 		const kind = await sniff(file).catch(() => null);
-		if (!kind) { skipped.push({ file, why: 'not a PNG, JPEG or WebP' }); continue; }
+		if (!kind) { skipped.push({ file, why: T('not a PNG, JPEG or WebP') }); continue; }
 		total += file.size;
 		take.push(file);
 	}
@@ -109,7 +110,7 @@ async function open(tess, onProgress) {
 	if (engine) await close();
 	const ready = (async () => {
 		const say = onProgress || (() => {});
-		say({ stage: 'engine', text: 'fetching the reader' });
+		say({ stage: 'engine', text: T('fetching the reader') });
 		const { default: Tesseract } = await import(LIB);
 		const worker = await Tesseract.createWorker(tess, 1, {
 			workerPath: WORKER,
@@ -232,10 +233,10 @@ async function readOne(worker, PSM, file, locale) {
 	try {
 		bitmap = await createImageBitmap(file);
 	} catch {
-		return { sailor: null, why: 'could not be opened as an image' };
+		return { sailor: null, why: T('could not be opened as an image') };
 	}
 	try {
-		if (bitmap.width * bitmap.height > LIMITS.pixels) return { sailor: null, why: 'far too large to be a screenshot' };
+		if (bitmap.width * bitmap.height > LIMITS.pixels) return { sailor: null, why: T('far too large to be a screenshot') };
 		const probe = PROBE[locale.dense ? 'dense' : 'alphabet'];
 		const probeScale = Math.min(MAX_UP, probe / Math.max(bitmap.width, bitmap.height));
 		const found = panelBox(await scan(worker, paint(bitmap, { scale: probeScale }), PSM.SPARSE_TEXT), {
@@ -243,7 +244,7 @@ async function readOne(worker, PSM, file, locale) {
 			height: bitmap.height * probeScale,
 			locale
 		});
-		if (!found) return { sailor: null, why: 'no sailor panel in it' };
+		if (!found) return { sailor: null, why: T('no sailor panel in it') };
 		const crop = {
 			x: Math.max(0, Math.floor(found.x0 / probeScale)),
 			y: Math.max(0, Math.floor(found.y0 / probeScale)),
@@ -254,7 +255,7 @@ async function readOne(worker, PSM, file, locale) {
 		crop.h = Math.min(crop.h, bitmap.height - crop.y);
 		const scale = Math.max(1, Math.min(3, WANT_LINE / (found.lineH / probeScale)));
 		const sailor = sailorFrom(await scan(worker, paint(bitmap, { crop, scale }), PSM.SINGLE_BLOCK), locale);
-		return sailor ? { sailor } : { sailor: null, why: 'the panel could not be read' };
+		return sailor ? { sailor } : { sailor: null, why: T('the panel could not be read') };
 	} finally {
 		bitmap.close();
 	}
@@ -280,7 +281,7 @@ export async function readShots(files, { onProgress = () => {}, signal = null, l
 		try {
 			res = await readOne(worker, Tesseract.PSM, file, locale);
 		} catch (err) {
-			res = { sailor: null, why: err && err.message ? err.message : 'could not be read' };
+			res = { sailor: null, why: err && err.message ? err.message : T('could not be read') };
 		}
 		out.push({ file: file.name, ...res });
 	}

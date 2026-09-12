@@ -18,13 +18,14 @@
 
 import { coins } from './sea_coins.js';
 import { esc, F, FC, parseAmount } from './fmt.js';
+import { T, TT, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { img, codexName } from './ui-bits.js';
 import { CROW_COIN } from './ui-state.js';
 
 /** Where the coins are spent, for a dialog that should say so. */
-export const SHOP = 'the Crow Coin Shop at Oquilla’s Eye';
+export const SHOP = TT('the Crow Coin Shop at Oquilla’s Eye');
 
 /** What one costs in coins, or 0 for anything the shop does not sell. */
 export const coinPrice = item => Number(coins[item]) || 0;
@@ -44,7 +45,7 @@ export function coinBuyButton(item, want = 1, { small = true, label = null } = {
 	const n = Math.max(1, Math.floor(Number(want) || 1));
 	return `<button class="act quiet${small ? ' small' : ''} coin-buy" data-act="coin-buy"
 		data-item="${esc(item)}" data-n="${n}"
-		title="Record buying ${esc(item)} at ${esc(SHOP)} — the coins come off your purse">🪙 ${esc(label || 'Buy with coins')}</button>`;
+		title="${T('Record buying {item} at {shop} — the coins come off your purse', { item: esc(gameName(item)), shop: esc(said(SHOP)) })}">🪙 ${esc(label || T('Buy with coins'))}</button>`;
 }
 
 /**
@@ -65,21 +66,21 @@ export function openCoinBuy(item, want = 1) {
 	const start = Math.max(1, Math.min(Math.max(1, Math.floor(Number(want) || 1)), Math.max(1, afford)));
 
 	const host = openDialog(`
-		<h2>Buy with Crow Coins</h2>
+		<h2>${T('Buy with Crow Coins')}</h2>
 		<div class="buy-head">
 			${img(item, 'row-icon')}
 			<div>
 				<div class="buy-name">${codexName(item)}</div>
-				<div class="row-sub">${F(price)} coins each · ${esc(SHOP)}</div>
+				<div class="row-sub">${T('{price} coins each', { price: F(price) })} · ${esc(said(SHOP))}</div>
 			</div>
 		</div>
-		<label class="dialog-field">How many
-			<input class="field buy-n" inputmode="numeric" value="${F(start)}" aria-label="How many to buy"></label>
+		<label class="dialog-field">${T('How many')}
+			<input class="field buy-n" inputmode="numeric" value="${F(start)}" aria-label="${T('How many to buy')}"></label>
 		<div class="buy-sum" data-sum></div>
-		<p class="dialog-note quiet">This records the purchase: the goods into your inventory, the coins off your purse, as one change. One Undo takes back both.</p>
+		<p class="dialog-note quiet">${T('This records the purchase: the goods into your inventory, the coins off your purse, as one change. One Undo takes back both.')}</p>
 		<div class="dialog-actions">
-			<button class="act quiet" data-close>Cancel</button>
-			<button class="act" data-buy>Buy</button>
+			<button class="act quiet" data-close>${T('Cancel')}</button>
+			<button class="act" data-buy>${T('Buy')}</button>
 		</div>`);
 
 	const field = host.querySelector('.buy-n');
@@ -93,12 +94,12 @@ export function openCoinBuy(item, want = 1) {
 		const over = cost > held;
 		sum.className = `buy-sum${over ? ' over' : ''}`;
 		sum.innerHTML = n
-			? `<span><b>${FC(cost)}</b> coins</span><span>${over
-				? `you hold ${FC(held)} — enough for ${F(afford)}`
-				: `${FC(held - cost)} left of ${FC(held)}`}</span>`
-			: '<span>—</span><span>nothing to buy</span>';
+			? `<span>${T('<b>{cost}</b> coins', { cost: FC(cost) })}</span><span>${over
+				? T('you hold {held} — enough for {afford}', { held: FC(held), afford: F(afford) })
+				: T('{left} left of {held}', { left: FC(held - cost), held: FC(held) })}</span>`
+			: `<span>—</span><span>${T('nothing to buy')}</span>`;
 		buy.disabled = !n || over;
-		buy.textContent = n && !over ? `Buy ${F(n)}` : 'Buy';
+		buy.textContent = n && !over ? T('Buy {n}', { n: F(n) }) : T('Buy');
 	};
 	field.addEventListener('input', paint);
 	paint();
@@ -117,6 +118,6 @@ export function openCoinBuy(item, want = 1) {
 /** The purchase itself: goods in, coins out, one step. */
 function record(item, n, cost) {
 	store.applyDelta({ [item]: n, [CROW_COIN]: -cost }, 'stock',
-		`Bought ${F(n)} × ${item} for ${F(cost)} Crow Coins`);
-	toast(`Bought ${F(n)} × ${item} — ${FC(cost)} coins spent`, true);
+		T('Bought {n} × {item} for {coins} Crow Coins', { n: F(n), item: gameName(item), coins: F(cost) }));
+	toast(T('Bought {n} × {item} — {coins} coins spent', { n: F(n), item: gameName(item), coins: FC(cost) }), true);
 }

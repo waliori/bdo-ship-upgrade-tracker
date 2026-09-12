@@ -147,7 +147,7 @@ export async function toggle3D() {
 	setTilt(mv.pitch, mv.bearing);
 	const up = await enterTerrain(host);
 	if (!up) {
-		toast(terrainTrouble() || 'The terrain view is not available here');
+		toast(terrainTrouble() || T('The terrain view is not available here'));
 		return;
 	}
 	mv.threeD = true;

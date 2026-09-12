@@ -48,6 +48,10 @@ test.after(async () => {
 
 const french = JSON.parse(fs.readFileSync(new URL('../js/lang/names.fr.json', import.meta.url), 'utf8'));
 
+// What index.html calls the app, whatever that is today.
+const brandInMarkup = (fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+	.match(/class="brand-name"[^>]*>([^<]+)</) || [])[1].trim();
+
 /**
  * A page with the first run already behind it.
  *
@@ -170,9 +174,12 @@ test('the words written into the page, not into a render function, are translate
 	// index.html carries the masthead's English in the markup so the page
 	// reads correctly before a line of script runs; translateStatic()
 	// walks it after a language is loaded.
-	const before = await page.$eval('.brand-name', el => el.textContent.trim());
-	assert.equal(before, 'Ship Upgrade Tracker');
-	const source = await page.$eval('.brand-name', el => el.dataset.tSource);
-	assert.equal(source, 'Ship Upgrade Tracker', 'the English is remembered, so a second language is not translated from the first');
+	// The app's own name, read off index.html rather than written here,
+	// so a rename does not quietly turn this test into a check that the
+	// app is still called whatever it was called the day it was written.
+	const marked = await page.$eval('.brand-name', el => ({ text: el.textContent.trim(), source: el.dataset.tSource }));
+	assert.ok(marked.text, 'the brand name is drawn');
+	assert.equal(marked.source, marked.text, 'the English is remembered, so a second language is not translated from the first');
+	assert.equal(marked.source, brandInMarkup, 'and what is remembered is what the markup says');
 	await context.close();
 });

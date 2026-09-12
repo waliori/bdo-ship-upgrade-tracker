@@ -26,24 +26,25 @@
 
 import { cadenceOf } from './quests.js';
 import { oddsText } from './barter-odds.js';
+import { T, TT, said, gameName } from './i18n.js';
 
 export const PRESETS = [
 	{
-		id: 'soon', label: 'Soonest',
-		sub: 'the purse spent wherever it buys days; the quests every day you sail; barter for what is left'
+		id: 'soon', label: TT('Soonest'),
+		sub: TT('the purse spent wherever it buys days; the quests every day you sail; barter for what is left')
 	},
 	{
-		id: 'coins', label: 'Keep the coins',
-		sub: 'Crow Coins only where nothing else sells it; the quests and the barter lists carry the rest'
+		id: 'coins', label: TT('Keep the coins'),
+		sub: TT('Crow Coins only where nothing else sells it; the quests and the barter lists carry the rest')
 	},
 	{
-		id: 'silver', label: 'Keep the silver',
-		sub: 'nothing off the Central Market; Falasi only for what only he sells'
+		id: 'silver', label: TT('Keep the silver'),
+		sub: TT('nothing off the Central Market; Falasi only for what only he sells')
 	}
 ];
 
 /** How many days a week the sea gets: the dailies and the draws. */
-export const DAY_CHOICES = [[7, 'every day'], [5, 'five days a week'], [3, 'three days a week'], [2, 'two days a week'], [1, 'one day a week']];
+export const DAY_CHOICES = [[7, TT('every day')], [5, TT('five days a week')], [3, TT('three days a week')], [2, TT('two days a week')], [1, TT('one day a week')]];
 
 /**
  * What the player is actually willing to do.
@@ -57,9 +58,9 @@ export const DAY_CHOICES = [[7, 'every day'], [5, 'five days a week'], [3, 'thre
  * without the app ever pretending to know a drop rate.
  */
 export const DOING = [
-	['quests', 'Dailies & weeklies', 'The sailing quests, on the days you are at sea'],
-	['barter', 'Bartering', 'The trade-good and ship-material lists'],
-	['hunt', 'Hunt what drops', 'Anything a sea monster drops is yours to go and kill for, not to buy']
+	['quests', TT('Dailies & weeklies'), TT('The sailing quests, on the days you are at sea')],
+	['barter', TT('Bartering'), TT('The trade-good and ship-material lists')],
+	['hunt', TT('Hunt what drops'), TT('Anything a sea monster drops is yours to go and kill for, not to buy')]
 ];
 
 export const DEFAULT_ORDERS = { preset: 'soon', days: 7, reserve: 0, quests: true, barter: true, hunt: false };
@@ -81,7 +82,13 @@ export function readGetOrders(raw) {
 
 const COIN = 'Crow Coin';
 const fmt = n => Math.round(n).toLocaleString('en-GB');
-const plural = (n, one, many = `${one}s`) => `${fmt(n)} ${n === 1 ? one : many}`;
+const dayText = n => (n === 1 ? T('{n} day', { n: fmt(n) }) : T('{n} days', { n: fmt(n) }));
+const drawText = n => (n === 1 ? T('{n} draw', { n: fmt(n) }) : T('{n} draws', { n: fmt(n) }));
+const itemText = n => (n === 1 ? T('{n} item', { n: fmt(n) }) : T('{n} items', { n: fmt(n) }));
+const andMoreQuests = n => (n === 1 ? T('and {n} more quest', { n: fmt(n) }) : T('and {n} more quests', { n: fmt(n) }));
+const listDraws = (n, list) => (list === 'material'
+	? (n === 1 ? T('{n} draw of the material list', { n: fmt(n) }) : T('{n} draws of the material list', { n: fmt(n) }))
+	: (n === 1 ? T('{n} draw of the trade list', { n: fmt(n) }) : T('{n} draws of the trade list', { n: fmt(n) })));
 
 /** A quest's name without its [Daily] / [Weekly] / [Barter] tags. */
 const shortName = q => q.name.replace(/\[[^\]]*\]\s*/g, '').replace(/\s+—.*$/, '');
@@ -255,20 +262,23 @@ function allocate(H, facts, sources, state, orders) {
 			lines: from.slice(0, 5).map(s => {
 				const c = cadenceOf(s.q);
 				const each = s.pays[item] / s.completions;
-				const per = c === 'daily' ? `${fmt(each)} a day` : c === 'weekly' ? `${fmt(each)} a week` : `${fmt(each)} once`;
-				const pick = Object.keys(s.picks).length ? ' (take it)' : '';
+				const per = c === 'daily' ? T('{n} a day', { n: fmt(each) }) : c === 'weekly' ? T('{n} a week', { n: fmt(each) }) : T('{n} once', { n: fmt(each) });
+				const pick = Object.keys(s.picks).length
+					? T('{per} from {quest} (take it)', { per, quest: gameName(shortName(s.q)) })
+					: T('{per} from {quest}', { per, quest: gameName(shortName(s.q)) });
 				// The count only earns its place when several quests are
 				// paying into the same material and the shares differ.
-				const share = from.length > 1 ? `${fmt(s.pays[item])} of them · ` : '';
-				return `${share}${per} from ${shortName(s.q)}${pick}`;
-			}).concat(from.length > 5 ? [`and ${plural(from.length - 5, 'more quest')}`] : []),
+				const share = from.length > 1 ? `${T('{n} of them', { n: fmt(s.pays[item]) })} · ` : '';
+				return `${share}${pick}`;
+			}).concat(from.length > 5 ? [andMoreQuests(from.length - 5)] : []),
 			why: from.slice(0, 4).map(s => {
 				const c = cadenceOf(s.q);
 				const each = s.pays[item] / s.completions;
-				const per = c === 'daily' ? `${fmt(each)} a day` : c === 'weekly' ? `${fmt(each)} a week` : `${fmt(each)} once`;
-				const pick = Object.keys(s.picks).length ? ' (take it)' : '';
-				return `${per} from ${shortName(s.q)}${pick}`;
-			}).join(' · ') + (from.length > 4 ? ` · and ${plural(from.length - 4, 'more quest')}` : '')
+				const per = c === 'daily' ? T('{n} a day', { n: fmt(each) }) : c === 'weekly' ? T('{n} a week', { n: fmt(each) }) : T('{n} once', { n: fmt(each) });
+				return Object.keys(s.picks).length
+					? T('{per} from {quest} (take it)', { per, quest: gameName(shortName(s.q)) })
+					: T('{per} from {quest}', { per, quest: gameName(shortName(s.q)) });
+			}).join(' · ') + (from.length > 4 ? ` · ${andMoreQuests(from.length - 4)}` : '')
 		});
 	}
 
@@ -278,11 +288,11 @@ function allocate(H, facts, sources, state, orders) {
 		const left = short.get(f.item);
 		if (left <= 0) continue;
 		if (f.falasi) {
-			leg(f.item, { kind: 'falasi', qty: left, silver: f.falasi * left, why: `${fmt(f.falasi)} silver each at Falasi` });
+			leg(f.item, { kind: 'falasi', qty: left, silver: f.falasi * left, why: T('{n} silver each at Falasi', { n: fmt(f.falasi) }) });
 			silverSpend += f.falasi * left;
 			short.set(f.item, 0);
 		} else if (f.market) {
-			leg(f.item, { kind: 'market', qty: left, silver: f.market * left, why: `about ${fmt(f.market)} silver each on the Central Market, last sold` });
+			leg(f.item, { kind: 'market', qty: left, silver: f.market * left, why: T('about {n} silver each on the Central Market, last sold', { n: fmt(f.market) }) });
 			silverSpend += f.market * left;
 			short.set(f.item, 0);
 		}
@@ -295,7 +305,7 @@ function allocate(H, facts, sources, state, orders) {
 			if (left <= 0 || !f.drops.length) continue;
 			leg(f.item, {
 				kind: 'hunt', qty: left,
-				why: `yours to hunt · drops from ${f.drops.slice(0, 3).join(', ')}`
+				why: `${T('yours to hunt')} · ${T('drops from {names}', { names: f.drops.slice(0, 3).map(gameName).join(', ') })}`
 			});
 			short.set(f.item, 0);
 		}
@@ -306,7 +316,7 @@ function allocate(H, facts, sources, state, orders) {
 	const scheduledCoins = () => [...sched.values()].reduce((a, s) => a + s.coins, 0);
 	let coinSpend = 0;
 	const buy = (f, units, why) => {
-		leg(f.item, { kind: 'coin', qty: units, coins: f.coin * units, unit: `${fmt(f.coin)} coins each`, why });
+		leg(f.item, { kind: 'coin', qty: units, coins: f.coin * units, unit: T('{n} coins each', { n: fmt(f.coin) }), why });
 		coinSpend += f.coin * units;
 		short.set(f.item, short.get(f.item) - units);
 	};
@@ -321,7 +331,7 @@ function allocate(H, facts, sources, state, orders) {
 		// all day long, which is false in the way that matters. The shop
 		// is the only route the app can put a number on; what drops it is
 		// named on the row instead of being written out of the answer.
-		if (units > 0) buy(f, units, f.drops.length ? 'the only way with a price on it' : 'nothing else sells it');
+		if (units > 0) buy(f, units, f.drops.length ? T('the only way with a price on it') : T('nothing else sells it'));
 	}
 	// The lists: the days' draws, shared out. What only barter sells
 	// goes first; then what is dearest in coins, since every draw spent
@@ -343,7 +353,7 @@ function allocate(H, facts, sources, state, orders) {
 		usedRefreshes[f.list] += refreshes;
 		short.set(f.item, left - units);
 		const chance = f.forecast && f.forecast.limit && f.forecast.limit.odds;
-		const span = days < 1 ? 'a day' : plural(Math.ceil(days), 'day');
+		const span = days < 1 ? T('a day') : dayText(Math.ceil(days));
 		const rare = chance && chance.recorded && chance.per < 1;
 		// Three different sentences, because there are three different
 		// states of knowledge and reading them as one was the whole
@@ -352,7 +362,7 @@ function allocate(H, facts, sources, state, orders) {
 		// number and says out loud that that is what it is.
 		leg(f.item, {
 			kind: 'barter', qty: units, refreshes, list: f.list, days, odds: chance,
-			why: `${plural(Math.ceil(refreshes), 'draw')} of the ${f.list} list · ${rare ? `about ${span}` : `${span} at best`}`
+			why: `${listDraws(Math.ceil(refreshes), f.list)} · ${rare ? T('about {span}', { span }) : T('{span} at best', { span })}`
 				+ ` · ${oddsText(chance)}`
 		});
 	}
@@ -365,10 +375,11 @@ function allocate(H, facts, sources, state, orders) {
 			if (units <= 0) continue;
 			const hadBarter = legs.get(f.item).some(l => l.kind === 'barter');
 			const fc = f.forecast;
-			const why = hadBarter ? `the ${f.list} list is full for these days`
-				: f.timed && fc ? `bartering would take ${plural(Math.ceil(fc.days), 'day')}`
-					+ (fc.bestDays && fc.days > fc.bestDays + 0.5 ? ' at the rate the boards show' : '')
-				: 'the lists will not carry it in time';
+			const why = hadBarter ? (f.list === 'material' ? T('the material list is full for these days') : T('the trade list is full for these days'))
+				: f.timed && fc ? (fc.bestDays && fc.days > fc.bestDays + 0.5
+					? T('bartering would take {span} at the rate the boards show', { span: dayText(Math.ceil(fc.days)) })
+					: T('bartering would take {span}', { span: dayText(Math.ceil(fc.days)) }))
+				: T('the lists will not carry it in time');
 			buy(f, units, why);
 		}
 	}
@@ -393,7 +404,7 @@ function allocate(H, facts, sources, state, orders) {
 			if (!f.coin || left <= 0) continue;
 			if (orders.preset === 'coins' && !mustBuy.includes(f)) continue;
 			const units = Math.min(left, Math.floor(budget() / f.coin));
-			if (units > 0) buy(f, units, 'the coin quests pay for it');
+			if (units > 0) buy(f, units, T('the coin quests pay for it'));
 		}
 	}
 
@@ -408,36 +419,36 @@ function allocate(H, facts, sources, state, orders) {
 			&& (fixed(q).some(r => r.item === f.item) || options(q).some(o => o.some(r => r.item === f.item))));
 		const coinable = f.coin && (orders.preset !== 'coins' || mustBuy.includes(f));
 		if (coinable && coinsShort() > 0) {
-			leg(f.item, { kind: 'short', qty: left, coins: f.coin * left, why: `${fmt(f.coin * left)} coins short` });
+			leg(f.item, { kind: 'short', qty: left, coins: f.coin * left, why: T('{n} coins short', { n: fmt(f.coin * left) }) });
 			residual.push({ item: f.item, qty: left, reason: 'coins' });
 			growable = growable || quests.some(q => (q.rewards || {})[COIN] > 0 && cadenceOf(q) !== 'once');
 			continue;
 		}
 		if ((f.timed && orders.barter) || repeating) {
-			leg(f.item, { kind: 'short', qty: left, why: 'more days than this horizon holds' });
+			leg(f.item, { kind: 'short', qty: left, why: T('more days than this horizon holds') });
 			residual.push({ item: f.item, qty: left, reason: 'days' });
 			growable = true;
 			continue;
 		}
 		if (f.unpriced === 'market' && orders.preset !== 'silver') {
-			leg(f.item, { kind: 'market', qty: left, silver: 0, unpriced: true, why: 'on the Central Market · no price fetched yet' });
+			leg(f.item, { kind: 'market', qty: left, silver: 0, unpriced: true, why: `${T('on the Central Market')} · ${T('no price fetched yet')}` });
 			continue;
 		}
 		const ways = [];
-		if (f.buy) ways.push(`sold by ${f.buy}`);
-		if (f.grounds.length) ways.push(`drops from ${f.grounds.map(g => g.name || g).slice(0, 3).join(', ')}`);
-		if (f.bulk) ways.push(`${fmt(Math.ceil(left / f.bulk.gets))}× ${f.bulk.give} buys ${fmt(f.bulk.gets)} at a time`);
+		if (f.buy) ways.push(T('sold by {who}', { who: f.buy }));
+		if (f.grounds.length) ways.push(T('drops from {names}', { names: f.grounds.map(g => gameName(g.name || g)).slice(0, 3).join(', ') }));
+		if (f.bulk) ways.push(T('{n}× {give} buys {gets} at a time', { n: fmt(Math.ceil(left / f.bulk.gets)), give: gameName(f.bulk.give), gets: fmt(f.bulk.gets) }));
 		if (f.node) ways.push(f.node);
-		if (f.forecast && f.forecast.gate) ways.push(`barter opens after ${fmt(f.forecast.gate.short)} more barters`);
-		if (quests.some(q => fixed(q).some(r => r.item === f.item) || options(q).some(o => o.some(r => r.item === f.item)))) ways.push('its quests are done for now');
-		if (f.coin && orders.preset === 'coins') ways.push(`${fmt(f.coin)} coins each at the shop, kept back by your orders`);
-		if (f.timed && !orders.barter) ways.push('bartered for at sea, which you have switched off');
-		if (!orders.quests && f.quested.length) ways.push('a quest reward, which you have switched off');
+		if (f.forecast && f.forecast.gate) ways.push(T('barter opens after {n} more barters', { n: fmt(f.forecast.gate.short) }));
+		if (quests.some(q => fixed(q).some(r => r.item === f.item) || options(q).some(o => o.some(r => r.item === f.item)))) ways.push(T('its quests are done for now'));
+		if (f.coin && orders.preset === 'coins') ways.push(T('{n} coins each at the shop, kept back by your orders', { n: fmt(f.coin) }));
+		if (f.timed && !orders.barter) ways.push(T('bartered for at sea, which you have switched off'));
+		if (!orders.quests && f.quested.length) ways.push(T('a quest reward, which you have switched off'));
 		const unrated = f.grounds.length || f.node;
 		leg(f.item, {
 			kind: 'find', qty: left,
-			why: !ways.length ? 'no source the app can count'
-				: unrated ? `${ways.join(' · ')} · no rate is known, so it is not counted in the days`
+			why: !ways.length ? T('no source the app can count')
+				: unrated ? `${ways.join(' · ')} · ${T('no rate is known, so it is not counted in the days')}`
 				: ways.join(' · ')
 		});
 	}
@@ -534,11 +545,11 @@ export function wayToGet({ missing = {}, sources = {}, state = {}, orders = {} }
 		const mine = legs.filter(l => l.item === f.item).sort((a, b) => b.qty - a.qty);
 		if (!mine.length) continue;
 		const also = [];
-		if (f.drops.length) also.push(`drops from ${f.drops.slice(0, 3).join(', ')}`);
-		if (f.bulk) also.push(`${f.bulk.give} exchanges for ${fmt(f.bulk.gets)} at once`);
+		if (f.drops.length) also.push(T('drops from {names}', { names: f.drops.slice(0, 3).map(gameName).join(', ') }));
+		if (f.bulk) also.push(T('{give} exchanges for {n} at once', { give: gameName(f.bulk.give), n: fmt(f.bulk.gets) }));
 		if (f.node && !mine.some(l => l.kind === 'find' || l.kind === 'hunt')) also.push(f.node);
-		if (f.coin && !mine.some(l => l.kind === 'coin')) also.push(`${fmt(f.coin)} coins each at the shop`);
-		if (f.timed && !mine.some(l => l.kind === 'barter')) also.push('bartered for at sea');
+		if (f.coin && !mine.some(l => l.kind === 'coin')) also.push(T('{n} coins each at the shop', { n: fmt(f.coin) }));
+		if (f.timed && !mine.some(l => l.kind === 'barter')) also.push(T('bartered for at sea'));
 		if (also.length) mine[0].also = also.join(' · ');
 	}
 
@@ -579,17 +590,17 @@ export function wayToGet({ missing = {}, sources = {}, state = {}, orders = {} }
 
 /** The order the ways are shown in, and what each is called. */
 export const WAYS = [
-	['quest', 'From the quests'],
-	['coin', 'Crow Coin Shop'],
-	['barter', 'Barter for'],
-	['falasi', "Falasi's silver"],
-	['market', 'Central Market'],
+	['quest', TT('From the quests')],
+	['coin', TT('Crow Coin Shop')],
+	['barter', TT('Barter for')],
+	['falasi', TT("Falasi's silver")],
+	['market', TT('Central Market')],
 	// A hunt you chose and a thing with no rate at all are two different
 	// errands: one is a fight you asked for, the other a shrug. Keeping
 	// them apart is why they are separate kinds and not a flag.
-	['hunt', 'Hunt what drops'],
-	['find', 'Go and get'],
-	['short', 'Not reachable yet']
+	['hunt', TT('Hunt what drops')],
+	['find', TT('Go and get')],
+	['short', TT('Not reachable yet')]
 ];
 
 /** Legs grouped by way, in the order above, each with its totals. */
@@ -646,19 +657,26 @@ function longPole(result, legs, quests, orders) {
 	const n = days[kind];
 	// Today needs no pole.
 	if (!(n > 0) || (n < 1.5 && !(coins.short > 0))) return null;
-	const stretch = n === Infinity ? '' : n < 1.5 ? 'a day' : plural(Math.ceil(n), 'day');
+	const stretch = n === Infinity ? '' : n < 1.5 ? T('a day') : dayText(Math.ceil(n));
 	if (kind === 'coins') {
 		return coins.short > 0
-			? { kind, text: `The purse sets the pace: ${fmt(coins.short)} coins short, and the coin quests inside a year do not cover it` }
-			: { kind, text: `The purse sets the pace: the coin quests take ${stretch} to cover ${fmt(coins.spend)} coins` };
+			? { kind, text: T('The purse sets the pace: {n} coins short, and the coin quests inside a year do not cover it', { n: fmt(coins.short) }) }
+			: { kind, text: T('The purse sets the pace: the coin quests take {span} to cover {n} coins', { span: stretch, n: fmt(coins.spend) }) };
 	}
-	if (kind === 'quest') return { kind, text: `The quests set the pace: ${item.quest ? `${item.quest} comes ` : ''}over ${stretch} of them` };
+	if (kind === 'quest') {
+		return { kind, text: item.quest
+			? T('The quests set the pace: {item} comes over {span} of them', { item: gameName(item.quest), span: stretch })
+			: T('The quests set the pace: over {span} of them', { span: stretch }) };
+	}
 	const draws = Math.ceil(refreshes[kind]);
 	// "At best" belongs only where the draws were not measured. Where the
 	// boards have counted how often the offer is up, the figure already
 	// carries it and calling it a best case would understate it twice.
 	const measured = legs.some(l => l.kind === 'barter' && l.list === kind && l.odds && l.odds.recorded && l.odds.per < 1);
-	return { kind: `barter-${kind}`, text: `The ${kind} list sets the pace: ${plural(draws, 'draw')} for ${item[kind]}, ${measured ? 'about ' : ''}${stretch}${measured ? '' : ' at best'}` };
+	const pace = measured ? T('about {span}', { span: stretch }) : T('{span} at best', { span: stretch });
+	return { kind: `barter-${kind}`, text: kind === 'material'
+		? T('The material list sets the pace: {draws} for {item}, {pace}', { draws: drawText(draws), item: gameName(item[kind]), pace })
+		: T('The trade list sets the pace: {draws} for {item}, {pace}', { draws: drawText(draws), item: gameName(item[kind]), pace }) };
 }
 
 /**
@@ -667,19 +685,19 @@ function longPole(result, legs, quests, orders) {
  */
 export function wayText(way) {
 	if (!way || !way.legs.length) return '';
-	const at = (PRESETS.find(p => p.id === way.orders.preset) || PRESETS[0]).label;
-	const head = way.stalled ? `Not inside a year at ${at}`
-		: way.reachable ? `Done in ${plural(way.days, 'day')} at ${at}`
-		: `Done in ${plural(way.days, 'day')} at ${at}, but for ${plural(way.residual.length, 'item')}`;
+	const at = said((PRESETS.find(p => p.id === way.orders.preset) || PRESETS[0]).label);
+	const head = way.stalled ? T('Not inside a year at {at}', { at })
+		: way.reachable ? T('Done in {span} at {at}', { span: dayText(way.days), at })
+		: T('Done in {span} at {at}, but for {items}', { span: dayText(way.days), at, items: itemText(way.residual.length) });
 	const pole = way.longPole ? `\n${way.longPole.text}` : '';
 	const quests = way.quests.length
-		? `\n\nQuests\n${way.quests.map(q => `  ${q.name}${q.pick !== null && q.quest.choice ? ` — take ${Object.entries(q.quest.choice[q.pick]).map(([i, n]) => `${n}× ${i}`).join(', ')}` : ''}${q.forCoins ? ' — for the coins' : ''} · ${q.cadence === 'once' ? 'once' : `${q.completions}×`}`
-			+ (q.over.length ? `\n      chosen over ${q.over.map(o => `${fmt(o.qty)}× ${o.item}`).join(', ')}` : '')).join('\n')}`
+		? `\n\n${T('Quests')}\n${way.quests.map(q => `  ${gameName(q.name)}${q.pick !== null && q.quest.choice ? ` — ${T('take {list}', { list: Object.entries(q.quest.choice[q.pick]).map(([i, n]) => `${n}× ${gameName(i)}`).join(', ') })}` : ''}${q.forCoins ? ` — ${T('for the coins')}` : ''} · ${q.cadence === 'once' ? T('once') : `${q.completions}×`}`
+			+ (q.over.length ? `\n      ${T('chosen over {list}', { list: q.over.map(o => `${fmt(o.qty)}× ${gameName(o.item)}`).join(', ') })}` : '')).join('\n')}`
 		: '';
 	const groups = way.groups.map(g => {
-		const total = g.coins ? ` — ${fmt(g.coins)} coins` : g.silver ? ` — ${fmt(g.silver)} silver` : '';
-		return `${g.label}${total}\n${g.items.map(l => `  ${fmt(l.qty)}× ${l.item} · ${[l.unit, l.why].filter(Boolean).join(' · ')}`
-			+ (l.also ? `\n      also: ${l.also}` : '')).join('\n')}`;
+		const total = g.coins ? ` — ${T('{n} coins', { n: fmt(g.coins) })}` : g.silver ? ` — ${T('{n} silver', { n: fmt(g.silver) })}` : '';
+		return `${said(g.label)}${total}\n${g.items.map(l => `  ${fmt(l.qty)}× ${gameName(l.item)} · ${[l.unit, l.why].filter(Boolean).join(' · ')}`
+			+ (l.also ? `\n      ${T('also: {text}', { text: l.also })}` : '')).join('\n')}`;
 	}).join('\n\n');
 	return `${head}${pole}${quests}\n\n${groups}`;
 }

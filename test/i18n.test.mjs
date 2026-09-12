@@ -7,7 +7,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
-import { T, TT, said, gameName, LANGS, langById, startingLang } from '../js/i18n.js';
+import { T, TT, said, gameName, LANGS, langById, startingLang, readerLang } from '../js/i18n.js';
 
 const run = promisify(execFile);
 const LANG_DIR = new URL('../js/lang/', import.meta.url);
@@ -27,6 +27,26 @@ test('the sixteen are BDOCodex’s sixteen, each with a pack to read', () => {
 	// The three English databases carry the English interface: their
 	// item names are English too, checked against tip.php.
 	assert.deepEqual(LANGS.filter(l => l.ui === 'en').map(l => l.id), ['us', 'id', 'seaen', 'gl']);
+});
+
+test('every language names the game language a screenshot of it would be in', async () => {
+	// js/sailor-locales.js has a list of these same sixteen, because the
+	// game ships in sixteen -- but it answers a different question: what
+	// the CLIENT was in when a screenshot was taken, which decides the
+	// words the sailor reader hunts for. The two lists have to meet
+	// exactly, or a player reading the app in Korean would have the
+	// reader start on English.
+	const { LANGS: GAME } = await import('../js/sailor-locales.js');
+	const gameTags = new Set(GAME.map(l => l.tag));
+	assert.equal(GAME.length, LANGS.length);
+	for (const l of LANGS) {
+		assert.ok(l.reader, `${l.id} names no game language`);
+		assert.ok(gameTags.has(l.reader), `${l.id} points at "${l.reader}", which the reader has never heard of`);
+	}
+	// And nothing the game ships in is unreachable from the picker.
+	const reachable = new Set(LANGS.map(l => l.reader));
+	for (const tag of gameTags) assert.ok(reachable.has(tag), `no app language starts the reader on "${tag}"`);
+	assert.equal(readerLang(), 'en');
 });
 
 test('with no pack loaded every sentence is the English it was written as', () => {

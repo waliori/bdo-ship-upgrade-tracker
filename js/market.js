@@ -12,6 +12,7 @@
 // Falasi part or a Crow Coin material keeps its own list price.
 
 import * as store from './state.js';
+import { T } from './i18n.js';
 import { items as vendorItems } from './vendor_items.js';
 import { iconLoader } from './icon-loader.js';
 import { landGoods } from './land_goods.js';
@@ -170,11 +171,13 @@ export function setRegion(id) {
  */
 export function priceAge() {
 	const s = marketStatus();
-	if (!s.at) return 'no prices yet';
+	if (!s.at) return T('no prices yet');
 	const ms = Date.now() - s.at;
-	const when = ms < 60_000 ? 'just now'
-		: ms < 3_600_000 ? `${Math.round(ms / 60_000)} min ago`
-		: ms < 86_400_000 ? `${Math.round(ms / 3_600_000)} h ago`
-		: `${Math.round(ms / 86_400_000)} d ago`;
-	return `${s.count} priced · ${when}${s.failed ? ' · some unanswered' : ''}`;
+	const when = ms < 60_000 ? T('just now')
+		: ms < 3_600_000 ? T('{n} min ago', { n: Math.round(ms / 60_000) })
+		: ms < 86_400_000 ? T('{n} h ago', { n: Math.round(ms / 3_600_000) })
+		: T('{n} d ago', { n: Math.round(ms / 86_400_000) });
+	return s.failed
+		? T('{n} priced · {when} · some unanswered', { n: s.count, when })
+		: T('{n} priced · {when}', { n: s.count, when });
 }
