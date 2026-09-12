@@ -14,6 +14,7 @@ test/_*.tmp.mjs
 
 # Capture intermediates — the media in docs/media is what ships.
 tools/capture/out/
+tools/capture/voice
 *.webm
 
 # Synthesised narration, keyed by what was said. Rebuilt on demand and
