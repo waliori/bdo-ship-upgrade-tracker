@@ -103,3 +103,27 @@ test('which stops make a sound is a choice, and the marks are kept either way', 
 	assert.equal(marksMode(), 'each', 'anything else falls back to stop by stop');
 	assert.deepEqual(MARK_CHOICES.map(c => c[0]), ['each', 'whole']);
 });
+
+test('the time a stop takes is counted, and the clock says which half of it you are in', () => {
+	// Two islands a minute apart, forty-five seconds spent at each.
+	const marks = [{ at: 60, label: 'Baeza', hold: 45 }, { at: 165, label: 'Narvo', hold: 45 }];
+	startTimer(0, 'Baeza and 1 more', marks);
+	const t0 = timerNow();
+	assert.deepEqual(t0.marks.map(m => m.hold), [45, 45], 'the stop’s own time rides on the mark');
+	const at = s => timerState(t0.startedAt + s * 1000);
+
+	// On the way to the first: a leg.
+	assert.equal(clockText(at(30)), '30 s to Baeza · stop 1 of 2');
+	// Arrived, and bartering: the clock is counting the stop now, not a
+	// leg, and says so rather than folding it into the next arrival.
+	assert.equal(at(70).here.label, 'Baeza');
+	assert.equal(clockText(at(70)), 'at Baeza · under way in 35 s');
+	// Under way again: back to counting the leg.
+	assert.equal(at(110).here, null);
+	assert.equal(clockText(at(110)), '55 s to Narvo · stop 2 of 2');
+	// And the second island's arrival is a minute later than the leg
+	// alone would make it -- the forty-five seconds at the first is in
+	// the number, which is the whole point of typing it.
+	assert.equal(t0.marks[1].at - t0.marks[0].at, 105, 'a 60 s leg and the 45 s spent before it');
+	stopTimer();
+});

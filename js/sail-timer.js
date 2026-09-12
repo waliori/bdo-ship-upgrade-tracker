@@ -57,7 +57,7 @@ export function timerNow() {
 	if (!t || !(Number(t.startedAt) > 0) || !(Number(t.seconds) > 0)) return null;
 	if (Date.now() - Number(t.startedAt) > 24 * 3600 * 1000) return null;
 	const marks = Array.isArray(t.marks)
-		? t.marks.filter(m => m && Number(m.at) > 0).map(m => ({ at: Math.round(Number(m.at)), label: String(m.label || '').slice(0, 40) })).slice(0, 40)
+		? t.marks.filter(m => m && Number(m.at) > 0).map(m => ({ at: Math.round(Number(m.at)), label: String(m.label || '').slice(0, 40), hold: Math.max(0, Math.round(Number(m.hold) || 0)) })).slice(0, 40)
 		: [];
 	return {
 		startedAt: Number(t.startedAt),
@@ -78,7 +78,7 @@ const write = t => store.setView(NS, t);
  * what was running.
  */
 export function startTimer(seconds, label = '', marks = []) {
-	const list = marks.filter(m => m && Number(m.at) > 0).map(m => ({ at: Math.round(Number(m.at)), label: String(m.label || '').slice(0, 40) })).slice(0, 40);
+	const list = marks.filter(m => m && Number(m.at) > 0).map(m => ({ at: Math.round(Number(m.at)), label: String(m.label || '').slice(0, 40), hold: Math.max(0, Math.round(Number(m.hold) || 0)) })).slice(0, 40);
 	// The end of the run is the last mark, or what was asked for.
 	const end = list.length ? list[list.length - 1].at : Number(seconds) || 0;
 	const s = Math.max(30, Math.min(6 * 3600, Math.round(end)));
@@ -155,7 +155,14 @@ export function timerState(now = Date.now()) {
 	const ran = Math.max(0, Math.round((now - t.startedAt) / 1000));
 	const at = t.marks.findIndex(m => m.at > ran);
 	const next = at < 0 ? null : { ...t.marks[at], i: at, left: t.marks[at].at - ran };
-	return { ...t, ran, left: t.seconds - ran, over: ran >= t.seconds, next, stops: t.marks.length };
+	// Between arriving somewhere and being under way again, the clock is
+	// counting the stop rather than a leg: the sailor is at the island
+	// with the barter window open, and what they want to know is how
+	// long they have before the plan expects them to have moved on.
+	const back = at < 0 ? t.marks.length - 1 : at - 1;
+	const on = back >= 0 ? t.marks[back] : null;
+	const here = on && on.hold > 0 && ran < on.at + on.hold ? { ...on, i: back, left: on.at + on.hold - ran } : null;
+	return { ...t, ran, left: t.seconds - ran, over: ran >= t.seconds, next, here, stops: t.marks.length };
 }
 
 /* ------------------------------------------------------------------ *
@@ -596,6 +603,7 @@ export function timerHTML({ suggest = 0, label = '', marks = [] } = {}) {
  */
 export function clockText(t = timerState()) {
 	if (!t) return '';
+	if (t.here) return `at ${t.here.label || `stop ${t.here.i + 1}`} · under way in ${spanText(t.here.left)}`;
 	if (t.next) return `${spanText(t.next.left)} to ${t.next.label || `stop ${t.next.i + 1}`} · stop ${t.next.i + 1} of ${t.stops}`;
 	if (t.over) return `${spanText(t.ran)} · ${spanText(t.ran - t.seconds)} past the ${spanText(t.seconds)} it was set for`;
 	return `${spanText(t.ran)} of ≈ ${spanText(t.seconds)}`;

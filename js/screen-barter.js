@@ -1622,12 +1622,20 @@ function runMarks(plan, legs) {
 	let at = 0;
 	plan.stops.forEach((s, i) => {
 		const leg = legs.from ? legs.legs[i] : legs.legs[i - 1];
-		if (!(leg > 0)) return;
-		at += legs.secondsOf(leg);
-		out.push({ at: Math.round(at), label: stopLabel(s) });
-		// And however long this sort of stop takes before the ship is
-		// under way again: a wharf call or a quest is the longer kind.
-		at += s.npcId ? pause.isle || 0 : pause.call || 0;
+		// However long this sort of stop takes before the ship is under
+		// way again: a wharf call or a quest is the longer kind. It is
+		// carried on the mark as well as added to the running total, so
+		// the clock can say "under way in 40 s" rather than folding it
+		// silently into the next arrival.
+		const hold = (s.npcId ? pause.isle : pause.call) || 0;
+		// A stop with no leg is one the ship is already at -- a second
+		// exchange at the same island. There is nothing to wait for, so
+		// no mark; the time it takes is real all the same.
+		if (leg > 0) {
+			at += legs.secondsOf(leg);
+			out.push({ at: Math.round(at), label: stopLabel(s), hold });
+		}
+		at += hold;
 	});
 	return out;
 }
