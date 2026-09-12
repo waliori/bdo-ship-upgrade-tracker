@@ -16,7 +16,7 @@ import { esc, F, FC } from './fmt.js';
 import * as store from './state.js';
 import { img, codexName, amountInput } from './ui-bits.js';
 import { snapshot, barterData, barterProfile, combos, matBoards, SILVER } from './ui-state.js';
-import { barterKey, periodKey } from './clock.js';
+import { barterKey, periodKey, BARTER_RESET_UTC } from './clock.js';
 import { candidates, askable, offersAt, boardData } from './barter-board.js';
 import { currentShip, shownHold } from './ship.js';
 import { npcById, ports, isleOf, whoOf, isleShort } from './barter_npcs.js';
@@ -1435,6 +1435,60 @@ function takenNote(good) {
  * The runs sailed lately: the last seven days, silver and trades a
  * day, from the trips recorded off the checklist.
  */
+/**
+ * The day's boards, one under the other: what each run took out of the
+ * storage, what it put back, and the totals across the lot.
+ *
+ * A sailor with a full Parley bar gets two or three boards out of it
+ * before the refill, and the question at the second one is always the
+ * same -- what do I load now, and what have I actually gained today?
+ * The plan at the top of the page answers the first for the board in
+ * front of you; this answers the second, and it can only be honest
+ * about boards already sailed: the next refresh deals a different
+ * board, and what it will want loaded is not knowable until it is
+ * looked at.
+ */
+function todayHTML() {
+	const today = barterKey();
+	const runs = (store.getProfile('runs', []) || []).filter(r => r.day === today);
+	if (!runs.length) return '';
+	const goods = m => Object.entries(m || {}).sort((a, b) => b[1] - a[1]);
+	const line = (m, none) => {
+		const list = goods(m);
+		if (!list.length) return `<span class="faint">${none}</span>`;
+		return list.map(([item, n]) => `<span class="day-good">${img(item, 'row-icon xs')}<b>${F(n)}</b>${esc(item)}</span>`).join('');
+	};
+	const sum = key => {
+		const out = {};
+		for (const r of runs) for (const [item, n] of Object.entries(r[key] || {})) out[item] = (out[item] || 0) + n;
+		return out;
+	};
+	const totals = runs.reduce((a, r) => ({
+		trades: a.trades + r.trades, parley: a.parley + r.parley,
+		silver: a.silver + r.silver, cost: a.cost + r.cost, stops: a.stops + r.stops
+	}), { trades: 0, parley: 0, silver: 0, cost: 0, stops: 0 });
+	const bar = parleyOf(barterProfile()).bar;
+	const rows = runs.map((r, i) => `<div class="day-run">
+		<span class="day-n">${i + 1}</span>
+		<span class="day-what">${r.layout ? `layout ${esc(r.layout)}` : 'a board'}${r.goal === 'stock' ? ' · for the stock' : r.goal === 'material' && r.item ? ` · for ${esc(r.item)}` : ''}<em>${F(r.trades)} trade${r.trades === 1 ? '' : 's'} · ${F(r.parley)} Parley${r.silver ? ` · ${FC(r.silver)} sold` : ''}</em></span>
+		<span class="day-side"><span class="day-k">loaded</span>${line(r.load, 'nothing loaded')}</span>
+		<span class="day-side"><span class="day-k">came back with</span>${line(r.got, 'nothing came back')}</span>
+	</div>`).join('');
+	return `<section class="panel day-boards">
+		<div class="panel-head">
+			<h2 class="panel-title">Today’s boards</h2>
+			<span class="panel-sub">${runs.length === 1 ? 'one board' : `${runs.length} boards`} since the ${String(BARTER_RESET_UTC).padStart(2, '0')}:00 UTC refill · ${F(totals.trades)} trade${totals.trades === 1 ? '' : 's'} · ${F(totals.parley)} Parley of the ${F(bar)} the bar holds${totals.silver ? ` · ${FC(totals.silver - totals.cost)} net` : ''}</span>
+		</div>
+		<div class="day-runs">${rows}</div>
+		<div class="day-run day-total">
+			<span class="day-n">Σ</span>
+			<span class="day-what">the day so far<em>${F(totals.stops)} stops · ${runs.length} board${runs.length === 1 ? '' : 's'}</em></span>
+			<span class="day-side"><span class="day-k">loaded in all</span>${line(sum('load'), 'nothing')}</span>
+			<span class="day-side"><span class="day-k">gained in all</span>${line(sum('got'), 'nothing')}</span>
+		</div>
+	</section>`;
+}
+
 function weekHTML() {
 	const runs = store.getProfile('runs', []) || [];
 	if (!runs.length) return '';
@@ -1698,9 +1752,20 @@ function recordTrip(plan, from) {
 	const on = sailing();
 	if (!on || !plan) return;
 	const trip = tripOf(plan, on, from);
+	// What the run took and what it brought back, from the one honest
+	// record of it: the change it made to the Inventory. Spent goods are
+	// what had to be loaded, gained goods are what is in the storage
+	// now. Kept so the day's boards can be read back one under the
+	// other -- what went into the first, what came out of it, and so on.
+	const moved = (sign, drop) => Object.fromEntries(Object.entries(trip.delta)
+		.filter(([item, n]) => item !== drop && Math.sign(n) === sign && Math.abs(n) >= 1)
+		.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+		.slice(0, 20)
+		.map(([item, n]) => [item, Math.abs(Math.round(n))]));
 	const runs = [...(store.getProfile('runs', []) || []), {
 		day: barterKey(), silver: trip.silver, cost: Math.round(plan.cost || 0), trades: trip.trades, parley: Math.round(plan.parleyUsed || 0),
-		stops: on.done.length, goal, item: goal === 'material' ? itemNow() || '' : ''
+		stops: on.done.length, goal, item: goal === 'material' ? itemNow() || '' : '',
+		load: moved(-1, SILVER), got: moved(1, SILVER), layout: (boardNow().combo || {}).id || ''
 	}].slice(-60);
 	// What the islands were seen to pay goes into the record, so the
 	// counting can follow the sailor's own runs.
@@ -2473,6 +2538,7 @@ export function renderBarter() {
 		${holdBarHTML(me)}
 		${parts.run}
 		${parts.chains}
+		${todayHTML()}
 		${weekHTML()}
 		${parts.dock || ''}
 	</div>`;

@@ -21,6 +21,17 @@ export const isProfile = raw => Boolean(raw) && typeof raw === 'object' && !Arra
 export const TALLY_TOTALS = ['runs', 'silver', 'cost', 'trades', 'parley', 'stops', 'tries', 'wins', 'drops'];
 export const TALLY_TABLES = ['quests', 'made'];
 
+/** A small table of item -> count, as a run's record keeps one. */
+function goodsMap(raw) {
+	if (!isProfile(raw)) return {};
+	const out = {};
+	for (const [item, n] of Object.entries(raw).slice(0, 20)) {
+		const k = Math.floor(Number(n));
+		if (typeof item === 'string' && item.length <= 80 && Number.isFinite(k) && k > 0) out[item] = Math.min(99999, k);
+	}
+	return out;
+}
+
 export function readProfile(raw) {
 	const out = {};
 	if (!isProfile(raw)) return out;
@@ -320,8 +331,14 @@ export function readProfile(raw) {
 			trades: Math.max(0, Math.floor(Number(r.trades) || 0)),
 			parley: Math.max(0, Math.floor(Number(r.parley) || 0)),
 			stops: Math.max(0, Math.floor(Number(r.stops) || 0)),
-			goal: r.goal === 'material' ? 'material' : 'silver',
-			item: typeof r.item === 'string' && r.item.length <= 80 ? r.item : ''
+			goal: ['material', 'stock'].includes(r.goal) ? r.goal : 'silver',
+			item: typeof r.item === 'string' && r.item.length <= 80 ? r.item : '',
+			layout: typeof r.layout === 'string' && r.layout.length <= 8 ? r.layout : '',
+			// What the run spent and what it brought back, so the day's
+			// boards can be read one under the other. Twenty kinds each is
+			// more than a board can deal in one run.
+			load: goodsMap(r.load),
+			got: goodsMap(r.got)
 		}));
 		if (runs.length) out.runs = runs;
 	}
