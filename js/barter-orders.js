@@ -45,7 +45,32 @@ export const PRESETS = [
  *  still lands on the same set of orders. */
 const RENAMED = { stock: 'floor' };
 
-export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, landFrom: 'buy', hours: 0, count: 'least', way: 'sea', quests: 'near' };
+/**
+ * Whether the run draws on the Crow's Trade Vouchers you carry. A
+ * voucher is worth a quarter of a bar and has its own two-hour
+ * cooldown, and a sailor may well be keeping them for something else,
+ * so the plan asks rather than assuming. It is a choice about this run:
+ * a short round trip needs none, and a long one lives on them.
+ */
+export const VOUCHER_CHOICES = [
+	['use', 'drawn on when needed', 'A voucher goes in as soon as the run is going to need it and a whole quarter fits — which starts its two-hour cooldown as early as possible'],
+	['keep', 'kept back', 'The run is planned on the bar alone; where that runs out, the sheet says so']
+];
+
+/**
+ * How long the ship actually sits at a stop, in seconds. The legs know
+ * how long the sailing takes and nothing about the rest: opening the
+ * barter window, making the trades and getting under way again is
+ * anything from a few seconds to a couple of minutes, and a stop where
+ * goods are put in storage or a quest is handed in is longer still.
+ * Only the clock uses these -- they are what turns "when do I arrive"
+ * into "when do I arrive", and they are the sailor's own pace, so they
+ * are typed rather than guessed.
+ */
+export const DEFAULT_PAUSE = { isle: 45, call: 120 };
+export const PAUSE_MAX = 30 * 60;
+
+export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, landFrom: 'buy', vouchers: 'use', pause: { ...DEFAULT_PAUSE }, hours: 0, count: 'least', way: 'sea', quests: 'near' };
 
 /** The way round the chains ticked: one route through every rung, each
  *  after the rung beneath it in its chain, or chain after chain. */
@@ -69,7 +94,7 @@ export const WAY_CHOICES = [
 /** The orders a run has when none are given: the [Level 7]s sold and
  *  nothing else, no floors -- the run as it was before there were
  *  orders, and what the tests pin. */
-export const PLAIN_ORDERS = { preset: 'cash', sell: 7, floors: {}, buy: true, landFrom: 'buy', pace: 'fast', hours: 0, count: 'least', way: 'chain', quests: 'no' };
+export const PLAIN_ORDERS = { preset: 'cash', sell: 7, floors: {}, buy: true, landFrom: 'buy', vouchers: 'use', pause: { isle: 0, call: 0 }, pace: 'fast', hours: 0, count: 'least', way: 'chain', quests: 'no' };
 
 /** How an exchange that pays a range is counted. */
 export const COUNT_CHOICES = [
@@ -128,6 +153,16 @@ export function readOrders(raw) {
 		o.floors = floors;
 	} else o.floors = {};
 	if (typeof raw.buy === 'boolean') o.buy = raw.buy;
+	if (VOUCHER_CHOICES.some(([v]) => v === raw.vouchers)) o.vouchers = raw.vouchers;
+	// How long a stop takes, apart from the sailing.
+	const pause = { ...DEFAULT_PAUSE };
+	if (raw.pause && typeof raw.pause === 'object') {
+		for (const k of ['isle', 'call']) {
+			const n = Math.floor(Number(raw.pause[k]));
+			if (Number.isFinite(n) && n >= 0) pause[k] = Math.min(PAUSE_MAX, n);
+		}
+	}
+	o.pause = pause;
 	if (raw.landFrom === 'stock' || raw.landFrom === 'buy') o.landFrom = raw.landFrom;
 	if (raw.pace === 'full' || raw.pace === 'fast' || raw.pace === 'steady') o.pace = raw.pace;
 	if (HOUR_CHOICES.some(([h]) => h === Number(raw.hours))) o.hours = Number(raw.hours);
@@ -140,7 +175,7 @@ export function readOrders(raw) {
 /** The orders a preset sets, keeping nothing of the old ones. */
 export function presetOrders(id) {
 	const p = PRESETS.find(x => x.id === id) || PRESETS[0];
-	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, landFrom: 'buy', hours: 0, count: 'least', way: 'sea', quests: 'near' };
+	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, landFrom: 'buy', vouchers: 'use', pause: { ...DEFAULT_PAUSE }, hours: 0, count: 'least', way: 'sea', quests: 'near' };
 }
 
 /** Whether the saved orders still match their preset to the letter. */

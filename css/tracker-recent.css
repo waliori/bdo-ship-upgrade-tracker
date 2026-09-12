@@ -163,6 +163,11 @@
 .stock-bar i { display: block; height: 100%; background: var(--tier); border-radius: 3px; }
 .stock-row.full .stock-note { color: var(--teal); }
 .stock-note { font-size: 11.5px; color: var(--ink-faint); }
+.run-pauses { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
+.run-pauses .run-pick-k { margin-bottom: 0; flex: none; }
+.run-pause { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-mid); }
+.run-pause .purse-inline { width: 54px; text-align: center; }
+.run-pause em { display: block; font-style: normal; font-size: 10.5px; color: var(--ink-faint); }
 .orders-saved { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
 .orders-saved .run-pick-k { margin-bottom: 0; flex: none; }
 .saved-chip { display: inline-flex; align-items: center; gap: 2px; }

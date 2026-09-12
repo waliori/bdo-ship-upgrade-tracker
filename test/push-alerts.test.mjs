@@ -152,11 +152,13 @@ test('a device subscribed for its owner’s chimes is not signed up for Vell', a
 	const audience = (await listPushSubs('na')).map(s => s.endpoint);
 	assert.ok(!audience.some(e => e.endsWith('devquiet')), 'the quiet one is left out of the Vell round');
 	assert.ok((await listUserPushSubs('2001')).some(s => s.endpoint.endsWith('devquiet')), 'but its owner’s chimes still reach it');
-	// A device that has never subscribed, subscribing for its chimes and
-	// saying nothing about Vell, is not put on the Vell round either.
+	// Saying nothing at all is what every tab said before there was
+	// anything but Vell to subscribe for, so it still means Vell: an
+	// older tab that has not reloaded must not quietly lose its
+	// reminder. It is the page that says the explicit no above when it
+	// subscribes a fresh device for the sailor's own chimes.
 	await call('POST', '/api/push/subscribe', { cookie: oni, body: { subscription: subFor('fresh'), region: 'na' } });
-	assert.ok(!(await listPushSubs('na')).some(s => s.endpoint.endsWith('devfresh')), 'a new row asks for nothing it was not asked for');
-	assert.ok((await listUserPushSubs('2001')).some(s => s.endpoint.endsWith('devfresh')));
+	assert.ok((await listPushSubs('na')).some(s => s.endpoint.endsWith('devfresh')), 'an older tab keeps the reminder it always had');
 	// Saying nothing either way leaves an existing row as it was.
 	await call('POST', '/api/push/subscribe', { cookie: oni, body: { subscription: subFor('quiet'), region: 'na' } });
 	assert.ok(!(await listPushSubs('na')).some(e => String(e.endpoint).endsWith('devquiet')));

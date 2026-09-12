@@ -41,10 +41,17 @@ export async function subscribeFor({ region, vell }) {
 	try {
 		const { key } = await (await fetch('/api/push/key')).json();
 		const reg = await navigator.serviceWorker.ready;
-		const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(key) });
+		const had = await reg.pushManager.getSubscription();
+		const sub = had || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(key) });
+		// What to say about the Vell reminder. A yes or a no is passed
+		// straight on; `null` means "whatever this row already said",
+		// which is right for a device that has subscribed before -- and
+		// for one that has not, a row made for the sailor's own chimes
+		// should not put them on the timetable, so it says no outright.
+		const wants = typeof vell === 'boolean' ? vell : had ? null : false;
 		const res = await fetch('/api/push/subscribe', {
 			method: 'POST', headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ subscription: sub.toJSON(), region, vell })
+			body: JSON.stringify({ subscription: sub.toJSON(), region, ...(wants === null ? {} : { vell: wants }) })
 		});
 		return res.ok;
 	} catch {

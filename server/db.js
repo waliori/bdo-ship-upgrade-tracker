@@ -390,10 +390,12 @@ export async function putPushSub(endpoint, sub, region, userId = null, vell = nu
 		sql: `INSERT INTO push_subs (endpoint, sub, region, created_at, user_id, vell) VALUES (?, ?, ?, ?, ?, ?)
 			ON CONFLICT(endpoint) DO UPDATE SET sub = excluded.sub, region = excluded.region, user_id = excluded.user_id,
 				vell = COALESCE(?, push_subs.vell)`,
-		// A row made for the sailor's own chimes asks for nothing from the
-		// timetable: only an explicit yes puts a new one on the Vell
-		// round. An update says nothing either way and leaves it alone.
-		args: [endpoint, JSON.stringify(sub), region, Date.now(), userId, vell === true ? 1 : 0, vell === null ? null : (vell ? 1 : 0)]
+		// Saying nothing means the Vell reminder, because that is all a
+		// subscription ever meant before there was anything else -- an
+		// older tab that has not reloaded must not quietly lose it. Only
+		// an explicit no makes a row that is not on the Vell round, and
+		// on an update saying nothing leaves the row as it was.
+		args: [endpoint, JSON.stringify(sub), region, Date.now(), userId, vell === false ? 0 : 1, vell === null ? null : (vell ? 1 : 0)]
 	});
 }
 

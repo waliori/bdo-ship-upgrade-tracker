@@ -25,10 +25,6 @@ import { toast } from './dialogs.js';
 
 const NS = 'timer';
 
-/** The presets offered when nothing is running: what a barter round
- *  usually takes, and a couple either side of it. */
-export const TIMER_PRESETS = [5, 10, 15, 20, 30];
-
 /**
  * Whether every stop chimes or only the end of the run. Stop by stop
  * is the one that matters to somebody sailing on auto-path: the ship
@@ -478,7 +474,10 @@ export function timerHTML({ suggest = 0, label = '', marks = [] } = {}) {
 		const run = mins
 			? `<button class="chip tiny primary" data-act="barter-timer-start" data-secs="${Math.round(suggest)}" data-label="${esc(label)}" data-marks="${esc(JSON.stringify(marks))}" title="Start the clock at this run's own estimate${marks.length ? ', chiming at every stop on the way' : ''}">⏱ start · ≈ ${mins} m${stops}</button>`
 			: '';
-		return `<span class="sail-timer">${run}${modes}<span class="sail-timer-k">${run ? 'or' : '⏱ chime in'}</span>${TIMER_PRESETS.map(m => `<button class="chip tiny" data-act="barter-timer-start" data-secs="${m * 60}" data-label="${esc(label)}" title="Chime in ${m} minutes">${m}</button>`).join('')}<span class="sail-timer-k">m</span>${bell}${devices}</span>`;
+		// Nothing to start when there is no run in hand: the clock is the
+		// run's own, not a kitchen timer.
+		if (!run) return bell || devices ? `<span class="sail-timer">${bell}${devices}</span>` : '';
+		return `<span class="sail-timer">${run}${modes}${bell}${devices}</span>`;
 	}
 	const pct = Math.max(0, Math.min(100, (t.ran / t.seconds) * 100));
 	// The run's name is the chime's to say, not the chip's: on a phone a
