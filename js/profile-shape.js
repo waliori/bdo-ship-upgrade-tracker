@@ -5,7 +5,7 @@
 // front of the planner. Only known keys survive, each clipped to the
 // range the game itself allows. state.js calls this on every read.
 
-import { readOrders } from './barter-orders.js';
+import { readOrders, readStock } from './barter-orders.js';
 import { readGetOrders } from './get-plan.js';
 
 /**
@@ -289,6 +289,24 @@ export function readProfile(raw) {
 	// The sailing orders: what a barter run is for. Cleaned by the
 	// module that owns the shape.
 	if (isProfile(raw.orders)) out.orders = readOrders(raw.orders);
+	// The orders a sailor has saved under a name, newest first: the
+	// whole shape of a way of running -- the orders, the stock's
+	// targets and ceiling, the harbour and the storage. A dozen at
+	// most, since they are chips on one line.
+	if (Array.isArray(raw.savedOrders)) {
+		const saved = raw.savedOrders
+			.filter(x => isProfile(x) && typeof x.name === 'string' && x.name.trim())
+			.slice(0, 12)
+			.map(x => ({
+				name: x.name.trim().slice(0, 40),
+				goal: ['silver', 'stock', 'material'].includes(x.goal) ? x.goal : 'silver',
+				orders: readOrders(x.orders),
+				stock: readStock(x.stock),
+				port: Math.max(0, Math.floor(Number(x.port) || 0)),
+				stash: typeof x.stash === 'string' ? x.stash.slice(0, 40) : ''
+			}));
+		if (saved.length) out.savedOrders = saved;
+	}
 	// How the shopping list is to be got: the goal, the days a week the
 	// sea gets, the coins kept back. Cleaned by the module that owns it.
 	if (isProfile(raw.getOrders)) out.getOrders = readGetOrders(raw.getOrders);

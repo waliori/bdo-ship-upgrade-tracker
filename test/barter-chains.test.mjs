@@ -232,3 +232,47 @@ test('a good held part-way up a chain from the shore is one climb with it: the i
 	// land chain alone does.
 	assert.ok(both.silver >= alone.silver);
 });
+
+test('a ceiling cuts every climb where the stock ends: nothing above it, and a good already there is not fuel', () => {
+	const four = '[Level 4] Amethyst Fragment';
+	const whole = chains(data, { [four]: 4 });
+	assert.ok(whole.some(c => c.top === 7), 'the board reaches a [Level 7] when nothing stops it');
+	assert.ok(whole.some(c => c.from === 'hold' && c.item === four), 'the [Level 4] held climbs when nothing stops it');
+	for (const ceiling of [1, 2, 3, 4]) {
+		const cut = chains(data, { [four]: 4 }, {}, null, ceiling);
+		assert.ok(cut.length > 0, `ceiling ${ceiling}: the board still climbs`);
+		for (const c of cut) {
+			assert.ok(c.top <= ceiling, `ceiling ${ceiling}: ${c.rungs[0].npc} stops at ${c.top}`);
+			assert.ok(levelOf(c.item) === null || levelOf(c.item) < ceiling, `ceiling ${ceiling}: ${c.item} is stock, not fuel`);
+			// Cut or whole, a chain is still a climb a rung at a time.
+			c.rungs.forEach((r, i) => { if (i) assert.equal(r.give, c.rungs[i - 1].item); });
+		}
+		// Two climbs that differed only above the ceiling are one chain.
+		assert.equal(new Set(cut.map(c => c.id)).size, cut.length, `ceiling ${ceiling}: no chain listed twice`);
+		assert.equal(cut.filter(c => c.from === 'hold' && c.item === four).length, ceiling > 4 ? 1 : 0);
+	}
+	// The land chains are all still there, just shorter.
+	const land = c => c.from === 'land';
+	assert.equal(chains(data, {}, {}, null, 1).filter(land).length, whole.filter(land).map(c => c.rungs[0].npcId).filter((x, i, a) => a.indexOf(x) === i).length);
+});
+
+test('the shore goods can come from a pile the sailor keeps: no more chains than it covers, nothing bought', () => {
+	const c = chains(data).find(x => x.from === 'land' && x.top >= 3);
+	const orders = { ...PLAIN_ORDERS, landFrom: 'stock', pace: 'full' };
+	const opts = { chosen: [c], hold, parley, npcById, start: ports.find(p => p.name === 'Velia'), stashes, pace: 'full', orders };
+	// The pile covers two attempts at the first rung and no more.
+	const first = c.rungs[0];
+	const land = new Map([[c.item, first.giveN * 2]]);
+	const run = chainRun({ ...opts, land });
+	assert.deepEqual(run.bought, [], 'nothing is bought when the pile is what the run spends');
+	assert.equal(run.cost, 0);
+	assert.equal(run.taken.length, 1);
+	assert.equal(run.taken[0].item, c.item);
+	assert.equal(run.taken[0].n, first.giveN * 2);
+	assert.equal(run.taken[0].left, 0);
+	assert.equal(run.stops.find(s => s.npcId === first.npcId).times, 2, 'the pile is the cap at the first rung');
+	// An empty pile is no run at all, where buying it would have been one.
+	const none = chainRun({ ...opts, land: new Map() });
+	assert.equal(none.trades, 0);
+	assert.ok(chainRun({ ...opts, orders: { ...orders, landFrom: 'buy' } }).trades > 0);
+});

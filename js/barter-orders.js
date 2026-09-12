@@ -37,7 +37,7 @@ export const PRESETS = [
 	}
 ];
 
-export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, hours: 0, count: 'least', way: 'sea', quests: 'near' };
+export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, landFrom: 'buy', hours: 0, count: 'least', way: 'sea', quests: 'near' };
 
 /** The way round the chains ticked: one route through every rung, each
  *  after the rung beneath it in its chain, or chain after chain. */
@@ -61,7 +61,7 @@ export const WAY_CHOICES = [
 /** The orders a run has when none are given: the [Level 7]s sold and
  *  nothing else, no floors -- the run as it was before there were
  *  orders, and what the tests pin. */
-export const PLAIN_ORDERS = { preset: 'cash', sell: 7, floors: {}, buy: true, pace: 'fast', hours: 0, count: 'least', way: 'chain', quests: 'no' };
+export const PLAIN_ORDERS = { preset: 'cash', sell: 7, floors: {}, buy: true, landFrom: 'buy', pace: 'fast', hours: 0, count: 'least', way: 'chain', quests: 'no' };
 
 /** How an exchange that pays a range is counted. */
 export const COUNT_CHOICES = [
@@ -73,12 +73,31 @@ export const COUNT_CHOICES = [
 /** The caps on time under way a sailor can set, in hours; 0 is none. */
 export const HOUR_CHOICES = [[0, 'no limit'], [1, 'an hour'], [2, 'two hours'], [3, 'three hours'], [4, 'four hours'], [6, 'six hours']];
 
-/** The choices a sailor can make for what a wharf sells. */
+/**
+ * Where the first good of a land chain comes from: bought ashore every
+ * run, or taken from a pile the sailor already keeps. A sailor filling
+ * a stock has usually made or bought the shore goods in bulk already,
+ * and a plan that tells them to buy another few million of what is
+ * sitting in their storage is a plan they cannot follow.
+ */
+export const LAND_CHOICES = [
+	['buy', 'bought ashore', 'A chain that starts on land buys its first good ashore'],
+	['stock', 'from my storage', 'The shore goods you already keep, and no more chains than they cover'],
+	['no', 'only what is held', 'No land chains: only the [Level N] goods already held']
+];
+
+/** The choices a sailor can make for what a wharf sells. `NOTHING` is
+ *  above every level there is, so no good is ever sellable under it --
+ *  what a stock run sails under, where the wharf is somewhere to leave
+ *  goods and nothing else. */
+export const NOTHING = 8;
+
 export const SELL_CHOICES = [
 	[7, '[Level 7] only'],
 	[6, 'Level 6 and up'],
 	[5, 'Level 5 and up'],
-	[3, 'everything that pays']
+	[3, 'everything that pays'],
+	[NOTHING, 'nothing at all']
 ];
 
 /**
@@ -100,6 +119,7 @@ export function readOrders(raw) {
 		o.floors = floors;
 	} else o.floors = {};
 	if (typeof raw.buy === 'boolean') o.buy = raw.buy;
+	if (raw.landFrom === 'stock' || raw.landFrom === 'buy') o.landFrom = raw.landFrom;
 	if (raw.pace === 'full' || raw.pace === 'fast' || raw.pace === 'steady') o.pace = raw.pace;
 	if (HOUR_CHOICES.some(([h]) => h === Number(raw.hours))) o.hours = Number(raw.hours);
 	if (COUNT_CHOICES.some(([c]) => c === raw.count)) o.count = raw.count;
@@ -111,13 +131,14 @@ export function readOrders(raw) {
 /** The orders a preset sets, keeping nothing of the old ones. */
 export function presetOrders(id) {
 	const p = PRESETS.find(x => x.id === id) || PRESETS[0];
-	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, hours: 0, count: 'least', way: 'sea', quests: 'near' };
+	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, landFrom: 'buy', hours: 0, count: 'least', way: 'sea', quests: 'near' };
 }
 
 /** Whether the saved orders still match their preset to the letter. */
 export function onPreset(orders) {
 	const p = presetOrders(orders.preset);
 	return p.sell === orders.sell && p.buy === orders.buy && p.pace === orders.pace
+		&& (p.landFrom || 'buy') === (orders.landFrom || 'buy')
 		&& JSON.stringify(p.floors) === JSON.stringify(orders.floors || {});
 }
 
@@ -163,4 +184,58 @@ export function yardsticks(silver, parleyUsed, hours) {
 		perUnit: parleyUsed > 0 ? silver / (parleyUsed / PARLEY_UNIT) : 0,
 		perHour: hours > 0 ? silver / hours : 0
 	};
+}
+
+/* ------------------------------------------------------------------ *
+ * the stock
+ * ------------------------------------------------------------------ */
+
+/**
+ * What a stock run is told: how many of every good at a level to keep,
+ * the level the climbs stop at, and whether the day is for the fullest
+ * stock or the most trades.
+ *
+ * A target is per good, not per level -- 30 at Level 2 is thirty of
+ * each of the fourteen [Level 2]s -- and it is a target and a floor at
+ * once: the run fills it and never spends below it, so a level fills
+ * before the run climbs from it and only the surplus goes up. The
+ * defaults are the old preset's floors, which came from the guide.
+ */
+export const DEFAULT_STOCK = { targets: { 1: 10, 2: 30, 3: 30, 4: 40, 5: 0, 6: 0, 7: 0 }, ceiling: 4, aim: 'fill' };
+
+/** The levels a stock can be kept at. */
+export const STOCK_LEVELS = [1, 2, 3, 4, 5, 6, 7];
+
+/** What a stock run is for: the goods, or the count of barters behind
+ *  you -- a sailor rushing the unlocks trades whatever is nearest. */
+export const AIM_CHOICES = [
+	['fill', 'the stock', 'The run that banks the most, counting every good up to its target and no further'],
+	['trades', 'the barter count', 'The run that trades the most, whatever it trades: every barter counts as one toward the next unlock']
+];
+
+/** A clean stock goal from whatever was saved. */
+export function readStock(raw) {
+	const out = { ...DEFAULT_STOCK, targets: { ...DEFAULT_STOCK.targets } };
+	if (!raw || typeof raw !== 'object') return out;
+	if (raw.targets && typeof raw.targets === 'object') {
+		const targets = {};
+		for (const lv of STOCK_LEVELS) {
+			const n = Math.floor(Number(raw.targets[lv]));
+			targets[lv] = Number.isFinite(n) && n > 0 ? Math.min(9999, n) : 0;
+		}
+		out.targets = targets;
+	}
+	if (STOCK_LEVELS.includes(Number(raw.ceiling))) out.ceiling = Number(raw.ceiling);
+	if (AIM_CHOICES.some(([a]) => a === raw.aim)) out.aim = raw.aim;
+	return out;
+}
+
+/**
+ * The orders a stock run sails under, from the sailor's own: nothing
+ * sold at a wharf, and every target a floor. The rest -- the pace, the
+ * way round, the quests, the hours -- is left as it was set, since a
+ * stock run is sailed the same way a silver one is.
+ */
+export function stockOrders(orders, stock) {
+	return { ...orders, sell: NOTHING, floors: { ...stock.targets } };
 }
