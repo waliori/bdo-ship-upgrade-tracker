@@ -14,7 +14,7 @@
 // as on the chain rows; the run itself bends its legs round the coast.
 
 import { chainRun } from './barter-chains.js';
-import { yardsticks } from './barter-orders.js';
+import { yardsticks, PARLEY_UNIT } from './barter-orders.js';
 import { levelOf } from './barter.js';
 import { sellOf, goodsHeld } from './barter-plan.js';
 import { pathLength, sailSeconds } from './sailing.js';
@@ -109,15 +109,16 @@ const now = typeof performance !== 'undefined' && performance.now ? () => perfor
  * than the best run after the sailor has looked away. Unlimited by
  * default, so a test judges every set.
  *
- * `score` is what a set is judged by, `valueOf` -- silver, and what
- * the goods kept would fetch -- when nothing else is given; a stock
- * run hands in `fillOf` instead, and then not one number on the page
- * is silver. `kinds` are the proposals made from the sets judged,
- * [{ kind, label, of }] with `of` reading a judged set; the three
- * below are the silver run's.
+ * `aim` is what the sets are judged by. Without one it is silver --
+ * `valueOf`, the wharf and what the goods kept would fetch. With one
+ * it is the stock: `{ targets, held, kind }`, the count kept of every
+ * good at a level, everything the sailor holds as [name, n] pairs, and
+ * whether the run is for the fullest stock or the most trades. It is
+ * plain data on purpose: the search runs in a worker, and a function
+ * would not survive the crossing.
  *
  * Returns { proposals, best, partial }: up to three { kind, label,
- * ids, run, value, hours, yard } that differ in their ids, most silver
+ * ids, run, value, hours, yard } that differ in their ids, the best
  * first, and `best` the set every search step judged best by value.
  */
 export const SILVER_KINDS = [
@@ -126,8 +127,33 @@ export const SILVER_KINDS = [
 	{ kind: 'parley', label: 'The most a Parley unit', of: s => s.yard.perUnit }
 ];
 
-export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width = 5, depth = 8, budgetMs = Infinity, score = null, kinds = SILVER_KINDS } = {}) {
+export const STOCK_KINDS = [
+	{ kind: 'stock', label: 'The fullest stock', of: s => s.value },
+	{ kind: 'hour', label: 'The most an hour', of: s => (s.hours > 0 ? s.value / s.hours : 0) },
+	{ kind: 'parley', label: 'The most a Parley unit', of: s => (s.run.parleyUsed > 0 ? s.value / (s.run.parleyUsed / PARLEY_UNIT) : 0) }
+];
+
+/**
+ * How a stock run scores a set, from the plain `aim` the tab hands in.
+ * Both scores carry the other as the tie-break, a thousand to one, so
+ * that between two runs that bank the same the sailor gets the one
+ * with more barters behind it -- and between two that trade the same,
+ * the one that banks more.
+ */
+export function scoreFor(aim, stock) {
+	const targets = aim.targets || {};
+	const targetOf = name => targets[levelOf(name)] || 0;
+	const held = new Map(aim.held || []);
+	return run => {
+		const fill = fillOf(run, { targetOf, held, stock });
+		return aim.kind === 'trades' ? run.trades * 1000 + fill : fill * 1000 + run.trades;
+	};
+}
+
+export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width = 5, depth = 8, budgetMs = Infinity, aim = null } = {}) {
 	const orders = opts.orders;
+	const score = aim ? scoreFor(aim, opts.stock) : null;
+	const kinds = aim ? STOCK_KINDS : SILVER_KINDS;
 	const t0 = now();
 	const late = () => budgetMs !== Infinity && now() - t0 >= budgetMs;
 	const byId = new Map(chains.map(c => [c.id, c]));

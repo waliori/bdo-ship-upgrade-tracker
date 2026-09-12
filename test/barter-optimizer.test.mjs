@@ -127,13 +127,12 @@ test('a stock run is judged by what it banks, not by what it would sell for', ()
 	const low = chains(data, {}, {}, null, ceiling);
 	const stockOrders = { ...presetOrders('stock'), sell: 8, floors: targets };
 	const mine = { ...opts, dock: {}, orders: stockOrders, pace: 'full' };
-	const score = run => fillOf(run, { targetOf, held: new Map(), stock: mine.stock });
-	const { proposals, best } = propose({
-		chains: low, opts: mine, ship, score,
-		kinds: [{ kind: 'stock', label: 'The fullest stock', of: s => s.value }]
-	});
+	const aim = { targets, held: [], kind: 'fill' };
+	const { proposals, best } = propose({ chains: low, opts: mine, ship, aim });
 	assert.ok(best && best.value > 0, 'a run that banks nothing is no proposal');
 	assert.equal(proposals[0].kind, 'stock');
+	// The score is the fill, a thousand to one over the trades it took.
+	assert.equal(Math.floor(best.value / 1000), fillOf(best.run, { targetOf, held: new Map(), stock: mine.stock }));
 	// Nothing is sold, so the run is worth nothing in silver and every
 	// good it makes is still in hand at the end.
 	const run = best.run;
@@ -142,7 +141,7 @@ test('a stock run is judged by what it banks, not by what it would sell for', ()
 	for (const c of best.ids.map(id => low.find(x => x.id === id))) assert.ok(c.top <= ceiling);
 	// The score is exactly the goods banked, each counted to its target.
 	const banked = [...run.kept, ...run.stashed].reduce((a, g) => a + Math.min(g.n, targetOf(g.item)) * (levelOf(g.item) || 0), 0);
-	assert.ok(banked >= best.value, 'nothing counted that the run did not end holding');
+	assert.ok(banked >= Math.floor(best.value / 1000), 'nothing counted that the run did not end holding');
 	// A stock already at its targets has nothing to gain from the same run.
 	const full = new Map([...run.kept, ...run.stashed].map(g => [g.item, targets[levelOf(g.item)] || 0]));
 	assert.equal(fillOf(run, { targetOf, held: full, stock: {} }), 0);
