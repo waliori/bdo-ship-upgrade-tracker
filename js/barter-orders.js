@@ -73,12 +73,18 @@ export const COUNT_CHOICES = [
 /** The caps on time under way a sailor can set, in hours; 0 is none. */
 export const HOUR_CHOICES = [[0, 'no limit'], [1, 'an hour'], [2, 'two hours'], [3, 'three hours'], [4, 'four hours'], [6, 'six hours']];
 
-/** The choices a sailor can make for what a wharf sells. */
+/** The choices a sailor can make for what a wharf sells. `NOTHING` is
+ *  above every level there is, so no good is ever sellable under it --
+ *  what a stock run sails under, where the wharf is somewhere to leave
+ *  goods and nothing else. */
+export const NOTHING = 8;
+
 export const SELL_CHOICES = [
 	[7, '[Level 7] only'],
 	[6, 'Level 6 and up'],
 	[5, 'Level 5 and up'],
-	[3, 'everything that pays']
+	[3, 'everything that pays'],
+	[NOTHING, 'nothing at all']
 ];
 
 /**
@@ -163,4 +169,58 @@ export function yardsticks(silver, parleyUsed, hours) {
 		perUnit: parleyUsed > 0 ? silver / (parleyUsed / PARLEY_UNIT) : 0,
 		perHour: hours > 0 ? silver / hours : 0
 	};
+}
+
+/* ------------------------------------------------------------------ *
+ * the stock
+ * ------------------------------------------------------------------ */
+
+/**
+ * What a stock run is told: how many of every good at a level to keep,
+ * the level the climbs stop at, and whether the day is for the fullest
+ * stock or the most trades.
+ *
+ * A target is per good, not per level -- 30 at Level 2 is thirty of
+ * each of the fourteen [Level 2]s -- and it is a target and a floor at
+ * once: the run fills it and never spends below it, so a level fills
+ * before the run climbs from it and only the surplus goes up. The
+ * defaults are the old preset's floors, which came from the guide.
+ */
+export const DEFAULT_STOCK = { targets: { 1: 10, 2: 30, 3: 30, 4: 40, 5: 0, 6: 0, 7: 0 }, ceiling: 4, aim: 'fill' };
+
+/** The levels a stock can be kept at. */
+export const STOCK_LEVELS = [1, 2, 3, 4, 5, 6, 7];
+
+/** What a stock run is for: the goods, or the count of barters behind
+ *  you -- a sailor rushing the unlocks trades whatever is nearest. */
+export const AIM_CHOICES = [
+	['fill', 'the stock', 'The run that banks the most, counting every good up to its target and no further'],
+	['trades', 'the barter count', 'The run that trades the most, whatever it trades: every barter counts as one toward the next unlock']
+];
+
+/** A clean stock goal from whatever was saved. */
+export function readStock(raw) {
+	const out = { ...DEFAULT_STOCK, targets: { ...DEFAULT_STOCK.targets } };
+	if (!raw || typeof raw !== 'object') return out;
+	if (raw.targets && typeof raw.targets === 'object') {
+		const targets = {};
+		for (const lv of STOCK_LEVELS) {
+			const n = Math.floor(Number(raw.targets[lv]));
+			targets[lv] = Number.isFinite(n) && n > 0 ? Math.min(9999, n) : 0;
+		}
+		out.targets = targets;
+	}
+	if (STOCK_LEVELS.includes(Number(raw.ceiling))) out.ceiling = Number(raw.ceiling);
+	if (AIM_CHOICES.some(([a]) => a === raw.aim)) out.aim = raw.aim;
+	return out;
+}
+
+/**
+ * The orders a stock run sails under, from the sailor's own: nothing
+ * sold at a wharf, and every target a floor. The rest -- the pace, the
+ * way round, the quests, the hours -- is left as it was set, since a
+ * stock run is sailed the same way a silver one is.
+ */
+export function stockOrders(orders, stock) {
+	return { ...orders, sell: NOTHING, floors: { ...stock.targets } };
 }
