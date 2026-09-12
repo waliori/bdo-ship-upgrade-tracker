@@ -162,10 +162,9 @@ export function timerState(now = Date.now()) {
  * the chime
  * ------------------------------------------------------------------ */
 
-/** Whether the timer makes a sound; a notification is asked for apart,
- *  since one is the browser's business and the other is not. */
-export const soundOn = () => store.getSetting('timerSound', true) !== false;
-export const setSound = on => store.setSetting('timerSound', on === true);
+/** Whether the timer makes any sound at all; a notification is asked
+ *  for apart, since one is the browser's business and the other is not. */
+export const soundOn = () => soundKind() !== 'off';
 
 /**
  * Whether the chimes go to every device the account has, rather than
@@ -208,35 +207,128 @@ export function unlockSound() {
 	} catch { /* no audio on this device */ }
 }
 
-export function chime(beeps = 3) {
-	if (!soundOn()) return;
+/**
+ * The sounds on offer. A ship's bell is the one this is for: the run is
+ * a watch, the stops are the hours of it, and a bell is what a ship has
+ * always said them with. The beeps are kept for anyone who wants a
+ * timer rather than a ship.
+ */
+export const SOUND_CHOICES = [
+	['bell', 'a ship’s bell', 'Struck bronze: a pair as each stop comes up, and eight bells — the end of the watch — when the run is done'],
+	['beeps', 'three beeps', 'The plain microwave sort'],
+	['off', 'no sound', 'Nothing here; a notification can still be shown']
+];
+
+/** Which sound, reading the older on-or-off setting as one of these. */
+export function soundKind() {
+	const raw = store.getSetting('timerSound', 'bell');
+	if (raw === false) return 'off';
+	if (raw === true) return 'bell';
+	return SOUND_CHOICES.some(([id]) => id === raw) ? raw : 'bell';
+}
+export const setSoundKind = kind => store.setSetting('timerSound', SOUND_CHOICES.some(([id]) => id === kind) ? kind : 'bell');
+
+/** The audio, made when it is first wanted and kept for the session. */
+function audio() {
+	const Ctor = window.AudioContext || window.webkitAudioContext;
+	if (!Ctor) return null;
+	ctx = ctx || new Ctor();
+	if (ctx.state === 'suspended') ctx.resume();
+	return ctx;
+}
+
+/**
+ * One strike of a bell, at `t0`.
+ *
+ * A bell is not a note: the metal rings at partials that are not whole
+ * multiples of anything, which is why a sine wave sounds like a phone
+ * and a bell sounds like a bell. This is the old FM way of getting
+ * there -- one oscillator bending another's pitch, at a ratio chosen to
+ * be nothing like a harmonic -- with the bending dying away far faster
+ * than the tone, so the strike is bright and clangorous and what is
+ * left behind it is almost pure. A second, quieter voice a fifth and an
+ * octave up, dying sooner still, is the hammer on the bronze.
+ */
+function strike(at, t0, { f = 660, gain = 0.22, ring = 2.6 } = {}) {
+	const voice = (freq, level, ratio, len, index) => {
+		const car = at.createOscillator();
+		const mod = at.createOscillator();
+		const depth = at.createGain();
+		const amp = at.createGain();
+		car.frequency.value = freq;
+		mod.frequency.value = freq * ratio;
+		// The clang: the modulation is deep at the strike and gone in a
+		// fifth of a second, which is exactly how long a bell sounds
+		// like a hammer before it sounds like a bell.
+		depth.gain.setValueAtTime(freq * index, t0);
+		depth.gain.exponentialRampToValueAtTime(freq * 0.01, t0 + 0.22);
+		amp.gain.setValueAtTime(0.0001, t0);
+		amp.gain.exponentialRampToValueAtTime(level, t0 + 0.004);
+		amp.gain.exponentialRampToValueAtTime(0.0001, t0 + len);
+		mod.connect(depth).connect(car.frequency);
+		car.connect(amp).connect(at.destination);
+		mod.start(t0); car.start(t0);
+		mod.stop(t0 + len); car.stop(t0 + len);
+	};
+	// 1.41 is about as far from a harmonic as a ratio gets, which is
+	// what makes this bronze rather than brass.
+	voice(f, gain, 1.41, ring, 2.4);
+	voice(f * 3.01, gain * 0.35, 1.73, ring * 0.35, 1.6);
+}
+
+/**
+ * The bell, struck in pairs the way a ship's is. `pairs` of two: one
+ * pair as a stop comes up, four -- eight bells, the end of the watch --
+ * when the run is done.
+ */
+export function bell(pairs = 1, into = null) {
+	const at = into || audio();
+	if (!at) return;
+	const t = at.currentTime + 0.02;
+	for (let p = 0; p < pairs; p++) {
+		strike(at, t + p * 0.92, { f: 660, gain: 0.22 });
+		strike(at, t + p * 0.92 + 0.33, { f: 652, gain: 0.19 });
+	}
+}
+
+/** The older sound: a short square note, so many times over. */
+export function beeps(n = 3, into = null) {
+	const at = into || audio();
+	if (!at) return;
+	const start = at.currentTime;
+	for (let i = 0; i < n; i++) {
+		const t0 = start + i * 0.22;
+		const osc = at.createOscillator();
+		const gain = at.createGain();
+		osc.type = 'square';
+		osc.frequency.value = 880;
+		// A flat note clicks at both ends; a quick ramp in and out is
+		// what makes it read as a beep rather than a fault.
+		gain.gain.setValueAtTime(0.0001, t0);
+		gain.gain.exponentialRampToValueAtTime(0.18, t0 + 0.01);
+		gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+		osc.connect(gain).connect(at.destination);
+		osc.start(t0);
+		osc.stop(t0 + 0.18);
+	}
+}
+
+/** The run is done: eight bells, or the three beeps. */
+export function chime() {
+	if (soundKind() === 'off') return;
 	try {
-		const Ctor = window.AudioContext || window.webkitAudioContext;
-		if (!Ctor) return;
-		ctx = ctx || new Ctor();
-		if (ctx.state === 'suspended') ctx.resume();
-		const at = ctx.currentTime;
-		for (let i = 0; i < beeps; i++) {
-			const t0 = at + i * 0.22;
-			const osc = ctx.createOscillator();
-			const gain = ctx.createGain();
-			osc.type = 'square';
-			osc.frequency.value = 880;
-			// A flat note clicks at both ends; a quick ramp in and out is
-			// what makes it read as a beep rather than a fault.
-			gain.gain.setValueAtTime(0.0001, t0);
-			gain.gain.exponentialRampToValueAtTime(0.18, t0 + 0.01);
-			gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
-			osc.connect(gain).connect(ctx.destination);
-			osc.start(t0);
-			osc.stop(t0 + 0.18);
-		}
+		if (soundKind() === 'bell') bell(4); else beeps(3);
 	} catch { /* no audio on this device: the notification still lands */ }
 }
 
-/** One short note as a stop comes up, so the end of the run is still
- *  the thing that sounds like an ending. */
-export const chimeStop = () => chime(1);
+/** A stop come up: one pair of the bell, or a single beep -- the end of
+ *  the run is still the thing that sounds like an ending. */
+export function chimeStop() {
+	if (soundKind() === 'off') return;
+	try {
+		if (soundKind() === 'bell') bell(1); else beeps(1);
+	} catch { /* no audio on this device */ }
+}
 
 /* ------------------------------------------------------------------ *
  * Notifications, as the four engines actually do them
@@ -457,6 +549,13 @@ export function timerHTML({ suggest = 0, label = '', marks = [] } = {}) {
 	};
 	const bell = support === 'granted' || support === 'none' ? ''
 		: `<button class="chip tiny${support === 'denied' || support === 'insecure' ? ' warn' : ''}" data-act="barter-timer-notify" title="${esc(bellWhy[support])}">${bellText[support]}</button>`;
+	// What it sounds like, and what it sounds like right now: a press
+	// moves to the next sound and plays it, so a sailor can settle on
+	// one in three presses rather than starting a run to find out.
+	const sound = soundKind();
+	const soundName = (SOUND_CHOICES.find(([id]) => id === sound) || SOUND_CHOICES[0])[1];
+	const soundWhy = (SOUND_CHOICES.find(([id]) => id === sound) || SOUND_CHOICES[0])[2];
+	const ear = `<button class="chip tiny sail-sound${sound === 'off' ? ' off' : ''}" data-act="barter-timer-sound" title="${esc(soundWhy)} — press to hear the next one">${sound === 'off' ? '🔇' : '🔔'} ${esc(soundName)}</button>`;
 	// Signed in, the chimes can be said again on every device the
 	// account has -- the phone in a pocket while the game has the screen.
 	const devices = canPush()
@@ -476,8 +575,8 @@ export function timerHTML({ suggest = 0, label = '', marks = [] } = {}) {
 			: '';
 		// Nothing to start when there is no run in hand: the clock is the
 		// run's own, not a kitchen timer.
-		if (!run) return bell || devices ? `<span class="sail-timer">${bell}${devices}</span>` : '';
-		return `<span class="sail-timer">${run}${modes}${bell}${devices}</span>`;
+		if (!run) return `<span class="sail-timer">${ear}${bell}${devices}</span>`;
+		return `<span class="sail-timer">${run}${modes}${ear}${bell}${devices}</span>`;
 	}
 	const pct = Math.max(0, Math.min(100, (t.ran / t.seconds) * 100));
 	// The run's name is the chime's to say, not the chip's: on a phone a
@@ -485,7 +584,7 @@ export function timerHTML({ suggest = 0, label = '', marks = [] } = {}) {
 	return `<span class="sail-timer running${t.over ? ' over' : ''}"${t.label ? ` title="${esc(t.label)}"` : ''}>
 		<span class="sail-timer-bar"><i style="width:${pct.toFixed(1)}%"></i></span>
 		<b data-timer-clock>${esc(clockText(t))}</b>
-		${modes}${devices}
+		${modes}${ear}${devices}
 		<button class="map-x" data-act="barter-timer-stop" aria-label="Stop the clock" title="Stop the clock">×</button>
 	</span>`;
 }
@@ -611,6 +710,16 @@ export function timerAction(act, el, then = null) {
 		return true;
 	}
 	if (act === 'barter-timer-stop') { stopTimer(); return true; }
+	if (act === 'barter-timer-sound') {
+		// Round the choices, and let the new one be heard at once -- the
+		// press is also what wakes the audio, so the first one is not
+		// swallowed.
+		const ids = SOUND_CHOICES.map(([id]) => id);
+		const next = ids[(ids.indexOf(soundKind()) + 1) % ids.length];
+		setSoundKind(next);
+		if (next !== 'off') { unlockSound(); chimeStop(); }
+		return true;
+	}
 	if (act === 'barter-timer-marks') {
 		setMarksMode(el.dataset.id);
 		// Which marks chime has changed, so what the server was told has
