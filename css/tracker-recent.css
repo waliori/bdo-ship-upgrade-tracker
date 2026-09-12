@@ -162,6 +162,12 @@
 .stock-bar i { display: block; height: 100%; background: var(--tier); border-radius: 3px; }
 .stock-row.full .stock-note { color: var(--teal); }
 .stock-note { font-size: 11.5px; color: var(--ink-faint); }
+.orders-saved { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
+.orders-saved .run-pick-k { margin-bottom: 0; flex: none; }
+.saved-chip { display: inline-flex; align-items: center; gap: 2px; }
+.saved-chip .map-x { opacity: 0.5; }
+.saved-chip:hover .map-x { opacity: 1; }
+.save-name { width: 100%; margin-bottom: 12px; }
 .run-ahead { margin: 10px 0 0; padding: 9px 12px; border-radius: var(--r-btn); background: var(--panel-inset); color: var(--ink-mid); font-size: 12.5px; line-height: 1.5; }
 .run-ahead b { color: var(--ink-hi); }
 .run-ahead.full { color: var(--teal); }

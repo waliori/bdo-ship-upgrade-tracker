@@ -41,7 +41,7 @@ import { tradeGoodNames } from './trade_goods.js';
 import { landGoods } from './land_goods.js';
 import { openPicker } from './picker.js';
 import { openTripLog } from './triplog.js';
-import { toast, openDialog } from './dialogs.js';
+import { toast, openDialog, closeDialog } from './dialogs.js';
 import { cheer } from './cheer.js';
 
 /* ------------------------------------------------------------------ *
@@ -884,6 +884,73 @@ function setOrders(patch) {
 	store.setProfile('orders', readOrders({ ...ordersNow(), ...patch }));
 }
 
+/* ------------------------------------------------------------------ *
+ * orders saved under a name
+ * ------------------------------------------------------------------ */
+
+/**
+ * The sailor's own orders, saved under a name: the two presets answer
+ * "cash out or build the stocks" and nothing else, and a sailor who
+ * has settled on a way of running -- no quests, from Iliya, the shore
+ * goods out of the pile, the stock up to Level 4 -- should not set it
+ * up again every time the goal changes. What is saved is the whole
+ * shape: the orders, the stock's targets and ceiling, and where the
+ * run sails from and leaves goods.
+ */
+const savedNow = () => {
+	const raw = store.getProfile('savedOrders', []);
+	return Array.isArray(raw) ? raw.filter(x => x && typeof x.name === 'string' && x.orders).slice(0, SAVED_MAX) : [];
+};
+const SAVED_MAX = 12;
+
+function saveOrders(name) {
+	const clean = name.trim().slice(0, 40);
+	if (!clean) return;
+	const mine = savedNow().filter(x => x.name.toLowerCase() !== clean.toLowerCase());
+	const entry = { name: clean, goal, orders: ordersNow(), stock: { ...stockGoal, targets: { ...stockGoal.targets } }, port, stash };
+	store.setProfile('savedOrders', [entry, ...mine].slice(0, SAVED_MAX));
+	toast(`Saved as “${clean}”`);
+}
+
+function applySaved(name) {
+	const it = savedNow().find(x => x.name === name);
+	if (!it) return;
+	store.setProfile('orders', readOrders(it.orders));
+	if (it.stock) stockGoal = readStock(it.stock);
+	if (it.goal === 'stock' || it.goal === 'silver' || it.goal === 'material') goal = it.goal;
+	if (ports.some(p => p.id === Number(it.port))) port = Number(it.port);
+	if (STASHES.includes(it.stash)) stash = it.stash;
+	persist();
+}
+
+function dropSaved(name) {
+	store.setProfile('savedOrders', savedNow().filter(x => x.name !== name));
+}
+
+/** The strip of saved orders: what is kept, and the way to keep these. */
+function savedHTML() {
+	const mine = savedNow();
+	const chips = mine.map(x => `<span class="saved-chip"><button class="chip tiny" data-act="barter-saved" data-name="${esc(x.name)}" title="Sail under these orders again${x.goal === 'stock' ? ' · a stock run' : ''}">${esc(x.name)}</button><button class="map-x" data-act="barter-saved-drop" data-name="${esc(x.name)}" aria-label="Forget ${esc(x.name)}">×</button></span>`).join('');
+	return `<div class="orders-saved">
+		<span class="run-pick-k">your own orders</span>
+		${chips || '<span class="orders-sub">none saved yet</span>'}
+		<button class="chip tiny primary" data-act="barter-save" title="Keep these orders, the targets and the ceiling under a name">＋ save these</button>
+	</div>`;
+}
+
+function askSaveOrders(then) {
+	const host = openDialog(`
+		<h2>Save these orders</h2>
+		<p class="dialog-copy">Everything set here is kept under the name: what the run is for, the pace, the quests, the way round, where it sails from and leaves goods — and, for a stock run, the targets and the ceiling.</p>
+		<input class="field save-name" maxlength="40" placeholder="fill the low levels" aria-label="A name for these orders">
+		<div class="dialog-actions"><button class="act quiet" data-close>Cancel</button><button class="act" data-save>Save</button></div>`);
+	const box = host.querySelector('.save-name');
+	box.focus();
+	const done = () => { saveOrders(box.value); closeDialog(); then(); };
+	host.querySelector('[data-save]').addEventListener('click', done);
+	box.addEventListener('keydown', e => { if (e.key === 'Enter') done(); });
+}
+
 /**
  * A rough sailing time for a chain on its own, for the yardstick on
  * its row: straight lines from the start through its islands and back
@@ -1071,6 +1138,7 @@ function ordersHTML(o, stocking = false) {
 		${stocking ? '' : `<div class="run-floors" title="Kept back for the boards to come: never sold, never spent below this many">
 			<span class="run-pick-k">keep back, of every good at a level</span>${floors}
 		</div>`}
+		${savedHTML()}
 	</div>`;
 }
 
@@ -1710,6 +1778,7 @@ function silverParts(me, b) {
 	const land = landHeld(store.getAllStock());
 	const covered = c => c.from !== 'land' || o.landFrom !== 'stock' || (land.get(c.item) || 0) >= c.rungs[0].giveN;
 	const everything = chains(b.data, stock, dock, prof.barterCount, stocking ? stockGoal.ceiling : 0);
+
 	const shutChains = everything.filter(c => c.gate && (o.buy || c.from !== 'land') && covered(c));
 	let all = everything.filter(c => (o.buy || c.from !== 'land') && !c.gate && covered(c));
 	// Asked to reach a good for the material run: only the chains that
@@ -1744,7 +1813,11 @@ function silverParts(me, b) {
 	// What the sets are judged by: the stock, said as plain data so the
 	// search can take it to the worker.
 	const aim = stocking ? { targets: stockGoal.targets, held: [...everythingHeld()], kind: stockGoal.aim } : null;
-	const pkey = JSON.stringify([board.day, b.combo.id, stock, dock, [...land], o, port, stash, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, reach, prof.barterCount, aim]);
+	// The ceiling is part of the key as much as the barter count is: it
+	// decides which chains exist at all, and a search kept across a
+	// change of it would answer for chains this board no longer lists.
+	const ceiling = stocking ? stockGoal.ceiling : 0;
+	const pkey = JSON.stringify([board.day, b.combo.id, stock, dock, [...land], o, port, stash, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, reach, prof.barterCount, aim, ceiling]);
 	const search = { chains: all, opts, ship, timeCap: o.hours, aim };
 	// The search goes to the worker and the page draws meanwhile; asked
 	// again when the inputs change, or when an answer is owed and no
@@ -2493,6 +2566,9 @@ export function barterAction(act, el, redraw) {
 	restore();
 	switch (act) {
 		case 'barter-goal': goal = ['material', 'stock'].includes(el.dataset.id) ? el.dataset.id : 'silver'; persist(); return true;
+		case 'barter-save': askSaveOrders(redraw); return false;
+		case 'barter-saved': applySaved(el.dataset.name); return true;
+		case 'barter-saved-drop': dropSaved(el.dataset.name); return true;
 		case 'barter-aim': stockGoal = { ...stockGoal, aim: AIM_CHOICES.some(([a]) => a === el.dataset.id) ? el.dataset.id : 'fill' }; persist(); return true;
 		case 'barter-preset': store.setProfile('orders', presetOrders(el.dataset.id)); return false;
 		case 'barter-homemade': {
