@@ -6,6 +6,7 @@ node_modules
 # What's New dialog shows.
 docs/**
 !docs/media/*.mp4
+!docs/media/*.vtt
 !docs/media/small
 !docs/media/small/*
 tools

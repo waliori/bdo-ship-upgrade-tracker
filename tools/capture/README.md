@@ -60,13 +60,180 @@ can be re-encoded without re-shooting it:
 ```bash
 ./tools/capture/togif.sh tools/capture/out/craft.webm docs/media/craft.gif 900 13
 #                        <in>                         <out>                 <width> <fps>
-./tools/capture/tomp4.sh tools/capture/out/walkthrough.webm docs/media/walkthrough.mp4
 ```
 
 900px at 13fps keeps a 6–10 second clip around half a megabyte. The
 palette is generated per clip with `stats_mode=diff` and applied with
 bayer dithering, because a flat global palette bands badly across the
 app's ocean gradient.
+## The guide films
+
+Everything above shoots the silent clips the README embeds. The other
+half of this harness shoots **seven narrated chapters** — the thing to
+send someone who asks how one part of the app works, rather than what
+the app is:
+
+| Chapter | What it covers |
+|---|---|
+| `the-yard` | The sailor bar — the numbers the app plans from — then queue a build, record what you gather, craft, undo, price a part, record a level, the Tree |
+| `to-get` | The plan: the goal, the days a week, what you are willing to do, the steps, and what it will never do |
+| `quests` | The sailing dailies and weeklies, which pay something on your list, and recording a batch at once |
+| `your-ship` | Hull, the four parts, the crystal, the appearance set, the figures — and the crew, read off screenshots then seated by hand and automatically, with presets and setups |
+| `the-map` | The chart, mostly full screen: toolbar, minimap, layers, all five map tabs, and stood up on the game's terrain in Ground or Neon |
+| `a-run` | The whole of bartering: which kind of run, naming this refresh's layout off the game's barter window, the orders, the chains, the sheet, sailing it, recording it |
+| `the-harbour` | The community boards, what a place on one opens, and what is and is not shared |
+
+```bash
+PORT=8765 node server.js &
+npm run guide                       # all seven, and the joined film
+./tools/capture/guide.sh the-map    # just one
+```
+
+Each chapter leaves `docs/media/guide/<name>.mp4` and, beside it, a
+`.vtt` and `.srt` of the same lines and a `.txt` transcript. The mp4
+already carries its words on screen — the caption bar is drawn in the
+page, and most people meet these muted — so the sidecars are for a
+player's own caption track and for whatever a video host wants to index.
+
+Once all seven are on disk, `guide.sh` joins them into
+**`docs/media/walkthrough.mp4`** — the film the README links to and the
+app plays under **Help** — with chapter marks and one merged caption
+track. That join is a stream copy, not a re-encode, so re-shooting one
+chapter replaces it in the joined cut for the cost of an `ffmpeg -c
+copy`. The app's Help dialog lists the six as jump-to points; their
+offsets live in `FILM` in `js/ui.js`, because a browser will not surface
+an mp4's own chapter marks.
+
+`tour.mjs` used to be the walkthrough. Nothing builds from it now — the
+chapters say the same things at greater length, and `shoot.sh` no longer
+runs it. It is left in place because it still works, and because it is
+the only thing here that knows how to shoot a narrow cut for a phone.
+
+### Narration, and why it is synthesised first
+
+Every line a chapter speaks is spoken **before** a frame is shot, and
+the film then holds each beat for exactly as long as its sentence takes
+to say. That order is the whole trick. It means the script is the
+source and the audio is a build artefact, so rewording a sentence
+re-renders rather than sending anyone back to a microphone — and it
+means the pictures can never drift from the words, because the words
+are what set the pace.
+
+`voice.mjs` does the saying, behind four engines. Two run on this
+machine and cost nothing:
+
+```bash
+VOICE=kokoro VOICE_NAME=am_michael   npm run guide   # the default
+VOICE=piper  VOICE_NAME=en_GB-alba-medium npm run guide
+VOICE=openai VOICE_NAME=nova         npm run guide   # OPENAI_API_KEY
+VOICE=eleven VOICE_NAME=<voice id>   npm run guide   # ELEVENLABS_API_KEY
+```
+
+Clips are cached by what was said and who said it, under
+`tools/capture/voice/` — so a second shoot only synthesises the lines
+that actually changed, and switching narrator re-says everything rather
+than handing back the old one's reading.
+
+The models live in `~/.local/share/tts-voices` (override with
+`VOICE_MODELS`). Fetch them once:
+
+```bash
+# kokoro — 310 MB, the default, and the one that sounds like a person
+curl -L -o ~/.local/share/tts-voices/kokoro-v1.0.onnx \
+  https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
+curl -L -o ~/.local/share/tts-voices/voices-v1.0.bin \
+  https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
+
+# piper — 60 MB a voice, quicker, more obviously a machine
+uv tool install piper-tts
+python -m piper.download_voices en_GB-alba-medium --data-dir ~/.local/share/tts-voices
+```
+
+Both are Python wheels with C extensions in them, which on NixOS cannot
+find `libstdc++.so.6` by themselves. `voice.mjs` puts the child on
+nix-ld's library directory when there is one, so this needs no shell of
+its own — but it **appends** rather than sets, because a nix shell
+often exports an `LD_LIBRARY_PATH` that has some libraries and not that
+one.
+
+### The pace of a chapter
+
+`guide.sh` exports four knobs, each with a default behind it so the
+README clips are untouched: `VOICE_RATE` (1.12, how fast the narrator is
+synthesised), `VOICE_GAP` (140 ms of silence between lines), `GLIDE`
+(380 ms for the pointer to travel, against the scenes' 620) and `SPEED`
+(1.3, how much faster than life the finished film runs). Sixty presses
+at the scenes' pace is half a minute of watching a cursor.
+
+`SPEED` is applied inside `mix.mjs`, in the one encode that already
+stands between the raw screencast and the mp4 — `setpts` for the
+pictures, `atempo` for the narration, and the caption timings divided to
+match. Speeding up the finished mp4 instead would lay a second
+generation of h264 over an already-compressed recording of flat UI
+colour, which is the material that shows it worst. The two rates
+multiply: at the defaults the narration lands at about 1.45× a natural
+reading, which is brisk. If it ever wants slowing, `VOICE_RATE` is the
+better knob of the two — it re-synthesises rather than time-stretching,
+though it does mean a re-shoot, since the film is paced by how long the
+audio runs.
+
+### Writing a chapter
+
+A chapter is a `say` block and a `shoot` function, and the split is not
+tidiness. The whole script has to be readable in one place so it can be
+synthesised in one batch before the browser opens: loading the model is
+most of the cost of saying anything, so a hundred lines said one process
+at a time is a quarter of an hour where the same hundred in one process
+is a couple of minutes — and a line synthesised mid-take would freeze
+the picture while it was thought about.
+
+Past that it is the same five rules as a scene, plus five:
+
+- **`doing()`, not `say()` then click.** `doing(page, line, act)` runs
+  the interaction against the same stretch of audio, so the pointer is
+  moving while the words are being said. `say()` followed by an action
+  means the narrator describes a thing and then, in silence, it
+  happens — which is most of what makes one of these feel slow, and
+  worse, means every sentence is about a screen that has not changed
+  yet. Reach for `say()` only where there is genuinely nothing to do.
+- **`spot()` when naming one thing among many.** It scrolls the target
+  into view, lights it and dims the rest. Half the value is the
+  scrolling: a line about the keep-back boxes is worse than useless
+  while they are eight hundred pixels below the fold, which is exactly
+  how the first cut of `a-run` shipped.
+- **Say what a control does, in the order someone meets it.** Not what
+  it means. "Orange means you are over the limit — you still sail, just
+  slower" beats anything with a clause in it. These are watched by
+  someone who wants to use the tab this evening.
+- **`hush()` between subjects**, not between sentences. It clears the
+  bar and lets the picture stand on its own for a moment, and the
+  caption sidecars use it to decide where one caption ends.
+- **The sailor's numbers live in the shell now**, beside the pouch:
+  the barter count, level, Parley, vouchers, Value Pack, Sailing Mastery
+  and region. `crew-mastery` and `barter-level` used to be fields on the
+  Ship and Barter tabs and are not any more — the Ship tab *reads*
+  mastery (`.crew-mastery.read`) and the bar sets it. The Yard types
+  them in on camera; every later chapter gets them from the seed, or
+  half its figures read as dashes.
+- **"The refresh", not "the day"** — for anything about the barter
+  board. A player pays to turn it over, and several times a day is
+  normal. Quests are the other way round: those really are daily.
+
+### The game's own windows
+
+`your-ship` reads a crew off `tools/capture/shots/sailor-*.webp` — the
+game's **Manage Sailors** window — and `a-run` holds
+`barter-window.webp`, the **Barter Information** list, over the app at
+the moment it asks which layout the sea is on. Both are cropped to the
+dialog, and the crop is deliberate: a full screenshot carries the chat
+log, other players' names and the character's own, none of which belongs
+in a film on a README. Crop first, always.
+
+The sailor shots go through the real reader, in the page, the way a
+player's would. The barter window is shown with `still()`, which reads
+the file off disk and hands it over as a data URI — the capture server
+serves the app, not this folder, and a still that only appears when the
+file happens to be reachable is one that will quietly stop appearing.
 
 ## How the pointer gets into the recording
 
@@ -122,12 +289,18 @@ Five things are worth knowing.
 
 | File | What it is |
 |---|---|
-| `drive.mjs` | Browser, fake cursor, captions, and the `click` / `typeInto` / `moveTo` / `clickIn` / `drag` verbs |
+| `drive.mjs` | Browser, fake cursor, captions, chapter cards, the spotlight, and the `click` / `doing` / `spot` / `still` / `choose` / `typeInto` / `drag` verbs |
 | `states.mjs` | Seeded inventories, so every clip shows a believable part-built fleet |
 | `fleet.mjs` | The example sailors on the community boards, and the `/api` answers about them |
 | `comm-audit.mjs` | A headless look over the Community tab on that same fleet |
 | `scenes.mjs` | One entry per clip and per still |
-| `tour.mjs` | The captioned film, end to end; `phone` for the narrow cut |
+| `guides.mjs` | The seven narrated chapters — a `say` block and a `shoot` each |
+| `voice.mjs` | Saying a line, and the cache that keeps it |
+| `mix.mjs` | Narration under a film, and the `.vtt` / `.srt` / `.txt` beside it |
+| `guide.sh` | The chapters, shot and mixed, then joined into the walkthrough |
+| `shots/` | Cropped game windows: the **Manage Sailors** shots the reader is given, and the **Barter Information** list `a-run` holds up |
+| `tour.mjs` | The old single-run film; superseded by the chapters, still runnable |
+| `join.mjs` | The seven chapters end to end, with chapter marks and merged captions |
 | `shoot.sh` | The whole shoot, and the conversions |
 | `togif.sh` | `webm` → `gif` |
 | `tomp4.sh` | `webm` → `mp4` |

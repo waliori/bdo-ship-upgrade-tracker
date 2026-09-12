@@ -14,7 +14,8 @@ import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { config, syncEnabled, pushEnabled, feedbackEnabled, communityEnabled, ephemeralSecret, describe } from './server/config.js';
+import { config, syncEnabled, pushEnabled, feedbackEnabled, communityEnabled, presenceEnabled, ephemeralSecret, describe } from './server/config.js';
+import { presenceRoutes } from './server/presence.js';
 import { marketRoutes } from './server/market.js';
 import { accessLog, counters } from './server/log.js';
 
@@ -56,7 +57,11 @@ app.use(compression());
 // which counts.
 const CSP = [
 	"default-src 'self'",
-	"script-src 'self'",
+	// The sailor reader is WebAssembly, and a policy that names no
+	// wasm at all forbids compiling it. This is the narrow word for it:
+	// it permits WebAssembly and nothing else -- `eval` and its friends
+	// stay shut, which is what 'unsafe-eval' would have opened.
+	"script-src 'self' 'wasm-unsafe-eval'",
 	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
 	"font-src 'self' https://fonts.gstatic.com",
 	// The signed-in chip shows the player's Discord avatar, which is the
@@ -185,14 +190,19 @@ if (syncEnabled) {
 // Vell reminders by push: a key pair and a table are all it takes, so
 // it can run on a deployment without Discord. Off without the keys.
 if (pushEnabled) {
-	const [{ migrate, ping }, { pushRoutes, startVellPushes }] = await Promise.all([
+	const [{ migrate, ping }, { pushRoutes, startVellPushes, startAlertPushes }] = await Promise.all([
 		import('./server/db.js'),
 		import('./server/push.js')
 	]);
 	if (!syncEnabled) migrate().catch(err => console.warn('[db] tables not ready yet:', err.message));
 	dbPing = ping;
 	app.use('/api', pushRoutes());
-	if (process.env.NODE_ENV !== 'test') startVellPushes();
+	if (process.env.NODE_ENV !== 'test') {
+		startVellPushes();
+		// An account's own chimes: a clock set on one device reaching the
+		// rest. Needs sign-in, so it only runs where sync does.
+		if (syncEnabled) startAlertPushes();
+	}
 }
 
 // Feedback needs a table and nothing else, so like the push reminders it
@@ -213,11 +223,27 @@ if (feedbackEnabled) {
 // without it and it never carries anyone's data.
 app.use('/api', marketRoutes(express));
 
+// Who else is out there. The one thing here that asks nothing of the
+// reader and tells them something: how many browsers have the page open
+// right now, and how many have ever opened it. It needs no sign-in and
+// keeps no address -- see server/presence.js -- and it runs on a
+// database when there is one and in this process's memory when there is
+// not. PRESENCE=0 turns it off entirely.
+if (presenceEnabled) {
+	let presenceDb = null;
+	if (config.turso.url) {
+		const m = await import('./server/db.js');
+		if (!syncEnabled && !pushEnabled && !feedbackEnabled) m.migrate().catch(err => console.warn('[db] tables not ready yet:', err.message));
+		presenceDb = { touchPresence: m.touchPresence, countPresence: m.countPresence };
+	}
+	app.use('/api', presenceRoutes({ db: presenceDb }));
+}
+
 // So the page knows whether to offer sign-in at all. A deployment with no
 // Discord app should not show a button that cannot work.
 app.get('/api/config', (req, res) => {
 	res.set('Cache-Control', 'no-store');
-	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, community: communityEnabled });
+	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, community: communityEnabled, presence: presenceEnabled });
 });
 
 // Is it up, and is the database behind it answering? `db` is 'off' on a
@@ -246,7 +272,7 @@ app.get('/healthz', async (req, res) => {
 
 // Only what the page actually asks for. Serving the repository root would
 // hand out package.json, the Dockerfile and the capture harness too.
-const PUBLIC = ['css', 'js', 'icons', 'map', 'guide'];
+const PUBLIC = ['css', 'js', 'icons', 'map', 'map3d', 'guide', 'reader'];
 const FILES = [
 	'index.html', 'icon.png', 'og.png', 'icon_mapping.json',
 	'icon-192.png', 'icon-512.png', 'manifest.webmanifest'
@@ -280,13 +306,26 @@ app.use('/icons', express.static(path.join(__dirname, 'icons'), LONG));
 // sees each one about once.
 const FOREVER = { maxAge: '365d', immutable: true };
 app.use('/map', express.static(path.join(__dirname, 'map'), FOREVER));
+// The terrain the chart stands up on, cut on the same grid and asked
+// for with the bake's own stamp, so a tile keeps like a tile. Its index
+// is the one file that must be re-read -- it is what carries the stamp.
+app.get('/map3d/index.json', (req, res) => {
+	res.set('Cache-Control', 'no-cache');
+	res.sendFile(path.join(__dirname, 'map3d', 'index.json'));
+});
+app.use('/map3d', express.static(path.join(__dirname, 'map3d'), FOREVER));
+// The vendored OCR engine: six megabytes that never change under a
+// name, because the name carries the version (reader/README.md). Kept
+// like the tiles rather than like the code -- it has no business being
+// fetched again on a deploy that did not touch it.
+app.use('/reader', express.static(path.join(__dirname, 'reader'), FOREVER));
 // The walkthrough film the Help dialog plays. It lives beside the rest of
 // the documentation media so the README and the app show the same thing,
 // and only the video is copied into the image -- the README's GIFs are
 // several megabytes and nothing serves them. It is re-shot under the same
 // name whenever the UI moves, so it revalidates like the modules do.
 app.use('/docs/media', express.static(path.join(__dirname, 'docs', 'media'), REVALIDATE));
-for (const dir of PUBLIC.filter(d => d !== 'icons' && d !== 'map')) {
+for (const dir of PUBLIC.filter(d => d !== 'icons' && d !== 'map' && d !== 'map3d' && d !== 'reader')) {
 	app.use(`/${dir}`, express.static(path.join(__dirname, dir), REVALIDATE));
 }
 for (const file of FILES) {
@@ -346,7 +385,7 @@ app.use((err, req, res, next) => {
 // Importing this file for a test should not open a port.
 if (process.env.NODE_ENV !== 'test') {
 	app.listen(config.port, () => {
-		console.log(`BDO Ship Upgrade Tracker running at http://localhost:${config.port}`);
+		console.log(`Sailor’s Log running at http://localhost:${config.port}`);
 		console.log(`${describe()} -- build ${VERSION}`);
 		if (ephemeralSecret) {
 			console.warn('[config] No SESSION_SECRET set -- sign-ins will not survive a restart.');

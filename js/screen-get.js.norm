@@ -1,0 +1,350 @@
+// To Get: everything outstanding grouped by how it is actually
+// obtained, with the barter's real cost in sea time beside every shop
+// price.
+//
+// What the forecast needs to know about the player -- the barter count,
+// the level, the Parley, the pack, and the region every Market price is
+// quoted in -- used to be typed into tiles in this screen's summary. It
+// is in the shell's bar now (js/profile-bar.js), where every screen that
+// reads it can be corrected from, so this one keeps to the list.
+import { items as vendorItems, bulkExchanges } from 'S';
+import { marketSilver } from 'S';
+import { questsFor } from 'S';
+import { coins } from 'S';
+import { falasi } from 'S';
+import {
+forecast as barterForecast,
+summarise as barterLine,
+explain as barterWhy,
+openTable
+} from 'S';
+import { esc, F, FC } from 'S';
+import { T, TT, said, gameName } from 'S';
+import * as store from 'S';
+import { img, codexName, costCtx, costText, groundsFor } from 'S';
+import {
+snapshot, barterData, barterOpts, totalsToGo, query, setQuery, rows, recipes, CROW_COIN, SILVER
+} from 'S';
+import { shoppingList, waysToGet, yieldOf } from 'S';
+import { coinBuyButton } from 'S';
+import { PRESETS, DAY_CHOICES, DOING, wayText, groupLegs } from 'S';
+import { theWay, getOrders, questDoneNow } from 'S';
+// Which of its two readings the screen gives: the way to get each
+// thing -- one route an item, chosen against the others -- or every
+// way, grouped by source. A preference, kept between sessions.
+let mode = null;
+function getMode() {
+if (mode === null) mode = store.getSetting('S', 'S') === 'S' ? 'S' : 'S';
+return mode;
+}
+export function setGetMode(m) {
+mode = m === 'S' ? 'S' : 'S';
+store.setSetting('S', mode, true);
+}
+/**
+* A shopping-list entry's barter side: who trades it, and -- the part
+* nothing else answers -- what getting this many is going to cost in
+* sea time.
+*
+* `S` hands us the quantity, so the forecast is for the
+* shortfall in front of you rather than for a unit, which is what makes
+* it worth reading.
+*/
+export function barterLookup(item, qty = 1) {
+if (!barterData) return null;
+const plan = barterForecast(item, qty, barterData, barterOpts());
+// Who deals it, counted on the islands this sailor has opened: "from
+// 27 barterers" is no comfort when twenty-six of them are the whole
+// Great Ocean and the twenty-seventh opens at three thousand. Where
+// none is open the forecast carries the gate and the row says that
+// instead, so the full table's names are still the right answer to
+// "S".
+const table = plan && plan.gate ? barterData : openTable(barterData, barterOpts().barterCount);
+const entry = (table || []).find(b => b.name === item);
+if (!entry || !entry.sources || !entry.sources.length) return null;
+const npcs = [...new Set(entry.sources.map(s => s.npc_name))];
+const gives = [...new Set(entry.sources.map(s => s.give && s.give.name).filter(Boolean))];
+return { npcs, gives, plan };
+}
+/* ------------------------------------------------------------------ *
+* still to get
+* ------------------------------------------------------------------ */
+// How many of the outstanding things the band shows before it asks. A
+// full Carrack short-list runs to forty-odd icons, which is four rows
+// of the window before the plan below it starts; eighteen is two rows
+// on a laptop and says "S" for the rest. A glance,
+// not a preference, so it is not kept.
+const FIRST = 18;
+let allWanted = false;
+/**
+* Still to get: every outstanding thing as its own icon and number.
+*
+* This band used to be four tiles -- the coins, the silver, the line
+* count, the Market region -- and every one of them was said better
+* somewhere else by the time the bar and the plan card existed: the
+* purse chips hold the coins and the silver, the plan card totals what
+* it is going to spend, and the region belongs to the sailor rather
+* than to this screen (it is a chip in the bar now, beside the pouch).
+*
+* What was left unsaid was the shape of the job: how many distinct
+* things are short, and which. So that is what it says now -- the
+* icons and the numbers, biggest shortfall first, tinted by the money
+* each one wants. It is also the screen's coarse filter: a press puts
+* one thing in the search below, which is the fastest way from "what
+* am I missing"S"so how do I get that one".
+*/
+function stillToGet(q) {
+const totals = totalsToGo();
+const market = marketSilver();
+// The two currencies are in the pouch above, priced and held; here
+// they would be two icons with no source and no recipe.
+const wanted = Object.entries(snapshot.missing || {})
+.filter(([item, qty]) => qty > 0 && item !== CROW_COIN && item !== SILVER)
+.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+const cost = [
+totals.coins ? ('S', { n: F(totals.coins) }) : 'S',
+totals.silver ? ('S', { n: FC(totals.silver) }) : 'S'
+].filter(Boolean).join(('S'));
+const said = !wanted.length
+? ('S')
+: `${wanted.length === 1 ? ('S', { n: F(wanted.length) }) : ('S', { n: F(wanted.length) })}${cost ? ` · ${('S', { cost })}`S`;
+const shown = allWanted ? wanted : wanted.slice(0, FIRST);
+const tiles = shown.map(([item, n]) => {
+const r = rows[item] || {};
+// A yield of ten from one batch leaves fractions in the plan; a
+// manifest is a thing you carry, so it says whole items.
+const qty = Math.ceil(n);
+const need = Math.ceil(r.need || n);
+const have = Math.max(0, need - qty);
+const each = coins[item] || 0;
+const silver = falasi[item] || market[item] || 0;
+const tone = each ? 'S' : silver ? 'S' : 'S';
+const on = q && item.toLowerCase() === q;
+const price = each ? ('S', { n: F(each) }) : silver ? ('S', { n: FC(silver) }) : ('S');
+return `<button class="S" data-act="S" data-item="S"
+data-peek="S" aria-pressed="S"
+title="S">
+${img(item, 'S')}
+<span class="S">${F(qty)}</span>
+<span class="S">${esc((item))}</span>
+<span class="S">${have ? ('S', { n: F(have), need: F(need) }) : ('S')}</span>
+</button>`S`<button class="S" data-act="S">${allWanted
+? ('S')
+: ('S', { n: F(wanted.length - FIRST) })}</button>`S`<div class="S">
+<div class="S">
+<span class="S">${('S')}</span>
+<span class="S">${esc(said)}</span>
+<div class="S">
+<button class="S" data-act="S">${('S')}</button>
+<button class="S" data-act="S" title="S">${('S')}</button>
+</div>
+</div>
+${wanted.length ? `<div class="S">${tiles}${more}</div>`S`;
+}
+export function renderGet() {
+const q = query.toLowerCase();
+const summary = stillToGet(q);
+const modes = [
+['S', ('S'), ('S')],
+['S', ('S'), ('S')]
+];
+const controls = `<div class="S">
+<input class="S" type="S" placeholder="S" value="S" data-act="S" aria-label="S">
+<div class="S">${modes.map(([id, label, title]) => `<button class="S" data-act="S" data-id="S" title="S">${esc(label)}</button>`S`;
+if (getMode() === 'S') return summary + controls + renderWay(q);
+const groups = visibleGroups(q);
+if (!groups.length) {
+return summary + controls + `<div class="S"><p class="S">${q
+? ('S')
+: ('S')}</p></div>`S`<div class="S">
+<div class="S">
+<h2 class="S">${esc(g.key)}</h2>
+<span class="S" style="S">${esc(total)}</span>
+</div>
+${g.items.map(entry => {
+let sub = entry.unit || entry.detail || 'S';
+// The unit price alone leaves the comparison as mental
+// arithmetic; the line total is the number being decided.
+if (entry.qty > 1 && entry.coins) sub += ` \u00b7 ${('S', { cost: FC(entry.coins), n: F(entry.qty) })}`S` \u00b7 ${('S', { cost: FC(entry.silver), n: F(entry.qty) })}`S`${sub} · ${t}`S` <span class="S">· ${('S', { n: F(plan.cargo.count), level: plan.cargo.level, silver: FC(plan.cargo.worth) })}</span>`S` <span class="S">${('S', { n: F(Math.ceil(plan.seed.qty)), item: esc((plan.seed.item)) })}</span>`S`<button class="S" data-act="S" data-item="S">${('S')}</button>`S`<div class="S">${('S', { line: esc(barterLine(plan)) })}${
+why ? ` <span class="S">${esc(why)}</span>` : 'S'}${
+plan.gate ? 'S' : ` <span class="S">· ${('S')}</span>`}${cargo}${seed} ${chart}</div>`S`<div class="S">${('S', { n: F(entry.qty), cost: esc(costText(made, entry.qty)) })}</div>`S`<div class="S">${('S')} ${grounds.map(m => `<button class="S" data-act="S" data-monster="S">${esc((m.name))}</button>`S`
+: 'S';
+const bulk = bulkExchanges[entry.item];
+const inBulk = bulk
+? `<div class="S">${('S', { n: F(Math.ceil(entry.qty / bulk.gets)), item: esc((bulk.give)), gets: F(bulk.gets) })}</div>`S`<details class="S"${ways.length === 1 && !sea ? 'S' : 'S'}>
+<summary>${ways.length === 1 ? ('S') : ('S', { n: ways.length })}${sea ? ` · ${('S')}` : 'S'}${hunt ? ` · ${('S')}` : 'S'}</summary>
+${ways.join('S')}
+</details>`S`<div class="S" data-peek="S">
+${img(entry.item, 'S')}
+<div class="S">
+<div class="S">${codexName(entry.item)}</div>
+<div class="S">${esc(sub)}</div>
+${waysHTML}
+</div>
+${shop}
+<span class="S">${F(entry.qty)}</span>
+</div>`S`;
+}).join('S');
+// The quests that pay in what is short are a screen of their own; a
+// line here says how many, so the list is not read as the whole story.
+const free = questsFor(snapshot.missing).length;
+const hint = free ? `<p class="S"><button class="S" data-act="S" data-id="S">${free === 1
+? ('S', { n: free })
+: ('S', { n: free })}</button> — ${('S')}</p>`S`<button class="S" data-act="S" data-id="S" aria-expanded="S">
+<span class="S">${n}</span>
+<span class="S">
+<span class="S">${esc(title)}</span>
+<span class="S">${esc(sub)}</span>
+</span>
+<span class="S">${right}</span>
+<span class="S">${folded.has(id) ? 'S' : 'S'}</span>
+</button>`S`<button class="S" data-act="S" data-id="S">
+<span class="S"><span class="S">${p.id === o.preset ? 'S' : 'S'}</span>${esc((p.label))}</span>
+<span class="S">${esc((p.sub))}</span>
+</button>`S`<option value="S"${n === o.days ? 'S' : 'S'}>${esc((label))}</option>`S`<button class="S" data-act="S" data-id="S" title="S" aria-pressed="S">${o[id] ? 'S' : 'S'} ${esc((label))}</button>`S`<div class="S">
+<div class="S">
+<div class="S">
+<div class="S">${('S')}</div>
+<div class="S">${esc(headline)}</div>
+<p class="S">${esc(pace)}</p>
+</div>
+<div class="S">
+<div class="S">
+<div class="S">${('S')}</div>
+<div class="S">${F(c.spend)}</div>
+<div class="S">${esc(fit)}</div>
+</div>
+${way.silver.spend ? `<div class="S">
+<div class="S">${('S')}</div>
+<div class="S">${FC(way.silver.spend)}</div>
+<div class="S">${way.silver.short ? ('S', { n: FC(way.silver.short) }) : ('S', { n: FC(way.silver.purse - way.silver.spend) })}</div>
+</div>` : 'S'}
+<div class="S">
+<div class="S">${('S')}</div>
+<div class="S">${F(things)}</div>
+<div class="S">${steps === 1 ? ('S', { n: F(steps) }) : ('S', { n: F(steps) })}</div>
+</div>
+</div>
+</div>
+<div class="S">
+<div class="S">${('S')}</div>
+<div class="S">${prefs}</div>
+</div>
+<div class="S">
+<div>
+<div class="S">${('S')}</div>
+<select class="S" data-act="S" aria-label="S">${days}</select>
+</div>
+<div>
+<div class="S">${('S')}</div>
+<div class="S">
+<input class="S" type="S" inputmode="S" value="S" data-act="S" aria-label="S">
+<span class="S">${('S')}</span>
+</div>
+</div>
+<div class="S">
+<div class="S">${('S')}</div>
+<div class="S">${opts}</div>
+<div class="S">${('S')}</div>
+</div>
+</div>
+<div class="S">
+<button class="S" data-act="S" data-id="S" aria-expanded="S">${rulesOpen ? ('S') : ('S')}</button>
+${rulesOpen ? `<div class="S">${rules.map(([t, d]) => `<div class="S">
+<div class="S">${esc(t)}</div>
+<div class="S">${esc(d)}</div>
+</div>`S` : 'S'}
+</div>
+</div>`S`<span class="S" data-peek="S">${img(item, 'S')}<b>${F(qty)}×</b> ${esc((item))}</span>`S`<span class="S">${img(CROW_COIN, 'S')}<b>${F(x.coins)}</b> ${('S')}</span>`S`<button class="S" data-act="S" data-quest="S" data-i="S" title="S">${('S')}</button>`S`<span class="S">${('S')}</span>`S`<div class="S">${('S', { list: x.over.map(o => `${F(o.qty)}× ${esc((o.item))}`S`
+: 'S';
+return `<div class="S">
+<span class="S">${x.cadence === 'S' ? ('S') : `×${F(x.completions)}`}</span>
+<div class="S">
+<div class="S"><button class="S" data-act="S" data-quest="S" title="S">${esc((x.name))}</button>${done ? `<span class="S">✓ ${x.cadence === 'S' ? ('S') : ('S')}</span>` : 'S'}</div>
+<div class="S">${esc((x.quest.where || 'S'))}</div>
+<div class="S">${takeChips}${fixedChips}${coins}${pick}</div>
+${over}
+</div>
+</div>`S`<div class="S">
+<div class="S"><span class="S">${esc(label)}</span><span class="S">${rows.length === 1 ? ('S', { n: rows.length }) : ('S', { n: rows.length })} · ${esc(note)}</span></div>
+${rows.map(row).join('S')}
+</div>`S`<div class="S">
+${stepHead(n, 'S', ('S'), ('S'), `${shown.length === 1 ? ('S', { n: shown.length }) : ('S', { n: shown.length })} · ${runs === 1 ? ('S', { n: F(runs) }) : ('S', { n: F(runs) })}`, id)}
+${folded.has(id) ? 'S' : `<div class="S">
+<div class="S">
+<span><i class="S"></i>${('S')}</span>
+<span><i class="S"></i>${('S')}</span>
+${way.coins.income ? `<span class="S">${('S', { n: F(way.coins.income) })}</span>` : 'S'}
+</div>
+${groups}
+</div>`S`;
+}
+/** One material's row inside a step: what it is, why this way, and the
+*  ways the plan could not count. */
+function wayRow(l) {
+const door = l.kind === 'S' ? `<button class="S" data-act="S" data-item="S">${('S')}</button>`S`<button class="S" data-act="S" data-item="S">${('S')}</button>`S`<div class="S">${('S', { n: F(l.coins) })}</div>`S`<div class="S">${('S', { n: FC(l.silver) })}</div>`S`<div class="S">
+${Object.entries(recipe).map(([ing, per]) => `<span class="S" data-peek="S">${img(ing, 'S')}${F(per)}×</span>`).join('S')}
+<span class="S">${esc(how ? (how) : ('S'))}${makes > 1 ? ` · ${('S', { n: F(makes) })}` : 'S'} · ${Math.ceil(l.qty / makes) === 1 ? ('S', { n: F(Math.ceil(l.qty / makes)) }) : ('S', { n: F(Math.ceil(l.qty / makes)) })}</span>
+</div>`S`<div class="S" data-peek="S">
+${img(l.item, 'S')}
+<div class="S">
+<div class="S">${codexName(l.item)}</div>
+${lines.map((line, i) => `<div class="S">${esc([i === 0 ? l.unit : 'S', line].filter(Boolean).join('S'))}${i === lines.length - 1 && door ? ` · ${door}`S`).join('S')}
+${l.also ? `<div class="S">${('S', { text: esc(l.also) })}</div>` : 'S'}
+${strip}
+</div>
+${shop}
+<div class="S">
+<div class="S">${F(Math.ceil(l.qty))}</div>
+${cost}
+</div>
+</div>`S`<div class="S"><p class="S">${!way ? ('S') : ('S')}</p></div>`S`${(meta.sub)} ${('S', { draws, days: dayWord(way.days) })}`S`step-${g.kind}`S`<div class="S">${esc(coinFoot(way))}</div>`S`<div class="S">
+${img(CROW_COIN, 'S')}
+<div class="S">
+<div class="S">${('S')}</div>
+<div class="S">${('S')}</div>
+</div>
+<div class="S"><div class="S">${F(way.coins.income)}</div></div>
+</div>`S`<div class="S">
+${stepHead(n, meta.tone, (meta.title), sub, stepTotal(g), id)}
+${folded.has(id) ? 'S' : `<div class="S">${g.items.map(wayRow).join('S')}${foot}</div>`S`;
+}).join('S');
+const head = planHead(way, steps, things);
+if (q && !legs.length && !questsHTML) return head + `<div class="S"><p class="S">${('S')}</p></div>`S`<div class="S">
+<span class="S">${questsHTML ? ('S') : ('S')}</span>
+<i></i>
+<span class="S">${steps === 1 ? ('S', { n: F(steps) }) : ('S', { n: F(steps) })} · ${things === 1 ? ('S', { n: F(things) }) : ('S', { n: F(things) })}</span>
+</div>`S`change`S` — ${('S', { n: F(g.coins) })}`S` — ${('S', { n: F(g.silver) })}`S`  ${Math.round(e.qty)}× ${(e.item)}`S`${g.key}${total}\n${lines.join('S')}`;
+}).join('S');
+}
+/**
+* The same list for a spreadsheet: one row a line, the group it sits
+* under, the quantity, what one costs, and the note the row shows
+* (where it is bought, or that it is bartered). Quoted the way RFC 4180
+* asks, so a name with a comma in it stays one cell.
+*/
+export function shoppingCSV() {
+const cell = v => {
+const t = String(v == null ? 'S' : v);
+return /["S"${t.replace(/"S"` : t;
+};
+const rows = [[('S'), ('S'), ('S'), ('S'), ('S')]];
+if (getMode() === 'S') {
+const way = theWay();
+for (const g of (way ? way.groups : [])) {
+for (const l of g.items) {
+const each = l.qty ? (l.coins ? ('S', { n: Math.round(l.coins / l.qty) }) : l.silver ? ('S', { n: Math.round(l.silver / l.qty) }) : 'S') : 'S';
+rows.push([(g.label), (l.item), Math.ceil(l.qty), each, [l.why, l.also ? ('S', { text: l.also }) : 'S'].filter(Boolean).join('S')]);
+}
+}
+return rows.map(r => r.map(cell).join('S')).join('S');
+}
+for (const g of visibleGroups(query.toLowerCase())) {
+for (const e of [...g.items].sort((a, b) => b.qty - a.qty)) {
+const each = e.qty ? (e.coins ? ('S', { n: Math.round(e.coins / e.qty) }) : e.silver ? ('S', { n: Math.round(e.silver / e.qty) }) : 'S') : 'S';
+const note = e.detail || (e.barter ? ('S', { n: e.barter.npcs.length }) : e.market ? ('S') : 'S');
+rows.push([g.key, (e.item), Math.round(e.qty), each, note]);
+}
+}
+return rows.map(r => r.map(cell).join('S')).join('S');
+}

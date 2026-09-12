@@ -1,0 +1,46 @@
+This is the Barter tab. Show it one island, and it plans a whole run for you.
+First, pick what you are running for.
+A material climbs the ladder to one thing you are short of.
+Silver runs the chains on the board and sells at the end. That is the one we want.
+The barter count and level you set at the start are doing real work here: the count decides which islands are on the board at all, and the level prices every Parley figure below.
+Next, tell it what the board looks like.
+Every refresh, the sea uses one of forty layouts.
+The app cannot know which one. So you show it a single island.
+Click "another island", and pick the one you are looking at.
+Now check that island in game. Open Barter Information, set the filter to Normal to Level 1, and find its row. Eveto Island is offering Essence of Liquor, for a Level 1 Cherry Tree Seed Pouch.
+Pick that same trade here.
+That names the layout. Every chain this refresh allows is now listed below.
+Now tell it what you want out of the run.
+Build the stocks keeps goods back for the next refresh.
+These boxes are how much it keeps back at each level.
+Cash out sells everything for silver instead.
+Pace. Fast keeps you light and quick.
+Full and loaded fills the hold past the limit. More goods, slower sailing.
+Quests on the way hands in dailies you have already taken, as you pass them.
+The way round sets the route order: nearest island first, or one chain at a time.
+And here: where you sail from, where your storage is, and a time limit if you want one.
+Now the chains. It has already worked out three runs for you.
+The most silver, the most per hour, and the most per Parley. They are rarely the same run.
+Click one to use it.
+Or tick chains yourself.
+Fill the rest adds the best chains around the ones you picked.
+The bar at the bottom totals it up: chains, silver, hours, islands.
+Click "Lay it out".
+Every stop is listed, in order. What you hand over, and what you get back.
+This bar is your hold after each trade.
+Orange means you are over the limit. You still sail, just slower.
+Red means too heavy to barter. You have to lighten first.
+That is what a wharf stop is for. Drop the extra into storage, and carry on.
+And this bar is your Parley going down as you trade.
+Happy with it? Click "Sail this run".
+It goes onto the map as a checklist.
+Full screen, if you want more sea and less panel.
+It follows you leg by leg, and every stop is a card with the trade on it.
+Tick each stop as you make it. If an island pays a different amount, everything after it re-counts.
+Finished sailing? Tick them all off at once.
+Then click "Record the trip".
+Silver goes to your purse, leftover goods to your inventory, and the quests are claimed.
+All as one change, so one undo puts it back.
+One last thing. The hold size, the speed and every time on that route come from your ship.
+Hull, the four parts, the crystal and the crew aboard. Change the ship, and the whole run re-times.
+That is it. Show it one island, and it plans the rest.

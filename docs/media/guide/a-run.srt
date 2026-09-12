@@ -1,0 +1,183 @@
+1
+00:00:00,707 --> 00:00:04,780
+This is the Barter tab. Show it one island, and it plans a whole run for you.
+
+2
+00:00:08,771 --> 00:00:10,527
+First, pick what you are running for.
+
+3
+00:00:10,527 --> 00:00:13,229
+A material climbs the ladder to one thing you are short of.
+
+4
+00:00:13,229 --> 00:00:17,087
+Silver runs the chains on the board and sells at the end. That is the one we want.
+
+5
+00:00:17,087 --> 00:00:25,642
+The barter count and level you set at the start are doing real work here: the count decides which islands are on the board at all, and the level prices every Parley figure below.
+
+6
+00:00:25,642 --> 00:00:27,528
+Next, tell it what the board looks like.
+
+7
+00:00:27,528 --> 00:00:30,269
+Every refresh, the sea uses one of forty layouts.
+
+8
+00:00:30,269 --> 00:00:33,332
+The app cannot know which one. So you show it a single island.
+
+9
+00:00:33,332 --> 00:00:36,404
+Click "another island", and pick the one you are looking at.
+
+10
+00:00:36,853 --> 00:00:47,966
+Now check that island in game. Open Barter Information, set the filter to Normal to Level 1, and find its row. Eveto Island is offering Essence of Liquor, for a Level 1 Cherry Tree Seed Pouch.
+
+11
+00:00:48,048 --> 00:00:49,888
+Pick that same trade here.
+
+12
+00:00:50,535 --> 00:00:54,459
+That names the layout. Every chain this refresh allows is now listed below.
+
+13
+00:00:54,459 --> 00:00:56,401
+Now tell it what you want out of the run.
+
+14
+00:00:56,401 --> 00:00:59,177
+Build the stocks keeps goods back for the next refresh.
+
+15
+00:00:59,501 --> 00:01:02,491
+These boxes are how much it keeps back at each level.
+
+16
+00:01:02,607 --> 00:01:04,842
+Cash out sells everything for silver instead.
+
+17
+00:01:04,842 --> 00:01:06,568
+Pace. Fast keeps you light and quick.
+
+18
+00:01:06,568 --> 00:01:10,275
+Full and loaded fills the hold past the limit. More goods, slower sailing.
+
+19
+00:01:10,275 --> 00:01:13,672
+Quests on the way hands in dailies you have already taken, as you pass them.
+
+20
+00:01:13,672 --> 00:01:18,006
+The way round sets the route order: nearest island first, or one chain at a time.
+
+21
+00:01:18,006 --> 00:01:22,637
+And here: where you sail from, where your storage is, and a time limit if you want one.
+
+22
+00:01:22,702 --> 00:01:25,713
+Now the chains. It has already worked out three runs for you.
+
+23
+00:01:25,713 --> 00:01:29,952
+The most silver, the most per hour, and the most per Parley. They are rarely the same run.
+
+24
+00:01:29,952 --> 00:01:31,645
+Click one to use it.
+
+25
+00:01:31,793 --> 00:01:33,345
+Or tick chains yourself.
+
+26
+00:01:33,345 --> 00:01:35,783
+Fill the rest adds the best chains around the ones you picked.
+
+27
+00:01:35,783 --> 00:01:39,741
+The bar at the bottom totals it up: chains, silver, hours, islands.
+
+28
+00:01:39,841 --> 00:01:41,534
+Click "Lay it out".
+
+29
+00:01:41,793 --> 00:01:45,372
+Every stop is listed, in order. What you hand over, and what you get back.
+
+30
+00:01:45,372 --> 00:01:47,852
+This bar is your hold after each trade.
+
+31
+00:01:48,940 --> 00:01:52,263
+Orange means you are over the limit. You still sail, just slower.
+
+32
+00:01:52,263 --> 00:01:55,380
+Red means too heavy to barter. You have to lighten first.
+
+33
+00:01:55,380 --> 00:01:59,535
+That is what a wharf stop is for. Drop the extra into storage, and carry on.
+
+34
+00:02:00,258 --> 00:02:03,330
+And this bar is your Parley going down as you trade.
+
+35
+00:02:03,785 --> 00:02:06,233
+Happy with it? Click "Sail this run".
+
+36
+00:02:06,385 --> 00:02:08,041
+It goes onto the map as a checklist.
+
+37
+00:02:08,041 --> 00:02:10,313
+Full screen, if you want more sea and less panel.
+
+38
+00:02:10,313 --> 00:02:14,468
+It follows you leg by leg, and every stop is a card with the trade on it.
+
+39
+00:02:15,705 --> 00:02:20,727
+Tick each stop as you make it. If an island pays a different amount, everything after it re-counts.
+
+40
+00:02:20,727 --> 00:02:23,274
+Finished sailing? Tick them all off at once.
+
+41
+00:02:23,359 --> 00:02:25,254
+Then click "Record the trip".
+
+42
+00:02:25,254 --> 00:02:29,480
+Silver goes to your purse, leftover goods to your inventory, and the quests are claimed.
+
+43
+00:02:29,480 --> 00:02:32,568
+All as one change, so one undo puts it back.
+
+44
+00:02:32,572 --> 00:02:36,755
+One last thing. The hold size, the speed and every time on that route come from your ship.
+
+45
+00:02:36,755 --> 00:02:41,438
+Hull, the four parts, the crystal and the crew aboard. Change the ship, and the whole run re-times.
+
+46
+00:02:41,438 --> 00:02:44,395
+That is it. Show it one island, and it plans the rest.

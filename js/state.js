@@ -664,7 +664,6 @@ export function getProfile(key, fallback = null) {
 const PROFILE_LABELS = {
 	barterCount: () => T('Changed your barter count'),
 	valuePack: () => T('Changed the Value Pack'),
-	crew: () => T('Changed the crew discount'),
 	level: () => T('Changed your barter level'),
 	vouchers: () => T('Changed your vouchers'),
 	parleyHeld: () => T('Changed the parley you hold'),
@@ -678,11 +677,14 @@ const PROFILE_LABELS = {
 	skins: () => T('Changed the appearance set'),
 	setups: () => T('Changed your saved setups'),
 	sailingMastery: () => T('Changed your sailing mastery'),
+	bosnJacks: () => T('Changed the pets aboard'),
+	bosnAlpha: () => T('Changed the Alpha Pet'),
 	questFavs: () => T('Changed your favourite quests'),
 	questGroups: () => T('Changed a quest group'),
 	stash: () => T('Changed where things are kept'),
 	homes: () => T('Changed where new things land'),
 	orders: () => T('Changed the sailing orders'),
+	getOrders: () => T('Changed how the list is to be got'),
 	homemade: () => T('Changed what your workers make'),
 	matSeen: () => T('Noted what the material list shows')
 };
@@ -1065,7 +1067,7 @@ export function unclaimQuest(id, label) {
 		if (tally.quests[id] <= 0) delete tally.quests[id];
 	}
 	const next = readProfile({ ...state.profile, questsDone: done, tally });
-	return commit('quest', label || 'Marked a quest not done', () => { state.profile = next; });
+	return commit('quest', label || T('Marked a quest not done'), () => { state.profile = next; });
 }
 
 /** Replace the whole stock table (used by the v1 import review screen). */

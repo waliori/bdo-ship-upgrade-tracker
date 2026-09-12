@@ -5,7 +5,8 @@
 // front of the planner. Only known keys survive, each clipped to the
 // range the game itself allows. state.js calls this on every read.
 
-import { readOrders } from './barter-orders.js';
+import { readOrders, readStock } from './barter-orders.js';
+import { readGetOrders } from './get-plan.js';
 
 /**
  * The profile, keyed and bounded.
@@ -20,13 +21,23 @@ export const isProfile = raw => Boolean(raw) && typeof raw === 'object' && !Arra
 export const TALLY_TOTALS = ['runs', 'silver', 'cost', 'trades', 'parley', 'stops', 'tries', 'wins', 'drops'];
 export const TALLY_TABLES = ['quests', 'made'];
 
+/** A small table of item -> count, as a run's record keeps one. */
+function goodsMap(raw) {
+	if (!isProfile(raw)) return {};
+	const out = {};
+	for (const [item, n] of Object.entries(raw).slice(0, 20)) {
+		const k = Math.floor(Number(n));
+		if (typeof item === 'string' && item.length <= 80 && Number.isFinite(k) && k > 0) out[item] = Math.min(99999, k);
+	}
+	return out;
+}
+
 export function readProfile(raw) {
 	const out = {};
 	if (!isProfile(raw)) return out;
 	const count = Math.max(0, Math.floor(Number(raw.barterCount) || 0));
 	if (count > 0) out.barterCount = count;
 	if (raw.valuePack === true) out.valuePack = true;
-	if (raw.crew === true) out.crew = true;
 	if (typeof raw.level === 'string' && raw.level) out.level = raw.level.slice(0, 20);
 	const vouchers = Math.max(0, Math.floor(Number(raw.vouchers) || 0));
 	if (vouchers > 0) out.vouchers = vouchers;
@@ -227,6 +238,19 @@ export function readProfile(raw) {
 	}
 	const mastery = Math.floor(Number(raw.sailingMastery));
 	if (Number.isFinite(mastery) && mastery > 0) out.sailingMastery = Math.min(3000, mastery);
+	// The Bos'n Jacks out at the moment, by tier, and whether one of
+	// them is the Alpha Pet. Five slots because five pets is what the
+	// game lets out; trailing empties are not kept, and the Alpha only
+	// survives while there is a tier 5 for it to be.
+	if (Array.isArray(raw.bosnJacks)) {
+		const jacks = raw.bosnJacks.slice(0, 5).map(n => {
+			const t = Math.floor(Number(n));
+			return Number.isFinite(t) && t > 0 ? Math.min(5, t) : 0;
+		});
+		while (jacks.length && !jacks[jacks.length - 1]) jacks.pop();
+		if (jacks.length) out.bosnJacks = jacks;
+	}
+	if (raw.bosnAlpha === true && (out.bosnJacks || []).includes(5)) out.bosnAlpha = true;
 	// Where each build stood, day by day, for the pace: build id -> date
 	// -> units covered. Bounded to a month per build and twenty builds.
 	if (isProfile(raw.progress)) {
@@ -276,6 +300,27 @@ export function readProfile(raw) {
 	// The sailing orders: what a barter run is for. Cleaned by the
 	// module that owns the shape.
 	if (isProfile(raw.orders)) out.orders = readOrders(raw.orders);
+	// The orders a sailor has saved under a name, newest first: the
+	// whole shape of a way of running -- the orders, the stock's
+	// targets and ceiling, the harbour and the storage. A dozen at
+	// most, since they are chips on one line.
+	if (Array.isArray(raw.savedOrders)) {
+		const saved = raw.savedOrders
+			.filter(x => isProfile(x) && typeof x.name === 'string' && x.name.trim())
+			.slice(0, 12)
+			.map(x => ({
+				name: x.name.trim().slice(0, 40),
+				goal: ['silver', 'stock', 'material'].includes(x.goal) ? x.goal : 'silver',
+				orders: readOrders(x.orders),
+				stock: readStock(x.stock),
+				port: Math.max(0, Math.floor(Number(x.port) || 0)),
+				stash: typeof x.stash === 'string' ? x.stash.slice(0, 40) : ''
+			}));
+		if (saved.length) out.savedOrders = saved;
+	}
+	// How the shopping list is to be got: the goal, the days a week the
+	// sea gets, the coins kept back. Cleaned by the module that owns it.
+	if (isProfile(raw.getOrders)) out.getOrders = readGetOrders(raw.getOrders);
 	// The runs sailed: day, silver, cost, trades, Parley, stops -- the
 	// last sixty, for the week's view.
 	if (Array.isArray(raw.runs)) {
@@ -286,8 +331,14 @@ export function readProfile(raw) {
 			trades: Math.max(0, Math.floor(Number(r.trades) || 0)),
 			parley: Math.max(0, Math.floor(Number(r.parley) || 0)),
 			stops: Math.max(0, Math.floor(Number(r.stops) || 0)),
-			goal: r.goal === 'material' ? 'material' : 'silver',
-			item: typeof r.item === 'string' && r.item.length <= 80 ? r.item : ''
+			goal: ['material', 'stock'].includes(r.goal) ? r.goal : 'silver',
+			item: typeof r.item === 'string' && r.item.length <= 80 ? r.item : '',
+			layout: typeof r.layout === 'string' && r.layout.length <= 8 ? r.layout : '',
+			// What the run spent and what it brought back, so the day's
+			// boards can be read one under the other. Twenty kinds each is
+			// more than a board can deal in one run.
+			load: goodsMap(r.load),
+			got: goodsMap(r.got)
 		}));
 		if (runs.length) out.runs = runs;
 	}
@@ -389,7 +440,7 @@ export function readProfile(raw) {
 // so the profile only bounds it: known namespaces, strings and numbers
 // that are what they say, and lists no longer than the screen would
 // ever draw, so a hostile file cannot make the save enormous.
-export const VIEW_NAMESPACES = ['map', 'barter'];
+export const VIEW_NAMESPACES = ['map', 'barter', 'timer'];
 export const VIEW_BYTES = 300_000;
 const VIEW_STRING = 120;
 const VIEW_DEPTH = 8;
@@ -406,6 +457,7 @@ const VIEW_CAPS = {
 		'trace.points': 2000, 'trace.strokes': 24, 'trace.strokes[].pts': 2000, 'trace.areas': 12, 'trace.areas[].pts': 200, 'trace.texts': 40,
 		'stops': 60, 'done.ids': 200, 'runTrades': 60, 'runStash': 20
 	},
+	timer: {},
 	barter: {
 		'board.answers': 120, 'matBoard.answers': 120, 'wants': 60, 'routes.ids': 40,
 		'sail.stops': 80, 'sail.done': 80, 'questSkip.ids': 100, 'questPull.ids': 100

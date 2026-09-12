@@ -22,12 +22,15 @@ const browserGlobals = {
 	atob: 'readonly', btoa: 'readonly', Buffer: 'readonly',
 	TextEncoder: 'readonly', TextDecoder: 'readonly',
 	CompressionStream: 'readonly', DecompressionStream: 'readonly',
-	Notification: 'readonly', Intl: 'readonly'
+	Notification: 'readonly', Intl: 'readonly',
+	createImageBitmap: 'readonly', FileReader: 'readonly'
 };
 
 export default [
 	{
-		ignores: ['node_modules/**', 'js/driver.iife.js', 'js/all_barter.json']
+		// Vendored, minified and none of our business: the guided tour's
+		// library and the sailor reader's engine.
+		ignores: ['node_modules/**', 'js/driver.iife.js', 'js/all_barter.json', 'reader/**']
 	},
 	js.configs.recommended,
 	{

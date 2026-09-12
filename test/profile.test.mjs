@@ -92,15 +92,18 @@ test('an empty profile is a deliberate clear, and is obeyed', () => {
 	assert.equal(store.getProfile('barterCount', 0), 0);
 });
 
-test('the crew tick and the parley you hold survive the whitelist', () => {
-	// Both arrived after the whitelist did, and the whitelist eats what
-	// it does not know: the symptom was a checkbox that refused to stay
-	// ticked, because every render read the profile back.
-	store.setProfile('crew', true);
+test('the parley you hold survives the whitelist', () => {
+	// It arrived after the whitelist did, and the whitelist eats what it
+	// does not know: the symptom was a field that refused to keep what
+	// was typed into it, because every render read the profile back.
 	store.setProfile('parleyHeld', 850000);
-	assert.equal(store.getProfile('crew', false), true);
 	assert.equal(store.getProfile('parleyHeld', 0), 850000);
-	assert.deepEqual(store.saveShape().profile, { crew: true, parleyHeld: 850000 });
+	assert.deepEqual(store.saveShape().profile, { parleyHeld: 850000 });
+	// The crew discount used to be a tick of its own here. It is read off
+	// the First Mate seat now, so the whitelist drops it: a save written
+	// by an older build must not bring a stale one back.
+	store.setProfile('crew', true);
+	assert.equal(store.saveShape().profile.crew, undefined);
 });
 
 test('a profile that is there is taken', () => {
@@ -240,4 +243,36 @@ test('a sailor keeps a level log of thirty steps at most, each a time, a level a
 	assert.equal(kept.length, 30);
 	assert.deepEqual(kept[kept.length - 1], { t: 1039, level: 10, stats: { speed: 1.5 } });
 	assert.equal(readProfile({ roster: [{ id: 's1', type: 'Innocent', lv: 4, log: 'no' }] }).roster[0].log, undefined);
+});
+
+import { readView } from '../js/profile-shape.js';
+
+test('a run remembers what it loaded and what it brought back, bounded and cleaned', () => {
+	const many = Object.fromEntries(Array.from({ length: 30 }, (_, i) => [`Good ${i}`, i + 1]));
+	const p = readProfile({
+		runs: [{
+			day: '2026-09-12', silver: 0, cost: 0, trades: 20, parley: 5, stops: 2,
+			goal: 'stock', layout: '26',
+			load: { 'Brass Ingot': 200, 'Bad Count': -3, 'Not A Number': 'x' },
+			got: many
+		}]
+	});
+	const r = p.runs[0];
+	assert.equal(r.goal, 'stock', 'a stock run is a goal a run can have been for');
+	assert.equal(r.layout, '26');
+	assert.deepEqual(r.load, { 'Brass Ingot': 200 }, 'a count that is not a count is dropped');
+	assert.equal(Object.keys(r.got).length, 20, 'twenty kinds at most');
+	// An older save, written before a run recorded any of this, still reads.
+	const old = readProfile({ runs: [{ day: '2026-09-11', silver: 1, cost: 0, trades: 2, parley: 3, stops: 1 }] });
+	assert.deepEqual(old.runs[0].load, {});
+	assert.deepEqual(old.runs[0].got, {});
+	assert.equal(old.runs[0].goal, 'silver');
+});
+
+test('the sailing clock is a view of its own, kept with the save', () => {
+	const t = { startedAt: 1789220000000, seconds: 600, label: 'Duch and 4 more', chimed: false };
+	assert.deepEqual(readView('timer', t), t);
+	// The views table keeps it beside the others, and drops what is not a view.
+	const p = readProfile({ views: { timer: t, barter: { goal: 'stock' }, nonsense: { a: 1 } } });
+	assert.deepEqual(Object.keys(p.views).sort(), ['barter', 'timer']);
 });

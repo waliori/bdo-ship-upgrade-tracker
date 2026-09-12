@@ -70,6 +70,7 @@ const SHELL = [
 	'/js/barter-board.js',
 	'/js/barter-chains.js',
 	'/js/barter-material.js',
+	'/js/barter-odds.js',
 	'/js/barter-optimizer.js',
 	'/js/barter-orders.js',
 	'/js/barter-plan.js',
@@ -79,6 +80,7 @@ const SHELL = [
 	'/js/boot.js',
 	'/js/cheer.js',
 	'/js/clock.js',
+	'/js/coin-shop.js',
 	'/js/courses.js',
 	'/js/crystals.js',
 	'/js/dialogs.js',
@@ -86,8 +88,11 @@ const SHELL = [
 	'/js/enhancement.js',
 	'/js/falasi_vendor.js',
 	'/js/feedback.js',
+	'/js/film.js',
 	'/js/fmt.js',
 	'/js/gamefile.js',
+	'/js/get-plan.js',
+	'/js/get-way.js',
 	'/js/guide.js',
 	'/js/guided-tour.js',
 	'/js/habitats.js',
@@ -108,6 +113,7 @@ const SHELL = [
 	'/js/map/render.js',
 	'/js/map/route.js',
 	'/js/map/state.js',
+	'/js/map/terrain.js',
 	'/js/map/trace.js',
 	'/js/map/view.js',
 	'/js/market.js',
@@ -118,7 +124,9 @@ const SHELL = [
 	'/js/peek.js',
 	'/js/picker.js',
 	'/js/planner.js',
+	'/js/presence.js',
 	'/js/pouch.js',
+	'/js/profile-bar.js',
 	'/js/profile-shape.js',
 	'/js/profiles.js',
 	'/js/quest-places.js',
@@ -127,8 +135,14 @@ const SHELL = [
 	'/js/realistic-water-ripples.js',
 	'/js/recipes.js',
 	'/js/route-ledger.js',
+	'/js/push-sub.js',
+	'/js/sail-timer.js',
 	'/js/sailing.js',
 	'/js/sailor_rolls.js',
+	'/js/sailor_titles.js',
+	'/js/sailor-import.js',
+	'/js/sailor-locales.js',
+	'/js/sailor-shot.js',
 	'/js/sailors.js',
 	'/js/saved-routes.js',
 	'/js/screen-barter.js',
@@ -149,6 +163,9 @@ const SHELL = [
 	'/js/seamask.js',
 	'/js/searoute.js',
 	'/js/setups.js',
+	// shot-reader.js is precached with the rest; the six megabytes of
+	// engine it pulls in are not, and only arrive when a screenshot is.
+	'/js/shot-reader.js',
 	'/js/share.js',
 	'/js/sheet.js',
 	'/js/ship.js',
@@ -198,7 +215,10 @@ self.addEventListener('activate', evt => {
 // The barter table is precached with the shell and only changes with a
 // deploy, which is when the shell cache is replaced -- so it is served
 // from the cache first rather than re-fetched on every load.
-const contentAddressed = path => path.startsWith('/icons/') || path.startsWith('/map/') || path === '/js/all_barter.json' || path === '/js/barter_combos.json';
+// The vendored OCR engine belongs here too: its filenames carry their
+// versions, so a given URL is a given six megabytes forever, and it
+// must not be fetched again every time the app is deployed.
+const contentAddressed = path => path.startsWith('/icons/') || path.startsWith('/map/') || (path.startsWith('/map3d/') && path !== '/map3d/index.json') || path.startsWith('/reader/') || path === '/js/all_barter.json' || path === '/js/barter_combos.json';
 const neverCached = path =>
 	path.startsWith('/api/') || path.startsWith('/auth/') || path.startsWith('/docs/media/');
 
@@ -255,7 +275,7 @@ self.addEventListener('push', evt => {
 	} catch {
 		data = { body: evt.data ? evt.data.text() : '' };
 	}
-	evt.waitUntil(self.registration.showNotification(data.title || 'Ship Upgrade Tracker', {
+	evt.waitUntil(self.registration.showNotification(data.title || 'Sailor’s Log', {
 		body: data.body || '',
 		icon: '/icon-192.png',
 		badge: '/icon-192.png',

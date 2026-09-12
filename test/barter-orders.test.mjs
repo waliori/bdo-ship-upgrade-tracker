@@ -34,11 +34,11 @@ test('the orders read clean from whatever was saved, and a preset round-trips th
 		assert.ok(onPreset(o), p.id);
 		assert.deepEqual(readProfile({ orders: o }).orders, o);
 	}
-	assert.ok(!onPreset({ ...presetOrders('stock'), sell: 5 }));
+	assert.ok(!onPreset({ ...presetOrders('floor'), sell: 5 }));
 });
 
 test('what sells and what is kept follow the orders', () => {
-	const cash = presetOrders('cash'), stock = presetOrders('stock');
+	const cash = presetOrders('cash'), stock = presetOrders('floor');
 	assert.ok(sellable('[Level 5] Azure Quartz', cash));
 	assert.ok(!sellable('[Level 5] Azure Quartz', stock));
 	assert.ok(sellable('[Level 7] Golden Eagle Brooch', stock));
@@ -54,7 +54,7 @@ test('under cash-out the Level 5s aboard that nothing takes are sold at the last
 	const cash = chainRun({ ...base, orders: presetOrders('cash') });
 	assert.equal(cash.silver, 12 * 10000000);
 	assert.equal(cash.kept.length, 0);
-	const keep = chainRun({ ...base, orders: presetOrders('stock') });
+	const keep = chainRun({ ...base, orders: presetOrders('floor') });
 	assert.equal(keep.silver, 0);
 	assert.equal(keep.kept[0].n, 12);
 	assert.equal(keep.kept[0].stock, 4, 'the floor of four is the stock; the rest is left over');
@@ -65,7 +65,7 @@ test('a floor is never spent through: five Azure Quartz with a floor of four cli
 	const all = chains(data, stock);
 	const c = all.find(x => x.from === 'hold' && x.item === '[Level 5] Azure Quartz' && x.top === 7);
 	assert.ok(c);
-	const p = chainRun({ chosen: [c], stock, hold, parley, npcById, start: iliya, stashes, pace: 'fast', orders: presetOrders('stock') });
+	const p = chainRun({ chosen: [c], stock, hold, parley, npcById, start: iliya, stashes, pace: 'fast', orders: presetOrders('floor') });
 	assert.equal(p.stops.filter(s => s.npcId)[0].times, 1);
 	assert.equal(p.silver, 100000000);
 	assert.equal(p.kept.find(k => k.item === '[Level 5] Azure Quartz').n, 4);
@@ -122,4 +122,16 @@ test('the yardsticks and the record of ratios', () => {
 	assert.equal(countAs(r, { count: 'seen' }, { [ratioKey(r)]: { 2: 1, 3: 4 } }), 3);
 	assert.equal(countAs({ ...r, recvMin: 2, recvMax: 2 }, { count: 'average' }), null, 'a fixed exchange is not a range');
 	assert.equal(levelOf('[Level 3] x'), 3);
+});
+
+test('a save that names the preset by its old id lands on the same orders', () => {
+	// "Build the stocks" became "Sell the top, keep a floor" when the tab
+	// grew a goal that actually builds one. A save written before that
+	// must come up on the preset, not as "adjusted" beside it.
+	const old = readOrders({ preset: 'stock', sell: 7, floors: { 1: 10, 2: 30, 3: 30, 4: 40, 5: 4 }, buy: true, pace: 'full' });
+	assert.equal(old.preset, 'floor');
+	assert.ok(onPreset(old), 'the orders still match the preset they came from');
+	assert.deepEqual(old.floors, presetOrders('floor').floors);
+	// A name that was never a preset still falls back to cash.
+	assert.equal(readOrders({ preset: 'nonsense' }).preset, 'cash');
 });

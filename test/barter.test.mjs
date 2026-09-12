@@ -265,8 +265,11 @@ test('a rung that pays ten costs a tenth of a trade', () => {
 });
 
 test('quantity scales the trades but not the rate', () => {
-	const one = forecast('Tear of the Ocean', 1, shipbarters, { barterCount: 2000 });
-	const forty = forecast('Tear of the Ocean', 40, shipbarters, { barterCount: 2000 });
+	// 3,000: Tear of the Ocean is dealt at the Wandering Merchant's Ship
+	// and nowhere else, so anything under that count is a locked
+	// forecast rather than a cost (test/barter-gates.test.mjs).
+	const one = forecast('Tear of the Ocean', 1, shipbarters, { barterCount: 3000 });
+	const forty = forecast('Tear of the Ocean', 40, shipbarters, { barterCount: 3000 });
 	assert.equal(forty.perUnit, one.perUnit);
 	assert.equal(forty.trades, one.trades * 40);
 	assert.equal(forty.seed.qty, one.seed.qty * 40);

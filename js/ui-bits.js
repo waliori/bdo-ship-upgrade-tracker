@@ -17,7 +17,7 @@ import * as store from './state.js';
 import { parseEnhanced, enhanceStep, waysToGet, outstanding, yieldOf } from './planner.js';
 import { quests } from './quests.js';
 import { monsters } from './sea_monsters.js';
-import { recipes, barterData, barterProfile, snapshot } from './ui-state.js';
+import { recipes, barterData, barterOpts, snapshot } from './ui-state.js';
 
 // Read when a source is asked for rather than at import: the language
 // pack is loaded after the modules are, so a label fixed here at import
@@ -237,7 +237,7 @@ const MAKE_KEYS = new Set(['craft', 'Crafting', 'Processing']);
  */
 export function barterHTML(item) {
 	if (!barterData) return '';
-	const plan = barterForecast(item, 1, barterData, barterProfile());
+	const plan = barterForecast(item, 1, barterData, barterOpts());
 	if (!plan || plan.gate) return '';
 
 	// Bottom up, which is the order you actually trade them: the land

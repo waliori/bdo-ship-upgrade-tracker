@@ -98,6 +98,13 @@ export const feedbackEnabled = Boolean(turso.url);
 // with sync and not without.
 export const communityEnabled = syncEnabled;
 
+// The count of who is out needs nothing configured: with a database it
+// remembers the roll, without one it counts this process's callers. It
+// is the only feature here that is on by default and switched off by
+// hand, because the thing it costs -- a row with a random token in it --
+// is smaller than the thing it gives.
+export const presenceEnabled = read('PRESENCE') !== '0';
+
 // Who may read the feedback inbox: Discord account ids, comma-separated.
 const adminIds = new Set(read('ADMIN_IDS').split(',').map(s => s.trim()).filter(Boolean));
 

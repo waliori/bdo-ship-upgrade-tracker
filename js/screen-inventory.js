@@ -9,7 +9,8 @@ import {
 	img, codexName, amountInput, costCtx, costText, makeupHTML, barterHTML,
 	sourceOf, hasBuyOption, allItems, waysThrough, questsPaying
 } from './ui-bits.js';
-import { recipes, snapshot, rows, query, invFilter, invKind, selected, sort, sorter, sortSelect, craftStock, invPicking, invPicked } from './ui-state.js';
+import { recipes, snapshot, rows, query, invFilter, invKind, selected, sort, sorter, sortSelect, craftStock, invPicking, invPicked, CROW_COIN } from './ui-state.js';
+import { coinPrice, coinBuyButton } from './coin-shop.js';
 import { routes, routeInfo } from './recipes.js';
 import { KINDS, kindOf } from './kinds.js';
 import { shipStats } from './ship_stats.js';
@@ -357,6 +358,10 @@ function renderDetail() {
 			? `<div class="detail-src"><span>${esc(src.label)}</span><span>${esc(src.detail)}</span></div>`
 			: ''}
 		${waysBlock(item)}
+		${coinPrice(item) ? `<div class="detail-block coin-block">
+			<div class="detail-line"><span>${T('You hold {n} coins — enough for {many}', { n: F(store.getStock(CROW_COIN)), many: F(Math.floor(store.getStock(CROW_COIN) / coinPrice(item))) })}</span></div>
+			${coinBuyButton(item, Math.max(1, short), { small: false, label: short > 0 ? T('Buy the {n} you are short', { n: F(short) }) : T('Buy with coins') })}
+		</div>` : ''}
 		${step ? `<button class="act quiet wide" data-act="view" data-id="workshop">${T('Attempt it in the Workshop')}</button>` : ''}
 		${toggle}
 		${canCraft ? `<div class="detail-actions">

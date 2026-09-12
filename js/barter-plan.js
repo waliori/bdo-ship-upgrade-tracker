@@ -22,6 +22,7 @@
 // table and drawn by any screen.
 
 import { GOODS, amount, levelOf, triesFor } from './barter.js';
+import { landGoods } from './land_goods.js';
 
 /** The weight of a good, 0 for anything the table does not price. */
 export function weightOf(name) {
@@ -79,6 +80,22 @@ export function aboardStock(store) {
 		if (levelOf(name) === null || !(qty > 0)) continue;
 		const n = store.stockAt(name, '') + store.stockAt(name, store.ABOARD);
 		if (n > 0) out[name] = n;
+	}
+	return out;
+}
+
+/**
+ * The land goods in a stock, as a Map of name to count: the shore
+ * goods a chain starts from, which a sailor can have a pile of instead
+ * of buying a fresh one every run. They carry no weight here -- the
+ * table prices the [Level N] goods and says nothing about what a sack
+ * of Cinnamon weighs -- so a hold counts them as nothing, which is the
+ * side to err on: it never blocks a run the game would allow.
+ */
+export function landHeld(stock) {
+	const out = new Map();
+	for (const [name, qty] of Object.entries(stock || {})) {
+		if (levelOf(name) === null && landGoods[name] !== undefined && qty > 0) out.set(name, Number(qty));
 	}
 	return out;
 }

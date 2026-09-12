@@ -42,6 +42,43 @@ const SEEN = {
 	]
 };
 
+// Offers the game changed inside a layout after the sheet wrote them:
+// by layout id, then [barterer id, the give the sheet still has, the
+// give the game now asks for]. The game edits a single slot at a
+// maintenance without renumbering the layout -- the island and the
+// reward stay, only which good the slot eats changes, and always to
+// one the codex already lists that barterer taking for that reward.
+// A stale row is worse than a missing one: barter-board.js rules a
+// layout out on an island that disagrees, so one wrong give can leave
+// the real board unidentified. This is for a change reported before
+// the sheet carries it; once the sheet catches up the entry does
+// nothing, and the run says so -- delete it then.
+//
+// Empty, and usually will be: the sheet's owner writes these in
+// himself. He told us on 2026-09-11 that layout 16's Grandiha slot
+// had become a Statue's Tear where it was an Octagonal Box, both for
+// the same Moonlit Crystal Lamp -- and the refetch that day already
+// had it, so nothing was needed here.
+//
+// Still to come, nothing to write yet: he expects the game to change
+// Gangdalpo's give at Dallae Pier on layout 31 -- [Level 5] Statue's
+// Tear for a [Level 6] Top-Quality Blue Underglaze Porcelain Crate --
+// at a maintenance after 2026-09-11, and did not say what replaces
+// it. Refetching once the sheet has it is the whole fix; write it
+// here only if the board is seen to disagree with the sheet.
+const CHANGED = {};
+
+// A layout's give as the game asks it today, and a note of which
+// corrections above never fired.
+const unused = new Set();
+for (const [layout, rows] of Object.entries(CHANGED)) for (const [id, was] of rows) unused.add(`layout ${layout}, barterer ${id}: ${was}`);
+const changed = (layout, id, give) => {
+	const row = (CHANGED[layout] || []).find(([n, was]) => n === id && was === give);
+	if (!row) return give;
+	unused.delete(`layout ${layout}, barterer ${id}: ${give}`);
+	return row[2];
+};
+
 async function tab(gid) {
 	const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET}/export?format=csv&gid=${gid}`, { headers: { 'User-Agent': UA } });
 	if (!res.ok) throw new Error(`tab ${gid}: ${res.status}`);
@@ -216,8 +253,9 @@ const combos = layouts.map(l => ({
 	offers: [
 		...l.offers.map(o => {
 			const id = npcOf.get(o.island).id;
-			const codex = dealt.get(id).qty.get(`${o.give}|${o.recv}`);
-			return [id, o.give, codex !== undefined ? String(codex) : o.qty, o.recv];
+			const give = changed(l.id, id, o.give);
+			const codex = dealt.get(id).qty.get(`${give}|${o.recv}`);
+			return [id, give, codex !== undefined ? String(codex) : o.qty, o.recv];
 		}),
 		...(SEEN[l.id] || []).filter(([id]) => !l.offers.some(o => npcOf.get(o.island).id === id))
 	]
@@ -241,4 +279,5 @@ if (renamed.length) console.log(`islands named differently (${renamed.length}):\
 if (retired.length) console.log(`layouts the sheet no longer counts, left out: ${retired.join(', ')}`);
 if (twice.length) console.log(`islands the sheet lists twice in a layout, second row dropped: ${twice.join('; ')}`);
 if (unknown.size) console.log(`names the codex does not know, kept as the sheet writes them: ${[...unknown].join(', ')}`);
+if (unused.size) console.log(`corrections the sheet has caught up with, delete them from CHANGED:\n  ${[...unused].join('\n  ')}`);
 if (notes.length) console.log(`${missing} offers the codex lacks (kept -- the sheet saw them dealt):\n${[...new Set(notes)].join('\n')}`);

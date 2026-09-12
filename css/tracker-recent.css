@@ -144,6 +144,45 @@
 .run-floor { display: inline-flex; align-items: center; gap: 4px; }
 .run-floor i { width: 16px; height: 14px; border-radius: 3px; background: var(--tier); color: var(--on-tint); font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
 .run-floor .purse-inline { width: 46px; text-align: center; }
+.floors-note { flex: 1 1 260px; min-width: 0; }
+
+/* ---- the stock: a row a level, what is held against what is kept --- */
+.stock-sheet { display: flex; flex-direction: column; gap: 8px; }
+.stock-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.stock-head .run-pick-k { flex: none; margin-bottom: 0; }
+.stock-head .run-pick { display: flex; align-items: center; gap: 8px; background: var(--panel-inset); border-radius: var(--r-btn); padding: 5px 9px; }
+.stock-head .run-pick .select { flex: none; width: auto; padding: 4px 8px; }
+.stock-rows { display: flex; flex-direction: column; gap: 4px; background: var(--panel-inset); border-radius: var(--r-btn); padding: 8px 9px; }
+.stock-row { display: grid; grid-template-columns: 20px minmax(92px, 150px) 58px minmax(64px, 96px) minmax(90px, 260px) minmax(120px, 1fr); align-items: center; gap: 10px; }
+.stock-row.over { opacity: 0.45; }
+.stock-lv { width: 18px; height: 16px; border-radius: 3px; background: var(--tier); color: var(--on-tint); font-family: var(--font-display); font-style: normal; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.stock-have, .stock-each { font-size: 12px; color: var(--ink-mid); line-height: 1.25; }
+.stock-have em, .stock-each em { display: block; font-style: normal; font-size: 10.5px; color: var(--ink-faint); }
+.stock-row .purse-inline { width: 100%; text-align: center; }
+.stock-bar { display: block; height: 6px; border-radius: 3px; background: var(--panel-sunk, rgba(255, 255, 255, 0.06)); overflow: hidden; }
+.stock-bar i { display: block; height: 100%; background: var(--tier); border-radius: 3px; }
+.stock-row.full .stock-note { color: var(--teal); }
+.stock-note { font-size: 11.5px; color: var(--ink-faint); }
+.run-pauses { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
+.run-pauses .run-pick-k { margin-bottom: 0; flex: none; }
+.run-pause { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-mid); }
+.run-pause .purse-inline { width: 54px; text-align: center; }
+.run-pause em { display: block; font-style: normal; font-size: 10.5px; color: var(--ink-faint); }
+.orders-saved { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
+.orders-saved .run-pick-k { margin-bottom: 0; flex: none; }
+.saved-chip { display: inline-flex; align-items: center; gap: 2px; }
+.saved-chip .map-x { opacity: 0.5; }
+.saved-chip:hover .map-x { opacity: 1; }
+.save-name { width: 100%; margin-bottom: 12px; }
+.run-ahead { margin: 10px 0 0; padding: 9px 12px; border-radius: var(--r-btn); background: var(--panel-inset); color: var(--ink-mid); font-size: 12.5px; line-height: 1.5; }
+.run-ahead b { color: var(--ink-hi); }
+.run-ahead.full { color: var(--teal); }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .stock-row { grid-template-columns: 20px 1fr 58px auto; row-gap: 4px; }
+  .stock-bar { grid-column: 2 / -1; }
+  .stock-note { grid-column: 2 / -1; }
+}
+
 .chain-yard { font-size: 11px; color: var(--ink-mute); }
 .chain-yard em { font-style: normal; color: var(--teal); font-weight: 600; }
 .run-notice { margin: 12px 0 0; padding: 9px 12px; border-radius: var(--r-btn); background: rgba(232, 122, 109, 0.09); border: 1px solid var(--red-edge); color: var(--ink-mid); font-size: 12.5px; line-height: 1.5; }
@@ -171,7 +210,11 @@
 
 /* Sailing the run: the checklist on the stops, and the bar beneath. */
 .run-check { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; margin-top: 8px; }
-.run-paid { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--ink-mute); }
+/* The chips wrap inside the row rather than running past it: a stop's
+   column is narrower than an island's four [Level 7]s laid in a line,
+   and a chip that overflowed sat under the hold column beside it --
+   drawn after, so it took the click and the fourth chip was dead. */
+.run-paid { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; min-width: 0; max-width: 100%; font-size: 11.5px; color: var(--ink-mute); }
 .run-paid > span { margin-right: 2px; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; }
 .chip.pay { min-width: 30px; height: 28px; padding: 0 9px; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 13px; }
 .chip.pay.active { background: rgba(78, 201, 174, 0.22); border-color: var(--teal); color: var(--teal-hi); }
@@ -196,6 +239,26 @@
   .sail-all .act, .sail-all .ghost-btn { flex: 1 1 auto; }
 }
 .sail-bar.sailing { border-style: solid; border-color: var(--teal-edge); background: rgba(78, 201, 174, 0.06); }
+
+/* ---- the clock for the time the ship is out --------------------- */
+.sail-timer { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sail-timer-k { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.sail-timer .chip.tiny { padding: 3px 8px; }
+.sail-timer.running { gap: 8px; padding: 4px 6px 4px 10px; border-radius: var(--r-btn); background: var(--panel-inset); position: relative; overflow: hidden; }
+.sail-timer.running b { font-family: var(--font-display); font-weight: 600; color: var(--ink-hi); font-variant-numeric: tabular-nums; }
+/* The estimate as a filling line under the clock, so how far along the
+   run is can be read without reading the numbers. */
+.sail-timer-bar { position: absolute; inset: auto 0 0 0; height: 2px; background: rgba(255, 255, 255, 0.06); }
+.sail-timer-bar i { display: block; height: 100%; background: var(--teal); transition: width 1s linear; }
+.sail-timer .chip.tiny.sail-sound { color: var(--teal); border-color: var(--teal-edge); }
+.sail-timer .chip.tiny.sail-sound.off { color: var(--ink-faint); border-color: var(--line-btn); }
+.sail-timer .chip.tiny.warn { border-color: var(--red-edge); color: var(--amber); }
+.sail-timer-modes { display: inline-flex; gap: 2px; }
+.sail-timer-modes .chip.tiny { padding: 2px 7px; font-size: 10.5px; }
+.sail-timer.over { background: rgba(232, 184, 109, 0.1); }
+.sail-timer.over b { color: var(--amber); }
+.sail-timer.over .sail-timer-bar i { background: var(--amber); }
+.hold-bar-timer { display: flex; align-items: center; margin-left: auto; }
 .sail-n b { font-family: var(--font-display); font-size: 16px; color: var(--ink-hi); }
 
 /* The week: the runs recorded, a bar a day. */
@@ -217,6 +280,21 @@
 .map-tip-check { margin-top: 6px; }
 
 .chain.rung.waits { border-style: dashed; opacity: 0.85; }
+
+/* What the barter count shuts out, said where the chains are read. The
+   same shape as the reach bar, in the same amber: a fact about the
+   board, not a fault. */
+.barter-shut {
+  margin-bottom: 10px;
+  padding: 9px 12px;
+  border-radius: var(--r-btn);
+  border: 1px solid rgba(232, 182, 97, 0.3);
+  background: rgba(232, 182, 97, 0.06);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-mute);
+}
+.barter-shut b { color: var(--amber); font-weight: 600; }
 
 .reach-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; padding: 9px 12px; border-radius: var(--r-btn); border: 1px solid rgba(232, 182, 97, 0.4); background: rgba(232, 182, 97, 0.08); font-size: 12.5px; color: var(--ink-mid); }
 .reach-bar b { color: var(--amber); }
@@ -352,6 +430,10 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .chip.mat-isle.active { background: rgba(78, 201, 174, 0.16); border-color: rgba(78, 201, 174, 0.6); color: var(--teal-hi); }
 .chip.mat-isle.active .mat-isle-who { color: #6fc9b3; }
 .chip.mat-isle.other { opacity: 0.4; text-decoration: line-through; }
+/* An island the barter count has not opened: there, and not yours. */
+.chip.mat-isle.shut { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
+.chip.mat-isle.shut:hover { border-color: rgba(var(--line-rgb), 0.14); }
+.chip.mat-isle.shut .mat-isle-who { font-family: var(--font-display); color: var(--amber); }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   .mat-give { grid-template-columns: 1fr; gap: 6px; padding: 10px 14px 11px 11px; }
   .mat-strip, .mat-head { padding-left: 14px; padding-right: 14px; }
@@ -565,6 +647,10 @@ details.run-quests-off > summary .panel-title::before { content: '▸ '; color: 
 details.run-quests-off[open] > summary .panel-title::before { content: '▾ '; }
 /* The Parley line on the hold strip: the bar, the level and the trade's price. */
 .hold-parley select { font-size: 12px; }
+/* Read here, set in the bar at the top: the same figures, without a
+   second place to type them. */
+.hold-parley.read b { font-family: var(--font-display); font-size: 13px; color: var(--ink-hi); font-variant-numeric: tabular-nums; }
+.hold-parley.read small { color: var(--ink-faint); }
 /* Room for "23,800 / 18,300 LT" and the Parley's spend beside its bar. */
 .run-hold { width: 152px; }
 .run-hold > div:first-child b, .run-parley > div:first-child b { font-size: 11.5px; white-space: nowrap; }
@@ -836,8 +922,12 @@ h2.comm-board-title { font-size: 15px; }
 
 /* The note under the sailor list, and the next set to buy under the
    slots: the fleet's advice, said once and quietly. */
+/* Both stand in from the panel's edge, with the rows they sit above:
+   the sailor grid at 14px, the slot cards' hint at 22px. Neither had
+   any inset at all and read as if it had fallen off the left edge. */
 .crew-note, .fit-path { margin: 0 0 8px; font-size: 12px; line-height: 1.5; color: var(--ink-faint); }
-.fit-path { color: var(--ink-mute); }
+.crew-note { margin: 0 14px 8px; }
+.fit-path { margin: 0 22px 8px; color: var(--ink-mute); }
 
 /* "How is this counted?" — a small mark on each board, and the panel it
    opens. A leaderboard that will not say how it ranks people is a

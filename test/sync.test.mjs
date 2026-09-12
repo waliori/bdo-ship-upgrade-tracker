@@ -72,12 +72,12 @@ const bob = cookieFor('1002');
 test('the page is still served', async () => {
 	const res = await call('GET', '/');
 	assert.equal(res.status, 200);
-	assert.match(await res.text(), /Ship Upgrade Tracker/);
+	assert.match(await res.text(), /Sailor’s Log/);
 });
 
 test('the client is told sync is available', async () => {
 	const res = await call('GET', '/api/config');
-	assert.deepEqual(await res.json(), { sync: true, push: false, feedback: true, community: true });
+	assert.deepEqual(await res.json(), { sync: true, push: false, feedback: true, community: true, presence: true });
 });
 
 test('being signed out is an answer, not an error', async () => {

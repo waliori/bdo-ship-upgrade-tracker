@@ -12,6 +12,7 @@ import {
 } from './ui-state.js';
 import { maxCraftable, parseEnhanced } from './planner.js';
 import { pendingEnhancements } from './screen-workshop.js';
+import { todaysQuests } from './get-way.js';
 
 
 export function renderPlan() {
@@ -120,10 +121,26 @@ export function nextStep() {
 			: T('{n} enhancement attempts are affordable.', { n: pending.length });
 		cta = [T('Open Workshop'), 'workshop'];
 	} else if (shortCount) {
-		msg = shortCount === 1
-			? T('Nothing to make yet — {n} item is still missing. Record what you gather in the boxes below.', { n: shortCount })
-			: T('Nothing to make yet — {n} items are still missing. Record what you gather in the boxes below.', { n: shortCount });
-		cta = [T('See the shopping list'), 'get'];
+		// The way To Get would go about it, said as today's first step:
+		// a quest still to do, and what to take off it.
+		const today = todaysQuests().filter(q => q.cadence !== 'once')[0];
+		const take = today && today.quest.choice && today.pick !== null
+			? Object.entries(today.quest.choice[today.pick])
+				.map(([item, n]) => T('take {n}× {item}', { n: F(n), item: gameName(item) })).join(', ')
+			: '';
+		// The errand, its pick and its reason built up a clause at a time,
+		// so no sentence is ever cut in half around a value.
+		let errand = today ? gameName(today.name) : '';
+		if (today && take) errand = T('{quest} and {take}', { quest: errand, take });
+		if (today && today.forCoins) errand = T('{errand}, for the coins', { errand });
+		msg = today
+			? (shortCount === 1
+				? T('{n} item is still missing. Today: {errand}.', { n: shortCount, errand })
+				: T('{n} items are still missing. Today: {errand}.', { n: shortCount, errand }))
+			: (shortCount === 1
+				? T('Nothing to make yet — {n} item is still missing. Record what you gather in the boxes below.', { n: shortCount })
+				: T('Nothing to make yet — {n} items are still missing. Record what you gather in the boxes below.', { n: shortCount }));
+		cta = [today ? T('See the way to get it') : T('See the shopping list'), 'get'];
 	} else {
 		msg = T('Everything your builds need is on hand.');
 	}

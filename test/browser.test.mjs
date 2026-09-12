@@ -32,6 +32,11 @@ const CHROME = [
 	'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 ].filter(Boolean).find(p => fs.existsSync(p));
 
+// The bar the app is judged up by. It is drawn one of two ways -- a row
+// of chips, or, on a phone, the one line that opens the sheet -- and
+// either of them means the shell has rendered.
+const POUCH_READY = '#pouch .pouch-item, #pouch .pouch-peek';
+
 // Nothing to drive. These are the only tests that need a browser, so a
 // machine without one should report them skipped and let the rest of the
 // suite speak -- not fail with a puppeteer stack trace.
@@ -124,7 +129,7 @@ async function open({ signedIn = null, hash = '', storage = null } = {}) {
 	}, storage, RELEASE);
 
 	await page.goto(base + hash, { waitUntil: 'domcontentloaded' });
-	await page.waitForSelector('#pouch .pouch-item', { timeout: 15000 });
+	await page.waitForSelector(POUCH_READY, { timeout: 15000 });
 	return { page, context, external };
 }
 
@@ -242,7 +247,7 @@ test('signed out, the app offers sign-in and nothing else changes', async () => 
 
 	assert.match(await chip(page), /Sign in/);
 	// The tracker itself is untouched: the pouch and tabs still render.
-	assert.ok(await page.$('#pouch .pouch-item'));
+	assert.ok(await page.$(POUCH_READY));
 	assert.ok(await page.$('#tabs'));
 	await context.close();
 });

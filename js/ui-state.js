@@ -14,6 +14,8 @@ import { falasi } from './falasi_vendor.js';
 import { marketSilver } from './market.js';
 import * as store from './state.js';
 import { plan, craftableNow, stockForCrafting, parseEnhanced, resolveRoutes, ownedLevel } from './planner.js';
+import { parleyOff } from './ship.js';
+import { readOdds } from './barter-odds.js';
 
 // The recipe book as the user's chosen routes make it. An upgrade with
 // two ways in -- the Caravel, the Galleass -- reads here as whichever one
@@ -203,11 +205,34 @@ export function totalsToGo() {
 }
 
 /** What the player has told us about their own bartering. */
+/**
+ * How often each exchange is really on the list, indexed once.
+ *
+ * Built from the two records that ride with the barter table -- the
+ * whole material boards and the trade-list layouts -- and rebuilt only
+ * when those arrive, since both are files fetched once a session.
+ */
+let oddsMemo = null;
+export function oddsIndex() {
+	if (!combos && !matBoards) return null;
+	if (!oddsMemo || oddsMemo.combos !== combos || oddsMemo.boards !== matBoards) {
+		oddsMemo = { combos, boards: matBoards, index: readOdds({ boards: matBoards, combos }) };
+	}
+	return oddsMemo.index;
+}
+
+/** The barter profile with the odds attached: what every forecast in
+ *  the app is asked with, so no screen quotes a rosier figure than
+ *  another. */
+export const barterOpts = () => ({ ...barterProfile(), odds: oddsIndex() });
+
 export function barterProfile() {
 	return {
 		barterCount: Number(store.getProfile('barterCount', 0)) || 0,
 		valuePack: store.getProfile('valuePack', false) === true,
-		crew: store.getProfile('crew', false) === true,
+		// Not a preference: Cleia at the First Mate seat is where the ten
+		// per cent off Parley comes from, so it is read off the crew.
+		crew: parleyOff() > 0,
 		level: store.getProfile('level', null),
 		vouchers: Number(store.getProfile('vouchers', 0)) || 0,
 		// Parley in the bar right now, for "can I afford this route".
