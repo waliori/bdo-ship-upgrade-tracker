@@ -1100,7 +1100,14 @@ function aheadHTML(gains, plan, prof) {
 		short += want * (kinds.get(lv) || 0) - mine;
 	}
 	if (short <= 0) return `<p class="run-ahead full">Every target is met. Raise them, lift the ceiling a level, or go back to <button class="linky" data-act="barter-goal" data-id="silver">the silver run</button> and start selling the pile.</p>`;
-	if (!gains.total || !plan.parleyUsed) return `<p class="run-ahead">${F(short)} goods short of the targets. Tick the chains to sail, or let the search fill them in.</p>`;
+	// Nothing banked: either nothing is ticked, or what is ticked makes
+	// only goods the targets already have enough of. The two want
+	// different answers, so they get different sentences.
+	if (!gains.total || !plan.parleyUsed) {
+		return `<p class="run-ahead">${F(short)} goods short of the targets. ${plan.trades
+			? 'What is ticked banks none of what is short — it makes goods already up to their target. Raise a target, or tick a chain that ends lower.'
+			: 'Tick the chains to sail, or let the search fill them in.'}</p>`;
+	}
 	const day = dailyCapacity({ valuePack: prof.valuePack, vouchers: prof.vouchers, level: prof.level, crew: prof.crew });
 	const runs = Math.ceil(short / gains.total);
 	// A run is a board, so the day allows as many as the trade list
@@ -1960,7 +1967,7 @@ function silverParts(me, b) {
 	const shutNote = shutIsles.length
 		? `<div class="barter-shut"><b>${shutChains.length} chain${shutChains.length === 1 ? '' : 's'} on this board ${shutChains.length === 1 ? 'is' : 'are'} not yours to sail yet</b> — ${shutIsles.map(g => `${esc(isleOf(npcById.get(g.npcId)) || g.npc)} opens at ${F(g.barters)} Total Barters, ${F(g.short)} more`).join('; ')}. ${shutChains.length === 1 ? 'It is' : 'They are'} listed below, locked, and left out of the run and of the runs worth sailing.${prof.barterCount ? '' : ' Your Total Barters read nought — set them in the bar at the top of the page.'} <button class="linky" data-act="routes">every route and its count →</button></div>`
 		: '';
-	const chainsPanel = `<section class="panel barter-chains">${headFill(fillable)}<div class="panel-body">${shutNote}${reachBar}${reach ? '' : proposals}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.buy ? 'Nothing climbs on this board.' : 'Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.') : 'No chain matches.'}</p>`}</div></div></section>`;
+	const chainsPanel = `<section class="panel barter-chains">${headFill(fillable)}<div class="panel-body">${shutNote}${reachBar}${reach ? '' : proposals}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.landFrom === 'stock' && o.buy ? 'No chain on this board starts from a shore good you keep. Let the run buy its land goods ashore, or add what you have with ＋ A good.' : o.buy ? 'Nothing climbs on this board.' : 'Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.') : 'No chain matches.'}</p>`}</div></div></section>`;
 
 	const plan = chainRun({ ...opts, chosen });
 	for (const s of plan.stops) s.hold = me.hold;
