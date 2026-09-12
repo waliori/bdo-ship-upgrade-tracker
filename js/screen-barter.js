@@ -1759,6 +1759,62 @@ function recordTrip(plan, from) {
 	toast(`Recorded: ${on.done.length} stop${on.done.length === 1 ? '' : 's'}${trip.silver ? ` · ${FC(trip.silver)} in silver` : ''}${trip.trades ? ` · ${F(Math.round(trip.trades))} barter${trip.trades === 1 ? '' : 's'}, ${F(counted.barterCount)} in all` : ''}${made.length ? ` · ${made.map(questTitle).join(', ')} made up` : ''}${opened ? ` — ${opened} is open now` : ''}`, true);
 }
 
+/**
+ * What to load before casting off, and what is in the storage after:
+ * the run as two shelves, with an arrow between them.
+ *
+ * Everything here is already in the sheet further down, item by item
+ * with its price and its buttons. This is the other thing a sailor
+ * wants from a plan and could not get: the two ends of it, side by
+ * side, in the shape the game's own storage window has -- one tile a
+ * kind, the count on it -- so it can be read against the screen while
+ * loading, or sent to a guildmate as one picture.
+ */
+function shelvesHTML(plan, from) {
+	if (!plan || !plan.kept) return '';
+	const tile = (item, n, note = '') => {
+		const lv = levelOf(item);
+		return `<span class="shelf-tile"${note ? ` title="${esc(note)}"` : ''}>
+			<i class="shelf-lv${lv ? '' : ' shore'}"${lv ? ` style="--tier:${TIER(lv)}"` : ''}>${lv ? `L${lv}` : '⌂'}</i>
+			${img(item, 'shelf-icon')}
+			<b>${n1(n)}</b>
+			<span>${esc(item)}</span>
+			${note ? `<em>${esc(note)}</em>` : ''}
+		</span>`;
+	};
+	// The load: what comes off the harbour's storage, what comes off the
+	// pile of shore goods, and what has to be bought first.
+	const load = [
+		...(plan.loaded || []).map(l => ({ item: l.item, n: l.n, note: from ? `from ${from.name}` : 'from the storage' })),
+		...(plan.taken || []).map(t => ({ item: t.item, n: t.n, note: `from your pile · ${F(t.left)} left` })),
+		...(plan.bought || []).map(b => ({ item: b.item, n: Math.ceil(b.n), note: b.how === 'made' ? 'your workers make it' : b.each ? `bought · ${FC(b.total)}` : 'bought' }))
+	].filter(x => x.n > 0);
+	// What is in hand at the end: carried home, and left at a wharf on
+	// the way. The two are one pile as far as tomorrow's board cares.
+	const back = new Map();
+	for (const g of [...(plan.kept || []), ...(plan.stashed || [])]) {
+		const at = g.at || (from ? from.name : '');
+		const key = `${g.item}|${at}`;
+		back.set(key, { item: g.item, n: (back.get(key) ? back.get(key).n : 0) + g.n, at });
+	}
+	const backRows = [...back.values()].filter(x => x.n > 0).sort((a, b) => (levelOf(b.item) || 0) - (levelOf(a.item) || 0) || b.n - a.n);
+	if (!load.length && !backRows.length) return '';
+	const lt = list => list.reduce((a, x) => a + x.n * weightOf(x.item), 0);
+	const kinds = n => `${n} kind${n === 1 ? '' : 's'}`;
+	const sold = plan.silver > 0 ? `<span class="shelf-tile silver"><i class="shelf-lv">◎</i><b>${FC(Math.round(plan.silver))}</b><span>sold at the wharf</span></span>` : '';
+	return `<section class="panel run-shelves">
+		<div class="shelf">
+			<div class="shelf-head"><h2 class="panel-title">Load before casting off</h2><span class="panel-sub">${load.length ? `${kinds(load.length)}${lt(load) > 0 ? ` · ${F(Math.round(lt(load)))} LT` : ''}${plan.cost ? ` · ${FC(Math.round(plan.cost))} to buy` : ''}` : 'nothing to load'}</span></div>
+			<div class="shelf-tiles">${load.map(x => tile(x.item, x.n, x.note)).join('') || '<span class="shelf-none">nothing: the run starts from what is aboard</span>'}</div>
+		</div>
+		<div class="shelf-arrow" aria-hidden="true">➜</div>
+		<div class="shelf">
+			<div class="shelf-head"><h2 class="panel-title">In the storage after</h2><span class="panel-sub">${backRows.length ? `${kinds(backRows.length)} · ${F(Math.round(backRows.reduce((a, x) => a + x.n, 0)))} goods${plan.silver ? ` · ${FC(Math.round(plan.silver))} sold` : ''}` : plan.silver ? 'all of it sold at the wharf' : 'nothing comes back'}</span></div>
+			<div class="shelf-tiles">${sold}${backRows.map(x => tile(x.item, x.n, x.at && (!from || x.at !== from.name) ? `at ${x.at}` : '')).join('') || (sold ? '' : '<span class="shelf-none">nothing: everything is spent on the way</span>')}</div>
+		</div>
+	</section>`;
+}
+
 // The plan on screen, for the record button to read back.
 let shownPlan = null;
 
@@ -2079,7 +2135,7 @@ function silverParts(me, b) {
 	return {
 		chains: chainsPanel,
 		run: `<section class="panel barter-run">${runHead}<div class="panel-body">${ordersHTML(o, stocking)}${tiles}</div></section>`,
-		rest: `${sheetHead}${empty}${loaded}${taken}${bought}${questsPanels(qp, from)}${segs}${stashed}${kept}${plan.stops.length ? `<div class="run-foot${sailing() ? ' sailing' : ''}">${sailBar(plan)}${chartButton(plan.stops, '')}</div>` : ''}`,
+		rest: `${sheetHead}${empty}${shelvesHTML(plan, from)}${loaded}${taken}${bought}${questsPanels(qp, from)}${segs}${stashed}${kept}${plan.stops.length ? `<div class="run-foot${sailing() ? ' sailing' : ''}">${sailBar(plan)}${chartButton(plan.stops, '')}</div>` : ''}`,
 		dock: foot
 	};
 }
