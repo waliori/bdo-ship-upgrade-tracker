@@ -255,3 +255,24 @@ test('a ceiling cuts every climb where the stock ends: nothing above it, and a g
 	const land = c => c.from === 'land';
 	assert.equal(chains(data, {}, {}, null, 1).filter(land).length, whole.filter(land).map(c => c.rungs[0].npcId).filter((x, i, a) => a.indexOf(x) === i).length);
 });
+
+test('the shore goods can come from a pile the sailor keeps: no more chains than it covers, nothing bought', () => {
+	const c = chains(data).find(x => x.from === 'land' && x.top >= 3);
+	const orders = { ...PLAIN_ORDERS, landFrom: 'stock', pace: 'full' };
+	const opts = { chosen: [c], hold, parley, npcById, start: ports.find(p => p.name === 'Velia'), stashes, pace: 'full', orders };
+	// The pile covers two attempts at the first rung and no more.
+	const first = c.rungs[0];
+	const land = new Map([[c.item, first.giveN * 2]]);
+	const run = chainRun({ ...opts, land });
+	assert.deepEqual(run.bought, [], 'nothing is bought when the pile is what the run spends');
+	assert.equal(run.cost, 0);
+	assert.equal(run.taken.length, 1);
+	assert.equal(run.taken[0].item, c.item);
+	assert.equal(run.taken[0].n, first.giveN * 2);
+	assert.equal(run.taken[0].left, 0);
+	assert.equal(run.stops.find(s => s.npcId === first.npcId).times, 2, 'the pile is the cap at the first rung');
+	// An empty pile is no run at all, where buying it would have been one.
+	const none = chainRun({ ...opts, land: new Map() });
+	assert.equal(none.trades, 0);
+	assert.ok(chainRun({ ...opts, orders: { ...orders, landFrom: 'buy' } }).trades > 0);
+});

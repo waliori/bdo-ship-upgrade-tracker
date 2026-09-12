@@ -25,19 +25,20 @@ import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, DEFAULT_CAL, 
 import { quests, cadenceOf } from './quests.js';
 import { questDone, wantedQuests, rewardOf } from './screen-quests.js';
 import { layQuests } from './quest-places.js';
-import { PRESETS, WAY_CHOICES, QUEST_CHOICES, SELL_CHOICES, HOUR_CHOICES, COUNT_CHOICES, AIM_CHOICES, DEFAULT_STOCK, STOCK_LEVELS, readOrders, readStock, presetOrders, onPreset, stockOrders, yardsticks, countAs, ratioKey } from './barter-orders.js';
+import { PRESETS, WAY_CHOICES, QUEST_CHOICES, SELL_CHOICES, LAND_CHOICES, HOUR_CHOICES, COUNT_CHOICES, AIM_CHOICES, DEFAULT_STOCK, STOCK_LEVELS, readOrders, readStock, presetOrders, onPreset, stockOrders, yardsticks, countAs, ratioKey } from './barter-orders.js';
 import { propose } from './barter-optimizer.js';
 import { coins as coinShop } from './sea_coins.js';
 import { landPrices } from './land-cost.js';
 import { marketStatus, marketSilver } from './market.js';
 import { GOODS, PARLEY, dailyCapacity, parleyPerTrade, levelOf, levelDiscount, ROUTE_UNLOCKS, npcGate, npcOpen } from './barter.js';
 import { parleyLedger } from './parley-ledger.js';
-import { exchanges, goodsHeld, weightOf, sellOf, aboardStock as aboardOf } from './barter-plan.js';
+import { exchanges, goodsHeld, landHeld, weightOf, sellOf, aboardStock as aboardOf } from './barter-plan.js';
 import { TOWNS } from './screen-inventory.js';
 import { chains, chainRun, tailOf } from './barter-chains.js';
 import { materialRun } from './barter-material.js';
 import { wharves } from './wharves.js';
 import { tradeGoodNames } from './trade_goods.js';
+import { landGoods } from './land_goods.js';
 import { openPicker } from './picker.js';
 import { openTripLog } from './triplog.js';
 import { toast, openDialog } from './dialogs.js';
@@ -1058,7 +1059,7 @@ function ordersHTML(o, stocking = false) {
 		</div>`}
 		<div class="run-picks">
 			${stocking ? '' : sel('barter-sell', 'a wharf sells', o.sell, SELL_CHOICES, 'Which goods a wharf call turns into silver; Level 1 and 2 never sell')}
-			${sel('barter-buy', 'land goods', o.buy ? 'yes' : 'no', [['yes', 'bought ashore', 'A chain that starts on land buys its first good ashore'], ['no', 'only what is held', 'No land chains: only goods already held']])}
+			${sel('barter-buy', 'land goods', o.buy ? (o.landFrom === 'stock' ? 'stock' : 'buy') : 'no', LAND_CHOICES)}
 			${sel('barter-pace', 'pace', o.pace, [['fast', 'fast', 'No wharf calls, never slower than full speed: only what the hold carries under the limit'], ['steady', 'full, never slower', 'Every attempt, the hold kept under the limit by calling at a wharf to leave the surplus — more calls, full speed'], ['full', 'full, loaded', 'Every attempt, the hold taken up to the barter ceiling — a quarter over the limit, sailing slower — and a wharf call only where the next island would not deal']])}
 			${sel('barter-quests', 'quests on the way', o.quests, QUEST_CHOICES, 'The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the barter quests counted off the run\'s trades; the hunts only when their grounds lie on the way')}
 			${sel('barter-way', 'the way round', o.way, WAY_CHOICES, 'One route through every rung of every chain ticked, each after the rung beneath it — the nearest islands first, whatever chain they belong to — or each chain climbed to its top before the next')}
@@ -1703,9 +1704,14 @@ function silverParts(me, b) {
 	// this sailor has not opened: those are not runs, they are doors,
 	// and they are counted for the line that says so rather than laid
 	// out as if they could be sailed today.
+	// The shore goods the sailor keeps, wherever they are. A land chain
+	// is only on offer when the pile covers its first rung, if the
+	// orders take the shore goods from the pile rather than buying.
+	const land = landHeld(store.getAllStock());
+	const covered = c => c.from !== 'land' || o.landFrom !== 'stock' || (land.get(c.item) || 0) >= c.rungs[0].giveN;
 	const everything = chains(b.data, stock, dock, prof.barterCount, stocking ? stockGoal.ceiling : 0);
-	const shutChains = everything.filter(c => c.gate && (o.buy || c.from !== 'land'));
-	let all = everything.filter(c => (o.buy || c.from !== 'land') && !c.gate);
+	const shutChains = everything.filter(c => c.gate && (o.buy || c.from !== 'land') && covered(c));
+	let all = everything.filter(c => (o.buy || c.from !== 'land') && !c.gate && covered(c));
 	// Asked to reach a good for the material run: only the chains that
 	// pass it, each cut there, so the run ends with that good aboard.
 	if (reach) {
@@ -1723,7 +1729,7 @@ function silverParts(me, b) {
 	const ratios = store.getProfile('ratios', {}) || {};
 	if (o.count !== 'least') for (const c of all) for (const r of c.rungs) { const n = countAs(r, o, ratios); if (n) seen[r.npcId] = n; }
 	Object.assign(seen, (sailing() || {}).seen || {});
-	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen, keep: reach ? [reach] : [] };
+	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen, keep: reach ? [reach] : [], land };
 	// Each chain on its own, for its row: the list is sorted by the
 	// yardstick, silver a Parley unit, the guide's measure of a chain,
 	// so the best use of the day's Parley is at the top of its group.
@@ -1738,7 +1744,7 @@ function silverParts(me, b) {
 	// What the sets are judged by: the stock, said as plain data so the
 	// search can take it to the worker.
 	const aim = stocking ? { targets: stockGoal.targets, held: [...everythingHeld()], kind: stockGoal.aim } : null;
-	const pkey = JSON.stringify([board.day, b.combo.id, stock, dock, o, port, stash, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, reach, prof.barterCount, aim]);
+	const pkey = JSON.stringify([board.day, b.combo.id, stock, dock, [...land], o, port, stash, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, reach, prof.barterCount, aim]);
 	const search = { chains: all, opts, ship, timeCap: o.hours, aim };
 	// The search goes to the worker and the page draws meanwhile; asked
 	// again when the inputs change, or when an answer is owed and no
@@ -1945,6 +1951,8 @@ function silverParts(me, b) {
 		: b.how === 'fixed' ? `${FC(b.each)} each · ${FC(b.total)}`
 			: b.how === 'market' ? `${FC(b.each)} each on the Market · ${FC(b.total)}`
 				: mk.count ? 'the Market has no price for it' : 'unpriced until the Market answers');
+	const taken = list('Taken from your storage', 'the shore goods you already keep · nothing bought',
+		(plan.taken || []).map(t => `<div class="run-good">${img(t.item, 'row-icon sm')}<b>${F(Math.ceil(t.n))}×</b><span>${esc(t.item)}</span><span class="faint">${F(t.left)} left after this run</span></div>`).join(''), 'teal');
 	const bought = list('Bought ashore', `before casting off${plan.cost ? ` · ${FC(Math.round(plan.cost))} in all` : ''}`, plan.bought.map(b => `<div class="run-good">${img(b.item, 'row-icon sm')}<b>${F(Math.ceil(b.n))}×</b><span>${esc(b.item)}</span><span class="faint">${esc(priceText(b))}</span><span class="run-good-worth"><button class="chip tiny${b.how === 'made' ? ' active' : ''}" data-act="barter-homemade" data-item="${esc(b.item)}" title="${b.how === 'made' ? 'Bought after all: price it from the Market' : 'Your workers make this: it costs the run nothing'}">${b.how === 'made' ? '✓ my workers make it' : 'my workers make it'}</button></span></div>`).join(''));
 	const loaded = from ? list(`Loaded at ${esc(from.name)}`, 'from the storage, before casting off', plan.loaded.map(s => `<div class="run-good">${img(s.item, 'row-icon sm')}<b>${F(s.n)}×</b><span>${esc(s.item)}</span><span class="run-good-worth"><button class="ghost-btn sm" data-act="barter-load" data-item="${esc(s.item)}" data-town="${esc(from.name)}" data-n="${s.n}" title="Mark them aboard">Loaded ✓</button></span></div>`).join(''), 'teal') : '';
 	const stashed = list('Left on the way', 'waiting for another board', plan.stashed.map(s => goodLine(s, s.at)).join(''), 'gold');
@@ -1967,7 +1975,7 @@ function silverParts(me, b) {
 	return {
 		chains: chainsPanel,
 		run: `<section class="panel barter-run">${runHead}<div class="panel-body">${ordersHTML(o, stocking)}${tiles}</div></section>`,
-		rest: `${sheetHead}${empty}${loaded}${bought}${questsPanels(qp, from)}${segs}${stashed}${kept}${plan.stops.length ? `<div class="run-foot${sailing() ? ' sailing' : ''}">${sailBar(plan)}${chartButton(plan.stops, '')}</div>` : ''}`,
+		rest: `${sheetHead}${empty}${loaded}${taken}${bought}${questsPanels(qp, from)}${segs}${stashed}${kept}${plan.stops.length ? `<div class="run-foot${sailing() ? ' sailing' : ''}">${sailBar(plan)}${chartButton(plan.stops, '')}</div>` : ''}`,
 		dock: foot
 	};
 }
@@ -2316,13 +2324,22 @@ export function renderBarter() {
 
 function pickGood(then) {
 	const stock = aboardStock();
+	const all = store.getAllStock();
 	const items = tradeGoodNames.filter(n => !(stock[n] > 0)).map(n => ({
 		id: n, label: n, icon: img(n, ''), group: `Level ${levelOf(n)}`,
 		meta: `${F(GOODS[levelOf(n)].weight)} LT`, sub: sellOf(n) ? `a barterer pays ${FC(sellOf(n))}` : 'cannot be sold'
 	}));
+	// The shore goods too: a chain starts from one of these, and a
+	// sailor with a pile of them should not be told to buy more. They
+	// are materials like any other, so the count lives in the Inventory
+	// beside the planks and the stones.
+	items.push(...Object.keys(landGoods).filter(n => !(all[n] > 0)).sort().map(n => ({
+		id: n, label: n, icon: img(n, ''), group: 'Bought ashore — what a chain starts from',
+		sub: 'a land good: the first rung of a chain from the shore'
+	})));
 	openPicker({
 		title: 'Which good is aboard?',
-		hint: 'One of the sea trade goods. Its count lives in the Inventory, under Trade goods.',
+		hint: 'A sea trade good, or a shore good a chain starts from. The count lives in the Inventory.',
 		items,
 		onPick: name => { store.addStock(name, 1, `1 ${name} aboard`, false); then(); }
 	});
@@ -2710,7 +2727,7 @@ export function barterChange(el, parseAmount) {
 		case 'barter-quests': setOrders({ quests: QUEST_CHOICES.some(([q]) => q === el.value) ? el.value : 'no' }); return true;
 		case 'barter-mat-quests': matOrders = { ...matOrders, quests: QUEST_CHOICES.some(([q]) => q === el.value) ? el.value : 'no' }; persist(); return true;
 		case 'barter-sell': setOrders({ sell: Number(el.value) }); return true;
-		case 'barter-buy': setOrders({ buy: el.value === 'yes' }); return true;
+		case 'barter-buy': setOrders({ buy: el.value !== 'no', landFrom: el.value === 'stock' ? 'stock' : 'buy' }); return true;
 		case 'barter-hours': setOrders({ hours: Number(el.value) }); return true;
 		case 'barter-ratio': setOrders({ count: el.value }); return true;
 		case 'barter-floor': {

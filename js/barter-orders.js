@@ -37,7 +37,7 @@ export const PRESETS = [
 	}
 ];
 
-export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, hours: 0, count: 'least', way: 'sea', quests: 'near' };
+export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, landFrom: 'buy', hours: 0, count: 'least', way: 'sea', quests: 'near' };
 
 /** The way round the chains ticked: one route through every rung, each
  *  after the rung beneath it in its chain, or chain after chain. */
@@ -61,7 +61,7 @@ export const WAY_CHOICES = [
 /** The orders a run has when none are given: the [Level 7]s sold and
  *  nothing else, no floors -- the run as it was before there were
  *  orders, and what the tests pin. */
-export const PLAIN_ORDERS = { preset: 'cash', sell: 7, floors: {}, buy: true, pace: 'fast', hours: 0, count: 'least', way: 'chain', quests: 'no' };
+export const PLAIN_ORDERS = { preset: 'cash', sell: 7, floors: {}, buy: true, landFrom: 'buy', pace: 'fast', hours: 0, count: 'least', way: 'chain', quests: 'no' };
 
 /** How an exchange that pays a range is counted. */
 export const COUNT_CHOICES = [
@@ -72,6 +72,19 @@ export const COUNT_CHOICES = [
 
 /** The caps on time under way a sailor can set, in hours; 0 is none. */
 export const HOUR_CHOICES = [[0, 'no limit'], [1, 'an hour'], [2, 'two hours'], [3, 'three hours'], [4, 'four hours'], [6, 'six hours']];
+
+/**
+ * Where the first good of a land chain comes from: bought ashore every
+ * run, or taken from a pile the sailor already keeps. A sailor filling
+ * a stock has usually made or bought the shore goods in bulk already,
+ * and a plan that tells them to buy another few million of what is
+ * sitting in their storage is a plan they cannot follow.
+ */
+export const LAND_CHOICES = [
+	['buy', 'bought ashore', 'A chain that starts on land buys its first good ashore'],
+	['stock', 'from my storage', 'The shore goods you already keep, and no more chains than they cover'],
+	['no', 'only what is held', 'No land chains: only the [Level N] goods already held']
+];
 
 /** The choices a sailor can make for what a wharf sells. `NOTHING` is
  *  above every level there is, so no good is ever sellable under it --
@@ -106,6 +119,7 @@ export function readOrders(raw) {
 		o.floors = floors;
 	} else o.floors = {};
 	if (typeof raw.buy === 'boolean') o.buy = raw.buy;
+	if (raw.landFrom === 'stock' || raw.landFrom === 'buy') o.landFrom = raw.landFrom;
 	if (raw.pace === 'full' || raw.pace === 'fast' || raw.pace === 'steady') o.pace = raw.pace;
 	if (HOUR_CHOICES.some(([h]) => h === Number(raw.hours))) o.hours = Number(raw.hours);
 	if (COUNT_CHOICES.some(([c]) => c === raw.count)) o.count = raw.count;
@@ -117,13 +131,14 @@ export function readOrders(raw) {
 /** The orders a preset sets, keeping nothing of the old ones. */
 export function presetOrders(id) {
 	const p = PRESETS.find(x => x.id === id) || PRESETS[0];
-	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, hours: 0, count: 'least', way: 'sea', quests: 'near' };
+	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, landFrom: 'buy', hours: 0, count: 'least', way: 'sea', quests: 'near' };
 }
 
 /** Whether the saved orders still match their preset to the letter. */
 export function onPreset(orders) {
 	const p = presetOrders(orders.preset);
 	return p.sell === orders.sell && p.buy === orders.buy && p.pace === orders.pace
+		&& (p.landFrom || 'buy') === (orders.landFrom || 'buy')
 		&& JSON.stringify(p.floors) === JSON.stringify(orders.floors || {});
 }
 
