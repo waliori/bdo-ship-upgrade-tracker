@@ -114,7 +114,12 @@ test('the game’s own names are drawn from the client’s vocabulary, and the E
 		const store = await import('/js/state.js');
 		store.setStock('Zinc Ingot', 5);
 	});
-	await page.click('.tab[data-act="view"][data-id="inventory"]');
+	// Setting stock redraws the whole shell, so the tab has to be waited
+	// for rather than clicked at: clicking the node from the render before
+	// last hits an element that is no longer in the page.
+	const inventoryTab = '.tab[data-act="view"][data-id="inventory"]';
+	await page.waitForSelector(inventoryTab, { timeout: 8000 });
+	await page.click(inventoryTab);
 	await page.waitForFunction(() => document.body.dataset.view === 'inventory', { timeout: 8000 });
 	await page.waitForFunction(() => document.body.innerText.includes('Zinc Ingot'), { timeout: 8000 });
 
@@ -134,6 +139,31 @@ test('the game’s own names are drawn from the client’s vocabulary, and the E
 	});
 	assert.equal(stored.en, 5);
 	assert.ok(!stored.fr, 'nothing translated may ever be written into a save');
+	await context.close();
+});
+
+test('the app’s own words change too, and a missing one falls back to the English', async () => {
+	const { page, context } = await open();
+	const tabs = () => page.$$eval('.tab .tab-label', els => els.map(e => e.textContent.trim()));
+	const english = await tabs();
+	assert.ok(english.includes('Inventory'), `the English tab bar: ${english.join(', ')}`);
+
+	// German is a pack the app ships. Whatever share of it is translated,
+	// the tab bar is the first thing anyone reads, so it is translated.
+	await choose(page, 'de');
+	await page.evaluate(async () => (await import('/js/ui.js')).render());
+	const german = await tabs();
+	assert.equal(german.length, english.length, 'the same tabs, in the same order');
+	assert.notDeepEqual(german, english, 'something on the tab bar moved');
+	assert.ok(!german.includes('Inventory'), `Inventory was not translated: ${german.join(', ')}`);
+
+	// A sentence the pack has never heard of draws the English it was
+	// written as, rather than a blank or a key.
+	const fallback = await page.evaluate(async () => {
+		const { T } = await import('/js/i18n.js');
+		return T('a sentence no pack will ever carry');
+	});
+	assert.equal(fallback, 'a sentence no pack will ever carry');
 	await context.close();
 });
 

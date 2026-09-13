@@ -308,6 +308,11 @@ servers wants.
 Japanese, Korean, Chinese and Thai pull the matching Noto face when they
 are chosen, and only then.
 
+Choosing a language also tells the **sailor import** which language your
+game is in, so the screenshot reader starts on the right words — a Korean
+client's window says 식성, not Appetite. It keeps its own picker, because
+reading the app in one language and playing in another is allowed.
+
 ### See who reserved what
 
 Every material shows how much is spoken for by a build and how much is
