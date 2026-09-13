@@ -167,6 +167,31 @@ test('the app’s own words change too, and a missing one falls back to the Engl
 	await context.close();
 });
 
+test('Russian gets its three forms, where English has two', async () => {
+	const { page, context } = await open();
+	await choose(page, 'ru');
+
+	// Russian counts in one / few / many, and the pack carries all of
+	// them against a single English key. Nothing in the call site knows
+	// that -- T() asks Intl.PluralRules, so the same line of code is
+	// right in every language.
+	const key = '<b>{n}</b> chains';
+	const said = await page.evaluate(async k => {
+		const { T } = await import('/js/i18n.js');
+		return [1, 2, 5, 21].map(n => T(k, { n }));
+	}, key);
+
+	const [one, few, many, twentyOne] = said.map(x => x.replace(/<\/?b>/g, ''));
+	assert.match(one, /^1 /, one);
+	// Each form is different from the others -- which is the point.
+	assert.notEqual(one.slice(2), few.slice(2), `1 and 2 should not read alike: ${one} / ${few}`);
+	assert.notEqual(few.slice(2), many.slice(2), `2 and 5 should not read alike: ${few} / ${many}`);
+	// 21 takes the same form as 1 in Russian, which a naive n === 1 test
+	// would get wrong.
+	assert.equal(twentyOne.replace(/^21 /, ''), one.replace(/^1 /, ''), `21 should read like 1: ${twentyOne} / ${one}`);
+	await context.close();
+});
+
 test('a look-up follows the reader to their own database', async () => {
 	const { page, context } = await open();
 	const url = () => page.evaluate(async () => {
