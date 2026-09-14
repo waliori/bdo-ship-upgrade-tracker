@@ -22,9 +22,14 @@
 // spawns the codex still lists in that old ground (ten) stay left
 // out, since the crocodiles' move emptied it, and so do the twenty-three
 // Black Rust spawns the codex lists in the crocodiles' new water, which
-// the game's map no longer shows there (2026-09-05). Colours follow gpw's
-// ocean map legend, so anyone who has sailed by it reads this chart the
-// same way.
+// the game's map no longer shows there (2026-09-05). The Hollow Maretta
+// of 2026-09-13 has no positions on the codex either: its thirty-eight
+// spots are the rings gpw's map marks "Maretta", read off the picture by
+// tools/read-ocean-map.mjs, which lays that map on the chart by the spawn
+// marks the two already share. Colours follow gpw's ocean map legend, so
+// anyone who has sailed by it reads this chart the same way -- except the
+// siren, whose navy the dark chart would swallow, and which takes the
+// ice-blue of its own portrait instead.
 
 export const monsters = [
 	{ key: 'hekaru', name: "Hekaru", colour: '#e05ad6', kind: 'adult',
@@ -60,6 +65,13 @@ export const monsters = [
 	{ key: 'lyngbakr', name: "Lyngbakr", colour: '#c9d6ff', kind: 'adult',
 		note: 'Added 2026-08-27: the Lyngbakr Habitat, with the Lyngburks that escort it. Its twelve positions are bookmarks read off the game’s own map on 2026-08-31 -- north of where the Saltwater Crocodiles used to be, not on it. Drops the horn the yellow tier is made of.',
 		points: [[53387, 6044], [49084, 6338], [55155, 8566], [51296, 8554], [46269, 8849], [53369, 10914], [49242, 10930], [44636, 11654], [55152, 13749], [51005, 13745], [47171, 13746], [43432, 14763]] },
+	// The siren of the Great Ocean, added 2026-09-13. The codex knows it
+	// (NPC 27575, and the knowledge that comes with the kill) but carries no
+	// positions, so its thirty-eight spots are the dark rings gpw’s map marks
+	// “Maretta”, found by their shape and lifted by tools/read-ocean-map.mjs.
+	{ key: 'hollow-maretta', name: "Hollow Maretta", colour: '#5fd8e0', kind: 'boss',
+		note: 'A song first, and none of the ships that sailed towards one came back to say more. The codex has no positions for it, so these are the spots gpw’s ocean map rings: that map is an exact 20:1 of the game’s own, and fitted on the 325 spawn marks it already shares with the codex it lands within ten units, so the rings are as good as a codex point. Drops the Siren Song Aura, a Moss-Covered Map and Sethra’s Artifact - Sailing Mastery.',
+	points: [[9471, 48769], [17051, 56469], [19611, 38570], [28031, 68748], [30611, 42209], [30611, 46209], [30611, 50209], [30751, 70408], [32611, 40209], [32611, 44209], [32611, 48209], [32971, 57649], [34611, 42209], [38611, 34210], [38611, 38210], [40611, 32210], [40611, 36210], [42611, 34210], [42611, 42209], [44611, 28210], [44611, 32210], [46611, 26210], [47411, 42209], [48031, 20030], [49811, 39010], [53811, 35010], [54351, 17011], [57991, 9711], [58531, 35990], [64190, 38850], [64510, 23970], [67350, 15331], [68710, 29330], [70350, 33070], [75750, 24150], [78270, 35330], [79010, 28370], [79150, 32350]] },
 	{ key: 'lekrashan', name: "Lekrashan", colour: '#ffd0a0', kind: 'boss',
 		points: [[15296, 36328], [16064, 37472], [17888, 39880]] },
 	{ key: 'khan', name: "Khan", colour: '#ff8080', kind: 'boss', zones: [[65518, 48938]],

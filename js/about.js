@@ -15,6 +15,7 @@ export const DATA = [
 	{ what: 'Wharf managers — the full roll, 58 of them', asOf: '2026-08-31', from: 'BDOCodex NPC pages' },
 	{ what: 'Cox Pirates’ camps, flags and cargo ships', asOf: '2026-08-31', from: 'Awabi’s “The Road to Cox” map, fitted to the chart on its island names' },
 	{ what: 'Vell’s waters', asOf: '2026-08-31', from: 'gpw’s ocean map v1.6, to a couple of kilometres' },
+	{ what: 'The Hollow Maretta’s rings — 38 of them', asOf: '2026-09-13', from: 'gpw’s ocean map v1.6, laid on the chart by the spawn marks it shares with the codex — within ten units' },
 	{ what: 'Quests and their rewards', asOf: '2026-08-30', from: 'BDOCodex' },
 	{ what: 'Ship hulls — durability, weight, speed…', asOf: '2026-08-29', from: 'BDOCodex' },
 	{ what: 'Ship parts at every level', asOf: '2026-08-29', from: 'BDOCodex' },
@@ -433,6 +434,14 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-09-13',
+		title: 'The siren is on the chart, and the community map is read rather than traced',
+		notes: [
+			'<b>The Hollow Maretta</b> — the siren whose song the Great Ocean warns about — is a habitat now, with its portrait from the codex and the thirty-eight spots it is rung at. The codex has an NPC page for it and no position on it, so the places come off gpw’s ocean map, the same sheet Vell’s water came from.',
+			'That map is no longer fitted <i>by hand</i>. It draws the sea monsters’ spawns as well, and those the codex does give us, so <code>tools/read-ocean-map.mjs</code> finds its crosses by their colour, matches them against the points the app already holds and solves for where the picture sits: an exact twenty world units to the pixel, landing within ten units — half a pixel — on 325 marks. The siren’s rings are then read off by their shape, and every one of the thirty-eight comes out on open water, which is the check that the fit is honest.'
+		]
+	},
 	{
 		date: '2026-09-11',
 		title: 'On a phone the pouch is one line, and the numbers are typed in a sheet',

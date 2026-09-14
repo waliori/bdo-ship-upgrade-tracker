@@ -93,3 +93,16 @@ test('a habitat carries the outline round its spawns, so the chart can fill it',
 		for (const c of habitatsOf(m.points)) assert.ok(c.hull.length >= 1, `${m.name} has an outline`);
 	}
 });
+
+test('the Hollow Maretta is rung where the community map rings it', () => {
+	const siren = monsters.find(m => m.key === 'hollow-maretta');
+	assert.ok(siren && siren.kind === 'boss' && !siren.zones, 'a boss marked by its own spots');
+	assert.equal(siren.points.length, 38, 'the thirty-eight rings on gpw’s map');
+	assert.ok(monsterArt['hollow-maretta'], 'with the codex\'s portrait of it');
+	// Margoria and the Great Ocean, nowhere near the coasts.
+	assert.ok(siren.points.every(([x, y]) => x > 9000 && x < 80000 && y > 9000 && y < 71000), 'out in the ocean');
+	// The fit that put them there is only believable if they all land on
+	// water: 38 rings dropped on a chart they did not come from would not.
+	for (const [x, y] of siren.points) assert.ok(openSea(x, y), `the siren at ${x},${y} is on land`);
+	assert.equal(habitatsOf(siren.points, { onWater: openSea }).length, 1, 'one water, the whole Great Ocean');
+});
