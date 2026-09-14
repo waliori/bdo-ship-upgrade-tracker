@@ -331,7 +331,7 @@ export function readProfile(raw) {
 			trades: Math.max(0, Math.floor(Number(r.trades) || 0)),
 			parley: Math.max(0, Math.floor(Number(r.parley) || 0)),
 			stops: Math.max(0, Math.floor(Number(r.stops) || 0)),
-			goal: ['material', 'stock'].includes(r.goal) ? r.goal : 'silver',
+			goal: ['material', 'stock', 'coin'].includes(r.goal) ? r.goal : 'silver',
 			item: typeof r.item === 'string' && r.item.length <= 80 ? r.item : '',
 			layout: typeof r.layout === 'string' && r.layout.length <= 8 ? r.layout : '',
 			// What the run spent and what it brought back, so the day's

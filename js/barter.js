@@ -722,12 +722,22 @@ export function parleyPerTrade({ valuePack = false, crowCoin = false, level = nu
 // rung's cap is the figure, which the codex's own stated values agree
 // with on the rungs it does state.
 const ASSUMED_ATTEMPTS = 2;
+/** What the Crow Coin islands pay in, by name. It is not a levelled
+ *  good -- it has no weight, no wharf price and nothing takes it
+ *  further -- so every place that asks "what level is this" has to be
+ *  told about it by name instead. */
+export const COIN = 'Crow Coin';
+
+/** The level the coin islands take, and the only one they take: every
+ *  Crow Coin exchange on every recorded board hands over a [Level 4]. */
+export const COIN_LEVEL = 4;
+
 export const TRIES_BY_RUNG = { 1: 10, 2: 10, 3: 10, 4: 10, 5: 6, 6: 5, 7: 5, coin: 4 };
 
 /** The attempts an exchange allows: as stated, else the rung's cap. */
 export function triesFor(item, stated) {
 	if (stated > 0) return stated;
-	if (item === 'Crow Coin') return TRIES_BY_RUNG.coin;
+	if (item === COIN) return TRIES_BY_RUNG.coin;
 	const lv = levelOf(item);
 	return lv && TRIES_BY_RUNG[lv] ? TRIES_BY_RUNG[lv] : ASSUMED_ATTEMPTS;
 }

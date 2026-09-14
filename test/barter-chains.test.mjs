@@ -322,3 +322,39 @@ test('a floor is about the pile, not about the hold: what is kept ashore counts'
 	assert.equal(tight.trades, 0, 'the last ten are the stock, wherever they are');
 	assert.deepEqual(tight.loaded, [], 'and there is no sense in loading them');
 });
+
+test('a run for Crow Coins climbs to [Level 4] and cashes it at an island that pays in coins', () => {
+	// The coin islands are on every board and take a [Level 4] and
+	// nothing else, so they are a top like a [Level 7] is -- and they are
+	// only offered when the run is for coins.
+	assert.equal(chains(data).filter(c => c.pays === 'coin').length, 0, 'a silver run is never offered a coin island');
+	const all = chains(data, {}, {}, null, 4, true);
+	const coin = all.filter(c => c.pays === 'coin');
+	assert.ok(coin.length > 0, 'the board has coin islands on it');
+	for (const c of coin) {
+		const last = c.rungs[c.rungs.length - 1];
+		assert.equal(last.item, 'Crow Coin');
+		assert.equal(levelOf(last.give), 4, 'a coin island takes a [Level 4]');
+		assert.ok(last.recvMax > 1, 'and pays in coins rather than in the codex’s noise');
+		assert.equal(c.top, 4, 'the chain is named by the climb it asks for');
+		// Every rung below is a climb a rung at a time, as ever.
+		c.rungs.forEach((r, i) => { if (i) assert.equal(r.give, c.rungs[i - 1].item); });
+	}
+	// A ceiling of four does not stop a chain cashing its [Level 4]s in:
+	// selling a good for coins is not climbing.
+	assert.ok(coin.some(c => c.rungs.length >= 4), 'a whole climb from the shore ends at the coin island');
+});
+
+test('the coins a run pays are counted, and they are not cargo', () => {
+	const coin = chains(data, {}, {}, null, 4, true).filter(c => c.pays === 'coin').slice(0, 2);
+	const start = ports.find(p => p.name === 'Velia');
+	const run = chainRun({ chosen: coin, hold, parley, npcById, start, stashes, pace: 'full', orders: PLAIN_ORDERS });
+	assert.ok(run.coins > 0, 'the islands paid');
+	assert.ok(run.coinsMax >= run.coins, 'counted at the least, and at the most it might be');
+	assert.equal(run.silver, 0, 'a coin run sells nothing');
+	assert.ok(!run.kept.some(k => k.item === 'Crow Coin'), 'coins are not carried home like a good');
+	assert.ok(!run.stashed.some(k => k.item === 'Crow Coin'), 'nor left at a wharf');
+	// The coins are exactly what the islands stated, at the least.
+	const cashed = run.stops.filter(s => s.item === 'Crow Coin');
+	assert.equal(run.coins, cashed.reduce((a, s) => a + s.times * s.recvMin, 0));
+});

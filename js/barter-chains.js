@@ -17,7 +17,7 @@
 // the run go out. Distances are straight lines here, for choosing a
 // wharf; the screen bends the legs round the land.
 
-import { levelOf, npcGate } from './barter.js';
+import { levelOf, npcGate, COIN } from './barter.js';
 import { exchanges, goodsHeld, weightHeld, weightOf, sellOf } from './barter-plan.js';
 import { sellable, floorOf, PLAIN_ORDERS } from './barter-orders.js';
 
@@ -49,13 +49,22 @@ import { sellable, floorOf, PLAIN_ORDERS } from './barter-orders.js';
  * and a good already held at the ceiling or above starts nothing --
  * it is the stock, not the fuel.
  */
-export function chains(barterData, stock = {}, dock = {}, barterCount = null, ceiling = 0) {
-	const rows = exchanges(barterData).filter(r => levelOf(r.item) !== null);
+export function chains(barterData, stock = {}, dock = {}, barterCount = null, ceiling = 0, coins = false) {
+	// The Crow Coin islands are on every board, taking a [Level 4] and
+	// paying in coins, and nothing takes a coin further -- so a coin
+	// exchange is a top like a [Level 7] is, and it is only offered when
+	// the run is for coins. A row paying a single coin is the codex's
+	// own noise rather than an exchange anybody would make.
+	const rows = exchanges(barterData).filter(r => levelOf(r.item) !== null || (coins && r.item === COIN && r.recvMax > 1));
 	const takes = name => rows.filter(r => r.give === name);
 	const top = ceiling > 0 ? ceiling : Infinity;
+	// The ceiling is about climbing, and cashing a good in for coins is
+	// not a climb: a run that stops at [Level 4] still wants the island
+	// that pays for one. So the cut is made on what the next rung would
+	// make, not on what this one made, and a coin rung is never cut.
 	const walk = (r, path) => {
 		const here = [...path, r];
-		const up = levelOf(r.item) >= top ? [] : takes(r.item);
+		const up = r.item === COIN ? [] : takes(r.item).filter(n => n.item === COIN || levelOf(n.item) <= top);
 		return up.length ? up.flatMap(n => walk(n, here)) : [here];
 	};
 	const out = [];
@@ -78,7 +87,20 @@ export function chains(barterData, stock = {}, dock = {}, barterCount = null, ce
 	}
 	const seen = new Set();
 	return out
-		.map(c => ({ ...c, id: `${c.from === 'land' ? 'land' : 'hold'}:${c.item}:${c.rungs.map(r => r.npcId).join('.')}`, top: levelOf(c.rungs[c.rungs.length - 1].item), gate: gateOn(c.rungs, barterCount) }))
+		.map(c => {
+			const last = c.rungs[c.rungs.length - 1];
+			// A chain that ends in coins is named by the level it cashes,
+			// since that is the climb it asks for; `pays` is what it pays.
+			const pays = last.item === COIN ? 'coin' : 'goods';
+			return {
+				...c,
+				id: `${c.from === 'land' ? 'land' : 'hold'}:${c.item}:${c.rungs.map(r => r.npcId).join('.')}`,
+				top: pays === 'coin' ? levelOf(last.give) : levelOf(last.item),
+				coins: pays === 'coin' ? last.recvMin * last.tries : 0,
+				pays,
+				gate: gateOn(c.rungs, barterCount)
+			};
+		})
 		.filter(c => !seen.has(c.id) && seen.add(c.id))
 		.sort((a, b) => b.top - a.top || a.rungs.length - b.rungs.length || a.rungs[0].npc.localeCompare(b.rungs[0].npc));
 }
@@ -268,6 +290,11 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 	const used = new Set();
 	const stops = [], sold = [], stashed = [];
 	const bought = new Map();
+	// What the Crow Coin islands paid. Coins are not cargo -- no weight,
+	// no wharf price, nothing takes them further -- so they are counted
+	// rather than carried, at the least the exchange states and at the
+	// most it might, the way every other range on a run is.
+	let coins = 0, coinsMax = 0;
 	// The shore goods the sailor already keeps, when the orders take
 	// them from the pile rather than buying fresh: what is left as the
 	// run spends them, and what it took in all.
@@ -543,9 +570,14 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 			taken.set(r.give, (taken.get(r.give) || 0) + times * r.giveN);
 		} else if (ashore) bought.set(r.give, (bought.get(r.give) || 0) + times * r.giveN);
 		else { take(held, r.give, times * r.giveN); take(heldMax, r.give, times * r.giveN); owning(r.give, -times * r.giveN); }
-		owning(r.item, times * r.recvMin);
-		held.set(r.item, (held.get(r.item) || 0) + times * r.recvMin);
-		heldMax.set(r.item, (heldMax.get(r.item) || 0) + times * r.recvMax);
+		if (r.item === COIN) {
+			coins += times * r.recvMin;
+			coinsMax += times * r.recvMax;
+		} else {
+			owning(r.item, times * r.recvMin);
+			held.set(r.item, (held.get(r.item) || 0) + times * r.recvMin);
+			heldMax.set(r.item, (heldMax.get(r.item) || 0) + times * r.recvMax);
+		}
 		weight = weightHeld(heldMax);
 		peak = Math.max(peak, weight);
 		spent += times * perTrade;
@@ -579,6 +611,7 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 		order, lots, stops, sold, kept, stashed, loaded,
 		bought: boughtRows,
 		taken: takenRows,
+		coins, coinsMax,
 		cost,
 		net: silver - cost,
 		silver,

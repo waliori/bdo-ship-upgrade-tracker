@@ -561,6 +561,11 @@
 .shelf-lv.shore { background: var(--panel-sunk, rgba(255, 255, 255, 0.1)); color: var(--ink-mute); }
 .shelf-tile.silver { border-color: var(--gold-edge); justify-content: center; }
 .shelf-tile.silver b { color: var(--gold); font-size: 17px; }
+/* A chain that ends in coins is grouped apart from the climbs that
+   stop at the same level, and named in the colour of the coin. */
+.chain-group.coin .chain-group-head span:first-of-type { color: var(--gold); }
+.shelf-tile.coin { border-color: var(--teal-edge); }
+.shelf-tile.coin b { color: var(--teal); }
 .shelf-none { font-size: 11.5px; color: var(--ink-faint); }
 .shelf-act { margin-top: 4px; }
 .shelf-tile .ghost-btn.sm, .shelf-tile .chip.tiny { font-size: 10px; padding: 2px 7px; }

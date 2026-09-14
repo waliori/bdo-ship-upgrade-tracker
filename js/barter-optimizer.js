@@ -113,7 +113,8 @@ const now = typeof performance !== 'undefined' && performance.now ? () => perfor
  *
  * `aim` is what the sets are judged by. Without one it is silver --
  * `valueOf`, the wharf and what the goods kept would fetch. With one
- * it is the stock: `{ targets, held, kind }`, the count kept of every
+ * it is the stock -- or the Crow Coins, with `{ kind: 'coins' }`.
+ * For a stock it is `{ targets, held, kind }`, the count kept of every
  * good at a level, everything the sailor holds as [name, n] pairs, and
  * whether the run is for the fullest stock or the most trades. It is
  * plain data on purpose: the search runs in a worker, and a function
@@ -127,6 +128,12 @@ export const SILVER_KINDS = [
 	{ kind: 'silver', label: 'The most silver', of: s => s.value },
 	{ kind: 'hour', label: 'The most an hour', of: s => (s.hours > 0 ? s.value / s.hours : 0) },
 	{ kind: 'parley', label: 'The most a Parley unit', of: s => s.yard.perUnit }
+];
+
+export const COIN_KINDS = [
+	{ kind: 'coins', label: 'The most coins', of: s => s.value },
+	{ kind: 'hour', label: 'The most an hour', of: s => (s.hours > 0 ? s.value / s.hours : 0) },
+	{ kind: 'parley', label: 'The most a Parley unit', of: s => (s.run.parleyUsed > 0 ? s.value / (s.run.parleyUsed / PARLEY_UNIT) : 0) }
 ];
 
 export const STOCK_KINDS = [
@@ -143,6 +150,11 @@ export const STOCK_KINDS = [
  * the one that banks more.
  */
 export function scoreFor(aim, stock) {
+	// A run for coins is judged on the coins it brings back, with the
+	// trades behind it as the tie-break: two runs that pay the same are
+	// not the same run if one of them is four barters and the other is
+	// forty.
+	if (aim.kind === 'coins') return run => run.coins * 1000 + run.trades;
 	const targets = aim.targets || {};
 	const targetOf = name => targets[levelOf(name)] || 0;
 	const held = new Map(aim.held || []);
@@ -155,7 +167,7 @@ export function scoreFor(aim, stock) {
 export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width = 5, depth = 8, budgetMs = Infinity, aim = null } = {}) {
 	const orders = opts.orders;
 	const score = aim ? scoreFor(aim, opts.stock) : null;
-	const kinds = aim ? STOCK_KINDS : SILVER_KINDS;
+	const kinds = !aim ? SILVER_KINDS : aim.kind === 'coins' ? COIN_KINDS : STOCK_KINDS;
 	const t0 = now();
 	const late = () => budgetMs !== Infinity && now() - t0 >= budgetMs;
 	const byId = new Map(chains.map(c => [c.id, c]));
