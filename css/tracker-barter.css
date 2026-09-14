@@ -561,6 +561,18 @@
 .shelf-lv.shore { background: var(--panel-sunk, rgba(255, 255, 255, 0.1)); color: var(--ink-mute); }
 .shelf-tile.silver { border-color: var(--gold-edge); justify-content: center; }
 .shelf-tile.silver b { color: var(--gold); font-size: 17px; }
+/* The coin itself, wherever a coin run talks about coins: on the goal,
+   on the tile, on the cards, on the shelf and beside the group of
+   chains that end at an island paying in them. Sized to the line it
+   sits on rather than to a grid. */
+.goal-icon { width: 15px; height: 15px; vertical-align: -3px; margin-right: 5px; }
+.tile-icon { width: 20px; height: 20px; vertical-align: -4px; margin-right: 6px; }
+.coin-icon { width: 17px; height: 17px; vertical-align: -4px; margin-right: 6px; }
+.group-icon { width: 16px; height: 16px; vertical-align: -3px; margin-right: 6px; }
+.chip-icon { width: 15px; height: 15px; vertical-align: -3px; }
+.proposal b .tile-icon { width: 18px; height: 18px; }
+.shelf-tile.coin .shelf-icon { width: 30px; height: 30px; }
+
 /* A chain that ends in coins is grouped apart from the climbs that
    stop at the same level, and named in the colour of the coin. */
 .chain-group.coin .chain-group-head span:first-of-type { color: var(--gold); }
