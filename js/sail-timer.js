@@ -575,10 +575,11 @@ export function timerHTML({ suggest = 0, label = '', marks = [] } = {}) {
 		? `<span class="sail-timer-modes" role="group" aria-label="What chimes">${MARK_CHOICES.map(([id, text, why]) => `<button class="chip tiny${mode === id ? ' active' : ''}" data-act="barter-timer-marks" data-id="${id}" title="${esc(why)}">${esc(text)}</button>`).join('')}</span>`
 		: '';
 	if (!t) {
-		const mins = suggest > 0 ? Math.max(1, Math.round(suggest / 60)) : 0;
+		// The estimate as a sailor reads it: a three-hour run said "354 m"
+		// before this, which is a number rather than a time.
 		const stops = marks.length ? ` · ${marks.length} stop${marks.length === 1 ? '' : 's'}` : '';
-		const run = mins
-			? `<button class="chip tiny primary" data-act="barter-timer-start" data-secs="${Math.round(suggest)}" data-label="${esc(label)}" data-marks="${esc(JSON.stringify(marks))}" title="Start the clock at this run's own estimate${marks.length ? ', chiming at every stop on the way' : ''}">⏱ start · ≈ ${mins} m${stops}</button>`
+		const run = suggest > 0
+			? `<button class="chip tiny primary" data-act="barter-timer-start" data-secs="${Math.round(suggest)}" data-label="${esc(label)}" data-marks="${esc(JSON.stringify(marks))}" title="Start the clock at this run's own estimate${marks.length ? ', chiming at every stop on the way' : ''}">⏱ start · ≈ ${esc(spanText(suggest))}${stops}</button>`
 			: '';
 		// Nothing to start when there is no run in hand: the clock is the
 		// run's own, not a kitchen timer.
