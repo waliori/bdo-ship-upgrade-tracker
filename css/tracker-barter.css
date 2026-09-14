@@ -565,6 +565,8 @@
    on the tile, on the cards, on the shelf and beside the group of
    chains that end at an island paying in them. Sized to the line it
    sits on rather than to a grid. */
+.orders-coin { display: inline-flex; align-items: center; font-size: 13px; color: var(--gold); }
+.orders-coin b { font-family: var(--font-display); font-weight: 700; }
 .goal-icon { width: 15px; height: 15px; vertical-align: -3px; margin-right: 5px; }
 .tile-icon { width: 20px; height: 20px; vertical-align: -4px; margin-right: 6px; }
 .coin-icon { width: 17px; height: 17px; vertical-align: -4px; margin-right: 6px; }

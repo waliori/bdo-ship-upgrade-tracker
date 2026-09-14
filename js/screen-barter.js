@@ -1143,7 +1143,7 @@ function aheadHTML(gains, plan, prof) {
 	return `<p class="run-ahead"><b>${F(short)}</b> goods short of the targets · <b>${F(runs)}</b> more run${runs === 1 ? '' : 's'} like this one · about <b>${F(days)}</b> day${days === 1 ? '' : 's'} at ${F(perDay)} board${perDay === 1 ? '' : 's'} a day${prof.barterCount ? ` · <b>${F(prof.barterCount + runs * plan.trades)}</b> barters by then` : ''}${slots ? ` · the full stock is <b>${F(slots)}</b> storage slots, one to a kind` : ''}</p>`;
 }
 
-function ordersHTML(o, stocking = false) {
+function ordersHTML(o, stocking = false, coining = false) {
 	const adjusted = !onPreset(o);
 	const presets = PRESETS.map(p => `<button class="seg${o.preset === p.id ? ' on' : ''}" data-act="barter-preset" data-id="${p.id}" title="${esc(p.sub)}">${esc(p.label)}</button>`).join('');
 	// An option is a short label in the box and, where it needs one, a
@@ -1158,13 +1158,17 @@ function ordersHTML(o, stocking = false) {
 	// The stock run has its own head -- the sheet of targets above, and
 	// what the day is for -- and no wharf to set: it sells nothing.
 	return `<div class="orders">
-		${stocking ? stockHTML() : `<div class="orders-head">
+		${stocking ? stockHTML() : coining ? `<div class="orders-head">
+			<span class="run-pick-k">the day is for</span>
+			<span class="orders-coin">${img(COIN, 'group-icon')}<b>Crow Coins</b></span>
+			<span class="orders-sub">every climb stops at [Level 4] and is handed to an island that pays in coins. Nothing is sold, so a wharf is somewhere to leave goods and nothing else; what is left to set is the pace, the way round, and what is kept back from the coin islands.</span>
+		</div>` : `<div class="orders-head">
 			<span class="run-pick-k">the run is for</span>
 			<span class="segs" role="group" aria-label="What the run is for">${presets}</span>
 			${adjusted ? `<span class="orders-adjusted">adjusted · <button class="linky" data-act="barter-preset" data-id="${esc(o.preset)}">back to the preset</button></span>` : `<span class="orders-sub">${esc((PRESETS.find(p => p.id === o.preset) || PRESETS[0]).sub)}</span>`}
 		</div>`}
 		<div class="run-picks">
-			${stocking ? '' : sel('barter-sell', 'a wharf sells', o.sell, SELL_CHOICES, 'Which goods a wharf call turns into silver; Level 1 and 2 never sell')}
+			${stocking || coining ? '' : sel('barter-sell', 'a wharf sells', o.sell, SELL_CHOICES, 'Which goods a wharf call turns into silver; Level 1 and 2 never sell')}
 			${sel('barter-buy', 'land goods', o.buy ? (o.landFrom === 'stock' ? 'stock' : 'buy') : 'no', LAND_CHOICES)}
 			${sel('barter-pace', 'pace', o.pace, [['fast', 'fast', 'No wharf calls, never slower than full speed: only what the hold carries under the limit'], ['steady', 'full, never slower', 'Every attempt, the hold kept under the limit by calling at a wharf to leave the surplus — more calls, full speed'], ['full', 'full, loaded', 'Every attempt, the hold taken up to the barter ceiling — a quarter over the limit, sailing slower — and a wharf call only where the next island would not deal']])}
 			${sel('barter-vouchers', 'trade vouchers', o.vouchers, VOUCHER_CHOICES, 'Whether the run draws on the Crow’s Trade Vouchers you carry; each is a quarter of a bar, on its own two-hour cooldown')}
@@ -1177,7 +1181,9 @@ function ordersHTML(o, stocking = false) {
 		</div>
 		${stocking ? '' : `<div class="run-floors" title="Kept back for the boards to come: never sold, never spent below this many">
 			<span class="run-pick-k">keep back, of every good at a level</span>${floors}
-			<span class="orders-sub floors-note">a floor is what the selling never touches — to sell nothing at all and fill the pile to a number, <button class="linky" data-act="barter-goal" data-id="stock">build a stock</button> instead</span>
+			<span class="orders-sub floors-note">${coining
+				? 'a floor is held back from the coin islands too: a [Level 4] kept is a [Level 4] not cashed, so a floor at 4 is what this day pays for in coins'
+				: 'a floor is what the selling never touches — to sell nothing at all and fill the pile to a number, <button class="linky" data-act="barter-goal" data-id="stock">build a stock</button> instead'}</span>
 		</div>`}
 		<div class="run-pauses" title="How long the ship actually sits at a stop, apart from the sailing: only the clock uses these">
 			<span class="run-pick-k">a stop takes, apart from the sailing</span>
@@ -2035,7 +2041,7 @@ function silverParts(me, b) {
 		const reachNote = reach ? `<div class="reach-bar"><span>Reaching <b>${esc(reach)}</b> for the material run. Look at one island first: the chains that pass it follow from the board.</span><button class="chip tiny" data-act="barter-goal" data-id="material">← the material run</button><button class="chip tiny" data-act="barter-reach-clear">clear</button></div>` : '';
 		return {
 			chains: `<section class="panel barter-chains">${head}${reachNote ? `<div class="panel-body">${reachNote}</div>` : ''}<p class="empty">The chains follow the board: look at one island in the game and tap what it shows.</p></section>`,
-			run: `<section class="panel barter-run"><div class="panel-head run-head"><h2 class="panel-title plain">The run</h2><span class="panel-sub">${stocking ? 'the stock to build, before the board is known' : 'what today could pay, before the board is known'}</span></div><div class="panel-body">${ordersHTML(stocking ? stockOrders(ordersNow(), stockGoal) : ordersNow(), stocking)}${evHTML}</div>${evHTML ? '' : '<p class="empty">Nothing to lay out until the board is known.</p>'}</section>`,
+			run: `<section class="panel barter-run"><div class="panel-head run-head"><h2 class="panel-title plain">The run</h2><span class="panel-sub">${stocking ? 'the stock to build, before the board is known' : 'what today could pay, before the board is known'}</span></div><div class="panel-body">${ordersHTML(stocking ? stockOrders(ordersNow(), stockGoal) : ordersNow(), stocking, coining)}${evHTML}</div>${evHTML ? '' : '<p class="empty">Nothing to lay out until the board is known.</p>'}</section>`,
 			rest: '', dock: ''
 		};
 	}
@@ -2340,7 +2346,7 @@ function silverParts(me, b) {
 	const sheetHead = `<div class="panel-head run-sheet-head"><h2 class="panel-title">The run</h2><span class="panel-sub">${chosen.length} chain${chosen.length === 1 ? '' : 's'}${plan.silver ? ` · ${FC(Math.round(plan.net))}${plan.cost ? ' net' : ''}` : ''}${legs.total ? ` · ≈ ${esc(legs.time)}` : ''}${from ? ` · from ${esc(from.name)}` : ''}</span>${questsLine(qp, o.quests)}</div>`;
 	return {
 		chains: chainsPanel,
-		run: `<section class="panel barter-run">${runHead}<div class="panel-body">${ordersHTML(o, stocking)}${tiles}</div></section>`,
+		run: `<section class="panel barter-run">${runHead}<div class="panel-body">${ordersHTML(o, stocking, coining)}${tiles}</div></section>`,
 		rest: `${sheetHead}${empty}${shelvesHTML(plan, from)}${questsPanels(qp, from)}${segs}${kept}${plan.stops.length ? `<div class="run-foot${sailing() ? ' sailing' : ''}">${sailBar(plan)}${chartButton(plan.stops, '')}</div>` : ''}`,
 		dock: foot
 	};
