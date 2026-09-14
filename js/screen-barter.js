@@ -2041,7 +2041,11 @@ function silverParts(me, b) {
 	const ratios = store.getProfile('ratios', {}) || {};
 	if (o.count !== 'least') for (const c of all) for (const r of c.rungs) { const n = countAs(r, o, ratios); if (n) seen[r.npcId] = n; }
 	Object.assign(seen, (sailing() || {}).seen || {});
-	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen, keep: reach ? [reach] : [], land };
+	// Everything the sailor holds, wherever it is: a floor is about the
+	// pile, not about the hold, so a run must know the whole of it
+	// before it decides what it may spend.
+	const owned = Object.fromEntries(everythingHeld());
+	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen, keep: reach ? [reach] : [], land, owned };
 	// Each chain on its own, for its row: the list is sorted by the
 	// yardstick, silver a Parley unit, the guide's measure of a chain,
 	// so the best use of the day's Parley is at the top of its group.
@@ -2060,7 +2064,7 @@ function silverParts(me, b) {
 	// decides which chains exist at all, and a search kept across a
 	// change of it would answer for chains this board no longer lists.
 	const ceiling = stocking ? stockGoal.ceiling : 0;
-	const pkey = JSON.stringify([board.day, b.combo.id, stock, dock, [...land], o, port, stash, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, reach, prof.barterCount, aim, ceiling]);
+	const pkey = JSON.stringify([board.day, b.combo.id, stock, dock, owned, [...land], o, port, stash, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, reach, prof.barterCount, aim, ceiling]);
 	const search = { chains: all, opts, ship, timeCap: o.hours, aim };
 	// The search goes to the worker and the page draws meanwhile; asked
 	// again when the inputs change, or when an answer is owed and no

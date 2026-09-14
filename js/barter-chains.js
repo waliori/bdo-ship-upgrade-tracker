@@ -66,8 +66,15 @@ export function chains(barterData, stock = {}, dock = {}, barterCount = null, ce
 	const aboard = goodsHeld(stock), ashore = goodsHeld(dock);
 	for (const item of new Set([...aboard.keys(), ...ashore.keys()])) {
 		if (levelOf(item) >= top) continue;
-		const have = aboard.get(item) || 0, load = ashore.get(item) || 0;
-		for (const r of takes(item)) for (const rungs of walk(r, [])) out.push({ from: have > 0 ? 'hold' : 'dock', item, have, load, rungs });
+		const have = aboard.get(item) || 0, waiting = ashore.get(item) || 0;
+		for (const r of takes(item)) for (const rungs of walk(r, [])) {
+			// Only what the first island will deal with is worth loading,
+			// and so only that is what the row promises: a storage with
+			// thirty of a good and an island that takes eight is a run
+			// that loads eight.
+			const load = Math.min(waiting, Math.max(0, rungs[0].tries * rungs[0].giveN - have));
+			out.push({ from: have > 0 ? 'hold' : 'dock', item, have, load, rungs });
+		}
 	}
 	const seen = new Set();
 	return out
@@ -216,22 +223,41 @@ function sequence(order, lots, npcById, start) {
  * it would sell for. `keep` names goods never sold, whatever the orders:
  * the good a material run sent the sailor here for.
  */
-export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [], land = new Map() } = {}) {
+export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [], land = new Map(), owned = null } = {}) {
 	// What an island was seen to pay this run, tapped on the checklist,
 	// replaces the range the table gives for it: counted and weighed at
 	// that, no longer at the least and the most.
 	const fix = r => (seen[r.npcId] > 0 ? { ...r, recv: seen[r.npcId], recvMin: seen[r.npcId], recvMax: seen[r.npcId], recvText: String(seen[r.npcId]) } : r);
 	const chosen = Object.keys(seen).length ? picked.map(c => ({ ...c, rungs: c.rungs.map(fix) })) : picked;
 	const held = goodsHeld(stock);          // the goods counted at the least
-	// What the chosen chains start from and the start port's storage
-	// holds is loaded before casting off -- all of it, since the chain
-	// row promised as much; the hold panel is where a count is trimmed.
+	// Everything the sailor holds, wherever it is: the hold, the start
+	// port, and every other storage the caller knows of. A floor is
+	// about the pile, not about the hold -- a sailor with three hundred
+	// ashore and a floor of ten is not short of anything -- so what may
+	// be spent of a good is what is owned of it above its floor, and
+	// that is tracked here rather than measured against the hold alone.
+	const ownedNow = new Map();
+	const owning = (name, n) => ownedNow.set(name, Math.max(0, (ownedNow.get(name) || 0) + n));
+	for (const src of owned ? [owned] : [stock, dock]) for (const [name, n] of goodsHeld(src)) owning(name, n);
+	const budgetOf = name => Math.max(0, (ownedNow.get(name) || 0) - floorOf(name, orders));
+
+	// What the chosen chains start from is loaded at the harbour they
+	// sail from -- but only what the first island will actually deal
+	// with, and only what the floor allows to be spent. Loading the
+	// whole storage put a hold of ninety thousand LT on a ship that
+	// carries eleven, and then left it all back at the first wharf: the
+	// numbers were nonsense and the run looked mad.
 	const ashore = goodsHeld(dock);
 	const loaded = [];
 	for (const c of chosen) {
-		if (c.from === 'land' || !ashore.has(c.item)) continue;
-		const n = ashore.get(c.item);
-		ashore.delete(c.item);
+		if (c.from === 'land') continue;
+		const have = ashore.get(c.item) || 0;
+		if (!have) continue;
+		const first = c.rungs[0];
+		const most = Math.max(0, first.tries * first.giveN - (held.get(c.item) || 0));
+		const n = Math.min(have, most, budgetOf(c.item));
+		if (n <= 0) continue;
+		if (n >= have) ashore.delete(c.item); else ashore.set(c.item, have - n);
 		held.set(c.item, (held.get(c.item) || 0) + n);
 		loaded.push({ item: c.item, n });
 	}
@@ -400,7 +426,7 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 	// takes and the orders always sell, are the common case.
 	const saleAt = i => {
 		const need = needFrom(i);
-		return [...held].map(([name, n]) => [name, Math.min(n - (need.get(name) || 0), n - floorOf(name, orders))])
+		return [...held].map(([name, n]) => [name, Math.min(n - (need.get(name) || 0), budgetOf(name))])
 			.filter(([name, n]) => n > 1e-9 && sellable(name, orders) && !keep.includes(name));
 	};
 
@@ -412,6 +438,7 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 		if (sale.length) {
 			stop.sale = { n: 0, total: 0, levels: new Set(), items: [] };
 			for (const [name, n] of sale) {
+				owning(name, -n);
 				sold.push({ item: name, n, each: sellOf(name), total: n * sellOf(name), at: wharf.at, chain });
 				stop.sale.items.push({ item: name, n, total: n * sellOf(name) });
 				stop.sale.n += n;
@@ -462,7 +489,8 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 		}
 		// What is aboard above the floor kept back is what can be spent.
 		const ashoreLeft = fromPile ? pile.get(r.give) || 0 : Infinity;
-		const spendable = ashore ? ashoreLeft : Math.max(0, (held.get(r.give) || 0) - floorOf(r.give, orders));
+		// What is aboard, and no more of it than the floor lets go of.
+		const spendable = ashore ? ashoreLeft : Math.min(held.get(r.give) || 0, budgetOf(r.give));
 		let want = Math.min(cap.get(r), Math.floor(spendable / r.giveN + 1e-9));
 		if (perTrade > 0) want = Math.min(want, Math.floor((parley.bar - spent) / perTrade));
 		let times;
@@ -514,7 +542,8 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 			pile.set(r.give, (pile.get(r.give) || 0) - times * r.giveN);
 			taken.set(r.give, (taken.get(r.give) || 0) + times * r.giveN);
 		} else if (ashore) bought.set(r.give, (bought.get(r.give) || 0) + times * r.giveN);
-		else { take(held, r.give, times * r.giveN); take(heldMax, r.give, times * r.giveN); }
+		else { take(held, r.give, times * r.giveN); take(heldMax, r.give, times * r.giveN); owning(r.give, -times * r.giveN); }
+		owning(r.item, times * r.recvMin);
 		held.set(r.item, (held.get(r.item) || 0) + times * r.recvMin);
 		heldMax.set(r.item, (heldMax.get(r.item) || 0) + times * r.recvMax);
 		weight = weightHeld(heldMax);

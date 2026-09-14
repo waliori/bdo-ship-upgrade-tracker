@@ -276,3 +276,49 @@ test('the shore goods can come from a pile the sailor keeps: no more chains than
 	assert.equal(none.trades, 0);
 	assert.ok(chainRun({ ...opts, orders: { ...orders, landFrom: 'buy' } }).trades > 0);
 });
+
+test('only what the first island will deal with is loaded, however much waits ashore', () => {
+	// A good the board takes, with far more of it in the harbour's
+	// storage than any island will deal with in a day.
+	const ladder = chains(data).find(c => c.from === 'land' && c.rungs.length >= 3);
+	const good = ladder.rungs[0].item;
+	const dock = { [good]: 400 };
+	const c = chains(data, {}, dock).find(x => x.from === 'dock' && x.item === good);
+	const first = c.rungs[0];
+	const room = first.tries * first.giveN;
+	assert.ok(room < 400, 'the fixture is only a fixture if the storage holds more than the island wants');
+	// The row promises what the run will do, rather than the whole pile.
+	assert.equal(c.load, room);
+	const start = ports.find(p => p.name === 'Velia');
+	const run = chainRun({ chosen: [c], dock, hold, parley, npcById, start, stashes, pace: 'full', orders: PLAIN_ORDERS });
+	assert.deepEqual(run.loaded, [{ item: good, n: room }], 'and the run loads that and no more');
+	// The hold is a hold again: four hundred of a [Level 4] weighed
+	// four hundred thousand LT on a hull that carries twenty-three.
+	assert.ok(run.weightStart <= room * GOODS[levelOf(good)].weight);
+	assert.ok(run.weightStart <= hold.max, `${run.weightStart} LT aboard before casting off`);
+	// And nothing is carried out of the harbour only to be put straight
+	// back in it at the first wharf call.
+	const dumpedFirst = (run.stops[0] && run.stops[0].dropped) || [];
+	assert.ok(!dumpedFirst.some(d => d.item === good), 'what was loaded is what the run has a use for');
+});
+
+test('a floor is about the pile, not about the hold: what is kept ashore counts', () => {
+	const ladder = chains(data).find(c => c.from === 'land' && c.rungs.length >= 3);
+	const good = ladder.rungs[0].item;
+	const lv = levelOf(good);
+	const dock = { [good]: 40 };
+	const c = chains(data, {}, dock).find(x => x.from === 'dock' && x.item === good);
+	const start = ports.find(p => p.name === 'Velia');
+	const orders = { ...PLAIN_ORDERS, floors: { [lv]: 10 }, pace: 'full' };
+	const opts = { chosen: [c], dock, hold, parley, npcById, start, stashes, pace: 'full', orders };
+	// Three hundred of it kept ashore: the floor of ten is met many
+	// times over, so the run spends what it loads.
+	const plenty = chainRun({ ...opts, owned: { [good]: 300 } });
+	assert.ok(plenty.trades > 0, 'a floor already met ashore does not stop the run');
+	// Ten of it in all, and a floor of ten: none of it may be spent, and
+	// the old reckoning -- the floor against the hold alone -- would
+	// have had it spend everything above ten *of what it carried*.
+	const tight = chainRun({ ...opts, dock: { [good]: 10 }, owned: { [good]: 10 } });
+	assert.equal(tight.trades, 0, 'the last ten are the stock, wherever they are');
+	assert.deepEqual(tight.loaded, [], 'and there is no sense in loading them');
+});
