@@ -305,11 +305,44 @@ export const MIGRATIONS = [
 			// subscribe -- so the default says so.
 			await run('ALTER TABLE push_subs ADD COLUMN vell INTEGER NOT NULL DEFAULT 1');
 		}
+	},
+	{
+		version: 7,
+		up: async run => {
+			// How the words of an entry are to be read. Everything sent
+			// from now on is the small markup in js/markup.js; everything
+			// already in the table was typed as plain words, and an
+			// asterisk somebody wrote last month must not turn into
+			// emphasis because this shipped. So the old rows keep the
+			// default and are rendered as what they were.
+			await run("ALTER TABLE feedback ADD COLUMN format TEXT NOT NULL DEFAULT 'plain'");
+			// The screenshots sent with a report. The bytes are on disk
+			// (config.uploadDir); this is the part that has to be asked
+			// questions -- whose it is, which entry it belongs to, and
+			// whether it was ever attached to one at all. A row with no
+			// entry is an upload still being composed, and is swept if
+			// the report is never sent.
+			await run(`CREATE TABLE IF NOT EXISTS feedback_files (
+				id          TEXT PRIMARY KEY,
+				user_id     TEXT NOT NULL,
+				feedback_id INTEGER,
+				mime        TEXT NOT NULL,
+				bytes       INTEGER NOT NULL,
+				width       INTEGER,
+				height      INTEGER,
+				name        TEXT,
+				created_at  INTEGER NOT NULL
+			)`);
+			// The two questions asked of it: what does this entry carry,
+			// and what is this account still holding unattached.
+			await run('CREATE INDEX IF NOT EXISTS feedback_files_entry ON feedback_files (feedback_id)');
+			await run('CREATE INDEX IF NOT EXISTS feedback_files_owner ON feedback_files (user_id, feedback_id)');
+		}
 	}
 ];
 
 /** The data tables, in the order a restore has to write them (parents first). */
-export const TABLES = ['users', 'saves', 'push_subs', 'push_alerts', 'feedback', 'community', 'presence'];
+export const TABLES = ['users', 'saves', 'push_subs', 'push_alerts', 'feedback', 'feedback_files', 'community', 'presence'];
 
 /**
  * Bring the database up to the newest version. Safe to run any number
@@ -596,29 +629,49 @@ export async function deleteAccount(userId) {
  * Feedback
  * ------------------------------------------------------------------ */
 
-export async function insertFeedback({ userId, username, kind, text, page, contact, version, agent }) {
+export async function insertFeedback({ userId, username, kind, text, format, page, contact, version, agent }) {
 	await migrate();
 	const { lastInsertRowid } = await exec({
-		sql: `INSERT INTO feedback (user_id, username, kind, text, page, contact, version, agent, status, created_at)
-		      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`,
-		args: [userId ?? null, username ?? null, kind, text, page ?? null, contact ?? null, version ?? null, agent ?? null, Date.now()]
+		sql: `INSERT INTO feedback (user_id, username, kind, text, format, page, contact, version, agent, status, created_at)
+		      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`,
+		args: [userId ?? null, username ?? null, kind, text, format || 'plain', page ?? null, contact ?? null, version ?? null, agent ?? null, Date.now()]
 	});
 	return Number(lastInsertRowid);
 }
 
-/** The newest entries, open ones first. */
+const entryOf = r => ({
+	id: Number(r.id), userId: r.user_id || null, username: r.username || null, kind: r.kind, text: r.text,
+	format: r.format || 'plain',
+	page: r.page || null, contact: r.contact || null, version: r.version || null, agent: r.agent || null,
+	status: r.status, createdAt: Number(r.created_at), files: []
+});
+
+/** The newest entries, open ones first, each with its screenshots. */
 export async function listFeedback(limit = 200) {
 	await migrate();
 	const { rows } = await exec({
-		sql: `SELECT id, user_id, username, kind, text, page, contact, version, agent, status, created_at
+		sql: `SELECT id, user_id, username, kind, text, format, page, contact, version, agent, status, created_at
 		      FROM feedback ORDER BY (status = 'open') DESC, created_at DESC LIMIT ?`,
 		args: [limit]
 	});
-	return rows.map(r => ({
-		id: Number(r.id), userId: r.user_id || null, username: r.username || null, kind: r.kind, text: r.text,
-		page: r.page || null, contact: r.contact || null, version: r.version || null, agent: r.agent || null,
-		status: r.status, createdAt: Number(r.created_at)
-	}));
+	const entries = rows.map(entryOf);
+	if (!entries.length) return entries;
+
+	// One more query for every picture of every entry on the page,
+	// rather than one query per entry: the inbox is two hundred rows at
+	// most and Turso is a round trip away.
+	const by = new Map(entries.map(e => [e.id, e]));
+	const { rows: files } = await exec({
+		sql: `SELECT id, feedback_id, mime, bytes, width, height, name
+		      FROM feedback_files WHERE feedback_id IN (${entries.map(() => '?').join(', ')})
+		      ORDER BY created_at`,
+		args: entries.map(e => e.id)
+	});
+	for (const f of files) {
+		const entry = by.get(Number(f.feedback_id));
+		if (entry) entry.files.push(fileOf(f));
+	}
+	return entries;
 }
 
 export async function setFeedbackStatus(id, status) {
@@ -626,10 +679,119 @@ export async function setFeedbackStatus(id, status) {
 	await exec({ sql: 'UPDATE feedback SET status = ? WHERE id = ?', args: [status, id] });
 }
 
+/** An entry and the rows for its pictures, gone. The files themselves
+ *  are the caller's to unlink -- this file does not touch the disk. */
+export async function deleteFeedback(id) {
+	await migrate();
+	const { rows } = await exec({
+		sql: 'SELECT id, mime FROM feedback_files WHERE feedback_id = ?',
+		args: [id]
+	});
+	await exec({ sql: 'DELETE FROM feedback_files WHERE feedback_id = ?', args: [id] });
+	await exec({ sql: 'DELETE FROM feedback WHERE id = ?', args: [id] });
+	return rows.map(r => ({ id: String(r.id), mime: r.mime }));
+}
+
 export async function countFeedback(status = 'open') {
 	await migrate();
 	const { rows } = await exec({ sql: 'SELECT COUNT(*) AS n FROM feedback WHERE status = ?', args: [status] });
 	return Number(rows[0] && rows[0].n) || 0;
+}
+
+/**
+ * What one account has sent lately: how many are still open, how many
+ * in the last day, and when the last one was.
+ *
+ * One query, because it is asked on the way in to every send and the
+ * three answers are three ceilings on the same table.
+ */
+export async function feedbackStanding(userId, since) {
+	await migrate();
+	const { rows } = await exec({
+		sql: `SELECT
+		        SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) AS open,
+		        SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) AS lately,
+		        MAX(created_at) AS last
+		      FROM feedback WHERE user_id = ?`,
+		args: [since, userId]
+	});
+	const r = rows[0] || {};
+	return { open: Number(r.open) || 0, lately: Number(r.lately) || 0, last: Number(r.last) || 0 };
+}
+
+/* ------------------------------------------------------------------ *
+ * The pictures sent with them
+ * ------------------------------------------------------------------ */
+
+const fileOf = r => ({
+	id: String(r.id), mime: r.mime, bytes: Number(r.bytes),
+	width: r.width === null ? null : Number(r.width),
+	height: r.height === null ? null : Number(r.height),
+	name: r.name || null,
+	...(r.user_id === undefined ? {} : { userId: r.user_id, feedbackId: r.feedback_id === null ? null : Number(r.feedback_id) })
+});
+
+export async function insertFile({ id, userId, mime, bytes, width, height, name }) {
+	await migrate();
+	await exec({
+		sql: `INSERT INTO feedback_files (id, user_id, feedback_id, mime, bytes, width, height, name, created_at)
+		      VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?)`,
+		args: [id, userId, mime, bytes, width ?? null, height ?? null, name ?? null, Date.now()]
+	});
+}
+
+/** One picture, with who owns it and what it hangs on. */
+export async function getFile(id) {
+	await migrate();
+	const { rows } = await exec({
+		sql: 'SELECT id, user_id, feedback_id, mime, bytes, width, height, name FROM feedback_files WHERE id = ?',
+		args: [id]
+	});
+	return rows[0] ? fileOf(rows[0]) : null;
+}
+
+/** The pictures this account has uploaded and not yet sent with anything. */
+export async function pendingFiles(userId) {
+	await migrate();
+	const { rows } = await exec({
+		sql: `SELECT id, user_id, feedback_id, mime, bytes, width, height, name
+		      FROM feedback_files WHERE user_id = ? AND feedback_id IS NULL ORDER BY created_at`,
+		args: [userId]
+	});
+	return rows.map(fileOf);
+}
+
+/**
+ * Hang a set of pending pictures on an entry.
+ *
+ * The owner is in the WHERE clause and so is "not already attached":
+ * an id that belongs to somebody else, or that has already been sent
+ * with another report, is silently not attached rather than moved.
+ */
+export async function attachFiles(ids, feedbackId, userId) {
+	if (!ids.length) return 0;
+	await migrate();
+	const { rowsAffected } = await exec({
+		sql: `UPDATE feedback_files SET feedback_id = ?
+		      WHERE user_id = ? AND feedback_id IS NULL AND id IN (${ids.map(() => '?').join(', ')})`,
+		args: [feedbackId, userId, ...ids]
+	});
+	return Number(rowsAffected) || 0;
+}
+
+export async function deleteFile(id) {
+	await migrate();
+	await exec({ sql: 'DELETE FROM feedback_files WHERE id = ?', args: [id] });
+}
+
+/** Uploads nobody ever sent, older than `before`. Swept on a timer. */
+export async function staleFiles(before) {
+	await migrate();
+	const { rows } = await exec({
+		sql: 'SELECT id, mime FROM feedback_files WHERE feedback_id IS NULL AND created_at < ?',
+		args: [before]
+	});
+	return rows.map(r => ({ id: String(r.id), mime: r.mime }));
 }
 
 /* ------------------------------------------------------------------ *

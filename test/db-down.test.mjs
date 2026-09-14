@@ -13,6 +13,9 @@ process.env.DISCORD_CLIENT_SECRET = 'test-secret';
 // A file in a directory that does not exist: libSQL cannot open it, and
 // fails at once rather than after a network timeout.
 process.env.TURSO_DATABASE_URL = 'file:/nonexistent/sail/tracker.db';
+// And nowhere to put a screenshot either, which is the other half of
+// what this suite is for: the box says so rather than offering one.
+process.env.UPLOAD_DIR = '/nonexistent/sail/uploads';
 process.env.SESSION_SECRET = 'test-secret-key-for-signing-sessions';
 
 const realWarn = console.warn;
@@ -25,7 +28,7 @@ test.after(() => { console.warn = realWarn; server.close(); });
 
 test('the page is served while the database is not', async () => {
 	assert.equal((await fetch(`${base}/`)).status, 200);
-	assert.deepEqual(await (await fetch(`${base}/api/config`)).json(), { sync: true, push: false, feedback: true, community: true, presence: true });
+	assert.deepEqual(await (await fetch(`${base}/api/config`)).json(), { sync: true, push: false, feedback: true, uploads: false, community: true, presence: true });
 });
 
 test('the healthcheck reports the database down with a 503', async () => {

@@ -1009,6 +1009,7 @@ and `docker compose up` read that file on their own:
 | `SESSION_SECRET` | any long random string — `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | optional, for Vell reminders by push — `npx web-push generate-vapid-keys`; needs the database, not Discord |
 | `ADMIN_IDS` / `FEEDBACK_WEBHOOK_URL` | optional: the Discord account ids that may read the feedback inbox, and a webhook that gets a copy of each entry |
+| `UPLOAD_DIR` | optional: where screenshots sent with a report are kept — `./.data/uploads` by default, which the compose volume already covers. `FEEDBACK_IMAGES=0` turns them off |
 
 Then check it before opening a browser:
 
@@ -1068,14 +1069,41 @@ for. Behind Cloudflare or nginx, two things are worth knowing:
 else, with the section you were on, the build and the browser attached.
 Wherever there is a database it lands in a table, and when
 `FEEDBACK_WEBHOOK_URL` names a Discord webhook the operator gets a copy
-the moment it arrives. Signed in, your Discord name goes along so a
-reply has somewhere to go; signed out, there is a field for that. On a
-browser-only copy there is no inbox, so the same dialog opens an issue
-on GitHub instead — that link is there in every case, for anyone who
-would rather write in public.
+the moment it arrives. On a browser-only copy there is no inbox, so the
+same dialog opens an issue on GitHub instead — that link is there in
+every case, for anyone who would rather write in public.
+
+A report is a post rather than a line. The words take the handful of
+marks everyone already types on Discord — `**bold**`, `*italic*`,
+`` `code` ``, `> quoted`, `- lists`, `1. steps`, `~~struck~~`,
+`||spoiler||`, `[words](link)` — with a bar of buttons over the box and
+a **Preview** beside them. A link that is the whole of its own line and
+points at YouTube or Streamable becomes the film, which loads nothing
+from either host until the play button is pressed. Nothing anyone
+writes is ever trusted as HTML: `js/markup.js` escapes the source first
+and then applies its grammar to the escaped text, so every tag in the
+output was put there by that file.
+
+Screenshots come with it — up to four, pasted, dropped or picked. The
+browser shrinks each to 1600 pixels on its long edge before sending, the
+server reads the type out of the bytes rather than believing the
+filename, and the picture is then served only to the account that sent
+it and to the admins. The bytes live on disk under `UPLOAD_DIR`
+(`./.data/uploads` by default, which the container already holds a
+volume over); the row that says whose it is lives in the database, and
+an upload attached to nothing is swept after a day.
+
+Sending needs an account. A report worth answering is worth being able
+to answer, a screenshot has to belong to somebody before it can be shown
+to anybody, and the ceilings have to be counted against something: one
+report a minute, four open at once, ten a day. Signed out, the dialog
+says so and offers the GitHub link. The operator is outside all three.
 
 The accounts listed in `ADMIN_IDS` get **Feedback inbox** on the same
-menu: what came in, open first, and a button to mark each done.
+menu: what came in, open first, filtered by kind, each post rendered as
+it was written with its screenshots where they were put — a click fills
+the screen with one — and a button to mark each done or throw it away
+with its pictures.
 
 ### The community boards
 
@@ -1162,6 +1190,7 @@ js/
   digest.js           what a save says about its sailor, for the boards
   screen-community.js the Community tab: the hall of fame, the fleet in numbers
   feedback.js         Menu → Feedback, and the admins' inbox
+  markup.js           the little markup a report is written in, and the HTML it becomes
   recipes.js          recipes and enhancement chains
   ships.js            what can be queued
   sea_coins.js        Crow Coin prices
@@ -1200,7 +1229,8 @@ server/               only loaded when sync is configured
   auth.js             the Discord OAuth exchange
   api.js              /api/me and /api/state
   community.js        /api/community — the boards, built from the digests
-  feedback.js         /api/feedback — the inbox, and a copy to a webhook
+  feedback.js         /api/feedback — posts, screenshots, the inbox, a copy to a webhook
+  images.js           is this actually a picture, and how big is it
   market.js           /api/market — the Market relay, on by default
   session.js          signed session cookies, no session table
 test/                 npm test — the server, the cost model, and a browser

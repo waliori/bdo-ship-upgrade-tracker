@@ -109,6 +109,7 @@ const SHELL = [
 	'/js/map/trace.js',
 	'/js/map/view.js',
 	'/js/market.js',
+	'/js/markup.js',
 	'/js/monster_art.js',
 	'/js/pace.js',
 	'/js/parley-ledger.js',

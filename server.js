@@ -14,7 +14,7 @@ import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { config, syncEnabled, pushEnabled, feedbackEnabled, communityEnabled, presenceEnabled, ephemeralSecret, describe } from './server/config.js';
+import { config, syncEnabled, pushEnabled, feedbackEnabled, uploadsEnabled, communityEnabled, presenceEnabled, ephemeralSecret, describe } from './server/config.js';
 import { presenceRoutes } from './server/presence.js';
 import { marketRoutes } from './server/market.js';
 import { accessLog, counters } from './server/log.js';
@@ -64,10 +64,17 @@ const CSP = [
 	"script-src 'self' 'wasm-unsafe-eval'",
 	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
 	"font-src 'self' https://fonts.gstatic.com",
-	// The signed-in chip shows the player's Discord avatar, which is the
-	// one image the page does not host itself.
-	"img-src 'self' data: https://cdn.discordapp.com",
+	// The signed-in chip shows the player's Discord avatar, and a
+	// feedback post that points at a film shows that film's still --
+	// the two images the page does not host itself. A screenshot sent
+	// with a report is served from here like everything else.
+	"img-src 'self' data: https://cdn.discordapp.com https://i.ytimg.com",
 	"connect-src 'self'",
+	// A film linked in a feedback post plays where it was linked, and
+	// only once it is asked to: nothing is loaded from either of these
+	// until the play button is pressed. YouTube under its no-cookie
+	// host, which is the same player without the tracking.
+	"frame-src https://www.youtube-nocookie.com https://streamable.com",
 	"frame-ancestors 'none'",
 	"base-uri 'none'",
 	"form-action 'self'",
@@ -209,12 +216,15 @@ if (pushEnabled) {
 // runs wherever there is a database. The community boards ride with sync
 // and are mounted with it above.
 if (feedbackEnabled) {
-	const [{ migrate }, { feedbackRoutes }] = await Promise.all([
+	const [{ migrate }, { feedbackRoutes, startUploadSweep }] = await Promise.all([
 		import('./server/db.js'),
 		import('./server/feedback.js')
 	]);
 	if (!syncEnabled && !pushEnabled) migrate().catch(err => console.warn('[db] tables not ready yet:', err.message));
 	app.use('/api', feedbackRoutes());
+	// Screenshots uploaded for a report that was never sent are given a
+	// day and then swept; see server/feedback.js.
+	if (uploadsEnabled && process.env.NODE_ENV !== 'test') startUploadSweep();
 }
 
 // Central Market prices, relayed from the community market API and
@@ -243,7 +253,7 @@ if (presenceEnabled) {
 // Discord app should not show a button that cannot work.
 app.get('/api/config', (req, res) => {
 	res.set('Cache-Control', 'no-store');
-	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, community: communityEnabled, presence: presenceEnabled });
+	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, uploads: uploadsEnabled, community: communityEnabled, presence: presenceEnabled });
 });
 
 // Is it up, and is the database behind it answering? `db` is 'off' on a
