@@ -45,8 +45,9 @@
 // goes out. Nothing is read from the store here.
 
 import { monsterByKey } from './sea_monsters.js';
+import { habitatsOf } from './habitats.js';
 import { handIn } from './quest-places.js';
-import { seaLeg } from './searoute.js';
+import { seaLeg, openSea } from './searoute.js';
 
 /**
  * A leg's length, following the water.
@@ -80,28 +81,74 @@ export const km = n => n * 0.25 / 1000;
 const SAME = 900;
 
 /**
- * Where a species can be hunted, as a short list of candidate grounds.
- *
- * The habitat markers are the game's own and are what a player would
- * steer for, so they come first. A species with none -- every young
- * one, and the Cox Pirates -- gets its spawn points bucketed on a
- * coarse grid and each busy bucket's centre offered instead, which is
- * what a "ground" means for something that is scattered.
+ * And two hunts are one call if their spots are within sight of each
+ * other -- six hundred metres. Where the game marks several species in
+ * one water their grounds do overlap, and sailing twice to the same
+ * stretch of sea to kill two things in it is not two errands.
  */
-export function groundsOf(m, cell = 9000, least = 4) {
+const TOGETHER = 2400;
+
+/**
+ * Where a species can actually be killed, as a short list of grounds.
+ *
+ * Not its habitat marker. A marker is a label the game's world map
+ * draws at a named ground -- one icon for the whole of it -- and it is
+ * placed to be read, not sailed to: the Hekaru marker sits where the
+ * word "Hekaru Habitat" wants to be, and the Hekaru are spread over
+ * the water round it. Steering for the icon is steering for a caption.
+ *
+ * So a ground here is the middle of a cluster of the species' own
+ * spawn points, found by the same clustering the chart already draws
+ * its habitats with, biggest cluster first, and nudged onto open water
+ * where a cluster rings an island and its centre lands on the rocks.
+ * Only a species the codex gives no positions for falls back to its
+ * marker, because a caption is still better than nothing.
+ */
+export function groundsOf(m) {
 	if (!m) return [];
-	if (m.zones && m.zones.length) return m.zones.map(([x, y]) => ({ x, y }));
-	if (!m.points || !m.points.length) return [];
-	const buckets = new Map();
-	for (const [x, y] of m.points) {
-		const k = `${Math.floor(x / cell)}|${Math.floor(y / cell)}`;
-		const b = buckets.get(k) || { x: 0, y: 0, n: 0 };
-		b.x += x; b.y += y; b.n++;
-		buckets.set(k, b);
+	if (m.points && m.points.length) {
+		const found = habitatsOf(m.points, { onWater: openSea });
+		if (found.length) return found.map(h => ({ x: h.x, y: h.y, n: h.n }));
 	}
-	const busy = [...buckets.values()].filter(b => b.n >= least).sort((a, b) => b.n - a.n);
-	const use = busy.length ? busy : [...buckets.values()].sort((a, b) => b.n - a.n).slice(0, 1);
-	return use.slice(0, 6).map(b => ({ x: b.x / b.n, y: b.y / b.n }));
+	if (m.zones && m.zones.length) return m.zones.map(([x, y]) => ({ x, y }));
+	return [];
+}
+
+/** How close another spawn has to be to count as company, and how much
+ *  company a spot needs before it is worth sailing to. */
+const COMPANY = 3000, ENOUGH = 3;
+const spotCache = new Map();
+
+/**
+ * The places within a species' grounds actually worth steering for.
+ *
+ * A ground is not a point, it is water -- the Hekaru fill a hundred
+ * and twelve spawns between Velia and Nampo -- so which part of it to
+ * sail to is not a property of the species at all, it depends on where
+ * the rest of the day goes. Handing the ordering the whole ground and
+ * letting it pick the near edge is the difference between crossing a
+ * sea and clipping its corner.
+ *
+ * Every spawn is a candidate, less the lonely ones: a spot with fewer
+ * than a couple of others within three thousand units is one monster
+ * in open water, not a place to hunt, and would send a sailor to the
+ * edge of the map for a single kill. A species the codex gives no
+ * positions for falls back to its clusters, then to its marker.
+ */
+export function spotsOf(m) {
+	if (!m) return [];
+	if (spotCache.has(m.key)) return spotCache.get(m.key);
+	const wet = (m.points || []).filter(([x, y]) => openSea(x, y));
+	// A ground that is a dozen bookmarks spread over ten kilometres --
+	// the Lyngbakr's -- has no crowded spot in it, and thinning it to
+	// nothing would throw away the only positions there are. So the
+	// crowd test only applies where it leaves something behind.
+	const crowded = wet.filter(([x, y]) => wet.reduce((n, p) =>
+		n + (Math.hypot(p[0] - x, p[1] - y) <= COMPANY ? 1 : 0), 0) > ENOUGH);
+	const out = (crowded.length ? crowded : wet).map(([x, y]) => ({ x, y }));
+	const spots = out.length ? out : groundsOf(m);
+	spotCache.set(m.key, spots);
+	return spots;
 }
 
 /** The kills a set of quests wants, by species, and which quests want them. */
@@ -210,7 +257,7 @@ export function questCourse(quests, from, { back = true, water = false } = {}) {
 		if (!h.quests.length) continue;
 		const last = Math.min(...h.quests.map(q => route.indexOf(handOf.get(q.id))));
 		let best = null;
-		for (const g of groundsOf(h.monster)) {
+		for (const g of spotsOf(h.monster)) {
 			// Room is needed before the first hand-in that waits on it.
 			const put = cheapest(sail, route.slice(0, last), g, 0, false);
 			if (put.where < 0) continue;
@@ -221,7 +268,7 @@ export function questCourse(quests, from, { back = true, water = false } = {}) {
 		// and the Candidum, Nineshark and Black Rust all have one at the
 		// same spot -- so a hunt that lands where the loop already calls
 		// joins that call instead of adding another beside it.
-		let at = route.find((c, i) => c.kind === 'hunt' && i < last && Math.hypot(c.x - best.x, c.y - best.y) <= SAME);
+		let at = route.find((c, i) => c.kind === 'hunt' && i < last && Math.hypot(c.x - best.x, c.y - best.y) <= TOGETHER);
 		if (!at) {
 			at = call('', best.x, best.y, 'hunt');
 			at.species = [];
@@ -243,7 +290,7 @@ export function questCourse(quests, from, { back = true, water = false } = {}) {
 			const at = young.find(c => route.indexOf(c) < hand)
 				|| (() => {
 					const m = monsterByKey[q.monster];
-					const g = groundsOf(m)[0];
+					const g = spotsOf(m)[0];
 					if (!g) return null;
 					const put = cheapest(sail, route.slice(0, hand), g, 0, false);
 					if (put.where < 0) return null;
@@ -265,6 +312,26 @@ export function questCourse(quests, from, { back = true, water = false } = {}) {
 	// greedy order above is built one call at a time and an early one is
 	// often in the wrong place by the end.
 	route = tidy(sail, route, handOf, 6, back);
+	// The order is settled; now each ground is slid along itself to the
+	// part of it the loop actually passes. A spot was chosen when the
+	// call was put in, against a route that has since moved round it --
+	// and a ground is water, not a point, so there is usually a nearer
+	// corner of it to meet.
+	for (let i = 1; i < route.length - 1; i++) {
+		const c = route[i];
+		if (c.kind !== 'hunt' || !c.species) continue;
+		// Only where every species at the call can still be found.
+		const all = c.species.map(sp => spotsOf(monsterByKey[sp.key]));
+		if (all.some(list => !list.length)) continue;
+		const a = route[i - 1], b = route[i + 1];
+		let best = null;
+		for (const g of all[0]) {
+			if (!all.every(list => list.some(o => Math.hypot(o.x - g.x, o.y - g.y) <= TOGETHER))) continue;
+			const cost = sail(a, g) + sail(g, b);
+			if (!best || cost < best.cost) best = { cost, x: g.x, y: g.y };
+		}
+		if (best && best.cost < sail(a, c) + sail(c, b)) { c.x = best.x; c.y = best.y; }
+	}
 
 	const points = route.map(c => ({ name: c.name, x: c.x, y: c.y, stop: c.kind !== 'port' }));
 	return {
