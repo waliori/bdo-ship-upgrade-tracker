@@ -3,7 +3,7 @@
 // live box on every frame; and the flight that carries the view.
 
 import { sailFor } from '../screen-barter.js';
-import { courseById } from '../courses.js';
+import { courseOf } from '../courses.js';
 import { monsters, monsterByKey } from '../sea_monsters.js';
 import { esc, F, FC } from '../fmt.js';
 import { img } from '../ui-bits.js';
@@ -128,7 +128,7 @@ export function paintMap() {
 		mv.pendingFit = false;
 		// A copy: the chart's own list must not grow course or monster points.
 		const points = marks.size ? [...marks.keys()].map(id => npcById.get(id)).filter(Boolean) : [...npcs];
-		for (const id of mv.coursesOn) points.push(...courseById[id].points);
+		for (const id of mv.coursesOn) points.push(...((courseOf(id) || { points: [] }).points));
 		for (const k of mv.huntsOn) points.push(...monsterByKey[k].points.map(([x, y]) => ({ x, y })));
 		const probe = { zoom: mv.mapState.zoom, centre: { ...mv.mapState.centre } };
 		fitTo(probe, size, only && only.length ? only : points);
@@ -632,7 +632,7 @@ function paintCourse(layer, size) {
 	if (!mv.coursesOn.length) { box.innerHTML = ''; return; }
 	let html = '';
 	for (const id of mv.coursesOn) {
-		const c = courseById[id];
+		const c = courseOf(id);
 		if (!c) continue;
 		const d = routePath(seaBent(c.points).map(p => project(mv.mapState, size, p.x, p.y)), size, 0);
 		html += `<svg class="map-route map-course-line course-${esc(id)}">

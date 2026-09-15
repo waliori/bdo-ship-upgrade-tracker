@@ -1,7 +1,7 @@
 // The game's own world map: its favourites, camera slots and loops
 // read back onto the chart, and the chart's stops written out for it.
 
-import { courses } from '../courses.js';
+import { allCourses } from '../courses.js';
 import { monsters } from '../sea_monsters.js';
 import { esc } from '../fmt.js';
 import { npcs } from '../barter_npcs.js';
@@ -238,7 +238,7 @@ let gameWrite = 'favorites';  // favorites, or 0..2 for one of the map's loops
  */
 function huntPoints() {
 	const out = [];
-	for (const c of courses) {
+	for (const c of allCourses()) {
 		if (!mv.coursesOn.includes(c.id)) continue;
 		for (const p of c.points) out.push({ name: p.name || c.name, x: p.x, y: p.y });
 	}

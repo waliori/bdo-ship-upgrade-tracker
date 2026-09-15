@@ -17,7 +17,10 @@
 // quest points at whichever young species has grounds nearest the
 // quest giver); `group` names a set of which the game allows one a
 // day -- the Old Moon Guild's four hunts -- so a plan does not count
-// all four; `at` is where it is done, as steps of
+// all four; `kills` is how many of them it wants, and `any: 'young'`
+// says any young one counts, whichever species -- the three quests
+// that ask for young sea monsters do not care which; `at` is where it
+// is done, as steps of
 // [kind, place, who, what] -- the kind a 'port', an 'isle' (its
 // barterer's spot) or a 'wharf' (by the wharf manager's name), all
 // placed on the chart already -- so a run on the Barter tab can say
@@ -79,6 +82,8 @@ export const quests = [
 	},
 	{
 		id: 'omg-young',
+		any: 'young',
+		kills: 5,
 		group: 'omg-hunt',
 		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/23',
@@ -91,6 +96,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-candidum',
+		kills: 1,
 		group: 'omg-hunt',
 		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/9',
@@ -103,6 +109,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-nineshark',
+		kills: 1,
 		group: 'omg-hunt',
 		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/10',
@@ -115,6 +122,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-blackrust',
+		kills: 1,
 		group: 'omg-hunt',
 		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/11',
@@ -127,6 +135,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-w-candidum',
+		kills: 1,
 		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/19',
 		monster: 'candidum',
@@ -138,6 +147,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-w-nineshark',
+		kills: 1,
 		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/20',
 		monster: 'nineshark',
@@ -149,6 +159,7 @@ export const quests = [
 	},
 	{
 		id: 'omg-w-blackrust',
+		kills: 1,
 		at: [['wharf', 'Ravikel', 'Ravikel', 'take and hand in']],
 		codex: '3707/21',
 		monster: 'black-rust',
@@ -160,6 +171,8 @@ export const quests = [
 	},
 	{
 		id: 'charity',
+		any: 'young',
+		kills: 2,
 		at: [['wharf', 'Ravikel', 'the soldier', 'take and hand in']],
 		codex: '3707/6',
 		monster: 'young-hekaru',
@@ -171,6 +184,7 @@ export const quests = [
 	},
 	{
 		id: 'hekaru',
+		kills: 1,
 		at: [['wharf', 'Ravikel', 'the soldier', 'take and hand in']],
 		codex: '3707/7',
 		monster: 'hekaru',
@@ -182,6 +196,7 @@ export const quests = [
 	},
 	{
 		id: 'winwin',
+		kills: 1,
 		at: [['wharf', 'Ravikel', 'the soldier', 'take and hand in']],
 		codex: '3707/8',
 		monster: 'ocean-stalker',
@@ -193,6 +208,8 @@ export const quests = [
 	},
 	{
 		id: 'increase',
+		any: 'young',
+		kills: 20,
 		at: [['wharf', 'Ravikel', 'the soldier', 'take and hand in']],
 		codex: '3707/22',
 		monster: 'young-ocean-stalker',
@@ -243,6 +260,7 @@ export const quests = [
 	},
 	{
 		id: 'hampering',
+		kills: 2,
 		at: [['wharf', 'Ravikel', 'Haeran', 'take and hand in']],
 		codex: '3726/1',
 		monster: 'black-rust',
@@ -254,6 +272,7 @@ export const quests = [
 	},
 	{
 		id: 'darkseas',
+		kills: 4,
 		at: [['wharf', 'Ravikel', 'Haeran', 'take and hand in']],
 		codex: '3726/2',
 		monster: 'black-rust',
@@ -265,6 +284,7 @@ export const quests = [
 	},
 	{
 		id: 'crocodile',
+		kills: 4,
 		at: [['wharf', 'Ravikel', 'Bave Ricksa', 'take and hand in']],
 		codex: '3839/1',
 		monster: 'saltwater-crocodile',
@@ -276,6 +296,7 @@ export const quests = [
 	},
 	{
 		id: 'hungry',
+		kills: 3,
 		at: [['port', 'Velia', 'Proix', 'take and hand in']],
 		codex: '3704/10',
 		monster: 'hekaru',
@@ -286,6 +307,7 @@ export const quests = [
 	},
 	{
 		id: 'coxscouts',
+		kills: 20,
 		at: [['port', 'Velia', 'Proix', 'take and hand in']],
 		codex: '3704/11',
 		monster: 'cox-pirates',
@@ -421,6 +443,7 @@ export const quests = [
 	},
 	{
 		id: 'lyngbakr',
+		kills: 2,
 		monster: 'lyngbakr',
 		at: [['wharf', 'Gangman', 'Gangman', 'take and hand in']],
 		codex: '3707/26',

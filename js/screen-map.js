@@ -39,7 +39,7 @@ export {
 	wireMap
 } from './map/gestures.js';
 export {
-	setMapPick, mapShowItem, mapFit, mapZoomStep, mapCentreOn, setMapMode, toggleMapPanel, toggleMapStop, useSuggestedRoute, reverseMapRoute, clearMapRoute, toggleMapDone, closeMapTip, mapCentreOnStash, openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapHabitats, setMapLabels, setMapPins, toggleMapLayers, setMapTraces, flipMapSide, setMapWharves, setMapCourse, setMapHunt, showHunt, setMapReturn, mapPortClick, reviveMapRoute, setMapKind
+	setMapPick, mapShowItem, mapFit, mapZoomStep, mapCentreOn, setMapMode, toggleMapPanel, toggleMapStop, useSuggestedRoute, reverseMapRoute, clearMapRoute, toggleMapDone, closeMapTip, mapCentreOnStash, openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapHabitats, setMapLabels, setMapPins, toggleMapLayers, setMapTraces, flipMapSide, setMapWharves, setMapCourse, setMapErrands, setMapErrandFrom, setMapErrandKinds, setMapHunt, showHunt, setMapReturn, mapPortClick, reviveMapRoute, setMapKind
 } from './map/actions.js';
 export {
 	gameImportRead, gameImportApply, openGameImport, gameImportAction, gameBookmarks, setGameWrite, openGameExport

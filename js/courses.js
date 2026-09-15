@@ -81,3 +81,19 @@ export const courses = [
 ];
 
 export const courseById = Object.fromEntries(courses.map(c => [c.id, c]));
+
+/**
+ * The day's errands, when there are any.
+ *
+ * Every course above is a line someone drew: the islands do not move,
+ * so it is right every day. The errands loop is not -- it is worked
+ * out from whatever quests are still open, and changes as they are
+ * ticked off -- so it does not live in the list, it is set here by
+ * whoever last worked it out, and the chart asks for a course by id
+ * rather than reaching into the table.
+ */
+let made = null;
+export const setMadeCourse = c => { made = c || null; };
+export const madeCourse = () => made;
+export const courseOf = id => courseById[id] || (made && made.id === id ? made : null);
+export const allCourses = () => (made ? [...courses, made] : courses);

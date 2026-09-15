@@ -20,6 +20,7 @@ import { marksNow, barterKind, goodsOf } from './marks.js';
 import { countPinned, pinButtonsHTML } from './offline.js';
 import { terrainStyle } from './terrain.js';
 import { routeHTML } from './route.js';
+import { errandsHTML } from './errands.js';
 import { traceHTML } from './trace.js';
 
 /** Vell's next spawn on the standing region's timetable, or null. */
@@ -69,7 +70,8 @@ function huntHTML() {
 		<button class="ghost-btn wide" data-act="map-hunt-game"
 			title="Write what is ticked here into the game's world map">⚑ Put ${picked === 1 ? 'it' : 'these'} on the game's map</button>
 	</div>` : '';
-	return `<div class="map-courses">
+	return `${errandsHTML()}
+	<div class="map-courses">
 		<div class="map-courses-head">Courses <span class="map-courses-credit">the Snuggle Sailies Route, from gpw’s ocean map</span></div>
 		${courseRows}
 	</div>

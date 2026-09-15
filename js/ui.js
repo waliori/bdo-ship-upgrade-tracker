@@ -58,7 +58,7 @@ import { openCoinBuy } from './coin-shop.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapCentreOnStash,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
-	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
+	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapErrands, setMapErrandFrom, setMapErrandKinds, setMapHunt, showHunt, toggleMapDone, closeMapTip,
 	saveRouteDialog, loadSavedRoute, deleteSavedRoute, mapWritingView, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite,
@@ -1030,6 +1030,8 @@ function wire() {
 				}
 				return;
 			case 'map-course': setMapCourse(el.dataset.id); return;
+			case 'map-errands': setMapErrands(); return;
+			case 'map-errand-kinds': setMapErrandKinds(el.dataset.id); return;
 			case 'map-wharves': setMapWharves(el.dataset.id); return;
 			case 'map-habitats': setMapHabitats(); return;
 			case 'map-labels': setMapLabels(); return;
@@ -1389,6 +1391,11 @@ function wire() {
 			// Same: the Parley a trade under the select is the bar's own.
 			return paintPouch({ force: true });
 		}
+
+		// Where the day's errands start and end. A select answers on
+		// change, not on click.
+		const ef = evt.target.closest('[data-act="map-errand-from"]');
+		if (ef) return setMapErrandFrom(ef.value);
 
 		// How the route is written to the game's map -- favourites or one
 		// of its loops. A select answers on change, not on click.
