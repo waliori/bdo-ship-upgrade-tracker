@@ -25,7 +25,7 @@ import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
 	open, seed, tab, click, clickIn, typeInto, drag, say, hush, wait,
-	onScreen, headerBtn, waitFor, film, cut, card, still, choose, doing, moveTo, clickText, spot
+	onScreen, headerBtn, waitFor, film, cut, card, still, choose, doing, moveTo, clickText, spot, spotAll
 } from './drive.mjs';
 import { warm, engine } from './voice.mjs';
 import { fittedShip, onePartToGo } from './states.mjs';
@@ -303,8 +303,13 @@ const CHAPTERS = {
 
 			await tab(page, 'get');
 			await wait(1400);
-			await spot(page, '.summary', s.short, { pad: 6 });
-			await spot(page, '[data-act="get-mode"]', s.modes, { pad: 8 });
+			// `.summary` alone is the sailor chip as well, and that one is
+			// higher up the page: the line about what you are short of was
+			// lighting the barter count.
+			await spot(page, '.want-band', s.short, { pad: 6 });
+			// Both readings, not whichever chip happens to be first: the
+			// line names them as a pair.
+			await spot(page, '.controls .chips', s.modes, { pad: 8 });
 			await say(page, s.plan);
 			await hush(page);
 
@@ -338,7 +343,23 @@ const CHAPTERS = {
 			await hush(page);
 
 			/* --- the steps ---------------------------------------------- */
-			await spot(page, '.way-step-head', s.steps, { pad: 6 });
+			// Folded first, and then all of them lit. A step open at its
+			// full height pushes the rest off the frame, so the line about
+			// the steps "in order" was said over one step and a gap; folded
+			// they are a list, and the head of each is exactly what the
+			// line claims -- where it happens, and how long it takes.
+			// One at a time and re-queried each round: a fold re-renders the
+			// panel, so every handle taken before the first click is
+			// detached by the second.
+			for (let go = 0; go < 12; go++) {
+				const open = await page.$('.way-step-head[aria-expanded="true"]');
+				if (!open) break;
+				await open.click();
+				await open.dispose();
+				await wait(220);
+			}
+			await wait(600);
+			await spotAll(page, '.way-step', s.steps, { pad: 6 });
 			await say(page, s.odds);
 			if (await onScreen(page, '.way-rules')) await spot(page, '.way-rules', s.never, { pad: 8 });
 			else await say(page, s.never);
@@ -390,7 +411,10 @@ const CHAPTERS = {
 			await tab(page, 'quests');
 			await wait(800);
 			await say(page, s.what);
-			await spot(page, '.quest', s.marked);
+			// The ones that pay something on the list, and as many of them
+			// as the frame holds: the line is about which rows are marked,
+			// and a box round one row shows no marking at all.
+			await spotAll(page, '.quest.wanted', s.marked, { pad: 6 });
 			if (await onScreen(page, '[data-act="quest-filter"]')) {
 				await spot(page, '[data-act="quest-filter"]', s.filter);
 			} else {
@@ -495,7 +519,11 @@ const CHAPTERS = {
 
 			/* --- hull and the four parts ------------------------------- */
 			await spot(page, '[data-act="crew-ship-pick"], [data-act="crew-ship"]', s.hull);
-			await spot(page, '.crew-grid, .slot-card', s.slots, { pad: 6 });
+			// `.crew-grid` is the whole two-column page, so "four part
+			// slots" was lighting the roster and the guide panels with
+			// them. The four cards themselves, and not the crystal or the
+			// appearance set -- both have beats of their own below.
+			await spotAll(page, '.slot-card:not(.crystal):not(.skin)', s.slots, { pad: 6 });
 			await spot(page, '.slot-card:not(.crystal):not(.skin)', s.best);
 			await spot(page, '[data-act="crew-fit-pick"]', s.change,
 				{ act: () => click(page, '[data-act="crew-fit-pick"]', { after: 900 }) });
@@ -542,7 +570,9 @@ const CHAPTERS = {
 			// The reader comes first because the roster really is empty
 			// until it runs: an earlier cut of this seated sailors that
 			// did not exist yet, and died on the first click.
-			await spot(page, '.sailor-list, [data-act="crew-hire"]', s.crew, { pad: 8 });
+			// `.sailor-list` is not a class this app has, so the line about
+			// the roster was lighting the Hire button beside it.
+			await spot(page, '.crew-panel:has([data-act="crew-hire"])', s.crew, { pad: 8 });
 			await spot(page, '[data-act="crew-import"]', s.shots,
 				{ act: () => click(page, '[data-act="crew-import"]', { after: 900 }) });
 			await doing(page, s.drop, async () => {
@@ -577,7 +607,9 @@ const CHAPTERS = {
 			await hush(page);
 
 			/* --- presets, setups, the fleet ---------------------------- */
-			await spot(page, '.presets, [data-act="crew-preset-save"]', s.presets, {
+			// "Two hot presets" -- both of them, rather than whichever
+			// button of the pair comes first.
+			await spotAll(page, '[data-act="crew-preset-apply"], [data-act="crew-preset-save"]', s.presets, {
 				pad: 8,
 				act: () => click(page, '[data-act="crew-preset-save"][data-p="p1"]', { after: 700 })
 			});
@@ -748,7 +780,9 @@ const CHAPTERS = {
 			} else {
 				await say(page, s.search);
 			}
-			await spot(page, '.map-tab', s.tabs, { pad: 6 });
+			// Five tabs named, so five tabs lit: `.map-tab` on its own is
+			// the Barter one.
+			await spotAll(page, '.map-tab', s.tabs, { pad: 6 });
 			await hush(page);
 
 			/* --- tab 1: Barter ----------------------------------------- */

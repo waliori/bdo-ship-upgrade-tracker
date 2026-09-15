@@ -14,7 +14,7 @@ opt-in, self-hosted and off by default.
 
 ![The Plan screen, part-way through two Carrack parts](docs/media/hero.png)
 
-**In a hurry?** [Watch the guide](docs/media/walkthrough.mp4) — sixteen
+**In a hurry?** [Watch the guide](docs/media/walkthrough.mp4) — seventeen
 minutes, in seven parts, and you can start at whichever one you came
 for. It is the real app being driven and narrated, not a mock-up; the
 only invented thing anywhere in it is the handful of sailors on the
