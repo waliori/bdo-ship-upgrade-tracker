@@ -69,6 +69,7 @@ const SHELL = [
 	'/js/barter-plan.js',
 	'/js/barter-worker.js',
 	'/js/barter.js',
+	'/js/barter_gates.js',
 	'/js/barter_npcs.js',
 	'/js/boot.js',
 	'/js/cheer.js',
