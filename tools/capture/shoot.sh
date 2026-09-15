@@ -39,8 +39,8 @@ echo "== webm -> gif"
 # run respectively.
 gif_size() {
 	case "$1" in
-		claim-a-quest|fit-a-ship|the-boards|share-a-ship|the-way) echo "780 10" ;;
-		plan-a-run|share-a-drawing) echo "720 8" ;;
+		claim-a-quest|fit-a-ship|the-boards|share-a-ship|the-way|a-call-in-hand) echo "780 10" ;;
+		plan-a-run|share-a-drawing|todays-errands) echo "720 8" ;;
 		# A tilting heightmap is the worst case a GIF can be handed:
 		# every pixel of every frame is new, and there is no flat colour
 		# anywhere to pay for it.
@@ -71,9 +71,12 @@ mkdir -p "$OUT/small"
 for name in chart-the-loop draw-a-route fit-a-ship share-a-ship; do
 	./tools/capture/togif.sh "$RAW/$name.webm" "$OUT/small/$name.gif" 560 9
 done
-for name in plan-a-run share-a-drawing; do
+for name in plan-a-run share-a-drawing your-own-board a-call-in-hand; do
 	./tools/capture/togif.sh "$RAW/$name.webm" "$OUT/small/$name.gif" 480 7
 done
+# The errands panel redraws its whole list at once and then the chart
+# under it, so it goes narrower and slower again.
+./tools/capture/togif.sh "$RAW/todays-errands.webm" "$OUT/small/todays-errands.gif" 440 6
 # The stood-up chart is the hard case twice over -- a tilting heightmap,
 # and one of the pictures the dialog itself serves -- so the narrow copy
 # goes narrower and slower again. At the settings above it is a

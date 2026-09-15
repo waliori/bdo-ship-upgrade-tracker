@@ -45,6 +45,12 @@ export const DATA = [
  * The rest are folded away behind "everything else", and printed in
  * full in the file.
  *
+ * `sum` is the one line an older release is worth to someone who was
+ * not here for it: what changed, in the words a player would use, no
+ * feature names and nothing technical. The What's New dialog carries
+ * every release below the current one, each shut, each showing only
+ * its `sum` until it is opened.
+ *
  * `thanks` names the players who asked for what is in the release, in
  * their own words. It is a field of its own rather than a section
  * because it must not be foldable: a person who wrote in and then had
@@ -53,9 +59,92 @@ export const DATA = [
  */
 export const RELEASES = [
 	{
+		id: '1.3',
+		name: 'The day the sea will actually give you',
+		date: '2026-09-15',
+		sum: 'The board now matches what your own barter count can really trade, and the app will plan your whole day of quests as one loop.',
+		blurb: 'Two things the app was guessing at, and it turns out the game says both of them out loud. '
+			+ 'A board is no longer everybody’s board — it is <b>the one your barter count can actually sail</b>, read from the game\u2019s own table. '
+			+ 'And a day of dailies and weeklies is no longer a list to work out for yourself: it is <b>one loop</b>, with a ground picked for every hunt, the kills added up, and nothing hunted after the man who pays for it.',
+		thanks: {
+			text: 'One player wrote in, twice, about the same thing. He was right both times.',
+			who: [
+				{
+					name: 'Zelpha',
+					said: 'rolled layout 5, i have the luivano/duch/randis chains but the other 3 arent available … picked eveto having liquor>urn but mariveno for example has nothin',
+					did: 'Not his luck: the game gates <i>each exchange</i> on its own barter count, and the app was drawing a board for an account that had unlocked everything. That is <b>the board you can sail</b>.'
+				}
+			],
+			foot: 'The box is under <b>Menu → Feedback</b>. It reaches whoever runs the site.'
+		},
+		sections: [
+			{
+				title: 'The board you can sail — not everyone else’s',
+				media: 'docs/media/small/your-own-board.gif',
+				alt: 'The board bar saying how many islands the barter count leaves out, and the list of them',
+				text: 'An island can be open to you while the one thing it is offering today is not, and its barter window is then simply blank. The board now leaves those out and says so.',
+				points: [
+					'The counts are the game’s own, baked out of the client: <b>every exchange has its own total</b>, not every island.',
+					'At <b>150</b> barters a board is short 32 islands of 84; at <b>1,082</b>, 20; past 20,000, none.',
+					'The bar says how many are left out and <b>what opens the next one</b>, and will list them with the offer each is showing.',
+					'Where the client ships no row — two tiers it leaves out — you can still say <b>“it will not trade with me”</b> and that island leaves the board until your next unlock.'
+				]
+			},
+			{
+				title: 'Today’s errands — the whole day as one loop',
+				media: 'docs/media/small/todays-errands.gif',
+				alt: 'The errands panel: a call a line, what to kill and how many, and the loop drawn on the chart',
+				text: 'Every daily and weekly you have not done, in the order that sails shortest. On the chart’s <b>Grounds</b> tab: pick a harbour, press the button.',
+				points: [
+					'A hunt is a <b>choice of grounds</b> — the Hekaru have four — and the one that suits the rest of the day wins.',
+					'<b>Seven Black Rust</b>, not one and two and four: the kills at a call are added up, and the hand-ins at one wharf are one call.',
+					'A ground is <b>never called at after the man who pays for it</b>.',
+					'The Old Moon Guild lets you do one of its four hunts a day, so it takes the one whose species a weekly already wants — the same kill paying twice.',
+					'The three quests that ask for young sea monsters take <b>any</b> young one, so they ride on whatever young ground the loop already passes.'
+				]
+			},
+			{
+				title: 'A call you can take hold of',
+				media: 'docs/media/small/a-call-in-hand.gif',
+				alt: 'A call opened: every quest done there, what it wants, what it pays, and the ways out of it',
+				text: 'Press a step and the chart flies there and the call opens — every quest done at it, with what it wants, where it hands in and what it pays.',
+				points: [
+					'A way through to <b>its row on the Quests tab</b>, and a way to <b>drop it</b>.',
+					'Dropping is not ticking off: the quest is not worth the detour <i>today</i>, so the loop is worked out again without it, and the panel says what was put aside and offers it back.',
+					'<b>Draw it</b> puts the loop on the Draw tab as a trace — named, keepable, shareable as a link.',
+					'<b>On the game’s map</b> writes it as bookmarks, numbered in sailing order and named by the work: <i>12: 7x Black Rust</i>.'
+				]
+			},
+			{
+				title: 'Hunt where the monsters are',
+				text: 'A habitat marker is a caption. The game’s world map draws one icon per named ground, placed where the words want to sit — and the app was steering for it. The Black Rust marker is the better part of <b>ten kilometres</b> from the nearest Black Rust; the Ocean Stalker’s is five, the Nineshark’s three and a half.',
+				points: [
+					'A ground is now the middle of a cluster of the species’ <b>own spawn points</b>.',
+					'And a ground is water, not a point, so the call is put on the part of it the loop passes — and slides along it once the order is settled.'
+				]
+			},
+			{
+				title: 'The crocodiles are where the crocodiles are',
+				text: 'The Lyngbakrs drove the Saltwater Crocodiles off that ground on 27 August, and the run in the Courses list was still pointing at it. It calls at their water off Cheongsa now, and is <b>shorter</b> than it was.',
+				points: [
+					'The Lyngbakr ground is a course of its own: out and back from Gangman’s wharf, where its weekly is handed in.'
+				]
+			},
+			{
+				title: 'A quest wears its own picture',
+				text: 'The icon BDOCodex draws beside each quest, on the Quests tab and small wherever else a quest is named. Twenty-three pictures for thirty-nine quests, which is the point — every Ravinia letter is one picture, every Old Moon Guild hunt another, so a long day’s list sorts itself by the kind of work in it.'
+			},
+			{
+				title: 'And the release notes keep the old ones',
+				text: 'This window now carries every release before this one, shut, each worth a line until you open it — for anyone who has been away longer than a week.'
+			}
+		]
+	},
+	{
 		id: '1.2',
 		name: 'What a day is for',
 		date: '2026-09-14',
+		sum: 'A day at sea can now be for four different things, and a clock that tells you when the ship is home.',
 		blurb: 'A day at sea had one shape: climb as high as the board goes, sell the top, count the silver. '
 			+ 'It has four now — <b>silver</b>, <b>a stock</b>, <b>Crow Coins</b>, <b>a material</b> — and the run is counted in whatever the day was for. '
 			+ 'Around them a clock that follows you out of the harbour, a sheet that says a thing once, and the bug that made “build the stocks” look mad.',
@@ -170,6 +259,7 @@ export const RELEASES = [
 		id: '1.1',
 		name: 'The plan, and the sea you can actually reach',
 		date: '2026-09-11',
+		sum: 'The app stopped listing your options and started telling you what to do next — and stopped sending you to islands you have not unlocked.',
 		blurb: 'Two players asked for the two big things in this one, and both asks turned out to be the same complaint from different ends: the app knew a great deal and left the deciding to you. '
 			+ '<b>To Get</b> now says how each thing <i>should</i> be got rather than only how it can be — one route through everything left, in the order it is done — and every barter plan is cut to the islands your own <b>total barters</b> have opened. '
 			+ 'Around those: the chart <b>stands up</b> on the game’s own terrain, the barter forecast counts how often the offer is really on the list, a crew reads off your own screenshots, the numbers about you — the nest of Bos’n Jacks among them — are typed once and read everywhere, and the boards keep up with your save.',
@@ -351,6 +441,7 @@ export const RELEASES = [
 		id: '1.0',
 		name: 'The yard and the sea',
 		date: '2026-09-07',
+		sum: 'The first release: the chart, the barter runs, the quests and the ship, added to the yard that was already here.',
 		blurb: 'The yard was here already: one inventory, the builds that draw on it, the Workshop and the shopping list. This release adds '
 			+ 'the sea you cross to pay for it — a <b>Map</b> with every barterer on it and the loop through them timed at your own hull’s speed, '
 			+ 'a <b>Barter</b> tab that plans a run on today’s board and sails it on the chart, the <b>Quests</b> the ocean hands out free, '
