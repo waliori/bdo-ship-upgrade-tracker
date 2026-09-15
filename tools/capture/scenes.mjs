@@ -62,6 +62,74 @@ async function nameTheBoard(page, upTo = 6) {
 
 const scenes = {
 
+	/* 1.3 — the board a real barter count can sail. Seeded at 1,082,
+	 * which is the count the player who reported this actually has. */
+	async 'your-own-board'({ page, url }) {
+		// A shorter window for this one: the subject is two lines of a
+		// bar and the list behind them, and at the full height they are
+		// a tenth of the frame -- unreadable once the clip is cut to the
+		// width the dialog serves.
+		await page.setViewport({ width: 1180, height: 620, deviceScaleFactor: 1 });
+		const state = JSON.parse(JSON.stringify(fittedShip));
+		state.profile = { ...(state.profile || {}), barterCount: 1082 };
+		await seed(page, url, state);
+		await tab(page, 'barter');
+		await nameTheBoard(page);
+		await waitFor(page, '.board-shut', { then: 600 });
+		await frame(page, '.barter-bar', { top: 24 });
+		await rec(page, 'your-own-board', async () => {
+			await wait(700);
+			await moveTo(page, '.board-shut');
+			await wait(1100);
+			await click(page, '[data-act="barter-gated"]', { after: 2400 });
+			await wait(1800);
+		});
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
+	},
+
+	/* 1.3 — the day's errands worked out as one loop. */
+	async 'todays-errands'({ page, url }) {
+		await seed(page, url, fittedShip);
+		await tab(page, 'map');
+		await wait(1500);
+		await click(page, '[data-act="map-mode"][data-id="hunt"]', { after: 900 });
+		await rec(page, 'todays-errands', async () => {
+			await wait(600);
+			await click(page, '[data-act="map-errands"]', { after: 900 });
+			await waitFor(page, '.errand-stops', { then: 1800 });
+			// Down the list of calls, so the clip shows the hunts and
+			// what to kill at each rather than the first four wharves.
+			await page.evaluate(() => {
+				const box = document.querySelector('.map-side-body');
+				if (box) box.scrollTo({ top: box.scrollHeight * 0.5, behavior: 'smooth' });
+			});
+			await wait(2200);
+			await moveTo(page, '.errand-stop.hunt .errand-row');
+			await wait(1200);
+		});
+	},
+
+	/* 1.3 — a call taken hold of: the chart flies there and the call
+	 * opens with every quest done at it. */
+	async 'a-call-in-hand'({ page, url }) {
+		await seed(page, url, fittedShip);
+		await tab(page, 'map');
+		await wait(1500);
+		await click(page, '[data-act="map-mode"][data-id="hunt"]', { after: 900 });
+		await click(page, '[data-act="map-errands"]', { after: 600 });
+		await waitFor(page, '.errand-stops', { then: 1200 });
+		await page.evaluate(() => {
+			const box = document.querySelector('.map-side-body');
+			if (box) box.scrollTo({ top: box.scrollHeight * 0.55 });
+		});
+		await wait(700);
+		await rec(page, 'a-call-in-hand', async () => {
+			await wait(600);
+			await click(page, '.errand-stop.hunt .errand-row', { after: 2600 });
+			await wait(2200);
+		});
+	},
+
 	/* 1.2 — a day that is not for silver: targets by level, a ceiling,
 	 * and a run counted in goods. */
 	async 'a-stock'({ page, url }) {

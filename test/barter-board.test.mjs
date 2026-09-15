@@ -155,3 +155,45 @@ test('layout 19 takes the two Land of Morning Light [Level 5]s the sheet left ou
 		["[Level 5] Statue's Tear", 7, ['Haemo Island', 'Sausan Garrison Wharf']]
 	]);
 });
+
+// Every exchange in the game has its own barter count to open, and an
+// island whose one offer today is above it shows a blank window. The
+// app has no table of those thresholds, so it keeps what the sailor
+// saw: the exchange named here leaves the board.
+test('an exchange the sailor found shut leaves the board, and takes its island with it', () => {
+	const combo = combos[0];
+	const listed = offersOf(combo);
+	// An island whose good today comes from nowhere else on this board,
+	// so dropping it drops the good with it and the effect is plain.
+	const takers = new Map();
+	for (const [, o] of listed) takers.set(o.recv, (takers.get(o.recv) || 0) + 1);
+	const [npcId, off] = [...listed].find(([, o]) => takers.get(o.recv) === 1 && levelOf(o.recv));
+	const before = boardData(combo, barterData, npcById, []);
+	assert.ok(before.find(e => e.name === off.recv).sources.some(s => s.npc_id === npcId));
+
+	const shut = [{ npcId, give: off.give, recv: off.recv, at: 1082 }];
+	const after = boardData(combo, barterData, npcById, [], shut);
+	const gone = after.find(e => e.name === off.recv);
+	assert.ok(!gone || !gone.sources.some(s => s.npc_id === npcId), 'the island still takes the good it would not trade');
+	// Nothing else moved: the rest of the board is the board.
+	assert.equal(after.filter(e => e.name !== off.recv).length, before.filter(e => e.name !== off.recv).length);
+
+	// A sighting of another offer at the same island says nothing about
+	// the one it is showing today.
+	const other = boardData(combo, barterData, npcById, [], [{ npcId, give: off.give, recv: 'Tidal Black Stone', at: 1082 }]);
+	assert.ok(other.find(e => e.name === off.recv).sources.some(s => s.npc_id === npcId));
+});
+
+test('a chain that climbs through a shut exchange is not proposed', () => {
+	const combo = combos[0];
+	const stock = new Map(), dock = new Map();
+	const full = chains(boardData(combo, barterData, npcById, []), stock, dock, 20000);
+	const deep = full.find(c => c.rungs.length >= 3);
+	assert.ok(deep, 'no chain long enough to cut');
+	const rung = deep.rungs[1];
+	// The second rung is reached by handing over the first one's good.
+	const shut = [{ npcId: rung.npcId, give: deep.rungs[0].item, recv: rung.item, at: 1082 }];
+	const cut = chains(boardData(combo, barterData, npcById, [], shut), stock, dock, 20000);
+	assert.ok(!cut.some(c => c.rungs.some(r => r.npcId === rung.npcId && r.item === rung.item)),
+		'a rung at the shut exchange survived');
+});

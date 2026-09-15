@@ -13,7 +13,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-import { npcGates, npcGate, npcOpen, openTable, gateOfItem, shutOut, forecast, gateFor, ROUTE_UNLOCKS } from '../js/barter.js';
+import { npcGates, npcGate, npcOpen, openTable, gateOfItem, shutOut, forecast, gateFor, nextGateAbove, ROUTE_UNLOCKS } from '../js/barter.js';
 import { npcById, npcs } from '../js/barter_npcs.js';
 import { chains } from '../js/barter-chains.js';
 import { boardData } from '../js/barter-board.js';
@@ -157,4 +157,102 @@ test('a chain opens on the barter that opens its island, and not before', () => 
 	assert.equal(at(2999).find(c => c.gate).gate.barters, 3000);
 	assert.equal(at(3000).filter(c => c.gate).length, 0, 'one barter opens it');
 	assert.equal(at(2999).length, at(3000).length, 'the board holds the same climbs either side');
+});
+
+// The per-exchange thresholds are the same ladder as the route ones, so
+// an exchange found shut at a count is shut until the next rung of it --
+// which is what lets one sighting be remembered for longer than a day.
+test('the next count at which anything opens is the next rung of the ladder', () => {
+	assert.equal(nextGateAbove(0), ROUTE_UNLOCKS[1].barters);
+	assert.equal(nextGateAbove(1082), 1200);
+	assert.equal(nextGateAbove(1200), 1500);
+	assert.equal(nextGateAbove(-5), ROUTE_UNLOCKS.find(r => r.barters > 0).barters);
+	assert.equal(nextGateAbove(20000), Infinity);
+	assert.equal(nextGateAbove('nonsense'), ROUTE_UNLOCKS.find(r => r.barters > 0).barters);
+	for (const r of ROUTE_UNLOCKS) if (r.barters) assert.ok(nextGateAbove(r.barters - 1) <= r.barters);
+});
+
+// The per-exchange gate, baked from the client's own table.
+//
+// The board the app drew was a 20,000-barter account's board: the
+// layouts were recorded by players with everything unlocked, and the
+// game gates each of an island's forty exchanges on its own count. What
+// can go wrong: a gate read off the wrong row, a layout mapped to the
+// wrong row, an island hidden on a guess where the client ships nothing,
+// or the whole thing applied to a sailor who never said their count.
+const { ROWS, GATES } = await import('../js/barter_gates.js');
+const { gatedOffers, exchangeGate } = await import('../js/barter-board.js');
+
+test('every layout claims one row of the pools, and all forty are claimed', () => {
+	const rows = Object.values(ROWS);
+	assert.equal(rows.length, 40);
+	assert.deepEqual([...rows].sort((a, b) => a - b), Array.from({ length: 40 }, (_, i) => i));
+	assert.deepEqual(Object.keys(ROWS).sort(), combos.map(c => c.id).sort());
+});
+
+test('every gate is a count on the game’s own ladder, and every column is forty long', () => {
+	const ladder = new Set(ROUTE_UNLOCKS.map(r => r.barters));
+	for (const [npc, col] of Object.entries(GATES)) {
+		assert.equal(col.length, 40, `${npc} has ${col.length} rows`);
+		for (const g of col) {
+			if (g === null) continue;
+			assert.ok(ladder.has(g), `${npc} has a gate of ${g}, which opens nothing`);
+		}
+	}
+	// The client's sentinel for an exchange that is not live must never
+	// have been baked in as if it were a threshold.
+	assert.ok(!Object.values(GATES).some(col => col.includes(1000000)));
+});
+
+test('an unknown gate is an open one: the app never hides an island on a guess', () => {
+	const five = combos.find(c => c.id === '5');
+	// The six mainland [Level 6] -> [Level 7] barterers are in no pool.
+	const unknown = five.offers.filter(([npc]) => exchangeGate(five, npc) === null);
+	assert.ok(unknown.length > 0, 'the client covers every offer, so this test is stale');
+	const shut = new Set(gatedOffers(five, 0).map(x => x.npcId));
+	for (const [npc] of unknown) assert.ok(!shut.has(npc), `${npc} was hidden with no gate to hide it by`);
+});
+
+test('the gate bites at low counts, lets go at high ones, and never fires without a count', () => {
+	const five = combos.find(c => c.id === '5');
+	const at = n => gatedOffers(five, n).length;
+	assert.ok(at(0) > at(600), 'a board does not thin out as the count climbs');
+	assert.ok(at(600) >= at(1082));
+	assert.equal(at(20000), 0, 'something is still shut past the last unlock');
+	// Every layout, both ends.
+	for (const c of combos) {
+		assert.equal(gatedOffers(c, 20000).length, 0, `layout ${c.id} hides something at 20,000`);
+		assert.ok(gatedOffers(c, 0).length > 0, `layout ${c.id} gates nothing at all`);
+	}
+	// No combo, or no count, gates nothing.
+	assert.deepEqual(gatedOffers(null, 0), []);
+	assert.deepEqual(gatedOffers(five, undefined), []);
+	assert.deepEqual(gatedOffers(five, 'nonsense'), []);
+});
+
+test('an exchange the count has not opened is off the board, so no chain climbs it', () => {
+	const five = combos.find(c => c.id === '5');
+	const shut = gatedOffers(five, 1082);
+	assert.ok(shut.length > 0);
+	const stock = new Map(), dock = new Map();
+	const open = chains(boardData(five, barterData, npcById, [], shut), stock, dock, 20000);
+	const closed = new Set(shut.map(x => `${x.npcId}|${x.recv}`));
+	for (const c of open) for (const r of c.rungs) {
+		if (!closed.has(`${r.npcId}|${r.item}`)) continue;
+		assert.fail(`a chain climbs ${r.item} at ${r.npcId}, gated at ${shut.find(x => x.npcId === r.npcId && x.recv === r.item).gate}`);
+	}
+	// And the board is genuinely shorter than the one it would have drawn.
+	const all = chains(boardData(five, barterData, npcById, []), stock, dock, 20000);
+	assert.ok(open.length < all.length, 'gating changed nothing');
+});
+
+test('Kashuma’s Crow Coin exchange opens at 10 barters, as the game says', () => {
+	// The one row whose gate is independently known: the published note
+	// says Kashuma opens at 10, and the client's row agrees. If a re-bake
+	// ever shifts the rows under the layouts, this is what catches it.
+	const kashuma = [...npcById.values()].find(n => n.at === 'Kashuma Island');
+	assert.ok(kashuma, 'Kashuma is not in the npc table');
+	const seen = combos.map(c => exchangeGate(c, kashuma.id)).filter(g => g !== null);
+	assert.ok(seen.length >= 30, `only ${seen.length} of 40 rows carry a gate`);
+	assert.deepEqual([...new Set(seen)], [10], 'Kashuma is not gated at 10 throughout');
 });

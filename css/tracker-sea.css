@@ -138,6 +138,18 @@
 .quest { display: flex; gap: 14px; align-items: flex-start; padding: 12px 22px; border-top: 1px solid rgba(var(--line-rgb), 0.08); }
 .quest.wanted { background: rgba(88, 196, 196, 0.05); }
 .quest-main { flex: 1; min-width: 0; }
+/* The codex's own picture for the errand: enough of them repeat that a
+   column of them sorts a long day by the kind of work in it. The empty
+   one keeps its width so the names still line up. */
+.quest-pic { width: 34px; height: 34px; flex: none; border-radius: 6px; margin-top: 1px; image-rendering: auto; }
+.quest-pic.none { width: 34px; height: 34px; flex: none; border-radius: 6px; border: 1px dashed rgba(var(--line-rgb), 0.25); }
+.quest.done .quest-pic { opacity: 0.45; filter: grayscale(0.6); }
+/* The same picture at the size of a word, for where a quest is named
+   in passing: beside its name in a run's sheet, and in a strip under a
+   species on the Hunt tab. */
+.quest-pip { width: 15px; height: 15px; border-radius: 3px; vertical-align: -3px; margin-right: 5px; }
+.map-row-quests { display: flex; gap: 3px; margin-top: 3px; }
+.map-row-quests .quest-pip { margin: 0; vertical-align: 0; }
 .quest-name { font-weight: 600; color: var(--ink-hi); }
 .quest-tag { margin-left: 8px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); }
 .quest-where { font-size: 12px; color: var(--ink-mute); margin: 2px 0 8px; }
@@ -304,6 +316,7 @@
      the buttons drop to a line of their own. Stacked as a column, one
      day's list ran eleven thousand pixels. */
   .quest { flex-wrap: wrap; gap: 8px 10px; padding: 10px 14px; }
+  .quest-pic, .quest-pic.none { width: 26px; height: 26px; }
   .quest-actions { flex: 1 0 100%; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
 }
 /* A yellow row has three verdicts; they wrap inside their column rather
@@ -319,6 +332,57 @@
 .map-course-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; border: 2px solid rgba(240, 130, 190, 0.8); background: none; }
 .map-course.on .map-course-dot { background: #f082be; box-shadow: 0 0 8px rgba(240, 130, 190, 0.7); }
 .map-course-note { margin: 6px 2px 0; font-size: 11.5px; line-height: 1.45; color: var(--ink-mute); }
+
+/* ---- The day's errands: a course that is worked out, not drawn ------- */
+.errand-set { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.errand-set .field.sm { flex: 1 1 130px; min-width: 0; padding: 5px 8px; font-size: 12px; }
+.errand-stops { margin-top: 8px; display: flex; flex-direction: column; gap: 2px; }
+.errand-stop { display: flex; gap: 9px; align-items: flex-start; padding: 5px 8px; border-radius: var(--r-btn); border-left: 2px solid transparent; }
+.errand-stop.hunt { border-left-color: rgba(240, 130, 190, 0.7); background: rgba(240, 130, 190, 0.06); }
+.errand-stop.port { border-left-color: var(--teal); }
+.errand-n { flex: none; width: 18px; text-align: right; font-size: 10.5px; color: var(--ink-faint); padding-top: 2px; }
+.errand-main { flex: 1; min-width: 0; }
+.errand-name { display: block; font-size: 12px; font-weight: 600; color: var(--ink-hi); }
+.errand-jobs { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 2px; }
+.errand-jobs.faint { color: var(--ink-faint); font-size: 11px; }
+.errand-job { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--ink-mute); }
+.errand-job.kill { color: var(--ink-dim); }
+.errand-job b { color: #f082be; font-weight: 700; }
+.errand-job i { font-style: normal; }
+.errand-job .quest-pip { width: 13px; height: 13px; margin: 0; vertical-align: 0; }
+/* The worked-out loop takes the amber of the day's own clocks rather
+   than the pink of the drawn courses: on a chart showing both, which
+   line is yours and which is gpw's should not want reading twice. */
+.map-course-line.course-dailies .map-course-glow { stroke: var(--amber); }
+.map-course-line.course-dailies .map-course-path { stroke: var(--amber); }
+.errand-stop.hunt { border-left-color: rgba(232, 182, 97, 0.75); background: rgba(232, 182, 97, 0.07); }
+.errand-job b { color: var(--amber); }
+.map-course.on[data-act="map-errands"] { border-color: rgba(232, 182, 97, 0.7); background: rgba(232, 182, 97, 0.1); }
+.map-course.on[data-act="map-errands"] .map-course-dot { background: var(--amber); border-color: rgba(232, 182, 97, 0.8); box-shadow: 0 0 8px rgba(232, 182, 97, 0.7); }
+/* A call is a button the whole width of the row, with the cross that
+   drops it kept out of its way. */
+.errand-stop { align-items: center; }
+.errand-row { display: flex; gap: 9px; align-items: flex-start; flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.errand-row:hover .errand-name { color: var(--amber); }
+.errand-skip { flex: none; opacity: 0; }
+.errand-stop:hover .errand-skip, .errand-skip:focus-visible { opacity: 1; }
+.errand-btns { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+.errand-btns .ghost-btn { flex: 1 1 140px; }
+
+/* One call opened: every quest done there, what it wants, what it pays. */
+.errand-details { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; }
+.errand-detail { display: flex; gap: 12px; align-items: flex-start; padding: 10px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.5); }
+.errand-detail-pic { width: 38px; height: 38px; flex: none; border-radius: 6px; }
+.errand-detail-main { flex: 1; min-width: 0; }
+.errand-detail-name { font-weight: 600; color: var(--ink-hi); font-size: 13px; }
+.errand-detail-sub { font-size: 11.5px; color: var(--ink-mute); margin-top: 2px; }
+.errand-detail-pays { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.errand-detail-acts { display: flex; flex-direction: column; gap: 5px; flex: none; }
+@media (max-width: 720px) {
+  .errand-detail { flex-wrap: wrap; }
+  .errand-detail-acts { flex: 1 0 100%; flex-direction: row; justify-content: flex-end; }
+  .errand-skip { opacity: 1; }
+}
 
 .map-course-line { z-index: 1; }
 .map-course-glow { fill: none; stroke: #f082be; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; opacity: 0.14; }
@@ -791,6 +855,30 @@
   background: rgba(var(--deep-rgb), 0.5);
 }
 .news-points { margin: 8px 0 0 18px; padding: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink-dim); }
+
+/* Every release before this one, shut, each worth one line until it is
+   opened. A reader who has been away two months needs them; the one who
+   was here last week must not have to scroll past them. */
+.news-older { margin: 16px 0 4px; padding-top: 14px; border-top: 1px solid rgba(var(--line-rgb), 0.35); }
+.news-older > h3 { margin: 0 0 10px; font-family: var(--font-display); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+.news-old { margin-bottom: 8px; border: 1px solid var(--line-btn); border-radius: var(--r-panel); background: rgba(var(--deep-rgb), 0.4); }
+.news-old[open] { background: rgba(var(--deep-rgb), 0.6); border-color: var(--line); }
+.news-old > summary { cursor: pointer; list-style: none; padding: 10px 14px; display: grid; grid-template-columns: 1fr auto; gap: 1px 12px; }
+.news-old > summary::-webkit-details-marker { display: none; }
+.news-old > summary::after { content: '▸'; grid-column: 2; grid-row: 1; color: var(--ink-faint); font-size: 11px; }
+.news-old[open] > summary::after { content: '▾'; }
+.news-old > summary:hover .news-old-name { color: var(--teal-hi, var(--teal)); }
+.news-old-name { grid-column: 1; grid-row: 1; font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--ink-hi); }
+.news-old-when { grid-column: 2; grid-row: 2; font-size: 11px; color: var(--ink-faint); white-space: nowrap; align-self: start; }
+.news-old-sum { grid-column: 1; grid-row: 2; font-size: 12.5px; line-height: 1.5; color: var(--ink-mute); }
+.news-old-body { padding: 4px 14px 12px; border-top: 1px solid rgba(var(--line-rgb), 0.3); margin-top: 8px; }
+.news-old-body .news-item h3 { font-size: 13.5px; }
+.news-old-body .news-item p { font-size: 12.5px; color: var(--ink-dim); }
+@media (max-width: 720px) {
+  .news-old > summary { grid-template-columns: 1fr auto; }
+  .news-old-when { grid-column: 1; grid-row: 3; }
+  .news-old > summary::after { grid-row: 1; }
+}
 /* Who asked for the release. Set apart from the sections and never
    folded: a thank-you inside a drawer is not one. */
 .news-thanks { margin: 14px 0 2px; padding: 13px 16px; border: 1px solid var(--teal-edge); border-radius: var(--r-panel); background: var(--teal-glow); }

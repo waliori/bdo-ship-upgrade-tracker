@@ -17,7 +17,7 @@ import * as store from './state.js';
 import { img, codexName, amountInput } from './ui-bits.js';
 import { snapshot, barterData, barterProfile, combos, matBoards, totalsToGo, SILVER } from './ui-state.js';
 import { barterKey, periodKey, currentPlan } from './clock.js';
-import { candidates, askable, offersAt, boardData } from './barter-board.js';
+import { candidates, askable, offersAt, offersOf, boardData, gatedOffers, exchangeGate } from './barter-board.js';
 import { currentShip, shownHold } from './ship.js';
 import { npcById, ports, isleOf, whoOf, isleShort } from './barter_npcs.js';
 import { seaRoute } from './searoute.js';
@@ -30,10 +30,11 @@ import { propose } from './barter-optimizer.js';
 import { coins as coinShop } from './sea_coins.js';
 import { landPrices } from './land-cost.js';
 import { marketStatus, marketSilver } from './market.js';
-import { GOODS, PARLEY, COIN, COIN_LEVEL, dailyCapacity, parleyPerTrade, levelOf, levelDiscount, ROUTE_UNLOCKS, npcGate, npcOpen, countBonus, withBonus } from './barter.js';
+import { GOODS, PARLEY, COIN, COIN_LEVEL, nextGateAbove, dailyCapacity, parleyPerTrade, levelOf, levelDiscount, ROUTE_UNLOCKS, npcGate, npcOpen, countBonus, withBonus } from './barter.js';
 import { parleyLedger } from './parley-ledger.js';
 import { exchanges, goodsHeld, landHeld, weightOf, sellOf, aboardStock as aboardOf } from './barter-plan.js';
 import { TOWNS } from './screen-inventory.js';
+import { questIcon } from './quest_icons.js';
 import { chains, chainRun, tailOf } from './barter-chains.js';
 import { materialRun } from './barter-material.js';
 import { wharves } from './wharves.js';
@@ -456,7 +457,33 @@ function boardNow() {
 	}
 	const standing = board.answers.length ? candidates(combos.combos, board.answers) : combos.combos;
 	const combo = standing.length === 1 ? standing[0] : null;
-	return { standing, combo, data: combo ? boardData(combo, barterData, npcById, board.answers) : barterData };
+	// Two reasons an island is not on the board, and they are told
+	// apart: the client's own table says the count has not opened
+	// today's exchange there, or the sailor looked and found it shut
+	// where the table has nothing to say. Both leave the board the same
+	// way; only the second is theirs to take back.
+	const gated = gatedOffers(combo, barterProfile().barterCount);
+	const told = shutNow();
+	const shut = [...gated, ...told];
+	return { standing, combo, shut, gated, told, data: combo ? boardData(combo, barterData, npcById, board.answers, shut) : barterData };
+}
+
+/**
+ * The exchanges this sailor has found shut, still shut.
+ *
+ * The client's table covers most of a board but not all of it: it ships
+ * no [Level 4] -> [Level 5] row for thirteen islands and nothing at all
+ * for the six mainland [Level 6] -> [Level 7] barterers, and where it
+ * and the community's record disagree the gate is left unread rather
+ * than read off the wrong offer. Those are the ones a sailor can still
+ * find blank, so their word stands in: an exchange seen shut at 1,082
+ * barters is shut until the next count on the game's own ladder, and
+ * then worth trying again.
+ */
+function shutNow(prof = barterProfile()) {
+	const seen = store.getProfile('shutOffers', []) || [];
+	const count = Number(prof.barterCount) || 0;
+	return seen.filter(x => count < nextGateAbove(x.at));
 }
 
 const fromPort = () => ports.find(p => p.id === port) || null;
@@ -472,8 +499,8 @@ function boardHTML(b) {
 	// The bar is one row of three parts: what the board is, what was
 	// looked at to find it, and what to do next. Each keeps its own
 	// column, so a long explanation never squeezes the buttons.
-	const bar = (cls, lead, sub, seen, acts) => `<div class="barter-bar${cls ? ` ${cls}` : ''}">
-		<div class="barter-bar-info"><div class="barter-bar-lead">${lead}</div><div class="barter-bar-sub">${sub}</div></div>
+	const bar = (cls, lead, sub, seen, acts, note = '') => `<div class="barter-bar${cls ? ` ${cls}` : ''}">
+		<div class="barter-bar-info"><div class="barter-bar-lead">${lead}</div><div class="barter-bar-sub">${sub}</div>${note}</div>
 		${seen ? `<div class="barter-bar-seen"><span class="barter-bar-k">looked at</span><span class="chips">${seen}</span></div>` : ''}
 		<div class="barter-bar-acts">${goals}${acts}</div>
 	</div>`;
@@ -488,11 +515,36 @@ function boardHTML(b) {
 	const seen = board.answers.map(a => `<span class="chip tiny active board-seen" title="${esc(a.give)} → ${esc(a.recv)}">${img(a.recv, 'row-icon xs')}${esc(isleShort(npcById.get(a.npcId)))}</span>`).join('')
 		+ (board.answers.length ? '<button class="chip tiny" data-act="barter-board-undo" title="Take back the last island looked at">↶ Undo</button>' : '');
 	if (b.combo) {
+		// What the count leaves out. Said on the bar, because an island
+		// quietly missing from a board is the one thing worse than one
+		// that cannot be sailed -- and said in two lines, because the
+		// client's own table is a fact and the sailor's sighting is a
+		// note they can take back.
+		const today = offersOf(b.combo);
+		const onBoard = x => {
+			const o = today.get(x.npcId);
+			return o && o.give === x.give && o.recv === x.recv;
+		};
+		const isles = list => esc(list.map(x => isleShort(npcById.get(x.npcId)) || '').filter(Boolean).join(', '));
+		const gated = (b.gated || []).filter(onBoard);
+		const told = (b.told || []).filter(onBoard);
+		const next = gated.length ? Math.min(...gated.map(x => x.gate)) : 0;
+		// A count nobody has typed reads as nought, and nought is a real
+		// answer -- but it is also the answer that leaves the thinnest
+		// board of all, so at nought the line says where to fix it
+		// rather than leaving a veteran wondering what broke.
+		const gatedLine = gated.length
+			? `<div class="board-shut"><b>${gated.length} of ${b.combo.offers.length} islands</b> are not open at ${F(prof.barterCount)} barters — the game unlocks each exchange on its own count, so these show nothing today. ${prof.barterCount ? `The next opens at <b>${F(next)}</b>.` : 'Set your <b>Total Barters</b> in the bar above if that is not you.'} <button class="linky" data-act="barter-gated">which ones</button></div>`
+			: '';
+		const shutLine = gatedLine + (told.length
+			? `<div class="board-shut">${told.length === 1 ? '<b>1 more island</b> is left out' : `<b>${told.length} more islands</b> are left out`}: ${isles(told)} — you looked and ${told.length === 1 ? 'it was' : 'they were'} not trading. <button class="linky" data-act="barter-shut-clear">put ${told.length === 1 ? 'it' : 'them'} back</button></div>`
+			: '');
 		return bar('known',
 			`<b>Layout ${esc(b.combo.id)}</b><span>today’s board</span>`,
 			`seen ${b.combo.seen} of ${combos.sample.refreshes} refreshes since ${esc(since)} · every island’s offer is known; the material islands roll on their own and are read from the whole table, and which of its four [Level 7] goods an island pays is not the layout’s to say`,
 			seen,
-			'<button class="ghost-btn sm" data-act="barter-board-clear" title="The board was refreshed in game: start again">↻ Refreshed in game</button>');
+			`<button class="ghost-btn sm" data-act="barter-shut-pick" title="An island on this board is showing nothing: its exchange today is above your barter count">An island shows nothing…</button><button class="ghost-btn sm" data-act="barter-board-clear" title="The board was refreshed in game: start again">↻ Refreshed in game</button>`,
+			shutLine);
 	}
 	// Never asked about an island this sailor cannot sail to: its offer
 	// is not on any barter window they can open.
@@ -627,7 +679,7 @@ const pulledToday = () => (questPull.day === barterKey() ? questPull.ids : []);
 
 const questTitle = q => q.name.replace(/^(\[[^\]]+\]\s*)+/, '');
 /** The quest's name as the way to its row on the Quests tab. */
-const questLink = q => `<button class="linky run-quest-name" data-act="view" data-id="quests" data-quest="${esc(q.id)}" title="${esc(q.where)}${q.note ? ` — ${esc(q.note)}` : ''} · open on the Quests tab">${esc(questTitle(q))}</button>`;
+const questLink = q => `<button class="linky run-quest-name" data-act="view" data-id="quests" data-quest="${esc(q.id)}" title="${esc(q.where)}${q.note ? ` — ${esc(q.note)}` : ''} · open on the Quests tab">${questIcon(q) ? `<img class="quest-pip" src="${esc(questIcon(q))}" alt="" loading="lazy">` : ''}${esc(questTitle(q))}</button>`;
 const questWanted = () => new Set(wantedQuests().map(q => q.id));
 
 /** A barter quest's count, as it stands and as this run leaves it.
@@ -1443,7 +1495,10 @@ function expectedBest(me, b, prof) {
 	const parley = parleyOf(prof);
 	let sum = 0, weight = 0, min = Infinity, max = -Infinity, best = null;
 	for (const combo of b.standing) {
-		const data = boardData(combo, barterData, npcById, board.answers);
+		// Each layout still standing is folded with its own gates: which
+		// exchanges a count has not opened depends on the layout, since
+		// a layout is one row of every island's pool.
+		const data = boardData(combo, barterData, npcById, board.answers, [...gatedOffers(combo, prof.barterCount), ...shutNow(prof)]);
 		const all = chains(data, stock, dock, prof.barterCount).filter(c => (o.buy || c.from !== 'land') && !c.gate);
 		const prices = landPrices(all.filter(c => c.from === 'land').map(c => c.item), made);
 		const opts = { stock, dock, hold: me.hold, parley, npcById, start: from, stashes, prefer: stashAt(), pace: o.pace, orders: o, prices };
@@ -2190,7 +2245,7 @@ function silverParts(me, b) {
 	// decides which chains exist at all, and a search kept across a
 	// change of it would answer for chains this board no longer lists.
 	const ceiling = ceilingNow;
-	const pkey = JSON.stringify([board.day, b.combo.id, stock, dock, owned, [...land], o, port, stash, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, reach, prof.barterCount, aim, ceiling]);
+	const pkey = JSON.stringify([board.day, b.combo.id, stock, dock, owned, [...land], o, port, stash, Object.values(prices).map(x => x.each), me.hold, ship, opts.parley, opts.seen, reach, prof.barterCount, aim, ceiling, b.shut]);
 	const search = { chains: all, opts, ship, timeCap: o.hours, aim };
 	// The search goes to the worker and the page draws meanwhile; asked
 	// again when the inputs change, or when an answer is owed and no
@@ -2889,6 +2944,8 @@ function bagsNow() {
 }
 
 /** What one island is showing: its possible offers, commonest first. */
+const SHUT = '\u0000shut';
+
 function pickOffer(npcId, then) {
 	const { standing } = boardNow();
 	const npc = npcById.get(npcId);
@@ -2898,10 +2955,27 @@ function pickOffer(npcId, then) {
 		meta: standing.length > 1 ? `${o.ids.length} of ${standing.length}` : ''
 	}));
 	items.push({ id: '', label: 'Something else', sub: 'an offer the record has never seen there', group: '' });
+	// An island with nothing on its window is not a mistake and not an
+	// empty day: every exchange has its own barter count to open, so the
+	// one this island is showing today may simply not be this sailor's
+	// yet. Said here, it is remembered against that exchange.
+	const showing = standing.length === 1 ? offersAt(standing, npcId)[0] : null;
+	if (showing) items.push({ id: SHUT, label: 'Nothing — it will not trade with me', sub: 'the exchange it is showing is not open at your barter count yet', group: '' });
 	const pick = id => {
+		if (id === SHUT) return shut();
 		const [give, recv] = id.split('|');
 		board.answers.push({ npcId, give, recv });
 		persist();
+		then();
+	};
+	/** This island's offer today, noted as not the sailor's yet. */
+	const shut = () => {
+		const prof = barterProfile();
+		const at = Math.max(0, Number(prof.barterCount) || 0);
+		const seen = (store.getProfile('shutOffers', []) || []).filter(x => !(x.npcId === npcId && x.give === showing.give && x.recv === showing.recv));
+		store.setProfile('shutOffers', [...seen, { npcId, give: showing.give, recv: showing.recv, at }].slice(-200));
+		const opens = nextGateAbove(at);
+		toast(`${isleOf(npc)} is left out: ${showing.give} → ${showing.recv} is not open at ${F(at)} barters${Number.isFinite(opens) ? `, and the next unlock is at ${F(opens)}` : ''}`, true);
 		then();
 	};
 	openPicker({
@@ -2953,6 +3027,91 @@ function pickIsland(then) {
 			};
 		}),
 		onPick: id => pickOffer(Number(id), then)
+	});
+}
+
+/**
+ * The islands today's board holds that this count has not opened.
+ *
+ * A list rather than a dialog with a button: there is nothing to do
+ * about a gate but sail more, so it says which islands, what each is
+ * offering and the count that opens it, and leaves.
+ */
+function showGated() {
+	const { combo, gated } = boardNow();
+	if (!combo || !gated.length) return;
+	const prof = barterProfile();
+	const rows = [...gated]
+		.map(x => ({ ...x, name: isleOf(npcById.get(x.npcId)) || '' }))
+		.sort((a, b) => a.gate - b.gate || a.name.localeCompare(b.name));
+	openPicker({
+		title: 'Not open at your barter count',
+		hint: `The game unlocks each exchange on its own total, not each island. These ${rows.length} are on today's board but show nothing at ${F(prof.barterCount)} barters, so the run is planned without them. Read from the game client's own table.`,
+		items: rows.map(x => ({
+			id: String(x.npcId),
+			label: x.name,
+			icon: img(x.recv, ''),
+			sub: `${x.give} → ${x.recv}`,
+			meta: `opens at ${F(x.gate)}`,
+			group: `opens at ${F(x.gate)} barters`
+		})),
+		onPick: () => {}
+	});
+}
+
+/**
+ * Which island on today's board is showing nothing.
+ *
+ * Once the layout is settled there is no question left to ask about it,
+ * and yet this is exactly when a sailor finds out that three of the six
+ * chains in front of them cannot be sailed: the game gates every
+ * exchange on its own barter count, so an island can be open while the
+ * one thing it is offering today is not, and its barter window is
+ * simply blank. Said here, that island leaves the board and the chains
+ * are planned without it -- and is offered back the same way, in case
+ * the wrong one was named.
+ */
+function pickShut(then) {
+	const { combo } = boardNow();
+	if (!combo) return;
+	const barters = barterProfile().barterCount;
+	const seen = store.getProfile('shutOffers', []) || [];
+	const isShut = (npcId, o) => seen.some(x => x.npcId === npcId && x.give === o.give && x.recv === o.recv);
+	// Only the islands the client's table says are open to this count:
+	// the ones it gates are already off the board and are not the
+	// sailor's to report. Where it has no row -- the tiers it leaves out
+	// -- the row says so, since that is exactly where a blank window is
+	// still news.
+	const rows = [...offersOf(combo)]
+		.filter(([npcId]) => npcById.has(npcId) && npcOpen(npcId, barters))
+		.map(([npcId, o]) => ({ npcId, o, name: isleOf(npcById.get(npcId)) || '', off: isShut(npcId, o), gate: exchangeGate(combo, npcId) }))
+		.filter(r => r.gate === null || r.gate <= barters)
+		.sort((a, b) => Number(b.off) - Number(a.off) || Number(a.gate !== null) - Number(b.gate !== null) || a.name.localeCompare(b.name));
+	openPicker({
+		title: 'Which island shows nothing?',
+		hint: 'Open its barter window in game. If the offer below is not there, the exchange is not open at your barter count yet — name it and it leaves the board until your next unlock.',
+		items: rows.map(r => ({
+			id: String(r.npcId),
+			label: r.name,
+			icon: img(r.o.recv, ''),
+			sub: `${r.o.give} → ${r.o.recv}`,
+			meta: r.off ? 'left out — put back' : r.gate === null ? 'not in the client’s table' : `opens at ${F(r.gate)}`
+		})),
+		onPick: id => {
+			const r = rows.find(x => String(x.npcId) === id);
+			if (!r) return;
+			const rest = seen.filter(x => !(x.npcId === r.npcId && x.give === r.o.give && x.recv === r.o.recv));
+			if (r.off) {
+				store.setProfile('shutOffers', rest);
+				toast(`${r.name} is back on the board`, true);
+			} else {
+				const at = Math.max(0, Number(barters) || 0);
+				store.setProfile('shutOffers', [...rest, { npcId: r.npcId, give: r.o.give, recv: r.o.recv, at }].slice(-200));
+				const opens = nextGateAbove(at);
+				toast(`${r.name} is left out: ${r.o.give} → ${r.o.recv} is not open at ${F(at)} barters${Number.isFinite(opens) ? `, and the next unlock is at ${F(opens)}` : ''}`, true);
+			}
+			then();
+		}
 	});
 }
 
@@ -3027,6 +3186,9 @@ export function barterAction(act, el, redraw) {
 		case 'barter-trip': openTripLog(); return false;
 		case 'barter-board-ask': pickOffer(Number(el.dataset.npc), redraw); return false;
 		case 'barter-board-island': pickIsland(redraw); return false;
+		case 'barter-gated': showGated(); return false;
+		case 'barter-shut-pick': pickShut(redraw); return false;
+		case 'barter-shut-clear': store.setProfile('shutOffers', []); toast('Every island is back on the board', true); return true;
 		case 'barter-board-undo': board.answers.pop(); persist(); return true;
 		case 'barter-pace-set': setOrders({ pace: el.dataset.id === 'full' ? 'full' : el.dataset.id === 'steady' ? 'steady' : 'fast' }); return true;
 		case 'barter-mat-pace-set': matOrders = { ...matOrders, pace: el.dataset.id === 'fast' ? 'fast' : 'full' }; persist(); return true;

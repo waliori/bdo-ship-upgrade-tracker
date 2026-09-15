@@ -5,6 +5,75 @@ someone who has been away. The same notes are in the app itself, under
 **Menu → What's new** — this file is generated from them by
 `node tools/build-changelog.mjs`, so the two cannot drift apart.
 
+## 1.3 — The day the sea will actually give you
+
+*2026-09-15*
+
+Two things the app was guessing at, and it turns out the game says both of them out loud. A board is no longer everybody’s board — it is **the one your barter count can actually sail**, read from the game’s own table. And a day of dailies and weeklies is no longer a list to work out for yourself: it is **one loop**, with a ground picked for every hunt, the kills added up, and nothing hunted after the man who pays for it.
+
+### Asked for by you
+
+One player wrote in, twice, about the same thing. He was right both times.
+
+- **Zelpha** — *“rolled layout 5, i have the luivano/duch/randis chains but the other 3 arent available … picked eveto having liquor>urn but mariveno for example has nothin”* Not his luck: the game gates *each exchange* on its own barter count, and the app was drawing a board for an account that had unlocked everything. That is **the board you can sail**.
+
+The box is under **Menu → Feedback**. It reaches whoever runs the site.
+
+### The board you can sail — not everyone else’s
+
+![The board bar saying how many islands the barter count leaves out, and the list of them](docs/media/your-own-board.gif)
+
+An island can be open to you while the one thing it is offering today is not, and its barter window is then simply blank. The board now leaves those out and says so.
+
+- The counts are the game’s own, baked out of the client: **every exchange has its own total**, not every island.
+- At **150** barters a board is short 32 islands of 84; at **1,082**, 20; past 20,000, none.
+- The bar says how many are left out and **what opens the next one**, and will list them with the offer each is showing.
+- Where the client ships no row — two tiers it leaves out — you can still say **“it will not trade with me”** and that island leaves the board until your next unlock.
+
+### Today’s errands — the whole day as one loop
+
+![The errands panel: a call a line, what to kill and how many, and the loop drawn on the chart](docs/media/todays-errands.gif)
+
+Every daily and weekly you have not done, in the order that sails shortest. On the chart’s **Grounds** tab: pick a harbour, press the button.
+
+- A hunt is a **choice of grounds** — the Hekaru have four — and the one that suits the rest of the day wins.
+- **Seven Black Rust**, not one and two and four: the kills at a call are added up, and the hand-ins at one wharf are one call.
+- A ground is **never called at after the man who pays for it**.
+- The Old Moon Guild lets you do one of its four hunts a day, so it takes the one whose species a weekly already wants — the same kill paying twice.
+- The three quests that ask for young sea monsters take **any** young one, so they ride on whatever young ground the loop already passes.
+
+### A call you can take hold of
+
+![A call opened: every quest done there, what it wants, what it pays, and the ways out of it](docs/media/a-call-in-hand.gif)
+
+Press a step and the chart flies there and the call opens — every quest done at it, with what it wants, where it hands in and what it pays.
+
+- A way through to **its row on the Quests tab**, and a way to **drop it**.
+- Dropping is not ticking off: the quest is not worth the detour *today*, so the loop is worked out again without it, and the panel says what was put aside and offers it back.
+- **Draw it** puts the loop on the Draw tab as a trace — named, keepable, shareable as a link.
+- **On the game’s map** writes it as bookmarks, numbered in sailing order and named by the work: *12: 7x Black Rust*.
+
+### Hunt where the monsters are
+
+A habitat marker is a caption. The game’s world map draws one icon per named ground, placed where the words want to sit — and the app was steering for it. The Black Rust marker is the better part of **ten kilometres** from the nearest Black Rust; the Ocean Stalker’s is five, the Nineshark’s three and a half.
+
+- A ground is now the middle of a cluster of the species’ **own spawn points**.
+- And a ground is water, not a point, so the call is put on the part of it the loop passes — and slides along it once the order is settled.
+
+### The crocodiles are where the crocodiles are
+
+The Lyngbakrs drove the Saltwater Crocodiles off that ground on 27 August, and the run in the Courses list was still pointing at it. It calls at their water off Cheongsa now, and is **shorter** than it was.
+
+- The Lyngbakr ground is a course of its own: out and back from Gangman’s wharf, where its weekly is handed in.
+
+### A quest wears its own picture
+
+The icon BDOCodex draws beside each quest, on the Quests tab and small wherever else a quest is named. Twenty-three pictures for thirty-nine quests, which is the point — every Ravinia letter is one picture, every Old Moon Guild hunt another, so a long day’s list sorts itself by the kind of work in it.
+
+### And the release notes keep the old ones
+
+This window now carries every release before this one, shut, each worth a line until you open it — for anyone who has been away longer than a week.
+
 ## 1.2 — What a day is for
 
 *2026-09-14*

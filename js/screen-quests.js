@@ -18,6 +18,7 @@ import { img, codexName } from './ui-bits.js';
 import { toast, openDialog, closeDialog } from './dialogs.js';
 import { rows, query } from './ui-state.js';
 import { quests, questById, cadenceOf } from './quests.js';
+import { questIcon } from './quest_icons.js';
 import { periodKey } from './clock.js';
 import { openPicker } from './picker.js';
 import { plannedPick } from './get-way.js';
@@ -114,9 +115,16 @@ function questRow(q, short, wanted, isDone) {
 	const name = url
 		? `<a class="quest-codex" href="${url}" target="_blank" rel="noopener" title="Open on BDOCodex">${esc(q.name)}</a>`
 		: esc(q.name);
+	// The codex's own picture for the errand. There are far fewer of
+	// them than there are quests -- every Ravinia letter is one picture,
+	// every Old Moon Guild hunt another -- which is what makes them
+	// worth showing: down a long list they group the day's work by the
+	// kind of thing it is, faster than reading forty names.
+	const pic = questIcon(q);
 	return `<div class="quest ${wanted ? 'wanted' : ''}${isDone ? ' done' : ''}${selected.has(q.id) ? ' selected' : ''}${focus === q.id ? ' focus' : ''}" data-quest-id="${esc(q.id)}">
 		<input type="checkbox" class="quest-check" data-act="quest-check" data-quest="${esc(q.id)}" ${selected.has(q.id) ? 'checked' : ''} ${isDone ? 'disabled' : ''} aria-label="Tick ${esc(q.name)} to finish it with others">
 		<button class="quest-star${fav ? ' on' : ''}" data-act="quest-fav" data-quest="${esc(q.id)}" aria-pressed="${fav}" title="${fav ? 'A favourite — click to unstar' : 'Star it: favourites have a chip of their own'}">★</button>
+		${pic ? `<img class="quest-pic" src="${esc(pic)}" alt="" loading="lazy">` : '<span class="quest-pic none" aria-hidden="true"></span>'}
 		<div class="quest-main">
 			<div class="quest-name">${name}${wanted ? `<span class="quest-tag">${esc(wanted)}</span>` : ''}</div>
 			<div class="quest-where">${esc(q.where)}${q.note ? ` · ${esc(q.note)}` : ''}${q.monster

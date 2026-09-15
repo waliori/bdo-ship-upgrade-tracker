@@ -685,7 +685,8 @@ const PROFILE_LABELS = {
 	orders: 'Changed the sailing orders',
 	getOrders: 'Changed how the list is to be got',
 	homemade: 'Changed what your workers make',
-	matSeen: 'Noted what the material list shows'
+	matSeen: 'Noted what the material list shows',
+	shutOffers: 'Noted an island that would not trade'
 };
 
 export function setProfile(key, value, label = null) {

@@ -22,6 +22,7 @@
 // as a barter table go out.
 
 import { levelOf } from './barter.js';
+import { ROWS, GATES } from './barter_gates.js';
 
 const offerMaps = new WeakMap();
 
@@ -33,6 +34,50 @@ export function offersOf(combo) {
 		offerMaps.set(combo, m);
 	}
 	return m;
+}
+
+/**
+ * What the count opens at this island today, or null if we cannot say.
+ *
+ * The game gates each exchange on its own total-barter count, not each
+ * barterer: an island is open to you while the one thing it is offering
+ * today is not, and its barter window is then simply blank. A layout is
+ * one row of every island's forty-exchange pool, so the gate is the row
+ * the layout stands on, at that island -- baked from the client's own
+ * table by tools/build-barter-gates.mjs.
+ *
+ * Null where the client ships no row, or where it and the community's
+ * record disagree about which exchange is on it: unknown is treated as
+ * open, because hiding an island a sailor can plainly trade at is the
+ * worse mistake of the two.
+ */
+export function exchangeGate(combo, npcId) {
+	const row = ROWS[combo && combo.id];
+	if (row === undefined) return null;
+	const col = GATES[npcId];
+	const gate = col ? col[row] : null;
+	return typeof gate === 'number' ? gate : null;
+}
+
+/**
+ * The offers on this board that a barter count has not opened, as the
+ * same shape the board's own shut list takes.
+ *
+ * This is why a board the app drew could not be sailed: the layouts
+ * were recorded by players with everything unlocked, so until now the
+ * app spoke for a 20,000-barter account. At 1,082 barters barely seven
+ * islands in ten on a board are actually open, and a chain wants every
+ * one of its rungs.
+ */
+export function gatedOffers(combo, count) {
+	if (!combo || !Number.isFinite(Number(count))) return [];
+	const n = Number(count);
+	const out = [];
+	for (const [npcId, o] of offersOf(combo)) {
+		const gate = exchangeGate(combo, npcId);
+		if (gate !== null && gate > n) out.push({ npcId, give: o.give, recv: o.recv, gate });
+	}
+	return out;
 }
 
 /** The layouts every answer leaves standing. An answer is what one
@@ -101,7 +146,13 @@ export function askable(combos, npcById, near = null) {
  * lacks a row here and there, and a [Level 5] aboard would otherwise
  * find no island to take it while the game shows one that does.
  */
-export function boardData(combo, barterData, npcById, answers = []) {
+export function boardData(combo, barterData, npcById, answers = [], shut = []) {
+	// The exchanges this sailor has looked at and found shut: the game
+	// gates each one on its own barter count, and an island whose only
+	// offer today is above that count shows nothing at all. They are
+	// left off the board rather than planned through -- a chain that
+	// climbs a rung the sailor cannot trade is not a run.
+	const closed = new Set(shut.map(x => `${x.npcId}|${x.give}|${x.recv}`));
 	const codex = new Map();
 	const entries = new Map();
 	for (const e of barterData || []) {
@@ -117,6 +168,7 @@ export function boardData(combo, barterData, npcById, answers = []) {
 		})
 	];
 	for (const [id, give, qty, recv] of offers) {
+		if (closed.has(`${id}|${give}|${recv}`)) continue;
 		const known = codex.get(`${id}|${give}|${recv}`);
 		if (!entries.has(recv)) {
 			const e = known ? known.entry : null;

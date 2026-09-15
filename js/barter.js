@@ -197,6 +197,21 @@ export function npcGates() {
 	return gateMemo;
 }
 
+/**
+ * The next count at which anything opens, above `count`.
+ *
+ * Every per-exchange threshold in the client's own table is one of
+ * these numbers, so an exchange seen shut at 1,082 barters opens at
+ * 1,200 or later -- never at 1,083. That is what lets one sighting of
+ * a barterer with nothing to say be remembered usefully: it is shut
+ * until the next threshold, and then worth trying again.
+ */
+export function nextGateAbove(count) {
+	const n = Math.max(0, Math.floor(Number(count) || 0));
+	for (const r of ROUTE_UNLOCKS) if (r.barters > n) return r.barters;
+	return Infinity;
+}
+
 /** The count that opens this barterer, or 0 if nothing gates it. */
 export const npcGate = npcId => npcGates().get(npcId) || 0;
 
