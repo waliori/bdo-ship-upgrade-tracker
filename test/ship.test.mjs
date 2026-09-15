@@ -283,3 +283,48 @@ test("the Bos'n Jacks are the player's, and only a big ship carries them", async
 	assert.equal(store.getProfile('bosnAlpha', false), true);
 	assert.equal(petWeight('Epheria Caravel'), 200 + 50 * 4 + 50);
 });
+
+test('a part fitted weighs its own LT, and the hold pays it', async () => {
+	const { shownHold, aboardWhat, setupSummary } = await import('../js/ship.js');
+	const { partLT } = await import('../js/part_stats.js');
+	const SAIL = "Epheria Carrack: Valor (Falasi's Sail)";
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { crewShip: 'Carrack (Valor)' } });
+	const bare = currentShip();
+	assert.equal(bare.hold.gear, 0);
+	assert.equal(bare.hold.aboard, 0);
+
+	// Enhancing does not change what an item weighs, so the hold loses the
+	// same LT at +0 as at +10.
+	assert.equal(partLT(CANNON), 3);
+	assert.equal(partLT(SAIL), 3);
+	setFitted('Carrack (Valor)', 'cannon', `+10 ${CANNON}`);
+	setFitted('Carrack (Valor)', 'sail', SAIL);
+	const fitted = currentShip();
+	assert.equal(fitted.fit.gear, 6);
+	assert.equal(fitted.hold.gear, 6);
+	assert.equal(fitted.hold.aboard, 6);
+	assert.equal(fitted.hold.free, fitted.hold.limit - 6);
+	assert.equal(fitted.hold.max, Math.round(fitted.hold.limit * 1.7) - 6);
+	assert.ok(fitted.hold.lines.some(l => l.lt === -6 && /2 parts fitted/.test(l.label)));
+	assert.equal(fitted.hold.lines.reduce((a, l) => a + l.lt, 0), fitted.hold.free);
+	assert.equal(aboardWhat(fitted.hold), 'parts');
+
+	// The ship's own window counts it aboard with nothing loaded.
+	assert.equal(shownHold(fitted.hold, 0).total, 6);
+	assert.equal(shownHold(fitted.hold, 100).total, 106);
+	// A hold saved before parts had a weight still reads as it meant to.
+	assert.equal(shownHold({ limit: 1000, crew: 200, deal: 1500, max: 1500 }, 100).total, 300);
+
+	// The crew's weight and the parts' are both aboard.
+	store.setProfile('roster', [{ id: 'a', name: 'Bahar', type: 'Ambitious', lv: 10, cond: 100 }]);
+	store.setProfile('seats', { 'Carrack (Valor)': { 'sail:0': 'a' } });
+	const crewed = currentShip();
+	assert.equal(crewed.hold.crew, 200);
+	assert.equal(crewed.hold.aboard, 206);
+	assert.equal(crewed.hold.free, crewed.hold.limit - 206);
+	assert.equal(aboardWhat(crewed.hold), 'crew and parts');
+
+	// And a saved setup is weighed the same way, without loading it.
+	const sum = setupSummary({ ship: 'Carrack (Valor)', fitted: { cannon: `+10 ${CANNON}`, sail: SAIL }, seats: {} });
+	assert.equal(sum.hold, currentShip().hold.limit - 6);
+});
