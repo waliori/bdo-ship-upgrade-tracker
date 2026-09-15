@@ -305,9 +305,9 @@ test('a part fitted weighs its own LT, and the hold pays it', async () => {
 	assert.equal(fitted.hold.aboard, 6);
 	assert.equal(fitted.hold.free, fitted.hold.limit - 6);
 	assert.equal(fitted.hold.max, Math.round(fitted.hold.limit * 1.7) - 6);
-	assert.ok(fitted.hold.lines.some(l => l.lt === -6 && /2 parts fitted/.test(l.label)));
+	assert.ok(fitted.hold.lines.some(l => l.lt === -6 && /^2 parts, their own weight$/.test(l.label)));
 	assert.equal(fitted.hold.lines.reduce((a, l) => a + l.lt, 0), fitted.hold.free);
-	assert.equal(aboardWhat(fitted.hold), 'parts');
+	assert.equal(aboardWhat(fitted.hold), 'gear');
 
 	// The ship's own window counts it aboard with nothing loaded.
 	assert.equal(shownHold(fitted.hold, 0).total, 6);
@@ -322,9 +322,38 @@ test('a part fitted weighs its own LT, and the hold pays it', async () => {
 	assert.equal(crewed.hold.crew, 200);
 	assert.equal(crewed.hold.aboard, 206);
 	assert.equal(crewed.hold.free, crewed.hold.limit - 206);
-	assert.equal(aboardWhat(crewed.hold), 'crew and parts');
+	assert.equal(aboardWhat(crewed.hold), 'crew and gear');
 
 	// And a saved setup is weighed the same way, without loading it.
 	const sum = setupSummary({ ship: 'Carrack (Valor)', fitted: { cannon: `+10 ${CANNON}`, sail: SAIL }, seats: {} });
 	assert.equal(sum.hold, currentShip().hold.limit - 6);
+});
+
+test('the crystal weighs a litre, and so does the rod in a Carrack\'s fishing place', async () => {
+	const { setCrystal, rodAboard, OTTER_ROD } = await import('../js/ship.js');
+	const { crystalById } = await import('../js/sea_crystals.js');
+	// Every crystal in the game weighs the same one LT, whatever its grade.
+	assert.ok(Object.values(crystalById).every(c => c.lt === 1));
+	assert.equal(OTTER_ROD.lt, 1);
+
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { crewShip: 'Carrack (Valor)' } });
+	const bare = currentShip();
+	setCrystal('Carrack (Valor)', 59444);          // the Nol: weight +1,350
+	const gemmed = currentShip();
+	assert.equal(gemmed.hold.limit, bare.hold.limit + 1350, 'what it gives');
+	assert.equal(gemmed.hold.gear, bare.hold.gear + 1, 'and what it is');
+	assert.equal(gemmed.hold.free, gemmed.hold.limit - gemmed.hold.aboard);
+	assert.ok(gemmed.hold.lines.some(l => /the crystal/.test(l.label) && l.lt === -1));
+	assert.equal(gemmed.hold.lines.reduce((a, l) => a + l.lt, 0), gemmed.hold.free);
+
+	// The fishing place is a Carrack's alone, and the Fish seat is what
+	// says the rod is installed.
+	store.setProfile('roster', [{ id: 'a', name: 'Bahar', type: 'Ambitious', lv: 10, cond: 100 }]);
+	store.setProfile('seats', { 'Carrack (Valor)': { 'fish:0': 'a' } });
+	assert.equal(rodAboard('Carrack (Valor)'), true);
+	assert.equal(rodAboard('Panokseon', { 'fish:0': 'a' }), false, 'a Panokseon has nowhere to put it');
+	const fishing = currentShip();
+	assert.equal(fishing.hold.gear, gemmed.hold.gear + 1);
+	assert.ok(fishing.hold.lines.some(l => /the Otter's rod/.test(l.label)));
+	assert.equal(fishing.hold.lines.reduce((a, l) => a + l.lt, 0), fishing.hold.free);
 });

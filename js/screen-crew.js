@@ -16,7 +16,7 @@ import { openDialog, closeDialog, toast } from './dialogs.js';
 import { shipStats } from './ship_stats.js';
 import { describeStats, statsAt, partLT } from './part_stats.js';
 import { families, tables } from './enhancement.js';
-import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listFleet, hullOfRow, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, aboardWhat, gearLT, skinWorn, setSkinSlot, setSkinAll, skinTotals, OWNED_PREFIX, OVERLOAD, petWeight } from './ship.js';
+import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listFleet, hullOfRow, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, aboardWhat, gearLT, OTTER_ROD, skinWorn, setSkinSlot, setSkinAll, skinTotals, OWNED_PREFIX, OVERLOAD, petWeight } from './ship.js';
 import { GOODS } from './barter.js';
 import { GRADES, gradeById, crystalById, crystalsOf, crystalVariant, crystalLine, crystalStats } from './crystals.js';
 import { skinFor, SKIN_SLOTS } from './ship_skins.js';
@@ -96,7 +96,7 @@ function seatPitch(pos, s) {
 	}
 	if (pos === 'deck') return `+${F((t.cabin || 0) * 10000)} durability — their ${t.cabin || 0} cabins at 10,000 each`;
 	if (pos === 'mess') return `+${F((t.cabin || 0) * 5000)} rations — their ${t.cabin || 0} cabins at 5,000 each`;
-	if (pos === 'fish') return 'auto-fishing, once an Oceanbound Otter Fishing Rod is aboard';
+	if (pos === 'fish') return `auto-fishing, once an Oceanbound Otter Fishing Rod is aboard — ${OTTER_ROD.lt} LT of the hold while it is`;
 	if (pos === 'firstmate') return t.mate ? `switches on their skill: ${t.skill}` : 'the seat switches on a named mate\'s skill — this sailor has none';
 	if (pos === 'cabin') return 'no role — they still eat, weigh and level along';
 	return '';
@@ -578,7 +578,7 @@ function crystalCard(ship) {
 			${c ? img(c.name, 'slot-icon') : '<span class="slot-icon blank">◆</span>'}
 			<div class="slot-text">
 				<div class="slot-part">${c ? `${codexName(c.name)} <b style="color:${grade.colour}">${esc(crystalVariant(c))}</b>` : 'No crystal'}</div>
-				<div class="slot-stats" title="${c ? esc(crystalLine(c)) : ''}">${c ? esc(crystalLine(c)) : 'Eltro to Rusalka, or the Nol — each one lifts one thing'}</div>
+				<div class="slot-stats" title="${c ? esc(crystalLine(c)) : ''}">${c ? esc(`${crystalLine(c)}${c.lt ? ` · weighs ${c.lt} LT itself` : ''}`) : 'Eltro to Rusalka, or the Nol — each one lifts one thing'}</div>
 			</div>
 		</div>
 		<div class="slot-btns">

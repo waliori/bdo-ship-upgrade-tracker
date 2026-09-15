@@ -204,6 +204,33 @@ export function petWeight(ship, tiers = bosnJacks(), alpha = bosnAlpha()) {
 	return bigShips.has(ship) ? petLT(tiers, alpha) : 0;
 }
 
+
+/* ------------------------------------------------------------------ *
+ * The fishing place
+ * ------------------------------------------------------------------ */
+
+/**
+ * The Otter's rod, which is ship equipment like anything else.
+ *
+ * "Can be installed on: Epheria Carrack" -- the fishing place is the
+ * Carrack's alone, and a Panokseon has nowhere to put it. It is the
+ * thing the Fish seat waits for: a sailor sat there fishes only once
+ * the rod is aboard, so a crew with that seat filled is a ship with the
+ * rod installed, and the hold pays its litre.
+ *
+ * Crio in Velia trades it for 200 Crow Coin Coupons, as often as you
+ * like, once the Otter quests are done. Codex item 59455; the weight is
+ * off its own page, 2026-09-15.
+ */
+export const OTTER_ROD = { id: 59455, name: 'Oceanbound Otter Fishing Rod', lt: 1 };
+
+/** Whether the fishing place is in use: a Carrack with someone in the
+ *  Fish seat, which is the one seat that needs the rod. */
+export function rodAboard(ship = shipName(), seats = null) {
+	const seated = seats || (store.getProfile('seats', {}) || {})[ship] || {};
+	return /^Carrack/.test(ship) && Object.keys(seated).some(k => k.startsWith('fish:'));
+}
+
 /**
  * The whole row at once, and the Alpha with it.
  *
@@ -277,14 +304,16 @@ export function currentShip() {
 	// the same sum as everything else bolted on.
 	const pets = petWeight(name);
 	const limit = stats.weight + parts('weight') + gem('weight') + skin('weight') + pets;
-	// What the parts weigh in themselves. A plating lifts the limit and
+	// What the fit-out weighs in itself. A plating lifts the limit and
 	// then sits in the hold like anything else: the game charges the
 	// item's own LT the moment it is bolted on, so a Carrack with a
 	// Falasi set aboard and nothing loaded already reads 18 / 24,640.
 	// Small numbers, but they are the difference between this figure and
 	// the one the ship's own window shows, which is what a run is
-	// planned against.
-	const gear = Math.round(fit.gear * 100) / 100;
+	// planned against. The crystal is a litre of it whatever its grade,
+	// and so is the rod in a Carrack's fishing place.
+	const rod = rodAboard(name, seats) ? OTTER_ROD.lt : 0;
+	const gear = Math.round((fit.gear + (crystal ? Number(crystal.lt) || 0 : 0) + rod) * 100) / 100;
 	// Everything aboard before a single good is loaded.
 	const aboard = crew.weight + gear;
 	// The hold as a sum, line by line, the way the speed already reads:
@@ -300,7 +329,14 @@ export function currentShip() {
 	if (crew.weight) lines.push({ label: `${crew.seated} sailor${crew.seated === 1 ? '' : 's'} aboard`, lt: -crew.weight });
 	if (gear) {
 		const fitted = fit.slots.filter(s => s.part).length;
-		lines.push({ label: `${fitted} part${fitted === 1 ? '' : 's'} fitted, their own weight`, lt: -gear });
+		const what = [
+			fitted ? `${fitted} part${fitted === 1 ? '' : 's'}` : '',
+			crystal && Number(crystal.lt) ? 'the crystal' : '',
+			rod ? "the Otter's rod" : ''
+		].filter(Boolean);
+		const said = what.length > 1 ? `${what.slice(0, -1).join(', ')} and ${what[what.length - 1]}` : what[0];
+		const one = what.length === 1 && fitted <= 1;
+		lines.push({ label: `${said}, ${one ? 'its' : 'their'} own weight`, lt: -gear });
 	}
 	return {
 		name, stats, fit, crew, crystal, mastery, skin: skinT, skinWorn: skinWorn(name),
@@ -357,12 +393,13 @@ export function shownHold(hold, goods = 0) {
 
 /**
  * What the weight already aboard is made of, for a line that names it:
- * 'crew and parts', 'crew', 'parts', or '' on a bare hull. The figure
- * beside it is `hold.aboard`.
+ * 'crew and gear', 'crew', 'gear', or '' on a bare hull -- the gear
+ * being the parts, the crystal and the rod, which all weigh something.
+ * The figure beside it is `hold.aboard`.
  */
 export function aboardWhat(hold) {
 	const crew = (hold && hold.crew) || 0, gear = (hold && hold.gear) || 0;
-	return crew && gear ? 'crew and parts' : crew ? 'crew' : gear ? 'parts' : '';
+	return crew && gear ? 'crew and gear' : crew ? 'crew' : gear ? 'gear' : '';
 }
 
 /** Fit a part by hand: an item name with its level, '' for an empty
@@ -409,6 +446,8 @@ export function setupSummary(setup) {
 	}
 	const total = sumStats(...parts);
 	const c = setup.crystal ? crystalById[setup.crystal] : null;
+	// The crystal's litre and the rod's, the same as on the ship itself.
+	gear += (c ? Number(c.lt) || 0 : 0) + (rodAboard(setup.ship, setup.seats || {}) ? OTTER_ROD.lt : 0);
 	const gemStats = c ? crystalStats(c) : {};
 	const gem = k => Number(gemStats[k]) || 0;
 	const got = k => Number(total[k]) || 0;
