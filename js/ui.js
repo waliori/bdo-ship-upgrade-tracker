@@ -18,7 +18,7 @@ import {
 	recompute, readyCrafts, craftStock, CROW_COIN, SILVER, setSort, invPicking, invPicked, setInvPicking
 } from './ui-state.js';
 import { kindOf } from './kinds.js';
-import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
+import { toast, openDialog, closeDialog, dismissDialog, holdScreen, whenScreenFree } from './dialogs.js';
 import { allItems, CODEX_LANGS, img } from './ui-bits.js';
 import { encodeShare, decodeShare, shareLink, shareSize } from './share.js';
 import { massProcess } from './vendor_items.js';
@@ -2030,6 +2030,11 @@ function offerLegacyImport() {
  * so the sections nobody scrolls to cost nothing.
  */
 function openWhatsNew({ onClose = null } = {}) {
+	// These notes are shown once and then marked read, so anything that
+	// opens over them has taken them away for good -- the sync's "two
+	// copies" question used to do exactly that, arriving whenever the
+	// server answered. The screen is held until they are closed.
+	const free = holdScreen();
 	const r = RELEASES[0];
 	const headline = r.sections.filter(s => s.media);
 	const rest = r.sections.filter(s => !s.media);
@@ -2075,7 +2080,7 @@ function openWhatsNew({ onClose = null } = {}) {
 			<button class="act quiet" data-close>Close</button>
 			<button class="act" data-act="tour">Show me around</button>
 		</div>
-	`, { onDismiss: onClose });
+	`, { onDismiss: () => { free(); if (onClose) onClose(); } });
 	markReleaseSeen();
 	return host;
 }
@@ -2285,7 +2290,7 @@ export async function init() {
 	} else {
 		wireCommunity(render, { look: lookAtShip });
 		setRunSheet(runSheetHTML);
-		initSync({ toast, openDialog, closeDialog, rerender: render })
+		initSync({ toast, openDialog, closeDialog, whenScreenFree, rerender: render })
 			.catch(err => console.warn('[ui] sync unavailable:', err));
 	}
 }

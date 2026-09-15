@@ -435,6 +435,15 @@ function askWhichCopy(remote, headline) {
 	resolving = true;
 	say('conflict');
 	clearTimeout(pushTimer);
+	// Something may own the screen -- the release notes, shown once on
+	// the first load of a new version. Asking over them takes them away
+	// for good, since opening them marks them read. The status already
+	// says a decision is needed; the question itself waits.
+	const ask = () => askNow(remote, headline);
+	if (hooks.whenScreenFree) hooks.whenScreenFree(ask); else ask();
+}
+
+function askNow(remote, headline) {
 
 	const mine = countOf(store.saveShape());
 	const theirs = countOf(remote.data);
