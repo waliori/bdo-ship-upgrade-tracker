@@ -3,7 +3,7 @@
 # narration under each and write its captions.
 #
 #   PORT=8765 node server.js &
-#   ./tools/capture/guide.sh                 # all five
+#   ./tools/capture/guide.sh                 # all seven
 #   ./tools/capture/guide.sh the-chart       # just one
 #
 # Re-rendering after a wording change is the cheap path and the one this
@@ -52,8 +52,8 @@ for name in "${CHAPTERS[@]}"; do
 	node tools/capture/mix.mjs "$RAW/$name" "$OUT"
 done
 
-# The six end to end, as the README's walkthrough and the film the app
-# plays under Help. Rebuilt whenever all six are on disk, so re-shooting
+# The seven end to end, as the README's walkthrough and the film the app
+# plays under Help. Rebuilt whenever all seven are on disk, so re-shooting
 # one chapter replaces it in the joined cut too -- there is no separate
 # thing to remember to re-render.
 missing=0
@@ -64,7 +64,7 @@ if [ "$missing" -eq 0 ]; then
 	echo "== the whole film"
 	node tools/capture/join.mjs "$OUT" docs/media/walkthrough
 else
-	echo "== skipping the joined film: not all six chapters are shot yet"
+	echo "== skipping the joined film: not all seven chapters are shot yet"
 fi
 
 echo "done -- $OUT"

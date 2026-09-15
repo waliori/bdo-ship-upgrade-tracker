@@ -3,7 +3,8 @@ But start with the bar under the tabs. These are the numbers the whole app plans
 Your total barter count matters most. It decides which islands will even deal with you.
 Your barter level, which sets what every exchange costs in Parley.
 Your Sailing Mastery, which counts toward how fast your ship sails.
-And your region, because every silver price in the app is quoted in it.
+Your region, because every silver price in the app is quoted in it.
+And the Bos'n Jacks you have out. It is the one pet talent in the game that is ship weight — fifty LT a tier, across the five the game lets out at once — so a nest of them is hundreds of LT the hold was being told it did not have.
 Type them once here and every screen reads them. Then fold it away.
 Now queue something to build.
 Some ships can be built two ways, so it asks which.

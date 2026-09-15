@@ -1,7 +1,7 @@
-// The guide films: five chapters, narrated.
+// The guide films: seven chapters, narrated.
 //
 // The walkthrough in tour.mjs is one run past everything for someone who
-// has never opened the app. These are the other thing -- five parts you
+// has never opened the app. These are the other thing -- seven parts you
 // can be sent to one of, when the question is "how does the Map work"
 // and not "what is this".
 //
@@ -92,6 +92,21 @@ const QUEUED = {
 /** One part to go, for the chapter about planning the way to it. */
 const TO_GET = { ...onePartToGo, profile: QUEUED.profile };
 
+/**
+ * Light a thing up if the screen has one, and otherwise just say the
+ * line over whatever is there.
+ *
+ * Several beats in these chapters name one bar, one tile or one state
+ * among a hundred rows, and whether the seeded board happens to produce
+ * it is not something a script can promise. Pointing where there is
+ * something to point at and speaking plainly where there is not keeps a
+ * chapter from dying on a board that dealt differently.
+ */
+async function point(page, sel, line, opts = {}) {
+	if (await onScreen(page, sel)) await spot(page, sel, line, opts);
+	else await say(page, line);
+}
+
 /* ------------------------------------------------------------------ *
  * the chapters
  * ------------------------------------------------------------------ */
@@ -110,7 +125,8 @@ const CHAPTERS = {
 			count: 'Your total barter count matters most. It decides which islands will even deal with you.',
 			blevel: 'Your barter level, which sets what every exchange costs in Parley.',
 			bmastery: 'Your Sailing Mastery, which counts toward how fast your ship sails.',
-			bregion: 'And your region, because every silver price in the app is quoted in it.',
+			bregion: 'Your region, because every silver price in the app is quoted in it.',
+			pets: 'And the Bos\'n Jacks you have out. It is the one pet talent in the game that is ship weight — fifty LT a tier, across the five the game lets out at once — so a nest of them is hundreds of LT the hold was being told it did not have.',
 			once: 'Type them once here and every screen reads them. Then fold it away.',
 			queue: 'Now queue something to build.',
 			asks: 'Some ships can be built two ways, so it asks which.',
@@ -155,6 +171,18 @@ const CHAPTERS = {
 			await spot(page, '.pouch-item.sail.mastery', s.bmastery,
 				{ act: () => typeInto(page, '[data-act="crew-mastery"]', '750', { after: 400 }) });
 			await spot(page, '.pouch-item.sail.region', s.bregion);
+			// The nest is a chip that opens an editor of its own, so it is
+			// opened, a tier set, and shut again -- the row of birds in the
+			// bar is only ever read.
+			await point(page, '.pouch-item.sail.pets', s.pets, {
+				act: async () => {
+					await click(page, '[data-act="pets"]', { after: 1000 });
+					// "All five" at tier 4 is one press, which is the point
+					// of the grid: it was twenty presses round five chips.
+					await click(page, '.pet-row.head .pet-cell[data-tier="4"]', { after: 800 });
+					await click(page, '[data-pet-save]', { after: 900 });
+				}
+			});
 			await doing(page, s.once, () => click(page, '[data-act="sail-bar"]', { after: 600 }));
 			await hush(page);
 
@@ -588,7 +616,7 @@ const CHAPTERS = {
 	 * ============================================================== */
 	'the-map': {
 		n: 'Five', title: 'The Map', at: 'map',
-		blurb: 'The chart, full screen: the toolbar, the layers, and all five of its tabs.',
+		blurb: 'The chart, full screen: the toolbar, the layers, the terrain it stands up on, and all five of its tabs.',
 		say: {
 			open: 'This is the Map. It is the whole sea, with everything you need marked on it.',
 			pins: 'Every pin is a barterer holding something you are short of.',
@@ -600,6 +628,7 @@ const CHAPTERS = {
 			stand: 'And this one stands the chart up.',
 			terrain: 'That is the game\'s own terrain, read out of your client. Not a picture of it — the real heightmap.',
 			lean: 'Shift-drag to lean, and the islands come up out of the water.',
+			curve: 'And the world curves away towards the horizon, the way the game\'s own map does. The pins, the route and your drawings all bend with it.',
 			ground: 'Ground paints it in the colours the client ships.',
 			neon: 'Neon draws it as contours, the way the game\'s own world map does.',
 			flat: 'And Level looks straight down again, facing north.',
@@ -624,7 +653,7 @@ const CHAPTERS = {
 			text: 'And the text tool types a note straight onto the water.',
 			keep: 'Name it and keep it, and it joins your library. Traces share as links too.',
 			grounds: 'Grounds is for hunting.',
-			where: 'It lists every species: sea monsters, young ones, ships, bosses and the Cox Pirates.',
+			where: 'It lists every species: sea monsters, young ones, ships, bosses, the Cox Pirates — and the Hollow Maretta, the song the Great Ocean is told to sail away from, with the thirty-eight spots it is rung at.',
 			monster: 'Click one, and every spawn point it has goes on the chart.',
 			more: 'Tick as many as you like, and send the lot to the game map.',
 			courses: 'Above them are the known sailing courses, each with a note.',
@@ -666,6 +695,9 @@ const CHAPTERS = {
 				{ act: () => click(page, '[data-act="map-3d"]', { after: 4200 }) });
 			await say(page, s.terrain);
 			await doing(page, s.lean, () => drag(page, '#map', 0, -150, { hold: 'Shift', after: 900 }));
+			// Leaning is what makes the curve visible, so the line about it
+			// is said to a chart already leaned rather than to a flat one.
+			await say(page, s.curve);
 			await doing(page, s.ground, () =>
 				click(page, '[data-act="map-style"][data-id="real"]', { after: 1400 }));
 			await doing(page, s.neon, () =>
@@ -775,9 +807,14 @@ const CHAPTERS = {
 			// A ground with its spawn points charted: the disabled ones
 			// are species BDOCodex has no points for, and pressing one
 			// draws nothing at all.
+			// The siren by name, because the line before this one names
+			// her: pressing whatever happened to sort first would have the
+			// film point at one ground while talking about another.
 			const ground = '[data-act="map-hunt"]:not([disabled])';
-			if (await onScreen(page, ground)) {
-				await doing(page, s.monster, () => click(page, ground, { after: 1600 }));
+			const siren = '[data-act="map-hunt"][data-id="hollow-maretta"]:not([disabled])';
+			const first = await onScreen(page, siren) ? siren : ground;
+			if (await onScreen(page, first)) {
+				await doing(page, s.monster, () => click(page, first, { after: 1600 }));
 				// A second species, not the same one again: `ground` still
 				// matches the one just ticked, and pressing it would take
 				// it back off.
@@ -828,14 +865,21 @@ const CHAPTERS = {
 	 * ============================================================== */
 	'a-run': {
 		n: 'Six', title: 'A Run', at: 'barter',
-		blurb: 'Show it one island, and it plans the whole run: chains, route, checklist and the trip recorded at the end.',
+		blurb: 'Four kinds of day, and the whole of one: the board named, the chains, the sheet, the clock, and the trip recorded at the end.',
 		say: {
 			open: 'This is the Barter tab. Show it one island, and it plans a whole run for you.',
 
-			/* --- 1. what the run is for --- */
-			kinds: 'First, pick what you are running for.',
-			mat: 'A material climbs the ladder to one thing you are short of.',
-			silver: 'Silver runs the chains on the board and sells at the end. That is the one we want.',
+			/* --- 1. what the day is for --- */
+			kinds: 'First, what the day is for. There are four of them, and they are not the same run.',
+			silver: 'Silver climbs the chains on the board and sells the tops at a wharf.',
+			stockg: 'A stock sails the same board to fill the storage instead. Nothing is sold at all.',
+			target: 'Say how many of every good you want at a level. That is a floor as well as a target, so a level fills before anything climbs from it.',
+			ceil: 'And climb no higher than stops the ladder where your stock ends — a Level 4 you already hold is stock, not fuel.',
+			banked: 'So the run is scored on what it banks: the goods it is short of, the runs left, and the storage slots they will take.',
+			coing: 'Crow Coins is the third. Every board has ten to fourteen islands paying in coins, and they take a Level 4 and nothing else.',
+			coinsub: 'So a coin day is a climb to four, cashed in — counted in coins, against what your builds are still short of.',
+			matg: 'And a material climbs the ladder to one thing on your list.',
+			back: 'We will sail this one for silver.',
 			level: 'The barter count and level you set at the start are doing real work here: the count decides which islands are on the board at all, and the level prices every Parley figure below.',
 
 			/* --- 2. which board --- */
@@ -850,14 +894,16 @@ const CHAPTERS = {
 
 			/* --- 3. the orders --- */
 			orders: 'Now tell it what you want out of the run.',
-			stock: 'Build the stocks keeps goods back for the next refresh.',
-			floors: 'These boxes are how much it keeps back at each level.',
-			cash: 'Cash out sells everything for silver instead.',
+			floorp: 'Sell the top, keep a floor finishes every island and sells the top, but leaves something of every level for tomorrow\'s board.',
+			floors: 'These boxes are that floor. It is what the selling never touches — which on an empty storage means there is nothing left to sell, and the tab says so rather than proposing a run.',
+			cash: 'Cash out today is the other one: the most silver at the wharf tonight, from what is aboard and at the harbour. That is the day we will sail.',
 			pace: 'Pace. Fast keeps you light and quick.',
 			loaded: 'Full and loaded fills the hold past the limit. More goods, slower sailing.',
 			quests: 'Quests on the way hands in dailies you have already taken, as you pass them.',
+			vouchers: 'Trade vouchers are yours to spend or keep. Drawn on, one goes in as soon as the run needs it and a whole quarter fits, which starts its two-hour cooldown as early as it can be started.',
 			way: 'The way round sets the route order: nearest island first, or one chain at a time.',
 			where: 'And here: where you sail from, where your storage is, and a time limit if you want one.',
+			saved: 'A way of running you like can be kept under a name — the orders, the targets and the ceiling with them.',
 
 			/* --- 4. the chains --- */
 			chains: 'Now the chains. It has already worked out three runs for you.',
@@ -869,25 +915,41 @@ const CHAPTERS = {
 
 			/* --- 5. the run sheet --- */
 			lay: 'Click "Lay it out".',
-			stops: 'Every stop is listed, in order. What you hand over, and what you get back.',
+			shelves: 'The sheet opens on two shelves, tiled the way the game\'s own window is.',
+			load: 'Load before casting off is what to take with you, and what it costs to buy ashore.',
+			after: 'In the storage after is what comes home — and what was sold on the way.',
+			stops: 'Below them, every stop in order. What you hand over, and what you get back.',
 			hold: 'This bar is your hold after each trade.',
 			over: 'Orange means you are over the limit. You still sail, just slower.',
 			heavy: 'Red means too heavy to barter. You have to lighten first.',
 			wharf: 'That is what a wharf stop is for. Drop the extra into storage, and carry on.',
 			parley: 'And this bar is your Parley going down as you trade.',
 
-			/* --- 6. sailing it --- */
+			/* --- 6. the clock --- */
+			clock: 'Before you cast off, the clock at the foot of the sheet.',
+			est: 'It starts at this run\'s own estimate and counts up, and it carries your own pace: seconds for bartering and going on, seconds for a wharf or a quest.',
+			bell: 'It rings a ship\'s bell at every stop rather than only at the end — a pair struck as each stop comes up, eight bells when the run is done.',
+			devices: 'And it reaches every device signed in to your account, so the phone in your pocket rings with this tab shut.',
+			go: 'Start it.',
+			keeps: 'Out of the sheet it keeps time on the tab itself. Ticking a stop off re-bases the rest, so a slow island does not make the whole run chime early.',
+
+			/* --- 7. sailing it --- */
 			sail: 'Happy with it? Click "Sail this run".',
 			chart: 'It goes onto the map as a checklist.',
 			full: 'Full screen, if you want more sea and less panel.',
 			leg: 'It follows you leg by leg, and every stop is a card with the trade on it.',
 			done: 'Tick each stop as you make it. If an island pays a different amount, everything after it re-counts.',
 
-			/* --- 7. recording it --- */
+			/* --- 8. recording it --- */
 			all: 'Finished sailing? Tick them all off at once.',
 			record: 'Then click "Record the trip".',
 			lands: 'Silver goes to your purse, leftover goods to your inventory, and the quests are claimed.',
 			undo: 'All as one change, so one undo puts it back.',
+
+			/* --- 9. the day so far --- */
+			boards: 'And the trip joins today\'s boards.',
+			day: 'Every run since the refill: what it loaded, what it came back with, and the day\'s totals across the Parley bar.',
+			next: 'What it will not do is guess the next board. A refresh deals a different one, and the panel says so.',
 
 			/* --- the ship under it --- */
 			ship: 'One last thing. The hold size, the speed and every time on that route come from your ship.',
@@ -903,14 +965,12 @@ const CHAPTERS = {
 			await tab(page, 'barter');
 			await wait(1200);
 
-			/* --- 1. what the run is for -------------------------------- */
-			await say(page, s.kinds);
-			await doing(page, s.mat, () => click(page, '[data-act="barter-goal"][data-id="material"]', { after: 300 }));
-			await doing(page, s.silver, () => click(page, '[data-act="barter-goal"][data-id="silver"]', { after: 300 }));
-			await say(page, s.level);
-			await hush(page);
-
-			/* --- 2. which board ---------------------------------------- */
+			/* --- 1. which board ---------------------------------------- */
+			// The board comes before the goals now, and not only because
+			// it reads better: three of the four kinds of day are empty
+			// screens until a layout is named. A stock sheet with no board
+			// behind it has nothing to fill, and a coin day has nothing to
+			// cash, so showing them first would be showing four blanks.
 			await say(page, s.board);
 			await say(page, s.forty);
 			await say(page, s.which);
@@ -952,19 +1012,54 @@ const CHAPTERS = {
 			await say(page, s.got);
 			await hush(page);
 
+			/* --- 2. what the day is for -------------------------------- */
+			// The goal toggle lives on the board bar, beside the layout it
+			// has just named -- which is the right place for it, because
+			// all four sail the same board and differ only in what they do
+			// with it. Each is pressed and shown, then silver is chosen
+			// again: it is the day the rest of the chapter sails.
+			await say(page, s.kinds);
+			await doing(page, s.silver, () => click(page, '[data-act="barter-goal"][data-id="silver"]', { after: 500 }));
+			await doing(page, s.stockg, () => click(page, '[data-act="barter-goal"][data-id="stock"]', { after: 1600 }));
+			await spot(page, '.stock-rows', s.target, {
+				pad: 6,
+				act: () => typeInto(page, '.stock-row .purse-inline', '30', { after: 1200 })
+			});
+			await spot(page, '[data-act="barter-ceiling"]', s.ceil, {
+				pad: 10,
+				act: () => choose(page, '[data-act="barter-ceiling"]', '4', { after: 1400 })
+			});
+			await point(page, '.run-ahead', s.banked, { pad: 8 });
+			await doing(page, s.coing, () => click(page, '[data-act="barter-goal"][data-id="coin"]', { after: 1800 }));
+			await point(page, '.orders-coin', s.coinsub, { pad: 8 });
+			await doing(page, s.matg, () => click(page, '[data-act="barter-goal"][data-id="material"]', { after: 1100 }));
+			await doing(page, s.back, () => click(page, '[data-act="barter-goal"][data-id="silver"]', { after: 900 }));
+			await say(page, s.level);
+			await hush(page);
+
 			/* --- 3. the orders ----------------------------------------- */
 			await say(page, s.orders);
-			await doing(page, s.stock, () => click(page, '[data-act="barter-preset"][data-id="stock"]', { after: 300 }));
+			// "Build the stocks" until 1.2, when the tab grew a goal that
+			// actually builds one. The preset is the other day: it sells,
+			// and the floors are there so selling does not strip the pile.
+			await doing(page, s.floorp, () => click(page, '[data-act="barter-preset"][data-id="floor"]', { after: 900 }));
 			// The keep-back row sits below the fold on a 820px frame, so
 			// "these boxes" was said over a screen that did not have them
 			// on it. `spot` scrolls to it and lights it.
 			await spot(page, '.run-floors', s.floors);
-			await doing(page, s.cash, () => click(page, '[data-act="barter-preset"][data-id="cash"]', { after: 300 }));
+			// And off it again, because this save holds no trade goods at
+			// all: with a floor of ten at every level there is nothing the
+			// run is allowed to sell, and the tab says so rather than
+			// proposing a run. True of the app, and a poor thing to sail a
+			// chapter on -- so the run itself cashes out.
+			await doing(page, s.cash, () => click(page, '[data-act="barter-preset"][data-id="cash"]', { after: 900 }));
 			await say(page, s.pace);
 			await doing(page, s.loaded, () => choose(page, '[data-act="barter-pace"]', 'full', { after: 300 }));
 			await doing(page, s.quests, () => choose(page, '[data-act="barter-quests"]', 'yes', { after: 300 }));
+			await doing(page, s.vouchers, () => choose(page, '[data-act="barter-vouchers"]', 'use', { after: 300 }));
 			await doing(page, s.way, () => choose(page, '[data-act="barter-way"]', 'chain', { after: 300 }));
 			await doing(page, s.where, () => moveTo(page, '[data-act="barter-hours"]', { settle: 300 }));
+			await point(page, '.orders-saved', s.saved, { pad: 8 });
 			await hush(page);
 
 			/* --- 4. the chains ----------------------------------------- */
@@ -979,23 +1074,41 @@ const CHAPTERS = {
 
 			/* --- 5. the run sheet -------------------------------------- */
 			await waitFor(page, '[data-act="barter-run-open"]', { upTo: 30000, then: 300 });
-			await doing(page, s.lay, () => click(page, '[data-act="barter-run-open"]', { after: 1100 }));
+			await doing(page, s.lay, () => click(page, '[data-act="barter-run-open"]', { after: 1400 }));
+			// The sheet opens on the two shelves now -- what to load, and
+			// what is in the storage after -- and the stop list is below
+			// them. Everything that used to be said twice is said once.
+			await say(page, s.shelves);
+			await point(page, '.shelf:first-of-type .shelf-tiles', s.load, { pad: 8 });
+			await point(page, '.shelf:last-of-type .shelf-tiles', s.after, { pad: 8 });
 			await say(page, s.stops);
-			// Each of these names one bar or one state among a hundred
-			// rows. Pointed at where the sheet has an example, said
-			// plainly where it does not.
-			const point = async (sel, line) => {
-				if (await onScreen(page, sel)) await spot(page, sel, line);
-				else await say(page, line);
-			};
-			await point('.run-hold .run-bar:not(.parley)', s.hold);
-			await point('.run-hold:has(b.amber)', s.over);
-			await point('.run-hold:has(b.warn)', s.heavy);
-			await point('.run-stop.wharf', s.wharf);
-			await point('.run-parley', s.parley);
+			// Each of the rest names one bar or one state among a hundred
+			// rows, and whether this board dealt one is not the script's to
+			// promise -- `point` speaks the line either way.
+			await point(page, '.run-hold .run-bar:not(.parley)', s.hold);
+			await point(page, '.run-hold:has(b.amber)', s.over);
+			await point(page, '.run-hold:has(b.warn)', s.heavy);
+			await point(page, '.run-stop.wharf', s.wharf);
+			await point(page, '.run-parley', s.parley);
 			await hush(page);
 
-			/* --- 6. sailing it ----------------------------------------- */
+			/* --- 6. the clock ------------------------------------------ */
+			// The clock is at the foot of the sheet, beside Sail this run,
+			// because that is the moment it is wanted: the ship is about to
+			// leave and the estimate is already on the button.
+			await page.evaluate(() => { const f = document.querySelector('.run-foot'); if (f) f.scrollIntoView({ block: 'center' }); });
+			await wait(700);
+			// Everything the clock offers is said while it is still idle:
+			// starting it swaps the chips for a counting bar, so a beat
+			// about what chimes has to come before the press, not after.
+			await point(page, '.run-foot [data-act="barter-timer-start"]', s.clock, { pad: 8 });
+			await say(page, s.est);
+			await point(page, '.sail-timer-modes', s.bell, { pad: 8 });
+			await point(page, '[data-act="barter-timer-devices"]', s.devices, { pad: 10 });
+			await doing(page, s.go, () => click(page, '.run-foot [data-act="barter-timer-start"]', { after: 1800 }));
+			await hush(page);
+
+			/* --- 7. sailing it ----------------------------------------- */
 			await doing(page, s.sail, () => click(page, '[data-act="barter-sail"]', { after: 2000 }));
 			await say(page, s.chart);
 			// Sailing lands on the Map. Full screen is a toggle, so it is
@@ -1010,9 +1123,10 @@ const CHAPTERS = {
 					await click(page, '[data-act="barter-stop-done"]', { after: 700 });
 				}
 			});
+			await say(page, s.keeps);
 			await hush(page);
 
-			/* --- 7. recording it --------------------------------------- */
+			/* --- 8. recording it --------------------------------------- */
 			await doing(page, s.all, async () => {
 				await click(page, '[data-act="barter-sail-all"]', { after: 500 });
 				await click(page, '[data-act="barter-sail-all-go"]', { after: 1200 });
@@ -1020,6 +1134,16 @@ const CHAPTERS = {
 			await doing(page, s.record, () => click(page, '[data-act="barter-record"]', { after: 1600 }));
 			await say(page, s.lands);
 			await say(page, s.undo);
+			await hush(page);
+
+			/* --- 9. the day so far ------------------------------------- */
+			// Recording the trip is what puts a board on this panel, so it
+			// can only be shown here -- and here it is showing the run the
+			// chapter has just sailed rather than a seeded one.
+			await tab(page, 'barter', { after: 1200 });
+			await point(page, '.day-boards .panel-head', s.boards, { pad: 8 });
+			await point(page, '.day-total', s.day, { pad: 8 });
+			await point(page, '.day-note', s.next, { pad: 8 });
 			await hush(page);
 
 			/* --- the ship under it ------------------------------------- */
@@ -1041,7 +1165,7 @@ const CHAPTERS = {
 	 * ============================================================== */
 	'the-harbour': {
 		n: 'Seven', title: 'The Harbour', at: 'community',
-		blurb: 'Sixteen boards, what a place on one opens, and exactly what is and is not shared.',
+		blurb: 'Sixteen boards, what a place on one opens, what is and is not shared — and the box the last release was written out of.',
 		staged: true,
 		say: {
 			open: 'Everything so far runs in your browser alone. This last part is the one that needs sign-in.',
@@ -1062,6 +1186,14 @@ const CHAPTERS = {
 			offered: 'Nothing goes onto a board that you did not offer.',
 			digest: 'You see the exact digest before you agree to it — the numbers, and nothing else.',
 			leave: 'And leaving takes it back off again.',
+
+			/* --- writing in --- */
+			box: 'One more door, under Menu. Feedback.',
+			kinds: 'Something wrong, an idea, or something else — and it reaches whoever runs this copy of the app.',
+			post: 'A report is a post, not a form. Bold, lists, quotes, a link — and a screenshot pasted straight in.',
+			preview: 'Preview shows it the way it will be read.',
+			attached: 'Your name, the screen you were on and the build you are running go with it, so nobody has to ask which version.',
+			asked: 'It is worth doing. Five players wrote in before this release, and one of them wrote most of it.',
 			close: 'Your data stays in your browser. Sign in to sync it between machines, or to join in. Neither is required for anything else in the app.'
 		},
 		async shoot(ctx, s) {
@@ -1077,14 +1209,10 @@ const CHAPTERS = {
 			await say(page, s.boards);
 
 			/* --- finding your way round the boards --------------------- */
-			const point = async (sel, line, opts = {}) => {
-				if (await onScreen(page, sel)) await spot(page, sel, line, opts);
-				else await say(page, line);
-			};
-			await point('.comm-cats', s.sections, { pad: 6 });
-			await point('[data-act="community-how"]', s.how, { pad: 12 });
-			await point('.comm-you', s.yours, { pad: 6 });
-			await point('[data-act="community-find"]', s.find, { pad: 10 });
+			await point(page, '.comm-cats', s.sections, { pad: 6 });
+			await point(page, '[data-act="community-how"]', s.how, { pad: 12 });
+			await point(page, '.comm-you', s.yours, { pad: 6 });
+			await point(page, '[data-act="community-find"]', s.find, { pad: 10 });
 			await hush(page);
 
 			/* --- a place on a board is a door -------------------------- */
@@ -1100,15 +1228,44 @@ const CHAPTERS = {
 				await tab(page, 'community', { after: 800 });
 				await click(page, '[data-act="community-half"][data-id="numbers"]', { after: 1000 });
 			});
-			await point('.comm-cats', s.cats, { pad: 6 });
-			await point('.comm-numq', s.sort, { pad: 10 });
+			await point(page, '.comm-cats', s.cats, { pad: 6 });
+			await point(page, '.comm-numq', s.sort, { pad: 10 });
 			await say(page, s.useful);
 			await hush(page);
 
 			/* --- what is and is not shared ----------------------------- */
-			await point('[data-act="community-join"]', s.offered, { pad: 10 });
+			await point(page, '[data-act="community-join"]', s.offered, { pad: 10 });
 			await say(page, s.digest);
-			await point('[data-act="community-leave"]', s.leave, { pad: 10 });
+			await point(page, '[data-act="community-leave"]', s.leave, { pad: 10 });
+			await hush(page);
+
+			/* --- writing in -------------------------------------------- */
+			// The box is under Menu rather than on this tab, but it belongs
+			// to the same half of the app -- the half with other people in
+			// it -- and this is the only chapter signed in, which the box
+			// now needs.
+			await doing(page, s.box, async () => {
+				await click(page, '[data-act="more"]', { after: 700 });
+				await click(page, '[data-act="feedback"]', { after: 1400 });
+			});
+			await point(page, '.fb-kinds', s.kinds, {
+				pad: 8,
+				act: () => click(page, '.fb-kind:not(.on)', { after: 600 })
+			});
+			await spot(page, '.fb-bar', s.post, {
+				pad: 8,
+				act: async () => {
+					await click(page, '.fb-text', { after: 300 });
+					await page.keyboard.type('The stock run fills a level before it climbs from it, which is exactly what I asked for.', { delay: 32 });
+					await wait(500);
+					await click(page, '.fb-mark[data-mark="quote"]', { after: 600 });
+				}
+			});
+			await doing(page, s.preview, () => click(page, '[data-act="preview"]', { after: 1200 }));
+			await point(page, '.fb-meta', s.attached, { pad: 8 });
+			await say(page, s.asked);
+			await page.keyboard.press('Escape');
+			await wait(600);
 			await say(page, s.close);
 			await hush(page);
 		}

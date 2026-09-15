@@ -1,115 +1,119 @@
 1
-00:00:00,560 --> 00:00:05,010
+00:00:00,341 --> 00:00:04,791
 This is the Yard. It works out what your builds need, and what you still have to find.
 
 2
-00:00:05,565 --> 00:00:09,835
+00:00:05,143 --> 00:00:09,301
 But start with the bar under the tabs. These are the numbers the whole app plans from.
 
 3
-00:00:10,393 --> 00:00:15,106
+00:00:09,301 --> 00:00:13,909
 Your total barter count matters most. It decides which islands will even deal with you.
 
 4
-00:00:15,618 --> 00:00:19,280
+00:00:13,909 --> 00:00:17,461
 Your barter level, which sets what every exchange costs in Parley.
 
 5
-00:00:19,825 --> 00:00:23,455
+00:00:17,461 --> 00:00:21,064
 Your Sailing Mastery, which counts toward how fast your ship sails.
 
 6
-00:00:23,529 --> 00:00:27,122
-And your region, because every silver price in the app is quoted in it.
+00:00:21,064 --> 00:00:24,542
+Your region, because every silver price in the app is quoted in it.
 
 7
-00:00:27,122 --> 00:00:30,502
-Type them once here and every screen reads them. Then fold it away.
+00:00:24,542 --> 00:00:36,143
+And the Bos'n Jacks you have out. It is the one pet talent in the game that is ship weight — fifty LT a tier, across the five the game lets out at once — so a nest of them is hundreds of LT the hold was being told it did not have.
 
 8
-00:00:30,502 --> 00:00:32,425
-Now queue something to build.
+00:00:36,143 --> 00:00:39,528
+Type them once here and every screen reads them. Then fold it away.
 
 9
-00:00:34,932 --> 00:00:37,383
-Some ships can be built two ways, so it asks which.
+00:00:39,528 --> 00:00:41,452
+Now queue something to build.
 
 10
-00:00:37,383 --> 00:00:40,015
-It shows what each route costs. Either is fine.
+00:00:43,575 --> 00:00:46,123
+Some ships can be built two ways, so it asks which.
 
 11
-00:00:40,015 --> 00:00:44,826
-Queue a second one. Order matters: if stock runs short, the build at the top gets it first.
+00:00:46,123 --> 00:00:48,482
+It shows what each route costs. Either is fine.
 
 12
-00:00:44,952 --> 00:00:47,305
-The Plan is everything your queue needs, in one list.
+00:00:48,482 --> 00:00:52,966
+Queue a second one. Order matters: if stock runs short, the build at the top gets it first.
 
 13
-00:00:47,305 --> 00:00:50,302
-Red is missing. Blue you can make. Green you already have.
+00:00:52,966 --> 00:00:55,306
+The Plan is everything your queue needs, in one list.
 
 14
-00:00:50,302 --> 00:00:52,553
-As you gather, type in what you have.
+00:00:55,306 --> 00:00:57,961
+Red is missing. Blue you can make. Green you already have.
 
 15
-00:00:53,204 --> 00:00:55,171
-Every build re-plans around it straight away.
+00:00:57,961 --> 00:01:00,212
+As you gather, type in what you have.
 
 16
-00:00:55,171 --> 00:00:58,718
-Or log a whole trip at once, instead of a box at a time.
+00:01:00,324 --> 00:01:02,293
+Every build re-plans around it straight away.
 
 17
-00:00:59,622 --> 00:01:02,468
-The Workshop makes anything you have the materials for.
+00:01:02,293 --> 00:01:05,831
+Or log a whole trip at once, instead of a box at a time.
 
 18
-00:01:02,468 --> 00:01:05,581
-Crafting moves real stock. Ingredients out, the product in.
+00:01:05,831 --> 00:01:08,188
+The Workshop makes anything you have the materials for.
 
 19
-00:01:05,581 --> 00:01:09,128
-Made a mistake? Undo steps it back, and Redo puts it forward.
+00:01:08,188 --> 00:01:11,286
+Crafting moves real stock. Ingredients out, the product in.
 
 20
-00:01:09,655 --> 00:01:12,127
-Enhancing is kept separate, because attempts can fail.
+00:01:11,286 --> 00:01:14,834
+Made a mistake? Undo steps it back, and Redo puts it forward.
 
 21
-00:01:12,127 --> 00:01:16,577
-It shows your real odds at your failstack, and the most the part can end up costing.
+00:01:14,870 --> 00:01:17,342
+Enhancing is kept separate, because attempts can fail.
 
 22
-00:01:16,604 --> 00:01:19,810
-The Inventory is one tile per thing you own, or still need.
+00:01:17,342 --> 00:01:21,792
+It shows your real odds at your failstack, and the most the part can end up costing.
 
 23
-00:01:19,810 --> 00:01:22,761
-Open one, and every way of getting it is priced.
+00:01:21,857 --> 00:01:24,726
+The Inventory is one tile per thing you own, or still need.
 
 24
-00:01:22,761 --> 00:01:28,195
-What the shop charges, against what making it costs — including its own ingredients, all the way down.
+00:01:24,726 --> 00:01:27,112
+Open one, and every way of getting it is priced.
 
 25
-00:01:28,198 --> 00:01:31,057
-Already levelled a part in game? Record it here.
+00:01:27,112 --> 00:01:32,547
+What the shop charges, against what making it costs — including its own ingredients, all the way down.
 
 26
-00:01:31,645 --> 00:01:35,357
-Tell it the level you reached. It spends no stones to agree with you.
+00:01:32,632 --> 00:01:35,490
+Already levelled a part in game? Record it here.
 
 27
-00:01:35,918 --> 00:01:38,629
-The Tree shows why a build needs what it needs.
+00:01:35,888 --> 00:01:39,593
+Tell it the level you reached. It spends no stones to agree with you.
 
 28
-00:01:39,787 --> 00:01:43,275
-And To Get turns all of that into a plan — which is the whole of the next part.
+00:01:39,593 --> 00:01:42,304
+The Tree shows why a build needs what it needs.
 
 29
-00:01:43,275 --> 00:01:46,971
+00:01:43,353 --> 00:01:46,828
+And To Get turns all of that into a plan — which is the whole of the next part.
+
+30
+00:01:46,828 --> 00:01:50,523
 That is the Yard. What you want, what it takes, and what is left to find.
