@@ -13,9 +13,10 @@ Two things the app was guessing at, and it turns out the game says both of them 
 
 ### Asked for by you
 
-One player wrote in, twice, about the same thing. He was right both times.
+Two players wrote in, and both were right. One of them twice, about the same thing.
 
 - **Zelpha** — *“rolled layout 5, i have the luivano/duch/randis chains but the other 3 arent available … picked eveto having liquor>urn but mariveno for example has nothin”* Not his luck: the game gates *each exchange* on its own barter count, and the app was drawing a board for an account that had unlocked everything. That is **the board you can sail**.
+- **cdwg** — *“Equipped ship gear should be factored into the available hull weight; currently it does not appear so be factored into the available weight.”* It was not — and the ship’s own window is the figure to agree with. Ten to twenty LT on a fitted hull, which is exactly what it came to: **what is bolted on is cargo too**.
 
 The box is under **Menu → Feedback**. It reaches whoever runs the site.
 
@@ -69,6 +70,15 @@ The Lyngbakrs drove the Saltwater Crocodiles off that ground on 27 August, and t
 ### A quest wears its own picture
 
 The icon BDOCodex draws beside each quest, on the Quests tab and small wherever else a quest is named. Twenty-three pictures for thirty-nine quests, which is the point — every Ravinia letter is one picture, every Old Moon Guild hunt another, so a long day’s list sorts itself by the kind of work in it.
+
+### What is bolted on is cargo too
+
+A part gives the hold its Weight Limit and then sits in it, like anything else you put aboard. The app counted only the giving, so every figure it quoted was a little larger than the one the ship’s own window shows — and a run is planned against that figure.
+
+- **Every part weighs its own LT**, the same at +0 as at +10: a Chiro set is **9** off the hold, a Falasi set **18**.
+- **The sea crystal is one litre** — all two hundred and ninety-five of them, Eltro to the Nol.
+- **The Otter’s rod is another**, and only where there is a fishing place to install it: a Carrack has one, a Panokseon has none. A sailor in the Fish seat is a rod aboard.
+- The hold’s line-by-line sum names them — *4 parts, the crystal and the Otter’s rod, their own weight −20* — and every chain, material run and stock run is planned against the smaller, truer number.
 
 ### And the release notes keep the old ones
 
