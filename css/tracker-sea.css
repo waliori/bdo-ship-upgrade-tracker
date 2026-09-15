@@ -138,6 +138,18 @@
 .quest { display: flex; gap: 14px; align-items: flex-start; padding: 12px 22px; border-top: 1px solid rgba(var(--line-rgb), 0.08); }
 .quest.wanted { background: rgba(88, 196, 196, 0.05); }
 .quest-main { flex: 1; min-width: 0; }
+/* The codex's own picture for the errand: enough of them repeat that a
+   column of them sorts a long day by the kind of work in it. The empty
+   one keeps its width so the names still line up. */
+.quest-pic { width: 34px; height: 34px; flex: none; border-radius: 6px; margin-top: 1px; image-rendering: auto; }
+.quest-pic.none { width: 34px; height: 34px; flex: none; border-radius: 6px; border: 1px dashed rgba(var(--line-rgb), 0.25); }
+.quest.done .quest-pic { opacity: 0.45; filter: grayscale(0.6); }
+/* The same picture at the size of a word, for where a quest is named
+   in passing: beside its name in a run's sheet, and in a strip under a
+   species on the Hunt tab. */
+.quest-pip { width: 15px; height: 15px; border-radius: 3px; vertical-align: -3px; margin-right: 5px; }
+.map-row-quests { display: flex; gap: 3px; margin-top: 3px; }
+.map-row-quests .quest-pip { margin: 0; vertical-align: 0; }
 .quest-name { font-weight: 600; color: var(--ink-hi); }
 .quest-tag { margin-left: 8px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); }
 .quest-where { font-size: 12px; color: var(--ink-mute); margin: 2px 0 8px; }
@@ -304,6 +316,7 @@
      the buttons drop to a line of their own. Stacked as a column, one
      day's list ran eleven thousand pixels. */
   .quest { flex-wrap: wrap; gap: 8px 10px; padding: 10px 14px; }
+  .quest-pic, .quest-pic.none { width: 26px; height: 26px; }
   .quest-actions { flex: 1 0 100%; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
 }
 /* A yellow row has three verdicts; they wrap inside their column rather

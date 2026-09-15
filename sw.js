@@ -124,6 +124,7 @@ const SHELL = [
 	'/js/profile-shape.js',
 	'/js/profiles.js',
 	'/js/quest-places.js',
+	'/js/quest_icons.js',
 	'/js/quests.js',
 	'/js/rations.js',
 	'/js/realistic-water-ripples.js',

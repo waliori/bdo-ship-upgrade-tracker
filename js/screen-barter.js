@@ -34,6 +34,7 @@ import { GOODS, PARLEY, COIN, COIN_LEVEL, nextGateAbove, dailyCapacity, parleyPe
 import { parleyLedger } from './parley-ledger.js';
 import { exchanges, goodsHeld, landHeld, weightOf, sellOf, aboardStock as aboardOf } from './barter-plan.js';
 import { TOWNS } from './screen-inventory.js';
+import { questIcon } from './quest_icons.js';
 import { chains, chainRun, tailOf } from './barter-chains.js';
 import { materialRun } from './barter-material.js';
 import { wharves } from './wharves.js';
@@ -678,7 +679,7 @@ const pulledToday = () => (questPull.day === barterKey() ? questPull.ids : []);
 
 const questTitle = q => q.name.replace(/^(\[[^\]]+\]\s*)+/, '');
 /** The quest's name as the way to its row on the Quests tab. */
-const questLink = q => `<button class="linky run-quest-name" data-act="view" data-id="quests" data-quest="${esc(q.id)}" title="${esc(q.where)}${q.note ? ` — ${esc(q.note)}` : ''} · open on the Quests tab">${esc(questTitle(q))}</button>`;
+const questLink = q => `<button class="linky run-quest-name" data-act="view" data-id="quests" data-quest="${esc(q.id)}" title="${esc(q.where)}${q.note ? ` — ${esc(q.note)}` : ''} · open on the Quests tab">${questIcon(q) ? `<img class="quest-pip" src="${esc(questIcon(q))}" alt="" loading="lazy">` : ''}${esc(questTitle(q))}</button>`;
 const questWanted = () => new Set(wantedQuests().map(q => q.id));
 
 /** A barter quest's count, as it stands and as this run leaves it.
