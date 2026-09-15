@@ -276,3 +276,30 @@ test('the sailing clock is a view of its own, kept with the save', () => {
 	const p = readProfile({ views: { timer: t, barter: { goal: 'stock' }, nonsense: { a: 1 } } });
 	assert.deepEqual(Object.keys(p.views).sort(), ['barter', 'timer']);
 });
+
+test('the exchanges a barterer would not make are kept with the count the sailor had', () => {
+	const p = readProfile({
+		shutOffers: [
+			{ npcId: 1234, give: 'Ash Timber', recv: 'Shark Liquor', at: 1082 },
+			{ npcId: '77', give: 'Wool', recv: 'Urn', at: '600' },
+			{ npcId: 0, give: 'Wool', recv: 'Urn', at: 1 },
+			{ npcId: 5, give: 'Wool' },
+			'nonsense'
+		]
+	});
+	assert.deepEqual(p.shutOffers, [
+		{ npcId: 1234, give: 'Ash Timber', recv: 'Shark Liquor', at: 1082 },
+		{ npcId: 77, give: 'Wool', recv: 'Urn', at: 600 }
+	], 'a row without a barterer or a good is not a sighting');
+	// A count that was never typed reads as nought, which is the count
+	// that opens nothing -- the sighting still stands, and the app only
+	// stops trusting it at the next unlock.
+	assert.equal(readProfile({ shutOffers: [{ npcId: 9, give: 'a', recv: 'b' }] }).shutOffers[0].at, 0);
+	// Two hundred at most, newest kept.
+	const many = Array.from({ length: 260 }, (_, i) => ({ npcId: i + 1, give: 'a', recv: 'b', at: i }));
+	const kept = readProfile({ shutOffers: many }).shutOffers;
+	assert.equal(kept.length, 200);
+	assert.equal(kept[kept.length - 1].npcId, 260);
+	// A save written before any of this is unchanged by it.
+	assert.equal('shutOffers' in readProfile({}), false);
+});

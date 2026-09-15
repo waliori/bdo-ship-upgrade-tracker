@@ -13,7 +13,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-import { npcGates, npcGate, npcOpen, openTable, gateOfItem, shutOut, forecast, gateFor, ROUTE_UNLOCKS } from '../js/barter.js';
+import { npcGates, npcGate, npcOpen, openTable, gateOfItem, shutOut, forecast, gateFor, nextGateAbove, ROUTE_UNLOCKS } from '../js/barter.js';
 import { npcById, npcs } from '../js/barter_npcs.js';
 import { chains } from '../js/barter-chains.js';
 import { boardData } from '../js/barter-board.js';
@@ -157,4 +157,17 @@ test('a chain opens on the barter that opens its island, and not before', () => 
 	assert.equal(at(2999).find(c => c.gate).gate.barters, 3000);
 	assert.equal(at(3000).filter(c => c.gate).length, 0, 'one barter opens it');
 	assert.equal(at(2999).length, at(3000).length, 'the board holds the same climbs either side');
+});
+
+// The per-exchange thresholds are the same ladder as the route ones, so
+// an exchange found shut at a count is shut until the next rung of it --
+// which is what lets one sighting be remembered for longer than a day.
+test('the next count at which anything opens is the next rung of the ladder', () => {
+	assert.equal(nextGateAbove(0), ROUTE_UNLOCKS[1].barters);
+	assert.equal(nextGateAbove(1082), 1200);
+	assert.equal(nextGateAbove(1200), 1500);
+	assert.equal(nextGateAbove(-5), ROUTE_UNLOCKS.find(r => r.barters > 0).barters);
+	assert.equal(nextGateAbove(20000), Infinity);
+	assert.equal(nextGateAbove('nonsense'), ROUTE_UNLOCKS.find(r => r.barters > 0).barters);
+	for (const r of ROUTE_UNLOCKS) if (r.barters) assert.ok(nextGateAbove(r.barters - 1) <= r.barters);
 });

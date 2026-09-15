@@ -300,6 +300,24 @@ export function readProfile(raw) {
 	// The sailing orders: what a barter run is for. Cleaned by the
 	// module that owns the shape.
 	if (isProfile(raw.orders)) out.orders = readOrders(raw.orders);
+	// The exchanges a barterer would not make: an island the sailor
+	// looked at and found showing nothing, with the barter count they
+	// had at the time. The game gates every exchange on its own count --
+	// an island can be open while the one thing it is offering today is
+	// not -- and the app has no table of those thresholds, so this is
+	// the sailor's own record of the ones that turned them away.
+	if (Array.isArray(raw.shutOffers)) {
+		const shut = raw.shutOffers
+			.filter(x => isProfile(x) && Number(x.npcId) > 0 && typeof x.give === 'string' && typeof x.recv === 'string')
+			.slice(-200)
+			.map(x => ({
+				npcId: Math.floor(Number(x.npcId)),
+				give: x.give.slice(0, 80),
+				recv: x.recv.slice(0, 80),
+				at: Math.max(0, Math.floor(Number(x.at) || 0))
+			}));
+		if (shut.length) out.shutOffers = shut;
+	}
 	// The orders a sailor has saved under a name, newest first: the
 	// whole shape of a way of running -- the orders, the stock's
 	// targets and ceiling, the harbour and the storage. A dozen at

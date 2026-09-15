@@ -101,7 +101,13 @@ export function askable(combos, npcById, near = null) {
  * lacks a row here and there, and a [Level 5] aboard would otherwise
  * find no island to take it while the game shows one that does.
  */
-export function boardData(combo, barterData, npcById, answers = []) {
+export function boardData(combo, barterData, npcById, answers = [], shut = []) {
+	// The exchanges this sailor has looked at and found shut: the game
+	// gates each one on its own barter count, and an island whose only
+	// offer today is above that count shows nothing at all. They are
+	// left off the board rather than planned through -- a chain that
+	// climbs a rung the sailor cannot trade is not a run.
+	const closed = new Set(shut.map(x => `${x.npcId}|${x.give}|${x.recv}`));
 	const codex = new Map();
 	const entries = new Map();
 	for (const e of barterData || []) {
@@ -117,6 +123,7 @@ export function boardData(combo, barterData, npcById, answers = []) {
 		})
 	];
 	for (const [id, give, qty, recv] of offers) {
+		if (closed.has(`${id}|${give}|${recv}`)) continue;
 		const known = codex.get(`${id}|${give}|${recv}`);
 		if (!entries.has(recv)) {
 			const e = known ? known.entry : null;
