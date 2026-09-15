@@ -101,7 +101,7 @@ try {
 		'-i', listing, '-c', 'copy', joined]);
 
 	// --- the marks --------------------------------------------------
-	const meta = [';FFMETADATA1', 'title=BDO Ship Upgrade Tracker — the guide'];
+	const meta = [';FFMETADATA1', 'title=Sailor’s Log — the guide'];
 	for (const c of chapters) {
 		meta.push('', '[CHAPTER]', 'TIMEBASE=1/1000',
 			`START=${Math.round(c.at * 1000)}`, `END=${Math.round((c.at + c.dur) * 1000)}`,

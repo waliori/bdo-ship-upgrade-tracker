@@ -760,16 +760,16 @@ function paintHunt(layer, size) {
 		g.fillStyle = m.colour;
 		// No shadow blur: a blurred shadow is an offscreen pass per mark,
 		// and a hundred of them per redraw was most of the redraw.
-		// A species the codex has no points for -- the crocodiles since
-		// their move -- is drawn at its ground instead: a dashed ring,
-		// since the spot is approximate, so picking it never shows an
-		// empty sea.
+		// A species the codex has no points for is drawn at its ground
+		// instead, so picking it never shows an empty sea: a dashed ring
+		// where the spot is a guess, a solid one where it is the game's
+		// own marker off the client's world map.
 		if (!m.points.length && m.zones) {
 			for (const [x, y] of m.zones) {
 				const at = project(mv.mapState, size, x, y);
 				if (at.left < -60 - HUNT_MARGIN || at.top < -60 - HUNT_MARGIN || at.left > size.w + 60 + HUNT_MARGIN || at.top > size.h + 60 + HUNT_MARGIN) continue;
 				g.save();
-				g.setLineDash([6, 5]);
+				if (m.approx) g.setLineDash([6, 5]);
 				g.lineWidth = 2;
 				g.beginPath(); g.arc(at.left, at.top, 22, 0, Math.PI * 2); g.stroke();
 				g.restore();
@@ -850,7 +850,11 @@ function habitatMarkers() {
 		const spots = m.zones ? m.zones.map(([x, y]) => ({ x, y, n: m.points.length })) : habitats(m);
 		spots.forEach((h, i) => out.push({
 			key: `${m.key}:${i}`, x: h.x, y: h.y, kind: m.kind, keys: [m.key], colour: m.colour, art: monsterArt[m.key],
-			name: m.kind === 'ship' ? `${m.name.split(' ')[0]} Waters` : m.kind === 'pirate' ? m.name : `${m.name} Habitat`,
+			// A ground the game names and the codex has no spawns for is
+			// that name, not "<something> Waters".
+			name: !m.points.length && m.zones ? m.name
+				: m.kind === 'ship' ? `${m.name.split(' ')[0]} Waters`
+					: m.kind === 'pirate' ? m.name : `${m.name} Habitat`,
 			sub: `${m.name}${m.approx ? ' · about here' : ''}`, n: h.n
 		}));
 	}

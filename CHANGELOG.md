@@ -5,6 +5,93 @@ someone who has been away. The same notes are in the app itself, under
 **Menu → What's new** — this file is generated from them by
 `node tools/build-changelog.mjs`, so the two cannot drift apart.
 
+## 1.2 — What a day is for
+
+*2026-09-14*
+
+A day at sea had one shape: climb as high as the board goes, sell the top, count the silver. It has four now — **silver**, **a stock**, **Crow Coins**, **a material** — and the run is counted in whatever the day was for. Around them a clock that follows you out of the harbour, a sheet that says a thing once, and the bug that made “build the stocks” look mad.
+
+### Asked for by you
+
+Five players wrote in. One of them wrote most of this release.
+
+- **Oni** — *“just wanna fill storage first. Have all 72 type of base matterial ready … the is any way to build road to fill all low lvl and storage them?”* That is **A stock**. The word that made it a goal rather than a setting is *sell*: a run that sells nothing cannot be scored in silver.
+- **Oni** — *“can u add timer? that u can click and it start count time and make a sound like microwave when don’t xD bcs sometime I forget that I send a ship to route”* That is **the clock** — and the two windows he asked for an hour later are **the shelves** and **Today’s boards**.
+- **Zelpha** — *“grabbing 16 marine helms for a barter that only has 6 trades available … it gives a comically large number for the hold before dumping it all back in”* Not misusing the site: **two bugs**, and the second was hiding the first. Both in *Put right*.
+- **Fraul and RENGEREL** — *“can set run for cc? — crow coins?”* That is **Crow Coins**, the fourth kind of day.
+- **Yuki** — *“Does it have the siren spawns? I can’t find an option for it in map”* It does now: the **Hollow Maretta**, and an ocean map read by its own marks rather than fitted by hand.
+
+The box is under **Menu → Feedback**. It reaches whoever runs the site.
+
+### A stock — a day that is not for silver
+
+![The stock sheet: a target a level, a ceiling, and how many days it takes](docs/media/a-stock.gif)
+
+Say the pile you want. Nothing is sold, the climbs stop where you say, and the run is scored on what it banks.
+
+- A target is **per good**, and the row says what it comes to: thirty at Level 2 is thirty of each of the fourteen.
+- It is a floor as well, so the rule is one line: **fill a level before you climb from it**.
+- **Climb no higher than** — a [Level 4] you already hold is stock, not fuel.
+- *1,517 goods short · 76 more runs · about 19 days · 56 storage slots.*
+- The shore goods can come from **your own pile** rather than the Market, and a way of running can be **saved under a name**.
+
+### Crow Coins — the fourth kind of day
+
+![A run for Crow Coins: the chains that cash a Level 4, counted in coins](docs/media/crow-coins.gif)
+
+Every board has ten to fourteen islands paying in coins, and they take a [Level 4] and nothing else. So a coin run is a climb to four, cashed in.
+
+- Scored in coins: *the most coins*, *the most an hour*, *the most a Parley unit*.
+- And it says what they are for: *3,715 this run · 17,600 short of the 19,600 your builds want · 5 more runs like this one*.
+
+### The clock — a bell at every stop
+
+![The clock started on a run, counting to the next stop](docs/media/the-clock.gif)
+
+Sail this run starts it at that run’s own estimate. It counts up, and rings at every stop rather than only at the end.
+
+- A **ship’s bell**: a pair struck as each stop comes up, eight bells when the run is done. Made, not fetched — it works offline.
+- The stops carry **your own pace**: seconds for bartering and going on, seconds for a wharf or a quest.
+- Ticking a stop off **re-bases the rest**, so a slow island does not make the whole run chime early.
+- And it reaches **every device signed in to your account** — the phone in a pocket, with the tab shut.
+
+### The run sheet — two shelves, and one list
+
+![Load before casting off, and in the storage after](docs/media/two-shelves.gif)
+
+What to load, and what is in the storage after, tiled the way the game’s own window is. Everything that used to be said twice is said once.
+
+
+
+### Today’s boards
+
+![Every run since the refill, what it loaded and what it brought back](docs/media/todays-boards.gif)
+
+Every run recorded since the refill: what it loaded, what it came back with, and the day’s totals across the Parley bar.
+
+- What it will **not** do is guess the next board. A refresh deals a different layout, and the panel says so.
+
+### Put right
+
+- **A chain loaded the whole storage** — sixteen helms for an island with six trades in it, ninety-seven thousand LT in a hull that carries eleven, and the rest put back at the first wharf. It loads what the first rung can take now.
+- **A floor was measured against the hold**, so “keep forty” meant *carrying* forty before you could spend one. It counts the pile now, wherever it is kept.
+- **Notifications did nothing on a phone.** They go through the service worker, and where they cannot work the button says why.
+- **Vouchers are a choice**, and go in as soon as the run needs one and a whole quarter fits — which starts the two-hour cooldown as early as it can be started.
+- **“Build the stocks” is now “Sell the top, keep a floor.”** It sells; the floors are there so that selling does not strip the pile.
+- The hold bar is **two columns** — what the hull carries, what there is to spend — with a real way into the hold.
+
+### The chart — the siren, and a map read rather than traced
+
+The **Hollow Maretta** is a habitat with its portrait and its thirty-eight ringing spots. The ocean map behind them is no longer fitted by hand: the crosses are found by their glow and the transform solved for — twenty world units to the pixel, landing within half a pixel on 325 marks.
+
+
+
+### And the app has a name
+
+**Sailor’s Log.** *BDO Ship Upgrade Tracker* described what it did in its first week. It plans parts, quests, barter routes and the sea itself.
+
+
+
 ## 1.1 — The plan, and the sea you can actually reach
 
 *2026-09-11*

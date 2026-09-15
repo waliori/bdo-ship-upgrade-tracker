@@ -22,6 +22,7 @@ delete process.env.PUBLIC_URL;
 process.env.DISCORD_CLIENT_ID = 'test-client';
 process.env.DISCORD_CLIENT_SECRET = 'test-secret';
 process.env.TURSO_DATABASE_URL = `file:${path.join(dir, 'tracker.db')}`;
+process.env.UPLOAD_DIR = path.join(dir, 'uploads');
 process.env.SESSION_SECRET = 'test-secret-key-for-signing-sessions';
 // No coalescing window, so a flush is genuinely in the air by the time
 // the deletion test reaches it -- the race it exists to cover.
@@ -72,12 +73,12 @@ const bob = cookieFor('1002');
 test('the page is still served', async () => {
 	const res = await call('GET', '/');
 	assert.equal(res.status, 200);
-	assert.match(await res.text(), /Ship Upgrade Tracker/);
+	assert.match(await res.text(), /Sailor’s Log/);
 });
 
 test('the client is told sync is available', async () => {
 	const res = await call('GET', '/api/config');
-	assert.deepEqual(await res.json(), { sync: true, push: false, feedback: true, community: true, presence: true });
+	assert.deepEqual(await res.json(), { sync: true, push: false, feedback: true, uploads: true, community: true, presence: true });
 });
 
 test('being signed out is an answer, not an error', async () => {

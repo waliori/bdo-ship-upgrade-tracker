@@ -1,9 +1,12 @@
-# ⚓ BDO Ship Upgrade Tracker
+# ⚓ Sailor’s Log — Black Desert sailing
 
-Plan Black Desert Online ship upgrades against **one shared inventory**.
-Queue as many ships and parts as you like; the tracker works out what
-each one still needs, what you can make right now, and what you have to
-go and get — without ever promising the same 100 planks to two builds.
+Everything a Black Desert sailor plans, in one page. Queue as many ships
+and parts as you like against **one shared inventory** — the log works out
+what each one still needs, what you can make right now, and what you have
+to go and get, without ever promising the same 100 planks to two builds.
+Then the sea: the sailing quests, a barter run laid out for today's board
+and the route to sail it, your ship and its crew, and a map you can draw
+on, share, and export into the game as bookmarks or a loop.
 
 Runs entirely in your browser. No account, no server, nothing leaves your
 machine — [unless you turn on sync](#syncing-across-devices), which is
@@ -11,7 +14,7 @@ opt-in, self-hosted and off by default.
 
 ![The Plan screen, part-way through two Carrack parts](docs/media/hero.png)
 
-**In a hurry?** [Watch the guide](docs/media/walkthrough.mp4) — thirteen
+**In a hurry?** [Watch the guide](docs/media/walkthrough.mp4) — seventeen
 minutes, in seven parts, and you can start at whichever one you came
 for. It is the real app being driven and narrated, not a mock-up; the
 only invented thing anywhere in it is the handful of sailors on the
@@ -27,13 +30,13 @@ whatever is being talked about lit up on screen as it is named:
 
 | Chapter | What it covers |
 |---|---|
-| [One — The Yard](docs/media/guide/the-yard.mp4) | The sailor's own numbers in the bar — the barter count that decides which islands deal with you at all — then queue a build, record what you gather, craft it, step a mistake back, price a part, read the tree |
+| [One — The Yard](docs/media/guide/the-yard.mp4) | The sailor's own numbers in the bar — the barter count that decides which islands deal with you at all, and the nest of Bos'n Jacks the hold is short without — then queue a build, record what you gather, craft it, step a mistake back, price a part, read the tree |
 | [Two — To Get](docs/media/guide/to-get.mp4) | The plan: one way to each thing you are short of, under a goal you choose, with the day count that follows every choice — and what it will never do |
 | [Three — Quests](docs/media/guide/quests.mp4) | The sailing dailies and weeklies, which of them pay something you need, and recording a batch of them in one change |
 | [Four — Your Ship](docs/media/guide/your-ship.mp4) | Hull, the four part slots, the sea crystal, the appearance set, where every figure comes from — and the crew: read off the game's own screenshots, then seated by hand or automatically, with presets and saved setups |
-| [Five — The Map](docs/media/guide/the-map.mp4) | The chart, mostly full screen: the toolbar, the minimap, the layers, all five of its tabs — and stood up on the game's own terrain, in Ground or Neon |
-| [Six — A Run](docs/media/guide/a-run.mp4) | The one to send a barterer: silver or a material, naming this refresh's layout off the game's own barter window, setting the orders, picking the chains, reading the sheet, sailing it, and recording the trip |
-| [Seven — The Harbour](docs/media/guide/the-harbour.mp4) | The boards, what a place on one opens, and what is and is not shared |
+| [Five — The Map](docs/media/guide/the-map.mp4) | The chart, mostly full screen: the toolbar, the minimap, the layers, all five of its tabs — stood up on the game's own terrain in Ground or Neon, with the world curving away, and the Hollow Maretta's thirty-eight ringing spots among the grounds |
+| [Six — A Run](docs/media/guide/a-run.mp4) | The whole of bartering: naming this refresh's layout off the game's own barter window, then the four kinds of day — silver, a stock, Crow Coins, a material — the orders, the chains, the two shelves of the sheet, the clock that rings at every stop, sailing it, recording it, and the day's boards after |
+| [Seven — The Harbour](docs/media/guide/the-harbour.mp4) | The boards, what a place on one opens, what is and is not shared — and the feedback box, where a report is a post with marks, screenshots and a name on it |
 
 Same rule as the walkthrough: it is the real app being driven, and the
 only invented thing anywhere in it is the handful of sailors on those
@@ -1006,6 +1009,7 @@ and `docker compose up` read that file on their own:
 | `SESSION_SECRET` | any long random string — `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | optional, for Vell reminders by push — `npx web-push generate-vapid-keys`; needs the database, not Discord |
 | `ADMIN_IDS` / `FEEDBACK_WEBHOOK_URL` | optional: the Discord account ids that may read the feedback inbox, and a webhook that gets a copy of each entry |
+| `UPLOAD_DIR` | optional: where screenshots sent with a report are kept — `./.data/uploads` by default, which the compose volume already covers. `FEEDBACK_IMAGES=0` turns them off |
 
 Then check it before opening a browser:
 
@@ -1065,14 +1069,41 @@ for. Behind Cloudflare or nginx, two things are worth knowing:
 else, with the section you were on, the build and the browser attached.
 Wherever there is a database it lands in a table, and when
 `FEEDBACK_WEBHOOK_URL` names a Discord webhook the operator gets a copy
-the moment it arrives. Signed in, your Discord name goes along so a
-reply has somewhere to go; signed out, there is a field for that. On a
-browser-only copy there is no inbox, so the same dialog opens an issue
-on GitHub instead — that link is there in every case, for anyone who
-would rather write in public.
+the moment it arrives. On a browser-only copy there is no inbox, so the
+same dialog opens an issue on GitHub instead — that link is there in
+every case, for anyone who would rather write in public.
+
+A report is a post rather than a line. The words take the handful of
+marks everyone already types on Discord — `**bold**`, `*italic*`,
+`` `code` ``, `> quoted`, `- lists`, `1. steps`, `~~struck~~`,
+`||spoiler||`, `[words](link)` — with a bar of buttons over the box and
+a **Preview** beside them. A link that is the whole of its own line and
+points at YouTube or Streamable becomes the film, which loads nothing
+from either host until the play button is pressed. Nothing anyone
+writes is ever trusted as HTML: `js/markup.js` escapes the source first
+and then applies its grammar to the escaped text, so every tag in the
+output was put there by that file.
+
+Screenshots come with it — up to four, pasted, dropped or picked. The
+browser shrinks each to 1600 pixels on its long edge before sending, the
+server reads the type out of the bytes rather than believing the
+filename, and the picture is then served only to the account that sent
+it and to the admins. The bytes live on disk under `UPLOAD_DIR`
+(`./.data/uploads` by default, which the container already holds a
+volume over); the row that says whose it is lives in the database, and
+an upload attached to nothing is swept after a day.
+
+Sending needs an account. A report worth answering is worth being able
+to answer, a screenshot has to belong to somebody before it can be shown
+to anybody, and the ceilings have to be counted against something: one
+report a minute, four open at once, ten a day. Signed out, the dialog
+says so and offers the GitHub link. The operator is outside all three.
 
 The accounts listed in `ADMIN_IDS` get **Feedback inbox** on the same
-menu: what came in, open first, and a button to mark each done.
+menu: what came in, open first, filtered by kind, each post rendered as
+it was written with its screenshots where they were put — a click fills
+the screen with one — and a button to mark each done or throw it away
+with its pictures.
 
 ### The community boards
 
@@ -1159,6 +1190,7 @@ js/
   digest.js           what a save says about its sailor, for the boards
   screen-community.js the Community tab: the hall of fame, the fleet in numbers
   feedback.js         Menu → Feedback, and the admins' inbox
+  markup.js           the little markup a report is written in, and the HTML it becomes
   recipes.js          recipes and enhancement chains
   ships.js            what can be queued
   sea_coins.js        Crow Coin prices
@@ -1197,7 +1229,8 @@ server/               only loaded when sync is configured
   auth.js             the Discord OAuth exchange
   api.js              /api/me and /api/state
   community.js        /api/community — the boards, built from the digests
-  feedback.js         /api/feedback — the inbox, and a copy to a webhook
+  feedback.js         /api/feedback — posts, screenshots, the inbox, a copy to a webhook
+  images.js           is this actually a picture, and how big is it
   market.js           /api/market — the Market relay, on by default
   session.js          signed session cookies, no session table
 test/                 npm test — the server, the cost model, and a browser
@@ -1206,7 +1239,7 @@ icon_mapping.json     item -> icon file and BDOCodex page
 og.png                the social preview card
 docs/media/           the images and clips in this README
 docs/media/small/     the narrow copies the app itself serves
-docs/media/guide/     the six narrated chapters, with their captions
+docs/media/guide/     the seven narrated chapters, with their captions
 CHANGELOG.md          generated from js/about.js by tools/build-changelog.mjs
 tools/capture/        the harness that generates the media, film included
 ```

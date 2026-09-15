@@ -644,6 +644,82 @@ export async function spot(page, sel, text, { pad = 10, act = null, hold = null 
 }
 
 /**
+ * Light up everything that answers to a selector, as one box.
+ *
+ * `spot` lights the first match, which is right for "this button" and
+ * wrong for "these steps" -- a line about a list that boxes only its
+ * first row says something the picture contradicts. This measures the
+ * union of every visible match instead.
+ *
+ * The group is scrolled so its head sits near the top rather than
+ * centred, because a list is read downwards; where the union is taller
+ * than the frame the box is clipped to the frame, which reads as "these,
+ * and more below it" rather than as a box with no bottom edge.
+ */
+export async function spotAll(page, sel, text, { pad = 10, act = null, hold = null, top = 104 } = {}) {
+	const first = await pick(page, sel);
+	await first.evaluate((e, t) => {
+		const y = e.getBoundingClientRect().top + window.scrollY - t;
+		window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+	}, top);
+	await wait(760);
+	// A second look, and a nudge. Putting the head of the group near the
+	// top is right when the group is taller than the frame and wrong when
+	// it only just overhangs it -- four slot cards with the fourth cut off
+	// by the caption is a box that contradicts a line about four things.
+	// Where the whole of it would fit under the caption, scroll the
+	// overhang away before measuring for real.
+	const over = await page.evaluate((sel, floorPad) => {
+		const seen = [...document.querySelectorAll(sel)].map(e => e.getBoundingClientRect()).filter(r => r.width > 0);
+		if (!seen.length) return 0;
+		const top = Math.min(...seen.map(r => r.top));
+		const bottom = Math.max(...seen.map(r => r.bottom));
+		const floor = window.innerHeight - floorPad;
+		// Only worth doing if it fits once moved: a group taller than the
+		// band is clipped whatever we do, and scrolling it merely hides
+		// the head as well as the tail.
+		if (bottom <= floor || bottom - top > floor - 16) return 0;
+		return Math.min(bottom - floor, top - 16);
+	}, sel, 150);
+	if (over > 0) {
+		await page.evaluate(y => window.scrollBy({ top: y, behavior: 'smooth' }), over);
+		await wait(620);
+	}
+	const box = await page.evaluate((s, p) => {
+		const seen = [...document.querySelectorAll(s)]
+			.map(e => e.getBoundingClientRect())
+			.filter(r => r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < window.innerHeight);
+		if (!seen.length) return null;
+		const x = Math.min(...seen.map(r => r.left));
+		const y = Math.min(...seen.map(r => r.top));
+		const right = Math.max(...seen.map(r => r.right));
+		const bottom = Math.max(...seen.map(r => r.bottom));
+		// The caption sits along the bottom of the frame, so a box drawn
+		// under it is a box nobody sees the edge of.
+		const floor = window.innerHeight - 150;
+		return { x: x - p, y: Math.max(8, y - p), w: right - x + p * 2, h: Math.min(bottom + p, floor) - Math.max(8, y - p) };
+	}, sel, pad);
+	await first.dispose();
+	if (!box) return say(page, text);
+	await page.evaluate(b => {
+		const s = document.getElementById('__spot');
+		s.style.left = `${b.x}px`;
+		s.style.top = `${b.y}px`;
+		s.style.width = `${b.w}px`;
+		s.style.height = `${b.h}px`;
+		s.classList.add('on');
+	}, box);
+	await wait(340);
+	if (text) await doing(page, text, act);
+	else {
+		if (act) await act();
+		await wait(hold ?? 1400);
+	}
+	await page.evaluate(() => document.getElementById('__spot').classList.remove('on'));
+	await wait(260);
+}
+
+/**
  * A chapter card, over the dimmed app.
  *
  * `line` is spoken while it is up, which is what keeps a series from

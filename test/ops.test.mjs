@@ -16,6 +16,7 @@ process.env.PUBLIC_URL = 'https://sail.example';
 process.env.DISCORD_CLIENT_ID = 'test-client';
 process.env.DISCORD_CLIENT_SECRET = 'test-secret';
 process.env.TURSO_DATABASE_URL = `file:${path.join(dir, 'tracker.db')}`;
+process.env.UPLOAD_DIR = path.join(dir, 'uploads');
 process.env.SESSION_SECRET = 'test-secret-key-for-signing-sessions';
 process.env.FLUSH_DELAY_MS = '0';
 process.env.LOG_REQUESTS = '1';
@@ -62,7 +63,7 @@ const SUB = { endpoint: 'https://fcm.googleapis.com/fcm/send/abc', keys: { p256d
 const SAVE = { stock: { 'Tidal Black Stone': 400 }, targets: [], strategy: {} };
 
 test('both halves are on', async () => {
-	assert.deepEqual(await (await call('GET', '/api/config')).json(), { sync: true, push: true, feedback: true, community: true, presence: true });
+	assert.deepEqual(await (await call('GET', '/api/config')).json(), { sync: true, push: true, feedback: true, uploads: true, community: true, presence: true });
 });
 
 test('a push subscription keeps its own body limit when sync is on', async () => {

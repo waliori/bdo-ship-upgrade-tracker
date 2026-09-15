@@ -144,10 +144,61 @@
 .run-floor { display: inline-flex; align-items: center; gap: 4px; }
 .run-floor i { width: 16px; height: 14px; border-radius: 3px; background: var(--tier); color: var(--on-tint); font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
 .run-floor .purse-inline { width: 46px; text-align: center; }
+.floors-note { flex: 1 1 260px; min-width: 0; }
+
+/* ---- the stock: a row a level, what is held against what is kept --- */
+.stock-sheet { display: flex; flex-direction: column; gap: 8px; }
+.stock-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.stock-head .run-pick-k { flex: none; margin-bottom: 0; }
+.stock-head .run-pick { display: flex; align-items: center; gap: 8px; background: var(--panel-inset); border-radius: var(--r-btn); padding: 5px 9px; }
+.stock-head .run-pick .select { flex: none; width: auto; padding: 4px 8px; }
+.stock-rows { display: flex; flex-direction: column; gap: 4px; background: var(--panel-inset); border-radius: var(--r-btn); padding: 8px 9px; }
+.stock-row { display: grid; grid-template-columns: 20px minmax(92px, 150px) 58px minmax(64px, 96px) minmax(90px, 260px) minmax(120px, 1fr); align-items: center; gap: 10px; }
+.stock-row.over { opacity: 0.45; }
+.stock-lv { width: 18px; height: 16px; border-radius: 3px; background: var(--tier); color: var(--on-tint); font-family: var(--font-display); font-style: normal; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.stock-have, .stock-each { font-size: 12px; color: var(--ink-mid); line-height: 1.25; }
+.stock-have em, .stock-each em { display: block; font-style: normal; font-size: 10.5px; color: var(--ink-faint); }
+.stock-row .purse-inline { width: 100%; text-align: center; }
+.stock-bar { display: block; height: 6px; border-radius: 3px; background: var(--panel-sunk, rgba(255, 255, 255, 0.06)); overflow: hidden; }
+.stock-bar i { display: block; height: 100%; background: var(--tier); border-radius: 3px; }
+.stock-row.full .stock-note { color: var(--teal); }
+.stock-note { font-size: 11.5px; color: var(--ink-faint); }
+.run-pauses { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
+.run-pauses .run-pick-k { margin-bottom: 0; flex: none; }
+.run-pause { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-mid); }
+.run-pause .purse-inline { width: 54px; text-align: center; }
+.run-pause em { display: block; font-style: normal; font-size: 10.5px; color: var(--ink-faint); }
+.orders-saved { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
+.orders-saved .run-pick-k { margin-bottom: 0; flex: none; }
+.saved-chip { display: inline-flex; align-items: center; gap: 2px; }
+.saved-chip .map-x { opacity: 0.5; }
+.saved-chip:hover .map-x { opacity: 1; }
+.save-name { width: 100%; margin-bottom: 12px; }
+.run-ahead { margin: 10px 0 0; padding: 9px 12px; border-radius: var(--r-btn); background: var(--panel-inset); color: var(--ink-mid); font-size: 12.5px; line-height: 1.5; }
+.run-ahead b { color: var(--ink-hi); }
+.run-ahead.full { color: var(--teal); }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .stock-row { grid-template-columns: 20px 1fr 58px auto; row-gap: 4px; }
+  .stock-bar { grid-column: 2 / -1; }
+  .stock-note { grid-column: 2 / -1; }
+}
+
 .chain-yard { font-size: 11px; color: var(--ink-mute); }
 .chain-yard em { font-style: normal; color: var(--teal); font-weight: 600; }
 .run-notice { margin: 12px 0 0; padding: 9px 12px; border-radius: var(--r-btn); background: rgba(232, 122, 109, 0.09); border: 1px solid var(--red-edge); color: var(--ink-mid); font-size: 12.5px; line-height: 1.5; }
 .run-notice b { color: var(--ink-hi); }
+
+/* A chain that was ticked and did not get to the top. Amber, not red:
+   the run is sound, it is the chain that fell short of its own card. */
+.run-cut { margin: 12px 0 0; padding: 9px 12px; border-radius: var(--r-btn); background: rgba(232, 182, 97, 0.08); border: 1px solid rgba(232, 182, 97, 0.32); color: var(--ink-mid); font-size: 12.5px; line-height: 1.55; }
+.run-cut > b { display: block; margin-bottom: 4px; color: var(--amber); }
+.run-cut ul { margin: 0; padding-left: 16px; }
+.run-cut li { margin: 3px 0; }
+.run-cut li b { color: var(--ink-hi); }
+.run-cut .chip.tiny { margin-left: 4px; vertical-align: baseline; }
+.run-cut-out { color: var(--ink-faint); }
+/* The chip over the run says how far a cut chain got, not just a count. */
+.run-chain-tag small.short { color: var(--amber); }
 .chain-right b.warn { color: var(--red); }
 .run-good .faint { color: var(--ink-faint); font-size: 11.5px; }
 
@@ -200,6 +251,26 @@
   .sail-all .act, .sail-all .ghost-btn { flex: 1 1 auto; }
 }
 .sail-bar.sailing { border-style: solid; border-color: var(--teal-edge); background: rgba(78, 201, 174, 0.06); }
+
+/* ---- the clock for the time the ship is out --------------------- */
+.sail-timer { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sail-timer-k { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.sail-timer .chip.tiny { padding: 3px 8px; }
+.sail-timer.running { gap: 8px; padding: 4px 6px 4px 10px; border-radius: var(--r-btn); background: var(--panel-inset); position: relative; overflow: hidden; }
+.sail-timer.running b { font-family: var(--font-display); font-weight: 600; color: var(--ink-hi); font-variant-numeric: tabular-nums; }
+/* The estimate as a filling line under the clock, so how far along the
+   run is can be read without reading the numbers. */
+.sail-timer-bar { position: absolute; inset: auto 0 0 0; height: 2px; background: rgba(255, 255, 255, 0.06); }
+.sail-timer-bar i { display: block; height: 100%; background: var(--teal); transition: width 1s linear; }
+.sail-timer .chip.tiny.sail-sound { color: var(--teal); border-color: var(--teal-edge); }
+.sail-timer .chip.tiny.sail-sound.off { color: var(--ink-faint); border-color: var(--line-btn); }
+.sail-timer .chip.tiny.warn { border-color: var(--red-edge); color: var(--amber); }
+.sail-timer-modes { display: inline-flex; gap: 2px; }
+.sail-timer-modes .chip.tiny { padding: 2px 7px; font-size: 10.5px; }
+.sail-timer.over { background: rgba(232, 184, 109, 0.1); }
+.sail-timer.over b { color: var(--amber); }
+.sail-timer.over .sail-timer-bar i { background: var(--amber); }
+.hold-bar-timer { display: flex; align-items: center; margin-left: auto; }
 .sail-n b { font-family: var(--font-display); font-size: 16px; color: var(--ink-hi); }
 
 /* The week: the runs recorded, a bar a day. */
@@ -522,8 +593,43 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .fb-kind:hover { border-color: var(--line-btn-hi); }
 .fb-kind.on { border-color: var(--blue-edge); background: rgba(var(--blue-rgb), 0.12); }
 .fb-kind.on b { color: var(--blue-hi); }
-.fb-text { display: block; width: 100%; resize: vertical; min-height: 110px; line-height: 1.45; margin: 0 0 8px; }
-.fb-contact { display: block; width: 100%; margin: 0 0 8px; }
+
+/* The box itself: a bar of marks, the words, and the screenshots that
+   came with them. A drop anywhere over it is a drop on the box. */
+.fb-compose { position: relative; margin: 0 0 8px; }
+.fb-compose.over { outline: 2px dashed var(--blue-edge); outline-offset: 6px; border-radius: var(--r-btn); }
+.fb-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; padding: 4px; border: 1px solid var(--line-btn); border-bottom: 0; border-radius: var(--r-btn) var(--r-btn) 0 0; background: rgba(var(--deep-rgb), 0.45); }
+.fb-mark { min-width: 28px; height: 26px; padding: 0 7px; border: 1px solid transparent; border-radius: var(--r-btn); background: none; color: var(--ink-mid); font: inherit; font-size: 12.5px; line-height: 1; cursor: pointer; }
+.fb-mark:hover { background: rgba(var(--line-rgb), 0.12); color: var(--ink-hi); }
+.fb-mark.on { border-color: var(--blue-edge); background: rgba(var(--blue-rgb), 0.14); color: var(--blue-hi); }
+.fb-mark[data-mark="code"] { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; }
+.fb-bar-gap { width: 1px; height: 16px; margin: 0 4px; background: var(--line-btn); }
+.fb-eye { margin-left: auto; }
+.fb-text { display: block; width: 100%; resize: vertical; min-height: 140px; line-height: 1.5; margin: 0; border-radius: 0 0 var(--r-btn) var(--r-btn); }
+.fb-preview { min-height: 140px; padding: 10px 12px; border: 1px solid var(--line-btn); border-top: 0; border-radius: 0 0 var(--r-btn) var(--r-btn); background: rgba(var(--deep-rgb), 0.3); overflow-wrap: anywhere; }
+.fb-hint { margin: 6px 0 0; font-size: 11px; line-height: 1.6; color: var(--ink-faint); }
+.fb-hint code, .fb-hint b, .fb-hint i { color: var(--ink-mute); }
+.fb-note { margin: 0 0 8px; padding: 7px 10px; border-radius: var(--r-btn); border: 1px solid var(--red-edge); background: rgba(232, 122, 109, 0.08); font-size: 12px; line-height: 1.45; color: var(--red-soft); }
+.fb-contact { display: block; width: 100%; margin: 8px 0 0; }
+
+/* The screenshots waiting to be sent. Small, square, and each one
+   carries the two things you might want of it. */
+.fb-shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin: 8px 0 0; }
+.fb-shots[hidden] { display: none; }
+.fb-shot { position: relative; margin: 0; border: 1px solid var(--line-btn); border-radius: var(--r-btn); overflow: hidden; background: rgba(var(--deep-rgb), 0.5); }
+.fb-shot img { display: block; width: 100%; height: 72px; object-fit: cover; }
+.fb-shot figcaption { padding: 3px 6px; font-size: 10px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fb-shot.waiting { display: grid; place-items: center; min-height: 92px; font-size: 11px; color: var(--ink-faint); }
+.fb-shot-in { position: absolute; left: 4px; bottom: 22px; padding: 2px 7px; border: 1px solid var(--line-btn-hi); border-radius: 999px; background: rgba(var(--deep-rgb), 0.85); color: var(--ink-mid); font: inherit; font-size: 10px; cursor: pointer; opacity: 0; transition: opacity 0.12s; }
+.fb-shot:hover .fb-shot-in, .fb-shot-in:focus-visible { opacity: 1; }
+.fb-shot-x { position: absolute; right: 3px; top: 3px; width: 20px; height: 20px; border: 0; border-radius: 999px; background: rgba(var(--shade-rgb), 0.6); color: var(--ink-hi); font-size: 13px; line-height: 1; cursor: pointer; }
+.fb-shot-x:hover { background: var(--red); color: var(--on-tint); }
+
+/* Signed out: what the box is for, and the one press that opens it. */
+.fb-signin { margin: 0 0 12px; padding: 12px 14px; border: 1px solid var(--line-btn); border-radius: var(--r-btn); background: rgba(var(--blue-rgb), 0.06); }
+.fb-signin p { margin: 0 0 10px; font-size: 12.5px; line-height: 1.5; color: var(--ink-dim); }
+.fb-signin-acts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fb-signin-acts .fb-hint { margin: 0; }
 .fb-meta { margin: 4px 0 0; font-size: 11.5px; color: var(--ink-faint); }
 .fb-meta b { color: var(--ink-mid); font-weight: 600; }
 .fb-space { flex: 1; }
@@ -538,13 +644,69 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .fb-entry-kind { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mid); }
 .fb-entry-who { color: var(--ink-mid); font-weight: 600; }
 .fb-entry-when { margin-left: auto; }
-.fb-entry-text { margin: 6px 0; font-size: 13px; line-height: 1.45; color: var(--ink); white-space: pre-wrap; word-break: break-word; }
-.fb-entry-foot { display: flex; gap: 10px; align-items: center; justify-content: space-between; font-size: 11px; color: var(--ink-faint); }
+.fb-entry-foot { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: 11px; color: var(--ink-faint); }
+.fb-entry-acts { display: flex; gap: 6px; margin-left: auto; }
+.chip.tiny.danger:hover { border-color: var(--red-edge); color: var(--red-soft); }
+.fb-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+.fb-filter .chip.on { background: rgba(var(--blue-rgb), 0.18); border-color: rgba(var(--blue-rgb), 0.55); color: var(--blue-hi); }
+.fb-filter .n { font-family: var(--font-display); color: var(--ink-faint); }
 .fb-done { margin-top: 10px; }
 .fb-done > summary { cursor: pointer; font-size: 12.5px; color: var(--ink-mid); }
+.fb-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; margin: 8px 0 6px; }
+.fb-gallery .mk-shot img { height: 90px; object-fit: cover; width: 100%; }
+
+/* ---- a post, rendered ---------------------------------------------- *
+   The same rules serve the preview in the box and the entry in the
+   inbox, because they are the same thing seen from the two ends. */
+.mk { font-size: 13px; line-height: 1.55; color: var(--ink); overflow-wrap: anywhere; }
+.fb-body { margin: 6px 0; }
+.mk-plain { white-space: pre-wrap; }
+.mk p { margin: 0 0 8px; font-size: 13px; line-height: 1.55; color: var(--ink); }
+.mk > :last-child { margin-bottom: 0; }
+.mk h3, .mk h4, .mk h5 { margin: 12px 0 6px; font-family: var(--font-display); font-weight: 700; letter-spacing: 0.03em; color: var(--ink-hi); }
+.mk h3 { font-size: 14px; }
+.mk h4 { font-size: 13px; }
+.mk h5 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-mid); }
+.mk ul, .mk ol { margin: 0 0 8px; padding-left: 20px; }
+.mk li { margin: 2px 0; }
+.mk blockquote { margin: 0 0 8px; padding: 2px 0 2px 10px; border-left: 2px solid var(--blue-bar); color: var(--ink-mid); }
+.mk code { padding: 1px 5px; border-radius: 4px; background: rgba(var(--line-rgb), 0.12); font-family: var(--font-mono, ui-monospace, monospace); font-size: 11.5px; color: var(--ink-hi); }
+.mk pre { margin: 0 0 8px; padding: 9px 11px; border-radius: var(--r-btn); border: 1px solid var(--line); background: rgba(var(--deep-rgb), 0.55); overflow-x: auto; }
+.mk pre code { padding: 0; background: none; font-size: 11.5px; line-height: 1.5; }
+.mk hr { margin: 10px 0; border: 0; border-top: 1px solid var(--line); }
+.mk a { color: var(--link); }
+.mk a:hover { color: var(--link-hi); }
+.mk del { color: var(--ink-faint); }
+
+.mk-shot { display: inline-block; max-width: 100%; margin: 4px 0; border: 1px solid var(--line-btn); border-radius: var(--r-btn); overflow: hidden; line-height: 0; }
+.mk-shot img { max-width: 100%; height: auto; }
+.mk-shot:hover { border-color: var(--line-btn-hi); }
+
+/* Hidden until it is asked for -- a click, or Enter on the keyboard. */
+.mk-spoiler { border-radius: 3px; background: rgba(var(--line-rgb), 0.25); color: transparent; cursor: pointer; text-shadow: 0 0 9px rgba(var(--line-rgb), 0.9); }
+.mk-spoiler.on { background: rgba(var(--line-rgb), 0.08); color: var(--ink); text-shadow: none; cursor: auto; }
+
+/* A film is a still with a play button on it until it is pressed, and
+   then it is the player. Nothing is fetched from the video host in the
+   meantime but the still. */
+.mk-video { position: relative; display: grid; place-items: center; width: 100%; max-width: 420px; aspect-ratio: 16 / 9; margin: 6px 0 10px; border: 1px solid var(--line-btn); border-radius: var(--r-btn); background: rgba(var(--deep-rgb), 0.7); overflow: hidden; }
+.mk-video-thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; }
+.mk-play { position: relative; width: 52px; height: 52px; padding: 0 0 0 4px; border: 1px solid var(--line-btn-hi); border-radius: 999px; background: rgba(var(--deep-rgb), 0.82); color: var(--ink-hi); font-size: 19px; line-height: 1; cursor: pointer; }
+.mk-play:hover { border-color: var(--blue-edge); color: var(--blue-hi); }
+.mk-video-out { position: absolute; right: 6px; bottom: 6px; padding: 2px 8px; border-radius: 999px; background: rgba(var(--deep-rgb), 0.82); font-size: 10.5px; color: var(--ink-mid); }
+.mk-video.playing { display: block; }
+.mk-video iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+/* One picture, as large as the screen will hold it, over the dialog
+   that opened it rather than instead of it. */
+.fb-lightbox { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 24px; background: rgba(var(--shade-rgb), 0.85); cursor: zoom-out; }
+.fb-lightbox img { max-width: 100%; max-height: calc(100dvh - 80px); border-radius: var(--r-btn); box-shadow: 0 20px 60px rgba(var(--shade-rgb), 0.6); }
+.fb-lightbox-out { position: absolute; right: 16px; bottom: 16px; padding: 5px 11px; border-radius: 999px; background: rgba(var(--deep-rgb), 0.9); border: 1px solid var(--line-btn); font-size: 12px; color: var(--ink-mid); cursor: pointer; }
 
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   .fb-kinds { grid-template-columns: 1fr; }
+  .fb-mark .btn-label { display: none; }
+  .fb-shots { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
 }
 .stat-means { font-size: 10px; font-weight: 500; color: var(--ink-faint); margin-left: 3px; }
 

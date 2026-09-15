@@ -121,48 +121,47 @@
 }
 
 /* the hold, as a line across the page, and the dialog it opens */
-.hold-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 8px 10px 8px 14px; border-color: rgba(78, 201, 174, 0.22); }
+.hold-bar { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-color: rgba(78, 201, 174, 0.22); }
 .hold-bar.over { border-color: rgba(232, 182, 97, 0.4); }
 .hold-bar.dead { border-color: var(--red-edge); }
-.hold-bar-main { flex: 1 1 420px; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; padding: 4px 0; background: none; border: none; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: var(--r-btn); }
-.hold-bar-main:hover .hold-bar-open { color: var(--ink-hi); }
+/* Two columns, because two unrelated things live here: what the hull is
+   carrying, and what the sailor has to spend. They used to be one row
+   with the way into the hold hidden at the end of it as a word. */
+.hold-cols { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 10px; align-items: start; }
+.hold-col { min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-radius: var(--r-btn); background: var(--panel-inset); }
+.hold-col-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hold-col-head .ghost-btn.sm { flex: none; white-space: nowrap; }
 .hold-bar-k { font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); white-space: nowrap; }
-.hold-bar-ship { font-size: 12.5px; font-weight: 600; color: var(--ink-hi); white-space: nowrap; }
-/* Wide enough for the weight line to sit beside its bar where there is
-   room. It asks for the whole line rather than 200px because the line
-   it holds is around 420px and the bar beside it wants 90: asking for
-   less did not make the line shorter,
-   it made it overflow the box and paint over whatever had wrapped
-   underneath -- by 23px on a wide screen and 223px on a narrow one. */
-.hold-bar-gauge { display: flex; align-items: center; gap: 10px; flex: 1 1 530px; min-width: 160px; }
-.hold-bar-gauge .map-load-bar { flex: 1 1 90px; margin: 0; }
-/* And it wraps. Nothing here is short enough to promise one line at
-   every width, and a line that cannot wrap does not shrink -- it spills
-   over its neighbours. */
-.hold-bar-gauge b { font-family: var(--font-display); font-size: 12.5px; font-weight: 600; color: var(--ink-hi); min-width: 0; }
-.hold-bar-gauge b.warn { color: var(--amber); }
-.hold-bar-goods { display: flex; flex-wrap: wrap; gap: 5px; }
-.hold-bar-goods .faint { font-size: 11.5px; color: var(--ink-faint); }
-.hold-bar-lv { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-display); font-size: 11.5px; font-weight: 600; color: var(--ink-mid); padding: 2px 7px 2px 3px; border-radius: 999px; background: var(--panel-inset); border: 1px solid var(--line-soft); }
+.hold-col-purse .hold-bar-k { color: var(--gold); }
+.hold-bar-ship { font-size: 12.5px; font-weight: 600; color: var(--ink-hi); }
+.hold-gauge { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.hold-gauge .map-load-bar { flex: 1 1 90px; margin: 0; min-width: 80px; }
+.hold-gauge b { font-family: var(--font-display); font-size: 12.5px; font-weight: 600; color: var(--ink-hi); min-width: 0; }
+.hold-gauge b.warn { color: var(--amber); }
+.hold-goods { display: flex; flex-wrap: wrap; gap: 5px; }
+.hold-goods .faint { font-size: 11.5px; color: var(--ink-faint); }
+.hold-bar-lv { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-display); font-size: 11.5px; font-weight: 600; color: var(--ink-mid); padding: 2px 7px 2px 3px; border-radius: 999px; background: var(--panel-sunk, rgba(255, 255, 255, 0.04)); border: 1px solid var(--line-soft); }
 .hold-bar-lv i { font-style: normal; font-size: 9.5px; font-weight: 700; color: var(--on-tint); background: var(--tier); border-radius: 4px; padding: 1px 4px; }
-.hold-bar-ashore { font-size: 11.5px; color: var(--ink-mute); }
-.hold-bar-ashore.faint { color: var(--ink-faint); }
-.hold-bar-open { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--ink-mute); white-space: nowrap; }
-/* Wraps. Two parley controls and a button do not fit a phone on one
-   line -- they ran to 613px inside a 390px screen, and the row simply
-   ended at the edge of the panel with the rest cut off. */
-.hold-bar-btns { flex: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.hold-ashore { font-size: 11.5px; color: var(--ink-mute); }
+.hold-ashore.faint { color: var(--ink-faint); }
+/* The purse: the figures big enough to read across the room, the
+   arithmetic behind them small underneath. */
+.hold-purse { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.hold-purse-n { display: flex; align-items: baseline; gap: 5px; }
+.hold-purse-n b { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--ink-hi); }
+.hold-purse-n span { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+.hold-purse-sub { font-size: 11px; color: var(--ink-faint); }
+.hold-bar-timer { display: flex; justify-content: flex-end; }
+@media (max-width: 860px) {
+  .hold-cols { grid-template-columns: minmax(0, 1fr); }
+  .hold-bar-timer { justify-content: flex-start; }
+}
 .hold-dialog .barter-hold { border: none; background: transparent; padding: 0; box-shadow: none; }
 .hold-dialog .dialog-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
 .dialog-box.wide { max-width: 720px; }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   .hold-bar { padding: 8px 10px; }
-  .hold-bar-main { flex-basis: 100%; }
-  .hold-bar-btns { width: 100%; }
-  .hold-bar-btns .ghost-btn { flex: 1 1 auto; }
-  /* The parley line wraps within itself too, so its own label, field
-     and note are not what pushes the row over the edge. */
-  .hold-parley { flex: 1 1 auto; min-width: 0; flex-wrap: wrap; white-space: normal; }
+  .hold-col-head .ghost-btn.sm { flex: 1 1 auto; }
 }
 
 /* the board bar */
@@ -539,3 +538,86 @@
 .map-step-chip.stash { color: var(--stash); border-color: var(--stash-edge); background: rgba(178, 143, 224, 0.12); border-radius: 6px; }
 .map-step-chip.stash.on { background: var(--stash); border-color: transparent; color: var(--on-tint); }
 
+
+
+/* ------------------------------------------------------------------ *
+ * The run as two shelves: what to load, and what is in the storage
+ * after. Shaped like the game's own storage window -- one tile a kind,
+ * the count on it -- so it can be read against the screen while
+ * loading.
+ * ------------------------------------------------------------------ */
+.run-shelves { display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; gap: 10px; padding: 12px; }
+.shelf { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.shelf-head { display: flex; flex-direction: column; gap: 2px; }
+.shelf-head .panel-title { font-size: 12px; }
+.shelf-arrow { align-self: center; font-size: 20px; color: var(--ink-faint); }
+.shelf-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; align-content: start; }
+.shelf-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px 6px; border-radius: var(--r-btn); background: var(--panel-inset); border: 1px solid var(--line-btn); text-align: center; }
+.shelf-tile .shelf-icon { width: 34px; height: 34px; }
+.shelf-tile b { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--ink-hi); line-height: 1; }
+.shelf-tile span { font-size: 10.5px; color: var(--ink-mute); line-height: 1.25; overflow-wrap: anywhere; }
+.shelf-tile em { font-style: normal; font-size: 9.5px; color: var(--ink-faint); }
+.shelf-lv { position: absolute; top: 4px; left: 4px; padding: 1px 4px; border-radius: 3px; background: var(--tier, var(--panel-sunk)); color: var(--on-tint); font-family: var(--font-display); font-style: normal; font-size: 9px; font-weight: 700; }
+.shelf-lv.shore { background: var(--panel-sunk, rgba(255, 255, 255, 0.1)); color: var(--ink-mute); }
+.shelf-tile.silver { border-color: var(--gold-edge); justify-content: center; }
+.shelf-tile.silver b { color: var(--gold); font-size: 17px; }
+/* The coin itself, wherever a coin run talks about coins: on the goal,
+   on the tile, on the cards, on the shelf and beside the group of
+   chains that end at an island paying in them. Sized to the line it
+   sits on rather than to a grid. */
+.orders-coin { display: inline-flex; align-items: center; font-size: 13px; color: var(--gold); }
+.orders-coin b { font-family: var(--font-display); font-weight: 700; }
+.goal-icon { width: 15px; height: 15px; vertical-align: -3px; margin-right: 5px; }
+.tile-icon { width: 20px; height: 20px; vertical-align: -4px; margin-right: 6px; }
+.coin-icon { width: 17px; height: 17px; vertical-align: -4px; margin-right: 6px; }
+.group-icon { width: 16px; height: 16px; vertical-align: -3px; margin-right: 6px; }
+.chip-icon { width: 15px; height: 15px; vertical-align: -3px; }
+.proposal b .tile-icon { width: 18px; height: 18px; }
+.shelf-tile.coin .shelf-icon { width: 30px; height: 30px; }
+
+/* A chain that ends in coins is grouped apart from the climbs that
+   stop at the same level, and named in the colour of the coin. */
+.chain-group.coin .chain-group-head span:first-of-type { color: var(--gold); }
+.shelf-tile.coin { border-color: var(--teal-edge); }
+.shelf-tile.coin b { color: var(--teal); }
+.shelf-none { font-size: 11.5px; color: var(--ink-faint); }
+.shelf-act { margin-top: 4px; }
+.shelf-tile .ghost-btn.sm, .shelf-tile .chip.tiny { font-size: 10px; padding: 2px 7px; }
+/* The lists the shelves replaced, kept as one fold for what a tile has
+   no room for: what a good is worth, and how often a board takes it. */
+.run-fold > summary { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 12px 14px; cursor: pointer; }
+.run-fold > summary::-webkit-details-marker { display: none; }
+.run-fold > summary::before { content: '▸'; color: var(--ink-faint); }
+.run-fold[open] > summary::before { content: '▾'; }
+.run-fold-group { padding: 0 0 8px; }
+.run-fold-group h3 { margin: 8px 14px 4px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .run-shelves { grid-template-columns: 1fr; }
+  .shelf-arrow { transform: rotate(90deg); }
+  .shelf-tiles { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
+}
+
+
+/* ------------------------------------------------------------------ *
+ * The day's boards: what each run loaded and brought back, and the
+ * totals across the Parley bar.
+ * ------------------------------------------------------------------ */
+.day-boards { padding: 0 0 10px; }
+.day-note { margin: 0 14px 8px; }
+.day-runs { display: flex; flex-direction: column; }
+.day-run { display: grid; grid-template-columns: 26px minmax(130px, 0.9fr) 1.4fr 1.4fr; gap: 10px; align-items: start; padding: 9px 14px; border-top: 1px solid var(--line-soft, rgba(255, 255, 255, 0.06)); }
+.day-n { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--panel-inset); color: var(--ink-mute); font-family: var(--font-display); font-size: 11px; font-weight: 700; }
+.day-what { font-size: 12px; color: var(--ink-mid); }
+.day-what em { display: block; font-style: normal; font-size: 10.5px; color: var(--ink-faint); }
+.day-side { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 11.5px; color: var(--ink-mute); }
+.day-k { display: block; width: 100%; font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.day-good { display: inline-flex; align-items: center; gap: 4px; }
+.day-good b { font-family: var(--font-display); color: var(--ink-hi); font-weight: 600; }
+.day-good .row-icon.xs { width: 18px; height: 18px; }
+.day-total { background: var(--panel-inset); border-radius: 0 0 var(--r-panel) var(--r-panel); }
+.day-total .day-n { background: var(--teal); color: var(--on-tint); }
+.day-total .day-what { color: var(--ink-hi); }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .day-run { grid-template-columns: 26px 1fr; row-gap: 6px; }
+  .day-side { grid-column: 2 / -1; }
+}

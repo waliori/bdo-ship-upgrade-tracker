@@ -43,7 +43,20 @@ const DEMO = JSON.stringify({
 		{ id: 'demo-1', item: "Epheria Carrack: Valor (Chiro's Sail)", qty: 1, active: true },
 		{ id: 'demo-2', item: "Epheria Carrack: Valor (Chiro's Cannon)", qty: 1, active: true }
 	],
-	strategy: {}
+	strategy: {},
+	// The sailor's own numbers belong to a worked example as much as the
+	// stock does. Left unset the bar reads "0 barters · no level" and asks
+	// to be filled in -- which is the right thing for a new save and the
+	// wrong thing to walk somebody past while saying that the count
+	// decides which islands will deal with you at all. The hull is the
+	// one the queued parts are for, so the Ship step is about the boat
+	// the example is building rather than the sloop a save starts on.
+	profile: {
+		barterCount: 4205,
+		level: 'Master 5',
+		sailingMastery: 750,
+		crewShip: 'Carrack (Valor)'
+	}
 });
 
 /** Click a tab and give the render a moment to land. */
@@ -207,7 +220,7 @@ class GuidedTour {
 		const all = [
 			{
 				popover: {
-					title: '⚓ One inventory, every build',
+					title: '⚓ Parts, quests, routes and the map',
 					description: 'This tracker keeps a single record of what you own. Every build draws from it, so the same 100 planks are never promised to two ships at once.<br><br><b>The next few screens show an example so there is something to point at — your own data comes back when the tour ends.</b>',
 					align: 'center'
 				},
@@ -395,7 +408,7 @@ class GuidedTour {
 				element: '.barter-bar',
 				popover: {
 					title: 'Today\'s board',
-					description: 'The trade-goods barters are not rolled island by island: every refresh the whole sea shows one of forty fixed layouts. So this asks what <i>one</i> island is showing — tap it from that island\'s possible offers — and the whole board follows: every chain the day allows, listed by how far it reaches and what it pays.<br><br><b>Silver</b> is a run along the chains you tick; <b>A material</b> is one route through every island dealing the thing your plan is short of.<br><br>Only the islands your <b>total barters</b> have opened are planned through: the rest sit locked under the list, with a line saying how many more barters open them. Nothing is ever routed through a barterer you cannot reach.',
+					description: 'The trade-goods barters are not rolled island by island: every refresh the whole sea shows one of forty fixed layouts. So this asks what <i>one</i> island is showing — tap it from that island\'s possible offers — and the whole board follows: every chain the day allows, listed by how far it reaches and what it pays.<br><br>Then say what the day is <i>for</i>, because the same board is sailed four ways. <b>Silver</b> climbs the chains you tick and sells the tops at a wharf. <b>A stock</b> sells nothing at all: say how many of every good you want at a level and the run is scored on what it banks, with the climbs stopped where the stock ends. <b>Crow Coins</b> is a climb to [Level 4], cashed in at the ten to fourteen islands on every board that pay in coins. <b>A material</b> is one route through every island dealing the thing your plan is short of.<br><br>Only the islands your <b>total barters</b> have opened are planned through: the rest sit locked under the list, with a line saying how many more barters open them. Nothing is ever routed through a barterer you cannot reach.',
 					side: 'bottom'
 				},
 				before: () => goToTab('barter')
@@ -404,7 +417,7 @@ class GuidedTour {
 				element: '.hold-bar',
 				popover: {
 					title: 'The hold, and the run',
-					description: 'The hold is what is actually aboard, weighed against the ship as fitted and the ceiling the islands still deal under; goods ashore are listed by harbour with a Load button. Under it, the <b>sailing orders</b> — cash out today or build the stocks, the pace, which levels a wharf sells — and the figures every chain comes to.<br><br>Tick chains and a strip along the foot keeps the run in a line: <b>Lay it out</b> opens every stop, what to buy before casting off, and the quests handed in on the way, and <b>Sail this run</b> takes it to the Map as a checklist. <b>Record the trip</b> at the end puts the whole of it in the Inventory as one change.',
+					description: 'Two columns: <b>the hold</b> — what is actually aboard, weighed against the ship as fitted and the ceiling the islands still deal under, with goods ashore listed by harbour and a way into the hold — and <b>to spend</b>, the Parley the bar holds and what one trade costs you. Under them the <b>sailing orders</b>: cash out today or sell the top and keep a floor, the pace, the vouchers, which levels a wharf sells, and the figures every chain comes to.<br><br>Tick chains and a strip along the foot keeps the run in a line. <b>Lay it out</b> opens the sheet on two shelves — what to load before casting off, and what is in the storage after — with every stop in order below them. <b>Sail this run</b> takes it to the Map as a checklist, and the <b>clock</b> beside it starts at that run\'s own estimate: it counts up, rings a ship\'s bell at every stop rather than only at the end, and reaches every device signed in to your account.<br><br><b>Record the trip</b> puts the whole of it in the Inventory as one change, and the run joins <b>Today\'s boards</b> — every board sailed since the refill, what it loaded, what it came back with, and the day\'s totals across the Parley bar.',
 					side: 'bottom'
 				},
 				before: () => goToTab('barter')

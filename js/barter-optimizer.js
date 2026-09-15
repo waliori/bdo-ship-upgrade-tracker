@@ -14,16 +14,18 @@
 // as on the chain rows; the run itself bends its legs round the coast.
 
 import { chainRun } from './barter-chains.js';
-import { yardsticks } from './barter-orders.js';
+import { yardsticks, PARLEY_UNIT } from './barter-orders.js';
 import { levelOf } from './barter.js';
-import { sellOf } from './barter-plan.js';
+import { sellOf, goodsHeld } from './barter-plan.js';
 import { pathLength, sailSeconds } from './sailing.js';
 
 /**
- * What a Level 1 or 2 good is worth kept, under "build the stocks":
+ * What a Level 1 or 2 good is worth kept, on a day that keeps a floor:
  * nothing pays for them, but each becomes part of a Level 3 that pays
  * a million -- a quarter and a half of that, for the two rungs and
  * the two or three an exchange pays. Under "cash out" they are weight.
+ * A stock run does not come through here at all: it is scored in goods
+ * by `fillOf`, and silver never enters into it.
  */
 export const STOCK_WORTH = { 1: 250000, 2: 500000 };
 
@@ -34,13 +36,53 @@ export const STOCK_WORTH = { 1: 250000, 2: 500000 };
  * that pay nothing yet.
  */
 export function valueOf(run, orders) {
-	const stock = orders && orders.preset === 'stock';
+	const stock = orders && orders.preset === 'floor';
 	let v = run.net;
 	for (const g of [...run.kept, ...run.stashed]) {
 		const lv = levelOf(g.item);
 		v += g.n * (sellOf(g.item) || (stock ? STOCK_WORTH[lv] || 0 : 0));
 	}
 	return v;
+}
+
+/**
+ * How full a stock stands, as one number: every good counted up to the
+ * target it is kept to and no further, weighted by its level, since a
+ * [Level 4] is four rungs of work where a [Level 1] is one. A good
+ * over its target adds nothing more -- which is the whole rule of a
+ * stock run, written as arithmetic: the surplus above a target is free
+ * to climb, and what is still short is not.
+ */
+export function fullness(goods, targetOf) {
+	let v = 0;
+	for (const [name, n] of goods) {
+		const lv = levelOf(name);
+		if (!lv) continue;
+		v += Math.min(n, targetOf(name)) * lv;
+	}
+	return v;
+}
+
+/**
+ * What a run adds to the stock: how full it stands after, less how
+ * full it stood before. `held` is everything the sailor keeps, aboard
+ * and ashore, as a Map; the run's own goods are counted out of it and
+ * what the run ends with counted back in, so a good left at a wharf
+ * and a good carried home weigh the same. Goods sold are gone from the
+ * end and so are worth nothing here: in a stock run, selling is not a
+ * win. Spending a good still short of its target costs what it was
+ * worth, which is why a level fills before the run climbs from it.
+ */
+export function fillOf(run, { targetOf, held = new Map(), stock = {} } = {}) {
+	const before = new Map(held);
+	const after = new Map(held);
+	const move = (goods, name, n) => goods.set(name, (goods.get(name) || 0) + n);
+	// What the run began with in hand: the hold, and what it loaded at
+	// the harbour it sailed from.
+	for (const [name, n] of goodsHeld(stock)) move(after, name, -n);
+	for (const l of run.loaded) move(after, l.item, -l.n);
+	for (const g of [...run.kept, ...run.stashed]) move(after, g.item, g.n);
+	return fullness(after, targetOf) - fullness(before, targetOf);
 }
 
 /** A rough time under way for a run: straight legs through its stops
@@ -69,12 +111,63 @@ const now = typeof performance !== 'undefined' && performance.now ? () => perfor
  * than the best run after the sailor has looked away. Unlimited by
  * default, so a test judges every set.
  *
+ * `aim` is what the sets are judged by. Without one it is silver --
+ * `valueOf`, the wharf and what the goods kept would fetch. With one
+ * it is the stock -- or the Crow Coins, with `{ kind: 'coins' }`.
+ * For a stock it is `{ targets, held, kind }`, the count kept of every
+ * good at a level, everything the sailor holds as [name, n] pairs, and
+ * whether the run is for the fullest stock or the most trades. It is
+ * plain data on purpose: the search runs in a worker, and a function
+ * would not survive the crossing.
+ *
  * Returns { proposals, best, partial }: up to three { kind, label,
- * ids, run, value, hours, yard } that differ in their ids, most silver
+ * ids, run, value, hours, yard } that differ in their ids, the best
  * first, and `best` the set every search step judged best by value.
  */
-export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width = 5, depth = 8, budgetMs = Infinity } = {}) {
+export const SILVER_KINDS = [
+	{ kind: 'silver', label: 'The most silver', of: s => s.value },
+	{ kind: 'hour', label: 'The most an hour', of: s => (s.hours > 0 ? s.value / s.hours : 0) },
+	{ kind: 'parley', label: 'The most a Parley unit', of: s => s.yard.perUnit }
+];
+
+export const COIN_KINDS = [
+	{ kind: 'coins', label: 'The most coins', of: s => s.value },
+	{ kind: 'hour', label: 'The most an hour', of: s => (s.hours > 0 ? s.value / s.hours : 0) },
+	{ kind: 'parley', label: 'The most a Parley unit', of: s => (s.run.parleyUsed > 0 ? s.value / (s.run.parleyUsed / PARLEY_UNIT) : 0) }
+];
+
+export const STOCK_KINDS = [
+	{ kind: 'stock', label: 'The fullest stock', of: s => s.value },
+	{ kind: 'hour', label: 'The most an hour', of: s => (s.hours > 0 ? s.value / s.hours : 0) },
+	{ kind: 'parley', label: 'The most a Parley unit', of: s => (s.run.parleyUsed > 0 ? s.value / (s.run.parleyUsed / PARLEY_UNIT) : 0) }
+];
+
+/**
+ * How a stock run scores a set, from the plain `aim` the tab hands in.
+ * Both scores carry the other as the tie-break, a thousand to one, so
+ * that between two runs that bank the same the sailor gets the one
+ * with more barters behind it -- and between two that trade the same,
+ * the one that banks more.
+ */
+export function scoreFor(aim, stock) {
+	// A run for coins is judged on the coins it brings back, with the
+	// trades behind it as the tie-break: two runs that pay the same are
+	// not the same run if one of them is four barters and the other is
+	// forty.
+	if (aim.kind === 'coins') return run => run.coins * 1000 + run.trades;
+	const targets = aim.targets || {};
+	const targetOf = name => targets[levelOf(name)] || 0;
+	const held = new Map(aim.held || []);
+	return run => {
+		const fill = fillOf(run, { targetOf, held, stock });
+		return aim.kind === 'trades' ? run.trades * 1000 + fill : fill * 1000 + run.trades;
+	};
+}
+
+export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width = 5, depth = 8, budgetMs = Infinity, aim = null } = {}) {
 	const orders = opts.orders;
+	const score = aim ? scoreFor(aim, opts.stock) : null;
+	const kinds = !aim ? SILVER_KINDS : aim.kind === 'coins' ? COIN_KINDS : STOCK_KINDS;
 	const t0 = now();
 	const late = () => budgetMs !== Infinity && now() - t0 >= budgetMs;
 	const byId = new Map(chains.map(c => [c.id, c]));
@@ -85,7 +178,7 @@ export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width
 		const chosen = ids.map(id => byId.get(id)).filter(Boolean);
 		const run = chainRun({ ...opts, chosen });
 		const hours = hoursOf(run, { start: opts.start, npcById: opts.npcById, speed: ship.speed, cal: ship.cal });
-		const out = { ids: [...ids], run, value: valueOf(run, orders), hours, yard: yardsticks(run.net, run.parleyUsed, hours) };
+		const out = { ids: [...ids], run, value: score ? score(run) : valueOf(run, orders), hours, yard: yardsticks(run.net, run.parleyUsed, hours) };
 		memo.set(key, out);
 		return out;
 	};
@@ -119,15 +212,11 @@ export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width
 
 	const all = [...seen.values()].filter(s => s.ids.length && s.run.trades > 0);
 	if (!all.length) return { proposals: [], best: null, partial };
-	const pick = (kind, label, score) => {
-		const s = all.reduce((a, b) => (score(b) > score(a) ? b : a));
-		return score(s) > 0 ? { kind, label, ...s } : null;
+	const pick = ({ kind, label, of }) => {
+		const s = all.reduce((a, b) => (of(b) > of(a) ? b : a));
+		return of(s) > 0 ? { kind, label, ...s } : null;
 	};
-	const cands = [
-		pick('silver', 'The most silver', s => s.value),
-		pick('hour', 'The most an hour', s => (s.hours > 0 ? s.value / s.hours : 0)),
-		pick('parley', 'The most a Parley unit', s => s.yard.perUnit)
-	].filter(Boolean);
+	const cands = kinds.map(pick).filter(Boolean);
 	// Three that differ: a set already proposed under another name is
 	// not proposed twice.
 	const proposals = [];

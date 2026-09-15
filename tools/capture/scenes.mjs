@@ -31,7 +31,143 @@ const rec = async (page, name, body) => {
 	console.log(`  → ${name}.webm`);
 };
 
+/**
+ * Today's board, named. A layout is only known once an island or two
+ * has been looked at, and nothing on the Barter tab exists before it
+ * is -- so every scene that wants chains starts by answering it. Done
+ * before the recording starts: it is setup, not a thing to watch.
+ */
+/** Put one panel at the top of the frame, so the clip is of the thing
+ *  and not of the whole page with the thing somewhere in it. */
+async function frame(page, sel, { top = 16 } = {}) {
+	await page.evaluate((s, t) => {
+		const el = document.querySelector(s);
+		if (el) window.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + window.scrollY - t));
+	}, sel, top);
+	await wait(500);
+}
+
+async function nameTheBoard(page, upTo = 6) {
+	for (let i = 0; i < upTo; i++) {
+		const ask = await page.$('[data-act="barter-board-ask"]');
+		if (!ask) return;
+		await ask.click();
+		await wait(700);
+		const row = await page.$('.picker-row');
+		if (!row) return;
+		await row.click();
+		await wait(1500);
+	}
+}
+
 const scenes = {
+
+	/* 1.2 — a day that is not for silver: targets by level, a ceiling,
+	 * and a run counted in goods. */
+	async 'a-stock'({ page, url }) {
+		await seed(page, url, fittedShip);
+		await tab(page, 'barter');
+		await nameTheBoard(page);
+		await click(page, '[data-act="barter-goal"][data-id="stock"]', { after: 1500 });
+		// The runs worth sailing come back from a worker; taking one is
+		// what puts numbers on the tiles, and an empty run is no picture.
+		await waitFor(page, '.proposal', { then: 1200 });
+		await click(page, '.proposal', { after: 2600 });
+		await frame(page, '.stock-head', { top: 108 });
+		await rec(page, 'a-stock', async () => {
+			await wait(600);
+			await typeInto(page, '.stock-row .purse-inline', '40', { after: 1600 });
+			await page.select('[data-act="barter-ceiling"]', '3');
+			await wait(2600);
+			await moveTo(page, '.run-ahead');
+			await wait(1600);
+		});
+	},
+
+	/* 1.2 — the fourth kind of day: climb to [Level 4] and cash it in
+	 * at an island that pays in Crow Coins. */
+	async 'crow-coins'({ page, url }) {
+		// A purse short of what the builds want, so the line at the foot
+		// has something to say.
+		const state = JSON.parse(JSON.stringify(fittedShip));
+		state.stock['Crow Coin'] = 2000;
+		await seed(page, url, state);
+		await tab(page, 'barter');
+		await nameTheBoard(page);
+		await click(page, '[data-act="barter-goal"][data-id="coin"]', { after: 1500 });
+		await waitFor(page, '.proposal', { then: 1200 });
+		await rec(page, 'crow-coins', async () => {
+			await frame(page, '.proposals', { top: 110 });
+			await wait(700);
+			await click(page, '.proposal', { after: 2600 });
+			await frame(page, '.run-tiles', { top: 120 });
+			await wait(1800);
+			await moveTo(page, '.run-ahead');
+			await wait(2000);
+		});
+	},
+
+	/* 1.2 — the clock: a bell at every stop, and one at the end. */
+	async 'the-clock'({ page, url }) {
+		await seed(page, url, fittedShip);
+		await tab(page, 'barter');
+		await nameTheBoard(page);
+		await click(page, '[data-act="barter-run-open"]', { after: 2000 });
+		// The sheet is a box over the page: scroll inside it, not the page.
+		await page.evaluate(() => { const f = document.querySelector('.run-foot'); if (f) f.scrollIntoView({ block: 'end' }); });
+		await wait(800);
+		await rec(page, 'the-clock', async () => {
+			await wait(600);
+			await click(page, '.run-foot [data-act="barter-timer-start"]', { after: 2400 });
+			// Out of the sheet: the clock keeps time on the tab itself, and
+			// that is where it will be watched from.
+			await click(page, '.run-dialog [data-close]', { after: 1400 });
+			await frame(page, '.hold-bar', { top: 90 });
+			await moveTo(page, '.sail-timer.running b');
+			await wait(3000);
+		});
+	},
+
+	/* 1.2 — the two shelves: what to load, and what is in the storage
+	 * after, tiled the way the game's own window is. */
+	async 'two-shelves'({ page, url }) {
+		await seed(page, url, fittedShip);
+		await tab(page, 'barter');
+		await nameTheBoard(page);
+		await click(page, '[data-act="barter-run-open"]', { after: 2200 });
+		await rec(page, 'two-shelves', async () => {
+			await wait(800);
+			await moveTo(page, '.shelf-tile');
+			await wait(1600);
+			await page.evaluate(() => { const f = document.querySelector('.run-fold summary'); if (f) f.scrollIntoView({ block: 'center' }); });
+			await wait(700);
+			await click(page, '.run-fold summary', { after: 2200 });
+		});
+	},
+
+	/* 1.2 — the day's boards: what each run loaded, what it brought
+	 * back, and the totals across the Parley bar. */
+	async 'todays-boards'({ page, url }) {
+		const day = new Date();
+		const barterDay = new Date(day.getTime() - (day.getUTCHours() < 6 ? 24 : 0) * 3600e3).toISOString().slice(0, 10);
+		const state = JSON.parse(JSON.stringify(fittedShip));
+		state.profile = {
+			...state.profile,
+			runs: [
+				{ day: barterDay, silver: 0, cost: 0, trades: 20, parley: 210240, stops: 2, goal: 'stock', item: '', layout: '26', load: { 'Brass Ingot': 200 }, got: { '[Level 1] Fertile Soil': 10, '[Level 1] Unidentified Ancient Mural': 10 } },
+				{ day: barterDay, silver: 19600000, cost: 386000, trades: 14, parley: 147168, stops: 5, goal: 'coin', item: '', layout: '12', load: { 'Pine Plywood': 10 }, got: { 'Crow Coin': 1240, '[Level 2] Narvo Sea Cucumber': 6 } }
+			]
+		};
+		await seed(page, url, state);
+		await tab(page, 'barter');
+		await frame(page, '.day-boards', { top: 40 });
+		await rec(page, 'todays-boards', async () => {
+			await wait(900);
+			await moveTo(page, '.day-total');
+			await wait(2400);
+		});
+	},
+
 	/* Queue a build and watch the plan grow around it. */
 	async 'queue-a-build'({ page, url }) {
 		await seed(page, url, emptyStart);

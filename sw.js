@@ -109,6 +109,7 @@ const SHELL = [
 	'/js/map/trace.js',
 	'/js/map/view.js',
 	'/js/market.js',
+	'/js/markup.js',
 	'/js/monster_art.js',
 	'/js/pace.js',
 	'/js/parley-ledger.js',
@@ -127,6 +128,8 @@ const SHELL = [
 	'/js/realistic-water-ripples.js',
 	'/js/recipes.js',
 	'/js/route-ledger.js',
+	'/js/push-sub.js',
+	'/js/sail-timer.js',
 	'/js/sailing.js',
 	'/js/sailor_rolls.js',
 	'/js/sailor_titles.js',
@@ -265,7 +268,7 @@ self.addEventListener('push', evt => {
 	} catch {
 		data = { body: evt.data ? evt.data.text() : '' };
 	}
-	evt.waitUntil(self.registration.showNotification(data.title || 'Ship Upgrade Tracker', {
+	evt.waitUntil(self.registration.showNotification(data.title || 'Sailor’s Log', {
 		body: data.body || '',
 		icon: '/icon-192.png',
 		badge: '/icon-192.png',

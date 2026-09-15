@@ -8,6 +8,7 @@
 // the first sign-in.
 
 import crypto from 'node:crypto';
+import fs from 'node:fs';
 
 const read = name => (process.env[name] || '').trim();
 
@@ -94,6 +95,32 @@ export const pushEnabled = Boolean(vapid.publicKey && vapid.privateKey && turso.
 // operator hears of a bug without opening the inbox.
 export const feedbackEnabled = Boolean(turso.url);
 
+// Where a screenshot sent with a report is kept.
+//
+// On disk, not in the database. A table is the right place for a
+// sentence and the wrong place for a megabyte of PNG: every read of it
+// would be an HTTPS round trip to Turso carrying the whole image, and
+// the backup file would stop being something anyone could open. The
+// path defaults inside .data, which is the one directory the container
+// already holds a volume over -- so images survive a rebuild exactly as
+// a local database file does.
+const uploadDir = read('UPLOAD_DIR') || './.data/uploads';
+
+// Made here rather than at the first upload, so that a deployment which
+// cannot write there says so in the boot log and offers no attach button
+// at all -- a button that fails at the end of composing a report is
+// worse than no button. FEEDBACK_IMAGES=0 turns it off by hand.
+export const uploadsEnabled = feedbackEnabled && read('FEEDBACK_IMAGES') !== '0' && (() => {
+	try {
+		fs.mkdirSync(uploadDir, { recursive: true });
+		fs.accessSync(uploadDir, fs.constants.W_OK);
+		return true;
+	} catch (err) {
+		console.warn(`[feedback] no images: ${uploadDir} is not writable (${err.code || err.message}).`);
+		return false;
+	}
+})();
+
 // The community boards need accounts to stand on them, so they come
 // with sync and not without.
 export const communityEnabled = syncEnabled;
@@ -134,6 +161,32 @@ export const config = {
 	sessionDays: num('SESSION_DAYS', 30),
 	feedbackWebhook: read('FEEDBACK_WEBHOOK_URL'),
 	adminIds,
+	uploadDir,
+
+	// What a report may carry, and how often one may be sent.
+	//
+	// The ceilings are not about storage -- a hundred screenshots is a
+	// few tens of megabytes -- but about what one account can do to the
+	// inbox. Somebody with a real bug writes once, adds two pictures of
+	// it, and waits; the numbers are set where that person never meets
+	// them and a script meets all three at once.
+	//
+	// The browser shrinks an image to `imagePixels` on its long edge and
+	// re-encodes it before sending, so this ceiling is met only by a file
+	// that will not shrink -- an animation, or a photograph of a screen.
+	maxImageBytes: num('MAX_IMAGE_BYTES', 4 * 1024 * 1024),
+	imagePixels: num('IMAGE_PIXELS', 1600),
+	maxFilesPerEntry: num('MAX_FILES_PER_ENTRY', 4),
+	// Reports still waiting on an answer. A fifth is refused: the four
+	// already in the inbox are the thing to say more about.
+	maxOpenReports: num('MAX_OPEN_REPORTS', 4),
+	// And in a day, counting the ones already dealt with.
+	maxReportsPerDay: num('MAX_REPORTS_PER_DAY', 10),
+	// Long enough that a double-press cannot send twice, short enough
+	// that remembering one more thing is not a punishment.
+	reportGapMs: num('REPORT_GAP_SECONDS', 60) * 1000,
+	// An image nobody ever attached to a report is swept after this.
+	uploadTtlMs: num('UPLOAD_TTL_HOURS', 24) * 3600_000,
 	// How long a quiet set of community boards is held between rebuilds:
 	// nobody on them has saved, so nothing on them can have changed.
 	communityTtlMs: num('COMMUNITY_TTL_MS', 5 * 60_000),
@@ -169,6 +222,10 @@ export const config = {
 export function describe() {
 	if (!syncEnabled) return 'sync off -- browser-only, no account, no database';
 	const where = config.turso.url.startsWith('file:') ? 'local file' : 'Turso';
-	const extras = [config.feedbackWebhook ? 'feedback to a webhook' : 'feedback kept', `${adminIds.size} admin${adminIds.size === 1 ? '' : 's'}`];
+	const extras = [
+		config.feedbackWebhook ? 'feedback to a webhook' : 'feedback kept',
+		uploadsEnabled ? 'with screenshots' : 'without screenshots',
+		`${adminIds.size} admin${adminIds.size === 1 ? '' : 's'}`
+	];
 	return `sync on -- Discord sign-in, saves in ${where}, community boards, ${extras.join(', ')}`;
 }

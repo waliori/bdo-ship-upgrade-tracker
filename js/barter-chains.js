@@ -17,7 +17,7 @@
 // the run go out. Distances are straight lines here, for choosing a
 // wharf; the screen bends the legs round the land.
 
-import { levelOf, npcGate } from './barter.js';
+import { levelOf, npcGate, COIN } from './barter.js';
 import { exchanges, goodsHeld, weightHeld, weightOf, sellOf } from './barter-plan.js';
 import { sellable, floorOf, PLAIN_ORDERS } from './barter-orders.js';
 
@@ -41,13 +41,30 @@ import { sellable, floorOf, PLAIN_ORDERS } from './barter-orders.js';
  * one thing on this tab that could not be sailed. Left null when no
  * count is given, so a caller that has no player in hand still gets
  * the whole board.
+ *
+ * `ceiling` is the level the climbs stop at, 0 for the top of the
+ * board. A sailor building a stock of the low goods does not want the
+ * run carrying them up to a [Level 7] that pays: the chains are cut
+ * where the ceiling is, two that differed only above it become one,
+ * and a good already held at the ceiling or above starts nothing --
+ * it is the stock, not the fuel.
  */
-export function chains(barterData, stock = {}, dock = {}, barterCount = null) {
-	const rows = exchanges(barterData).filter(r => levelOf(r.item) !== null);
+export function chains(barterData, stock = {}, dock = {}, barterCount = null, ceiling = 0, coins = false) {
+	// The Crow Coin islands are on every board, taking a [Level 4] and
+	// paying in coins, and nothing takes a coin further -- so a coin
+	// exchange is a top like a [Level 7] is, and it is only offered when
+	// the run is for coins. A row paying a single coin is the codex's
+	// own noise rather than an exchange anybody would make.
+	const rows = exchanges(barterData).filter(r => levelOf(r.item) !== null || (coins && r.item === COIN && r.recvMax > 1));
 	const takes = name => rows.filter(r => r.give === name);
+	const top = ceiling > 0 ? ceiling : Infinity;
+	// The ceiling is about climbing, and cashing a good in for coins is
+	// not a climb: a run that stops at [Level 4] still wants the island
+	// that pays for one. So the cut is made on what the next rung would
+	// make, not on what this one made, and a coin rung is never cut.
 	const walk = (r, path) => {
 		const here = [...path, r];
-		const up = takes(r.item);
+		const up = r.item === COIN ? [] : takes(r.item).filter(n => n.item === COIN || levelOf(n.item) <= top);
 		return up.length ? up.flatMap(n => walk(n, here)) : [here];
 	};
 	const out = [];
@@ -57,11 +74,34 @@ export function chains(barterData, stock = {}, dock = {}, barterCount = null) {
 	}
 	const aboard = goodsHeld(stock), ashore = goodsHeld(dock);
 	for (const item of new Set([...aboard.keys(), ...ashore.keys()])) {
-		const have = aboard.get(item) || 0, load = ashore.get(item) || 0;
-		for (const r of takes(item)) for (const rungs of walk(r, [])) out.push({ from: have > 0 ? 'hold' : 'dock', item, have, load, rungs });
+		if (levelOf(item) >= top) continue;
+		const have = aboard.get(item) || 0, waiting = ashore.get(item) || 0;
+		for (const r of takes(item)) for (const rungs of walk(r, [])) {
+			// Only what the first island will deal with is worth loading,
+			// and so only that is what the row promises: a storage with
+			// thirty of a good and an island that takes eight is a run
+			// that loads eight.
+			const load = Math.min(waiting, Math.max(0, rungs[0].tries * rungs[0].giveN - have));
+			out.push({ from: have > 0 ? 'hold' : 'dock', item, have, load, rungs });
+		}
 	}
+	const seen = new Set();
 	return out
-		.map(c => ({ ...c, id: `${c.from === 'land' ? 'land' : 'hold'}:${c.item}:${c.rungs.map(r => r.npcId).join('.')}`, top: levelOf(c.rungs[c.rungs.length - 1].item), gate: gateOn(c.rungs, barterCount) }))
+		.map(c => {
+			const last = c.rungs[c.rungs.length - 1];
+			// A chain that ends in coins is named by the level it cashes,
+			// since that is the climb it asks for; `pays` is what it pays.
+			const pays = last.item === COIN ? 'coin' : 'goods';
+			return {
+				...c,
+				id: `${c.from === 'land' ? 'land' : 'hold'}:${c.item}:${c.rungs.map(r => r.npcId).join('.')}`,
+				top: pays === 'coin' ? levelOf(last.give) : levelOf(last.item),
+				coins: pays === 'coin' ? last.recvMin * last.tries : 0,
+				pays,
+				gate: gateOn(c.rungs, barterCount)
+			};
+		})
+		.filter(c => !seen.has(c.id) && seen.add(c.id))
 		.sort((a, b) => b.top - a.top || a.rungs.length - b.rungs.length || a.rungs[0].npc.localeCompare(b.rungs[0].npc));
 }
 
@@ -205,22 +245,41 @@ function sequence(order, lots, npcById, start) {
  * it would sell for. `keep` names goods never sold, whatever the orders:
  * the good a material run sent the sailor here for.
  */
-export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [] } = {}) {
+export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [], land = new Map(), owned = null } = {}) {
 	// What an island was seen to pay this run, tapped on the checklist,
 	// replaces the range the table gives for it: counted and weighed at
 	// that, no longer at the least and the most.
 	const fix = r => (seen[r.npcId] > 0 ? { ...r, recv: seen[r.npcId], recvMin: seen[r.npcId], recvMax: seen[r.npcId], recvText: String(seen[r.npcId]) } : r);
 	const chosen = Object.keys(seen).length ? picked.map(c => ({ ...c, rungs: c.rungs.map(fix) })) : picked;
 	const held = goodsHeld(stock);          // the goods counted at the least
-	// What the chosen chains start from and the start port's storage
-	// holds is loaded before casting off -- all of it, since the chain
-	// row promised as much; the hold panel is where a count is trimmed.
+	// Everything the sailor holds, wherever it is: the hold, the start
+	// port, and every other storage the caller knows of. A floor is
+	// about the pile, not about the hold -- a sailor with three hundred
+	// ashore and a floor of ten is not short of anything -- so what may
+	// be spent of a good is what is owned of it above its floor, and
+	// that is tracked here rather than measured against the hold alone.
+	const ownedNow = new Map();
+	const owning = (name, n) => ownedNow.set(name, Math.max(0, (ownedNow.get(name) || 0) + n));
+	for (const src of owned ? [owned] : [stock, dock]) for (const [name, n] of goodsHeld(src)) owning(name, n);
+	const budgetOf = name => Math.max(0, (ownedNow.get(name) || 0) - floorOf(name, orders));
+
+	// What the chosen chains start from is loaded at the harbour they
+	// sail from -- but only what the first island will actually deal
+	// with, and only what the floor allows to be spent. Loading the
+	// whole storage put a hold of ninety thousand LT on a ship that
+	// carries eleven, and then left it all back at the first wharf: the
+	// numbers were nonsense and the run looked mad.
 	const ashore = goodsHeld(dock);
 	const loaded = [];
 	for (const c of chosen) {
-		if (c.from === 'land' || !ashore.has(c.item)) continue;
-		const n = ashore.get(c.item);
-		ashore.delete(c.item);
+		if (c.from === 'land') continue;
+		const have = ashore.get(c.item) || 0;
+		if (!have) continue;
+		const first = c.rungs[0];
+		const most = Math.max(0, first.tries * first.giveN - (held.get(c.item) || 0));
+		const n = Math.min(have, most, budgetOf(c.item));
+		if (n <= 0) continue;
+		if (n >= have) ashore.delete(c.item); else ashore.set(c.item, have - n);
 		held.set(c.item, (held.get(c.item) || 0) + n);
 		loaded.push({ item: c.item, n });
 	}
@@ -231,6 +290,17 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 	const used = new Set();
 	const stops = [], sold = [], stashed = [];
 	const bought = new Map();
+	// What the Crow Coin islands paid. Coins are not cargo -- no weight,
+	// no wharf price, nothing takes them further -- so they are counted
+	// rather than carried, at the least the exchange states and at the
+	// most it might, the way every other range on a run is.
+	let coins = 0, coinsMax = 0;
+	// The shore goods the sailor already keeps, when the orders take
+	// them from the pile rather than buying fresh: what is left as the
+	// run spends them, and what it took in all.
+	const fromPile = orders.landFrom === 'stock';
+	const pile = new Map(land);
+	const taken = new Map();
 	let at = start;
 
 	// Two chains up the same ladder -- one from the shore, one from a
@@ -383,7 +453,7 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 	// takes and the orders always sell, are the common case.
 	const saleAt = i => {
 		const need = needFrom(i);
-		return [...held].map(([name, n]) => [name, Math.min(n - (need.get(name) || 0), n - floorOf(name, orders))])
+		return [...held].map(([name, n]) => [name, Math.min(n - (need.get(name) || 0), budgetOf(name))])
 			.filter(([name, n]) => n > 1e-9 && sellable(name, orders) && !keep.includes(name));
 	};
 
@@ -395,6 +465,7 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 		if (sale.length) {
 			stop.sale = { n: 0, total: 0, levels: new Set(), items: [] };
 			for (const [name, n] of sale) {
+				owning(name, -n);
 				sold.push({ item: name, n, each: sellOf(name), total: n * sellOf(name), at: wharf.at, chain });
 				stop.sale.items.push({ item: name, n, total: n * sellOf(name) });
 				stop.sale.n += n;
@@ -421,10 +492,26 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 	};
 	const wharfFor = next => prefer || stashes.reduce((a, w) => (dist(at, w) + dist(w, next) < dist(at, a) + dist(a, next) ? w : a));
 
+	// Why a chain stopped short of the top.
+	//
+	// A chain that is ticked and then quietly climbs one rung of three
+	// is the run's least readable moment: the coins never arrive and
+	// nothing says why. The first answer for a chain is the only one
+	// worth keeping -- every rung after it fails for the same reason,
+	// that the chain stopped here -- so this records one per chain and
+	// the screen turns it into a sentence.
+	const cut = new Map();
+	const cutAt = (chain, r, why, more = {}) => {
+		if (cut.has(chain)) return;
+		cut.set(chain, { chain, why, npc: r.npc, npcId: r.npcId, give: r.give, item: r.item, ...more });
+	};
+
 	let lotNow = -1;   // the lot under way
 	for (let i = 0; i < rungs.length; i++) {
 		const { r, chain, lot } = rungs[i];
-		if (used.has(r.npcId)) continue;
+		// An island that has already dealt this run deals no more, so a
+		// later chain crossing it stops there.
+		if (used.has(r.npcId)) { cutAt(chain, r, 'dealt'); continue; }
 		const npc = npcById.get(r.npcId);
 		const ashore = levelOf(r.give) === null;
 		if (lot !== lotNow) {
@@ -444,14 +531,23 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 			if (pace === 'fast') share(lots[lot].map(k => order[k]), hold.free);
 		}
 		// What is aboard above the floor kept back is what can be spent.
-		const spendable = ashore ? Infinity : Math.max(0, (held.get(r.give) || 0) - floorOf(r.give, orders));
-		let want = Math.min(cap.get(r), ashore ? Infinity : Math.floor(spendable / r.giveN + 1e-9));
-		if (perTrade > 0) want = Math.min(want, Math.floor((parley.bar - spent) / perTrade));
+		const ashoreLeft = fromPile ? pile.get(r.give) || 0 : Infinity;
+		// What is aboard, and no more of it than the floor lets go of.
+		const spendable = ashore ? ashoreLeft : Math.min(held.get(r.give) || 0, budgetOf(r.give));
+		// The two ceilings on how many attempts are wanted, kept apart
+		// rather than folded together: which of them bit is the whole of
+		// what the run has to say when a chain stops here.
+		const byGoods = Math.floor(spendable / r.giveN + 1e-9);
+		const byParley = perTrade > 0 ? Math.floor((parley.bar - spent) / perTrade) : Infinity;
+		const want = Math.min(cap.get(r), byGoods, byParley);
 		let times;
 
 		if (pace === 'fast') {
 			// Never over the limit, and never slower.
-			if (weight > hold.free + 1e-6) continue;
+			if (weight > hold.free + 1e-6) {
+				cutAt(chain, r, 'over', { over: Math.round(weight - hold.free) });
+				continue;
+			}
 			times = dw(r) > 0 ? Math.min(want, Math.floor((hold.free - weight) / dw(r) + 1e-9)) : want;
 		} else {
 			// How many of the attempts wanted the hold lets in from weight
@@ -490,12 +586,38 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 				}
 			}
 		}
-		if (times < 1) continue;
+		if (times < 1) {
+			// The hold is the usual answer, and there are two ways it
+			// says no. A rung the hold's share gave nothing to never had
+			// an attempt to lose -- the climb as a whole would not fit
+			// beside the other chains ticked -- and quoting this one
+			// trade's weight against the whole free hold would be a
+			// number that explains nothing. A rung that had a share and
+			// could not spend it is the exact case worth being exact
+			// about: what the next trade puts on, against what is left.
+			const starved = !(cap.get(r) >= 1);
+			cutAt(chain, r,
+				byParley < 1 ? 'parley' : byGoods < 1 ? 'nothing' : starved ? 'share' : 'hold',
+				starved ? {} : {
+					need: Math.max(0, Math.round(dw(r))),
+					free: Math.max(0, Math.round((pace === 'fast' ? hold.free : deal) - weight))
+				});
+			continue;
+		}
 
-		if (ashore) bought.set(r.give, (bought.get(r.give) || 0) + times * r.giveN);
-		else { take(held, r.give, times * r.giveN); take(heldMax, r.give, times * r.giveN); }
-		held.set(r.item, (held.get(r.item) || 0) + times * r.recvMin);
-		heldMax.set(r.item, (heldMax.get(r.item) || 0) + times * r.recvMax);
+		if (ashore && fromPile) {
+			pile.set(r.give, (pile.get(r.give) || 0) - times * r.giveN);
+			taken.set(r.give, (taken.get(r.give) || 0) + times * r.giveN);
+		} else if (ashore) bought.set(r.give, (bought.get(r.give) || 0) + times * r.giveN);
+		else { take(held, r.give, times * r.giveN); take(heldMax, r.give, times * r.giveN); owning(r.give, -times * r.giveN); }
+		if (r.item === COIN) {
+			coins += times * r.recvMin;
+			coinsMax += times * r.recvMax;
+		} else {
+			owning(r.item, times * r.recvMin);
+			held.set(r.item, (held.get(r.item) || 0) + times * r.recvMin);
+			heldMax.set(r.item, (heldMax.get(r.item) || 0) + times * r.recvMax);
+		}
 		weight = weightHeld(heldMax);
 		peak = Math.max(peak, weight);
 		spent += times * perTrade;
@@ -503,6 +625,19 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 		stops.push({ ...r, times, parley: times * perTrade, level: levelOf(r.give) || 0, weightAfter: weight, chain });
 		at = npc;
 	}
+	// A chain that reached its top anyway is not a chain that was cut:
+	// a rung can be skipped because the sailor already held what it
+	// would have made, and the climb goes on above it. So the record is
+	// kept only where the top rung never dealt, and it carries how far
+	// the chain did get -- one island of three, which is the sentence
+	// the screen wants.
+	const reached = new Set(stops.filter(s => s.npcId).map(s => `${s.chain}:${s.npcId}`));
+	const cuts = [...cut.values()].map(c => {
+		const chain = order[c.chain];
+		const rungs = chain ? chain.rungs : [];
+		return { ...c, item: chain ? chain.item : c.item, done: stops.filter(s => s.npcId && s.chain === c.chain).length, of: rungs.length, top: rungs.length ? rungs[rungs.length - 1] : null };
+	}).filter(c => c.top && !reached.has(`${c.chain}:${c.top.npcId}`));
+
 	// The run done, what the orders sell is sold at the wharf the ship
 	// makes for: the one chosen, else home, else the nearest.
 	const last = saleAt(rungs.length);
@@ -522,11 +657,15 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 		const p = prices[item] || { each: 0, how: 'unpriced' };
 		return { item, n, each: p.each, how: p.how, total: Math.ceil(n) * p.each };
 	});
+	const takenRows = [...taken].map(([item, n]) => ({ item, n, left: Math.max(0, (land.get(item) || 0) - n) }));
 	const silver = sold.reduce((a, s) => a + s.total, 0);
 	const cost = boughtRows.reduce((a, b) => a + b.total, 0);
 	return {
 		order, lots, stops, sold, kept, stashed, loaded,
+		cut: cuts,
 		bought: boughtRows,
+		taken: takenRows,
+		coins, coinsMax,
 		cost,
 		net: silver - cost,
 		silver,

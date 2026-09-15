@@ -18,7 +18,7 @@ import {
 	recompute, readyCrafts, craftStock, CROW_COIN, SILVER, setSort, invPicking, invPicked, setInvPicking
 } from './ui-state.js';
 import { kindOf } from './kinds.js';
-import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
+import { toast, openDialog, closeDialog, dismissDialog, holdScreen, whenScreenFree } from './dialogs.js';
 import { allItems, CODEX_LANGS, img } from './ui-bits.js';
 import { encodeShare, decodeShare, shareLink, shareSize } from './share.js';
 import { massProcess } from './vendor_items.js';
@@ -31,6 +31,7 @@ import { renderPlan } from './screen-plan.js';
 import { renderBuilds, openBuildPicker, askRoute, toggleBlockers } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
 import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart } from './screen-barter.js';
+import { tickTimer, watchTimer } from './sail-timer.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
 import { renderCrew, crewAction, crewChange, applyShipSetup, openSetupPicker, selectSailor, setLooking } from './screen-crew.js';
@@ -372,6 +373,9 @@ export function render() {
 		if (side && sideTop) side.scrollTop = sideTop;
 	}
 	tickClocks();
+	// The sailing clock's second hand, and the interval that moves it,
+	// wanted only while one is running.
+	tickTimer();
 	syncHash();
 	// The tab just switched to, scrolled back to where it was left.
 	if (scrollBack !== null) {
@@ -2026,6 +2030,11 @@ function offerLegacyImport() {
  * so the sections nobody scrolls to cost nothing.
  */
 function openWhatsNew({ onClose = null } = {}) {
+	// These notes are shown once and then marked read, so anything that
+	// opens over them has taken them away for good -- the sync's "two
+	// copies" question used to do exactly that, arriving whenever the
+	// server answered. The screen is held until they are closed.
+	const free = holdScreen();
 	const r = RELEASES[0];
 	const headline = r.sections.filter(s => s.media);
 	const rest = r.sections.filter(s => !s.media);
@@ -2071,7 +2080,7 @@ function openWhatsNew({ onClose = null } = {}) {
 			<button class="act quiet" data-close>Close</button>
 			<button class="act" data-act="tour">Show me around</button>
 		</div>
-	`, { onDismiss: onClose });
+	`, { onDismiss: () => { free(); if (onClose) onClose(); } });
 	markReleaseSeen();
 	return host;
 }
@@ -2233,6 +2242,9 @@ export async function init() {
 	// The minute hand on every countdown, a repaint when a reset passes
 	// with the page open, and the Vell reminder if it was asked for.
 	startClocks(render, checkVellReminder);
+	// The sailing clock chimes on its own schedule, whichever screen is
+	// up, and the page is drawn again when it does.
+	watchTimer(render);
 	whatsNewToast();
 	// Which save this page is on. Sync mirrors the main profile only:
 	// a second profile is a second save, and the account holds one.
@@ -2278,7 +2290,7 @@ export async function init() {
 	} else {
 		wireCommunity(render, { look: lookAtShip });
 		setRunSheet(runSheetHTML);
-		initSync({ toast, openDialog, closeDialog, rerender: render })
+		initSync({ toast, openDialog, closeDialog, whenScreenFree, rerender: render })
 			.catch(err => console.warn('[ui] sync unavailable:', err));
 	}
 }

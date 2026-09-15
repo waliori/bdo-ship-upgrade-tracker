@@ -1,87 +1,87 @@
 1
-00:00:01,014 --> 00:00:06,925
+00:00:00,342 --> 00:00:06,253
 This is To Get. It answers the only question that matters once a build is queued: what do I actually do next.
 
 2
-00:00:11,032 --> 00:00:15,909
+00:00:09,785 --> 00:00:14,662
 Up here is what you are still short of, and what the shop would want for the part of it that can be bought.
 
 3
-00:00:16,248 --> 00:00:21,046
+00:00:14,792 --> 00:00:19,546
 Two readings. "Every way" lists each thing and every source it has. "The way to get it" picks one.
 
 4
-00:00:21,046 --> 00:00:23,511
+00:00:19,546 --> 00:00:22,011
 And the plan is the one it opens on.
 
 5
-00:00:23,784 --> 00:00:27,019
+00:00:22,075 --> 00:00:25,393
 This is the headline: how many days until you have the lot.
 
 6
-00:00:27,019 --> 00:00:31,158
+00:00:25,404 --> 00:00:29,542
 What it will cost in coins, and how many things are left across how many steps.
 
 7
-00:00:32,019 --> 00:00:35,665
+00:00:30,375 --> 00:00:33,791
 It asks what matters most to you, because there is no right answer.
 
 8
-00:00:36,106 --> 00:00:38,528
+00:00:33,791 --> 00:00:36,339
 Soonest spends the purse wherever that buys a day.
 
 9
-00:00:38,528 --> 00:00:41,554
+00:00:36,339 --> 00:00:39,308
 Keep the coins spends them only where nothing else sells the thing.
 
 10
-00:00:41,554 --> 00:00:43,823
+00:00:39,308 --> 00:00:41,599
 Keep the silver leaves the Central Market alone.
 
 11
-00:00:43,823 --> 00:00:48,306
+00:00:41,599 --> 00:00:46,082
 Watch the day count as you choose. That is the trade, in the only unit that matters.
 
 12
-00:00:49,307 --> 00:00:53,282
+00:00:47,262 --> 00:00:51,237
 Tell it how many days a week you actually sail, and the estimate follows.
 
 13
-00:00:53,406 --> 00:00:56,292
+00:00:51,295 --> 00:00:54,244
 Hold coins back, and it plans around what is left.
 
 14
-00:00:56,292 --> 00:00:58,383
+00:00:54,244 --> 00:00:56,328
 And say what you are willing to do at all.
 
 15
-00:00:58,383 --> 00:01:03,347
+00:00:56,328 --> 00:01:01,162
 Turn hunting on and a sea monster drop becomes something to go and kill for, instead of something to buy.
 
 16
-00:01:03,347 --> 00:01:07,797
+00:01:01,162 --> 00:01:05,612
 Turn bartering off and the lists stop counting. The plan gets longer and says so.
 
 17
-00:01:09,513 --> 00:01:14,593
+00:01:08,998 --> 00:01:14,020
 Below that are the steps themselves, in order, each one saying where it comes from and how long it takes.
 
 18
-00:01:14,593 --> 00:01:20,012
+00:01:14,020 --> 00:01:19,438
 A barter step is paced by how often that offer was really on the list, not by how often it could be.
 
 19
-00:01:20,248 --> 00:01:24,009
+00:01:19,783 --> 00:01:23,478
 And it tells you what it will never do, so you know what it is not counting.
 
 20
-00:01:24,715 --> 00:01:28,531
+00:01:23,478 --> 00:01:27,078
 If you would rather see the whole spread, Every way groups it by source instead.
 
 21
-00:01:28,531 --> 00:01:31,685
+00:01:27,078 --> 00:01:30,048
 Either reading copies out, as a list or as a spreadsheet.
 
 22
-00:01:31,926 --> 00:01:35,605
+00:01:30,048 --> 00:01:33,727
 That is To Get. Not what you could do, but what to do, and when it ends.

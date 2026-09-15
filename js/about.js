@@ -11,10 +11,11 @@ export const DATA = [
 	{ what: 'What islands paid on your runs', asOf: 'live', from: 'your own record, from the Barter tab’s checklist' },
 	{ what: 'The ship-material board — four whole boards', asOf: '2026-09-05', from: 'the barter window, read off screenshots of four refreshes; how often each offer is up comes from these' },
 	{ what: 'The trade-good list — forty layouts', asOf: '2026-09-11', from: 'a community sheet, 444 refreshes since 2026-04-16; refetched after a player reported the game moving a slot inside one' },
-	{ what: 'Monster ground markers', asOf: '2026-08-31', from: 'the centre of each species’ codex spawns, kept to open water; the crocodiles from the patch note' },
+	{ what: 'Monster ground markers — 32 of them', asOf: '2026-09-14', from: 'the game’s own world map: the client’s habitat icons, position and all' },
 	{ what: 'Wharf managers — the full roll, 58 of them', asOf: '2026-08-31', from: 'BDOCodex NPC pages' },
 	{ what: 'Cox Pirates’ camps, flags and cargo ships', asOf: '2026-08-31', from: 'Awabi’s “The Road to Cox” map, fitted to the chart on its island names' },
-	{ what: 'Vell’s waters', asOf: '2026-08-31', from: 'gpw’s ocean map v1.6, to a couple of kilometres' },
+	{ what: 'Vell’s waters', asOf: '2026-09-14', from: 'the game’s own world map icon; it stood 2.8 km away when it came off a community map' },
+	{ what: 'The Hollow Maretta’s rings — 38 of them', asOf: '2026-09-13', from: 'gpw’s ocean map v1.6, laid on the chart by the spawn marks it shares with the codex — within ten units' },
 	{ what: 'Quests and their rewards', asOf: '2026-08-30', from: 'BDOCodex' },
 	{ what: 'Ship hulls — durability, weight, speed…', asOf: '2026-08-29', from: 'BDOCodex' },
 	{ what: 'Ship parts at every level', asOf: '2026-08-29', from: 'BDOCodex' },
@@ -24,6 +25,7 @@ export const DATA = [
 	{ what: 'Crow Coin Shop prices', asOf: '2026-08-25', from: 'the shop at Oquilla’s Eye' },
 	{ what: 'Falasi’s prices', asOf: '2026-08-25', from: 'Port Epheria' },
 	{ what: 'Parley rates and discounts', asOf: '2026-08-29', from: 'the Barter Information window' },
+	{ what: 'What Total Barters adds to an exchange — the six bands', asOf: '2026-09-14', from: 'the game client’s own variedtradecount table' },
 	{ what: 'Vell’s timetable (EU, NA)', asOf: '2026-08-30', from: 'mmotimer.com' },
 	{ what: 'Sea crystals — 287 variants and the Nols', asOf: '2026-08-31', from: 'BDOCodex' },
 	{ what: 'Central Market prices', asOf: 'live', from: 'the community market API, per region' }
@@ -50,6 +52,120 @@ export const DATA = [
  * drawer.
  */
 export const RELEASES = [
+	{
+		id: '1.2',
+		name: 'What a day is for',
+		date: '2026-09-14',
+		blurb: 'A day at sea had one shape: climb as high as the board goes, sell the top, count the silver. '
+			+ 'It has four now — <b>silver</b>, <b>a stock</b>, <b>Crow Coins</b>, <b>a material</b> — and the run is counted in whatever the day was for. '
+			+ 'Around them a clock that follows you out of the harbour, a sheet that says a thing once, and the bug that made “build the stocks” look mad.',
+		thanks: {
+			text: 'Five players wrote in. One of them wrote most of this release.',
+			who: [
+				{
+					name: 'Oni',
+					said: 'just wanna fill storage first. Have all 72 type of base matterial ready … the is any way to build road to fill all low lvl and storage them?',
+					did: 'That is <b>A stock</b>. The word that made it a goal rather than a setting is <i>sell</i>: a run that sells nothing cannot be scored in silver.'
+				},
+				{
+					name: 'Oni',
+					said: 'can u add timer? that u can click and it start count time and make a sound like microwave when don’t xD bcs sometime I forget that I send a ship to route',
+					did: 'That is <b>the clock</b> — and the two windows he asked for an hour later are <b>the shelves</b> and <b>Today’s boards</b>.'
+				},
+				{
+					name: 'Zelpha',
+					said: 'grabbing 16 marine helms for a barter that only has 6 trades available … it gives a comically large number for the hold before dumping it all back in',
+					did: 'Not misusing the site: <b>two bugs</b>, and the second was hiding the first. Both in <i>Put right</i>.'
+				},
+				{
+					name: 'Fraul and RENGEREL',
+					said: 'can set run for cc? — crow coins?',
+					did: 'That is <b>Crow Coins</b>, the fourth kind of day.'
+				},
+				{
+					name: 'Yuki',
+					said: 'Does it have the siren spawns? I can’t find an option for it in map',
+					did: 'It does now: the <b>Hollow Maretta</b>, and an ocean map read by its own marks rather than fitted by hand.'
+				}
+			],
+			foot: 'The box is under <b>Menu → Feedback</b>. It reaches whoever runs the site.'
+		},
+		sections: [
+			{
+				title: 'A stock — a day that is not for silver',
+				media: 'docs/media/small/a-stock.gif',
+				alt: 'The stock sheet: a target a level, a ceiling, and how many days it takes',
+				text: 'Say the pile you want. Nothing is sold, the climbs stop where you say, and the run is scored on what it banks.',
+				points: [
+					'A target is <b>per good</b>, and the row says what it comes to: thirty at Level 2 is thirty of each of the fourteen.',
+					'It is a floor as well, so the rule is one line: <b>fill a level before you climb from it</b>.',
+					'<b>Climb no higher than</b> — a [Level 4] you already hold is stock, not fuel.',
+					'<i>1,517 goods short · 76 more runs · about 19 days · 56 storage slots.</i>',
+					'The shore goods can come from <b>your own pile</b> rather than the Market, and a way of running can be <b>saved under a name</b>.'
+				]
+			},
+			{
+				title: 'Crow Coins — the fourth kind of day',
+				media: 'docs/media/small/crow-coins.gif',
+				alt: 'A run for Crow Coins: the chains that cash a Level 4, counted in coins',
+				text: 'Every board has ten to fourteen islands paying in coins, and they take a [Level 4] and nothing else. So a coin run is a climb to four, cashed in.',
+				points: [
+					'Scored in coins: <i>the most coins</i>, <i>the most an hour</i>, <i>the most a Parley unit</i>.',
+					'And it says what they are for: <i>3,715 this run · 17,600 short of the 19,600 your builds want · 5 more runs like this one</i>.'
+				]
+			},
+			{
+				title: 'The clock — a bell at every stop',
+				media: 'docs/media/small/the-clock.gif',
+				alt: 'The clock started on a run, counting to the next stop',
+				text: 'Sail this run starts it at that run’s own estimate. It counts up, and rings at every stop rather than only at the end.',
+				points: [
+					'A <b>ship’s bell</b>: a pair struck as each stop comes up, eight bells when the run is done. Made, not fetched — it works offline.',
+					'The stops carry <b>your own pace</b>: seconds for bartering and going on, seconds for a wharf or a quest.',
+					'Ticking a stop off <b>re-bases the rest</b>, so a slow island does not make the whole run chime early.',
+					'And it reaches <b>every device signed in to your account</b> — the phone in a pocket, with the tab shut.'
+				]
+			},
+			{
+				title: 'The run sheet — two shelves, and one list',
+				media: 'docs/media/small/two-shelves.gif',
+				alt: 'Load before casting off, and in the storage after',
+				text: 'What to load, and what is in the storage after, tiled the way the game’s own window is. Everything that used to be said twice is said once.',
+				points: []
+			},
+			{
+				title: 'Today’s boards',
+				media: 'docs/media/small/todays-boards.gif',
+				alt: 'Every run since the refill, what it loaded and what it brought back',
+				text: 'Every run recorded since the refill: what it loaded, what it came back with, and the day’s totals across the Parley bar.',
+				points: [
+					'What it will <b>not</b> do is guess the next board. A refresh deals a different layout, and the panel says so.'
+				]
+			},
+			{
+				title: 'Put right',
+				text: '',
+				points: [
+					'<b>A chain loaded the whole storage</b> — sixteen helms for an island with six trades in it, ninety-seven thousand LT in a hull that carries eleven, and the rest put back at the first wharf. It loads what the first rung can take now.',
+					'<b>A floor was measured against the hold</b>, so “keep forty” meant <i>carrying</i> forty before you could spend one. It counts the pile now, wherever it is kept.',
+					'<b>Notifications did nothing on a phone.</b> They go through the service worker, and where they cannot work the button says why.',
+					'<b>Vouchers are a choice</b>, and go in as soon as the run needs one and a whole quarter fits — which starts the two-hour cooldown as early as it can be started.',
+					'<b>“Build the stocks” is now “Sell the top, keep a floor.”</b> It sells; the floors are there so that selling does not strip the pile.',
+					'The hold bar is <b>two columns</b> — what the hull carries, what there is to spend — with a real way into the hold.'
+				]
+			},
+			{
+				title: 'The chart — the siren, and a map read rather than traced',
+				text: 'The <b>Hollow Maretta</b> is a habitat with its portrait and its thirty-eight ringing spots. The ocean map behind them is no longer fitted by hand: the crosses are found by their glow and the transform solved for — twenty world units to the pixel, landing within half a pixel on 325 marks.',
+				points: []
+			},
+			{
+				title: 'And the app has a name',
+				text: '<b>Sailor’s Log.</b> <i>BDO Ship Upgrade Tracker</i> described what it did in its first week. It plans parts, quests, barter routes and the sea itself.',
+				points: []
+			}
+		]
+	},
 	{
 		id: '1.1',
 		name: 'The plan, and the sea you can actually reach',
@@ -433,6 +549,22 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-09-14',
+		title: 'A chain that stops short says so, and the coins are counted the way the game pays them',
+		notes: [
+			'<b>A ticked chain that climbs one island of three now says why.</b> It happened quietly before: the run would take the first rung, meet the weight limit, and carry the half-climbed goods home — the coins never arrived and the only sign was a small “1 stops” on a chip. The run writes a line for it now, naming the chain, how far it got, and the exact numbers — <i>the trade at Almai puts on 1,100 LT and the hold has 300 left under the limit</i> — with the pace that would fix it one press away. The chip says <b>1 of 3 islands</b> rather than a bare count.',
+			'<b>Crow Coins are a range, and the barter count is on them.</b> The islands state a range — 90–200, 100–190 — and the app was quoting the bottom of it as though it were the answer. Worse, it knew nothing of the thing the game does next: <b>Total Barters adds a percent to every exchange</b>, five points a five-hundred up to <b>+30%</b> past 2,500. The six bands come out of the client’s own <code>variedtradecount</code> table, so a sailor with four thousand barters behind them is no longer shown a figure a third short of what lands in the purse.'
+		]
+	},
+	{
+		date: '2026-09-13',
+		title: 'The siren is on the chart, and the community map is read rather than traced',
+		notes: [
+			'<b>The Hollow Maretta</b> — the siren whose song the Great Ocean warns about — is a habitat now, with its portrait from the codex and the thirty-eight spots it is rung at. The codex has an NPC page for it and no position on it, so the places come off gpw’s ocean map, the same sheet Vell’s water came from.',
+			'That map is no longer fitted <i>by hand</i>. It draws the sea monsters’ spawns as well, and those the codex does give us, so <code>tools/read-ocean-map.mjs</code> finds its crosses by their colour, matches them against the points the app already holds and solves for where the picture sits: an exact twenty world units to the pixel, landing within ten units — half a pixel — on 325 marks. The siren’s rings are then read off by their shape, and every one of the thirty-eight comes out on open water, which is the check that the fit is honest.'
+		]
+	},
 	{
 		date: '2026-09-11',
 		title: 'On a phone the pouch is one line, and the numbers are typed in a sheet',

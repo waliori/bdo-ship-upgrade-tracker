@@ -582,6 +582,46 @@ function countNpcs(item, barterData) {
 }
 
 /**
+ * What a life of bartering adds to every exchange.
+ *
+ * Read out of the client's own `variedtradecount.bss` on 2026-09-14
+ * (`PABR`, six records of three u64s: the first count in the band, the
+ * last, and the percent). It is the one thing the total barter count
+ * does besides opening routes, and the app had no idea it existed --
+ * every coin figure it has ever shown a sailor past 2,500 barters was a
+ * third short.
+ *
+ * The bands are wide and the last one is open: 2,501 barters is the end
+ * of the ladder, and the jump there is ten points rather than five.
+ */
+export const TRADE_COUNT_BONUS = [
+	{ from: 0, to: 500, pct: 0 },
+	{ from: 501, to: 1000, pct: 5 },
+	{ from: 1001, to: 1500, pct: 10 },
+	{ from: 1501, to: 2000, pct: 15 },
+	{ from: 2001, to: 2500, pct: 20 },
+	{ from: 2501, to: Infinity, pct: 30 }
+];
+
+/**
+ * The percent a sailor's barter count adds, and the band it sits in.
+ *
+ * A count nobody has stated is nought here, not a guess: showing a
+ * sailor who has not said what they have bartered a number a third
+ * larger than the exchange window promises would be a lie in the
+ * hopeful direction.
+ */
+export function countBonus(barterCount) {
+	const n = Number.isFinite(barterCount) && barterCount > 0 ? barterCount : 0;
+	const band = TRADE_COUNT_BONUS.find(b => n >= b.from && n <= b.to) || TRADE_COUNT_BONUS[0];
+	const next = TRADE_COUNT_BONUS.find(b => b.from > n) || null;
+	return { pct: band.pct, band, next, count: n };
+}
+
+/** `n` with the barter-count bonus on it, as the purse will see it. */
+export const withBonus = (n, pct) => Math.floor(n * (1 + pct / 100));
+
+/**
  * What a trade good is worth on its own -- what it weighs, and what a
  * barterer pays for it in silver. Read off the goods' item pages on
  * 2026-08-29: the first two levels cannot be sold at all, and the two
@@ -722,12 +762,22 @@ export function parleyPerTrade({ valuePack = false, crowCoin = false, level = nu
 // rung's cap is the figure, which the codex's own stated values agree
 // with on the rungs it does state.
 const ASSUMED_ATTEMPTS = 2;
+/** What the Crow Coin islands pay in, by name. It is not a levelled
+ *  good -- it has no weight, no wharf price and nothing takes it
+ *  further -- so every place that asks "what level is this" has to be
+ *  told about it by name instead. */
+export const COIN = 'Crow Coin';
+
+/** The level the coin islands take, and the only one they take: every
+ *  Crow Coin exchange on every recorded board hands over a [Level 4]. */
+export const COIN_LEVEL = 4;
+
 export const TRIES_BY_RUNG = { 1: 10, 2: 10, 3: 10, 4: 10, 5: 6, 6: 5, 7: 5, coin: 4 };
 
 /** The attempts an exchange allows: as stated, else the rung's cap. */
 export function triesFor(item, stated) {
 	if (stated > 0) return stated;
-	if (item === 'Crow Coin') return TRIES_BY_RUNG.coin;
+	if (item === COIN) return TRIES_BY_RUNG.coin;
 	const lv = levelOf(item);
 	return lv && TRIES_BY_RUNG[lv] ? TRIES_BY_RUNG[lv] : ASSUMED_ATTEMPTS;
 }

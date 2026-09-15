@@ -14,7 +14,7 @@ import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { config, syncEnabled, pushEnabled, feedbackEnabled, communityEnabled, presenceEnabled, ephemeralSecret, describe } from './server/config.js';
+import { config, syncEnabled, pushEnabled, feedbackEnabled, uploadsEnabled, communityEnabled, presenceEnabled, ephemeralSecret, describe } from './server/config.js';
 import { presenceRoutes } from './server/presence.js';
 import { marketRoutes } from './server/market.js';
 import { accessLog, counters } from './server/log.js';
@@ -64,10 +64,17 @@ const CSP = [
 	"script-src 'self' 'wasm-unsafe-eval'",
 	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
 	"font-src 'self' https://fonts.gstatic.com",
-	// The signed-in chip shows the player's Discord avatar, which is the
-	// one image the page does not host itself.
-	"img-src 'self' data: https://cdn.discordapp.com",
+	// The signed-in chip shows the player's Discord avatar, and a
+	// feedback post that points at a film shows that film's still --
+	// the two images the page does not host itself. A screenshot sent
+	// with a report is served from here like everything else.
+	"img-src 'self' data: https://cdn.discordapp.com https://i.ytimg.com",
 	"connect-src 'self'",
+	// A film linked in a feedback post plays where it was linked, and
+	// only once it is asked to: nothing is loaded from either of these
+	// until the play button is pressed. YouTube under its no-cookie
+	// host, which is the same player without the tracking.
+	"frame-src https://www.youtube-nocookie.com https://streamable.com",
 	"frame-ancestors 'none'",
 	"base-uri 'none'",
 	"form-action 'self'",
@@ -190,26 +197,34 @@ if (syncEnabled) {
 // Vell reminders by push: a key pair and a table are all it takes, so
 // it can run on a deployment without Discord. Off without the keys.
 if (pushEnabled) {
-	const [{ migrate, ping }, { pushRoutes, startVellPushes }] = await Promise.all([
+	const [{ migrate, ping }, { pushRoutes, startVellPushes, startAlertPushes }] = await Promise.all([
 		import('./server/db.js'),
 		import('./server/push.js')
 	]);
 	if (!syncEnabled) migrate().catch(err => console.warn('[db] tables not ready yet:', err.message));
 	dbPing = ping;
 	app.use('/api', pushRoutes());
-	if (process.env.NODE_ENV !== 'test') startVellPushes();
+	if (process.env.NODE_ENV !== 'test') {
+		startVellPushes();
+		// An account's own chimes: a clock set on one device reaching the
+		// rest. Needs sign-in, so it only runs where sync does.
+		if (syncEnabled) startAlertPushes();
+	}
 }
 
 // Feedback needs a table and nothing else, so like the push reminders it
 // runs wherever there is a database. The community boards ride with sync
 // and are mounted with it above.
 if (feedbackEnabled) {
-	const [{ migrate }, { feedbackRoutes }] = await Promise.all([
+	const [{ migrate }, { feedbackRoutes, startUploadSweep }] = await Promise.all([
 		import('./server/db.js'),
 		import('./server/feedback.js')
 	]);
 	if (!syncEnabled && !pushEnabled) migrate().catch(err => console.warn('[db] tables not ready yet:', err.message));
 	app.use('/api', feedbackRoutes());
+	// Screenshots uploaded for a report that was never sent are given a
+	// day and then swept; see server/feedback.js.
+	if (uploadsEnabled && process.env.NODE_ENV !== 'test') startUploadSweep();
 }
 
 // Central Market prices, relayed from the community market API and
@@ -238,7 +253,7 @@ if (presenceEnabled) {
 // Discord app should not show a button that cannot work.
 app.get('/api/config', (req, res) => {
 	res.set('Cache-Control', 'no-store');
-	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, community: communityEnabled, presence: presenceEnabled });
+	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, uploads: uploadsEnabled, community: communityEnabled, presence: presenceEnabled });
 });
 
 // Is it up, and is the database behind it answering? `db` is 'off' on a
@@ -380,7 +395,7 @@ app.use((err, req, res, next) => {
 // Importing this file for a test should not open a port.
 if (process.env.NODE_ENV !== 'test') {
 	app.listen(config.port, () => {
-		console.log(`BDO Ship Upgrade Tracker running at http://localhost:${config.port}`);
+		console.log(`Sailor’s Log running at http://localhost:${config.port}`);
 		console.log(`${describe()} -- build ${VERSION}`);
 		if (ephemeralSecret) {
 			console.warn('[config] No SESSION_SECRET set -- sign-ins will not survive a restart.');

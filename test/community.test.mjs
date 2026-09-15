@@ -20,6 +20,7 @@ delete process.env.PUBLIC_URL;
 process.env.DISCORD_CLIENT_ID = 'test-client';
 process.env.DISCORD_CLIENT_SECRET = 'test-secret';
 process.env.TURSO_DATABASE_URL = `file:${path.join(dir, 'tracker.db')}`;
+process.env.UPLOAD_DIR = path.join(dir, 'uploads');
 process.env.SESSION_SECRET = 'test-secret-key-for-signing-sessions';
 process.env.FLUSH_DELAY_MS = '0';
 process.env.ADMIN_IDS = '2001';
@@ -329,13 +330,16 @@ test('deleting the account takes it off the boards', async () => {
  * The inbox
  * ------------------------------------------------------------------ */
 
-test('anyone may send feedback; only what is plainly not feedback is refused', async () => {
-	assert.equal((await call('POST', '/api/feedback', { body: { kind: 'bug', text: 'hi' } })).status, 400);
-	assert.equal((await call('POST', '/api/feedback', { body: { kind: 'rant', text: 'the sea is too wet' } })).status, 400);
-	assert.equal((await call('POST', '/api/feedback', { body: { kind: 'bug', text: 'x'.repeat(4001) } })).status, 400);
-	const anon = await call('POST', '/api/feedback', { body: { kind: 'bug', text: 'The map is upside down', page: 'map', version: '2.1', contact: 'gull#1' } });
-	assert.equal(anon.status, 201);
-	assert.equal((await anon.json()).ok, true);
+test('sending needs an account; only what is plainly not feedback is refused', async () => {
+	// Signed out, the dialog offers GitHub instead -- and the route says
+	// the same thing rather than taking it.
+	assert.equal((await call('POST', '/api/feedback', { body: { kind: 'bug', text: 'The map is upside down' } })).status, 401);
+	assert.equal((await call('POST', '/api/feedback', { cookie: deckhand, body: { kind: 'bug', text: 'hi' } })).status, 400);
+	assert.equal((await call('POST', '/api/feedback', { cookie: deckhand, body: { kind: 'rant', text: 'the sea is too wet' } })).status, 400);
+	assert.equal((await call('POST', '/api/feedback', { cookie: deckhand, body: { kind: 'bug', text: 'x'.repeat(8001) } })).status, 400);
+	const first = await call('POST', '/api/feedback', { cookie: stranger, body: { kind: 'bug', text: 'The map is upside down', page: 'map', version: '2.1', contact: 'gull#1' } });
+	assert.equal(first.status, 201);
+	assert.equal((await first.json()).ok, true);
 	const named = await call('POST', '/api/feedback', { cookie: deckhand, body: { kind: 'idea', text: 'Rations on the run, please', page: 'barter', username: 'Deckhand' } });
 	assert.equal(named.status, 201);
 });
@@ -350,7 +354,10 @@ test('the inbox is for admins, open first, and an entry can be marked done', asy
 	assert.equal(entries[0].text, 'Rations on the run, please');
 	assert.equal(entries[0].username, 'Deckhand');
 	assert.equal(entries[0].userId, '2002');
-	assert.equal(entries[1].userId, null);
+	// Written in the box, so read as markup -- and carrying no pictures.
+	assert.equal(entries[0].format, 'md');
+	assert.deepEqual(entries[0].files, []);
+	assert.equal(entries[1].userId, '2003');
 	assert.equal(entries[1].contact, 'gull#1');
 	assert.ok(entries.every(e => e.status === 'open'));
 

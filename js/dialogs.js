@@ -65,6 +65,46 @@ function nameDialog(host) {
 	host.setAttribute('aria-labelledby', heading.id);
 }
 
+/* ------------------------------------------------------------------ *
+ * Holding the screen
+ * ------------------------------------------------------------------ *
+ *
+ * Two things can want the first moment of a load at once: the release
+ * notes, which a new version shows once, and the sync's "two copies of
+ * your inventory", which arrives whenever the answer from the server
+ * does. A dialog opened over another replaces it, so the notes used to
+ * flash up and vanish under the question -- and the notes are then
+ * marked read, so they were gone for good.
+ *
+ * So whatever owns the moment says so, and anything that would open
+ * over it waits its turn instead.
+ */
+let claims = 0;
+const waiting = [];
+
+/** Hold the screen. Returns the way to let it go; calling it twice is
+ *  the same as calling it once. */
+export function holdScreen() {
+	claims++;
+	let done = false;
+	return () => {
+		if (done) return;
+		done = true;
+		claims = Math.max(0, claims - 1);
+		if (claims) return;
+		for (const fn of waiting.splice(0)) {
+			try { fn(); } catch { /* one waiter's fault is not another's */ }
+		}
+	};
+}
+
+/** Run this now, or as soon as nothing is holding the screen. */
+export function whenScreenFree(fn) {
+	if (!claims) return fn();
+	waiting.push(fn);
+	return undefined;
+}
+
 export function openDialog(html, { onDismiss = null } = {}) {
 	const host = document.getElementById('dialog');
 	// A dialog opened over another replaces it, which dismisses the

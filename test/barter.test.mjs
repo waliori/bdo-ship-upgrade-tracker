@@ -20,7 +20,8 @@ import {
 	REFRESH, PARLEY, ROUTE_UNLOCKS,
 	amount, levelOf, bestExchange, ladder, rungs, bottleneck,
 	dailyCapacity, parleyPerTrade, gateFor, forecast, summarise, explain,
-	barterLevels, levelDiscount, BARTER_TIERS, TOP_LEVEL, isTerminal, exchangeKind
+	barterLevels, levelDiscount, BARTER_TIERS, TOP_LEVEL, isTerminal, exchangeKind,
+	TRADE_COUNT_BONUS, countBonus, withBonus
 } from '../js/barter.js';
 
 /* ------------------------------------------------------------------ *
@@ -107,6 +108,46 @@ test('the Brilliant pair unlocks at 1,500', () => {
 
 	const three = ROUTE_UNLOCKS.find(r => r.barters === 3000);
 	assert.ok(three && !/Brilliant/.test(three.opens));
+});
+
+test('what a life of bartering adds, band by band', () => {
+	// Read out of the client's own variedtradecount.bss on 2026-09-14:
+	// six bands of five hundred, and the last one open. The jump at the
+	// top is ten points, not five, which is the part a formula invents
+	// wrongly -- and the whole table is the thing the app did not know
+	// existed, so every coin figure it showed a sailor past 2,500
+	// barters was a third short.
+	assert.equal(TRADE_COUNT_BONUS.length, 6);
+	assert.deepEqual(TRADE_COUNT_BONUS.map(b => b.pct), [0, 5, 10, 15, 20, 30]);
+	assert.equal(TRADE_COUNT_BONUS.at(-1).to, Infinity, 'the last band never ends');
+	// The bands meet with nothing between them.
+	TRADE_COUNT_BONUS.forEach((b, i) => {
+		if (i) assert.equal(b.from, TRADE_COUNT_BONUS[i - 1].to + 1, `${b.from} follows ${TRADE_COUNT_BONUS[i - 1].to}`);
+	});
+
+	assert.equal(countBonus(0).pct, 0);
+	assert.equal(countBonus(500).pct, 0);
+	assert.equal(countBonus(501).pct, 5);
+	assert.equal(countBonus(2500).pct, 20);
+	assert.equal(countBonus(2501).pct, 30);
+	assert.equal(countBonus(4237).pct, 30, 'past the last threshold it stops climbing');
+	assert.equal(countBonus(1_000_000).pct, 30);
+
+	// A count nobody has stated adds nothing: better to under-promise
+	// than to show a sailor a third more than the exchange window says.
+	assert.equal(countBonus(null).pct, 0);
+	assert.equal(countBonus(undefined).pct, 0);
+	assert.equal(countBonus(-5).pct, 0);
+
+	// And what is next, for the line that says how far off it is.
+	assert.equal(countBonus(400).next.from, 501);
+	assert.equal(countBonus(4237).next, null);
+
+	// The purse takes whole coins.
+	assert.equal(withBonus(120, 30), 156);
+	assert.equal(withBonus(100, 0), 100);
+	assert.equal(withBonus(121, 30), 157);
+	assert.equal(withBonus(51, 30), 66);
 });
 
 /* ------------------------------------------------------------------ *
