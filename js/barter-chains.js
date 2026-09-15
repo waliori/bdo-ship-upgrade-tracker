@@ -492,10 +492,26 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 	};
 	const wharfFor = next => prefer || stashes.reduce((a, w) => (dist(at, w) + dist(w, next) < dist(at, a) + dist(a, next) ? w : a));
 
+	// Why a chain stopped short of the top.
+	//
+	// A chain that is ticked and then quietly climbs one rung of three
+	// is the run's least readable moment: the coins never arrive and
+	// nothing says why. The first answer for a chain is the only one
+	// worth keeping -- every rung after it fails for the same reason,
+	// that the chain stopped here -- so this records one per chain and
+	// the screen turns it into a sentence.
+	const cut = new Map();
+	const cutAt = (chain, r, why, more = {}) => {
+		if (cut.has(chain)) return;
+		cut.set(chain, { chain, why, npc: r.npc, npcId: r.npcId, give: r.give, item: r.item, ...more });
+	};
+
 	let lotNow = -1;   // the lot under way
 	for (let i = 0; i < rungs.length; i++) {
 		const { r, chain, lot } = rungs[i];
-		if (used.has(r.npcId)) continue;
+		// An island that has already dealt this run deals no more, so a
+		// later chain crossing it stops there.
+		if (used.has(r.npcId)) { cutAt(chain, r, 'dealt'); continue; }
 		const npc = npcById.get(r.npcId);
 		const ashore = levelOf(r.give) === null;
 		if (lot !== lotNow) {
@@ -518,13 +534,20 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 		const ashoreLeft = fromPile ? pile.get(r.give) || 0 : Infinity;
 		// What is aboard, and no more of it than the floor lets go of.
 		const spendable = ashore ? ashoreLeft : Math.min(held.get(r.give) || 0, budgetOf(r.give));
-		let want = Math.min(cap.get(r), Math.floor(spendable / r.giveN + 1e-9));
-		if (perTrade > 0) want = Math.min(want, Math.floor((parley.bar - spent) / perTrade));
+		// The two ceilings on how many attempts are wanted, kept apart
+		// rather than folded together: which of them bit is the whole of
+		// what the run has to say when a chain stops here.
+		const byGoods = Math.floor(spendable / r.giveN + 1e-9);
+		const byParley = perTrade > 0 ? Math.floor((parley.bar - spent) / perTrade) : Infinity;
+		const want = Math.min(cap.get(r), byGoods, byParley);
 		let times;
 
 		if (pace === 'fast') {
 			// Never over the limit, and never slower.
-			if (weight > hold.free + 1e-6) continue;
+			if (weight > hold.free + 1e-6) {
+				cutAt(chain, r, 'over', { over: Math.round(weight - hold.free) });
+				continue;
+			}
 			times = dw(r) > 0 ? Math.min(want, Math.floor((hold.free - weight) / dw(r) + 1e-9)) : want;
 		} else {
 			// How many of the attempts wanted the hold lets in from weight
@@ -563,7 +586,24 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 				}
 			}
 		}
-		if (times < 1) continue;
+		if (times < 1) {
+			// The hold is the usual answer, and there are two ways it
+			// says no. A rung the hold's share gave nothing to never had
+			// an attempt to lose -- the climb as a whole would not fit
+			// beside the other chains ticked -- and quoting this one
+			// trade's weight against the whole free hold would be a
+			// number that explains nothing. A rung that had a share and
+			// could not spend it is the exact case worth being exact
+			// about: what the next trade puts on, against what is left.
+			const starved = !(cap.get(r) >= 1);
+			cutAt(chain, r,
+				byParley < 1 ? 'parley' : byGoods < 1 ? 'nothing' : starved ? 'share' : 'hold',
+				starved ? {} : {
+					need: Math.max(0, Math.round(dw(r))),
+					free: Math.max(0, Math.round((pace === 'fast' ? hold.free : deal) - weight))
+				});
+			continue;
+		}
 
 		if (ashore && fromPile) {
 			pile.set(r.give, (pile.get(r.give) || 0) - times * r.giveN);
@@ -585,6 +625,19 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 		stops.push({ ...r, times, parley: times * perTrade, level: levelOf(r.give) || 0, weightAfter: weight, chain });
 		at = npc;
 	}
+	// A chain that reached its top anyway is not a chain that was cut:
+	// a rung can be skipped because the sailor already held what it
+	// would have made, and the climb goes on above it. So the record is
+	// kept only where the top rung never dealt, and it carries how far
+	// the chain did get -- one island of three, which is the sentence
+	// the screen wants.
+	const reached = new Set(stops.filter(s => s.npcId).map(s => `${s.chain}:${s.npcId}`));
+	const cuts = [...cut.values()].map(c => {
+		const chain = order[c.chain];
+		const rungs = chain ? chain.rungs : [];
+		return { ...c, item: chain ? chain.item : c.item, done: stops.filter(s => s.npcId && s.chain === c.chain).length, of: rungs.length, top: rungs.length ? rungs[rungs.length - 1] : null };
+	}).filter(c => c.top && !reached.has(`${c.chain}:${c.top.npcId}`));
+
 	// The run done, what the orders sell is sold at the wharf the ship
 	// makes for: the one chosen, else home, else the nearest.
 	const last = saleAt(rungs.length);
@@ -609,6 +662,7 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 	const cost = boughtRows.reduce((a, b) => a + b.total, 0);
 	return {
 		order, lots, stops, sold, kept, stashed, loaded,
+		cut: cuts,
 		bought: boughtRows,
 		taken: takenRows,
 		coins, coinsMax,

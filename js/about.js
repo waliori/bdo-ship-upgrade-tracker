@@ -25,6 +25,7 @@ export const DATA = [
 	{ what: 'Crow Coin Shop prices', asOf: '2026-08-25', from: 'the shop at Oquilla’s Eye' },
 	{ what: 'Falasi’s prices', asOf: '2026-08-25', from: 'Port Epheria' },
 	{ what: 'Parley rates and discounts', asOf: '2026-08-29', from: 'the Barter Information window' },
+	{ what: 'What Total Barters adds to an exchange — the six bands', asOf: '2026-09-14', from: 'the game client’s own variedtradecount table' },
 	{ what: 'Vell’s timetable (EU, NA)', asOf: '2026-08-30', from: 'mmotimer.com' },
 	{ what: 'Sea crystals — 287 variants and the Nols', asOf: '2026-08-31', from: 'BDOCodex' },
 	{ what: 'Central Market prices', asOf: 'live', from: 'the community market API, per region' }
@@ -548,6 +549,14 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-09-14',
+		title: 'A chain that stops short says so, and the coins are counted the way the game pays them',
+		notes: [
+			'<b>A ticked chain that climbs one island of three now says why.</b> It happened quietly before: the run would take the first rung, meet the weight limit, and carry the half-climbed goods home — the coins never arrived and the only sign was a small “1 stops” on a chip. The run writes a line for it now, naming the chain, how far it got, and the exact numbers — <i>the trade at Almai puts on 1,100 LT and the hold has 300 left under the limit</i> — with the pace that would fix it one press away. The chip says <b>1 of 3 islands</b> rather than a bare count.',
+			'<b>Crow Coins are a range, and the barter count is on them.</b> The islands state a range — 90–200, 100–190 — and the app was quoting the bottom of it as though it were the answer. Worse, it knew nothing of the thing the game does next: <b>Total Barters adds a percent to every exchange</b>, five points a five-hundred up to <b>+30%</b> past 2,500. The six bands come out of the client’s own <code>variedtradecount</code> table, so a sailor with four thousand barters behind them is no longer shown a figure a third short of what lands in the purse.'
+		]
+	},
 	{
 		date: '2026-09-13',
 		title: 'The siren is on the chart, and the community map is read rather than traced',

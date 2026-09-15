@@ -358,3 +358,97 @@ test('the coins a run pays are counted, and they are not cargo', () => {
 	const cashed = run.stops.filter(s => s.item === 'Crow Coin');
 	assert.equal(run.coins, cashed.reduce((a, s) => a + s.times * s.recvMin, 0));
 });
+
+/* ------------------------------------------------------------------ *
+ * Why a chain stops short
+ * ------------------------------------------------------------------ */
+
+test('a chain that does not get to the top says where it stopped and what stopped it', () => {
+	// A hold with almost nothing free is the commonest reason a ticked
+	// chain climbs one rung of three and the coins never arrive. The run
+	// used to do this silently -- the only sign was a smaller stop count
+	// on a chip -- so what is under test is that it is recorded at all.
+	const coin = chains(data, {}, {}, null, 4, true).filter(c => c.pays === 'coin' && c.rungs.length >= 3).slice(0, 2);
+	assert.ok(coin.length, 'the board has a climb to cash in');
+	const start = ports.find(p => p.name === 'Velia');
+	const tight = { free: 2600, deal: 3250, max: 4420 };
+	const run = chainRun({ chosen: coin, hold: tight, parley, npcById, start, stashes: [], pace: 'fast', orders: PLAIN_ORDERS });
+
+	assert.ok(run.cut.length > 0, 'a chain fell short and the run knows it');
+	for (const c of run.cut) {
+		const chain = run.order[c.chain];
+		assert.ok(chain, 'the cut names a chain of this run');
+		assert.ok(['hold', 'share', 'over', 'parley', 'nothing', 'dealt'].includes(c.why));
+		assert.ok(c.of === chain.rungs.length, 'and how many islands the chain wanted');
+		assert.ok(c.done < c.of, 'a cut chain did not do all of them');
+		// The top rung never dealt -- that is what being cut means.
+		assert.ok(!run.stops.some(s => s.chain === c.chain && s.npcId === chain.rungs[chain.rungs.length - 1].npcId));
+		if (c.why === 'hold') {
+			assert.ok(c.need > 0, 'what the next trade would put on');
+			assert.ok(c.need > c.free, 'and it does not fit in what is left');
+		}
+	}
+	// Nothing that got all the way up is in the list.
+	for (const [k, chain] of run.order.entries()) {
+		const top = chain.rungs[chain.rungs.length - 1];
+		if (run.stops.some(s => s.chain === k && s.npcId === top.npcId)) {
+			assert.ok(!run.cut.some(c => c.chain === k), 'a chain that reached its top is not cut');
+		}
+	}
+});
+
+test('a hold with room for everything cuts nothing', () => {
+	const coin = chains(data, {}, {}, null, 4, true).filter(c => c.pays === 'coin').slice(0, 1);
+	const start = ports.find(p => p.name === 'Velia');
+	const roomy = { free: 200000, deal: 250000, max: 300000 };
+	const run = chainRun({ chosen: coin, hold: roomy, parley, npcById, start, stashes, pace: 'full', orders: PLAIN_ORDERS });
+	assert.deepEqual(run.cut, [], 'nothing to report when every chain climbs');
+});
+
+test('an island another chain reached first is named as the reason, not the hold', () => {
+	// Two chains that cross: the second one's rung at the shared island
+	// deals nothing, because an island deals once a run.
+	const all = chains(data, {}, {}, null, 4, true);
+	let pair = null;
+	for (const a of all) {
+		for (const b of all) {
+			if (a === b || a.id === b.id) continue;
+			const shared = a.rungs.some(r => b.rungs[0] && r.npcId === b.rungs[0].npcId);
+			if (shared && b.rungs.length > 1) { pair = [a, b]; break; }
+		}
+		if (pair) break;
+	}
+	if (!pair) return;   // no crossing pair on this layout; nothing to assert
+	const start = ports.find(p => p.name === 'Velia');
+	const roomy = { free: 200000, deal: 250000, max: 300000 };
+	const run = chainRun({ chosen: pair, hold: roomy, parley, npcById, start, stashes, pace: 'full', orders: PLAIN_ORDERS });
+	const dealt = run.cut.filter(c => c.why === 'dealt');
+	for (const c of dealt) {
+		assert.ok(run.stops.some(s => s.npcId === c.npcId && s.chain !== c.chain), 'somebody else did get there');
+	}
+});
+
+test('the exact case: a climb cut mid-way by the weight of its own next trade', () => {
+	// Three chains sailed as one route through every rung -- the way the
+	// tab sails them -- and a hold with room for the climb but not for
+	// all three at once where the route happens to put them. The share
+	// of the hold is worked out chain after chain while the route
+	// interleaves them, so a climb that fits in the reckoning can meet
+	// the limit in the middle of the sea. That is the moment a sailor
+	// sees a three-island chain do one island, and it is exactly what
+	// the run now has to be able to say.
+	const sea = { ...PLAIN_ORDERS, way: 'sea' };
+	const coin = chains(data, {}, {}, null, 4, true).filter(c => c.pays === 'coin' && c.rungs.length >= 3).slice(0, 3);
+	const start = ports.find(p => p.name === 'Velia');
+	const run = chainRun({ chosen: coin, hold: { free: 9000, deal: 11250, max: 14400 }, parley, npcById, start, stashes: [], pace: 'fast', orders: sea });
+
+	const byWeight = run.cut.filter(c => c.why === 'hold');
+	assert.ok(byWeight.length, 'a chain met the limit part-way up');
+	for (const c of byWeight) {
+		assert.ok(c.need > c.free, `${c.need} LT does not fit in ${c.free}`);
+		assert.ok(c.done >= 0 && c.done < c.of, 'it got part of the way, not all of it');
+		assert.ok(c.npc, 'and the island it stopped at is named');
+	}
+	// Every chain the run cut is one the sailor ticked.
+	for (const c of run.cut) assert.ok(coin[c.chain], 'the cut points at a ticked chain');
+});
