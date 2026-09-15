@@ -3,9 +3,10 @@
 //
 // A barter route is built stop by stop from what you are short of; a
 // course is the opposite -- a fixed loop that exists because of what
-// lives along it. These three are the legs of the Snuggle Sailies Route
-// from gpw's Black Desert Ocean Map v1.4, the sea-monster dailies loop,
-// each switchable on its own.
+// lives along it. Three of these are the legs of the Snuggle Sailies
+// Route from gpw's Black Desert Ocean Map v1.4, the sea-monster dailies
+// loop; the fourth is the Lyngbakr ground, which is newer than the map
+// and is an errand of its own. Each is switchable on its own.
 //
 // Points are in the chart's world space (the same one barter_npcs.js
 // and sea_monsters.js use). Islands and wrecks are the codex positions
@@ -54,16 +55,27 @@ export const courses = [
 	},
 	{
 		id: 'crocodile',
-		name: 'Lyngbakr run',
-		sub: 'the northern detour through the wrecks -- the old crocodile run',
-		note: 'Off the current at Pakio’s raft, north to the Lyngbakr Habitat (the crocodiles’ ground until 27 August 2026, when the Lyngbakrs took it), then down the chain of wrecks -- Lantinia, Heracio, Popo -- to Lekrashan.',
+		name: 'Saltwater Crocodile run',
+		sub: 'the wrecks, then north-west to the crocodiles',
+		note: 'Off the current at Pakio’s raft, down the chain of wrecks -- Lantinia, Heracio -- then north-west to the Saltwater Crocodile Habitat and south to Popo and Lekrashan. The crocodiles are not where this run used to go: the Lyngbakrs took their old ground on 27 August 2026 and they moved west, off Cheongsa. Four of them is the weekly from Bave Ricksa at Oquilla’s Eye.',
 		points: [
 			{ name: 'Pakio (combat raft)', x: 55120, y: 25866 },
-			{ name: 'Lyngbakr Habitat', x: 49933, y: 10654, stop: true },
 			{ name: 'Lantinia (combat raft)', x: 43212, y: 26893 },
 			{ name: 'Heracio (adrift vessel)', x: 40189, y: 22992 },
+			{ name: 'Saltwater Crocodile Habitat', x: 32649, y: 14612, stop: true },
 			{ name: 'Popo (Old Moon carrack)', x: 33948, y: 28948 },
 			LEKRASHAN
+		]
+	},
+	{
+		id: 'lyngbakr',
+		name: 'Lyngbakr run',
+		sub: 'out and back from the Cheongsa wharf',
+		note: 'The ground the crocodiles were driven off on 27 August 2026, and what drove them. Short enough to be its own errand rather than a leg of anything: out from Gangman’s wharf on Cheongsa, and back to him with the two the weekly asks for. The horn the yellow tier is made of drops here.',
+		points: [
+			{ name: 'Gangman (Cheongsa wharf)', x: 33534, y: 18905 },
+			{ name: 'Lyngbakr Habitat', x: 53369, y: 10914, stop: true },
+			{ name: 'Gangman (Cheongsa wharf)', x: 33534, y: 18905 }
 		]
 	}
 ];
