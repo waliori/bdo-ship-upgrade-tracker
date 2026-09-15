@@ -2086,6 +2086,7 @@ function openWhatsNew({ onClose = null } = {}) {
 				${points(s.points)}
 			</section>`).join('')}
 		</details>
+		${olderHTML(points)}
 		<p class="dialog-copy">The same notes are in
 			<a href="https://github.com/waliori/bdo-ship-upgrade-tracker/blob/main/CHANGELOG.md"
 				target="_blank" rel="noopener">CHANGELOG.md</a>.</p>
@@ -2096,6 +2097,42 @@ function openWhatsNew({ onClose = null } = {}) {
 	`, { onDismiss: () => { free(); if (onClose) onClose(); } });
 	markReleaseSeen();
 	return host;
+}
+
+/**
+ * The releases before this one, each shut.
+ *
+ * Someone opening this has been away for a week or for two months, and
+ * the app has no way of telling which. So every release is here, newest
+ * first, and each one shows a single line of what changed -- in the
+ * words a player would use, not the app's -- until it is opened. Shut
+ * by default because the person who was here last week wants this
+ * release and nothing else, and an open list of three would bury it.
+ *
+ * The pictures are inside the fold, so a browser does not fetch them
+ * until someone actually opens the release they belong to.
+ */
+function olderHTML(points) {
+	const older = RELEASES.slice(1);
+	if (!older.length) return '';
+	return `<div class="news-older">
+		<h3>Earlier releases</h3>
+		${older.map(r => `<details class="news-old">
+			<summary>
+				<span class="news-old-name">${esc(r.name)}</span>
+				<span class="news-old-when">version ${esc(r.id)} · ${esc(r.date)}</span>
+				<span class="news-old-sum">${esc(r.sum || '')}</span>
+			</summary>
+			<div class="news-old-body">
+				${r.sections.map(s => `<section class="news-item plain">
+					<h3>${s.title}</h3>
+					${s.media ? `<img class="news-shot" src="${esc(s.media)}" alt="${esc(s.alt || '')}" loading="lazy">` : ''}
+					${s.text ? `<p>${s.text}</p>` : ''}
+					${points(s.points)}
+				</section>`).join('')}
+			</div>
+		</details>`).join('')}
+	</div>`;
 }
 
 /** Remember that this release's notes have been read. */

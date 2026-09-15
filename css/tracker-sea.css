@@ -855,6 +855,30 @@
   background: rgba(var(--deep-rgb), 0.5);
 }
 .news-points { margin: 8px 0 0 18px; padding: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink-dim); }
+
+/* Every release before this one, shut, each worth one line until it is
+   opened. A reader who has been away two months needs them; the one who
+   was here last week must not have to scroll past them. */
+.news-older { margin: 16px 0 4px; padding-top: 14px; border-top: 1px solid rgba(var(--line-rgb), 0.35); }
+.news-older > h3 { margin: 0 0 10px; font-family: var(--font-display); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+.news-old { margin-bottom: 8px; border: 1px solid var(--line-btn); border-radius: var(--r-panel); background: rgba(var(--deep-rgb), 0.4); }
+.news-old[open] { background: rgba(var(--deep-rgb), 0.6); border-color: var(--line); }
+.news-old > summary { cursor: pointer; list-style: none; padding: 10px 14px; display: grid; grid-template-columns: 1fr auto; gap: 1px 12px; }
+.news-old > summary::-webkit-details-marker { display: none; }
+.news-old > summary::after { content: '▸'; grid-column: 2; grid-row: 1; color: var(--ink-faint); font-size: 11px; }
+.news-old[open] > summary::after { content: '▾'; }
+.news-old > summary:hover .news-old-name { color: var(--teal-hi, var(--teal)); }
+.news-old-name { grid-column: 1; grid-row: 1; font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--ink-hi); }
+.news-old-when { grid-column: 2; grid-row: 2; font-size: 11px; color: var(--ink-faint); white-space: nowrap; align-self: start; }
+.news-old-sum { grid-column: 1; grid-row: 2; font-size: 12.5px; line-height: 1.5; color: var(--ink-mute); }
+.news-old-body { padding: 4px 14px 12px; border-top: 1px solid rgba(var(--line-rgb), 0.3); margin-top: 8px; }
+.news-old-body .news-item h3 { font-size: 13.5px; }
+.news-old-body .news-item p { font-size: 12.5px; color: var(--ink-dim); }
+@media (max-width: 720px) {
+  .news-old > summary { grid-template-columns: 1fr auto; }
+  .news-old-when { grid-column: 1; grid-row: 3; }
+  .news-old > summary::after { grid-row: 1; }
+}
 /* Who asked for the release. Set apart from the sections and never
    folded: a thank-you inside a drawer is not one. */
 .news-thanks { margin: 14px 0 2px; padding: 13px 16px; border: 1px solid var(--teal-edge); border-radius: var(--r-panel); background: var(--teal-glow); }
