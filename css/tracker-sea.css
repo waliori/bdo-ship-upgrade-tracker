@@ -359,6 +359,30 @@
 .errand-job b { color: var(--amber); }
 .map-course.on[data-act="map-errands"] { border-color: rgba(232, 182, 97, 0.7); background: rgba(232, 182, 97, 0.1); }
 .map-course.on[data-act="map-errands"] .map-course-dot { background: var(--amber); border-color: rgba(232, 182, 97, 0.8); box-shadow: 0 0 8px rgba(232, 182, 97, 0.7); }
+/* A call is a button the whole width of the row, with the cross that
+   drops it kept out of its way. */
+.errand-stop { align-items: center; }
+.errand-row { display: flex; gap: 9px; align-items: flex-start; flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.errand-row:hover .errand-name { color: var(--amber); }
+.errand-skip { flex: none; opacity: 0; }
+.errand-stop:hover .errand-skip, .errand-skip:focus-visible { opacity: 1; }
+.errand-btns { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+.errand-btns .ghost-btn { flex: 1 1 140px; }
+
+/* One call opened: every quest done there, what it wants, what it pays. */
+.errand-details { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; }
+.errand-detail { display: flex; gap: 12px; align-items: flex-start; padding: 10px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.5); }
+.errand-detail-pic { width: 38px; height: 38px; flex: none; border-radius: 6px; }
+.errand-detail-main { flex: 1; min-width: 0; }
+.errand-detail-name { font-weight: 600; color: var(--ink-hi); font-size: 13px; }
+.errand-detail-sub { font-size: 11.5px; color: var(--ink-mute); margin-top: 2px; }
+.errand-detail-pays { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.errand-detail-acts { display: flex; flex-direction: column; gap: 5px; flex: none; }
+@media (max-width: 720px) {
+  .errand-detail { flex-wrap: wrap; }
+  .errand-detail-acts { flex: 1 0 100%; flex-direction: row; justify-content: flex-end; }
+  .errand-skip { opacity: 1; }
+}
 
 .map-course-line { z-index: 1; }
 .map-course-glow { fill: none; stroke: #f082be; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; opacity: 0.14; }

@@ -56,6 +56,7 @@ export const mv = {
 	coursesOn: [],           // community courses drawn beneath the route, by id
 	errandFrom: 'Velia',     // the harbour the day's errands loop starts and ends at
 	errandKinds: 'both',     // which of the repeatables it plans for: daily, weekly or both
+	errandSkip: null,        // { day, ids }: quests put aside by hand for today
 	huntsOn: [],             // sea monster grounds shown, by species key
 	wharvesOn: [],           // 'wharf' and/or 'guild': the wharf managers drawn
 	habitatsOn: true,        // the game's habitat markers: a picture per species' ground
@@ -172,6 +173,9 @@ function restorePrefs() {
 		if (Array.isArray(s.wharvesOn)) mv.wharvesOn = s.wharvesOn.filter(k => k === 'wharf' || k === 'guild');
 		if (typeof s.errandFrom === 'string') mv.errandFrom = s.errandFrom.slice(0, 40);
 		if (s.errandKinds === 'daily' || s.errandKinds === 'weekly' || s.errandKinds === 'both') mv.errandKinds = s.errandKinds;
+		if (s.errandSkip && typeof s.errandSkip.day === 'string' && Array.isArray(s.errandSkip.ids)) {
+			mv.errandSkip = { day: s.errandSkip.day.slice(0, 20), ids: s.errandSkip.ids.filter(x => typeof x === 'string').slice(0, 60) };
+		}
 		mv.habitatsOn = s.habitatsOn !== false;
 		mv.labelsOn = s.labelsOn !== false;
 		mv.pinsOn = s.pinsOn !== false;
@@ -253,7 +257,7 @@ export function persist() {
 	syncLanes();
 	try {
 		localStorage.setItem(STORE_KEY,
-			JSON.stringify({ mode: mv.mode, panelOpen: mv.panelOpen, follow: mv.follow, nextOnly: mv.nextOnly, kindFilter: mv.kindFilter, coursesOn: mv.coursesOn, errandFrom: mv.errandFrom, errandKinds: mv.errandKinds, huntsOn: mv.huntsOn, wharvesOn: mv.wharvesOn, habitatsOn: mv.habitatsOn, labelsOn: mv.labelsOn, pinsOn: mv.pinsOn, tracesOn: mv.tracesOn, hugWater: mv.hugWater, layersOpen: mv.layersOpen, sideRight: mv.sideRight, tradesMode: mv.tradesMode, miniOn: mv.miniOn, miniPos: mv.miniPos, inkColour: mv.inkColour, inkWidth: mv.inkWidth, inkSize: mv.inkSize, inkPlate: mv.inkPlate, threeD: mv.threeD, pitch: mv.pitch, bearing: mv.bearing }));
+			JSON.stringify({ mode: mv.mode, panelOpen: mv.panelOpen, follow: mv.follow, nextOnly: mv.nextOnly, kindFilter: mv.kindFilter, coursesOn: mv.coursesOn, errandFrom: mv.errandFrom, errandKinds: mv.errandKinds, errandSkip: mv.errandSkip, huntsOn: mv.huntsOn, wharvesOn: mv.wharvesOn, habitatsOn: mv.habitatsOn, labelsOn: mv.labelsOn, pinsOn: mv.pinsOn, tracesOn: mv.tracesOn, hugWater: mv.hugWater, layersOpen: mv.layersOpen, sideRight: mv.sideRight, tradesMode: mv.tradesMode, miniOn: mv.miniOn, miniPos: mv.miniPos, inkColour: mv.inkColour, inkWidth: mv.inkWidth, inkSize: mv.inkSize, inkPlate: mv.inkPlate, threeD: mv.threeD, pitch: mv.pitch, bearing: mv.bearing }));
 	} catch { /* private mode; the session still works */ }
 	if (writeTimer) clearTimeout(writeTimer);
 	writeTimer = setTimeout(flushView, 250);

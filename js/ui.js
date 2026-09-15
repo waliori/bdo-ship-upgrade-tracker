@@ -58,7 +58,7 @@ import { openCoinBuy } from './coin-shop.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapCentreOnStash,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
-	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapErrands, setMapErrandFrom, setMapErrandKinds, setMapHunt, showHunt, toggleMapDone, closeMapTip,
+	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapErrands, setMapErrandFrom, setMapErrandKinds, openMapErrand, setMapErrandSkip, skipMapErrandCall, drawMapErrands, setMapHunt, showHunt, toggleMapDone, closeMapTip,
 	saveRouteDialog, loadSavedRoute, deleteSavedRoute, mapWritingView, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite,
@@ -1032,6 +1032,12 @@ function wire() {
 			case 'map-course': setMapCourse(el.dataset.id); return;
 			case 'map-errands': setMapErrands(); return;
 			case 'map-errand-kinds': setMapErrandKinds(el.dataset.id); return;
+			case 'map-errand-open': openMapErrand(Number(el.dataset.i)); return;
+			case 'map-errand-skip': setMapErrandSkip(el.dataset.quest, true); return;
+			case 'map-errand-unskip': setMapErrandSkip(el.dataset.quest, false); return;
+			case 'map-errand-skip-call': skipMapErrandCall(Number(el.dataset.i)); return;
+			case 'map-errand-draw': drawMapErrands(); return;
+			case 'map-errand-game': return openGameExport('errands');
 			case 'map-wharves': setMapWharves(el.dataset.id); return;
 			case 'map-habitats': setMapHabitats(); return;
 			case 'map-labels': setMapLabels(); return;

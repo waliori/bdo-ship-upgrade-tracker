@@ -2,7 +2,7 @@
 // Map calls, from picking what to show to stepping along the route.
 
 import { courseOf } from '../courses.js';
-import { errandPlan, dropErrands, startErrands, harbours } from './errands.js';
+import { errandPlan, dropErrands, startErrands, harbours, openErrandStop, skipErrand, errandTrace } from './errands.js';
 import { monsters, monsterByKey } from '../sea_monsters.js';
 import { F } from '../fmt.js';
 import { img } from '../ui-bits.js';
@@ -10,13 +10,14 @@ import { CLOSE_ZOOM } from '../map.js';
 import { npcById, ports } from '../barter_npcs.js';
 import { monsterArt } from '../monster_art.js';
 import { openPicker } from '../picker.js';
+import { closeDialog, toast } from '../dialogs.js';
 import { snapshot, barterData } from '../ui-state.js';
 import { mv, persist, doneSet, barterDay, restore } from './state.js';
 import { stopsLive, suggestedIds, marksNow, barterKind } from './marks.js';
 import { paintMap, flyTo, habitats } from './paint.js';
 import { refreshSide } from './render.js';
 import { stashRoute, stashLive, routeSeq } from './route.js';
-import { endWriting, markTraceHost } from './trace.js';
+import { endWriting, markTraceHost, applyTraceObject } from './trace.js';
 
 /* What the shell's event handling steers. */
 
@@ -374,6 +375,55 @@ export function setMapErrandKinds(id) {
 	startErrands();
 	refreshSide();
 	afterPaint(() => { errandPlan(); refreshSide(); paintMap(); });
+}
+
+/**
+ * A call on the errands loop, pressed: the chart flies there and the
+ * call opens. Two things at once because they are one question -- what
+ * is this stop, and where is it.
+ */
+export function openMapErrand(i) {
+	const p = errandPlan();
+	const c = p && p.stops[i];
+	if (!c) return;
+	if (mv.mapState) {
+		mv.pinnedNpc = null;
+		mv.pinnedStash = -1;
+		flyTo(c.x, c.y, Math.max(mv.mapState.zoom, CLOSE_ZOOM));
+	}
+	openErrandStop(i);
+}
+
+/** A quest put aside for the day, or taken back up. */
+export function setMapErrandSkip(id, off = true) {
+	if (!skipErrand(id, off)) return;
+	closeDialog();
+	startErrands();
+	refreshSide();
+	afterPaint(() => { errandPlan(); refreshSide(); paintMap(); });
+}
+
+/** A whole call put aside: everything done there goes with it. */
+export function skipMapErrandCall(i) {
+	const p = errandPlan();
+	const c = p && p.stops[i];
+	if (!c || !c.todo.length) return;
+	for (const t of c.todo) skipErrand(t.q.id, true);
+	closeDialog();
+	toast(`${c.name} left out — ${c.todo.length} quest${c.todo.length === 1 ? '' : 's'} put aside for today`);
+	startErrands();
+	refreshSide();
+	afterPaint(() => { errandPlan(); refreshSide(); paintMap(); });
+}
+
+/** The loop onto the Draw tab, where it can be named, kept and shared. */
+export function drawMapErrands() {
+	const data = errandTrace();
+	if (!data) return toast('Nothing to draw — work the loop out first');
+	if (!applyTraceObject(data)) return toast('The loop would not draw');
+	refreshSide();
+	paintMap();
+	toast('Today’s errands are on the Draw tab — name it and keep it to share the link', true);
 }
 
 export function setMapHunt(key) {

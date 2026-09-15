@@ -7,6 +7,7 @@ import { esc } from '../fmt.js';
 import { npcs } from '../barter_npcs.js';
 import { nearestWharf } from '../wharves.js';
 import { openDialog, closeDialog, toast } from '../dialogs.js';
+import { errandPoints } from './errands.js';
 import { bookmarkXML, writeMode, BOOKMARK_SLOTS, CAMERA_SLOTS, LOOP_SLOTS, FILE_HINT, readGameXML, looksLikeGameXML } from '../worldmap.js';
 import { canWriteFiles, gameFolderName, previousBlock } from '../gamefile.js';
 import { mv, TRACES_MAX, persist } from './state.js';
@@ -224,7 +225,7 @@ export async function gameImportAction(act, el) {
  * the game's own map
  * ------------------------------------------------------------------ */
 
-let gameSource = 'route';     // route | hunt -- which list the dialog is writing
+let gameSource = 'route';     // route | hunt | trace | errands -- which list the dialog is writing
 let gameWrite = 'favorites';  // favorites, or 0..2 for one of the map's loops
 
 /**
@@ -271,7 +272,10 @@ function routePoints() {
  */
 export function gameBookmarks() {
 	const loopOnly = gameWrite !== 'favorites';
-	const points = gameSource === 'hunt' ? huntPoints() : gameSource === 'trace' ? tracePoints(!loopOnly) : routePoints();
+	const points = gameSource === 'hunt' ? huntPoints()
+		: gameSource === 'trace' ? tracePoints(!loopOnly)
+		: gameSource === 'errands' ? errandPoints()
+		: routePoints();
 	// One or the other, never both: the favourites are five named pins
 	// and ten camera jumps, a loop is the whole run in order. Writing
 	// both would spend someone's five favourites on stops the loop
@@ -302,14 +306,16 @@ export function setGameWrite(value) {
  * closed), and which part to replace.
  */
 export async function openGameExport(source) {
-	if (source === 'route' || source === 'hunt' || source === 'trace') gameSource = source;
+	if (source === 'route' || source === 'hunt' || source === 'trace' || source === 'errands') gameSource = source;
 	const r = gameBookmarks();
 	if (!r.stops) {
 		return toast(gameSource === 'hunt'
 			? 'Nothing to put on the map: the grounds ticked have no fixed spawn points on the chart'
-			: 'Nothing to put on the map yet — plot a stop first');
+			: gameSource === 'errands'
+				? 'Nothing to put on the map: today’s errands are all done'
+				: 'Nothing to put on the map yet — plot a stop first');
 	}
-	const what = r.source === 'hunt' ? 'hunt' : r.source === 'trace' ? 'traced route' : 'route';
+	const what = r.source === 'hunt' ? 'hunt' : r.source === 'trace' ? 'traced route' : r.source === 'errands' ? 'day of errands' : 'route';
 	// Chromium can hold the folder itself; elsewhere the block is pasted.
 	const folder = canWriteFiles() ? await gameFolderName() : null;
 	const direct = canWriteFiles() ? `<div class="map-game-direct">

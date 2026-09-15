@@ -202,3 +202,50 @@ test('a quest handed in where the loop already calls does not add a call', () =>
 		assert.ok(Math.hypot(step.x - stop.x, step.y - stop.y) < 1000, `${t.q.id} is handed in in the wrong place`);
 	}
 });
+
+// The loop as something to take away: the game's own world map, and a
+// drawing the Draw tab can name, keep and share.
+//
+// Both are built from the same plan and both are bounded by what the
+// thing they are going into will hold -- a bookmark's name is cut at
+// thirty characters, a trace takes forty stops and a stroke of six
+// hundred points -- so the checks are that nothing is lost in the
+// ordering and nothing overflows.
+const { errandPoints, errandTrace } = await import('../js/map/errands.js');
+const { cleanTrace, TRACE_STOPS } = await import('../js/map/trace.js');
+
+test('the loop goes to the game’s map numbered, named by what is done there', () => {
+	const c = questCourse(everyDay(), VELIA);
+	const pts = errandPoints(c);
+	assert.equal(pts.length, c.stops.length);
+	pts.forEach((p, i) => {
+		assert.match(p.name, new RegExp(`^${i + 1}: `), `call ${i + 1} is not numbered`);
+		assert.ok(p.name.length <= 30, `"${p.name}" is ${p.name.length} long`);
+		assert.equal(p.x, c.stops[i].x);
+		assert.equal(p.y, c.stops[i].y);
+	});
+	// A hunt says the kill, a wharf says who is seen.
+	const rust = pts[c.stops.findIndex(s => s.species && s.species.some(x => x.key === 'black-rust'))];
+	assert.match(rust.name, /7x Black Rust/);
+	assert.deepEqual(errandPoints(null), []);
+});
+
+test('the loop draws as a trace the Draw tab will take', () => {
+	const c = questCourse(everyDay(), VELIA);
+	const raw = errandTrace(c, 'Velia');
+	assert.equal(raw.kind, 'trace');
+	// It has to survive the Draw tab's own cleaning unchanged in shape.
+	const t = cleanTrace(raw);
+	assert.ok(t, 'the trace was thrown out as unreadable');
+	assert.equal(t.points.length, Math.min(c.stops.length, TRACE_STOPS));
+	assert.ok(t.strokes.length === 1, 'the sailed line is not one stroke');
+	assert.ok(t.strokes[0].pts.length >= c.stops.length * 2, 'the line has fewer points than calls');
+	// Every stop is noted with its number and what is done there.
+	t.points.forEach((p, i) => {
+		assert.match(p.note, new RegExp(`^${i + 1}\\. `));
+		assert.ok(p.note.length <= 120);
+	});
+	assert.match(t.points[t.points.length - 1].note, /Velia/);
+	assert.match(t.notes, /calls, .* km/);
+	assert.equal(errandTrace(null), null);
+});
