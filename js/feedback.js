@@ -15,9 +15,19 @@
 // counted against something. Anyone signed out still has the GitHub
 // link, which is the same box in public.
 //
-// The inbox is the other half, for the accounts named as admins: what
-// came in, open first, with the pictures where they were put and the
-// words as they were written.
+// What has been written in is the other half, and it is public: anyone
+// can read the reports, open first, with the pictures where they were
+// put and the words as they were written. A box whose contents only the
+// operator can see asks everybody to report the same bug twice, and
+// gives nobody a way to see that the thing they are about to write has
+// already been answered.
+//
+// The buttons are the part that is not public. Marking an entry done,
+// hiding one, reopening it and throwing one away belong to the accounts
+// named as admins, and so do the things in a report that were only ever
+// for the person answering it -- the contact, the account, the browser.
+// The server decides that, not this file: it sends what the reader may
+// have and says whether they are an admin.
 
 import { esc } from './fmt.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
@@ -300,7 +310,7 @@ export function openFeedback(kind = 'bug') {
 	const host = openDialog(`
 		<h2>Feedback</h2>
 		<p class="dialog-copy">${inbox
-		? 'Say what is wrong, or what you want. It goes straight to whoever runs this copy of the app, with the section you are on and the build you are running attached.'
+		? 'Say what is wrong, or what you want. It goes straight to whoever runs this copy of the app, with the section you are on and the build you are running attached. <b>Reports are public</b> — the words, the pictures and your name — so anyone can read what has already been asked and what has been answered. The way to reach you is not.'
 		: 'This copy of the app has no inbox of its own, so feedback goes to the project on GitHub — the button below opens an issue with the section and the build filled in.'}</p>
 		<div class="fb-kinds" role="radiogroup" aria-label="What kind of feedback">
 			${KINDS.map(k => `<button type="button" class="fb-kind${k.id === picked ? ' on' : ''}" role="radio" aria-checked="${k.id === picked}" data-kind="${k.id}"><b>${esc(k.label)}</b><small>${esc(k.hint)}</small></button>`).join('')}
@@ -330,15 +340,22 @@ export function openFeedback(kind = 'bug') {
 			<div class="fb-shots" hidden></div>
 			<p class="fb-hint"><b>**bold**</b> · <i>*italic*</i> · <code>\`code\`</code> · &gt; quote · - list · ||spoiler|| · a link to a film becomes the film</p>
 			<input type="file" class="fb-file" accept="${ACCEPT}" multiple hidden>
-			${inbox && who ? '<input class="field fb-contact" maxlength="120" placeholder="Somewhere else a reply could reach you (optional)" aria-label="How to reach you">' : ''}
+			${inbox && who ? '<input class="field fb-contact" maxlength="120" placeholder="Somewhere else a reply could reach you (optional, not shown to anyone else)" aria-label="How to reach you — not public">' : ''}
 		</div>
 		<p class="fb-meta">${inbox ? `Sent ${who ? `as <b>${esc(who.username)}</b>` : 'once you are signed in'} · ` : ''}on <b>${esc(view)}</b> · build <b>${esc(RELEASE)}</b> · ${esc(agent())}</p>
 		<div class="dialog-actions">
 			<a class="ghost-btn fb-issues" href="${ISSUES}/new" target="_blank" rel="noopener">Open an issue on GitHub ↗</a>
+			${inbox ? '<button class="ghost-btn" data-reports title="Every report anyone has sent, and which of them have been answered">What people have written ↗</button>' : ''}
 			<span class="fb-space"></span>
 			<button class="act quiet" data-close>Cancel</button>
 			${inbox ? `<button class="act" data-send${who ? '' : ' disabled'}>Send</button>` : ''}
 		</div>`);
+
+	// The list is the other half of the box, and it is worth reaching
+	// from inside it: the thing you are about to write may already be
+	// there, answered.
+	const reports = host.querySelector('[data-reports]');
+	if (reports) reports.addEventListener('click', () => openReports());
 
 	const text = host.querySelector('.fb-text');
 	const preview = host.querySelector('.fb-preview');
@@ -561,32 +578,44 @@ function signInPanel() {
  * The inbox
  * ------------------------------------------------------------------ */
 
-/** The inbox, for admins. */
-export async function openInbox() {
-	const host = openDialog('<h2>Feedback inbox</h2><p class="dialog-copy">Fetching…</p>');
+/** What people have written in: the list, for anyone. */
+export async function openReports() {
+	const host = openDialog(`<h2>${TITLE.public}</h2><p class="dialog-copy">Fetching…</p>`);
 	const res = await call('GET', '/api/feedback').catch(() => null);
 	if (!res || !res.ok) {
-		host.querySelector('.dialog-box').innerHTML = `<h2>Feedback inbox</h2><p class="dialog-copy">${esc(res && res.body && res.body.error ? res.body.error : 'The inbox did not answer.')}</p><div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`;
+		host.querySelector('.dialog-box').innerHTML = `<h2>${TITLE.public}</h2><p class="dialog-copy">${esc(res && res.body && res.body.error ? res.body.error : 'The box did not answer.')}</p><div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`;
 		return;
 	}
-	paintInbox(host, res.body.entries || [], 'all');
+	// Whether the buttons are drawn is the server's answer, not a guess
+	// from the account: it is the same side that refuses them.
+	paintInbox(host, res.body.entries || [], 'all', res.body.admin === true);
 }
+
+const TITLE = { admin: 'Feedback inbox', public: 'What people have written in' };
 
 const KIND_WORD = { bug: 'wrong', idea: 'idea', other: 'other' };
 
-function paintInbox(host, entries, only) {
+/**
+ * The list, drawn for whoever is reading it.
+ *
+ * `admin` is the whole difference: the buttons that change an entry,
+ * the contact and the account and the browser string under it, and the
+ * hidden ones, which nobody else is shown at all.
+ */
+function paintInbox(host, entries, only, admin) {
 	const box = host.querySelector('.dialog-box');
 	box.classList.add('wide');
 	const shown = entries.filter(e => only === 'all' || e.kind === only);
 	const open = shown.filter(e => e.status === 'open');
-	const done = shown.filter(e => e.status !== 'open');
+	const done = shown.filter(e => e.status === 'done');
+	const hidden = shown.filter(e => e.status === 'hidden');
 	const when = t => new Date(t).toISOString().slice(0, 16).replace('T', ' ');
 
 	const row = e => `<div class="fb-entry ${esc(e.kind)}${e.status === 'open' ? '' : ' done'}" data-id="${e.id}">
 		<div class="fb-entry-head">
 			<span class="fb-entry-kind">${esc(KIND_WORD[e.kind] || e.kind)}</span>
-			<span class="fb-entry-who">${e.username ? esc(e.username) : 'a visitor'}${e.contact ? ` · ${esc(e.contact)}` : ''}</span>
-			<span class="fb-entry-when">#${e.id} · ${when(e.createdAt)}</span>
+			<span class="fb-entry-who">${e.username ? esc(e.username) : 'a visitor'}${admin && e.contact ? ` · ${esc(e.contact)}` : ''}${e.mine ? ' · <b>yours</b>' : ''}</span>
+			<span class="fb-entry-when">#${e.id} · ${when(e.createdAt)}${e.status === 'done' ? ' · answered' : e.status === 'hidden' ? ' · hidden' : ''}</span>
 		</div>
 		${postHTML(e)}
 		<div class="fb-entry-foot">
@@ -594,29 +623,36 @@ function paintInbox(host, entries, only) {
 		e.page ? `on ${e.page}` : '',
 		e.version ? `build ${e.version}` : '',
 		e.files && e.files.length ? `${e.files.length} image${e.files.length === 1 ? '' : 's'}` : '',
-		e.userId ? `id ${e.userId}` : '',
-		e.agent ? e.agent.replace(/^Mozilla\/5\.0 /, '').slice(0, 70) : ''
+		admin && e.userId ? `id ${e.userId}` : '',
+		admin && e.agent ? e.agent.replace(/^Mozilla\/5\.0 /, '').slice(0, 70) : ''
 	].filter(Boolean).map(esc).join(' · ')}</span>
-			<span class="fb-entry-acts">
+			${admin ? `<span class="fb-entry-acts">
 				<button class="chip tiny" data-status="${e.status === 'open' ? 'done' : 'open'}">${e.status === 'open' ? 'Mark done' : 'Reopen'}</button>
+				<button class="chip tiny" data-status="${e.status === 'hidden' ? 'open' : 'hidden'}" title="${e.status === 'hidden' ? 'Put it back in the public list' : 'Take it out of the public list, without throwing it away'}">${e.status === 'hidden' ? 'Show' : 'Hide'}</button>
 				<button class="chip tiny danger" data-drop="${e.id}">Delete</button>
-			</span>
+			</span>` : ''}
 		</div>
 	</div>`;
 
 	const counts = kind => entries.filter(e => kind === 'all' || e.kind === kind).length;
-	box.innerHTML = `<h2>Feedback inbox</h2>
-		<p class="dialog-copy">${open.length} open · ${done.length} done · the newest ${entries.length} entries</p>
+	box.innerHTML = `<h2>${admin ? TITLE.admin : TITLE.public}</h2>
+		<p class="dialog-copy">${open.length} waiting · ${done.length} answered${admin && hidden.length ? ` · ${hidden.length} hidden` : ''} · the newest ${entries.length} entries${admin ? '' : ' — anyone can read these; only the operator can answer one'}</p>
 		<div class="fb-filter">${['all', 'bug', 'idea', 'other'].map(k =>
 		`<button type="button" class="chip${k === only ? ' on' : ''}" data-only="${k}">${k === 'all' ? 'Everything' : esc(KIND_WORD[k])} <span class="n">${counts(k)}</span></button>`).join('')}</div>
-		<div class="fb-list">${open.map(row).join('') || '<p class="dialog-copy">Nothing open.</p>'}</div>
-		${done.length ? `<details class="fb-done"><summary>Done (${done.length})</summary><div class="fb-list">${done.map(row).join('')}</div></details>` : ''}
-		<div class="dialog-actions"><button class="ghost-btn" data-close>Close</button></div>`;
+		<div class="fb-list">${open.map(row).join('') || '<p class="dialog-copy">Nothing waiting.</p>'}</div>
+		${done.length ? `<details class="fb-done"><summary>Answered (${done.length})</summary><div class="fb-list">${done.map(row).join('')}</div></details>` : ''}
+		${admin && hidden.length ? `<details class="fb-done"><summary>Hidden (${hidden.length})</summary><div class="fb-list">${hidden.map(row).join('')}</div></details>` : ''}
+		<div class="dialog-actions">${admin ? '' : '<button class="act" data-write>Write one</button>'}<button class="ghost-btn" data-close>Close</button></div>`;
 
 	enhance(box);
 
+	const again = next => paintInbox(host, entries, next, admin);
+
+	const write = box.querySelector('[data-write]');
+	if (write) write.addEventListener('click', () => openFeedback());
+
 	box.querySelectorAll('[data-only]').forEach(btn =>
-		btn.addEventListener('click', () => paintInbox(host, entries, btn.dataset.only)));
+		btn.addEventListener('click', () => again(btn.dataset.only)));
 
 	box.querySelectorAll('[data-status]').forEach(btn => btn.addEventListener('click', async () => {
 		const id = Number(btn.closest('.fb-entry').dataset.id);
@@ -626,7 +662,7 @@ function paintInbox(host, entries, only) {
 		if (!res || !res.ok) { btn.disabled = false; return toast('That did not stick.'); }
 		const entry = entries.find(e => e.id === id);
 		if (entry) entry.status = status;
-		paintInbox(host, entries, only);
+		again(only);
 	}));
 
 	// Deleting takes the pictures with it and there is no undo, so the
@@ -646,7 +682,7 @@ function paintInbox(host, entries, only) {
 			if (!res || !res.ok) { btn.disabled = false; return toast('That one would not go.'); }
 			const at = entries.findIndex(e => e.id === id);
 			if (at >= 0) entries.splice(at, 1);
-			paintInbox(host, entries, only);
+			again(only);
 		});
 	});
 }

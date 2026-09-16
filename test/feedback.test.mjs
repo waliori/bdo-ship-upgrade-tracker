@@ -238,3 +238,93 @@ test('an entry thrown away takes its pictures off the disk with it', async () =>
 	const { entries } = await json(await call('GET', '/api/feedback', { cookie: bosun }));
 	assert.equal(entries.some(e => e.id === id), false);
 });
+
+/* ------------------------------------------------------------------ *
+ * Read by anyone, changed by the operator
+ * ------------------------------------------------------------------ */
+
+test('the list is public, and it carries nothing that was meant for the operator alone', async () => {
+	await wait(1100);
+	const sent = await call('POST', '/api/feedback', {
+		cookie: sailor,
+		body: {
+			kind: 'bug', text: 'The hold is short by the parts', format: 'md',
+			page: 'crew', version: '1.3', contact: 'sailor#1234', username: 'Sailor'
+		}
+	});
+	assert.equal(sent.status, 201);
+	const { id } = await json(sent);
+
+	// Signed out, and nothing about the account behind it comes back.
+	const out = await json(await call('GET', '/api/feedback'));
+	assert.equal(out.admin, false);
+	const entry = out.entries.find(e => e.id === id);
+	assert.ok(entry, 'anyone can read it');
+	assert.equal(entry.text, 'The hold is short by the parts');
+	assert.equal(entry.username, 'Sailor', 'and who wrote it');
+	assert.equal(entry.page, 'crew');
+	assert.equal(entry.contact, undefined, 'the contact is not public');
+	assert.equal(entry.userId, undefined, 'nor the account');
+	assert.equal(entry.agent, undefined, 'nor the browser');
+
+	// Your own is marked as yours; somebody else's is not.
+	const mine = await json(await call('GET', '/api/feedback', { cookie: sailor }));
+	assert.equal(mine.entries.find(e => e.id === id).mine, true);
+	assert.equal((await json(await call('GET', '/api/feedback', { cookie: other }))).entries.find(e => e.id === id).mine, false);
+
+	// The operator gets it whole.
+	const inbox = await json(await call('GET', '/api/feedback', { cookie: bosun }));
+	assert.equal(inbox.admin, true);
+	assert.equal(inbox.entries.find(e => e.id === id).contact, 'sailor#1234');
+});
+
+test('only the operator may answer one, hide one or throw one away', async () => {
+	const { entries } = await json(await call('GET', '/api/feedback'));
+	const id = entries[0].id;
+
+	// Signed out, and signed in as somebody else: neither may touch it.
+	assert.equal((await call('POST', `/api/feedback/${id}/status`, { body: { status: 'done' } })).status, 401);
+	assert.equal((await call('POST', `/api/feedback/${id}/status`, { cookie: other, body: { status: 'done' } })).status, 403);
+	assert.equal((await call('DELETE', `/api/feedback/${id}`, { cookie: other })).status, 403);
+	// Not even the account that wrote it.
+	assert.equal((await call('POST', `/api/feedback/${id}/status`, { cookie: sailor, body: { status: 'done' } })).status, 403);
+
+	// The operator can, and it is still in the public list when answered.
+	assert.equal((await call('POST', `/api/feedback/${id}/status`, { cookie: bosun, body: { status: 'done' } })).status, 200);
+	const after = await json(await call('GET', '/api/feedback'));
+	assert.equal(after.entries.find(e => e.id === id).status, 'done');
+});
+
+test('a hidden entry leaves the public list, with its pictures, and comes back', async () => {
+	// A fresh account, because the ones above have spent their day's
+	// ceiling on the tests that were about the ceilings.
+	await upsertUser({ id: '3005', username: 'Snapper', avatar: null });
+	const snapper = cookieFor('3005');
+	const file = await json(await send('/api/feedback/image?name=shot.png', PNG, 'image/png', { cookie: snapper }));
+	// An image nobody has sent yet is nobody's business but its sender's.
+	assert.equal((await fetch(`${base}/api/feedback/file/${file.id}`)).status, 404);
+
+	await wait(1100);
+	const { id } = await json(await call('POST', '/api/feedback', {
+		cookie: snapper,
+		body: { kind: 'other', text: 'With a picture of it', format: 'md', files: [file.id] }
+	}));
+
+	// Sent, and the picture is as public as the report it is part of.
+	const shot = await fetch(`${base}/api/feedback/file/${file.id}`);
+	assert.equal(shot.status, 200);
+	assert.match(shot.headers.get('cache-control') || '', /public/);
+
+	assert.equal((await call('POST', `/api/feedback/${id}/status`, { cookie: bosun, body: { status: 'hidden' } })).status, 200);
+	const out = await json(await call('GET', '/api/feedback'));
+	assert.equal(out.entries.some(e => e.id === id), false, 'out of the public list');
+	assert.equal((await fetch(`${base}/api/feedback/file/${file.id}`)).status, 404, 'and its picture with it');
+	// Still the sender's own, and still the operator's to read.
+	assert.equal((await fetch(`${base}/api/feedback/file/${file.id}`, { headers: { Cookie: snapper } })).status, 200);
+	const inbox = await json(await call('GET', '/api/feedback', { cookie: bosun }));
+	assert.equal(inbox.entries.find(e => e.id === id).status, 'hidden');
+
+	assert.equal((await call('POST', `/api/feedback/${id}/status`, { cookie: bosun, body: { status: 'open' } })).status, 200);
+	assert.equal((await json(await call('GET', '/api/feedback'))).entries.some(e => e.id === id), true);
+	assert.equal((await fetch(`${base}/api/feedback/file/${file.id}`)).status, 200);
+});

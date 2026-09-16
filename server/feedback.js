@@ -14,8 +14,18 @@
 // only so many reports open at once -- see config.maxOpenReports -- so
 // the inbox stays a list of things to do rather than a feed.
 //
-// The inbox itself, marking an entry done, and throwing one away are for
-// the accounts named in ADMIN_IDS.
+// The list of what has been written in is public: anyone can read the
+// reports, with the pictures on them and the name of whoever sent them,
+// the way an issue tracker is public. What stays behind the door is the
+// part that is nobody else's business -- the contact someone left to be
+// answered on, the account id, the browser string -- and every button
+// that changes anything. Marking an entry done, hiding one, reopening
+// it and throwing one away are for the accounts named in ADMIN_IDS.
+//
+// Hidden is the third status and the reason it exists: a report can
+// carry something that should not have been public -- a name, an
+// address, a screenshot with the wrong window behind it -- and the
+// answer to that should not have to be deleting what somebody wrote.
 //
 // Nothing here is a ticket system. There is no reply from this side; the
 // reply happens wherever the contact left in the report points, or in
@@ -27,7 +37,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { config, uploadsEnabled } from './config.js';
 import {
-	insertFeedback, listFeedback, setFeedbackStatus, deleteFeedback, feedbackStanding,
+	insertFeedback, listFeedback, setFeedbackStatus, deleteFeedback, feedbackStanding, feedbackShown,
 	insertFile, getFile, pendingFiles, attachFiles, deleteFile, staleFiles
 } from './db.js';
 import { sniff, EXTENSION } from './images.js';
@@ -42,8 +52,29 @@ export const MAX_TEXT = 8000;
 const DAY_MS = 86_400_000;
 const FILE_ID = /^[A-Za-z0-9_-]{4,64}$/;
 
-/** Is this account allowed into the inbox? */
+/** What an entry may be: waiting, answered, or out of the public list. */
+export const STATUSES = ['open', 'done', 'hidden'];
+
+/** Is this account an admin -- the one who may change anything here? */
 export const isAdmin = id => Boolean(id) && config.adminIds.has(String(id));
+
+/**
+ * One entry as anybody may read it.
+ *
+ * The words, the kind, whether it has been answered, who wrote it and
+ * the pictures they sent -- and nothing that was only ever meant for
+ * the person answering: no contact, no account id, no browser string.
+ * `mine` is there so the box can say "yours" beside your own.
+ */
+function publicEntry(entry, uid) {
+	return {
+		id: entry.id, kind: entry.kind, status: entry.status,
+		text: entry.text, format: entry.format,
+		page: entry.page, version: entry.version,
+		username: entry.username, createdAt: entry.createdAt,
+		files: entry.files, mine: Boolean(uid) && entry.userId === uid
+	};
+}
 
 /** Express guard for the inbox: signed in, and named as an admin. */
 export function requireAdmin(req, res, next) {
@@ -137,15 +168,15 @@ async function standing(userId) {
  *
  * The words go across as they were written. Discord's own markup is
  * near enough the box's that bold stays bold and a list stays a list --
- * the pictures are the part that cannot travel, since they are served
- * only to their sender and the admins, so they are counted instead.
+ * the pictures are the part that cannot travel through a webhook, so
+ * they are counted instead and read in the box itself.
  */
 async function ping(entry, id) {
 	if (!config.feedbackWebhook) return;
 	const label = { bug: 'Something is wrong', idea: 'An idea', other: 'Something else' }[entry.kind] || entry.kind;
 	const who = entry.username ? `${entry.username} (${entry.userId})` : `account ${entry.userId}`;
 	const shots = entry.ids.length
-		? `${entry.ids.length} image${entry.ids.length === 1 ? '' : 's'} attached — in the inbox`
+		? `${entry.ids.length} image${entry.ids.length === 1 ? '' : 's'} attached — in the box`
 		: '';
 	const lines = [
 		`**${label}** #${id} from ${who}`,
@@ -271,23 +302,30 @@ export function feedbackRoutes() {
 	/**
 	 * A picture, served.
 	 *
-	 * To the account that sent it and to the admins, and to nobody else.
-	 * A screenshot of a bug is a screenshot of somebody's screen, and
-	 * the whole of what is in it is theirs -- so these URLs are not
-	 * public, unguessable though the ids are. Missing and forbidden are
-	 * the same answer, which is what keeps the id from being something
-	 * to probe with.
+	 * A picture that has been sent with a report is as public as the
+	 * report is: it is usually the whole of what the report says, and a
+	 * list of bugs whose screenshots only the operator can see is a list
+	 * nobody else can read. A hidden report takes its pictures out of
+	 * sight with it.
+	 *
+	 * One that has not been sent yet is a different thing -- a draft, a
+	 * browser closed mid-sentence -- and stays between its sender and the
+	 * admins. Missing and forbidden are the same answer either way, which
+	 * is what keeps the id from being something to probe with.
 	 */
 	router.get('/feedback/file/:id', wrap(async (req, res) => {
 		const uid = sessionUser(req);
 		const id = String(req.params.id);
 		const file = FILE_ID.test(id) ? await getFile(id) : null;
-		if (!file || !uid || (file.userId !== uid && !isAdmin(uid))) {
-			return res.status(404).json({ error: 'No such image.' });
-		}
+		if (!file) return res.status(404).json({ error: 'No such image.' });
+		const sent = file.feedbackId !== null;
+		const shown = sent ? await feedbackShown(file.feedbackId) : false;
+		const ours = Boolean(uid) && (file.userId === uid || isAdmin(uid));
+		if (!shown && !ours) return res.status(404).json({ error: 'No such image.' });
 		// A picture under a random id never changes, so the browser may
-		// keep it -- privately, because of who it is for.
-		res.set('Cache-Control', 'private, max-age=86400');
+		// keep it: publicly once it is part of a report anyone can read,
+		// privately while it is still only its sender's.
+		res.set('Cache-Control', shown ? 'public, max-age=86400' : 'private, max-age=86400');
 		res.type(file.mime);
 		res.sendFile(onDisk(file), err => {
 			if (!err || res.headersSent) return;
@@ -329,15 +367,29 @@ export function feedbackRoutes() {
 	 * The inbox
 	 * -------------------------------------------------------------- */
 
-	/** Open first, newest first, pictures and all. Admins only. */
-	router.get('/feedback', requireAdmin, wrap(async (req, res) => {
-		res.json({ entries: await listFeedback(200) });
+	/**
+	 * What people have written in: open first, newest first, pictures
+	 * and all. Anyone may read it.
+	 *
+	 * An admin gets the entries whole -- the contact, the account, the
+	 * browser, and the hidden ones -- because answering is what the
+	 * inbox is for. Everybody else gets the post and its pictures.
+	 */
+	router.get('/feedback', perAddress(120, 300, 'That is a lot of reading at once; try again in a minute.'), wrap(async (req, res) => {
+		const uid = sessionUser(req);
+		const entries = await listFeedback(200);
+		if (isAdmin(uid)) return res.json({ entries, admin: true });
+		res.json({
+			entries: entries.filter(e => e.status !== 'hidden').map(e => publicEntry(e, uid)),
+			admin: false
+		});
 	}));
 
-	/** Mark one done, or open it again. */
+	/** Mark one done, hide it, or open it again. */
 	router.post('/feedback/:id/status', requireAdmin, body, wrap(async (req, res) => {
 		const id = Number(req.params.id);
-		const status = req.body && req.body.status === 'open' ? 'open' : 'done';
+		const asked = req.body && req.body.status;
+		const status = STATUSES.includes(asked) ? asked : 'done';
 		if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Which entry?' });
 		await setFeedbackStatus(id, status);
 		res.json({ ok: true, id, status });

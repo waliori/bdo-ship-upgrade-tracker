@@ -125,7 +125,7 @@ const MENU = [
 		{ act: 'tour', icon: '➤', label: 'Tour', hint: 'a walk through your own screen' },
 		{ act: 'feedback', icon: '✎', label: 'Feedback', hint: 'something wrong, or something you want' },
 		{ act: 'discord', icon: '◉', label: 'Sailing Discord', hint: 'the sailors’ own server — discord.gg/bdo-sailing' },
-		{ act: 'inbox', icon: '✉', label: 'Feedback inbox', hint: 'what people have written in', when: () => Boolean(me() && me().admin) }
+		{ act: 'inbox', icon: '✉', label: () => (me() && me().admin ? 'Feedback inbox' : 'What people wrote in'), hint: 'every report sent in, and which have been answered', when: () => feature('feedback') }
 	] },
 	{ group: 'The page', items: [
 		{ act: 'theme', icon: '◐', label: () => `Theme: ${store.getSetting('theme', 'dark')}`, hint: 'dark, light, or as the system has it', keep: true },
@@ -980,7 +980,7 @@ function wire() {
 			// as well because on a phone the masthead is three glyphs and
 			// the menu is where anyone goes looking.
 			case 'discord': window.open(DISCORD_INVITE, '_blank', 'noopener'); return;
-			case 'inbox': return import('./feedback.js').then(m => m.openInbox());
+			case 'inbox': return import('./feedback.js').then(m => m.openReports());
 			// The masthead's Menu and the thumb bar's are the one sheet;
 			// pressed while it stands, it goes.
 			case 'more': if (menuOpen()) closeDialog(); else openTabSheet(); return;
