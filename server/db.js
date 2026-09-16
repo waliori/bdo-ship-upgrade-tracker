@@ -674,6 +674,19 @@ export async function listFeedback(limit = 200) {
 	return entries;
 }
 
+/**
+ * Is this entry one anybody may read?
+ *
+ * Asked by the route that serves a screenshot: a picture is as public
+ * as the report it was sent with, so an entry hidden by an admin -- or
+ * one already thrown away -- takes its pictures out of sight with it.
+ */
+export async function feedbackShown(id) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT status FROM feedback WHERE id = ?', args: [id] });
+	return Boolean(rows[0]) && rows[0].status !== 'hidden';
+}
+
 export async function setFeedbackStatus(id, status) {
 	await migrate();
 	await exec({ sql: 'UPDATE feedback SET status = ? WHERE id = ?', args: [status, id] });

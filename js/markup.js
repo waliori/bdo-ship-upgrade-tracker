@@ -21,8 +21,8 @@
 //     `javascript:` is the one that matters -- is left as text.
 //   * an image may only be an attachment of the post it is in. An
 //     `![](a pixel somewhere else)` would be blocked by the page's
-//     own image policy anyway, and it would tell somewhere else that an
-//     admin had opened the inbox, so it renders as a plain link instead.
+//     own image policy anyway, and it would tell somewhere else who had
+//     read the report, so it renders as a plain link instead.
 
 import { esc } from './fmt.js';
 

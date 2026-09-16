@@ -344,9 +344,17 @@ test('sending needs an account; only what is plainly not feedback is refused', a
 	assert.equal(named.status, 201);
 });
 
-test('the inbox is for admins, open first, and an entry can be marked done', async () => {
-	assert.equal((await call('GET', '/api/feedback')).status, 401);
-	assert.equal((await call('GET', '/api/feedback', { cookie: deckhand })).status, 403);
+test('the list is anyone\'s to read; answering one is the admin\'s', async () => {
+	// Signed out, and signed in as anybody: the reports come back, with
+	// nothing on them that was meant for the person answering.
+	for (const cookie of [null, deckhand]) {
+		const open = await call('GET', '/api/feedback', cookie ? { cookie } : {});
+		assert.equal(open.status, 200);
+		const body = await open.json();
+		assert.equal(body.admin, false);
+		assert.equal(body.entries.length, 2);
+		assert.ok(body.entries.every(e => e.contact === undefined && e.userId === undefined && e.agent === undefined));
+	}
 	const res = await call('GET', '/api/feedback', { cookie: admiral });
 	assert.equal(res.status, 200);
 	const { entries } = await res.json();
