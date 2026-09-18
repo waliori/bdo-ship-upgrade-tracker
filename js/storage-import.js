@@ -108,6 +108,7 @@ export function openStorageImport(after = () => {}) {
 			<li><b>What is read</b> — the picture in each slot, against the icons this app already carries, and the figure written over the corner.</li>
 			<li><b>What is not</b> — anything the app keeps no count of. A storage is mostly that, and it is left alone.</li>
 			<li><b>What a ship part is read as</b> — the part itself. The game draws every level of a part with the same picture, so a +10 sail comes back as a sail; set the level on its tile afterwards, or untick it here.</li>
+			<li><b>How well the counts read</b> — on a crop saved as PNG, nine in ten exactly. A shot the game itself saved as a JPEG is harder on eight-pixel figures, and more of those come back marked ⚠ to be typed over than read.</li>
 		</ul>
 		${placePicker()}
 		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="Choose screenshots to read">
@@ -117,7 +118,7 @@ export function openStorageImport(after = () => {}) {
 			<input type="file" accept="image/png,image/jpeg,image/webp" multiple hidden data-files>
 		</div>
 		<p class="dialog-note quiet">Up to ${LIMITS.files} at a time, ${Math.round(LIMITS.bytes / 1024 / 1024)} MB each, PNG, JPEG or WebP.
-			They are read in this browser and never uploaded — the first read fetches about 6 MB of reader, once.</p>
+			They are read in this browser and never uploaded, and a storage needs no reader fetched for it: the pictures and the figures are both read off the pixels.</p>
 		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>`;
 
 	/* --- reading ----------------------------------------------------- */

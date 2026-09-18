@@ -29,6 +29,8 @@
 // tested on made-up pictures rather than on a screenshot nobody can
 // regenerate.
 
+import { FIGURES, TW, TH } from './digit_font.js';
+
 /* ------------------------------------------------------------------ *
  * pixels
  * ------------------------------------------------------------------ */
@@ -648,15 +650,38 @@ export function readSlots(rgba, w, h, grid, bank, cal, { flat = 26 } = {}) {
  * how many
  * ------------------------------------------------------------------ */
 
+// Reading the figure written over a slot is a different problem from
+// naming the slot, and it was solved the wrong way first: the corner
+// was thresholded and handed to the OCR engine, which reads a page of
+// print beautifully and an eight-pixel count over a gold bar not at
+// all. Half the counts came back wrong, and a wrong count is worse
+// than no count.
+//
+// What the pixels actually say, measured:
+//
+//   * The count is NOT the palest thing on a slot. Over a white icon
+//     the figures reach 143 where the drawing under them reaches 198.
+//     Every threshold built on "the text is the brightest" was doomed.
+//   * The count IS stroked: the game draws a dark outline all the way
+//     round it. A figure's upright has that dark on both sides of it;
+//     the silhouette of a drawing has the dark on one side and the
+//     drawing on the other. That is the one signal that separates them.
+//   * Every count in a window sits on ONE line, at ONE height, against
+//     ONE right margin. Measured across four screenshots at two
+//     resolutions: the baseline scatters by three tenths of a pixel.
+//
+// So: find the line and the height from all the slots at once, then
+// read each count as a row of boxes of known size, right to left,
+// against the game's own figures (js/digit_font.js). No engine, no
+// six megabytes, and a count that cannot be read says so.
+
 /**
  * Where on a slot the count is written: the bottom of it, which is the
  * one part of a slot the descriptors were told to ignore.
  *
- * The game draws the figure over the lower right in white with a dark
- * outline, right-aligned, and a five-figure count runs most of the way
- * across. So the whole width is taken and only the height is trimmed --
- * cropping to the right would cut the leading digit off a stack of
- * 58,855 and hand back 855.
+ * The whole width is taken and only the height trimmed -- cropping to
+ * the right would cut the leading figure off a stack of 58,855 and
+ * hand back 855.
  */
 export function countBox(at) {
 	const side = at.side;
@@ -668,220 +693,352 @@ export function countBox(at) {
 	};
 }
 
-/**
- * The figure written over a slot, cut out of everything else drawn
- * there.
- *
- * Handing the corner of a slot to the engine as it stands does not
- * work: the drawing under the count has bright parts of its own, and
- * what comes back is the count with a stray digit in front of it --
- * "520" for a stack of twenty, "1752" for a stack of thirty-five.
- * Which is worse than nothing, because a wrong count reads as a real
- * one.
- *
- * So the ink is picked apart first. The corner is thresholded, the
- * blobs are labelled, and only the ones that could be digits are kept:
- * the right sort of height for the slot, and standing on the same
- * line as their neighbours, since a number is a row of figures on one
- * baseline and a highlight on a gold bar is not. What goes to the
- * engine is those blobs alone, on a clean ground.
- */
-export function digitMask(rgba, w, h, box) {
-	// Two kinds of no answer, and they mean opposite things. Nothing
-	// that looks like writing is the game's way of saying one of the
-	// thing, and most of a storage is single items. Something that looks
-	// like writing but will not come apart into figures is a count
-	// nobody knows -- and calling that one is a guess that has to say so.
-	// So every test that asks "is this writing at all" answers null, and
-	// what is left over -- figures cut out but read as a different
-	// number of them than were cut -- is the reader's own doubt, which
-	// shot-reader.js turns into a guess that says so.
-	const x0 = Math.max(0, Math.floor(box.x)), y0 = Math.max(0, Math.floor(box.y));
-	const x1 = Math.min(w, Math.ceil(box.x + box.w)), y1 = Math.min(h, Math.ceil(box.y + box.h));
-	const rw = x1 - x0, rh = y1 - y0;
-	if (rw < 6 || rh < 6) return null;
-	const luma = new Float32Array(rw * rh);
-	const colour = new Float32Array(rw * rh);
-	let lo = 255, hi = 0;
-	for (let y = 0; y < rh; y++) {
-		for (let x = 0; x < rw; x++) {
-			const p = ((y0 + y) * w + (x0 + x)) * 4;
-			const r = rgba[p], g = rgba[p + 1], b = rgba[p + 2];
-			const v = r * 0.2126 + g * 0.7152 + b * 0.0722;
-			luma[y * rw + x] = v;
-			colour[y * rw + x] = Math.max(r, g, b) - Math.min(r, g, b);
-			if (v < lo) lo = v;
-			if (v > hi) hi = v;
-		}
-	}
-	// The count is the palest thing on a slot; a slot that is all one
-	// shade has no count written on it.
-	if (hi - lo < 45) return null;
-	// And it is written with a shadow round it, which is what tells it
-	// from the drawing underneath. A pale pixel with something nearly
-	// black within a stroke's reach is writing; a pale pixel in the
-	// middle of a pale sail is not. Taking the pale alone gives a
-	// one-pixel skeleton in pieces at a screenshot's resolution -- the
-	// shadow is what puts the figure back together.
-	const pale = Math.max(90, lo + (hi - lo) * 0.45);
-	const shade = Math.max(60, lo + (hi - lo) * 0.2);
-	const reach = Math.max(2, Math.round(rh * 0.2));
-	const on = new Uint8Array(rw * rh);
-	for (let y = 0; y < rh; y++) {
-		for (let x = 0; x < rw; x++) {
-			if (luma[y * rw + x] < pale) continue;
-			let near = 255;
-			for (let dy = -reach; dy <= reach && near > shade; dy++) {
-				for (let dx = -reach; dx <= reach; dx++) {
-					const yy = y + dy, xx = x + dx;
-					if (yy < 0 || xx < 0 || yy >= rh || xx >= rw) continue;
-					const v = luma[yy * rw + xx];
-					if (v < near) near = v;
-				}
-			}
-			if (near <= shade) on[y * rw + x] = 1;
-		}
-	}
-
-	// The count is right-aligned on the slot and its figures stand
-	// shoulder to shoulder, so it is found by walking in from the right
-	// edge and stopping at the first real gap. That is all the
-	// separation needed: whatever of the drawing is bright enough to
-	// come through the cut is over on the left, where the picture is,
-	// with a space between it and the writing. Blob-by-blob cleverness
-	// was tried first and fails on exactly the counts that matter -- at
-	// a screenshot's resolution a figure comes through as a one-pixel
-	// skeleton in pieces, and pieces do not look like digits.
-	const column = new Int32Array(rw);
-	for (let y = 0; y < rh; y++) for (let x = 0; x < rw; x++) if (on[y * rw + x]) column[x]++;
-	const gap = Math.max(2, Math.round(rh * 0.3));
-	let right = rw - 1;
-	while (right >= 0 && !column[right]) right--;
-	// Nothing pale with a shadow anywhere near the right-hand edge means
-	// nothing was written here: the game leaves a single item's slot
-	// blank, and most of a storage is single items.
-	if (right < rw * 0.5) return null;
-	let left = right;
-	for (let x = right, blank = 0; x >= 0; x--) {
-		if (column[x]) { blank = 0; left = x; } else if (++blank >= gap) break;
-	}
-	const width = right - left + 1;
-	if (width < 2 || width > rw * 0.95) return null;
-	// Where the writing sits between top and bottom. Ink from edge to
-	// edge is not writing -- it is the drawing running under it.
-	let top = rh, bottom = -1;
-	for (let y = 0; y < rh; y++) {
-		for (let x = left; x <= right; x++) {
-			if (!on[y * rw + x]) continue;
-			if (y < top) top = y;
-			if (y > bottom) bottom = y;
-		}
-	}
-	const tall = bottom - top + 1;
-	if (tall < rh * 0.3 || tall > rh * 0.98) return null;
-	// And it is written in white: what is left with a colour to it is a
-	// corner of the drawing that happened to be bright and close.
-	let ink = 0, tint = 0;
-	for (let y = top; y <= bottom; y++) {
-		for (let x = left; x <= right; x++) {
-			if (!on[y * rw + x]) continue;
-			ink++;
-			tint += colour[y * rw + x];
-		}
-	}
-	if (!ink || tint / ink > 60) return null;
-	const mask = new Uint8Array(rw * rh);
-	for (let y = top; y <= bottom; y++) {
-		for (let x = left; x <= right; x++) mask[y * rw + x] = on[y * rw + x];
-	}
-	// And the figures inside it, one by one. A count read as a word is
-	// read at whatever size the screenshot was; read figure by figure,
-	// each can be handed over at the size the engine likes, upright and
-	// with room around it. Columns with nothing in them are the cuts;
-	// a piece too narrow to be a figure is joined to the one before it,
-	// which is what a dot of a broken stroke is.
-	const glyphs = [];
-	for (let x = left; x <= right; x++) {
-		if (!column[x]) continue;
-		const last = glyphs[glyphs.length - 1];
-		if (last && x === last.x1 + 1) last.x1 = x;
-		else glyphs.push({ x0: x, y0: top, x1: x, y1: bottom });
-	}
-	const narrow = Math.max(1, Math.round(tall * 0.16));
-	for (let i = glyphs.length - 1; i > 0; i--) {
-		if (glyphs[i].x1 - glyphs[i].x0 + 1 < narrow || glyphs[i].x0 - glyphs[i - 1].x1 <= 1) {
-			glyphs[i - 1].x1 = glyphs[i].x1;
-			glyphs.splice(i, 1);
-		}
-	}
-	// Each figure stands on its own rows, not the whole count's: a 4 and
-	// a 1 do not reach the same height and blowing them up together
-	// stretches one of them.
-	for (const g of glyphs) {
-		let gt = bottom, gb = top;
-		for (let y = top; y <= bottom; y++) {
-			for (let x = g.x0; x <= g.x1; x++) {
-				if (!on[y * rw + x]) continue;
-				if (y < gt) gt = y;
-				if (y > gb) gb = y;
-			}
-		}
-		g.y0 = gt;
-		g.y1 = gb;
-	}
-	// Figures stand on one line and are one height. Whatever came
-	// through the cut from the drawing does neither, and a stray blob
-	// on the left of a count is how a stack of thirty-six is read as
-	// seven hundred and thirty-six -- a wrong count that looks like a
-	// right one, which is the only reading worse than none.
-	if (glyphs.length > 1) {
-		const mid = list => [...list].sort((a, b) => a - b)[Math.floor(list.length / 2)];
-		const base = mid(glyphs.map(g => g.y1));
-		const high = mid(glyphs.map(g => g.y1 - g.y0 + 1));
-		const even = glyphs.filter(g => Math.abs(g.y1 - base) <= Math.max(1, tall * 0.2)
-			&& (g.y1 - g.y0 + 1) >= high * 0.62 && (g.y1 - g.y0 + 1) <= high * 1.38);
-		// and they are written together: what is left after that has to
-		// be the run that reaches the right-hand edge.
-		const run = [];
-		for (let i = even.length - 1; i >= 0; i--) {
-			if (!run.length) { run.unshift(even[i]); continue; }
-			if (even[i + 1] !== undefined && glyphs.indexOf(even[i]) === glyphs.indexOf(run[0]) - 1) run.unshift(even[i]);
-			else break;
-		}
-		// Nothing left standing on one line means what came through the
-		// cut was the drawing, not a count: the slot holds one.
-		if (!run.length || run[run.length - 1] !== glyphs[glyphs.length - 1]) return null;
-		glyphs.length = 0;
-		glyphs.push(...run);
-	}
-	return {
-		mask, rw, rh, glyphs,
-		// Where the writing is in the picture itself, so a caller can go
-		// back to the pixels rather than to this cut-out of them.
-		at: { x: x0, y: y0 },
-		tight: { x0: left, y0: top, x1: right, y1: bottom }
-	};
+/** The band of a whole cell a count is written in -- wider than the
+ *  descriptor's square, because the figures run to the slot's edge. */
+export function countBand(cell, pitch) {
+	return { x: cell.cx - pitch * 0.5, y: cell.cy + pitch * 0.02, w: pitch, h: pitch * 0.48 };
 }
 
 /**
- * The count a reading of one slot's corner comes to, or null.
+ * The ink of the writing on a band, told from the drawing under it.
  *
- * A slot holding one of a thing has nothing written on it at all, so
- * nothing read is not a failure -- it is the commonest answer there is,
- * and it means one. What is refused is a reading that is not a count:
- * the engine will make letters out of a gold bar's shine, and a slot
- * cannot hold more than the game's own stack of a hundred thousand.
+ * A pixel is ink when something very dark lies within a stroke's reach
+ * on both sides of it -- across for an upright, above and below for a
+ * bar. That is the game's own outline, and it is what a drawing's edge
+ * does not have: on one side of that there is always the drawing.
  */
-export function countFrom(text, { cap = 1e6 } = {}) {
-	const raw = String(text || '')
-		// The engine reads a thousands separator as whatever is nearest:
-		// a comma, a dot, an apostrophe, a space.
-		.replace(/[.,'\u2019\u00a0\s]/g, '')
-		// and the digits it most often mistakes for letters
-		.replace(/[oO]/g, '0').replace(/[lI|]/g, '1').replace(/[sS]/g, '5');
-	if (!/^\d+$/.test(raw)) return null;
-	const n = Number(raw);
-	return n >= 1 && n <= cap ? n : null;
+export function inkOf(rgba, w, h, band, { reach = 3, lift = 34, dark = 100 } = {}) {
+	const x0 = Math.max(0, Math.floor(band.x)), y0 = Math.max(0, Math.floor(band.y));
+	const x1 = Math.min(w, Math.ceil(band.x + band.w)), y1 = Math.min(h, Math.ceil(band.y + band.h));
+	const rw = x1 - x0, rh = y1 - y0;
+	if (rw < 4 || rh < 4) return null;
+	const luma = new Float32Array(rw * rh);
+	for (let y = 0; y < rh; y++) {
+		for (let x = 0; x < rw; x++) {
+			const p = ((y0 + y) * w + (x0 + x)) * 4;
+			luma[y * rw + x] = rgba[p] * 0.2126 + rgba[p + 1] * 0.7152 + rgba[p + 2] * 0.0722;
+		}
+	}
+	const at = (x, y) => (x < 0 || y < 0 || x >= rw || y >= rh ? 255 : luma[y * rw + x]);
+	const runMin = (x, y, dx, dy) => {
+		let lo = 255;
+		for (let k = 1; k <= reach; k++) lo = Math.min(lo, at(x + dx * k, y + dy * k));
+		return lo;
+	};
+	const mask = new Uint8Array(rw * rh);
+	for (let y = 0; y < rh; y++) {
+		for (let x = 0; x < rw; x++) {
+			const v = luma[y * rw + x];
+			const across = Math.max(runMin(x, y, -1, 0), runMin(x, y, 1, 0));
+			const down = Math.max(runMin(x, y, 0, -1), runMin(x, y, 0, 1));
+			const held = Math.min(across, down);
+			if (held <= dark && v - held >= lift) mask[y * rw + x] = 1;
+		}
+	}
+	return { mask, luma, rw, rh, x0, y0 };
+}
+
+/** Four-connected blobs of ink, with their boxes. */
+export function blobsOf(mask, rw, rh) {
+	const label = new Int32Array(rw * rh).fill(-1);
+	const out = [];
+	const stack = [];
+	for (let i = 0; i < mask.length; i++) {
+		if (!mask[i] || label[i] >= 0) continue;
+		const b = { x0: rw, y0: rh, x1: 0, y1: 0, n: 0 };
+		label[i] = out.length;
+		stack.push(i);
+		while (stack.length) {
+			const k = stack.pop();
+			const x = k % rw, y = (k / rw) | 0;
+			b.n++;
+			if (x < b.x0) b.x0 = x;
+			if (y < b.y0) b.y0 = y;
+			if (x > b.x1) b.x1 = x;
+			if (y > b.y1) b.y1 = y;
+			if (x > 0 && mask[k - 1] && label[k - 1] < 0) { label[k - 1] = out.length; stack.push(k - 1); }
+			if (x + 1 < rw && mask[k + 1] && label[k + 1] < 0) { label[k + 1] = out.length; stack.push(k + 1); }
+			if (y > 0 && mask[k - rw] && label[k - rw] < 0) { label[k - rw] = out.length; stack.push(k - rw); }
+			if (y + 1 < rh && mask[k + rw] && label[k + rw] < 0) { label[k + rw] = out.length; stack.push(k + rw); }
+		}
+		b.w = b.x1 - b.x0 + 1;
+		b.h = b.y1 - b.y0 + 1;
+		out.push(b);
+	}
+	return out;
+}
+
+/**
+ * The line every count in this window is written on: how tall the
+ * figures are, where they stand, and where their right-hand edge is.
+ *
+ * Worked out from every slot at once, which is what makes it exact.
+ * One slot's ink is half drawing; a hundred slots' ink has one thing in
+ * common, and it is the line.
+ */
+export function countLine(bands, pitch) {
+	const seen = [];
+	for (const { cell, ink } of bands) {
+		if (!ink) continue;
+		for (const b of blobsOf(ink.mask, ink.rw, ink.rh)) {
+			if (b.h < pitch * 0.12 || b.h > pitch * 0.32) continue;
+			seen.push({
+				cell, h: b.h,
+				base: ink.y0 + b.y1 - (cell.cy + pitch / 2),
+				right: ink.x0 + b.x1 - (cell.cx + pitch / 2)
+			});
+		}
+	}
+	if (seen.length < 4) return null;
+	const at = (xs, p) => [...xs].sort((a, b) => a - b)[Math.min(xs.length - 1, Math.floor(xs.length * p))];
+	const base = at(seen.map(s => s.base), 0.5);
+	const online = seen.filter(s => Math.abs(s.base - base) <= 1);
+	if (online.length < 3) return null;
+	// Not the commonest height -- a mask that loses the odd bottom row
+	// makes short figures commonest -- but high up the spread, where the
+	// figures that came through whole are.
+	const height = at(online.map(s => s.h), 0.8);
+	// And the margin is the furthest right of a slot's own figures,
+	// never the middle one of all of them: on a window whose counts run
+	// to four figures that would sit a digit and a half too far left.
+	const rightmost = new Map();
+	for (const s of online) rightmost.set(s.cell, Math.max(rightmost.get(s.cell) ?? -Infinity, s.right));
+	return { height, base, right: at([...rightmost.values()], 0.5), samples: online.length };
+}
+
+/* ------------------------------------------------------------------ *
+ * one box, judged as a figure
+ * ------------------------------------------------------------------ */
+
+/** A box of the picture, resampled to the shape a figure is compared
+ *  at: its height fills the grid, its width is centred in it. */
+export function figureBox(src, rw, x0, x1, y0, y1, { binary = false } = {}) {
+	const gw = x1 - x0 + 1, gh = y1 - y0 + 1;
+	const wide = Math.min(TW, Math.max(2, Math.round(gw * (TH / gh))));
+	const at = Math.floor((TW - wide) / 2);
+	const out = new Float32Array(TW * TH);
+	let lo = 255, hi = 0;
+	if (!binary) {
+		for (let y = y0; y <= y1; y++) {
+			for (let x = x0; x <= x1; x++) {
+				const v = src[y * rw + x];
+				if (v < lo) lo = v;
+				if (v > hi) hi = v;
+			}
+		}
+	}
+	const span = Math.max(1, hi - lo);
+	for (let j = 0; j < TH; j++) {
+		for (let i = 0; i < wide; i++) {
+			const sx0 = x0 + (i * gw) / wide, sx1 = x0 + ((i + 1) * gw) / wide;
+			const sy0 = y0 + (j * gh) / TH, sy1 = y0 + ((j + 1) * gh) / TH;
+			let sum = 0, n = 0;
+			for (let y = Math.floor(sy0); y < Math.max(Math.floor(sy0) + 1, sy1); y++) {
+				for (let x = Math.floor(sx0); x < Math.max(Math.floor(sx0) + 1, sx1); x++) {
+					sum += binary ? src[y * rw + x] : (src[y * rw + x] - lo) / span;
+					n++;
+				}
+			}
+			out[j * TW + at + i] = n ? sum / n : 0;
+		}
+	}
+	return out;
+}
+
+/** Zero-mean unit-length correlation: the same measure the icons are
+ *  named by, for the same reason. */
+function correlate(a, b) {
+	let ma = 0, mb = 0;
+	for (let i = 0; i < a.length; i++) { ma += a[i]; mb += b[i]; }
+	ma /= a.length; mb /= b.length;
+	let num = 0, da = 0, db = 0;
+	for (let i = 0; i < a.length; i++) {
+		const x = a[i] - ma, y = b[i] - mb;
+		num += x * y; da += x * x; db += y * y;
+	}
+	return num / (Math.sqrt(da * db) || 1);
+}
+
+/** How far two inkings agree: what they share against what they cover. */
+function overlap(a, b, cut = 0.45) {
+	let both = 0, either = 0;
+	for (let i = 0; i < a.length; i++) {
+		const x = a[i] >= cut, y = b[i] >= cut;
+		if (x && y) both++;
+		if (x || y) either++;
+	}
+	return either ? both / either : 0;
+}
+
+/** How much of a box is inked at all. */
+function inkFraction(mask, rw, x0, x1, y0, y1) {
+	let n = 0, all = 0;
+	for (let y = y0; y <= y1; y++) {
+		for (let x = Math.max(0, x0); x <= x1; x++) { all++; if (mask[y * rw + x]) n++; }
+	}
+	return all ? n / all : 0;
+}
+
+/**
+ * One box, scored as a figure: two agreements and one objection.
+ *
+ * The greys say how the figure is drawn and the ink says where it is.
+ * The objection is ink left hanging immediately to the left of the box,
+ * which is what a box drawn through the middle of a wider figure always
+ * leaves -- and without it a narrow 1 eats the right-hand half of every
+ * 3, 5 and 9 on the board, because it really is an upright and it
+ * really does correlate.
+ */
+export function scoreFigure(luma, mask, rw, x0, x1, y0, y1, figure) {
+	const grey = correlate(figureBox(luma, rw, x0, x1, y0, y1), figure.grey);
+	const shape = overlap(figureBox(mask, rw, x0, x1, y0, y1, { binary: true }), figure.ink);
+	const spill = inkFraction(mask, rw, Math.max(0, x0 - 2), x0 - 1, y0, y1);
+	return { grey, shape, spill, score: 0.5 * grey + 0.5 * shape - 0.8 * Math.max(0, spill - 0.25) };
+}
+
+/**
+ * The number written on one slot: a count, a blank slot -- which means
+ * one -- or null, which means there is writing here that could not be
+ * read and the player had better be asked.
+ *
+ * Right to left, because a count is right-aligned and that is the only
+ * edge of it that is fixed -- and not greedily: at this size the
+ * right-hand half of a 3 is a passable 1, and what tells them apart is
+ * what the reading leaves behind. So the readings are carried forward
+ * together, a few at a time, and the one whose weakest figure is
+ * strongest wins; where two are equally sure the shorter is taken,
+ * since a figure invented out of the drawing can only drag the weakest
+ * down.
+ *
+ * A reading may only finish where the ink does. Ink still standing
+ * against the left of it means a figure went unread, and the last two
+ * figures of a stack of four hundred are worse than no answer.
+ */
+export function readCount(luma, mask, rw, { right, top, bottom, height, figures = FIGURES, floor = 0.65, bare = 0.12, maxDigits = 7, beam = 8 }) {
+	const widest = Math.max(...figures.map(f => Math.round(f.wide * height)));
+	const empty = x1 => inkFraction(mask, rw, Math.max(0, x1 - widest + 1), x1, top, bottom) < bare;
+	// Where this count ends: the margin is the same in every slot, but a
+	// pixel or three of it goes to the edge of the drawing underneath.
+	let edge = -1;
+	for (let x = Math.min(rw - 1, right + 2); x >= right - Math.round(height * 0.8); x--) {
+		let n = 0;
+		for (let y = top; y <= bottom; y++) if (mask[y * rw + x]) n++;
+		if (n >= 2) { edge = x; break; }
+	}
+	// Nothing written against the margin at all. That is not a failure:
+	// it is how the game says "one of these", and most of a storage is
+	// one of these.
+	if (edge < 0) return { count: 1, blank: true, score: 1 };
+	let live = [{ digits: [], scores: [], at: edge, first: true }];
+	const done = [];
+	for (let k = 0; k < maxDigits && live.length; k++) {
+		const next = [];
+		for (const path of live) {
+			for (const slack of path.first ? [0, 1, -1, 2, -2] : [0, 1, -1]) {
+				const x1 = path.at + slack;
+				if (x1 < 3 || x1 >= rw) continue;
+				if (empty(x1)) {
+					if (path.digits.length) done.push(path);
+					continue;
+				}
+				for (const f of figures) {
+					for (const grow of [0, 1, -1]) {
+						const wide = Math.max(2, Math.round(f.wide * height) + grow);
+						const x0 = x1 - wide + 1;
+						if (x0 < 0) continue;
+						const got = scoreFigure(luma, mask, rw, x0, x1, top, bottom, f);
+						if (got.score < floor) continue;
+						next.push({ digits: [f.d, ...path.digits], scores: [got.score, ...path.scores], at: x0 - 2, first: false });
+					}
+				}
+			}
+		}
+		next.sort((a, b) => Math.min(...b.scores) - Math.min(...a.scores));
+		live = next.slice(0, beam);
+	}
+	let best = null;
+	for (const path of done) {
+		if (path.digits.length > 1 && path.digits[0] === 0) continue;
+		const worst = Math.min(...path.scores);
+		if (!best || worst > best.worst || (worst === best.worst && path.digits.length < best.digits.length)) {
+			best = { ...path, worst };
+		}
+	}
+	if (!best) return null;
+	const n = Number(best.digits.join(''));
+	if (!(n >= 1 && n <= 1e6)) return null;
+	return { count: n, digits: best.digits, score: best.worst };
+}
+
+/**
+ * How sure a window's figures look, and therefore how sure a reading
+ * has to be before it is believed.
+ *
+ * A crop saved as a PNG reads at nine tenths; the same window in a
+ * screenshot the game saved as a JPEG reads at two thirds, because the
+ * compression fills in the outline the reading depends on. One floor
+ * cannot serve both -- so the floor is taken from the window itself,
+ * and never allowed below the point where wrong answers start.
+ */
+export function countFloor(bands, line, figures = FIGURES, { least = 0.65, most = 0.68, share = 0.7 } = {}) {
+	const best = [];
+	for (const { cell, ink } of bands) {
+		if (!ink) continue;
+		const bottom = Math.round(cell.cy + cell.pitch / 2 + line.base) - ink.y0;
+		const top = bottom - line.height + 1;
+		if (top < 0 || bottom >= ink.rh) continue;
+		const right = Math.round(cell.cx + cell.pitch / 2 + line.right) - ink.x0;
+		let top_ = 0;
+		for (const dx of [0, -1, -2, -3, 1]) {
+			for (const f of figures) {
+				const wide = Math.max(2, Math.round(f.wide * line.height));
+				const x1 = right + dx, x0 = x1 - wide + 1;
+				if (x0 < 0 || x1 >= ink.rw) continue;
+				const s = scoreFigure(ink.luma, ink.mask, ink.rw, x0, x1, top, bottom, f).score;
+				if (s > top_) top_ = s;
+			}
+		}
+		if (top_ > 0) best.push(top_);
+	}
+	if (!best.length) return least;
+	best.sort((a, b) => a - b);
+	const p75 = best[Math.floor(best.length * 0.75)];
+	return Math.min(most, Math.max(least, p75 * share));
+}
+
+/**
+ * Every count in a storage window: the line found once, then a reading
+ * a slot.
+ *
+ * `slots` are what readSlots gave back. What comes out is a count per
+ * slot that has one, and nothing for a slot the reader could not read
+ * -- which is not the same as a slot with nothing written on it, and
+ * the caller is told which is which.
+ */
+export function readCounts(rgba, w, h, grid, slots, { figures = FIGURES } = {}) {
+	// The slots come from readSlots, which carries the square it
+	// actually matched the icon in -- the lattice nudged by the
+	// calibration. The count is written in that square, not in the
+	// lattice's idea of it: a few pixels out and the band clips the
+	// figures off at the bottom.
+	const bands = slots.map(slot => {
+		const cell = { ...slot, cx: slot.at ? slot.at.cx : slot.cx, cy: slot.at ? slot.at.cy : slot.cy, pitch: grid.pitch };
+		return { slot, cell, ink: inkOf(rgba, w, h, countBand(cell, grid.pitch)) };
+	});
+	const line = countLine(bands, grid.pitch);
+	if (!line) return new Map();
+	const floor = countFloor(bands, line, figures);
+	const out = new Map();
+	for (const { slot, cell, ink } of bands) {
+		if (!ink) continue;
+		const bottom = Math.round(cell.cy + grid.pitch / 2 + line.base) - ink.y0;
+		const top = bottom - line.height + 1;
+		if (top < 0 || bottom >= ink.rh) continue;
+		const right = Math.round(cell.cx + grid.pitch / 2 + line.right) - ink.x0;
+		const read = readCount(ink.luma, ink.mask, ink.rw, { right, top, bottom, height: line.height, figures, floor });
+		out.set(slot, read ? { ...read, line, floor } : null);
+	}
+	return out;
 }
 
 /**

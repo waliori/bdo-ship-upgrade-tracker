@@ -86,13 +86,32 @@ resolution and any UI scale read alike; each slot is then matched
 against the five hundred icons the app already carries, and one that
 looks nearly as much like the runner-up as like the best is left out
 rather than named wrong — a storage is mostly elixirs, gear and memory
-fragments, and none of that is this app's business. The count written
-over a slot is eight pixels tall, so the figures are cut out of the
-corner before the reader sees them: what is pale, has the game's dark
-shadow behind it and stands on one line with its neighbours. What still
-cannot be made out is shown as a guess of one, marked, with the corner
-of the slot beside it to fix by eye. Nothing is written until you press
-the button, and what it writes is one change.
+fragments, and none of that is this app's business.
+
+The count over a slot is read the same way, off the pixels: no OCR
+engine is fetched for a storage at all. An engine is the wrong tool
+here — it is trained on a page of print, and this is eight-pixel
+writing over a drawing. Three things about the game's own rendering do
+the work instead. The count is **not** the palest thing on a slot: over
+a white icon the figures reach 143 where the drawing under them reaches
+198, so every "the text is the brightest" rule is wrong from the start.
+What the count *is* is **stroked** — the game draws a dark outline all
+the way round it — so a figure's upright has that dark on both sides of
+it while a drawing's edge has the drawing on one side. And every count
+in a window sits on **one line, at one height, against one margin**: the
+baseline scatters by three tenths of a pixel across four screenshots at
+two resolutions. So the line is found once from every slot at once, and
+each count is then read right to left as a row of boxes of known size
+against the game's own figures, which the app carries (`js/digit_font.js`,
+learnt from 391 figures off screenshots whose numbers were known).
+
+On a crop saved as a PNG that reads **102 of 117 counts exactly, three
+wrong**; the rest say so. A screenshot the game itself saved as a JPEG
+is harder on writing that small, and there more of them come back
+marked than read. Either way an unread count is shown as a guess of one,
+marked ⚠, with the corner of the slot beside it to fix by eye — a count
+read wrong is worse than a count asked about. Nothing is written until
+you press the button, and what it writes is one change.
 
 ### 3. Craft and enhance
 
@@ -1264,7 +1283,9 @@ js/
                       and the bank of icons a storage slot is named against
   sailor-import.js    the drop, the reading and the table that checks it
   storage-shot.js     a storage window read off its pixels: the lattice, the
-                      icon each slot holds, the figure over its corner -- pure
+                      icon each slot holds, the figures over its corner -- pure
+  digit_font.js       the game's own figures, learnt off shots whose numbers
+                      were known: what a count is read against
   storage-import.js   the Inventory's drop, and the counts it writes at a storage
   barter-shot.js      the barter window read out of a screenshot's words, against
                       the exchanges each island deals -- pure, and tested

@@ -81,6 +81,7 @@ const SHELL = [
 	'/js/crystals.js',
 	'/js/dialogs.js',
 	'/js/digest.js',
+	'/js/digit_font.js',
 	'/js/enhancement.js',
 	'/js/falasi_vendor.js',
 	'/js/feedback.js',

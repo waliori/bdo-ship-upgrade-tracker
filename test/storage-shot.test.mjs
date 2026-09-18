@@ -20,8 +20,9 @@ import assert from 'node:assert/strict';
 import {
 	grayscale, edgeProfile, combFit, gridOf, cellsOf, panelOf,
 	describe as descriptorOf, similarity, bankEntry, rank, nameOf,
-	calibrate, readSlots, countBox, countFrom, digitMask, COARSE, FINE
+	calibrate, readSlots, countBox, countBand, inkOf, countLine, readCounts, COARSE, FINE
 } from '../js/storage-shot.js';
+import { FIGURES, TW, TH } from '../js/digit_font.js';
 
 /* ------------------------------------------------------------------ *
  * a storage, painted
@@ -340,60 +341,169 @@ test('an edge profile is taken along the axis it was asked for', () => {
  * the count over the corner
  * ------------------------------------------------------------------ */
 
-/** A slot with a count written over it the way the game writes one:
- *  pale figures with a dark shadow, right-aligned on the bottom. */
-function slotWithCount(figures, { pitch = 48, art = null } = {}) {
-	const s = sheet(pitch, pitch, [26, 27, 33]);
-	if (art) s.disc(pitch / 2, pitch / 2, pitch * 0.34, art);
-	// Each figure: a dark halo, then a pale bar with a gap in it, so
-	// the strokes are thin and the shape is not solid.
-	const h = Math.round(pitch * 0.2), w = Math.round(pitch * 0.1);
-	let x = pitch - 4;
-	for (let i = figures - 1; i >= 0; i--) {
-		const left = x - w;
-		s.box(left - 2, pitch - 6 - h - 2, w + 4, h + 4, [4, 4, 6]);
-		s.box(left, pitch - 6 - h, w, h, [232, 232, 236]);
-		s.box(left + 2, pitch - 6 - h + 2, Math.max(1, w - 4), Math.max(1, h - 4), [26, 26, 30]);
-		x = left - 3;
+/**
+ * A window with counts written on it, in the game's own figures.
+ *
+ * The figures are the ones the reader carries (js/digit_font.js), drawn
+ * back into a slot the way the game draws them: on one line, at one
+ * height, right-aligned against the slot's edge, pale with a dark
+ * outline round them -- and over a drawing bright enough to matter,
+ * because a count over a white clam is dimmer than the clam and that is
+ * the whole difficulty.
+ */
+function paintCount(s, cell, pitch, text, { height = Math.round(pitch * 0.21) } = {}) {
+	const base = Math.round(cell.cy + pitch / 2 - pitch * 0.165);
+	let x1 = Math.round(cell.cx + pitch / 2 - pitch * 0.2);
+	// The inverse of the reader's own sampling: a figure's grid is its
+	// glyph centred in TW columns, stretched to TH rows.
+	const greyAt = (f, wide, i, j) => {
+		const used = Math.min(TW, Math.max(2, Math.round(wide * (TH / height))));
+		const at = Math.floor((TW - used) / 2);
+		const tx = Math.min(TW - 1, at + Math.floor(((i + 0.5) / wide) * used));
+		const ty = Math.min(TH - 1, Math.floor(((j + 0.5) / height) * TH));
+		return f.grey[ty * TW + tx];
+	};
+	for (const ch of [...text].reverse()) {
+		const f = FIGURES[Number(ch)];
+		const wide = Math.max(2, Math.round(f.wide * height));
+		const x0 = x1 - wide + 1, y0 = base - height + 1;
+		// The outline first, a pixel round everything that will be ink…
+		for (let j = -1; j <= height; j++) {
+			for (let i = -1; i <= wide; i++) {
+				let near = false;
+				for (let dj = -1; dj <= 1 && !near; dj++) {
+					for (let di = -1; di <= 1; di++) {
+						const a = i + di, b = j + dj;
+						if (a < 0 || b < 0 || a >= wide || b >= height) continue;
+						if (greyAt(f, wide, a, b) > 0.4) { near = true; break; }
+					}
+				}
+				if (near) s.put(x0 + i, y0 + j, [6, 6, 8]);
+			}
+		}
+		// …then the stroke over it, no brighter than the game draws it.
+		for (let j = 0; j < height; j++) {
+			for (let i = 0; i < wide; i++) {
+				const g = greyAt(f, wide, i, j);
+				if (g > 0.4) {
+					const l = Math.round(80 + g * 120);
+					s.put(x0 + i, y0 + j, [l, l, l]);
+				}
+			}
+		}
+		x1 -= wide + 1;
 	}
-	return s;
 }
+
+/** A window of slots, some of them with counts written on them. */
+function counted(plan, { pitch = 48, ox = 9, oy = 37, cols = 7, rows = 5 } = {}) {
+	const s = window_({ pitch, ox, oy, cols, rows, plan });
+	const cells = plan.map(p => ({
+		cx: ox + p.col * pitch + pitch / 2,
+		cy: oy + p.row * pitch + pitch / 2,
+		row: p.row, col: p.col
+	}));
+	plan.forEach((p, i) => { if (p.text) paintCount(s, cells[i], pitch, p.text); });
+	return { sheet: s, pitch };
+}
+
+test('the line every count stands on is found from all the slots at once', () => {
+	const plan = [
+		{ row: 1, col: 1, icon: 2, text: '18' }, { row: 1, col: 3, icon: 5, text: '245' },
+		{ row: 2, col: 2, icon: 7, text: '7' }, { row: 3, col: 4, icon: 1, text: '1200' },
+		{ row: 3, col: 1, icon: 9, text: '30' }
+	];
+	const { sheet: s, pitch } = counted(plan);
+	const bands = plan.map(p => {
+		const cell = { cx: 9 + p.col * pitch + pitch / 2, cy: 37 + p.row * pitch + pitch / 2, pitch };
+		return { cell, ink: inkOf(s.rgba, s.w, s.h, countBand(cell, pitch)) };
+	});
+	const line = countLine(bands, pitch);
+	assert.ok(line, 'no line found');
+	assert.ok(Math.abs(line.height - Math.round(pitch * 0.21)) <= 1, `height ${line.height}`);
+	assert.ok(Math.abs(line.base - (-pitch * 0.165)) <= 1.5, `baseline ${line.base}`);
+});
+
+test('the figures over a slot read back as the number they are', () => {
+	// Painted from the figures the reader carries, which are averages of
+	// hundreds of real ones and therefore softer than the game's own
+	// drawing -- so this is the size they were learnt at. What it pins
+	// is the pipeline: the line, the boxes, the beam and the figures,
+	// end to end. How well it does on real screenshots is measured
+	// against shots whose numbers are known, outside the repository.
+	const pitch = 57;
+	const plan = [
+		{ row: 1, col: 1, icon: 2, text: '18' }, { row: 1, col: 3, icon: 5, text: '245' },
+		{ row: 2, col: 2, icon: 7, text: '7' }, { row: 2, col: 4, icon: 3, text: '1200' },
+		{ row: 3, col: 1, icon: 9, text: '30' }
+	];
+	const { sheet: s } = counted(plan, { pitch });
+	const slots = plan.map(p => ({
+		row: p.row, col: p.col,
+		cx: 9 + p.col * pitch + pitch / 2, cy: 37 + p.row * pitch + pitch / 2,
+		at: { cx: 9 + p.col * pitch + pitch / 2, cy: 37 + p.row * pitch + pitch / 2, side: pitch * 0.8 }
+	}));
+	const counts = readCounts(s.rgba, s.w, s.h, { pitch, ox: 9, oy: 37 }, slots);
+	assert.deepEqual(slots.map(x => (counts.get(x) ? String(counts.get(x).count) : '')), plan.map(p => p.text));
+});
+
+test('a reading the figures do not support is no reading at all', () => {
+	// The drawing in a slot is not writing, however bright it is: a
+	// count invented out of it would be believed, and a count asked
+	// about would not.
+	const pitch = 57;
+	const plan = [
+		{ row: 1, col: 1, icon: 2, text: '18' }, { row: 1, col: 3, icon: 5, text: '245' },
+		{ row: 2, col: 2, icon: 7, text: '7' }, { row: 3, col: 1, icon: 9, text: '30' }
+	];
+	const { sheet: s } = counted(plan, { pitch });
+	// a slot with a bright, busy drawing and nothing written on it
+	const cx = 9 + 5 * pitch + pitch / 2, cy = 37 + 2 * pitch + pitch / 2;
+	for (let i = 0; i < 9; i++) s.box(Math.round(cx - 20 + i * 5), Math.round(cy - 8), 3, 20, [225, 220, 200]);
+	const slots = [...plan, { row: 2, col: 5, text: '' }].map(p => ({
+		row: p.row, col: p.col,
+		cx: 9 + p.col * pitch + pitch / 2, cy: 37 + p.row * pitch + pitch / 2,
+		at: { cx: 9 + p.col * pitch + pitch / 2, cy: 37 + p.row * pitch + pitch / 2, side: pitch * 0.8 }
+	}));
+	const counts = readCounts(s.rgba, s.w, s.h, { pitch, ox: 9, oy: 37 }, slots);
+	assert.equal(counts.get(slots[4]) ?? null, null);
+});
+
+test('a slot with nothing written on it is one of the thing, and sure of it', () => {
+	// The game leaves a single item's slot blank, and most of a storage
+	// is single items -- so a blank corner is an answer, not a doubt.
+	const pitch = 57;
+	const plan = [
+		{ row: 1, col: 1, icon: 2, text: '18' }, { row: 1, col: 3, icon: 5, text: '245' },
+		{ row: 2, col: 2, icon: 7, text: '7' }, { row: 2, col: 4, icon: 3, text: '1200' },
+		{ row: 3, col: 1, icon: 9, text: '' }
+	];
+	const { sheet: s } = counted(plan, { pitch });
+	const slots = plan.map(p => ({
+		row: p.row, col: p.col,
+		cx: 9 + p.col * pitch + pitch / 2, cy: 37 + p.row * pitch + pitch / 2,
+		at: { cx: 9 + p.col * pitch + pitch / 2, cy: 37 + p.row * pitch + pitch / 2, side: pitch * 0.8 }
+	}));
+	const counts = readCounts(s.rgba, s.w, s.h, { pitch, ox: 9, oy: 37 }, slots);
+	const blank = counts.get(slots[4]);
+	assert.ok(blank && blank.blank, 'a blank slot was not read as a blank one');
+	assert.equal(blank.count, 1);
+});
 
 test('the corner of a slot is where the count is, and it is all of the width', () => {
 	const box = countBox({ cx: 100, cy: 100, side: 50 });
-	assert.equal(box.x, 75);                       // the whole width: 58,855 is wide
+	assert.equal(box.x, 75);                         // the whole width: 58,855 is wide
 	assert.ok(box.y > 100 && box.y + box.h <= 126);  // the bottom of the slot only
 });
 
-test('figures over a slot are found, and their number is the number of figures', () => {
-	for (const n of [1, 2, 3]) {
-		const s = slotWithCount(n);
-		const m = digitMask(s.rgba, s.w, s.h, countBox({ cx: 24, cy: 24, side: 48 * 0.8 }));
-		assert.ok(m, `nothing found for ${n} figures`);
-		assert.equal(m.glyphs.length, n);
-	}
-});
-
-test('a slot with a clear corner has no count on it, which means one', () => {
-	const s = sheet(48, 48, [26, 27, 33]);
-	s.disc(24, 14, 10, [90, 130, 200]);
-	assert.equal(digitMask(s.rgba, s.w, s.h, countBox({ cx: 24, cy: 24, side: 48 * 0.8 })), null);
-});
-
-test('a bright corner of the drawing is not a count', () => {
-	// A pale shape in the middle of the slot, with nothing written: the
-	// run has to reach the right-hand edge to be a count.
-	const s = sheet(48, 48, [26, 27, 33]);
-	s.box(6, 30, 14, 10, [240, 240, 240]);
-	const m = digitMask(s.rgba, s.w, s.h, countBox({ cx: 24, cy: 24, side: 48 * 0.8 }));
-	assert.ok(!m || m.unreadable, 'the drawing was read as a count');
-});
-
-test('a count is digits or it is nothing', () => {
-	assert.equal(countFrom('1,200'), 1200);
-	assert.equal(countFrom('58855'), 58855);
-	assert.equal(countFrom(''), null);
-	assert.equal(countFrom('l2'), 12);            // the engine's letters for figures
-	assert.equal(countFrom('12x'), null);
-	assert.equal(countFrom('0'), null);           // a slot never holds none
+test('ink is what has the game\'s dark outline against it, not what is brightest', () => {
+	// A pale drawing, brighter than any figure, with a figure over it.
+	const s = sheet(60, 30, [24, 24, 28]);
+	s.box(4, 4, 30, 22, [210, 210, 215]);                       // the drawing
+	for (let y = 6; y < 22; y++) { s.put(44, y, [8, 8, 10]); s.put(48, y, [8, 8, 10]); }
+	for (let y = 6; y < 22; y++) { s.put(45, y, [150, 150, 150]); s.put(46, y, [150, 150, 150]); }
+	const ink = inkOf(s.rgba, s.w, s.h, { x: 0, y: 0, w: 60, h: 30 });
+	const inked = (x, y) => ink.mask[y * ink.rw + x];
+	assert.ok(inked(45, 12) || inked(46, 12), 'the stroke was not taken as ink');
+	assert.ok(!inked(18, 12), 'the drawing was taken as ink');
 });

@@ -21,7 +21,7 @@
 import { panelBox, sailorFrom } from './sailor-shot.js';
 import { localeFor, DEFAULT_LANG } from './sailor-locales.js';
 import { iconLoader } from './icon-loader.js';
-import { grayscale, findGrid, calibrate, readSlots, bankEntry, countBox, countFrom, digitMask } from './storage-shot.js';
+import { grayscale, findGrid, calibrate, readSlots, bankEntry, countBox, readCounts } from './storage-shot.js';
 
 /** Where the vendored engine lives. Versioned: see reader/README.md. */
 const LIB = '/reader/tesseract-7.0.0.esm.min.js';
@@ -405,102 +405,13 @@ function pixelsOf(bitmap) {
 }
 
 /**
- * The counts, read in one go.
- *
- * One recognise call a slot would be a hundred and eighty of them for
- * a full storage, and the engine spends longer starting a page than
- * reading one. So every slot's bottom corner is copied into a single
- * tall strip, one to a band, blown up and thresholded to white paper
- * and black ink -- the count is the only thing on a slot drawn in
- * near-white -- and each word that comes back belongs to the band its
- * middle falls in.
- */
-async function readCounts(worker, PSM, sheet, slots) {
-	if (!slots.length) return new Map();
-	const image = sheet.image;
-	const masks = slots.map(s => digitMask(image.data, image.width, image.height, countBox(s.at)));
-	const out = new Map();
-	// A slot with writing on it nobody could cut into figures is a count
-	// unknown, not a count of one.
-	for (let i = 0; i < masks.length; i++) if (masks[i] && !masks[i].glyphs.length) out.set(i, null);
-	const found = masks.map((m, i) => ({ m, i })).filter(x => x.m && x.m.glyphs.length);
-	if (!found.length) return out;
-	// A figure the height of a line of print, with room on every side:
-	// the engine reads a storage's eight-pixel count as anybody would,
-	// which is badly, and the same figure blown up on its own as text.
-	const TALL = 40, GAP = 16, PAD = 12;
-	const widest = Math.max(...found.map(x => x.m.glyphs.reduce((sum, g) => {
-		const gh = g.y1 - g.y0 + 1, gw = g.x1 - g.x0 + 1;
-		return sum + Math.ceil(gw * (TALL / Math.max(1, gh))) + GAP;
-	}, 0)));
-	const bw = widest + PAD * 2;
-	const bh = TALL + PAD * 2;
-	const canvas = document.createElement('canvas');
-	canvas.width = Math.max(64, bw);
-	canvas.height = bh * found.length;
-	const ctx = canvas.getContext('2d', { willReadFrequently: true });
-	ctx.imageSmoothingEnabled = true;
-	ctx.imageSmoothingQuality = 'high';
-	ctx.fillStyle = '#fff';
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
-	const cell = document.createElement('canvas');
-	const cellCtx = cell.getContext('2d', { willReadFrequently: true });
-	for (let band = 0; band < found.length; band++) {
-		const { m } = found[band];
-		let at = PAD;
-		for (const g of m.glyphs) {
-			const gw = g.x1 - g.x0 + 1, gh = g.y1 - g.y0 + 1;
-			cell.width = gw;
-			cell.height = gh;
-			const ink = cellCtx.createImageData(gw, gh);
-			for (let y = 0; y < gh; y++) {
-				for (let x = 0; x < gw; x++) {
-					const v = m.mask[(g.y0 + y) * m.rw + (g.x0 + x)] ? 0 : 255;
-					const q = (y * gw + x) * 4;
-					ink.data[q] = ink.data[q + 1] = ink.data[q + 2] = v;
-					ink.data[q + 3] = 255;
-				}
-			}
-			cellCtx.putImageData(ink, 0, 0);
-			const wide = Math.ceil(gw * (TALL / Math.max(1, gh)));
-			ctx.drawImage(cell, 0, 0, gw, gh, at, band * bh + PAD, wide, TALL);
-			at += wide + GAP;
-		}
-	}
-	// Digits and nothing else, and the engine's own numeric mode, which
-	// normalises a line the way it does for a page of figures.
-	await worker.setParameters({ tessedit_char_whitelist: '0123456789', classify_bln_numeric_mode: '1' });
-	const words = await scan(worker, canvas, PSM.SINGLE_BLOCK);
-	await worker.setParameters({ tessedit_char_whitelist: '', classify_bln_numeric_mode: '0' });
-	// A band's figures are spread across it, so what it said is its
-	// words in the order they were written, not the last of them.
-	const said = new Map();
-	for (const word of words) {
-		const band = Math.floor(((word.y0 + word.y1) / 2) / bh);
-		if (band < 0 || band >= found.length) continue;
-		if (!said.has(band)) said.set(band, []);
-		said.get(band).push(word);
-	}
-	for (const { i } of found) out.set(i, null);
-	for (const [band, list] of said) {
-		const text = list.sort((a, b) => a.x0 - b.x0).map(w => w.text).join('');
-		const n = countFrom(text);
-		// A count read as more figures than were cut out of the slot is
-		// the engine seeing two in one blur; fewer is a figure it could
-		// not make out. Either way it is not a count.
-		out.set(found[band].i, n !== null && String(n).length === found[band].m.glyphs.length ? n : null);
-	}
-	return out;
-}
-
-/**
  * One storage screenshot, read: what is in it and how many of each.
  *
  * A slot the reader could not name is not an error and not an empty
  * slot -- a storage is full of things this app has no business
  * knowing -- so it is counted and reported as a number, not as a row.
  */
-async function readStorageOne(worker, PSM, file, icons) {
+async function readStorageOne(file, icons) {
 	let bitmap;
 	try {
 		bitmap = await createImageBitmap(file);
@@ -518,7 +429,11 @@ async function readStorageOne(worker, PSM, file, icons) {
 		const slots = readSlots(image.data, image.width, image.height, grid, icons, cal);
 		const named = slots.filter(s => s.name);
 		if (!named.length) return { rows: [], why: 'nothing in it was an icon the app knows' };
-		const counts = await readCounts(worker, PSM, sheet, named);
+		// The counts, read off the pixels: the line every figure in this
+		// window stands on, then a reading a slot, against the game's own
+		// figures. No engine -- see storage-shot.js for why the OCR one
+		// was the wrong tool for eight-pixel writing over a gold bar.
+		const counts = readCounts(image.data, image.width, image.height, grid, named);
 		// The corner of a slot whose figure could not be read, as a
 		// picture, so the table can show a player what the reader was
 		// looking at instead of asking them to take its word.
@@ -532,7 +447,7 @@ async function readStorageOne(worker, PSM, file, icons) {
 			ctx.drawImage(sheet.canvas, box.x, box.y, box.w, box.h, 0, 0, cut.width, cut.height);
 			return cut.toDataURL('image/png');
 		};
-		const rows = named.map((s, i) => {
+		const rows = named.map(s => {
 			const entry = icons.find(e => e.name === s.name);
 			// A slot with nothing written on it holds one of the thing --
 			// that is how the game draws a single item -- and so does a
@@ -541,16 +456,22 @@ async function readStorageOne(worker, PSM, file, icons) {
 			// the corner of the slot as it was, and lets the player type
 			// over them; a count read wrong is worse than a count asked
 			// about, and a storage is mostly single items.
-			const said = counts.get(i);
+			// Three answers, and the table shows them differently. A slot
+			// with a figure on it that read: the count. A slot with
+			// nothing written on it: one, and sure of it -- that is how
+			// the game draws a single item. A slot with writing that
+			// could not be read: one, marked, with the corner of the slot
+			// beside it to type over.
+			const said = counts.get(s);
 			return {
 				item: s.name,
 				alsoCalled: entry && entry.names.length > 1 ? entry.names : null,
-				qty: counts.has(i) && said !== null ? said : 1,
-				sure: !counts.has(i) || said !== null,
+				qty: said ? said.count : 1,
+				sure: !counts.has(s) || Boolean(said),
 				score: s.score,
 				row: s.row,
 				col: s.col,
-				corner: counts.has(i) && said === null ? corner(s.at) : null
+				corner: counts.has(s) && !said ? corner(s.at) : null
 			};
 		});
 		return { rows, unknown: slots.filter(s => !s.empty && !s.name).length, slots: slots.length };
@@ -562,13 +483,13 @@ async function readStorageOne(worker, PSM, file, icons) {
 /**
  * A drop of storage screenshots, read one after another.
  *
- * The same shape readShots has, and for the same reasons -- the engine
- * is one worker, and a player wants to see which shot is being read.
- * The bank is built first, which is where the second of waiting is.
+ * The same shape readShots has, minus the engine: a storage is read off
+ * its own pixels from end to end, so nothing here fetches the six
+ * megabytes of reader that a sailor panel needs. The bank of icons is
+ * built first, which is where the second of waiting is.
  */
 export async function readStorageShots(files, { onProgress = () => {}, signal = null } = {}) {
 	const icons = await iconBank(onProgress);
-	const { worker, Tesseract } = await open(localeFor(DEFAULT_LANG).tess, onProgress);
 	const out = [];
 	for (let i = 0; i < files.length; i++) {
 		if (signal && signal.aborted) break;
@@ -576,7 +497,7 @@ export async function readStorageShots(files, { onProgress = () => {}, signal = 
 		onProgress({ stage: 'reading', at: i / files.length, i, n: files.length, name: file.name });
 		let res;
 		try {
-			res = await readStorageOne(worker, Tesseract.PSM, file, icons);
+			res = await readStorageOne(file, icons);
 		} catch (err) {
 			res = { rows: [], why: err && err.message ? err.message : 'could not be read' };
 		}
