@@ -563,8 +563,10 @@ export function calibrate(rgba, w, h, grid, bank, { cells = null, sample = 6 } =
 	const all = (cells || cellsOf(grid, w, h))
 		.map(c => ({ ...c, ink: contrastOf(rgba, w, h, { cx: c.cx, cy: c.cy, side: grid.pitch * 0.8 }) }))
 		.sort((a, b) => b.ink - a.ink);
-	// The busiest squares, but never several of the same item: a wall of
-	// one crystal would settle the offset on one picture's quirks.
+	// The busiest squares, spread over different amounts of busyness --
+	// a rough way of not picking six slots of the same crystal, which a
+	// storage is full of and which would settle the offset on one
+	// picture's quirks.
 	const seen = new Set();
 	const picks = [];
 	for (const c of all) {
