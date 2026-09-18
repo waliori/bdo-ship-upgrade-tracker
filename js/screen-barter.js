@@ -34,7 +34,8 @@ import { GOODS, PARLEY, COIN, COIN_LEVEL, nextGateAbove, dailyCapacity, parleyPe
 import { parleyLedger } from './parley-ledger.js';
 import { exchanges, goodsHeld, landHeld, weightOf, sellOf, aboardStock as aboardOf } from './barter-plan.js';
 import { openBarterImport } from './barter-import.js';
-import { boardsFor, sawItToo, shared as boardsShared } from './sea-boards.js';
+import { boardsFor, sawItToo, tellFleet, shared as boardsShared } from './sea-boards.js';
+import { me } from './sync.js';
 import { TOWNS } from './screen-inventory.js';
 import { questIcon } from './quest_icons.js';
 import { chains, chainRun, tailOf } from './barter-chains.js';
@@ -545,7 +546,7 @@ function boardHTML(b) {
 			`<b>Layout ${esc(b.combo.id)}</b><span>today’s board</span>`,
 			`seen ${b.combo.seen} of ${combos.sample.refreshes} refreshes since ${esc(since)} · every island’s offer is known; the material islands roll on their own and are read from the whole table, and which of its four [Level 7] goods an island pays is not the layout’s to say`,
 			seen,
-			`<button class="ghost-btn sm" data-act="barter-shot" title="Read more of the window off a screenshot — the rows are matched against what each island deals">📷 Read the window</button><button class="ghost-btn sm" data-act="barter-shut-pick" title="An island on this board is showing nothing: its exchange today is above your barter count">An island shows nothing…</button><button class="ghost-btn sm" data-act="barter-board-clear" title="The board was refreshed in game: start again">↻ Refreshed in game</button>`,
+			`<button class="ghost-btn sm" data-act="barter-shot" title="Read more of the window off a screenshot — the rows are matched against what each island deals">📷 Read the window</button>${tellChip()}<button class="ghost-btn sm" data-act="barter-shut-pick" title="An island on this board is showing nothing: its exchange today is above your barter count">An island shows nothing…</button><button class="ghost-btn sm" data-act="barter-board-clear" title="The board was refreshed in game: start again">↻ Refreshed in game</button>`,
 			shutLine);
 	}
 	// Never asked about an island this sailor cannot sail to: its offer
@@ -556,7 +557,7 @@ function boardHTML(b) {
 			'<b>No layout shows that</b><span>nothing in the record fits</span>',
 			`The record is from ${esc(combos.read)}; the game may have moved on. Read the window off a screenshot and tell the fleet what you saw — a board the record has never seen is exactly what is worth passing on.`,
 			seen,
-			'<button class="ghost-btn sm" data-act="barter-shot" title="Read the whole window off a screenshot, and offer it to the fleet">📷 Read the window</button><button class="ghost-btn sm" data-act="barter-board-clear">↻ Start again</button>',
+			`<button class="ghost-btn sm" data-act="barter-shot" title="Read the whole window off a screenshot, and offer it to the fleet">📷 Read the window</button>${tellChip(true)}<button class="ghost-btn sm" data-act="barter-board-clear">↻ Start again</button>`,
 			fleetLine());
 	}
 	const first = ask[0] ? npcById.get(ask[0].npcId) : null;
@@ -3030,6 +3031,37 @@ function takeFleetBoard(id, then) {
 }
 
 /**
+ * Offer what has been answered so far to everyone else on the server.
+ *
+ * The screenshot reader offers this as it reads, but a board answered
+ * island by island in the usual way is worth exactly as much -- and a
+ * board that fits none of the forty layouts is worth more, because
+ * that is the record itself being out of date.
+ */
+function tellTheFleet(then) {
+	const b = boardNow();
+	if (!board.answers.length) return;
+	if (!me()) { toast('Sign in from the Menu to put your name to a reading'); return; }
+	toast('Sending today’s board…');
+	tellFleet(barterKey(), b.combo ? b.combo.id : null, board.answers.map(a => ({ ...a, qty: '1' }))).then(out => {
+		toast(out.ok
+			? `The fleet has your reading of today's board — ${board.answers.length} island${board.answers.length === 1 ? '' : 's'}, with your name on it`
+			: `It did not go: ${out.why}`, out.ok);
+		fleet.asked = false;
+		then();
+	});
+}
+
+/** The chip that does it, where there is a server and something to
+ *  send. */
+function tellChip(lost = false) {
+	if (!boardsShared() || !board.answers.length) return '';
+	return `<button class="${lost ? 'chip primary' : 'ghost-btn sm'}" data-act="barter-fleet-tell" title="${me()
+		? 'Everyone with the page open today can sail on it, with your name on the reading'
+		: 'Sign in from the Menu first — a reading goes up with a name on it'}">📣 Tell the fleet</button>`;
+}
+
+/**
  * What the fleet has seen today, as a line under the board bar.
  *
  * A board is the same for everyone on a server until the refill, so
@@ -3292,6 +3324,7 @@ export function barterAction(act, el, redraw) {
 		case 'barter-board-ask': pickOffer(Number(el.dataset.npc), redraw); return false;
 		case 'barter-shot': readWindow(redraw); return false;
 		case 'barter-fleet-take': takeFleetBoard(el.dataset.id, redraw); return false;
+		case 'barter-fleet-tell': tellTheFleet(redraw); return false;
 		case 'barter-board-island': pickIsland(redraw); return false;
 		case 'barter-gated': showGated(); return false;
 		case 'barter-shut-pick': pickShut(redraw); return false;

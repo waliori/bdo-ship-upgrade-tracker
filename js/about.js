@@ -641,6 +641,15 @@ export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
 	{
+		date: '2026-09-17',
+		title: 'The screenshots you already took are the fastest way to tell the app anything',
+		notes: [
+			'<b>A storage reads itself.</b> The Inventory takes a shot of the game\u2019s storage window \u2014 a crop, or the whole screen with it open \u2014 and comes back with a line per thing the app counts. The slots are a square lattice, found by the spacing of their own borders, so any resolution and any UI scale read alike; each is then matched against the five hundred icons the app already carries, and one that looks nearly as much like the runner-up as like the best is <i>left out</i> rather than named wrong. Several shots are one storage and their slots add up, so a warehouse four screenfuls deep is one go and one undoable change. The count over a slot is eight pixels tall, so the figures are cut out of the corner first \u2014 what is pale, has the game\u2019s own dark shadow behind it, and stands on one line with its neighbours \u2014 and what still cannot be made out is a guess of one, marked, with the corner of the slot beside it to fix by eye.',
+			'<b>The barter window reads itself too.</b> <i>Read the window</i> on the Barter tab answers every island in a screenshot at once, matched against the exchanges the codex says that island deals \u2014 so <code>[Level 5] Faded Gold Dra...</code> is as good as the whole name, a name that wrapped under the Parley cost is picked up where it broke off, and a row two exchanges fit equally well is a list to pick from rather than a guess. Six rows off one shot usually settle which of the forty layouts the sea is on. The islands paying ship materials go to the material list instead, since those roll on their own.',
+			'<b>And one player\u2019s reading is everybody\u2019s board.</b> A board is the same for everyone on a server until the refill, so a reading can now be told to the fleet \u2014 with the reader\u2019s name on it, where they are shown by name on the community boards and not otherwise. The bar says what others have read of today\u2019s board and how many have since seen the same; taking their reading answers every island they named and tells them so. It is also the answer to <b>no layout shows that</b>: the record the app ships is a snapshot, the game edits a slot at a maintenance without renumbering anything, and a board nobody has on file is the one worth passing on.'
+		]
+	},
+	{
 		date: '2026-09-14',
 		title: 'A chain that stops short says so, and the coins are counted the way the game pays them',
 		notes: [

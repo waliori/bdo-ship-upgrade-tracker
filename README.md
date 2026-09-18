@@ -73,6 +73,27 @@ fill, the shortfall drops, and recipes move into *craftable now*.
 
 ![Typing in what you own; the plan re-computes](docs/media/record-what-you-own.gif)
 
+**Or read a storage off a screenshot.** *Read a storage* on the
+Inventory takes a shot of the game's own storage window — a crop of it,
+or the whole screen with it open — and comes back with a line per thing
+the app keeps a count of: what it is, how many, and what that would
+change at the storage you name. Several shots are one storage and their
+slots add up, so a warehouse four screenfuls deep is read in one go.
+
+Nothing about it is typed and nothing about it is guessed. The slots are
+a square lattice, found by the spacing of their own borders, so any
+resolution and any UI scale read alike; each slot is then matched
+against the five hundred icons the app already carries, and one that
+looks nearly as much like the runner-up as like the best is left out
+rather than named wrong — a storage is mostly elixirs, gear and memory
+fragments, and none of that is this app's business. The count written
+over a slot is eight pixels tall, so the figures are cut out of the
+corner before the reader sees them: what is pale, has the game's dark
+shadow behind it and stands on one line with its neighbours. What still
+cannot be made out is shown as a guess of one, marked, with the corner
+of the slot beside it to fix by eye. Nothing is written until you press
+the button, and what it writes is one change.
+
 ### 3. Craft and enhance
 
 The Workshop lists everything you have the materials for. Name a batch
@@ -659,6 +680,30 @@ one undoable change. The details — the material run, the three paces,
 the quests that come along, the wharf calls — are under
 [What's covered](#whats-covered).
 
+**Or screenshot the window.** *Read the window* takes a shot of the
+barter list and answers every island in it at once: the island at the
+start of each row, what it takes and what it pays, matched against the
+exchanges the codex says that island deals — so a name the window cut
+short (`[Level 5] Faded Gold Dra...`) is as good as a whole one, and a
+misread letter cannot invent an offer the game never showed. Six rows
+off one screenshot are usually enough to settle which of the forty
+layouts the sea is on. A row two exchanges fit equally well is a list to
+pick from rather than a guess, and the islands that pay ship materials
+go to the material list instead, since those roll on their own.
+
+**And a board is the same for everyone until the refill.** Where sync is
+configured you can *tell the fleet* what you read — from the screenshot
+dialog or from the bar, however the board was answered — and it goes up
+with your name on it, for anybody who opens the page today. The bar says
+what others have read of today's board and how many have since seen the
+same; *take their reading* answers every island they named and tells
+them so. A reading is yours to take back and the operator's to hide, and
+an account shown anonymously on the community boards is anonymous here
+too. This is also what to do when the bar says **no layout shows that**:
+the record the app ships is a snapshot, the game edits a slot at a
+maintenance without renumbering anything, and a board nobody has on file
+is exactly the one worth passing on.
+
 ### The harbour
 
 ![A place on a board opens that sailor's card, and the card stands the Ship tab up on their boat](docs/media/the-boards.gif)
@@ -1215,13 +1260,21 @@ js/
                       and arranging a crew for a stated goal
   sailor-locales.js   the sailor window's words in every language the game runs in
   sailor-shot.js      a sailor read out of a screenshot's words -- pure, and tested
-  shot-reader.js      the vendored OCR engine, and the two passes over a screenshot
+  shot-reader.js      the vendored OCR engine, the passes over a screenshot,
+                      and the bank of icons a storage slot is named against
   sailor-import.js    the drop, the reading and the table that checks it
+  storage-shot.js     a storage window read off its pixels: the lattice, the
+                      icon each slot holds, the figure over its corner -- pure
+  storage-import.js   the Inventory's drop, and the counts it writes at a storage
+  barter-shot.js      the barter window read out of a screenshot's words, against
+                      the exchanges each island deals -- pure, and tested
+  barter-import.js    the Barter tab's drop, and the islands it answers at once
+  sea-boards.js       /api/boards from the browser: what the fleet read today
   quests.js           the quests that pay in ship materials
   sea_crystals.js     the 287 sea crystal variants, by grade
   gamefile.js         writing stops into the game's own world map
   market.js           Central Market prices, per region, kept offline
-reader/               Tesseract, vendored: the sailor import reads in the browser
+reader/               Tesseract, vendored: every screenshot is read in the browser
 tools/check-env.mjs   npm run check -- validates a sync configuration
 server/               only loaded when sync is configured
   config.js           what is switched on, and what is therefore offered
@@ -1229,6 +1282,7 @@ server/               only loaded when sync is configured
   auth.js             the Discord OAuth exchange
   api.js              /api/me and /api/state
   community.js        /api/community — the boards, built from the digests
+  boards.js           /api/boards — what the fleet saw of today's barter board
   feedback.js         /api/feedback — posts, screenshots, the inbox, a copy to a webhook
   images.js           is this actually a picture, and how big is it
   market.js           /api/market — the Market relay, on by default
