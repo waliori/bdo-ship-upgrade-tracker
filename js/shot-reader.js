@@ -291,6 +291,41 @@ export async function readShots(files, { onProgress = () => {}, signal = null, l
 }
 
 /* ------------------------------------------------------------------ *
+ * a window that is only words
+ * ------------------------------------------------------------------ */
+
+/** How wide a shot of a list is blown up to before it is read. The
+ *  barter window's item names are twelve pixels tall at 1080p and the
+ *  engine wants forty, but a whole screen at three times the size is
+ *  six thousand pixels across and a minute of reading -- so: twice,
+ *  and never past what a screenshot of one window needs. */
+const LIST_WIDE = 2200;
+
+/**
+ * Every word in a screenshot, as the engine read them.
+ *
+ * The sailor reader finds its panel first because a sailor's numbers
+ * are worthless without knowing which sailor they belong to. A list of
+ * barter offers is the opposite: the rows are the same shape wherever
+ * the window sits, and what matters is which island each row names. So
+ * this one reads the whole picture and leaves the sorting to
+ * barter-shot.js.
+ */
+export async function readWords(file, { lang = DEFAULT_LANG, wide = LIST_WIDE } = {}) {
+	const locale = localeFor(lang);
+	const { worker, Tesseract } = await open(locale.tess, () => {});
+	const bitmap = await createImageBitmap(file);
+	try {
+		if (bitmap.width * bitmap.height > LIMITS.pixels) return { words: [], width: 0, height: 0, why: 'far too large to be a screenshot' };
+		const scale = Math.max(1, Math.min(3, wide / bitmap.width));
+		const words = await scan(worker, paint(bitmap, { scale }), Tesseract.PSM.SPARSE_TEXT);
+		return { words, width: bitmap.width * scale, height: bitmap.height * scale, scale };
+	} finally {
+		bitmap.close();
+	}
+}
+
+/* ------------------------------------------------------------------ *
  * the storage window
  * ------------------------------------------------------------------ */
 
