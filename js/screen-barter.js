@@ -116,7 +116,7 @@ function restore() {
 	stockGoal = { ...DEFAULT_STOCK, targets: { ...DEFAULT_STOCK.targets } };
 	matOrders = { reach: 'want', calls: true, pace: 'full', quests: 'near' };
 	port = 0; routes = { key: '', ids: [] }; stash = ''; sail = null; reach = '';
-	board = { day: '', answers: [] }; matBoard = { day: '', answers: [] };
+	board = { day: '', answers: [], own: false }; matBoard = { day: '', answers: [] };
 	questSkip = { day: '', ids: [] }; questPull = { day: '', ids: [] };
 	if (!s) return;
 	try {
@@ -145,7 +145,13 @@ function restore() {
 			matBoard = { day: String(s.matBoard.day || ''), answers: s.matBoard.answers.filter(a => a && npcById.has(Number(a.npcId)) && typeof a.give === 'string' && typeof a.recv === 'string').map(a => ({ npcId: Number(a.npcId), give: a.give, recv: a.recv })) };
 		}
 		if (s.board && Array.isArray(s.board.answers)) {
-			board = { day: String(s.board.day || ''), answers: s.board.answers.filter(a => a && npcById.has(Number(a.npcId)) && typeof a.give === 'string' && typeof a.recv === 'string').map(a => ({ npcId: Number(a.npcId), give: a.give, recv: a.recv })) };
+			board = {
+				day: String(s.board.day || ''),
+				answers: s.board.answers.filter(a => a && npcById.has(Number(a.npcId)) && typeof a.give === 'string' && typeof a.recv === 'string').map(a => ({ npcId: Number(a.npcId), give: a.give, recv: a.recv })),
+				// A board sailed on the sailor's own word rather than on
+				// one of the forty layouts.
+				own: s.board.own === true
+			};
 		}
 	} catch { /* a view this build does not read: the defaults stand */ }
 }
@@ -455,11 +461,22 @@ function ashoreHTML(passes = () => true) {
 function boardNow() {
 	if (!combos || !barterData) return { standing: [], combo: null, data: barterData };
 	if (board.day !== barterKey()) {
-		board = { day: barterKey(), answers: [] };
+		board = { day: barterKey(), answers: [], own: false };
 		persist();
 	}
 	const standing = board.answers.length ? candidates(combos.combos, board.answers) : combos.combos;
-	const combo = standing.length === 1 ? standing[0] : null;
+	// The board the sailor is actually looking at, when the record has
+	// nothing that fits it. The forty layouts are a snapshot: the game
+	// edits a slot at a maintenance without renumbering anything, and
+	// once in a while what is in front of somebody is a board nobody
+	// has on file. Rather than fall back to the whole table -- which is
+	// every island's every exchange, and a fiction -- the islands they
+	// told us about are made into a board of their own. It has to be
+	// asked for, because until it is, a board half looked at is worse
+	// than the table.
+	const combo = standing.length === 1 ? standing[0]
+		: (!standing.length && board.own && board.answers.length) ? ownCombo(board.answers)
+			: null;
 	// Two reasons an island is not on the board, and they are told
 	// apart: the client's own table says the count has not opened
 	// today's exchange there, or the sailor looked and found it shut
@@ -469,6 +486,18 @@ function boardNow() {
 	const told = shutNow();
 	const shut = [...gated, ...told];
 	return { standing, combo, shut, gated, told, data: combo ? boardData(combo, barterData, npcById, board.answers, shut) : barterData };
+}
+
+/**
+ * What was seen today, as a layout in its own right.
+ *
+ * The same shape the forty have, so everything downstream -- the
+ * board, the chains, the run, the gates -- reads it without knowing
+ * the difference. Its id is not a number, which is how the bar tells a
+ * sailor it is theirs and not the record's.
+ */
+function ownCombo(answers) {
+	return { id: 'yours', seen: 0, own: true, offers: answers.map(a => [a.npcId, a.give, '1', a.recv]) };
 }
 
 /**
@@ -542,6 +571,14 @@ function boardHTML(b) {
 		const shutLine = fleetLine() + gatedLine + (told.length
 			? `<div class="board-shut">${told.length === 1 ? '<b>1 more island</b> is left out' : `<b>${told.length} more islands</b> are left out`}: ${isles(told)} — you looked and ${told.length === 1 ? 'it was' : 'they were'} not trading. <button class="linky" data-act="barter-shut-clear">put ${told.length === 1 ? 'it' : 'them'} back</button></div>`
 			: '');
+		if (b.combo.own) {
+			return bar('known',
+				`<b>Your own board</b><span>${b.combo.offers.length} island${b.combo.offers.length === 1 ? '' : 's'} as you read them</span>`,
+				`No layout in the record fits what you saw, so the board is what you told it and nothing else — every chain below climbs only the islands above. The record is from ${esc(combos.read)} and the game moves a slot at a maintenance without renumbering anything, so this is worth passing on.`,
+				seen,
+				`<button class="ghost-btn sm" data-act="barter-shot" title="Read more of the window off a screenshot">📷 Read the window</button>${tellChip()}<button class="ghost-btn sm" data-act="barter-own-board" title="Go back to planning on the whole table instead">↩ the whole table</button><button class="ghost-btn sm" data-act="barter-board-clear" title="The board was refreshed in game: start again">↻ Refreshed in game</button>`,
+				fleetLine());
+		}
 		return bar('known',
 			`<b>Layout ${esc(b.combo.id)}</b><span>today’s board</span>`,
 			`seen ${b.combo.seen} of ${combos.sample.refreshes} refreshes since ${esc(since)} · every island’s offer is known; the material islands roll on their own and are read from the whole table, and which of its four [Level 7] goods an island pays is not the layout’s to say`,
@@ -555,9 +592,9 @@ function boardHTML(b) {
 	if (!b.standing.length) {
 		return bar('lost',
 			'<b>No layout shows that</b><span>nothing in the record fits</span>',
-			`The record is from ${esc(combos.read)}; the game may have moved on. Read the window off a screenshot and tell the fleet what you saw — a board the record has never seen is exactly what is worth passing on.`,
+			`The record is from ${esc(combos.read)}; the game moves a slot at a maintenance without renumbering anything, so it may simply have moved on. Sail what you saw instead — the run is then planned on those islands and nothing else — and tell the fleet, because a board the record has never seen is exactly what is worth passing on.`,
 			seen,
-			`<button class="ghost-btn sm" data-act="barter-shot" title="Read the whole window off a screenshot, and offer it to the fleet">📷 Read the window</button>${tellChip(true)}<button class="ghost-btn sm" data-act="barter-board-clear">↻ Start again</button>`,
+			`<button class="chip primary" data-act="barter-own-board" title="Plan on the islands you have answered, instead of on the whole table">⚑ Sail what you saw</button><button class="ghost-btn sm" data-act="barter-shot" title="Read the whole window off a screenshot, and offer it to the fleet">📷 Read the window</button>${tellChip(true)}<button class="ghost-btn sm" data-act="barter-board-clear">↻ Start again</button>`,
 			fleetLine());
 	}
 	const first = ask[0] ? npcById.get(ask[0].npcId) : null;
@@ -2967,7 +3004,7 @@ function readWindow(then) {
 	openBarterImport({
 		deals: exchanges(barterData),
 		day: barterKey(),
-		layout: b.combo ? b.combo.id : null,
+		layout: b.combo && !b.combo.own ? b.combo.id : null,
 		onAnswers: answers => {
 			// The window is one list and the app keeps two: the forty
 			// layouts, and the material islands, which roll on their own
@@ -3043,7 +3080,9 @@ function tellTheFleet(then) {
 	if (!board.answers.length) return;
 	if (!me()) { toast('Sign in from the Menu to put your name to a reading'); return; }
 	toast('Sending today’s board…');
-	tellFleet(barterKey(), b.combo ? b.combo.id : null, board.answers.map(a => ({ ...a, qty: '1' }))).then(out => {
+	// A board of the sailor's own is not a layout number, and saying so
+	// would put a word where everyone else's reading has a figure.
+	tellFleet(barterKey(), b.combo && !b.combo.own ? b.combo.id : null, board.answers.map(a => ({ ...a, qty: '1' }))).then(out => {
 		toast(out.ok
 			? `The fleet has your reading of today's board — ${board.answers.length} island${board.answers.length === 1 ? '' : 's'}, with your name on it`
 			: `It did not go: ${out.why}`, out.ok);
@@ -3325,6 +3364,9 @@ export function barterAction(act, el, redraw) {
 		case 'barter-shot': readWindow(redraw); return false;
 		case 'barter-fleet-take': takeFleetBoard(el.dataset.id, redraw); return false;
 		case 'barter-fleet-tell': tellTheFleet(redraw); return false;
+		// A board the record has never seen, sailed on the sailor's own
+		// word rather than on the whole table's fiction.
+		case 'barter-own-board': board.own = !board.own; persist(); return true;
 		case 'barter-board-island': pickIsland(redraw); return false;
 		case 'barter-gated': showGated(); return false;
 		case 'barter-shut-pick': pickShut(redraw); return false;
@@ -3354,7 +3396,7 @@ export function barterAction(act, el, redraw) {
 		// the give not held, and no others, until cleared.
 		case 'barter-reach': reach = el.dataset.item || ''; goal = 'silver'; persist(); return true;
 		case 'barter-reach-clear': reach = ''; persist(); return true;
-		case 'barter-board-clear': board.answers = []; persist(); return true;
+		case 'barter-board-clear': board.answers = []; board.own = false; persist(); return true;
 		case 'barter-chain': {
 			// Ticked, a start replaces the ladder's other starts: one
 			// climb up those islands, from one place.
