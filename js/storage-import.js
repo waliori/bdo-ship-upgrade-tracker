@@ -75,6 +75,8 @@ export function openStorageImport(after = () => {}) {
 	let stop = null;            // an AbortController while a batch is being read
 	let rows = [];              // the gathered reading, as the table has it
 	let skipped = [];           // files that were not read, and why
+	let shared = 0;             // rows of slots two shots both had, counted once
+	let shaky = [];             // shots whose lattice the icons did not believe
 	let unnamed = 0;            // slots that held something the app does not know
 	let place = lastPlace();
 
@@ -137,7 +139,7 @@ export function openStorageImport(after = () => {}) {
 			<td><input class="purse-inline narrow" data-n="${i}" value="${r.n}" inputmode="numeric" aria-label="How many of ${esc(r.item)}"></td>
 			<td class="shot-note">${have === r.n ? '<span class="quiet">already right</span>' : `${F(have)} → <b>${F(r.n)}</b>${move > 0 ? ` <span class="quiet">(+${F(move)})</span>` : ` <span class="quiet">(${F(move)})</span>`}`}</td>
 			<td class="shot-note">${r.guessed
-		? `<span class="shot-warn" title="The figure over ${r.guessed === 1 ? 'one slot' : `${r.guessed} slots`} could not be made out, so it was taken as one of the thing. Check it against the shot beside it.">⚠ ${r.guessed === r.slots ? 'count guessed' : `${r.guessed} of ${r.slots} guessed`}</span>${r.shots.slice(0, 4).map(src => `<img class="shot-corner" src="${esc(src)}" alt="the corner of the slot as the screenshot had it">`).join('')}`
+		? `<span class="shot-warn" title="The reader was not sure of the figure over ${r.guessed === 1 ? 'one slot' : `${r.guessed} slots`}. What is written here is its best reading: check it against the slot beside it.">⚠ ${r.guessed === r.slots ? 'check this one' : `check ${r.guessed} of ${r.slots}`}</span>${r.shots.slice(0, 4).map(src => `<img class="shot-corner" src="${esc(src)}" alt="the corner of the slot as the screenshot had it">`).join('')}`
 		: ''}</td>
 		</tr>`;
 	};
@@ -151,7 +153,9 @@ export function openStorageImport(after = () => {}) {
 		? `Read ${rows.length} thing${rows.length === 1 ? '' : 's'} this app keeps a count of${unnamed ? `, and passed over ${unnamed} slot${unnamed === 1 ? '' : 's'} of what it does not` : ''}. These are written as what is kept at <b>${esc(place || 'your bags')}</b>, so anything of yours that is there and not in the shot should be unticked.`
 		: `No storage slots were found in ${skipped.length ? 'the rest of ' : ''}those.`}</p>
 		${skipped.length ? `<details class="shot-skipped"><summary>${skipped.length} not read</summary>${skipped.map(s => `<div class="row-sub">${esc(s.name)} — ${esc(s.why)}</div>`).join('')}</details>` : ''}
-		${guessed ? `<p class="dialog-note quiet">${guessed === 1 ? 'One line has a count' : `${guessed} lines have counts`} the reader could not make out — they are taken as one apiece and marked ⚠, with the corner of the slot as it was. A count read wrong is worse than a count asked about.</p>` : ''}
+		${guessed ? `<p class="dialog-note quiet">${guessed === 1 ? 'One line has a count' : `${guessed} lines have counts`} the reader was not sure of — its best reading is written in and marked ⚠, with the corner of the slot as it was, to check against.</p>` : ''}
+		${shaky.length ? `<p class="dialog-note quiet">The slots in ${shaky.map(n => `<b>${esc(n)}</b>`).join(', ')} could not be lined up with any confidence — a small or blurred shot, or not a storage at all — so everything read from ${shaky.length === 1 ? 'it' : 'them'} is marked ⚠.</p>` : ''}
+		${shared ? `<p class="dialog-note quiet">${shared === 1 ? 'One row of slots was' : `${shared} rows of slots were`} in two of the screenshots — the storage was scrolled between them — and ${shared === 1 ? 'was' : 'were'} counted once.</p>` : ''}
 		${rows.length ? `<div class="shot-table-wrap"><table class="shot-table">
 			<thead><tr><th></th><th>What</th><th>How many</th><th>at ${esc(place || 'the bags')}</th><th></th></tr></thead>
 			<tbody>${rows.map(rowHTML).join('')}</tbody>
@@ -195,7 +199,10 @@ export function openStorageImport(after = () => {}) {
 			stop = null;
 		}
 		unnamed = 0;
+		shared = 0;
+		shaky = results.filter(r => r.shaky && (r.rows || []).length).map(r => r.file);
 		for (const shot of results) {
+			shared += shot.sharedRows || 0;
 			if (shot.why) skipped.push({ name: shot.file, why: shot.why });
 			unnamed += shot.unknown || 0;
 		}

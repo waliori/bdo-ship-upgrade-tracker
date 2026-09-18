@@ -20,9 +20,8 @@ import assert from 'node:assert/strict';
 import {
 	grayscale, edgeProfile, combFit, gridOf, cellsOf, panelOf,
 	describe as descriptorOf, similarity, bankEntry, rank, nameOf,
-	calibrate, readSlots, countBox, countBand, inkOf, countLine, readCounts, COARSE, FINE
+	calibrate, settleGrid, BELIEVED, readSlots, countBox, countPatch, PATCH_W, PATCH_H, overlapOf, sharedRows, isHeld, COARSE, FINE
 } from '../js/storage-shot.js';
-import { FIGURES, TW, TH } from '../js/digit_font.js';
 
 /* ------------------------------------------------------------------ *
  * a storage, painted
@@ -338,157 +337,42 @@ test('an edge profile is taken along the axis it was asked for', () => {
 });
 
 /* ------------------------------------------------------------------ *
- * the count over the corner
+ * a lattice the icons believe
  * ------------------------------------------------------------------ */
 
-/**
- * A window with counts written on it, in the game's own figures.
+test('a lattice is believed when its squares look like icons', () => {
+	const s = window_({ pitch: 52, plan: everySlot(5, 7) });
+	const settled = settleGrid(s.rgba, s.w, s.h, grayscale(s.rgba, s.w, s.h), bank);
+	assert.ok(settled && !settled.doubtful);
+	assert.ok(Math.abs(settled.grid.pitch - 52) < 0.6, `pitch ${settled.grid.pitch}`);
+	assert.ok(settled.fit >= BELIEVED);
+});
+
+test('three things in a bare storage are enough to believe it', () => {
+	const plan = [{ row: 0, col: 0, icon: 1, n: 1 }, { row: 2, col: 3, icon: 5, n: 1 }, { row: 4, col: 6, icon: 9, n: 1 }];
+	const s = window_({ plan });
+	const settled = settleGrid(s.rgba, s.w, s.h, grayscale(s.rgba, s.w, s.h), bank);
+	assert.ok(settled && !settled.doubtful, `fit ${settled && settled.fit}`);
+});
+
+test('a lattice of things that are not icons is handed over as doubtful', () => {
+	// every slot holds a stranger: the borders are a perfect lattice and
+	// nothing in it looks like anything the bank has
+	const strangers = Array.from({ length: BANK_SIZE }, (_, i) => icon(777000 + i * 91));
+	const others = strangers.map((ic, i) => bankEntry(`other ${i}`, ic.rgba, 44, 44));
+	const s = sheet(400, 300);
+	for (let i = 0; i < 40; i++) s.box(10 + (i % 8) * 47, 12 + Math.floor(i / 8) * 53, 30, 9, [200, 200, 210]);
+	const settled = settleGrid(s.rgba, s.w, s.h, grayscale(s.rgba, s.w, s.h), others);
+	assert.ok(!settled || settled.doubtful, 'bars on a page were believed to be a storage');
+});
+
+/* ------------------------------------------------------------------ *
+ * the count over the corner
  *
- * The figures are the ones the reader carries (js/digit_font.js), drawn
- * back into a slot the way the game draws them: on one line, at one
- * height, right-aligned against the slot's edge, pale with a dark
- * outline round them -- and over a drawing bright enough to matter,
- * because a count over a white clam is dimmer than the clam and that is
- * the whole difficulty.
- */
-function paintCount(s, cell, pitch, text, { height = Math.round(pitch * 0.21) } = {}) {
-	const base = Math.round(cell.cy + pitch / 2 - pitch * 0.165);
-	let x1 = Math.round(cell.cx + pitch / 2 - pitch * 0.2);
-	// The inverse of the reader's own sampling: a figure's grid is its
-	// glyph centred in TW columns, stretched to TH rows.
-	const greyAt = (f, wide, i, j) => {
-		const used = Math.min(TW, Math.max(2, Math.round(wide * (TH / height))));
-		const at = Math.floor((TW - used) / 2);
-		const tx = Math.min(TW - 1, at + Math.floor(((i + 0.5) / wide) * used));
-		const ty = Math.min(TH - 1, Math.floor(((j + 0.5) / height) * TH));
-		return f.grey[ty * TW + tx];
-	};
-	for (const ch of [...text].reverse()) {
-		const f = FIGURES[Number(ch)];
-		const wide = Math.max(2, Math.round(f.wide * height));
-		const x0 = x1 - wide + 1, y0 = base - height + 1;
-		// The outline first, a pixel round everything that will be ink…
-		for (let j = -1; j <= height; j++) {
-			for (let i = -1; i <= wide; i++) {
-				let near = false;
-				for (let dj = -1; dj <= 1 && !near; dj++) {
-					for (let di = -1; di <= 1; di++) {
-						const a = i + di, b = j + dj;
-						if (a < 0 || b < 0 || a >= wide || b >= height) continue;
-						if (greyAt(f, wide, a, b) > 0.4) { near = true; break; }
-					}
-				}
-				if (near) s.put(x0 + i, y0 + j, [6, 6, 8]);
-			}
-		}
-		// …then the stroke over it, no brighter than the game draws it.
-		for (let j = 0; j < height; j++) {
-			for (let i = 0; i < wide; i++) {
-				const g = greyAt(f, wide, i, j);
-				if (g > 0.4) {
-					const l = Math.round(80 + g * 120);
-					s.put(x0 + i, y0 + j, [l, l, l]);
-				}
-			}
-		}
-		x1 -= wide + 1;
-	}
-}
-
-/** A window of slots, some of them with counts written on them. */
-function counted(plan, { pitch = 48, ox = 9, oy = 37, cols = 7, rows = 5 } = {}) {
-	const s = window_({ pitch, ox, oy, cols, rows, plan });
-	const cells = plan.map(p => ({
-		cx: ox + p.col * pitch + pitch / 2,
-		cy: oy + p.row * pitch + pitch / 2,
-		row: p.row, col: p.col
-	}));
-	plan.forEach((p, i) => { if (p.text) paintCount(s, cells[i], pitch, p.text); });
-	return { sheet: s, pitch };
-}
-
-test('the line every count stands on is found from all the slots at once', () => {
-	const plan = [
-		{ row: 1, col: 1, icon: 2, text: '18' }, { row: 1, col: 3, icon: 5, text: '245' },
-		{ row: 2, col: 2, icon: 7, text: '7' }, { row: 3, col: 4, icon: 1, text: '1200' },
-		{ row: 3, col: 1, icon: 9, text: '30' }
-	];
-	const { sheet: s, pitch } = counted(plan);
-	const bands = plan.map(p => {
-		const cell = { cx: 9 + p.col * pitch + pitch / 2, cy: 37 + p.row * pitch + pitch / 2, pitch };
-		return { cell, ink: inkOf(s.rgba, s.w, s.h, countBand(cell, pitch)) };
-	});
-	const line = countLine(bands, pitch);
-	assert.ok(line, 'no line found');
-	assert.ok(Math.abs(line.height - Math.round(pitch * 0.21)) <= 1, `height ${line.height}`);
-	assert.ok(Math.abs(line.base - (-pitch * 0.165)) <= 1.5, `baseline ${line.base}`);
-});
-
-test('the figures over a slot read back as the number they are', () => {
-	// Painted from the figures the reader carries, which are averages of
-	// hundreds of real ones and therefore softer than the game's own
-	// drawing -- so this is the size they were learnt at. What it pins
-	// is the pipeline: the line, the boxes, the beam and the figures,
-	// end to end. How well it does on real screenshots is measured
-	// against shots whose numbers are known, outside the repository.
-	const pitch = 57;
-	const plan = [
-		{ row: 1, col: 1, icon: 2, text: '18' }, { row: 1, col: 3, icon: 5, text: '245' },
-		{ row: 2, col: 2, icon: 7, text: '7' }, { row: 2, col: 4, icon: 3, text: '1200' },
-		{ row: 3, col: 1, icon: 9, text: '30' }
-	];
-	const { sheet: s } = counted(plan, { pitch });
-	const slots = plan.map(p => ({
-		row: p.row, col: p.col,
-		cx: 9 + p.col * pitch + pitch / 2, cy: 37 + p.row * pitch + pitch / 2,
-		at: { cx: 9 + p.col * pitch + pitch / 2, cy: 37 + p.row * pitch + pitch / 2, side: pitch * 0.8 }
-	}));
-	const counts = readCounts(s.rgba, s.w, s.h, { pitch, ox: 9, oy: 37 }, slots);
-	assert.deepEqual(slots.map(x => (counts.get(x) ? String(counts.get(x).count) : '')), plan.map(p => p.text));
-});
-
-test('a reading the figures do not support is no reading at all', () => {
-	// The drawing in a slot is not writing, however bright it is: a
-	// count invented out of it would be believed, and a count asked
-	// about would not.
-	const pitch = 57;
-	const plan = [
-		{ row: 1, col: 1, icon: 2, text: '18' }, { row: 1, col: 3, icon: 5, text: '245' },
-		{ row: 2, col: 2, icon: 7, text: '7' }, { row: 3, col: 1, icon: 9, text: '30' }
-	];
-	const { sheet: s } = counted(plan, { pitch });
-	// a slot with a bright, busy drawing and nothing written on it
-	const cx = 9 + 5 * pitch + pitch / 2, cy = 37 + 2 * pitch + pitch / 2;
-	for (let i = 0; i < 9; i++) s.box(Math.round(cx - 20 + i * 5), Math.round(cy - 8), 3, 20, [225, 220, 200]);
-	const slots = [...plan, { row: 2, col: 5, text: '' }].map(p => ({
-		row: p.row, col: p.col,
-		cx: 9 + p.col * pitch + pitch / 2, cy: 37 + p.row * pitch + pitch / 2,
-		at: { cx: 9 + p.col * pitch + pitch / 2, cy: 37 + p.row * pitch + pitch / 2, side: pitch * 0.8 }
-	}));
-	const counts = readCounts(s.rgba, s.w, s.h, { pitch, ox: 9, oy: 37 }, slots);
-	assert.equal(counts.get(slots[4]) ?? null, null);
-});
-
-test('a slot with nothing written on it is one of the thing, and sure of it', () => {
-	// The game leaves a single item's slot blank, and most of a storage
-	// is single items -- so a blank corner is an answer, not a doubt.
-	const pitch = 57;
-	const plan = [
-		{ row: 1, col: 1, icon: 2, text: '18' }, { row: 1, col: 3, icon: 5, text: '245' },
-		{ row: 2, col: 2, icon: 7, text: '7' }, { row: 2, col: 4, icon: 3, text: '1200' },
-		{ row: 3, col: 1, icon: 9, text: '' }
-	];
-	const { sheet: s } = counted(plan, { pitch });
-	const slots = plan.map(p => ({
-		row: p.row, col: p.col,
-		cx: 9 + p.col * pitch + pitch / 2, cy: 37 + p.row * pitch + pitch / 2,
-		at: { cx: 9 + p.col * pitch + pitch / 2, cy: 37 + p.row * pitch + pitch / 2, side: pitch * 0.8 }
-	}));
-	const counts = readCounts(s.rgba, s.w, s.h, { pitch, ox: 9, oy: 37 }, slots);
-	const blank = counts.get(slots[4]);
-	assert.ok(blank && blank.blank, 'a blank slot was not read as a blank one');
-	assert.equal(blank.count, 1);
-});
+ * What reads the figures is a network, and it is tested against real
+ * slots in count-net.test.mjs. Here is only the cutting: that the patch
+ * handed to it is the lower half of the slot, whatever the slot's size.
+ * ------------------------------------------------------------------ */
 
 test('the corner of a slot is where the count is, and it is all of the width', () => {
 	const box = countBox({ cx: 100, cy: 100, side: 50 });
@@ -496,14 +380,113 @@ test('the corner of a slot is where the count is, and it is all of the width', (
 	assert.ok(box.y > 100 && box.y + box.h <= 126);  // the bottom of the slot only
 });
 
-test('ink is what has the game\'s dark outline against it, not what is brightest', () => {
-	// A pale drawing, brighter than any figure, with a figure over it.
-	const s = sheet(60, 30, [24, 24, 28]);
-	s.box(4, 4, 30, 22, [210, 210, 215]);                       // the drawing
-	for (let y = 6; y < 22; y++) { s.put(44, y, [8, 8, 10]); s.put(48, y, [8, 8, 10]); }
-	for (let y = 6; y < 22; y++) { s.put(45, y, [150, 150, 150]); s.put(46, y, [150, 150, 150]); }
-	const ink = inkOf(s.rgba, s.w, s.h, { x: 0, y: 0, w: 60, h: 30 });
-	const inked = (x, y) => ink.mask[y * ink.rw + x];
-	assert.ok(inked(45, 12) || inked(46, 12), 'the stroke was not taken as ink');
-	assert.ok(!inked(18, 12), 'the drawing was taken as ink');
+test('the patch is the lower half of the slot, at one size whatever the slot was', () => {
+	for (const pitch of [40, 64, 96]) {
+		const s = sheet(pitch * 3, pitch * 3, [0, 0, 0]);
+		const x = pitch, y = pitch;
+		s.box(x, y, pitch, pitch / 2, [255, 0, 0]);                       // upper half: never seen
+		s.box(x, y + pitch / 2, pitch / 2, pitch / 2, [0, 255, 0]);       // lower left
+		s.box(x + pitch / 2, y + pitch / 2, pitch / 2, pitch / 2, [0, 0, 255]); // lower right
+		const patch = countPatch(s.rgba, s.w, s.h, { cx: x + pitch / 2, cy: y + pitch / 2 }, pitch);
+		assert.equal(patch.length, 3 * PATCH_W * PATCH_H);
+		const at = (plane, i, j) => patch[plane * PATCH_W * PATCH_H + j * PATCH_W + i];
+		for (const j of [4, 16, 27]) {
+			assert.ok(at(0, 8, j) < 0.05 && at(0, 56, j) < 0.05, `red from the upper half at pitch ${pitch}`);
+			assert.ok(at(1, 8, j) > 0.95 && at(2, 8, j) < 0.05, `lower left at pitch ${pitch}`);
+			assert.ok(at(2, 56, j) > 0.95 && at(1, 56, j) < 0.05, `lower right at pitch ${pitch}`);
+		}
+	}
+});
+
+/* ------------------------------------------------------------------ *
+ * two screenshots of one storage
+ * ------------------------------------------------------------------ */
+
+/** A lattice as readSlots gives it back, from rows of letters: a letter
+ *  is an item (the same letter, the same picture), a dot an empty slot,
+ *  and `#` a busy square that is no item -- the title bar. */
+function lattice(rows, { firstRow = 0 } = {}) {
+	const sigs = new Map();
+	const sigOf = ch => {
+		if (!sigs.has(ch)) {
+			const next = rolls(ch.charCodeAt(0) * 7919);
+			// unit length a plane, as describe() leaves them
+			const plane = COARSE * COARSE;
+			const v = Float32Array.from({ length: 3 * plane }, () => next() - 0.5);
+			for (let k = 0; k < 3; k++) {
+				const len = Math.hypot(...v.subarray(k * plane, (k + 1) * plane));
+				for (let i = k * plane; i < (k + 1) * plane; i++) v[i] /= len;
+			}
+			sigs.set(ch, v);
+		}
+		return sigs.get(ch);
+	};
+	const out = [];
+	rows.forEach((line, r) => [...line].forEach((ch, c) => {
+		const at = { row: firstRow + r, col: c };
+		if (ch === '.') out.push({ ...at, empty: true });
+		else if (ch === '#') out.push({ ...at, empty: false, score: 0.4, sig: sigOf(ch) });
+		else out.push({ ...at, empty: false, score: 0.9, sig: sigOf(ch) });
+	}));
+	return out;
+}
+
+test('a title bar is busy without being an item', () => {
+	const [bar, thing, bare] = lattice(['#a.']);
+	assert.equal(isHeld(bar), false);
+	assert.equal(isHeld(thing), true);
+	assert.equal(isHeld(bare), false);
+});
+
+test('the rows two shots share are found, title bars and all', () => {
+	const first = lattice(['###...##', 'abcdefgh', 'ijklmnop', 'qqqrrsst']);
+	const second = lattice(['###...##', 'qqqrrsst', 'uvwxyzab', 'cd......', '........']);
+	const hit = overlapOf(first, second);
+	assert.ok(hit, 'the shared row was not found');
+	assert.equal(hit.rows, 1);
+	assert.equal(overlapOf(second, first), null);
+	const shared = sharedRows([first, second]);
+	assert.deepEqual([...shared[0]], []);
+	assert.deepEqual([...shared[1]], [1]);           // the second shot's row 1 is the first's last
+});
+
+test('shots dropped in the wrong order still share their rows once', () => {
+	const upper = lattice(['abcdefgh', 'ijklmnop', 'qrstuvwx']);
+	const lower = lattice(['ijklmnop', 'qrstuvwx', 'yzabcdef']);
+	const shared = sharedRows([lower, upper]);
+	assert.deepEqual([...shared[0]], []);
+	assert.deepEqual([...shared[1]].sort(), [1, 2]);  // upper's last two are lower's first two
+});
+
+test('the same shot given twice is one storage, not two', () => {
+	const shot = lattice(['abcdefgh', 'ijklmnop', 'qr......']);
+	const shared = sharedRows([shot, lattice(['abcdefgh', 'ijklmnop', 'qr......'])]);
+	assert.equal(shared[1].size, 3);
+});
+
+test('a row of one thing repeated is not proof of anything', () => {
+	// Eighteen sticks of dynamite over two rows: the end of one shot and
+	// the start of the next look alike and are not the same row.
+	const first = lattice(['abcdefgh', 'dddddddd']);
+	const second = lattice(['dddddddd', 'ijklmnop']);
+	assert.equal(overlapOf(first, second), null);
+});
+
+test('a crop that lost its first column still lines up', () => {
+	const first = lattice(['abcdefgh', 'ijklmnop']);
+	const second = lattice(['jklmnop', 'rstuvwx']);
+	const hit = overlapOf(first, second);
+	assert.ok(hit);
+	assert.equal(hit.shift, 1);
+});
+
+test('one slot under the pointer does not hide a shared row', () => {
+	const first = lattice(['abcdefgh', 'ijklmnop']);
+	const second = lattice(['ijkZmnop', 'qrstuvwx']);
+	assert.equal(overlapOf(first, second).rows, 1);
+});
+
+test('shots of different storages share nothing', () => {
+	const shared = sharedRows([lattice(['abcdefgh', 'ijklmnop']), lattice(['qrstuvwx', 'yzABCDEF'])]);
+	assert.equal(shared[0].size + shared[1].size, 0);
 });

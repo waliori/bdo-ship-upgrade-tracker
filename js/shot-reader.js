@@ -21,7 +21,7 @@
 import { panelBox, sailorFrom } from './sailor-shot.js';
 import { localeFor, DEFAULT_LANG } from './sailor-locales.js';
 import { iconLoader } from './icon-loader.js';
-import { grayscale, findGrid, calibrate, readSlots, bankEntry, countBox, readCounts } from './storage-shot.js';
+import { grayscale, settleGrid, readSlots, bankEntry, countBox, readCounts, isHeld, sharedRows } from './storage-shot.js';
 
 /** Where the vendored engine lives. Versioned: see reader/README.md. */
 const LIB = '/reader/tesseract-7.0.0.esm.min.js';
@@ -423,19 +423,22 @@ async function readStorageOne(file, icons) {
 		const sheet = pixelsOf(bitmap);
 		const image = sheet.image;
 		const gray = grayscale(image.data, image.width, image.height);
-		const grid = findGrid(gray, image.width, image.height);
-		if (!grid) return { rows: [], why: 'no storage grid in it' };
-		const cal = calibrate(image.data, image.width, image.height, grid, icons);
+		const settled = settleGrid(image.data, image.width, image.height, gray, icons);
+		if (!settled) return { rows: [], why: 'no storage grid in it' };
+		const { grid, cal } = settled;
+		// A lattice the icons did not believe: read anyway -- a storage
+		// of three things is a storage -- but nothing in it is sure.
+		const shaky = Boolean(settled.doubtful);
 		const slots = readSlots(image.data, image.width, image.height, grid, icons, cal);
 		const named = slots.filter(s => s.name);
 		if (!named.length) return { rows: [], why: 'nothing in it was an icon the app knows' };
-		// The counts, read off the pixels: the line every figure in this
-		// window stands on, then a reading a slot, against the game's own
-		// figures. No engine -- see storage-shot.js for why the OCR one
-		// was the wrong tool for eight-pixel writing over a gold bar.
+		// The counts, read off the pixels by the small network in
+		// count-net.js. No engine is fetched for this: see there for
+		// why neither the OCR one nor a set of templates was the right
+		// tool for eight-pixel writing over a gold bar.
 		const counts = readCounts(image.data, image.width, image.height, grid, named);
-		// The corner of a slot whose figure could not be read, as a
-		// picture, so the table can show a player what the reader was
+		// The corner of a slot whose figure the reader was not sure of,
+		// as a picture, so the table can show a player what it was
 		// looking at instead of asking them to take its word.
 		const corner = at => {
 			const box = countBox(at);
@@ -449,32 +452,25 @@ async function readStorageOne(file, icons) {
 		};
 		const rows = named.map(s => {
 			const entry = icons.find(e => e.name === s.name);
-			// A slot with nothing written on it holds one of the thing --
-			// that is how the game draws a single item -- and so does a
-			// slot whose figure could not be made out, except that the
-			// second is a guess and says so. The table marks those, shows
-			// the corner of the slot as it was, and lets the player type
-			// over them; a count read wrong is worse than a count asked
-			// about, and a storage is mostly single items.
 			// Three answers, and the table shows them differently. A slot
 			// with a figure on it that read: the count. A slot with
 			// nothing written on it: one, and sure of it -- that is how
-			// the game draws a single item. A slot with writing that
-			// could not be read: one, marked, with the corner of the slot
-			// beside it to type over.
+			// the game draws a single item. A reading the network was
+			// not sure of: its best guess, marked, with the corner of
+			// the slot beside it to check against and type over.
 			const said = counts.get(s);
 			return {
 				item: s.name,
 				alsoCalled: entry && entry.names.length > 1 ? entry.names : null,
 				qty: said ? said.count : 1,
-				sure: !counts.has(s) || Boolean(said),
+				sure: !shaky && (!said || !said.doubt),
 				score: s.score,
 				row: s.row,
 				col: s.col,
-				corner: counts.has(s) && !said ? corner(s.at) : null
+				corner: shaky || (said && said.doubt) ? corner(s.at) : null
 			};
 		});
-		return { rows, unknown: slots.filter(s => !s.empty && !s.name).length, slots: slots.length };
+		return { rows, unknown: slots.filter(s => isHeld(s) && !s.name).length, slots: slots.length, lattice: slots, shaky };
 	} finally {
 		bitmap.close();
 	}
@@ -502,6 +498,18 @@ export async function readStorageShots(files, { onProgress = () => {}, signal = 
 			res = { rows: [], why: err && err.message ? err.message : 'could not be read' };
 		}
 		out.push({ file: file.name, ...res });
+	}
+	// Shots of one storage overlap: scroll, shoot again, and the last row
+	// of one is the first row of the next. Those rows are one row, and
+	// are taken from the shot that came first.
+	const shared = sharedRows(out.map(o => o.lattice || []));
+	for (let i = 0; i < out.length; i++) {
+		const twice = shared[i];
+		if (twice.size) {
+			out[i].rows = out[i].rows.filter(r => !twice.has(r.row));
+			out[i].sharedRows = twice.size;
+		}
+		delete out[i].lattice;
 	}
 	onProgress({ stage: 'done', at: 1, n: files.length });
 	return out;
