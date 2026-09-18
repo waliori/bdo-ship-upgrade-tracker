@@ -206,6 +206,11 @@ export const config = {
 	// stops anything pathological: a save is a few kilobytes, and the
 	// server coalesces them before they reach the database anyway.
 	maxPushesPerMinute: num('MAX_PUSHES_PER_MINUTE', 600),
+	// Telling the fleet what today's board is showing. A board is read
+	// once a day and told once a day, in as many goes as it takes to
+	// sail it -- so this is far above anything the app does and only
+	// bites something that is not the app.
+	maxBoardsPerMinute: num('MAX_BOARDS_PER_MINUTE', 20),
 
 	// How long a change waits before being written out. Long enough that
 	// typing "1", "12", "120" is one write rather than three; short enough
