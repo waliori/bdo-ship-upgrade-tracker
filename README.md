@@ -744,6 +744,26 @@ the record the app ships is a snapshot, the game edits a slot at a
 maintenance without renumbering anything, and a board nobody has on file
 is exactly the one worth passing on.
 
+**The layout book is where the evidence is kept.** The bar asks one
+question — which board is it today — and is no place for forty layouts
+and two months of readings. *📖 The layout book*, on the bar, opens them
+in a view of their own: every layout on file as a card, with the land
+goods its [Level 1] islands are asking for and the goods its coin
+islands will take drawn on it, how many exchanges it pays at each level,
+how often the record has seen it and how often the fleet has. A reading
+that pins one layout counts for it; a reading three layouts fit counts
+for none. Above them are the **boards nobody has on file** — read by
+sailors, fitting nothing — each with who read it, how many others saw
+the same, and the layout it is nearest to: parting at a slot or two is a
+layout the game has edited, parting at twenty is a new board or a slip,
+and the count beside it says which to believe. A card opens into the
+whole board, island by island with the goods drawn, marked where it
+agrees or disagrees with what you saw today and where your barter count
+has not opened an exchange; a board seen today can be taken as today's
+from there. Search finds a layout by an island, a good, or its number.
+Readings are kept two months for this, since a layout comes round every
+few weeks.
+
 ### The harbour
 
 ![A place on a board opens that sailor's card, and the card stands the Ship tab up on their boat](docs/media/the-boards.gif)
@@ -1314,6 +1334,9 @@ js/
                       the exchanges each island deals -- pure, and tested
   barter-import.js    the Barter tab's drop, and the islands it answers at once
   sea-boards.js       /api/boards from the browser: what the fleet read today
+  layout-book.js      the layouts on file against what the fleet has read: which
+                      layout a reading votes for, and the boards in no record -- pure
+  layouts-view.js     the layout book's dialog: cards, a board opened out, search
   quests.js           the quests that pay in ship materials
   sea_crystals.js     the 287 sea crystal variants, by grade
   gamefile.js         writing stops into the game's own world map
