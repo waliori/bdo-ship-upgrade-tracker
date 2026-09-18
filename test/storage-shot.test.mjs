@@ -20,7 +20,7 @@ import assert from 'node:assert/strict';
 import {
 	grayscale, edgeProfile, combFit, gridOf, cellsOf, panelOf,
 	describe as descriptorOf, similarity, bankEntry, rank, nameOf,
-	calibrate, readSlots, COARSE, FINE
+	calibrate, readSlots, countBox, countFrom, digitMask, COARSE, FINE
 } from '../js/storage-shot.js';
 
 /* ------------------------------------------------------------------ *
@@ -334,4 +334,66 @@ test('an edge profile is taken along the axis it was asked for', () => {
 	const across = edgeProfile(gray, 120, 90, 'x', 0, 90);
 	assert.ok(Math.max(...down) > 100);
 	assert.ok(Math.max(...across) < 30);
+});
+
+/* ------------------------------------------------------------------ *
+ * the count over the corner
+ * ------------------------------------------------------------------ */
+
+/** A slot with a count written over it the way the game writes one:
+ *  pale figures with a dark shadow, right-aligned on the bottom. */
+function slotWithCount(figures, { pitch = 48, art = null } = {}) {
+	const s = sheet(pitch, pitch, [26, 27, 33]);
+	if (art) s.disc(pitch / 2, pitch / 2, pitch * 0.34, art);
+	// Each figure: a dark halo, then a pale bar with a gap in it, so
+	// the strokes are thin and the shape is not solid.
+	const h = Math.round(pitch * 0.2), w = Math.round(pitch * 0.1);
+	let x = pitch - 4;
+	for (let i = figures - 1; i >= 0; i--) {
+		const left = x - w;
+		s.box(left - 2, pitch - 6 - h - 2, w + 4, h + 4, [4, 4, 6]);
+		s.box(left, pitch - 6 - h, w, h, [232, 232, 236]);
+		s.box(left + 2, pitch - 6 - h + 2, Math.max(1, w - 4), Math.max(1, h - 4), [26, 26, 30]);
+		x = left - 3;
+	}
+	return s;
+}
+
+test('the corner of a slot is where the count is, and it is all of the width', () => {
+	const box = countBox({ cx: 100, cy: 100, side: 50 });
+	assert.equal(box.x, 75);                       // the whole width: 58,855 is wide
+	assert.ok(box.y > 100 && box.y + box.h <= 126);  // the bottom of the slot only
+});
+
+test('figures over a slot are found, and their number is the number of figures', () => {
+	for (const n of [1, 2, 3]) {
+		const s = slotWithCount(n);
+		const m = digitMask(s.rgba, s.w, s.h, countBox({ cx: 24, cy: 24, side: 48 * 0.8 }));
+		assert.ok(m, `nothing found for ${n} figures`);
+		assert.equal(m.glyphs.length, n);
+	}
+});
+
+test('a slot with a clear corner has no count on it, which means one', () => {
+	const s = sheet(48, 48, [26, 27, 33]);
+	s.disc(24, 14, 10, [90, 130, 200]);
+	assert.equal(digitMask(s.rgba, s.w, s.h, countBox({ cx: 24, cy: 24, side: 48 * 0.8 })), null);
+});
+
+test('a bright corner of the drawing is not a count', () => {
+	// A pale shape in the middle of the slot, with nothing written: the
+	// run has to reach the right-hand edge to be a count.
+	const s = sheet(48, 48, [26, 27, 33]);
+	s.box(6, 30, 14, 10, [240, 240, 240]);
+	const m = digitMask(s.rgba, s.w, s.h, countBox({ cx: 24, cy: 24, side: 48 * 0.8 }));
+	assert.ok(!m || m.unreadable, 'the drawing was read as a count');
+});
+
+test('a count is digits or it is nothing', () => {
+	assert.equal(countFrom('1,200'), 1200);
+	assert.equal(countFrom('58855'), 58855);
+	assert.equal(countFrom(''), null);
+	assert.equal(countFrom('l2'), 12);            // the engine's letters for figures
+	assert.equal(countFrom('12x'), null);
+	assert.equal(countFrom('0'), null);           // a slot never holds none
 });

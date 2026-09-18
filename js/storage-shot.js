@@ -642,6 +642,240 @@ export function readSlots(rgba, w, h, grid, bank, cal, { flat = 26 } = {}) {
 	return out;
 }
 
+/* ------------------------------------------------------------------ *
+ * how many
+ * ------------------------------------------------------------------ */
+
+/**
+ * Where on a slot the count is written: the bottom of it, which is the
+ * one part of a slot the descriptors were told to ignore.
+ *
+ * The game draws the figure over the lower right in white with a dark
+ * outline, right-aligned, and a five-figure count runs most of the way
+ * across. So the whole width is taken and only the height is trimmed --
+ * cropping to the right would cut the leading digit off a stack of
+ * 58,855 and hand back 855.
+ */
+export function countBox(at) {
+	const side = at.side;
+	return {
+		x: at.cx - side / 2,
+		y: at.cy + side * (KEEP - 0.5) - side * 0.04,
+		w: side,
+		h: side * (1 - KEEP) + side * 0.04
+	};
+}
+
+/**
+ * The figure written over a slot, cut out of everything else drawn
+ * there.
+ *
+ * Handing the corner of a slot to the engine as it stands does not
+ * work: the drawing under the count has bright parts of its own, and
+ * what comes back is the count with a stray digit in front of it --
+ * "520" for a stack of twenty, "1752" for a stack of thirty-five.
+ * Which is worse than nothing, because a wrong count reads as a real
+ * one.
+ *
+ * So the ink is picked apart first. The corner is thresholded, the
+ * blobs are labelled, and only the ones that could be digits are kept:
+ * the right sort of height for the slot, and standing on the same
+ * line as their neighbours, since a number is a row of figures on one
+ * baseline and a highlight on a gold bar is not. What goes to the
+ * engine is those blobs alone, on a clean ground.
+ */
+export function digitMask(rgba, w, h, box) {
+	// Two kinds of no answer, and they mean opposite things. Nothing
+	// written on the slot is the game's way of saying one of the thing.
+	// Something written that cannot be made out is a count nobody knows
+	// -- and calling that one would be a lie the player has to catch.
+	const unreadable = { glyphs: [], unreadable: true };
+	const x0 = Math.max(0, Math.floor(box.x)), y0 = Math.max(0, Math.floor(box.y));
+	const x1 = Math.min(w, Math.ceil(box.x + box.w)), y1 = Math.min(h, Math.ceil(box.y + box.h));
+	const rw = x1 - x0, rh = y1 - y0;
+	if (rw < 6 || rh < 6) return null;
+	const luma = new Float32Array(rw * rh);
+	const colour = new Float32Array(rw * rh);
+	let lo = 255, hi = 0;
+	for (let y = 0; y < rh; y++) {
+		for (let x = 0; x < rw; x++) {
+			const p = ((y0 + y) * w + (x0 + x)) * 4;
+			const r = rgba[p], g = rgba[p + 1], b = rgba[p + 2];
+			const v = r * 0.2126 + g * 0.7152 + b * 0.0722;
+			luma[y * rw + x] = v;
+			colour[y * rw + x] = Math.max(r, g, b) - Math.min(r, g, b);
+			if (v < lo) lo = v;
+			if (v > hi) hi = v;
+		}
+	}
+	// The count is the palest thing on a slot; a slot that is all one
+	// shade has no count written on it.
+	if (hi - lo < 45) return null;
+	// And it is written with a shadow round it, which is what tells it
+	// from the drawing underneath. A pale pixel with something nearly
+	// black within a stroke's reach is writing; a pale pixel in the
+	// middle of a pale sail is not. Taking the pale alone gives a
+	// one-pixel skeleton in pieces at a screenshot's resolution -- the
+	// shadow is what puts the figure back together.
+	const pale = Math.max(90, lo + (hi - lo) * 0.45);
+	const shade = Math.max(60, lo + (hi - lo) * 0.2);
+	const reach = Math.max(2, Math.round(rh * 0.2));
+	const on = new Uint8Array(rw * rh);
+	for (let y = 0; y < rh; y++) {
+		for (let x = 0; x < rw; x++) {
+			if (luma[y * rw + x] < pale) continue;
+			let near = 255;
+			for (let dy = -reach; dy <= reach && near > shade; dy++) {
+				for (let dx = -reach; dx <= reach; dx++) {
+					const yy = y + dy, xx = x + dx;
+					if (yy < 0 || xx < 0 || yy >= rh || xx >= rw) continue;
+					const v = luma[yy * rw + xx];
+					if (v < near) near = v;
+				}
+			}
+			if (near <= shade) on[y * rw + x] = 1;
+		}
+	}
+
+	// The count is right-aligned on the slot and its figures stand
+	// shoulder to shoulder, so it is found by walking in from the right
+	// edge and stopping at the first real gap. That is all the
+	// separation needed: whatever of the drawing is bright enough to
+	// come through the cut is over on the left, where the picture is,
+	// with a space between it and the writing. Blob-by-blob cleverness
+	// was tried first and fails on exactly the counts that matter -- at
+	// a screenshot's resolution a figure comes through as a one-pixel
+	// skeleton in pieces, and pieces do not look like digits.
+	const column = new Int32Array(rw);
+	for (let y = 0; y < rh; y++) for (let x = 0; x < rw; x++) if (on[y * rw + x]) column[x]++;
+	const gap = Math.max(2, Math.round(rh * 0.3));
+	let right = rw - 1;
+	while (right >= 0 && !column[right]) right--;
+	// Nothing pale with a shadow anywhere near the right-hand edge means
+	// nothing was written here: the game leaves a single item's slot
+	// blank, and most of a storage is single items.
+	if (right < rw * 0.5) return null;
+	let left = right;
+	for (let x = right, blank = 0; x >= 0; x--) {
+		if (column[x]) { blank = 0; left = x; } else if (++blank >= gap) break;
+	}
+	const width = right - left + 1;
+	if (width < 2 || width > rw * 0.95) return unreadable;
+	// Where the writing sits between top and bottom. Ink from edge to
+	// edge is not writing -- it is the drawing running under it.
+	let top = rh, bottom = -1;
+	for (let y = 0; y < rh; y++) {
+		for (let x = left; x <= right; x++) {
+			if (!on[y * rw + x]) continue;
+			if (y < top) top = y;
+			if (y > bottom) bottom = y;
+		}
+	}
+	const tall = bottom - top + 1;
+	if (tall < rh * 0.3 || tall > rh * 0.98) return unreadable;
+	// And it is written in white: what is left with a colour to it is a
+	// corner of the drawing that happened to be bright and close.
+	let ink = 0, tint = 0;
+	for (let y = top; y <= bottom; y++) {
+		for (let x = left; x <= right; x++) {
+			if (!on[y * rw + x]) continue;
+			ink++;
+			tint += colour[y * rw + x];
+		}
+	}
+	if (!ink || tint / ink > 60) return unreadable;
+	const mask = new Uint8Array(rw * rh);
+	for (let y = top; y <= bottom; y++) {
+		for (let x = left; x <= right; x++) mask[y * rw + x] = on[y * rw + x];
+	}
+	// And the figures inside it, one by one. A count read as a word is
+	// read at whatever size the screenshot was; read figure by figure,
+	// each can be handed over at the size the engine likes, upright and
+	// with room around it. Columns with nothing in them are the cuts;
+	// a piece too narrow to be a figure is joined to the one before it,
+	// which is what a dot of a broken stroke is.
+	const glyphs = [];
+	for (let x = left; x <= right; x++) {
+		if (!column[x]) continue;
+		const last = glyphs[glyphs.length - 1];
+		if (last && x === last.x1 + 1) last.x1 = x;
+		else glyphs.push({ x0: x, y0: top, x1: x, y1: bottom });
+	}
+	const narrow = Math.max(1, Math.round(tall * 0.16));
+	for (let i = glyphs.length - 1; i > 0; i--) {
+		if (glyphs[i].x1 - glyphs[i].x0 + 1 < narrow || glyphs[i].x0 - glyphs[i - 1].x1 <= 1) {
+			glyphs[i - 1].x1 = glyphs[i].x1;
+			glyphs.splice(i, 1);
+		}
+	}
+	// Each figure stands on its own rows, not the whole count's: a 4 and
+	// a 1 do not reach the same height and blowing them up together
+	// stretches one of them.
+	for (const g of glyphs) {
+		let gt = bottom, gb = top;
+		for (let y = top; y <= bottom; y++) {
+			for (let x = g.x0; x <= g.x1; x++) {
+				if (!on[y * rw + x]) continue;
+				if (y < gt) gt = y;
+				if (y > gb) gb = y;
+			}
+		}
+		g.y0 = gt;
+		g.y1 = gb;
+	}
+	// Figures stand on one line and are one height. Whatever came
+	// through the cut from the drawing does neither, and a stray blob
+	// on the left of a count is how a stack of thirty-six is read as
+	// seven hundred and thirty-six -- a wrong count that looks like a
+	// right one, which is the only reading worse than none.
+	if (glyphs.length > 1) {
+		const mid = list => [...list].sort((a, b) => a - b)[Math.floor(list.length / 2)];
+		const base = mid(glyphs.map(g => g.y1));
+		const high = mid(glyphs.map(g => g.y1 - g.y0 + 1));
+		const even = glyphs.filter(g => Math.abs(g.y1 - base) <= Math.max(1, tall * 0.2)
+			&& (g.y1 - g.y0 + 1) >= high * 0.62 && (g.y1 - g.y0 + 1) <= high * 1.38);
+		// and they are written together: what is left after that has to
+		// be the run that reaches the right-hand edge.
+		const run = [];
+		for (let i = even.length - 1; i >= 0; i--) {
+			if (!run.length) { run.unshift(even[i]); continue; }
+			if (even[i + 1] !== undefined && glyphs.indexOf(even[i]) === glyphs.indexOf(run[0]) - 1) run.unshift(even[i]);
+			else break;
+		}
+		if (!run.length || run[run.length - 1] !== glyphs[glyphs.length - 1]) return unreadable;
+		glyphs.length = 0;
+		glyphs.push(...run);
+	}
+	return {
+		mask, rw, rh, glyphs,
+		// Where the writing is in the picture itself, so a caller can go
+		// back to the pixels rather than to this cut-out of them.
+		at: { x: x0, y: y0 },
+		tight: { x0: left, y0: top, x1: right, y1: bottom }
+	};
+}
+
+/**
+ * The count a reading of one slot's corner comes to, or null.
+ *
+ * A slot holding one of a thing has nothing written on it at all, so
+ * nothing read is not a failure -- it is the commonest answer there is,
+ * and it means one. What is refused is a reading that is not a count:
+ * the engine will make letters out of a gold bar's shine, and a slot
+ * cannot hold more than the game's own stack of a hundred thousand.
+ */
+export function countFrom(text, { cap = 1e6 } = {}) {
+	const raw = String(text || '')
+		// The engine reads a thousands separator as whatever is nearest:
+		// a comma, a dot, an apostrophe, a space.
+		.replace(/[.,'\u2019\u00a0\s]/g, '')
+		// and the digits it most often mistakes for letters
+		.replace(/[oO]/g, '0').replace(/[lI|]/g, '1').replace(/[sS]/g, '5');
+	if (!/^\d+$/.test(raw)) return null;
+	const n = Number(raw);
+	return n >= 1 && n <= cap ? n : null;
+}
+
 /**
  * What a square is taken to be, or nothing.
  *
