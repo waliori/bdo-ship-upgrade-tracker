@@ -88,34 +88,51 @@ looks nearly as much like the runner-up as like the best is left out
 rather than named wrong — a storage is mostly elixirs, gear and memory
 fragments, and none of that is this app's business.
 
-The count over a slot is read the same way, off the pixels: no OCR
-engine is fetched for a storage at all. An engine is the wrong tool
-here — it is trained on a page of print, and this is eight-pixel
-writing over a drawing. Three things about the game's own rendering do
-the work instead. The count is **not** the palest thing on a slot: over
-a white icon the figures reach 143 where the drawing under them reaches
-198, so every "the text is the brightest" rule is wrong from the start.
-What the count *is* is **stroked** — the game draws a dark outline all
-the way round it — so a figure's upright has that dark on both sides of
-it while a drawing's edge has the drawing on one side. And every count
-in a window sits on **one line, at one height, against one margin**: the
-baseline scatters by three tenths of a pixel across four screenshots at
-two resolutions. So the line is found once from every slot at once, and
-each count is then read right to left as a row of boxes of known size
-against the game's own figures, which the app carries (`js/digit_font.js`,
-learnt from 391 figures off screenshots whose numbers were known). They
-are carried as two sets — the same figures as a PNG crop renders them
-and as the game's own JPEG does, kept apart rather than averaged,
-because the compression fills in the outline the reading depends on and
-one blurred average is a worse match for either.
+The count over a slot is read off the pixels too, and no OCR engine is
+fetched for a storage at all. An engine is the wrong tool here — it is
+trained on a page of print, and this is eight-pixel writing over a
+drawing — and so, it turned out, were templates of the game's figures:
+a template is one rendering, and the same window captured by a desktop
+that scales its screen, or saved as a JPEG, or drawn at another UI size,
+is another. A stack of 103 over a crate came back as 1,103, because the
+edge of the crate really is an upright.
 
-On a crop saved as a PNG that reads **102 of 117 counts exactly, two
-wrong**; the rest say so. On the game's own JPEG, where the figures are
-smaller and compressed, **26 of 57, three wrong**, and the others are
-asked about. Either way an unread count is shown as a guess of one,
-marked ⚠, with the corner of the slot beside it to fix by eye — a count
-read wrong is worse than a count asked about. Nothing is written until
-you press the button, and what it writes is one change.
+What reads it now is what reads house numbers off street photographs: a
+small convolutional network run along the whole line and trained with
+CTC, so nothing has to say where one figure stops and the next begins.
+It was taught on a third of a million **made-up** slots — the game's own
+font, pulled out of the client, written over this app's own icons, then
+blurred, rescaled and recompressed every way a screenshot gets — and on
+no real ones, which is what makes the real ones a test. Four real
+screenshots, two captures and two of the game's own JPEGs, 369 slots of
+which 238 carry a number: **it reads all of them, none wrong**. The
+same shots shrunk to three fifths or blown up to double, blurred, or
+recompressed to a JPEG of quality 35 still produce **no wrong count it
+was sure of** — what gets harder to read gets marked, not guessed. It is
+fifty thousand weights in `js/count_model.js`, runs in about ten
+milliseconds a slot in plain JavaScript (`js/count-net.js`), and is
+rebuilt by
+`tools/count-reader`.
+
+Every reading comes with how likely it is — the share of all the ways
+the line could be read that spell that number — and one the network is
+not sure of, or reads differently when the slot is cut a pixel to
+either side, is written in as its best reading, marked ⚠, with the
+corner of the slot beside it to check by eye. A pointer parked over a
+count is the usual reason. The lattice gets the same scrutiny: a spacing
+the icons do not believe — every other border of a blurred shot, the
+sea behind a shrunk one — is looked for again a band at a time and
+settled to a fraction of a pixel by the icons themselves, and a shot
+whose slots never line up has everything read from it marked.
+
+**Scrolled shots are one storage.** Shoot a screenful, scroll, shoot
+again, and the last row of one is the first row of the next. The rows
+two shots share are found by their pictures — named or not, so the
+elixirs line things up as well as the barter goods do — and counted
+once; the table says how many. A row of one thing repeated is not taken
+as proof, because two rows of dynamite look exactly like one row shot
+twice. Nothing is written until you press the button, and what it
+writes is one change.
 
 ### 3. Craft and enhance
 
@@ -1287,9 +1304,11 @@ js/
                       and the bank of icons a storage slot is named against
   sailor-import.js    the drop, the reading and the table that checks it
   storage-shot.js     a storage window read off its pixels: the lattice, the
-                      icon each slot holds, the figures over its corner -- pure
-  digit_font.js       the game's own figures, learnt off shots whose numbers
-                      were known: what a count is read against
+                      icon each slot holds, the count over its corner, and the
+                      rows two scrolled shots share -- pure
+  count-net.js        the small network that reads a slot's count: convolution,
+                      pooling and the CTC decoding, in plain JavaScript -- pure
+  count_model.js      what it was taught: its weights, written by tools/count-reader
   storage-import.js   the Inventory's drop, and the counts it writes at a storage
   barter-shot.js      the barter window read out of a screenshot's words, against
                       the exchanges each island deals -- pure, and tested
