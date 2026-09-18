@@ -103,12 +103,16 @@ baseline scatters by three tenths of a pixel across four screenshots at
 two resolutions. So the line is found once from every slot at once, and
 each count is then read right to left as a row of boxes of known size
 against the game's own figures, which the app carries (`js/digit_font.js`,
-learnt from 391 figures off screenshots whose numbers were known).
+learnt from 391 figures off screenshots whose numbers were known). They
+are carried as two sets — the same figures as a PNG crop renders them
+and as the game's own JPEG does, kept apart rather than averaged,
+because the compression fills in the outline the reading depends on and
+one blurred average is a worse match for either.
 
-On a crop saved as a PNG that reads **102 of 117 counts exactly, three
-wrong**; the rest say so. A screenshot the game itself saved as a JPEG
-is harder on writing that small, and there more of them come back
-marked than read. Either way an unread count is shown as a guess of one,
+On a crop saved as a PNG that reads **102 of 117 counts exactly, two
+wrong**; the rest say so. On the game's own JPEG, where the figures are
+smaller and compressed, **26 of 57, three wrong**, and the others are
+asked about. Either way an unread count is shown as a guess of one,
 marked ⚠, with the corner of the slot beside it to fix by eye — a count
 read wrong is worse than a count asked about. Nothing is written until
 you press the button, and what it writes is one change.

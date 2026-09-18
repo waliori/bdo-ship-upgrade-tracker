@@ -171,17 +171,18 @@ export function openStorageImport(after = () => {}) {
 		skipped = out.map(s => ({ name: s.file.name, why: s.why }));
 		if (!take.length) { rows = []; draw(reviewView()); return; }
 		stop = new AbortController();
-		draw(readingView(0, 'Fetching the reader…'));
+		draw(readingView(0, 'Learning the icons…'));
 		const onProgress = p => {
 			const bar = host().querySelector('.shot-bar i');
 			const note = host().querySelector('.dialog-note');
 			if (!bar || !note) return;
 			const at = p.stage === 'reading' ? 0.4 + p.at * 0.6 : p.stage === 'done' ? 1 : (p.at || 0) * 0.4;
 			bar.style.width = `${Math.round(at * 100)}%`;
+			// A storage needs no engine fetched for it: the only wait is
+			// the five hundred icons a slot is named against.
 			note.textContent = p.stage === 'reading'
 				? `Reading ${p.i + 1} of ${p.n} — ${p.name}`
-				: p.stage === 'done' ? 'Done'
-					: p.stage === 'bank' ? 'Learning the icons…' : `Fetching the reader… ${p.text || ''}`;
+				: p.stage === 'done' ? 'Done' : 'Learning the icons…';
 		};
 		let results;
 		try {
