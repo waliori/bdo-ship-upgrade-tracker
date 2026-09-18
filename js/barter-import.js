@@ -60,6 +60,7 @@ export function openBarterImport({ deals, day, layout = null, onAnswers = () => 
 		<ul class="shot-kinds">
 			<li><b>What is read</b> — the island at the start of each row, what it takes and what it pays. A name the window cut short is enough.</li>
 			<li><b>What it is read against</b> — the exchanges the codex says that island deals, so a row is never a guess at a spelling.</li>
+			<li><b>Which language</b> — the client's English names, which is what the app's own tables are in. A window in another language will not match them.</li>
 		</ul>
 		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="Choose screenshots to read">
 			<div class="shot-drop-mark">⚖</div>

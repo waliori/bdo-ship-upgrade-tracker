@@ -343,6 +343,9 @@ export async function readWords(file, { lang = DEFAULT_LANG, wide = LIST_WIDE } 
  */
 let bank = null;
 
+/** The size the bank is described at -- the icons' own. */
+const ICON_SIDE = 44;
+
 export async function iconBank(onProgress = () => {}) {
 	if (bank) return bank;
 	await iconLoader.init();
@@ -383,9 +386,6 @@ export async function iconBank(onProgress = () => {}) {
 	bank = out;
 	return bank;
 }
-
-/** The size the bank is described at -- the icons' own. */
-const ICON_SIDE = 44;
 
 /** Let the bank go with the engine: both are kept for a dialog, not
  *  for a session of sailing. */

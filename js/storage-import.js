@@ -107,6 +107,7 @@ export function openStorageImport(after = () => {}) {
 		<ul class="shot-kinds">
 			<li><b>What is read</b> — the picture in each slot, against the icons this app already carries, and the figure written over the corner.</li>
 			<li><b>What is not</b> — anything the app keeps no count of. A storage is mostly that, and it is left alone.</li>
+			<li><b>What a ship part is read as</b> — the part itself. The game draws every level of a part with the same picture, so a +10 sail comes back as a sail; set the level on its tile afterwards, or untick it here.</li>
 		</ul>
 		${placePicker()}
 		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="Choose screenshots to read">
