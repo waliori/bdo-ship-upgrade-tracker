@@ -418,6 +418,13 @@
 .board-shut { margin-top: 2px; font-size: 11.5px; line-height: 1.45; color: var(--ink-mute); max-width: 62ch; }
 .board-shut b { color: var(--amber); font-weight: 700; }
 .board-shut .linky { font-size: 11.5px; padding: 0; }
+/* What the fleet has read of today's board. The same line as the shut
+   list, in the teal of a thing somebody else did for you rather than
+   the amber of a thing in your way. */
+.board-fleet { margin-top: 2px; font-size: 11.5px; line-height: 1.45; color: var(--ink-mute); max-width: 62ch; }
+.board-fleet b { color: var(--teal); font-weight: 700; }
+.board-fleet .linky { font-size: 11.5px; padding: 0; }
+.board-fleet .quiet { opacity: 0.7; }
 .barter-bar.lost { border-color: rgba(232, 122, 109, 0.3); }
 .barter-bar.lost .barter-bar-lead b { color: var(--red-soft); }
 .chip.board-seen { display: inline-flex; align-items: center; gap: 5px; padding-left: 5px; }
