@@ -138,6 +138,7 @@ export function renderInventory() {
 				<div class="chips inv-kinds">${kinds}</div>
 				${sortSelect()}
 				<button class="chip inv-select ${invPicking ? 'active' : ''}" data-act="inv-select" aria-pressed="${invPicking}" title="Tick several tiles and move them to a storage together">${invPicking ? '✓ Selecting' : '☐ Select'}</button>
+				<button class="chip" data-act="inv-shot" title="Read a storage off screenshots of the game's own window — in this browser; nothing is uploaded">📷 Read a storage</button>
 			</div>
 			${homesHTML()}
 			${invPicking ? pickBar(shown.filter(k => (stock[k] || 0) > 0 || isEnhanceable(k)).map(k => (isEnhanceable(k) ? familyStats(k).at : k))) : ''}

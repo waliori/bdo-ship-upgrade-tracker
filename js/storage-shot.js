@@ -686,10 +686,14 @@ export function countBox(at) {
  */
 export function digitMask(rgba, w, h, box) {
 	// Two kinds of no answer, and they mean opposite things. Nothing
-	// written on the slot is the game's way of saying one of the thing.
-	// Something written that cannot be made out is a count nobody knows
-	// -- and calling that one would be a lie the player has to catch.
-	const unreadable = { glyphs: [], unreadable: true };
+	// that looks like writing is the game's way of saying one of the
+	// thing, and most of a storage is single items. Something that looks
+	// like writing but will not come apart into figures is a count
+	// nobody knows -- and calling that one is a guess that has to say so.
+	// So every test that asks "is this writing at all" answers null, and
+	// what is left over -- figures cut out but read as a different
+	// number of them than were cut -- is the reader's own doubt, which
+	// shot-reader.js turns into a guess that says so.
 	const x0 = Math.max(0, Math.floor(box.x)), y0 = Math.max(0, Math.floor(box.y));
 	const x1 = Math.min(w, Math.ceil(box.x + box.w)), y1 = Math.min(h, Math.ceil(box.y + box.h));
 	const rw = x1 - x0, rh = y1 - y0;
@@ -760,7 +764,7 @@ export function digitMask(rgba, w, h, box) {
 		if (column[x]) { blank = 0; left = x; } else if (++blank >= gap) break;
 	}
 	const width = right - left + 1;
-	if (width < 2 || width > rw * 0.95) return unreadable;
+	if (width < 2 || width > rw * 0.95) return null;
 	// Where the writing sits between top and bottom. Ink from edge to
 	// edge is not writing -- it is the drawing running under it.
 	let top = rh, bottom = -1;
@@ -772,7 +776,7 @@ export function digitMask(rgba, w, h, box) {
 		}
 	}
 	const tall = bottom - top + 1;
-	if (tall < rh * 0.3 || tall > rh * 0.98) return unreadable;
+	if (tall < rh * 0.3 || tall > rh * 0.98) return null;
 	// And it is written in white: what is left with a colour to it is a
 	// corner of the drawing that happened to be bright and close.
 	let ink = 0, tint = 0;
@@ -783,7 +787,7 @@ export function digitMask(rgba, w, h, box) {
 			tint += colour[y * rw + x];
 		}
 	}
-	if (!ink || tint / ink > 60) return unreadable;
+	if (!ink || tint / ink > 60) return null;
 	const mask = new Uint8Array(rw * rh);
 	for (let y = top; y <= bottom; y++) {
 		for (let x = left; x <= right; x++) mask[y * rw + x] = on[y * rw + x];
@@ -842,7 +846,9 @@ export function digitMask(rgba, w, h, box) {
 			if (even[i + 1] !== undefined && glyphs.indexOf(even[i]) === glyphs.indexOf(run[0]) - 1) run.unshift(even[i]);
 			else break;
 		}
-		if (!run.length || run[run.length - 1] !== glyphs[glyphs.length - 1]) return unreadable;
+		// Nothing left standing on one line means what came through the
+		// cut was the drawing, not a count: the slot holds one.
+		if (!run.length || run[run.length - 1] !== glyphs[glyphs.length - 1]) return null;
 		glyphs.length = 0;
 		glyphs.push(...run);
 	}

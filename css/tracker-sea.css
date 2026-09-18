@@ -1129,6 +1129,12 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .shot-stat.odd { background: rgba(232, 182, 97, 0.16); color: var(--amber); }
 .shot-note { min-width: 118px; font-size: 11.5px; color: var(--ink-mute); }
 .shot-warn { display: inline-block; margin-left: 6px; white-space: normal; color: var(--amber); cursor: help; }
+/* A storage read off screenshots: the item with its icon, and the
+   corner of a slot whose figure the reader could not make out, shown
+   as it was so the count is fixed with a glance. */
+.shot-item { display: flex; align-items: center; gap: 7px; min-width: 190px; }
+.shot-item .row-sub { flex: 0 0 auto; }
+.shot-corner { display: inline-block; vertical-align: middle; height: 22px; margin-left: 6px; border-radius: 3px; border: 1px solid var(--line-btn); image-rendering: pixelated; }
 .shot-skipped { margin: 6px 0; font-size: 12px; color: var(--ink-mute); }
 .shot-skipped summary { cursor: pointer; }
 @media (max-width: 620px) {

@@ -484,6 +484,19 @@ async function readStorageOne(worker, PSM, file, icons) {
 		const named = slots.filter(s => s.name);
 		if (!named.length) return { rows: [], why: 'nothing in it was an icon the app knows' };
 		const counts = await readCounts(worker, PSM, sheet, named);
+		// The corner of a slot whose figure could not be read, as a
+		// picture, so the table can show a player what the reader was
+		// looking at instead of asking them to take its word.
+		const corner = at => {
+			const box = countBox(at);
+			const cut = document.createElement('canvas');
+			cut.width = Math.max(1, Math.round(box.w * 2));
+			cut.height = Math.max(1, Math.round(box.h * 2));
+			const ctx = cut.getContext('2d');
+			ctx.imageSmoothingQuality = 'high';
+			ctx.drawImage(sheet.canvas, box.x, box.y, box.w, box.h, 0, 0, cut.width, cut.height);
+			return cut.toDataURL('image/png');
+		};
 		const rows = named.map((s, i) => {
 			const entry = icons.find(e => e.name === s.name);
 			// A slot with nothing written on it holds one of the thing --
@@ -502,7 +515,7 @@ async function readStorageOne(worker, PSM, file, icons) {
 				score: s.score,
 				row: s.row,
 				col: s.col,
-				at: s.at
+				corner: counts.has(i) && said === null ? corner(s.at) : null
 			};
 		});
 		return { rows, unknown: slots.filter(s => !s.empty && !s.name).length, slots: slots.length };

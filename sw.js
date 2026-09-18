@@ -172,6 +172,8 @@ const SHELL = [
 	'/js/ship_stats.js',
 	'/js/ships.js',
 	'/js/state.js',
+	'/js/storage-import.js',
+	'/js/storage-shot.js',
 	'/js/sync.js',
 	'/js/tile_alias.js',
 	'/js/today.js',

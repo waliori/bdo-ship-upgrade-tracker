@@ -55,6 +55,7 @@ import { openTripLog } from './triplog.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
 import { renderGet, shoppingText, shoppingCSV, getAction, getChange } from './screen-get.js';
 import { openCoinBuy } from './coin-shop.js';
+import { openStorageImport } from './storage-import.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapCentreOnStash,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
@@ -1202,6 +1203,9 @@ function wire() {
 			// Select mode: tiles tick instead of opening, and the bar above
 			// the grid moves the ticked ones to a storage together.
 			case 'inv-select': setInvPicking(!invPicking); if (invPicking) setSelected(null); return render();
+			// The storage window, read off screenshots: the counts land at
+			// the storage named in the dialog, in one change.
+			case 'inv-shot': openStorageImport(render); return;
 			case 'inv-pick': {
 				const it = el.dataset.item;
 				if (invPicked.has(it)) invPicked.delete(it); else invPicked.add(it);
