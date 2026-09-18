@@ -986,11 +986,12 @@ export async function getSightingById(id) {
 	return rows[0] ? { ...sightingOf(rows[0]), hidden: Boolean(Number(rows[0].hidden)) } : null;
 }
 
-export async function insertSighting(userId, { day, layout, offers }) {
+/** `at` is when it was seen: now, except to a test that needs an old one. */
+export async function insertSighting(userId, { day, layout, offers }, at = Date.now()) {
 	await migrate();
 	const { lastInsertRowid } = await exec({
 		sql: 'INSERT INTO barter_boards (user_id, day, layout, offers, created_at, seen, hidden) VALUES (?, ?, ?, ?, ?, 0, 0)',
-		args: [userId, day, layout ?? null, JSON.stringify(offers), Date.now()]
+		args: [userId, day, layout ?? null, JSON.stringify(offers), at]
 	});
 	return Number(lastInsertRowid);
 }

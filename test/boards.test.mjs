@@ -27,8 +27,8 @@ process.env.ADMIN_IDS = '3001';
 
 const app = (await import('../server.js')).default;
 const { startSession } = await import('../server/session.js');
-const { upsertUser } = await import('../server/db.js');
-const { readSighting } = await import('../server/boards.js');
+const { upsertUser, insertSighting } = await import('../server/db.js');
+const { readSighting, sweep } = await import('../server/boards.js');
 const { npcs } = await import('../js/barter_npcs.js');
 
 function cookieFor(id) {
@@ -166,4 +166,26 @@ test('the operator can hide anybody\'s', async () => {
 	assert.equal((await call('DELETE', `/api/boards/${id}`, { cookie: admiral })).status, 200);
 	const after = await (await call('GET', '/api/boards')).json();
 	assert.equal(after.boards.some(b => b.id === id), false);
+});
+
+test('the bar is given the last few days, and the layout book as far back as it asks', async () => {
+	const DAYS = 86_400_000;
+	const old = await insertSighting('3002', { day: '2026-09-06', layout: '7', offers: [[isle(6), 'Wool', '10', 'A']] }, Date.now() - 12 * DAYS);
+	const ids = async url => (await (await call('GET', url)).json()).boards.map(b => b.id);
+	assert.equal((await ids('/api/boards')).includes(old), false);
+	assert.equal((await ids('/api/boards?days=60')).includes(old), true);
+	assert.equal((await ids('/api/boards?days=5')).includes(old), false);
+	// asked for nonsense, or for longer than anything is kept: answered all the same
+	assert.equal((await ids('/api/boards?days=plenty')).includes(old), false);
+	assert.equal((await ids('/api/boards?days=99999')).includes(old), true);
+});
+
+test('a reading is kept two months as evidence, and swept after that', async () => {
+	const DAYS = 86_400_000;
+	const kept = await insertSighting('3001', { day: '2026-08-20', layout: null, offers: [[isle(7), 'Wool', '10', 'A']] }, Date.now() - 30 * DAYS);
+	const gone = await insertSighting('3001', { day: '2026-07-01', layout: null, offers: [[isle(8), 'Wool', '10', 'A']] }, Date.now() - 70 * DAYS);
+	await sweep();
+	const left = (await (await call('GET', '/api/boards?days=60')).json()).boards.map(b => b.id);
+	assert.equal(left.includes(kept), true);
+	assert.equal(left.includes(gone), false);
 });

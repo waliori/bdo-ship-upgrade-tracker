@@ -52,6 +52,18 @@ export async function fleetBoards({ force = false } = {}) {
 	return asking;
 }
 
+/** As far back as the server keeps them: what the layout book is
+ *  written from. Asked for when the book is opened and not before --
+ *  two months of readings are of no use to a bar that wants today's. */
+let shelf = { at: 0, boards: [] };
+export async function fleetHistory({ days = 60, force = false } = {}) {
+	if (!shared()) return [];
+	if (!force && Date.now() - shelf.at < FRESH_MS) return shelf.boards;
+	const res = await api('GET', `/api/boards?days=${days}`);
+	if (res.ok && res.body && Array.isArray(res.body.boards)) shelf = { at: Date.now(), boards: res.body.boards };
+	return shelf.boards;
+}
+
 /** The readings of one barter day, the most confirmed first and the
  *  newest before the older. */
 export async function boardsFor(day, opts) {
@@ -77,6 +89,7 @@ export async function tellFleet(day, layout, offers) {
 		offers: offers.map(o => [o.npcId, o.give, String(o.qty || 1), o.recv])
 	});
 	held = { at: 0, boards: held.boards };   // ask again next time
+	shelf = { at: 0, boards: shelf.boards };
 	if (!res.ok) return { ok: false, why: (res.body && res.body.error) || 'The reading did not reach the server.' };
 	return { ok: true, id: res.body.id, offers: res.body.offers };
 }
@@ -86,6 +99,7 @@ export async function sawItToo(id) {
 	if (!shared() || !me()) return { ok: false };
 	const res = await api('POST', `/api/boards/${id}/seen`);
 	held = { at: 0, boards: held.boards };
+	shelf = { at: 0, boards: shelf.boards };
 	return { ok: res.ok, why: res.body && res.body.error };
 }
 
@@ -94,6 +108,7 @@ export async function unsay(id) {
 	if (!shared() || !me()) return { ok: false };
 	const res = await api('DELETE', `/api/boards/${id}`);
 	held = { at: 0, boards: held.boards };
+	shelf = { at: 0, boards: shelf.boards };
 	return { ok: res.ok, why: res.body && res.body.error };
 }
 
@@ -101,4 +116,5 @@ export async function unsay(id) {
  *  signed in and the answers now have a name to them. */
 export function forgetBoards() {
 	held = { at: 0, boards: [] };
+	shelf = { at: 0, boards: [] };
 }

@@ -39,11 +39,15 @@ const ISLES = new Set(npcs.map(n => n.id));
 const MAX_OFFERS = 120;
 const MAX_NAME = 120;
 
-/** How long a sighting is worth anything. A board lives until the
- *  refill, so yesterday's is history -- kept a few days so a player who
- *  sails at the turn of the day is not told their own report is gone,
- *  and swept after that. */
-const KEEP_DAYS = 4;
+/** How long a sighting is worth anything, which is two answers. As
+ *  *today's board* it lives until the refill, and a few days of those
+ *  are what the Barter tab asks for -- so a player who sails at the turn
+ *  of the day is not told their own report is gone. As *evidence* it
+ *  lives much longer: the layout book counts how often each layout has
+ *  been seen and which boards nobody has on file, and a layout comes
+ *  round every few weeks. So they are kept two months and swept then. */
+const RECENT_DAYS = 4;
+const KEEP_DAYS = 60;
 
 /**
  * A sighting as it may be stored, or a complaint about it.
@@ -80,9 +84,11 @@ export function readSighting(body) {
  * the table
  * ------------------------------------------------------------------ */
 
-/** Today's sightings and the last few days', newest first. */
-export async function sightings(days = KEEP_DAYS) {
-	return listSightings(Date.now() - days * 86_400_000);
+/** Today's sightings and the last few days', newest first -- or as far
+ *  back as the book asks, and no further than they are kept. */
+export async function sightings(days = RECENT_DAYS) {
+	const span = Math.min(KEEP_DAYS, Math.max(1, Math.floor(Number(days)) || RECENT_DAYS));
+	return listSightings(Date.now() - span * 86_400_000, span > RECENT_DAYS ? 1000 : 200);
 }
 
 /**
@@ -123,8 +129,7 @@ export async function drop(id, userId) {
 	return { ok: true };
 }
 
-/** Sightings older than a few days are history: the board they describe
- *  was redrawn long ago. */
+/** Sightings older than the book's memory are swept. */
 export async function sweep() {
 	return sweepSightings(Date.now() - KEEP_DAYS * 86_400_000);
 }
@@ -166,7 +171,7 @@ export function boardRoutes() {
 	 *  the app that is genuinely common property. */
 	router.get('/boards', wrap(async (req, res) => {
 		const uid = sessionUser(req);
-		const list = await sightings();
+		const list = await sightings(req.query.days);
 		const seen = new Set(uid ? await sightingsConfirmedBy(uid) : []);
 		res.set('Cache-Control', 'no-store');
 		res.json({

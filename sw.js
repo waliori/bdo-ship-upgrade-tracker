@@ -100,6 +100,8 @@ const SHELL = [
 	'/js/kinds.js',
 	'/js/land-cost.js',
 	'/js/land_goods.js',
+	'/js/layout-book.js',
+	'/js/layouts-view.js',
 	'/js/map.js',
 	'/js/map/actions.js',
 	'/js/map/errands.js',

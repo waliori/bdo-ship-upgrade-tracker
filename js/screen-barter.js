@@ -34,6 +34,7 @@ import { GOODS, PARLEY, COIN, COIN_LEVEL, nextGateAbove, dailyCapacity, parleyPe
 import { parleyLedger } from './parley-ledger.js';
 import { exchanges, goodsHeld, landHeld, weightOf, sellOf, aboardStock as aboardOf } from './barter-plan.js';
 import { openBarterImport } from './barter-import.js';
+import { openLayoutBook } from './layouts-view.js';
 import { boardsFor, sawItToo, tellFleet, shared as boardsShared } from './sea-boards.js';
 import { me } from './sync.js';
 import { TOWNS } from './screen-inventory.js';
@@ -576,14 +577,14 @@ function boardHTML(b) {
 				`<b>Your own board</b><span>${b.combo.offers.length} island${b.combo.offers.length === 1 ? '' : 's'} as you read them</span>`,
 				`No layout in the record fits what you saw, so the board is what you told it and nothing else — every chain below climbs only the islands above. The record is from ${esc(combos.read)} and the game moves a slot at a maintenance without renumbering anything, so this is worth passing on.`,
 				seen,
-				`<button class="ghost-btn sm" data-act="barter-shot" title="Read more of the window off a screenshot">📷 Read the window</button>${tellChip()}<button class="ghost-btn sm" data-act="barter-own-board" title="Go back to planning on the whole table instead">↩ the whole table</button><button class="ghost-btn sm" data-act="barter-board-clear" title="The board was refreshed in game: start again">↻ Refreshed in game</button>`,
+				`<button class="ghost-btn sm" data-act="barter-shot" title="Read more of the window off a screenshot">📷 Read the window</button><button class="ghost-btn sm" data-act="barter-book" title="Every layout on file, how often each has been seen, and the boards sailors have read that are in no record">📖 The layout book</button>${tellChip()}<button class="ghost-btn sm" data-act="barter-own-board" title="Go back to planning on the whole table instead">↩ the whole table</button><button class="ghost-btn sm" data-act="barter-board-clear" title="The board was refreshed in game: start again">↻ Refreshed in game</button>`,
 				fleetLine());
 		}
 		return bar('known',
 			`<b>Layout ${esc(b.combo.id)}</b><span>today’s board</span>`,
 			`seen ${b.combo.seen} of ${combos.sample.refreshes} refreshes since ${esc(since)} · every island’s offer is known; the material islands roll on their own and are read from the whole table, and which of its four [Level 7] goods an island pays is not the layout’s to say`,
 			seen,
-			`<button class="ghost-btn sm" data-act="barter-shot" title="Read more of the window off a screenshot — the rows are matched against what each island deals">📷 Read the window</button>${tellChip()}<button class="ghost-btn sm" data-act="barter-shut-pick" title="An island on this board is showing nothing: its exchange today is above your barter count">An island shows nothing…</button><button class="ghost-btn sm" data-act="barter-board-clear" title="The board was refreshed in game: start again">↻ Refreshed in game</button>`,
+			`<button class="ghost-btn sm" data-act="barter-shot" title="Read more of the window off a screenshot — the rows are matched against what each island deals">📷 Read the window</button><button class="ghost-btn sm" data-act="barter-book" title="Every layout on file, how often each has been seen, and the boards sailors have read that are in no record">📖 The layout book</button>${tellChip()}<button class="ghost-btn sm" data-act="barter-shut-pick" title="An island on this board is showing nothing: its exchange today is above your barter count">An island shows nothing…</button><button class="ghost-btn sm" data-act="barter-board-clear" title="The board was refreshed in game: start again">↻ Refreshed in game</button>`,
 			shutLine);
 	}
 	// Never asked about an island this sailor cannot sail to: its offer
@@ -594,7 +595,7 @@ function boardHTML(b) {
 			'<b>No layout shows that</b><span>nothing in the record fits</span>',
 			`The record is from ${esc(combos.read)}; the game moves a slot at a maintenance without renumbering anything, so it may simply have moved on. Sail what you saw instead — the run is then planned on those islands and nothing else — and tell the fleet, because a board the record has never seen is exactly what is worth passing on.`,
 			seen,
-			`<button class="chip primary" data-act="barter-own-board" title="Plan on the islands you have answered, instead of on the whole table">⚑ Sail what you saw</button><button class="ghost-btn sm" data-act="barter-shot" title="Read the whole window off a screenshot, and offer it to the fleet">📷 Read the window</button>${tellChip(true)}<button class="ghost-btn sm" data-act="barter-board-clear">↻ Start again</button>`,
+			`<button class="chip primary" data-act="barter-own-board" title="Plan on the islands you have answered, instead of on the whole table">⚑ Sail what you saw</button><button class="ghost-btn sm" data-act="barter-shot" title="Read the whole window off a screenshot, and offer it to the fleet">📷 Read the window</button><button class="ghost-btn sm" data-act="barter-book" title="Every layout on file, how often each has been seen, and the boards sailors have read that are in no record">📖 The layout book</button>${tellChip(true)}<button class="ghost-btn sm" data-act="barter-board-clear">↻ Start again</button>`,
 			fleetLine());
 	}
 	const first = ask[0] ? npcById.get(ask[0].npcId) : null;
@@ -605,7 +606,7 @@ function boardHTML(b) {
 	// only once the layout is known, because this is the question their
 	// reading answers.
 	const fleetNote = fleetLine();
-	const acts = `${first ? `<button class="chip primary" data-act="barter-board-ask" data-npc="${first.id}" title="The island whose offer tells the layouts apart best${ask[0].worst > 1 ? ` — leaves ${ask[0].worst} at worst` : ''}">What does <b>${esc(isleOf(first))}</b> show? ▾</button>` : ''}<button class="chip" data-act="barter-board-island" title="Look at an island of your own choosing instead">another island…</button><button class="chip" data-act="barter-shot" title="Screenshot the barter window and read every row of it at once">📷 a screenshot…</button>`;
+	const acts = `${first ? `<button class="chip primary" data-act="barter-board-ask" data-npc="${first.id}" title="The island whose offer tells the layouts apart best${ask[0].worst > 1 ? ` — leaves ${ask[0].worst} at worst` : ''}">What does <b>${esc(isleOf(first))}</b> show? ▾</button>` : ''}<button class="chip" data-act="barter-board-island" title="Look at an island of your own choosing instead">another island…</button><button class="chip" data-act="barter-shot" title="Screenshot the barter window and read every row of it at once">📷 a screenshot…</button><button class="ghost-btn sm" data-act="barter-book" title="Every layout on file, how often each has been seen, and the boards sailors have read that are in no record">📖 The layout book</button>`;
 	return bar('', lead, `Look at one island in the game and tap what it offers; the whole board follows, since every refresh is one of ${combos.combos.length} layouts. Or screenshot the window and let it read every row at once.`, seen, acts, fleetNote);
 }
 
@@ -3068,6 +3069,37 @@ function takeFleetBoard(id, then) {
 }
 
 /**
+ * The layout book: the record and the fleet's readings, side by side,
+ * in a dialog of their own. The bar above asks which board it is today;
+ * this is where the evidence is kept, and the two presses in it that
+ * change today's board come back here to be done.
+ */
+function openBook(then) {
+	if (!combos) { toast('The record of the boards did not load'); return; }
+	boardNow();   // the day's answers, reset if the refill has passed
+	openLayoutBook({
+		combos,
+		answers: board.answers,
+		day: barterKey(),
+		count: Number.isFinite(Number(barterProfile().barterCount)) ? Number(barterProfile().barterCount) : null,
+		onTake: (said, readers) => {
+			for (const a of said) {
+				if (!npcById.has(a.npcId)) continue;
+				board.answers = board.answers.filter(x => x.npcId !== a.npcId);
+				board.answers.push({ npcId: a.npcId, give: a.give, recv: a.recv });
+			}
+			// a board in no record is sailed as seen, or not at all
+			board.own = true;
+			persist();
+			toast(`Today's board as the fleet read it: ${said.length} island${said.length === 1 ? '' : 's'} answered`, true);
+			for (const r of readers) if (!r.mine && !r.confirmed) sawItToo(r.id).then(() => { fleet.asked = false; });
+			then();
+		},
+		onTell: done => tellTheFleet(() => { done(); then(); })
+	});
+}
+
+/**
  * Offer what has been answered so far to everyone else on the server.
  *
  * The screenshot reader offers this as it reads, but a board answered
@@ -3116,7 +3148,7 @@ function fleetLine() {
 	const others = list.length - 1;
 	return `<div class="board-fleet"><b>${best.offers.length} island${best.offers.length === 1 ? '' : 's'}</b> of today's board ${best.mine ? 'as you read it' : `read by ${who}`}${best.seen ? ` · ${F(best.seen)} ${best.seen === 1 ? 'sailor has' : 'sailors have'} seen the same` : ''}${best.layout ? ` · they make it <b>layout ${esc(best.layout)}</b>` : ''}
 		${best.mine ? '' : `<button class="linky" data-act="barter-fleet-take" data-id="${esc(String(best.id))}">take their reading</button>`}
-		${others > 0 ? `<span class="quiet">and ${others} other${others === 1 ? '' : 's'}</span>` : ''}</div>`;
+		${others > 0 ? `<button class="linky quiet" data-act="barter-book" title="Every reading, in the layout book">and ${others} other${others === 1 ? '' : 's'}</button>` : ''}</div>`;
 }
 
 /** What one island is showing: its possible offers, commonest first. */
@@ -3362,6 +3394,7 @@ export function barterAction(act, el, redraw) {
 		case 'barter-trip': openTripLog(); return false;
 		case 'barter-board-ask': pickOffer(Number(el.dataset.npc), redraw); return false;
 		case 'barter-shot': readWindow(redraw); return false;
+		case 'barter-book': openBook(redraw); return false;
 		case 'barter-fleet-take': takeFleetBoard(el.dataset.id, redraw); return false;
 		case 'barter-fleet-tell': tellTheFleet(redraw); return false;
 		// A board the record has never seen, sailed on the sailor's own
