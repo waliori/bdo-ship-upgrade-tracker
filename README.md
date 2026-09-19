@@ -80,6 +80,8 @@ the app keeps a count of: what it is, how many, and what that would
 change at the storage you name. Several shots are one storage and their
 slots add up, so a warehouse four screenfuls deep is read in one go.
 
+![Two screenshots of one storage read into a table: every count with the corner of its slot beside it, and the row both shots share counted once](docs/media/read-a-storage.gif)
+
 Nothing about it is typed and nothing about it is guessed. The slots are
 a square lattice, found by the spacing of their own borders, so any
 resolution and any UI scale read alike; each slot is then matched
@@ -743,6 +745,12 @@ and *Before casting off* shows the count beside each thing to buy. A
 count the Market would not confirm holds nothing back, and the Market is
 asked again every half hour while the page is open.
 
+![A chain whose first land good the Central Market has none of: greyed, not to be ticked, and saying why on its own face](docs/media/a-dry-chain.gif)
+
+*The Market in that clip is made up, with every third shelf bare — a
+machine shooting a clip cannot wait for Essence of Liquor to sell out.
+The chains, the run and the card are the app's own.*
+
 **Or screenshot the window.** *Read the window* takes a shot of the
 barter list and answers every island in it at once: the island at the
 start of each row, what it takes and what it pays, matched against the
@@ -753,6 +761,8 @@ off one screenshot are usually enough to settle which of the forty
 layouts the sea is on. A row two exchanges fit equally well is a list to
 pick from rather than a guess, and the islands that pay ship materials
 go to the material list instead, since those roll on their own.
+
+![A screenshot of the barter window read into six islands, and the board settled on a layout from them](docs/media/read-the-window.gif)
 
 **And a board is the same for everyone until the refill.** Where sync is
 configured you can *tell the fleet* what you read — from the screenshot
@@ -787,13 +797,21 @@ from there. Search finds a layout by an island, a good, or its number.
 Readings are kept two months for this, since a layout comes round every
 few weeks.
 
-**A layout is whole, and the record is not the last word.** The
-community's record lacks an island or two on most layouts and the game's
-own table leaves out a couple of tiers; between them nothing is missing,
-so each layout is handed on with the client's row wherever the record
-has none (`tools/build-barter-gates.mjs` bakes the client's pools into
-`js/barter_gates.js`), marked *game files* in the book until somebody
-has seen it. Once a board is settled, **✎ An island shows something
+![The layout book: the shelf of forty layouts, a board in no record opened against the layout it is nearest to, and a layout opened out level by level](docs/media/the-layout-book.gif)
+
+*The readings in that clip are invented, like the sailors on the
+community boards and for the same reason: this project runs no public
+deployment to film. The book, its sums and the layouts are the app's
+own.*
+
+**The record is not the last word.** The community's record has no row
+for an island or two on most layouts, and the game's own table says why:
+on that layout the island is shut to everyone — the exchange is gated at
+a million barters — so nobody ever wrote down what it showed. Where the
+client does deal a row the record lacks, ten of them, the layout is
+handed on with it (`tools/build-barter-gates.mjs` bakes the client's
+pools into `js/barter_gates.js`), marked *game files* in the book until
+somebody has seen it. Once a board is settled, **✎ An island shows something
 else…** is the one door for everything the record can get wrong: name
 the island, then pick what its window shows — from every exchange the
 codex and the client know it to deal — or that it shows nothing.
