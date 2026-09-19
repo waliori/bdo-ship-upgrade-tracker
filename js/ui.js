@@ -2337,6 +2337,13 @@ export async function init() {
 	onMarket(render);
 	loadMarket();
 	window.addEventListener('online', () => loadMarket());
+	// The prices keep for a day; what is listed does not, and a barter run
+	// is planned on it. So the Market is asked again every half hour while
+	// the page is open, and on coming back to a tab that sat in the
+	// background past that -- loadMarket itself declines when the copy in
+	// hand is fresh, so neither costs a request it did not need.
+	setInterval(() => { if (!document.hidden) loadMarket(); }, 30 * 60 * 1000);
+	document.addEventListener('visibilitychange', () => { if (!document.hidden) loadMarket(); });
 
 	// Sync last, and never blocking: on a deployment without it this is
 	// one request that comes back "no" and nothing more happens.

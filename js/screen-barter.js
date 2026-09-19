@@ -991,11 +991,23 @@ function cutsHTML(plan, pace, name) {
 					? `the hold is <b>${F(c.over)} LT</b> over the limit before it casts off, and a fast run makes no wharf call`
 					: c.why === 'parley'
 						? `the Parley bar runs out before ${where}`
-						: c.why === 'dealt'
+						: c.why === 'market'
+							? (c.listed
+								? `${where} takes <b>${F(c.want)}× ${esc(c.good)}</b> a trade and the Central Market has only <b>${F(c.listed)}</b> listed`
+								: `the Central Market has <b>no ${esc(c.good)}</b> listed right now, and ${where} takes ${F(c.want)} a trade`)
+							: c.why === 'dealt'
 							? `another chain reaches ${where} first, and an island deals once a run`
 							: `there is nothing left to hand over at ${where}`;
 		// The way out, where there is one: a pace that calls at a wharf,
 		// or the weight to put ashore before casting off.
+		// A good the Market is out of may still be in a storage of the
+		// sailor's own: the orders can take it from there instead.
+		if (c.why === 'market') {
+			const own = c.held >= c.want
+				? `You keep <b>${F(c.held)}</b> of it — <button class="chip tiny primary" data-act="barter-land-from" data-id="stock" title="Start the land chains from the shore goods you already keep, instead of buying them">take land goods from my storage →</button>`
+				: '<span class="run-cut-out">it comes back when somebody lists some; the prices are asked again every half hour</span>';
+			return `<li><b>${name(chain)}</b> ${got} — ${why}. ${own}</li>`;
+		}
 		const out = c.why === 'hold' || c.why === 'over' || c.why === 'share'
 			? (pace === 'fast'
 				? `<button class="chip tiny primary" data-act="barter-pace-set" data-id="steady" title="Every attempt, still under the limit, a wharf call to leave the surplus">full, never slower →</button>`
@@ -1425,6 +1437,9 @@ function chainRow(c, on, solo, dockName, from, ladder = null, shut = null) {
 			</span>
 		</button>`;
 	}
+	// A chain that would start on a good the Market has not got: said on
+	// the card, before it is ticked and a sailor goes to the counter.
+	const outOf = solo && (solo.cut || []).find(x => x.why === 'market');
 	const card = `<button class="chain${on ? ' on' : ''}" data-act="barter-chain" data-id="${esc(c.id)}"${group ? ` data-group="${esc(group)}"` : ''} style="--tier:${TIER(c.top)}">
 		<span class="chain-mark">${on ? '✓' : ''}</span>
 		<span class="chain-main">
@@ -1436,6 +1451,7 @@ function chainRow(c, on, solo, dockName, from, ladder = null, shut = null) {
 		<span class="chain-right">
 			<b class="${solo.silver ? '' : 'none'}${solo.net < 0 ? ' warn' : ''}">${solo.silver ? FC(Math.round(solo.net)) : '—'}</b>
 			${solo.silver ? `<span class="chain-yard">${[solo.yard.perUnit ? `<em>${esc(perUnitText(solo.yard.perUnit))}</em>` : '', solo.yard.perHour ? esc(perHourText(solo.yard.perHour)) : ''].filter(Boolean).join(' · ')}</span>` : ''}
+			${outOf ? `<span class="warn" title="The Central Market has ${outOf.listed ? `only ${F(outOf.listed)}` : 'none'} of it listed, and the first island takes ${F(outOf.want)} a trade. The prices are asked again every half hour.">${outOf.listed ? `only ${F(outOf.listed)}` : 'none'} on the Market</span>` : ''}
 			${solo.cost ? `<span>${FC(Math.round(solo.silver))} sold · ${FC(Math.round(solo.cost))} bought</span>` : solo.bought.some(b => b.how === 'unpriced') ? '<span class="faint">land goods unpriced</span>' : ''}
 			<span>${solo.keptWorth ? `${FC(Math.round(solo.keptWorth))} left over` : solo.silver ? 'nothing left over' : 'nothing to sell at this reach'}</span>
 			<span>${c.rungs.length} island${c.rungs.length === 1 ? '' : 's'}${from ? '' : ''}</span>
@@ -2841,7 +2857,10 @@ function materialParts(me, data) {
 	// held in a storage the run cannot load from, to be brought to the
 	// harbour first. What the harbour's own storage lends is the first
 	// stop, so it is not repeated here.
-	const howBought = b => (b.how === 'fixed' ? 'from a storage keeper, for silver' : b.how === 'market' ? 'at the Market' : b.how === 'made' ? 'your workers make it' : 'no price known');
+	// At the Market, and how many it has: a run buys no more than are
+	// listed, so the figure is the room there is, not a warning -- until
+	// it is nearly all of it.
+	const howBought = b => (b.how === 'fixed' ? 'from a storage keeper, for silver' : b.how === 'market' ? `at the Market${b.stock === null || b.stock === undefined ? '' : ` · ${F(b.stock)} listed${Math.ceil(b.n) >= b.stock ? ' — all of them' : ''}`}` : b.how === 'made' ? 'your workers make it' : 'no price known');
 	const before = plan.bought.length || toBring.length ? `<section class="panel run-list amber mat-goods"><div class="panel-head"><h2 class="panel-title">Before casting off</h2><span class="panel-sub">what the run hands over that is not aboard yet${plan.cost ? ` · ${FC(plan.cost)} to buy` : ''}</span></div>
 		${plan.bought.map(b => good(b.item, b.n, `buy ashore · ${howBought(b)}${b.total ? ` · ${FC(b.total)}` : ''} · for ${esc([...new Set(plan.stops.filter(x => x.npcId && x.give === b.item).map(x => isleShort(npcById.get(x.npcId))))].join(', '))}`)).join('')}
 		${toBring.map(m => good(m.give, m.bring, `at ${esc(m.heldAt.map(h => `${h.town} (${F(h.n)})`).join(', '))} · bring it to ${esc(from ? `${from.name}’s storage` : 'the harbour the run sails from')} first${matOrders.calls ? '' : ', or let the run call there'} · for ${esc(m.islands.map(n => isleShort(n)).join(', '))}`)).join('')}
@@ -3637,6 +3656,7 @@ export function barterChange(el, parseAmount) {
 		case 'barter-mat-quests': matOrders = { ...matOrders, quests: QUEST_CHOICES.some(([q]) => q === el.value) ? el.value : 'no' }; persist(); return true;
 		case 'barter-sell': setOrders({ sell: Number(el.value) }); return true;
 		case 'barter-buy': setOrders({ buy: el.value !== 'no', landFrom: el.value === 'stock' ? 'stock' : 'buy' }); return true;
+		case 'barter-land-from': setOrders({ buy: true, landFrom: el.dataset.id === 'stock' ? 'stock' : 'buy' }); return true;
 		case 'barter-vouchers': setOrders({ vouchers: el.value === 'keep' ? 'keep' : 'use' }); return true;
 		case 'barter-pause': {
 			const n = parseAmount(el.value === '' ? '0' : el.value);

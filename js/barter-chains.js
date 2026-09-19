@@ -301,6 +301,14 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 	const fromPile = orders.landFrom === 'stock';
 	const pile = new Map(land);
 	const taken = new Map();
+	// And what the Market has listed of each good bought there, run down
+	// as the run buys: a price is not a good in the hand, and a chain
+	// that starts on five hundred of something nobody is selling does
+	// not start. Only where the Market gave a count -- a good made at
+	// home, a gold bar, or one the Market never answered about is not
+	// held back by a number nobody has.
+	const listed = new Map();
+	for (const [name, p] of Object.entries(prices)) if (p && p.how === 'market' && Number.isFinite(p.stock)) listed.set(name, p.stock);
 	let at = start;
 
 	// Two chains up the same ladder -- one from the shore, one from a
@@ -531,7 +539,7 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 			if (pace === 'fast') share(lots[lot].map(k => order[k]), hold.free);
 		}
 		// What is aboard above the floor kept back is what can be spent.
-		const ashoreLeft = fromPile ? pile.get(r.give) || 0 : Infinity;
+		const ashoreLeft = fromPile ? pile.get(r.give) || 0 : listed.has(r.give) ? listed.get(r.give) : Infinity;
 		// What is aboard, and no more of it than the floor lets go of.
 		const spendable = ashore ? ashoreLeft : Math.min(held.get(r.give) || 0, budgetOf(r.give));
 		// The two ceilings on how many attempts are wanted, kept apart
@@ -597,8 +605,8 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 			// about: what the next trade puts on, against what is left.
 			const starved = !(cap.get(r) >= 1);
 			cutAt(chain, r,
-				byParley < 1 ? 'parley' : byGoods < 1 ? 'nothing' : starved ? 'share' : 'hold',
-				starved ? {} : {
+				byParley < 1 ? 'parley' : byGoods < 1 ? (ashore && !fromPile && listed.has(r.give) ? 'market' : 'nothing') : starved ? 'share' : 'hold',
+				byGoods < 1 && ashore && !fromPile && listed.has(r.give) ? { good: r.give, want: r.giveN, listed: listed.get(r.give), held: land.get(r.give) || 0 } : starved ? {} : {
 					need: Math.max(0, Math.round(dw(r))),
 					free: Math.max(0, Math.round((pace === 'fast' ? hold.free : deal) - weight))
 				});
@@ -608,7 +616,10 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 		if (ashore && fromPile) {
 			pile.set(r.give, (pile.get(r.give) || 0) - times * r.giveN);
 			taken.set(r.give, (taken.get(r.give) || 0) + times * r.giveN);
-		} else if (ashore) bought.set(r.give, (bought.get(r.give) || 0) + times * r.giveN);
+		} else if (ashore) {
+			bought.set(r.give, (bought.get(r.give) || 0) + times * r.giveN);
+			if (listed.has(r.give)) listed.set(r.give, Math.max(0, listed.get(r.give) - times * r.giveN));
+		}
 		else { take(held, r.give, times * r.giveN); take(heldMax, r.give, times * r.giveN); owning(r.give, -times * r.giveN); }
 		if (r.item === COIN) {
 			coins += times * r.recvMin;
@@ -655,7 +666,8 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 	// from land-cost.js, and a good it does not price costs 0 and says so.
 	const boughtRows = [...bought].map(([item, n]) => {
 		const p = prices[item] || { each: 0, how: 'unpriced' };
-		return { item, n, each: p.each, how: p.how, total: Math.ceil(n) * p.each };
+		// `stock` is what the Market had listed before the run bought any
+		return { item, n, each: p.each, how: p.how, total: Math.ceil(n) * p.each, stock: Number.isFinite(p.stock) ? p.stock : null };
 	});
 	const takenRows = [...taken].map(([item, n]) => ({ item, n, left: Math.max(0, (land.get(item) || 0) - n) }));
 	const silver = sold.reduce((a, s) => a + s.total, 0);
