@@ -4,10 +4,11 @@
 // convolution, a pooling, the decoding of a row of scores into a number
 // -- is checked on models and scores made up here, small enough to work
 // out by hand. What the network has *learnt* cannot be checked that way,
-// so for that there are a dozen real slots in fixtures/count-slots.json:
-// the lower halves of slots from two screenshots of a storage, one
-// captured off a desktop that scales its screen and one saved by the
-// game as a JPEG, sixty-four pixels by thirty-two each. They are there
+// so for that there are a score of real slots in fixtures/count-slots.json:
+// the lower halves of slots from two players' screenshots -- one
+// captured off a desktop that scales its screen, one saved by the game
+// as a JPEG, one from a client that writes its counts in another face --
+// sixty-four pixels by thirty-two each. They are there
 // because they are the ones the reader before this one got wrong --
 // 103 over a crate came back as 1103 and 70 over a scroll as 711 -- and
 // the network was never shown them: it was taught on made-up slots
@@ -116,7 +117,27 @@ test('how sure a reading is, is the share of all readings that spell it', () => 
 test('real slots read as what is written on them', () => {
 	for (const slot of FIX.slots) {
 		const read = decodeCount(runNet(COUNT_MODEL, planes(slot.rgb), FIX.h, FIX.w));
+		// One of them has the mouse pointer lying across its 19. That one
+		// may be read wrong -- half of it cannot be seen -- so long as it
+		// is not read wrong with a straight face.
+		if (slot.says === '19' && read.text !== '19') {
+			assert.ok(read.sure < SURE, `the count under the pointer was misread as ${read.text}, ${read.sure.toFixed(2)} sure`);
+			continue;
+		}
 		assert.equal(read.text, slot.says, `${slot.says || 'a blank slot'} from ${slot.from}`);
+	}
+});
+
+test('a count in another client\'s face is the same count', () => {
+	// The game draws its counts in whichever face the client's language
+	// ships with. Taught one face, the reader took this player's 656 for
+	// 555 and their 629 for 520; it is taught all of them now.
+	const theirs = FIX.slots.filter(s => s.from.includes('another player'));
+	assert.ok(theirs.length >= 5);
+	for (const slot of theirs) {
+		const read = decodeCount(runNet(COUNT_MODEL, planes(slot.rgb), FIX.h, FIX.w));
+		assert.equal(read.text, slot.says);
+		assert.ok(read.sure >= SURE, `${slot.says} was read, but only ${read.sure.toFixed(2)} sure`);
 	}
 });
 

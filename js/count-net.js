@@ -14,13 +14,15 @@
 // What reads writing that small and that varied is what reads house
 // numbers off street photographs: a convolutional network run across
 // the whole line, trained with CTC so that nothing has to say where one
-// figure stops and the next begins. It was taught on a third of a
-// million made-up slots -- the game's own font, pulled out of the
+// figure stops and the next begins. It was taught on four hundred
+// thousand made-up slots -- the game's own fonts, pulled out of the
 // client, written over the game's own icons, then blurred, rescaled and
 // recompressed every way a screenshot gets -- and on no real ones, so
-// that the real ones could be the test: 369 slots off four screenshots,
-// all read, none wrong. It is fifty thousand weights, runs in about ten
-// milliseconds a slot in plain JavaScript, and fetches nothing.
+// that the real ones could be the test. Every font, not one: which face
+// draws a count depends on the client's language, and a reader taught
+// only Strong Sword took another player's bold gothic 656 for 555. It is
+// fifty thousand weights, runs in about ten milliseconds a slot in plain
+// JavaScript, and fetches nothing.
 //
 // This file is the arithmetic only: convolution, pooling, the decoding.
 // The weights are in count_model.js, which tools/count-reader writes;

@@ -266,8 +266,9 @@ export function gridOf(gray, w, h, { min = 24, max = 120, region = null } = {}) 
 	const inset = (a, b, by) => [Math.round(a + (b - a) * by), Math.round(b - (b - a) * by)];
 	const [ry0, ry1] = region ? [y0, y1] : inset(y0, y1, 0.12);
 	const [rx0, rx1] = region ? [x0, x1] : inset(x0, x1, 0.06);
-	const ex = edgeProfile(gray, w, h, 'x', ry0, ry1).subarray(x0, x1);
-	const ey = edgeProfile(gray, w, h, 'y', rx0, rx1).subarray(y0, y1);
+	const wholeX = edgeProfile(gray, w, h, 'x', ry0, ry1), wholeY = edgeProfile(gray, w, h, 'y', rx0, rx1);
+	const ex = wholeX.subarray(x0, x1);
+	const ey = wholeY.subarray(y0, y1);
 	const fx = combFit(ex, { min, max });
 	const fy = combFit(ey, { min, max });
 	if (!fx || !fy) return null;
@@ -290,8 +291,8 @@ export function gridOf(gray, w, h, { min = 24, max = 120, region = null } = {}) 
 		pitch, ox, oy,
 		score: Math.min(fx.score, fy.score),
 		box: region ? {
-			...trim(ex, ox - x0, pitch, x0, x1),
-			...trim(ey, oy - y0, pitch, y0, y1, true)
+			...trim(wholeX, ox, pitch, x0, x1),
+			...trim(wholeY, oy, pitch, y0, y1, true)
 		} : null
 	};
 }
@@ -307,21 +308,31 @@ export function gridOf(gray, w, h, { min = 24, max = 120, region = null } = {}) 
  * of lattice lines that are still strong.
  */
 function trim(profile, offset, pitch, at, end, down = false) {
+	// Every line of the lattice across the whole picture, not only the
+	// ones the panel hunt took in: its tiles are coarse, and a storage
+	// whose last row fell just past the last tile lost that row -- four
+	// stacks of goods nobody was told about.
 	const lines = [];
-	for (let t = offset % pitch; t < profile.length; t += pitch) lines.push({ t, v: sampleAt(profile, t) });
-	if (lines.length < 3) return down ? { y0: at, y1: end } : { x0: at, x1: end };
-	const sorted = [...lines].map(l => l.v).sort((a, b) => b - a);
+	for (let t = offset % pitch; t < profile.length; t += pitch) lines.push({ t, v: sampleAt(profile, t), inside: t >= at - 1 && t <= end + 1 });
+	const within = lines.filter(l => l.inside);
+	if (within.length < 3) return down ? { y0: at, y1: end } : { x0: at, x1: end };
+	const sorted = within.map(l => l.v).sort((a, b) => b - a);
 	const strong = sorted.slice(0, Math.max(2, Math.round(sorted.length / 2)));
 	const floor = (strong.reduce((a, b) => a + b, 0) / strong.length) * 0.22;
-	let run = { from: 0, to: 0 }, cur = null;
+	// the longest run of strong lines inside the panel...
+	let run = null, cur = null;
 	for (let i = 0; i < lines.length; i++) {
-		if (lines[i].v >= floor) {
+		if (lines[i].inside && lines[i].v >= floor) {
 			cur = cur || { from: i, to: i };
 			cur.to = i;
-			if (cur.to - cur.from > run.to - run.from) run = { ...cur };
+			if (!run || cur.to - cur.from > run.to - run.from) run = { ...cur };
 		} else cur = null;
 	}
-	const lo = at + lines[run.from].t, hi = at + lines[run.to].t;
+	if (!run) return down ? { y0: at, y1: end } : { x0: at, x1: end };
+	// ...carried on past its edges for as long as the lines stay strong
+	while (run.from > 0 && lines[run.from - 1].v >= floor) run.from--;
+	while (run.to < lines.length - 1 && lines[run.to + 1].v >= floor) run.to++;
+	const lo = lines[run.from].t, hi = lines[run.to].t;
 	return down ? { y0: Math.round(lo), y1: Math.round(hi) } : { x0: Math.round(lo), x1: Math.round(hi) };
 }
 

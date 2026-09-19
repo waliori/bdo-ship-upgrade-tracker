@@ -13,7 +13,7 @@
 #
 #   bdo-data-extractor extract --game "<Black Desert Online>" .ttf fonts
 #
-# and point FONT at it. Then, in a shell with torch, numpy and pillow
+# and point FONT_DIR at its ui_data/font folder. Then, in a shell with torch, numpy and pillow
 # (nix-shell -p "python3.withPackages(ps: [ps.torch ps.numpy ps.pillow])"):
 #
 #   python3 gen.py 300000 synth 1000        # the slots it is taught on
@@ -25,20 +25,33 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from multiprocessing import Pool
 ROOT=os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','..')
-FONT=os.environ.get('FONT','fonts/ui_data/font/pearl.ttf')
 ICONS=sorted(glob.glob(ROOT+'/icons/*.webp'))
 GRADES=[(125,125,125),(125,125,125),(96,140,72),(64,124,176),(204,160,52),(200,96,56)]
 _icons={}
 def icon(i):
     if i not in _icons: _icons[i]=Image.open(ICONS[i]).convert('RGBA')
     return _icons[i]
+# Every face the client ships, because which one draws the counts depends
+# on the client's language: Strong Sword (pearl.ttf) on the English one,
+# a bold Korean gothic or a wide ShinGo on others, and a count in a face
+# the reader never saw comes back with its 6s read as 5s. They are
+# weighted towards the ones seen in players' screenshots; the rest are
+# there so that a face nobody has sent yet is not a stranger either.
+FONT_DIR=os.environ.get('FONT_DIR','fonts/ui_data/font')
+FACES=[('pearl.ttf',30),('pa_ygd550.ttf',12),('pearl_sc.ttf',10),('pearl_tc.ttf',10),('web/pearl_productnote.ttf',8),
+       ('web/web_pearl_original_new_bold.ttf',8),('web/notosans-regular.ttf',8),('web/notosans-regularkr.ttf',5),
+       ('web/notosans-regularjp.ttf',4),('#na#pearl.ttf',5)]
+FACES=[(os.path.join(FONT_DIR,n),w) for n,w in FACES if os.path.exists(os.path.join(FONT_DIR,n))]
+assert FACES, 'no fonts under '+FONT_DIR
 _fonts={}
-def font(px):
+def font(path,px):
     px=max(6,int(round(px)))
-    if px not in _fonts: _fonts[px]=ImageFont.truetype(FONT,px)
-    return _fonts[px]
-# digit height as a share of the em, measured once
-_f=font(200); _b=_f.getbbox('0'); EM_H=(_b[3]-_b[1])/200.0
+    if (path,px) not in _fonts: _fonts[(path,px)]=ImageFont.truetype(path,px)
+    return _fonts[(path,px)]
+# digit height as a share of the em, a face at a time
+EM_H={}
+for _p,_w in FACES:
+    _m=font(_p,200).getmask('0').getbbox(); EM_H[_p]=(_m[3]-_m[1])/200.0
 
 def number(r):
     n=r.choices([1,2,3,4,5,6,7],weights=[22,34,22,12,6,3,1])[0]
@@ -75,15 +88,21 @@ def sample(seed):
                 else: d.ellipse([x,y,x+r.uniform(0.05,0.15)*P,y+r.uniform(0.05,0.15)*P],fill=(c,c,c))
     if has_icon and r.random()<0.62:
         label=number(r)
-        hfrac=r.uniform(0.172,0.228)
-        f=font(hfrac*P/EM_H)
+        hfrac=r.uniform(0.168,0.24)
+        face=r.choices([p for p,_ in FACES],weights=[w for _,w in FACES])[0]
+        f=font(face,hfrac*P/EM_H[face])
         track=r.uniform(-0.004,0.02)*P
         widths=[f.getlength(ch) for ch in label]
         total=sum(widths)+track*(len(label)-1)
-        right=P-r.uniform(0.155,0.22)*P; base=P-r.uniform(0.125,0.19)*P
+        right=P-r.uniform(0.11,0.225)*P; base=P-r.uniform(0.08,0.19)*P
         # a count that would run off the slot is drawn smaller by nobody: skip it
-        if right-total<0.02*P: label=label[-3:]; widths=widths[-3:]; total=sum(widths)+track*(len(label)-1)
-        asc=f.getbbox('0')[3]
+        # a count too wide for the slot is set tighter, as the game does, and only then cut
+        if right-total<0.02*P and len(label)>1:
+            track=max(-0.03*P,(right-0.04*P-sum(widths))/(len(label)-1)); total=sum(widths)+track*(len(label)-1)
+        while right-total<0.0 and len(label)>1:
+            label=label[1:]; widths=widths[1:]; total=sum(widths)+track*(len(label)-1)
+        if label[0]=='0': label='1'+label[1:]
+        asc=f.getbbox('0')[3]   # where the figures stand, in this face
         def draw(layer,fill,stroke=0):
             dd=ImageDraw.Draw(layer); x=right-total
             for ch,wd in zip(label,widths):
