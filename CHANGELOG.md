@@ -9,15 +9,17 @@ someone who has been away. The same notes are in the app itself, under
 
 *2026-09-19*
 
-Typing a storage in slot by slot is the dullest hour this app ever asked of anyone, and the game has been drawing it for you all along. So now **a screenshot is an entry**: a storage window becomes counts, a barter window becomes today’s board. The boards themselves got **a book of their own** — all forty layouts, what the fleet has read of them, and the ones nobody has on file — and a barter run finally asks the Central Market **whether there is anything to buy** before telling you to buy it.
+Typing a storage in slot by slot is the dullest hour this app ever asked of anyone, and the game has been drawing it for you all along. So now **a screenshot is an entry**: a storage window becomes counts, a barter window becomes today’s board. The boards themselves got **a book of their own** — all forty layouts, what the fleet has read of them, and the ones nobody has on file — and a barter run finally asks the Central Market **whether there is anything to buy** before telling you to buy it. And the boats below a Carrack now draw **the row of cabins the game draws**, and nothing else: the seats the app had been putting on them were never there.
 
 ### Asked for by you
 
-Three players are in this one. Two of them asked; the third keeps the record the whole Barter tab stands on.
+Five players are in this one. Two asked for what is here; one keeps the record the whole Barter tab stands on; and two, between them, caught a hull the app had been drawing wrong.
 
 - **GloriousMadness** — *“One other thing I was looking at was OCR cuz i’m too lazy to manually input my inventories & barter exchanges”* Not lazy — right. Both of them are **read off a screenshot** now: a storage into counts, the barter window into today’s board.
 - **Oni** — *“some item can be buy from CM, but some is a zero at stoke … but it not chek that items on CM or not”* The run priced a land good at its last sale and never asked whether any were for sale. It asks now: **a run buys only what the Market has**, and a chain that cannot start is not one you can tick. His screenshot also turned out to be in another font, which is why the reader now knows all of them.
 - **RENGEREL** — *“they changed the one tear from dallae pier that might not show up to the butterfly which is always there … that should all be correct now”* The keeper of the community’s layout sheet, who had it updated before the patch was a day old. The game’s own files agree — one byte of them — and **layout 31** is right in the app because of it.
+- **SaltySlimeGoblin** — *“How do i do that? … I don’t have the option to move em”* He was hunting for the seats on his Epheria Caravel because *this app* had drawn them. The game draws none there: his screenshot of that window — one row of cabins, a Save Preset button and nothing else — is what the board below a Carrack is built from now.
+- **Salty_Scallywag** — *“small boats dont have dedicated spots … carracks do”* The whole bug, in one line, before anybody went looking for it. The positions are a Carrack’s and the Panokseon’s; everything smaller is cabins, and the speed, turn and brake that leaned on seats a small hull never had are back to what the ship’s own window reads.
 
 The box is under **Menu → Feedback**. It reaches whoever runs the site.
 
@@ -72,6 +74,16 @@ Once a board is settled, **✎ An island shows something else…** is the one do
 - Islands whose exchange is above your barter count are greyed, with the count that opens them: a blank window there is the game, and not news.
 - If what you saw fits one layout everywhere but an island or three, **the board is that layout with those islands as you saw them**, and the run is planned on it.
 - **Telling the fleet is offered only then**, or when nothing fits at all. A reading that matches a layout on file is not news.
+
+### The seats a boat actually has
+
+The game offers a Sail, a Wheel, a Cannon, a Deck, a Mess and a First Mate on the four Carracks and the Panokseon. On an **Epheria Caravel** — or a Galleass, a frigate, a sailboat, the Bartali — it offers one row of cabins and nothing else. The app had been drawing a Carrack’s board on all of them.
+
+- The cabins are drawn **on the deck**, where the game draws them, and the board says what it is: this hull has no crew positions.
+- A sailor’s growths count **once** there. In the app’s Sail seat they were counted twice, which put the speed, acceleration, turn and brake of every small boat above what its own window reads — and with them the Map’s sailing times and the pace a run is planned at.
+- The **ten per cent off Parley** asks for a First Mate seat, and a small hull has no box for one: the sailor’s bar no longer offers a cut there is nowhere to take.
+- A crew arranged under the old drawing is **not put ashore** — they keep their places in the cabins, saved presets included.
+- *Auto assign* on those hulls asks the one question left: **who comes aboard**, against the cabin space.
 
 ### What the game’s own files had to say
 

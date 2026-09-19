@@ -66,9 +66,10 @@ export const RELEASES = [
 		sum: 'Screenshot your storage or the barter window and the app reads it; every layout has a page in a book, with what the fleet has seen; and a run no longer sends you to buy what the Market has none of.',
 		blurb: 'Typing a storage in slot by slot is the dullest hour this app ever asked of anyone, and the game has been drawing it for you all along. '
 			+ 'So now <b>a screenshot is an entry</b>: a storage window becomes counts, a barter window becomes today\u2019s board. '
-			+ 'The boards themselves got <b>a book of their own</b> \u2014 all forty layouts, what the fleet has read of them, and the ones nobody has on file \u2014 and a barter run finally asks the Central Market <b>whether there is anything to buy</b> before telling you to buy it.',
+			+ 'The boards themselves got <b>a book of their own</b> \u2014 all forty layouts, what the fleet has read of them, and the ones nobody has on file \u2014 and a barter run finally asks the Central Market <b>whether there is anything to buy</b> before telling you to buy it. '
+			+ 'And the boats below a Carrack now draw <b>the row of cabins the game draws</b>, and nothing else: the seats the app had been putting on them were never there.',
 		thanks: {
-			text: 'Three players are in this one. Two of them asked; the third keeps the record the whole Barter tab stands on.',
+			text: 'Five players are in this one. Two asked for what is here; one keeps the record the whole Barter tab stands on; and two, between them, caught a hull the app had been drawing wrong.',
 			who: [
 				{
 					name: 'GloriousMadness',
@@ -84,6 +85,16 @@ export const RELEASES = [
 					name: 'RENGEREL',
 					said: 'they changed the one tear from dallae pier that might not show up to the butterfly which is always there \u2026 that should all be correct now',
 					did: 'The keeper of the community\u2019s layout sheet, who had it updated before the patch was a day old. The game\u2019s own files agree \u2014 one byte of them \u2014 and <b>layout 31</b> is right in the app because of it.'
+				},
+				{
+					name: 'SaltySlimeGoblin',
+					said: 'How do i do that? \u2026 I don\u2019t have the option to move em',
+					did: 'He was hunting for the seats on his Epheria Caravel because <i>this app</i> had drawn them. The game draws none there: his screenshot of that window \u2014 one row of cabins, a Save Preset button and nothing else \u2014 is what the board below a Carrack is built from now.'
+				},
+				{
+					name: 'Salty_Scallywag',
+					said: 'small boats dont have dedicated spots \u2026 carracks do',
+					did: 'The whole bug, in one line, before anybody went looking for it. The positions are a Carrack\u2019s and the Panokseon\u2019s; everything smaller is cabins, and the speed, turn and brake that leaned on seats a small hull never had are back to what the ship\u2019s own window reads.'
 				}
 			],
 			foot: 'The box is under <b>Menu \u2192 Feedback</b>. It reaches whoever runs the site.'
@@ -144,6 +155,17 @@ export const RELEASES = [
 					'Islands whose exchange is above your barter count are greyed, with the count that opens them: a blank window there is the game, and not news.',
 					'If what you saw fits one layout everywhere but an island or three, <b>the board is that layout with those islands as you saw them</b>, and the run is planned on it.',
 					'<b>Telling the fleet is offered only then</b>, or when nothing fits at all. A reading that matches a layout on file is not news.'
+				]
+			},
+			{
+				title: 'The seats a boat actually has',
+				text: 'The game offers a Sail, a Wheel, a Cannon, a Deck, a Mess and a First Mate on the four Carracks and the Panokseon. On an <b>Epheria Caravel</b> \u2014 or a Galleass, a frigate, a sailboat, the Bartali \u2014 it offers one row of cabins and nothing else. The app had been drawing a Carrack\u2019s board on all of them.',
+				points: [
+					'The cabins are drawn <b>on the deck</b>, where the game draws them, and the board says what it is: this hull has no crew positions.',
+					'A sailor\u2019s growths count <b>once</b> there. In the app\u2019s Sail seat they were counted twice, which put the speed, acceleration, turn and brake of every small boat above what its own window reads \u2014 and with them the Map\u2019s sailing times and the pace a run is planned at.',
+					'The <b>ten per cent off Parley</b> asks for a First Mate seat, and a small hull has no box for one: the sailor\u2019s bar no longer offers a cut there is nowhere to take.',
+					'A crew arranged under the old drawing is <b>not put ashore</b> \u2014 they keep their places in the cabins, saved presets included.',
+					'<i>Auto assign</i> on those hulls asks the one question left: <b>who comes aboard</b>, against the cabin space.'
 				]
 			},
 			{
