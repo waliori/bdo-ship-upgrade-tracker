@@ -122,3 +122,13 @@ test('a reading that fits a layout has not drifted, and one that fits nothing at
 	const strange = [1, 2, 3, 4, 5].map(id => ({ npcId: id, give: `G${id}`, recv: `R${id}` }));
 	assert.equal(driftOf(COMBOS, strange), null);
 });
+
+test('a sailor\'s own log says which boards they are dealt, and how often', () => {
+	const book = bookOf(COMBOS, [], { log: [['2026-09-10', '2', 0], ['2026-09-12', '2', 1], ['2026-09-11', '3', 0], ['2026-09-13', '99', 0]] });
+	assert.equal(book.dealt, 3);                                // a layout no longer on file is not counted
+	const two = book.layouts.find(p => p.id === '2');
+	assert.equal(two.mine, 2);
+	assert.equal(two.mineEdited, 1);
+	assert.equal(two.mineLast, '2026-09-12');
+	assert.equal(book.layouts.find(p => p.id === '1').mine, 0);
+});

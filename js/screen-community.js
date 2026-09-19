@@ -28,6 +28,7 @@ import { crystalById, crystalVariant, crystalLine, gradeById } from './crystals.
 import { STAT_NAMES, anyType } from './sailors.js';
 import { monsterArt } from './monster_art.js';
 import { iconSrc } from './ui-bits.js';
+import { combos } from './ui-state.js';
 import { openItemCard } from './item-card.js';
 import { openSailorSheet } from './screen-crew.js';
 
@@ -437,6 +438,14 @@ function bars({ id, cat, icon, title, note, table, name = k => k, sub = null, pi
 	</section>`;
 }
 
+/** Beside a layout's count from the fleet, how often the community's
+ *  own record has seen it: two tallies of one die, kept by different
+ *  hands, and worth reading against each other. */
+function layoutSub(id) {
+	const c = combos && combos.combos.find(x => String(x.id) === String(id));
+	return c ? `${F(c.seen)} of ${F(combos.sample.refreshes)} on the record` : '';
+}
+
 /** A histogram in a row of columns. */
 function columns({ cat, icon, title, note, counts, labels, tip = '' }) {
 	if (numCat !== 'all' && numCat !== cat) return '';
@@ -485,6 +494,7 @@ function numbersHTML() {
 		bars({ id: 'quests', cat: 'quests', icon: '✦', title: 'Quests most done', note: 'claims, over careers', table: s.quests, name: questName, unit: 'done', picture: questPic, link: k => ({ act: 'view', id: 'quests', quest: k }) }),
 		bars({ id: 'hunts', cat: 'quests', icon: '🦈', title: 'Sea monsters most hunted', note: 'from the hunting quests done', table: s.hunts, name: monsterName, unit: 'hunts', picture: k => monsterPic(k, 'sm'), link: k => ({ act: 'quest-map', monster: k }) }),
 		bars({ id: 'levels', cat: 'sea', icon: '⇄', title: 'Barter level', note: 'as set on the Barter tab', table: s.levels, unit: 'sailors' }),
+		bars({ id: 'layouts', cat: 'sea', icon: '🗂', title: 'Barter layouts most dealt', note: 'every board a sailor settled, once a day a layout — the record’s share beside it', table: s.layouts, name: k => `Layout ${k}`, sub: layoutSub, unit: 'boards' }),
 		columns({ cat: 'sea', icon: '📅', title: 'Runs by weekday', note: 'the last sixty runs of each sailor', counts: s.runDays, labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], tip: 'runs on a ' }),
 		columns({ cat: 'sea', icon: '⚓', title: 'Sailing mastery', note: 'sailors at each step', counts: s.masteryBuckets, labels: ['<500', '<1000', '<1500', '<2000', '<2500', '2500+'], tip: 'sailors at ' }),
 		bars({ id: 'builds', cat: 'yard', icon: '⚒', title: 'Builds most queued', note: 'what is on the Builds tab right now', table: s.builds, unit: 'sailors', picture: k => pic(k, 'sm'), link: item }),

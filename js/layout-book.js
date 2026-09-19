@@ -116,13 +116,24 @@ const agreeing = (a, b) => {
  * counted for none -- three islands of a board are true of a dozen
  * layouts and evidence for no one of them.
  */
-export function bookOf(combos, sightings, { today = '', answers = [] } = {}) {
+export function bookOf(combos, sightings, { today = '', answers = [], log = [] } = {}) {
 	const standing = new Set((answers.length ? candidates(combos, answers) : combos).map(c => c.id));
 	const pages = new Map(combos.map(c => [c.id, {
 		id: c.id, combo: c, filed: c.seen || 0, levels: levelsOf(c),
 		standing: standing.has(c.id), today: Boolean(answers.length) && standing.size === 1 && standing.has(c.id),
-		readers: [], sailors: 0, confirms: 0, days: []
+		readers: [], sailors: 0, confirms: 0, days: [],
+		// this sailor's own: how often they were dealt it, and when last
+		mine: 0, mineLast: '', mineEdited: 0
 	}]));
+	let dealt = 0;
+	for (const [day, id, patched] of log) {
+		const page = pages.get(String(id));
+		if (!page) continue;
+		dealt++;
+		page.mine++;
+		if (patched) page.mineEdited++;
+		if (String(day) > page.mineLast) page.mineLast = String(day);
+	}
 	const loose = [];
 	let open = 0;
 	for (const s of sightings || []) {
@@ -163,7 +174,7 @@ export function bookOf(combos, sightings, { today = '', answers = [] } = {}) {
 		g.weight = g.readers.length + g.seen;
 	}
 	strays.sort((a, b) => (b.today - a.today) || b.weight - a.weight || (a.day < b.day ? 1 : -1));
-	return { layouts: [...pages.values()], strays, open, standing: standing.size };
+	return { layouts: [...pages.values()], strays, open, standing: standing.size, dealt };
 }
 
 /** The layouts a word finds: an island's name or a good's, in what a

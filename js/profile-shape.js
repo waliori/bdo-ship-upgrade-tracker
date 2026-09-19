@@ -318,6 +318,20 @@ export function readProfile(raw) {
 			}));
 		if (shut.length) out.shutOffers = shut;
 	}
+	// The boards this sailor has been dealt: the barter day and the
+	// layout it turned out to be, written down by the app the moment a
+	// board is settled. It is what "which layout do I get most" is
+	// counted from -- theirs in the layout book, and everyone's, added
+	// up, on the Community tab for those who take part there. The third
+	// figure is one when an island or two was as they saw it and not as
+	// the record has it.
+	if (Array.isArray(raw.boardLog)) {
+		const log = raw.boardLog
+			.filter(x => Array.isArray(x) && /^\d{4}-\d{2}-\d{2}/.test(String(x[0])) && /^[0-9]{1,2}[A-Z]?$/.test(String(x[1])))
+			.slice(-400)
+			.map(x => [String(x[0]).slice(0, 10), String(x[1]), x[2] ? 1 : 0]);
+		if (log.length) out.boardLog = log;
+	}
 	// The orders a sailor has saved under a name, newest first: the
 	// whole shape of a way of running -- the orders, the stock's
 	// targets and ceiling, the harbour and the storage. A dozen at

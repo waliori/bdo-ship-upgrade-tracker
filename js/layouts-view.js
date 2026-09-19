@@ -70,13 +70,13 @@ function faceOf(combo, n = 8) {
  * is handed a sighting's offers to answer today's board with, `onTell`
  * sends today's answers to the fleet; both belong to the Barter tab.
  */
-export function openLayoutBook({ combos, answers = [], day = '', count = null, onTake = null, onTell = null } = {}) {
-	let filter = 'all';      // all | standing | fleet
+export function openLayoutBook({ combos, answers = [], day = '', count = null, log = [], onTake = null, onTell = null } = {}) {
+	let filter = 'all';      // all | standing | fleet | mine
 	let query = '';
 	let open = null;         // { kind: 'layout' | 'stray', key }
 	let sightings = [];
 	let asked = !shared();
-	let book = bookOf(combos.combos, sightings, { today: day, answers });
+	let book = bookOf(combos.combos, sightings, { today: day, answers, log });
 
 	const host = openDialog('<div data-lb></div>');
 	const box = host.querySelector('.dialog-box');
@@ -88,7 +88,7 @@ export function openLayoutBook({ combos, answers = [], day = '', count = null, o
 		fleetHistory({ force }).then(list => {
 			sightings = list;
 			asked = true;
-			book = bookOf(combos.combos, sightings, { today: day, answers });
+			book = bookOf(combos.combos, sightings, { today: day, answers, log });
 			draw();
 		}).catch(() => { asked = true; draw(); });
 	};
@@ -132,6 +132,7 @@ export function openLayoutBook({ combos, answers = [], day = '', count = null, o
 			<span class="lb-levels">${levelPills(page.levels)}</span>
 			<span class="lb-card-line quiet">record: ${plural(page.filed, 'time')} in ${F(combos.sample.refreshes)} refreshes</span>
 			${fleet ? `<span class="lb-card-line quiet">${fleet}</span>` : ''}
+			${page.mine ? `<span class="lb-card-line mine">you: <b>${plural(page.mine, 'time')}</b>${book.dealt ? ` · ${Math.round((page.mine / book.dealt) * 100)}%` : ''} · last ${esc(dayOf(page.mineLast))}</span>` : ''}
 			${hits ? `<span class="lb-card-line hit">${plural(hits.size, 'island')} match “${esc(query)}”</span>` : ''}
 		</button>`;
 	};
@@ -139,14 +140,21 @@ export function openLayoutBook({ combos, answers = [], day = '', count = null, o
 	const gridHTML = () => {
 		let pages = searchBook(book.layouts, query, id => isle(id));
 		if (filter === 'standing') pages = pages.filter(x => x.page.standing);
-		if (filter === 'fleet') pages = pages.filter(x => x.page.sailors);
-		pages.sort((a, b) => (b.page.today - a.page.today) || (b.page.standing - a.page.standing) || 0);
-		const strays = filter === 'standing' || query ? [] : book.strays;
+		if (filter === 'fleet') pages = pages.filter(x => x.page.sailors).sort((a, b) => b.page.sailors - a.page.sailors);
+		if (filter === 'mine') pages = pages.filter(x => x.page.mine).sort((a, b) => b.page.mine - a.page.mine);
+		else if (filter !== 'fleet') pages.sort((a, b) => (b.page.today - a.page.today) || (b.page.standing - a.page.standing) || 0);
+		const strays = filter === 'standing' || filter === 'mine' || query ? [] : book.strays;
 		return `${strays.length ? `<h3 class="lb-h">Boards nobody has on file <span class="quiet">· ${strays.length}</span></h3>
 			<p class="lb-sub">Read by sailors, and fitting none of the ${book.layouts.length} layouts. One that others have seen too is the record out of date; one nobody else has seen may be a slip.</p>
 			<div class="lb-grid">${strays.map(strayCard).join('')}</div>` : ''}
-			<h3 class="lb-h">${filter === 'standing' ? 'Layouts still standing today' : filter === 'fleet' ? 'Layouts the fleet has read' : 'The layouts on file'} <span class="quiet">· ${pages.length}</span></h3>
+			<h3 class="lb-h">${filter === 'standing' ? 'Layouts still standing today' : filter === 'fleet' ? 'Layouts the fleet has read, the most read first' : filter === 'mine' ? 'The boards you have been dealt, the commonest first' : 'The layouts on file'} <span class="quiet">· ${pages.length}</span></h3>
 			${pages.length ? `<div class="lb-grid">${pages.map(layoutCard).join('')}</div>` : `<p class="lb-sub">${query ? `Nothing on file deals “${esc(query)}”.` : 'None.'}</p>`}`;
+	};
+
+	/** Which board this sailor is dealt most, from the log the app keeps. */
+	const mineLine = () => {
+		const most = book.layouts.filter(p => p.mine).sort((a, b) => b.mine - a.mine)[0];
+		return most ? `<p class="lb-sub">You have settled <b>${plural(book.dealt, 'board')}</b>; the one you are dealt most is <button class="linky" data-lb-open="layout:${esc(most.id)}"><b>layout ${esc(most.id)}</b></button>, ${plural(most.mine, 'time')}. The app writes a board down by itself the moment it is settled.</p>` : '';
 	};
 
 	const shelfHTML = () => {
@@ -155,11 +163,12 @@ export function openLayoutBook({ combos, answers = [], day = '', count = null, o
 		return `<h2>The layout book</h2>
 		<p class="dialog-note">Every refresh deals one of <b>${book.layouts.length}</b> boards. These are the ones on file — the community’s record of ${F(combos.sample.refreshes)} refreshes since ${esc(since)} — and beside them what the fleet has read${shared() ? ' in the last two months' : ''}. ${statusLine()}</p>
 		<div class="lb-bar">
-			${chip('all', 'All', book.layouts.length)}${answers.length ? chip('standing', 'Standing today', book.standing) : ''}${shared() ? chip('fleet', 'Read by the fleet', book.layouts.filter(p => p.sailors).length) : ''}
+			${chip('all', 'All', book.layouts.length)}${answers.length ? chip('standing', 'Standing today', book.standing) : ''}${shared() ? chip('fleet', 'Read by the fleet', book.layouts.filter(p => p.sailors).length) : ''}${book.dealt ? chip('mine', 'Yours', book.layouts.filter(p => p.mine).length) : ''}
 			<input class="lb-search" type="search" data-lb-q placeholder="an island, a good, or a layout’s number…" value="${esc(query)}" aria-label="Search the layouts">
 			${onTell && shared() && answers.length ? `<button class="ghost-btn sm" data-lb-tell title="${me() ? 'Send the islands you answered today, with your name on the reading' : 'Sign in from the Menu first — a reading goes up with a name on it'}">📣 Tell the fleet what you saw</button>` : ''}
 		</div>
 		${!shared() ? '<p class="lb-sub">This deployment keeps no fleet readings, so the book is the record alone.</p>' : !asked ? '<p class="lb-sub">Asking what the fleet has read…</p>' : book.open ? `<p class="lb-sub">${plural(book.open, 'reading')} named too few islands to tell the layouts apart, and ${book.open === 1 ? 'is' : 'are'} counted for none.</p>` : ''}
+		${mineLine()}
 		<div data-lb-grid>${gridHTML()}</div>
 		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>`;
 	};

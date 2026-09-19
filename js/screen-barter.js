@@ -167,6 +167,29 @@ function restore() {
 function persist() {
 	if (writeTimer) clearTimeout(writeTimer);
 	writeTimer = setTimeout(flushView, 250);
+	logBoard();
+}
+
+/**
+ * Write down which layout today's board turned out to be.
+ *
+ * Nobody presses anything for this: the moment the answers settle on
+ * one layout -- or on one with a slot moved -- it goes in the profile's
+ * log, once a day a layout, and that is all the layout book needs to
+ * say which boards this sailor is dealt most. A board that settles and
+ * is then unsettled by an Undo stays written; the log is of boards that
+ * were looked at, and that one was.
+ */
+function logBoard() {
+	if (!combos || !board.answers.length || board.day !== barterKey()) return;
+	const fits = candidates(combos.combos, board.answers);
+	const drifted = fits.length ? null : driftOf(combos.combos, board.answers);
+	const id = fits.length === 1 ? fits[0].id : drifted ? drifted.id : null;
+	if (!id) return;
+	const day = String(board.day).slice(0, 10);
+	const log = store.getProfile('boardLog', []) || [];
+	if (log.some(x => x[0] === day && x[1] === id)) return;
+	store.setProfileQuiet('boardLog', [...log, [day, id, drifted ? 1 : 0]]);
 }
 
 function flushView() {
@@ -3094,6 +3117,7 @@ function openBook(then) {
 		answers: board.answers,
 		day: barterKey(),
 		count: Number.isFinite(Number(barterProfile().barterCount)) ? Number(barterProfile().barterCount) : null,
+		log: store.getProfile('boardLog', []) || [],
 		onTake: (said, readers) => {
 			for (const a of said) {
 				if (!npcById.has(a.npcId)) continue;

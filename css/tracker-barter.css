@@ -677,6 +677,8 @@ img.lb-face { width: 20px; height: 20px; border-radius: 4px; vertical-align: mid
 .lb-card-line b { color: var(--ink-hi); }
 .lb-card-line.quiet { color: var(--ink-mute); }
 .lb-card-line.hit { color: var(--amber); }
+.lb-card-line.mine { color: var(--stash); }
+.lb-card-line.mine b { color: var(--stash); }
 
 .lb-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
 .lb-head h2 { margin: 0; }
