@@ -936,10 +936,12 @@ sums the best part you own in each slot onto the hull — the answer to
 
 **The crew** — the twenty sailor types with their race, cabin cost,
 appetite, weight and per-level growth, and where each is hired; the seven
-positions and what each doubles; condition and sickness and what mends
-them; the experience split; the three first mates; where the sailor slots
-come from. Plan a crew against a hull's seats and cabin space, see the
-contracts priced, and put the certificates on the shopping list.
+positions a Carrack and the Panokseon draw, and what each doubles — a
+hull below them draws cabins only, as the game does; condition and
+sickness and what mends them; the experience split; the three first
+mates; where the sailor slots come from. Plan a crew against a hull's
+seats and cabin space, see the contracts priced, and put the
+certificates on the shopping list.
 
 **Carrack parts** — all 16 of the craftable Chiro parts (Advance,
 Balance, Volante and Valor × cannon, sail, figurehead and black plating),

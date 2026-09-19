@@ -755,6 +755,13 @@ export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
 	{
+		date: '2026-09-19',
+		title: 'The seats are a Carrack’s; the boats below it draw cabins',
+		notes: [
+			'<b>A Caravel has no crew positions, and the app was drawing six of them.</b> The game’s Manage Sailors window offers a Sail, a Wheel, a Cannon, a Deck, a Mess and a First Mate on a Carrack and on the Panokseon. On an <b>Epheria Caravel</b> — or a Galleass, a frigate, a sailboat, the Bartali — it offers one row of cabins and nothing else. The app laid the same frame over every hull that seats anybody, so a six-sailor Caravel was shown seats the game does not have, and the numbers followed: a sailor in the app’s Sail seat had their Endurance and Wits <i>counted twice</i> on a hull where the game counts them once, which put the speed, acceleration, turn and brake of every small boat above what its own window reads — and with them the Map’s sailing times, a run’s pace, and the ten per cent off Parley, which asks for a First Mate seat there is no box for. Below a Carrack the board is now the row of cabins the game draws, on the deck where the game draws it, and the figures are the plain sum of who is aboard. A crew arranged under the old model is <b>not put ashore</b>: they keep their places in the cabins, saved presets included. <i>Auto assign</i> on those hulls asks the one question left — who comes aboard, against the cabin space — and says so.'
+		]
+	},
+	{
 		date: '2026-09-18',
 		title: 'The screenshots you already took are the fastest way to tell the app anything',
 		notes: [
