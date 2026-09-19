@@ -364,7 +364,7 @@ export const RELEASES = [
 			},
 			{
 				title: TT('Put right'),
-				text: TT(''),
+				text: '',
 				points: [
 					TT('<b>A chain loaded the whole storage</b> — sixteen helms for an island with six trades in it, ninety-seven thousand LT in a hull that carries eleven, and the rest put back at the first wharf. It loads what the first rung can take now.'),
 					TT('<b>A floor was measured against the hold</b>, so “keep forty” meant <i>carrying</i> forty before you could spend one. It counts the pile now, wherever it is kept.'),

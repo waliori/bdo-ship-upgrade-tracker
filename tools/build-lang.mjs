@@ -91,7 +91,10 @@ function collect(file) {
 				BROKEN.push(`${where}: T() at module level — it would resolve before a language is chosen and freeze; use TT() here and said() where it is drawn`);
 			} else {
 				const text = arg.type === 'Literal' ? arg.value : arg.quasis[0].value.cooked;
-				remember(text, where);
+				// An empty string has nothing in it to translate; wrapping
+				// one is a slip, not a sentence.
+				if (text) remember(text, where);
+				else BROKEN.push(`${where}: ${node.callee.name}('') — an empty string is not a sentence`);
 			}
 		}
 		const nowInside = insideFunction || FUNCTIONS.has(node.type);
