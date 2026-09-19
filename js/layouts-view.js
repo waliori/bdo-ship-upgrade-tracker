@@ -17,7 +17,7 @@ import { openDialog, closeDialog, toast } from './dialogs.js';
 import { img } from './ui-bits.js';
 import { npcById, isleOf } from './barter_npcs.js';
 import { levelOf } from './barter.js';
-import { exchangeGate } from './barter-board.js';
+import { exchangeGate, knownAt } from './barter-board.js';
 import { bookOf, searchBook } from './layout-book.js';
 import { shared, fleetHistory, sawItToo, unsay } from './sea-boards.js';
 import { me } from './sync.js';
@@ -36,10 +36,6 @@ const by = readers => {
 	if (quiet) said.push(names.length ? `${plural(quiet, 'sailor')} not shown by name` : (quiet === 1 ? 'a sailor not shown by name' : `${F(quiet)} sailors not shown by name`));
 	return said.join(', ');
 };
-
-/** One exchange, drawn: what is handed over, what comes back. */
-const swap = (give, qty, recv) =>
-	`<span class="lb-swap"><span class="lb-good">${img(give, 'row-icon')}<span>${Number(qty) > 1 ? `${F(Number(qty))}× ` : ''}${esc(give)}</span></span><span class="lb-arrow">→</span><span class="lb-good pay">${img(recv, 'row-icon')}<span>${esc(recv)}</span></span></span>`;
 
 /** The levels a board pays, as a row of small counts. */
 function levelPills(levels) {
@@ -118,6 +114,7 @@ export function openLayoutBook({ combos, answers = [], day = '', count = null, o
 			<span class="lb-card-line quiet">${g.seen ? `${plural(g.seen, 'other')} saw the same · ` : ''}${near ? (drift
 		? `<b>layout ${esc(near.combo.id)}</b> with ${plural(near.differ.length, 'slot')} moved`
 		: `nearest is layout ${esc(near.combo.id)}, and it parts at ${near.differ.length}`) : ''}</span>
+			${g.unknown ? `<span class="lb-card-line hit">${plural(g.unknown, 'exchange')} the game is not known to deal there</span>` : ''}
 			${near && drift ? `<span class="lb-diffs">${near.differ.slice(0, 3).map(d => `<span class="lb-diff">${img(d.filed.recv, 'lb-face')}<span class="lb-arrow">→</span>${img(d.saw.recv, 'lb-face')}</span>`).join('')}</span>` : ''}
 		</button>`;
 	};
@@ -168,49 +165,89 @@ export function openLayoutBook({ combos, answers = [], day = '', count = null, o
 	};
 
 	/* --- one board ---------------------------------------------------- */
-	const rowsByLevel = (offers, mark) => {
+	/** A good's name without the level in front of it: the heading over
+	 *  the tiles has already said the level, eighty-six times over. */
+	const plain = name => String(name).replace(/^\[Level \d\]\s*/, '');
+	const good = (name, qty = 1) => `<span class="lb-good">${img(name, 'row-icon')}<span>${Number(qty) > 1 ? `<b>${F(Number(qty))}×</b> ` : ''}${esc(plain(name))}</span></span>`;
+
+	/** One island on a board, as a tile: its name whole, then what it
+	 *  takes and what it pays. `notes` is what there is to say about it. */
+	const tile = (o, { cls = '', tags = [], under = '' } = {}) => `<div class="lb-tile${cls}">
+		<div class="lb-tile-top"><span class="lb-isle">${esc(isle(o[0]))}</span>${tags.length ? `<span class="lb-tags">${tags.join('')}</span>` : ''}</div>
+		<div class="lb-tile-swap">${good(o[1], o[2])}<span class="lb-arrow">→</span>${good(o[3])}</div>${under}
+	</div>`;
+
+	const LEVELS = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'coin', 'other'];
+	const levelKey = recv => { const lv = levelOf(recv); return lv ? `L${lv}` : recv === 'Crow Coin' ? 'coin' : 'other'; };
+	const levelTitle = k => (k === 'coin' ? 'Sold for Crow Coins' : k === 'other' ? 'Pays something else' : k === 'L1' ? 'Land goods → Level 1' : `Level ${Number(k.slice(1)) - 1} → Level ${k.slice(1)}`);
+	let level = 'all';       // which level of the open board is shown
+
+	const tilesByLevel = (offers, dress) => {
 		const groups = new Map();
 		for (const o of offers) {
-			const lv = levelOf(o[3]);
-			const key = lv ? `L${lv}` : o[3] === 'Crow Coin' ? 'coin' : 'other';
+			const key = levelKey(o[3]);
 			if (!groups.has(key)) groups.set(key, []);
 			groups.get(key).push(o);
 		}
-		const order = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'coin', 'other'];
-		const title = k => (k === 'coin' ? 'Pays Crow Coins' : k === 'other' ? 'Pays something else' : `Pays a [Level ${k.slice(1)}] good`);
-		return order.filter(k => groups.has(k)).map(k => `<h4 class="lb-lvh" style="--lv: var(--tier-${k.startsWith('L') ? k.slice(1) : 6})">${title(k)} <span class="quiet">· ${groups.get(k).length}</span></h4>
-			<div class="lb-rows">${groups.get(k).sort((a, b) => isle(a[0]).localeCompare(isle(b[0]))).map(o => `<div class="lb-row${mark(o).cls}"><span class="lb-isle">${esc(isle(o[0]))}</span>${swap(o[1], o[2], o[3])}<span class="lb-note">${mark(o).note}</span></div>`).join('')}</div>`).join('');
+		const keys = LEVELS.filter(k => groups.has(k));
+		const tabs = `<div class="lb-bar lb-tabs"><button class="chip${level === 'all' ? ' on' : ''}" data-lb-level="all">All <span class="quiet">${offers.length}</span></button>${keys.map(k =>
+			`<button class="chip${level === k ? ' on' : ''}" data-lb-level="${k}" style="--lv: var(--tier-${k.startsWith('L') ? k.slice(1) : 6})"><i class="lb-dot"></i>${k === 'coin' ? '◎ coins' : k === 'other' ? 'other' : k} <span class="quiet">${groups.get(k).length}</span></button>`).join('')}</div>`;
+		const shown = keys.filter(k => level === 'all' || level === k);
+		return tabs + (shown.length ? shown : keys).map(k => `<h4 class="lb-lvh" style="--lv: var(--tier-${k.startsWith('L') ? k.slice(1) : 6})">${levelTitle(k)} <span class="quiet">· ${plural(groups.get(k).length, 'island')}</span></h4>
+			<div class="lb-tiles">${groups.get(k).sort((x, y) => isle(x[0]).localeCompare(isle(y[0]))).map(o => tile(o, dress(o))).join('')}</div>`).join('');
 	};
 
 	const layoutHTML = page => {
 		const mine = new Map(answers.map(a => [a.npcId, a]));
+		const filled = new Set(page.combo.filled || []);
 		const hits = query ? (searchBook([page], query, id => isle(id))[0] || {}).hits : null;
-		const mark = o => {
-			const notes = [];
+		const parted = page.combo.offers.filter(o => { const a = mine.get(Number(o[0])); return a && (a.give !== o[1] || a.recv !== o[3]); });
+		const agreed = page.combo.offers.filter(o => { const a = mine.get(Number(o[0])); return a && a.give === o[1] && a.recv === o[3]; }).length;
+		const dress = o => {
+			const tags = [];
 			let cls = hits && hits.has(o[0]) ? ' hit' : '';
+			let under = '';
 			const a = mine.get(Number(o[0]));
-			if (a && a.give === o[1] && a.recv === o[3]) { cls += ' same'; notes.push('<span class="lb-ok">✓ as you saw it</span>'); }
-			else if (a) { cls += ' off'; notes.push(`<span class="lb-no" title="${esc(a.give)} → ${esc(a.recv)}">✗ you saw ${img(a.recv, 'lb-face')}</span>`); }
+			if (a && a.give === o[1] && a.recv === o[3]) { cls += ' same'; tags.push('<span class="lb-tag ok" title="What you saw here today">✓ seen</span>'); }
+			else if (a) { cls += ' off'; under = `<div class="lb-tile-saw"><span class="lb-saw-label">you saw</span>${good(a.give)}<span class="lb-arrow">→</span>${good(a.recv)}</div>`; }
 			const gate = exchangeGate(page.combo, o[0]);
-			if (gate !== null && count !== null && gate > count) notes.push(`<span class="lb-gate" title="The game opens this exchange at ${F(gate)} total barters">opens at ${F(gate)}</span>`);
-			return { cls, note: notes.join(' ') };
+			if (gate !== null && count !== null && gate > count) { cls += ' locked'; tags.push(`<span class="lb-tag lock" title="The game opens this exchange at ${F(gate)} total barters; you have ${F(count)}, so the island shows you nothing here">🔒 ${F(gate)}</span>`); }
+			if (filled.has(Number(o[0]))) tags.push('<span class="lb-tag file" title="The community’s record has no row for this island on this layout: this one is read out of the game’s own files, and nobody has yet reported seeing it">game files</span>');
+			return { cls, tags, under };
 		};
+		const locked = count === null ? 0 : page.combo.offers.filter(o => { const g = exchangeGate(page.combo, o[0]); return g !== null && g > count; }).length;
 		const readers = page.readers.slice(0, 12).map(r => `<li>${r.name ? `<b>${esc(r.name)}</b>` : 'a sailor not shown by name'}${r.mine ? ' (you)' : ''} · ${esc(dayOf(r.day))} · ${plural(r.islands, 'island')}${r.seen ? ` · ${plural(r.seen, 'other')} saw the same` : ''}</li>`).join('');
 		return `<div class="lb-head"><button class="ghost-btn sm" data-lb-back>← the book</button>
 			<h2>Layout ${esc(page.id)} ${page.today ? '<span class="lb-badge today">today’s board</span>' : answers.length ? (page.standing ? '<span class="lb-badge standing">still standing</span>' : '<span class="lb-badge out">ruled out today</span>') : ''}</h2></div>
-		<p class="dialog-note">${plural(page.combo.offers.length, 'island')} · on the record <b>${plural(page.filed, 'time')}</b> in ${F(combos.sample.refreshes)} refreshes${page.sailors ? ` · read by the fleet <b>${plural(page.sailors, 'time')}</b>, last on ${esc(dayOf(page.days[0]))}` : ''}. The material islands roll on their own and are not the layout’s to say.</p>
-		<div class="lb-levels big">${levelPills(page.levels)}</div>
+		<div class="lb-facts">
+			<span><b>${F(page.combo.offers.length)}</b> islands</span>
+			<span>on the record <b>${plural(page.filed, 'time')}</b> of ${F(combos.sample.refreshes)}</span>
+			${page.sailors ? `<span>read by the fleet <b>${plural(page.sailors, 'time')}</b> · last ${esc(dayOf(page.days[0]))}</span>` : ''}
+			${filled.size ? `<span title="Rows the community’s record lacks, read out of the game’s own files"><b>${filled.size}</b> from the game files</span>` : ''}
+			${locked ? `<span title="Exchanges your barter count has not opened: those islands show you nothing on this board"><b>${locked}</b> 🔒 above your ${F(count)} barters</span>` : ''}
+			${answers.length ? `<span class="${parted.length ? 'no' : 'ok'}">${agreed} as you saw${parted.length ? ` · <b>${parted.length}</b> not` : ''}</span>` : ''}
+		</div>
 		${readers ? `<details class="lb-readers"><summary>Who read it</summary><ul>${readers}</ul></details>` : ''}
-		${rowsByLevel(page.combo.offers, mark)}
+		${parted.length ? `<h4 class="lb-lvh no">Where it parts from what you saw today <span class="quiet">· ${plural(parted.length, 'island')}</span></h4>
+			<div class="lb-tiles">${parted.sort((x, y) => isle(x[0]).localeCompare(isle(y[0]))).map(o => tile(o, dress(o))).join('')}</div>` : ''}
+		${tilesByLevel(page.combo.offers, dress)}
 		<div class="dialog-actions"><button class="act quiet" data-lb-back>Back to the book</button></div>`;
 	};
 
 	const strayHTML = g => {
 		const near = g.near;
 		const parted = new Map((near ? near.differ : []).map(d => [d.npcId, d]));
-		const mark = o => {
+		const dress = o => {
 			const d = parted.get(Number(o[0]));
-			return d ? { cls: ' off', note: `<span class="lb-no" title="Layout ${esc(near.combo.id)} has ${esc(d.filed.give)} → ${esc(d.filed.recv)} here">on file: ${img(d.filed.give, 'lb-face')}<span class="lb-arrow">→</span>${img(d.filed.recv, 'lb-face')}</span>` } : { cls: '', note: '' };
+			if (!d) return {};
+			const how = knownAt(combos.combos, Number(o[0]), o[1], o[3]);
+			return {
+				cls: ' off',
+				tags: [how
+					? `<span class="lb-tag file" title="The game is known to deal this exchange at this island — on another layout. That is what a slot moved at a maintenance looks like">known here</span>`
+					: `<span class="lb-tag lock" title="Neither the game’s files nor the record have this exchange at this island at all: a new exchange, or a misreading">never seen here</span>`],
+				under: `<div class="lb-tile-saw"><span class="lb-saw-label">layout ${esc(near.combo.id)} has</span>${good(d.filed.give)}<span class="lb-arrow">→</span>${good(d.filed.recv)}</div>`
+			};
 		};
 		const offers = g.said.map(a => [a.npcId, a.give, '1', a.recv]);
 		const readers = g.readers.map(r => `<li>${r.name ? `<b>${esc(r.name)}</b>` : 'a sailor not shown by name'}${r.mine ? ' (you)' : ''} · ${plural(r.islands, 'island')}${r.seen ? ` · ${plural(r.seen, 'other')} saw the same` : ''}
@@ -222,7 +259,9 @@ export function openLayoutBook({ combos, answers = [], day = '', count = null, o
 		: `The nearest on file is <button class="linky" data-lb-open="layout:${esc(near.combo.id)}">layout ${esc(near.combo.id)}</button>, and it parts from that at ${near.differ.length} of the islands read — a new board, or a reading gone wrong.`) : ''}</p>
 		<ul class="lb-readers flat">${readers}</ul>
 		${g.today && onTake ? `<div class="lb-bar"><button class="chip primary" data-lb-take="${esc(g.key)}" title="Answer every island they named on today’s board">Take this reading as today’s board</button></div>` : ''}
-		${rowsByLevel(offers, mark)}
+		${near && near.differ.length ? `<h4 class="lb-lvh no">Where it parts from layout ${esc(near.combo.id)} <span class="quiet">· ${plural(near.differ.length, 'island')}</span></h4>
+			<div class="lb-tiles">${offers.filter(o => parted.has(Number(o[0]))).map(o => tile(o, dress(o))).join('')}</div>` : ''}
+		${tilesByLevel(offers, dress)}
 		<div class="dialog-actions"><button class="act quiet" data-lb-back>Back to the book</button></div>`;
 	};
 
@@ -241,10 +280,14 @@ export function openLayoutBook({ combos, answers = [], day = '', count = null, o
 
 	let shelfTop = 0;
 	root.addEventListener('click', e => {
-		const el = e.target.closest('[data-lb-open],[data-lb-back],[data-lb-filter],[data-lb-tell],[data-lb-take],[data-lb-seen],[data-lb-unsay]');
+		const el = e.target.closest('[data-lb-open],[data-lb-level],[data-lb-back],[data-lb-filter],[data-lb-tell],[data-lb-take],[data-lb-seen],[data-lb-unsay]');
 		if (!el) return;
-		if (el.dataset.lbOpen) {
+		if (el.dataset.lbLevel) {
+			level = el.dataset.lbLevel;
+			draw();
+		} else if (el.dataset.lbOpen) {
 			if (!open) shelfTop = box.scrollTop;
+			level = 'all';
 			const [kind, ...rest] = el.dataset.lbOpen.split(':');
 			open = { kind, key: rest.join(':'), fresh: true };
 			draw();

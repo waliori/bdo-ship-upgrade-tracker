@@ -14,33 +14,28 @@
 // layout, and then the button that answers every one of those islands
 // at once.
 //
-// And once it is read, it is worth more than one sailor's afternoon:
-// the board is the same for everyone on the server until the refill, so
-// the dialog offers to tell the fleet (sea-boards.js). Somebody's name
-// goes on it -- that is the whole arrangement.
+// Whether a reading is worth telling the fleet is not asked here. It is
+// news when it fits no layout on file, and only the Barter tab knows
+// that -- after the answers are in -- so the offer is made on its bar.
 
 import { esc } from './fmt.js';
-import { openDialog, closeDialog, toast } from './dialogs.js';
+import { openDialog, closeDialog } from './dialogs.js';
 import { LIMITS, triage, readWords, close as closeReader } from './shot-reader.js';
 import { offersFrom } from './barter-shot.js';
 import { npcs, isleOf, whoOf } from './barter_npcs.js';
 import { img } from './ui-bits.js';
-import { me } from './sync.js';
-import { shared, tellFleet } from './sea-boards.js';
 
 /**
  * The dialog.
  *
  * `deals` is every exchange the codex lists (barter-plan.js's
- * `exchanges`), `day` the barter day a sighting would be filed under,
- * `layout` what the app makes of the board so far, and `onAnswers` what
- * to do with the rows the player keeps.
+ * `exchanges`), and `onAnswers` what to do with the rows the player
+ * keeps.
  */
-export function openBarterImport({ deals, day, layout = null, onAnswers = () => {} } = {}) {
+export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 	let stop = null;
 	let rows = [];            // what was read: { isle, offer, near, keep }
 	let skipped = [];
-	let sent = false;         // the fleet has been told about this reading
 
 	const host = () => document.getElementById('dialog');
 	const draw = body => {
@@ -106,7 +101,6 @@ export function openBarterImport({ deals, day, layout = null, onAnswers = () => 
 
 	const reviewView = () => {
 		const taking = rows.filter(r => r.keep);
-		const canTell = shared() && me();
 		return `
 		<p class="dialog-note">${rows.length
 		? `Read ${rows.length} island${rows.length === 1 ? '' : 's'}. Check them against the window — a row read wrong puts the whole board on the wrong layout, and every one of these can be corrected from the list beside it.`
@@ -116,10 +110,6 @@ export function openBarterImport({ deals, day, layout = null, onAnswers = () => 
 			<thead><tr><th></th><th>Island</th><th>Showing</th><th></th></tr></thead>
 			<tbody>${rows.map(rowHTML).join('')}</tbody>
 		</table></div>` : ''}
-		${taking.length ? `<label class="shot-lang"><input type="checkbox" data-tell${canTell ? ' checked' : ' disabled'}>
-			<span>${canTell
-		? 'Tell the fleet what you saw — your name goes on it, and anybody who opens the page today can sail on it.'
-		: shared() ? 'Sign in to put your name to a reading and let the fleet sail on it.' : 'This deployment keeps no shared boards.'}</span></label>` : ''}
 		<div class="dialog-actions">
 			<button class="act quiet" data-again>Read more</button>
 			<span class="panel-spacer"></span>
@@ -166,21 +156,14 @@ export function openBarterImport({ deals, day, layout = null, onAnswers = () => 
 		const taking = rows.filter(r => r.keep);
 		if (!taking.length) return;
 		const answers = taking.map(r => ({ npcId: r.isle.id, give: r.keep.give, recv: r.keep.item, qty: r.keep.giveText || '1' }));
-		const tell = host().querySelector('[data-tell]');
-		const wanted = tell && tell.checked && !tell.disabled;
 		closeReader();
 		closeDialog();
 		// What the answers mean is the tab's business -- some of these
 		// rows are the material list, which belongs to no layout -- so
-		// the tab says what it did with them.
+		// the tab says what it did with them. Whether they are worth
+		// telling the fleet is the tab's to say too: a reading is news
+		// when it fits no layout on file, and the bar offers it then.
 		onAnswers(answers);
-		if (wanted && !sent) {
-			sent = true;
-			const out = await tellFleet(day, layout, answers);
-			toast(out.ok
-				? `The fleet has your reading of today's board — ${answers.length} island${answers.length === 1 ? '' : 's'}, with your name on it`
-				: `The reading is yours alone for now: ${out.why}`, out.ok);
-		}
 	}
 
 	/* --- wiring ------------------------------------------------------ */

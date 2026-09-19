@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { bookOf, nearestLayout, levelsOf, searchBook, answersOf } from '../js/layout-book.js';
+import { bookOf, nearestLayout, levelsOf, searchBook, answersOf, driftOf } from '../js/layout-book.js';
 
 /** Three little layouts over five islands; any two part at three or more. */
 const offer = (id, n) => [id, `[Level ${n}] Give ${id}-${n}`, '1', `[Level ${n + 1}] Pay ${id}-${n}`];
@@ -46,6 +46,8 @@ test('a reading nothing fits is a stray, and says what it is nearest to', () => 
 	assert.equal(stray.near.differ.length, 1);
 	assert.equal(stray.near.differ[0].npcId, 4);
 	assert.equal(stray.near.differ[0].filed.recv, '[Level 2] Pay 4-1');
+	// three of the four are exchanges on file somewhere; the fourth is known nowhere
+	assert.equal(stray.unknown, 1);
 });
 
 test('two sailors who read the same stray on one day are one board, and weigh more', () => {
@@ -94,4 +96,29 @@ test('a word finds the layouts that deal it, by good or by island', () => {
 	assert.deepEqual([...searchBook(pages, 'give 2-3', nameOf)[0].hits], [2]);
 	assert.equal(searchBook(pages, '', nameOf).length, 3);
 	assert.deepEqual(searchBook(pages, '3', nameOf).map(x => x.page.id), ['3']);   // a number is a layout's number
+});
+
+test('a layout with a slot moved is that layout, with the slot as it was seen', () => {
+	const moved = { npcId: 4, give: '[Level 1] New give', recv: '[Level 2] New pay' };
+	const saw = [...answersOf([offer(1, 1), offer(2, 1), offer(3, 1)]), moved];
+	const board = driftOf(COMBOS, saw);
+	assert.ok(board);
+	assert.equal(board.id, '1');
+	assert.deepEqual(board.patched, [4]);
+	assert.deepEqual(board.offers.find(o => o[0] === 4), [4, moved.give, '1', moved.recv]);
+	assert.deepEqual(board.offers.find(o => o[0] === 5), COMBOS[0].offers[4]);   // the rest is the record's
+	assert.equal(board.was[0].filed.recv, '[Level 2] Pay 4-1');
+	assert.equal(COMBOS[0].offers[3][1], '[Level 1] Give 4-1');                  // and the record is not written on
+});
+
+test('one odd island and nothing else is not a layout', () => {
+	const moved = { npcId: 4, give: 'X', recv: 'Y' };
+	assert.equal(driftOf(COMBOS, [moved]), null);
+	assert.equal(driftOf(COMBOS, [...answersOf([offer(1, 1)]), moved]), null);   // one island agreeing is not enough to hang it on
+});
+
+test('a reading that fits a layout has not drifted, and one that fits nothing at all has not either', () => {
+	assert.equal(driftOf(COMBOS, answersOf([offer(1, 1), offer(2, 1)])), null);
+	const strange = [1, 2, 3, 4, 5].map(id => ({ npcId: id, give: `G${id}`, recv: `R${id}` }));
+	assert.equal(driftOf(COMBOS, strange), null);
 });

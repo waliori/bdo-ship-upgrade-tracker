@@ -13,7 +13,7 @@
 // This file only does the sums. Pixels are layouts-view.js's, the post
 // is sea-boards.js's, and what a layout *is* stays barter-board.js's.
 
-import { candidates, offersOf } from './barter-board.js';
+import { candidates, offersOf, knownAt } from './barter-board.js';
 import { levelOf } from './barter.js';
 
 /** A sighting's offers -- `[npcId, give, qty, recv]` as the server
@@ -46,6 +46,42 @@ export function nearestLayout(combos, answers) {
 		}
 	}
 	return best;
+}
+
+/**
+ * A layout the game has edited, recognised from what a sailor saw.
+ *
+ * When nothing on file fits, the likeliest story by far is not a new
+ * board but an old one with a slot moved: the game does that at a
+ * maintenance, without renumbering anything. So the answers that stop
+ * every layout fitting are set aside, and if what is left pins exactly
+ * one layout -- and pins it on more islands than were set aside, or a
+ * single odd island could drag any reading onto any layout -- the board
+ * is that layout, with those islands as the sailor saw them.
+ *
+ * What comes back is a layout in its own right, with the base's number
+ * (its row in the client's table is still its row) and `patched`, the
+ * islands that are the sailor's word and not the record's. Null when
+ * the reading is too thin or too strange to say.
+ */
+export function driftOf(combos, answers, { most = 3, least = 3 } = {}) {
+	if (!answers.length || candidates(combos, answers).length) return null;
+	const near = nearestLayout(combos, answers);
+	if (!near || !near.differ.length || near.differ.length > most) return null;
+	if (near.agree < least || near.agree < near.differ.length * 2) return null;
+	const odd = new Set(near.differ.map(d => d.npcId));
+	const rest = answers.filter(a => !odd.has(a.npcId));
+	const fits = candidates(combos, rest);
+	if (fits.length !== 1 || fits[0].id !== near.combo.id) return null;
+	const base = near.combo;
+	const seen = new Map(near.differ.map(d => [d.npcId, d.saw]));
+	return {
+		...base,
+		offers: base.offers.map(o => (seen.has(o[0]) ? [o[0], seen.get(o[0]).give, '1', seen.get(o[0]).recv] : o)),
+		filled: (base.filled || []).filter(id => !odd.has(id)),
+		patched: [...odd],
+		was: near.differ
+	};
 }
 
 /** What a layout pays, counted by the level of the good: the shape of
@@ -118,6 +154,10 @@ export function bookOf(combos, sightings, { today = '', answers = [] } = {}) {
 	}
 	for (const g of strays) {
 		g.near = nearestLayout(combos, g.said);
+		// held up against everything the game is known to deal at each
+		// island, on any layout: what is known nowhere is either new to
+		// the game or a slip, and is counted apart
+		g.unknown = g.said.filter(a => !knownAt(combos, a.npcId, a.give, a.recv)).length;
 		// how far to believe it: everyone who read it and everyone who
 		// then said they saw the same
 		g.weight = g.readers.length + g.seen;

@@ -49,6 +49,18 @@ export function clientOffer(combo, npcId) {
 	return slot ? { give: GOODS[slot[0]], qty: String(slot[1]), recv: GOODS[slot[2]], gate: slot[3] } : null;
 }
 
+/** Every trade-good exchange the client says an island deals, on any
+ *  row: `{ give, qty, recv, gate }`, each once. */
+export function clientDeals(npcId) {
+	const seen = new Map();
+	for (const slot of POOLS[npcId] || []) {
+		if (!slot) continue;
+		const o = { give: GOODS[slot[0]], qty: String(slot[1]), recv: GOODS[slot[2]], gate: slot[3] };
+		if (dealt(o.recv) && !seen.has(`${o.give}|${o.recv}`)) seen.set(`${o.give}|${o.recv}`, o);
+	}
+	return [...seen.values()];
+}
+
 /**
  * The record made whole from the client.
  *
@@ -119,6 +131,13 @@ export function knownAt(combos, npcId, give, recv) {
 export function exchangeGate(combo, npcId) {
 	const row = ROWS[combo && combo.id];
 	if (row === undefined) return null;
+	// An island that is the sailor's word and not the record's: the gate
+	// is that exchange's own, wherever in the pool the client keeps it.
+	if (combo.patched && combo.patched.includes(npcId)) {
+		const seen = offersOf(combo).get(npcId);
+		const o = seen && clientDeals(npcId).find(x => x.give === seen.give && x.recv === seen.recv);
+		return o && typeof o.gate === 'number' ? o.gate : null;
+	}
 	const col = GATES[npcId];
 	const gate = col ? col[row] : null;
 	if (typeof gate === 'number') return gate;
