@@ -62,13 +62,22 @@ export function clientDeals(npcId) {
 }
 
 /**
+ * A barter count nobody has: what the client writes against an exchange
+ * it means no sailor to see. Most of the rows the community's record
+ * "lacks" are these -- the island is simply shut on that layout, for
+ * everyone, which is why nobody ever wrote down what it showed -- and a
+ * row like that is not a gap to fill.
+ */
+export const NEVER = 100000;
+
+/**
  * The record made whole from the client.
  *
  * The community's record has no row for an island or two on most
- * layouts -- nobody happened to write that island down -- and the
- * client's table has no rows at all for a couple of tiers. Neither is
- * complete and between them nothing is missing, so each layout is
- * handed on with the client's row wherever the record has none. Where
+ * layouts. Usually that is the game's doing (see NEVER), but here and
+ * there nobody happened to write the island down, and the client knows
+ * what it deals: each layout is handed on with the client's row
+ * wherever the record has none and the game does deal one. Where
  * both have a row the record stands: it is what players saw dealt. The
  * islands filled in are named in `filled`, so the book can say which
  * rows nobody has yet seen with their own eyes.
@@ -85,7 +94,7 @@ export function completed(record) {
 				const npcId = Number(id);
 				if (have.has(npcId)) continue;
 				const o = clientOffer(combo, npcId);
-				if (!o || !dealt(o.recv)) continue;
+				if (!o || !dealt(o.recv) || o.gate >= NEVER) continue;
 				offers.push([npcId, o.give, o.qty, o.recv]);
 				filled.push(npcId);
 			}

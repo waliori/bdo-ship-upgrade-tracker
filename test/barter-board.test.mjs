@@ -203,7 +203,7 @@ test('a chain that climbs through a shut exchange is not proposed', () => {
  * ------------------------------------------------------------------ */
 
 test('a row the record lacks is filled from the client, and says so', async () => {
-	const { completed, clientOffer, offersOf: rowsOf } = await import('../js/barter-board.js');
+	const { completed, clientOffer, offersOf: rowsOf, NEVER } = await import('../js/barter-board.js');
 	const whole = completed(record);
 	assert.equal(whole.combos.length, record.combos.length);
 	let filled = 0;
@@ -216,14 +216,13 @@ test('a row the record lacks is filled from the client, and says so', async () =
 			assert.equal(was.offers.some(o => o[0] === id), false);
 			const o = clientOffer(was, id);
 			assert.deepEqual(rowsOf(now).get(id), { give: o.give, qty: o.qty, recv: o.recv });
+			// an island the game shuts on this layout for everybody is not a gap
+			assert.ok(o.gate < NEVER, `${id} on layout ${was.id} opens at ${o.gate}`);
 			// a layout says nothing about the material islands
 			assert.ok(/^\[Level \d\]/.test(o.recv) || o.recv === 'Crow Coin', o.recv);
 		}
 	}
-	assert.ok(filled > 50, `only ${filled} rows filled`);
-	// between them nothing is missing: every layout is the same islands
-	const sizes = new Set(whole.combos.map(c => c.offers.length));
-	assert.ok(Math.max(...sizes) - Math.min(...sizes) <= 1, [...sizes].join(','));
+	assert.ok(filled >= 5 && filled < 30, `${filled} rows filled`);
 });
 
 test('a row the client filled carries the client\'s gate', async () => {
