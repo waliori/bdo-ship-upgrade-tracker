@@ -1,267 +1,291 @@
 1
-00:00:00,517 --> 00:00:04,590
+00:00:00,341 --> 00:00:04,414
 This is the Barter tab. Show it one island, and it plans a whole run for you.
 
 2
-00:00:08,315 --> 00:00:10,147
+00:00:07,929 --> 00:00:09,762
 Next, tell it what the board looks like.
 
 3
-00:00:10,147 --> 00:00:12,655
+00:00:09,762 --> 00:00:12,270
 Every refresh, the sea uses one of forty layouts.
 
 4
-00:00:12,655 --> 00:00:15,519
+00:00:12,270 --> 00:00:15,122
 The app cannot know which one. So you show it a single island.
 
 5
-00:00:15,519 --> 00:00:18,552
+00:00:15,122 --> 00:00:18,124
 Click "another island", and pick the one you are looking at.
 
 6
-00:00:18,552 --> 00:00:29,665
+00:00:18,124 --> 00:00:29,237
 Now check that island in game. Open Barter Information, set the filter to Normal to Level 1, and find its row. Eveto Island is offering Essence of Liquor, for a Level 1 Cherry Tree Seed Pouch.
 
 7
-00:00:29,689 --> 00:00:31,530
+00:00:29,255 --> 00:00:31,096
 Pick that same trade here.
 
 8
-00:00:32,837 --> 00:00:36,778
+00:00:32,256 --> 00:00:36,156
 That names the layout. Every chain this refresh allows is now listed below.
 
 9
-00:00:36,778 --> 00:00:40,143
-First, what the day is for. There are four of them, and they are not the same run.
+00:00:36,156 --> 00:00:41,075
+Or skip the clicking. Screenshot that same window, drop it here, and every row of it is read at once.
 
 10
-00:00:40,143 --> 00:00:43,322
-Silver climbs the chains on the board and sells the tops at a wharf.
+00:00:41,075 --> 00:00:48,442
+Each row is matched against what that island is known to deal, so a name the window cut short still reads, and six rows usually settle the board.
 
 11
-00:00:43,322 --> 00:00:47,788
-A stock sails the same board to fill the storage instead. Nothing is sold at all.
+00:00:48,442 --> 00:00:56,248
+The layout book keeps all forty, with how often each has been seen, the boards you have been dealt yourself, and any board a sailor has read that is in no record at all.
 
 12
-00:00:48,114 --> 00:00:54,701
-Say how many of every good you want at a level. That is a floor as well as a target, so a level fills before anything climbs from it.
+00:00:56,248 --> 00:01:03,104
+A layout opens island by island, marked where it agrees with what you saw and where your barter count has not opened an exchange.
 
 13
-00:00:54,701 --> 00:01:00,775
-And climb no higher than stops the ladder where your stock ends — a Level 4 you already hold is stock, not fuel.
+00:01:03,104 --> 00:01:11,542
+And if an island shows something the board does not say, tell it here. If that is one slot the game has moved, the board follows — and that is the reading worth telling the fleet.
 
 14
-00:01:01,302 --> 00:01:06,925
-So the run is scored on what it banks: the goods it is short of, the runs left, and the storage slots they will take.
+00:01:11,602 --> 00:01:14,962
+First, what the day is for. There are four of them, and they are not the same run.
 
 15
-00:01:06,925 --> 00:01:13,548
-Crow Coins is the third. Every board has ten to fourteen islands paying in coins, and they take a Level 4 and nothing else.
+00:01:14,962 --> 00:01:18,139
+Silver climbs the chains on the board and sells the tops at a wharf.
 
 16
-00:01:13,548 --> 00:01:18,978
-So a coin day is a climb to four, cashed in — counted in coins, against what your builds are still short of.
+00:01:18,139 --> 00:01:22,606
+A stock sails the same board to fill the storage instead. Nothing is sold at all.
 
 17
-00:01:18,978 --> 00:01:21,634
-And a material climbs the ladder to one thing on your list.
+00:01:22,908 --> 00:01:29,600
+Say how many of every good you want at a level. That is a floor as well as a target, so a level fills before anything climbs from it.
 
 18
-00:01:21,634 --> 00:01:23,312
-We will sail this one for silver.
+00:01:29,600 --> 00:01:35,675
+And climb no higher than stops the ladder where your stock ends — a Level 4 you already hold is stock, not fuel.
 
 19
-00:01:23,312 --> 00:01:31,846
-The barter count and level you set at the start are doing real work here: the count decides which islands are on the board at all, and the level prices every Parley figure below.
+00:01:36,186 --> 00:01:41,668
+So the run is scored on what it banks: the goods it is short of, the runs left, and the storage slots they will take.
 
 20
-00:01:31,846 --> 00:01:33,678
-Now tell it what you want out of the run.
+00:01:41,668 --> 00:01:48,285
+Crow Coins is the third. Every board has ten to fourteen islands paying in coins, and they take a Level 4 and nothing else.
 
 21
-00:01:33,678 --> 00:01:40,196
-Sell the top, keep a floor finishes every island and sells the top, but leaves something of every level for tomorrow's board.
+00:01:48,285 --> 00:01:53,968
+So a coin day is a climb to four, cashed in — counted in coins, against what your builds are still short of.
 
 22
-00:01:40,506 --> 00:01:49,132
-These boxes are that floor. It is what the selling never touches — which on an empty storage means there is nothing left to sell, and the tab says so rather than proposing a run.
+00:01:53,968 --> 00:01:56,588
+And a material climbs the ladder to one thing on your list.
 
 23
-00:01:49,132 --> 00:01:55,292
-Cash out today is the other one: the most silver at the wharf tonight, from what is aboard and at the harbour. That is the day we will sail.
+00:01:56,588 --> 00:01:58,240
+We will sail this one for silver.
 
 24
-00:01:55,292 --> 00:01:57,005
-Pace. Fast keeps you light and quick.
+00:01:58,240 --> 00:02:06,724
+The barter count and level you set at the start are doing real work here: the count decides which islands are on the board at all, and the level prices every Parley figure below.
 
 25
-00:01:57,005 --> 00:02:00,615
-Full and loaded fills the hold past the limit. More goods, slower sailing.
+00:02:06,724 --> 00:02:08,555
+Now tell it what you want out of the run.
 
 26
-00:02:00,615 --> 00:02:04,001
-Quests on the way hands in dailies you have already taken, as you pass them.
+00:02:08,555 --> 00:02:14,759
+Sell the top, keep a floor finishes every island and sells the top, but leaves something of every level for tomorrow's board.
 
 27
-00:02:04,001 --> 00:02:13,000
-Trade vouchers are yours to spend or keep. Drawn on, one goes in as soon as the run needs it and a whole quarter fits, which starts its two-hour cooldown as early as it can be started.
+00:02:14,759 --> 00:02:23,492
+These boxes are that floor. It is what the selling never touches — which on an empty storage means there is nothing left to sell, and the tab says so rather than proposing a run.
 
 28
-00:02:13,000 --> 00:02:17,189
-The way round sets the route order: nearest island first, or one chain at a time.
+00:02:23,492 --> 00:02:29,574
+Cash out today is the other one: the most silver at the wharf tonight, from what is aboard and at the harbour. That is the day we will sail.
 
 29
-00:02:17,189 --> 00:02:21,508
-And here: where you sail from, where your storage is, and a time limit if you want one.
+00:02:29,574 --> 00:02:31,275
+Pace. Fast keeps you light and quick.
 
 30
-00:02:21,508 --> 00:02:26,484
-A way of running you like can be kept under a name — the orders, the targets and the ceiling with them.
+00:02:31,275 --> 00:02:34,864
+Full and loaded fills the hold past the limit. More goods, slower sailing.
 
 31
-00:02:26,625 --> 00:02:29,394
-Now the chains. It has already worked out three runs for you.
+00:02:34,864 --> 00:02:38,224
+Quests on the way hands in dailies you have already taken, as you pass them.
 
 32
-00:02:29,394 --> 00:02:33,539
-The most silver, the most per hour, and the most per Parley. They are rarely the same run.
+00:02:38,224 --> 00:02:47,233
+Trade vouchers are yours to spend or keep. Drawn on, one goes in as soon as the run needs it and a whole quarter fits, which starts its two-hour cooldown as early as it can be started.
 
 33
-00:02:33,539 --> 00:02:35,232
-Click one to use it.
+00:02:47,233 --> 00:02:51,363
+The way round sets the route order: nearest island first, or one chain at a time.
 
 34
-00:02:35,370 --> 00:02:36,693
-Or tick chains yourself.
+00:02:51,363 --> 00:02:55,994
+And here: where you sail from, where your storage is, and a time limit if you want one.
 
 35
-00:02:36,693 --> 00:02:39,174
-Fill the rest adds the best chains around the ones you picked.
+00:02:56,309 --> 00:03:01,285
+A way of running you like can be kept under a name — the orders, the targets and the ceiling with them.
 
 36
-00:02:39,174 --> 00:02:43,034
-The bar at the bottom totals it up: chains, silver, hours, islands.
+00:03:01,392 --> 00:03:04,161
+Now the chains. It has already worked out three runs for you.
 
 37
-00:02:43,034 --> 00:02:44,727
-Click "Lay it out".
+00:03:04,161 --> 00:03:08,311
+The most silver, the most per hour, and the most per Parley. They are rarely the same run.
 
 38
-00:02:45,298 --> 00:02:48,831
-The sheet opens on two shelves, tiled the way the game's own window is.
+00:03:08,311 --> 00:03:10,004
+Click one to use it.
 
 39
-00:02:48,831 --> 00:02:53,045
-Load before casting off is what to take with you, and what it costs to buy ashore.
+00:03:10,083 --> 00:03:11,973
+Or tick chains yourself.
 
 40
-00:02:53,045 --> 00:02:56,465
-In the storage after is what comes home — and what was sold on the way.
+00:03:12,006 --> 00:03:20,754
+A chain that starts ashore buys its first good on the Central Market, and the run is held to what is actually listed there. One the Market has none of cannot be ticked, and says why.
 
 41
-00:02:56,465 --> 00:03:00,342
-Below them, every stop in order. What you hand over, and what you get back.
+00:03:20,754 --> 00:03:23,267
+Fill the rest adds the best chains around the ones you picked.
 
 42
-00:03:00,698 --> 00:03:03,179
-This bar is your hold after each trade.
+00:03:23,267 --> 00:03:27,123
+The bar at the bottom totals it up: chains, silver, hours, islands.
 
 43
-00:03:03,712 --> 00:03:07,014
-Orange means you are over the limit. You still sail, just slower.
+00:03:27,123 --> 00:03:28,816
+Click "Lay it out".
 
 44
-00:03:07,014 --> 00:03:09,989
-Red means too heavy to barter. You have to lighten first.
+00:03:29,295 --> 00:03:32,826
+The sheet opens on two shelves, tiled the way the game's own window is.
 
 45
-00:03:09,989 --> 00:03:14,144
-That is what a wharf stop is for. Drop the extra into storage, and carry on.
+00:03:32,826 --> 00:03:37,021
+Load before casting off is what to take with you, and what it costs to buy ashore.
 
 46
-00:03:14,672 --> 00:03:17,743
-And this bar is your Parley going down as you trade.
+00:03:37,021 --> 00:03:40,434
+In the storage after is what comes home — and what was sold on the way.
 
 47
-00:03:18,436 --> 00:03:21,070
-Before you cast off, the clock at the foot of the sheet.
+00:03:40,434 --> 00:03:44,310
+Below them, every stop in order. What you hand over, and what you get back.
 
 48
-00:03:21,070 --> 00:03:28,490
-It starts at this run's own estimate and counts up, and it carries your own pace: seconds for bartering and going on, seconds for a wharf or a quest.
+00:03:44,627 --> 00:03:47,014
+This bar is your hold after each trade.
 
 49
-00:03:28,490 --> 00:03:35,186
-It rings a ship's bell at every stop rather than only at the end — a pair struck as each stop comes up, eight bells when the run is done.
+00:03:47,014 --> 00:03:50,369
+Orange means you are over the limit. You still sail, just slower.
 
 50
-00:03:35,186 --> 00:03:39,922
-And it reaches every device signed in to your account, so the phone in your pocket rings with this tab shut.
+00:03:50,369 --> 00:03:53,638
+Red means too heavy to barter. You have to lighten first.
 
 51
-00:03:39,922 --> 00:03:41,254
-Start it.
+00:03:53,945 --> 00:03:58,099
+That is what a wharf stop is for. Drop the extra into storage, and carry on.
 
 52
-00:03:42,657 --> 00:03:45,105
-Happy with it? Click "Sail this run".
+00:03:58,617 --> 00:04:01,688
+And this bar is your Parley going down as you trade.
 
 53
-00:03:46,784 --> 00:03:48,452
-It goes onto the map as a checklist.
+00:04:02,362 --> 00:04:04,956
+Before you cast off, the clock at the foot of the sheet.
 
 54
-00:03:48,452 --> 00:03:50,778
-Full screen, if you want more sea and less panel.
+00:04:04,956 --> 00:04:12,374
+It starts at this run's own estimate and counts up, and it carries your own pace: seconds for bartering and going on, seconds for a wharf or a quest.
 
 55
-00:03:50,778 --> 00:03:54,932
-It follows you leg by leg, and every stop is a card with the trade on it.
+00:04:12,374 --> 00:04:19,180
+It rings a ship's bell at every stop rather than only at the end — a pair struck as each stop comes up, eight bells when the run is done.
 
 56
-00:03:56,217 --> 00:04:00,839
-Tick each stop as you make it. If an island pays a different amount, everything after it re-counts.
+00:04:19,180 --> 00:04:23,904
+And it reaches every device signed in to your account, so the phone in your pocket rings with this tab shut.
 
 57
-00:04:00,839 --> 00:04:08,096
-Out of the sheet it keeps time on the tab itself. Ticking a stop off re-bases the rest, so a slow island does not make the whole run chime early.
+00:04:23,904 --> 00:04:25,236
+Start it.
 
 58
-00:04:08,096 --> 00:04:10,552
-Finished sailing? Tick them all off at once.
+00:04:26,214 --> 00:04:28,515
+Happy with it? Click "Sail this run".
 
 59
-00:04:10,552 --> 00:04:12,328
-Then click "Record the trip".
+00:04:28,515 --> 00:04:30,149
+It goes onto the map as a checklist.
 
 60
-00:04:12,328 --> 00:04:16,539
-Silver goes to your purse, leftover goods to your inventory, and the quests are claimed.
+00:04:30,149 --> 00:04:32,390
+Full screen, if you want more sea and less panel.
 
 61
-00:04:16,539 --> 00:04:19,628
-All as one change, so one undo puts it back.
+00:04:32,390 --> 00:04:36,545
+It follows you leg by leg, and every stop is a card with the trade on it.
 
 62
-00:04:23,088 --> 00:04:25,195
-And the trip joins today's boards.
+00:04:37,773 --> 00:04:42,365
+Tick each stop as you make it. If an island pays a different amount, everything after it re-counts.
 
 63
-00:04:25,195 --> 00:04:30,861
-Every run since the refill: what it loaded, what it came back with, and the day's totals across the Parley bar.
+00:04:42,365 --> 00:04:49,645
+Out of the sheet it keeps time on the tab itself. Ticking a stop off re-bases the rest, so a slow island does not make the whole run chime early.
 
 64
-00:04:30,861 --> 00:04:35,787
-What it will not do is guess the next board. A refresh deals a different one, and the panel says so.
+00:04:49,645 --> 00:04:52,192
+Finished sailing? Tick them all off at once.
 
 65
-00:04:35,787 --> 00:04:39,909
-One last thing. The hold size, the speed and every time on that route come from your ship.
+00:04:52,711 --> 00:04:54,455
+Then click "Record the trip".
 
 66
-00:04:39,909 --> 00:04:44,547
-Hull, the four parts, the crystal and the crew aboard. Change the ship, and the whole run re-times.
+00:04:54,455 --> 00:04:58,634
+Silver goes to your purse, leftover goods to your inventory, and the quests are claimed.
 
 67
-00:04:44,547 --> 00:04:47,504
+00:04:58,634 --> 00:05:01,722
+All as one change, so one undo puts it back.
+
+68
+00:05:04,586 --> 00:05:06,699
+And the trip joins today's boards.
+
+69
+00:05:06,699 --> 00:05:12,310
+Every run since the refill: what it loaded, what it came back with, and the day's totals across the Parley bar.
+
+70
+00:05:12,310 --> 00:05:17,325
+What it will not do is guess the next board. A refresh deals a different one, and the panel says so.
+
+71
+00:05:17,325 --> 00:05:21,389
+One last thing. The hold size, the speed and every time on that route come from your ship.
+
+72
+00:05:21,389 --> 00:05:26,031
+Hull, the four parts, the crystal and the crew aboard. Change the ship, and the whole run re-times.
+
+73
+00:05:26,031 --> 00:05:28,988
 That is it. Show it one island, and it plans the rest.

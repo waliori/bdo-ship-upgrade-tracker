@@ -111,7 +111,7 @@ export function openStorageImport(after = () => {}) {
 			<li><b>What is read</b> — the picture in each slot, against the icons this app already carries, and the figure written over the corner.</li>
 			<li><b>What is not</b> — anything the app keeps no count of. A storage is mostly that, and it is left alone.</li>
 			<li><b>What a ship part is read as</b> — the part itself. The game draws every level of a part with the same picture, so a +10 sail comes back as a sail; set the level on its tile afterwards, or untick it here.</li>
-			<li><b>How well the counts read</b> — on a crop saved as PNG, nine in ten exactly. A shot the game itself saved as a JPEG is harder on eight-pixel figures, and more of those come back marked ⚠ to be typed over than read.</li>
+			<li><b>How the counts are checked</b> — every line comes back with the corner of its slot beside it, as the screenshot had it, so a count is checked at a glance. One the reader is not sure of is marked ⚠ with its best reading written in; a mouse pointer lying over a figure is the usual reason.</li>
 		</ul>
 		${placePicker()}
 		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="Choose screenshots to read">

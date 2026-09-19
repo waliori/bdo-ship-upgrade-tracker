@@ -30,12 +30,12 @@ whatever is being talked about lit up on screen as it is named:
 
 | Chapter | What it covers |
 |---|---|
-| [One — The Yard](docs/media/guide/the-yard.mp4) | The sailor's own numbers in the bar — the barter count that decides which islands deal with you at all, and the nest of Bos'n Jacks the hold is short without — then queue a build, record what you gather, craft it, step a mistake back, price a part, read the tree |
+| [One — The Yard](docs/media/guide/the-yard.mp4) | The sailor's own numbers in the bar — the barter count that decides which islands deal with you at all, and the nest of Bos'n Jacks the hold is short without — then queue a build, record what you gather — typed, or read off screenshots of a storage — craft it, step a mistake back, price a part, read the tree |
 | [Two — To Get](docs/media/guide/to-get.mp4) | The plan: one way to each thing you are short of, under a goal you choose, with the day count that follows every choice — and what it will never do |
 | [Three — Quests](docs/media/guide/quests.mp4) | The sailing dailies and weeklies, which of them pay something you need, and recording a batch of them in one change |
 | [Four — Your Ship](docs/media/guide/your-ship.mp4) | Hull, the four part slots, the sea crystal, the appearance set, where every figure comes from — and the crew: read off the game's own screenshots, then seated by hand or automatically, with presets and saved setups |
 | [Five — The Map](docs/media/guide/the-map.mp4) | The chart, mostly full screen: the toolbar, the minimap, the layers, all five of its tabs — stood up on the game's own terrain in Ground or Neon, with the world curving away, and the Hollow Maretta's thirty-eight ringing spots among the grounds |
-| [Six — A Run](docs/media/guide/a-run.mp4) | The whole of bartering: naming this refresh's layout off the game's own barter window, then the four kinds of day — silver, a stock, Crow Coins, a material — the orders, the chains, the two shelves of the sheet, the clock that rings at every stop, sailing it, recording it, and the day's boards after |
+| [Six — A Run](docs/media/guide/a-run.mp4) | The whole of bartering: naming this refresh's layout off the game's own barter window — by a click or by a screenshot of it — the layout book, saying what an island really shows, then the four kinds of day — silver, a stock, Crow Coins, a material — the orders, the chains and what the Central Market has for them, the two shelves of the sheet, the clock that rings at every stop, sailing it, recording it, and the day's boards after |
 | [Seven — The Harbour](docs/media/guide/the-harbour.mp4) | The boards, what a place on one opens, what is and is not shared — and the feedback box, where a report is a post with marks, screenshots and a name on it |
 
 Same rule as the walkthrough: it is the real app being driven, and the

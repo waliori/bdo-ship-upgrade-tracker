@@ -137,6 +137,10 @@ const CHAPTERS = {
 			own: 'As you gather, type in what you have.',
 			replan: 'Every build re-plans around it straight away.',
 			trip: 'Or log a whole trip at once, instead of a box at a time.',
+			shots: 'Or skip the typing altogether. Screenshot your storage in game, and drop the pictures here.',
+			reads: 'It finds the slots by their own borders, names each icon, and reads the number written over it. Scroll, shoot again, and the row two pictures share is counted once.',
+			check: 'Every count keeps the corner of its slot beside it, so it is checked at a glance. One the reader is not sure of is marked.',
+			unwritten: 'Nothing is written until you press the button — and then it is one change, with one undo.',
 			shop: 'The Workshop makes anything you have the materials for.',
 			craft: 'Crafting moves real stock. Ingredients out, the product in.',
 			undo: 'Made a mistake? Undo steps it back, and Redo puts it forward.',
@@ -211,6 +215,31 @@ const CHAPTERS = {
 			await doing(page, s.trip, () => headerBtn(page, 'trip-log', { after: 600 }));
 			await page.keyboard.press('Escape');
 			await wait(400);
+			await hush(page);
+
+			/* --- a storage, read off the screenshots of it ------------- */
+			// Two screenfuls of one storage, scrolled between. The reading
+			// is ten seconds of arithmetic with nothing to look at, so it
+			// happens under the sentence that says what it is doing; and
+			// the table is looked at and put away unwritten, because what
+			// it would write is somebody else's storage and the rest of the
+			// chapter plans on this save's own.
+			await doing(page, s.shots, async () => {
+				await tab(page, 'inventory', { after: 500 });
+				await click(page, '[data-act="inv-shot"]', { after: 900 });
+			});
+			await doing(page, s.reads, async () => {
+				const input = await page.$('#dialog input[type=file]');
+				await input.uploadFile(
+					path.resolve('tools/capture/shots/storage-1.webp'),
+					path.resolve('tools/capture/shots/storage-2.webp')
+				);
+				await waitFor(page, '.shot-table', { upTo: 180000, then: 600 });
+			});
+			await spot(page, '.shot-table tbody tr:nth-child(3)', s.check, { pad: 6 });
+			await point(page, '#dialog [data-write]', s.unwritten, { pad: 8 });
+			await page.keyboard.press('Escape');
+			await wait(500);
 			await hush(page);
 
 			await doing(page, s.shop, () => tab(page, 'workshop', { after: 500 }));
@@ -925,6 +954,11 @@ const CHAPTERS = {
 			same: 'Pick that same trade here.',
 			again: 'If two layouts still match, it asks you for one more island.',
 			got: 'That names the layout. Every chain this refresh allows is now listed below.',
+			shot: 'Or skip the clicking. Screenshot that same window, drop it here, and every row of it is read at once.',
+			rows: 'Each row is matched against what that island is known to deal, so a name the window cut short still reads, and six rows usually settle the board.',
+			book: 'The layout book keeps all forty, with how often each has been seen, the boards you have been dealt yourself, and any board a sailor has read that is in no record at all.',
+			page: 'A layout opens island by island, marked where it agrees with what you saw and where your barter count has not opened an exchange.',
+			fix: 'And if an island shows something the board does not say, tell it here. If that is one slot the game has moved, the board follows — and that is the reading worth telling the fleet.',
 
 			/* --- 3. the orders --- */
 			orders: 'Now tell it what you want out of the run.',
@@ -944,6 +978,7 @@ const CHAPTERS = {
 			three: 'The most silver, the most per hour, and the most per Parley. They are rarely the same run.',
 			take: 'Click one to use it.',
 			tick: 'Or tick chains yourself.',
+			market: 'A chain that starts ashore buys its first good on the Central Market, and the run is held to what is actually listed there. One the Market has none of cannot be ticked, and says why.',
 			fill: 'Fill the rest adds the best chains around the ones you picked.',
 			dock: 'The bar at the bottom totals it up: chains, silver, hours, islands.',
 
@@ -1046,6 +1081,32 @@ const CHAPTERS = {
 			await say(page, s.got);
 			await hush(page);
 
+			/* --- 1b. the same, off a screenshot; and the book ---------- */
+			// The window read rather than clicked through. The board is
+			// already named, so the rows are looked at and the dialog put
+			// away: answering it again would say nothing new, and the point
+			// is that the six rows on screen are the six in the picture the
+			// film showed a moment ago.
+			await doing(page, s.shot, async () => {
+				await click(page, '[data-act="barter-shot"]', { after: 800 });
+				const input = await page.$('#dialog input[type=file]');
+				await input.uploadFile(path.resolve('tools/capture/shots/barter-window.webp'));
+			});
+			await doing(page, s.rows, () => waitFor(page, '#dialog .shot-table', { upTo: 240000, then: 500 }));
+			await page.keyboard.press('Escape');
+			await wait(500);
+			await doing(page, s.book, () => click(page, '[data-act="barter-book"]', { after: 1200 }));
+			await doing(page, s.page, async () => {
+				await click(page, '.lb-card.today, .lb-card:not(.stray)', { after: 1200 });
+				await click(page, '[data-lb-level="L5"]', { after: 900 });
+			});
+			await page.keyboard.press('Escape');
+			await wait(500);
+			await doing(page, s.fix, () => click(page, '[data-act="barter-board-fix"]', { after: 1200 }));
+			await page.keyboard.press('Escape');
+			await wait(500);
+			await hush(page);
+
 			/* --- 2. what the day is for -------------------------------- */
 			// The goal toggle lives on the board bar, beside the layout it
 			// has just named -- which is the right place for it, because
@@ -1101,7 +1162,12 @@ const CHAPTERS = {
 			await say(page, s.chains);
 			await say(page, s.three);
 			await doing(page, s.take, () => click(page, '[data-act="barter-propose"]', { after: 700 }));
-			await doing(page, s.tick, () => click(page, 'button.chain:not(.on)[data-act="barter-chain"]', { after: 700 }));
+			await doing(page, s.tick, () => click(page, 'button.chain:not(.on):not(:disabled)[data-act="barter-chain"]', { after: 700 }));
+			// The Market is the live one, so whether a shelf is bare on the
+			// day of the shoot is not the film's to arrange: a chain it has
+			// run dry is pointed at when there is one, and a chain bought
+			// ashore when there is not -- the sentence is true of both.
+			await point(page, (await onScreen(page, '.chain.dry')) ? '.chain.dry' : 'button.chain[data-act="barter-chain"]', s.market, { pad: 8 });
 			await doing(page, s.fill, () => click(page, '[data-act="barter-fill"]', { after: 1800 }));
 			await doing(page, s.dock, () => moveTo(page, '[data-act="barter-run-open"]', { settle: 300 }));
 			await hush(page);
