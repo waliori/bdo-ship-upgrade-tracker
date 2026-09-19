@@ -764,6 +764,34 @@ from there. Search finds a layout by an island, a good, or its number.
 Readings are kept two months for this, since a layout comes round every
 few weeks.
 
+**A layout is whole, and the record is not the last word.** The
+community's record lacks an island or two on most layouts and the game's
+own table leaves out a couple of tiers; between them nothing is missing,
+so each layout is handed on with the client's row wherever the record
+has none (`tools/build-barter-gates.mjs` bakes the client's pools into
+`js/barter_gates.js`), marked *game files* in the book until somebody
+has seen it. Once a board is settled, **✎ An island shows something
+else…** is the one door for everything the record can get wrong: name
+the island, then pick what its window shows — from every exchange the
+codex and the client know it to deal — or that it shows nothing.
+Islands whose exchange is above your barter count are greyed with the
+count that opens them, because a blank window there is the game and not
+news. If what you saw fits one layout everywhere but an island or
+three, the board *is* that layout with those islands as you saw them —
+the game moves a slot at a maintenance without renumbering — and the
+run is planned on it. **Telling the fleet is offered only then**, or
+when nothing fits at all: a reading that matches a layout on file is
+not news, and a reading in the book is held up against every exchange
+the game is known to deal at that island, so *known here, on another
+layout* is told apart from *never seen here*.
+
+**Which layouts come up most.** The app writes a board down by itself
+the moment it is settled — the day and the layout, in your own save. The
+book's *Yours* shows the boards you have been dealt, the commonest
+first; and for those who take part in the Community tab the counts are
+added up fleet-wide under *Barter layouts most dealt*, beside each
+layout's share of the community's own record.
+
 ### The harbour
 
 ![A place on a board opens that sailor's card, and the card stands the Ship tab up on their boat](docs/media/the-boards.gif)
