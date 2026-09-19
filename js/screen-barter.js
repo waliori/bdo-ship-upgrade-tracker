@@ -18,7 +18,7 @@ import { img, codexName, amountInput } from './ui-bits.js';
 import { snapshot, barterData, barterProfile, combos, matBoards, totalsToGo, SILVER } from './ui-state.js';
 import { barterKey, periodKey, currentPlan } from './clock.js';
 import { candidates, askable, offersAt, offersOf, boardData, gatedOffers, exchangeGate, clientDeals } from './barter-board.js';
-import { currentShip, shownHold } from './ship.js';
+import { currentShip, shownHold, aboardWhat } from './ship.js';
 import { npcById, ports, isleOf, whoOf, isleShort } from './barter_npcs.js';
 import { seaRoute } from './searoute.js';
 import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, DEFAULT_CAL, sailSeconds } from './sailing.js';
@@ -321,7 +321,7 @@ function holdBarHTML(me) {
 		elsewhere ? `${F(elsewhere)} ashore elsewhere` : '',
 		pileN ? `${F(pileN)} shore goods over ${pile.size} kind${pile.size === 1 ? '' : 's'}` : ''
 	].filter(Boolean).join(' · ');
-	const weightText = `${w.text}${!goods.length ? ` · no goods aboard${w.crew ? `, ${F(w.crew)} of it crew` : ''}` : w.note ? ` — ${w.note}` : ''} · barters to ${F(w.deal)}`;
+	const weightText = `${w.text}${!goods.length ? ` · no goods aboard${w.aboard ? `, ${F(w.aboard)} of it ${aboardWhat(w)}` : ''}` : w.note ? ` — ${w.note}` : ''} · barters to ${F(w.deal)}`;
 	// Two different things were in one row here -- what the hull is
 	// carrying, and what the sailor can spend -- with the way into the
 	// hold hidden at the end of the first as a word. They are two
@@ -406,7 +406,7 @@ function holdHTML(me) {
 	const mark = w.mark;
 	const state = w.state === 'heavy' ? 'over' : w.state;
 	const room = lv => Math.max(0, Math.floor((w.limit - w.total) / GOODS[lv].weight));
-	const sub = !n ? `${w.text} · no goods aboard${w.crew ? `, ${F(w.crew)} of it crew` : ''} · ${w.deal === w.max ? `barters and moves to ${F(w.max)}` : `barters to ${F(w.deal)}, moves to ${F(w.max)}`}`
+	const sub = !n ? `${w.text} · no goods aboard${w.aboard ? `, ${F(w.aboard)} of it ${aboardWhat(w)}` : ''} · ${w.deal === w.max ? `barters and moves to ${F(w.max)}` : `barters to ${F(w.deal)}, moves to ${F(w.max)}`}`
 		: w.note ? `${w.text} — ${w.note}`
 			: `${w.text} · room for ${room(5)} more Lv4–5 or ${room(6)} Lv6–7 under the limit`;
 	const q = holdQ.trim().toLowerCase();
@@ -2539,7 +2539,7 @@ function silverParts(me, b) {
 	const soldWhat = soldLevels.length ? (soldLevels.length === 1 ? `the [Level ${soldLevels[0]}]s` : `Level ${soldLevels[soldLevels.length - 1]} to ${soldLevels[0]}`) : '';
 	const runHead = `<div class="panel-head run-head">
 		<h2 class="panel-title plain">The run</h2>
-		<span class="panel-sub">${chosen.length} chain${chosen.length === 1 ? '' : 's'} ticked · aboard ${esc(me.name)}: the limit is ${F(peak.limit)} LT${peak.crew ? `, ${F(peak.crew)} of it crew` : ''}, barters to ${F(peak.deal)} · goods counted at the least, weighed at the most</span>
+		<span class="panel-sub">${chosen.length} chain${chosen.length === 1 ? '' : 's'} ticked · aboard ${esc(me.name)}: the limit is ${F(peak.limit)} LT${peak.aboard ? `, ${F(peak.aboard)} of it ${aboardWhat(peak)}` : ''}, barters to ${F(peak.deal)} · goods counted at the least, weighed at the most</span>
 	</div>`;
 	const tile = (k, v, sub, cls = '') => `<div><div class="summary-k">${k}</div><div class="summary-v${cls ? ` ${cls}` : ''}">${v}</div><div class="summary-sub">${sub}</div></div>`;
 	// What a stock run is worth, in goods rather than silver: what it

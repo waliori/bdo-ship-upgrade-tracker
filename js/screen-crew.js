@@ -14,9 +14,9 @@ import * as store from './state.js';
 import { img, iconSrc, codexName } from './ui-bits.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { shipStats } from './ship_stats.js';
-import { describeStats, statsAt } from './part_stats.js';
+import { describeStats, statsAt, partLT } from './part_stats.js';
 import { families, tables } from './enhancement.js';
-import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listFleet, hullOfRow, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, skinWorn, setSkinSlot, setSkinAll, skinTotals, OWNED_PREFIX, OVERLOAD, petWeight } from './ship.js';
+import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listFleet, hullOfRow, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, aboardWhat, gearLT, OTTER_ROD, skinWorn, setSkinSlot, setSkinAll, skinTotals, OWNED_PREFIX, OVERLOAD, petWeight } from './ship.js';
 import { GOODS } from './barter.js';
 import { GRADES, gradeById, crystalById, crystalsOf, crystalVariant, crystalLine, crystalStats } from './crystals.js';
 import { skinFor, SKIN_SLOTS } from './ship_skins.js';
@@ -96,7 +96,7 @@ function seatPitch(pos, s) {
 	}
 	if (pos === 'deck') return `+${F((t.cabin || 0) * 10000)} durability — their ${t.cabin || 0} cabins at 10,000 each`;
 	if (pos === 'mess') return `+${F((t.cabin || 0) * 5000)} rations — their ${t.cabin || 0} cabins at 5,000 each`;
-	if (pos === 'fish') return 'auto-fishing, once an Oceanbound Otter Fishing Rod is aboard';
+	if (pos === 'fish') return `auto-fishing, once an Oceanbound Otter Fishing Rod is aboard — ${OTTER_ROD.lt} LT of the hold while it is`;
 	if (pos === 'firstmate') return t.mate ? `switches on their skill: ${t.skill}` : 'the seat switches on a named mate\'s skill — this sailor has none';
 	if (pos === 'cabin') return 'no role — they still eat, weigh and level along';
 	return '';
@@ -498,7 +498,7 @@ function slotCard(ship, x, chosenByHand) {
 			${x.part ? img(item, 'slot-icon') : '<span class="slot-icon blank">+</span>'}
 			<div class="slot-text">
 				<div class="slot-part">${x.part ? `${codexName(x.part)} <b>+${x.level}</b>` : 'Nothing fitted'}</div>
-				<div class="slot-stats">${x.part ? esc(describeStats(x.stats, { signed: false })) : 'choose one to weigh it, or record one in the Inventory'}</div>
+				<div class="slot-stats">${x.part ? esc(describeStats(x.stats, { signed: false }) + (x.lt ? ` · weighs ${x.lt} LT itself` : '')) : 'choose one to weigh it, or record one in the Inventory'}</div>
 			</div>
 		</div>
 		<div class="slot-btns">
@@ -578,7 +578,7 @@ function crystalCard(ship) {
 			${c ? img(c.name, 'slot-icon') : '<span class="slot-icon blank">◆</span>'}
 			<div class="slot-text">
 				<div class="slot-part">${c ? `${codexName(c.name)} <b style="color:${grade.colour}">${esc(crystalVariant(c))}</b>` : 'No crystal'}</div>
-				<div class="slot-stats" title="${c ? esc(crystalLine(c)) : ''}">${c ? esc(crystalLine(c)) : 'Eltro to Rusalka, or the Nol — each one lifts one thing'}</div>
+				<div class="slot-stats" title="${c ? esc(crystalLine(c)) : ''}">${c ? esc(`${crystalLine(c)}${c.lt ? ` · weighs ${c.lt} LT itself` : ''}`) : 'Eltro to Rusalka, or the Nol — each one lifts one thing'}</div>
 			</div>
 		</div>
 		<div class="slot-btns">
@@ -618,7 +618,8 @@ function loadoutPanel(ship) {
 	// A hull you are not sailing is shown empty of crew, but the pets
 	// would come with you, so they are counted here as they are there.
 	const other = s.weight + (Number(fit.total.weight) || 0) + petWeight(ship);
-	const hold = same ? me.hold : { limit: other, crew: 0, free: other };
+	const gear = gearLT(fit.slots);
+	const hold = same ? me.hold : { limit: other, crew: 0, gear, aboard: gear, free: Math.max(0, other - gear) };
 	return `<div class="panel crew-panel">
 		<div class="panel-head"><h2 class="panel-title">Fitted out</h2>
 			<span class="panel-sub">Hull: ${F(s.weight)} LT · ${s.slots} slots · ${s.cannons ? `${s.cannons} cannons a side, ${s.reload} s` : 'no cannons'} · ${F(s.durability)} durability · ${F(s.rations)} rations</span></div>
@@ -635,7 +636,7 @@ function loadoutPanel(ship) {
 	})()}
 		${rows}
 		<div class="sel-facts">with parts${same && me.crew.seated ? ' and crew' : ''}: speed <b>${same ? me.speed.total : s.speed + (Number(fit.total.speed) || 0)}%</b> · accel <b>${same ? me.accel : s.accel + (Number(fit.total.accel) || 0)}%</b> · turn <b>${same ? me.turn : s.turn + (Number(fit.total.turn) || 0)}%</b> · brake <b>${same ? me.brake : s.brake + (Number(fit.total.brake) || 0)}%</b>
-			· hold <b>${F(hold.free)} LT</b>${hold.crew ? ` <span class="fit-tag">(${F(hold.limit)} less ${F(hold.crew)} of crew)</span>` : ''} · <b>${F(same ? me.durability : s.durability + (Number(fit.total.durability) || 0))}</b> durability${fit.total.dp ? ` · DP <b>${fit.total.dp}</b>` : ''}${fit.total.damage ? ` · cannon <b>${F(fit.total.damage)}</b> × ${fit.total.hits}` : ''}</div>
+			· hold <b>${F(hold.free)} LT</b>${hold.aboard ? ` <span class="fit-tag">(${F(hold.limit)} less ${F(hold.aboard)} of ${aboardWhat(hold)})</span>` : ''} · <b>${F(same ? me.durability : s.durability + (Number(fit.total.durability) || 0))}</b> durability${fit.total.dp ? ` · DP <b>${fit.total.dp}</b>` : ''}${fit.total.damage ? ` · cannon <b>${F(fit.total.damage)}</b> × ${fit.total.hits}` : ''}</div>
 		${same ? holdLines(me) : ''}
 	</div>`;
 }
@@ -749,7 +750,7 @@ export function renderCrew() {
 		</div>
 		<div class="ship-card-facts">
 			<div><div class="summary-k">Speed</div><div class="summary-v">${me.speed.total}%</div><div class="summary-sub">hull ${stats.speed}${me.speed.parts ? ` + parts ${me.speed.parts}` : ''}${me.speed.crystal ? ` + crystal ${me.speed.crystal}` : ''}${me.speed.crew ? ` + crew ${me.speed.crew}` : ''}${me.mastery ? ` + mastery ${me.mastery}` : ''}${me.speed.skin ? ` + skin ${me.speed.skin}` : ''}</div></div>
-			<div><div class="summary-k">Hold</div><div class="summary-v">${F(me.hold.limit)} LT</div><div class="summary-sub">the limit, as fitted${me.hold.crew ? ` · ${F(me.hold.crew)} of it crew` : ''} · barters to ${F(me.hold.deal + me.hold.crew)}</div></div>
+			<div><div class="summary-k">Hold</div><div class="summary-v">${F(me.hold.limit)} LT</div><div class="summary-sub">the limit, as fitted${me.hold.aboard ? ` · ${F(me.hold.aboard)} of it ${aboardWhat(me.hold)}` : ''} · barters to ${F(me.hold.deal + me.hold.aboard)}</div></div>
 			<div><div class="summary-k">Fitted</div><div class="summary-v">${fittedN + (me.crystal ? 1 : 0)} of 5</div><div class="summary-sub">${stats.crew ? `${me.crew.seated} of ${stats.crew} seats taken` : 'carries no sailors'}</div></div>
 		</div>
 		<div class="ship-card-btns">
@@ -1136,7 +1137,7 @@ function partPicker(ship, slot) {
 	const tierOf = part => (tables[families[part]] || {}).label || 'Other';
 	const items = partsForSlot(ship, slot).map(part => ({
 		id: part, label: part, icon: img(part, ''),
-		sub: `at +10: ${describeStats(statsAt(part, 10), { signed: false })}`,
+		sub: `at +10: ${describeStats(statsAt(part, 10), { signed: false })}${partLT(part) ? ` · weighs ${partLT(part)} LT itself` : ''}`,
 		meta: held(part).length ? `you hold ${held(part).join(', ')}` : '',
 		group: tierOf(part)
 	}));

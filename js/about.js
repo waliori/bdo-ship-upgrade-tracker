@@ -166,12 +166,17 @@ export const RELEASES = [
 			+ 'A board is no longer everybody’s board — it is <b>the one your barter count can actually sail</b>, read from the game\u2019s own table. '
 			+ 'And a day of dailies and weeklies is no longer a list to work out for yourself: it is <b>one loop</b>, with a ground picked for every hunt, the kills added up, and nothing hunted after the man who pays for it.',
 		thanks: {
-			text: 'One player wrote in, twice, about the same thing. He was right both times.',
+			text: 'Two players wrote in, and both were right. One of them twice, about the same thing.',
 			who: [
 				{
 					name: 'Zelpha',
 					said: 'rolled layout 5, i have the luivano/duch/randis chains but the other 3 arent available … picked eveto having liquor>urn but mariveno for example has nothin',
 					did: 'Not his luck: the game gates <i>each exchange</i> on its own barter count, and the app was drawing a board for an account that had unlocked everything. That is <b>the board you can sail</b>.'
+				},
+				{
+					name: 'cdwg',
+					said: 'Equipped ship gear should be factored into the available hull weight; currently it does not appear so be factored into the available weight.',
+					did: 'It was not \u2014 and the ship\u2019s own window is the figure to agree with. Ten to twenty LT on a fitted hull, which is exactly what it came to: <b>what is bolted on is cargo too</b>.'
 				}
 			],
 			foot: 'The box is under <b>Menu → Feedback</b>. It reaches whoever runs the site.'
@@ -232,6 +237,16 @@ export const RELEASES = [
 			{
 				title: 'A quest wears its own picture',
 				text: 'The icon BDOCodex draws beside each quest, on the Quests tab and small wherever else a quest is named. Twenty-three pictures for thirty-nine quests, which is the point — every Ravinia letter is one picture, every Old Moon Guild hunt another, so a long day’s list sorts itself by the kind of work in it.'
+			},
+			{
+				title: 'What is bolted on is cargo too',
+				text: 'A part gives the hold its Weight Limit and then sits in it, like anything else you put aboard. The app counted only the giving, so every figure it quoted was a little larger than the one the ship\u2019s own window shows \u2014 and a run is planned against that figure.',
+				points: [
+					'<b>Every part weighs its own LT</b>, the same at +0 as at +10: a Chiro set is <b>9</b> off the hold, a Falasi set <b>18</b>.',
+					'<b>The sea crystal is one litre</b> \u2014 all two hundred and ninety-five of them, Eltro to the Nol.',
+					'<b>The Otter\u2019s rod is another</b>, and only where there is a fishing place to install it: a Carrack has one, a Panokseon has none. A sailor in the Fish seat is a rod aboard.',
+					'The hold\u2019s line-by-line sum names them \u2014 <i>4 parts, the crystal and the Otter\u2019s rod, their own weight \u221220</i> \u2014 and every chain, material run and stock run is planned against the smaller, truer number.'
+				]
 			},
 			{
 				title: 'And the release notes keep the old ones',
