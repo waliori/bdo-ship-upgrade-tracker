@@ -90,7 +90,11 @@ export const pool = [
 
 export const poolByType = Object.fromEntries(pool.map(s => [s.type, s]));
 
-/** Where a sailor stands, and what standing there does with their stats. */
+/**
+ * Where a sailor stands, and what standing there does with their stats
+ * -- on the hulls that have positions at all, which is a Carrack and
+ * the Panokseon. Everything smaller draws cabins only.
+ */
 export const positions = [
 	{ name: 'Sail', effect: 'Endurance and Wits count double', for: 'speed and acceleration' },
 	{ name: 'Wheel', effect: 'Awareness and Strength count double', for: 'turning and braking' },
@@ -240,20 +244,43 @@ const EXTRA = {
 };
 
 /**
+ * The hulls whose Manage Sailors window draws the named positions at
+ * all: the four Carracks and the Panokseon, and nothing below them.
+ *
+ * A Caravel's window is one row of cabins and a Save Preset button --
+ * no Sail, no Wheel, no First Mate -- and the same is true of the
+ * Galleass, the sailboats, the frigates and the Bartali. Their sailors
+ * count once each, wherever they stand. The app used to lay the common
+ * frame over every hull that seats anybody, so a six-sailor Caravel was
+ * shown a Sail and a Wheel that double growths the game never doubles,
+ * and a First Mate seat that cannot be filled: every speed, turn and
+ * Parley figure downstream read high because of it.
+ */
+const POSITIONED = new Set(['Carrack (Advance)', 'Carrack (Balance)', 'Carrack (Volante)', 'Carrack (Valor)', 'Panokseon']);
+
+/** Whether this hull has the named seats, or only cabins. */
+export const hasSeats = ship => POSITIONED.has(ship);
+
+const cabinSeat = i => ({ key: `cabin:${i}`, pos: 'cabin', label: 'Cabin', effect: 'no role, but aboard: weight and appetite count, and they level along' });
+
+/**
  * Which seats a hull offers: the named positions first, as many as the
  * hull seats, then cabins for the rest -- the hull's own extra seat
- * included. Only a Carrack has a fishing seat.
+ * included. Only a Carrack has a fishing seat, and a hull below a
+ * Carrack has no named position at all: cabins the whole way.
  */
 export function seatsFor(ship, stats) {
 	const crew = stats ? stats.crew : 0;
 	const extra = EXTRA[ship] || {};
 	const out = [];
-	for (const p of POSITIONS) {
-		if (p.pos === 'fish' && !/^Carrack/.test(ship)) continue;
-		const n = p.n + (extra[p.pos] || 0);
-		for (let i = 0; i < n && out.length < crew; i++) out.push({ key: `${p.pos}:${i}`, pos: p.pos, label: p.label, effect: p.effect });
+	if (hasSeats(ship)) {
+		for (const p of POSITIONS) {
+			if (p.pos === 'fish' && !/^Carrack/.test(ship)) continue;
+			const n = p.n + (extra[p.pos] || 0);
+			for (let i = 0; i < n && out.length < crew; i++) out.push({ key: `${p.pos}:${i}`, pos: p.pos, label: p.label, effect: p.effect });
+		}
 	}
-	for (let i = 0; out.length < crew; i++) out.push({ key: `cabin:${i}`, pos: 'cabin', label: 'Cabin', effect: 'no role, but aboard: weight and appetite count, and they level along' });
+	for (let i = 0; out.length < crew; i++) out.push(cabinSeat(i));
 	return out;
 }
 
@@ -261,12 +288,27 @@ export function seatsFor(ship, stats) {
  * A saved arrangement kept to the seats this hull really has: a crew
  * seated when the board drew a second sail keeps nobody there on a
  * hull whose extra seat is a Mess or a gun, so no seat pays out twice.
+ *
+ * A sailor whose seat this hull does not have is still aboard, though,
+ * so they take a free cabin rather than being put ashore -- which is
+ * what carries a Caravel's crew over from the arrangement the app used
+ * to draw, named seats and all, to the row of cabins the game draws.
  */
 export function fitSeats(ship, seats, stats) {
-	const keys = new Set(seatsFor(ship, stats).map(x => x.key));
-	if (!keys.size) return { ...(seats || {}) };   // an unknown hull: leave it be
+	if (!stats) return { ...(seats || {}) };   // an unknown hull: leave it be
+	const all = seatsFor(ship, stats);
+	const keys = new Set(all.map(x => x.key));
 	const out = {};
-	for (const [k, id] of Object.entries(seats || {})) if (keys.has(k)) out[k] = id;
+	const stray = [];
+	for (const [k, id] of Object.entries(seats || {})) {
+		if (keys.has(k)) out[k] = id; else stray.push(id);
+	}
+	const free = all.filter(x => x.pos === 'cabin' && !out[x.key]);
+	for (const id of stray) {
+		const seat = free.shift();
+		if (!seat) break;
+		out[seat.key] = id;
+	}
 	return out;
 }
 

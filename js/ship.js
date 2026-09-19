@@ -14,7 +14,7 @@ import { skinFor, skinStats, SKIN_SLOTS } from './ship_skins.js';
 import { shipStats, bigShips } from './ship_stats.js';
 import { partStats, slotOf, fitsShip, statsAt, sumStats, loadout, partLT } from './part_stats.js';
 import { families, FAMILY_RANK } from './enhancement.js';
-import { crewTotals, mateAboard } from './sailors.js';
+import { crewTotals, mateAboard, fitSeats } from './sailors.js';
 import { crystalById, crystalStats } from './crystals.js';
 
 export const SLOTS = ['cannon', 'sail', 'figurehead', 'plating'];
@@ -121,21 +121,28 @@ export function setCrystal(ship, id) {
 }
 
 /**
+ * Who is seated on a hull, kept to the seats that hull really has: a
+ * Caravel has no named positions at all, so an arrangement saved when
+ * the app drew them reads here as the cabins the game draws.
+ */
+export function seatedOn(ship = shipName()) {
+	return fitSeats(ship, (store.getProfile('seats', {}) || {})[ship] || {}, shipStats[ship]);
+}
+
+/**
  * What the mate at the wheel takes off every Parley cost, as a fraction:
  * Cleia's skill is ten per cent, and nobody else's is anything. It is a
  * fact about who is seated, not a preference, so the barter figures read
  * it here instead of asking for a tick.
  */
 export function parleyOff(ship = shipName()) {
-	const seats = (store.getProfile('seats', {}) || {})[ship] || {};
-	const m = mateAboard(store.getProfile('roster', []) || [], seats);
+	const m = mateAboard(store.getProfile('roster', []) || [], seatedOn(ship));
 	return m ? Number(m.type.parley) || 0 : 0;
 }
 
 /** The mate whose skill is switched on, for a screen that wants to name them. */
 export function mateAtTheHelm(ship = shipName()) {
-	const seats = (store.getProfile('seats', {}) || {})[ship] || {};
-	return mateAboard(store.getProfile('roster', []) || [], seats);
+	return mateAboard(store.getProfile('roster', []) || [], seatedOn(ship));
 }
 
 /** The whole setup, summed: hull, parts, the crystal, the crew. */
@@ -291,7 +298,7 @@ export function currentShip() {
 	const fit = fittedFor(name);
 	const crystal = crystalFor(name);
 	const gem = k => (crystal && Number(crystal.stats[k])) || 0;
-	const seats = (store.getProfile('seats', {}) || {})[name] || {};
+	const seats = seatedOn(name);
 	const crew = crewTotals(store.getProfile('roster', []) || [], seats, stats);
 	const parts = k => Number(fit.total[k]) || 0;
 	const mastery = masteryBonus();
@@ -451,7 +458,7 @@ export function setupSummary(setup) {
 	const gemStats = c ? crystalStats(c) : {};
 	const gem = k => Number(gemStats[k]) || 0;
 	const got = k => Number(total[k]) || 0;
-	const crew = crewTotals(store.getProfile('roster', []) || [], setup.seats || {}, stats);
+	const crew = crewTotals(store.getProfile('roster', []) || [], fitSeats(setup.ship, setup.seats || {}, stats), stats);
 	const mastery = masteryBonus();
 	// A setup keeps the skin it was saved with, so two setups of the same
 	// hull -- one skinned, one not -- compare as the different ships they

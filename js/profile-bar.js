@@ -29,8 +29,8 @@ import { img } from './ui-bits.js';
 import { barterProfile } from './ui-state.js';
 import { dailyCapacity, barterLevels, levelDiscount, npcGates, ROUTE_UNLOCKS } from './barter.js';
 import { npcById } from './barter_npcs.js';
-import { mateAtTheHelm, masteryBonus, bosnJacks, bosnAlpha, petLT, setPets, PET_SLOTS } from './ship.js';
-import { anyType } from './sailors.js';
+import { mateAtTheHelm, shipName, masteryBonus, bosnJacks, bosnAlpha, petLT, setPets, PET_SLOTS } from './ship.js';
+import { anyType, hasSeats } from './sailors.js';
 import { openDialog, closeDialog } from './dialogs.js';
 import { REGIONS as MARKET_REGIONS, region as marketRegion, priceAge } from './market.js';
 
@@ -64,7 +64,13 @@ function mateCut() {
 	const mate = mateAtTheHelm();
 	if (mate && Number(mate.type.parley) > 0) return `−10% crew · ${esc(mate.sailor.name)} at the helm`;
 	const ashore = (store.getProfile('roster', []) || []).find(s => Number((anyType[s.type] || {}).parley) > 0);
-	return ashore ? `seat ${esc(ashore.name)} as First Mate for −10%` : '';
+	if (!ashore) return '';
+	// The seat is a Carrack's and the Panokseon's; a smaller hull draws
+	// no First Mate box at all, so on one of those the line says where
+	// the cut lives rather than sending the player to look for it.
+	return hasSeats(shipName())
+		? `seat ${esc(ashore.name)} as First Mate for −10%`
+		: `${esc(ashore.name)} cuts Parley 10% at a Carrack’s First Mate seat`;
 }
 
 /** The region as the chip says it: "NA", not "na". */
