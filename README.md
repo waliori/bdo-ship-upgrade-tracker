@@ -100,16 +100,22 @@ edge of the crate really is an upright.
 What reads it now is what reads house numbers off street photographs: a
 small convolutional network run along the whole line and trained with
 CTC, so nothing has to say where one figure stops and the next begins.
-It was taught on a third of a million **made-up** slots — the game's own
-font, pulled out of the client, written over this app's own icons, then
-blurred, rescaled and recompressed every way a screenshot gets — and on
-no real ones, which is what makes the real ones a test. Four real
-screenshots, two captures and two of the game's own JPEGs, 369 slots of
-which 238 carry a number: **it reads all of them, none wrong**. The
-same shots shrunk to three fifths or blown up to double, blurred, or
-recompressed to a JPEG of quality 35 still produce **no wrong count it
-was sure of** — what gets harder to read gets marked, not guessed. It is
-fifty thousand weights in `js/count_model.js`, runs in about ten
+It was taught on four hundred thousand **made-up** slots — the game's
+own fonts, pulled out of the client, written over this app's own icons,
+then blurred, rescaled and recompressed every way a screenshot gets —
+and on no real ones, which is what makes the real ones a test. *Fonts*,
+because which face draws the counts depends on the client's language:
+Strong Sword on the English one, a bold gothic or a wide ShinGo on
+others, and a reader taught one face took another player's 656 for 555.
+It is taught every face the client ships. Five real screenshots off
+two players' setups — two desktop captures, two of the game's own
+JPEGs and one in that other face — 458 slots in all: **457 read right,
+none wrong that it was sure of**; the one it missed has a mouse pointer
+lying across the figure, and it said so. The same shots shrunk to seven
+tenths, blown up by half, blurred, or scaled and recompressed are still
+without a wrong count it was sure of; crushed to a JPEG of quality 35
+there is one in 458. What gets harder to read gets marked, not guessed.
+It is fifty thousand weights in `js/count_model.js`, runs in about ten
 milliseconds a slot in plain JavaScript (`js/count-net.js`), and is
 rebuilt by
 `tools/count-reader`.
