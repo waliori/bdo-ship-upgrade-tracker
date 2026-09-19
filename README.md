@@ -120,7 +120,9 @@ milliseconds a slot in plain JavaScript (`js/count-net.js`), and is
 rebuilt by
 `tools/count-reader`.
 
-Every reading comes with how likely it is — the share of all the ways
+Every line of the table keeps the corner of its slot beside it, as the
+screenshot had it, so a count is checked at a glance against the
+picture it was read off. Every reading also comes with how likely it is — the share of all the ways
 the line could be read that spell that number — and one the network is
 not sure of, or reads differently when the slot is cut a pixel to
 either side, is written in as its best reading, marked ⚠, with the
@@ -731,9 +733,12 @@ land starts with something bought, and the Market's last price stands
 when nothing is listed — so a run could tell you to load five hundred of
 a good nobody is selling. The relay brings back how many are listed with
 every price, and with land goods *bought ashore* the run is held to it:
-no more of a good than are listed, a chain whose first good has none
-does not start (its card says *none on the Market* before you tick it,
-and the run says why, offering *from my storage* where you keep some),
+no more of a good than are listed, and a chain whose first good has
+none cannot be ticked: its card is greyed and says *none on the Central
+Market* on its own face, with the good drawn. Where you hold a good
+part-way up the same climb the card starts from that instead — the
+shore is struck out among its starts, with the reason — and where you
+keep the land good yourself it offers *from my storage*;
 and *Before casting off* shows the count beside each thing to buy. A
 count the Market would not confirm holds nothing back, and the Market is
 asked again every half hour while the page is open.
