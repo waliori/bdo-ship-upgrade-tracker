@@ -41,6 +41,11 @@ gif_size() {
 	case "$1" in
 		claim-a-quest|fit-a-ship|the-boards|share-a-ship|the-way|a-call-in-hand) echo "780 10" ;;
 		plan-a-run|share-a-drawing|todays-errands) echo "720 8" ;;
+		# The 1.4 clips are dialogs full of small pictures that scroll: a
+		# narrower frame and fewer of them, or the book alone is three megabytes.
+		read-a-storage|read-the-window) echo "780 9" ;;
+		the-layout-book) echo "780 8" ;;
+		a-dry-chain) echo "900 10" ;;
 		# A tilting heightmap is the worst case a GIF can be handed:
 		# every pixel of every frame is new, and there is no flat colour
 		# anywhere to pay for it.
@@ -76,6 +81,11 @@ for name in plan-a-run share-a-drawing your-own-board a-call-in-hand; do
 done
 # The errands panel redraws its whole list at once and then the chart
 # under it, so it goes narrower and slower again.
+for name in read-a-storage read-the-window; do
+	./tools/capture/togif.sh "$RAW/$name.webm" "$OUT/small/$name.gif" 480 7
+done
+./tools/capture/togif.sh "$RAW/the-layout-book.webm" "$OUT/small/the-layout-book.gif" 480 6
+./tools/capture/togif.sh "$RAW/a-dry-chain.webm" "$OUT/small/a-dry-chain.gif" 560 8
 ./tools/capture/togif.sh "$RAW/todays-errands.webm" "$OUT/small/todays-errands.gif" 440 6
 # The stood-up chart is the hard case twice over -- a tilting heightmap,
 # and one of the pictures the dialog itself serves -- so the narrow copy
