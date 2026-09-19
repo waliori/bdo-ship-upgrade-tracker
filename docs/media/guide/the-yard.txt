@@ -15,6 +15,10 @@ Red is missing. Blue you can make. Green you already have.
 As you gather, type in what you have.
 Every build re-plans around it straight away.
 Or log a whole trip at once, instead of a box at a time.
+Or skip the typing altogether. Screenshot your storage in game, and drop the pictures here.
+It finds the slots by their own borders, names each icon, and reads the number written over it. Scroll, shoot again, and the row two pictures share is counted once.
+Every count keeps the corner of its slot beside it, so it is checked at a glance. One the reader is not sure of is marked.
+Nothing is written until you press the button — and then it is one change, with one undo.
 The Workshop makes anything you have the materials for.
 Crafting moves real stock. Ingredients out, the product in.
 Made a mistake? Undo steps it back, and Redo puts it forward.

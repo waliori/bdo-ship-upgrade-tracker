@@ -6,10 +6,10 @@
 
 export const film = [
 	{ at: 0, title: "One — The Yard" },
-	{ at: 111, title: "Two — To Get" },
-	{ at: 205, title: "Three — Quests" },
-	{ at: 265, title: "Four — Your Ship" },
-	{ at: 420, title: "Five — The Map" },
-	{ at: 624, title: "Six — A Run" },
-	{ at: 912, title: "Seven — The Harbour" },
+	{ at: 137, title: "Two — To Get" },
+	{ at: 231, title: "Three — Quests" },
+	{ at: 291, title: "Four — Your Ship" },
+	{ at: 446, title: "Five — The Map" },
+	{ at: 650, title: "Six — A Run" },
+	{ at: 979, title: "Seven — The Harbour" },
 ];

@@ -1,0 +1,14 @@
+// The weights of the network that reads a storage slot's count.
+//
+// Not written by hand and not meant to be read: count-net.js is the
+// arithmetic, and this is what it was taught. Each layer's weights are
+// a byte apiece with one scale a channel, which is a quarter the size
+// of the floats they were and reads the same numbers.
+//
+// @NOTE@
+//
+// Rebuilt by tools/count-reader (gen.py makes the slots out of the
+// client's own font and this repo's icons, train.py teaches,
+// bake_model.py writes this file) if the game ever changes how it
+// draws a count, which it has not done in the life of this app.
+

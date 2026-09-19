@@ -87,6 +87,21 @@ export function marketPrice(item) {
 	return p ? p.price : 0;
 }
 
+/**
+ * How many of an item are listed on the Market right now, or null when
+ * the Market has not said. Nought is an answer and null is not: a good
+ * with none listed cannot be bought whatever it last sold for, and a
+ * good never asked about is simply unknown.
+ */
+export function marketStock(item) {
+	if (!held || held.region !== region()) return null;
+	const p = held.prices[item];
+	// A figure the upstream would not confirm this time is a price worth
+	// keeping and a count worth nothing: stock moves by the minute.
+	if (!p || p.stale || p.stock === null || p.stock === undefined || !Number.isFinite(Number(p.stock))) return null;
+	return Math.max(0, Math.floor(Number(p.stock)));
+}
+
 /** Every priced item as `{ item: silver }`, the shape the cost model takes. */
 export function marketSilver() {
 	if (!held || held.region !== region()) return {};

@@ -452,3 +452,55 @@ test('the exact case: a climb cut mid-way by the weight of its own next trade', 
 	// Every chain the run cut is one the sailor ticked.
 	for (const c of run.cut) assert.ok(coin[c.chain], 'the cut points at a ticked chain');
 });
+
+/* ------------------------------------------------------------------ *
+ * what the Market has listed
+ * ------------------------------------------------------------------ */
+
+test('a run buys no more of a land good than the Market has listed', () => {
+	const c = chains(data).find(x => x.rungs[0].npc === 'Cazio');
+	const each = c.rungs[0].giveN;                      // ten Copper Ingots a trade
+	const free = chainRun({ chosen: [c], stock: {}, hold, parley, npcById, start: ports[0], stashes, pace: 'fast' });
+	assert.deepEqual(free.bought.map(b => [b.item, b.n]), [['Copper Ingot', 20]]);
+	// one trade's worth listed: one trade, and the row says what there was
+	const tight = chainRun({ chosen: [c], stock: {}, hold, parley, npcById, start: ports[0], stashes, pace: 'fast', prices: { 'Copper Ingot': { each: 900, how: 'market', stock: each } } });
+	assert.deepEqual(tight.bought.map(b => [b.item, b.n, b.stock]), [['Copper Ingot', each, each]]);
+	// plenty listed: the run is the run it always was
+	const plenty = chainRun({ chosen: [c], stock: {}, hold, parley, npcById, start: ports[0], stashes, pace: 'fast', prices: { 'Copper Ingot': { each: 900, how: 'market', stock: 50000 } } });
+	assert.deepEqual(plenty.bought.map(b => [b.item, b.n]), [['Copper Ingot', 20]]);
+	assert.equal(plenty.silver, free.silver);
+});
+
+test('a chain that starts on a good nobody is selling does not start, and says it was the Market', () => {
+	const c = chains(data).find(x => x.rungs[0].npc === 'Cazio');
+	const none = chainRun({ chosen: [c], stock: {}, hold, parley, npcById, start: ports[0], stashes, pace: 'fast', prices: { 'Copper Ingot': { each: 900, how: 'market', stock: 0 } }, land: new Map([['Copper Ingot', 300]]) });
+	assert.deepEqual(none.bought, []);
+	assert.equal(none.silver, 0);
+	assert.equal(none.cut.length, 1);
+	const cut = none.cut[0];
+	assert.equal(cut.why, 'market');
+	assert.equal(cut.good, 'Copper Ingot');
+	assert.equal(cut.listed, 0);
+	assert.equal(cut.want, c.rungs[0].giveN);
+	assert.equal(cut.held, 300, 'and that the sailor keeps some, so the orders can take it from there');
+	// fewer than one trade takes is none, for a trade
+	const few = chainRun({ chosen: [c], stock: {}, hold, parley, npcById, start: ports[0], stashes, pace: 'fast', prices: { 'Copper Ingot': { each: 900, how: 'market', stock: 3 } } });
+	assert.equal(few.cut[0].why, 'market');
+	assert.equal(few.cut[0].listed, 3);
+});
+
+test('a count nobody has holds nothing back: made at home, a gold bar, a Market that did not say', () => {
+	const c = chains(data).find(x => x.rungs[0].npc === 'Cazio');
+	for (const p of [{ each: 0, how: 'made' }, { each: 1e7, how: 'fixed' }, { each: 0, how: 'unpriced' }, { each: 900, how: 'market', stock: null }, { each: 900, how: 'market' }]) {
+		const run = chainRun({ chosen: [c], stock: {}, hold, parley, npcById, start: ports[0], stashes, pace: 'fast', prices: { 'Copper Ingot': p } });
+		assert.deepEqual(run.bought.map(b => [b.item, b.n]), [['Copper Ingot', 20]], p.how);
+	}
+});
+
+test('a pile of the sailor\'s own is not the Market\'s to run out of', () => {
+	const c = chains(data).find(x => x.rungs[0].npc === 'Cazio');
+	const run = chainRun({ chosen: [c], stock: {}, hold, parley, npcById, start: ports[0], stashes, pace: 'fast', orders: { ...PLAIN_ORDERS, landFrom: 'stock' }, land: new Map([['Copper Ingot', 300]]), prices: { 'Copper Ingot': { each: 900, how: 'market', stock: 0 } } });
+	assert.deepEqual(run.bought, []);
+	assert.ok(run.taken.some(t => t.item === 'Copper Ingot' && t.n > 0));
+	assert.ok(run.silver > 0);
+});

@@ -192,6 +192,13 @@ if (syncEnabled) {
 	if (process.env.NODE_ENV !== 'test') flushOnShutdown();
 	app.use('/auth', authRoutes());
 	app.use('/api', apiRoutes());
+	// The sightings of today's barter board age out with the board they
+	// describe. Nothing depends on the sweep -- the read only ever asks
+	// for the last few days -- so it is tidiness on a slow timer.
+	if (process.env.NODE_ENV !== 'test') {
+		const { startBoardSweep } = await import('./server/boards.js');
+		startBoardSweep();
+	}
 }
 
 // Vell reminders by push: a key pair and a table are all it takes, so

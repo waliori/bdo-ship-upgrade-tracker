@@ -17,6 +17,10 @@ Red is missing. Blue you can make. Green you already have.
 As you gather, type in what you have.
 Every build re-plans around it straight away.
 Or log a whole trip at once, instead of a box at a time.
+Or skip the typing altogether. Screenshot your storage in game, and drop the pictures here.
+It finds the slots by their own borders, names each icon, and reads the number written over it. Scroll, shoot again, and the row two pictures share is counted once.
+Every count keeps the corner of its slot beside it, so it is checked at a glance. One the reader is not sure of is marked.
+Nothing is written until you press the button — and then it is one change, with one undo.
 The Workshop makes anything you have the materials for.
 Crafting moves real stock. Ingredients out, the product in.
 Made a mistake? Undo steps it back, and Redo puts it forward.
@@ -167,6 +171,11 @@ Click "another island", and pick the one you are looking at.
 Now check that island in game. Open Barter Information, set the filter to Normal to Level 1, and find its row. Eveto Island is offering Essence of Liquor, for a Level 1 Cherry Tree Seed Pouch.
 Pick that same trade here.
 That names the layout. Every chain this refresh allows is now listed below.
+Or skip the clicking. Screenshot that same window, drop it here, and every row of it is read at once.
+Each row is matched against what that island is known to deal, so a name the window cut short still reads, and six rows usually settle the board.
+The layout book keeps all forty, with how often each has been seen, the boards you have been dealt yourself, and any board a sailor has read that is in no record at all.
+A layout opens island by island, marked where it agrees with what you saw and where your barter count has not opened an exchange.
+And if an island shows something the board does not say, tell it here. If that is one slot the game has moved, the board follows — and that is the reading worth telling the fleet.
 First, what the day is for. There are four of them, and they are not the same run.
 Silver climbs the chains on the board and sells the tops at a wharf.
 A stock sails the same board to fill the storage instead. Nothing is sold at all.
@@ -193,6 +202,7 @@ Now the chains. It has already worked out three runs for you.
 The most silver, the most per hour, and the most per Parley. They are rarely the same run.
 Click one to use it.
 Or tick chains yourself.
+A chain that starts ashore buys its first good on the Central Market, and the run is held to what is actually listed there. One the Market has none of cannot be ticked, and says why.
 Fill the rest adds the best chains around the ones you picked.
 The bar at the bottom totals it up: chains, silver, hours, islands.
 Click "Lay it out".

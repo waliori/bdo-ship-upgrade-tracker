@@ -10,6 +10,7 @@ import { tableFor } from './enhancement.js';
 import { iconLoader } from './icon-loader.js';
 import { esc, F, parseAmount } from './fmt.js';
 import * as store from './state.js';
+import { completed } from './barter-board.js';
 import { initSync, openAccount, feature, me } from './sync.js';
 import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.js';
 import {
@@ -55,6 +56,7 @@ import { openTripLog } from './triplog.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
 import { renderGet, shoppingText, shoppingCSV, getAction, getChange } from './screen-get.js';
 import { openCoinBuy } from './coin-shop.js';
+import { openStorageImport } from './storage-import.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapCentreOnStash,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
@@ -567,7 +569,8 @@ async function loadBarter() {
 		]);
 		if (!table.ok) throw new Error(String(table.status));
 		setBarterData(await table.json());
-		if (boards && boards.ok) setCombos(await boards.json());
+		// the record, with the client's row wherever it has none
+		if (boards && boards.ok) setCombos(completed(await boards.json()));
 		if (mats && mats.ok) setMatBoards(await mats.json());
 	})();
 	try {
@@ -1202,6 +1205,9 @@ function wire() {
 			// Select mode: tiles tick instead of opening, and the bar above
 			// the grid moves the ticked ones to a storage together.
 			case 'inv-select': setInvPicking(!invPicking); if (invPicking) setSelected(null); return render();
+			// The storage window, read off screenshots: the counts land at
+			// the storage named in the dialog, in one change.
+			case 'inv-shot': openStorageImport(render); return;
 			case 'inv-pick': {
 				const it = el.dataset.item;
 				if (invPicked.has(it)) invPicked.delete(it); else invPicked.add(it);
@@ -2331,6 +2337,13 @@ export async function init() {
 	onMarket(render);
 	loadMarket();
 	window.addEventListener('online', () => loadMarket());
+	// The prices keep for a day; what is listed does not, and a barter run
+	// is planned on it. So the Market is asked again every half hour while
+	// the page is open, and on coming back to a tab that sat in the
+	// background past that -- loadMarket itself declines when the copy in
+	// hand is fresh, so neither costs a request it did not need.
+	setInterval(() => { if (!document.hidden) loadMarket(); }, 30 * 60 * 1000);
+	document.addEventListener('visibilitychange', () => { if (!document.hidden) loadMarket(); });
 
 	// Sync last, and never blocking: on a deployment without it this is
 	// one request that comes back "no" and nothing more happens.

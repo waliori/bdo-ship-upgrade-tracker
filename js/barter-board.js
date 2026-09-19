@@ -22,7 +22,7 @@
 // as a barter table go out.
 
 import { levelOf } from './barter.js';
-import { ROWS, GATES } from './barter_gates.js';
+import { ROWS, GATES, GOODS, POOLS } from './barter_gates.js';
 
 const offerMaps = new WeakMap();
 
@@ -34,6 +34,92 @@ export function offersOf(combo) {
 		offerMaps.set(combo, m);
 	}
 	return m;
+}
+
+/** A good the layouts deal in: a trade good of some level, or coins.
+ *  The ship-material exchanges are in the client's pools too, and roll
+ *  on their own -- no layout has anything to say about them. */
+const dealt = name => levelOf(name) !== null || name === 'Crow Coin';
+
+/** What the client says an island deals on the row a layout stands on:
+ *  `{ give, qty, recv, gate }`, or null where it ships no such row. */
+export function clientOffer(combo, npcId) {
+	const row = ROWS[combo && combo.id];
+	const slot = row === undefined ? null : (POOLS[npcId] || [])[row];
+	return slot ? { give: GOODS[slot[0]], qty: String(slot[1]), recv: GOODS[slot[2]], gate: slot[3] } : null;
+}
+
+/** Every trade-good exchange the client says an island deals, on any
+ *  row: `{ give, qty, recv, gate }`, each once. */
+export function clientDeals(npcId) {
+	const seen = new Map();
+	for (const slot of POOLS[npcId] || []) {
+		if (!slot) continue;
+		const o = { give: GOODS[slot[0]], qty: String(slot[1]), recv: GOODS[slot[2]], gate: slot[3] };
+		if (dealt(o.recv) && !seen.has(`${o.give}|${o.recv}`)) seen.set(`${o.give}|${o.recv}`, o);
+	}
+	return [...seen.values()];
+}
+
+/**
+ * A barter count nobody has: what the client writes against an exchange
+ * it means no sailor to see. Most of the rows the community's record
+ * "lacks" are these -- the island is simply shut on that layout, for
+ * everyone, which is why nobody ever wrote down what it showed -- and a
+ * row like that is not a gap to fill.
+ */
+export const NEVER = 100000;
+
+/**
+ * The record made whole from the client.
+ *
+ * The community's record has no row for an island or two on most
+ * layouts. Usually that is the game's doing (see NEVER), but here and
+ * there nobody happened to write the island down, and the client knows
+ * what it deals: each layout is handed on with the client's row
+ * wherever the record has none and the game does deal one. Where
+ * both have a row the record stands: it is what players saw dealt. The
+ * islands filled in are named in `filled`, so the book can say which
+ * rows nobody has yet seen with their own eyes.
+ */
+export function completed(record) {
+	if (!record || !Array.isArray(record.combos)) return record;
+	return {
+		...record,
+		combos: record.combos.map(combo => {
+			const have = new Set(combo.offers.map(o => o[0]));
+			const filled = [];
+			const offers = [...combo.offers];
+			for (const id of Object.keys(POOLS)) {
+				const npcId = Number(id);
+				if (have.has(npcId)) continue;
+				const o = clientOffer(combo, npcId);
+				if (!o || !dealt(o.recv) || o.gate >= NEVER) continue;
+				offers.push([npcId, o.give, o.qty, o.recv]);
+				filled.push(npcId);
+			}
+			return filled.length ? { ...combo, offers, filled } : combo;
+		})
+	};
+}
+
+/**
+ * Whether the game is known to deal this exchange at this island at
+ * all, on any layout: in the client's pool for it, or on the record.
+ * What a sailor saw that is known here and merely on the wrong layout
+ * is a slot the game has moved; what is known nowhere is a new exchange
+ * or a slip, and only other eyes can say which.
+ */
+export function knownAt(combos, npcId, give, recv) {
+	const bare = s => String(s || '').replace(/^\[[^\]]+\]\s*/, '');
+	for (const slot of POOLS[npcId] || []) {
+		if (slot && bare(GOODS[slot[0]]) === bare(give) && bare(GOODS[slot[2]]) === bare(recv)) return 'client';
+	}
+	for (const c of combos || []) {
+		const o = offersOf(c).get(npcId);
+		if (o && o.give === give && o.recv === recv) return 'record';
+	}
+	return null;
 }
 
 /**
@@ -54,9 +140,22 @@ export function offersOf(combo) {
 export function exchangeGate(combo, npcId) {
 	const row = ROWS[combo && combo.id];
 	if (row === undefined) return null;
+	// An island that is the sailor's word and not the record's: the gate
+	// is that exchange's own, wherever in the pool the client keeps it.
+	if (combo.patched && combo.patched.includes(npcId)) {
+		const seen = offersOf(combo).get(npcId);
+		const o = seen && clientDeals(npcId).find(x => x.give === seen.give && x.recv === seen.recv);
+		return o && typeof o.gate === 'number' ? o.gate : null;
+	}
 	const col = GATES[npcId];
 	const gate = col ? col[row] : null;
-	return typeof gate === 'number' ? gate : null;
+	if (typeof gate === 'number') return gate;
+	// a row that is the client's own carries the client's own gate
+	if (combo.filled && combo.filled.includes(npcId)) {
+		const o = clientOffer(combo, npcId);
+		return o && typeof o.gate === 'number' ? o.gate : null;
+	}
+	return null;
 }
 
 /**

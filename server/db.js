@@ -338,11 +338,47 @@ export const MIGRATIONS = [
 			await run('CREATE INDEX IF NOT EXISTS feedback_files_entry ON feedback_files (feedback_id)');
 			await run('CREATE INDEX IF NOT EXISTS feedback_files_owner ON feedback_files (user_id, feedback_id)');
 		}
+	},
+	{
+		version: 8,
+		up: async run => {
+			// What the sea was showing today, as somebody saw it. The
+			// board is the same for everyone on a server and is redrawn
+			// at the refill, so one player's reading is worth having to
+			// all of them -- with their name on it, because that is the
+			// whole of the arrangement: somebody went and looked.
+			//
+			// `offers` is the reading itself, as JSON: island, what it
+			// takes, how many, what it pays. The server never asks what
+			// any of that means; the browser has the tables.
+			await run(`CREATE TABLE IF NOT EXISTS barter_boards (
+				id          INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				day         TEXT NOT NULL,
+				layout      TEXT,
+				offers      TEXT NOT NULL,
+				created_at  INTEGER NOT NULL,
+				seen        INTEGER NOT NULL DEFAULT 0,
+				hidden      INTEGER NOT NULL DEFAULT 0
+			)`);
+			// Who else saw the same board. Once an account, so a count
+			// of confirmations means what it says.
+			await run(`CREATE TABLE IF NOT EXISTS barter_board_seen (
+				board_id    INTEGER NOT NULL REFERENCES barter_boards(id) ON DELETE CASCADE,
+				user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				at          INTEGER NOT NULL,
+				PRIMARY KEY (board_id, user_id)
+			)`);
+			// The two questions: what has been seen lately, and has this
+			// account already told us about today.
+			await run('CREATE INDEX IF NOT EXISTS barter_boards_when ON barter_boards (created_at)');
+			await run('CREATE INDEX IF NOT EXISTS barter_boards_owner ON barter_boards (user_id, day)');
+		}
 	}
 ];
 
 /** The data tables, in the order a restore has to write them (parents first). */
-export const TABLES = ['users', 'saves', 'push_subs', 'push_alerts', 'feedback', 'feedback_files', 'community', 'presence'];
+export const TABLES = ['users', 'saves', 'push_subs', 'push_alerts', 'feedback', 'feedback_files', 'community', 'presence', 'barter_boards', 'barter_board_seen'];
 
 /**
  * Bring the database up to the newest version. Safe to run any number
@@ -886,4 +922,115 @@ export async function countCommunity() {
 	await migrate();
 	const { rows } = await exec('SELECT COUNT(*) AS n FROM community');
 	return Number(rows[0] && rows[0].n) || 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Today's board, as the fleet saw it
+ * ------------------------------------------------------------------ */
+
+const sightingOf = r => ({
+	id: Number(r.id),
+	userId: r.user_id,
+	day: r.day,
+	layout: r.layout || null,
+	offers: safeJSON(r.offers),
+	at: Number(r.created_at),
+	seen: Number(r.seen || 0),
+	// A name only where the account is shown by name on the boards. An
+	// account that is anonymous there is anonymous here: the same
+	// choice, honoured in both places.
+	name: r.share === 'named' ? r.username || null : null
+});
+
+function safeJSON(text) {
+	try {
+		const out = JSON.parse(text);
+		return Array.isArray(out) ? out : [];
+	} catch {
+		return [];
+	}
+}
+
+/** The sightings of the last few days, newest first. */
+export async function listSightings(since, limit = 200) {
+	await migrate();
+	const { rows } = await exec({
+		sql: `SELECT b.id, b.user_id, b.day, b.layout, b.offers, b.created_at, b.seen, u.username, c.share
+		      FROM barter_boards b
+		      LEFT JOIN users u ON u.id = b.user_id
+		      LEFT JOIN community c ON c.user_id = b.user_id
+		      WHERE b.created_at >= ? AND b.hidden = 0
+		      ORDER BY b.created_at DESC LIMIT ?`,
+		args: [since, limit]
+	});
+	return rows.map(sightingOf);
+}
+
+/** What this account has already said about a day, if anything. */
+export async function getSighting(userId, day) {
+	await migrate();
+	const { rows } = await exec({
+		sql: 'SELECT id, user_id, day, layout, offers, created_at, seen FROM barter_boards WHERE user_id = ? AND day = ? AND hidden = 0',
+		args: [userId, day]
+	});
+	return rows[0] ? sightingOf(rows[0]) : null;
+}
+
+/** One sighting, whoever sent it. */
+export async function getSightingById(id) {
+	await migrate();
+	const { rows } = await exec({
+		sql: 'SELECT id, user_id, day, layout, offers, created_at, seen, hidden FROM barter_boards WHERE id = ?',
+		args: [id]
+	});
+	return rows[0] ? { ...sightingOf(rows[0]), hidden: Boolean(Number(rows[0].hidden)) } : null;
+}
+
+/** `at` is when it was seen: now, except to a test that needs an old one. */
+export async function insertSighting(userId, { day, layout, offers }, at = Date.now()) {
+	await migrate();
+	const { lastInsertRowid } = await exec({
+		sql: 'INSERT INTO barter_boards (user_id, day, layout, offers, created_at, seen, hidden) VALUES (?, ?, ?, ?, ?, 0, 0)',
+		args: [userId, day, layout ?? null, JSON.stringify(offers), at]
+	});
+	return Number(lastInsertRowid);
+}
+
+export async function updateSighting(id, { layout, offers }) {
+	await migrate();
+	await exec({
+		sql: 'UPDATE barter_boards SET offers = ?, layout = ?, created_at = ? WHERE id = ?',
+		args: [JSON.stringify(offers), layout ?? null, Date.now(), id]
+	});
+}
+
+export async function hideSighting(id) {
+	await migrate();
+	await exec({ sql: 'UPDATE barter_boards SET hidden = 1 WHERE id = ?', args: [id] });
+}
+
+/** Which sightings this account has said it saw too. */
+export async function sightingsConfirmedBy(userId) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT board_id FROM barter_board_seen WHERE user_id = ?', args: [userId] });
+	return rows.map(r => Number(r.board_id));
+}
+
+/** Somebody else saw the same board. Counted once an account, which is
+ *  what makes the number mean anything. */
+export async function confirmSighting(id, userId) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT 1 FROM barter_board_seen WHERE board_id = ? AND user_id = ?', args: [id, userId] });
+	if (rows[0]) return false;
+	await exec({ sql: 'INSERT INTO barter_board_seen (board_id, user_id, at) VALUES (?, ?, ?)', args: [id, userId, Date.now()] });
+	await exec({ sql: 'UPDATE barter_boards SET seen = seen + 1 WHERE id = ?', args: [id] });
+	return true;
+}
+
+/** Sightings older than the boards they describe. */
+export async function sweepSightings(before) {
+	await migrate();
+	await exec({ sql: 'DELETE FROM barter_board_seen WHERE board_id IN (SELECT id FROM barter_boards WHERE created_at < ?)', args: [before] });
+	const { rowsAffected } = await exec({ sql: 'DELETE FROM barter_boards WHERE created_at < ?', args: [before] });
+	return Number(rowsAffected || 0);
 }

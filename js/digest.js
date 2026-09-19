@@ -83,7 +83,7 @@ export const HULL_TIER = {
  *   2  the ship score reads part quality and the crystal; `sets`,
  *      `gear` and the face's `worth` are new.
  */
-export const DIGEST_V = 2;
+export const DIGEST_V = 3;
 
 const SLOT_FAMILY = 11;
 const HULL_WORTH = 1000;
@@ -392,6 +392,18 @@ function stockOf(save) {
  * bounds, and the tables are cut to their top rows, so the whole thing
  * is a few kilobytes whatever the save holds.
  */
+/** The barter boards this sailor has been dealt, a count a layout:
+ *  what the fleet's "which layouts come up most" is added up from. */
+function boardsOf(profile) {
+	const byLayout = {};
+	let edited = 0;
+	for (const [, id, patched] of arr(profile.boardLog)) {
+		byLayout[id] = (byLayout[id] || 0) + 1;
+		if (patched) edited++;
+	}
+	return { n: arr(profile.boardLog).length, edited, byLayout };
+}
+
 export function digest(save) {
 	const s = save && typeof save === 'object' ? save : {};
 	// Through the profile's own reading first, so every string is cut
@@ -410,6 +422,7 @@ export function digest(save) {
 		quests: questsOf(profile, tally),
 		yard: yardOf(s, tally),
 		charts: chartsOf(profile),
+		boards: boardsOf(profile),
 		stock: stockOf(s),
 		ship: shipOf(profile, fleet)
 	};

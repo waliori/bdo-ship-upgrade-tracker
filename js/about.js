@@ -10,7 +10,8 @@ export const DATA = [
 	{ what: 'Sea monster spawn points', asOf: '2026-08-30', from: 'BDOCodex; the Lyngbakr Habitat from in-game bookmarks, 2026-08-31' },
 	{ what: 'What islands paid on your runs', asOf: 'live', from: 'your own record, from the Barter tab’s checklist' },
 	{ what: 'The ship-material board — four whole boards', asOf: '2026-09-05', from: 'the barter window, read off screenshots of four refreshes; how often each offer is up comes from these' },
-	{ what: 'The trade-good list — forty layouts', asOf: '2026-09-11', from: 'a community sheet, 444 refreshes since 2026-04-16; refetched after a player reported the game moving a slot inside one' },
+	{ what: 'The trade-good list — forty layouts', asOf: '2026-09-18', from: 'a community sheet kept by RENGEREL, 465 refreshes since 2026-04-16; refetched after the patch of 17 September moved a slot on layout 31' },
+	{ what: 'What each island deals, and the barter count each exchange needs', asOf: '2026-09-18', from: 'the game client’s own barter table, read after the 17 September patch' },
 	{ what: 'Monster ground markers — 32 of them', asOf: '2026-09-14', from: 'the game’s own world map: the client’s habitat icons, position and all' },
 	{ what: 'Wharf managers — the full roll, 58 of them', asOf: '2026-08-31', from: 'BDOCodex NPC pages' },
 	{ what: 'Cox Pirates’ camps, flags and cargo ships', asOf: '2026-08-31', from: 'Awabi’s “The Road to Cox” map, fitted to the chart on its island names' },
@@ -58,6 +59,104 @@ export const DATA = [
  * drawer.
  */
 export const RELEASES = [
+	{
+		id: '1.4',
+		name: 'The screenshots you already took',
+		date: '2026-09-19',
+		sum: 'Screenshot your storage or the barter window and the app reads it; every layout has a page in a book, with what the fleet has seen; and a run no longer sends you to buy what the Market has none of.',
+		blurb: 'Typing a storage in slot by slot is the dullest hour this app ever asked of anyone, and the game has been drawing it for you all along. '
+			+ 'So now <b>a screenshot is an entry</b>: a storage window becomes counts, a barter window becomes today\u2019s board. '
+			+ 'The boards themselves got <b>a book of their own</b> \u2014 all forty layouts, what the fleet has read of them, and the ones nobody has on file \u2014 and a barter run finally asks the Central Market <b>whether there is anything to buy</b> before telling you to buy it.',
+		thanks: {
+			text: 'Three players are in this one. Two of them asked; the third keeps the record the whole Barter tab stands on.',
+			who: [
+				{
+					name: 'GloriousMadness',
+					said: 'One other thing I was looking at was OCR cuz i\u2019m too lazy to manually input my inventories & barter exchanges',
+					did: 'Not lazy \u2014 right. Both of them are <b>read off a screenshot</b> now: a storage into counts, the barter window into today\u2019s board.'
+				},
+				{
+					name: 'Oni',
+					said: 'some item can be buy from CM, but some is a zero at stoke \u2026 but it not chek that items on CM or not',
+					did: 'The run priced a land good at its last sale and never asked whether any were for sale. It asks now: <b>a run buys only what the Market has</b>, and a chain that cannot start is not one you can tick. His screenshot also turned out to be in another font, which is why the reader now knows all of them.'
+				},
+				{
+					name: 'RENGEREL',
+					said: 'they changed the one tear from dallae pier that might not show up to the butterfly which is always there \u2026 that should all be correct now',
+					did: 'The keeper of the community\u2019s layout sheet, who had it updated before the patch was a day old. The game\u2019s own files agree \u2014 one byte of them \u2014 and <b>layout 31</b> is right in the app because of it.'
+				}
+			],
+			foot: 'The box is under <b>Menu \u2192 Feedback</b>. It reaches whoever runs the site.'
+		},
+		sections: [
+			{
+				title: 'A storage reads itself',
+				media: 'docs/media/small/read-a-storage.gif',
+				alt: 'Two screenshots of a storage read into a table, each count beside the corner of the slot it was read off',
+				text: 'On the Inventory, <b>Read a storage</b> takes screenshots of the game\u2019s storage window \u2014 a crop or the whole screen \u2014 and comes back with a line for everything the app keeps a count of.',
+				points: [
+					'The slots are found by the spacing of their own borders, so <b>any resolution and any UI scale</b> read alike; each icon is matched against the five hundred the app carries, and one it is not sure of is left out rather than named wrong.',
+					'The counts are read by <b>a small network taught on four hundred thousand made-up slots</b> \u2014 the game\u2019s own fonts over the app\u2019s own icons \u2014 and on no real ones. On five real screenshots from two players, 457 of 458 slots read right and none wrong that it was sure of.',
+					'<b>Every line keeps the corner of its slot beside it</b>, so a count is checked at a glance; one the reader is unsure of is marked \u26a0.',
+					'<b>Scroll and shoot again</b>: the rows two screenshots share are found by their pictures and counted once.',
+					'Nothing is written until you press the button, and what it writes is one change, with one Undo.'
+				]
+			},
+			{
+				title: 'So does the barter window',
+				media: 'docs/media/small/read-the-window.gif',
+				alt: 'A screenshot of the barter window read into six islands, and the board settling on a layout',
+				text: '<b>Read the window</b> on the Barter tab answers every island in a screenshot at once. Six rows are usually enough to settle which of the forty layouts the sea is on.',
+				points: [
+					'Each row is matched against the exchanges <b>that island is known to deal</b>, so a name the window cut short is as good as a whole one and a misread letter cannot invent an offer.',
+					'A row two exchanges fit equally well is a list to pick from, not a guess.',
+					'The islands paying ship materials go to the material list, since those roll on their own.'
+				]
+			},
+			{
+				title: 'The layout book',
+				media: 'docs/media/small/the-layout-book.gif',
+				alt: 'The shelf of forty layouts, a board in no record, and a layout opened out level by level',
+				text: '<b>\ud83d\udcd6 The layout book</b>, on the board bar: every layout on file as a card, how often the record and the fleet have each seen it, and the boards sailors have read that are in no record at all.',
+				points: [
+					'A card opens into the whole board \u2014 a tile an island, the goods drawn, a tab a level \u2014 marked where it agrees with what you saw today and where your barter count has not opened an exchange.',
+					'A board nobody has on file says who read it, how many others saw the same, and <b>the layout it is nearest to</b>: parting at a slot or two is a layout the game has edited; parting at twenty is a slip.',
+					'<b>Yours</b> shows the boards you have been dealt, commonest first \u2014 the app writes a board down by itself when it is settled \u2014 and the Community tab adds them up fleet-wide.',
+					'Where sync is on, a reading goes up with its reader\u2019s name on it, if they are shown by name on the community boards and not otherwise.'
+				]
+			},
+			{
+				title: 'A run buys only what the Market has',
+				media: 'docs/media/small/a-dry-chain.gif',
+				alt: 'A chain whose first land good the Central Market has none of, greyed and saying why',
+				text: 'With land goods <i>bought ashore</i>, a run is held to what the Central Market actually has listed.',
+				points: [
+					'A chain whose first good nobody is selling <b>cannot be ticked</b>: its card is greyed and says <i>none on the Central Market</i> on its own face.',
+					'Where you hold a good part-way up the same climb, the card <b>starts from that instead</b>, and the shore is struck out among its starts with the reason.',
+					'Where you keep the land good yourself it offers <i>from my storage</i>; and <i>Before casting off</i> shows how many are listed beside each thing to buy.',
+					'The Market is asked again every half hour while the page is open.'
+				]
+			},
+			{
+				title: 'An island shows something else',
+				text: 'Once a board is settled, <b>\u270e An island shows something else\u2026</b> is the one door for everything the record can get wrong. Name the island, pick what its window shows from everything it is known to deal, or say it shows nothing.',
+				points: [
+					'Islands whose exchange is above your barter count are greyed, with the count that opens them: a blank window there is the game, and not news.',
+					'If what you saw fits one layout everywhere but an island or three, <b>the board is that layout with those islands as you saw them</b>, and the run is planned on it.',
+					'<b>Telling the fleet is offered only then</b>, or when nothing fits at all. A reading that matches a layout on file is not news.'
+				]
+			},
+			{
+				title: 'What the game\u2019s own files had to say',
+				text: 'The client\u2019s barter table ships with the app now, and three things came out of reading it properly.',
+				points: [
+					'<b>Layout 31\u2019s Dallae Pier takes the Stuffed Morpho Butterfly</b> since the patch of 17 September, not the Statue\u2019s Tear.',
+					'The barter count each exchange needs is known for <b>3,002 of 3,004 rows</b>, up from 2,917 \u2014 the client files some [Level 5] goods under another name, which had been hiding them.',
+					'The islands missing from a layout in the community\u2019s record are not gaps: the game shuts them on that layout <b>to everyone</b>. The ten rows that really were missing are filled in, and marked.'
+				]
+			}
+		]
+	},
 	{
 		id: '1.3',
 		name: 'The day the sea will actually give you',
@@ -655,6 +754,22 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-09-18',
+		title: 'The screenshots you already took are the fastest way to tell the app anything',
+		notes: [
+			'<b>A storage reads itself.</b> The Inventory takes a shot of the game\u2019s storage window \u2014 a crop, or the whole screen with it open \u2014 and comes back with a line per thing the app counts. The slots are a square lattice, found by the spacing of their own borders, so any resolution and any UI scale read alike; each is then matched against the five hundred icons the app already carries, and one that looks nearly as much like the runner-up as like the best is <i>left out</i> rather than named wrong. Several shots are one storage and their slots add up, so a warehouse four screenfuls deep is one go and one undoable change.',
+			'<b>And the counts are read by a small network, taught on slots nobody had to label.</b> No OCR engine is fetched for a storage at all \u2014 an engine is the wrong tool for eight-pixel writing over a drawing, and so, it turned out, were templates of the game\u2019s figures: a template is one rendering, and the same window captured by a desktop that scales its screen is another. A stack of 103 over a crate came back as 1,103, because the edge of the crate really is an upright. What reads it now is what reads house numbers off street photographs: a convolutional network run along the whole line and trained with CTC, so nothing has to say where one figure ends and the next begins. It was taught on four hundred thousand <i>made-up</i> slots \u2014 the game\u2019s own fonts, pulled out of the client, over the app\u2019s own icons, then blurred, rescaled and recompressed every way a screenshot gets \u2014 and on no real ones, which is what makes the real ones a test. <i>Fonts</i>, because which face draws the counts depends on the client\u2019s language: a reader taught only the English client\u2019s Strong Sword took another player\u2019s 656 for 555, so it is taught every face the client ships. Five real screenshots off two players\u2019 setups, 458 slots: <b>457 read right and none wrong that it was sure of</b> \u2014 the one it missed has a mouse pointer lying across the figure, and it said so. Shrunk, doubled, blurred or recompressed there is still next to nothing it is wrong and sure about; what gets harder to read gets marked, not guessed. Fifty thousand weights, ten milliseconds a slot, plain JavaScript. Every line keeps the corner of its slot beside it, so a count is checked at a glance; a reading the network is not sure of is written in as its best and marked \u26a0.',
+			'<b>Scrolled shots are one storage.</b> Shoot a screenful, scroll, shoot again, and the last row of one is the first row of the next \u2014 which used to count twelve crystals as twenty-four. The rows two shots share are now found by their pictures, named or not, and counted once; the table says how many. A row of one thing repeated is not taken as proof, because two rows of dynamite look exactly like one row shot twice. The last row of a storage is no longer lost, whether to faint borders round its bare slots or to falling just past where the window was first looked for.',
+			'<b>The barter window reads itself too.</b> <i>Read the window</i> on the Barter tab answers every island in a screenshot at once, matched against the exchanges the codex says that island deals \u2014 so <code>[Level 5] Faded Gold Dra...</code> is as good as the whole name, a name that wrapped under the Parley cost is picked up where it broke off, and a row two exchanges fit equally well is a list to pick from rather than a guess. Six rows off one shot usually settle which of the forty layouts the sea is on. The islands paying ship materials go to the material list instead, since those roll on their own.',
+			'<b>And one player\u2019s reading is everybody\u2019s board.</b> A board is the same for everyone on a server until the refill, so a reading can now be told to the fleet \u2014 with the reader\u2019s name on it, where they are shown by name on the community boards and not otherwise. The bar says what others have read of today\u2019s board and how many have since seen the same; taking their reading answers every island they named and tells them so. It is also the answer to <b>no layout shows that</b>: the record the app ships is a snapshot, the game edits a slot at a maintenance without renumbering anything, and a board nobody has on file is the one worth passing on.',
+			'<b>The layout book.</b> The readings had a line under the board bar and nowhere to be looked at, so they have a view of their own now: <i>\ud83d\udcd6 The layout book</i> opens every layout on file as a card \u2014 drawn with the land goods its [Level 1] islands are asking for and the goods its coin islands will take, which is what differs from board to board \u2014 with how often the record has seen it and how often the fleet has. Above them are the <b>boards nobody has on file</b>: who read each, how many others saw the same, and the layout it is nearest to, because parting from one at a slot or two is a layout the game has edited and parting at twenty is a slip. A card opens into the whole board, island by island with the goods drawn, marked against what you saw today and against your barter count; search finds a layout by an island, a good or its number. Readings are kept two months for it.',
+			'<b>The record is not the last word, and you can correct it.</b> The community\u2019s record has no row for an island or two on most layouts, and the game\u2019s own table says why: on that layout the island is shut to <i>everyone</i> \u2014 gated at a million barters \u2014 so nobody ever wrote down what it showed. Where the client does deal a row the record lacks, ten of them, the layout now carries it; and the barter count each exchange needs is known for 3,002 of 3,004 rows, up from 2,917. Once a board is settled, <i>\u270e An island shows something else\u2026</i> is the one door for what the record gets wrong: name the island, pick what its window shows from everything it is known to deal, or say it shows nothing \u2014 islands above your barter count are greyed, since a blank window there is the game. A reading that fits one layout everywhere but an island or three <i>is</i> that layout with a slot moved, and is planned as such; <b>telling the fleet is offered only then</b>, or when nothing fits. Layout 31\u2019s Dallae Pier takes the Stuffed Morpho Butterfly since the patch of 17 September \u2014 one byte in the client\u2019s table, and the community\u2019s sheet agrees.',
+			'<b>Which layouts come up most.</b> The app writes a board down by itself the moment it is settled. The book\u2019s <i>Yours</i> shows the boards you have been dealt, commonest first, and the Community tab adds them up fleet-wide under <i>Barter layouts most dealt</i>, beside each layout\u2019s share of the community\u2019s own record.',
+			'<b>A run buys only what the Market has.</b> Oni wrote in with a run that told him to load a land good the Central Market had none of: the app priced a chain\u2019s first good at the Market\u2019s last price and never asked whether any were for sale. The relay was already bringing the listed count back with every price; now it is used. With land goods <i>bought ashore</i>, a run buys no more of a good than are listed, a chain whose first good nobody is selling <b>cannot be ticked</b> \u2014 its card is greyed and says <i>none on the Central Market</i> on its own face, with the good drawn; where you hold a good part-way up the same climb the card starts from that instead, the shore struck out among its starts, and where you keep the land good it offers <i>from my storage</i> \u2014 and <i>Before casting off</i> shows how many are listed beside each thing to buy. A count the Market would not confirm this time holds nothing back, since stock moves by the minute; and the Market is asked again every half hour while the page is open, not only when it loads.',
+			'<b>The film says it too.</b> Two chapters under <b>Help</b> were re-shot: <i>The Yard</i> now drops two scrolled storage screenshots on the Inventory and checks a count against its slot, and <i>A Run</i> reads the barter window, opens the layout book and a layout inside it, corrects an island, and meets a chain the Market cannot start.'
+		]
+	},
 	{
 		date: '2026-09-14',
 		title: 'A chain that stops short says so, and the coins are counted the way the game pays them',

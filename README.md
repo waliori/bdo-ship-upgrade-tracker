@@ -30,12 +30,12 @@ whatever is being talked about lit up on screen as it is named:
 
 | Chapter | What it covers |
 |---|---|
-| [One — The Yard](docs/media/guide/the-yard.mp4) | The sailor's own numbers in the bar — the barter count that decides which islands deal with you at all, and the nest of Bos'n Jacks the hold is short without — then queue a build, record what you gather, craft it, step a mistake back, price a part, read the tree |
+| [One — The Yard](docs/media/guide/the-yard.mp4) | The sailor's own numbers in the bar — the barter count that decides which islands deal with you at all, and the nest of Bos'n Jacks the hold is short without — then queue a build, record what you gather — typed, or read off screenshots of a storage — craft it, step a mistake back, price a part, read the tree |
 | [Two — To Get](docs/media/guide/to-get.mp4) | The plan: one way to each thing you are short of, under a goal you choose, with the day count that follows every choice — and what it will never do |
 | [Three — Quests](docs/media/guide/quests.mp4) | The sailing dailies and weeklies, which of them pay something you need, and recording a batch of them in one change |
 | [Four — Your Ship](docs/media/guide/your-ship.mp4) | Hull, the four part slots, the sea crystal, the appearance set, where every figure comes from — and the crew: read off the game's own screenshots, then seated by hand or automatically, with presets and saved setups |
 | [Five — The Map](docs/media/guide/the-map.mp4) | The chart, mostly full screen: the toolbar, the minimap, the layers, all five of its tabs — stood up on the game's own terrain in Ground or Neon, with the world curving away, and the Hollow Maretta's thirty-eight ringing spots among the grounds |
-| [Six — A Run](docs/media/guide/a-run.mp4) | The whole of bartering: naming this refresh's layout off the game's own barter window, then the four kinds of day — silver, a stock, Crow Coins, a material — the orders, the chains, the two shelves of the sheet, the clock that rings at every stop, sailing it, recording it, and the day's boards after |
+| [Six — A Run](docs/media/guide/a-run.mp4) | The whole of bartering: naming this refresh's layout off the game's own barter window — by a click or by a screenshot of it — the layout book, saying what an island really shows, then the four kinds of day — silver, a stock, Crow Coins, a material — the orders, the chains and what the Central Market has for them, the two shelves of the sheet, the clock that rings at every stop, sailing it, recording it, and the day's boards after |
 | [Seven — The Harbour](docs/media/guide/the-harbour.mp4) | The boards, what a place on one opens, what is and is not shared — and the feedback box, where a report is a post with marks, screenshots and a name on it |
 
 Same rule as the walkthrough: it is the real app being driven, and the
@@ -72,6 +72,77 @@ This is the thing you do day to day. Type into the box on any row — `4k`,
 fill, the shortfall drops, and recipes move into *craftable now*.
 
 ![Typing in what you own; the plan re-computes](docs/media/record-what-you-own.gif)
+
+**Or read a storage off a screenshot.** *Read a storage* on the
+Inventory takes a shot of the game's own storage window — a crop of it,
+or the whole screen with it open — and comes back with a line per thing
+the app keeps a count of: what it is, how many, and what that would
+change at the storage you name. Several shots are one storage and their
+slots add up, so a warehouse four screenfuls deep is read in one go.
+
+![Two screenshots of one storage read into a table: every count with the corner of its slot beside it, and the row both shots share counted once](docs/media/read-a-storage.gif)
+
+Nothing about it is typed and nothing about it is guessed. The slots are
+a square lattice, found by the spacing of their own borders, so any
+resolution and any UI scale read alike; each slot is then matched
+against the five hundred icons the app already carries, and one that
+looks nearly as much like the runner-up as like the best is left out
+rather than named wrong — a storage is mostly elixirs, gear and memory
+fragments, and none of that is this app's business.
+
+The count over a slot is read off the pixels too, and no OCR engine is
+fetched for a storage at all. An engine is the wrong tool here — it is
+trained on a page of print, and this is eight-pixel writing over a
+drawing — and so, it turned out, were templates of the game's figures:
+a template is one rendering, and the same window captured by a desktop
+that scales its screen, or saved as a JPEG, or drawn at another UI size,
+is another. A stack of 103 over a crate came back as 1,103, because the
+edge of the crate really is an upright.
+
+What reads it now is what reads house numbers off street photographs: a
+small convolutional network run along the whole line and trained with
+CTC, so nothing has to say where one figure stops and the next begins.
+It was taught on four hundred thousand **made-up** slots — the game's
+own fonts, pulled out of the client, written over this app's own icons,
+then blurred, rescaled and recompressed every way a screenshot gets —
+and on no real ones, which is what makes the real ones a test. *Fonts*,
+because which face draws the counts depends on the client's language:
+Strong Sword on the English one, a bold gothic or a wide ShinGo on
+others, and a reader taught one face took another player's 656 for 555.
+It is taught every face the client ships. Five real screenshots off
+two players' setups — two desktop captures, two of the game's own
+JPEGs and one in that other face — 458 slots in all: **457 read right,
+none wrong that it was sure of**; the one it missed has a mouse pointer
+lying across the figure, and it said so. The same shots shrunk to seven
+tenths, blown up by half, blurred, or scaled and recompressed are still
+without a wrong count it was sure of; crushed to a JPEG of quality 35
+there is one in 458. What gets harder to read gets marked, not guessed.
+It is fifty thousand weights in `js/count_model.js`, runs in about ten
+milliseconds a slot in plain JavaScript (`js/count-net.js`), and is
+rebuilt by
+`tools/count-reader`.
+
+Every line of the table keeps the corner of its slot beside it, as the
+screenshot had it, so a count is checked at a glance against the
+picture it was read off. Every reading also comes with how likely it is — the share of all the ways
+the line could be read that spell that number — and one the network is
+not sure of, or reads differently when the slot is cut a pixel to
+either side, is written in as its best reading, marked ⚠, with the
+corner of the slot beside it to check by eye. A pointer parked over a
+count is the usual reason. The lattice gets the same scrutiny: a spacing
+the icons do not believe — every other border of a blurred shot, the
+sea behind a shrunk one — is looked for again a band at a time and
+settled to a fraction of a pixel by the icons themselves, and a shot
+whose slots never line up has everything read from it marked.
+
+**Scrolled shots are one storage.** Shoot a screenful, scroll, shoot
+again, and the last row of one is the first row of the next. The rows
+two shots share are found by their pictures — named or not, so the
+elixirs line things up as well as the barter goods do — and counted
+once; the table says how many. A row of one thing repeated is not taken
+as proof, because two rows of dynamite look exactly like one row shot
+twice. Nothing is written until you press the button, and what it
+writes is one change.
 
 ### 3. Craft and enhance
 
@@ -659,6 +730,109 @@ one undoable change. The details — the material run, the three paces,
 the quests that come along, the wharf calls — are under
 [What's covered](#whats-covered).
 
+**A run buys only what the Central Market has.** A chain that starts on
+land starts with something bought, and the Market's last price stands
+when nothing is listed — so a run could tell you to load five hundred of
+a good nobody is selling. The relay brings back how many are listed with
+every price, and with land goods *bought ashore* the run is held to it:
+no more of a good than are listed, and a chain whose first good has
+none cannot be ticked: its card is greyed and says *none on the Central
+Market* on its own face, with the good drawn. Where you hold a good
+part-way up the same climb the card starts from that instead — the
+shore is struck out among its starts, with the reason — and where you
+keep the land good yourself it offers *from my storage*;
+and *Before casting off* shows the count beside each thing to buy. A
+count the Market would not confirm holds nothing back, and the Market is
+asked again every half hour while the page is open.
+
+![A chain whose first land good the Central Market has none of: greyed, not to be ticked, and saying why on its own face](docs/media/a-dry-chain.gif)
+
+*The Market in that clip is made up, with every third shelf bare — a
+machine shooting a clip cannot wait for Essence of Liquor to sell out.
+The chains, the run and the card are the app's own.*
+
+**Or screenshot the window.** *Read the window* takes a shot of the
+barter list and answers every island in it at once: the island at the
+start of each row, what it takes and what it pays, matched against the
+exchanges the codex says that island deals — so a name the window cut
+short (`[Level 5] Faded Gold Dra...`) is as good as a whole one, and a
+misread letter cannot invent an offer the game never showed. Six rows
+off one screenshot are usually enough to settle which of the forty
+layouts the sea is on. A row two exchanges fit equally well is a list to
+pick from rather than a guess, and the islands that pay ship materials
+go to the material list instead, since those roll on their own.
+
+![A screenshot of the barter window read into six islands, and the board settled on a layout from them](docs/media/read-the-window.gif)
+
+**And a board is the same for everyone until the refill.** Where sync is
+configured you can *tell the fleet* what you read — from the screenshot
+dialog or from the bar, however the board was answered — and it goes up
+with your name on it, for anybody who opens the page today. The bar says
+what others have read of today's board and how many have since seen the
+same; *take their reading* answers every island they named and tells
+them so. A reading is yours to take back and the operator's to hide, and
+an account shown anonymously on the community boards is anonymous here
+too. This is also what to do when the bar says **no layout shows that**:
+the record the app ships is a snapshot, the game edits a slot at a
+maintenance without renumbering anything, and a board nobody has on file
+is exactly the one worth passing on.
+
+**The layout book is where the evidence is kept.** The bar asks one
+question — which board is it today — and is no place for forty layouts
+and two months of readings. *📖 The layout book*, on the bar, opens them
+in a view of their own: every layout on file as a card, with the land
+goods its [Level 1] islands are asking for and the goods its coin
+islands will take drawn on it, how many exchanges it pays at each level,
+how often the record has seen it and how often the fleet has. A reading
+that pins one layout counts for it; a reading three layouts fit counts
+for none. Above them are the **boards nobody has on file** — read by
+sailors, fitting nothing — each with who read it, how many others saw
+the same, and the layout it is nearest to: parting at a slot or two is a
+layout the game has edited, parting at twenty is a new board or a slip,
+and the count beside it says which to believe. A card opens into the
+whole board, island by island with the goods drawn, marked where it
+agrees or disagrees with what you saw today and where your barter count
+has not opened an exchange; a board seen today can be taken as today's
+from there. Search finds a layout by an island, a good, or its number.
+Readings are kept two months for this, since a layout comes round every
+few weeks.
+
+![The layout book: the shelf of forty layouts, a board in no record opened against the layout it is nearest to, and a layout opened out level by level](docs/media/the-layout-book.gif)
+
+*The readings in that clip are invented, like the sailors on the
+community boards and for the same reason: this project runs no public
+deployment to film. The book, its sums and the layouts are the app's
+own.*
+
+**The record is not the last word.** The community's record has no row
+for an island or two on most layouts, and the game's own table says why:
+on that layout the island is shut to everyone — the exchange is gated at
+a million barters — so nobody ever wrote down what it showed. Where the
+client does deal a row the record lacks, ten of them, the layout is
+handed on with it (`tools/build-barter-gates.mjs` bakes the client's
+pools into `js/barter_gates.js`), marked *game files* in the book until
+somebody has seen it. Once a board is settled, **✎ An island shows something
+else…** is the one door for everything the record can get wrong: name
+the island, then pick what its window shows — from every exchange the
+codex and the client know it to deal — or that it shows nothing.
+Islands whose exchange is above your barter count are greyed with the
+count that opens them, because a blank window there is the game and not
+news. If what you saw fits one layout everywhere but an island or
+three, the board *is* that layout with those islands as you saw them —
+the game moves a slot at a maintenance without renumbering — and the
+run is planned on it. **Telling the fleet is offered only then**, or
+when nothing fits at all: a reading that matches a layout on file is
+not news, and a reading in the book is held up against every exchange
+the game is known to deal at that island, so *known here, on another
+layout* is told apart from *never seen here*.
+
+**Which layouts come up most.** The app writes a board down by itself
+the moment it is settled — the day and the layout, in your own save. The
+book's *Yours* shows the boards you have been dealt, the commonest
+first; and for those who take part in the Community tab the counts are
+added up fleet-wide under *Barter layouts most dealt*, beside each
+layout's share of the community's own record.
+
 ### The harbour
 
 ![A place on a board opens that sailor's card, and the card stands the Ship tab up on their boat](docs/media/the-boards.gif)
@@ -1215,13 +1389,28 @@ js/
                       and arranging a crew for a stated goal
   sailor-locales.js   the sailor window's words in every language the game runs in
   sailor-shot.js      a sailor read out of a screenshot's words -- pure, and tested
-  shot-reader.js      the vendored OCR engine, and the two passes over a screenshot
+  shot-reader.js      the vendored OCR engine, the passes over a screenshot,
+                      and the bank of icons a storage slot is named against
   sailor-import.js    the drop, the reading and the table that checks it
+  storage-shot.js     a storage window read off its pixels: the lattice, the
+                      icon each slot holds, the count over its corner, and the
+                      rows two scrolled shots share -- pure
+  count-net.js        the small network that reads a slot's count: convolution,
+                      pooling and the CTC decoding, in plain JavaScript -- pure
+  count_model.js      what it was taught: its weights, written by tools/count-reader
+  storage-import.js   the Inventory's drop, and the counts it writes at a storage
+  barter-shot.js      the barter window read out of a screenshot's words, against
+                      the exchanges each island deals -- pure, and tested
+  barter-import.js    the Barter tab's drop, and the islands it answers at once
+  sea-boards.js       /api/boards from the browser: what the fleet read today
+  layout-book.js      the layouts on file against what the fleet has read: which
+                      layout a reading votes for, and the boards in no record -- pure
+  layouts-view.js     the layout book's dialog: cards, a board opened out, search
   quests.js           the quests that pay in ship materials
   sea_crystals.js     the 287 sea crystal variants, by grade
   gamefile.js         writing stops into the game's own world map
   market.js           Central Market prices, per region, kept offline
-reader/               Tesseract, vendored: the sailor import reads in the browser
+reader/               Tesseract, vendored: every screenshot is read in the browser
 tools/check-env.mjs   npm run check -- validates a sync configuration
 server/               only loaded when sync is configured
   config.js           what is switched on, and what is therefore offered
@@ -1229,6 +1418,7 @@ server/               only loaded when sync is configured
   auth.js             the Discord OAuth exchange
   api.js              /api/me and /api/state
   community.js        /api/community — the boards, built from the digests
+  boards.js           /api/boards — what the fleet saw of today's barter board
   feedback.js         /api/feedback — posts, screenshots, the inbox, a copy to a webhook
   images.js           is this actually a picture, and how big is it
   market.js           /api/market — the Market relay, on by default

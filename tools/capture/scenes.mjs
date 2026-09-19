@@ -6,6 +6,8 @@
 import { open, seed, tab, click, clickIn, drag, moveTo, typeInto, wait, waitFor } from './drive.mjs';
 import { midBuild, readyToCraft, recordLevel, fittedShip, emptyStart, onePartToGo } from './states.mjs';
 import { fakeCommunity, FLEET } from './fleet.mjs';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
 const OUT = process.argv[2];
 const only = process.argv.slice(3);
@@ -60,7 +62,159 @@ async function nameTheBoard(page, upTo = 6) {
 	}
 }
 
+/**
+ * A server the 1.4 scenes need and a machine shooting a clip has not
+ * got: a fleet that has read today's board, and a Central Market with
+ * some shelves bare. Answered inside the page, like the community's in
+ * fleet.mjs, and for the same reason said the same way -- these two
+ * clips are staged, and the README says so where they appear. A scene
+ * that uses it opens a browser of its own, so the fakery cannot leak
+ * into the scene shot after it.
+ */
+async function fakeSea(page, { boards = [], bare = null } = {}) {
+	await page.evaluateOnNewDocument(A => {
+		const real = window.fetch.bind(window);
+		const json = body => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+		window.fetch = (input, init = {}) => {
+			const href = typeof input === 'string' ? input : input.url;
+			let at;
+			try { at = new URL(href, location.href); } catch { return real(input, init); }
+			if (at.pathname === '/api/config') return Promise.resolve(json({ sync: true }));
+			if (at.pathname === '/api/me') return Promise.resolve(json({ signedIn: false }));
+			if (at.pathname === '/api/boards') {
+				return import('/js/clock.js').then(m => json({ boards: A.boards.map(b => ({ ...b, day: b.day === 'today' ? m.barterKey() : b.day })) }));
+			}
+			if (at.pathname === '/api/market' && A.bare !== null) {
+				const prices = {};
+				(at.searchParams.get('ids') || '').split(',').filter(Boolean).forEach((id, i) => {
+					prices[id] = { price: 1800 + (i * 37) % 900, base: 1800, stock: i % A.bare === 0 ? 0 : 40000 + i * 13, at: Date.now() };
+				});
+				return Promise.resolve(json({ region: 'na', at: Date.now(), prices, failed: 0 }));
+			}
+			return real(input, init);
+		};
+	}, { boards, bare });
+}
+
+/** What the fleet is said to have read: layout 16 with two slots moved,
+ *  seen today by two sailors, and a handful of older readings. */
+function fleetReadings() {
+	const combos = JSON.parse(readFileSync(new URL('../../js/barter_combos.json', import.meta.url), 'utf8')).combos;
+	const of = id => combos.find(c => c.id === id).offers;
+	const moved = of('16').slice(0, 26).map(o => [...o]);
+	for (const [i, from] of [[3, '20'], [9, '5']]) {
+		const o = of(from).find(x => x[0] === moved[i][0]);
+		moved[i] = [moved[i][0], o[1], '1', o[3]];
+	}
+	const reading = (id, day, offers, name, seen) => ({ id, day, layout: null, offers, at: 100 - id, seen, name, mine: false, confirmed: false });
+	return [
+		reading(1, 'today', moved, 'Ahab', 4),
+		reading(2, 'today', moved.slice(8, 20), null, 1),
+		reading(3, '2026-09-15', of('7').slice(0, 30), 'Queequeg', 2),
+		reading(4, '2026-09-12', of('7').slice(10, 22), 'Starbuck', 0),
+		reading(5, '2026-09-10', of('23').slice(0, 40), 'Ishmael', 6),
+		reading(6, '2026-09-08', of('31').slice(0, 25), 'Pip', 1)
+	];
+}
+
+const shot = name => path.resolve(`tools/capture/shots/${name}`);
+
 const scenes = {
+	/* 1.4 — a storage read off the screenshots of it: two screenfuls,
+	 * scrolled between, the row they share counted once. The reading
+	 * itself is ten seconds of nothing to watch, so the tape starts when
+	 * the table is up. */
+	async 'read-a-storage'({ page, url }) {
+		// A narrow window, so the dialog is the frame: the subject is a
+		// column of small pictures, and at full width they are specks once
+		// the clip is cut to what the What's New dialog serves.
+		await page.setViewport({ width: 880, height: 680, deviceScaleFactor: 1 });
+		await seed(page, url, fittedShip);
+		await tab(page, 'inventory');
+		await click(page, '[data-act="inv-shot"]', { after: 900 });
+		const input = await page.$('#dialog input[type=file]');
+		await input.uploadFile(shot('storage-1.webp'), shot('storage-2.webp'));
+		await waitFor(page, '.shot-table', { upTo: 180000, then: 900 });
+		await rec(page, 'read-a-storage', async () => {
+			await wait(900);
+			await moveTo(page, '.shot-table tbody tr:nth-child(3) .shot-corner');
+			await wait(1300);
+			await page.evaluate(() => document.querySelector('.shot-table-wrap').scrollTo({ top: 520, behavior: 'smooth' }));
+			await wait(2000);
+			await page.evaluate(() => document.querySelector('.shot-table-wrap').scrollTo({ top: 1500, behavior: 'smooth' }));
+			await wait(2000);
+			await moveTo(page, '#dialog .dialog-note.quiet');
+			await wait(1500);
+		});
+		await page.keyboard.press('Escape');
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
+	},
+
+	/* 1.4 — the barter window read the same way: every row of the shot
+	 * answered at once, and the board settled from it. */
+	async 'read-the-window'({ page, url }) {
+		await page.setViewport({ width: 940, height: 640, deviceScaleFactor: 1 });
+		await seed(page, url, fittedShip);
+		await tab(page, 'barter');
+		await click(page, '[data-act="barter-shot"]', { after: 900 });
+		const input = await page.$('#dialog input[type=file]');
+		await input.uploadFile(shot('barter-window.webp'));
+		await waitFor(page, '.shot-table', { upTo: 240000, then: 900 });
+		await rec(page, 'read-the-window', async () => {
+			await wait(1200);
+			await moveTo(page, '.shot-table tbody tr:nth-child(2)');
+			await wait(1400);
+			await click(page, '#dialog [data-use]', { after: 1200 });
+			await frame(page, '.barter-bar', { top: 24 });
+			await moveTo(page, '.barter-bar-lead');
+			await wait(2200);
+		});
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
+	},
+
+	/* 1.4 — the layout book, with a fleet made up for the purpose (see
+	 * fakeSea): the shelf, a board that is in no record, and a layout
+	 * opened out island by island. */
+	async 'the-layout-book'() {
+		const own = await open({ width: 1040, height: 720 });
+		await fakeSea(own.page, { boards: fleetReadings() });
+		await seed(own.page, own.url, fittedShip);
+		await tab(own.page, 'barter');
+		await wait(1200);
+		await rec(own.page, 'the-layout-book', async () => {
+			await wait(500);
+			await click(own.page, '[data-act="barter-book"]', { after: 1800 });
+			await moveTo(own.page, '.lb-card.stray');
+			await wait(1200);
+			await click(own.page, '.lb-card.stray', { after: 2600 });
+			await click(own.page, '[data-lb-back]', { after: 900 });
+			await click(own.page, '[data-lb-open="layout:7"]', { after: 1600 });
+			await click(own.page, '[data-lb-level="L5"]', { after: 2200 });
+		});
+		await own.browser.close();
+	},
+
+	/* 1.4 — a chain whose first good the Central Market has none of: not
+	 * a chain to tick, and saying why on its own face. The Market here is
+	 * made up (fakeSea), with every third shelf bare. */
+	async 'a-dry-chain'() {
+		const own = await open({ width: 1180, height: 700 });
+		await fakeSea(own.page, { bare: 3 });
+		await seed(own.page, own.url, fittedShip);
+		await tab(own.page, 'barter');
+		await nameTheBoard(own.page);
+		await waitFor(own.page, '.chain.dry', { upTo: 20000, then: 800 });
+		await frame(own.page, '.chain.dry', { top: 90 });
+		await rec(own.page, 'a-dry-chain', async () => {
+			await wait(900);
+			await moveTo(own.page, '.chain.dry .chain-dry');
+			await wait(2400);
+			await moveTo(own.page, '.chain:not(.dry):not(.shut)');
+			await wait(1600);
+		});
+		await own.browser.close();
+	},
+
 
 	/* 1.3 — the board a real barter count can sail. Seeded at 1,082,
 	 * which is the count the player who reported this actually has. */

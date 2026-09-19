@@ -5,6 +5,82 @@ someone who has been away. The same notes are in the app itself, under
 **Menu → What's new** — this file is generated from them by
 `node tools/build-changelog.mjs`, so the two cannot drift apart.
 
+## 1.4 — The screenshots you already took
+
+*2026-09-19*
+
+Typing a storage in slot by slot is the dullest hour this app ever asked of anyone, and the game has been drawing it for you all along. So now **a screenshot is an entry**: a storage window becomes counts, a barter window becomes today’s board. The boards themselves got **a book of their own** — all forty layouts, what the fleet has read of them, and the ones nobody has on file — and a barter run finally asks the Central Market **whether there is anything to buy** before telling you to buy it.
+
+### Asked for by you
+
+Three players are in this one. Two of them asked; the third keeps the record the whole Barter tab stands on.
+
+- **GloriousMadness** — *“One other thing I was looking at was OCR cuz i’m too lazy to manually input my inventories & barter exchanges”* Not lazy — right. Both of them are **read off a screenshot** now: a storage into counts, the barter window into today’s board.
+- **Oni** — *“some item can be buy from CM, but some is a zero at stoke … but it not chek that items on CM or not”* The run priced a land good at its last sale and never asked whether any were for sale. It asks now: **a run buys only what the Market has**, and a chain that cannot start is not one you can tick. His screenshot also turned out to be in another font, which is why the reader now knows all of them.
+- **RENGEREL** — *“they changed the one tear from dallae pier that might not show up to the butterfly which is always there … that should all be correct now”* The keeper of the community’s layout sheet, who had it updated before the patch was a day old. The game’s own files agree — one byte of them — and **layout 31** is right in the app because of it.
+
+The box is under **Menu → Feedback**. It reaches whoever runs the site.
+
+### A storage reads itself
+
+![Two screenshots of a storage read into a table, each count beside the corner of the slot it was read off](docs/media/read-a-storage.gif)
+
+On the Inventory, **Read a storage** takes screenshots of the game’s storage window — a crop or the whole screen — and comes back with a line for everything the app keeps a count of.
+
+- The slots are found by the spacing of their own borders, so **any resolution and any UI scale** read alike; each icon is matched against the five hundred the app carries, and one it is not sure of is left out rather than named wrong.
+- The counts are read by **a small network taught on four hundred thousand made-up slots** — the game’s own fonts over the app’s own icons — and on no real ones. On five real screenshots from two players, 457 of 458 slots read right and none wrong that it was sure of.
+- **Every line keeps the corner of its slot beside it**, so a count is checked at a glance; one the reader is unsure of is marked ⚠.
+- **Scroll and shoot again**: the rows two screenshots share are found by their pictures and counted once.
+- Nothing is written until you press the button, and what it writes is one change, with one Undo.
+
+### So does the barter window
+
+![A screenshot of the barter window read into six islands, and the board settling on a layout](docs/media/read-the-window.gif)
+
+**Read the window** on the Barter tab answers every island in a screenshot at once. Six rows are usually enough to settle which of the forty layouts the sea is on.
+
+- Each row is matched against the exchanges **that island is known to deal**, so a name the window cut short is as good as a whole one and a misread letter cannot invent an offer.
+- A row two exchanges fit equally well is a list to pick from, not a guess.
+- The islands paying ship materials go to the material list, since those roll on their own.
+
+### The layout book
+
+![The shelf of forty layouts, a board in no record, and a layout opened out level by level](docs/media/the-layout-book.gif)
+
+**📖 The layout book**, on the board bar: every layout on file as a card, how often the record and the fleet have each seen it, and the boards sailors have read that are in no record at all.
+
+- A card opens into the whole board — a tile an island, the goods drawn, a tab a level — marked where it agrees with what you saw today and where your barter count has not opened an exchange.
+- A board nobody has on file says who read it, how many others saw the same, and **the layout it is nearest to**: parting at a slot or two is a layout the game has edited; parting at twenty is a slip.
+- **Yours** shows the boards you have been dealt, commonest first — the app writes a board down by itself when it is settled — and the Community tab adds them up fleet-wide.
+- Where sync is on, a reading goes up with its reader’s name on it, if they are shown by name on the community boards and not otherwise.
+
+### A run buys only what the Market has
+
+![A chain whose first land good the Central Market has none of, greyed and saying why](docs/media/a-dry-chain.gif)
+
+With land goods *bought ashore*, a run is held to what the Central Market actually has listed.
+
+- A chain whose first good nobody is selling **cannot be ticked**: its card is greyed and says *none on the Central Market* on its own face.
+- Where you hold a good part-way up the same climb, the card **starts from that instead**, and the shore is struck out among its starts with the reason.
+- Where you keep the land good yourself it offers *from my storage*; and *Before casting off* shows how many are listed beside each thing to buy.
+- The Market is asked again every half hour while the page is open.
+
+### An island shows something else
+
+Once a board is settled, **✎ An island shows something else…** is the one door for everything the record can get wrong. Name the island, pick what its window shows from everything it is known to deal, or say it shows nothing.
+
+- Islands whose exchange is above your barter count are greyed, with the count that opens them: a blank window there is the game, and not news.
+- If what you saw fits one layout everywhere but an island or three, **the board is that layout with those islands as you saw them**, and the run is planned on it.
+- **Telling the fleet is offered only then**, or when nothing fits at all. A reading that matches a layout on file is not news.
+
+### What the game’s own files had to say
+
+The client’s barter table ships with the app now, and three things came out of reading it properly.
+
+- **Layout 31’s Dallae Pier takes the Stuffed Morpho Butterfly** since the patch of 17 September, not the Statue’s Tear.
+- The barter count each exchange needs is known for **3,002 of 3,004 rows**, up from 2,917 — the client files some [Level 5] goods under another name, which had been hiding them.
+- The islands missing from a layout in the community’s record are not gaps: the game shuts them on that layout **to everyone**. The ten rows that really were missing are filled in, and marked.
+
 ## 1.3 — The day the sea will actually give you
 
 *2026-09-15*

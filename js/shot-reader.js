@@ -20,6 +20,8 @@
 
 import { panelBox, sailorFrom } from './sailor-shot.js';
 import { localeFor, DEFAULT_LANG } from './sailor-locales.js';
+import { iconLoader } from './icon-loader.js';
+import { grayscale, settleGrid, readSlots, bankEntry, countBox, readCounts, isHeld, sharedRows } from './storage-shot.js';
 
 /** Where the vendored engine lives. Versioned: see reader/README.md. */
 const LIB = '/reader/tesseract-7.0.0.esm.min.js';
@@ -283,6 +285,232 @@ export async function readShots(files, { onProgress = () => {}, signal = null, l
 			res = { sailor: null, why: err && err.message ? err.message : 'could not be read' };
 		}
 		out.push({ file: file.name, ...res });
+	}
+	onProgress({ stage: 'done', at: 1, n: files.length });
+	return out;
+}
+
+/* ------------------------------------------------------------------ *
+ * a window that is only words
+ * ------------------------------------------------------------------ */
+
+/** How wide a shot of a list is blown up to before it is read. The
+ *  barter window's item names are twelve pixels tall at 1080p and the
+ *  engine wants forty, but a whole screen at three times the size is
+ *  six thousand pixels across and a minute of reading -- so: twice,
+ *  and never past what a screenshot of one window needs. */
+const LIST_WIDE = 2200;
+
+/**
+ * Every word in a screenshot, as the engine read them.
+ *
+ * The sailor reader finds its panel first because a sailor's numbers
+ * are worthless without knowing which sailor they belong to. A list of
+ * barter offers is the opposite: the rows are the same shape wherever
+ * the window sits, and what matters is which island each row names. So
+ * this one reads the whole picture and leaves the sorting to
+ * barter-shot.js.
+ */
+export async function readWords(file, { lang = DEFAULT_LANG, wide = LIST_WIDE } = {}) {
+	const locale = localeFor(lang);
+	const { worker, Tesseract } = await open(locale.tess, () => {});
+	const bitmap = await createImageBitmap(file);
+	try {
+		if (bitmap.width * bitmap.height > LIMITS.pixels) return { words: [], width: 0, height: 0, why: 'far too large to be a screenshot' };
+		const scale = Math.max(1, Math.min(3, wide / bitmap.width));
+		const words = await scan(worker, paint(bitmap, { scale }), Tesseract.PSM.SPARSE_TEXT);
+		return { words, width: bitmap.width * scale, height: bitmap.height * scale, scale };
+	} finally {
+		bitmap.close();
+	}
+}
+
+/* ------------------------------------------------------------------ *
+ * the storage window
+ * ------------------------------------------------------------------ */
+
+/**
+ * Every icon the app knows, described so a slot can be compared
+ * against it. Built once a session and kept: it is five hundred
+ * pictures of 44 pixels, which is a second of work and two megabytes
+ * of numbers, and the browser has the pictures cached already -- the
+ * app draws them on every tab.
+ *
+ * Icons drawn once and worn by several items are one entry with
+ * several names: the reader cannot tell a Maple Plywood from an Ash
+ * Plywood, because the game does not draw them differently, and
+ * pretending otherwise would be worse than asking.
+ */
+let bank = null;
+
+/** The size the bank is described at -- the icons' own. */
+const ICON_SIDE = 44;
+
+export async function iconBank(onProgress = () => {}) {
+	if (bank) return bank;
+	await iconLoader.init();
+	const byFile = new Map();
+	for (const [name, entry] of Object.entries(iconLoader.iconMapping)) {
+		const file = typeof entry === 'string' ? entry : entry && entry.icon;
+		if (!file) continue;
+		if (!byFile.has(file)) byFile.set(file, []);
+		byFile.get(file).push(name);
+	}
+	const files = [...byFile.keys()];
+	const canvas = document.createElement('canvas');
+	canvas.width = canvas.height = ICON_SIDE;
+	const ctx = canvas.getContext('2d', { willReadFrequently: true });
+	const out = [];
+	let done = 0;
+	// A dozen at a time: the browser will happily open five hundred
+	// connections and then take longer over all of them.
+	const queue = [...files];
+	const work = async () => {
+		for (let file = queue.shift(); file; file = queue.shift()) {
+			try {
+				const res = await fetch(`./icons/${file}`);
+				if (!res.ok) continue;
+				const bitmap = await createImageBitmap(await res.blob());
+				ctx.clearRect(0, 0, ICON_SIDE, ICON_SIDE);
+				ctx.drawImage(bitmap, 0, 0, ICON_SIDE, ICON_SIDE);
+				bitmap.close();
+				const px = ctx.getImageData(0, 0, ICON_SIDE, ICON_SIDE).data;
+				const names = byFile.get(file);
+				out.push({ ...bankEntry(names[0], px, ICON_SIDE, ICON_SIDE), file, names });
+			} catch { /* an icon that will not load is one the reader cannot name */ }
+			done++;
+			if (done % 25 === 0) onProgress({ stage: 'bank', at: done / files.length, text: 'learning the icons' });
+		}
+	};
+	await Promise.all(Array.from({ length: 12 }, work));
+	bank = out;
+	return bank;
+}
+
+/** Let the bank go with the engine: both are kept for a dialog, not
+ *  for a session of sailing. */
+export function forgetBank() {
+	bank = null;
+}
+
+/** A screenshot as pixels, with nothing done to it -- and the canvas
+ *  they are still on, which is what the counts are cropped out of. */
+function pixelsOf(bitmap) {
+	const canvas = document.createElement('canvas');
+	canvas.width = bitmap.width;
+	canvas.height = bitmap.height;
+	const ctx = canvas.getContext('2d', { willReadFrequently: true });
+	ctx.drawImage(bitmap, 0, 0);
+	return { canvas, image: ctx.getImageData(0, 0, bitmap.width, bitmap.height) };
+}
+
+/**
+ * One storage screenshot, read: what is in it and how many of each.
+ *
+ * A slot the reader could not name is not an error and not an empty
+ * slot -- a storage is full of things this app has no business
+ * knowing -- so it is counted and reported as a number, not as a row.
+ */
+async function readStorageOne(file, icons) {
+	let bitmap;
+	try {
+		bitmap = await createImageBitmap(file);
+	} catch {
+		return { rows: [], why: 'could not be opened as an image' };
+	}
+	try {
+		if (bitmap.width * bitmap.height > LIMITS.pixels) return { rows: [], why: 'far too large to be a screenshot' };
+		const sheet = pixelsOf(bitmap);
+		const image = sheet.image;
+		const gray = grayscale(image.data, image.width, image.height);
+		const settled = settleGrid(image.data, image.width, image.height, gray, icons);
+		if (!settled) return { rows: [], why: 'no storage grid in it' };
+		const { grid, cal } = settled;
+		// A lattice the icons did not believe: read anyway -- a storage
+		// of three things is a storage -- but nothing in it is sure.
+		const shaky = Boolean(settled.doubtful);
+		const slots = readSlots(image.data, image.width, image.height, grid, icons, cal);
+		const named = slots.filter(s => s.name);
+		if (!named.length) return { rows: [], why: 'nothing in it was an icon the app knows' };
+		// The counts, read off the pixels by the small network in
+		// count-net.js. No engine is fetched for this: see there for
+		// why neither the OCR one nor a set of templates was the right
+		// tool for eight-pixel writing over a gold bar.
+		const counts = readCounts(image.data, image.width, image.height, grid, named);
+		// The corner of a slot as a picture, so the table can show a
+		// player what was read instead of asking them to take its word.
+		const corner = at => {
+			const box = countBox(at);
+			const cut = document.createElement('canvas');
+			cut.width = Math.max(1, Math.round(box.w * 2));
+			cut.height = Math.max(1, Math.round(box.h * 2));
+			const ctx = cut.getContext('2d');
+			ctx.imageSmoothingQuality = 'high';
+			ctx.drawImage(sheet.canvas, box.x, box.y, box.w, box.h, 0, 0, cut.width, cut.height);
+			return cut.toDataURL('image/png');
+		};
+		const rows = named.map(s => {
+			const entry = icons.find(e => e.name === s.name);
+			// Three answers, and the table shows them differently. A slot
+			// with a figure on it that read: the count. A slot with
+			// nothing written on it: one, and sure of it -- that is how
+			// the game draws a single item. A reading the network was
+			// not sure of: its best guess, marked, with the corner of
+			// the slot beside it to check against and type over.
+			const said = counts.get(s);
+			return {
+				item: s.name,
+				alsoCalled: entry && entry.names.length > 1 ? entry.names : null,
+				qty: said ? said.count : 1,
+				sure: !shaky && (!said || !said.doubt),
+				score: s.score,
+				row: s.row,
+				col: s.col,
+				// every slot's corner, not only the doubtful ones: a count is
+				// checked at a glance against the picture it was read off
+				corner: corner(s.at)
+			};
+		});
+		return { rows, unknown: slots.filter(s => isHeld(s) && !s.name).length, slots: slots.length, lattice: slots, shaky };
+	} finally {
+		bitmap.close();
+	}
+}
+
+/**
+ * A drop of storage screenshots, read one after another.
+ *
+ * The same shape readShots has, minus the engine: a storage is read off
+ * its own pixels from end to end, so nothing here fetches the six
+ * megabytes of reader that a sailor panel needs. The bank of icons is
+ * built first, which is where the second of waiting is.
+ */
+export async function readStorageShots(files, { onProgress = () => {}, signal = null } = {}) {
+	const icons = await iconBank(onProgress);
+	const out = [];
+	for (let i = 0; i < files.length; i++) {
+		if (signal && signal.aborted) break;
+		const file = files[i];
+		onProgress({ stage: 'reading', at: i / files.length, i, n: files.length, name: file.name });
+		let res;
+		try {
+			res = await readStorageOne(file, icons);
+		} catch (err) {
+			res = { rows: [], why: err && err.message ? err.message : 'could not be read' };
+		}
+		out.push({ file: file.name, ...res });
+	}
+	// Shots of one storage overlap: scroll, shoot again, and the last row
+	// of one is the first row of the next. Those rows are one row, and
+	// are taken from the shot that came first.
+	const shared = sharedRows(out.map(o => o.lattice || []));
+	for (let i = 0; i < out.length; i++) {
+		const twice = shared[i];
+		if (twice.size) {
+			out[i].rows = out[i].rows.filter(r => !twice.has(r.row));
+			out[i].sharedRows = twice.size;
+		}
+		delete out[i].lattice;
 	}
 	onProgress({ stage: 'done', at: 1, n: files.length });
 	return out;

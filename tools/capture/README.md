@@ -75,12 +75,12 @@ the app is:
 
 | Chapter | What it covers |
 |---|---|
-| `the-yard` | The sailor bar — the numbers the app plans from, the nest of Bos'n Jacks among them — then queue a build, record what you gather, craft, undo, price a part, record a level, the Tree |
+| `the-yard` | The sailor bar — the numbers the app plans from, the nest of Bos'n Jacks among them — then queue a build, record what you gather (typed, or read off screenshots of a storage), craft, undo, price a part, record a level, the Tree |
 | `to-get` | The plan: the goal, the days a week, what you are willing to do, the steps, and what it will never do |
 | `quests` | The sailing dailies and weeklies, which pay something on your list, and recording a batch at once |
 | `your-ship` | Hull, the four parts, the crystal, the appearance set, the figures — and the crew, read off screenshots then seated by hand and automatically, with presets and setups |
 | `the-map` | The chart, mostly full screen: toolbar, minimap, layers, all five map tabs, stood up on the game's terrain in Ground or Neon with the world curving away, and the Hollow Maretta among the grounds |
-| `a-run` | The whole of bartering: the layout named off the game's barter window, then the four kinds of day — silver, a stock, Crow Coins, a material — the orders, the chains, the two shelves, the clock, sailing it, recording it, and the day's boards |
+| `a-run` | The whole of bartering: the layout named off the game's barter window by a click or a screenshot, the layout book, an island corrected, then the four kinds of day — silver, a stock, Crow Coins, a material — the orders, the chains and what the Central Market has for them, the two shelves, the clock, sailing it, recording it, and the day's boards |
 | `the-harbour` | The community boards, what a place on one opens, what is and is not shared, and the feedback box a report is written in |
 
 ```bash
