@@ -720,6 +720,18 @@ one undoable change. The details — the material run, the three paces,
 the quests that come along, the wharf calls — are under
 [What's covered](#whats-covered).
 
+**A run buys only what the Central Market has.** A chain that starts on
+land starts with something bought, and the Market's last price stands
+when nothing is listed — so a run could tell you to load five hundred of
+a good nobody is selling. The relay brings back how many are listed with
+every price, and with land goods *bought ashore* the run is held to it:
+no more of a good than are listed, a chain whose first good has none
+does not start (its card says *none on the Market* before you tick it,
+and the run says why, offering *from my storage* where you keep some),
+and *Before casting off* shows the count beside each thing to buy. A
+count the Market would not confirm holds nothing back, and the Market is
+asked again every half hour while the page is open.
+
 **Or screenshot the window.** *Read the window* takes a shot of the
 barter list and answers every island in it at once: the island at the
 start of each row, what it takes and what it pays, matched against the
