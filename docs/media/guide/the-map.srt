@@ -1,171 +1,175 @@
 1
-00:00:00,348 --> 00:00:04,256
+00:00:00,359 --> 00:00:04,268
 This is the Map. It is the whole sea, with everything you need marked on it.
 
 2
-00:00:04,389 --> 00:00:07,707
+00:00:04,346 --> 00:00:07,664
 Every pin is a barterer holding something you are short of.
 
 3
-00:00:08,163 --> 00:00:12,544
+00:00:08,296 --> 00:00:12,779
 This says what it is marking. Everything you are short of, or one item you choose.
 
 4
-00:00:12,544 --> 00:00:15,458
+00:00:12,785 --> 00:00:15,796
 These buttons across the top are the chart controls.
 
 5
-00:00:15,458 --> 00:00:18,778
+00:00:15,796 --> 00:00:19,180
 Zoom out, and zoom in. You can also just scroll on the sea.
 
 6
-00:00:18,778 --> 00:00:22,218
+00:00:19,294 --> 00:00:22,808
 This one fits everything marked back into view, if you get lost.
 
 7
-00:00:22,218 --> 00:00:24,347
+00:00:22,812 --> 00:00:24,991
 This toggles the minimap in the corner.
 
 8
-00:00:24,347 --> 00:00:26,516
+00:00:24,991 --> 00:00:27,160
 And this one stands the chart up.
 
 9
-00:00:28,252 --> 00:00:32,637
+00:00:29,602 --> 00:00:34,120
 That is the game's own terrain, read out of your client. Not a picture of it — the real heightmap.
 
 10
-00:00:32,637 --> 00:00:35,972
+00:00:34,120 --> 00:00:37,455
 Shift-drag to lean, and the islands come up out of the water.
 
 11
-00:00:39,065 --> 00:00:41,119
-Ground paints it in the colours the client ships.
+00:00:45,164 --> 00:00:52,181
+And the world curves away towards the horizon, the way the game's own map does. The pins, the route and your drawings all bend with it.
 
 12
-00:00:41,119 --> 00:00:44,575
-Neon draws it as contours, the way the game's own world map does.
+00:00:52,181 --> 00:00:54,359
+Ground paints it in the colours the client ships.
 
 13
-00:00:44,575 --> 00:00:47,434
-And Level looks straight down again, facing north.
+00:00:54,359 --> 00:00:57,966
+Neon draws it as contours, the way the game's own world map does.
 
 14
-00:00:50,109 --> 00:00:54,405
-And this is full screen. That is where the chart is worth using, so let us go there.
+00:00:57,966 --> 00:01:00,825
+And Level looks straight down again, facing north.
 
 15
-00:00:54,405 --> 00:00:56,492
-Now the sea has the whole window.
+00:01:04,198 --> 00:01:08,616
+And this is full screen. That is where the chart is worth using, so let us go there.
 
 16
-00:00:56,820 --> 00:01:01,904
-Hit fit again, now that the chart has the room. That pulls back until every mark is in view at once.
+00:01:09,235 --> 00:01:11,322
+Now the sea has the whole window.
 
 17
-00:01:01,904 --> 00:01:05,888
-Which is most of the sea, so zoom back in a couple of steps to where you actually work.
+00:01:12,207 --> 00:01:17,545
+Hit fit again, now that the chart has the room. That pulls back until every mark is in view at once.
 
 18
-00:01:05,888 --> 00:01:08,352
-The panel on the left is what drives it.
+00:01:17,545 --> 00:01:21,831
+Which is most of the sea, so zoom back in a couple of steps to where you actually work.
 
 19
-00:01:08,782 --> 00:01:12,068
-Start with "On the chart". This controls what gets drawn.
+00:01:21,831 --> 00:01:24,295
+The panel on the left is what drives it.
 
 20
-00:01:12,579 --> 00:01:18,588
-Barterers, habitats, wharves, guild wharves, island names, and your own drawings. Turn off what you do not need.
+00:01:24,882 --> 00:01:28,167
+Start with "On the chart". This controls what gets drawn.
 
 21
-00:01:18,588 --> 00:01:21,972
-There is a search, for finding an island or a good by name.
+00:01:29,085 --> 00:01:35,094
+Barterers, habitats, wharves, guild wharves, island names, and your own drawings. Turn off what you do not need.
 
 22
-00:01:22,482 --> 00:01:25,891
-And these five tabs are the tools. We will take them in order.
+00:01:35,941 --> 00:01:39,325
+There is a search, for finding an island or a good by name.
 
 23
-00:01:25,891 --> 00:01:29,962
-Barter is the default. Every island that has something on your list, with what it trades.
+00:01:40,643 --> 00:01:44,175
+And these five tabs are the tools. We will take them in order.
 
 24
-00:01:29,962 --> 00:01:32,722
-Click a row and the chart flies to that island.
+00:01:44,542 --> 00:01:49,173
+Barter is the default. Every island that has something on your list, with what it trades.
 
 25
-00:01:33,262 --> 00:01:35,179
-Route turns that list into a sailing route.
+00:01:49,696 --> 00:01:52,456
+Click a row and the chart flies to that island.
 
 26
-00:01:35,179 --> 00:01:38,377
-Plot the loop, and it draws one, bent around the land rather than through it.
+00:01:59,311 --> 00:02:01,775
+Route turns that list into a sailing route.
 
 27
-00:01:38,377 --> 00:01:42,598
-Every leg gets a distance and a time, at the speed your ship actually sails.
+00:02:04,918 --> 00:02:08,696
+Plot the loop, and it draws one, bent around the land rather than through it.
 
 28
-00:01:42,928 --> 00:01:46,869
-Save the route, share it as a link, or send it to the game map as bookmarks.
+00:02:09,098 --> 00:02:13,318
+Every leg gets a distance and a time, at the speed your ship actually sails.
 
 29
-00:01:48,385 --> 00:01:51,739
-Draw is for routes the list cannot describe. It gives you three tools.
+00:02:14,165 --> 00:02:18,107
+Save the route, share it as a link, or send it to the game map as bookmarks.
 
 30
-00:01:51,739 --> 00:01:55,106
-The pin drops a numbered stop, in the order you mean to sail.
+00:02:21,589 --> 00:02:25,088
+Draw is for routes the list cannot describe. It gives you three tools.
 
 31
-00:01:55,337 --> 00:01:57,424
-The pen draws a freehand line.
+00:02:25,088 --> 00:02:28,455
+The pin drops a numbered stop, in the order you mean to sail.
 
 32
-00:01:58,282 --> 00:02:01,272
-And the text tool types a note straight onto the water.
+00:02:30,052 --> 00:02:32,139
+The pen draws a freehand line.
 
 33
-00:02:01,317 --> 00:02:05,129
-Name it and keep it, and it joins your library. Traces share as links too.
+00:02:33,359 --> 00:02:36,349
+And the text tool types a note straight onto the water.
 
 34
-00:02:05,129 --> 00:02:06,987
-Grounds is for hunting.
+00:02:37,432 --> 00:02:41,362
+Name it and keep it, and it joins your library. Traces share as links too.
 
 35
-00:02:07,185 --> 00:02:11,495
-It lists every species: sea monsters, young ones, ships, bosses and the Cox Pirates.
+00:02:41,362 --> 00:02:43,219
+Grounds is for hunting.
 
 36
-00:02:11,495 --> 00:02:14,052
-Click one, and every spawn point it has goes on the chart.
+00:02:43,654 --> 00:02:53,750
+It lists every species: sea monsters, young ones, ships, bosses, the Cox Pirates — and the Hollow Maretta, the song the Great Ocean is told to sail away from, with the thirty-eight spots it is rung at.
 
 37
-00:02:14,052 --> 00:02:16,850
-Tick as many as you like, and send the lot to the game map.
+00:02:53,750 --> 00:02:56,712
+Click one, and every spawn point it has goes on the chart.
 
 38
-00:02:16,850 --> 00:02:19,674
-Above them are the known sailing courses, each with a note.
+00:02:56,712 --> 00:02:59,908
+Tick as many as you like, and send the lot to the game map.
 
 39
-00:02:19,674 --> 00:02:21,673
-Today is your checklist for this refresh.
+00:02:59,908 --> 00:03:03,045
+Above them are the known sailing courses, each with a note.
 
 40
-00:02:21,673 --> 00:02:25,378
-Every island you need, ticked off as you visit it, with the total at the top.
+00:03:03,801 --> 00:03:06,046
+Today is your checklist for this refresh.
 
 41
-00:02:25,378 --> 00:02:29,418
-Drag to pan, scroll to zoom. The drawings and pins move with the chart.
+00:03:06,046 --> 00:03:10,086
+Every island you need, ticked off as you visit it, with the total at the top.
 
 42
-00:02:30,297 --> 00:02:32,358
-Escape, or the cross, brings the page back.
+00:03:10,457 --> 00:03:14,497
+Drag to pan, scroll to zoom. The drawings and pins move with the chart.
 
 43
-00:02:32,358 --> 00:02:37,005
+00:03:15,885 --> 00:03:18,330
+Escape, or the cross, brings the page back.
+
+44
+00:03:18,330 --> 00:03:22,977
 That is the Map. Everything you are short of, where it is, and how long it takes to get there.

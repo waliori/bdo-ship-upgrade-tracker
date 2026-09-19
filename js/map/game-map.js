@@ -1,13 +1,14 @@
 // The game's own world map: its favourites, camera slots and loops
 // read back onto the chart, and the chart's stops written out for it.
 
-import { courses } from '../courses.js';
+import { allCourses } from '../courses.js';
 import { monsters } from '../sea_monsters.js';
 import { esc } from '../fmt.js';
 import { T, said, gameName } from '../i18n.js';
 import { npcs } from '../barter_npcs.js';
 import { nearestWharf } from '../wharves.js';
 import { openDialog, closeDialog, toast } from '../dialogs.js';
+import { errandPoints } from './errands.js';
 import { bookmarkXML, writeMode, BOOKMARK_SLOTS, CAMERA_SLOTS, LOOP_SLOTS, FILE_HINT, readGameXML, looksLikeGameXML } from '../worldmap.js';
 import { canWriteFiles, gameFolderName, previousBlock } from '../gamefile.js';
 import { mv, TRACES_MAX, persist } from './state.js';
@@ -225,7 +226,7 @@ export async function gameImportAction(act, el) {
  * the game's own map
  * ------------------------------------------------------------------ */
 
-let gameSource = 'route';     // route | hunt -- which list the dialog is writing
+let gameSource = 'route';     // route | hunt | trace | errands -- which list the dialog is writing
 let gameWrite = 'favorites';  // favorites, or 0..2 for one of the map's loops
 
 /**
@@ -239,9 +240,9 @@ let gameWrite = 'favorites';  // favorites, or 0..2 for one of the map's loops
  */
 function huntPoints() {
 	const out = [];
-	for (const c of courses) {
+	for (const c of allCourses()) {
 		if (!mv.coursesOn.includes(c.id)) continue;
-		for (const p of c.points) out.push({ name: p.name || said(c.name), x: p.x, y: p.y });
+		for (const p of c.points) out.push({ name: p.name ? gameName(p.name) : said(c.name), x: p.x, y: p.y });
 	}
 	for (const m of monsters) {
 		if (!mv.huntsOn.includes(m.key) || !m.points.length) continue;
@@ -272,7 +273,10 @@ function routePoints() {
  */
 export function gameBookmarks() {
 	const loopOnly = gameWrite !== 'favorites';
-	const points = gameSource === 'hunt' ? huntPoints() : gameSource === 'trace' ? tracePoints(!loopOnly) : routePoints();
+	const points = gameSource === 'hunt' ? huntPoints()
+		: gameSource === 'trace' ? tracePoints(!loopOnly)
+		: gameSource === 'errands' ? errandPoints()
+		: routePoints();
 	// One or the other, never both: the favourites are five named pins
 	// and ten camera jumps, a loop is the whole run in order. Writing
 	// both would spend someone's five favourites on stops the loop
@@ -303,14 +307,16 @@ export function setGameWrite(value) {
  * closed), and which part to replace.
  */
 export async function openGameExport(source) {
-	if (source === 'route' || source === 'hunt' || source === 'trace') gameSource = source;
+	if (source === 'route' || source === 'hunt' || source === 'trace' || source === 'errands') gameSource = source;
 	const r = gameBookmarks();
 	if (!r.stops) {
 		return toast(gameSource === 'hunt'
 			? T('Nothing to put on the map: the grounds ticked have no fixed spawn points on the chart')
-			: T('Nothing to put on the map yet — plot a stop first'));
+			: gameSource === 'errands'
+				? T('Nothing to put on the map: today’s errands are all done')
+				: T('Nothing to put on the map yet — plot a stop first'));
 	}
-	const what = r.source === 'hunt' ? 'hunt' : r.source === 'trace' ? 'traced route' : 'route';
+	const what = r.source === 'hunt' ? 'hunt' : r.source === 'trace' ? 'traced route' : r.source === 'errands' ? 'day of errands' : 'route';
 	// Chromium can hold the folder itself; elsewhere the block is pasted.
 	const folder = canWriteFiles() ? await gameFolderName() : null;
 	const direct = canWriteFiles() ? `<div class="map-game-direct">
@@ -345,7 +351,10 @@ export async function openGameExport(source) {
 			</select>
 		</label>
 	</div>`;
-	openDialog(`<h2>${r.source === 'hunt' ? T('Put the hunt on the game\'s map') : r.source === 'trace' ? T('Put the traced route on the game\'s map') : T('Put the route on the game\'s map')}</h2>
+	openDialog(`<h2>${r.source === 'hunt' ? T('Put the hunt on the game\'s map')
+		: r.source === 'trace' ? T('Put the traced route on the game\'s map')
+		: r.source === 'errands' ? T('Put the day of errands on the game\'s map')
+		: T('Put the route on the game\'s map')}</h2>
 		<p>${T('Black Desert reads its world map from a file. Paste this block in and the {subject} appear {where}.', {
 			subject: what === 'hunt' ? T('courses and grounds you ticked') : T('stops'),
 			where: r.loop ? T('as one of the map\'s three navigation loops') : T('under <strong>World Map → Favorites</strong>, numbered in order, each with a locate button')

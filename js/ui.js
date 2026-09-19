@@ -10,6 +10,7 @@ import { tableFor } from './enhancement.js';
 import { iconLoader } from './icon-loader.js';
 import { esc, F, parseAmount } from './fmt.js';
 import * as store from './state.js';
+import { completed } from './barter-board.js';
 import { initSync, openAccount, feature, me } from './sync.js';
 import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.js';
 import {
@@ -18,7 +19,7 @@ import {
 	recompute, readyCrafts, craftStock, CROW_COIN, SILVER, setSort, invPicking, invPicked, setInvPicking
 } from './ui-state.js';
 import { kindOf } from './kinds.js';
-import { toast, openDialog, closeDialog, dismissDialog } from './dialogs.js';
+import { toast, openDialog, closeDialog, dismissDialog, holdScreen, whenScreenFree } from './dialogs.js';
 import { allItems, img } from './ui-bits.js';
 import { T, TT, said, gameName, LANGS, langById, setLang, startingLang, lang as currentLang } from './i18n.js';
 import { encodeShare, decodeShare, shareLink, shareSize } from './share.js';
@@ -56,10 +57,11 @@ import { openTripLog } from './triplog.js';
 import { pickGameFolder, writeGameFile, restoreGameFile } from './gamefile.js';
 import { renderGet, shoppingText, shoppingCSV, getAction, getChange } from './screen-get.js';
 import { openCoinBuy } from './coin-shop.js';
+import { openStorageImport } from './storage-import.js';
 import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapCentreOnStash,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
-	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapHunt, showHunt, toggleMapDone, closeMapTip,
+	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapErrands, setMapErrandFrom, setMapErrandKinds, openMapErrand, setMapErrandSkip, skipMapErrandCall, drawMapErrands, setMapHunt, showHunt, toggleMapDone, closeMapTip,
 	saveRouteDialog, loadSavedRoute, deleteSavedRoute, mapWritingView, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite,
@@ -126,7 +128,7 @@ const MENU = [
 		{ act: 'tour', icon: '➤', label: TT('Tour'), hint: TT('a walk through your own screen') },
 		{ act: 'feedback', icon: '✎', label: TT('Feedback'), hint: TT('something wrong, or something you want') },
 		{ act: 'discord', icon: '◉', label: TT('Sailing Discord'), hint: TT('the sailors’ own server — discord.gg/bdo-sailing') },
-		{ act: 'inbox', icon: '✉', label: TT('Feedback inbox'), hint: TT('what people have written in'), when: () => Boolean(me() && me().admin) }
+		{ act: 'inbox', icon: '✉', label: () => (me() && me().admin ? T('Feedback inbox') : T('What people wrote in')), hint: TT('every report sent in, and which have been answered'), when: () => feature('feedback') }
 	] },
 	{ group: TT('The page'), items: [
 		{ act: 'theme', icon: '◐', label: () => (store.getSetting('theme', 'dark') === 'light' ? T('Theme: light') : store.getSetting('theme', 'dark') === 'system' ? T('Theme: system') : T('Theme: dark')), hint: TT('dark, light, or as the system has it'), keep: true },
@@ -569,7 +571,8 @@ async function loadBarter() {
 		]);
 		if (!table.ok) throw new Error(String(table.status));
 		setBarterData(await table.json());
-		if (boards && boards.ok) setCombos(await boards.json());
+		// the record, with the client's row wherever it has none
+		if (boards && boards.ok) setCombos(completed(await boards.json()));
 		if (mats && mats.ok) setMatBoards(await mats.json());
 	})();
 	try {
@@ -1023,7 +1026,7 @@ function wire() {
 			// as well because on a phone the masthead is three glyphs and
 			// the menu is where anyone goes looking.
 			case 'discord': window.open(DISCORD_INVITE, '_blank', 'noopener'); return;
-			case 'inbox': return import('./feedback.js').then(m => m.openInbox());
+			case 'inbox': return import('./feedback.js').then(m => m.openReports());
 			// The masthead's Menu and the thumb bar's are the one sheet;
 			// pressed while it stands, it goes.
 			case 'more': if (menuOpen()) closeDialog(); else openTabSheet(); return;
@@ -1073,6 +1076,14 @@ function wire() {
 				}
 				return;
 			case 'map-course': setMapCourse(el.dataset.id); return;
+			case 'map-errands': setMapErrands(); return;
+			case 'map-errand-kinds': setMapErrandKinds(el.dataset.id); return;
+			case 'map-errand-open': openMapErrand(Number(el.dataset.i)); return;
+			case 'map-errand-skip': setMapErrandSkip(el.dataset.quest, true); return;
+			case 'map-errand-unskip': setMapErrandSkip(el.dataset.quest, false); return;
+			case 'map-errand-skip-call': skipMapErrandCall(Number(el.dataset.i)); return;
+			case 'map-errand-draw': drawMapErrands(); return;
+			case 'map-errand-game': return openGameExport('errands');
 			case 'map-wharves': setMapWharves(el.dataset.id); return;
 			case 'map-habitats': setMapHabitats(); return;
 			case 'map-labels': setMapLabels(); return;
@@ -1237,6 +1248,9 @@ function wire() {
 			// Select mode: tiles tick instead of opening, and the bar above
 			// the grid moves the ticked ones to a storage together.
 			case 'inv-select': setInvPicking(!invPicking); if (invPicking) setSelected(null); return render();
+			// The storage window, read off screenshots: the counts land at
+			// the storage named in the dialog, in one change.
+			case 'inv-shot': openStorageImport(render); return;
 			case 'inv-pick': {
 				const it = el.dataset.item;
 				if (invPicked.has(it)) invPicked.delete(it); else invPicked.add(it);
@@ -1432,6 +1446,11 @@ function wire() {
 			// Same: the Parley a trade under the select is the bar's own.
 			return paintPouch({ force: true });
 		}
+
+		// Where the day's errands start and end. A select answers on
+		// change, not on click.
+		const ef = evt.target.closest('[data-act="map-errand-from"]');
+		if (ef) return setMapErrandFrom(ef.value);
 
 		// How the route is written to the game's map -- favourites or one
 		// of its loops. A select answers on change, not on click.
@@ -2072,6 +2091,11 @@ function offerLegacyImport() {
  * so the sections nobody scrolls to cost nothing.
  */
 function openWhatsNew({ onClose = null } = {}) {
+	// These notes are shown once and then marked read, so anything that
+	// opens over them has taken them away for good -- the sync's "two
+	// copies" question used to do exactly that, arriving whenever the
+	// server answered. The screen is held until they are closed.
+	const free = holdScreen();
 	const r = RELEASES[0];
 	const headline = r.sections.filter(s => s.media);
 	const rest = r.sections.filter(s => !s.media);
@@ -2110,14 +2134,51 @@ function openWhatsNew({ onClose = null } = {}) {
 				${points(s.points)}
 			</section>`).join('')}
 		</details>
+		${olderHTML(points)}
 		<p class="dialog-copy">${T('The same notes are in {link}.', { link: '<a href="https://github.com/waliori/bdo-ship-upgrade-tracker/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>' })}</p>
 		<div class="dialog-actions">
 			<button class="act quiet" data-close>${T('Close')}</button>
 			<button class="act" data-act="tour">${T('Show me around')}</button>
 		</div>
-	`, { onDismiss: onClose });
+	`, { onDismiss: () => { free(); if (onClose) onClose(); } });
 	markReleaseSeen();
 	return host;
+}
+
+/**
+ * The releases before this one, each shut.
+ *
+ * Someone opening this has been away for a week or for two months, and
+ * the app has no way of telling which. So every release is here, newest
+ * first, and each one shows a single line of what changed -- in the
+ * words a player would use, not the app's -- until it is opened. Shut
+ * by default because the person who was here last week wants this
+ * release and nothing else, and an open list of three would bury it.
+ *
+ * The pictures are inside the fold, so a browser does not fetch them
+ * until someone actually opens the release they belong to.
+ */
+function olderHTML(points) {
+	const older = RELEASES.slice(1);
+	if (!older.length) return '';
+	return `<div class="news-older">
+		<h3>${T('Earlier releases')}</h3>
+		${older.map(r => `<details class="news-old">
+			<summary>
+				<span class="news-old-name">${esc(said(r.name))}</span>
+				<span class="news-old-when">${T('version {id} · {date}', { id: esc(r.id), date: esc(r.date) })}</span>
+				<span class="news-old-sum">${esc(said(r.sum || ''))}</span>
+			</summary>
+			<div class="news-old-body">
+				${r.sections.map(s => `<section class="news-item plain">
+					<h3>${said(s.title)}</h3>
+					${s.media ? `<img class="news-shot" src="${esc(s.media)}" alt="${esc(said(s.alt || ''))}" loading="lazy">` : ''}
+					${s.text ? `<p>${said(s.text)}</p>` : ''}
+					${points(s.points)}
+				</section>`).join('')}
+			</div>
+		</details>`).join('')}
+	</div>`;
 }
 
 /** Remember that this release's notes have been read. */
@@ -2317,6 +2378,13 @@ export async function init() {
 	onMarket(render);
 	loadMarket();
 	window.addEventListener('online', () => loadMarket());
+	// The prices keep for a day; what is listed does not, and a barter run
+	// is planned on it. So the Market is asked again every half hour while
+	// the page is open, and on coming back to a tab that sat in the
+	// background past that -- loadMarket itself declines when the copy in
+	// hand is fresh, so neither costs a request it did not need.
+	setInterval(() => { if (!document.hidden) loadMarket(); }, 30 * 60 * 1000);
+	document.addEventListener('visibilitychange', () => { if (!document.hidden) loadMarket(); });
 
 	// Sync last, and never blocking: on a deployment without it this is
 	// one request that comes back "no" and nothing more happens.
@@ -2326,7 +2394,7 @@ export async function init() {
 	} else {
 		wireCommunity(render, { look: lookAtShip });
 		setRunSheet(runSheetHTML);
-		initSync({ toast, openDialog, closeDialog, rerender: render })
+		initSync({ toast, openDialog, closeDialog, whenScreenFree, rerender: render })
 			.catch(err => console.warn('[ui] sync unavailable:', err));
 	}
 }

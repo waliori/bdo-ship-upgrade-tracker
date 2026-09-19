@@ -15,6 +15,7 @@ const NPC = {
 	'young-hekaru': 21425, 'young-ocean-stalker': 21426, 'young-candidum': 21422, 'young-nineshark': 21424, 'young-black-rust': 21423,
 	'goldmont-small': 21427, 'goldmont-medium': 21428, 'goldmont-large': 21429,
 	'saltwater-crocodile': 21447, lekrashan: 21477, khan: 59050, 'cox-pirates': 28834,
+	'hollow-maretta': 27575,
 	lyngbakr: 28682   // on the codex since September 2026; until then a crop of the patch note's map stood in
 };
 const PLACEHOLDER = 'ic_00559';

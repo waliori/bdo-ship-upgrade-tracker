@@ -5,6 +5,260 @@ someone who has been away. The same notes are in the app itself, under
 **Menu → What's new** — this file is generated from them by
 `node tools/build-changelog.mjs`, so the two cannot drift apart.
 
+## 1.4 — The screenshots you already took
+
+*2026-09-19*
+
+Typing a storage in slot by slot is the dullest hour this app ever asked of anyone, and the game has been drawing it for you all along. So now **a screenshot is an entry**: a storage window becomes counts, a barter window becomes today’s board. The boards themselves got **a book of their own** — all forty layouts, what the fleet has read of them, and the ones nobody has on file — and a barter run finally asks the Central Market **whether there is anything to buy** before telling you to buy it. And the boats below a Carrack now draw **the row of cabins the game draws**, and nothing else: the seats the app had been putting on them were never there.
+
+### Asked for by you
+
+Five players are in this one. Two asked for what is here; one keeps the record the whole Barter tab stands on; and two, between them, caught a hull the app had been drawing wrong.
+
+- **GloriousMadness** — *“One other thing I was looking at was OCR cuz i’m too lazy to manually input my inventories & barter exchanges”* Not lazy — right. Both of them are **read off a screenshot** now: a storage into counts, the barter window into today’s board.
+- **Oni** — *“some item can be buy from CM, but some is a zero at stoke … but it not chek that items on CM or not”* The run priced a land good at its last sale and never asked whether any were for sale. It asks now: **a run buys only what the Market has**, and a chain that cannot start is not one you can tick. His screenshot also turned out to be in another font, which is why the reader now knows all of them.
+- **RENGEREL** — *“they changed the one tear from dallae pier that might not show up to the butterfly which is always there … that should all be correct now”* The keeper of the community’s layout sheet, who had it updated before the patch was a day old. The game’s own files agree — one byte of them — and **layout 31** is right in the app because of it.
+- **SaltySlimeGoblin** — *“How do i do that? … I don’t have the option to move em”* He was hunting for the seats on his Epheria Caravel because *this app* had drawn them. The game draws none there: his screenshot of that window — one row of cabins, a Save Preset button and nothing else — is what the board below a Carrack is built from now.
+- **Salty_Scallywag** — *“small boats dont have dedicated spots … carracks do”* The whole bug, in one line, before anybody went looking for it. The positions are a Carrack’s and the Panokseon’s; everything smaller is cabins, and the speed, turn and brake that leaned on seats a small hull never had are back to what the ship’s own window reads.
+
+The box is under **Menu → Feedback**. It reaches whoever runs the site.
+
+### A storage reads itself
+
+![Two screenshots of a storage read into a table, each count beside the corner of the slot it was read off](docs/media/read-a-storage.gif)
+
+On the Inventory, **Read a storage** takes screenshots of the game’s storage window — a crop or the whole screen — and comes back with a line for everything the app keeps a count of.
+
+- The slots are found by the spacing of their own borders, so **any resolution and any UI scale** read alike; each icon is matched against the five hundred the app carries, and one it is not sure of is left out rather than named wrong.
+- The counts are read by **a small network taught on four hundred thousand made-up slots** — the game’s own fonts over the app’s own icons — and on no real ones. On five real screenshots from two players, 457 of 458 slots read right and none wrong that it was sure of.
+- **Every line keeps the corner of its slot beside it**, so a count is checked at a glance; one the reader is unsure of is marked ⚠.
+- **Scroll and shoot again**: the rows two screenshots share are found by their pictures and counted once.
+- Nothing is written until you press the button, and what it writes is one change, with one Undo.
+
+### So does the barter window
+
+![A screenshot of the barter window read into six islands, and the board settling on a layout](docs/media/read-the-window.gif)
+
+**Read the window** on the Barter tab answers every island in a screenshot at once. Six rows are usually enough to settle which of the forty layouts the sea is on.
+
+- Each row is matched against the exchanges **that island is known to deal**, so a name the window cut short is as good as a whole one and a misread letter cannot invent an offer.
+- A row two exchanges fit equally well is a list to pick from, not a guess.
+- The islands paying ship materials go to the material list, since those roll on their own.
+
+### The layout book
+
+![The shelf of forty layouts, a board in no record, and a layout opened out level by level](docs/media/the-layout-book.gif)
+
+**📖 The layout book**, on the board bar: every layout on file as a card, how often the record and the fleet have each seen it, and the boards sailors have read that are in no record at all.
+
+- A card opens into the whole board — a tile an island, the goods drawn, a tab a level — marked where it agrees with what you saw today and where your barter count has not opened an exchange.
+- A board nobody has on file says who read it, how many others saw the same, and **the layout it is nearest to**: parting at a slot or two is a layout the game has edited; parting at twenty is a slip.
+- **Yours** shows the boards you have been dealt, commonest first — the app writes a board down by itself when it is settled — and the Community tab adds them up fleet-wide.
+- Where sync is on, a reading goes up with its reader’s name on it, if they are shown by name on the community boards and not otherwise.
+
+### A run buys only what the Market has
+
+![A chain whose first land good the Central Market has none of, greyed and saying why](docs/media/a-dry-chain.gif)
+
+With land goods *bought ashore*, a run is held to what the Central Market actually has listed.
+
+- A chain whose first good nobody is selling **cannot be ticked**: its card is greyed and says *none on the Central Market* on its own face.
+- Where you hold a good part-way up the same climb, the card **starts from that instead**, and the shore is struck out among its starts with the reason.
+- Where you keep the land good yourself it offers *from my storage*; and *Before casting off* shows how many are listed beside each thing to buy.
+- The Market is asked again every half hour while the page is open.
+
+### An island shows something else
+
+Once a board is settled, **✎ An island shows something else…** is the one door for everything the record can get wrong. Name the island, pick what its window shows from everything it is known to deal, or say it shows nothing.
+
+- Islands whose exchange is above your barter count are greyed, with the count that opens them: a blank window there is the game, and not news.
+- If what you saw fits one layout everywhere but an island or three, **the board is that layout with those islands as you saw them**, and the run is planned on it.
+- **Telling the fleet is offered only then**, or when nothing fits at all. A reading that matches a layout on file is not news.
+
+### The seats a boat actually has
+
+The game offers a Sail, a Wheel, a Cannon, a Deck, a Mess and a First Mate on the four Carracks and the Panokseon. On an **Epheria Caravel** — or a Galleass, a frigate, a sailboat, the Bartali — it offers one row of cabins and nothing else. The app had been drawing a Carrack’s board on all of them.
+
+- The cabins are drawn **on the deck**, where the game draws them, and the board says what it is: this hull has no crew positions.
+- A sailor’s growths count **once** there. In the app’s Sail seat they were counted twice, which put the speed, acceleration, turn and brake of every small boat above what its own window reads — and with them the Map’s sailing times and the pace a run is planned at.
+- The **ten per cent off Parley** asks for a First Mate seat, and a small hull has no box for one: the sailor’s bar no longer offers a cut there is nowhere to take.
+- A crew arranged under the old drawing is **not put ashore** — they keep their places in the cabins, saved presets included.
+- *Auto assign* on those hulls asks the one question left: **who comes aboard**, against the cabin space.
+
+### What the game’s own files had to say
+
+The client’s barter table ships with the app now, and three things came out of reading it properly.
+
+- **Layout 31’s Dallae Pier takes the Stuffed Morpho Butterfly** since the patch of 17 September, not the Statue’s Tear.
+- The barter count each exchange needs is known for **3,002 of 3,004 rows**, up from 2,917 — the client files some [Level 5] goods under another name, which had been hiding them.
+- The islands missing from a layout in the community’s record are not gaps: the game shuts them on that layout **to everyone**. The ten rows that really were missing are filled in, and marked.
+
+## 1.3 — The day the sea will actually give you
+
+*2026-09-15*
+
+Two things the app was guessing at, and it turns out the game says both of them out loud. A board is no longer everybody’s board — it is **the one your barter count can actually sail**, read from the game’s own table. And a day of dailies and weeklies is no longer a list to work out for yourself: it is **one loop**, with a ground picked for every hunt, the kills added up, and nothing hunted after the man who pays for it.
+
+### Asked for by you
+
+Two players wrote in, and both were right. One of them twice, about the same thing.
+
+- **Zelpha** — *“rolled layout 5, i have the luivano/duch/randis chains but the other 3 arent available … picked eveto having liquor>urn but mariveno for example has nothin”* Not his luck: the game gates *each exchange* on its own barter count, and the app was drawing a board for an account that had unlocked everything. That is **the board you can sail**.
+- **cdwg** — *“Equipped ship gear should be factored into the available hull weight; currently it does not appear so be factored into the available weight.”* It was not — and the ship’s own window is the figure to agree with. Ten to twenty LT on a fitted hull, which is exactly what it came to: **what is bolted on is cargo too**.
+
+The box is under **Menu → Feedback**. It reaches whoever runs the site.
+
+### The board you can sail — not everyone else’s
+
+![The board bar saying how many islands the barter count leaves out, and the list of them](docs/media/your-own-board.gif)
+
+An island can be open to you while the one thing it is offering today is not, and its barter window is then simply blank. The board now leaves those out and says so.
+
+- The counts are the game’s own, baked out of the client: **every exchange has its own total**, not every island.
+- At **150** barters a board is short 32 islands of 84; at **1,082**, 20; past 20,000, none.
+- The bar says how many are left out and **what opens the next one**, and will list them with the offer each is showing.
+- Where the client ships no row — two tiers it leaves out — you can still say **“it will not trade with me”** and that island leaves the board until your next unlock.
+
+### Today’s errands — the whole day as one loop
+
+![The errands panel: a call a line, what to kill and how many, and the loop drawn on the chart](docs/media/todays-errands.gif)
+
+Every daily and weekly you have not done, in the order that sails shortest. On the chart’s **Grounds** tab: pick a harbour, press the button.
+
+- A hunt is a **choice of grounds** — the Hekaru have four — and the one that suits the rest of the day wins.
+- **Seven Black Rust**, not one and two and four: the kills at a call are added up, and the hand-ins at one wharf are one call.
+- A ground is **never called at after the man who pays for it**.
+- The Old Moon Guild lets you do one of its four hunts a day, so it takes the one whose species a weekly already wants — the same kill paying twice.
+- The three quests that ask for young sea monsters take **any** young one, so they ride on whatever young ground the loop already passes.
+
+### A call you can take hold of
+
+![A call opened: every quest done there, what it wants, what it pays, and the ways out of it](docs/media/a-call-in-hand.gif)
+
+Press a step and the chart flies there and the call opens — every quest done at it, with what it wants, where it hands in and what it pays.
+
+- A way through to **its row on the Quests tab**, and a way to **drop it**.
+- Dropping is not ticking off: the quest is not worth the detour *today*, so the loop is worked out again without it, and the panel says what was put aside and offers it back.
+- **Draw it** puts the loop on the Draw tab as a trace — named, keepable, shareable as a link.
+- **On the game’s map** writes it as bookmarks, numbered in sailing order and named by the work: *12: 7x Black Rust*.
+
+### Hunt where the monsters are
+
+A habitat marker is a caption. The game’s world map draws one icon per named ground, placed where the words want to sit — and the app was steering for it. The Black Rust marker is the better part of **ten kilometres** from the nearest Black Rust; the Ocean Stalker’s is five, the Nineshark’s three and a half.
+
+- A ground is now the middle of a cluster of the species’ **own spawn points**.
+- And a ground is water, not a point, so the call is put on the part of it the loop passes — and slides along it once the order is settled.
+
+### The crocodiles are where the crocodiles are
+
+The Lyngbakrs drove the Saltwater Crocodiles off that ground on 27 August, and the run in the Courses list was still pointing at it. It calls at their water off Cheongsa now, and is **shorter** than it was.
+
+- The Lyngbakr ground is a course of its own: out and back from Gangman’s wharf, where its weekly is handed in.
+
+### A quest wears its own picture
+
+The icon BDOCodex draws beside each quest, on the Quests tab and small wherever else a quest is named. Twenty-three pictures for thirty-nine quests, which is the point — every Ravinia letter is one picture, every Old Moon Guild hunt another, so a long day’s list sorts itself by the kind of work in it.
+
+### What is bolted on is cargo too
+
+A part gives the hold its Weight Limit and then sits in it, like anything else you put aboard. The app counted only the giving, so every figure it quoted was a little larger than the one the ship’s own window shows — and a run is planned against that figure.
+
+- **Every part weighs its own LT**, the same at +0 as at +10: a Chiro set is **9** off the hold, a Falasi set **18**.
+- **The sea crystal is one litre** — all two hundred and ninety-five of them, Eltro to the Nol.
+- **The Otter’s rod is another**, and only where there is a fishing place to install it: a Carrack has one, a Panokseon has none. A sailor in the Fish seat is a rod aboard.
+- The hold’s line-by-line sum names them — *4 parts, the crystal and the Otter’s rod, their own weight −20* — and every chain, material run and stock run is planned against the smaller, truer number.
+
+### And the release notes keep the old ones
+
+This window now carries every release before this one, shut, each worth a line until you open it — for anyone who has been away longer than a week.
+
+## 1.2 — What a day is for
+
+*2026-09-14*
+
+A day at sea had one shape: climb as high as the board goes, sell the top, count the silver. It has four now — **silver**, **a stock**, **Crow Coins**, **a material** — and the run is counted in whatever the day was for. Around them a clock that follows you out of the harbour, a sheet that says a thing once, and the bug that made “build the stocks” look mad.
+
+### Asked for by you
+
+Five players wrote in. One of them wrote most of this release.
+
+- **Oni** — *“just wanna fill storage first. Have all 72 type of base matterial ready … the is any way to build road to fill all low lvl and storage them?”* That is **A stock**. The word that made it a goal rather than a setting is *sell*: a run that sells nothing cannot be scored in silver.
+- **Oni** — *“can u add timer? that u can click and it start count time and make a sound like microwave when don’t xD bcs sometime I forget that I send a ship to route”* That is **the clock** — and the two windows he asked for an hour later are **the shelves** and **Today’s boards**.
+- **Zelpha** — *“grabbing 16 marine helms for a barter that only has 6 trades available … it gives a comically large number for the hold before dumping it all back in”* Not misusing the site: **two bugs**, and the second was hiding the first. Both in *Put right*.
+- **Fraul and RENGEREL** — *“can set run for cc? — crow coins?”* That is **Crow Coins**, the fourth kind of day.
+- **Yuki** — *“Does it have the siren spawns? I can’t find an option for it in map”* It does now: the **Hollow Maretta**, and an ocean map read by its own marks rather than fitted by hand.
+
+The box is under **Menu → Feedback**. It reaches whoever runs the site.
+
+### A stock — a day that is not for silver
+
+![The stock sheet: a target a level, a ceiling, and how many days it takes](docs/media/a-stock.gif)
+
+Say the pile you want. Nothing is sold, the climbs stop where you say, and the run is scored on what it banks.
+
+- A target is **per good**, and the row says what it comes to: thirty at Level 2 is thirty of each of the fourteen.
+- It is a floor as well, so the rule is one line: **fill a level before you climb from it**.
+- **Climb no higher than** — a [Level 4] you already hold is stock, not fuel.
+- *1,517 goods short · 76 more runs · about 19 days · 56 storage slots.*
+- The shore goods can come from **your own pile** rather than the Market, and a way of running can be **saved under a name**.
+
+### Crow Coins — the fourth kind of day
+
+![A run for Crow Coins: the chains that cash a Level 4, counted in coins](docs/media/crow-coins.gif)
+
+Every board has ten to fourteen islands paying in coins, and they take a [Level 4] and nothing else. So a coin run is a climb to four, cashed in.
+
+- Scored in coins: *the most coins*, *the most an hour*, *the most a Parley unit*.
+- And it says what they are for: *3,715 this run · 17,600 short of the 19,600 your builds want · 5 more runs like this one*.
+
+### The clock — a bell at every stop
+
+![The clock started on a run, counting to the next stop](docs/media/the-clock.gif)
+
+Sail this run starts it at that run’s own estimate. It counts up, and rings at every stop rather than only at the end.
+
+- A **ship’s bell**: a pair struck as each stop comes up, eight bells when the run is done. Made, not fetched — it works offline.
+- The stops carry **your own pace**: seconds for bartering and going on, seconds for a wharf or a quest.
+- Ticking a stop off **re-bases the rest**, so a slow island does not make the whole run chime early.
+- And it reaches **every device signed in to your account** — the phone in a pocket, with the tab shut.
+
+### The run sheet — two shelves, and one list
+
+![Load before casting off, and in the storage after](docs/media/two-shelves.gif)
+
+What to load, and what is in the storage after, tiled the way the game’s own window is. Everything that used to be said twice is said once.
+
+
+
+### Today’s boards
+
+![Every run since the refill, what it loaded and what it brought back](docs/media/todays-boards.gif)
+
+Every run recorded since the refill: what it loaded, what it came back with, and the day’s totals across the Parley bar.
+
+- What it will **not** do is guess the next board. A refresh deals a different layout, and the panel says so.
+
+### Put right
+
+- **A chain loaded the whole storage** — sixteen helms for an island with six trades in it, ninety-seven thousand LT in a hull that carries eleven, and the rest put back at the first wharf. It loads what the first rung can take now.
+- **A floor was measured against the hold**, so “keep forty” meant *carrying* forty before you could spend one. It counts the pile now, wherever it is kept.
+- **Notifications did nothing on a phone.** They go through the service worker, and where they cannot work the button says why.
+- **Vouchers are a choice**, and go in as soon as the run needs one and a whole quarter fits — which starts the two-hour cooldown as early as it can be started.
+- **“Build the stocks” is now “Sell the top, keep a floor.”** It sells; the floors are there so that selling does not strip the pile.
+- The hold bar is **two columns** — what the hull carries, what there is to spend — with a real way into the hold.
+
+### The chart — the siren, and a map read rather than traced
+
+The **Hollow Maretta** is a habitat with its portrait and its thirty-eight ringing spots. The ocean map behind them is no longer fitted by hand: the crosses are found by their glow and the transform solved for — twenty world units to the pixel, landing within half a pixel on 325 marks.
+
+
+
+### And the app has a name
+
+**Sailor’s Log.** *BDO Ship Upgrade Tracker* described what it did in its first week. It plans parts, quests, barter routes and the sea itself.
+
+
+
 ## 1.1 — The plan, and the sea you can actually reach
 
 *2026-09-11*

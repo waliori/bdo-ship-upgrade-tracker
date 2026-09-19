@@ -686,7 +686,8 @@ const PROFILE_LABELS = {
 	orders: () => T('Changed the sailing orders'),
 	getOrders: () => T('Changed how the list is to be got'),
 	homemade: () => T('Changed what your workers make'),
-	matSeen: () => T('Noted what the material list shows')
+	matSeen: () => T('Noted what the material list shows'),
+	shutOffers: () => T('Noted an island that would not trade')
 };
 
 export function setProfile(key, value, label = null) {
@@ -975,6 +976,43 @@ export function setStash(item, town, qty) {
 	return commit('profile', forget ? `${item}: no longer noted at ${town}` : `${item}: ${n} at ${town}`, () => {
 		state.profile = readProfile({ ...state.profile, stash });
 		if (!forget && total !== getStock(item)) writeStock(item, total, false);
+	});
+}
+
+/**
+ * Several counts written at one place as one change -- a storage read
+ * off a screenshot, or a hold typed out in one go.
+ *
+ * Each entry is `{ item, n }` and means what `setStash` means: that is
+ * how many of the thing are at `town`, and the total owned moves by the
+ * difference. `''` for the bags, where there is no place to note and
+ * only the total moves. One Undo takes the whole reading back, which is
+ * the point: a storage is read in one go and should be forgotten in
+ * one.
+ */
+export function setStashAll(entries, town, label) {
+	const list = entries
+		.map(e => ({ item: String(e.item), n: Math.max(0, Math.floor(Number(e.n) || 0)) }))
+		.filter(e => e.item);
+	if (!list.length) return null;
+	const before = new Map(list.map(e => [e.item, stockAt(e.item, town)]));
+	if (list.every(e => before.get(e.item) === e.n)) return null;
+	return commit('stock', label || T('{n} counts at {town}', { n: list.length, town: town || T('the bags') }), () => {
+		const stash = { ...(state.profile.stash || {}) };
+		const totals = [];
+		for (const { item, n } of list) {
+			const was = before.get(item);
+			if (town) {
+				const towns = { ...(stash[item] || {}) };
+				if (n > 0) towns[town] = n; else delete towns[town];
+				if (Object.keys(towns).length) stash[item] = towns; else delete stash[item];
+			}
+			totals.push([item, getStock(item) + (n - was)]);
+		}
+		state.profile = readProfile({ ...state.profile, stash });
+		// The totals after the places are settled: writeStock keeps the
+		// stash it finds, so the places have to be there first.
+		for (const [item, total] of totals) writeStock(item, total, false);
 	});
 }
 

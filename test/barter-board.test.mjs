@@ -155,3 +155,90 @@ test('layout 19 takes the two Land of Morning Light [Level 5]s the sheet left ou
 		["[Level 5] Statue's Tear", 7, ['Haemo Island', 'Sausan Garrison Wharf']]
 	]);
 });
+
+// Every exchange in the game has its own barter count to open, and an
+// island whose one offer today is above it shows a blank window. The
+// app has no table of those thresholds, so it keeps what the sailor
+// saw: the exchange named here leaves the board.
+test('an exchange the sailor found shut leaves the board, and takes its island with it', () => {
+	const combo = combos[0];
+	const listed = offersOf(combo);
+	// An island whose good today comes from nowhere else on this board,
+	// so dropping it drops the good with it and the effect is plain.
+	const takers = new Map();
+	for (const [, o] of listed) takers.set(o.recv, (takers.get(o.recv) || 0) + 1);
+	const [npcId, off] = [...listed].find(([, o]) => takers.get(o.recv) === 1 && levelOf(o.recv));
+	const before = boardData(combo, barterData, npcById, []);
+	assert.ok(before.find(e => e.name === off.recv).sources.some(s => s.npc_id === npcId));
+
+	const shut = [{ npcId, give: off.give, recv: off.recv, at: 1082 }];
+	const after = boardData(combo, barterData, npcById, [], shut);
+	const gone = after.find(e => e.name === off.recv);
+	assert.ok(!gone || !gone.sources.some(s => s.npc_id === npcId), 'the island still takes the good it would not trade');
+	// Nothing else moved: the rest of the board is the board.
+	assert.equal(after.filter(e => e.name !== off.recv).length, before.filter(e => e.name !== off.recv).length);
+
+	// A sighting of another offer at the same island says nothing about
+	// the one it is showing today.
+	const other = boardData(combo, barterData, npcById, [], [{ npcId, give: off.give, recv: 'Tidal Black Stone', at: 1082 }]);
+	assert.ok(other.find(e => e.name === off.recv).sources.some(s => s.npc_id === npcId));
+});
+
+test('a chain that climbs through a shut exchange is not proposed', () => {
+	const combo = combos[0];
+	const stock = new Map(), dock = new Map();
+	const full = chains(boardData(combo, barterData, npcById, []), stock, dock, 20000);
+	const deep = full.find(c => c.rungs.length >= 3);
+	assert.ok(deep, 'no chain long enough to cut');
+	const rung = deep.rungs[1];
+	// The second rung is reached by handing over the first one's good.
+	const shut = [{ npcId: rung.npcId, give: deep.rungs[0].item, recv: rung.item, at: 1082 }];
+	const cut = chains(boardData(combo, barterData, npcById, [], shut), stock, dock, 20000);
+	assert.ok(!cut.some(c => c.rungs.some(r => r.npcId === rung.npcId && r.item === rung.item)),
+		'a rung at the shut exchange survived');
+});
+
+/* ------------------------------------------------------------------ *
+ * the record made whole from the client
+ * ------------------------------------------------------------------ */
+
+test('a row the record lacks is filled from the client, and says so', async () => {
+	const { completed, clientOffer, offersOf: rowsOf, NEVER } = await import('../js/barter-board.js');
+	const whole = completed(record);
+	assert.equal(whole.combos.length, record.combos.length);
+	let filled = 0;
+	for (let i = 0; i < record.combos.length; i++) {
+		const was = record.combos[i], now = whole.combos[i];
+		// what players saw dealt is never overwritten
+		for (const o of was.offers) assert.deepEqual(rowsOf(now).get(o[0]), { give: o[1], qty: o[2], recv: o[3] });
+		for (const id of now.filled || []) {
+			filled++;
+			assert.equal(was.offers.some(o => o[0] === id), false);
+			const o = clientOffer(was, id);
+			assert.deepEqual(rowsOf(now).get(id), { give: o.give, qty: o.qty, recv: o.recv });
+			// an island the game shuts on this layout for everybody is not a gap
+			assert.ok(o.gate < NEVER, `${id} on layout ${was.id} opens at ${o.gate}`);
+			// a layout says nothing about the material islands
+			assert.ok(/^\[Level \d\]/.test(o.recv) || o.recv === 'Crow Coin', o.recv);
+		}
+	}
+	assert.ok(filled >= 5 && filled < 30, `${filled} rows filled`);
+});
+
+test('a row the client filled carries the client\'s gate', async () => {
+	const { completed, exchangeGate: gateOf, clientOffer } = await import('../js/barter-board.js');
+	const whole = completed(record);
+	const combo = whole.combos.find(c => (c.filled || []).length);
+	const id = combo.filled[0];
+	assert.equal(gateOf(combo, id), clientOffer(combo, id).gate);
+});
+
+test('what the game deals at an island is known, wherever it was seen; what it never has is not', async () => {
+	const { knownAt } = await import('../js/barter-board.js');
+	const all = combos;
+	const [id, give, , recv] = all[0].offers[0];
+	assert.ok(knownAt(all, id, give, recv));
+	assert.equal(knownAt(all, id, '[Level 5] No Such Thing', recv), null);
+	// the patch of 17 September 2026: Dallae Pier on layout 31
+	assert.equal(knownAt([], 58981, '[Level 5] Stuffed Morpho Butterfly', '[Level 6] Top-Quality Blue Underglaze Porcelain Crate'), 'client');
+});

@@ -12,11 +12,13 @@ export const DATA = [
 	{ what: TT('Sea monster spawn points'), asOf: '2026-08-30', from: TT('BDOCodex; the Lyngbakr Habitat from in-game bookmarks, 2026-08-31') },
 	{ what: TT('What islands paid on your runs'), asOf: 'live', from: TT('your own record, from the Barter tab’s checklist') },
 	{ what: TT('The ship-material board — four whole boards'), asOf: '2026-09-05', from: TT('the barter window, read off screenshots of four refreshes; how often each offer is up comes from these') },
-	{ what: TT('The trade-good list — forty layouts'), asOf: '2026-09-11', from: TT('a community sheet, 444 refreshes since 2026-04-16; refetched after a player reported the game moving a slot inside one') },
-	{ what: TT('Monster ground markers'), asOf: '2026-08-31', from: TT('the centre of each species’ codex spawns, kept to open water; the crocodiles from the patch note') },
+	{ what: TT('The trade-good list — forty layouts'), asOf: '2026-09-18', from: TT('a community sheet kept by RENGEREL, 465 refreshes since 2026-04-16; refetched after the patch of 17 September moved a slot on layout 31') },
+	{ what: TT('What each island deals, and the barter count each exchange needs'), asOf: '2026-09-18', from: TT('the game client’s own barter table, read after the 17 September patch') },
+	{ what: TT('Monster ground markers — 32 of them'), asOf: '2026-09-14', from: TT('the game’s own world map: the client’s habitat icons, position and all') },
 	{ what: TT('Wharf managers — the full roll, 58 of them'), asOf: '2026-08-31', from: TT('BDOCodex NPC pages') },
 	{ what: TT('Cox Pirates’ camps, flags and cargo ships'), asOf: '2026-08-31', from: TT('Awabi’s “The Road to Cox” map, fitted to the chart on its island names') },
-	{ what: TT('Vell’s waters'), asOf: '2026-08-31', from: TT('gpw’s ocean map v1.6, to a couple of kilometres') },
+	{ what: TT('Vell’s waters'), asOf: '2026-09-14', from: TT('the game’s own world map icon; it stood 2.8 km away when it came off a community map') },
+	{ what: TT('The Hollow Maretta’s rings — 38 of them'), asOf: '2026-09-13', from: TT('gpw’s ocean map v1.6, laid on the chart by the spawn marks it shares with the codex — within ten units') },
 	{ what: TT('Quests and their rewards'), asOf: '2026-08-30', from: 'BDOCodex' },
 	{ what: TT('Ship hulls — durability, weight, speed…'), asOf: '2026-08-29', from: 'BDOCodex' },
 	{ what: TT('Ship parts at every level'), asOf: '2026-08-29', from: 'BDOCodex' },
@@ -26,6 +28,7 @@ export const DATA = [
 	{ what: TT('Crow Coin Shop prices'), asOf: '2026-08-25', from: TT('the shop at Oquilla’s Eye') },
 	{ what: TT('Falasi’s prices'), asOf: '2026-08-25', from: 'Port Epheria' },
 	{ what: TT('Parley rates and discounts'), asOf: '2026-08-29', from: TT('the Barter Information window') },
+	{ what: TT('What Total Barters adds to an exchange — the six bands'), asOf: '2026-09-14', from: TT('the game client’s own variedtradecount table') },
 	{ what: TT('Vell’s timetable (EU, NA)'), asOf: '2026-08-30', from: 'mmotimer.com' },
 	{ what: TT('Sea crystals — 287 variants and the Nols'), asOf: '2026-08-31', from: 'BDOCodex' },
 	{ what: TT('Central Market prices'), asOf: 'live', from: TT('the community market API, per region') }
@@ -45,6 +48,12 @@ export const DATA = [
  * The rest are folded away behind "everything else", and printed in
  * full in the file.
  *
+ * `sum` is the one line an older release is worth to someone who was
+ * not here for it: what changed, in the words a player would use, no
+ * feature names and nothing technical. The What's New dialog carries
+ * every release below the current one, each shut, each showing only
+ * its `sum` until it is opened.
+ *
  * `thanks` names the players who asked for what is in the release, in
  * their own words. It is a field of its own rather than a section
  * because it must not be foldable: a person who wrote in and then had
@@ -53,9 +62,335 @@ export const DATA = [
  */
 export const RELEASES = [
 	{
+		id: '1.4',
+		name: TT('The screenshots you already took'),
+		date: '2026-09-19',
+		sum: TT('Screenshot your storage or the barter window and the app reads it; every layout has a page in a book, with what the fleet has seen; and a run no longer sends you to buy what the Market has none of.'),
+		blurb: TT('Typing a storage in slot by slot is the dullest hour this app ever asked of anyone, and the game has been drawing it for you all along. So now <b>a screenshot is an entry</b>: a storage window becomes counts, a barter window becomes today\u2019s board. The boards themselves got <b>a book of their own</b> \u2014 all forty layouts, what the fleet has read of them, and the ones nobody has on file \u2014 and a barter run finally asks the Central Market <b>whether there is anything to buy</b> before telling you to buy it. And the boats below a Carrack now draw <b>the row of cabins the game draws</b>, and nothing else: the seats the app had been putting on them were never there.'),
+		thanks: {
+			text: TT('Five players are in this one. Two asked for what is here; one keeps the record the whole Barter tab stands on; and two, between them, caught a hull the app had been drawing wrong.'),
+			who: [
+				{
+					name: 'GloriousMadness',
+					said: 'One other thing I was looking at was OCR cuz i\u2019m too lazy to manually input my inventories & barter exchanges',
+					did: TT('Not lazy \u2014 right. Both of them are <b>read off a screenshot</b> now: a storage into counts, the barter window into today\u2019s board.')
+				},
+				{
+					name: 'Oni',
+					said: 'some item can be buy from CM, but some is a zero at stoke \u2026 but it not chek that items on CM or not',
+					did: TT('The run priced a land good at its last sale and never asked whether any were for sale. It asks now: <b>a run buys only what the Market has</b>, and a chain that cannot start is not one you can tick. His screenshot also turned out to be in another font, which is why the reader now knows all of them.')
+				},
+				{
+					name: 'RENGEREL',
+					said: 'they changed the one tear from dallae pier that might not show up to the butterfly which is always there \u2026 that should all be correct now',
+					did: TT('The keeper of the community\u2019s layout sheet, who had it updated before the patch was a day old. The game\u2019s own files agree \u2014 one byte of them \u2014 and <b>layout 31</b> is right in the app because of it.')
+				},
+				{
+					name: 'SaltySlimeGoblin',
+					said: 'How do i do that? \u2026 I don\u2019t have the option to move em',
+					did: TT('He was hunting for the seats on his Epheria Caravel because <i>this app</i> had drawn them. The game draws none there: his screenshot of that window \u2014 one row of cabins, a Save Preset button and nothing else \u2014 is what the board below a Carrack is built from now.')
+				},
+				{
+					name: 'Salty_Scallywag',
+					said: 'small boats dont have dedicated spots \u2026 carracks do',
+					did: TT('The whole bug, in one line, before anybody went looking for it. The positions are a Carrack\u2019s and the Panokseon\u2019s; everything smaller is cabins, and the speed, turn and brake that leaned on seats a small hull never had are back to what the ship\u2019s own window reads.')
+				}
+			],
+			foot: TT('The box is under <b>Menu \u2192 Feedback</b>. It reaches whoever runs the site.')
+		},
+		sections: [
+			{
+				title: TT('A storage reads itself'),
+				media: 'docs/media/small/read-a-storage.gif',
+				alt: TT('Two screenshots of a storage read into a table, each count beside the corner of the slot it was read off'),
+				text: TT('On the Inventory, <b>Read a storage</b> takes screenshots of the game\u2019s storage window \u2014 a crop or the whole screen \u2014 and comes back with a line for everything the app keeps a count of.'),
+				points: [
+					TT('The slots are found by the spacing of their own borders, so <b>any resolution and any UI scale</b> read alike; each icon is matched against the five hundred the app carries, and one it is not sure of is left out rather than named wrong.'),
+					TT('The counts are read by <b>a small network taught on four hundred thousand made-up slots</b> \u2014 the game\u2019s own fonts over the app\u2019s own icons \u2014 and on no real ones. On five real screenshots from two players, 457 of 458 slots read right and none wrong that it was sure of.'),
+					TT('<b>Every line keeps the corner of its slot beside it</b>, so a count is checked at a glance; one the reader is unsure of is marked \u26a0.'),
+					TT('<b>Scroll and shoot again</b>: the rows two screenshots share are found by their pictures and counted once.'),
+					TT('Nothing is written until you press the button, and what it writes is one change, with one Undo.')
+				]
+			},
+			{
+				title: TT('So does the barter window'),
+				media: 'docs/media/small/read-the-window.gif',
+				alt: TT('A screenshot of the barter window read into six islands, and the board settling on a layout'),
+				text: TT('<b>Read the window</b> on the Barter tab answers every island in a screenshot at once. Six rows are usually enough to settle which of the forty layouts the sea is on.'),
+				points: [
+					TT('Each row is matched against the exchanges <b>that island is known to deal</b>, so a name the window cut short is as good as a whole one and a misread letter cannot invent an offer.'),
+					TT('A row two exchanges fit equally well is a list to pick from, not a guess.'),
+					TT('The islands paying ship materials go to the material list, since those roll on their own.')
+				]
+			},
+			{
+				title: TT('The layout book'),
+				media: 'docs/media/small/the-layout-book.gif',
+				alt: TT('The shelf of forty layouts, a board in no record, and a layout opened out level by level'),
+				text: TT('<b>\ud83d\udcd6 The layout book</b>, on the board bar: every layout on file as a card, how often the record and the fleet have each seen it, and the boards sailors have read that are in no record at all.'),
+				points: [
+					TT('A card opens into the whole board \u2014 a tile an island, the goods drawn, a tab a level \u2014 marked where it agrees with what you saw today and where your barter count has not opened an exchange.'),
+					TT('A board nobody has on file says who read it, how many others saw the same, and <b>the layout it is nearest to</b>: parting at a slot or two is a layout the game has edited; parting at twenty is a slip.'),
+					TT('<b>Yours</b> shows the boards you have been dealt, commonest first \u2014 the app writes a board down by itself when it is settled \u2014 and the Community tab adds them up fleet-wide.'),
+					TT('Where sync is on, a reading goes up with its reader\u2019s name on it, if they are shown by name on the community boards and not otherwise.')
+				]
+			},
+			{
+				title: TT('A run buys only what the Market has'),
+				media: 'docs/media/small/a-dry-chain.gif',
+				alt: TT('A chain whose first land good the Central Market has none of, greyed and saying why'),
+				text: TT('With land goods <i>bought ashore</i>, a run is held to what the Central Market actually has listed.'),
+				points: [
+					TT('A chain whose first good nobody is selling <b>cannot be ticked</b>: its card is greyed and says <i>none on the Central Market</i> on its own face.'),
+					TT('Where you hold a good part-way up the same climb, the card <b>starts from that instead</b>, and the shore is struck out among its starts with the reason.'),
+					TT('Where you keep the land good yourself it offers <i>from my storage</i>; and <i>Before casting off</i> shows how many are listed beside each thing to buy.'),
+					TT('The Market is asked again every half hour while the page is open.')
+				]
+			},
+			{
+				title: TT('An island shows something else'),
+				text: TT('Once a board is settled, <b>\u270e An island shows something else\u2026</b> is the one door for everything the record can get wrong. Name the island, pick what its window shows from everything it is known to deal, or say it shows nothing.'),
+				points: [
+					TT('Islands whose exchange is above your barter count are greyed, with the count that opens them: a blank window there is the game, and not news.'),
+					TT('If what you saw fits one layout everywhere but an island or three, <b>the board is that layout with those islands as you saw them</b>, and the run is planned on it.'),
+					TT('<b>Telling the fleet is offered only then</b>, or when nothing fits at all. A reading that matches a layout on file is not news.')
+				]
+			},
+			{
+				title: TT('The seats a boat actually has'),
+				text: TT('The game offers a Sail, a Wheel, a Cannon, a Deck, a Mess and a First Mate on the four Carracks and the Panokseon. On an <b>Epheria Caravel</b> \u2014 or a Galleass, a frigate, a sailboat, the Bartali \u2014 it offers one row of cabins and nothing else. The app had been drawing a Carrack\u2019s board on all of them.'),
+				points: [
+					TT('The cabins are drawn <b>on the deck</b>, where the game draws them, and the board says what it is: this hull has no crew positions.'),
+					TT('A sailor\u2019s growths count <b>once</b> there. In the app\u2019s Sail seat they were counted twice, which put the speed, acceleration, turn and brake of every small boat above what its own window reads \u2014 and with them the Map\u2019s sailing times and the pace a run is planned at.'),
+					TT('The <b>ten per cent off Parley</b> asks for a First Mate seat, and a small hull has no box for one: the sailor\u2019s bar no longer offers a cut there is nowhere to take.'),
+					TT('A crew arranged under the old drawing is <b>not put ashore</b> \u2014 they keep their places in the cabins, saved presets included.'),
+					TT('<i>Auto assign</i> on those hulls asks the one question left: <b>who comes aboard</b>, against the cabin space.')
+				]
+			},
+			{
+				title: TT('What the game\u2019s own files had to say'),
+				text: TT('The client\u2019s barter table ships with the app now, and three things came out of reading it properly.'),
+				points: [
+					TT('<b>Layout 31\u2019s Dallae Pier takes the Stuffed Morpho Butterfly</b> since the patch of 17 September, not the Statue\u2019s Tear.'),
+					TT('The barter count each exchange needs is known for <b>3,002 of 3,004 rows</b>, up from 2,917 \u2014 the client files some [Level 5] goods under another name, which had been hiding them.'),
+					TT('The islands missing from a layout in the community\u2019s record are not gaps: the game shuts them on that layout <b>to everyone</b>. The ten rows that really were missing are filled in, and marked.')
+				]
+			}
+		]
+	},
+	{
+		id: '1.3',
+		name: TT('The day the sea will actually give you'),
+		date: '2026-09-15',
+		sum: TT('The board now matches what your own barter count can really trade, and the app will plan your whole day of quests as one loop.'),
+		blurb: TT('Two things the app was guessing at, and it turns out the game says both of them out loud. A board is no longer everybody’s board — it is <b>the one your barter count can actually sail</b>, read from the game\u2019s own table. And a day of dailies and weeklies is no longer a list to work out for yourself: it is <b>one loop</b>, with a ground picked for every hunt, the kills added up, and nothing hunted after the man who pays for it.'),
+		thanks: {
+			text: TT('Two players wrote in, and both were right. One of them twice, about the same thing.'),
+			who: [
+				{
+					name: 'Zelpha',
+					said: 'rolled layout 5, i have the luivano/duch/randis chains but the other 3 arent available … picked eveto having liquor>urn but mariveno for example has nothin',
+					did: TT('Not his luck: the game gates <i>each exchange</i> on its own barter count, and the app was drawing a board for an account that had unlocked everything. That is <b>the board you can sail</b>.')
+				},
+				{
+					name: 'cdwg',
+					said: 'Equipped ship gear should be factored into the available hull weight; currently it does not appear so be factored into the available weight.',
+					did: TT('It was not \u2014 and the ship\u2019s own window is the figure to agree with. Ten to twenty LT on a fitted hull, which is exactly what it came to: <b>what is bolted on is cargo too</b>.')
+				}
+			],
+			foot: TT('The box is under <b>Menu → Feedback</b>. It reaches whoever runs the site.')
+		},
+		sections: [
+			{
+				title: TT('The board you can sail — not everyone else’s'),
+				media: 'docs/media/small/your-own-board.gif',
+				alt: TT('The board bar saying how many islands the barter count leaves out, and the list of them'),
+				text: TT('An island can be open to you while the one thing it is offering today is not, and its barter window is then simply blank. The board now leaves those out and says so.'),
+				points: [
+					TT('The counts are the game’s own, baked out of the client: <b>every exchange has its own total</b>, not every island.'),
+					TT('At <b>150</b> barters a board is short 32 islands of 84; at <b>1,082</b>, 20; past 20,000, none.'),
+					TT('The bar says how many are left out and <b>what opens the next one</b>, and will list them with the offer each is showing.'),
+					TT('Where the client ships no row — two tiers it leaves out — you can still say <b>“it will not trade with me”</b> and that island leaves the board until your next unlock.')
+				]
+			},
+			{
+				title: TT('Today’s errands — the whole day as one loop'),
+				media: 'docs/media/small/todays-errands.gif',
+				alt: TT('The errands panel: a call a line, what to kill and how many, and the loop drawn on the chart'),
+				text: TT('Every daily and weekly you have not done, in the order that sails shortest. On the chart’s <b>Grounds</b> tab: pick a harbour, press the button.'),
+				points: [
+					TT('A hunt is a <b>choice of grounds</b> — the Hekaru have four — and the one that suits the rest of the day wins.'),
+					TT('<b>Seven Black Rust</b>, not one and two and four: the kills at a call are added up, and the hand-ins at one wharf are one call.'),
+					TT('A ground is <b>never called at after the man who pays for it</b>.'),
+					TT('The Old Moon Guild lets you do one of its four hunts a day, so it takes the one whose species a weekly already wants — the same kill paying twice.'),
+					TT('The three quests that ask for young sea monsters take <b>any</b> young one, so they ride on whatever young ground the loop already passes.')
+				]
+			},
+			{
+				title: TT('A call you can take hold of'),
+				media: 'docs/media/small/a-call-in-hand.gif',
+				alt: TT('A call opened: every quest done there, what it wants, what it pays, and the ways out of it'),
+				text: TT('Press a step and the chart flies there and the call opens — every quest done at it, with what it wants, where it hands in and what it pays.'),
+				points: [
+					TT('A way through to <b>its row on the Quests tab</b>, and a way to <b>drop it</b>.'),
+					TT('Dropping is not ticking off: the quest is not worth the detour <i>today</i>, so the loop is worked out again without it, and the panel says what was put aside and offers it back.'),
+					TT('<b>Draw it</b> puts the loop on the Draw tab as a trace — named, keepable, shareable as a link.'),
+					TT('<b>On the game’s map</b> writes it as bookmarks, numbered in sailing order and named by the work: <i>12: 7x Black Rust</i>.')
+				]
+			},
+			{
+				title: TT('Hunt where the monsters are'),
+				text: TT('A habitat marker is a caption. The game’s world map draws one icon per named ground, placed where the words want to sit — and the app was steering for it. The Black Rust marker is the better part of <b>ten kilometres</b> from the nearest Black Rust; the Ocean Stalker’s is five, the Nineshark’s three and a half.'),
+				points: [
+					TT('A ground is now the middle of a cluster of the species’ <b>own spawn points</b>.'),
+					TT('And a ground is water, not a point, so the call is put on the part of it the loop passes — and slides along it once the order is settled.')
+				]
+			},
+			{
+				title: TT('The crocodiles are where the crocodiles are'),
+				text: TT('The Lyngbakrs drove the Saltwater Crocodiles off that ground on 27 August, and the run in the Courses list was still pointing at it. It calls at their water off Cheongsa now, and is <b>shorter</b> than it was.'),
+				points: [
+					TT('The Lyngbakr ground is a course of its own: out and back from Gangman’s wharf, where its weekly is handed in.')
+				]
+			},
+			{
+				title: TT('A quest wears its own picture'),
+				text: TT('The icon BDOCodex draws beside each quest, on the Quests tab and small wherever else a quest is named. Twenty-three pictures for thirty-nine quests, which is the point — every Ravinia letter is one picture, every Old Moon Guild hunt another, so a long day’s list sorts itself by the kind of work in it.')
+			},
+			{
+				title: TT('What is bolted on is cargo too'),
+				text: TT('A part gives the hold its Weight Limit and then sits in it, like anything else you put aboard. The app counted only the giving, so every figure it quoted was a little larger than the one the ship\u2019s own window shows \u2014 and a run is planned against that figure.'),
+				points: [
+					TT('<b>Every part weighs its own LT</b>, the same at +0 as at +10: a Chiro set is <b>9</b> off the hold, a Falasi set <b>18</b>.'),
+					TT('<b>The sea crystal is one litre</b> \u2014 all two hundred and ninety-five of them, Eltro to the Nol.'),
+					TT('<b>The Otter\u2019s rod is another</b>, and only where there is a fishing place to install it: a Carrack has one, a Panokseon has none. A sailor in the Fish seat is a rod aboard.'),
+					TT('The hold\u2019s line-by-line sum names them \u2014 <i>4 parts, the crystal and the Otter\u2019s rod, their own weight \u221220</i> \u2014 and every chain, material run and stock run is planned against the smaller, truer number.')
+				]
+			},
+			{
+				title: TT('And the release notes keep the old ones'),
+				text: TT('This window now carries every release before this one, shut, each worth a line until you open it — for anyone who has been away longer than a week.')
+			}
+		]
+	},
+	{
+		id: '1.2',
+		name: TT('What a day is for'),
+		date: '2026-09-14',
+		sum: TT('A day at sea can now be for four different things, and a clock that tells you when the ship is home.'),
+		blurb: TT('A day at sea had one shape: climb as high as the board goes, sell the top, count the silver. It has four now — <b>silver</b>, <b>a stock</b>, <b>Crow Coins</b>, <b>a material</b> — and the run is counted in whatever the day was for. Around them a clock that follows you out of the harbour, a sheet that says a thing once, and the bug that made “build the stocks” look mad.'),
+		thanks: {
+			text: TT('Five players wrote in. One of them wrote most of this release.'),
+			who: [
+				{
+					name: 'Oni',
+					said: 'just wanna fill storage first. Have all 72 type of base matterial ready … the is any way to build road to fill all low lvl and storage them?',
+					did: TT('That is <b>A stock</b>. The word that made it a goal rather than a setting is <i>sell</i>: a run that sells nothing cannot be scored in silver.')
+				},
+				{
+					name: 'Oni',
+					said: 'can u add timer? that u can click and it start count time and make a sound like microwave when don’t xD bcs sometime I forget that I send a ship to route',
+					did: TT('That is <b>the clock</b> — and the two windows he asked for an hour later are <b>the shelves</b> and <b>Today’s boards</b>.')
+				},
+				{
+					name: 'Zelpha',
+					said: 'grabbing 16 marine helms for a barter that only has 6 trades available … it gives a comically large number for the hold before dumping it all back in',
+					did: TT('Not misusing the site: <b>two bugs</b>, and the second was hiding the first. Both in <i>Put right</i>.')
+				},
+				{
+					name: 'Fraul and RENGEREL',
+					said: 'can set run for cc? — crow coins?',
+					did: TT('That is <b>Crow Coins</b>, the fourth kind of day.')
+				},
+				{
+					name: 'Yuki',
+					said: 'Does it have the siren spawns? I can’t find an option for it in map',
+					did: TT('It does now: the <b>Hollow Maretta</b>, and an ocean map read by its own marks rather than fitted by hand.')
+				}
+			],
+			foot: TT('The box is under <b>Menu → Feedback</b>. It reaches whoever runs the site.')
+		},
+		sections: [
+			{
+				title: TT('A stock — a day that is not for silver'),
+				media: 'docs/media/small/a-stock.gif',
+				alt: TT('The stock sheet: a target a level, a ceiling, and how many days it takes'),
+				text: TT('Say the pile you want. Nothing is sold, the climbs stop where you say, and the run is scored on what it banks.'),
+				points: [
+					TT('A target is <b>per good</b>, and the row says what it comes to: thirty at Level 2 is thirty of each of the fourteen.'),
+					TT('It is a floor as well, so the rule is one line: <b>fill a level before you climb from it</b>.'),
+					TT('<b>Climb no higher than</b> — a [Level 4] you already hold is stock, not fuel.'),
+					TT('<i>1,517 goods short · 76 more runs · about 19 days · 56 storage slots.</i>'),
+					TT('The shore goods can come from <b>your own pile</b> rather than the Market, and a way of running can be <b>saved under a name</b>.')
+				]
+			},
+			{
+				title: TT('Crow Coins — the fourth kind of day'),
+				media: 'docs/media/small/crow-coins.gif',
+				alt: TT('A run for Crow Coins: the chains that cash a Level 4, counted in coins'),
+				text: TT('Every board has ten to fourteen islands paying in coins, and they take a [Level 4] and nothing else. So a coin run is a climb to four, cashed in.'),
+				points: [
+					TT('Scored in coins: <i>the most coins</i>, <i>the most an hour</i>, <i>the most a Parley unit</i>.'),
+					TT('And it says what they are for: <i>3,715 this run · 17,600 short of the 19,600 your builds want · 5 more runs like this one</i>.')
+				]
+			},
+			{
+				title: TT('The clock — a bell at every stop'),
+				media: 'docs/media/small/the-clock.gif',
+				alt: TT('The clock started on a run, counting to the next stop'),
+				text: TT('Sail this run starts it at that run’s own estimate. It counts up, and rings at every stop rather than only at the end.'),
+				points: [
+					TT('A <b>ship’s bell</b>: a pair struck as each stop comes up, eight bells when the run is done. Made, not fetched — it works offline.'),
+					TT('The stops carry <b>your own pace</b>: seconds for bartering and going on, seconds for a wharf or a quest.'),
+					TT('Ticking a stop off <b>re-bases the rest</b>, so a slow island does not make the whole run chime early.'),
+					TT('And it reaches <b>every device signed in to your account</b> — the phone in a pocket, with the tab shut.')
+				]
+			},
+			{
+				title: TT('The run sheet — two shelves, and one list'),
+				media: 'docs/media/small/two-shelves.gif',
+				alt: TT('Load before casting off, and in the storage after'),
+				text: TT('What to load, and what is in the storage after, tiled the way the game’s own window is. Everything that used to be said twice is said once.'),
+				points: []
+			},
+			{
+				title: TT('Today’s boards'),
+				media: 'docs/media/small/todays-boards.gif',
+				alt: TT('Every run since the refill, what it loaded and what it brought back'),
+				text: TT('Every run recorded since the refill: what it loaded, what it came back with, and the day’s totals across the Parley bar.'),
+				points: [
+					TT('What it will <b>not</b> do is guess the next board. A refresh deals a different layout, and the panel says so.')
+				]
+			},
+			{
+				title: TT('Put right'),
+				text: TT(''),
+				points: [
+					TT('<b>A chain loaded the whole storage</b> — sixteen helms for an island with six trades in it, ninety-seven thousand LT in a hull that carries eleven, and the rest put back at the first wharf. It loads what the first rung can take now.'),
+					TT('<b>A floor was measured against the hold</b>, so “keep forty” meant <i>carrying</i> forty before you could spend one. It counts the pile now, wherever it is kept.'),
+					TT('<b>Notifications did nothing on a phone.</b> They go through the service worker, and where they cannot work the button says why.'),
+					TT('<b>Vouchers are a choice</b>, and go in as soon as the run needs one and a whole quarter fits — which starts the two-hour cooldown as early as it can be started.'),
+					TT('<b>“Build the stocks” is now “Sell the top, keep a floor.”</b> It sells; the floors are there so that selling does not strip the pile.'),
+					TT('The hold bar is <b>two columns</b> — what the hull carries, what there is to spend — with a real way into the hold.')
+				]
+			},
+			{
+				title: TT('The chart — the siren, and a map read rather than traced'),
+				text: TT('The <b>Hollow Maretta</b> is a habitat with its portrait and its thirty-eight ringing spots. The ocean map behind them is no longer fitted by hand: the crosses are found by their glow and the transform solved for — twenty world units to the pixel, landing within half a pixel on 325 marks.'),
+				points: []
+			},
+			{
+				title: TT('And the app has a name'),
+				text: TT('<b>Sailor’s Log.</b> <i>BDO Ship Upgrade Tracker</i> described what it did in its first week. It plans parts, quests, barter routes and the sea itself.'),
+				points: []
+			}
+		]
+	},
+	{
 		id: '1.1',
 		name: TT('The plan, and the sea you can actually reach'),
 		date: '2026-09-11',
+		sum: TT('The app stopped listing your options and started telling you what to do next — and stopped sending you to islands you have not unlocked.'),
 		blurb: TT('Two players asked for the two big things in this one, and both asks turned out to be the same complaint from different ends: the app knew a great deal and left the deciding to you. <b>To Get</b> now says how each thing <i>should</i> be got rather than only how it can be — one route through everything left, in the order it is done — and every barter plan is cut to the islands your own <b>total barters</b> have opened. Around those: the chart <b>stands up</b> on the game’s own terrain, the barter forecast counts how often the offer is really on the list, a crew reads off your own screenshots, the numbers about you — the nest of Bos’n Jacks among them — are typed once and read everywhere, and the boards keep up with your save.'),
 		thanks: {
 			text: TT('Four players wrote in. Two of them set the shape of this release; two more put right things the app had wrong — a barter slot the game had quietly changed, and a nest of birds it was not counting at all. Every one of the four was a better question than the ones being asked inside. Thank you.'),
@@ -213,6 +548,7 @@ export const RELEASES = [
 		id: '1.0',
 		name: TT('The yard and the sea'),
 		date: '2026-09-07',
+		sum: TT('The first release: the chart, the barter runs, the quests and the ship, added to the yard that was already here.'),
 		blurb: TT('The yard was here already: one inventory, the builds that draw on it, the Workshop and the shopping list. This release adds the sea you cross to pay for it — a <b>Map</b> with every barterer on it and the loop through them timed at your own hull’s speed, a <b>Barter</b> tab that plans a run on today’s board and sails it on the chart, the <b>Quests</b> the ocean hands out free, the <b>Ship</b> you sail it in, and a <b>Community</b> harbour — and the yard picks up what the sea brings back.'),
 		sections: [
 			{
@@ -391,6 +727,45 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-09-19',
+		title: TT('The seats are a Carrack’s; the boats below it draw cabins'),
+		notes: [
+			TT('<b>A Caravel has no crew positions, and the app was drawing six of them.</b> The game’s Manage Sailors window offers a Sail, a Wheel, a Cannon, a Deck, a Mess and a First Mate on a Carrack and on the Panokseon. On an <b>Epheria Caravel</b> — or a Galleass, a frigate, a sailboat, the Bartali — it offers one row of cabins and nothing else. The app laid the same frame over every hull that seats anybody, so a six-sailor Caravel was shown seats the game does not have, and the numbers followed: a sailor in the app’s Sail seat had their Endurance and Wits <i>counted twice</i> on a hull where the game counts them once, which put the speed, acceleration, turn and brake of every small boat above what its own window reads — and with them the Map’s sailing times, a run’s pace, and the ten per cent off Parley, which asks for a First Mate seat there is no box for. Below a Carrack the board is now the row of cabins the game draws, on the deck where the game draws it, and the figures are the plain sum of who is aboard. A crew arranged under the old model is <b>not put ashore</b>: they keep their places in the cabins, saved presets included. <i>Auto assign</i> on those hulls asks the one question left — who comes aboard, against the cabin space — and says so.')
+		]
+	},
+	{
+		date: '2026-09-18',
+		title: TT('The screenshots you already took are the fastest way to tell the app anything'),
+		notes: [
+			TT('<b>A storage reads itself.</b> The Inventory takes a shot of the game\u2019s storage window \u2014 a crop, or the whole screen with it open \u2014 and comes back with a line per thing the app counts. The slots are a square lattice, found by the spacing of their own borders, so any resolution and any UI scale read alike; each is then matched against the five hundred icons the app already carries, and one that looks nearly as much like the runner-up as like the best is <i>left out</i> rather than named wrong. Several shots are one storage and their slots add up, so a warehouse four screenfuls deep is one go and one undoable change.'),
+			TT('<b>And the counts are read by a small network, taught on slots nobody had to label.</b> No OCR engine is fetched for a storage at all \u2014 an engine is the wrong tool for eight-pixel writing over a drawing, and so, it turned out, were templates of the game\u2019s figures: a template is one rendering, and the same window captured by a desktop that scales its screen is another. A stack of 103 over a crate came back as 1,103, because the edge of the crate really is an upright. What reads it now is what reads house numbers off street photographs: a convolutional network run along the whole line and trained with CTC, so nothing has to say where one figure ends and the next begins. It was taught on four hundred thousand <i>made-up</i> slots \u2014 the game\u2019s own fonts, pulled out of the client, over the app\u2019s own icons, then blurred, rescaled and recompressed every way a screenshot gets \u2014 and on no real ones, which is what makes the real ones a test. <i>Fonts</i>, because which face draws the counts depends on the client\u2019s language: a reader taught only the English client\u2019s Strong Sword took another player\u2019s 656 for 555, so it is taught every face the client ships. Five real screenshots off two players\u2019 setups, 458 slots: <b>457 read right and none wrong that it was sure of</b> \u2014 the one it missed has a mouse pointer lying across the figure, and it said so. Shrunk, doubled, blurred or recompressed there is still next to nothing it is wrong and sure about; what gets harder to read gets marked, not guessed. Fifty thousand weights, ten milliseconds a slot, plain JavaScript. Every line keeps the corner of its slot beside it, so a count is checked at a glance; a reading the network is not sure of is written in as its best and marked \u26a0.'),
+			TT('<b>Scrolled shots are one storage.</b> Shoot a screenful, scroll, shoot again, and the last row of one is the first row of the next \u2014 which used to count twelve crystals as twenty-four. The rows two shots share are now found by their pictures, named or not, and counted once; the table says how many. A row of one thing repeated is not taken as proof, because two rows of dynamite look exactly like one row shot twice. The last row of a storage is no longer lost, whether to faint borders round its bare slots or to falling just past where the window was first looked for.'),
+			TT('<b>The barter window reads itself too.</b> <i>Read the window</i> on the Barter tab answers every island in a screenshot at once, matched against the exchanges the codex says that island deals \u2014 so <code>[Level 5] Faded Gold Dra...</code> is as good as the whole name, a name that wrapped under the Parley cost is picked up where it broke off, and a row two exchanges fit equally well is a list to pick from rather than a guess. Six rows off one shot usually settle which of the forty layouts the sea is on. The islands paying ship materials go to the material list instead, since those roll on their own.'),
+			TT('<b>And one player\u2019s reading is everybody\u2019s board.</b> A board is the same for everyone on a server until the refill, so a reading can now be told to the fleet \u2014 with the reader\u2019s name on it, where they are shown by name on the community boards and not otherwise. The bar says what others have read of today\u2019s board and how many have since seen the same; taking their reading answers every island they named and tells them so. It is also the answer to <b>no layout shows that</b>: the record the app ships is a snapshot, the game edits a slot at a maintenance without renumbering anything, and a board nobody has on file is the one worth passing on.'),
+			TT('<b>The layout book.</b> The readings had a line under the board bar and nowhere to be looked at, so they have a view of their own now: <i>\ud83d\udcd6 The layout book</i> opens every layout on file as a card \u2014 drawn with the land goods its [Level 1] islands are asking for and the goods its coin islands will take, which is what differs from board to board \u2014 with how often the record has seen it and how often the fleet has. Above them are the <b>boards nobody has on file</b>: who read each, how many others saw the same, and the layout it is nearest to, because parting from one at a slot or two is a layout the game has edited and parting at twenty is a slip. A card opens into the whole board, island by island with the goods drawn, marked against what you saw today and against your barter count; search finds a layout by an island, a good or its number. Readings are kept two months for it.'),
+			TT('<b>The record is not the last word, and you can correct it.</b> The community\u2019s record has no row for an island or two on most layouts, and the game\u2019s own table says why: on that layout the island is shut to <i>everyone</i> \u2014 gated at a million barters \u2014 so nobody ever wrote down what it showed. Where the client does deal a row the record lacks, ten of them, the layout now carries it; and the barter count each exchange needs is known for 3,002 of 3,004 rows, up from 2,917. Once a board is settled, <i>\u270e An island shows something else\u2026</i> is the one door for what the record gets wrong: name the island, pick what its window shows from everything it is known to deal, or say it shows nothing \u2014 islands above your barter count are greyed, since a blank window there is the game. A reading that fits one layout everywhere but an island or three <i>is</i> that layout with a slot moved, and is planned as such; <b>telling the fleet is offered only then</b>, or when nothing fits. Layout 31\u2019s Dallae Pier takes the Stuffed Morpho Butterfly since the patch of 17 September \u2014 one byte in the client\u2019s table, and the community\u2019s sheet agrees.'),
+			TT('<b>Which layouts come up most.</b> The app writes a board down by itself the moment it is settled. The book\u2019s <i>Yours</i> shows the boards you have been dealt, commonest first, and the Community tab adds them up fleet-wide under <i>Barter layouts most dealt</i>, beside each layout\u2019s share of the community\u2019s own record.'),
+			TT('<b>A run buys only what the Market has.</b> Oni wrote in with a run that told him to load a land good the Central Market had none of: the app priced a chain\u2019s first good at the Market\u2019s last price and never asked whether any were for sale. The relay was already bringing the listed count back with every price; now it is used. With land goods <i>bought ashore</i>, a run buys no more of a good than are listed, a chain whose first good nobody is selling <b>cannot be ticked</b> \u2014 its card is greyed and says <i>none on the Central Market</i> on its own face, with the good drawn; where you hold a good part-way up the same climb the card starts from that instead, the shore struck out among its starts, and where you keep the land good it offers <i>from my storage</i> \u2014 and <i>Before casting off</i> shows how many are listed beside each thing to buy. A count the Market would not confirm this time holds nothing back, since stock moves by the minute; and the Market is asked again every half hour while the page is open, not only when it loads.'),
+			TT('<b>The film says it too.</b> Two chapters under <b>Help</b> were re-shot: <i>The Yard</i> now drops two scrolled storage screenshots on the Inventory and checks a count against its slot, and <i>A Run</i> reads the barter window, opens the layout book and a layout inside it, corrects an island, and meets a chain the Market cannot start.')
+		]
+	},
+	{
+		date: '2026-09-14',
+		title: TT('A chain that stops short says so, and the coins are counted the way the game pays them'),
+		notes: [
+			TT('<b>A ticked chain that climbs one island of three now says why.</b> It happened quietly before: the run would take the first rung, meet the weight limit, and carry the half-climbed goods home — the coins never arrived and the only sign was a small “1 stops” on a chip. The run writes a line for it now, naming the chain, how far it got, and the exact numbers — <i>the trade at Almai puts on 1,100 LT and the hold has 300 left under the limit</i> — with the pace that would fix it one press away. The chip says <b>1 of 3 islands</b> rather than a bare count.'),
+			TT('<b>Crow Coins are a range, and the barter count is on them.</b> The islands state a range — 90–200, 100–190 — and the app was quoting the bottom of it as though it were the answer. Worse, it knew nothing of the thing the game does next: <b>Total Barters adds a percent to every exchange</b>, five points a five-hundred up to <b>+30%</b> past 2,500. The six bands come out of the client’s own <code>variedtradecount</code> table, so a sailor with four thousand barters behind them is no longer shown a figure a third short of what lands in the purse.')
+		]
+	},
+	{
+		date: '2026-09-13',
+		title: TT('The siren is on the chart, and the community map is read rather than traced'),
+		notes: [
+			TT('<b>The Hollow Maretta</b> — the siren whose song the Great Ocean warns about — is a habitat now, with its portrait from the codex and the thirty-eight spots it is rung at. The codex has an NPC page for it and no position on it, so the places come off gpw’s ocean map, the same sheet Vell’s water came from.'),
+			TT('That map is no longer fitted <i>by hand</i>. It draws the sea monsters’ spawns as well, and those the codex does give us, so <code>tools/read-ocean-map.mjs</code> finds its crosses by their colour, matches them against the points the app already holds and solves for where the picture sits: an exact twenty world units to the pixel, landing within ten units — half a pixel — on 325 marks. The siren’s rings are then read off by their shape, and every one of the thirty-eight comes out on open water, which is the check that the fit is honest.')
+		]
+	},
 	{
 		date: '2026-09-11',
 		title: TT('On a phone the pouch is one line, and the numbers are typed in a sheet'),

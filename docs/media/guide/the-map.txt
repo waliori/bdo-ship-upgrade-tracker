@@ -8,6 +8,7 @@ This toggles the minimap in the corner.
 And this one stands the chart up.
 That is the game's own terrain, read out of your client. Not a picture of it — the real heightmap.
 Shift-drag to lean, and the islands come up out of the water.
+And the world curves away towards the horizon, the way the game's own map does. The pins, the route and your drawings all bend with it.
 Ground paints it in the colours the client ships.
 Neon draws it as contours, the way the game's own world map does.
 And Level looks straight down again, facing north.
@@ -32,7 +33,7 @@ The pen draws a freehand line.
 And the text tool types a note straight onto the water.
 Name it and keep it, and it joins your library. Traces share as links too.
 Grounds is for hunting.
-It lists every species: sea monsters, young ones, ships, bosses and the Cox Pirates.
+It lists every species: sea monsters, young ones, ships, bosses, the Cox Pirates — and the Hollow Maretta, the song the Great Ocean is told to sail away from, with the thirty-eight spots it is rung at.
 Click one, and every spawn point it has goes on the chart.
 Tick as many as you like, and send the lot to the game map.
 Above them are the known sailing courses, each with a note.

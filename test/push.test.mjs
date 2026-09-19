@@ -13,6 +13,7 @@ process.env.NODE_ENV = 'test';
 process.env.LOG_REQUESTS = '0';
 for (const name of ['DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET', 'PUBLIC_URL']) delete process.env[name];
 process.env.TURSO_DATABASE_URL = `file:${path.join(dir, 'tracker.db')}`;
+process.env.UPLOAD_DIR = path.join(dir, 'uploads');
 const keys = webpush.generateVAPIDKeys();
 process.env.VAPID_PUBLIC_KEY = keys.publicKey;
 process.env.VAPID_PRIVATE_KEY = keys.privateKey;
@@ -37,7 +38,7 @@ const AUTH = 'b'.repeat(22);
 const SUB = { endpoint: 'https://fcm.googleapis.com/fcm/send/abc', keys: { p256dh: P256DH, auth: AUTH } };
 
 test('push is offered without Discord, once the keys are set', async () => {
-	assert.deepEqual(await (await call('GET', '/api/config')).json(), { sync: false, push: true, feedback: true, community: false, presence: true });
+	assert.deepEqual(await (await call('GET', '/api/config')).json(), { sync: false, push: true, feedback: true, uploads: true, community: false, presence: true });
 	const key = await (await call('GET', '/api/push/key')).json();
 	assert.equal(key.key, keys.publicKey);
 	assert.deepEqual(key.regions, ['eu', 'na']);

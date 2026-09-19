@@ -5,7 +5,8 @@
 // one -- so the app keeps them by id and shows the effect beside the
 // name. The ranges: Eltro/Serni/Zulatia/Margoria 756501-756780 (four
 // grades, seven stats, ten steps), Rusalka 756821-756827, Ebenruth's
-// Nol 59321 and the Oceanteared Nols 59440-59446. Run with
+// Nol 59321 and the Oceanteared Nols 59440-59446. `lt` is what the
+// crystal itself weighs, which the hold pays for. Run with
 // `node tools/fetch-sea-crystals.mjs`; it is polite to the codex (four
 // at a time) and takes a couple of minutes.
 
@@ -27,7 +28,12 @@ const strip = s => unescape(s.replace(/<[^>]+>/g, '\n')).split('\n').map(l => l.
 async function fetchOne(id) {
 	const res = await fetch(`https://bdocodex.com/us/item/${id}/`, { headers: { 'User-Agent': UA } });
 	if (!res.ok) throw new Error(`${id}: HTTP ${res.status}`);
-	const lines = strip(await res.text());
+	const html = await res.text();
+	// What the crystal weighs in itself: the hold pays it like any other
+	// thing bolted on. Every one of them is 1 LT, but it is read rather
+	// than assumed, the same as everything else here.
+	const lt = Number((/Weight:\s*([\d.,]+)\s*LT/.exec(html) || [])[1] || 0);
+	const lines = strip(html);
 	const name = (lines.find(l => l.endsWith(' - BDO Codex')) || '').replace(/ - BDO Codex$/, '');
 	const effects = [];
 	// "- Effect", "- Effect:" or "- Effects:", then the lines until the
@@ -42,7 +48,7 @@ async function fetchOne(id) {
 	const usage = (lines.find(l => l.startsWith('- Usage')) || '').replace(/^- Usage:?\s*/, '');
 	const grade = /Rusalka/.test(name) ? 'rusalka' : /Margoria/.test(name) ? 'margoria' : /Zulatia/.test(name) ? 'zulatia'
 		: /Serni/.test(name) ? 'serni' : /Eltro/.test(name) ? 'eltro' : /Nol/.test(name) ? 'nol' : 'other';
-	return { id, name, grade, effects: [...new Set(effects)], usage };
+	return { id, name, grade, lt, effects: [...new Set(effects)], usage };
 }
 
 const out = [];
@@ -62,7 +68,7 @@ async function worker() {
 await Promise.all([worker(), worker(), worker(), worker()]);
 out.sort((a, b) => a.id - b.id);
 
-const body = out.map(c => `\t{ id: ${c.id}, name: ${JSON.stringify(c.name)}, grade: '${c.grade}', effects: ${JSON.stringify(c.effects)}${c.usage ? `, usage: ${JSON.stringify(c.usage)}` : ''} }`).join(',\n');
+const body = out.map(c => `\t{ id: ${c.id}, name: ${JSON.stringify(c.name)}, grade: '${c.grade}', lt: ${c.lt}, effects: ${JSON.stringify(c.effects)}${c.usage ? `, usage: ${JSON.stringify(c.usage)}` : ''} }`).join(',\n');
 const file = `// Every sea crystal a ship can carry, and the Nols, read off BDOCodex
 // on ${new Date().toISOString().slice(0, 10)} by tools/fetch-sea-crystals.mjs. One entry per
 // codex id: a name is a grade, an id is one effect at one value.

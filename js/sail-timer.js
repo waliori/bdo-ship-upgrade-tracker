@@ -576,10 +576,11 @@ export function timerHTML({ suggest = 0, label = '', marks = [] } = {}) {
 		? `<span class="sail-timer-modes" role="group" aria-label="${T('What chimes')}">${MARK_CHOICES.map(([id, text, why]) => `<button class="chip tiny${mode === id ? ' active' : ''}" data-act="barter-timer-marks" data-id="${id}" title="${esc(said(why))}">${esc(said(text))}</button>`).join('')}</span>`
 		: '';
 	if (!t) {
-		const mins = suggest > 0 ? Math.max(1, Math.round(suggest / 60)) : 0;
+		// The estimate as a sailor reads it: a three-hour run said "354 m"
+		// before this, which is a number rather than a time.
 		const stops = marks.length ? ` · ${marks.length === 1 ? T('{n} stop', { n: marks.length }) : T('{n} stops', { n: marks.length })}` : '';
-		const run = mins
-			? `<button class="chip tiny primary" data-act="barter-timer-start" data-secs="${Math.round(suggest)}" data-label="${esc(label)}" data-marks="${esc(JSON.stringify(marks))}" title="${marks.length ? T('Start the clock at this run\'s own estimate, chiming at every stop on the way') : T('Start the clock at this run\'s own estimate')}">⏱ ${T('start')} · ≈ ${T('{n} m', { n: mins })}${stops}</button>`
+		const run = suggest > 0
+			? `<button class="chip tiny primary" data-act="barter-timer-start" data-secs="${Math.round(suggest)}" data-label="${esc(label)}" data-marks="${esc(JSON.stringify(marks))}" title="${marks.length ? T('Start the clock at this run\'s own estimate, chiming at every stop on the way') : T('Start the clock at this run\'s own estimate')}">⏱ ${T('start')} · ≈ ${esc(spanText(suggest))}${stops}</button>`
 			: '';
 		// Nothing to start when there is no run in hand: the clock is the
 		// run's own, not a kitchen timer.

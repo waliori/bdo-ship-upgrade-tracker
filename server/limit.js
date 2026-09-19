@@ -19,7 +19,7 @@ const WINDOW_MS = 60_000;
  * push fails, so a browser behaving itself never comes close. This is
  * here for one that is not.
  */
-export function perAccount(max) {
+export function perAccount(max, message = 'That is a lot of saving. Your data is safe here; try again shortly.') {
 	const seen = new Map();   // userId -> { count, until }
 
 	// Old entries are dropped as they are met, but an account that pushed
@@ -40,9 +40,7 @@ export function perAccount(max) {
 		if (++bucket.count > max) {
 			const retry = Math.ceil((bucket.until - now) / 1000);
 			res.set('Retry-After', String(retry));
-			return res.status(429).json({
-				error: 'That is a lot of saving. Your data is safe here; try again shortly.'
-			});
+			return res.status(429).json({ error: message });
 		}
 		next();
 	};

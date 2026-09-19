@@ -11,6 +11,7 @@ import { config } from './config.js';
 import { getUser, deleteAccount } from './db.js';
 import { isAdmin } from './feedback.js';
 import { communityRoutes, ensureOnBoards, leaveBoards } from './community.js';
+import { boardRoutes } from './boards.js';
 import { readSave, writeSaveFor, forget } from './saves.js';
 import { sessionUser, requireUser, endSession } from './session.js';
 import { perAccount } from './limit.js';
@@ -119,6 +120,9 @@ export function apiRoutes() {
 	}));
 
 	router.use(communityRoutes());
+	// What the sea is showing today, as the fleet saw it: the one thing
+	// in this app that is genuinely common property.
+	router.use(boardRoutes());
 
 	/** The stored save. `rev` 0 with no data means "nothing synced yet",
 	 *  which the client needs to tell apart from an empty inventory.

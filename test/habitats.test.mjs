@@ -50,13 +50,12 @@ test('a ground that rings an island is marked on the water beside it', () => {
 	assert.ok(ring.some(([x, y]) => x === wet.x && y === wet.y), 'to one of its own spawn points');
 });
 
-test('the species the codex has no points for are marked by hand, roughly', () => {
+test('a species is marked where the game marks it, and Khan alone by hand', () => {
 	const croc = monsters.find(m => m.key === 'saltwater-crocodile');
-	assert.ok(croc.zones && croc.approx, 'north of Cheongsa, approximate');
-	// The zone is the game map's own habitat icon, read off the drawing
-	// the nine bookmarks of 2026-09-05 were set on; the points around it
-	// are Salty's croc map fitted to those bookmarks.
-	assert.ok(croc.zones[0][1] < 18000 && Math.abs(croc.zones[0][0] - 32643) < 1000, 'the crocodiles sit north of Cheongsa');
+	assert.ok(croc.zones && !croc.approx, 'north of Cheongsa, on the client’s own icon');
+	// The marker is the client's world-map icon; the points around it are
+	// Salty's croc map fitted to the nine bookmarks of 2026-09-05.
+	assert.deepEqual(croc.zones, [[32649, 14612]], 'the crocodiles sit where the game draws them');
 	assert.equal(croc.points.length, 54, 'the croc map, spot by spot');
 	assert.equal(croc.points.reduce((a, p) => a + p[2], 0), 125, 'a hundred and twenty-five crocodiles');
 	// The nine bookmarks ring the ground: every spot within two
@@ -66,11 +65,24 @@ test('the species the codex has no points for are marked by hand, roughly', () =
 	const khan = monsters.find(m => m.key === 'khan');
 	assert.ok(khan.zones && khan.approx && Math.hypot(khan.zones[0][0] - 65006, khan.zones[0][1] - 48051) < 4000, 'Khan stands off Oquilla’s Eye');
 	const vell = monsters.find(m => m.key === 'vell');
-	assert.ok(vell.zones && vell.approx && vell.kind === 'boss', 'Vell is marked, roughly, as a boss');
+	assert.ok(vell.zones && !vell.approx && vell.kind === 'boss', 'Vell is marked where the client marks it');
+	assert.deepEqual(vell.zones, [[64504, 34312]], 'the game’s own icon, not the old guess off a community map');
+	// Khan is the only marker still placed by hand.
+	assert.ok(monsters.filter(m => m.approx).map(m => m.key).join() === 'khan', 'nothing else is a guess');
 	for (const m of monsters) {
-		if (['saltwater-crocodile', 'khan', 'vell'].includes(m.key)) continue;
-		assert.ok(!m.zones, `${m.key} is marked by its spawns, not a hand-placed zone`);
+		if (m.zones) continue;
 		assert.ok(m.points.length > 0, `${m.key} has spawn points`);
+	}
+	// Every ground the client marks is on the water, and a species with no
+	// spawn points anywhere has one, or it would be a name and no place.
+	for (const m of monsters) {
+		for (const [x, y] of m.zones || []) assert.ok(openSea(x, y), `${m.key} is marked on land at ${x},${y}`);
+		assert.ok(m.points.length || m.zones, `${m.key} is somewhere`);
+	}
+	// The grounds the client marks and the codex has no spawns for.
+	for (const key of ['margoria-ghost-ship', 'cursed-pirate-ship']) {
+		const m = monsters.find(m => m.key === key);
+		assert.ok(m && m.zones && !m.points.length, `${key} is a marker and nothing else`);
 	}
 	const ly = monsters.find(m => m.key === 'lyngbakr');
 	assert.equal(ly.points.length, 12, 'the twelve positions bookmarked in game');
@@ -92,4 +104,17 @@ test('a habitat carries the outline round its spawns, so the chart can fill it',
 	for (const m of monsters.filter(m => m.points.length > 2)) {
 		for (const c of habitatsOf(m.points)) assert.ok(c.hull.length >= 1, `${m.name} has an outline`);
 	}
+});
+
+test('the Hollow Maretta is rung where the community map rings it', () => {
+	const siren = monsters.find(m => m.key === 'hollow-maretta');
+	assert.ok(siren && siren.kind === 'boss' && !siren.zones, 'a boss marked by its own spots');
+	assert.equal(siren.points.length, 38, 'the thirty-eight rings on gpw’s map');
+	assert.ok(monsterArt['hollow-maretta'], 'with the codex\'s portrait of it');
+	// Margoria and the Great Ocean, nowhere near the coasts.
+	assert.ok(siren.points.every(([x, y]) => x > 9000 && x < 80000 && y > 9000 && y < 71000), 'out in the ocean');
+	// The fit that put them there is only believable if they all land on
+	// water: 38 rings dropped on a chart they did not come from would not.
+	for (const [x, y] of siren.points) assert.ok(openSea(x, y), `the siren at ${x},${y} is on land`);
+	assert.equal(habitatsOf(siren.points, { onWater: openSea }).length, 1, 'one water, the whole Great Ocean');
 });

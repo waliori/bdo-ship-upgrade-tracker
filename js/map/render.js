@@ -3,6 +3,7 @@
 // and the redraws of the panel alone.
 
 import { courses } from '../courses.js';
+import { questIcon } from '../quest_icons.js';
 import { monsters } from '../sea_monsters.js';
 import { esc, F } from '../fmt.js';
 import { T, gameName, said } from '../i18n.js';
@@ -20,6 +21,7 @@ import { marksNow, barterKind, goodsOf } from './marks.js';
 import { countPinned, pinButtonsHTML } from './offline.js';
 import { terrainStyle } from './terrain.js';
 import { routeHTML } from './route.js';
+import { errandsHTML } from './errands.js';
 import { traceHTML } from './trace.js';
 
 /** Vell's next spawn on the standing region's timetable, or null. */
@@ -58,6 +60,8 @@ function huntHTML() {
 				<span class="map-row-main"><span class="map-row-name">${esc(gameName(m.name))}</span>
 					<span class="map-row-sub">${m.points.length ? (m.points.length === 1 ? T('{n} spawn point', { n: m.points.length }) : T('{n} spawn points', { n: m.points.length })) : m.zones ? T('the habitat marker; no spawn points on the codex yet') : T('ground not charted yet')}${qs.length
 						? ' · ' + qs.map(q => gameName(q.name).replace(/^\[(Daily|Weekly)\] /, '')).join(', ') : ''}</span>
+					${qs.length ? `<span class="map-row-quests">${qs.map(q => questIcon(q)
+						? `<img class="quest-pip" src="${esc(questIcon(q))}" alt="" title="${esc(gameName(q.name))}" loading="lazy">` : '').join('')}</span>` : ''}
 					${m.note ? `<span class="map-row-sub note">${esc(said(m.note))}</span>` : ''}</span>
 			</button>`;
 		}).join('');
@@ -67,8 +71,9 @@ function huntHTML() {
 		<button class="ghost-btn wide" data-act="map-hunt-game"
 			title="${T("Write what is ticked here into the game's world map")}">⚑ ${picked === 1 ? T("Put it on the game's map") : T("Put these on the game's map")}</button>
 	</div>` : '';
-	return `<div class="map-courses">
-		<div class="map-courses-head">${T('Courses')} <span class="map-courses-credit">${T('from gpw’s ocean map (Snuggle Sailies Route)')}</span></div>
+	return `${errandsHTML()}
+	<div class="map-courses">
+		<div class="map-courses-head">${T('Courses')} <span class="map-courses-credit">${T('the Snuggle Sailies Route, from gpw’s ocean map')}</span></div>
 		${courseRows}
 	</div>
 	<div class="map-courses">

@@ -305,11 +305,80 @@ export const MIGRATIONS = [
 			// subscribe -- so the default says so.
 			await run('ALTER TABLE push_subs ADD COLUMN vell INTEGER NOT NULL DEFAULT 1');
 		}
+	},
+	{
+		version: 7,
+		up: async run => {
+			// How the words of an entry are to be read. Everything sent
+			// from now on is the small markup in js/markup.js; everything
+			// already in the table was typed as plain words, and an
+			// asterisk somebody wrote last month must not turn into
+			// emphasis because this shipped. So the old rows keep the
+			// default and are rendered as what they were.
+			await run("ALTER TABLE feedback ADD COLUMN format TEXT NOT NULL DEFAULT 'plain'");
+			// The screenshots sent with a report. The bytes are on disk
+			// (config.uploadDir); this is the part that has to be asked
+			// questions -- whose it is, which entry it belongs to, and
+			// whether it was ever attached to one at all. A row with no
+			// entry is an upload still being composed, and is swept if
+			// the report is never sent.
+			await run(`CREATE TABLE IF NOT EXISTS feedback_files (
+				id          TEXT PRIMARY KEY,
+				user_id     TEXT NOT NULL,
+				feedback_id INTEGER,
+				mime        TEXT NOT NULL,
+				bytes       INTEGER NOT NULL,
+				width       INTEGER,
+				height      INTEGER,
+				name        TEXT,
+				created_at  INTEGER NOT NULL
+			)`);
+			// The two questions asked of it: what does this entry carry,
+			// and what is this account still holding unattached.
+			await run('CREATE INDEX IF NOT EXISTS feedback_files_entry ON feedback_files (feedback_id)');
+			await run('CREATE INDEX IF NOT EXISTS feedback_files_owner ON feedback_files (user_id, feedback_id)');
+		}
+	},
+	{
+		version: 8,
+		up: async run => {
+			// What the sea was showing today, as somebody saw it. The
+			// board is the same for everyone on a server and is redrawn
+			// at the refill, so one player's reading is worth having to
+			// all of them -- with their name on it, because that is the
+			// whole of the arrangement: somebody went and looked.
+			//
+			// `offers` is the reading itself, as JSON: island, what it
+			// takes, how many, what it pays. The server never asks what
+			// any of that means; the browser has the tables.
+			await run(`CREATE TABLE IF NOT EXISTS barter_boards (
+				id          INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				day         TEXT NOT NULL,
+				layout      TEXT,
+				offers      TEXT NOT NULL,
+				created_at  INTEGER NOT NULL,
+				seen        INTEGER NOT NULL DEFAULT 0,
+				hidden      INTEGER NOT NULL DEFAULT 0
+			)`);
+			// Who else saw the same board. Once an account, so a count
+			// of confirmations means what it says.
+			await run(`CREATE TABLE IF NOT EXISTS barter_board_seen (
+				board_id    INTEGER NOT NULL REFERENCES barter_boards(id) ON DELETE CASCADE,
+				user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				at          INTEGER NOT NULL,
+				PRIMARY KEY (board_id, user_id)
+			)`);
+			// The two questions: what has been seen lately, and has this
+			// account already told us about today.
+			await run('CREATE INDEX IF NOT EXISTS barter_boards_when ON barter_boards (created_at)');
+			await run('CREATE INDEX IF NOT EXISTS barter_boards_owner ON barter_boards (user_id, day)');
+		}
 	}
 ];
 
 /** The data tables, in the order a restore has to write them (parents first). */
-export const TABLES = ['users', 'saves', 'push_subs', 'push_alerts', 'feedback', 'community', 'presence'];
+export const TABLES = ['users', 'saves', 'push_subs', 'push_alerts', 'feedback', 'feedback_files', 'community', 'presence', 'barter_boards', 'barter_board_seen'];
 
 /**
  * Bring the database up to the newest version. Safe to run any number
@@ -596,29 +665,62 @@ export async function deleteAccount(userId) {
  * Feedback
  * ------------------------------------------------------------------ */
 
-export async function insertFeedback({ userId, username, kind, text, page, contact, version, agent }) {
+export async function insertFeedback({ userId, username, kind, text, format, page, contact, version, agent }) {
 	await migrate();
 	const { lastInsertRowid } = await exec({
-		sql: `INSERT INTO feedback (user_id, username, kind, text, page, contact, version, agent, status, created_at)
-		      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`,
-		args: [userId ?? null, username ?? null, kind, text, page ?? null, contact ?? null, version ?? null, agent ?? null, Date.now()]
+		sql: `INSERT INTO feedback (user_id, username, kind, text, format, page, contact, version, agent, status, created_at)
+		      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`,
+		args: [userId ?? null, username ?? null, kind, text, format || 'plain', page ?? null, contact ?? null, version ?? null, agent ?? null, Date.now()]
 	});
 	return Number(lastInsertRowid);
 }
 
-/** The newest entries, open ones first. */
+const entryOf = r => ({
+	id: Number(r.id), userId: r.user_id || null, username: r.username || null, kind: r.kind, text: r.text,
+	format: r.format || 'plain',
+	page: r.page || null, contact: r.contact || null, version: r.version || null, agent: r.agent || null,
+	status: r.status, createdAt: Number(r.created_at), files: []
+});
+
+/** The newest entries, open ones first, each with its screenshots. */
 export async function listFeedback(limit = 200) {
 	await migrate();
 	const { rows } = await exec({
-		sql: `SELECT id, user_id, username, kind, text, page, contact, version, agent, status, created_at
+		sql: `SELECT id, user_id, username, kind, text, format, page, contact, version, agent, status, created_at
 		      FROM feedback ORDER BY (status = 'open') DESC, created_at DESC LIMIT ?`,
 		args: [limit]
 	});
-	return rows.map(r => ({
-		id: Number(r.id), userId: r.user_id || null, username: r.username || null, kind: r.kind, text: r.text,
-		page: r.page || null, contact: r.contact || null, version: r.version || null, agent: r.agent || null,
-		status: r.status, createdAt: Number(r.created_at)
-	}));
+	const entries = rows.map(entryOf);
+	if (!entries.length) return entries;
+
+	// One more query for every picture of every entry on the page,
+	// rather than one query per entry: the inbox is two hundred rows at
+	// most and Turso is a round trip away.
+	const by = new Map(entries.map(e => [e.id, e]));
+	const { rows: files } = await exec({
+		sql: `SELECT id, feedback_id, mime, bytes, width, height, name
+		      FROM feedback_files WHERE feedback_id IN (${entries.map(() => '?').join(', ')})
+		      ORDER BY created_at`,
+		args: entries.map(e => e.id)
+	});
+	for (const f of files) {
+		const entry = by.get(Number(f.feedback_id));
+		if (entry) entry.files.push(fileOf(f));
+	}
+	return entries;
+}
+
+/**
+ * Is this entry one anybody may read?
+ *
+ * Asked by the route that serves a screenshot: a picture is as public
+ * as the report it was sent with, so an entry hidden by an admin -- or
+ * one already thrown away -- takes its pictures out of sight with it.
+ */
+export async function feedbackShown(id) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT status FROM feedback WHERE id = ?', args: [id] });
+	return Boolean(rows[0]) && rows[0].status !== 'hidden';
 }
 
 export async function setFeedbackStatus(id, status) {
@@ -626,10 +728,119 @@ export async function setFeedbackStatus(id, status) {
 	await exec({ sql: 'UPDATE feedback SET status = ? WHERE id = ?', args: [status, id] });
 }
 
+/** An entry and the rows for its pictures, gone. The files themselves
+ *  are the caller's to unlink -- this file does not touch the disk. */
+export async function deleteFeedback(id) {
+	await migrate();
+	const { rows } = await exec({
+		sql: 'SELECT id, mime FROM feedback_files WHERE feedback_id = ?',
+		args: [id]
+	});
+	await exec({ sql: 'DELETE FROM feedback_files WHERE feedback_id = ?', args: [id] });
+	await exec({ sql: 'DELETE FROM feedback WHERE id = ?', args: [id] });
+	return rows.map(r => ({ id: String(r.id), mime: r.mime }));
+}
+
 export async function countFeedback(status = 'open') {
 	await migrate();
 	const { rows } = await exec({ sql: 'SELECT COUNT(*) AS n FROM feedback WHERE status = ?', args: [status] });
 	return Number(rows[0] && rows[0].n) || 0;
+}
+
+/**
+ * What one account has sent lately: how many are still open, how many
+ * in the last day, and when the last one was.
+ *
+ * One query, because it is asked on the way in to every send and the
+ * three answers are three ceilings on the same table.
+ */
+export async function feedbackStanding(userId, since) {
+	await migrate();
+	const { rows } = await exec({
+		sql: `SELECT
+		        SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) AS open,
+		        SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) AS lately,
+		        MAX(created_at) AS last
+		      FROM feedback WHERE user_id = ?`,
+		args: [since, userId]
+	});
+	const r = rows[0] || {};
+	return { open: Number(r.open) || 0, lately: Number(r.lately) || 0, last: Number(r.last) || 0 };
+}
+
+/* ------------------------------------------------------------------ *
+ * The pictures sent with them
+ * ------------------------------------------------------------------ */
+
+const fileOf = r => ({
+	id: String(r.id), mime: r.mime, bytes: Number(r.bytes),
+	width: r.width === null ? null : Number(r.width),
+	height: r.height === null ? null : Number(r.height),
+	name: r.name || null,
+	...(r.user_id === undefined ? {} : { userId: r.user_id, feedbackId: r.feedback_id === null ? null : Number(r.feedback_id) })
+});
+
+export async function insertFile({ id, userId, mime, bytes, width, height, name }) {
+	await migrate();
+	await exec({
+		sql: `INSERT INTO feedback_files (id, user_id, feedback_id, mime, bytes, width, height, name, created_at)
+		      VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?)`,
+		args: [id, userId, mime, bytes, width ?? null, height ?? null, name ?? null, Date.now()]
+	});
+}
+
+/** One picture, with who owns it and what it hangs on. */
+export async function getFile(id) {
+	await migrate();
+	const { rows } = await exec({
+		sql: 'SELECT id, user_id, feedback_id, mime, bytes, width, height, name FROM feedback_files WHERE id = ?',
+		args: [id]
+	});
+	return rows[0] ? fileOf(rows[0]) : null;
+}
+
+/** The pictures this account has uploaded and not yet sent with anything. */
+export async function pendingFiles(userId) {
+	await migrate();
+	const { rows } = await exec({
+		sql: `SELECT id, user_id, feedback_id, mime, bytes, width, height, name
+		      FROM feedback_files WHERE user_id = ? AND feedback_id IS NULL ORDER BY created_at`,
+		args: [userId]
+	});
+	return rows.map(fileOf);
+}
+
+/**
+ * Hang a set of pending pictures on an entry.
+ *
+ * The owner is in the WHERE clause and so is "not already attached":
+ * an id that belongs to somebody else, or that has already been sent
+ * with another report, is silently not attached rather than moved.
+ */
+export async function attachFiles(ids, feedbackId, userId) {
+	if (!ids.length) return 0;
+	await migrate();
+	const { rowsAffected } = await exec({
+		sql: `UPDATE feedback_files SET feedback_id = ?
+		      WHERE user_id = ? AND feedback_id IS NULL AND id IN (${ids.map(() => '?').join(', ')})`,
+		args: [feedbackId, userId, ...ids]
+	});
+	return Number(rowsAffected) || 0;
+}
+
+export async function deleteFile(id) {
+	await migrate();
+	await exec({ sql: 'DELETE FROM feedback_files WHERE id = ?', args: [id] });
+}
+
+/** Uploads nobody ever sent, older than `before`. Swept on a timer. */
+export async function staleFiles(before) {
+	await migrate();
+	const { rows } = await exec({
+		sql: 'SELECT id, mime FROM feedback_files WHERE feedback_id IS NULL AND created_at < ?',
+		args: [before]
+	});
+	return rows.map(r => ({ id: String(r.id), mime: r.mime }));
 }
 
 /* ------------------------------------------------------------------ *
@@ -711,4 +922,115 @@ export async function countCommunity() {
 	await migrate();
 	const { rows } = await exec('SELECT COUNT(*) AS n FROM community');
 	return Number(rows[0] && rows[0].n) || 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Today's board, as the fleet saw it
+ * ------------------------------------------------------------------ */
+
+const sightingOf = r => ({
+	id: Number(r.id),
+	userId: r.user_id,
+	day: r.day,
+	layout: r.layout || null,
+	offers: safeJSON(r.offers),
+	at: Number(r.created_at),
+	seen: Number(r.seen || 0),
+	// A name only where the account is shown by name on the boards. An
+	// account that is anonymous there is anonymous here: the same
+	// choice, honoured in both places.
+	name: r.share === 'named' ? r.username || null : null
+});
+
+function safeJSON(text) {
+	try {
+		const out = JSON.parse(text);
+		return Array.isArray(out) ? out : [];
+	} catch {
+		return [];
+	}
+}
+
+/** The sightings of the last few days, newest first. */
+export async function listSightings(since, limit = 200) {
+	await migrate();
+	const { rows } = await exec({
+		sql: `SELECT b.id, b.user_id, b.day, b.layout, b.offers, b.created_at, b.seen, u.username, c.share
+		      FROM barter_boards b
+		      LEFT JOIN users u ON u.id = b.user_id
+		      LEFT JOIN community c ON c.user_id = b.user_id
+		      WHERE b.created_at >= ? AND b.hidden = 0
+		      ORDER BY b.created_at DESC LIMIT ?`,
+		args: [since, limit]
+	});
+	return rows.map(sightingOf);
+}
+
+/** What this account has already said about a day, if anything. */
+export async function getSighting(userId, day) {
+	await migrate();
+	const { rows } = await exec({
+		sql: 'SELECT id, user_id, day, layout, offers, created_at, seen FROM barter_boards WHERE user_id = ? AND day = ? AND hidden = 0',
+		args: [userId, day]
+	});
+	return rows[0] ? sightingOf(rows[0]) : null;
+}
+
+/** One sighting, whoever sent it. */
+export async function getSightingById(id) {
+	await migrate();
+	const { rows } = await exec({
+		sql: 'SELECT id, user_id, day, layout, offers, created_at, seen, hidden FROM barter_boards WHERE id = ?',
+		args: [id]
+	});
+	return rows[0] ? { ...sightingOf(rows[0]), hidden: Boolean(Number(rows[0].hidden)) } : null;
+}
+
+/** `at` is when it was seen: now, except to a test that needs an old one. */
+export async function insertSighting(userId, { day, layout, offers }, at = Date.now()) {
+	await migrate();
+	const { lastInsertRowid } = await exec({
+		sql: 'INSERT INTO barter_boards (user_id, day, layout, offers, created_at, seen, hidden) VALUES (?, ?, ?, ?, ?, 0, 0)',
+		args: [userId, day, layout ?? null, JSON.stringify(offers), at]
+	});
+	return Number(lastInsertRowid);
+}
+
+export async function updateSighting(id, { layout, offers }) {
+	await migrate();
+	await exec({
+		sql: 'UPDATE barter_boards SET offers = ?, layout = ?, created_at = ? WHERE id = ?',
+		args: [JSON.stringify(offers), layout ?? null, Date.now(), id]
+	});
+}
+
+export async function hideSighting(id) {
+	await migrate();
+	await exec({ sql: 'UPDATE barter_boards SET hidden = 1 WHERE id = ?', args: [id] });
+}
+
+/** Which sightings this account has said it saw too. */
+export async function sightingsConfirmedBy(userId) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT board_id FROM barter_board_seen WHERE user_id = ?', args: [userId] });
+	return rows.map(r => Number(r.board_id));
+}
+
+/** Somebody else saw the same board. Counted once an account, which is
+ *  what makes the number mean anything. */
+export async function confirmSighting(id, userId) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT 1 FROM barter_board_seen WHERE board_id = ? AND user_id = ?', args: [id, userId] });
+	if (rows[0]) return false;
+	await exec({ sql: 'INSERT INTO barter_board_seen (board_id, user_id, at) VALUES (?, ?, ?)', args: [id, userId, Date.now()] });
+	await exec({ sql: 'UPDATE barter_boards SET seen = seen + 1 WHERE id = ?', args: [id] });
+	return true;
+}
+
+/** Sightings older than the boards they describe. */
+export async function sweepSightings(before) {
+	await migrate();
+	await exec({ sql: 'DELETE FROM barter_board_seen WHERE board_id IN (SELECT id FROM barter_boards WHERE created_at < ?)', args: [before] });
+	const { rowsAffected } = await exec({ sql: 'DELETE FROM barter_boards WHERE created_at < ?', args: [before] });
+	return Number(rowsAffected || 0);
 }

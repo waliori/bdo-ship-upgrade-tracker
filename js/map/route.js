@@ -3,8 +3,8 @@
 // a route in a link and a route as a file.
 
 import { esc, F, FC } from '../fmt.js';
-import { T, gameName } from '../i18n.js';
-import { currentShip } from '../ship.js';
+import { T, gameName, said } from '../i18n.js';
+import { currentShip, aboardWhat } from '../ship.js';
 import { img } from '../ui-bits.js';
 import { npcById, ports } from '../barter_npcs.js';
 import { nearestWharf } from '../wharves.js';
@@ -156,7 +156,7 @@ export function routeHTML(marks) {
 	// aboard, and how many goods of each level that is. A route is only
 	// as long as the deck allows.
 	const hold = `<div><div class="summary-k">${T('Hold')}</div><div class="summary-v">${F(me.hold.limit)} LT</div>
-				<div class="summary-sub">${T('the limit, as fitted')}${me.hold.crew ? ` · ${T('{lt} of it crew', { lt: F(me.hold.crew) })}` : ''} · ${T('{n} of Lv4–5', { n: Math.floor(me.hold.free / GOODS[5].weight) })} · ${T('{n} of Lv6–7 a run', { n: Math.floor(me.hold.free / GOODS[6].weight) })} · ${T('sails slower to {lt}, by the chart\'s estimate', { lt: F(me.hold.max) })}</div></div>`;
+				<div class="summary-sub">${T('the limit, as fitted')}${me.hold.aboard ? ` · ${T('{lt} of it {what}', { lt: F(me.hold.aboard), what: said(aboardWhat(me.hold)) })}` : ''} · ${T('{n} of Lv4–5', { n: Math.floor(me.hold.free / GOODS[5].weight) })} · ${T('{n} of Lv6–7 a run', { n: Math.floor(me.hold.free / GOODS[6].weight) })} · ${T('sails slower to {lt}, by the chart\'s estimate', { lt: F(me.hold.max) })}</div></div>`;
 	const rationsTile = rationsTileHTML(me, rations, legList, lowRow, rRate, rMeasured);
 	const total = pathLength(world);
 	const lastStop = npcById.get(mv.stops[mv.stops.length - 1]);

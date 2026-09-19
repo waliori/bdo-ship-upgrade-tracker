@@ -6,6 +6,8 @@
 import { open, seed, tab, click, clickIn, drag, moveTo, typeInto, wait, waitFor } from './drive.mjs';
 import { midBuild, readyToCraft, recordLevel, fittedShip, emptyStart, onePartToGo } from './states.mjs';
 import { fakeCommunity, FLEET } from './fleet.mjs';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
 const OUT = process.argv[2];
 const only = process.argv.slice(3);
@@ -31,7 +33,363 @@ const rec = async (page, name, body) => {
 	console.log(`  → ${name}.webm`);
 };
 
+/**
+ * Today's board, named. A layout is only known once an island or two
+ * has been looked at, and nothing on the Barter tab exists before it
+ * is -- so every scene that wants chains starts by answering it. Done
+ * before the recording starts: it is setup, not a thing to watch.
+ */
+/** Put one panel at the top of the frame, so the clip is of the thing
+ *  and not of the whole page with the thing somewhere in it. */
+async function frame(page, sel, { top = 16 } = {}) {
+	await page.evaluate((s, t) => {
+		const el = document.querySelector(s);
+		if (el) window.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + window.scrollY - t));
+	}, sel, top);
+	await wait(500);
+}
+
+async function nameTheBoard(page, upTo = 6) {
+	for (let i = 0; i < upTo; i++) {
+		const ask = await page.$('[data-act="barter-board-ask"]');
+		if (!ask) return;
+		await ask.click();
+		await wait(700);
+		const row = await page.$('.picker-row');
+		if (!row) return;
+		await row.click();
+		await wait(1500);
+	}
+}
+
+/**
+ * A server the 1.4 scenes need and a machine shooting a clip has not
+ * got: a fleet that has read today's board, and a Central Market with
+ * some shelves bare. Answered inside the page, like the community's in
+ * fleet.mjs, and for the same reason said the same way -- these two
+ * clips are staged, and the README says so where they appear. A scene
+ * that uses it opens a browser of its own, so the fakery cannot leak
+ * into the scene shot after it.
+ */
+async function fakeSea(page, { boards = [], bare = null } = {}) {
+	await page.evaluateOnNewDocument(A => {
+		const real = window.fetch.bind(window);
+		const json = body => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+		window.fetch = (input, init = {}) => {
+			const href = typeof input === 'string' ? input : input.url;
+			let at;
+			try { at = new URL(href, location.href); } catch { return real(input, init); }
+			if (at.pathname === '/api/config') return Promise.resolve(json({ sync: true }));
+			if (at.pathname === '/api/me') return Promise.resolve(json({ signedIn: false }));
+			if (at.pathname === '/api/boards') {
+				return import('/js/clock.js').then(m => json({ boards: A.boards.map(b => ({ ...b, day: b.day === 'today' ? m.barterKey() : b.day })) }));
+			}
+			if (at.pathname === '/api/market' && A.bare !== null) {
+				const prices = {};
+				(at.searchParams.get('ids') || '').split(',').filter(Boolean).forEach((id, i) => {
+					prices[id] = { price: 1800 + (i * 37) % 900, base: 1800, stock: i % A.bare === 0 ? 0 : 40000 + i * 13, at: Date.now() };
+				});
+				return Promise.resolve(json({ region: 'na', at: Date.now(), prices, failed: 0 }));
+			}
+			return real(input, init);
+		};
+	}, { boards, bare });
+}
+
+/** What the fleet is said to have read: layout 16 with two slots moved,
+ *  seen today by two sailors, and a handful of older readings. */
+function fleetReadings() {
+	const combos = JSON.parse(readFileSync(new URL('../../js/barter_combos.json', import.meta.url), 'utf8')).combos;
+	const of = id => combos.find(c => c.id === id).offers;
+	const moved = of('16').slice(0, 26).map(o => [...o]);
+	for (const [i, from] of [[3, '20'], [9, '5']]) {
+		const o = of(from).find(x => x[0] === moved[i][0]);
+		moved[i] = [moved[i][0], o[1], '1', o[3]];
+	}
+	const reading = (id, day, offers, name, seen) => ({ id, day, layout: null, offers, at: 100 - id, seen, name, mine: false, confirmed: false });
+	return [
+		reading(1, 'today', moved, 'Ahab', 4),
+		reading(2, 'today', moved.slice(8, 20), null, 1),
+		reading(3, '2026-09-15', of('7').slice(0, 30), 'Queequeg', 2),
+		reading(4, '2026-09-12', of('7').slice(10, 22), 'Starbuck', 0),
+		reading(5, '2026-09-10', of('23').slice(0, 40), 'Ishmael', 6),
+		reading(6, '2026-09-08', of('31').slice(0, 25), 'Pip', 1)
+	];
+}
+
+const shot = name => path.resolve(`tools/capture/shots/${name}`);
+
 const scenes = {
+	/* 1.4 — a storage read off the screenshots of it: two screenfuls,
+	 * scrolled between, the row they share counted once. The reading
+	 * itself is ten seconds of nothing to watch, so the tape starts when
+	 * the table is up. */
+	async 'read-a-storage'({ page, url }) {
+		// A narrow window, so the dialog is the frame: the subject is a
+		// column of small pictures, and at full width they are specks once
+		// the clip is cut to what the What's New dialog serves.
+		await page.setViewport({ width: 880, height: 680, deviceScaleFactor: 1 });
+		await seed(page, url, fittedShip);
+		await tab(page, 'inventory');
+		await click(page, '[data-act="inv-shot"]', { after: 900 });
+		const input = await page.$('#dialog input[type=file]');
+		await input.uploadFile(shot('storage-1.webp'), shot('storage-2.webp'));
+		await waitFor(page, '.shot-table', { upTo: 180000, then: 900 });
+		await rec(page, 'read-a-storage', async () => {
+			await wait(900);
+			await moveTo(page, '.shot-table tbody tr:nth-child(3) .shot-corner');
+			await wait(1300);
+			await page.evaluate(() => document.querySelector('.shot-table-wrap').scrollTo({ top: 520, behavior: 'smooth' }));
+			await wait(2000);
+			await page.evaluate(() => document.querySelector('.shot-table-wrap').scrollTo({ top: 1500, behavior: 'smooth' }));
+			await wait(2000);
+			await moveTo(page, '#dialog .dialog-note.quiet');
+			await wait(1500);
+		});
+		await page.keyboard.press('Escape');
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
+	},
+
+	/* 1.4 — the barter window read the same way: every row of the shot
+	 * answered at once, and the board settled from it. */
+	async 'read-the-window'({ page, url }) {
+		await page.setViewport({ width: 940, height: 640, deviceScaleFactor: 1 });
+		await seed(page, url, fittedShip);
+		await tab(page, 'barter');
+		await click(page, '[data-act="barter-shot"]', { after: 900 });
+		const input = await page.$('#dialog input[type=file]');
+		await input.uploadFile(shot('barter-window.webp'));
+		await waitFor(page, '.shot-table', { upTo: 240000, then: 900 });
+		await rec(page, 'read-the-window', async () => {
+			await wait(1200);
+			await moveTo(page, '.shot-table tbody tr:nth-child(2)');
+			await wait(1400);
+			await click(page, '#dialog [data-use]', { after: 1200 });
+			await frame(page, '.barter-bar', { top: 24 });
+			await moveTo(page, '.barter-bar-lead');
+			await wait(2200);
+		});
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
+	},
+
+	/* 1.4 — the layout book, with a fleet made up for the purpose (see
+	 * fakeSea): the shelf, a board that is in no record, and a layout
+	 * opened out island by island. */
+	async 'the-layout-book'() {
+		const own = await open({ width: 1040, height: 720 });
+		await fakeSea(own.page, { boards: fleetReadings() });
+		await seed(own.page, own.url, fittedShip);
+		await tab(own.page, 'barter');
+		await wait(1200);
+		await rec(own.page, 'the-layout-book', async () => {
+			await wait(500);
+			await click(own.page, '[data-act="barter-book"]', { after: 1800 });
+			await moveTo(own.page, '.lb-card.stray');
+			await wait(1200);
+			await click(own.page, '.lb-card.stray', { after: 2600 });
+			await click(own.page, '[data-lb-back]', { after: 900 });
+			await click(own.page, '[data-lb-open="layout:7"]', { after: 1600 });
+			await click(own.page, '[data-lb-level="L5"]', { after: 2200 });
+		});
+		await own.browser.close();
+	},
+
+	/* 1.4 — a chain whose first good the Central Market has none of: not
+	 * a chain to tick, and saying why on its own face. The Market here is
+	 * made up (fakeSea), with every third shelf bare. */
+	async 'a-dry-chain'() {
+		const own = await open({ width: 1180, height: 700 });
+		await fakeSea(own.page, { bare: 3 });
+		await seed(own.page, own.url, fittedShip);
+		await tab(own.page, 'barter');
+		await nameTheBoard(own.page);
+		await waitFor(own.page, '.chain.dry', { upTo: 20000, then: 800 });
+		await frame(own.page, '.chain.dry', { top: 90 });
+		await rec(own.page, 'a-dry-chain', async () => {
+			await wait(900);
+			await moveTo(own.page, '.chain.dry .chain-dry');
+			await wait(2400);
+			await moveTo(own.page, '.chain:not(.dry):not(.shut)');
+			await wait(1600);
+		});
+		await own.browser.close();
+	},
+
+
+	/* 1.3 — the board a real barter count can sail. Seeded at 1,082,
+	 * which is the count the player who reported this actually has. */
+	async 'your-own-board'({ page, url }) {
+		// A shorter window for this one: the subject is two lines of a
+		// bar and the list behind them, and at the full height they are
+		// a tenth of the frame -- unreadable once the clip is cut to the
+		// width the dialog serves.
+		await page.setViewport({ width: 1180, height: 620, deviceScaleFactor: 1 });
+		const state = JSON.parse(JSON.stringify(fittedShip));
+		state.profile = { ...(state.profile || {}), barterCount: 1082 };
+		await seed(page, url, state);
+		await tab(page, 'barter');
+		await nameTheBoard(page);
+		await waitFor(page, '.board-shut', { then: 600 });
+		await frame(page, '.barter-bar', { top: 24 });
+		await rec(page, 'your-own-board', async () => {
+			await wait(700);
+			await moveTo(page, '.board-shut');
+			await wait(1100);
+			await click(page, '[data-act="barter-gated"]', { after: 2400 });
+			await wait(1800);
+		});
+		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
+	},
+
+	/* 1.3 — the day's errands worked out as one loop. */
+	async 'todays-errands'({ page, url }) {
+		await seed(page, url, fittedShip);
+		await tab(page, 'map');
+		await wait(1500);
+		await click(page, '[data-act="map-mode"][data-id="hunt"]', { after: 900 });
+		await rec(page, 'todays-errands', async () => {
+			await wait(600);
+			await click(page, '[data-act="map-errands"]', { after: 900 });
+			await waitFor(page, '.errand-stops', { then: 1800 });
+			// Down the list of calls, so the clip shows the hunts and
+			// what to kill at each rather than the first four wharves.
+			await page.evaluate(() => {
+				const box = document.querySelector('.map-side-body');
+				if (box) box.scrollTo({ top: box.scrollHeight * 0.5, behavior: 'smooth' });
+			});
+			await wait(2200);
+			await moveTo(page, '.errand-stop.hunt .errand-row');
+			await wait(1200);
+		});
+	},
+
+	/* 1.3 — a call taken hold of: the chart flies there and the call
+	 * opens with every quest done at it. */
+	async 'a-call-in-hand'({ page, url }) {
+		await seed(page, url, fittedShip);
+		await tab(page, 'map');
+		await wait(1500);
+		await click(page, '[data-act="map-mode"][data-id="hunt"]', { after: 900 });
+		await click(page, '[data-act="map-errands"]', { after: 600 });
+		await waitFor(page, '.errand-stops', { then: 1200 });
+		await page.evaluate(() => {
+			const box = document.querySelector('.map-side-body');
+			if (box) box.scrollTo({ top: box.scrollHeight * 0.55 });
+		});
+		await wait(700);
+		await rec(page, 'a-call-in-hand', async () => {
+			await wait(600);
+			await click(page, '.errand-stop.hunt .errand-row', { after: 2600 });
+			await wait(2200);
+		});
+	},
+
+	/* 1.2 — a day that is not for silver: targets by level, a ceiling,
+	 * and a run counted in goods. */
+	async 'a-stock'({ page, url }) {
+		await seed(page, url, fittedShip);
+		await tab(page, 'barter');
+		await nameTheBoard(page);
+		await click(page, '[data-act="barter-goal"][data-id="stock"]', { after: 1500 });
+		// The runs worth sailing come back from a worker; taking one is
+		// what puts numbers on the tiles, and an empty run is no picture.
+		await waitFor(page, '.proposal', { then: 1200 });
+		await click(page, '.proposal', { after: 2600 });
+		await frame(page, '.stock-head', { top: 108 });
+		await rec(page, 'a-stock', async () => {
+			await wait(600);
+			await typeInto(page, '.stock-row .purse-inline', '40', { after: 1600 });
+			await page.select('[data-act="barter-ceiling"]', '3');
+			await wait(2600);
+			await moveTo(page, '.run-ahead');
+			await wait(1600);
+		});
+	},
+
+	/* 1.2 — the fourth kind of day: climb to [Level 4] and cash it in
+	 * at an island that pays in Crow Coins. */
+	async 'crow-coins'({ page, url }) {
+		// A purse short of what the builds want, so the line at the foot
+		// has something to say.
+		const state = JSON.parse(JSON.stringify(fittedShip));
+		state.stock['Crow Coin'] = 2000;
+		await seed(page, url, state);
+		await tab(page, 'barter');
+		await nameTheBoard(page);
+		await click(page, '[data-act="barter-goal"][data-id="coin"]', { after: 1500 });
+		await waitFor(page, '.proposal', { then: 1200 });
+		await rec(page, 'crow-coins', async () => {
+			await frame(page, '.proposals', { top: 110 });
+			await wait(700);
+			await click(page, '.proposal', { after: 2600 });
+			await frame(page, '.run-tiles', { top: 120 });
+			await wait(1800);
+			await moveTo(page, '.run-ahead');
+			await wait(2000);
+		});
+	},
+
+	/* 1.2 — the clock: a bell at every stop, and one at the end. */
+	async 'the-clock'({ page, url }) {
+		await seed(page, url, fittedShip);
+		await tab(page, 'barter');
+		await nameTheBoard(page);
+		await click(page, '[data-act="barter-run-open"]', { after: 2000 });
+		// The sheet is a box over the page: scroll inside it, not the page.
+		await page.evaluate(() => { const f = document.querySelector('.run-foot'); if (f) f.scrollIntoView({ block: 'end' }); });
+		await wait(800);
+		await rec(page, 'the-clock', async () => {
+			await wait(600);
+			await click(page, '.run-foot [data-act="barter-timer-start"]', { after: 2400 });
+			// Out of the sheet: the clock keeps time on the tab itself, and
+			// that is where it will be watched from.
+			await click(page, '.run-dialog [data-close]', { after: 1400 });
+			await frame(page, '.hold-bar', { top: 90 });
+			await moveTo(page, '.sail-timer.running b');
+			await wait(3000);
+		});
+	},
+
+	/* 1.2 — the two shelves: what to load, and what is in the storage
+	 * after, tiled the way the game's own window is. */
+	async 'two-shelves'({ page, url }) {
+		await seed(page, url, fittedShip);
+		await tab(page, 'barter');
+		await nameTheBoard(page);
+		await click(page, '[data-act="barter-run-open"]', { after: 2200 });
+		await rec(page, 'two-shelves', async () => {
+			await wait(800);
+			await moveTo(page, '.shelf-tile');
+			await wait(1600);
+			await page.evaluate(() => { const f = document.querySelector('.run-fold summary'); if (f) f.scrollIntoView({ block: 'center' }); });
+			await wait(700);
+			await click(page, '.run-fold summary', { after: 2200 });
+		});
+	},
+
+	/* 1.2 — the day's boards: what each run loaded, what it brought
+	 * back, and the totals across the Parley bar. */
+	async 'todays-boards'({ page, url }) {
+		const day = new Date();
+		const barterDay = new Date(day.getTime() - (day.getUTCHours() < 6 ? 24 : 0) * 3600e3).toISOString().slice(0, 10);
+		const state = JSON.parse(JSON.stringify(fittedShip));
+		state.profile = {
+			...state.profile,
+			runs: [
+				{ day: barterDay, silver: 0, cost: 0, trades: 20, parley: 210240, stops: 2, goal: 'stock', item: '', layout: '26', load: { 'Brass Ingot': 200 }, got: { '[Level 1] Fertile Soil': 10, '[Level 1] Unidentified Ancient Mural': 10 } },
+				{ day: barterDay, silver: 19600000, cost: 386000, trades: 14, parley: 147168, stops: 5, goal: 'coin', item: '', layout: '12', load: { 'Pine Plywood': 10 }, got: { 'Crow Coin': 1240, '[Level 2] Narvo Sea Cucumber': 6 } }
+			]
+		};
+		await seed(page, url, state);
+		await tab(page, 'barter');
+		await frame(page, '.day-boards', { top: 40 });
+		await rec(page, 'todays-boards', async () => {
+			await wait(900);
+			await moveTo(page, '.day-total');
+			await wait(2400);
+		});
+	},
+
 	/* Queue a build and watch the plan grow around it. */
 	async 'queue-a-build'({ page, url }) {
 		await seed(page, url, emptyStart);

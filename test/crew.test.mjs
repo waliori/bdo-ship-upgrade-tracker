@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { shipStats, crewedShips, statsLine } from '../js/ship_stats.js';
 import {
 	pool, poolByType, anyType, mateTypes, contract, SAILOR_CAP,
-	seatsFor, statOf, statBand, crewTotals, autoAssign, mateAboard
+	seatsFor, fitSeats, hasSeats, statOf, statBand, crewTotals, autoAssign, mateAboard
 } from '../js/sailors.js';
 import { shipGroups } from '../js/ships.js';
 import { recipes, routes, routeInfo } from '../js/recipes.js';
@@ -88,8 +88,43 @@ test('a hull offers the seats the game draws, then cabins', () => {
 	assert.equal(pano.filter(s => s.pos === 'cannon').length, 3, 'two more cannon seats than a Carrack');
 	assert.equal(pano.filter(s => s.pos === 'fish').length, 0, 'no fishing seat');
 	const sloop = seatsFor('Epheria Sailboat', shipStats['Epheria Sailboat']);
-	assert.deepEqual(sloop.map(s => s.pos), ['sail', 'wheel']);
+	assert.deepEqual(sloop.map(s => s.pos), ['cabin', 'cabin'], 'nothing below a Carrack has a named seat');
 	assert.equal(seatsFor('Epheria Cog', shipStats['Epheria Cog']).length, 0);
+});
+
+test('only a Carrack and the Panokseon draw the named positions', () => {
+	// The game's Manage Sailors window on an Epheria Caravel is one row
+	// of cabins: no Sail, no Wheel, no First Mate seat to fill.
+	for (const ship of ['Bartali Sailboat', 'Epheria Sailboat', 'Improved Epheria Sailboat',
+		'Epheria Frigate', 'Improved Epheria Frigate', 'Epheria Caravel', 'Epheria Galleass']) {
+		assert.equal(hasSeats(ship), false, ship);
+		const seats = seatsFor(ship, shipStats[ship]);
+		assert.equal(seats.length, shipStats[ship].crew, `${ship} seats its whole crew`);
+		assert.ok(seats.every(s => s.pos === 'cabin'), `${ship} draws cabins only`);
+	}
+	for (const ship of ['Carrack (Advance)', 'Carrack (Balance)', 'Carrack (Volante)', 'Carrack (Valor)', 'Panokseon']) {
+		assert.equal(hasSeats(ship), true, ship);
+	}
+});
+
+test('a crew on a hull with no positions counts once, and stays aboard', () => {
+	const roster = [
+		{ id: 'a', name: 'Bahar', type: 'Ambitious', lv: 10, cond: 100 },
+		{ id: 'm', name: 'Cleia', type: 'Cleia', lv: 1, cond: 100 }
+	];
+	const caravel = shipStats['Epheria Caravel'];
+	// An arrangement saved when the app drew seats on a Caravel: the
+	// sailors keep their places in the cabins, and no seat pays twice.
+	const kept = fitSeats('Epheria Caravel', { 'sail:0': 'a', 'firstmate:0': 'm' }, caravel);
+	assert.deepEqual(kept, { 'cabin:0': 'a', 'cabin:1': 'm' });
+	const t = crewTotals(roster, kept, caravel);
+	assert.equal(t.seated, 2);
+	assert.equal(Math.round(t.speed * 10) / 10, 3.1, 'the sail no longer doubles what the game does not');
+	assert.equal(mateAboard(roster, kept), null, 'no First Mate seat, so no skill and no Parley cut');
+	// Auto assign fills the cabins it has, and nothing more.
+	const auto = autoAssign(roster, 'Epheria Caravel', caravel, 'speed');
+	assert.ok(Object.keys(auto).every(k => k.startsWith('cabin:')));
+	assert.ok(Object.values(auto).includes('a'));
 });
 
 test('a seated crew adds up the way the positions say', () => {

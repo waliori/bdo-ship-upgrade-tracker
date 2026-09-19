@@ -45,7 +45,7 @@ const SAILORS = [
 		stock: { Silver: 2e8 }, targets: [{ item: 'Epheria Caravel', qty: 1 }], strategy: {},
 		profile: { sailingMastery: 900, level: 'Skilled 3', barterCount: 800, crewShip: 'Epheria Sailboat',
 			fitted: { 'Epheria Sailboat': { cannon: '+7 Epheria: Old Prow', sail: '+6 Epheria: Old Sail' } }, crystal: { 'Epheria Sailboat': 59321 },
-			seats: { 'Epheria Sailboat': { 'sail:0': 's0', 'wheel:0': 's1' } },
+			seats: { 'Epheria Sailboat': { 'cabin:0': 's0', 'cabin:1': 's1' } },
 
 			roster: roster(['Innocent', 'Ambitious', 'Honest'], [6, 5, 3]), runs: runs(4, 1.2e8), questsDone: { 'hekaru': 1 },
 			tally: { runs: 9, silver: 1.4e9, cost: 1e8, trades: 300, parley: 2e6, stops: 60, tries: 12, wins: 3, drops: 1, quests: { 'hekaru': 6, 'supplies-iliya': 12, 'omg-young': 4 }, made: {} },
@@ -54,7 +54,7 @@ const SAILORS = [
 		stock: { Silver: 7e8, 'Crow Coin': 400, 'Zinc Ingot': 4000, 'Tidal Black Stone': 90 }, targets: [{ item: 'Carrack (Advance)', qty: 1 }, { item: "Epheria Carrack: Advance (Chiro's Figurehead)", qty: 1 }], strategy: {},
 		profile: { sailingMastery: 1600, level: 'Artisan 1', barterCount: 2200, crewShip: 'Epheria Caravel',
 			fitted: { 'Epheria Caravel': { cannon: '+10 Epheria Caravel: Mayna Cannon', sail: '+9 Epheria Caravel: Stratus Wind Sail', figurehead: '+10 Epheria Caravel: Brass Figurehead', plating: '+8 Epheria Caravel: Enhanced Plating' } }, crystal: { 'Epheria Caravel': 756824 },
-			seats: { 'Epheria Caravel': { 'sail:0': 's0', 'wheel:0': 's1', 'cannon:0': 's2', 'deck:0': 's3', 'mess:0': 's4', 'firstmate:0': 's5' } },
+			seats: { 'Epheria Caravel': { 'cabin:0': 's0', 'cabin:1': 's1', 'cabin:2': 's2', 'cabin:3': 's3', 'cabin:4': 's4', 'cabin:5': 's5' } },
 
 			roster: roster(['Innocent', 'Innocent', 'Innocent', 'Experienced', 'Ambitious', 'Innocent', 'Innocent', 'Powerful', 'Innocent'], [10, 10, 9, 9, 8, 8, 8, 7, 7]),
 			runs: runs(20, 3e8, 2), questsDone: {},

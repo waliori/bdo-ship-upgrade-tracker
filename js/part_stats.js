@@ -12,11 +12,19 @@
 // rate) in percent, weight in LT, rations, durability, damage per hit and
 // hits per volley, reload as seconds taken off. A key a part never
 // carries is simply absent.
+//
+// `lt` is the other number on the same page, and the opposite one: what
+// the part itself weighs, off the same item pages on 2026-09-15 by
+// tools/fetch-part-weights.mjs. The game charges it against the hold the
+// moment the part is bolted on, and enhancing does not change it -- a
+// Chiro set is 9 LT off a Carrack that has loaded nothing, a Falasi set
+// 18. Small beside a sailor's 200, but it is the difference between the
+// figure here and the one the ship's own window shows.
 
 import { T, TT, said } from './i18n.js';
 
 export const partStats = {
-	"Bartali Sailboat: Old Cannon": { id: 49760, levels: [
+	"Bartali Sailboat: Old Cannon": { id: 49760, lt: 3, levels: [
 		{"durability": 300, "damage": 156, "hits": 1},
 		{"durability": 400, "damage": 572, "hits": 1},
 		{"durability": 500, "damage": 988, "hits": 1},
@@ -29,7 +37,7 @@ export const partStats = {
 		{"durability": 1200, "damage": 5200, "hits": 1},
 		{"durability": 1300, "damage": 6240, "hits": 1}
 	] },
-	"Bartali Sailboat: Old Figurehead": { id: 49758, levels: [
+	"Bartali Sailboat: Old Figurehead": { id: 49758, lt: 2.5, levels: [
 		{"speed": 0.3, "dp": 1},
 		{"speed": 0.4, "dp": 2},
 		{"speed": 0.5, "dp": 3},
@@ -42,7 +50,7 @@ export const partStats = {
 		{"speed": 1.2, "dp": 10},
 		{"speed": 1.3, "dp": 11}
 	] },
-	"Bartali Sailboat: Old Plating": { id: 49759, levels: [
+	"Bartali Sailboat: Old Plating": { id: 49759, lt: 2, levels: [
 		{"dp": 1, "weight": 20},
 		{"dp": 2, "weight": 25},
 		{"dp": 3, "weight": 30},
@@ -55,7 +63,7 @@ export const partStats = {
 		{"dp": 10, "weight": 65},
 		{"dp": 11, "weight": 70}
 	] },
-	"Bartali Sailboat: Old Wind Sail": { id: 49761, levels: [
+	"Bartali Sailboat: Old Wind Sail": { id: 49761, lt: 1.5, levels: [
 		{"turn": 0.2, "rations": 50},
 		{"turn": 0.25, "rations": 60},
 		{"turn": 0.3, "rations": 70},
@@ -68,7 +76,7 @@ export const partStats = {
 		{"turn": 0.65, "rations": 140},
 		{"turn": 0.7, "rations": 150}
 	] },
-	"Epheria Caravel: Black Dragon Figurehead": { id: 49655, levels: [
+	"Epheria Caravel: Black Dragon Figurehead": { id: 49655, lt: 2.5, levels: [
 		{"speed": 7, "dp": 25, "drr": 1.25, "weight": 300, "rations": 5000, "durability": 10000},
 		{"speed": 7.5, "dp": 27, "drr": 2, "weight": 350, "rations": 6000, "durability": 12000},
 		{"speed": 8, "dp": 29, "drr": 2.5, "weight": 400, "rations": 7000, "durability": 14000},
@@ -81,7 +89,7 @@ export const partStats = {
 		{"speed": 11.5, "dp": 43, "drr": 8, "weight": 900, "rations": 18000, "durability": 28000},
 		{"speed": 12, "dp": 45, "drr": 9, "weight": 1000, "rations": 20000, "durability": 30000}
 	] },
-	"Epheria Caravel: Brass Figurehead": { id: 49653, levels: [
+	"Epheria Caravel: Brass Figurehead": { id: 49653, lt: 3, levels: [
 		{"speed": 1, "dp": 10, "drr": 0.5, "weight": 100},
 		{"speed": 1.5, "dp": 11, "drr": 0.75, "weight": 120, "rations": 500},
 		{"speed": 2, "dp": 12, "drr": 1, "weight": 140, "rations": 1000},
@@ -94,7 +102,7 @@ export const partStats = {
 		{"speed": 5.5, "dp": 19, "drr": 2.75, "weight": 280, "rations": 4500},
 		{"speed": 6, "dp": 20, "drr": 3, "weight": 300, "rations": 5000}
 	] },
-	"Epheria Caravel: Enhanced Plating": { id: 49654, levels: [
+	"Epheria Caravel: Enhanced Plating": { id: 49654, lt: 1.5, levels: [
 		{"dp": 10, "drr": 0.5, "weight": 200},
 		{"dp": 11, "drr": 0.75, "weight": 240, "rations": 1000},
 		{"dp": 12, "drr": 1, "weight": 280, "rations": 2000},
@@ -107,7 +115,7 @@ export const partStats = {
 		{"dp": 23, "drr": 2.75, "weight": 560, "rations": 9000},
 		{"dp": 25, "drr": 3, "weight": 600, "rations": 10000}
 	] },
-	"Epheria Caravel: Mayna Cannon": { id: 49657, levels: [
+	"Epheria Caravel: Mayna Cannon": { id: 49657, lt: 3, levels: [
 		{"weight": 300, "rations": 5000, "durability": 10000, "damage": 2600, "hits": 2},
 		{"weight": 350, "rations": 6000, "durability": 14000, "damage": 6500, "hits": 2},
 		{"weight": 400, "rations": 7000, "durability": 18000, "damage": 10400, "hits": 2},
@@ -120,7 +128,7 @@ export const partStats = {
 		{"weight": 900, "rations": 18000, "durability": 46000, "damage": 42900, "hits": 2},
 		{"weight": 1000, "rations": 20000, "durability": 50000, "damage": 52000, "hits": 2}
 	] },
-	"Epheria Caravel: Stratus Wind Sail": { id: 49658, levels: [
+	"Epheria Caravel: Stratus Wind Sail": { id: 49658, lt: 1.5, levels: [
 		{"turn": 4, "brake": 4, "weight": 300, "rations": 5000},
 		{"turn": 4.6, "brake": 4.6, "weight": 350, "rations": 6000},
 		{"turn": 5.2, "brake": 5.2, "weight": 400, "rations": 7000},
@@ -133,7 +141,7 @@ export const partStats = {
 		{"turn": 9.4, "brake": 9.4, "weight": 900, "rations": 18000},
 		{"turn": 10, "brake": 10, "weight": 1000, "rations": 20000}
 	] },
-	"Epheria Caravel: Upgraded Plating": { id: 49656, levels: [
+	"Epheria Caravel: Upgraded Plating": { id: 49656, lt: 2, levels: [
 		{"dp": 30, "drr": 2.75, "weight": 600, "rations": 10000, "durability": 10000},
 		{"dp": 31, "drr": 3, "weight": 700, "rations": 12000, "durability": 12000},
 		{"dp": 32, "drr": 3, "weight": 800, "rations": 14000, "durability": 14000},
@@ -146,7 +154,7 @@ export const partStats = {
 		{"dp": 43, "drr": 8, "weight": 1800, "rations": 36000, "durability": 28000},
 		{"dp": 45, "drr": 9, "weight": 2000, "rations": 40000, "durability": 30000}
 	] },
-	"Epheria Caravel: Verisha Cannon": { id: 49651, levels: [
+	"Epheria Caravel: Verisha Cannon": { id: 49651, lt: 2.5, levels: [
 		{"weight": 100, "durability": 1000, "damage": 780, "hits": 2},
 		{"weight": 120, "rations": 500, "durability": 1500, "damage": 2860, "hits": 2},
 		{"weight": 140, "rations": 1000, "durability": 2000, "damage": 4940, "hits": 2},
@@ -159,7 +167,7 @@ export const partStats = {
 		{"weight": 280, "rations": 4500, "durability": 5500, "damage": 26000, "hits": 2},
 		{"weight": 300, "rations": 5000, "durability": 6000, "damage": 31200, "hits": 2}
 	] },
-	"Epheria Caravel: White Wind Sail": { id: 49652, levels: [
+	"Epheria Caravel: White Wind Sail": { id: 49652, lt: 2, levels: [
 		{"turn": 1, "weight": 100},
 		{"turn": 1.2, "weight": 120, "rations": 500},
 		{"turn": 1.4, "weight": 140, "rations": 1000},
@@ -172,7 +180,7 @@ export const partStats = {
 		{"turn": 2.8, "weight": 280, "rations": 4500},
 		{"turn": 3, "weight": 300, "rations": 5000}
 	] },
-	"Epheria Carrack: Advance (Chiro's Black Plating)": { id: 49749, levels: [
+	"Epheria Carrack: Advance (Chiro's Black Plating)": { id: 49749, lt: 2, levels: [
 		{"dp": 55, "drr": 11.4, "weight": 3000, "rations": 100000, "durability": 50000},
 		{"dp": 56, "drr": 11.6, "weight": 3200, "rations": 105000, "durability": 55000},
 		{"dp": 57, "drr": 11.8, "weight": 3400, "rations": 110000, "durability": 60000},
@@ -185,7 +193,7 @@ export const partStats = {
 		{"dp": 64, "drr": 13.2, "weight": 4800, "rations": 145000, "durability": 95000},
 		{"dp": 65, "drr": 13.4, "weight": 5000, "rations": 150000, "durability": 100000}
 	] },
-	"Epheria Carrack: Advance (Chiro's Cannon)": { id: 49746, levels: [
+	"Epheria Carrack: Advance (Chiro's Cannon)": { id: 49746, lt: 3, levels: [
 		{"weight": 2000, "durability": 50000, "damage": 27820, "hits": 9},
 		{"weight": 2100, "durability": 55000, "damage": 28600, "hits": 9},
 		{"weight": 2200, "durability": 60000, "damage": 29380, "hits": 9},
@@ -198,7 +206,7 @@ export const partStats = {
 		{"weight": 2900, "durability": 95000, "damage": 34840, "hits": 9},
 		{"weight": 3000, "durability": 100000, "damage": 35620, "hits": 9}
 	] },
-	"Epheria Carrack: Advance (Chiro's Figurehead)": { id: 49748, levels: [
+	"Epheria Carrack: Advance (Chiro's Figurehead)": { id: 49748, lt: 2.5, levels: [
 		{"speed": 7.5, "accel": 6, "dp": 55, "drr": 11.4},
 		{"speed": 7.7, "accel": 6.4, "dp": 56, "drr": 11.6},
 		{"speed": 7.9, "accel": 6.8, "dp": 57, "drr": 11.8},
@@ -211,7 +219,7 @@ export const partStats = {
 		{"speed": 9.3, "accel": 9.6, "dp": 64, "drr": 13.2},
 		{"speed": 9.5, "accel": 10, "dp": 65, "drr": 13.4}
 	] },
-	"Epheria Carrack: Advance (Chiro's Sail)": { id: 49747, levels: [
+	"Epheria Carrack: Advance (Chiro's Sail)": { id: 49747, lt: 1.5, levels: [
 		{"speed": 7.5, "turn": 8, "brake": 8},
 		{"speed": 7.8, "turn": 8.7, "brake": 8.7},
 		{"speed": 8.1, "turn": 9.4, "brake": 9.4},
@@ -224,7 +232,7 @@ export const partStats = {
 		{"speed": 10.2, "turn": 14.3, "brake": 14.3},
 		{"speed": 10.5, "turn": 15, "brake": 15}
 	] },
-	"Epheria Carrack: Advance (Falasi's Cannon)": { id: 49778, levels: [
+	"Epheria Carrack: Advance (Falasi's Cannon)": { id: 49778, lt: 6, levels: [
 		{"weight": 3250, "durability": 125000, "damage": 41220, "hits": 9},
 		{"weight": 3275, "durability": 127500, "damage": 42620, "hits": 9},
 		{"weight": 3300, "durability": 130000, "damage": 44020, "hits": 9},
@@ -237,7 +245,7 @@ export const partStats = {
 		{"weight": 3475, "durability": 147500, "damage": 53820, "hits": 9},
 		{"weight": 3500, "durability": 150000, "damage": 55220, "hits": 9}
 	] },
-	"Epheria Carrack: Advance (Falasi's Figurehead)": { id: 49780, levels: [
+	"Epheria Carrack: Advance (Falasi's Figurehead)": { id: 49780, lt: 5, levels: [
 		{"speed": 9.5, "accel": 12, "dp": 75, "drr": 14.4},
 		{"speed": 9.6, "accel": 12.3, "dp": 77, "drr": 14.9},
 		{"speed": 9.7, "accel": 12.6, "dp": 79, "drr": 15.4},
@@ -250,7 +258,7 @@ export const partStats = {
 		{"speed": 10.4, "accel": 14.7, "dp": 93, "drr": 18.9},
 		{"speed": 10.5, "accel": 15, "dp": 95, "drr": 19.4}
 	] },
-	"Epheria Carrack: Advance (Falasi's Plating)": { id: 49781, levels: [
+	"Epheria Carrack: Advance (Falasi's Plating)": { id: 49781, lt: 4, levels: [
 		{"dp": 75, "drr": 14.4, "weight": 5500, "rations": 175000, "durability": 125000},
 		{"dp": 77, "drr": 14.9, "weight": 5650, "rations": 182500, "durability": 132500},
 		{"dp": 79, "drr": 15.4, "weight": 5800, "rations": 190000, "durability": 140000},
@@ -263,7 +271,7 @@ export const partStats = {
 		{"dp": 93, "drr": 18.9, "weight": 6850, "rations": 242500, "durability": 192500},
 		{"dp": 95, "drr": 19.4, "weight": 7000, "rations": 250000, "durability": 200000}
 	] },
-	"Epheria Carrack: Advance (Falasi's Sail)": { id: 49779, levels: [
+	"Epheria Carrack: Advance (Falasi's Sail)": { id: 49779, lt: 3, levels: [
 		{"speed": 11.5, "turn": 17, "brake": 15},
 		{"speed": 11.6, "turn": 17.4, "brake": 15.6},
 		{"speed": 11.7, "turn": 17.8, "brake": 16.2},
@@ -276,7 +284,7 @@ export const partStats = {
 		{"speed": 12.4, "turn": 20.6, "brake": 20.4},
 		{"speed": 12.5, "turn": 21, "brake": 21}
 	] },
-	"Epheria Carrack: Balance (Chiro's Black Plating)": { id: 49765, levels: [
+	"Epheria Carrack: Balance (Chiro's Black Plating)": { id: 49765, lt: 2, levels: [
 		{"dp": 55, "drr": 11.4, "weight": 2700, "rations": 100000, "durability": 50000},
 		{"dp": 56, "drr": 11.6, "weight": 2770, "rations": 110000, "durability": 52500},
 		{"dp": 57, "drr": 11.8, "weight": 2840, "rations": 120000, "durability": 55000},
@@ -289,7 +297,7 @@ export const partStats = {
 		{"dp": 64, "drr": 13.2, "weight": 3330, "rations": 190000, "durability": 72500},
 		{"dp": 65, "drr": 13.4, "weight": 3400, "rations": 200000, "durability": 75000}
 	] },
-	"Epheria Carrack: Balance (Chiro's Cannon)": { id: 49762, levels: [
+	"Epheria Carrack: Balance (Chiro's Cannon)": { id: 49762, lt: 3, levels: [
 		{"weight": 1900, "durability": 50000, "damage": 28600, "hits": 9},
 		{"weight": 1970, "durability": 52500, "damage": 29640, "hits": 9},
 		{"weight": 2040, "durability": 55000, "damage": 30680, "hits": 9},
@@ -302,7 +310,7 @@ export const partStats = {
 		{"weight": 2530, "durability": 72500, "damage": 37960, "hits": 9},
 		{"weight": 2600, "durability": 75000, "damage": 39000, "hits": 9}
 	] },
-	"Epheria Carrack: Balance (Chiro's Figurehead)": { id: 49764, levels: [
+	"Epheria Carrack: Balance (Chiro's Figurehead)": { id: 49764, lt: 2.5, levels: [
 		{"speed": 7.5, "accel": 7, "dp": 55, "drr": 11.4},
 		{"speed": 7.7, "accel": 7.8, "dp": 56, "drr": 11.6},
 		{"speed": 7.9, "accel": 8.6, "dp": 57, "drr": 11.8},
@@ -315,7 +323,7 @@ export const partStats = {
 		{"speed": 9.3, "accel": 14.2, "dp": 64, "drr": 13.2},
 		{"speed": 9.5, "accel": 15, "dp": 65, "drr": 13.4}
 	] },
-	"Epheria Carrack: Balance (Chiro's Sail)": { id: 49763, levels: [
+	"Epheria Carrack: Balance (Chiro's Sail)": { id: 49763, lt: 1.5, levels: [
 		{"speed": 7.5, "turn": 10, "brake": 10},
 		{"speed": 7.8, "turn": 11, "brake": 11},
 		{"speed": 8.1, "turn": 12, "brake": 12},
@@ -328,7 +336,7 @@ export const partStats = {
 		{"speed": 10.2, "turn": 19, "brake": 19},
 		{"speed": 10.5, "turn": 20, "brake": 20}
 	] },
-	"Epheria Carrack: Balance (Falasi's Cannon)": { id: 49782, levels: [
+	"Epheria Carrack: Balance (Falasi's Cannon)": { id: 49782, lt: 6, levels: [
 		{"weight": 2850, "durability": 100000, "damage": 45000, "hits": 9},
 		{"weight": 2875, "durability": 102500, "damage": 46550, "hits": 9},
 		{"weight": 2900, "durability": 105000, "damage": 48100, "hits": 9},
@@ -341,7 +349,7 @@ export const partStats = {
 		{"weight": 3075, "durability": 122500, "damage": 58950, "hits": 9},
 		{"weight": 3100, "durability": 125000, "damage": 60500, "hits": 9}
 	] },
-	"Epheria Carrack: Balance (Falasi's Figurehead)": { id: 49784, levels: [
+	"Epheria Carrack: Balance (Falasi's Figurehead)": { id: 49784, lt: 5, levels: [
 		{"speed": 10, "accel": 17, "dp": 75, "drr": 14.4},
 		{"speed": 10.1, "accel": 17.3, "dp": 77, "drr": 14.9},
 		{"speed": 10.2, "accel": 17.6, "dp": 79, "drr": 15.4},
@@ -354,7 +362,7 @@ export const partStats = {
 		{"speed": 10.9, "accel": 19.7, "dp": 93, "drr": 18.9},
 		{"speed": 11, "accel": 20, "dp": 95, "drr": 19.4}
 	] },
-	"Epheria Carrack: Balance (Falasi's Plating)": { id: 49785, levels: [
+	"Epheria Carrack: Balance (Falasi's Plating)": { id: 49785, lt: 4, levels: [
 		{"dp": 75, "drr": 14.4, "weight": 3900, "rations": 225000, "durability": 100000},
 		{"dp": 77, "drr": 14.9, "weight": 4050, "rations": 232500, "durability": 107500},
 		{"dp": 79, "drr": 15.4, "weight": 4200, "rations": 240000, "durability": 115000},
@@ -367,7 +375,7 @@ export const partStats = {
 		{"dp": 93, "drr": 18.9, "weight": 5250, "rations": 292500, "durability": 167500},
 		{"dp": 95, "drr": 19.4, "weight": 5400, "rations": 300000, "durability": 175000}
 	] },
-	"Epheria Carrack: Balance (Falasi's Sail)": { id: 49783, levels: [
+	"Epheria Carrack: Balance (Falasi's Sail)": { id: 49783, lt: 3, levels: [
 		{"speed": 11.5, "turn": 21, "brake": 21},
 		{"speed": 11.6, "turn": 21.2, "brake": 21.2},
 		{"speed": 11.7, "turn": 21.4, "brake": 21.4},
@@ -380,7 +388,7 @@ export const partStats = {
 		{"speed": 12.4, "turn": 22.8, "brake": 22.8},
 		{"speed": 12.5, "turn": 23, "brake": 23}
 	] },
-	"Epheria Carrack: Toro Cannon": { id: 49742, levels: [
+	"Epheria Carrack: Toro Cannon": { id: 49742, lt: 3, levels: [
 		{"weight": 1000, "durability": 15000, "damage": 13000, "hits": 9},
 		{"weight": 1080, "durability": 18000, "damage": 14300, "hits": 9},
 		{"weight": 1160, "durability": 21000, "damage": 15600, "hits": 9},
@@ -393,7 +401,7 @@ export const partStats = {
 		{"weight": 1720, "durability": 42000, "damage": 24700, "hits": 9},
 		{"weight": 1800, "durability": 45000, "damage": 26000, "hits": 9}
 	] },
-	"Epheria Carrack: Toro Figurehead": { id: 49744, levels: [
+	"Epheria Carrack: Toro Figurehead": { id: 49744, lt: 2.5, levels: [
 		{"speed": 5, "accel": 2, "dp": 45, "drr": 9.2},
 		{"speed": 5.2, "accel": 2.3, "dp": 46, "drr": 9.4},
 		{"speed": 5.4, "accel": 2.6, "dp": 47, "drr": 9.6},
@@ -406,7 +414,7 @@ export const partStats = {
 		{"speed": 6.8, "accel": 4.7, "dp": 54, "drr": 11},
 		{"speed": 7, "accel": 5, "dp": 55, "drr": 11.2}
 	] },
-	"Epheria Carrack: Toro Plating": { id: 49745, levels: [
+	"Epheria Carrack: Toro Plating": { id: 49745, lt: 2, levels: [
 		{"dp": 45, "drr": 9.2, "weight": 1000, "rations": 30000, "durability": 15000},
 		{"dp": 46, "drr": 9.4, "weight": 1160, "rations": 36000, "durability": 18000},
 		{"dp": 47, "drr": 9.6, "weight": 1320, "rations": 42000, "durability": 21000},
@@ -419,7 +427,7 @@ export const partStats = {
 		{"dp": 54, "drr": 11, "weight": 2440, "rations": 84000, "durability": 42000},
 		{"dp": 55, "drr": 11.2, "weight": 2600, "rations": 90000, "durability": 45000}
 	] },
-	"Epheria Carrack: Toro Sail": { id: 49743, levels: [
+	"Epheria Carrack: Toro Sail": { id: 49743, lt: 1.5, levels: [
 		{"speed": 5, "turn": 3, "brake": 3},
 		{"speed": 5.2, "turn": 3.4, "brake": 3.4},
 		{"speed": 5.4, "turn": 3.8, "brake": 3.8},
@@ -432,7 +440,7 @@ export const partStats = {
 		{"speed": 6.8, "turn": 6.6, "brake": 6.6},
 		{"speed": 7, "turn": 7, "brake": 7}
 	] },
-	"Epheria Carrack: Valor (Chiro's Black Plating)": { id: 49773, levels: [
+	"Epheria Carrack: Valor (Chiro's Black Plating)": { id: 49773, lt: 2, levels: [
 		{"dp": 55, "drr": 11.4, "weight": 2650, "rations": 100000, "durability": 50000},
 		{"dp": 56, "drr": 11.6, "weight": 2700, "rations": 110000, "durability": 52500},
 		{"dp": 57, "drr": 11.8, "weight": 2750, "rations": 120000, "durability": 55000},
@@ -445,7 +453,7 @@ export const partStats = {
 		{"dp": 64, "drr": 13.2, "weight": 3100, "rations": 190000, "durability": 72500},
 		{"dp": 65, "drr": 13.4, "weight": 3150, "rations": 200000, "durability": 75000}
 	] },
-	"Epheria Carrack: Valor (Chiro's Cannon)": { id: 49770, levels: [
+	"Epheria Carrack: Valor (Chiro's Cannon)": { id: 49770, lt: 3, levels: [
 		{"weight": 1850, "durability": 50000, "damage": 31200, "hits": 9, "reload": 2},
 		{"weight": 1900, "durability": 52500, "damage": 32760, "hits": 9, "reload": 2},
 		{"weight": 1950, "durability": 55000, "damage": 34320, "hits": 9, "reload": 2},
@@ -458,7 +466,7 @@ export const partStats = {
 		{"weight": 2300, "durability": 72500, "damage": 45240, "hits": 9, "reload": 2},
 		{"weight": 2350, "durability": 75000, "damage": 46800, "hits": 9, "reload": 2}
 	] },
-	"Epheria Carrack: Valor (Chiro's Figurehead)": { id: 49772, levels: [
+	"Epheria Carrack: Valor (Chiro's Figurehead)": { id: 49772, lt: 2.5, levels: [
 		{"speed": 7.5, "accel": 6, "dp": 55, "drr": 11.4},
 		{"speed": 7.8, "accel": 6.6, "dp": 56, "drr": 11.6},
 		{"speed": 8.1, "accel": 7.2, "dp": 57, "drr": 11.8},
@@ -471,7 +479,7 @@ export const partStats = {
 		{"speed": 10.2, "accel": 11.4, "dp": 64, "drr": 13.2},
 		{"speed": 10.5, "accel": 12, "dp": 65, "drr": 13.4}
 	] },
-	"Epheria Carrack: Valor (Chiro's Sail)": { id: 49771, levels: [
+	"Epheria Carrack: Valor (Chiro's Sail)": { id: 49771, lt: 1.5, levels: [
 		{"speed": 7.5, "turn": 8, "brake": 8},
 		{"speed": 7.9, "turn": 8.7, "brake": 8.7},
 		{"speed": 8.3, "turn": 9.4, "brake": 9.4},
@@ -484,7 +492,7 @@ export const partStats = {
 		{"speed": 11.1, "turn": 14.3, "brake": 14.3},
 		{"speed": 11.5, "turn": 15, "brake": 15}
 	] },
-	"Epheria Carrack: Valor (Falasi's Cannon)": { id: 49790, levels: [
+	"Epheria Carrack: Valor (Falasi's Cannon)": { id: 49790, lt: 6, levels: [
 		{"weight": 2600, "durability": 100000, "damage": 54100, "hits": 9, "reload": 2},
 		{"weight": 2625, "durability": 102500, "damage": 55950, "hits": 9, "reload": 2},
 		{"weight": 2650, "durability": 105000, "damage": 57800, "hits": 9, "reload": 2},
@@ -497,7 +505,7 @@ export const partStats = {
 		{"weight": 2825, "durability": 122500, "damage": 70750, "hits": 9, "reload": 2},
 		{"weight": 2850, "durability": 125000, "damage": 72600, "hits": 9, "reload": 2}
 	] },
-	"Epheria Carrack: Valor (Falasi's Figurehead)": { id: 49792, levels: [
+	"Epheria Carrack: Valor (Falasi's Figurehead)": { id: 49792, lt: 5, levels: [
 		{"speed": 11, "accel": 14, "dp": 75, "drr": 14.4},
 		{"speed": 11.1, "accel": 14.3, "dp": 77, "drr": 14.9},
 		{"speed": 11.2, "accel": 14.6, "dp": 79, "drr": 15.4},
@@ -510,7 +518,7 @@ export const partStats = {
 		{"speed": 11.9, "accel": 16.7, "dp": 93, "drr": 18.9},
 		{"speed": 12, "accel": 17, "dp": 95, "drr": 19.4}
 	] },
-	"Epheria Carrack: Valor (Falasi's Plating)": { id: 49793, levels: [
+	"Epheria Carrack: Valor (Falasi's Plating)": { id: 49793, lt: 4, levels: [
 		{"dp": 75, "drr": 14.4, "weight": 3650, "rations": 225000, "durability": 100000},
 		{"dp": 77, "drr": 14.9, "weight": 3750, "rations": 232500, "durability": 107500},
 		{"dp": 79, "drr": 15.4, "weight": 3850, "rations": 240000, "durability": 115000},
@@ -523,7 +531,7 @@ export const partStats = {
 		{"dp": 93, "drr": 18.9, "weight": 4550, "rations": 292500, "durability": 167500},
 		{"dp": 95, "drr": 19.4, "weight": 4650, "rations": 300000, "durability": 175000}
 	] },
-	"Epheria Carrack: Valor (Falasi's Sail)": { id: 49791, levels: [
+	"Epheria Carrack: Valor (Falasi's Sail)": { id: 49791, lt: 3, levels: [
 		{"speed": 12, "turn": 16, "brake": 16},
 		{"speed": 12.1, "turn": 16.2, "brake": 16.2},
 		{"speed": 12.2, "turn": 16.4, "brake": 16.4},
@@ -536,7 +544,7 @@ export const partStats = {
 		{"speed": 12.9, "turn": 17.8, "brake": 17.8},
 		{"speed": 13, "turn": 18, "brake": 18}
 	] },
-	"Epheria Carrack: Volante (Chiro's Black Plating)": { id: 49769, levels: [
+	"Epheria Carrack: Volante (Chiro's Black Plating)": { id: 49769, lt: 2, levels: [
 		{"dp": 55, "drr": 11.4, "weight": 2650, "rations": 100000, "durability": 50000},
 		{"dp": 56, "drr": 11.6, "weight": 2700, "rations": 105000, "durability": 52500},
 		{"dp": 57, "drr": 11.8, "weight": 2750, "rations": 110000, "durability": 55000},
@@ -549,7 +557,7 @@ export const partStats = {
 		{"dp": 64, "drr": 13.2, "weight": 3100, "rations": 145000, "durability": 72500},
 		{"dp": 65, "drr": 13.4, "weight": 3150, "rations": 150000, "durability": 75000}
 	] },
-	"Epheria Carrack: Volante (Chiro's Cannon)": { id: 49766, levels: [
+	"Epheria Carrack: Volante (Chiro's Cannon)": { id: 49766, lt: 3, levels: [
 		{"weight": 1850, "durability": 50000, "damage": 29900, "hits": 9, "reload": 1},
 		{"weight": 1900, "durability": 52500, "damage": 31200, "hits": 9, "reload": 1},
 		{"weight": 1950, "durability": 55000, "damage": 32500, "hits": 9, "reload": 1},
@@ -562,7 +570,7 @@ export const partStats = {
 		{"weight": 2300, "durability": 72500, "damage": 41600, "hits": 9, "reload": 1},
 		{"weight": 2350, "durability": 75000, "damage": 42900, "hits": 9, "reload": 1}
 	] },
-	"Epheria Carrack: Volante (Chiro's Figurehead)": { id: 49768, levels: [
+	"Epheria Carrack: Volante (Chiro's Figurehead)": { id: 49768, lt: 2.5, levels: [
 		{"speed": 8, "accel": 7, "dp": 55, "drr": 11.4},
 		{"speed": 8.3, "accel": 7.8, "dp": 56, "drr": 11.6},
 		{"speed": 8.6, "accel": 8.6, "dp": 57, "drr": 11.8},
@@ -575,7 +583,7 @@ export const partStats = {
 		{"speed": 10.7, "accel": 14.2, "dp": 64, "drr": 13.2},
 		{"speed": 11, "accel": 15, "dp": 65, "drr": 13.4}
 	] },
-	"Epheria Carrack: Volante (Chiro's Sail)": { id: 49767, levels: [
+	"Epheria Carrack: Volante (Chiro's Sail)": { id: 49767, lt: 1.5, levels: [
 		{"speed": 9, "turn": 8, "brake": 8},
 		{"speed": 9.5, "turn": 8.7, "brake": 8.7},
 		{"speed": 10, "turn": 9.4, "brake": 9.4},
@@ -588,7 +596,7 @@ export const partStats = {
 		{"speed": 13.5, "turn": 14.3, "brake": 14.3},
 		{"speed": 14, "turn": 15, "brake": 15}
 	] },
-	"Epheria Carrack: Volante (Falasi's Cannon)": { id: 49786, levels: [
+	"Epheria Carrack: Volante (Falasi's Cannon)": { id: 49786, lt: 6, levels: [
 		{"weight": 2600, "durability": 100000, "damage": 49500, "hits": 9, "reload": 1},
 		{"weight": 2625, "durability": 102500, "damage": 51200, "hits": 9, "reload": 1},
 		{"weight": 2650, "durability": 105000, "damage": 52900, "hits": 9, "reload": 1},
@@ -601,7 +609,7 @@ export const partStats = {
 		{"weight": 2825, "durability": 122500, "damage": 64800, "hits": 9, "reload": 1},
 		{"weight": 2850, "durability": 125000, "damage": 66500, "hits": 9, "reload": 1}
 	] },
-	"Epheria Carrack: Volante (Falasi's Figurehead)": { id: 49788, levels: [
+	"Epheria Carrack: Volante (Falasi's Figurehead)": { id: 49788, lt: 5, levels: [
 		{"speed": 11.5, "accel": 17, "dp": 75, "drr": 14.4},
 		{"speed": 11.6, "accel": 17.3, "dp": 77, "drr": 14.9},
 		{"speed": 11.7, "accel": 17.6, "dp": 79, "drr": 15.4},
@@ -614,7 +622,7 @@ export const partStats = {
 		{"speed": 12.4, "accel": 19.7, "dp": 93, "drr": 18.9},
 		{"speed": 12.5, "accel": 20, "dp": 95, "drr": 19.4}
 	] },
-	"Epheria Carrack: Volante (Falasi's Plating)": { id: 49789, levels: [
+	"Epheria Carrack: Volante (Falasi's Plating)": { id: 49789, lt: 4, levels: [
 		{"dp": 75, "drr": 14.4, "weight": 3650, "rations": 175000, "durability": 100000},
 		{"dp": 77, "drr": 14.9, "weight": 3750, "rations": 182500, "durability": 107500},
 		{"dp": 79, "drr": 15.4, "weight": 3850, "rations": 190000, "durability": 115000},
@@ -627,7 +635,7 @@ export const partStats = {
 		{"dp": 93, "drr": 18.9, "weight": 4550, "rations": 242500, "durability": 167500},
 		{"dp": 95, "drr": 19.4, "weight": 4650, "rations": 250000, "durability": 175000}
 	] },
-	"Epheria Carrack: Volante (Falasi's Sail)": { id: 49787, levels: [
+	"Epheria Carrack: Volante (Falasi's Sail)": { id: 49787, lt: 3, levels: [
 		{"speed": 14.5, "turn": 16, "brake": 16},
 		{"speed": 14.6, "turn": 16.2, "brake": 16.2},
 		{"speed": 14.7, "turn": 16.4, "brake": 16.4},
@@ -640,7 +648,7 @@ export const partStats = {
 		{"speed": 15.4, "turn": 17.8, "brake": 17.8},
 		{"speed": 15.5, "turn": 18, "brake": 18}
 	] },
-	"Epheria Galleass: Black Dragon Figurehead": { id: 49667, levels: [
+	"Epheria Galleass: Black Dragon Figurehead": { id: 49667, lt: 2.5, levels: [
 		{"speed": 7, "dp": 25, "drr": 1.25, "weight": 300, "rations": 5000, "durability": 10000},
 		{"speed": 7.5, "dp": 27, "drr": 2, "weight": 350, "rations": 6000, "durability": 12000},
 		{"speed": 8, "dp": 29, "drr": 2.5, "weight": 400, "rations": 7000, "durability": 14000},
@@ -653,7 +661,7 @@ export const partStats = {
 		{"speed": 11.5, "dp": 43, "drr": 8, "weight": 900, "rations": 18000, "durability": 28000},
 		{"speed": 12, "dp": 45, "drr": 9, "weight": 1000, "rations": 20000, "durability": 30000}
 	] },
-	"Epheria Galleass: Enhanced Plating": { id: 49666, levels: [
+	"Epheria Galleass: Enhanced Plating": { id: 49666, lt: 1.5, levels: [
 		{"dp": 10, "drr": 0.5, "weight": 200},
 		{"dp": 11, "drr": 0.75, "weight": 240, "rations": 1000},
 		{"dp": 12, "drr": 1, "weight": 280, "rations": 2000},
@@ -666,7 +674,7 @@ export const partStats = {
 		{"dp": 23, "drr": 2.75, "weight": 560, "rations": 9000},
 		{"dp": 25, "drr": 3, "weight": 600, "rations": 10000}
 	] },
-	"Epheria Galleass: Mayna Cannon": { id: 49669, levels: [
+	"Epheria Galleass: Mayna Cannon": { id: 49669, lt: 3, levels: [
 		{"weight": 300, "rations": 5000, "durability": 10000, "damage": 2600, "hits": 4},
 		{"weight": 350, "rations": 6000, "durability": 14000, "damage": 6500, "hits": 4},
 		{"weight": 400, "rations": 7000, "durability": 18000, "damage": 10400, "hits": 4},
@@ -679,7 +687,7 @@ export const partStats = {
 		{"weight": 900, "rations": 18000, "durability": 46000, "damage": 42900, "hits": 4},
 		{"weight": 1000, "rations": 20000, "durability": 50000, "damage": 52000, "hits": 4}
 	] },
-	"Epheria Galleass: Stratus Wind Sail": { id: 49670, levels: [
+	"Epheria Galleass: Stratus Wind Sail": { id: 49670, lt: 1.5, levels: [
 		{"turn": 4, "brake": 4, "weight": 300, "rations": 5000},
 		{"turn": 4.6, "brake": 4.6, "weight": 350, "rations": 6000},
 		{"turn": 5.2, "brake": 5.2, "weight": 400, "rations": 7000},
@@ -692,7 +700,7 @@ export const partStats = {
 		{"turn": 9.4, "brake": 9.4, "weight": 900, "rations": 18000},
 		{"turn": 10, "brake": 10, "weight": 1000, "rations": 20000}
 	] },
-	"Epheria Galleass: Upgraded Plating": { id: 49668, levels: [
+	"Epheria Galleass: Upgraded Plating": { id: 49668, lt: 2, levels: [
 		{"dp": 30, "drr": 2.75, "weight": 600, "rations": 10000, "durability": 10000},
 		{"dp": 31, "drr": 3, "weight": 700, "rations": 12000, "durability": 12000},
 		{"dp": 32, "drr": 3, "weight": 800, "rations": 14000, "durability": 14000},
@@ -705,7 +713,7 @@ export const partStats = {
 		{"dp": 43, "drr": 8, "weight": 1800, "rations": 36000, "durability": 28000},
 		{"dp": 45, "drr": 9, "weight": 2000, "rations": 40000, "durability": 30000}
 	] },
-	"Epheria Galleass: Verisha Cannon": { id: 49663, levels: [
+	"Epheria Galleass: Verisha Cannon": { id: 49663, lt: 2.5, levels: [
 		{"weight": 100, "durability": 1000, "damage": 780, "hits": 4},
 		{"weight": 120, "rations": 500, "durability": 1500, "damage": 2860, "hits": 4},
 		{"weight": 140, "rations": 1000, "durability": 2000, "damage": 4940, "hits": 4},
@@ -718,7 +726,7 @@ export const partStats = {
 		{"weight": 280, "rations": 4500, "durability": 5500, "damage": 26000, "hits": 4},
 		{"weight": 300, "rations": 5000, "durability": 6000, "damage": 31200, "hits": 4}
 	] },
-	"Epheria Galleass: White Horn Figurehead": { id: 49665, levels: [
+	"Epheria Galleass: White Horn Figurehead": { id: 49665, lt: 3, levels: [
 		{"speed": 1, "dp": 10, "drr": 0.5, "weight": 100},
 		{"speed": 1.5, "dp": 11, "drr": 0.75, "weight": 120, "rations": 500},
 		{"speed": 2, "dp": 12, "drr": 1, "weight": 140, "rations": 1000},
@@ -731,7 +739,7 @@ export const partStats = {
 		{"speed": 5.5, "dp": 19, "drr": 2.75, "weight": 280, "rations": 4500},
 		{"speed": 6, "dp": 20, "drr": 3, "weight": 300, "rations": 5000}
 	] },
-	"Epheria Galleass: White Wind Sail": { id: 49664, levels: [
+	"Epheria Galleass: White Wind Sail": { id: 49664, lt: 2, levels: [
 		{"turn": 1, "weight": 100},
 		{"turn": 1.2, "weight": 120, "rations": 500},
 		{"turn": 1.4, "weight": 140, "rations": 1000},
@@ -744,7 +752,7 @@ export const partStats = {
 		{"turn": 2.8, "weight": 280, "rations": 4500},
 		{"turn": 3, "weight": 300, "rations": 5000}
 	] },
-	"Epheria: Old Cannon": { id: 49756, levels: [
+	"Epheria: Old Cannon": { id: 49756, lt: 3, levels: [
 		{"durability": 500, "damage": 390, "hits": 1},
 		{"durability": 750, "damage": 1430, "hits": 1},
 		{"durability": 1000, "damage": 2470, "hits": 1},
@@ -757,7 +765,7 @@ export const partStats = {
 		{"durability": 2750, "damage": 13000, "hits": 1},
 		{"durability": 3000, "damage": 15600, "hits": 1}
 	] },
-	"Epheria: Old Figurehead": { id: 49754, levels: [
+	"Epheria: Old Figurehead": { id: 49754, lt: 2.5, levels: [
 		{"speed": 0.5, "dp": 5},
 		{"speed": 0.75, "dp": 6},
 		{"speed": 1, "dp": 7},
@@ -770,7 +778,7 @@ export const partStats = {
 		{"speed": 2.75, "dp": 14},
 		{"speed": 3, "dp": 15}
 	] },
-	"Epheria: Old Plating": { id: 49755, levels: [
+	"Epheria: Old Plating": { id: 49755, lt: 2, levels: [
 		{"dp": 5, "weight": 50},
 		{"dp": 6, "weight": 55},
 		{"dp": 7, "weight": 60},
@@ -783,7 +791,7 @@ export const partStats = {
 		{"dp": 14, "weight": 95},
 		{"dp": 15, "weight": 100}
 	] },
-	"Epheria: Old Wind Sail": { id: 49757, levels: [
+	"Epheria: Old Wind Sail": { id: 49757, lt: 1.5, levels: [
 		{"turn": 0.5, "rations": 100},
 		{"turn": 0.6, "rations": 120},
 		{"turn": 0.7, "rations": 140},
@@ -796,7 +804,7 @@ export const partStats = {
 		{"turn": 1.4, "rations": 280},
 		{"turn": 1.5, "rations": 300}
 	] },
-	"Panokseon: Byukgye's Enhanced Cannon": { id: 59406, levels: [
+	"Panokseon: Byukgye's Enhanced Cannon": { id: 59406, lt: 3, levels: [
 		{"weight": 1800, "durability": 75000, "damage": 31200, "hits": 9, "reload": 1},
 		{"weight": 1850, "durability": 77500, "damage": 32760, "hits": 9, "reload": 1},
 		{"weight": 1900, "durability": 80000, "damage": 34320, "hits": 9, "reload": 1},
@@ -809,7 +817,7 @@ export const partStats = {
 		{"weight": 2250, "durability": 97500, "damage": 45240, "hits": 9, "reload": 1},
 		{"weight": 2300, "durability": 100000, "damage": 46800, "hits": 9, "reload": 1}
 	] },
-	"Panokseon: Byukgye's Enhanced Figurehead": { id: 59408, levels: [
+	"Panokseon: Byukgye's Enhanced Figurehead": { id: 59408, lt: 2.5, levels: [
 		{"speed": 7.5, "accel": 6, "dp": 55, "drr": 11.4},
 		{"speed": 7.8, "accel": 6.6, "dp": 56, "drr": 11.6},
 		{"speed": 8.1, "accel": 7.2, "dp": 57, "drr": 11.8},
@@ -822,7 +830,7 @@ export const partStats = {
 		{"speed": 10.2, "accel": 11.4, "dp": 64, "drr": 13.2},
 		{"speed": 10.5, "accel": 12, "dp": 65, "drr": 13.4}
 	] },
-	"Panokseon: Byukgye's Enhanced Plating": { id: 59409, levels: [
+	"Panokseon: Byukgye's Enhanced Plating": { id: 59409, lt: 2, levels: [
 		{"dp": 55, "drr": 11.4, "weight": 2600, "rations": 100000, "durability": 75000},
 		{"dp": 56, "drr": 11.6, "weight": 2650, "rations": 110000, "durability": 77500},
 		{"dp": 57, "drr": 11.8, "weight": 2700, "rations": 120000, "durability": 80000},
@@ -835,7 +843,7 @@ export const partStats = {
 		{"dp": 64, "drr": 13.2, "weight": 3050, "rations": 190000, "durability": 97500},
 		{"dp": 65, "drr": 13.4, "weight": 3100, "rations": 200000, "durability": 100000}
 	] },
-	"Panokseon: Byukgye's Enhanced Sail": { id: 59407, levels: [
+	"Panokseon: Byukgye's Enhanced Sail": { id: 59407, lt: 1.5, levels: [
 		{"speed": 7.5, "turn": 8, "brake": 8},
 		{"speed": 7.9, "turn": 8.7, "brake": 8.7},
 		{"speed": 8.3, "turn": 9.4, "brake": 9.4},
@@ -848,7 +856,7 @@ export const partStats = {
 		{"speed": 11.1, "turn": 14.3, "brake": 14.3},
 		{"speed": 11.5, "turn": 15, "brake": 15}
 	] },
-	"Panokseon: Cheongun's Enhanced Cannon": { id: 59469, levels: [
+	"Panokseon: Cheongun's Enhanced Cannon": { id: 59469, lt: 3, levels: [
 		{"weight": 2550, "durability": 125000, "damage": 54100, "hits": 9, "reload": 1},
 		{"weight": 2575, "durability": 127500, "damage": 55950, "hits": 9, "reload": 1},
 		{"weight": 2600, "durability": 130000, "damage": 57800, "hits": 9, "reload": 1},
@@ -861,7 +869,7 @@ export const partStats = {
 		{"weight": 2775, "durability": 147500, "damage": 70750, "hits": 9, "reload": 1},
 		{"weight": 2800, "durability": 150000, "damage": 72600, "hits": 9, "reload": 1}
 	] },
-	"Panokseon: Cheongun's Enhanced Figurehead": { id: 59471, levels: [
+	"Panokseon: Cheongun's Enhanced Figurehead": { id: 59471, lt: 2.5, levels: [
 		{"speed": 11, "accel": 14, "dp": 75, "drr": 14.4},
 		{"speed": 11.1, "accel": 14.3, "dp": 77, "drr": 14.9},
 		{"speed": 11.2, "accel": 14.6, "dp": 79, "drr": 15.4},
@@ -874,7 +882,7 @@ export const partStats = {
 		{"speed": 11.9, "accel": 16.7, "dp": 93, "drr": 18.9},
 		{"speed": 12, "accel": 17, "dp": 95, "drr": 19.4}
 	] },
-	"Panokseon: Cheongun's Enhanced Plating": { id: 59472, levels: [
+	"Panokseon: Cheongun's Enhanced Plating": { id: 59472, lt: 2, levels: [
 		{"dp": 75, "drr": 14.4, "weight": 3600, "rations": 225000, "durability": 125000},
 		{"dp": 77, "drr": 14.9, "weight": 3700, "rations": 232500, "durability": 132500},
 		{"dp": 79, "drr": 15.4, "weight": 3800, "rations": 240000, "durability": 140000},
@@ -887,7 +895,7 @@ export const partStats = {
 		{"dp": 93, "drr": 18.9, "weight": 4500, "rations": 292500, "durability": 192500},
 		{"dp": 95, "drr": 19.4, "weight": 4600, "rations": 300000, "durability": 200000}
 	] },
-	"Panokseon: Cheongun's Enhanced Sail": { id: 59470, levels: [
+	"Panokseon: Cheongun's Enhanced Sail": { id: 59470, lt: 1.5, levels: [
 		{"speed": 12, "turn": 16, "brake": 16},
 		{"speed": 12.1, "turn": 16.2, "brake": 16.2},
 		{"speed": 12.2, "turn": 16.4, "brake": 16.4},
@@ -900,7 +908,7 @@ export const partStats = {
 		{"speed": 12.9, "turn": 17.8, "brake": 17.8},
 		{"speed": 13, "turn": 18, "brake": 18}
 	] },
-	"Panokseon: Haemo's Cannon": { id: 59402, levels: [
+	"Panokseon: Haemo's Cannon": { id: 59402, lt: 3, levels: [
 		{"weight": 1000, "durability": 15000, "damage": 13000, "hits": 9},
 		{"weight": 1080, "durability": 18000, "damage": 14300, "hits": 9},
 		{"weight": 1160, "durability": 21000, "damage": 15600, "hits": 9},
@@ -913,7 +921,7 @@ export const partStats = {
 		{"weight": 1720, "durability": 42000, "damage": 24700, "hits": 9},
 		{"weight": 1800, "durability": 45000, "damage": 26000, "hits": 9}
 	] },
-	"Panokseon: Haemo's Figurehead": { id: 59404, levels: [
+	"Panokseon: Haemo's Figurehead": { id: 59404, lt: 2.5, levels: [
 		{"speed": 5, "accel": 2, "dp": 45, "drr": 9.2},
 		{"speed": 5.2, "accel": 2.3, "dp": 46, "drr": 9.4},
 		{"speed": 5.4, "accel": 2.6, "dp": 47, "drr": 9.6},
@@ -926,7 +934,7 @@ export const partStats = {
 		{"speed": 6.8, "accel": 4.7, "dp": 54, "drr": 11},
 		{"speed": 7, "accel": 5, "dp": 55, "drr": 11.2}
 	] },
-	"Panokseon: Haemo's Plating": { id: 59405, levels: [
+	"Panokseon: Haemo's Plating": { id: 59405, lt: 2, levels: [
 		{"dp": 45, "drr": 9.2, "weight": 1000, "rations": 30000, "durability": 15000},
 		{"dp": 46, "drr": 9.4, "weight": 1160, "rations": 36000, "durability": 18000},
 		{"dp": 47, "drr": 9.6, "weight": 1320, "rations": 42000, "durability": 21000},
@@ -939,7 +947,7 @@ export const partStats = {
 		{"dp": 54, "drr": 11, "weight": 2440, "rations": 84000, "durability": 42000},
 		{"dp": 55, "drr": 11.2, "weight": 2600, "rations": 90000, "durability": 45000}
 	] },
-	"Panokseon: Haemo's Sail": { id: 59403, levels: [
+	"Panokseon: Haemo's Sail": { id: 59403, lt: 1.5, levels: [
 		{"speed": 5, "turn": 3, "brake": 3},
 		{"speed": 5.2, "turn": 3.4, "brake": 3.4},
 		{"speed": 5.4, "turn": 3.8, "brake": 3.8},
@@ -990,6 +998,11 @@ export function statsAt(part, level = 0) {
 	const p = partStats[part];
 	if (!p) return null;
 	return p.levels[Math.max(0, Math.min(10, level))] || null;
+}
+
+/** What the part itself weighs, in LT: the same at every level. */
+export function partLT(part) {
+	return Number(partStats[part] && partStats[part].lt) || 0;
 }
 
 /** What the next level adds over this one -- the reason for an attempt. */

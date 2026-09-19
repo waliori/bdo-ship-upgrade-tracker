@@ -37,6 +37,7 @@ delete process.env.FEEDBACK_WEBHOOK_URL;
 const app = (await import('../server.js')).default;
 const { startSession } = await import('../server/session.js');
 const { upsertUser, putCommunity, listCommunity } = await import('../server/db.js');
+const { DIGEST_V } = await import('../js/digest.js');
 
 function cookieFor(id) {
 	const headers = [];
@@ -168,5 +169,5 @@ test('a digest from an older build is re-rated without its owner lifting a finge
 	// And it was written back, so the next build does not do it again.
 	const rows = await listCommunity();
 	const row = rows.find(r => r.userId === '3002');
-	assert.equal(JSON.parse(row.stats).v, 2, 'the fresh digest was stored, not only served');
+	assert.equal(JSON.parse(row.stats).v, DIGEST_V, 'the fresh digest was stored, not only served');
 });

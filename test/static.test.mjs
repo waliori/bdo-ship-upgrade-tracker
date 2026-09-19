@@ -46,7 +46,7 @@ test('the page and its assets are served', async () => {
 
 test('the client is told there is no sync', async () => {
 	const res = await fetch(`${base}/api/config`);
-	assert.deepEqual(await res.json(), { sync: false, push: false, feedback: false, community: false, presence: true });
+	assert.deepEqual(await res.json(), { sync: false, push: false, feedback: false, uploads: false, community: false, presence: true });
 });
 
 test('no sync routes exist at all', async () => {
@@ -243,6 +243,24 @@ test('the CSP admits every origin the page actually loads from', async () => {
 	// eval, which is what 'unsafe-eval' would have opened alongside it.
 	assert.equal(directive('script-src'), "script-src 'self' 'wasm-unsafe-eval'");
 	assert.ok(!directive('script-src').split(/\s+/).includes("'unsafe-eval'"), 'script-src must not admit eval');
+});
+
+test('the hosts a feedback post can reach are hosts the CSP admits', async () => {
+	// A post can point at a film, and the card the renderer writes for
+	// one names the player it would load and the still it shows. Those
+	// two hosts live in js/markup.js and the policy lives in server.js,
+	// so this is the thread between them: add a video site there without
+	// opening the door here and the frame is silently blank.
+	const fs = await import('node:fs/promises');
+	const markup = await fs.readFile(new URL('../js/markup.js', import.meta.url), 'utf8');
+	// A host has a dot in it; a word in a comment does not.
+	const hosts = [...markup.matchAll(/https:\/\/([a-z0-9.-]+)/g)].map(m => m[1]).filter(h => h.includes('.'));
+	assert.ok(hosts.length, 'markup.js names somewhere external');
+
+	const csp = (await fetch(base + '/')).headers.get('content-security-policy');
+	for (const host of new Set(hosts)) {
+		assert.ok(csp.includes(host), `${host} is written into a post's HTML but absent from the CSP`);
+	}
 });
 
 test('the guided tour library is served from here, not a CDN', async () => {

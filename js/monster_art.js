@@ -17,6 +17,7 @@ export const monsterArt = {
 	'lekrashan': 'monster-lekrashan.webp',
 	'khan': 'monster-khan.webp',
 	'vell': 'monster-vell.webp',   // NPC 28732 on the codex
+	'hollow-maretta': 'monster-hollow-maretta.webp',   // NPC 27575
 	'young-hekaru': 'monster-hekaru.webp',
 	'young-ocean-stalker': 'monster-ocean-stalker.webp',
 	'young-candidum': 'monster-candidum.webp',

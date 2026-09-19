@@ -15,9 +15,9 @@ import * as store from './state.js';
 import { img, iconSrc, codexName } from './ui-bits.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { shipStats } from './ship_stats.js';
-import { describeStats, statsAt } from './part_stats.js';
+import { describeStats, statsAt, partLT } from './part_stats.js';
 import { families, tables } from './enhancement.js';
-import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listFleet, hullOfRow, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, skinWorn, setSkinSlot, setSkinAll, skinTotals, OWNED_PREFIX, OVERLOAD, petWeight } from './ship.js';
+import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listFleet, hullOfRow, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, aboardWhat, gearLT, OTTER_ROD, skinWorn, setSkinSlot, setSkinAll, skinTotals, OWNED_PREFIX, OVERLOAD, petWeight } from './ship.js';
 import { GOODS } from './barter.js';
 import { GRADES, gradeById, crystalById, crystalsOf, crystalVariant, crystalLine, crystalStats } from './crystals.js';
 import { skinFor, SKIN_SLOTS } from './ship_skins.js';
@@ -29,7 +29,7 @@ import { encodeShare, shareLink } from './share.js';
 import { enhancedName } from './planner.js';
 import {
 	pool, mateTypes, anyType, care, rations, expSplit, firstMates, slotSources, statBand, rollRank,
-	contract, SAILOR_CAP, seatsFor, fitSeats, statOf, crewTotals, autoAssign, logLevel, levelSteps, STAT_KEYS, STAT_NAMES, statLabel, CREW_GOALS } from './sailors.js';
+	contract, SAILOR_CAP, seatsFor, fitSeats, hasSeats, statOf, crewTotals, autoAssign, logLevel, levelSteps, STAT_KEYS, STAT_NAMES, statLabel, CREW_GOALS } from './sailors.js';
 
 // Session state: who is picked up, and how the roster is ordered.
 let selId = null;
@@ -70,6 +70,10 @@ const initials = name => name.trim().split(/\s+/).map(w => w[0]).join('').slice(
 // deck and the cannon amidships, the mess at the stern. Seats hang
 // centred under their plate, so a hull with two sails or three cannons
 // widens the group about the same point instead of drifting off it.
+// Where the cabins go on a hull that has nothing else: the game draws
+// its one row on the deck, so the drawing is not left empty with a row
+// of boxes stranded underneath it.
+const CABIN_SPOT = { cx: 450, y: 286, w: 154 };
 const SPOT = {
 	firstmate: { cx: 99, y: 58, w: 158 },
 	sail: { cx: 511, y: 44, w: 118 },
@@ -97,7 +101,7 @@ function seatPitch(pos, s) {
 	}
 	if (pos === 'deck') return T('+{n} durability — their {cabins} cabins at 10,000 each', { n: F((t.cabin || 0) * 10000), cabins: t.cabin || 0 });
 	if (pos === 'mess') return T('+{n} rations — their {cabins} cabins at 5,000 each', { n: F((t.cabin || 0) * 5000), cabins: t.cabin || 0 });
-	if (pos === 'fish') return T('auto-fishing, once an Oceanbound Otter Fishing Rod is aboard');
+	if (pos === 'fish') return T('auto-fishing, once an Oceanbound Otter Fishing Rod is aboard — {lt} LT of the hold while it is', { lt: OTTER_ROD.lt });
 	if (pos === 'firstmate') return t.mate ? T('switches on their skill: {skill}', { skill: t.skill }) : T('the seat switches on a named mate\'s skill — this sailor has none');
 	if (pos === 'cabin') return T('no role — they still eat, weigh and level along');
 	return '';
@@ -129,19 +133,33 @@ function board(ship, stats, totals) {
 		if (!groups.has(seat.pos)) groups.set(seat.pos, { label: seat.label, effect: seat.effect, seats: [] });
 		groups.get(seat.pos).seats.push(seat);
 	}
-	const placed = [...groups].filter(([pos]) => SPOT[pos]).map(([pos, g]) => {
-		const sp = SPOT[pos];
+	// A hull below a Carrack draws no positions at all, so its cabins are
+	// the row on the deck and the note under the drawing says as much --
+	// a player who has seen a Carrack's board will look for the Sail.
+	const named = hasSeats(ship);
+	const spotOf = pos => (pos === 'cabin' ? (named ? null : CABIN_SPOT) : SPOT[pos]);
+	const placed = [...groups].filter(([pos]) => spotOf(pos)).map(([pos, g]) => {
+		const sp = spotOf(pos);
 		return `<div class="seat-bar" style="left:${cq(sp.cx)};top:${cq(sp.y - 28)};width:${cq(sp.w)}" title="${esc(said(g.effect))}">${esc(said(g.label))}</div>
-			<div class="seat-wrap" style="left:${cq(sp.cx)};top:${cq(sp.y)}">${g.seats.map(seat => seatBox(ship, seat, armed)).join('')}</div>`;
+			<div class="seat-wrap${pos === 'cabin' ? ' cabins' : ''}" style="left:${cq(sp.cx)};top:${cq(sp.y)}">${g.seats.map(seat => seatBox(ship, seat, armed)).join('')}</div>`;
 	}).join('');
-	const cabins = groups.get('cabin');
-	const cabinRow = cabins ? `<div class="cabin-row">
+	const cabins = named ? groups.get('cabin') : null;
+	const cabinNote = named
+		? T('cabin seats have no role — they still eat, weigh, and level along')
+		: T('this hull draws no crew positions — the Sail, the Wheel and the First Mate are a Carrack’s; here a sailor aboard counts once, and they eat, weigh and level along');
+	const cabinRow = cabins
+		? `<div class="cabin-row">
 			<div class="seat-bar static" title="${esc(said(cabins.effect))}">${T('Cabin')}</div>
 			<div class="cabin-seats">${cabins.seats.map(seat => seatBox(ship, seat, armed)).join('')}</div>
-			<div class="cabin-note">${T('cabin seats have no role — they still eat, weigh, and level along')}</div>
-		</div>` : '';
+			<div class="cabin-note">${cabinNote}</div>
+		</div>`
+		: named ? '' : `<div class="cabin-row"><div class="cabin-note">${cabinNote}</div></div>`;
 	const sel = selId && byId(selId);
-	const hint = sel ? T('placing {name} — tap a seat', { name: sel.name }) : T('tap a sailor below, then a seat');
+	// A whole sentence per case: a translation cannot take the noun out of
+	// the middle of one and keep its own word order.
+	const hint = sel
+		? (named ? T('placing {name} — tap a seat', { name: sel.name }) : T('placing {name} — tap a cabin', { name: sel.name }))
+		: (named ? T('tap a sailor below, then a seat') : T('tap a sailor below, then a cabin'));
 	// The same seats as a list, for a screen too narrow for the drawing.
 	const seatList = [...groups].map(([pos, g]) => `<div class="seat-list-group">
 		<div class="seat-bar static" title="${esc(said(g.effect))}">${esc(said(g.label))}</div>
@@ -189,17 +207,18 @@ function board(ship, stats, totals) {
 }
 
 function statCards(ship, stats, totals) {
+	const named = hasSeats(ship);
 	const card = (k, v, sub, cls = '') => `<div class="stat"><div class="stat-k">${k}</div><div class="stat-v ${cls}">${v}</div><div class="stat-sub">${sub}</div></div>`;
 	const pct = n => `${n > 0 ? '+' : ''}${n.toFixed(1)}%`;
 	const cannon = totals.force || totals.focus || totals.vision
 		? card(T('Cannon'), `${totals.force.toFixed(1)} / ${totals.focus.toFixed(1)} / ${totals.vision.toFixed(1)}`, T('force / focus / vision, doubled at the cannon'), 'teal') : '';
 	return `<div class="stats crew-stats">
 		${card(T('Seated'), `${totals.seated} / ${totals.seats}`, totals.overSpace ? T('{cabins} of {space} cabin space — {over} over', { cabins: F(totals.cabins), space: F(totals.space), over: F(totals.overSpace) }) : T('{cabins} of {space} cabin space', { cabins: F(totals.cabins), space: F(totals.space) }), totals.overSpace ? 'amber' : '')}
-		${card(T('Speed from crew'), pct(totals.speed), T('sail seats count double'), totals.speed ? 'teal' : '')}
+		${card(T('Speed from crew'), pct(totals.speed), named ? T('sail seats count double') : T('no sail seat on this hull — each sailor counts once'), totals.speed ? 'teal' : '')}
 		${card(T('Accel from crew'), pct(totals.accel), T('hull {accel}% before crew', { accel: stats.accel }), totals.accel ? 'teal' : '')}
-		${card(T('Turn / brake from crew'), `${pct(totals.turn)} / ${pct(totals.brake)}`, T('the wheel counts double'), totals.turn || totals.brake ? 'teal' : '')}
-		${card(T('Durability from crew'), `+${F(totals.durability)}`, T('the Deck: 10,000 per cabin the sailor costs'), totals.durability ? 'amber' : '')}
-		${card(T('Rations from crew'), `+${F(totals.rations)}`, T('the Mess: 5,000 per cabin · crew eats {n}/day', { n: F(totals.appetite) }), totals.rations ? 'amber' : '')}
+		${card(T('Turn / brake from crew'), `${pct(totals.turn)} / ${pct(totals.brake)}`, named ? T('the wheel counts double') : T('no wheel seat on this hull'), totals.turn || totals.brake ? 'teal' : '')}
+		${card(T('Durability from crew'), `+${F(totals.durability)}`, named ? T('the Deck: 10,000 per cabin the sailor costs') : T('the Deck seat is a Carrack’s'), totals.durability ? 'amber' : '')}
+		${card(T('Rations from crew'), `+${F(totals.rations)}`, named ? T('the Mess: 5,000 per cabin · crew eats {n}/day', { n: F(totals.appetite) }) : T('crew eats {n}/day', { n: F(totals.appetite) }), totals.rations ? 'amber' : '')}
 		${card(T('Weight of crew'), `+${F(totals.weight)} LT`, totals.sick ? T('{n} hired · {cap} at most · {sick} sick', { n: roster().length, cap: SAILOR_CAP, sick: totals.sick }) : T('{n} hired · {cap} at most', { n: roster().length, cap: SAILOR_CAP }))}
 		${cannon}
 	</div>`;
@@ -290,7 +309,9 @@ function selectedPanel(ship) {
 	const s = selId && byId(selId);
 	if (!s) {
 		return `<div class="panel crew-panel crew-sel"><div class="panel-head"><h2 class="panel-title">${T('Selected sailor')}</h2></div>
-			<p class="empty crew-nosel">${T('No sailor selected.<br>Pick one from the list, then tap a seat on the ship.')}</p></div>`;
+			<p class="empty crew-nosel">${hasSeats(ship)
+			? T('No sailor selected.<br>Pick one from the list, then tap a seat on the ship.')
+			: T('No sailor selected.<br>Pick one from the list, then tap a cabin on the ship.')}</p></div>`;
 	}
 	return `<div class="panel crew-panel crew-sel">
 		<div class="panel-head"><h2 class="panel-title">${T('Selected sailor')}</h2><span class="panel-spacer"></span>
@@ -348,7 +369,7 @@ function sailorSheet(s, { ship, where = null, readOnly = false } = {}) {
 				${readOnly ? `<div class="sel-name still">${esc(s.name)}</div>` : `<input class="field sel-name" value="${esc(s.name)}" data-act="crew-name" data-id="${esc(s.id)}" aria-label="${T('Name')}" maxlength="30">`}
 				<div class="roster-sub">${esc(gameName(s.type))} · <span style="color:${RACE[t.race] || 'inherit'}">${esc(t.race || '')}</span> · ${T('Lv')}
 					${readOnly ? `<b>${s.lv}</b>` : `<input class="purse-inline narrow" type="text" inputmode="numeric" value="${s.lv}" data-act="crew-lv" data-id="${esc(s.id)}" aria-label="${T('Level')}">`}</div>
-				<div class="roster-pos ${where ? 'on' : ''}">${where ? T('⚓ seated at the {seat}', { seat: esc(seat ? said(seat.label) : where) }) : readOnly ? T('(idle)') : T('(idle) — tap a seat on the ship to place')}</div>
+				<div class="roster-pos ${where ? 'on' : ''}">${where ? T('⚓ seated at the {seat}', { seat: esc(seat ? said(seat.label) : where) }) : readOnly ? T('(idle)') : hasSeats(ship) ? T('(idle) — tap a seat on the ship to place') : T('(idle) — tap a cabin on the ship to place')}</div>
 			</div>
 		</div>
 		<div class="sel-cond"><span><span>${T('Condition')}</span><b style="color:${condColor(s.cond)}">${readOnly ? s.cond : `<input class="purse-inline narrow" type="text" inputmode="numeric" value="${s.cond}" data-act="crew-cond" data-id="${esc(s.id)}" aria-label="${T('Condition')}">`}%</b></span>
@@ -357,11 +378,13 @@ function sailorSheet(s, { ship, where = null, readOnly = false } = {}) {
 		<div class="sel-note">${t.mate ? T('A named mate has no growths of their own: the First Mate seat pays their skill instead.') : readOnly ? T('Each level-up rolls inside a hidden range, so a growth not typed in is an estimate; a typed one is judged against the level’s band.') : T('Each level-up rolls inside a hidden range, so these are estimates — type what the sailor window shows and they outrank it, judged against the level\'s band.')}</div>
 		<div class="sel-facts">${T('cabins <b>{cabins}</b> · eats <b>{appetite}</b>/day · weight <b>+{weight} LT</b>', { cabins: t.cabin ?? '—', appetite: t.appetite ?? '—', weight: t.weight ?? 0 })}</div>
 		${levelLogHTML(s)}
-		${t.mate
-		? `<div class="sel-facts sel-seats" data-tip="${T('Seats double a sailor\'s matching growths; the First Mate seat is where a named mate\'s skill switches on.')}">${T('at the <b>First Mate</b> seat ★ their skill switches on')}</div>`
-		: `<div class="sel-facts sel-seats" data-tip="${T('What each seat does with this sailor\'s own numbers — hover a seat on the ship for the same. Deck and Mess pay by cabin cost.')}">${t.force !== undefined
-			? T('at a seat: Sail <b>+{spd}%</b> spd · Wheel <b>+{turn}%</b> turn · Cannon <b>+{focus}%</b> focus · Deck <b>+{dura}</b> dura · Mess <b>+{rations}</b> rations', { spd: dbl(statOf(s, 'speed')), turn: dbl(statOf(s, 'turn')), focus: dbl(statOf(s, 'focus')), dura: F((t.cabin || 0) * 10000), rations: F((t.cabin || 0) * 5000) })
-			: T('at a seat: Sail <b>+{spd}%</b> spd · Wheel <b>+{turn}%</b> turn · Deck <b>+{dura}</b> dura · Mess <b>+{rations}</b> rations', { spd: dbl(statOf(s, 'speed')), turn: dbl(statOf(s, 'turn')), dura: F((t.cabin || 0) * 10000), rations: F((t.cabin || 0) * 5000) })}</div>`}
+		${!hasSeats(ship)
+		? `<div class="sel-facts sel-seats quiet" data-tip="${T('The game draws the named positions on a Carrack and the Panokseon only.')}">${t.mate ? T('this hull draws no positions — aboard, a mate\'s skill stays off') : T('this hull draws no positions — aboard, their growths count once')}</div>`
+		: t.mate
+			? `<div class="sel-facts sel-seats" data-tip="${T('Seats double a sailor\'s matching growths; the First Mate seat is where a named mate\'s skill switches on.')}">${T('at the <b>First Mate</b> seat ★ their skill switches on')}</div>`
+			: `<div class="sel-facts sel-seats" data-tip="${T('What each seat does with this sailor\'s own numbers — hover a seat on the ship for the same. Deck and Mess pay by cabin cost.')}">${t.force !== undefined
+				? T('at a seat: Sail <b>+{spd}%</b> spd · Wheel <b>+{turn}%</b> turn · Cannon <b>+{focus}%</b> focus · Deck <b>+{dura}</b> dura · Mess <b>+{rations}</b> rations', { spd: dbl(statOf(s, 'speed')), turn: dbl(statOf(s, 'turn')), focus: dbl(statOf(s, 'focus')), dura: F((t.cabin || 0) * 10000), rations: F((t.cabin || 0) * 5000) })
+				: T('at a seat: Sail <b>+{spd}%</b> spd · Wheel <b>+{turn}%</b> turn · Deck <b>+{dura}</b> dura · Mess <b>+{rations}</b> rations', { spd: dbl(statOf(s, 'speed')), turn: dbl(statOf(s, 'turn')), dura: F((t.cabin || 0) * 10000), rations: F((t.cabin || 0) * 5000) })}</div>`}
 		${t.skill ? `<div class="sel-skill">★ ${esc(t.skill)}</div>` : t.note ? `<div class="sel-skill quiet">${esc(said(t.note))}</div>` : ''}
 		${readOnly ? '' : `<div class="crew-actions">
 			${where ? `<button class="act quiet small danger" data-act="crew-disembark" data-id="${esc(s.id)}">${T('Disembark')}</button>` : ''}
@@ -511,7 +534,11 @@ function slotCard(ship, x, chosenByHand) {
 			${x.part ? img(item, 'slot-icon') : '<span class="slot-icon blank">+</span>'}
 			<div class="slot-text">
 				<div class="slot-part">${x.part ? `${codexName(x.part)} <b>+${x.level}</b>` : T('Nothing fitted')}</div>
-				<div class="slot-stats">${x.part ? esc(describeStats(x.stats, { signed: false })) : T('choose one to weigh it, or record one in the Inventory')}</div>
+				<div class="slot-stats">${x.part
+		? esc(x.lt
+			? T('{stats} · weighs {lt} LT itself', { stats: describeStats(x.stats, { signed: false }), lt: x.lt })
+			: describeStats(x.stats, { signed: false }))
+		: T('choose one to weigh it, or record one in the Inventory')}</div>
 			</div>
 		</div>
 		<div class="slot-btns">
@@ -591,7 +618,9 @@ function crystalCard(ship) {
 			${c ? img(c.name, 'slot-icon') : '<span class="slot-icon blank">◆</span>'}
 			<div class="slot-text">
 				<div class="slot-part">${c ? `${codexName(c.name)} <b style="color:${grade.colour}">${esc(crystalVariant(c))}</b>` : T('No crystal')}</div>
-				<div class="slot-stats" title="${c ? esc(crystalLine(c)) : ''}">${c ? esc(crystalLine(c)) : T('Eltro to Rusalka, or the Nol — each one lifts one thing')}</div>
+				<div class="slot-stats" title="${c ? esc(crystalLine(c)) : ''}">${c
+		? esc(c.lt ? T('{line} · weighs {lt} LT itself', { line: crystalLine(c), lt: c.lt }) : crystalLine(c))
+		: T('Eltro to Rusalka, or the Nol — each one lifts one thing')}</div>
 			</div>
 		</div>
 		<div class="slot-btns">
@@ -631,7 +660,8 @@ function loadoutPanel(ship) {
 	// A hull you are not sailing is shown empty of crew, but the pets
 	// would come with you, so they are counted here as they are there.
 	const other = s.weight + (Number(fit.total.weight) || 0) + petWeight(ship);
-	const hold = same ? me.hold : { limit: other, crew: 0, free: other };
+	const gear = gearLT(fit.slots);
+	const hold = same ? me.hold : { limit: other, crew: 0, gear, aboard: gear, free: Math.max(0, other - gear) };
 	return `<div class="panel crew-panel">
 		<div class="panel-head"><h2 class="panel-title">${T('Fitted out')}</h2>
 			<span class="panel-sub">${T('Hull: {weight} LT · {slots} slots · {cannons} · {durability} durability · {rations} rations', { weight: F(s.weight), slots: s.slots, cannons: s.cannons ? T('{n} cannons a side, {reload} s', { n: s.cannons, reload: s.reload }) : T('no cannons'), durability: F(s.durability), rations: F(s.rations) })}</span></div>
@@ -648,7 +678,7 @@ function loadoutPanel(ship) {
 	})()}
 		${rows}
 		<div class="sel-facts">${same && me.crew.seated ? T('with parts and crew:') : T('with parts:')} ${T('speed <b>{n}%</b>', { n: same ? me.speed.total : s.speed + (Number(fit.total.speed) || 0) })} · ${T('accel <b>{n}%</b>', { n: same ? me.accel : s.accel + (Number(fit.total.accel) || 0) })} · ${T('turn <b>{n}%</b>', { n: same ? me.turn : s.turn + (Number(fit.total.turn) || 0) })} · ${T('brake <b>{n}%</b>', { n: same ? me.brake : s.brake + (Number(fit.total.brake) || 0) })}
-			· ${T('hold <b>{n} LT</b>', { n: F(hold.free) })}${hold.crew ? ` <span class="fit-tag">${T('({limit} less {crew} of crew)', { limit: F(hold.limit), crew: F(hold.crew) })}</span>` : ''} · ${T('<b>{n}</b> durability', { n: F(same ? me.durability : s.durability + (Number(fit.total.durability) || 0)) })}${fit.total.dp ? ` · ${T('DP <b>{n}</b>', { n: fit.total.dp })}` : ''}${fit.total.damage ? ` · ${T('cannon <b>{n}</b> × {hits}', { n: F(fit.total.damage), hits: fit.total.hits })}` : ''}</div>
+			· ${T('hold <b>{n} LT</b>', { n: F(hold.free) })}${hold.aboard ? ` <span class="fit-tag">${T('({limit} less {aboard} of {what})', { limit: F(hold.limit), aboard: F(hold.aboard), what: said(aboardWhat(hold)) })}</span>` : ''} · ${T('<b>{n}</b> durability', { n: F(same ? me.durability : s.durability + (Number(fit.total.durability) || 0)) })}${fit.total.dp ? ` · ${T('DP <b>{n}</b>', { n: fit.total.dp })}` : ''}${fit.total.damage ? ` · ${T('cannon <b>{n}</b> × {hits}', { n: F(fit.total.damage), hits: fit.total.hits })}` : ''}</div>
 		${same ? holdLines(me) : ''}
 	</div>`;
 }
@@ -766,7 +796,7 @@ export function renderCrew() {
 		</div>
 		<div class="ship-card-facts">
 			<div><div class="summary-k">${T('Speed')}</div><div class="summary-v">${me.speed.total}%</div><div class="summary-sub">${T('hull {n}', { n: stats.speed })}${me.speed.parts ? ` + ${T('parts {n}', { n: me.speed.parts })}` : ''}${me.speed.crystal ? ` + ${T('crystal {n}', { n: me.speed.crystal })}` : ''}${me.speed.crew ? ` + ${T('crew {n}', { n: me.speed.crew })}` : ''}${me.mastery ? ` + ${T('mastery {n}', { n: me.mastery })}` : ''}${me.speed.skin ? ` + ${T('skin {n}', { n: me.speed.skin })}` : ''}</div></div>
-			<div><div class="summary-k">${T('Hold')}</div><div class="summary-v">${F(me.hold.limit)} LT</div><div class="summary-sub">${T('the limit, as fitted')}${me.hold.crew ? ` · ${T('{n} of it crew', { n: F(me.hold.crew) })}` : ''} · ${T('barters to {n}', { n: F(me.hold.deal + me.hold.crew) })}</div></div>
+			<div><div class="summary-k">${T('Hold')}</div><div class="summary-v">${F(me.hold.limit)} LT</div><div class="summary-sub">${T('the limit, as fitted')}${me.hold.aboard ? ` · ${T('{n} of it {what}', { n: F(me.hold.aboard), what: said(aboardWhat(me.hold)) })}` : ''} · ${T('barters to {n}', { n: F(me.hold.deal + me.hold.aboard) })}</div></div>
 			<div><div class="summary-k">${T('Fitted')}</div><div class="summary-v">${T('{n} of 5', { n: fittedN + (me.crystal ? 1 : 0) })}</div><div class="summary-sub">${stats.crew ? T('{n} of {seats} seats taken', { n: me.crew.seated, seats: stats.crew }) : T('carries no sailors')}</div></div>
 		</div>
 		<div class="ship-card-btns">
@@ -834,7 +864,7 @@ function typeRow(t, flat = false) {
 function autoDialog(ship) {
 	const stats = shipStats[ship];
 	const list = roster();
-	const now = crewTotals(list, (store.getProfile('seats', {}) || {})[ship] || {}, stats);
+	const now = crewTotals(list, seatsOf(ship), stats);
 	const role = roleOf(ship);
 	// The hull's own job is a fair guess at the answer, and the one the
 	// player chose last is a better one.
@@ -859,7 +889,9 @@ function autoDialog(ship) {
 	}).join('');
 	openDialog(`
 		<h2>${T('Arrange the crew')}</h2>
-		<p class="dialog-copy">${T('A seat\'s whole effect is a <b>second copy</b> of what it doubles — the Sail doubles Endurance and Wits, the Wheel Awareness and Strength — so there is no best crew, only the best crew for something. Pick what this boat is for and the roster is arranged for it: who comes aboard as well as who sits where.')}</p>
+		<p class="dialog-copy">${hasSeats(ship)
+		? T('A seat\'s whole effect is a <b>second copy</b> of what it doubles — the Sail doubles Endurance and Wits, the Wheel Awareness and Strength — so there is no best crew, only the best crew for something. Pick what this boat is for and the roster is arranged for it: who comes aboard as well as who sits where.')
+		: T('This hull draws no positions, so the whole question is <b>who comes aboard</b>: every sailor pays their growths once, and the cabin space is a knapsack — thirteen cabins for one point of Endurance is a poor trade when speed is the point. Pick what this boat is for and the roster is filled for it.')}</p>
 		<div class="auto-rows">${rows}</div>
 		<p class="dialog-note quiet">${T('The figure on the right is what the crew would add to that, against {what}. One Undo takes it back.', { what: now.seated ? T('the arrangement you have now') : T('an empty boat') })}</p>
 		<div class="dialog-actions"><button class="act quiet" data-close>${T('Cancel')}</button></div>`);
@@ -1095,7 +1127,9 @@ export function crewAction(act, el) {
 			const p = presetsOf(ship)[el.dataset.p];
 			if (!p) return true;
 			const ids = new Set(roster().map(s => s.id));
-			setSeats(ship, Object.fromEntries(Object.entries(p).filter(([, v]) => ids.has(v))));
+			// A preset kept before this hull's seats were known -- a Caravel
+			// saved with a Sail and a Wheel on it -- lands in the cabins.
+			setSeats(ship, fitSeats(ship, Object.fromEntries(Object.entries(p).filter(([, v]) => ids.has(v))), shipStats[ship]));
 			return true;
 		}
 		case 'crew-queue': {
@@ -1149,10 +1183,12 @@ function partPicker(ship, slot) {
 		for (let lv = 0; lv <= 10; lv++) { const n = stock[enhancedName(part, lv)]; if (n) out.push(`+${lv}${n > 1 ? ` ×${n}` : ''}`); }
 		return out;
 	};
-	const tierOf = part => (tables[families[part]] || {}).label || T('Other');
+	const tierOf = part => said((tables[families[part]] || {}).label) || T('Other');
 	const items = partsForSlot(ship, slot).map(part => ({
 		id: part, label: gameName(part), icon: img(part, ''),
-		sub: T('at +10: {stats}', { stats: describeStats(statsAt(part, 10), { signed: false }) }),
+		sub: partLT(part)
+			? T('at +10: {stats} · weighs {lt} LT itself', { stats: describeStats(statsAt(part, 10), { signed: false }), lt: partLT(part) })
+			: T('at +10: {stats}', { stats: describeStats(statsAt(part, 10), { signed: false }) }),
 		meta: held(part).length ? T('you hold {what}', { what: held(part).join(', ') }) : '',
 		group: tierOf(part)
 	}));
@@ -1192,7 +1228,7 @@ function crystalPicker(ship) {
 				id: String(c.id), label: `${gameName(c.name)} — ${crystalVariant(c)}`, icon: img(c.name, ''),
 				sub: use ? T('{label} · for {who}', { label: said(use.label), who: said(use.who) }) : crystalLine(c),
 				meta: `${wanted ? `${T('↑ suits this hull')} · ` : ''}${g.local ? T('its sea only') : T('every sea')}`,
-				group: `${g.label} · ${g.note}`
+				group: `${g.label} · ${said(g.note)}`
 			});
 		}
 	}

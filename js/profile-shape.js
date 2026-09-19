@@ -300,6 +300,38 @@ export function readProfile(raw) {
 	// The sailing orders: what a barter run is for. Cleaned by the
 	// module that owns the shape.
 	if (isProfile(raw.orders)) out.orders = readOrders(raw.orders);
+	// The exchanges a barterer would not make: an island the sailor
+	// looked at and found showing nothing, with the barter count they
+	// had at the time. The game gates every exchange on its own count --
+	// an island can be open while the one thing it is offering today is
+	// not -- and the app has no table of those thresholds, so this is
+	// the sailor's own record of the ones that turned them away.
+	if (Array.isArray(raw.shutOffers)) {
+		const shut = raw.shutOffers
+			.filter(x => isProfile(x) && Number(x.npcId) > 0 && typeof x.give === 'string' && typeof x.recv === 'string')
+			.slice(-200)
+			.map(x => ({
+				npcId: Math.floor(Number(x.npcId)),
+				give: x.give.slice(0, 80),
+				recv: x.recv.slice(0, 80),
+				at: Math.max(0, Math.floor(Number(x.at) || 0))
+			}));
+		if (shut.length) out.shutOffers = shut;
+	}
+	// The boards this sailor has been dealt: the barter day and the
+	// layout it turned out to be, written down by the app the moment a
+	// board is settled. It is what "which layout do I get most" is
+	// counted from -- theirs in the layout book, and everyone's, added
+	// up, on the Community tab for those who take part there. The third
+	// figure is one when an island or two was as they saw it and not as
+	// the record has it.
+	if (Array.isArray(raw.boardLog)) {
+		const log = raw.boardLog
+			.filter(x => Array.isArray(x) && /^\d{4}-\d{2}-\d{2}/.test(String(x[0])) && /^[0-9]{1,2}[A-Z]?$/.test(String(x[1])))
+			.slice(-400)
+			.map(x => [String(x[0]).slice(0, 10), String(x[1]), x[2] ? 1 : 0]);
+		if (log.length) out.boardLog = log;
+	}
 	// The orders a sailor has saved under a name, newest first: the
 	// whole shape of a way of running -- the orders, the stock's
 	// targets and ceiling, the harbour and the storage. A dozen at
@@ -331,7 +363,7 @@ export function readProfile(raw) {
 			trades: Math.max(0, Math.floor(Number(r.trades) || 0)),
 			parley: Math.max(0, Math.floor(Number(r.parley) || 0)),
 			stops: Math.max(0, Math.floor(Number(r.stops) || 0)),
-			goal: ['material', 'stock'].includes(r.goal) ? r.goal : 'silver',
+			goal: ['material', 'stock', 'coin'].includes(r.goal) ? r.goal : 'silver',
 			item: typeof r.item === 'string' && r.item.length <= 80 ? r.item : '',
 			layout: typeof r.layout === 'string' && r.layout.length <= 8 ? r.layout : '',
 			// What the run spent and what it brought back, so the day's

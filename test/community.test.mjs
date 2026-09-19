@@ -20,6 +20,7 @@ delete process.env.PUBLIC_URL;
 process.env.DISCORD_CLIENT_ID = 'test-client';
 process.env.DISCORD_CLIENT_SECRET = 'test-secret';
 process.env.TURSO_DATABASE_URL = `file:${path.join(dir, 'tracker.db')}`;
+process.env.UPLOAD_DIR = path.join(dir, 'uploads');
 process.env.SESSION_SECRET = 'test-secret-key-for-signing-sessions';
 process.env.FLUSH_DELAY_MS = '0';
 process.env.ADMIN_IDS = '2001';
@@ -170,6 +171,15 @@ test('the best ship is scored on what is on it, not only how far it is taken', (
 	assert.ok(bare.score > caravel.score, 'a Carrack outranks a Caravel however either is fitted');
 });
 
+test('the boards a sailor was dealt are counted a layout, and nonsense in the log is not', () => {
+	const d = digest(save({ boardLog: [
+		['2026-09-10', '16', 0], ['2026-09-11', '16', 1], ['2026-09-12', '35A', 0],
+		['yesterday', '16', 0], ['2026-09-13', 'layout sixteen', 0], 'not a row', ['2026-09-14']
+	] }));
+	assert.deepEqual(d.boards, { n: 3, edited: 1, byLayout: { 16: 2, '35A': 1 } });
+	assert.deepEqual(digest(save({})).boards, { n: 0, edited: 0, byLayout: {} });
+});
+
 test('an empty save digests to zeros, not to a throw', () => {
 	const d = digest({});
 	assert.equal(d.mastery, 0);
@@ -212,8 +222,8 @@ test('the boards are empty until someone takes part, and readable signed out', a
 
 test('taking part puts the digest of the save on the boards, by name or unnamed', async () => {
 	for (const [cookie, profile] of [
-		[admiral, { sailingMastery: 1500, barterCount: 300, tally: { runs: 50, silver: 5e9 } }],
-		[deckhand, { sailingMastery: 900, barterCount: 20, tally: { runs: 5, silver: 1e8 } }],
+		[admiral, { sailingMastery: 1500, barterCount: 300, tally: { runs: 50, silver: 5e9 }, boardLog: [['2026-09-10', '16', 0], ['2026-09-11', '7', 0]] }],
+		[deckhand, { sailingMastery: 900, barterCount: 20, tally: { runs: 5, silver: 1e8 }, boardLog: [['2026-09-10', '16', 1]] }],
 		[stranger, { sailingMastery: 2900, barterCount: 999 }]
 	]) {
 		const res = await call('PUT', '/api/state', { cookie, body: { rev: 0, data: save(profile), device: 'test' } });
@@ -261,6 +271,9 @@ test('taking part puts the digest of the save on the boards, by name or unnamed'
 	assert.equal(out.stats.totals.silver, 5e9 + 1e8);
 	assert.equal(out.stats.totals.runs, 55);
 	assert.deepEqual(out.stats.builds, { Panokseon: 2 });
+	// ...and the boards each was dealt: which layouts come up most, fleet-wide.
+	assert.deepEqual(out.stats.layouts, { 16: 2, 7: 1 });
+	assert.equal(out.stats.totals.boards, 3);
 });
 
 test('a place opens a card by an opaque handle, a board shows whole, and a name can be found', async () => {
@@ -329,20 +342,31 @@ test('deleting the account takes it off the boards', async () => {
  * The inbox
  * ------------------------------------------------------------------ */
 
-test('anyone may send feedback; only what is plainly not feedback is refused', async () => {
-	assert.equal((await call('POST', '/api/feedback', { body: { kind: 'bug', text: 'hi' } })).status, 400);
-	assert.equal((await call('POST', '/api/feedback', { body: { kind: 'rant', text: 'the sea is too wet' } })).status, 400);
-	assert.equal((await call('POST', '/api/feedback', { body: { kind: 'bug', text: 'x'.repeat(4001) } })).status, 400);
-	const anon = await call('POST', '/api/feedback', { body: { kind: 'bug', text: 'The map is upside down', page: 'map', version: '2.1', contact: 'gull#1' } });
-	assert.equal(anon.status, 201);
-	assert.equal((await anon.json()).ok, true);
+test('sending needs an account; only what is plainly not feedback is refused', async () => {
+	// Signed out, the dialog offers GitHub instead -- and the route says
+	// the same thing rather than taking it.
+	assert.equal((await call('POST', '/api/feedback', { body: { kind: 'bug', text: 'The map is upside down' } })).status, 401);
+	assert.equal((await call('POST', '/api/feedback', { cookie: deckhand, body: { kind: 'bug', text: 'hi' } })).status, 400);
+	assert.equal((await call('POST', '/api/feedback', { cookie: deckhand, body: { kind: 'rant', text: 'the sea is too wet' } })).status, 400);
+	assert.equal((await call('POST', '/api/feedback', { cookie: deckhand, body: { kind: 'bug', text: 'x'.repeat(8001) } })).status, 400);
+	const first = await call('POST', '/api/feedback', { cookie: stranger, body: { kind: 'bug', text: 'The map is upside down', page: 'map', version: '2.1', contact: 'gull#1' } });
+	assert.equal(first.status, 201);
+	assert.equal((await first.json()).ok, true);
 	const named = await call('POST', '/api/feedback', { cookie: deckhand, body: { kind: 'idea', text: 'Rations on the run, please', page: 'barter', username: 'Deckhand' } });
 	assert.equal(named.status, 201);
 });
 
-test('the inbox is for admins, open first, and an entry can be marked done', async () => {
-	assert.equal((await call('GET', '/api/feedback')).status, 401);
-	assert.equal((await call('GET', '/api/feedback', { cookie: deckhand })).status, 403);
+test('the list is anyone\'s to read; answering one is the admin\'s', async () => {
+	// Signed out, and signed in as anybody: the reports come back, with
+	// nothing on them that was meant for the person answering.
+	for (const cookie of [null, deckhand]) {
+		const open = await call('GET', '/api/feedback', cookie ? { cookie } : {});
+		assert.equal(open.status, 200);
+		const body = await open.json();
+		assert.equal(body.admin, false);
+		assert.equal(body.entries.length, 2);
+		assert.ok(body.entries.every(e => e.contact === undefined && e.userId === undefined && e.agent === undefined));
+	}
 	const res = await call('GET', '/api/feedback', { cookie: admiral });
 	assert.equal(res.status, 200);
 	const { entries } = await res.json();
@@ -350,7 +374,10 @@ test('the inbox is for admins, open first, and an entry can be marked done', asy
 	assert.equal(entries[0].text, 'Rations on the run, please');
 	assert.equal(entries[0].username, 'Deckhand');
 	assert.equal(entries[0].userId, '2002');
-	assert.equal(entries[1].userId, null);
+	// Written in the box, so read as markup -- and carrying no pictures.
+	assert.equal(entries[0].format, 'md');
+	assert.deepEqual(entries[0].files, []);
+	assert.equal(entries[1].userId, '2003');
 	assert.equal(entries[1].contact, 'gull#1');
 	assert.ok(entries.every(e => e.status === 'open'));
 

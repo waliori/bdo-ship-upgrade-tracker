@@ -170,3 +170,16 @@ test('a relay call has a deadline: past it the remaining batches are not asked a
 	const again = await pricesFor('console_eu', ids, { fetchImpl: slow, now: 5_000_000 + 1000, deadline: 60_000 });
 	assert.equal(Object.keys(again.prices).length, 60);
 });
+
+test('how many are listed comes through, and none listed is nought, not a gap', async () => {
+	// A good with a last price and nothing for sale is exactly the one a
+	// barter run must not be sent to the counter for.
+	const fetchImpl = async () => ({ ok: true, json: async () => [
+		{ id: 5401, lastSoldPrice: 900, basePrice: 900, currentStock: 0, lastSoldTime: 1 },
+		{ id: 5402, lastSoldPrice: 700, basePrice: 700, currentStock: 12400, lastSoldTime: 1 }
+	] });
+	const { prices } = await pricesFor('sa', [5401, 5402], { fetchImpl, now: 9_000_000 });
+	assert.equal(prices[5401].price, 900);
+	assert.equal(prices[5401].stock, 0);
+	assert.equal(prices[5402].stock, 12400);
+});
