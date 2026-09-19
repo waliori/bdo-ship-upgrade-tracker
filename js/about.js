@@ -148,6 +148,14 @@ export const RELEASES = [
 				]
 			},
 			{
+				title: TT('Every language the game is played in'),
+				text: TT('The language in the masthead now sets the app as well as the crew reader: twelve packs beside English — German, French, Russian, both Spanishes, Portuguese, Japanese, Korean, Chinese in both scripts, Thai and Turkish — covering every sentence a player reads, these notes among them.'),
+				points: [
+					TT('Item, ship and island names stay the game’s own English, because that is what your client and BDOCodex will show you.'),
+					TT('A line with no translation yet falls back to the English rather than to a blank, since the English sentence <b>is</b> the key.')
+				]
+			},
+			{
 				title: TT('An island shows something else'),
 				text: TT('Once a board is settled, <b>\u270e An island shows something else\u2026</b> is the one door for everything the record can get wrong. Name the island, pick what its window shows from everything it is known to deal, or say it shows nothing.'),
 				points: [
@@ -727,6 +735,13 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-09-19',
+		title: TT('The app is in your language, not only your client’s'),
+		notes: [
+			TT('<b>Twelve languages beside English, the ones the game is played in.</b> The picker in the masthead already said which client you run, because the crew reader has to speak it; it sets the app now too — Deutsch, Français, Русский, Español for NA/EU and for SA, Português, 日本語, 한국어, 中文, 繁體中文, ภาษาไทย and Türkçe. Every sentence a player reads is translated, the release notes and this diary among them, and <b>the English sentence is the key</b>, so a line no pack has yet falls back to the English rather than to a blank. Item, ship and island names are left in the client’s English, because that is what your own client and BDOCodex will show you. The three the game lists that have no pack of their own — Basa Indonesia, SEA English and Global Lab — read the app in English and the reader in their own.')
+		]
+	},
 	{
 		date: '2026-09-19',
 		title: TT('The seats are a Carrack’s; the boats below it draw cabins'),

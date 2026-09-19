@@ -67,6 +67,13 @@ With land goods *bought ashore*, a run is held to what the Central Market actual
 - Where you keep the land good yourself it offers *from my storage*; and *Before casting off* shows how many are listed beside each thing to buy.
 - The Market is asked again every half hour while the page is open.
 
+### Every language the game is played in
+
+The language in the masthead now sets the app as well as the crew reader: twelve packs beside English — German, French, Russian, both Spanishes, Portuguese, Japanese, Korean, Chinese in both scripts, Thai and Turkish — covering every sentence a player reads, these notes among them.
+
+- Item, ship and island names stay the game’s own English, because that is what your client and BDOCodex will show you.
+- A line with no translation yet falls back to the English rather than to a blank, since the English sentence **is** the key.
+
 ### An island shows something else
 
 Once a board is settled, **✎ An island shows something else…** is the one door for everything the record can get wrong. Name the island, pick what its window shows from everything it is known to deal, or say it shows nothing.

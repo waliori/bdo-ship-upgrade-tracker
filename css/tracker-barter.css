@@ -738,7 +738,7 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .lb-readers b { color: var(--ink-hi); }
 .lb-readers .linky { font-size: 12px; margin-left: 6px; }
 
-@media (max-width: 640px) {
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   .lb-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
   .lb-tiles { grid-template-columns: 1fr; }
   .lb-tabs { top: -16px; margin: 0 -16px 4px; padding: 8px 16px; overflow-x: auto; flex-wrap: nowrap; }
