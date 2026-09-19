@@ -197,3 +197,49 @@ test('a chain that climbs through a shut exchange is not proposed', () => {
 	assert.ok(!cut.some(c => c.rungs.some(r => r.npcId === rung.npcId && r.item === rung.item)),
 		'a rung at the shut exchange survived');
 });
+
+/* ------------------------------------------------------------------ *
+ * the record made whole from the client
+ * ------------------------------------------------------------------ */
+
+test('a row the record lacks is filled from the client, and says so', async () => {
+	const { completed, clientOffer, offersOf: rowsOf } = await import('../js/barter-board.js');
+	const whole = completed(record);
+	assert.equal(whole.combos.length, record.combos.length);
+	let filled = 0;
+	for (let i = 0; i < record.combos.length; i++) {
+		const was = record.combos[i], now = whole.combos[i];
+		// what players saw dealt is never overwritten
+		for (const o of was.offers) assert.deepEqual(rowsOf(now).get(o[0]), { give: o[1], qty: o[2], recv: o[3] });
+		for (const id of now.filled || []) {
+			filled++;
+			assert.equal(was.offers.some(o => o[0] === id), false);
+			const o = clientOffer(was, id);
+			assert.deepEqual(rowsOf(now).get(id), { give: o.give, qty: o.qty, recv: o.recv });
+			// a layout says nothing about the material islands
+			assert.ok(/^\[Level \d\]/.test(o.recv) || o.recv === 'Crow Coin', o.recv);
+		}
+	}
+	assert.ok(filled > 50, `only ${filled} rows filled`);
+	// between them nothing is missing: every layout is the same islands
+	const sizes = new Set(whole.combos.map(c => c.offers.length));
+	assert.ok(Math.max(...sizes) - Math.min(...sizes) <= 1, [...sizes].join(','));
+});
+
+test('a row the client filled carries the client\'s gate', async () => {
+	const { completed, exchangeGate: gateOf, clientOffer } = await import('../js/barter-board.js');
+	const whole = completed(record);
+	const combo = whole.combos.find(c => (c.filled || []).length);
+	const id = combo.filled[0];
+	assert.equal(gateOf(combo, id), clientOffer(combo, id).gate);
+});
+
+test('what the game deals at an island is known, wherever it was seen; what it never has is not', async () => {
+	const { knownAt } = await import('../js/barter-board.js');
+	const all = combos;
+	const [id, give, , recv] = all[0].offers[0];
+	assert.ok(knownAt(all, id, give, recv));
+	assert.equal(knownAt(all, id, '[Level 5] No Such Thing', recv), null);
+	// the patch of 17 September 2026: Dallae Pier on layout 31
+	assert.equal(knownAt([], 58981, '[Level 5] Stuffed Morpho Butterfly', '[Level 6] Top-Quality Blue Underglaze Porcelain Crate'), 'client');
+});

@@ -10,6 +10,7 @@ import { tableFor } from './enhancement.js';
 import { iconLoader } from './icon-loader.js';
 import { esc, F, parseAmount } from './fmt.js';
 import * as store from './state.js';
+import { completed } from './barter-board.js';
 import { initSync, openAccount, feature, me } from './sync.js';
 import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.js';
 import {
@@ -568,7 +569,8 @@ async function loadBarter() {
 		]);
 		if (!table.ok) throw new Error(String(table.status));
 		setBarterData(await table.json());
-		if (boards && boards.ok) setCombos(await boards.json());
+		// the record, with the client's row wherever it has none
+		if (boards && boards.ok) setCombos(completed(await boards.json()));
 		if (mats && mats.ok) setMatBoards(await mats.json());
 	})();
 	try {
