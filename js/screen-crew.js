@@ -28,7 +28,7 @@ import { encodeShare, shareLink } from './share.js';
 import { enhancedName } from './planner.js';
 import {
 	pool, mateTypes, anyType, care, rations, expSplit, firstMates, slotSources, statBand, rollRank,
-	contract, SAILOR_CAP, seatsFor, fitSeats, statOf, crewTotals, autoAssign, logLevel, levelSteps, STAT_KEYS, STAT_NAMES, statLabel, CREW_GOALS } from './sailors.js';
+	contract, SAILOR_CAP, seatsFor, fitSeats, hasSeats, statOf, crewTotals, autoAssign, logLevel, levelSteps, STAT_KEYS, STAT_NAMES, statLabel, CREW_GOALS } from './sailors.js';
 
 // Session state: who is picked up, and how the roster is ordered.
 let selId = null;
@@ -69,6 +69,10 @@ const initials = name => name.trim().split(/\s+/).map(w => w[0]).join('').slice(
 // deck and the cannon amidships, the mess at the stern. Seats hang
 // centred under their plate, so a hull with two sails or three cannons
 // widens the group about the same point instead of drifting off it.
+// Where the cabins go on a hull that has nothing else: the game draws
+// its one row on the deck, so the drawing is not left empty with a row
+// of boxes stranded underneath it.
+const CABIN_SPOT = { cx: 450, y: 286, w: 154 };
 const SPOT = {
 	firstmate: { cx: 99, y: 58, w: 158 },
 	sail: { cx: 511, y: 44, w: 118 },
@@ -128,19 +132,30 @@ function board(ship, stats, totals) {
 		if (!groups.has(seat.pos)) groups.set(seat.pos, { label: seat.label, effect: seat.effect, seats: [] });
 		groups.get(seat.pos).seats.push(seat);
 	}
-	const placed = [...groups].filter(([pos]) => SPOT[pos]).map(([pos, g]) => {
-		const sp = SPOT[pos];
+	// A hull below a Carrack draws no positions at all, so its cabins are
+	// the row on the deck and the note under the drawing says as much --
+	// a player who has seen a Carrack's board will look for the Sail.
+	const named = hasSeats(ship);
+	const spotOf = pos => (pos === 'cabin' ? (named ? null : CABIN_SPOT) : SPOT[pos]);
+	const placed = [...groups].filter(([pos]) => spotOf(pos)).map(([pos, g]) => {
+		const sp = spotOf(pos);
 		return `<div class="seat-bar" style="left:${cq(sp.cx)};top:${cq(sp.y - 28)};width:${cq(sp.w)}" title="${esc(g.effect)}">${esc(g.label)}</div>
-			<div class="seat-wrap" style="left:${cq(sp.cx)};top:${cq(sp.y)}">${g.seats.map(seat => seatBox(ship, seat, armed)).join('')}</div>`;
+			<div class="seat-wrap${pos === 'cabin' ? ' cabins' : ''}" style="left:${cq(sp.cx)};top:${cq(sp.y)}">${g.seats.map(seat => seatBox(ship, seat, armed)).join('')}</div>`;
 	}).join('');
-	const cabins = groups.get('cabin');
-	const cabinRow = cabins ? `<div class="cabin-row">
+	const cabins = named ? groups.get('cabin') : null;
+	const cabinNote = named
+		? 'cabin seats have no role — they still eat, weigh, and level along'
+		: 'this hull draws no crew positions — the Sail, the Wheel and the First Mate are a Carrack’s; here a sailor aboard counts once, and they eat, weigh and level along';
+	const cabinRow = cabins
+		? `<div class="cabin-row">
 			<div class="seat-bar static" title="${esc(cabins.effect)}">Cabin</div>
 			<div class="cabin-seats">${cabins.seats.map(seat => seatBox(ship, seat, armed)).join('')}</div>
-			<div class="cabin-note">cabin seats have no role — they still eat, weigh, and level along</div>
-		</div>` : '';
+			<div class="cabin-note">${cabinNote}</div>
+		</div>`
+		: named ? '' : `<div class="cabin-row"><div class="cabin-note">${cabinNote}</div></div>`;
 	const sel = selId && byId(selId);
-	const hint = sel ? `placing ${sel.name} — tap a seat` : 'tap a sailor below, then a seat';
+	const seatWord = named ? 'seat' : 'cabin';
+	const hint = sel ? `placing ${sel.name} — tap a ${seatWord}` : `tap a sailor below, then a ${seatWord}`;
 	// The same seats as a list, for a screen too narrow for the drawing.
 	const seatList = [...groups].map(([pos, g]) => `<div class="seat-list-group">
 		<div class="seat-bar static" title="${esc(g.effect)}">${esc(g.label)}</div>
@@ -188,17 +203,18 @@ function board(ship, stats, totals) {
 }
 
 function statCards(ship, stats, totals) {
+	const named = hasSeats(ship);
 	const card = (k, v, sub, cls = '') => `<div class="stat"><div class="stat-k">${k}</div><div class="stat-v ${cls}">${v}</div><div class="stat-sub">${sub}</div></div>`;
 	const pct = n => `${n > 0 ? '+' : ''}${n.toFixed(1)}%`;
 	const cannon = totals.force || totals.focus || totals.vision
 		? card('Cannon', `${totals.force.toFixed(1)} / ${totals.focus.toFixed(1)} / ${totals.vision.toFixed(1)}`, 'force / focus / vision, doubled at the cannon', 'teal') : '';
 	return `<div class="stats crew-stats">
 		${card('Seated', `${totals.seated} / ${totals.seats}`, `${F(totals.cabins)} of ${F(totals.space)} cabin space${totals.overSpace ? ` — ${F(totals.overSpace)} over` : ''}`, totals.overSpace ? 'amber' : '')}
-		${card('Speed from crew', pct(totals.speed), 'sail seats count double', totals.speed ? 'teal' : '')}
+		${card('Speed from crew', pct(totals.speed), named ? 'sail seats count double' : 'no sail seat on this hull — each sailor counts once', totals.speed ? 'teal' : '')}
 		${card('Accel from crew', pct(totals.accel), `hull ${stats.accel}% before crew`, totals.accel ? 'teal' : '')}
-		${card('Turn / brake from crew', `${pct(totals.turn)} / ${pct(totals.brake)}`, 'the wheel counts double', totals.turn || totals.brake ? 'teal' : '')}
-		${card('Durability from crew', `+${F(totals.durability)}`, 'the Deck: 10,000 per cabin the sailor costs', totals.durability ? 'amber' : '')}
-		${card('Rations from crew', `+${F(totals.rations)}`, `the Mess: 5,000 per cabin · crew eats ${F(totals.appetite)}/day`, totals.rations ? 'amber' : '')}
+		${card('Turn / brake from crew', `${pct(totals.turn)} / ${pct(totals.brake)}`, named ? 'the wheel counts double' : 'no wheel seat on this hull', totals.turn || totals.brake ? 'teal' : '')}
+		${card('Durability from crew', `+${F(totals.durability)}`, named ? 'the Deck: 10,000 per cabin the sailor costs' : 'the Deck seat is a Carrack’s', totals.durability ? 'amber' : '')}
+		${card('Rations from crew', `+${F(totals.rations)}`, `${named ? 'the Mess: 5,000 per cabin · ' : ''}crew eats ${F(totals.appetite)}/day`, totals.rations ? 'amber' : '')}
 		${card('Weight of crew', `+${F(totals.weight)} LT`, `${roster().length} hired · ${SAILOR_CAP} at most${totals.sick ? ` · ${totals.sick} sick` : ''}`)}
 		${cannon}
 	</div>`;
@@ -282,7 +298,7 @@ function selectedPanel(ship) {
 	const s = selId && byId(selId);
 	if (!s) {
 		return `<div class="panel crew-panel crew-sel"><div class="panel-head"><h2 class="panel-title">Selected sailor</h2></div>
-			<p class="empty crew-nosel">No sailor selected.<br>Pick one from the list, then tap a seat on the ship.</p></div>`;
+			<p class="empty crew-nosel">No sailor selected.<br>Pick one from the list, then tap ${hasSeats(ship) ? 'a seat' : 'a cabin'} on the ship.</p></div>`;
 	}
 	return `<div class="panel crew-panel crew-sel">
 		<div class="panel-head"><h2 class="panel-title">Selected sailor</h2><span class="panel-spacer"></span>
@@ -339,7 +355,7 @@ function sailorSheet(s, { ship, where = null, readOnly = false } = {}) {
 				${readOnly ? `<div class="sel-name still">${esc(s.name)}</div>` : `<input class="field sel-name" value="${esc(s.name)}" data-act="crew-name" data-id="${esc(s.id)}" aria-label="Name" maxlength="30">`}
 				<div class="roster-sub">${esc(s.type)} · <span style="color:${RACE[t.race] || 'inherit'}">${esc(t.race || '')}</span> · Lv
 					${readOnly ? `<b>${s.lv}</b>` : `<input class="purse-inline narrow" type="text" inputmode="numeric" value="${s.lv}" data-act="crew-lv" data-id="${esc(s.id)}" aria-label="Level">`}</div>
-				<div class="roster-pos ${where ? 'on' : ''}">${where ? `⚓ seated at the ${esc(seat ? seat.label : where)}` : readOnly ? '(idle)' : '(idle) — tap a seat on the ship to place'}</div>
+				<div class="roster-pos ${where ? 'on' : ''}">${where ? `⚓ seated at the ${esc(seat ? seat.label : where)}` : readOnly ? '(idle)' : `(idle) — tap a ${hasSeats(ship) ? 'seat' : 'cabin'} on the ship to place`}</div>
 			</div>
 		</div>
 		<div class="sel-cond"><span><span>Condition</span><b style="color:${condColor(s.cond)}">${readOnly ? s.cond : `<input class="purse-inline narrow" type="text" inputmode="numeric" value="${s.cond}" data-act="crew-cond" data-id="${esc(s.id)}" aria-label="Condition">`}%</b></span>
@@ -348,9 +364,11 @@ function sailorSheet(s, { ship, where = null, readOnly = false } = {}) {
 		<div class="sel-note">${t.mate ? 'A named mate has no growths of their own: the First Mate seat pays their skill instead.' : readOnly ? 'Each level-up rolls inside a hidden range, so a growth not typed in is an estimate; a typed one is judged against the level’s band.' : 'Each level-up rolls inside a hidden range, so these are estimates — type what the sailor window shows and they outrank it, judged against the level\'s band.'}</div>
 		<div class="sel-facts">cabins <b>${t.cabin ?? '—'}</b> · eats <b>${t.appetite ?? '—'}</b>/day · weight <b>+${t.weight ?? 0} LT</b></div>
 		${levelLogHTML(s)}
-		${t.mate
-		? '<div class="sel-facts sel-seats" data-tip="Seats double a sailor\'s matching growths; the First Mate seat is where a named mate\'s skill switches on.">at the <b>First Mate</b> seat ★ their skill switches on</div>'
-		: `<div class="sel-facts sel-seats" data-tip="What each seat does with this sailor's own numbers — hover a seat on the ship for the same. Deck and Mess pay by cabin cost.">at a seat: Sail <b>+${dbl(statOf(s, 'speed'))}%</b> spd · Wheel <b>+${dbl(statOf(s, 'turn'))}%</b> turn${t.force !== undefined ? ` · Cannon <b>+${dbl(statOf(s, 'focus'))}%</b> focus` : ''} · Deck <b>+${F((t.cabin || 0) * 10000)}</b> dura · Mess <b>+${F((t.cabin || 0) * 5000)}</b> rations</div>`}
+		${!hasSeats(ship)
+		? `<div class="sel-facts sel-seats quiet" data-tip="The game draws the named positions on a Carrack and the Panokseon only.">this hull draws no positions — aboard, ${t.mate ? 'a mate\'s skill stays off' : 'their growths count once'}</div>`
+		: t.mate
+			? '<div class="sel-facts sel-seats" data-tip="Seats double a sailor\'s matching growths; the First Mate seat is where a named mate\'s skill switches on.">at the <b>First Mate</b> seat ★ their skill switches on</div>'
+			: `<div class="sel-facts sel-seats" data-tip="What each seat does with this sailor's own numbers — hover a seat on the ship for the same. Deck and Mess pay by cabin cost.">at a seat: Sail <b>+${dbl(statOf(s, 'speed'))}%</b> spd · Wheel <b>+${dbl(statOf(s, 'turn'))}%</b> turn${t.force !== undefined ? ` · Cannon <b>+${dbl(statOf(s, 'focus'))}%</b> focus` : ''} · Deck <b>+${F((t.cabin || 0) * 10000)}</b> dura · Mess <b>+${F((t.cabin || 0) * 5000)}</b> rations</div>`}
 		${t.skill ? `<div class="sel-skill">★ ${esc(t.skill)}</div>` : t.note ? `<div class="sel-skill quiet">${esc(t.note)}</div>` : ''}
 		${readOnly ? '' : `<div class="crew-actions">
 			${where ? `<button class="act quiet small danger" data-act="crew-disembark" data-id="${esc(s.id)}">Disembark</button>` : ''}
@@ -818,7 +836,7 @@ function typeRow(t, flat = false) {
 function autoDialog(ship) {
 	const stats = shipStats[ship];
 	const list = roster();
-	const now = crewTotals(list, (store.getProfile('seats', {}) || {})[ship] || {}, stats);
+	const now = crewTotals(list, seatsOf(ship), stats);
 	const role = roleOf(ship);
 	// The hull's own job is a fair guess at the answer, and the one the
 	// player chose last is a better one.
@@ -843,7 +861,9 @@ function autoDialog(ship) {
 	}).join('');
 	openDialog(`
 		<h2>Arrange the crew</h2>
-		<p class="dialog-copy">A seat's whole effect is a <b>second copy</b> of what it doubles — the Sail doubles Endurance and Wits, the Wheel Awareness and Strength — so there is no best crew, only the best crew for something. Pick what this boat is for and the roster is arranged for it: who comes aboard as well as who sits where.</p>
+		<p class="dialog-copy">${hasSeats(ship)
+		? 'A seat\'s whole effect is a <b>second copy</b> of what it doubles — the Sail doubles Endurance and Wits, the Wheel Awareness and Strength — so there is no best crew, only the best crew for something. Pick what this boat is for and the roster is arranged for it: who comes aboard as well as who sits where.'
+		: 'This hull draws no positions, so the whole question is <b>who comes aboard</b>: every sailor pays their growths once, and the cabin space is a knapsack — thirteen cabins for one point of Endurance is a poor trade when speed is the point. Pick what this boat is for and the roster is filled for it.'}</p>
 		<div class="auto-rows">${rows}</div>
 		<p class="dialog-note quiet">The figure on the right is what the crew would add to that, against ${now.seated ? 'the arrangement you have now' : 'an empty boat'}. One Undo takes it back.</p>
 		<div class="dialog-actions"><button class="act quiet" data-close>Cancel</button></div>`);
@@ -1080,7 +1100,9 @@ export function crewAction(act, el) {
 			const p = presetsOf(ship)[el.dataset.p];
 			if (!p) return true;
 			const ids = new Set(roster().map(s => s.id));
-			setSeats(ship, Object.fromEntries(Object.entries(p).filter(([, v]) => ids.has(v))));
+			// A preset kept before this hull's seats were known -- a Caravel
+			// saved with a Sail and a Wheel on it -- lands in the cabins.
+			setSeats(ship, fitSeats(ship, Object.fromEntries(Object.entries(p).filter(([, v]) => ids.has(v))), shipStats[ship]));
 			return true;
 		}
 		case 'crew-queue': {

@@ -40,6 +40,9 @@
 }
 .seat-bar.static { position: static; transform: none; width: 154px; margin: 0 auto 6px; font-size: 11.5px; padding: 2px 0; }
 .seat-wrap { position: absolute; z-index: 2; transform: translateX(-50%); display: flex; gap: 0.7cqw; }
+/* The cabin row of a hull with no positions: it sits on the deck, so it
+   is the one wrap that may run wider than a seat or two. */
+.seat-wrap.cabins { flex-wrap: wrap; justify-content: center; width: 70cqw; }
 .seat {
   position: relative; width: 5.1cqw; height: 5.1cqw; min-width: 34px; min-height: 34px;
   border-radius: 9px; display: grid; place-items: center; cursor: pointer; padding: 0;
