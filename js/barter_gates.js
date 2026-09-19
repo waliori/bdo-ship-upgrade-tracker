@@ -11,8 +11,8 @@
 // Null means unknown, and unknown is treated as open: the app will
 // never hide an island on a guess.
 //
-// Baked 2026-09-15 from barter_normal.bss against
-// barter_combos.json read 2026-09-11: 2917 of 3004 rows agreed
+// Baked 2026-09-19 from barter_normal.bss against
+// barter_combos.json read 2026-09-19: 2917 of 3004 rows agreed
 // (97.1%), across 78 barterers.
 
 export const ROWS = {"1":33,"2":34,"3":1,"4":17,"5":0,"6":14,"7":4,"8":3,"10":31,"11":2,"12":24,"13":25,"14":15,"15":29,"16":30,"18":19,"19":23,"20":22,"21":5,"22":27,"23":10,"24":32,"25":9,"26":13,"27":8,"28":6,"29":12,"30":21,"31":16,"32":26,"33":18,"34":20,"7A":28,"9A":7,"9B":11,"35A":36,"35B":38,"35C":35,"35D":37,"35E":39};
