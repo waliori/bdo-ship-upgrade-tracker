@@ -22,6 +22,7 @@
 // written is one change: one Undo takes the whole reading back.
 
 import { esc, F } from './fmt.js';
+import { T, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { LIMITS, triage, readStorageShots, close as closeReader } from './shot-reader.js';
@@ -89,7 +90,7 @@ export function openStorageImport(after = () => {}) {
 		const inner = host().hidden ? null : host().querySelector('[data-shot-body]');
 		if (inner) inner.innerHTML = body;
 		else {
-			const box = openDialog(`<h2>Read a storage from screenshots</h2><div data-shot-body>${body}</div>`,
+			const box = openDialog(`<h2>${T('Read a storage from screenshots')}</h2><div data-shot-body>${body}</div>`,
 				{ onDismiss: () => { if (stop) stop.abort(); closeReader(); } }).querySelector('.dialog-box');
 			if (box) box.classList.add('wide', 'shot-box');
 		}
@@ -98,49 +99,49 @@ export function openStorageImport(after = () => {}) {
 
 	/* --- what to drop ------------------------------------------------ */
 	const placePicker = () => `<div class="shot-lang">
-		<label for="shot-store">This storage is</label>
+		<label for="shot-store">${T('This storage is')}</label>
 		<select id="shot-store" class="purse-inline" data-place>
-			${PLACES.map(t => `<option value="${esc(t)}"${t === place ? ' selected' : ''}>${t ? esc(t) : 'your bags'}</option>`).join('')}
+			${PLACES.map(t => `<option value="${esc(t)}"${t === place ? ' selected' : ''}>${t ? esc(gameName(t)) : T('your bags')}</option>`).join('')}
 		</select>
-		<span class="row-sub">Every count read is written as what is kept there. Drop all the screenshots of one storage together — they are one storage, and their slots add up.</span>
+		<span class="row-sub">${T('Every count read is written as what is kept there. Drop all the screenshots of one storage together — they are one storage, and their slots add up.')}</span>
 	</div>`;
 
 	const pickView = () => `
-		<p class="dialog-note">A screenshot of the storage window reads, and so does a shot of the whole screen with the window open — the panel is found in it. Several at a time is the point: scroll the storage, shoot each screenful, drop the lot.</p>
+		<p class="dialog-note">${T('A screenshot of the storage window reads, and so does a shot of the whole screen with the window open — the panel is found in it. Several at a time is the point: scroll the storage, shoot each screenful, drop the lot.')}</p>
 		<ul class="shot-kinds">
-			<li><b>What is read</b> — the picture in each slot, against the icons this app already carries, and the figure written over the corner.</li>
-			<li><b>What is not</b> — anything the app keeps no count of. A storage is mostly that, and it is left alone.</li>
-			<li><b>What a ship part is read as</b> — the part itself. The game draws every level of a part with the same picture, so a +10 sail comes back as a sail; set the level on its tile afterwards, or untick it here.</li>
-			<li><b>How the counts are checked</b> — every line comes back with the corner of its slot beside it, as the screenshot had it, so a count is checked at a glance. One the reader is not sure of is marked ⚠ with its best reading written in; a mouse pointer lying over a figure is the usual reason.</li>
+			<li>${T('<b>What is read</b> — the picture in each slot, against the icons this app already carries, and the figure written over the corner.')}</li>
+			<li>${T('<b>What is not</b> — anything the app keeps no count of. A storage is mostly that, and it is left alone.')}</li>
+			<li>${T('<b>What a ship part is read as</b> — the part itself. The game draws every level of a part with the same picture, so a +10 sail comes back as a sail; set the level on its tile afterwards, or untick it here.')}</li>
+			<li>${T('<b>How the counts are checked</b> — every line comes back with the corner of its slot beside it, as the screenshot had it, so a count is checked at a glance. One the reader is not sure of is marked ⚠ with its best reading written in; a mouse pointer lying over a figure is the usual reason.')}</li>
 		</ul>
 		${placePicker()}
-		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="Choose screenshots to read">
+		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="${T('Choose screenshots to read')}">
 			<div class="shot-drop-mark">🏰</div>
-			<div><b>Drop screenshots here</b></div>
-			<div class="row-sub">or <button class="link-btn" data-choose>choose files</button></div>
+			<div><b>${T('Drop screenshots here')}</b></div>
+			<div class="row-sub">${T('or {link}', { link: `<button class="link-btn" data-choose>${T('choose files')}</button>` })}</div>
 			<input type="file" accept="image/png,image/jpeg,image/webp" multiple hidden data-files>
 		</div>
-		<p class="dialog-note quiet">Up to ${LIMITS.files} at a time, ${Math.round(LIMITS.bytes / 1024 / 1024)} MB each, PNG, JPEG or WebP.
-			They are read in this browser and never uploaded, and a storage needs no reader fetched for it: the pictures and the figures are both read off the pixels.</p>
-		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>`;
+		<p class="dialog-note quiet">${T('Up to {files} at a time, {mb} MB each, PNG, JPEG or WebP.', { files: LIMITS.files, mb: Math.round(LIMITS.bytes / 1024 / 1024) })}
+			${T('They are read in this browser and never uploaded, and a storage needs no reader fetched for it: the pictures and the figures are both read off the pixels.')}</p>
+		<div class="dialog-actions"><button class="act quiet" data-close>${T('Close')}</button></div>`;
 
 	/* --- reading ----------------------------------------------------- */
 	const readingView = (at, text) => `
 		<p class="dialog-note">${esc(text)}</p>
 		<div class="shot-bar"><i style="width:${Math.round(at * 100)}%"></i></div>
-		<div class="dialog-actions"><button class="act quiet" data-stop>Stop</button></div>`;
+		<div class="dialog-actions"><button class="act quiet" data-stop>${T('Stop')}</button></div>`;
 
 	/* --- the review table -------------------------------------------- */
 	const rowHTML = (r, i) => {
 		const have = store.stockAt(r.item, place);
 		const move = r.n - have;
 		return `<tr class="shot-row${r.take === false ? ' off' : ''}">
-			<td><input type="checkbox" data-take="${i}"${r.take === false ? '' : ' checked'} aria-label="Write this one in"></td>
-			<td class="shot-item">${img(r.item, 'row-icon')}<span>${esc(r.item)}</span>${r.slots > 1 ? `<span class="row-sub">${r.slots} slots</span>` : ''}</td>
-			<td><input class="purse-inline narrow" data-n="${i}" value="${r.n}" inputmode="numeric" aria-label="How many of ${esc(r.item)}"></td>
-			<td class="shot-note">${have === r.n ? '<span class="quiet">already right</span>' : `${F(have)} → <b>${F(r.n)}</b>${move > 0 ? ` <span class="quiet">(+${F(move)})</span>` : ` <span class="quiet">(${F(move)})</span>`}`}</td>
-			<td class="shot-note shot-proof">${r.shots.slice(0, 4).map(src => `<img class="shot-corner" src="${esc(src)}" alt="the corner of the slot as the screenshot had it">`).join('')}${r.shots.length > 4 ? `<span class="quiet">+${r.shots.length - 4}</span>` : ''}${r.guessed
-		? `<span class="shot-warn" title="The reader was not sure of the figure over ${r.guessed === 1 ? 'one slot' : `${r.guessed} slots`}. What is written here is its best reading: check it against the slot beside it.">⚠ ${r.guessed === r.slots ? 'check this one' : `check ${r.guessed} of ${r.slots}`}</span>`
+			<td><input type="checkbox" data-take="${i}"${r.take === false ? '' : ' checked'} aria-label="${T('Write this one in')}"></td>
+			<td class="shot-item">${img(r.item, 'row-icon')}<span>${esc(gameName(r.item))}</span>${r.slots > 1 ? `<span class="row-sub">${T('{n} slots', { n: r.slots })}</span>` : ''}</td>
+			<td><input class="purse-inline narrow" data-n="${i}" value="${r.n}" inputmode="numeric" aria-label="${T('How many of {item}', { item: esc(gameName(r.item)) })}"></td>
+			<td class="shot-note">${have === r.n ? `<span class="quiet">${T('already right')}</span>` : `${F(have)} → <b>${F(r.n)}</b>${move > 0 ? ` <span class="quiet">(+${F(move)})</span>` : ` <span class="quiet">(${F(move)})</span>`}`}</td>
+			<td class="shot-note shot-proof">${r.shots.slice(0, 4).map(src => `<img class="shot-corner" src="${esc(src)}" alt="${T('the corner of the slot as the screenshot had it')}">`).join('')}${r.shots.length > 4 ? `<span class="quiet">+${r.shots.length - 4}</span>` : ''}${r.guessed
+		? `<span class="shot-warn" title="${T('The reader was not sure of the figure over {slots}. What is written here is its best reading: check it against the slot beside it.', { slots: r.guessed === 1 ? T('one slot') : T('{n} slots', { n: r.guessed }) })}">⚠ ${r.guessed === r.slots ? T('check this one') : T('check {n} of {slots}', { n: r.guessed, slots: r.slots })}</span>`
 		: ''}</td>
 		</tr>`;
 	};
@@ -151,22 +152,28 @@ export function openStorageImport(after = () => {}) {
 		const guessed = taking.filter(r => r.guessed).length;
 		return `
 		<p class="dialog-note">${rows.length
-		? `Read ${rows.length} thing${rows.length === 1 ? '' : 's'} this app keeps a count of${unnamed ? `, and passed over ${unnamed} slot${unnamed === 1 ? '' : 's'} of what it does not` : ''}. These are written as what is kept at <b>${esc(place || 'your bags')}</b>, so anything of yours that is there and not in the shot should be unticked.`
-		: `No storage slots were found in ${skipped.length ? 'the rest of ' : ''}those.`}</p>
-		${skipped.length ? `<details class="shot-skipped"><summary>${skipped.length} not read</summary>${skipped.map(s => `<div class="row-sub">${esc(s.name)} — ${esc(s.why)}</div>`).join('')}</details>` : ''}
-		${guessed ? `<p class="dialog-note quiet">${guessed === 1 ? 'One line has a count' : `${guessed} lines have counts`} the reader was not sure of — its best reading is written in and marked ⚠. Every line has the corner of its slot beside it, as the screenshot had it, to check the count against.</p>` : ''}
-		${shaky.length ? `<p class="dialog-note quiet">The slots in ${shaky.map(n => `<b>${esc(n)}</b>`).join(', ')} could not be lined up with any confidence — a small or blurred shot, or not a storage at all — so everything read from ${shaky.length === 1 ? 'it' : 'them'} is marked ⚠.</p>` : ''}
-		${shared ? `<p class="dialog-note quiet">${shared === 1 ? 'One row of slots was' : `${shared} rows of slots were`} in two of the screenshots — the storage was scrolled between them — and ${shared === 1 ? 'was' : 'were'} counted once.</p>` : ''}
+		? `${unnamed
+			? T('Read {things} this app keeps a count of, and passed over {slots} of what it does not.', { things: rows.length === 1 ? T('{n} thing', { n: rows.length }) : T('{n} things', { n: rows.length }), slots: unnamed === 1 ? T('{n} slot', { n: unnamed }) : T('{n} slots', { n: unnamed }) })
+			: T('Read {things} this app keeps a count of.', { things: rows.length === 1 ? T('{n} thing', { n: rows.length }) : T('{n} things', { n: rows.length }) })} ${T('These are written as what is kept at <b>{place}</b>, so anything of yours that is there and not in the shot should be unticked.', { place: esc(place ? gameName(place) : T('your bags')) })}`
+		: skipped.length ? T('No storage slots were found in the rest of those.') : T('No storage slots were found in those.')}</p>
+		${skipped.length ? `<details class="shot-skipped"><summary>${T('{n} not read', { n: skipped.length })}</summary>${skipped.map(s => `<div class="row-sub">${esc(s.name)} — ${esc(said(s.why))}</div>`).join('')}</details>` : ''}
+		${guessed ? `<p class="dialog-note quiet">${guessed === 1 ? T('One line has a count the reader was not sure of — its best reading is written in and marked ⚠.') : T('{n} lines have counts the reader was not sure of — its best reading is written in and marked ⚠.', { n: guessed })} ${T('Every line has the corner of its slot beside it, as the screenshot had it, to check the count against.')}</p>` : ''}
+		${shaky.length ? `<p class="dialog-note quiet">${shaky.length === 1
+			? T('The slots in {files} could not be lined up with any confidence — a small or blurred shot, or not a storage at all — so everything read from it is marked ⚠.', { files: shaky.map(n => `<b>${esc(n)}</b>`).join(', ') })
+			: T('The slots in {files} could not be lined up with any confidence — a small or blurred shot, or not a storage at all — so everything read from them is marked ⚠.', { files: shaky.map(n => `<b>${esc(n)}</b>`).join(', ') })}</p>` : ''}
+		${shared ? `<p class="dialog-note quiet">${shared === 1
+			? T('One row of slots was in two of the screenshots — the storage was scrolled between them — and was counted once.')
+			: T('{n} rows of slots were in two of the screenshots — the storage was scrolled between them — and were counted once.', { n: shared })}</p>` : ''}
 		${rows.length ? `<div class="shot-table-wrap"><table class="shot-table">
-			<thead><tr><th></th><th>What</th><th>How many</th><th>at ${esc(place || 'the bags')}</th><th></th></tr></thead>
+			<thead><tr><th></th><th>${T('What')}</th><th>${T('How many')}</th><th>${T('at {place}', { place: esc(place ? gameName(place) : T('the bags')) })}</th><th></th></tr></thead>
 			<tbody>${rows.map(rowHTML).join('')}</tbody>
 		</table></div>` : ''}
 		<div class="shot-lang">${placePicker()}</div>
 		<div class="dialog-actions">
-			<button class="act quiet" data-again>Read more</button>
+			<button class="act quiet" data-again>${T('Read more')}</button>
 			<span class="panel-spacer"></span>
-			<button class="act quiet" data-close>Cancel</button>
-			<button class="act" data-write${taking.length ? '' : ' disabled'}>${taking.length ? `Write ${taking.length} in${total ? ` · ${F(total)} in all` : ''}` : 'Nothing ticked'}</button>
+			<button class="act quiet" data-close>${T('Cancel')}</button>
+			<button class="act" data-write${taking.length ? '' : ' disabled'}>${taking.length ? `${T('Write {n} in', { n: taking.length })}${total ? ` · ${T('{n} in all', { n: F(total) })}` : ''}` : T('Nothing ticked')}</button>
 		</div>`;
 	};
 
@@ -176,7 +183,7 @@ export function openStorageImport(after = () => {}) {
 		skipped = out.map(s => ({ name: s.file.name, why: s.why }));
 		if (!take.length) { rows = []; draw(reviewView()); return; }
 		stop = new AbortController();
-		draw(readingView(0, 'Learning the icons…'));
+		draw(readingView(0, T('Learning the icons…')));
 		const onProgress = p => {
 			const bar = host().querySelector('.shot-bar i');
 			const note = host().querySelector('.dialog-note');
@@ -186,15 +193,15 @@ export function openStorageImport(after = () => {}) {
 			// A storage needs no engine fetched for it: the only wait is
 			// the five hundred icons a slot is named against.
 			note.textContent = p.stage === 'reading'
-				? `Reading ${p.i + 1} of ${p.n} — ${p.name}`
-				: p.stage === 'done' ? 'Done' : 'Learning the icons…';
+				? T('Reading {i} of {n} — {name}', { i: p.i + 1, n: p.n, name: p.name })
+				: p.stage === 'done' ? T('Done') : T('Learning the icons…');
 		};
 		let results;
 		try {
 			results = await readStorageShots(take, { onProgress, signal: stop.signal });
 		} catch (err) {
-			draw(`<p class="dialog-note warn">The reader could not start: ${esc(err && err.message ? err.message : String(err))}</p>
-				<div class="dialog-actions"><button class="act quiet" data-again>Try again</button><button class="act" data-close>Close</button></div>`);
+			draw(`<p class="dialog-note warn">${T('The reader could not start: {why}', { why: esc(err && err.message ? err.message : String(err)) })}</p>
+				<div class="dialog-actions"><button class="act quiet" data-again>${T('Try again')}</button><button class="act" data-close>${T('Close')}</button></div>`);
 			return;
 		} finally {
 			stop = null;
@@ -222,14 +229,18 @@ export function openStorageImport(after = () => {}) {
 		const done = store.setStashAll(
 			taking.map(r => ({ item: r.item, n: r.n })),
 			place,
-			`Read ${taking.length} ${taking.length === 1 ? 'count' : 'counts'} off a screenshot of ${place || 'the bags'}`
+			taking.length === 1
+				? T('Read {n} count off a screenshot of {place}', { n: taking.length, place: place || T('the bags') })
+				: T('Read {n} counts off a screenshot of {place}', { n: taking.length, place: place || T('the bags') })
 		);
 		store.setSetting('shotStore', place, true);
 		closeReader();
 		closeDialog();
 		toast(done
-			? `${taking.length} ${taking.length === 1 ? 'count' : 'counts'} written in at ${place || 'your bags'}`
-			: 'Everything read was already right', true);
+			? (taking.length === 1
+				? T('{n} count written in at {place}', { n: taking.length, place: place ? gameName(place) : T('your bags') })
+				: T('{n} counts written in at {place}', { n: taking.length, place: place ? gameName(place) : T('your bags') }))
+			: T('Everything read was already right'), true);
 		after();
 	}
 

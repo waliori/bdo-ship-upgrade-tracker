@@ -25,6 +25,7 @@
 //     read the report, so it renders as a plain link instead.
 
 import { esc } from './fmt.js';
+import { T } from './i18n.js';
 
 /** How long a post may be, in characters. Matched by the server. */
 export const MAX_MARKUP = 8000;
@@ -124,7 +125,7 @@ function attached(src, ctx) {
 }
 
 function picture(file, alt) {
-	const label = alt || file.name || 'a screenshot';
+	const label = alt || file.name || T('a screenshot');
 	const size = file.width && file.height ? ` width="${file.width}" height="${file.height}"` : '';
 	return `<a class="mk-shot" href="${esc(fileURL(file.id))}" data-file="${esc(file.id)}">`
 		+ `<img src="${esc(fileURL(file.id))}" alt="${esc(label)}"${size} loading="lazy" decoding="async"></a>`;
@@ -244,7 +245,7 @@ function card(video) {
 		: '';
 	return `<div class="mk-video" data-embed="${esc(video.embed)}" data-host="${esc(video.host)}">
 		${thumb}
-		<button type="button" class="mk-play" aria-label="Play this ${esc(video.host)} video">▶</button>
+		<button type="button" class="mk-play" aria-label="${T('Play this {host} video', { host: esc(video.host) })}">▶</button>
 		<a class="mk-video-out" href="${esc(video.url)}" target="_blank" rel="noopener noreferrer">${esc(video.host)} ↗</a>
 	</div>`;
 }
@@ -303,8 +304,8 @@ function clean(source) {
  */
 export function plainOf(source, limit = 160) {
 	const text = clean(source)
-		.replace(/```[\s\S]*?```/g, ' code ')
-		.replace(/!\[([^\]\n]*)\]\([^)\s]+\)/g, (m, alt) => (alt ? `[${alt}]` : '[image]'))
+		.replace(/```[\s\S]*?```/g, ` ${T('code')} `)
+		.replace(/!\[([^\]\n]*)\]\([^)\s]+\)/g, (m, alt) => (alt ? `[${alt}]` : T('[image]')))
 		.replace(/\[([^\]\n]+)\]\([^)\s]+\)/g, '$1')
 		.replace(/[*_~`>#|]/g, '')
 		.replace(/\s+/g, ' ')

@@ -20,6 +20,7 @@
 // Pure: words in, offers out. The engine that makes the words is
 // shot-reader.js, and the dialog that acts on them is barter-import.js.
 
+import { T } from './i18n.js';
 import { editDistance, lineHeight } from './sailor-shot.js';
 
 /**
@@ -214,7 +215,7 @@ export function rowsOf(words, isles) {
  */
 export function offerOf(row, deals, { floor = 0.5, margin = 0.12 } = {}) {
 	const here = deals.filter(d => d.npcId === row.isle.id);
-	if (!here.length) return { ...row, offer: null, why: 'nothing known at this island' };
+	if (!here.length) return { ...row, offer: null, why: T('nothing known at this island') };
 	const scored = here.map(d => {
 		const give = cover(d.give, row.text);
 		const recv = cover(d.item, row.text);
@@ -226,10 +227,10 @@ export function offerOf(row, deals, { floor = 0.5, margin = 0.12 } = {}) {
 	}).sort((a, b) => b.score - a.score);
 	const [best, next] = scored;
 	if (best.score < floor || best.give < 0.3 || best.recv < 0.3) {
-		return { ...row, offer: null, near: scored.slice(0, 3), why: 'no exchange there fits what the row says' };
+		return { ...row, offer: null, near: scored.slice(0, 3), why: T('no exchange there fits what the row says') };
 	}
 	if (next && best.score - next.score < margin) {
-		return { ...row, offer: null, near: scored.slice(0, 3), why: 'two of its exchanges fit that equally well' };
+		return { ...row, offer: null, near: scored.slice(0, 3), why: T('two of its exchanges fit that equally well') };
 	}
 	return { ...row, offer: best.deal, score: best.score, near: scored.slice(0, 3) };
 }

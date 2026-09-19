@@ -9,6 +9,7 @@
 // agrees with the forty the app knows, and what to do when it does not
 // are screen-barter's questions -- this only carries the post.
 
+import { T } from './i18n.js';
 import { feature, me } from './sync.js';
 
 /** What the last call brought back, so a redraw does not ask again.
@@ -81,8 +82,8 @@ export async function boardsFor(day, opts) {
  * again whenever another island has been looked at.
  */
 export async function tellFleet(day, layout, offers) {
-	if (!shared()) return { ok: false, why: 'This deployment keeps no boards.' };
-	if (!me()) return { ok: false, why: 'Sign in to put your name to a reading.' };
+	if (!shared()) return { ok: false, why: T('This deployment keeps no boards.') };
+	if (!me()) return { ok: false, why: T('Sign in to put your name to a reading.') };
 	const res = await api('POST', '/api/boards', {
 		day,
 		layout: layout || null,
@@ -90,7 +91,7 @@ export async function tellFleet(day, layout, offers) {
 	});
 	held = { at: 0, boards: held.boards };   // ask again next time
 	shelf = { at: 0, boards: shelf.boards };
-	if (!res.ok) return { ok: false, why: (res.body && res.body.error) || 'The reading did not reach the server.' };
+	if (!res.ok) return { ok: false, why: (res.body && res.body.error) || T('The reading did not reach the server.') };
 	return { ok: true, id: res.body.id, offers: res.body.offers };
 }
 

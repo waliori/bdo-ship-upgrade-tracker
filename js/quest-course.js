@@ -44,6 +44,7 @@
 // Pure: the quests, where to start, and the tables come in; a course
 // goes out. Nothing is read from the store here.
 
+import { T, gameName } from './i18n.js';
 import { monsterByKey } from './sea_monsters.js';
 import { habitatsOf } from './habitats.js';
 import { handIn } from './quest-places.js';
@@ -173,8 +174,8 @@ const call = (name, x, y, kind) => ({ name, x, y, kind, todo: [] });
 
 /** What to call a hunting ground that one or more species share. */
 const groundName = list => list.length === 1
-	? `${list[0].name} ground`
-	: `${list.slice(0, -1).map(s => s.name).join(', ')} and ${list[list.length - 1].name} ground`;
+	? T('{name} ground', { name: gameName(list[0].name) })
+	: T('{names} and {last} ground', { names: list.slice(0, -1).map(s => gameName(s.name)).join(', '), last: gameName(list[list.length - 1].name) });
 
 /**
  * The cheapest place to put a point into a route, and what it costs.
@@ -221,7 +222,7 @@ export function questCourse(quests, from, { back = true, water = false } = {}) {
 	// here for the test that keeps that claim honest, not for the page.
 	const sail = water ? measurer() : (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
-	const start = call(from.name || 'harbour', from.x, from.y, 'port');
+	const start = call(from.name || T('harbour'), from.x, from.y, 'port');
 	let route = [start];
 	// A loop comes home, so what is handed in at the home port is handed
 	// in at the end of the day, not before it has been earned. The home
@@ -263,7 +264,7 @@ export function questCourse(quests, from, { back = true, water = false } = {}) {
 			if (put.where < 0) continue;
 			if (!best || put.cost < best.cost) best = { ...put, ...g };
 		}
-		if (!best) { for (const q of h.quests) left.push({ q, why: 'no ground on the chart' }); continue; }
+		if (!best) { for (const q of h.quests) left.push({ q, why: T('no ground on the chart') }); continue; }
 		// Two species can share a ground -- the game's markers overlap,
 		// and the Candidum, Nineshark and Black Rust all have one at the
 		// same spot -- so a hunt that lands where the loop already calls
@@ -301,8 +302,8 @@ export function questCourse(quests, from, { back = true, water = false } = {}) {
 					young.push(made);
 					return made;
 				})();
-			if (!at) { left.push({ q, why: 'no young ground before its hand-in' }); continue; }
-			at.todo.push({ q, what: 'kill', n: q.kills, of: 'young sea monsters, any' });
+			if (!at) { left.push({ q, why: T('no young ground before its hand-in') }); continue; }
+			at.todo.push({ q, what: 'kill', n: q.kills, of: T('young sea monsters, any') });
 			at.hunt.kills += q.kills;
 		}
 	}

@@ -19,6 +19,7 @@
 // that -- after the answers are in -- so the offer is made on its bar.
 
 import { esc } from './fmt.js';
+import { T, said, gameName } from './i18n.js';
 import { openDialog, closeDialog } from './dialogs.js';
 import { LIMITS, triage, readWords, close as closeReader } from './shot-reader.js';
 import { offersFrom } from './barter-shot.js';
@@ -42,7 +43,7 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 		const inner = host().hidden ? null : host().querySelector('[data-shot-body]');
 		if (inner) inner.innerHTML = body;
 		else {
-			const box = openDialog(`<h2>Read the barter window</h2><div data-shot-body>${body}</div>`,
+			const box = openDialog(`<h2>${T('Read the barter window')}</h2><div data-shot-body>${body}</div>`,
 				{ onDismiss: () => { if (stop) stop.abort(); closeReader(); } }).querySelector('.dialog-box');
 			if (box) box.classList.add('wide', 'shot-box');
 		}
@@ -51,27 +52,27 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 
 	/* --- what to drop ------------------------------------------------ */
 	const pickView = () => `
-		<p class="dialog-note">Open the barter window in game and screenshot the list. Scroll it and shoot again for more of the board — several at a time is the point, and the rows add up.</p>
+		<p class="dialog-note">${T('Open the barter window in game and screenshot the list. Scroll it and shoot again for more of the board — several at a time is the point, and the rows add up.')}</p>
 		<ul class="shot-kinds">
-			<li><b>What is read</b> — the island at the start of each row, what it takes and what it pays. A name the window cut short is enough.</li>
-			<li><b>What it is read against</b> — the exchanges the codex says that island deals, so a row is never a guess at a spelling.</li>
-			<li><b>Which language</b> — the client's English names, which is what the app's own tables are in. A window in another language will not match them.</li>
+			<li>${T('<b>What is read</b> — the island at the start of each row, what it takes and what it pays. A name the window cut short is enough.')}</li>
+			<li>${T('<b>What it is read against</b> — the exchanges the codex says that island deals, so a row is never a guess at a spelling.')}</li>
+			<li>${T("<b>Which language</b> — the client's English names, which is what the app's own tables are in. A window in another language will not match them.")}</li>
 		</ul>
-		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="Choose screenshots to read">
+		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="${T('Choose screenshots to read')}">
 			<div class="shot-drop-mark">⚖</div>
-			<div><b>Drop screenshots here</b></div>
-			<div class="row-sub">or <button class="link-btn" data-choose>choose files</button></div>
+			<div><b>${T('Drop screenshots here')}</b></div>
+			<div class="row-sub">${T('or {link}', { link: `<button class="link-btn" data-choose>${T('choose files')}</button>` })}</div>
 			<input type="file" accept="image/png,image/jpeg,image/webp" multiple hidden data-files>
 		</div>
-		<p class="dialog-note quiet">Up to ${LIMITS.files} at a time, ${Math.round(LIMITS.bytes / 1024 / 1024)} MB each, PNG, JPEG or WebP.
-			They are read in this browser and never uploaded — the first read fetches about 6 MB of reader, once.</p>
-		<div class="dialog-actions"><button class="act quiet" data-close>Close</button></div>`;
+		<p class="dialog-note quiet">${T('Up to {files} at a time, {mb} MB each, PNG, JPEG or WebP.', { files: LIMITS.files, mb: Math.round(LIMITS.bytes / 1024 / 1024) })}
+			${T('They are read in this browser and never uploaded — the first read fetches about 6 MB of reader, once.')}</p>
+		<div class="dialog-actions"><button class="act quiet" data-close>${T('Close')}</button></div>`;
 
 	/* --- reading ----------------------------------------------------- */
 	const readingView = (at, text) => `
 		<p class="dialog-note">${esc(text)}</p>
 		<div class="shot-bar"><i style="width:${Math.round(at * 100)}%"></i></div>
-		<div class="dialog-actions"><button class="act quiet" data-stop>Stop</button></div>`;
+		<div class="dialog-actions"><button class="act quiet" data-stop>${T('Stop')}</button></div>`;
 
 	/* --- the review table -------------------------------------------- */
 	const choices = r => {
@@ -87,15 +88,15 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 		const pick = choices(r);
 		const chosen = r.keep ? pick.findIndex(d => d.give === r.keep.give && d.item === r.keep.item) : -1;
 		return `<tr class="shot-row${r.keep ? '' : ' off'}">
-			<td><input type="checkbox" data-take="${i}"${r.keep ? ' checked' : ''}${pick.length ? '' : ' disabled'} aria-label="Use this row"></td>
-			<td class="shot-item">${img(r.keep ? r.keep.item : '', 'row-icon')}<span><b>${esc(isleOf(r.isle))}</b><span class="row-sub">${esc(whoOf(r.isle))}</span></span></td>
+			<td><input type="checkbox" data-take="${i}"${r.keep ? ' checked' : ''}${pick.length ? '' : ' disabled'} aria-label="${T('Use this row')}"></td>
+			<td class="shot-item">${img(r.keep ? r.keep.item : '', 'row-icon')}<span><b>${esc(gameName(isleOf(r.isle)))}</b><span class="row-sub">${esc(gameName(whoOf(r.isle)))}</span></span></td>
 			<td>${pick.length
-		? `<select class="purse-inline" data-offer="${i}" aria-label="What ${esc(isleOf(r.isle))} is showing">
-				${pick.map((d, k) => `<option value="${k}"${k === chosen ? ' selected' : ''}>${esc(d.give)} → ${esc(d.item)}</option>`).join('')}
-				<option value="">— none of these</option>
+		? `<select class="purse-inline" data-offer="${i}" aria-label="${T('What {isle} is showing', { isle: esc(gameName(isleOf(r.isle))) })}">
+				${pick.map((d, k) => `<option value="${k}"${k === chosen ? ' selected' : ''}>${esc(gameName(d.give))} → ${esc(gameName(d.item))}</option>`).join('')}
+				<option value="">${T('— none of these')}</option>
 			</select>`
-		: '<span class="quiet">nothing the codex lists fits that row</span>'}</td>
-			<td class="shot-note">${r.offer ? '<span class="quiet">read</span>' : `<span class="shot-warn" title="${esc(r.why || '')}">⚠ ${esc(r.why || 'unsure')}</span>`}</td>
+		: `<span class="quiet">${T('nothing the codex lists fits that row')}</span>`}</td>
+			<td class="shot-note">${r.offer ? `<span class="quiet">${T('read')}</span>` : `<span class="shot-warn" title="${esc(said(r.why) || '')}">⚠ ${esc(said(r.why) || T('unsure'))}</span>`}</td>
 		</tr>`;
 	};
 
@@ -103,18 +104,20 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 		const taking = rows.filter(r => r.keep);
 		return `
 		<p class="dialog-note">${rows.length
-		? `Read ${rows.length} island${rows.length === 1 ? '' : 's'}. Check them against the window — a row read wrong puts the whole board on the wrong layout, and every one of these can be corrected from the list beside it.`
-		: 'No barter rows were found in those. The window has to show the list itself: the island on the left of each row is what the rows are found by.'}</p>
-		${skipped.length ? `<details class="shot-skipped"><summary>${skipped.length} not read</summary>${skipped.map(s => `<div class="row-sub">${esc(s.name)} — ${esc(s.why)}</div>`).join('')}</details>` : ''}
+		? `${rows.length === 1 ? T('Read {n} island.', { n: rows.length }) : T('Read {n} islands.', { n: rows.length })} ${T('Check them against the window — a row read wrong puts the whole board on the wrong layout, and every one of these can be corrected from the list beside it.')}`
+		: T('No barter rows were found in those. The window has to show the list itself: the island on the left of each row is what the rows are found by.')}</p>
+		${skipped.length ? `<details class="shot-skipped"><summary>${T('{n} not read', { n: skipped.length })}</summary>${skipped.map(s => `<div class="row-sub">${esc(s.name)} — ${esc(said(s.why))}</div>`).join('')}</details>` : ''}
 		${rows.length ? `<div class="shot-table-wrap"><table class="shot-table">
-			<thead><tr><th></th><th>Island</th><th>Showing</th><th></th></tr></thead>
+			<thead><tr><th></th><th>${T('Island')}</th><th>${T('Showing')}</th><th></th></tr></thead>
 			<tbody>${rows.map(rowHTML).join('')}</tbody>
 		</table></div>` : ''}
 		<div class="dialog-actions">
-			<button class="act quiet" data-again>Read more</button>
+			<button class="act quiet" data-again>${T('Read more')}</button>
 			<span class="panel-spacer"></span>
-			<button class="act quiet" data-close>Cancel</button>
-			<button class="act" data-use${taking.length ? '' : ' disabled'}>${taking.length ? `Answer ${taking.length} island${taking.length === 1 ? '' : 's'}` : 'Nothing ticked'}</button>
+			<button class="act quiet" data-close>${T('Cancel')}</button>
+			<button class="act" data-use${taking.length ? '' : ' disabled'}>${taking.length
+			? (taking.length === 1 ? T('Answer {n} island', { n: taking.length }) : T('Answer {n} islands', { n: taking.length }))
+			: T('Nothing ticked')}</button>
 		</div>`;
 	};
 
@@ -124,7 +127,7 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 		skipped = out.map(s => ({ name: s.file.name, why: s.why }));
 		if (!take.length) { rows = []; draw(reviewView()); return; }
 		stop = new AbortController();
-		draw(readingView(0, 'Fetching the reader…'));
+		draw(readingView(0, T('Fetching the reader…')));
 		const say = (at, text) => {
 			const bar = host().querySelector('.shot-bar i');
 			const note = host().querySelector('.dialog-note');
@@ -134,7 +137,7 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 		const seen = new Map();
 		for (let i = 0; i < take.length; i++) {
 			if (stop.signal.aborted) break;
-			say(i / take.length, `Reading ${i + 1} of ${take.length} — ${take[i].name}`);
+			say(i / take.length, T('Reading {i} of {n} — {name}', { i: i + 1, n: take.length, name: take[i].name }));
 			try {
 				const { words } = await readWords(take[i]);
 				for (const row of offersFrom(words, { isles: npcs, deals })) {
@@ -143,7 +146,7 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 					seen.set(row.isle.id, { ...row, keep: row.offer || null });
 				}
 			} catch (err) {
-				skipped.push({ name: take[i].name, why: err && err.message ? err.message : 'could not be read' });
+				skipped.push({ name: take[i].name, why: err && err.message ? err.message : T('could not be read') });
 			}
 		}
 		stop = null;
