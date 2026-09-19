@@ -437,9 +437,8 @@ async function readStorageOne(file, icons) {
 		// why neither the OCR one nor a set of templates was the right
 		// tool for eight-pixel writing over a gold bar.
 		const counts = readCounts(image.data, image.width, image.height, grid, named);
-		// The corner of a slot whose figure the reader was not sure of,
-		// as a picture, so the table can show a player what it was
-		// looking at instead of asking them to take its word.
+		// The corner of a slot as a picture, so the table can show a
+		// player what was read instead of asking them to take its word.
 		const corner = at => {
 			const box = countBox(at);
 			const cut = document.createElement('canvas');
@@ -467,7 +466,9 @@ async function readStorageOne(file, icons) {
 				score: s.score,
 				row: s.row,
 				col: s.col,
-				corner: shaky || (said && said.doubt) ? corner(s.at) : null
+				// every slot's corner, not only the doubtful ones: a count is
+				// checked at a glance against the picture it was read off
+				corner: corner(s.at)
 			};
 		});
 		return { rows, unknown: slots.filter(s => isHeld(s) && !s.name).length, slots: slots.length, lattice: slots, shaky };

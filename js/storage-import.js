@@ -64,7 +64,8 @@ function gather(results, known) {
 			line.n += Math.max(0, Number(row.qty) || 0);
 			line.slots++;
 			if (!row.sure) line.guessed++;
-			if (row.corner) line.shots.push(row.corner);
+			// the doubtful slots' corners first: they are the ones to look at
+			if (row.corner) { if (row.sure) line.shots.push(row.corner); else line.shots.unshift(row.corner); }
 		}
 	}
 	return [...by.values()].sort((a, b) =>
@@ -138,8 +139,8 @@ export function openStorageImport(after = () => {}) {
 			<td class="shot-item">${img(r.item, 'row-icon')}<span>${esc(r.item)}</span>${r.slots > 1 ? `<span class="row-sub">${r.slots} slots</span>` : ''}</td>
 			<td><input class="purse-inline narrow" data-n="${i}" value="${r.n}" inputmode="numeric" aria-label="How many of ${esc(r.item)}"></td>
 			<td class="shot-note">${have === r.n ? '<span class="quiet">already right</span>' : `${F(have)} → <b>${F(r.n)}</b>${move > 0 ? ` <span class="quiet">(+${F(move)})</span>` : ` <span class="quiet">(${F(move)})</span>`}`}</td>
-			<td class="shot-note">${r.guessed
-		? `<span class="shot-warn" title="The reader was not sure of the figure over ${r.guessed === 1 ? 'one slot' : `${r.guessed} slots`}. What is written here is its best reading: check it against the slot beside it.">⚠ ${r.guessed === r.slots ? 'check this one' : `check ${r.guessed} of ${r.slots}`}</span>${r.shots.slice(0, 4).map(src => `<img class="shot-corner" src="${esc(src)}" alt="the corner of the slot as the screenshot had it">`).join('')}`
+			<td class="shot-note shot-proof">${r.shots.slice(0, 4).map(src => `<img class="shot-corner" src="${esc(src)}" alt="the corner of the slot as the screenshot had it">`).join('')}${r.shots.length > 4 ? `<span class="quiet">+${r.shots.length - 4}</span>` : ''}${r.guessed
+		? `<span class="shot-warn" title="The reader was not sure of the figure over ${r.guessed === 1 ? 'one slot' : `${r.guessed} slots`}. What is written here is its best reading: check it against the slot beside it.">⚠ ${r.guessed === r.slots ? 'check this one' : `check ${r.guessed} of ${r.slots}`}</span>`
 		: ''}</td>
 		</tr>`;
 	};
@@ -153,7 +154,7 @@ export function openStorageImport(after = () => {}) {
 		? `Read ${rows.length} thing${rows.length === 1 ? '' : 's'} this app keeps a count of${unnamed ? `, and passed over ${unnamed} slot${unnamed === 1 ? '' : 's'} of what it does not` : ''}. These are written as what is kept at <b>${esc(place || 'your bags')}</b>, so anything of yours that is there and not in the shot should be unticked.`
 		: `No storage slots were found in ${skipped.length ? 'the rest of ' : ''}those.`}</p>
 		${skipped.length ? `<details class="shot-skipped"><summary>${skipped.length} not read</summary>${skipped.map(s => `<div class="row-sub">${esc(s.name)} — ${esc(s.why)}</div>`).join('')}</details>` : ''}
-		${guessed ? `<p class="dialog-note quiet">${guessed === 1 ? 'One line has a count' : `${guessed} lines have counts`} the reader was not sure of — its best reading is written in and marked ⚠, with the corner of the slot as it was, to check against.</p>` : ''}
+		${guessed ? `<p class="dialog-note quiet">${guessed === 1 ? 'One line has a count' : `${guessed} lines have counts`} the reader was not sure of — its best reading is written in and marked ⚠. Every line has the corner of its slot beside it, as the screenshot had it, to check the count against.</p>` : ''}
 		${shaky.length ? `<p class="dialog-note quiet">The slots in ${shaky.map(n => `<b>${esc(n)}</b>`).join(', ')} could not be lined up with any confidence — a small or blurred shot, or not a storage at all — so everything read from ${shaky.length === 1 ? 'it' : 'them'} is marked ⚠.</p>` : ''}
 		${shared ? `<p class="dialog-note quiet">${shared === 1 ? 'One row of slots was' : `${shared} rows of slots were`} in two of the screenshots — the storage was scrolled between them — and ${shared === 1 ? 'was' : 'were'} counted once.</p>` : ''}
 		${rows.length ? `<div class="shot-table-wrap"><table class="shot-table">

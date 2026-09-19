@@ -993,8 +993,8 @@ function cutsHTML(plan, pace, name) {
 						? `the Parley bar runs out before ${where}`
 						: c.why === 'market'
 							? (c.listed
-								? `${where} takes <b>${F(c.want)}× ${esc(c.good)}</b> a trade and the Central Market has only <b>${F(c.listed)}</b> listed`
-								: `the Central Market has <b>no ${esc(c.good)}</b> listed right now, and ${where} takes ${F(c.want)} a trade`)
+								? `${where} takes ${img(c.good, 'row-icon xs')}<b>${F(c.want)}× ${esc(c.good)}</b> a trade and the Central Market has only <b>${F(c.listed)}</b> listed`
+								: `the Central Market has no ${img(c.good, 'row-icon xs')}<b>${esc(c.good)}</b> listed right now, and ${where} takes ${F(c.want)} a trade`)
 							: c.why === 'dealt'
 							? `another chain reaches ${where} first, and an island deals once a run`
 							: `there is nothing left to hand over at ${where}`;
@@ -1390,6 +1390,11 @@ function ordersHTML(o, stocking = false, coining = false) {
 	</div>`;
 }
 
+/** A chain the Market stops before its first trade: the cut that says
+ *  so, or null. One it only thins -- enough listed for some attempts --
+ *  is not cut at all and is no concern of this. */
+const marketDead = solo => (solo && (solo.cut || []).find(x => x.why === 'market' && !x.done)) || null;
+
 /** One chain of the board, to tick: where it starts, how far it
  *  reaches, the islands, the goods, and what one pass of it pays. */
 function chainRow(c, on, solo, dockName, from, ladder = null, shut = null) {
@@ -1413,6 +1418,8 @@ function chainRow(c, on, solo, dockName, from, ladder = null, shut = null) {
 	const starts = ladder ? `<div class="chain-starts" style="--tier:${TIER(c.top)}"><span class="chain-starts-k">start from</span>${ladder.starts.map(x => {
 		const sol = ladder.solos.get(x.id);
 		const picked = ladder.chosen.includes(x);
+		const dry = marketDead(sol);
+		if (dry && !picked) return `<span class="chip tiny dry" title="The Central Market has ${dry.listed ? `only ${F(dry.listed)}` : 'no'} ${esc(dry.good)} listed and the first island takes ${F(dry.want)} a trade, so the climb cannot start from the shore. It is asked again every half hour."><i class="chain-start-lv" style="--tier:${TIER(1)}">⌂</i>${startOf(x)}<em class="dry-why">${dry.listed ? `only ${F(dry.listed)}` : 'none'} on the Market</em></span>`;
 		return `<button class="chip tiny${picked ? ' active' : x === c ? ' shown' : ''}" data-act="barter-chain-start" data-id="${esc(x.id)}" data-group="${esc(group)}" title="${x.from === 'land' ? `Buy ${F(x.rungs[0].giveN)}× ${esc(x.item)} ashore and climb from Level 1` : `Climb from the ${n1(x.have + x.load)}× ${esc(x.item)} held`} — the islands above deal once, so one start is sailed"><i class="chain-start-lv" style="--tier:${TIER(x.from === 'land' ? 1 : levelOf(x.item))}">${x.from === 'land' ? '⌂' : levelOf(x.item)}</i>${startOf(x)}${sol && sol.silver ? `<em>${FC(Math.round(sol.net))}</em>` : ''}</button>`;
 	}).join('')}</div>` : '';
 	// A climb through an island the barter count has not opened is shown
@@ -1440,16 +1447,22 @@ function chainRow(c, on, solo, dockName, from, ladder = null, shut = null) {
 	// A chain that would start on a good the Market has not got: said on
 	// the card, before it is ticked and a sailor goes to the counter.
 	const outOf = solo && (solo.cut || []).find(x => x.why === 'market');
-	const card = `<button class="chain${on ? ' on' : ''}" data-act="barter-chain" data-id="${esc(c.id)}"${group ? ` data-group="${esc(group)}"` : ''} style="--tier:${TIER(c.top)}">
-		<span class="chain-mark">${on ? '✓' : ''}</span>
+	// ...and when it cannot make even its first trade it is not a chain
+	// to tick: drawn, because it is what the board holds, but greyed and
+	// saying why on its own face. One already ticked stays pressable, so
+	// it can be unticked.
+	const dry = marketDead(solo);
+	const dryLine = dry ? `<span class="chain-dry">${img(dry.good, 'row-icon xs')}<span>${dry.listed ? `only <b>${F(dry.listed)}</b>` : '<b>none</b>'} on the Central Market · ${F(dry.want)} needed a trade${dry.held >= dry.want ? ` · you keep ${F(dry.held)}: take land goods <i>from my storage</i>` : ''}</span></span>` : '';
+	const card = `<button class="chain${on ? ' on' : ''}${dry ? ' dry' : ''}" data-act="barter-chain" data-id="${esc(c.id)}"${group ? ` data-group="${esc(group)}"` : ''}${dry && !on ? ' disabled' : ''} style="--tier:${TIER(c.top)}"${dry ? ` title="This climb starts on ${F(dry.want)}× ${esc(dry.good)} bought ashore, and the Central Market has ${dry.listed ? `only ${F(dry.listed)}` : 'none'} listed. It is asked again every half hour."` : ''}>
+		<span class="chain-mark">${on ? '✓' : dry ? '∅' : ''}</span>
 		<span class="chain-main">
-			<span class="chain-start">${start}</span>
+			<span class="chain-start">${start}</span>${dryLine}
 			<span class="chain-pips">${pips}<em>Level ${c.top}</em></span>
 			<span class="chain-route">${c.rungs.map(r => esc(isleShort(npcById.get(r.npcId)) || r.npc)).join(' › ')}</span>
 			<span class="chain-goods">${c.rungs.map(r => img(r.item, 'row-icon sm')).join('')}</span>
 		</span>
 		<span class="chain-right">
-			<b class="${solo.silver ? '' : 'none'}${solo.net < 0 ? ' warn' : ''}">${solo.silver ? FC(Math.round(solo.net)) : '—'}</b>
+			<b class="${solo.silver ? '' : 'none'}${solo.net < 0 ? ' warn' : ''}">${solo.silver ? FC(Math.round(solo.net)) : dry ? 'cannot start' : '—'}</b>
 			${solo.silver ? `<span class="chain-yard">${[solo.yard.perUnit ? `<em>${esc(perUnitText(solo.yard.perUnit))}</em>` : '', solo.yard.perHour ? esc(perHourText(solo.yard.perHour)) : ''].filter(Boolean).join(' · ')}</span>` : ''}
 			${outOf ? `<span class="warn" title="The Central Market has ${outOf.listed ? `only ${F(outOf.listed)}` : 'none'} of it listed, and the first island takes ${F(outOf.want)} a trade. The prices are asked again every half hour.">${outOf.listed ? `only ${F(outOf.listed)}` : 'none'} on the Market</span>` : ''}
 			${solo.cost ? `<span>${FC(Math.round(solo.silver))} sold · ${FC(Math.round(solo.cost))} bought</span>` : solo.bought.some(b => b.how === 'unpriced') ? '<span class="faint">land goods unpriced</span>' : ''}
@@ -2459,7 +2472,12 @@ function silverParts(me, b) {
 		const rows = [...ladders.values()].filter(list => reachOf(list[0]) === top).map(list => {
 			const starts = list.filter(c => listed.includes(c));
 			if (!starts.length) return '';
-			const shown = starts.find(c => chosen.includes(c)) || starts.slice().sort((x, y) => all.indexOf(x) - all.indexOf(y))[0];
+			// The card shows the start ticked, else the best one that can
+			// actually be sailed: a climb from the shore on a good the
+			// Market has none of is no start at all, and the [Level 3]s
+			// waiting at the wharf are -- so the card is theirs.
+			const shown = starts.find(c => chosen.includes(c))
+				|| starts.slice().sort((x, y) => Number(marketDead(solos.get(x.id))) - Number(marketDead(solos.get(y.id))) || all.indexOf(x) - all.indexOf(y))[0];
 			// A chain with no run of its own yet -- the set moved under a
 			// memo -- is drawn as nothing rather than thrown over.
 			const solo = solos.get(shown.id);
@@ -2561,7 +2579,7 @@ function silverParts(me, b) {
 		const soldHere = plan.sold.filter(s => s.chain === k).reduce((a, s) => a + s.total, 0);
 		const leftHere = plan.stashed.filter(s => s.chain === k).reduce((a, s) => a + s.total, 0);
 		return `<section class="panel run-seg" style="--tier:${TIER(c.top)}">
-			<div class="run-seg-head"><i></i><b>${esc(isleShort(npcById.get(c.rungs[0].npcId)) || c.rungs[0].npc)} chain</b><em>Level ${c.top}</em><span>${soldHere ? `${FC(Math.round(soldHere))} sold` : 'nothing sold'}${leftHere ? ` · ${FC(Math.round(leftHere))} left on the way` : ''}${mine.length ? '' : ' · every island already dealt'}</span><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="Untick this chain">×</button></div>
+			<div class="run-seg-head"><i></i><b>${esc(isleShort(npcById.get(c.rungs[0].npcId)) || c.rungs[0].npc)} chain</b><em>Level ${c.top}</em><span>${soldHere ? `${FC(Math.round(soldHere))} sold` : 'nothing sold'}${leftHere ? ` · ${FC(Math.round(leftHere))} left on the way` : ''}${mine.length ? '' : (() => { const cut = plan.cut.find(x => x.chain === k); return cut && cut.why === 'market' ? ` · cannot start: ${cut.listed ? `only ${F(cut.listed)}` : 'no'} ${esc(cut.good)} on the Market` : ' · every island already dealt'; })()}</span><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="Untick this chain">×</button></div>
 			${mine.length ? `<div class="run-stops">${stopRows(mine, legs, { k0: first, board: true, sailing: sailing(), notes: qp, ledger: book })}</div>` : ''}
 		</section>`;
 	}).join('');

@@ -204,6 +204,21 @@
 
 /* A climb behind a threshold: there to be read, not to be ticked. */
 .chain.shut { opacity: 0.55; cursor: not-allowed; border-style: dashed; }
+.chain.dry { border-style: dashed; border-color: rgba(232, 122, 109, 0.4); }
+.chain.dry:disabled { cursor: not-allowed; opacity: 1; }
+.chain.dry:disabled .chain-right > span { opacity: 0.55; }
+.chain.dry:disabled .chain-right > span.warn { opacity: 1; }
+.chain.dry:disabled .chain-pips, .chain.dry:disabled .chain-route, .chain.dry:disabled .chain-goods, .chain.dry:disabled .chain-start { opacity: 0.45; }
+.chain.dry .chain-mark { border-color: var(--red-edge); color: var(--red-soft); background: none; font-size: 11px; }
+.chain.dry.on .chain-mark { color: #fff; }
+.chain.dry .chain-right b.none { color: var(--red-soft); font-size: 12px; }
+.chain-dry { display: flex; align-items: center; gap: 6px; margin: 2px 0 3px; padding: 4px 8px; font-size: 11.5px; line-height: 1.35; color: var(--red-soft); background: rgba(232, 122, 109, 0.08); border: 1px solid var(--red-edge); border-radius: 7px; }
+.chain-dry b { color: var(--red); }
+.chain-dry i { font-style: normal; color: var(--ink-mid); }
+.chain-dry img { flex: none; }
+.chain-starts .chip.dry { opacity: 0.6; cursor: not-allowed; border-style: dashed; text-decoration: line-through; text-decoration-color: rgba(232, 122, 109, 0.6); }
+.chain-starts .chip.dry .dry-why { text-decoration: none; display: inline-block; color: var(--red-soft); }
+.run-cut img.row-icon { vertical-align: -4px; margin: 0 4px 0 2px; }
 .chain.shut:hover { opacity: 0.75; }
 .chain.shut .chain-mark { border-color: rgba(232, 182, 97, 0.5); background: none; color: var(--amber); font-size: 9px; }
 .chain.shut .chain-right b.none { color: var(--amber); }
