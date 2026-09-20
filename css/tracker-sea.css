@@ -1148,6 +1148,10 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .shot-item > span .row-sub { margin: 0; }
 .shot-corner { display: inline-block; vertical-align: middle; height: 26px; margin-left: 0; margin-right: 6px; border-radius: 3px; border: 1px solid var(--line-btn); image-rendering: pixelated; }
 .shot-skipped { margin: 6px 0; font-size: 12px; color: var(--ink-mute); }
+/* What the window's head said about the sailor, offered rather than
+   applied: it sits above the buttons with its own tick. */
+.shot-figures { margin: 8px 0 2px; padding: 8px 11px; border-radius: var(--r-btn); border: 1px solid var(--teal-edge); background: color-mix(in srgb, var(--teal) 7%, transparent); font-size: 12.5px; }
+.shot-figures b { color: var(--teal); }
 .shot-skipped summary { cursor: pointer; }
 @media (max-width: 620px) {
 	.shot-table { font-size: 12px; }

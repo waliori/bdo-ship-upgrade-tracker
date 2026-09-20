@@ -251,3 +251,125 @@ function tierOf(name) {
 export function offersFrom(words, { isles, deals }) {
 	return rowsOf(words, isles).map(row => offerOf(row, deals));
 }
+
+/* ------------------------------------------------------------------ *
+ * the figures in the window's head
+ * ------------------------------------------------------------------ */
+
+/**
+ * A whole number as the window writes it, or null.
+ *
+ * The thousands are grouped, and which mark does the grouping is the
+ * client's business -- a comma on the European service, a point or a
+ * space elsewhere. What is not negotiable is the grouping itself: every
+ * group after the first is exactly three digits. That is what keeps a
+ * ship's "150.0" speed, or an island's "10/150" refreshes, from being
+ * read as a number of Parley.
+ */
+export function wholeIn(text) {
+	const t = String(text || '').trim();
+	// Digits alone, however many -- the lifetime barter count is printed
+	// ungrouped -- or grouped, with every group after the first exactly
+	// three digits long.
+	if (!/^\d+$/.test(t) && !/^\d{1,3}(?:[.,\u00a0\u202f ]\d{3})+$/.test(t)) return null;
+	const n = Number(t.replace(/[.,\u00a0\u202f ]/g, ''));
+	return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * The labels beside the lifetime barter count, where we know them.
+ *
+ * Only English is the client's own word, read off a screenshot. The
+ * rest of the game's sixteen languages are not guessed at here: a wrong
+ * word would put a wrong number into the sailor's profile, which is
+ * worse than leaving the field alone. Parley below needs no vocabulary
+ * at all, so it works in every language regardless.
+ */
+const BARTERS_LABELS = ['totalbarters', 'totalbarter'];
+
+/**
+ * What the head of the Barter Information window says about the sailor:
+ * the Parley in the bar, and the lifetime barter count.
+ *
+ * Both are numbers the app otherwise asks a player to type in and then
+ * watches go stale. A run laid against a full bar when the bar holds a
+ * quarter of one is a run that strands a ship halfway up a chain, and
+ * the count is what opens the next trade route -- and they are both
+ * printed, in the same window the reader is already looking at.
+ *
+ * Parley is found without knowing the word for it. Every row of the
+ * window says what its exchange costs in Parley, so whatever token
+ * stands before a number on row after row *is* the word, in whatever
+ * language the client runs in. The head says it once more, in its own
+ * column away from that stack and above all of it -- so the odd one
+ * out, higher than the rest and in a different column, is the sailor's
+ * own bar.
+ *
+ * That column test is what makes a shot of the rows alone come back
+ * with nothing rather than with the cost of the first exchange.
+ */
+export function figuresFrom(words, lh = lineHeight(words)) {
+	const list = (words || []).filter(w => w && w.text);
+	const out = { parley: null, barters: null };
+	if (!list.length) return out;
+	const midY = w => (w.y0 + w.y1) / 2;
+
+	// The word standing to the right of this one, on the same row.
+	//
+	// Not the next word on the same *line*: a shot of the whole screen
+	// puts the ship window, the chat log and the barter list side by
+	// side, and gathering those into lines runs them together. Two boxes
+	// at the same height with a small gap between them is the thing that
+	// survives that, so it is what is asked.
+	const nextTo = (w, want) => {
+		let best = null;
+		for (const x of list) {
+			if (x === w || x.x0 < w.x1 - 1 || x.x0 - w.x1 > lh * 4) continue;
+			if (Math.abs(midY(x) - midY(w)) > lh * 0.6) continue;
+			if (!want(x)) continue;
+			if (!best || x.x0 < best.x0) best = x;
+		}
+		return best;
+	};
+
+	// Every "<word> <number>" the window holds, gathered by the word.
+	const byLabel = new Map();
+	for (const w of list) {
+		const key = plain(w.text);
+		if (!key) continue;
+		const num = nextTo(w, x => wholeIn(x.text) !== null);
+		if (num) {
+			if (!byLabel.has(key)) byLabel.set(key, []);
+			byLabel.get(key).push({ value: wholeIn(num.text), x: w.x0, y: midY(w) });
+		}
+		// The lifetime count, by the only label we are sure of. Two words
+		// in English, and whatever stands between them and the figure --
+		// a "(?)", a colon -- is stepped over by looking to the right
+		// rather than to the very next box.
+		if (out.barters === null && BARTERS_LABELS.some(l => l.startsWith(key) && l !== key)) {
+			const second = nextTo(w, x => BARTERS_LABELS.includes(key + plain(x.text)));
+			const n = second && nextTo(second, x => wholeIn(x.text) !== null);
+			if (n) out.barters = wholeIn(n.text);
+		}
+	}
+
+	// The word that stands before a number on row after row is the word
+	// for Parley, whatever language the client runs in.
+	let stack = null;
+	for (const hits of byLabel.values()) {
+		if (hits.length < 4) continue;
+		if (!stack || hits.length > stack.length) stack = hits;
+	}
+	if (stack) {
+		// The column the rows keep it in, and the top of that stack. The
+		// head says it once more, off to one side and above all of them.
+		const column = stack.map(h => h.x).sort((a, b) => a - b)[Math.floor(stack.length / 2)];
+		const rows = stack.filter(h => Math.abs(h.x - column) <= lh);
+		const top = Math.min(...rows.map(h => h.y));
+		const odd = stack
+			.filter(h => Math.abs(h.x - column) > lh && h.y < top - lh)
+			.sort((a, b) => a.y - b.y)[0];
+		if (odd) out.parley = odd.value;
+	}
+	return out;
+}

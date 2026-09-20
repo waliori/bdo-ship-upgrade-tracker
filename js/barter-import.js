@@ -18,13 +18,14 @@
 // news when it fits no layout on file, and only the Barter tab knows
 // that -- after the answers are in -- so the offer is made on its bar.
 
-import { esc } from './fmt.js';
+import { esc, F } from './fmt.js';
 import { T, said, gameName } from './i18n.js';
 import { openDialog, closeDialog } from './dialogs.js';
 import { LIMITS, triage, readWords, wireShotIntake, close as closeReader } from './shot-reader.js';
-import { offersFrom } from './barter-shot.js';
+import { offersFrom, figuresFrom } from './barter-shot.js';
 import { npcs, isleOf, whoOf } from './barter_npcs.js';
 import { img } from './ui-bits.js';
+import * as store from './state.js';
 
 /**
  * The dialog.
@@ -37,6 +38,10 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 	let stop = null;
 	let rows = [];            // what was read: { isle, offer, near, keep }
 	let skipped = [];
+	// What the head of the window said about the sailor, and whether
+	// they want it written in. Offered rather than written: a figure
+	// read wrong and applied in silence is worse than one not read.
+	let figures = { parley: null, barters: null, take: true };
 
 	const host = () => document.getElementById('dialog');
 	const draw = body => {
@@ -101,6 +106,28 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 		</tr>`;
 	};
 
+	// What the window's head said about the sailor, against what the
+	// app has been planning with. Only shown where it differs: a figure
+	// that already agrees is not news.
+	const figuresHTML = () => {
+		const lines = [];
+		if (figures.parley > 0 && figures.parley !== store.getProfile('parleyHeld', 0)) {
+			lines.push(T('<b>Parley</b> {n}', { n: F(figures.parley) })
+				+ (store.getProfile('parleyHeld', 0) > 0
+					? ` · ${T('the app has {n}', { n: F(store.getProfile('parleyHeld', 0)) })}`
+					: ` · ${T('the app has been planning against a full bar')}`));
+		}
+		if (figures.barters > 0 && figures.barters !== store.getProfile('barterCount', 0)) {
+			lines.push(T('<b>Total Barters</b> {n}', { n: F(figures.barters) })
+				+ ` · ${T('the app has {n}', { n: F(store.getProfile('barterCount', 0)) })}`);
+		}
+		if (!lines.length) return '';
+		return `<div class="shot-figures"><label class="inline-check">
+			<input type="checkbox" data-figures${figures.take ? ' checked' : ''}>
+			<span>${T('The window’s head also says:')} ${lines.join(' · ')} — ${T('write these in')}</span>
+		</label></div>`;
+	};
+
 	const reviewView = () => {
 		const taking = rows.filter(r => r.keep);
 		return `
@@ -112,6 +139,7 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 			<thead><tr><th></th><th>${T('Island')}</th><th>${T('Showing')}</th><th></th></tr></thead>
 			<tbody>${rows.map(rowHTML).join('')}</tbody>
 		</table></div>` : ''}
+		${figuresHTML()}
 		<div class="dialog-actions">
 			<button class="act quiet" data-again>${T('Read more')}</button>
 			<span class="panel-spacer"></span>
@@ -141,6 +169,13 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 			say(i / take.length, T('Reading {i} of {n} — {name}', { i: i + 1, n: take.length, name: take[i].name }));
 			try {
 				const { words } = await readWords(take[i]);
+				// The head of the window says what the sailor's own bar
+				// holds and how many barters are behind them. Both are
+				// fields the app otherwise asks them to type and then
+				// watches go stale, and both are right there in the shot.
+				const said = figuresFrom(words);
+				if (said.parley > 0) figures.parley = said.parley;
+				if (said.barters > 0) figures.barters = said.barters;
 				for (const row of offersFrom(words, { isles: npcs, deals })) {
 					// An island read twice takes the later reading: the
 					// second shot is the one the player scrolled to.
@@ -160,6 +195,10 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 		const taking = rows.filter(r => r.keep);
 		if (!taking.length) return;
 		const answers = taking.map(r => ({ npcId: r.isle.id, give: r.keep.give, recv: r.keep.item, qty: r.keep.giveText || '1' }));
+		if (figures.take) {
+			if (figures.parley > 0) store.setProfile('parleyHeld', Math.round(figures.parley));
+			if (figures.barters > 0) store.setProfile('barterCount', Math.round(figures.barters));
+		}
 		closeReader();
 		closeDialog();
 		// What the answers mean is the tab's business -- some of these
@@ -175,6 +214,7 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 		const box = host();
 		wireShotIntake(box, run);
 		const on = (sel, ev, fn) => box.querySelectorAll(sel).forEach(el => el.addEventListener(ev, fn));
+		on('[data-figures]', 'change', e => { figures.take = !!e.target.checked; });
 		on('[data-stop]', 'click', () => { if (stop) stop.abort(); });
 		on('[data-again]', 'click', () => draw(pickView()));
 		on('[data-use]', 'click', use);

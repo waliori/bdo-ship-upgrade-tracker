@@ -16,7 +16,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { offersFrom, rowsOf, cover, plain, tierIn, isleAt, linesOf } from '../js/barter-shot.js';
+import { offersFrom, rowsOf, cover, plain, tierIn, isleAt, linesOf, figuresFrom, wholeIn } from '../js/barter-shot.js';
 import { npcs } from '../js/barter_npcs.js';
 import { exchanges } from '../js/barter-plan.js';
 
@@ -131,4 +131,33 @@ test('a line of furniture is not an island', () => {
 		{ text: '10', x0: 122, y0: 0, x1: 140, y1: 20 }
 	])[0];
 	assert.equal(isleAt(line, npcs, { left: 400 }), null);
+});
+
+// The head of the window, off a shot of the whole screen: the game's
+// own Barter Information panel with the ship window beside it, the
+// chat log under it, and the list filtered to the Crow Coin exchanges.
+// The app had been planning this player's day against a full bar of a
+// million Parley while the window said 269,692, and counting 1,957
+// barters against the window's 2,048.
+test('the window’s head gives up the sailor’s Parley and barter count', () => {
+	assert.deepEqual(figuresFrom(shot('coinWindowFull')), { parley: 269692, barters: 2048 });
+});
+
+test('a shot of the rows alone offers no figures rather than the wrong ones', () => {
+	// Every row says what its exchange costs in Parley. None of those is
+	// the sailor's bar, and a reader that took the first of them would
+	// write 13,829 into the profile and lay every run against it.
+	for (const key of ['level1List', 'fiveToSix', 'sixToSeven']) {
+		assert.deepEqual(figuresFrom(shot(key)), { parley: null, barters: null }, key);
+	}
+});
+
+test('a figure is a figure, and a speed or a refresh count is not', () => {
+	assert.equal(wholeIn('269,692'), 269692);
+	assert.equal(wholeIn('1.234.567'), 1234567);
+	assert.equal(wholeIn('2048'), 2048, 'the barter count is printed ungrouped');
+	assert.equal(wholeIn('10/150'), null, 'the refreshes left');
+	assert.equal(wholeIn('150.0'), null, 'a ship’s speed');
+	assert.equal(wholeIn('1,23'), null, 'a group that is not three digits long');
+	assert.equal(wholeIn('abc'), null);
 });
