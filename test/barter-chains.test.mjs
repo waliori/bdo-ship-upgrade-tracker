@@ -504,3 +504,27 @@ test('a pile of the sailor\'s own is not the Market\'s to run out of', () => {
 	assert.ok(run.taken.some(t => t.item === 'Copper Ingot' && t.n > 0));
 	assert.ok(run.silver > 0);
 });
+
+test('what is loaded is what the run hands over, not what the island offers', () => {
+	// Sam's run: ten of a good loaded because the island offers ten
+	// attempts, five traded because that was all the run could do, and
+	// the other five carried out and "left in storage" at the wharf they
+	// came from -- on a ship sailing over its limit for the privilege.
+	// Here it is the Parley bar that halves the attempts.
+	const ladder = chains(data).find(c => c.from === 'land' && c.rungs.length >= 3);
+	const good = ladder.rungs[0].item;
+	const dock = { [good]: 400 };
+	const c = chains(data, {}, dock).find(x => x.from === 'dock' && x.item === good);
+	const first = c.rungs[0];
+	assert.ok(first.tries >= 4, 'an island with attempts to halve');
+	const half = Math.floor(first.tries / 2);
+	const start = ports.find(p => p.name === 'Velia');
+	const thin = { bar: parley.perTrade * half, perTrade: parley.perTrade };
+	const run = chainRun({ chosen: [c], dock, hold, parley: thin, npcById, start, stashes, pace: 'full', orders: PLAIN_ORDERS });
+	const at = run.stops.find(s => s.npcId === first.npcId);
+	assert.equal(at.times, half, 'the bar lets half the attempts in');
+	assert.deepEqual(run.loaded, [{ item: good, n: half * first.giveN }], 'and only their goods are loaded');
+	// Nothing of it rides out only to be put straight back.
+	const back = [...run.stashed, ...run.kept].filter(g => g.item === good);
+	assert.deepEqual(back, [], 'none of the start good comes home');
+});

@@ -245,7 +245,7 @@ function sequence(order, lots, npcById, start) {
  * it would sell for. `keep` names goods never sold, whatever the orders:
  * the good a material run sent the sailor here for.
  */
-export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [], land = new Map(), owned = null } = {}) {
+function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [], land = new Map(), owned = null, loadCap = null } = {}) {
 	// What an island was seen to pay this run, tapped on the checklist,
 	// replaces the range the table gives for it: counted and weighed at
 	// that, no longer at the least and the most.
@@ -277,7 +277,9 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 		if (!have) continue;
 		const first = c.rungs[0];
 		const most = Math.max(0, first.tries * first.giveN - (held.get(c.item) || 0));
-		const n = Math.min(have, most, budgetOf(c.item));
+		// `loadCap` is what an earlier laying of this same run found it
+		// would really hand over (see chainRun below).
+		const n = Math.min(have, most, budgetOf(c.item), loadCap && loadCap.has(c.item) ? loadCap.get(c.item) : Infinity);
 		if (n <= 0) continue;
 		if (n >= have) ashore.delete(c.item); else ashore.set(c.item, have - n);
 		held.set(c.item, (held.get(c.item) || 0) + n);
@@ -687,4 +689,42 @@ export function chainRun({ chosen: picked = [], stock = {}, dock = {}, hold, par
 		parleyBar: parley.bar,
 		weightStart, weightPeak: peak, hold
 	};
+}
+
+/**
+ * The run, loaded with what it will hand over and no more.
+ *
+ * What is loaded at the harbour was counted from what the first island
+ * *offers* -- ten attempts, so ten goods -- before anything was known
+ * about what the run would *do*. The hold, the Parley bar, a target
+ * already met: any of them can cut the ten attempts to five, and the
+ * other five goods then rode out to the island, rode back, and were
+ * "left in storage" at the very wharf they were loaded from. Sam's ship
+ * sailed a run over its weight limit, slower, for the sake of five
+ * coins it was never going to trade.
+ *
+ * So the run is laid, what it really hands over is counted, and where
+ * more was loaded than that it is laid again with the load held to it.
+ * A lighter hold can only let more attempts in, never fewer, so the
+ * second laying spends what the first did; the loop is there for the
+ * odd case where it does not, and gives up after a few goes rather
+ * than chase it.
+ */
+export function chainRun(opts = {}) {
+	let plan = chainRunOnce(opts);
+	const aboard = goodsHeld(opts.stock || {});
+	for (let pass = 0; pass < 3 && plan.loaded.length; pass++) {
+		const given = new Map();
+		for (const s of plan.stops) if (s.npcId && s.give) given.set(s.give, (given.get(s.give) || 0) + (s.times || 0) * (s.giveN || 0));
+		const cap = new Map(opts.loadCap || []);
+		let over = false;
+		for (const l of plan.loaded) {
+			const need = Math.max(0, Math.ceil((given.get(l.item) || 0) - (aboard.get(l.item) || 0)));
+			if (l.n > need) { cap.set(l.item, need); over = true; }
+		}
+		if (!over) break;
+		opts = { ...opts, loadCap: cap };
+		plan = chainRunOnce(opts);
+	}
+	return plan;
 }
