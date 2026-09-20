@@ -273,6 +273,16 @@ function floorsShut(orders) {
 	return out;
 }
 
+/** The floor that is keeping a coin day's purse empty, or 0: the floor
+ *  at the level the coin islands take, when nothing held of that level
+ *  clears it. The figures tile asks, so the "—" it would otherwise
+ *  print on its own has a reason beside it. */
+function cashFloorNow() {
+	if (goal !== 'coin') return 0;
+	const shut = floorsShut(ordersNow()).find(f => f.lv === COIN_LEVEL);
+	return shut ? shut.floor : 0;
+}
+
 /** The goods at the storage of the harbour the run sails from. */
 function dockStock() {
 	const from = fromPort();
@@ -2687,13 +2697,25 @@ function silverParts(me, b) {
 		held: F(f.held), floor: F(f.floor),
 		kinds: f.kinds === 1 ? T('{n} kind of [Level {lv}]', { n: f.kinds, lv: f.lv }) : T('{n} kinds of [Level {lv}]', { n: f.kinds, lv: f.lv })
 	})).join('; ');
+	// A floor at the level a coin day cashes is the one that costs most
+	// and shows least: the run climbs, the trades happen, and the purse
+	// says nothing at all, because a [Level 4] kept back is a [Level 4]
+	// not handed to a coin island. It is the run obeying an order set
+	// weeks ago on some other kind of day.
+	const cashShut = coining ? shutByFloor.find(f => f.lv === COIN_LEVEL) : null;
+	const dropFloors = lvs => `<button class="chip tiny primary" data-act="barter-floor-clear" data-lvs="${esc(lvs.join(','))}" title="${T('Set those floors back to none, so the run may spend what you hold')}">${lvs.length === 1 ? T('drop that floor') : T('drop those floors')} →</button>`;
 	const floorNote = !shutByFloor.length ? '' : stocking
 		? `<div class="barter-shut floors"><b>${shutByFloor.length === 1
 			? T('A level is being filled, not climbed off')
 			: T('{n} levels are being filled, not climbed off', { n: shutByFloor.length })}</b> — ${floorWhy}, so nothing climbs from ${shutByFloor.length === 1 ? T('it') : T('them')} until the stock is made up. That is what the target is for. ${T('For a run that climbs straight past them, set the lower targets to none.')}</div>`
-		: `<div class="barter-shut floors"><b>${shutByFloor.length === 1
-			? T('A floor is holding the run back')
-			: T('{n} floors are holding the run back', { n: shutByFloor.length })}</b> — ${floorWhy}, so there is none to spend and no chain can start from ${shutByFloor.length === 1 ? T('it') : T('them')}. <button class="chip tiny primary" data-act="barter-floor-clear" data-lvs="${esc(shutByFloor.map(f => f.lv).join(','))}" title="${T('Set those floors back to none, so the run may spend what you hold')}">${shutByFloor.length === 1 ? T('drop that floor') : T('drop those floors')} →</button></div>`;
+		: cashShut
+			? `<div class="barter-shut floors"><b>${T('Nothing will be cashed for coins')}</b> — ${T('you hold <b>{held}</b> of {kinds} against a floor of <b>{floor}</b>, and a [Level {lv}] kept back is a [Level {lv}] not handed to a coin island. The climbing happens, the purse stays empty.', {
+				held: F(cashShut.held), floor: F(cashShut.floor), lv: cashShut.lv,
+				kinds: cashShut.kinds === 1 ? T('{n} kind of [Level {lv}]', { n: cashShut.kinds, lv: cashShut.lv }) : T('{n} kinds of [Level {lv}]', { n: cashShut.kinds, lv: cashShut.lv })
+			})} ${dropFloors(shutByFloor.map(f => f.lv))}</div>`
+			: `<div class="barter-shut floors"><b>${shutByFloor.length === 1
+				? T('A floor is holding the run back')
+				: T('{n} floors are holding the run back', { n: shutByFloor.length })}</b> — ${floorWhy}, so there is none to spend and no chain can start from ${shutByFloor.length === 1 ? T('it') : T('them')}. ${dropFloors(shutByFloor.map(f => f.lv))}</div>`;
 	const chainsPanel = `<section class="panel barter-chains">${headFill(fillable)}<div class="panel-body">${floorNote}${shutNote}${reachBar}${reach ? '' : proposals}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.landFrom === 'stock' && o.buy ? T('No chain on this board starts from a shore good you keep. Let the run buy its land goods ashore, or add what you have with ＋ A good.') : o.buy ? T('Nothing climbs on this board.') : T('Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.')) : T('No chain matches.')}</p>`}</div></div></section>`;
 
 	const plan = chainRun({ ...opts, chosen });
@@ -2734,7 +2756,7 @@ function silverParts(me, b) {
 	// pile standing at.
 	const gains = stocking ? stockGains(plan, stock) : null;
 	const tiles = coining ? `<div class="run-tiles">
-		${tile(`${img(COIN, 'tile-icon')}${T('Crow Coins')}`, plan.coins ? coinRange(purse.min, purse.max, '+') : '—', plan.coins ? `${bonusNote(purse)} · ${plan.stops.filter(s => s.item === COIN).length === 1 ? T('{n} island paying', { n: F(plan.stops.filter(s => s.item === COIN).length) }) : T('{n} islands paying', { n: F(plan.stops.filter(s => s.item === COIN).length) })}` : chosen.length ? T('no chain ticked cashes a [Level 4] for coins') : T('pick a chain'), 'gold')}
+		${tile(`${img(COIN, 'tile-icon')}${T('Crow Coins')}`, plan.coins ? coinRange(purse.min, purse.max, '+') : '—', plan.coins ? `${bonusNote(purse)} · ${plan.stops.filter(s => s.item === COIN).length === 1 ? T('{n} island paying', { n: F(plan.stops.filter(s => s.item === COIN).length) }) : T('{n} islands paying', { n: F(plan.stops.filter(s => s.item === COIN).length) })}` : chosen.length ? (cashFloorNow() ? T('every [Level {lv}] you hold is under the floor of {floor} you keep back, so none is cashed', { lv: COIN_LEVEL, floor: F(cashFloorNow()) }) : T('no chain ticked cashes a [Level 4] for coins')) : T('pick a chain'), 'gold')}
 		${tile(T('Trades'), plan.trades ? F(plan.trades) : '—', plan.trades ? `${T('{spent} Parley of {bar}', { spent: F(Math.round(plan.parleyUsed)), bar: F(plan.parleyBar) })} · ${T('{n} barters behind you, {after} after', { n: F(prof.barterCount), after: F(prof.barterCount + plan.trades) })}${plan.coins && plan.parleyUsed ? ` · ${T('{n} coins a Parley unit', { n: F(Math.round(purse.min / (plan.parleyUsed / PARLEY_UNIT))) })}` : ''}` : T('one barter counts as one, whatever it trades'), 'gold')}
 		${tile(T('Hold at its fullest'), plan.stops.length ? esc(peak.text) : '—', `${peak.note || T('under the limit')} · ${peak.deal === peak.max ? T('barters and moves to {max}', { max: F(peak.max) }) : T('barters to {deal} · moves to {max}', { deal: F(peak.deal), max: F(peak.max) })}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
 		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours in the pouch')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.short ? ` · <b class="warn">${T('{n} short', { n: F(book.short) })}</b>` : ''}`, book.short ? 'warn' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}

@@ -795,6 +795,11 @@
 .jump-kind { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); white-space: nowrap; }
 .jump-kinds { gap: 5px; }
 .inv-kinds { margin-top: -2px; }
+/* The barter ladder as a chip row: Land, then the seven levels, each
+   wearing its own tier colour so the row reads as the ladder it is. */
+.inv-ladder { margin-top: -2px; }
+.inv-ladder .chip { border-color: color-mix(in srgb, var(--tier, var(--line-btn)) 45%, transparent); color: var(--tier, var(--ink-mute)); }
+.inv-ladder .chip.active { background: var(--tier, var(--accent)); border-color: var(--tier, var(--accent)); color: var(--on-tint); }
 .jump-tab { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); width: 28px; }
 .jump-hint { font-size: 11px; color: var(--ink-faint); }
 .trip-rows { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; max-height: 50vh; overflow-y: auto; }

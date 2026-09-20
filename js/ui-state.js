@@ -55,7 +55,16 @@ export let view = 'plan';
 export let query = '';
 export let planFilter = 'all';
 export let invFilter = 'all';
-export let invKind = 'all';     // all | materials | parts | goods
+/** Every answer the Inventory's chip rows can be set to. */
+export const INV_KINDS = ['all', 'materials', 'parts', 'goods', 'land', 'lv1', 'lv2', 'lv3', 'lv4', 'lv5', 'lv6', 'lv7'];
+
+// all | materials | parts | goods | land | lv1..lv7. The first four are
+// what a thing *is* (kinds.js); the rest are the barter ladder read as
+// a filter, which is how a sailor thinks about a hold -- "show me my
+// Level 2s" -- and which used to mean typing "2" in the search box and
+// hoping. They share the one variable because they are one question
+// asked of the same list, and only one answer can be lit at a time.
+export let invKind = 'all';
 export let selected = null;
 export let snapshot = null;
 export let rows = {};
@@ -70,7 +79,7 @@ export const setQuery = q => { query = q; };
 // caller redraws on its own and the settings listener would draw twice.
 export const setPlanFilter = f => { planFilter = f; store.setSetting('planFilter', f, true); };
 export const setInvFilter = f => { invFilter = f; store.setSetting('invFilter', f, true); };
-export const setInvKind = k => { invKind = k; store.setSetting('invKind', k, true); };
+export const setInvKind = k => { invKind = INV_KINDS.includes(k) ? k : 'all'; store.setSetting('invKind', invKind, true); };
 export const setSelected = item => { selected = item; };
 // The Inventory's select mode: several tiles ticked for one action --
 // moved to a storage together, or handed back to the bags.
@@ -102,7 +111,7 @@ function hydrate() {
 	if (SORTS.some(x => x.id === s)) sort = s;
 	planFilter = chip('planFilter', planFilter);
 	invFilter = chip('invFilter', invFilter);
-	invKind = ['all', 'materials', 'parts', 'goods'].includes(store.getSetting('invKind', null)) ? store.getSetting('invKind') : invKind;
+	invKind = INV_KINDS.includes(store.getSetting('invKind', null)) ? store.getSetting('invKind') : invKind;
 }
 export const SORTS = [
 	{ id: 'short', label: TT('Short first') },

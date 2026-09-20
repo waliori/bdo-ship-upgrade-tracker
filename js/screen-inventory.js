@@ -13,6 +13,11 @@ import { recipes, snapshot, rows, query, invFilter, invKind, selected, sort, sor
 import { coinPrice, coinBuyButton } from './coin-shop.js';
 import { routes, routeInfo } from './recipes.js';
 import { KINDS, kindOf } from './kinds.js';
+import { isLandGood } from './land_goods.js';
+import { levelOf } from './barter.js';
+
+/** A level's own colour, as the Barter tab draws it. */
+const TIER = lv => `var(--tier-${Math.max(1, Math.min(7, lv || 1))})`;
 import { shipStats } from './ship_stats.js';
 import { listSetups, shipName } from './ship.js';
 import { maxCraftable, enhanceStep, parseEnhanced, enhancedName, waysToGet, routeOf } from './planner.js';
@@ -51,6 +56,23 @@ function familyStats(base) {
 	return { own, reserved, short, top, at: enhancedName(base, top) };
 }
 
+/**
+ * Whether an item answers to the chip that is lit.
+ *
+ * The first four chips ask what a thing is; the rest ask where it
+ * stands on the barter ladder. A [Level 2] good is a trade good and a
+ * Level 2 both, so the two rows overlap on purpose -- they are two
+ * ways of narrowing the same list, and lighting one puts the other
+ * out.
+ */
+function inKind(item, kind) {
+	if (kind === 'all') return true;
+	if (kind === 'land') return isLandGood(item);
+	const lv = /^lv([1-7])$/.exec(kind);
+	if (lv) return levelOf(item) === Number(lv[1]);
+	return kindOf(item) === kind;
+}
+
 export function renderInventory() {
 	const stock = store.getAllStock();
 	const q = query.toLowerCase();
@@ -62,7 +84,7 @@ export function renderInventory() {
 	// found and recorded.
 	const list = allItems().filter(item => {
 		if (searching && !item.toLowerCase().includes(q)) return false;
-		if (invKind !== 'all' && kindOf(item) !== invKind) return false;
+		if (!inKind(item, invKind)) return false;
 		const r = rows[item];
 		if (invFilter === 'owned') return (stock[item] || 0) > 0;
 		if (invFilter === 'needed') return !!r && r.need > 0;
@@ -79,9 +101,20 @@ export function renderInventory() {
 	// What sort of thing: a second row, since "the trade goods I hold"
 	// and "the materials I am short of" are different questions and the
 	// list answers both. A lit kind stays lit across searches.
-	const kinds = [['all', T('Everything')], ...KINDS.map(k => [k.id, said(k.label)])].map(([id, label]) =>
-		`<button class="chip ${invKind === id ? 'active' : ''}" data-act="inv-kind" data-id="${id}" aria-pressed="${invKind === id}">${label}</button>`
-	).join('');
+	const kindChip = (id, label, style = '', title = '') =>
+		`<button class="chip ${invKind === id ? 'active' : ''}"${style ? ` style="${style}"` : ''} data-act="inv-kind" data-id="${id}" aria-pressed="${invKind === id}"${title ? ` title="${esc(title)}"` : ''}>${label}</button>`;
+	const kinds = [['all', T('Everything')], ...KINDS.map(k => [k.id, said(k.label)])]
+		.map(([id, label]) => kindChip(id, label)).join('');
+	// The barter ladder as a filter. "Show me my Level 2s" is the
+	// question a sailor actually asks of a hold, and the only way to ask
+	// it was to type "2" into the search box and read past the Level 12
+	// planks. Land sits at the head of the row because that is where a
+	// chain starts, and because the shore goods only became things you
+	// could own at all a commit ago.
+	const ladder = [
+		kindChip('land', T('Land'), '', T('The shore goods a barter chain starts from')),
+		...[1, 2, 3, 4, 5, 6, 7].map(lv => kindChip(`lv${lv}`, T('Lv.{lv}', { lv }), `--tier:${TIER(lv)}`, T('The [Level {lv}] trade goods', { lv })))
+	].join('');
 
 	// Collapse each enhancement family to a single tile. A search for
 	// "toro" used to return forty-four tiles -- eleven levels of four
@@ -137,6 +170,7 @@ export function renderInventory() {
 				<input class="field" type="search" placeholder="${T('Search items…')}" value="${esc(query)}" data-act="query" aria-label="${T('Search items')}">
 				<div class="chips">${filters}</div>
 				<div class="chips inv-kinds">${kinds}</div>
+				<div class="chips inv-ladder">${ladder}</div>
 				${sortSelect()}
 				<button class="chip inv-select ${invPicking ? 'active' : ''}" data-act="inv-select" aria-pressed="${invPicking}" title="${T('Tick several tiles and move them to a storage together')}">${invPicking ? T('✓ Selecting') : T('☐ Select')}</button>
 				<button class="chip" data-act="inv-shot" title="${T("Read a storage off screenshots of the game's own window — in this browser; nothing is uploaded")}">📷 ${T('Read a storage')}</button>
@@ -145,7 +179,7 @@ export function renderInventory() {
 			${invPicking ? pickBar(shown.filter(k => (stock[k] || 0) > 0 || isEnhanceable(k)).map(k => (isEnhanceable(k) ? familyStats(k).at : k))) : ''}
 			${shown.length
 				? `<div class="inv-grid">${tiles}</div>`
-				: `<div class="panel"><p class="empty">${searching ? T('Nothing matches that search.') : invKind === 'goods' ? T('No trade goods in play — search one to record what is aboard, or log a trip.') : T('Nothing here yet — add a build, or switch to Owned to record what you have.')}</p></div>`}
+				: `<div class="panel"><p class="empty">${searching ? T('Nothing matches that search.') : invKind === 'goods' ? T('No trade goods in play — search one to record what is aboard, or log a trip.') : invKind === 'land' ? T('No shore goods in play — these are what a barter chain starts from, so switch to Owned or read a storage to record what you keep.') : /^lv[1-7]$/.test(invKind) ? T('None of that level in play — switch to Owned, read a storage, or log a trip to record what you hold.') : T('Nothing here yet — add a build, or switch to Owned to record what you have.')}</p></div>`}
 		</div>
 		${selected ? '<div class="detail-veil" data-act="deselect" aria-hidden="true"></div>' : ''}
 		<aside class="detail ${selected ? 'open' : ''}">${renderDetail()}</aside>
