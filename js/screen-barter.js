@@ -3965,6 +3965,18 @@ export function barterAction(act, el, redraw) {
 			if (on.seen[el.dataset.npc] && !on.done.includes(`n${el.dataset.npc}`)) markDone(on, `n${el.dataset.npc}`);
 			return true;
 		}
+		// The floors that were holding the run back, let go of together.
+		case 'barter-floor-clear': {
+			const lvs = String(el.dataset.lvs || '').split(',').map(Number).filter(n => n >= 1 && n <= 6);
+			if (!lvs.length) return true;
+			const floors = { ...ordersNow().floors };
+			for (const lv of lvs) delete floors[lv];
+			setOrders({ floors });
+			toast(lvs.length === 1
+				? T('The [Level {lv}] floor is gone — the run may spend what you hold', { lv: lvs[0] })
+				: T('{n} floors are gone — the run may spend what you hold', { n: lvs.length }));
+			return true;
+		}
 		case 'barter-record': recordTrip(sailedPlan(), fromPort()); return false;
 		case 'barter-record-stranded': {
 			const on = stranded();
@@ -4056,18 +4068,6 @@ export function barterChange(el, parseAmount) {
 			const floors = { ...ordersNow().floors };
 			if (n > 0) floors[el.dataset.lv] = Math.floor(n); else delete floors[el.dataset.lv];
 			setOrders({ floors });
-			return true;
-		}
-		// The floors that were holding the run back, let go of together.
-		case 'barter-floor-clear': {
-			const lvs = String(el.dataset.lvs || '').split(',').map(Number).filter(n => n >= 1 && n <= 6);
-			if (!lvs.length) return true;
-			const floors = { ...ordersNow().floors };
-			for (const lv of lvs) delete floors[lv];
-			setOrders({ floors });
-			toast(lvs.length === 1
-				? T('The [Level {lv}] floor is gone — the run may spend what you hold', { lv: lvs[0] })
-				: T('{n} floors are gone — the run may spend what you hold', { n: lvs.length }));
 			return true;
 		}
 		case 'barter-stash': stash = STASHES.includes(el.value) ? el.value : ''; persist(); return true;

@@ -82,6 +82,7 @@ export function renderInventory() {
 	// "plank" with Owned selected means the planks you own. Only the
 	// default In play widens under a search, so anything at all can be
 	// found and recorded.
+	const ladderLit = invKind === 'land' || /^lv[1-7]$/.test(invKind);
 	const list = allItems().filter(item => {
 		if (searching && !item.toLowerCase().includes(q)) return false;
 		if (!inKind(item, invKind)) return false;
@@ -90,7 +91,12 @@ export function renderInventory() {
 		if (invFilter === 'needed') return !!r && r.need > 0;
 		if (invFilter === 'short') return !!r && r.short > 0;
 		if (invFilter === 'free') return (snapshot.free[item] || 0) > 0;
-		return searching || (stock[item] || 0) > 0 || (r && r.need > 0);
+		// A rung of the ladder lit is a question with a short answer --
+		// the twenty goods of a level, the shore goods -- and the sailor
+		// asking it is usually about to type a count against one they do
+		// not own yet. So it widens In play the way a search does: the
+		// whole rung is shown, owned or not.
+		return searching || ladderLit || (stock[item] || 0) > 0 || (r && r.need > 0);
 	}).sort(sorter(sort, stock));
 
 	const filters = [
@@ -179,7 +185,7 @@ export function renderInventory() {
 			${invPicking ? pickBar(shown.filter(k => (stock[k] || 0) > 0 || isEnhanceable(k)).map(k => (isEnhanceable(k) ? familyStats(k).at : k))) : ''}
 			${shown.length
 				? `<div class="inv-grid">${tiles}</div>`
-				: `<div class="panel"><p class="empty">${searching ? T('Nothing matches that search.') : invKind === 'goods' ? T('No trade goods in play — search one to record what is aboard, or log a trip.') : invKind === 'land' ? T('No shore goods in play — these are what a barter chain starts from, so switch to Owned or read a storage to record what you keep.') : /^lv[1-7]$/.test(invKind) ? T('None of that level in play — switch to Owned, read a storage, or log a trip to record what you hold.') : T('Nothing here yet — add a build, or switch to Owned to record what you have.')}</p></div>`}
+				: `<div class="panel"><p class="empty">${searching ? T('Nothing matches that search.') : invKind === 'goods' ? T('No trade goods in play — search one to record what is aboard, or log a trip.') : ladderLit ? T('None of these under this filter — In play shows the whole rung, owned or not, so a count can be typed against any of them.') : T('Nothing here yet — add a build, or switch to Owned to record what you have.')}</p></div>`}
 		</div>
 		${selected ? '<div class="detail-veil" data-act="deselect" aria-hidden="true"></div>' : ''}
 		<aside class="detail ${selected ? 'open' : ''}">${renderDetail()}</aside>
