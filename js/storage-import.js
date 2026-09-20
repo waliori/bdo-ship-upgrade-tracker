@@ -73,7 +73,17 @@ function gather(results, known) {
 		(b.guessed > 0) - (a.guessed > 0) || b.n - a.n || a.item.localeCompare(b.item));
 }
 
-export function openStorageImport(after = () => {}) {
+/**
+ * Read a storage off screenshots.
+ *
+ * `handOff` turns the dialog from one that writes counts into one that
+ * hands them back: the trip log borrows it that way, so a sailor who
+ * has just come off a run can shoot the hold and have the lines filled
+ * in rather than picking forty items by hand. It is `{ label, note,
+ * onRows }` -- what the button says, what the head says, and where the
+ * rows go instead of into the Inventory.
+ */
+export function openStorageImport(after = () => {}, handOff = null) {
 	let stop = null;            // an AbortController while a batch is being read
 	let rows = [];              // the gathered reading, as the table has it
 	let skipped = [];           // files that were not read, and why
@@ -107,6 +117,7 @@ export function openStorageImport(after = () => {}) {
 	</div>`;
 
 	const pickView = () => `
+		${handOff ? `<p class="dialog-note">${said(handOff.note)}</p>` : ''}
 		<p class="dialog-note">${T('A screenshot of the storage window reads, and so does a shot of the whole screen with the window open — the panel is found in it. Several at a time is the point: scroll the storage, shoot each screenful, drop the lot.')}</p>
 		<ul class="shot-kinds">
 			<li>${T('<b>What is read</b> — the picture in each slot, against the icons this app already carries, and the figure written over the corner.')}</li>
@@ -114,7 +125,7 @@ export function openStorageImport(after = () => {}) {
 			<li>${T('<b>What a ship part is read as</b> — the part itself. The game draws every level of a part with the same picture, so a +10 sail comes back as a sail; set the level on its tile afterwards, or untick it here.')}</li>
 			<li>${T('<b>How the counts are checked</b> — every line comes back with the corner of its slot beside it, as the screenshot had it, so a count is checked at a glance. One the reader is not sure of is marked ⚠ with its best reading written in; a mouse pointer lying over a figure is the usual reason.')}</li>
 		</ul>
-		${placePicker()}
+		${handOff ? '' : placePicker()}
 		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="${T('Choose screenshots to read')}">
 			<div class="shot-drop-mark">🏰</div>
 			<div><b>${T('Drop screenshots here, or paste one')}</b></div>
@@ -169,12 +180,12 @@ export function openStorageImport(after = () => {}) {
 			<thead><tr><th></th><th>${T('What')}</th><th>${T('How many')}</th><th>${T('at {place}', { place: esc(place ? gameName(place) : T('the bags')) })}</th><th></th></tr></thead>
 			<tbody>${rows.map(rowHTML).join('')}</tbody>
 		</table></div>` : ''}
-		<div class="shot-lang">${placePicker()}</div>
+		${handOff ? '' : `<div class="shot-lang">${placePicker()}</div>`}
 		<div class="dialog-actions">
 			<button class="act quiet" data-again>${T('Read more')}</button>
 			<span class="panel-spacer"></span>
 			<button class="act quiet" data-close>${T('Cancel')}</button>
-			<button class="act" data-write${taking.length ? '' : ' disabled'}>${taking.length ? `${T('Write {n} in', { n: taking.length })}${total ? ` · ${T('{n} in all', { n: F(total) })}` : ''}` : T('Nothing ticked')}</button>
+			<button class="act" data-write${taking.length ? '' : ' disabled'}>${taking.length ? `${handOff ? T('{label} · {n}', { label: said(handOff.label), n: taking.length }) : T('Write {n} in', { n: taking.length })}${total ? ` · ${T('{n} in all', { n: F(total) })}` : ''}` : T('Nothing ticked')}</button>
 		</div>`;
 	};
 
@@ -223,6 +234,14 @@ export function openStorageImport(after = () => {}) {
 	function write() {
 		const taking = rows.filter(r => r.take !== false);
 		if (!taking.length) return;
+		// Handed back rather than written: whoever asked for the reading
+		// decides what the counts mean.
+		if (handOff) {
+			closeReader();
+			closeDialog();
+			handOff.onRows(taking.map(r => ({ item: r.item, n: r.n })));
+			return;
+		}
 		// A trade good is never in the bags -- what no storage claims is
 		// aboard -- so a reading of the bags that holds trade goods is
 		// really a reading of the hold, and the Inventory would show it

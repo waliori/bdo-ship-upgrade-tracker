@@ -803,6 +803,11 @@
 .jump-tab { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); width: 28px; }
 .jump-hint { font-size: 11px; color: var(--ink-faint); }
 .trip-rows { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; max-height: 50vh; overflow-y: auto; }
+/* Filling the lines from a screenshot, and which way the counts go:
+   a sailor back from a run has both handed goods over and been paid. */
+.trip-shot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; padding: 8px 10px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); }
+.trip-shot-k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); margin-right: 2px; }
+.trip-shot .ghost-btn { margin-left: auto; }
 .trip-row { display: flex; gap: 6px; }
 .trip-row .trip-item { flex: 1; min-width: 0; }
 .trip-row .trip-qty { width: 120px; }

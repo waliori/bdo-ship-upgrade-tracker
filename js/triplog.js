@@ -7,7 +7,7 @@
 // as one undoable step.
 
 import { esc, F, parseAmount } from './fmt.js';
-import { T, said, gameName } from './i18n.js';
+import { T, TT, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { img, allItems, offerableItems } from './ui-bits.js';
 import { snapshot } from './ui-state.js';
@@ -16,6 +16,7 @@ import { quests } from './quests.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { openPicker } from './picker.js';
 import { KINDS, kindOf } from './kinds.js';
+import { openStorageImport } from './storage-import.js';
 
 let known = null;
 function names() {
@@ -32,6 +33,11 @@ function names() {
 // The rows being filled in: { item, qty } -- kept here so the dialog
 // can be re-opened after the picker without losing them.
 let lines = [];
+// Whether a reading comes in as things gained or things spent. A
+// sailor logging a trip has just done both -- handed goods over and
+// been paid in others -- and which one a screenshot is depends on
+// which window they shot.
+let shotSign = 1;
 
 function rowHTML(l, i) {
 	return `<div class="trip-row" data-i="${i}">
@@ -118,12 +124,49 @@ function homesNote() {
 }
 
 /** Open the log; `focusRow` puts the caret in that row's count. */
+/**
+ * Counts read off a screenshot, folded into the lines.
+ *
+ * An item already on a line has its count changed rather than gaining
+ * a second line of its own -- a sailor who typed "12 Cedar Plywood"
+ * and then shot the hold meant one line about plywood, not two -- and
+ * the empty lines the dialog opens with are filled before any are
+ * added.
+ */
+function takeRows(got, sign) {
+	for (const { item, n } of got || []) {
+		if (!item || !(n > 0)) continue;
+		const at = lines.findIndex(l => l.item === item);
+		if (at >= 0) {
+			const was = parseAmount(String(lines[at].qty || '0'), { signed: true }) || 0;
+			lines[at].qty = String(was + sign * n);
+			continue;
+		}
+		const free = lines.findIndex(l => !l.item && !String(l.qty).trim());
+		const line = { item, qty: String(sign * n) };
+		if (free >= 0) lines[free] = line; else lines.push(line);
+	}
+	if (!lines.length) lines = [{ item: '', qty: '' }];
+}
+
+/** The dialog drawn again with the lines as they stand. */
+function reopen() {
+	closeDialog();
+	openTripLog();
+}
+
 export function openTripLog(focusRow = null) {
 	if (!lines.length) lines = [{ item: '', qty: '' }, { item: '', qty: '' }, { item: '', qty: '' }];
 	const host = openDialog(`
 		<h2>${T('Log a trip')}</h2>
 		<p class="dialog-copy">${T('Everything you brought back, in one go. Counts add to what you hold; a minus takes away. One Undo takes the whole trip back.')}${homesNote()}</p>
 		<div class="trip-rows" data-trip-rows>${lines.map(rowHTML).join('')}</div>
+		<div class="trip-shot">
+			<span class="trip-shot-k">${T('From a screenshot')}</span>
+			<button class="chip${shotSign > 0 ? ' active' : ''}" data-trip-sign="1" aria-pressed="${shotSign > 0}" title="${T('What the shot shows is what you gained')}">＋ ${T('adds')}</button>
+			<button class="chip${shotSign < 0 ? ' active' : ''}" data-trip-sign="-1" aria-pressed="${shotSign < 0}" title="${T('What the shot shows is what you handed over')}">−  ${T('takes away')}</button>
+			<button class="ghost-btn" data-trip-shot>📷 ${T('Read one')}</button>
+		</div>
 		<div class="dialog-actions">
 			<button class="ghost-btn" data-trip-more>${T('+ another line')}</button>
 			<button class="ghost-btn" data-trip-cancel>${T('Cancel')}</button>
@@ -147,6 +190,24 @@ export function openTripLog(focusRow = null) {
 		rows.lastElementChild.querySelector('[data-trip-pick]').focus();
 	});
 	host.querySelector('[data-trip-cancel]').addEventListener('click', () => { lines = []; closeDialog(); });
+	// The sign the next reading comes in under.
+	for (const el of host.querySelectorAll('[data-trip-sign]')) {
+		el.addEventListener('click', () => { readQty(); shotSign = Number(el.dataset.tripSign) < 0 ? -1 : 1; reopen(); });
+	}
+	// A screenshot instead of forty picks. The storage reader does the
+	// looking; the counts come back here rather than going into the
+	// Inventory, because what they mean is this dialog's business.
+	host.querySelector('[data-trip-shot]').addEventListener('click', () => {
+		readQty();
+		closeDialog();
+		openStorageImport(() => {}, {
+			label: shotSign > 0 ? TT('Add to the trip') : TT('Take off the trip'),
+			note: shotSign > 0
+				? TT('What is read goes into the trip as things gained. Shoot the hold, or the storage window showing what you came back with.')
+				: TT('What is read goes into the trip as things handed over — every count a minus.'),
+			onRows: got => { takeRows(got, shotSign); openTripLog(); }
+		});
+	});
 	const save = () => {
 		readQty();
 		const delta = {};
