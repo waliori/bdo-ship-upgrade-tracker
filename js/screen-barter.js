@@ -241,6 +241,38 @@ function everythingHeld() {
 	return out;
 }
 
+/**
+ * The levels whose floor keeps back everything held of them.
+ *
+ * A floor is what the run may not spend: what may go into a trade is
+ * what is owned of a good above its floor. So a floor of a hundred at
+ * [Level 1], against the forty a sailor actually holds, leaves nothing
+ * to spend at all -- and the run does the only thing it can, which is
+ * to offer no chain that starts from a [Level 1].
+ *
+ * That is correct, and it looks exactly like a board with nothing on
+ * it. Sam set a floor of a hundred while building a stock, sailed four
+ * trades, and then spent an evening pressing a list that would not
+ * grow, because the app had no way of saying "you told me to keep all
+ * of these". It says it now.
+ *
+ * A level counts as shut only when no good at it clears its floor: one
+ * good with a few over is a chain that can still start.
+ */
+function floorsShut(orders) {
+	const held = everythingHeld();
+	const out = [];
+	for (const lv of [1, 2, 3, 4, 5, 6]) {
+		const floor = (orders.floors || {})[lv] || 0;
+		if (!floor) continue;
+		const mine = [...held].filter(([name]) => levelOf(name) === lv);
+		if (!mine.length) continue;
+		if (mine.some(([, n]) => n > floor)) continue;
+		out.push({ lv, floor, held: mine.reduce((a, [, n]) => a + n, 0), kinds: mine.length });
+	}
+	return out;
+}
+
 /** The goods at the storage of the harbour the run sails from. */
 function dockStock() {
 	const from = fromPort();
@@ -2634,7 +2666,28 @@ function silverParts(me, b) {
 	const shutNote = shutIsles.length
 		? `<div class="barter-shut"><b>${shutChains.length === 1 ? T('{n} chain on this board is not yours to sail yet', { n: shutChains.length }) : T('{n} chains on this board are not yours to sail yet', { n: shutChains.length })}</b> — ${shutIsles.map(g => T('{isle} opens at {barters} Total Barters, {short} more', { isle: esc(gameName(isleOf(npcById.get(g.npcId)) || g.npc)), barters: F(g.barters), short: F(g.short) })).join('; ')}. ${shutChains.length === 1 ? T('It is listed below, locked, and left out of the run and of the runs worth sailing.') : T('They are listed below, locked, and left out of the run and of the runs worth sailing.')}${prof.barterCount ? '' : ` ${T('Your Total Barters read nought — set them in the bar at the top of the page.')}`} <button class="linky" data-act="routes">${T('every route and its count')} →</button></div>`
 		: '';
-	const chainsPanel = `<section class="panel barter-chains">${headFill(fillable)}<div class="panel-body">${shutNote}${reachBar}${reach ? '' : proposals}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.landFrom === 'stock' && o.buy ? T('No chain on this board starts from a shore good you keep. Let the run buy its land goods ashore, or add what you have with ＋ A good.') : o.buy ? T('Nothing climbs on this board.') : T('Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.')) : T('No chain matches.')}</p>`}</div></div></section>`;
+	// A floor that keeps back everything held of a level is a level no
+	// chain can start from, and a board that looks empty for no reason
+	// anyone can see. It is said here, above the list it emptied.
+	//
+	// What it means depends on what the day is for. On a stock run the
+	// floors are the targets themselves, and a level held back is the
+	// run working: it is filling that level, not climbing off it. On any
+	// other run a floor is a thing the sailor asked for and may well
+	// have forgotten, so the way out is offered beside it.
+	const shutByFloor = floorsShut(o);
+	const floorWhy = shutByFloor.map(f => T('you hold <b>{held}</b> of {kinds} against a floor of <b>{floor}</b>', {
+		held: F(f.held), floor: F(f.floor),
+		kinds: f.kinds === 1 ? T('{n} kind of [Level {lv}]', { n: f.kinds, lv: f.lv }) : T('{n} kinds of [Level {lv}]', { n: f.kinds, lv: f.lv })
+	})).join('; ');
+	const floorNote = !shutByFloor.length ? '' : stocking
+		? `<div class="barter-shut floors"><b>${shutByFloor.length === 1
+			? T('A level is being filled, not climbed off')
+			: T('{n} levels are being filled, not climbed off', { n: shutByFloor.length })}</b> — ${floorWhy}, so nothing climbs from ${shutByFloor.length === 1 ? T('it') : T('them')} until the stock is made up. That is what the target is for. ${T('For a run that climbs straight past them, set the lower targets to none.')}</div>`
+		: `<div class="barter-shut floors"><b>${shutByFloor.length === 1
+			? T('A floor is holding the run back')
+			: T('{n} floors are holding the run back', { n: shutByFloor.length })}</b> — ${floorWhy}, so there is none to spend and no chain can start from ${shutByFloor.length === 1 ? T('it') : T('them')}. <button class="chip tiny primary" data-act="barter-floor-clear" data-lvs="${esc(shutByFloor.map(f => f.lv).join(','))}" title="${T('Set those floors back to none, so the run may spend what you hold')}">${shutByFloor.length === 1 ? T('drop that floor') : T('drop those floors')} →</button></div>`;
+	const chainsPanel = `<section class="panel barter-chains">${headFill(fillable)}<div class="panel-body">${floorNote}${shutNote}${reachBar}${reach ? '' : proposals}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.landFrom === 'stock' && o.buy ? T('No chain on this board starts from a shore good you keep. Let the run buy its land goods ashore, or add what you have with ＋ A good.') : o.buy ? T('Nothing climbs on this board.') : T('Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.')) : T('No chain matches.')}</p>`}</div></div></section>`;
 
 	const plan = chainRun({ ...opts, chosen });
 	for (const s of plan.stops) s.hold = me.hold;
@@ -3856,6 +3909,18 @@ export function barterChange(el, parseAmount) {
 			const floors = { ...ordersNow().floors };
 			if (n > 0) floors[el.dataset.lv] = Math.floor(n); else delete floors[el.dataset.lv];
 			setOrders({ floors });
+			return true;
+		}
+		// The floors that were holding the run back, let go of together.
+		case 'barter-floor-clear': {
+			const lvs = String(el.dataset.lvs || '').split(',').map(Number).filter(n => n >= 1 && n <= 6);
+			if (!lvs.length) return true;
+			const floors = { ...ordersNow().floors };
+			for (const lv of lvs) delete floors[lv];
+			setOrders({ floors });
+			toast(lvs.length === 1
+				? T('The [Level {lv}] floor is gone — the run may spend what you hold', { lv: lvs[0] })
+				: T('{n} floors are gone — the run may spend what you hold', { n: lvs.length }));
 			return true;
 		}
 		case 'barter-stash': stash = STASHES.includes(el.value) ? el.value : ''; persist(); return true;
