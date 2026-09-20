@@ -90,7 +90,7 @@ export function chains(barterData, stock = {}, dock = {}, barterCount = null, ce
 			// thirty of a good and an island that takes eight is a run
 			// that loads eight.
 			const load = Math.min(waiting, Math.max(0, rungs[0].tries * rungs[0].giveN - have));
-			out.push({ from: have > 0 ? 'hold' : 'dock', item, have, load, rungs });
+			out.push({ from: have > 0 ? 'hold' : 'dock', item, have, load, waiting, rungs });
 		}
 	}
 	const seen = new Set();

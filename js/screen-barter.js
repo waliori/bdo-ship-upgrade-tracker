@@ -1457,17 +1457,28 @@ function chainRow(c, on, solo, dockName, from, ladder = null, shut = null) {
 	const floor = c.from === 'land' ? 1 : levelOf(c.item);
 	const pips = [1, 2, 3, 4, 5, 6, 7].filter(l => l >= floor && l <= c.top)
 		.map(l => `<i class="${l === floor && c.from !== 'land' ? 'held' : 'on'}${l === c.top ? ' top' : ''}" style="--tier:${TIER(l)}">${l}</i>`).join('');
+	// The figure at the head of a card is what this chain, sailed on its
+	// own, will really take: what it buys, or what it loads. It used to
+	// be what the first island *offers* -- ten attempts, so "10x" -- on a
+	// card whose run, a line lower, said five; and for a land chain it
+	// was the count of one trade, "300x Coconut", on a run that buys
+	// three thousand. Sam read those numbers as the ones to act on, which
+	// is what a number at the head of a card is for. Where the run alone
+	// does nothing at all the old figure stands, so a card never says 0x.
+	const runOf = list => { const hit = solo && solo.trades > 0 ? (list || []).find(x => x.item === c.item) : null; return hit ? Math.ceil(hit.n) : 0; };
+	const buys = runOf(solo && solo.bought) || runOf(solo && solo.taken);
+	const loads = runOf(solo && solo.loaded);
 	const start = c.from === 'land'
-		? `<b>${F(c.rungs[0].giveN)}× ${esc(gameName(c.item))}</b><span>${T('bought ashore')}</span>`
+		? `<b>${F(buys || c.rungs[0].giveN)}× ${esc(gameName(c.item))}</b><span>${T('bought ashore')}${buys && buys !== c.rungs[0].giveN ? ` · ${T('{n} a trade', { n: F(c.rungs[0].giveN) })}` : ''}</span>`
 		: c.from === 'dock'
-			? `<b>${n1(c.load)}× ${esc(gameName(c.item))}</b><span>${T('at {where} · loaded before casting off', { where: dockName ? esc(gameName(dockName)) : T('the wharf') })}</span>`
+			? `<b>${n1(loads || c.load)}× ${esc(gameName(c.item))}</b><span>${T('at {where} · loaded before casting off', { where: dockName ? esc(gameName(dockName)) : T('the wharf') })}</span>`
 			: `<b>${n1(c.have)}× ${esc(gameName(c.item))}</b><span>${T('already aboard')}${c.load ? ` · ${T('{n} more at {where}', { n: n1(c.load), where: dockName ? esc(gameName(dockName)) : T('the wharf') })}` : ''}</span>`;
 	// A ladder with more than one start: the card is the start shown,
 	// and a row of the starts beneath it -- the shore, or a good held --
 	// each with what the climb from there pays; one is sailed, since
 	// the islands above deal once.
 	const group = ladder ? ladder.starts.map(x => x.id).join('\n') : '';
-	const startOf = x => (x.from === 'land' ? T('the shore · {n}× {name}', { n: F(x.rungs[0].giveN), name: esc(gameName(x.item)) }) : x.from === 'dock' ? T('{name} · {n} ashore', { name: esc(gameName(x.item)), n: n1(x.have + x.load) }) : T('{name} · {n} aboard', { name: esc(gameName(x.item)), n: n1(x.have + x.load) }));
+	const startOf = x => (x.from === 'land' ? T('the shore · {n}× {name}', { n: F(x.rungs[0].giveN), name: esc(gameName(x.item)) }) : x.from === 'dock' ? T('{name} · {n} ashore', { name: esc(gameName(x.item)), n: n1(x.waiting || x.load) }) : T('{name} · {n} aboard', { name: esc(gameName(x.item)), n: n1(x.have) }));
 	const starts = ladder ? `<div class="chain-starts" style="--tier:${TIER(c.top)}"><span class="chain-starts-k">${T('start from')}</span>${ladder.starts.map(x => {
 		const sol = ladder.solos.get(x.id);
 		const picked = ladder.chosen.includes(x);

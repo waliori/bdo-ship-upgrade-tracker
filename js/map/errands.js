@@ -15,11 +15,11 @@ import { img } from '../ui-bits.js';
 import { ports } from '../barter_npcs.js';
 import { wharves } from '../wharves.js';
 import { questCourse, km } from '../quest-course.js';
-import { todaysQuests, doneNow } from '../quest-today.js';
+import { todaysQuests } from '../quest-today.js';
 import { setMadeCourse } from '../courses.js';
 import { questById } from '../quests.js';
 import { periodKey } from '../clock.js';
-import { openDialog, closeDialog, toast } from '../dialogs.js';
+import { openDialog } from '../dialogs.js';
 import { seaBent } from './marks.js';
 import { mv, persist } from './state.js';
 
