@@ -359,13 +359,19 @@ function renderDetail() {
 			<button class="detail-close" data-act="deselect" title="${T('Close (Esc)')}" aria-label="${T('Close')}">×</button>
 		</div>
 		${levelPicker(item)}
-		<div class="qty-row">
-			<button class="qty-btn" data-act="bump" data-delta="-10">−10</button>
-			<button class="qty-btn" data-act="bump" data-delta="-1">−</button>
+		${(() => {
+			// A trade good moves the way a barter moves it: tens handed
+			// over, twenty or thirty paid back a rung up. So its steps are
+			// those -- Oni's own drawing -- rather than three presses of
+			// +10 after every island. Everything else keeps the plain pair.
+			const steps = levelOf(item) !== null ? [[-20, -10, -1], [1, 10, 30]] : [[-10, -1], [1, 10]];
+			const btn = d => `<button class="qty-btn" data-act="bump" data-delta="${d}">${Math.abs(d) === 1 ? (d < 0 ? '−' : '+') : `${d < 0 ? '−' : '+'}${Math.abs(d)}`}</button>`;
+			return `<div class="qty-row${steps[0].length > 2 ? ' wide' : ''}">
+			${steps[0].map(btn).join('')}
 			${amountInput('qty-val', own, `data-act="own-set" data-item="${esc(item)}" aria-label="${T('How many you own')}"`)}
-			<button class="qty-btn" data-act="bump" data-delta="1">+</button>
-			<button class="qty-btn" data-act="bump" data-delta="10">+10</button>
-		</div>
+			${steps[1].map(btn).join('')}
+		</div>`;
+		})()}
 		<div class="qty-hint">${T('Type the number straight in — 4k and 12,000 both work.')}</div>
 		${moveLevelAction(item)}
 		${whereBlock(item, own)}

@@ -217,6 +217,11 @@
 }
 
 .qty-btn:hover { color: var(--ink-hi); border-color: var(--line-btn-hi); }
+/* Six steps round the figure: the buttons give up their padding so the
+   figure keeps room for four digits. */
+.qty-row.wide { gap: 4px; }
+.qty-row.wide .qty-btn { padding: 0 7px; }
+.qty-row.wide .qty-val { min-width: 56px; }
 .qty-val {
   flex: 1;
   min-width: 0;

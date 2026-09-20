@@ -543,6 +543,19 @@
 .map-tip-k.stash { color: var(--stash); }
 .map-tip-run .map-tip-row { border-top: 0; }
 .map-tip-run { border-top: 1px solid var(--line-soft); margin-top: 4px; }
+/* The two pictures on a stop's card are the whole answer to "what do I
+   hand over here" -- read at a glance from a chair, with the game on
+   the same ultrawide screen. At chart scale (20px) they were a smudge,
+   and zooming the chart does nothing for a card. So on a card they are
+   drawn at reading size, and larger again where the screen is wide
+   enough that everything else on it is far away. */
+.map-tip .map-tip-row .map-icon { width: 34px; height: 34px; border-radius: 6px; }
+.map-tip .map-tip-row { align-items: center; }
+@media (min-width: 1900px) {
+  .map-tip .map-tip-row .map-icon { width: 44px; height: 44px; border-radius: 7px; }
+  .map-tip .map-tip-side { font-size: 13px; }
+  .map-tip { width: 330px; }
+}
 .map-tip.stash { border-color: var(--stash-edge); }
 .map-tip.stash .map-tip-name { color: var(--stash); }
 .map-tip-sub.sell { color: var(--tier-7); }
