@@ -50,7 +50,7 @@ import { openPicker } from './picker.js';
 import { openTripLog } from './triplog.js';
 import { toast, openDialog, closeDialog } from './dialogs.js';
 import { cheer } from './cheer.js';
-import { timerHTML, timerAction, timerState, startTimer, passedStop, spanText } from './sail-timer.js';
+import { timerHTML, timerAction, timerState, startTimer, stopTimer, passedStop, spanText } from './sail-timer.js';
 
 /* ------------------------------------------------------------------ *
  * what the tab remembers
@@ -937,12 +937,7 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = nu
 		if (!sailing) return '';
 		const key = stopKey(s, k, stops);
 		const done = ticked(sailing.done, s, k, stops);
-		let paid = '';
-		if (s.npcId && s.recvMin !== s.recvMax) {
-			const opts = [];
-			for (let n = Math.ceil(s.recvMin); n <= Math.floor(s.recvMax); n++) opts.push(n);
-			paid = `<span class="run-paid"><span>${T('paid')}</span>${opts.map(n => `<button class="chip pay${sailing.seen[s.npcId] === n ? ' active' : ''}" data-act="barter-paid" data-npc="${s.npcId}" data-n="${n}">${n}</button>`).join('')}</span>`;
-		}
+		const paid = paidAsk(s, sailing.seen[s.npcId]);
 		let got = '';
 		if (s.npcId && levelOf(s.item) === 7) {
 			const four = seventhsOf(s.npcId);
@@ -1909,9 +1904,7 @@ export function sailFor(npcId) {
 	if (!sail || !Array.isArray(sail.stops)) return null;
 	const s = sail.stops.find(x => x.npcId === npcId);
 	if (!s) return null;
-	const opts = [];
-	if (s.recvMin !== s.recvMax) for (let n = Math.ceil(s.recvMin); n <= Math.floor(s.recvMax); n++) opts.push(n);
-	return { done: sail.done.includes(`n${npcId}`), paid: sail.seen[npcId] || null, options: opts, item: s.item, recvText: s.recvText };
+	return { done: sail.done.includes(`n${npcId}`), paid: sail.seen[npcId] || null, ask: paidAsk(s, sail.seen[npcId], true), item: s.item, recvText: s.recvText };
 }
 
 /**
@@ -2007,6 +2000,49 @@ function sailBar(plan) {
 }
 
 /**
+ * What this run's islands were seen to pay, as the plan counts it.
+ *
+ * A coin figure is typed off the game's window, which shows it with the
+ * sailor's barter bonus on; the plan counts coins bare and puts the
+ * bonus on at the end. Fed back as typed, the bonus went on twice. So a
+ * coin island's figure has it taken off again here, and everything else
+ * passes through.
+ */
+function bareCoins(n) {
+	const { pct } = countBonus(barterProfile().barterCount);
+	return Math.max(1, Math.round(n / (1 + pct / 100)));
+}
+function planSeen(on) {
+	if (!on || !on.seen) return {};
+	const coinIsles = new Set((on.stops || []).filter(x => x.item === COIN).map(x => String(x.npcId)));
+	return Object.fromEntries(Object.entries(on.seen).map(([id, n]) => [id, coinIsles.has(String(id)) ? bareCoins(n) : n]));
+}
+
+/** The most counts an island may pay before chips stop being an answer. */
+const PAID_CHIPS = 6;
+
+/**
+ * How a stop asks what its island paid.
+ *
+ * A [Level 2] pays 2 or 3, and two chips is the right question. A coin
+ * island pays "360-440", and the checklist drew that as eighty-one
+ * buttons in a row -- a hundred and eleven at Donalia. A range that
+ * wide is a number to type, and the number to type is the one in the
+ * game's window, which already has the sailor's barter bonus on it.
+ */
+export function paidAsk(s, said, map = false) {
+	if (!s || !s.npcId || !(s.recvMax > s.recvMin)) return '';
+	const lo = Math.ceil(s.recvMin), hi = Math.floor(s.recvMax);
+	const flag = map ? ' data-map="1"' : '';
+	if (hi - lo + 1 > PAID_CHIPS) {
+		return `<span class="run-paid"><span>${T('paid')}</span><input class="purse-inline narrow run-paid-n" inputmode="numeric" data-act="barter-paid-n"${flag} data-npc="${s.npcId}" value="${said > 0 ? said : ''}" placeholder="${lo}–${hi}" aria-label="${T('What the island paid, as the game’s window showed it')}" title="${T('What the island paid, as the game’s window showed it')}"></span>`;
+	}
+	const opts = [];
+	for (let n = lo; n <= hi; n++) opts.push(n);
+	return `<span class="run-paid"><span>${T('paid')}</span>${opts.map(n => `<button class="chip pay${said === n ? ' active' : ''}" data-act="barter-paid"${flag} data-npc="${s.npcId}" data-n="${n}">${n}</button>`).join('')}</span>`;
+}
+
+/**
  * What an island is recorded as having paid.
  *
  * The count the sailor pressed, where they pressed one. Where they did
@@ -2070,6 +2106,17 @@ function tripOf(plan, on, from) {
 			continue;
 		}
 		const paid = paidAt(s, on);
+		// Coins come with the sailor's barter-count bonus -- a fifth more
+		// past two thousand barters. The plan has always promised them
+		// with it and the recording wrote them without, so every coin
+		// day came up short by exactly the bonus. A figure the sailor
+		// typed is the window's own and has it on already.
+		if (s.item === COIN && !((on.seen || {})[s.npcId] > 0)) {
+			add(COIN, withBonus(s.times * paid, countBonus(barterProfile().barterCount).pct));
+			if (levelOf(s.give) !== null || store.getStock(s.give) > 0) add(s.give, -s.times * s.giveN);
+			trades += s.times;
+			continue;
+		}
 		if (levelOf(s.give) !== null || store.getStock(s.give) > 0) add(s.give, -s.times * s.giveN);
 		add(as(s.item), s.times * paid);
 		trades += s.times;
@@ -2242,7 +2289,7 @@ function recordTrip(plan, from) {
 	const sevens = { ...(store.getProfile('sevens', {}) || {}) };
 	for (const [k, s] of plan.stops.entries()) {
 		if (!ticked(on.done, s, k, plan.stops) || !s.npcId) continue;
-		const n = on.seen[s.npcId];
+		const n = on.seen[s.npcId] && s.item === COIN ? bareCoins(on.seen[s.npcId]) : on.seen[s.npcId];
 		if (n && s.recvMin !== s.recvMax) {
 			const key = ratioKey(s);
 			ratios[key] = { ...(ratios[key] || {}), [n]: ((ratios[key] || {})[n] || 0) + s.times };
@@ -2285,6 +2332,8 @@ function recordTrip(plan, from) {
 		: {};
 	store.applyTrip({ delta: trip.delta, moves: trip.moves, profile: { runs, ratios, sevens, tally, ...counted, questProgress: Object.keys(progress).length ? progress : null, questsDone: Object.keys(questsDone).length ? questsDone : null }, label: `${on.done.length === 1 ? T('Sailed a run: {n} stop', { n: on.done.length }) : T('Sailed a run: {n} stops', { n: on.done.length })}${trip.silver ? `, ${T('{silver} sold', { silver: FC(trip.silver) })}` : ''}` });
 	sail = null;
+	// The trip is in the book, so the clock that timed it is done.
+	stopTimer();
 	persist();
 	// One toast, since a second would only paint over the first and take
 	// its Undo with it -- and a route opening is news that belongs beside
@@ -2509,7 +2558,7 @@ function silverParts(me, b) {
 	const seen = {};
 	const ratios = store.getProfile('ratios', {}) || {};
 	if (o.count !== 'least') for (const c of all) for (const r of c.rungs) { const n = countAs(r, o, ratios); if (n) seen[r.npcId] = n; }
-	Object.assign(seen, (sailing() || {}).seen || {});
+	Object.assign(seen, planSeen(sailing()));
 	// Everything the sailor holds, wherever it is: a floor is about the
 	// pile, not about the hold, so a run must know the whole of it
 	// before it decides what it may spend.
@@ -2704,18 +2753,23 @@ function silverParts(me, b) {
 	// weeks ago on some other kind of day.
 	const cashShut = coining ? shutByFloor.find(f => f.lv === COIN_LEVEL) : null;
 	const dropFloors = lvs => `<button class="chip tiny primary" data-act="barter-floor-clear" data-lvs="${esc(lvs.join(','))}" title="${T('Set those floors back to none, so the run may spend what you hold')}">${lvs.length === 1 ? T('drop that floor') : T('drop those floors')} →</button>`;
+	const one = shutByFloor.length === 1;
 	const floorNote = !shutByFloor.length ? '' : stocking
-		? `<div class="barter-shut floors"><b>${shutByFloor.length === 1
+		? `<div class="barter-shut floors"><b>${one
 			? T('A level is being filled, not climbed off')
-			: T('{n} levels are being filled, not climbed off', { n: shutByFloor.length })}</b> — ${floorWhy}, so nothing climbs from ${shutByFloor.length === 1 ? T('it') : T('them')} until the stock is made up. That is what the target is for. ${T('For a run that climbs straight past them, set the lower targets to none.')}</div>`
+			: T('{n} levels are being filled, not climbed off', { n: shutByFloor.length })}</b> — ${floorWhy}. ${one
+			? T('Nothing climbs from it until the stock is made up, which is what the target is for.')
+			: T('Nothing climbs from them until the stock is made up, which is what the targets are for.')} ${T('For a run that climbs straight past them, set the lower targets to none.')}</div>`
 		: cashShut
 			? `<div class="barter-shut floors"><b>${T('Nothing will be cashed for coins')}</b> — ${T('you hold <b>{held}</b> of {kinds} against a floor of <b>{floor}</b>, and a [Level {lv}] kept back is a [Level {lv}] not handed to a coin island. The climbing happens, the purse stays empty.', {
 				held: F(cashShut.held), floor: F(cashShut.floor), lv: cashShut.lv,
 				kinds: cashShut.kinds === 1 ? T('{n} kind of [Level {lv}]', { n: cashShut.kinds, lv: cashShut.lv }) : T('{n} kinds of [Level {lv}]', { n: cashShut.kinds, lv: cashShut.lv })
 			})} ${dropFloors(shutByFloor.map(f => f.lv))}</div>`
-			: `<div class="barter-shut floors"><b>${shutByFloor.length === 1
+			: `<div class="barter-shut floors"><b>${one
 				? T('A floor is holding the run back')
-				: T('{n} floors are holding the run back', { n: shutByFloor.length })}</b> — ${floorWhy}, so there is none to spend and no chain can start from ${shutByFloor.length === 1 ? T('it') : T('them')}. ${dropFloors(shutByFloor.map(f => f.lv))}</div>`;
+				: T('{n} floors are holding the run back', { n: shutByFloor.length })}</b> — ${floorWhy}. ${one
+				? T('There is none of it to spend, so no chain can start from it.')
+				: T('There is none of them to spend, so no chain can start from them.')} ${dropFloors(shutByFloor.map(f => f.lv))}</div>`;
 	const chainsPanel = `<section class="panel barter-chains">${headFill(fillable)}<div class="panel-body">${floorNote}${shutNote}${reachBar}${reach ? '' : proposals}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.landFrom === 'stock' && o.buy ? T('No chain on this board starts from a shore good you keep. Let the run buy its land goods ashore, or add what you have with ＋ A good.') : o.buy ? T('Nothing climbs on this board.') : T('Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.')) : T('No chain matches.')}</p>`}</div></div></section>`;
 
 	const plan = chainRun({ ...opts, chosen });
@@ -3790,7 +3844,14 @@ export function barterAction(act, el, redraw) {
 			// came back from the kitchen to a number counting up at them
 			// with no idea what had set it going or how to set it right.
 			const legs = legsOf(shownPlan.stops);
-			const set = legs.mid > 0 && !timerState() ? startTimer(legs.mid, runLabel(shownPlan), runMarks(shownPlan, legs)) : 0;
+			// A clock already running is left alone only when it is this
+			// run's own and still has time on it -- the sailor pressed
+			// start a moment before pressing Sail. Any other clock is a
+			// run that is over: it used to be kept, so the second run of
+			// a day sailed under the first one's clock, long past its end.
+			const ticking = timerState();
+			const mine = ticking && !ticking.over && ticking.label === runLabel(shownPlan).slice(0, 60);
+			const set = legs.mid > 0 && !mine ? startTimer(legs.mid, runLabel(shownPlan), runMarks(shownPlan, legs)) : 0;
 			if (set) toast(T('Cast off — the clock is running, ≈ {span}. It has “again” and “stop” on it.', { span: spanText(set) }));
 			persist();
 			return true;
@@ -3802,7 +3863,9 @@ export function barterAction(act, el, redraw) {
 			persist();
 			return true;
 		}
-		case 'barter-sail-drop': sail = null; sailAll.open = false; persist(); return true;
+		// The run is dropped, and its clock with it: a clock with no run
+		// behind it only counts up at whoever comes back to the page.
+		case 'barter-sail-drop': sail = null; sailAll.open = false; stopTimer(); persist(); return true;
 		case 'barter-sail-all': sailAll.open = true; return true;
 		case 'barter-sail-all-drop': sailAll.open = false; return true;
 		case 'barter-sail-all-go': {
@@ -3895,6 +3958,16 @@ export function barterType(el) {
 /** A value typed or chosen on the tab. */
 export function barterChange(el, parseAmount) {
 	switch (el.dataset.act) {
+		case 'barter-paid-n': {
+			const on = sailing() || (el.dataset.map ? sail : null);
+			if (!on) return false;
+			const n = parseAmount(el.value === '' ? '0' : el.value);
+			if (n === null) return true;
+			if (n > 0) on.seen[el.dataset.npc] = Math.floor(n); else delete on.seen[el.dataset.npc];
+			persist();
+			if (n > 0 && !on.done.includes(`n${el.dataset.npc}`)) markDone(on, `n${el.dataset.npc}`);
+			return true;
+		}
 		case 'barter-port': port = ports.some(p => p.id === Number(el.value)) ? Number(el.value) : 0; persist(); return true;
 		case 'barter-qty': {
 			const n = parseAmount(el.value);
