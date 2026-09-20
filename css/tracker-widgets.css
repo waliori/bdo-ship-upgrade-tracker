@@ -179,8 +179,20 @@
    sixteen scripts is a thing to hunt through; laid out, the one you
    read is the one you can see. */
 .lang-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; margin-top: 12px; }
-.lang-pick { justify-content: flex-start; text-align: left; }
+.lang-pick { display: flex; align-items: center; gap: 9px; justify-content: flex-start; text-align: left; padding-left: 11px; padding-right: 11px; }
 .lang-pick.on { border-color: var(--blue); color: var(--ink-hi); }
+
+/* The flag, wherever one is drawn. A face of its own, because the
+   page's is a display face with no flags in it, and Windows has no
+   flag glyphs at all -- there the pair falls back to its two letters,
+   which is why this is sized to hold two and not one. */
+.lang-flag {
+  flex: none;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', sans-serif;
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: 0;
+}
 
 /* ---- responsive --------------------------------------------------- */
 

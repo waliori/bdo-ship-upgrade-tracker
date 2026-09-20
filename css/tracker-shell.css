@@ -58,6 +58,11 @@
 .ghost-btn:hover:not(:disabled) { color: var(--ink-hi); border-color: var(--line-btn-hi); }
 .ghost-btn.on { color: var(--teal); }
 
+/* The language, which wears its flag and no word: a square to press on
+   a wide screen as on a phone, since the glyph is the label. */
+.lang-btn { padding: 5px 11px; display: inline-flex; align-items: center; justify-content: center; }
+.lang-btn .lang-flag { font-size: 17px; }
+
 /* ---- the sailors' server ------------------------------------------ *
    A door out of the app standing among its verbs, so it carries the
    mark rather than a glyph and the one colour nobody mistakes for a

@@ -21,7 +21,7 @@ import {
 import { kindOf } from './kinds.js';
 import { toast, openDialog, closeDialog, dismissDialog, holdScreen, whenScreenFree } from './dialogs.js';
 import { allItems, img } from './ui-bits.js';
-import { T, TT, said, gameName, LANGS, langById, setLang, startingLang, lang as currentLang } from './i18n.js';
+import { T, TT, said, gameName, LANGS, langById, langFlag, setLang, startingLang, lang as currentLang } from './i18n.js';
 import { encodeShare, decodeShare, shareLink, shareSize } from './share.js';
 import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
@@ -133,7 +133,9 @@ const MENU = [
 	{ group: TT('The page'), items: [
 		{ act: 'theme', icon: '◐', label: () => (store.getSetting('theme', 'dark') === 'light' ? T('Theme: light') : store.getSetting('theme', 'dark') === 'system' ? T('Theme: system') : T('Theme: dark')), hint: TT('dark, light, or as the system has it'), keep: true },
 		{ act: 'water', icon: '≈', label: () => (store.getSetting('water', false) === true ? T('Water on') : T('Water off')), hint: TT('the shader behind the page'), keep: true },
-		{ act: 'language', icon: '⌘', label: () => T('Language: {name}', { name: (langById[currentLang()] || {}).label || 'US English' }), hint: TT('the app, and the database its look-ups open in'), keep: true }
+		// The masthead flies this flag too; the menu keeps the row for
+		// anyone who goes looking there first.
+		{ act: 'language', icon: () => langFlag(currentLang()), label: () => T('Language: {name}', { name: (langById[currentLang()] || {}).label || 'US English' }), hint: TT('the app, and the database its look-ups open in'), keep: true }
 	] }
 ];
 
@@ -235,7 +237,7 @@ function openTabSheet() {
 		return `<div class="sheet-head">${esc(said(g.group))}</div>
 			<div class="sheet-list">${list.map(i => `
 				<button class="sheet-item${i.danger ? ' danger' : ''}" data-act="${i.act}"${(i.act === 'undo' && !store.canUndo()) || (i.act === 'redo' && !store.canRedo()) ? ' disabled' : ''}>
-					<span class="sheet-item-icon" aria-hidden="true">${i.icon}</span>
+					<span class="sheet-item-icon" aria-hidden="true">${typeof i.icon === 'function' ? i.icon() : i.icon}</span>
 					<span class="sheet-item-text"><span>${esc(text(i.label))}</span><small>${esc(text(i.hint))}</small></span>
 				</button>`).join('')}</div>`;
 	}).join('');
@@ -334,6 +336,7 @@ export function render() {
 		redoBtn.disabled = !store.canRedo();
 		redoBtn.title = store.canRedo() ? T('Redo: {name}', { name: store.nextRedo().label }) : T('Nothing to redo');
 	}
+	paintLangButton();
 
 	paintPouch();
 
@@ -801,19 +804,41 @@ async function chooseLang(id) {
 }
 
 /**
+ * The masthead's flag, which is the only place the current language is
+ * said without words. A button of two glyphs needs its name somewhere,
+ * so the title and the label carry it for a reader and for a pointer
+ * that hovers; the flag alone is what the eye gets.
+ */
+function paintLangButton() {
+	const btn = document.getElementById('lang-btn');
+	if (!btn) return;
+	const l = langById[currentLang()] || langById.us || {};
+	const mark = btn.querySelector('.lang-flag');
+	if (mark) mark.textContent = langFlag(currentLang());
+	const name = T('Language: {name}', { name: l.label || 'US English' });
+	btn.title = name;
+	btn.setAttribute('aria-label', name);
+}
+
+/**
  * The sixteen, as a list to press rather than a drop-down to hunt in.
  *
  * They are BDOCodex's own: what the app is read in and what its
  * look-ups open in are one choice, and the three English databases
  * are on the list because a SEA or Global Lab player wants the item
  * page on their own server even though the words on it are English.
+ *
+ * The flag goes in front and the name beside it, because a flag alone
+ * says nothing to anyone who is not already sure which is theirs: the
+ * two Spanishes would be a flag and a globe with no way to tell which
+ * server each is, and the three English databases are not England.
  */
 function openLanguages() {
 	return openDialog(`
 		<h2>${esc(T('Language'))}</h2>
 		<p class="dialog-copy">${esc(T('The app, and the BDOCodex page a name links to. Item and ship names come from the game itself, so they read as they do in your client.'))}</p>
 		<div class="lang-grid">
-			${LANGS.map(l => `<button class="act quiet lang-pick${currentLang() === l.id ? ' on' : ''}" data-act="pick-lang" data-id="${l.id}">${esc(l.label)}</button>`).join('')}
+			${LANGS.map(l => `<button class="act quiet lang-pick${currentLang() === l.id ? ' on' : ''}" data-act="pick-lang" data-id="${l.id}"><span class="lang-flag" aria-hidden="true">${l.flag}</span>${esc(l.label)}</button>`).join('')}
 		</div>
 		<div class="dialog-actions"><button class="act quiet" data-close>${esc(T('Close'))}</button></div>
 	`);

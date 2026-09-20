@@ -71,6 +71,7 @@ With land goods *bought ashore*, a run is held to what the Central Market actual
 
 The language in the masthead now sets the app as well as the crew reader: twelve packs beside English — German, French, Russian, both Spanishes, Portuguese, Japanese, Korean, Chinese in both scripts, Thai and Turkish — covering every sentence a player reads, these notes among them.
 
+- It is a **flag in the masthead** now rather than a line three presses into the menu — on a phone as on a desktop — and the picker names all sixteen beside their flags.
 - Item, ship and island names stay the game’s own English, because that is what your client and BDOCodex will show you.
 - A line with no translation yet falls back to the English rather than to a blank, since the English sentence **is** the key.
 

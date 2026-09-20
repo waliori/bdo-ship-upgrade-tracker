@@ -43,25 +43,37 @@
  * sixteen because the game ships in sixteen, and someone reading the app
  * in Korean is almost certainly playing in Korean -- so this field is
  * how the reader starts on the right one instead of on English.
+ *
+ * `flag` is the mark the masthead wears and the picker lists, on one
+ * rule: the flag of the country a language belongs to, a globe where it
+ * belongs to a region rather than a country -- Español (SA) and SEA
+ * English are nobody's single flag -- and the flask for Global Lab,
+ * which is a test server and not a place at all. Windows ships no flag
+ * glyphs, so there the pair falls back to its two letters (FR, DE), and
+ * a language is still named at a glance; the label is beside it in the
+ * picker and in the button's own title either way.
  */
 export const LANGS = [
-	{ id: 'us', label: 'US English', ui: 'en', reader: 'en' },
-	{ id: 'de', label: 'Deutsch', ui: 'de', reader: 'de' },
-	{ id: 'fr', label: 'Français', ui: 'fr', reader: 'fr' },
-	{ id: 'ru', label: 'Русский', ui: 'ru', reader: 'ru' },
-	{ id: 'es', label: 'Español (NA/EU)', ui: 'es', reader: 'es' },
-	{ id: 'sp', label: 'Español (SA)', ui: 'sp', reader: 'es-419' },
-	{ id: 'pt', label: 'Português', ui: 'pt', reader: 'pt' },
-	{ id: 'jp', label: '日本語', ui: 'jp', font: 'Noto+Sans+JP', reader: 'ja' },
-	{ id: 'kr', label: '한국어', ui: 'kr', font: 'Noto+Sans+KR', reader: 'ko' },
-	{ id: 'cn', label: '中文', ui: 'cn', font: 'Noto+Sans+SC', reader: 'zh' },
-	{ id: 'tw', label: '繁體中文', ui: 'tw', font: 'Noto+Sans+TC', reader: 'zh-Hant' },
-	{ id: 'th', label: 'ภาษาไทย', ui: 'th', font: 'Noto+Sans+Thai', reader: 'th' },
-	{ id: 'tr', label: 'Türkçe', ui: 'tr', reader: 'tr' },
-	{ id: 'id', label: 'Basa Indonesia', ui: 'en', reader: 'id' },
-	{ id: 'seaen', label: 'SEA English', ui: 'en', reader: 'sea' },
-	{ id: 'gl', label: 'Global Lab', ui: 'en', reader: 'gl' }
+	{ id: 'us', label: 'US English', flag: '\u{1F1FA}\u{1F1F8}', ui: 'en', reader: 'en' },
+	{ id: 'de', label: 'Deutsch', flag: '\u{1F1E9}\u{1F1EA}', ui: 'de', reader: 'de' },
+	{ id: 'fr', label: 'Français', flag: '\u{1F1EB}\u{1F1F7}', ui: 'fr', reader: 'fr' },
+	{ id: 'ru', label: 'Русский', flag: '\u{1F1F7}\u{1F1FA}', ui: 'ru', reader: 'ru' },
+	{ id: 'es', label: 'Español (NA/EU)', flag: '\u{1F1EA}\u{1F1F8}', ui: 'es', reader: 'es' },
+	{ id: 'sp', label: 'Español (SA)', flag: '\u{1F30E}', ui: 'sp', reader: 'es-419' },
+	{ id: 'pt', label: 'Português', flag: '\u{1F1E7}\u{1F1F7}', ui: 'pt', reader: 'pt' },
+	{ id: 'jp', label: '日本語', flag: '\u{1F1EF}\u{1F1F5}', ui: 'jp', font: 'Noto+Sans+JP', reader: 'ja' },
+	{ id: 'kr', label: '한국어', flag: '\u{1F1F0}\u{1F1F7}', ui: 'kr', font: 'Noto+Sans+KR', reader: 'ko' },
+	{ id: 'cn', label: '中文', flag: '\u{1F1E8}\u{1F1F3}', ui: 'cn', font: 'Noto+Sans+SC', reader: 'zh' },
+	{ id: 'tw', label: '繁體中文', flag: '\u{1F1F9}\u{1F1FC}', ui: 'tw', font: 'Noto+Sans+TC', reader: 'zh-Hant' },
+	{ id: 'th', label: 'ภาษาไทย', flag: '\u{1F1F9}\u{1F1ED}', ui: 'th', font: 'Noto+Sans+Thai', reader: 'th' },
+	{ id: 'tr', label: 'Türkçe', flag: '\u{1F1F9}\u{1F1F7}', ui: 'tr', reader: 'tr' },
+	{ id: 'id', label: 'Basa Indonesia', flag: '\u{1F1EE}\u{1F1E9}', ui: 'en', reader: 'id' },
+	{ id: 'seaen', label: 'SEA English', flag: '\u{1F30F}', ui: 'en', reader: 'sea' },
+	{ id: 'gl', label: 'Global Lab', flag: '\u{1F9EA}', ui: 'en', reader: 'gl' }
 ];
+
+/** The mark a language wears, and a globe for one the list has not got. */
+export const langFlag = id => (langById[id] || {}).flag || '\u{1F310}';
 
 export const langById = Object.fromEntries(LANGS.map(l => [l.id, l]));
 

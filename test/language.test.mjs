@@ -107,6 +107,52 @@ test('the menu offers BDOCodex’s own sixteen, and the page starts in one of th
 	await context.close();
 });
 
+test('the language flies its flag in the masthead, on a phone as on a desktop', async () => {
+	const { page, context } = await open();
+	const button = () => page.evaluate(() => {
+		const b = document.getElementById('lang-btn');
+		if (!b) return null;
+		const r = b.getBoundingClientRect();
+		return { flag: b.querySelector('.lang-flag').textContent, title: b.title, wide: r.width > 0 && r.height > 0 };
+	});
+
+	// It stands in the masthead rather than three presses into the menu,
+	// and says which language is on without a word.
+	const first = await button();
+	assert.ok(first, 'the masthead carries the language');
+	assert.equal(first.flag, '\u{1F1FA}\u{1F1F8}', 'and starts on the flag of the language the page is in');
+	assert.match(first.title, /US English/, 'with the name of it for a pointer and a reader');
+
+	// Pressing it opens the sixteen, each with its flag in front of its
+	// own name -- the flag alone would not tell the two Spanishes apart.
+	await page.click('#lang-btn');
+	await page.waitForSelector('.lang-grid .lang-pick', { timeout: 8000 });
+	const rows = await page.$$eval('.lang-pick', els => els.map(el => ({
+		flag: (el.querySelector('.lang-flag') || {}).textContent || '', label: el.textContent.trim() })));
+	assert.equal(rows.length, 16);
+	assert.ok(rows.every(r => r.flag && r.label.length > r.flag.length), 'every one is a flag and a name');
+
+	// And choosing one changes the flag the masthead flies.
+	await page.click('.lang-pick[data-id="fr"]');
+	await page.waitForFunction(() => document.documentElement.lang === 'fr', { timeout: 8000 });
+	const after = await button();
+	assert.equal(after.flag, '\u{1F1EB}\u{1F1F7}');
+	assert.match(after.title, /Français/);
+
+	// A phone is where it was hidden worst, so it is drawn there too --
+	// and the row it joins still fits across the screen.
+	await page.setViewport({ width: 390, height: 780, isMobile: true, hasTouch: true });
+	await page.evaluate(async () => (await import('/js/ui.js')).render());
+	const phone = await button();
+	assert.equal(phone.wide, true, 'the flag is in the phone masthead, not folded into the menu');
+	const fits = await page.evaluate(() => {
+		const a = document.getElementById('masthead-actions');
+		return a.scrollWidth <= a.clientWidth + 1;
+	});
+	assert.equal(fits, true, 'and the masthead still fits a phone across');
+	await context.close();
+});
+
 test('the game’s own names are drawn from the client’s vocabulary, and the English stays the key', async () => {
 	const { page, context } = await open();
 	// The Inventory is where a raw count is drawn; the Plan shows builds.
