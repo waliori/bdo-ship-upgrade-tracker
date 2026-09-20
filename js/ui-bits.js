@@ -108,6 +108,27 @@ export function codexName(item, text = item) {
 		title="${esc(T('Look up {name} on BDOCodex', { name: gameName(item) }))}">${esc(shown)}<span class="codex-mark" aria-hidden="true">\u2197</span></a>`;
 }
 
+/**
+ * A button that puts an item's name on the clipboard.
+ *
+ * The name is the one the game prints, in the language the app is set
+ * to, because the only place it is going is the Central Market's
+ * search box in a game client set to that same language. Not the
+ * English key the recipes are written in, which would find nothing.
+ *
+ * Oni asked for this beside the things a run says to buy: the app
+ * tells you to fetch eight hundred Cedar Plywood, and then you type
+ * "cedar plywood" into the Market yourself, one careful letter at a
+ * time, with the app open on the other screen. There is a copy for the
+ * whole list already; this is the one line of it you actually want.
+ */
+export function copyName(item, { small = true } = {}) {
+	if (!item) return '';
+	return `<button class="copy-name${small ? ' sm' : ''}" data-act="copy-name" data-item="${esc(item)}"
+		title="${esc(T('Copy “{name}” — to paste into the Market search', { name: gameName(item) }))}"
+		aria-label="${esc(T('Copy “{name}”', { name: gameName(item) }))}">⧉</button>`;
+}
+
 export function allItems() {
 	const set = new Set();
 	for (const [product, recipe] of Object.entries(recipes)) {

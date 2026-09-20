@@ -1017,6 +1017,15 @@ function wire() {
 			case 'quest-pay-pick': return questAction(act, el);
 			case 'quest-pay-del': questAction(act, el); return render();
 			case 'stash-del': store.setStash(el.dataset.item, el.dataset.town, null); return;
+			// The name as the game prints it, for the Market's search box.
+			case 'copy-name': {
+				const name = gameName(el.dataset.item || '');
+				if (!name) return;
+				navigator.clipboard.writeText(name)
+					.then(() => toast(T('“{name}” copied', { name })))
+					.catch(() => toast(T('Could not reach the clipboard')));
+				return;
+			}
 			case 'export': return doExport();
 			case 'import': return doImport();
 			case 'reset': return doReset();

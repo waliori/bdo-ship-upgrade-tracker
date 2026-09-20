@@ -15,7 +15,7 @@
 import { esc, F, FC } from './fmt.js';
 import { T, said, gameName } from './i18n.js';
 import * as store from './state.js';
-import { img, codexName, amountInput } from './ui-bits.js';
+import { img, codexName, copyName, amountInput } from './ui-bits.js';
 import { snapshot, barterData, barterProfile, combos, matBoards, totalsToGo, SILVER } from './ui-state.js';
 import { barterKey, periodKey, currentPlan } from './clock.js';
 import { candidates, askable, offersAt, offersOf, boardData, gatedOffers, exchangeGate, clientDeals } from './barter-board.js';
@@ -2278,7 +2278,9 @@ function shelvesHTML(plan, from) {
 		...(plan.taken || []).map(t => ({ item: t.item, n: t.n, note: T('from your pile · {n} left', { n: F(t.left) }) })),
 		...(plan.bought || []).map(b => ({
 			item: b.item, n: Math.ceil(b.n), note: b.how === 'made' ? T('your workers make it') : b.each ? T('bought · {silver}', { silver: FC(b.total) }) : marketStatus().count ? T('no Market price for it') : T('unpriced until the Market answers'),
-			act: `<button class="chip tiny shelf-act${b.how === 'made' ? ' active' : ''}" data-act="barter-homemade" data-item="${esc(b.item)}" title="${b.how === 'made' ? T('Bought after all: price it from the Market') : T('Your workers make this: it costs the run nothing')}">${b.how === 'made' ? `✓ ${T('mine')}` : T('my workers')}</button>`
+			// A name to copy beside it: this tile is a sailor standing at
+			// the Market with the app open, typing what it says.
+			act: `${copyName(b.item)}<button class="chip tiny shelf-act${b.how === 'made' ? ' active' : ''}" data-act="barter-homemade" data-item="${esc(b.item)}" title="${b.how === 'made' ? T('Bought after all: price it from the Market') : T('Your workers make this: it costs the run nothing')}">${b.how === 'made' ? `✓ ${T('mine')}` : T('my workers')}</button>`
 		}))
 	].filter(x => x.n > 0);
 	// What is in hand at the end: carried home, and left at a wharf on
@@ -3003,7 +3005,7 @@ function materialParts(me, data) {
 	const summary = plan.ticked ? `<div class="mat-summary">${yieldRows ? `<div class="mat-yield">${yieldRows}</div>` : ''}${figs}</div>` : '';
 	// A row of a goods list: the tier, the icon, the count, the name,
 	// the note, and what can be done about it.
-	const good = (name, n, note, act = '') => { const lv = levelOf(name); return `<div class="run-good mat-good"><i style="--tier:${TIER(lv || 1)}">${lv ? `L${lv}` : '·'}</i>${img(name, 'row-icon sm')}<b>${F(Math.ceil(n))}×</b><span>${esc(gameName(name))}</span><span class="faint">${note}</span>${act ? `<span class="run-good-worth">${act}</span>` : ''}</div>`; };
+	const good = (name, n, note, act = '') => { const lv = levelOf(name); return `<div class="run-good mat-good"><i style="--tier:${TIER(lv || 1)}">${lv ? `L${lv}` : '·'}</i>${img(name, 'row-icon sm')}<b>${F(Math.ceil(n))}×</b><span>${esc(gameName(name))}</span><span class="faint">${note}</span>${copyName(name)}${act ? `<span class="run-good-worth">${act}</span>` : ''}</div>`; };
 	// Before casting off: the land goods to buy ashore, and the gives
 	// held in a storage the run cannot load from, to be brought to the
 	// harbour first. What the harbour's own storage lends is the first

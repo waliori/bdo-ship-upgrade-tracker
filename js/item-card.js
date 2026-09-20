@@ -23,7 +23,7 @@ import { marketPrice, marketStatus, REGIONS as MARKET_REGIONS, region as marketR
 import { parseEnhanced, waysToGet, outstanding } from './planner.js';
 import { statsAt, describeStats } from './part_stats.js';
 import {
-	img, codexName, makeupHTML, barterHTML, sourceOf, costCtx, costText,
+	img, codexName, copyName, makeupHTML, barterHTML, sourceOf, costCtx, costText,
 	waysThrough, questsPaying, groundsFor
 } from './ui-bits.js';
 
@@ -105,7 +105,7 @@ export function openItemCard(item) {
 	openDialog(`
 		<div class="item-card">
 			<div class="card-head">${img(item, 'card-icon')}
-				<div><h2>${codexName(item)}</h2>
+				<div><h2>${codexName(item)}${copyName(item, { small: false })}</h2>
 				${src ? `<p class="card-src">${esc(src.label)} · ${esc(src.detail)}</p>` : ''}</div></div>
 
 			${part(T('Where it stands'), standing(item))}

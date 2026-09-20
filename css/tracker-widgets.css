@@ -1257,6 +1257,35 @@ a.codex:focus-visible {
 a.codex:hover .codex-mark,
 a.codex:focus-visible .codex-mark { opacity: 1; color: var(--blue); }
 
+/* Copy this name, for the Market's search box. It keeps out of the way
+   until the row is under the pointer -- a list of forty things to buy
+   with forty buttons lit is a list nobody can read -- but it is always
+   there for a finger, where there is no pointer to hover with. */
+.copy-name {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 4px;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: none;
+  color: var(--ink-faint);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.copy-name:hover, .copy-name:focus-visible { opacity: 1; color: var(--blue); border-color: var(--line-btn); }
+.row:hover .copy-name, .run-good:hover .copy-name, .shelf-tile:hover .copy-name,
+.way-row:hover .copy-name, h2 .copy-name { opacity: 1; }
+h2 .copy-name { font-size: 14px; min-width: 24px; height: 24px; vertical-align: middle; }
+/* No pointer to hover with: on a touch screen it simply stands there. */
+@media (hover: none) { .copy-name { opacity: 1; } }
+
 /* The hover card is for reading and for its one button; a link out of it
    would take the pointer away from what it was hovering. */
 .peek a.codex { color: inherit; border-bottom: none; pointer-events: none; }

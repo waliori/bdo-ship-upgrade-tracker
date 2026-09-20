@@ -22,7 +22,7 @@ import {
 import { esc, F, FC } from './fmt.js';
 import { T, TT, said, gameName } from './i18n.js';
 import * as store from './state.js';
-import { img, codexName, costCtx, costText, groundsFor } from './ui-bits.js';
+import { img, codexName, copyName, costCtx, costText, groundsFor } from './ui-bits.js';
 import {
 	snapshot, barterData, barterOpts, totalsToGo, query, setQuery, rows, recipes, CROW_COIN, SILVER
 } from './ui-state.js';
@@ -265,6 +265,7 @@ export function renderGet() {
 						<div class="row-sub">${esc(sub)}</div>
 						${waysHTML}
 					</div>
+					${copyName(entry.item)}
 					${shop}
 					<span class="qty-out">${F(entry.qty)}</span>
 				</div>`;
@@ -526,6 +527,7 @@ function wayRow(l) {
 			${l.also ? `<div class="row-alt way-also">${T('also: {text}', { text: esc(l.also) })}</div>` : ''}
 			${strip}
 		</div>
+		${copyName(l.item)}
 		${shop}
 		<div class="way-qty">
 			<div class="qty-out">${F(Math.ceil(l.qty))}</div>
