@@ -2192,6 +2192,36 @@ function planOfSail(on) {
 }
 
 /**
+ * A checklist whose run is no longer the one on screen.
+ *
+ * The checklist belongs to a run by its key -- the board, the chains
+ * ticked, the harbour -- and the natural thing to do at the end of a
+ * run is to change one of those before pressing Record: tell the app
+ * the board was refreshed, untick the chains, move to the next harbour.
+ * The key moved, the checklist stopped answering to the screen, and
+ * nothing said it was still there; the next "Sail this run" wrote over
+ * it, and a trip ticked off in full was never recorded at all.
+ *
+ * It is all still in hand -- the stops as they were sailed, the ticks,
+ * what the islands paid -- so it is offered back: record it, or let it
+ * go, before anything else is sailed.
+ */
+const stranded = () => (sail && !sailing() && Array.isArray(sail.done) && sail.done.length && planOfSail(sail) ? sail : null);
+
+function strandedHTML() {
+	const on = stranded();
+	if (!on) return '';
+	const plan = planOfSail(on);
+	const n = plan.stops.filter((s, k) => ticked(on.done, s, k, plan.stops)).length;
+	if (!n) return '';
+	return `<div class="barter-shut stranded"><b>${T('A run you sailed is not recorded yet')}</b> — ${n === 1
+		? T('{n} stop of it is ticked off, and the board has moved on since. It is all still here.', { n })
+		: T('{n} stops of it are ticked off, and the board has moved on since. It is all still here.', { n })}
+		<button class="chip tiny primary" data-act="barter-record-stranded" title="${T('Put the trip in the Inventory as it was sailed — one Undo takes it back')}">${T('Record it')} →</button>
+		<button class="chip tiny" data-act="barter-sail-drop" title="${T('Drop the checklist; nothing is recorded')}">${T('let it go')}</button></div>`;
+}
+
+/**
  * The run as the recorder must read it: the one that was sailed.
  *
  * `shownPlan` is laid again from the Inventory on every redraw, so it
@@ -2264,8 +2294,7 @@ function justOpened(before, after) {
 	return rows.length ? rows[rows.length - 1].opens : null;
 }
 
-function recordTrip(plan, from) {
-	const on = sailing();
+function recordTrip(plan, from, on = sailing()) {
 	if (!on || !plan) return;
 	const trip = tripOf(plan, on, from);
 	// What the run took and what it brought back, from the one honest
@@ -2280,7 +2309,7 @@ function recordTrip(plan, from) {
 		.map(([item, n]) => [item, Math.abs(Math.round(n))]));
 	const runs = [...(store.getProfile('runs', []) || []), {
 		day: barterKey(), silver: trip.silver, cost: Math.round(plan.cost || 0), trades: trip.trades, parley: Math.round(plan.parleyUsed || 0),
-		stops: on.done.length, goal, item: goal === 'material' ? itemNow() || '' : '',
+		stops: on.done.length, goal: on.goal || goal, item: on.goal ? on.item || '' : goal === 'material' ? itemNow() || '' : '',
 		load: moved(-1, SILVER), got: moved(1, SILVER), layout: (boardNow().combo || {}).id || ''
 	}].slice(-60);
 	// What the islands were seen to pay goes into the record, so the
@@ -3227,6 +3256,7 @@ export function renderBarter() {
 	setTimeout(refreshSheet, 0);
 	return `<div class="barter-screen">
 		<button hidden data-act="barter-redraw" tabindex="-1" aria-hidden="true"></button>
+		${strandedHTML()}
 		${boardHTML(b)}
 		${holdBarHTML(me)}
 		${parts.run}
@@ -3750,6 +3780,14 @@ export function barterAction(act, el, redraw) {
 		case 'barter-load': {
 			const n = Number(el.dataset.n) || store.stockAt(el.dataset.item, el.dataset.town);
 			store.moveStash(el.dataset.item, el.dataset.town, '', n, T('{n}× {item} loaded at {town}', { n, item: el.dataset.item, town: el.dataset.town }));
+			// Marked aboard while the run is already being sailed: the
+			// checklist was frozen with this load still to make, and Record
+			// makes whatever loads it still lists -- so this one would be
+			// moved out of the harbour twice. It comes off the list here.
+			if (sail && Array.isArray(sail.loaded)) {
+				sail.loaded = sail.loaded.map(l => (l.item === el.dataset.item ? { ...l, n: Math.max(0, l.n - n) } : l)).filter(l => l.n > 0);
+				persist();
+			}
 			return false;
 		}
 		case 'barter-qty-short': qty = Math.max(1, Number(el.dataset.n) || 1); if (itemNow()) wants[itemNow()] = qty; persist(); return true;
@@ -3928,6 +3966,13 @@ export function barterAction(act, el, redraw) {
 			return true;
 		}
 		case 'barter-record': recordTrip(sailedPlan(), fromPort()); return false;
+		case 'barter-record-stranded': {
+			const on = stranded();
+			if (!on) return false;
+			// From the harbour it was sailed from, not the one on screen now.
+			recordTrip(planOfSail(on), ports.find(p => p.id === on.port) || fromPort(), on);
+			return true;
+		}
 		case 'barter-propose': routes.ids = String(el.dataset.ids || '').split('\n').filter(Boolean); routesAuto = ''; persist(); return true;
 		// The worker answered: nothing to change, the screen redraws.
 		case 'barter-redraw': return true;
