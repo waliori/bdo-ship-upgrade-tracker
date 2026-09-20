@@ -10,6 +10,7 @@ import { marketSilver, marketPrice, marketStatus } from './market.js';
 import { statsAt, describeStats } from './part_stats.js';
 import { forecast as barterForecast, GOODS, levelOf } from './barter.js';
 import { tradeGoodNames } from './trade_goods.js';
+import { landGoods } from './land_goods.js';
 import { iconLoader } from './icon-loader.js';
 import { esc, F, FC } from './fmt.js';
 import { T, gameName, LANGS, langById } from './i18n.js';
@@ -118,6 +119,17 @@ export function allItems() {
 	// The sea trade goods: in no recipe, sold by no vendor, but held
 	// between runs and handed over on the next one.
 	tradeGoodNames.forEach(i => set.add(i));
+	// The shore goods a barter chain starts from. Thirteen of the
+	// eighty-nine are already here because a ship eats them too -- the
+	// plywoods, the fabrics -- and the other seventy-six were in no list
+	// the Inventory drew from, so there was no row to put a count on and
+	// no way to say you had any. That is not a gap in the Inventory
+	// alone: the storage reader knows every one of their icons and then
+	// threw the slot away, because a slot it cannot find a name for in
+	// this list is a slot it leaves alone. A sailor with a chest of
+	// Fancy Feathers could neither type them in nor read them in, and
+	// the run's "from my storage" had nothing to find.
+	Object.keys(landGoods).forEach(i => set.add(i));
 	return [...set];
 }
 

@@ -15,6 +15,7 @@ import { recipes, routes, buyFirst } from './recipes.js';
 import { items as vendorItems } from './vendor_items.js';
 import { coins } from './sea_coins.js';
 import { tradeGoodNames } from './trade_goods.js';
+import { landGoods } from './land_goods.js';
 import { T } from './i18n.js';
 const BASE_KEY = 'bdo-tracker/v2';
 const ACTIVE_PROFILE_KEY = 'bdo-tracker/profile';
@@ -1273,6 +1274,9 @@ function knownItems() {
 	for (const item of Object.keys(vendorItems)) catalogue.add(item);
 	for (const item of Object.keys(coins)) catalogue.add(item);
 	for (const item of tradeGoodNames) catalogue.add(item);
+	// The shore goods a barter chain starts from: a save that holds a
+	// count of them is not a save from a newer build.
+	for (const item of Object.keys(landGoods)) catalogue.add(item);
 	// The currencies sit in the stock like anything else (ui-state.js
 	// names them), but no table lists them as items.
 	for (const item of ['Silver', 'Crow Coin', 'Sangpyeong Coin']) catalogue.add(item);
