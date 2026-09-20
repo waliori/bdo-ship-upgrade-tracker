@@ -25,7 +25,7 @@ import { esc, F } from './fmt.js';
 import { T, said, gameName } from './i18n.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
-import { LIMITS, triage, readStorageShots, close as closeReader } from './shot-reader.js';
+import { LIMITS, triage, readStorageShots, wireShotIntake, close as closeReader } from './shot-reader.js';
 import { allItems, img } from './ui-bits.js';
 import { TOWNS } from './screen-inventory.js';
 
@@ -117,8 +117,9 @@ export function openStorageImport(after = () => {}) {
 		${placePicker()}
 		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="${T('Choose screenshots to read')}">
 			<div class="shot-drop-mark">🏰</div>
-			<div><b>${T('Drop screenshots here')}</b></div>
-			<div class="row-sub">${T('or {link}', { link: `<button class="link-btn" data-choose>${T('choose files')}</button>` })}</div>
+			<div><b>${T('Drop screenshots here, or paste one')}</b></div>
+			<div class="row-sub">${T('{paste}, or {link}', { paste: `<b>${T('Ctrl+V')}</b>`, link: `<button class="link-btn" data-choose>${T('choose files')}</button>` })}</div>
+			<div class="row-sub quiet">${T('A shot taken with Shift+Win+S goes to the clipboard — paste it straight in, no file to save first.')}</div>
 			<input type="file" accept="image/png,image/jpeg,image/webp" multiple hidden data-files>
 		</div>
 		<p class="dialog-note quiet">${T('Up to {files} at a time, {mb} MB each, PNG, JPEG or WebP.', { files: LIMITS.files, mb: Math.round(LIMITS.bytes / 1024 / 1024) })}
@@ -247,24 +248,7 @@ export function openStorageImport(after = () => {}) {
 	/* --- wiring ------------------------------------------------------ */
 	function wire() {
 		const box = host();
-		const drop = box.querySelector('[data-drop]');
-		const input = box.querySelector('[data-files]');
-		if (drop && input) {
-			const choose = () => input.click();
-			drop.addEventListener('click', choose);
-			drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(); } });
-			input.addEventListener('change', () => { if (input.files && input.files.length) run(input.files); });
-			for (const ev of ['dragenter', 'dragover']) {
-				drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); });
-			}
-			for (const ev of ['dragleave', 'drop']) {
-				drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); });
-			}
-			drop.addEventListener('drop', e => {
-				const files = e.dataTransfer && e.dataTransfer.files;
-				if (files && files.length) run(files);
-			});
-		}
+		wireShotIntake(box, run);
 		const on = (sel, ev, fn) => box.querySelectorAll(sel).forEach(el => el.addEventListener(ev, fn));
 		on('[data-place]', 'change', e => {
 			place = e.target.value;

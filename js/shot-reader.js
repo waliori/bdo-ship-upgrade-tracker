@@ -134,9 +134,119 @@ async function open(tess, onProgress) {
 export async function close() {
 	const e = engine;
 	engine = null;
+	unwirePaste();
 	if (e) {
 		try { (await e.ready).worker.terminate(); } catch { /* already gone */ }
 	}
+}
+
+/* ------------------------------------------------------------------ *
+ * how a screenshot gets in
+ * ------------------------------------------------------------------ */
+
+/**
+ * The three readers -- sailors, storage, the barter window -- each had
+ * their own copy of the same twenty lines: press the panel to choose
+ * files, drag a file onto it, and the panel lights up while a file is
+ * over it. One copy now, because three copies of one thing is three
+ * chances for two of them to fall behind, and because what follows had
+ * to be added to all three at once.
+ *
+ * What follows is the clipboard. On Windows a screenshot is Shift+Win+S
+ * and it goes to the clipboard, not to a file -- so every player who
+ * shot a window the way the game's own community shoots windows had to
+ * open Paint, paste, save somewhere they could find again, and only
+ * then come back and hunt for it in a file picker. Oni did that for a
+ * while and then wrote in to ask, which is fair: the app's own feedback
+ * box has taken a pasted image all along.
+ *
+ * It is also the better picture. Paint saves what it was given, but a
+ * player who pastes into Paint and drags the canvas edge, or saves as
+ * JPEG, hands the reader a rescaled or blotchy grid -- and the storage
+ * reader finds its slots by a lattice that a rescale puts out by a few
+ * pixels. A paste is the shot the game drew, at the size it drew it.
+ */
+const PASTE_NAMES = new Set(['', 'image.png', 'image.jpg', 'image.jpeg', 'image.webp']);
+
+/** The images on a clipboard, named so the reader can talk about them.
+ *  A paste carries one picture and a name the system made up, so a
+ *  name worth keeping is kept and anything else is numbered. */
+function imagesOn(data, from = 1) {
+	if (!data) return [];
+	const out = [];
+	const files = data.files ? [...data.files] : [];
+	// `items` is the older road to the same pictures, and some browsers
+	// fill one and not the other.
+	if (!files.length && data.items) {
+		for (const it of data.items) {
+			if (it.kind !== 'file') continue;
+			const f = it.getAsFile();
+			if (f) files.push(f);
+		}
+	}
+	for (const f of files) {
+		if (!f || !/^image\//.test(f.type || '')) continue;
+		const plain = String(f.name || '').toLowerCase();
+		if (!PASTE_NAMES.has(plain)) { out.push(f); continue; }
+		const ext = (f.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+		out.push(new File([f], `pasted ${from + out.length}.${ext}`, { type: f.type }));
+	}
+	return out;
+}
+
+/** The paste listener in hand, so a second dialog -- or a redraw of
+ *  this one -- never leaves the first one listening. */
+let pasteOff = null;
+
+function unwirePaste() {
+	if (pasteOff) pasteOff();
+	pasteOff = null;
+}
+
+/**
+ * Wire a reader's panel: choose, drop, paste. `run` is handed a list of
+ * files however they arrived.
+ *
+ * Called again on every redraw of the dialog, which is why the paste
+ * listener is taken off before it is put back: the panel's own
+ * listeners go with the elements the redraw replaced, but a listener on
+ * the document would pile up one deep per redraw.
+ */
+export function wireShotIntake(box, run) {
+	unwirePaste();
+	if (!box) return;
+	const drop = box.querySelector('[data-drop]');
+	const input = box.querySelector('[data-files]');
+	if (drop && input) {
+		const choose = () => input.click();
+		drop.addEventListener('click', choose);
+		drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(); } });
+		input.addEventListener('change', () => { if (input.files && input.files.length) run([...input.files]); });
+		for (const ev of ['dragenter', 'dragover']) {
+			drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); });
+		}
+		for (const ev of ['dragleave', 'drop']) {
+			drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); });
+		}
+		drop.addEventListener('drop', e => {
+			const files = e.dataTransfer && e.dataTransfer.files;
+			if (files && files.length) run([...files]);
+		});
+	}
+	// A paste is caught wherever the caret happens to be, because the
+	// player pressed Ctrl+V at the dialog, not at one of its fields --
+	// but not while they are typing into one, where Ctrl+V is for text.
+	const onPaste = e => {
+		if (!box.isConnected) { unwirePaste(); return; }
+		const at = e.target;
+		if (at && (at.isContentEditable || /^(INPUT|TEXTAREA)$/.test(at.tagName || '')) && !imagesOn(e.clipboardData).length) return;
+		const files = imagesOn(e.clipboardData);
+		if (!files.length) return;
+		e.preventDefault();
+		run(files);
+	};
+	document.addEventListener('paste', onPaste);
+	pasteOff = () => document.removeEventListener('paste', onPaste);
 }
 
 /* ------------------------------------------------------------------ *

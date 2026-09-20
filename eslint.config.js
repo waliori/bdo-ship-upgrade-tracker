@@ -23,7 +23,7 @@ const browserGlobals = {
 	TextEncoder: 'readonly', TextDecoder: 'readonly',
 	CompressionStream: 'readonly', DecompressionStream: 'readonly',
 	Notification: 'readonly', Intl: 'readonly',
-	createImageBitmap: 'readonly', FileReader: 'readonly'
+	createImageBitmap: 'readonly', FileReader: 'readonly', File: 'readonly'
 };
 
 export default [
