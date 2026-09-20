@@ -66,6 +66,13 @@ export function timerNow() {
 		label: typeof t.label === 'string' ? t.label.slice(0, 60) : '',
 		chimed: t.chimed === true,
 		marks,
+		// The estimate the clock was first given, kept so a restart goes
+		// back to it rather than to wherever ticking the stops off left
+		// the marks. Carried through every write, which is why it is read
+		// back here with the rest.
+		base: t.base && Number(t.base.seconds) > 0
+			? { seconds: Number(t.base.seconds), marks: Array.isArray(t.base.marks) ? t.base.marks : [] }
+			: null,
 		done: Math.max(0, Math.min(marks.length, Math.floor(Number(t.done) || 0)))
 	};
 }
@@ -83,7 +90,7 @@ export function startTimer(seconds, label = '', marks = []) {
 	// The end of the run is the last mark, or what was asked for.
 	const end = list.length ? list[list.length - 1].at : Number(seconds) || 0;
 	const s = Math.max(30, Math.min(6 * 3600, Math.round(end)));
-	write({ startedAt: Date.now(), seconds: s, label: String(label || '').slice(0, 60), chimed: false, marks: list, done: 0 });
+	write({ startedAt: Date.now(), seconds: s, label: String(label || '').slice(0, 60), chimed: false, marks: list, done: 0, base: { seconds: s, marks: list } });
 	arm();
 	sendSchedule();
 	return s;
@@ -142,6 +149,36 @@ export function stopTimer() {
 	write(null);
 	arm();
 	if (pushOn()) clearAlerts(TAG);
+}
+
+/**
+ * The clock set back to nought and run again from now, at the estimate
+ * it was first given.
+ *
+ * A clock that is only ever started by casting off, and can only be
+ * thrown away, is wrong for as long as the sailor is away from the
+ * keyboard -- and somebody who wanders off from a ship on auto-path is
+ * exactly who this was written for. Oni sailed a run, left the desk,
+ * came back to a clock long past the end of a short run, and asked how
+ * to start it again. He could not: the only control was a cross, and
+ * the cross meant forget it.
+ *
+ * The marks go back to where they were first laid rather than to
+ * wherever ticking the stops off moved them, so a run sailed again
+ * chimes at its own legs and not at the last attempt's drift.
+ */
+export function restartTimer() {
+	const now = timerNow();
+	if (!now) return null;
+	const base = now.base || { seconds: now.seconds, marks: now.marks };
+	const marks = Array.isArray(base.marks) ? base.marks : [];
+	write({
+		...now, base, startedAt: Date.now(), chimed: false, done: 0,
+		marks, seconds: Math.max(30, marks.length ? marks[marks.length - 1].at : base.seconds)
+	});
+	arm();
+	sendSchedule();
+	return timerNow();
 }
 
 /**
@@ -594,7 +631,8 @@ export function timerHTML({ suggest = 0, label = '', marks = [] } = {}) {
 		<span class="sail-timer-bar"><i style="width:${pct.toFixed(1)}%"></i></span>
 		<b data-timer-clock>${esc(clockText(t))}</b>
 		${modes}${ear}${devices}
-		<button class="map-x" data-act="barter-timer-stop" aria-label="${T('Stop the clock')}" title="${T('Stop the clock')}">×</button>
+		<button class="chip tiny sail-timer-again" data-act="barter-timer-restart" title="${T('Set the clock back to nought and run it again from now, at this run’s own estimate')}">↻ ${T('again')}</button>
+		<button class="chip tiny sail-timer-off" data-act="barter-timer-stop" title="${T('Stop the clock and forget it')}">${T('stop')}</button>
 	</span>`;
 }
 
@@ -719,7 +757,12 @@ export function timerAction(act, el, then = null) {
 		if (soundOn()) unlockSound();
 		return true;
 	}
-	if (act === 'barter-timer-stop') { stopTimer(); return true; }
+	if (act === 'barter-timer-stop') { stopTimer(); toast(T('The clock is stopped')); return true; }
+	if (act === 'barter-timer-restart') {
+		const t = restartTimer();
+		if (t) toast(T('The clock is running again — {span} to go', { span: spanText(t.seconds) }));
+		return true;
+	}
 	if (act === 'barter-timer-sound') {
 		// Round the choices, and let the new one be heard at once -- the
 		// press is also what wakes the audio, so the first one is not

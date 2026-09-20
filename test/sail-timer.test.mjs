@@ -127,3 +127,30 @@ test('the time a stop takes is counted, and the clock says which half of it you 
 	assert.equal(t0.marks[1].at - t0.marks[0].at, 105, 'a 60 s leg and the 45 s spent before it');
 	stopTimer();
 });
+
+test('a clock can be set back and run again, at the estimate it was given', async () => {
+	const { restartTimer } = await import('../js/sail-timer.js');
+	assert.equal(restartTimer(), null, 'nothing running, nothing to set back');
+
+	const marks = [{ at: 60, label: 'Baeza' }, { at: 160, label: 'Narvo' }];
+	startTimer(0, 'Baeza and 1 more', marks);
+	const first = timerNow();
+
+	// A stop ticked off late pushes the marks out, which is what makes a
+	// clock that follows the ship rather than the plan.
+	await new Promise(r => setTimeout(r, 15));
+	passedStop(0);
+	const moved = timerNow();
+	assert.ok(moved.marks[1].at < 160, 'ticking a stop early pulls the rest in');
+	assert.equal(moved.done, 1);
+
+	// Set back: the marks go home to where they were first laid, not to
+	// wherever the last attempt drifted to, and nothing is behind it.
+	const again = restartTimer();
+	assert.equal(again.done, 0, 'no stop is behind a clock just set back');
+	assert.equal(again.chimed, false);
+	assert.deepEqual(again.marks.map(m => m.at), [60, 160], 'the estimate it was given');
+	assert.equal(again.seconds, 160);
+	assert.ok(again.startedAt >= first.startedAt, 'it runs from now');
+	stopTimer();
+});

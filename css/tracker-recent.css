@@ -267,6 +267,11 @@
 .sail-timer .chip.tiny.warn { border-color: var(--red-edge); color: var(--amber); }
 .sail-timer-modes { display: inline-flex; gap: 2px; }
 .sail-timer-modes .chip.tiny { padding: 2px 7px; font-size: 10.5px; }
+/* The clock's own two controls. It used to have one, a bare cross, and
+   a sailor who came back to a clock long past its end could only throw
+   it away -- so they are words now, and one of them starts it over. */
+.sail-timer .chip.tiny.sail-timer-again, .sail-timer .chip.tiny.sail-timer-off { padding: 2px 7px; font-size: 10.5px; }
+.sail-timer .chip.tiny.sail-timer-off { color: var(--ink-faint); }
 .sail-timer.over { background: rgba(232, 184, 109, 0.1); }
 .sail-timer.over b { color: var(--amber); }
 .sail-timer.over .sail-timer-bar i { background: var(--amber); }

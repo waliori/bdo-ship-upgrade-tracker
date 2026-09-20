@@ -50,7 +50,7 @@ import { openPicker } from './picker.js';
 import { openTripLog } from './triplog.js';
 import { toast, openDialog, closeDialog } from './dialogs.js';
 import { cheer } from './cheer.js';
-import { timerHTML, timerAction, timerState, startTimer, passedStop } from './sail-timer.js';
+import { timerHTML, timerAction, timerState, startTimer, passedStop, spanText } from './sail-timer.js';
 
 /* ------------------------------------------------------------------ *
  * what the tab remembers
@@ -3700,8 +3700,14 @@ export function barterAction(act, el, redraw) {
 			// Sailing starts the clock, since that press is the moment the
 			// ship leaves -- and it is the gesture the browser wants before
 			// the page is allowed to make a sound.
+			//
+			// Said out loud, because it used to happen in silence: a
+			// sailor who never asked for a clock, and never saw one start,
+			// came back from the kitchen to a number counting up at them
+			// with no idea what had set it going or how to set it right.
 			const legs = legsOf(shownPlan.stops);
-			if (legs.mid > 0 && !timerState()) startTimer(legs.mid, runLabel(shownPlan), runMarks(shownPlan, legs));
+			const set = legs.mid > 0 && !timerState() ? startTimer(legs.mid, runLabel(shownPlan), runMarks(shownPlan, legs)) : 0;
+			if (set) toast(T('Cast off — the clock is running, ≈ {span}. It has “again” and “stop” on it.', { span: spanText(set) }));
 			persist();
 			return true;
 		}
