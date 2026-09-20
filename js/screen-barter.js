@@ -786,7 +786,7 @@ function questCount(q, trades, made = 0) {
  *  over the whole run -- these rows may be one segment of it. */
 function tradesDone(on, stops) {
 	const full = on && Array.isArray(on.stops) && on.stops.length ? on.stops : stops;
-	return full.reduce((a, s, k) => a + (s.npcId && on.done.includes(stopKey(s, k, full)) ? Number(s.times) || 0 : 0), 0);
+	return full.reduce((a, s, k) => a + (s.npcId && ticked(on.done, s, k, full) ? Number(s.times) || 0 : 0), 0);
 }
 
 /** One quest handed in at a stop: the quest, its taker, its cadence,
@@ -893,8 +893,8 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = nu
 	// pays a range, the count it paid, so the rest re-counts.
 	const check = (s, k) => {
 		if (!sailing) return '';
-		const key = stopKey(s, k, sailing.stops || stops);
-		const done = sailing.done.includes(key);
+		const key = stopKey(s, k, stops);
+		const done = ticked(sailing.done, s, k, stops);
 		let paid = '';
 		if (s.npcId && s.recvMin !== s.recvMax) {
 			const opts = [];
@@ -911,7 +911,7 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = nu
 		// they go into the Inventory with the rest of the trip.
 		let sold = '';
 		if (s.wharf && s.sale && s.sale.n > 0) {
-			const kept = (sailing.kept || []).includes(key);
+			const kept = ticked(sailing.kept, s, k, stops);
 			sold = `<label class="inline-check run-sold${kept ? ' kept' : ''}" title="${T('Untick if the goods were not sold here — they go into the Inventory instead of the silver into the pouch')}"><input type="checkbox" data-act="barter-sold" data-k="${esc(key)}"${kept ? '' : ' checked'}> ${kept ? T('kept aboard — into the Inventory') : T('sold — {silver} to the pouch', { silver: FC(Math.round(s.sale.total)) })}</label>`;
 		}
 		return `<div class="run-check">${paid}${got}${sold}<button class="run-done${done ? ' on' : ''}" data-act="barter-stop-done" data-k="${esc(key)}" aria-pressed="${done}"><i>${done ? '✓' : ''}</i>${done ? T('Done') : s.wharf ? T('Called here') : s.hunt ? T('Hunted here') : s.quest ? T('Handed in') : T('Traded here')}</button></div>`;
@@ -929,7 +929,7 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = nu
 			: s.wharf
 			? `${s.loads && s.loads.length ? `<div class="run-leave"><span class="run-leave-k">${T('Loads from storage')}</span>${s.loads.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('')}</div>` : ''}${s.dropped.length ? `<div class="run-leave"><span class="run-leave-k">${T('Leaves in storage')}</span>${s.dropped.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('')}</div>` : ''}${s.sale ? `<div class="run-sell">${T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: s.sale.levels && s.sale.levels.length === 1 ? `[Level ${s.sale.levels[0]}]` : T('goods'), silver: FC(Math.round(s.sale.total)) })}</div>` : ''}`
 			: `<div class="run-trade">${img(s.give, 'row-icon sm')}<span>${esc(s.giveText)}× ${esc(gameName(s.give))}</span><span class="run-arrow">→</span><span class="run-to" style="--tier:${TIER(levelOf(s.item))}"><i></i>${esc(s.recvText)}× ${esc(gameName(s.item))}${four(s)}</span><span class="run-got"><span class="run-times">×${s.times}</span>${img(s.item, 'row-icon sm')}</span></div>`;
-		return `<div class="run-stop${s.wharf ? ' wharf' : ''}${s.quest ? ' quest' : ''}${s.sale ? ' sale' : ''}${i === stops.length - 1 ? ' last' : ''}${sailing && sailing.done.includes(stopKey(s, k, sailing.stops || stops)) ? ' done' : ''}" data-i="${k}"${s.npcId ? ` data-npc="${s.npcId}"` : ''}${map ? ' data-step-row' : ''}>
+		return `<div class="run-stop${s.wharf ? ' wharf' : ''}${s.quest ? ' quest' : ''}${s.sale ? ' sale' : ''}${i === stops.length - 1 ? ' last' : ''}${sailing && ticked(sailing.done, s, k, stops) ? ' done' : ''}" data-i="${k}"${s.npcId ? ` data-npc="${s.npcId}"` : ''}${map ? ' data-step-row' : ''}>
 			<div class="run-rail"><i></i><b>${k + 1}</b><i></i></div>
 			<div class="run-main">
 				<div class="run-stop-head">${s.wharf ? `<span class="run-anchor" title="${T('A pause at a wharf, not a barter')}">⚓</span>` : s.quest ? `<span class="run-anchor" title="${s.hunt ? T('A stop put in to hunt, not a barter') : T('A stop put in for a quest, not a barter')}">${s.hunt ? '🎯' : '📜'}</span>` : ''}${map ? `<button class="run-stop-fly" data-act="map-step" data-i="${k}" title="${T('Fly the chart here, and step to it')}">${esc(s.quest ? gameName(place.name) : s.wharf ? T('{at} wharf', { at: gameName(place.at) }) : gameName(isleOf(place)))}</button>` : `<b>${esc(s.quest ? gameName(place.name) : s.wharf ? T('{at} wharf', { at: gameName(place.at) }) : gameName(isleOf(place)))}</b>`}<span>${esc(s.quest ? gameName(place.who) : s.wharf ? gameName(place.name) : gameName(whoOf(place)))}</span>${tag ? tag(s) : ''}${leg}</div>
@@ -1808,10 +1808,47 @@ function digest(str) {
 }
 /** The checklist for the run on screen, or null when not sailing it. */
 const sailing = () => (sail && sail.key === sailKey() ? sail : null);
-/** A stop's name on the checklist: the island, or the wharf and how
- *  many islands came before it, so a re-count that moves a call does
- *  not tick the wrong one. */
-const stopKey = (s, k, stops) => (s.npcId ? `n${s.npcId}` : s.quest ? `q${s.place.name}@${stops.slice(0, k).filter(x => x.npcId).length}` : `w${s.wharf.name}@${stops.slice(0, k).filter(x => x.npcId).length}`);
+/**
+ * A stop's name on the checklist.
+ *
+ * An island is its own name and always has been. A wharf or a quest
+ * taker can be called at twice in one run, so one of those needs
+ * saying which visit it is -- and it used to be said by counting the
+ * islands that came before it.
+ *
+ * That count is not the stop's own. Saying what an island paid lays
+ * the run again from the rungs it opened, and a run laid again moves
+ * its wharf calls about: the same call, at the same pier, for the same
+ * reason, would answer to `wVelia@3` before the count and `wVelia@4`
+ * after it. The tick stayed behind under the old name, the recorder
+ * looked for the new one, and the sale at that call went into the
+ * Inventory as nothing at all -- the silver quietly missing from a
+ * run the sailor had ticked off in full.
+ *
+ * So a visit is numbered among the visits to that same place, which is
+ * what "the second time at Velia" meant all along, and which no amount
+ * of re-counting can shift.
+ */
+const stopKey = (s, k, stops) => (s.npcId
+	? `n${s.npcId}`
+	: s.quest
+		? `q${s.place.name}@${stops.slice(0, k).filter(x => x.quest && x.place && x.place.name === s.place.name).length}`
+		: `w${s.wharf.name}@${stops.slice(0, k).filter(x => x.wharf && x.wharf.name === s.wharf.name).length}`);
+
+/** What a stop was called before the key above was stable. A checklist
+ *  saved mid-run keeps its old ticks, so they are still answered to --
+ *  read only, and never written again. */
+const stopKeyWas = (s, k, stops) => (s.npcId
+	? `n${s.npcId}`
+	: s.quest
+		? `q${s.place.name}@${stops.slice(0, k).filter(x => x.npcId).length}`
+		: `w${s.wharf.name}@${stops.slice(0, k).filter(x => x.npcId).length}`);
+
+/** Whether a list of ticks holds this stop, under either name. */
+const ticked = (list, s, k, stops) => {
+	const l = list || [];
+	return l.includes(stopKey(s, k, stops)) || l.includes(stopKeyWas(s, k, stops));
+};
 
 /**
  * What the Map's stop card asks: is this island on the checklist being
@@ -1886,9 +1923,20 @@ function sailBar(plan) {
 	const legs = legsOf(plan.stops);
 	const clock = timerHTML({ suggest: legs.mid || 0, label: runLabel(plan), marks: runMarks(plan, legs) });
 	if (!on) return `<div class="sail-bar"><button class="act" data-act="barter-sail" title="${T('Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change')}">⛵ ${T('Sail this run')}</button><span class="faint">${T('tick each stop off as you sail; what an island paid re-counts the rest; Record at the end puts the whole trip in the Inventory in one Undo')}</span><span class="panel-spacer"></span>${clock}</div>`;
-	const n = plan.stops.filter((s, k) => on.done.includes(stopKey(s, k, plan.stops))).length;
+	const n = plan.stops.filter((s, k) => ticked(on.done, s, k, plan.stops)).length;
 	const questsLeft = [...(plan.questsHome || []), ...plan.stops.flatMap(s => s.quests || [])].map(x => x.q).filter(q => !questDone(q)).length;
 	// The whole run done at once: which of it, asked in place.
+	// What the recorder will have to guess at: an island that pays a
+	// range and was never asked what it paid. Said here rather than
+	// left to be found out later, because the guess goes into the
+	// Inventory and a sailor who knows the number can still give it --
+	// the chips are on the stops, a press each.
+	const guessed = unsaid(sailedPlan() || plan, on).length;
+	const guessNote = guessed
+		? `<span class="sail-guess" title="${T('Press the count an island paid on its stop, and the trip is recorded at that instead')}">${guessed === 1
+			? T('{n} island’s pay not said', { n: guessed })
+			: T('{n} islands’ pay not said', { n: guessed })} — ${T('recorded at the middle of the range')}</span>`
+		: '';
 	const all = sailAll.open ? `<div class="sail-all">
 		<span class="sail-all-k">${T('Tick off, all at once')}</span>
 		<label class="inline-check"><input type="checkbox" data-act="barter-sail-all-pick" data-id="stops"${sailAll.stops ? ' checked' : ''}> ${T('every stop, {n} still to go', { n: plan.stops.length - n })}</label>
@@ -1899,6 +1947,7 @@ function sailBar(plan) {
 	</div>` : '';
 	return `<div class="sail-bar sailing">
 		<span class="sail-n">${T('<b>{n}</b> of {of} stops done', { n, of: plan.stops.length })}${questsLeft ? ` · ${questsLeft === 1 ? T('{n} quest open', { n: questsLeft }) : T('{n} quests open', { n: questsLeft })}` : ''}</span>
+		${guessNote}
 		${clock}
 		<span class="panel-spacer"></span>
 		<button class="ghost-btn sm" data-act="barter-sail-drop" title="${T('Drop the checklist; nothing is recorded')}">${T('Abandon')}</button>
@@ -1909,11 +1958,48 @@ function sailBar(plan) {
 }
 
 /**
+ * What an island is recorded as having paid.
+ *
+ * The count the sailor pressed, where they pressed one. Where they did
+ * not -- and "All done" never asks -- the range has to be guessed at,
+ * and the guess used to be the bottom of it. Every exchange in the
+ * game that pays a [Level 2] or a [Level 3] pays "2-3", so a climb
+ * recorded that way wrote 2 into the Inventory every time the game
+ * paid 3, and the counts drifted below the truth a little further with
+ * every run. The middle of the range is the honest guess when nobody
+ * has said otherwise: it is wrong by half a good rather than by a
+ * whole one, and it is wrong in both directions instead of always the
+ * same one, so a season of runs does not pull the Inventory down.
+ *
+ * Planning is a different question and keeps its own orders -- a run
+ * counts an exchange at the least unless told otherwise, because a
+ * plan that promises more than it brings is a plan that strands a
+ * ship. This is only what goes into the Inventory afterwards.
+ */
+function paidAt(s, on) {
+	const said = (on.seen || {})[s.npcId];
+	if (said > 0) return said;
+	if (s.recvMin > 0 && s.recvMax > s.recvMin) return (s.recvMin + s.recvMax) / 2;
+	return s.recvMin || s.recv;
+}
+
+/** The stops done whose island pays a range and was never asked about:
+ *  what the recording has to guess at, so it can say so. */
+function unsaid(plan, on) {
+	if (!plan || !on) return [];
+	return plan.stops.filter((s, k) => s.npcId
+		&& ticked(on.done, s, k, plan.stops)
+		&& s.recvMax > s.recvMin
+		&& !((on.seen || {})[s.npcId] > 0));
+}
+
+/**
  * The trip as the Inventory takes it, from the stops done: goods
  * handed over and received -- at what the island was seen to pay, else
- * the least -- the goods sold and the silver they paid, the goods left
- * in a harbour's storage, and the goods loaded from one. Land goods
- * come off the stock only when the stock has them.
+ * the middle of what it could have -- the goods sold and the silver
+ * they paid, the goods left in a harbour's storage, and the goods
+ * loaded from one. Land goods come off the stock only when the stock
+ * has them.
  */
 function tripOf(plan, on, from) {
 	const delta = {}, moves = [];
@@ -1925,16 +2011,16 @@ function tripOf(plan, on, from) {
 	const as = name => renamed.get(name) || name;
 	let silver = 0, trades = 0;
 	for (const [k, s] of plan.stops.entries()) {
-		if (!on.done.includes(stopKey(s, k, plan.stops)) || s.quest) continue;
+		if (!ticked(on.done, s, k, plan.stops) || s.quest) continue;
 		if (s.wharf) {
 			// The sale, unless the sailor said the goods were kept: then
 			// they stay in the delta, and go into the Inventory.
-			if (!(on.kept || []).includes(stopKey(s, k, plan.stops))) for (const x of (s.sale && s.sale.items) || []) { add(as(x.item), -x.n); silver += x.total; }
+			if (!ticked(on.kept, s, k, plan.stops)) for (const x of (s.sale && s.sale.items) || []) { add(as(x.item), -x.n); silver += x.total; }
 			for (const d of s.dropped || []) moves.push({ item: as(d.item), from: '', to: s.wharf.at, n: Math.round(d.n) });
 			for (const l of s.loads || []) moves.push({ item: l.item, from: s.wharf.at, to: '', n: Math.round(l.n) });
 			continue;
 		}
-		const paid = on.seen[s.npcId] || s.recvMin || s.recv;
+		const paid = paidAt(s, on);
 		if (levelOf(s.give) !== null || store.getStock(s.give) > 0) add(s.give, -s.times * s.giveN);
 		add(as(s.item), s.times * paid);
 		trades += s.times;
@@ -1955,7 +2041,7 @@ function markDone(on, k) {
 	cheer();
 	const plan = shownPlan || planOfSail(on);
 	if (!plan) return;
-	const at = plan.stops.findIndex((s, i) => stopKey(s, i, plan.stops) === k);
+	const at = plan.stops.findIndex((s, i) => stopKey(s, i, plan.stops) === k || stopKeyWas(s, i, plan.stops) === k);
 	// The clock is told where the ship really is: the legs still ahead
 	// are counted from now rather than from an estimate made before the
 	// ship left, so a run that ran late does not chime early all the way
@@ -1989,7 +2075,7 @@ function sailRecord(plan) {
 	return {
 		stops,
 		loaded: (plan.loaded || []).map(l => ({ item: l.item, n: num(l.n) })),
-		cost: num(plan.cost), silver: num(plan.silver), net: num(plan.net), trades: num(plan.trades),
+		cost: num(plan.cost), silver: num(plan.silver), net: num(plan.net), trades: num(plan.trades), parleyUsed: num(plan.parleyUsed),
 		questsHome: (plan.questsHome || []).map(x => ({ id: x.q.id, what: x.step.what, who: x.step.who || '' })),
 		chains: (plan.order || []).map(c => ({ name: isleShort(npcById.get(c.rungs[0].npcId)) || c.rungs[0].npc, top: c.top })),
 		goal, item: goal === 'material' ? itemNow() || '' : '',
@@ -2006,7 +2092,28 @@ function hydrate(list) {
 function planOfSail(on) {
 	if (!on || !Array.isArray(on.stops) || !on.stops.length || !on.stops.some(s => s.npcId && s.give)) return null;
 	const stops = on.stops.map(s => ({ ...s, quests: hydrate(s.quests) }));
-	return { stops, loaded: on.loaded || [], cost: on.cost || 0, parleyUsed: 0, questsHome: hydrate(on.questsHome), silver: on.silver || 0, net: on.net || 0, trades: on.trades || 0 };
+	return { stops, loaded: on.loaded || [], cost: on.cost || 0, parleyUsed: on.parleyUsed || 0, questsHome: hydrate(on.questsHome), silver: on.silver || 0, net: on.net || 0, trades: on.trades || 0 };
+}
+
+/**
+ * The run as the recorder must read it: the one that was sailed.
+ *
+ * `shownPlan` is laid again from the Inventory on every redraw, so it
+ * is the run as it would be planned *now* -- and by the time a sailor
+ * presses Record they have been away for half an hour, said what three
+ * islands paid, and perhaps put a count right by hand. Any of that
+ * lays a different run: different counts, and a wharf call that moves
+ * by one island. The checklist's ticks are named after the frozen
+ * stops (`sailing.stops`), so a call that moved takes its tick with
+ * it -- the sale at it was simply not recorded, and the silver went
+ * missing.
+ *
+ * So the recorder reads the run that was ticked, and the live one only
+ * where there is no frozen copy to read.
+ */
+function sailedPlan() {
+	const on = sailing();
+	return (on && planOfSail(on)) || shownPlan;
 }
 
 /** The route the run being sailed draws on the chart, or null --
@@ -2036,7 +2143,7 @@ export function runSheetHTML(chartIds = []) {
 	const legs = legsOf(plan.stops);
 	const book = ledgerOf(plan.stops, legs);
 	const notes = { at: k => (plan.stops[k] && plan.stops[k].quests) || [], trades: plan.trades || 0, count: plan.stops.reduce((a, s) => a + (s.quests || []).length, 0), home: plan.questsHome };
-	const n = plan.stops.filter((s, k) => on.done.includes(stopKey(s, k, plan.stops))).length;
+	const n = plan.stops.filter((s, k) => ticked(on.done, s, k, plan.stops)).length;
 	const chainTags = (on.chains || []).map(c => `<span class="run-chain-tag" style="--tier:${TIER(c.top)}"><i></i>${esc(c.name)}<em>L${c.top}</em></span>`).join('');
 	const head = `<div class="map-run-head">
 		<div class="map-run-title"><b>${on.goal === 'material' ? T('For {name}', { name: on.item ? esc(gameName(on.item)) : T('a material') }) : T('The run')}</b><span>${plan.stops.length === 1 ? T('{n} stop', { n: plan.stops.length }) : T('{n} stops', { n: plan.stops.length })}${on.net ? ` · ${FC(Math.round(on.net))}${on.cost ? ` ${T('net')}` : ''}` : ''}${on.time ? ` · ≈ ${esc(on.time)}` : ''}${book.short ? ` · <b class="warn">${T('{n} Parley short', { n: F(book.short) })}</b>` : ''}</span></div>
@@ -2085,7 +2192,7 @@ function recordTrip(plan, from) {
 	const ratios = { ...(store.getProfile('ratios', {}) || {}) };
 	const sevens = { ...(store.getProfile('sevens', {}) || {}) };
 	for (const [k, s] of plan.stops.entries()) {
-		if (!on.done.includes(stopKey(s, k, plan.stops)) || !s.npcId) continue;
+		if (!ticked(on.done, s, k, plan.stops) || !s.npcId) continue;
 		const n = on.seen[s.npcId];
 		if (n && s.recvMin !== s.recvMax) {
 			const key = ratioKey(s);
@@ -3610,7 +3717,7 @@ export function barterAction(act, el, redraw) {
 		case 'barter-sail-all-drop': sailAll.open = false; return true;
 		case 'barter-sail-all-go': {
 			const on = sailing();
-			const plan = shownPlan || planOfSail(on);
+			const plan = sailedPlan();
 			if (!on || !plan) return false;
 			// The quests first: handing them in redraws the run without the
 			// stops put in for them, and the stops ticked are the ones left.
@@ -3629,7 +3736,16 @@ export function barterAction(act, el, redraw) {
 			sailAll.open = false;
 			persist();
 			if (!claimed) cheer({ big: true });
-			toast(`${sailAll.stops ? T('Every stop ticked off') : T('Nothing ticked')}${claimed ? ` · ${claimed === 1 ? T('{n} quest handed in, the rewards in the bags', { n: claimed }) : T('{n} quests handed in, the rewards in the bags', { n: claimed })}` : ''}${sailAll.stops ? ` — ${T('Record the trip puts it in the Inventory')}` : ''}`, claimed > 0);
+			// Ticking the lot never asks what an island paid, and most of
+			// what a climb trades pays a range -- so say what will be
+			// guessed at while the stops are still there to be pressed.
+			const guessing = sailAll.stops ? unsaid(sailedPlan() || plan, on).length : 0;
+			const guessSaid = guessing
+				? ` · ${guessing === 1
+					? T('{n} island’s pay was not said, so it is recorded at the middle of its range', { n: guessing })
+					: T('{n} islands’ pay was not said, so they are recorded at the middle of their range', { n: guessing })}`
+				: '';
+			toast(`${sailAll.stops ? T('Every stop ticked off') : T('Nothing ticked')}${claimed ? ` · ${claimed === 1 ? T('{n} quest handed in, the rewards in the bags', { n: claimed }) : T('{n} quests handed in, the rewards in the bags', { n: claimed })}` : ''}${guessSaid}${sailAll.stops ? ` — ${T('Record the trip puts it in the Inventory')}` : ''}`, claimed > 0);
 			return true;
 		}
 		case 'barter-stop-done': {
@@ -3658,7 +3774,7 @@ export function barterAction(act, el, redraw) {
 			if (on.seen[el.dataset.npc] && !on.done.includes(`n${el.dataset.npc}`)) markDone(on, `n${el.dataset.npc}`);
 			return true;
 		}
-		case 'barter-record': recordTrip(shownPlan || planOfSail(sailing()), fromPort()); return false;
+		case 'barter-record': recordTrip(sailedPlan(), fromPort()); return false;
 		case 'barter-propose': routes.ids = String(el.dataset.ids || '').split('\n').filter(Boolean); routesAuto = ''; persist(); return true;
 		// The worker answered: nothing to change, the screen redraws.
 		case 'barter-redraw': return true;

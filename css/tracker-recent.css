@@ -272,6 +272,10 @@
 .sail-timer.over .sail-timer-bar i { background: var(--amber); }
 .hold-bar-timer { display: flex; align-items: center; margin-left: auto; }
 .sail-n b { font-family: var(--font-display); font-size: 16px; color: var(--ink-hi); }
+/* What the recording will have to guess at. Amber rather than red: it
+   is a count being estimated, not a thing gone wrong, and the sailor
+   can still say the number on the stop itself. */
+.sail-guess { font-size: 11px; color: var(--amber); border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent); background: color-mix(in srgb, var(--amber) 8%, transparent); border-radius: 999px; padding: 2px 9px; }
 
 /* The week: the runs recorded, a bar a day. */
 .week .panel-head { flex-wrap: wrap; }
