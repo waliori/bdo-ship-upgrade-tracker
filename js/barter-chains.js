@@ -74,9 +74,17 @@ export function chains(barterData, stock = {}, dock = {}, barterCount = null, ce
 	}
 	const aboard = goodsHeld(stock), ashore = goodsHeld(dock);
 	for (const item of new Set([...aboard.keys(), ...ashore.keys()])) {
-		if (levelOf(item) >= top) continue;
+		// A good already at the ceiling has no climbing left to do -- but
+		// on a coin day the ceiling is the very level the coin islands
+		// take, and a [Level 4] aboard has exactly one use, which is to be
+		// cashed. It used to be passed over here, before anything asked
+		// whether an island would pay for it: Oni stood at the pier with
+		// seven [Level 4]s aboard and seven islands wanting one each, and
+		// the board offered him climbs from his [Level 3]s instead. So at
+		// the ceiling a good keeps its coin rungs and loses the rest.
+		const atTop = levelOf(item) >= top;
 		const have = aboard.get(item) || 0, waiting = ashore.get(item) || 0;
-		for (const r of takes(item)) for (const rungs of walk(r, [])) {
+		for (const r of takes(item)) for (const rungs of (atTop && r.item !== COIN ? [] : walk(r, []))) {
 			// Only what the first island will deal with is worth loading,
 			// and so only that is what the row promises: a storage with
 			// thirty of a good and an island that takes eight is a run

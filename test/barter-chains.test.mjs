@@ -528,3 +528,24 @@ test('what is loaded is what the run hands over, not what the island offers', ()
 	const back = [...run.stashed, ...run.kept].filter(g => g.item === good);
 	assert.deepEqual(back, [], 'none of the start good comes home');
 });
+
+test('a [Level 4] aboard on a coin day is offered the island that cashes it', () => {
+	// Oni at the pier: seven [Level 4]s in the hold, seven coin islands
+	// wanting one each, and a board that offered climbs from his
+	// [Level 3]s instead. The ceiling of a coin day is four, and a good
+	// already at the ceiling was passed over before anything asked
+	// whether an island would pay coins for it.
+	const cashers = chains(data, {}, {}, null, 4, true).filter(c => c.pays === 'coin');
+	assert.ok(cashers.length > 0, 'the board has coin islands');
+	const good = cashers[0].rungs[cashers[0].rungs.length - 1].give;
+	assert.equal(levelOf(good), 4);
+	const mine = chains(data, { [good]: 1 }, {}, null, 4, true).filter(c => c.from === 'hold' && c.item === good);
+	assert.ok(mine.length > 0, `${good} aboard finds its coin island`);
+	for (const c of mine) {
+		assert.equal(c.rungs.length, 1, 'one rung: it is handed over and that is all');
+		assert.equal(c.pays, 'coin');
+	}
+	// And where the day is not for coins, a good at the ceiling still has
+	// nowhere to go: the ceiling means what it meant.
+	assert.deepEqual(chains(data, { [good]: 1 }, {}, null, 4, false).filter(c => c.from === 'hold'), []);
+});
