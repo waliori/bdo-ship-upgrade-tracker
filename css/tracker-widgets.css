@@ -386,11 +386,6 @@
   align-items: center;
   gap: 18px;
   flex-wrap: wrap;
-  /* Under the dock, which sticks above it; the dock publishes its
-     height (ui.js), and it is nought where the thumb bar does the job. */
-  position: sticky;
-  top: var(--dock-h, 0px);
-  z-index: 6;
   margin: 0 0 22px;
   padding: 11px 18px;
   border-radius: var(--r-panel);

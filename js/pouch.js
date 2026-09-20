@@ -227,7 +227,6 @@ export function paintPouch({ force = false } = {}) {
 		// of its own -- a fold, a blur -- lands between two beats of the
 		// minute hand. Without this the figure is blank until the next.
 		tickClocks();
-		measurePouch();
 	} finally {
 		painting = false;
 	}
@@ -263,13 +262,3 @@ function holdFocus(host) {
 	};
 }
 
-/**
- * Publish the pouch's height so anything else that sticks (the inventory
- * detail panel) can clear it instead of sliding underneath.
- */
-export function measurePouch() {
-	const host = document.getElementById('pouch');
-	if (!host) return;
-	const h = getComputedStyle(host).position === 'sticky' ? host.offsetHeight : 0;
-	document.documentElement.style.setProperty('--pouch-h', `${h}px`);
-}

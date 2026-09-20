@@ -25,7 +25,7 @@ import { T, TT, said, gameName, LANGS, langById, langFlag, setLang, startingLang
 import { encodeShare, decodeShare, shareLink, shareSize } from './share.js';
 import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
-import { paintPouch, measurePouch, openPouch, returnToPouch } from './pouch.js';
+import { paintPouch, openPouch, returnToPouch } from './pouch.js';
 import { toggleSailBar, openRoutes, openPets } from './profile-bar.js';
 import { hidePeek, wirePeek } from './peek.js';
 import { openGuide, wireGuide } from './guide.js';
@@ -206,11 +206,6 @@ function measureTabBar() {
 	if (!bar) return;
 	const h = getComputedStyle(bar).display === 'none' ? 0 : bar.offsetHeight;
 	document.documentElement.style.setProperty('--tabbar-h', `${h}px`);
-	// And the dock's, so what sticks under it -- the pouch -- knows
-	// where the top of the page really is.
-	const dock = document.getElementById('tabs');
-	const d = dock && getComputedStyle(dock).display !== 'none' ? dock.offsetHeight : 0;
-	document.documentElement.style.setProperty('--dock-h', `${d}px`);
 }
 
 /**
@@ -1730,12 +1725,11 @@ function wire() {
 		if (evt.target.classList && evt.target.classList.contains('amt')) evt.target.select();
 	});
 
-	window.addEventListener('resize', () => { measurePouch(); measureTabBar(); });
+	window.addEventListener('resize', measureTabBar);
 	// Turning a phone swaps the tab row for the thumb bar or back; the
 	// sheets stand on the bar's height, so it is measured again. The
 	// pouch is two different things either side of that line -- a row
-	// of chips, or one line that opens a sheet -- so it is redrawn and
-	// not merely re-measured.
+	// of chips, or one line that opens a sheet -- so it is redrawn.
 	onPhoneChange(() => { measureTabBar(); paintPouch({ force: true }); });
 
 	// The pouch writes big silver the short way ("1.96b"); under the

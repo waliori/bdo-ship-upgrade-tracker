@@ -292,9 +292,9 @@
 html {
   margin: 0;
   padding: 0;
-  /* The dock sticks over the top edge (ui.js publishes its height), so
-     anything scrolled into view stops beneath it rather than under it. */
-  scroll-padding-top: calc(var(--dock-h, 0px) + 8px);
+  /* Nothing overhangs the top edge any more, so this is breathing room
+     and not clearance: what is scrolled to stops a little below it. */
+  scroll-padding-top: 8px;
   background-color: var(--ocean-deep);
   background-image: var(--ocean-gradient);
   min-height: 100%;

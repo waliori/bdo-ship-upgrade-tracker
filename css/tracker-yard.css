@@ -195,8 +195,7 @@
   padding: 20px;
   backdrop-filter: blur(8px);
   position: sticky;
-  /* Clear the pouch, which sticks above it. */
-  top: calc(var(--pouch-h, 0px) + 16px);
+  top: 16px;
 }
 
 .detail-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
