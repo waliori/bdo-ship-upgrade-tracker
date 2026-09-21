@@ -1088,9 +1088,10 @@ button.rung-fate { cursor: pointer; }
   .board-strip { padding: 8px 0 8px 12px; }
   .board-strip-row { padding-right: 12px; }
   .board-strip .panel-spacer { display: none; }
-  .board-strip-acts { width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-right: 12px; }
-  .board-strip-acts::-webkit-scrollbar { display: none; }
-  .board-strip-acts > * { flex: 0 0 auto; }
+  /* The buttons wrap, smaller, rather than scrolling sideways: a row
+     cut off at the screen's edge reads as a page that does not fit. */
+  .board-strip-acts { width: 100%; flex-wrap: wrap; gap: 6px; padding-right: 12px; }
+  .board-strip-acts > * { flex: 0 1 auto; font-size: 12px; padding: 5px 9px; }
   /* Where the record of this layout came from is worth reading once
      and never again; on a phone it is a paragraph in the way. What the
      count and the sightings shut out stays, because that is about
