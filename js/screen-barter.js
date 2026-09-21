@@ -1448,7 +1448,13 @@ function goalLine(o) {
 	if (!sold.length) return goal === 'stock'
 		? T('Climb to Level {lv}, sell nothing — building stock', { lv: top })
 		: T('Climb to Level {lv}, where a wharf pays for nothing', { lv: top });
-	return T('Climb to Level {lv}, sell {what} at the wharf', { lv: top, what: sold.length === 1 ? T('the [Level {lv}]s', { lv: sold[0] }) : T('Level {from} to {to}', { from: sold[0], to: sold[sold.length - 1] }) });
+	// One whole sentence rather than a phrase dropped into a hole: what
+	// a wharf sells is always a level and everything above it, and a
+	// fragment like "Level 5 to 7" carries a capital of its own that
+	// reads as a mistake in the middle of a French or a Turkish line.
+	return sold.length === 1
+		? T('Climb to Level {lv}, sell Level {sell} at the wharf', { lv: top, sell: sold[0] })
+		: T('Climb to Level {lv}, sell Level {sell} and up at the wharf', { lv: top, sell: sold[0] });
 }
 
 /**
@@ -1518,7 +1524,7 @@ function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 			<div class="ladder-goal">${goalLine(o)}</div>
 			<div class="run-tiles ladder-tiles">
 				${tile(T('The climb ends at'), T('Level {lv}', { lv: top }), coining ? T('then the coin islands') : top === 7 ? T('the top of the ladder') : T('Level {lv} and up are not sailed', { lv: top + 1 }))}
-				${tile(coining ? T('Cashed in') : T('Sold at the wharf'), coining ? T('Level {lv}', { lv: COIN_LEVEL }) : sold.length ? (sold.length === 1 ? T('Level {lv}', { lv: sold[0] }) : T('Level {from} to {to}', { from: sold[0], to: sold[sold.length - 1] })) : T('nothing'), `${coining ? T('for Crow Coins, at the islands that pay in them') : sold.length ? T('for silver, at a wharf call') : T('the wharf only stores today')}${floorsSaid ? ` · ${T('keeping {list}', { list: floorsSaid })}` : ''}`, 'gold')}
+				${tile(coining ? T('Cashed in') : T('Sold at the wharf'), coining ? T('Level {lv}', { lv: COIN_LEVEL }) : sold.length ? (sold.length === 1 ? T('Level {lv}', { lv: sold[0] }) : T('Level {lv} and up', { lv: sold[0] })) : T('nothing'), `${coining ? T('for Crow Coins, at the islands that pay in them') : sold.length ? T('for silver, at a wharf call') : T('the wharf only stores today')}${floorsSaid ? ` · ${T('keeping {list}', { list: floorsSaid })}` : ''}`, 'gold')}
 				${tile(T('Chains that fit'), fits === null ? '—' : F(fits), fits === null ? T('the board is not read yet') : tickedN === 1 ? T('on today’s board, {n} ticked', { n: tickedN }) : T('on today’s board, {n} ticked', { n: tickedN }), 'blue')}
 			</div>
 			<div class="plan-next"><span class="panel-sub">${T('Nothing is bought or sailed yet — the next step chooses how.')}</span><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="how">${T('OK, that’s the goal')} ›</button></div>
