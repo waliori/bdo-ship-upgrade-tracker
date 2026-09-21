@@ -935,6 +935,16 @@ function wire() {
 			showView('map');
 			return;
 		}
+		// A run already under way, taken to the chart: the same checklist,
+		// with the route drawn beside it.
+		if (act === 'barter-sail-chart') {
+			const frag = sailChart();
+			if (el.closest('.dialog')) closeDialog();
+			if (frag) applyMapLink(frag);
+			setMapMode('route');
+			showView('map');
+			return;
+		}
 		// Done ticked on the Map's sheet steps the chart to the next stop.
 		if (act === 'barter-stop-done' && el.closest('.map-run')) {
 			const row = el.closest('.run-stop');

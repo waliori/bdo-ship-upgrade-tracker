@@ -35,7 +35,7 @@ import { barterKey } from './clock.js';
  * `exchanges`), and `onAnswers` what to do with the rows the player
  * keeps.
  */
-export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
+export function openBarterImport({ deals, onAnswers = () => {}, files = null } = {}) {
 	let stop = null;
 	let rows = [];            // what was read: { isle, offer, near, keep }
 	let skipped = [];
@@ -239,4 +239,7 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 	}
 
 	draw(pickView());
+	// Pasted onto the page rather than into this dialog: the picture is
+	// already in hand, so the read starts with it.
+	if (files && files.length) run(files);
 }

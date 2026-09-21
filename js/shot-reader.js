@@ -171,7 +171,7 @@ const PASTE_NAMES = new Set(['', 'image.png', 'image.jpg', 'image.jpeg', 'image.
 /** The images on a clipboard, named so the reader can talk about them.
  *  A paste carries one picture and a name the system made up, so a
  *  name worth keeping is kept and anything else is numbered. */
-function imagesOn(data, from = 1) {
+export function imagesOn(data, from = 1) {
 	if (!data) return [];
 	const out = [];
 	const files = data.files ? [...data.files] : [];

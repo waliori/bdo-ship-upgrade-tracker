@@ -1203,8 +1203,10 @@ test('the trip log puts what the builds are short of at the top', async () => {
 	assert.ok(seen.groups.includes('Everything else'), 'and there is no way through to the rest');
 	assert.match(seen.firstMeta || '', /short/, 'the top row does not say how many are wanted');
 	// The enhancement levels are filtered here too, so the list is a
-	// fraction of every name the app knows.
-	assert.ok(seen.rows < 400, `the picker is still offering ${seen.rows} rows`);
+	// fraction of every name the app knows -- a shade over a third of
+	// the eleven hundred, now that the shore goods a barter chain starts
+	// from are in the list a trip can be logged against.
+	assert.ok(seen.rows < 500, `the picker is still offering ${seen.rows} rows`);
 	assert.deepEqual(errors, []);
 	await context.close();
 });
@@ -1671,13 +1673,25 @@ test('the game\'s favourites come back as the route they were written from, and 
 	await context.close();
 });
 
-/** The run laid out is a sheet over the Barter tab: opened from the
- *  strip along the foot if it is not up, and live while it is. */
+/** The run laid out is the tab's second step: what to have aboard, and
+ *  the route stop by stop. Reached from the strip along the foot of the
+ *  plan, or from the steps across its head. */
 async function laidOut(page) {
-	const up = await page.evaluate(() => !!document.querySelector('#dialog:not([hidden]) .run-dialog'));
-	if (up) return;
-	await page.evaluate(() => document.querySelector('[data-act="barter-run-open"]').click());
-	await wait(300);
+	const there = await page.evaluate(() => !!document.querySelector('.barter-screen.step-load'));
+	if (!there) {
+		await page.evaluate(() => [...document.querySelectorAll('[data-act="barter-step"][data-id="load"]')].find(e => e.getBoundingClientRect().width > 0).click());
+		await wait(400);
+	}
+	await page.waitForSelector('.barter-screen.step-load', { timeout: 10000 });
+	await wait(200);
+}
+
+/** Back to the plan. The tests seed `planSec: 'all'`, so all three of
+ *  its parts are open and every control is on the page at once. */
+async function toPlan(page) {
+	await page.evaluate(() => { const b = [...document.querySelectorAll('[data-act="barter-step"][data-id="plan"]')].find(e => e.getBoundingClientRect().width > 0); if (b) b.click(); });
+	await wait(400);
+	await page.waitForSelector('.barter-screen.step-plan', { timeout: 10000 });
 }
 
 test('one run for several materials: each keeps its ticks and its want, and a give kept at another harbour is called for on the way', async () => {
@@ -1687,7 +1701,7 @@ test('one run for several materials: each keeps its ticks and its want, and a gi
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
 	await page.evaluate(async () => {
 		const store = await import('/js/state.js');
-		store.setView('barter', { goal: 'material', item: "Violent Sea Monster's Scale", qty: 20, port: 0, matOrders: { reach: 'want', calls: true, pace: 'full', quests: 'no' } });
+		store.setView('barter', { goal: 'material', item: "Violent Sea Monster's Scale", qty: 20, port: 0, planSec: 'all', advOpen: true, matOrders: { reach: 'want', calls: true, pace: 'full', quests: 'no' } });
 		store.flush();
 	});
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.mat-list.hero', { timeout: 15000 });
@@ -1702,16 +1716,18 @@ test('one run for several materials: each keeps its ticks and its want, and a gi
 	const tickFor = give => page.evaluate(g => { const grp = [...document.querySelectorAll('.mat-give')].find(el => el.querySelector('.mat-give-head b').textContent.includes(g)); grp.querySelector('[data-act="barter-mat-tick"]').click(); }, give);
 	await tickFor('Faded Gold Dragon Figurine'); await wait(400);
 	await laidOut(page);
-	let stops = await page.$$eval('#dialog .run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
+	let stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
 	assert.deepEqual(stops, ['Velia wharf|wharf', 'Shipwrecked Ancient Relic Cargo Ship'], 'the harbour first, the island after');
-	assert.match(await text(page, '#dialog .run-stop.wharf'), /Loads from storage.*Faded Gold Dragon Figurine/i);
+	assert.match(await text(page, '.run-stop.wharf'), /Loads from storage.*Faded Gold Dragon Figurine/i);
 	// Without the call, the route is still laid out -- with the give
 	// assumed aboard -- and Velia's Figurines are to bring first.
+	await toPlan(page);
 	await page.evaluate(() => document.querySelector('[data-act="barter-mat-calls"]').click()); await wait(400);
 	await laidOut(page);
-	stops = await page.$$eval('#dialog .run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
+	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
 	assert.deepEqual(stops, ['Shipwrecked Ancient Relic Cargo Ship'], 'no call: the island alone, the give assumed aboard');
-	assert.match(await text(page, '#dialog .run-list.amber'), /Before casting off.*Faded Gold Dragon Figurine.*at Velia \(2\)/i);
+	assert.match(await text(page, '.run-list.amber'), /Before casting off.*Faded Gold Dragon Figurine.*at Velia \(2\)/i);
+	await toPlan(page);
 	await page.evaluate(() => document.querySelector('[data-act="barter-mat-calls"]').click()); await wait(400);
 	// A second material through the picker: its own ticks, its own want.
 	await page.evaluate(() => document.querySelector('[data-act="barter-mat-add"]').click()); await wait(300);
@@ -1739,8 +1755,9 @@ test('one run for several materials: each keeps its ticks and its want, and a gi
 	assert.match(strip[1], /Bright Reef Piece/);
 	assert.ok(await page.$eval('.mat-tile:nth-of-type(2)', el => el.classList.contains('active')), 'the open one is the second tile');
 	await laidOut(page);
-	stops = await page.$$eval('#dialog .run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
+	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
 	assert.equal(stops.length, 3, `the harbour and both islands: ${stops.join(', ')}`);
+	await toPlan(page);
 	// Back to the first material: its want and ticks are as they were.
 	await page.evaluate(() => document.querySelector('.mat-tile:not(.active):not(.add) .mat-tile-main').click()); await wait(400);
 	const back = await page.$eval('.mat-tile.active', el => el.textContent.replace(/\s+/g, ' ').trim());
@@ -1773,17 +1790,22 @@ test('the hold is a line across the Barter tab that opens over the page, and the
 		store.setStock('[Level 7] Crystal Ball of Fortune', 2);
 		store.setStockAt('[Level 5] Luxury Patterned Fabric', 'Iliya Island', 12, 'ashore');
 	});
+	await wait(1200);
+	// One column: no two-column layout left on the tab.
+	assert.equal(await count(page, '.barter-layout'), 0);
+	assert.equal(await count(page, '.barter-screen > .barter-hold'), 0, 'the full hold is not on the page');
+	// The plan says what is held rung by rung, so the ladder carries the
+	// counts; the weight is the wharf's question, and the bar is there.
+	assert.match(await text(page, '.ladder'), /L(evel )?7[\s\S]*2 held/i);
+	await laidOut(page);
 	// Waited for rather than slept on: the tab redraws when the stock
 	// above lands, and half a second is comfortable until the machine is
 	// running the rest of this file beside it.
 	await page.waitForFunction(() => /16,500 LT/.test(document.querySelector('.hold-bar')?.textContent || ''), { timeout: 15000 });
-	// One column: no two-column layout left on the tab.
-	assert.equal(await count(page, '.barter-layout'), 0);
-	assert.equal(await count(page, '.barter-screen > .barter-hold'), 0, 'the full hold is not on the page');
 	const bar = await text(page, '.hold-bar');
 	assert.match(bar, /The hold.*Carrack \(Advance\).*9,000 \/ 16,500 LT/i);
 	assert.match(bar, /L7\s*2.*L5\s*5/);
-	await page.evaluate(() => document.querySelector('[data-act="barter-hold-open"]').click()); await wait(400);
+	await page.evaluate(() => document.querySelector('.hold-bar [data-act="barter-hold-open"]').click()); await wait(400);
 	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), false);
 	assert.match(await text(page, '#dialog .barter-hold'), /Azure Quartz.*Crystal Ball of Fortune|Crystal Ball of Fortune.*Azure Quartz/);
 	// One more Ball, from inside the dialog: the dialog stays and re-counts.
@@ -1803,7 +1825,7 @@ test('a run recorded adds its trades to Total Barters, and says what that opened
 	await page.evaluate(async () => {
 		const { barterKey } = await import('/js/clock.js');
 		const store = await import('/js/state.js');
-		store.setView('barter', { goal: 'silver', port: 1002, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }] } });
+		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }] } });
 		// Nine barters short of the first route the count opens.
 		store.setProfile('barterCount', 1);
 		store.flush();
@@ -1811,15 +1833,16 @@ test('a run recorded adds its trades to Total Barters, and says what that opened
 	await page.reload({ waitUntil: 'domcontentloaded' });
 	await page.waitForSelector('.chain', { timeout: 15000 });
 	await page.evaluate(async () => { const store = await import('/js/state.js'); store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); });
-	await page.waitForFunction(() => document.querySelector('[data-act="barter-run-open"]'), { timeout: 20000 });
-	await page.evaluate(() => document.querySelector('[data-act="barter-run-open"]').click()); await wait(1500);
-	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-sail"]').click()); await wait(2500);
-	// Every stop ticked off, then recorded.
-	await page.evaluate(() => document.querySelector('.map-run [data-act="barter-sail-all"]').click()); await wait(600);
-	await page.evaluate(() => document.querySelector('.map-run [data-act="barter-sail-all-go"]').click()); await wait(1500);
-	const trades = await page.evaluate(() => Number(document.querySelector('.map-run .sail-n').textContent.match(/(\d+) of/)[1]));
+	await page.waitForFunction(() => document.querySelector('[data-act="barter-cast-off"]:not([disabled]), .run-dock'), { timeout: 20000 });
+	await laidOut(page);
+	await page.evaluate(() => document.querySelector('[data-act="barter-cast-off"]').click()); await wait(2500);
+	// Every stop ticked off, then recorded from the results step.
+	await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all"]').click()); await wait(600);
+	await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all-go"]').click()); await wait(1500);
+	const trades = await page.evaluate(() => Number(document.querySelector('.sail-n').textContent.match(/(\d+) of/)[1]));
 	assert.ok(trades > 0, 'stops were ticked off');
-	await page.evaluate(() => document.querySelector('.map-run [data-act="barter-record"]').click()); await wait(1500);
+	await page.evaluate(() => [...document.querySelectorAll('[data-act="barter-step"][data-id="results"]')].find(e => e.getBoundingClientRect().width > 0).click()); await wait(1500);
+	await page.evaluate(() => document.querySelector('[data-act="barter-record"]').click()); await wait(1500);
 	const count2 = await page.evaluate(async () => (await import('/js/state.js')).getProfile('barterCount', 0));
 	assert.ok(count2 > 1, `Total Barters moved: ${count2}`);
 	// The toast names the newest trade route the count opened -- the last
@@ -1836,7 +1859,7 @@ test('a run recorded adds its trades to Total Barters, and says what that opened
 	await context.close();
 });
 
-test('the run laid out is a sheet over the Barter tab: a strip along the foot appears as chains are ticked and opens it, and a chain unticked inside it redraws it in place', async () => {
+test('the run laid out is the wharf step: a strip along the foot appears as chains are ticked and leads to it, and a chain unticked there redraws it in place', async () => {
 	const { page, context, errors } = await open('#barter');
 	// One island's offer pins today's layout; the run sails from Iliya.
 	// The view is the profile's, seeded once the tab has drawn and its
@@ -1845,7 +1868,7 @@ test('the run laid out is a sheet over the Barter tab: a strip along the foot ap
 	await page.evaluate(async () => {
 		const { barterKey } = await import('/js/clock.js');
 		const store = await import('/js/state.js');
-		store.setView('barter', { goal: 'silver', port: 1002, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }] } });
+		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }] } });
 		store.flush();
 	});
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.chain', { timeout: 15000 });
@@ -1860,13 +1883,22 @@ test('the run laid out is a sheet over the Barter tab: a strip along the foot ap
 	assert.ok(page.workers().some(w => w.url().endsWith('/js/barter-worker.js')), `the search worker is running: ${page.workers().map(w => w.url()).join(', ') || 'no workers'}`);
 	assert.equal(await count(page, '.proposals.working'), 0, 'the worker has answered');
 	assert.ok(await count(page, '.proposal') >= 1, 'with runs worth sailing');
-	// The trip is logged from the masthead alone; the hold's line keeps one button.
-	assert.equal(await count(page, '.hold-bar [data-act="trip-log"]'), 0);
-	assert.equal(await count(page, '.hold-bar [data-act="barter-add"]'), 1);
+	// The four steps of a run across the head, the plan the one on screen.
+	assert.equal(await count(page, '.steps .step'), 4);
+	assert.ok(await page.$('.barter-screen.step-plan'));
+	// The plan's three parts, each with a numbered head that says what
+	// is set inside it.
+	assert.equal(await count(page, '.plan-sec'), 3);
+	assert.match(await text(page, '.plan-sec[data-sec="ladder"] .plan-sec-head'), /Where today ends.*Climb to Level \d/i);
+	// The trip is logged from the masthead alone.
+	assert.equal(await count(page, '.barter-screen [data-act="trip-log"]'), 0);
+	// The ladder is the goal, the ceiling, the sell rule and the floors
+	// as one picture: the shore and seven rungs, the day's top lit.
+	assert.equal(await count(page, '.ladder .rung'), 8);
+	assert.equal(await count(page, '.ladder .rung.top'), 1);
 	// What stands under a head stands in a padded body, not against the edge.
-	const inset = await page.evaluate(() => { const p = document.querySelector('.barter-run'); const o = p.querySelector('.orders'); return o.getBoundingClientRect().left - p.getBoundingClientRect().left; });
-	assert.ok(inset >= 12, `the orders stand ${inset}px in from the panel's edge`);
-	assert.ok(await page.$('.barter-chains .panel-body .chain-list'), 'the chains in a padded body too');
+	const inset = await page.evaluate(() => { const p = document.querySelector('.plan-sec[data-sec="chains"]'); const o = p.querySelector('.chain-list'); return o.getBoundingClientRect().left - p.getBoundingClientRect().left; });
+	assert.ok(inset >= 12, `the chains stand ${inset}px in from the panel's edge`);
 	// A fresh board comes with the best run ticked; cleared, there is no
 	// strip, and the run is not laid out on the page.
 	await page.evaluate(() => document.querySelector('[data-act="barter-chains-clear"]').click()); await wait(500);
@@ -1874,101 +1906,113 @@ test('the run laid out is a sheet over the Barter tab: a strip along the foot ap
 	assert.equal(await count(page, '.run-seg'), 0);
 	await page.evaluate(() => document.querySelector('.chain').click()); await wait(1500);
 	const dock = await text(page, '.run-dock');
-	assert.match(dock, /1 chain.*island/i, dock);
-	assert.equal(await count(page, '.barter-screen .run-seg'), 0, 'the stops are not on the page');
+	assert.match(dock, /1 chain.*stop/i, dock);
+	assert.equal(await count(page, '.barter-screen .run-seg'), 0, 'the stops are not on the plan');
 	// The strip stays at the foot of the window as the page scrolls.
 	await page.evaluate(() => window.scrollTo(0, 700)); await wait(200);
 	const rect = await page.evaluate(() => { const r = document.querySelector('.run-dock').getBoundingClientRect(); return { bottom: r.bottom, h: window.innerHeight }; });
 	assert.ok(rect.bottom <= rect.h && rect.bottom > rect.h - 80, `the strip sits at the foot: ${rect.bottom} of ${rect.h}`);
 	await page.evaluate(() => document.querySelector('.chain:not(.on)').click()); await wait(1500);
 	assert.match(await text(page, '.run-dock'), /2 chains/);
-	// Opened, the sheet lays the run out: its head, the stops, the way to sail it.
-	await page.evaluate(() => document.querySelector('[data-act="barter-run-open"]').click()); await wait(400);
-	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), false);
-	assert.match(await text(page, '#dialog .run-sheet-head'), /The run.*2 chains/i);
+	// The wharf step: what to have aboard, and the route stop by stop.
+	await laidOut(page);
+	assert.ok(await page.$('.hold-bar'), 'the hold as it stands');
+	assert.equal(await count(page, '.pack-group'), 3, 'what to buy, what to fetch, what is already aboard');
+	assert.match(await text(page, '.route-fold'), /The route, stop by stop/i);
 	// Two chains under the default way round: one route, every stop tagged with its chain.
-	assert.equal(await page.$eval('[data-act="barter-way"]', el => el.value), 'sea');
-	assert.equal(await count(page, '#dialog .run-seg-all'), 1, 'one timeline for both chains');
-	assert.equal(await count(page, '#dialog .run-seg-chains .run-chain-tag'), 2);
-	assert.equal(await count(page, '#dialog .run-stop:not(.wharf):not(.quest)'), await count(page, '#dialog .run-stop .run-chain-tag.sm'), 'every island stop names its chain');
+	await toPlan(page);
+	assert.equal(await page.$eval('[data-act="barter-order"][data-k="barter-way"].active', el => el.dataset.v), 'sea');
+	await laidOut(page);
+	assert.equal(await count(page, '.run-seg-all'), 1, 'one timeline for both chains');
+	assert.equal(await count(page, '.run-seg-chains .run-chain-tag'), 2);
+	assert.equal(await count(page, '.run-stop:not(.wharf):not(.quest)'), await count(page, '.run-stop .run-chain-tag.sm'), 'every island stop names its chain');
 	// Chain after chain: a segment a chain.
-	await page.select('[data-act="barter-way"]', 'chain'); await wait(1500);
-	assert.equal(await count(page, '#dialog .run-seg-all'), 0);
-	assert.equal(await count(page, '#dialog .run-seg'), 2);
-	assert.ok(await page.$('#dialog .sail-bar'), 'the sail bar is in the sheet');
-	assert.equal(await page.$eval('#dialog .run-foot', el => getComputedStyle(el).position), 'sticky', 'and stays in view as the sheet scrolls, with the chart button beside it');
-	assert.ok(await page.$('#dialog .run-foot [data-act="barter-chart"]'));
-	// The quests along the run, under the orders: the supplies for Dario
+	await toPlan(page);
+	await page.evaluate(() => document.querySelector('[data-act="barter-order"][data-k="barter-way"][data-v="chain"]').click()); await wait(1500);
+	await laidOut(page);
+	assert.equal(await count(page, '.run-seg-all'), 0);
+	assert.equal(await count(page, '.run-seg'), 2);
+	assert.ok(await page.$('.load-dock [data-act="barter-cast-off"]'), 'the way out to sea is on the strip');
+	assert.equal(await page.$eval('.load-dock', el => getComputedStyle(el).position), 'sticky', 'and stays in view as the step scrolls');
+	assert.ok(await page.$('.route-fold [data-act="barter-chart"]'), 'with the chart beside the route');
+	// The quests along the run, on the wharf step: the supplies for Dario
 	// handed in at Iliya before casting off, a count on the strip and in
-	// the sheet's head, the quests the run cannot take in listed; none
+	// the route's head, the quests the run cannot take in listed; none
 	// of it when the orders say none.
-	assert.equal(await page.$eval('[data-act="barter-quests"]', el => el.value), 'near', 'on the way only, by default');
-	assert.equal(await count(page, '#dialog .run-stop.quest'), 0, 'no stop put in on the way only');
-	assert.match(await text(page, '#dialog .run-quests-home'), /Quests at Iliya Island.*Supplies Delivery \(Iliya Island\)/i);
-	assert.match(await text(page, '#dialog .run-sheet-head'), /\d+ handed in on the way/);
-	assert.match(await text(page, '.run-dock'), /\d+ quests/);
-	assert.ok(await page.$('#dialog .run-quests-off'), 'what the run cannot take in is listed');
-	await page.select('[data-act="barter-quests"]', 'no'); await wait(1500);
-	assert.equal(await count(page, '#dialog .run-quests-home'), 0, 'none under those orders');
-	assert.equal(await count(page, '#dialog .run-stop.quest'), 0);
+	await toPlan(page);
+	assert.equal(await page.$eval('[data-act="barter-order"][data-k="barter-quests"].active', el => el.dataset.v), 'near', 'on the way only, by default');
+	await laidOut(page);
+	assert.equal(await count(page, '.run-stop.quest'), 0, 'no stop put in on the way only');
+	assert.match(await text(page, '.run-quests-home'), /Quests at Iliya Island.*Supplies Delivery \(Iliya Island\)/i);
+	assert.match(await text(page, '.route-fold summary'), /\d+ handed in on the way/);
+	assert.ok(await page.$('.run-quests-off'), 'what the run cannot take in is listed');
+	await toPlan(page);
+	assert.match(await text(page, '.run-dock'), /\d+ quests/, 'and a count on the plan\'s own strip');
+	await page.evaluate(() => document.querySelector('[data-act="barter-order"][data-k="barter-quests"][data-v="no"]').click()); await wait(1500);
+	await laidOut(page);
+	assert.equal(await count(page, '.run-quests-home'), 0, 'none under those orders');
+	assert.equal(await count(page, '.run-stop.quest'), 0);
+	await toPlan(page);
 	assert.doesNotMatch(await text(page, '.run-dock'), /quests/);
-	await page.select('[data-act="barter-quests"]', 'near'); await wait(1500);
-	assert.equal(await count(page, '#dialog .run-quests-home'), 1);
+	await page.evaluate(() => document.querySelector('[data-act="barter-order"][data-k="barter-quests"][data-v="near"]').click()); await wait(1500);
+	await laidOut(page);
+	assert.equal(await count(page, '.run-quests-home'), 1);
 	// A taker off the way, asked for by name: a stop put in for it whatever the way round; the cross takes it out again.
-	const far = await page.$eval('#dialog .run-quests-off [data-act="barter-quest-pull"]', el => el.dataset.quest);
-	await page.evaluate(() => document.querySelector('#dialog .run-quests-off [data-act="barter-quest-pull"]').click()); await wait(1500);
-	assert.ok(await page.$(`#dialog .run-stop.quest [data-act="barter-quest-skip"][data-quest="${far}"]`), 'a stop put in for it');
-	await page.evaluate(id => document.querySelector(`#dialog .run-stop.quest [data-act="barter-quest-skip"][data-quest="${id}"]`).click(), far); await wait(1500);
-	assert.equal(await count(page, `#dialog .run-stop.quest [data-quest="${far}"]`), 0, 'and taken out again');
-	await page.evaluate(id => document.querySelector(`#dialog [data-act="barter-quest-unskip"][data-quest="${id}"]`).click(), far); await wait(1200);
+	const far = await page.$eval('.run-quests-off [data-act="barter-quest-pull"]', el => el.dataset.quest);
+	await page.evaluate(() => document.querySelector('.run-quests-off [data-act="barter-quest-pull"]').click()); await wait(1500);
+	assert.ok(await page.$(`.run-stop.quest [data-act="barter-quest-skip"][data-quest="${far}"]`), 'a stop put in for it');
+	await page.evaluate(id => document.querySelector(`.run-stop.quest [data-act="barter-quest-skip"][data-quest="${id}"]`).click(), far); await wait(1500);
+	assert.equal(await count(page, `.run-stop.quest [data-quest="${far}"]`), 0, 'and taken out again');
+	await page.evaluate(id => document.querySelector(`[data-act="barter-quest-unskip"][data-quest="${id}"]`).click(), far); await wait(1200);
 	// With a short way round: stops put in for takers close by.
-	await page.select('[data-act="barter-quests"]', 'yes'); await wait(1500);
-	assert.ok(await count(page, '#dialog .run-stop.quest') > 0, 'stops put in');
+	await toPlan(page);
+	await page.evaluate(() => document.querySelector('[data-act="barter-order"][data-k="barter-quests"][data-v="yes"]').click()); await wait(1500);
+	await laidOut(page);
+	assert.ok(await count(page, '.run-stop.quest') > 0, 'stops put in');
 	// A quest left out by hand goes to the off-the-way list, and comes back from there.
-	const first = await page.$eval('#dialog .run-quests-home .run-quest [data-act="barter-quest-skip"]', el => el.dataset.quest);
-	await page.evaluate(() => document.querySelector('#dialog .run-quests-home .run-quest [data-act="barter-quest-skip"]').click()); await wait(1200);
-	assert.equal(await page.evaluate(id => [...document.querySelectorAll('#dialog .run-quests-home [data-act="barter-quest-skip"]')].some(el => el.dataset.quest === id), first), false, 'left out');
-	assert.ok(await page.$(`#dialog [data-act="barter-quest-unskip"][data-quest="${first}"]`), 'listed off the way, with the way back');
-	await page.evaluate(id => document.querySelector(`#dialog [data-act="barter-quest-unskip"][data-quest="${id}"]`).click(), first); await wait(1200);
-	assert.ok(await page.$(`#dialog [data-act="barter-quest-skip"][data-quest="${first}"]`), 'taken back in');
+	const first = await page.$eval('.run-quests-home .run-quest [data-act="barter-quest-skip"]', el => el.dataset.quest);
+	await page.evaluate(() => document.querySelector('.run-quests-home .run-quest [data-act="barter-quest-skip"]').click()); await wait(1200);
+	assert.equal(await page.evaluate(id => [...document.querySelectorAll('.run-quests-home [data-act="barter-quest-skip"]')].some(el => el.dataset.quest === id), first), false, 'left out');
+	assert.ok(await page.$(`[data-act="barter-quest-unskip"][data-quest="${first}"]`), 'listed off the way, with the way back');
+	await page.evaluate(id => document.querySelector(`[data-act="barter-quest-unskip"][data-quest="${id}"]`).click(), first); await wait(1200);
+	assert.ok(await page.$(`[data-act="barter-quest-skip"][data-quest="${first}"]`), 'taken back in');
 	// The quest's name leads to its row on the Quests tab.
-	assert.ok(await page.$(`#dialog .run-quest [data-act="view"][data-id="quests"][data-quest="${first}"]`));
-	// Sailing from inside the sheet lands on the Map: the route drawn on
-	// the chart, the chart's panel now the same sheet -- the rows, the
-	// hold and the Parley after each stop, Done -- and a stop ticked
-	// off cheers and steps the chart to the next.
-	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-sail"]').click()); await wait(2500);
-	assert.equal(await page.evaluate(() => location.hash), '#map', 'sailing is done on the Map');
-	assert.ok(await page.$('.map-run .sail-bar.sailing'), 'the run is being sailed, on the chart\'s panel');
-	assert.ok(await count(page, '.map-run .run-stop') > 0, 'the rows are the run popup\'s');
-	assert.ok(await page.$('.map-run .run-stop .run-parley'), 'with the Parley bar under the hold');
-	assert.ok(await page.$('.map-run .run-stop[data-step-row]'), 'each row a step of the chart');
-	await page.evaluate(() => document.querySelector('.map-run [data-act="barter-stop-done"]').click()); await wait(300);
+	assert.ok(await page.$(`.run-quest [data-act="view"][data-id="quests"][data-quest="${first}"]`));
+	// Casting off opens the cockpit: one stop at a time, the rest of the
+	// run beside it, and the press that ticks this one off.
+	await page.evaluate(() => document.querySelector('[data-act="barter-cast-off"]').click()); await wait(2500);
+	assert.ok(await page.$('.barter-screen.step-sail'), 'the run is under way, on its own step');
+	assert.ok(await page.$('.cockpit .cockpit-go'), 'with one thing to press');
+	assert.ok(await count(page, '.rest-row') > 0, 'and the rest of the run beside it');
+	const wasAt = await text(page, '.cockpit-place');
+	// The burst of light is gone in a second, so it is looked for first.
+	await page.evaluate(() => document.querySelector('.cockpit-go').click()); await wait(300);
 	assert.ok(await page.$('.cheer'), 'a burst of light for the stop done');
 	await wait(1000);
-	assert.match(await text(page, '.map-run .sail-n'), /1 of \d+ stops done/);
-	assert.equal(await page.evaluate(async () => (await import('/js/map/state.js')).mv.stepIdx), 1, 'the chart stepped on to the next stop');
+	assert.notEqual(await text(page, '.cockpit-place'), wasAt, 'and the cockpit moves on to the next stop');
+	assert.match(await text(page, '.cockpit-foot .sail-n'), /1 of \d+ stops done/);
 	// The rest at once: asked in place which of it, then every stop ticked and every quest handed in.
-	await page.evaluate(() => document.querySelector('.map-run [data-act="barter-sail-all"]').click()); await wait(800);
-	assert.match(await text(page, '.map-run .sail-all'), /Tick off, all at once.*every stop.*the quests handed in/i);
-	await page.evaluate(() => document.querySelector('.map-run [data-act="barter-sail-all-go"]').click()); await wait(1500);
-	const allText = await text(page, '.map-run .sail-n');
+	await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all"]').click()); await wait(800);
+	assert.match(await text(page, '.sail-all'), /Tick off, all at once.*every stop.*the quests handed in/i);
+	await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all-go"]').click()); await wait(1500);
+	const allText = await text(page, '.sail-n');
 	assert.match(allText, /(\d+) of \1 stops done/, allText);
-	// A quest with a pick-one reward not remembered stays open, to be asked; every other is handed in.
-	assert.equal(await page.evaluate(() => [...document.querySelectorAll('.map-run .run-quest:not(.hunt):not(.off):not(.done)')].length), await page.evaluate(async () => { const { questById } = await import('/js/quests.js'); return [...document.querySelectorAll('.map-run .run-quest:not(.hunt):not(.off):not(.done) [data-quest]')].map(el => el.dataset.quest).filter((id, i, a) => a.indexOf(id) === i).filter(id => questById[id] && questById[id].choice).length; }), 'only the pick-one rewards not remembered are left open');
-	await page.evaluate(() => document.querySelector('.map-run [data-act="barter-sail-drop"]').click()); await wait(800);
-	assert.equal(await count(page, '.map-run'), 0, 'the panel is the plotting tool again');
-	// Back on the Barter tab the sheet opens as before.
-	await page.evaluate(() => document.querySelector('.tab[data-id="barter"]').click()); await wait(1500);
-	await page.evaluate(() => document.querySelector('[data-act="barter-run-open"]').click()); await wait(1500);
-	assert.ok(await page.$('#dialog [data-act="barter-chart"]'), 'and the way to the chart');
-	// A chain unticked from inside the sheet: the sheet stays, one chain fewer.
-	await page.evaluate(() => document.querySelector('#dialog .run-seg-head [data-act="barter-chain"]').click()); await wait(1500);
-	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), false, 'still up');
-	assert.equal(await count(page, '#dialog .run-seg'), 1);
+	// Every stop ticked, the step says so and points at the results.
+	assert.match(await text(page, '.all-ticked'), /Every stop is ticked/i);
+	// The results: the figures, the stops one under another, and the
+	// receipt of what recording will change.
+	await page.evaluate(() => [...document.querySelectorAll('[data-act="barter-step"][data-id="results"]')].find(e => e.getBoundingClientRect().width > 0).click()); await wait(1500);
+	assert.match(await text(page, '.run-tiles'), /Stops[\s\S]*Trades made[\s\S]*Parley spent/i);
+	assert.ok(await count(page, '.log-row') > 0, 'the stops one under another');
+	assert.match(await text(page, '.receipt-cols'), /You spent[\s\S]*You got/i);
+	assert.ok(await page.$('[data-act="barter-record"]'), 'and the press that writes it down');
+	// The checklist dropped: back to the plan, and the run is a plan again.
+	await page.evaluate(() => document.querySelector('[data-act="barter-sail-drop"]').click()); await wait(1200);
+	assert.ok(await page.$('.barter-screen.step-plan'));
+	assert.equal(await count(page, '.cockpit'), 0);
+	// A chain unticked from the plan: one chain fewer on the strip.
+	await page.evaluate(() => document.querySelector('.chain.on').click()); await wait(1500);
 	assert.match(await text(page, '.run-dock'), /1 chain\b/);
-	await page.keyboard.press('Escape'); await wait(300);
-	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), true);
 	assert.deepEqual(errors, []);
 	await context.close();
 });
@@ -1980,7 +2024,7 @@ test('the material run is one route through every island ticked: a full run goes
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
 	await page.evaluate(async () => {
 		const store = await import('/js/state.js');
-		store.setView('barter', { goal: 'material', item: "Violent Sea Monster's Scale", qty: 999, port: 1, matOrders: { reach: 'all', calls: true, pace: 'full', quests: 'no' } });
+		store.setView('barter', { goal: 'material', item: "Violent Sea Monster's Scale", qty: 999, port: 1, planSec: 'all', advOpen: true, matOrders: { reach: 'all', calls: true, pace: 'full', quests: 'no' } });
 		store.flush();
 	});
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.mat-list.hero', { timeout: 15000 });
@@ -2011,34 +2055,37 @@ test('the material run is one route through every island ticked: a full run goes
 	};
 	await tickAll("Statue's Tear"); await tickAll('Faded Gold Dragon Figurine');
 	await laidOut(page);
-	let stops = await page.$$eval('#dialog .run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
+	let stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
 	assert.equal(stops.filter(n => n !== 'Velia wharf').length, 11, `eleven islands, each once: ${stops.join(', ')}`);
 	assert.equal(stops.filter(n => n === 'Velia wharf').length, 2, `two departures from Velia: ${stops.join(', ')}`);
 	assert.equal(stops[0], 'Velia wharf', 'the first stop loads at the harbour');
+	assert.match(await text(page, '.run-seg-head'), /22 trades/);
+	assert.equal(await count(page, '.run-list.amber'), 0, 'nothing stays ashore on a full run');
+	await toPlan(page);
 	assert.match(await text(page, '.mat-figs'), /2 departures/);
-	assert.match(await text(page, '#dialog .run-seg-head'), /22 trades/);
-	assert.equal(await count(page, '#dialog .run-list.amber'), 0, 'nothing stays ashore on a full run');
 	// The hold never over the barter ceiling, on any stop. Read off the
 	// hull and the constant: pinning the number here is how this test
 	// came to be asserting a ceiling the app had stopped using.
 	const DEAL = Math.round(shipStats['Epheria Caravel'].weight * BARTER_OVER);
-	const holds = await page.$$eval('#dialog .run-stop .run-hold > div:first-child b', els => els.map(el => Number(el.textContent.split('/')[0].replace(/[^\d]/g, ''))));
+	const holds = await page.$$eval('.run-stop .run-hold > div:first-child b', els => els.map(el => Number(el.textContent.split('/')[0].replace(/[^\d]/g, ''))));
 	assert.ok(holds.every(w => w <= DEAL), `${holds.join(', ')} against ${DEAL}`);
 	// Fast: one departure under the limit the ship still sails fast at.
+	await toPlan(page);
 	await page.select('[data-act="barter-mat-pace"]', 'fast'); await wait(500);
 	await laidOut(page);
-	stops = await page.$$eval('#dialog .run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
+	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
 	assert.equal(stops.filter(n => n === 'Velia wharf').length, 1, `one departure: ${stops.join(', ')}`);
 	assert.ok(stops.length < 12, 'fewer islands than a full run');
-	assert.equal(await count(page, '#dialog .run-list.amber'), 1, 'what stayed ashore is said');
-	assert.match(await text(page, '#dialog .run-list.amber'), /Stays ashore/i);
-	const fastHolds = await page.$$eval('#dialog .run-stop .run-hold > div:first-child b', els => els.map(el => Number(el.textContent.split('/')[0].replace(/[^\d]/g, ''))));
+	assert.equal(await count(page, '.run-list.amber'), 1, 'what stayed ashore is said');
+	assert.match(await text(page, '.run-list.amber'), /Stays ashore/i);
+	const fastHolds = await page.$$eval('.run-stop .run-hold > div:first-child b', els => els.map(el => Number(el.textContent.split('/')[0].replace(/[^\d]/g, ''))));
 	const FREE = shipStats['Epheria Caravel'].weight;
 	assert.ok(fastHolds.every(w => w <= FREE), `${fastHolds.join(', ')} against ${FREE}`);
 	// The way back to the full run is on the panel.
-	await page.evaluate(() => document.querySelector('#dialog [data-act="barter-mat-pace-set"]').click()); await wait(500);
+	await page.evaluate(() => document.querySelector('[data-act="barter-mat-pace-set"]').click()); await wait(500);
+	assert.equal(await count(page, '.run-list.amber'), 0);
+	await toPlan(page);
 	assert.equal(await page.$eval('[data-act="barter-mat-pace"]', el => el.value), 'full');
-	assert.equal(await count(page, '#dialog .run-list.amber'), 0);
 	assert.deepEqual(errors, []);
 	await context.close();
 });
@@ -2050,7 +2097,7 @@ test('before casting off: a gold bar an island takes is bought ashore and priced
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
 	await page.evaluate(async () => {
 		const store = await import('/js/state.js');
-		store.setView('barter', { goal: 'material', item: 'Golden Turtle Shell', qty: 4, port: 1, matOrders: { reach: 'want', calls: true, pace: 'full', quests: 'no' } });
+		store.setView('barter', { goal: 'material', item: 'Golden Turtle Shell', qty: 4, port: 1, planSec: 'all', advOpen: true, matOrders: { reach: 'want', calls: true, pace: 'full', quests: 'no' } });
 		store.flush();
 	});
 	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.mat-list.hero', { timeout: 15000 });
@@ -2063,34 +2110,35 @@ test('before casting off: a gold bar an island takes is bought ashore and priced
 	await wait(500);
 	const tickFor = give => page.evaluate(g => { const grp = [...document.querySelectorAll('.mat-give')].find(el => el.querySelector('.mat-give-head b').textContent.includes(g)); grp.querySelector('[data-act="barter-mat-tick"]').click(); }, give);
 	await tickFor('Gold Bar 100G'); await wait(400);
-	await laidOut(page);
-	let stops = await page.$$eval('#dialog .run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
-	assert.equal(stops.length, 1, `one island, no harbour call: ${stops.join(', ')}`);
 	assert.match(await text(page, '.mat-figs'), /20m to buy ashore first/i);
-	const before = await text(page, '#dialog .run-list.amber');
+	await laidOut(page);
+	let stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
+	assert.equal(stops.length, 1, `one island, no harbour call: ${stops.join(', ')}`);
+	const before = await text(page, '.run-list.amber');
 	assert.match(before, /Before casting off/i);
 	assert.match(before, /2× Gold Bar 100G.*buy ashore.*storage keeper.*20m/i);
-	assert.equal(await count(page, '#dialog .run-list.orange'), 0, 'nothing to climb for');
+	assert.equal(await count(page, '.run-list.orange'), 0, 'nothing to climb for');
 	// A second material whose give sits at Heidel.
+	await toPlan(page);
 	await page.evaluate(() => document.querySelector('[data-act="barter-mat-add"]').click()); await wait(300);
 	await page.type('.picker-in', 'Golden Galley Figurine'); await wait(150);
 	await page.keyboard.press('Enter'); await wait(500);
 	await tickFor('Amethyst Fragment'); await wait(400);
 	await laidOut(page);
-	const bring = await text(page, '#dialog .run-list.amber');
+	const bring = await text(page, '.run-list.amber');
 	assert.match(bring, /Amethyst Fragment.*at Heidel \(2\).*bring it to Velia/i);
-	stops = await page.$$eval('#dialog .run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
+	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
 	assert.equal(stops.length, 3, `the route is laid out all the same, the give assumed in Velia's storage: ${stops.join(', ')}`);
 	assert.equal(stops[0], 'Velia wharf|wharf');
 	// Moved to Velia, the give is loaded at the first stop and the island joins the route.
 	await page.evaluate(async () => { const store = await import('/js/state.js'); store.setStockAt('[Level 4] Amethyst Fragment', 'Heidel', 0, 'moved'); store.setStockAt('[Level 4] Amethyst Fragment', 'Velia', 2, 'moved'); });
 	await wait(500);
 	await laidOut(page);
-	stops = await page.$$eval('#dialog .run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
+	stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent + (s.classList.contains('wharf') ? '|wharf' : '')));
 	assert.equal(stops[0], 'Velia wharf|wharf', `loads at Velia first: ${stops.join(', ')}`);
 	assert.equal(stops.length, 3, stops.join(', '));
-	assert.match(await text(page, '#dialog .run-stop.wharf'), /Loads from storage.*Amethyst Fragment/i);
-	assert.doesNotMatch(await text(page, '#dialog .run-list.amber'), /Amethyst/);
+	assert.match(await text(page, '.run-stop.wharf'), /Loads from storage.*Amethyst Fragment/i);
+	assert.doesNotMatch(await text(page, '.run-list.amber'), /Amethyst/);
 	assert.deepEqual(errors, []);
 	await context.close();
 });

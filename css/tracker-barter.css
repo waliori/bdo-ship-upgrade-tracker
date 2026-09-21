@@ -34,7 +34,7 @@
 /* The run's strip along the foot of the page while something is
    ticked: it stays in view above the phone's section bar as the chains
    or the islands are ticked, and opens the run laid out over the page. */
-.run-dock { position: sticky; bottom: calc(var(--tabbar-h, 0px) + 10px); z-index: 20; display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; padding: 9px 12px 9px 16px; border-radius: var(--r-panel); background: rgba(var(--deep-rgb), 0.96); border: 1px solid rgba(var(--blue-rgb), 0.45); box-shadow: 0 10px 34px rgba(var(--shade-rgb), 0.5); backdrop-filter: blur(8px); }
+.run-dock, .load-dock { position: sticky; bottom: calc(var(--tabbar-h, 0px) + 10px); z-index: 20; display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; padding: 9px 12px 9px 16px; border-radius: var(--r-panel); background: rgba(var(--deep-rgb), 0.96); border: 1px solid rgba(var(--blue-rgb), 0.45); box-shadow: 0 10px 34px rgba(var(--shade-rgb), 0.5); backdrop-filter: blur(8px); }
 .run-dock-k { font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue); white-space: nowrap; }
 .run-dock-figs { flex: 1 1 200px; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--ink-mute); }
 .run-dock-figs > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
@@ -755,4 +755,313 @@ ul.lb-readers.flat { margin: 0 0 12px; }
   .lb-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
   .lb-tiles { grid-template-columns: 1fr; }
   .lb-tabs { top: -16px; margin: 0 -16px 4px; padding: 8px 16px; overflow-x: auto; flex-wrap: nowrap; }
+}
+
+/* ==== The tab as four steps: plan, load, sail, results ============== */
+
+/* The steps across the head of the page. Each says where it is, so the
+   row doubles as the answer to "how far along am I": the plan's
+   sentence, the count of things to fetch, the stop the ship is at. */
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.step { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 10px 14px; text-align: left; border-radius: var(--r-tile); border: 1px solid var(--line); background: var(--panel-strong); color: inherit; cursor: pointer; opacity: 0.75; }
+.step:hover { border-color: var(--line-btn); opacity: 1; }
+.step.past { opacity: 1; }
+.step.on { opacity: 1; border-color: var(--teal-edge); background: var(--teal-glow); }
+.step-k { font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+.step > b { font-family: var(--font-display); font-size: 17px; font-weight: 600; color: var(--ink-hi); line-height: 1.15; }
+/* Two lines at most, and clipped there. A button is its own flex
+   container, where a nowrap line does not take the ellipsis and spills
+   out of the card instead. */
+.step-sub { font-size: 12px; line-height: 1.35; color: var(--ink-mute); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.step.on .step-k { color: var(--teal); }
+.step-empty { margin: 0; }
+
+/* A run under way, on every step but its own. */
+.under-way { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; width: 100%; padding: 9px 16px; border-radius: var(--r-tile); border: 1px solid var(--teal-edge); background: var(--teal-glow); color: inherit; font-size: 13px; cursor: pointer; text-align: left; }
+.under-way > i { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--teal); animation: under-way-pulse 1.6s infinite; }
+.under-way > b { font-family: var(--font-display); letter-spacing: 0.04em; color: var(--teal); text-transform: uppercase; font-size: 12px; }
+.under-way .amber { color: var(--amber); }
+@keyframes under-way-pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .under-way > i { animation: none; } }
+
+/* What the last Record came to, until the next run is cast off. */
+.recorded-strip { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 9px 12px 9px 16px; border-radius: var(--r-tile); border: 1px solid var(--line); background: var(--panel-inset); font-size: 13px; }
+.recorded-strip > i { color: var(--teal); font-style: normal; }
+.recorded-strip b.gold { font-family: var(--font-display); color: var(--amber); }
+.recorded-line { margin: 14px 0 0; font-size: 13px; color: var(--teal); }
+
+/* ---- the board: a line of facts, or a place to paste a screenshot -- */
+.board-strip { display: flex; flex-direction: column; gap: 6px; padding: 10px 16px; border-radius: var(--r-tile); border: 1px solid var(--line); background: var(--panel-strong); }
+.board-strip-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.board-strip-k { font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+.board-strip-sub, .board-ask-sub { margin: 0; font-size: 12.5px; color: var(--ink-mute); }
+.board-strip-acts { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.board-strip-seen { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.board-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line-btn); font-size: 12.5px; color: var(--ink-hi); background: none; }
+.board-pill > i { font-style: normal; color: var(--teal); }
+.board-pill.ok { border-color: var(--teal-edge); }
+.board-pill.lead { font-family: var(--font-display); font-weight: 600; }
+/* A figure nobody has read or typed. Dashed, because the app is
+   guessing, and a button, because one tap settles it. */
+.board-pill.guess { border-style: dashed; border-color: var(--amber); color: var(--amber); cursor: pointer; }
+.board-ask-lead { font-weight: 600; color: var(--ink-hi); }
+.board-drop { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 30px 20px; text-align: center; border-radius: var(--r-tile); border: 1px dashed var(--line-btn-hi); background: var(--panel-inset); color: inherit; cursor: pointer; }
+.board-drop:hover { border-color: var(--blue); }
+.board-drop > b { font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--ink-hi); }
+.board-drop > span { font-size: 12.5px; color: var(--ink-mute); max-width: 56ch; margin: 0 auto; }
+.board-drop kbd { font-family: var(--font-display); border: 1px solid var(--line-btn); border-radius: 5px; padding: 1px 6px; color: var(--ink-hi); }
+.board-ask-acts { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.board-ask-or { font-size: 12.5px; color: var(--ink-faint); }
+
+/* ---- the plan, in three parts ------------------------------------- */
+.plan-fold { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 4px; font-size: 12px; color: var(--ink-faint); }
+.plan-sec { overflow: hidden; }
+.plan-sec-head { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 18px; background: none; border: 0; color: inherit; text-align: left; cursor: pointer; }
+.plan-sec-head > i { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex: none; border-radius: 50%; border: 1px solid var(--line-btn); background: var(--panel-inset); font-family: var(--font-display); font-size: 12px; font-style: normal; color: var(--ink-hi); }
+.plan-sec-head > b { font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--blue); white-space: nowrap; }
+.plan-sec-head > span { flex: 1; min-width: 0; font-size: 12.5px; color: var(--ink-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plan-sec-head > em { flex: none; font-style: normal; color: var(--ink-faint); }
+.plan-sec.open .plan-sec-head > i { border-color: var(--blue); color: var(--blue); }
+.plan-sec-body { padding: 4px 18px 18px; }
+.plan-next { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.plan-next .panel-sub { flex: 1 1 200px; min-width: 0; }
+.plan-sub-head { display: flex; flex-direction: column; gap: 2px; margin: 16px 0 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+.plan-sub-head > b { font-family: var(--font-display); font-size: 15px; color: var(--ink-hi); }
+.plan-sub-head > span { font-size: 12px; color: var(--ink-mute); }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .plan-sec-head { padding: 10px 12px; gap: 8px; }
+  .plan-sec-head > span { flex-basis: 100%; order: 4; }
+  .plan-sec-body { padding: 4px 12px 14px; }
+}
+
+/* ---- the ladder: the goal, the ceiling, the sell rule and the floors
+   as one picture of the same climb ---------------------------------- */
+.ladder-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ladder-copy { margin: 12px 0 14px; font-size: 13px; color: var(--ink-mute); }
+.ladder { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; position: relative; padding-top: 4px; }
+/* The line the rungs sit on, behind their nodes. */
+.ladder::before { content: ""; position: absolute; left: 6%; right: 6%; top: 24px; height: 2px; background: var(--line-btn); }
+.rung { display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; position: relative; }
+.rung.dim { opacity: 0.55; }
+.rung-node { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex: none; border-radius: 50%; border: 2px solid var(--tier, var(--line-btn)); background: var(--tier, var(--panel-inset)); color: var(--on-tint); font-family: var(--font-display); font-size: 17px; font-weight: 600; cursor: pointer; position: relative; z-index: 1; }
+.rung.dim .rung-node { background: var(--panel-inset); border-color: var(--line-btn); color: var(--ink-faint); }
+.rung.top .rung-node { border-color: var(--ink-hi); box-shadow: 0 0 0 4px var(--teal-glow), 0 0 16px var(--tier); }
+.rung.shore .rung-node { background: var(--panel-inset); border-color: var(--line-btn); color: var(--ink-mute); cursor: default; }
+.rung-name { font-size: 11.5px; color: var(--ink-hi); text-align: center; }
+.rung-name.coin { color: var(--amber); }
+.rung-held { font-size: 11.5px; color: var(--ink-mute); text-align: center; line-height: 1.3; }
+.rung-fate { min-width: 68px; padding: 3px 10px; border-radius: 999px; border: 1px solid transparent; background: none; font-family: var(--font-display); font-size: 11.5px; text-align: center; color: var(--ink-faint); }
+.rung-fate.mute { color: var(--ink-faint); }
+.rung-fate.teal { border-color: var(--teal); color: var(--teal); }
+.rung-fate.gold { border-color: var(--amber); background: var(--amber); color: var(--on-tint); }
+.rung-fate.off { border: 1px dashed var(--line); opacity: 0.7; }
+.rung-fate.none { visibility: hidden; }
+button.rung-fate { cursor: pointer; }
+.rung-keep { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--ink-faint); }
+.rung-keep .purse-inline { width: 42px; text-align: center; }
+.rung-keep.set { color: var(--amber); }
+.rung-keep.none { height: 22px; }
+.rung-note { font-size: 11px; color: var(--ink-faint); text-align: center; }
+.rung-note.full { color: var(--teal); }
+.rung-coin-line { width: 2px; height: 14px; background: var(--amber); opacity: 0.6; }
+.rung-node.coin { border-color: var(--amber); background: var(--panel-inset); }
+.rung-node.coin.on { background: var(--amber); box-shadow: 0 0 0 4px var(--teal-glow), 0 0 16px var(--amber); }
+.rung-coin { width: 22px; height: 22px; }
+.ladder-hint { margin: 12px 0 0; font-size: 11.5px; color: var(--ink-faint); }
+.ladder-hint b.gold { color: var(--amber); }
+.ladder-hint b.teal { color: var(--teal); }
+.ladder-aim { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.ladder-foot { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.ladder-goal { font-family: var(--font-display); font-size: 19px; line-height: 1.2; color: var(--ink-hi); text-wrap: balance; }
+.ladder-tiles { margin-top: 12px; }
+/* Eight rungs will not sit across a phone: the ladder scrolls sideways
+   with each rung wide enough to read, and keeps its shape. */
+@media (max-width: 860px) {
+  .ladder { grid-template-columns: repeat(8, 104px); overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 6px; margin: 0 -12px; padding-left: 12px; padding-right: 12px; }
+  .ladder::before { left: 60px; right: 60px; }
+  .rung { scroll-snap-align: center; }
+}
+
+/* ---- how to sail it ----------------------------------------------- */
+.preset-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.preset-card { display: flex; flex-direction: column; gap: 5px; padding: 12px 14px; text-align: left; border-radius: var(--r-tile); border: 1px solid var(--line-btn); background: var(--panel-inset); color: inherit; cursor: pointer; }
+.preset-card.on { border-color: var(--blue); background: var(--blue-glow); }
+.preset-name { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--ink-hi); }
+.preset-name > i { width: 12px; height: 12px; flex: none; border-radius: 50%; border: 2px solid var(--line-btn-hi); }
+.preset-card.on .preset-name > i { border-color: var(--blue); background: var(--blue); }
+.preset-line { font-size: 12.5px; color: var(--ink-mute); padding-left: 20px; }
+.adv-toggle { display: inline-block; margin-top: 12px; }
+.order-rows { margin-top: 10px; border-top: 1px solid var(--line); }
+.order-row { display: grid; grid-template-columns: minmax(110px, 160px) minmax(0, 1fr); gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
+.order-k { font-size: 13px; color: var(--ink-mute); }
+.order-v { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.order-v .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.order-v .select { max-width: 280px; }
+.order-v .run-pauses { flex-direction: row; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .order-row { grid-template-columns: 1fr; gap: 6px; }
+}
+
+/* The chain list's own line of actions, where its panel head was. */
+.chain-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+
+/* ---- the wharf: the packing list ---------------------------------- */
+.pack-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; align-items: start; }
+.pack-group { overflow: hidden; }
+.pack-group .empty { margin: 0; padding: 14px 16px; }
+.pack-row { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap; padding: 10px 16px; border-top: 1px solid var(--line-soft); }
+.pack-row.on { opacity: 0.6; }
+.pack-box { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; flex: none; border-radius: 7px; border: 1px solid var(--line-btn-hi); background: none; color: var(--on-tint); font-size: 15px; cursor: pointer; }
+.pack-box.on { border-color: var(--teal); background: var(--teal); }
+.pack-icon { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; flex: none; border-radius: var(--r-icon); border: 1px solid var(--tier, var(--line-btn)); background: var(--panel-inset); }
+.pack-icon .row-icon { width: 30px; height: 30px; }
+.pack-what { flex: 1 1 130px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pack-what > b { color: var(--ink-hi); font-weight: 600; line-height: 1.2; }
+.pack-what > em { font-style: normal; font-size: 12px; color: var(--ink-mute); }
+.pack-n { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.pack-n > b { font-family: var(--font-display); font-size: 21px; line-height: 1; color: var(--ink-hi); }
+.pack-n > em { font-style: normal; font-size: 11.5px; color: var(--ink-mute); }
+.pack-act { flex: none; display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.hold-over { margin-bottom: 0; }
+.route-fold > summary { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 18px; cursor: pointer; }
+.route-fold > summary > b { font-family: var(--font-display); font-size: 15px; color: var(--ink-hi); }
+.route-fold[open] > summary { border-bottom: 1px solid var(--line); }
+.run-shelves.after { display: block; }
+.load-dock .run-dock-figs { flex: 1 1 auto; justify-content: flex-end; }
+/* `.act` grows to fill a row by default, which is right in a dialog's
+   line of buttons and wrong on a strip where it is one thing among
+   several. */
+.load-dock .act, .plan-next .act, .all-ticked .act, .receipt-acts .act { flex: none; }
+
+/* ---- the cockpit: one stop at a time ------------------------------- */
+.cockpit-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); gap: 12px; align-items: start; }
+.cockpit-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.cockpit .panel-body { display: flex; flex-direction: column; gap: 16px; }
+/* The clock is its own row under the head: it carries five or six
+   chips of its own, and squeezed onto the title line it pushed the one
+   thing this panel is for -- the stop -- out of the way. */
+.cockpit-clock { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 18px; border-bottom: 1px solid var(--line); }
+.cockpit-place { font-family: var(--font-display); font-size: 32px; line-height: 1.1; color: var(--ink-hi); text-wrap: balance; }
+.cockpit-who { margin-top: 3px; font-size: 13px; color: var(--ink-mute); }
+.cockpit-trade { display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 14px; align-items: center; padding: 16px; border-radius: var(--r-tile); background: var(--panel-inset); }
+.cockpit-good { display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; min-width: 0; }
+.cockpit-good > b { font-size: 13px; font-weight: 600; color: var(--ink-mid); }
+.cockpit-good > em { font-style: normal; font-size: 11.5px; color: var(--ink-faint); }
+.cockpit-good.get > b { color: var(--tier, var(--ink-hi)); }
+.cockpit-icon { display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 14px; border: 1px solid var(--tier, var(--line-btn)); background: var(--panel-strong); }
+.cockpit-img { width: 60px; height: 60px; }
+.cockpit-arrow { font-family: var(--font-display); font-size: 28px; color: var(--ink-mute); }
+.cockpit-times { text-align: center; }
+.cockpit-times > b { font-family: var(--font-display); font-size: 40px; line-height: 1; color: var(--ink-hi); }
+.cockpit-times > span { display: block; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+.cockpit-call { padding: 14px 16px; border-radius: var(--r-tile); background: var(--panel-inset); }
+.cockpit-figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.cockpit-fig { padding: 11px 14px; border-radius: var(--r-tile); background: var(--panel-inset); }
+.cockpit-fig-k { display: flex; justify-content: space-between; gap: 8px; font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.cockpit-fig-v { display: flex; align-items: baseline; gap: 7px; margin: 4px 0 7px; font-family: var(--font-display); }
+.cockpit-fig-v > span { font-size: 16px; color: var(--ink-mute); }
+.cockpit-fig-v > i { font-style: normal; color: var(--ink-faint); }
+.cockpit-fig-v > b { font-size: 24px; color: var(--ink-hi); }
+.cockpit-fig-v > b.warn { color: var(--red); }
+.cockpit-fig-v > b.amber { color: var(--amber); }
+.cockpit-ask { margin: 0; font-size: 12.5px; color: var(--ink-mute); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cockpit-ask .guess { color: var(--amber); border-bottom: 1px dashed var(--amber); }
+.cockpit-ask .teal { color: var(--teal); }
+.cockpit-press { display: flex; gap: 10px; flex-wrap: wrap; }
+/* The one thing to press at this stop, sized for a hand at a keyboard
+   with the game in front of it. */
+.cockpit-go { flex: 1 1 200px; padding: 18px; border-radius: var(--r-tile); border: 0; background: var(--teal); color: var(--on-tint); font-family: var(--font-display); font-size: 20px; font-weight: 600; text-align: center; cursor: pointer; }
+.cockpit-go:hover { filter: brightness(1.06); }
+.cockpit-go.done { background: none; border: 1px solid var(--line-btn); color: var(--ink-mute); font-size: 15px; padding: 12px; }
+.cockpit-under { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-faint); }
+.cockpit-next { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 11px 18px; border-radius: var(--r-tile); border: 1px dashed var(--line-btn); font-size: 12.5px; color: var(--ink-mute); }
+.cockpit-next > b { color: var(--ink-hi); }
+.cockpit-next-k { font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.tiered { color: var(--tier, var(--ink-hi)); }
+.all-ticked { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 18px; border-radius: var(--r-tile); border: 1px solid var(--teal-edge); background: var(--teal-glow); }
+.all-ticked > i { font-style: normal; font-size: 19px; color: var(--teal); }
+.all-ticked > span { flex: 1 1 260px; }
+.cockpit-foot { margin-top: 0; }
+/* Glance mode: the same stop, drawn to be read from across a room. */
+.cockpit.glance .panel-body { align-items: center; text-align: center; gap: 20px; padding-bottom: 26px; }
+.cockpit.glance .cockpit-place { font-size: 46px; }
+.cockpit.glance .cockpit-figs, .cockpit.glance .cockpit-press { width: 100%; max-width: 660px; }
+.cockpit-trade.big { gap: 22px; }
+.cockpit-trade.big .cockpit-icon { width: 104px; height: 104px; border-radius: 20px; }
+.cockpit-trade.big .cockpit-img { width: 88px; height: 88px; }
+.cockpit-trade.big .cockpit-times > b { font-size: 62px; }
+.cockpit-trade.big .cockpit-good > b { font-size: 17px; }
+.cockpit.glance .cockpit-go { font-size: 26px; padding: 22px; }
+
+/* The rest of the run, down the side. */
+.rest-panel { overflow: hidden; }
+.rest-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 10px 14px; border-top: 1px solid var(--line-soft); cursor: pointer; }
+.rest-row.here { background: var(--blue-glow); }
+.rest-row.done { opacity: 0.55; }
+.rest-row.skipped { opacity: 0.4; }
+.rest-dot { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; flex: none; border-radius: 50%; border: 1px solid var(--line-btn); background: none; font-family: var(--font-display); font-size: 12px; color: var(--ink-mute); cursor: pointer; }
+.rest-row.here .rest-dot { border-color: var(--blue); color: var(--ink-hi); }
+.rest-dot.on { border-color: var(--teal); background: var(--teal); color: var(--on-tint); }
+.rest-main { min-width: 0; }
+.rest-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.rest-head > b { color: var(--ink-hi); }
+.rest-head > span { font-size: 12px; color: var(--ink-faint); }
+.rest-what { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 4px; font-size: 12.5px; color: var(--ink-mute); }
+.rest-what b { font-family: var(--font-display); color: var(--ink-hi); }
+.rest-note { margin-top: 3px; font-size: 11.5px; color: var(--amber); }
+.rest-bars { width: 132px; flex: none; display: flex; flex-direction: column; gap: 5px; }
+.rest-leg { font-size: 10.5px; color: var(--ink-faint); text-align: right; }
+.mini-bar > div { display: flex; justify-content: space-between; gap: 6px; font-size: 10.5px; color: var(--ink-faint); }
+.mini-bar > div > b { font-family: var(--font-display); color: var(--ink-mute); }
+.mini-bar > div > b.warn { color: var(--red); }
+.mini-bar > div > b.amber { color: var(--amber); }
+.mini-bar .run-bar { margin-top: 2px; }
+@media (max-width: 900px) {
+  .cockpit-grid { grid-template-columns: 1fr; }
+  .rest-bars { width: 100px; }
+}
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .cockpit-place { font-size: 26px; }
+  .cockpit.glance .cockpit-place { font-size: 32px; }
+  .cockpit-trade { grid-template-columns: 1fr auto 1fr; gap: 10px; padding: 12px; }
+  .cockpit-times { grid-column: 1 / -1; }
+  .cockpit-icon { width: 56px; height: 56px; }
+  .cockpit-img { width: 46px; height: 46px; }
+  .rest-row { grid-template-columns: 26px minmax(0, 1fr); }
+  .rest-bars { grid-column: 2; width: auto; flex-direction: row; align-items: center; gap: 10px; }
+  .mini-bar { flex: 1; }
+  .rest-leg { flex: none; }
+}
+
+/* ---- the results: the figures, the log and the receipt ------------- */
+.results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; align-items: start; }
+.log-panel { overflow: hidden; }
+.log-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 16px; border-top: 1px solid var(--line-soft); }
+.log-row > div { min-width: 0; }
+.log-row b { color: var(--ink-hi); font-weight: 600; }
+.log-row em { display: block; margin-top: 2px; font-style: normal; font-size: 12px; color: var(--ink-mute); }
+.log-row .rest-dot { color: var(--ink-faint); }
+.log-row .rest-dot.on { color: var(--on-tint); }
+.log-right { font-size: 12.5px; color: var(--ink-faint); text-align: right; }
+.log-row.done .log-right { color: var(--ink-mute); }
+.receipt-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.receipt-col { padding: 12px 14px; border-radius: var(--r-tile); background: var(--panel-inset); }
+.receipt-k { font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.receipt-line { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--ink-mute); }
+.receipt-line > b { font-family: var(--font-display); color: var(--ink-hi); text-align: right; }
+.receipt-line > b.gold { color: var(--amber); }
+/* A figure the recorder is guessing at, marked as one. */
+.receipt-line > b.guess { border-bottom: 1px dashed var(--amber); }
+.receipt-net { display: flex; justify-content: space-between; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-family: var(--font-display); }
+.receipt-net > b { font-size: 19px; color: var(--amber); }
+.receipt-net > b.warn { color: var(--red); }
+.receipt-acts { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.receipt-acts .panel-sub { flex: 1 1 180px; }
+.linky.danger { color: var(--red); }
+
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .step { padding: 8px 10px; }
+  .step > b { font-size: 14px; }
+  .pack-groups { grid-template-columns: 1fr; }
 }
