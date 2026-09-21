@@ -767,7 +767,10 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .step:hover { border-color: var(--line-btn); opacity: 1; }
 .step.past { opacity: 1; }
 .step.on { opacity: 1; border-color: var(--teal-edge); background: var(--teal-glow); }
-.step-k { font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+.step-k { display: flex; align-items: baseline; gap: 5px; font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+.step-k > i { font-style: normal; }
+.step-k > i::after { content: " ·"; }
+.step-k > em { font-style: normal; }
 .step > b { font-family: var(--font-display); font-size: 17px; font-weight: 600; color: var(--ink-hi); line-height: 1.15; }
 /* Two lines at most, and clipped there. A button is its own flex
    container, where a nowrap line does not take the ellipsis and spills
@@ -892,6 +895,10 @@ button.rung-fate { cursor: pointer; }
 .preset-card.on .preset-name > i { border-color: var(--blue); background: var(--blue); }
 .preset-line { font-size: 12.5px; color: var(--ink-mute); padding-left: 20px; }
 .adv-toggle { display: inline-block; margin-top: 12px; }
+.order-rows.plain { margin-top: 12px; border-top: 1px solid var(--line); }
+/* What the step before set, said here and settable only there. */
+.from-ladder { display: flex; align-items: baseline; gap: 8px; margin-top: 14px; padding: 9px 12px; border-radius: var(--r-tile); background: var(--panel-inset); font-size: 12.5px; color: var(--ink-mute); }
+.from-ladder > b { color: var(--ink-hi); font-weight: 600; }
 .order-rows { margin-top: 10px; border-top: 1px solid var(--line); }
 .order-row { display: grid; grid-template-columns: minmax(110px, 160px) minmax(0, 1fr); gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
 .order-k { font-size: 13px; color: var(--ink-mute); }
@@ -1060,9 +1067,72 @@ button.rung-fate { cursor: pointer; }
 .receipt-acts .panel-sub { flex: 1 1 180px; }
 .linky.danger { color: var(--red); }
 
+/* ---- a phone: one thing at a time, and nothing spent on chrome ----
+   Four step cards, a board of pills and an eight-rung ladder are a
+   screenful and a half of furniture before the page begins. On a
+   narrow screen the steps shrink to numbers with only the one you are
+   on spelled out, the board's pills and buttons scroll sideways rather
+   than stacking, and the ladder turns on its side: a row a level, read
+   down, which is the shape a phone has room for. */
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .step { padding: 8px 10px; }
-  .step > b { font-size: 14px; }
+  .steps { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px 2px; }
+  .steps::-webkit-scrollbar { display: none; }
+  .step { flex: 0 0 auto; padding: 7px 11px; gap: 0; }
+  .step > b, .step-sub { display: none; }
+  .step:not(.on) .step-k > em { display: none; }
+  .step:not(.on) .step-k > i::after { content: none; }
+  .step.on { flex: 1 1 auto; min-width: 0; }
+  .step.on > b { display: block; font-size: 14px; }
+  .step.on .step-sub { display: -webkit-box; }
+
+  .board-strip { padding: 8px 0 8px 12px; }
+  .board-strip-row { padding-right: 12px; }
+  .board-strip .panel-spacer { display: none; }
+  .board-strip-acts { width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-right: 12px; }
+  .board-strip-acts::-webkit-scrollbar { display: none; }
+  .board-strip-acts > * { flex: 0 0 auto; }
+  /* Where the record of this layout came from is worth reading once
+     and never again; on a phone it is a paragraph in the way. What the
+     count and the sightings shut out stays, because that is about
+     today. */
+  .board-strip-sub { display: none; }
+  /* The strip along the foot keeps to one line: the figures it cannot
+     fit are on the step it leads to. */
+  .run-dock-figs, .load-dock .run-dock-figs { flex-wrap: nowrap; overflow: hidden; }
+  .board-drop { padding: 22px 14px; }
+  .board-drop > b { font-size: 17px; }
+
+  .ladder-head { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 0 12px 2px; }
+  .ladder-head::-webkit-scrollbar { display: none; }
+  .ladder-head > * { flex: 0 0 auto; }
+  .ladder-head .seg { white-space: nowrap; }
+
+  /* The ladder on its side: a row a level. */
+  .ladder { display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; overflow: visible; }
+  .ladder::before { display: none; }
+  .rung { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 8px 10px; padding: 8px 2px; border-top: 1px solid var(--line-soft); }
+  .rung:first-child { border-top: 0; }
+  .rung-node { width: 34px; height: 34px; font-size: 15px; }
+  .rung.top .rung-node { box-shadow: 0 0 0 3px var(--teal-glow); }
+  .rung-name { flex: 0 0 auto; min-width: 64px; text-align: left; font-size: 13px; }
+  .rung-held { flex: 1 1 auto; text-align: left; }
+  .rung-fate { flex: 0 0 auto; min-width: 0; padding: 3px 8px; }
+  .rung-keep { flex: 0 0 auto; }
+  .rung-keep .purse-inline { width: 36px; }
+  .rung-keep.none { display: none; }
+  .rung-note { flex-basis: 100%; text-align: left; padding-left: 44px; }
+  /* The coin branch hangs off Level 4 as its own line under it. */
+  .rung-coin-line { display: none; }
+  .rung-node.coin { margin-left: 44px; }
+  .rung .rung-node.coin { flex-basis: auto; }
+  .rung-name.coin { min-width: 0; }
+
   .pack-groups { grid-template-columns: 1fr; }
+  .pack-row { padding: 9px 12px; }
+  .pack-n > b { font-size: 19px; }
+  .preset-cards { grid-template-columns: 1fr; }
+  .ladder-goal { font-size: 17px; }
+  .ladder-tiles, .cockpit-figs { grid-template-columns: 1fr; }
+  .results-grid { grid-template-columns: 1fr; }
+  .from-ladder { flex-wrap: wrap; }
 }

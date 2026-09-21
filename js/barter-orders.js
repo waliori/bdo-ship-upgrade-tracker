@@ -42,6 +42,48 @@ export const PRESETS = [
 	}
 ];
 
+/**
+ * How a run is sailed, as three ways of going about it.
+ *
+ * These set nothing the ladder sets. What a wharf sells and what is
+ * kept back are the day's goal -- they belong to the rung they are set
+ * on -- and a preset here that reached over and changed them was the
+ * second step quietly undoing the first: a sailor picked Level 7, came
+ * down to choose a pace, and found the climb had moved to Level 5.
+ *
+ * So a preset here is about the sailing and nothing else: how hard the
+ * hull is worked, where the first good comes from, how long the run may
+ * take, and whether the vouchers are drawn on.
+ */
+export const SAIL_PRESETS = [
+	{
+		id: 'quick', label: TT('Quick'),
+		sub: TT('an hour at most, never over the limit, no wharf calls on the way'),
+		orders: { pace: 'fast', hours: 1, vouchers: 'keep', buy: true, landFrom: 'buy' }
+	},
+	{
+		id: 'steady', label: TT('Steady'),
+		sub: TT('every attempt, the hold kept under the limit by calling at a wharf — more calls, full speed'),
+		orders: { pace: 'steady', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy' }
+	},
+	{
+		id: 'full', label: TT('Everything the day allows'),
+		sub: TT('every attempt, the hold loaded past the limit, the whole bar and the vouchers with it'),
+		orders: { pace: 'full', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy' }
+	}
+];
+
+/** The sailing preset these orders are on, or '' when they are on none
+ *  of them: matched on the sailing alone, since that is all one sets. */
+export function sailPresetOf(o) {
+	const hit = SAIL_PRESETS.find(p => p.orders.pace === o.pace
+		&& p.orders.hours === o.hours
+		&& p.orders.vouchers === o.vouchers
+		&& p.orders.buy === o.buy
+		&& p.orders.landFrom === (o.landFrom || 'buy'));
+	return hit ? hit.id : '';
+}
+
 /** What a preset was called before, so a save that names the old one
  *  still lands on the same set of orders. */
 const RENAMED = { stock: 'floor' };

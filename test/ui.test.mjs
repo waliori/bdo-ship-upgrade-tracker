@@ -2017,6 +2017,72 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 	await context.close();
 });
 
+test('the packing list ticks both ways, and what a row says is what its button moves', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }] } });
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.chain', { timeout: 15000 });
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); store.setProfile('barterCount', 4006);
+		// Goods waiting at the harbour the run sails from, so a chain
+		// starts there and the middle pile has something in it.
+		store.setStockAt('[Level 2] Conch Shell Ornament', 'Iliya Island', 20, 'ashore');
+	});
+	await page.waitForFunction(() => document.querySelector('.proposal') && !document.querySelector('.proposals.working'), { timeout: 20000 });
+	// The chain that starts from what is waiting at the wharf.
+	const ticked = await page.evaluate(() => {
+		for (const c of document.querySelectorAll('.chain:not(.on):not([disabled])')) {
+			if (/loaded before casting off/i.test(c.innerText)) { c.click(); return true; }
+		}
+		return false;
+	});
+	assert.ok(ticked, 'a chain that loads from the harbour is on the board');
+	await wait(2500);
+	await laidOut(page);
+	assert.equal(await count(page, '.pack-group'), 3, 'what to buy, what to fetch, what is already aboard');
+	// Every box is a button, and every one of them turns both ways: a
+	// tick that could not be taken off was the list telling the sailor
+	// what they had rather than asking.
+	const keys = await page.$$eval('.pack-box', es => es.map(e => ({ tag: e.tagName, k: e.dataset.k })));
+	assert.ok(keys.length > 0, 'the list has rows');
+	assert.ok(keys.every(x => x.tag === 'BUTTON' && x.k), 'every box is a button with a row of its own');
+	assert.equal(new Set(keys.map(x => x.k)).size, keys.length, 'one row a good, so one box a good');
+	const stateOf = () => page.$$eval('.pack-row', es => es.map(e => e.classList.contains('on')));
+	const first = await stateOf();
+	// By place rather than by key: a key carries brackets and a bar,
+	// which a selector would have to be taught about.
+	const pressAll = async () => { for (let i = 0; i < keys.length; i++) { await page.evaluate(n => document.querySelectorAll('.pack-box')[n].click(), i); await wait(350); } };
+	await pressAll();
+	const flipped = await stateOf();
+	assert.deepEqual(flipped, first.map(x => !x), 'one press turns every row the other way');
+	await pressAll();
+	assert.deepEqual(await stateOf(), first, 'and a second press turns them back');
+	// What a row says and what its button moves are the same number.
+	// Merging two lines of two added the counts for the reader and left
+	// the button on the first line's two.
+	const row = await page.$eval('[data-act="barter-load"]', e => ({ item: e.dataset.item, n: Number(e.dataset.n), town: e.dataset.town, shown: Number(e.closest('.pack-row').querySelector('.pack-n b').textContent.replace(/[^\d.]/g, '')) }));
+	assert.equal(row.n, row.shown, `the row asks for ${row.shown} and the button moves ${row.n}`);
+	const at = () => page.evaluate(async x => (await import('/js/state.js')).stockAt(x.item, x.town), row);
+	const before = await at();
+	await page.evaluate(() => document.querySelector('[data-act="barter-load"]').click()); await wait(2000);
+	assert.equal(await at(), before - row.n, 'and that many leave the storage');
+	// Aboard now, with the way to put them back where they came from.
+	assert.match(await text(page, '.pack-group:last-child'), new RegExp(gameNameOf(row.item), 'i'));
+	await page.evaluate(() => document.querySelector('[data-act="barter-unload"]').click()); await wait(2000);
+	assert.equal(await at(), before, 'put back, every one of them');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+/** A game name as the page prints it, for a regexp. */
+const gameNameOf = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 test('the material run is one route through every island ticked: a full run goes back to the harbour when the hold cannot carry every give, a fast run sails once and says what stayed ashore', async () => {
 	const { page, context, errors } = await open('#barter');
 	// The tab's view is the profile's now: seeded there once the tab has

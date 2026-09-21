@@ -26,7 +26,7 @@ import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, DEFAULT_CAL, 
 import { quests, cadenceOf } from './quests.js';
 import { questDone, wantedQuests, rewardOf } from './screen-quests.js';
 import { layQuests } from './quest-places.js';
-import { PARLEY_UNIT, PRESETS, WAY_CHOICES, QUEST_CHOICES, SELL_CHOICES, LAND_CHOICES, VOUCHER_CHOICES, PAUSE_MAX, HOUR_CHOICES, COUNT_CHOICES, AIM_CHOICES, NOTHING, DEFAULT_STOCK, STOCK_LEVELS, readOrders, readStock, presetOrders, onPreset, stockOrders, yardsticks, countAs, ratioKey } from './barter-orders.js';
+import { PARLEY_UNIT, WAY_CHOICES, QUEST_CHOICES, SELL_CHOICES, LAND_CHOICES, VOUCHER_CHOICES, PAUSE_MAX, HOUR_CHOICES, COUNT_CHOICES, AIM_CHOICES, NOTHING, DEFAULT_STOCK, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf, readOrders, readStock, stockOrders, yardsticks, countAs, ratioKey } from './barter-orders.js';
 import { propose } from './barter-optimizer.js';
 import { coins as coinShop } from './sea_coins.js';
 import { landPrices } from './land-cost.js';
@@ -1270,7 +1270,7 @@ function dropSaved(name) {
 /** The strip of saved orders: what is kept, and the way to keep these. */
 function savedHTML() {
 	const mine = savedNow();
-	const chips = mine.map(x => `<span class="saved-chip"><button class="chip tiny" data-act="barter-saved" data-name="${esc(x.name)}" title="${T('Sail under these orders again')}${x.goal === 'stock' ? ` · ${T('a stock run')}` : ''}">${esc(x.name)}</button><button class="map-x" data-act="barter-saved-drop" data-name="${esc(x.name)}" aria-label="${T('Forget {name}', { name: esc(x.name) })}">×</button></span>`).join('');
+	const chips = mine.map(x => `<span class="saved-chip"><button class="chip tiny" data-act="barter-saved" data-name="${esc(x.name)}" title="${T('Set the whole day back to this — the ladder as well as the sailing')}${x.goal === 'stock' ? ` · ${T('a stock run')}` : ''}">${esc(x.name)}</button><button class="map-x" data-act="barter-saved-drop" data-name="${esc(x.name)}" aria-label="${T('Forget {name}', { name: esc(x.name) })}">×</button></span>`).join('');
 	return `<div class="orders-saved">
 		<span class="run-pick-k">${T('your own orders')}</span>
 		${chips || `<span class="orders-sub">${T('none saved yet')}</span>`}
@@ -1281,7 +1281,7 @@ function savedHTML() {
 function askSaveOrders(then) {
 	const host = openDialog(`
 		<h2>${T('Save these orders')}</h2>
-		<p class="dialog-copy">${T('Everything set here is kept under the name: what the run is for, the pace, the quests, the way round, where it sails from and leaves goods — and, for a stock run, the targets and the ceiling.')}</p>
+		<p class="dialog-copy">${T('The whole day is kept under the name — both steps of it: what the run is for and where the climb ends, what a wharf sells and what is kept back, the pace, the quests, the way round, where it sails from and leaves goods, and for a stock run the targets and the ceiling. Sailing under it again sets all of that back.')}</p>
 		<input class="field save-name" maxlength="40" placeholder="${T('fill the low levels')}" aria-label="${T('A name for these orders')}">
 		<div class="dialog-actions"><button class="act quiet" data-close>${T('Cancel')}</button><button class="act" data-save>${T('Save')}</button></div>`);
 	const box = host.querySelector('.save-name');
@@ -1551,22 +1551,26 @@ function howLine(o) {
 }
 
 /**
- * How to sail it: the presets as cards that say what they set, and
- * every order behind a fold -- a row each, the choices as chips, the
- * chosen one's sentence under them.
+ * How to sail it.
+ *
+ * Three ways of going about it as cards, then the three orders that
+ * change a run most in plain sight -- where the first good comes from,
+ * how hard the hull is worked, and which harbour it all happens
+ * around. Everything else is a thing a sailor sets once and forgets,
+ * so it waits behind the fold.
+ *
+ * Nothing here touches what the ladder set. A card that reached over
+ * and changed the sell line or the floors was this step undoing the
+ * one before it.
  */
 function howHTML(o) {
 	const stocking = goal === 'stock', coining = goal === 'coin';
-	const adjusted = !onPreset(o);
-	const cards = stocking || coining ? '' : `<div class="preset-cards">${PRESETS.map(p => {
-		const on = o.preset === p.id && !adjusted;
-		const floors = Object.keys(p.orders.floors || {}).length;
-		return `<button class="preset-card${on ? ' on' : ''}" data-act="barter-preset" data-id="${p.id}"><span class="preset-name"><i></i>${esc(said(p.label))}</span><span class="preset-line">${esc(said(p.sub))}</span><span class="preset-line">${T('a wharf sells: {what}', { what: esc(labelOf(SELL_CHOICES, p.orders.sell)) })}</span><span class="preset-line">${T('pace: {what}', { what: esc(labelOf(PACE_CHOICES(), p.orders.pace)) })} · ${floors ? T('a floor kept at every level') : T('nothing kept back')}</span></button>`;
-	}).join('')}</div>${adjusted ? `<div class="orders-adjusted">${T('adjusted')} · <button class="linky" data-act="barter-preset" data-id="${esc(o.preset)}">${T('back to the preset')}</button></div>` : ''}`;
-	const rows = `${orderRow('barter-buy', T('land goods'), o.buy ? (o.landFrom === 'stock' ? 'stock' : 'buy') : 'no', LAND_CHOICES)}
+	const on = sailPresetOf(o);
+	const cards = `<div class="preset-cards">${SAIL_PRESETS.map(p => `<button class="preset-card${on === p.id ? ' on' : ''}" data-act="barter-sail-preset" data-id="${p.id}"><span class="preset-name"><i></i>${esc(said(p.label))}</span><span class="preset-line">${esc(said(p.sub))}</span></button>`).join('')}</div>${on ? '' : `<div class="orders-adjusted">${T('your own mix of the orders below')}</div>`}`;
+	const plain = `${orderRow('barter-buy', T('land goods'), o.buy ? (o.landFrom === 'stock' ? 'stock' : 'buy') : 'no', LAND_CHOICES)}
 		${orderRow('barter-pace', T('pace'), o.pace, PACE_CHOICES())}
-		${orderRow('barter-hours', T('under way at most'), o.hours, HOUR_CHOICES, T('A run proposed here sails no longer than this'))}
-		${orderRow('barter-port', T('sails from'), port, [[0, T('the first stop')], ...ports.map(p => [p.id, gameName(p.name)])])}
+		${orderRow('barter-port', T('sails from'), port, [[0, T('the first stop')], ...ports.map(p => [p.id, gameName(p.name)])])}`;
+	const rest = `${orderRow('barter-hours', T('under way at most'), o.hours, HOUR_CHOICES, T('A run proposed here sails no longer than this'))}
 		${orderRow('barter-stash', T('storage at'), stash, [['', T('the nearest wharf')], ...stashes.map(w => [w.at, gameName(w.at)])])}
 		${orderRow('barter-vouchers', T('trade vouchers'), o.vouchers, VOUCHER_CHOICES, T('Whether the run draws on the Crow’s Trade Vouchers you carry; each is a quarter of a bar, on its own two-hour cooldown'))}
 		${orderRow('barter-quests', T('quests on the way'), o.quests, QUEST_CHOICES, T('The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the barter quests counted off the run\'s trades; the hunts only when their grounds lie on the way'))}
@@ -1576,9 +1580,15 @@ function howHTML(o) {
 			<label class="run-pause">${amountInput('purse-inline', o.pause.isle || 0, `data-act="barter-pause" data-at="isle" aria-label="${T('Seconds at an island, bartering')}"`)}<span>${T('s bartering, then on')}<em>${T('opening the window, the trades, under way again')}</em></span></label>
 			<label class="run-pause">${amountInput('purse-inline', o.pause.call || 0, `data-act="barter-pause" data-at="call" aria-label="${T('Seconds at a wharf or a quest stop')}"`)}<span>${T('s at a wharf or a quest')}<em>${T('storing, selling, handing in — the longer sort of stop')}</em></span></label>
 		</div></div>`;
+	// What the ladder set, said here and not settable here: the step
+	// before owns it, and a reader who has scrolled this far should not
+	// have to go back up to remember what they chose.
+	const fromLadder = `<div class="from-ladder"><span>${T('From the step above')}</span><b>${esc(goalLine(o))}</b><button class="linky" data-act="barter-sec" data-id="ladder">${T('change it there')} ›</button></div>`;
 	return `${cards}
-		<button class="linky adv-toggle" data-act="barter-adv" aria-expanded="${advOpen}">${advOpen ? `${T('Advanced')} ▴ ${T('hide the orders')}` : `${T('Advanced')} ▾ ${T('every order')}`}</button>
-		${advOpen ? `<div class="order-rows">${rows}</div>${savedHTML()}` : ''}
+		<div class="order-rows plain">${plain}</div>
+		<button class="linky adv-toggle" data-act="barter-adv" aria-expanded="${advOpen}">${advOpen ? `${T('Fewer orders')} ▴` : `${T('Every order')} ▾`}</button>
+		${advOpen ? `<div class="order-rows">${rest}</div>${savedHTML()}` : ''}
+		${stocking || coining ? '' : fromLadder}
 		<div class="plan-next"><span class="panel-sub">${esc(howLine(o))}</span><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="chains">${T('OK, pick the chains')} ›</button></div>`;
 }
 
@@ -2585,6 +2595,36 @@ function recordTrip(plan, from, on = sailing()) {
  * kind, the count on it -- so it can be read against the screen while
  * loading, or sent to a guildmate as one picture.
  */
+/**
+ * One entry a good, the counts added up: what a run buys or fetches for
+ * two chains is bought or fetched once, in one trip to the counter.
+ *
+ * What the row says and what its button does are the same number. They
+ * were not: merging two lines of two added the counts for the reader
+ * and left the button on the first line's two, so the list asked for
+ * four and moved half of them -- the very thing a sailor wrote in
+ * about, in a corner of the app nobody had looked at for it.
+ */
+function oneEach(list) {
+	const by = new Map();
+	for (const x of list) {
+		const had = by.get(x.item);
+		if (had) had.n += x.n; else by.set(x.item, { ...x });
+	}
+	for (const x of by.values()) if (x.load) x.load = { ...x.load, n: x.n };
+	return [...by.values()];
+}
+
+/**
+ * Whether a thing on the packing list is marked as aboard.
+ *
+ * What the hold already holds starts ticked -- there is nothing to
+ * fetch -- and everything else starts clear. Either way the sailor's
+ * own press is what decides: `packed` carries the marks they have
+ * made, and for a row that starts ticked a mark means "take it off".
+ */
+const packedNow = x => (String(x.key || '').startsWith('a|') ? !packed.has(x.key) : packed.has(x.key));
+
 /** What the packing list holds, in its three piles: to buy at the
  *  Market, to take out of a storage or off the pile of shore goods, and
  *  what the run starts from that is aboard already. */
@@ -2604,8 +2644,25 @@ function packingOf(plan, from, chosen = []) {
 		...(plan.loaded || []).filter(l => l.n > 0).map(l => ({ item: l.item, n: l.n, per: perTrade(l.item), where: from ? T('from {town}', { town: gameName(from.name) }) : T('from the storage'), load: from ? { town: from.name, n: l.n } : null, key: `l|${l.item}` })),
 		...(plan.taken || []).filter(t => t.n > 0).map(t => ({ item: t.item, n: Math.ceil(t.n), per: perTrade(t.item), where: T('from your pile · {n} left', { n: F(t.left) }), key: `t|${t.item}` }))
 	];
-	const aboard = chosen.filter(c => c.from !== 'land' && c.have > 0).map(c => ({ item: c.item, n: c.have, per: perTrade(c.item), where: T('in the hold now'), fixed: true, key: `a|${c.item}` }));
-	return { market, storage, aboard };
+	// What the run starts from that is in the hold already. It is there
+	// to be seen and counted against the game's own window, and where
+	// there is a harbour to put it back at, to be put back: a sailor who
+	// loaded the wrong thing should not have to go looking for the hold
+	// to undo it.
+	const at = from ? from.name : unloadTo();
+	// One line a good, and the count is the hold's own. Two chains can
+	// start from the same pile -- a [Level 3] that climbs two ways --
+	// and the list drew it twice, with one tick box between them:
+	// ticking either turned both, which is the plainest way there is of
+	// looking broken. Adding the two up was no better, since the six
+	// goods the two chains share are six goods, not twelve.
+	const hold = aboardStock();
+	const aboardItems = [...new Set(chosen.filter(c => c.from !== 'land' && c.have > 0).map(c => c.item))];
+	const aboard = aboardItems.map(item => ({
+		item, n: hold[item] || 0, per: perTrade(item), where: T('in the hold now'), key: `a|${item}`,
+		act: at ? `<button class="chip tiny" data-act="barter-unload" data-item="${esc(item)}" title="${T('Put them back in the storage at {town}', { town: esc(gameName(at)) })}">${T('put it back')}</button>` : ''
+	})).filter(x => x.n > 0);
+	return { market: oneEach(market), storage: oneEach(storage), aboard };
 }
 
 /**
@@ -2618,7 +2675,9 @@ function packingOf(plan, from, chosen = []) {
 function packingCount(plan, from, chosen) {
 	const p = packingOf(plan, from, chosen);
 	const list = [...p.market, ...p.storage, ...p.aboard];
-	return { all: list.length, done: list.filter(x => x.fixed || packed.has(x.key)).length };
+	// What is already in the hold needs no fetching, so it counts as
+	// done unless the sailor has taken the tick off to check it again.
+	return { all: list.length, done: list.filter(x => packedNow(x)).length };
 }
 
 /**
@@ -2631,12 +2690,16 @@ function packingHTML(plan, from, chosen = []) {
 	if (!plan || !plan.stops || !plan.stops.length) return '';
 	const p = packingOf(plan, from, chosen);
 	const row = x => {
-		const on = x.fixed || packed.has(x.key);
+		const on = packedNow(x);
 		const lv = levelOf(x.item);
-		const box = x.fixed ? `<span class="pack-box on" aria-hidden="true">✓</span>`
-			: x.load ? `<button class="pack-box" data-act="barter-load" data-item="${esc(x.item)}" data-town="${esc(x.load.town)}" data-n="${x.load.n}" title="${T('Mark them aboard')}" aria-label="${T('Mark them aboard')}"></button>`
-				: `<button class="pack-box${on ? ' on' : ''}" data-act="barter-pack" data-k="${esc(x.key)}" aria-pressed="${on}" aria-label="${T('Mark them aboard')}">${on ? '✓' : ''}</button>`;
-		return `<div class="pack-row${on ? ' on' : ''}">${box}<span class="pack-icon"${lv ? ` style="--tier:${TIER(lv)}"` : ''}>${img(x.item, 'row-icon')}</span><span class="pack-what"><b>${esc(gameName(x.item))}</b><em>${esc(x.where)}</em></span><span class="pack-n"><b>${n1(x.n)}</b><em>${esc(x.per)}</em></span>${x.act ? `<span class="pack-act">${x.act}</span>` : ''}</div>`;
+		// One box a row, and it always turns both ways. It is the
+		// sailor's own mark -- "I have this" -- and nothing else: moving
+		// goods between a storage and the hold is what the chip beside it
+		// does, and a box that sometimes moved things and sometimes did
+		// not was a box nobody could trust.
+		const box = `<button class="pack-box${on ? ' on' : ''}" data-act="barter-pack" data-k="${esc(x.key)}" aria-pressed="${on}" aria-label="${on ? T('Not aboard after all') : T('Mark them aboard')}">${on ? '✓' : ''}</button>`;
+		const act = [x.load ? `<button class="chip tiny" data-act="barter-load" data-item="${esc(x.item)}" data-town="${esc(x.load.town)}" data-n="${x.load.n}" title="${T('Take them out of the storage here, in the app as well')}">${T('Loaded')} ✓</button>` : '', x.act || ''].filter(Boolean).join('');
+		return `<div class="pack-row${on ? ' on' : ''}">${box}<span class="pack-icon"${lv ? ` style="--tier:${TIER(lv)}"` : ''}>${img(x.item, 'row-icon')}</span><span class="pack-what"><b>${esc(gameName(x.item))}</b><em>${esc(x.where)}</em></span><span class="pack-n"><b>${n1(x.n)}</b><em>${esc(x.per)}</em></span>${act ? `<span class="pack-act">${act}</span>` : ''}</div>`;
 	};
 	const group = (title, sub, list, none) => `<section class="panel pack-group"><div class="panel-head"><h2 class="panel-title">${title}</h2><span class="panel-sub">${sub}</span></div>${list.length ? list.map(row).join('') : `<p class="empty">${none}</p>`}</section>`;
 	const where = from ? gameName(from.name) : '';
@@ -3535,7 +3598,11 @@ function stepperHTML(parts, now) {
 	const doneN = plan ? plan.stops.filter((s, k) => ticked(on.done, s, k, plan.stops)).length : 0;
 	const at = plan ? stopAt(plan, on) : -1;
 	const order = ['plan', 'load', 'sail', 'results'];
-	const cell = (id, n, k, title, sub) => `<button class="step${now === id ? ' on' : ''}${order.indexOf(id) < order.indexOf(now) ? ' past' : ''}" data-act="barter-step" data-id="${id}" aria-current="${now === id ? 'step' : 'false'}"><span class="step-k">${n} · ${k}</span><b>${title}</b><span class="step-sub">${sub}</span></button>`;
+	// The number and the name are their own elements, so a narrow screen
+	// can keep the numbers and drop the names from the steps you are not
+	// on: four cards with their titles is a screenful of furniture
+	// before the page begins.
+	const cell = (id, n, k, title, sub) => `<button class="step${now === id ? ' on' : ''}${order.indexOf(id) < order.indexOf(now) ? ' past' : ''}" data-act="barter-step" data-id="${id}" aria-current="${now === id ? 'step' : 'false'}"><span class="step-k"><i>${n}</i><em>${k}</em></span><b>${title}</b><span class="step-sub">${sub}</span></button>`;
 	return `<nav class="steps" aria-label="${T('The steps of a run')}">
 		${cell('plan', 1, T('Plan'), T('What is today for?'), parts.secs[0][2])}
 		${cell('load', 2, T('Load'), T('Pack at the wharf'), parts.stops ? (parts.things.all === 1 ? T('{n} thing to have aboard', { n: parts.things.all }) : T('{n} things to have aboard', { n: parts.things.all })) : T('tick a chain first'))}
@@ -4329,7 +4396,13 @@ export function barterAction(act, el, redraw) {
 		case 'barter-saved': applySaved(el.dataset.name); return true;
 		case 'barter-saved-drop': dropSaved(el.dataset.name); return true;
 		case 'barter-aim': stockGoal = { ...stockGoal, aim: AIM_CHOICES.some(([a]) => a === el.dataset.id) ? el.dataset.id : 'fill' }; persist(); return true;
-		case 'barter-preset': store.setProfile('orders', presetOrders(el.dataset.id)); return false;
+		// A sailing preset lays over the orders rather than replacing
+		// them: what the ladder set stays exactly as the ladder left it.
+		case 'barter-sail-preset': {
+			const p = SAIL_PRESETS.find(x => x.id === el.dataset.id);
+			if (p) setOrders({ ...p.orders });
+			return false;
+		}
 		case 'barter-homemade': {
 			const made = store.getProfile('homemade', []) || [];
 			const it = el.dataset.item;
