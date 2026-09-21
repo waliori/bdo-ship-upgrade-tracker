@@ -121,6 +121,15 @@
   --r-panel: 12px;
   --r-tile: 10px;
   --r-btn: 8px;
+  /* Names the sheets reached for that nothing ever defined, so the
+     rules using them were quietly dropped: the gold of a purse was the
+     colour of the text around it, the hold's level badges had no
+     ground, a row of the picker had square corners. Each is an alias
+     of the token it always meant, so both themes follow. */
+  --r-chip: var(--r-btn);
+  --gold: var(--amber);
+  --gold-edge: color-mix(in srgb, var(--amber) 35%, transparent);
+  --panel-sunk: var(--track);
   --r-sm: 7px;
   --r-icon: 6px;
 }
