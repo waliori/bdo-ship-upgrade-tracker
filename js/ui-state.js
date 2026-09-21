@@ -16,6 +16,7 @@ import * as store from './state.js';
 import { plan, craftableNow, stockForCrafting, parseEnhanced, resolveRoutes, ownedLevel } from './planner.js';
 import { parleyOff } from './ship.js';
 import { readOdds } from './barter-odds.js';
+import { barterKey } from './clock.js';
 
 // The recipe book as the user's chosen routes make it. An upgrade with
 // two ways in -- the Caravel, the Galleass -- reads here as whichever one
@@ -245,6 +246,10 @@ export function barterProfile() {
 		level: store.getProfile('level', null),
 		vouchers: Number(store.getProfile('vouchers', 0)) || 0,
 		// Parley in the bar right now, for "can I afford this route".
-		parleyHeld: Number(store.getProfile('parleyHeld', 0)) || 0
+		// A figure from an earlier barter day has been refilled since.
+		parleyHeld: (() => {
+			const day = store.getProfile('parleyDay', null);
+			return day && day !== barterKey() ? 0 : Number(store.getProfile('parleyHeld', 0)) || 0;
+		})()
 	};
 }

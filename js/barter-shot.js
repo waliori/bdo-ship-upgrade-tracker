@@ -34,7 +34,10 @@ import { editDistance, lineHeight } from './sailor-shot.js';
  */
 export function plain(text) {
 	return String(text || '')
-		.replace(/\[[^\]]*\]/g, ' ')
+		// A tier is a dozen characters at most. Unbounded, a bracket the
+		// engine failed to close -- "[Level 41" for "[Level 4]" -- ran on to
+		// the next "]" it could find and took the good's name with it.
+		.replace(/\[[^[\]]{0,14}\]/g, ' ')
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, '');
 }
@@ -163,6 +166,68 @@ export function isleAt(line, isles, { left = Infinity } = {}) {
 }
 
 /**
+ * The words of the barter window alone, out of a shot of anything.
+ *
+ * A player shoots the whole screen: the ship's window to the left of
+ * the list, the chat log under it, the bags to the right. Read as one
+ * page, those run together -- a line of the list began "167.0% Cannon
+ * Reload Cooldown" and only then got to "Crow's Nest" -- and since an
+ * island is looked for at the start of a line, not one row was found.
+ * Oni's own screenshot, of the window this reader exists for, read as
+ * "no barter rows".
+ *
+ * The window gives itself away by repeating itself. Every row says what
+ * it costs in Parley, in the same column, and says how many exchanges
+ * are left under the island, in another column further left. Whatever
+ * the language, those are two stacks of one word each, in step with
+ * each other down the page. The left stack is the island column, so
+ * the window starts there; it starts a line or two above the top of
+ * the stacks, where the first island's name is.
+ *
+ * A shot that is already only the window has the same two stacks at
+ * its own left edge, and comes through untouched.
+ */
+export function windowWords(words, lh = lineHeight(words)) {
+	const list = (words || []).filter(w => w && w.text);
+	if (list.length < 8) return list;
+	const midY = w => (w.y0 + w.y1) / 2;
+	// Stacks: one word, four times or more, in one column.
+	const by = new Map();
+	for (const w of list) {
+		const key = plain(w.text);
+		if (key.length < 3) continue;
+		if (!by.has(key)) by.set(key, []);
+		by.get(key).push(w);
+	}
+	const stacks = [];
+	for (const [key, ws] of by) {
+		if (ws.length < 4) continue;
+		const xs = ws.map(w => w.x0).sort((a, b) => a - b);
+		const col = xs[Math.floor(xs.length / 2)];
+		const inCol = ws.filter(w => Math.abs(w.x0 - col) <= lh);
+		if (inCol.length >= 4) stacks.push({ key, col, ws: inCol });
+	}
+	if (stacks.length < 2) return list;
+	// The pair in step with each other: as many rows, at the same
+	// heights, one to the left of the other.
+	let best = null;
+	for (const a of stacks) for (const b of stacks) {
+		if (a === b || a.col >= b.col - lh * 3) continue;
+		const paired = a.ws.filter(w => b.ws.some(v => Math.abs(midY(v) - midY(w)) <= lh * 0.8)).length;
+		if (paired < 4) continue;
+		if (!best || paired > best.paired || (paired === best.paired && a.col < best.a.col)) best = { a, b, paired };
+	}
+	if (!best) return list;
+	const left = best.a.col - lh * 0.75;
+	const top = Math.min(...best.a.ws.map(midY)) - lh * 2.75;
+	// And it ends a row below the last of them: room for a row the shot
+	// cut in half, none for the chat log underneath.
+	const rowStep = (Math.max(...best.a.ws.map(midY)) - Math.min(...best.a.ws.map(midY))) / Math.max(1, best.a.ws.length - 1);
+	const bottom = Math.max(...best.a.ws.map(midY), ...best.b.ws.map(midY)) + Math.max(lh * 2, rowStep * 0.8);
+	return list.filter(w => w.x0 >= left && midY(w) >= top && midY(w) <= bottom);
+}
+
+/**
  * The rows of the window, one an island, with everything written to
  * the right of each island gathered under it.
  *
@@ -171,7 +236,8 @@ export function isleAt(line, isles, { left = Infinity } = {}) {
  * own island's line to the next island's, and the last runs to the
  * bottom.
  */
-export function rowsOf(words, isles) {
+export function rowsOf(all, isles) {
+	const words = windowWords(all);
 	if (!words.length) return [];
 	const lh = lineHeight(words);
 	const lines = linesOf(words, lh);
@@ -185,16 +251,15 @@ export function rowsOf(words, isles) {
 	return heads.map((head, i) => {
 		const to = i + 1 < heads.length ? heads[i + 1].mid - lh * 0.5 : Infinity;
 		const from = head.mid - lh * 0.5;
-		const said = [];
-		for (const line of lines) {
-			if (line.mid < from || line.mid > to) continue;
-			for (const w of line.words) {
-				// The island's own column is not part of the offer, and
-				// neither is what the game prints under it.
-				if (w.x1 <= head.right + 2) continue;
-				said.push(w);
-			}
-		}
+		// By where each word stands, not by the line it was filed under:
+		// a line's height drifts as words join it, and a good's name a
+		// few pixels above its island was being left out of the row.
+		const said = words
+			.filter(w => { const m = (w.y0 + w.y1) / 2; return m >= from - lh * 0.35 && m <= to; })
+			// The island's own column is not part of the offer, and
+			// neither is what the game prints under it.
+			.filter(w => w.x1 > head.right + 2)
+			.sort((a, b) => ((a.y0 + a.y1) / 2 - (b.y0 + b.y1) / 2) > lh * 0.6 ? 1 : ((b.y0 + b.y1) / 2 - (a.y0 + a.y1) / 2) > lh * 0.6 ? -1 : a.x0 - b.x0);
 		return { isle: head.isle, score: head.score, words: said, text: plain(said.map(w => w.text).join(' ')), tiers: said.map(w => tierIn(w.text)).filter(t => t !== null) };
 	});
 }
@@ -225,7 +290,10 @@ export function offerOf(row, deals, { floor = 0.5, margin = 0.12 } = {}) {
 		const tier = tiers && !tiers.includes(tierOf(d.item)) && !tiers.includes(tierOf(d.give)) ? 0.75 : 1;
 		return { deal: d, score: (give * 0.45 + recv * 0.55) * tier, give, recv };
 	}).sort((a, b) => b.score - a.score);
-	const [best, next] = scored;
+	// An island can list one exchange twice -- the same good for the same
+	// coin, at two ranges -- and those are one answer, not a tie.
+	const best = scored[0];
+	const next = scored.find(x => x.deal.give !== best.deal.give || x.deal.item !== best.deal.item);
 	if (best.score < floor || best.give < 0.3 || best.recv < 0.3) {
 		return { ...row, offer: null, near: scored.slice(0, 3), why: T('no exchange there fits what the row says') };
 	}

@@ -41,6 +41,11 @@ const PLACES = ['', ...TOWNS];
  *  one of them is the name the rest of the app uses. Where none of them
  *  is, the slot is something the app does not track, and it is left
  *  out rather than invented. */
+/** The slot size, in pixels, under which icons stop being told apart:
+ *  the app's own are 44 across, and the game draws a slot a little
+ *  larger than its icon at its usual interface size. */
+const SLOT_MIN = 42;
+
 function knownName(row, known) {
 	const names = row.alsoCalled || [row.item];
 	return names.find(n => known.has(n)) || null;
@@ -90,6 +95,7 @@ export function openStorageImport(after = () => {}, handOff = null) {
 	let shared = 0;             // rows of slots two shots both had, counted once
 	let shaky = [];             // shots whose lattice the icons did not believe
 	let unnamed = 0;            // slots that held something the app does not know
+	let small = [];             // shots whose slots are too small to tell apart
 	let place = lastPlace();
 
 	const host = () => document.getElementById('dialog');
@@ -170,6 +176,9 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		: skipped.length ? T('No storage slots were found in the rest of those.') : T('No storage slots were found in those.')}</p>
 		${skipped.length ? `<details class="shot-skipped"><summary>${T('{n} not read', { n: skipped.length })}</summary>${skipped.map(s => `<div class="row-sub">${esc(s.name)} — ${esc(said(s.why))}</div>`).join('')}</details>` : ''}
 		${guessed ? `<p class="dialog-note quiet">${guessed === 1 ? T('One line has a count the reader was not sure of — its best reading is written in and marked ⚠.') : T('{n} lines have counts the reader was not sure of — its best reading is written in and marked ⚠.', { n: guessed })} ${T('Every line has the corner of its slot beside it, as the screenshot had it, to check the count against.')}</p>` : ''}
+		${small.length ? `<p class="dialog-note shot-small">⚠ ${small.length === 1
+			? T('The slots in {file} are only {px} pixels across, and the reader needs about {min} to tell one icon from another — so most of this storage was not read, and what is listed below is not the whole of it. Shoot the game at its full size, and paste the shot in rather than saving it through another program.', { file: `<b>${esc(small[0].file)}</b>`, px: small[0].pitch, min: SLOT_MIN })
+			: T('The slots in {n} of these shots are under {min} pixels across, which is too small to tell one icon from another — so most of those storages were not read. Shoot the game at its full size, and paste the shots in rather than saving them through another program.', { n: small.length, min: SLOT_MIN })}</p>` : ''}
 		${shaky.length ? `<p class="dialog-note quiet">${shaky.length === 1
 			? T('The slots in {files} could not be lined up with any confidence — a small or blurred shot, or not a storage at all — so everything read from it is marked ⚠.', { files: shaky.map(n => `<b>${esc(n)}</b>`).join(', ') })
 			: T('The slots in {files} could not be lined up with any confidence — a small or blurred shot, or not a storage at all — so everything read from them is marked ⚠.', { files: shaky.map(n => `<b>${esc(n)}</b>`).join(', ') })}</p>` : ''}
@@ -221,6 +230,11 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		unnamed = 0;
 		shared = 0;
 		shaky = results.filter(r => r.shaky && (r.rows || []).length).map(r => r.file);
+		// A shot whose slots are smaller than the app's own icons. The grid
+		// is still found, but a 37-pixel slot held against a 44-pixel icon
+		// matches almost nothing: Oni's bags came back as three things out
+		// of sixty, under a sentence that read as if the lot had been seen.
+		small = results.filter(r => r.pitch > 0 && r.pitch < SLOT_MIN).map(r => ({ file: r.file, pitch: r.pitch }));
 		for (const shot of results) {
 			shared += shot.sharedRows || 0;
 			if (shot.why) skipped.push({ name: shot.file, why: shot.why });

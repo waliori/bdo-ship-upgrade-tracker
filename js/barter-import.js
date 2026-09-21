@@ -20,12 +20,13 @@
 
 import { esc, F } from './fmt.js';
 import { T, said, gameName } from './i18n.js';
-import { openDialog, closeDialog } from './dialogs.js';
+import { openDialog, closeDialog, toast } from './dialogs.js';
 import { LIMITS, triage, readWords, wireShotIntake, close as closeReader } from './shot-reader.js';
 import { offersFrom, figuresFrom } from './barter-shot.js';
 import { npcs, isleOf, whoOf } from './barter_npcs.js';
 import { img } from './ui-bits.js';
 import * as store from './state.js';
+import { barterKey } from './clock.js';
 
 /**
  * The dialog.
@@ -128,6 +129,11 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 		</label></div>`;
 	};
 
+	// The head read and the rows did not: the figures are still worth
+	// having, and used to be shown beside a button that could not be
+	// pressed.
+	const figuresOnly = () => figures.take && !!figuresHTML();
+
 	const reviewView = () => {
 		const taking = rows.filter(r => r.keep);
 		return `
@@ -144,9 +150,9 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 			<button class="act quiet" data-again>${T('Read more')}</button>
 			<span class="panel-spacer"></span>
 			<button class="act quiet" data-close>${T('Cancel')}</button>
-			<button class="act" data-use${taking.length ? '' : ' disabled'}>${taking.length
+			<button class="act" data-use${taking.length || figuresOnly() ? '' : ' disabled'}>${taking.length
 			? (taking.length === 1 ? T('Answer {n} island', { n: taking.length }) : T('Answer {n} islands', { n: taking.length }))
-			: T('Nothing ticked')}</button>
+			: figuresOnly() ? T('Write the figures in') : T('Nothing ticked')}</button>
 		</div>`;
 	};
 
@@ -193,10 +199,10 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 	/* --- keeping it -------------------------------------------------- */
 	async function use() {
 		const taking = rows.filter(r => r.keep);
-		if (!taking.length) return;
+		if (!taking.length && !figuresOnly()) return;
 		const answers = taking.map(r => ({ npcId: r.isle.id, give: r.keep.give, recv: r.keep.item, qty: r.keep.giveText || '1' }));
 		if (figures.take) {
-			if (figures.parley > 0) store.setProfile('parleyHeld', Math.round(figures.parley));
+			if (figures.parley > 0) store.setProfileMany({ parleyHeld: Math.round(figures.parley), parleyDay: barterKey() });
 			if (figures.barters > 0) store.setProfile('barterCount', Math.round(figures.barters));
 		}
 		closeReader();
@@ -206,7 +212,8 @@ export function openBarterImport({ deals, onAnswers = () => {} } = {}) {
 		// the tab says what it did with them. Whether they are worth
 		// telling the fleet is the tab's to say too: a reading is news
 		// when it fits no layout on file, and the bar offers it then.
-		onAnswers(answers);
+		if (answers.length) onAnswers(answers);
+		else toast(T('The window’s figures are written in'), true);
 	}
 
 	/* --- wiring ------------------------------------------------------ */

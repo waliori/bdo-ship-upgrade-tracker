@@ -582,7 +582,7 @@ async function readStorageOne(file, icons) {
 				corner: corner(s.at)
 			};
 		});
-		return { rows, unknown: slots.filter(s => isHeld(s) && !s.name).length, slots: slots.length, lattice: slots, shaky };
+		return { rows, unknown: slots.filter(s => isHeld(s) && !s.name).length, slots: slots.length, lattice: slots, shaky, pitch: Math.round(grid.pitch) };
 	} finally {
 		bitmap.close();
 	}

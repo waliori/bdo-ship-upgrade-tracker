@@ -16,7 +16,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { offersFrom, rowsOf, cover, plain, tierIn, isleAt, linesOf, figuresFrom, wholeIn } from '../js/barter-shot.js';
+import { offersFrom, rowsOf, cover, plain, tierIn, isleAt, linesOf, figuresFrom, wholeIn, windowWords } from '../js/barter-shot.js';
 import { npcs } from '../js/barter_npcs.js';
 import { exchanges } from '../js/barter-plan.js';
 
@@ -160,4 +160,38 @@ test('a figure is a figure, and a speed or a refresh count is not', () => {
 	assert.equal(wholeIn('150.0'), null, 'a ship’s speed');
 	assert.equal(wholeIn('1,23'), null, 'a group that is not three digits long');
 	assert.equal(wholeIn('abc'), null);
+});
+
+// The same shot of the whole screen. Read as one page it gave up no row
+// at all: the ship's window stands to the left of the list, so every
+// line of the list began with the ship's words and an island is only
+// looked for where a line begins. The window is found first now, by the
+// two stacks every row repeats, and read on its own.
+test('a shot of the whole screen reads, the window found inside it', () => {
+	assert.deepEqual(said(read('coinWindowFull')), [
+		["Crow's Nest", '[Level 4] Solidified Lava', 'Crow Coin'],
+		['Kashuma Island', "[Level 4] Pirate's Key", 'Crow Coin'],
+		['Derko Island', '[Level 4] Seashell Deco', 'Crow Coin'],
+		["Pakio's Combat Raft", '[Level 4] Amethyst Fragment', 'Crow Coin'],
+		["Shipwrecked Haran's Cargo Ship", "[Level 4] Boatman's Manual", 'Crow Coin'],
+		["Lantinia's Combat Raft", '[Level 4] Opulent Thread Spool', 'Crow Coin']
+	]);
+	// The seventh row is cut in half by the foot of the screen, and is a
+	// question rather than a guess.
+	const cut = read('coinWindowFull').find(r => r.isle.at === 'Unfinished Adrift Vessel');
+	assert.ok(cut && !cut.offer, 'a row the screen cut off is not answered for');
+});
+
+test('a bracket the engine never closed does not swallow the name after it', () => {
+	assert.equal(plain("[Level 41 Boatman's Manual & 1 > [@] Crow Coin"), 'level41boatmansmanual1crowcoin');
+	assert.equal(plain('[Level 4] Seashell Deco'), 'seashelldeco');
+});
+
+test('a shot that is already only the window loses no row to the cropping', () => {
+	// What goes is the litter round the edge -- half a line of glyphs the
+	// foot of the shot cut through -- and never a word of a row.
+	for (const [key, rows] of [['level1List', 7], ['fiveToSix', 6], ['sixToSeven', 6]]) {
+		assert.equal(rowsOf(shot(key), npcs).length, rows, key);
+		assert.ok(windowWords(shot(key)).length >= shot(key).length * 0.85, `${key} keeps its words`);
+	}
 });

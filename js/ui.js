@@ -41,7 +41,7 @@ import { statusLine } from './today.js';
 import { renderQuests, questAction, questDone, wantedQuests, setQuestPay, setQuestFocus } from './screen-quests.js';
 import { renderCommunity, communityAction, wireCommunity } from './screen-community.js';
 import { openVellDialog, openResetsDialog } from './today.js';
-import { startClocks, tickClocks } from './clock.js';
+import { startClocks, tickClocks, barterKey } from './clock.js';
 import { recordProgress } from './pace.js';
 import { openJump } from './jump.js';
 import { openItemCard } from './item-card.js';
@@ -1572,7 +1572,7 @@ function wire() {
 		else if (el.dataset.act === 'target-qty') store.setTargetQty(el.dataset.target, n);
 		else if (el.dataset.act === 'barter-count') store.setProfile('barterCount', n);
 		else if (el.dataset.act === 'vouchers') store.setProfile('vouchers', n);
-		else if (el.dataset.act === 'parley-held') store.setProfile('parleyHeld', n);
+		else if (el.dataset.act === 'parley-held') store.setProfileMany({ parleyHeld: n, parleyDay: n > 0 ? barterKey() : null }, T('Changed the parley you hold'));
 		else if (el.dataset.act === 'failstacks') {
 			const stacks = { ...(store.getProfile('failstacks', {}) || {}) };
 			stacks[el.dataset.base] = n;

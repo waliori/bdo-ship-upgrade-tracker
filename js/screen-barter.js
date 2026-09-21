@@ -2105,7 +2105,23 @@ function tripOf(plan, on, from) {
 	const renamed = new Map();
 	for (const s of plan.stops) if (s.npcId && (on.got || {})[s.npcId]) renamed.set(s.item, on.got[s.npcId]);
 	const as = name => renamed.get(name) || name;
-	let silver = 0, trades = 0;
+	let silver = 0, trades = 0, spent = 0;
+	// A give handed over. A trade good, or a shore good the sailor keeps,
+	// comes off the Inventory. A shore good they do not keep was bought
+	// for the run -- and the silver that bought it has to come off too.
+	// It never did: a run put what it sold into the purse and left what
+	// it spent there as well, so a sailor building a stock from the shore
+	// watched their Silver climb with every run that cost them money.
+	const priceOf = new Map((plan.bought || []).map(b => [b.item, Number(b.each) || 0]));
+	const leftOf = new Map();
+	const handOver = (give, units) => {
+		if (levelOf(give) !== null) return add(give, -units);
+		if (!leftOf.has(give)) leftOf.set(give, store.getStock(give));
+		const mine = Math.min(units, leftOf.get(give));
+		leftOf.set(give, leftOf.get(give) - mine);
+		if (mine > 0) add(give, -mine);
+		spent += (units - mine) * (priceOf.get(give) || 0);
+	};
 	for (const [k, s] of plan.stops.entries()) {
 		if (!ticked(on.done, s, k, plan.stops) || s.quest) continue;
 		if (s.wharf) {
@@ -2124,17 +2140,17 @@ function tripOf(plan, on, from) {
 		// typed is the window's own and has it on already.
 		if (s.item === COIN && !((on.seen || {})[s.npcId] > 0)) {
 			add(COIN, withBonus(s.times * paid, countBonus(barterProfile().barterCount).pct));
-			if (levelOf(s.give) !== null || store.getStock(s.give) > 0) add(s.give, -s.times * s.giveN);
+			handOver(s.give, s.times * s.giveN);
 			trades += s.times;
 			continue;
 		}
-		if (levelOf(s.give) !== null || store.getStock(s.give) > 0) add(s.give, -s.times * s.giveN);
+		handOver(s.give, s.times * s.giveN);
 		add(as(s.item), s.times * paid);
 		trades += s.times;
 	}
 	if (on.done.length && from) for (const l of plan.loaded || []) moves.push({ item: l.item, from: from.name, to: '', n: Math.round(l.n) });
-	if (silver) add(SILVER, silver);
-	return { delta, moves, silver, trades };
+	if (silver - spent) add(SILVER, silver - Math.round(spent));
+	return { delta, moves, silver, trades, spent: Math.round(spent) };
 }
 
 /**
@@ -2182,6 +2198,7 @@ function sailRecord(plan) {
 	return {
 		stops,
 		loaded: (plan.loaded || []).map(l => ({ item: l.item, n: num(l.n) })),
+		bought: (plan.bought || []).filter(b => b.n > 0).slice(0, 40).map(b => ({ item: b.item, n: num(b.n), each: num(b.each || (b.total && b.n ? b.total / b.n : 0)) })),
 		cost: num(plan.cost), silver: num(plan.silver), net: num(plan.net), trades: num(plan.trades), parleyUsed: num(plan.parleyUsed),
 		questsHome: (plan.questsHome || []).map(x => ({ id: x.q.id, what: x.step.what, who: x.step.who || '' })),
 		chains: (plan.order || []).map(c => ({ name: isleShort(npcById.get(c.rungs[0].npcId)) || c.rungs[0].npc, top: c.top })),
@@ -2199,7 +2216,7 @@ function hydrate(list) {
 function planOfSail(on) {
 	if (!on || !Array.isArray(on.stops) || !on.stops.length || !on.stops.some(s => s.npcId && s.give)) return null;
 	const stops = on.stops.map(s => ({ ...s, quests: hydrate(s.quests) }));
-	return { stops, loaded: on.loaded || [], cost: on.cost || 0, parleyUsed: on.parleyUsed || 0, questsHome: hydrate(on.questsHome), silver: on.silver || 0, net: on.net || 0, trades: on.trades || 0 };
+	return { stops, loaded: on.loaded || [], bought: on.bought || [], cost: on.cost || 0, parleyUsed: on.parleyUsed || 0, questsHome: hydrate(on.questsHome), silver: on.silver || 0, net: on.net || 0, trades: on.trades || 0 };
 }
 
 /**
@@ -2319,7 +2336,7 @@ function recordTrip(plan, from, on = sailing()) {
 		.slice(0, 20)
 		.map(([item, n]) => [item, Math.abs(Math.round(n))]));
 	const runs = [...(store.getProfile('runs', []) || []), {
-		day: barterKey(), silver: trip.silver, cost: Math.round(plan.cost || 0), trades: trip.trades, parley: Math.round(plan.parleyUsed || 0),
+		day: barterKey(), silver: trip.silver, cost: trip.spent || Math.round(plan.cost || 0), trades: trip.trades, parley: Math.round(plan.parleyUsed || 0),
 		stops: on.done.length, goal: on.goal || goal, item: on.goal ? on.item || '' : goal === 'material' ? itemNow() || '' : '',
 		load: moved(-1, SILVER), got: moved(1, SILVER), layout: (boardNow().combo || {}).id || ''
 	}].slice(-60);
@@ -2370,7 +2387,20 @@ function recordTrip(plan, from, on = sailing()) {
 	const counted = trip.trades > 0
 		? { barterCount: (Number(store.getProfile('barterCount', 0)) || 0) + Math.round(trip.trades) }
 		: {};
-	store.applyTrip({ delta: trip.delta, moves: trip.moves, profile: { runs, ratios, sevens, tally, ...counted, questProgress: Object.keys(progress).length ? progress : null, questsDone: Object.keys(questsDone).length ? questsDone : null }, label: `${on.done.length === 1 ? T('Sailed a run: {n} stop', { n: on.done.length }) : T('Sailed a run: {n} stops', { n: on.done.length })}${trip.silver ? `, ${T('{silver} sold', { silver: FC(trip.silver) })}` : ''}` });
+	// The Parley the trip spent comes off the bar, and the vouchers it
+	// drew on out of the bags. The figures tile has always said "74,032
+	// spent from 1,000,000" -- and then the next run was laid against the
+	// same million, because nothing wrote the answer down. The bar is
+	// stamped with the barter day, so the reset fills it again.
+	const prof = barterProfile();
+	const perTrade = parleyOf(prof).perTrade;
+	const parleySpent = Math.round(plan.stops.reduce((a, s, k) => a + (s.npcId && ticked(on.done, s, k, plan.stops) ? (Number(s.parley) > 0 ? Number(s.parley) : (Number(s.times) || 0) * perTrade) : 0), 0));
+	const bar = prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max;
+	const drawn = parleySpent > bar && ordersNow().vouchers !== 'keep' ? Math.min(prof.vouchers, Math.ceil((parleySpent - bar) / PARLEY.voucher)) : 0;
+	// Never nought: nought is how "nobody has said" is written.
+	const parleyLeft = Math.max(1, Math.min(PARLEY.max, bar + drawn * PARLEY.voucher - parleySpent));
+	const spentOf = parleySpent > 0 ? { parleyHeld: parleyLeft, parleyDay: barterKey(), ...(drawn ? { vouchers: prof.vouchers - drawn } : {}) } : {};
+	store.applyTrip({ delta: trip.delta, moves: trip.moves, profile: { runs, ratios, sevens, tally, ...counted, ...spentOf, questProgress: Object.keys(progress).length ? progress : null, questsDone: Object.keys(questsDone).length ? questsDone : null }, label: `${on.done.length === 1 ? T('Sailed a run: {n} stop', { n: on.done.length }) : T('Sailed a run: {n} stops', { n: on.done.length })}${trip.silver ? `, ${T('{silver} sold', { silver: FC(trip.silver) })}` : ''}` });
 	sail = null;
 	// The trip is in the book, so the clock that timed it is done.
 	stopTimer();
@@ -3121,7 +3151,7 @@ function materialParts(me, data) {
 	const qp = questPlan(plan.stops, matOrders.quests, me.hold, plan.weightStart);
 	plan.stops = qp.stops;
 	plan.questsHome = qp.home;
-	shownPlan = plan.stops.length ? { stops: plan.stops, cost: plan.cost, parleyUsed: 0, questsHome: qp.home } : null;
+	shownPlan = plan.stops.length ? { stops: plan.stops, cost: plan.cost, bought: plan.bought || [], parleyUsed: 0, questsHome: qp.home } : null;
 	const legs = legsOf(plan.stops);
 	// What is short splits two ways: some of it may sit in a storage the
 	// run cannot load from -- to bring to the harbour first -- and the

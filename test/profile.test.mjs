@@ -303,3 +303,27 @@ test('the exchanges a barterer would not make are kept with the count the sailor
 	// A save written before any of this is unchanged by it.
 	assert.equal('shutOffers' in readProfile({}), false);
 });
+
+test('the Parley written down belongs to a barter day, and the reset fills the bar again', async () => {
+	const { barterKey } = await import('../js/clock.js');
+	const today = barterKey();
+	// Kept with its day while there is a figure to keep it with...
+	assert.deepEqual(
+		{ held: readProfile({ parleyHeld: 250000, parleyDay: today }).parleyHeld, day: readProfile({ parleyHeld: 250000, parleyDay: today }).parleyDay },
+		{ held: 250000, day: today });
+	// ...and never on its own: a day without a figure means nothing.
+	assert.equal('parleyDay' in readProfile({ parleyDay: today }), false);
+
+	// Read back through the profile the whole app plans with: today's
+	// figure stands, yesterday's is a bar the reset has filled since --
+	// which the app writes as nought, "full, nobody has said otherwise".
+	const store = await import('../js/state.js');
+	const { barterProfile } = await import('../js/ui-state.js');
+	store.setProfileMany({ parleyHeld: 250000, parleyDay: today });
+	assert.equal(barterProfile().parleyHeld, 250000);
+	store.setProfileMany({ parleyHeld: 250000, parleyDay: '1999-01-01' });
+	assert.equal(barterProfile().parleyHeld, 0, 'a figure from an earlier barter day has been refilled');
+	// A save from before the day was kept has no day, and is believed.
+	store.setProfileMany({ parleyHeld: 250000, parleyDay: null });
+	assert.equal(barterProfile().parleyHeld, 250000);
+});
