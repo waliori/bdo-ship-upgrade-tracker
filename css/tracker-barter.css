@@ -1102,10 +1102,13 @@ button.rung-fate { cursor: pointer; }
   .board-drop { padding: 22px 14px; }
   .board-drop > b { font-size: 17px; }
 
-  .ladder-head { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 0 12px 2px; }
-  .ladder-head::-webkit-scrollbar { display: none; }
-  .ladder-head > * { flex: 0 0 auto; }
-  .ladder-head .seg { white-space: nowrap; }
+  /* What the day is for is the first thing asked and the widest row
+     of chips on the page, so it takes a line of its own and the two
+     ways into the hold go under it. */
+  .ladder-head { flex-wrap: wrap; row-gap: 10px; }
+  .ladder-head .segs { flex: 1 0 100%; display: flex; justify-content: space-between; gap: 4px; }
+  .ladder-head .seg { white-space: nowrap; padding-left: 9px; padding-right: 9px; }
+  .ladder-head .panel-spacer { display: none; }
 
   /* The ladder on its side: a row a level. */
   .ladder { display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; overflow: visible; }
