@@ -781,6 +781,7 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .under-way > i { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--teal); animation: under-way-pulse 1.6s infinite; }
 .under-way > b { font-family: var(--font-display); letter-spacing: 0.04em; color: var(--teal); text-transform: uppercase; font-size: 12px; }
 .under-way .amber { color: var(--amber); }
+.under-way-clock { font-family: var(--font-display); color: var(--ink-hi); }
 @keyframes under-way-pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .under-way > i { animation: none; } }
 

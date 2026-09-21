@@ -3550,7 +3550,10 @@ function underWayHTML(now) {
 	const plan = on ? sailedPlan() : null;
 	if (!plan || now === 'sail' || now === 'results') return '';
 	const at = stopAt(plan, on);
-	return `<button class="under-way" data-act="barter-step" data-id="sail"><i></i><b>${T('Run in progress')}</b><span>${at >= 0 ? T('stop {n} of {of}', { n: at + 1, of: plan.stops.length }) : T('every stop ticked')}</span><span class="amber">${T('not recorded')}</span><span class="panel-spacer"></span><span class="linky">${T('Back to the run')} ›</span></button>`;
+	// The clock rides along: away from the cockpit it is the one figure
+	// about a run under way that changes on its own.
+	const t = timerState();
+	return `<button class="under-way" data-act="barter-step" data-id="sail"><i></i><b>${T('Run in progress')}</b><span>${at >= 0 ? T('stop {n} of {of}', { n: at + 1, of: plan.stops.length }) : T('every stop ticked')}</span>${t ? `<span class="under-way-clock">⏱ ${esc(spanText(t.ran))}</span>` : ''}<span class="amber">${T('not recorded')}</span><span class="panel-spacer"></span><span class="linky">${T('Back to the run')} ›</span></button>`;
 }
 
 /** What the last Record did, until the next run is cast off. */
