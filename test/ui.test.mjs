@@ -1983,6 +1983,11 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 	await page.evaluate(() => document.querySelector('[data-act="barter-cast-off"]').click()); await wait(2500);
 	assert.ok(await page.$('.barter-screen.step-sail'), 'the run is under way, on its own step');
 	assert.ok(await page.$('.cockpit .cockpit-go'), 'with one thing to press');
+	// It opens drawn large -- the game has the screen, the page is beside
+	// it -- and the full view, with the rest of the run, is a press away.
+	assert.ok(await page.$('.cockpit.glance'), 'the cockpit starts in the glance view');
+	await page.evaluate(() => document.querySelector('[data-act="barter-glance"]').click()); await wait(800);
+	assert.equal(await count(page, '.cockpit.glance'), 0);
 	assert.ok(await count(page, '.rest-row') > 0, 'and the rest of the run beside it');
 	const wasAt = await text(page, '.cockpit-place');
 	// The burst of light is gone in a second, so it is looked for first.

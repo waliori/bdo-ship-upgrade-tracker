@@ -95,7 +95,7 @@ let readSig = null;   // the view as last read from the profile, as text: a diff
 // the session's own: which step is up, which part of the plan is open,
 // where the cockpit stands. None of it is worth a profile write.
 let step = '';            // plan | load | sail | results; '' follows the run
-let glance = false;       // the cockpit drawn large, to be read across a room
+let glance = true;        // the cockpit drawn large, to be read across a room: how it starts, since a run is sailed with the game in front and the page beside it
 let cursor = null;        // the stop the cockpit was sent to, by its key
 let skipped = new Set();  // stops passed over on the cockpit, by their key
 let packed = new Set();   // goods bought or fetched and ticked aboard on the packing list
@@ -131,7 +131,7 @@ function restore() {
 	goal = 'silver'; climb = 0; item = null; qty = 1; wants = {};
 	stockGoal = { ...DEFAULT_STOCK, targets: { ...DEFAULT_STOCK.targets } };
 	matOrders = { reach: 'want', calls: true, pace: 'full', quests: 'near' };
-	port = 0; routes = { key: '', ids: [] }; stash = ''; sail = null; reach = ''; planSec = 'ladder'; advOpen = false;
+	port = 0; routes = { key: '', ids: [] }; stash = ''; sail = null; reach = ''; planSec = 'ladder';
 	board = { day: '', answers: [], own: false }; matBoard = { day: '', answers: [] };
 	questSkip = { day: '', ids: [] }; questPull = { day: '', ids: [] };
 	if (!s) return;
@@ -140,7 +140,11 @@ function restore() {
 		if (s.stock) stockGoal = readStock(s.stock);
 		if (STOCK_LEVELS.includes(Number(s.climb)) && Number(s.climb) < 7) climb = Number(s.climb);
 		if (['ladder', 'how', 'chains', 'all', 'none'].includes(s.planSec)) planSec = s.planSec;
-		advOpen = s.advOpen === true;
+		// The orders start shut on every visit: they are set once and
+		// forgotten, and a page that opens on all ten of them is a page a
+		// new sailor backs out of. (A view that asks for them open is
+		// honoured, never written.)
+		if (s.advOpen === true) advOpen = true;
 		if (typeof s.item === 'string') item = s.item;
 		if (Number(s.qty) > 0) qty = Math.min(9999, Math.floor(Number(s.qty)));
 		if (s.wants && typeof s.wants === 'object') for (const [k, v] of Object.entries(s.wants)) if (typeof k === 'string' && Number(v) > 0) wants[k] = Math.min(9999, Math.floor(Number(v)));
@@ -223,7 +227,7 @@ function flushView() {
 	// the memory it came from.
 	writing = true;
 	try {
-		store.setView(VIEW_NS, { goal, climb, planSec, advOpen, stock: stockGoal, item, qty, wants, matOrders, port, routes, stash, board, matBoard, sail, reach, questSkip, questPull });
+		store.setView(VIEW_NS, { goal, climb, planSec, stock: stockGoal, item, qty, wants, matOrders, port, routes, stash, board, matBoard, sail, reach, questSkip, questPull });
 	} finally {
 		writing = false;
 	}
@@ -2582,6 +2586,7 @@ function recordTrip(plan, from, on = sailing()) {
 	// What it came to, for the results step to show until the next run is
 	// cast off: the page would otherwise fall back to the plan the moment
 	// the checklist went, with nothing said about where the silver went.
+	bringUp('.barter-screen .steps');
 	lastTrip = { stops: on.done.length, trades: Math.round(trip.trades), silver: trip.silver, spent: trip.spent || 0, net: trip.silver - (trip.spent || 0), coins: Math.round(trip.delta[COIN] || 0), parley: parleySpent };
 	step = 'results';
 	cursor = null;
@@ -3266,7 +3271,7 @@ function silverParts(me, b) {
 	// stop by stop for whoever wants to read it before sailing it.
 	const firstOver = plan.stops.findIndex(x => ['over', 'heavy', 'dead'].includes(shownHold(me.hold, x.weightAfter).state));
 	const overNote = firstOver >= 0 && !heavy ? `<div class="barter-shut hold-over"><b>${T('The hold passes its limit at stop {n}', { n: firstOver + 1 })}</b> — ${T('it reaches {text}: sailing slower, still trading.', { text: esc(peak.text) })}${wharfs ? ` ${wharfs === 1 ? T('{n} wharf call is in the run to leave goods on the way.', { n: wharfs }) : T('{n} wharf calls are in the run to leave goods on the way.', { n: wharfs })}` : ''}</div>` : '';
-	const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${plan.stops.length === 1 ? T('{n} stop', { n: plan.stops.length }) : T('{n} stops', { n: plan.stops.length })}${legs.total ? ` · ${esc(fmtDistance(legs.total))} · ≈ ${esc(legs.time)}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, o.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, '')}</summary>${segs}</details>` : '';
+	const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${plan.stops.length === 1 ? T('{n} stop', { n: plan.stops.length }) : T('{n} stops', { n: plan.stops.length })}${legs.total ? ` · ${esc(fmtDistance(legs.total))} · ≈ ${esc(legs.time)}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, o.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, '')}</summary>${segs}</details>` : '';
 	const empty = chosen.length ? '' : `<div class="run-empty">${T('Nothing ticked. Tick a chain and the run lays itself out here — every rung, the hold after it, and where it has to call.')}</div>`;
 	const load = `${notice}${overNote}${empty}${packingHTML(plan, from, chosen)}${afterShelfHTML(plan, from)}${questsPanels(qp, from)}${routeFold}${kept}`;
 	return {
@@ -3574,7 +3579,7 @@ function materialParts(me, data) {
 		qp.count ? `📜 ${qp.count === 1 ? T('<b>{n}</b> quest', { n: qp.count }) : T('<b>{n}</b> quests', { n: qp.count })}` : '',
 		holdCls === 'warn' ? `<b class="warn">${T('too heavy')}</b>` : holdCls === 'amber' ? `<b class="amber">${T('over the limit')}</b>` : ''
 	]) : '';
-	const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${mats.length ? T('for {materials}', { materials: esc(mats.map(m => gameName(m.it)).join(', ')) }) : T('for a material')}${legs.total ? ` · ≈ ${esc(legs.time)}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, matOrders.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, it || (mats[0] && mats[0].it) || '')}</summary>${segs}</details>` : '';
+	const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${mats.length ? T('for {materials}', { materials: esc(mats.map(m => gameName(m.it)).join(', ')) }) : T('for a material')}${legs.total ? ` · ≈ ${esc(legs.time)}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, matOrders.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, it || (mats[0] && mats[0].it) || '')}</summary>${segs}</details>` : '';
 	const matsSaid = mats.length ? mats.map(m => `${F(m.qty)}× ${gameName(m.it)}`).join(', ') : T('nothing on the run yet');
 	const comes = plan.ticked ? mats.map(m => { const g = plan.got.get(m.it); return T('{got} of {want}', { got: g.max > 0 ? gotText(m) : '0', want: F(m.qty) }); }).join(' · ') : T('nothing ticked yet');
 	return {
@@ -3602,6 +3607,27 @@ function runDockHTML(figs) {
 /* ------------------------------------------------------------------ *
  * the four steps
  * ------------------------------------------------------------------ */
+
+/**
+ * A step changed is a page turned, and the new page starts at its top.
+ * The redraw swaps the step in place, so the window stayed wherever the
+ * last one had been scrolled to -- on a phone, half-way down a step the
+ * sailor had not read the head of. After the redraw the steps across
+ * the head come into view; a part of the plan opened comes to its own
+ * head instead.
+ */
+/** A screen a phone's width: the long things start folded there. */
+const narrow = () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
+
+function bringUp(sel) {
+	if (typeof document === 'undefined') return;
+	setTimeout(() => {
+		const el = document.querySelector(sel);
+		if (!el) return;
+		const top = el.getBoundingClientRect().top + window.scrollY - 12;
+		if (Math.abs(window.scrollY - top) > 40) window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+	}, 30);
+}
 
 /** The step on screen: the one asked for, else wherever the run is. */
 const stepNow = () => step || (sailing() ? 'sail' : 'plan');
@@ -4388,15 +4414,16 @@ export function barterAction(act, el, redraw) {
 		// Which of the four steps is on the page. Asked for by hand, it
 		// stays asked for: the page does not slide out from under a sailor
 		// reading it because a stop was ticked somewhere else.
-		case 'barter-step': step = ['plan', 'load', 'sail', 'results'].includes(el.dataset.id) ? el.dataset.id : 'plan'; return true;
+		case 'barter-step': step = ['plan', 'load', 'sail', 'results'].includes(el.dataset.id) ? el.dataset.id : 'plan'; bringUp('.barter-screen .steps'); return true;
 		// Which part of the plan is open. Pressing the open one shuts it.
 		case 'barter-sec': {
 			const id = el.dataset.id;
 			planSec = id === 'all' || id === 'none' ? id : planSec === id ? 'none' : id;
+			if (planSec === id && id !== 'all' && id !== 'none') bringUp(`.plan-sec[data-sec="${id}"]`);
 			persist();
 			return true;
 		}
-		case 'barter-adv': advOpen = !advOpen; persist(); return true;
+		case 'barter-adv': advOpen = !advOpen; return true;
 		case 'barter-glance': glance = !glance; return true;
 		// A rung of the ladder: where the day's climbs end. On a coin day
 		// the ceiling is the coin islands' own, so picking another rung is
@@ -4580,6 +4607,7 @@ export function barterAction(act, el, redraw) {
 			cursor = null;
 			skipped = new Set();
 			lastTrip = null;
+			bringUp('.barter-screen .steps');
 			return true;
 		}
 		case 'barter-sail': {
@@ -4615,7 +4643,7 @@ export function barterAction(act, el, redraw) {
 		}
 		// The run is dropped, and its clock with it: a clock with no run
 		// behind it only counts up at whoever comes back to the page.
-		case 'barter-sail-drop': sail = null; sailAll.open = false; cursor = null; skipped = new Set(); step = 'plan'; stopTimer(); persist(); return true;
+		case 'barter-sail-drop': sail = null; sailAll.open = false; cursor = null; skipped = new Set(); step = 'plan'; stopTimer(); persist(); bringUp('.barter-screen .steps'); return true;
 		// The cockpit sent to one stop, or past one. A stop passed over is
 		// not ticked and not recorded: it is only out of the way.
 		case 'barter-sail-jump': cursor = String(el.dataset.k); return true;
