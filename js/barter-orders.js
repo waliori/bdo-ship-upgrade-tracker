@@ -57,19 +57,27 @@ export const PRESETS = [
  */
 export const SAIL_PRESETS = [
 	{
-		id: 'quick', label: TT('Quick'),
-		sub: TT('an hour at most, never over the limit, no wharf calls on the way'),
-		orders: { pace: 'fast', hours: 1, vouchers: 'keep', buy: true, landFrom: 'buy' }
+		// The orders a new sailor starts on, to the letter: somebody who
+		// has never touched this step is on a card with a name, not on
+		// "my own way" with a line of settings they never made.
+		id: 'quick', label: TT('A quick run'),
+		sub: TT('The ship stays light and fast: only what the hold carries under its limit, and no detours to a wharf.'),
+		orders: { pace: 'fast', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy' }
 	},
 	{
-		id: 'steady', label: TT('Steady'),
-		sub: TT('every attempt, the hold kept under the limit by calling at a wharf — more calls, full speed'),
+		id: 'steady', label: TT('The whole board, at full speed'),
+		sub: TT('Every trade the board offers. When the hold fills, the ship drops goods at a wharf and carries on — more stops, never slowed down.'),
 		orders: { pace: 'steady', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy' }
 	},
 	{
-		id: 'full', label: TT('Everything the day allows'),
-		sub: TT('every attempt, the hold loaded past the limit, the whole bar and the vouchers with it'),
+		id: 'full', label: TT('The whole board, loaded heavy'),
+		sub: TT('Every trade the board offers, with the hold filled past its limit — the ship sails slower, and stops at a wharf far less often.'),
 		orders: { pace: 'full', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy' }
+	},
+	{
+		id: 'own', label: TT('Spend no silver'),
+		sub: TT('Only goods you already own, aboard or in storage. Nothing is bought at the Market.'),
+		orders: { pace: 'steady', hours: 0, vouchers: 'use', buy: true, landFrom: 'stock' }
 	}
 ];
 

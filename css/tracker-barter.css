@@ -809,6 +809,10 @@ ul.lb-readers.flat { margin: 0 0 12px; }
    guessing, and a button, because one tap settles it. */
 .board-pill.guess { border-style: dashed; border-color: var(--amber); color: var(--amber); cursor: pointer; }
 .board-ask-lead { font-weight: 600; color: var(--ink-hi); }
+.board-ask-lead > span { margin-left: 8px; font-weight: 400; color: var(--ink-mute); }
+/* A phone has no Ctrl and no V: the zone asks for a tap there. */
+.by-touch { display: none; }
+@media (pointer: coarse) { .by-key { display: none; } .by-touch { display: block; } }
 .board-drop { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 30px 20px; text-align: center; border-radius: var(--r-tile); border: 1px dashed var(--line-btn-hi); background: var(--panel-inset); color: inherit; cursor: pointer; }
 .board-drop:hover { border-color: var(--blue); }
 .board-drop > b { font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--ink-hi); }
@@ -887,6 +891,7 @@ button.rung-fate { cursor: pointer; }
 }
 
 /* ---- how to sail it ----------------------------------------------- */
+.preset-note { margin: 0 0 10px; font-size: 12px; color: var(--ink-faint); }
 .preset-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
 .preset-card { display: flex; flex-direction: column; gap: 5px; padding: 12px 14px; text-align: left; border-radius: var(--r-tile); border: 1px solid var(--line-btn); background: var(--panel-inset); color: inherit; cursor: pointer; }
 .preset-card.on { border-color: var(--blue); background: var(--blue-glow); }
@@ -894,6 +899,11 @@ button.rung-fate { cursor: pointer; }
 .preset-name > i { width: 12px; height: 12px; flex: none; border-radius: 50%; border: 2px solid var(--line-btn-hi); }
 .preset-card.on .preset-name > i { border-color: var(--blue); background: var(--blue); }
 .preset-line { font-size: 12.5px; color: var(--ink-mute); padding-left: 20px; }
+/* What this way of sailing comes to for the chains ticked. */
+.preset-fig { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-top: auto; padding: 6px 0 0 20px; font-size: 12px; color: var(--ink-faint); }
+.preset-fig > b { font-family: var(--font-display); font-size: 17px; color: var(--amber); }
+.preset-card.custom { border-style: dashed; }
+.preset-card.custom .preset-fig > span { color: var(--blue); }
 .adv-toggle { display: inline-block; margin-top: 12px; }
 .order-rows.plain { margin-top: 12px; border-top: 1px solid var(--line); }
 /* What the step before set, said here and settable only there. */
@@ -911,6 +921,9 @@ button.rung-fate { cursor: pointer; }
 }
 
 /* The chain list's own line of actions, where its panel head was. */
+.chains-wait { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px 8px; text-align: center; color: var(--ink-mute); }
+.chains-wait > p { margin: 0; max-width: 52ch; }
+.chains-wait-note { font-size: 12.5px; color: var(--amber); }
 .chain-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
 
 /* ---- the wharf: the packing list ---------------------------------- */
@@ -1100,6 +1113,8 @@ button.rung-fate { cursor: pointer; }
   /* The strip along the foot keeps to one line: the figures it cannot
      fit are on the step it leads to. */
   .run-dock-figs, .load-dock .run-dock-figs { flex-wrap: nowrap; overflow: hidden; }
+  /* ...and what does not fit is left off whole, not cut mid-word. */
+  .run-dock .run-dock-figs > span:nth-child(n+4) { display: none; }
   .board-drop { padding: 22px 14px; }
   .board-drop > b { font-size: 17px; }
 
