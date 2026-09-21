@@ -893,6 +893,8 @@ button.rung-fate { cursor: pointer; }
 /* ---- how to sail it ----------------------------------------------- */
 .preset-note { margin: 0 0 10px; font-size: 12px; color: var(--ink-faint); }
 .preset-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+/* Six cards are two rows of three on a wide page, not five and one left over. */
+@media (min-width: 900px) { .preset-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .preset-card { display: flex; flex-direction: column; gap: 5px; padding: 12px 14px; text-align: left; border-radius: var(--r-tile); border: 1px solid var(--line-btn); background: var(--panel-inset); color: inherit; cursor: pointer; }
 .preset-card.on { border-color: var(--blue); background: var(--blue-glow); }
 .preset-name { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--ink-hi); }
@@ -1154,4 +1156,29 @@ button.rung-fate { cursor: pointer; }
   .ladder-tiles, .cockpit-figs { grid-template-columns: 1fr; }
   .results-grid { grid-template-columns: 1fr; }
   .from-ladder { flex-wrap: wrap; }
+}
+
+/* ---- under a thumb ------------------------------------------------
+   The small chips and the text links are twenty pixels tall, which a
+   mouse finds and a thumb does not. Where the pointer is coarse every
+   control on the tab is given the height of a fingertip; the type
+   stays the size it was. */
+@media (pointer: coarse) {
+  .barter-screen .chip.tiny, .barter-screen .chip.pay { min-height: 34px; padding: 6px 12px; display: inline-flex; align-items: center; }
+  .barter-screen .chip.tiny.lvl { min-width: 34px; justify-content: center; }
+  .barter-screen .linky { display: inline-flex; align-items: center; min-height: 34px; padding: 0 2px; }
+  .barter-screen .purse-inline, .barter-screen .amt { min-height: 34px; }
+  .barter-screen .copy-name, .barter-screen .map-x { min-width: 34px; min-height: 34px; }
+  .barter-screen .mat-isle, .barter-screen .mat-head-name, .barter-screen .run-quest-name { min-height: 34px; }
+  .barter-screen .ghost-btn.sm { min-height: 36px; }
+  .barter-screen .rest-dot, .barter-screen .pack-box { width: 34px; height: 34px; }
+  .barter-screen .rest-row { grid-template-columns: 34px minmax(0, 1fr); }
+  .barter-screen .seg { min-height: 36px; }
+  .barter-screen .chip { min-height: 34px; }
+  .barter-screen .chip.tiny.lvl { width: auto; min-width: 34px; padding-left: 0; padding-right: 0; }
+  /* A later sheet pins these to 26px squares; under a thumb they are 34. */
+  .barter-screen .mat-filters .chip.tiny.lvl { width: 34px; height: 34px; }
+  .barter-screen .field { min-height: 36px; }
+  .barter-screen .step { min-width: 40px; justify-content: center; }
+  .barter-screen .step:not(.on) { align-items: center; }
 }

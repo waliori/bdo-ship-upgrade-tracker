@@ -152,7 +152,12 @@ function restore() {
 			// The run's own record rides along: what was loaded, the
 			// figures, the chains, the quests to hand in at home.
 			const keep = {};
-			for (const k of ['loaded', 'cost', 'silver', 'net', 'trades', 'questsHome', 'chains', 'goal', 'item', 'time', 'port']) if (s.sail[k] !== undefined) keep[k] = s.sail[k];
+			// What was bought for the run and the Parley it was planned on
+			// ride along too. They were written and never read back, so a
+			// run that outlived its page -- a phone gone to sleep, a tab
+			// reloaded an hour in, which is most runs -- was recorded as if
+			// its shore goods had cost nothing.
+			for (const k of ['loaded', 'bought', 'parleyUsed', 'cost', 'silver', 'net', 'trades', 'questsHome', 'chains', 'goal', 'item', 'time', 'port']) if (s.sail[k] !== undefined) keep[k] = s.sail[k];
 			sail = { key: s.sail.key, done: s.sail.done.map(String), seen: {}, got: {}, kept: Array.isArray(s.sail.kept) ? s.sail.kept.map(String) : [], stops: Array.isArray(s.sail.stops) ? s.sail.stops : [], ...keep };
 			for (const [k, v] of Object.entries(s.sail.seen || {})) if (Number(v) > 0) sail.seen[k] = Number(v);
 			for (const [k, v] of Object.entries(s.sail.got || {})) if (typeof v === 'string') sail.got[k] = v;

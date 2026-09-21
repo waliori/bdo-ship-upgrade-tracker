@@ -60,9 +60,17 @@ export const SAIL_PRESETS = [
 		// The orders a new sailor starts on, to the letter: somebody who
 		// has never touched this step is on a card with a name, not on
 		// "my own way" with a line of settings they never made.
-		id: 'quick', label: TT('A quick run'),
+		id: 'quick', label: TT('Light and fast'),
 		sub: TT('The ship stays light and fast: only what the hold carries under its limit, and no detours to a wharf.'),
 		orders: { pace: 'fast', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy' }
+	},
+	{
+		// "Quick" was the first card's name, over a run the search was
+		// free to make eight hours long. Light is what that card is; the
+		// one that is actually short is the one with the hour on it.
+		id: 'hour', label: TT('An hour at most'),
+		sub: TT('The best run that fits in about an hour, the ship kept light and fast.'),
+		orders: { pace: 'fast', hours: 1, vouchers: 'use', buy: true, landFrom: 'buy' }
 	},
 	{
 		id: 'steady', label: TT('The whole board, at full speed'),

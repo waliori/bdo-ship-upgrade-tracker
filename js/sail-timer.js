@@ -112,7 +112,12 @@ export function passedStop(index) {
 	const here = t.marks[done - 1].at;
 	const shift = ran - here;
 	if (!shift) return write({ ...t, done });
-	const marks = t.marks.map((m, i) => (i < done ? m : { ...m, at: Math.max(ran + 1, m.at + shift) }));
+	// A stop ticked before its time is behind the ship all the same. It
+	// was left standing at its estimate, still in the future, and the
+	// clock -- which reads the next mark off the time alone -- went on
+	// counting down to an island the sailor had already left: three
+	// stops into a run it still said "to the first stop, 1 of 18".
+	const marks = t.marks.map((m, i) => (i < done ? { ...m, at: Math.max(1, Math.min(m.at, ran)) } : { ...m, at: Math.max(ran + 1, m.at + shift) }));
 	write({ ...t, marks, done, seconds: Math.max(30, marks[marks.length - 1].at), chimed: false });
 	arm();
 	sendSchedule();
@@ -191,7 +196,9 @@ export function timerState(now = Date.now()) {
 	const t = timerNow();
 	if (!t) return null;
 	const ran = Math.max(0, Math.round((now - t.startedAt) / 1000));
-	const at = t.marks.findIndex(m => m.at > ran);
+	// The next stop is the first one neither behind the clock nor ticked
+	// off: a stop the sailor has said is done is done, whatever the time.
+	const at = t.marks.findIndex((m, i) => i >= t.done && m.at > ran);
 	const next = at < 0 ? null : { ...t.marks[at], i: at, left: t.marks[at].at - ran };
 	// Between arriving somewhere and being under way again, the clock is
 	// counting the stop rather than a leg: the sailor is at the island
@@ -199,7 +206,10 @@ export function timerState(now = Date.now()) {
 	// long they have before the plan expects them to have moved on.
 	const back = at < 0 ? t.marks.length - 1 : at - 1;
 	const on = back >= 0 ? t.marks[back] : null;
-	const here = on && on.hold > 0 && ran < on.at + on.hold ? { ...on, i: back, left: on.at + on.hold - ran } : null;
+	// ...unless that stop has been ticked off: "Traded" pressed is the
+	// sailor saying the bartering is over, and a clock that answers "at
+	// Luivano, under way in 43 s" is arguing with them.
+	const here = on && back >= t.done && on.hold > 0 && ran < on.at + on.hold ? { ...on, i: back, left: on.at + on.hold - ran } : null;
 	return { ...t, ran, left: t.seconds - ran, over: ran >= t.seconds, next, here, stops: t.marks.length };
 }
 
