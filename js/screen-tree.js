@@ -80,6 +80,27 @@ function foldChains(node, path = '') {
 }
 
 
+/**
+ * Where the units of a material that this row did not get have gone:
+ * "the 14 held go to Upgraded Plating". Read off the plan's own record
+ * of who reserved what, so it names the branch -- and the build, when
+ * it is another one -- rather than guessing. Empty when nothing else
+ * holds any, which leaves the row as it was.
+ */
+function takenBy(node, targetId) {
+	const others = ((snapshot.reservedBy || {})[node.item] || [])
+		.filter(r => !(r.targetId === targetId && r.via === node.via && r.qty === node.fromStock));
+	const n = others.reduce((a, r) => a + r.qty, 0);
+	if (!n) return '';
+	const names = [...new Set(others.map(r => (r.targetId === targetId
+		? gameName(parseEnhanced(r.via || r.targetItem).base || r.via || r.targetItem)
+		: gameName(r.targetItem))))];
+	const where = names.length > 2 ? T('{a}, {b} and others', { a: names[0], b: names[1] }) : names.join(', ');
+	return n === 1
+		? T('the {n} held goes to {where}', { n: F(n), where })
+		: T('the {n} held go to {where}', { n: F(n), where });
+}
+
 export function renderTree() {
 	const targets = snapshot.targets;
 	if (!targets.length) return startHere();
@@ -137,6 +158,14 @@ export function renderTree() {
 		if (node.fromStock) bits.push(T('{n} from stock', { n: F(node.fromStock) }));
 		if (node.toCraft) bits.push(parseEnhanced(node.item).level > 0 ? T('{n} to enhance', { n: F(node.toCraft) }) : T('{n} to craft', { n: F(node.toCraft) }));
 		if (node.missing) bits.push(T('{n} missing', { n: F(node.missing) }));
+		// A branch that came away with less than is held, because another
+		// branch got there first. The stock is handed out once, top of the
+		// tree downward, so the second part to want a material can read
+		// "60 missing" beside a box that says 14 are held -- which is true
+		// and looks like a miscount. A player sent exactly that in as a
+		// bug. So the row says where the ones it did not get have gone.
+		const elsewhere = node.fromStock < Math.min(own, node.need) ? takenBy(node, current.id) : '';
+		if (elsewhere) bits.push(elsewhere);
 
 		return `<div class="trow ${state}" style="--depth:${depth}">
 			${guides}
@@ -148,7 +177,7 @@ export function renderTree() {
 			${img(node.item, 'trow-icon')}
 			<span class="trow-main">
 				<span class="trow-name">${codexName(node.item)}</span>
-				<span class="trow-sub">${esc(bits.join(' · ') || T('nothing needed'))}</span>
+				<span class="trow-sub${elsewhere ? ' shared' : ''}"${elsewhere ? ` title="${esc(bits.join(' · '))}"` : ''}>${esc(bits.join(' · ') || T('nothing needed'))}</span>
 			</span>
 			<span class="trow-need">${F(node.need)}</span>
 			<span class="trow-own">${amountInput('own-input', own,

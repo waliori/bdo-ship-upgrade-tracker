@@ -4764,6 +4764,18 @@
 		"many": "{n} торговцев, которые его отдают",
 		"other": "{n} торговцев, которые его отдают"
 	},
+	"the {n} held go to {where}": {
+		"one": "{n} на руках уходит на {where}",
+		"few": "{n} на руках уходят на {where}",
+		"many": "{n} на руках уходят на {where}",
+		"other": "{n} на руках уходят на {where}"
+	},
+	"the {n} held goes to {where}": {
+		"one": "{n} на руках уходит на {where}",
+		"few": "{n} на руках уходят на {where}",
+		"many": "{n} на руках уходят на {where}",
+		"other": "{n} на руках уходят на {where}"
+	},
 	"the {n} quests that pay in it": {
 		"one": "{n} задание, которое им платит",
 		"few": "{n} задания, которые им платят",
@@ -4952,6 +4964,7 @@
 		"other": "{at} · склад, {n} заходов"
 	},
 	"{a} to {b}": "{a} — {b}",
+	"{a}, {b} and others": "{a}, {b} и другие",
 	"{a}–{b} min": "{a}–{b} мин",
 	"{cabins} of {space} cabin space": "{cabins} из {space} мест в каютах",
 	"{cabins} of {space} cabin space — {over} over": "{cabins} из {space} мест в каютах — {over} сверх",
