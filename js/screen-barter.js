@@ -2234,7 +2234,11 @@ function planOfSail(on) {
  * what the islands paid -- so it is offered back: record it, or let it
  * go, before anything else is sailed.
  */
-const stranded = () => (sail && !sailing() && Array.isArray(sail.done) && sail.done.length && planOfSail(sail) ? sail : null);
+// Either the run on screen is another run, or there is no run on screen
+// at all -- "Refreshed in game" leaves the checklist's key standing and
+// the board empty, so nothing is drawn and there is no Record to press.
+const stranded = () => (sail && Array.isArray(sail.done) && sail.done.length && planOfSail(sail)
+	&& (!sailing() || !shownPlan || !shownPlan.stops || !shownPlan.stops.length) ? sail : null);
 
 function strandedHTML() {
 	const on = stranded();
@@ -3291,6 +3295,9 @@ export function renderBarter() {
 	// then what is on offer -- the chains to tick, or the material list
 	// -- and the week's log. The run itself, laid out stop by stop, is a
 	// sheet over the page, opened from the strip along the foot.
+	// Nothing is drawn until this render draws it: a board just cleared
+	// must not leave the last board's run standing in for one.
+	shownPlan = null;
 	const parts = goal === 'material' ? materialParts(me, b.data) : silverParts(me, b);
 	runSheet = parts.rest || '';
 	// A sheet up follows the redraw.
