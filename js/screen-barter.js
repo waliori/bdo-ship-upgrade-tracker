@@ -1192,7 +1192,7 @@ function cutsHTML(plan, pace, name) {
 							: c.why === 'dealt'
 							? T('another chain reaches {where} first, and an island deals once a run', { where })
 							: c.why === 'floor'
-								? T('{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you would hold {owned}', { where, icon: img(c.good, 'row-icon xs'), good: esc(gameName(c.good)), floor: F(c.floor), lv: c.level, owned: F(c.owned) })
+								? T('{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}', { where, icon: img(c.good, 'row-icon xs'), good: esc(gameName(c.good)), floor: F(c.floor), lv: c.level, owned: F(c.owned) })
 								: c.why === 'skipped'
 									? T('you took {where} off the route', { where })
 									: T('there is nothing left to hand over at {where}', { where });
@@ -1204,17 +1204,18 @@ function cutsHTML(plan, pace, name) {
 			const own = c.held >= c.want
 				? T('You keep <b>{n}</b> of it — {link}', { n: F(c.held), link: `<button class="chip tiny primary" data-act="barter-land-from" data-id="stock" title="${T('Start the land chains from the shore goods you already keep, instead of buying them')}">${T('take land goods from my storage')} →</button>` })
 				: `<span class="run-cut-out">${T('it comes back when somebody lists some; the prices are asked again every half hour')}</span>`;
-			return `<li><b>${name(chain)}</b> ${got} — ${why}. ${own}</li>`;
+			return `<li><b>${name(chain)}</b> ${got} — ${why}. ${own}${untick}</li>`;
 		}
+		const untick = chain && chain.id && !String(chain.id).includes('>') ? ` <button class="chip tiny" data-act="barter-chain" data-id="${esc(chain.id)}" title="${T('Take this chain off the run')}">${T('untick')}</button>` : '';
 		if (c.why === 'floor') {
-			return `<li><b>${name(chain)}</b> ${got} — ${why}. <button class="chip tiny primary" data-act="barter-floor-clear" data-lvs="${c.level}" title="${T('Set that floor back to none, so the run may spend what it makes')}">${T('drop the Level {lv} floor', { lv: c.level })}</button></li>`;
+			return `<li><b>${name(chain)}</b> ${got} — ${why}.${untick} <button class="chip tiny primary" data-act="barter-floor-clear" data-lvs="${c.level}" title="${T('Set that floor back to none, so the run may spend what it makes')}">${T('drop the Level {lv} floor', { lv: c.level })}</button></li>`;
 		}
 		const out = c.why === 'hold' || c.why === 'over' || c.why === 'share'
 			? (pace === 'fast'
 				? `<button class="chip tiny primary" data-act="barter-pace-set" data-id="steady" title="${T('Every attempt, still under the limit, a wharf call to leave the surplus')}">${T('full, never slower')} →</button>`
 				: `<span class="run-cut-out">${T('leave <b>{n} LT</b> ashore before casting off', { n: F(Math.max(1, (c.need || 0) - (c.free || 0))) })}</span>`)
 			: '';
-		return `<li><b>${name(chain)}</b> ${got} — ${why}.${out ? ` ${out}` : ''}</li>`;
+		return `<li><b>${name(chain)}</b> ${got} — ${why}.${out ? ` ${out}` : ''}${untick}</li>`;
 	}).join('');
 	return `<div class="run-cut"><b>${plan.cut.length === 1 ? T('A ticked chain does not get to the top') : T('{n} ticked chains do not get to the top', { n: F(plan.cut.length) })}</b><ul>${lines}</ul></div>`;
 }
@@ -3309,6 +3310,18 @@ function silverParts(me, b) {
 		${cards ? `<div class="proposal-cards">${cards}</div>` : proposed.working ? `<div class="proposal-cards"><div class="proposal placeholder" aria-busy="true"><span class="proposal-k">${T('Working out the runs…')}</span><b>&nbsp;</b><span class="proposal-sub">${T('the board’s chains, searched in the background')}</span></div></div>` : `<p class="empty">${stocking ? T('Nothing on this board climbs toward the stock under these orders.') : T('Nothing on this board pays under these orders.')}</p>`}
 	</div>`;
 	const fillable = chosen.length > 0 && !proposed.proposals.some(p => sameSet(p.ids, routes.ids));
+	// A new sailor needs one sentence on what to do here, and a sailor
+	// who ticked their own needs to know what that costs them against the
+	// best the search found.
+	const pickHelp = `<p class="chains-help">${T('<b>The quick way:</b> tap one of the runs worth sailing — its chains are ticked for you. <b>Your own way:</b> tick chains below; each card says what that chain would pay sailed on its own.')}</p>`;
+	const mineVsOf = plan => (fillable && proposed.best && !proposed.working
+		? (() => {
+			const bestV = coining ? coinsOf(proposed.best.run).min : stocking ? stockGains(proposed.best.run, stock).total : proposed.best.run.net;
+			const mineV = coining ? coinsOf(plan).min : stocking ? stockGains(plan, stock).total : plan.net;
+			const say = v => (coining ? T('{n} coins', { n: F(v) }) : stocking ? `+${F(v)}` : FC(Math.round(v)));
+			return mineV + 1 < bestV ? `<div class="chains-vs"><span>${chosen.length === 1 ? T('Your {n} ticked chain comes to <b>{mine}</b>; the best run found comes to <b>{best}</b>.', { n: chosen.length, mine: say(mineV), best: say(bestV) }) : T('Your {n} ticked chains come to <b>{mine}</b>; the best run found comes to <b>{best}</b>.', { n: chosen.length, mine: say(mineV), best: say(bestV) })}</span><button class="chip tiny primary" data-act="barter-propose" data-ids="${esc(proposed.best.ids.join('\n'))}">${T('tick the best instead')}</button></div>` : '';
+		})()
+		: '');
 	// The list, filtered: a word in an island's or a good's name, where
 	// the chain starts, the level it reaches. A ticked chain always shows.
 	const cq = chainQ.trim().toLowerCase();
@@ -3371,7 +3384,7 @@ function silverParts(me, b) {
 			.map(c => chainRow(c, false, null, from && from.name, from, null, c.gate));
 		if (!rows.length && !locked.length) return '';
 		const of = [...ladders.values()].filter(list => reachOf(list[0]) === top).length;
-		return `<div class="chain-group${coinGroup ? ' coin' : ''}"><div class="chain-group-head" style="--tier:${TIER(coinGroup ? COIN_LEVEL : top)}"><i></i><span>${coinGroup ? `${img(COIN, 'group-icon')}${T('Cashed in for Crow Coins')}` : T('Reaches Level {lv}', { lv: top })}</span><span>${rows.length !== of ? T('{n} of {of}', { n: rows.length, of }) : rows.length}${locked.length ? ` · ${T('{n} locked', { n: locked.length })}` : ''}</span></div>${rows.join('')}${locked.join('')}</div>`;
+		return `<div class="chain-group${coinGroup ? ' coin' : ''}"><div class="chain-group-head" style="--tier:${TIER(coinGroup ? COIN_LEVEL : top)}"><i></i><span>${coinGroup ? `${img(COIN, 'group-icon')}${T('Cashed in for Crow Coins')}` : T('Reaches Level {lv}', { lv: top })}</span>${coinGroup || stocking || coining ? '' : top >= o.sell && o.sell !== NOTHING ? `<em class="group-fate sold">${T('sold at the wharf')}</em>` : `<em class="group-fate kept">${T('kept, not sold — the wharf sells Level {lv} and up', { lv: o.sell })}</em>`}<span>${rows.length !== of ? T('{n} of {of}', { n: rows.length, of }) : rows.length}${locked.length ? ` · ${T('{n} locked', { n: locked.length })}` : ''}</span></div>${rows.join('')}${locked.join('')}</div>`;
 	}).join('');
 	// What pays the good today, and whether its give is held: the answer
 	// even when no chain from the shore reaches it.
@@ -3426,9 +3439,10 @@ function silverParts(me, b) {
 				: T('{n} floors are holding the run back', { n: shutByFloor.length })}</b> — ${floorWhy}. ${one
 				? T('There is none of it to spend, so no chain can start from it.')
 				: T('There is none of them to spend, so no chain can start from them.')} ${dropFloors(shutByFloor.map(f => f.lv))}</div>`;
-	const chainsBody = `<div class="barter-chains">${chainActs(fillable)}${floorNote}${shutNote}${reachBar}${reach ? '' : proposals}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.landFrom === 'stock' && o.buy ? T('No chain on this board starts from a shore good you keep. Let the run buy its land goods ashore, or add what you have with ＋ A good.') : o.buy ? T('Nothing climbs on this board.') : T('Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.')) : T('No chain matches.')}</p>`}</div></div>`;
+	let chainsBody = `<div class="barter-chains">${chainActs(fillable)}${floorNote}${shutNote}${reachBar}${reach ? '' : `${pickHelp}${proposals}<!--minevs-->`}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.landFrom === 'stock' && o.buy ? T('No chain on this board starts from a shore good you keep. Let the run buy its land goods ashore, or add what you have with ＋ A good.') : o.buy ? T('Nothing climbs on this board.') : T('Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.')) : T('No chain matches.')}</p>`}</div></div>`;
 
 	const plan = chainRun({ ...opts, chosen });
+	chainsBody = chainsBody.replace('<!--minevs-->', mineVsOf(plan));
 	for (const s of plan.stops) s.hold = me.hold;
 	// The quests handed in on the way, with a stop put in for a taker
 	// off the route: the run's stops from here on are those.
