@@ -241,7 +241,7 @@ export function profileHTML({ sheet = false } = {}) {
 		// The class at the wheel. A Corsair gives the ship a point of
 		// speed, acceleration, turn and brake, and the Ship tab's speed
 		// line came up one short for every Corsair who typed the rest in.
-		chip('corsair', '⚔', T('Corsair'),
+		chip('corsair', '<img class="pouch-icon class-icon" src="icons/class_corsair.svg" alt="" decoding="sync">', T('Corsair'),
 			`<span class="pouch-switch"><input type="checkbox" data-act="corsair"${store.getProfile('corsair', false) === true ? ' checked' : ''} aria-label="${T('A Corsair is at the wheel')}"><b>${store.getProfile('corsair', false) === true ? T('at the wheel') : T('no')}</b></span>`,
 			store.getProfile('corsair', false) === true ? T('+{n}% speed, acceleration, turn and brake', { n: CORSAIR_BONUS }) : T('would add {n}% to speed, acceleration, turn and brake', { n: CORSAIR_BONUS }),
 			T('Whether the character sailing is a Corsair: the class gives the ship one per cent of speed, acceleration, turn and brake, which the game’s own figures include and the Ship tab was leaving out')),

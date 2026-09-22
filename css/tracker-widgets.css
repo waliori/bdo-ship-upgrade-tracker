@@ -520,6 +520,8 @@
 /* A game icon where the game has one -- the voucher, the Value Pack,
    the refresh button -- sized like the purse's own. */
 .pouch-item.sail .pouch-icon { width: 22px; height: 22px; border-radius: 5px; }
+/* The class icons are white line art on nothing: they sit on a dark round like the game's own class picker. */
+.pouch-icon.class-icon { padding: 2px; border-radius: 50%; background: var(--panel-inset); border: 1px solid var(--line-btn); }
 
 /* Folded, it is one chip that reads out the lot, with the fields a
    press away; open, the group's own name folds it back. Both are
