@@ -5122,5 +5122,13 @@
 	"Setting sail": "出航",
 	"Stop 1 of {n}": "寄港地 1/{n}",
 	"The route is laid from what is on the ship: tick the goods aboard above, and it draws itself — again each time a chain comes aboard.": "航路は船に積んだものから引かれます：上で積んだ品をチェックすると描かれ、チェーンが積まれるたびに引き直されます。",
-	"≈ {time} to the end": "終わりまで ≈ {time}"
+	"≈ {time} to the end": "終わりまで ≈ {time}",
+	"+{m} mastery (in your total) · +{s}% top speed at sea": "熟練度 +{m}（合計に含む）· 海上の最高速度 +{s}%",
+	"Its enhancement": "強化段階",
+	"Sailing log": "航海日誌",
+	"The sailing log you wear. Its Sailing Mastery is already part of the total the Life Skill tab shows, so it is not added twice; its Max Big Ship Speed is not in the ship window’s Speed %, and makes every leg at sea shorter": "装備している航海日誌。航海熟練度は生活スキルタブの合計に含まれているので二重には加えません。大型船の最高速度は船ウィンドウの速度%に含まれず、海上の各区間を短くします",
+	"adds mastery and top speed at sea": "熟練度と海上の最高速度を追加",
+	"{name}: +{n}% top speed at sea — legs are timed at {sea}%": "{name}：海上の最高速度 +{n}% — 区間は {sea}% で計算",
+	"{n} seated sailors’ figures are estimated from their level — read or type them for the exact total": "配置中の船員 {n} 人の数値はレベルからの推定です — 正確な合計には読み取るか入力してください",
+	"{n} seated sailor’s figures are estimated from the level — read or type them for the exact total": "配置中の船員 {n} 人の数値はレベルからの推定です — 正確な合計には読み取るか入力してください"
 }

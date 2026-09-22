@@ -5164,5 +5164,13 @@
 	"Setting sail": "Leinen los",
 	"Stop 1 of {n}": "Halt 1 von {n}",
 	"The route is laid from what is on the ship: tick the goods aboard above, and it draws itself — again each time a chain comes aboard.": "Die Route wird aus dem gelegt, was an Bord ist: hak oben die Waren ab, und sie zeichnet sich — erneut, sobald eine Kette an Bord kommt.",
-	"≈ {time} to the end": "≈ {time} bis zum Ende"
+	"≈ {time} to the end": "≈ {time} bis zum Ende",
+	"+{m} mastery (in your total) · +{s}% top speed at sea": "+{m} Meisterschaft (in deiner Summe) · +{s} % Höchstgeschwindigkeit auf See",
+	"Its enhancement": "Seine Verbesserung",
+	"Sailing log": "Segellogbuch",
+	"The sailing log you wear. Its Sailing Mastery is already part of the total the Life Skill tab shows, so it is not added twice; its Max Big Ship Speed is not in the ship window’s Speed %, and makes every leg at sea shorter": "Das Segellogbuch, das du trägst. Seine Segelmeisterschaft steckt schon in der Summe des Lebensskill-Tabs und wird nicht doppelt gezählt; seine max. Großschiff-Geschwindigkeit steckt nicht im Tempo-% des Schiffsfensters und verkürzt jede Strecke auf See",
+	"adds mastery and top speed at sea": "gibt Meisterschaft und Höchstgeschwindigkeit auf See",
+	"{name}: +{n}% top speed at sea — legs are timed at {sea}%": "{name}: +{n} % Höchstgeschwindigkeit auf See — Strecken werden mit {sea} % gerechnet",
+	"{n} seated sailors’ figures are estimated from their level — read or type them for the exact total": "Die Werte von {n} eingesetzten Matrosen sind aus ihrer Stufe geschätzt — lies oder tippe sie für die genaue Summe",
+	"{n} seated sailor’s figures are estimated from the level — read or type them for the exact total": "Die Werte von {n} eingesetztem Matrosen sind aus der Stufe geschätzt — lies oder tippe sie für die genaue Summe"
 }

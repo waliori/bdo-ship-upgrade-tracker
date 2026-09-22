@@ -291,7 +291,7 @@ export function traceHTML() {
 	</div>`).join('');
 	const m = traceLength();
 	const speed = routeSpeed();
-	const time = m ? fmtRange(...sailRange(m, speed.total, sailCal(), Number(store.getSetting('sailCal', null)) > 0)) : '';
+	const time = m ? fmtRange(...sailRange(m, speed.sea, sailCal(), Number(store.getSetting('sailCal', null)) > 0)) : '';
 	const has = traceHas(t) || Boolean(mv.areaDraft);
 	const areaRows = (t.areas || []).map((a, i) => `<div class="map-trace-stop">
 		<span class="map-trace-n area" style="border-color:${a.colour};color:${a.colour};background:${a.colour}22">▰</span>

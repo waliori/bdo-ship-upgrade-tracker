@@ -161,6 +161,36 @@ export function mateAtTheHelm(ship = shipName()) {
  * sailor and lives beside the Value Pack.
  */
 export const CORSAIR_BONUS = 1;
+
+/**
+ * The sailing logs: life-skill gear worn by the character, not the
+ * ship. Each adds Sailing Mastery by its enhancement level -- the same
+ * ladder as the sailor's clothes, read off the in-game tooltips (TRI
+ * Loggia 130, TRI Srulk 180, TET Manos 300 match) and the 2025 update
+ * note (Loggia 3-280, Srulk 4-330, Manos 5-400) -- and a flat "Max Big
+ * Ship Speed" whatever the level.
+ *
+ * Two things follow from the game's own ship window. The mastery a log
+ * gives is already inside the Sailing Mastery the Life Skill tab shows,
+ * which is the figure typed into the pouch -- so it is said, not added
+ * again. And the top speed is not in the Speed % that window shows (a
+ * Carrack reads 197.1% with a Manos log aboard, with no 15% in it), so
+ * it goes where top speed matters: the time a leg takes at sea.
+ */
+export const LOG_LEVELS = ['+0', '+1', '+2', '+3', '+4', '+5', '+6', '+7', '+8', '+9', '+10', '+11', '+12', '+13', '+14', '+15', 'PRI', 'DUO', 'TRI', 'TET', 'PEN'];
+export const SAILING_LOGS = {
+	loggia: { name: 'Loggia Sailing Log', speed: 5, exp: 3, mastery: [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 39, 45, 51, 57, 63, 70, 90, 130, 200, 280] },
+	srulk: { name: 'Srulk Sailing Log', speed: 10, exp: 5, mastery: [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 50, 58, 66, 74, 80, 95, 125, 180, 250, 330] },
+	manos: { name: 'Manos Sailing Log', speed: 15, exp: 10, mastery: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100, 120, 160, 220, 300, 400] }
+};
+/** The log worn, as { kind, lv, name, mastery, speed }, or null. */
+export function sailingLog() {
+	const raw = store.getProfile('sailingLog', null);
+	const log = raw && SAILING_LOGS[raw.kind];
+	if (!log) return null;
+	const lv = Math.max(0, Math.min(LOG_LEVELS.length - 1, Math.floor(Number(raw.lv) || 0)));
+	return { kind: raw.kind, lv, name: log.name, mastery: log.mastery[lv], speed: log.speed, exp: log.exp, level: LOG_LEVELS[lv] };
+}
 export const corsairBonus = () => (store.getProfile('corsair', false) === true ? CORSAIR_BONUS : 0);
 
 export function masteryBonus(mastery = store.getProfile('sailingMastery', 0) || 0) {
@@ -366,7 +396,13 @@ export function currentShip() {
 	}
 	return {
 		name, stats, fit, crew, crystal, mastery, corsair, skin: skinT, skinWorn: skinWorn(name),
-		speed: { hull: stats.speed, parts: parts('speed'), crystal: gem('speed'), crew: crew.speed, mastery, corsair, skin: skin('speed'), total: round1(stats.speed + parts('speed') + gem('speed') + crew.speed + mastery + corsair + skin('speed')) },
+		speed: (() => {
+			const total = round1(stats.speed + parts('speed') + gem('speed') + crew.speed + mastery + corsair + skin('speed'));
+			const log = sailingLog();
+			// `sea` is the speed a leg is timed at: the window's total with
+			// the log's top speed on it.
+			return { hull: stats.speed, parts: parts('speed'), crystal: gem('speed'), crew: crew.speed, mastery, corsair, skin: skin('speed'), total, log: log ? log.speed : 0, sea: round1(total * (1 + (log ? log.speed : 0) / 100)) };
+		})(),
 		accel: round1(stats.accel + parts('accel') + gem('accel') + crew.accel + mastery + corsair + skin('accel')),
 		turn: round1(stats.turn + parts('turn') + gem('turn') + crew.turn + mastery + corsair + skin('turn')),
 		brake: round1(stats.brake + parts('brake') + gem('brake') + crew.brake + mastery + corsair + skin('brake')),

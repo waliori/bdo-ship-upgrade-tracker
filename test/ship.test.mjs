@@ -128,6 +128,25 @@ test('a Corsair at the wheel is a point on speed, acceleration, turn and brake, 
 	assert.equal(currentShip().speed.total, before.speed.total);
 });
 
+test('a sailing log times the legs faster and leaves the window speed alone', async () => {
+	const { currentShip, sailingLog } = await import('../js/ship.js');
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { crewShip: 'Epheria Caravel' } });
+	const before = currentShip();
+	assert.equal(before.speed.sea, before.speed.total, 'no log: legs at the window speed');
+	store.setProfile('sailingLog', { kind: 'manos', lv: 19 });
+	const log = sailingLog();
+	assert.equal(log.mastery, 300, 'TET Manos gives 300 mastery, as its tooltip says');
+	assert.equal(log.speed, 15);
+	const after = currentShip();
+	assert.equal(after.speed.total, before.speed.total, 'the window speed does not carry the log');
+	assert.equal(after.speed.sea, Math.round(before.speed.total * 1.15 * 10) / 10);
+	store.setProfile('sailingLog', { kind: 'loggia', lv: 18 });
+	assert.equal(sailingLog().mastery, 130, 'TRI Loggia gives 130');
+	store.setProfile('sailingLog', { kind: 'srulk', lv: 18 });
+	assert.equal(sailingLog().mastery, 180, 'TRI Srulk gives 180');
+	store.setProfile('sailingLog', null);
+});
+
 test('a setup keeps a hull with its parts, crystal and seats, and sails again on demand', async () => {
 	const { saveSetup, loadSetup, listSetups, deleteSetup, activeSetupId, shipName, fittedFor, crystalFor } = await import('../js/ship.js');
 	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { crewShip: 'Epheria Caravel' } });

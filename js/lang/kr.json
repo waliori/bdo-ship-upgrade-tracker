@@ -5122,5 +5122,13 @@
 	"Setting sail": "출항",
 	"Stop 1 of {n}": "정박지 1/{n}",
 	"The route is laid from what is on the ship: tick the goods aboard above, and it draws itself — again each time a chain comes aboard.": "항로는 배에 실은 것으로 그려집니다: 위에서 실은 물품을 체크하면 그려지고, 체인이 실릴 때마다 다시 그려집니다.",
-	"≈ {time} to the end": "끝까지 ≈ {time}"
+	"≈ {time} to the end": "끝까지 ≈ {time}",
+	"+{m} mastery (in your total) · +{s}% top speed at sea": "숙련도 +{m} (합계에 포함) · 해상 최고 속도 +{s}%",
+	"Its enhancement": "강화 단계",
+	"Sailing log": "항해 일지",
+	"The sailing log you wear. Its Sailing Mastery is already part of the total the Life Skill tab shows, so it is not added twice; its Max Big Ship Speed is not in the ship window’s Speed %, and makes every leg at sea shorter": "착용한 항해 일지. 항해 숙련도는 이미 생활 스킬 탭 합계에 들어 있어 두 번 더하지 않습니다. 대형 선박 최고 속도는 선박 창의 속도 %에 없고, 바다의 모든 구간을 줄입니다",
+	"adds mastery and top speed at sea": "숙련도와 해상 최고 속도 추가",
+	"{name}: +{n}% top speed at sea — legs are timed at {sea}%": "{name}: 해상 최고 속도 +{n}% — 구간은 {sea}%로 계산",
+	"{n} seated sailors’ figures are estimated from their level — read or type them for the exact total": "배치된 선원 {n}명의 수치는 레벨로 추정한 값입니다 — 정확한 합계를 위해 읽거나 입력하세요",
+	"{n} seated sailor’s figures are estimated from the level — read or type them for the exact total": "배치된 선원 {n}명의 수치는 레벨로 추정한 값입니다 — 정확한 합계를 위해 읽거나 입력하세요"
 }

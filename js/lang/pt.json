@@ -5224,5 +5224,13 @@
 	"Setting sail": "Zarpando",
 	"Stop 1 of {n}": "Parada 1 de {n}",
 	"The route is laid from what is on the ship: tick the goods aboard above, and it draws itself — again each time a chain comes aboard.": "A rota é traçada a partir do que está a bordo: marque acima os bens embarcados e ela se desenha — de novo a cada corrente que embarca.",
-	"≈ {time} to the end": "≈ {time} até o fim"
+	"≈ {time} to the end": "≈ {time} até o fim",
+	"+{m} mastery (in your total) · +{s}% top speed at sea": "+{m} de maestria (no seu total) · +{s}% de velocidade máx. no mar",
+	"Its enhancement": "Seu aprimoramento",
+	"Sailing log": "Diário de bordo",
+	"The sailing log you wear. Its Sailing Mastery is already part of the total the Life Skill tab shows, so it is not added twice; its Max Big Ship Speed is not in the ship window’s Speed %, and makes every leg at sea shorter": "O diário de bordo que você usa. A maestria de navegação dele já está no total da aba de ofícios, então não é somada duas vezes; a velocidade máx. de navio grande não está no % de velocidade da janela do navio e encurta cada trecho no mar",
+	"adds mastery and top speed at sea": "soma maestria e velocidade máx. no mar",
+	"{name}: +{n}% top speed at sea — legs are timed at {sea}%": "{name}: +{n}% de velocidade máx. no mar — os trechos são cronometrados a {sea}%",
+	"{n} seated sailors’ figures are estimated from their level — read or type them for the exact total": "Os números de {n} marinheiros alocados são estimados pelo nível — leia ou digite-os para o total exato",
+	"{n} seated sailor’s figures are estimated from the level — read or type them for the exact total": "Os números de {n} marinheiro alocado são estimados pelo nível — leia ou digite-os para o total exato"
 }

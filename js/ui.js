@@ -1473,6 +1473,13 @@ function wire() {
 	document.addEventListener('change', evt => {
 		// The Value Pack is a tick rather than a number, so it lands first
 		// and on its own.
+		const logPick = evt.target.closest('[data-act="sailing-log"], [data-act="sailing-log-lv"]');
+		if (logPick) {
+			const was = store.getProfile('sailingLog', null);
+			if (logPick.dataset.act === 'sailing-log') store.setProfile('sailingLog', logPick.value ? { kind: logPick.value, lv: was && was.kind === logPick.value ? was.lv : 0 } : null);
+			else if (was) store.setProfile('sailingLog', { ...was, lv: Number(logPick.value) || 0 });
+			return paintPouch({ force: true });
+		}
 		const corsairTick = evt.target.closest('[data-act="corsair"]');
 		if (corsairTick) {
 			store.setProfile('corsair', corsairTick.checked);

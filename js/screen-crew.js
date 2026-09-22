@@ -17,7 +17,7 @@ import { openDialog, closeDialog, toast } from './dialogs.js';
 import { shipStats } from './ship_stats.js';
 import { describeStats, statsAt, partLT } from './part_stats.js';
 import { families, tables } from './enhancement.js';
-import { currentShip, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listFleet, hullOfRow, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, aboardWhat, gearLT, OTTER_ROD, skinWorn, setSkinSlot, setSkinAll, skinTotals, OWNED_PREFIX, OVERLOAD, petWeight } from './ship.js';
+import { currentShip, sailingLog, fittedFor, partsForSlot, shipName, setFitted, crystalFor, setCrystal, listFleet, hullOfRow, saveSetup, loadSetup, deleteSetup, activeSetupId, setupSummary, aboardWhat, gearLT, OTTER_ROD, skinWorn, setSkinSlot, setSkinAll, skinTotals, OWNED_PREFIX, OVERLOAD, petWeight } from './ship.js';
 import { GOODS } from './barter.js';
 import { GRADES, gradeById, crystalById, crystalsOf, crystalVariant, crystalLine, crystalStats } from './crystals.js';
 import { skinFor, SKIN_SLOTS } from './ship_skins.js';
@@ -795,7 +795,7 @@ export function renderCrew() {
 			</div>
 		</div>
 		<div class="ship-card-facts">
-			<div><div class="summary-k">${T('Speed')}</div><div class="summary-v">${me.speed.total}%</div><div class="summary-sub">${T('hull {n}', { n: stats.speed })}${me.speed.parts ? ` + ${T('parts {n}', { n: me.speed.parts })}` : ''}${me.speed.crystal ? ` + ${T('crystal {n}', { n: me.speed.crystal })}` : ''}${me.speed.crew ? ` + ${T('crew {n}', { n: me.speed.crew })}` : ''}${me.mastery ? ` + ${T('mastery {n}', { n: me.mastery })}` : ''}${me.corsair ? ` + ${T('Corsair {n}', { n: me.corsair })}` : ''}${me.speed.skin ? ` + ${T('skin {n}', { n: me.speed.skin })}` : ''}</div></div>
+			<div><div class="summary-k">${T('Speed')}</div><div class="summary-v">${me.speed.total}%</div><div class="summary-sub">${T('hull {n}', { n: stats.speed })}${me.speed.parts ? ` + ${T('parts {n}', { n: me.speed.parts })}` : ''}${me.speed.crystal ? ` + ${T('crystal {n}', { n: me.speed.crystal })}` : ''}${me.speed.crew ? ` + ${T('crew {n}', { n: me.speed.crew })}` : ''}${me.mastery ? ` + ${T('mastery {n}', { n: me.mastery })}` : ''}${me.corsair ? ` + ${T('Corsair {n}', { n: me.corsair })}` : ''}${me.speed.skin ? ` + ${T('skin {n}', { n: me.speed.skin })}` : ''}${me.speed.log ? `<br>${T('{name}: +{n}% top speed at sea — legs are timed at {sea}%', { name: esc(gameName(sailingLog().name)), n: me.speed.log, sea: me.speed.sea })}` : ''}${me.crew.guessed ? `<br><span class="amber">${me.crew.guessed === 1 ? T('{n} seated sailor’s figures are estimated from the level — read or type them for the exact total', { n: me.crew.guessed }) : T('{n} seated sailors’ figures are estimated from their level — read or type them for the exact total', { n: me.crew.guessed })}</span>` : ''}</div></div>
 			<div><div class="summary-k">${T('Hold')}</div><div class="summary-v">${F(me.hold.limit)} LT</div><div class="summary-sub">${T('the limit, as fitted')}${me.hold.aboard ? ` · ${T('{n} of it {what}', { n: F(me.hold.aboard), what: said(aboardWhat(me.hold)) })}` : ''} · ${T('barters to {n}', { n: F(me.hold.deal + me.hold.aboard) })}</div></div>
 			<div><div class="summary-k">${T('Fitted')}</div><div class="summary-v">${T('{n} of 5', { n: fittedN + (me.crystal ? 1 : 0) })}</div><div class="summary-sub">${stats.crew ? T('{n} of {seats} seats taken', { n: me.crew.seated, seats: stats.crew }) : T('carries no sailors')}</div></div>
 		</div>

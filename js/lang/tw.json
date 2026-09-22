@@ -5122,5 +5122,13 @@
 	"Setting sail": "起航",
 	"Stop 1 of {n}": "第 1 站，共 {n} 站",
 	"The route is laid from what is on the ship: tick the goods aboard above, and it draws itself — again each time a chain comes aboard.": "航線按船上已有的東西規劃：在上方勾選已上船的貨物，它就會畫出來 — 每上一條鏈再重畫一次。",
-	"≈ {time} to the end": "到結束約 {time}"
+	"≈ {time} to the end": "到結束約 {time}",
+	"+{m} mastery (in your total) · +{s}% top speed at sea": "熟練度 +{m}（已含在總數中）· 海上最高速度 +{s}%",
+	"Its enhancement": "強化等級",
+	"Sailing log": "航海日誌",
+	"The sailing log you wear. Its Sailing Mastery is already part of the total the Life Skill tab shows, so it is not added twice; its Max Big Ship Speed is not in the ship window’s Speed %, and makes every leg at sea shorter": "你佩戴的航海日誌。它的航海熟練度已包含在生活技能頁的總數裡，不會重複計算；它的大型船最高速度不在船隻視窗的速度 % 中，會縮短海上每一段航程",
+	"adds mastery and top speed at sea": "增加熟練度和海上最高速度",
+	"{name}: +{n}% top speed at sea — legs are timed at {sea}%": "{name}：海上最高速度 +{n}% — 航段按 {sea}% 計時",
+	"{n} seated sailors’ figures are estimated from their level — read or type them for the exact total": "{n} 名在崗船員的數值是按等級估算的 — 讀取或輸入以得到準確總數",
+	"{n} seated sailor’s figures are estimated from the level — read or type them for the exact total": "{n} 名在崗船員的數值是按等級估算的 — 讀取或輸入以得到準確總數"
 }

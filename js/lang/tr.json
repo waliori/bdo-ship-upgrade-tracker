@@ -5122,5 +5122,13 @@
 	"Setting sail": "Yelken açılıyor",
 	"Stop 1 of {n}": "Durak 1 / {n}",
 	"The route is laid from what is on the ship: tick the goods aboard above, and it draws itself — again each time a chain comes aboard.": "Rota gemide olandan çizilir: yukarıda gemideki malları işaretle, kendini çizer — her zincir bindiğinde yeniden.",
-	"≈ {time} to the end": "sona ≈ {time}"
+	"≈ {time} to the end": "sona ≈ {time}",
+	"+{m} mastery (in your total) · +{s}% top speed at sea": "+{m} ustalık (toplamında) · denizde +{s}% azami hız",
+	"Its enhancement": "Güçlendirmesi",
+	"Sailing log": "Seyir defteri",
+	"The sailing log you wear. Its Sailing Mastery is already part of the total the Life Skill tab shows, so it is not added twice; its Max Big Ship Speed is not in the ship window’s Speed %, and makes every leg at sea shorter": "Taktığın seyir defteri. Denizcilik ustalığı zaten Yaşam becerisi sekmesindeki toplamda, iki kez eklenmez; büyük gemi azami hızı gemi penceresindeki hız %'sinde yok ve denizdeki her ayağı kısaltır",
+	"adds mastery and top speed at sea": "ustalık ve denizde azami hız ekler",
+	"{name}: +{n}% top speed at sea — legs are timed at {sea}%": "{name}: denizde +{n}% azami hız — ayaklar {sea}% ile hesaplanır",
+	"{n} seated sailors’ figures are estimated from their level — read or type them for the exact total": "Görevdeki {n} denizcinin değerleri seviyelerinden tahmin — kesin toplam için oku ya da yaz",
+	"{n} seated sailor’s figures are estimated from the level — read or type them for the exact total": "Görevdeki {n} denizcinin değerleri seviyesinden tahmin — kesin toplam için oku ya da yaz"
 }

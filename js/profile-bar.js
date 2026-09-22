@@ -30,7 +30,7 @@ import { img } from './ui-bits.js';
 import { barterProfile } from './ui-state.js';
 import { dailyCapacity, barterLevels, levelDiscount, npcGates, ROUTE_UNLOCKS } from './barter.js';
 import { npcById } from './barter_npcs.js';
-import { mateAtTheHelm, masteryBonus, CORSAIR_BONUS, bosnJacks, bosnAlpha, petLT, setPets, PET_SLOTS } from './ship.js';
+import { mateAtTheHelm, masteryBonus, CORSAIR_BONUS, SAILING_LOGS, LOG_LEVELS, sailingLog, bosnJacks, bosnAlpha, petLT, setPets, PET_SLOTS } from './ship.js';
 import { anyType } from './sailors.js';
 import { openDialog, closeDialog } from './dialogs.js';
 import { REGIONS as MARKET_REGIONS, region as marketRegion, priceAge } from './market.js';
@@ -249,6 +249,19 @@ export function profileHTML({ sheet = false } = {}) {
 			num('crew-mastery', mastery, T('Sailing mastery'), ' data-from="bar"'),
 			mastery ? T('+{n}% speed, turn, brake', { n: masteryBonus(mastery) }) : T('adds to speed, turn and brake'),
 			T('Sailing Mastery as the game shows it: half a point of speed, acceleration, turn and brake per fifty up to 2,000, a quarter-point per fifty to 3,000')),
+
+		// The sailing log the character wears. Its mastery is already in
+		// the total above, as the Life Skill tab counts it; what it adds
+		// on its own is the ship's top speed at sea.
+		(() => {
+			const log = sailingLog();
+			const kinds = `<select class="pouch-select" data-act="sailing-log" aria-label="${T('Sailing log')}"><option value="">${T('none')}</option>${Object.entries(SAILING_LOGS).map(([k, l]) => `<option value="${k}"${log && log.kind === k ? ' selected' : ''}>${esc(gameName(l.name).replace(/ Sailing Log$/, ''))}</option>`).join('')}</select>`;
+			const lvs = log ? `<select class="pouch-select" data-act="sailing-log-lv" aria-label="${T('Its enhancement')}">${LOG_LEVELS.map((l, i) => `<option value="${i}"${log.lv === i ? ' selected' : ''}>${l}</option>`).join('')}</select>` : '';
+			return chip('log', img(log ? log.name : 'Manos Sailing Log', 'pouch-icon'), T('Sailing log'),
+				`<span class="pouch-log">${kinds}${lvs}</span>`,
+				log ? T('+{m} mastery (in your total) · +{s}% top speed at sea', { m: F(log.mastery), s: log.speed }) : T('adds mastery and top speed at sea'),
+				T('The sailing log you wear. Its Sailing Mastery is already part of the total the Life Skill tab shows, so it is not added twice; its Max Big Ship Speed is not in the ship window’s Speed %, and makes every leg at sea shorter'));
+		})(),
 
 		// The server you play on, which is a fact about the sailor and
 		// not about any one screen: every Market price in the app -- the

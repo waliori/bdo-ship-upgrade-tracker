@@ -296,7 +296,7 @@ export function paintMeasure(layer, size) {
 	if (mv.measurePts.length === 2) {
 		const m = pathLength(world);
 		const speed = routeSpeed();
-		const t = fmtRange(...sailRange(m, speed.total, sailCal(), Number(store.getSetting('sailCal', null)) > 0));
+		const t = fmtRange(...sailRange(m, speed.sea, sailCal(), Number(store.getSetting('sailCal', null)) > 0));
 		label.textContent = `${fmtDistance(m)}${t ? ` · ≈ ${t}` : ''}`;
 		const mid = pts[Math.floor(pts.length / 2)];
 		label.style.left = `${mid.left}px`;

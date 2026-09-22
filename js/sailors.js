@@ -472,7 +472,7 @@ export function levelSteps(sailor) {
 export function crewTotals(roster, seats, stats) {
 	const byId = new Map((roster || []).map(s => [s.id, s]));
 	const t = { seated: 0, cabins: 0, weight: 0, appetite: 0, speed: 0, accel: 0, turn: 0, brake: 0,
-		force: 0, focus: 0, vision: 0, durability: 0, rations: 0, sick: 0 };
+		force: 0, focus: 0, vision: 0, durability: 0, rations: 0, sick: 0, guessed: 0 };
 	for (const [key, id] of Object.entries(seats || {})) {
 		const s = byId.get(id);
 		const type = s && anyType[s.type];
@@ -489,6 +489,10 @@ export function crewTotals(roster, seats, stats) {
 			continue;
 		}
 		const m = (k, mult = 1) => statOf(s, k) * mult;
+		// A sailor whose own figures were never typed or read counts at the
+		// middle of what the level can roll: close, and never exact. Said,
+		// since it is where the last tenths between this and the game go.
+		if (!type.mate && !(s.stats && ['speed', 'accel', 'turn', 'brake'].every(k => Number.isFinite(s.stats[k])))) t.guessed++;
 		t.speed += m('speed', pos === 'sail' ? 2 : 1);
 		t.accel += m('accel', pos === 'sail' ? 2 : 1);
 		t.turn += m('turn', pos === 'wheel' ? 2 : 1);

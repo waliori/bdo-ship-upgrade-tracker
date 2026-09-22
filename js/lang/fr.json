@@ -5251,5 +5251,13 @@
 	"Setting sail": "Appareillage",
 	"Stop 1 of {n}": "Escale 1 sur {n}",
 	"The route is laid from what is on the ship: tick the goods aboard above, and it draws itself — again each time a chain comes aboard.": "La route se trace à partir de ce qui est à bord : cochez les biens embarqués ci-dessus, et elle se dessine — de nouveau à chaque chaîne embarquée.",
-	"≈ {time} to the end": "≈ {time} jusqu'à la fin"
+	"≈ {time} to the end": "≈ {time} jusqu'à la fin",
+	"+{m} mastery (in your total) · +{s}% top speed at sea": "+{m} de maîtrise (dans votre total) · +{s} % de vitesse max en mer",
+	"Its enhancement": "Son amélioration",
+	"Sailing log": "Journal de bord",
+	"The sailing log you wear. Its Sailing Mastery is already part of the total the Life Skill tab shows, so it is not added twice; its Max Big Ship Speed is not in the ship window’s Speed %, and makes every leg at sea shorter": "Le journal de bord que vous portez. Sa maîtrise de la navigation fait déjà partie du total de l'onglet Métiers, donc elle n'est pas ajoutée deux fois ; sa vitesse max des grands navires n'est pas dans la vitesse % de la fenêtre du navire, et raccourcit chaque trajet en mer",
+	"adds mastery and top speed at sea": "ajoute de la maîtrise et de la vitesse max en mer",
+	"{name}: +{n}% top speed at sea — legs are timed at {sea}%": "{name} : +{n} % de vitesse max en mer — les trajets sont chronométrés à {sea} %",
+	"{n} seated sailors’ figures are estimated from their level — read or type them for the exact total": "Les chiffres de {n} marins en poste sont estimés d'après leur niveau — lisez-les ou saisissez-les pour un total exact",
+	"{n} seated sailor’s figures are estimated from the level — read or type them for the exact total": "Les chiffres de {n} marin en poste sont estimés d'après son niveau — lisez-les ou saisissez-les pour un total exact"
 }

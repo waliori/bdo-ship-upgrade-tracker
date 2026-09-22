@@ -842,7 +842,7 @@ function legsOf(stops) {
 	const { total, legs } = bent;   // one leg a stop after the first, bends included
 	const me = currentShip();
 	const measured = Number(store.getSetting('sailCal', null)) > 0;
-	const range = m => sailRange(m, me.speed.total, sailCal(), measured);
+	const range = m => sailRange(m, me.speed.sea, sailCal(), measured);
 	const [fast, slow] = range(total);
 	// `timeWith` is the same range with minutes stood still added --
 	// the waits the Parley ledger puts in for a voucher's cooldown.
@@ -1417,7 +1417,7 @@ function roughHours(c, from) {
 	const back = last && stashes.length ? stashes.reduce((a, w) => (Math.hypot(w.x - last.x, w.y - last.y) < Math.hypot(a.x - last.x, a.y - last.y) ? w : a)) : null;
 	if (back) pts.push(back);
 	if (pts.length < 2) return 0;
-	return sailSeconds(pathLength(pts) * 1.25, me.speed.total, sailCal()) / 3600;
+	return sailSeconds(pathLength(pts) * 1.25, me.speed.sea, sailCal()) / 3600;
 }
 
 /** Silver a Parley unit, short: 2.8m → "2.8m/u". */
@@ -2214,7 +2214,7 @@ function expectedBest(me, b, prof) {
 	const from = fromPort();
 	const stock = aboardStock(), dock = dockStock();
 	const made = store.getProfile('homemade', []) || [];
-	const ship = { speed: me.speed.total, cal: sailCal() };
+	const ship = { speed: me.speed.sea, cal: sailCal() };
 	const key = JSON.stringify([board.day, b.standing.map(c => c.id), stock, dock, o, port, stash, made, me.hold, ship, Object.keys(marketSilver()).length, prof.barterCount]);
 	if (expected.key === key) return expected.value;
 	const parley = parleyOf(prof);
@@ -3396,7 +3396,7 @@ function silverParts(me, b) {
 	// so the best use of the day's Parley is at the top of its group.
 	// The runs worth sailing, searched once for these inputs and kept
 	// until any of them change; each chain's run on its own likewise.
-	const ship = { speed: me.speed.total, cal: sailCal() };
+	const ship = { speed: me.speed.sea, cal: sailCal() };
 	// The barter count is part of the key, and has to be: it decides
 	// which chains exist at all. Without it, raising the count left the
 	// solo runs keyed to the old, shorter set -- and the first chain the

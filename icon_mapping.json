@@ -2362,5 +2362,17 @@
  "[Level 7] Traditional Balenos Decorative Anchor": {
   "icon": "00800204.webp",
   "url": "https://bdocodex.com/us/item/800228/"
+ },
+ "Loggia Sailing Log": {
+  "icon": "00760943.webp",
+  "url": "https://bdocodex.com/us/item/760941/"
+ },
+ "Srulk Sailing Log": {
+  "icon": "00760943.webp",
+  "url": "https://bdocodex.com/us/item/760942/"
+ },
+ "Manos Sailing Log": {
+  "icon": "00760943.webp",
+  "url": "https://bdocodex.com/us/item/760943/"
  }
 }

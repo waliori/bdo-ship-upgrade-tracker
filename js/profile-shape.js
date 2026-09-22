@@ -245,6 +245,7 @@ export function readProfile(raw) {
 	}
 	const mastery = Math.floor(Number(raw.sailingMastery));
 	if (Number.isFinite(mastery) && mastery > 0) out.sailingMastery = Math.min(3000, mastery);
+	if (raw.sailingLog && ['loggia', 'srulk', 'manos'].includes(raw.sailingLog.kind)) out.sailingLog = { kind: raw.sailingLog.kind, lv: Math.max(0, Math.min(20, Math.floor(Number(raw.sailingLog.lv) || 0))) };
 	// The Bos'n Jacks out at the moment, by tier, and whether one of
 	// them is the Alpha Pet. Five slots because five pets is what the
 	// game lets out; trailing empties are not kept, and the Alpha only

@@ -7217,5 +7217,23 @@
 	"Setting sail": "Отплываем",
 	"Stop 1 of {n}": "Остановка 1 из {n}",
 	"The route is laid from what is on the ship: tick the goods aboard above, and it draws itself — again each time a chain comes aboard.": "Маршрут прокладывается по тому, что на борту: отметьте выше погруженные товары, и он нарисуется — заново с каждой погруженной цепочкой.",
-	"≈ {time} to the end": "≈ {time} до конца"
+	"≈ {time} to the end": "≈ {time} до конца",
+	"+{m} mastery (in your total) · +{s}% top speed at sea": "+{m} мастерства (в вашем итоге) · +{s}% макс. скорости в море",
+	"Its enhancement": "Его заточка",
+	"Sailing log": "Судовой журнал",
+	"The sailing log you wear. Its Sailing Mastery is already part of the total the Life Skill tab shows, so it is not added twice; its Max Big Ship Speed is not in the ship window’s Speed %, and makes every leg at sea shorter": "Судовой журнал, который вы носите. Его мастерство мореходства уже входит в итог вкладки жизненных навыков, поэтому не добавляется дважды; его макс. скорость большого корабля не входит в % скорости окна корабля и сокращает каждый переход по морю",
+	"adds mastery and top speed at sea": "даёт мастерство и макс. скорость в море",
+	"{name}: +{n}% top speed at sea — legs are timed at {sea}%": "{name}: +{n}% макс. скорости в море — переходы считаются при {sea}%",
+	"{n} seated sailors’ figures are estimated from their level — read or type them for the exact total": {
+		"one": "Показатели {n} моряка на местах оценены по уровню — прочитайте или введите их для точного итога",
+		"few": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога",
+		"many": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога",
+		"other": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога"
+	},
+	"{n} seated sailor’s figures are estimated from the level — read or type them for the exact total": {
+		"one": "Показатели {n} моряка на месте оценены по уровню — прочитайте или введите их для точного итога",
+		"few": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога",
+		"many": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога",
+		"other": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога"
+	}
 }

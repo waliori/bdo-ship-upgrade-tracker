@@ -60,7 +60,7 @@ export function routeHTML(marks) {
 	const localBoost = me.crystal && gradeById[me.crystal.grade].local ? me.speed.crystal : 0;
 	// Seconds for a leg, quick end and slow end, at the share of its
 	// speed the hull keeps with what is aboard at the start of the leg.
-	const secsOf = (m, slow = 1) => [sailRange(m, speed.total * slow, cal, measured)[0], sailRange(m, (speed.total - localBoost) * slow, cal, measured)[1]];
+	const secsOf = (m, slow = 1) => [sailRange(m, speed.sea * slow, cal, measured)[0], sailRange(m, (speed.sea - localBoost) * slow, cal, measured)[1]];
 	const timeOf = (m, slow = 1) => m != null ? fmtRange(...secsOf(m, slow)) : '';
 	const costs = mv.stops.map(id => stopParley(id, marks, prof));
 	const ledger = routeLedger({
@@ -825,7 +825,7 @@ export function openSailCal() {
 	host.querySelector('[data-cal-save]').addEventListener('click', () => {
 		const metres = Number(host.querySelector('[data-cal-leg]').value);
 		const minutes = Number(String(host.querySelector('[data-cal-min]').value).replace(',', '.'));
-		const v = calibrate(metres, minutes * 60, speed ? speed.total : 100);
+		const v = calibrate(metres, minutes * 60, speed ? speed.sea : 100);
 		if (!v) return toast(T('Give the minutes that leg took'));
 		store.setSetting('sailCal', v);
 		closeDialog();
