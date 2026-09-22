@@ -2796,10 +2796,17 @@ function packingHTML(plan, from, chosen = []) {
 		const act = [x.load ? `<button class="chip tiny" data-act="barter-load" data-item="${esc(x.item)}" data-town="${esc(x.load.town)}" data-n="${x.load.n}" title="${T('Take them out of the storage here, in the app as well')}">${T('Loaded')} ✓</button>` : '', x.act || ''].filter(Boolean).join('');
 		return `<div class="pack-row${on ? ' on' : ''}">${box}<span class="pack-icon"${lv ? ` style="--tier:${TIER(lv)}"` : ''}>${img(x.item, 'row-icon')}</span><span class="pack-what"><b>${esc(gameName(x.item))}</b><em>${esc(x.where)}${weightOf(x.item) ? ` · ${T('{lt} LT', { lt: (Math.round(x.n * weightOf(x.item) * 10) / 10).toLocaleString() })}` : ''}</em></span><span class="pack-n"><b>${n1(x.n)}</b><em>${esc(x.per)}</em></span>${act ? `<span class="pack-act">${act}</span>` : ''}</div>`;
 	};
-	const group = (title, sub, list, none) => `<section class="panel pack-group"><div class="panel-head"><h2 class="panel-title">${title}</h2><span class="panel-sub">${sub}</span></div>${list.length ? list.map(row).join('') : `<p class="empty">${none}</p>`}</section>`;
+	// The whole group at once, for the sailor who bought the lot in one
+	// go at the Market: a press ticks every row, a second takes them off.
+	const all = list => {
+		if (list.length < 2) return '';
+		const on = list.every(packedNow);
+		return `<button class="chip tiny pack-all${on ? ' active' : ''}" data-act="barter-pack-all" data-keys="${esc(list.map(x => x.key).join('\n'))}" data-on="${on ? 1 : 0}" aria-pressed="${on}">${on ? `✓ ${T('all aboard')}` : T('Tick them all')}</button>`;
+	};
+	const group = (title, sub, list, none) => `<section class="panel pack-group"><div class="panel-head"><h2 class="panel-title">${title}</h2><span class="panel-sub">${sub}</span><span class="panel-spacer"></span>${all(list)}</div>${list.length ? list.map(row).join('') : `<p class="empty">${none}</p>`}</section>`;
 	const where = from ? gameName(from.name) : '';
 	return `<div class="pack-groups">
-		${group(T('Buy at the Market'), `${plan.cost ? T('{silver} to buy', { silver: FC(Math.round(plan.cost)) }) : T('before casting off')}${p.market.length ? ` · ${T('shore goods are not weighed against the hold here')}` : ''}`, p.market, T('nothing to buy — the run starts from what is held'))}
+		${group(T('Buy at the Market'), `${plan.cost ? T('{silver} to buy', { silver: FC(Math.round(plan.cost)) }) : T('before casting off')}${p.market.length ? ` · ${T('{lt} LT to carry', { lt: (Math.round(p.market.reduce((w, x) => w + x.n * weightOf(x.item), 0) * 10) / 10).toLocaleString() })}` : ''}`, p.market, T('nothing to buy — the run starts from what is held'))}
 		${group(T('Take from storage'), where ? esc(T('{at} wharf', { at: where })) : T('before casting off'), p.storage, T('nothing in storage is needed'))}
 		${group(T('Already aboard'), T('checked against the hold'), p.aboard, T('nothing the run starts from is aboard yet'))}
 	</div>`;
@@ -4603,6 +4610,16 @@ export function barterAction(act, el, redraw) {
 		case 'barter-pack': {
 			const k = String(el.dataset.k || '');
 			if (packed.has(k)) packed.delete(k); else packed.add(k);
+			return true;
+		}
+		// Every row of a group to one state: all aboard, or none. A row
+		// already aboard ("a|") is ticked by being absent from the set.
+		case 'barter-pack-all': {
+			const want = el.dataset.on !== '1';
+			for (const k of String(el.dataset.keys || '').split('\n').filter(Boolean)) {
+				const inverse = k.startsWith('a|');
+				if (want !== inverse) packed.add(k); else packed.delete(k);
+			}
 			return true;
 		}
 		case 'barter-save': askSaveOrders(redraw); return false;
