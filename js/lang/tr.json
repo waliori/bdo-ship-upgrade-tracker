@@ -5053,5 +5053,12 @@
 	"Aboard before the first stop": "İlk duraktan önce gemide",
 	"Cast off from {port}": "{port} limanından yola çık",
 	"from your pile": "kendi yığınından",
-	"the hold as the lines are let go": "halatlar çözülürken ambar"
+	"the hold as the lines are let go": "halatlar çözülürken ambar",
+	"A Corsair is at the wheel": "Dümende bir Korsan var",
+	"Corsair": "Korsan",
+	"Corsair {n}": "Korsan {n}",
+	"Whether the character sailing is a Corsair: the class gives the ship one per cent of speed, acceleration, turn and brake, which the game’s own figures include and the Ship tab was leaving out": "Seyreden karakterin Korsan olup olmadığı: sınıf gemiye yüzde bir hız, ivme, dönüş ve fren verir; oyunun kendi rakamları bunu içerir, Gemi sekmesi ise atlıyordu",
+	"at the wheel": "dümende",
+	"no": "hayır",
+	"would add {n}% to speed, acceleration, turn and brake": "hız, ivme, dönüş ve frene {n}% eklerdi"
 }

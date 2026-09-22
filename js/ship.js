@@ -153,6 +153,16 @@ export function mateAtTheHelm(ship = shipName()) {
  * mastery up to 2,000 (20%), a quarter-point per fifty from there to
  * 3,000 (25%), and no more above that.
  */
+/**
+ * The Corsair's own point. A Corsair at the wheel gives the ship one
+ * per cent of speed, acceleration, turn and brake -- a flat point on
+ * each, like Sailing Mastery's, since those stats are percentages
+ * already. It is the class, not the hull, so it is a fact about the
+ * sailor and lives beside the Value Pack.
+ */
+export const CORSAIR_BONUS = 1;
+export const corsairBonus = () => (store.getProfile('corsair', false) === true ? CORSAIR_BONUS : 0);
+
 export function masteryBonus(mastery = store.getProfile('sailingMastery', 0) || 0) {
 	const m = Math.max(0, Math.min(3000, Math.floor(Number(mastery) || 0)));
 	const steps = Math.floor(m / 50);
@@ -303,6 +313,7 @@ export function currentShip() {
 	const crew = crewTotals(store.getProfile('roster', []) || [], seats, stats);
 	const parts = k => Number(fit.total[k]) || 0;
 	const mastery = masteryBonus();
+	const corsair = corsairBonus();
 	// The appearance set is not only a look: its four slots carry speed,
 	// weight, turn and durability, so it belongs in the same sum.
 	const skinT = skinStats(name, skinWorn(name));
@@ -354,11 +365,11 @@ export function currentShip() {
 		lines.push({ label: one ? T('{what}, its own weight', { what: said }) : T('{what}, their own weight', { what: said }), lt: -gear });
 	}
 	return {
-		name, stats, fit, crew, crystal, mastery, skin: skinT, skinWorn: skinWorn(name),
-		speed: { hull: stats.speed, parts: parts('speed'), crystal: gem('speed'), crew: crew.speed, mastery, skin: skin('speed'), total: round1(stats.speed + parts('speed') + gem('speed') + crew.speed + mastery + skin('speed')) },
-		accel: round1(stats.accel + parts('accel') + gem('accel') + crew.accel + mastery + skin('accel')),
-		turn: round1(stats.turn + parts('turn') + gem('turn') + crew.turn + mastery + skin('turn')),
-		brake: round1(stats.brake + parts('brake') + gem('brake') + crew.brake + mastery + skin('brake')),
+		name, stats, fit, crew, crystal, mastery, corsair, skin: skinT, skinWorn: skinWorn(name),
+		speed: { hull: stats.speed, parts: parts('speed'), crystal: gem('speed'), crew: crew.speed, mastery, corsair, skin: skin('speed'), total: round1(stats.speed + parts('speed') + gem('speed') + crew.speed + mastery + corsair + skin('speed')) },
+		accel: round1(stats.accel + parts('accel') + gem('accel') + crew.accel + mastery + corsair + skin('accel')),
+		turn: round1(stats.turn + parts('turn') + gem('turn') + crew.turn + mastery + corsair + skin('turn')),
+		brake: round1(stats.brake + parts('brake') + gem('brake') + crew.brake + mastery + corsair + skin('brake')),
 		// The hold: hull plus what the plating and a crystal add, less what
 		// is aboard before anything is loaded -- the crew's own weight and
 		// the parts' -- and what is left is what a run can carry. `deal`

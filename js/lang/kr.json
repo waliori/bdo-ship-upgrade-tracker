@@ -5053,5 +5053,12 @@
 	"Aboard before the first stop": "첫 정박지 전 적재",
 	"Cast off from {port}": "{port}에서 출항",
 	"from your pile": "내 비축분에서",
-	"the hold as the lines are let go": "출항 시 선창"
+	"the hold as the lines are let go": "출항 시 선창",
+	"A Corsair is at the wheel": "커세어가 키를 잡고 있음",
+	"Corsair": "커세어",
+	"Corsair {n}": "커세어 {n}",
+	"Whether the character sailing is a Corsair: the class gives the ship one per cent of speed, acceleration, turn and brake, which the game’s own figures include and the Ship tab was leaving out": "항해하는 캐릭터가 커세어인지: 이 클래스는 배의 속도·가속·선회·제동을 1% 올려 줍니다. 게임의 수치에는 포함되지만 선박 탭에서는 빠져 있었습니다",
+	"at the wheel": "키 잡음",
+	"no": "아니요",
+	"would add {n}% to speed, acceleration, turn and brake": "속도·가속·선회·제동에 {n}% 추가"
 }

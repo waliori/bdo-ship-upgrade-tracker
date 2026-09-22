@@ -7103,5 +7103,12 @@
 	"Aboard before the first stop": "На борту до первой остановки",
 	"Cast off from {port}": "Отплытие из {port}",
 	"from your pile": "из вашего запаса",
-	"the hold as the lines are let go": "трюм при отдаче швартовов"
+	"the hold as the lines are let go": "трюм при отдаче швартовов",
+	"A Corsair is at the wheel": "У штурвала корсар",
+	"Corsair": "Корсар",
+	"Corsair {n}": "корсар {n}",
+	"Whether the character sailing is a Corsair: the class gives the ship one per cent of speed, acceleration, turn and brake, which the game’s own figures include and the Ship tab was leaving out": "Является ли персонаж корсаром: класс даёт кораблю один процент к скорости, разгону, повороту и торможению, который игра учитывает, а вкладка Корабль упускала",
+	"at the wheel": "у штурвала",
+	"no": "нет",
+	"would add {n}% to speed, acceleration, turn and brake": "добавил бы {n}% к скорости, разгону, повороту и торможению"
 }

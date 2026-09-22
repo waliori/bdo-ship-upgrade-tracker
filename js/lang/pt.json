@@ -5155,5 +5155,12 @@
 	"Aboard before the first stop": "A bordo antes da primeira parada",
 	"Cast off from {port}": "Zarpar de {port}",
 	"from your pile": "da sua reserva",
-	"the hold as the lines are let go": "o porão ao soltar as amarras"
+	"the hold as the lines are let go": "o porão ao soltar as amarras",
+	"A Corsair is at the wheel": "Um Corsário está ao leme",
+	"Corsair": "Corsário",
+	"Corsair {n}": "Corsário {n}",
+	"Whether the character sailing is a Corsair: the class gives the ship one per cent of speed, acceleration, turn and brake, which the game’s own figures include and the Ship tab was leaving out": "Se o personagem que navega é um Corsário: a classe dá ao navio um por cento de velocidade, aceleração, curva e freio, que os números do jogo incluem e a aba Navio deixava de fora",
+	"at the wheel": "ao leme",
+	"no": "não",
+	"would add {n}% to speed, acceleration, turn and brake": "somaria {n}% à velocidade, aceleração, curva e freio"
 }

@@ -77,11 +77,13 @@ test('a save from before the field leaves the profile alone', () => {
 	reset();
 	store.setProfile('barterCount', 2000);
 	store.setProfile('valuePack', true);
+	store.setProfile('corsair', true);
 
 	store.adopt({ ...SAVE, stock: { Silver: 5 } }, 'from an older device');
 
 	assert.equal(store.getProfile('barterCount'), 2000);
 	assert.equal(store.getProfile('valuePack'), true);
+	assert.equal(store.getProfile('corsair'), true, 'the class at the wheel rides along with the pack');
 	assert.equal(store.getStock('Silver'), 5, 'the rest of the save still lands');
 });
 

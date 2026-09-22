@@ -112,6 +112,22 @@ test('sailing mastery follows the game\'s table: half a point per fifty to 2,000
 	assert.equal(after.turn, Math.round((before.turn + 20) * 10) / 10);
 });
 
+test('a Corsair at the wheel is a point on speed, acceleration, turn and brake, and nothing on the hold', async () => {
+	const { currentShip } = await import('../js/ship.js');
+	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { crewShip: 'Epheria Caravel' } });
+	const before = currentShip();
+	store.setProfile('corsair', true);
+	const after = currentShip();
+	assert.equal(after.speed.total, Math.round((before.speed.total + 1) * 10) / 10);
+	assert.equal(after.speed.corsair, 1);
+	assert.equal(after.accel, Math.round((before.accel + 1) * 10) / 10);
+	assert.equal(after.turn, Math.round((before.turn + 1) * 10) / 10);
+	assert.equal(after.brake, Math.round((before.brake + 1) * 10) / 10);
+	assert.equal(after.hold.limit, before.hold.limit);
+	store.setProfile('corsair', false);
+	assert.equal(currentShip().speed.total, before.speed.total);
+});
+
 test('a setup keeps a hull with its parts, crystal and seats, and sails again on demand', async () => {
 	const { saveSetup, loadSetup, listSetups, deleteSetup, activeSetupId, shipName, fittedFor, crystalFor } = await import('../js/ship.js');
 	store.adopt({ stock: {}, targets: [], strategy: {}, profile: { crewShip: 'Epheria Caravel' } });

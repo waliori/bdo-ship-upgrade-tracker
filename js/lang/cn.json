@@ -5053,5 +5053,12 @@
 	"Aboard before the first stop": "第一站前已在船上",
 	"Cast off from {port}": "从 {port} 起航",
 	"from your pile": "来自你的库存",
-	"the hold as the lines are let go": "解缆时的船舱"
+	"the hold as the lines are let go": "解缆时的船舱",
+	"A Corsair is at the wheel": "掌舵的是海盗",
+	"Corsair": "海盗",
+	"Corsair {n}": "海盗 {n}",
+	"Whether the character sailing is a Corsair: the class gives the ship one per cent of speed, acceleration, turn and brake, which the game’s own figures include and the Ship tab was leaving out": "航行的角色是否为海盗：该职业给船 +1% 的速度、加速、转向和制动，游戏自己的数字包含它，而船只页一直漏掉",
+	"at the wheel": "掌舵",
+	"no": "否",
+	"would add {n}% to speed, acceleration, turn and brake": "将为速度、加速、转向和制动加 {n}%"
 }

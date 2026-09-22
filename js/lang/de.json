@@ -5095,5 +5095,12 @@
 	"Aboard before the first stop": "An Bord vor dem ersten Halt",
 	"Cast off from {port}": "Ablegen in {port}",
 	"from your pile": "von deinem Vorrat",
-	"the hold as the lines are let go": "der Laderaum, wenn die Leinen losgemacht werden"
+	"the hold as the lines are let go": "der Laderaum, wenn die Leinen losgemacht werden",
+	"A Corsair is at the wheel": "Ein Korsar steht am Ruder",
+	"Corsair": "Korsar",
+	"Corsair {n}": "Korsar {n}",
+	"Whether the character sailing is a Corsair: the class gives the ship one per cent of speed, acceleration, turn and brake, which the game’s own figures include and the Ship tab was leaving out": "Ob die segelnde Figur ein Korsar ist: die Klasse gibt dem Schiff ein Prozent Geschwindigkeit, Beschleunigung, Wendigkeit und Bremsen, was die Zahlen des Spiels enthalten und der Schiff-Tab ausgelassen hat",
+	"at the wheel": "am Ruder",
+	"no": "nein",
+	"would add {n}% to speed, acceleration, turn and brake": "würde {n} % Geschwindigkeit, Beschleunigung, Wendigkeit und Bremsen dazugeben"
 }

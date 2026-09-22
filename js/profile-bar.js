@@ -30,7 +30,7 @@ import { img } from './ui-bits.js';
 import { barterProfile } from './ui-state.js';
 import { dailyCapacity, barterLevels, levelDiscount, npcGates, ROUTE_UNLOCKS } from './barter.js';
 import { npcById } from './barter_npcs.js';
-import { mateAtTheHelm, masteryBonus, bosnJacks, bosnAlpha, petLT, setPets, PET_SLOTS } from './ship.js';
+import { mateAtTheHelm, masteryBonus, CORSAIR_BONUS, bosnJacks, bosnAlpha, petLT, setPets, PET_SLOTS } from './ship.js';
 import { anyType } from './sailors.js';
 import { openDialog, closeDialog } from './dialogs.js';
 import { REGIONS as MARKET_REGIONS, region as marketRegion, priceAge } from './market.js';
@@ -81,8 +81,9 @@ function summaryHTML(p) {
 		T('{n} barters', { n: F(p.barterCount) }),
 		p.level || T('no level'),
 		T('{trade}+{material} draws', { trade: F(day.lists.trade), material: F(day.lists.material) }),
+		store.getProfile('corsair', false) === true ? T('Corsair') : '',
 		regionLabel()
-	].join(' · ');
+	].filter(Boolean).join(' · ');
 	// Nought barters is what the game gives a sailor who has never
 	// bartered -- three routes and no more -- and the app plans on it.
 	// It is also what a save that has never been told says, so the one
@@ -236,6 +237,14 @@ export function profileHTML({ sheet = false } = {}) {
 			`<span class="pouch-switch"><input type="checkbox" data-act="value-pack"${p.valuePack ? ' checked' : ''} aria-label="${T('A Value Pack is up')}"><b>${p.valuePack ? T('up') : T('off')}</b></span>`,
 			p.valuePack ? T('+1 trade draw · −10% Parley') : T('would add a draw and −10%'),
 			T('A Value Pack adds a fourth draw of the trade-goods list each day and takes ten per cent off every Parley cost')),
+
+		// The class at the wheel. A Corsair gives the ship a point of
+		// speed, acceleration, turn and brake, and the Ship tab's speed
+		// line came up one short for every Corsair who typed the rest in.
+		chip('corsair', '⚔', T('Corsair'),
+			`<span class="pouch-switch"><input type="checkbox" data-act="corsair"${store.getProfile('corsair', false) === true ? ' checked' : ''} aria-label="${T('A Corsair is at the wheel')}"><b>${store.getProfile('corsair', false) === true ? T('at the wheel') : T('no')}</b></span>`,
+			store.getProfile('corsair', false) === true ? T('+{n}% speed, acceleration, turn and brake', { n: CORSAIR_BONUS }) : T('would add {n}% to speed, acceleration, turn and brake', { n: CORSAIR_BONUS }),
+			T('Whether the character sailing is a Corsair: the class gives the ship one per cent of speed, acceleration, turn and brake, which the game’s own figures include and the Ship tab was leaving out')),
 
 		chip('draws', '<img class="pouch-icon" src="icons/ui_barter_refresh.webp" alt="" decoding="sync">', T('Draws a day'),
 			`<span class="pouch-input plain">${T('{trade} <small>trade</small> + {material} <small>mat</small>', { trade: F(day.lists.trade), material: F(day.lists.material) })}</span>`,

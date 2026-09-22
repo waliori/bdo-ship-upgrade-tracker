@@ -5053,5 +5053,12 @@
 	"Aboard before the first stop": "อยู่บนเรือก่อนจุดแวะแรก",
 	"Cast off from {port}": "ออกเรือจาก {port}",
 	"from your pile": "จากคลังของคุณ",
-	"the hold as the lines are let go": "ระวางเรือตอนปลดเชือก"
+	"the hold as the lines are let go": "ระวางเรือตอนปลดเชือก",
+	"A Corsair is at the wheel": "คอร์แซร์ถือพวงมาลัย",
+	"Corsair": "คอร์แซร์",
+	"Corsair {n}": "คอร์แซร์ {n}",
+	"Whether the character sailing is a Corsair: the class gives the ship one per cent of speed, acceleration, turn and brake, which the game’s own figures include and the Ship tab was leaving out": "ตัวละครที่แล่นเรือเป็นคอร์แซร์หรือไม่: อาชีพนี้ให้เรือความเร็ว อัตราเร่ง การเลี้ยว และเบรกเพิ่ม 1% ซึ่งตัวเลขของเกมรวมไว้แต่แท็บเรือตกหล่นไป",
+	"at the wheel": "ถือพวงมาลัย",
+	"no": "ไม่",
+	"would add {n}% to speed, acceleration, turn and brake": "จะเพิ่ม {n}% ให้ความเร็ว อัตราเร่ง การเลี้ยว และเบรก"
 }

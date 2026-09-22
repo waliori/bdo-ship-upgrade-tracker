@@ -5053,5 +5053,12 @@
 	"Aboard before the first stop": "最初の寄港地の前に積載",
 	"Cast off from {port}": "{port}から出航",
 	"from your pile": "自分の備蓄から",
-	"the hold as the lines are let go": "出航時の船倉"
+	"the hold as the lines are let go": "出航時の船倉",
+	"A Corsair is at the wheel": "コルセアが舵を取っている",
+	"Corsair": "コルセア",
+	"Corsair {n}": "コルセア {n}",
+	"Whether the character sailing is a Corsair: the class gives the ship one per cent of speed, acceleration, turn and brake, which the game’s own figures include and the Ship tab was leaving out": "操船キャラクターがコルセアかどうか：このクラスは船の速度・加速・旋回・制動を1%上げます。ゲームの数値には含まれ、船タブでは抜けていました",
+	"at the wheel": "舵取り中",
+	"no": "いいえ",
+	"would add {n}% to speed, acceleration, turn and brake": "速度・加速・旋回・制動に +{n}% される"
 }

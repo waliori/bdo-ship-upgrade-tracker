@@ -1466,6 +1466,11 @@ function wire() {
 	document.addEventListener('change', evt => {
 		// The Value Pack is a tick rather than a number, so it lands first
 		// and on its own.
+		const corsairTick = evt.target.closest('[data-act="corsair"]');
+		if (corsairTick) {
+			store.setProfile('corsair', corsairTick.checked);
+			return paintPouch({ force: true });
+		}
 		const vp = evt.target.closest('[data-act="value-pack"]');
 		if (vp) {
 			store.setProfile('valuePack', vp.checked);
