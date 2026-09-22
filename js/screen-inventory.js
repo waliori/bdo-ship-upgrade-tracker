@@ -162,7 +162,9 @@ export function renderInventory() {
 			${stats.own === 0 && stats.short > 0
 				? `<span class="tile-qty short">${T('{n} short', { n: F(stats.short) })}</span>`
 				: `<span class="tile-qty">${F(stats.own)}</span>`}
-			<span class="tile-name">${esc(gameName(key))}</span>
+			${levelOf(open) !== null
+				? `<span class="tile-name tiered" style="--tier:${TIER(levelOf(open))}"><i class="tile-tier">L${levelOf(open)}</i>${esc(gameName(key).replace(/^\[Level \d\] /, ''))}</span>`
+				: `<span class="tile-name">${esc(gameName(key))}</span>`}
 			<span class="bar">
 				<i class="make" style="width:${(stats.reserved / denom) * 100}%"></i>
 				<i class="take" style="width:${(free / denom) * 100}%"></i>
@@ -303,7 +305,7 @@ function whereBlock(item, own) {
 		<span>${esc(fixed ? town : gameName(town))}</span>
 		<span class="where-edit">${fixed
 			? `<span class="n teal" title="${T('What is not at a noted storage is in your bags')}">${F(n)}</span>`
-			: amountInput('where-val', n, `data-act="stash-set" data-item="${esc(item)}" data-town="${esc(town)}" aria-label="${T('How many at {town}', { town: esc(gameName(town)) })}"`)}
+			: `<button class="qty-btn sm" data-act="stash-bump" data-item="${esc(item)}" data-town="${esc(town)}" data-delta="-10" title="${T('Ten fewer at {town}', { town: esc(gameName(town)) })}">−10</button>${amountInput('where-val', n, `data-act="stash-set" data-item="${esc(item)}" data-town="${esc(town)}" aria-label="${T('How many at {town}', { town: esc(gameName(town)) })}"`)}<button class="qty-btn sm" data-act="stash-bump" data-item="${esc(item)}" data-town="${esc(town)}" data-delta="10" title="${T('Ten more at {town} — a run’s worth, straight into the storage', { town: esc(gameName(town)) })}">+10</button>`}
 		${fixed ? '' : `<button class="map-x" data-act="stash-del" data-item="${esc(item)}" data-town="${esc(town)}" aria-label="${T('Forget {town} — its count goes back to your bags', { town: esc(gameName(town)) })}">×</button>`}</span>
 	</div>`;
 	// A trade good is never in the bags: what no storage claims is
@@ -361,7 +363,7 @@ function renderDetail() {
 
 	return `<div class="detail-head">
 			${img(item, '')}
-			<div class="detail-name">${codexName(item)}</div>
+			<div class="detail-name${levelOf(item) !== null ? ' tiered' : ''}"${levelOf(item) !== null ? ` style="--tier:${TIER(levelOf(item))}"` : ''}>${codexName(item)}</div>
 			<button class="detail-close" data-act="deselect" title="${T('Close (Esc)')}" aria-label="${T('Close')}">×</button>
 		</div>
 		${levelPicker(item)}

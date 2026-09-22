@@ -5075,5 +5075,7 @@
 	"{n} island pays a range and waits for its count — tap what it paid": "{n} 個島付一個區間，等待數量 — 點選它付了多少",
 	"{n} island still waits for its count.": "{n} 個島仍在等待數量。",
 	"{n} islands pay a range and wait for their count — tap what each paid": "{n} 個島付一個區間，等待數量 — 點選各自付了多少",
-	"{n} islands still wait for their count.": "{n} 個島仍在等待數量。"
+	"{n} islands still wait for their count.": "{n} 個島仍在等待數量。",
+	"Ten fewer at {town}": "在 {town} 少十個",
+	"Ten more at {town} — a run’s worth, straight into the storage": "在 {town} 多十個 — 一趟的量，直接進倉庫"
 }

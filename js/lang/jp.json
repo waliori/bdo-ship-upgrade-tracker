@@ -5075,5 +5075,7 @@
 	"{n} island pays a range and waits for its count — tap what it paid": "{n} 島が範囲で支払い、数量待ちです — 支払数をタップしてください",
 	"{n} island still waits for its count.": "{n} 島がまだ数量待ちです。",
 	"{n} islands pay a range and wait for their count — tap what each paid": "{n} 島が範囲で支払い、数量待ちです — それぞれの支払数をタップしてください",
-	"{n} islands still wait for their count.": "{n} 島がまだ数量待ちです。"
+	"{n} islands still wait for their count.": "{n} 島がまだ数量待ちです。",
+	"Ten fewer at {town}": "{town}で10減らす",
+	"Ten more at {town} — a run’s worth, straight into the storage": "{town}で10増やす — 一航海分を倉庫へ直接"
 }

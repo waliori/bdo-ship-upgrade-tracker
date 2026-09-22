@@ -1027,6 +1027,13 @@ function wire() {
 			case 'quest-pay-pick': return questAction(act, el);
 			case 'quest-pay-del': questAction(act, el); return render();
 			case 'stash-del': store.setStash(el.dataset.item, el.dataset.town, null); return;
+			// Tens straight into a storage: a run comes back with ten or
+			// twenty of a good, and the card's own +10 puts them aboard.
+			case 'stash-bump': {
+				const at = ((store.getProfile('stash', {}) || {})[el.dataset.item] || {})[el.dataset.town] || 0;
+				store.setStash(el.dataset.item, el.dataset.town, Math.max(0, at + Number(el.dataset.delta || 0)));
+				return;
+			}
 			// The name as the game prints it, for the Market's search box.
 			case 'copy-name': {
 				const name = gameName(el.dataset.item || '');

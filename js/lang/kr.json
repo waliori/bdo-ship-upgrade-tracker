@@ -5075,5 +5075,7 @@
 	"{n} island pays a range and waits for its count — tap what it paid": "{n}개 섬이 범위로 지불하며 수량을 기다립니다 — 지불한 수량을 탭하세요",
 	"{n} island still waits for its count.": "{n}개 섬이 아직 수량을 기다립니다.",
 	"{n} islands pay a range and wait for their count — tap what each paid": "{n}개 섬이 범위로 지불하며 수량을 기다립니다 — 각각 지불한 수량을 탭하세요",
-	"{n} islands still wait for their count.": "{n}개 섬이 아직 수량을 기다립니다."
+	"{n} islands still wait for their count.": "{n}개 섬이 아직 수량을 기다립니다.",
+	"Ten fewer at {town}": "{town}에서 10 줄임",
+	"Ten more at {town} — a run’s worth, straight into the storage": "{town}에서 10 늘림 — 한 항해분을 창고에 바로"
 }
