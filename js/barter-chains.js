@@ -253,7 +253,7 @@ function sequence(order, lots, npcById, start) {
  * it would sell for. `keep` names goods never sold, whatever the orders:
  * the good a material run sent the sailor here for.
  */
-function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [], land = new Map(), owned = null, loadCap = null, landCap = null } = {}) {
+function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [], land = new Map(), owned = null, loadCap = null, landCap = null, skipIsles = [], nudge = {} } = {}) {
 	// What an island was seen to pay this run, tapped on the checklist,
 	// replaces the range the table gives for it: counted and weighed at
 	// that, no longer at the least and the most.
@@ -261,7 +261,20 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// `rangeMax` -- so the checklist can still ask which it was, and let
 	// a count tapped wrong be put right.
 	const fix = r => (seen[r.npcId] > 0 ? { ...r, recv: seen[r.npcId], recvMin: seen[r.npcId], recvMax: seen[r.npcId], recvText: String(seen[r.npcId]), rangeMin: r.rangeMin ?? r.recvMin, rangeMax: r.rangeMax ?? r.recvMax } : r);
-	const chosen = Object.keys(seen).length ? picked.map(c => ({ ...c, rungs: c.rungs.map(fix) })) : picked;
+	const fixed = Object.keys(seen).length ? picked.map(c => ({ ...c, rungs: c.rungs.map(fix) })) : picked;
+	// Islands the sailor took off the route: a chain climbs as far as the
+	// rung before the first of them and no further, and the route is laid
+	// again without them -- the nearest-first order finds its own way
+	// round the gap. `fullRungs` remembers the climb as it was, so the
+	// chain is said to stop short, and where.
+	const skip = new Set(skipIsles);
+	const trimmed = skip.size ? fixed.map(c => {
+		const i = c.rungs.findIndex(r => skip.has(r.npcId));
+		return i < 0 ? c : { ...c, rungs: c.rungs.slice(0, i), fullRungs: c.rungs, skippedAt: c.rungs[i] };
+	}) : fixed;
+	// A chain taken off at its very first island is not sailed at all.
+	const skippedWhole = trimmed.filter(c => !c.rungs.length).map(c => ({ id: c.id, item: c.item, npcId: c.skippedAt.npcId, npc: c.skippedAt.npc, of: c.fullRungs.length }));
+	const chosen = trimmed.filter(c => c.rungs.length);
 	const held = goodsHeld(stock);          // the goods counted at the least
 	// Everything the sailor holds, wherever it is: the hold, the start
 	// port, and every other storage the caller knows of. A floor is
@@ -447,6 +460,21 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	} else order.forEach((c, k) => lots.push([k]));
 
 	const rungs = sequence(order, lots, npcById, start);
+	// A stop the sailor moved sooner or later, a step at a time, never
+	// past a rung of its own chain -- a good is not handed over before it
+	// is made. The wharf calls are laid after this, around the order as
+	// the sailor left it.
+	for (const [id, by] of Object.entries(nudge || {})) {
+		let i = rungs.findIndex(x => String(x.r.npcId) === String(id));
+		if (i < 0 || !by) continue;
+		const dir = Math.sign(by);
+		for (let step = 0; step < Math.abs(by); step++) {
+			const j = i + dir;
+			if (j < 0 || j >= rungs.length || rungs[j].chain === rungs[i].chain) break;
+			[rungs[i], rungs[j]] = [rungs[j], rungs[i]];
+			i = j;
+		}
+	}
 	const dw = r => r.recvMax * weightOf(r.item) - r.giveN * weightOf(r.give);
 	// What the rungs from `i` on can still take of each good.
 	const needFrom = i => {
@@ -689,9 +717,13 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// the chain did get -- one island of three, which is the sentence
 	// the screen wants.
 	const reached = new Set(stops.filter(s => s.npcId).map(s => `${s.chain}:${s.npcId}`));
+	// A chain the sailor cut short by taking an island off: said where.
+	order.forEach((c, k) => {
+		if (c.skippedAt && !cut.has(k)) cut.set(k, { chain: k, why: 'skipped', npc: c.skippedAt.npc, npcId: c.skippedAt.npcId, give: c.skippedAt.give, item: c.item });
+	});
 	const cuts = [...cut.values()].map(c => {
 		const chain = order[c.chain];
-		const rungs = chain ? chain.rungs : [];
+		const rungs = chain ? chain.fullRungs || chain.rungs : [];
 		return { ...c, item: chain ? chain.item : c.item, done: stops.filter(s => s.npcId && s.chain === c.chain).length, of: rungs.length, top: rungs.length ? rungs[rungs.length - 1] : null };
 	}).filter(c => c.top && !reached.has(`${c.chain}:${c.top.npcId}`));
 
@@ -721,6 +753,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	return {
 		order, lots, stops, sold, kept, stashed, loaded, landLoaded,
 		cut: cuts,
+		skippedWhole,
 		bought: boughtRows,
 		taken: takenRows,
 		coins, coinsMax,

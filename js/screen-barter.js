@@ -81,6 +81,7 @@ let matBoard = { day: '', answers: [] };   // what the material list was seen to
 let planSec = 'ladder';   // the part of the plan that is open: parley | ladder | how | chains | all | none
 let advOpen = false;      // every order, unfolded
 let ownWay = false;       // "my own way" chosen, whether or not the orders happen to match a card
+let routeEdit = { key: '', skip: [], nudge: {} };   // the route as the sailor changed it on the wharf: islands taken off, stops moved
 let questSkip = { day: '', ids: [] };   // quests left out of today's runs by hand
 let questPull = { day: '', ids: [] };   // quests taken in by hand today, whatever the way round
 let sailAll = { open: false, stops: true, quests: true };   // the ask before every stop and quest is ticked off at once
@@ -144,6 +145,7 @@ function restore() {
 		if (STOCK_LEVELS.includes(Number(s.climb)) && Number(s.climb) < 7) climb = Number(s.climb);
 		if (['parley', 'ladder', 'how', 'chains', 'all', 'none'].includes(s.planSec)) planSec = s.planSec;
 		ownWay = s.ownWay === true;
+		if (s.routeEdit && typeof s.routeEdit.key === 'string') routeEdit = { key: s.routeEdit.key, skip: Array.isArray(s.routeEdit.skip) ? s.routeEdit.skip.map(Number).filter(Number.isFinite).slice(0, 40) : [], nudge: Object.fromEntries(Object.entries(s.routeEdit.nudge || {}).map(([k, v]) => [k, Math.max(-20, Math.min(20, Math.round(Number(v) || 0)))]).filter(([, v]) => v).slice(0, 40)) };
 		// The orders start shut on every visit: they are set once and
 		// forgotten, and a page that opens on all ten of them is a page a
 		// new sailor backs out of. (A view that asks for them open is
@@ -231,7 +233,7 @@ function flushView() {
 	// the memory it came from.
 	writing = true;
 	try {
-		store.setView(VIEW_NS, { goal, climb, planSec, ownWay, stock: stockGoal, item, qty, wants, matOrders, port, routes, stash, board, matBoard, sail, reach, questSkip, questPull });
+		store.setView(VIEW_NS, { goal, climb, planSec, ownWay, routeEdit, stock: stockGoal, item, qty, wants, matOrders, port, routes, stash, board, matBoard, sail, reach, questSkip, questPull });
 	} finally {
 		writing = false;
 	}
@@ -1060,6 +1062,19 @@ function stopAsks(s, k, stops, on, { paid = true } = {}) {
 }
 
 /**
+ * What the sailor changed on the route, said at its head: the islands
+ * taken off, each with a way back, the stops moved, and one press to
+ * have the planner's route again.
+ */
+function routeEditBar(plan) {
+	const moved = Object.keys(routeEdit.nudge).length;
+	if (!routeEdit.skip.length && !moved) return `<p class="route-edit-help">${T('Move a stop sooner or later with ↑ ↓, or skip an island: the route is laid again round your change — a stop never goes ahead of the one that makes its goods.')}</p>`;
+	const off = routeEdit.skip.map(id => `<button class="chip tiny" data-act="barter-route-unskip" data-npc="${id}" title="${T('Put this island back on the route')}">↺ ${esc(isleShort(npcById.get(id)) || String(id))}</button>`).join('');
+	const whole = (plan.skippedWhole || []).length;
+	return `<div class="route-edit-bar"><span>${routeEdit.skip.length ? (routeEdit.skip.length === 1 ? T('{n} island taken off', { n: routeEdit.skip.length }) : T('{n} islands taken off', { n: routeEdit.skip.length })) : ''}${routeEdit.skip.length && moved ? ' · ' : ''}${moved ? (moved === 1 ? T('{n} stop moved', { n: moved }) : T('{n} stops moved', { n: moved })) : ''}${whole ? ` · ${whole === 1 ? T('{n} chain not sailed at all', { n: whole }) : T('{n} chains not sailed at all', { n: whole })}` : ''}</span>${off}<span class="panel-spacer"></span><button class="linky" data-act="barter-route-reset">${T('the planner’s route again')}</button></div>`;
+}
+
+/**
  * The row before the first stop: casting off, with what goes aboard at
  * the harbour and what the hold weighs as the lines are let go. Stop 1
  * on the Map is a barter, and the load taken on before it was written
@@ -1086,7 +1101,7 @@ function castOffRow(plan, from) {
 	</div>`;
 }
 
-function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = null, notes = null, ledger = null, map = false } = {}) {
+function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = null, notes = null, ledger = null, map = false, edit = false } = {}) {
 	const wanted = notes ? questWanted() : new Set();
 	// The bar after each stop: the whole run's book when the caller
 	// drew it up -- these stops may be one chain's segment of it, so
@@ -1118,6 +1133,7 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = nu
 			<div class="run-main">
 				<div class="run-stop-head">${s.wait ? `<span class="run-anchor" title="${T('A wait for a voucher’s cooldown, not a barter')}">⏳</span>` : s.wharf ? `<span class="run-anchor" title="${T('A pause at a wharf, not a barter')}">⚓</span>` : s.quest ? `<span class="run-anchor" title="${s.hunt ? T('A stop put in to hunt, not a barter') : T('A stop put in for a quest, not a barter')}">${s.hunt ? '🎯' : '📜'}</span>` : ''}${map ? `<button class="run-stop-fly" data-act="map-step" data-i="${k}" title="${T('Fly the chart here, and step to it')}">${esc(s.quest ? gameName(place.name) : s.wharf ? T('{at} wharf', { at: gameName(place.at) }) : gameName(isleOf(place)))}</button>` : `<b>${esc(s.quest ? gameName(place.name) : s.wharf ? T('{at} wharf', { at: gameName(place.at) }) : gameName(isleOf(place)))}</b>`}<span>${esc(s.quest ? gameName(place.who) : s.wharf ? gameName(place.name) : gameName(whoOf(place)))}</span>${tag ? tag(s) : ''}${leg}</div>
 				${did}
+				${edit && s.npcId ? `<div class="route-edit"><button class="chip tiny" data-act="barter-route-nudge" data-npc="${s.npcId}" data-by="-1" title="${T('Sail here one stop sooner')}" aria-label="${T('Sooner')}">↑</button><button class="chip tiny" data-act="barter-route-nudge" data-npc="${s.npcId}" data-by="1" title="${T('Sail here one stop later')}" aria-label="${T('Later')}">↓</button><button class="chip tiny warn" data-act="barter-route-skip" data-npc="${s.npcId}" title="${T('Take this island off the route: its chain stops before it, and the rest of the route is laid again without it')}">${T('skip')}</button></div>` : ''}
 				${notes && notes.at(k).length ? `<div class="run-quests">${notes.at(k).map(x => questChip(x, wanted, notes.trades || 0, made)).join('')}</div>` : ''}
 				${check(s, k)}
 			</div>
@@ -1936,7 +1952,7 @@ function dropWorker() {
  * one after the other on a worker of its own so the main search is
  * never kept waiting, and kept until the inputs change.
  */
-const PRESET_BUDGET_MS = 700;
+const PRESET_BUDGET_MS = SEARCH_BUDGET_MS;
 let presetWorker = null, presetLost = false;
 let presetState = { key: '', res: new Map(), queue: [], busy: false };
 function presetWorkerOf() {
@@ -3275,7 +3291,11 @@ function silverParts(me, b) {
 	const presetPrices = landPrices(everything.filter(c => c.from === 'land').map(c => c.item), made);
 	const sailingKeys = new Set(SAIL_PRESETS.flatMap(p => Object.keys(p.orders)));
 	const presetKey = JSON.stringify([pkey.replace(JSON.stringify(o), ''), Object.fromEntries(Object.entries(o).filter(([k]) => !sailingKeys.has(k)))]);
-	presetSearch(presetKey, SAIL_PRESETS.map(p => {
+	// Asked once the main search has answered, so the two never share
+	// the machine. The way already chosen is the main search itself: its
+	// answer is that card's figure, not a second search that might land
+	// somewhere else.
+	if (!proposed.working) presetSearch(presetKey, SAIL_PRESETS.map(p => {
 		const oo = { ...o, ...p.orders };
 		const coveredBy = c => c.from !== 'land' || oo.landFrom !== 'stock' || (land.get(c.item) || 0) >= c.rungs[0].giveN;
 		const list = reachCut(everything.filter(c => (oo.buy || c.from !== 'land') && !c.gate && coveredBy(c)));
@@ -3461,7 +3481,12 @@ function silverParts(me, b) {
 				: T('There is none of them to spend, so no chain can start from them.')} ${dropFloors(shutByFloor.map(f => f.lv))}</div>`;
 	let chainsBody = `<div class="barter-chains">${chainActs(fillable)}${floorNote}${shutNote}${reachBar}${reach ? '' : `${pickHelp}${proposals}<!--minevs-->`}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.landFrom === 'stock' && o.buy ? T('No chain on this board starts from a shore good you keep. Let the run buy its land goods ashore, or add what you have with ＋ A good.') : o.buy ? T('Nothing climbs on this board.') : T('Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.')) : T('No chain matches.')}</p>`}</div></div>`;
 
-	const plan = chainRun({ ...opts, chosen });
+	// The sailor's own changes to the route belong to this set of chains
+	// on this board: a new board or a new tick starts from the planner's.
+	const editKey = `${routes.key}|${routes.ids.slice().sort().join(',')}|${o.way}`;
+	if (routeEdit.key !== editKey) routeEdit = { key: editKey, skip: [], nudge: {} };
+	const edits = { skipIsles: routeEdit.skip, nudge: routeEdit.nudge };
+	const plan = chainRun({ ...opts, chosen, ...edits });
 	chainsBody = chainsBody.replace('<!--minevs-->', mineVsOf(plan));
 	for (const s of plan.stops) s.hold = me.hold;
 	// The quests handed in on the way, with a stop put in for a taker
@@ -3526,11 +3551,11 @@ function silverParts(me, b) {
 				const isl = plan.stops.filter(s => s.chain === k && s.npcId).length;
 				const cutHere = plan.cut.some(x => x.chain === k);
 				const count = cutHere
-					? T('{n} of {of} islands', { n: isl, of: c.rungs.length })
+					? T('{n} of {of} islands', { n: isl, of: (c.fullRungs || c.rungs).length })
 					: isl === 1 ? T('{n} island', { n: isl }) : T('{n} islands', { n: isl });
 				return `<span class="run-chain-tag" style="--tier:${TIER(c.top)}"><i></i>${chainName(c)}<em>L${c.top}</em><small${cutHere ? ` class="short" title="${T('This chain does not get to the top — see the note under the tiles')}"` : ''}>${count}</small><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="${T('Untick this chain')}">×</button></span>`;
 			}).join('')).join(`<span class="run-lot-sep">${T('then')}</span>`)}</div>
-			<div class="run-stops">${castOffRow(plan, from)}${stopRows(plan.stops, legs, { board: true, sailing: sailing(), notes: qp, ledger: book, tag: s => (s.npcId ? `<em class="run-chain-tag sm" style="--tier:${TIER(plan.order[s.chain].top)}"><i></i>${chainName(plan.order[s.chain])}</em>` : '') })}</div>
+			${routeEditBar(plan)}<div class="run-stops">${castOffRow(plan, from)}${stopRows(plan.stops, legs, { board: true, sailing: sailing(), edit: !sailing(), notes: qp, ledger: book, tag: s => (s.npcId ? `<em class="run-chain-tag sm" style="--tier:${TIER(plan.order[s.chain].top)}"><i></i>${chainName(plan.order[s.chain])}</em>` : '') })}</div>
 		</section>` : '') : plan.order.map((c, k) => {
 		const first = plan.stops.findIndex(s => s.chain === k);
 		const mine = plan.stops.filter(s => s.chain === k);
@@ -3538,7 +3563,7 @@ function silverParts(me, b) {
 		const leftHere = plan.stashed.filter(s => s.chain === k).reduce((a, s) => a + s.total, 0);
 		return `<section class="panel run-seg" style="--tier:${TIER(c.top)}">
 			<div class="run-seg-head"><i></i><b>${T('{isle} chain', { isle: esc(isleShort(npcById.get(c.rungs[0].npcId)) || c.rungs[0].npc) })}</b><em>${T('Level {lv}', { lv: c.top })}</em><span>${soldHere ? T('{silver} sold', { silver: FC(Math.round(soldHere)) }) : T('nothing sold')}${leftHere ? ` · ${T('{silver} left on the way', { silver: FC(Math.round(leftHere)) })}` : ''}${mine.length ? '' : (() => { const cut = plan.cut.find(x => x.chain === k); return cut && cut.why === 'market' ? ` · ${cut.listed ? T('cannot start: only {n} {good} on the Market', { n: F(cut.listed), good: esc(gameName(cut.good)) }) : T('cannot start: no {good} on the Market', { good: esc(gameName(cut.good)) })}` : ` · ${T('every island already dealt')}`; })()}</span><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="${T('Untick this chain')}">×</button></div>
-			${mine.length ? `<div class="run-stops">${stopRows(mine, legs, { k0: first, board: true, sailing: sailing(), notes: qp, ledger: book })}</div>` : ''}
+			${mine.length ? `<div class="run-stops">${stopRows(mine, legs, { k0: first, board: true, sailing: sailing(), edit: !sailing(), notes: qp, ledger: book })}</div>` : ''}
 		</section>`;
 	}).join('');
 	const worth = s => (s.total ? T('would sell for {silver}', { silver: FC(Math.round(s.total)) }) : T('cannot be sold'));
@@ -3582,8 +3607,9 @@ function silverParts(me, b) {
 		return { big, sub: `${chainsN === 1 ? T('{n} chain', { n: chainsN }) : T('{n} chains', { n: chainsN })} · ${lg.total ? `≈ ${esc(runTime(lg, ledgerOf(run.stops, lg)))}` : T('no way')} · ${run.trades === 1 ? T('{n} trade', { n: F(run.trades) }) : T('{n} trades', { n: F(run.trades) })}${calls ? ` · ${calls === 1 ? T('{n} wharf call', { n: calls }) : T('{n} wharf calls', { n: calls })}` : ''}` };
 	};
 	const presetFigs = new Map(SAIL_PRESETS.map(p => {
-		const ready = presetState.res.has(p.id);
-		const best = presetState.res.get(p.id);
+		const own = p.id === sailPresetOf(o) && !proposed.working;
+		const ready = own || presetState.res.has(p.id);
+		const best = own ? proposed.best : presetState.res.get(p.id);
 		const f = !ready ? { big: '…', sub: T('searching this way…'), wait: true } : best ? figOf(best.run) : { big: '—', sub: T('nothing sails this way today') };
 		if (handPicked) {
 			const oo = { ...o, ...p.orders };
@@ -3619,7 +3645,7 @@ function silverParts(me, b) {
 		const ready = chosen.filter(packedChain);
 		if (ready.length === chosen.length) return afterShelfHTML(plan, from);
 		if (!ready.length) return `<section class="panel run-shelves after"><div class="shelf"><div class="shelf-head"><h2 class="panel-title">${T('In the storage after')}</h2><span class="panel-sub">${T('nothing aboard yet')}</span></div><p class="empty">${T('Tick what is aboard above: this fills with what the run leaves in storage, chain by chain, as its first goods come aboard.')}</p></div></section>`;
-		const part = chainRun({ ...opts, chosen: ready });
+		const part = chainRun({ ...opts, chosen: ready, ...edits });
 		return afterShelfHTML(part, from).replace('<div class="shelf-tiles">', `<p class="shelf-part">${T('For the {n} of {of} chains whose first goods are ticked aboard — the rest join as they are.', { n: ready.length, of: chosen.length })}</p><div class="shelf-tiles">`);
 	})();
 	const load = `${notice}${overNote}${empty}${packingHTML(plan, from, chosen)}${shelf}${questsPanels(qp, from)}${routeFold}${kept}`;
@@ -5099,6 +5125,29 @@ export function barterAction(act, el, redraw) {
 		case 'barter-chain-clear': chainQ = ''; chainFrom = ''; chainTop = 0; return true;
 		// Casting off from the wharf: the same checklist the Map's own
 		// "Sail this run" makes, and the cockpit opened over it.
+		case 'barter-route-skip': {
+			const id = Number(el.dataset.npc);
+			if (id && !routeEdit.skip.includes(id)) routeEdit = { ...routeEdit, skip: [...routeEdit.skip, id] };
+			persist();
+			toast(T('{isle} is off the route — the chain stops before it, and the route is laid again', { isle: isleShort(npcById.get(id)) || String(id) }));
+			return true;
+		}
+		case 'barter-route-unskip': {
+			const id = Number(el.dataset.npc);
+			routeEdit = { ...routeEdit, skip: routeEdit.skip.filter(x => x !== id) };
+			persist();
+			return true;
+		}
+		case 'barter-route-nudge': {
+			const id = String(el.dataset.npc);
+			const by = (routeEdit.nudge[id] || 0) + Number(el.dataset.by || 0);
+			const nudge = { ...routeEdit.nudge };
+			if (by) nudge[id] = Math.max(-20, Math.min(20, by)); else delete nudge[id];
+			routeEdit = { ...routeEdit, nudge };
+			persist();
+			return true;
+		}
+		case 'barter-route-reset': routeEdit = { ...routeEdit, skip: [], nudge: {} }; persist(); return true;
 		case 'barter-cast-off': {
 			if (!barterAction('barter-sail', el, redraw)) return false;
 			step = 'sail';

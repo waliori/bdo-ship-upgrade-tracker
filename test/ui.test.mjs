@@ -1889,7 +1889,7 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 	// The plan's four parts -- the Parley, the ladder, the sailing, the
 	// chains -- each with a numbered head that says what is set inside it.
 	assert.equal(await count(page, '.plan-sec'), 4);
-	assert.match(await text(page, '.plan-sec[data-sec="parley"] .plan-sec-head'), /Your Parley today.*Parley [\d,]+/i);
+	assert.match(await text(page, '.plan-sec[data-sec="parley"] .plan-sec-head'), /Before you sail.*Parley [\d,]+/i);
 	assert.match(await text(page, '.plan-sec[data-sec="ladder"] .plan-sec-head'), /Where today ends.*Climb to Level \d/i);
 	// The trip is logged from the masthead alone.
 	assert.equal(await count(page, '.barter-screen [data-act="trip-log"]'), 0);
@@ -2005,9 +2005,12 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 	// be told what it paid, and the cockpit stands at the first of them.
 	// Saying it -- a chip a count -- ticks the stop with it.
 	for (let i = 0; i < 20; i++) {
-		const chip = await page.$('.cockpit-press [data-act="barter-paid"][data-n="3"]');
-		if (!chip) break;
-		await chip.click(); await wait(900);
+		const chips = await page.$$('.cockpit-press [data-act="barter-paid"]');
+		if (chips.length) { await chips[chips.length - 1].click(); await wait(900); continue; }
+		const typed = await page.$('.cockpit [data-act="barter-paid-n"]');
+		if (!typed) break;
+		await page.evaluate(() => { const el = document.querySelector('.cockpit [data-act="barter-paid-n"]'); el.value = String(Math.round((Number(el.min) || 0) || 400)); el.dispatchEvent(new Event('change', { bubbles: true })); });
+		await wait(900);
 	}
 	const allText = await text(page, '.sail-n');
 	assert.match(allText, /(\d+) of \1 stops done/, allText);
