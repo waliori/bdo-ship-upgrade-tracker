@@ -377,7 +377,26 @@ export function readProfile(raw) {
 			// boards can be read one under the other. Twenty kinds each is
 			// more than a board can deal in one run.
 			load: goodsMap(r.load),
-			got: goodsMap(r.got)
+			got: goodsMap(r.got),
+			// The rest of the record, kept since the history read runs
+			// back whole: when, what it came to, and every stop ticked.
+			at: Number.isFinite(Number(r.at)) && Number(r.at) > 0 ? Math.floor(Number(r.at)) : 0,
+			net: Number.isFinite(Number(r.net)) ? Math.floor(Number(r.net)) : Math.floor(Number(r.silver) || 0) - Math.floor(Number(r.cost) || 0),
+			coins: Math.max(0, Math.floor(Number(r.coins) || 0)),
+			vouchers: Math.max(0, Math.min(20, Math.floor(Number(r.vouchers) || 0))),
+			time: typeof r.time === 'string' ? r.time.slice(0, 40) : '',
+			port: typeof r.port === 'string' ? r.port.slice(0, 40) : '',
+			chains: Array.isArray(r.chains) ? r.chains.filter(c => typeof c === 'string').slice(0, 12).map(c => c.slice(0, 40)) : [],
+			stops_: Array.isArray(r.stops_) ? r.stops_.filter(x => x && ['n', 'w', 'q', 'v'].includes(x.k)).slice(0, 80).map(x => {
+				const str = (v, n = 80) => (typeof v === 'string' ? v.slice(0, n) : '');
+				const num = v => (Number.isFinite(Number(v)) ? Math.floor(Number(v)) : 0);
+				const o = { k: x.k, p: str(x.p) };
+				if (x.w) o.w = str(x.w);
+				if (x.k === 'n') Object.assign(o, { g: str(x.g), gn: str(x.gn, 12), i: str(x.i), r: str(x.r, 12), t: num(x.t), s: num(x.s), c: num(x.c), v: x.v ? 1 : 0 });
+				if (x.k === 'v') o.t = num(x.t);
+				if (x.k === 'w' && x.sale && typeof x.sale === 'object') o.sale = { n: Number(x.sale.n) || 0, silver: num(x.sale.silver) };
+				return o;
+			}) : []
 		}));
 		if (runs.length) out.runs = runs;
 	}

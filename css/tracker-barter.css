@@ -1000,6 +1000,8 @@ button.rung-fate { cursor: pointer; }
 .cockpit-wait-text > em { font-style: normal; font-size: 13px; color: var(--ink-mid); }
 .cockpit-count { font-size: 14px; color: var(--ink-mid); }
 .cockpit-count b[data-until] { font-family: var(--font-display); font-size: 18px; color: var(--ink-hi); font-variant-numeric: tabular-nums; }
+.cockpit-go.waits { background: none; border: 1px dashed var(--amber); color: var(--amber); cursor: not-allowed; font-size: 16px; }
+.run-done.waits { border-style: dashed; border-color: var(--amber); color: var(--amber); }
 .cockpit-go.end { background: none; border: 1px solid var(--line-btn); color: var(--ink-mid); font-size: 16px; }
 .voucher-icon { width: 22px; height: 22px; vertical-align: -6px; border-radius: 4px; }
 .rest-tag .voucher-icon { width: 22px; height: 22px; margin: -3px 0; }
@@ -1108,6 +1110,36 @@ button.rung-fate { cursor: pointer; }
 }
 
 /* ---- the results: the figures, the log and the receipt ------------- */
+.exchange { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.exchange-col { padding: 12px 14px; border-radius: var(--r-tile); background: var(--panel-inset); }
+.exchange-col .empty { padding: 6px 0 0; }
+.exchange-k { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); }
+.exchange-k i { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; font-style: normal; font-size: 12px; }
+.exchange-col.out .exchange-k i { background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); }
+.exchange-col.in .exchange-k i { background: var(--teal-glow); color: var(--teal); }
+.exchange .shelf-tile.silver.out b { color: var(--red); }
+.exchange .shelf-tile.parley { border-color: color-mix(in srgb, #b06cf0 45%, transparent); }
+.exchange .shelf-tile.parley b { color: #c99af5; }
+.exchange .shelf-tile .shelf-glyph { font-style: normal; font-size: 26px; line-height: 34px; color: #c99af5; }
+.exchange .shelf-tile.voucher { border-color: var(--teal-edge); }
+.exchange .shelf-tile.coin.guess b { border-bottom: 1px dashed var(--amber); }
+.log-trade { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 3px; font-size: 12.5px; color: var(--ink-mid); }
+.log-trade i { font-style: normal; color: var(--ink-faint); }
+.log-trade > b { color: var(--ink-hi); }
+.log-trade.faint { color: var(--ink-faint); }
+.log-trade .row-icon.xs { width: 20px; height: 20px; }
+.hist-run { margin-top: 8px; }
+.hist-run > summary { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 16px; cursor: pointer; list-style: none; }
+.hist-run > summary::-webkit-details-marker { display: none; }
+.hist-run > summary::before { content: '▸'; color: var(--ink-faint); font-size: 12px; }
+.hist-run[open] > summary::before { content: '▾'; }
+.hist-run > summary > b { color: var(--ink-hi); font-weight: 600; }
+.hist-when { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.04em; color: var(--ink-mute); min-width: 12ch; }
+.hist-figs { display: flex; gap: 12px; flex-wrap: wrap; margin-left: auto; font-size: 12.5px; color: var(--ink-mute); font-variant-numeric: tabular-nums; }
+.hist-figs .gold { color: var(--amber); font-weight: 600; }
+.hist-figs .warn { color: var(--red); font-weight: 600; }
+.hist-stops { margin-top: 12px; border-top: 1px solid var(--line-soft); }
+.history > .panel-head { margin-bottom: 4px; }
 .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; align-items: start; }
 .log-panel { overflow: hidden; }
 .log-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 16px; border-top: 1px solid var(--line-soft); }

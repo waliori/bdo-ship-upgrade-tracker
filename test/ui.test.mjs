@@ -1686,7 +1686,7 @@ async function laidOut(page) {
 	await wait(200);
 }
 
-/** Back to the plan. The tests seed `planSec: 'all'`, so all three of
+/** Back to the plan. The tests seed `planSec: 'all'`, so all four of
  *  its parts are open and every control is on the page at once. */
 async function toPlan(page) {
 	await page.evaluate(() => { const b = [...document.querySelectorAll('[data-act="barter-step"][data-id="plan"]')].find(e => e.getBoundingClientRect().width > 0); if (b) b.click(); });
@@ -1886,9 +1886,10 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 	// The four steps of a run across the head, the plan the one on screen.
 	assert.equal(await count(page, '.steps .step'), 4);
 	assert.ok(await page.$('.barter-screen.step-plan'));
-	// The plan's three parts, each with a numbered head that says what
-	// is set inside it.
-	assert.equal(await count(page, '.plan-sec'), 3);
+	// The plan's four parts -- the Parley, the ladder, the sailing, the
+	// chains -- each with a numbered head that says what is set inside it.
+	assert.equal(await count(page, '.plan-sec'), 4);
+	assert.match(await text(page, '.plan-sec[data-sec="parley"] .plan-sec-head'), /Your Parley today.*Parley [\d,]+/i);
 	assert.match(await text(page, '.plan-sec[data-sec="ladder"] .plan-sec-head'), /Where today ends.*Climb to Level \d/i);
 	// The trip is logged from the masthead alone.
 	assert.equal(await count(page, '.barter-screen [data-act="trip-log"]'), 0);
@@ -2000,6 +2001,14 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 	await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all"]').click()); await wait(800);
 	assert.match(await text(page, '.sail-all'), /Tick off, all at once.*every stop.*the quests handed in/i);
 	await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all-go"]').click()); await wait(1500);
+	// The islands that pay a range are not ticked by that: each waits to
+	// be told what it paid, and the cockpit stands at the first of them.
+	// Saying it -- a chip a count -- ticks the stop with it.
+	for (let i = 0; i < 20; i++) {
+		const chip = await page.$('.cockpit-press [data-act="barter-paid"][data-n="3"]');
+		if (!chip) break;
+		await chip.click(); await wait(900);
+	}
 	const allText = await text(page, '.sail-n');
 	assert.match(allText, /(\d+) of \1 stops done/, allText);
 	// Every stop ticked, the step says so and points at the results.
@@ -2009,7 +2018,8 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 	await page.evaluate(() => [...document.querySelectorAll('[data-act="barter-step"][data-id="results"]')].find(e => e.getBoundingClientRect().width > 0).click()); await wait(1500);
 	assert.match(await text(page, '.run-tiles'), /Stops[\s\S]*Trades made[\s\S]*Parley spent/i);
 	assert.ok(await count(page, '.log-row') > 0, 'the stops one under another');
-	assert.match(await text(page, '.receipt-cols'), /You spent[\s\S]*You got/i);
+	assert.match(await text(page, '.exchange'), /You handed over[\s\S]*You received/i);
+	assert.ok(await count(page, '.exchange .shelf-tile img') > 0, 'the exchange as tiles, each good with its icon');
 	assert.ok(await page.$('[data-act="barter-record"]'), 'and the press that writes it down');
 	// The checklist dropped: back to the plan, and the run is a plan again.
 	await page.evaluate(() => document.querySelector('[data-act="barter-sail-drop"]').click()); await wait(1200);

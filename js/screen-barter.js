@@ -1100,7 +1100,8 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = nu
 		if (!sailing) return '';
 		const key = stopKey(s, k, stops);
 		const done = ticked(sailing.done, s, k, stops);
-		return `<div class="run-check">${stopAsks(s, k, stops, sailing)}<button class="run-done${done ? ' on' : ''}" data-act="barter-stop-done" data-k="${esc(key)}" aria-pressed="${done}"><i>${done ? '✓' : ''}</i>${done ? T('Done') : doneLabel(s)}</button></div>`;
+		const owed = !done && owesCount(s, sailing);
+		return `<div class="run-check">${stopAsks(s, k, stops, sailing)}<button class="run-done${done ? ' on' : ''}${owed ? ' waits' : ''}" data-act="barter-stop-done" data-k="${esc(key)}" aria-pressed="${done}"${owed ? ` title="${T('Tap what it paid first')}"` : ''}><i>${done ? '✓' : ''}</i>${done ? T('Done') : owed ? T('paid…?') : doneLabel(s)}</button></div>`;
 	};
 	return stops.map((s, i) => {
 		const k = k0 + i;
@@ -2204,7 +2205,7 @@ export function sailFor(npcId) {
 	if (!sail || !Array.isArray(sail.stops)) return null;
 	const s = sail.stops.find(x => x.npcId === npcId);
 	if (!s) return null;
-	return { done: sail.done.includes(`n${npcId}`), paid: sail.seen[npcId] || null, ask: paidAsk(s, sail.seen[npcId], true), item: s.item, recvText: s.recvText };
+	return { done: sail.done.includes(`n${npcId}`), paid: sail.seen[npcId] || null, ask: paidAsk(s, sail.seen[npcId], true), owes: owesCount(s, sail), item: s.item, recvText: s.recvText };
 }
 
 /**
@@ -2325,6 +2326,14 @@ function planSeen(on) {
 
 /** The most counts an island may pay before chips stop being an answer. */
 const PAID_CHIPS = 6;
+
+/**
+ * Whether a stop still owes its count: an island that pays a range,
+ * not yet told what it paid. Such a stop is not ticked -- the tick
+ * would have to guess, and every guess drifted the Inventory one way
+ * or the other -- so the press that would tick it asks instead.
+ */
+const owesCount = (s, on) => !!(s && s.npcId && rangeOf(s).hi > rangeOf(s).lo && !((on && on.seen || {})[s.npcId] > 0));
 
 /** The range an island pays, as the table gives it -- kept even once
  *  the run has been laid again at the count it was seen to pay. */
@@ -2662,15 +2671,36 @@ function recordTrip(plan, from, on = sailing()) {
 	// what had to be loaded, gained goods are what is in the storage
 	// now. Kept so the day's boards can be read back one under the
 	// other -- what went into the first, what came out of it, and so on.
-	const moved = (sign, drop) => Object.fromEntries(Object.entries(trip.delta)
-		.filter(([item, n]) => item !== drop && Math.sign(n) === sign && Math.abs(n) >= 1)
-		.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
-		.slice(0, 20)
-		.map(([item, n]) => [item, Math.abs(Math.round(n))]));
+	const moved = (sign, drop) => {
+		const m = Object.fromEntries(Object.entries(trip.delta)
+			.filter(([item, n]) => item !== drop && Math.sign(n) === sign && Math.abs(n) >= 1)
+			.map(([item, n]) => [item, Math.abs(Math.round(n))]));
+		// The shore goods bought and handed over went out as much as the
+		// goods out of the storage did, though the Inventory never held
+		// them.
+		if (sign < 0) for (const [k, s] of plan.stops.entries()) if (s.npcId && levelOf(s.give) === null && ticked(on.done, s, k, plan.stops)) m[s.give] = (m[s.give] || 0) + Math.round(s.times * s.giveN);
+		return Object.fromEntries(Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 20));
+	};
+	// Every stop ticked, compactly, so the run can be read back whole
+	// from the history: the place, the trade, what it was said to pay.
+	const prof = barterProfile();
+	const perTrade = parleyOf(prof).perTrade;
+	const parleySpent = Math.round(plan.stops.reduce((a, s, k) => a + (s.npcId && ticked(on.done, s, k, plan.stops) ? (Number(s.parley) > 0 ? Number(s.parley) : (Number(s.times) || 0) * perTrade) : 0), 0));
+	const bookOf = ledgerOf(plan.stops, legsOf(plan.stops));
+	const stopsLog = plan.stops.map((s, k) => {
+		if (!ticked(on.done, s, k, plan.stops)) return null;
+		const names = stopNames(s);
+		if (s.npcId) return { k: 'n', p: names.place, w: names.who, g: s.give, gn: s.giveText, i: s.item, r: s.recvText, t: s.times, s: (on.seen || {})[s.npcId] || 0, c: Math.round(Number(s.parley) || 0), v: bookOf.rows[k] && bookOf.rows[k].voucher ? 1 : 0 };
+		if (s.wharf) return { k: 'w', p: names.place, w: names.who, sale: s.sale && !ticked(on.kept, s, k, plan.stops) ? { n: Math.round(s.sale.n * 10) / 10, silver: Math.round(s.sale.total) } : null };
+		if (s.wait) return { k: 'v', p: names.place, t: Math.round(s.wait) };
+		return { k: 'q', p: names.place, w: names.who };
+	}).filter(Boolean).slice(0, 80);
+	const drawnOn = plan.stops.reduce((n, s, k) => n + (ticked(on.done, s, k, plan.stops) ? (bookOf.rows[k] && bookOf.rows[k].drawn) || 0 : 0), 0);
 	const runs = [...(store.getProfile('runs', []) || []), {
-		day: barterKey(), silver: trip.silver, cost: trip.spent || Math.round(plan.cost || 0), trades: trip.trades, parley: Math.round(plan.parleyUsed || 0),
+		day: barterKey(), at: Date.now(), silver: trip.silver, cost: trip.spent || Math.round(plan.cost || 0), net: trip.silver - (trip.spent || 0), trades: trip.trades, parley: parleySpent, coins: Math.round(trip.delta[COIN] || 0), vouchers: drawnOn,
 		stops: on.done.length, goal: on.goal || goal, item: on.goal ? on.item || '' : goal === 'material' ? itemNow() || '' : '',
-		load: moved(-1, SILVER), got: moved(1, SILVER), layout: (boardNow().combo || {}).id || ''
+		load: moved(-1, SILVER), got: moved(1, SILVER), layout: (boardNow().combo || {}).id || '',
+		time: on.time || '', port: from ? from.name : '', chains: (on.chains || []).map(c => c.name).slice(0, 12), stops_: stopsLog
 	}].slice(-60);
 	// What the islands were seen to pay goes into the record, so the
 	// counting can follow the sailor's own runs.
@@ -2724,11 +2754,11 @@ function recordTrip(plan, from, on = sailing()) {
 	// spent from 1,000,000" -- and then the next run was laid against the
 	// same million, because nothing wrote the answer down. The bar is
 	// stamped with the barter day, so the reset fills it again.
-	const prof = barterProfile();
-	const perTrade = parleyOf(prof).perTrade;
-	const parleySpent = Math.round(plan.stops.reduce((a, s, k) => a + (s.npcId && ticked(on.done, s, k, plan.stops) ? (Number(s.parley) > 0 ? Number(s.parley) : (Number(s.times) || 0) * perTrade) : 0), 0));
 	const bar = prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max;
-	const drawn = parleySpent > bar && ordersNow().vouchers !== 'keep' ? Math.min(prof.vouchers, Math.ceil((parleySpent - bar) / PARLEY.voucher)) : 0;
+	// The vouchers drawn on are the ledger's: the ones the ticked stops
+	// drew, whether the bar as typed needed them or not, never more
+	// than are carried.
+	const drawn = ordersNow().vouchers !== 'keep' ? Math.min(prof.vouchers, drawnOn) : 0;
 	// Never nought: nought is how "nobody has said" is written.
 	const parleyLeft = Math.max(1, Math.min(PARLEY.max, bar + drawn * PARLEY.voucher - parleySpent));
 	const spentOf = parleySpent > 0 ? { parleyHeld: parleyLeft, parleyDay: barterKey(), ...(drawn ? { vouchers: prof.vouchers - drawn } : {}) } : {};
@@ -2738,7 +2768,7 @@ function recordTrip(plan, from, on = sailing()) {
 	// cast off: the page would otherwise fall back to the plan the moment
 	// the checklist went, with nothing said about where the silver went.
 	bringUp('.barter-screen .steps');
-	lastTrip = { stops: on.done.length, trades: Math.round(trip.trades), silver: trip.silver, spent: trip.spent || 0, net: trip.silver - (trip.spent || 0), coins: Math.round(trip.delta[COIN] || 0), parley: parleySpent };
+	lastTrip = { stops: on.done.length, trades: Math.round(trip.trades), silver: trip.silver, spent: trip.spent || 0, net: trip.silver - (trip.spent || 0), coins: Math.round(trip.delta[COIN] || 0), parley: parleySpent, vouchers: drawn, gave: moved(-1, SILVER), got: moved(1, SILVER) };
 	step = 'results';
 	cursor = null;
 	skipped = new Set();
@@ -3983,7 +4013,9 @@ function sailHTML() {
 		? `${Array.from({ length: hi - lo + 1 }, (_, i) => lo + i).map(n => `<button class="cockpit-go${done ? (said === n ? ' said' : ' done') : ''}" data-act="barter-paid" data-npc="${s.npcId}" data-n="${n}" aria-pressed="${said === n}">${said === n ? '✓ ' : ''}${T('Traded · paid {n}', { n })}</button>`).join('')}${done ? `<button class="cockpit-go done wide" data-act="barter-stop-done" data-k="${esc(key)}">✓ ${T('Done')} — ${T('untick')}</button>` : ''}`
 		: done
 			? `<button class="cockpit-go done" data-act="barter-stop-done" data-k="${esc(key)}">✓ ${T('Done')} — ${T('untick')}</button>`
-			: `<button class="cockpit-go" data-act="barter-stop-done" data-k="${esc(key)}">${s.npcId ? T('Traded ×{n}', { n: F(s.times) }) : doneLabel(s)}</button>${s.wait ? `<button class="cockpit-go end" data-act="barter-step" data-id="results" title="${T('What is ticked so far is the run; the results step records it')}">${T('End the run here')}</button>` : ''}`;
+			: owesCount(s, on)
+				? `<button class="cockpit-go waits" disabled title="${T('Type what the window showed first')}">${T('Traded ×{n}', { n: F(s.times) })} — ${T('type what it paid')}</button>`
+				: `<button class="cockpit-go" data-act="barter-stop-done" data-k="${esc(key)}">${s.npcId ? T('Traded ×{n}', { n: F(s.times) }) : doneLabel(s)}</button>${s.wait ? `<button class="cockpit-go end" data-act="barter-step" data-id="results" title="${T('What is ticked so far is the run; the results step records it')}">${T('End the run here')}</button>` : ''}`;
 	const ask = s.npcId && hi > lo
 		? (fewPays ? `<p class="cockpit-ask">${T('This island pays <b>{range}</b> a trade. Tap what it paid — the run is then recorded exactly.', { range: `${lo}-${hi}` })}</p>`
 			: `<p class="cockpit-ask">${T('This island pays a range. Type what the window showed:')} ${paidAsk(s, on.seen[s.npcId])} <span class="${on.seen[s.npcId] > 0 ? 'teal' : 'guess'}">${on.seen[s.npcId] > 0 ? T('recorded exactly') : T('else the middle of the range is assumed')}</span></p>`)
@@ -4073,17 +4105,80 @@ function restHTML(plan, on, book, legOf, at) {
  * before the press that writes it all down. It stands for a run half
  * sailed as well as for a whole one, since only ticked stops count.
  */
+/**
+ * The exchange as tiles: what went out of the sailor's hands and what
+ * came into them, each good with its icon and count, the silver and
+ * the coins as tiles of their own. Drawn for the run being sailed,
+ * for the run just recorded, and for every run in the history, so
+ * the three read the same. `gave` and `got` are item -> count.
+ */
+function exchangeHTML(gave, got, { spent = 0, silver = 0, coins = 0, parley = 0, vouchers = 0, guessedCoins = false } = {}) {
+	const tile = (item, n) => {
+		const lv = levelOf(item);
+		return `<span class="shelf-tile"><i class="shelf-lv${lv ? '' : ' shore'}"${lv ? ` style="--tier:${TIER(lv)}"` : ''}>${lv ? `L${lv}` : '⌂'}</i>${img(item, 'shelf-icon')}<b>${n1(n)}</b><span>${esc(gameName(item))}</span></span>`;
+	};
+	const list = m => Object.entries(m || {}).filter(([, n]) => n > 0).sort((a, b) => (levelOf(b[0]) || 0) - (levelOf(a[0]) || 0) || b[1] - a[1]).map(([item, n]) => tile(item, n)).join('');
+	const out = `${spent ? `<span class="shelf-tile silver out">${img(SILVER, 'shelf-icon')}<b>−${FC(Math.round(spent))}</b><span>${T('for the land goods')}</span></span>` : ''}${parley ? `<span class="shelf-tile parley"><i class="shelf-glyph">◈</i><b>−${F(Math.round(parley))}</b><span>${T('Parley')}</span></span>` : ''}${vouchers ? `<span class="shelf-tile voucher">${img(VOUCHER, 'shelf-icon')}<b>−${F(vouchers)}</b><span>${vouchers === 1 ? T('voucher') : T('vouchers')}</span></span>` : ''}${list(gave)}`;
+	const inn = `${silver ? `<span class="shelf-tile silver">${img(SILVER, 'shelf-icon')}<b>+${FC(Math.round(silver))}</b><span>${T('at the wharf')}</span></span>` : ''}${coins ? `<span class="shelf-tile coin${guessedCoins ? ' guess' : ''}">${img(COIN, 'shelf-icon')}<b>+${F(Math.round(coins))}</b><span>${T('Crow Coins')}</span></span>` : ''}${list(got)}`;
+	return `<div class="exchange">
+		<div class="exchange-col out"><div class="exchange-k"><i>↑</i>${T('You handed over')}</div>${out ? `<div class="shelf-tiles">${out}</div>` : `<p class="empty">${T('nothing yet')}</p>`}</div>
+		<div class="exchange-col in"><div class="exchange-k"><i>↓</i>${T('You received')}</div>${inn ? `<div class="shelf-tiles">${inn}</div>` : `<p class="empty">${T('nothing yet')}</p>`}</div>
+	</div>`;
+}
+
+/** One stop of a run, as the results and the history draw it: the
+ *  place, the trade with both icons, and what it cost or brought. */
+function logRow(k, { done = true, place, who, kind, give, giveText, item, recvText, times, said, sale, cost, tag = '', wait = 0 }) {
+	const trade = give
+		? `<span class="log-trade">${img(give, 'row-icon xs')}<span>${esc(giveText)}× ${esc(gameName(give))}</span><i>→</i>${img(item, 'row-icon xs')}<span class="tiered" style="--tier:${TIER(levelOf(item))}">${said ? `<b>${F(said)}</b>` : esc(recvText)}× ${esc(gameName(item))}</span><b>×${F(times)}</b></span>`
+		: sale ? `<span class="log-trade">${img(SILVER, 'row-icon xs')}<span>${T('sells {n} {what} here for {silver}', { n: n1(sale.n), what: T('goods'), silver: FC(Math.round(sale.total)) })}</span></span>`
+			: wait ? `<span class="log-trade">${img(VOUCHER, 'row-icon xs')}<span>${T('waits {n} min', { n: F(wait) })} · ${kind}</span></span>`
+				: `<span class="log-trade faint">${kind}</span>`;
+	return `<div class="log-row${done ? ' done' : ''}"><span class="rest-dot${done ? ' on' : ''}" aria-hidden="true">${done ? '✓' : k + 1}</span><div><b>${esc(place)}</b>${who ? ` <span class="faint">${esc(who)}</span>` : ''}${tag}${trade}</div><span class="log-right">${done ? (cost ? T('−{n} Parley', { n: F(Math.round(cost)) }) : T('Done')) : T('not yet')}</span></div>`;
+}
+
+/**
+ * The runs recorded before, each with the whole of what it did: the
+ * exchange as tiles and every stop in order, folded under a line that
+ * says the day, the board, what it came to. The day's boards and the
+ * week above are the totals; this is the record itself. A run written
+ * before the record kept its stops shows the exchange alone.
+ */
+function historyHTML() {
+	const runs = [...(store.getProfile('runs', []) || [])].reverse().slice(0, 40);
+	if (!runs.length) return '';
+	const goalOf = r => (r.goal === 'stock' ? T('for the stock') : r.goal === 'coin' ? T('for Crow Coins') : r.goal === 'material' ? (r.item ? T('for {name}', { name: gameName(r.item) }) : T('for a material')) : T('for silver'));
+	const when = r => (r.at ? new Date(r.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : r.day);
+	const rows = runs.map((r, i) => {
+		const net = Number.isFinite(r.net) ? r.net : r.silver - r.cost;
+		const stops = (r.stops_ || []).map((s, k) => logRow(k, {
+			place: s.p, who: s.w || '', kind: s.k === 'w' ? T('a wharf call') : s.k === 'q' ? T('a quest handed in') : s.k === 'v' ? T('a wait for a voucher') : T('a barter'),
+			give: s.g || '', giveText: s.gn || '', item: s.i || '', recvText: s.r || '', times: s.t || 0, said: s.s || 0, sale: s.sale ? { n: s.sale.n, total: s.sale.silver } : null, cost: s.c || 0, wait: s.k === 'v' ? s.t : 0
+		})).join('');
+		const chains = (r.chains || []).map(c => `<span class="run-chain-tag"><i></i>${esc(c)}</span>`).join('');
+		return `<details class="panel hist-run"${i === 0 && !sailing() ? ' open' : ''}>
+			<summary><span class="hist-when">${esc(when(r))}</span><b>${r.layout ? T('layout {id}', { id: esc(r.layout) }) : T('a board')} · ${goalOf(r)}</b><span class="hist-figs"><span class="${net < 0 ? 'warn' : 'gold'}">${net ? `${net > 0 ? '+' : '−'}${FC(Math.abs(net))}` : '—'}</span>${r.coins ? `<span class="gold">+${F(r.coins)} ${T('coins')}</span>` : ''}<span>${r.trades === 1 ? T('{n} trade', { n: F(r.trades) }) : T('{n} trades', { n: F(r.trades) })}</span><span>${F(r.parley)} ${T('Parley')}</span><span>${r.stops === 1 ? T('{n} stop', { n: r.stops }) : T('{n} stops', { n: r.stops })}</span>${r.time ? `<span>≈ ${esc(r.time)}</span>` : ''}</span></summary>
+			<div class="panel-body">
+				${chains ? `<div class="run-seg-chains">${chains}${r.port ? `<span class="faint">${T('from {port}', { port: esc(gameName(r.port)) })}</span>` : ''}</div>` : ''}
+				${exchangeHTML(r.load, r.got, { spent: r.cost, silver: r.silver, coins: r.coins || 0, parley: r.parley, vouchers: r.vouchers || 0 })}
+				${stops ? `<div class="hist-stops">${stops}</div>` : `<p class="panel-sub">${T('Recorded before the log kept the stops; the exchange is all that was written down.')}</p>`}
+			</div>
+		</details>`;
+	}).join('');
+	return `<section class="panel history"><div class="panel-head"><h2 class="panel-title">${T('Past runs')}</h2><span class="panel-sub">${runs.length === 1 ? T('{n} run recorded', { n: runs.length }) : T('{n} runs recorded', { n: runs.length })} · ${T('newest first · open one for every stop')}</span></div>${rows}</section>`;
+}
+
 function resultsHTML() {
 	const on = sailing();
 	const plan = on ? sailedPlan() : null;
-	const logs = `${todayHTML()}${weekHTML()}`;
+	const logs = `${todayHTML()}${weekHTML()}${historyHTML()}`;
 	if (!plan) {
-		const was = lastTrip ? `<section class="panel"><div class="panel-head"><h2 class="panel-title">${T('The run, recorded')}</h2><span class="panel-sub">${lastTrip.stops === 1 ? T('Recorded: {n} stop', { n: lastTrip.stops }) : T('Recorded: {n} stops', { n: lastTrip.stops })}</span></div><div class="panel-body"><div class="run-tiles">
-			<div><div class="summary-k">${T('Trades made')}</div><div class="summary-v">${F(lastTrip.trades)}</div><div class="summary-sub">${T('Total Barters → {n}', { n: F(barterProfile().barterCount) })}</div></div>
-			<div><div class="summary-k">${T('Silver, net')}</div><div class="summary-v gold">${lastTrip.net ? `${lastTrip.net > 0 ? '+' : '−'}${FC(Math.abs(lastTrip.net))}` : '—'}</div><div class="summary-sub">${lastTrip.spent ? T('{sold} sold · {bought} bought', { sold: FC(lastTrip.silver), bought: FC(lastTrip.spent) }) : T('sold at the wharf')}</div></div>
-			${lastTrip.coins ? `<div><div class="summary-k">${T('Crow Coins')}</div><div class="summary-v gold">+${F(lastTrip.coins)}</div><div class="summary-sub"></div></div>` : ''}
-			<div><div class="summary-k">${T('Parley spent')}</div><div class="summary-v teal">${F(lastTrip.parley)}</div><div class="summary-sub"></div></div>
-		</div><p class="recorded-line">✓ ${T('Recorded.')} <button class="linky" data-act="barter-undo-record">${T('Undo')}</button></p></div></section>` : `<p class="empty step-empty">${T('No run to sum up yet. Results appear here as soon as a run is under way — complete or not.')}</p>`;
+		const was = lastTrip ? `<section class="panel"><div class="panel-head"><h2 class="panel-title">✓ ${T('The run, recorded')}</h2><span class="panel-sub">${lastTrip.stops === 1 ? T('Recorded: {n} stop', { n: lastTrip.stops }) : T('Recorded: {n} stops', { n: lastTrip.stops })} · ${T('inventory, storage and Parley moved together.')}</span><span class="panel-spacer"></span><button class="linky" data-act="barter-undo-record">↶ ${T('Undo')}</button></div><div class="panel-body"><div class="run-tiles">
+			<div><div class="summary-k">⇄ ${T('Trades made')}</div><div class="summary-v">${F(lastTrip.trades)}</div><div class="summary-sub">${T('Total Barters → {n}', { n: F(barterProfile().barterCount) })}</div></div>
+			<div><div class="summary-k">${img(SILVER, 'tile-icon')}${T('Silver, net')}</div><div class="summary-v ${lastTrip.net < 0 ? 'warn' : 'gold'}">${lastTrip.net ? `${lastTrip.net > 0 ? '+' : '−'}${FC(Math.abs(lastTrip.net))}` : '—'}</div><div class="summary-sub">${lastTrip.spent ? T('{sold} sold · {bought} bought', { sold: FC(lastTrip.silver), bought: FC(lastTrip.spent) }) : T('sold at the wharf')}</div></div>
+			${lastTrip.coins ? `<div><div class="summary-k">${img(COIN, 'tile-icon')}${T('Crow Coins')}</div><div class="summary-v gold">+${F(lastTrip.coins)}</div><div class="summary-sub"></div></div>` : ''}
+			<div><div class="summary-k">◈ ${T('Parley spent')}</div><div class="summary-v teal">${F(lastTrip.parley)}</div><div class="summary-sub">${lastTrip.vouchers ? (lastTrip.vouchers === 1 ? T('{n} voucher drawn on', { n: lastTrip.vouchers }) : T('{n} vouchers drawn on', { n: lastTrip.vouchers })) : ''}</div></div>
+		</div>${exchangeHTML(lastTrip.gave, lastTrip.got, { spent: lastTrip.spent, silver: lastTrip.silver, coins: lastTrip.coins, parley: lastTrip.parley, vouchers: lastTrip.vouchers })}<p class="recorded-line">${T('The whole of it is under Past runs below.')}</p></div></section>` : `<p class="empty step-empty">${T('No run to sum up yet. Results appear here as soon as a run is under way — complete or not.')}</p>`;
 		return `${was}${logs}`;
 	}
 	const stops = plan.stops;
@@ -4100,56 +4195,41 @@ function resultsHTML() {
 	const coins = trip.delta[COIN] || 0;
 	const guessedCoins = unsaid(plan, on).some(s => s.item === COIN);
 	const wharfTicked = stops.some((s, k) => s.wharf && s.sale && ticked(on.done, s, k, stops));
-	const byLevel = sign => {
-		const m = new Map();
-		for (const [item, n] of Object.entries(trip.delta)) {
-			if (item === SILVER || item === COIN || Math.sign(n) !== sign) continue;
-			const lv = levelOf(item) || 0;
-			m.set(lv, (m.get(lv) || 0) + Math.abs(n));
-		}
-		return [...m].sort((a, b) => a[0] - b[0]).map(([lv, n]) => (lv ? T('{n}× Level {lv}', { n: F(n), lv }) : T('{n}× land goods', { n: F(n) }))).join(', ');
-	};
-	const gained = Object.entries(trip.delta).filter(([item, n]) => n > 0 && levelOf(item)).reduce((a, [, n]) => a + n, 0);
+	const gave = {}, got = {};
+	for (const [item, n] of Object.entries(trip.delta)) {
+		if (item === SILVER || item === COIN || Math.abs(n) < 1) continue;
+		if (n < 0) gave[item] = Math.round(-n); else got[item] = Math.round(n);
+	}
+	// The shore goods bought for the run and handed over are given too,
+	// though the Inventory never held them; the silver tile says what
+	// they cost, these say what they were.
+	for (const [k, s] of stops.entries()) if (s.npcId && levelOf(s.give) === null && ticked(on.done, s, k, stops)) gave[s.give] = (gave[s.give] || 0) + Math.round(s.times * s.giveN);
+	const gained = Object.values(got).reduce((a, n) => a + n, 0);
 	const stocking = (on.goal || goal) === 'stock', coining = (on.goal || goal) === 'coin';
 	const tile = (k, v, sub, cls = '') => `<div><div class="summary-k">${k}</div><div class="summary-v${cls ? ` ${cls}` : ''}">${v}</div><div class="summary-sub">${sub}</div></div>`;
 	const timer = timerState();
+	const owed = stops.filter(s => owesCount(s, on)).length;
 	const tiles = `<div class="run-tiles">
-		${tile(T('Stops'), `${doneN} / ${stops.length}`, complete ? T('every stop ticked') : at >= 0 ? T('stop {n} is next', { n: at + 1 }) : '')}
-		${tile(T('Trades made'), F(trip.trades), `${T('of {n} planned', { n: F(plan.trades || 0) })} · ${T('Total Barters → {n}', { n: F(prof.barterCount + Math.round(trip.trades)) })}`)}
-		${coining ? tile(T('Crow Coins so far'), coins ? `+${F(coins)}` : '—', guessedCoins ? T('the middle of the range assumed until typed') : T('as typed at each island'), 'gold')
-		: stocking ? tile(T('Goods so far'), gained ? `+${F(gained)}` : '—', byLevel(1) || T('nothing received yet'), 'teal')
-			: tile(T('Silver so far'), trip.silver ? FC(trip.silver) : '—', wharfTicked ? T('sold at the wharf call') : T('nothing sold until the wharf call is ticked'), 'gold')}
-		${tile(T('Parley spent'), F(spent), `${T('{n} left of {bar}', { n: F(Math.max(0, bar - spent)), bar: F(bar) })}${parleyGuessed(prof) ? ` · ${T('assumed full')}` : ''}${drawnSoFar ? ` · ${drawnSoFar === 1 ? T('{n} voucher drawn on', { n: drawnSoFar }) : T('{n} vouchers drawn on', { n: drawnSoFar })}` : ''}`, 'teal')}
-		${tile(T('Under way'), timer ? esc(spanText(timer.ran)) : '—', on.time ? T('≈ {time} planned', { time: esc(on.time) }) : '')}
+		${tile(`⚓ ${T('Stops')}`, `${doneN} / ${stops.length}`, complete ? T('every stop ticked') : at >= 0 ? T('stop {n} is next', { n: at + 1 }) : '')}
+		${tile(`⇄ ${T('Trades made')}`, F(trip.trades), `${T('of {n} planned', { n: F(plan.trades || 0) })} · ${T('Total Barters → {n}', { n: F(prof.barterCount + Math.round(trip.trades)) })}`)}
+		${coining ? tile(`${img(COIN, 'tile-icon')}${T('Crow Coins so far')}`, coins ? `+${F(coins)}` : '—', guessedCoins ? T('the middle of the range assumed until typed') : T('as typed at each island'), 'gold')
+		: stocking ? tile(`${img(stops.find(s => s.npcId && levelOf(s.item)) ? stops.find(s => s.npcId && levelOf(s.item)).item : SILVER, 'tile-icon')}${T('Goods so far')}`, gained ? `+${F(gained)}` : '—', gained ? T('{n} kinds', { n: Object.keys(got).length }) : T('nothing received yet'), 'teal')
+			: tile(`${img(SILVER, 'tile-icon')}${T('Silver so far')}`, trip.silver ? FC(trip.silver) : '—', wharfTicked ? T('sold at the wharf call') : T('nothing sold until the wharf call is ticked'), 'gold')}
+		${tile(`${drawnSoFar ? img(VOUCHER, 'tile-icon') : '◈ '}${T('Parley spent')}`, F(spent), `${T('{n} left of {bar}', { n: F(Math.max(0, bar - spent)), bar: F(bar) })}${parleyGuessed(prof) ? ` · ${T('assumed full')}` : ''}${drawnSoFar ? ` · ${drawnSoFar === 1 ? T('{n} voucher drawn on', { n: drawnSoFar }) : T('{n} vouchers drawn on', { n: drawnSoFar })}` : ''}`, 'teal')}
+		${tile(`⏱ ${T('Under way')}`, timer ? esc(spanText(timer.ran)) : '—', on.time ? T('≈ {time} planned', { time: esc(on.time) }) : '')}
 	</div>`;
 	const log = stops.map((s, k) => {
 		const d = ticked(on.done, s, k, stops), names = stopNames(s);
-		const said_ = s.npcId && (on.seen || {})[s.npcId] > 0 ? ` · ${T('paid {n}', { n: F(on.seen[s.npcId]) })}` : '';
-		const line = s.npcId ? `${esc(s.giveText)}× ${esc(gameName(s.give))} → ${esc(s.recvText)}× ${esc(gameName(s.item))} ×${F(s.times)}${said_}` : s.wharf && s.sale ? T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: T('goods'), silver: FC(Math.round(s.sale.total)) }) : names.kind;
 		const cost = s.npcId ? (Number(s.parley) > 0 ? Number(s.parley) : (Number(s.times) || 0) * parleyOf(prof).perTrade) : 0;
-		const lr = book.rows[k];
-		return `<div class="log-row${d ? ' done' : ''}"><span class="rest-dot${d ? ' on' : ''}" aria-hidden="true">${d ? '✓' : k + 1}</span><div><b>${esc(names.place)}</b>${lr ? ` ${parleyNotes(book, k, s).tag}` : ''}<em>${line}</em></div><span class="log-right">${d ? (cost ? T('−{n} Parley', { n: F(Math.round(cost)) }) : T('Done')) : T('not yet')}</span></div>`;
+		return logRow(k, { done: d, place: names.place, who: names.who, kind: names.kind, give: s.give, giveText: s.giveText, item: s.item, recvText: s.recvText, times: s.times, said: (on.seen || {})[s.npcId] || 0, sale: s.wharf && s.sale ? s.sale : null, cost, tag: book.rows[k] ? ` ${parleyNotes(book, k, s).tag}` : '', wait: s.wait || 0 });
 	}).join('');
-	const line = (k, v, cls = '') => `<div class="receipt-line"><span>${k}</span><b${cls ? ` class="${cls}"` : ''}>${v}</b></div>`;
 	const net = trip.silver - trip.spent;
-	const receipt = `<div class="receipt-cols">
-		<div class="receipt-col"><div class="receipt-k">${T('You spent')}</div>
-			${line(T('Land goods bought'), trip.spent ? FC(trip.spent) : '—')}
-			${line(T('Parley'), F(spent))}
-			${line(T('Out of your storage'), byLevel(-1) || T('nothing of yours'))}</div>
-		<div class="receipt-col"><div class="receipt-k">${T('You got')}</div>
-			${line(T('Silver at the wharf'), trip.silver ? FC(trip.silver) : '—', 'gold')}
-			${coins ? line(T('Crow Coins'), `+${F(coins)}`, guessedCoins ? 'gold guess' : 'gold') : ''}
-			${line(T('Goods received'), byLevel(1) || T('none'))}
-			${line(T('Total Barters'), `+${F(Math.round(trip.trades))}`)}</div>
-	</div>
-	<div class="receipt-net"><span>${T('Silver, net')}</span><b class="${net < 0 ? 'warn' : 'gold'}">${net ? `${net > 0 ? '+' : '−'}${FC(Math.abs(net))}` : '—'}</b></div>
-	<div class="receipt-acts"><span class="panel-sub">${T('Recording moves inventory, storage, Silver, Parley, Total Barters and the log as one Undo. Only ticked stops count.')}</span><button class="linky danger" data-act="barter-sail-drop" title="${T('Drop the checklist; nothing is recorded')}">${T('Abandon')}</button><button class="act" data-act="barter-record" ${doneN ? '' : 'disabled'} title="${T('The stops done go into the Inventory as one change')}">${T('Record the trip')}</button></div>`;
+	const receipt = `<div class="receipt-net"><span>${T('Silver, net')}</span><b class="${net < 0 ? 'warn' : 'gold'}">${net ? `${net > 0 ? '+' : '−'}${FC(Math.abs(net))}` : '—'}</b></div>
+	<div class="receipt-acts"><span class="panel-sub">${T('Recording moves inventory, storage, Silver, Parley, Total Barters and the log as one Undo. Only ticked stops count.')}${owed ? ` <b class="amber">${owed === 1 ? T('{n} island still waits for its count.', { n: owed }) : T('{n} islands still wait for their count.', { n: owed })}</b>` : ''}</span><button class="linky danger" data-act="barter-sail-drop" title="${T('Drop the checklist; nothing is recorded')}">${T('Abandon')}</button><button class="act" data-act="barter-record" ${doneN ? '' : 'disabled'} title="${T('The stops done go into the Inventory as one change')}">${T('Record the trip')}</button></div>`;
 	return `<section class="panel"><div class="panel-head"><h2 class="panel-title">${complete ? T('The run, complete') : T('The run so far')}</h2><span class="panel-sub">${timer ? `${T('under way')} ⏱ ${esc(spanText(timer.ran))}` : ''}</span><span class="panel-spacer"></span><button class="linky" data-act="barter-step" data-id="sail">‹ ${T('Back to the run')}</button></div><div class="panel-body">${tiles}</div></section>
-		<div class="results-grid">
-			<section class="panel log-panel"><div class="panel-head"><h2 class="panel-title">${T('Stop by stop')}</h2><span class="panel-sub">${complete ? T('complete') : T('{n} still to go', { n: stops.length - doneN })}</span></div>${log}</section>
-			<section class="panel"><div class="panel-head"><h2 class="panel-title">${T('The receipt')}</h2><span class="panel-sub">${complete ? T('what recording will change') : T('incomplete — records only what is ticked')}</span></div><div class="panel-body">${receipt}</div></section>
-		</div>${logs}`;
+		<section class="panel"><div class="panel-head"><h2 class="panel-title">${T('The exchange')}</h2><span class="panel-sub">${complete ? T('what recording will change') : T('so far — only ticked stops count')}</span></div><div class="panel-body">${exchangeHTML(gave, got, { spent: trip.spent, silver: trip.silver, coins, parley: spent, vouchers: drawnSoFar, guessedCoins })}${receipt}</div></section>
+		<section class="panel log-panel"><div class="panel-head"><h2 class="panel-title">${T('Stop by stop')}</h2><span class="panel-sub">${complete ? T('complete') : T('{n} still to go', { n: stops.length - doneN })}</span></div>${log}</section>
+		${logs}`;
 }
 
 export function renderBarter() {
@@ -4935,27 +5015,40 @@ export function barterAction(act, el, redraw) {
 				claimed += list.length;
 			}
 			const stops = plan.stops;
-			if (sailAll.stops) on.done = [...new Set([...on.done, ...stops.map((s, i) => stopKey(s, i, stops))])];
+			// The stops that pay a range and were never told what they
+			// paid stay open: a tick there would be a guess, and the
+			// cockpit is sent to the first of them to ask.
+			const owed = sailAll.stops ? stops.filter(s => owesCount(s, on)) : [];
+			if (sailAll.stops) on.done = [...new Set([...on.done, ...stops.filter(s => !owesCount(s, on)).map(s => stopKey(s, stops.indexOf(s), stops))])];
+			if (owed.length) cursor = stopKey(owed[0], stops.indexOf(owed[0]), stops);
 			sailAll.open = false;
 			persist();
-			if (!claimed) cheer({ big: true });
-			// Ticking the lot never asks what an island paid, and most of
-			// what a climb trades pays a range -- so say what will be
-			// guessed at while the stops are still there to be pressed.
-			const guessing = sailAll.stops ? unsaid(sailedPlan() || plan, on).length : 0;
+			if (!claimed && !owed.length) cheer({ big: true });
+			const guessing = owed.length;
 			const guessSaid = guessing
 				? ` · ${guessing === 1
-					? T('{n} island’s pay was not said, so it is recorded at the middle of its range', { n: guessing })
-					: T('{n} islands’ pay was not said, so they are recorded at the middle of their range', { n: guessing })}`
+					? T('{n} island pays a range and waits for its count — tap what it paid', { n: guessing })
+					: T('{n} islands pay a range and wait for their count — tap what each paid', { n: guessing })}`
 				: '';
-			toast(`${sailAll.stops ? T('Every stop ticked off') : T('Nothing ticked')}${claimed ? ` · ${claimed === 1 ? T('{n} quest handed in, the rewards in the bags', { n: claimed }) : T('{n} quests handed in, the rewards in the bags', { n: claimed })}` : ''}${guessSaid}${sailAll.stops ? ` — ${T('Record the trip puts it in the Inventory')}` : ''}`, claimed > 0);
+			toast(`${sailAll.stops ? (owed.length ? T('Every stop with a known count ticked off') : T('Every stop ticked off')) : T('Nothing ticked')}${claimed ? ` · ${claimed === 1 ? T('{n} quest handed in, the rewards in the bags', { n: claimed }) : T('{n} quests handed in, the rewards in the bags', { n: claimed })}` : ''}${guessSaid}${sailAll.stops ? ` — ${T('Record the trip puts it in the Inventory')}` : ''}`, claimed > 0);
 			return true;
 		}
 		case 'barter-stop-done': {
 			const on = sailing() || (el.dataset.map ? sail : null);
 			if (!on) return false;
 			const k = String(el.dataset.k);
-			if (on.done.includes(k)) { on.done = on.done.filter(x => x !== k); persist(); } else markDone(on, k);
+			if (on.done.includes(k)) { on.done = on.done.filter(x => x !== k); persist(); cursor = null; return true; }
+			// A stop that pays a range is ticked by saying what it paid,
+			// not by this press: the cockpit goes there and asks.
+			const plan = sailedPlan();
+			const owed = plan && plan.stops.find((x, i) => stopKey(x, i, plan.stops) === k && owesCount(x, on));
+			if (owed) {
+				cursor = k;
+				toast(T('{isle} pays {range} — tap what it paid, and the stop is ticked with it', { isle: isleShort(npcById.get(owed.npcId)) || owed.npc, range: `${rangeOf(owed).lo}-${rangeOf(owed).hi}` }));
+				if (step !== 'sail' && !el.dataset.map) step = 'sail';
+				return true;
+			}
+			markDone(on, k);
 			// The cockpit follows the run rather than the last thing pressed.
 			cursor = null;
 			return true;

@@ -1171,7 +1171,7 @@ function runTip(t, id) {
 	const on = id ? sailFor(id) : null;
 	const check = on ? `<div class="run-check map-tip-check">
 		${on.ask}
-		<button class="run-done${on.done ? ' on' : ''}" data-act="barter-stop-done" data-map="1" data-k="n${id}" aria-pressed="${on.done}"><i>${on.done ? '✓' : ''}</i>${on.done ? T('Done') : T('Traded here')}</button>
+		<button class="run-done${on.done ? ' on' : ''}${on.owes ? ' waits' : ''}" data-act="barter-stop-done" data-map="1" data-k="n${id}" aria-pressed="${on.done}"${on.owes ? ` title="${T('Tap what it paid first')}"` : ''}><i>${on.done ? '✓' : ''}</i>${on.done ? T('Done') : on.owes ? T('paid…?') : T('Traded here')}</button>
 	</div>` : '';
 	return `<div class="map-tip-run">
 		<span class="map-tip-k">${T('The run')}${on ? ` · ${T('being sailed')}` : ''}</span>
