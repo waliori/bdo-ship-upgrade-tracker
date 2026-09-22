@@ -59,7 +59,7 @@ test('a timer is bounded, and one from yesterday is not shown', () => {
 
 import { passedStop, marksMode, setMarksMode, MARK_CHOICES } from '../js/sail-timer.js';
 
-test('a run’s stops each get their own moment, and the last of them is the end', () => {
+test('a run’s stops each get their own moment, and the clock waits at each until Traded', () => {
 	const marks = [{ at: 120, label: 'Baeza' }, { at: 300, label: 'Narvo' }, { at: 540, label: 'Iliya' }];
 	const end = startTimer(0, 'Baeza and 2 more', marks);
 	assert.equal(end, 540, 'the run is over when its last stop is');
@@ -70,12 +70,13 @@ test('a run’s stops each get their own moment, and the last of them is the end
 	assert.equal(at(0).next.label, 'Baeza');
 	assert.equal(at(0).next.left, 120);
 	assert.equal(clockText(at(30)), '1 m 30 s to Baeza · stop 1 of 3');
-	// Past the first, it is making for the second.
-	assert.equal(at(150).next.label, 'Narvo');
-	assert.equal(at(150).next.i, 1);
-	// Past the last there is no next, and the end has gone by.
-	assert.equal(at(600).next, null);
-	assert.equal(at(600).over, true);
+	// Reached and not traded: it waits there, and does not move on.
+	assert.equal(at(150).next, null);
+	assert.equal(at(150).wait.label, 'Baeza');
+	assert.equal(at(150).wait.over, 30);
+	assert.equal(clockText(at(150)), 'at Baeza · stop 1 of 3 — waiting for Traded');
+	assert.equal(at(600).wait.label, 'Baeza', 'however long it waits');
+	assert.equal(at(600).over, false, 'a run waiting at a stop is not over');
 	stopTimer();
 });
 
@@ -104,27 +105,27 @@ test('which stops make a sound is a choice, and the marks are kept either way', 
 	assert.deepEqual(MARK_CHOICES.map(c => c[0]), ['each', 'whole']);
 });
 
-test('the time a stop takes is counted, and the clock says which half of it you are in', () => {
-	// Two islands a minute apart, forty-five seconds spent at each.
-	const marks = [{ at: 60, label: 'Baeza', hold: 45 }, { at: 165, label: 'Narvo', hold: 45 }];
+test('Traded starts the next leg from the press, early or late', () => {
+	// Two islands a minute apart, forty-five seconds planned at each.
+	const marks = [{ at: 60, label: 'Baeza', hold: 45, k: 0 }, { at: 165, label: 'Narvo', hold: 45, k: 1 }];
 	startTimer(0, 'Baeza and 1 more', marks);
-	const t0 = timerNow();
-	assert.deepEqual(t0.marks.map(m => m.hold), [45, 45], 'the stop’s own time rides on the mark');
-	const at = s => timerState(t0.startedAt + s * 1000);
-
-	// On the way to the first: a leg.
-	assert.equal(clockText(at(30)), '30 s to Baeza · stop 1 of 2');
-	// Arrived, and bartering: the clock is counting the stop now, not a
-	// leg, and says so rather than folding it into the next arrival.
-	assert.equal(at(70).here.label, 'Baeza');
-	assert.equal(clockText(at(70)), 'at Baeza · under way in 35 s');
-	// Under way again: back to counting the leg.
-	assert.equal(at(110).here, null);
-	assert.equal(clockText(at(110)), '55 s to Narvo · stop 2 of 2');
-	// And the second island's arrival is a minute later than the leg
-	// alone would make it -- the forty-five seconds at the first is in
-	// the number, which is the whole point of typing it.
-	assert.equal(t0.marks[1].at - t0.marks[0].at, 105, 'a 60 s leg and the 45 s spent before it');
+	const started = timerNow().startedAt;
+	assert.deepEqual(timerNow().marks.map(m => m.hold), [45, 45], 'the stop’s own time rides on the mark');
+	// Traded pressed early, at 20 s -- before the clock reached Baeza: the
+	// leg to Narvo (165 - 60 - 45 = 60 s) starts now.
+	store.setView('timer', { ...timerNow(), startedAt: started - 20_000 });
+	passedStop(0);
+	let t = timerNow();
+	assert.equal(t.done, 1);
+	assert.equal(t.marks[1].at, 80, 'Narvo is one leg from the press');
+	assert.equal(timerState(t.startedAt + 50_000).next.label, 'Narvo');
+	stopTimer();
+	// Pressed late, at 300 s: the leg starts then instead.
+	startTimer(0, 'Baeza and 1 more', marks);
+	store.setView('timer', { ...timerNow(), startedAt: timerNow().startedAt - 300_000 });
+	passedStop(0);
+	t = timerNow();
+	assert.equal(t.marks[1].at, 360);
 	stopTimer();
 });
 

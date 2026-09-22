@@ -2086,29 +2086,25 @@ test('the packing list ticks both ways, and what a row says is what its button m
 	assert.ok(keys.length > 0, 'the list has rows');
 	assert.ok(keys.every(x => x.tag === 'BUTTON' && x.k), 'every box is a button with a row of its own');
 	assert.equal(new Set(keys.map(x => x.k)).size, keys.length, 'one row a good, so one box a good');
-	const stateOf = () => page.$$eval('.pack-row', es => es.map(e => e.classList.contains('on')));
-	const first = await stateOf();
-	// By place rather than by key: a key carries brackets and a bar,
-	// which a selector would have to be taught about.
-	const pressAll = async () => { for (let i = 0; i < keys.length; i++) { await page.evaluate(n => document.querySelectorAll('.pack-box')[n].click(), i); await wait(350); } };
-	await pressAll();
-	const flipped = await stateOf();
-	assert.deepEqual(flipped, first.map(x => !x), 'one press turns every row the other way');
-	await pressAll();
-	assert.deepEqual(await stateOf(), first, 'and a second press turns them back');
-	// What a row says and what its button moves are the same number.
-	// Merging two lines of two added the counts for the reader and left
-	// the button on the first line's two.
-	const row = await page.$eval('[data-act="barter-load"]', e => ({ item: e.dataset.item, n: Number(e.dataset.n), town: e.dataset.town, shown: Number(e.closest('.pack-row').querySelector('.pack-n b').textContent.replace(/[^\d.]/g, '')) }));
-	assert.equal(row.n, row.shown, `the row asks for ${row.shown} and the button moves ${row.n}`);
-	const at = () => page.evaluate(async x => (await import('/js/state.js')).stockAt(x.item, x.town), row);
-	const before = await at();
-	await page.evaluate(() => document.querySelector('[data-act="barter-load"]').click()); await wait(2000);
-	assert.equal(await at(), before - row.n, 'and that many leave the storage');
-	// Aboard now, with the way to put them back where they came from.
-	assert.match(await text(page, '.pack-group:last-child'), new RegExp(gameNameOf(row.item), 'i'));
+	// Ticking loads for real. The goods waiting at Iliya went into the
+	// hold when their row was ticked, and the row moved to Already aboard.
+	const conch = '[Level 2] Conch Shell Ornament';
+	const where = () => page.evaluate(async i => { const st = await import('/js/state.js'); return { iliya: st.stockAt(i, 'Iliya Island'), aboard: st.stockAt(i, '') + st.stockAt(i, st.ABOARD) }; }, conch);
+	const loaded = await where();
+	assert.ok(loaded.iliya < 20 && loaded.aboard > 0, `the ticked storage row moved its goods aboard: ${JSON.stringify(loaded)}`);
+	assert.match(await text(page, '.pack-group:last-child'), new RegExp(gameNameOf(conch), 'i'));
+	// A market row: its tick is goods in the hold, both ways.
+	const mk = await page.$eval('.pack-group:first-child .pack-box', e => ({ item: e.dataset.item, n: Number(e.dataset.n), on: e.classList.contains('on') }));
+	const inHold = () => page.evaluate(async i => { const st = await import('/js/state.js'); return st.stockAt(i, st.ABOARD); }, mk.item);
+	assert.ok(mk.on, 'ticked on the way in');
+	assert.equal(await inHold(), mk.n, `${mk.n} ${mk.item} in the hold`);
+	await page.evaluate(() => document.querySelector('.pack-group:first-child .pack-box').click()); await wait(1500);
+	assert.equal(await inHold(), 0, 'unticked: off the ship again');
+	await page.evaluate(() => document.querySelector('.pack-group:first-child .pack-box').click()); await wait(1500);
+	assert.equal(await inHold(), mk.n, 'ticked again: back aboard');
+	// Aboard, with the way to put them back where they came from.
 	await page.evaluate(() => document.querySelector('[data-act="barter-unload"]').click()); await wait(2000);
-	assert.equal(await at(), before, 'put back, every one of them');
+	assert.equal((await where()).iliya, 20, 'put back, every one of them');
 	assert.deepEqual(errors, []);
 	await context.close();
 });

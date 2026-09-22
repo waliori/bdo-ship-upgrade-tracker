@@ -58,7 +58,7 @@ export function timerNow() {
 	if (!t || !(Number(t.startedAt) > 0) || !(Number(t.seconds) > 0)) return null;
 	if (Date.now() - Number(t.startedAt) > 24 * 3600 * 1000) return null;
 	const marks = Array.isArray(t.marks)
-		? t.marks.filter(m => m && Number(m.at) > 0).map(m => ({ at: Math.round(Number(m.at)), label: String(m.label || '').slice(0, 40), hold: Math.max(0, Math.round(Number(m.hold) || 0)) })).slice(0, 40)
+		? t.marks.filter(m => m && Number(m.at) > 0).map(m => ({ at: Math.round(Number(m.at)), label: String(m.label || '').slice(0, 40), hold: Math.max(0, Math.round(Number(m.hold) || 0)), ...(Number.isFinite(Number(m.k)) ? { k: Math.floor(Number(m.k)) } : {}) })).slice(0, 40)
 		: [];
 	return {
 		startedAt: Number(t.startedAt),
@@ -73,7 +73,10 @@ export function timerNow() {
 		base: t.base && Number(t.base.seconds) > 0
 			? { seconds: Number(t.base.seconds), marks: Array.isArray(t.base.marks) ? t.base.marks : [] }
 			: null,
-		done: Math.max(0, Math.min(marks.length, Math.floor(Number(t.done) || 0)))
+		done: Math.max(0, Math.min(marks.length, Math.floor(Number(t.done) || 0))),
+		// The stops the clock has reached and chimed for. Reaching is not
+		// passing: the clock waits at a stop until Traded is pressed.
+		reached: Math.max(0, Math.min(marks.length, Math.floor(Number(t.reached) || 0)))
 	};
 }
 
@@ -86,11 +89,11 @@ const write = t => store.setView(NS, t);
  * what was running.
  */
 export function startTimer(seconds, label = '', marks = []) {
-	const list = marks.filter(m => m && Number(m.at) > 0).map(m => ({ at: Math.round(Number(m.at)), label: String(m.label || '').slice(0, 40), hold: Math.max(0, Math.round(Number(m.hold) || 0)) })).slice(0, 40);
+	const list = marks.filter(m => m && Number(m.at) > 0).map(m => ({ at: Math.round(Number(m.at)), label: String(m.label || '').slice(0, 40), hold: Math.max(0, Math.round(Number(m.hold) || 0)), ...(Number.isFinite(Number(m.k)) ? { k: Math.floor(Number(m.k)) } : {}) })).slice(0, 40);
 	// The end of the run is the last mark, or what was asked for.
 	const end = list.length ? list[list.length - 1].at : Number(seconds) || 0;
 	const s = Math.max(30, Math.min(6 * 3600, Math.round(end)));
-	write({ startedAt: Date.now(), seconds: s, label: String(label || '').slice(0, 60), chimed: false, marks: list, done: 0, base: { seconds: s, marks: list } });
+	write({ startedAt: Date.now(), seconds: s, label: String(label || '').slice(0, 60), chimed: false, marks: list, done: 0, reached: 0, base: { seconds: s, marks: list } });
 	arm();
 	sendSchedule();
 	return s;
@@ -106,19 +109,21 @@ export function startTimer(seconds, label = '', marks = []) {
 export function passedStop(index) {
 	const t = timerNow();
 	if (!t || !t.marks.length) return;
-	const done = Math.max(0, Math.min(t.marks.length, Math.floor(index) + 1));
+	// `index` is the stop in the run; a mark carries the stop it is for.
+	// A stop with no leg of its own (a second exchange at the same
+	// island) has no mark and is passed with the one before it.
+	const done = Math.max(0, Math.min(t.marks.length, t.marks.some(m => Number.isFinite(m.k))
+		? t.marks.filter(m => m.k <= index).length
+		: Math.floor(index) + 1));
 	if (done <= t.done) return;
 	const ran = Math.max(0, Math.round((Date.now() - t.startedAt) / 1000));
-	const here = t.marks[done - 1].at;
-	const shift = ran - here;
-	if (!shift) return write({ ...t, done });
-	// A stop ticked before its time is behind the ship all the same. It
-	// was left standing at its estimate, still in the future, and the
-	// clock -- which reads the next mark off the time alone -- went on
-	// counting down to an island the sailor had already left: three
-	// stops into a run it still said "to the first stop, 1 of 18".
+	// Traded pressed is the ship leaving: the next leg starts now, early
+	// or late, and takes as long as its own leg -- the stop's own pause
+	// is over, whatever the estimate allowed for it.
+	const prev = t.marks[done - 1];
+	const shift = ran - (prev.at + prev.hold);
 	const marks = t.marks.map((m, i) => (i < done ? { ...m, at: Math.max(1, Math.min(m.at, ran)) } : { ...m, at: Math.max(ran + 1, m.at + shift) }));
-	write({ ...t, marks, done, seconds: Math.max(30, marks[marks.length - 1].at), chimed: false });
+	write({ ...t, marks, done, reached: Math.max(done, Math.min(t.reached, done)), seconds: Math.max(30, marks[marks.length - 1].at), chimed: false });
 	arm();
 	sendSchedule();
 }
@@ -139,7 +144,9 @@ export function sendSchedule() {
 	const marks = t.marks.length ? t.marks : [{ at: t.seconds, label: t.label }];
 	const alerts = marks
 		.map((m, i) => ({ m, i, last: i === marks.length - 1 }))
-		.filter(({ i, last }) => (each || last) && i >= t.done)
+		// Only the next stop is known: the ones after it come when Traded is
+		// pressed, and are sent again then.
+		.filter(({ i, last }) => (each || last) && i === t.done)
 		.map(({ m, i, last }) => ({
 			at: from + m.at * 1000,
 			title: last ? (t.marks.length ? T('The run should be done') : T('The ship should be in')) : T('{stop} should be in reach', { stop: m.label || T('A stop') }),
@@ -178,7 +185,7 @@ export function restartTimer() {
 	const base = now.base || { seconds: now.seconds, marks: now.marks };
 	const marks = Array.isArray(base.marks) ? base.marks : [];
 	write({
-		...now, base, startedAt: Date.now(), chimed: false, done: 0,
+		...now, base, startedAt: Date.now(), chimed: false, done: 0, reached: 0,
 		marks, seconds: Math.max(30, marks.length ? marks[marks.length - 1].at : base.seconds)
 	});
 	arm();
@@ -196,21 +203,18 @@ export function timerState(now = Date.now()) {
 	const t = timerNow();
 	if (!t) return null;
 	const ran = Math.max(0, Math.round((now - t.startedAt) / 1000));
-	// The next stop is the first one neither behind the clock nor ticked
-	// off: a stop the sailor has said is done is done, whatever the time.
-	const at = t.marks.findIndex((m, i) => i >= t.done && m.at > ran);
-	const next = at < 0 ? null : { ...t.marks[at], i: at, left: t.marks[at].at - ran };
-	// Between arriving somewhere and being under way again, the clock is
-	// counting the stop rather than a leg: the sailor is at the island
-	// with the barter window open, and what they want to know is how
-	// long they have before the plan expects them to have moved on.
-	const back = at < 0 ? t.marks.length - 1 : at - 1;
-	const on = back >= 0 ? t.marks[back] : null;
-	// ...unless that stop has been ticked off: "Traded" pressed is the
-	// sailor saying the bartering is over, and a clock that answers "at
-	// Luivano, under way in 43 s" is arguing with them.
-	const here = on && back >= t.done && on.hold > 0 && ran < on.at + on.hold ? { ...on, i: back, left: on.at + on.hold - ran } : null;
-	return { ...t, ran, left: t.seconds - ran, over: ran >= t.seconds, next, here, stops: t.marks.length };
+	// The stop the ship is making for is the first not yet passed. Once
+	// its time has come the clock waits there -- counting nothing more,
+	// chiming for nothing further -- until Traded is pressed for it.
+	const at = t.done < t.marks.length ? t.done : -1;
+	const due = at >= 0 && ran >= t.marks[at].at;
+	const wait = due ? { ...t.marks[at], i: at, over: ran - t.marks[at].at } : null;
+	const next = at >= 0 && !due ? { ...t.marks[at], i: at, left: t.marks[at].at - ran } : null;
+	// While it waits, the end moves with it: what is left is the rest of
+	// the run after this stop, and it is not over until the last is passed.
+	const left = wait ? t.seconds - t.marks[at].at : t.seconds - ran;
+	const over = t.marks.length ? t.done >= t.marks.length && ran >= t.seconds : ran >= t.seconds;
+	return { ...t, ran, left, over, next, wait, here: null, stops: t.marks.length };
 }
 
 /* ------------------------------------------------------------------ *
@@ -524,7 +528,8 @@ function arm() {
 	// ten minutes comes back to several of them at once -- so the check
 	// is "has it gone by", not "is it now".
 	if (t.marks.length) {
-		if (t.done < t.marks.length && t.ran >= t.marks[t.done].at) return fireMark();
+		if (t.done < t.marks.length && t.reached <= t.done && t.ran >= t.marks[t.done].at) return fireMark();
+		if (t.done < t.marks.length && t.reached > t.done) return;   // waiting at a stop: nothing to count to
 		if (t.done >= t.marks.length && !t.chimed) return fireEnd();
 	} else if (t.over && !t.chimed) return fireEnd();
 	const wait = t.marks.length && t.done < t.marks.length ? t.marks[t.done].at - t.ran : t.left;
@@ -545,7 +550,8 @@ function fireMark() {
 	const mark = t.marks[t.done];
 	const done = t.done + 1;
 	const last = done >= t.marks.length;
-	write({ ...t, done, chimed: last });
+	// Reached, and chimed for -- not passed: that is the sailor's press.
+	write({ ...t, reached: done, chimed: last });
 	if (last) {
 		chime();
 		notify(T('The run should be done'), T('{stop} — every stop on the run has come up.', { stop: mark.label || t.label || T('the last stop') }));
@@ -653,7 +659,7 @@ export function timerHTML({ suggest = 0, label = '', marks = [] } = {}) {
  */
 export function clockText(t = timerState()) {
 	if (!t) return '';
-	if (t.here) return T('at {stop} · under way in {left}', { stop: t.here.label || T('stop {n}', { n: t.here.i + 1 }), left: spanText(t.here.left) });
+	if (t.wait) return T('at {stop} · stop {n} of {total} — waiting for Traded', { stop: t.wait.label || T('stop {n}', { n: t.wait.i + 1 }), n: t.wait.i + 1, total: t.stops });
 	if (t.next) return T('{left} to {stop} · stop {n} of {total}', { left: spanText(t.next.left), stop: t.next.label || T('stop {n}', { n: t.next.i + 1 }), n: t.next.i + 1, total: t.stops });
 	if (t.over) return T('{ran} · {past} past the {set} it was set for', { ran: spanText(t.ran), past: spanText(t.ran - t.seconds), set: spanText(t.seconds) });
 	return T('{ran} of ≈ {of}', { ran: spanText(t.ran), of: spanText(t.seconds) });

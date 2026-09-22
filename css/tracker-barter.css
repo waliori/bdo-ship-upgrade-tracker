@@ -1317,3 +1317,4 @@ button.rung-fate { cursor: pointer; }
 @media (max-width: 720px) {
   .run-dock > .act, .load-dock > .act, .cockpit-foot > .act { flex: 1 1 100%; min-width: 0; }
 }
+.hold-shore { margin-top: 10px; display: grid; gap: 4px; } .hold-shore .ashore-k { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); }

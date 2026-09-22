@@ -488,10 +488,18 @@ function refreshSheet() {
 	try { if (keep.start != null && again.setSelectionRange) again.setSelectionRange(keep.start, keep.end); } catch { /* not a text field */ }
 }
 
+// The shore goods in the hold: loaded at the wharf for a run, the land
+// goods a chain starts from. Counted apart from the trade goods, which
+// are the hold's own list.
+const shoreAboard = () => Object.keys(store.getAllStock()).filter(n => levelOf(n) === null && store.stockAt(n, store.ABOARD) > 0)
+	.map(name => ({ name, n: store.stockAt(name, store.ABOARD), weight: store.stockAt(name, store.ABOARD) * weightOf(name) }))
+	.sort((a, b) => b.weight - a.weight || a.name.localeCompare(b.name));
+
 function holdHTML(me) {
 	const goods = held();
-	const lt = goods.reduce((a, g) => a + g.weight, 0);
-	const n = goods.reduce((a, g) => a + g.n, 0);
+	const shore = shoreAboard();
+	const lt = goods.reduce((a, g) => a + g.weight, 0) + shore.reduce((a, g) => a + g.weight, 0);
+	const n = goods.reduce((a, g) => a + g.n, 0) + shore.reduce((a, g) => a + g.n, 0);
 	const worth = goods.reduce((a, g) => a + g.n * sellOf(g.name), 0);
 	const w = shownHold(me.hold, lt);
 	const pct = w.max > 0 ? Math.min(100, w.total / w.max * 100) : 0;
@@ -534,7 +542,8 @@ function holdHTML(me) {
 		<div class="map-load-bar" title="${T('The bar runs to the most the hull will move under; the mark is its limit')}"><i class="${state}" style="width:${pct.toFixed(1)}%"></i><s style="left:${mark.toFixed(1)}%"></s></div>
 		<div class="summary-sub${state ? ' warn' : ''}">${sub}${worth ? ` · ${T('worth {silver} to a barterer as it is', { silver: FC(worth) })}` : ''}</div>
 		${goods.length || ashore().length ? filters : ''}
-		${rows ? `<div class="barter-goods">${rows}</div>` : goods.length ? `<p class="empty">${T('Nothing aboard matches.')}</p>` : `<p class="empty">${T('Nothing recorded aboard. Add a good, or log the trip that brought them back — the counts are the Inventory’s, under Trade goods.')}</p>`}
+		${shore.length ? `<div class="hold-shore"><span class="ashore-k">${T('Shore goods aboard')}</span>${shore.map(g => `<div class="barter-good">${img(g.name, 'row-icon')}<span class="map-row-main"><span class="map-row-name">${codexName(g.name)}</span><span class="map-row-sub">${T('{n} aboard · {lt} LT', { n: F(g.n), lt: (Math.round(g.weight * 10) / 10).toLocaleString() })}</span></span><button class="ghost-btn sm" data-act="barter-unload" data-item="${esc(g.name)}" data-n="${g.n}" title="${unloadTitle()}">${T('Unload')}</button></div>`).join('')}</div>` : ''}
+		${rows ? `<div class="barter-goods">${rows}</div>` : goods.length ? `<p class="empty">${T('Nothing aboard matches.')}</p>` : shore.length ? '' : `<p class="empty">${T('Nothing recorded aboard. Add a good, or log the trip that brought them back — the counts are the Inventory’s, under Trade goods.')}</p>`}
 		${ashoreHTML(passes)}
 	</section>`;
 }
@@ -2511,7 +2520,7 @@ function runMarks(plan, legs, book) {
 		// no mark; the time it takes is real all the same.
 		if (leg > 0) {
 			at += legs.secondsOf(leg);
-			out.push({ at: Math.round(at), label: stopLabel(s), hold });
+			out.push({ at: Math.round(at), label: stopLabel(s), hold, k: i });
 		}
 		at += hold;
 	});
@@ -3094,7 +3103,72 @@ function oneEach(list) {
  * own press is what decides: `packed` carries the marks they have
  * made, and for a row that starts ticked a mark means "take it off".
  */
-const packedNow = x => (String(x.key || '').startsWith('a|') ? !packed.has(x.key) : packed.has(x.key));
+// A row that a tick loads is ticked when its goods are really in the
+// hold -- so the tick survives a reload and can never buy twice. The
+// rows already aboard keep a plain mark, "checked against the hold".
+const inHold = item => store.stockAt(item, store.ABOARD) + (levelOf(item) !== null ? store.stockAt(item, '') : 0);
+const packedNow = x => {
+	const k = String(x.key || '');
+	if (k.startsWith('a|')) return !packed.has(k);
+	if (k.startsWith('b|') || k.startsWith('t|')) return inHold(x.item) >= x.n;
+	return packed.has(k);
+};
+
+/**
+ * A packing row's tick, done for real: bought at the Market is goods in
+ * the hold and silver out of the purse; from a storage is goods moved
+ * into the hold; from the pile is the pile's goods moved aboard. Handed
+ * back as the delta and moves of one change, so a whole group ticked at
+ * once is one Undo. `want` is the state asked for.
+ */
+function packChange(x, want, from) {
+	const k = String(x.key || '');
+	const delta = {}, moves = [];
+	if (k.startsWith('b|')) {
+		const has = store.stockAt(x.item, store.ABOARD);
+		if (want && has < x.n) {
+			const n = x.n - has;
+			delta[x.item] = n;
+			if (x.cost) delta[SILVER] = -Math.round(x.cost * n / x.n);
+			moves.push({ item: x.item, from: '', to: store.ABOARD, n });
+		} else if (!want && has > 0) {
+			const n = Math.min(has, x.n);
+			moves.push({ item: x.item, from: store.ABOARD, to: '', n });
+			delta[x.item] = -n;
+			if (x.cost) delta[SILVER] = Math.round(x.cost * n / x.n);
+		}
+	} else if (k.startsWith('l|') && want && from) {
+		moves.push({ item: x.item, from: from.name, to: '', n: Math.min(x.n, store.stockAt(x.item, from.name)) });
+	} else if (k.startsWith('t|')) {
+		const has = store.stockAt(x.item, store.ABOARD);
+		if (want && has < x.n) {
+			let need = x.n - has;
+			const towns = Object.entries((store.getProfile('stash', {}) || {})[x.item] || {}).filter(([t]) => t !== store.ABOARD)
+				.sort((a, b) => (from && a[0] === from.name ? -1 : from && b[0] === from.name ? 1 : b[1] - a[1]));
+			for (const [t, n] of towns) { if (need <= 0) break; const m = Math.min(n, need); moves.push({ item: x.item, from: t, to: store.ABOARD, n: m }); need -= m; }
+			if (need > 0) moves.push({ item: x.item, from: '', to: store.ABOARD, n: need });
+		} else if (!want && has > 0) moves.push({ item: x.item, from: store.ABOARD, to: from ? from.name : '', n: Math.min(has, x.n) });
+	}
+	return { delta, moves };
+}
+function packApply(rows, want, from) {
+	const delta = {}, moves = [];
+	for (const x of rows) {
+		const c = packChange(x, want, from);
+		for (const [i, n] of Object.entries(c.delta)) delta[i] = (delta[i] || 0) + n;
+		moves.push(...c.moves.filter(m => m.n > 0));
+	}
+	if (!Object.keys(delta).length && !moves.length) return false;
+	// Loaded after casting off: the checklist was frozen with this load
+	// still to make, and Record makes whatever loads it still lists.
+	if (sail && Array.isArray(sail.loaded)) {
+		for (const m of moves.filter(x => x.to === '' && from && x.from === from.name)) sail.loaded = sail.loaded.map(l => (l.item === m.item ? { ...l, n: Math.max(0, l.n - m.n) } : l)).filter(l => l.n > 0);
+		persist();
+	}
+	const n = rows.length;
+	store.applyTrip({ delta, moves, label: want ? (n === 1 ? T('Loaded {item} at the wharf', { item: gameName(rows[0].item) }) : T('Loaded {n} goods at the wharf', { n })) : (n === 1 ? T('Took {item} off the ship', { item: gameName(rows[0].item) }) : T('Took {n} goods off the ship', { n })) });
+	return true;
+}
 
 /** What the packing list holds, in its three piles: to buy at the
  *  Market, to take out of a storage or off the pile of shore goods, and
@@ -3107,7 +3181,7 @@ function packingOf(plan, from, chosen = []) {
 		return st.giveN > 1 ? `${T('{n} a trade', { n: F(st.giveN) })} · ${times}` : times;
 	};
 	const market = (plan.bought || []).filter(b => b.n > 0).map(b => ({
-		item: b.item, n: Math.ceil(b.n), per: perTrade(b.item), key: `b|${b.item}`,
+		item: b.item, n: Math.ceil(b.n), cost: Math.round(Number(b.total) || 0), per: perTrade(b.item), key: `b|${b.item}`,
 		where: b.how === 'made' ? T('your workers make it') : b.each ? T('bought · {silver}', { silver: FC(b.total) }) : marketStatus().count ? T('no Market price for it') : T('unpriced until the Market answers'),
 		act: `${copyName(b.item)}<button class="chip tiny${b.how === 'made' ? ' active' : ''}" data-act="barter-homemade" data-item="${esc(b.item)}" title="${b.how === 'made' ? T('Bought after all: price it from the Market') : T('Your workers make this: it costs the run nothing')}">${b.how === 'made' ? `✓ ${T('mine')}` : T('my workers')}</button>`
 	}));
@@ -3148,8 +3222,12 @@ function packingOf(plan, from, chosen = []) {
  *  goods aboard with their tick taken off come out. */
 function packingLT(plan, from, chosen) {
 	const p = packingOf(plan, from, chosen);
-	return [...p.market, ...p.storage].filter(x => packedNow(x)).reduce((a, x) => a + x.n * weightOf(x.item), 0)
-		- p.aboard.filter(x => !packedNow(x)).reduce((a, x) => a + x.n * weightOf(x.item), 0);
+	// Ticking loads for real now, so the hold already weighs the market
+	// and storage rows; only a row aboard marked "not after all" is taken
+	// off, and the shore goods in the hold are added, since the hold's
+	// own count is of trade goods.
+	const shoreAboard = Object.keys(store.getAllStock()).filter(n => levelOf(n) === null).reduce((a, n) => a + store.stockAt(n, store.ABOARD) * weightOf(n), 0);
+	return shoreAboard - p.aboard.filter(x => !packedNow(x)).reduce((a, x) => a + x.n * weightOf(x.item), 0);
 }
 
 function packingCount(plan, from, chosen) {
@@ -3177,8 +3255,8 @@ function packingHTML(plan, from, chosen = []) {
 		// goods between a storage and the hold is what the chip beside it
 		// does, and a box that sometimes moved things and sometimes did
 		// not was a box nobody could trust.
-		const box = `<button class="pack-box${on ? ' on' : ''}" data-act="barter-pack" data-k="${esc(x.key)}" aria-pressed="${on}" aria-label="${on ? T('Not aboard after all') : T('Mark them aboard')}">${on ? '✓' : ''}</button>`;
-		const act = [x.load ? `<button class="chip tiny" data-act="barter-load" data-item="${esc(x.item)}" data-town="${esc(x.load.town)}" data-n="${x.load.n}" title="${T('Take them out of the storage here, in the app as well')}">${T('Loaded')} ✓</button>` : '', x.act || ''].filter(Boolean).join('');
+		const box = `<button class="pack-box${on ? ' on' : ''}" data-act="barter-pack" data-k="${esc(x.key)}" data-item="${esc(x.item)}" data-n="${x.n}" data-cost="${x.cost || 0}" aria-pressed="${on}" aria-label="${on ? T('Not aboard after all') : T('Load them aboard')}">${on ? '✓' : ''}</button>`;
+		const act = x.act || '';
 		return `<div class="pack-row${on ? ' on' : ''}">${box}<span class="pack-icon"${lv ? ` style="--tier:${TIER(lv)}"` : ''}>${img(x.item, 'row-icon')}</span><span class="pack-what"><b>${esc(gameName(x.item))}</b><em>${esc(x.where)}${weightOf(x.item) ? ` · ${T('{lt} LT', { lt: (Math.round(x.n * weightOf(x.item) * 10) / 10).toLocaleString() })}` : ''}</em></span><span class="pack-n"><b>${n1(x.n)}</b><em>${esc(x.per)}</em></span>${act ? `<span class="pack-act">${act}</span>` : ''}</div>`;
 	};
 	// The whole group at once, for the sailor who bought the lot in one
@@ -3186,7 +3264,7 @@ function packingHTML(plan, from, chosen = []) {
 	const all = list => {
 		if (list.length < 2) return '';
 		const on = list.every(packedNow);
-		return `<button class="chip tiny pack-all${on ? ' active' : ''}" data-act="barter-pack-all" data-keys="${esc(list.map(x => x.key).join('\n'))}" data-on="${on ? 1 : 0}" aria-pressed="${on}">${on ? `✓ ${T('all aboard')}` : T('Tick them all')}</button>`;
+		return `<button class="chip tiny pack-all${on ? ' active' : ''}" data-act="barter-pack-all" data-rows="${esc(JSON.stringify(list.map(x => ({ key: x.key, item: x.item, n: x.n, cost: x.cost || 0 }))))}" data-on="${on ? 1 : 0}" aria-pressed="${on}">${on ? `✓ ${T('all aboard')}` : T('Tick them all')}</button>`;
 	};
 	const group = (title, sub, list, none) => `<section class="panel pack-group"><div class="panel-head"><h2 class="panel-title">${title}</h2><span class="panel-sub">${sub}</span><span class="panel-spacer"></span>${all(list)}</div>${list.length ? list.map(row).join('') : `<p class="empty">${none}</p>`}</section>`;
 	const where = from ? gameName(from.name) : '';
@@ -5160,6 +5238,9 @@ export function barterAction(act, el, redraw) {
 		// game's own doing, and this is the sailor keeping their place.
 		case 'barter-pack': {
 			const k = String(el.dataset.k || '');
+			const x = { key: k, item: el.dataset.item, n: Number(el.dataset.n) || 0, cost: Number(el.dataset.cost) || 0 };
+			// The rows a tick loads: loaded for real, or unloaded.
+			if (/^[blt]\|/.test(k)) { packApply([x], !packedNow(x), fromPort()); return true; }
 			if (packed.has(k)) packed.delete(k); else packed.add(k);
 			return true;
 		}
@@ -5167,9 +5248,12 @@ export function barterAction(act, el, redraw) {
 		// already aboard ("a|") is ticked by being absent from the set.
 		case 'barter-pack-all': {
 			const want = el.dataset.on !== '1';
-			for (const k of String(el.dataset.keys || '').split('\n').filter(Boolean)) {
-				const inverse = k.startsWith('a|');
-				if (want !== inverse) packed.add(k); else packed.delete(k);
+			const rows = JSON.parse(el.dataset.rows || '[]');
+			const loads = rows.filter(x => /^[blt]\|/.test(x.key) && packedNow(x) !== want);
+			if (loads.length) packApply(loads, want, fromPort());
+			for (const x of rows.filter(r => !/^[blt]\|/.test(r.key))) {
+				const inverse = x.key.startsWith('a|');
+				if (want !== inverse) packed.add(x.key); else packed.delete(x.key);
 			}
 			return true;
 		}
@@ -5206,15 +5290,17 @@ export function barterAction(act, el, redraw) {
 		}
 		case 'barter-unload': {
 			const item = el.dataset.item;
-			const n = aboardStock()[item] || 0;
+			const shoreGood = levelOf(item) === null;
+			const n = shoreGood ? store.stockAt(item, store.ABOARD) : aboardStock()[item] || 0;
 			if (!n) return false;
 			const to = unloadTo();
-			if (to) { store.moveStash(item, '', to, n, T('{n}× {item} unloaded at {town}', { n, item, town: to })); return false; }
+			const src = shoreGood ? store.ABOARD : '';
+			if (to) { store.moveStash(item, src, to, n, T('{n}× {item} unloaded at {town}', { n, item, town: to })); return false; }
 			openPicker({
 				title: T('Unload {n}× {item} where?', { n, item: gameName(item) }),
 				hint: T('The storage the goods go into. Choose where the run sails from and the hold unloads there without asking.'),
 				items: TOWNS.filter(t => t !== store.ABOARD).map(t => ({ id: t, label: gameName(t) })),
-				onPick: t => { store.moveStash(item, '', t, n, T('{n}× {item} unloaded at {town}', { n, item, town: t })); redraw(); }
+				onPick: t => { store.moveStash(item, src, t, n, T('{n}× {item} unloaded at {town}', { n, item, town: t })); redraw(); }
 			});
 			return false;
 		}

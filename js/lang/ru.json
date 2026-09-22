@@ -21,6 +21,7 @@
 	"+10,000 durability for every cabin the sailor costs": "+10 000 прочности за каждую каюту, которую занимает матрос",
 	"+5,000 rations for every cabin the sailor costs": "+5 000 провизии за каждую каюту, которую занимает матрос",
 	"+{from} → +{to}, per attempt": "+{from} → +{to}, за попытку",
+	"+{m} mastery (in your total) · +{s}% top speed at sea": "+{m} мастерства (в вашем итоге) · +{s}% макс. скорости в море",
 	"+{n} LT": "+{n} LT",
 	"+{n} LT on big ships": "+{n} LT на больших кораблях",
 	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} Переговоров — четверть шкалы назад, и начинается её двухчасовой откат",
@@ -1391,6 +1392,7 @@
 	"Italic": "Курсив",
 	"Italic (Ctrl+I)": "Курсив (Ctrl+I)",
 	"Item, ship and island names stay the game’s own English, because that is what your client and BDOCodex will show you.": "Названия предметов, кораблей и островов остаются на английском самой игры, потому что именно так их покажут твой клиент и BDOCodex.",
+	"Its enhancement": "Его заточка",
 	"Its ground is not on the chart yet": "Его места обитания ещё нет на карте",
 	"Jump there": "Перейти туда",
 	"Just looking": "Просто смотрю",
@@ -1509,7 +1511,6 @@
 	"Load at the wharf": "Погрузить на причале",
 	"Load before casting off, and in the storage after": "Груз перед отходом и на складе после",
 	"Load {n}": "Загрузить {n}",
-	"Loaded": "Погружено",
 	"Loaded before casting off": "Загружено перед отплытием",
 	"Loaded your saved inventory": "Ваш сохранённый инвентарь загружен",
 	"Loading the barter routes…": "Загружаем бартерные маршруты…",
@@ -1575,7 +1576,6 @@
 	"Mark done": "Отметить сделанным",
 	"Mark it as a lane the game sails, so every route near it is drawn along it and timed as the game would sail it": "Отметить это как путь, которым ходит игра, чтобы каждый маршрут рядом рисовался по нему и считался так, как прошла бы игра",
 	"Mark sailed": "Отметить пройденным",
-	"Mark them aboard": "Отметить, что они на борту",
 	"Marked a quest not done": "Задание отмечено как невыполненное",
 	"Market prices refreshed": "Рыночные цены обновлены",
 	"Marks every sailor's condition back at 100": "Ставит здоровье каждого матроса обратно на 100",
@@ -2361,6 +2361,7 @@
 	"Sailing as <b>{name}</b>": "Идём как <b>{name}</b>",
 	"Sailing as {ship} — one Undo takes it back": "Идём как {ship} — одна отмена всё возвращает",
 	"Sailing it": "Идём на нём",
+	"Sailing log": "Судовой журнал",
 	"Sailing mastery": "Мастерство мореходства",
 	"Sailing the {ship}": "Идём на {ship}",
 	"Sailing {name}": "Идём на {name}",
@@ -2460,6 +2461,7 @@
 	"Set your barter count on the Barter tab.": "Задайте счёт бартеров на вкладке «Бартер».",
 	"Set your sailing mastery on the Ship tab.": "Задайте своё мастерство мореходства на вкладке «Корабль».",
 	"Setting a nest of pets was <b>twenty presses and twenty saves</b>: each bird was a button stepped round its six tiers, and every step wrote the save, added an entry to the history and redrew every screen that plans against the hold. That is where the lag came from. The editor holds a draft and lands it in one change.": "Выставить гнездо питомцев стоило <b>двадцати нажатий и двадцати сохранений</b>: каждая птица была кнопкой, которую прогоняли по её шести ступеням, и каждый шаг писал сохранение, добавлял запись в историю и перерисовывал каждый экран, который планирует против трюма. Вот откуда бралась задержка. Редактор держит черновик и кладёт его одной записью.",
+	"Setting sail": "Отплываем",
 	"Seven million silver for the permit, and land materials the Market sells.": "Семь миллионов серебра за разрешение и наземные материалы, которые продаёт Рынок.",
 	"Shade an area": "Закрасить область",
 	"Ship": "Корабль",
@@ -2574,6 +2576,7 @@
 	"Still to get: {cost}": "Ещё добыть: {cost}",
 	"Stones for a perfect enhancement, where the game offers one": "Камни на гарантированное улучшение, где игра его даёт",
 	"Stop": "Остановить",
+	"Stop 1 of {n}": "Остановка 1 из {n}",
 	"Stop by stop": "Стоянка за стоянкой",
 	"Stop filtering by {item}": "Снять фильтр по {item}",
 	"Stop the clock and forget it": "Остановить часы и забыть о них",
@@ -2618,7 +2621,6 @@
 	"Take the shopping list with you": "Взять список покупок с собой",
 	"Take the tick off without touching your stock": "Снять отметку, не трогая запасы",
 	"Take the {ship} out of the inventory": "Убрать {ship} из инвентаря",
-	"Take them out of the storage here, in the app as well": "Взять их со здешнего склада, и в приложении тоже",
 	"Take these as quest rewards": "Взять это наградой за задания",
 	"Take this chain off the run": "Убрать эту цепочку из рейса",
 	"Take this island off the route: its chain stops before it, and the rest of the route is laid again without it": "Убрать остров с маршрута: его цепочка остановится перед ним, а остальной маршрут перестроится без него",
@@ -3017,6 +3019,7 @@
 	"The rest of the run": "Остаток рейса",
 	"The rest of the sea": "Остальное море",
 	"The results step shows what the run did and records it.": "Шаг «Итог» показывает, что дал рейс, и записывает его.",
+	"The route is laid from what is on the ship: tick the goods aboard above, and it draws itself — again each time a chain comes aboard.": "Маршрут прокладывается по тому, что на борту: отметьте выше погруженные товары, и он нарисуется — заново с каждой погруженной цепочкой.",
 	"The route on the Map, with the same checklist beside it": "Маршрут на карте, с тем же списком рядом",
 	"The route, stop by stop": "Маршрут, стоянка за стоянкой",
 	"The run": "Рейс",
@@ -3032,6 +3035,7 @@
 	"The run, recorded": "Рейс, записан",
 	"The runs": "Рейсы",
 	"The sailing community's builds — who to hire, and where they sit": "Сборки сообщества мореходов — кого нанимать и куда сажать",
+	"The sailing log you wear. Its Sailing Mastery is already part of the total the Life Skill tab shows, so it is not added twice; its Max Big Ship Speed is not in the ship window’s Speed %, and makes every leg at sea shorter": "Судовой журнал, который вы носите. Его мастерство мореходства уже входит в итог вкладки жизненных навыков, поэтому не добавляется дважды; его макс. скорость большого корабля не входит в % скорости окна корабля и сокращает каждый переход по морю",
 	"The sailing quests, on the days you are at sea": "Морские задания — на те дни, когда вы в море",
 	"The sailor": "Моряк",
 	"The sailor after on this board": "Следующий моряк на этой доске",
@@ -3805,6 +3809,7 @@
 	},
 	"added up across every quest in step 1, and spent in the shop below": "сложено по всем заданиям шага 1 и тратится в лавке ниже",
 	"adds": "прибавляет",
+	"adds mastery and top speed at sea": "даёт мастерство и макс. скорость в море",
 	"adds to a big ship's hold": "прибавляет к трюму большого корабля",
 	"adds to speed, turn and brake": "прибавляет к скорости, повороту и торможению",
 	"again": "заново",
@@ -3914,7 +3919,6 @@
 		"other": "по {n} доски в день"
 	},
 	"at {place}": "в {place}",
-	"at {stop} · under way in {left}": "в {stop} · отход через {left}",
 	"at {time}": "в {time}",
 	"at {where}": "в {where}",
 	"at {where} · loaded before casting off": "в {where} · грузится перед отходом",
@@ -5356,6 +5360,7 @@
 		"one": "{name} — {n} стоянка, сохранено {when}.",
 		"other": "{name} — {n} стоянок, сохранено {when}."
 	},
+	"{name}: +{n}% top speed at sea — legs are timed at {sea}%": "{name}: +{n}% макс. скорости в море — переходы считаются при {sea}%",
 	"{name}s": "{name}",
 	"{name}s you carry": "{name} при вас",
 	"{npc} hands it over for {give}": "{npc} отдаёт это за {give}",
@@ -6648,6 +6653,18 @@
 		"one": "{n} охота на морских чудовищ",
 		"other": "{n} охот на морских чудовищ"
 	},
+	"{n} seated sailors’ figures are estimated from their level — read or type them for the exact total": {
+		"one": "Показатели {n} моряка на местах оценены по уровню — прочитайте или введите их для точного итога",
+		"few": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога",
+		"many": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога",
+		"other": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога"
+	},
+	"{n} seated sailor’s figures are estimated from the level — read or type them for the exact total": {
+		"one": "Показатели {n} моряка на месте оценены по уровню — прочитайте или введите их для точного итога",
+		"few": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога",
+		"many": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога",
+		"other": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога"
+	},
 	"{n} seated · tap to apply": "{n} на местах · нажмите, чтобы применить",
 	"{n} ship parts": {
 		"few": "{n} детали корабля",
@@ -7199,6 +7216,7 @@
 	"≈ {time} at {percent}%": "≈ {time} на {percent}%",
 	"≈ {time} at {speed}%": "≈ {time} на {speed}%",
 	"≈ {time} planned": "≈ {time} по плану",
+	"≈ {time} to the end": "≈ {time} до конца",
 	"◎ for": "◎ для",
 	"★ mate": "★ помощник",
 	"☐ Select": "☐ Выбрать",
@@ -7214,26 +7232,22 @@
 	"🔔 on the Home Screen": "🔔 на домашнем экране",
 	"🔔 reminding by push": "🔔 напоминает через push",
 	"🔔 reminding while open": "🔔 напоминает, пока открыто",
-	"Setting sail": "Отплываем",
-	"Stop 1 of {n}": "Остановка 1 из {n}",
-	"The route is laid from what is on the ship: tick the goods aboard above, and it draws itself — again each time a chain comes aboard.": "Маршрут прокладывается по тому, что на борту: отметьте выше погруженные товары, и он нарисуется — заново с каждой погруженной цепочкой.",
-	"≈ {time} to the end": "≈ {time} до конца",
-	"+{m} mastery (in your total) · +{s}% top speed at sea": "+{m} мастерства (в вашем итоге) · +{s}% макс. скорости в море",
-	"Its enhancement": "Его заточка",
-	"Sailing log": "Судовой журнал",
-	"The sailing log you wear. Its Sailing Mastery is already part of the total the Life Skill tab shows, so it is not added twice; its Max Big Ship Speed is not in the ship window’s Speed %, and makes every leg at sea shorter": "Судовой журнал, который вы носите. Его мастерство мореходства уже входит в итог вкладки жизненных навыков, поэтому не добавляется дважды; его макс. скорость большого корабля не входит в % скорости окна корабля и сокращает каждый переход по морю",
-	"adds mastery and top speed at sea": "даёт мастерство и макс. скорость в море",
-	"{name}: +{n}% top speed at sea — legs are timed at {sea}%": "{name}: +{n}% макс. скорости в море — переходы считаются при {sea}%",
-	"{n} seated sailors’ figures are estimated from their level — read or type them for the exact total": {
-		"one": "Показатели {n} моряка на местах оценены по уровню — прочитайте или введите их для точного итога",
-		"few": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога",
-		"many": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога",
-		"other": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога"
+	"Load them aboard": "Погрузить на борт",
+	"Loaded {item} at the wharf": "{item} погружен у причала",
+	"Loaded {n} goods at the wharf": {
+		"one": "{n} товар погружен у причала",
+		"few": "{n} товара погружено у причала",
+		"many": "{n} товаров погружено у причала",
+		"other": "{n} товаров погружено у причала"
 	},
-	"{n} seated sailor’s figures are estimated from the level — read or type them for the exact total": {
-		"one": "Показатели {n} моряка на месте оценены по уровню — прочитайте или введите их для точного итога",
-		"few": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога",
-		"many": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога",
-		"other": "Показатели {n} моряков на местах оценены по уровню — прочитайте или введите их для точного итога"
-	}
+	"Took {item} off the ship": "{item} снят с корабля",
+	"Took {n} goods off the ship": {
+		"one": "{n} товар снят с корабля",
+		"few": "{n} товара снято с корабля",
+		"many": "{n} товаров снято с корабля",
+		"other": "{n} товаров снято с корабля"
+	},
+	"at {stop} · stop {n} of {total} — waiting for Traded": "у {stop} · остановка {n} из {total} — ждёт «Обменяно»",
+	"Shore goods aboard": "Сухопутные товары на борту",
+	"{n} aboard · {lt} LT": "{n} на борту · {lt} LT"
 }
