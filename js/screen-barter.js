@@ -4706,14 +4706,14 @@ function holdSlotsHTML() {
 	const grid = Array.from({ length: Math.ceil(shown / 11) * 11 }, (_, i) => {
 		const c = cells[i];
 		const over = cap && i >= cap;
-		if (!c) return `<span class="slot${over ? ' off' : ''}"></span>`;
-		return `<span class="slot full${over ? ' over' : ''}"${c.lv ? ` style="--tier:${TIER(c.lv)}"` : ''} title="${esc(`${c.n > 1 ? `${F(c.n)}× ` : ''}${gameName(c.name)}`)}">${img(c.name, 'slot-img')}${c.n > 1 ? `<b>${F(c.n)}</b>` : ''}</span>`;
+		if (!c) return `<span class="hold-slot${over ? ' off' : ''}"></span>`;
+		return `<span class="hold-slot full${over ? ' over' : ''}"${c.lv ? ` style="--tier:${TIER(c.lv)}"` : ''} title="${esc(`${c.n > 1 ? `${F(c.n)}× ` : ''}${gameName(c.name)}`)}">${img(c.name, 'hold-slot-img')}${c.n > 1 ? `<b>${F(c.n)}</b>` : ''}</span>`;
 	}).join('');
 	const lt = shownHold(me.hold, held().reduce((a, g) => a + g.weight, 0) + shoreAboard().reduce((a, g) => a + g.weight, 0));
 	const sub = `${cap ? T('{n} of {of} slots', { n: F(used), of: F(cap) }) : T('{n} slots', { n: F(used) })} · ${esc(lt.text)}`;
 	return `<div class="hold-slots${slotsOpen ? ' open' : ''}${cap && used > cap ? ' full' : ''}">
 		<button class="hold-slots-head" data-act="barter-slots" aria-expanded="${slotsOpen}"><span class="hold-slots-k">${T('In the hold')}</span><span class="hold-slots-sub">${sub}</span><span class="panel-spacer"></span><span class="hold-slots-fold">${slotsOpen ? '▴' : '▾'}</span></button>
-		${slotsOpen ? `<div class="slot-grid">${grid}</div>` : ''}
+		${slotsOpen ? `<div class="hold-grid">${grid}</div>` : ''}
 	</div>`;
 }
 
