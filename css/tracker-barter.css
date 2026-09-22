@@ -1042,7 +1042,7 @@ button.rung-fate { cursor: pointer; }
 .all-ticked { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 18px; border-radius: var(--r-tile); border: 1px solid var(--teal-edge); background: var(--teal-glow); }
 .all-ticked > i { font-style: normal; font-size: 19px; color: var(--teal); }
 .all-ticked > span { flex: 1 1 260px; }
-.cockpit-foot { margin-top: 0; }
+.cockpit-foot { margin-top: 12px; position: sticky; bottom: calc(var(--tabbar-h, 0px) + 10px); z-index: 20; background: rgba(var(--deep-rgb), 0.96); border: 1px solid rgba(var(--blue-rgb), 0.45); box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.55); backdrop-filter: blur(8px); }
 /* Glance mode: the same stop, drawn to be read from across a room. */
 .cockpit.glance .panel-body { align-items: center; text-align: center; gap: 20px; padding-bottom: 26px; }
 .cockpit.glance .cockpit-place { font-size: 46px; }
@@ -1148,6 +1148,7 @@ button.rung-fate { cursor: pointer; }
 .group-fate { font-style: normal; font-size: 11px; padding: 1px 8px; border-radius: 999px; margin-left: 8px; }
 .group-fate.sold { color: var(--teal); border: 1px solid var(--teal-edge); }
 .group-fate.kept { color: var(--ink-mute); border: 1px solid var(--line-btn); }
+.shelf-part { margin: 0 0 8px; font-size: 12.5px; color: var(--amber); }
 .chain-why { font-size: 11px; color: var(--amber); text-align: right; max-width: 20ch; }
 .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; align-items: start; }
 .log-panel { overflow: hidden; }
@@ -1274,3 +1275,16 @@ button.rung-fate { cursor: pointer; }
   .barter-screen .step { min-width: 40px; justify-content: center; }
   .barter-screen .step:not(.on) { align-items: center; }
 }
+
+/* Casting off: a card rising in the middle of the screen, a ship sailing across it, gone in under three seconds. */
+.castoff-fx { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; pointer-events: auto; background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--teal) 16%, transparent), transparent 60%); animation: castoff-fade 2.6s ease forwards; }
+.castoff-card { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 22px 34px; border-radius: 18px; background: rgba(var(--deep-rgb), 0.98); border: 1px solid var(--teal-edge); box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.6); animation: castoff-rise 2.6s cubic-bezier(.2,.8,.2,1) forwards; }
+.castoff-card b { font-family: var(--font-display); font-size: 24px; color: var(--teal); letter-spacing: 0.02em; }
+.castoff-card span:last-child { font-size: 13px; color: var(--ink-mid); }
+.castoff-ship { font-size: 42px; line-height: 1; animation: castoff-bob 1.2s ease-in-out infinite; }
+.castoff-wake { position: absolute; left: -10%; top: 58%; width: 120%; height: 2px; background: linear-gradient(90deg, transparent, var(--teal), transparent); opacity: 0.5; animation: castoff-wake 2.2s ease-out forwards; }
+@keyframes castoff-fade { 0% { opacity: 0; } 12% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+@keyframes castoff-rise { 0% { transform: translateY(24px) scale(0.94); } 18% { transform: translateY(0) scale(1); } 100% { transform: translateY(-10px) scale(1); } }
+@keyframes castoff-bob { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-5px) rotate(4deg); } }
+@keyframes castoff-wake { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .castoff-card, .castoff-ship, .castoff-wake { animation: none; } }

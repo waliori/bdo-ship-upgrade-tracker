@@ -1972,6 +1972,26 @@ function presetSearch(key, jobs) {
 	presetNext();
 }
 
+/**
+ * Casting off, seen: a ship crossing the screen and the clock said to
+ * be running, for a moment and gone. The press is the start of the
+ * run -- the clock begins, the cockpit opens -- and it did all of that
+ * without a flicker, so it read as a page changing rather than a ship
+ * leaving. Nothing waits on it and a press anywhere takes it away.
+ */
+function castOffFx() {
+	if (typeof document === 'undefined') return;
+	document.querySelectorAll('.castoff-fx').forEach(e => e.remove());
+	const t = timerState();
+	const fx = document.createElement('div');
+	fx.className = 'castoff-fx';
+	fx.setAttribute('role', 'status');
+	fx.innerHTML = `<div class="castoff-card"><span class="castoff-ship" aria-hidden="true">⛵</span><b>${T('Lines let go')}</b><span>${t ? T('the clock is running · ≈ {time} to the end', { time: esc(spanText(t.seconds)) }) : T('the run is under way')}</span></div><i class="castoff-wake" aria-hidden="true"></i>`;
+	fx.addEventListener('click', () => fx.remove());
+	document.body.appendChild(fx);
+	setTimeout(() => fx.remove(), 2600);
+}
+
 /** A request answered on this thread after all. */
 function answerHere(req) {
 	req.then(propose(req.args));
@@ -3584,7 +3604,25 @@ function silverParts(me, b) {
 	const overNote = firstOver >= 0 && !heavy ? `<div class="barter-shut hold-over"><b>${T('The hold passes its limit at stop {n}', { n: firstOver + 1 })}</b> — ${T('it reaches {text}: sailing slower, still trading.', { text: esc(peak.text) })}${wharfs ? ` ${wharfs === 1 ? T('{n} wharf call is in the run to leave goods on the way.', { n: wharfs }) : T('{n} wharf calls are in the run to leave goods on the way.', { n: wharfs })}` : ''}</div>` : '';
 	const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${plan.stops.length === 1 ? T('{n} stop', { n: plan.stops.length }) : T('{n} stops', { n: plan.stops.length })}${legs.total ? ` · ${esc(fmtDistance(legs.total))} · ≈ ${esc(runTime(legs, book))}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, o.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, '')}</summary>${segs}</details>` : '';
 	const empty = chosen.length ? '' : `<div class="run-empty">${T('Nothing ticked. Tick a chain and the run lays itself out here — every rung, the hold after it, and where it has to call.')}</div>`;
-	const load = `${notice}${overNote}${empty}${packingHTML(plan, from, chosen)}${afterShelfHTML(plan, from)}${questsPanels(qp, from)}${routeFold}${kept}`;
+	// What will be in the storage after follows what is ticked aboard:
+	// a chain whose first goods are not on the ship yet has made nothing
+	// yet, and a shelf full of its [Level 4]s before anything is loaded
+	// read as a promise the wharf had not kept.
+	const shelf = (() => {
+		if (!chosen.length || sailing()) return afterShelfHTML(plan, from);
+		const pk = packingOf(plan, from, chosen);
+		const rows = [...pk.market, ...pk.storage, ...pk.aboard];
+		const packedChain = c => {
+			const row = rows.find(x => x.item === c.item) || rows.find(x => x.item === c.rungs[0].give);
+			return !row || packedNow(row);
+		};
+		const ready = chosen.filter(packedChain);
+		if (ready.length === chosen.length) return afterShelfHTML(plan, from);
+		if (!ready.length) return `<section class="panel run-shelves after"><div class="shelf"><div class="shelf-head"><h2 class="panel-title">${T('In the storage after')}</h2><span class="panel-sub">${T('nothing aboard yet')}</span></div><p class="empty">${T('Tick what is aboard above: this fills with what the run leaves in storage, chain by chain, as its first goods come aboard.')}</p></div></section>`;
+		const part = chainRun({ ...opts, chosen: ready });
+		return afterShelfHTML(part, from).replace('<div class="shelf-tiles">', `<p class="shelf-part">${T('For the {n} of {of} chains whose first goods are ticked aboard — the rest join as they are.', { n: ready.length, of: chosen.length })}</p><div class="shelf-tiles">`);
+	})();
+	const load = `${notice}${overNote}${empty}${packingHTML(plan, from, chosen)}${shelf}${questsPanels(qp, from)}${routeFold}${kept}`;
 	return {
 		secs: [
 			['parley', T('Before you sail'), esc(parleyLine(prof)), parleyHTML(prof)],
@@ -5068,6 +5106,7 @@ export function barterAction(act, el, redraw) {
 			skipped = new Set();
 			lastTrip = null;
 			bringUp('.barter-screen .steps');
+			setTimeout(castOffFx, 0);
 			return true;
 		}
 		case 'barter-sail': {
