@@ -5119,5 +5119,7 @@
 	"{n} islands taken off": "{n}개 섬 제외",
 	"{n} stop moved": "{n}개 정박지 이동",
 	"{n} stops moved": "{n}개 정박지 이동",
-	"{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}": "{where}은(는) 만든 {icon}<b>{good}</b>을 받지만, 하한이 각 [Level {lv}]를 <b>{floor}</b>개 보관합니다 — 보유는 {owned}개뿐"
+	"{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}": "{where}은(는) 만든 {icon}<b>{good}</b>을 받지만, 하한이 각 [Level {lv}]를 <b>{floor}</b>개 보관합니다 — 보유는 {owned}개뿐",
+	"loses silver: the land goods cost more than the wharf pays": "은화 손해: 육지 물품 값이 부두가 주는 것보다 큽니다",
+	"the voucher’s cooldown, then one is drawn and the run goes on": "교환권 재사용 대기시간, 그 뒤 한 장을 쓰고 항해가 이어집니다"
 }

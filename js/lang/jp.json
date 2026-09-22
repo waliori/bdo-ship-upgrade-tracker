@@ -5119,5 +5119,7 @@
 	"{n} islands taken off": "{n} 島を外しました",
 	"{n} stop moved": "{n} 寄港地を移動",
 	"{n} stops moved": "{n} 寄港地を移動",
-	"{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}": "{where} は作った {icon}<b>{good}</b> を受け取りますが、下限が各[Level {lv}]を <b>{floor}</b> 保管します — 所持は {owned} のみ"
+	"{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}": "{where} は作った {icon}<b>{good}</b> を受け取りますが、下限が各[Level {lv}]を <b>{floor}</b> 保管します — 所持は {owned} のみ",
+	"loses silver: the land goods cost more than the wharf pays": "シルバーの損：陸の物資が埠頭の支払いより高い",
+	"the voucher’s cooldown, then one is drawn and the run goes on": "引換券のクールタイム、その後1枚使って航海を続けます"
 }

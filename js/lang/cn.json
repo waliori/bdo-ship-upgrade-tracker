@@ -5119,5 +5119,7 @@
 	"{n} islands taken off": "去掉 {n} 个岛",
 	"{n} stop moved": "移动了 {n} 站",
 	"{n} stops moved": "移动了 {n} 站",
-	"{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}": "{where} 收取制成的 {icon}<b>{good}</b>，而你的下限每种 [Level {lv}] 留 <b>{floor}</b> — 你只有 {owned}"
+	"{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}": "{where} 收取制成的 {icon}<b>{good}</b>，而你的下限每种 [Level {lv}] 留 <b>{floor}</b> — 你只有 {owned}",
+	"loses silver: the land goods cost more than the wharf pays": "亏银币：陆地物资的成本高于码头的收购价",
+	"the voucher’s cooldown, then one is drawn and the run goes on": "等兑换券冷却，然后使用一张，航程继续"
 }

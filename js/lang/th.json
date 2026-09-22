@@ -5119,5 +5119,7 @@
 	"{n} islands taken off": "เอาออก {n} เกาะ",
 	"{n} stop moved": "ย้าย {n} จุดแวะ",
 	"{n} stops moved": "ย้าย {n} จุดแวะ",
-	"{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}": "{where} รับ {icon}<b>{good}</b> ที่ผลิตได้ แต่ขั้นต่ำของคุณเก็บ [Level {lv}] ไว้ชนิดละ <b>{floor}</b> — คุณมีแค่ {owned}"
+	"{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}": "{where} รับ {icon}<b>{good}</b> ที่ผลิตได้ แต่ขั้นต่ำของคุณเก็บ [Level {lv}] ไว้ชนิดละ <b>{floor}</b> — คุณมีแค่ {owned}",
+	"loses silver: the land goods cost more than the wharf pays": "ขาดทุนเงิน: สินค้าบกแพงกว่าที่ท่าเรือจ่าย",
+	"the voucher’s cooldown, then one is drawn and the run goes on": "คูลดาวน์ของบัตรแลก จากนั้นใช้หนึ่งใบแล้วเดินเรือต่อ"
 }

@@ -1033,6 +1033,8 @@ function fourNote(s, board) {
  *  goods left and the sale at a wharf, nothing at a quest stop. */
 function stopDid(s, board = false) {
 	if (s.quest) return '';
+	// A wait trades nothing: it stands still for a voucher's cooldown.
+	if (s.wait) return `<div class="run-trade">${img(VOUCHER, 'row-icon sm')}<span>${T('Wait {n} min', { n: F(s.wait) })} — ${T('the voucher’s cooldown, then one is drawn and the run goes on')}</span></div>`;
 	if (s.wharf) return `${s.loads && s.loads.length ? `<div class="run-leave"><span class="run-leave-k">${T('Loads from storage')}</span>${s.loads.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('')}</div>` : ''}${s.dropped.length ? `<div class="run-leave"><span class="run-leave-k">${T('Leaves in storage')}</span>${s.dropped.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('')}</div>` : ''}${s.sale ? `<div class="run-sell">${T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: s.sale.levels && s.sale.levels.length === 1 ? `[Level ${s.sale.levels[0]}]` : T('goods'), silver: FC(Math.round(s.sale.total)) })}</div>` : ''}`;
 	return `<div class="run-trade">${img(s.give, 'row-icon sm')}<span>${esc(s.giveText)}× ${esc(gameName(s.give))}</span><span class="run-arrow">→</span><span class="run-to" style="--tier:${TIER(levelOf(s.item))}"><i></i>${esc(s.recvText)}× ${esc(gameName(s.item))}${fourNote(s, board)}</span><span class="run-got"><span class="run-times">×${s.times}</span>${img(s.item, 'row-icon sm')}</span></div>`;
 }
@@ -1845,6 +1847,7 @@ function chainRow(c, on, solo, dockName, from, ladder = null, shut = null) {
 		<span class="chain-right">
 			<b class="${solo.silver ? '' : 'none'}${solo.net < 0 ? ' warn' : ''}">${solo.silver ? FC(Math.round(solo.net)) : dry ? T('cannot start') : '—'}</b>
 			${!solo.silver && !dry ? `<span class="chain-why">${soloWhy(c, solo)}</span>` : ''}
+			${solo.silver && solo.net < 0 ? `<span class="chain-why">${T('loses silver: the land goods cost more than the wharf pays')}</span>` : ''}
 			${solo.silver ? `<span class="chain-yard">${[solo.yard.perUnit ? `<em>${esc(perUnitText(solo.yard.perUnit))}</em>` : '', solo.yard.perHour ? esc(perHourText(solo.yard.perHour)) : ''].filter(Boolean).join(' · ')}</span>` : ''}
 			${outOf ? `<span class="warn" title="${outOf.listed
 				? T('The Central Market has only {n} of it listed, and the first island takes {want} a trade. The prices are asked again every half hour.', { n: F(outOf.listed), want: F(outOf.want) })

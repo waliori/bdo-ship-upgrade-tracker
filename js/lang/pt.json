@@ -5221,5 +5221,7 @@
 	"{n} islands taken off": "{n} ilhas tiradas",
 	"{n} stop moved": "{n} parada movida",
 	"{n} stops moved": "{n} paradas movidas",
-	"{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}": "{where} pega o {icon}<b>{good}</b> que ela fez, e seu piso guarda <b>{floor}</b> de cada [Level {lv}] — você só tem {owned}"
+	"{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}": "{where} pega o {icon}<b>{good}</b> que ela fez, e seu piso guarda <b>{floor}</b> de cada [Level {lv}] — você só tem {owned}",
+	"loses silver: the land goods cost more than the wharf pays": "perde prata: os bens de terra custam mais do que o cais paga",
+	"the voucher’s cooldown, then one is drawn and the run goes on": "a recarga da garantia; depois uma é sacada e a viagem segue"
 }

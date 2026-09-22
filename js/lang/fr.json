@@ -5248,5 +5248,7 @@
 	"{n} islands taken off": "{n} îles retirées",
 	"{n} stop moved": "{n} escale déplacée",
 	"{n} stops moved": "{n} escales déplacées",
-	"{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}": "{where} prend le {icon}<b>{good}</b> fabriqué, et votre plancher garde <b>{floor}</b> de chaque [Level {lv}] — vous n'en avez que {owned}"
+	"{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}": "{where} prend le {icon}<b>{good}</b> fabriqué, et votre plancher garde <b>{floor}</b> de chaque [Level {lv}] — vous n'en avez que {owned}",
+	"loses silver: the land goods cost more than the wharf pays": "perd de l'argent : les biens terrestres coûtent plus que ce que paie le quai",
+	"the voucher’s cooldown, then one is drawn and the run goes on": "la recharge du bon, puis on en utilise un et la sortie continue"
 }

@@ -12,11 +12,13 @@ export const F = n => Math.round(n).toLocaleString();
 /** A big number the way a chip has room for: 1.5b, 400m, 12,000. */
 // The billions branch opens where the millions branch would round itself
 // to "1000.0m": 999,950,000 must read "1b", never "1000m".
-export const FC = n => n >= 999.95e6
+// Negative amounts -- a run that costs more than it sells -- read the
+// same way, with a true minus in front.
+export const FC = n => (n < 0 ? `−${FC(-n)}` : n >= 999.95e6
 	? `${(n / 1e9).toFixed(2).replace(/\.?0+$/, '')}b`
 	: n >= 1e6
 		? `${(n / 1e6).toFixed(1).replace(/\.0$/, '')}m`
-		: F(n);
+		: F(n));
 
 // What this browser's locale prints between and inside numbers, so that
 // retyping exactly what F() displayed always round-trips. A German

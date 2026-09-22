@@ -5119,5 +5119,7 @@
 	"{n} islands taken off": "{n} ada çıkarıldı",
 	"{n} stop moved": "{n} durak taşındı",
 	"{n} stops moved": "{n} durak taşındı",
-	"{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}": "{where} yaptığı {icon}<b>{good}</b> malını alır, ama alt sınırın her [Level {lv}] için <b>{floor}</b> tutar - sende yalnızca {owned} var"
+	"{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}": "{where} yaptığı {icon}<b>{good}</b> malını alır, ama alt sınırın her [Level {lv}] için <b>{floor}</b> tutar - sende yalnızca {owned} var",
+	"loses silver: the land goods cost more than the wharf pays": "gümüş kaybettirir: kara malları iskelenin ödediğinden pahalı",
+	"the voucher’s cooldown, then one is drawn and the run goes on": "kuponun bekleme süresi; sonra biri kullanılır ve sefer sürer"
 }
