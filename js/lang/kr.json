@@ -5032,5 +5032,19 @@
 	"waits for Parley": "교섭 대기",
 	"waits {n} min": "{n}분 대기",
 	"waits {n} min for a cooldown": "재사용 대기시간 {n}분 대기",
-	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "교섭 {n} 부족, 그리고 {why} — 여기서 바가 바닥납니다. 이 교역과 이후의 모든 교역은 내일의 바를 기다립니다. 이 선 위까지가 이번 항해입니다."
+	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "교섭 {n} 부족, 그리고 {why} — 여기서 바가 바닥납니다. 이 교역과 이후의 모든 교역은 내일의 바를 기다립니다. 이 선 위까지가 이번 항해입니다.",
+	"A wait for a voucher’s cooldown, not a barter": "교환권 재사용 대기시간을 기다리는 것, 교역이 아님",
+	"End the run here": "여기서 항해 끝내기",
+	"Ending here records what is ticked so far; the barters after this wait stay on the board for later.": "여기서 끝내면 지금까지 체크한 것이 기록됩니다. 이 대기 이후의 교역은 나중을 위해 보드에 남습니다.",
+	"The bar cannot pay for the next barter. The voucher’s two-hour cooldown ends, you draw one — a quarter of a bar back — and the run goes on.": "바로 다음 교역을 치를 수 없습니다. 교환권의 2시간 재사용 대기시간이 끝나면 한 장을 쓰고 — 바의 4분의 1 회복 — 항해가 계속됩니다.",
+	"The bar is short for the next barter: wait here <b>{n} min</b> for the voucher’s cooldown, draw one, and trade on — or end the run here.": "다음 교역에 바가 부족합니다: 여기서 교환권 재사용 대기시간을 <b>{n}분</b> 기다렸다가 한 장을 쓰고 교역을 이어가거나, 여기서 항해를 끝내세요.",
+	"The cooldown is over — draw the voucher.": "재사용 대기시간이 끝났습니다 — 교환권을 쓰세요.",
+	"Wait {n} min": "{n}분 대기",
+	"Waited — voucher drawn": "대기 완료 — 교환권 사용",
+	"What is ticked so far is the run; the results step records it": "지금까지 체크한 것이 이번 항해입니다. 결과 단계에서 기록합니다",
+	"a wait": "대기",
+	"a wait for a voucher": "교환권 대기",
+	"at {time}": "{time}에",
+	"show the orders": "지시 보기",
+	"voucher ready in": "교환권 준비까지"
 }

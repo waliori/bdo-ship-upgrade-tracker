@@ -7082,5 +7082,19 @@
 	"waits for Parley": "ждёт Переговоров",
 	"waits {n} min": "ждёт {n} мин",
 	"waits {n} min for a cooldown": "ждёт {n} мин отката",
-	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "Не хватает {n} Переговоров, и {why} — здесь шкала пустеет. Этот обмен и все после него ждут завтрашней шкалы; рейс — это то, что выше этой черты."
+	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "Не хватает {n} Переговоров, и {why} — здесь шкала пустеет. Этот обмен и все после него ждут завтрашней шкалы; рейс — это то, что выше этой черты.",
+	"A wait for a voucher’s cooldown, not a barter": "Ожидание отката гарантии, а не обмен",
+	"End the run here": "Закончить рейс здесь",
+	"Ending here records what is ticked so far; the barters after this wait stay on the board for later.": "Закончив здесь, вы запишете то, что отмечено до сих пор; обмены после этого ожидания остаются на доске на потом.",
+	"The bar cannot pay for the next barter. The voucher’s two-hour cooldown ends, you draw one — a quarter of a bar back — and the run goes on.": "Шкалы не хватает на следующий обмен. Двухчасовой откат гарантии заканчивается, вы берёте одну — четверть шкалы назад — и рейс продолжается.",
+	"The bar is short for the next barter: wait here <b>{n} min</b> for the voucher’s cooldown, draw one, and trade on — or end the run here.": "На следующий обмен шкалы не хватает: подождите здесь <b>{n} мин</b>, пока пройдёт откат гарантии, возьмите одну и торгуйте дальше — или закончите рейс здесь.",
+	"The cooldown is over — draw the voucher.": "Откат закончился — берите гарантию.",
+	"Wait {n} min": "Ждать {n} мин",
+	"Waited — voucher drawn": "Дождались — гарантия взята",
+	"What is ticked so far is the run; the results step records it": "То, что отмечено до сих пор, и есть рейс; шаг итогов его записывает",
+	"a wait": "ожидание",
+	"a wait for a voucher": "ожидание гарантии",
+	"at {time}": "в {time}",
+	"show the orders": "показать распоряжения",
+	"voucher ready in": "гарантия будет через"
 }

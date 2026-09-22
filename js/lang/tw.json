@@ -5032,5 +5032,19 @@
 	"waits for Parley": "等待交涉",
 	"waits {n} min": "等待 {n} 分鐘",
 	"waits {n} min for a cooldown": "為冷卻等待 {n} 分鐘",
-	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "差 {n} 交涉，而且{why} — 交涉欄在這裡用盡。這次交易及之後的每一次都要等明天的交涉欄；這條線以上才是今天的航程。"
+	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "差 {n} 交涉，而且{why} — 交涉欄在這裡用盡。這次交易及之後的每一次都要等明天的交涉欄；這條線以上才是今天的航程。",
+	"A wait for a voucher’s cooldown, not a barter": "等待兌換券冷卻，不是交易",
+	"End the run here": "在這裡結束航程",
+	"Ending here records what is ticked so far; the barters after this wait stay on the board for later.": "在這裡結束會記錄目前已勾選的部分；這次等待之後的交易留在交易欄上以後再做。",
+	"The bar cannot pay for the next barter. The voucher’s two-hour cooldown ends, you draw one — a quarter of a bar back — and the run goes on.": "交涉欄付不起下一次交易。等兌換券兩小時的冷卻結束，用一張 — 換回四分之一條欄 — 航程繼續。",
+	"The bar is short for the next barter: wait here <b>{n} min</b> for the voucher’s cooldown, draw one, and trade on — or end the run here.": "交涉欄不夠下一次交易：在這裡等待 <b>{n} 分鐘</b>，待兌換券冷卻結束後用一張繼續交易 — 或在這裡結束航程。",
+	"The cooldown is over — draw the voucher.": "冷卻已結束 — 使用兌換券吧。",
+	"Wait {n} min": "等待 {n} 分鐘",
+	"Waited — voucher drawn": "已等待 — 已用兌換券",
+	"What is ticked so far is the run; the results step records it": "目前已勾選的就是這次航程；結果步驟會記錄它",
+	"a wait": "一次等待",
+	"a wait for a voucher": "等待兌換券",
+	"at {time}": "於 {time}",
+	"show the orders": "顯示指令",
+	"voucher ready in": "兌換券可用還需"
 }

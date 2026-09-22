@@ -108,3 +108,13 @@ test('with no voucher to come the bar is dry, and every barter after it stands',
 	assert.equal(spent, 1000000);
 	assert.equal(end, 0);
 });
+
+test('a wait put in as a stop stands for its minutes, and the stop after it pays', () => {
+	const at = [0, 30, 60, 60, 70];
+	const { rows, waited, short } = parleyLedger([stop(900000), stop(200000), { wait: 90 }, stop(300000), stop(100000)], { held: 1000000, vouchers: 3, minutesAt: k => at[k] });
+	assert.deepEqual(rows.map(r => [r.voucher, r.wait, r.hold]), [[false, 0, 0], [true, 0, 0], [true, 0, 90], [false, 0, 0], [false, 0, 0]]);
+	assert.equal(rows[3].short, 0);
+	assert.equal(rows[4].delay, 90);
+	assert.equal(waited, 90);
+	assert.equal(short, 0);
+});

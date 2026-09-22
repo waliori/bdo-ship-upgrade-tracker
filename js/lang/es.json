@@ -5206,5 +5206,19 @@
 	"waits for Parley": "espera parlamento",
 	"waits {n} min": "espera {n} min",
 	"waits {n} min for a cooldown": "espera {n} min un tiempo de reutilización",
-	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "Faltan {n} de parlamento, y {why} — la barra se agota aquí. Este trueque y todos los siguientes esperan la barra de mañana; la travesía es lo que queda por encima de esta línea."
+	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "Faltan {n} de parlamento, y {why} — la barra se agota aquí. Este trueque y todos los siguientes esperan la barra de mañana; la travesía es lo que queda por encima de esta línea.",
+	"A wait for a voucher’s cooldown, not a barter": "Una espera por el tiempo de reutilización de un vale, no un trueque",
+	"End the run here": "Terminar la travesía aquí",
+	"Ending here records what is ticked so far; the barters after this wait stay on the board for later.": "Terminar aquí registra lo marcado hasta ahora; los trueques tras esta espera quedan en el tablero para más tarde.",
+	"The bar cannot pay for the next barter. The voucher’s two-hour cooldown ends, you draw one — a quarter of a bar back — and the run goes on.": "La barra no alcanza para el siguiente trueque. Termina el tiempo de reutilización de dos horas del vale, usas uno — un cuarto de barra de vuelta — y la travesía sigue.",
+	"The bar is short for the next barter: wait here <b>{n} min</b> for the voucher’s cooldown, draw one, and trade on — or end the run here.": "La barra no alcanza para el siguiente trueque: espera aquí <b>{n} min</b> el tiempo de reutilización del vale, usa uno y sigue comerciando — o termina la travesía aquí.",
+	"The cooldown is over — draw the voucher.": "El tiempo de reutilización terminó — usa el vale.",
+	"Wait {n} min": "Esperar {n} min",
+	"Waited — voucher drawn": "Esperado — vale usado",
+	"What is ticked so far is the run; the results step records it": "Lo marcado hasta ahora es la travesía; el paso de resultados la registra",
+	"a wait": "una espera",
+	"a wait for a voucher": "una espera por un vale",
+	"at {time}": "a las {time}",
+	"show the orders": "mostrar las órdenes",
+	"voucher ready in": "vale listo en"
 }

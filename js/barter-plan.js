@@ -23,11 +23,16 @@
 
 import { GOODS, amount, levelOf, triesFor } from './barter.js';
 import { landGoods } from './land_goods.js';
+import { landWeights } from './land_weights.js';
 
 /** The weight of a good, 0 for anything the table does not price. */
 export function weightOf(name) {
 	const lv = levelOf(name);
-	return lv && GOODS[lv] ? GOODS[lv].weight : 0;
+	if (lv) return GOODS[lv] ? GOODS[lv].weight : 0;
+	// A land good weighs what its codex page says: a tenth of an LT for
+	// most, half for plywood -- little, but a hold loaded with five
+	// hundred of something is a hold with something in it.
+	return landWeights[name] || 0;
 }
 
 /** What a barterer pays for a good, 0 for the unsellable levels and
@@ -87,10 +92,7 @@ export function aboardStock(store) {
 /**
  * The land goods in a stock, as a Map of name to count: the shore
  * goods a chain starts from, which a sailor can have a pile of instead
- * of buying a fresh one every run. They carry no weight here -- the
- * table prices the [Level N] goods and says nothing about what a sack
- * of Cinnamon weighs -- so a hold counts them as nothing, which is the
- * side to err on: it never blocks a run the game would allow.
+ * of buying a fresh one every run. Each weighs what `weightOf` says.
  */
 export function landHeld(stock) {
 	const out = new Map();

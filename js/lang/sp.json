@@ -5053,5 +5053,19 @@
 	"waits for Parley": "espera Negociación",
 	"waits {n} min": "espera {n} min",
 	"waits {n} min for a cooldown": "espera {n} min un tiempo de espera",
-	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "Faltan {n} de Negociación, y {why} — la barra se agota aquí. Este trueque y todos los siguientes esperan la barra de mañana; la travesía es lo que queda por encima de esta línea."
+	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "Faltan {n} de Negociación, y {why} — la barra se agota aquí. Este trueque y todos los siguientes esperan la barra de mañana; la travesía es lo que queda por encima de esta línea.",
+	"A wait for a voucher’s cooldown, not a barter": "Una espera por el tiempo de espera de una garantía, no un trueque",
+	"End the run here": "Terminar la travesía acá",
+	"Ending here records what is ticked so far; the barters after this wait stay on the board for later.": "Terminar acá registra lo marcado hasta ahora; los trueques después de esta espera quedan en el tablero para más tarde.",
+	"The bar cannot pay for the next barter. The voucher’s two-hour cooldown ends, you draw one — a quarter of a bar back — and the run goes on.": "La barra no alcanza para el siguiente trueque. Termina el tiempo de espera de dos horas de la garantía, usás una — un cuarto de barra de vuelta — y la travesía sigue.",
+	"The bar is short for the next barter: wait here <b>{n} min</b> for the voucher’s cooldown, draw one, and trade on — or end the run here.": "La barra no alcanza para el siguiente trueque: esperá acá <b>{n} min</b> el tiempo de espera de la garantía, usá una y seguí comerciando — o terminá la travesía acá.",
+	"The cooldown is over — draw the voucher.": "El tiempo de espera terminó — usá la garantía.",
+	"Wait {n} min": "Esperar {n} min",
+	"Waited — voucher drawn": "Esperado — garantía usada",
+	"What is ticked so far is the run; the results step records it": "Lo marcado hasta ahora es la travesía; el paso de resultados la registra",
+	"a wait": "una espera",
+	"a wait for a voucher": "una espera por una garantía",
+	"at {time}": "a las {time}",
+	"show the orders": "mostrar las órdenes",
+	"voucher ready in": "garantía lista en"
 }

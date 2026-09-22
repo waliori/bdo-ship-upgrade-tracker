@@ -43,6 +43,11 @@ export const VOUCHER_COOLDOWN_MIN = 120;
  * and every barter after it wait for the refill, and `short` says what
  * each would have cost. `dryAt` is the first such stop, `waited` the
  * minutes the whole run stands still.
+ *
+ * A stop that is itself a wait -- `{ wait: minutes }`, put in by the
+ * screen where the first pass said the ship would wait -- stands still
+ * for its minutes and then draws, so the stop after it pays in full.
+ * Its row says `hold`, the minutes it stood.
  */
 export function parleyLedger(stops, { held = 0, max = PARLEY.max, vouchers = 0, voucher = PARLEY.voucher, cooldownMin = VOUCHER_COOLDOWN_MIN, minutesAt = () => 0, use = true } = {}) {
 	let bar = held > 0 ? Math.min(max, held) : max;
@@ -57,6 +62,8 @@ export function parleyLedger(stops, { held = 0, max = PARLEY.max, vouchers = 0, 
 	const rows = stops.map((s, k) => {
 		const spent = spends[k];
 		const before = bar;
+		const hold = s.wait > 0 ? Math.ceil(s.wait) : 0;
+		delay += hold;
 		let now = minutesAt(k) + delay;
 		let drawn = 0;
 		let wait = 0;
@@ -80,7 +87,7 @@ export function parleyLedger(stops, { held = 0, max = PARLEY.max, vouchers = 0, 
 		bar = Math.max(0, bar - paid);
 		spentAll += paid;
 		shortAll += spent - paid;
-		return { before, spent, after: bar, voucher: drawn > 0, drawn, wait, delay, short: spent - paid, dry, pct: max ? (bar / max) * 100 : 0 };
+		return { before, spent, after: bar, voucher: drawn > 0, drawn, wait, hold, delay, short: spent - paid, dry, pct: max ? (bar / max) * 100 : 0 };
 	});
 	return { rows, spent: spentAll, short: shortAll, vouchersUsed: used, vouchersLeft: left, end: bar, max, waited: delay, dryAt };
 }

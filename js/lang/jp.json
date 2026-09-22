@@ -5032,5 +5032,19 @@
 	"waits for Parley": "交渉力待ち",
 	"waits {n} min": "{n}分待ち",
 	"waits {n} min for a cooldown": "クールタイムを{n}分待つ",
-	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "交渉力が{n}不足し、{why} — ここでバーが尽きます。この交易と以降のすべては明日のバーを待ちます。この線より上が今回の航海です。"
+	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "交渉力が{n}不足し、{why} — ここでバーが尽きます。この交易と以降のすべては明日のバーを待ちます。この線より上が今回の航海です。",
+	"A wait for a voucher’s cooldown, not a barter": "引換券のクールタイム待ち。交易ではありません",
+	"End the run here": "ここで航海を終える",
+	"Ending here records what is ticked so far; the barters after this wait stay on the board for later.": "ここで終えると、これまでにチェックした分が記録されます。この待ち以降の交易は後のためにボードに残ります。",
+	"The bar cannot pay for the next barter. The voucher’s two-hour cooldown ends, you draw one — a quarter of a bar back — and the run goes on.": "次の交易をバーで払えません。引換券の2時間のクールタイムが終わったら1枚使い — バーの4分の1が戻ります — 航海を続けます。",
+	"The bar is short for the next barter: wait here <b>{n} min</b> for the voucher’s cooldown, draw one, and trade on — or end the run here.": "次の交易にはバーが足りません：ここで引換券のクールタイムを <b>{n} 分</b> 待ち、1枚使って交易を続けるか、ここで航海を終えます。",
+	"The cooldown is over — draw the voucher.": "クールタイムが終わりました — 引換券を使いましょう。",
+	"Wait {n} min": "{n}分待つ",
+	"Waited — voucher drawn": "待機済み — 引換券使用",
+	"What is ticked so far is the run; the results step records it": "これまでにチェックした分が今回の航海です。結果のステップで記録されます",
+	"a wait": "待機",
+	"a wait for a voucher": "引換券待ち",
+	"at {time}": "{time}に",
+	"show the orders": "指示を表示",
+	"voucher ready in": "引換券まで"
 }

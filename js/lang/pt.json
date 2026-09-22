@@ -5134,5 +5134,19 @@
 	"waits for Parley": "espera Negociação",
 	"waits {n} min": "espera {n} min",
 	"waits {n} min for a cooldown": "espera {n} min por uma recarga",
-	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "Faltam {n} de Negociação, e {why} — a barra seca aqui. Este escambo e todos os seguintes esperam a barra de amanhã; a viagem é o que fica acima desta linha."
+	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "Faltam {n} de Negociação, e {why} — a barra seca aqui. Este escambo e todos os seguintes esperam a barra de amanhã; a viagem é o que fica acima desta linha.",
+	"A wait for a voucher’s cooldown, not a barter": "Uma espera pela recarga de uma garantia, não um escambo",
+	"End the run here": "Encerrar a viagem aqui",
+	"Ending here records what is ticked so far; the barters after this wait stay on the board for later.": "Encerrar aqui registra o que foi marcado até agora; os escambos depois desta espera ficam no quadro para depois.",
+	"The bar cannot pay for the next barter. The voucher’s two-hour cooldown ends, you draw one — a quarter of a bar back — and the run goes on.": "A barra não paga o próximo escambo. A recarga de duas horas da garantia termina, você saca uma — um quarto da barra de volta — e a viagem segue.",
+	"The bar is short for the next barter: wait here <b>{n} min</b> for the voucher’s cooldown, draw one, and trade on — or end the run here.": "A barra não chega para o próximo escambo: espere aqui <b>{n} min</b> pela recarga da garantia, saque uma e siga negociando — ou encerre a viagem aqui.",
+	"The cooldown is over — draw the voucher.": "A recarga acabou — saque a garantia.",
+	"Wait {n} min": "Esperar {n} min",
+	"Waited — voucher drawn": "Esperado — garantia sacada",
+	"What is ticked so far is the run; the results step records it": "O que foi marcado até agora é a viagem; a etapa de resultados registra",
+	"a wait": "uma espera",
+	"a wait for a voucher": "uma espera por uma garantia",
+	"at {time}": "às {time}",
+	"show the orders": "mostrar as ordens",
+	"voucher ready in": "garantia pronta em"
 }

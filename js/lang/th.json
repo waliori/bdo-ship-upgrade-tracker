@@ -5032,5 +5032,19 @@
 	"waits for Parley": "รอค่าเจรจา",
 	"waits {n} min": "รอ {n} นาที",
 	"waits {n} min for a cooldown": "รอคูลดาวน์ {n} นาที",
-	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "ขาดค่าเจรจา {n} และ{why} — แถบหมดที่นี่ การแลกเปลี่ยนนี้และทุกครั้งหลังจากนี้รอแถบของวันพรุ่งนี้ การเดินเรือคือสิ่งที่อยู่เหนือเส้นนี้"
+	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "ขาดค่าเจรจา {n} และ{why} — แถบหมดที่นี่ การแลกเปลี่ยนนี้และทุกครั้งหลังจากนี้รอแถบของวันพรุ่งนี้ การเดินเรือคือสิ่งที่อยู่เหนือเส้นนี้",
+	"A wait for a voucher’s cooldown, not a barter": "การรอคูลดาวน์ของบัตรแลก ไม่ใช่การแลกเปลี่ยน",
+	"End the run here": "จบการเดินเรือที่นี่",
+	"Ending here records what is ticked so far; the barters after this wait stay on the board for later.": "จบที่นี่จะบันทึกสิ่งที่ติ๊กไว้จนถึงตอนนี้ การแลกเปลี่ยนหลังการรอนี้ยังอยู่บนกระดานไว้ทีหลัง",
+	"The bar cannot pay for the next barter. The voucher’s two-hour cooldown ends, you draw one — a quarter of a bar back — and the run goes on.": "แถบจ่ายการแลกเปลี่ยนถัดไปไม่ได้ เมื่อคูลดาวน์สองชั่วโมงของบัตรแลกหมด คุณใช้หนึ่งใบ — หนึ่งในสี่ของแถบกลับมา — แล้วเดินเรือต่อ",
+	"The bar is short for the next barter: wait here <b>{n} min</b> for the voucher’s cooldown, draw one, and trade on — or end the run here.": "แถบไม่พอสำหรับการแลกเปลี่ยนถัดไป: รอที่นี่ <b>{n} นาที</b> ให้คูลดาวน์ของบัตรแลกหมด ใช้หนึ่งใบแล้วแลกต่อ — หรือจบการเดินเรือที่นี่",
+	"The cooldown is over — draw the voucher.": "คูลดาวน์หมดแล้ว — ใช้บัตรแลกได้",
+	"Wait {n} min": "รอ {n} นาที",
+	"Waited — voucher drawn": "รอแล้ว — ใช้บัตรแลกแล้ว",
+	"What is ticked so far is the run; the results step records it": "สิ่งที่ติ๊กไว้จนถึงตอนนี้คือการเดินเรือครั้งนี้ ขั้นผลลัพธ์จะบันทึกไว้",
+	"a wait": "การรอ",
+	"a wait for a voucher": "การรอบัตรแลก",
+	"at {time}": "เวลา {time}",
+	"show the orders": "แสดงคำสั่ง",
+	"voucher ready in": "บัตรแลกพร้อมใน"
 }

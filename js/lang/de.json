@@ -5074,5 +5074,19 @@
 	"waits for Parley": "wartet auf Verhandlung",
 	"waits {n} min": "wartet {n} Min.",
 	"waits {n} min for a cooldown": "wartet {n} Min. auf eine Abklingzeit",
-	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "{n} Verhandlung zu wenig, und {why} - hier ist die Leiste leer. Dieser Tausch und jeder danach warten auf die Leiste von morgen; die Fahrt ist, was über dieser Linie steht."
+	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "{n} Verhandlung zu wenig, und {why} - hier ist die Leiste leer. Dieser Tausch und jeder danach warten auf die Leiste von morgen; die Fahrt ist, was über dieser Linie steht.",
+	"A wait for a voucher’s cooldown, not a barter": "Warten auf die Abklingzeit eines Scheins, kein Tausch",
+	"End the run here": "Die Fahrt hier beenden",
+	"Ending here records what is ticked so far; the barters after this wait stay on the board for later.": "Wer hier aufhört, verbucht, was bisher abgehakt ist; die Tausche nach dieser Wartezeit bleiben für später auf der Liste.",
+	"The bar cannot pay for the next barter. The voucher’s two-hour cooldown ends, you draw one — a quarter of a bar back — and the run goes on.": "Die Leiste reicht nicht für den nächsten Tausch. Die zweistündige Abklingzeit des Scheins läuft ab, du löst einen ein - ein Viertel Leiste zurück - und die Fahrt geht weiter.",
+	"The bar is short for the next barter: wait here <b>{n} min</b> for the voucher’s cooldown, draw one, and trade on — or end the run here.": "Die Leiste reicht nicht für den nächsten Tausch: hier <b>{n} Min.</b> auf die Abklingzeit des Scheins warten, einen einlösen und weiterhandeln - oder die Fahrt hier beenden.",
+	"The cooldown is over — draw the voucher.": "Die Abklingzeit ist vorbei - löse den Schein ein.",
+	"Wait {n} min": "{n} Min. warten",
+	"Waited — voucher drawn": "Gewartet - Schein eingelöst",
+	"What is ticked so far is the run; the results step records it": "Was bisher abgehakt ist, ist die Fahrt; der Schritt Ergebnis verbucht sie",
+	"a wait": "eine Wartezeit",
+	"a wait for a voucher": "Warten auf einen Schein",
+	"at {time}": "um {time}",
+	"show the orders": "die Anweisungen zeigen",
+	"voucher ready in": "Schein bereit in"
 }

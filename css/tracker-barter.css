@@ -978,6 +978,15 @@ button.rung-fate { cursor: pointer; }
 .cockpit-times { text-align: center; }
 .cockpit-times > b { font-family: var(--font-display); font-size: 40px; line-height: 1; color: var(--ink-hi); }
 .cockpit-times > span { display: block; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+.cockpit-wait { display: flex; gap: 16px; align-items: center; padding: 16px; border-radius: var(--r-tile); background: var(--panel-inset); border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent); }
+.cockpit-wait-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cockpit-wait-text > b { font-family: var(--font-display); font-size: 26px; color: var(--amber); line-height: 1.1; }
+.cockpit-wait-text > em { font-style: normal; font-size: 13px; color: var(--ink-mid); }
+.cockpit-count { font-size: 14px; color: var(--ink-mid); }
+.cockpit-count b[data-until] { font-family: var(--font-display); font-size: 18px; color: var(--ink-hi); font-variant-numeric: tabular-nums; }
+.cockpit-go.end { background: none; border: 1px solid var(--line-btn); color: var(--ink-mid); font-size: 16px; }
+.voucher-icon { width: 16px; height: 16px; vertical-align: -3px; }
+.rest-tag .voucher-icon { width: 14px; height: 14px; }
 .cockpit-call { padding: 14px 16px; border-radius: var(--r-tile); background: var(--panel-inset); }
 .cockpit-figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
 .cockpit-fig { padding: 11px 14px; border-radius: var(--r-tile); background: var(--panel-inset); }

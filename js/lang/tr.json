@@ -5032,5 +5032,19 @@
 	"waits for Parley": "Müzakere bekliyor",
 	"waits {n} min": "{n} dk bekler",
 	"waits {n} min for a cooldown": "bir bekleme süresi için {n} dk bekler",
-	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "{n} Müzakere eksik ve {why} - çubuk burada tükeniyor. Bu takas ve sonraki her takas yarının çubuğunu bekler; sefer, bu çizginin üstünde kalandır."
+	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "{n} Müzakere eksik ve {why} - çubuk burada tükeniyor. Bu takas ve sonraki her takas yarının çubuğunu bekler; sefer, bu çizginin üstünde kalandır.",
+	"A wait for a voucher’s cooldown, not a barter": "Bir kuponun bekleme süresi için bekleyiş, takas değil",
+	"End the run here": "Seferi burada bitir",
+	"Ending here records what is ticked so far; the barters after this wait stay on the board for later.": "Burada bitirmek şimdiye kadar işaretleneni kaydeder; bu bekleyişten sonraki takaslar sonrası için panoda kalır.",
+	"The bar cannot pay for the next barter. The voucher’s two-hour cooldown ends, you draw one — a quarter of a bar back — and the run goes on.": "Çubuk bir sonraki takası ödeyemiyor. Kuponun iki saatlik bekleme süresi biter, bir tane kullanırsın - bir çubuğun çeyreği geri - ve sefer sürer.",
+	"The bar is short for the next barter: wait here <b>{n} min</b> for the voucher’s cooldown, draw one, and trade on — or end the run here.": "Çubuk bir sonraki takasa yetmiyor: kuponun bekleme süresi için burada <b>{n} dk</b> bekle, bir tane kullan ve takasa devam et - ya da seferi burada bitir.",
+	"The cooldown is over — draw the voucher.": "Bekleme süresi bitti - kuponu kullan.",
+	"Wait {n} min": "{n} dk bekle",
+	"Waited — voucher drawn": "Beklendi - kupon kullanıldı",
+	"What is ticked so far is the run; the results step records it": "Şimdiye kadar işaretlenen seferin kendisidir; sonuç adımı onu kaydeder",
+	"a wait": "bir bekleyiş",
+	"a wait for a voucher": "kupon için bekleyiş",
+	"at {time}": "saat {time}",
+	"show the orders": "talimatları göster",
+	"voucher ready in": "kupon hazır olacak:"
 }

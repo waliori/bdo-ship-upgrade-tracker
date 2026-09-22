@@ -5161,5 +5161,19 @@
 	"waits for Parley": "attend de la tractation",
 	"waits {n} min": "attend {n} min",
 	"waits {n} min for a cooldown": "attend {n} min une recharge",
-	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "{n} de tractation en moins, et {why} — la jauge se vide ici. Cet échange et tous ceux qui suivent attendent la jauge de demain ; la sortie, c'est ce qui se trouve au-dessus de cette ligne."
+	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "{n} de tractation en moins, et {why} — la jauge se vide ici. Cet échange et tous ceux qui suivent attendent la jauge de demain ; la sortie, c'est ce qui se trouve au-dessus de cette ligne.",
+	"A wait for a voucher’s cooldown, not a barter": "Une attente pour la recharge d'un bon, pas un échange",
+	"End the run here": "Finir la sortie ici",
+	"Ending here records what is ticked so far; the barters after this wait stay on the board for later.": "Finir ici enregistre ce qui est coché jusqu'ici ; les échanges après cette attente restent sur le tableau pour plus tard.",
+	"The bar cannot pay for the next barter. The voucher’s two-hour cooldown ends, you draw one — a quarter of a bar back — and the run goes on.": "La jauge ne peut pas payer le prochain échange. La recharge de deux heures du bon se termine, vous en utilisez un — un quart de jauge en retour — et la sortie continue.",
+	"The bar is short for the next barter: wait here <b>{n} min</b> for the voucher’s cooldown, draw one, and trade on — or end the run here.": "La jauge ne suffit pas pour le prochain échange : attendez ici <b>{n} min</b> la recharge du bon, utilisez-en un et continuez — ou finissez la sortie ici.",
+	"The cooldown is over — draw the voucher.": "La recharge est terminée — utilisez le bon.",
+	"Wait {n} min": "Attendre {n} min",
+	"Waited — voucher drawn": "Attendu — bon utilisé",
+	"What is ticked so far is the run; the results step records it": "Ce qui est coché jusqu'ici, c'est la sortie ; l'étape Bilan l'enregistre",
+	"a wait": "une attente",
+	"a wait for a voucher": "une attente pour un bon",
+	"at {time}": "à {time}",
+	"show the orders": "afficher les ordres",
+	"voucher ready in": "bon prêt dans"
 }
