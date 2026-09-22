@@ -7127,5 +7127,12 @@
 	"{n} islands pay a range and wait for their count — tap what each paid": "{n} островов платят в диапазоне и ждут числа — нажмите, сколько заплатил каждый",
 	"{n} islands still wait for their count.": "{n} островов всё ещё ждут числа.",
 	"Ten fewer at {town}": "На десять меньше в {town}",
-	"Ten more at {town} — a run’s worth, straight into the storage": "На десять больше в {town} — сколько привозит рейс, сразу на склад"
+	"Ten more at {town} — a run’s worth, straight into the storage": "На десять больше в {town} — сколько привозит рейс, сразу на склад",
+	"Materials and parts": "Материалы и детали",
+	"{n} good": {
+		"one": "{n} товар",
+		"few": "{n} товара",
+		"many": "{n} товаров",
+		"other": "{n} товара"
+	}
 }

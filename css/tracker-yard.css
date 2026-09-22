@@ -165,6 +165,13 @@
 .inv-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 
 .inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+/* A band a level: the head spans the grid, the tiles under it carry the level on their top edge. */
+.inv-band { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 4px 0 2px; border-bottom: 1px solid color-mix(in srgb, var(--tier, var(--line)) 45%, transparent); font-size: 12px; color: var(--ink-mute); }
+.inv-band:first-child { margin-top: 0; }
+.inv-band > i { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 20px; padding: 0 6px; border-radius: 5px; font-family: var(--font-display); font-style: normal; font-size: 11px; font-weight: 700; color: var(--tier); background: color-mix(in srgb, var(--tier) 14%, transparent); border: 1px solid color-mix(in srgb, var(--tier) 55%, transparent); }
+.inv-band > b { font-family: var(--font-display); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--tier, var(--ink-mid)); }
+.inv-band.plain { --tier: var(--ink-mute); }
+.tile.tiered { border-top: 2px solid color-mix(in srgb, var(--tier) 75%, transparent); }
 
 .tile {
   position: relative;

@@ -14,7 +14,7 @@ import { coinPrice, coinBuyButton } from './coin-shop.js';
 import { routes, routeInfo } from './recipes.js';
 import { KINDS, kindOf } from './kinds.js';
 import { isLandGood } from './land_goods.js';
-import { levelOf } from './barter.js';
+import { levelOf, GOODS } from './barter.js';
 
 /** A level's own colour, as the Barter tab draws it. */
 const TIER = lv => `var(--tier-${Math.max(1, Math.min(7, lv || 1))})`;
@@ -154,7 +154,8 @@ export function renderInventory() {
 		// at the level held, which is the one a storage would take.
 		const picked = invPicking && invPicked.has(open);
 		const act = invPicking ? 'inv-pick' : 'select';
-		return `<button class="tile ${stats.short > 0 ? 'short' : ''} ${isOpen && !invPicking ? 'selected' : ''} ${picked ? 'picked' : ''}" data-act="${act}" data-item="${esc(open)}" data-peek="${esc(stats.at)}" title="${esc(gameName(key))}" ${invPicking ? `aria-pressed="${picked}"` : ''}>
+		const lvTile = family ? null : levelOf(open);
+		return `<button class="tile ${stats.short > 0 ? 'short' : ''} ${isOpen && !invPicking ? 'selected' : ''} ${picked ? 'picked' : ''}${lvTile !== null ? ' tiered' : ''}"${lvTile !== null ? ` style="--tier:${TIER(lvTile)}"` : ''} data-act="${act}" data-item="${esc(open)}" data-peek="${esc(stats.at)}" title="${esc(gameName(key))}" ${invPicking ? `aria-pressed="${picked}"` : ''}>
 			${invPicking ? `<span class="tile-tick">${picked ? '✓' : ''}</span>` : ''}
 			${img(stats.at, '')}
 			${family && stats.top > 0 ? `<span class="tile-lvl">+${stats.top}</span>` : ''}
@@ -170,7 +171,36 @@ export function renderInventory() {
 				<i class="take" style="width:${(free / denom) * 100}%"></i>
 			</span>
 		</button>`;
-	}).join('');
+	});
+	// The trade goods are shown by level, a band a rung with the level's
+	// colour on it, the way the community sheets lay them out and the way
+	// a storage is read: the [Level 4]s together, then the [Level 3]s.
+	// Each band says what the rung comes to -- how many kinds, how many
+	// goods, what they weigh. The shore goods are a band of their own,
+	// and everything else keeps to the sort chosen above.
+	const byLevel = new Map();
+	const rest = [];
+	shown.forEach((key, i) => {
+		const lv = isEnhanceable(key) ? null : levelOf(key);
+		const band = lv !== null ? lv : isLandGood(key) ? 0 : -1;
+		if (band < 0) { rest.push(tiles[i]); return; }
+		if (!byLevel.has(band)) byLevel.set(band, { keys: [], html: [] });
+		byLevel.get(band).keys.push(key); byLevel.get(band).html.push(tiles[i]);
+	});
+	const bandHead = (lv, keys) => {
+		const n = keys.reduce((a, k) => a + (stock[k] || 0), 0);
+		const lt = lv ? n * GOODS[lv].weight : 0;
+		return `<div class="inv-band" style="--tier:${lv ? TIER(lv) : 'var(--ink-mute)'}"><i>${lv ? `L${lv}` : '⌂'}</i><b>${lv ? T('Level {lv}', { lv }) : T('Land')}</b><span>${keys.length === 1 ? T('{n} kind', { n: keys.length }) : T('{n} kinds', { n: keys.length })} · ${n === 1 ? T('{n} good', { n: F(n) }) : T('{n} goods', { n: F(n) })}${lt ? ` · ${T('{lt} LT', { lt: F(lt) })}` : ''}</span></div>`;
+	};
+	// Within a band the goods stand most-held first, as a storage is
+	// read, unless a sort by name or by count was asked for above: the
+	// default sort is by shortfall, and a trade good is never short.
+	const withinBand = b => {
+		if (sort === 'name' || sort === 'have') return b.html;
+		return b.keys.map((k, i) => ({ k, h: b.html[i] })).sort((x, y) => (stock[y.k] || 0) - (stock[x.k] || 0) || x.k.localeCompare(y.k)).map(x => x.h);
+	};
+	const bands = [...byLevel.keys()].sort((a, b) => b - a).map(lv => `${bandHead(lv, byLevel.get(lv).keys)}${withinBand(byLevel.get(lv)).join('')}`).join('');
+	const grid = `${bands}${rest.length && bands ? `<div class="inv-band plain"><b>${T('Materials and parts')}</b></div>` : ''}${rest.join('')}`;
 
 	return `<div class="inv-layout">
 		<div class="inv-left">
@@ -186,7 +216,7 @@ export function renderInventory() {
 			${homesHTML()}
 			${invPicking ? pickBar(shown.filter(k => (stock[k] || 0) > 0 || isEnhanceable(k)).map(k => (isEnhanceable(k) ? familyStats(k).at : k))) : ''}
 			${shown.length
-				? `<div class="inv-grid">${tiles}</div>`
+				? `<div class="inv-grid">${grid}</div>`
 				: `<div class="panel"><p class="empty">${searching ? T('Nothing matches that search.') : invKind === 'goods' ? T('No trade goods in play — search one to record what is aboard, or log a trip.') : ladderLit ? T('None of these under this filter — In play shows the whole rung, owned or not, so a count can be typed against any of them.') : T('Nothing here yet — add a build, or switch to Owned to record what you have.')}</p></div>`}
 		</div>
 		${selected ? '<div class="detail-veil" data-act="deselect" aria-hidden="true"></div>' : ''}

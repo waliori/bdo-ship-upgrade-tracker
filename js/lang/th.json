@@ -5077,5 +5077,7 @@
 	"{n} islands pay a range and wait for their count — tap what each paid": "{n} เกาะจ่ายเป็นช่วงและรอจำนวน — แตะจำนวนที่แต่ละเกาะจ่าย",
 	"{n} islands still wait for their count.": "{n} เกาะยังรอจำนวนอยู่",
 	"Ten fewer at {town}": "ลดสิบที่ {town}",
-	"Ten more at {town} — a run’s worth, straight into the storage": "เพิ่มสิบที่ {town} — เท่าที่เรือกลับมาหนึ่งรอบ ตรงเข้าคลัง"
+	"Ten more at {town} — a run’s worth, straight into the storage": "เพิ่มสิบที่ {town} — เท่าที่เรือกลับมาหนึ่งรอบ ตรงเข้าคลัง",
+	"Materials and parts": "วัสดุและชิ้นส่วน",
+	"{n} good": "สินค้า {n} ชิ้น"
 }

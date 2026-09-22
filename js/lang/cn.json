@@ -5077,5 +5077,7 @@
 	"{n} islands pay a range and wait for their count — tap what each paid": "{n} 个岛付一个区间，等待数量 — 点选各自付了多少",
 	"{n} islands still wait for their count.": "{n} 个岛仍在等待数量。",
 	"Ten fewer at {town}": "在 {town} 少十个",
-	"Ten more at {town} — a run’s worth, straight into the storage": "在 {town} 多十个 — 一趟的量，直接进仓库"
+	"Ten more at {town} — a run’s worth, straight into the storage": "在 {town} 多十个 — 一趟的量，直接进仓库",
+	"Materials and parts": "材料与部件",
+	"{n} good": "{n} 件货物"
 }

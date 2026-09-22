@@ -5077,5 +5077,7 @@
 	"{n} islands pay a range and wait for their count — tap what each paid": "{n} ada aralık ödüyor ve sayısını bekliyor - her birinin ne ödediğine dokun",
 	"{n} islands still wait for their count.": "{n} ada hâlâ sayısını bekliyor.",
 	"Ten fewer at {town}": "{town} konumunda on eksik",
-	"Ten more at {town} — a run’s worth, straight into the storage": "{town} konumunda on fazla - bir seferlik, doğrudan depoya"
+	"Ten more at {town} — a run’s worth, straight into the storage": "{town} konumunda on fazla - bir seferlik, doğrudan depoya",
+	"Materials and parts": "Malzemeler ve parçalar",
+	"{n} good": "{n} mal"
 }

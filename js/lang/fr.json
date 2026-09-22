@@ -5206,5 +5206,7 @@
 	"{n} islands pay a range and wait for their count — tap what each paid": "{n} îles paient une fourchette et attendent leur quantité — touchez ce que chacune a payé",
 	"{n} islands still wait for their count.": "{n} îles attendent encore leur quantité.",
 	"Ten fewer at {town}": "Dix de moins à {town}",
-	"Ten more at {town} — a run’s worth, straight into the storage": "Dix de plus à {town} — le lot d'une sortie, droit dans l'entrepôt"
+	"Ten more at {town} — a run’s worth, straight into the storage": "Dix de plus à {town} — le lot d'une sortie, droit dans l'entrepôt",
+	"Materials and parts": "Matériaux et équipements",
+	"{n} good": "{n} marchandise"
 }
