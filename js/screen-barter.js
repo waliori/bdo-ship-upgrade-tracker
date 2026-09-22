@@ -1034,12 +1034,42 @@ const runTime = (legs, book) => (book && book.waited ? legs.timeWith(book.waited
 /** What pressing a stop done is called, by the sort of stop it is. */
 const doneLabel = s => (s.wait ? T('Waited — voucher drawn') : s.wharf ? T('Called here') : s.hunt ? T('Hunted here') : s.quest ? T('Handed in') : T('Traded here'));
 
+/**
+ * Which of its four [Level 7]s an island has paid, run after run: a
+ * count per good, and the one it pays most. An island's layout names
+ * one of the four and the island hands over whichever it likes, so the
+ * count is the only way to know which to expect.
+ */
+function sevensSeen(npcId) {
+	const e = (store.getProfile('sevens', {}) || {})[npcId];
+	if (!e) return null;
+	const seen = e.seen && Object.keys(e.seen).length ? e.seen : e.item ? { [e.item]: 1 } : {};
+	const total = Object.values(seen).reduce((a, b) => a + b, 0);
+	if (!total) return null;
+	const [item, n] = Object.entries(seen).sort((a, b) => b[1] - a[1])[0];
+	return { seen, total, item, n };
+}
+/** The [Level 7] a stop is shown paying: the one tapped on this run,
+ *  else the one the island has paid more than half the time (seen at
+ *  least twice), else the plan's. */
+function sevenOf(s, on = sailing()) {
+	if (!s || !s.npcId || levelOf(s.item) !== 7) return s ? s.item : '';
+	const said = on && (on.got || {})[s.npcId];
+	if (said) return said;
+	const k = sevensSeen(s.npcId);
+	return k && k.total >= 2 && k.n * 2 > k.total ? k.item : s.item;
+}
+
 /** Which of its four [Level 7]s an island may pay, said after the one
- *  the plan named -- on the board's own runs only. */
+ *  shown -- on the board's own runs only. */
 function fourNote(s, board) {
 	if (!board || levelOf(s.item) !== 7) return '';
-	const last = (store.getProfile('sevens', {}) || {})[s.npcId];
-	return last && last.item !== s.item ? T(', or another of the island’s four — it paid {name} last time', { name: esc(gameName(last.item)) }) : last ? ` — ${T('as it paid last time')}` : T(', or another of the island’s four');
+	const on = sailing();
+	if (on && (on.got || {})[s.npcId]) return ` — ${T('as you said it paid')}`;
+	const k = sevensSeen(s.npcId);
+	if (!k) return T(', or another of the island’s four');
+	const shown = sevenOf(s, on);
+	return T(', or another of the island’s four — it paid this {n} of {total} times', { n: F(k.seen[shown] || 0), total: F(k.total) });
 }
 
 /** What happens at a stop: the exchange at an island, the loads, the
@@ -1049,7 +1079,7 @@ function stopDid(s, board = false) {
 	// A wait trades nothing: it stands still for a voucher's cooldown.
 	if (s.wait) return `<div class="run-trade">${img(VOUCHER, 'row-icon sm')}<span>${T('Wait {n} min', { n: F(s.wait) })} — ${T('the voucher’s cooldown, then one is drawn and the run goes on')}</span></div>`;
 	if (s.wharf) return `${s.loads && s.loads.length ? `<div class="run-leave"><span class="run-leave-k">${T('Loads from storage')}</span>${s.loads.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('')}</div>` : ''}${s.dropped.length ? `<div class="run-leave"><span class="run-leave-k">${T('Leaves in storage')}</span>${s.dropped.map(d => `<span class="run-leave-good">${img(d.item, 'row-icon sm')}<b>${n1(d.n)}×</b>${esc(gameName(d.item))}</span>`).join('')}</div>` : ''}${s.sale ? `<div class="run-sell">${T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: s.sale.levels && s.sale.levels.length === 1 ? `[Level ${s.sale.levels[0]}]` : T('goods'), silver: FC(Math.round(s.sale.total)) })}</div>` : ''}`;
-	return `<div class="run-trade">${img(s.give, 'row-icon sm')}<span>${esc(s.giveText)}× ${esc(gameName(s.give))}</span><span class="run-arrow">→</span><span class="run-to" style="--tier:${TIER(levelOf(s.item))}"><i></i>${esc(s.recvText)}× ${esc(gameName(s.item))}${fourNote(s, board)}</span><span class="run-got"><span class="run-times">×${s.times}</span>${img(s.item, 'row-icon sm')}</span></div>`;
+	return `<div class="run-trade">${img(s.give, 'row-icon sm')}<span>${esc(s.giveText)}× ${esc(gameName(s.give))}</span><span class="run-arrow">→</span><span class="run-to" style="--tier:${TIER(levelOf(s.item))}"><i></i>${esc(s.recvText)}× ${esc(gameName(sevenOf(s)))}${fourNote(s, board)}</span><span class="run-got"><span class="run-times">×${s.times}</span>${img(sevenOf(s), 'row-icon sm')}</span></div>`;
 }
 
 /**
@@ -1063,7 +1093,13 @@ function stopAsks(s, k, stops, on, { paid = true } = {}) {
 	let got = '';
 	if (s.npcId && levelOf(s.item) === 7) {
 		const four = seventhsOf(s.npcId);
-		if (four.length > 1) got = `<span class="run-paid"><span>${T('got')}</span>${four.map(name => `<button class="chip pay${(on.got || {})[s.npcId] === name ? ' active' : ''}" data-act="barter-got" data-npc="${s.npcId}" data-item="${esc(name)}" title="${esc(gameName(name))}">${img(name, 'row-icon sm')}</button>`).join('')}</span>`;
+		const k = sevensSeen(s.npcId), likely = sevenOf(s, { got: {} });
+		const said = (on.got || {})[s.npcId];
+		if (four.length > 1) got = `<span class="run-paid"><span>${T('got')}</span>${four.map(name => {
+			const pct = k ? Math.round(((k.seen[name] || 0) / k.total) * 100) : null;
+			const title = `${gameName(name)}${k ? ` — ${T('paid {n} of {total} times', { n: F(k.seen[name] || 0), total: F(k.total) })}` : ''}`;
+			return `<button class="chip pay${said === name ? ' active' : !said && name === likely ? ' likely' : ''}" data-act="barter-got" data-npc="${s.npcId}" data-item="${esc(name)}" title="${esc(title)}">${img(name, 'row-icon sm')}${pct !== null ? `<i class="pay-pct">${pct}%</i>` : ''}</button>`;
+		}).join('')}</span>`;
 	}
 	// A wharf call that sells: whether the [Level 7]s were sold there.
 	// Sold, the silver goes to the pouch and the goods are gone; kept,
@@ -1345,7 +1381,7 @@ function retickIfAuto() {
 }
 
 /** The orders as saved, cleaned; the cash-out preset until any are. */
-const PRESET_KEYS = ['pace', 'hours', 'vouchers', 'buy', 'landFrom'];
+const PRESET_KEYS = ['pace', 'hours', 'vouchers', 'buy', 'landFrom', 'way'];
 const ordersNow = () => readOrders(store.getProfile('orders', null));
 function setOrders(patch) {
 	// An order a card sets, changed by hand: the card these orders now
@@ -1713,10 +1749,10 @@ function howHTML(o, figs = null) {
 		${orderRow('barter-pace', T('pace'), o.pace, PACE_CHOICES())}
 		${orderRow('barter-hours', T('under way at most'), o.hours, HOUR_CHOICES, T('A run proposed here sails no longer than this'))}
 		${orderRow('barter-vouchers', T('trade vouchers'), o.vouchers, VOUCHER_CHOICES, T('Whether the run draws on the Crow’s Trade Vouchers you carry; each is a quarter of a bar, on its own two-hour cooldown'))}
+		${orderRow('barter-way', T('the way round'), o.way, WAY_CHOICES, T('One route through every rung of every chain ticked, each after the rung beneath it — the nearest islands first, whatever chain they belong to — or each chain climbed to its top before the next'))}
 		${named ? `<p class="orders-set-k">${T('And, whichever way you sail')}</p>` : ''}
 		${orderRow('barter-stash', T('storage at'), stash, [['', T('the nearest wharf')], ...stashes.map(w => [w.at, gameName(w.at)])])}
 		${orderRow('barter-quests', T('quests on the way'), o.quests, QUEST_CHOICES, T('The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the barter quests counted off the run\'s trades; the hunts only when their grounds lie on the way'))}
-		${orderRow('barter-way', T('the way round'), o.way, WAY_CHOICES, T('One route through every rung of every chain ticked, each after the rung beneath it — the nearest islands first, whatever chain they belong to — or each chain climbed to its top before the next'))}
 		${orderRow('barter-ratio', T('a 2-3 counts'), o.count, COUNT_CHOICES, T('How an exchange that pays a range is counted; the checklist records what your runs saw'))}
 `;
 	const fromLadder = `<div class="from-ladder"><span>${T('From the step above')}</span><b>${esc(goalLine(o))}</b><button class="linky" data-act="barter-sec" data-id="ladder">${T('change it there')} ›</button></div>`;
@@ -2482,7 +2518,7 @@ export function sailFor(npcId) {
 	if (!sail || !Array.isArray(sail.stops)) return null;
 	const s = sail.stops.find(x => x.npcId === npcId);
 	if (!s) return null;
-	return { done: sail.done.includes(`n${npcId}`), paid: sail.seen[npcId] || null, ask: paidAsk(s, sail.seen[npcId], true), owes: owesCount(s, sail), item: s.item, recvText: s.recvText };
+	return { done: sail.done.includes(`n${npcId}`), paid: sail.seen[npcId] || null, ask: paidAsk(s, sail.seen[npcId], true), owes: owesCount(s, sail), item: sevenOf(s, sail), recvText: s.recvText };
 }
 
 /**
@@ -2687,7 +2723,7 @@ function tripOf(plan, on, from) {
 	// An island that paid another of its four [Level 7]s than the plan
 	// named: the good sold or carried is the one it paid.
 	const renamed = new Map();
-	for (const s of plan.stops) if (s.npcId && (on.got || {})[s.npcId]) renamed.set(s.item, on.got[s.npcId]);
+	for (const s of plan.stops) { const got = s.npcId ? sevenOf(s, on) : s.item; if (got !== s.item) renamed.set(s.item, got); }
 	const as = name => renamed.get(name) || name;
 	let silver = 0, trades = 0, spent = 0;
 	// A give handed over. A trade good, or a shore good the sailor keeps,
@@ -3058,7 +3094,13 @@ function recordTrip(plan, from, on = sailing()) {
 		// The shore goods bought and handed over went out as much as the
 		// goods out of the storage did, though the Inventory never held
 		// them.
-		if (sign < 0) for (const [k, s] of plan.stops.entries()) if (s.npcId && levelOf(s.give) === null && ticked(on.done, s, k, plan.stops)) m[s.give] = (m[s.give] || 0) + Math.round(s.times * s.giveN);
+		// Counted once: a shore good bought at the wharf is in the
+		// Inventory now, and in the change already.
+		if (sign < 0) {
+			const shore = {};
+			for (const [k, s] of plan.stops.entries()) if (s.npcId && levelOf(s.give) === null && ticked(on.done, s, k, plan.stops)) shore[s.give] = (shore[s.give] || 0) + Math.round(s.times * s.giveN);
+			for (const [give, n] of Object.entries(shore)) m[give] = Math.max(m[give] || 0, n);
+		}
 		return Object.fromEntries(Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 20));
 	};
 	// Every stop ticked, compactly, so the run can be read back whole
@@ -3094,25 +3136,28 @@ function recordTrip(plan, from, on = sailing()) {
 			ratios[key] = { ...(ratios[key] || {}), [n]: ((ratios[key] || {})[n] || 0) + s.times };
 		}
 		const got = (on.got || {})[s.npcId];
-		if (got) sevens[s.npcId] = { item: got, day: barterKey() };
+		if (got) {
+			const was = sevens[s.npcId] || {};
+			const seen = { ...(was.seen || (was.item ? { [was.item]: 1 } : {})) };
+			seen[got] = (seen[got] || 0) + 1;
+			sevens[s.npcId] = { item: got, day: barterKey(), seen };
+		}
 	}
-	// The barter quests count the trip's trades; one made up is done,
-	// its reward in the bags, and the count carries over to the next run
-	// until the period turns.
+	// The barter quests count the trip's trades, and the count carries
+	// over to the next run until the period turns. A quest made up is
+	// not a quest handed in: its reward comes when its stop is ticked
+	// Handed in, or it is claimed on the Quests tab -- it used to land
+	// in the bags at Record, for quests the sailor had never taken. And
+	// a run sailed with the quests left out counts none.
 	const progress = { ...(store.getProfile('questProgress', {}) || {}) };
 	const questsDone = { ...(store.getProfile('questsDone', {}) || {}) };
 	const made = [];
-	if (trip.trades > 0) {
+	if (trip.trades > 0 && ordersNow().quests !== 'no') {
+		const skipped = skippedToday();
 		for (const q of quests) {
-			if (!q.barters || questDone(q, questsDone)) continue;
+			if (!q.barters || questDone(q, questsDone) || skipped.includes(q.id)) continue;
 			const key = periodKey(cadenceOf(q));
-			const n = (progress[q.id] && progress[q.id].key === key ? progress[q.id].n : 0) + trip.trades;
-			if (n >= q.barters && rewardOf(q)) {
-				questsDone[q.id] = key;
-				delete progress[q.id];
-				for (const [item, d] of Object.entries(rewardOf(q))) trip.delta[item] = (trip.delta[item] || 0) + d;
-				made.push(q);
-			} else progress[q.id] = { key, n };
+			progress[q.id] = { key, n: Math.min(q.barters, (progress[q.id] && progress[q.id].key === key ? progress[q.id].n : 0) + Math.round(trip.trades)) };
 		}
 	}
 	// The career's totals move with the run, in the same change.
@@ -4597,7 +4642,7 @@ function sailHTML() {
 		? `<div class="cockpit-trade${glance ? ' big' : ''}">
 			<div class="cockpit-good"><span class="cockpit-icon"${tierOf(s.give)}>${img(s.give, 'cockpit-img')}</span><b>${esc(s.giveText)}× ${esc(gameName(s.give))}</b><em>${levelOf(s.give) ? T('Level {lv}', { lv: levelOf(s.give) }) : T('a land good')}</em></div>
 			<span class="cockpit-arrow">→</span>
-			<div class="cockpit-good get"${tierOf(s.item)}><span class="cockpit-icon"${tierOf(s.item)}>${img(s.item, 'cockpit-img')}</span><b>${esc(s.recvText)}× ${esc(gameName(s.item))}</b><em>${s.item === COIN ? T('coins') : T('Level {lv}', { lv: levelOf(s.item) })}${fourNote(s, true)}</em></div>
+			<div class="cockpit-good get"${tierOf(s.item)}><span class="cockpit-icon"${tierOf(s.item)}>${img(sevenOf(s), 'cockpit-img')}</span><b>${esc(s.recvText)}× ${esc(gameName(sevenOf(s)))}</b><em>${s.item === COIN ? T('coins') : T('Level {lv}', { lv: levelOf(s.item) })}${fourNote(s, true)}</em></div>
 			<div class="cockpit-times"><b>×${F(s.times)}</b><span>${T('times')}</span></div>
 		</div>`
 		: `<div class="cockpit-call">${stopDid(s, true) || `<span class="faint">${names.kind}</span>`}</div>`;
@@ -4616,7 +4661,7 @@ function sailHTML() {
 	const head = `<div class="panel-head cockpit-head"><h2 class="panel-title">${T('Stop {n} of {of}', { n: at + 1, of: stops.length })}</h2><span class="panel-sub">${esc(legOf(at))}</span>${parleyNotes(book, at, s).tag}<span class="panel-spacer"></span><button class="linky" data-act="barter-glance">${glance ? T('full view') : T('Glance mode')}</button></div>${clock ? `<div class="cockpit-clock">${clock}</div>` : ''}`;
 	const under = `<div class="cockpit-under"><button class="linky" data-act="barter-sail-skip" data-k="${esc(key)}">${s.npcId ? T('island didn’t deal — skip it') : T('skip this stop')}</button><span>·</span><button class="linky" data-act="barter-step" data-id="results">${T('stop here, see the results')}</button></div>`;
 	const next = stops[at + 1];
-	const nextHTML = next ? (() => { const nn = stopNames(next); return `<div class="cockpit-next"><span class="cockpit-next-k">${T('next')}</span><b>${esc(nn.place)}</b><span>${esc(legOf(at + 1))}</span>${next.npcId ? `<span>${esc(next.giveText)}× ${esc(gameName(next.give))} → <span class="tiered" style="--tier:${TIER(levelOf(next.item))}">${esc(next.recvText)}× ${esc(gameName(next.item))}</span> ×${F(next.times)}</span>` : `<span>${nn.kind}</span>`}</div>`; })() : '';
+	const nextHTML = next ? (() => { const nn = stopNames(next); return `<div class="cockpit-next"><span class="cockpit-next-k">${T('next')}</span><b>${esc(nn.place)}</b><span>${esc(legOf(at + 1))}</span>${next.npcId ? `<span>${esc(next.giveText)}× ${esc(gameName(next.give))} → <span class="tiered" style="--tier:${TIER(levelOf(next.item))}">${esc(next.recvText)}× ${esc(gameName(sevenOf(next)))}</span> ×${F(next.times)}</span>` : `<span>${nn.kind}</span>`}</div>`; })() : '';
 	if (glance) {
 		return `<section class="panel cockpit glance">${head}<div class="panel-body">
 			<div class="cockpit-place">${esc(names.place)}</div>
@@ -4681,7 +4726,7 @@ function restHTML(plan, on, book, legOf, at) {
 		const key = stopKey(s, k, stops), names = stopNames(s), done = ticked(on.done, s, k, stops);
 		const bars = stopBars(s, book.rows[k]);
 		const what = s.npcId
-			? `${img(s.give, 'row-icon xs')}<span>${esc(s.giveText)}× ${esc(gameName(s.give))}</span><span class="faint">→</span>${img(s.item, 'row-icon xs')}<span class="tiered" style="--tier:${TIER(levelOf(s.item))}">${esc(s.recvText)}× ${esc(gameName(s.item))}</span><b>×${F(s.times)}</b>`
+			? `${img(s.give, 'row-icon xs')}<span>${esc(s.giveText)}× ${esc(gameName(s.give))}</span><span class="faint">→</span>${img(sevenOf(s), 'row-icon xs')}<span class="tiered" style="--tier:${TIER(levelOf(s.item))}">${esc(s.recvText)}× ${esc(gameName(sevenOf(s)))}</span><b>×${F(s.times)}</b>`
 			: `<span>${s.wharf ? [s.loads && s.loads.length ? T('Loads from storage') : '', s.dropped && s.dropped.length ? T('Leaves in storage') : '', s.sale ? T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: T('goods'), silver: FC(Math.round(s.sale.total)) }) : ''].filter(Boolean).join(' · ') || names.kind : names.kind}</span>`;
 		const pn = parleyNotes(book, k, s);
 		return `<div class="rest-row${k === at ? ' here' : ''}${done ? ' done' : ''}${skipped.has(key) && !done ? ' skipped' : ''}${pn.cls ? ` ${pn.cls}` : ''}" data-act="barter-sail-jump" data-k="${esc(key)}" role="button" tabindex="0">
@@ -4713,7 +4758,7 @@ function exchangeHTML(gave, got, { spent = 0, silver = 0, coins = 0, parley = 0,
 	};
 	const list = m => Object.entries(m || {}).filter(([, n]) => n > 0).sort((a, b) => (levelOf(b[0]) || 0) - (levelOf(a[0]) || 0) || b[1] - a[1]).map(([item, n]) => tile(item, n)).join('');
 	const out = `${spent ? `<span class="shelf-tile silver out">${img(SILVER, 'shelf-icon')}<b>−${FC(Math.round(spent))}</b><span>${T('for the land goods')}</span></span>` : ''}${parley ? `<span class="shelf-tile parley"><i class="shelf-glyph">◈</i><b>−${F(Math.round(parley))}</b><span>${T('Parley')}</span></span>` : ''}${vouchers ? `<span class="shelf-tile voucher">${img(VOUCHER, 'shelf-icon')}<b>−${F(vouchers)}</b><span>${vouchers === 1 ? T('voucher') : T('vouchers')}</span></span>` : ''}${list(gave)}`;
-	const inn = `${silver ? `<span class="shelf-tile silver">${img(SILVER, 'shelf-icon')}<b>+${FC(Math.round(silver))}</b><span>${T('at the wharf')}</span></span>` : ''}${coins ? `<span class="shelf-tile coin${guessedCoins ? ' guess' : ''}">${img(COIN, 'shelf-icon')}<b>+${F(Math.round(coins))}</b><span>${T('Crow Coins')}</span></span>` : ''}${list(got)}`;
+	const inn = `${silver ? `<span class="shelf-tile silver">${img(SILVER, 'shelf-icon')}<b>+${FC(Math.round(silver))}</b><span>${T('at the wharf')}</span></span>` : ''}${coins ? `<span class="shelf-tile coin${guessedCoins ? ' guess' : ''}">${img(COIN, 'shelf-icon')}<b>+${F(Math.round(coins))}</b><span>${T('Crow Coins')}</span></span>` : ''}${list(coins ? Object.fromEntries(Object.entries(got || {}).filter(([item]) => item !== COIN)) : got)}`;
 	return `<div class="exchange">
 		<div class="exchange-col out"><div class="exchange-k"><i>↑</i>${T('You handed over')}</div>${out ? `<div class="shelf-tiles">${out}</div>` : `<p class="empty">${T('nothing yet')}</p>`}</div>
 		<div class="exchange-col in"><div class="exchange-k"><i>↓</i>${T('You received')}</div>${inn ? `<div class="shelf-tiles">${inn}</div>` : `<p class="empty">${T('nothing yet')}</p>`}</div>

@@ -62,7 +62,7 @@ export const SAIL_PRESETS = [
 		// "my own way" with a line of settings they never made.
 		id: 'quick', label: TT('Light and fast'),
 		sub: TT('The ship stays light and fast: only what the hold carries under its limit, and no detours to a wharf.'),
-		orders: { pace: 'fast', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy' }
+		orders: { pace: 'fast', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy', way: 'sea' }
 	},
 	{
 		// "Quick" was the first card's name, over a run the search was
@@ -70,22 +70,22 @@ export const SAIL_PRESETS = [
 		// one that is actually short is the one with the hour on it.
 		id: 'hour', label: TT('An hour at most'),
 		sub: TT('The best run that fits in about an hour, the ship kept light and fast.'),
-		orders: { pace: 'fast', hours: 1, vouchers: 'use', buy: true, landFrom: 'buy' }
+		orders: { pace: 'fast', hours: 1, vouchers: 'use', buy: true, landFrom: 'buy', way: 'sea' }
 	},
 	{
 		id: 'steady', label: TT('The whole board, at full speed'),
 		sub: TT('Every trade the board offers. When the hold fills, the ship drops goods at a wharf and carries on — more stops, never slowed down.'),
-		orders: { pace: 'steady', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy' }
+		orders: { pace: 'steady', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy', way: 'sea' }
 	},
 	{
 		id: 'full', label: TT('The whole board, loaded heavy'),
 		sub: TT('Every trade the board offers, with the hold filled past its limit — the ship sails slower, and stops at a wharf far less often.'),
-		orders: { pace: 'full', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy' }
+		orders: { pace: 'full', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy', way: 'sea' }
 	},
 	{
 		id: 'own', label: TT('Spend no silver'),
 		sub: TT('Only goods you already own, aboard or in storage. Nothing is bought at the Market.'),
-		orders: { pace: 'steady', hours: 0, vouchers: 'use', buy: true, landFrom: 'stock' }
+		orders: { pace: 'steady', hours: 0, vouchers: 'use', buy: true, landFrom: 'stock', way: 'sea' }
 	}
 ];
 
@@ -96,7 +96,10 @@ export function sailPresetOf(o) {
 		&& p.orders.hours === o.hours
 		&& p.orders.vouchers === o.vouchers
 		&& p.orders.buy === o.buy
-		&& p.orders.landFrom === (o.landFrom || 'buy'));
+		&& p.orders.landFrom === (o.landFrom || 'buy')
+		// Every card sails the shortest way: chain by chain is a way of
+		// one's own.
+		&& p.orders.way === (o.way || 'sea'));
 	return hit ? hit.id : '';
 }
 

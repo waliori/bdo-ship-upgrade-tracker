@@ -421,7 +421,10 @@ export function readProfile(raw) {
 		const sevens = {};
 		for (const [npc, v] of Object.entries(raw.sevens).slice(0, 100)) {
 			if (!/^\d+$/.test(npc) || !isProfile(v) || typeof v.item !== 'string' || v.item.length > 80) continue;
-			sevens[npc] = { item: v.item, day: /^\d{4}-\d{2}-\d{2}$/.test(String(v.day)) ? String(v.day) : '' };
+			// How often each of the island's four was paid, kept so the
+			// likeliest can be offered first.
+			const seen = isProfile(v.seen) ? Object.fromEntries(Object.entries(v.seen).filter(([k, n]) => typeof k === 'string' && k.length <= 80 && Number(n) > 0).slice(0, 8).map(([k, n]) => [k, Math.min(9999, Math.floor(Number(n)))])) : null;
+			sevens[npc] = { item: v.item, day: /^\d{4}-\d{2}-\d{2}$/.test(String(v.day)) ? String(v.day) : '', ...(seen && Object.keys(seen).length ? { seen } : {}) };
 		}
 		if (Object.keys(sevens).length) out.sevens = sevens;
 	}

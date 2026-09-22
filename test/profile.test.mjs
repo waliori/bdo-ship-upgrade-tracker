@@ -329,3 +329,12 @@ test('the Parley written down belongs to a barter day, and the reset fills the b
 	store.setProfileMany({ parleyHeld: 250000, parleyDay: null });
 	assert.equal(barterProfile().parleyHeld, 250000);
 });
+
+test('an island\'s four keep their count, and a count that is not a count is dropped', () => {
+	const p = readProfile({ sevens: {
+		58974: { item: '[Level 7] Golden Eagle Brooch', day: '2026-09-22', seen: { '[Level 7] Golden Eagle Brooch': 3, "[Level 7] Calpheon Knights' Combat Manual": 1, junk: -2, more: 'x' } },
+		58975: { item: '[Level 7] Golden Eagle Brooch', day: '2026-09-21' }
+	} });
+	assert.deepEqual(p.sevens[58974].seen, { '[Level 7] Golden Eagle Brooch': 3, "[Level 7] Calpheon Knights' Combat Manual": 1 });
+	assert.equal(p.sevens[58975].seen, undefined, 'an older save, with only the last one paid, reads as it was');
+});

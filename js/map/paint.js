@@ -1178,7 +1178,7 @@ function runTip(t, id) {
 		<div class="map-tip-row">
 			<span class="map-tip-side" data-peek="${esc(t.give)}"><span class="map-io minus">${img(t.give, 'map-icon')}</span><span>${esc(t.giveText)}× ${esc(gameName(t.give))}</span></span>
 			<span class="map-tip-arrow">→</span>
-			<span class="map-tip-side get" data-peek="${esc(t.item)}"><span class="map-io plus">${img(t.item, 'map-icon')}</span><span>${esc(on && on.paid ? String(on.paid) : t.recvText)}× ${esc(gameName(t.item))}</span></span>
+			<span class="map-tip-side get" data-peek="${esc((on && on.item) || t.item)}"><span class="map-io plus">${img((on && on.item) || t.item, 'map-icon')}</span><span>${esc(on && on.paid ? String(on.paid) : t.recvText)}× ${esc(gameName((on && on.item) || t.item))}</span></span>
 			<span class="map-tip-tries">${t.times > 1 ? `×${t.times}` : ''}</span>
 		</div>
 		${check}
