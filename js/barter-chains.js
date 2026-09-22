@@ -641,6 +641,14 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			// could not spend it is the exact case worth being exact
 			// about: what the next trade puts on, against what is left.
 			const starved = !(cap.get(r) >= 1);
+			// Goods in the hold that a floor keeps back are not "nothing to
+			// hand over": the sailor asked for them kept, and the chain
+			// stops on that request. Said as such, with the numbers.
+			const floorHeld = !ashore && byGoods < 1 && byParley >= 1 && (held.get(r.give) || 0) >= r.giveN && floorOf(r.give, orders) > 0;
+			if (floorHeld) {
+				cutAt(chain, r, 'floor', { good: r.give, level: levelOf(r.give), floor: floorOf(r.give, orders), owned: Math.floor(ownedNow.get(r.give) || 0), want: r.giveN });
+				continue;
+			}
 			cutAt(chain, r,
 				byParley < 1 ? 'parley' : byGoods < 1 ? (ashore && !fromPile && listed.has(r.give) ? 'market' : 'nothing') : starved ? 'share' : 'hold',
 				byGoods < 1 && ashore && !fromPile && listed.has(r.give) ? { good: r.give, want: r.giveN, listed: listed.get(r.give), held: land.get(r.give) || 0 } : starved ? {} : {

@@ -1140,6 +1140,9 @@ button.rung-fate { cursor: pointer; }
 .hist-figs .warn { color: var(--red); font-weight: 600; }
 .hist-stops { margin-top: 12px; border-top: 1px solid var(--line-soft); }
 .history > .panel-head { margin-bottom: 4px; }
+.preset-fig.wait b { color: var(--ink-faint); }
+.preset-mine { display: block; margin-top: 3px; font-style: normal; font-size: 11.5px; color: var(--ink-mute); }
+.chain-why { font-size: 11px; color: var(--amber); text-align: right; max-width: 20ch; }
 .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; align-items: start; }
 .log-panel { overflow: hidden; }
 .log-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 16px; border-top: 1px solid var(--line-soft); }

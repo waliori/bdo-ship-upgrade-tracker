@@ -440,7 +440,7 @@ function holdBarHTML(me, tickedLT = 0) {
 					<span class="panel-spacer"></span>
 					<button class="ghost-btn sm" data-act="barter-add" title="${T('Record a good that is aboard')}">＋ ${T('A good')}</button>
 				</div>
-				<div class="hold-purse" title="${T('Your barter count and level are set in the bar at the top of the page; the Parley under Your Parley today, step 1')}">
+				<div class="hold-purse" title="${T('Your barter count and level are set in the bar at the top of the page; the Parley under Before you sail, step 1')}">
 					<span class="hold-purse-n"><b>${F(parley)}</b><span>${T('Parley')}</span></span>
 					${prof.vouchers ? `<span class="hold-purse-n"><b>${F(prof.vouchers)}</b><span>${prof.vouchers === 1 ? T('voucher') : T('vouchers')}</span></span>` : ''}
 					<span class="hold-purse-n"><b>${F(parleyOf(prof).perTrade)}</b><span>${T('a trade')}</span></span>
@@ -650,9 +650,9 @@ function boardHTML(b) {
 	// is not known is a question, and the quickest answer is a
 	// screenshot, so the question is a place to paste one.
 	const parleyPill = parleyGuessed(prof)
-		? `<button class="board-pill guess" data-act="barter-sec" data-id="parley" title="${T('Not read from a screenshot and not typed in — type it under Your Parley today')}">${T('Parley {n} · assumed full — that’s right?', { n: F(PARLEY.max) })}</button>`
+		? `<button class="board-pill guess" data-act="barter-sec" data-id="parley" title="${T('Not read from a screenshot and not typed in — type it under Before you sail')}">${T('Parley {n} · assumed full — that’s right?', { n: F(PARLEY.max) })}</button>`
 		: `<button class="board-pill ok" data-act="barter-sec" data-id="parley"><i>✓</i>${T('Parley {n}', { n: F(Math.min(PARLEY.max, prof.parleyHeld)) })}</button>`;
-	const mePill = `<span class="board-pill ok" title="${T('Your barter count and level are set in the bar at the top of the page; the Parley under Your Parley today, step 1')}"><i>✓</i>${prof.barterCount === 1 ? T('{n} barter', { n: F(prof.barterCount) }) : T('{n} barters', { n: F(prof.barterCount) })}${prof.level ? ` · ${esc(prof.level)}` : ''}</span>`;
+	const mePill = `<span class="board-pill ok" title="${T('Your barter count and level are set in the bar at the top of the page; the Parley under Before you sail, step 1')}"><i>✓</i>${prof.barterCount === 1 ? T('{n} barter', { n: F(prof.barterCount) }) : T('{n} barters', { n: F(prof.barterCount) })}${prof.level ? ` · ${esc(prof.level)}` : ''}</span>`;
 	const bar = (cls, lead, sub, seen, acts, note = '') => (cls === 'known'
 		? `<div class="board-strip">
 			<div class="board-strip-row"><span class="board-strip-k">${T('Today’s board')}</span><span class="board-pill ok lead"><i>✓</i>${lead}</span>${mePill}${parleyPill}${seen ? `<span class="chips board-strip-seen">${seen}</span>` : ''}<span class="panel-spacer"></span><span class="board-strip-acts">${acts}</span></div>
@@ -1191,7 +1191,11 @@ function cutsHTML(plan, pace, name) {
 								: T('the Central Market has no {icon}<b>{good}</b> listed right now, and {where} takes {want} a trade', { icon: img(c.good, 'row-icon xs'), good: esc(gameName(c.good)), where, want: F(c.want) }))
 							: c.why === 'dealt'
 							? T('another chain reaches {where} first, and an island deals once a run', { where })
-							: T('there is nothing left to hand over at {where}', { where });
+							: c.why === 'floor'
+								? T('{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you would hold {owned}', { where, icon: img(c.good, 'row-icon xs'), good: esc(gameName(c.good)), floor: F(c.floor), lv: c.level, owned: F(c.owned) })
+								: c.why === 'skipped'
+									? T('you took {where} off the route', { where })
+									: T('there is nothing left to hand over at {where}', { where });
 		// The way out, where there is one: a pace that calls at a wharf,
 		// or the weight to put ashore before casting off.
 		// A good the Market is out of may still be in a storage of the
@@ -1201,6 +1205,9 @@ function cutsHTML(plan, pace, name) {
 				? T('You keep <b>{n}</b> of it — {link}', { n: F(c.held), link: `<button class="chip tiny primary" data-act="barter-land-from" data-id="stock" title="${T('Start the land chains from the shore goods you already keep, instead of buying them')}">${T('take land goods from my storage')} →</button>` })
 				: `<span class="run-cut-out">${T('it comes back when somebody lists some; the prices are asked again every half hour')}</span>`;
 			return `<li><b>${name(chain)}</b> ${got} — ${why}. ${own}</li>`;
+		}
+		if (c.why === 'floor') {
+			return `<li><b>${name(chain)}</b> ${got} — ${why}. <button class="chip tiny primary" data-act="barter-floor-clear" data-lvs="${c.level}" title="${T('Set that floor back to none, so the run may spend what it makes')}">${T('drop the Level {lv} floor', { lv: c.level })}</button></li>`;
 		}
 		const out = c.why === 'hold' || c.why === 'over' || c.why === 'share'
 			? (pace === 'fast'
@@ -1637,10 +1644,9 @@ const presetNow = o => (ownWay ? '' : sailPresetOf(o));
 
 /** How the orders read in a line, for the head of their section. */
 function howLine(o) {
-	const from = fromPort();
 	const named = SAIL_PRESETS.find(p => p.id === presetNow(o));
-	if (named) return [said(named.label), from ? T('from {port}', { port: gameName(from.name) }) : ''].filter(Boolean).join(' · ');
-	return [labelOf(PACE_CHOICES(), o.pace), labelOf(LAND_CHOICES, o.buy ? (o.landFrom === 'stock' ? 'stock' : 'buy') : 'no'), o.hours ? labelOf(HOUR_CHOICES, o.hours) : T('no time cap'), from ? T('from {port}', { port: gameName(from.name) }) : ''].filter(Boolean).join(' · ');
+	if (named) return said(named.label);
+	return [labelOf(PACE_CHOICES(), o.pace), labelOf(LAND_CHOICES, o.buy ? (o.landFrom === 'stock' ? 'stock' : 'buy') : 'no'), o.hours ? labelOf(HOUR_CHOICES, o.hours) : T('no time cap')].filter(Boolean).join(' · ');
 }
 
 /**
@@ -1662,8 +1668,8 @@ function howHTML(o, figs = null) {
 	// Each way of sailing says what it would come to for the chains
 	// ticked, so they are chosen between on what they pay and how long
 	// they take rather than on what their names suggest.
-	const fig = id => { const f = figs && figs.get(id); return f ? `<span class="preset-fig"><b>${f.big}</b><span>${f.sub}</span></span>` : ''; };
-	const cards = `${figs && figs.size ? `<p class="preset-note">${T('Under each: what it would come to with the chains ticked now. Choosing one lets the search pick the chains again, unless you ticked them yourself.')}</p>` : ''}<div class="preset-cards">${SAIL_PRESETS.map(p => `<button class="preset-card${on === p.id ? ' on' : ''}" data-act="barter-sail-preset" data-id="${p.id}" aria-pressed="${on === p.id}"><span class="preset-name"><i></i>${esc(said(p.label))}</span><span class="preset-line">${esc(said(p.sub))}</span>${fig(p.id)}</button>`).join('')}
+	const fig = id => { const f = figs && figs.get(id); return f ? `<span class="preset-fig${f.wait ? ' wait' : ''}"><b>${f.big}</b><span>${f.sub}</span>${f.mine ? `<em class="preset-mine">${T('your ticked chains, sailed this way: {v}', { v: f.mine })}</em>` : ''}</span>` : ''; };
+	const cards = `${figs && figs.size ? `<p class="preset-note">${T('Under each: the best run the search finds sailing that way today. Choosing one ticks those chains — unless you ticked your own, which stay.')}</p>` : ''}<div class="preset-cards">${SAIL_PRESETS.map(p => `<button class="preset-card${on === p.id ? ' on' : ''}" data-act="barter-sail-preset" data-id="${p.id}" aria-pressed="${on === p.id}"><span class="preset-name"><i></i>${esc(said(p.label))}</span><span class="preset-line">${esc(said(p.sub))}</span>${fig(p.id)}</button>`).join('')}
 		<button class="preset-card custom${on ? '' : ' on'}" data-act="barter-adv" aria-expanded="${advOpen}"><span class="preset-name"><i></i>${T('My own way')}</span><span class="preset-line">${on ? T('Set every order yourself: where the first goods come from, the pace, the time, the vouchers, the quests.') : esc(howLine(o))}</span><span class="preset-fig"><span>${on ? `${T('every order')} ▾` : advOpen ? `${T('hide the orders')} ▴` : `${T('show the orders')} ▾`}</span></span></button>
 	</div>`;
 	const rows = `${orderRow('barter-buy', T('land goods'), o.buy ? (o.landFrom === 'stock' ? 'stock' : 'buy') : 'no', LAND_CHOICES)}
@@ -1674,16 +1680,12 @@ function howHTML(o, figs = null) {
 		${orderRow('barter-quests', T('quests on the way'), o.quests, QUEST_CHOICES, T('The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the barter quests counted off the run\'s trades; the hunts only when their grounds lie on the way'))}
 		${orderRow('barter-way', T('the way round'), o.way, WAY_CHOICES, T('One route through every rung of every chain ticked, each after the rung beneath it — the nearest islands first, whatever chain they belong to — or each chain climbed to its top before the next'))}
 		${orderRow('barter-ratio', T('a 2-3 counts'), o.count, COUNT_CHOICES, T('How an exchange that pays a range is counted; the checklist records what your runs saw'))}
-		<div class="order-row" title="${T('How long the ship actually sits at a stop, apart from the sailing: only the clock uses these')}"><span class="order-k">${T('a stop takes, apart from the sailing')}</span><div class="order-v run-pauses">
-			<label class="run-pause">${amountInput('purse-inline', o.pause.isle || 0, `data-act="barter-pause" data-at="isle" aria-label="${T('Seconds at an island, bartering')}"`)}<span>${T('s bartering, then on')}<em>${T('opening the window, the trades, under way again')}</em></span></label>
-			<label class="run-pause">${amountInput('purse-inline', o.pause.call || 0, `data-act="barter-pause" data-at="call" aria-label="${T('Seconds at a wharf or a quest stop')}"`)}<span>${T('s at a wharf or a quest')}<em>${T('storing, selling, handing in — the longer sort of stop')}</em></span></label>
-		</div></div>`;
+`;
 	const fromLadder = `<div class="from-ladder"><span>${T('From the step above')}</span><b>${esc(goalLine(o))}</b><button class="linky" data-act="barter-sec" data-id="ladder">${T('change it there')} ›</button></div>`;
 	// Where the ship leaves from is not a way of sailing, it is a fact
 	// about the sailor -- where their storage is -- and no card can know
 	// it, so it is the one thing asked beside the cards.
 	return `${cards}
-		<div class="order-rows plain">${orderRow('barter-port', T('Your home port'), port, [[0, T('the first stop')], ...ports.map(p => [p.id, gameName(p.name)])], T('Where the run leaves from and comes back to, and whose storage it loads from'))}</div>
 		${advOpen ? `<div class="order-rows">${rows}</div>${savedHTML()}` : ''}
 		${stocking || coining ? '' : fromLadder}
 		<div class="plan-next"><span class="panel-sub">${esc(howLine(o))}</span><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="chains">${T('OK, pick the chains')} ›</button></div>`;
@@ -1699,9 +1701,12 @@ function howHTML(o, figs = null) {
  */
 function parleyLine(prof) {
 	const v = prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{n} voucher', { n: prof.vouchers }) : T('{n} vouchers', { n: prof.vouchers })}` : '';
-	return parleyGuessed(prof) ? `${T('Parley {n} · assumed full', { n: F(PARLEY.max) })}${v}` : `${T('Parley {n}', { n: F(Math.min(PARLEY.max, prof.parleyHeld)) })}${v}`;
+	const from = fromPort();
+	const home = from ? ` · ${T('from {port}', { port: gameName(from.name) })}` : '';
+	return parleyGuessed(prof) ? `${T('Parley {n} · assumed full', { n: F(PARLEY.max) })}${v}${home}` : `${T('Parley {n}', { n: F(Math.min(PARLEY.max, prof.parleyHeld)) })}${v}${home}`;
 }
 function parleyHTML(prof) {
+	const o = ordersNow();
 	const day = dailyCapacity(prof);
 	const clock = currentPlan();
 	const refill = `${String(clock.barter).padStart(2, '0')}:00 ${clock.zone === 'UTC' ? 'UTC' : clock.zone}`;
@@ -1713,6 +1718,11 @@ function parleyHTML(prof) {
 			<label class="parley-field"><span class="summary-k">${T('Parley in the bar now')}</span><input class="purse-inline wide" type="text" inputmode="numeric" value="${held ? F(held) : ''}" placeholder="${F(PARLEY.max)}" data-act="parley-held" aria-label="${T('Parley in the bar right now')}"><em>${T('as the barter window’s head reads it')}</em></label>
 			<label class="parley-field"><span class="summary-k">${img(VOUCHER, 'row-icon xs')} ${T('Vouchers carried')}</span><input class="purse-inline" type="text" inputmode="numeric" value="${prof.vouchers ? F(prof.vouchers) : ''}" placeholder="0" data-act="vouchers" aria-label="${T('{name}s you carry', { name: gameName(VOUCHER) })}"><em>${T('each puts {n} back, on a two-hour cooldown', { n: F(PARLEY.voucher) })}</em></label>
 		</div>
+		<div class="order-rows plain">${orderRow('barter-port', T('Your home port'), port, [[0, T('the first stop')], ...ports.map(p => [p.id, gameName(p.name)])], T('Where the run leaves from and comes back to, and whose storage it loads from'))}
+		<div class="order-row" title="${T('How long the ship actually sits at a stop, apart from the sailing: only the clock uses these')}"><span class="order-k">${T('a stop takes, apart from the sailing')}</span><div class="order-v run-pauses">
+			<label class="run-pause">${amountInput('purse-inline', o.pause.isle || 0, `data-act="barter-pause" data-at="isle" aria-label="${T('Seconds at an island, bartering')}"`)}<span>${T('s bartering, then on')}<em>${T('opening the window, the trades, under way again')}</em></span></label>
+			<label class="run-pause">${amountInput('purse-inline', o.pause.call || 0, `data-act="barter-pause" data-at="call" aria-label="${T('Seconds at a wharf or a quest stop')}"`)}<span>${T('s at a wharf or a quest')}<em>${T('storing, selling, handing in — the longer sort of stop')}</em></span></label>
+		</div></div></div>
 		<div class="parley-gauge${guessed ? ' guess' : ''}"><div class="run-bar parley"><i style="width:${pct.toFixed(1)}%"></i></div><div class="parley-gauge-k"><span>${guessed ? T('a full bar, taken as read — type yours above, or') : T('{n} of {max}', { n: F(held), max: F(PARLEY.max) })}</span>${guessed ? `<button class="chip tiny" data-act="barter-parley-full">${T('it really is full')}</button>` : ''}<span class="panel-spacer"></span><span>${T('{n} trades a refill', { n: F(day.tradesPerBar) })} · ${T('{each} a trade', { each: F(parleyOf(prof).perTrade) })} · ${T('refills at {time}', { time: esc(refill) })}</span></div></div>
 		<div class="plan-next"><span class="panel-sub">${T('The barter window’s screenshot fills both in — Read the window, above.')}</span><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="ladder">${T('OK, where does today end?')} ›</button></div>
 	</div>`;
@@ -1817,6 +1827,7 @@ function chainRow(c, on, solo, dockName, from, ladder = null, shut = null) {
 		</span>
 		<span class="chain-right">
 			<b class="${solo.silver ? '' : 'none'}${solo.net < 0 ? ' warn' : ''}">${solo.silver ? FC(Math.round(solo.net)) : dry ? T('cannot start') : '—'}</b>
+			${!solo.silver && !dry ? `<span class="chain-why">${soloWhy(c, solo)}</span>` : ''}
 			${solo.silver ? `<span class="chain-yard">${[solo.yard.perUnit ? `<em>${esc(perUnitText(solo.yard.perUnit))}</em>` : '', solo.yard.perHour ? esc(perHourText(solo.yard.perHour)) : ''].filter(Boolean).join(' · ')}</span>` : ''}
 			${outOf ? `<span class="warn" title="${outOf.listed
 				? T('The Central Market has only {n} of it listed, and the first island takes {want} a trade. The prices are asked again every half hour.', { n: F(outOf.listed), want: F(outOf.want) })
@@ -1827,6 +1838,24 @@ function chainRow(c, on, solo, dockName, from, ladder = null, shut = null) {
 		</span>
 	</button>`;
 	return ladder ? `<div class="chain-ladder${on ? ' on' : ''}">${card}${starts}</div>` : card;
+}
+
+/**
+ * Why a chain sailed on its own sells nothing, in one short line under
+ * its dash: a floor holding its goods back, its top below what the
+ * wharf sells, the Parley, the hold -- the dash alone read as a chain
+ * that was broken.
+ */
+function soloWhy(c, solo) {
+	const cut = (solo.cut || [])[0];
+	if (cut && cut.why === 'floor') return T('stops at Level {lv}: your floor keeps them', { lv: cut.level });
+	if (cut && cut.why === 'parley') return T('stops: the Parley runs out');
+	if (cut && (cut.why === 'hold' || cut.why === 'over' || cut.why === 'share')) return T('stops: the hold is full');
+	if (cut && cut.why === 'market') return T('stops: the Market has too few');
+	const o = ordersNow();
+	if (c.item === COIN || goal === 'coin') return '';
+	if (c.top < o.sell) return o.sell === NOTHING ? T('kept — the wharf sells nothing') : T('reaches Level {top}; the wharf sells Level {sell} up — kept', { top: c.top, sell: o.sell });
+	return '';
 }
 
 /**
@@ -1892,6 +1921,54 @@ function dropWorker() {
 	if (worker) worker.terminate();
 	worker = null;
 	settle();
+}
+
+/**
+ * What each way of sailing would come to, searched for its own sake.
+ *
+ * The cards under How to sail it used to re-run the chains ticked now
+ * five times, one per card -- and the chains ticked are the search's
+ * answer for the way already chosen, so every card read the same
+ * figure, or a card for loaded runs was judged on the chains a light
+ * run had picked. Each card is its own search: the chains that way of
+ * sailing can start (its land goods, its pace, its hours), searched
+ * one after the other on a worker of its own so the main search is
+ * never kept waiting, and kept until the inputs change.
+ */
+const PRESET_BUDGET_MS = 700;
+let presetWorker = null, presetLost = false;
+let presetState = { key: '', res: new Map(), queue: [], busy: false };
+function presetWorkerOf() {
+	if (presetWorker || presetLost) return presetWorker;
+	const Ctor = globalThis.Worker;
+	if (typeof Ctor !== 'function') { presetLost = true; return null; }
+	try { presetWorker = new Ctor(new URL('./barter-worker.js', import.meta.url), { type: 'module' }); } catch { presetLost = true; return null; }
+	presetWorker.onerror = () => { presetWorker = null; presetLost = true; };
+	return presetWorker;
+}
+function presetNext() {
+	const st = presetState;
+	if (st.busy || !st.queue.length) return;
+	const job = st.queue.shift();
+	const key = st.key;
+	const done = result => {
+		if (presetState.key !== key) return;
+		presetState.res.set(job.id, result && result.best ? result.best : null);
+		presetState.busy = false;
+		if (!presetState.queue.length) redrawSoon();
+		presetNext();
+	};
+	st.busy = true;
+	const w = presetWorkerOf();
+	if (!w) { setTimeout(() => done(propose({ ...job.args, budgetMs: 150 })), 0); return; }
+	w.onmessage = evt => done(evt.data && evt.data.result);
+	try { w.postMessage({ id: job.id, ...job.args, budgetMs: PRESET_BUDGET_MS }); } catch { done(propose({ ...job.args, budgetMs: 150 })); }
+}
+function presetSearch(key, jobs) {
+	if (presetState.key === key) return;
+	presetState = { key, res: new Map(), queue: jobs, busy: false };
+	if (presetWorker) { presetWorker.terminate(); presetWorker = null; }
+	presetNext();
 }
 
 /** A request answered on this thread after all. */
@@ -3069,7 +3146,7 @@ function silverParts(me, b) {
 		const oNow = stocking ? stockOrders(ordersNow(), stockGoal) : ordersNow();
 		return {
 			secs: [
-				['parley', T('Your Parley today'), esc(parleyLine(prof)), parleyHTML(prof)],
+				['parley', T('Before you sail'), esc(parleyLine(prof)), parleyHTML(prof)],
 				['ladder', T('Where today ends'), esc(goalLine(oNow)), ladderHTML(oNow)],
 				['how', T('How to sail it'), esc(howLine(oNow)), howHTML(oNow)],
 				['chains', T('Chains on offer'), T('the board is not read yet'), `${reachNote}<div class="chains-wait"><p>${board.answers.length
@@ -3168,6 +3245,21 @@ function silverParts(me, b) {
 			: { key: pkey, solos, proposals: proposed.proposals.filter(p => p.ids.every(id => onBoard.has(id))), best: proposed.key === pkey ? proposed.best : null, partial: false, working: true };
 	}
 	lastSearch = search;
+	// The ways of sailing, each searched on its own: the chains it may
+	// start, under its own orders, in the background.
+	const reachCut = list => (reach ? list.filter(c => c.rungs.some(r => r.item === reach)).map(c => {
+		const i = c.rungs.findIndex(r => r.item === reach);
+		return { ...c, rungs: c.rungs.slice(0, i + 1), top: levelOf(reach), id: `${c.id}>${i}` };
+	}) : list);
+	const presetPrices = landPrices(everything.filter(c => c.from === 'land').map(c => c.item), made);
+	const sailingKeys = new Set(SAIL_PRESETS.flatMap(p => Object.keys(p.orders)));
+	const presetKey = JSON.stringify([pkey.replace(JSON.stringify(o), ''), Object.fromEntries(Object.entries(o).filter(([k]) => !sailingKeys.has(k)))]);
+	presetSearch(presetKey, SAIL_PRESETS.map(p => {
+		const oo = { ...o, ...p.orders };
+		const coveredBy = c => c.from !== 'land' || oo.landFrom !== 'stock' || (land.get(c.item) || 0) >= c.rungs[0].giveN;
+		const list = reachCut(everything.filter(c => (oo.buy || c.from !== 'land') && !c.gate && coveredBy(c)));
+		return { id: p.id, args: { chains: list, opts: { ...opts, pace: oo.pace, orders: oo, prices: presetPrices }, ship, timeCap: oo.hours, aim } };
+	}));
 	// Ticks left to the search -- a new board, or a way of sailing just
 	// changed under ticks that were the search's own -- take its answer
 	// as soon as there is one, whether it came from the worker or was
@@ -3374,19 +3466,19 @@ function silverParts(me, b) {
 		${tile(`${img(COIN, 'tile-icon')}${T('Crow Coins')}`, plan.coins ? coinRange(purse.min, purse.max, '+') : '—', plan.coins ? `${bonusNote(purse)} · ${plan.stops.filter(s => s.item === COIN).length === 1 ? T('{n} island paying', { n: F(plan.stops.filter(s => s.item === COIN).length) }) : T('{n} islands paying', { n: F(plan.stops.filter(s => s.item === COIN).length) })}` : chosen.length ? (cashFloorNow() ? T('every [Level {lv}] you hold is under the floor of {floor} you keep back, so none is cashed', { lv: COIN_LEVEL, floor: F(cashFloorNow()) }) : T('no chain ticked cashes a [Level 4] for coins')) : T('pick a chain'), 'gold')}
 		${tile(T('Trades'), plan.trades ? F(plan.trades) : '—', plan.trades ? `${T('{spent} Parley of {bar}', { spent: F(Math.round(plan.parleyUsed)), bar: F(plan.parleyBar) })} · ${T('{n} barters behind you, {after} after', { n: F(prof.barterCount), after: F(prof.barterCount + plan.trades) })}${plan.coins && plan.parleyUsed ? ` · ${T('{n} coins a Parley unit', { n: F(Math.round(purse.min / (plan.parleyUsed / PARLEY_UNIT))) })}` : ''}` : T('one barter counts as one, whatever it trades'), 'gold')}
 		${tile(T('Hold at its fullest'), plan.stops.length ? esc(peak.text) : '—', `${peak.note || T('under the limit')} · ${peak.deal === peak.max ? T('barters and moves to {max}', { max: F(peak.max) }) : T('barters to {deal} · moves to {max}', { deal: F(peak.deal), max: F(peak.max) })}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
-		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours under Your Parley today')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.waited ? ` · <b class="amber">${T('waits {n} min for a cooldown', { n: F(book.waited) })}</b>` : ''}${book.short ? ` · <b class="warn">${T('runs dry at stop {n}', { n: book.dryAt + 1 })}</b>` : ''}`, book.short ? 'warn' : book.waited ? 'amber' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
+		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours under Before you sail')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.waited ? ` · <b class="amber">${T('waits {n} min for a cooldown', { n: F(book.waited) })}</b>` : ''}${book.short ? ` · <b class="warn">${T('runs dry at stop {n}', { n: book.dryAt + 1 })}</b>` : ''}`, book.short ? 'warn' : book.waited ? 'amber' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
 		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
 	</div>${coinPurseHTML(plan)}` : stocking ? `<div class="run-tiles">
 		${tile(T('The stock gains'), gains.total ? `+${F(gains.total)}` : '—', gains.total ? `${gains.byLevel.map(([lv, n]) => `L${lv} +${F(n)}`).join(' · ')}${gains.spare ? ` · ${T('{n} over the targets, to climb with', { n: F(gains.spare) })}` : ''}` : chosen.length ? T('nothing this run banks is short') : T('pick a chain'), 'teal')}
 		${tile(T('Trades'), plan.trades ? F(plan.trades) : '—', plan.trades ? `${T('{spent} Parley of {bar}', { spent: F(Math.round(plan.parleyUsed)), bar: F(plan.parleyBar) })} · ${T('{n} barters behind you, {after} after', { n: F(prof.barterCount), after: F(prof.barterCount + plan.trades) })}` : T('one barter counts as one, whatever it trades'), 'gold')}
 		${tile(T('Hold at its fullest'), plan.stops.length ? esc(peak.text) : '—', `${peak.note || T('under the limit')} · ${peak.deal === peak.max ? T('barters and moves to {max}', { max: F(peak.max) }) : T('barters to {deal} · moves to {max}', { deal: F(peak.deal), max: F(peak.max) })}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
-		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours under Your Parley today')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.waited ? ` · <b class="amber">${T('waits {n} min for a cooldown', { n: F(book.waited) })}</b>` : ''}${book.short ? ` · <b class="warn">${T('runs dry at stop {n}', { n: book.dryAt + 1 })}</b>` : ''}`, book.short ? 'warn' : book.waited ? 'amber' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
+		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours under Before you sail')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.waited ? ` · <b class="amber">${T('waits {n} min for a cooldown', { n: F(book.waited) })}</b>` : ''}${book.short ? ` · <b class="warn">${T('runs dry at stop {n}', { n: book.dryAt + 1 })}</b>` : ''}`, book.short ? 'warn' : book.waited ? 'amber' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
 		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
 	</div>${aheadHTML(gains, plan, prof)}` : `<div class="run-tiles">
 		${tile(plan.cost ? T('Silver, net') : T('Sold in port'), plan.silver ? FC(Math.round(plan.net)) : '—', plan.silver ? `${T('{what} sold at the wharf', { what: soldWhat })}${plan.cost ? ` ${T('for {silver} · {cost} of land goods bought', { silver: FC(Math.round(plan.silver)), cost: FC(Math.round(plan.cost)) })}` : ''}${plan.bought.some(b => b.how === 'unpriced') ? ` · ${T('some land goods unpriced')}` : ''}` : chosen.length ? T('no chain ticked sells') : T('pick a chain'), plan.net < 0 ? 'warn' : 'gold')}
 		${tile(T('A Parley unit pays'), yard.perUnit ? FC(Math.round(yard.perUnit)) : '—', yard.perUnit ? `${T('{spent} Parley of {bar}', { spent: F(Math.round(plan.parleyUsed)), bar: F(plan.parleyBar) })} · ${plan.trades === 1 ? T('{n} trade', { n: F(plan.trades) }) : T('{n} trades', { n: F(plan.trades) })}${yard.perHour ? ` · ${T('≈ {silver} an hour', { silver: FC(Math.round(yard.perHour)) })}` : ''}` : `${plan.trades === 1 ? T('{n} trade', { n: F(plan.trades) }) : T('{n} trades', { n: F(plan.trades) })} · ${T('one unit is one normal trade’s Parley')}`, 'gold')}
 		${tile(T('Hold at its fullest'), plan.stops.length ? esc(peak.text) : '—', `${peak.note || T('under the limit')} · ${peak.deal === peak.max ? T('barters and moves to {max}', { max: F(peak.max) }) : T('barters to {deal} · moves to {max}', { deal: F(peak.deal), max: F(peak.max) })}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
-		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours under Your Parley today')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.waited ? ` · <b class="amber">${T('waits {n} min for a cooldown', { n: F(book.waited) })}</b>` : ''}${book.short ? ` · <b class="warn">${T('runs dry at stop {n}', { n: book.dryAt + 1 })}</b>` : ''}`, book.short ? 'warn' : book.waited ? 'amber' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
+		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours under Before you sail')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.waited ? ` · <b class="amber">${T('waits {n} min for a cooldown', { n: F(book.waited) })}</b>` : ''}${book.short ? ` · <b class="warn">${T('runs dry at stop {n}', { n: book.dryAt + 1 })}</b>` : ''}`, book.short ? 'warn' : book.waited ? 'amber' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
 		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
 	</div>`;
 	// One route through every chain: the stops in sailing order, each
@@ -3442,16 +3534,30 @@ function silverParts(me, b) {
 		qp.count ? `📜 ${qp.count === 1 ? T('<b>{n}</b> quest', { n: qp.count }) : T('<b>{n}</b> quests', { n: qp.count })}` : '',
 		peak.state === 'heavy' || peak.state === 'dead' ? `<b class="warn">${T('too heavy')}</b>` : peak.state === 'over' ? `<b class="amber">${T('over the limit')}</b>` : ''
 	]) : '';
-	// What each way of sailing would come to for these same chains.
-	const presetFigs = new Map(chosen.length ? SAIL_PRESETS.map(p => {
-		const oo = { ...o, ...p.orders };
-		const run = chainRun({ ...opts, pace: oo.pace, orders: oo, chosen });
+	// What each way of sailing would come to: its own search's best run,
+	// once the background search has answered for it. And where the
+	// chains were ticked by hand, what those ticks come to that way too,
+	// since choosing a card keeps hand-picked ticks.
+	const handPicked = chosen.length && !routesAuto && !(proposed.best && sameSet(proposed.best.ids, routes.ids));
+	const figOf = run => {
 		const lg = legsOf(run.stops);
 		const big = coining ? (run.coins ? `${F(withBonus(run.coins, countBonus(prof.barterCount).pct))}+` : '—') : stocking ? (() => { const g = stockGains(run, stock); return g.total ? `+${F(g.total)}` : '—'; })() : run.silver ? FC(Math.round(run.net)) : '—';
 		const calls = run.stops.filter(x => x.wharf).length;
+		const chainsN = (run.order || []).length;
 		// The waits for a voucher's cooldown are part of how long it takes.
-		return [p.id, { big, sub: `${lg.total ? `≈ ${esc(runTime(lg, ledgerOf(run.stops, lg)))}` : T('no way')} · ${run.trades === 1 ? T('{n} trade', { n: F(run.trades) }) : T('{n} trades', { n: F(run.trades) })}${calls ? ` · ${calls === 1 ? T('{n} wharf call', { n: calls }) : T('{n} wharf calls', { n: calls })}` : ''}` }];
-	}) : []);
+		return { big, sub: `${chainsN === 1 ? T('{n} chain', { n: chainsN }) : T('{n} chains', { n: chainsN })} · ${lg.total ? `≈ ${esc(runTime(lg, ledgerOf(run.stops, lg)))}` : T('no way')} · ${run.trades === 1 ? T('{n} trade', { n: F(run.trades) }) : T('{n} trades', { n: F(run.trades) })}${calls ? ` · ${calls === 1 ? T('{n} wharf call', { n: calls }) : T('{n} wharf calls', { n: calls })}` : ''}` };
+	};
+	const presetFigs = new Map(SAIL_PRESETS.map(p => {
+		const ready = presetState.res.has(p.id);
+		const best = presetState.res.get(p.id);
+		const f = !ready ? { big: '…', sub: T('searching this way…'), wait: true } : best ? figOf(best.run) : { big: '—', sub: T('nothing sails this way today') };
+		if (handPicked) {
+			const oo = { ...o, ...p.orders };
+			const mine = chainRun({ ...opts, pace: oo.pace, orders: oo, chosen });
+			f.mine = coining ? (mine.coins ? `${F(withBonus(mine.coins, countBonus(prof.barterCount).pct))}+` : '—') : stocking ? (() => { const g = stockGains(mine, stock); return g.total ? `+${F(g.total)}` : '—'; })() : mine.silver ? FC(Math.round(mine.net)) : '—';
+		}
+		return [p.id, f];
+	}));
 	const runFigures = `<div class="run-as-ticked"><div class="plan-sub-head"><b>${T('The run')}</b><span>${chosen.length === 1 ? T('{n} chain ticked', { n: chosen.length }) : T('{n} chains ticked', { n: chosen.length })} · ${T('aboard {ship}: the limit is {lt} LT', { ship: esc(gameName(me.name)), lt: F(peak.limit) })}${peak.aboard ? `, ${T('{n} of it {what}', { n: F(peak.aboard), what: said(aboardWhat(peak)) })}` : ''}, ${T('barters to {n}', { n: F(peak.deal) })} · ${T('goods counted at the least, weighed at the most')}</span></div>${tiles}${notice}</div>`;
 	const worthSaid = coining ? (plan.coins ? T('{n} coins', { n: coinRange(purse.min, purse.max) }) : '') : stocking ? (gains.total ? `+${F(gains.total)}` : '') : plan.silver ? FC(Math.round(plan.net)) : '';
 	const chainsSummary = chosen.length
@@ -3467,7 +3573,7 @@ function silverParts(me, b) {
 	const load = `${notice}${overNote}${empty}${packingHTML(plan, from, chosen)}${afterShelfHTML(plan, from)}${questsPanels(qp, from)}${routeFold}${kept}`;
 	return {
 		secs: [
-			['parley', T('Your Parley today'), esc(parleyLine(prof)), parleyHTML(prof)],
+			['parley', T('Before you sail'), esc(parleyLine(prof)), parleyHTML(prof)],
 			['ladder', T('Where today ends'), esc(goalLine(o)), ladderHTML(o, { fits: all.length, tickedN: chosen.length })],
 			['how', T('How to sail it'), esc(howLine(o)), howHTML(o, presetFigs)],
 			['chains', T('Chains on offer'), esc(chainsSummary), `${chainsBody}${chosen.length ? runFigures : ''}`]
@@ -3777,7 +3883,7 @@ function materialParts(me, data) {
 	const comes = plan.ticked ? mats.map(m => { const g = plan.got.get(m.it); return T('{got} of {want}', { got: g.max > 0 ? gotText(m) : '0', want: F(m.qty) }); }).join(' · ') : T('nothing ticked yet');
 	return {
 		secs: [
-			['parley', T('Your Parley today'), esc(parleyLine(barterProfile())), parleyHTML(barterProfile())],
+			['parley', T('Before you sail'), esc(parleyLine(barterProfile())), parleyHTML(barterProfile())],
 			['ladder', T('What today is for'), esc(matsSaid), `${listPanel}<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="how">${T('OK, that’s the goal')} ›</button></div>`],
 			['how', T('How to sail it'), esc([matOrders.pace === 'fast' ? T('fast') : T('full'), matOrders.reach === 'all' ? T('every island ticked') : T('the wants, then home'), from ? T('from {port}', { port: gameName(from.name) }) : ''].filter(Boolean).join(' · ')), `${head}${ordersRow}<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="chains">${T('OK, see what comes of it')} ›</button></div>`],
 			['chains', T('What comes of it'), esc(comes), summary || `<p class="empty">${T('Nothing ticked. Open a material and tap each island showing it today — the run lays itself out here.')}</p>`]
