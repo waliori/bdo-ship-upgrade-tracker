@@ -5047,5 +5047,7 @@
 	"🔔 reminding by push": "🔔 เตือนด้วยพุช",
 	"🔔 reminding while open": "🔔 เตือนขณะเปิดอยู่",
 	"all aboard": "ขึ้นเรือครบแล้ว",
-	"{lt} LT to carry": "ต้องบรรทุก {lt} LT"
+	"{lt} LT to carry": "ต้องบรรทุก {lt} LT",
+	"Draw a voucher here": "ใช้บัตรแลกที่นี่",
+	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} ค่าเจรจา — หนึ่งในสี่ของแถบกลับมา และคูลดาวน์สองชั่วโมงเริ่มนับ"
 }

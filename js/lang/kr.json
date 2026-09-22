@@ -5047,5 +5047,7 @@
 	"🔔 reminding by push": "🔔 푸시로 알림 중",
 	"🔔 reminding while open": "🔔 열려 있는 동안 알림 중",
 	"all aboard": "모두 실음",
-	"{lt} LT to carry": "실을 무게 {lt} LT"
+	"{lt} LT to carry": "실을 무게 {lt} LT",
+	"Draw a voucher here": "여기서 교환권 사용",
+	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "교섭 +{n} — 바의 4분의 1 회복, 2시간 재사용 대기시간이 시작됩니다"
 }

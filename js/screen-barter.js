@@ -3919,8 +3919,15 @@ function sailHTML() {
 		: `<div class="cockpit-call">${stopDid(s, true) || `<span class="faint">${names.kind}</span>`}</div>`;
 	const figures = `<div class="cockpit-figs">
 		<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('hold')}</span><span>${bars.w.note || ''}</span></div><div class="cockpit-fig-v"><b class="${bars.bad ? 'warn' : bars.over ? 'amber' : ''}">${esc(bars.w.text)}</b></div><div class="run-bar"><i style="width:${bars.w.fill.toFixed(1)}%"></i><i class="over" style="width:${bars.w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${bars.w.worse.toFixed(1)}%"></i></div></div>
-		${row ? `<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('parley')}</span><span>${s.npcId && row.spent ? `−${F(row.spent)}` : ''}</span></div><div class="cockpit-fig-v">${prev ? `<span>${F(prev.after)}</span><i>→</i>` : ''}<b class="${row.short ? 'warn' : ''}">${F(row.after)}</b></div><div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div>${parleyNotes(book, at, s).note}</div>` : ''}
+		${row ? `<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('parley')}</span><span>${s.npcId && row.spent ? `−${F(row.spent)}` : ''}</span></div><div class="cockpit-fig-v">${prev ? `<span>${F(prev.after)}</span><i>→</i>` : ''}<b class="${row.short ? 'warn' : ''}">${F(row.after)}</b></div><div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div>${row.voucher && !s.wait ? '' : parleyNotes(book, at, s).note}</div>` : ''}
 	</div>`;
+	// A voucher drawn at this stop is a thing the sailor does in game,
+	// so it stands as its own block above the press, icon and all,
+	// rather than a line of small print under the Parley bar.
+	const voucherBox = row && row.voucher && !s.wait ? `<div class="cockpit-voucher">
+		<span class="cockpit-voucher-icon">${img(VOUCHER, 'cockpit-voucher-img')}</span>
+		<div class="cockpit-voucher-text"><b>${T('Draw a voucher here')}</b><em>${T('+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts', { n: F(PARLEY.voucher) })}</em></div>
+	</div>` : '';
 	const endNote = s.wait && !done ? `<p class="cockpit-ask">${T('Ending here records what is ticked so far; the barters after this wait stay on the board for later.')}</p>` : '';
 	const head = `<div class="panel-head cockpit-head"><h2 class="panel-title">${T('Stop {n} of {of}', { n: at + 1, of: stops.length })}</h2><span class="panel-sub">${esc(legOf(at))}</span>${parleyNotes(book, at, s).tag}<span class="panel-spacer"></span><button class="linky" data-act="barter-glance">${glance ? T('full view') : T('Glance mode')}</button></div>${clock ? `<div class="cockpit-clock">${clock}</div>` : ''}`;
 	const under = `<div class="cockpit-under"><button class="linky" data-act="barter-sail-skip" data-k="${esc(key)}">${s.npcId ? T('island didn’t deal — skip it') : T('skip this stop')}</button><span>·</span><button class="linky" data-act="barter-step" data-id="results">${T('stop here, see the results')}</button></div>`;
@@ -3929,7 +3936,7 @@ function sailHTML() {
 	if (glance) {
 		return `<section class="panel cockpit glance">${head}<div class="panel-body">
 			<div class="cockpit-place">${esc(names.place)}</div>
-			${trade}${figures}${ask}${extra ? `<div class="run-check">${extra}</div>` : ''}
+			${trade}${figures}${voucherBox}${ask}${extra ? `<div class="run-check">${extra}</div>` : ''}
 			<div class="cockpit-press">${press}</div>${endNote}
 		</div></section>${foot}`;
 	}
@@ -3937,7 +3944,7 @@ function sailHTML() {
 		<div class="cockpit-col">
 			<section class="panel cockpit">${head}<div class="panel-body">
 				<div><div class="cockpit-place">${esc(names.place)}</div><div class="cockpit-who">${esc(names.who)} · ${names.kind}</div></div>
-				${trade}${figures}${ask}${extra ? `<div class="run-check">${extra}</div>` : ''}${questsHere}
+				${trade}${figures}${voucherBox}${ask}${extra ? `<div class="run-check">${extra}</div>` : ''}${questsHere}
 				<div class="cockpit-press">${press}</div>${endNote}
 				${under}
 			</div></section>

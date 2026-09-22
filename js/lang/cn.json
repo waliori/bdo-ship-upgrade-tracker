@@ -5047,5 +5047,7 @@
 	"🔔 reminding by push": "🔔 正在通过推送提醒",
 	"🔔 reminding while open": "🔔 开着时提醒",
 	"all aboard": "全部在船上",
-	"{lt} LT to carry": "要装载 {lt} LT"
+	"{lt} LT to carry": "要装载 {lt} LT",
+	"Draw a voucher here": "在这里使用一张兑换券",
+	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} 交涉 — 换回四分之一条栏，它两小时的冷却开始"
 }
