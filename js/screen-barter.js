@@ -787,7 +787,7 @@ const stashes = STASHES.map(at => wharves.find(w => w.kind === 'wharf' && w.at =
 function legsOf(stops) {
 	const from = ports.find(p => p.id === port) || null;
 	const pts = [...(from ? [from] : []), ...stops.map(s => s.place || s.wharf || npcById.get(s.npcId)).filter(Boolean)];
-	if (pts.length < 2) return { total: 0, legs: [], time: '' };
+	if (pts.length < 2) return { total: 0, legs: [], time: '', timeWith: () => '' };
 	// Bending the legs round the land is the dear part of a redraw, and
 	// the same stops bend the same way, so the answer is kept by them.
 	const ck = pts.map(p => `${p.x},${p.y}`).join(';');
@@ -803,7 +803,9 @@ function legsOf(stops) {
 	const measured = Number(store.getSetting('sailCal', null)) > 0;
 	const range = m => sailRange(m, me.speed.total, sailCal(), measured);
 	const [fast, slow] = range(total);
-	return { total, legs, from, time: fmtRange(fast, slow), mid: (fast + slow) / 2, timeOf: m => fmtRange(...range(m)), secondsOf: m => { const [a, b] = range(m); return (a + b) / 2; } };
+	// `timeWith` is the same range with minutes stood still added --
+	// the waits the Parley ledger puts in for a voucher's cooldown.
+	return { total, legs, from, time: fmtRange(fast, slow), mid: (fast + slow) / 2, timeOf: m => fmtRange(...range(m)), secondsOf: m => { const [a, b] = range(m); return (a + b) / 2; }, timeWith: min => fmtRange(fast + min * 60, slow + min * 60) };
 }
 
 /** How far a barter quest has come in its period. */
@@ -960,15 +962,20 @@ function seventhsOf(npcId) {
  */
 function ledgerOf(stops, legs) {
 	const prof = barterProfile();
+	const pause = ordersNow().pause || { isle: 0, call: 0 };
 	const at = [];
 	let t = 0;
 	stops.forEach((s, k) => {
 		const m = legs && legs.from ? legs.legs[k] : k > 0 && legs ? legs.legs[k - 1] : null;
 		if (m != null && legs.secondsOf) t += legs.secondsOf(m) / 60;
 		at[k] = t;
+		t += ((s.npcId ? pause.isle : pause.call) || 0) / 60;
 	});
 	return parleyLedger(stops, { held: prof.parleyHeld, vouchers: prof.vouchers, use: ordersNow().vouchers !== 'keep', minutesAt: k => at[k] || 0 });
 }
+
+/** How long the run takes, the waits for a voucher's cooldown included. */
+const runTime = (legs, book) => (book && book.waited ? legs.timeWith(book.waited) : legs.time);
 
 /** What pressing a stop done is called, by the sort of stop it is. */
 const doneLabel = s => (s.wharf ? T('Called here') : s.hunt ? T('Hunted here') : s.quest ? T('Handed in') : T('Traded here'));
@@ -1020,7 +1027,6 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = nu
 	// the book is read at the stop's place in the run -- else this
 	// list's own, which starts where the list does.
 	const book = ledger || ledgerOf(stops, legs);
-	const rowAt = k => (ledger ? book.rows[k] : book.rows[k - k0]);
 	// On the checklist the barter quests count what the stops ticked
 	// Done have dealt, so the count climbs as the run is sailed.
 	const made = sailing ? tradesDone(sailing, stops) : 0;
@@ -1052,7 +1058,7 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = nu
 				<div><span>${T('hold')}</span><b class="${heavy ? 'warn' : over ? 'amber' : ''}" title="${T('Everything aboard, crew included, over the limit — as the game\'s Ship Info reads')}">${esc(w.text)}</b></div>
 				<div class="run-bar"><i style="width:${w.fill.toFixed(1)}%"></i><i class="over" style="width:${w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${w.worse.toFixed(1)}%"></i></div>
 				${w.note ? `<div class="run-note${dead || heavy ? ' warn' : ''}">${w.note}</div>` : ''}
-				${parleyBar(rowAt(k), s)}
+				${parleyBar(book, ledger ? k : k - k0, s)}
 			</div>
 		</div>`;
 	}).join('');
@@ -1063,15 +1069,16 @@ function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = nu
  * the bar, the quarter a voucher put back, and the stop that would
  * stall for want of it.
  */
-function parleyBar(row, s) {
+function parleyBar(book, k, s) {
+	const row = book && book.rows[k];
 	if (!row) return '';
 	const low = row.after < row.max * 0.1;
 	const spent = s.npcId && row.spent ? `−${F(row.spent)}` : '';
-	return `<div class="run-parley${row.short ? ' short' : low ? ' low' : ''}">
+	const pn = parleyNotes(book, k, s);
+	return `<div class="run-parley${pn.cls ? ` ${pn.cls}` : low ? ' low' : ''}">
 		<div><span>${T('parley')}</span><b class="${row.short ? 'warn' : low ? 'amber' : ''}">${F(row.after)}</b>${spent ? `<small>${spent}</small>` : ''}</div>
 		<div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div>
-		${row.voucher ? `<div class="run-note teal">${T('a voucher drawn on here — a quarter of a bar back')}</div>` : ''}
-		${row.short ? `<div class="run-note warn">${T('{n} Parley short', { n: F(row.short) })} — ${s.parley && s.times ? T('{n} of the {of} attempts wait', { n: Math.ceil(row.short / (s.parley / s.times)), of: s.times }) : T('the bar is empty')}${row.voucher ? '' : row.wait ? T('; a voucher can be drawn in <b>{n} min</b>, and the cooldown is the only thing in the way', { n: F(row.wait) }) : T(', and there is no voucher to draw on')}</div>` : ''}
+		${pn.note}
 	</div>`;
 }
 
@@ -1202,10 +1209,12 @@ function chartButton(stops, pick) {
 // sailor has not got is a plan that strands a ship halfway up a chain.
 // So the figures say when the number is assumed rather than known.
 const parleyGuessed = prof => !(prof.parleyHeld > 0);
+// Vouchers the sailor is keeping are not the run's to plan on, so the
+// bar the planner budgets against leaves them out too.
 const parleyOf = prof => ({
-	bar: (prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max) + prof.vouchers * PARLEY.voucher,
+	bar: (prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max) + (ordersNow().vouchers === 'keep' ? 0 : prof.vouchers * PARLEY.voucher),
 	held: prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max,
-	vouchers: prof.vouchers,
+	vouchers: ordersNow().vouchers === 'keep' ? 0 : prof.vouchers,
 	perTrade: parleyPerTrade({ ...prof, kind: 'trade' })
 });
 const stashAt = () => stashes.find(w => w.at === stash) || null;
@@ -2119,7 +2128,7 @@ const stopLabel = s => (s.npcId ? isleShort(npcById.get(s.npcId)) || s.npc : s.w
  * from, the first stop is where the ship already is and carries no leg
  * -- it is not something to wait for, so it is not a mark.
  */
-function runMarks(plan, legs) {
+function runMarks(plan, legs, book) {
 	if (!legs || !legs.legs.length) return [];
 	const pause = ordersNow().pause || { isle: 0, call: 0 };
 	const out = [];
@@ -2131,7 +2140,11 @@ function runMarks(plan, legs) {
 		// carried on the mark as well as added to the running total, so
 		// the clock can say "under way in 40 s" rather than folding it
 		// silently into the next arrival.
-		const hold = (s.npcId ? pause.isle : pause.call) || 0;
+		// A wait for a voucher's cooldown is a hold like any other,
+		// only longer: the clock says so, and every arrival after it
+		// moves on by as much.
+		const wait = book && book.rows[i] ? (book.rows[i].wait || 0) * 60 : 0;
+		const hold = ((s.npcId ? pause.isle : pause.call) || 0) + wait;
 		// A stop with no leg is one the ship is already at -- a second
 		// exchange at the same island. There is nothing to wait for, so
 		// no mark; the time it takes is real all the same.
@@ -2151,7 +2164,7 @@ function sailBar(plan) {
 	// estimate: the page cannot see the ship, so the one thing it can do
 	// is say when the time is up.
 	const legs = legsOf(plan.stops);
-	const clock = timerHTML({ suggest: legs.mid || 0, label: runLabel(plan), marks: runMarks(plan, legs) });
+	const clock = timerHTML({ suggest: legs.mid || 0, label: runLabel(plan), marks: runMarks(plan, legs, ledgerOf(plan.stops, legs)) });
 	if (!on) return `<div class="sail-bar"><button class="act" data-act="barter-sail" title="${T('Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change')}">⛵ ${T('Sail this run')}</button><span class="faint">${T('tick each stop off as you sail; what an island paid re-counts the rest; Record at the end puts the whole trip in the Inventory in one Undo')}</span><span class="panel-spacer"></span>${clock}</div>`;
 	const n = plan.stops.filter((s, k) => ticked(on.done, s, k, plan.stops)).length;
 	const questsLeft = [...(plan.questsHome || []), ...plan.stops.flatMap(s => s.quests || [])].map(x => x.q).filter(q => !questDone(q)).length;
@@ -2372,6 +2385,7 @@ function sailRecord(plan) {
 		: x.quest ? { quest: true, hunt: x.hunt ? String(x.hunt) : null, place: { name: x.place.name, who: x.place.who || '', x: num(x.place.x), y: num(x.place.y) }, weightAfter: num(x.weightAfter), chain: num(x.chain), quests: questsOf(x) }
 			: { wharf: { name: x.wharf.name, at: x.wharf.at, x: num(x.wharf.x), y: num(x.wharf.y) }, dropped: (x.dropped || []).map(d => ({ item: d.item, n: num(d.n) })), loads: (x.loads || []).map(l => ({ item: l.item, n: num(l.n) })), sale: x.sale ? { n: num(x.sale.n), total: num(x.sale.total), levels: (x.sale.levels || []).map(num), items: (x.sale.items || []).map(i => ({ item: i.item, n: num(i.n), total: num(i.total) })) } : null, weightAfter: num(x.weightAfter), chain: num(x.chain), quests: questsOf(x) }));
 	const legs = legsOf(plan.stops);
+	const book = ledgerOf(plan.stops, legs);
 	return {
 		stops,
 		loaded: (plan.loaded || []).map(l => ({ item: l.item, n: num(l.n) })),
@@ -2380,7 +2394,7 @@ function sailRecord(plan) {
 		questsHome: (plan.questsHome || []).map(x => ({ id: x.q.id, what: x.step.what, who: x.step.who || '' })),
 		chains: (plan.order || []).map(c => ({ name: isleShort(npcById.get(c.rungs[0].npcId)) || c.rungs[0].npc, top: c.top })),
 		goal, item: goal === 'material' ? itemNow() || '' : '',
-		time: legs.time || '', port
+		time: runTime(legs, book) || '', port
 	};
 }
 
@@ -3184,20 +3198,20 @@ function silverParts(me, b) {
 		${tile(`${img(COIN, 'tile-icon')}${T('Crow Coins')}`, plan.coins ? coinRange(purse.min, purse.max, '+') : '—', plan.coins ? `${bonusNote(purse)} · ${plan.stops.filter(s => s.item === COIN).length === 1 ? T('{n} island paying', { n: F(plan.stops.filter(s => s.item === COIN).length) }) : T('{n} islands paying', { n: F(plan.stops.filter(s => s.item === COIN).length) })}` : chosen.length ? (cashFloorNow() ? T('every [Level {lv}] you hold is under the floor of {floor} you keep back, so none is cashed', { lv: COIN_LEVEL, floor: F(cashFloorNow()) }) : T('no chain ticked cashes a [Level 4] for coins')) : T('pick a chain'), 'gold')}
 		${tile(T('Trades'), plan.trades ? F(plan.trades) : '—', plan.trades ? `${T('{spent} Parley of {bar}', { spent: F(Math.round(plan.parleyUsed)), bar: F(plan.parleyBar) })} · ${T('{n} barters behind you, {after} after', { n: F(prof.barterCount), after: F(prof.barterCount + plan.trades) })}${plan.coins && plan.parleyUsed ? ` · ${T('{n} coins a Parley unit', { n: F(Math.round(purse.min / (plan.parleyUsed / PARLEY_UNIT))) })}` : ''}` : T('one barter counts as one, whatever it trades'), 'gold')}
 		${tile(T('Hold at its fullest'), plan.stops.length ? esc(peak.text) : '—', `${peak.note || T('under the limit')} · ${peak.deal === peak.max ? T('barters and moves to {max}', { max: F(peak.max) }) : T('barters to {deal} · moves to {max}', { deal: F(peak.deal), max: F(peak.max) })}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
-		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours in the pouch')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.short ? ` · <b class="warn">${T('{n} short', { n: F(book.short) })}</b>` : ''}`, book.short ? 'warn' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
-		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(legs.time), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
+		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours in the pouch')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.waited ? ` · <b class="amber">${T('waits {n} min for a cooldown', { n: F(book.waited) })}</b>` : ''}${book.short ? ` · <b class="warn">${T('runs dry at stop {n}', { n: book.dryAt + 1 })}</b>` : ''}`, book.short ? 'warn' : book.waited ? 'amber' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
+		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
 	</div>${coinPurseHTML(plan)}` : stocking ? `<div class="run-tiles">
 		${tile(T('The stock gains'), gains.total ? `+${F(gains.total)}` : '—', gains.total ? `${gains.byLevel.map(([lv, n]) => `L${lv} +${F(n)}`).join(' · ')}${gains.spare ? ` · ${T('{n} over the targets, to climb with', { n: F(gains.spare) })}` : ''}` : chosen.length ? T('nothing this run banks is short') : T('pick a chain'), 'teal')}
 		${tile(T('Trades'), plan.trades ? F(plan.trades) : '—', plan.trades ? `${T('{spent} Parley of {bar}', { spent: F(Math.round(plan.parleyUsed)), bar: F(plan.parleyBar) })} · ${T('{n} barters behind you, {after} after', { n: F(prof.barterCount), after: F(prof.barterCount + plan.trades) })}` : T('one barter counts as one, whatever it trades'), 'gold')}
 		${tile(T('Hold at its fullest'), plan.stops.length ? esc(peak.text) : '—', `${peak.note || T('under the limit')} · ${peak.deal === peak.max ? T('barters and moves to {max}', { max: F(peak.max) }) : T('barters to {deal} · moves to {max}', { deal: F(peak.deal), max: F(peak.max) })}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
-		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours in the pouch')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.short ? ` · <b class="warn">${T('{n} short', { n: F(book.short) })}</b>` : ''}`, book.short ? 'warn' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
-		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(legs.time), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
+		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours in the pouch')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.waited ? ` · <b class="amber">${T('waits {n} min for a cooldown', { n: F(book.waited) })}</b>` : ''}${book.short ? ` · <b class="warn">${T('runs dry at stop {n}', { n: book.dryAt + 1 })}</b>` : ''}`, book.short ? 'warn' : book.waited ? 'amber' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
+		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
 	</div>${aheadHTML(gains, plan, prof)}` : `<div class="run-tiles">
 		${tile(plan.cost ? T('Silver, net') : T('Sold in port'), plan.silver ? FC(Math.round(plan.net)) : '—', plan.silver ? `${T('{what} sold at the wharf', { what: soldWhat })}${plan.cost ? ` ${T('for {silver} · {cost} of land goods bought', { silver: FC(Math.round(plan.silver)), cost: FC(Math.round(plan.cost)) })}` : ''}${plan.bought.some(b => b.how === 'unpriced') ? ` · ${T('some land goods unpriced')}` : ''}` : chosen.length ? T('no chain ticked sells') : T('pick a chain'), plan.net < 0 ? 'warn' : 'gold')}
 		${tile(T('A Parley unit pays'), yard.perUnit ? FC(Math.round(yard.perUnit)) : '—', yard.perUnit ? `${T('{spent} Parley of {bar}', { spent: F(Math.round(plan.parleyUsed)), bar: F(plan.parleyBar) })} · ${plan.trades === 1 ? T('{n} trade', { n: F(plan.trades) }) : T('{n} trades', { n: F(plan.trades) })}${yard.perHour ? ` · ${T('≈ {silver} an hour', { silver: FC(Math.round(yard.perHour)) })}` : ''}` : `${plan.trades === 1 ? T('{n} trade', { n: F(plan.trades) }) : T('{n} trades', { n: F(plan.trades) })} · ${T('one unit is one normal trade’s Parley')}`, 'gold')}
 		${tile(T('Hold at its fullest'), plan.stops.length ? esc(peak.text) : '—', `${peak.note || T('under the limit')} · ${peak.deal === peak.max ? T('barters and moves to {max}', { max: F(peak.max) }) : T('barters to {deal} · moves to {max}', { deal: F(peak.deal), max: F(peak.max) })}`, peak.state === 'heavy' || peak.state === 'dead' ? 'warn' : peak.state === 'over' ? 'amber' : 'teal')}
-		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours in the pouch')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.short ? ` · <b class="warn">${T('{n} short', { n: F(book.short) })}</b>` : ''}`, book.short ? 'warn' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
-		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(legs.time), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
+		${tile(T('Parley at the end'), plan.stops.length ? F(book.end) : '—', `${T('{spent} spent from {held}', { spent: F(book.spent), held: F(parley.held) })}${parleyGuessed(prof) ? ` · ${T('a full bar, taken as read — type yours in the pouch')}` : ''}${prof.vouchers ? ` · ${prof.vouchers === 1 ? T('{used} of {of} voucher drawn on', { used: book.vouchersUsed, of: prof.vouchers }) : T('{used} of {of} vouchers drawn on', { used: book.vouchersUsed, of: prof.vouchers })}` : ''}${book.waited ? ` · <b class="amber">${T('waits {n} min for a cooldown', { n: F(book.waited) })}</b>` : ''}${book.short ? ` · <b class="warn">${T('runs dry at stop {n}', { n: book.dryAt + 1 })}</b>` : ''}`, book.short ? 'warn' : book.waited ? 'amber' : book.end < PARLEY.max * 0.1 ? 'amber' : 'teal')}
+		${tile(T('Under way'), legs.total ? esc(fmtDistance(legs.total)) : '—', legs.total ? `${T('≈ {time} at {speed}%', { time: esc(runTime(legs, book)), speed: me.speed.total })} · ${islands === 1 ? T('{n} island', { n: islands }) : T('{n} islands', { n: islands })}${wharfs ? `, ${wharfs === 1 ? T('{n} wharf call', { n: wharfs }) : T('{n} wharf calls', { n: wharfs })}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}` : T('pick a chain'))}
 	</div>`;
 	// One route through every chain: the stops in sailing order, each
 	// tagged with its chain, the chains named in the head with the way
@@ -3247,7 +3261,7 @@ function silverParts(me, b) {
 	const foot = chosen.length ? runDockHTML([
 		chosen.length === 1 ? T('<b>{n}</b> chain', { n: chosen.length }) : T('<b>{n}</b> chains', { n: chosen.length }),
 		coining ? (plan.coins ? `<b class="gold">${coinRange(purse.min, purse.max)}</b> ${T('coins')}` : '') : stocking ? (gains.total ? `<b class="teal">+${F(gains.total)}</b> ${T('goods')}` : '') : plan.silver ? `<b class="gold">${FC(Math.round(plan.net))}</b>${plan.cost ? ` ${T('net')}` : ''}` : '',
-		`${plan.stops.length === 1 ? T('<b>{n}</b> stop', { n: plan.stops.length }) : T('<b>{n}</b> stops', { n: plan.stops.length })}${legs.total ? ` · ≈ ${esc(legs.time)}` : ''}`,
+		`${plan.stops.length === 1 ? T('<b>{n}</b> stop', { n: plan.stops.length }) : T('<b>{n}</b> stops', { n: plan.stops.length })}${legs.total ? ` · ≈ ${esc(runTime(legs, book))}` : ''}`,
 		plan.trades ? `${plan.trades === 1 ? T('<b>{n}</b> trade', { n: F(plan.trades) }) : T('<b>{n}</b> trades', { n: F(plan.trades) })} · ${T('{n} Parley left', { n: F(book.end) })}` : '',
 		qp.count ? `📜 ${qp.count === 1 ? T('<b>{n}</b> quest', { n: qp.count }) : T('<b>{n}</b> quests', { n: qp.count })}` : '',
 		peak.state === 'heavy' || peak.state === 'dead' ? `<b class="warn">${T('too heavy')}</b>` : peak.state === 'over' ? `<b class="amber">${T('over the limit')}</b>` : ''
@@ -3271,7 +3285,7 @@ function silverParts(me, b) {
 	// stop by stop for whoever wants to read it before sailing it.
 	const firstOver = plan.stops.findIndex(x => ['over', 'heavy', 'dead'].includes(shownHold(me.hold, x.weightAfter).state));
 	const overNote = firstOver >= 0 && !heavy ? `<div class="barter-shut hold-over"><b>${T('The hold passes its limit at stop {n}', { n: firstOver + 1 })}</b> — ${T('it reaches {text}: sailing slower, still trading.', { text: esc(peak.text) })}${wharfs ? ` ${wharfs === 1 ? T('{n} wharf call is in the run to leave goods on the way.', { n: wharfs }) : T('{n} wharf calls are in the run to leave goods on the way.', { n: wharfs })}` : ''}</div>` : '';
-	const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${plan.stops.length === 1 ? T('{n} stop', { n: plan.stops.length }) : T('{n} stops', { n: plan.stops.length })}${legs.total ? ` · ${esc(fmtDistance(legs.total))} · ≈ ${esc(legs.time)}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, o.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, '')}</summary>${segs}</details>` : '';
+	const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${plan.stops.length === 1 ? T('{n} stop', { n: plan.stops.length }) : T('{n} stops', { n: plan.stops.length })}${legs.total ? ` · ${esc(fmtDistance(legs.total))} · ≈ ${esc(runTime(legs, book))}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, o.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, '')}</summary>${segs}</details>` : '';
 	const empty = chosen.length ? '' : `<div class="run-empty">${T('Nothing ticked. Tick a chain and the run lays itself out here — every rung, the hold after it, and where it has to call.')}</div>`;
 	const load = `${notice}${overNote}${empty}${packingHTML(plan, from, chosen)}${afterShelfHTML(plan, from)}${questsPanels(qp, from)}${routeFold}${kept}`;
 	return {
@@ -3280,7 +3294,7 @@ function silverParts(me, b) {
 			['how', T('How to sail it'), esc(howLine(o)), howHTML(o, presetFigs)],
 			['chains', T('Chains on offer'), esc(chainsSummary), `${chainsBody}${chosen.length ? runFigures : ''}`]
 		],
-		load, dock: foot, packLT: packingLT(plan, from, chosen), things: packingCount(plan, from, chosen), stops: plan.stops.length, time: legs.time || ''
+		load, dock: foot, packLT: packingLT(plan, from, chosen), things: packingCount(plan, from, chosen), stops: plan.stops.length, time: runTime(legs, book) || ''
 	};
 }
 
@@ -3472,6 +3486,7 @@ function materialParts(me, data) {
 	plan.questsHome = qp.home;
 	shownPlan = plan.stops.length ? { stops: plan.stops, cost: plan.cost, bought: plan.bought || [], parleyUsed: 0, questsHome: qp.home } : null;
 	const legs = legsOf(plan.stops);
+	const book = ledgerOf(plan.stops, legs);
 	// What is short splits two ways: some of it may sit in a storage the
 	// run cannot load from -- to bring to the harbour first -- and the
 	// rest is not held at all, to climb for on the item board.
@@ -3524,7 +3539,7 @@ function materialParts(me, data) {
 		${fig('⛵', plan.islands === 1 ? T('{n} island', { n: plan.islands }) : T('{n} islands', { n: plan.islands }), plan.trades === 1 ? T('{n} trade', { n: plan.trades }) : T('{n} trades', { n: plan.trades }))}
 		${plan.calls ? fig('⚓', plan.calls === 1 ? T('{n} harbour call', { n: plan.calls }) : T('{n} harbour calls', { n: plan.calls }), plan.returns ? T('{n} departures: the hold cannot carry every give at once', { n: plan.returns + 1 }) : T('to load from storage')) : ''}
 		${fig('⚖', esc(peakM.text), `${T('at its fullest')} · ${holdCls === 'ok' ? T('under the limit') : holdCls === 'amber' ? T('over the limit: sailing slower') : T('over {n}: too heavy to barter', { n: F(peakM.deal) })}`, holdCls)}
-		${legs.total ? fig('⏱', esc(legs.time), `${T('{dist} at {speed}%', { dist: esc(fmtDistance(legs.total)), speed: me.speed.total })}${from ? ` ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}`) : ''}
+		${legs.total ? fig('⏱', esc(runTime(legs, book)), `${T('{dist} at {speed}%', { dist: esc(fmtDistance(legs.total)), speed: me.speed.total })}${from ? ` ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}`) : ''}
 		${plan.cost ? fig(img(SILVER, 'row-icon xs'), FC(plan.cost), T('to buy ashore first')) : ''}
 	</div>` : '';
 	const summary = plan.ticked ? `<div class="mat-summary">${yieldRows ? `<div class="mat-yield">${yieldRows}</div>` : ''}${figs}</div>` : '';
@@ -3575,11 +3590,11 @@ function materialParts(me, data) {
 	const foot = plan.ticked ? runDockHTML([
 		...mats.map(m => { const g = plan.got.get(m.it); return `${img(m.it, 'row-icon xs')}${T('{got} of {want}', { got: `<b class="${g.min >= m.qty ? 'teal' : ''}">${g.max > 0 ? gotText(m) : '0'}</b>`, want: F(m.qty) })}`; }),
 		plan.stops.length ? `${plan.islands === 1 ? T('<b>{n}</b> island', { n: plan.islands }) : T('<b>{n}</b> islands', { n: plan.islands })}${plan.calls ? `, ${plan.calls === 1 ? T('{n} call', { n: plan.calls }) : T('{n} calls', { n: plan.calls })}` : ''}` : '',
-		legs.total ? `≈ <b>${esc(legs.time)}</b>` : '',
+		legs.total ? `≈ <b>${esc(runTime(legs, book))}</b>` : '',
 		qp.count ? `📜 ${qp.count === 1 ? T('<b>{n}</b> quest', { n: qp.count }) : T('<b>{n}</b> quests', { n: qp.count })}` : '',
 		holdCls === 'warn' ? `<b class="warn">${T('too heavy')}</b>` : holdCls === 'amber' ? `<b class="amber">${T('over the limit')}</b>` : ''
 	]) : '';
-	const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${mats.length ? T('for {materials}', { materials: esc(mats.map(m => gameName(m.it)).join(', ')) }) : T('for a material')}${legs.total ? ` · ≈ ${esc(legs.time)}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, matOrders.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, it || (mats[0] && mats[0].it) || '')}</summary>${segs}</details>` : '';
+	const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${mats.length ? T('for {materials}', { materials: esc(mats.map(m => gameName(m.it)).join(', ')) }) : T('for a material')}${legs.total ? ` · ≈ ${esc(runTime(legs, book))}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, matOrders.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, it || (mats[0] && mats[0].it) || '')}</summary>${segs}</details>` : '';
 	const matsSaid = mats.length ? mats.map(m => `${F(m.qty)}× ${gameName(m.it)}`).join(', ') : T('nothing on the run yet');
 	const comes = plan.ticked ? mats.map(m => { const g = plan.got.get(m.it); return T('{got} of {want}', { got: g.max > 0 ? gotText(m) : '0', want: F(m.qty) }); }).join(' · ') : T('nothing ticked yet');
 	return {
@@ -3589,7 +3604,7 @@ function materialParts(me, data) {
 			['chains', T('What comes of it'), esc(comes), summary || `<p class="empty">${T('Nothing ticked. Open a material and tap each island showing it today — the run lays itself out here.')}</p>`]
 		],
 		load: `${empty}${before}${missing}${ashore}${questsPanels(qp, from)}${routeFold}`,
-		dock: foot, things: { all: plan.bought.length + toBring.length, done: 0 }, stops: plan.stops.length, time: legs.time || ''
+		dock: foot, things: { all: plan.bought.length + toBring.length, done: 0 }, stops: plan.stops.length, time: runTime(legs, book) || ''
 	};
 }
 
@@ -3699,17 +3714,29 @@ function recordedHTML() {
 
 /**
  * What the Parley ledger has to say about a stop, in words: a voucher
- * drawn on there, or a shortfall and how long until a voucher could
- * cover it. The bars showed the quarter jump and the red figure and
- * said nothing, which on a list of sixty stops is nothing at all.
+ * drawn on there; a wait for its cooldown before one can be, with the
+ * whole of the rest of the run coming that much later; or the bar run
+ * dry with nothing to put it back, and the stops after it standing.
+ * The bars showed the quarter jump and the red figure and said
+ * nothing, which on a list of sixty stops is nothing at all. `cls` is
+ * for the row, `tag` for its head, `note` the sentence under it.
  */
-function parleyNotes(row, s) {
-	if (!row) return { voucher: '', short: '' };
-	const voucher = row.voucher ? `<span class="run-note teal parley-note">🎟 ${T('a voucher drawn on here — a quarter of a bar back')}</span>` : '';
-	const short = row.short
-		? `<span class="run-note warn parley-note">${T('{n} Parley short', { n: F(row.short) })} — ${s && s.parley && s.times ? T('{n} of the {of} attempts wait', { n: Math.ceil(row.short / (s.parley / s.times)), of: s.times }) : T('the bar is empty')}${row.voucher ? '' : row.wait ? T('; a voucher can be drawn in <b>{n} min</b>, and the cooldown is the only thing in the way', { n: F(row.wait) }) : T(', and there is no voucher to draw on')}</span>`
-		: '';
-	return { voucher, short };
+function parleyNotes(book, k, s) {
+	const row = book && book.rows[k];
+	if (!row) return { cls: '', tag: '', note: '' };
+	if (row.wait) {
+		const then = row.drawn > 1 ? T('draws on {n} vouchers, and trades', { n: row.drawn }) : T('draws on a voucher, and trades');
+		return { cls: 'wait', tag: `<i class="rest-tag amber" title="${T('The bar runs short here; the ship waits for the voucher’s cooldown')}">⏳ ${T('waits {n} min', { n: F(row.wait) })}</i>`,
+			note: `<span class="run-note amber parley-note">${T('The bar runs short here — the ship waits <b>{n} min</b> for the voucher’s cooldown, {then}. Every stop after comes that much later.', { n: F(row.wait), then })}</span>` };
+	}
+	if (row.voucher) return { cls: 'voucher', tag: `<i class="rest-tag teal" title="${T('a voucher drawn on here — a quarter of a bar back')}">🎟 ${T('voucher')}</i>`, note: `<span class="run-note teal parley-note">🎟 ${T('a voucher drawn on here — a quarter of a bar back')}</span>` };
+	if (row.dry && k === book.dryAt) {
+		const why = ordersNow().vouchers === 'keep' ? T('the vouchers are kept') : T('there is no voucher to draw on');
+		return { cls: 'short', tag: `<i class="rest-tag warn">${T('{n} Parley short', { n: F(row.short) })}</i>`,
+			note: `<span class="run-note warn parley-note">${T('{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.', { n: F(row.short), why })}</span>` };
+	}
+	if (row.dry) return { cls: 'dry', tag: `<i class="rest-tag warn">${T('waits for Parley')}</i>`, note: `<span class="run-note warn parley-note">${T('Not paid for — the bar ran dry at stop {n}.', { n: book.dryAt + 1 })}</span>` };
+	return { cls: '', tag: '', note: '' };
 }
 
 /** The mini bars a stop carries: the hold after it and the Parley. */
@@ -3737,7 +3764,7 @@ function sailHTML() {
 	const wanted = questWanted();
 	const made = tradesDone(on, stops);
 	const doneN = stops.filter((s, k) => ticked(on.done, s, k, stops)).length;
-	const clock = timerHTML({ suggest: legs.mid || 0, label: runLabel(plan), marks: runMarks(plan, legs) });
+	const clock = timerHTML({ suggest: legs.mid || 0, label: runLabel(plan), marks: runMarks(plan, legs, book) });
 	const legOf = k => { const m = legs.from ? legs.legs[k] : k > 0 ? legs.legs[k - 1] : null; return m != null ? `${fmtDistance(m)} · ${legs.timeOf(m)}` : ''; };
 	const at = stopAt(plan, on);
 	const guessed = unsaid(plan, on).length;
@@ -3794,9 +3821,9 @@ function sailHTML() {
 		: `<div class="cockpit-call">${stopDid(s, true) || `<span class="faint">${names.kind}</span>`}</div>`;
 	const figures = `<div class="cockpit-figs">
 		<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('hold')}</span><span>${bars.w.note || ''}</span></div><div class="cockpit-fig-v"><b class="${bars.bad ? 'warn' : bars.over ? 'amber' : ''}">${esc(bars.w.text)}</b></div><div class="run-bar"><i style="width:${bars.w.fill.toFixed(1)}%"></i><i class="over" style="width:${bars.w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${bars.w.worse.toFixed(1)}%"></i></div></div>
-		${row ? `<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('parley')}</span><span>${s.npcId && row.spent ? `−${F(row.spent)}` : ''}</span></div><div class="cockpit-fig-v">${prev ? `<span>${F(prev.after)}</span><i>→</i>` : ''}<b class="${row.short ? 'warn' : ''}">${F(row.after)}</b></div><div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div>${parleyNotes(row, s).voucher}${parleyNotes(row, s).short}</div>` : ''}
+		${row ? `<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('parley')}</span><span>${s.npcId && row.spent ? `−${F(row.spent)}` : ''}</span></div><div class="cockpit-fig-v">${prev ? `<span>${F(prev.after)}</span><i>→</i>` : ''}<b class="${row.short ? 'warn' : ''}">${F(row.after)}</b></div><div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div>${parleyNotes(book, at, s).note}</div>` : ''}
 	</div>`;
-	const head = `<div class="panel-head cockpit-head"><h2 class="panel-title">${T('Stop {n} of {of}', { n: at + 1, of: stops.length })}</h2><span class="panel-sub">${esc(legOf(at))}</span>${row && row.voucher ? `<i class="rest-tag teal">🎟 ${T('voucher drawn here')}</i>` : ''}${row && row.short ? `<i class="rest-tag warn">${T('{n} Parley short', { n: F(row.short) })}</i>` : ''}<span class="panel-spacer"></span><button class="linky" data-act="barter-glance">${glance ? T('full view') : T('Glance mode')}</button></div>${clock ? `<div class="cockpit-clock">${clock}</div>` : ''}`;
+	const head = `<div class="panel-head cockpit-head"><h2 class="panel-title">${T('Stop {n} of {of}', { n: at + 1, of: stops.length })}</h2><span class="panel-sub">${esc(legOf(at))}</span>${parleyNotes(book, at, s).tag}<span class="panel-spacer"></span><button class="linky" data-act="barter-glance">${glance ? T('full view') : T('Glance mode')}</button></div>${clock ? `<div class="cockpit-clock">${clock}</div>` : ''}`;
 	const under = `<div class="cockpit-under"><button class="linky" data-act="barter-sail-skip" data-k="${esc(key)}">${s.npcId ? T('island didn’t deal — skip it') : T('skip this stop')}</button><span>·</span><button class="linky" data-act="barter-step" data-id="results">${T('stop here, see the results')}</button></div>`;
 	const next = stops[at + 1];
 	const nextHTML = next ? (() => { const nn = stopNames(next); return `<div class="cockpit-next"><span class="cockpit-next-k">${T('next')}</span><b>${esc(nn.place)}</b><span>${esc(legOf(at + 1))}</span>${next.npcId ? `<span>${esc(next.giveText)}× ${esc(gameName(next.give))} → <span class="tiered" style="--tier:${TIER(levelOf(next.item))}">${esc(next.recvText)}× ${esc(gameName(next.item))}</span> ×${F(next.times)}</span>` : `<span>${nn.kind}</span>`}</div>`; })() : '';
@@ -3832,10 +3859,10 @@ function restHTML(plan, on, book, legOf, at) {
 		const what = s.npcId
 			? `${img(s.give, 'row-icon xs')}<span>${esc(s.giveText)}× ${esc(gameName(s.give))}</span><span class="faint">→</span>${img(s.item, 'row-icon xs')}<span class="tiered" style="--tier:${TIER(levelOf(s.item))}">${esc(s.recvText)}× ${esc(gameName(s.item))}</span><b>×${F(s.times)}</b>`
 			: `<span>${s.wharf ? [s.loads && s.loads.length ? T('Loads from storage') : '', s.dropped && s.dropped.length ? T('Leaves in storage') : '', s.sale ? T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: T('goods'), silver: FC(Math.round(s.sale.total)) }) : ''].filter(Boolean).join(' · ') || names.kind : names.kind}</span>`;
-		const pn = parleyNotes(book.rows[k], s);
-		return `<div class="rest-row${k === at ? ' here' : ''}${done ? ' done' : ''}${skipped.has(key) && !done ? ' skipped' : ''}${pn.voucher ? ' voucher' : ''}${pn.short ? ' short' : ''}" data-act="barter-sail-jump" data-k="${esc(key)}" role="button" tabindex="0">
+		const pn = parleyNotes(book, k, s);
+		return `<div class="rest-row${k === at ? ' here' : ''}${done ? ' done' : ''}${skipped.has(key) && !done ? ' skipped' : ''}${pn.cls ? ` ${pn.cls}` : ''}" data-act="barter-sail-jump" data-k="${esc(key)}" role="button" tabindex="0">
 			<button class="rest-dot${done ? ' on' : ''}" data-act="barter-stop-done" data-k="${esc(key)}" aria-pressed="${done}" title="${T('tick this stop')}">${done ? '✓' : k + 1}</button>
-			<div class="rest-main"><div class="rest-head"><b>${esc(names.place)}</b><span>${esc(names.who)}</span>${pn.voucher ? `<i class="rest-tag teal" title="${T('a voucher drawn on here — a quarter of a bar back')}">🎟 ${T('voucher')}</i>` : ''}${pn.short ? `<i class="rest-tag warn">${T('{n} Parley short', { n: F(book.rows[k].short) })}</i>` : ''}</div><div class="rest-what">${what}</div>${bars.bad || bars.over ? `<div class="rest-note">${bars.w.note || T('over the limit')}</div>` : ''}${pn.voucher}${pn.short}</div>
+			<div class="rest-main"><div class="rest-head"><b>${esc(names.place)}</b><span>${esc(names.who)}</span>${pn.tag}</div><div class="rest-what">${what}</div>${bars.bad || bars.over ? `<div class="rest-note">${bars.w.note || T('over the limit')}</div>` : ''}${pn.note}</div>
 			<div class="rest-bars">${bars.hold}${bars.parley}<span class="rest-leg">${esc(legOf(k))}</span></div>
 		</div>`;
 	}).join('');
@@ -3871,7 +3898,7 @@ function resultsHTML() {
 	const spent = parleySpentOf(plan, on);
 	const bar = parleyOf(prof).held;
 	const book = ledgerOf(stops, legsOf(stops));
-	const drawnSoFar = stops.filter((s, k) => book.rows[k].voucher && ticked(on.done, s, k, stops)).length;
+	const drawnSoFar = stops.reduce((n, s, k) => n + (ticked(on.done, s, k, stops) ? book.rows[k].drawn || 0 : 0), 0);
 	const coins = trip.delta[COIN] || 0;
 	const guessedCoins = unsaid(plan, on).some(s => s.item === COIN);
 	const wharfTicked = stops.some((s, k) => s.wharf && s.sale && ticked(on.done, s, k, stops));
@@ -3903,7 +3930,7 @@ function resultsHTML() {
 		const line = s.npcId ? `${esc(s.giveText)}× ${esc(gameName(s.give))} → ${esc(s.recvText)}× ${esc(gameName(s.item))} ×${F(s.times)}${said_}` : s.wharf && s.sale ? T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: T('goods'), silver: FC(Math.round(s.sale.total)) }) : names.kind;
 		const cost = s.npcId ? (Number(s.parley) > 0 ? Number(s.parley) : (Number(s.times) || 0) * parleyOf(prof).perTrade) : 0;
 		const lr = book.rows[k];
-		return `<div class="log-row${d ? ' done' : ''}"><span class="rest-dot${d ? ' on' : ''}" aria-hidden="true">${d ? '✓' : k + 1}</span><div><b>${esc(names.place)}</b>${lr && lr.voucher ? ` <i class="rest-tag teal">🎟 ${T('voucher')}</i>` : ''}<em>${line}</em></div><span class="log-right">${d ? (cost ? T('−{n} Parley', { n: F(Math.round(cost)) }) : T('Done')) : T('not yet')}</span></div>`;
+		return `<div class="log-row${d ? ' done' : ''}"><span class="rest-dot${d ? ' on' : ''}" aria-hidden="true">${d ? '✓' : k + 1}</span><div><b>${esc(names.place)}</b>${lr ? ` ${parleyNotes(book, k, s).tag}` : ''}<em>${line}</em></div><span class="log-right">${d ? (cost ? T('−{n} Parley', { n: F(Math.round(cost)) }) : T('Done')) : T('not yet')}</span></div>`;
 	}).join('');
 	const line = (k, v, cls = '') => `<div class="receipt-line"><span>${k}</span><b${cls ? ` class="${cls}"` : ''}>${v}</b></div>`;
 	const net = trip.silver - trip.spent;

@@ -37,7 +37,6 @@
 		"other": "+{pct}% за {n} бартеров"
 	},
 	", all aboard": ", все на борту",
-	", and there is no voucher to draw on": ", и гарантии, которую можно взять, нет",
 	", and {n} more": ", и ещё {n}",
 	", and {n} trace kept": {
 		"few": ", и {n} следа сохранено",
@@ -75,7 +74,6 @@
 	"90% at": "90% при",
 	"90% at {n}.": "90% при {n}.",
 	"9–10 Innocents; the highest Endurance take the Sail seats.": "9–10 Искренних; на Парус — с самой высокой Выносливостью.",
-	"; a voucher can be drawn in <b>{n} min</b>, and the cooldown is the only thing in the way": "; гарантию можно будет взять через <b>{n} мин</b>, и мешает только откат",
 	"<b>**bold**</b> · <i>*italic*</i> · <code>`code`</code> · &gt; quote · - list · ||spoiler|| · a link to a film becomes the film": "<b>**полужирный**</b> · <i>*курсив*</i> · <code>`код`</code> · &gt; цитата · - список · ||спойлер|| · ссылка на фильм превращается в сам фильм",
 	"<b>1 more island</b> is left out: {isles} — you looked and it was not trading.": "<b>Ещё 1 остров</b> не вошёл: {isles} — вы посмотрели, и он не торговал.",
 	"<b>A Caravel has no crew positions, and the app was drawing six of them.</b> The game’s Manage Sailors window offers a Sail, a Wheel, a Cannon, a Deck, a Mess and a First Mate on a Carrack and on the Panokseon. On an <b>Epheria Caravel</b> — or a Galleass, a frigate, a sailboat, the Bartali — it offers one row of cabins and nothing else. The app laid the same frame over every hull that seats anybody, so a six-sailor Caravel was shown seats the game does not have, and the numbers followed: a sailor in the app’s Sail seat had their Endurance and Wits <i>counted twice</i> on a hull where the game counts them once, which put the speed, acceleration, turn and brake of every small boat above what its own window reads — and with them the Map’s sailing times, a run’s pace, and the ten per cent off Parley, which asks for a First Mate seat there is no box for. Below a Carrack the board is now the row of cabins the game draws, on the deck where the game draws it, and the figures are the plain sum of who is aboard. A crew arranged under the old model is <b>not put ashore</b>: they keep their places in the cabins, saved presets included. <i>Auto assign</i> on those hulls asks the one question left — who comes aboard, against the cabin space — and says so.": "<b>У каравеллы нет мест экипажа, а приложение рисовало их шесть.</b> Игровое окно управления матросами даёт Парус, Штурвал, Пушку, Палубу, Камбуз и Старшего помощника на Галеоне и на Пханоксоне. На <b>Каравелле Эферии</b> — как и на Фрегате, на Корвете, на Бригантине, на Паруснике Бартелли — оно даёт один ряд кают и ничего больше. Приложение накладывало одну и ту же рамку на каждый корпус, который кого-то вмещает, поэтому каравелле с шестью матросами показывались места, которых в игре нет, а за этим пошли и числа: у матроса на месте Паруса Выносливость и Смекалка <i>считались дважды</i> на корпусе, где игра считает их один раз, и это поднимало скорость, разгон, поворот и торможение каждой малой лодки выше того, что читается в её собственном окне, — а с ними время перехода на Карте, темп рейса и десять процентов скидки на Переговоры, которой нужно место Старшего помощника, а такой клетки нет. Ниже Галеона схема — это тот ряд кают, который рисует игра, на той палубе, где его рисует игра, а числа — простая сумма тех, кто на борту. Экипаж, расставленный по старой схеме, <b>на берег не сходит</b>: матросы остаются на своих местах в каютах, вместе с сохранёнными наборами. <i>Автоматическая расстановка</i> на таких корпусах задаёт единственный оставшийся вопрос — кто идёт на борт при таком запасе кают — и так и говорит.",
@@ -4800,7 +4798,6 @@
 	"the average, where it is filled in": "среднее, где оно заполнено",
 	"the bags": "сумки",
 	"the bags · the ship, for trade goods": "сумки · корабль, для торговых товаров",
-	"the bar is empty": "полоса пуста",
 	"the barter count": "число бартеров",
 	"the barter count, as set on the Barter tab": "число бартеров, как задано на вкладке «Бартер»",
 	"the barter window, read off screenshots of four refreshes; how often each offer is up comes from these": "окно бартера, считанное со снимков четырёх обновлений; из них и берётся, как часто выпадает каждое предложение",
@@ -5048,7 +5045,6 @@
 	"via Mass Process": "через Массовую обработку",
 	"vision": "обзор",
 	"voucher": "ваучер",
-	"voucher drawn here": "здесь взят ваучер",
 	"vouchers": "гарантии",
 	"wanted": "нужно",
 	"watched the pool?": "следили за запасом?",
@@ -6173,7 +6169,6 @@
 	},
 	"{n} of it {what}": "{n} из этого — {what}",
 	"{n} of the trade list": "{n} из торгового списка",
-	"{n} of the {of} attempts wait": "{n} из {of} попыток ждут",
 	"{n} of them": "{n} из них",
 	"{n} of them pay in what your plan still wants": "{n} из них платят тем, что ещё нужно вашему плану",
 	"{n} of them will ask which reward you took": "{n} из них спросят, какую награду вы взяли",
@@ -7070,5 +7065,22 @@
 	"🔔 notify me too": "🔔 уведомлять и меня",
 	"🔔 on the Home Screen": "🔔 на домашнем экране",
 	"🔔 reminding by push": "🔔 напоминает через push",
-	"🔔 reminding while open": "🔔 напоминает, пока открыто"
+	"🔔 reminding while open": "🔔 напоминает, пока открыто",
+	"Not paid for — the bar ran dry at stop {n}.": "Не оплачено — шкала опустела на остановке {n}.",
+	"The bar runs short here — the ship waits <b>{n} min</b> for the voucher’s cooldown, {then}. Every stop after comes that much later.": "Здесь шкалы не хватает — корабль ждёт <b>{n} мин</b>, пока пройдёт откат гарантии, {then}. Каждая следующая остановка сдвигается на столько же.",
+	"The bar runs short here; the ship waits for the voucher’s cooldown": "Здесь шкалы не хватает; корабль ждёт откат гарантии",
+	"draws on a voucher, and trades": "берёт гарантию и торгует",
+	"draws on {n} vouchers, and trades": {
+		"one": "берёт {n} гарантию и торгует",
+		"few": "берёт {n} гарантии и торгует",
+		"many": "берёт {n} гарантий и торгует",
+		"other": "берёт {n} гарантии и торгует"
+	},
+	"runs dry at stop {n}": "пустеет на остановке {n}",
+	"the vouchers are kept": "гарантии отложены",
+	"there is no voucher to draw on": "гарантии, которую можно взять, нет",
+	"waits for Parley": "ждёт Переговоров",
+	"waits {n} min": "ждёт {n} мин",
+	"waits {n} min for a cooldown": "ждёт {n} мин отката",
+	"{n} Parley short, and {why} — the bar runs dry here. This barter and every one after it wait for tomorrow’s bar; the run is what stands above this line.": "Не хватает {n} Переговоров, и {why} — здесь шкала пустеет. Этот обмен и все после него ждут завтрашней шкалы; рейс — это то, что выше этой черты."
 }

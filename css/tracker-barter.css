@@ -358,6 +358,7 @@
 .run-bar i.heavy { background: var(--red); }
 .run-note { font-size: 10.5px; color: var(--amber); margin-top: 4px; line-height: 1.35; }
 .run-note.warn { color: var(--red); }
+.run-note.amber { color: var(--amber); }
 .run-list { padding: 0; overflow: hidden; }
 .run-list .panel-head { padding: 12px 18px 10px; border-bottom: 1px solid var(--line-soft); margin: 0; }
 .run-list.gold .panel-title { color: var(--amber); }
@@ -1041,6 +1042,12 @@ button.rung-fate { cursor: pointer; }
 .parley-note { display: block; margin-top: 4px; font-size: 11.5px; }
 .rest-row.voucher .mini-bar .run-bar.parley i { box-shadow: 0 0 0 1px var(--teal); }
 .rest-row.short .rest-dot { border-color: var(--red); }
+.rest-tag.amber { color: var(--amber); border: 1px solid color-mix(in srgb, var(--amber) 45%, transparent); background: color-mix(in srgb, var(--amber) 10%, transparent); }
+.rest-row.wait .rest-dot { border-color: var(--amber); }
+.rest-row.dry:not(.done) .rest-main, .rest-row.dry:not(.done) .rest-bars { opacity: 0.55; }
+.rest-row.dry:not(.done) .rest-dot { border-style: dashed; }
+.run-parley.wait b { color: var(--amber); }
+.run-parley.dry, .run-parley.short { color: var(--red); }
 .rest-bars { width: 132px; flex: none; display: flex; flex-direction: column; gap: 5px; }
 .rest-leg { font-size: 10.5px; color: var(--ink-faint); text-align: right; }
 .mini-bar > div { display: flex; justify-content: space-between; gap: 6px; font-size: 10.5px; color: var(--ink-faint); }
