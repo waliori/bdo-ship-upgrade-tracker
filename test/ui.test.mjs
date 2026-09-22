@@ -2012,8 +2012,15 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 		await page.evaluate(() => { const el = document.querySelector('.cockpit [data-act="barter-paid-n"]'); el.value = String(Math.round((Number(el.min) || 0) || 400)); el.dispatchEvent(new Event('change', { bubbles: true })); });
 		await wait(900);
 	}
+	// Saying the counts lays the run again, and more trades can bring a
+	// barter quest within reach -- a quest stop the run now makes. Ticked
+	// off the same way, all at once.
+	if (!/(\d+) of \1 stops done/.test(await text(page, '.sail-n'))) {
+		await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all"]').click()); await wait(800);
+		await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all-go"]').click()); await wait(1500);
+	}
 	const allText = await text(page, '.sail-n');
-	assert.match(allText, /(\d+) of \1 stops done/, allText);
+	assert.match(allText, /(\d+) of \1 stops done/, `${allText} — at: ${await text(page, '.cockpit .panel-body')}`);
 	// Every stop ticked, the step says so and points at the results.
 	assert.match(await text(page, '.all-ticked'), /Every stop is ticked/i);
 	// The results: the figures, the stops one under another, and the

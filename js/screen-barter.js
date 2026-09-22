@@ -1185,6 +1185,7 @@ function cutsHTML(plan, pace, name) {
 	if (!plan.cut || !plan.cut.length) return '';
 	const lines = plan.cut.map(c => {
 		const chain = plan.order[c.chain];
+		const untick = chain && chain.id && !String(chain.id).includes('>') ? ` <button class="chip tiny" data-act="barter-chain" data-id="${esc(chain.id)}" title="${T('Take this chain off the run')}">${T('untick')}</button>` : '';
 		// The island named is the one the chain could not deal at -- it
 		// never got there, so it is never the island it "stopped at".
 		const where = esc(isleShort(npcById.get(c.npcId)) || c.npc);
@@ -1224,7 +1225,6 @@ function cutsHTML(plan, pace, name) {
 				: `<span class="run-cut-out">${T('it comes back when somebody lists some; the prices are asked again every half hour')}</span>`;
 			return `<li><b>${name(chain)}</b> ${got} — ${why}. ${own}${untick}</li>`;
 		}
-		const untick = chain && chain.id && !String(chain.id).includes('>') ? ` <button class="chip tiny" data-act="barter-chain" data-id="${esc(chain.id)}" title="${T('Take this chain off the run')}">${T('untick')}</button>` : '';
 		if (c.why === 'floor') {
 			return `<li><b>${name(chain)}</b> ${got} — ${why}.${untick} <button class="chip tiny primary" data-act="barter-floor-clear" data-lvs="${c.level}" title="${T('Set that floor back to none, so the run may spend what it makes')}">${T('drop the Level {lv} floor', { lv: c.level })}</button></li>`;
 		}
@@ -2028,6 +2028,11 @@ function answerHere(req) {
  */
 function proposeAsync(args, tag, then) {
 	if (pending) dropWorker();
+	// The main search has the machine to itself: the ways of sailing
+	// searched for the last inputs are stopped, and asked again once this
+	// answers.
+	if (presetWorker) { presetWorker.terminate(); presetWorker = null; }
+	presetState = { key: '', res: new Map(), queue: [], busy: false };
 	const w = workerOf();
 	if (!w) return propose(args);
 	const id = ++reqSeq;
@@ -2656,7 +2661,22 @@ function syncSail(plan) {
 	if (!on || !plan || !plan.stops || !plan.stops.length) return;
 	const laidFor = JSON.stringify(on.seen || {});
 	if (on.laidFor === laidFor) return;
+	// Quest stops ticked before the new laying keep their tick by place:
+	// laid again, a quest stop can move among the stops and answer to a
+	// new name, and the tick stayed behind on the old one.
+	const oldStops = Array.isArray(on.stops) ? on.stops : [];
+	const questPlaces = new Set(oldStops.filter((s, k) => s.quest && s.place && ticked(on.done, s, k, oldStops)).map(s => s.place.name));
 	Object.assign(on, sailRecord(plan), { laidFor });
+	// A quest stop the new laying puts in, whose quests were all handed
+	// in already -- "All done" hands them in before the counts are said
+	// -- is a stop already made: ticked, not left standing at the end.
+	const done = new Set(on.done);
+	plan.stops.forEach((s, k) => {
+		if (!s.quest) return;
+		if (s.place && questPlaces.has(s.place.name)) done.add(stopKey(s, k, plan.stops));
+		else if ((s.quests || []).length && s.quests.every(x => x.q && questDone(x.q))) done.add(stopKey(s, k, plan.stops));
+	});
+	on.done = [...done];
 	persist();
 }
 
