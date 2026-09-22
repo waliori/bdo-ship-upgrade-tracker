@@ -1684,6 +1684,14 @@ async function laidOut(page) {
 	}
 	await page.waitForSelector('.barter-screen.step-load', { timeout: 10000 });
 	await wait(200);
+	// The route is laid from what is aboard: everything on the packing
+	// list ticked, row by row, the way a sailor at the wharf does it.
+	for (let i = 0; i < 40; i++) {
+		const box = await page.$('.pack-row:not(.on) .pack-box');
+		if (!box) break;
+		await box.click(); await wait(150);
+	}
+	await wait(200);
 }
 
 /** Back to the plan. The tests seed `planSec: 'all'`, so all four of
