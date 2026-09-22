@@ -220,15 +220,9 @@ export function profileHTML({ sheet = false } = {}) {
 			`${T('{n} a trade', { n: F(day.perTrade) })}${cut ? ` · ${cut}` : ''}`,
 			T('Your barter level, as the Barter window shows it: every level takes a share off what an exchange costs in Parley')),
 
-		chip('parley', '◈', T('Parley'), num('parley-held', p.parleyHeld, T('Parley in the bar right now')),
-			T('{n} trades a refill', { n: F(day.tradesPerBar) }),
-			T('The Parley in your bar right now, so a run can say whether you can afford it. The bar refills to a million at the barter reset.')),
-
-		chip('vouchers', img("Crow's Trade Voucher", 'pouch-icon'), T('Vouchers'),
-			num('vouchers', p.vouchers, T('{name}s you carry', { name: gameName("Crow's Trade Voucher") })),
-			T('+{n} Parley in hand', { n: F(250_000 * p.vouchers) }),
-			T("Crow's Trade Vouchers in the bag: each one recovers 250,000 Parley, a quarter of the bar")),
-
+		// The Parley bar and the vouchers moved to the Barter tab's plan,
+		// as the first thing it asks: they are what today has left, not
+		// facts about the sailor.
 		// The two that were crammed into one chip. A Value Pack is a
 		// thing you have or have not -- a switch, said in words -- and
 		// the draws are what it buys, counted with the clock that
