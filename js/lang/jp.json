@@ -1859,7 +1859,6 @@
 	"Recorded: {n} stop": "記録済み：寄港地{n}件",
 	"Recorded: {n} stops": "記録済み：寄港地{n}件",
 	"Recording a level here costs nothing. The Workshop is for attempts you are really making.": "ここでレベルを記録しても何も消費しません。工房は実際に行う挑戦のための場所です。",
-	"Recording moves inventory, storage, Silver, Parley, Total Barters and the log as one Undo. Only ticked stops count.": "記録すると、持ち物・倉庫・シルバー・交渉力・取引回数・日誌がひとつの取り消しでまとめて動きます。印の付いた寄港地だけが数えられます。",
 	"Recover": "復元",
 	"Recover all": "すべて復元",
 	"Redo": "やり直す",
@@ -2738,7 +2737,6 @@
 	"Tick several tiles and move them to a storage together": "複数のタイルに印を付けて、まとめて倉庫へ移す",
 	"Tick the chains to sail, or let the search fill them in.": "航海する連鎖に印を付けるか、検索に埋めさせてください。",
 	"Tick the islands showing it today": "今日それを出している島に印を付ける",
-	"Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change": "進みながら寄港地に完了印を付けてください。最後に、旅程全体が1つの変更としてインベントリに入ります",
 	"Tick them all": "すべてに印を付ける",
 	"Tick to act on several at once": "印を付けて、まとめて操作する",
 	"Tick what is aboard above: this fills with what the run leaves in storage, chain by chain, as its first goods come aboard.": "上で積載済みをチェック：ここにはチェーンごとに、最初の品が積まれるにつれて航海が倉庫に残すものが並びます。",
@@ -5138,5 +5136,12 @@
 	"And, whichever way you sail": "そして、どの航海でも",
 	"What “{name}” sets": "「{name}」の設定",
 	"change any of them and the card that matches is chosen — or “My own way” when none does": "どれかを変えると一致するカードが選ばれます。どれにも一致しなければ「自分のやり方で」",
-	"show what this way sets": "このやり方の設定を表示"
+	"show what this way sets": "このやり方の設定を表示",
+	"In the hold": "船倉の中",
+	"The hold follows the run’s ticks": "船倉は航海のチェックに合わせて変わります",
+	"The run dropped: the hold as it cast off": "航海を中止：船倉は出航時の状態に",
+	"Traded at {place}: the hold": "{place}で交換：船倉",
+	"{n} of {of} slots": "{n}/{of} スロット",
+	"The hold already follows every ticked stop. Recording adds the Parley, Total Barters, the quests and the log; its Undo takes the whole run back.": "船倉はチェックした停泊地ごとにすでに反映されています。記録で交渉力、物々交換の総数、クエスト、ログが加わり、元に戻すと航海全体が戻ります。",
+	"Each stop goes into the hold as you tick it; at the end the run is recorded": "各停泊地はチェックした時点で船倉に反映され、最後に航海が記録されます"
 }

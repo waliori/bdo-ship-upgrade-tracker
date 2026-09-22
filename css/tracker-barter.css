@@ -1320,3 +1320,22 @@ button.rung-fate { cursor: pointer; }
   .run-dock > .act, .load-dock > .act, .cockpit-foot > .act { flex: 1 1 100%; min-width: 0; }
 }
 .hold-shore { margin-top: 10px; display: grid; gap: 4px; } .hold-shore .ashore-k { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); }
+
+/* The hold as the game's window draws it: a grid of slots, eleven across. */
+.hold-slots { margin-top: 14px; border: 1px solid var(--line); border-radius: 10px; background: rgba(0, 0, 0, .18); }
+.hold-slots-head { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: baseline; gap: 10px; padding: 9px 12px; cursor: pointer; }
+.hold-slots-head:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; border-radius: 10px; }
+.hold-slots-k { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); }
+.hold-slots-sub { font-size: 12px; color: var(--ink-faint); }
+.hold-slots.full .hold-slots-sub { color: var(--warn, #e07a6a); }
+.hold-slots-fold { color: var(--ink-faint); font-size: 11px; }
+.slot-grid { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 4px; padding: 0 12px 12px; max-height: 260px; overflow-y: auto; }
+.slot { position: relative; aspect-ratio: 1; border-radius: 4px; background: #2a2c30; border: 1px solid #3a3d42; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .5); }
+.slot.full { border-color: color-mix(in srgb, var(--tier, #8a8f98) 70%, #000); }
+.slot.off { opacity: .35; background: #1c1d20; }
+.slot.over { border-color: var(--warn, #e07a6a); }
+.slot .slot-img { position: absolute; inset: 2px; width: calc(100% - 4px); height: calc(100% - 4px); object-fit: contain; }
+.slot b { position: absolute; right: 3px; bottom: 1px; font-size: 11px; font-weight: 600; color: #f1f1f1; text-shadow: 0 0 2px #000, 0 0 2px #000; }
+.cockpit.glance .hold-slots { width: min(660px, 100%); align-self: center; margin-left: auto; margin-right: auto; }
+.cockpit.glance .slot b { font-size: 13px; }
+@media (max-width: 560px) { .slot-grid { gap: 2px; padding: 0 8px 8px; } .slot b { font-size: 9px; } }

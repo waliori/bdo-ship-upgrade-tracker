@@ -104,6 +104,8 @@ const emptyState = () => ({
 	settings: {}
 });
 
+// The stock as it stood before a run's ticks: see readingAsWas.
+let asWas = null;
 let state = emptyState();
 let listeners = new Set();
 let writeTimer = null;
@@ -415,6 +417,12 @@ function notify(reason) {
  * ------------------------------------------------------------------ */
 
 function commit(type, label, mutate) {
+	const was = asWas;
+	asWas = null;
+	try { return commitReal(type, label, mutate); } finally { asWas = was; }
+}
+
+function commitReal(type, label, mutate) {
 	// While the tour's example data is in: act, but leave no record. A
 	// history entry written against demo quantities would hand undo a
 	// delta that was never true of the real inventory.
@@ -610,11 +618,44 @@ export function getState() {
 }
 
 export function getStock(item) {
-	return state.stock[item] || 0;
+	return (asWas ? asWas.stock : state.stock)[item] || 0;
 }
 
 export function getAllStock() {
-	return state.stock;
+	return asWas ? asWas.stock : state.stock;
+}
+
+/**
+ * The stock read as it stood before some changes, for as long as `fn`
+ * runs: a run under way writes each stop into the hold as it is
+ * ticked, and the run itself is still laid from the hold it cast off
+ * with. `undo` is what was written since, { delta, moves }, and is
+ * taken back on a copy -- nothing is written. A write made inside
+ * `fn` is made to the real stock, and reads after it read the real
+ * stock too.
+ */
+export function readingAsWas(undo, fn) {
+	const delta = (undo && undo.delta) || {}, moves = (undo && undo.moves) || [];
+	if (!Object.keys(delta).length && !moves.length) return fn();
+	const stock = { ...state.stock };
+	const stash = Object.fromEntries(Object.entries(state.profile.stash || {}).map(([k, v]) => [k, { ...v }]));
+	const put = (item, town, n) => {
+		if (!town) return;
+		const towns = stash[item] || (stash[item] = {});
+		towns[town] = (towns[town] || 0) + n;
+		if (towns[town] <= 0) delete towns[town];
+	};
+	// The moves backwards first, then the counts: a good handed over
+	// came off the ship, so it goes back on the ship.
+	for (const m of moves) { put(m.item, m.to, -m.n); put(m.item, m.from, m.n); }
+	for (const [item, d] of Object.entries(delta)) {
+		const n = Math.max(0, (stock[item] || 0) - d);
+		if (n > 0) stock[item] = n; else delete stock[item];
+		if (d < 0 && (stash[item] || {})[ABOARD] !== undefined) put(item, ABOARD, -d);
+	}
+	const prev = asWas;
+	asWas = { stock, stash };
+	try { return fn(); } finally { asWas = prev; }
 }
 
 export function getTargets() {
@@ -856,7 +897,7 @@ export function setStock(item, qty, label, at = true) {
  * claims; `ABOARD` is the ship's hold.
  */
 export function stockAt(item, town) {
-	const places = (state.profile.stash && state.profile.stash[item]) || {};
+	const places = ((asWas ? asWas.stash : state.profile.stash) || {})[item] || {};
 	if (town === '') return Math.max(0, getStock(item) - Object.values(places).reduce((a, b) => a + b, 0));
 	return places[town] || 0;
 }
@@ -1047,10 +1088,13 @@ export function placeAll(items, town, label) {
  * '' for the ship), and a profile patch, the run's entry in the log.
  * One Undo takes the whole trip back.
  */
-export function applyTrip({ delta = {}, moves = [], profile = null, label = T('Sailed a run') } = {}) {
+export function applyTrip({ delta = {}, moves = [], profile = null, label = T('Sailed a run'), at = false } = {}) {
 	const entries = Object.entries(delta).filter(([, d]) => Number(d));
 	return commit('trip', label, () => {
-		for (const [item, d] of entries) writeStock(item, getStock(item) + Math.floor(d), false);
+		// `at` names the place a good comes off first, or goes onto: the
+		// ship's hold, for a stop ticked on a run under way. A function
+		// answers it good by good.
+		for (const [item, d] of entries) writeStock(item, getStock(item) + Math.floor(d), (typeof at === 'function' ? at(item, d) : d < 0 ? at : false) || false);
 		const stash = { ...(state.profile.stash || {}) };
 		for (const m of moves) {
 			const qty = Math.min(Math.floor(Number(m.n) || 0), m.from === '' ? Math.max(0, getStock(m.item) - Object.values(stash[m.item] || {}).reduce((a, b) => a + b, 0)) : ((stash[m.item] || {})[m.from] || 0));

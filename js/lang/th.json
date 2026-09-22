@@ -1859,7 +1859,6 @@
 	"Recorded: {n} stop": "บันทึกแล้ว: {n} จุด",
 	"Recorded: {n} stops": "บันทึกแล้ว: {n} จุด",
 	"Recording a level here costs nothing. The Workshop is for attempts you are really making.": "การบันทึกระดับที่นี่ไม่เสียอะไร โรงงานมีไว้สำหรับครั้งที่คุณทำจริง",
-	"Recording moves inventory, storage, Silver, Parley, Total Barters and the log as one Undo. Only ticked stops count.": "การบันทึกจะย้ายคลังของ คลังเก็บ เงิน ค่าเจรจา จำนวนการค้ารวม และสมุดบันทึกพร้อมกันในการเลิกทำครั้งเดียว นับเฉพาะจุดที่ติ๊กไว้",
 	"Recover": "กู้คืน",
 	"Recover all": "กู้คืนทั้งหมด",
 	"Redo": "ทำซ้ำ",
@@ -2738,7 +2737,6 @@
 	"Tick several tiles and move them to a storage together": "ติ๊กหลายช่องแล้วย้ายพวกมันไปคลังเก็บของพร้อมกัน",
 	"Tick the chains to sail, or let the search fill them in.": "ติ๊กสายที่จะแล่น หรือให้การค้นหาเติมพวกมันให้",
 	"Tick the islands showing it today": "ติ๊กเกาะที่แสดงมันวันนี้",
-	"Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change": "ติ๊กจุดออกตามที่คุณไป; ตอนจบทั้งเที่ยวเข้าคลังเป็นการเปลี่ยนแปลงครั้งเดียว",
 	"Tick them all": "ติ๊กทั้งหมด",
 	"Tick to act on several at once": "ติ๊กเพื่อจัดการหลายอันพร้อมกัน",
 	"Tick what is aboard above: this fills with what the run leaves in storage, chain by chain, as its first goods come aboard.": "ติ๊กสิ่งที่อยู่บนเรือด้านบน: ตรงนี้จะเติมสิ่งที่การเดินเรือทิ้งไว้ในคลัง ทีละเชน เมื่อสินค้าแรกขึ้นเรือ",
@@ -5138,5 +5136,12 @@
 	"And, whichever way you sail": "และไม่ว่าจะแล่นแบบไหน",
 	"What “{name}” sets": "สิ่งที่ “{name}” ตั้งไว้",
 	"change any of them and the card that matches is chosen — or “My own way” when none does": "เปลี่ยนข้อใดก็ได้ แล้วการ์ดที่ตรงกันจะถูกเลือก — หรือ “แบบของฉันเอง” เมื่อไม่ตรงกับใบใด",
-	"show what this way sets": "แสดงสิ่งที่วิธีนี้ตั้งไว้"
+	"show what this way sets": "แสดงสิ่งที่วิธีนี้ตั้งไว้",
+	"In the hold": "ในห้องเก็บสินค้า",
+	"The hold follows the run’s ticks": "ห้องเก็บสินค้าเปลี่ยนตามการติ๊กของรอบ",
+	"The run dropped: the hold as it cast off": "ทิ้งรอบนี้: ห้องเก็บสินค้ากลับเป็นตอนออกเรือ",
+	"Traded at {place}: the hold": "แลกที่ {place}: ห้องเก็บสินค้า",
+	"{n} of {of} slots": "{n} จาก {of} ช่อง",
+	"The hold already follows every ticked stop. Recording adds the Parley, Total Barters, the quests and the log; its Undo takes the whole run back.": "ห้องเก็บสินค้าเปลี่ยนตามทุกจุดแวะที่ติ๊กแล้ว การบันทึกจะเพิ่มค่าต่อรอง ยอดแลกเปลี่ยน เควสต์ และบันทึก เลิกทำจะย้อนทั้งรอบ",
+	"Each stop goes into the hold as you tick it; at the end the run is recorded": "แต่ละจุดแวะเข้าห้องเก็บสินค้าเมื่อคุณติ๊ก จบแล้วรอบจะถูกบันทึก"
 }

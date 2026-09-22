@@ -1928,7 +1928,6 @@
 	"Recorded: {n} stop": "Registrado: {n} parada",
 	"Recorded: {n} stops": "Registrado: {n} paradas",
 	"Recording a level here costs nothing. The Workshop is for attempts you are really making.": "Registrar um nível aqui não custa nada. A Oficina é para as tentativas que você está fazendo de verdade.",
-	"Recording moves inventory, storage, Silver, Parley, Total Barters and the log as one Undo. Only ticked stops count.": "Registrar move o inventário, o armazém, a prata, a Negociação, o total de trocas e o diário como um só desfazer. Só contam as paradas marcadas.",
 	"Recover": "Recuperar",
 	"Recover all": "Recuperar todos",
 	"Redo": "Refazer",
@@ -2819,7 +2818,6 @@
 	"Tick several tiles and move them to a storage together": "Marque várias fichas e mova todas juntas para um armazém",
 	"Tick the chains to sail, or let the search fill them in.": "Marque as cadeias a navegar, ou deixe a busca preenchê-las.",
 	"Tick the islands showing it today": "Marque as ilhas que estão mostrando isso hoje",
-	"Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change": "Vá marcando as paradas conforme avança; no fim a viagem inteira entra no Inventário como uma só mudança",
 	"Tick them all": "Marcar todas",
 	"Tick to act on several at once": "Marque para agir sobre várias de uma vez",
 	"Tick what is aboard above: this fills with what the run leaves in storage, chain by chain, as its first goods come aboard.": "Marque acima o que está a bordo: aqui aparece o que a viagem deixa no armazém, corrente por corrente, conforme os primeiros bens embarcam.",
@@ -5240,5 +5238,12 @@
 	"And, whichever way you sail": "E, seja qual for o jeito de navegar",
 	"What “{name}” sets": "O que “{name}” define",
 	"change any of them and the card that matches is chosen — or “My own way” when none does": "mude qualquer uma e o cartão que combina é escolhido — ou “Do meu jeito” quando nenhum combina",
-	"show what this way sets": "mostrar o que este jeito define"
+	"show what this way sets": "mostrar o que este jeito define",
+	"In the hold": "No porão",
+	"The hold follows the run’s ticks": "O porão acompanha as marcações da rota",
+	"The run dropped: the hold as it cast off": "Rota abandonada: o porão como na partida",
+	"Traded at {place}: the hold": "Trocado em {place}: o porão",
+	"{n} of {of} slots": "{n} de {of} espaços",
+	"The hold already follows every ticked stop. Recording adds the Parley, Total Barters, the quests and the log; its Undo takes the whole run back.": "O porão já acompanha cada parada marcada. Registrar acrescenta a negociação, o total de escambos, as missões e o registro; o Desfazer volta a rota inteira.",
+	"Each stop goes into the hold as you tick it; at the end the run is recorded": "Cada parada vai para o porão quando você a marca; no fim a rota é registrada"
 }

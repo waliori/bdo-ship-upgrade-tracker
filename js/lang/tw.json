@@ -1859,7 +1859,6 @@
 	"Recorded: {n} stop": "已記錄：{n} 站",
 	"Recorded: {n} stops": "已記錄：{n} 站",
 	"Recording a level here costs nothing. The Workshop is for attempts you are really making.": "在這裡記錄一個等級不花任何東西。工坊是給你真正在做的嘗試用的。",
-	"Recording moves inventory, storage, Silver, Parley, Total Barters and the log as one Undo. Only ticked stops count.": "記錄會把物品、倉庫、銀幣、交涉、總交易次數和日誌放在一次復原裡一起改動。只計入已勾選的站點。",
 	"Recover": "恢復",
 	"Recover all": "全部恢復",
 	"Redo": "重做",
@@ -2738,7 +2737,6 @@
 	"Tick several tiles and move them to a storage together": "勾選幾個方塊，把它們一起移到某個倉庫",
 	"Tick the chains to sail, or let the search fill them in.": "勾選要航行的鏈條，或者讓搜尋來填。",
 	"Tick the islands showing it today": "勾選今天顯示它的島嶼",
-	"Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change": "邊走邊勾掉各站；結束時整趟行程會作為一次更改進入庫存",
 	"Tick them all": "全部勾選",
 	"Tick to act on several at once": "勾選以便一次對幾個進行操作",
 	"Tick what is aboard above: this fills with what the run leaves in storage, chain by chain, as its first goods come aboard.": "在上方勾選已上船的：這裡會隨首批貨物上船，逐鏈顯示航程留在倉庫的東西。",
@@ -5138,5 +5136,12 @@
 	"And, whichever way you sail": "另外，無論怎麼航行",
 	"What “{name}” sets": "「{name}」設定了什麼",
 	"change any of them and the card that matches is chosen — or “My own way” when none does": "更動其中任何一項，就會選中與之相符的卡片——都不相符時則為「我自己的方式」",
-	"show what this way sets": "顯示這種方式的設定"
+	"show what this way sets": "顯示這種方式的設定",
+	"In the hold": "船艙中",
+	"The hold follows the run’s ticks": "船艙隨航程的勾選變化",
+	"The run dropped: the hold as it cast off": "航程已放棄：船艙恢復啟航時的狀態",
+	"Traded at {place}: the hold": "在{place}交易：船艙",
+	"{n} of {of} slots": "{n}/{of} 格",
+	"The hold already follows every ticked stop. Recording adds the Parley, Total Barters, the quests and the log; its Undo takes the whole run back.": "船艙已隨每個勾選的停靠點變化。記錄會加上交涉值、以物易物總數、任務和日誌；復原會收回整趟航程。",
+	"Each stop goes into the hold as you tick it; at the end the run is recorded": "每個停靠點在勾選時計入船艙；結束時記錄這趟航程"
 }

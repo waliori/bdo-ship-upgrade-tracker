@@ -1934,7 +1934,6 @@
 	"Recorded: {n} stop": "Enregistré : {n} escale",
 	"Recorded: {n} stops": "Enregistré : {n} escales",
 	"Recording a level here costs nothing. The Workshop is for attempts you are really making.": "Enregistrer un niveau ici ne coûte rien. L'atelier sert aux tentatives que vous faites vraiment.",
-	"Recording moves inventory, storage, Silver, Parley, Total Barters and the log as one Undo. Only ticked stops count.": "L'enregistrement déplace l'inventaire, l'entrepôt, l'argent, le Parlementage, le total de trocs et le journal en une seule annulation. Seules les escales cochées comptent.",
 	"Recover": "Récupérer",
 	"Recover all": "Tout récupérer",
 	"Redo": "Rétablir",
@@ -2819,7 +2818,6 @@
 	"Tick several tiles and move them to a storage together": "Cochez plusieurs tuiles et déplacez-les ensemble vers un dépôt",
 	"Tick the chains to sail, or let the search fill them in.": "Cochez les chaînes à naviguer, ou laissez la recherche les remplir.",
 	"Tick the islands showing it today": "Cochez les îles qui l'affichent aujourd'hui",
-	"Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change": "Cochez les escales au fur et à mesure ; à la fin, tout le trajet entre dans l'Inventaire en un seul changement",
 	"Tick them all": "Toutes les cocher",
 	"Tick to act on several at once": "Cocher pour agir sur plusieurs à la fois",
 	"Tick what is aboard above: this fills with what the run leaves in storage, chain by chain, as its first goods come aboard.": "Cochez ce qui est à bord ci-dessus : ceci se remplit de ce que la sortie laisse en entrepôt, chaîne par chaîne, à mesure que ses premiers biens montent à bord.",
@@ -5267,5 +5265,12 @@
 	"And, whichever way you sail": "Et, quelle que soit la façon de naviguer",
 	"What “{name}” sets": "Ce que fixe « {name} »",
 	"change any of them and the card that matches is chosen — or “My own way” when none does": "changez-en un et la carte qui correspond est choisie — ou « À ma façon » si aucune ne correspond",
-	"show what this way sets": "montrer ce que fixe cette façon"
+	"show what this way sets": "montrer ce que fixe cette façon",
+	"In the hold": "Dans la cale",
+	"The hold follows the run’s ticks": "La cale suit les coches de la sortie",
+	"The run dropped: the hold as it cast off": "Sortie abandonnée : la cale telle qu'au départ",
+	"Traded at {place}: the hold": "Échangé à {place} : la cale",
+	"{n} of {of} slots": "{n} emplacements sur {of}",
+	"The hold already follows every ticked stop. Recording adds the Parley, Total Barters, the quests and the log; its Undo takes the whole run back.": "La cale suit déjà chaque escale cochée. L'enregistrement ajoute la tractation, le total des trocs, les quêtes et le journal ; son Annuler reprend toute la sortie.",
+	"Each stop goes into the hold as you tick it; at the end the run is recorded": "Chaque escale passe dans la cale quand vous la cochez ; à la fin, la sortie est enregistrée"
 }

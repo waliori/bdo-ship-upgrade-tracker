@@ -1871,7 +1871,6 @@
 	"Recorded: {n} stop": "Erfasst: {n} Stopp",
 	"Recorded: {n} stops": "Erfasst: {n} Stopps",
 	"Recording a level here costs nothing. The Workshop is for attempts you are really making.": "Hier eine Stufe zu erfassen, kostet nichts. Die Werkstatt ist für Versuche, die du wirklich machst.",
-	"Recording moves inventory, storage, Silver, Parley, Total Barters and the log as one Undo. Only ticked stops count.": "Das Erfassen bewegt Inventar, Lager, Silber, Verhandlung, Tauschzahl und das Logbuch in einem einzigen Rückgängig. Nur abgehakte Stopps zählen.",
 	"Recover": "Erholen",
 	"Recover all": "Alle erholen",
 	"Redo": "Wiederholen",
@@ -2759,7 +2758,6 @@
 	"Tick several tiles and move them to a storage together": "Mehrere Kacheln ankreuzen und zusammen in ein Lager schieben",
 	"Tick the chains to sail, or let the search fill them in.": "Kreuze die Ketten an, die gefahren werden, oder lass die Suche sie füllen.",
 	"Tick the islands showing it today": "Kreuze die Inseln an, die es heute zeigen",
-	"Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change": "Hake die Stopps unterwegs ab; am Ende geht die ganze Fahrt als eine Änderung ins Inventar",
 	"Tick them all": "Alle abhaken",
 	"Tick to act on several at once": "Ankreuzen, um mehrere auf einmal zu behandeln",
 	"Tick what is aboard above: this fills with what the run leaves in storage, chain by chain, as its first goods come aboard.": "Hak oben ab, was an Bord ist: hier erscheint, was die Fahrt im Lager lässt, Kette für Kette, sobald ihre ersten Waren an Bord sind.",
@@ -5180,5 +5178,12 @@
 	"And, whichever way you sail": "Und, egal wie du segelst",
 	"What “{name}” sets": "Was „{name}“ festlegt",
 	"change any of them and the card that matches is chosen — or “My own way” when none does": "Änderst du eine davon, wird die passende Karte gewählt – oder „Auf meine Art“, wenn keine passt",
-	"show what this way sets": "zeigen, was diese Art festlegt"
+	"show what this way sets": "zeigen, was diese Art festlegt",
+	"In the hold": "Im Laderaum",
+	"The hold follows the run’s ticks": "Der Laderaum folgt den Haken der Fahrt",
+	"The run dropped: the hold as it cast off": "Fahrt verworfen: der Laderaum wie beim Ablegen",
+	"Traded at {place}: the hold": "Getauscht in {place}: der Laderaum",
+	"{n} of {of} slots": "{n} von {of} Plätzen",
+	"The hold already follows every ticked stop. Recording adds the Parley, Total Barters, the quests and the log; its Undo takes the whole run back.": "Der Laderaum folgt schon jedem abgehakten Halt. Das Eintragen fügt Verhandlung, Tauschzahl, Quests und Log hinzu; sein Rückgängig nimmt die ganze Fahrt zurück.",
+	"Each stop goes into the hold as you tick it; at the end the run is recorded": "Jeder Halt kommt beim Abhaken in den Laderaum; am Ende wird die Fahrt eingetragen"
 }

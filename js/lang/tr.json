@@ -1859,7 +1859,6 @@
 	"Recorded: {n} stop": "Kaydedildi: {n} durak",
 	"Recorded: {n} stops": "Kaydedildi: {n} durak",
 	"Recording a level here costs nothing. The Workshop is for attempts you are really making.": "Burada bir seviye kaydetmenin bedeli yok. Atölye, gerçekten yaptığın denemeler içindir.",
-	"Recording moves inventory, storage, Silver, Parley, Total Barters and the log as one Undo. Only ticked stops count.": "Kaydetmek envanteri, depoyu, gümüşü, Müzakereyi, toplam takas sayısını ve günlüğü tek bir geri almada taşır. Yalnızca işaretli duraklar sayılır.",
 	"Recover": "Geri kazan",
 	"Recover all": "Hepsini geri kazan",
 	"Redo": "Yeniden Yap",
@@ -2738,7 +2737,6 @@
 	"Tick several tiles and move them to a storage together": "Birkaç karoyu işaretle ve onları birlikte bir depoya taşı",
 	"Tick the chains to sail, or let the search fill them in.": "Yelken açılacak zincirleri işaretle ya da aramanın doldurmasına izin ver.",
 	"Tick the islands showing it today": "Bugün onu gösteren adaları işaretle",
-	"Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change": "İlerledikçe durakları işaretle; sonunda bütün yolculuk Envantere tek bir değişiklik olarak girer",
 	"Tick them all": "Hepsini işaretle",
 	"Tick to act on several at once": "Birkaçına birden işlem yapmak için işaretle",
 	"Tick what is aboard above: this fills with what the run leaves in storage, chain by chain, as its first goods come aboard.": "Yukarıda gemide olanı işaretle: ilk malları bindikçe, seferin depoda bıraktıkları zincir zincir burada dolar.",
@@ -5138,5 +5136,12 @@
 	"And, whichever way you sail": "Ve, nasıl yelken açarsan aç",
 	"What “{name}” sets": "“{name}” neyi ayarlar",
 	"change any of them and the card that matches is chosen — or “My own way” when none does": "herhangi birini değiştirin, eşleşen kart seçilir — hiçbiri eşleşmezse “Kendi yöntemim”",
-	"show what this way sets": "bu yolun ayarlarını göster"
+	"show what this way sets": "bu yolun ayarlarını göster",
+	"In the hold": "Ambarda",
+	"The hold follows the run’s ticks": "Ambar seferin işaretlerini izler",
+	"The run dropped: the hold as it cast off": "Sefer bırakıldı: ambar kalkıştaki gibi",
+	"Traded at {place}: the hold": "{place} konumunda takas: ambar",
+	"{n} of {of} slots": "{n}/{of} yuva",
+	"The hold already follows every ticked stop. Recording adds the Parley, Total Barters, the quests and the log; its Undo takes the whole run back.": "Ambar işaretlenen her durağı zaten izliyor. Kaydetmek pazarlığı, toplam takası, görevleri ve günlüğü ekler; Geri Al tüm seferi geri alır.",
+	"Each stop goes into the hold as you tick it; at the end the run is recorded": "Her durak işaretlendiğinde ambara geçer; sonunda sefer kaydedilir"
 }

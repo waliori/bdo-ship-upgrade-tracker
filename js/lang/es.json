@@ -1913,7 +1913,6 @@
 	"Recorded: {n} stop": "Apuntado: {n} parada",
 	"Recorded: {n} stops": "Apuntado: {n} paradas",
 	"Recording a level here costs nothing. The Workshop is for attempts you are really making.": "Apuntar un nivel aquí no cuesta nada. El Taller es para los intentos que haces de verdad.",
-	"Recording moves inventory, storage, Silver, Parley, Total Barters and the log as one Undo. Only ticked stops count.": "Apuntarlo mueve el inventario, el almacén, la plata, el Parlamento, el total de trueques y el registro en un solo deshacer. Solo cuentan las paradas marcadas.",
 	"Recover": "Recuperar",
 	"Recover all": "Recuperar todo",
 	"Redo": "Rehacer",
@@ -2798,7 +2797,6 @@
 	"Tick several tiles and move them to a storage together": "Marca varias fichas y muévelas juntas a un almacén",
 	"Tick the chains to sail, or let the search fill them in.": "Marca las cadenas que vas a navegar, o deja que la búsqueda las rellene.",
 	"Tick the islands showing it today": "Marca las islas que lo muestran hoy",
-	"Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change": "Marca las escalas a medida que avanzas; al final todo el viaje entra en el Inventario como un solo cambio",
 	"Tick them all": "Marcarlas todas",
 	"Tick to act on several at once": "Marca para actuar sobre varias a la vez",
 	"Tick what is aboard above: this fills with what the run leaves in storage, chain by chain, as its first goods come aboard.": "Marca arriba lo que está a bordo: aquí aparece lo que la travesía deja en el almacén, cadena por cadena, según suben sus primeros bienes.",
@@ -5312,5 +5310,12 @@
 	"And, whichever way you sail": "Y, navegues como navegues",
 	"What “{name}” sets": "Lo que fija «{name}»",
 	"change any of them and the card that matches is chosen — or “My own way” when none does": "cambia cualquiera y se elige la tarjeta que coincida, o «A mi manera» si ninguna coincide",
-	"show what this way sets": "mostrar lo que fija esta forma"
+	"show what this way sets": "mostrar lo que fija esta forma",
+	"In the hold": "En la bodega",
+	"The hold follows the run’s ticks": "La bodega sigue las marcas de la ruta",
+	"The run dropped: the hold as it cast off": "Ruta abandonada: la bodega como al zarpar",
+	"Traded at {place}: the hold": "Intercambiado en {place}: la bodega",
+	"{n} of {of} slots": "{n} de {of} espacios",
+	"The hold already follows every ticked stop. Recording adds the Parley, Total Barters, the quests and the log; its Undo takes the whole run back.": "La bodega ya sigue cada parada marcada. Al registrar se suman la negociación, el total de trueques, las misiones y el registro; su Deshacer revierte toda la ruta.",
+	"Each stop goes into the hold as you tick it; at the end the run is recorded": "Cada parada pasa a la bodega al marcarla; al final se registra la ruta"
 }

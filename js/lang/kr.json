@@ -1859,7 +1859,6 @@
 	"Recorded: {n} stop": "기록됨: 정박지 {n}곳",
 	"Recorded: {n} stops": "기록됨: 정박지 {n}곳",
 	"Recording a level here costs nothing. The Workshop is for attempts you are really making.": "여기서 단계를 기록하는 데는 비용이 들지 않습니다. 공방은 실제로 하는 시도를 위한 곳입니다.",
-	"Recording moves inventory, storage, Silver, Parley, Total Barters and the log as one Undo. Only ticked stops count.": "기록하면 소지품, 창고, 은화, 교섭, 총 거래 수, 일지가 한 번의 실행 취소로 함께 움직입니다. 표시한 정박지만 셉니다.",
 	"Recover": "회복",
 	"Recover all": "전부 회복",
 	"Redo": "다시 실행",
@@ -2738,7 +2737,6 @@
 	"Tick several tiles and move them to a storage together": "여러 타일을 체크해 함께 창고로 옮기기",
 	"Tick the chains to sail, or let the search fill them in.": "항해할 연쇄를 체크하거나, 검색이 채우게 하세요.",
 	"Tick the islands showing it today": "오늘 그것을 보여 주는 섬을 체크하세요",
-	"Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change": "가면서 정박지를 체크하세요. 끝나면 항해 전체가 하나의 변경으로 인벤토리에 들어갑니다",
 	"Tick them all": "전부 체크",
 	"Tick to act on several at once": "여러 개에 한꺼번에 적용하려면 체크하세요",
 	"Tick what is aboard above: this fills with what the run leaves in storage, chain by chain, as its first goods come aboard.": "위에서 적재된 것을 체크하세요: 첫 물품이 실릴 때마다 체인별로 항해가 창고에 남기는 것이 여기 채워집니다.",
@@ -5138,5 +5136,12 @@
 	"And, whichever way you sail": "그리고, 어떻게 항해하든",
 	"What “{name}” sets": "'{name}'의 설정",
 	"change any of them and the card that matches is chosen — or “My own way” when none does": "하나라도 바꾸면 맞는 카드가 선택되고, 맞는 카드가 없으면 '내 방식대로'가 됩니다",
-	"show what this way sets": "이 방식의 설정 보기"
+	"show what this way sets": "이 방식의 설정 보기",
+	"In the hold": "선창 안",
+	"The hold follows the run’s ticks": "선창이 항해의 체크를 따라갑니다",
+	"The run dropped: the hold as it cast off": "항해 포기: 출항 때의 선창으로",
+	"Traded at {place}: the hold": "{place}에서 교환: 선창",
+	"{n} of {of} slots": "{n}/{of} 칸",
+	"The hold already follows every ticked stop. Recording adds the Parley, Total Barters, the quests and the log; its Undo takes the whole run back.": "선창은 이미 체크한 정박지마다 반영됩니다. 기록하면 교섭력, 총 교환 횟수, 퀘스트, 기록이 더해지고, 되돌리기로 항해 전체가 돌아갑니다.",
+	"Each stop goes into the hold as you tick it; at the end the run is recorded": "정박지마다 체크할 때 선창에 반영되고, 끝나면 항해가 기록됩니다"
 }

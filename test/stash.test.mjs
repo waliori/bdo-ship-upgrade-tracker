@@ -102,3 +102,25 @@ test('a trip applies as one change: goods gone and gained, silver in, deposits n
 	assert.equal(store.getStock('Silver'), 0);
 	assert.equal(store.getProfile('runs', null), null);
 });
+
+test('a stop written into the hold comes off the ship first, and the hold as it cast off can still be read', () => {
+	const W = 'Maple Plywood';
+	store.setStock(W, 0);
+	store.setStock(Q, 0);
+	store.addStock(W, 30, null, 'Iliya Island');
+	store.moveStash(W, 'Iliya Island', store.ABOARD, 10);
+	// The stop: ten plywood handed over, one [Level 5] received.
+	const into = (item, d) => (item === W || d < 0 ? store.ABOARD : false);
+	store.applyTrip({ delta: { [W]: -10, [Q]: 1 }, at: into, label: 'Traded' });
+	assert.equal(store.stockAt(W, store.ABOARD), 0, 'off the ship, not off Iliya');
+	assert.equal(store.stockAt(W, 'Iliya Island'), 20);
+	assert.equal(store.getStock(Q), 1);
+	const was = store.readingAsWas({ delta: { [W]: -10, [Q]: 1 }, moves: [] }, () => [store.stockAt(W, store.ABOARD), store.getStock(Q), store.stockAt(W, 'Iliya Island')]);
+	assert.deepEqual(was, [10, 0, 20], 'read as it cast off');
+	assert.equal(store.stockAt(W, store.ABOARD), 0, 'and nothing was written');
+	// Unticked: the plywood goes back onto the ship.
+	store.applyTrip({ delta: { [W]: 10, [Q]: -1 }, at: into, label: 'Unticked' });
+	assert.equal(store.stockAt(W, store.ABOARD), 10);
+	assert.equal(store.getStock(Q), 0);
+	store.setStock(W, 0);
+});

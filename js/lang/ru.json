@@ -2219,7 +2219,6 @@
 		"other": "Записано: {n} стоянок"
 	},
 	"Recording a level here costs nothing. The Workshop is for attempts you are really making.": "Записать уровень здесь ничего не стоит. Мастерская — для попыток, которые вы и правда делаете.",
-	"Recording moves inventory, storage, Silver, Parley, Total Barters and the log as one Undo. Only ticked stops count.": "Запись переносит инвентарь, склад, серебро, Переговоры, число обменов и журнал одной отменой. Считаются только отмеченные стоянки.",
 	"Recover": "Восстановить",
 	"Recover all": "Восстановить всех",
 	"Redo": "Повтор",
@@ -3213,7 +3212,6 @@
 	"Tick several tiles and move them to a storage together": "Отметьте несколько плашек и перенесите их на склад вместе",
 	"Tick the chains to sail, or let the search fill them in.": "Отметьте цепочки для рейса или дайте поиску заполнить их.",
 	"Tick the islands showing it today": "Отметьте острова, где он есть сегодня",
-	"Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change": "Отмечайте стоянки по ходу; в конце весь выход уходит в Инвентарь одной записью",
 	"Tick them all": "Отметить все",
 	"Tick to act on several at once": "Отметьте, чтобы действовать сразу с несколькими",
 	"Tick what is aboard above: this fills with what the run leaves in storage, chain by chain, as its first goods come aboard.": "Отметьте выше, что на борту: здесь появится то, что рейс оставит на складе, цепочка за цепочкой, по мере погрузки первых товаров.",
@@ -7253,5 +7251,12 @@
 	"And, whichever way you sail": "И при любом способе",
 	"What “{name}” sets": "Что задаёт «{name}»",
 	"change any of them and the card that matches is chosen — or “My own way” when none does": "измените любое — и выберется подходящая карточка, а если ни одна не подходит, «По-своему»",
-	"show what this way sets": "показать, что задаёт этот способ"
+	"show what this way sets": "показать, что задаёт этот способ",
+	"In the hold": "В трюме",
+	"The hold follows the run’s ticks": "Трюм следует за отметками рейса",
+	"The run dropped: the hold as it cast off": "Рейс брошен: трюм как при отплытии",
+	"Traded at {place}: the hold": "Обмен в {place}: трюм",
+	"{n} of {of} slots": "слоты: {n} из {of}",
+	"The hold already follows every ticked stop. Recording adds the Parley, Total Barters, the quests and the log; its Undo takes the whole run back.": "Трюм уже следует за каждой отмеченной остановкой. Запись добавляет переговоры, число обменов, задания и журнал; её отмена откатывает весь рейс.",
+	"Each stop goes into the hold as you tick it; at the end the run is recorded": "Каждая остановка попадает в трюм, когда вы её отмечаете; в конце рейс записывается"
 }

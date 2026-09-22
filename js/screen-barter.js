@@ -20,6 +20,7 @@ import { snapshot, barterData, barterProfile, combos, matBoards, totalsToGo, SIL
 import { barterKey, periodKey, currentPlan } from './clock.js';
 import { candidates, askable, offersAt, offersOf, boardData, gatedOffers, exchangeGate, clientDeals } from './barter-board.js';
 import { currentShip, shownHold, aboardWhat } from './ship.js';
+import { shipStats } from './ship_stats.js';
 import { npcById, ports, isleOf, whoOf, isleShort } from './barter_npcs.js';
 import { seaRoute } from './searoute.js';
 import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, DEFAULT_CAL, sailSeconds } from './sailing.js';
@@ -99,6 +100,7 @@ let readSig = null;   // the view as last read from the profile, as text: a diff
 // the session's own: which step is up, which part of the plan is open,
 // where the cockpit stands. None of it is worth a profile write.
 let step = '';            // plan | load | sail | results; '' follows the run
+let slotsOpen = true;     // the hold's slots, under the cockpit's one press
 let glance = true;        // the cockpit drawn large, to be read across a room: how it starts, since a run is sailed with the game in front and the page beside it
 let cursor = null;        // the stop the cockpit was sent to, by its key
 let skipped = new Set();  // stops passed over on the cockpit, by their key
@@ -167,7 +169,8 @@ function restore() {
 			// run that outlived its page -- a phone gone to sleep, a tab
 			// reloaded an hour in, which is most runs -- was recorded as if
 			// its shore goods had cost nothing.
-			for (const k of ['loaded', 'bought', 'parleyUsed', 'cost', 'silver', 'net', 'trades', 'questsHome', 'chains', 'goal', 'item', 'time', 'port', 'drawnAt', 'lastTick', 'weightStart', 'laidFor']) if (s.sail[k] !== undefined) keep[k] = s.sail[k];
+			for (const k of ['loaded', 'bought', 'parleyUsed', 'cost', 'silver', 'net', 'trades', 'questsHome', 'chains', 'goal', 'item', 'time', 'port', 'drawnAt', 'lastTick', 'weightStart', 'laidFor', 'appliedN']) if (s.sail[k] !== undefined) keep[k] = s.sail[k];
+			if (s.sail.applied) keep.applied = cleanApplied(s.sail.applied);
 			sail = { key: s.sail.key, done: s.sail.done.map(String), seen: {}, got: {}, kept: Array.isArray(s.sail.kept) ? s.sail.kept.map(String) : [], stops: Array.isArray(s.sail.stops) ? s.sail.stops : [], ...keep };
 			for (const [k, v] of Object.entries(s.sail.seen || {})) if (Number(v) > 0) sail.seen[k] = Number(v);
 			for (const [k, v] of Object.entries(s.sail.got || {})) if (typeof v === 'string') sail.got[k] = v;
@@ -233,6 +236,7 @@ function flushView() {
 	// the memory it came from.
 	writing = true;
 	try {
+		syncHold();
 		store.setView(VIEW_NS, { goal, climb, planSec, ownWay, routeEdit, stock: stockGoal, item, qty, wants, matOrders, port, routes, stash, board, matBoard, sail, reach, questSkip, questPull });
 	} finally {
 		writing = false;
@@ -2543,7 +2547,7 @@ function sailBar(plan) {
 	const legs = legsOf(plan.stops);
 	const book = ledgerOf(plan.stops, legs);
 	const clock = timerHTML({ suggest: (legs.mid || 0) + (book.waited || 0) * 60, label: runLabel(plan), marks: runMarks(plan, legs, book) });
-	if (!on) return `<div class="sail-bar"><button class="act" data-act="barter-sail" title="${T('Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change')}">${img(currentShip().name, 'ship-ico')} ${T('Sail this run')}</button><span class="faint">${T('tick each stop off as you sail; what an island paid re-counts the rest; Record at the end puts the whole trip in the Inventory in one Undo')}</span><span class="panel-spacer"></span>${clock}</div>`;
+	if (!on) return `<div class="sail-bar"><button class="act" data-act="barter-sail" title="${T('Each stop goes into the hold as you tick it; at the end the run is recorded')}">${img(currentShip().name, 'ship-ico')} ${T('Sail this run')}</button><span class="faint">${T('tick each stop off as you sail; what an island paid re-counts the rest; Record at the end puts the whole trip in the Inventory in one Undo')}</span><span class="panel-spacer"></span>${clock}</div>`;
 	const n = plan.stops.filter((s, k) => ticked(on.done, s, k, plan.stops)).length;
 	const questsLeft = [...(plan.questsHome || []), ...plan.stops.flatMap(s => s.quests || [])].map(x => x.q).filter(q => !questDone(q)).length;
 	// The whole run done at once: which of it, asked in place.
@@ -2731,6 +2735,94 @@ function tripOf(plan, on, from) {
 	if (on.done.length && from) for (const l of plan.loaded || []) moves.push({ item: l.item, from: from.name, to: '', n: Math.round(l.n) });
 	if (silver - spent) add(SILVER, silver - Math.round(spent));
 	return { delta, moves, silver, trades, spent: Math.round(spent) };
+}
+
+/* ------------------------------------------------------------------ *
+ * the hold, stop by stop
+ * ------------------------------------------------------------------ */
+
+/**
+ * What a run under way has written into the Inventory so far, and the
+ * write that brings it up to the ticks.
+ *
+ * Traded is pressed at the island, and the hold in the game changes
+ * then -- so the hold here does too: every tick, untick and count said
+ * writes the difference between what the ticked stops come to and what
+ * was written before, into the ship's hold. Record then writes only
+ * the rest: the Parley, the barter count, the log. The run itself is
+ * still laid from the hold it cast off with (`readingAsWas`), or it
+ * would be laid again from goods it has already traded away.
+ */
+const NO_HOLD = { delta: {}, moves: [] };
+const moveKey = m => `${m.item}\u0001${m.from}\u0001${m.to}`;
+function netMoves(list) {
+	const by = new Map();
+	for (const m of list || []) {
+		const n = Math.round(Number(m.n) || 0);
+		if (!n || m.from === m.to) continue;
+		const k = moveKey(m);
+		by.set(k, { item: m.item, from: m.from, to: m.to, n: ((by.get(k) || {}).n || 0) + n });
+	}
+	return [...by.values()].filter(m => m.n > 0);
+}
+function cleanApplied(a) {
+	const delta = {};
+	for (const [k, v] of Object.entries((a && a.delta) || {})) if (typeof k === 'string' && Number.isFinite(Number(v)) && Math.round(Number(v))) delta[k] = Math.round(Number(v));
+	const moves = netMoves(Array.isArray(a && a.moves) ? a.moves.filter(m => m && typeof m.item === 'string' && typeof m.from === 'string' && typeof m.to === 'string') : []);
+	return { delta, moves };
+}
+/** The write that turns `was` into `want`. */
+function holdDiff(want, was = NO_HOLD) {
+	const delta = {};
+	for (const k of new Set([...Object.keys(want.delta), ...Object.keys(was.delta)])) {
+		const d = Math.round((want.delta[k] || 0) - (was.delta[k] || 0));
+		if (d) delta[k] = d;
+	}
+	const wm = new Map(want.moves.map(m => [moveKey(m), m])), am = new Map(was.moves.map(m => [moveKey(m), m]));
+	const moves = [];
+	for (const k of new Set([...wm.keys(), ...am.keys()])) {
+		const m = wm.get(k) || am.get(k);
+		const n = ((wm.get(k) || {}).n || 0) - ((am.get(k) || {}).n || 0);
+		if (n > 0) moves.push({ item: m.item, from: m.from, to: m.to, n });
+		else if (n < 0) moves.push({ item: m.item, from: m.to, to: m.from, n: -n });
+	}
+	return { delta, moves };
+}
+// Where a tick's write lands. A shore good comes off the ship's hold and
+// goes back onto it; a trade good handed over comes off the hold first,
+// and one received goes where trade goods aboard have always been kept.
+// Silver and coins are the purse's.
+const intoHold = (item, d) => (levelOf(item) !== null ? (d < 0 ? store.ABOARD : false) : weightOf(item) > 0 ? store.ABOARD : false);
+const holdEmpty = d => !Object.keys(d.delta).length && !d.moves.length;
+/** The trip the ticks come to, read against the hold as it cast off. */
+function tripAsSailed(plan, on, from) {
+	return store.readingAsWas(on.applied, () => tripOf(plan, on, from));
+}
+function syncHold() {
+	const on = sail;
+	if (!on || !Array.isArray(on.done)) return;
+	const plan = planOfSail(on);
+	if (!plan) return;
+	const from = ports.find(p => p.id === on.port) || fromPort();
+	const trip = tripAsSailed(plan, on, from);
+	const want = { delta: trip.delta, moves: netMoves(trip.moves) };
+	const was = on.applied || NO_HOLD;
+	const step = holdDiff(want, was);
+	if (holdEmpty(step)) return;
+	// Named after the stop the press was made at, when it was one.
+	const last = plan.stops.map((s, k) => (ticked(on.done, s, k, plan.stops) ? s : null)).filter(Boolean).pop();
+	const more = on.done.length > (on.appliedN || 0);
+	const label = more && last ? T('Traded at {place}: the hold', { place: stopNames(last).place }) : T('The hold follows the run’s ticks');
+	on.applied = want;
+	on.appliedN = on.done.length;
+	store.applyTrip({ delta: step.delta, moves: step.moves, at: intoHold, label });
+}
+/** Every tick's write taken back: the hold as it cast off. */
+function unsyncHold(on) {
+	if (!on || !on.applied) return;
+	const back = holdDiff(NO_HOLD, on.applied);
+	on.applied = null;
+	if (!holdEmpty(back)) store.applyTrip({ delta: back.delta, moves: back.moves, at: intoHold, label: T('The run dropped: the hold as it cast off') });
 }
 
 /**
@@ -2953,7 +3045,7 @@ function justOpened(before, after) {
 
 function recordTrip(plan, from, on = sailing()) {
 	if (!on || !plan) return;
-	const trip = tripOf(plan, on, from);
+	const trip = tripAsSailed(plan, on, from);
 	// What the run took and what it brought back, from the one honest
 	// record of it: the change it made to the Inventory. Spent goods are
 	// what had to be loaded, gained goods are what is in the storage
@@ -3050,13 +3142,17 @@ function recordTrip(plan, from, on = sailing()) {
 	// Never nought: nought is how "nobody has said" is written.
 	const parleyLeft = Math.max(1, Math.min(PARLEY.max, bar + drawn * PARLEY.voucher - parleySpent));
 	const spentOf = parleySpent > 0 ? { parleyHeld: parleyLeft, parleyDay: barterKey(), ...(drawn ? { vouchers: prof.vouchers - drawn } : {}) } : {};
-	store.applyTrip({ delta: trip.delta, moves: trip.moves, profile: { runs, ratios, sevens, tally, ...counted, ...spentOf, questProgress: Object.keys(progress).length ? progress : null, questsDone: Object.keys(questsDone).length ? questsDone : null }, label: `${on.done.length === 1 ? T('Sailed a run: {n} stop', { n: on.done.length }) : T('Sailed a run: {n} stops', { n: on.done.length })}${trip.silver ? `, ${T('{silver} sold', { silver: FC(trip.silver) })}` : ''}` });
+	// The hold has had the ticked stops written into it as they were
+	// ticked: what is left to write is the rest.
+	const rest = holdDiff({ delta: trip.delta, moves: netMoves(trip.moves) }, on.applied || NO_HOLD);
+	const applied = on.applied || null;
+	store.applyTrip({ delta: rest.delta, moves: rest.moves, at: intoHold, profile: { runs, ratios, sevens, tally, ...counted, ...spentOf, questProgress: Object.keys(progress).length ? progress : null, questsDone: Object.keys(questsDone).length ? questsDone : null }, label: `${on.done.length === 1 ? T('Sailed a run: {n} stop', { n: on.done.length }) : T('Sailed a run: {n} stops', { n: on.done.length })}${trip.silver ? `, ${T('{silver} sold', { silver: FC(trip.silver) })}` : ''}` });
 	sail = null;
 	// What it came to, for the results step to show until the next run is
 	// cast off: the page would otherwise fall back to the plan the moment
 	// the checklist went, with nothing said about where the silver went.
 	bringUp('.barter-screen .steps');
-	lastTrip = { stops: on.done.length, trades: Math.round(trip.trades), silver: trip.silver, spent: trip.spent || 0, net: trip.silver - (trip.spent || 0), coins: Math.round(trip.delta[COIN] || 0), parley: parleySpent, vouchers: drawn, gave: moved(-1, SILVER), got: moved(1, SILVER) };
+	lastTrip = { applied, stops: on.done.length, trades: Math.round(trip.trades), silver: trip.silver, spent: trip.spent || 0, net: trip.silver - (trip.spent || 0), coins: Math.round(trip.delta[COIN] || 0), parley: parleySpent, vouchers: drawn, gave: moved(-1, SILVER), got: moved(1, SILVER) };
 	step = 'results';
 	cursor = null;
 	skipped = new Set();
@@ -3169,7 +3265,10 @@ function packApply(rows, want, from) {
 	// Loaded after casting off: the checklist was frozen with this load
 	// still to make, and Record makes whatever loads it still lists.
 	if (sail && Array.isArray(sail.loaded)) {
-		for (const m of moves.filter(x => x.to === '' && from && x.from === from.name)) sail.loaded = sail.loaded.map(l => (l.item === m.item ? { ...l, n: Math.max(0, l.n - m.n) } : l)).filter(l => l.n > 0);
+		for (const m of moves.filter(x => x.to === '' && from && x.from === from.name)) {
+			sail.loaded = sail.loaded.map(l => (l.item === m.item ? { ...l, n: Math.max(0, l.n - m.n) } : l)).filter(l => l.n > 0);
+			if (sail.applied) sail.applied = { ...sail.applied, moves: sail.applied.moves.map(a => (moveKey(a) === moveKey(m) ? { ...a, n: Math.max(0, a.n - m.n) } : a)).filter(a => a.n > 0) };
+		}
 		persist();
 	}
 	const n = rows.length;
@@ -4523,6 +4622,7 @@ function sailHTML() {
 			<div class="cockpit-place">${esc(names.place)}</div>
 			${trade}${figures}${voucherBox}${ask}${extra ? `<div class="run-check">${extra}</div>` : ''}
 			<div class="cockpit-press">${press}</div>${endNote}
+			${holdSlotsHTML()}
 		</div></section>${foot}`;
 	}
 	return `<div class="cockpit-grid">
@@ -4531,12 +4631,45 @@ function sailHTML() {
 				<div><div class="cockpit-place">${esc(names.place)}</div><div class="cockpit-who">${esc(names.who)} · ${names.kind}</div></div>
 				${trade}${figures}${voucherBox}${ask}${extra ? `<div class="run-check">${extra}</div>` : ''}${questsHere}
 				<div class="cockpit-press">${press}</div>${endNote}
+				${holdSlotsHTML()}
 				${under}
 			</div></section>
 			${nextHTML}
 		</div>
 		${restHTML(plan, on, book, legOf, at)}
 	</div>${foot}`;
+}
+
+/**
+ * The hold as the game's own window draws it: a grid of slots, an icon
+ * in each. A trade good of Level 5 and up takes a slot to itself, as
+ * it does in the game; the rest stack, with the count in the corner.
+ * Read from the Inventory, which every Traded writes to, so it is the
+ * hold as it stands after the stops ticked so far.
+ */
+function holdSlotsHTML() {
+	const me = currentShip();
+	const cap = (shipStats[me.name] && shipStats[me.name].slots) || 0;
+	const cells = [];
+	for (const g of shoreAboard()) cells.push({ name: g.name, n: g.n });
+	for (const g of held().slice().sort((a, b) => a.lv - b.lv || a.name.localeCompare(b.name))) {
+		if (g.lv >= 5) for (let i = 0; i < g.n && cells.length < 200; i++) cells.push({ name: g.name, n: 1, lv: g.lv });
+		else cells.push({ name: g.name, n: g.n, lv: g.lv });
+	}
+	const used = cells.length;
+	const shown = Math.min(200, Math.max(cap, used, 11));
+	const grid = Array.from({ length: Math.ceil(shown / 11) * 11 }, (_, i) => {
+		const c = cells[i];
+		const over = cap && i >= cap;
+		if (!c) return `<span class="slot${over ? ' off' : ''}"></span>`;
+		return `<span class="slot full${over ? ' over' : ''}"${c.lv ? ` style="--tier:${TIER(c.lv)}"` : ''} title="${esc(`${c.n > 1 ? `${F(c.n)}× ` : ''}${gameName(c.name)}`)}">${img(c.name, 'slot-img')}${c.n > 1 ? `<b>${F(c.n)}</b>` : ''}</span>`;
+	}).join('');
+	const lt = shownHold(me.hold, held().reduce((a, g) => a + g.weight, 0) + shoreAboard().reduce((a, g) => a + g.weight, 0));
+	const sub = `${cap ? T('{n} of {of} slots', { n: F(used), of: F(cap) }) : T('{n} slots', { n: F(used) })} · ${esc(lt.text)}`;
+	return `<div class="hold-slots${slotsOpen ? ' open' : ''}${cap && used > cap ? ' full' : ''}">
+		<button class="hold-slots-head" data-act="barter-slots" aria-expanded="${slotsOpen}"><span class="hold-slots-k">${T('In the hold')}</span><span class="hold-slots-sub">${sub}</span><span class="panel-spacer"></span><span class="hold-slots-fold">${slotsOpen ? '▴' : '▾'}</span></button>
+		${slotsOpen ? `<div class="slot-grid">${grid}</div>` : ''}
+	</div>`;
 }
 
 /** The rest of the run, down the side of the cockpit: every stop with
@@ -4686,7 +4819,7 @@ function resultsHTML() {
 	}).join('');
 	const net = trip.silver - trip.spent;
 	const receipt = `<div class="receipt-net"><span>${T('Silver, net')}</span><b class="${net < 0 ? 'warn' : 'gold'}">${net ? `${net > 0 ? '+' : '−'}${FC(Math.abs(net))}` : '—'}</b></div>
-	<div class="receipt-acts"><span class="panel-sub">${T('Recording moves inventory, storage, Silver, Parley, Total Barters and the log as one Undo. Only ticked stops count.')}${owed ? ` <b class="amber">${owed === 1 ? T('{n} island still waits for its count.', { n: owed }) : T('{n} islands still wait for their count.', { n: owed })}</b>` : ''}</span><button class="linky danger" data-act="barter-sail-drop" title="${T('Drop the checklist; nothing is recorded')}">${T('Abandon')}</button><button class="act" data-act="barter-record" ${doneN ? '' : 'disabled'} title="${T('The stops done go into the Inventory as one change')}">${T('Record the trip')}</button></div>`;
+	<div class="receipt-acts"><span class="panel-sub">${T('The hold already follows every ticked stop. Recording adds the Parley, Total Barters, the quests and the log; its Undo takes the whole run back.')}${owed ? ` <b class="amber">${owed === 1 ? T('{n} island still waits for its count.', { n: owed }) : T('{n} islands still wait for their count.', { n: owed })}</b>` : ''}</span><button class="linky danger" data-act="barter-sail-drop" title="${T('Drop the checklist; nothing is recorded')}">${T('Abandon')}</button><button class="act" data-act="barter-record" ${doneN ? '' : 'disabled'} title="${T('The stops done go into the Inventory as one change')}">${T('Record the trip')}</button></div>`;
 	return `<section class="panel"><div class="panel-head"><h2 class="panel-title">${complete ? T('The run, complete') : T('The run so far')}</h2><span class="panel-sub">${timer ? `${T('under way')} ⏱ ${esc(spanText(timer.ran))}` : ''}</span><span class="panel-spacer"></span><button class="linky" data-act="barter-step" data-id="sail">‹ ${T('Back to the run')}</button></div><div class="panel-body">${tiles}</div></section>
 		<section class="panel"><div class="panel-head"><h2 class="panel-title">${T('The exchange')}</h2><span class="panel-sub">${complete ? T('what recording will change') : T('so far — only ticked stops count')}</span></div><div class="panel-body">${exchangeHTML(gave, got, { spent: trip.spent, silver: trip.silver, coins, parley: spent, vouchers: drawnSoFar, guessedCoins })}${receipt}</div></section>
 		<section class="panel log-panel"><div class="panel-head"><h2 class="panel-title">${T('Stop by stop')}</h2><span class="panel-sub">${complete ? T('complete') : T('{n} still to go', { n: stops.length - doneN })}</span></div>${log}</section>
@@ -4705,7 +4838,9 @@ export function renderBarter() {
 	// Nothing is drawn until this render draws it: a board just cleared
 	// must not leave the last board's run standing in for one.
 	shownPlan = null;
-	const parts = goal === 'material' ? materialParts(me, b.data) : silverParts(me, b);
+	// Laid from the hold as it cast off, while a run is under way: its
+	// ticked stops are in the Inventory already.
+	const parts = store.readingAsWas(sail && sail.applied, () => (goal === 'material' ? materialParts(me, b.data) : silverParts(me, b)));
 	setTimeout(refreshSheet, 0);
 	const now = stepNow();
 	const on = sailing();
@@ -4713,7 +4848,7 @@ export function renderBarter() {
 	const planStep = `${boardHTML(b)}
 		<div class="plan-fold"><span>${T('Four steps · each opens when the one before is settled')}</span><span class="panel-spacer"></span><button class="linky" data-act="barter-sec" data-id="all">${T('show all')}</button><button class="linky" data-act="barter-sec" data-id="none">${T('collapse all')}</button></div>
 		${secs}${parts.dock || ''}`;
-	const loadFoot = `<div class="load-dock"><button class="linky" data-act="barter-step" data-id="plan">‹ ${T('Back to the plan')}</button><span class="run-dock-figs"><span>${parts.things.all ? T('{n} of {of} aboard', { n: parts.things.done, of: parts.things.all }) : ''}</span></span>${on ? `<button class="act" data-act="barter-step" data-id="sail">${T('Back to the run')} ›</button>` : `<button class="act" data-act="barter-cast-off"${shownPlan && shownPlan.stops && shownPlan.stops.length ? '' : ' disabled'} title="${T('Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>`}</div>`;
+	const loadFoot = `<div class="load-dock"><button class="linky" data-act="barter-step" data-id="plan">‹ ${T('Back to the plan')}</button><span class="run-dock-figs"><span>${parts.things.all ? T('{n} of {of} aboard', { n: parts.things.done, of: parts.things.all }) : ''}</span></span>${on ? `<button class="act" data-act="barter-step" data-id="sail">${T('Back to the run')} ›</button>` : `<button class="act" data-act="barter-cast-off"${shownPlan && shownPlan.stops && shownPlan.stops.length ? '' : ' disabled'} title="${T('Each stop goes into the hold as you tick it; at the end the run is recorded')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>`}</div>`;
 	const loadStep = `${holdBarHTML(me, parts.packLT || 0)}${parts.load || `<p class="empty step-empty">${T('Nothing to pack yet. Tick a chain on the plan and what it needs is listed here.')}</p>`}${loadFoot}`;
 	const body = now === 'load' ? loadStep : now === 'sail' ? sailHTML() : now === 'results' ? resultsHTML() : planStep;
 	return `<div class="barter-screen step-${now}">
@@ -5217,6 +5352,7 @@ export function barterAction(act, el, redraw) {
 			return true;
 		case 'barter-orders-fold': advOpen = !advOpen; persist(); return true;
 		case 'barter-glance': glance = !glance; return true;
+		case 'barter-slots': slotsOpen = !slotsOpen; return true;
 		// A rung of the ladder: where the day's climbs end. On a coin day
 		// the ceiling is the coin islands' own, so picking another rung is
 		// asking for a different day, and says so by changing the goal.
@@ -5477,7 +5613,7 @@ export function barterAction(act, el, redraw) {
 		}
 		// The run is dropped, and its clock with it: a clock with no run
 		// behind it only counts up at whoever comes back to the page.
-		case 'barter-sail-drop': sail = null; sailAll.open = false; cursor = null; skipped = new Set(); step = 'plan'; stopTimer(); persist(); bringUp('.barter-screen .steps'); return true;
+		case 'barter-sail-drop': unsyncHold(sail); sail = null; sailAll.open = false; cursor = null; skipped = new Set(); step = 'plan'; stopTimer(); persist(); bringUp('.barter-screen .steps'); return true;
 		// The cockpit sent to one stop, or past one. A stop passed over is
 		// not ticked and not recorded: it is only out of the way.
 		case 'barter-sail-jump': cursor = String(el.dataset.k); return true;
@@ -5486,6 +5622,9 @@ export function barterAction(act, el, redraw) {
 		case 'barter-recorded-ok': lastTrip = null; return true;
 		case 'barter-undo-record': {
 			const label = store.undo();
+			// The stops written into the hold as they were ticked go back
+			// with the rest of the run.
+			if (label && lastTrip && lastTrip.applied) unsyncHold({ applied: lastTrip.applied });
 			lastTrip = null;
 			toast(label ? T('Reverted: {what}', { what: label }) : T('Nothing to undo'));
 			return true;
