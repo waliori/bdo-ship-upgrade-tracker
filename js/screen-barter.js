@@ -1970,11 +1970,14 @@ function presetNext() {
 	const st = presetState;
 	if (st.busy || !st.queue.length) return;
 	const job = st.queue.shift();
+	st.job = job;
 	const key = st.key;
 	const done = result => {
 		if (presetState.key !== key) return;
+		if (presetState.job !== job) return;
 		presetState.res.set(job.id, result && result.best ? result.best : null);
 		presetState.busy = false;
+		presetState.job = null;
 		if (!presetState.queue.length) redrawSoon();
 		presetNext();
 	};
@@ -1985,8 +1988,8 @@ function presetNext() {
 	try { w.postMessage({ id: job.id, ...job.args, budgetMs: PRESET_BUDGET_MS }); } catch { done(propose({ ...job.args, budgetMs: 150 })); }
 }
 function presetSearch(key, jobs) {
-	if (presetState.key === key) return;
-	presetState = { key, res: new Map(), queue: jobs, busy: false };
+	if (presetState.key === key) { presetNext(); return; }
+	presetState = { key, res: new Map(), queue: jobs, busy: false, job: null };
 	if (presetWorker) { presetWorker.terminate(); presetWorker = null; }
 	presetNext();
 }
@@ -2031,8 +2034,15 @@ function proposeAsync(args, tag, then) {
 	// The main search has the machine to itself: the ways of sailing
 	// searched for the last inputs are stopped, and asked again once this
 	// answers.
-	if (presetWorker) { presetWorker.terminate(); presetWorker = null; }
-	presetState = { key: '', res: new Map(), queue: [], busy: false };
+	// The ways of sailing already searched are kept -- they do not depend
+	// on which card is chosen -- and one being searched right now is put
+	// back at the head of the queue, to finish once this answers.
+	if (presetState.busy && presetState.job) {
+		if (presetWorker) { presetWorker.terminate(); presetWorker = null; }
+		presetState.queue.unshift(presetState.job);
+		presetState.busy = false;
+		presetState.job = null;
+	}
 	const w = workerOf();
 	if (!w) return propose(args);
 	const id = ++reqSeq;
@@ -3313,7 +3323,14 @@ function silverParts(me, b) {
 	}) : list);
 	const presetPrices = landPrices(everything.filter(c => c.from === 'land').map(c => c.item), made);
 	const sailingKeys = new Set(SAIL_PRESETS.flatMap(p => Object.keys(p.orders)));
-	const presetKey = JSON.stringify([pkey.replace(JSON.stringify(o), ''), Object.fromEntries(Object.entries(o).filter(([k]) => !sailingKeys.has(k)))]);
+	// The ranges counted over every chain on the board, not only the ones
+	// this card's orders let in: the key, and the figures, must not move
+	// with the card that is chosen.
+	const presetSeen = {};
+	if (o.count !== 'least') for (const c of everything) for (const r of c.rungs) { const n = countAs(r, o, ratios); if (n) presetSeen[r.npcId] = n; }
+	Object.assign(presetSeen, planSeen(sailing()));
+	const baseOrders = Object.fromEntries(Object.entries(o).filter(([k]) => !sailingKeys.has(k)));
+	const presetKey = JSON.stringify([board.day, b.combo.id, stock, dock, owned, [...land], baseOrders, port, stash, Object.values(presetPrices).map(x => x.each), me.hold, ship, opts.parley, presetSeen, reach, prof.barterCount, aim, ceiling, b.shut]);
 	// Asked once the main search has answered, so the two never share
 	// the machine. The way already chosen is the main search itself: its
 	// answer is that card's figure, not a second search that might land
@@ -3322,7 +3339,7 @@ function silverParts(me, b) {
 		const oo = { ...o, ...p.orders };
 		const coveredBy = c => c.from !== 'land' || oo.landFrom !== 'stock' || (land.get(c.item) || 0) >= c.rungs[0].giveN;
 		const list = reachCut(everything.filter(c => (oo.buy || c.from !== 'land') && !c.gate && coveredBy(c)));
-		return { id: p.id, args: { chains: list, opts: { ...opts, pace: oo.pace, orders: oo, prices: presetPrices }, ship, timeCap: oo.hours, aim } };
+		return { id: p.id, args: { chains: list, opts: { ...opts, pace: oo.pace, orders: oo, prices: presetPrices, seen: presetSeen }, ship, timeCap: oo.hours, aim } };
 	}));
 	// Ticks left to the search -- a new board, or a way of sailing just
 	// changed under ticks that were the search's own -- take its answer
@@ -3630,9 +3647,12 @@ function silverParts(me, b) {
 		return { big, sub: `${chainsN === 1 ? T('{n} chain', { n: chainsN }) : T('{n} chains', { n: chainsN })} · ${lg.total ? `≈ ${esc(runTime(lg, ledgerOf(run.stops, lg)))}` : T('no way')} · ${run.trades === 1 ? T('{n} trade', { n: F(run.trades) }) : T('{n} trades', { n: F(run.trades) })}${calls ? ` · ${calls === 1 ? T('{n} wharf call', { n: calls }) : T('{n} wharf calls', { n: calls })}` : ''}` };
 	};
 	const presetFigs = new Map(SAIL_PRESETS.map(p => {
+		// The card's own search, once it has answered -- the same for the
+		// card chosen as for the rest, so choosing one changes no figure.
+		// Until then the chosen card can read the main search's answer.
 		const own = p.id === sailPresetOf(o) && !proposed.working;
-		const ready = own || presetState.res.has(p.id);
-		const best = own ? proposed.best : presetState.res.get(p.id);
+		const ready = presetState.res.has(p.id) || own;
+		const best = presetState.res.has(p.id) ? presetState.res.get(p.id) : proposed.best;
 		const f = !ready ? { big: '…', sub: T('searching this way…'), wait: true } : best ? figOf(best.run) : { big: '—', sub: T('nothing sails this way today') };
 		if (handPicked) {
 			const oo = { ...o, ...p.orders };
