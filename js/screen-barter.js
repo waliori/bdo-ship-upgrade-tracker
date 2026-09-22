@@ -15,7 +15,7 @@
 import { esc, F, FC } from './fmt.js';
 import { T, said, gameName } from './i18n.js';
 import * as store from './state.js';
-import { img, codexName, copyName, amountInput } from './ui-bits.js';
+import { img, iconSrc, codexName, copyName, amountInput } from './ui-bits.js';
 import { snapshot, barterData, barterProfile, combos, matBoards, totalsToGo, SILVER } from './ui-state.js';
 import { barterKey, periodKey, currentPlan } from './clock.js';
 import { candidates, askable, offersAt, offersOf, boardData, gatedOffers, exchangeGate, clientDeals } from './barter-board.js';
@@ -1995,23 +1995,148 @@ function presetSearch(key, jobs) {
 }
 
 /**
- * Casting off, seen: a ship crossing the screen and the clock said to
- * be running, for a moment and gone. The press is the start of the
- * run -- the clock begins, the cockpit opens -- and it did all of that
- * without a flicker, so it read as a page changing rather than a ship
- * leaving. Nothing waits on it and a press anywhere takes it away.
+ * Casting off, seen: the sailor's own hull dropped into the water, the
+ * splash and the swell it raises, and the run's first stop said beside
+ * it -- then gone. The press is the start of the run (the clock begins,
+ * the cockpit opens) and it did all that without a flicker, so it read
+ * as a page changing rather than a ship leaving.
+ *
+ * The water is a row of springs, each pulled back to rest and passing
+ * its motion to its neighbours; the hull falls under gravity, lands,
+ * pushes the springs under its bow down and throws spray, then rides
+ * the swell, tilted to the slope under it. Drawn on a canvas from the
+ * page's own colours. A press anywhere, or four seconds, closes it;
+ * with reduced motion it is a still card.
  */
 function castOffFx() {
 	if (typeof document === 'undefined') return;
 	document.querySelectorAll('.castoff-fx').forEach(e => e.remove());
-	const t = timerState();
+	const plan = sailedPlan();
+	const first = plan && plan.stops && plan.stops[0];
+	const t0 = timerState();
+	const sub = [
+		plan ? T('Stop 1 of {n}', { n: plan.stops.length }) : '',
+		first ? stopNames(first).place : '',
+		t0 ? T('≈ {time} to the end', { time: spanText(t0.seconds) }) : ''
+	].filter(Boolean).join(' · ');
 	const fx = document.createElement('div');
 	fx.className = 'castoff-fx';
 	fx.setAttribute('role', 'status');
-	fx.innerHTML = `<div class="castoff-card"><span class="castoff-ship" aria-hidden="true">⛵</span><b>${T('Lines let go')}</b><span>${t ? T('the clock is running · ≈ {time} to the end', { time: esc(spanText(t.seconds)) }) : T('the run is under way')}</span></div><i class="castoff-wake" aria-hidden="true"></i>`;
-	fx.addEventListener('click', () => fx.remove());
+	fx.innerHTML = `<div class="setsail"><canvas></canvas><div class="setsail-title"><span class="setsail-label">${T('Setting sail')}</span><span class="setsail-rule"></span><span class="setsail-sub">${esc(sub)}</span></div></div>`;
 	document.body.appendChild(fx);
-	setTimeout(() => fx.remove(), 2600);
+	const box = fx.querySelector('.setsail'), cv = fx.querySelector('canvas');
+	let raf = 0;
+	const close = () => { cancelAnimationFrame(raf); fx.remove(); };
+	fx.addEventListener('click', close);
+	setTimeout(close, 4200);
+	if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+	const src = iconSrc(currentShip().name);
+	const pic = new Image();
+	if (src) pic.src = src;
+	const cs = getComputedStyle(box);
+	const tok = (n, f) => cs.getPropertyValue(n).trim() || f;
+	const blue = tok('--blue-rgb', '90,140,190'), deep = tok('--deep-rgb', '10,18,30'), shade = tok('--shade-rgb', '5,10,18'), skyTop = tok('--panel-inset', '#0b1220');
+	const d = window.devicePixelRatio || 1, W = box.clientWidth, H = box.clientHeight, N = 220;
+	cv.width = W * d; cv.height = H * d;
+	const ctx = cv.getContext('2d');
+	ctx.setTransform(d, 0, 0, d, 0, 0);
+	const h = new Float32Array(N), v = new Float32Array(N);
+	let t = 0, drops = [], foam = [];
+	const ship = { y: -H * 0.9, vy: 0, rot: -0.05, vr: 0, mode: 'fall' };
+	const colX = i => (i / (N - 1)) * W;
+	const base = () => H * 0.7;
+	const ambient = (x, tt, k) => Math.sin(x * 0.012 + tt * 0.9) * 4 * k + Math.sin(x * 0.027 - tt * 1.4) * 2.2 * k + Math.sin(x * 0.005 + tt * 0.5) * 3 * k;
+	const surf = i => base() + h[i] + ambient(colX(i), t, 1);
+	const surfAt = x => { const f = (x / W) * (N - 1), i = Math.max(0, Math.min(N - 2, Math.floor(f))), r = f - i; return surf(i) * (1 - r) + surf(i + 1) * r; };
+	const geo = () => { const sw = W * 0.58, right = W + 6; return { sw, sh: sw, right, cx: right - sw * 0.5, x0: right - sw * 0.92 }; };
+	const sim = (k, damp, spread) => {
+		for (let i = 0; i < N; i++) v[i] += -h[i] * k - v[i] * damp;
+		const L = new Float32Array(N), R = new Float32Array(N);
+		for (let p = 0; p < 6; p++) {
+			for (let i = 0; i < N; i++) {
+				if (i > 0) { L[i] = spread * (h[i] - h[i - 1]); v[i - 1] += L[i]; }
+				if (i < N - 1) { R[i] = spread * (h[i] - h[i + 1]); v[i + 1] += R[i]; }
+			}
+			for (let i = 0; i < N; i++) { if (i > 0) h[i - 1] += L[i]; if (i < N - 1) h[i + 1] += R[i]; }
+		}
+		for (let i = 0; i < N; i++) h[i] += v[i];
+	};
+	const step = dt => {
+		t += dt;
+		const { sw, sh, cx, x0 } = geo(), hullBottom = sh * 0.9, draft = sh * 0.12;
+		const i0 = Math.round((x0 / W) * (N - 1)), i1 = N - 1;
+		if (ship.mode === 'fall') {
+			ship.vy += H * 2.4 * dt; ship.y += ship.vy * dt; ship.rot += ship.vr * dt;
+			if (ship.y + hullBottom >= surfAt(Math.min(W - 1, cx))) {
+				ship.mode = 'float';
+				const pw = ship.vy / H;
+				for (let i = i0; i <= i1; i++) { const u = Math.max(0, 1 - (i - i0) / ((i1 - i0) * 0.5)); v[i] += pw * 11 * (1 - u * u); }
+				for (let i = 0; i < 110; i++) {
+					const x = x0 + Math.random() * sw * 0.18;
+					drops.push({ x, y: surfAt(x) - 2, vx: -(30 + Math.random() * 200) * pw * 1.6, vy: -(120 + Math.random() * 420) * pw * 1.5, r: 0.8 + Math.random() * 2.2, a: 0.5 + Math.random() * 0.5, life: 1 });
+				}
+				for (let i = 0; i < 40; i++) { const x = x0 - sw * 0.25 + Math.random() * sw * 0.5; foam.push({ x, vx: (x - x0) * 1.4, r: 4 + Math.random() * 9, a: 0.18 + Math.random() * 0.25, life: 1, decay: 0.22 + Math.random() * 0.3 }); }
+				ship.vy *= 0.3;
+			}
+		} else {
+			const sL = surfAt(x0 + sw * 0.1), sR = surfAt(W - 1), target = (sL + sR) / 2 - hullBottom + draft, prev = ship.y;
+			ship.vy += (target - ship.y) * 22 * dt - ship.vy * 2.6 * dt; ship.y += ship.vy * dt;
+			const slope = Math.atan2(sR - sL, W - 1 - x0 - sw * 0.1);
+			ship.vr += (slope * 0.45 - ship.rot) * 14 * dt - ship.vr * 3 * dt; ship.rot += ship.vr * dt;
+			const dy = ship.y - prev;
+			if (Math.abs(dy) > 0.05) for (let i = i0; i <= i1; i++) { const u = Math.max(0, 1 - (i - i0) / ((i1 - i0) * 0.5)); v[i] += dy * 0.12 * (1 - u * u); }
+			if (Math.abs(ship.vy) > 18 && Math.random() < 0.5) foam.push({ x: x0 + Math.random() * sw * 0.08, vx: -20, r: 1 + Math.random() * 2.5, a: 0.3, life: 1, decay: 0.8 });
+		}
+		sim(0.016, 0.035, 0.13);
+		for (let i = 0; i < N; i++) h[i] = Math.max(-22, Math.min(16, h[i]));
+		const g = H * 1.9;
+		drops = drops.filter(p => { p.vy += g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.995; p.life -= dt * 0.9; if (p.y > surfAt(p.x) && p.vy > 0) { if (Math.random() < 0.2) foam.push({ x: p.x, vx: p.vx * 0.2, r: 2 + p.r * 1.5, a: p.a * 0.3, life: 1, decay: 0.7 }); return false; } return p.life > 0; });
+		foam = foam.filter(f => { f.life -= f.decay * dt; f.x += f.vx * dt; f.vx *= 0.96; return f.life > 0; });
+	};
+	const water = (fn, top, alphaTop) => {
+		ctx.beginPath(); ctx.moveTo(0, H);
+		for (let i = 0; i < N; i++) ctx.lineTo(colX(i), fn(i));
+		ctx.lineTo(W, H); ctx.closePath();
+		const gr = ctx.createLinearGradient(0, top, 0, H);
+		gr.addColorStop(0, `rgba(${blue},${alphaTop})`); gr.addColorStop(0.45, `rgba(${deep},.95)`); gr.addColorStop(1, `rgb(${shade})`);
+		ctx.fillStyle = gr; ctx.fill();
+		ctx.beginPath(); for (let i = 0; i < N; i++) { const x = colX(i), y = fn(i); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+		ctx.strokeStyle = `rgba(${blue},.45)`; ctx.lineWidth = 1.2; ctx.stroke();
+	};
+	const draw = () => {
+		const sky = ctx.createLinearGradient(0, 0, 0, H * 0.7);
+		sky.addColorStop(0, skyTop); sky.addColorStop(1, `rgb(${deep})`);
+		ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+		ctx.fillStyle = `rgba(${blue},.06)`; ctx.fillRect(0, H * 0.58, W, H * 0.12);
+		ctx.globalAlpha = 0.7; water(i => base() - 14 + h[i] * 0.25 + ambient(colX(i) + 300, t * 0.8, 0.8), base() - 20, 0.28); ctx.globalAlpha = 1;
+		const { sw, sh, cx, right } = geo(), sx = Math.min(W - 1, cx);
+		if (pic.complete && pic.naturalWidth) {
+			ctx.save(); ctx.beginPath(); ctx.rect(0, base() - 40, W, H); ctx.clip();
+			ctx.translate(right, surfAt(sx) + 6); ctx.scale(1, -0.55); ctx.rotate(-ship.rot * 0.5); ctx.globalAlpha = 0.22;
+			ctx.drawImage(pic, -sw, -sh * 0.9, sw, sh); ctx.restore();
+			ctx.save(); ctx.translate(right, ship.y + sh * 0.88); ctx.rotate(ship.rot * 0.5);
+			ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 8;
+			ctx.filter = 'saturate(.75) contrast(1.05)';
+			ctx.drawImage(pic, -sw, -sh * 0.88, sw, sh); ctx.restore();
+		}
+		water(surf, base() - 30, 0.5);
+		ctx.beginPath(); for (let i = 0; i < N; i++) { const x = colX(i), y = surf(i) + 5 + h[i] * 0.1; if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+		ctx.strokeStyle = 'rgba(255,255,255,.05)'; ctx.lineWidth = 1; ctx.stroke();
+		for (const f of foam) {
+			const y = surfAt(f.x), rx = f.r * (1 + (1 - f.life) * 1.8), ry = Math.max(1, f.r * 0.3);
+			const g = ctx.createRadialGradient(f.x, y, 0, f.x, y, rx);
+			g.addColorStop(0, `rgba(225,235,242,${f.a * f.life})`); g.addColorStop(1, 'rgba(225,235,242,0)');
+			ctx.save(); ctx.translate(f.x, y); ctx.scale(1, ry / rx); ctx.translate(-f.x, -y); ctx.beginPath(); ctx.arc(f.x, y, rx, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill(); ctx.restore();
+		}
+		for (const p of drops) { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fillStyle = `rgba(215,230,240,${p.a * Math.min(1, p.life * 1.5)})`; ctx.fill(); }
+		if (ship.mode === 'fall') {
+			const sy = surfAt(sx), k = Math.max(0, Math.min(1, 1 - (sy - (ship.y + sh * 0.9)) / (H * 0.9)));
+			ctx.beginPath(); ctx.ellipse(cx, sy + 3, sw * 0.46 * k, 5 * k, 0, 0, Math.PI * 2); ctx.fillStyle = `rgba(0,0,0,${0.45 * k})`; ctx.fill();
+		}
+	};
+	let last = performance.now();
+	const loop = now => { step(Math.min(40, now - last) / 1000); last = now; draw(); raf = requestAnimationFrame(loop); };
+	raf = requestAnimationFrame(loop);
 }
 
 /** A request answered on this thread after all. */
@@ -2402,7 +2527,7 @@ function sailBar(plan) {
 	const legs = legsOf(plan.stops);
 	const book = ledgerOf(plan.stops, legs);
 	const clock = timerHTML({ suggest: (legs.mid || 0) + (book.waited || 0) * 60, label: runLabel(plan), marks: runMarks(plan, legs, book) });
-	if (!on) return `<div class="sail-bar"><button class="act" data-act="barter-sail" title="${T('Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change')}">⛵ ${T('Sail this run')}</button><span class="faint">${T('tick each stop off as you sail; what an island paid re-counts the rest; Record at the end puts the whole trip in the Inventory in one Undo')}</span><span class="panel-spacer"></span>${clock}</div>`;
+	if (!on) return `<div class="sail-bar"><button class="act" data-act="barter-sail" title="${T('Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change')}">${img(currentShip().name, 'ship-ico')} ${T('Sail this run')}</button><span class="faint">${T('tick each stop off as you sail; what an island paid re-counts the rest; Record at the end puts the whole trip in the Inventory in one Undo')}</span><span class="panel-spacer"></span>${clock}</div>`;
 	const n = plan.stops.filter((s, k) => ticked(on.done, s, k, plan.stops)).length;
 	const questsLeft = [...(plan.questsHome || []), ...plan.stops.flatMap(s => s.quests || [])].map(x => x.q).filter(q => !questDone(q)).length;
 	// The whole run done at once: which of it, asked in place.
@@ -3961,7 +4086,7 @@ function materialParts(me, data) {
 	const holdCls = peakM.state === 'heavy' || peakM.state === 'dead' ? 'warn' : peakM.state === 'over' ? 'amber' : 'ok';
 	const fig = (icon, v, sub, cls = '') => `<span class="mat-fig${cls ? ` ${cls}` : ''}"><i>${icon}</i><span class="mat-fig-text"><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</span></span>`;
 	const figs = plan.stops.length ? `<div class="mat-figs">
-		${fig('⛵', plan.islands === 1 ? T('{n} island', { n: plan.islands }) : T('{n} islands', { n: plan.islands }), plan.trades === 1 ? T('{n} trade', { n: plan.trades }) : T('{n} trades', { n: plan.trades }))}
+		${fig(img(currentShip().name, 'ship-ico'), plan.islands === 1 ? T('{n} island', { n: plan.islands }) : T('{n} islands', { n: plan.islands }), plan.trades === 1 ? T('{n} trade', { n: plan.trades }) : T('{n} trades', { n: plan.trades }))}
 		${plan.calls ? fig('⚓', plan.calls === 1 ? T('{n} harbour call', { n: plan.calls }) : T('{n} harbour calls', { n: plan.calls }), plan.returns ? T('{n} departures: the hold cannot carry every give at once', { n: plan.returns + 1 }) : T('to load from storage')) : ''}
 		${fig('⚖', esc(peakM.text), `${T('at its fullest')} · ${holdCls === 'ok' ? T('under the limit') : holdCls === 'amber' ? T('over the limit: sailing slower') : T('over {n}: too heavy to barter', { n: F(peakM.deal) })}`, holdCls)}
 		${legs.total ? fig('⏱', esc(runTime(legs, book)), `${T('{dist} at {speed}%', { dist: esc(fmtDistance(legs.total)), speed: me.speed.total })}${from ? ` ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}`) : ''}
@@ -4499,7 +4624,7 @@ export function renderBarter() {
 	const planStep = `${boardHTML(b)}
 		<div class="plan-fold"><span>${T('Four steps · each opens when the one before is settled')}</span><span class="panel-spacer"></span><button class="linky" data-act="barter-sec" data-id="all">${T('show all')}</button><button class="linky" data-act="barter-sec" data-id="none">${T('collapse all')}</button></div>
 		${secs}${parts.dock || ''}`;
-	const loadFoot = `<div class="load-dock"><button class="linky" data-act="barter-step" data-id="plan">‹ ${T('Back to the plan')}</button><span class="run-dock-figs"><span>${parts.things.all ? T('{n} of {of} aboard', { n: parts.things.done, of: parts.things.all }) : ''}</span></span>${on ? `<button class="act" data-act="barter-step" data-id="sail">${T('Back to the run')} ›</button>` : `<button class="act" data-act="barter-cast-off"${shownPlan && shownPlan.stops && shownPlan.stops.length ? '' : ' disabled'} title="${T('Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change')}">⛵ ${T('Cast off')}</button>`}</div>`;
+	const loadFoot = `<div class="load-dock"><button class="linky" data-act="barter-step" data-id="plan">‹ ${T('Back to the plan')}</button><span class="run-dock-figs"><span>${parts.things.all ? T('{n} of {of} aboard', { n: parts.things.done, of: parts.things.all }) : ''}</span></span>${on ? `<button class="act" data-act="barter-step" data-id="sail">${T('Back to the run')} ›</button>` : `<button class="act" data-act="barter-cast-off"${shownPlan && shownPlan.stops && shownPlan.stops.length ? '' : ' disabled'} title="${T('Tick the stops off as you go; at the end the whole trip goes into the Inventory as one change')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>`}</div>`;
 	const loadStep = `${holdBarHTML(me, parts.packLT || 0)}${parts.load || `<p class="empty step-empty">${T('Nothing to pack yet. Tick a chain on the plan and what it needs is listed here.')}</p>`}${loadFoot}`;
 	const body = now === 'load' ? loadStep : now === 'sail' ? sailHTML() : now === 'results' ? resultsHTML() : planStep;
 	return `<div class="barter-screen step-${now}">
