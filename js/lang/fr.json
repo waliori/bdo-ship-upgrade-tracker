@@ -5273,5 +5273,8 @@
 	"🔔 notify me too": "🔔 me prévenir aussi",
 	"🔔 on the Home Screen": "🔔 sur l'écran d'accueil",
 	"🔔 reminding by push": "🔔 rappel par notification",
-	"🔔 reminding while open": "🔔 rappel si l'appli est ouverte"
+	"🔔 reminding while open": "🔔 rappel si l'appli est ouverte",
+	"from the parts": "des pièces",
+	"{n} a side": "{n} par bord",
+	"reloads in {s} s": "recharge en {s} s"
 }

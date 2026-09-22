@@ -5144,5 +5144,8 @@
 	"🔔 notify me too": "🔔 แจ้งฉันด้วย",
 	"🔔 on the Home Screen": "🔔 บนหน้าจอหลัก",
 	"🔔 reminding by push": "🔔 เตือนด้วยพุช",
-	"🔔 reminding while open": "🔔 เตือนขณะเปิดอยู่"
+	"🔔 reminding while open": "🔔 เตือนขณะเปิดอยู่",
+	"from the parts": "จากชิ้นส่วน",
+	"{n} a side": "ข้างละ {n}",
+	"reloads in {s} s": "บรรจุใหม่ {s} วิ"
 }

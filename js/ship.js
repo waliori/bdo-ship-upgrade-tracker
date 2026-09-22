@@ -178,10 +178,13 @@ export const CORSAIR_BONUS = 1;
  * it goes where top speed matters: the time a leg takes at sea.
  */
 export const LOG_LEVELS = ['+0', '+1', '+2', '+3', '+4', '+5', '+6', '+7', '+8', '+9', '+10', '+11', '+12', '+13', '+14', '+15', 'PRI', 'DUO', 'TRI', 'TET', 'PEN'];
+// The three share one picture in the game; the grade's frame and the
+// enhancement written on it are what tell them apart (the codex's
+// grade_frame_1 / _2 / _4: green, blue, orange).
 export const SAILING_LOGS = {
-	loggia: { name: 'Loggia Sailing Log', speed: 5, exp: 3, mastery: [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 39, 45, 51, 57, 63, 70, 90, 130, 200, 280] },
-	srulk: { name: 'Srulk Sailing Log', speed: 10, exp: 5, mastery: [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 50, 58, 66, 74, 80, 95, 125, 180, 250, 330] },
-	manos: { name: 'Manos Sailing Log', speed: 15, exp: 10, mastery: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100, 120, 160, 220, 300, 400] }
+	loggia: { name: 'Loggia Sailing Log', grade: 1, speed: 5, exp: 3, mastery: [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 39, 45, 51, 57, 63, 70, 90, 130, 200, 280] },
+	srulk: { name: 'Srulk Sailing Log', grade: 2, speed: 10, exp: 5, mastery: [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 50, 58, 66, 74, 80, 95, 125, 180, 250, 330] },
+	manos: { name: 'Manos Sailing Log', grade: 4, speed: 15, exp: 10, mastery: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100, 120, 160, 220, 300, 400] }
 };
 /** The log worn, as { kind, lv, name, mastery, speed }, or null. */
 export function sailingLog() {
@@ -189,7 +192,7 @@ export function sailingLog() {
 	const log = raw && SAILING_LOGS[raw.kind];
 	if (!log) return null;
 	const lv = Math.max(0, Math.min(LOG_LEVELS.length - 1, Math.floor(Number(raw.lv) || 0)));
-	return { kind: raw.kind, lv, name: log.name, mastery: log.mastery[lv], speed: log.speed, exp: log.exp, level: LOG_LEVELS[lv] };
+	return { kind: raw.kind, lv, grade: log.grade, name: log.name, mastery: log.mastery[lv], speed: log.speed, exp: log.exp, level: LOG_LEVELS[lv] };
 }
 export const corsairBonus = () => (store.getProfile('corsair', false) === true ? CORSAIR_BONUS : 0);
 
@@ -403,6 +406,10 @@ export function currentShip() {
 			// the log's top speed on it.
 			return { hull: stats.speed, parts: parts('speed'), crystal: gem('speed'), crew: crew.speed, mastery, corsair, skin: skin('speed'), total, log: log ? log.speed : 0, sea: round1(total * (1 + (log ? log.speed : 0) / 100)) };
 		})(),
+		// The same sum, term by term, for the three the ship card lists
+		// beside the speed.
+		terms: Object.fromEntries(['accel', 'turn', 'brake'].map(k => [k, { hull: stats[k], parts: parts(k), crystal: gem(k), crew: crew[k], mastery, corsair, skin: skin(k) }])),
+		dp: parts('dp') + gem('dp') + skin('dp'),
 		accel: round1(stats.accel + parts('accel') + gem('accel') + crew.accel + mastery + corsair + skin('accel')),
 		turn: round1(stats.turn + parts('turn') + gem('turn') + crew.turn + mastery + corsair + skin('turn')),
 		brake: round1(stats.brake + parts('brake') + gem('brake') + crew.brake + mastery + corsair + skin('brake')),

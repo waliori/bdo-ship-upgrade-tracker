@@ -976,6 +976,8 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .ship-card-icon { width: 64px; height: 64px; border-radius: 12px; flex: none; }
 .ship-card-text { min-width: 0; }
 .ship-card-facts { display: flex; gap: 26px; flex-wrap: wrap; }
+.ship-card-specs { flex: 1 1 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px 22px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.ship-card-specs .summary-v { font-size: 18px; }
 .ship-card-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .slot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; padding: 0 14px 12px; }
 .slot-card { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: var(--r-btn); background: var(--panel-inset, rgba(var(--deep-rgb), 0.55)); border: 1px solid rgba(var(--line-rgb), 0.12); }

@@ -7259,5 +7259,8 @@
 	"🔔 notify me too": "🔔 уведомлять и меня",
 	"🔔 on the Home Screen": "🔔 на домашнем экране",
 	"🔔 reminding by push": "🔔 напоминает через push",
-	"🔔 reminding while open": "🔔 напоминает, пока открыто"
+	"🔔 reminding while open": "🔔 напоминает, пока открыто",
+	"from the parts": "от деталей",
+	"{n} a side": "{n} с борта",
+	"reloads in {s} s": "перезарядка {s} с"
 }

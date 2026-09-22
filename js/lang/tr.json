@@ -5144,5 +5144,8 @@
 	"🔔 notify me too": "🔔 bana da bildir",
 	"🔔 on the Home Screen": "🔔 Ana Ekranda",
 	"🔔 reminding by push": "🔔 anlık bildirimle hatırlatılıyor",
-	"🔔 reminding while open": "🔔 açıkken hatırlatılıyor"
+	"🔔 reminding while open": "🔔 açıkken hatırlatılıyor",
+	"from the parts": "parçalardan",
+	"{n} a side": "her yanda {n}",
+	"reloads in {s} s": "{s} sn'de dolar"
 }

@@ -257,7 +257,12 @@ export function profileHTML({ sheet = false } = {}) {
 			const log = sailingLog();
 			const kinds = `<select class="pouch-select" data-act="sailing-log" aria-label="${T('Sailing log')}"><option value="">${T('none')}</option>${Object.entries(SAILING_LOGS).map(([k, l]) => `<option value="${k}"${log && log.kind === k ? ' selected' : ''}>${esc(gameName(l.name).replace(/ Sailing Log$/, ''))}</option>`).join('')}</select>`;
 			const lvs = log ? `<select class="pouch-select" data-act="sailing-log-lv" aria-label="${T('Its enhancement')}">${LOG_LEVELS.map((l, i) => `<option value="${i}"${log.lv === i ? ' selected' : ''}>${l}</option>`).join('')}</select>` : '';
-			return chip('log', img(log ? log.name : 'Manos Sailing Log', 'pouch-icon'), T('Sailing log'),
+			// Drawn as the game draws it: the grade's frame, and the
+			// enhancement on the icon's corner.
+			const icon = log
+				? `<span class="log-icon grade-${log.grade}" title="${esc(`${log.level} ${gameName(log.name)}`)}">${img(log.name, 'pouch-icon')}${log.lv ? `<i>${esc(log.level)}</i>` : ''}</span>`
+				: img('Manos Sailing Log', 'pouch-icon');
+			return chip('log', icon, T('Sailing log'),
 				`<span class="pouch-log">${kinds}${lvs}</span>`,
 				log ? T('+{m} mastery (in your total) · +{s}% top speed at sea', { m: F(log.mastery), s: log.speed }) : T('adds mastery and top speed at sea'),
 				T('The sailing log you wear. Its Sailing Mastery is already part of the total the Life Skill tab shows, so it is not added twice; its Max Big Ship Speed is not in the ship window’s Speed %, and makes every leg at sea shorter'));

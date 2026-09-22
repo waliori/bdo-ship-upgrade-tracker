@@ -5144,5 +5144,8 @@
 	"🔔 notify me too": "🔔 自分にも通知",
 	"🔔 on the Home Screen": "🔔 ホーム画面に追加すると",
 	"🔔 reminding by push": "🔔 プッシュで通知中",
-	"🔔 reminding while open": "🔔 開いている間は通知"
+	"🔔 reminding while open": "🔔 開いている間は通知",
+	"from the parts": "パーツから",
+	"{n} a side": "片舷 {n} 門",
+	"reloads in {s} s": "装填 {s} 秒"
 }

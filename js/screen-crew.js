@@ -683,6 +683,34 @@ function loadoutPanel(ship) {
 	</div>`;
 }
 
+/**
+ * Everything the app works out about the ship, on its card: the three
+ * handling figures with the sum each is made of, as the speed has, and
+ * what it takes, carries and fires.
+ */
+function shipSpecs(me, stats) {
+	const sum = t => [
+		T('hull {n}', { n: t.hull }),
+		t.parts ? T('parts {n}', { n: round1(t.parts) }) : '',
+		t.crystal ? T('crystal {n}', { n: t.crystal }) : '',
+		t.crew ? T('crew {n}', { n: t.crew }) : '',
+		t.mastery ? T('mastery {n}', { n: t.mastery }) : '',
+		t.corsair ? T('Corsair {n}', { n: t.corsair }) : '',
+		t.skin ? T('skin {n}', { n: t.skin }) : ''
+	].filter(Boolean).join(' + ');
+	const tile = (k, v, sub) => `<div><div class="summary-k">${k}</div><div class="summary-v">${v}</div><div class="summary-sub">${sub}</div></div>`;
+	return `<div class="ship-card-specs">
+		${tile(T('Acceleration'), `${me.accel}%`, sum(me.terms.accel))}
+		${tile(T('Turn'), `${me.turn}%`, sum(me.terms.turn))}
+		${tile(T('Brake'), `${me.brake}%`, sum(me.terms.brake))}
+		${tile(T('Durability'), F(me.durability), me.durability !== stats.durability ? T('hull {n}', { n: F(stats.durability) }) : '')}
+		${tile(T('Rations'), F(me.rations), me.crew.appetite ? T('the crew eats {n} a day', { n: F(me.crew.appetite) }) : '')}
+		${me.dp ? tile(T('DP'), F(me.dp), T('from the parts')) : ''}
+		${stats.cannons ? tile(T('Cannons'), me.damage ? `${F(me.damage)} × ${F(me.fit.total.hits || stats.cannons)}` : T('{n} a side', { n: stats.cannons }), [me.damage ? T('{n} a side', { n: stats.cannons }) : '', stats.reload ? T('reloads in {s} s', { s: stats.reload }) : ''].filter(Boolean).join(' · ')) : ''}
+	</div>`;
+}
+const round1 = n => Math.round(n * 10) / 10;
+
 /* ------------------------------------------------------------------ *
  * the screen
  * ------------------------------------------------------------------ */
@@ -799,6 +827,7 @@ export function renderCrew() {
 			<div><div class="summary-k">${T('Hold')}</div><div class="summary-v">${F(me.hold.limit)} LT</div><div class="summary-sub">${T('the limit, as fitted')}${me.hold.aboard ? ` · ${T('{n} of it {what}', { n: F(me.hold.aboard), what: said(aboardWhat(me.hold)) })}` : ''} · ${T('barters to {n}', { n: F(me.hold.deal + me.hold.aboard) })}</div></div>
 			<div><div class="summary-k">${T('Fitted')}</div><div class="summary-v">${T('{n} of 5', { n: fittedN + (me.crystal ? 1 : 0) })}</div><div class="summary-sub">${stats.crew ? T('{n} of {seats} seats taken', { n: me.crew.seated, seats: stats.crew }) : T('carries no sailors')}</div></div>
 		</div>
+		${shipSpecs(me, stats)}
 		<div class="ship-card-btns">
 			<button class="act quiet small" data-act="crew-ship-pick" title="${T('Which hull you sail — the Map and the Plan follow it')}">${T('⚓ Change ship')}</button>
 			<button class="act quiet small" data-act="crew-setup-save" title="${T('Keep this hull with its parts, crystal and seating under a name, to come back to')}">${T('Save as setup…')}</button>

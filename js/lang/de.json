@@ -5186,5 +5186,8 @@
 	"🔔 notify me too": "🔔 mich auch benachrichtigen",
 	"🔔 on the Home Screen": "🔔 auf dem Startbildschirm",
 	"🔔 reminding by push": "🔔 erinnert per Push",
-	"🔔 reminding while open": "🔔 erinnert, solange offen"
+	"🔔 reminding while open": "🔔 erinnert, solange offen",
+	"from the parts": "aus den Teilen",
+	"{n} a side": "{n} pro Seite",
+	"reloads in {s} s": "lädt in {s} s nach"
 }

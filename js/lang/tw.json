@@ -5144,5 +5144,8 @@
 	"🔔 notify me too": "🔔 也通知我",
 	"🔔 on the Home Screen": "🔔 在主螢幕上",
 	"🔔 reminding by push": "🔔 正在通過推送提醒",
-	"🔔 reminding while open": "🔔 開著時提醒"
+	"🔔 reminding while open": "🔔 開著時提醒",
+	"from the parts": "來自部件",
+	"{n} a side": "每側 {n} 門",
+	"reloads in {s} s": "{s} 秒裝填"
 }

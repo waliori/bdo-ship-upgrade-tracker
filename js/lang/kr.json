@@ -5144,5 +5144,8 @@
 	"🔔 notify me too": "🔔 나에게도 알림",
 	"🔔 on the Home Screen": "🔔 홈 화면에서",
 	"🔔 reminding by push": "🔔 푸시로 알림 중",
-	"🔔 reminding while open": "🔔 열려 있는 동안 알림 중"
+	"🔔 reminding while open": "🔔 열려 있는 동안 알림 중",
+	"from the parts": "부품에서",
+	"{n} a side": "한쪽 {n}문",
+	"reloads in {s} s": "재장전 {s}초"
 }
