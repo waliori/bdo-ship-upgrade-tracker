@@ -5134,5 +5134,9 @@
 	"Took {n} goods off the ship": "從船上卸下了 {n} 件貨物",
 	"at {stop} · stop {n} of {total} — waiting for Traded": "在 {stop} · 第 {n}/{total} 站 — 等待「已交易」",
 	"Shore goods aboard": "船上的陸地物資",
-	"{n} aboard · {lt} LT": "船上 {n} · {lt} LT"
+	"{n} aboard · {lt} LT": "船上 {n} · {lt} LT",
+	"And, whichever way you sail": "另外，無論怎麼航行",
+	"What “{name}” sets": "「{name}」設定了什麼",
+	"change any of them and the card that matches is chosen — or “My own way” when none does": "更動其中任何一項，就會選中與之相符的卡片——都不相符時則為「我自己的方式」",
+	"show what this way sets": "顯示這種方式的設定"
 }

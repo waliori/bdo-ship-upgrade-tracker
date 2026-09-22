@@ -5134,5 +5134,9 @@
 	"Took {n} goods off the ship": "เอาสินค้า {n} รายการลงจากเรือ",
 	"at {stop} · stop {n} of {total} — waiting for Traded": "ที่ {stop} · จุดแวะ {n} จาก {total} — รอกด แลกแล้ว",
 	"Shore goods aboard": "สินค้าบกบนเรือ",
-	"{n} aboard · {lt} LT": "บนเรือ {n} · {lt} LT"
+	"{n} aboard · {lt} LT": "บนเรือ {n} · {lt} LT",
+	"And, whichever way you sail": "และไม่ว่าจะแล่นแบบไหน",
+	"What “{name}” sets": "สิ่งที่ “{name}” ตั้งไว้",
+	"change any of them and the card that matches is chosen — or “My own way” when none does": "เปลี่ยนข้อใดก็ได้ แล้วการ์ดที่ตรงกันจะถูกเลือก — หรือ “แบบของฉันเอง” เมื่อไม่ตรงกับใบใด",
+	"show what this way sets": "แสดงสิ่งที่วิธีนี้ตั้งไว้"
 }

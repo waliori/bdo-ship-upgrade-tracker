@@ -5134,5 +5134,9 @@
 	"Took {n} goods off the ship": "{n} mal gemiden indirildi",
 	"at {stop} · stop {n} of {total} — waiting for Traded": "{stop} · durak {n} / {total} — «Takas yapıldı» bekleniyor",
 	"Shore goods aboard": "Gemideki kara malları",
-	"{n} aboard · {lt} LT": "gemide {n} · {lt} LT"
+	"{n} aboard · {lt} LT": "gemide {n} · {lt} LT",
+	"And, whichever way you sail": "Ve, nasıl yelken açarsan aç",
+	"What “{name}” sets": "“{name}” neyi ayarlar",
+	"change any of them and the card that matches is chosen — or “My own way” when none does": "herhangi birini değiştirin, eşleşen kart seçilir — hiçbiri eşleşmezse “Kendi yöntemim”",
+	"show what this way sets": "bu yolun ayarlarını göster"
 }

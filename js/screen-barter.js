@@ -1341,8 +1341,12 @@ function retickIfAuto() {
 }
 
 /** The orders as saved, cleaned; the cash-out preset until any are. */
+const PRESET_KEYS = ['pace', 'hours', 'vouchers', 'buy', 'landFrom'];
 const ordersNow = () => readOrders(store.getProfile('orders', null));
 function setOrders(patch) {
+	// An order a card sets, changed by hand: the card these orders now
+	// match is the one chosen, or "my own way" when they match none.
+	if (PRESET_KEYS.some(k => k in patch)) { ownWay = false; persist(); }
 	store.setProfile('orders', readOrders({ ...ordersNow(), ...patch }));
 }
 
@@ -1700,11 +1704,13 @@ function howHTML(o, figs = null) {
 	const cards = `${figs && figs.size ? `<p class="preset-note">${T('Under each: the best run the search finds sailing that way today. Choosing one ticks those chains — unless you ticked your own, which stay.')}</p>` : ''}<div class="preset-cards">${SAIL_PRESETS.map(p => `<button class="preset-card${on === p.id ? ' on' : ''}" data-act="barter-sail-preset" data-id="${p.id}" aria-pressed="${on === p.id}"><span class="preset-name"><i></i>${esc(said(p.label))}</span><span class="preset-line">${esc(said(p.sub))}</span>${fig(p.id)}</button>`).join('')}
 		<button class="preset-card custom${on ? '' : ' on'}" data-act="barter-adv" aria-expanded="${advOpen}"><span class="preset-name"><i></i>${T('My own way')}</span><span class="preset-line">${on ? T('Set every order yourself: where the first goods come from, the pace, the time, the vouchers, the quests.') : esc(howLine(o))}</span><span class="preset-fig"><span>${on ? `${T('every order')} ▾` : advOpen ? `${T('hide the orders')} ▴` : `${T('show the orders')} ▾`}</span></span></button>
 	</div>`;
-	const rows = `${orderRow('barter-buy', T('land goods'), o.buy ? (o.landFrom === 'stock' ? 'stock' : 'buy') : 'no', LAND_CHOICES)}
+	const named = SAIL_PRESETS.find(p => p.id === on);
+	const rows = `${named ? `<p class="orders-set-k">${T('What “{name}” sets', { name: esc(said(named.label)) })}</p>` : ''}${orderRow('barter-buy', T('land goods'), o.buy ? (o.landFrom === 'stock' ? 'stock' : 'buy') : 'no', LAND_CHOICES)}
 		${orderRow('barter-pace', T('pace'), o.pace, PACE_CHOICES())}
 		${orderRow('barter-hours', T('under way at most'), o.hours, HOUR_CHOICES, T('A run proposed here sails no longer than this'))}
-		${orderRow('barter-stash', T('storage at'), stash, [['', T('the nearest wharf')], ...stashes.map(w => [w.at, gameName(w.at)])])}
 		${orderRow('barter-vouchers', T('trade vouchers'), o.vouchers, VOUCHER_CHOICES, T('Whether the run draws on the Crow’s Trade Vouchers you carry; each is a quarter of a bar, on its own two-hour cooldown'))}
+		${named ? `<p class="orders-set-k">${T('And, whichever way you sail')}</p>` : ''}
+		${orderRow('barter-stash', T('storage at'), stash, [['', T('the nearest wharf')], ...stashes.map(w => [w.at, gameName(w.at)])])}
 		${orderRow('barter-quests', T('quests on the way'), o.quests, QUEST_CHOICES, T('The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the barter quests counted off the run\'s trades; the hunts only when their grounds lie on the way'))}
 		${orderRow('barter-way', T('the way round'), o.way, WAY_CHOICES, T('One route through every rung of every chain ticked, each after the rung beneath it — the nearest islands first, whatever chain they belong to — or each chain climbed to its top before the next'))}
 		${orderRow('barter-ratio', T('a 2-3 counts'), o.count, COUNT_CHOICES, T('How an exchange that pays a range is counted; the checklist records what your runs saw'))}
@@ -1714,6 +1720,7 @@ function howHTML(o, figs = null) {
 	// about the sailor -- where their storage is -- and no card can know
 	// it, so it is the one thing asked beside the cards.
 	return `${cards}
+		${named ? `<div class="orders-fold"><button class="linky" data-act="barter-orders-fold" aria-expanded="${advOpen}">${advOpen ? `${T('hide the orders')} ▴` : `${T('show what this way sets')} ▾`}</button><span class="panel-sub">${T('change any of them and the card that matches is chosen — or “My own way” when none does')}</span></div>` : ''}
 		${advOpen ? `<div class="order-rows">${rows}</div>${savedHTML()}` : ''}
 		${stocking || coining ? '' : fromLadder}
 		<div class="plan-next"><span class="panel-sub">${esc(howLine(o))}</span><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="chains">${T('OK, pick the chains')} ›</button></div>`;
@@ -4447,8 +4454,12 @@ function sailHTML() {
 	}
 	const s = stops[at], key = stopKey(s, at, stops), names = stopNames(s);
 	const done = ticked(on.done, s, at, stops);
-	const row = book.rows[at], prev = at > 0 ? book.rows[at - 1] : null;
+	const row = book.rows[at];
 	const bars = stopBars(s, row);
+	// The hold as the stop is reached, beside what it is after: the run's
+	// own cast-off weight before the first.
+	// Counted the way the after is: crew and parts aboard included.
+	const holdBefore = shownHold(s.hold || currentShip().hold, (at > 0 ? stops[at - 1].weightAfter : plan.weightStart) || 0).total;
 	// The one thing to press. An island that pays two or three is asked
 	// which as it is ticked, since the press is the same press; one that
 	// pays a wide range has a box to type the window's figure into.
@@ -4492,8 +4503,8 @@ function sailHTML() {
 		</div>`
 		: `<div class="cockpit-call">${stopDid(s, true) || `<span class="faint">${names.kind}</span>`}</div>`;
 	const figures = `<div class="cockpit-figs">
-		<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('hold')}</span><span>${bars.w.note || ''}</span></div><div class="cockpit-fig-v"><b class="${bars.bad ? 'warn' : bars.over ? 'amber' : ''}">${esc(bars.w.text)}</b></div><div class="run-bar"><i style="width:${bars.w.fill.toFixed(1)}%"></i><i class="over" style="width:${bars.w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${bars.w.worse.toFixed(1)}%"></i></div></div>
-		${row ? `<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('parley')}</span><span>${s.npcId && row.spent ? `−${F(row.spent)}` : ''}</span></div><div class="cockpit-fig-v">${prev ? `<span>${F(prev.after)}</span><i>→</i>` : ''}<b class="${row.short ? 'warn' : ''}">${F(row.after)}</b></div><div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div>${row.voucher && !s.wait ? '' : parleyNotes(book, at, s).note}</div>` : ''}
+		<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('hold')}</span><span>${bars.w.note || ''}</span></div><div class="cockpit-fig-v">${holdBefore !== bars.w.total ? `<span>${F(holdBefore)}</span><i>→</i>` : ''}<b class="${bars.bad ? 'warn' : bars.over ? 'amber' : ''}">${esc(bars.w.text)}</b></div><div class="run-bar"><i style="width:${bars.w.fill.toFixed(1)}%"></i><i class="over" style="width:${bars.w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${bars.w.worse.toFixed(1)}%"></i></div></div>
+		${row ? `<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('parley')}</span><span>${s.npcId && row.spent ? `−${F(row.spent)}` : ''}</span></div><div class="cockpit-fig-v">${row.before != null && Math.round(row.before) !== Math.round(row.after) ? `<span>${F(row.before)}</span><i>→</i>` : ''}<b class="${row.short ? 'warn' : ''}">${F(row.after)}</b></div><div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div>${row.voucher && !s.wait ? '' : parleyNotes(book, at, s).note}</div>` : ''}
 	</div>`;
 	// A voucher drawn at this stop is a thing the sailor does in game,
 	// so it stands as its own block above the press, icon and all,
@@ -5204,6 +5215,7 @@ export function barterAction(act, el, redraw) {
 			if (!ownWay && sailPresetOf(ordersNow())) { ownWay = true; advOpen = true; } else { ownWay = true; advOpen = !advOpen; }
 			persist();
 			return true;
+		case 'barter-orders-fold': advOpen = !advOpen; persist(); return true;
 		case 'barter-glance': glance = !glance; return true;
 		// A rung of the ladder: where the day's climbs end. On a coin day
 		// the ceiling is the coin islands' own, so picking another rung is
@@ -5265,7 +5277,7 @@ export function barterAction(act, el, redraw) {
 		// them: what the ladder set stays exactly as the ladder left it.
 		case 'barter-sail-preset': {
 			const p = SAIL_PRESETS.find(x => x.id === el.dataset.id);
-			if (p) { ownWay = false; advOpen = false; retickIfAuto(); setOrders({ ...p.orders }); persist(); }
+			if (p) { ownWay = false; retickIfAuto(); setOrders({ ...p.orders }); persist(); }
 			return false;
 		}
 		case 'barter-homemade': {

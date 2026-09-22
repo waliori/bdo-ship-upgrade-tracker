@@ -7249,5 +7249,9 @@
 	},
 	"at {stop} · stop {n} of {total} — waiting for Traded": "у {stop} · остановка {n} из {total} — ждёт «Обменяно»",
 	"Shore goods aboard": "Сухопутные товары на борту",
-	"{n} aboard · {lt} LT": "{n} на борту · {lt} LT"
+	"{n} aboard · {lt} LT": "{n} на борту · {lt} LT",
+	"And, whichever way you sail": "И при любом способе",
+	"What “{name}” sets": "Что задаёт «{name}»",
+	"change any of them and the card that matches is chosen — or “My own way” when none does": "измените любое — и выберется подходящая карточка, а если ни одна не подходит, «По-своему»",
+	"show what this way sets": "показать, что задаёт этот способ"
 }

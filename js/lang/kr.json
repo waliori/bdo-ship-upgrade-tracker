@@ -5134,5 +5134,9 @@
 	"Took {n} goods off the ship": "물품 {n}개를 배에서 내림",
 	"at {stop} · stop {n} of {total} — waiting for Traded": "{stop} · 정박지 {n}/{total} — '교역 완료' 대기",
 	"Shore goods aboard": "실은 육지 물품",
-	"{n} aboard · {lt} LT": "적재 {n} · {lt} LT"
+	"{n} aboard · {lt} LT": "적재 {n} · {lt} LT",
+	"And, whichever way you sail": "그리고, 어떻게 항해하든",
+	"What “{name}” sets": "'{name}'의 설정",
+	"change any of them and the card that matches is chosen — or “My own way” when none does": "하나라도 바꾸면 맞는 카드가 선택되고, 맞는 카드가 없으면 '내 방식대로'가 됩니다",
+	"show what this way sets": "이 방식의 설정 보기"
 }

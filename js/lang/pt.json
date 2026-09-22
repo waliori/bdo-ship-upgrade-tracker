@@ -5236,5 +5236,9 @@
 	"Took {n} goods off the ship": "{n} bens tirados do navio",
 	"at {stop} · stop {n} of {total} — waiting for Traded": "em {stop} · parada {n} de {total} — esperando «Trocado»",
 	"Shore goods aboard": "Bens de terra a bordo",
-	"{n} aboard · {lt} LT": "{n} a bordo · {lt} LT"
+	"{n} aboard · {lt} LT": "{n} a bordo · {lt} LT",
+	"And, whichever way you sail": "E, seja qual for o jeito de navegar",
+	"What “{name}” sets": "O que “{name}” define",
+	"change any of them and the card that matches is chosen — or “My own way” when none does": "mude qualquer uma e o cartão que combina é escolhido — ou “Do meu jeito” quando nenhum combina",
+	"show what this way sets": "mostrar o que este jeito define"
 }

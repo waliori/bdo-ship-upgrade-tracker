@@ -5134,5 +5134,9 @@
 	"Took {n} goods off the ship": "{n} 品を船から降ろしました",
 	"at {stop} · stop {n} of {total} — waiting for Traded": "{stop} · 寄港地 {n}/{total} — 「交易済み」待ち",
 	"Shore goods aboard": "積んだ陸の物資",
-	"{n} aboard · {lt} LT": "積載 {n} · {lt} LT"
+	"{n} aboard · {lt} LT": "積載 {n} · {lt} LT",
+	"And, whichever way you sail": "そして、どの航海でも",
+	"What “{name}” sets": "「{name}」の設定",
+	"change any of them and the card that matches is chosen — or “My own way” when none does": "どれかを変えると一致するカードが選ばれます。どれにも一致しなければ「自分のやり方で」",
+	"show what this way sets": "このやり方の設定を表示"
 }
