@@ -165,7 +165,7 @@ function restore() {
 			// run that outlived its page -- a phone gone to sleep, a tab
 			// reloaded an hour in, which is most runs -- was recorded as if
 			// its shore goods had cost nothing.
-			for (const k of ['loaded', 'bought', 'parleyUsed', 'cost', 'silver', 'net', 'trades', 'questsHome', 'chains', 'goal', 'item', 'time', 'port', 'drawnAt', 'lastTick']) if (s.sail[k] !== undefined) keep[k] = s.sail[k];
+			for (const k of ['loaded', 'bought', 'parleyUsed', 'cost', 'silver', 'net', 'trades', 'questsHome', 'chains', 'goal', 'item', 'time', 'port', 'drawnAt', 'lastTick', 'weightStart', 'laidFor']) if (s.sail[k] !== undefined) keep[k] = s.sail[k];
 			sail = { key: s.sail.key, done: s.sail.done.map(String), seen: {}, got: {}, kept: Array.isArray(s.sail.kept) ? s.sail.kept.map(String) : [], stops: Array.isArray(s.sail.stops) ? s.sail.stops : [], ...keep };
 			for (const [k, v] of Object.entries(s.sail.seen || {})) if (Number(v) > 0) sail.seen[k] = Number(v);
 			for (const [k, v] of Object.entries(s.sail.got || {})) if (typeof v === 'string') sail.got[k] = v;
@@ -1057,6 +1057,33 @@ function stopAsks(s, k, stops, on, { paid = true } = {}) {
 		sold = `<label class="inline-check run-sold${kept ? ' kept' : ''}" title="${T('Untick if the goods were not sold here — they go into the Inventory instead of the silver into the pouch')}"><input type="checkbox" data-act="barter-sold" data-k="${esc(key)}"${kept ? '' : ' checked'}> ${kept ? T('kept aboard — into the Inventory') : T('sold — {silver} to the pouch', { silver: FC(Math.round(s.sale.total)) })}</label>`;
 	}
 	return `${ask}${got}${sold}`;
+}
+
+/**
+ * The row before the first stop: casting off, with what goes aboard at
+ * the harbour and what the hold weighs as the lines are let go. Stop 1
+ * on the Map is a barter, and the load taken on before it was written
+ * only in a fold in the head -- so a sailor comparing the sheet's
+ * weights with the game's found stop 1 a load short and went looking.
+ */
+function castOffRow(plan, from) {
+	const goods = [...(plan.loaded || []).map(l => ({ item: l.item, n: l.n, how: from ? T('from {town}', { town: gameName(from.name) }) : T('from the storage') })),
+		...(plan.bought || []).filter(b => b.n > 0).map(b => ({ item: b.item, n: b.n, how: T('bought ashore') })),
+		...(plan.taken || []).filter(t => t.n > 0).map(t => ({ item: t.item, n: t.n, how: T('from your pile') }))];
+	if (!goods.length && !(plan.weightStart > 0)) return '';
+	const w = shownHold((plan.stops[0] && plan.stops[0].hold) || currentShip().hold, plan.weightStart || 0);
+	const heavy = w.state === 'heavy' || w.state === 'dead', over = w.state === 'over';
+	return `<div class="run-stop start">
+		<div class="run-rail"><i></i><b>⚓</b><i></i></div>
+		<div class="run-main">
+			<div class="run-stop-head"><b>${from ? T('Cast off from {port}', { port: esc(gameName(from.name)) }) : T('Cast off')}</b><span>${T('the hold as the lines are let go')}</span></div>
+			${goods.length ? `<div class="run-leave"><span class="run-leave-k">${T('Aboard before the first stop')}</span>${goods.map(g => `<span class="run-leave-good">${img(g.item, 'row-icon sm')}<b>${n1(g.n)}×</b> ${esc(gameName(g.item))} <em class="faint">· ${esc(g.how)}</em></span>`).join('')}</div>` : ''}
+		</div>
+		<div class="run-hold">
+			<div><span>${T('hold')}</span><b class="${heavy ? 'warn' : over ? 'amber' : ''}">${esc(w.text)}</b></div>
+			<div class="run-bar"><i style="width:${w.fill.toFixed(1)}%"></i><i class="over" style="width:${w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${w.worse.toFixed(1)}%"></i></div>
+		</div>
+	</div>`;
 }
 
 function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = null, notes = null, ledger = null, map = false } = {}) {
@@ -2270,6 +2297,10 @@ function planSeen(on) {
 /** The most counts an island may pay before chips stop being an answer. */
 const PAID_CHIPS = 6;
 
+/** The range an island pays, as the table gives it -- kept even once
+ *  the run has been laid again at the count it was seen to pay. */
+const rangeOf = s => ({ lo: Math.ceil((s.rangeMin ?? s.recvMin) || 0), hi: Math.floor((s.rangeMax ?? s.recvMax) || 0) });
+
 /**
  * How a stop asks what its island paid.
  *
@@ -2280,8 +2311,8 @@ const PAID_CHIPS = 6;
  * game's window, which already has the sailor's barter bonus on it.
  */
 export function paidAsk(s, said, map = false) {
-	if (!s || !s.npcId || !(s.recvMax > s.recvMin)) return '';
-	const lo = Math.ceil(s.recvMin), hi = Math.floor(s.recvMax);
+	const { lo, hi } = rangeOf(s || {});
+	if (!s || !s.npcId || !(hi > lo)) return '';
 	const flag = map ? ' data-map="1"' : '';
 	if (hi - lo + 1 > PAID_CHIPS) {
 		return `<span class="run-paid"><span>${T('paid')}</span><input class="purse-inline narrow run-paid-n" inputmode="numeric" data-act="barter-paid-n"${flag} data-npc="${s.npcId}" value="${said > 0 ? said : ''}" placeholder="${lo}–${hi}" aria-label="${T('What the island paid, as the game’s window showed it')}" title="${T('What the island paid, as the game’s window showed it')}"></span>`;
@@ -2434,7 +2465,7 @@ function sailRecord(plan) {
 	const num = v => (Number.isFinite(Number(v)) ? Math.round(Number(v) * 10) / 10 : 0);
 	const questsOf = s => (s.quests || []).map(x => ({ id: x.q.id, what: x.step.what, who: x.step.who || '' }));
 	const stops = plan.stops.map(x => (x.npcId
-		? { npcId: x.npcId, npc: x.npc, give: x.give, giveText: x.giveText, giveN: num(x.giveN), item: x.item, recv: num(x.recv), recvMin: num(x.recvMin), recvMax: num(x.recvMax), recvText: x.recvText, times: num(x.times), parley: num(x.parley), weightAfter: num(x.weightAfter), level: num(x.level), chain: num(x.chain), quests: questsOf(x) }
+		? { npcId: x.npcId, npc: x.npc, give: x.give, giveText: x.giveText, giveN: num(x.giveN), item: x.item, recv: num(x.recv), recvMin: num(x.recvMin), recvMax: num(x.recvMax), rangeMin: num(x.rangeMin ?? x.recvMin), rangeMax: num(x.rangeMax ?? x.recvMax), recvText: x.recvText, times: num(x.times), parley: num(x.parley), weightAfter: num(x.weightAfter), level: num(x.level), chain: num(x.chain), quests: questsOf(x) }
 		: x.wait ? { wait: num(x.wait), waitAt: x.waitAt, weightAfter: num(x.weightAfter), chain: num(x.chain) }
 		: x.quest ? { quest: true, hunt: x.hunt ? String(x.hunt) : null, place: { name: x.place.name, who: x.place.who || '', x: num(x.place.x), y: num(x.place.y) }, weightAfter: num(x.weightAfter), chain: num(x.chain), quests: questsOf(x) }
 			: { wharf: { name: x.wharf.name, at: x.wharf.at, x: num(x.wharf.x), y: num(x.wharf.y) }, dropped: (x.dropped || []).map(d => ({ item: d.item, n: num(d.n) })), loads: (x.loads || []).map(l => ({ item: l.item, n: num(l.n) })), sale: x.sale ? { n: num(x.sale.n), total: num(x.sale.total), levels: (x.sale.levels || []).map(num), items: (x.sale.items || []).map(i => ({ item: i.item, n: num(i.n), total: num(i.total) })) } : null, weightAfter: num(x.weightAfter), chain: num(x.chain), quests: questsOf(x) }));
@@ -2443,6 +2474,7 @@ function sailRecord(plan) {
 	return {
 		stops,
 		loaded: (plan.loaded || []).map(l => ({ item: l.item, n: num(l.n) })),
+		weightStart: num(plan.weightStart),
 		bought: (plan.bought || []).filter(b => b.n > 0).slice(0, 40).map(b => ({ item: b.item, n: num(b.n), each: num(b.each || (b.total && b.n ? b.total / b.n : 0)) })),
 		cost: num(plan.cost), silver: num(plan.silver), net: num(plan.net), trades: num(plan.trades), parleyUsed: num(plan.parleyUsed),
 		questsHome: (plan.questsHome || []).map(x => ({ id: x.q.id, what: x.step.what, who: x.step.who || '' })),
@@ -2450,6 +2482,27 @@ function sailRecord(plan) {
 		goal, item: goal === 'material' ? itemNow() || '' : '',
 		time: runTime(legs, book) || '', port
 	};
+}
+
+/**
+ * The checklist laid again from what the islands paid.
+ *
+ * The run's stops were written down once, at cast-off, and a count
+ * tapped on the way -- Sokota paid three, not two -- laid the plan
+ * again on the tab and left the checklist standing as it was: the
+ * cockpit and the Map went on saying the old counts and the old
+ * weights all the way to the end. So whenever the plan is laid with a
+ * new set of answers, the record is written again from it. The ticks
+ * are kept -- they are keyed by place, not by position -- and a stop
+ * put in or taken out by the new laying is simply there or not.
+ */
+function syncSail(plan) {
+	const on = sailing();
+	if (!on || !plan || !plan.stops || !plan.stops.length) return;
+	const laidFor = JSON.stringify(on.seen || {});
+	if (on.laidFor === laidFor) return;
+	Object.assign(on, sailRecord(plan), { laidFor });
+	persist();
 }
 
 /** The quests a kept stop names, with the quest itself put back. */
@@ -2461,7 +2514,7 @@ function hydrate(list) {
 function planOfSail(on) {
 	if (!on || !Array.isArray(on.stops) || !on.stops.length || !on.stops.some(s => s.npcId && s.give)) return null;
 	const stops = on.stops.map(s => ({ ...s, quests: hydrate(s.quests) }));
-	return { stops, loaded: on.loaded || [], bought: on.bought || [], cost: on.cost || 0, parleyUsed: on.parleyUsed || 0, questsHome: hydrate(on.questsHome), silver: on.silver || 0, net: on.net || 0, trades: on.trades || 0 };
+	return { stops, loaded: on.loaded || [], weightStart: on.weightStart || 0, bought: on.bought || [], cost: on.cost || 0, parleyUsed: on.parleyUsed || 0, questsHome: hydrate(on.questsHome), silver: on.silver || 0, net: on.net || 0, trades: on.trades || 0 };
 }
 
 /**
@@ -2554,7 +2607,8 @@ export function runSheetHTML(chartIds = []) {
 		${on.loaded && on.loaded.length ? `<details class="map-run-fold"><summary>${T('Loaded before casting off')} · ${on.loaded.length}</summary>${on.loaded.map(l => `<div class="run-leave-good">${img(l.item, 'row-icon sm')}<b>${F(l.n)}×</b>${esc(gameName(l.item))}</div>`).join('')}</details>` : ''}
 	</div>`;
 	const rows = stopRows(plan.stops, legs, { board: true, sailing: on, notes, ledger: book, map: same });
-	return `${head}${sailBar(plan)}<div class="run-stops map-run-stops">${rows}</div><p class="map-hint map-run-hint">${T('{n} of {of} done', { n, of: plan.stops.length })} · ${same ? T('press a stop’s name to fly there and step the chart to it') : T('press a stop’s name to fly there')} · ${T('the Barter tab holds the plan behind this run')}</p>`;
+	const from = ports.find(p => p.id === on.port) || null;
+	return `${head}${sailBar(plan)}<div class="run-stops map-run-stops">${castOffRow(plan, from)}${rows}</div><p class="map-hint map-run-hint">${T('{n} of {of} done', { n, of: plan.stops.length })} · ${same ? T('press a stop’s name to fly there and step the chart to it') : T('press a stop’s name to fly there')} · ${T('the Barter tab holds the plan behind this run')}</p>`;
 }
 
 /** The trip recorded: one change, and a line in the log of runs. */
@@ -3230,6 +3284,7 @@ function silverParts(me, b) {
 	plan.stops = withWaits(qp.stops, plan.weightStart);
 	plan.questsHome = qp.home;
 	shownPlan = plan;
+	syncSail(plan);
 	const legs = legsOf(plan.stops);
 	// The Parley bar, stop by stop, for the whole run at once -- the
 	// chain segments below draw their own stops from the same book.
@@ -3289,7 +3344,7 @@ function silverParts(me, b) {
 					: isl === 1 ? T('{n} island', { n: isl }) : T('{n} islands', { n: isl });
 				return `<span class="run-chain-tag" style="--tier:${TIER(c.top)}"><i></i>${chainName(c)}<em>L${c.top}</em><small${cutHere ? ` class="short" title="${T('This chain does not get to the top — see the note under the tiles')}"` : ''}>${count}</small><button class="map-x" data-act="barter-chain" data-id="${esc(c.id)}" aria-label="${T('Untick this chain')}">×</button></span>`;
 			}).join('')).join(`<span class="run-lot-sep">${T('then')}</span>`)}</div>
-			<div class="run-stops">${stopRows(plan.stops, legs, { board: true, sailing: sailing(), notes: qp, ledger: book, tag: s => (s.npcId ? `<em class="run-chain-tag sm" style="--tier:${TIER(plan.order[s.chain].top)}"><i></i>${chainName(plan.order[s.chain])}</em>` : '') })}</div>
+			<div class="run-stops">${castOffRow(plan, from)}${stopRows(plan.stops, legs, { board: true, sailing: sailing(), notes: qp, ledger: book, tag: s => (s.npcId ? `<em class="run-chain-tag sm" style="--tier:${TIER(plan.order[s.chain].top)}"><i></i>${chainName(plan.order[s.chain])}</em>` : '') })}</div>
 		</section>` : '') : plan.order.map((c, k) => {
 		const first = plan.stops.findIndex(s => s.chain === k);
 		const mine = plan.stops.filter(s => s.chain === k);
@@ -3885,15 +3940,20 @@ function sailHTML() {
 	// The one thing to press. An island that pays two or three is asked
 	// which as it is ticked, since the press is the same press; one that
 	// pays a wide range has a box to type the window's figure into.
-	const lo = Math.ceil(s.recvMin || 0), hi = Math.floor(s.recvMax || 0);
+	const { lo, hi } = rangeOf(s);
 	const fewPays = s.npcId && hi > lo && hi - lo + 1 <= PAID_CHIPS;
-	const press = done
-		? `<button class="cockpit-go done" data-act="barter-stop-done" data-k="${esc(key)}">✓ ${T('Done')} — ${T('untick')}</button>`
-		: fewPays
-			? Array.from({ length: hi - lo + 1 }, (_, i) => lo + i).map(n => `<button class="cockpit-go" data-act="barter-paid" data-npc="${s.npcId}" data-n="${n}">${T('Traded · paid {n}', { n })}</button>`).join('')
+	// An island that pays two or three keeps its chips once it is done,
+	// the one tapped marked: a count tapped wrong is put right by tapping
+	// the other, without unticking anything. The Map's card kept its
+	// chips all along; the cockpit hid them behind Done.
+	const said = on.seen[s.npcId];
+	const press = fewPays
+		? `${Array.from({ length: hi - lo + 1 }, (_, i) => lo + i).map(n => `<button class="cockpit-go${done ? (said === n ? ' said' : ' done') : ''}" data-act="barter-paid" data-npc="${s.npcId}" data-n="${n}" aria-pressed="${said === n}">${said === n ? '✓ ' : ''}${T('Traded · paid {n}', { n })}</button>`).join('')}${done ? `<button class="cockpit-go done wide" data-act="barter-stop-done" data-k="${esc(key)}">✓ ${T('Done')} — ${T('untick')}</button>` : ''}`
+		: done
+			? `<button class="cockpit-go done" data-act="barter-stop-done" data-k="${esc(key)}">✓ ${T('Done')} — ${T('untick')}</button>`
 			: `<button class="cockpit-go" data-act="barter-stop-done" data-k="${esc(key)}">${s.npcId ? T('Traded ×{n}', { n: F(s.times) }) : doneLabel(s)}</button>${s.wait ? `<button class="cockpit-go end" data-act="barter-step" data-id="results" title="${T('What is ticked so far is the run; the results step records it')}">${T('End the run here')}</button>` : ''}`;
 	const ask = s.npcId && hi > lo
-		? (fewPays ? `<p class="cockpit-ask">${T('This island pays <b>{range}</b> a trade. Tap what it paid — the run is then recorded exactly.', { range: esc(s.recvText) })}</p>`
+		? (fewPays ? `<p class="cockpit-ask">${T('This island pays <b>{range}</b> a trade. Tap what it paid — the run is then recorded exactly.', { range: `${lo}-${hi}` })}</p>`
 			: `<p class="cockpit-ask">${T('This island pays a range. Type what the window showed:')} ${paidAsk(s, on.seen[s.npcId])} <span class="${on.seen[s.npcId] > 0 ? 'teal' : 'guess'}">${on.seen[s.npcId] > 0 ? T('recorded exactly') : T('else the middle of the range is assumed')}</span></p>`)
 		: '';
 	const extra = stopAsks(s, at, stops, on, { paid: false });
@@ -4780,7 +4840,7 @@ export function barterAction(act, el, redraw) {
 		}
 		case 'barter-sail': {
 			if (!shownPlan) return false;
-			sail = { key: sailKey(), done: [], seen: {}, got: {}, kept: [], ...sailRecord(shownPlan) };
+			sail = { key: sailKey(), done: [], seen: {}, got: {}, kept: [], laidFor: '{}', ...sailRecord(shownPlan) };
 			// Sailing starts the clock, since that press is the moment the
 			// ship leaves -- and it is the gesture the browser wants before
 			// the page is allowed to make a sound.

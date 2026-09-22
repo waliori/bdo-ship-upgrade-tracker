@@ -5049,5 +5049,9 @@
 	"all aboard": "hepsi gemide",
 	"{lt} LT to carry": "taşınacak {lt} LT",
 	"Draw a voucher here": "Burada bir kupon kullan",
-	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} Müzakere - bir çubuğun çeyreği geri, ve iki saatlik bekleme süresi başlar"
+	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} Müzakere - bir çubuğun çeyreği geri, ve iki saatlik bekleme süresi başlar",
+	"Aboard before the first stop": "İlk duraktan önce gemide",
+	"Cast off from {port}": "{port} limanından yola çık",
+	"from your pile": "kendi yığınından",
+	"the hold as the lines are let go": "halatlar çözülürken ambar"
 }

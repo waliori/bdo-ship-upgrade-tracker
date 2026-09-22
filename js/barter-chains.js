@@ -257,7 +257,10 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// What an island was seen to pay this run, tapped on the checklist,
 	// replaces the range the table gives for it: counted and weighed at
 	// that, no longer at the least and the most.
-	const fix = r => (seen[r.npcId] > 0 ? { ...r, recv: seen[r.npcId], recvMin: seen[r.npcId], recvMax: seen[r.npcId], recvText: String(seen[r.npcId]) } : r);
+	// The range the table gives is kept beside the count -- `rangeMin`,
+	// `rangeMax` -- so the checklist can still ask which it was, and let
+	// a count tapped wrong be put right.
+	const fix = r => (seen[r.npcId] > 0 ? { ...r, recv: seen[r.npcId], recvMin: seen[r.npcId], recvMax: seen[r.npcId], recvText: String(seen[r.npcId]), rangeMin: r.rangeMin ?? r.recvMin, rangeMax: r.rangeMax ?? r.recvMax } : r);
 	const chosen = Object.keys(seen).length ? picked.map(c => ({ ...c, rungs: c.rungs.map(fix) })) : picked;
 	const held = goodsHeld(stock);          // the goods counted at the least
 	// Everything the sailor holds, wherever it is: the hold, the start

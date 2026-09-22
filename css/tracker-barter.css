@@ -310,6 +310,11 @@
 .run-stop.quest .run-rail b { background: rgba(232, 182, 97, 0.1); border-color: rgba(232, 182, 97, 0.6); color: var(--amber); }
 .run-stop.wharf .run-rail b { background: rgba(232, 182, 97, 0.14); border-color: rgba(232, 182, 97, 0.5); color: var(--amber); }
 .run-stop.wharf .run-rail i { background: rgba(232, 182, 97, 0.4); }
+.run-stop.start .run-rail b { background: var(--teal-glow); border-color: var(--teal-edge); color: var(--teal); }
+.run-stop.start .run-leave { border-left-color: var(--teal-edge); }
+.run-stop.start .run-leave-k { color: var(--teal); }
+.cockpit-go.said { background: var(--teal); outline: 2px solid var(--ink-hi); outline-offset: -2px; }
+.cockpit-go.wide { flex-basis: 100%; }
 .run-stop.sale .run-rail b { background: rgba(232, 144, 93, 0.16); border-color: rgba(232, 144, 93, 0.55); color: var(--tier-7); }
 .run-main { flex: 1; min-width: 0; padding: 8px 0 10px; }
 .run-stop-head { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }

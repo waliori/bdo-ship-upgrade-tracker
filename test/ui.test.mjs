@@ -1925,7 +1925,7 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 	await laidOut(page);
 	assert.equal(await count(page, '.run-seg-all'), 1, 'one timeline for both chains');
 	assert.equal(await count(page, '.run-seg-chains .run-chain-tag'), 2);
-	assert.equal(await count(page, '.run-stop:not(.wharf):not(.quest)'), await count(page, '.run-stop .run-chain-tag.sm'), 'every island stop names its chain');
+	assert.equal(await count(page, '.run-stop:not(.wharf):not(.quest):not(.start)'), await count(page, '.run-stop .run-chain-tag.sm'), 'every island stop names its chain');
 	// Chain after chain: a segment a chain.
 	await toPlan(page);
 	await page.evaluate(() => document.querySelector('[data-act="barter-order"][data-k="barter-way"][data-v="chain"]').click()); await wait(1500);

@@ -5049,5 +5049,9 @@
 	"all aboard": "ขึ้นเรือครบแล้ว",
 	"{lt} LT to carry": "ต้องบรรทุก {lt} LT",
 	"Draw a voucher here": "ใช้บัตรแลกที่นี่",
-	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} ค่าเจรจา — หนึ่งในสี่ของแถบกลับมา และคูลดาวน์สองชั่วโมงเริ่มนับ"
+	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} ค่าเจรจา — หนึ่งในสี่ของแถบกลับมา และคูลดาวน์สองชั่วโมงเริ่มนับ",
+	"Aboard before the first stop": "อยู่บนเรือก่อนจุดแวะแรก",
+	"Cast off from {port}": "ออกเรือจาก {port}",
+	"from your pile": "จากคลังของคุณ",
+	"the hold as the lines are let go": "ระวางเรือตอนปลดเชือก"
 }

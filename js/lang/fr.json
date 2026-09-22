@@ -5178,5 +5178,9 @@
 	"all aboard": "tout est à bord",
 	"{lt} LT to carry": "{lt} LT à porter",
 	"Draw a voucher here": "Utilisez un bon ici",
-	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} de tractation — un quart de jauge en retour, et sa recharge de deux heures commence"
+	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} de tractation — un quart de jauge en retour, et sa recharge de deux heures commence",
+	"Aboard before the first stop": "À bord avant la première escale",
+	"Cast off from {port}": "Larguer les amarres à {port}",
+	"from your pile": "de votre réserve",
+	"the hold as the lines are let go": "la cale au moment de larguer les amarres"
 }

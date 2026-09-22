@@ -5049,5 +5049,9 @@
 	"all aboard": "모두 실음",
 	"{lt} LT to carry": "실을 무게 {lt} LT",
 	"Draw a voucher here": "여기서 교환권 사용",
-	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "교섭 +{n} — 바의 4분의 1 회복, 2시간 재사용 대기시간이 시작됩니다"
+	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "교섭 +{n} — 바의 4분의 1 회복, 2시간 재사용 대기시간이 시작됩니다",
+	"Aboard before the first stop": "첫 정박지 전 적재",
+	"Cast off from {port}": "{port}에서 출항",
+	"from your pile": "내 비축분에서",
+	"the hold as the lines are let go": "출항 시 선창"
 }

@@ -5223,5 +5223,9 @@
 	"all aboard": "todo a bordo",
 	"{lt} LT to carry": "{lt} LT que cargar",
 	"Draw a voucher here": "Usa un vale aquí",
-	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} de parlamento — un cuarto de barra de vuelta, y empieza su tiempo de reutilización de dos horas"
+	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} de parlamento — un cuarto de barra de vuelta, y empieza su tiempo de reutilización de dos horas",
+	"Aboard before the first stop": "A bordo antes de la primera parada",
+	"Cast off from {port}": "Zarpar de {port}",
+	"from your pile": "de tu reserva",
+	"the hold as the lines are let go": "la bodega al soltar amarras"
 }

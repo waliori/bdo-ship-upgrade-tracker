@@ -5091,5 +5091,9 @@
 	"all aboard": "alles an Bord",
 	"{lt} LT to carry": "{lt} LT zu tragen",
 	"Draw a voucher here": "Hier einen Schein einlösen",
-	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} Verhandlung - ein Viertel Leiste zurück, und seine zweistündige Abklingzeit beginnt"
+	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} Verhandlung - ein Viertel Leiste zurück, und seine zweistündige Abklingzeit beginnt",
+	"Aboard before the first stop": "An Bord vor dem ersten Halt",
+	"Cast off from {port}": "Ablegen in {port}",
+	"from your pile": "von deinem Vorrat",
+	"the hold as the lines are let go": "der Laderaum, wenn die Leinen losgemacht werden"
 }

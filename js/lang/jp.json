@@ -5049,5 +5049,9 @@
 	"all aboard": "すべて積載済み",
 	"{lt} LT to carry": "積む重さ {lt} LT",
 	"Draw a voucher here": "ここで引換券を使う",
-	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "交渉力 +{n} — バーの4分の1が戻り、2時間のクールタイムが始まります"
+	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "交渉力 +{n} — バーの4分の1が戻り、2時間のクールタイムが始まります",
+	"Aboard before the first stop": "最初の寄港地の前に積載",
+	"Cast off from {port}": "{port}から出航",
+	"from your pile": "自分の備蓄から",
+	"the hold as the lines are let go": "出航時の船倉"
 }

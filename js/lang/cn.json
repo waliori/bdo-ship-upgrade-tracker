@@ -5049,5 +5049,9 @@
 	"all aboard": "全部在船上",
 	"{lt} LT to carry": "要装载 {lt} LT",
 	"Draw a voucher here": "在这里使用一张兑换券",
-	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} 交涉 — 换回四分之一条栏，它两小时的冷却开始"
+	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} 交涉 — 换回四分之一条栏，它两小时的冷却开始",
+	"Aboard before the first stop": "第一站前已在船上",
+	"Cast off from {port}": "从 {port} 起航",
+	"from your pile": "来自你的库存",
+	"the hold as the lines are let go": "解缆时的船舱"
 }

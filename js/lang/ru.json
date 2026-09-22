@@ -7099,5 +7099,9 @@
 	"all aboard": "всё на борту",
 	"{lt} LT to carry": "{lt} LT везти",
 	"Draw a voucher here": "Возьмите гарантию здесь",
-	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} Переговоров — четверть шкалы назад, и начинается её двухчасовой откат"
+	"+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts": "+{n} Переговоров — четверть шкалы назад, и начинается её двухчасовой откат",
+	"Aboard before the first stop": "На борту до первой остановки",
+	"Cast off from {port}": "Отплытие из {port}",
+	"from your pile": "из вашего запаса",
+	"the hold as the lines are let go": "трюм при отдаче швартовов"
 }
