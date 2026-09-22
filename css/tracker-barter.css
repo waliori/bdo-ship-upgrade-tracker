@@ -1032,6 +1032,15 @@ button.rung-fate { cursor: pointer; }
 .rest-what { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 4px; font-size: 12.5px; color: var(--ink-mute); }
 .rest-what b { font-family: var(--font-display); color: var(--ink-hi); }
 .rest-note { margin-top: 3px; font-size: 11.5px; color: var(--amber); }
+/* Where the ledger has something to say about a stop, it says it: a
+   tag by the name to catch the eye down a long list, and the sentence
+   under the trade. */
+.rest-tag { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 999px; font-style: normal; font-size: 11px; font-family: var(--font-display); font-weight: 700; letter-spacing: 0.02em; }
+.rest-tag.teal { color: var(--teal); border: 1px solid var(--teal-edge); background: var(--teal-glow); }
+.rest-tag.warn { color: var(--red); border: 1px solid color-mix(in srgb, var(--red) 40%, transparent); }
+.parley-note { display: block; margin-top: 4px; font-size: 11.5px; }
+.rest-row.voucher .mini-bar .run-bar.parley i { box-shadow: 0 0 0 1px var(--teal); }
+.rest-row.short .rest-dot { border-color: var(--red); }
 .rest-bars { width: 132px; flex: none; display: flex; flex-direction: column; gap: 5px; }
 .rest-leg { font-size: 10.5px; color: var(--ink-faint); text-align: right; }
 .mini-bar > div { display: flex; justify-content: space-between; gap: 6px; font-size: 10.5px; color: var(--ink-faint); }

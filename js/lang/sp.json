@@ -4326,7 +4326,8 @@
 	"via <b>{name}</b>": "por <b>{name}</b>",
 	"via Mass Process": "con Procesamiento en Masa",
 	"vision": "visión",
-	"voucher": "garantía",
+	"voucher": "vale",
+	"voucher drawn here": "vale usado acá",
 	"vouchers": "garantías",
 	"wanted": "cantidad pedida",
 	"watched the pool?": "¿miraste la reserva?",
@@ -4879,6 +4880,8 @@
 	"{n} trades": "{n} intercambios",
 	"{n} trades a refill": "{n} intercambios por recarga",
 	"{n} units of material in total": "{n} unidades de material en total",
+	"{n} voucher drawn on": "{n} vale usado",
+	"{n} vouchers drawn on": "{n} vales usados",
 	"{n} waiting": "{n} esperando",
 	"{n} wanted": "{n} pedidos",
 	"{n} weeks ago": {

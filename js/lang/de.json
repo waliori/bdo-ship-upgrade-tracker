@@ -4356,7 +4356,8 @@
 	"via <b>{name}</b>": "über <b>{name}</b>",
 	"via Mass Process": "per Massenverarbeitung",
 	"vision": "Sicht",
-	"voucher": "Handelsschein",
+	"voucher": "Gutschein",
+	"voucher drawn here": "Gutschein hier eingelöst",
 	"vouchers": "Handelsscheine",
 	"wanted": "gebraucht",
 	"watched the pool?": "den Vorrat beobachtet?",
@@ -4900,6 +4901,8 @@
 	"{n} trades": "{n} Tauschgeschäfte",
 	"{n} trades a refill": "{n} Tauschgeschäfte je Auffüllung",
 	"{n} units of material in total": "{n} Materialeinheiten insgesamt",
+	"{n} voucher drawn on": "{n} Gutschein eingelöst",
+	"{n} vouchers drawn on": "{n} Gutscheine eingelöst",
 	"{n} waiting": {
 		"one": "{n} wartet",
 		"other": "{n} warten"

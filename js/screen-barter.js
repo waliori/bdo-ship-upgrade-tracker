@@ -3697,6 +3697,21 @@ function recordedHTML() {
 	return `<div class="recorded-strip"><i>✓</i><span>${T('Trip recorded')}${lastTrip.net ? ` · ${T('Silver')} <b class="gold">${lastTrip.net > 0 ? '+' : '−'}${FC(Math.abs(lastTrip.net))}</b>` : ''}${lastTrip.coins ? ` · <b class="gold">+${F(lastTrip.coins)}</b> ${T('coins')}` : ''} · ${T('inventory, storage and Parley moved together.')}</span><span class="panel-spacer"></span><button class="linky" data-act="barter-undo-record">↶ ${T('Undo')}</button><button class="map-x" data-act="barter-recorded-ok" aria-label="${T('Close')}">×</button></div>`;
 }
 
+/**
+ * What the Parley ledger has to say about a stop, in words: a voucher
+ * drawn on there, or a shortfall and how long until a voucher could
+ * cover it. The bars showed the quarter jump and the red figure and
+ * said nothing, which on a list of sixty stops is nothing at all.
+ */
+function parleyNotes(row, s) {
+	if (!row) return { voucher: '', short: '' };
+	const voucher = row.voucher ? `<span class="run-note teal parley-note">🎟 ${T('a voucher drawn on here — a quarter of a bar back')}</span>` : '';
+	const short = row.short
+		? `<span class="run-note warn parley-note">${T('{n} Parley short', { n: F(row.short) })} — ${s && s.parley && s.times ? T('{n} of the {of} attempts wait', { n: Math.ceil(row.short / (s.parley / s.times)), of: s.times }) : T('the bar is empty')}${row.voucher ? '' : row.wait ? T('; a voucher can be drawn in <b>{n} min</b>, and the cooldown is the only thing in the way', { n: F(row.wait) }) : T(', and there is no voucher to draw on')}</span>`
+		: '';
+	return { voucher, short };
+}
+
 /** The mini bars a stop carries: the hold after it and the Parley. */
 function stopBars(s, row) {
 	const w = shownHold(s.hold || currentShip().hold, s.weightAfter);
@@ -3779,9 +3794,9 @@ function sailHTML() {
 		: `<div class="cockpit-call">${stopDid(s, true) || `<span class="faint">${names.kind}</span>`}</div>`;
 	const figures = `<div class="cockpit-figs">
 		<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('hold')}</span><span>${bars.w.note || ''}</span></div><div class="cockpit-fig-v"><b class="${bars.bad ? 'warn' : bars.over ? 'amber' : ''}">${esc(bars.w.text)}</b></div><div class="run-bar"><i style="width:${bars.w.fill.toFixed(1)}%"></i><i class="over" style="width:${bars.w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${bars.w.worse.toFixed(1)}%"></i></div></div>
-		${row ? `<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('parley')}</span><span>${s.npcId && row.spent ? `−${F(row.spent)}` : ''}</span></div><div class="cockpit-fig-v">${prev ? `<span>${F(prev.after)}</span><i>→</i>` : ''}<b class="${row.short ? 'warn' : ''}">${F(row.after)}</b></div><div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div>${row.voucher ? `<div class="run-note teal">${T('a voucher drawn on here — a quarter of a bar back')}</div>` : ''}${row.short ? `<div class="run-note warn">${T('{n} Parley short', { n: F(row.short) })}</div>` : ''}</div>` : ''}
+		${row ? `<div class="cockpit-fig"><div class="cockpit-fig-k"><span>${T('parley')}</span><span>${s.npcId && row.spent ? `−${F(row.spent)}` : ''}</span></div><div class="cockpit-fig-v">${prev ? `<span>${F(prev.after)}</span><i>→</i>` : ''}<b class="${row.short ? 'warn' : ''}">${F(row.after)}</b></div><div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div>${parleyNotes(row, s).voucher}${parleyNotes(row, s).short}</div>` : ''}
 	</div>`;
-	const head = `<div class="panel-head cockpit-head"><h2 class="panel-title">${T('Stop {n} of {of}', { n: at + 1, of: stops.length })}</h2><span class="panel-sub">${esc(legOf(at))}</span><span class="panel-spacer"></span><button class="linky" data-act="barter-glance">${glance ? T('full view') : T('Glance mode')}</button></div>${clock ? `<div class="cockpit-clock">${clock}</div>` : ''}`;
+	const head = `<div class="panel-head cockpit-head"><h2 class="panel-title">${T('Stop {n} of {of}', { n: at + 1, of: stops.length })}</h2><span class="panel-sub">${esc(legOf(at))}</span>${row && row.voucher ? `<i class="rest-tag teal">🎟 ${T('voucher drawn here')}</i>` : ''}${row && row.short ? `<i class="rest-tag warn">${T('{n} Parley short', { n: F(row.short) })}</i>` : ''}<span class="panel-spacer"></span><button class="linky" data-act="barter-glance">${glance ? T('full view') : T('Glance mode')}</button></div>${clock ? `<div class="cockpit-clock">${clock}</div>` : ''}`;
 	const under = `<div class="cockpit-under"><button class="linky" data-act="barter-sail-skip" data-k="${esc(key)}">${s.npcId ? T('island didn’t deal — skip it') : T('skip this stop')}</button><span>·</span><button class="linky" data-act="barter-step" data-id="results">${T('stop here, see the results')}</button></div>`;
 	const next = stops[at + 1];
 	const nextHTML = next ? (() => { const nn = stopNames(next); return `<div class="cockpit-next"><span class="cockpit-next-k">${T('next')}</span><b>${esc(nn.place)}</b><span>${esc(legOf(at + 1))}</span>${next.npcId ? `<span>${esc(next.giveText)}× ${esc(gameName(next.give))} → <span class="tiered" style="--tier:${TIER(levelOf(next.item))}">${esc(next.recvText)}× ${esc(gameName(next.item))}</span> ×${F(next.times)}</span>` : `<span>${nn.kind}</span>`}</div>`; })() : '';
@@ -3817,9 +3832,10 @@ function restHTML(plan, on, book, legOf, at) {
 		const what = s.npcId
 			? `${img(s.give, 'row-icon xs')}<span>${esc(s.giveText)}× ${esc(gameName(s.give))}</span><span class="faint">→</span>${img(s.item, 'row-icon xs')}<span class="tiered" style="--tier:${TIER(levelOf(s.item))}">${esc(s.recvText)}× ${esc(gameName(s.item))}</span><b>×${F(s.times)}</b>`
 			: `<span>${s.wharf ? [s.loads && s.loads.length ? T('Loads from storage') : '', s.dropped && s.dropped.length ? T('Leaves in storage') : '', s.sale ? T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: T('goods'), silver: FC(Math.round(s.sale.total)) }) : ''].filter(Boolean).join(' · ') || names.kind : names.kind}</span>`;
-		return `<div class="rest-row${k === at ? ' here' : ''}${done ? ' done' : ''}${skipped.has(key) && !done ? ' skipped' : ''}" data-act="barter-sail-jump" data-k="${esc(key)}" role="button" tabindex="0">
+		const pn = parleyNotes(book.rows[k], s);
+		return `<div class="rest-row${k === at ? ' here' : ''}${done ? ' done' : ''}${skipped.has(key) && !done ? ' skipped' : ''}${pn.voucher ? ' voucher' : ''}${pn.short ? ' short' : ''}" data-act="barter-sail-jump" data-k="${esc(key)}" role="button" tabindex="0">
 			<button class="rest-dot${done ? ' on' : ''}" data-act="barter-stop-done" data-k="${esc(key)}" aria-pressed="${done}" title="${T('tick this stop')}">${done ? '✓' : k + 1}</button>
-			<div class="rest-main"><div class="rest-head"><b>${esc(names.place)}</b><span>${esc(names.who)}</span></div><div class="rest-what">${what}</div>${bars.bad || bars.over ? `<div class="rest-note">${bars.w.note || T('over the limit')}</div>` : ''}</div>
+			<div class="rest-main"><div class="rest-head"><b>${esc(names.place)}</b><span>${esc(names.who)}</span>${pn.voucher ? `<i class="rest-tag teal" title="${T('a voucher drawn on here — a quarter of a bar back')}">🎟 ${T('voucher')}</i>` : ''}${pn.short ? `<i class="rest-tag warn">${T('{n} Parley short', { n: F(book.rows[k].short) })}</i>` : ''}</div><div class="rest-what">${what}</div>${bars.bad || bars.over ? `<div class="rest-note">${bars.w.note || T('over the limit')}</div>` : ''}${pn.voucher}${pn.short}</div>
 			<div class="rest-bars">${bars.hold}${bars.parley}<span class="rest-leg">${esc(legOf(k))}</span></div>
 		</div>`;
 	}).join('');
@@ -3854,6 +3870,8 @@ function resultsHTML() {
 	const at = stopAt(plan, on);
 	const spent = parleySpentOf(plan, on);
 	const bar = parleyOf(prof).held;
+	const book = ledgerOf(stops, legsOf(stops));
+	const drawnSoFar = stops.filter((s, k) => book.rows[k].voucher && ticked(on.done, s, k, stops)).length;
 	const coins = trip.delta[COIN] || 0;
 	const guessedCoins = unsaid(plan, on).some(s => s.item === COIN);
 	const wharfTicked = stops.some((s, k) => s.wharf && s.sale && ticked(on.done, s, k, stops));
@@ -3876,7 +3894,7 @@ function resultsHTML() {
 		${coining ? tile(T('Crow Coins so far'), coins ? `+${F(coins)}` : '—', guessedCoins ? T('the middle of the range assumed until typed') : T('as typed at each island'), 'gold')
 		: stocking ? tile(T('Goods so far'), gained ? `+${F(gained)}` : '—', byLevel(1) || T('nothing received yet'), 'teal')
 			: tile(T('Silver so far'), trip.silver ? FC(trip.silver) : '—', wharfTicked ? T('sold at the wharf call') : T('nothing sold until the wharf call is ticked'), 'gold')}
-		${tile(T('Parley spent'), F(spent), `${T('{n} left of {bar}', { n: F(Math.max(0, bar - spent)), bar: F(bar) })}${parleyGuessed(prof) ? ` · ${T('assumed full')}` : ''}`, 'teal')}
+		${tile(T('Parley spent'), F(spent), `${T('{n} left of {bar}', { n: F(Math.max(0, bar - spent)), bar: F(bar) })}${parleyGuessed(prof) ? ` · ${T('assumed full')}` : ''}${drawnSoFar ? ` · ${drawnSoFar === 1 ? T('{n} voucher drawn on', { n: drawnSoFar }) : T('{n} vouchers drawn on', { n: drawnSoFar })}` : ''}`, 'teal')}
 		${tile(T('Under way'), timer ? esc(spanText(timer.ran)) : '—', on.time ? T('≈ {time} planned', { time: esc(on.time) }) : '')}
 	</div>`;
 	const log = stops.map((s, k) => {
@@ -3884,7 +3902,8 @@ function resultsHTML() {
 		const said_ = s.npcId && (on.seen || {})[s.npcId] > 0 ? ` · ${T('paid {n}', { n: F(on.seen[s.npcId]) })}` : '';
 		const line = s.npcId ? `${esc(s.giveText)}× ${esc(gameName(s.give))} → ${esc(s.recvText)}× ${esc(gameName(s.item))} ×${F(s.times)}${said_}` : s.wharf && s.sale ? T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: T('goods'), silver: FC(Math.round(s.sale.total)) }) : names.kind;
 		const cost = s.npcId ? (Number(s.parley) > 0 ? Number(s.parley) : (Number(s.times) || 0) * parleyOf(prof).perTrade) : 0;
-		return `<div class="log-row${d ? ' done' : ''}"><span class="rest-dot${d ? ' on' : ''}" aria-hidden="true">${d ? '✓' : k + 1}</span><div><b>${esc(names.place)}</b><em>${line}</em></div><span class="log-right">${d ? (cost ? T('−{n} Parley', { n: F(Math.round(cost)) }) : T('Done')) : T('not yet')}</span></div>`;
+		const lr = book.rows[k];
+		return `<div class="log-row${d ? ' done' : ''}"><span class="rest-dot${d ? ' on' : ''}" aria-hidden="true">${d ? '✓' : k + 1}</span><div><b>${esc(names.place)}</b>${lr && lr.voucher ? ` <i class="rest-tag teal">🎟 ${T('voucher')}</i>` : ''}<em>${line}</em></div><span class="log-right">${d ? (cost ? T('−{n} Parley', { n: F(Math.round(cost)) }) : T('Done')) : T('not yet')}</span></div>`;
 	}).join('');
 	const line = (k, v, cls = '') => `<div class="receipt-line"><span>${k}</span><b${cls ? ` class="${cls}"` : ''}>${v}</b></div>`;
 	const net = trip.silver - trip.spent;

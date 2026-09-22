@@ -5047,7 +5047,8 @@
 	"via <b>{name}</b>": "через <b>{name}</b>",
 	"via Mass Process": "через Массовую обработку",
 	"vision": "обзор",
-	"voucher": "гарантия",
+	"voucher": "ваучер",
+	"voucher drawn here": "здесь взят ваучер",
 	"vouchers": "гарантии",
 	"wanted": "нужно",
 	"watched the pool?": "следили за запасом?",
@@ -6816,6 +6817,18 @@
 		"other": "{n} обменов за пополнение"
 	},
 	"{n} units of material in total": "всего {n} ед. материала",
+	"{n} voucher drawn on": {
+		"few": "взято {n} ваучера",
+		"many": "взято {n} ваучеров",
+		"one": "взят {n} ваучер",
+		"other": "взято {n} ваучеров"
+	},
+	"{n} vouchers drawn on": {
+		"few": "взято {n} ваучера",
+		"many": "взято {n} ваучеров",
+		"one": "взят {n} ваучер",
+		"other": "взято {n} ваучеров"
+	},
 	"{n} waiting": {
 		"few": "{n} ждут",
 		"many": "{n} ждут",
