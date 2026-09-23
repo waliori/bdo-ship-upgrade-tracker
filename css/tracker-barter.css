@@ -1399,3 +1399,43 @@ button.rung-fate { cursor: pointer; }
 .leg-snap polyline { fill: none; stroke: var(--gold, #e8b661); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; filter: drop-shadow(0 0 2px rgba(0, 0, 0, .7)); }
 .leg-snap circle.from { fill: var(--panel-solid, #101826); stroke: var(--gold, #e8b661); stroke-width: 2; }
 .leg-snap circle.to { fill: var(--gold, #e8b661); stroke: #101826; stroke-width: 2; }
+
+/* A short trip: the trades picked, and every other one with what it adds. */
+.short-trip .plan-sub-head { margin-top: 12px; }
+.st-list { display: grid; gap: 6px; margin-top: 8px; }
+.st-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; text-align: left; font: inherit; color: inherit; background: var(--panel-inset); border: 1px solid var(--line-btn); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+.st-row:hover:not([disabled]) { border-color: var(--teal-edge); }
+.st-row:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.st-row.off { cursor: default; opacity: .62; }
+.st-row.maybe { border-style: dashed; opacity: .78; }
+.st-row.grows { border-left: 3px solid var(--teal-edge); }
+.st-plus { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line-btn); color: var(--teal); font-weight: 700; }
+.st-row.off .st-plus { color: var(--ink-faint); }
+.st-body { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; min-width: 0; }
+.st-isle { font-weight: 700; color: var(--ink-hi); }
+.st-deal { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 13px; color: var(--ink-mid); min-width: 0; }
+.st-deal i { font-style: normal; color: var(--ink-faint); }
+.st-made { color: var(--tier); font-weight: 600; }
+.st-then { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-faint); }
+.st-sub { flex-basis: 100%; font-size: 12px; color: var(--ink-mute); }
+.st-figs { font-size: 12.5px; color: var(--ink-mid); text-align: right; white-space: nowrap; }
+.st-why { color: var(--amber); }
+.st-more { margin-top: 8px; }
+.st-more > summary { cursor: pointer; font-size: 12.5px; color: var(--ink-mute); }
+.st-picked { display: grid; gap: 8px; margin-bottom: 10px; }
+.st-pick { border: 1px solid var(--teal-edge); border-radius: 10px; padding: 8px 12px; background: color-mix(in srgb, var(--teal) 6%, var(--panel-inset)); }
+.st-pick-rungs { display: grid; gap: 4px; }
+.st-pick-rung { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.st-pick-foot { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.st-pick-foot .st-sub { flex-basis: auto; }
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+	.st-row { grid-template-columns: 26px minmax(0, 1fr); }
+	.st-figs { grid-column: 2; text-align: left; white-space: normal; }
+}
+.st-figs b.gold { color: var(--amber); }
+.st-figs b.teal, .st-sub b.teal { color: var(--teal); }
+.st-sub b.amber, .st-pick-foot b.amber { color: var(--amber); }
+.plan-shape { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 10px; padding: 0 4px; }
+.plan-shape .run-pick-k { margin: 0; }
+.plan-shape .panel-sub { font-size: 12.5px; }
+.st-figs b.amber { color: var(--amber); }

@@ -867,6 +867,21 @@ first; and for those who take part in the Community tab the counts are
 added up fleet-wide under *Barter layouts most dealt*, beside each
 layout's share of the community's own record.
 
+**Or sail out for one trade.** *Short trip*, at the head of the plan,
+turns the board round: instead of the best set of chains, every trade on
+today's board is listed on its own, each with what it is worth and how
+many minutes it takes there and back from your harbour. Pick the one you
+are going for, and the list becomes what fits round it — each trade with
+the silver or the stock it adds and the minutes it costs, a trade that
+would push the picked ones out of the hold said to, and the ship kept
+under its limit. A picked trade can take its goods one island further,
+or stop one sooner; the wharf, the cockpit and the record take the trip
+like any run. Before the board is read, the same list is where what you
+hold *could* be traded, with how many of the layouts still standing
+carry each trade — marked as a maybe, never as today's board. It came
+from Oni, who wanted to fetch the one good the storage was low on
+without planning a day around it.
+
 ### The harbour
 
 ![A place on a board opens that sailor's card, and the card stands the Ship tab up on their boat](docs/media/the-boards.gif)
