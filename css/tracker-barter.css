@@ -1358,3 +1358,26 @@ button.rung-fate { cursor: pointer; }
 
 /* The hold's one press for everything aboard. */
 .hold-all { display: flex; align-items: center; gap: 10px; margin: 6px 0 2px; }
+
+/* A run of several trips out of the harbour: trip 1 to tick, the rest read-only. */
+.trips { display: grid; gap: 12px; }
+.trips-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; padding: 2px 4px; }
+.trips-head b { font-family: var(--font-display); font-size: 15px; color: var(--ink-hi); }
+.trips-head span { font-size: 12.5px; color: var(--ink-faint); }
+.trip-card { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px 8px; background: rgba(0, 0, 0, .12); }
+.trip-card.now { border-color: color-mix(in srgb, var(--teal) 45%, transparent); }
+.trip-card.later { opacity: .82; }
+.trip-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; margin-bottom: 8px; }
+.trip-k { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--teal); font-weight: 700; }
+.trip-card.later .trip-k { color: var(--ink-faint); }
+.trip-head > b { color: var(--ink-hi); }
+.trip-line { font-size: 12px; color: var(--ink-faint); }
+.trip-state { font-size: 12px; color: var(--ink-faint); white-space: nowrap; }
+.trip-card.now .trip-state { color: var(--teal); }
+.trip-card .pack-groups { margin: 0; }
+.trip-row { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-top: 1px solid var(--line); }
+.trip-dot { flex: none; width: 22px; height: 22px; border-radius: 6px; border: 1px dashed var(--line-btn, var(--line)); }
+.trip-foot { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--ink-faint); }
+.run-trip-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; margin: 14px 0 6px; padding: 6px 10px; border-left: 3px solid var(--teal); background: rgba(0, 0, 0, .14); border-radius: 0 8px 8px 0; }
+.run-trip-head b { font-family: var(--font-display); color: var(--teal); }
+.run-trip-head span { font-size: 12px; color: var(--ink-faint); }
