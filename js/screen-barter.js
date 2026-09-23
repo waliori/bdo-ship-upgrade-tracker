@@ -1220,21 +1220,32 @@ function legSnap(from, to) {
 	const x0 = Math.min(...pts.map(p => p.x)), x1 = Math.max(...pts.map(p => p.x));
 	const y0 = Math.min(...pts.map(p => p.y)), y1 = Math.max(...pts.map(p => p.y));
 	const levels = Object.keys(TILES).map(Number).sort((a, b) => a - b);
-	const fits = z => { const per = Math.pow(2, MAX_ZOOM - z); return (x1 - x0) / per <= SNAP.w - SNAP.pad * 2 && (y1 - y0) / per <= SNAP.h - SNAP.pad * 2; };
-	const z = [...levels].reverse().find(fits) || levels[0];
+	const lo = levels[0], hi = levels[levels.length - 1];
+	// The exact zoom at which the leg fills the picture, padding and all;
+	// the tiles are taken from the level at or just above it, for detail,
+	// and the whole drawn smaller to fit. A long leg -- twenty kilometres
+	// down a coast -- asks for less than the coarsest level there is, and
+	// was drawn at that level full size, so it ran off the picture. A
+	// short one is not blown up past the finest level.
+	const need = MAX_ZOOM - Math.log2(Math.max(1e-9, (x1 - x0) / (SNAP.w - SNAP.pad * 2), (y1 - y0) / (SNAP.h - SNAP.pad * 2)));
+	const z = Math.max(lo, Math.min(hi, Math.ceil(need)));
+	const k = Math.min(1, Math.pow(2, need - z));   // drawn at k of the level's size
 	const per = Math.pow(2, MAX_ZOOM - z);
+	const vw = SNAP.w / k, vh = SNAP.h / k;          // the box at the level's own size
 	const cx = (x0 + x1) / 2 / per, cy = (y0 + y1) / 2 / per;
-	const ox = cx - SNAP.w / 2, oy = cy - SNAP.h / 2;
-	const b = TILES[z];
+	const ox = cx - vw / 2, oy = cy - vh / 2;
+	const bnd = TILES[z];
 	const tiles = [];
-	for (let tx = Math.max(b.x0, Math.floor(ox / TILE)); tx <= Math.min(b.x1, Math.floor((ox + SNAP.w) / TILE)); tx++) {
-		for (let ty = Math.max(b.y0, Math.floor(oy / TILE)); ty <= Math.min(b.y1, Math.floor((oy + SNAP.h) / TILE)); ty++) {
+	for (let tx = Math.max(bnd.x0, Math.floor(ox / TILE)); tx <= Math.min(bnd.x1, Math.floor((ox + vw) / TILE)); tx++) {
+		for (let ty = Math.max(bnd.y0, Math.floor(oy / TILE)); ty <= Math.min(bnd.y1, Math.floor((oy + vh) / TILE)); ty++) {
 			tiles.push(`<img src="${tileSrc(z, tx, ty)}" alt="" loading="lazy" decoding="async" style="left:${Math.round(tx * TILE - ox)}px;top:${Math.round(ty * TILE - oy)}px">`);
 		}
 	}
-	const xy = p => `${(p.x / per - ox).toFixed(1)},${(p.y / per - oy).toFixed(1)}`;
-	const a = pts[0], e = pts[pts.length - 1];
-	return `<div class="leg-snap" aria-hidden="true"><div class="leg-snap-in" style="width:${SNAP.w}px;height:${SNAP.h}px">${tiles.join('')}<svg viewBox="0 0 ${SNAP.w} ${SNAP.h}" width="${SNAP.w}" height="${SNAP.h}"><polyline points="${pts.map(xy).join(' ')}"/><circle class="from" cx="${xy(a).split(',')[0]}" cy="${xy(a).split(',')[1]}" r="4"/><circle class="to" cx="${xy(e).split(',')[0]}" cy="${xy(e).split(',')[1]}" r="5"/></svg></div></div>`;
+	// The line in the picture's own pixels, so it keeps its weight
+	// however far the tiles are scaled.
+	const px = p => [((p.x / per - ox) * k).toFixed(1), ((p.y / per - oy) * k).toFixed(1)];
+	const [ax, ay] = px(pts[0]), [ex, ey] = px(pts[pts.length - 1]);
+	return `<div class="leg-snap" aria-hidden="true"><div class="leg-snap-in" style="width:${SNAP.w}px;height:${SNAP.h}px"><div class="leg-snap-tiles" style="width:${Math.ceil(vw)}px;height:${Math.ceil(vh)}px;transform:scale(${k.toFixed(4)})">${tiles.join('')}</div><svg viewBox="0 0 ${SNAP.w} ${SNAP.h}" width="${SNAP.w}" height="${SNAP.h}"><polyline points="${pts.map(p => px(p).join(',')).join(' ')}"/><circle class="from" cx="${ax}" cy="${ay}" r="4"/><circle class="to" cx="${ex}" cy="${ey}" r="5"/></svg></div></div>`;
 }
 
 function stopRows(stops, legs, { k0 = 0, board = false, sailing = null, tag = null, notes = null, ledger = null, map = false, edit = false, trip = null } = {}) {
