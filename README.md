@@ -1114,15 +1114,31 @@ cannot pay and its two-hour cooldown allows.
 
 The silver run has a way round among its orders. The shortest way
 climbs every chain ticked at once: one route through every rung, each
-still after the rung beneath it in its own chain, so the ship deals the
-nearest island it holds the give for whatever chain it belongs to --
-the [Level 1]s off the harbour, then the [Level 2]s. The chains go in
-lots, as many at once as the hold carries with every top keeping at
-least half its attempts, the tops sold before the next lot, and within
-a lot the hold is shared out before casting off. Chain after chain
-climbs each to its top before the next. The route is built nearest-first and shortened by
-moving runs of rungs wherever they save distance without passing a
-rung they depend on.
+still after the rung beneath it in its own chain, so the ship deals
+whatever is nearest that it holds the give for, whatever chain it
+belongs to -- the [Level 1]s off the harbour, then the [Level 2]s. The
+chains go in lots, as many at once as the hold carries with every top
+keeping at least half its attempts, the tops sold before the next lot,
+and within a lot the hold is shared out before casting off. Chain
+after chain climbs each to its top before the next.
+
+The distances are by water: the leg between any two of the chart's
+islands, harbours and wharves was bent round the land once and its
+length kept, so the nearest island is the nearest as the ship sails,
+not as the crow flies. The route through a lot is searched for the
+shortest -- laid nearest-first and by cheapest insertion, then
+shortened by moving stretches of stops, turning them round and
+swapping them wherever that saves distance without a good being handed
+over before it is made, and shaken a few times to see whether it
+settles lower -- and the lots themselves are chosen for the shortest
+run, chains moved and swapped between trips so that islands near one
+another are sailed on the same trip rather than on whichever trip
+their chains fell into. A run that calls at a wharf whenever the hold
+is full is laid more than one way, since a wharf call is a leg the
+island route never counted, and the run kept is the one worth most an
+hour at the ship's pace; the way the run was laid before there was a
+choice, nearest first and each lot filled as far as it goes, is laid
+beside it and kept when it is worth more.
 
 The quests come along, under an order of the run: none; on the way
 only, handed in where the run passes anyway; with a short way round, a

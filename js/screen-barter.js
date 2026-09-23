@@ -23,7 +23,7 @@ import { currentShip, shownHold, aboardWhat } from './ship.js';
 import { shipStats } from './ship_stats.js';
 import { npcById, ports, isleOf, whoOf, isleShort } from './barter_npcs.js';
 import { seaRoute } from './searoute.js';
-import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, DEFAULT_CAL, sailSeconds } from './sailing.js';
+import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, DEFAULT_CAL, sailSeconds, METRES_PER_PX } from './sailing.js';
 import { quests, cadenceOf } from './quests.js';
 import { questDone, wantedQuests, rewardOf } from './screen-quests.js';
 import { layQuests } from './quest-places.js';
@@ -47,6 +47,7 @@ import { TOWNS } from './screen-inventory.js';
 import { questIcon } from './quest_icons.js';
 import { chains, chainRun, tailOf } from './barter-chains.js';
 import { materialRun } from './barter-material.js';
+import { seaDist, routeLength } from './barter-route.js';
 import { wharves } from './wharves.js';
 import { tradeGoodNames } from './trade_goods.js';
 import { landGoods } from './land_goods.js';
@@ -1466,18 +1467,18 @@ function askSaveOrders(then) {
 
 /**
  * A rough sailing time for a chain on its own, for the yardstick on
- * its row: straight lines from the start through its islands and back
- * to the nearest wharf, stretched a quarter for the land in the way.
- * The run itself bends every leg round the coast.
+ * its row: the legs by water from the start through its islands and
+ * back to the nearest wharf. The run itself bends every leg round the
+ * coast.
  */
 function roughHours(c, from) {
 	const me = currentShip();
 	const pts = [...(from ? [from] : []), ...c.rungs.map(r => npcById.get(r.npcId)).filter(Boolean)];
 	const last = pts[pts.length - 1];
-	const back = last && stashes.length ? stashes.reduce((a, w) => (Math.hypot(w.x - last.x, w.y - last.y) < Math.hypot(a.x - last.x, a.y - last.y) ? w : a)) : null;
+	const back = last && stashes.length ? stashes.reduce((a, w) => (seaDist(last, w) < seaDist(last, a) ? w : a)) : null;
 	if (back) pts.push(back);
 	if (pts.length < 2) return 0;
-	return sailSeconds(pathLength(pts) * 1.25, me.speed.sea, sailCal()) / 3600;
+	return sailSeconds(routeLength(pts) * METRES_PER_PX, me.speed.sea, sailCal()) / 3600;
 }
 
 /**
@@ -2328,7 +2329,7 @@ function expectedBest(me, b, prof) {
 		const data = boardData(combo, barterData, npcById, board.answers, [...gatedOffers(combo, prof.barterCount), ...shutNow(prof)]);
 		const all = chains(data, stock, dock, prof.barterCount).filter(c => (o.buy || c.from !== 'land') && !c.gate);
 		const prices = landPrices(all.filter(c => c.from === 'land').map(c => c.item), made);
-		const opts = { stock, dock, hold: me.hold, parley, npcById, start: from, stashes, prefer: stashAt(), pace: o.pace, orders: o, prices };
+		const opts = { stock, dock, hold: me.hold, parley, npcById, start: from, stashes, prefer: stashAt(), pace: o.pace, orders: o, prices, ship };
 		const { best: top } = propose({ chains: all, opts, ship, timeCap: o.hours, width: 1, depth: 6 });
 		const v = top ? top.value : 0;
 		const w = Math.max(1, combo.seen || 1);
@@ -3742,7 +3743,9 @@ function silverParts(me, b) {
 	// pile, not about the hold, so a run must know the whole of it
 	// before it decides what it may spend.
 	const owned = Object.fromEntries(everythingHeld());
-	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen, keep: reach ? [reach] : [], land, owned };
+	// The ship's pace rides along: a run laid more than one way is kept
+	// by what it is worth an hour, and the hour is the ship's.
+	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen, keep: reach ? [reach] : [], land, owned, ship: { speed: me.speed.sea, cal: sailCal() } };
 	// Each chain on its own, for its row: the list is sorted by the
 	// yardstick, silver a Parley unit, the guide's measure of a chain,
 	// so the best use of the day's Parley is at the top of its group.

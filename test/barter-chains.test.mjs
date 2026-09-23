@@ -18,6 +18,7 @@ import { levelOf, GOODS } from '../js/barter.js';
 import { npcById, ports } from '../js/barter_npcs.js';
 import { wharves } from '../js/wharves.js';
 import { PLAIN_ORDERS } from '../js/barter-orders.js';
+import { routeLength } from '../js/barter-route.js';
 
 const barterData = JSON.parse(await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
 const combos = JSON.parse(await readFile(new URL('../js/barter_combos.json', import.meta.url), 'utf8')).combos;
@@ -127,7 +128,7 @@ test('the wharf is the one chosen when one is, else the one that bends the leg l
 	assert.ok(free.stops.filter(s => s.wharf).some(s => s.wharf !== iliya), 'left to itself the run calls where it passes');
 });
 
-test('two chains sail one after the other, nearest first, and an island crossed twice deals once', () => {
+test('two chains sail one after the other, in the order that makes the shorter run, and an island crossed twice deals once', () => {
 	const stock = { '[Level 4] Amethyst Fragment': 4 };
 	const all = chains(data, stock);
 	const land = all.find(x => x.rungs[0].npc === 'Cazio');
@@ -144,13 +145,20 @@ test('two chains sail one after the other, nearest first, and an island crossed 
 	assert.equal(two.sold.length, 2);
 	assert.equal(two.silver, 10 * GOODS[7].sell);
 	assert.ok(two.stops.every(s => s.weightAfter <= hold.max + 1e-6));
-	assert.equal(two.stops.filter(s => s.npcId)[0].npc, 'Renilu', 'the chain nearest Velia is sailed first');
-	assert.deepEqual(two.order.map(c => c.rungs[0].npc), ['Renilu', 'Cazio']);
+	// Renilu is the nearer to Velia, and Cazio first is the shorter run
+	// by water: the order is the run's length, not the first leg's.
+	const isle = r => npcById.get(r.npcId);
+	const L = cs => routeLength([ports[0], ...cs.flatMap(c => c.rungs.map(isle)), stashes[0]]);
+	assert.ok(L([land, far]) < L([far, land]), 'Cazio first is the shorter way round');
+	assert.deepEqual(two.order.map(c => c.rungs[0].npc), ['Cazio', 'Renilu']);
+	assert.equal(two.stops.filter(s => s.npcId)[0].npc, 'Cazio', 'and it is sailed first');
 	assert.ok(two.stops.filter(s => s.npcId).every(s => two.order[s.chain].rungs.some(r => r.npcId === s.npcId)), 'each island stop is tagged with its chain');
-	// The first chain's [Level 7]s are sold at the first wharf call of
-	// the second, not carried the whole way.
+	// The first chain's [Level 7]s are sold on the way, at the wharf its
+	// top all but passes -- Lema Island lies off Iliya -- before the
+	// second chain begins, not carried the whole way.
 	const firstSale = two.stops.find(s => s.sale);
-	assert.ok(firstSale.wharf && firstSale.chain === 1 && firstSale.sale.n === 5);
+	assert.ok(firstSale.wharf && firstSale.chain === 0 && firstSale.sale.n === 5 && firstSale.wharf.at === 'Iliya Island');
+	assert.ok(two.stops.indexOf(firstSale) < two.stops.findIndex(s => s.npc === 'Renilu'));
 });
 
 test('with no wharf in reach the hold never ends over the limit, and the fast pace climbs furthest', () => {
@@ -438,9 +446,10 @@ test('the exact case: a climb cut mid-way by the weight of its own next trade', 
 	// sees a three-island chain do one island, and it is exactly what
 	// the run now has to be able to say.
 	const sea = { ...PLAIN_ORDERS, way: 'sea' };
-	const coin = chains(data, {}, {}, null, 4, true).filter(c => c.pays === 'coin' && c.rungs.length >= 3).slice(0, 3);
+	const three = chains(data, {}, {}, null, 4, true).filter(c => c.pays === 'coin' && c.rungs.length >= 3);
+	const coin = [three[0], three[1], three[3]];
 	const start = ports.find(p => p.name === 'Velia');
-	const run = chainRun({ chosen: coin, hold: { free: 9000, deal: 11250, max: 14400 }, parley, npcById, start, stashes: [], pace: 'fast', orders: sea });
+	const run = chainRun({ chosen: coin, hold: { free: 10000, deal: 12500, max: 16000 }, parley, npcById, start, stashes: [], pace: 'fast', orders: sea });
 
 	const byWeight = run.cut.filter(c => c.why === 'hold');
 	assert.ok(byWeight.length, 'a chain met the limit part-way up');

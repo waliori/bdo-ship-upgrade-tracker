@@ -24,15 +24,21 @@
 import { GOODS, amount, levelOf, triesFor } from './barter.js';
 import { landGoods } from './land_goods.js';
 import { landWeights } from './land_weights.js';
+import { seaDist, tour } from './barter-route.js';
 
 /** The weight of a good, 0 for anything the table does not price. */
+const WEIGHTS = new Map();
 export function weightOf(name) {
-	const lv = levelOf(name);
-	if (lv) return GOODS[lv] ? GOODS[lv].weight : 0;
-	// A land good weighs what its codex page says: a tenth of an LT for
-	// most, half for plywood -- little, but a hold loaded with five
-	// hundred of something is a hold with something in it.
-	return landWeights[name] || 0;
+	let w = WEIGHTS.get(name);
+	if (w === undefined) {
+		const lv = levelOf(name);
+		// A land good weighs what its codex page says: a tenth of an LT for
+		// most, half for plywood -- little, but a hold loaded with five
+		// hundred of something is a hold with something in it.
+		w = lv ? (GOODS[lv] ? GOODS[lv].weight : 0) : landWeights[name] || 0;
+		WEIGHTS.set(name, w);
+	}
+	return w;
 }
 
 /** What a barterer pays for a good, 0 for the unsellable levels and
@@ -118,27 +124,13 @@ export function weightHeld(held) {
 	return w;
 }
 
-const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);
+const dist = seaDist;
 
-/** Islands in nearest-neighbour order from `from`, each visited once. */
+/** Islands in the shortest order from `from`, by water, each visited once. */
 function chain(stops, from, npcById) {
-	const left = [...stops];
-	const out = [];
-	let at = from;
-	while (left.length) {
-		let best = 0;
-		if (at) {
-			let bestD = Infinity;
-			left.forEach((s, i) => {
-				const d = dist(at, npcById.get(s.npcId));
-				if (d < bestD) { bestD = d; best = i; }
-			});
-		}
-		const [next] = left.splice(best, 1);
-		out.push(next);
-		at = npcById.get(next.npcId) || at;
-	}
-	return out;
+	const pts = stops.map(s => npcById.get(s.npcId));
+	if (pts.some(p => !p)) return stops.slice();
+	return tour(pts, { start: from || null }).map(i => stops[i]);
 }
 
 /**
@@ -259,8 +251,8 @@ export function materialPlan({ item, qty = 1, stock = {}, barterData, npcById, s
 	const lowest = shortRungs.length ? shortRungs.reduce((a, r) => (r.depth >= a.depth ? r : a)) : null;
 	const first = lowest ? { item: lowest.give, n: lowest.short, ashore: !!lowest.seed } : null;
 
-	// Sailing order: the deepest rung first, each rung's islands nearest
-	// first from where the last left off. Every stop carries its rung's
+	// Sailing order: the deepest rung first, each rung's islands the
+	// shortest way round from where the last left off. Every stop carries its rung's
 	// index from the bottom, for the screen's segments.
 	const order = rungs.map((r, i) => i).sort((a, b) => rungs[b].depth - rungs[a].depth || b - a);
 	const level = new Map(order.map((i, k) => [i, k]));

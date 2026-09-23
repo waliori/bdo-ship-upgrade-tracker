@@ -409,10 +409,19 @@ const LEVEL = /^\[Level (\d)\]/;
 /** The top rung of the trade chain, as the table stands. */
 export const TOP_LEVEL = 7;
 
-/** The tier of a sea trade good, or null for a ship material. */
+/** The tier of a sea trade good, or null for a ship material. Asked
+ *  of every good at every weighing of a hold, so the answer is kept
+ *  by name: there are a few hundred names and the regex is the cost. */
+const LEVELS = new Map();
 export function levelOf(name) {
-	const m = LEVEL.exec(name || '');
-	return m ? Number(m[1]) : null;
+	const key = name || '';
+	let lv = LEVELS.get(key);
+	if (lv === undefined) {
+		const m = LEVEL.exec(key);
+		lv = m ? Number(m[1]) : null;
+		LEVELS.set(key, lv);
+	}
+	return lv;
 }
 
 /**

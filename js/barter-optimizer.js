@@ -10,15 +10,16 @@
 // the sailor runs out of.
 //
 // Pure: chains, the run's options and the orders come in, proposals go
-// out. Distances are straight lines stretched a quarter for the land,
-// as on the chain rows; the run itself bends its legs round the coast.
+// out. Distances are by water, from the route module's table, as on
+// the chain rows; the run itself bends its legs round the coast.
 
 import { TT } from './i18n.js';
 import { chainRun } from './barter-chains.js';
 import { yardsticks, PARLEY_UNIT } from './barter-orders.js';
 import { levelOf } from './barter.js';
 import { sellOf, goodsHeld } from './barter-plan.js';
-import { pathLength, sailSeconds } from './sailing.js';
+import { METRES_PER_PX, sailSeconds } from './sailing.js';
+import { routeLength } from './barter-route.js';
 
 /**
  * What a Level 1 or 2 good is worth kept, on a day that keeps a floor:
@@ -86,12 +87,12 @@ export function fillOf(run, { targetOf, held = new Map(), stock = {} } = {}) {
 	return fullness(after, targetOf) - fullness(before, targetOf);
 }
 
-/** A rough time under way for a run: straight legs through its stops
- *  from the start, stretched a quarter, at the ship's pace. */
+/** A rough time under way for a run: its legs by water, from the
+ *  start through its stops, at the ship's pace. */
 export function hoursOf(run, { start = null, npcById, speed, cal }) {
 	const pts = [...(start ? [start] : []), ...run.stops.map(s => s.wharf || npcById.get(s.npcId)).filter(Boolean)];
 	if (pts.length < 2) return 0;
-	return sailSeconds(pathLength(pts) * 1.25, speed, cal) / 3600;
+	return sailSeconds(routeLength(pts) * METRES_PER_PX, speed, cal) / 3600;
 }
 
 // A clock for the budget: the monotonic one where there is one, which
@@ -177,7 +178,9 @@ export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width
 		const key = [...ids].sort().join('|');
 		if (memo.has(key)) return memo.get(key);
 		const chosen = ids.map(id => byId.get(id)).filter(Boolean);
-		const run = chainRun({ ...opts, chosen });
+		// Laid at the lighter effort: a search judges hundreds of sets, and
+		// the run the tab lays for the set it settles on is laid in full.
+		const run = chainRun({ ...opts, effort: opts.effort ?? 1, chosen });
 		const hours = hoursOf(run, { start: opts.start, npcById: opts.npcById, speed: ship.speed, cal: ship.cal });
 		const out = { ids: [...ids], run, value: score ? score(run) : valueOf(run, orders), hours, yard: yardsticks(run.net, run.parleyUsed, hours) };
 		memo.set(key, out);

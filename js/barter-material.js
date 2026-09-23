@@ -29,82 +29,18 @@
 //
 // Pure: the ticked exchanges, the wants, what is held where, the hold
 // and the harbours come in; the stops in sailing order go out.
-// Distances are straight lines, which is enough to order the stops;
-// the screen bends the legs round the land.
+// Distances are by water, from the route module's table; the screen
+// bends the legs round the land the same way.
 
 import { levelOf } from './barter.js';
 import { goodsHeld, weightHeld, weightOf } from './barter-plan.js';
 import { isLandGood } from './land_goods.js';
+import { seaDist, tour } from './barter-route.js';
 
-const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0);
+const dist = seaDist;
 
-/**
- * The shortest way through `points` ({ x, y }), as an order of their
- * indices: from `start` when given, ending at `end` when given, else
- * wherever it ends. Nearest-first for a beginning, then the path is
- * untangled two edges at a time until nothing shortens it -- for the
- * dozen or two islands a day ticks, that is as good as exact.
- */
-export function tour(points, { start = null, end = null } = {}) {
-	const n = points.length;
-	if (n < 2) return points.map((_, i) => i);
-	const d = (i, j) => dist(points[i], points[j]);
-	// The path's cost with its fixed ends, if any.
-	const cost = path => {
-		let c = start ? dist(start, points[path[0]]) : 0;
-		for (let k = 1; k < path.length; k++) c += d(path[k - 1], path[k]);
-		if (end) c += dist(points[path[path.length - 1]], end);
-		return c;
-	};
-	const nearestFrom = first => {
-		const left = new Set(points.map((_, i) => i));
-		const path = [];
-		let at = first === null ? null : first;
-		if (at !== null) { path.push(at); left.delete(at); }
-		while (left.size) {
-			let best = -1, bd = Infinity;
-			for (const i of left) {
-				const dd = at === null ? dist(start, points[i]) : d(at, i);
-				if (dd < bd) { bd = dd; best = i; }
-			}
-			path.push(best); left.delete(best); at = best;
-		}
-		return path;
-	};
-	const untangle = path => {
-		const p = path.slice();
-		let better = true;
-		while (better) {
-			better = false;
-			for (let i = 0; i < p.length - 1; i++) {
-				for (let j = i + 1; j < p.length; j++) {
-					// Reversing p[i..j] swaps the edge into i and the edge out
-					// of j for the edges start->j and i->next.
-					const inOld = i === 0 ? (start ? dist(start, points[p[i]]) : 0) : d(p[i - 1], p[i]);
-					const outOld = j === p.length - 1 ? (end ? dist(points[p[j]], end) : 0) : d(p[j], p[j + 1]);
-					const inNew = i === 0 ? (start ? dist(start, points[p[j]]) : 0) : d(p[i - 1], p[j]);
-					const outNew = j === p.length - 1 ? (end ? dist(points[p[i]], end) : 0) : d(p[i], p[j + 1]);
-					if (inNew + outNew < inOld + outOld - 1e-6) {
-						let a = i, b = j;
-						while (a < b) { [p[a], p[b]] = [p[b], p[a]]; a++; b--; }
-						better = true;
-					}
-				}
-			}
-		}
-		return p;
-	};
-	// With a start the nearest-first beginning is from it; without one
-	// every island is tried as the first stop and the shortest kept.
-	const firsts = start ? [null] : points.map((_, i) => i);
-	let best = null, bc = Infinity;
-	for (const f of firsts) {
-		const p = untangle(nearestFrom(f));
-		const c = cost(p);
-		if (c < bc) { bc = c; best = p; }
-	}
-	return best;
-}
+/** The shortest way through points once each: see barter-route.js. */
+export { tour };
 
 /**
  * The run. `picks` are the exchanges ticked as showing today, rows as
