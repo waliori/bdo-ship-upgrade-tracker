@@ -1109,6 +1109,7 @@
 .map-plan-route .run-stops { padding: 0; }
 /* Each stop a card of its own, the whole card a way to fly the chart
    there; its buttons keep their own presses. */
+.map-plan-route .leg-snap { display: none; }
 .map-plan-route .run-stops { display: flex; flex-direction: column; gap: 8px; }
 .map-plan-route .run-stop { background: var(--panel-inset); border: 1px solid var(--line); border-radius: var(--r-tile); padding: 6px 8px 2px 4px; cursor: pointer; transition: border-color .15s, background .15s; }
 .map-plan-route .run-stop:hover { border-color: var(--blue-edge, rgba(120, 170, 255, .45)); background: color-mix(in srgb, var(--panel-inset) 85%, var(--blue, #4d8eff) 15%); }

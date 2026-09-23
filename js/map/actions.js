@@ -7,7 +7,9 @@ import { monsters, monsterByKey } from '../sea_monsters.js';
 import { F } from '../fmt.js';
 import { T, gameName } from '../i18n.js';
 import { img } from '../ui-bits.js';
-import { CLOSE_ZOOM } from '../map.js';
+import { CLOSE_ZOOM, zoomRange } from '../map.js';
+import { MAX_ZOOM } from '../barter_npcs.js';
+import { seaLeg } from '../searoute.js';
 import { npcById, ports } from '../barter_npcs.js';
 import { monsterArt } from '../monster_art.js';
 import { openPicker } from '../picker.js';
@@ -218,6 +220,46 @@ export function mapStepToStop(cur, fly = undefined) {
 	moveStep(i, fly === undefined ? mv.follow : fly);
 }
 
+/**
+ * The chart flown to a leg: the water between the stop before and this
+ * one, bent round the land as the route draws it, framed in the part
+ * of the chart nothing covers -- beside the side panel, whichever side
+ * it is on, above the step strip, under the clocks. A panel that
+ * covers most of the chart, as on a phone, is not worked round: it is
+ * put away to look. Full screen or not, the chart's own box is what is
+ * measured.
+ */
+function flyToLeg(from, to) {
+	const host = document.querySelector('[data-map]');
+	if (!host || !mv.mapState || !to) return;
+	const size = { w: host.clientWidth, h: host.clientHeight };
+	const hb = host.getBoundingClientRect();
+	let L = 12, R = size.w - 12, T = 12, B = size.h - 12;
+	const side = host.querySelector('.map-side');
+	if (side && side.offsetWidth) {
+		const r = side.getBoundingClientRect();
+		if (r.width < size.w * 0.6) {
+			if (r.left - hb.left < size.w / 2) L = Math.max(L, r.right - hb.left + 16);
+			else R = Math.min(R, r.left - hb.left - 16);
+		}
+	}
+	const steps = host.querySelector('.map-steps');
+	if (steps && steps.offsetWidth && !steps.hidden) B = Math.min(B, steps.getBoundingClientRect().top - hb.top - 10);
+	const clocks = host.querySelector('.map-clocks');
+	if (clocks && clocks.offsetWidth) T = Math.max(T, clocks.getBoundingClientRect().bottom - hb.top + 8);
+	if (R - L < 120 || B - T < 120) { L = 12; R = size.w - 12; T = 12; B = size.h - 12; }
+	const pts = from ? seaLeg(from, to) : [to];
+	const x0 = Math.min(...pts.map(p => p.x)), x1 = Math.max(...pts.map(p => p.x));
+	const y0 = Math.min(...pts.map(p => p.y)), y1 = Math.max(...pts.map(p => p.y));
+	const pad = 36;
+	const fit = (span, room) => MAX_ZOOM - Math.log2(Math.max(1e-9, span / Math.max(1, room - pad * 2)));
+	// A short leg is not flown to street level: close enough to read the
+	// two islands and the water between them.
+	const zoom = Math.max(zoomRange.min, Math.min(zoomRange.max, CLOSE_ZOOM + 0.6, Math.min(fit(x1 - x0, R - L), fit(y1 - y0, B - T))));
+	const per = Math.pow(2, MAX_ZOOM - zoom);   // world units a screen pixel
+	flyTo((x0 + x1) / 2 - ((L + R) / 2 - size.w / 2) * per, (y0 + y1) / 2 - ((T + B) / 2 - size.h / 2) * per, zoom);
+}
+
 function moveStep(i, fly = mv.follow) {
 	const seq = routeSeq(marksNow());
 	if (seq.length < 2) return;
@@ -238,7 +280,10 @@ function moveStep(i, fly = mv.follow) {
 			// very water being looked at. Hovering a pin still shows one.
 			mv.pinnedNpc = null;
 			mv.pinnedStash = -1;
-			flyTo(s.place.x, s.place.y, Math.max(mv.mapState.zoom, CLOSE_ZOOM - 0.15));
+			// The leg into the stop, not the stop alone: where the ship comes
+			// from is half of what a sailor looks at the chart for.
+			const prev = mv.stepIdx > 0 ? seq[mv.stepIdx - 1].place : ports.find(p => p.id === mv.startPort) || null;
+			flyToLeg(prev, s.place);
 		}
 	}
 	paintMap();
