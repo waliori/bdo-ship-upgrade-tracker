@@ -372,7 +372,6 @@
 	"A way through to <b>its row on the Quests tab</b>, and a way to <b>drop it</b>.": "通往<b>任務頁上它那一行</b>的入口，以及<b>放棄它</b>的辦法。",
 	"A yellow-tier attempt is one change as well: the stones spent and the failstack moved go back together when it is undone.": "黃色等級的一次嘗試同樣是一次更改：花掉的石頭和變動的失敗疊加數在復原時會一起回來。",
 	"Abandon": "放棄",
-	"Aboard before the first stop": "第一站前已在船上",
 	"Aboard {owner}’s boat": "在 {owner} 的船上",
 	"Accel from crew": "來自船員的加速",
 	"Acceleration": "加速",
@@ -2221,6 +2220,8 @@
 	"Take this reading as today’s board": "把這次讀取當作今天的面板",
 	"Take {name} off the run": "把 {name} 從航次中拿掉",
 	"Take {n}": "拿 {n} 個",
+	"Taken aboard at {port} before casting off": "啟航前在{port}裝船",
+	"Taken aboard before casting off": "啟航前裝船",
 	"Taken from your pile of shore goods": "取自你那堆岸上貨物",
 	"Tap <b class=\"gold\">sold</b> / <b class=\"teal\">kept</b> to flip what the wharf does with a level. A keep number is never sold or handed on.": "點 <b class=\"gold\">賣出</b> / <b class=\"teal\">留下</b> 切換停泊處對該等級的處理。留下的數量絕不會被賣掉或交出。",
 	"Tap to choose the picture. The layout, your Parley and your barter count are read from it, on this device — nothing is uploaded.": "點一下選擇圖片。佈局、你的交涉和總交易次數都在本裝置上從圖裡讀出 —— 不會上傳。",
@@ -4729,6 +4730,7 @@
 	"{n} goods aboard": "船上 {n} 件貨物",
 	"{n} goods aboard, worth {value}": "船上 {n} 件貨物，值 {value}",
 	"{n} goods handed over, worth {value} had they been sold": "交出 {n} 件貨物，若售出值 {value}",
+	"{n} goods left over": "剩餘 {n} 件貨物",
 	"{n} goods put back ashore": "{n} 件貨物已放回岸上",
 	"{n} goods short of the targets.": "比目標少 {n} 件貨物。",
 	"{n} guild wharves — the Old Moon Guild's, for a guild ship": "{n} 個公會停泊處 — 古月公會的，用於公會船隻",
@@ -5159,6 +5161,5 @@
 	"🔔 notify me too": "🔔 也通知我",
 	"🔔 on the Home Screen": "🔔 在主螢幕上",
 	"🔔 reminding by push": "🔔 正在通過推送提醒",
-	"🔔 reminding while open": "🔔 開著時提醒",
-	"{n} goods left over": "剩餘 {n} 件貨物"
+	"🔔 reminding while open": "🔔 開著時提醒"
 }

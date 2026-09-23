@@ -372,7 +372,6 @@
 	"A way through to <b>its row on the Quests tab</b>, and a way to <b>drop it</b>.": "Un paso directo a <b>su fila en la pestaña Misiones</b>, y una forma de <b>descartarla</b>.",
 	"A yellow-tier attempt is one change as well: the stones spent and the failstack moved go back together when it is undone.": "Un intento de nivel amarillo también es un solo cambio: las piedras gastadas y la acumulación de fallos vuelven juntas al deshacerlo.",
 	"Abandon": "Abandonar",
-	"Aboard before the first stop": "A bordo antes de la primera parada",
 	"Aboard {owner}’s boat": "A bordo del barco de {owner}",
 	"Accel from crew": "Acel. de tripulación",
 	"Acceleration": "Aceleración",
@@ -2227,6 +2226,8 @@
 	"Take this reading as today’s board": "Tomar esta lectura como el tablero de hoy",
 	"Take {name} off the run": "Quitar {name} de la travesía",
 	"Take {n}": "Tomar {n}",
+	"Taken aboard at {port} before casting off": "Subido a bordo en {port} antes de zarpar",
+	"Taken aboard before casting off": "Subido a bordo antes de zarpar",
 	"Taken from your pile of shore goods": "Tomado de tus mercancías en tierra",
 	"Tap <b class=\"gold\">sold</b> / <b class=\"teal\">kept</b> to flip what the wharf does with a level. A keep number is never sold or handed on.": "Tocá <b class=\"gold\">vendido</b> / <b class=\"teal\">guardado</b> para cambiar qué hace el muelle con un nivel. Una cantidad guardada nunca se vende ni se entrega.",
 	"Tap to choose the picture. The layout, your Parley and your barter count are read from it, on this device — nothing is uploaded.": "Tocá para elegir la imagen. De ella se leen la disposición, tu Negociación y tu total de intercambios, en este dispositivo: no se envía nada.",
@@ -4738,6 +4739,7 @@
 	"{n} goods aboard": "{n} bienes a bordo",
 	"{n} goods aboard, worth {value}": "{n} bienes a bordo, valen {value}",
 	"{n} goods handed over, worth {value} had they been sold": "{n} bienes entregados, valían {value} si se hubieran vendido",
+	"{n} goods left over": "{n} bienes de sobra",
 	"{n} goods put back ashore": "{n} bienes devueltos a tierra",
 	"{n} goods short of the targets.": "faltan {n} bienes para los objetivos.",
 	"{n} guild wharves — the Old Moon Guild's, for a guild ship": "{n} muelles de gremio — los del Gremio Luna Vieja, para un barco de gremio",
@@ -5180,6 +5182,5 @@
 	"🔔 notify me too": "🔔 avísame a mí también",
 	"🔔 on the Home Screen": "🔔 en la pantalla de inicio",
 	"🔔 reminding by push": "🔔 avisando por push",
-	"🔔 reminding while open": "🔔 avisando mientras esté abierto",
-	"{n} goods left over": "{n} bienes de sobra"
+	"🔔 reminding while open": "🔔 avisando mientras esté abierto"
 }

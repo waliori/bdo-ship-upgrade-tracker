@@ -372,7 +372,6 @@
 	"A way through to <b>its row on the Quests tab</b>, and a way to <b>drop it</b>.": "<b>의뢰 탭의 해당 줄</b>로 가는 길과, <b>포기하는</b> 방법.",
 	"A yellow-tier attempt is one change as well: the stones spent and the failstack moved go back together when it is undone.": "노랑 단계 시도도 하나의 변경입니다: 사용한 스톤과 움직인 실패 스택이 되돌릴 때 함께 돌아옵니다.",
 	"Abandon": "포기",
-	"Aboard before the first stop": "첫 정박지 전 적재",
 	"Aboard {owner}’s boat": "{owner}의 배에 승선 중",
 	"Accel from crew": "선원단에 의한 가속",
 	"Acceleration": "가속",
@@ -2221,6 +2220,8 @@
 	"Take this reading as today’s board": "이 관측을 오늘의 보드로 삼기",
 	"Take {name} off the run": "항해에서 {name} 빼기",
 	"Take {n}": "{n}개 가져오기",
+	"Taken aboard at {port} before casting off": "출항 전 {port}에서 선적",
+	"Taken aboard before casting off": "출항 전 선적",
 	"Taken from your pile of shore goods": "보유한 육지 물품 더미에서 가져옴",
 	"Tap <b class=\"gold\">sold</b> / <b class=\"teal\">kept</b> to flip what the wharf does with a level. A keep number is never sold or handed on.": "<b class=\"gold\">판매</b> / <b class=\"teal\">보관</b>을 눌러 정박 관리인이 그 레벨을 어떻게 다룰지 바꾸세요. 보관하는 수량은 절대 팔리지도 넘겨지지도 않습니다.",
 	"Tap to choose the picture. The layout, your Parley and your barter count are read from it, on this device — nothing is uploaded.": "눌러서 사진을 고르세요. 배치, 교섭, 총 거래 수를 이 기기에서 읽습니다 — 업로드하지 않습니다.",
@@ -4729,6 +4730,7 @@
 	"{n} goods aboard": "배에 물품 {n}개",
 	"{n} goods aboard, worth {value}": "물품 {n}개 승선, {value} 값어치",
 	"{n} goods handed over, worth {value} had they been sold": "물품 {n}개 건네줌, 팔았다면 {value} 값어치",
+	"{n} goods left over": "남는 물품 {n}개",
 	"{n} goods put back ashore": "물품 {n}개를 육지로 되돌림",
 	"{n} goods short of the targets.": "목표에 물품 {n}개 부족.",
 	"{n} guild wharves — the Old Moon Guild's, for a guild ship": "길드 정박지 {n}곳 — 고대 달 길드의, 길드 선박용",
@@ -5159,6 +5161,5 @@
 	"🔔 notify me too": "🔔 나에게도 알림",
 	"🔔 on the Home Screen": "🔔 홈 화면에서",
 	"🔔 reminding by push": "🔔 푸시로 알림 중",
-	"🔔 reminding while open": "🔔 열려 있는 동안 알림 중",
-	"{n} goods left over": "남는 물품 {n}개"
+	"🔔 reminding while open": "🔔 열려 있는 동안 알림 중"
 }

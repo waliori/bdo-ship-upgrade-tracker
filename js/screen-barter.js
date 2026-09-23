@@ -1137,14 +1137,19 @@ function castOffRow(plan, from) {
 	const goods = [...(plan.loaded || []).map(l => ({ item: l.item, n: l.n, how: from ? T('from {town}', { town: gameName(from.name) }) : T('from the storage') })),
 		...(plan.bought || []).filter(b => b.n > 0).map(b => ({ item: b.item, n: b.n, how: T('bought ashore') })),
 		...(plan.taken || []).filter(t => t.n > 0).map(t => ({ item: t.item, n: t.n, how: T('from your pile') }))];
-	if (!goods.length && !(plan.weightStart > 0)) return '';
+	// What is really in the hold that the run hands over: read off the
+	// Inventory, not the plan.
+	const stock = aboardStock();
+	const inHoldNow = [...new Set(plan.stops.filter(x => x.npcId && x.give).map(x => x.give))].filter(g => stock[g] > 0).map(g => ({ item: g, n: stock[g] }));
+	if (!goods.length && !inHoldNow.length && !(plan.weightStart > 0)) return '';
 	const w = shownHold((plan.stops[0] && plan.stops[0].hold) || currentShip().hold, plan.weightStart || 0);
 	const heavy = w.state === 'heavy' || w.state === 'dead', over = w.state === 'over';
 	return `<div class="run-stop start">
 		<div class="run-rail"><i></i><b>⚓</b><i></i></div>
 		<div class="run-main">
 			<div class="run-stop-head"><b>${from ? T('Cast off from {port}', { port: esc(gameName(from.name)) }) : T('Cast off')}</b><span>${T('the hold as the lines are let go')}</span></div>
-			${goods.length ? `<div class="run-leave"><span class="run-leave-k">${T('Aboard before the first stop')}</span>${goods.map(g => `<span class="run-leave-good">${img(g.item, 'row-icon sm')}<b>${n1(g.n)}×</b> ${esc(gameName(g.item))} <em class="faint">· ${esc(g.how)}</em></span>`).join('')}</div>` : ''}
+			${inHoldNow.length ? `<div class="run-leave"><span class="run-leave-k">${T('In the hold')}</span>${inHoldNow.map(g => `<span class="run-leave-good">${img(g.item, 'row-icon sm')}<b>${F(g.n)}×</b> ${esc(gameName(g.item))}</span>`).join('')}</div>` : ''}
+			${goods.length ? `<div class="run-leave"><span class="run-leave-k">${from ? T('Taken aboard at {port} before casting off', { port: esc(gameName(from.name)) }) : T('Taken aboard before casting off')}</span>${goods.map(g => `<span class="run-leave-good">${img(g.item, 'row-icon sm')}<b>${n1(g.n)}×</b> ${esc(gameName(g.item))} <em class="faint">· ${esc(g.how)}</em></span>`).join('')}</div>` : ''}
 		</div>
 		<div class="run-hold">
 			<div><span>${T('hold')}</span><b class="${heavy ? 'warn' : over ? 'amber' : ''}">${esc(w.text)}</b></div>
@@ -4097,22 +4102,24 @@ function silverParts(me, b) {
 	// what is left in storage and the run cast off are all laid from the
 	// chains that are packed, and laid again as each one comes aboard.
 	const packRows = (() => { const pk = packingOf(plan, from, chosen); return [...pk.market, ...pk.storage, ...pk.aboard]; })();
-	const laterLoads = new Set(plan.stops.flatMap(x => (x.wharf && x.loads) || []).map(l => l.item));
+	// The route follows the ship, not the plan: until every row is
+	// ticked it is laid from what is really aboard, with nothing loaded
+	// out of a storage -- the goods a sailor has not put on the ship are
+	// not on it, whatever the plan meant to load. With every row ticked
+	// it is the whole run, the later lots' goods loaded at the calls
+	// back to the harbour where they wait.
+	const allPacked = packRows.every(packedNow);
 	const packedChain = c => {
 		const row = packRows.find(x => x.item === c.item) || packRows.find(x => x.item === c.rungs[0].give);
-		// A chain with no row on the list was taken as packed -- and a
-		// chain the whole run cannot start (its first good nowhere it
-		// can be loaded) has no row, so it was drawn as the one chain
-		// aboard with nothing aboard. Without a row it is packed only
-		// when its first good is on the ship.
-		// A chain of a later lot loads at the harbour call before it, on
-		// the way: it has no row, and is packed by the run itself.
-		return row ? packedNow(row) : (aboardStock()[c.rungs[0].give] || 0) > 0 || laterLoads.has(c.rungs[0].give);
+		// Without a row a chain is packed only when its first good is on
+		// the ship: a chain the run cannot start has no row, and was
+		// drawn as aboard with nothing aboard.
+		return row ? packedNow(row) : (aboardStock()[c.rungs[0].give] || 0) > 0;
 	};
-	const ready = sailing() ? chosen : chosen.filter(packedChain);
+	const ready = sailing() || allPacked ? chosen : chosen.filter(packedChain);
 	let rPlan = plan, rLegs = legs, rBook = book, rQp = qp;
 	if (ready.length !== chosen.length) {
-		rPlan = chainRun({ ...opts, chosen: ready, ...edits });
+		rPlan = chainRun({ ...opts, dock: {}, chosen: ready, ...edits });
 		for (const x of rPlan.stops) x.hold = me.hold;
 		rQp = questPlan(rPlan.stops, o.quests, me.hold, rPlan.weightStart);
 		rPlan.stops = withWaits(rQp.stops, rPlan.weightStart);

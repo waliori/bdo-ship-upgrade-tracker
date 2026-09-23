@@ -423,7 +423,6 @@
 	"A way through to <b>its row on the Quests tab</b>, and a way to <b>drop it</b>.": "Um caminho até <b>a linha dela na aba Missões</b>, e um jeito de <b>deixá-la de lado</b>.",
 	"A yellow-tier attempt is one change as well: the stones spent and the failstack moved go back together when it is undone.": "Uma tentativa de nível amarelo também é uma só mudança: as pedras gastas e a pilha de falhas movida voltam juntas quando se desfaz.",
 	"Abandon": "Abandonar",
-	"Aboard before the first stop": "A bordo antes da primeira parada",
 	"Aboard {owner}’s boat": "No barco de {owner}",
 	"Accel from crew": "Aceleração da tripulação",
 	"Acceleration": "Aceleração",
@@ -2293,6 +2292,8 @@
 	"Take this reading as today’s board": "Usar esta leitura como o quadro de hoje",
 	"Take {name} off the run": "Tirar {name} da viagem",
 	"Take {n}": "Pegar {n}",
+	"Taken aboard at {port} before casting off": "Embarcado em {port} antes de zarpar",
+	"Taken aboard before casting off": "Embarcado antes de zarpar",
 	"Taken from your pile of shore goods": "Tirado da sua pilha de mercadorias de terra",
 	"Tap <b class=\"gold\">sold</b> / <b class=\"teal\">kept</b> to flip what the wharf does with a level. A keep number is never sold or handed on.": "Toque em <b class=\"gold\">vendido</b> / <b class=\"teal\">guardado</b> para mudar o que a doca faz com um nível. Um número guardado nunca é vendido nem entregue.",
 	"Tap to choose the picture. The layout, your Parley and your barter count are read from it, on this device — nothing is uploaded.": "Toque para escolher a imagem. A disposição, sua Negociação e seu total de trocas são lidos dela, neste aparelho — nada é enviado.",
@@ -4822,6 +4823,7 @@
 	"{n} goods aboard": "{n} bens a bordo",
 	"{n} goods aboard, worth {value}": "{n} mercadorias a bordo, valendo {value}",
 	"{n} goods handed over, worth {value} had they been sold": "{n} mercadorias entregues, valendo {value} se fossem vendidas",
+	"{n} goods left over": "{n} bens de sobra",
 	"{n} goods put back ashore": "{n} bens devolvidos à terra",
 	"{n} goods short of the targets.": "faltam {n} mercadorias para as metas.",
 	"{n} guild wharves — the Old Moon Guild's, for a guild ship": "{n} cais de guilda — os da Guilda Lua Minguante, para navio de guilda",
@@ -5261,6 +5263,5 @@
 	"🔔 notify me too": "🔔 avisar a mim também",
 	"🔔 on the Home Screen": "🔔 na Tela de Início",
 	"🔔 reminding by push": "🔔 lembrando por push",
-	"🔔 reminding while open": "🔔 lembrando com o app aberto",
-	"{n} goods left over": "{n} bens de sobra"
+	"🔔 reminding while open": "🔔 lembrando com o app aberto"
 }

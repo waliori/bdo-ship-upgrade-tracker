@@ -522,7 +522,6 @@
 	"A way through to <b>its row on the Quests tab</b>, and a way to <b>drop it</b>.": "Переход к <b>её строке на вкладке «Задания»</b> и способ <b>её отбросить</b>.",
 	"A yellow-tier attempt is one change as well: the stones spent and the failstack moved go back together when it is undone.": "Попытка жёлтой ступени — тоже одно изменение: потраченные камни и сдвинутый стак неудач возвращаются вместе, когда её отменяют.",
 	"Abandon": "Бросить",
-	"Aboard before the first stop": "На борту до первой остановки",
 	"Aboard {owner}’s boat": "На борту у {owner}",
 	"Accel from crew": "Разгон от экипажа",
 	"Acceleration": "Разгон",
@@ -2641,6 +2640,8 @@
 	"Take this reading as today’s board": "Принять это прочтение за сегодняшнюю доску",
 	"Take {name} off the run": "Убрать {name} из рейса",
 	"Take {n}": "Взять {n}",
+	"Taken aboard at {port} before casting off": "Погружено в {port} перед отплытием",
+	"Taken aboard before casting off": "Погружено перед отплытием",
 	"Taken from your pile of shore goods": "Взято из ваших запасов на берегу",
 	"Tap <b class=\"gold\">sold</b> / <b class=\"teal\">kept</b> to flip what the wharf does with a level. A keep number is never sold or handed on.": "Нажмите <b class=\"gold\">продать</b> / <b class=\"teal\">оставить</b>, чтобы поменять, что причал делает с уровнем. Оставленное число никогда не продаётся и не передаётся.",
 	"Tap to choose the picture. The layout, your Parley and your barter count are read from it, on this device — nothing is uploaded.": "Нажмите, чтобы выбрать картинку. Раскладка, ваши Переговоры и число обменов читаются с неё на этом устройстве — ничего не отправляется.",
@@ -5914,6 +5915,7 @@
 		"one": "{n} товар отдан, {value}, если бы продали",
 		"other": "{n} товаров отдано, {value}, если бы продали"
 	},
+	"{n} goods left over": "лишних товаров: {n}",
 	"{n} goods put back ashore": "возвращено на берег: {n}",
 	"{n} goods short of the targets.": {
 		"few": "до цели не хватает {n} товаров.",
@@ -7274,6 +7276,5 @@
 	"🔔 notify me too": "🔔 уведомлять и меня",
 	"🔔 on the Home Screen": "🔔 на домашнем экране",
 	"🔔 reminding by push": "🔔 напоминает через push",
-	"🔔 reminding while open": "🔔 напоминает, пока открыто",
-	"{n} goods left over": "лишних товаров: {n}"
+	"🔔 reminding while open": "🔔 напоминает, пока открыто"
 }

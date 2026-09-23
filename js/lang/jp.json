@@ -372,7 +372,6 @@
 	"A way through to <b>its row on the Quests tab</b>, and a way to <b>drop it</b>.": "<b>依頼タブのその行</b>への行き方と、<b>取り下げる</b>方法。",
 	"A yellow-tier attempt is one change as well: the stones spent and the failstack moved go back together when it is undone.": "黄色ティアの挑戦もひとつの変更です：使ったストーンと動いた失敗スタックは、元に戻すときに一緒に戻ります。",
 	"Abandon": "取り下げる",
-	"Aboard before the first stop": "最初の寄港地の前に積載",
 	"Aboard {owner}’s boat": "{owner}の船に乗船中",
 	"Accel from crew": "乗組員による加速",
 	"Acceleration": "加速",
@@ -2221,6 +2220,8 @@
 	"Take this reading as today’s board": "この読み取りを今日の交換表にする",
 	"Take {name} off the run": "{name}を航海から外す",
 	"Take {n}": "{n}個取る",
+	"Taken aboard at {port} before casting off": "出航前に{port}で積み込み",
+	"Taken aboard before casting off": "出航前に積み込み",
 	"Taken from your pile of shore goods": "手持ちの陸の品から取ります",
 	"Tap <b class=\"gold\">sold</b> / <b class=\"teal\">kept</b> to flip what the wharf does with a level. A keep number is never sold or handed on.": "<b class=\"gold\">売る</b>／<b class=\"teal\">残す</b> をタップすると、その段階を船着き場がどう扱うかが切り替わります。残す数は決して売られず、渡されません。",
 	"Tap to choose the picture. The layout, your Parley and your barter count are read from it, on this device — nothing is uploaded.": "タップして画像を選択。配置、交渉力、取引回数をこの端末で読み取ります——送信はありません。",
@@ -4729,6 +4730,7 @@
 	"{n} goods aboard": "船上の品 {n}",
 	"{n} goods aboard, worth {value}": "船上に品{n}個、価値{value}",
 	"{n} goods handed over, worth {value} had they been sold": "渡した品{n}個、売却していれば{value}相当",
+	"{n} goods left over": "余る品 {n}",
 	"{n} goods put back ashore": "{n}品を陸に戻しました",
 	"{n} goods short of the targets.": "目標まで品が{n}個不足しています。",
 	"{n} guild wharves — the Old Moon Guild's, for a guild ship": "ギルド船着き場{n}か所 — オールドムーン商団のもので、ギルド船用です",
@@ -5159,6 +5161,5 @@
 	"🔔 notify me too": "🔔 自分にも通知",
 	"🔔 on the Home Screen": "🔔 ホーム画面に追加すると",
 	"🔔 reminding by push": "🔔 プッシュで通知中",
-	"🔔 reminding while open": "🔔 開いている間は通知",
-	"{n} goods left over": "余る品 {n}"
+	"🔔 reminding while open": "🔔 開いている間は通知"
 }

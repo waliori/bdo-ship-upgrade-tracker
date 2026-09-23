@@ -372,7 +372,6 @@
 	"A way through to <b>its row on the Quests tab</b>, and a way to <b>drop it</b>.": "<b>Görevler sekmesindeki satırına</b> bir geçit ve onu <b>bırakmak</b> için bir yol.",
 	"A yellow-tier attempt is one change as well: the stones spent and the failstack moved go back together when it is undone.": "Sarı kademe bir deneme de tek bir değişikliktir: harcanan taşlar ve kıpırdayan durum yığını, geri alındığında birlikte geri döner.",
 	"Abandon": "Bırak",
-	"Aboard before the first stop": "İlk duraktan önce gemide",
 	"Aboard {owner}’s boat": "{owner} adlı gemicinin teknesinde",
 	"Accel from crew": "Mürettebattan ivme",
 	"Acceleration": "İvme",
@@ -2221,6 +2220,8 @@
 	"Take this reading as today’s board": "Bu okumayı bugünün panosu olarak al",
 	"Take {name} off the run": "{name} seferden çıkar",
 	"Take {n}": "{n} al",
+	"Taken aboard at {port} before casting off": "Kalkıştan önce {port} konumunda yüklendi",
+	"Taken aboard before casting off": "Kalkıştan önce yüklendi",
 	"Taken from your pile of shore goods": "Kıyı malları yığınından alındı",
 	"Tap <b class=\"gold\">sold</b> / <b class=\"teal\">kept</b> to flip what the wharf does with a level. A keep number is never sold or handed on.": "Bir iskelenin bir seviyeyle ne yapacağını değiştirmek için <b class=\"gold\">satıldı</b> / <b class=\"teal\">saklandı</b> üzerine dokun. Saklanan bir sayı asla satılmaz ve devredilmez.",
 	"Tap to choose the picture. The layout, your Parley and your barter count are read from it, on this device — nothing is uploaded.": "Resmi seçmek için dokun. Dizilim, Müzakeren ve takas sayın ondan okunur, bu cihazda — hiçbir şey yüklenmez.",
@@ -4729,6 +4730,7 @@
 	"{n} goods aboard": "gemide {n} mal",
 	"{n} goods aboard, worth {value}": "gemide {n} mal, {value} değerinde",
 	"{n} goods handed over, worth {value} had they been sold": "{n} mal verildi, satılsalardı {value} değerinde",
+	"{n} goods left over": "{n} mal artar",
 	"{n} goods put back ashore": "{n} mal karaya geri kondu",
 	"{n} goods short of the targets.": "hedeflerden {n} mal eksik.",
 	"{n} guild wharves — the Old Moon Guild's, for a guild ship": "{n} lonca iskelesi — Eski Ay Loncasınınkiler, bir lonca gemisi için",
@@ -5159,6 +5161,5 @@
 	"🔔 notify me too": "🔔 bana da bildir",
 	"🔔 on the Home Screen": "🔔 Ana Ekranda",
 	"🔔 reminding by push": "🔔 anlık bildirimle hatırlatılıyor",
-	"🔔 reminding while open": "🔔 açıkken hatırlatılıyor",
-	"{n} goods left over": "{n} mal artar"
+	"🔔 reminding while open": "🔔 açıkken hatırlatılıyor"
 }

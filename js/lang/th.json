@@ -372,7 +372,6 @@
 	"A way through to <b>its row on the Quests tab</b>, and a way to <b>drop it</b>.": "ทางไปยัง<b>แถวของมันในหน้าเควสต์</b> และวิธี<b>ทิ้งมัน</b>",
 	"A yellow-tier attempt is one change as well: the stones spent and the failstack moved go back together when it is undone.": "การลองระดับเหลืองก็เป็นการเปลี่ยนแปลงครั้งเดียวด้วย: หินที่ใช้และสแต็คล้มเหลวที่ขยับกลับมาพร้อมกันเมื่อย้อนกลับ",
 	"Abandon": "ทิ้ง",
-	"Aboard before the first stop": "อยู่บนเรือก่อนจุดแวะแรก",
 	"Aboard {owner}’s boat": "บนเรือของ {owner}",
 	"Accel from crew": "อัตราเร่งจากลูกเรือ",
 	"Acceleration": "อัตราเร่ง",
@@ -2221,6 +2220,8 @@
 	"Take this reading as today’s board": "ถือค่าอ่านนี้เป็นกระดานวันนี้",
 	"Take {name} off the run": "เอา {name} ออกจากการออกเรือ",
 	"Take {n}": "เอา {n}",
+	"Taken aboard at {port} before casting off": "ขนขึ้นเรือที่ {port} ก่อนออกเรือ",
+	"Taken aboard before casting off": "ขนขึ้นเรือก่อนออกเรือ",
 	"Taken from your pile of shore goods": "เอาจากกองสินค้าฝั่งของคุณ",
 	"Tap <b class=\"gold\">sold</b> / <b class=\"teal\">kept</b> to flip what the wharf does with a level. A keep number is never sold or handed on.": "แตะ <b class=\"gold\">ขาย</b> / <b class=\"teal\">เก็บ</b> เพื่อสลับสิ่งที่ท่าเรือทำกับระดับนั้น จำนวนที่เก็บไว้จะไม่ถูกขายและไม่ถูกส่งต่อ",
 	"Tap to choose the picture. The layout, your Parley and your barter count are read from it, on this device — nothing is uploaded.": "แตะเพื่อเลือกรูป ระบบจะอ่านผัง ค่าเจรจา และจำนวนการค้ารวมจากรูปบนอุปกรณ์นี้ — ไม่มีการอัปโหลด",
@@ -4729,6 +4730,7 @@
 	"{n} goods aboard": "ของบนเรือ {n} ชิ้น",
 	"{n} goods aboard, worth {value}": "สินค้า {n} ชิ้นบนเรือ มูลค่า {value}",
 	"{n} goods handed over, worth {value} had they been sold": "มอบสินค้า {n} ชิ้น มูลค่า {value} ถ้าขาย",
+	"{n} goods left over": "ของเหลือ {n} ชิ้น",
 	"{n} goods put back ashore": "นำของ {n} ชิ้นกลับขึ้นฝั่ง",
 	"{n} goods short of the targets.": "ขาดสินค้า {n} ชิ้นจากเป้า",
 	"{n} guild wharves — the Old Moon Guild's, for a guild ship": "ท่าเรือกิลด์ {n} แห่ง — ของกิลด์จันทราเก่า สำหรับเรือกิลด์",
@@ -5159,6 +5161,5 @@
 	"🔔 notify me too": "🔔 แจ้งฉันด้วย",
 	"🔔 on the Home Screen": "🔔 บนหน้าจอหลัก",
 	"🔔 reminding by push": "🔔 เตือนด้วยพุช",
-	"🔔 reminding while open": "🔔 เตือนขณะเปิดอยู่",
-	"{n} goods left over": "ของเหลือ {n} ชิ้น"
+	"🔔 reminding while open": "🔔 เตือนขณะเปิดอยู่"
 }
