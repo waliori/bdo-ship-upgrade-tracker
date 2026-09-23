@@ -406,7 +406,8 @@ class GuidedTour {
 				before: () => goToMap('route')
 			},
 			{
-				element: '.barter-bar',
+				// The board's own panel: the strip once a board is known, the ask before.
+				element: '.board-strip, .board-ask',
 				popover: {
 					title: T('Today\'s board'),
 					description: T('The trade-goods barters are not rolled island by island: every refresh the whole sea shows one of forty fixed layouts. So this asks what <i>one</i> island is showing — tap it from that island\'s possible offers — and the whole board follows: every chain the day allows, listed by how far it reaches and what it pays.<br><br>Then say what the day is <i>for</i>, because the same board is sailed four ways. <b>Silver</b> climbs the chains you tick and sells the tops at a wharf. <b>A stock</b> sells nothing at all: say how many of every good you want at a level and the run is scored on what it banks, with the climbs stopped where the stock ends. <b>Crow Coins</b> is a climb to [Level 4], cashed in at the ten to fourteen islands on every board that pay in coins. <b>A material</b> is one route through every island dealing the thing your plan is short of.<br><br>Only the islands your <b>total barters</b> have opened are planned through: the rest sit locked under the list, with a line saying how many more barters open them. Nothing is ever routed through a barterer you cannot reach.'),
@@ -415,7 +416,9 @@ class GuidedTour {
 				before: () => goToTab('barter')
 			},
 			{
-				element: '.hold-bar',
+				// The four steps of a run, which are there whatever the board says;
+				// the hold itself is on the second step, behind a tick.
+				element: '.steps',
 				popover: {
 					title: T('The hold, and the run'),
 					description: T('Two columns: <b>the hold</b> — what is actually aboard, weighed against the ship as fitted and the ceiling the islands still deal under, with goods ashore listed by harbour and a way into the hold — and <b>to spend</b>, the Parley the bar holds and what one trade costs you. Under them the <b>sailing orders</b>: cash out today or sell the top and keep a floor, the pace, the vouchers, which levels a wharf sells, and the figures every chain comes to.<br><br>Tick chains and a strip along the foot keeps the run in a line. <b>Lay it out</b> opens the sheet on two shelves — what to load before casting off, and what is in the storage after — with every stop in order below them. <b>Sail this run</b> takes it to the Map as a checklist, and the <b>clock</b> beside it starts at that run\'s own estimate: it counts up, rings a ship\'s bell at every stop rather than only at the end, and reaches every device signed in to your account.<br><br><b>Record the trip</b> puts the whole of it in the Inventory as one change, and the run joins <b>Today\'s boards</b> — every board sailed since the refill, what it loaded, what it came back with, and the day\'s totals across the Parley bar.'),
