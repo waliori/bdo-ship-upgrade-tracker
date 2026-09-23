@@ -3493,9 +3493,17 @@ function tripsOf(plan) {
 }
 const stagedRun = plan => !!(plan && plan.stops && plan.stops.some(s => s.wharf && s.loads && s.loads.length));
 
-/** The trips of a staged run on the wharf step: trip 1 with the packing
- *  list to tick, the rest read-only, each with the stop it comes
- *  aboard at and why its goods cannot come now. */
+/**
+ * The trips of a staged run on the wharf step: one section a trip.
+ * Trip 1 carries the packing list to tick; each later trip lists the
+ * goods that come aboard for it, says at which stop the ship picks
+ * them up -- the call before the trip, or an earlier call at the
+ * harbour that had room for them -- and why they cannot all come now,
+ * and can be left out of the run from here: a trip is the chains it
+ * climbs, and unticking them on the plan is a long way round for
+ * "not today". The route below is the whole run from the start, so a
+ * sailor packing trip 1 sees where the day goes.
+ */
 function tripsHTML(plan, from, chosen, hold) {
 	const trips = tripsOf(plan);
 	const port = from ? gameName(from.name) : T('the wharf');
@@ -3507,15 +3515,21 @@ function tripsHTML(plan, from, chosen, hold) {
 		return `${t.chains.map(cn).join(' · ')} · ${isl === 1 ? T('{n} island', { n: isl }) : T('{n} islands', { n: isl })}${t.sale ? ` · ${T('back at {port}: sells {n} [Level 7]', { port: esc(port), n: n1(l7(t)) })}` : ''}`;
 	};
 	const w = lt => shownHold(hold, lt).text;
-	const head = `<div class="trips-head"><b>${trips.length === 1 ? T('{n} trip out of {port}', { n: trips.length, port: esc(port) }) : T('{n} trips out of {port}', { n: trips.length, port: esc(port) })}</b><span>${T('load {a} now, {b} picked up on the way', { a: trips[0].loads.length + packingCount(plan, from, chosen).all - trips[0].loads.length, b: later })}</span></div>`;
+	// The chains a trip climbs, and the ticked chains folded into them:
+	// leaving the trip out unticks them all.
+	const idsOf = t => { const hosts = t.chains.map(k => plan.order[k]); return chosen.filter(c => hosts.includes(c) || hosts.some(h => tailOf(h, c))).map(c => c.id); };
+	const head = `<div class="trips-head"><b>${trips.length === 1 ? T('{n} trip out of {port}', { n: trips.length, port: esc(port) }) : T('{n} trips out of {port}', { n: trips.length, port: esc(port) })}</b><span>${T('load {a} now, {b} picked up on the way', { a: trips[0].loads.length + packingCount(plan, from, chosen).all - trips[0].loads.length, b: later })} · ${T('the hold cannot carry every chain\u2019s first goods at once, so the run calls back for the rest; a trip can be left out below')}</span></div>`;
 	const first = `<section class="trip-card now"><div class="trip-head"><span class="trip-k">${T('Trip {n}', { n: 1 })}</span><b>${T('load now at {port}', { port: esc(port) })}</b><span class="trip-line">${line(trips[0])}</span><span class="panel-spacer"></span><span class="trip-state">${(() => { const c = packingCount(plan, from, chosen); return T('{n} of {of} aboard', { n: c.done, of: c.all }); })()}</span></div>
 		${packingHTML(plan, from, chosen)}
 		<div class="trip-foot">${T('hold at its fullest on this trip: {w}', { w: esc(w(trips[0].peak)) })}</div></section>`;
 	const rest = trips.slice(1).map(t => {
 		const over = plan.weightStart + t.loads.reduce((a, l) => a + l.n * weightOf(l.item), 0) + trips.slice(1, t.n - 1).reduce((a, x) => a + x.loads.reduce((b, l) => b + l.n * weightOf(l.item), 0), 0);
-		return `<section class="trip-card later"><div class="trip-head"><span class="trip-k">${T('Trip {n}', { n: t.n })}</span><b>${t.at >= 0 ? T('picked up at {port} wharf, stop {k}', { port: esc(port), k: t.at + 1 }) : T('on the way')}</b><span class="trip-line">${line(t)}</span><span class="panel-spacer"></span><span class="trip-state">${T('nothing to do now')}</span></div>
+		const early = t.at >= 0 && t.head >= 0 && t.at < t.head;
+		const when = t.at < 0 ? T('on the way') : early ? T('picked up early, at {port} wharf, stop {k}, while the trip before is still under way', { port: esc(port), k: t.at + 1 }) : T('picked up at {port} wharf, stop {k}', { port: esc(port), k: t.at + 1 });
+		const drop = `<button class="chip tiny trip-drop" data-act="barter-trip-drop" data-ids="${esc(idsOf(t).join('\n'))}" title="${T('Untick this trip\u2019s chains: the run is laid again without them')}">${T('leave this trip out')}</button>`;
+		return `<section class="trip-card later"><div class="trip-head"><span class="trip-k">${T('Trip {n}', { n: t.n })}</span><b>${when}</b><span class="trip-line">${line(t)}</span><span class="panel-spacer"></span><span class="trip-state">${t.loads.length === 1 ? T('{n} thing picked up on the way', { n: t.loads.length }) : T('{n} things picked up on the way', { n: t.loads.length })}</span>${drop}</div>
 			${t.loads.map(l => `<div class="trip-row"><i class="trip-dot"></i><span class="pack-icon"${levelOf(l.item) ? ` style="--tier:${TIER(levelOf(l.item))}"` : ''}>${img(l.item, 'row-icon')}</span><span class="pack-what"><b>${esc(gameName(l.item))}</b><em>${T('waits in the storage at {port}', { port: esc(port) })}${weightOf(l.item) ? ` · ${T('{lt} LT', { lt: (Math.round(l.n * weightOf(l.item) * 10) / 10).toLocaleString() })}` : ''}</em></span><span class="pack-n"><b>${n1(l.n)}</b></span></div>`).join('')}
-			<div class="trip-foot">${T('why not now: with the trips before it aboard the hold would be {w}, over the limit', { w: esc(w(over)) })} · ${T('hold at its fullest on this trip: {w}', { w: esc(w(t.peak)) })}</div></section>`;
+			<div class="trip-foot">${T('not now: with the trips before it aboard the hold would be {w}, over the limit', { w: esc(w(over)) })} · ${T('hold at its fullest on this trip: {w}', { w: esc(w(t.peak)) })}</div></section>`;
 	}).join('');
 	return `<div class="trips">${head}${first}${rest}</div>`;
 }
@@ -4186,13 +4200,15 @@ function silverParts(me, b) {
 	// ticked it is laid from what is really aboard, with nothing loaded
 	// out of a storage -- the goods a sailor has not put on the ship are
 	// not on it, whatever the plan meant to load. With every row ticked
-	// it is the whole run, the later lots' goods loaded at the calls
-	// back to the harbour where they wait.
+	// it is the whole run.
 	const allPacked = packRows.every(packedNow);
-	// A run of several trips is one thing: the route is laid whole once
-	// trip 1 is aboard, and not at all before -- no route for a chain
-	// on its own, since the later trips' goods are the run's to pick
-	// up, not a chain's to be short of.
+	// A run of several trips is laid whole from the start: its route,
+	// its shelf and the run cast off are the plan's, the later trips'
+	// goods loaded at the calls back to the harbour where they wait --
+	// they are the run's to pick up, not a chain's to be short of, and
+	// a sailor packing trip 1 wants to see where the whole day goes.
+	// It used to wait for every row of trip 1, and showed nothing until
+	// then, which read as a step with nothing on it.
 	const staged = stagedRun(plan);
 	const packedChain = c => {
 		const row = packRows.find(x => x.item === c.item) || packRows.find(x => x.item === c.rungs[0].give);
@@ -4201,7 +4217,7 @@ function silverParts(me, b) {
 		// drawn as aboard with nothing aboard.
 		return row ? packedNow(row) : (aboardStock()[c.rungs[0].give] || 0) > 0;
 	};
-	const ready = sailing() || allPacked ? chosen : staged ? [] : chosen.filter(packedChain);
+	const ready = sailing() || allPacked || staged ? chosen : chosen.filter(packedChain);
 	let rPlan = plan, rLegs = legs, rBook = book, rQp = qp;
 	if (ready.length !== chosen.length) {
 		rPlan = chainRun({ ...opts, dock: {}, chosen: ready, ...edits });
@@ -4215,13 +4231,10 @@ function silverParts(me, b) {
 	if (!sailing()) shownPlan = ready.length ? rPlan : null;
 	const partNote = ready.length && ready.length !== chosen.length ? `<p class="shelf-part">${T('For the {n} of {of} chains whose first goods are ticked aboard — the rest join as they are.', { n: ready.length, of: chosen.length })}</p>` : '';
 	const tripsN = staged ? plan.lots.length : 1;
-	const waitLine = staged
-		? T('Tick the goods for trip 1 above and the run is laid: {stops} stops, {trips} trips out of {port}.', { stops: plan.stops.length, trips: tripsN, port: from ? esc(gameName(from.name)) : T('the harbour') })
-		: T('Tick what is aboard above: this fills with what the run leaves in storage, chain by chain, as its first goods come aboard.');
-	const nothingAboard = title => `<section class="panel run-shelves after"><div class="shelf"><div class="shelf-head"><h2 class="panel-title">${title}</h2><span class="panel-sub">${staged ? T('trip 1 not aboard yet') : T('nothing aboard yet')}</span></div><p class="empty">${waitLine}</p></div></section>`;
+	const nothingAboard = title => `<section class="panel run-shelves after"><div class="shelf"><div class="shelf-head"><h2 class="panel-title">${title}</h2><span class="panel-sub">${T('nothing aboard yet')}</span></div><p class="empty">${T('Tick what is aboard above: this fills with what the run leaves in storage, chain by chain, as its first goods come aboard.')}</p></div></section>`;
 	const shelf = !chosen.length ? '' : !ready.length ? nothingAboard(T('In the storage after')) : afterShelfHTML(rPlan, from).replace('<div class="shelf-tiles">', `${partNote}<div class="shelf-tiles">`);
 	const routeFold = !chosen.length ? '' : !ready.length
-		? `<section class="panel route-fold route-wait"><div class="panel-head"><h2 class="panel-title">${T('The route, stop by stop')}</h2><span class="panel-sub">${staged ? T('trip 1 not aboard yet') : T('nothing aboard yet')}</span></div><p class="empty">${staged ? waitLine : T('The route is laid from what is on the ship: tick the goods aboard above, and it draws itself — again each time a chain comes aboard.')}</p></section>`
+		? `<section class="panel route-fold route-wait"><div class="panel-head"><h2 class="panel-title">${T('The route, stop by stop')}</h2><span class="panel-sub">${T('nothing aboard yet')}</span></div><p class="empty">${T('The route is laid from what is on the ship: tick the goods aboard above, and it draws itself — again each time a chain comes aboard.')}</p></section>`
 		: `${partNote ? `<div class="route-part">${partNote}</div>` : ''}${routeFoldOf(rPlan, rLegs, rBook, rQp)}`;
 	const load = `${notice}${overNote}${empty}${staged ? tripsHTML(plan, from, chosen, me.hold) : packingHTML(plan, from, chosen)}${shelf}${questsPanels(rQp, from)}${routeFold}${kept}`;
 	return {
@@ -5741,6 +5754,16 @@ export function barterAction(act, el, redraw) {
 			const id = el.dataset.id;
 			const group = String(el.dataset.group || '').split('\n').filter(Boolean);
 			routes.ids = routes.ids.includes(id) ? routes.ids.filter(x => x !== id) : [...routes.ids.filter(x => !group.includes(x)), id];
+			routesAuto = '';
+			persist();
+			return true;
+		}
+		// A trip left out on the wharf step: its chains unticked, the run
+		// laid again without them.
+		case 'barter-trip-drop': {
+			const ids = String(el.dataset.ids || '').split('\n').filter(Boolean);
+			if (!ids.length) return false;
+			routes.ids = routes.ids.filter(x => !ids.includes(x));
 			routesAuto = '';
 			persist();
 			return true;
