@@ -1339,6 +1339,70 @@ function chartFragmentOf(data) {
 	return parts.join(';');
 }
 
+/**
+ * The route the wharf step drew last, kept for the chart: the chart's
+ * side panel shows the same route -- the cast-off row, the chain tags,
+ * the trip headings, the stops with ↑ ↓ skip -- while the run is only
+ * planned. Laid again by `planOnChart` when nothing has drawn it yet.
+ */
+let lastRoute = null;
+function keepRoute(plan, legs, book, segs, pick) {
+	const data = chartData(plan.stops, pick);
+	lastRoute = { ids: data ? data.ids : [], pick, plan, legs, book, segs, at: Date.now() };
+}
+
+/** The run as the wharf step lays it, laid now if nothing has: the
+ *  same builder the tab draws with, so the chart and the tab agree. */
+function planNow() {
+	if (lastRoute && Date.now() - lastRoute.at < 1500) return lastRoute;
+	if (!barterData || sailing()) return null;
+	const me = currentShip();
+	const b = boardNow();
+	shownPlan = null;
+	lastRoute = null;
+	try {
+		store.readingAsWas(sail && sail.applied, () => (goal === 'material' ? materialParts(me, b.data) : silverParts(me, b)));
+	} catch { return null; }
+	return lastRoute;
+}
+
+/** The chart fragment for the run as planned now, after a change made
+ *  on the chart -- a stop moved or skipped, a chain unticked -- so the
+ *  chart follows the plan. Null while a run is sailed or none is laid. */
+export function plannedChart() {
+	const r = planNow();
+	return r && r.plan.stops.length ? chartFragmentOf(chartData(r.plan.stops, r.pick)) : null;
+}
+
+/**
+ * The chart's side panel for a run that is planned and not yet cast
+ * off: the wharf step's own route, with what is aboard and Cast off.
+ * Null when the chart holds some other route, so the chart's own list
+ * is drawn instead.
+ */
+function planSheetHTML(chartIds) {
+	const r = planNow();
+	if (!r || !r.plan.stops.length) return null;
+	const same = chartIds.length === r.ids.length && chartIds.every((id, i) => id === r.ids[i]);
+	if (!same) return null;
+	const plan = r.plan, legs = r.legs, book = r.book;
+	const from = fromPort();
+	const aboard = plan.order ? packingCount(plan, from, plan.order) : { all: 0, done: 0 };
+	const figs = [plan.stops.length === 1 ? T('{n} stop', { n: plan.stops.length }) : T('{n} stops', { n: plan.stops.length }),
+		plan.net ? FC(Math.round(plan.net)) : '', legs.total ? `≈ ${esc(runTime(legs, book))}` : ''].filter(Boolean).join(' · ');
+	const ready = !!(shownPlan && shownPlan.stops && shownPlan.stops.length);
+	return `<div class="map-run-head">
+		<div class="map-run-title"><b>${T('The run · planned')}</b><span>${figs}</span></div>
+	</div>
+	<div class="map-plan-bar">
+		<span class="map-plan-aboard">${aboard.all ? T('{n} of {of} aboard', { n: aboard.done, of: aboard.all }) : T('nothing to load')}</span>
+		<button class="linky" data-act="barter-step" data-id="load">${T('Pack at the wharf')} ›</button>
+		<span class="panel-spacer"></span>
+		<button class="act" data-act="barter-cast-off"${ready ? '' : ' disabled'} title="${T('Each stop goes into the hold as you tick it; at the end the run is recorded')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>
+	</div>
+	<div class="map-plan-route">${r.segs}</div>`;
+}
+
 function chartButton(stops, pick) {
 	const data = chartData(stops, pick);
 	if (!data) return '';
@@ -3045,8 +3109,7 @@ export function sailChart() {
 export function runSheetHTML(chartIds = []) {
 	const on = sailing();
 	const plan = planOfSail(on);
-	if (!plan) return null;
-	void chartIds;
+	if (!plan) return planSheetHTML(chartIds);
 	const legs = legsOf(plan.stops);
 	const book = ledgerOf(plan.stops, legs);
 	const chainTags = (on.chains || []).map(c => `<span class="run-chain-tag" style="--tier:${TIER(c.top)}"><i></i>${esc(c.name)}<em>L${c.top}</em></span>`).join('');
@@ -4174,6 +4237,7 @@ function silverParts(me, b) {
 			</section>`;
 		}).join('');
 		const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${plan.stops.length === 1 ? T('{n} stop', { n: plan.stops.length }) : T('{n} stops', { n: plan.stops.length })}${legs.total ? ` · ${esc(fmtDistance(legs.total))} · ≈ ${esc(runTime(legs, book))}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, o.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, '')}</summary>${segs}</details>` : '';
+		keepRoute(plan, legs, book, segs, '');
 		return routeFold;
 	};
 	// What will be in the storage after follows what is ticked aboard:
@@ -4533,6 +4597,7 @@ function materialParts(me, data) {
 		qp.count ? `📜 ${qp.count === 1 ? T('<b>{n}</b> quest', { n: qp.count }) : T('<b>{n}</b> quests', { n: qp.count })}` : '',
 		holdCls === 'warn' ? `<b class="warn">${T('too heavy')}</b>` : holdCls === 'amber' ? `<b class="amber">${T('over the limit')}</b>` : ''
 	]) : '';
+	if (plan.stops.length) keepRoute(plan, legs, book, segs, it || (mats[0] && mats[0].it) || '');
 	const routeFold = plan.stops.length ? `<details class="panel route-fold"${sailing() || narrow() ? '' : ' open'}><summary><b>${T('The route, stop by stop')}</b><span class="panel-sub">${mats.length ? T('for {materials}', { materials: esc(mats.map(m => gameName(m.it)).join(', ')) }) : T('for a material')}${legs.total ? ` · ≈ ${esc(runTime(legs, book))}` : ''}${from ? ` · ${T('from {port}', { port: esc(gameName(from.name)) })}` : ''}</span>${questsLine(qp, matOrders.quests)}<span class="panel-spacer"></span>${chartButton(plan.stops, it || (mats[0] && mats[0].it) || '')}</summary>${segs}</details>` : '';
 	const matsSaid = mats.length ? mats.map(m => `${F(m.qty)}× ${gameName(m.it)}`).join(', ') : T('nothing on the run yet');
 	const comes = plan.ticked ? mats.map(m => { const g = plan.got.get(m.it); return T('{got} of {want}', { got: g.max > 0 ? gotText(m) : '0', want: F(m.qty) }); }).join(' · ') : T('nothing ticked yet');
@@ -5066,6 +5131,7 @@ export function renderBarter() {
 	// Nothing is drawn until this render draws it: a board just cleared
 	// must not leave the last board's run standing in for one.
 	shownPlan = null;
+	lastRoute = null;
 	// Laid from the hold as it cast off, while a run is under way: its
 	// ticked stops are in the Inventory already.
 	const parts = store.readingAsWas(sail && sail.applied, () => (goal === 'material' ? materialParts(me, b.data) : silverParts(me, b)));
@@ -5556,6 +5622,7 @@ function pickAnyIsland(then) {
  *  screen to be redrawn by the caller. */
 export function barterAction(act, el, redraw) {
 	restore();
+	lastRoute = null;
 	if (act.startsWith('barter-timer-')) return timerAction(act, el, redraw);
 	switch (act) {
 		case 'barter-goal': goal = ['material', 'stock', 'coin'].includes(el.dataset.id) ? el.dataset.id : 'silver'; persist(); return true;

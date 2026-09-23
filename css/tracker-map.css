@@ -1095,6 +1095,24 @@
 .map-run .rest-bars { grid-column: 2; width: auto; flex-direction: row; flex-wrap: wrap; gap: 4px 10px; }
 .map-run .hold-slots { width: 100%; }
 .map-run .all-ticked { padding: 12px; }
+/* A planned run on the chart: the wharf step's route, narrow. */
+.map-plan-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 10px; border: 1px solid var(--teal-edge); border-radius: var(--r-tile); background: var(--panel-inset); font-size: 12.5px; }
+.map-plan-bar .act { padding: 8px 14px; font-size: 13px; }
+.map-plan-aboard { color: var(--ink-mid); }
+.map-plan-route .run-seg { padding: 0; border: 0; background: none; box-shadow: none; }
+.map-plan-route .run-seg-head { flex-wrap: wrap; gap: 4px 8px; font-size: 12px; }
+.map-plan-route .run-seg-head > span { flex: 1 1 100%; }
+.map-plan-bar .act { white-space: nowrap; }
+.map-plan-route .run-seg-chains { gap: 4px; }
+.map-plan-route .run-edit-bar, .map-plan-route .route-edit { font-size: 12px; }
+.map-plan-route .run-stops { padding: 0; }
+/* The hold and the Parley under the stop, not beside it: beside, the
+   trade had a third of the panel and broke a word a line. */
+.map-plan-route .run-stop { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 0 10px; padding-right: 4px; }
+.map-plan-route .run-rail { grid-row: 1 / span 3; }
+.map-plan-route .run-main { grid-column: 2; padding-bottom: 4px; }
+.map-plan-route .run-hold { grid-column: 2; width: auto; padding: 0 0 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
+.map-plan-route .run-trade { flex-wrap: wrap; gap: 4px 6px; }
 /* The sheet beside the chart, packed. A stop here was a column: name,
    the give, an arrow, the get, the count, and only then -- a screen
    further down -- the one button the sailor is scrolling for. Five

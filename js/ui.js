@@ -32,7 +32,7 @@ import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
 import { renderBuilds, openBuildPicker, askRoute, toggleBlockers } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
-import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart, sailCurrent, sailJump } from './screen-barter.js';
+import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart, sailCurrent, sailJump, plannedChart } from './screen-barter.js';
 import { tickTimer, watchTimer } from './sail-timer.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
@@ -958,7 +958,15 @@ function wire() {
 		if (act.startsWith('barter-') && act !== 'barter-level' && el.closest('.map-run')) {
 			const was = barterAction(act, el, render);
 			if (act === 'barter-step') { showView('barter'); return; }
-			if (was) { mapStepToStop(sailCurrent()); render(); }
+			if (!was) return;
+			// Cast off here: the chart takes the run being sailed, and the
+			// panel becomes the cockpit. A change to a planned run -- a stop
+			// moved or skipped, a chain unticked -- is plotted again, so the
+			// chart follows the plan.
+			const frag = sailCurrent() ? (act === 'barter-cast-off' ? sailChart() : null) : plannedChart();
+			if (frag) applyMapLink(frag);
+			mapStepToStop(sailCurrent());
+			render();
 			return;
 		}
 		if (act.startsWith('barter-') && act !== 'barter-level') {
