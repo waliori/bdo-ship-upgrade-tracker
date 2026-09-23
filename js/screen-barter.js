@@ -27,7 +27,7 @@ import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, DEFAULT_CAL, 
 import { quests, cadenceOf } from './quests.js';
 import { questDone, wantedQuests, rewardOf } from './screen-quests.js';
 import { layQuests } from './quest-places.js';
-import { PARLEY_UNIT, WAY_CHOICES, QUEST_CHOICES, SELL_CHOICES, LAND_CHOICES, VOUCHER_CHOICES, PAUSE_MAX, HOUR_CHOICES, COUNT_CHOICES, AIM_CHOICES, NOTHING, DEFAULT_STOCK, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf, readOrders, readStock, stockOrders, yardsticks, countAs, ratioKey } from './barter-orders.js';
+import { PARLEY_UNIT, WAY_CHOICES, QUEST_CHOICES, SELL_CHOICES, LAND_CHOICES, VOUCHER_CHOICES, PAUSE_MAX, HOUR_CHOICES, AIM_CHOICES, NOTHING, DEFAULT_STOCK, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf, readOrders, readStock, stockOrders, yardsticks, ratioKey } from './barter-orders.js';
 import { propose } from './barter-optimizer.js';
 import { coins as coinShop } from './sea_coins.js';
 import { landPrices } from './land-cost.js';
@@ -545,6 +545,7 @@ function holdHTML(me) {
 		</div>
 		<div class="map-load-bar" title="${T('The bar runs to the most the hull will move under; the mark is its limit')}"><i class="${state}" style="width:${pct.toFixed(1)}%"></i><s style="left:${mark.toFixed(1)}%"></s></div>
 		<div class="summary-sub${state ? ' warn' : ''}">${sub}${worth ? ` · ${T('worth {silver} to a barterer as it is', { silver: FC(worth) })}` : ''}</div>
+		${goods.length || shore.length ? `<div class="hold-all"><span class="panel-sub">${T('{n} goods aboard', { n: F(n) })}</span><span class="panel-spacer"></span><button class="ghost-btn sm" data-act="barter-unload-all" title="${unloadTo() ? T('Every good aboard into the storage at {town}', { town: esc(gameName(unloadTo())) }) : T('Every good aboard into a storage you choose')}">${T('Unload all')}</button></div>` : ''}
 		${goods.length || ashore().length ? filters : ''}
 		${shore.length ? `<div class="hold-shore"><span class="ashore-k">${T('Shore goods aboard')}</span>${shore.map(g => `<div class="barter-good">${img(g.name, 'row-icon')}<span class="map-row-main"><span class="map-row-name">${codexName(g.name)}</span><span class="map-row-sub">${T('{n} aboard · {lt} LT', { n: F(g.n), lt: (Math.round(g.weight * 10) / 10).toLocaleString() })}</span></span><button class="ghost-btn sm" data-act="barter-unload" data-item="${esc(g.name)}" data-n="${g.n}" title="${unloadTitle()}">${T('Unload')}</button></div>`).join('')}</div>` : ''}
 		${rows ? `<div class="barter-goods">${rows}</div>` : goods.length ? `<p class="empty">${T('Nothing aboard matches.')}</p>` : shore.length ? '' : `<p class="empty">${T('Nothing recorded aboard. Add a good, or log the trip that brought them back — the counts are the Inventory’s, under Trade goods.')}</p>`}
@@ -1473,6 +1474,46 @@ function roughHours(c, from) {
 	return sailSeconds(pathLength(pts) * 1.25, me.speed.sea, sailCal()) / 3600;
 }
 
+/**
+ * What the run comes to as the islands that pay a range decide it.
+ *
+ * The run is laid at the least -- every 2-3 paying 2 -- since what an
+ * island paid is tapped at the island, and the checklist is laid again
+ * from it. Before sailing that leaves one question: how much better
+ * can it go? The same chains laid with every such island paying its
+ * most answer it, and halfway is the middle of the two -- a run laid
+ * at a count of 2.5 made fractions of goods the planner rounds its own
+ * way, and came out above the most. Laid once more, so kept until the
+ * run's inputs change.
+ */
+let payMemo = { key: '', html: '' };
+function payRangeHTML(plan, opts, chosen, edits, seen, coining, stocking) {
+	const open = plan.stops.filter(s => s.npcId && (s.rangeMax ?? s.recvMax) > (s.rangeMin ?? s.recvMin) && !(seen[s.npcId] > 0));
+	if (!open.length || stocking) return '';
+	const key = JSON.stringify([chosen.map(c => c.id), edits, seen, opts.orders, opts.pace, opts.hold, opts.stock, opts.dock, opts.parley]);
+	if (payMemo.key === key) return payMemo.html;
+	const at = pick => {
+		const s2 = { ...seen };
+		for (const s of open) s2[s.npcId] = pick(s.rangeMin ?? s.recvMin, s.rangeMax ?? s.recvMax);
+		return chainRun({ ...opts, seen: s2, chosen, ...edits });
+	};
+	const val = run => (coining ? withBonus(run.coins || 0, countBonus(barterProfile().barterCount).pct) : run.net || 0);
+	const said = v => (coining ? `${F(Math.round(v))} ${T('coins')}` : FC(Math.round(v)));
+	const most = at((a, b) => b);
+	// The top rung is capped by its island's attempts, so an island that
+	// pays more below it often buys no more silver -- it leaves more
+	// goods over, carried home or left in storage. Said, or the three
+	// figures read as the same run three times.
+	const over = run => [...(run.kept || []), ...(run.stashed || [])].reduce((a, x) => a + (Number(x.n) || 0), 0);
+	const mid = { v: (val(plan) + val(most)) / 2, trades: ((plan.trades || 0) + (most.trades || 0)) / 2, over: (over(plan) + over(most)) / 2 };
+	const cell = (k, v, trades, left, cls = '') => `<span class="pay-range-cell${cls ? ` ${cls}` : ''}"><em>${k}</em><b>${said(v)}</b><small>${T('{n} trades', { n: F(Math.round(trades || 0)) })}${Math.round(left) ? ` · ${T('{n} goods left over', { n: F(Math.round(left)) })}` : ''}</small></span>`;
+	const html = `<div class="pay-range"><span class="pay-range-k">${open.length === 1 ? T('{n} island on this run pays a range', { n: open.length }) : T('{n} islands on this run pay a range', { n: open.length })}</span>
+		${cell(T('each pays its least'), val(plan), plan.trades, over(plan), 'on')}${cell(T('halfway'), mid.v, mid.trades, mid.over)}${cell(T('each pays its most'), val(most), most.trades, over(most))}
+		<span class="pay-range-note">${T('The run is laid at the least; tap what each island paid as you sail and the rest is laid again from it.')}</span></div>`;
+	payMemo = { key, html };
+	return html;
+}
+
 /** Silver a Parley unit, short: 2.8m → "2.8m/u". */
 const perUnitText = v => (v > 0 ? T('{silver}/unit', { silver: FC(Math.round(v)) }) : '');
 const perHourText = v => (v > 0 ? T('{silver}/h', { silver: FC(Math.round(v)) }) : '');
@@ -1753,7 +1794,6 @@ function howHTML(o, figs = null) {
 		${named ? `<p class="orders-set-k">${T('And, whichever way you sail')}</p>` : ''}
 		${orderRow('barter-stash', T('storage at'), stash, [['', T('the nearest wharf')], ...stashes.map(w => [w.at, gameName(w.at)])])}
 		${orderRow('barter-quests', T('quests on the way'), o.quests, QUEST_CHOICES, T('The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the barter quests counted off the run\'s trades; the hunts only when their grounds lie on the way'))}
-		${orderRow('barter-ratio', T('a 2-3 counts'), o.count, COUNT_CHOICES, T('How an exchange that pays a range is counted; the checklist records what your runs saw'))}
 `;
 	const fromLadder = `<div class="from-ladder"><span>${T('From the step above')}</span><b>${esc(goalLine(o))}</b><button class="linky" data-act="barter-sec" data-id="ladder">${T('change it there')} ›</button></div>`;
 	// Where the ship leaves from is not a way of sailing, it is a fact
@@ -3257,7 +3297,9 @@ function oneEach(list) {
 const inHold = item => store.stockAt(item, store.ABOARD) + (levelOf(item) !== null ? store.stockAt(item, '') : 0);
 const packedNow = x => {
 	const k = String(x.key || '');
-	if (k.startsWith('a|')) return !packed.has(k);
+	// A good the run starts from that is aboard is ticked by being
+	// aboard: the tick that loaded it is the only tick it needs.
+	if (k.startsWith('a|')) return (aboardStock()[x.item] || 0) > 0;
 	if (k.startsWith('b|') || k.startsWith('t|')) return inHold(x.item) >= x.n;
 	return packed.has(k);
 };
@@ -3285,6 +3327,10 @@ function packChange(x, want, from) {
 			delta[x.item] = -n;
 			if (x.cost) delta[SILVER] = Math.round(x.cost * n / x.n);
 		}
+	} else if (k.startsWith('a|') && !want) {
+		// Unticked: off the ship, into the storage the run sails from.
+		const to = from ? from.name : unloadTo();
+		if (to) moves.push(...unloadMoves(x.item, to, x.n));
 	} else if (k.startsWith('l|') && want && from) {
 		moves.push({ item: x.item, from: from.name, to: '', n: Math.min(x.n, store.stockAt(x.item, from.name)) });
 	} else if (k.startsWith('t|')) {
@@ -3298,6 +3344,17 @@ function packChange(x, want, from) {
 		} else if (!want && has > 0) moves.push({ item: x.item, from: store.ABOARD, to: from ? from.name : '', n: Math.min(has, x.n) });
 	}
 	return { delta, moves };
+}
+/** The moves that put `n` of a good ashore at `to`: off the ship's hold
+ *  first, then -- a trade good -- out of the bags, which is where the
+ *  app has always kept the ones aboard. */
+function unloadMoves(item, to, n = Infinity) {
+	const moves = [];
+	for (const src of levelOf(item) === null ? [store.ABOARD] : [store.ABOARD, '']) {
+		const m = Math.min(n, store.stockAt(item, src));
+		if (m > 0) { moves.push({ item, from: src, to, n: m }); n -= m; }
+	}
+	return moves;
 }
 function packApply(rows, want, from) {
 	const delta = {}, moves = [];
@@ -3317,7 +3374,7 @@ function packApply(rows, want, from) {
 		persist();
 	}
 	const n = rows.length;
-	store.applyTrip({ delta, moves, label: want ? (n === 1 ? T('Loaded {item} at the wharf', { item: gameName(rows[0].item) }) : T('Loaded {n} goods at the wharf', { n })) : (n === 1 ? T('Took {item} off the ship', { item: gameName(rows[0].item) }) : T('Took {n} goods off the ship', { n })) });
+	store.applyTrip({ delta, moves, label: !want && rows.every(x => String(x.key).startsWith('a|')) ? (n === 1 ? T('{item} put back ashore', { item: gameName(rows[0].item) }) : T('{n} goods put back ashore', { n })) : want ? (n === 1 ? T('Loaded {item} at the wharf', { item: gameName(rows[0].item) }) : T('Loaded {n} goods at the wharf', { n })) : (n === 1 ? T('Took {item} off the ship', { item: gameName(rows[0].item) }) : T('Took {n} goods off the ship', { n })) });
 	return true;
 }
 
@@ -3609,12 +3666,9 @@ function silverParts(me, b) {
 	}
 	const made = store.getProfile('homemade', []) || [];
 	const prices = landPrices(all.filter(c => c.from === 'land').map(c => c.item), made);
-	// How the ranges are counted: the record of past runs or the
-	// average when the orders say so, and always what this run has seen.
-	const seen = {};
-	const ratios = store.getProfile('ratios', {}) || {};
-	if (o.count !== 'least') for (const c of all) for (const r of c.rungs) { const n = countAs(r, o, ratios); if (n) seen[r.npcId] = n; }
-	Object.assign(seen, planSeen(sailing()));
+	// A range is counted at its least, except where this run has seen
+	// what the island paid: the checklist asks at every such island.
+	const seen = { ...planSeen(sailing()) };
 	// Everything the sailor holds, wherever it is: a floor is about the
 	// pile, not about the hold, so a run must know the whole of it
 	// before it decides what it may spend.
@@ -3681,7 +3735,6 @@ function silverParts(me, b) {
 	// this card's orders let in: the key, and the figures, must not move
 	// with the card that is chosen.
 	const presetSeen = {};
-	if (o.count !== 'least') for (const c of everything) for (const r of c.rungs) { const n = countAs(r, o, ratios); if (n) presetSeen[r.npcId] = n; }
 	Object.assign(presetSeen, planSeen(sailing()));
 	const baseOrders = Object.fromEntries(Object.entries(o).filter(([k]) => !sailingKeys.has(k)));
 	const presetKey = JSON.stringify([board.day, b.combo.id, stock, dock, owned, [...land], baseOrders, port, stash, Object.values(presetPrices).map(x => x.each), me.hold, ship, opts.parley, presetSeen, reach, prof.barterCount, aim, ceiling, b.shut]);
@@ -3881,6 +3934,7 @@ function silverParts(me, b) {
 	if (routeEdit.key !== editKey) routeEdit = { key: editKey, skip: [], nudge: {} };
 	const edits = { skipIsles: routeEdit.skip, nudge: routeEdit.nudge };
 	const plan = chainRun({ ...opts, chosen, ...edits });
+	const payRange = payRangeHTML(plan, opts, chosen, edits, seen, coining, stocking);
 	chainsBody = chainsBody.replace('<!--minevs-->', mineVsOf(plan));
 	for (const s of plan.stops) s.hold = me.hold;
 	// The quests handed in on the way, with a stop put in for a taker
@@ -3992,7 +4046,7 @@ function silverParts(me, b) {
 		}
 		return [p.id, f];
 	}));
-	const runFigures = `<div class="run-as-ticked"><div class="plan-sub-head"><b>${T('The run')}</b><span>${chosen.length === 1 ? T('{n} chain ticked', { n: chosen.length }) : T('{n} chains ticked', { n: chosen.length })} · ${T('aboard {ship}: the limit is {lt} LT', { ship: esc(gameName(me.name)), lt: F(peak.limit) })}${peak.aboard ? `, ${T('{n} of it {what}', { n: F(peak.aboard), what: said(aboardWhat(peak)) })}` : ''}, ${T('barters to {n}', { n: F(peak.deal) })} · ${T('goods counted at the least, weighed at the most')}</span></div>${tiles}${notice}</div>`;
+	const runFigures = `<div class="run-as-ticked"><div class="plan-sub-head"><b>${T('The run')}</b><span>${chosen.length === 1 ? T('{n} chain ticked', { n: chosen.length }) : T('{n} chains ticked', { n: chosen.length })} · ${T('aboard {ship}: the limit is {lt} LT', { ship: esc(gameName(me.name)), lt: F(peak.limit) })}${peak.aboard ? `, ${T('{n} of it {what}', { n: F(peak.aboard), what: said(aboardWhat(peak)) })}` : ''}, ${T('barters to {n}', { n: F(peak.deal) })} · ${T('goods counted at the least, weighed at the most')}</span></div>${tiles}${payRange}${notice}</div>`;
 	const worthSaid = coining ? (plan.coins ? T('{n} coins', { n: coinRange(purse.min, purse.max) }) : '') : stocking ? (gains.total ? `+${F(gains.total)}` : '') : plan.silver ? FC(Math.round(plan.net)) : '';
 	const chainsSummary = chosen.length
 		? [chosen.length === 1 ? T('{n} chain ticked', { n: chosen.length }) : T('{n} chains ticked', { n: chosen.length }), worthSaid, plan.stops.length === 1 ? T('{n} stop', { n: plan.stops.length }) : T('{n} stops', { n: plan.stops.length })].filter(Boolean).join(' · ')
@@ -4045,7 +4099,12 @@ function silverParts(me, b) {
 	const packRows = (() => { const pk = packingOf(plan, from, chosen); return [...pk.market, ...pk.storage, ...pk.aboard]; })();
 	const packedChain = c => {
 		const row = packRows.find(x => x.item === c.item) || packRows.find(x => x.item === c.rungs[0].give);
-		return !row || packedNow(row);
+		// A chain with no row on the list was taken as packed -- and a
+		// chain the whole run cannot start (its first good nowhere it
+		// can be loaded) has no row, so it was drawn as the one chain
+		// aboard with nothing aboard. Without a row it is packed only
+		// when its first good is on the ship.
+		return row ? packedNow(row) : (aboardStock()[c.rungs[0].give] || 0) > 0;
 	};
 	const ready = sailing() ? chosen : chosen.filter(packedChain);
 	let rPlan = plan, rLegs = legs, rBook = book, rQp = qp;
@@ -5433,7 +5492,7 @@ export function barterAction(act, el, redraw) {
 			const k = String(el.dataset.k || '');
 			const x = { key: k, item: el.dataset.item, n: Number(el.dataset.n) || 0, cost: Number(el.dataset.cost) || 0 };
 			// The rows a tick loads: loaded for real, or unloaded.
-			if (/^[blt]\|/.test(k)) { packApply([x], !packedNow(x), fromPort()); return true; }
+			if (/^[blta]\|/.test(k)) { packApply([x], !packedNow(x), fromPort()); return true; }
 			if (packed.has(k)) packed.delete(k); else packed.add(k);
 			return true;
 		}
@@ -5442,12 +5501,8 @@ export function barterAction(act, el, redraw) {
 		case 'barter-pack-all': {
 			const want = el.dataset.on !== '1';
 			const rows = JSON.parse(el.dataset.rows || '[]');
-			const loads = rows.filter(x => /^[blt]\|/.test(x.key) && packedNow(x) !== want);
+			const loads = rows.filter(x => /^[blta]\|/.test(x.key) && packedNow(x) !== want);
 			if (loads.length) packApply(loads, want, fromPort());
-			for (const x of rows.filter(r => !/^[blt]\|/.test(r.key))) {
-				const inverse = x.key.startsWith('a|');
-				if (want !== inverse) packed.add(x.key); else packed.delete(x.key);
-			}
 			return true;
 		}
 		case 'barter-save': askSaveOrders(redraw); return false;
@@ -5487,13 +5542,29 @@ export function barterAction(act, el, redraw) {
 			const n = shoreGood ? store.stockAt(item, store.ABOARD) : aboardStock()[item] || 0;
 			if (!n) return false;
 			const to = unloadTo();
-			const src = shoreGood ? store.ABOARD : '';
-			if (to) { store.moveStash(item, src, to, n, T('{n}× {item} unloaded at {town}', { n, item, town: to })); return false; }
+			const put = t => store.applyTrip({ moves: unloadMoves(item, t), label: T('{n}× {item} unloaded at {town}', { n, item, town: t }) });
+			if (to) { put(to); return false; }
 			openPicker({
 				title: T('Unload {n}× {item} where?', { n, item: gameName(item) }),
 				hint: T('The storage the goods go into. Choose where the run sails from and the hold unloads there without asking.'),
 				items: TOWNS.filter(t => t !== store.ABOARD).map(t => ({ id: t, label: gameName(t) })),
-				onPick: t => { store.moveStash(item, src, t, n, T('{n}× {item} unloaded at {town}', { n, item, town: t })); redraw(); }
+				onPick: t => { put(t); redraw(); }
+			});
+			return false;
+		}
+		// The whole hold ashore at once: every good aboard, trade goods
+		// and shore goods, into the storage the run sails from.
+		case 'barter-unload-all': {
+			const items = [...held().map(g => g.name), ...shoreAboard().map(g => g.name)];
+			if (!items.length) return false;
+			const put = t => store.applyTrip({ moves: items.flatMap(i => unloadMoves(i, t)), label: T('The hold unloaded at {town}', { town: t }) });
+			const to = unloadTo();
+			if (to) { put(to); return false; }
+			openPicker({
+				title: T('Unload the whole hold where?'),
+				hint: T('The storage the goods go into. Choose where the run sails from and the hold unloads there without asking.'),
+				items: TOWNS.filter(t => t !== store.ABOARD).map(t => ({ id: t, label: gameName(t) })),
+				onPick: t => { put(t); redraw(); }
 			});
 			return false;
 		}
@@ -5847,7 +5918,6 @@ export function barterChange(el, parseAmount) {
 			return true;
 		}
 		case 'barter-hours': setOrders({ hours: Number(el.value) }); return true;
-		case 'barter-ratio': setOrders({ count: el.value }); return true;
 		case 'barter-floor': {
 			const n = parseAmount(el.value === '' ? '0' : el.value);
 			if (n === null) return true;

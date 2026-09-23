@@ -2102,9 +2102,20 @@ test('the packing list ticks both ways, and what a row says is what its button m
 	assert.equal(await inHold(), 0, 'unticked: off the ship again');
 	await page.evaluate(() => document.querySelector('.pack-group:first-child .pack-box').click()); await wait(1500);
 	assert.equal(await inHold(), mk.n, 'ticked again: back aboard');
-	// Aboard, with the way to put them back where they came from.
-	await page.evaluate(() => document.querySelector('[data-act="barter-unload"]').click()); await wait(2000);
-	assert.equal((await where()).iliya, 20, 'put back, every one of them');
+	// Aboard, and ticked by being aboard: the tick that loaded it is the
+	// only one it needs. Unticked, it goes back into the storage.
+	const aboardBox = () => page.$eval('.pack-group:last-child .pack-box', e => ({ k: e.dataset.k, on: e.classList.contains('on') }));
+	const ab = await aboardBox();
+	assert.ok(ab.k.startsWith('a|') && ab.on, `already aboard, already ticked: ${JSON.stringify(ab)}`);
+	await page.evaluate(() => document.querySelector('.pack-group:last-child .pack-box').click()); await wait(2000);
+	assert.equal((await where()).iliya, 20, 'unticked: put back, every one of them');
+	// Loaded once more, then the whole hold ashore in one press.
+	await page.evaluate(() => { const b = [...document.querySelectorAll('.pack-box')].find(e => e.dataset.k === 'l|[Level 2] Conch Shell Ornament'); if (b) b.click(); }); await wait(2000);
+	assert.ok((await where()).aboard > 0, 'loaded again from its row');
+	await page.evaluate(() => document.querySelector('[data-act="barter-hold-open"]').click()); await wait(800);
+	await page.evaluate(() => document.querySelector('[data-act="barter-unload-all"]').click()); await wait(2000);
+	assert.equal((await where()).iliya, 20, 'Unload all: back at Iliya');
+	assert.equal(await inHold(), 0, 'and the market goods with it');
 	assert.deepEqual(errors, []);
 	await context.close();
 });
