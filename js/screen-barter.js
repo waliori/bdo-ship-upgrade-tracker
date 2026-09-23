@@ -2367,7 +2367,7 @@ function redrawSoon() {
 	if (btn) btn.click();
 }
 
-let expected = { key: '', value: null };
+let expected = { key: '', value: null, pending: '' };
 
 /**
  * What the best run would pay on each layout still standing, weighed
@@ -2378,32 +2378,92 @@ let expected = { key: '', value: null };
 function expectedBest(me, b, prof) {
 	if (!combos || !b.standing.length) return null;
 	const o = ordersNow();
-	const from = fromPort();
 	const stock = aboardStock(), dock = dockStock();
 	const made = store.getProfile('homemade', []) || [];
 	const ship = { speed: me.speed.sea, cal: sailCal() };
 	const key = JSON.stringify([board.day, b.standing.map(c => c.id), stock, dock, o, port, stash, made, me.hold, ship, Object.keys(marketSilver()).length, prof.barterCount]);
 	if (expected.key === key) return expected.value;
+	// Worked out after the tab is on the screen, not before: a search for
+	// every layout still standing held the first draw for a second or
+	// more. The figure fills in when it is ready.
+	if (expected.pending !== key) {
+		expected.pending = key;
+		setTimeout(() => {
+			if (expected.pending === key) expectedNow(me, b, prof, key);
+		}, 60);
+	}
+	return null;
+}
+
+/**
+ * The search for every layout still standing, one layout a message on
+ * a worker of its own -- so neither the first draw nor the page after
+ * it waits on it -- or one layout a tick on this thread where there is
+ * no worker. When the last layout answers the figure is kept under
+ * `key` and the tab drawn again; an answer for inputs since changed is
+ * dropped.
+ */
+let expectWorker = null, expectLost = false, expectSeq = 0;
+function expectWorkerOf() {
+	if (expectWorker || expectLost) return expectWorker;
+	const Ctor = globalThis.Worker;
+	if (typeof Ctor !== 'function') { expectLost = true; return null; }
+	try { expectWorker = new Ctor(new URL('./barter-worker.js', import.meta.url), { type: 'module' }); } catch { expectLost = true; return null; }
+	expectWorker.onerror = () => { expectWorker = null; expectLost = true; };
+	return expectWorker;
+}
+function expectedNow(me, b, prof, key) {
+	const o = ordersNow();
+	const from = fromPort();
+	const stock = aboardStock(), dock = dockStock();
+	const made = store.getProfile('homemade', []) || [];
+	const ship = { speed: me.speed.sea, cal: sailCal() };
 	const parley = parleyOf(prof);
-	let sum = 0, weight = 0, min = Infinity, max = -Infinity, best = null;
-	for (const combo of b.standing) {
-		// Each layout still standing is folded with its own gates: which
-		// exchanges a count has not opened depends on the layout, since
-		// a layout is one row of every island's pool.
+	// Each layout still standing is folded with its own gates: which
+	// exchanges a count has not opened depends on the layout, since a
+	// layout is one row of every island's pool. Laid the quick way: this
+	// is one figure across every layout, not the run to sail.
+	const asks = b.standing.map(combo => {
 		const data = boardData(combo, barterData, npcById, board.answers, [...gatedOffers(combo, prof.barterCount), ...shutNow(prof)]);
 		const all = chains(data, stock, dock, prof.barterCount).filter(c => (o.buy || c.from !== 'land') && !c.gate);
 		const prices = landPrices(all.filter(c => c.from === 'land').map(c => c.item), made);
-		const opts = { stock, dock, hold: me.hold, parley, npcById, start: from, stashes, prefer: stashAt(), pace: o.pace, orders: o, prices, ship };
-		const { best: top } = propose({ chains: all, opts, ship, timeCap: o.hours, width: 1, depth: 6 });
+		const opts = { stock, dock, hold: me.hold, parley, npcById, start: from, stashes, prefer: stashAt(), pace: o.pace, orders: o, prices, ship, effort: 0 };
+		return { combo, args: { chains: all, opts, ship, timeCap: o.hours, width: 1, depth: 6 } };
+	});
+	let sum = 0, weight = 0, min = Infinity, max = -Infinity, best = null, left = asks.length;
+	const take = (combo, top) => {
 		const v = top ? top.value : 0;
 		const w = Math.max(1, combo.seen || 1);
 		sum += v * w;
 		weight += w;
 		if (v < min) min = v;
 		if (v > max) { max = v; best = top ? { id: combo.id, what: `${top.ids.length === 1 ? T('{n} chain, {silver}', { n: top.ids.length, silver: FC(Math.round(top.value)) }) : T('{n} chains, {silver}', { n: top.ids.length, silver: FC(Math.round(top.value)) })}${top.hours ? ` ${T('in ≈ {time}', { time: fmtRange(top.hours * 3600 * 0.9, top.hours * 3600 * 1.1) })}` : ''}` } : null; }
-	}
-	expected = { key, value: { n: b.standing.length, mean: weight ? sum / weight : 0, min: min === Infinity ? 0 : min, max: max === -Infinity ? 0 : max, best } };
-	return expected.value;
+		if (--left > 0 || expected.pending !== key) return;
+		expected = { key, pending: '', value: { n: b.standing.length, mean: weight ? sum / weight : 0, min: min === Infinity ? 0 : min, max: max === -Infinity ? 0 : max, best } };
+		redrawSoon();
+	};
+	const here = i => {
+		if (i >= asks.length || expected.pending !== key) return;
+		take(asks[i].combo, propose(asks[i].args).best);
+		setTimeout(() => here(i + 1), 0);
+	};
+	const w = expectWorkerOf();
+	if (!w) { here(0); return; }
+	const seq = ++expectSeq;
+	let next = 0;
+	const send = () => {
+		if (next >= asks.length) return;
+		try { w.postMessage({ id: `${seq}:${next}`, ...asks[next].args, budgetMs: 4000 }); } catch { here(next); next = asks.length; }
+	};
+	w.onmessage = evt => {
+		const { id, result } = evt.data || {};
+		const [sq, i] = String(id).split(':').map(Number);
+		if (sq !== expectSeq) return;
+		take(asks[i].combo, result ? result.best : null);
+		next = i + 1;
+		send();
+	};
+	send();
 }
 
 /** What a Crow Coin is worth in silver at the coin shop's best rate:

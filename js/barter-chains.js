@@ -540,7 +540,9 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		if (effort >= 1 && climbs.length > 1) seeds.push(growLots(climbs, { ...judge, near: c => dist(start, npcById.get(c.rungs[0].npcId)) }));
 		let best = Infinity;
 		for (const s of seeds) {
-			const c = effort >= 1 && climbs.length > 1 ? improveLots(s, judge) : s;
+			// Re-cut only for the run the sailor sees: a search lays hundreds
+			// of sets, and the re-cut is most of what a laying costs.
+			const c = effort >= 2 && climbs.length > 1 ? improveLots(s, judge) : s;
 			const L = judge.cost(c);
 			if (L < best - 1e-6) { best = L; trips = c; }
 		}
