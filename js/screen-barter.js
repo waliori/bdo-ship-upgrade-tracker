@@ -3468,21 +3468,25 @@ function tripsOf(plan) {
 	const stops = (plan && plan.stops) || [];
 	const trips = lots.map((chains, j) => {
 		const first = j === 0 ? -1 : stops.findIndex(s => s.npcId && chains.includes(s.chain));
-		// The call before the lot's first island, where its goods come
-		// aboard; a lot with nothing to pick up starts on the way.
-		let at = -1;
-		if (first > 0) for (let i = first - 1; i >= 0; i--) { if (stops[i].npcId) break; if (stops[i].wharf && stops[i].loads && stops[i].loads.length) { at = i; break; } }
-		return { n: j + 1, chains, at, loads: j === 0 ? (plan.loaded || []) : at >= 0 ? stops[at].loads : [] };
+		// The call where the lot's goods come aboard: the one before its
+		// first island, or an earlier call at the harbour that picked them
+		// up while the hold had room; a lot with nothing to pick up starts
+		// on the way. `head` is where the trip is said to begin: that
+		// call when the trip starts from it, else the trip's first island.
+		let at = stops.findIndex(s => s.wharf && s.loads && s.loads.some(l => l.lot === j));
+		if (at < 0 && first > 0) for (let i = first - 1; i >= 0; i--) { if (stops[i].npcId) break; if (stops[i].wharf && stops[i].loads && stops[i].loads.length && !stops[i].loads.some(l => l.lot !== undefined && l.lot !== null)) { at = i; break; } }
+		const straight = at >= 0 && first > at && !stops.slice(at + 1, first).some(s => s.npcId);
+		return { n: j + 1, chains, at, first, head: j === 0 ? -1 : straight ? at : first, loads: j === 0 ? (plan.loaded || []) : at >= 0 ? stops[at].loads.filter(l => l.lot === undefined || l.lot === null || l.lot === j) : [] };
 	});
 	trips.forEach((t, j) => {
 		const next = trips[j + 1];
-		const end = next && next.at >= 0 ? next.at : stops.length;
-		const from = t.at >= 0 ? t.at : 0;
+		const end = next && next.head >= 0 ? next.head : stops.length;
+		const from = t.head >= 0 ? t.head : 0;
 		t.stops = stops.slice(from, end);
-		t.peak = t.stops.reduce((a, s) => Math.max(a, s.weightAfter || 0), t.at < 0 ? plan.weightStart || 0 : 0);
+		t.peak = t.stops.reduce((a, s) => Math.max(a, s.weightAfter || 0), t.head < 0 ? plan.weightStart || 0 : 0);
 		// What the call at the end of the trip sells: the next trip's
 		// start, or the run's last call.
-		const sold = next && next.at >= 0 ? stops[next.at] : [...stops].reverse().find(s => s.wharf && s.sale);
+		const sold = next && next.head >= 0 ? [...stops.slice(0, next.head + 1)].reverse().find(s => s.wharf && s.sale) : [...stops].reverse().find(s => s.wharf && s.sale);
 		t.sale = sold && sold.sale ? sold.sale : null;
 	});
 	return trips;
@@ -4136,7 +4140,7 @@ function silverParts(me, b) {
 		const islands = plan.stops.filter(s => s.npcId).length, wharfs = plan.stops.filter(s => s.wharf).length;
 		// A run of trips says where each one begins: the call that picks
 		// up its goods, and what that call sells of the trip before.
-		const tripAt = new Map(stagedRun(plan) ? tripsOf(plan).filter(t => t.at >= 0).map(t => [t.at, t]) : []);
+		const tripAt = new Map(stagedRun(plan) ? tripsOf(plan).filter(t => t.head >= 0).map(t => [t.head, t]) : []);
 		const tripHead = (s, k) => {
 			const t = tripAt.get(k);
 			if (!t) return '';

@@ -650,7 +650,9 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// The run laid along a sequence of rungs: the stops, the sales, the
 	// wharf calls and the hold after each. Everything the laying moves
 	// is its own, so a sequence can be laid more than once.
-	const lay = rungsIn => {
+	const lay = (rungsIn, early = false) => {
+	// The later lots whose goods came aboard before their lot began.
+	const earlyLoaded = new Set();
 	const rungs = rungsIn.slice();
 	const held = new Map(held0), heldMax = new Map(heldMax0), ownedNow = new Map(ownedNow0), pile = new Map(pile0), listed = new Map(listed0);
 	const owning = (name, n) => ownedNow.set(name, Math.max(0, (ownedNow.get(name) || 0) + n));
@@ -738,7 +740,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// A wharf call: the goods in `sale` sold, the goods in `drop` (from
 	// the counted hold) left in storage, along with all of them the
 	// weighed hold may be carrying.
-	const call = (wharf, drop, chain, sale = [], loads = []) => {
+	const call = (wharf, drop, chain, sale = [], loads = [], lotOf = null) => {
 		// Two calls in a row at one wharf are one call: the sale and the
 		// load for the next lot, then what the next rung needs left.
 		const last = stops[stops.length - 1];
@@ -770,8 +772,28 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		}
 		// And what waits in this storage for the lot about to start.
 		if (loads.length) {
-			stop.loads = [...(stop.loads || []), ...loads.map(l => ({ item: l.item, n: l.n }))];
+			stop.loads = [...(stop.loads || []), ...loads.map(l => ({ item: l.item, n: l.n, lot: lotOf }))];
 			for (const l of loads) for (const m of [held, heldMax]) m.set(l.item, (m.get(l.item) || 0) + l.n);
+		}
+		// Picking up early. The ship stood at Iliya at the end of trip 1
+		// with ten thousand LT to spare and sailed away, to come back for
+		// trip 2's goods an hour later. So at a call at the harbour the
+		// later lots' goods wait in, those goods come aboard now when the
+		// hold takes them under its limit -- the nearest lot first, as far
+		// as they fit -- and the run goes on from wherever it is when that
+		// lot's turn comes. Laid as a way of its own, kept when it is
+		// worth more an hour: goods aboard early can cost attempts on the
+		// way.
+		if (early && homeWharf && wharf.at === homeWharf.at) {
+			const limit = pace === 'fast' ? hold.free : deal;
+			for (const [L, ls] of [...pending].sort((a, b) => a[0] - b[0])) {
+				if (L <= lotNow || earlyLoaded.has(L)) continue;
+				const w = ls.reduce((a, l) => a + l.n * weightOf(l.item), 0);
+				if (weightHeld(heldMax) + w > limit + 1e-6) break;
+				stop.loads = [...(stop.loads || []), ...ls.map(l => ({ item: l.item, n: l.n, lot: L }))];
+				for (const l of ls) for (const m of [held, heldMax]) m.set(l.item, (m.get(l.item) || 0) + l.n);
+				earlyLoaded.add(L);
+			}
 		}
 		weight = weightHeld(heldMax);
 		peak = Math.max(peak, weight);
@@ -816,8 +838,8 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			// the surplus left ashore on the way up. Sharing the hold out
 			// here used to thin a full run to one attempt a rung the
 			// moment two chains climbed together.
-			const waiting = pending.get(lot) || [];
-			if (i > 0 && waiting.length) call(homeWharf, [], chain, saleAt(i), waiting);
+			const waiting = earlyLoaded.has(lot) ? [] : pending.get(lot) || [];
+			if (i > 0 && waiting.length) call(homeWharf, [], chain, saleAt(i), waiting, lot);
 			else if (i > 0 && stashes.length && (pace === 'fast' || way === 'sea') && saleAt(i).length) call(wharfFor(npc), [], chain, saleAt(i));
 			if (pace === 'fast') share(lots[lot].map(k => order[k]), hold.free, lot === lots.length - 1);
 		}
@@ -1061,16 +1083,26 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		return out;
 	};
 	let best = lay(rungs);
-	if (eff >= 2 && pace !== 'fast' && stashes.length && best.stops.some(s => s.wharf)) {
-		const nearestWay = lay(tagged(sequenceOf(0)));
-		if (better(nearestWay, best)) best = nearestWay;
+	const stitch = early => {
 		for (let pass = 0; pass < 2; pass++) {
 			const seq = restitch(best);
 			if (!seq) break;
-			const again = lay(seq);
+			const again = lay(seq, early);
 			if (!better(again, best)) break;
 			best = again;
 		}
+	};
+	if (eff >= 2 && pace !== 'fast' && stashes.length && best.stops.some(s => s.wharf)) {
+		const nearestWay = lay(tagged(sequenceOf(0)));
+		if (better(nearestWay, best)) best = nearestWay;
+		stitch(false);
+	}
+	// The same run picking up the later lots' goods early, where the hold
+	// takes them; the stretches between its calls shortened again, since
+	// a lot that no longer goes home starts from wherever the ship is.
+	if (eff >= 2 && pending.size) {
+		const soon = lay(best.rungs, true);
+		if (better(soon, best)) { best = soon; stitch(true); }
 	}
 	return best;
 	};
