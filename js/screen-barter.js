@@ -5116,25 +5116,23 @@ function cockpitHTML({ map = false } = {}) {
 function holdSlotsHTML() {
 	const me = currentShip();
 	const cap = (shipStats[me.name] && shipStats[me.name].slots) || 0;
-	const cells = [];
-	for (const g of shoreAboard()) cells.push({ name: g.name, n: g.n });
-	for (const g of held().slice().sort((a, b) => a.lv - b.lv || a.name.localeCompare(b.name))) {
-		if (g.lv >= 5) for (let i = 0; i < g.n && cells.length < 200; i++) cells.push({ name: g.name, n: 1, lv: g.lv });
-		else cells.push({ name: g.name, n: g.n, lv: g.lv });
-	}
-	const used = cells.length;
-	const shown = Math.min(200, Math.max(cap, used, 11));
-	const grid = Array.from({ length: Math.ceil(shown / 11) * 11 }, (_, i) => {
-		const c = cells[i];
-		const over = cap && i >= cap;
-		if (!c) return `<span class="hold-slot${over ? ' off' : ''}"></span>`;
-		return `<span class="hold-slot full${over ? ' over' : ''}"${c.lv ? ` style="--tier:${TIER(c.lv)}"` : ''} title="${esc(`${c.n > 1 ? `${F(c.n)}× ` : ''}${gameName(c.name)}`)}">${img(c.name, 'hold-slot-img')}${c.n > 1 ? `<b>${F(c.n)}</b>` : ''}</span>`;
-	}).join('');
-	const lt = shownHold(me.hold, held().reduce((a, g) => a + g.weight, 0) + shoreAboard().reduce((a, g) => a + g.weight, 0));
+	// Slots are counted the way the game counts them -- a trade good of
+	// Level 5 and up takes one each, the rest stack -- since the game
+	// will not take a good into a full hold; the goods themselves are
+	// drawn as the app draws goods everywhere else, a tile each.
+	const goods = held();
+	const shore = shoreAboard();
+	const used = shore.length + goods.reduce((a, g) => a + (g.lv >= 5 ? g.n : 1), 0);
+	const tile = (name, n, lv) => `<span class="shelf-tile" title="${esc(`${F(n)}× ${gameName(name)}`)}"><i class="shelf-lv${lv ? '' : ' shore'}"${lv ? ` style="--tier:${TIER(lv)}"` : ''}>${lv ? `L${lv}` : '⌂'}</i>${img(name, 'shelf-icon')}<b>${n1(n)}</b><span>${esc(gameName(name))}</span></span>`;
+	const tiles = [
+		...goods.slice().sort((a, b) => b.lv - a.lv || b.n - a.n || a.name.localeCompare(b.name)).map(g => tile(g.name, g.n, g.lv)),
+		...shore.slice().sort((a, b) => b.n - a.n).map(g => tile(g.name, g.n, 0))
+	].join('');
+	const lt = shownHold(me.hold, goods.reduce((a, g) => a + g.weight, 0) + shore.reduce((a, g) => a + g.weight, 0));
 	const sub = `${cap ? T('{n} of {of} slots', { n: F(used), of: F(cap) }) : T('{n} slots', { n: F(used) })} · ${esc(lt.text)}`;
 	return `<div class="hold-slots${slotsOpen ? ' open' : ''}${cap && used > cap ? ' full' : ''}">
 		<button class="hold-slots-head" data-act="barter-slots" aria-expanded="${slotsOpen}"><span class="hold-slots-k">${T('In the hold')}</span><span class="hold-slots-sub">${sub}</span><span class="panel-spacer"></span><span class="hold-slots-fold">${slotsOpen ? '▴' : '▾'}</span></button>
-		${slotsOpen ? `<div class="hold-grid">${grid}</div>` : ''}
+		${slotsOpen ? (tiles ? `<div class="shelf-tiles hold-tiles">${tiles}</div>` : `<p class="empty hold-empty">${T('Nothing aboard.')}</p>`) : ''}
 	</div>`;
 }
 

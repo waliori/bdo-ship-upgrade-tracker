@@ -1329,16 +1329,10 @@ button.rung-fate { cursor: pointer; }
 .hold-slots-sub { font-size: 12px; color: var(--ink-faint); }
 .hold-slots.full .hold-slots-sub { color: var(--warn, #e07a6a); }
 .hold-slots-fold { color: var(--ink-faint); font-size: 11px; }
-.hold-grid { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 4px; padding: 0 12px 12px; max-height: 260px; overflow-y: auto; }
-.hold-slot { position: relative; aspect-ratio: 1; border-radius: 4px; background: #2a2c30; border: 1px solid #3a3d42; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .5); }
-.hold-slot.full { border-color: color-mix(in srgb, var(--tier, #8a8f98) 70%, #000); }
-.hold-slot.off { opacity: .35; background: #1c1d20; }
-.hold-slot.over { border-color: var(--warn, #e07a6a); }
-.hold-slot .hold-slot-img { position: absolute; inset: 2px; width: calc(100% - 4px); height: calc(100% - 4px); object-fit: contain; }
-.hold-slot b { position: absolute; right: 3px; bottom: 1px; font-size: 11px; font-weight: 600; color: #f1f1f1; text-shadow: 0 0 2px #000, 0 0 2px #000; }
+.hold-tiles { padding: 0 12px 12px; max-height: 280px; overflow-y: auto; }
+.hold-empty { margin: 0 12px 12px; }
 .cockpit.glance .hold-slots { width: min(660px, 100%); align-self: center; margin-left: auto; margin-right: auto; }
-.cockpit.glance .hold-slot b { font-size: 13px; }
-@media (max-width: 560px) { .hold-grid { gap: 2px; padding: 0 8px 8px; } .hold-slot b { font-size: 9px; } }
+@media (max-width: 560px) { .hold-tiles { padding: 0 8px 8px; } }
 
 /* Which of an island's four it pays: each chip says how often, the likeliest ringed. */
 .chip.pay { gap: 5px; }
