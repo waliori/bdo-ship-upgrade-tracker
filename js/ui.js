@@ -32,7 +32,7 @@ import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
 import { renderBuilds, openBuildPicker, askRoute, toggleBlockers } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
-import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart } from './screen-barter.js';
+import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart, sailCurrent, sailJump } from './screen-barter.js';
 import { tickTimer, watchTimer } from './sail-timer.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
@@ -65,7 +65,7 @@ import {
 	saveRouteDialog, loadSavedRoute, deleteSavedRoute, mapWritingView, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite,
-	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet,
+	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet, setStepHook, mapStepToStop,
 	toggle3D, levelMap, setMapStyle
 } from './screen-map.js';
 
@@ -945,12 +945,15 @@ function wire() {
 			showView('map');
 			return;
 		}
-		// Done ticked on the Map's sheet steps the chart to the next stop.
-		if (act === 'barter-stop-done' && el.closest('.map-run')) {
-			const row = el.closest('.run-stop');
+		// The cockpit on the Map is the Barter tab's own: any press on it
+		// is that tab's press, and the chart then steps to wherever the
+		// cockpit stands -- the next stop after a tick, a stop tapped in
+		// the rest of the run. The results are the tab's step, so that
+		// press goes there.
+		if (act.startsWith('barter-') && act !== 'barter-level' && el.closest('.map-run')) {
 			const was = barterAction(act, el, render);
-			if (row && !row.classList.contains('done')) mapStepTo(Number(row.dataset.i) + 1);
-			if (was) render();
+			if (act === 'barter-step') { showView('barter'); return; }
+			if (was) { mapStepToStop(sailCurrent()); render(); }
 			return;
 		}
 		if (act.startsWith('barter-') && act !== 'barter-level') {
@@ -2451,6 +2454,7 @@ export async function init() {
 	} else {
 		wireCommunity(render, { look: lookAtShip });
 		setRunSheet(runSheetHTML);
+		setStepHook(sailJump);
 		initSync({ toast, openDialog, closeDialog, whenScreenFree, rerender: render })
 			.catch(err => console.warn('[ui] sync unavailable:', err));
 	}

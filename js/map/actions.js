@@ -195,10 +195,35 @@ export function openMapPicker() {
 
 /* The step player. */
 
+// The Barter tab's cockpit follows the chart's step, and the chart the
+// cockpit's: ui.js hands in the cockpit's end, since the screens cannot
+// import each other. Called with the stop stepped to -- an island by
+// id, a call by the islands before it and its wharf -- and answers
+// whether the cockpit moved, so the panel is drawn again only then.
+let stepHook = null;
+export function setStepHook(fn) {
+	stepHook = typeof fn === 'function' ? fn : null;
+}
+
+/** Step the chart to the stop the cockpit stands at, as sailCurrent
+ *  on the Barter tab describes it. Nothing when the chart has no such
+ *  stop, or is there already. */
+export function mapStepToStop(cur, fly = undefined) {
+	if (!cur) return;
+	const seq = routeSeq(marksNow());
+	const i = cur.npcId
+		? seq.findIndex(s => s.kind === 'npc' && s.id === cur.npcId)
+		: seq.findIndex(s => s.kind === 'stash' && s.place.i === cur.before && (!cur.wharfAt || s.place.at === cur.wharfAt));
+	if (i < 0 || i === mv.stepIdx) return;
+	moveStep(i, fly === undefined ? mv.follow : fly);
+}
+
 function moveStep(i, fly = mv.follow) {
 	const seq = routeSeq(marksNow());
 	if (seq.length < 2) return;
 	mv.stepIdx = ((i % seq.length) + seq.length) % seq.length;
+	const here = seq[mv.stepIdx];
+	if (stepHook && here && stepHook(here.kind === 'npc' ? { npcId: here.id } : { wharfAt: here.place.at, before: here.place.i })) refreshSide();
 	// The row in the list follows: lit, and brought into view.
 	for (const row of document.querySelectorAll('[data-step-row]')) {
 		const on = Number(row.dataset.i) === mv.stepIdx;
@@ -208,12 +233,11 @@ function moveStep(i, fly = mv.follow) {
 	if (fly) {
 		const s = seq[mv.stepIdx];
 		if (s) {
-			// The card follows the camera: an island's trades, or what
-			// goes ashore at a wharf call.
-			mv.pinnedNpc = s.kind === 'npc' ? s.id : null;
-			mv.pinnedStash = s.kind === 'stash' ? s.k : -1;
-			mv.hoverNpc = null;
-			mv.hoverStash = -1;
+			// The camera goes; the card does not. A card pinned at every
+			// step said what the panel beside it already said, over the
+			// very water being looked at. Hovering a pin still shows one.
+			mv.pinnedNpc = null;
+			mv.pinnedStash = -1;
 			flyTo(s.place.x, s.place.y, Math.max(mv.mapState.zoom, CLOSE_ZOOM - 0.15));
 		}
 	}

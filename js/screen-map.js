@@ -39,6 +39,9 @@ export {
 	wireMap
 } from './map/gestures.js';
 export {
+	setStepHook, mapStepToStop
+} from './map/actions.js';
+export {
 	setMapPick, mapShowItem, mapFit, mapZoomStep, mapCentreOn, setMapMode, toggleMapPanel, toggleMapStop, useSuggestedRoute, reverseMapRoute, clearMapRoute, toggleMapDone, closeMapTip, mapCentreOnStash, openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapHabitats, setMapLabels, setMapPins, toggleMapLayers, setMapTraces, flipMapSide, setMapWharves, setMapCourse, setMapErrands, setMapErrandFrom, setMapErrandKinds, openMapErrand, setMapErrandSkip, skipMapErrandCall, drawMapErrands, setMapHunt, showHunt, setMapReturn, mapPortClick, reviveMapRoute, setMapKind
 } from './map/actions.js';
 export {

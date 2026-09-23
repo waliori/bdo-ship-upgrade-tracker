@@ -1031,6 +1031,40 @@
 .map-run-fold.tools .map-stats { margin-top: 8px; }
 .map-run .sail-bar { flex-wrap: wrap; }
 .map-run-stops .run-stop { padding-right: 4px; }
+/* The cockpit on the chart: the Barter tab's own, drawn narrow. The
+   stop, the trade, the two figures and the press, one under another;
+   the rest of the run folded beneath. */
+.map-run .cockpit.compact .panel-head { padding: 8px 12px; }
+.map-run .cockpit.compact .panel-body { gap: 10px; padding: 10px 12px 12px; }
+.map-run .cockpit-clock { padding: 6px 12px; }
+.map-run .cockpit-place { font-size: 22px; }
+.map-run .cockpit-who { font-size: 12px; }
+.map-run .cockpit-trade { grid-template-columns: 1fr auto 1fr; gap: 8px; padding: 10px; }
+.map-run .cockpit-times { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: center; gap: 6px; }
+.map-run .cockpit-times > b { font-size: 24px; }
+.map-run .cockpit-icon { width: 48px; height: 48px; border-radius: 10px; }
+.map-run .cockpit-img { width: 40px; height: 40px; }
+.map-run .cockpit-arrow { font-size: 20px; }
+.map-run .cockpit-good > b { font-size: 12px; }
+.map-run .cockpit-figs { grid-template-columns: 1fr; gap: 8px; }
+.map-run .cockpit-fig { padding: 8px 10px; }
+.map-run .cockpit-go { flex-basis: 100%; font-size: 17px; padding: 13px; }
+.map-run .cockpit-go.done { font-size: 14px; padding: 10px; }
+.map-run .cockpit-next { padding: 9px 12px; font-size: 12.5px; }
+.map-run .cockpit-under { font-size: 12px; }
+/* Not sticky here: the panel is a strip, and a bar stuck to its foot
+   stood over the very stop it is for. */
+.map-run .cockpit-foot { position: static; margin-top: 0; padding: 8px 10px; gap: 6px; }
+.map-run .cockpit-foot .sail-n { flex: 1 1 100%; font-size: 12.5px; }
+.map-run .cockpit-foot .act, .map-run .cockpit-foot .ghost-btn { padding: 7px 11px; font-size: 12.5px; }
+.map-run .rest-fold { padding: 0; overflow: hidden; }
+.map-run .rest-fold > summary { padding: 8px 12px; }
+.map-run .rest-panel { border: 0; border-radius: 0; }
+.map-run .rest-panel .panel-head { display: none; }
+.map-run .rest-row { grid-template-columns: 24px minmax(0, 1fr); gap: 8px 10px; padding: 8px 12px; }
+.map-run .rest-bars { grid-column: 2; width: auto; flex-direction: row; flex-wrap: wrap; gap: 4px 10px; }
+.map-run .hold-slots { width: 100%; }
+.map-run .all-ticked { padding: 12px; }
 /* The sheet beside the chart, packed. A stop here was a column: name,
    the give, an arrow, the get, the count, and only then -- a screen
    further down -- the one button the sailor is scrolling for. Five

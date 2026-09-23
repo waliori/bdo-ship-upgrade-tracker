@@ -2568,11 +2568,6 @@ export function sailFor(npcId) {
 	return { done: sail.done.includes(`n${npcId}`), paid: sail.seen[npcId] || null, ask: paidAsk(s, sail.seen[npcId], true), owes: owesCount(s, sail), item: sevenOf(s, sail), recvText: s.recvText };
 }
 
-/**
- * The bar under a run: "Sail it" when the run is only laid out; the
- * count of stops done and the two ways off the water when it is being
- * sailed -- the trip recorded, or the checklist dropped.
- */
 /** What the chime calls a run: where it starts and how far it goes. */
 function runLabel(plan) {
 	const isles = plan.stops.filter(s => s.npcId).map(s => isleShort(npcById.get(s.npcId)) || s.npc);
@@ -2619,50 +2614,6 @@ function runMarks(plan, legs, book) {
 		at += hold;
 	});
 	return out;
-}
-
-function sailBar(plan) {
-	if (!plan || !plan.stops.length) return '';
-	const on = sailing();
-	// The clock for the time the ship is out, set to this run's own
-	// estimate: the page cannot see the ship, so the one thing it can do
-	// is say when the time is up.
-	const legs = legsOf(plan.stops);
-	const book = ledgerOf(plan.stops, legs);
-	const clock = timerHTML({ suggest: (legs.mid || 0) + (book.waited || 0) * 60, label: runLabel(plan), marks: runMarks(plan, legs, book) });
-	if (!on) return `<div class="sail-bar"><button class="act" data-act="barter-sail" title="${T('Each stop goes into the hold as you tick it; at the end the run is recorded')}">${img(currentShip().name, 'ship-ico')} ${T('Sail this run')}</button><span class="faint">${T('tick each stop off as you sail; what an island paid re-counts the rest; Record at the end puts the whole trip in the Inventory in one Undo')}</span><span class="panel-spacer"></span>${clock}</div>`;
-	const n = plan.stops.filter((s, k) => ticked(on.done, s, k, plan.stops)).length;
-	const questsLeft = [...(plan.questsHome || []), ...plan.stops.flatMap(s => s.quests || [])].map(x => x.q).filter(q => !questDone(q)).length;
-	// The whole run done at once: which of it, asked in place.
-	// What the recorder will have to guess at: an island that pays a
-	// range and was never asked what it paid. Said here rather than
-	// left to be found out later, because the guess goes into the
-	// Inventory and a sailor who knows the number can still give it --
-	// the chips are on the stops, a press each.
-	const guessed = unsaid(sailedPlan() || plan, on).length;
-	const guessNote = guessed
-		? `<span class="sail-guess" title="${T('Press the count an island paid on its stop, and the trip is recorded at that instead')}">${guessed === 1
-			? T('{n} island’s pay not said', { n: guessed })
-			: T('{n} islands’ pay not said', { n: guessed })} — ${T('recorded at the middle of the range')}</span>`
-		: '';
-	const all = sailAll.open ? `<div class="sail-all">
-		<span class="sail-all-k">${T('Tick off, all at once')}</span>
-		<label class="inline-check"><input type="checkbox" data-act="barter-sail-all-pick" data-id="stops"${sailAll.stops ? ' checked' : ''}> ${T('every stop, {n} still to go', { n: plan.stops.length - n })}</label>
-		<label class="inline-check"><input type="checkbox" data-act="barter-sail-all-pick" data-id="quests"${sailAll.quests ? ' checked' : ''}${questsLeft ? '' : ' disabled'}> ${T('the quests handed in, {n} still open', { n: questsLeft })}</label>
-		<span class="panel-spacer"></span>
-		<button class="ghost-btn sm" data-act="barter-sail-all-drop">${T('Cancel')}</button>
-		<button class="act" data-act="barter-sail-all-go" title="${T('Every stop ticked, every quest handed in and its reward recorded, in one go')}">${T('Tick them all')}</button>
-	</div>` : '';
-	return `<div class="sail-bar sailing">
-		<span class="sail-n">${T('<b>{n}</b> of {of} stops done', { n, of: plan.stops.length })}${questsLeft ? ` · ${questsLeft === 1 ? T('{n} quest open', { n: questsLeft }) : T('{n} quests open', { n: questsLeft })}` : ''}</span>
-		${guessNote}
-		${clock}
-		<span class="panel-spacer"></span>
-		<button class="ghost-btn sm" data-act="barter-sail-drop" title="${T('Drop the checklist; nothing is recorded')}">${T('Abandon')}</button>
-		${sailAll.open ? '' : `<button class="ghost-btn sm" data-act="barter-sail-all" title="${T('Tick every stop and every quest off at once')}">${T('All done…')}</button>`}
-		<button class="act" data-act="barter-record" ${n ? '' : 'disabled'} title="${T('The stops done go into the Inventory as one change')}">${T('Record the trip')}</button>
-		${all}
-	</div>`;
 }
 
 /**
@@ -3095,21 +3046,59 @@ export function runSheetHTML(chartIds = []) {
 	const on = sailing();
 	const plan = planOfSail(on);
 	if (!plan) return null;
-	const isles = plan.stops.filter(s => s.npcId).map(s => s.npcId);
-	const same = chartIds.length === isles.length && chartIds.every((id, i) => id === isles[i]);
+	void chartIds;
 	const legs = legsOf(plan.stops);
 	const book = ledgerOf(plan.stops, legs);
-	const notes = { at: k => (plan.stops[k] && plan.stops[k].quests) || [], trades: plan.trades || 0, count: plan.stops.reduce((a, s) => a + (s.quests || []).length, 0), home: plan.questsHome };
-	const n = plan.stops.filter((s, k) => ticked(on.done, s, k, plan.stops)).length;
 	const chainTags = (on.chains || []).map(c => `<span class="run-chain-tag" style="--tier:${TIER(c.top)}"><i></i>${esc(c.name)}<em>L${c.top}</em></span>`).join('');
 	const head = `<div class="map-run-head">
 		<div class="map-run-title"><b>${on.goal === 'material' ? T('For {name}', { name: on.item ? esc(gameName(on.item)) : T('a material') }) : T('The run')}</b><span>${plan.stops.length === 1 ? T('{n} stop', { n: plan.stops.length }) : T('{n} stops', { n: plan.stops.length })}${on.net ? ` · ${FC(Math.round(on.net))}${on.cost ? ` ${T('net')}` : ''}` : ''}${on.time ? ` · ≈ ${esc(on.time)}` : ''}${book.short ? ` · <b class="warn">${T('{n} Parley short', { n: F(book.short) })}</b>` : ''}</span></div>
 		${chainTags ? `<div class="run-seg-chains">${chainTags}</div>` : ''}
 		${on.loaded && on.loaded.length ? `<details class="map-run-fold"><summary>${T('Loaded before casting off')} · ${on.loaded.length}</summary>${on.loaded.map(l => `<div class="run-leave-good">${img(l.item, 'row-icon sm')}<b>${F(l.n)}×</b>${esc(gameName(l.item))}</div>`).join('')}</details>` : ''}
 	</div>`;
-	const rows = stopRows(plan.stops, legs, { board: true, sailing: on, notes, ledger: book, map: same });
-	const from = ports.find(p => p.id === on.port) || null;
-	return `${head}${sailBar(plan)}<div class="run-stops map-run-stops">${castOffRow(plan, from)}${rows}</div><p class="map-hint map-run-hint">${T('{n} of {of} done', { n, of: plan.stops.length })} · ${same ? T('press a stop’s name to fly there and step the chart to it') : T('press a stop’s name to fly there')} · ${T('the Barter tab holds the plan behind this run')}</p>`;
+	return `${head}${cockpitHTML({ map: true })}`;
+}
+
+/**
+ * The stop the cockpit stands at, for the chart to step to: its index,
+ * the island, or -- for a call -- the wharf and how many islands come
+ * before it, which is how the chart threads its calls. Null when no
+ * run is being sailed or every stop is ticked.
+ */
+export function sailCurrent() {
+	const on = sailing();
+	const plan = on ? sailedPlan() : null;
+	if (!plan) return null;
+	const at = stopAt(plan, on);
+	if (at < 0) return null;
+	const s = plan.stops[at];
+	return { at, npcId: s.npcId || null, wharfAt: s.wharf ? s.wharf.at : s.quest && s.place ? s.place.name : null, before: plan.stops.slice(0, at).filter(x => x.npcId).length };
+}
+
+/**
+ * The chart stepped to a stop: the cockpit goes there too. `npcId`
+ * names an island; a call is `before`, how many islands come before
+ * it, and `wharfAt`. Answers whether the cockpit moved.
+ */
+export function sailJump({ npcId = null, wharfAt = null, before = -1 } = {}) {
+	const on = sailing();
+	const plan = on ? sailedPlan() : null;
+	if (!plan) return false;
+	const stops = plan.stops;
+	let k = -1;
+	if (npcId) k = stops.findIndex(s => s.npcId === npcId);
+	else {
+		let n = 0;
+		for (let i = 0; i < stops.length && k < 0; i++) {
+			const s = stops[i];
+			if (s.npcId) { n++; continue; }
+			if (n === before && !s.wait && (!wharfAt || (s.wharf && s.wharf.at === wharfAt) || (s.place && s.place.name === wharfAt))) k = i;
+		}
+	}
+	if (k < 0) return false;
+	const key = stopKey(stops[k], k, stops);
+	if (cursor === key) return false;
+	cursor = key;
+	return true;
 }
 
 /** The trip recorded: one change, and a line in the log of runs. */
@@ -4731,6 +4720,17 @@ function stopBars(s, row) {
  * for a sailor who is at the game and only looks over.
  */
 function sailHTML() {
+	return cockpitHTML();
+}
+
+/**
+ * The cockpit: one stop at a time. `map` draws it for the chart's side
+ * panel -- the same stop, the same press, the same figures, compact,
+ * with the rest of the run folded under it and no glance mode -- so a
+ * tick on either is the same tick, and the two never disagree about
+ * where the ship is.
+ */
+function cockpitHTML({ map = false } = {}) {
 	const on = sailing();
 	const plan = on ? sailedPlan() : null;
 	if (!plan) return `<p class="empty step-empty">${T('Nothing is under way. Plan a run, load at the wharf and cast off — the cockpit opens here.')}</p>`;
@@ -4758,14 +4758,17 @@ function sailHTML() {
 		<span class="sail-n">${T('<b>{n}</b> of {of} stops done', { n: doneN, of: stops.length })}${questsLeft ? ` · ${questsLeft === 1 ? T('{n} quest open', { n: questsLeft }) : T('{n} quests open', { n: questsLeft })}` : ''}</span>
 		${guessed ? `<span class="sail-guess" title="${T('Press the count an island paid on its stop, and the trip is recorded at that instead')}">${guessed === 1 ? T('{n} island’s pay not said', { n: guessed }) : T('{n} islands’ pay not said', { n: guessed })} — ${T('recorded at the middle of the range')}</span>` : ''}
 		<span class="panel-spacer"></span>
-		<button class="ghost-btn sm" data-act="barter-sail-chart" title="${T('The route on the Map, with the same checklist beside it')}">🗺 ${T('On the chart')}</button>
+		${map ? '' : `<button class="ghost-btn sm" data-act="barter-sail-chart" title="${T('The route on the Map, with the same checklist beside it')}">🗺 ${T('On the chart')}</button>`}
 		<button class="ghost-btn sm" data-act="barter-sail-drop" title="${T('Drop the checklist; nothing is recorded')}">${T('Abandon')}</button>
 		${sailAll.open ? '' : `<button class="ghost-btn sm" data-act="barter-sail-all" title="${T('Tick every stop and every quest off at once')}">${T('All done…')}</button>`}
 		<button class="act" data-act="barter-step" data-id="results">${T('See the results')} ›</button>
 		${allAsk}
 	</div>`;
+	// On the chart the rest of the run is folded under the stop: the
+	// panel is a strip down one side, and the stop is what it is for.
+	const fold = inner => (map ? `<details class="map-run-fold rest-fold"><summary>${T('Every stop')} · ${T('{n} of {of} done', { n: doneN, of: stops.length })}</summary>${inner}</details>` : inner);
 	if (at < 0) {
-		return `<div class="all-ticked"><i>✓</i><span><b>${T('Every stop is ticked.')}</b> ${T('The results step shows what the run did and records it.')}</span><button class="act" data-act="barter-step" data-id="results">${T('See the results')} ›</button></div>${restHTML(plan, on, book, legOf, -1)}${foot}`;
+		return `<div class="all-ticked"><i>✓</i><span><b>${T('Every stop is ticked.')}</b> ${T('The results step shows what the run did and records it.')}</span><button class="act" data-act="barter-step" data-id="results">${T('See the results')} ›</button></div>${fold(restHTML(plan, on, book, legOf, -1))}${foot}`;
 	}
 	const s = stops[at], key = stopKey(s, at, stops), names = stopNames(s);
 	const done = ticked(on.done, s, at, stops);
@@ -4810,7 +4813,7 @@ function sailHTML() {
 		</div>
 	</div>` : '';
 	const trade = s.wait ? waitBox : s.npcId
-		? `<div class="cockpit-trade${glance ? ' big' : ''}">
+		? `<div class="cockpit-trade${glance && !map ? ' big' : ''}">
 			<div class="cockpit-good"><span class="cockpit-icon"${tierOf(s.give)}>${img(s.give, 'cockpit-img')}</span><b>${esc(s.giveText)}× ${esc(gameName(s.give))}</b><em>${levelOf(s.give) ? T('Level {lv}', { lv: levelOf(s.give) }) : T('a land good')}</em></div>
 			<span class="cockpit-arrow">→</span>
 			<div class="cockpit-good get"${tierOf(s.item)}><span class="cockpit-icon"${tierOf(s.item)}>${img(sevenOf(s), 'cockpit-img')}</span><b>${esc(s.recvText)}× ${esc(gameName(sevenOf(s)))}</b><em>${s.item === COIN ? T('coins') : T('Level {lv}', { lv: levelOf(s.item) })}${fourNote(s, true)}</em></div>
@@ -4829,10 +4832,19 @@ function sailHTML() {
 		<div class="cockpit-voucher-text"><b>${T('Draw a voucher here')}</b><em>${T('+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts', { n: F(PARLEY.voucher) })}</em></div>
 	</div>` : '';
 	const endNote = s.wait && !done ? `<p class="cockpit-ask">${T('Ending here records what is ticked so far; the barters after this wait stay on the board for later.')}</p>` : '';
-	const head = `<div class="panel-head cockpit-head"><h2 class="panel-title">${T('Stop {n} of {of}', { n: at + 1, of: stops.length })}</h2><span class="panel-sub">${esc(legOf(at))}</span>${parleyNotes(book, at, s).tag}<span class="panel-spacer"></span><button class="linky" data-act="barter-glance">${glance ? T('full view') : T('Glance mode')}</button></div>${clock ? `<div class="cockpit-clock">${clock}</div>` : ''}`;
+	const head = `<div class="panel-head cockpit-head"><h2 class="panel-title">${T('Stop {n} of {of}', { n: at + 1, of: stops.length })}</h2><span class="panel-sub">${esc(legOf(at))}</span>${parleyNotes(book, at, s).tag}<span class="panel-spacer"></span>${map ? '' : `<button class="linky" data-act="barter-glance">${glance ? T('full view') : T('Glance mode')}</button>`}</div>${clock ? `<div class="cockpit-clock">${clock}</div>` : ''}`;
 	const under = `<div class="cockpit-under"><button class="linky" data-act="barter-sail-skip" data-k="${esc(key)}">${s.npcId ? T('island didn’t deal — skip it') : T('skip this stop')}</button><span>·</span><button class="linky" data-act="barter-step" data-id="results">${T('stop here, see the results')}</button></div>`;
 	const next = stops[at + 1];
 	const nextHTML = next ? (() => { const nn = stopNames(next); return `<div class="cockpit-next"><span class="cockpit-next-k">${T('next')}</span><b>${esc(nn.place)}</b><span>${esc(legOf(at + 1))}</span>${next.npcId ? `<span>${esc(next.giveText)}× ${esc(gameName(next.give))} → <span class="tiered" style="--tier:${TIER(levelOf(next.item))}">${esc(next.recvText)}× ${esc(gameName(sevenOf(next)))}</span> ×${F(next.times)}</span>` : `<span>${nn.kind}</span>`}</div>`; })() : '';
+	if (map) {
+		return `<section class="panel cockpit compact">${head}<div class="panel-body">
+			<div><div class="cockpit-place">${esc(names.place)}</div><div class="cockpit-who">${esc(names.who)} · ${names.kind}</div></div>
+			${trade}${figures}${voucherBox}${ask}${extra ? `<div class="run-check">${extra}</div>` : ''}${questsHere}
+			<div class="cockpit-press">${press}</div>${endNote}
+			${holdSlotsHTML()}
+			${under}
+		</div></section>${nextHTML}${fold(restHTML(plan, on, book, legOf, at))}${foot}`;
+	}
 	if (glance) {
 		return `<section class="panel cockpit glance">${head}<div class="panel-body">
 			<div class="cockpit-place">${esc(names.place)}</div>
