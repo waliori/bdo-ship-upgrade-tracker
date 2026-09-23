@@ -575,3 +575,23 @@ test('a later lot\'s goods wait in the harbour\'s storage until the ship calls b
 	for (const s of run.stops) assert.ok(s.weightAfter <= small.free + 1e-6, `${s.npc || s.wharf.at}: ${s.weightAfter} LT, never over the limit`);
 	run.stops.forEach((s, i) => { if (i && s.wharf && run.stops[i - 1].wharf) assert.notEqual(s.wharf.at, run.stops[i - 1].wharf.at, 'one call a wharf, not two in a row'); });
 });
+
+test('a lot is weighed as the hold will be when it starts: the goods the lots before it climbed from are gone by then', () => {
+	// Layout 34 again, two chains' goods already aboard and the rest in
+	// Iliya's storage. Weighed with the first lot's goods still aboard,
+	// every later pair of chains looked too heavy, and the run went back
+	// to Iliya once a chain -- five lots where three carry it.
+	const l34 = combos.find(c => c.id === '34');
+	const d34 = boardData(l34, barterData, npcById);
+	const stock = { "[Level 5] Statue's Tear": 3, '[Level 4] Old Chest with Gold Coins': 6 };
+	const dock = { '[Level 5] Supreme Gold Candlestick': 6, '[Level 5] 102 Year Old Golden Herb': 4, '[Level 5] Golden Fish Scale': 3, '[Level 4] Old Chest with Gold Coins': 30, '[Level 4] Bronze Candlestick': 18 };
+	const want = ['[Level 5] Supreme Gold Candlestick', '[Level 5] 102 Year Old Golden Herb', "[Level 5] Statue's Tear", '[Level 5] Golden Fish Scale', '[Level 4] Old Chest with Gold Coins', '[Level 4] Bronze Candlestick'];
+	const all = chains(d34, stock, dock).filter(c => c.top === 7 && c.from !== 'land');
+	const chosen = want.map(w => all.find(c => c.item === w)).filter(Boolean);
+	assert.equal(chosen.length, 6);
+	const small = { free: 20889, deal: 26111, max: 35500 };
+	const run = chainRun({ chosen, stock, dock, hold: small, parley: { bar: 674128, perTrade: 10512 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes, pace: 'steady', orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7 } });
+	assert.ok(run.lots.length <= 3, `${run.lots.length} lots: ${JSON.stringify(run.lots)}`);
+	assert.ok(run.weightPeak <= small.free + 1e-6, `never over the limit: ${run.weightPeak}`);
+	assert.equal(run.stops.filter(s => s.npcId).length, 14, 'every island of the six chains trades');
+});

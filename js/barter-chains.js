@@ -466,7 +466,13 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		let lot = [], ladders = [];
 		order.forEach((c, k) => {
 			const rs = ladder(c);
-			if (rs && lot.length && !lotFits([...ladders, rs], homeWharf ? loadsOutside([...lot, k]) : [])) { lots.push(lot); lot = []; ladders = []; }
+			// A lot is weighed from the hold as it will be when the lot
+			// starts: the goods the earlier lots climbed from are traded
+			// away and sold by then, so they weigh nothing here. Counted,
+			// they made every later pair of chains too heavy for the hold,
+			// and a run from one harbour went back to it once a chain.
+			const spent = lots.flat().map(j => order[j].rungs[0].give).map(item => ({ item, n: held.get(item) || 0 }));
+			if (rs && lot.length && !lotFits([...ladders, rs], [...(homeWharf ? loadsOutside([...lot, k]) : []), ...spent])) { lots.push(lot); lot = []; ladders = []; }
 			lot.push(k);
 			if (rs) ladders.push(rs);
 		});
