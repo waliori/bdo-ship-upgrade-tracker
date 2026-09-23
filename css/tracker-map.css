@@ -805,6 +805,30 @@
   backdrop-filter: blur(8px);
 }
 
+/* On a phone the open panel covers the chart, and the strip sat on
+   the cockpit's own trade; the cockpit walks the stops there, so the
+   strip waits for the panel to be put away. */
+@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
+  .map:has(.map-side) .map-steps { display: none; }
+}
+
+/* Beside the panel, not under it: centred in the open water the panel
+   leaves, and never wider than that water. The panel is wider while a
+   run is sailed. */
+@media (min-width: 721px) {
+  .map:has(.map-side) { --side-w: 312px; }
+  .map:has(.map-side .map-run) { --side-w: 452px; }
+  /* The minimap at its corner takes the bottom right too, unless it
+     was dragged elsewhere. */
+  .map:has(.map-mini:not(.moved)) { --mini-w: 186px; }
+  .map:has(.map-side) .map-steps {
+    left: calc(var(--side-w) + (100% - var(--side-w) - var(--mini-w, 0px)) / 2);
+    max-width: min(calc(100% - var(--side-w) - var(--mini-w, 0px) - 24px), 580px);
+  }
+  /* Panel on the right, over the minimap's corner: the water is all left. */
+  .map.side-right:has(.map-side) .map-steps { left: calc((100% - var(--side-w)) / 2); max-width: min(calc(100% - var(--side-w) - 24px), 580px); }
+}
+
 .map-step-chips {
   display: flex;
   gap: 4px;

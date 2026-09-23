@@ -5905,6 +5905,15 @@ export function barterAction(act, el, redraw) {
 			if (sailAll.stops) on.done = [...new Set([...on.done, ...stops.filter(s => !owesCount(s, on)).map(s => stopKey(s, stops.indexOf(s), stops))])];
 			if (owed.length) cursor = stopKey(owed[0], stops.indexOf(owed[0]), stops);
 			sailAll.open = false;
+			// The clock is told where the ship now is, as a Traded tells it:
+			// past the last stop before the first one still open. It went on
+			// counting to stop 1 with the cockpit at stop 3.
+			if (sailAll.stops) {
+				const open = stops.findIndex((x, i) => !ticked(on.done, x, i, stops));
+				const past = open < 0 ? stops.length - 1 : open - 1;
+				on.lastTick = Date.now();
+				if (past >= 0) passedStop(past);
+			}
 			persist();
 			if (!claimed && !owed.length) cheer({ big: true });
 			const guessing = owed.length;

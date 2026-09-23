@@ -463,6 +463,11 @@ function showView(id) {
 	const active = document.querySelector('.tab.active');
 	if (active && document.activeElement === document.body) active.focus({ preventScroll: true });
 	if ((id === 'get' || id === 'map' || id === 'barter') && !barterData) loadBarter();
+	// The chart opens where the run stands: a stop ticked or jumped to on
+	// the Barter tab -- All done… leaving a 2–3 island open, say -- left
+	// the chart on the stop it was last stepped to. After the draw, since
+	// stepping paints the chart it steps.
+	if (id === 'map') setTimeout(() => mapStepToStop(sailCurrent(), true), 0);
 }
 
 /**
