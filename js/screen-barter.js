@@ -21,7 +21,7 @@ import { barterKey, periodKey, currentPlan } from './clock.js';
 import { candidates, askable, offersAt, offersOf, boardData, gatedOffers, exchangeGate, clientDeals } from './barter-board.js';
 import { currentShip, shownHold, aboardWhat } from './ship.js';
 import { shipStats } from './ship_stats.js';
-import { npcById, ports, isleOf, whoOf, isleShort } from './barter_npcs.js';
+import { npcById, npcs, ports, isleOf, whoOf, isleShort } from './barter_npcs.js';
 import { seaRoute, seaLeg } from './searoute.js';
 import { tileSrc } from './map.js';
 import { TILES, TILE, MAX_ZOOM } from './barter_npcs.js';
@@ -198,7 +198,11 @@ function restore() {
 				used: Object.fromEntries(Object.entries(s.board.used || {}).map(([k, v]) => [k, Math.max(0, Math.round(Number(v) || 0))]).filter(([k, v]) => npcById.has(Number(k)) && v > 0)),
 				usedFor: typeof s.board.usedFor === 'string' ? s.board.usedFor : '',
 				last: s.board.last && Array.isArray(s.board.last.ids) ? { at: Number(s.board.last.at) || 0, ids: s.board.last.ids.filter(x => typeof x === 'string'), isles: (s.board.last.isles || []).filter(Array.isArray).map(l => l.map(Number).filter(Number.isFinite)), done: Number(s.board.last.done) || 0, all: Number(s.board.last.all) || 0, off: s.board.last.off === true } : null,
-				rolled: s.board.rolled === true
+				rolled: s.board.rolled === true,
+				pinned: typeof s.board.pinned === 'string' ? s.board.pinned : '',
+				pinnedAt: Number(s.board.pinnedAt) || 0,
+				fresh: s.board.fresh === true,
+				freshAt: Number(s.board.freshAt) || 0
 			};
 		}
 	} catch { /* a view this build does not read: the defaults stand */ }
@@ -625,10 +629,19 @@ function boardNow() {
 		// back to an empty board and typed it all in again. It is kept now,
 		// with the attempts used on it, and the page asks: the sailor, who
 		// has the game open, says whether it changed.
-		board = board.answers.length ? { ...board, day: barterKey(), rolled: true } : { day: barterKey(), answers: [], own: false };
+		board = { ...board, day: barterKey(), rolled: board.answers.length > 0 };
 		persist();
 	}
-	const standing = board.answers.length ? candidates(combos.combos, board.answers) : combos.combos;
+	// Nothing read on this board, and the board was not said to be
+	// refreshed: it is the board the last run was sailed on, however long
+	// ago, with what that run and the ones before it on the same layout
+	// used of it. Only "Refreshed in game" starts from nothing.
+	if (!board.answers.length && !board.pinned && !board.fresh) {
+		const h = boardFromHistory(board.freshAt || 0);
+		if (h) { board = { ...board, ...h }; persist(); }
+	}
+	const pinned = !board.answers.length && board.pinned ? combos.combos.filter(c => String(c.id) === String(board.pinned)) : [];
+	const standing = board.answers.length ? candidates(combos.combos, board.answers) : pinned.length ? pinned : combos.combos;
 	// The board the sailor is actually looking at, when the record has
 	// nothing that fits it. The forty layouts are a snapshot: the game
 	// edits a slot at a maintenance without renumbering anything, and
@@ -1406,6 +1419,41 @@ function chartFragmentOf(data) {
 }
 
 /**
+ * The board as the run history leaves it: the layout of the last run
+ * recorded since the board was last said to be refreshed, the attempts
+ * that run and the ones straight before it on the same layout used,
+ * island by island, and the run itself to continue when it stopped
+ * part-way. Null when no such run is on record.
+ */
+function boardFromHistory(since) {
+	const runs = (store.getProfile('runs', []) || []).filter(r => r.layout && (r.at || 0) > since).sort((a, b) => (a.at || 0) - (b.at || 0));
+	if (!runs.length) return null;
+	const last = runs[runs.length - 1];
+	const idOf = x => {
+		if (x.id && npcById.has(Number(x.id))) return Number(x.id);
+		const n = npcs.find(m => m.name === x.w || gameName(m.name) === x.w);
+		return n ? n.id : null;
+	};
+	const used = {};
+	for (let i = runs.length - 1; i >= 0 && runs[i].layout === last.layout; i--) {
+		for (const x of runs[i].stops_ || []) {
+			if (x.k !== 'n') continue;
+			const id = idOf(x);
+			if (id) used[id] = (used[id] || 0) + (Number(x.t) || 0);
+		}
+	}
+	const c = last.cont;
+	return { pinned: last.layout, pinnedAt: last.at || 0, used, usedFor: last.layout, last: c && c.ids && c.ids.length ? { at: last.at || 0, ids: c.ids, isles: c.isles || [], done: c.done || 0, all: c.all || 0, off: false } : board.last || null };
+}
+
+/** The board rebuilt from the run history: said, with the way out. */
+function pinnedHTML(b) {
+	if (board.answers.length || !board.pinned || !b.combo || String(b.combo.id) !== String(board.pinned)) return '';
+	const when = board.pinnedAt ? new Date(board.pinnedAt).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+	return `<div class="rolled-note pinned-note"><b>${T('Layout {id}, as your last run left it', { id: esc(board.pinned) })}</b> <span>${when ? T('sailed {when}, and not refreshed since: the islands deal what that run left them, and the Parley is the bar as you last set it.', { when: esc(when) }) : T('not refreshed since: the islands deal what that run left them, and the Parley is the bar as you last set it.')}</span><span class="panel-spacer"></span><button class="chip tiny" data-act="barter-board-clear">↻ ${T('Refreshed in game')}</button></div>`;
+}
+
+/**
  * What the runs recorded on today's board have used of it. An island
  * deals so many attempts a board -- ten, six, five -- and a run that
  * stopped part-way, or took fewer than an island allows, leaves the
@@ -1477,7 +1525,7 @@ function continueHTML(all, b) {
  *  the two answers. */
 function rolledHTML() {
 	if (!board.rolled || !board.answers.length) return '';
-	return `<div class="rolled-note"><b>${T('The daily refill has passed since you read this board.')}</b> <span>${T('The Parley is full again. If the barter list in game is the one you had, keep it, and the islands keep the attempts you left; if it changed, start today’s.')}</span><span class="panel-spacer"></span><button class="chip tiny primary" data-act="barter-board-same">${T('Still the same board')}</button><button class="chip tiny" data-act="barter-board-clear">↻ ${T('Refreshed in game')}</button></div>`;
+	return `<div class="rolled-note"><b>${T('The daily refill has passed since you read this board.')}</b> <span>${T('If the barter list in game is the one you had, keep it: the islands keep the attempts you left and the Parley stays as it was. If it changed, start today’s, and type the Parley under Before you sail.')}</span><span class="panel-spacer"></span><button class="chip tiny primary" data-act="barter-board-same">${T('Still the same board')}</button><button class="chip tiny" data-act="barter-board-clear">↻ ${T('Refreshed in game')}</button></div>`;
 }
 
 /**
@@ -3412,7 +3460,7 @@ function recordTrip(plan, from, on = sailing()) {
 	const stopsLog = plan.stops.map((s, k) => {
 		if (!ticked(on.done, s, k, plan.stops)) return null;
 		const names = stopNames(s);
-		if (s.npcId) return { k: 'n', p: names.place, w: names.who, g: s.give, gn: s.giveText, i: s.item, r: s.recvText, t: s.times, s: (on.seen || {})[s.npcId] || 0, c: Math.round(Number(s.parley) || 0), v: bookOf.rows[k] && bookOf.rows[k].voucher ? 1 : 0 };
+		if (s.npcId) return { k: 'n', id: s.npcId, p: names.place, w: names.who, g: s.give, gn: s.giveText, i: s.item, r: s.recvText, t: s.times, s: (on.seen || {})[s.npcId] || 0, c: Math.round(Number(s.parley) || 0), v: bookOf.rows[k] && bookOf.rows[k].voucher ? 1 : 0 };
 		if (s.wharf) return { k: 'w', p: names.place, w: names.who, sale: s.sale && !ticked(on.kept, s, k, plan.stops) ? { n: Math.round(s.sale.n * 10) / 10, silver: Math.round(s.sale.total) } : null };
 		if (s.wait) return { k: 'v', p: names.place, t: Math.round(s.wait) };
 		return { k: 'q', p: names.place, w: names.who };
@@ -3422,7 +3470,8 @@ function recordTrip(plan, from, on = sailing()) {
 		day: barterKey(), at: Date.now(), silver: trip.silver, cost: trip.spent || Math.round(plan.cost || 0), net: trip.silver - (trip.spent || 0), trades: trip.trades, parley: parleySpent, coins: Math.round(trip.delta[COIN] || 0), vouchers: drawnOn,
 		stops: on.done.length, goal: on.goal || goal, item: on.goal ? on.item || '' : goal === 'material' ? itemNow() || '' : '',
 		load: moved(-1, SILVER), got: moved(1, SILVER), layout: (boardNow().combo || {}).id || '',
-		time: on.time || '', port: from ? from.name : '', chains: (on.chains || []).map(c => c.name).slice(0, 12), stops_: stopsLog
+		time: on.time || '', port: from ? from.name : '', chains: (on.chains || []).map(c => c.name).slice(0, 12), stops_: stopsLog,
+		...(() => { const isles = []; let done = 0; plan.stops.forEach((s, k) => { if (ticked(on.done, s, k, plan.stops)) done++; if (s.npcId && Number.isFinite(s.chain)) (isles[s.chain] = isles[s.chain] || []).push(s.npcId); }); return done < plan.stops.length ? { cont: { ids: routes.ids.slice(0, 20), isles: isles.filter(Boolean), done, all: plan.stops.length } } : {}; })()
 	}].slice(-60);
 	// What the islands were seen to pay goes into the record, so the
 	// counting can follow the sailor's own runs.
@@ -5345,7 +5394,7 @@ export function renderBarter() {
 	const now = stepNow();
 	const on = sailing();
 	const secs = parts.secs.map(([id, title, summary, body], i) => planSection(i + 1, id, title, summary, body)).join('');
-	const planStep = `${rolledHTML()}${boardHTML(b)}${parts.cont || ''}
+	const planStep = `${rolledHTML()}${pinnedHTML(b)}${boardHTML(b)}${parts.cont || ''}
 		<div class="plan-fold"><span>${T('Four steps · each opens when the one before is settled')}</span><span class="panel-spacer"></span><button class="linky" data-act="barter-sec" data-id="all">${T('show all')}</button><button class="linky" data-act="barter-sec" data-id="none">${T('collapse all')}</button></div>
 		${secs}${parts.dock || ''}`;
 	const loadFoot = `<div class="load-dock"><button class="linky" data-act="barter-step" data-id="plan">‹ ${T('Back to the plan')}</button><span class="run-dock-figs"><span>${parts.things.all ? (parts.things.later ? T('Trip 1: {n} of {of} aboard', { n: parts.things.done, of: parts.things.all }) : T('{n} of {of} aboard', { n: parts.things.done, of: parts.things.all })) : ''}</span>${parts.things.later ? `<span>${T('{n} picked up on the way', { n: parts.things.later })}</span>` : ''}</span>${on ? `<button class="act" data-act="barter-step" data-id="sail">${T('Back to the run')} ›</button>` : `<button class="act" data-act="barter-cast-off"${shownPlan && shownPlan.stops && shownPlan.stops.length ? '' : ' disabled'} title="${T('Each stop goes into the hold as you tick it; at the end the run is recorded')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>`}</div>`;
@@ -6032,7 +6081,7 @@ export function barterAction(act, el, redraw) {
 		// the give not held, and no others, until cleared.
 		case 'barter-reach': reach = el.dataset.item || ''; goal = 'silver'; persist(); return true;
 		case 'barter-reach-clear': reach = ''; persist(); return true;
-		case 'barter-board-clear': board = { day: barterKey(), answers: [], own: false }; persist(); return true;
+		case 'barter-board-clear': board = { day: barterKey(), answers: [], own: false, fresh: true, freshAt: Date.now() }; persist(); return true;
 		case 'barter-board-same': board = { ...board, rolled: false }; persist(); return true;
 		case 'barter-continue': {
 			const ids = String(el.dataset.ids || '').split('\n').filter(Boolean);

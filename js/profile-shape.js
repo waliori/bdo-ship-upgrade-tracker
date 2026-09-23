@@ -388,12 +388,16 @@ export function readProfile(raw) {
 			time: typeof r.time === 'string' ? r.time.slice(0, 40) : '',
 			port: typeof r.port === 'string' ? r.port.slice(0, 40) : '',
 			chains: Array.isArray(r.chains) ? r.chains.filter(c => typeof c === 'string').slice(0, 12).map(c => c.slice(0, 40)) : [],
+			// A run stopped part-way, to be continued: the chains ticked, the
+			// islands each climbed, how many stops of how many were done.
+			...(r.cont && typeof r.cont === 'object' && Array.isArray(r.cont.ids) ? { cont: { ids: r.cont.ids.filter(x => typeof x === 'string').slice(0, 20).map(x => x.slice(0, 160)), isles: (Array.isArray(r.cont.isles) ? r.cont.isles : []).filter(Array.isArray).slice(0, 20).map(l => l.map(Number).filter(n => Number.isFinite(n) && n > 0).slice(0, 10)), done: Math.max(0, Math.floor(Number(r.cont.done) || 0)), all: Math.max(0, Math.floor(Number(r.cont.all) || 0)) } } : {}),
 			stops_: Array.isArray(r.stops_) ? r.stops_.filter(x => x && ['n', 'w', 'q', 'v'].includes(x.k)).slice(0, 80).map(x => {
 				const str = (v, n = 80) => (typeof v === 'string' ? v.slice(0, n) : '');
 				const num = v => (Number.isFinite(Number(v)) ? Math.floor(Number(v)) : 0);
 				const o = { k: x.k, p: str(x.p) };
 				if (x.w) o.w = str(x.w);
 				if (x.k === 'n') Object.assign(o, { g: str(x.g), gn: str(x.gn, 12), i: str(x.i), r: str(x.r, 12), t: num(x.t), s: num(x.s), c: num(x.c), v: x.v ? 1 : 0 });
+				if (x.k === 'n' && num(x.id) > 0) o.id = num(x.id);
 				if (x.k === 'v') o.t = num(x.t);
 				if (x.k === 'w' && x.sale && typeof x.sale === 'object') o.sale = { n: Number(x.sale.n) || 0, silver: num(x.sale.silver) };
 				return o;
