@@ -25,7 +25,7 @@ import { npcById, npcs, ports, isleOf, whoOf, isleShort } from './barter_npcs.js
 import { seaRoute, seaLeg } from './searoute.js';
 import { tileSrc } from './map.js';
 import { TILES, TILE, MAX_ZOOM } from './barter_npcs.js';
-import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, DEFAULT_CAL, sailSeconds, METRES_PER_PX } from './sailing.js';
+import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, DEFAULT_CAL, sailSeconds, METRES_PER_PX, learnSpeed } from './sailing.js';
 import { quests, cadenceOf } from './quests.js';
 import { questDone, wantedQuests, rewardOf } from './screen-quests.js';
 import { layQuests } from './quest-places.js';
@@ -58,7 +58,7 @@ import { openPicker } from './picker.js';
 import { openTripLog } from './triplog.js';
 import { toast, openDialog, closeDialog } from './dialogs.js';
 import { cheer } from './cheer.js';
-import { timerHTML, timerAction, timerState, startTimer, stopTimer, passedStop, spanText } from './sail-timer.js';
+import { timerHTML, timerAction, timerState, timerNow, startTimer, stopTimer, passedStop, spanText } from './sail-timer.js';
 
 /* ------------------------------------------------------------------ *
  * what the tab remembers
@@ -177,11 +177,14 @@ function restore() {
 			// run that outlived its page -- a phone gone to sleep, a tab
 			// reloaded an hour in, which is most runs -- was recorded as if
 			// its shore goods had cost nothing.
-			for (const k of ['loaded', 'bought', 'parleyUsed', 'cost', 'silver', 'net', 'trades', 'questsHome', 'chains', 'goal', 'item', 'time', 'port', 'drawnAt', 'lastTick', 'weightStart', 'laidFor', 'appliedN']) if (s.sail[k] !== undefined) keep[k] = s.sail[k];
+			for (const k of ['loaded', 'bought', 'parleyUsed', 'cost', 'silver', 'net', 'trades', 'questsHome', 'chains', 'goal', 'item', 'time', 'port', 'drawnAt', 'lastTick', 'weightStart', 'laidFor', 'appliedN', 'cal']) if (s.sail[k] !== undefined) keep[k] = s.sail[k];
 			if (s.sail.applied) keep.applied = cleanApplied(s.sail.applied);
 			sail = { key: s.sail.key, done: s.sail.done.map(String), seen: {}, got: {}, kept: Array.isArray(s.sail.kept) ? s.sail.kept.map(String) : [], stops: Array.isArray(s.sail.stops) ? s.sail.stops : [], ...keep };
 			for (const [k, v] of Object.entries(s.sail.seen || {})) if (Number(v) > 0) sail.seen[k] = Number(v);
 			for (const [k, v] of Object.entries(s.sail.got || {})) if (typeof v === 'string') sail.got[k] = v;
+			// The legs timed with Arrived, by stop: seconds from the Traded before.
+			const arrived = Object.entries(s.sail.arrived || {}).filter(([, v]) => Number(v) > 0);
+			if (arrived.length) sail.arrived = Object.fromEntries(arrived.map(([k, v]) => [k, Math.round(Number(v))]));
 		}
 		if (typeof s.reach === 'string') reach = s.reach;
 		if (s.questSkip && typeof s.questSkip.day === 'string' && Array.isArray(s.questSkip.ids)) questSkip = { day: s.questSkip.day, ids: s.questSkip.ids.filter(id => typeof id === 'string') };
@@ -840,6 +843,24 @@ function sailCal() {
 	return v > 0 ? v : DEFAULT_CAL;
 }
 
+/** The speed a run is laid at: while one is sailed, the speed it was
+ *  cast off at. A leg timed with Arrived teaches the clock at once, but
+ *  a run laid again mid-way -- a 2–3 island's count said -- at a new
+ *  speed can come out in another order, and the stops already sailed
+ *  would stand behind ones that are not. */
+function layCal() {
+	const on = sail && sail.key === sailKey() ? sail : null;
+	return on && on.cal > 0 ? on.cal : sailCal();
+}
+
+/** The seconds every leg costs apart from the sailing, as the sailor's
+ *  own timed legs have it: nought until they say otherwise. */
+const sailLag = () => Math.max(0, Math.min(120, Number(store.getSetting('sailLag', 0)) || 0));
+
+/** The legs timed with Arrived, the last dozen: what the speed is
+ *  learned from. */
+const SAIL_LOG = 12;
+
 /** The material a run is for: the one chosen, else the biggest
  *  shortfall the table can answer. */
 function itemNow() {
@@ -907,8 +928,12 @@ function legsOf(stops) {
 	const { total, legs } = bent;   // one leg a stop after the first, bends included
 	const me = currentShip();
 	const measured = Number(store.getSetting('sailCal', null)) > 0;
-	const range = m => sailRange(m, me.speed.sea, sailCal(), measured);
-	const [fast, slow] = range(total);
+	// What each leg costs apart from the sailing, where timed legs have
+	// shown one: on every leg, so on the whole run once a leg.
+	const lag = sailLag();
+	const range = m => { const [a, b] = sailRange(m, me.speed.sea, sailCal(), measured); return [a + lag, b + lag]; };
+	const n = legs.filter(m => m > 0).length;
+	const [fast, slow] = (([a, b]) => [a + lag * n, b + lag * n])(sailRange(total, me.speed.sea, sailCal(), measured));
 	// `timeWith` is the same range with minutes stood still added --
 	// the waits the Parley ledger puts in for a voucher's cooldown.
 	return { total, legs, from, time: fmtRange(fast, slow), mid: (fast + slow) / 2, timeOf: m => fmtRange(...range(m)), secondsOf: m => { const [a, b] = range(m); return (a + b) / 2; }, timeWith: min => fmtRange(fast + min * 60, slow + min * 60) };
@@ -3361,6 +3386,13 @@ function sailedPlan() {
 /** The route the run being sailed draws on the chart, or null --
  *  built from the kept stops each time, since the fragment is longer
  *  than the profile keeps a string. */
+/** The islands of the run being sailed, in order, as the chart lists a
+ *  route: to tell whether the chart holds it. Null when none is. */
+export function sailIds() {
+	const plan = planOfSail(sailing());
+	return plan ? [...new Set(plan.stops.filter(s => s.npcId).map(s => s.npcId))] : null;
+}
+
 export function sailChart() {
 	const on = sailing();
 	const plan = planOfSail(on);
@@ -4291,13 +4323,13 @@ function silverParts(me, b) {
 	const owned = Object.fromEntries(everythingHeld());
 	// The ship's pace rides along: a run laid more than one way is kept
 	// by what it is worth an hour, and the hour is the ship's.
-	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen, keep: reach ? [reach] : [], land, owned, ship: { speed: me.speed.sea, cal: sailCal() } };
+	const opts = { stock, dock, hold: me.hold, parley: parleyOf(prof), npcById, start: from, stashes, prefer: stashAt(), pace, orders: o, prices, seen, keep: reach ? [reach] : [], land, owned, ship: { speed: me.speed.sea, cal: layCal() } };
 	// Each chain on its own, for its row: the list is sorted by the
 	// yardstick, silver a Parley unit, the guide's measure of a chain,
 	// so the best use of the day's Parley is at the top of its group.
 	// The runs worth sailing, searched once for these inputs and kept
 	// until any of them change; each chain's run on its own likewise.
-	const ship = { speed: me.speed.sea, cal: sailCal() };
+	const ship = { speed: me.speed.sea, cal: layCal() };
 	// The barter count is part of the key, and has to be: it decides
 	// which chains exist at all. Without it, raising the count left the
 	// solo runs keyed to the old, shorter set -- and the first chain the
@@ -5274,6 +5306,20 @@ function sailHTML() {
  * tick on either is the same tick, and the two never disagree about
  * where the ship is.
  */
+/**
+ * The press that says the ship is there. The clock only knows the
+ * estimate; this is the one moment the game shows and the page cannot
+ * see. Each press times the leg from the Traded that sent the ship off,
+ * and the legs timed teach the chart what this ship really does.
+ */
+function arrivedHTML(on, s, key, at, legs) {
+	const m = legs.from ? legs.legs[at] : at > 0 ? legs.legs[at - 1] : null;
+	if (!(m > 0) || ticked(on.done, s, at, sailedPlan().stops)) return '';
+	const got = (on.arrived || {})[key];
+	if (got) return `<span class="arrived-said" title="${T('This leg is timed; the speed is learned from it')}">⚓ ${T('arrived in {t}', { t: esc(spanText(got)) })}</span>`;
+	return `<button class="chip tiny arrived-btn" data-act="barter-arrived" data-k="${esc(key)}" data-at="${at}" title="${T('Press as the ship reaches the island, before trading: the leg is timed, and the chart learns how fast your ship really sails')}">⚓ ${T('Arrived')}</button>`;
+}
+
 function cockpitHTML({ map = false } = {}) {
 	const on = sailing();
 	const plan = on ? sailedPlan() : null;
@@ -5376,7 +5422,7 @@ function cockpitHTML({ map = false } = {}) {
 		<div class="cockpit-voucher-text"><b>${T('Draw a voucher here')}</b><em>${T('+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts', { n: F(PARLEY.voucher) })}</em></div>
 	</div>` : '';
 	const endNote = s.wait && !done ? `<p class="cockpit-ask">${T('Ending here records what is ticked so far; the barters after this wait stay on the board for later.')}</p>` : '';
-	const head = `<div class="panel-head cockpit-head"><h2 class="panel-title">${T('Stop {n} of {of}', { n: at + 1, of: stops.length })}</h2><span class="panel-sub">${esc(legOf(at))}</span>${parleyNotes(book, at, s).tag}<span class="panel-spacer"></span>${map ? '' : `<button class="linky" data-act="barter-glance">${glance ? T('full view') : T('Glance mode')}</button>`}</div>${clock ? `<div class="cockpit-clock">${clock}</div>` : ''}`;
+	const head = `<div class="panel-head cockpit-head"><h2 class="panel-title">${T('Stop {n} of {of}', { n: at + 1, of: stops.length })}</h2><span class="panel-sub">${esc(legOf(at))}</span>${arrivedHTML(on, s, key, at, legs)}${parleyNotes(book, at, s).tag}<span class="panel-spacer"></span>${map ? '' : `<button class="linky" data-act="barter-glance">${glance ? T('full view') : T('Glance mode')}</button>`}</div>${clock ? `<div class="cockpit-clock">${clock}</div>` : ''}`;
 	const under = `<div class="cockpit-under"><button class="linky" data-act="barter-sail-skip" data-k="${esc(key)}">${s.npcId ? T('island didn’t deal — skip it') : T('skip this stop')}</button><span>·</span><button class="linky" data-act="barter-step" data-id="results">${T('stop here, see the results')}</button></div>`;
 	const next = stops[at + 1];
 	const nextHTML = next ? (() => { const nn = stopNames(next); return `<div class="cockpit-next"><span class="cockpit-next-k">${T('next')}</span><b>${esc(nn.place)}</b><span>${esc(legOf(at + 1))}</span>${next.npcId ? `<span>${esc(next.giveText)}× ${esc(gameName(next.give))} → <span class="tiered" style="--tier:${TIER(levelOf(next.item))}">${esc(next.recvText)}× ${esc(gameName(sevenOf(next)))}</span> ×${F(next.times)}</span>` : `<span>${nn.kind}</span>`}</div>`; })() : '';
@@ -6432,7 +6478,7 @@ export function barterAction(act, el, redraw) {
 		}
 		case 'barter-sail': {
 			if (!shownPlan) return false;
-			sail = { key: sailKey(), done: [], seen: {}, got: {}, kept: [], laidFor: '{}', ...sailRecord(shownPlan) };
+			sail = { key: sailKey(), done: [], seen: {}, got: {}, kept: [], laidFor: '{}', cal: sailCal(), ...sailRecord(shownPlan) };
 			// Sailing starts the clock, since that press is the moment the
 			// ship leaves -- and it is the gesture the browser wants before
 			// the page is allowed to make a sound.
@@ -6551,6 +6597,43 @@ export function barterAction(act, el, redraw) {
 			const k = String(el.dataset.k);
 			on.kept = el.checked ? (on.kept || []).filter(x => x !== k) : [...(on.kept || []), k];
 			persist();
+			return true;
+		}
+		// The ship is there: the leg is timed from the press that sent it
+		// off, and the speed learned again from the last dozen.
+		case 'barter-arrived': {
+			const on = sailing();
+			const plan = on ? sailedPlan() : null;
+			const at = Number(el.dataset.at), key = el.dataset.k;
+			if (!plan || !plan.stops[at] || !key) return false;
+			const legs = legsOf(plan.stops);
+			const m = legs.from ? legs.legs[at] : at > 0 ? legs.legs[at - 1] : null;
+			const t = timerNow();
+			const from = on.lastTick || (t && t.startedAt) || 0;
+			const secs = from ? Math.round((Date.now() - from) / 1000) : 0;
+			on.arrived = { ...(on.arrived || {}), [key]: secs };
+			persist();
+			if (!(m > 0) || secs < 5) return true;
+			// A hold past its limit sails slower, by a curve that is itself
+			// a guess: such a leg says nothing about the ship.
+			const me = currentShip();
+			const before = at > 0 ? plan.stops[at - 1].weightAfter : plan.weightStart;
+			if (shownHold(me.hold, before || 0).state) {
+				toast(T('Leg timed at {t}, not counted: the hold was over its limit', { t: spanText(secs) }));
+				return true;
+			}
+			const log = [...(store.getSetting('sailLog', []) || []), { m: Math.round(m), s: secs, pct: me.speed.sea, at: Date.now() }].slice(-SAIL_LOG);
+			store.setSetting('sailLog', log, true);
+			const fit = learnSpeed(log);
+			if (fit) {
+				store.setSetting('sailCal', fit.cal, true);
+				store.setSetting('sailLag', fit.lag);
+				toast(fit.lag
+					? T('Leg timed at {t}. From your last {n} legs: {v} m/s at 100%, and {lag} s a leg getting under way', { t: spanText(secs), n: fit.n, v: fit.cal, lag: fit.lag })
+					: fit.n === 1
+						? T('Leg timed at {t}: {v} m/s at 100%, from this leg alone — a few more and the time a leg takes getting under way is learned too', { t: spanText(secs), v: fit.cal })
+						: T('Leg timed at {t}. From your last {n} legs: {v} m/s at 100%', { t: spanText(secs), n: fit.n, v: fit.cal }));
+			}
 			return true;
 		}
 		case 'barter-paid': {

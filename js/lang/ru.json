@@ -619,6 +619,7 @@
 	"Arrange the crew": "Рассадить экипаж",
 	"Arrange the roster for what this boat is for": "Составить экипаж под то, для чего эта лодка",
 	"Arranged for {goal}": "Составлено под {goal}",
+	"Arrived": "Прибыл",
 	"As an unnamed sailor": "Как моряк без имени",
 	"As you typed it — better than {pct}% of {type} rolls at Lv {lv} ({min}–{max}; most land on {mode}; {paths} roll paths). Clear to go back to the estimate": "Как вы вписали — лучше, чем {pct}% бросков {type} на {lv} ур. ({min}–{max}; чаще всего выпадает {mode}; путей броска: {paths}). Очистите, чтобы вернуться к оценке",
 	"As you typed it — {word} for Lv {lv}. Clear to go back to the estimate": "Как вы вписали — {word} для {lv} ур. Очистите, чтобы вернуться к оценке",
@@ -1492,6 +1493,18 @@
 	"Layout {n}": "Раскладка {n}",
 	"Layouts still standing today": "Раскладки, которые сегодня ещё держатся",
 	"Layouts the fleet has read, the most read first": "Раскладки, прочитанные флотом, сначала самые частые",
+	"Learned from the last {n} legs you timed with <b>Arrived</b> on the Barter tab: <b>{v} m/s</b> at 100%, and <b>{lag} s</b> a leg getting under way and coming in. Each leg you time with Arrived refines it; setting a figure here starts it over.": {
+		"one": "Выучено по последнему {n} отрезку, замеренному кнопкой <b>Прибыл</b> на вкладке «Бартер»: <b>{v} m/s</b> на 100% и <b>{lag} s</b> на отрезок на отход и подход. Каждый отрезок, замеренный кнопкой Прибыл, уточняет значение; ввод числа здесь начинает заново.",
+		"few": "Выучено по последним {n} отрезкам, замеренным кнопкой <b>Прибыл</b> на вкладке «Бартер»: <b>{v} m/s</b> на 100% и <b>{lag} s</b> на отрезок на отход и подход. Каждый отрезок, замеренный кнопкой Прибыл, уточняет значение; ввод числа здесь начинает заново.",
+		"many": "Выучено по последним {n} отрезкам, замеренным кнопкой <b>Прибыл</b> на вкладке «Бартер»: <b>{v} m/s</b> на 100% и <b>{lag} s</b> на отрезок на отход и подход. Каждый отрезок, замеренный кнопкой Прибыл, уточняет значение; ввод числа здесь начинает заново.",
+		"other": "Выучено по последним {n} отрезкам, замеренным кнопкой <b>Прибыл</b> на вкладке «Бартер»: <b>{v} m/s</b> на 100% и <b>{lag} s</b> на отрезок на отход и подход. Каждый отрезок, замеренный кнопкой Прибыл, уточняет значение; ввод числа здесь начинает заново."
+	},
+	"Learned from the last {n} legs you timed with <b>Arrived</b> on the Barter tab: <b>{v} m/s</b> at 100%. Each leg you time with Arrived refines it; setting a figure here starts it over.": {
+		"one": "Выучено по последнему {n} отрезку, замеренному кнопкой <b>Прибыл</b> на вкладке «Бартер»: <b>{v} m/s</b> на 100%. Каждый отрезок, замеренный кнопкой Прибыл, уточняет значение; ввод числа здесь начинает заново.",
+		"few": "Выучено по последним {n} отрезкам, замеренным кнопкой <b>Прибыл</b> на вкладке «Бартер»: <b>{v} m/s</b> на 100%. Каждый отрезок, замеренный кнопкой Прибыл, уточняет значение; ввод числа здесь начинает заново.",
+		"many": "Выучено по последним {n} отрезкам, замеренным кнопкой <b>Прибыл</b> на вкладке «Бартер»: <b>{v} m/s</b> на 100%. Каждый отрезок, замеренный кнопкой Прибыл, уточняет значение; ввод числа здесь начинает заново.",
+		"other": "Выучено по последним {n} отрезкам, замеренным кнопкой <b>Прибыл</b> на вкладке «Бартер»: <b>{v} m/s</b> на 100%. Каждый отрезок, замеренный кнопкой Прибыл, уточняет значение; ввод числа здесь начинает заново."
+	},
 	"Learning the icons…": "Учим иконки…",
 	"Leave": "Выйти",
 	"Leave the boards": "Покинуть таблицы",
@@ -1505,6 +1518,20 @@
 	"Left a trip out of the run": "Рейс убран из плавания",
 	"Left on the way, waiting for another board": "Оставлено по пути, ждёт другой доски",
 	"Left out: {what} — {why}.": "Не включено: {what} — {why}.",
+	"Leg timed at {t}, not counted: the hold was over its limit": "Отрезок пройден за {t}, не учтён: трюм был сверх лимита",
+	"Leg timed at {t}. From your last {n} legs: {v} m/s at 100%": {
+		"one": "Отрезок пройден за {t}. По вашему последнему {n} отрезку: {v} m/s на 100%",
+		"few": "Отрезок пройден за {t}. По вашим последним {n} отрезкам: {v} m/s на 100%",
+		"many": "Отрезок пройден за {t}. По вашим последним {n} отрезкам: {v} m/s на 100%",
+		"other": "Отрезок пройден за {t}. По вашим последним {n} отрезкам: {v} m/s на 100%"
+	},
+	"Leg timed at {t}. From your last {n} legs: {v} m/s at 100%, and {lag} s a leg getting under way": {
+		"one": "Отрезок пройден за {t}. По вашему последнему {n} отрезку: {v} m/s на 100% и {lag} s на отрезок на отход",
+		"few": "Отрезок пройден за {t}. По вашим последним {n} отрезкам: {v} m/s на 100% и {lag} s на отрезок на отход",
+		"many": "Отрезок пройден за {t}. По вашим последним {n} отрезкам: {v} m/s на 100% и {lag} s на отрезок на отход",
+		"other": "Отрезок пройден за {t}. По вашим последним {n} отрезкам: {v} m/s на 100% и {lag} s на отрезок на отход"
+	},
+	"Leg timed at {t}: {v} m/s at 100%, from this leg alone — a few more and the time a leg takes getting under way is learned too": "Отрезок пройден за {t}: {v} m/s на 100%, только по этому отрезку — ещё несколько, и будет выучено и время, которое отрезок тратит на отход",
 	"Leg {n} could not be routed round the land and is drawn straight, dashed on the chart; the distance and time for it are a floor.": "Отрезок {n} не удалось проложить в обход суши, он нарисован прямым и пунктиром на карте; расстояние и время по нему — это минимум.",
 	"Leg {select}": "Отрезок {select}",
 	"Legs bend round the land like a barter route’s, and a stop dropped on a headland steps off into the water beside it.": "Отрезки огибают сушу, как в бартерном маршруте, а точка, поставленная на мыс, сходит в воду рядом.",
@@ -2049,6 +2076,7 @@
 	"Preset 2": "Заготовка 2",
 	"Presets": "Заготовки",
 	"Press a step and the chart flies there and the call opens — every quest done at it, with what it wants, where it hands in and what it pays.": "Нажмите шаг — карта улетает туда и открывается заход: все задания, что там делаются, с тем, что им нужно, где сдавать и чем платят.",
+	"Press as the ship reaches the island, before trading: the leg is timed, and the chart learns how fast your ship really sails": "Нажмите, когда корабль дошёл до острова, до обмена: отрезок будет замерен, и карта узнает, как быстро на самом деле идёт ваш корабль",
 	"Press the count an island paid on its stop, and the trip is recorded at that instead": "Нажмите на стоянке, сколько заплатил остров, и рейс запишется по этой цифре",
 	"Preview": "Предпросмотр",
 	"Previous favourites put back": "Прежнее избранное возвращено",
@@ -3259,6 +3287,7 @@
 	"This is what a chime will look like when the ship is in.": "Вот так будет выглядеть сигнал, когда корабль придёт.",
 	"This island pays <b>{range}</b> a trade. Tap what it paid — the run is then recorded exactly.": "Этот остров платит <b>{range}</b> за обмен. Нажмите, сколько он заплатил, — и рейс запишется точно.",
 	"This island pays a range. Type what the window showed:": "Этот остров платит вилку. Впишите то, что показало окно:",
+	"This leg is timed; the speed is learned from it": "Этот отрезок замерен; по нему выучивается скорость",
 	"This link carries {items} in stock and {builds}. Look around it without touching yours, or take it in.": "Эта ссылка несёт {items} в запасе и {builds}. Посмотрите её, не трогая своё, или примите к себе.",
 	"This page is served over plain http, where no browser allows notifications — press to see what does work": "Эта страница отдаётся по обычному http, где ни один браузер не разрешает уведомления — нажмите, чтобы увидеть, что всё-таки работает",
 	"This records the purchase: the goods into your inventory, the coins off your purse, as one change. One Undo takes back both.": "Это записывает покупку: товары — в инвентарь, монеты — из кошелька, одной записью. Одна отмена вернёт и то и другое.",
@@ -3971,6 +4000,7 @@
 	"answered": "отвечено",
 	"anyone can read these; only the operator can answer one": "читать их может любой; ответить может только тот, кто держит приложение",
 	"appearance set": "набор внешнего вида",
+	"arrived in {t}": "прибыл за {t}",
 	"as a trace": "как след",
 	"as many chains at once as the hold carries, the tops sold before the next lot": "столько цепочек разом, сколько несёт трюм, верхушки продаются перед следующей партией",
 	"as one of the map's three navigation loops": "как один из трёх кругов навигации на карте",

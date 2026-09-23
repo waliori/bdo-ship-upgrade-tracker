@@ -120,6 +120,41 @@ export function calibrate(metres, seconds, pct) {
 	return Math.round((metres / seconds) / (pct / 100) * 100) / 100;
 }
 
+/**
+ * What the legs a sailor timed say about their ship: metres a second at
+ * 100%, and the seconds every leg costs apart from the sailing -- the
+ * turn out of the wharf, the run up to speed, the slow approach. Each
+ * sample is { m, s, pct }: a leg's metres, the seconds from the press
+ * that sent the ship off to the press that said it had arrived, and the
+ * speed it sailed at.
+ *
+ * With legs of different lengths the two are told apart by a straight
+ * line through them -- seconds against metres at 100% -- whose slope is
+ * the speed and whose foot is the cost a leg. With fewer, or legs all of
+ * a length, the middle leg's speed stands for both. Null when no sample
+ * is usable.
+ */
+export function learnSpeed(samples = []) {
+	const pts = samples
+		.filter(x => x && x.m > 0 && x.s > 0 && x.pct > 0)
+		.map(x => ({ x: x.m / (x.pct / 100), y: x.s }))
+		.filter(p => p.x / p.y >= 2 && p.x / p.y <= 40);
+	const n = pts.length;
+	if (!n) return null;
+	const r2 = v => Math.round(v * 100) / 100;
+	if (n >= 4) {
+		const xs = pts.map(p => p.x);
+		const mx = xs.reduce((a, v) => a + v, 0) / n, my = pts.reduce((a, p) => a + p.y, 0) / n;
+		let sxx = 0, sxy = 0;
+		for (const p of pts) { sxx += (p.x - mx) ** 2; sxy += (p.x - mx) * (p.y - my); }
+		const b = sxx > 0 ? sxy / sxx : 0, a = my - b * mx;
+		if (Math.max(...xs) >= Math.min(...xs) * 1.8 && b > 0 && a >= 0 && a <= 120 && 1 / b >= 2 && 1 / b <= 40) return { cal: r2(1 / b), lag: Math.round(a), n };
+	}
+	const rates = pts.map(p => p.x / p.y).sort((a, b) => a - b);
+	const mid = n % 2 ? rates[(n - 1) / 2] : (rates[n / 2 - 1] + rates[n / 2]) / 2;
+	return { cal: r2(mid), lag: 0, n };
+}
+
 export function fmtDistance(m) {
 	if (!(m >= 0)) return '';
 	return m < 950 ? T('{n} m', { n: Math.round(m / 10) * 10 }) : T('{n} km', { n: (m / 1000).toFixed(m < 9950 ? 1 : 0) });

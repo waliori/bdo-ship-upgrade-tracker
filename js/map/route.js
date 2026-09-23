@@ -60,7 +60,10 @@ export function routeHTML(marks) {
 	const localBoost = me.crystal && gradeById[me.crystal.grade].local ? me.speed.crystal : 0;
 	// Seconds for a leg, quick end and slow end, at the share of its
 	// speed the hull keeps with what is aboard at the start of the leg.
-	const secsOf = (m, slow = 1) => [sailRange(m, speed.sea * slow, cal, measured)[0], sailRange(m, (speed.sea - localBoost) * slow, cal, measured)[1]];
+	// And what every leg costs apart from the sailing, where the
+	// sailor's timed legs have shown one.
+	const lag = Math.max(0, Math.min(120, Number(store.getSetting('sailLag', 0)) || 0));
+	const secsOf = (m, slow = 1) => [sailRange(m, speed.sea * slow, cal, measured)[0] + lag, sailRange(m, (speed.sea - localBoost) * slow, cal, measured)[1] + lag];
 	const timeOf = (m, slow = 1) => m != null ? fmtRange(...secsOf(m, slow)) : '';
 	const costs = mv.stops.map(id => stopParley(id, marks, prof));
 	const ledger = routeLedger({
@@ -809,6 +812,13 @@ export function openSailCal() {
 		<p class="dialog-copy">${speed
 			? T('The game gives speed as a percentage and never says what 100% is in metres. The chart assumes <b>{def} m/s</b> and shows every time as a range a fifth either way; you are using <b>{now} m/s</b>. Time one leg in game at your {pct}% and the rest are corrected from it, with the range narrowed to a tenth.', { def: DEFAULT_CAL, now: sailCal(), pct: speed.total })
 			: T('The game gives speed as a percentage and never says what 100% is in metres. The chart assumes <b>{def} m/s</b> and shows every time as a range a fifth either way; you are using <b>{now} m/s</b>. Time one leg in game and the rest are corrected from it, with the range narrowed to a tenth.', { def: DEFAULT_CAL, now: sailCal() })}</p>
+		${(() => {
+			const log = store.getSetting('sailLog', []) || [];
+			const lag = Number(store.getSetting('sailLag', 0)) || 0;
+			return log.length ? `<p class="dialog-copy">${lag
+				? T('Learned from the last {n} legs you timed with <b>Arrived</b> on the Barter tab: <b>{v} m/s</b> at 100%, and <b>{lag} s</b> a leg getting under way and coming in. Each leg you time with Arrived refines it; setting a figure here starts it over.', { n: log.length, v: sailCal(), lag })
+				: T('Learned from the last {n} legs you timed with <b>Arrived</b> on the Barter tab: <b>{v} m/s</b> at 100%. Each leg you time with Arrived refines it; setting a figure here starts it over.', { n: log.length, v: sailCal() })}</p>` : '';
+		})()}
 		${legs.length ? `<label class="dialog-label">${T('Leg {select}', { select: `<select class="field select" data-cal-leg>${options}</select>` })}</label>` : `<p class="dialog-copy">${T('Plot a route first, then time one of its legs.')}</p>`}
 		<label class="dialog-label">${T('Took {input} minutes', { input: `<input class="field" type="text" inputmode="decimal" placeholder="${T('minutes, e.g. 6.5')}" data-cal-min>` })}</label>
 		<div class="dialog-actions">
@@ -818,6 +828,8 @@ export function openSailCal() {
 		</div>`);
 	host.querySelector('[data-cal-reset]').addEventListener('click', () => {
 		store.setSetting('sailCal', null);
+		store.setSetting('sailLag', 0);
+		store.setSetting('sailLog', []);
 		closeDialog();
 		refreshSide();
 		toast(T('Back to {v} m/s at 100%', { v: DEFAULT_CAL }));
@@ -828,6 +840,8 @@ export function openSailCal() {
 		const v = calibrate(metres, minutes * 60, speed ? speed.sea : 100);
 		if (!v) return toast(T('Give the minutes that leg took'));
 		store.setSetting('sailCal', v);
+		store.setSetting('sailLag', 0);
+		store.setSetting('sailLog', []);
 		closeDialog();
 		refreshSide();
 		paintMap();

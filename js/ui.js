@@ -32,7 +32,7 @@ import { openGuide, wireGuide } from './guide.js';
 import { renderPlan } from './screen-plan.js';
 import { renderBuilds, openBuildPicker, askRoute, toggleBlockers } from './screen-builds.js';
 import { renderInventory } from './screen-inventory.js';
-import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart, sailCurrent, sailJump, plannedChart } from './screen-barter.js';
+import { renderBarter, barterAction, barterChange, barterType, chartFragment, runSheetHTML, sailChart, sailCurrent, sailJump, plannedChart, sailIds } from './screen-barter.js';
 import { tickTimer, watchTimer } from './sail-timer.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
@@ -65,7 +65,7 @@ import {
 	saveRouteDialog, loadSavedRoute, deleteSavedRoute, mapWritingView, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite,
-	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet, setStepHook, mapStepToStop,
+	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet, setStepHook, mapStepToStop, routeIds, marksNow,
 	toggle3D, levelMap, setMapStyle
 } from './screen-map.js';
 
@@ -467,7 +467,18 @@ function showView(id) {
 	// the Barter tab -- All done… leaving a 2–3 island open, say -- left
 	// the chart on the stop it was last stepped to. After the draw, since
 	// stepping paints the chart it steps.
-	if (id === 'map') setTimeout(() => mapStepToStop(sailCurrent(), true), 0);
+	// A run cast off on the Barter tab never reached the chart, which kept
+	// whatever it held -- the plan's first trip, a route from yesterday --
+	// and so had none of the run's stops to step to. The chart takes the
+	// run being sailed whenever it holds anything else.
+	if (id === 'map') setTimeout(() => {
+		const ids = sailIds();
+		if (ids && ids.join(',') !== routeIds(marksNow()).join(',')) {
+			const frag = sailChart();
+			if (frag) { applyMapLink(frag); setMapMode('route'); render(); }
+		}
+		mapStepToStop(sailCurrent(), true);
+	}, 0);
 }
 
 /**

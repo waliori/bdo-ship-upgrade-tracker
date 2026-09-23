@@ -74,3 +74,21 @@ test('an overweight hull keeps less of its speed, in a straight line to the over
 	// A hold with no room over its limit is never slowed.
 	assert.equal(overweightFactor(12000, 10000, 10000), 1);
 });
+
+import { learnSpeed } from '../js/sailing.js';
+
+test('legs timed with Arrived give back the speed and the cost a leg that timed them', () => {
+	// A ship at 123% that sails 9.5 m/s at 100% and loses 25 s a leg.
+	const leg = m => ({ m, s: 25 + m / (9.5 * 1.23), pct: 123 });
+	const fit = learnSpeed([leg(2000), leg(3500), leg(6000), leg(9000)]);
+	assert.deepEqual(fit, { cal: 9.5, lag: 25, n: 4 });
+	// Fewer legs, or legs all of a length: the middle one's speed, no lag.
+	const one = learnSpeed([leg(3000)]);
+	assert.equal(one.lag, 0);
+	assert.ok(one.cal < 9.5 && one.cal > 7, `${one.cal}: the leg's own cost is in it`);
+	assert.equal(learnSpeed([leg(3000), leg(3100), leg(3050), leg(2990)]).lag, 0);
+	// A press forgotten until long after -- or made at once -- is left out.
+	assert.deepEqual(learnSpeed([leg(2000), leg(3500), leg(6000), leg(9000), { m: 900, s: 420, pct: 123 }, { m: 6000, s: 20, pct: 123 }]), { cal: 9.5, lag: 25, n: 4 });
+	assert.equal(learnSpeed([]), null);
+	assert.equal(learnSpeed([{ m: 0, s: 10, pct: 100 }]), null);
+});

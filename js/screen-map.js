@@ -11,7 +11,7 @@ export {
 	mapWritingView
 } from './map/state.js';
 export {
-	barterKind, seaBent, straightLegs
+	barterKind, seaBent, straightLegs, routeIds, marksNow
 } from './map/marks.js';
 export {
 	renderMap

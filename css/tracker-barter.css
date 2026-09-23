@@ -1439,3 +1439,5 @@ button.rung-fate { cursor: pointer; }
 .plan-shape .run-pick-k { margin: 0; }
 .plan-shape .panel-sub { font-size: 12.5px; }
 .st-figs b.amber { color: var(--amber); }
+.cockpit-head .arrived-btn { margin-left: 8px; }
+.cockpit-head .arrived-said { margin-left: 8px; font-size: 12px; color: var(--teal); }
