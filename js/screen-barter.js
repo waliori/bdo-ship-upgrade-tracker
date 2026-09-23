@@ -1443,6 +1443,11 @@ function boardFromHistory(since) {
 		}
 	}
 	const c = last.cont;
+	// The harbour it sailed from, when none is set: its storage is where
+	// the goods it left are, and a chain can only start from goods the run
+	// can load.
+	const home = ports.find(p => p.name === last.port);
+	if (!port && home) port = home.id;
 	return { pinned: last.layout, pinnedAt: last.at || 0, used, usedFor: last.layout, last: c && c.ids && c.ids.length ? { at: last.at || 0, ids: c.ids, isles: c.isles || [], done: c.done || 0, all: c.all || 0, off: false } : board.last || null };
 }
 
@@ -4048,6 +4053,21 @@ function silverParts(me, b) {
 	const land = landHeld(store.getAllStock());
 	const covered = c => c.from !== 'land' || o.landFrom !== 'stock' || (land.get(c.item) || 0) >= c.rungs[0].giveN;
 	const everything = spendUsed(chains(b.data, stock, dock, prof.barterCount, ceilingNow, coining), b);
+	// Goods on this board's ladders held in a harbour's storage the run
+	// does not sail from: a chain can only start from what it can load,
+	// so they are offered nowhere. Said, with the harbour to sail from.
+	const heldAt = (() => {
+		if (from) return null;
+		const gives = new Set(everything.flatMap(c => c.rungs.map(r => r.give)));
+		let best = null;
+		for (const p of ports) {
+			let n = 0;
+			for (const g of gives) if (levelOf(g) !== null && store.stockAt(g, p.name) > 0) n++;
+			if (n && (!best || n > best.n)) best = { p, n };
+		}
+		return best;
+	})();
+	const heldNote = heldAt ? `<div class="rolled-note held-note"><b>${heldAt.n === 1 ? T('{n} good on these ladders waits in the storage at {port}', { n: heldAt.n, port: esc(gameName(heldAt.p.name)) }) : T('{n} goods on these ladders wait in the storage at {port}', { n: heldAt.n, port: esc(gameName(heldAt.p.name)) })}</b> <span>${T('The run sails from no harbour, so it loads from no storage and every chain starts from the shore. Sail from {port} to start a climb from what you hold there.', { port: esc(gameName(heldAt.p.name)) })}</span><span class="panel-spacer"></span><button class="chip tiny primary" data-act="barter-port-set" data-id="${heldAt.p.id}">${T('Sail from {port}', { port: esc(gameName(heldAt.p.name)) })}</button></div>` : '';
 
 	const shutChains = everything.filter(c => c.gate && (o.buy || c.from !== 'land') && covered(c));
 	let all = everything.filter(c => (o.buy || c.from !== 'land') && !c.gate && covered(c));
@@ -4324,7 +4344,7 @@ function silverParts(me, b) {
 				: T('{n} floors are holding the run back', { n: shutByFloor.length })}</b> — ${floorWhy}. ${one
 				? T('There is none of it to spend, so no chain can start from it.')
 				: T('There is none of them to spend, so no chain can start from them.')} ${dropFloors(shutByFloor.map(f => f.lv))}</div>`;
-	let chainsBody = `<div class="barter-chains">${chainActs(fillable)}${floorNote}${shutNote}${reachBar}${reach ? '' : `${pickHelp}${proposals}<!--minevs-->`}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.landFrom === 'stock' && o.buy ? T('No chain on this board starts from a shore good you keep. Let the run buy its land goods ashore, or add what you have with ＋ A good.') : o.buy ? T('Nothing climbs on this board.') : T('Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.')) : T('No chain matches.')}</p>`}</div></div>`;
+	let chainsBody = `<div class="barter-chains">${heldNote}${chainActs(fillable)}${floorNote}${shutNote}${reachBar}${reach ? '' : `${pickHelp}${proposals}<!--minevs-->`}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.landFrom === 'stock' && o.buy ? T('No chain on this board starts from a shore good you keep. Let the run buy its land goods ashore, or add what you have with ＋ A good.') : o.buy ? T('Nothing climbs on this board.') : T('Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.')) : T('No chain matches.')}</p>`}</div></div>`;
 
 	// The sailor's own changes to the route belong to this set of chains
 	// on this board: a new board or a new tick starts from the planner's.
@@ -6083,6 +6103,7 @@ export function barterAction(act, el, redraw) {
 		case 'barter-reach-clear': reach = ''; persist(); return true;
 		case 'barter-board-clear': board = { day: barterKey(), answers: [], own: false, fresh: true, freshAt: Date.now() }; persist(); return true;
 		case 'barter-board-same': board = { ...board, rolled: false }; persist(); return true;
+		case 'barter-port-set': port = ports.some(p => p.id === Number(el.dataset.id)) ? Number(el.dataset.id) : 0; persistNamed(T('Changed where the run sails from')); return true;
 		case 'barter-continue': {
 			const ids = String(el.dataset.ids || '').split('\n').filter(Boolean);
 			if (!ids.length) return false;

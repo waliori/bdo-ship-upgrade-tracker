@@ -798,6 +798,7 @@
 	"Changed what is fitted": "Изменено, что установлено",
 	"Changed what your workers make": "Изменено, что делают ваши рабочие",
 	"Changed where new things land": "Изменено, куда попадают новые вещи",
+	"Changed where the run sails from": "Изменён порт отплытия",
 	"Changed where things are kept": "Изменено, где хранятся вещи",
 	"Changed who sits where": "Изменено, кто где сидит",
 	"Changed your barter count": "Изменён ваш счёт бартеров",
@@ -2354,6 +2355,7 @@
 	"Safari shows notifications once the app is on the Home Screen — press to see how": "Safari показывает уведомления, когда приложение стоит на домашнем экране — нажмите, чтобы узнать как",
 	"Sail": "Парус",
 	"Sail a saved setup instead — the times follow its speed": "Или идти сохранённой сборкой — времена пойдут по её скорости",
+	"Sail from {port}": "Отплыть из {port}",
 	"Sail here one stop later": "Сюда на одну остановку позже",
 	"Sail here one stop sooner": "Сюда на одну остановку раньше",
 	"Sail in as many departures as the hold needs": "Сделать столько выходов, сколько потребует трюм",
@@ -3065,6 +3067,7 @@
 	"The run is laid at the least; tap what each island paid as you sail and the rest is laid again from it.": "Рейс рассчитан по минимуму; отмечайте, сколько дал каждый остров, и остальное пересчитается.",
 	"The run is planned on the bar alone; where that runs out, the sheet says so": "Рейс планируется только по полосе; где её не хватает, лист рейса об этом скажет",
 	"The run priced a land good at its last sale and never asked whether any were for sale. It asks now: <b>a run buys only what the Market has</b>, and a chain that cannot start is not one you can tick. His screenshot also turned out to be in another font, which is why the reader now knows all of them.": "Рейс оценивал сухопутный товар по последней продаже и вовсе не спрашивал, есть ли он в продаже. Теперь спрашивает: <b>рейс покупает только то, что есть на рынке</b>, а цепочку, которая не может начаться, не отметить. Его снимок оказался ещё и в другом шрифте — потому распознавание теперь знает их все.",
+	"The run sails from no harbour, so it loads from no storage and every chain starts from the shore. Sail from {port} to start a climb from what you hold there.": "Рейс не отплывает ни из какого порта: он ничего не грузит со складов, и каждая цепочка начинается с берега. Отплывите из {port}, чтобы подниматься от того, что там хранится.",
 	"The run sheet — two shelves, and one list": "Лист рейса — две полки и один список",
 	"The run should be done": "Рейс уже должен быть пройден",
 	"The run so far": "Рейс пока",
@@ -5938,6 +5941,7 @@
 		"one": "{n} товар отдан, {value}, если бы продали",
 		"other": "{n} товаров отдано, {value}, если бы продали"
 	},
+	"{n} good on these ladders waits in the storage at {port}": "{n} товар этих лестниц ждёт на складе в {port}",
 	"{n} goods": {
 		"few": "{n} товара",
 		"many": "{n} товаров",
@@ -5958,6 +5962,7 @@
 		"other": "{n} товаров отдано, {value}, если бы продали"
 	},
 	"{n} goods left over": "лишних товаров: {n}",
+	"{n} goods on these ladders wait in the storage at {port}": "{n} товаров этих лестниц ждут на складе в {port}",
 	"{n} goods put back ashore": "возвращено на берег: {n}",
 	"{n} goods short of the targets.": {
 		"few": "до цели не хватает {n} товаров.",
