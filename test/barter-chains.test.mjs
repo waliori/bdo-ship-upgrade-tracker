@@ -549,3 +549,29 @@ test('a [Level 4] aboard on a coin day is offered the island that cashes it', ()
 	// nowhere to go: the ceiling means what it meant.
 	assert.deepEqual(chains(data, { [good]: 1 }, {}, null, 4, false).filter(c => c.from === 'hold'), []);
 });
+
+test('a later lot\'s goods wait in the harbour\'s storage until the ship calls back for them, and full-never-slower never ends a trade over the limit', () => {
+	// Layout 34, sailed from Iliya with six Level 4-5 piles in its
+	// storage: loaded all at once they filled the hold, the later chains
+	// found no room, and their loads were then trimmed to "nothing left
+	// to hand over" beside a storage full of it.
+	const l34 = combos.find(c => c.id === '34');
+	const d34 = boardData(l34, barterData, npcById);
+	const dock = { '[Level 5] Supreme Gold Candlestick': 6, '[Level 5] 102 Year Old Golden Herb': 4, "[Level 5] Statue's Tear": 3, '[Level 5] Golden Fish Scale': 3, '[Level 4] Old Chest with Gold Coins': 36, '[Level 4] Bronze Candlestick': 18 };
+	const chosen = chains(d34, {}, dock).filter(c => c.from === 'dock' && c.top === 7 && dock[c.item]);
+	assert.ok(chosen.length >= 5, `the fixture ticks the dock's chains (${chosen.length})`);
+	const start = ports.find(p => p.name === 'Iliya Island');
+	const small = { free: 20889, deal: 26111, max: 35500 };
+	const run = chainRun({ chosen, dock, hold: small, parley: { bar: 1000000, perTrade: 10512 }, npcById, start, stashes, pace: 'steady', orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7 } });
+	assert.ok(run.lots.length > 1, 'more than the hold carries at once: lots');
+	const calls = run.stops.filter(s => s.wharf && s.loads && s.loads.length);
+	assert.ok(calls.length, 'a later lot loads at a call');
+	assert.ok(calls.every(s => s.wharf.at === 'Iliya Island'), 'at the harbour its goods wait in');
+	const loadedAll = new Map();
+	for (const l of [...run.loaded, ...calls.flatMap(s => s.loads)]) loadedAll.set(l.item, (loadedAll.get(l.item) || 0) + l.n);
+	for (const [item, n] of loadedAll) assert.ok(n <= dock[item], `${item}: ${n} loaded of ${dock[item]}`);
+	assert.ok(!run.cut.some(c => c.why === 'nothing' && dock[c.give]), `no chain says "nothing to hand over" with its goods in storage: ${JSON.stringify(run.cut.map(c => [c.npc, c.why]))}`);
+	assert.ok(run.weightStart <= small.free, `${run.weightStart} LT at the start`);
+	for (const s of run.stops) assert.ok(s.weightAfter <= small.free + 1e-6, `${s.npc || s.wharf.at}: ${s.weightAfter} LT, never over the limit`);
+	run.stops.forEach((s, i) => { if (i && s.wharf && run.stops[i - 1].wharf) assert.notEqual(s.wharf.at, run.stops[i - 1].wharf.at, 'one call a wharf, not two in a row'); });
+});

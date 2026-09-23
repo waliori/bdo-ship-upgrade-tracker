@@ -4097,6 +4097,7 @@ function silverParts(me, b) {
 	// what is left in storage and the run cast off are all laid from the
 	// chains that are packed, and laid again as each one comes aboard.
 	const packRows = (() => { const pk = packingOf(plan, from, chosen); return [...pk.market, ...pk.storage, ...pk.aboard]; })();
+	const laterLoads = new Set(plan.stops.flatMap(x => (x.wharf && x.loads) || []).map(l => l.item));
 	const packedChain = c => {
 		const row = packRows.find(x => x.item === c.item) || packRows.find(x => x.item === c.rungs[0].give);
 		// A chain with no row on the list was taken as packed -- and a
@@ -4104,7 +4105,9 @@ function silverParts(me, b) {
 		// can be loaded) has no row, so it was drawn as the one chain
 		// aboard with nothing aboard. Without a row it is packed only
 		// when its first good is on the ship.
-		return row ? packedNow(row) : (aboardStock()[c.rungs[0].give] || 0) > 0;
+		// A chain of a later lot loads at the harbour call before it, on
+		// the way: it has no row, and is packed by the run itself.
+		return row ? packedNow(row) : (aboardStock()[c.rungs[0].give] || 0) > 0 || laterLoads.has(c.rungs[0].give);
 	};
 	const ready = sailing() ? chosen : chosen.filter(packedChain);
 	let rPlan = plan, rLegs = legs, rBook = book, rQp = qp;

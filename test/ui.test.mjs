@@ -1687,9 +1687,12 @@ async function laidOut(page) {
 	// The route is laid from what is aboard: everything on the packing
 	// list ticked, row by row, the way a sailor at the wharf does it.
 	for (let i = 0; i < 40; i++) {
-		const box = await page.$('.pack-row:not(.on) .pack-box');
-		if (!box) break;
-		await box.click(); await wait(150);
+		// Clicked as an element, not at a point on the screen: a row low
+		// on a long list sits under the bar pinned at the foot, and a
+		// click there presses "Back to the plan".
+		const clicked = await page.evaluate(() => { const b = document.querySelector('.pack-row:not(.on) .pack-box'); if (b) b.click(); return !!b; });
+		if (!clicked) break;
+		await wait(150);
 	}
 	await wait(200);
 }
@@ -2068,7 +2071,10 @@ test('the packing list ticks both ways, and what a row says is what its button m
 		store.setStockAt('[Level 2] Conch Shell Ornament', 'Iliya Island', 20, 'ashore');
 	});
 	await page.waitForFunction(() => document.querySelector('.proposal') && !document.querySelector('.proposals.working'), { timeout: 20000 });
-	// The chain that starts from what is waiting at the wharf.
+	// The chain that starts from what is waiting at the wharf, on its
+	// own: beside the search's picks it would be a later lot, and a later
+	// lot's goods wait in the storage for the call before it.
+	await page.evaluate(() => document.querySelectorAll('.chain.on').forEach(c => c.click())); await wait(1500);
 	const ticked = await page.evaluate(() => {
 		for (const c of document.querySelectorAll('.chain:not(.on):not([disabled])')) {
 			if (/loaded before casting off/i.test(c.innerText)) { c.click(); return true; }

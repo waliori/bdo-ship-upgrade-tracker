@@ -295,6 +295,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// numbers were nonsense and the run looked mad.
 	const ashore = goodsHeld(dock);
 	const loaded = [];
+	const loadOf = new Map();   // chain -> { item, n } it loaded at the start harbour
 	for (const c of chosen) {
 		if (c.from === 'land') continue;
 		const have = ashore.get(c.item) || 0;
@@ -308,6 +309,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		if (n >= have) ashore.delete(c.item); else ashore.set(c.item, have - n);
 		held.set(c.item, (held.get(c.item) || 0) + n);
 		loaded.push({ item: c.item, n });
+		loadOf.set(c, { item: c.item, n });
 	}
 	const perTrade = parley.perTrade;
 	const used = new Set();
@@ -357,7 +359,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		}
 	}
 	const heldMax = new Map(held);          // and weighed at the most
-	const weightStart = weightHeld(held);
+	let weightStart = weightHeld(held);
 	let weight = weightStart, peak = weightStart, spent = 0;
 	let at = start;
 
@@ -411,8 +413,9 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	};
 	// Whether the climbs given -- [{ rs, a }] -- fit under `limit`
 	// together, from what is aboard now.
-	const fitsAll = (plans, limit) => {
+	const fitsAll = (plans, limit, without = []) => {
 		const goods = new Map(held), most = new Map(heldMax);
+		for (const l of without) for (const m of [goods, most]) { const left = (m.get(l.item) || 0) - l.n; if (left > 1e-9) m.set(l.item, left); else m.delete(l.item); }
 		for (const { rs, a } of plans) {
 			for (let k = 0; k < rs.length; k++) {
 				const r = rs[k];
@@ -433,15 +436,26 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// order, the next lot after the last is sold. A rung at an island an
 	// earlier chain reaches is left out of the reckoning, since it deals
 	// nothing.
+	// The harbour the run sails from, when it has a storage the run calls
+	// at: a lot's first goods can wait there until the ship comes back
+	// for them, rather than all of them riding out at the start. Loading
+	// every chain's goods at once put sixteen thousand LT of Level 4 and
+	// 5 goods on a ship that barters to twenty -- the later chains found
+	// no room, their loads were then trimmed to nothing, and the run
+	// said there was "nothing left to hand over" beside a storage full
+	// of it.
+	const homeWharf = start && stashes.find(w => w.at === start.name) || null;
+	const hostOf = c => (order.includes(c) ? c : order.find(d => tailOf(d, c))) || null;
+	const loadsOutside = ks => [...loadOf].filter(([c]) => { const h = hostOf(c); return !h || !ks.includes(order.indexOf(h)); }).map(([, l]) => l);
 	const lots = [];
 	if (way === 'sea') {
 		const limit = pace === 'fast' ? hold.free : deal;   // steady's deal is the limit already
 		const isles = new Set();
 		const ladder = c => { const rs = c.rungs.filter(r => !isles.has(r.npcId)); for (const r of rs) isles.add(r.npcId); return rs.length ? rs : null; };
-		const lotFits = ladders => {
+		const lotFits = (ladders, without = []) => {
 			const ps = ladders.map(rs => ({ rs, topWant: rs[rs.length - 1].tries, least: Math.ceil(rs[rs.length - 1].tries / 2) }));
 			for (const p of ps) p.a = vec(p.rs, p.topWant, p.rs.map(() => 0));
-			while (!fitsAll(ps, limit)) {
+			while (!fitsAll(ps, limit, without)) {
 				const m = ps.reduce((x, p) => (p.topWant > x.topWant ? p : x));
 				if (m.topWant <= m.least) return false;
 				m.topWant--;
@@ -452,13 +466,31 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		let lot = [], ladders = [];
 		order.forEach((c, k) => {
 			const rs = ladder(c);
-			if (rs && lot.length && !lotFits([...ladders, rs])) { lots.push(lot); lot = []; ladders = []; }
+			if (rs && lot.length && !lotFits([...ladders, rs], homeWharf ? loadsOutside([...lot, k]) : [])) { lots.push(lot); lot = []; ladders = []; }
 			lot.push(k);
 			if (rs) ladders.push(rs);
 		});
 		if (lot.length) lots.push(lot);
 	} else order.forEach((c, k) => lots.push([k]));
 
+	// The later lots' goods stay ashore until the ship calls back for
+	// them: off the hold at the start, and onto it at the call before
+	// their lot.
+	const pending = new Map();   // lot -> [{ item, n }]
+	if (homeWharf && lots.length > 1) {
+		for (const [c, l] of loadOf) {
+			const h = hostOf(c);
+			const lot = h ? lots.findIndex(ks => ks.includes(order.indexOf(h))) : 0;
+			if (lot <= 0) continue;
+			for (const m of [held, heldMax]) { const left = (m.get(l.item) || 0) - l.n; if (left > 1e-9) m.set(l.item, left); else m.delete(l.item); }
+			const e = loaded.find(x => x.item === l.item);
+			if (e) e.n -= l.n;
+			pending.set(lot, [...(pending.get(lot) || []), { ...l }]);
+		}
+		for (let k = loaded.length - 1; k >= 0; k--) if (loaded[k].n <= 1e-9) loaded.splice(k, 1);
+		weightStart = weightHeld(held);
+		weight = weightStart; peak = weightStart;
+	}
 	const rungs = sequence(order, lots, npcById, start);
 	// A stop the sailor moved sooner or later, a step at a time, never
 	// past a rung of its own chain -- a good is not handed over before it
@@ -533,10 +565,15 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// A wharf call: the goods in `sale` sold, the goods in `drop` (from
 	// the counted hold) left in storage, along with all of them the
 	// weighed hold may be carrying.
-	const call = (wharf, drop, chain, sale = []) => {
-		const stop = { wharf, dropped: [], weightAfter: 0, chain };
+	const call = (wharf, drop, chain, sale = [], loads = []) => {
+		// Two calls in a row at one wharf are one call: the sale and the
+		// load for the next lot, then what the next rung needs left.
+		const last = stops[stops.length - 1];
+		const again = !!(last && last.wharf && last.wharf.at === wharf.at);
+		const stop = again ? last : { wharf, dropped: [], weightAfter: 0, chain };
 		if (sale.length) {
-			stop.sale = { n: 0, total: 0, levels: new Set(), items: [] };
+			if (stop.sale) stop.sale.levels = new Set(stop.sale.levels);
+			else stop.sale = { n: 0, total: 0, levels: new Set(), items: [] };
 			for (const [name, n] of sale) {
 				owning(name, -n);
 				sold.push({ item: name, n, each: sellOf(name), total: n * sellOf(name), at: wharf.at, chain });
@@ -558,9 +595,15 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			stashed.push({ item: name, n, at: wharf.at, each: sellOf(name), total: n * sellOf(name), chain });
 			stop.dropped.push({ item: name, n });
 		}
+		// And what waits in this storage for the lot about to start.
+		if (loads.length) {
+			stop.loads = [...(stop.loads || []), ...loads.map(l => ({ item: l.item, n: l.n }))];
+			for (const l of loads) for (const m of [held, heldMax]) m.set(l.item, (m.get(l.item) || 0) + l.n);
+		}
 		weight = weightHeld(heldMax);
+		peak = Math.max(peak, weight);
 		stop.weightAfter = weight;
-		stops.push(stop);
+		if (!again) stops.push(stop);
 		at = wharf;
 	};
 	const wharfFor = next => prefer || stashes.reduce((a, w) => (dist(at, w) + dist(w, next) < dist(at, a) + dist(a, next) ? w : a));
@@ -600,7 +643,9 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			// the surplus left ashore on the way up. Sharing the hold out
 			// here used to thin a full run to one attempt a rung the
 			// moment two chains climbed together.
-			if (i > 0 && stashes.length && (pace === 'fast' || way === 'sea') && saleAt(i).length) call(wharfFor(npc), [], chain, saleAt(i));
+			const waiting = pending.get(lot) || [];
+			if (i > 0 && waiting.length) call(homeWharf, [], chain, saleAt(i), waiting);
+			else if (i > 0 && stashes.length && (pace === 'fast' || way === 'sea') && saleAt(i).length) call(wharfFor(npc), [], chain, saleAt(i));
 			if (pace === 'fast') share(lots[lot].map(k => order[k]), hold.free);
 		}
 		// What is aboard above the floor kept back is what can be spent.
@@ -633,6 +678,10 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 				if (dw(r) <= 0) return want;
 				let t = Math.min(want, Math.floor((deal - w) / dw(r) + 1e-9) + 1, Math.floor((hold.max - w) / dw(r) + 1e-9));
 				const under = Math.floor((deal - w) / dw(r) + 1e-9);
+				// Full and never slower: no trade ends over the limit, even
+				// one a wharf call would bring back under -- the leg to that
+				// wharf is sailed slow.
+				if (pace === 'steady') return Math.max(0, Math.min(t, under));
 				if (t > under) {
 					const after = new Map(goods);
 					if (!ashore || after.has(r.give)) after.set(r.give, after.get(r.give) - t * r.giveN);
@@ -789,15 +838,24 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
  */
 export function chainRun(opts = {}) {
 	let plan = chainRunOnce(opts);
+	const first = plan;
 	const aboard = goodsHeld(opts.stock || {});
-	for (let pass = 0; pass < 3 && (plan.loaded.length || plan.landLoaded.length); pass++) {
+	// Loaded at the start or at a call back to the harbour for a later
+	// lot: the same storage, counted together.
+	const loadsOf = run => {
+		const m = new Map();
+		for (const l of [...run.loaded, ...run.stops.flatMap(x => x.loads || [])]) m.set(l.item, (m.get(l.item) || 0) + l.n);
+		return [...m].map(([item, n]) => ({ item, n }));
+	};
+	const trimmed = new Set();
+	for (let pass = 0; pass < 3 && (loadsOf(plan).length || plan.landLoaded.length); pass++) {
 		const given = new Map();
 		for (const s of plan.stops) if (s.npcId && s.give) given.set(s.give, (given.get(s.give) || 0) + (s.times || 0) * (s.giveN || 0));
 		const cap = new Map(opts.loadCap || []), landCap = new Map(opts.landCap || []);
 		let over = false;
-		for (const l of plan.loaded) {
+		for (const l of loadsOf(plan)) {
 			const need = Math.max(0, Math.ceil((given.get(l.item) || 0) - (aboard.get(l.item) || 0)));
-			if (l.n > need) { cap.set(l.item, need); over = true; }
+			if (l.n > need) { cap.set(l.item, need); over = true; if (!need) trimmed.add(l.item); }
 		}
 		// Land goods loaded and never handed over rode the whole run for
 		// nothing: laid again with the load held to what was spent.
@@ -808,6 +866,17 @@ export function chainRun(opts = {}) {
 		if (!over) break;
 		opts = { ...opts, loadCap: cap, landCap };
 		plan = chainRunOnce(opts);
+	}
+	// A chain whose load the first laying could not spend -- the hold
+	// full, the Parley gone -- is laid again with nothing loaded for it,
+	// and then reads as "nothing left to hand over" beside a storage full
+	// of it. The first laying's reason is the true one.
+	if (trimmed.size && plan !== first) {
+		plan.cut = plan.cut.map(c => {
+			if (c.why !== 'nothing' || !trimmed.has(c.give)) return c;
+			const was = first.cut.find(x => x.npcId === c.npcId && x.give === c.give);
+			return was && was.why !== 'nothing' ? { ...c, ...was, chain: c.chain, done: c.done, of: c.of, top: c.top } : c;
+		});
 	}
 	return plan;
 }
