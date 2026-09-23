@@ -10,12 +10,18 @@
 
 /* The chart fills what is left of the window rather than a fixed box,
    so a wide screen gets more sea instead of more margin. */
-.map-panel { padding: 0; overflow: hidden; }
+.map-panel { padding: 0; overflow: hidden; overflow: clip; }
 
 .map {
   position: relative;
   height: min(68vh, 780px);
+  /* Clipped, not hidden: a hidden box can still be scrolled from code,
+     and anything brought into view inside the side panel -- a row the
+     step list scrolls to, a button reached with Tab, find-in-page --
+     scrolled the whole chart up inside its frame, leaving the step
+     strip floating mid-chart. Clip cannot be scrolled at all. */
   overflow: hidden;
+  overflow: clip;
   cursor: grab;
   /* The tiles' own ocean colour, so a spot the chart does not cover --
      past its edge, inside a still-loading tile, under the transparent
