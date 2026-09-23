@@ -1096,8 +1096,7 @@
 .map-run .hold-slots { width: 100%; }
 .map-run .all-ticked { padding: 12px; }
 /* A planned run on the chart: the wharf step's route, narrow. */
-.map-run .run-stop-name, .map-run .rest-head > b { cursor: pointer; }
-.map-run .run-stop-name:hover, .map-run .rest-row:hover .rest-head > b { color: var(--blue-hi); text-decoration: underline; }
+.map-run .rest-row:hover .rest-head > b { color: var(--blue-hi); }
 .map-plan-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 10px; border: 1px solid var(--teal-edge); border-radius: var(--r-tile); background: var(--panel-inset); font-size: 12.5px; }
 .map-plan-bar .act { padding: 8px 14px; font-size: 13px; }
 .map-plan-aboard { color: var(--ink-mid); }
@@ -1108,6 +1107,15 @@
 .map-plan-route .run-seg-chains { gap: 4px; }
 .map-plan-route .run-edit-bar, .map-plan-route .route-edit { font-size: 12px; }
 .map-plan-route .run-stops { padding: 0; }
+/* Each stop a card of its own, the whole card a way to fly the chart
+   there; its buttons keep their own presses. */
+.map-plan-route .run-stops { display: flex; flex-direction: column; gap: 8px; }
+.map-plan-route .run-stop { background: var(--panel-inset); border: 1px solid var(--line); border-radius: var(--r-tile); padding: 6px 8px 2px 4px; cursor: pointer; transition: border-color .15s, background .15s; }
+.map-plan-route .run-stop:hover { border-color: var(--blue-edge, rgba(120, 170, 255, .45)); background: color-mix(in srgb, var(--panel-inset) 85%, var(--blue, #4d8eff) 15%); }
+.map-plan-route .run-stop:hover .run-stop-name { color: var(--blue-hi); }
+.map-plan-route .run-stop.wharf { border-style: dashed; }
+.map-plan-route .run-rail i { display: none; }
+.map-plan-route .run-trip-head { margin: 6px 0 0; }
 /* The hold and the Parley under the stop, not beside it: beside, the
    trade had a third of the panel and broke a word a line. */
 .map-plan-route .run-stop { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 0 10px; padding-right: 4px; }
