@@ -192,7 +192,7 @@ export function tailOf(long, short) {
  * it would sell for. `keep` names goods never sold, whatever the orders:
  * the good a material run sent the sailor here for.
  */
-function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [], land = new Map(), owned = null, loadCap = null, landCap = null, skipIsles = [], nudge = {}, effort = 2, ship = null } = {}) {
+function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [], land = new Map(), owned = null, loadCap = null, landCap = null, skipIsles = [], nudge = {}, tripOrder = [], effort = 2, ship = null } = {}) {
 	// What an island was seen to pay this run, tapped on the checklist,
 	// replaces the range the table gives for it: counted and weighed at
 	// that, no longer at the least and the most.
@@ -546,6 +546,14 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			const L = judge.cost(c);
 			if (L < best - 1e-6) { best = L; trips = c; }
 		}
+		// The sailor's own order for the trips, from the wharf step: the
+		// trips named are sailed in that order, any others after them in
+		// the planner's. A trip is named by its chains.
+		if (tripOrder.length && trips.length > 1) {
+			const keyOf = lot => lot.map(c => c.id).sort().join('+');
+			const at = lot => { const i = tripOrder.indexOf(keyOf(lot)); return i < 0 ? tripOrder.length : i; };
+			trips = trips.map((lot, i) => ({ lot, i })).sort((a, b) => at(a.lot) - at(b.lot) || a.i - b.i).map(x => x.lot);
+		}
 	} else {
 		const blocks = climbs.map(c => {
 			const pts = c.rungs.map(r => npcById.get(r.npcId));
@@ -652,7 +660,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// The run laid along a sequence of rungs: the stops, the sales, the
 	// wharf calls and the hold after each. Everything the laying moves
 	// is its own, so a sequence can be laid more than once.
-	const lay = (rungsIn, early = false) => {
+	const lay = (rungsIn, early = false, nudged = false) => {
 	// The later lots whose goods came aboard before their lot began.
 	const earlyLoaded = new Set();
 	const rungs = rungsIn.slice();
@@ -673,7 +681,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// past a rung of its own chain -- a good is not handed over before it
 	// is made. The wharf calls are laid after this, around the order as
 	// the sailor left it.
-	for (const [id, by] of Object.entries(nudge || {})) {
+	if (nudged) for (const [id, by] of Object.entries(nudge || {})) {
 		let i = rungs.findIndex(x => String(x.r.npcId) === String(id));
 		if (i < 0 || !by) continue;
 		const dir = Math.sign(by);
@@ -1104,8 +1112,10 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// a lot that no longer goes home starts from wherever the ship is.
 	if (eff >= 2 && pending.size) {
 		const soon = lay(best.rungs, true);
-		if (better(soon, best)) { best = soon; stitch(true); }
+		if (better(soon, best)) { best = soon; stitch(true); best.early = true; }
 	}
+	const chosenLaying = best;
+	best.relay = () => lay(chosenLaying.rungs, !!chosenLaying.early, true);
 	return best;
 	};
 
@@ -1118,10 +1128,18 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// once, and the run it settles on is laid in full after.
 	const cutKey = c => c.map(l => l.map(x => x.id).sort().join('+')).join('|');
 	let best = runCut(trips, effort);
-	if (effort >= 2 && plainCut && cutKey(plainCut) !== cutKey(trips)) {
+	// The old way is not tried against a trip order the sailor set: the
+	// order is theirs, better or worse.
+	if (effort >= 2 && plainCut && !tripOrder.length && cutKey(plainCut) !== cutKey(trips)) {
 		const plain = runCut(plainCut, 0);
 		if (better(plain, best)) best = plain;
 	}
+	// Stops the sailor moved are moved on the route they were looking at
+	// -- the one just chosen -- and nothing is tried against it after.
+	// Laid on any other base, a nudge moved a stop the sailor never saw.
+	if (Object.keys(nudge || {}).length && best.relay) best = best.relay();
+	delete best.relay;
+	delete best.early;
 	return best;
 }
 

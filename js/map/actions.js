@@ -214,7 +214,7 @@ export function mapStepToStop(cur, fly = undefined) {
 	const i = cur.npcId
 		? seq.findIndex(s => s.kind === 'npc' && s.id === cur.npcId)
 		: seq.findIndex(s => s.kind === 'stash' && s.place.i === cur.before && (!cur.wharfAt || s.place.at === cur.wharfAt));
-	if (i < 0 || i === mv.stepIdx) return;
+	if (i < 0 || (i === mv.stepIdx && fly !== true)) return;
 	moveStep(i, fly === undefined ? mv.follow : fly);
 }
 

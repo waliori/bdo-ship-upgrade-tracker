@@ -521,7 +521,7 @@ const VIEW_CAPS = {
 	},
 	timer: {},
 	barter: {
-		'board.answers': 120, 'matBoard.answers': 120, 'wants': 60, 'routes.ids': 40,
+		'board.answers': 120, 'board.used': 100, 'board.last.ids': 20, 'board.last.isles': 20, 'matBoard.answers': 120, 'wants': 60, 'routes.ids': 40,
 		'sail.stops': 80, 'sail.done': 80, 'questSkip.ids': 100, 'questPull.ids': 100
 	}
 };

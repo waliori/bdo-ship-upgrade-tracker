@@ -188,3 +188,30 @@ test('the old way is the floor: a shorter route that is worth less an hour is no
 	assert.ok(sailed(f2, ports[0]) < sailed(f0, ports[0]) * 0.85);
 	assert.ok(f2.trades >= f0.trades && f2.net >= f0.net);
 });
+
+test('the sailor has the last word: a trip order set is sailed as set, and a stop moved moves on the route that was shown', () => {
+	const d34 = boardData(combos.find(c => c.id === '34'), barterData, npcById);
+	const stock = { "[Level 5] Statue's Tear": 3, '[Level 4] Old Chest with Gold Coins': 6 };
+	const dock = { '[Level 5] Supreme Gold Candlestick': 6, '[Level 5] 102 Year Old Golden Herb': 4, '[Level 5] Golden Fish Scale': 3, '[Level 4] Old Chest with Gold Coins': 30, '[Level 4] Bronze Candlestick': 18 };
+	const want = ['[Level 5] Supreme Gold Candlestick', '[Level 5] 102 Year Old Golden Herb', "[Level 5] Statue's Tear", '[Level 5] Golden Fish Scale', '[Level 4] Old Chest with Gold Coins', '[Level 4] Bronze Candlestick'];
+	const all = chains(d34, stock, dock).filter(c => c.top === 7 && c.from !== 'land');
+	const chosen = want.map(w => all.find(c => c.item === w)).filter(Boolean);
+	const start = ports.find(p => p.name === 'Iliya Island');
+	const base = { chosen, stock, dock, hold: { free: 20889, deal: 26111, max: 35500 }, parley: { bar: 674128, perTrade: 10512 }, npcById, start, stashes, pace: 'steady', orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7 } };
+	const run = chainRun(base);
+	assert.ok(run.lots.length >= 3, 'three trips or more');
+	const keyOf = lot => lot.map(k => run.order[k].id).sort().join('+');
+	const keys = run.lots.map(keyOf);
+	// The last trip first, then the rest in the planner's order.
+	const flipped = chainRun({ ...base, tripOrder: [keys[keys.length - 1], ...keys.slice(0, -1)] });
+	assert.equal(keyOf.call(null, flipped.lots[0].map(k => run.order.indexOf(flipped.order[k]))), keys[keys.length - 1]);
+	// One stop moved a place sooner: every other stop keeps its place.
+	const isles = r => r.stops.filter(s => s.npcId).map(s => s.npcId);
+	const was = isles(run);
+	const i = was.findIndex((id, k) => k > 0 && run.stops.find(s => s.npcId === id).chain !== run.stops.find(s => s.npcId === was[k - 1]).chain);
+	assert.ok(i > 0, 'a stop whose neighbour before it is of another chain');
+	const moved = chainRun({ ...base, nudge: { [was[i]]: -1 } });
+	const now = isles(moved);
+	const expect = was.slice(); [expect[i - 1], expect[i]] = [expect[i], expect[i - 1]];
+	assert.deepEqual(now, expect, 'the two stops swapped, the rest as shown');
+});

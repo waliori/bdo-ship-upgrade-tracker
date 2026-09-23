@@ -785,6 +785,17 @@ export function getView(ns) {
 	return views && isProfile(views[ns]) ? views[ns] : null;
 }
 
+/** A screen's view written as a change of its own, with a label, so
+ *  Undo takes it back: the route as the sailor edited it on the wharf. */
+export function setViewNamed(ns, obj, label) {
+	const views = { ...(state.profile.views || {}) };
+	const clean = readView(ns, obj);
+	if (clean) views[ns] = clean;
+	else delete views[ns];
+	if (JSON.stringify(views) === JSON.stringify(state.profile.views || {})) return;
+	setProfile('views', views, label);
+}
+
 /** Write a screen's view, or clear it with null. */
 export function setView(ns, obj) {
 	const views = { ...(state.profile.views || {}) };

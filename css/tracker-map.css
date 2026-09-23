@@ -1096,6 +1096,8 @@
 .map-run .hold-slots { width: 100%; }
 .map-run .all-ticked { padding: 12px; }
 /* A planned run on the chart: the wharf step's route, narrow. */
+.map-run .run-stop-name, .map-run .rest-head > b { cursor: pointer; }
+.map-run .run-stop-name:hover, .map-run .rest-row:hover .rest-head > b { color: var(--blue-hi); text-decoration: underline; }
 .map-plan-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 10px; border: 1px solid var(--teal-edge); border-radius: var(--r-tile); background: var(--panel-inset); font-size: 12.5px; }
 .map-plan-bar .act { padding: 8px 14px; font-size: 13px; }
 .map-plan-aboard { color: var(--ink-mid); }

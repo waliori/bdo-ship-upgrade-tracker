@@ -955,6 +955,12 @@ function wire() {
 		// cockpit stands -- the next stop after a tick, a stop tapped in
 		// the rest of the run. The results are the tab's step, so that
 		// press goes there.
+		// A stop's name in the chart's panel flies the chart there; on the
+		// Barter tab it is only a name.
+		if (act === 'barter-fly') {
+			if (el.closest('.map-run')) mapStepToStop({ npcId: Number(el.dataset.npc) || null, wharfAt: el.dataset.wharf || null, before: Number(el.dataset.before ?? -1) }, true);
+			return;
+		}
 		if (act.startsWith('barter-') && act !== 'barter-level' && el.closest('.map-run')) {
 			const was = barterAction(act, el, render);
 			if (act === 'barter-step') { showView('barter'); return; }
@@ -965,7 +971,8 @@ function wire() {
 			// chart follows the plan.
 			const frag = sailCurrent() ? (act === 'barter-cast-off' ? sailChart() : null) : plannedChart();
 			if (frag) applyMapLink(frag);
-			mapStepToStop(sailCurrent());
+			// A stop tapped in the rest of the run: the chart flies there too.
+			mapStepToStop(sailCurrent(), act === 'barter-sail-jump' ? true : undefined);
 			render();
 			return;
 		}
