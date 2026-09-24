@@ -761,6 +761,30 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .lb-readers b { color: var(--ink-hi); }
 .lb-readers .linky { font-size: 12px; margin-left: 6px; }
 
+/* the plan as three steps: what the day is for, the board, the run */
+.day-step { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: 6px 2px -2px; }
+.day-step > i { align-self: center; flex: none; display: grid; place-items: center; width: 24px; height: 24px; font-style: normal; font-family: var(--font-display); font-size: 12px; font-weight: 700; border-radius: 50%; border: 1px solid var(--teal-edge); color: var(--teal-hi); background: var(--teal-glow); }
+.day-step > b { font-family: var(--font-display); font-size: 14px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-hi); }
+.day-step-sub { font-size: 12px; color: var(--ink-mute); }
+.day-step .linky { font-size: 12px; }
+.goal-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.goal-card { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 10px 12px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: var(--panel-strong); border: 1px solid var(--line); border-radius: var(--r-tile); transition: border-color 0.12s, background 0.12s; }
+.goal-card:hover { border-color: var(--line-btn-hi); }
+.goal-card.on { border-color: var(--teal-edge); background: var(--teal-glow); }
+.goal-card-top { display: flex; align-items: center; gap: 7px; }
+.goal-card-top b { font-size: 14px; color: var(--ink-hi); }
+.goal-card.on .goal-card-top b { color: var(--teal-hi); }
+.goal-emoji { font-size: 16px; line-height: 1; }
+.goal-card .goal-icon { width: 18px; height: 18px; margin: 0; vertical-align: 0; }
+.goal-card-sub { font-size: 12px; line-height: 1.4; color: var(--ink-dim); }
+.goal-card-reads { margin-top: auto; font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink-faint); }
+.goal-card.on .goal-card-reads { color: var(--teal); }
+@media (max-width: 720px) {
+  .goal-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .goal-card { padding: 8px 10px; }
+  .day-step-sub { flex: 1 0 100%; padding-left: 34px; margin-top: -4px; }
+}
+
 /* the material list as three steps: one page, which board, share */
 .mat-bar .panel-head { flex-wrap: wrap; gap: 6px 10px; }
 .mat-bar .panel-body { display: flex; flex-direction: column; gap: 10px; }

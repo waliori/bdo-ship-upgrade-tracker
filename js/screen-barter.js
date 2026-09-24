@@ -1938,12 +1938,31 @@ function aheadHTML(gains, plan, prof) {
  * the plan: where today ends, how to sail it
  * ------------------------------------------------------------------ */
 
-/** What the day is for. It used to sit on the board's bar, where it
- *  read as something about the board; it is the first thing the plan
- *  asks, so it heads the plan. */
-function goalChips() {
-	const chip = (id, label, title) => `<button class="seg${goal === id ? ' on' : ''}" data-act="barter-goal" data-id="${id}" title="${esc(title)}">${label}</button>`;
-	return `<span class="segs" role="group" aria-label="${T('What the run is for')}">${chip('silver', T('Silver'), T('The chains of today’s board, and a run along the ones ticked'))}${chip('stock', T('A stock'), T('The same board, sailed to fill the storage instead: nothing sold, the climbs stopped where the stock ends'))}${chip('coin', `${img(COIN, 'goal-icon')}${T('Crow Coins')}`, T('The same board, sailed to the islands that pay in Crow Coins: every climb stops at [Level 4], where the coin islands take them'))}${chip('material', T('A material'), T('The ladder to one material, against what is aboard'))}</span>`;
+/** The head of one of the plan's three steps: what the day is for,
+ *  what the game is showing, and the run itself. */
+function dayStep(n, title, sub = '', side = '') {
+	return `<div class="day-step"><i>${n}</i><b>${title}</b>${sub ? `<span class="day-step-sub">${sub}</span>` : ''}<span class="panel-spacer"></span>${side}</div>`;
+}
+
+/**
+ * What the day is for: the first question, because the answer decides
+ * which list of the barter window is read next -- the forty layouts for
+ * silver, a stock or coins, the material list for a material -- and so
+ * which screenshot is asked for.
+ */
+function goalCardsHTML() {
+	const card = (id, icon, label, sub, reads) => `<button class="goal-card${goal === id ? ' on' : ''}" data-act="barter-goal" data-id="${id}" aria-pressed="${goal === id}">
+		<span class="goal-card-top">${icon}<b>${label}</b></span>
+		<span class="goal-card-sub">${sub}</span>
+		<span class="goal-card-reads">${reads}</span>
+	</button>`;
+	const board = T('reads: today’s board');
+	return `<div class="goal-cards" role="group" aria-label="${T('What the run is for')}">
+		${card('silver', '<span class="goal-emoji" aria-hidden="true">🪙</span>', T('Silver'), T('The chains of today’s board, climbed and sold'), board)}
+		${card('stock', '<span class="goal-emoji" aria-hidden="true">📦</span>', T('A stock'), T('The same board, sailed to fill the storage: nothing sold'), board)}
+		${card('coin', img(COIN, 'goal-icon'), T('Crow Coins'), T('The same board, climbed to [Level 4] for the coin islands'), board)}
+		${card('material', '<span class="goal-emoji" aria-hidden="true">⚓</span>', T('A material'), T('Ship materials, from the islands that deal them'), T('reads: the material list'))}
+	</div>`;
 }
 
 /** The level the day's climbs end at, whatever the day is for. */
@@ -2039,7 +2058,7 @@ function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 	const floorsSaid = Object.entries(stocking ? {} : o.floors).filter(([, n]) => n > 0).map(([lv, n]) => T('{n} of Level {lv}', { n: F(n), lv })).join(', ');
 	const tile = (k, v, sub, cls = '') => `<div><div class="summary-k">${k}</div><div class="summary-v${cls ? ` ${cls}` : ''}">${v}</div><div class="summary-sub">${sub}</div></div>`;
 	const aims = stocking ? `<div class="ladder-aim"><span class="run-pick-k">${T('the day is for')}</span><span class="segs" role="group" aria-label="${T('What the stock run is for')}">${AIM_CHOICES.map(([id, label, title]) => `<button class="seg${stockGoal.aim === id ? ' on' : ''}" data-act="barter-aim" data-id="${id}" title="${esc(said(title))}">${esc(said(label))}</button>`).join('')}</span><span class="orders-sub">${esc(said((AIM_CHOICES.find(([a]) => a === stockGoal.aim) || AIM_CHOICES[0])[2]))}</span></div>` : '';
-	return `<div class="ladder-head">${goalChips()}<span class="panel-spacer"></span><button class="linky" data-act="barter-hold-open" title="${T('Open the hold: every good aboard and ashore, with its count')}">${T('Open the hold')} ›</button><button class="linky" data-act="barter-add" title="${T('Record a good that is aboard')}">＋ ${T('A good')}</button></div>
+	return `<div class="ladder-head"><span class="panel-spacer"></span><button class="linky" data-act="barter-hold-open" title="${T('Open the hold: every good aboard and ashore, with its count')}">${T('Open the hold')} ›</button><button class="linky" data-act="barter-add" title="${T('Record a good that is aboard')}">＋ ${T('A good')}</button></div>
 		<p class="ladder-copy">${stocking ? T('Click the level where the stock ends. Under each level: what you hold, and what to keep of every good there.') : T('Click the level where today’s climb ends. Under each level: what you hold, what happens to it, and how many to keep back.')}</p>
 		<div class="ladder" role="group" aria-label="${T('The level the climbs stop at')}">${rungs}</div>
 		<p class="ladder-hint">${stocking
@@ -5113,10 +5132,10 @@ function matBarHTML() {
 	const book = `<button class="ghost-btn sm" data-act="barter-mat-book" title="${T('Every material board sailors have read, what each pays, how often it has been seen, and by whom')}">📖 ${T('The material book')} · ${pages.length === 1 ? T('{n} board', { n: F(pages.length) }) : T('{n} boards', { n: F(pages.length) })}</button>`;
 	const drop = (big, lead, sub) => `<button class="board-drop${big ? '' : ' slim'}" data-act="barter-shot" title="${T('Opens the reader: paste with Ctrl V, drop the pictures, or choose them')}"><b class="by-key">${lead}</b><b class="by-touch">${lead}</b><span>${sub}</span></button>`;
 	const stepper = [
-		[1, T('One page'), T('Paste a screenshot of the list')],
-		[2, kind === 'new' ? T('The whole list') : T('Which board'), kind === 'new' ? T('A new board: read every page') : T('Known to the book?')],
-		[3, T('Share'), T('So the next sailor needs one page')]
-	].map(([n, k, sub]) => `<li class="mat-step${st.step === n ? ' on' : st.step > n ? ' done' : ''}"><i>${st.step > n ? '✓' : n}</i><span><b>${k}</b><small>${sub}</small></span></li>`).join('');
+		[1, '📷', T('One page'), T('Paste a screenshot of the list')],
+		[2, kind === 'new' ? '📜' : '🔍', kind === 'new' ? T('The whole list') : T('Which board'), kind === 'new' ? T('A new board: read every page') : T('Known to the book?')],
+		[3, '📣', T('Share'), T('So the next sailor needs one page')]
+	].map(([n, icon, k, sub]) => `<li class="mat-step${st.step === n ? ' on' : st.step > n ? ' done' : ''}"><i>${st.step > n ? '✓' : icon}</i><span><b>${k}</b><small>${sub}</small></span></li>`).join('');
 	const fleetLine = theirs && kind !== 'known'
 		? `<div class="board-fleet">${T('{isles} of today’s material list read by {who}', { isles: theirs.offers.length === 1 ? T('<b>{n} island</b>', { n: theirs.offers.length }) : T('<b>{n} islands</b>', { n: theirs.offers.length }), who: theirs.name ? esc(theirs.name) : T('a sailor who is not shown by name') })}${theirs.seen ? ` · ${theirs.seen === 1 ? T('{n} sailor has seen the same', { n: F(theirs.seen) }) : T('{n} sailors have seen the same', { n: F(theirs.seen) })}` : ''}
 			<button class="linky" data-act="barter-mat-fleet-take" data-id="${esc(String(theirs.id))}" title="${T('Tick their islands on today’s list, marked as theirs: the ones you read yourself keep your reading')}">${T('take their reading')}</button></div>`
@@ -5317,11 +5336,11 @@ function materialParts(me, data) {
 	const from = fromPort();
 	const mats = matsToday();
 	if (!it && !materials().length) {
-		return { secs: [['ladder', T('What today is for'), T('for a material'), `<div class="ladder-head">${goalChips()}</div><p class="empty">${T('The barter table deals no material the app knows.')}</p>`]], load: '', dock: '', things: { all: 0, done: 0 }, stops: 0, time: '' };
+		return { secs: [['ladder', T('What today is for'), T('for a material'), `<p class="empty">${T('The barter table deals no material the app knows.')}</p>`]], load: '', dock: '', things: { all: 0, done: 0 }, stops: 0, time: '' };
 	}
 	const short = it ? (snapshot && snapshot.missing && Number(snapshot.missing[it])) || 0 : 0;
 	const showing = matBoardNow().answers;
-	const listPanel = `<div class="ladder-head">${goalChips()}</div><section class="barter-chains mat-list hero">
+	const listPanel = `<section class="barter-chains mat-list hero">
 		${matStripHTML(mats, it)}
 		${it ? matListHTML(it, data, { short, boards: matBookNow().pages.reduce((a, p) => a + p.times, 0) }) : `<div class="mat-pick-hint">${mats.length ? T('No material is open. Tap one above to tick its islands, or add another; the run below sails for every one ticked.') : T('Nothing on the run yet. Add a material and tick the islands showing it today.')}</div>`}
 	</section>`;
@@ -6019,8 +6038,15 @@ export function renderBarter() {
 	const now = stepNow();
 	const on = sailing();
 	const secs = parts.secs.map(([id, title, summary, body], i) => planSection(i + 1, id, title, summary, body)).join('');
-	const planStep = `${rolledHTML()}${pinnedHTML(b)}${boardHTML(b)}${parts.cont || ''}
-		${shapeBarHTML()}<div class="plan-fold"><span>${T('Four steps · each opens when the one before is settled')}</span><span class="panel-spacer"></span><button class="linky" data-act="barter-sec" data-id="all">${T('show all')}</button><button class="linky" data-act="barter-sec" data-id="none">${T('collapse all')}</button></div>
+	// Three steps, in the order they are answered: what the day is for,
+	// then what the game is showing -- the board or the material list,
+	// whichever that answer reads -- then the run.
+	const planStep = `${dayStep(1, T('What is today for?'), T('It decides which list of the barter window is read next'))}
+		${goalCardsHTML()}
+		${dayStep(2, goal === 'material' ? T('Read today’s material list') : T('Read today’s board'), goal === 'material' ? T('A screenshot of the barter window’s material islands') : T('A screenshot of the barter window: the layout is found from a few islands'))}
+		${rolledHTML()}${pinnedHTML(b)}${boardHTML(b)}${parts.cont || ''}
+		${dayStep(3, T('Plan the run'), T('Four parts · each opens when the one before is settled'), `<button class="linky" data-act="barter-sec" data-id="all">${T('show all')}</button><button class="linky" data-act="barter-sec" data-id="none">${T('collapse all')}</button>`)}
+		${shapeBarHTML()}
 		${secs}${parts.dock || ''}`;
 	const loadFoot = `<div class="load-dock"><button class="linky" data-act="barter-step" data-id="plan">‹ ${T('Back to the plan')}</button><span class="run-dock-figs"><span>${parts.things.all ? (parts.things.later ? T('Trip 1: {n} of {of} aboard', { n: parts.things.done, of: parts.things.all }) : T('{n} of {of} aboard', { n: parts.things.done, of: parts.things.all })) : ''}</span>${parts.things.later ? `<span>${T('{n} picked up on the way', { n: parts.things.later })}</span>` : ''}</span>${on ? `<button class="act" data-act="barter-step" data-id="sail">${T('Back to the run')} ›</button>` : `<button class="act" data-act="barter-cast-off"${shownPlan && shownPlan.stops && shownPlan.stops.length ? '' : ' disabled'} title="${T('Each stop goes into the hold as you tick it; at the end the run is recorded')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>`}</div>`;
 	const loadStep = `${holdBarHTML(me, parts.packLT || 0)}${parts.load || `<p class="empty step-empty">${T('Nothing to pack yet. Tick a chain on the plan and what it needs is listed here.')}</p>`}${loadFoot}`;
