@@ -189,3 +189,28 @@ test('a reading is kept two months as evidence, and swept after that', async () 
 	assert.equal(left.includes(kept), true);
 	assert.equal(left.includes(gone), false);
 });
+
+test('the material list is its own list: read apart, merged apart, kept a year', async () => {
+	const DAYS = 86_400_000;
+	const mat = { day: DAY, list: 'material', layout: '16', offers: [[isle(9), '[Level 3] Round Knife', '1', 'Pure Pearl Crystal']] };
+	const sent = await call('POST', '/api/boards', { cookie: deckhand, body: mat });
+	assert.equal(sent.status, 200);
+	const { id } = await sent.json();
+	// nothing numbers a material board, whatever the client says
+	assert.equal(readSighting(mat).layout, null);
+	const trade = await (await call('GET', '/api/boards?days=60')).json();
+	assert.equal(trade.boards.some(b => b.id === id), false, 'a material reading on the trade list');
+	const material = await (await call('GET', '/api/boards?list=material')).json();
+	const row = material.boards.find(b => b.id === id);
+	assert.ok(row, 'the material reading was not on its list');
+	assert.equal(row.layout, null);
+	// the same account's trade reading of the day is not merged into it
+	await call('POST', '/api/boards', { cookie: deckhand, body: sighting([[isle(10), 'Wool', '10', 'A']]) });
+	const again = await (await call('GET', '/api/boards?list=material', { cookie: deckhand })).json();
+	assert.equal(again.boards.find(b => b.id === id).offers.length, 1);
+	// a material board is evidence for longer than a trade one
+	const old = await insertSighting('3001', { day: '2026-01-10', list: 'material', layout: null, offers: [[isle(11), 'x', '1', 'y']] }, Date.now() - 200 * DAYS);
+	await sweep();
+	const kept = await (await call('GET', '/api/boards?list=material&days=400')).json();
+	assert.equal(kept.boards.some(b => b.id === old), true);
+});

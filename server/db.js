@@ -374,6 +374,16 @@ export const MIGRATIONS = [
 			await run('CREATE INDEX IF NOT EXISTS barter_boards_when ON barter_boards (created_at)');
 			await run('CREATE INDEX IF NOT EXISTS barter_boards_owner ON barter_boards (user_id, day)');
 		}
+	},
+	{
+		version: 9,
+		up: async run => {
+			// The material list is read off the same window but is not one
+			// of the forty layouts: its islands roll on their own, and the
+			// only way to learn its boards is to keep what sailors read.
+			// The two lists share the table and never each other's rows.
+			await run("ALTER TABLE barter_boards ADD COLUMN list TEXT NOT NULL DEFAULT 'trade'");
+		}
 	}
 ];
 
@@ -952,26 +962,26 @@ function safeJSON(text) {
 }
 
 /** The sightings of the last few days, newest first. */
-export async function listSightings(since, limit = 200) {
+export async function listSightings(since, limit = 200, list = 'trade') {
 	await migrate();
 	const { rows } = await exec({
 		sql: `SELECT b.id, b.user_id, b.day, b.layout, b.offers, b.created_at, b.seen, u.username, c.share
 		      FROM barter_boards b
 		      LEFT JOIN users u ON u.id = b.user_id
 		      LEFT JOIN community c ON c.user_id = b.user_id
-		      WHERE b.created_at >= ? AND b.hidden = 0
+		      WHERE b.created_at >= ? AND b.hidden = 0 AND b.list = ?
 		      ORDER BY b.created_at DESC LIMIT ?`,
-		args: [since, limit]
+		args: [since, list, limit]
 	});
 	return rows.map(sightingOf);
 }
 
-/** What this account has already said about a day, if anything. */
-export async function getSighting(userId, day) {
+/** What this account has already said about a day's list, if anything. */
+export async function getSighting(userId, day, list = 'trade') {
 	await migrate();
 	const { rows } = await exec({
-		sql: 'SELECT id, user_id, day, layout, offers, created_at, seen FROM barter_boards WHERE user_id = ? AND day = ? AND hidden = 0',
-		args: [userId, day]
+		sql: 'SELECT id, user_id, day, layout, offers, created_at, seen FROM barter_boards WHERE user_id = ? AND day = ? AND list = ? AND hidden = 0',
+		args: [userId, day, list]
 	});
 	return rows[0] ? sightingOf(rows[0]) : null;
 }
@@ -987,11 +997,11 @@ export async function getSightingById(id) {
 }
 
 /** `at` is when it was seen: now, except to a test that needs an old one. */
-export async function insertSighting(userId, { day, layout, offers }, at = Date.now()) {
+export async function insertSighting(userId, { day, layout, offers, list = 'trade' }, at = Date.now()) {
 	await migrate();
 	const { lastInsertRowid } = await exec({
-		sql: 'INSERT INTO barter_boards (user_id, day, layout, offers, created_at, seen, hidden) VALUES (?, ?, ?, ?, ?, 0, 0)',
-		args: [userId, day, layout ?? null, JSON.stringify(offers), at]
+		sql: 'INSERT INTO barter_boards (user_id, day, layout, offers, created_at, seen, hidden, list) VALUES (?, ?, ?, ?, ?, 0, 0, ?)',
+		args: [userId, day, layout ?? null, JSON.stringify(offers), at, list]
 	});
 	return Number(lastInsertRowid);
 }
@@ -1027,10 +1037,10 @@ export async function confirmSighting(id, userId) {
 	return true;
 }
 
-/** Sightings older than the boards they describe. */
-export async function sweepSightings(before) {
+/** Sightings of one list older than the boards they describe. */
+export async function sweepSightings(before, list = 'trade') {
 	await migrate();
-	await exec({ sql: 'DELETE FROM barter_board_seen WHERE board_id IN (SELECT id FROM barter_boards WHERE created_at < ?)', args: [before] });
-	const { rowsAffected } = await exec({ sql: 'DELETE FROM barter_boards WHERE created_at < ?', args: [before] });
+	await exec({ sql: 'DELETE FROM barter_board_seen WHERE board_id IN (SELECT id FROM barter_boards WHERE created_at < ? AND list = ?)', args: [before, list] });
+	const { rowsAffected } = await exec({ sql: 'DELETE FROM barter_boards WHERE created_at < ? AND list = ?', args: [before, list] });
 	return Number(rowsAffected || 0);
 }

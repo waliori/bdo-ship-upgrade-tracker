@@ -113,6 +113,8 @@ const SHELL = [
 	'/js/land_weights.js',
 	'/js/layout-book.js',
 	'/js/layouts-view.js',
+	'/js/material-book.js',
+	'/js/material-book-view.js',
 	'/js/map.js',
 	'/js/map/actions.js',
 	'/js/map/errands.js',

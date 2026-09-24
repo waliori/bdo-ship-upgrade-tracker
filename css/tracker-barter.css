@@ -761,6 +761,16 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .lb-readers b { color: var(--ink-hi); }
 .lb-readers .linky { font-size: 12px; margin-left: 6px; }
 
+/* the material book: what a board pays, material by material */
+.mb-card { min-width: 0; overflow: hidden; }
+.mb-card .lb-faces, .mb-tally { min-width: 0; max-width: 100%; }
+.mb-card .lb-card-top { flex-wrap: wrap; row-gap: 4px; }
+.mb-tally { gap: 6px; }
+.mb-tally-one { display: inline-flex; align-items: center; gap: 1px; }
+.mb-tally-one b { font-size: 10.5px; font-weight: 700; color: var(--ink-dim); }
+.lb-num.mb-num { font-size: 16px; }
+.lb-lvh.mb-lvh { --lv: var(--teal); display: flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0; font-size: 12.5px; }
+
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   .lb-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
   .lb-tiles { grid-template-columns: 1fr; }
@@ -1211,6 +1221,9 @@ button.rung-fate { cursor: pointer; }
      count and the sightings shut out stays, because that is about
      today. */
   .board-strip-sub { display: none; }
+  /* the material list's sub is the board it fits and the button that
+     takes the rest: the one line on the strip worth the room */
+  .mat-bar .board-strip-sub { display: block; }
   /* The strip along the foot keeps to one line: the figures it cannot
      fit are on the step it leads to. */
   .run-dock-figs, .load-dock .run-dock-figs { flex-wrap: nowrap; overflow: hidden; }

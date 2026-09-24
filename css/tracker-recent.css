@@ -452,6 +452,8 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .chip.mat-isle.active { background: rgba(78, 201, 174, 0.16); border-color: rgba(78, 201, 174, 0.6); color: var(--teal-hi); }
 .chip.mat-isle.active .mat-isle-who { color: #6fc9b3; }
 .chip.mat-isle.other { opacity: 0.4; text-decoration: line-through; }
+/* ticked from a board on file or another sailor's reading, not read here */
+.chip.mat-isle.active.took { border-style: dashed; background: rgba(78, 201, 174, 0.07); }
 /* An island the barter count has not opened: there, and not yours. */
 .chip.mat-isle.shut { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
 .chip.mat-isle.shut:hover { border-color: rgba(var(--line-rgb), 0.14); }

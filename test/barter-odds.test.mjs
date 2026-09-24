@@ -26,15 +26,16 @@ test('the index is built from whole boards and the recorded layouts', () => {
 	assert.ok(index.material.size > 10 && index.trade.size > 50);
 });
 
-test('a material on one board in four is counted as such, and the sample is said', () => {
+test('a material on one board of the record is counted as such, and the sample is said', () => {
 	const odds = oddsFor("Saltwater Crocodile's Scale", index);
+	const of = boards.boards.length;
 	assert.equal(odds.recorded, true);
 	assert.equal(odds.kind, 'material');
 	assert.equal(odds.seen, 1);
-	assert.equal(odds.of, 4);
-	// Shrunk toward the old assumption by one board's weight: (1+1)/(4+1).
-	assert.equal(odds.per, 0.4);
-	assert.match(oddsText(odds), /on 1 of the 4 boards recorded/);
+	assert.equal(odds.of, of);
+	// Shrunk toward the old assumption by one board's weight: (1+1)/(of+1).
+	assert.equal(odds.per, 2 / (of + 1));
+	assert.match(oddsText(odds), new RegExp(`on 1 of the ${of} boards recorded`));
 });
 
 test('nothing is ever counted as more available than always', () => {
