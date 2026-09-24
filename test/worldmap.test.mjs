@@ -258,6 +258,30 @@ test('what the export writes, the reader gets back: favourites, camera slots and
 	}
 });
 
+test('several loops go in one block, each in its own slot, and the slots not named keep theirs', () => {
+	const line = (n, x0) => Array.from({ length: n }, (_, i) => ({ name: `${i + 1}`, x: x0 + i * 400, y: 60000 + i * 200 }));
+	const a = line(3, 60000), b = line(5, 70000);
+	const r = bookmarkXML([], { bookmarks: false, cameras: false, loops: [{ slot: 0, points: a }, { slot: 1, points: b }] });
+	assert.deepEqual(r.loops.map(l => [l.slot, l.stops]), [[0, 3], [1, 5]]);
+	assert.equal(r.loop, null);
+	const back = readGameXML(r.xml);
+	assert.equal(back.favorites.length, 0, 'the favourites are not spoken for');
+	assert.deepEqual(back.loops.map(l => [l.slot, l.points.length]), [[0, 3], [1, 5]]);
+	assert.ok(Math.abs(back.loops[1].points[4].x - b[4].x) < 1);
+	// Into a file that already holds a loop 3 and five favourites: both stay.
+	const old = bookmarkXML(line(5, 50000), { cameras: false }).xml.replace('\t<WorldmapBookMark>', `${naviPathXML(line(2, 40000), 2)}\r\n\t<WorldmapBookMark>`);
+	const file = `<root>\r\n${old}</root>\r\n`;
+	const merged = readGameXML(spliceBlock(file, r.xml).text);
+	assert.deepEqual(merged.loops.map(l => [l.slot, l.points.length]), [[0, 3], [1, 5], [2, 2]]);
+	assert.equal(merged.favorites.length, 5);
+});
+
+test('"each" is a write mode of its own, and the favourites are still the empty choice', () => {
+	assert.equal(writeMode('each'), 'each');
+	assert.equal(writeMode(''), 'favorites');
+	assert.equal(writeMode('1'), 1);
+});
+
 test('a few lines copied out of the file are enough, in any attribute order, with the game\'s own float form', () => {
 	const text = `・Bookmark
 <BookMark BookMarkName="Crocs01" PosX="-963714" PosY="-8208" PosZ="1.40533e+06"/>

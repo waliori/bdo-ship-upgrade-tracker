@@ -454,6 +454,11 @@
 .map-trace-stop { display: flex; align-items: center; gap: 6px; }
 .map-trace-stop .field { flex: 1; min-width: 0; }
 .map-trace-n { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 1px solid #7ef0d4; color: #7ef0d4; font-size: 10.5px; display: flex; align-items: center; justify-content: center; }
+.map-trace-linehead { display: flex; align-items: center; gap: 6px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.map-trace-linehead:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.map-trace-linehead .map-row-sub { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-trace-lineswatch { flex: none; width: 20px; height: 4px; border-radius: 2px; background: var(--line-ink); box-shadow: 0 0 6px var(--line-ink); }
+.map-trace-linename { flex: none; font: 700 11px var(--font-display); color: var(--line-ink); letter-spacing: 0.04em; }
 .map-trace-notes { resize: vertical; min-height: 44px; margin-top: 6px; }
 .map-trace-word { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-display); font-weight: 600; letter-spacing: 0.04em; line-height: 1.2; text-shadow: 0 1px 3px #000, 0 0 6px rgba(0, 0, 0, 0.75); pointer-events: none; z-index: 2; }
 .map-trace-word.plate { padding: 2px 7px; border-radius: 5px; background: rgba(6, 14, 22, 0.72); border: 1px solid rgba(255, 255, 255, 0.1); text-shadow: 0 1px 2px #000; }
@@ -729,6 +734,9 @@
 .map-game-nodirect { font-size: 12px; color: var(--ink-dim); margin: 0 0 12px; }
 .map-game-loop { margin: 0 0 10px; }
 .map-game-loop label { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-mid); }
+.map-game-loop label + label { margin-top: 6px; }
+.map-game-lines { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--ink-mid); }
+.map-game-lines li { display: flex; align-items: center; gap: 8px; }
 .map-game-loopnote { margin: 6px 0 0; font-size: 11.5px; color: var(--ink-dim); }
 
 /* ---- Quests: done ticks, the clocks, a lit reward ---- */

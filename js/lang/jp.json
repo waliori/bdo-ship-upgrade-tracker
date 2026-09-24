@@ -3501,7 +3501,6 @@
 	"clears everything, one Undo away": "すべて消去します。1回の「元に戻す」で戻せます",
 	"click its corners; click the first again to close it": "角をクリックし、最初の点をもう一度クリックして閉じます",
 	"click the sea and type; drag a word to move it, click it to retype": "海をクリックして入力。文字はドラッグで移動、クリックで再入力できます",
-	"click the sea for a numbered stop; drag one to move it": "海をクリックすると番号付きの寄港地。ドラッグで移動できます",
 	"client positions, within a pixel": "クライアントの座標、1ピクセル以内",
 	"climbs on": "登り続ける",
 	"code": "コード",

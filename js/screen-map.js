@@ -45,5 +45,5 @@ export {
 	setMapPick, mapShowItem, mapFit, mapZoomStep, mapCentreOn, setMapMode, toggleMapPanel, toggleMapStop, useSuggestedRoute, reverseMapRoute, clearMapRoute, toggleMapDone, closeMapTip, mapCentreOnStash, openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapHabitats, setMapLabels, setMapPins, toggleMapLayers, setMapTraces, flipMapSide, setMapWharves, setMapCourse, setMapErrands, setMapErrandFrom, setMapErrandKinds, openMapErrand, setMapErrandSkip, skipMapErrandCall, drawMapErrands, setMapHunt, showHunt, setMapReturn, mapPortClick, reviveMapRoute, setMapKind
 } from './map/actions.js';
 export {
-	gameImportRead, gameImportApply, openGameImport, gameImportAction, gameBookmarks, setGameWrite, openGameExport
+	gameImportRead, gameImportApply, openGameImport, gameImportAction, gameBookmarks, setGameWrite, setGameLine, openGameExport
 } from './map/game-map.js';

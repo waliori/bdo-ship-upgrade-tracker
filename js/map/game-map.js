@@ -14,7 +14,7 @@ import { canWriteFiles, gameFolderName, previousBlock } from '../gamefile.js';
 import { mv, TRACES_MAX, persist } from './state.js';
 import { stopsLive, marksNow, seaBent } from './marks.js';
 import { stashRoute, readStash, routeSeq } from './route.js';
-import { TRACE_STOPS, cleanTrace, traceAnchors, tracePoints } from './trace.js';
+import { TRACE_STOPS, cleanTrace, traceAnchors, tracePoints, traceGameLines } from './trace.js';
 
 /* ------------------------------------------------------------------ *
  * the game's map, read back
@@ -227,7 +227,8 @@ export async function gameImportAction(act, el) {
  * ------------------------------------------------------------------ */
 
 let gameSource = 'route';     // route | hunt | trace | errands -- which list the dialog is writing
-let gameWrite = 'favorites';  // favorites, or 0..2 for one of the map's loops
+let gameWrite = 'favorites';  // favorites, 0..2 for one of the map's loops, or 'each' -- a trace's lines on a loop each
+let gameLine = 'all';         // a trace of several lines: 'all' of them one after another, or the one line by its index
 
 /**
  * The stops the Hunt tab has ticked, as one run.
@@ -272,16 +273,38 @@ function routePoints() {
  * island, so the map's list reads as the route does here.
  */
 export function gameBookmarks() {
-	const loopOnly = gameWrite !== 'favorites';
+	const lines = gameSource === 'trace' ? traceGameLines() : [];
+	// A trace drawn in several inks goes in as several loops, the first
+	// line on loop 1 and on; the game keeps three, so a fourth line waits
+	// for a write of its own. The favourites are left alone.
+	if (gameWrite === 'each' && lines.length > 1) {
+		const on = lines.slice(0, LOOP_SLOTS);
+		return {
+			...bookmarkXML([], {
+				cameras: false,
+				bookmarks: false,
+				loops: on.map((l, k) => ({ slot: k, points: l.points, path: seaBent(l.points) }))
+			}),
+			stops: on.reduce((a, l) => a + l.points.length, 0),
+			each: true,
+			lines: on.map((l, k) => ({ colour: l.colour, stops: l.points.length, slot: k })),
+			linesLeft: lines.length - on.length,
+			source: gameSource
+		};
+	}
+	// 'each' with one line to write is loop 1.
+	const write = gameWrite === 'each' ? 0 : gameWrite;
+	const loopOnly = write !== 'favorites';
+	const line = lines.length > 1 && Number.isInteger(gameLine) && gameLine < lines.length ? gameLine : null;
 	const points = gameSource === 'hunt' ? huntPoints()
-		: gameSource === 'trace' ? tracePoints(!loopOnly)
+		: gameSource === 'trace' ? tracePoints(!loopOnly, line)
 		: gameSource === 'errands' ? errandPoints()
 		: routePoints();
 	// One or the other, never both: the favourites are five named pins
 	// and ten camera jumps, a loop is the whole run in order. Writing
 	// both would spend someone's five favourites on stops the loop
 	// already holds. Whichever is not written is left as it was.
-	const loop = loopOnly ? gameWrite : null;
+	const loop = loopOnly ? write : null;
 	return {
 		...bookmarkXML(points, {
 			cameras: loop === null,
@@ -292,12 +315,19 @@ export function gameBookmarks() {
 			loopPoints: loop === null ? null : seaBent(points)
 		}),
 		stops: points.length,
+		lineCount: lines.length,
 		source: gameSource
 	};
 }
 
 export function setGameWrite(value) {
 	gameWrite = writeMode(value);
+}
+
+/** Which of a trace's lines is written: 'all', or one by its index. */
+export function setGameLine(value) {
+	const n = Number(value);
+	gameLine = value !== 'all' && value !== '' && Number.isInteger(n) && n >= 0 ? n : 'all';
 }
 
 /**
@@ -316,6 +346,9 @@ export async function openGameExport(source) {
 				? T('Nothing to put on the map: today’s errands are all done')
 				: T('Nothing to put on the map yet — plot a stop first'));
 	}
+	// A trace in several inks can go in a line to a loop, or one line alone.
+	const lineList = r.source === 'trace' ? traceGameLines() : [];
+	const many = lineList.length > 1 ? lineList.length : 0;
 	const what = r.source === 'hunt' ? 'hunt' : r.source === 'trace' ? 'traced route' : r.source === 'errands' ? 'day of errands' : 'route';
 	// Chromium can hold the folder itself; elsewhere the block is pasted.
 	const folder = canWriteFiles() ? await gameFolderName() : null;
@@ -332,7 +365,9 @@ export async function openGameExport(source) {
 			</div>
 		</div>` : `<p class="map-game-nodirect">${T('Only Chromium browsers (Chrome, Edge, Brave) can write the file for you; this one cannot, so paste the block by hand.')}</p>`;
 	const held = r.bookmarks + r.cameras;
-	const fit = r.loop
+	const fit = r.each
+		? `${T('Loops 1–{n} carry one line each, every stop in order, bent round the land where the line would cross it. Your favourites are left as they are.', { n: r.lines.length })}${r.lines.length < LOOP_SLOTS ? ` ${T('Loop {n} keeps what it had.', { n: LOOP_SLOTS })}` : ''}${r.linesLeft ? ` ${r.linesLeft === 1 ? T('The game keeps three loops, so line {from} is left out — write it on its own by choosing it and a single loop.', { from: LOOP_SLOTS + 1 }) : T('The game keeps three loops, so lines {from}–{to} are left out — write them on their own by choosing one and a single loop.', { from: LOOP_SLOTS + 1, to: LOOP_SLOTS + r.linesLeft })}` : ''}`
+		: r.loop
 		? r.loop.bends
 			? (r.loop.bends === 1
 				? T('Loop {slot} carries all {stops} in order, with {n} turn added to keep the line off the rocks — a loop is a list, not five slots. Your favourites and the map\'s other two loops are left as they are.', { slot: r.loop.slot + 1, stops: r.stops, n: r.loop.bends })
@@ -347,9 +382,17 @@ export async function openGameExport(source) {
 		<label>${T('Write it as')}
 			<select class="purse-inline" data-act="map-game-as">
 				<option value=""${gameWrite === 'favorites' ? ' selected' : ''}>${T('favourites — {slots} named, {cameras} camera slots', { slots: BOOKMARK_SLOTS, cameras: CAMERA_SLOTS })}</option>
-				${Array.from({ length: LOOP_SLOTS }, (_, i) => `<option value="${i}"${gameWrite === i ? ' selected' : ''}>${T('loop {n} — every point, in order', { n: i + 1 })}</option>`).join('')}
+				${Array.from({ length: LOOP_SLOTS }, (_, i) => `<option value="${i}"${gameWrite === i || (i === 0 && gameWrite === 'each' && !r.each) ? ' selected' : ''}>${T('loop {n} — every point, in order', { n: i + 1 })}</option>`).join('')}
+				${many ? `<option value="each"${r.each ? ' selected' : ''}>${T('loops 1–{n} — one line each', { n: Math.min(LOOP_SLOTS, many) })}</option>` : ''}
 			</select>
 		</label>
+		${many && !r.each ? `<label>${T('Which line')}
+			<select class="purse-inline" data-act="map-game-line">
+				<option value="all"${gameLine === 'all' || gameLine >= many ? ' selected' : ''}>${T('every line, one after another')}</option>
+				${lineList.map((l, k) => `<option value="${k}"${gameLine === k ? ' selected' : ''}>${T('line {n} — {stops}', { n: k + 1, stops: l.points.length === 1 ? T('{n} stop', { n: 1 }) : T('{n} stops', { n: l.points.length }) })}</option>`).join('')}
+			</select>
+		</label>` : ''}
+		${r.each ? `<ul class="map-game-lines">${r.lines.map((l, k) => `<li style="--line-ink:${l.colour}"><span class="map-trace-lineswatch"></span>${T('line {n} → loop {slot}', { n: k + 1, slot: l.slot + 1 })} · ${l.stops === 1 ? T('{n} stop', { n: 1 }) : T('{n} stops', { n: l.stops })}</li>`).join('')}</ul>` : ''}
 	</div>`;
 	openDialog(`<h2>${r.source === 'hunt' ? T('Put the hunt on the game\'s map')
 		: r.source === 'trace' ? T('Put the traced route on the game\'s map')
@@ -357,7 +400,7 @@ export async function openGameExport(source) {
 		: T('Put the route on the game\'s map')}</h2>
 		<p>${T('Black Desert reads its world map from a file. Paste this block in and the {subject} appear {where}.', {
 			subject: what === 'hunt' ? T('courses and grounds you ticked') : T('stops'),
-			where: r.loop ? T('as one of the map\'s three navigation loops') : T('under <strong>World Map → Favorites</strong>, numbered in order, each with a locate button')
+			where: r.each ? T('as the map\'s navigation loops, one line to a loop') : r.loop ? T('as one of the map\'s three navigation loops') : T('under <strong>World Map → Favorites</strong>, numbered in order, each with a locate button')
 		})}</p>
 		<p class="map-game-fit">${esc(fit)}</p>
 		${loopRow}

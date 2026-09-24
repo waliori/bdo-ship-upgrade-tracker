@@ -44,6 +44,8 @@ export const LOOP_SLOTS = 3;
  */
 export function writeMode(value) {
 	if (value === null || value === undefined || value === '') return 'favorites';
+	// A drawing of several lines can put each on a loop of its own.
+	if (value === 'each') return 'each';
 	const n = Number(value);
 	return Number.isInteger(n) && n >= 0 && n < LOOP_SLOTS ? n : 'favorites';
 }
@@ -117,7 +119,7 @@ export function naviPathXML(points, slot = 0) {
  * gameVariable.xml holds and what a person replaces; line ends are
  * the file's own (CRLF), indentation its tabs.
  */
-export function bookmarkXML(points, { cameras = true, loop = null, bookmarks = true, loopPoints = null } = {}) {
+export function bookmarkXML(points, { cameras = true, loop = null, bookmarks = true, loopPoints = null, loops = null } = {}) {
 	const marks = bookmarks ? points.slice(0, BOOKMARK_SLOTS) : [];
 	const cams = cameras ? points.slice(BOOKMARK_SLOTS, BOOKMARK_SLOTS + CAMERA_SLOTS) : [];
 	const dropped = points.length - marks.length - cams.length;
@@ -133,6 +135,12 @@ export function bookmarkXML(points, { cameras = true, loop = null, bookmarks = t
 	// bend for; the bookmarks stay the stops.
 	const path = loopPoints && loopPoints.length ? loopPoints : points;
 	if (slot !== null && points.length) lines.push(naviPathXML(path, slot));
+	// Or several loops at once, one list of stops each: `loops` is
+	// [{ slot, points, path }], the path being the way it is sailed when
+	// that differs from the stops. The slots not named keep what they had.
+	const many = (loops || []).filter(l => Number.isInteger(l.slot) && l.slot >= 0 && l.slot < LOOP_SLOTS && l.points.length)
+		.map(l => ({ slot: l.slot, stops: l.points.length, path: l.path && l.path.length ? l.path : l.points }));
+	for (const l of many) lines.push(naviPathXML(l.path, l.slot));
 	// Leaving the bookmarks out is not leaving them empty: a block with
 	// no <WorldmapBookMark> keeps whatever the file already had, so
 	// writing a loop does not cost someone their five favourites.
@@ -156,7 +164,8 @@ export function bookmarkXML(points, { cameras = true, loop = null, bookmarks = t
 		dropped,
 		loop: slot !== null && points.length
 			? { slot, points: path.length, bends: Math.max(0, path.length - points.length) }
-			: null
+			: null,
+		loops: many.map(l => ({ slot: l.slot, stops: l.stops, points: l.path.length, bends: Math.max(0, l.path.length - l.stops) }))
 	};
 }
 

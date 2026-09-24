@@ -64,7 +64,7 @@ import {
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapErrands, setMapErrandFrom, setMapErrandKinds, openMapErrand, setMapErrandSkip, skipMapErrandCall, drawMapErrands, setMapHunt, showHunt, toggleMapDone, closeMapTip,
 	saveRouteDialog, loadSavedRoute, deleteSavedRoute, mapWritingView, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
-	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite,
+	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite, setGameLine,
 	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet, setStepHook, mapStepToStop, routeIds, marksNow,
 	toggle3D, levelMap, setMapStyle
 } from './screen-map.js';
@@ -1549,6 +1549,11 @@ function wire() {
 		const gw = evt.target.closest('[data-act="map-game-as"]');
 		if (gw) {
 			setGameWrite(gw.value);
+			return openGameExport();
+		}
+		const gl = evt.target.closest('[data-act="map-game-line"]');
+		if (gl) {
+			setGameLine(gl.value);
 			return openGameExport();
 		}
 
