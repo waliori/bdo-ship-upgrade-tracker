@@ -2015,20 +2015,24 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 	// The islands that pay a range are not ticked by that: each waits to
 	// be told what it paid, and the cockpit stands at the first of them.
 	// Saying it -- a chip a count -- ticks the stop with it.
-	for (let i = 0; i < 20; i++) {
-		const chips = await page.$$('.cockpit-press [data-act="barter-paid"]');
-		if (chips.length) { await chips[chips.length - 1].click(); await wait(900); continue; }
-		const typed = await page.$('.cockpit [data-act="barter-paid-n"]');
-		if (!typed) break;
-		await page.evaluate(() => { const el = document.querySelector('.cockpit [data-act="barter-paid-n"]'); el.value = String(Math.round((Number(el.min) || 0) || 400)); el.dispatchEvent(new Event('change', { bubbles: true })); });
-		await wait(900);
-	}
 	// Saying the counts lays the run again, and more trades can bring a
-	// barter quest within reach -- a quest stop the run now makes. Ticked
-	// off the same way, all at once.
-	if (!/(\d+) of \1 stops done/.test(await text(page, '.sail-n'))) {
-		await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all"]').click()); await wait(800);
-		await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all-go"]').click()); await wait(1500);
+	// barter quest within reach -- a quest stop the run now makes, and on
+	// some days a wharf call and another island that pays a range with it
+	// (which quests are open turns over at the daily reset). Each round
+	// says what is asked and ticks the rest at once, until none is left.
+	for (let round = 0; round < 4 && !/(\d+) of \1 stops done/.test(await text(page, '.sail-n')); round++) {
+		if (round) {
+			await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all"]').click()); await wait(800);
+			await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all-go"]').click()); await wait(1500);
+		}
+		for (let i = 0; i < 20; i++) {
+			const chips = await page.$$('.cockpit-press [data-act="barter-paid"]');
+			if (chips.length) { await chips[chips.length - 1].click(); await wait(900); continue; }
+			const typed = await page.$('.cockpit [data-act="barter-paid-n"]');
+			if (!typed) break;
+			await page.evaluate(() => { const el = document.querySelector('.cockpit [data-act="barter-paid-n"]'); el.value = String(Math.round((Number(el.min) || 0) || 400)); el.dispatchEvent(new Event('change', { bubbles: true })); });
+			await wait(900);
+		}
 	}
 	const allText = await text(page, '.sail-n');
 	assert.match(allText, /(\d+) of \1 stops done/, `${allText} — at: ${await text(page, '.cockpit .panel-body')}`);

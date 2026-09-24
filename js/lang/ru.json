@@ -1512,6 +1512,7 @@
 	"Leave {where} out of today's loop": "Не включать {where} в сегодняшний круг",
 	"Leaves in storage": "Остаётся на складе",
 	"Left a trip out of the run": "Рейс убран из плавания",
+	"Left at {port} before casting off": "Оставлено в {port} перед отплытием",
 	"Left on the way, waiting for another board": "Оставлено по пути, ждёт другой доски",
 	"Left out: {what} — {why}.": "Не включено: {what} — {why}.",
 	"Leg timed at {t}, not counted: the hold was over its limit": "Отрезок пройден за {t}, не учтён: трюм был сверх лимита",
@@ -2603,6 +2604,7 @@
 	"Sold at the wharf": "Продано на причале",
 	"Sold for Crow Coins": "Продаётся за Монеты ворон",
 	"Sold in port": "Продаётся в порту",
+	"Sold {item} at the wharf": "{item} продано на причале",
 	"Someone else saved first.": "Кто-то сохранил раньше вас.",
 	"Someone's <b>{ship}</b>{extra}. Looking costs nothing; taking it replaces that hull's parts and seats and your roster, and one Undo takes it back.": "Чей-то <b>{ship}</b>{extra}. Посмотреть ничего не стоит; если взять, у этого корпуса заменятся детали и места, а заодно и ваш состав, — одна отмена вернёт всё назад.",
 	"Something else": "Что-то ещё",
@@ -3864,6 +3866,7 @@
 	"a wharf manager, for silver": "смотритель причала, за серебро",
 	"aboard": "на борту",
 	"aboard <b>{name}</b>": "на борту <b>{name}</b>",
+	"aboard at {at}, and not used by this run": "на борту в {at}, этот рейс это не использует",
 	"aboard {ship}: the limit is {lt} LT": "на борту {ship}: предел — {lt} LT",
 	"aboard: {list}": "на борту: {list}",
 	"about <b>{n}</b> day": {
@@ -4418,6 +4421,7 @@
 	"in {port}’s storage": "на складе в {port}",
 	"in ≈ {time}": "через ≈ {time}",
 	"intermediate craft": "промежуточное изготовление",
+	"into storage": "на склад",
 	"inventory, storage and Parley moved together.": "инвентарь, склад и Переговоры перенесены вместе.",
 	"island didn’t deal — skip it": "остров не менял — пропустить",
 	"islands · and {n} wharf call for rations": {
@@ -5124,6 +5128,8 @@
 		"one": "рейс заходит {n} раз",
 		"other": "рейс заходит {n} раз"
 	},
+	"the run does not use it · put it in the storage at {town}": "рейс это не использует · положить на склад в {town}",
+	"the run does not use it · sell it at {town} wharf for {silver}": "рейс это не использует · продать на причале в {town} за {silver}",
 	"the run eats ≈ {use}": "рейс съедает ≈ {use}",
 	"the run sails from here — its goods can be loaded": "рейс уходит отсюда — его товары можно погрузить",
 	"the sailor's own skill switches on": "включается собственное умение матроса",
@@ -5464,6 +5470,7 @@
 	"{items} items · {builds} builds": "вещей: {items} · сборок: {builds}",
 	"{item} added to the queue": "{item} добавлен в очередь",
 	"{item} put back ashore": "{item}: возвращено на берег",
+	"{item} put in storage before casting off": "{item} отправлено на склад перед отплытием",
 	"{item} recorded in your inventory": "{item} записан в ваш инвентарь",
 	"{item} — {route}": "{item} — {route}",
 	"{item}, via {via}": "{item}, через {via}",
@@ -6038,6 +6045,12 @@
 		"many": "{n} товаров на борту, на {value}",
 		"one": "{n} товар на борту, на {value}",
 		"other": "{n} товаров на борту, на {value}"
+	},
+	"{n} goods dealt with before casting off": {
+		"one": "{n} товар пристроен перед отплытием",
+		"few": "{n} товара пристроены перед отплытием",
+		"many": "{n} товаров пристроены перед отплытием",
+		"other": "{n} товара пристроены перед отплытием"
 	},
 	"{n} goods handed over, worth {value} had they been sold": {
 		"few": "{n} товара отдано, {value}, если бы продали",
