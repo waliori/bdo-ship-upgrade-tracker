@@ -35,7 +35,7 @@ import { barterKey } from './clock.js';
  * `exchanges`), and `onAnswers` what to do with the rows the player
  * keeps.
  */
-export function openBarterImport({ deals, onAnswers = () => {}, files = null } = {}) {
+export function openBarterImport({ deals, onAnswers = () => {}, files = null, guide = '' } = {}) {
 	let stop = null;
 	let rows = [];            // what was read: { isle, offer, near, keep }
 	let skipped = [];
@@ -58,7 +58,11 @@ export function openBarterImport({ deals, onAnswers = () => {}, files = null } =
 
 	/* --- what to drop ------------------------------------------------ */
 	const pickView = () => `
-		<p class="dialog-note">${T('Open the barter window in game and screenshot the list. Scroll it and shoot again for more of the board — several at a time is the point, and the rows add up.')}</p>
+		${guide === 'material-whole' ? `<figure class="mat-help-fig"><img src="guide/material-scroll.webp" alt="${T('Three screenshots of the list, scrolled between each')}" width="900" height="154">
+			<figcaption>${T('A board the book does not know: shoot a page, scroll down, shoot again, to the end of the material list — then drop or paste them all here together. A row on two shots is read once.')}</figcaption></figure>`
+		: guide === 'material' ? `<figure class="mat-help-fig"><img src="guide/material-page.webp" alt="${T('A page of the barter window’s material list')}" width="620" height="283">
+			<figcaption>${T('Like this: the barter window scrolled to the islands paying ship materials, each row whole. One page is enough to start; for a board the book does not know, shoot every page down to the end of the list and drop them all here together.')}</figcaption></figure>`
+		: `<p class="dialog-note">${T('Open the barter window in game and screenshot the list. Scroll it and shoot again for more of the board — several at a time is the point, and the rows add up.')}</p>`}
 		<ul class="shot-kinds">
 			<li>${T('<b>What is read</b> — the island at the start of each row, what it takes and what it pays. A name the window cut short is enough.')}</li>
 			<li>${T('<b>What it is read against</b> — the exchanges the codex says that island deals, so a row is never a guess at a spelling.')}</li>

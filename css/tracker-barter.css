@@ -761,6 +761,41 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .lb-readers b { color: var(--ink-hi); }
 .lb-readers .linky { font-size: 12px; margin-left: 6px; }
 
+/* the material list as three steps: one page, which board, share */
+.mat-bar .panel-head { flex-wrap: wrap; gap: 6px 10px; }
+.mat-bar .panel-body { display: flex; flex-direction: column; gap: 10px; }
+.mat-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.mat-step { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--r-tile); background: var(--panel-inset); opacity: 0.6; }
+.mat-step i { flex: none; display: grid; place-items: center; width: 22px; height: 22px; font-style: normal; font-size: 11.5px; font-weight: 700; border-radius: 50%; border: 1px solid var(--line-btn); color: var(--ink-mute); }
+.mat-step span { display: flex; flex-direction: column; min-width: 0; }
+.mat-step b { font-size: 12.5px; color: var(--ink-hi); }
+.mat-step small { font-size: 11px; color: var(--ink-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mat-step.on { opacity: 1; border-color: var(--teal-edge); background: var(--teal-glow); }
+.mat-step.on i { border-color: var(--teal-edge); color: var(--teal-hi); }
+.mat-step.done { opacity: 0.85; }
+.mat-step.done i { background: rgba(78, 201, 174, 0.18); border-color: var(--teal-edge); color: var(--teal-hi); }
+.board-drop.slim { padding: 14px 16px; }
+.board-drop.slim > b { font-size: 16px; }
+.mat-say { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink); }
+.mat-say.known { color: var(--teal-hi); }
+.mat-say.new { color: var(--amber); }
+.mat-say b { color: var(--ink-hi); }
+.mat-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mat-done { font-size: 12.5px; color: var(--teal-hi); }
+.mat-progress { position: relative; height: 22px; border-radius: 999px; background: var(--panel-inset); border: 1px solid var(--line); overflow: hidden; }
+.mat-progress i { position: absolute; inset: 0 auto 0 0; background: rgba(232, 182, 97, 0.28); }
+.mat-progress span { position: relative; display: block; padding: 0 10px; font-size: 11.5px; line-height: 20px; color: var(--ink-hi); }
+.mat-help { font-size: 12.5px; color: var(--ink-dim); }
+.mat-help summary { cursor: pointer; color: var(--blue-hi); width: fit-content; }
+.mat-help-fig { margin: 8px 0; }
+.mat-help-fig img { display: block; max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); }
+.mat-help-fig figcaption { margin-top: 5px; font-size: 12px; line-height: 1.45; color: var(--ink-mute); max-width: 80ch; }
+.mat-help-list { margin: 4px 0 0; padding-left: 18px; line-height: 1.6; color: var(--ink-mute); }
+@media (max-width: 720px) {
+  .mat-step { padding: 6px 7px; gap: 6px; }
+  .mat-step small { display: none; }
+}
+
 /* the material book: what a board pays, material by material */
 .mb-card { min-width: 0; overflow: hidden; }
 .mb-card .lb-faces, .mb-tally { min-width: 0; max-width: 100%; }

@@ -1131,6 +1131,7 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .shot-drop { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 26px 16px; margin: 4px 0 10px; border-radius: 12px; border: 1.5px dashed var(--line-btn-hi); background: rgba(var(--deep-rgb), 0.35); cursor: pointer; text-align: center; }
 .shot-drop:hover, .shot-drop:focus-visible, .shot-drop.over { border-color: var(--teal); background: rgba(78, 201, 174, 0.09); }
 .shot-drop-mark { font-size: 26px; line-height: 1; opacity: 0.8; }
+.shot-drop .row-sub { white-space: normal; }
 .shot-bar { height: 8px; border-radius: 4px; background: rgba(var(--deep-rgb), 0.7); border: 1px solid var(--line-btn); overflow: hidden; margin: 10px 0 4px; }
 .shot-bar i { display: block; height: 100%; background: var(--teal); transition: width 0.2s ease; }
 .shot-table-wrap { max-height: min(52vh, 460px); overflow: auto; margin: 8px 0; border: 1px solid var(--line-btn); border-radius: var(--r-sm); }
