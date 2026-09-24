@@ -1702,6 +1702,12 @@ function chartButton(stops, pick) {
 // sailor has not got is a plan that strands a ship halfway up a chain.
 // So the figures say when the number is assumed rather than known.
 const parleyGuessed = prof => !(prof.parleyHeld > 0);
+
+/** A barter list refreshed in game -- the trade goods or the ship
+ *  materials, whichever -- fills the Parley bar again. */
+function parleyRefilled() {
+	store.setProfileMany({ parleyHeld: PARLEY.max, parleyDay: barterKey() });
+}
 // Vouchers the sailor is keeping are not the run's to plan on, so the
 // bar the planner budgets against leaves them out too.
 const parleyOf = prof => ({
@@ -5276,7 +5282,7 @@ function matStripHTML(mats, it) {
 		${tiles}
 		<button class="mat-tile add" data-act="barter-mat-add" title="${T('Tick islands for another material too: one run sails for all of them')}">+ ${mats.length ? T('another material') : T('a material')}</button>
 		<span class="panel-spacer"></span>
-		${mb.answers.length ? `<button class="linky faint" data-act="barter-mat-clear">${T('clear the day')}</button>` : ''}
+		${mb.answers.length ? `<button class="linky faint" data-act="barter-mat-clear" data-keep-parley="1">${T('clear the day')}</button>` : ''}
 	</div>`;
 }
 
@@ -6804,7 +6810,13 @@ export function barterAction(act, el, redraw) {
 			if (!seen.mine && !seen.confirmed) sawItToo(seen.id).then(() => { matFleet.asked = false; });
 			return true;
 		}
-		case 'barter-mat-clear': matBoard = { day: barterKey(), answers: [], on: matBoardNow().on, told: 0 }; persist(); return true;
+		case 'barter-mat-clear':
+			matBoard = { day: barterKey(), answers: [], on: matBoardNow().on, told: 0 };
+			// A refresh in game fills the Parley bar again; clearing the
+			// day's list by hand says nothing about the bar.
+			if (!el.dataset.keepParley) parleyRefilled();
+			persist();
+			return true;
 		case 'barter-mat-only': matOnly = matOnly === el.dataset.id ? '' : el.dataset.id; return true;
 		case 'barter-mat-lv': matLv = matLv === Number(el.dataset.lv) ? 0 : Number(el.dataset.lv); return true;
 		case 'barter-mat-filters-clear': matQ = ''; matOnly = ''; matLv = 0; return true;
@@ -6812,7 +6824,7 @@ export function barterAction(act, el, redraw) {
 		// the give not held, and no others, until cleared.
 		case 'barter-reach': reach = el.dataset.item || ''; goal = 'silver'; persist(); return true;
 		case 'barter-reach-clear': reach = ''; persist(); return true;
-		case 'barter-board-clear': board = { day: barterKey(), answers: [], own: false, fresh: true, freshAt: Date.now() }; persist(); return true;
+		case 'barter-board-clear': board = { day: barterKey(), answers: [], own: false, fresh: true, freshAt: Date.now() }; parleyRefilled(); persist(); return true;
 		case 'barter-board-same': board = { ...board, rolled: false }; persist(); return true;
 		case 'barter-port-set': port = ports.some(p => p.id === Number(el.dataset.id)) ? Number(el.dataset.id) : 0; persistNamed(T('Changed where the run sails from')); return true;
 		case 'barter-continue': {
