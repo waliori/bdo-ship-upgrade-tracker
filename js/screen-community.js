@@ -27,8 +27,8 @@ import { npcById } from './barter_npcs.js';
 import { crystalById, crystalVariant, crystalLine, gradeById } from './crystals.js';
 import { STAT_NAMES, anyType } from './sailors.js';
 import { monsterArt } from './monster_art.js';
-import { iconSrc } from './ui-bits.js';
-import { combos } from './ui-state.js';
+import { iconSrc, img } from './ui-bits.js';
+import { combos, SILVER } from './ui-state.js';
 import { openItemCard } from './item-card.js';
 import { openSailorSheet } from './screen-crew.js';
 import { T, said, gameName } from './i18n.js';
@@ -173,6 +173,10 @@ const SLOTS = ['cannon', 'sail', 'figurehead', 'plating'];
 const SLOT_LETTER = { cannon: 'C', sail: 'S', figurehead: 'F', plating: 'P' };
 const day = ms => (ms ? new Date(ms).toISOString().slice(0, 10) : '');
 
+/** A board's icon: the game's own silver for the silver board, else
+ *  the sign it carries. */
+const boardIcon = b => (b && b.id === 'silver' ? img(SILVER, 'comm-silver') : (b && b.icon) || '');
+
 /** An item's icon, or nothing when the mapping has none. */
 const pic = (name, cls = '', title = '') => {
 	const src = iconSrc(name);
@@ -259,7 +263,7 @@ function headHTML() {
 			<div class="comm-you-body">
 				<p class="comm-you-line">${T('You are on the boards as <b>{who}</b>', { who: who.share === 'named' ? esc(who.username) : T('an unnamed sailor') })}${y.level ? ` <span>· ${esc(y.level)}</span>` : ''}${y.joinedAt ? ` <span>· ${T('since {day}', { day: day(y.joinedAt) })}</span>` : ''}</p>
 				<div class="comm-you-places">
-					${shown.length ? shown.map(({ b, p }) => `<button class="comm-place${p.rank <= 3 ? ` p${p.rank}` : ''}" data-act="community-places" title="${esc(T('{rank} of {n} · {desc}', { rank: ordinal(p.rank), n: p.of, desc: said(b.desc) }))}">${medal(p.rank)}<span><i aria-hidden="true">${b.icon}</i> ${esc(said(b.title))}</span></button>`).join('') : `<span class="comm-you-none">${data ? T('No place on any board yet — the boards below say what earns one.') : T('Fetching your places…')}</span>`}
+					${shown.length ? shown.map(({ b, p }) => `<button class="comm-place${p.rank <= 3 ? ` p${p.rank}` : ''}" data-act="community-places" title="${esc(T('{rank} of {n} · {desc}', { rank: ordinal(p.rank), n: p.of, desc: said(b.desc) }))}">${medal(p.rank)}<span><i aria-hidden="true">${boardIcon(b)}</i> ${esc(said(b.title))}</span></button>`).join('') : `<span class="comm-you-none">${data ? T('No place on any board yet — the boards below say what earns one.') : T('Fetching your places…')}</span>`}
 					${places.length > shown.length ? `<button class="comm-more-places" data-act="community-places">${T('and {n} more', { n: places.length - shown.length })}</button>` : ''}
 				</div>
 			</div>
@@ -311,7 +315,7 @@ function boardHTML(board) {
 	const first = board.top[0] && board.top[0].you;
 	return `<section class="panel comm-board${first ? ' gold' : ''}" data-board="${esc(board.id)}">
 		<div class="comm-board-head">
-			<span class="comm-board-icon" aria-hidden="true">${board.icon}</span>
+			<span class="comm-board-icon" aria-hidden="true">${boardIcon(board)}</span>
 			<div class="comm-board-t"><h3 class="comm-board-title">${esc(said(board.title))}</h3>${b.desc ? `<span class="comm-board-desc">${esc(said(b.desc))}</span>` : ''}</div>
 			<span class="comm-board-n">${board.n ? (board.n === 1 ? T('{n} sailor', { n: board.n }) : T('{n} sailors', { n: board.n })) : T('nobody yet')}</span>
 			${b.note ? `<button class="comm-how" data-act="community-how" data-id="${esc(board.id)}" title="${T('How this is counted')}" aria-label="${T('How {board} is counted', { board: esc(said(board.title)) })}">?</button>` : ''}
@@ -371,7 +375,7 @@ function openHow(id) {
 		const mine = yourRow(board);
 		if (mine && sumOf(mine) && (!first || !first.you)) rows.push([T('yours'), sumOf(mine), mine.value]);
 	}
-	openDialog(`<h2>${b.icon} ${esc(said(b.title))}</h2>
+	openDialog(`<h2>${boardIcon(b)} ${esc(said(b.title))}</h2>
 		<p class="dialog-copy">${esc(said(b.desc))}.</p>
 		<p class="comm-how-note">${esc(said(b.note))}</p>
 		${rows.length ? `<div class="comm-how-sums">${rows.map(([who, sum, v]) => `<div class="detail-line"><span>${esc(who)}</span><span class="n">${esc(sum)} = ${value(b, v)}</span></div>`).join('')}</div>` : ''}
@@ -504,7 +508,7 @@ function numbersHTML() {
 	return `<div class="comm-numbers">
 		<div class="stats comm-totals">
 			${tile('👥', T('Sailors on the boards'), F(data.sailors), T('{n} by name', { n: data.named }))}
-			${tile('💰', T('Silver from runs'), FC(t.silver), `${T('{n} runs', { n: F(t.runs) })} · ${T('{n} trades', { n: F(t.trades) })} · ${T('{n} barters', { n: F(t.barters) })}`, 'blue')}
+			${tile(img(SILVER, 'comm-silver'), T('Silver from runs'), FC(t.silver), `${T('{n} runs', { n: F(t.runs) })} · ${T('{n} trades', { n: F(t.trades) })} · ${T('{n} barters', { n: F(t.barters) })}`, 'blue')}
 			${tile('✦', T('Quests done'), F(t.quests), T('{n} sea monster hunts', { n: F(t.hunts) }))}
 			${tile('⚒', T('Things made'), F(t.crafts), T('{n} ships built', { n: F(t.ships) }))}
 			${tile('🎲', T('At the anvil'), t.tries ? `${Math.round((t.wins / t.tries) * 100)}%` : '—', t.tries ? T('{wins} of {tries} attempts', { wins: F(t.wins), tries: F(t.tries) }) : T('no attempts recorded'), 'amber')}
@@ -547,7 +551,7 @@ function previewHTML() {
 	const d = digest(store.saveShape());
 	const lines = BOARDS.map(b => {
 		const v = b.value(d);
-		return `<div class="comm-prev-row${v >= b.min ? '' : ' none'}"><span>${b.icon} ${esc(said(b.title))}</span><b>${v >= b.min ? `${value(b, v)} ${esc(said(b.unit))}` : '—'}</b>${b.detail(d) ? `<small>${esc(b.detail(d))}</small>` : ''}${faceHTML(b.face(d))}</div>`;
+		return `<div class="comm-prev-row${v >= b.min ? '' : ' none'}"><span>${boardIcon(b)} ${esc(said(b.title))}</span><b>${v >= b.min ? `${value(b, v)} ${esc(said(b.unit))}` : '—'}</b>${b.detail(d) ? `<small>${esc(b.detail(d))}</small>` : ''}${faceHTML(b.face(d))}</div>`;
 	});
 	const tables = [
 		[d.fleet.hulls.length, n => T('{n} hulls', { n })], [Object.keys(d.fleet.parts).length, n => T('{n} parts fitted', { n })], [Object.keys(d.fleet.crystals).length, n => T('{n} crystals', { n })], [Object.keys(d.crew.byType).length, n => T('{n} sailor types', { n })],
@@ -727,7 +731,7 @@ function paintCard(host, c, section) {
 		</div>
 		<div class="comm-card-body">
 			${h3('places', '☆', T('Places'), T('{n} of {of} boards', { n: places.length, of: BOARDS.length }))}
-			${places.length ? `<div class="comm-places">${places.map(({ b, p }) => `<span class="comm-place${p.rank <= 3 ? ` p${p.rank}` : ''}" title="${esc(T('{rank} of {n} · {desc}', { rank: ordinal(p.rank), n: p.of, desc: said(b.desc) }))}">${medal(p.rank)}<span><i aria-hidden="true">${b.icon}</i> ${esc(said(b.title))}</span><b>${value(b, p.value)}${b.unit ? ` ${esc(said(b.unit))}` : ''}</b></span>`).join('')}</div>` : `<p class="comm-empty">${T('No place on any board yet.')}</p>`}
+			${places.length ? `<div class="comm-places">${places.map(({ b, p }) => `<span class="comm-place${p.rank <= 3 ? ` p${p.rank}` : ''}" title="${esc(T('{rank} of {n} · {desc}', { rank: ordinal(p.rank), n: p.of, desc: said(b.desc) }))}">${medal(p.rank)}<span><i aria-hidden="true">${boardIcon(b)}</i> ${esc(said(b.title))}</span><b>${value(b, p.value)}${b.unit ? ` ${esc(said(b.unit))}` : ''}</b></span>`).join('')}</div>` : `<p class="comm-empty">${T('No place on any board yet.')}</p>`}
 			<div class="comm-card-cols">
 				<div>
 					${h3('ship', '⚓', d.fleet.n > 1 ? T('The ship and the fleet') : T('The ship'), d.fleet.n ? (d.fleet.n === 1 ? T('{n} hull', { n: d.fleet.n }) : T('{n} hulls', { n: d.fleet.n })) : '')}
@@ -794,7 +798,7 @@ async function openBoard(id) {
 	// became a sheet the size of the window, with the title against one
 	// edge and the count against the other. The dialog's own copy is
 	// selected by where it sits instead.
-	box.innerHTML = `<div class="comm-board-head"><span class="comm-board-icon" aria-hidden="true">${b.icon}</span><div class="comm-board-t"><h2 class="comm-board-title">${esc(said(b.title))}</h2>${meta.desc ? `<span class="comm-board-desc">${esc(said(meta.desc))}</span>` : ''}</div><span class="comm-board-n">${b.n === 1 ? T('{n} sailor', { n: b.n }) : T('{n} sailors', { n: b.n })}${b.n > b.all.length ? ` · ${T('the first {n}', { n: b.all.length })}` : ''}</span></div>
+	box.innerHTML = `<div class="comm-board-head"><span class="comm-board-icon" aria-hidden="true">${boardIcon(b)}</span><div class="comm-board-t"><h2 class="comm-board-title">${esc(said(b.title))}</h2>${meta.desc ? `<span class="comm-board-desc">${esc(said(meta.desc))}</span>` : ''}</div><span class="comm-board-n">${b.n === 1 ? T('{n} sailor', { n: b.n }) : T('{n} sailors', { n: b.n })}${b.n > b.all.length ? ` · ${T('the first {n}', { n: b.all.length })}` : ''}</span></div>
 		<ol class="comm-rank comm-rank-all">${b.all.map(e => rowHTML(b, e, top)).join('')}</ol>
 		<div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button></div>`;
 }
@@ -836,7 +840,7 @@ function openPlaces() {
 		<p class="dialog-copy">${who ? T('Where {name} stands on every board, out of the sailors who have earned a place there.', { name: esc(who.username) }) : T('Where you stand on every board, out of the sailors who have earned a place there.')}</p>
 		<div class="comm-places-list">${rows.map(({ b, p }) => `<div class="comm-place-row${p ? '' : ' none'}${p && p.rank <= 3 ? ` p${p.rank}` : ''}">
 			${p ? medal(p.rank) : '<span class="comm-pos">—</span>'}
-			<span class="comm-place-b"><i aria-hidden="true">${b.icon}</i><span>${esc(said(b.title))}</span><small>${p ? T('of {n}', { n: p.of }) : esc(said(b.how) || T('no place yet'))}</small></span>
+			<span class="comm-place-b"><i aria-hidden="true">${boardIcon(b)}</i><span>${esc(said(b.title))}</span><small>${p ? T('of {n}', { n: p.of }) : esc(said(b.how) || T('no place yet'))}</small></span>
 			<span class="comm-place-v">${p ? `${value(b, p.value)} ${esc(said(b.unit))}` : ''}</span>
 		</div>`).join('')}</div>
 		<div class="dialog-actions">${data && data.you && data.you.ref ? `<button class="ghost-btn" data-act="community-sailor" data-ref="${esc(data.you.ref)}">${T('My card')}</button><span class="fb-space"></span>` : ''}<button class="ghost-btn" data-close>${T('Close')}</button></div>`);

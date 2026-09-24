@@ -23,7 +23,7 @@ function purses() {
 
 	const entries = [
 		{ item: CROW_COIN, label: T('Crow Coins'), need: totals.coins, where: T("Crow Coin Shop, Oquilla's Eye") },
-		{ item: SILVER, label: T('Silver'), need: totals.silver, where: T('Falasi, port of Epheria'), glyph: '◉' }
+		{ item: SILVER, label: T('Silver'), need: totals.silver, where: T('Falasi, port of Epheria') }
 	];
 
 	const carried = (item, label, where) => {

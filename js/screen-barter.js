@@ -1958,7 +1958,7 @@ function goalCardsHTML() {
 	</button>`;
 	const board = T('reads: today’s board');
 	return `<div class="goal-cards" role="group" aria-label="${T('What the run is for')}">
-		${card('silver', '<span class="goal-emoji" aria-hidden="true">🪙</span>', T('Silver'), T('The chains of today’s board, climbed and sold'), board)}
+		${card('silver', img(SILVER, 'goal-icon'), T('Silver'), T('The chains of today’s board, climbed and sold'), board)}
 		${card('stock', '<span class="goal-emoji" aria-hidden="true">📦</span>', T('A stock'), T('The same board, sailed to fill the storage: nothing sold'), board)}
 		${card('coin', img(COIN, 'goal-icon'), T('Crow Coins'), T('The same board, climbed to [Level 4] for the coin islands'), board)}
 		${card('material', '<span class="goal-emoji" aria-hidden="true">⚓</span>', T('A material'), T('Ship materials, from the islands that deal them'), T('reads: the material list'))}
