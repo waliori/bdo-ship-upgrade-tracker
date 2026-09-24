@@ -19,11 +19,10 @@
 // that -- after the answers are in -- so the offer is made on its bar.
 
 import { esc, F } from './fmt.js';
-import { T, said, gameName, readerLang, gameNamesFor } from './i18n.js';
+import { T, said, gameName, gameNamesFor } from './i18n.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
-import { LIMITS, triage, readWords, wireShotIntake, close as closeReader } from './shot-reader.js';
+import { LIMITS, triage, readWords, wireShotIntake, close as closeReader, shotLang, shotLangNote } from './shot-reader.js';
 import { offersFrom, figuresFrom, localized, inEnglish } from './barter-shot.js';
-import { LANGS as GAME_LANGS, langByTag, DEFAULT_LANG } from './sailor-locales.js';
 import { npcs, isleOf, whoOf } from './barter_npcs.js';
 import { img } from './ui-bits.js';
 import * as store from './state.js';
@@ -36,15 +35,6 @@ import { barterKey } from './clock.js';
  * `exchanges`), and `onAnswers` what to do with the rows the player
  * keeps.
  */
-/** The client's language, as the sailor reader keeps it: one setting
- *  for every screenshot of the game, first guessed from the app's. */
-const shotLang = () => {
-	const chosen = store.getSetting('shotLang', null);
-	if (chosen && langByTag[chosen]) return chosen;
-	const fromApp = readerLang();
-	return langByTag[fromApp] ? fromApp : DEFAULT_LANG;
-};
-
 /**
  * What the reader reads, drawn on the game's own window: the whole
  * window with its head, the same rows cropped, and what the numbered
@@ -100,7 +90,7 @@ export function openBarterImport({ deals, onAnswers = () => {}, files = null, gu
 		<ul class="shot-kinds">
 			<li>${T('<b>What it is read against</b> — the exchanges the codex says that island deals, so a row is never a guess at a spelling.')}</li>
 		</ul>
-		${langPick()}
+		${shotLangNote()}
 		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="${T('Choose screenshots to read')}">
 			<div class="shot-drop-mark">⚖</div>
 			<div><b>${T('Drop screenshots here, or paste one')}</b></div>
@@ -111,21 +101,6 @@ export function openBarterImport({ deals, onAnswers = () => {}, files = null, gu
 		<p class="dialog-note quiet">${T('Up to {files} at a time, {mb} MB each, PNG, JPEG or WebP.', { files: LIMITS.files, mb: Math.round(LIMITS.bytes / 1024 / 1024) })}
 			${T('They are read in this browser and never uploaded — the first read fetches about 6 MB of reader, once.')}</p>
 		<div class="dialog-actions"><button class="act quiet" data-close>${T('Close')}</button></div>`;
-
-	/** The game's language: which reader reads the shot, and which of
-	 *  the game's names its rows are matched against. */
-	const langPick = () => {
-		const lang = langByTag[shotLang()];
-		return `<div class="shot-lang">
-			<label for="shot-lang">${T("Your game's language")}</label>
-			<select id="shot-lang" class="purse-inline" data-lang>
-				${GAME_LANGS.map(l => `<option value="${esc(l.tag)}"${l.tag === lang.tag ? ' selected' : ''}>${esc(l.label)}</option>`).join('')}
-			</select>
-			<span class="row-sub">${lang.mb
-		? T('{label} is another script — about {mb} MB of reader, fetched once. The rows are matched against the game’s own names in it.', { label: esc(lang.label), mb: lang.mb })
-		: T('The rows are matched against the game’s own names in it.')}</span>
-		</div>`;
-	};
 
 	/* --- reading ----------------------------------------------------- */
 	const readingView = (at, text) => `
@@ -279,10 +254,6 @@ export function openBarterImport({ deals, onAnswers = () => {}, files = null, gu
 		wireShotIntake(box, run);
 		const on = (sel, ev, fn) => box.querySelectorAll(sel).forEach(el => el.addEventListener(ev, fn));
 		on('[data-figures]', 'change', e => { figures.take = !!e.target.checked; });
-		on('[data-lang]', 'change', e => {
-			store.setSetting('shotLang', e.target.value, true);
-			draw(pickView());
-		});
 		on('[data-stop]', 'click', () => { if (stop) stop.abort(); });
 		on('[data-again]', 'click', () => draw(pickView()));
 		on('[data-use]', 'click', use);

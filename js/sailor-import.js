@@ -16,12 +16,11 @@
 // the roster under that name is updated rather than hired twice.
 
 import { esc } from './fmt.js';
-import { T, said, readerLang } from './i18n.js';
+import { T, said } from './i18n.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { anyType, pool, mateTypes, SAILOR_CAP, logLevel, STAT_NAMES, statBand } from './sailors.js';
-import { LIMITS, triage, readShots, wireShotIntake, close as closeReader } from './shot-reader.js';
-import { LANGS, langByTag, DEFAULT_LANG } from './sailor-locales.js';
+import { LIMITS, triage, readShots, wireShotIntake, close as closeReader, shotLang, shotLangNote } from './shot-reader.js';
 
 const MOVES = ['speed', 'accel', 'turn', 'brake'];
 const CANNON = ['patience', 'force', 'focus', 'vision'];
@@ -39,24 +38,6 @@ function alreadyHired(read, list) {
 
 /** Every type a row can be set to, mates last -- the picker for a misread. */
 const TYPE_OPTIONS = [...pool.map(t => t.type).sort(), ...mateTypes.map(t => t.type)];
-
-/**
- * Which language the game is in, remembered: a player changes service
- * about once, and being asked every time would be its own chore.
- *
- * Until they have said, the app's own language answers for them.
- * Someone reading this in Korean is almost certainly playing in Korean,
- * and starting the reader on English would have it hunt for "Appetite"
- * in a window that says 식성. It is only a starting point -- the picker
- * is right there, because the two can differ: the launcher and the
- * client do not have to agree, and neither do the app and the client.
- */
-const shotLang = () => {
-	const chosen = store.getSetting('shotLang', null);
-	if (chosen && langByTag[chosen]) return chosen;
-	const fromApp = readerLang();
-	return langByTag[fromApp] ? fromApp : DEFAULT_LANG;
-};
 
 /* ------------------------------------------------------------------ *
  * the dialog
@@ -93,7 +74,6 @@ export function openSailorImport(after = () => {}) {
 	// read. So both are named, and what a crop has to keep is said
 	// outright: everything from the name down to the last growth.
 	const pickView = () => {
-		const lang = langByTag[shotLang()];
 		return `
 		<p class="dialog-note">${T('Either of these reads, and a mixture of both is fine — <b>one sailor a shot</b>.')}</p>
 		<ul class="shot-kinds">
@@ -101,15 +81,7 @@ export function openSailorImport(after = () => {}) {
 			<li>${T('<b>Selected Sailor</b> — the smaller panel on its own, the one with the type in angle brackets.')}</li>
 		</ul>
 		<p class="dialog-note quiet">${T("Whichever it is, keep the sailor's name at the top and the last growth at the bottom inside the crop: the name, the condition, the appetite, the cabin cost, the weight and the growths are all read off it.")}</p>
-		<div class="shot-lang">
-			<label for="shot-lang">${T("Your game's language")}</label>
-			<select id="shot-lang" class="purse-inline" data-lang>
-				${LANGS.map(l => `<option value="${esc(l.tag)}"${l.tag === lang.tag ? ' selected' : ''}>${esc(l.label)}</option>`).join('')}
-			</select>
-			<span class="row-sub">${lang.mb
-		? T('{label} is another script — about {mb} MB of reader, fetched once.', { label: esc(lang.label), mb: lang.mb })
-		: T('Reads on the reader already aboard.')}</span>
-		</div>
+		${shotLangNote()}
 		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="${T('Choose screenshots to read')}">
 			<div class="shot-drop-mark">⛵</div>
 			<div><b>${T('Drop screenshots here, or paste one')}</b></div>
@@ -246,10 +218,6 @@ export function openSailorImport(after = () => {}) {
 		const box = host();
 		wireShotIntake(box, run);
 		const on = (sel, ev, fn) => box.querySelectorAll(sel).forEach(el => el.addEventListener(ev, fn));
-		on('[data-lang]', 'change', e => {
-			store.setSetting('shotLang', e.target.value, true);
-			draw(pickView());
-		});
 		on('[data-stop]', 'click', () => { if (stop) stop.abort(); });
 		on('[data-again]', 'click', () => draw(pickView()));
 		on('[data-add]', 'click', commit);

@@ -5110,7 +5110,7 @@ function tradeShotHelp() {
 				<figcaption>${T('Silver, a stock and Crow Coins are all dealt from the trade goods list: the one the Trade Item Barter Refresh redraws.')}</figcaption></figure>
 		</div>
 		<ul class="mat-help-list">
-			<li>${T('Any of the game’s languages: pick yours in the reader, and the rows are matched against the game’s own names in it.')}</li>
+			<li>${T('Any of the game’s languages: screenshots are read in the language chosen in the Menu, against the game’s own names in it — set it to your game’s language.')}</li>
 			<li>${T('Nothing is uploaded: the pictures are read in this browser.')}</li>
 		</ul>
 	</details>`;
@@ -5128,7 +5128,7 @@ function matShotHelp(open = false, scroll = false) {
 		${scroll ? `<figure class="mat-help-fig"><img src="guide/material-scroll.webp" alt="${T('Three screenshots of the whole window, the list scrolled between each')}" loading="lazy" width="1000" height="245">
 			<figcaption>${T('The list is longer than the window: shoot the whole window, scroll the list down, shoot again, to the end. A row on two shots is fine — it is read once. Paste or drop them all at once.')}</figcaption></figure>` : ''}
 		<ul class="mat-help-list">
-			<li>${T('Any of the game’s languages: pick yours in the reader, and the rows are matched against the game’s own names in it.')}</li>
+			<li>${T('Any of the game’s languages: screenshots are read in the language chosen in the Menu, against the game’s own names in it — set it to your game’s language.')}</li>
 			<li>${T('Nothing is uploaded: the pictures are read in this browser. Only what you choose to tell the fleet leaves it.')}</li>
 		</ul>
 	</details>`;

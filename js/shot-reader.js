@@ -19,10 +19,28 @@
 // those pixels is WebAssembly in a worker with no network of its own.
 
 import { panelBox, sailorFrom } from './sailor-shot.js';
-import { localeFor, DEFAULT_LANG } from './sailor-locales.js';
+import { localeFor, langByTag, DEFAULT_LANG } from './sailor-locales.js';
 import { iconLoader } from './icon-loader.js';
 import { grayscale, settleGrid, readSlots, bankEntry, countBox, readCounts, isHeld, sharedRows } from './storage-shot.js';
-import { T } from './i18n.js';
+import { T, readerLang } from './i18n.js';
+
+/**
+ * The language a screenshot of the game is read in: the one chosen in
+ * the Menu, and nowhere else. A sailor reading the app in Korean is
+ * playing in Korean; one who is not sets the Menu to their game's
+ * language, and every reader follows.
+ */
+export const shotLang = () => {
+	const fromApp = readerLang();
+	return langByTag[fromApp] ? fromApp : DEFAULT_LANG;
+};
+
+/** The line a reader's dialog carries about it: which language, where
+ *  it is set, and what a script of its own costs to fetch. */
+export function shotLangNote() {
+	const lang = langByTag[shotLang()];
+	return `<p class="dialog-note quiet shot-lang-note">${T('Read in <b>{label}</b>, the language chosen in the Menu — set it to your game’s language if they differ.', { label: lang.label })}${lang.mb ? ` ${T('Another script: about {mb} MB of reader, fetched once.', { mb: lang.mb })}` : ''}</p>`;
+}
 
 /** Where the vendored engine lives. Versioned: see reader/README.md. */
 const LIB = '/reader/tesseract-7.0.0.esm.min.js';
