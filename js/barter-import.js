@@ -45,6 +45,34 @@ const shotLang = () => {
 	return langByTag[fromApp] ? fromApp : DEFAULT_LANG;
 };
 
+/**
+ * What the reader reads, drawn on the game's own window: the whole
+ * window with its head, the same rows cropped, and what the numbered
+ * boxes are. `list` is 'trade' or 'material' -- one window, the rows
+ * sorted by what they pay -- and `lazy` is for a page that draws it
+ * folded away.
+ */
+export function shotGuideHTML(list = 'trade', { lazy = false } = {}) {
+	const mat = list === 'material';
+	const l = lazy ? ' loading="lazy"' : '';
+	const key = (n, cls, text) => `<li><i class="shot-key ${cls}">${n}</i><span>${text}</span></li>`;
+	return `<div class="mat-help-figs">
+		<figure class="mat-help-fig"><img src="guide/${mat ? 'material-page' : 'barter-window'}.webp" alt="${T('The Barter Information window, the parts the app reads outlined')}"${l} width="600" height="${mat ? 420 : 417}">
+			<figcaption>${mat
+		? T('The whole Barter Information window — the same window as for trade goods. The rows paying ship materials go to the material list.')
+		: T('The whole Barter Information window. A few rows are enough to find the layout; scroll and shoot again for more. A full-screen shot works too.')}</figcaption></figure>
+		<figure class="mat-help-fig"><img src="guide/${mat ? 'material' : 'barter'}-cropped.webp" alt="${T('The same rows, cropped out of the window')}"${l} width="560" height="${mat ? 263 : 266}">
+			<figcaption>${T('Cropped to the rows works too: every row is read the same. Only the head’s two figures are missed, and those can be typed in.')}</figcaption></figure>
+	</div>
+	<ol class="shot-keys">
+		${key(1, 'at-head', T('<b>Parley</b> — the bar you hold, written in for the run'))}
+		${key(2, 'at-head', T('<b>Total Barters</b> — opens the islands and exchanges your count allows'))}
+		${key(3, 'at-row', T('<b>The island</b>, at the start of each row'))}
+		${key(4, 'at-row', T('<b>What it takes</b> — a name cut short with “…” is enough'))}
+		${key(5, 'at-row', T('<b>What it pays</b> — which is how a row is sorted into the trade goods or the ship material list'))}
+	</ol>`;
+}
+
 export function openBarterImport({ deals, onAnswers = () => {}, files = null, guide = '' } = {}) {
 	let stop = null;
 	let rows = [];            // what was read: { isle, offer, near, keep }
@@ -70,12 +98,8 @@ export function openBarterImport({ deals, onAnswers = () => {}, files = null, gu
 	const pickView = () => `
 		${guide === 'material-whole' ? `<figure class="mat-help-fig"><img src="guide/material-scroll.webp" alt="${T('Three screenshots of the whole window, the list scrolled between each')}" width="1000" height="245">
 			<figcaption>${T('A board the book does not know: shoot the whole window, scroll the list down, shoot again, to the end — then drop or paste them all here together. A row on two shots is read once.')}</figcaption></figure>`
-		: guide === 'material' ? `<figure class="mat-help-fig"><img src="guide/material-page.webp" alt="${T('The Barter Information window showing ship material rows')}" width="600" height="415">
-			<figcaption>${T('Like this: the whole Barter Information window, the same window as for trade goods — its head gives your Parley and Total Barters, and the rows paying ship materials go to the material list. One page is enough to start; for a board the book does not know, shoot every page down to the end of the list and drop them all here together.')}</figcaption></figure>`
-		: `<figure class="mat-help-fig"><img src="guide/barter-window.webp" alt="${T('The Barter Information window in game')}" width="600" height="412">
-			<figcaption>${T('Like this: the Barter Information window, head and rows. Scroll it and shoot again for more of the board — several at a time is the point, and the rows add up.')}</figcaption></figure>`}
+		: shotGuideHTML(guide === 'material' ? 'material' : 'trade')}
 		<ul class="shot-kinds">
-			<li>${T('<b>What is read</b> — the island at the start of each row, what it takes and what it pays. A name the window cut short is enough.')}</li>
 			<li>${T('<b>What it is read against</b> — the exchanges the codex says that island deals, so a row is never a guess at a spelling.')}</li>
 		</ul>
 		${langPick()}

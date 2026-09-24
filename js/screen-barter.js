@@ -40,7 +40,7 @@ import { parleyLedger, VOUCHER_COOLDOWN_MIN } from './parley-ledger.js';
 
 const VOUCHER = "Crow's Trade Voucher";
 import { exchanges, goodsHeld, landHeld, weightOf, sellOf, aboardStock as aboardOf } from './barter-plan.js';
-import { openBarterImport } from './barter-import.js';
+import { openBarterImport, shotGuideHTML } from './barter-import.js';
 import { imagesOn } from './shot-reader.js';
 import { openLayoutBook } from './layouts-view.js';
 import { driftOf } from './layout-book.js';
@@ -5104,15 +5104,13 @@ function matStage() {
 function tradeShotHelp() {
 	return `<details class="mat-help">
 		<summary>${T('What should the screenshot look like?')}</summary>
+		${shotGuideHTML('trade', { lazy: true })}
 		<div class="mat-help-figs">
-			<figure class="mat-help-fig"><img src="guide/barter-window.webp" alt="${T('The Barter Information window in game')}" loading="lazy" width="600" height="412">
-				<figcaption>${T('The Barter Information window, whole: its head holds your Parley and Total Barters, and each row an island, what it takes and what it pays. A few rows are enough to find the layout; scroll and shoot again for more. A full-screen shot works too.')}</figcaption></figure>
 			<figure class="mat-help-fig narrow"><img src="guide/refresh-trade.webp" alt="${T('The game’s refresh window, the trade item refreshes outlined')}" loading="lazy" width="487" height="629">
 				<figcaption>${T('Silver, a stock and Crow Coins are all dealt from the trade goods list: the one the Trade Item Barter Refresh redraws.')}</figcaption></figure>
 		</div>
 		<ul class="mat-help-list">
 			<li>${T('Any of the game’s languages: pick yours in the reader, and the rows are matched against the game’s own names in it.')}</li>
-			<li>${T('A name cut short with “…” is enough.')}</li>
 			<li>${T('Nothing is uploaded: the pictures are read in this browser.')}</li>
 		</ul>
 	</details>`;
@@ -5122,9 +5120,8 @@ function tradeShotHelp() {
 function matShotHelp(open = false, scroll = false) {
 	return `<details class="mat-help"${open ? ' open' : ''}>
 		<summary>${T('What should the screenshot look like?')}</summary>
+		${shotGuideHTML('material', { lazy: true })}
 		<div class="mat-help-figs">
-			<figure class="mat-help-fig"><img src="guide/material-page.webp" alt="${T('The Barter Information window showing ship material rows')}" loading="lazy" width="600" height="415">
-				<figcaption>${T('The same Barter Information window as for trade goods, whole: its head gives your Parley and Total Barters, and each row an island, what it takes and what it pays — the rows paying ship materials go to this list. A full-screen shot works too.')}</figcaption></figure>
 			<figure class="mat-help-fig narrow"><img src="guide/refresh-material.webp" alt="${T('The game’s refresh window, the ship material refreshes outlined')}" loading="lazy" width="487" height="629">
 				<figcaption>${T('The material list is its own list, redrawn by the Ship Material Refresh — apart from the trade goods, so its board changes on its own clock.')}</figcaption></figure>
 		</div>
@@ -5132,7 +5129,6 @@ function matShotHelp(open = false, scroll = false) {
 			<figcaption>${T('The list is longer than the window: shoot the whole window, scroll the list down, shoot again, to the end. A row on two shots is fine — it is read once. Paste or drop them all at once.')}</figcaption></figure>` : ''}
 		<ul class="mat-help-list">
 			<li>${T('Any of the game’s languages: pick yours in the reader, and the rows are matched against the game’s own names in it.')}</li>
-			<li>${T('A name cut short with “…” is enough.')}</li>
 			<li>${T('Nothing is uploaded: the pictures are read in this browser. Only what you choose to tell the fleet leaves it.')}</li>
 		</ul>
 	</details>`;
