@@ -684,9 +684,9 @@ export function timerHTML({ suggest = 0, label = '', marks = [] } = {}) {
 	return `<span class="sail-timer running${t.over ? ' over' : ''}"${t.label ? ` title="${esc(t.label)}"` : ''}>
 		<span class="sail-timer-bar"><i style="width:${pct.toFixed(1)}%"></i></span>
 		<b data-timer-clock>${esc(clockText(t))}</b>
-		${modes}${ear}${devices}
+		<span class="sail-timer-ctl">${modes}${ear}${devices}
 		<button class="chip tiny sail-timer-again" data-act="barter-timer-restart" title="${T('Set the clock back to nought and run it again from now, at this run’s own estimate')}">↻ ${T('again')}</button>
-		<button class="chip tiny sail-timer-off" data-act="barter-timer-stop" title="${T('Stop the clock and forget it')}">${T('stop')}</button>
+		<button class="chip tiny sail-timer-off" data-act="barter-timer-stop" title="${T('Stop the clock and forget it')}">${T('stop')}</button></span>
 	</span>`;
 }
 
