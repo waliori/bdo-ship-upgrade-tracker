@@ -155,3 +155,37 @@ test('a clock can be set back and run again, at the estimate it was given', asyn
 	assert.ok(again.startedAt >= first.startedAt, 'it runs from now');
 	stopTimer();
 });
+
+import { arrivedAt } from '../js/sail-timer.js';
+
+test('Arrived stops the count at the stop, and a pace learned re-spaces the stops ahead', () => {
+	const marks = [{ at: 100, label: 'A', hold: 45, k: 0 }, { at: 245, label: 'B', hold: 45, k: 1 }, { at: 390, label: 'C', hold: 45, k: 2 }];
+	startTimer(0, 'A and 2 more', marks);
+	const started = timerNow().startedAt;
+	// The ship is in at 80 s, before the clock's 100: it waits there, and
+	// does not chime for A later.
+	store.setView('timer', { ...timerNow(), startedAt: started - 80_000 });
+	arrivedAt(0);
+	let t = timerNow();
+	assert.equal(t.marks[0].at, 80);
+	assert.ok(t.reached >= 1, 'A counts as reached: no chime for it');
+	assert.deepEqual(t.marks.slice(1).map(m => m.at), [225, 370], 'the rest move with it');
+	assert.ok(timerState().wait, 'waiting at A for Traded');
+	// Now a slower pace is learned: legs of 150 s where 100 were planned.
+	const fresh = [{ at: 150, hold: 45, k: 0 }, { at: 345, hold: 45, k: 1 }, { at: 540, hold: 45, k: 2 }];
+	arrivedAt(0, fresh);
+	t = timerNow();
+	assert.deepEqual(t.marks.map(m => m.at), [80, 275, 470], 'spaced as the new pace says, from where the ship is');
+	stopTimer();
+	// Traded with the run laid again: the next leg is the new pace's.
+	startTimer(0, 'A and 2 more', marks);
+	store.setView('timer', { ...timerNow(), startedAt: timerNow().startedAt - 130_000 });
+	passedStop(0, fresh);
+	t = timerNow();
+	assert.equal(t.marks[1].at, 130 + 150, 'B is one new-pace leg from the press');
+	assert.equal(t.marks[2].at, 130 + 150 + 45 + 150);
+	// Marks that no longer match the run are ignored, not misapplied.
+	passedStop(1, [{ at: 1, hold: 0, k: 9 }]);
+	assert.equal(timerNow().done, 2);
+	stopTimer();
+});

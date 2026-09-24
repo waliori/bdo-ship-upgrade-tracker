@@ -7,7 +7,6 @@ import { F } from '../fmt.js';
 import { routePath, project } from '../map.js';
 import { MAX_ZOOM } from '../barter_npcs.js';
 import { toast } from '../dialogs.js';
-import * as store from '../state.js';
 import { pathLength, sailRange, fmtRange, fmtDistance } from '../sailing.js';
 import { toGame } from '../worldmap.js';
 import { mv, persist } from './state.js';
@@ -15,7 +14,7 @@ import { enterTerrain, exitTerrain, terrainOn, terrainTrouble, setStyle, terrain
 import { marksNow, seaBent } from './marks.js';
 import { paintMap, clearTiles } from './paint.js';
 import { miniHTML } from './render.js';
-import { routeSpeed, sailCal } from './route.js';
+import { routeSpeed, sailCal, sailLag } from './route.js';
 
 /**
  * Where a screen point falls in the map box's own space. The two are
@@ -296,7 +295,7 @@ export function paintMeasure(layer, size) {
 	if (mv.measurePts.length === 2) {
 		const m = pathLength(world);
 		const speed = routeSpeed();
-		const t = fmtRange(...sailRange(m, speed.sea, sailCal(), Number(store.getSetting('sailCal', null)) > 0));
+		const t = fmtRange(...sailRange(m, speed.sea, sailCal(), true).map(x => x + sailLag()));
 		label.textContent = `${fmtDistance(m)}${t ? ` · ≈ ${t}` : ''}`;
 		const mid = pts[Math.floor(pts.length / 2)];
 		label.style.left = `${mid.left}px`;

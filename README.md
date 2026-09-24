@@ -679,8 +679,15 @@ and a deployment without that bake simply has no `⛰`.
 length and the minutes it takes at the speed that ship actually makes
 — hull, parts and sail seats — over the line as it is bent round the
 land. What 100% is in metres the game never says, so every time is a
-range: a fifth either way around the chart's 11 m/s estimate, a tenth
-either way once you have timed one leg and told it. A leg sailed
+range a tenth either way around what legs timed in game gave: 8.75 m/s
+at 100%, plus 23 s a leg getting under way and coming in (it was an
+11 m/s guess until a sailor timed five legs of a Carrack and the clock
+was found ringing a minute or two early). A ship that keeps another
+pace can be timed: switch on *time my legs* in the Barter tab's cockpit
+and press **Arrived** as each island is reached — after five legs that
+ship's own speed and cost a leg are worked out, used for it from then
+on, refined by every leg after, and kept in the profile so they sync. A
+figure set by hand on the Route tab still wins over both. A leg sailed
 overweight is slowed — the game gives no curve, so the chart takes a
 straight line from full speed at the limit to half at the overload
 cap, says so on the leg, and the total follows. A leg the router

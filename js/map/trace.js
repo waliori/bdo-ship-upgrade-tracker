@@ -7,14 +7,13 @@ import { routePath, project } from '../map.js';
 import { MAX_ZOOM } from '../barter_npcs.js';
 import { nearestWater } from '../searoute.js';
 import { openDialog, closeDialog, toast } from '../dialogs.js';
-import * as store from '../state.js';
 import { pathLength, sailRange, fmtRange, fmtDistance } from '../sailing.js';
 import { encodeAny, decodeAny } from '../share.js';
 import { mv, TRACES_MAX, persist, traceClipNote, restore } from './state.js';
 import { seaBent } from './marks.js';
 import { paintMap, schedulePaint } from './paint.js';
 import { refreshSide } from './render.js';
-import { routeSpeed, sailCal } from './route.js';
+import { routeSpeed, sailCal, sailLag } from './route.js';
 import { atSea, toggleMeasure, hostSize, inBox } from './view.js';
 
 /* ------------------------------------------------------------------ *
@@ -291,7 +290,7 @@ export function traceHTML() {
 	</div>`).join('');
 	const m = traceLength();
 	const speed = routeSpeed();
-	const time = m ? fmtRange(...sailRange(m, speed.sea, sailCal(), Number(store.getSetting('sailCal', null)) > 0)) : '';
+	const time = m ? fmtRange(...sailRange(m, speed.sea, sailCal(), true).map(x => x + sailLag())) : '';
 	const has = traceHas(t) || Boolean(mv.areaDraft);
 	const areaRows = (t.areas || []).map((a, i) => `<div class="map-trace-stop">
 		<span class="map-trace-n area" style="border-color:${a.colour};color:${a.colour};background:${a.colour}22">▰</span>

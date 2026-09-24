@@ -182,6 +182,7 @@ const SHELL = [
 	'/js/setups.js',
 	'/js/share.js',
 	'/js/sheet.js',
+	'/js/ship-pace.js',
 	'/js/ship.js',
 	'/js/ship_roles.js',
 	'/js/ship_skins.js',

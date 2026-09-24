@@ -16,8 +16,14 @@ import { families } from './enhancement.js';
 import { crewTotals, fitSeats } from './sailors.js';
 
 export const METRES_PER_PX = 0.25;
-// Metres a second at 100% speed. An estimate: replace it by timing a leg.
-export const DEFAULT_CAL = 11;
+// Metres a second at 100% speed, and the seconds every leg costs apart
+// from the sailing -- the turn out of the wharf, the run up to speed, the
+// approach. Fitted on 23 September 2026 from five legs of a Carrack timed
+// in game (3 to 14 km, every one within 17 s); it was 11 m/s with no cost
+// a leg before, and the clock rang a minute or two early. A ship's own
+// timed legs replace both (js/ship-pace.js).
+export const DEFAULT_CAL = 8.75;
+export const DEFAULT_LAG = 23;
 
 /** Metres along a polyline of chart points. */
 export function pathLength(points) {

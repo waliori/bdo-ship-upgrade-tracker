@@ -581,7 +581,7 @@ export const RELEASES = [
 				alt: TT('Plotting a barter loop; every leg gets a distance and a time'),
 				text: TT('Plot the loop through everything you are short of and every leg comes back with its length and its minutes — bent round the land, at the speed <i>that</i> hull actually makes with those parts and those sail seats.'),
 				points: [
-					TT('What 100% is in metres the game never says, so a time is a range: a fifth either way around the chart’s 11 m/s estimate, a tenth once you have timed a leg and told it.'),
+					TT('What 100% is in metres the game never says, so the chart uses what legs timed in game gave — 8.75 m/s at 100%, and 23 s a leg getting under way and coming in — as a range a tenth either way. A ship that keeps another pace is timed with <b>Arrived</b> on the Barter tab’s cockpit, and after five legs its own figure is used.'),
 					TT('The <b>rations</b> aboard drain over the route at an estimated rate; the Route tab says the stop they run low after and puts a rations call in at the nearest wharf manager. An overweight leg sails slower, and its minutes say so.'),
 					TT('Parley is budgeted at one trade a stop or at every attempt the offer allows; the stops past what your bar covers are marked, and a button trims to them.'),
 					TT('A leg the router could not bend round the land is drawn dashed and red and named in the panel, never a straight line through an island passed off as a course.'),

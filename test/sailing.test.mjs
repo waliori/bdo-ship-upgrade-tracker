@@ -26,7 +26,7 @@ test('the speed is hull plus parts plus crew, and time follows from it', () => {
 	const crewed = speedPct('Epheria Sailboat', {}, [{ id: 'a', type: 'Ambitious', lv: 10, cond: 100 }], { 'sail:0': 'a' });
 	assert.ok(crewed.crew > 0 && crewed.total > 100, JSON.stringify(crewed));
 	assert.equal(speedPct('No Such Hull'), null);
-	assert.equal(sailSeconds(1100, 100), 100);
+	assert.equal(sailSeconds(875, 100), 100);
 	assert.equal(sailSeconds(1100, 100, 22), 50);
 	assert.equal(sailSeconds(1000, 0), Infinity);
 });
@@ -35,7 +35,7 @@ test('one timed leg calibrates the rest', () => {
 	assert.equal(calibrate(3300, 300, 100), 11);
 	assert.equal(calibrate(3300, 300, 110), 10);
 	assert.equal(calibrate(0, 300, 100), null);
-	assert.equal(DEFAULT_CAL, 11);
+	assert.equal(DEFAULT_CAL, 8.75);
 });
 
 test('distances and durations read the way a sailor says them', () => {

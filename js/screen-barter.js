@@ -25,7 +25,8 @@ import { npcById, npcs, ports, isleOf, whoOf, isleShort } from './barter_npcs.js
 import { seaRoute, seaLeg } from './searoute.js';
 import { tileSrc } from './map.js';
 import { TILES, TILE, MAX_ZOOM } from './barter_npcs.js';
-import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, DEFAULT_CAL, sailSeconds, METRES_PER_PX, learnSpeed } from './sailing.js';
+import { pathLength, legLengths, sailRange, fmtRange, fmtDistance, sailSeconds, METRES_PER_PX } from './sailing.js';
+import { paceNow, noteLeg, LEARN_AT, timingLegs, setTimingLegs } from './ship-pace.js';
 import { quests, cadenceOf } from './quests.js';
 import { questDone, wantedQuests, rewardOf } from './screen-quests.js';
 import { layQuests } from './quest-places.js';
@@ -58,7 +59,7 @@ import { openPicker } from './picker.js';
 import { openTripLog } from './triplog.js';
 import { toast, openDialog, closeDialog } from './dialogs.js';
 import { cheer } from './cheer.js';
-import { timerHTML, timerAction, timerState, timerNow, startTimer, stopTimer, passedStop, spanText } from './sail-timer.js';
+import { timerHTML, timerAction, timerState, timerNow, startTimer, stopTimer, passedStop, arrivedAt, spanText } from './sail-timer.js';
 
 /* ------------------------------------------------------------------ *
  * what the tab remembers
@@ -839,8 +840,7 @@ function materials() {
 /** Metres a second at 100%: the player's own figure if they timed a
  *  leg, else the working estimate. */
 function sailCal() {
-	const v = Number(store.getSetting('sailCal', null));
-	return v > 0 ? v : DEFAULT_CAL;
+	return paceNow().cal;
 }
 
 /** The speed a run is laid at: while one is sailed, the speed it was
@@ -853,13 +853,9 @@ function layCal() {
 	return on && on.cal > 0 ? on.cal : sailCal();
 }
 
-/** The seconds every leg costs apart from the sailing, as the sailor's
- *  own timed legs have it: nought until they say otherwise. */
-const sailLag = () => Math.max(0, Math.min(120, Number(store.getSetting('sailLag', 0)) || 0));
-
-/** The legs timed with Arrived, the last dozen: what the speed is
- *  learned from. */
-const SAIL_LOG = 12;
+/** The seconds every leg costs apart from the sailing: the default's,
+ *  or the ship's own once its legs are timed. */
+const sailLag = () => Math.max(0, Math.min(120, paceNow().lag || 0));
 
 /** The material a run is for: the one chosen, else the biggest
  *  shortfall the table can answer. */
@@ -927,7 +923,9 @@ function legsOf(stops) {
 	}
 	const { total, legs } = bent;   // one leg a stop after the first, bends included
 	const me = currentShip();
-	const measured = Number(store.getSetting('sailCal', null)) > 0;
+	// Every figure in use was measured -- the default is timed legs too --
+	// so the range is the narrow one.
+	const measured = true;
 	// What each leg costs apart from the sailing, where timed legs have
 	// shown one: on every leg, so on the whole run once a leg.
 	const lag = sailLag();
@@ -3239,7 +3237,7 @@ function markDone(on, k) {
 	// are counted from now rather than from an estimate made before the
 	// ship left, so a run that ran late does not chime early all the way
 	// to the end.
-	if (at >= 0) passedStop(at);
+	if (at >= 0) passedStop(at, runMarks(plan, legsOf(plan.stops), ledgerOf(plan.stops, legsOf(plan.stops))));
 	const stop = plan.stops[at];
 	const list = ((stop && stop.quests) || []).filter(x => x.step.what !== 'hunt').map(x => x.q).filter(q => !questDone(q) && rewardOf(q));
 	if (list.length) {
@@ -5312,7 +5310,18 @@ function sailHTML() {
  * see. Each press times the leg from the Traded that sent the ship off,
  * and the legs timed teach the chart what this ship really does.
  */
+/** The switch for Arrived: off by default, for a sailor whose clock
+ *  does not keep time with their ship. It says how far the ship's own
+ *  figure has come. */
+function timeLegsChip() {
+	const on = timingLegs();
+	const pace = paceNow();
+	const said = pace.from === 'ship' ? T('your ship’s own speed') : pace.from === 'hand' ? T('the speed set by hand') : pace.n ? T('{n} of {of} legs timed', { n: pace.n, of: LEARN_AT }) : T('the usual speed');
+	return `<button class="chip tiny time-legs${on ? ' active' : ''}" data-act="barter-time-legs" aria-pressed="${on}" title="${on ? T('Stop offering Arrived; the speed learned so far stays') : T('The clock rings before the ship arrives, or after? Press Arrived as each island is reached, and after {n} legs your ship’s own speed is used', { n: LEARN_AT })}">⏱ ${on ? T('timing my legs') : T('time my legs')} · ${esc(said)}</button>`;
+}
+
 function arrivedHTML(on, s, key, at, legs) {
+	if (!timingLegs()) return '';
 	const m = legs.from ? legs.legs[at] : at > 0 ? legs.legs[at - 1] : null;
 	if (!(m > 0) || ticked(on.done, s, at, sailedPlan().stops)) return '';
 	const got = (on.arrived || {})[key];
@@ -5422,7 +5431,7 @@ function cockpitHTML({ map = false } = {}) {
 		<div class="cockpit-voucher-text"><b>${T('Draw a voucher here')}</b><em>${T('+{n} Parley — a quarter of the bar back, and its two-hour cooldown starts', { n: F(PARLEY.voucher) })}</em></div>
 	</div>` : '';
 	const endNote = s.wait && !done ? `<p class="cockpit-ask">${T('Ending here records what is ticked so far; the barters after this wait stay on the board for later.')}</p>` : '';
-	const head = `<div class="panel-head cockpit-head"><h2 class="panel-title">${T('Stop {n} of {of}', { n: at + 1, of: stops.length })}</h2><span class="panel-sub">${esc(legOf(at))}</span>${arrivedHTML(on, s, key, at, legs)}${parleyNotes(book, at, s).tag}<span class="panel-spacer"></span>${map ? '' : `<button class="linky" data-act="barter-glance">${glance ? T('full view') : T('Glance mode')}</button>`}</div>${clock ? `<div class="cockpit-clock">${clock}</div>` : ''}`;
+	const head = `<div class="panel-head cockpit-head"><h2 class="panel-title">${T('Stop {n} of {of}', { n: at + 1, of: stops.length })}</h2><span class="panel-sub">${esc(legOf(at))}</span>${arrivedHTML(on, s, key, at, legs)}${parleyNotes(book, at, s).tag}<span class="panel-spacer"></span>${timeLegsChip()}${map ? '' : `<button class="linky" data-act="barter-glance">${glance ? T('full view') : T('Glance mode')}</button>`}</div>${clock ? `<div class="cockpit-clock">${clock}</div>` : ''}`;
 	const under = `<div class="cockpit-under"><button class="linky" data-act="barter-sail-skip" data-k="${esc(key)}">${s.npcId ? T('island didn’t deal — skip it') : T('skip this stop')}</button><span>·</span><button class="linky" data-act="barter-step" data-id="results">${T('stop here, see the results')}</button></div>`;
 	const next = stops[at + 1];
 	const nextHTML = next ? (() => { const nn = stopNames(next); return `<div class="cockpit-next"><span class="cockpit-next-k">${T('next')}</span><b>${esc(nn.place)}</b><span>${esc(legOf(at + 1))}</span>${next.npcId ? `<span>${esc(next.giveText)}× ${esc(gameName(next.give))} → <span class="tiered" style="--tier:${TIER(levelOf(next.item))}">${esc(next.recvText)}× ${esc(gameName(sevenOf(next)))}</span> ×${F(next.times)}</span>` : `<span>${nn.kind}</span>`}</div>`; })() : '';
@@ -6601,6 +6610,7 @@ export function barterAction(act, el, redraw) {
 		}
 		// The ship is there: the leg is timed from the press that sent it
 		// off, and the speed learned again from the last dozen.
+		case 'barter-time-legs': setTimingLegs(!timingLegs()); return true;
 		case 'barter-arrived': {
 			const on = sailing();
 			const plan = on ? sailedPlan() : null;
@@ -6613,26 +6623,34 @@ export function barterAction(act, el, redraw) {
 			const secs = from ? Math.round((Date.now() - from) / 1000) : 0;
 			on.arrived = { ...(on.arrived || {}), [key]: secs };
 			persist();
-			if (!(m > 0) || secs < 5) return true;
+			if (!(m > 0) || secs < 5) { arrivedAt(at); return true; }
 			// A hold past its limit sails slower, by a curve that is itself
 			// a guess: such a leg says nothing about the ship.
 			const me = currentShip();
 			const before = at > 0 ? plan.stops[at - 1].weightAfter : plan.weightStart;
 			if (shownHold(me.hold, before || 0).state) {
+				arrivedAt(at);
 				toast(T('Leg timed at {t}, not counted: the hold was over its limit', { t: spanText(secs) }));
 				return true;
 			}
-			const log = [...(store.getSetting('sailLog', []) || []), { m: Math.round(m), s: secs, pct: me.speed.sea, at: Date.now() }].slice(-SAIL_LOG);
-			store.setSetting('sailLog', log, true);
-			const fit = learnSpeed(log);
-			if (fit) {
-				store.setSetting('sailCal', fit.cal, true);
-				store.setSetting('sailLag', fit.lag);
-				toast(fit.lag
-					? T('Leg timed at {t}. From your last {n} legs: {v} m/s at 100%, and {lag} s a leg getting under way', { t: spanText(secs), n: fit.n, v: fit.cal, lag: fit.lag })
-					: fit.n === 1
-						? T('Leg timed at {t}: {v} m/s at 100%, from this leg alone — a few more and the time a leg takes getting under way is learned too', { t: spanText(secs), v: fit.cal })
-						: T('Leg timed at {t}. From your last {n} legs: {v} m/s at 100%', { t: spanText(secs), n: fit.n, v: fit.cal }));
+			const { pace, learned } = noteLeg(me.name, { m, s: secs, pct: me.speed.sea });
+			const shipName = gameName(me.name);
+			if (learned) {
+				// The ship's own figure, the moment there is one: said once,
+				// in a dialog, and the clock put right for the rest of the run.
+				arrivedAt(at, runMarks(plan, legsOf(plan.stops), ledgerOf(plan.stops, legsOf(plan.stops))));
+				openDialog(`<h2>${T('Your {ship}’s speed', { ship: esc(shipName) })}</h2>
+					<p class="dialog-copy">${T('From the {n} legs you timed: <b>{v} m/s</b> at 100%, and <b>{lag} s</b> a leg getting under way and coming in. Every time and every chime for this ship uses it from now on — the clock has put the rest of this run right already.', { n: pace.n, v: pace.cal, lag: pace.lag })}</p>
+					<p class="dialog-copy">${T('Keep pressing Arrived whenever you like: each leg refines it. Other ships keep the default until they are timed too.')}</p>
+					<div class="dialog-actions"><button class="act" data-close>${T('Good')}</button></div>`);
+			} else if (pace.from === 'ship') {
+				arrivedAt(at, runMarks(plan, legsOf(plan.stops), ledgerOf(plan.stops, legsOf(plan.stops))));
+				toast(T('Leg timed at {t}. Your {ship}: {v} m/s at 100%, {lag} s a leg, from its last {n} legs', { t: spanText(secs), ship: shipName, v: pace.cal, lag: pace.lag, n: pace.n }));
+			} else {
+				arrivedAt(at);
+				toast(pace.from === 'hand'
+					? T('Leg timed at {t}. It is kept for this ship; the speed set by hand on the Route tab is the one in use.', { t: spanText(secs) })
+					: T('Leg {n} of {of} timed at {t}. After {of}, your {ship}’s own speed is used.', { n: Math.min(pace.n, LEARN_AT), of: LEARN_AT, t: spanText(secs), ship: shipName }));
 			}
 			return true;
 		}

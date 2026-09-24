@@ -245,6 +245,19 @@ export function readProfile(raw) {
 	}
 	const mastery = Math.floor(Number(raw.sailingMastery));
 	if (Number.isFinite(mastery) && mastery > 0) out.sailingMastery = Math.min(3000, mastery);
+	// Legs timed with Arrived, by hull: what that ship really sails at
+	// (js/ship-pace.js). A dozen a ship, each { m, s, pct, at }.
+	if (isProfile(raw.shipPace)) {
+		const pace = {};
+		for (const [ship, v] of Object.entries(raw.shipPace).slice(0, 30)) {
+			if (typeof ship !== 'string' || ship.length > 80 || !v || !Array.isArray(v.log)) continue;
+			const log = v.log.filter(x => x && Number(x.m) > 0 && Number(x.s) > 0 && Number(x.pct) > 0)
+				.map(x => ({ m: Math.round(Number(x.m)), s: Math.round(Number(x.s)), pct: Math.round(Number(x.pct) * 10) / 10, at: Math.round(Number(x.at) || 0) })).slice(-12);
+			if (log.length) pace[ship] = { log };
+		}
+		if (Object.keys(pace).length) out.shipPace = pace;
+	}
+	if (raw.timeLegs === true) out.timeLegs = true;
 	if (raw.sailingLog && ['loggia', 'srulk', 'manos'].includes(raw.sailingLog.kind)) out.sailingLog = { kind: raw.sailingLog.kind, lv: Math.max(0, Math.min(20, Math.floor(Number(raw.sailingLog.lv) || 0))) };
 	// The Bos'n Jacks out at the moment, by tier, and whether one of
 	// them is the Alpha Pet. Five slots because five pets is what the

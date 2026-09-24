@@ -106,7 +106,7 @@ export function startTimer(seconds, label = '', marks = []) {
  * they go gets a clock that corrects itself; one who does not gets the
  * estimate it started with, which is the best anything here can do.
  */
-export function passedStop(index) {
+export function passedStop(index, fresh = null) {
 	const t = timerNow();
 	if (!t || !t.marks.length) return;
 	// `index` is the stop in the run; a mark carries the stop it is for.
@@ -122,8 +122,46 @@ export function passedStop(index) {
 	// is over, whatever the estimate allowed for it.
 	const prev = t.marks[done - 1];
 	const shift = ran - (prev.at + prev.hold);
-	const marks = t.marks.map((m, i) => (i < done ? { ...m, at: Math.max(1, Math.min(m.at, ran)) } : { ...m, at: Math.max(ran + 1, m.at + shift) }));
+	let marks = t.marks.map((m, i) => (i < done ? { ...m, at: Math.max(1, Math.min(m.at, ran)) } : { ...m, at: Math.max(ran + 1, m.at + shift) }));
+	// The run's marks laid again at the pace known now: the legs still
+	// ahead are spaced as they say. A pace learned mid-run -- or a new
+	// default -- would otherwise wait for the next cast-off, and the
+	// clock kept ringing on the speed the run left with.
+	const byK = t.marks.some(m => Number.isFinite(m.k));
+	if (Array.isArray(fresh) && fresh.length === marks.length && fresh.every((m, j) => !byK || m.k === marks[j].k)) {
+		const from = fresh[done - 1].at + fresh[done - 1].hold;
+		marks = marks.map((m, j) => (j < done ? m : { ...m, at: Math.max(ran + 1, ran + fresh[j].at - from), hold: fresh[j].hold }));
+	}
 	write({ ...t, marks, done, reached: Math.max(done, Math.min(t.reached, done)), seconds: Math.max(30, marks[marks.length - 1].at), chimed: false });
+	arm();
+	sendSchedule();
+}
+
+/**
+ * The ship is at stop `index` -- said by the sailor, not guessed. The
+ * clock stops counting toward it (and will not chime for it later),
+ * and waits there for Traded as it would have at the estimate. `fresh`
+ * is the run's marks laid again, when the pace has just been learned:
+ * the stops still ahead are spaced as they say, from this one, so the
+ * clock that rang early all run long is put right mid-run rather than
+ * at the next cast-off.
+ */
+export function arrivedAt(index, fresh = null) {
+	const t = timerNow();
+	if (!t || !t.marks.length) return;
+	const byK = t.marks.some(m => Number.isFinite(m.k));
+	const i = byK ? t.marks.findIndex(m => m.k === index) : Math.floor(index);
+	if (i < t.done || i < 0 || i >= t.marks.length) return;
+	const ran = Math.max(1, Math.round((Date.now() - t.startedAt) / 1000));
+	const marks = t.marks.map(m => ({ ...m }));
+	const was = marks[i].at;
+	marks[i].at = Math.min(was, ran);
+	const same = Array.isArray(fresh) && fresh.length === marks.length && fresh.every((m, j) => !byK || m.k === marks[j].k);
+	for (let j = i + 1; j < marks.length; j++) {
+		marks[j].at = same ? marks[i].at + (fresh[j].at - fresh[i].at) + (marks[i].hold - fresh[i].hold) : marks[j].at + (marks[i].at - was);
+		marks[j].hold = same ? fresh[j].hold : marks[j].hold;
+	}
+	write({ ...t, marks, reached: Math.max(t.reached, i + 1), seconds: Math.max(30, marks[marks.length - 1].at), chimed: false });
 	arm();
 	sendSchedule();
 }
