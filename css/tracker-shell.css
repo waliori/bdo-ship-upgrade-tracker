@@ -270,6 +270,26 @@ a.ghost-btn { display: inline-flex; align-items: center; gap: 7px; text-decorati
   .tab-count { margin-right: -18px; }
 }
 
+/* The masthead stays one line at every width. Signed in, with the
+   crowd count beside it, the verbs came to a few pixels more than the
+   line and fell under the name; now the subtitle gives way first, then
+   the words on the buttons, then the verbs the menu also holds -- each
+   button keeps its mark, and its title says the rest. */
+.masthead { flex-wrap: nowrap; }
+.brand { min-width: 0; flex: 0 1 auto; }
+.brand > div:last-child { min-width: 0; overflow: hidden; }
+.brand-name, .brand-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.masthead-actions { flex: none; flex-wrap: nowrap; }
+@media (max-width: 1240px) {
+  .masthead-actions .btn-label, .masthead-actions .crowd-word { display: none; }
+  /* The sync word goes; its dot stays, since it is the one sign of a
+     sync under way or a conflict. */
+  .masthead-actions .account-note { font-size: 0; padding-left: 6px; }
+}
+@media (max-width: 960px) {
+  .masthead-actions .wide-only { display: none; }
+}
+
 /* The masthead on a phone: one line -- the mark and the name, then
    Undo, the account and the menu as glyphs. Find and the trip log
    are the first things in the menu. */
@@ -285,6 +305,11 @@ a.ghost-btn { display: inline-flex; align-items: center; gap: 7px; text-decorati
   .brand-mark { width: 34px; height: 34px; font-size: 17px; }
   .brand-name { font-size: 13.5px; letter-spacing: 0.06em; }
   .brand-sub { display: none; }
+}
+/* Too narrow for the name beside the verbs: the anchor alone says whose
+   log this is, and nothing slides under the buttons. */
+@media (max-width: 480px) {
+  .brand > div:last-child { display: none; }
 }
 
 /* ---- panels ------------------------------------------------------- */
