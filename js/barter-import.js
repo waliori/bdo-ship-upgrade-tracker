@@ -20,21 +20,14 @@
 
 import { esc, F } from './fmt.js';
 import { T, said, gameName, gameNamesFor } from './i18n.js';
-import { openDialog, closeDialog, toast } from './dialogs.js';
-import { LIMITS, triage, readWords, wireShotIntake, close as closeReader, shotLang, shotLangNote } from './shot-reader.js';
+import { toast } from './dialogs.js';
+import { triage, readWords, close as closeReader, shotLang } from './shot-reader.js';
 import { offersFrom, figuresFrom, localized, inEnglish } from './barter-shot.js';
 import { npcs, isleOf, whoOf } from './barter_npcs.js';
 import { img } from './ui-bits.js';
 import * as store from './state.js';
 import { barterKey } from './clock.js';
 
-/**
- * The dialog.
- *
- * `deals` is every exchange the codex lists (barter-plan.js's
- * `exchanges`), and `onAnswers` what to do with the rows the player
- * keeps.
- */
 /**
  * What the reader reads, drawn on the game's own window: the whole
  * window with its head, the same rows cropped, and what the numbered
@@ -61,158 +54,166 @@ export function shotGuideHTML(list = 'trade', { lazy = false } = {}) {
 	</ol>`;
 }
 
-export function openBarterImport({ deals, onAnswers = () => {}, files = null, guide = '' } = {}) {
-	let stop = null;
-	let rows = [];            // what was read: { isle, offer, near, keep }
-	let skipped = [];
-	// What the head of the window said about the sailor, and whether
-	// they want it written in. Offered rather than written: a figure
-	// read wrong and applied in silence is worse than one not read.
-	let figures = { parley: null, barters: null, take: true };
+/* ------------------------------------------------------------------ *
+ * the reading, on the page
+ *
+ * There is no dialog. The page already shows where to paste and what
+ * the screenshot should look like; a dialog that said it all again, and
+ * a box to press before a paste was taken, were two steps that answered
+ * nothing. A paste, a drop or a picked file starts the read at once,
+ * and the progress and then the table to check stand under the paste
+ * zone, in a box the page draws wherever it has one: `shotInlineHTML`
+ * is what that box holds, and it survives every redraw of the page.
+ * ------------------------------------------------------------------ */
 
-	const host = () => document.getElementById('dialog');
-	const draw = body => {
-		const inner = host().hidden ? null : host().querySelector('[data-shot-body]');
-		if (inner) inner.innerHTML = body;
-		else {
-			const box = openDialog(`<h2>${T('Read the barter window')}</h2><div data-shot-body>${body}</div>`,
-				{ onDismiss: () => { if (stop) stop.abort(); closeReader(); } }).querySelector('.dialog-box');
-			if (box) box.classList.add('wide', 'shot-box');
-		}
-		wire();
-	};
+let now = null;   // { stage: 'reading'|'review', at, text, rows, skipped, figures, stop, deals, onAnswers }
 
-	/* --- what to drop ------------------------------------------------ */
-	const pickView = () => `
-		${guide === 'material-whole' ? `<figure class="mat-help-fig"><img src="guide/material-scroll.webp" alt="${T('Three screenshots of the whole window, the list scrolled between each')}" width="1000" height="245">
-			<figcaption>${T('A board the book does not know: shoot the whole window, scroll the list down, shoot again, to the end — then drop or paste them all here together. A row on two shots is read once.')}</figcaption></figure>`
-		: shotGuideHTML(guide === 'material' ? 'material' : 'trade')}
-		<ul class="shot-kinds">
-			<li>${T('<b>What it is read against</b> — the exchanges the codex says that island deals, so a row is never a guess at a spelling.')}</li>
-		</ul>
-		${shotLangNote()}
-		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="${T('Choose screenshots to read')}">
-			<div class="shot-drop-mark">⚖</div>
-			<div><b>${T('Drop screenshots here, or paste one')}</b></div>
-			<div class="row-sub">${T('{paste}, or {link}', { paste: `<b>${T('Ctrl+V')}</b>`, link: `<button class="link-btn" data-choose>${T('choose files')}</button>` })}</div>
-			<div class="row-sub quiet">${T('A shot taken with Shift+Win+S goes to the clipboard — paste it straight in, no file to save first.')}</div>
-			<input type="file" accept="image/png,image/jpeg,image/webp" multiple hidden data-files>
-		</div>
-		<p class="dialog-note quiet">${T('Up to {files} at a time, {mb} MB each, PNG, JPEG or WebP.', { files: LIMITS.files, mb: Math.round(LIMITS.bytes / 1024 / 1024) })}
-			${T('They are read in this browser and never uploaded — the first read fetches about 6 MB of reader, once.')}</p>
-		<div class="dialog-actions"><button class="act quiet" data-close>${T('Close')}</button></div>`;
+/** Paint every box the page has for the reading. */
+function paint() {
+	for (const box of document.querySelectorAll('[data-shot-inline]')) box.innerHTML = shotInlineHTML();
+}
 
-	/* --- reading ----------------------------------------------------- */
-	const readingView = (at, text) => `
-		<p class="dialog-note">${esc(text)}</p>
-		<div class="shot-bar"><i style="width:${Math.round(at * 100)}%"></i></div>
-		<div class="dialog-actions"><button class="act quiet" data-stop>${T('Stop')}</button></div>`;
+/** Ask the system for pictures, and hand them to `then`. */
+export function pickShots(then) {
+	const input = document.createElement('input');
+	input.type = 'file';
+	input.accept = 'image/png,image/jpeg,image/webp';
+	input.multiple = true;
+	input.addEventListener('change', () => { if (input.files && input.files.length) then([...input.files]); });
+	input.click();
+}
 
-	/* --- the review table -------------------------------------------- */
-	const choices = r => {
-		// The shortlist, best first, and the way to say none of them.
-		// A row the reader was sure of still gets the list: it is the
-		// only way to correct it, and it costs a glance to ignore.
-		const list = (r.near || []).map(n => n.deal);
-		if (r.offer && !list.some(d => d.give === r.offer.give && d.item === r.offer.item)) list.unshift(r.offer);
-		return list.slice(0, 4);
-	};
+const choices = r => {
+	// The shortlist, best first, and the way to say none of them. A row
+	// the reader was sure of still gets the list: it is the only way to
+	// correct it, and it costs a glance to ignore.
+	const list = (r.near || []).map(n => n.deal);
+	if (r.offer && !list.some(d => d.give === r.offer.give && d.item === r.offer.item)) list.unshift(r.offer);
+	return list.slice(0, 4);
+};
 
-	const rowHTML = (r, i) => {
-		const pick = choices(r);
-		const chosen = r.keep ? pick.findIndex(d => d.give === r.keep.give && d.item === r.keep.item) : -1;
-		return `<tr class="shot-row${r.keep ? '' : ' off'}">
-			<td><input type="checkbox" data-take="${i}"${r.keep ? ' checked' : ''}${pick.length ? '' : ' disabled'} aria-label="${T('Use this row')}"></td>
-			<td class="shot-item">${img(r.keep ? r.keep.item : '', 'row-icon')}<span><b>${esc(gameName(isleOf(r.isle)))}</b><span class="row-sub">${esc(gameName(whoOf(r.isle)))}</span></span></td>
-			<td>${pick.length
-		? `<select class="purse-inline" data-offer="${i}" aria-label="${T('What {isle} is showing', { isle: esc(gameName(isleOf(r.isle))) })}">
-				${pick.map((d, k) => `<option value="${k}"${k === chosen ? ' selected' : ''}>${esc(gameName(d.give))} → ${esc(gameName(d.item))}</option>`).join('')}
-				<option value="">${T('— none of these')}</option>
-			</select>`
-		: `<span class="quiet">${T('nothing the codex lists fits that row')}</span>`}</td>
-			<td class="shot-note">${r.offer ? `<span class="quiet">${T('read')}</span>` : `<span class="shot-warn" title="${esc(said(r.why) || '')}">⚠ ${esc(said(r.why) || T('unsure'))}</span>`}</td>
-		</tr>`;
-	};
+const rowHTML = (r, i) => {
+	const pick = choices(r);
+	const chosen = r.keep ? pick.findIndex(d => d.give === r.keep.give && d.item === r.keep.item) : -1;
+	return `<tr class="shot-row${r.keep ? '' : ' off'}">
+		<td><input type="checkbox" data-take="${i}"${r.keep ? ' checked' : ''}${pick.length ? '' : ' disabled'} aria-label="${T('Use this row')}"></td>
+		<td class="shot-item">${img(r.keep ? r.keep.item : '', 'row-icon')}<span><b>${esc(gameName(isleOf(r.isle)))}</b><span class="row-sub">${esc(gameName(whoOf(r.isle)))}</span></span></td>
+		<td>${pick.length
+	? `<select class="purse-inline" data-offer="${i}" aria-label="${T('What {isle} is showing', { isle: esc(gameName(isleOf(r.isle))) })}">
+			${pick.map((d, k) => `<option value="${k}"${k === chosen ? ' selected' : ''}>${esc(gameName(d.give))} → ${esc(gameName(d.item))}</option>`).join('')}
+			<option value="">${T('— none of these')}</option>
+		</select>`
+	: `<span class="quiet">${T('nothing the codex lists fits that row')}</span>`}</td>
+		<td class="shot-note">${r.offer ? `<span class="quiet">${T('read')}</span>` : `<span class="shot-warn" title="${esc(said(r.why) || '')}">⚠ ${esc(said(r.why) || T('unsure'))}</span>`}</td>
+	</tr>`;
+};
 
-	// What the window's head said about the sailor, against what the
-	// app has been planning with. Only shown where it differs: a figure
-	// that already agrees is not news.
-	const figuresHTML = () => {
-		const lines = [];
-		if (figures.parley > 0 && figures.parley !== store.getProfile('parleyHeld', 0)) {
-			lines.push(T('<b>Parley</b> {n}', { n: F(figures.parley) })
-				+ (store.getProfile('parleyHeld', 0) > 0
-					? ` · ${T('the app has {n}', { n: F(store.getProfile('parleyHeld', 0)) })}`
-					: ` · ${T('the app has been planning against a full bar')}`));
-		}
-		if (figures.barters > 0 && figures.barters !== store.getProfile('barterCount', 0)) {
-			lines.push(T('<b>Total Barters</b> {n}', { n: F(figures.barters) })
-				+ ` · ${T('the app has {n}', { n: F(store.getProfile('barterCount', 0)) })}`);
-		}
-		if (!lines.length) return '';
-		return `<div class="shot-figures"><label class="inline-check">
-			<input type="checkbox" data-figures${figures.take ? ' checked' : ''}>
-			<span>${T('The window’s head also says:')} ${lines.join(' · ')} — ${T('write these in')}</span>
-		</label></div>`;
-	};
+// What the window's head said about the sailor, against what the app
+// has been planning with. Only shown where it differs: a figure that
+// already agrees is not news.
+const figuresHTML = figures => {
+	const lines = [];
+	if (figures.parley > 0 && figures.parley !== store.getProfile('parleyHeld', 0)) {
+		lines.push(T('<b>Parley</b> {n}', { n: F(figures.parley) })
+			+ (store.getProfile('parleyHeld', 0) > 0
+				? ` · ${T('the app has {n}', { n: F(store.getProfile('parleyHeld', 0)) })}`
+				: ` · ${T('the app has been planning against a full bar')}`));
+	}
+	if (figures.barters > 0 && figures.barters !== store.getProfile('barterCount', 0)) {
+		lines.push(T('<b>Total Barters</b> {n}', { n: F(figures.barters) })
+			+ ` · ${T('the app has {n}', { n: F(store.getProfile('barterCount', 0)) })}`);
+	}
+	if (!lines.length) return '';
+	return `<div class="shot-figures"><label class="inline-check">
+		<input type="checkbox" data-figures${figures.take ? ' checked' : ''}>
+		<span>${T('The window’s head also says:')} ${lines.join(' · ')} — ${T('write these in')}</span>
+	</label></div>`;
+};
 
-	// The head read and the rows did not: the figures are still worth
-	// having, and used to be shown beside a button that could not be
-	// pressed.
-	const figuresOnly = () => figures.take && !!figuresHTML();
+// The head read and the rows did not: the figures are still worth
+// having.
+const figuresOnly = () => now.figures.take && !!figuresHTML(now.figures);
 
-	const reviewView = () => {
-		const taking = rows.filter(r => r.keep);
-		return `
+/** What the page's box holds: the read under way, the table to check,
+ *  or nothing at all. */
+export function shotInlineHTML() {
+	if (!now) return '';
+	if (now.stage === 'reading') {
+		return `<div class="shot-inline-box">
+			<p class="dialog-note" data-shot-say>${esc(now.text)}</p>
+			<div class="shot-bar"><i style="width:${Math.round(now.at * 100)}%"></i></div>
+			<div class="dialog-actions"><button class="act quiet" data-shot-stop>${T('Stop')}</button></div>
+		</div>`;
+	}
+	const { rows, skipped } = now;
+	const taking = rows.filter(r => r.keep);
+	return `<div class="shot-inline-box">
 		<p class="dialog-note">${rows.length
-		? `${rows.length === 1 ? T('Read {n} island.', { n: rows.length }) : T('Read {n} islands.', { n: rows.length })} ${T('Check them against the window — a row read wrong puts the whole board on the wrong layout, and every one of these can be corrected from the list beside it.')}`
-		: T('No barter rows were found in those. The window has to show the list itself: the island on the left of each row is what the rows are found by.')}</p>
-		${skipped.length ? `<details class="shot-skipped"><summary>${T('{n} not read', { n: skipped.length })}</summary>${skipped.map(s => `<div class="row-sub">${esc(s.name)} — ${esc(said(s.why))}</div>`).join('')}</details>` : ''}
+	? `${rows.length === 1 ? T('Read {n} island.', { n: rows.length }) : T('Read {n} islands.', { n: rows.length })} ${T('Check them against the window — a row read wrong puts the whole board on the wrong layout, and every one of these can be corrected from the list beside it.')}`
+	: T('No barter rows were found in those. The window has to show the list itself: the island on the left of each row is what the rows are found by.')}</p>
+		${skipped.length ? `<details class="shot-skipped"><summary>${T('{n} not read', { n: skipped.length })}</summary>${skipped.map(x => `<div class="row-sub">${esc(x.name)} — ${esc(said(x.why))}</div>`).join('')}</details>` : ''}
 		${rows.length ? `<div class="shot-table-wrap"><table class="shot-table">
 			<thead><tr><th></th><th>${T('Island')}</th><th>${T('Showing')}</th><th></th></tr></thead>
 			<tbody>${rows.map(rowHTML).join('')}</tbody>
 		</table></div>` : ''}
-		${figuresHTML()}
+		${figuresHTML(now.figures)}
 		<div class="dialog-actions">
-			<button class="act quiet" data-again>${T('Read more')}</button>
+			<button class="act quiet" data-shot-again>${T('Read more')}</button>
 			<span class="panel-spacer"></span>
-			<button class="act quiet" data-close>${T('Cancel')}</button>
-			<button class="act" data-use${taking.length || figuresOnly() ? '' : ' disabled'}>${taking.length
-			? (taking.length === 1 ? T('Answer {n} island', { n: taking.length }) : T('Answer {n} islands', { n: taking.length }))
-			: figuresOnly() ? T('Write the figures in') : T('Nothing ticked')}</button>
-		</div>`;
-	};
+			<button class="act quiet" data-shot-cancel>${T('Cancel')}</button>
+			<button class="act" data-shot-use${taking.length || figuresOnly() ? '' : ' disabled'}>${taking.length
+		? (taking.length === 1 ? T('Answer {n} island', { n: taking.length }) : T('Answer {n} islands', { n: taking.length }))
+		: figuresOnly() ? T('Write the figures in') : T('Nothing ticked')}</button>
+		</div>
+	</div>`;
+}
 
-	/* --- doing it ---------------------------------------------------- */
-	async function run(files) {
-		const { take, skipped: out } = await triage([...files]);
-		skipped = out.map(s => ({ name: s.file.name, why: s.why }));
-		if (!take.length) { rows = []; draw(reviewView()); return; }
-		stop = new AbortController();
-		draw(readingView(0, T('Fetching the reader…')));
-		const say = (at, text) => {
-			const bar = host().querySelector('.shot-bar i');
-			const note = host().querySelector('.dialog-note');
-			if (bar) bar.style.width = `${Math.round(at * 100)}%`;
-			if (note) note.textContent = text;
-		};
-		const seen = new Map();
+/**
+ * Read screenshots of the barter window, on the page. `deals` is every
+ * exchange the codex lists (barter-plan.js's `exchanges`), and
+ * `onAnswers` what to do with the rows the player keeps. A second
+ * paste while a table is up adds to it: a scrolled window is more of
+ * the same board.
+ */
+export async function readBarterShots({ files, deals, onAnswers = () => {} }) {
+	wireOnce();
+	if (now && now.stop) now.stop.abort();
+	const { take, skipped: out } = await triage([...files]);
+	const was = now && now.stage === 'review' ? now : null;
+	now = {
+		stage: 'reading', at: 0, text: T('Fetching the reader…'),
+		rows: was ? was.rows : [], skipped: out.map(x => ({ name: x.file.name, why: x.why })),
+		figures: was ? was.figures : { parley: null, barters: null, take: true },
+		stop: new AbortController(), deals, onAnswers
+	};
+	const me = now;
+	paint();
+	const box = document.querySelector('[data-shot-inline]');
+	if (box && box.scrollIntoView) box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+	const say = (at, text) => {
+		me.at = at; me.text = text;
+		const bar = document.querySelector('[data-shot-inline] .shot-bar i');
+		const note = document.querySelector('[data-shot-inline] [data-shot-say]');
+		if (bar) bar.style.width = `${Math.round(at * 100)}%`;
+		if (note) note.textContent = text;
+		else paint();
+	};
+	const seen = new Map(me.rows.map(r => [r.isle.id, r]));
+	if (take.length) {
 		// The islands and exchanges as the client names them. What is
 		// read is handed back in English, which is what the app keeps.
 		const lang = shotLang();
 		const tables = localized({ isles: npcs, deals }, await gameNamesFor(lang).catch(() => ({})));
 		for (let i = 0; i < take.length; i++) {
-			if (stop.signal.aborted) break;
+			if (me.stop.signal.aborted) break;
 			say(i / take.length, T('Reading {i} of {n} — {name}', { i: i + 1, n: take.length, name: take[i].name }));
 			try {
 				const { words } = await readWords(take[i], { lang });
 				// The head of the window says what the sailor's own bar
-				// holds and how many barters are behind them. Both are
-				// fields the app otherwise asks them to type and then
-				// watches go stale, and both are right there in the shot.
-				const said = figuresFrom(words);
-				if (said.parley > 0) figures.parley = said.parley;
-				if (said.barters > 0) figures.barters = said.barters;
+				// holds and how many barters are behind them.
+				const head = figuresFrom(words);
+				if (head.parley > 0) me.figures.parley = head.parley;
+				if (head.barters > 0) me.figures.barters = head.barters;
 				for (const read of offersFrom(words, tables)) {
 					const row = inEnglish(read);
 					// An island read twice takes the later reading: the
@@ -220,58 +221,76 @@ export function openBarterImport({ deals, onAnswers = () => {}, files = null, gu
 					seen.set(row.isle.id, { ...row, keep: row.offer || null });
 				}
 			} catch (err) {
-				skipped.push({ name: take[i].name, why: err && err.message ? err.message : T('could not be read') });
+				me.skipped.push({ name: take[i].name, why: err && err.message ? err.message : T('could not be read') });
 			}
 		}
-		stop = null;
-		rows = [...seen.values()].sort((a, b) => isleOf(a.isle).localeCompare(isleOf(b.isle)));
-		draw(reviewView());
 	}
+	// Stopped, or overtaken by a newer paste: that one owns the box.
+	if (now !== me) return;
+	if (me.stop.signal.aborted && !seen.size) { now = null; paint(); return; }
+	me.stop = null;
+	me.rows = [...seen.values()].sort((a, b) => isleOf(a.isle).localeCompare(isleOf(b.isle)));
+	me.stage = 'review';
+	paint();
+}
 
-	/* --- keeping it -------------------------------------------------- */
-	async function use() {
-		const taking = rows.filter(r => r.keep);
-		if (!taking.length && !figuresOnly()) return;
-		const answers = taking.map(r => ({ npcId: r.isle.id, give: r.keep.give, recv: r.keep.item, qty: r.keep.giveText || '1' }));
-		if (figures.take) {
-			if (figures.parley > 0) store.setProfileMany({ parleyHeld: Math.round(figures.parley), parleyDay: barterKey() });
-			if (figures.barters > 0) store.setProfile('barterCount', Math.round(figures.barters));
-		}
-		closeReader();
-		closeDialog();
-		// What the answers mean is the tab's business -- some of these
-		// rows are the material list, which belongs to no layout -- so
-		// the tab says what it did with them. Whether they are worth
-		// telling the fleet is the tab's to say too: a reading is news
-		// when it fits no layout on file, and the bar offers it then.
-		if (answers.length) onAnswers(answers);
-		else toast(T('The window’s figures are written in'), true);
+function done() {
+	if (now && now.stop) now.stop.abort();
+	now = null;
+	closeReader();
+	paint();
+}
+
+function use() {
+	const me = now;
+	if (!me) return;
+	const taking = me.rows.filter(r => r.keep);
+	if (!taking.length && !figuresOnly()) return;
+	const answers = taking.map(r => ({ npcId: r.isle.id, give: r.keep.give, recv: r.keep.item, qty: r.keep.giveText || '1' }));
+	if (me.figures.take) {
+		if (me.figures.parley > 0) store.setProfileMany({ parleyHeld: Math.round(me.figures.parley), parleyDay: barterKey() });
+		if (me.figures.barters > 0) store.setProfile('barterCount', Math.round(me.figures.barters));
 	}
+	done();
+	// What the answers mean is the tab's business -- some of these rows
+	// are the material list, which belongs to no layout -- so the tab
+	// says what it did with them.
+	if (answers.length) me.onAnswers(answers);
+	else toast(T('The window’s figures are written in'), true);
+}
 
-	/* --- wiring ------------------------------------------------------ */
-	function wire() {
-		const box = host();
-		wireShotIntake(box, run);
-		const on = (sel, ev, fn) => box.querySelectorAll(sel).forEach(el => el.addEventListener(ev, fn));
-		on('[data-figures]', 'change', e => { figures.take = !!e.target.checked; });
-		on('[data-stop]', 'click', () => { if (stop) stop.abort(); });
-		on('[data-again]', 'click', () => draw(pickView()));
-		on('[data-use]', 'click', use);
-		on('[data-take]', 'change', e => {
-			const r = rows[Number(e.target.dataset.take)];
-			r.keep = e.target.checked ? (r.keep || choices(r)[0] || null) : null;
-			draw(reviewView());
-		});
-		on('[data-offer]', 'change', e => {
-			const r = rows[Number(e.target.dataset.offer)];
+// The box is drawn again with the page, so its controls are answered
+// from the document rather than wired one box at a time.
+let wired = false;
+function wireOnce() {
+	if (wired || typeof document === 'undefined') return;
+	wired = true;
+	document.addEventListener('click', e => {
+		const el = e.target.closest('[data-shot-inline] button');
+		if (!el || !now) return;
+		if (el.hasAttribute('data-shot-stop')) { if (now.stop) now.stop.abort(); }
+		else if (el.hasAttribute('data-shot-cancel')) done();
+		else if (el.hasAttribute('data-shot-use')) use();
+		else if (el.hasAttribute('data-shot-again')) {
+			const me = now;
+			pickShots(files => readBarterShots({ files, deals: me.deals, onAnswers: me.onAnswers }));
+		} else return;
+		e.preventDefault();
+		e.stopPropagation();
+	});
+	document.addEventListener('change', e => {
+		const el = e.target.closest('[data-shot-inline] [data-take], [data-shot-inline] [data-offer], [data-shot-inline] [data-figures]');
+		if (!el || !now || now.stage !== 'review') return;
+		e.stopPropagation();
+		if (el.hasAttribute('data-figures')) { now.figures.take = !!el.checked; paint(); return; }
+		if (el.hasAttribute('data-take')) {
+			const r = now.rows[Number(el.dataset.take)];
+			r.keep = el.checked ? (r.keep || choices(r)[0] || null) : null;
+		} else {
+			const r = now.rows[Number(el.dataset.offer)];
 			const pick = choices(r);
-			r.keep = e.target.value === '' ? null : pick[Number(e.target.value)] || null;
-			draw(reviewView());
-		});
-	}
-
-	draw(pickView());
-	// Pasted onto the page rather than into this dialog: the picture is
-	// already in hand, so the read starts with it.
-	if (files && files.length) run(files);
+			r.keep = el.value === '' ? null : pick[Number(el.value)] || null;
+		}
+		paint();
+	});
 }

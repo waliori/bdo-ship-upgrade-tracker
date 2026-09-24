@@ -1207,3 +1207,12 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 	.auto-name { flex: 1 1 100%; }
 	.auto-figs { flex: 1 1 auto; }
 }
+
+/* The barter screenshots, read on the page under the paste zone. */
+.shot-inline:empty { display: none; }
+.shot-inline { margin: 12px 0; }
+.shot-inline-box { padding: 14px 16px; border-radius: var(--r-tile); border: 1px solid var(--teal-edge); background: var(--panel-inset); }
+.shot-inline-box .dialog-note { margin: 0 0 6px; }
+.shot-inline-box .dialog-actions { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 10px; flex-wrap: wrap; }
+.board-drop.over { border-color: var(--teal); border-style: solid; background: color-mix(in srgb, var(--teal) 8%, var(--panel-inset)); }
+.shot-inline-box .dialog-actions .act { width: auto; flex: 0 0 auto; }

@@ -156,15 +156,16 @@ const scenes = {
 		await page.setViewport({ width: 940, height: 640, deviceScaleFactor: 1 });
 		await seed(page, url, fittedShip);
 		await tab(page, 'barter');
-		await click(page, '[data-act="barter-shot"]', { after: 900 });
-		const input = await page.$('#dialog input[type=file]');
-		await input.uploadFile(shot('barter-window.webp'));
-		await waitFor(page, '.shot-table', { upTo: 240000, then: 900 });
+		// The paste zone opens the file chooser itself, and the read
+		// stands on the page under it.
+		const [chooser] = await Promise.all([page.waitForFileChooser(), click(page, '[data-act="barter-shot"]', { after: 900 })]);
+		await chooser.accept([shot('barter-window.webp')]);
+		await waitFor(page, '[data-shot-inline] .shot-table', { upTo: 240000, then: 900 });
 		await rec(page, 'read-the-window', async () => {
 			await wait(1200);
 			await moveTo(page, '.shot-table tbody tr:nth-child(2)');
 			await wait(1400);
-			await click(page, '#dialog [data-use]', { after: 1200 });
+			await click(page, '[data-shot-use]', { after: 1200 });
 			await frame(page, '.barter-bar', { top: 24 });
 			await moveTo(page, '.barter-bar-lead');
 			await wait(2200);
