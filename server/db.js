@@ -384,11 +384,31 @@ export const MIGRATIONS = [
 			// The two lists share the table and never each other's rows.
 			await run("ALTER TABLE barter_boards ADD COLUMN list TEXT NOT NULL DEFAULT 'trade'");
 		}
+	},
+	{
+		version: 10,
+		up: async run => {
+			// A thing shared by a short link: a plan, a ship setup, a
+			// drawing or a route, as the JSON the long link would have
+			// carried in its address. The id is the whole address, so it
+			// is random and unguessable rather than a count; the server
+			// never reads the payload, the browser has the tables.
+			await run(`CREATE TABLE IF NOT EXISTS links (
+				id          TEXT PRIMARY KEY,
+				user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				kind        TEXT NOT NULL,
+				payload     TEXT NOT NULL,
+				created_at  INTEGER NOT NULL,
+				opened      INTEGER NOT NULL DEFAULT 0,
+				opened_at   INTEGER
+			)`);
+			await run('CREATE INDEX IF NOT EXISTS links_owner ON links (user_id, created_at)');
+		}
 	}
 ];
 
 /** The data tables, in the order a restore has to write them (parents first). */
-export const TABLES = ['users', 'saves', 'push_subs', 'push_alerts', 'feedback', 'feedback_files', 'community', 'presence', 'barter_boards', 'barter_board_seen'];
+export const TABLES = ['users', 'saves', 'push_subs', 'push_alerts', 'feedback', 'feedback_files', 'community', 'presence', 'barter_boards', 'barter_board_seen', 'links'];
 
 /**
  * Bring the database up to the newest version. Safe to run any number
@@ -667,6 +687,7 @@ export async function writeSave(userId, { rev, payload, updatedAt, device }) {
 export async function deleteAccount(userId) {
 	await migrate();
 	await exec({ sql: 'DELETE FROM community WHERE user_id = ?', args: [userId] });
+	await exec({ sql: 'DELETE FROM links WHERE user_id = ?', args: [userId] });
 	await exec({ sql: 'DELETE FROM saves WHERE user_id = ?', args: [userId] });
 	await exec({ sql: 'DELETE FROM users WHERE id = ?', args: [userId] });
 }
@@ -1043,4 +1064,43 @@ export async function sweepSightings(before, list = 'trade') {
 	await exec({ sql: 'DELETE FROM barter_board_seen WHERE board_id IN (SELECT id FROM barter_boards WHERE created_at < ? AND list = ?)', args: [before, list] });
 	const { rowsAffected } = await exec({ sql: 'DELETE FROM barter_boards WHERE created_at < ? AND list = ?', args: [before, list] });
 	return Number(rowsAffected || 0);
+}
+
+/* ------------------------------------------------------------------ *
+ * Short links
+ * ------------------------------------------------------------------ */
+
+/** Keep what a link carries under its id. False if the id is taken,
+ *  which the caller answers by drawing another. */
+export async function insertLink({ id, userId, kind, payload }, at = Date.now()) {
+	await migrate();
+	const { rowsAffected } = await exec({
+		sql: 'INSERT OR IGNORE INTO links (id, user_id, kind, payload, created_at) VALUES (?, ?, ?, ?, ?)',
+		args: [id, userId, kind, payload, at]
+	});
+	return rowsAffected > 0;
+}
+
+/** What a link carries, as stored, or null. */
+export async function getLink(id) {
+	await migrate();
+	const { rows } = await exec({ sql: 'SELECT id, user_id, kind, payload, created_at, opened FROM links WHERE id = ?', args: [id] });
+	const r = rows[0];
+	return r ? { id: r.id, userId: r.user_id, kind: r.kind, payload: r.payload, at: Number(r.created_at), opened: Number(r.opened) } : null;
+}
+
+/** Somebody opened it. A count, not a who: the link is public. */
+export async function touchLink(id, at = Date.now()) {
+	await migrate();
+	await exec({ sql: 'UPDATE links SET opened = opened + 1, opened_at = ? WHERE id = ?', args: [at, id] });
+}
+
+/** Drop an account's oldest links past `keep` of them. */
+export async function trimLinks(userId, keep) {
+	await migrate();
+	await exec({
+		sql: `DELETE FROM links WHERE user_id = ? AND id NOT IN (
+			SELECT id FROM links WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT ?)`,
+		args: [userId, userId, keep]
+	});
 }

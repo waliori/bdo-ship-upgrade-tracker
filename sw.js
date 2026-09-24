@@ -183,6 +183,7 @@ const SHELL = [
 	'/js/searoute.js',
 	'/js/setups.js',
 	'/js/share.js',
+	'/js/links.js',
 	'/js/sheet.js',
 	'/js/ship-pace.js',
 	'/js/ship.js',

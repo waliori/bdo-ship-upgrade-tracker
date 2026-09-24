@@ -260,7 +260,7 @@ if (presenceEnabled) {
 // Discord app should not show a button that cannot work.
 app.get('/api/config', (req, res) => {
 	res.set('Cache-Control', 'no-store');
-	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, uploads: uploadsEnabled, community: communityEnabled, presence: presenceEnabled });
+	res.json({ sync: syncEnabled, push: pushEnabled, feedback: feedbackEnabled, uploads: uploadsEnabled, community: communityEnabled, presence: presenceEnabled, links: syncEnabled });
 });
 
 // Is it up, and is the database behind it answering? `db` is 'off' on a

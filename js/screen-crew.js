@@ -25,7 +25,8 @@ import { openFleet } from './setups.js';
 import { openPicker } from './picker.js';
 import { openSailorImport } from './sailor-import.js';
 import { roleOf, CRYSTAL_FOR, SAILOR_NOTE, PART_PATH } from './ship_roles.js';
-import { encodeShare, shareLink } from './share.js';
+import { encodeAny, shipLink } from './share.js';
+import { buildLink, copyLink } from './links.js';
 import { enhancedName } from './planner.js';
 import {
 	pool, mateTypes, anyType, care, rations, expSplit, firstMates, slotSources, statBand, rollRank,
@@ -1269,17 +1270,25 @@ function crystalPicker(ship) {
 	});
 }
 
-/** The hull, its fitted parts and its crew, in a link. */
+/** The hull, its fitted parts and its crew, in a link. The sailors go
+ *  numbered from nought: a roster id is a timestamp with a random
+ *  tail, twelve characters a packer cannot fold, and on the far side
+ *  an id is only what a seat points at. */
 async function copyShipLink() {
 	const ship = shipName();
-	const setup = { ship, fitted: (store.getProfile('fitted', {}) || {})[ship] || {}, crystal: (store.getProfile('crystal', {}) || {})[ship] || null, roster: roster(), seats: seatsOf(ship) };
+	const crew = roster();
+	const ids = new Map(crew.map((s, i) => [s.id, i.toString(36)]));
+	const seats = {};
+	for (const [seat, id] of Object.entries(seatsOf(ship))) if (ids.has(id)) seats[seat] = ids.get(id);
+	const setup = {
+		ship, fitted: (store.getProfile('fitted', {}) || {})[ship] || {}, crystal: (store.getProfile('crystal', {}) || {})[ship] || null,
+		roster: crew.map(s => ({ ...s, id: ids.get(s.id) })), seats
+	};
+	let url, short;
 	try {
-		const link = shareLink(await encodeShare({ stock: {}, setup })).replace('#share/', '#ship/');
-		await navigator.clipboard.writeText(link);
-		toast(T('Ship setup link copied'));
-	} catch {
-		toast(T('Could not build or copy the link'));
-	}
+		({ url, short } = await buildLink('ship', setup, () => encodeAny(setup).then(shipLink)));
+	} catch { return toast(T('Could not build or copy the link')); }
+	await copyLink(url, T('Ship setup link copied'), short);
 }
 
 /** Take a ship setup in from a link: the hull, what is on it, who sails it. */

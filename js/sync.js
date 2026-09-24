@@ -150,6 +150,33 @@ export function me() {
 	return account ? { ...account } : null;
 }
 
+/* ------------------------------------------------------------------ *
+ * Short links
+ * ------------------------------------------------------------------ */
+
+/** Can a link be kept on the server rather than carried whole in the
+ *  address: the deployment keeps them, and someone is signed in. */
+export function canKeepLink() {
+	return feature('links') && account !== null;
+}
+
+/** Keep `data` under a short id. `kind` is plan, ship, trace or
+ *  route. Resolves to the id; throws when the server would not. */
+export async function keepLink(kind, data) {
+	const res = await api('POST', '/api/links', { kind, data });
+	if (!res.ok || !res.body || typeof res.body.id !== 'string') throw new Error((res.body && res.body.error) || 'not kept');
+	return res.body.id;
+}
+
+/** What a short link carries: { kind, data }, or null when there is
+ *  no such link. Throws when the server could not be reached. */
+export async function fetchLink(id) {
+	const res = await api('GET', `/api/links/${encodeURIComponent(id)}`);
+	if (res.status === 404) return null;
+	if (!res.ok || !res.body || !res.body.data) throw new Error((res.body && res.body.error) || 'not read');
+	return { kind: res.body.kind, data: res.body.data };
+}
+
 /** Be told whenever the account changes. Returns the way to stop. */
 export function onAccount(fn) {
 	watchers.add(fn);

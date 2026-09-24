@@ -211,6 +211,17 @@ export const config = {
 	// sail it -- so this is far above anything the app does and only
 	// bites something that is not the app.
 	maxBoardsPerMinute: num('MAX_BOARDS_PER_MINUTE', 20),
+	// Keeping a link. A player copies a link a few times a day at most,
+	// so this only bites a script; and what one link may carry is a
+	// drawing at its largest -- twenty-four strokes of a thousand
+	// points -- with room to spare, well under a save.
+	maxLinksPerMinute: num('MAX_LINKS_PER_MINUTE', 20),
+	maxLinkBytes: num('MAX_LINK_BYTES', 256 * 1024),
+	// How many links an account keeps. Past this the oldest go, so a
+	// player who shares a route every day for years never fills a
+	// table -- and never notices, since a link that old is a message
+	// nobody is reading any more.
+	maxLinksPerAccount: num('MAX_LINKS_PER_ACCOUNT', 2000),
 
 	// How long a change waits before being written out. Long enough that
 	// typing "1", "12", "120" is one write rather than three; short enough

@@ -11,7 +11,7 @@ import { iconLoader } from './icon-loader.js';
 import { esc, F, parseAmount } from './fmt.js';
 import * as store from './state.js';
 import { completed } from './barter-board.js';
-import { initSync, openAccount, feature, me } from './sync.js';
+import { initSync, openAccount, feature, me, fetchLink, canKeepLink } from './sync.js';
 import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.js';
 import {
 	view, selected, recipes, barterData, snapshot, query,
@@ -22,7 +22,8 @@ import { kindOf } from './kinds.js';
 import { toast, openDialog, closeDialog, dismissDialog, holdScreen, whenScreenFree } from './dialogs.js';
 import { allItems, img } from './ui-bits.js';
 import { T, TT, said, gameName, LANGS, langById, langFlag, setLang, startingLang, lang as currentLang } from './i18n.js';
-import { encodeShare, decodeShare, shareLink, shareSize } from './share.js';
+import { encodeShare, decodeShare, decodeAny, shareLink, shareSize, shortLinkId, isPlan, slimShape } from './share.js';
+import { buildLink, copyLink } from './links.js';
 import { massProcess } from './vendor_items.js';
 import { loadMarket, onMarket, setRegion as setMarketRegion } from './market.js';
 import { paintPouch, openPouch, returnToPouch } from './pouch.js';
@@ -62,7 +63,7 @@ import {
 	renderMap, paintMap, wireMap, setMapPick, mapZoomStep, mapCentreOn, mapCentreOnStash,
 	mapShowItem, mapFit, setMapMode, toggleMapPanel, toggleMapStop,
 	useSuggestedRoute, reverseMapRoute, clearMapRoute, setMapCourse, setMapErrands, setMapErrandFrom, setMapErrandKinds, openMapErrand, setMapErrandSkip, skipMapErrandCall, drawMapErrands, setMapHunt, showHunt, toggleMapDone, closeMapTip,
-	saveRouteDialog, loadSavedRoute, deleteSavedRoute, mapWritingView, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, applyMapLink, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
+	saveRouteDialog, loadSavedRoute, deleteSavedRoute, mapWritingView, loadPreviousRoute, deletePreviousRoute, openRationCal, putRationsCall, setRationsAboard, pinArea, forgetPinned, setTradesMode, trimRouteToParley, routeLink, routeObject, applyMapLink, applyPackedMapLink, plainMapLink, applyMapObject, unpackTrace, toggleMeasure, openSailCal, setMapWharves, toggleMini, setMapHabitats, setMapLabels, setMapPins, setMapTraces, toggleMapLayers, flipMapSide, traceAction, traceChange, applyTraceLink,
 	openMapPicker, mapStep, mapStepTo, mapFollowToggle, mapNextOnlyToggle, setMapStart, setMapReturn, mapPortClick,
 	reviveMapRoute, setMapKind, exportRoute, importRoute, openGameExport, gameBookmarks, setGameWrite, setGameLine,
 	toggleFull, exitFull, mapIsFull, gameImportAction, setRunSheet, setStepHook, mapStepToStop, routeIds, marksNow,
@@ -500,6 +501,13 @@ function syncHash() {
 
 function applyHash() {
 	const m = location.hash.match(/^#([a-z]+)(?:\/(.*))?$/);
+	// A short link: the server says what it carries, and the address is
+	// cleaned once that is known.
+	const short = shortLinkId(location.hash);
+	if (short) {
+		openShortLink(short);
+		return true;
+	}
 	// A plan in a link: offered, and the address cleaned so a reload does
 	// not offer it twice.
 	if (m && m[1] === 'share' && m[2]) {
@@ -550,8 +558,13 @@ function applyHash() {
 		// otherwise stash the route as "Previous" again each time, and the
 		// list of saved routes holds eight.
 		if (m[1] === 'map' && m[2]) {
-			const n = applyMapLink(m[2]);
-			if (n) toast(n === 1 ? T('Route from the link: {n} stop', { n }) : T('Route from the link: {n} stops', { n }));
+			// Packed, as links are written now; or plain, as they were.
+			if (plainMapLink(m[2])) {
+				const n = applyMapLink(m[2]);
+				if (n) toast(routeLanded(n));
+			} else {
+				applyPackedMapLink(m[2]).then(n => { if (n) { toast(routeLanded(n)); render(); } });
+			}
 			history.replaceState(null, '', `${location.pathname}${location.search}#map`);
 		}
 		store.setSetting('view', m[1]);
@@ -1147,14 +1160,16 @@ function wire() {
 			case 'map-level': levelMap(); return;
 			case 'map-style': setMapStyle(el.dataset.id); return;
 			case 'map-sail-cal': return openSailCal();
-			case 'map-route-link':
+			case 'map-route-link': {
+				let url, short;
 				try {
-					await navigator.clipboard.writeText(routeLink());
-					toast(T('Route link copied'));
+					({ url, short } = await buildLink('route', routeObject(), routeLink));
 				} catch {
-					toast(T('Could not reach the clipboard'));
+					return toast(T('Could not build or copy the link'));
 				}
+				await copyLink(url, T('Route link copied'), short);
 				return;
+			}
 			case 'map-course': setMapCourse(el.dataset.id); return;
 			case 'map-errands': setMapErrands(); return;
 			case 'map-errand-kinds': setMapErrandKinds(el.dataset.id); return;
@@ -1875,6 +1890,10 @@ async function openShared(payload) {
 	} catch {
 		return toast(T('That link does not carry a plan the tracker can read'));
 	}
+	openSharedSave(save);
+}
+
+function openSharedSave(save) {
 	const items = Object.keys(save.stock || {}).length;
 	const builds = (save.targets || []).length;
 	const host = openDialog(`
@@ -1908,11 +1927,18 @@ async function openShared(payload) {
 async function openSharedShip(payload) {
 	let setup;
 	try {
-		setup = (await decodeShare(payload)).setup;
+		// The setup itself, or -- in links from before -- wrapped as a
+		// save with an empty stock beside it.
+		const raw = await decodeAny(payload);
+		setup = raw && raw.setup ? raw.setup : raw;
 	} catch {
 		return toast(T('That link does not carry a ship setup the tracker can read'));
 	}
-	if (!setup || !setup.ship) return toast(T('That link does not carry a ship setup'));
+	openSharedSetup(setup);
+}
+
+function openSharedSetup(setup) {
+	if (!setup || typeof setup !== 'object' || !setup.ship) return toast(T('That link does not carry a ship setup'));
 	const fitted = Object.entries(setup.fitted || {}).filter(([, part]) => part);
 	const missing = fitted.filter(([, part]) => !(store.getStock(part) > 0)).map(([, part]) => part);
 	const sailors = (setup.roster || []).length;
@@ -1943,6 +1969,51 @@ async function openSharedShip(payload) {
 		for (const part of missing) store.addTarget(part, 1);
 		toast(missing.length === 1 ? T('Queued {n} part to build', { n: missing.length }) : T('Queued {n} parts to build', { n: missing.length }), true);
 	});
+}
+
+const routeLanded = n => (n === 1 ? T('Route from the link: {n} stop', { n }) : T('Route from the link: {n} stops', { n }));
+
+/**
+ * A short link: ten characters the server keeps a thing under. What
+ * comes back says which of the four it is, and from there it goes
+ * where the long form of the same would have gone -- the plan offered,
+ * the ship shown, the trace or the route onto the chart -- with the
+ * address cleaned to the tab, as those are.
+ */
+async function openShortLink(id) {
+	let link;
+	try {
+		link = await fetchLink(id);
+	} catch {
+		return toast(T('Could not reach the server for that link'));
+	}
+	if (!link) return toast(T('That link has gone, or never was'));
+	const { kind, data } = link;
+	const land = tab => history.replaceState(null, '', `${location.pathname}${location.search}#${tab}`);
+	if (kind === 'plan') {
+		land('plan');
+		if (!isPlan(data)) return toast(T('That link does not carry a plan the tracker can read'));
+		openSharedSave(data);
+	} else if (kind === 'ship') {
+		land('crew');
+		setView('crew');
+		render();
+		openSharedSetup(data);
+	} else if (kind === 'trace') {
+		land('map');
+		setView('map');
+		const t = applyTraceObject(unpackTrace(data));
+		toast(t ? T('Trace from the link: {name}', { name: t.name || T('untitled') }) : T('That link does not hold a trace'));
+		render();
+	} else if (kind === 'route') {
+		land('map');
+		setView('map');
+		const n = applyMapObject(data);
+		toast(n ? routeLanded(n) : T('That link does not hold a route'));
+		render();
+	} else {
+		toast(T('That link does not carry anything the tracker can read'));
+	}
 }
 
 /**
@@ -2006,34 +2077,43 @@ function doExport() {
 			<button class="ghost-btn" data-close>${T('Cancel')}</button>
 		</div>`);
 	host.querySelector('[data-export-file]').addEventListener('click', () => { closeDialog(); downloadExport(); });
-	// The link is built once, up front, so its length can be said before
-	// it is copied: a chat app cuts a long address short, and a cut link
-	// opens as nothing.
-	const shape = store.saveShape();
-	const built = encodeShare(shape, { slim: true }).then(payload => shareLink(payload));
+	// Signed in, the link is a short one the server keeps the plan
+	// under, and nothing is kept until it is asked for. Otherwise the
+	// plan rides in the address: that link is built once, up front, so
+	// its length can be said before it is copied -- a chat app cuts a
+	// long address short, and a cut link opens as nothing.
+	const shape = slimShape(store.saveShape());
+	const longForm = () => encodeShare(shape).then(payload => shareLink(payload));
 	const sizeLine = host.querySelector('[data-link-size]');
-	built.then(link => {
-		const n = shareSize(link);
-		if (!sizeLine || !sizeLine.isConnected) return;
-		if (n > LONG_LINK) {
-			sizeLine.classList.add('warn');
-			sizeLine.textContent = T('The link is {n} characters long. Chat apps often cut a link past {max}, so a file is the safer way to send this one.', { n: F(n), max: F(LONG_LINK) });
-		} else {
-			sizeLine.textContent = T('The link is {n} characters long.', { n: F(n) });
-		}
-	}).catch(() => { if (sizeLine) sizeLine.textContent = T('The link could not be built on this browser.'); });
-	host.querySelector('[data-export-link]').addEventListener('click', async () => {
-		try {
-			const link = await built;
-			await navigator.clipboard.writeText(link);
-			closeDialog();
+	let built = null;
+	if (canKeepLink()) {
+		sizeLine.textContent = T('You are signed in, so the link is a short one — a few dozen characters — kept with your account. It opens the plan as it stands now, for anyone holding it.');
+	} else {
+		built = longForm();
+		built.then(link => {
 			const n = shareSize(link);
-			toast(n > LONG_LINK
-				? T('Link copied — {n} characters; a chat app may cut it, so a file is safer', { n: F(n) })
-				: T('Link copied — {n} characters of address', { n: F(n) }));
+			if (!sizeLine || !sizeLine.isConnected) return;
+			if (n > LONG_LINK) {
+				sizeLine.classList.add('warn');
+				sizeLine.textContent = T('The link is {n} characters long. Chat apps often cut a link past {max}, so a file is the safer way to send this one.', { n: F(n), max: F(LONG_LINK) });
+			} else {
+				sizeLine.textContent = T('The link is {n} characters long.', { n: F(n) });
+			}
+			if (feature('links')) sizeLine.textContent += ` ${T('Sign in and the link is a short one instead.')}`;
+		}).catch(() => { if (sizeLine) sizeLine.textContent = T('The link could not be built on this browser.'); });
+	}
+	host.querySelector('[data-export-link]').addEventListener('click', async () => {
+		let url, short;
+		try {
+			({ url, short } = await buildLink('plan', shape, () => built || longForm()));
 		} catch {
-			toast(T('Could not build or copy the link'));
+			return toast(T('Could not build or copy the link'));
 		}
+		closeDialog();
+		const n = shareSize(url);
+		await copyLink(url, short ? T('Link copied') : n <= LONG_LINK
+			? T('Link copied — {n} characters of address', { n: F(n) })
+			: T('Link copied — {n} characters; a chat app may cut it, so a file is safer', { n: F(n) }), short);
 	});
 }
 
@@ -2417,7 +2497,7 @@ export async function init() {
 	// and neither the tour nor the notes interrupt that; they wait for
 	// the next plain visit, unmarked. Read before applyHash(), which
 	// rewrites a share link to a plain #plan on the way through.
-	const arrivedOnALink = /^#(share|trace|ship|map)\/.+/.test(location.hash);
+	const arrivedOnALink = /^#(share|trace|ship|map|s)\/.+/.test(location.hash);
 	// A link or a reload with a hash names a place, and the address bar
 	// outranks the remembered tab.
 	applyHash();

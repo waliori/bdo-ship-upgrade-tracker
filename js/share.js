@@ -69,14 +69,35 @@ export async function decodeShare(text) {
 		throw new Error('not a plan');
 	}
 	const save = JSON.parse(new TextDecoder().decode(bytes));
-	if (!save || typeof save !== 'object' || !save.stock || typeof save.stock !== 'object' || Array.isArray(save.stock)) {
-		throw new Error('not a plan');
-	}
+	if (!isPlan(save)) throw new Error('not a plan');
 	return save;
+}
+
+/** Is this a save -- the least a plan has to be, a stock. */
+export function isPlan(save) {
+	return Boolean(save && typeof save === 'object' && save.stock && typeof save.stock === 'object' && !Array.isArray(save.stock));
 }
 
 export function shareLink(payload) {
 	return `${location.origin}${location.pathname}#share/${payload}`;
+}
+
+/** A ship setup as link text, in its address. */
+export function shipLink(payload) {
+	return `${location.origin}${location.pathname}#ship/${payload}`;
+}
+
+/** A link by its id: what is kept on the server, rather than carried
+ *  whole in the address. The same address opens a plan, a ship, a
+ *  trace or a route; the server says which. */
+export function shortLink(id) {
+	return `${location.origin}${location.pathname}#s/${id}`;
+}
+
+/** Is this address a short link, and if so which? */
+export function shortLinkId(hash) {
+	const m = /^#s\/([A-Za-z0-9_-]{10})$/.exec(hash || '');
+	return m ? m[1] : null;
 }
 
 /** Anything small as link text -- a traced route, say -- packed the same way. */

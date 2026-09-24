@@ -9,6 +9,7 @@ import { nearestWater } from '../searoute.js';
 import { openDialog, closeDialog, toast } from '../dialogs.js';
 import { pathLength, sailRange, fmtRange, fmtDistance } from '../sailing.js';
 import { encodeAny, decodeAny } from '../share.js';
+import { buildLink, copyLink } from '../links.js';
 import { mv, TRACES_MAX, persist, traceClipNote, restore } from './state.js';
 import { seaBent } from './marks.js';
 import { paintMap, schedulePaint } from './paint.js';
@@ -761,15 +762,10 @@ export function traceAction(act, el) {
 		case 'trace-share': {
 			const r = mv.traces[i];
 			if (!r) return true;
-			(async () => {
-				try {
-					await navigator.clipboard.writeText(traceLink(await encodeAny({
-						app: 'bdo-ship-upgrade-tracker', kind: 'trace', version: 2, exported: new Date().toISOString(),
-						name: r.name, notes: r.notes, points: r.points, strokes: r.strokes, texts: r.texts || [], areas: r.areas || [], inkLines: true
-					})));
-					toast(T('Link to “{name}” copied', { name: r.name }));
-				} catch { toast(T('Could not reach the clipboard')); }
-			})();
+			shareTrace({
+				app: 'bdo-ship-upgrade-tracker', kind: 'trace', version: 2, exported: new Date().toISOString(),
+				name: r.name, notes: r.notes, points: r.points, strokes: r.strokes, texts: r.texts || [], areas: r.areas || [], inkLines: true
+			}, T('Link to “{name}” copied', { name: r.name }));
 			return true;
 		}
 		case 'trace-load':
@@ -779,12 +775,7 @@ export function traceAction(act, el) {
 			break;
 		case 'trace-del': mv.traces = mv.traces.filter((_, k) => k !== i); break;
 		case 'trace-link':
-			(async () => {
-				try {
-					await navigator.clipboard.writeText(traceLink(await encodeAny(traceExportObject())));
-					toast(T('Trace link copied'));
-				} catch { toast(T('Could not reach the clipboard')); }
-			})();
+			shareTrace(traceExportObject(), T('Trace link copied'));
 			return true;
 		case 'trace-export': {
 			const blob = new Blob([JSON.stringify(traceExportObject(), null, 2)], { type: 'application/json' });
@@ -972,10 +963,52 @@ export function traceLink(payload) {
 	return `${location.origin}${location.pathname}#trace/${payload}`;
 }
 
+/**
+ * A trace as a link carries it: each stroke's points as its first
+ * pair and then the step to each next. A pen point is a few units
+ * from the last, so the steps are small numbers where the positions
+ * were six figures, and they pack to half the size. `steps` says the
+ * strokes are written so; a trace without it is read as it stands.
+ */
+export function packTrace(obj) {
+	const strokes = (obj.strokes || []).map(st => {
+		const pts = Array.isArray(st) ? st : (st && Array.isArray(st.pts) ? st.pts : []);
+		const out = pts.slice(0, 2);
+		for (let i = 2; i + 1 < pts.length; i += 2) out.push(pts[i] - pts[i - 2], pts[i + 1] - pts[i - 1]);
+		return Array.isArray(st) ? out : { ...st, pts: out };
+	});
+	return { ...obj, version: 3, steps: true, strokes };
+}
+
+/** What packTrace did, undone; anything else is left as it is. */
+export function unpackTrace(obj) {
+	if (!obj || typeof obj !== 'object' || obj.steps !== true) return obj;
+	const strokes = (Array.isArray(obj.strokes) ? obj.strokes : []).map(st => {
+		const pts = Array.isArray(st) ? st : (st && Array.isArray(st.pts) ? st.pts : []);
+		const out = pts.slice(0, 2);
+		for (let i = 2; i + 1 < pts.length; i += 2) out.push(out[i - 2] + Number(pts[i]), out[i - 1] + Number(pts[i + 1]));
+		return Array.isArray(st) ? out : { ...st, pts: out };
+	});
+	const out = { ...obj, strokes };
+	delete out.steps;
+	return out;
+}
+
+/** The trace on the clipboard as a link: short where it can be had,
+ *  the whole drawing packed into the address where not. */
+async function shareTrace(obj, said) {
+	const packed = packTrace(obj);
+	let url, short;
+	try {
+		({ url, short } = await buildLink('trace', packed, () => encodeAny(packed).then(traceLink)));
+	} catch { return toast(T('Could not build or copy the link')); }
+	await copyLink(url, said, short);
+}
+
 /** A trace from a link or a file, onto the chart. Returns it, or null. */
 export async function applyTraceLink(payload) {
 	let data;
-	try { data = await decodeAny(payload); } catch { return null; }
+	try { data = unpackTrace(await decodeAny(payload)); } catch { return null; }
 	return applyTraceObject(data);
 }
 

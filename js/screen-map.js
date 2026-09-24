@@ -17,10 +17,10 @@ export {
 	renderMap
 } from './map/render.js';
 export {
-	saveRouteDialog, loadPreviousRoute, deletePreviousRoute, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, applyMapLink, openSailCal, setRationsAboard, putRationsCall, openRationCal, exportRoute, importRoute, setRunSheet
+	saveRouteDialog, loadPreviousRoute, deletePreviousRoute, loadSavedRoute, deleteSavedRoute, setTradesMode, trimRouteToParley, routeLink, routeObject, applyMapLink, applyPackedMapLink, plainMapLink, applyMapObject, openSailCal, setRationsAboard, putRationsCall, openRationCal, exportRoute, importRoute, setRunSheet
 } from './map/route.js';
 export {
-	setTraceTool, traceAction, openTraceLibrary, traceChange, currentMapData, traceLink, applyTraceLink, applyTraceObject
+	setTraceTool, traceAction, openTraceLibrary, traceChange, currentMapData, traceLink, applyTraceLink, applyTraceObject, unpackTrace
 } from './map/trace.js';
 export {
 	enterFull, exitFull, toggleFull, mapIsFull, toggleMini, toggleMeasure,

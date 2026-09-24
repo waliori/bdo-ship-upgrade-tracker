@@ -79,3 +79,27 @@ test('a profile heavy with diaries and traces packs plain without overflowing, a
 	assert.ok(!('profile' in slimShape({ stock: {}, profile: { views: {} } })), 'a profile that was only views goes entirely');
 	assert.equal(shareSize(undefined), 0);
 });
+
+test('a short link is ten characters, and the address knows one', async () => {
+	const { shortLinkId } = await import('../js/share.js');
+	assert.equal(shortLinkId('#s/AbCd-12_34'), 'AbCd-12_34');
+	assert.equal(shortLinkId('#s/short'), null);
+	assert.equal(shortLinkId('#share/AbCd-12_34'), null);
+	assert.equal(shortLinkId(''), null);
+});
+
+test('a trace packed as steps unpacks to the same strokes, and packs to half the address', async () => {
+	const { packTrace, unpackTrace } = await import('../js/map/trace.js');
+	const { encodeAny } = await import('../js/share.js');
+	const rnd = (a, b) => a + Math.floor(Math.random() * (b - a));
+	const stroke = n => { const p = []; let x = rnd(60000, 90000), y = rnd(50000, 80000); for (let i = 0; i < n; i++) { x += rnd(-40, 40); y += rnd(-40, 40); p.push(x, y); } return { pts: p, colour: '#ffd77a', width: 2.5, seq: 1 }; };
+	const trace = { kind: 'trace', version: 2, name: 'Reef', points: [{ x: 1, y: 2 }], strokes: [stroke(150), stroke(150), [1, 2, 3, 4]], texts: [], areas: [{ pts: [1, 2, 3, 4, 5, 6] }], inkLines: true };
+	const packed = packTrace(trace);
+	assert.equal(packed.steps, true);
+	assert.deepEqual(packed.strokes[0].pts.slice(0, 2), trace.strokes[0].pts.slice(0, 2), 'the first pair stands');
+	assert.deepEqual(packed.strokes[2], [1, 2, 2, 2], 'a bare stroke stays bare');
+	assert.deepEqual(unpackTrace(packed), { ...trace, version: 3 });
+	assert.deepEqual(unpackTrace(trace), trace, 'a trace not packed is left as it is');
+	const whole = (await encodeAny(trace)).length, less = (await encodeAny(packed)).length;
+	assert.ok(less < whole * 0.7, `${less} of ${whole}`);
+});

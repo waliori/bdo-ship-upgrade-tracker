@@ -2,6 +2,7 @@
 // Parley, the hold, the rations -- its ledger, the routes kept by name,
 // a route in a link and a route as a file.
 
+import { encodeAny, decodeAny } from '../share.js';
 import { esc, F, FC } from '../fmt.js';
 import { T, gameName, said } from '../i18n.js';
 import { currentShip, aboardWhat } from '../ship.js';
@@ -745,30 +746,67 @@ export function trimRouteToParley() {
  * a route in a link
  * ------------------------------------------------------------------ */
 
-/** The route as a hash fragment the chart can read back: stops,
- *  start wharf, the return, and what it was plotted for. */
-export function routeLink() {
-	const parts = [`r=${mv.stops.join('.')}`];
-	if (mv.startPort) parts.push(`s=${mv.startPort}`);
-	if (mv.returnHome) parts.push('h=1');
-	if (mv.stopsPick) parts.push(`p=${encodeURIComponent(mv.stopsPick)}`);
+/** The route as a thing a link carries: stops, start wharf, the
+ *  return, what it was plotted for, the trades and the wharf calls. */
+export function routeObject() {
+	const out = { r: mv.stops.slice() };
+	if (mv.startPort) out.s = mv.startPort;
+	if (mv.returnHome) out.h = 1;
+	if (mv.stopsPick) out.p = mv.stopsPick;
 	const trades = mv.stops.filter(id => mv.runTrades[id]).map(id => { const t = mv.runTrades[id]; return [id, t.give, t.giveText, t.item, t.recvText, t.recv, t.giveN, t.times]; });
-	if (trades.length) parts.push(`x=${encodeURIComponent(JSON.stringify(trades))}`);
-	if (mv.runStash.length) parts.push(`w=${encodeURIComponent(JSON.stringify(stashRows()))}`);
-	return `${location.origin}${location.pathname}#map/${parts.join(';')}`;
+	if (trades.length) out.x = trades;
+	if (mv.runStash.length) out.w = stashRows();
+	return out;
 }
 
-/** Read a link's fragment (the part after `#map/`) into the chart.
- *  Returns how many stops landed, 0 for nothing usable. */
-export function applyMapLink(fragment) {
+/** The route in its address: packed as a trace is, since a run with
+ *  its trades written out plain ran to two thousand characters. */
+export async function routeLink() {
+	return `${location.origin}${location.pathname}#map/${await encodeAny(routeObject())}`;
+}
+
+/** The fragment as links carried it before they were packed:
+ *  `r=1.2.3;s=4;h=1;p=...;x=<json>;w=<json>`, each part URL-encoded. */
+function readFragment(text) {
 	const q = {};
-	for (const part of String(fragment || '').split(';')) {
+	for (const part of text.split(';')) {
 		const i = part.indexOf('=');
 		if (i > 0) q[part.slice(0, i)] = part.slice(i + 1);
 	}
-	if (!q.r) return 0;
+	const out = { r: String(q.r || '').split('.') };
+	if (q.s) out.s = Number(q.s);
+	if (q.h === '1') out.h = 1;
+	try { if (q.p) out.p = decodeURIComponent(q.p); } catch { /* not a pick */ }
+	try { if (q.x) out.x = JSON.parse(decodeURIComponent(q.x)); } catch { /* no trades */ }
+	try { if (q.w) out.w = JSON.parse(decodeURIComponent(q.w)); } catch { /* no calls */ }
+	return out;
+}
+
+/** Is this fragment in the plain form -- `r=...` -- rather than packed? */
+export const plainMapLink = fragment => /^[a-z]=/.test(String(fragment || ''));
+
+/** Read a plain fragment (the part after `#map/`, as `r=1.2;s=3`) into
+ *  the chart. The Barter tab writes its runs this way and reads them
+ *  back at once, so this stays synchronous. Returns how many stops
+ *  landed, 0 for nothing usable. */
+export function applyMapLink(fragment) {
+	return applyMapObject(readFragment(String(fragment || '')));
+}
+
+/** The packed fragment, as routeLink writes it: unpacked and read.
+ *  Resolves to how many stops landed, 0 for nothing usable. */
+export async function applyPackedMapLink(fragment) {
+	let obj;
+	try { obj = await decodeAny(String(fragment || '')); } catch { return 0; }
+	return applyMapObject(obj);
+}
+
+/** A route as routeObject made it, onto the chart. Returns how many
+ *  stops landed, 0 for nothing usable. */
+export function applyMapObject(o) {
+	if (!o || typeof o !== 'object' || !Array.isArray(o.r)) return 0;
 	const ids = [];
-	for (const s of q.r.split('.')) {
+	for (const s of o.r) {
 		const id = Number(s);
 		if (npcById.has(id) && !ids.includes(id)) ids.push(id);
 	}
@@ -776,18 +814,13 @@ export function applyMapLink(fragment) {
 	restore();
 	if (mv.stops.length && mv.stops.join('.') !== ids.join('.')) stashRoute();
 	mv.stops = ids;
-	mv.startPort = ports.some(p => p.id === Number(q.s)) ? Number(q.s) : 0;
-	mv.returnHome = q.h === '1';
-	let pick;
-	try { pick = q.p ? decodeURIComponent(q.p) : null; } catch { pick = null; }
+	mv.startPort = ports.some(p => p.id === Number(o.s)) ? Number(o.s) : 0;
+	mv.returnHome = Number(o.h) === 1;
+	const pick = typeof o.p === 'string' && o.p ? o.p : null;
 	mv.mapPick = pick;
 	mv.stopsPick = pick || '';
-	let trades;
-	try { trades = q.x ? JSON.parse(decodeURIComponent(q.x)) : []; } catch { trades = []; }
-	mv.runTrades = readTrades(trades);
-	let calls;
-	try { calls = q.w ? JSON.parse(decodeURIComponent(q.w)) : []; } catch { calls = []; }
-	mv.runStash = readStash(calls);
+	mv.runTrades = readTrades(Array.isArray(o.x) ? o.x : []);
+	mv.runStash = readStash(Array.isArray(o.w) ? o.w : []);
 	mv.mode = 'route';
 	mv.panelOpen = true;
 	mv.stepIdx = 0;
