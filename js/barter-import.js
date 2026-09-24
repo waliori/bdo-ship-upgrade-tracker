@@ -57,19 +57,17 @@ export function shotGuideHTML(list = 'trade', { lazy = false } = {}) {
 	const l = lazy ? ' loading="lazy"' : '';
 	const key = (n, cls, text) => `<li><i class="shot-key ${cls}">${n}</i><span>${text}</span></li>`;
 	return `<div class="mat-help-figs">
-		<figure class="mat-help-fig"><img src="guide/${mat ? 'material-page' : 'barter-window'}.webp" alt="${T('The Barter Information window, the parts the app reads outlined')}"${l} width="600" height="${mat ? 420 : 417}">
+		<figure class="mat-help-fig"><img src="guide/${mat ? 'material-page' : 'barter-window'}.webp" alt="${T('The Barter Information window, the parts the app reads outlined')}"${l} width="600" height="${mat ? 421 : 418}">
 			<figcaption>${mat
 		? T('The whole Barter Information window — the same window as for trade goods. The rows paying ship materials go to the material list.')
 		: T('The whole Barter Information window. A few rows are enough to find the layout; scroll and shoot again for more. A full-screen shot works too.')}</figcaption></figure>
-		<figure class="mat-help-fig"><img src="guide/${mat ? 'material' : 'barter'}-cropped.webp" alt="${T('The same rows, cropped out of the window')}"${l} width="560" height="${mat ? 263 : 266}">
+		<figure class="mat-help-fig"><img src="guide/${mat ? 'material' : 'barter'}-cropped.webp" alt="${T('The same rows, cropped out of the window')}"${l} width="560" height="${mat ? 256 : 258}">
 			<figcaption>${T('Cropped to the rows works too: every row is read the same. Only the head’s two figures are missed, and those can be typed in.')}</figcaption></figure>
 	</div>
 	<ol class="shot-keys">
 		${key(1, 'at-head', T('<b>Parley</b> — the bar you hold, written in for the run'))}
 		${key(2, 'at-head', T('<b>Total Barters</b> — opens the islands and exchanges your count allows'))}
-		${key(3, 'at-row', T('<b>The island</b>, at the start of each row'))}
-		${key(4, 'at-row', T('<b>What it takes</b> — a name cut short with “…” is enough'))}
-		${key(5, 'at-row', T('<b>What it pays</b> — which is how a row is sorted into the trade goods or the ship material list'))}
+		${key(3, 'at-head', T('<b>The rows</b> — each one’s island, what it takes and what it pays; what it pays sorts it into the trade goods or the ship material list. A name cut short with “…” is enough.'))}
 	</ol>`;
 }
 

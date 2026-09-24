@@ -823,7 +823,6 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .shot-keys b { color: var(--ink-hi); }
 .shot-key { flex: none; display: grid; place-items: center; width: 18px; height: 18px; font-style: normal; font-size: 11px; font-weight: 700; border-radius: 50%; color: #10202e; }
 .shot-key.at-head { background: #f2b84b; }
-.shot-key.at-row { background: #4ec9ae; }
 .mat-help-list { margin: 4px 0 0; padding-left: 18px; line-height: 1.6; color: var(--ink-mute); }
 @media (max-width: 720px) {
   .mat-step { padding: 6px 7px; gap: 6px; }
