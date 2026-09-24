@@ -749,6 +749,7 @@ function boardHTML(b) {
 			<div class="panel-head"><h2 class="panel-title">${T('Today’s board')}</h2><span class="panel-sub board-ask-lead">${lead}</span></div>
 			<div class="panel-body">
 				${acts ? `<button class="board-drop" data-act="barter-shot"><b class="by-key">${T('Paste your barter window here')}</b><b class="by-touch">${T('Add a screenshot of your barter window')}</b><span class="by-key">${T('Open the barter window in game, take a screenshot, press <kbd>Ctrl</kbd> <kbd>V</kbd>. The layout, your Parley and your barter count are read from it. Nothing is uploaded.')}</span><span class="by-touch">${T('Tap to choose the picture. The layout, your Parley and your barter count are read from it, on this device — nothing is uploaded.')}</span></button>` : ''}
+				${acts ? tradeShotHelp() : ''}
 				${acts ? `<div class="board-ask-acts"><span class="board-ask-or">${T('or')}</span>${acts}</div>` : ''}
 				${seen ? `<div class="barter-bar-seen"><span class="barter-bar-k">${T('looked at')}</span><span class="chips">${seen}</span></div>` : ''}
 				<p class="board-ask-sub">${sub}</p>${note}
@@ -5099,6 +5100,20 @@ function matStage() {
 	return { kind, step, fit, read, whole, complete, told, fits };
 }
 
+/** What a screenshot of the barter window should hold, for the board. */
+function tradeShotHelp() {
+	return `<details class="mat-help">
+		<summary>${T('What should the screenshot look like?')}</summary>
+		<figure class="mat-help-fig"><img src="guide/barter-window.webp" alt="${T('The Barter Information window in game')}" loading="lazy" width="560" height="387">
+			<figcaption>${T('The Barter Information window, whole: its head holds your Parley and Total Barters, and each row an island, what it takes and what it pays. A few rows are enough to find the layout; scroll and shoot again for more. A full-screen shot works too.')}</figcaption></figure>
+		<ul class="mat-help-list">
+			<li>${T('Any of the game’s languages: pick yours in the reader, and the rows are matched against the game’s own names in it.')}</li>
+			<li>${T('A name cut short with “…” is enough.')}</li>
+			<li>${T('Nothing is uploaded: the pictures are read in this browser.')}</li>
+		</ul>
+	</details>`;
+}
+
 /** The two pictures of what to screenshot, and the words under them. */
 function matShotHelp(open = false, scroll = false) {
 	return `<details class="mat-help"${open ? ' open' : ''}>
@@ -5108,7 +5123,7 @@ function matShotHelp(open = false, scroll = false) {
 		${scroll ? `<figure class="mat-help-fig"><img src="guide/material-scroll.webp" alt="${T('Three screenshots of the list, scrolled between each')}" loading="lazy" width="900" height="154">
 			<figcaption>${T('The whole list is longer than the window: shoot, scroll down, shoot again, to the end. A row on two shots is fine — it is read once. Paste or drop them all at once.')}</figcaption></figure>` : ''}
 		<ul class="mat-help-list">
-			<li>${T('The game in English: the names are matched against the app’s own tables.')}</li>
+			<li>${T('Any of the game’s languages: pick yours in the reader, and the rows are matched against the game’s own names in it.')}</li>
 			<li>${T('A name cut short with “…” is enough.')}</li>
 			<li>${T('Nothing is uploaded: the pictures are read in this browser. Only what you choose to tell the fleet leaves it.')}</li>
 		</ul>

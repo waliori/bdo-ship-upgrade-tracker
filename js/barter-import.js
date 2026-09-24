@@ -19,10 +19,11 @@
 // that -- after the answers are in -- so the offer is made on its bar.
 
 import { esc, F } from './fmt.js';
-import { T, said, gameName } from './i18n.js';
+import { T, said, gameName, readerLang, gameNamesFor } from './i18n.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { LIMITS, triage, readWords, wireShotIntake, close as closeReader } from './shot-reader.js';
-import { offersFrom, figuresFrom } from './barter-shot.js';
+import { offersFrom, figuresFrom, localized, inEnglish } from './barter-shot.js';
+import { LANGS as GAME_LANGS, langByTag, DEFAULT_LANG } from './sailor-locales.js';
 import { npcs, isleOf, whoOf } from './barter_npcs.js';
 import { img } from './ui-bits.js';
 import * as store from './state.js';
@@ -35,6 +36,15 @@ import { barterKey } from './clock.js';
  * `exchanges`), and `onAnswers` what to do with the rows the player
  * keeps.
  */
+/** The client's language, as the sailor reader keeps it: one setting
+ *  for every screenshot of the game, first guessed from the app's. */
+const shotLang = () => {
+	const chosen = store.getSetting('shotLang', null);
+	if (chosen && langByTag[chosen]) return chosen;
+	const fromApp = readerLang();
+	return langByTag[fromApp] ? fromApp : DEFAULT_LANG;
+};
+
 export function openBarterImport({ deals, onAnswers = () => {}, files = null, guide = '' } = {}) {
 	let stop = null;
 	let rows = [];            // what was read: { isle, offer, near, keep }
@@ -62,12 +72,13 @@ export function openBarterImport({ deals, onAnswers = () => {}, files = null, gu
 			<figcaption>${T('A board the book does not know: shoot a page, scroll down, shoot again, to the end of the material list — then drop or paste them all here together. A row on two shots is read once.')}</figcaption></figure>`
 		: guide === 'material' ? `<figure class="mat-help-fig"><img src="guide/material-page.webp" alt="${T('A page of the barter window’s material list')}" width="620" height="283">
 			<figcaption>${T('Like this: the barter window scrolled to the islands paying ship materials, each row whole. One page is enough to start; for a board the book does not know, shoot every page down to the end of the list and drop them all here together.')}</figcaption></figure>`
-		: `<p class="dialog-note">${T('Open the barter window in game and screenshot the list. Scroll it and shoot again for more of the board — several at a time is the point, and the rows add up.')}</p>`}
+		: `<figure class="mat-help-fig"><img src="guide/barter-window.webp" alt="${T('The Barter Information window in game')}" width="560" height="387">
+			<figcaption>${T('Like this: the Barter Information window, head and rows. Scroll it and shoot again for more of the board — several at a time is the point, and the rows add up.')}</figcaption></figure>`}
 		<ul class="shot-kinds">
 			<li>${T('<b>What is read</b> — the island at the start of each row, what it takes and what it pays. A name the window cut short is enough.')}</li>
 			<li>${T('<b>What it is read against</b> — the exchanges the codex says that island deals, so a row is never a guess at a spelling.')}</li>
-			<li>${T("<b>Which language</b> — the client's English names, which is what the app's own tables are in. A window in another language will not match them.")}</li>
 		</ul>
+		${langPick()}
 		<div class="shot-drop" data-drop tabindex="0" role="button" aria-label="${T('Choose screenshots to read')}">
 			<div class="shot-drop-mark">⚖</div>
 			<div><b>${T('Drop screenshots here, or paste one')}</b></div>
@@ -78,6 +89,21 @@ export function openBarterImport({ deals, onAnswers = () => {}, files = null, gu
 		<p class="dialog-note quiet">${T('Up to {files} at a time, {mb} MB each, PNG, JPEG or WebP.', { files: LIMITS.files, mb: Math.round(LIMITS.bytes / 1024 / 1024) })}
 			${T('They are read in this browser and never uploaded — the first read fetches about 6 MB of reader, once.')}</p>
 		<div class="dialog-actions"><button class="act quiet" data-close>${T('Close')}</button></div>`;
+
+	/** The game's language: which reader reads the shot, and which of
+	 *  the game's names its rows are matched against. */
+	const langPick = () => {
+		const lang = langByTag[shotLang()];
+		return `<div class="shot-lang">
+			<label for="shot-lang">${T("Your game's language")}</label>
+			<select id="shot-lang" class="purse-inline" data-lang>
+				${GAME_LANGS.map(l => `<option value="${esc(l.tag)}"${l.tag === lang.tag ? ' selected' : ''}>${esc(l.label)}</option>`).join('')}
+			</select>
+			<span class="row-sub">${lang.mb
+		? T('{label} is another script — about {mb} MB of reader, fetched once. The rows are matched against the game’s own names in it.', { label: esc(lang.label), mb: lang.mb })
+		: T('The rows are matched against the game’s own names in it.')}</span>
+		</div>`;
+	};
 
 	/* --- reading ----------------------------------------------------- */
 	const readingView = (at, text) => `
@@ -174,11 +200,15 @@ export function openBarterImport({ deals, onAnswers = () => {}, files = null, gu
 			if (note) note.textContent = text;
 		};
 		const seen = new Map();
+		// The islands and exchanges as the client names them. What is
+		// read is handed back in English, which is what the app keeps.
+		const lang = shotLang();
+		const tables = localized({ isles: npcs, deals }, await gameNamesFor(lang).catch(() => ({})));
 		for (let i = 0; i < take.length; i++) {
 			if (stop.signal.aborted) break;
 			say(i / take.length, T('Reading {i} of {n} — {name}', { i: i + 1, n: take.length, name: take[i].name }));
 			try {
-				const { words } = await readWords(take[i]);
+				const { words } = await readWords(take[i], { lang });
 				// The head of the window says what the sailor's own bar
 				// holds and how many barters are behind them. Both are
 				// fields the app otherwise asks them to type and then
@@ -186,7 +216,8 @@ export function openBarterImport({ deals, onAnswers = () => {}, files = null, gu
 				const said = figuresFrom(words);
 				if (said.parley > 0) figures.parley = said.parley;
 				if (said.barters > 0) figures.barters = said.barters;
-				for (const row of offersFrom(words, { isles: npcs, deals })) {
+				for (const read of offersFrom(words, tables)) {
+					const row = inEnglish(read);
 					// An island read twice takes the later reading: the
 					// second shot is the one the player scrolled to.
 					seen.set(row.isle.id, { ...row, keep: row.offer || null });
@@ -226,6 +257,10 @@ export function openBarterImport({ deals, onAnswers = () => {}, files = null, gu
 		wireShotIntake(box, run);
 		const on = (sel, ev, fn) => box.querySelectorAll(sel).forEach(el => el.addEventListener(ev, fn));
 		on('[data-figures]', 'change', e => { figures.take = !!e.target.checked; });
+		on('[data-lang]', 'change', e => {
+			store.setSetting('shotLang', e.target.value, true);
+			draw(pickView());
+		});
 		on('[data-stop]', 'click', () => { if (stop) stop.abort(); });
 		on('[data-again]', 'click', () => draw(pickView()));
 		on('[data-use]', 'click', use);

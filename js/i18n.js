@@ -233,6 +233,16 @@ export function gameName(en) {
 	return key;
 }
 
+/** The game's own names in another client's language, whichever the
+ *  app is shown in: what a screenshot of that client is read against.
+ *  `readerTag` is a game language (sailor-locales.js); an English
+ *  client, or one with no pack, gets an empty pack. */
+export async function gameNamesFor(readerTag) {
+	const lang = LANGS.find(l => l.reader === readerTag);
+	if (!lang || lang.ui === 'en') return {};
+	return pack('names', lang.id);
+}
+
 /** Whether a name has a translation at all -- for search, which offers both. */
 export const hasGameName = en => Boolean(en && names[String(en)]);
 

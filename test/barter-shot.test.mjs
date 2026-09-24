@@ -195,3 +195,57 @@ test('a shot that is already only the window loses no row to the cropping', () =
 		assert.ok(windowWords(shot(key)).length >= shot(key).length * 0.85, `${key} keeps its words`);
 	}
 });
+
+/* ------------------------------------------------------------------ *
+ * a window in another language
+ * ------------------------------------------------------------------ */
+
+import { localized, inEnglish, dense } from '../js/barter-shot.js';
+
+const pack = code => JSON.parse(readFileSync(new URL(`../js/lang/names.${code}.json`, import.meta.url), 'utf8'));
+/** A window of rows as a client prints them: island at the left, the
+ *  give and the pay to the right, one row a line. */
+const windowOf = rows => rows.flatMap(([isle, give, pay], i) => {
+	const y = 20 + i * 60;
+	return [
+		{ text: isle, x0: 10, y0: y, x1: 150, y1: y + 20 },
+		{ text: give, x0: 300, y0: y, x1: 520, y1: y + 20 },
+		{ text: pay, x0: 640, y0: y, x1: 860, y1: y + 20 }
+	];
+});
+const byAt = at => npcs.find(n => n.at === at);
+
+test('any script is compared without its accents, its tier or its spaces', () => {
+	assert.equal(plain('[5단계] 고급 문양의 옷감'), '고급문양의옷감');
+	assert.equal(plain("Île d'Orisha"), 'iledorisha');
+	assert.equal(plain('[Stufe 5] Luxuriöser gemusterter Stoff'), 'luxuriosergemusterterstoff');
+	assert.equal(tierIn('[5단계] 고급 문양의 옷감'), 5);
+	assert.equal(tierIn('[Stufe 3] Rundmesser'), 3);
+	assert.equal(tierIn('[+4] Panacea'), 4);
+	assert.equal(dense('오리샤 섬'), true);
+	assert.equal(dense('Insel Orisha'), false);
+});
+
+test('a Korean window reads against the game’s Korean names, and comes back in English', () => {
+	const kr = pack('kr');
+	const E = [['Orisha Island', '[Level 5] Luxury Patterned Fabric', 'Brilliant Pearl Shard'], ['Boa Island', 'Island Tree Coated Plywood', 'Rock Salt Ingot']];
+	for (const r of E) for (const n of r) assert.ok(kr[n], `the pack names ${n}`);
+	const words = windowOf(E.map(r => r.map(n => kr[n])));
+	const rows = offersFrom(words, localized({ isles: npcs, deals }, kr)).map(inEnglish);
+	assert.deepEqual(rows.filter(r => r.offer).map(r => [r.isle.at, r.offer.give, r.offer.item]), E);
+	assert.equal(rows[0].isle, byAt('Orisha Island'), 'the island is the app’s own again');
+});
+
+test('a German window reads too, with the island’s name after its word for island', () => {
+	const de = pack('de');
+	const E = [['Orisha Island', '[Level 5] Luxury Patterned Fabric', 'Brilliant Pearl Shard']];
+	const words = windowOf(E.map(r => r.map(n => de[n])));
+	const rows = offersFrom(words, localized({ isles: npcs, deals }, de)).map(inEnglish);
+	assert.deepEqual(rows.filter(r => r.offer).map(r => [r.isle.at, r.offer.give, r.offer.item]), E);
+});
+
+test('an English client with no pack is read exactly as before', () => {
+	const t = localized({ isles: npcs, deals }, {});
+	assert.equal(t.isles, npcs);
+	assert.equal(t.deals, deals);
+});

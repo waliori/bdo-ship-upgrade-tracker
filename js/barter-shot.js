@@ -23,9 +23,16 @@
 import { T } from './i18n.js';
 import { editDistance, lineHeight } from './sailor-shot.js';
 
+/** Whether a name is in a script that packs a word into a character
+ *  or two -- Hangul, kana, Han, Thai -- where a length that is a
+ *  fragment in English is a whole name. */
+export function dense(text) {
+	return /[\u0E00-\u0E7F\u3040-\u30FF\u3400-\u9FFF\uAC00-\uD7AF\uF900-\uFAFF]/.test(String(text || ''));
+}
+
 /**
  * A name as it can be compared: no tier, no punctuation, no case, no
- * spaces.
+ * spaces, no accents -- in any of the game's scripts.
  *
  * The tier goes because the window prints it on both sides of every
  * row and it tells two items apart about as well as the word "the".
@@ -38,13 +45,24 @@ export function plain(text) {
 		// engine failed to close -- "[Level 41" for "[Level 4]" -- ran on to
 		// the next "]" it could find and took the good's name with it.
 		.replace(/\[[^[\]]{0,14}\]/g, ' ')
+		// Accents go, since the English reader reads a French or a
+		// Turkish window and does not always see them; a Hangul
+		// syllable taken apart to do it is put back together.
+		.normalize('NFKD').replace(/\p{M}+/gu, '').normalize('NFC')
 		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, '');
+		.replace(/[^\p{L}\p{N}]+/gu, '');
 }
 
-/** The tier a piece of text names, if it names one. */
+/** The tier a piece of text names, if it names one: "[Level 5]", and
+ *  the same in every client -- "[5단계]", "[Stufe 5]", "[+5]", "[5 ур.]"
+ *  -- a bracket holding one figure from one to seven. */
 export function tierIn(text) {
-	const m = /\[\s*level\s*([1-7])\s*\]/i.exec(String(text || ''));
+	const t = String(text || '');
+	for (const m of t.matchAll(/\[([^[\]]{0,14})\]/g)) {
+		const d = m[1].match(/[0-9]/g);
+		if (d && d.length === 1 && /[1-7]/.test(d[0])) return Number(d[0]);
+	}
+	const m = /\b(?:level|nivel)\s*([1-7])\b/i.exec(t);
 	return m ? Number(m[1]) : null;
 }
 
@@ -92,18 +110,20 @@ export function cover(name, text) {
 		// A name wraps once, onto one more line -- never into a scatter
 		// of syllables, which is what letting it pick up anywhere any
 		// number of times would find in a row full of words.
-		if (run < (pieces ? 5 : 3)) break;
+		if (run < (pieces ? (dense(n) ? 3 : 5) : (dense(n) ? 2 : 3))) break;
 		got += run;
 		at += run;
 		pieces++;
 	}
 	// A short name has to be there in full: "Beer" will find "bee" in
 	// something, given a row of words to look through.
-	if (n.length <= 6 && got < n.length) return 0;
+	const packed = dense(n);
+	if (n.length <= (packed ? 3 : 6) && got < n.length) return 0;
 	// And a dozen characters is as much as any name needs to be told
 	// from the others an island deals -- which is the whole reason a
-	// name the window cut short reads as surely as a whole one.
-	return Math.min(1, got / Math.min(n.length, 12));
+	// name the window cut short reads as surely as a whole one. Half
+	// that in a script where a character is a syllable or a word.
+	return Math.min(1, got / Math.min(n.length, packed ? 6 : 12));
 }
 
 /* ------------------------------------------------------------------ *
@@ -139,7 +159,9 @@ export function isleAt(line, isles, { left = Infinity } = {}) {
 	if (!line.words.length || line.words[0].x0 > left) return null;
 	let best = null;
 	let text = '';
-	for (let i = 0; i < Math.min(4, line.words.length); i++) {
+	// A dense script comes back a character or two a word, so more
+	// words make up one name.
+	for (let i = 0; i < Math.min(dense(line.words[0].text) ? 8 : 4, line.words.length); i++) {
 		text += line.words[i].text;
 		const seen = plain(text);
 		if (!seen) continue;
@@ -149,12 +171,13 @@ export function isleAt(line, isles, { left = Infinity } = {}) {
 			// Either the whole name, or as much of it as the column had
 			// room for -- but never so little that two islands share it.
 			const whole = want === seen ? 1 : 0;
-			const cut = seen.length >= 6 && want.startsWith(seen) ? seen.length / want.length : 0;
+			const least = dense(want) ? 3 : 6;
+			const cut = seen.length >= least && want.startsWith(seen) ? seen.length / want.length : 0;
 			// A name the engine misread rather than cut short. The cap has
 			// to be above the threshold or every long name is "close":
 			// editDistance stops counting at its cap and answers with it.
 			const slack = Math.max(1, Math.floor(want.length * 0.12));
-			const near = !whole && !cut && seen.length >= 6 && Math.abs(seen.length - want.length) <= slack
+			const near = !whole && !cut && seen.length >= least && Math.abs(seen.length - want.length) <= slack
 				&& editDistance(seen, want, slack + 1) <= slack ? 0.8 : 0;
 			const score = Math.max(whole, cut, near);
 			if (score > 0.42 && (!best || score > best.score)) {
@@ -195,7 +218,7 @@ export function windowWords(words, lh = lineHeight(words)) {
 	const by = new Map();
 	for (const w of list) {
 		const key = plain(w.text);
-		if (key.length < 3) continue;
+		if (key.length < (dense(key) ? 2 : 3)) continue;
 		if (!by.has(key)) by.set(key, []);
 		by.get(key).push(w);
 	}
@@ -297,6 +320,15 @@ export function offerOf(row, deals, { floor = 0.5, margin = 0.12 } = {}) {
 	if (best.score < floor || best.give < 0.3 || best.recv < 0.3) {
 		return { ...row, offer: null, near: scored.slice(0, 3), why: T('no exchange there fits what the row says') };
 	}
+	// An island that deals a pair both ways -- Plywood for Rock Salt,
+	// Rock Salt for Plywood -- fits a row of either equally. The window
+	// always prints what it takes before what it pays, so the order of
+	// the two names in the row settles it.
+	if (next && next.deal.give === best.deal.item && next.deal.item === best.deal.give) {
+		const at = name => { const n = plain(name); return row.text.indexOf(n.slice(0, Math.min(n.length, dense(n) ? 2 : 4))); };
+		const first = [best, next].find(x => at(x.deal.give) >= 0 && at(x.deal.item) >= 0 && at(x.deal.give) < at(x.deal.item));
+		if (first) return { ...row, offer: first.deal, score: first.score, near: scored.slice(0, 3) };
+	}
 	if (next && best.score - next.score < margin) {
 		return { ...row, offer: null, near: scored.slice(0, 3), why: T('two of its exchanges fit that equally well') };
 	}
@@ -318,6 +350,35 @@ function tierOf(name) {
  */
 export function offersFrom(words, { isles, deals }) {
 	return rowsOf(words, isles).map(row => offerOf(row, deals));
+}
+
+/**
+ * The islands and exchanges as a client in another language prints
+ * them, for reading a window in that language.
+ *
+ * `names` is a names pack (js/lang/names.<code>.json): the game's own
+ * name for each English one, from BDOCodex. A name the pack lacks stays
+ * English. Every copy keeps its English original as `en`, so what is
+ * read can be handed back in the English the app keeps.
+ */
+export function localized({ isles, deals }, names = {}) {
+	if (!names || !Object.keys(names).length) return { isles, deals };
+	const there = en => names[en] || en;
+	return {
+		isles: isles.map(n => ({ ...n, at: there(n.at), en: n })),
+		deals: deals.map(d => ({ ...d, give: there(d.give), item: there(d.item), en: d }))
+	};
+}
+
+/** A row read in another language, in the app's English again. */
+export function inEnglish(row) {
+	const back = x => (x && x.en) || x;
+	return {
+		...row,
+		isle: back(row.isle),
+		offer: back(row.offer),
+		near: (row.near || []).map(n => ({ ...n, deal: back(n.deal) }))
+	};
 }
 
 /* ------------------------------------------------------------------ *
