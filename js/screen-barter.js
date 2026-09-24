@@ -5123,13 +5123,13 @@ function matShotHelp(open = false, scroll = false) {
 	return `<details class="mat-help"${open ? ' open' : ''}>
 		<summary>${T('What should the screenshot look like?')}</summary>
 		<div class="mat-help-figs">
-			<figure class="mat-help-fig"><img src="guide/material-page.webp" alt="${T('A page of the barter window’s material list')}" loading="lazy" width="620" height="283">
-				<figcaption>${T('The barter window in game, scrolled to the islands paying ship materials. Each row whole: the island on the left, what it takes, what it pays. A full-screen shot works too — the rows are found in it.')}</figcaption></figure>
+			<figure class="mat-help-fig"><img src="guide/material-page.webp" alt="${T('The Barter Information window showing ship material rows')}" loading="lazy" width="600" height="415">
+				<figcaption>${T('The same Barter Information window as for trade goods, whole: its head gives your Parley and Total Barters, and each row an island, what it takes and what it pays — the rows paying ship materials go to this list. A full-screen shot works too.')}</figcaption></figure>
 			<figure class="mat-help-fig narrow"><img src="guide/refresh-material.webp" alt="${T('The game’s refresh window, the ship material refreshes outlined')}" loading="lazy" width="487" height="629">
 				<figcaption>${T('The material list is its own list, redrawn by the Ship Material Refresh — apart from the trade goods, so its board changes on its own clock.')}</figcaption></figure>
 		</div>
-		${scroll ? `<figure class="mat-help-fig"><img src="guide/material-scroll.webp" alt="${T('Three screenshots of the list, scrolled between each')}" loading="lazy" width="900" height="154">
-			<figcaption>${T('The whole list is longer than the window: shoot, scroll down, shoot again, to the end. A row on two shots is fine — it is read once. Paste or drop them all at once.')}</figcaption></figure>` : ''}
+		${scroll ? `<figure class="mat-help-fig"><img src="guide/material-scroll.webp" alt="${T('Three screenshots of the whole window, the list scrolled between each')}" loading="lazy" width="1000" height="245">
+			<figcaption>${T('The list is longer than the window: shoot the whole window, scroll the list down, shoot again, to the end. A row on two shots is fine — it is read once. Paste or drop them all at once.')}</figcaption></figure>` : ''}
 		<ul class="mat-help-list">
 			<li>${T('Any of the game’s languages: pick yours in the reader, and the rows are matched against the game’s own names in it.')}</li>
 			<li>${T('A name cut short with “…” is enough.')}</li>
@@ -5170,7 +5170,7 @@ function matBarHTML() {
 	if (kind === 'start') {
 		body = `${drop(!st.read, st.read ? T('Paste another page') : T('Paste one screenshot of the material list'), st.read
 			? (st.read === 1 ? T('{n} island read so far — a page more and the book is checked against it.', { n: F(st.read) }) : T('{n} islands read so far — a page more and the book is checked against it.', { n: F(st.read) }))
-			: T('Open the barter window in game, scroll to the islands paying ship materials, and paste one page here (Ctrl V). If the book knows the board, the rest of the list is filled in for you.'))}
+			: T('Open the Barter Information window in game — the same window as for trade goods — screenshot it whole and paste it here (Ctrl V). The rows paying ship materials are read, with your Parley and barter count; if the book knows the board, the rest of the list is filled in for you.'))}
 			${matShotHelp(!st.read)}
 			${fleetLine}
 			<p class="board-ask-sub">${T('Or tick, below, the islands showing what you are after.')}</p>`;
@@ -5202,7 +5202,7 @@ function matBarHTML() {
 				<button class="linky" data-act="barter-shot">${T('read more pages')}</button></div>`
 			: `<p class="mat-say new">★ ${T('This board is not in the book yet. Read the whole list and share it: every sailor after you will need only one page.')}</p>
 				${figures}
-				${drop(false, T('Paste the other pages'), T('Scroll the list in game, a screenshot a page, and paste them all at once. A row on two shots is read once.'))}
+				${drop(false, T('Paste the other pages'), T('Scroll the list in game and screenshot the whole window each time, then paste them all at once. A row on two shots is read once.'))}
 				${matShotHelp(false, true)}
 				<div class="mat-acts"><button class="ghost-btn sm" data-act="barter-mat-whole" title="${T('The list in game ends here: nothing more to read')}">${T('That was the whole list')}</button>${st.read && !st.told ? tellBtn(false, T('Share what I have'), T('Send the islands read so far; more can follow, and they are merged')) : ''}</div>
 				${fleetLine}`;
@@ -6066,7 +6066,7 @@ export function renderBarter() {
 	// whichever that answer reads -- then the run.
 	const planStep = `${dayStep(1, T('What is today for?'), T('It decides which list of the barter window is read next'))}
 		${goalCardsHTML()}
-		${dayStep(2, goal === 'material' ? T('Read today’s material list') : T('Read today’s board'), goal === 'material' ? T('A screenshot of the barter window’s material islands') : T('A screenshot of the barter window: the layout is found from a few islands'))}
+		${dayStep(2, goal === 'material' ? T('Read today’s material list') : T('Read today’s board'), goal === 'material' ? T('A screenshot of the barter window: its rows paying ship materials are read') : T('A screenshot of the barter window: the layout is found from a few islands'))}
 		${rolledHTML()}${pinnedHTML(b)}${boardHTML(b)}${parts.cont || ''}
 		${dayStep(3, T('Plan the run'), T('Four parts · each opens when the one before is settled'), `<button class="linky" data-act="barter-sec" data-id="all">${T('show all')}</button><button class="linky" data-act="barter-sec" data-id="none">${T('collapse all')}</button>`)}
 		${shapeBarHTML()}

@@ -68,10 +68,10 @@ export function openBarterImport({ deals, onAnswers = () => {}, files = null, gu
 
 	/* --- what to drop ------------------------------------------------ */
 	const pickView = () => `
-		${guide === 'material-whole' ? `<figure class="mat-help-fig"><img src="guide/material-scroll.webp" alt="${T('Three screenshots of the list, scrolled between each')}" width="900" height="154">
-			<figcaption>${T('A board the book does not know: shoot a page, scroll down, shoot again, to the end of the material list — then drop or paste them all here together. A row on two shots is read once.')}</figcaption></figure>`
-		: guide === 'material' ? `<figure class="mat-help-fig"><img src="guide/material-page.webp" alt="${T('A page of the barter window’s material list')}" width="620" height="283">
-			<figcaption>${T('Like this: the barter window scrolled to the islands paying ship materials, each row whole. One page is enough to start; for a board the book does not know, shoot every page down to the end of the list and drop them all here together.')}</figcaption></figure>`
+		${guide === 'material-whole' ? `<figure class="mat-help-fig"><img src="guide/material-scroll.webp" alt="${T('Three screenshots of the whole window, the list scrolled between each')}" width="1000" height="245">
+			<figcaption>${T('A board the book does not know: shoot the whole window, scroll the list down, shoot again, to the end — then drop or paste them all here together. A row on two shots is read once.')}</figcaption></figure>`
+		: guide === 'material' ? `<figure class="mat-help-fig"><img src="guide/material-page.webp" alt="${T('The Barter Information window showing ship material rows')}" width="600" height="415">
+			<figcaption>${T('Like this: the whole Barter Information window, the same window as for trade goods — its head gives your Parley and Total Barters, and the rows paying ship materials go to the material list. One page is enough to start; for a board the book does not know, shoot every page down to the end of the list and drop them all here together.')}</figcaption></figure>`
 		: `<figure class="mat-help-fig"><img src="guide/barter-window.webp" alt="${T('The Barter Information window in game')}" width="600" height="412">
 			<figcaption>${T('Like this: the Barter Information window, head and rows. Scroll it and shoot again for more of the board — several at a time is the point, and the rows add up.')}</figcaption></figure>`}
 		<ul class="shot-kinds">
