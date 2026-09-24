@@ -36,7 +36,7 @@ export const INKS = ['#ffd77a', '#7ef0d4', '#7ec8f0', '#c6a0ff', '#ff8f8f', '#9c
 export const WIDTHS = [{ v: 1.5, label: TT('Fine') }, { v: 2.5, label: TT('Medium') }, { v: 4.5, label: TT('Bold') }];
 // One letter each, because they sit inside a 19-pixel button. A language
 // that abbreviates differently says so; one that does not leaves them.
-export const SIZES = [{ v: 11, label: TT('pen size|S') }, { v: 14, label: TT('pen size|M') }, { v: 19, label: TT('pen size|L') }];
+export const SIZES = [{ v: 11, label: TT('pen-size|S') }, { v: 14, label: TT('pen-size|M') }, { v: 19, label: TT('pen-size|L') }];
 const LINE_INK = '#7ef0d4';
 const inkOf = (c, fallback = INKS[0]) => (INKS.includes(c) ? c : fallback);
 const widthOf = w => (WIDTHS.some(x => x.v === Number(w)) ? Number(w) : 2.5);
