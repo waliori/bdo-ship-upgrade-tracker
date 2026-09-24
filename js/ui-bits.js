@@ -332,13 +332,20 @@ export function peekHTML(item) {
 	const does = fit ? `<div class="peek-cost">${T('at +{level}: {stats}', { level: lv.level, stats: esc(describeStats(fit, { signed: false })) })}</div>` : '';
 
 	if (!body && !foot && !price && !inBulk && !does) return '';
-	return `<div class="peek-head">${img(item, 'peek-icon lg')}<span>${esc(gameName(item))}</span></div>`
+	return `<div class="peek-head">${img(item, 'peek-icon lg')}<span>${tierName(item)}</span></div>`
 		+ body
 		+ price
 		+ inBulk
 		+ does
 		+ (foot ? `<div class="peek-foot">${esc(foot)}</div>` : '')
 		+ `<button class="peek-open" data-act="open-item" data-item="${esc(item)}">${T('Open in Inventory →')}</button>`;
+}
+
+/** A trade good's name in its level's colour, the barter window's own:
+ *  the name as it is for anything else. */
+export function tierName(item, text = gameName(item)) {
+	const lv = levelOf(item);
+	return lv ? `<span class="lv-name" style="--tier:var(--tier-${Math.max(1, Math.min(7, lv))})">${esc(text)}</span>` : esc(text);
 }
 
 /** Where an item comes from, and what it costs. */

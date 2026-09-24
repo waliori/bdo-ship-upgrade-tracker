@@ -5413,7 +5413,7 @@ function cockpitHTML({ map = false } = {}) {
 	</div>` : '';
 	const trade = s.wait ? waitBox : s.npcId
 		? `<div class="cockpit-trade${glance && !map ? ' big' : ''}">
-			<div class="cockpit-good"><span class="cockpit-icon"${tierOf(s.give)}>${img(s.give, 'cockpit-img')}</span><b>${esc(s.giveText)}× ${esc(gameName(s.give))}</b><em>${levelOf(s.give) ? T('Level {lv}', { lv: levelOf(s.give) }) : T('a land good')}</em></div>
+			<div class="cockpit-good"${tierOf(s.give)}><span class="cockpit-icon"${tierOf(s.give)}>${img(s.give, 'cockpit-img')}</span><b>${esc(s.giveText)}× ${esc(gameName(s.give))}</b><em>${levelOf(s.give) ? T('Level {lv}', { lv: levelOf(s.give) }) : T('a land good')}</em></div>
 			<span class="cockpit-arrow">→</span>
 			<div class="cockpit-good get"${tierOf(s.item)}><span class="cockpit-icon"${tierOf(s.item)}>${img(sevenOf(s), 'cockpit-img')}</span><b>${esc(s.recvText)}× ${esc(gameName(sevenOf(s)))}</b><em>${s.item === COIN ? T('coins') : T('Level {lv}', { lv: levelOf(s.item) })}${fourNote(s, true)}</em></div>
 			<div class="cockpit-times"><b>×${F(s.times)}</b><span>${T('times')}</span></div>

@@ -6,7 +6,7 @@ import { esc, F, FC } from '../fmt.js';
 import { T, gameName, said } from '../i18n.js';
 import { currentShip, aboardWhat } from '../ship.js';
 import { paceNow, LEARN_AT } from '../ship-pace.js';
-import { img } from '../ui-bits.js';
+import { img, tierName } from '../ui-bits.js';
 import { npcById, ports } from '../barter_npcs.js';
 import { nearestWharf } from '../wharves.js';
 import { gradeById } from '../crystals.js';
@@ -355,7 +355,7 @@ function aboardOf(name) {
 /** What a stop wants handed over, against what is aboard. */
 /** What a Barter-tab run calls at a stop for, on its row. */
 function runLine(t) {
-	return `<span class="map-row-sub ok">${esc(t.giveText)}× ${esc(gameName(t.give))} → ${esc(t.recvText)}× ${esc(gameName(t.item))}${t.times > 1 ? T(', {n} times', { n: t.times }) : ''}</span>`;
+	return `<span class="map-row-sub ok">${esc(t.giveText)}× ${tierName(t.give)} → ${esc(t.recvText)}× ${tierName(t.item)}${t.times > 1 ? T(', {n} times', { n: t.times }) : ''}</span>`;
 }
 
 /** A count that may be a fraction of a good, kept to one place. */

@@ -7,7 +7,7 @@ import { courseOf } from '../courses.js';
 import { monsters, monsterByKey } from '../sea_monsters.js';
 import { esc, F, FC } from '../fmt.js';
 import { T, gameName } from '../i18n.js';
-import { img } from '../ui-bits.js';
+import { img, tierName } from '../ui-bits.js';
 import { frame, pan, zoomAt, clampView, fitTo, routePath, project, placeTile, zoomRange, levelFor, tilesFor } from '../map.js';
 import { npcs, npcById, ports, TILE } from '../barter_npcs.js';
 import { openSea } from '../searoute.js';
@@ -1176,9 +1176,9 @@ function runTip(t, id) {
 	return `<div class="map-tip-run">
 		<span class="map-tip-k">${T('The run')}${on ? ` · ${T('being sailed')}` : ''}</span>
 		<div class="map-tip-row">
-			<span class="map-tip-side" data-peek="${esc(t.give)}"><span class="map-io minus">${img(t.give, 'map-icon')}</span><span>${esc(t.giveText)}× ${esc(gameName(t.give))}</span></span>
+			<span class="map-tip-side" data-peek="${esc(t.give)}"><span class="map-io minus">${img(t.give, 'map-icon')}</span><span>${esc(t.giveText)}× ${tierName(t.give)}</span></span>
 			<span class="map-tip-arrow">→</span>
-			<span class="map-tip-side get" data-peek="${esc((on && on.item) || t.item)}"><span class="map-io plus">${img((on && on.item) || t.item, 'map-icon')}</span><span>${esc(on && on.paid ? String(on.paid) : t.recvText)}× ${esc(gameName((on && on.item) || t.item))}</span></span>
+			<span class="map-tip-side get" data-peek="${esc((on && on.item) || t.item)}"><span class="map-io plus">${img((on && on.item) || t.item, 'map-icon')}</span><span>${esc(on && on.paid ? String(on.paid) : t.recvText)}× ${tierName((on && on.item) || t.item)}</span></span>
 			<span class="map-tip-tries">${t.times > 1 ? `×${t.times}` : ''}</span>
 		</div>
 		${check}

@@ -5,20 +5,24 @@
    rule between sheets, check nothing later relies on beating it. */
 
 /* ---- The Barter tab: the board, the hold, the chains and the run ---- */
+/* The level of a trade good, in the game's own colours: Level 1 and the
+   land goods white, 2 green, 3 blue, 4 yellow, and 5, 6 and 7 the one
+   orange-red -- what the barter window shows, so a good reads the same
+   here as it does there. */
 :root {
-  --tier-1: #6f88a3; --tier-2: #4ec9ae; --tier-3: #58a8d8; --tier-4: #7c9ce8;
-  --tier-5: #b28fe0; --tier-6: #e8b661; --tier-7: #e8905d;
+  --tier-1: #e4e8ee; --tier-2: #7fcf5f; --tier-3: #4f9fe0; --tier-4: #e8c04a;
+  --tier-5: #e8643a; --tier-6: #e8643a; --tier-7: #e8643a;
 }
 /* The same seven, darker on a pale page, so a tier named in text still
    reads; the ink laid on them is --on-tint, which turns white there. */
 :root[data-theme="light"] {
-  --tier-1: #4d647e; --tier-2: #0f8f76; --tier-3: #1d78ab; --tier-4: #4463c4;
-  --tier-5: #7a4fb8; --tier-6: #a4700e; --tier-7: #c25a1f;
+  --tier-1: #3c4654; --tier-2: #3a8a1f; --tier-3: #1b6fb5; --tier-4: #9a7300;
+  --tier-5: #c2461a; --tier-6: #c2461a; --tier-7: #c2461a;
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-    --tier-1: #4d647e; --tier-2: #0f8f76; --tier-3: #1d78ab; --tier-4: #4463c4;
-    --tier-5: #7a4fb8; --tier-6: #a4700e; --tier-7: #c25a1f;
+    --tier-1: #3c4654; --tier-2: #3a8a1f; --tier-3: #1b6fb5; --tier-4: #9a7300;
+    --tier-5: #c2461a; --tier-6: #c2461a; --tier-7: #c2461a;
   }
 }
 .barter-screen { display: flex; flex-direction: column; gap: 16px; }
@@ -989,7 +993,7 @@ button.rung-fate { cursor: pointer; }
 .cockpit-good { display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; min-width: 0; }
 .cockpit-good > b { font-size: 13px; font-weight: 600; color: var(--ink-mid); }
 .cockpit-good > em { font-style: normal; font-size: 11.5px; color: var(--ink-faint); }
-.cockpit-good.get > b { color: var(--tier, var(--ink-hi)); }
+.cockpit-good > b { color: var(--tier, var(--ink-hi)); }
 .cockpit-icon { display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 14px; border: 1px solid var(--tier, var(--line-btn)); background: var(--panel-strong); }
 .cockpit-img { width: 60px; height: 60px; }
 .cockpit-arrow { font-family: var(--font-display); font-size: 28px; color: var(--ink-mute); }
@@ -1441,3 +1445,4 @@ button.rung-fate { cursor: pointer; }
 .st-figs b.amber { color: var(--amber); }
 .cockpit-head .arrived-btn { margin-left: 8px; }
 .cockpit-head .arrived-said { margin-left: 8px; font-size: 12px; color: var(--teal); }
+.lv-name { color: var(--tier); font-weight: 600; }
