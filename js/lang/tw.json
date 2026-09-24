@@ -3040,7 +3040,6 @@
 	"What to load, and what is in the storage after, tiled the way the game’s own window is. Everything that used to be said twice is said once.": "要裝什麼，以及之後倉庫裡有什麼，按遊戲自己視窗的方式排成方塊。以前說兩次的現在只說一次。",
 	"What to look for": "要找什麼",
 	"What today can do about it": "今天能對它做什麼",
-	"What today is for": "今天為了什麼",
 	"What would be shared right now": "現在會分享什麼",
 	"What you actually own": "你實際持有什麼",
 	"What you answered fits layout {id} everywhere but {moved}, so the board is that layout with that island as you saw it. The game moves a slot at a maintenance without renumbering anything — which makes this worth telling the fleet.": "你回答的內容除 {moved} 之外都符合布局 {id}，所以這個面板就是那種布局加上你所看到的那座島。遊戲會在維護時挪動一格卻不重新編號 — 這讓這件事值得告知船隊。",

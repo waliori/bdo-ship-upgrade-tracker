@@ -3040,7 +3040,6 @@
 	"What to load, and what is in the storage after, tiled the way the game’s own window is. Everything that used to be said twice is said once.": "何を積むか、そして帰港後に倉庫に何があるかを、ゲーム自身のウィンドウと同じタイル表示で。以前は二度言っていたことを、一度だけ言います。",
 	"What to look for": "確認すべきこと",
 	"What today can do about it": "今日それに対してできること",
-	"What today is for": "今日は何のため",
 	"What would be shared right now": "今この瞬間に共有される内容",
 	"What you actually own": "実際に持っているもの",
 	"What you answered fits layout {id} everywhere but {moved}, so the board is that layout with that island as you saw it. The game moves a slot at a maintenance without renumbering anything — which makes this worth telling the fleet.": "あなたの回答は{moved}以外すべて配置{id}に一致するので、ボードはその配置の、その島だけあなたが見たとおりのものになります。ゲームはメンテナンスで枠を1つ動かしても番号を振り直さないので — これは船団に伝える価値があります。",

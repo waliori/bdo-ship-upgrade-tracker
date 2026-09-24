@@ -812,6 +812,9 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 .mat-help { font-size: 12.5px; color: var(--ink-dim); }
 .mat-help summary { cursor: pointer; color: var(--blue-hi); width: fit-content; }
 .mat-help-fig { margin: 8px 0; }
+.mat-help-figs { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 16px; }
+.mat-help-figs .mat-help-fig { flex: 1 1 340px; max-width: 620px; }
+.mat-help-figs .mat-help-fig.narrow { flex: 0 1 240px; }
 .mat-help-fig img { display: block; max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); }
 .mat-help-fig figcaption { margin-top: 5px; font-size: 12px; line-height: 1.45; color: var(--ink-mute); max-width: 80ch; }
 .mat-help-list { margin: 4px 0 0; padding-left: 18px; line-height: 1.6; color: var(--ink-mute); }

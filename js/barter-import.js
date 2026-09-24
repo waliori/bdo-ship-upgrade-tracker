@@ -72,7 +72,7 @@ export function openBarterImport({ deals, onAnswers = () => {}, files = null, gu
 			<figcaption>${T('A board the book does not know: shoot a page, scroll down, shoot again, to the end of the material list — then drop or paste them all here together. A row on two shots is read once.')}</figcaption></figure>`
 		: guide === 'material' ? `<figure class="mat-help-fig"><img src="guide/material-page.webp" alt="${T('A page of the barter window’s material list')}" width="620" height="283">
 			<figcaption>${T('Like this: the barter window scrolled to the islands paying ship materials, each row whole. One page is enough to start; for a board the book does not know, shoot every page down to the end of the list and drop them all here together.')}</figcaption></figure>`
-		: `<figure class="mat-help-fig"><img src="guide/barter-window.webp" alt="${T('The Barter Information window in game')}" width="560" height="387">
+		: `<figure class="mat-help-fig"><img src="guide/barter-window.webp" alt="${T('The Barter Information window in game')}" width="600" height="412">
 			<figcaption>${T('Like this: the Barter Information window, head and rows. Scroll it and shoot again for more of the board — several at a time is the point, and the rows add up.')}</figcaption></figure>`}
 		<ul class="shot-kinds">
 			<li>${T('<b>What is read</b> — the island at the start of each row, what it takes and what it pays. A name the window cut short is enough.')}</li>

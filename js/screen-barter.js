@@ -1957,12 +1957,12 @@ function goalCardsHTML() {
 		<span class="goal-card-sub">${sub}</span>
 		<span class="goal-card-reads">${reads}</span>
 	</button>`;
-	const board = T('reads: today’s board');
+	const board = T('reads: the trade goods list');
 	return `<div class="goal-cards" role="group" aria-label="${T('What the run is for')}">
 		${card('silver', img(SILVER, 'goal-icon'), T('Silver'), T('The chains of today’s board, climbed and sold'), board)}
 		${card('stock', '<span class="goal-emoji" aria-hidden="true">📦</span>', T('A stock'), T('The same board, sailed to fill the storage: nothing sold'), board)}
 		${card('coin', img(COIN, 'goal-icon'), T('Crow Coins'), T('The same board, climbed to [Level 4] for the coin islands'), board)}
-		${card('material', '<span class="goal-emoji" aria-hidden="true">⚓</span>', T('A material'), T('Ship materials, from the islands that deal them'), T('reads: the material list'))}
+		${card('material', '<span class="goal-emoji" aria-hidden="true">⚓</span>', T('A material'), T('Ship materials, from the islands that deal them'), T('reads: the ship material list'))}
 	</div>`;
 }
 
@@ -5104,8 +5104,12 @@ function matStage() {
 function tradeShotHelp() {
 	return `<details class="mat-help">
 		<summary>${T('What should the screenshot look like?')}</summary>
-		<figure class="mat-help-fig"><img src="guide/barter-window.webp" alt="${T('The Barter Information window in game')}" loading="lazy" width="560" height="387">
-			<figcaption>${T('The Barter Information window, whole: its head holds your Parley and Total Barters, and each row an island, what it takes and what it pays. A few rows are enough to find the layout; scroll and shoot again for more. A full-screen shot works too.')}</figcaption></figure>
+		<div class="mat-help-figs">
+			<figure class="mat-help-fig"><img src="guide/barter-window.webp" alt="${T('The Barter Information window in game')}" loading="lazy" width="600" height="412">
+				<figcaption>${T('The Barter Information window, whole: its head holds your Parley and Total Barters, and each row an island, what it takes and what it pays. A few rows are enough to find the layout; scroll and shoot again for more. A full-screen shot works too.')}</figcaption></figure>
+			<figure class="mat-help-fig narrow"><img src="guide/refresh-trade.webp" alt="${T('The game’s refresh window, the trade item refreshes outlined')}" loading="lazy" width="487" height="629">
+				<figcaption>${T('Silver, a stock and Crow Coins are all dealt from the trade goods list: the one the Trade Item Barter Refresh redraws.')}</figcaption></figure>
+		</div>
 		<ul class="mat-help-list">
 			<li>${T('Any of the game’s languages: pick yours in the reader, and the rows are matched against the game’s own names in it.')}</li>
 			<li>${T('A name cut short with “…” is enough.')}</li>
@@ -5118,8 +5122,12 @@ function tradeShotHelp() {
 function matShotHelp(open = false, scroll = false) {
 	return `<details class="mat-help"${open ? ' open' : ''}>
 		<summary>${T('What should the screenshot look like?')}</summary>
-		<figure class="mat-help-fig"><img src="guide/material-page.webp" alt="${T('A page of the barter window’s material list')}" loading="lazy" width="620" height="283">
-			<figcaption>${T('The barter window in game, scrolled to the islands paying ship materials. Each row whole: the island on the left, what it takes, what it pays. A full-screen shot works too — the rows are found in it.')}</figcaption></figure>
+		<div class="mat-help-figs">
+			<figure class="mat-help-fig"><img src="guide/material-page.webp" alt="${T('A page of the barter window’s material list')}" loading="lazy" width="620" height="283">
+				<figcaption>${T('The barter window in game, scrolled to the islands paying ship materials. Each row whole: the island on the left, what it takes, what it pays. A full-screen shot works too — the rows are found in it.')}</figcaption></figure>
+			<figure class="mat-help-fig narrow"><img src="guide/refresh-material.webp" alt="${T('The game’s refresh window, the ship material refreshes outlined')}" loading="lazy" width="487" height="629">
+				<figcaption>${T('The material list is its own list, redrawn by the Ship Material Refresh — apart from the trade goods, so its board changes on its own clock.')}</figcaption></figure>
+		</div>
 		${scroll ? `<figure class="mat-help-fig"><img src="guide/material-scroll.webp" alt="${T('Three screenshots of the list, scrolled between each')}" loading="lazy" width="900" height="154">
 			<figcaption>${T('The whole list is longer than the window: shoot, scroll down, shoot again, to the end. A row on two shots is fine — it is read once. Paste or drop them all at once.')}</figcaption></figure>` : ''}
 		<ul class="mat-help-list">
@@ -5351,7 +5359,7 @@ function materialParts(me, data) {
 	const from = fromPort();
 	const mats = matsToday();
 	if (!it && !materials().length) {
-		return { secs: [['ladder', T('What today is for'), T('for a material'), `<p class="empty">${T('The barter table deals no material the app knows.')}</p>`]], load: '', dock: '', things: { all: 0, done: 0 }, stops: 0, time: '' };
+		return { secs: [['ladder', T('The materials wanted'), T('for a material'), `<p class="empty">${T('The barter table deals no material the app knows.')}</p>`]], load: '', dock: '', things: { all: 0, done: 0 }, stops: 0, time: '' };
 	}
 	const short = it ? (snapshot && snapshot.missing && Number(snapshot.missing[it])) || 0 : 0;
 	const showing = matBoardNow().answers;
@@ -5495,7 +5503,7 @@ function materialParts(me, data) {
 	return {
 		secs: [
 			['parley', T('Before you sail'), esc(parleyLine(barterProfile())), parleyHTML(barterProfile())],
-			['ladder', T('What today is for'), esc(matsSaid), `${listPanel}<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="how">${T('OK, that’s the goal')} ›</button></div>`],
+			['ladder', T('The materials wanted'), esc(matsSaid), `${listPanel}<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="how">${T('OK, that’s the goal')} ›</button></div>`],
 			['how', T('How to sail it'), esc([matOrders.pace === 'fast' ? T('fast') : T('full'), matOrders.reach === 'all' ? T('every island ticked') : T('the wants, then home'), from ? T('from {port}', { port: gameName(from.name) }) : ''].filter(Boolean).join(' · ')), `${head}${ordersRow}<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="chains">${T('OK, see what comes of it')} ›</button></div>`],
 			['chains', T('What comes of it'), esc(comes), summary || `<p class="empty">${T('Nothing ticked. Open a material and tap each island showing it today — the run lays itself out here.')}</p>`]
 		],
