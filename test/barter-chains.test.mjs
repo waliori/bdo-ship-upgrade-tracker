@@ -687,3 +687,21 @@ test('a good takes one slot in the bag however many of it, and the bag holds no 
 		assert.ok(kindsAtMost(roomy) >= kindsAtMost(one));
 	}
 });
+
+test('a run asked to use the bag that does not says why', () => {
+	const l34 = combos.find(c => c.id === '34');
+	const d34 = boardData(l34, barterData, npcById);
+	const dock = { '[Level 5] Supreme Gold Candlestick': 6, '[Level 5] 102 Year Old Golden Herb': 4, "[Level 5] Statue's Tear": 3, '[Level 5] Golden Fish Scale': 3, '[Level 4] Old Chest with Gold Coins': 36, '[Level 4] Bronze Candlestick': 18 };
+	const chosen = chains(d34, {}, dock).filter(c => c.from === 'dock' && c.top === 7 && dock[c.item]);
+	const docks = wharves.filter(w => w.kind === 'wharf');
+	const opts = { chosen, dock, parley: { bar: 1e7, perTrade: 10512 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes, docks, orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7, pause: { isle: 30, call: 60 } } };
+	// Every later lot is heavier than a bag of 50 LT.
+	const small = chainRun({ ...opts, pace: 'fast', hold: { free: 20000, deal: 20000, max: 34000 }, bag: { free: 50, slots: 58 } });
+	assert.equal(small.bagNote && small.bagNote.why, 'small');
+	// One chain, one lot: nothing to carry for later, and room in the hold.
+	const one = chainRun({ ...opts, chosen: chosen.slice(0, 1), pace: 'fast', hold: { free: 40000, deal: 40000, max: 68000 }, bag: { free: 8000, slots: 58 } });
+	assert.equal(one.bagNote && one.bagNote.why, 'unneeded');
+	// A run that does use it says nothing.
+	const used = chainRun({ ...opts, pace: 'fast', hold: { free: 12000, deal: 12000, max: 20400 }, bag: { free: 8000, slots: 58 } });
+	assert.ok(used.bagLoaded.length && !used.bagNote);
+});

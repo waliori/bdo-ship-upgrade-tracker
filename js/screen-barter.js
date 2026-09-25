@@ -4036,7 +4036,10 @@ function packingOf(plan, from, chosen = []) {
 			? T('the run does not use it · sell it at {town} wharf for {silver}', { town: gameName(town), silver: FC(x.n * sellOf(x.item)) })
 			: T('the run does not use it · put it in the storage at {town}', { town: gameName(town) })
 	})) : [];
-	return { market: oneEach(market), storage: oneEach(storage), aboard, ashore };
+	// What goes into the sailor's bag is a group of its own: it is not
+	// the hold's, and it is loaded in the Inventory window, not the ship's.
+	const inBag = x => x.key.startsWith('g|');
+	return { market: oneEach(market), storage: oneEach(storage.filter(x => !inBag(x))), bag: oneEach(storage.filter(inBag)), aboard, ashore };
 }
 
 /**
@@ -4061,7 +4064,7 @@ function packingLT(plan, from, chosen) {
 
 function packingCount(plan, from, chosen) {
 	const p = packingOf(plan, from, chosen);
-	const list = [...p.ashore, ...p.market, ...p.storage, ...p.aboard];
+	const list = [...p.ashore, ...p.market, ...p.storage, ...p.bag, ...p.aboard];
 	// What is already in the hold needs no fetching, so it counts as
 	// done unless the sailor has taken the tick off to check it again.
 	return { all: list.length, done: list.filter(x => packedNow(x)).length };
@@ -4143,13 +4146,17 @@ function tripsHTML(plan, from, chosen, hold) {
 		${packingHTML(plan, from, chosen)}
 		<div class="trip-foot">${T('hold at its fullest on this trip: {w}', { w: esc(w(trips[0].peak)) })}</div></section>`;
 	const rest = trips.slice(1).map(t => {
-		const over = plan.weightStart + t.loads.reduce((a, l) => a + l.n * weightOf(l.item), 0) + trips.slice(1, t.n - 1).reduce((a, x) => a + x.loads.reduce((b, l) => b + l.n * weightOf(l.item), 0), 0);
+		// Goods riding in the bag weigh nothing on the hold, and come out
+		// of it at whichever wharf the trip starts from.
+		const heavy = l => !l.bag;
+		const over = plan.weightStart + t.loads.filter(heavy).reduce((a, l) => a + l.n * weightOf(l.item), 0) + trips.slice(1, t.n - 1).reduce((a, x) => a + x.loads.filter(heavy).reduce((b, l) => b + l.n * weightOf(l.item), 0), 0);
+		const bagOnly = t.loads.length > 0 && t.loads.every(l => l.bag);
 		const early = t.at >= 0 && t.head >= 0 && t.at < t.head;
-		const when = t.at < 0 ? T('on the way') : early ? T('picked up early, at {port} wharf, stop {k}, while the trip before is still under way', { port: esc(port), k: t.at + 1 }) : T('picked up at {port} wharf, stop {k}', { port: esc(port), k: t.at + 1 });
+		const when = t.at < 0 ? T('on the way') : bagOnly ? T('out of your bag at {port} wharf, stop {k}', { port: esc(gameName((plan.stops[t.at].wharf || {}).at || '')), k: t.at + 1 }) : early ? T('picked up early, at {port} wharf, stop {k}, while the trip before is still under way', { port: esc(port), k: t.at + 1 }) : T('picked up at {port} wharf, stop {k}', { port: esc(port), k: t.at + 1 });
 		const drop = `<button class="chip tiny trip-drop" data-act="barter-trip-drop" data-ids="${esc(idsOf(t).join('\n'))}" title="${T('Untick this trip\u2019s chains: the run is laid again without them')}">${T('leave this trip out')}</button>`;
 		return `<section class="trip-card later"><div class="trip-head"><span class="trip-k">${T('Trip {n}', { n: t.n })}</span><b>${when}</b><span class="trip-line">${line(t)}</span><span class="panel-spacer"></span><span class="trip-state">${t.loads.length === 1 ? T('{n} thing picked up on the way', { n: t.loads.length }) : T('{n} things picked up on the way', { n: t.loads.length })}</span>${moveBtns(t)}${drop}</div>
 			${t.loads.map(l => `<div class="trip-row"><i class="trip-dot"></i><span class="pack-icon"${levelOf(l.item) ? ` style="--tier:${TIER(levelOf(l.item))}"` : ''}>${img(l.item, 'row-icon')}</span><span class="pack-what"><b>${esc(gameName(l.item))}</b><em>${l.bag ? T('rides in your bag') : T('waits in the storage at {port}', { port: esc(port) })}${weightOf(l.item) ? ` · ${T('{lt} LT', { lt: (Math.round(l.n * weightOf(l.item) * 10) / 10).toLocaleString() })}` : ''}</em></span><span class="pack-n"><b>${n1(l.n)}</b></span></div>`).join('')}
-			<div class="trip-foot">${T('not now: with the trips before it aboard the hold would be {w}, over the limit', { w: esc(w(over)) })} · ${T('hold at its fullest on this trip: {w}', { w: esc(w(t.peak)) })}</div></section>`;
+			<div class="trip-foot">${bagOnly ? T('in your bag from the start, not the hold') : T('not now: with the trips before it aboard the hold would be {w}, over the limit', { w: esc(w(over)) })} · ${T('hold at its fullest on this trip: {w}', { w: esc(w(t.peak)) })}</div></section>`;
 	}).join('');
 	return `<div class="trips">${head}${first}${rest}</div>`;
 }
@@ -4201,6 +4208,7 @@ function packingHTML(plan, from, chosen = [], only = null) {
 	return `<div class="pack-groups">
 		${group(T('Buy at the Market'), `${plan.cost ? T('{silver} to buy', { silver: FC(Math.round(plan.cost)) }) : T('before casting off')}${p.market.length ? ` · ${T('{lt} LT to carry', { lt: (Math.round(p.market.reduce((w, x) => w + x.n * weightOf(x.item), 0) * 10) / 10).toLocaleString() })}` : ''}`, p.market, T('nothing to buy — the run starts from what is held'))}
 		${group(T('Take from storage'), where ? esc(T('{at} wharf', { at: where })) : T('before casting off'), p.storage, T('nothing in storage is needed'))}
+		${p.bag.length ? group(T('Into your bag'), `${T('your inventory, not the hold')} · ${(lt => (plan.bag ? T('{lt} LT of the {free} it takes', { lt, free: F(plan.bag.free) }) : T('{lt} LT', { lt })))((Math.round(p.bag.reduce((w, x) => w + x.n * weightOf(x.item), 0) * 10) / 10).toLocaleString())}`, p.bag, '') : ''}
 		${group(T('Already aboard'), T('checked against the hold'), p.aboard, T('nothing the run starts from is aboard yet'))}
 	</div>`;
 }
@@ -4890,6 +4898,8 @@ function silverParts(me, b) {
 	const peak = shownHold(me.hold, plan.weightPeak), atStart = shownHold(me.hold, plan.weightStart);
 	// The bag, when the run used it: what it held at the most.
 	if (plan.bag && plan.bagPeak > 0) peak.note = `${peak.note || T('under the limit')} · ${T('your bag at most {lt} of {free} LT', { lt: F(Math.round(plan.bagPeak)), free: F(plan.bag.free) })}`;
+	// And when it was not: why, since the sailor asked for it.
+	else if (plan.bagNote) peak.note = `${peak.note || T('under the limit')} · ${plan.bagNote.why === 'slower' ? T('your bag not used: the run pays more an hour without it') : plan.bagNote.why === 'small' ? T('your bag not used: a later trip’s goods need more room or slots than it has') : T('your bag not used: nothing on this run needs it')}`;
 	const chainName = c => T('{isle} chain', { isle: esc(isleShort(npcById.get(c.rungs[0].npcId)) || c.rungs[0].npc) });
 	// What the coins come to once the barter-count bonus is on them.
 	const purse = coinsOf(plan);
@@ -5041,7 +5051,7 @@ function silverParts(me, b) {
 	// not on the ship yet has made nothing, so the route, the shelf of
 	// what is left in storage and the run cast off are all laid from the
 	// chains that are packed, and laid again as each one comes aboard.
-	const packRows = (() => { const pk = packingOf(plan, from, chosen); return [...pk.market, ...pk.storage, ...pk.aboard]; })();
+	const packRows = (() => { const pk = packingOf(plan, from, chosen); return [...pk.market, ...pk.storage, ...pk.bag, ...pk.aboard]; })();
 	// The route follows the ship, not the plan: until every row is
 	// ticked it is laid from what is really aboard, with nothing loaded
 	// out of a storage -- the goods a sailor has not put on the ship are

@@ -678,6 +678,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	const pending = new Map();   // lot -> [{ item, n }] waiting at the harbour
 	const bagFor = new Map();    // lot -> [{ item, n }] riding in the bag
 	const bagLoaded = [];        // loaded into the bag at the start harbour
+	let bagShort = false;        // a later lot's goods the bag had no room or slot for
 	if (aside && lots.length > 1) {
 		const later = new Map();
 		for (const [c, l] of loadOf) {
@@ -691,6 +692,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			const w = ls.reduce((a, l) => a + l.n * weightOf(l.item), 0);
 			const toBag = room > 0 && inBag + w <= room + 1e-6 && new Set([...kinds, ...ls.map(l => l.item)]).size <= bagSlots;
 			if (toBag) for (const l of ls) kinds.add(l.item);
+			else if (room > 0) bagShort = true;
 			if (!toBag && !homeWharf) continue;
 			for (const l of ls) {
 				for (const m of [held0, heldMax0]) { const left = (m.get(l.item) || 0) - l.n; if (left > 1e-9) m.set(l.item, left); else m.delete(l.item); }
@@ -1239,7 +1241,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	const cost = boughtRows.reduce((a, b) => a + b.total, 0);
 	return {
 		order, lots, stops, sold, kept, stashed, loaded: loaded0, landLoaded,
-		bagLoaded: intoBag, bagPeak, bag: room ? { free: room, slots: Number.isFinite(bagSlots) ? bagSlots : null } : null,
+		bagLoaded: intoBag, bagPeak, bagShort, bag: room ? { free: room, slots: Number.isFinite(bagSlots) ? bagSlots : null } : null,
 		cut: cuts,
 		skippedWhole,
 		bought: boughtRows,
@@ -1413,9 +1415,14 @@ export function chainRun(opts = {}) {
 	}
 	// Sailing with the bag is a way of sailing, not a promise to use it:
 	// the run laid without it is kept when it is worth more an hour.
+	// Either way the run says why the bag went unused: nothing on it
+	// needed the bag, or the run with it was slower for what it made.
 	if (asked.bag && asked.bag.free > 0 && (asked.effort ?? 2) >= 2) {
 		const plain = chainRun({ ...asked, bag: null });
-		if (rateOf(plain) > rateOf(plan) * 1.001) return plain;
+		const used = run => (run.bagLoaded || []).length > 0 || run.stops.some(x => (x.toBag || []).length || (x.fromBag || []).length);
+		const why = used(plan) ? 'slower' : plan.bagShort ? 'small' : 'unneeded';
+		if (rateOf(plain) > rateOf(plan) * 1.001) return { ...plain, bagNote: { why } };
+		if (!used(plan)) plan.bagNote = { why };
 	}
 	return plan;
 }

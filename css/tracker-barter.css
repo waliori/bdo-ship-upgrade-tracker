@@ -1019,7 +1019,7 @@ button.rung-fate { cursor: pointer; }
 .order-k { font-size: 13px; color: var(--ink-mute); }
 .order-v { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .order-v .chips { display: flex; gap: 6px; flex-wrap: wrap; }
-.order-v .select { max-width: 280px; }
+.order-v .select { max-width: 280px; flex: none; }
 .order-v .run-pauses { flex-direction: row; flex-wrap: wrap; gap: 10px; }
 /* The Inventory window's two bars, typed or read, for the bag as a second hold. */
 .bag-bars { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
