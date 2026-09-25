@@ -162,7 +162,7 @@ test('the best ship is scored on what is on it, not only how far it is taken', (
 	assert.deepEqual(full.sets, ['yellow']);
 	assert.deepEqual(mixed.sets, ['Chiro', 'Toro']);
 	const b = BOARDS.find(x => x.id === 'ship');
-	assert.equal(b.detail({ fleet: { best: mixed } }), 'Carrack (Advance) · Chiro, Toro · +40 in all');
+	assert.equal(b.detail({ fleet: { best: mixed } }), 'Epheria Carrack: Advance · Chiro, Toro · +40 in all');
 	// A digest written before sets existed still reads.
 	assert.equal(b.detail({ fleet: { best: { ship: 'Panokseon', levels: 12 } } }), 'Panokseon · +12 in all');
 

@@ -128,7 +128,7 @@ test('a hull in the inventory is a ship in the fleet', async () => {
 	const body = await (await call('GET', '/api/community', { cookie: skipper })).json();
 	assert.deepEqual(body.you.places.fleet, { rank: 1, value: 2, of: 1 });
 	const best = body.fame.find(f => f.id === 'ship').top[0];
-	assert.equal(best.detail.startsWith('Carrack (Valor)'), true);
+	assert.equal(best.detail.startsWith('Epheria Carrack: Valor'), true);
 });
 
 test('a digest from an older build is re-rated without its owner lifting a finger', async () => {

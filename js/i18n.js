@@ -213,6 +213,17 @@ export const said = (text, params) => (text ? translate(String(text), params) : 
 const LEVEL_BEFORE = /^(\+\d+)\s+(.+)$/;
 const LEVEL_AFTER = /^(.+?)\s+(\+\d+)$/;
 
+// Keys the app wrote before it followed the game's English, printed as
+// the English client prints them (BDOCodex mount 31054-31056, 31085).
+// The key itself stays: saves and share links are written in it.
+const OFFICIAL_EN = {
+	'Carrack (Advance)': 'Epheria Carrack: Advance',
+	'Carrack (Balance)': 'Epheria Carrack: Balance',
+	'Carrack (Volante)': 'Epheria Carrack: Volante',
+	'Carrack (Valor)': 'Epheria Carrack: Valor'
+};
+const official = key => OFFICIAL_EN[key] || key;
+
 /**
  * A game name as the client prints it, for display only.
  *
@@ -227,10 +238,10 @@ export function gameName(en) {
 	const direct = names[key];
 	if (direct) return direct;
 	let m = LEVEL_BEFORE.exec(key);
-	if (m && names[m[2]]) return `${m[1]} ${names[m[2]]}`;
+	if (m) return `${m[1]} ${names[m[2]] || official(m[2])}`;
 	m = LEVEL_AFTER.exec(key);
-	if (m && names[m[1]]) return `${names[m[1]]} ${m[2]}`;
-	return key;
+	if (m) return `${names[m[1]] || official(m[1])} ${m[2]}`;
+	return official(key);
 }
 
 /** The game's own names in another client's language, whichever the
@@ -244,7 +255,7 @@ export async function gameNamesFor(readerTag) {
 }
 
 /** Whether a name has a translation at all -- for search, which offers both. */
-export const hasGameName = en => Boolean(en && names[String(en)]);
+export const hasGameName = en => Boolean(en && (names[String(en)] || OFFICIAL_EN[String(en)]));
 
 /* ------------------------------------------------------------------ *
  * Choosing one

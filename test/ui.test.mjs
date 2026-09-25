@@ -454,7 +454,7 @@ test('a ship in a link is looked at first, and the missing parts can queue', asy
 test('the day rides under the pouch on every tab but the Plan, and the More menu opens and closes', async () => {
 	const { page, context, errors } = await open('#builds');
 	await seed(page); await wait(300);
-	assert.match(await text(page, '#status'), /Carrack \(Valor\)/);
+	assert.match(await text(page, '#status'), /Epheria Carrack: Valor/);
 	await page.click('#tab-plan'); await wait(200);
 	assert.equal(await page.evaluate(() => document.getElementById('status').hidden), true);
 	await page.click('[data-act="more"]'); await wait(200);
@@ -1547,7 +1547,7 @@ test('an item says which other screens know it, and opens them pointed at it', a
 	await page.evaluate(() => document.querySelector('.detail [data-act="goto-tree"]').click());
 	await wait(1000);
 	assert.equal(await page.evaluate(() => location.hash), '#tree');
-	assert.equal(await page.evaluate(() => document.querySelector('.tpick-name').innerText), 'Carrack (Valor)');
+	assert.equal(await page.evaluate(() => document.querySelector('.tpick-name').innerText), 'Epheria Carrack: Valor');
 	assert.equal(await page.evaluate(() => document.querySelector('.tsearch').value), 'Black Stone');
 	assert.ok(await count(page, '.trow') > 1, 'and the branches leading down to it are open');
 
@@ -1814,7 +1814,7 @@ test('the hold is a line across the Barter tab that opens over the page, and the
 	// running the rest of this file beside it.
 	await page.waitForFunction(() => /16,500 LT/.test(document.querySelector('.hold-bar')?.textContent || ''), { timeout: 15000 });
 	const bar = await text(page, '.hold-bar');
-	assert.match(bar, /The hold.*Carrack \(Advance\).*9,000 \/ 16,500 LT/i);
+	assert.match(bar, /The hold.*Epheria Carrack: Advance.*9,000 \/ 16,500 LT/i);
 	assert.match(bar, /L7\s*2.*L5\s*5/);
 	await page.evaluate(() => document.querySelector('.hold-bar [data-act="barter-hold-open"]').click()); await wait(400);
 	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), false);
