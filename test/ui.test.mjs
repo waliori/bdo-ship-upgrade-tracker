@@ -451,6 +451,26 @@ test('a ship in a link is looked at first, and the missing parts can queue', asy
 	await context.close();
 });
 
+test('a ship in a link can be looked at on the Ship tab, and the bar brings your own back', async () => {
+	const { page, context, errors } = await open('#crew');
+	const link = await page.evaluate(async () => {
+		const s = await import('/js/share.js');
+		const setup = { ship: 'Carrack (Valor)', fitted: { cannon: "+9 Epheria Carrack: Valor (Chiro's Cannon)" }, roster: [], seats: {} };
+		return s.shareLink(await s.encodeShare({ stock: {}, setup })).replace('#share/', '#ship/');
+	});
+	const p2 = await context.newPage();
+	await p2.goto(link, { waitUntil: 'domcontentloaded' }); await wait(900);
+	const mine = await p2.evaluate(async () => (await import('/js/state.js')).getProfile('crewShip', null));
+	await p2.click('[data-ship-look]'); await wait(600);
+	assert.equal(await count(p2, '#dialog:not([hidden]) [data-ship-look]'), 0, 'the dialog is closed');
+	assert.equal(await p2.evaluate(async () => (await import('/js/state.js')).getProfile('crewShip', null)), 'Carrack (Valor)', 'the shared hull is the one shown');
+	assert.equal(await p2.evaluate(() => !document.getElementById('shared-bar').hidden), true, 'with the bar that says it is only a look');
+	await p2.click('#shared-bar [data-shared="back"]'); await wait(400);
+	assert.equal(await p2.evaluate(async () => (await import('/js/state.js')).getProfile('crewShip', null)), mine, 'and yours is back');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('the day rides under the pouch on every tab but the Plan, and the More menu opens and closes', async () => {
 	const { page, context, errors } = await open('#builds');
 	await seed(page); await wait(300);

@@ -1292,24 +1292,35 @@ async function copyShipLink() {
 }
 
 /** Take a ship setup in from a link: the hull, what is on it, who sails it. */
-export function applyShipSetup(setup) {
-	if (!setup || !shipStats[setup.ship]) return false;
-	// The dialog promises one Undo takes it back, so it is one change.
+/**
+ * The profile fields a ship setup writes -- the hull, its parts,
+ * crystal and seats, and the roster -- read against `get`, the profile
+ * it is written over. Null when the setup names no hull the app knows.
+ */
+export function shipSetupPatch(setup, get = (key, fallback) => store.getProfile(key, fallback)) {
+	if (!setup || !shipStats[setup.ship]) return null;
 	const patch = { crewShip: setup.ship };
 	if (setup.fitted && typeof setup.fitted === 'object') {
-		patch.fitted = { ...(store.getProfile('fitted', {}) || {}), [setup.ship]: setup.fitted };
+		patch.fitted = { ...(get('fitted', {}) || {}), [setup.ship]: setup.fitted };
 	}
 	if (setup.crystal !== undefined) {
-		const all = { ...(store.getProfile('crystal', {}) || {}) };
+		const all = { ...(get('crystal', {}) || {}) };
 		if (setup.crystal && crystalById[setup.crystal]) all[setup.ship] = Number(setup.crystal); else delete all[setup.ship];
 		patch.crystal = Object.keys(all).length ? all : null;
 	}
 	if (Array.isArray(setup.roster)) patch.roster = setup.roster;
 	if (setup.seats && typeof setup.seats === 'object') {
-		const all = { ...(store.getProfile('seats', {}) || {}) };
+		const all = { ...(get('seats', {}) || {}) };
 		if (Object.keys(setup.seats).length) all[setup.ship] = setup.seats; else delete all[setup.ship];
 		patch.seats = all;
 	}
+	return patch;
+}
+
+export function applyShipSetup(setup) {
+	const patch = shipSetupPatch(setup);
+	if (!patch) return false;
+	// The dialog promises one Undo takes it back, so it is one change.
 	store.setProfileMany(patch, T('Took a ship from a link: {ship}', { ship: gameName(setup.ship) }));
 	return true;
 }

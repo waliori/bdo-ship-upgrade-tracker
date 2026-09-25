@@ -37,7 +37,7 @@ import { renderBarter, barterAction, barterChange, barterType, chartFragment, ru
 import { tickTimer, watchTimer } from './sail-timer.js';
 import { renderTree, pickTreeTarget, folded, setTreeTarget, collapseAll } from './screen-tree.js';
 import { renderWorkshop, pendingEnhancements, toggleBlocked } from './screen-workshop.js';
-import { renderCrew, crewAction, crewChange, applyShipSetup, openSetupPicker, selectSailor, setLooking } from './screen-crew.js';
+import { renderCrew, crewAction, crewChange, applyShipSetup, shipSetupPatch, openSetupPicker, selectSailor, setLooking } from './screen-crew.js';
 import { statusLine } from './today.js';
 import { renderQuests, questAction, questDone, wantedQuests, setQuestPay, setQuestFocus } from './screen-quests.js';
 import { renderCommunity, communityAction, wireCommunity } from './screen-community.js';
@@ -1956,9 +1956,21 @@ function openSharedSetup(setup) {
 		<div class="share-parts">${partRows}</div>
 		<div class="dialog-actions">
 			${missing.length ? `<button class="act quiet" data-ship-queue title="${T('Each missing part joins the build queue, so the plan prices the way to this ship')}">${missing.length === 1 ? T('Queue the {n} missing part', { n: missing.length }) : T('Queue the {n} missing parts', { n: missing.length })}</button>` : ''}
-			<button class="ghost-btn" data-close>${T('Just looking')}</button>
+			<button class="ghost-btn" data-ship-look>${T('Just looking')}</button>
 			<button class="act" data-ship-take>${T('Make it my ship')}</button>
 		</div>`);
+	// Stood up on the Ship tab in place of yours, as a boat off the
+	// community boards is: nothing done meanwhile is kept, and the bar
+	// brings yours back. The button used to close the dialog and show
+	// nothing at all.
+	host.querySelector('[data-ship-look]').addEventListener('click', () => {
+		const save = JSON.parse(store.capture());
+		const profile = save.profile || {};
+		const patch = shipSetupPatch(setup, (key, fallback) => (key in profile ? profile[key] : fallback));
+		if (!patch) { closeDialog(); return; }
+		save.profile = { ...profile, ...patch };
+		lookAtShip(save);
+	});
 	host.querySelector('[data-ship-take]').addEventListener('click', () => {
 		closeDialog();
 		if (applyShipSetup(setup)) toast(T('Sailing as {ship} — one Undo takes it back', { ship: gameName(setup.ship) }), true);
