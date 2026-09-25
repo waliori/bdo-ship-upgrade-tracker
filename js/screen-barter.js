@@ -2152,7 +2152,7 @@ function bagRowHTML() {
 	</div>` : '';
 	const sub = !b.on ? T('Your inventory weighs nothing on the ship: sailors carry a later chain’s goods in it, moved at any wharf.')
 		: r.lt === null ? T('The two bars at the foot of the Inventory window, typed in or read off a screenshot of it: the app works out what the bag takes.')
-			: `${r.slots === null ? T('It takes {lt} LT: 170% of your {max} LT limit, less the {now} LT it holds.', { lt: `<b>${F(r.lt)}</b>`, max: F(b.max), now: LT1(b.now) }) : T('It takes {lt} LT in {n} slots: 170% of your {max} LT limit, less the {now} LT it holds.', { lt: `<b>${F(r.lt)}</b>`, n: `<b>${F(r.slots)}</b>`, max: F(b.max), now: LT1(b.now) })} ${T('A later chain’s goods ride in it and go in and out at any wharf’s Load Cargo; sales stay at a wharf with a storage. The run without it is kept when it pays better an hour.')}`;
+			: `<span class="bag-free">${r.slots === null ? T('{lt} LT free for the run', { lt: `<b>${F(r.lt)}</b>` }) : T('{lt} LT and {n} slots free for the run', { lt: `<b>${F(r.lt)}</b>`, n: `<b>${F(r.slots)}</b>` })}</span><span class="bag-why">${T('It carries up to {most} LT (170% of your {max} LT limit) and already holds {now} LT.', { most: F(Math.floor(b.max * 1.7)), max: F(b.max), now: LT1(b.now) })} ${T('A later chain’s goods ride in it and go in and out at any wharf’s Load Cargo; sales stay at a wharf with a storage. The run without it is kept when it pays better an hour.')}</span>`;
 	return `<div class="order-row" title="${T('Your own inventory, used as a second hold: goods go in and out of it at a wharf only')}"><span class="order-k">${T('your bag')}</span><div class="order-v">${chips}${bars}<span class="run-pick-sub">${sub}</span></div></div>`;
 }
 
@@ -2191,7 +2191,7 @@ function readBagShot(files) {
 			${line(T('Weight'), f.max === null ? null : `${LT1(f.now)} / ${F(f.max)} LT`)}
 			${line(T('Inventory Slot'), f.slots === null ? null : `${F(f.used)} / ${F(f.slots)}`)}
 		</div>
-		${r.lt !== null ? `<p class="dialog-note">${r.slots === null ? T('Your bag takes {lt} LT on a run.', { lt: `<b>${F(r.lt)}</b>` }) : T('Your bag takes {lt} LT in {n} slots on a run.', { lt: `<b>${F(r.lt)}</b>`, n: `<b>${F(r.slots)}</b>` })}${f.max === null || f.slots === null ? ` ${T('What was not found keeps the figure typed before.')}` : ''}</p>` : ''}`
+		${r.lt !== null ? `<p class="dialog-note">${r.slots === null ? T('{lt} LT free for the run', { lt: `<b>${F(r.lt)}</b>` }) : T('{lt} LT and {n} slots free for the run', { lt: `<b>${F(r.lt)}</b>`, n: `<b>${F(r.slots)}</b>` })}${f.max === null || f.slots === null ? ` ${T('What was not found keeps the figure typed before.')}` : ''}</p>` : ''}`
 		: `<p class="dialog-note">${T('No weight or slots found: the foot of the Inventory window, with its two bars, is what is read')}</p>`}
 		<div class="dialog-actions">
 			<button class="act quiet" data-again>${T('Read another')}</button>
@@ -2208,7 +2208,7 @@ function readBagShot(files) {
 		closeDialog();
 		store.setProfile('bag', { ...bagSet(), on: true, ...got }, T('Read your inventory’s weight and slots'));
 		const r = bagRoom(bagSet());
-		if (r.lt !== null) toast(r.slots === null ? T('Your bag takes {lt} LT on a run.', { lt: F(r.lt) }) : T('Your bag takes {lt} LT in {n} slots on a run.', { lt: F(r.lt), n: F(r.slots) }));
+		if (r.lt !== null) toast(r.slots === null ? T('{lt} LT free for the run', { lt: F(r.lt) }) : T('{lt} LT and {n} slots free for the run', { lt: F(r.lt), n: F(r.slots) }));
 	};
 	function wire() {
 		const box = host();
@@ -2333,7 +2333,8 @@ function parleyHTML(prof) {
 	const pct = ((guessed ? PARLEY.max : held) / PARLEY.max) * 100;
 	return `<div class="parley-plan">
 		<div class="parley-fields">
-			<label class="parley-field"><span class="summary-k">${T('Parley in the bar now')}</span><input class="purse-inline wide" type="text" inputmode="numeric" value="${held ? F(held) : ''}" placeholder="${F(PARLEY.max)}" data-act="parley-held" aria-label="${T('Parley in the bar right now')}"><em>${T('as the barter window’s head reads it')}</em></label>
+			<div class="parley-field"><label class="parley-field-in"><span class="summary-k">${T('Parley in the bar now')}</span><input class="purse-inline wide" type="text" inputmode="numeric" value="${held ? F(held) : ''}" placeholder="${F(PARLEY.max)}" data-act="parley-held" aria-label="${T('Parley in the bar right now')}"><em>${T('as the barter window’s head reads it')}</em></label>
+			<div class="parley-gauge${guessed ? ' guess' : ''}"><div class="run-bar parley"><i style="width:${pct.toFixed(1)}%"></i></div><div class="parley-gauge-k"><span>${guessed ? T('a full bar, taken as read — type yours above, or') : T('{n} of {max}', { n: F(held), max: F(PARLEY.max) })}</span>${guessed ? `<button class="chip tiny" data-act="barter-parley-full">${T('it really is full')}</button>` : ''}<span class="panel-spacer"></span><span>${T('{n} trades a refill', { n: F(day.tradesPerBar) })} · ${T('{each} a trade', { each: F(parleyOf(prof).perTrade) })} · ${T('refills at {time}', { time: esc(refill) })}</span></div></div></div>
 			<label class="parley-field"><span class="summary-k">${img(VOUCHER, 'row-icon xs')} ${T('Vouchers carried')}</span><input class="purse-inline" type="text" inputmode="numeric" value="${prof.vouchers ? F(prof.vouchers) : ''}" placeholder="0" data-act="vouchers" aria-label="${T('{name}s you carry', { name: gameName(VOUCHER) })}"><em>${T('each puts {n} back, on a two-hour cooldown', { n: F(PARLEY.voucher) })}</em></label>
 		</div>
 		<div class="order-rows plain">${orderRow('barter-port', T('Your home port'), port, [[0, T('the first stop')], ...ports.map(p => [p.id, gameName(p.name)])], T('Where the run leaves from and comes back to, and whose storage it loads from'))}
@@ -2342,7 +2343,6 @@ function parleyHTML(prof) {
 			<label class="run-pause">${amountInput('purse-inline', o.pause.call || 0, `data-act="barter-pause" data-at="call" aria-label="${T('Seconds at a wharf or a quest stop')}"`)}<span>${T('s at a wharf or a quest')}<em>${T('storing, selling, handing in — the longer sort of stop')}</em></span></label>
 		</div></div>
 		${bagRowHTML()}</div>
-		<div class="parley-gauge${guessed ? ' guess' : ''}"><div class="run-bar parley"><i style="width:${pct.toFixed(1)}%"></i></div><div class="parley-gauge-k"><span>${guessed ? T('a full bar, taken as read — type yours above, or') : T('{n} of {max}', { n: F(held), max: F(PARLEY.max) })}</span>${guessed ? `<button class="chip tiny" data-act="barter-parley-full">${T('it really is full')}</button>` : ''}<span class="panel-spacer"></span><span>${T('{n} trades a refill', { n: F(day.tradesPerBar) })} · ${T('{each} a trade', { each: F(parleyOf(prof).perTrade) })} · ${T('refills at {time}', { time: esc(refill) })}</span></div></div>
 		<div class="plan-next"><span class="panel-sub">${T('The barter window’s screenshot fills both in — Read the window, above.')}</span><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="ladder">${T('OK, where does today end?')} ›</button></div>
 	</div>`;
 }

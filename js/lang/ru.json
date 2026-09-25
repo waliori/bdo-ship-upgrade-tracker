@@ -1445,6 +1445,7 @@
 	"Islands": "Острова",
 	"Islands most plotted": "Самые прокладываемые острова",
 	"Islands whose exchange is above your barter count are greyed, with the count that opens them: a blank window there is the game, and not news.": "Острова, чей обмен выше вашего числа бартеров, показаны серым, и рядом — число, которое их открывает: пустое окно там — это игра, а не новость.",
+	"It carries up to {most} LT (170% of your {max} LT limit) and already holds {now} LT.": "Он вмещает до {most} LT (170% вашего предела {max} LT), и в нём уже {now} LT.",
 	"It decides which list of the barter window is read next": "Это решает, какой список окна бартера читается следующим",
 	"It did not go": "Не отправилось",
 	"It did not go: {why}": "Не отправилось: {why}",
@@ -1459,13 +1460,6 @@
 	"It is {layout} at {islands} and parts from it at {n} — which is what a slot moved at a maintenance looks like.": "Это {layout} на {islands} и расходится с ней на {n} — так выглядит слот, сдвинутый на техработах.",
 	"It matters because the growths are the one thing the app could never estimate its way round. A levelled sailor rolls inside a hidden band, so a crew was worth its <b>average</b> roll and the ship’s speed came out under the game’s — 196.4% against 198.1% on a full Carrack, all of it in the crew. Read in, the rolls are the game’s and so is the number.": "Это важно, потому что приросты — единственное, что приложение никак не могло обойти прикидкой. У прокачанного матроса прирост выпадает в скрытом диапазоне, поэтому экипаж считался по <b>среднему</b> броску, и скорость корабля выходила ниже игровой — 196,4% против 198,1% на полном галеоне, и вся разница в экипаже. После считывания броски игровые — и число тоже.",
 	"It reads as <b>numbered steps in the order they are done</b> — run these quests, take these as quest rewards, buy at the Crow Coin Shop, barter for these at sea, hunt these, and on down to what has no rate at all — because the quests pay the coins that buy the shop’s half, and buying first empties the purse before the quests come round. Each step says where it happens, carries its own total, and folds away when you are done with it.": "Читается как <b>пронумерованные шаги в том порядке, в каком их делают</b> — пройти эти задания, взять вот это наградой за задание, купить в лавке Монет ворон, выменять это в море, добыть вот это и дальше вниз до того, у чего нет никакой вероятности, — потому что задания дают монеты, на которые берётся половина из лавки, а если купить сначала, кошель опустеет до того, как подойдут задания. Каждый шаг говорит, где он происходит, несёт свой итог и сворачивается, когда вы с ним закончили.",
-	"It takes {lt} LT in {n} slots: 170% of your {max} LT limit, less the {now} LT it holds.": {
-		"few": "Он вмещает {lt} LT в {n} ячейках: 170% вашего предела {max} LT за вычетом {now} LT, что в нём уже есть.",
-		"many": "Он вмещает {lt} LT в {n} ячейках: 170% вашего предела {max} LT за вычетом {now} LT, что в нём уже есть.",
-		"one": "Он вмещает {lt} LT в {n} ячейке: 170% вашего предела {max} LT за вычетом {now} LT, что в нём уже есть.",
-		"other": "Он вмещает {lt} LT в {n} ячейках: 170% вашего предела {max} LT за вычетом {now} LT, что в нём уже есть."
-	},
-	"It takes {lt} LT: 170% of your {max} LT limit, less the {now} LT it holds.": "Он вмещает {lt} LT: 170% вашего предела {max} LT за вычетом {now} LT, что в нём уже есть.",
 	"It was not — and the ship’s own window is the figure to agree with. Ten to twenty LT on a fitted hull, which is exactly what it came to: <b>what is bolted on is cargo too</b>.": "И не был — а сходиться надо с числом из окна самого корабля. От десяти до двадцати LT на снаряжённом корпусе, к чему всё и вышло: <b>прикрученное — тоже груз</b>.",
 	"Italic": "Курсив",
 	"Italic (Ctrl+I)": "Курсив (Ctrl+I)",
@@ -3900,13 +3894,6 @@
 	"Your Total Barters read nought — set them in the bar at the top of the page.": "Общее число бартеров — ноль. Задайте его в полосе наверху страницы.",
 	"Your Total Barters read nought, which leaves almost every island shut. Set them in the bar at the top of the page — the number is in the game’s Barter Information window.": "Число обменов равно нулю, и почти все острова закрыты. Задайте его в строке вверху страницы — число есть в игровом окне «Информация об обмене».",
 	"Your Total Barters, as the Barter Information window shows it. It decides which islands you can barter at — a run is never planned through one you have not opened. A trip recorded on the Barter tab adds its trades; type over it whenever the two drift.": "Общее число бартеров, как его показывает окно «Информация о бартере». Оно решает, на каких островах вы можете меняться, — рейс никогда не прокладывается через неоткрытый. Записанный на вкладке «Бартер» выход добавляет свои обмены; впишите своё число, когда эти два разойдутся.",
-	"Your bag takes {lt} LT in {n} slots on a run.": {
-		"few": "В рейсе ваш инвентарь вмещает {lt} LT в {n} ячейках.",
-		"many": "В рейсе ваш инвентарь вмещает {lt} LT в {n} ячейках.",
-		"one": "В рейсе ваш инвентарь вмещает {lt} LT в {n} ячейке.",
-		"other": "В рейсе ваш инвентарь вмещает {lt} LT в {n} ячейках."
-	},
-	"Your bag takes {lt} LT on a run.": "В рейсе ваш инвентарь вмещает {lt} LT.",
 	"Your barter count and level are set in the bar at the top of the page; the Parley under Before you sail, step 1": "Число обменов и уровень задаются в панели вверху страницы; Убеждение — в разделе Перед отплытием, шаг 1",
 	"Your barter count, level, Parley, vouchers, Value Pack, Sailing Mastery and region — everything the sea is planned and priced from. Press to set them.": "Счёт бартеров, уровень, Убеждение, гарантии, Премиум-набор, Мастерство судоходства и регион — всё, по чему море планируется и оценивается. Нажмите, чтобы задать.",
 	"Your barter level": "Ваш уровень бартера",
@@ -5677,6 +5664,13 @@
 	"{loaded}, {n} not on this chart": "{loaded}, {n} нет на этой карте",
 	"{lo}–{hi} parley a trade": "{lo}–{hi} Убеждения за обмен",
 	"{lt} LT": "{lt} LT",
+	"{lt} LT and {n} slots free for the run": {
+		"few": "{lt} LT и {n} ячейки свободны для рейса",
+		"many": "{lt} LT и {n} ячеек свободны для рейса",
+		"one": "{lt} LT и {n} ячейка свободны для рейса",
+		"other": "{lt} LT и {n} ячеек свободны для рейса"
+	},
+	"{lt} LT free for the run": "{lt} LT свободно для рейса",
 	"{lt} LT of the {free} it takes": "{lt} LT из {free}, которые он вмещает",
 	"{lt} LT of {free} free": "{lt} LT из {free} свободных",
 	"{lt} LT to carry": "{lt} LT везти",

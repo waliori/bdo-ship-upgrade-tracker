@@ -911,11 +911,13 @@ ul.lb-readers.flat { margin: 0 0 12px; }
 
 /* ---- the plan, in three parts ------------------------------------- */
 .parley-plan { display: grid; gap: 12px; }
-.parley-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.parley-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; align-items: start; }
 .parley-field { display: grid; gap: 4px; padding: 12px 14px; border-radius: var(--r-tile); background: var(--panel-inset); }
 .parley-field .summary-k { display: flex; align-items: center; gap: 6px; }
 .parley-field input.purse-inline { width: 100%; max-width: 220px; font-family: var(--font-display); font-size: 20px; font-weight: 600; padding: 6px 10px; }
 .parley-field em { font-style: normal; font-size: 12px; color: var(--ink-faint); }
+.parley-field-in { display: grid; gap: 4px; }
+.parley-field .parley-gauge { margin-top: 6px; padding: 8px 10px; }
 .parley-gauge { display: grid; gap: 6px; padding: 10px 14px; border-radius: var(--r-tile); border: 1px solid var(--line); }
 .parley-gauge.guess { border-style: dashed; border-color: color-mix(in srgb, var(--amber) 55%, transparent); }
 .parley-gauge .run-bar.parley { height: 8px; }
@@ -1022,6 +1024,9 @@ button.rung-fate { cursor: pointer; }
 /* The Inventory window's two bars, typed or read, for the bag as a second hold. */
 .bag-bars { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 .bag-bars .run-pause .purse-inline { width: 68px; }
+.bag-free { display: block; font-size: 14px; color: var(--ink); margin-bottom: 2px; }
+.bag-free b { color: var(--teal); }
+.bag-why { display: block; }
 .bag-read { display: grid; gap: 6px; margin: 6px 0 10px; }
 .bag-read-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; border-radius: var(--r-btn); background: var(--panel-inset); font-size: 13px; color: var(--ink-mid); }
 .bag-read-row b { color: var(--ink); font-variant-numeric: tabular-nums; }
