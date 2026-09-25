@@ -604,3 +604,59 @@ test('a lot is weighed as the hold will be when it starts: the goods the lots be
 	assert.ok(run.weightPeak <= small.free + 1e-6, `never over the limit: ${run.weightPeak}`);
 	assert.equal(run.stops.filter(s => s.npcId).length, 14, 'every island of the six chains trades');
 });
+
+test('with the bag a second hold, a later lot\'s goods ride in it and come aboard at a wharf, never over the bag or the hold, and a sale is made only where a storage is', () => {
+	// Layout 34 from Iliya with the dock's [Level 4]s and [Level 5]s: the
+	// hold takes one chain's goods at a time, so without the bag the run
+	// calls back at Iliya between lots.
+	const l34 = combos.find(c => c.id === '34');
+	const d34 = boardData(l34, barterData, npcById);
+	const dock = { '[Level 5] Supreme Gold Candlestick': 6, '[Level 5] 102 Year Old Golden Herb': 4, "[Level 5] Statue's Tear": 3, '[Level 5] Golden Fish Scale': 3, '[Level 4] Old Chest with Gold Coins': 36, '[Level 4] Bronze Candlestick': 18 };
+	const chosen = chains(d34, {}, dock).filter(c => c.from === 'dock' && c.top === 7 && dock[c.item]);
+	const docks = wharves.filter(w => w.kind === 'wharf');
+	const stores = [...stashes, ...['Port Epheria', 'Ancado Inner Harbor'].map(at => wharves.find(w => w.kind === 'wharf' && w.at === at))];
+	const base = { chosen, dock, parley: { bar: 1e7, perTrade: 10512 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes: stores, docks, orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7, pause: { isle: 30, call: 60 } } };
+	const rate = r => r.net / r.hours;
+	for (const [pace, hold] of [['fast', { free: 12000, deal: 12000, max: 20400 }], ['full', { free: 12000, deal: 15000, max: 20400 }]]) {
+		const bag = { free: 8000 };
+		const without = chainRun({ ...base, pace, hold });
+		const run = chainRun({ ...base, pace, hold, bag });
+		assert.ok(rate(run) >= rate(without) - 1e-6, `${pace}: never worse an hour with the bag (${rate(run)} against ${rate(without)})`);
+		// The bag is weighed on its own: whatever went in, it never holds
+		// more than it takes, and the hold never counts it.
+		const inBag = new Map((run.bagLoaded || []).map(l => [l.item, l.n]));
+		const weigh = m => [...m].reduce((a, [item, n]) => a + n * GOODS[levelOf(item)].weight, 0);
+		assert.ok(weigh(inBag) <= bag.free + 1e-6);
+		for (const s of run.stops) {
+			for (const d of s.toBag || []) inBag.set(d.item, (inBag.get(d.item) || 0) + d.n);
+			for (const d of s.fromBag || []) { assert.ok((inBag.get(d.item) || 0) >= d.n - 1e-6, `${d.item} comes out of the bag only once it went in`); inBag.set(d.item, inBag.get(d.item) - d.n); }
+			assert.ok(weigh(inBag) <= bag.free + 1e-6, `${pace}: the bag at ${weigh(inBag)} LT`);
+			if (s.sale) assert.ok(stores.some(w => w.at === s.wharf.at), `a sale at ${s.wharf.at}, which has a storage`);
+			if (s.npcId && pace === 'fast') assert.ok(s.weightAfter <= hold.free + 1e-6, 'a fast run never ends a trade over the limit');
+		}
+	}
+	// The fast run is the case the bag was asked for: a later lot's goods
+	// ride out in it and come aboard where that lot begins, not at a call
+	// back to Iliya.
+	const fast = chainRun({ ...base, pace: 'fast', hold: { free: 12000, deal: 12000, max: 20400 }, bag: { free: 8000 } });
+	const out = fast.stops.filter(s => s.fromBag && s.fromBag.some(l => l.lot > 0));
+	assert.ok(fast.bagLoaded.length && out.length, `goods loaded into the bag and taken out for their lot: ${JSON.stringify(fast.bagLoaded)}`);
+	for (const s of out) for (const l of s.fromBag) assert.ok(!(s.loads || []).some(x => x.item === l.item && x.lot === l.lot), 'the lot is not also loaded from storage');
+});
+
+test('on a full run a good another chain takes later goes into the bag when the hold is too heavy, at any wharf, and comes out before the island that takes it', () => {
+	const l34 = combos.find(c => c.id === '34');
+	const d34 = boardData(l34, barterData, npcById);
+	const dock = { '[Level 5] Supreme Gold Candlestick': 6, '[Level 5] 102 Year Old Golden Herb': 4, "[Level 5] Statue's Tear": 3, '[Level 5] Golden Fish Scale': 3, '[Level 4] Old Chest with Gold Coins': 36, '[Level 4] Bronze Candlestick': 18 };
+	const chosen = chains(d34, {}, dock).filter(c => c.from === 'dock' && c.top === 7 && dock[c.item]);
+	const docks = wharves.filter(w => w.kind === 'wharf');
+	const run = chainRun({ chosen, dock, hold: { free: 20000, deal: 25000, max: 34000 }, parley: { bar: 1e7, perTrade: 10512 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes, docks, pace: 'full', orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7, pause: { isle: 30, call: 60 } }, bag: { free: 8000 } });
+	const parked = run.stops.findIndex(s => (s.toBag || []).length);
+	assert.ok(parked >= 0, 'something went into the bag on the way');
+	const item = run.stops[parked].toBag[0].item;
+	const back = run.stops.findIndex((s, i) => i > parked && (s.fromBag || []).some(l => l.item === item));
+	const uses = run.stops.findIndex((s, i) => i > parked && s.npcId && s.give === item);
+	assert.ok(back > parked, `${item} comes out of the bag again`);
+	if (uses >= 0) assert.ok(back < uses, `${item} is aboard before the island that takes it`);
+	assert.ok(run.stops.some(s => (s.toBag || s.fromBag) && !stashes.some(w => w.at === s.wharf.at)), 'the bag is used at a wharf with no storage too');
+});

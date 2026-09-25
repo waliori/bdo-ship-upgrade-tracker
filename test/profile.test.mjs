@@ -338,3 +338,10 @@ test('an island\'s four keep their count, and a count that is not a count is dro
 	assert.deepEqual(p.sevens[58974].seen, { '[Level 7] Golden Eagle Brooch': 3, "[Level 7] Calpheon Knights' Combat Manual": 1 });
 	assert.equal(p.sevens[58975].seen, undefined, 'an older save, with only the last one paid, reads as it was');
 });
+
+test('the bag as a second hold keeps whether it is on and the LT it takes, and nothing else', () => {
+	assert.deepEqual(readProfile({ bag: { on: true, lt: 8123.7 } }).bag, { on: true, lt: 8123 });
+	assert.deepEqual(readProfile({ bag: { on: 'yes', lt: -5, extra: 1 } }).bag, { on: false, lt: 0 });
+	assert.deepEqual(readProfile({ bag: { on: true, lt: 1e9 } }).bag, { on: true, lt: 99999 });
+	assert.equal('bag' in readProfile({ bag: 'full' }), false);
+});

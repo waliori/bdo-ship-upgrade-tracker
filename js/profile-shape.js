@@ -321,6 +321,13 @@ export function readProfile(raw) {
 	// The sailing orders: what a barter run is for. Cleaned by the
 	// module that owns the shape.
 	if (isProfile(raw.orders)) out.orders = readOrders(raw.orders);
+	// The sailor's own bag used as a second hold on a barter run: whether
+	// they sail that way, and the LT it takes -- up to 170% of the
+	// character's weight limit, less what they already carry.
+	if (isProfile(raw.bag)) {
+		const lt = Math.floor(Number(raw.bag.lt));
+		out.bag = { on: raw.bag.on === true, lt: Number.isFinite(lt) && lt > 0 ? Math.min(99999, lt) : 0 };
+	}
 	// The exchanges a barterer would not make: an island the sailor
 	// looked at and found showing nothing, with the barter count they
 	// had at the time. The game gates every exchange on its own count --

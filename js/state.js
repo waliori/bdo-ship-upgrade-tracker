@@ -726,6 +726,7 @@ const PROFILE_LABELS = {
 	stash: () => T('Changed where things are kept'),
 	homes: () => T('Changed where new things land'),
 	orders: () => T('Changed the sailing orders'),
+	bag: () => T('Changed how your bag is used'),
 	getOrders: () => T('Changed how the list is to be got'),
 	homemade: () => T('Changed what your workers make'),
 	matSeen: () => T('Noted what the material list shows'),
