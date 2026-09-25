@@ -58,6 +58,18 @@ async function dump(to) {
 	fs.writeFileSync(to, JSON.stringify(out, null, '\t') + '\n');
 	for (const table of TABLES) console.log(`  ${table.padEnd(10)} ${tables[table].length} rows`);
 	console.log(`\nWritten to ${path.resolve(to)}`);
+	// The feedback screenshots live on disk, not in a table: copied beside
+	// the file, into <file>-uploads/, so a backup is the whole of the inbox.
+	if (config.uploadDir && fs.existsSync(config.uploadDir)) {
+		const dir = `${to.replace(/\.json$/, '')}-uploads`;
+		fs.mkdirSync(dir, { recursive: true });
+		let n = 0;
+		for (const f of fs.readdirSync(config.uploadDir)) {
+			const from = path.join(config.uploadDir, f);
+			if (fs.statSync(from).isFile()) { fs.copyFileSync(from, path.join(dir, f)); n++; }
+		}
+		console.log(`  ${n} uploaded pictures to ${path.resolve(dir)}`);
+	}
 }
 
 // One statement per row, each an upsert on the table's key, in the order

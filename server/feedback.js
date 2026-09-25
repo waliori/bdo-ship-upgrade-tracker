@@ -87,6 +87,11 @@ export function requireAdmin(req, res, next) {
 /** Where one picture's bytes are. */
 const onDisk = file => path.resolve(config.uploadDir, `${file.id}.${EXTENSION[file.mime] || 'bin'}`);
 
+/** The files of pictures dropped from the table, gone from the disk. */
+export async function unlinkAll(files) {
+	for (const file of files || []) await unlink(file);
+}
+
 /** Unlink a picture, and do not care if it was already gone -- the row
  *  is the record, and a file the disk has lost is not worth an error. */
 async function unlink(file) {

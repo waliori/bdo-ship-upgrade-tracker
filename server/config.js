@@ -222,6 +222,14 @@ export const config = {
 	// table -- and never notices, since a link that old is a message
 	// nobody is reading any more.
 	maxLinksPerAccount: num('MAX_LINKS_PER_ACCOUNT', 2000),
+	// And how much they may weigh between them, the oldest going first.
+	maxLinkBytesPerAccount: num('MAX_LINK_BYTES_PER_ACCOUNT', 16 * 1024 * 1024),
+	// The header the proxy in front puts the player's own address in --
+	// `cf-connecting-ip` behind Cloudflare. Without it the limits kept
+	// per address counted the edge's addresses, one shared by many
+	// players. Only set it when the app cannot be reached but through
+	// that proxy: anyone reaching it directly could write the header.
+	clientIpHeader: read('CLIENT_IP_HEADER').toLowerCase(),
 
 	// How long a change waits before being written out. Long enough that
 	// typing "1", "12", "120" is one write rather than three; short enough

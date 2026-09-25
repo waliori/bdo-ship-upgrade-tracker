@@ -9,7 +9,9 @@ docs/**
 !docs/media/*.vtt
 !docs/media/small
 !docs/media/small/*
-tools
+tools/**
+# The backup tool, for the scheduled backup service.
+!tools/backup.mjs
 *.md
 !README.md
 .env

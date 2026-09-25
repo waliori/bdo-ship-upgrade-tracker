@@ -11,6 +11,7 @@
 
 import crypto from 'node:crypto';
 import { config } from './config.js';
+import { getUser } from './db.js';
 
 const SESSION_COOKIE = 'sail_session';
 const STATE_COOKIE = 'sail_oauth';
@@ -118,8 +119,20 @@ export function requireUser(req, res, next) {
 	const uid = sessionUser(req);
 	if (!uid) return res.status(401).json({ error: 'Not signed in.' });
 	req.userId = uid;
-	next();
+	// A cookie outlives the account it was signed for: an account
+	// deleted on one device still had a valid cookie on the next, and
+	// every write from it filed new rows under an id nobody owns. The
+	// row is asked after once a process, then remembered.
+	if (known.has(uid)) return next();
+	getUser(uid).then(user => {
+		if (!user) return res.status(401).json({ error: 'Not signed in.' });
+		known.add(uid);
+		next();
+	}, () => next());   // the database down is not the sailor's fault: let the route answer for it
 }
+const known = new Set();
+/** An account gone: its cookie opens nothing from now on. */
+export function forgetUser(uid) { known.delete(uid); }
 
 /* ------------------------------------------------------------------ *
  * OAuth hand-off

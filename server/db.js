@@ -423,9 +423,22 @@ export async function applyMigrations() {
 	)`);
 	const { rows } = await exec('SELECT MAX(version) AS v FROM schema_version');
 	const current = Number(rows[0] && rows[0].v) || 0;
+	// A step whose column went in and whose version row did not -- the
+	// answer lost to a timeout, the step run again -- would fail on
+	// "duplicate column" for ever after, and take every table with it.
+	// The column being there is the step having run.
+	const run = async (statement, tries) => {
+		try {
+			return await exec(statement, tries);
+		} catch (error) {
+			const sql = typeof statement === 'string' ? statement : statement.sql;
+			if (/^\s*ALTER TABLE\b[\s\S]*\bADD COLUMN\b/i.test(sql) && /duplicate column name/i.test(String(error && error.message))) return { rows: [] };
+			throw error;
+		}
+	};
 	for (const step of MIGRATIONS) {
 		if (step.version <= current) continue;
-		await step.up(exec);
+		await step.up(run);
 		await exec({
 			sql: 'INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (?, ?)',
 			args: [step.version, Date.now()]
@@ -683,13 +696,32 @@ export async function writeSave(userId, { rev, payload, updatedAt, device }) {
 	});
 }
 
-/** Forget an account entirely -- the save and its place on the boards go with it. */
+/**
+ * Forget an account entirely -- the save and its place on the boards go
+ * with it, and everything else filed under it: its reminders and push
+ * subscriptions, the barter boards it told the fleet, its links, and the
+ * pictures it uploaded and never sent. Each table by name: on Turso the
+ * foreign keys are not enforced, and a cascade that never ran left the
+ * reminders chiming to a deleted account's devices. Its feedback posts
+ * stay in the inbox, as a forum's do. Returns the pictures dropped, for
+ * their files to go too.
+ */
 export async function deleteAccount(userId) {
 	await migrate();
-	await exec({ sql: 'DELETE FROM community WHERE user_id = ?', args: [userId] });
-	await exec({ sql: 'DELETE FROM links WHERE user_id = ?', args: [userId] });
-	await exec({ sql: 'DELETE FROM saves WHERE user_id = ?', args: [userId] });
-	await exec({ sql: 'DELETE FROM users WHERE id = ?', args: [userId] });
+	const { rows: files } = await exec({ sql: 'SELECT id, mime FROM feedback_files WHERE user_id = ? AND feedback_id IS NULL', args: [userId] });
+	for (const sql of [
+		'DELETE FROM community WHERE user_id = ?',
+		'DELETE FROM links WHERE user_id = ?',
+		'DELETE FROM push_alerts WHERE user_id = ?',
+		'DELETE FROM push_subs WHERE user_id = ?',
+		'DELETE FROM barter_board_seen WHERE user_id = ?',
+		'DELETE FROM barter_board_seen WHERE board_id IN (SELECT id FROM barter_boards WHERE user_id = ?)',
+		'DELETE FROM barter_boards WHERE user_id = ?',
+		'DELETE FROM feedback_files WHERE user_id = ? AND feedback_id IS NULL',
+		'DELETE FROM saves WHERE user_id = ?',
+		'DELETE FROM users WHERE id = ?'
+	]) await exec({ sql, args: [userId] });
+	return files.map(f => ({ id: f.id, mime: f.mime }));
 }
 
 /* ------------------------------------------------------------------ *
@@ -1095,12 +1127,23 @@ export async function touchLink(id, at = Date.now()) {
 	await exec({ sql: 'UPDATE links SET opened = opened + 1, opened_at = ? WHERE id = ?', args: [at, id] });
 }
 
-/** Drop an account's oldest links past `keep` of them. */
-export async function trimLinks(userId, keep) {
+/** Drop an account's oldest links past `keep` of them, and past
+ *  `bytes` of payload between them: the count alone let one account
+ *  keep two thousand links at their largest, half a gigabyte. */
+export async function trimLinks(userId, keep, bytes = Infinity) {
 	await migrate();
 	await exec({
 		sql: `DELETE FROM links WHERE user_id = ? AND id NOT IN (
 			SELECT id FROM links WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT ?)`,
 		args: [userId, userId, keep]
 	});
+	if (!Number.isFinite(bytes)) return;
+	const { rows } = await exec({ sql: 'SELECT id, length(payload) AS n FROM links WHERE user_id = ? ORDER BY created_at DESC, id DESC', args: [userId] });
+	let total = 0;
+	const gone = [];
+	for (const r of rows) { total += Number(r.n) || 0; if (total > bytes) gone.push(r.id); }
+	for (let i = 0; i < gone.length; i += 100) {
+		const ids = gone.slice(i, i + 100);
+		await exec({ sql: `DELETE FROM links WHERE id IN (${ids.map(() => '?').join(',')})`, args: ids });
+	}
 }

@@ -81,7 +81,7 @@ export function linkRoutes() {
 		if (!id) return res.status(503).json({ error: 'Could not keep the link just now; try again.' });
 		// Not awaited: the oldest links going is tidiness, and the
 		// answer should not wait on it.
-		trimLinks(req.userId, config.maxLinksPerAccount).catch(() => { /* next time */ });
+		trimLinks(req.userId, config.maxLinksPerAccount, config.maxLinkBytesPerAccount).catch(() => { /* next time */ });
 		res.set('Cache-Control', 'no-store');
 		res.json({ id });
 	}));

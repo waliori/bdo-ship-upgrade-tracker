@@ -16,8 +16,32 @@
 // remembered, marked stale, rather than as an error: a price from an
 // hour ago beats no price.
 
+import fs from 'node:fs';
 import { fetch } from 'undici';
 import { perAddress } from './limit.js';
+import { items as vendorItems } from '../js/vendor_items.js';
+import { landGoods } from '../js/land_goods.js';
+
+/**
+ * The ids the page ever asks the Market about -- js/market.js's
+ * marketItems(), worked out here the same way: what the vendors list as
+ * bought at the Market, by the codex id in its icon's entry, and the
+ * land goods. Anything else is not the app asking, and is not relayed:
+ * four hundred made-up ids were four hundred upstream calls.
+ */
+export const KNOWN_IDS = (() => {
+	const out = new Set();
+	try {
+		const icons = JSON.parse(fs.readFileSync(new URL('../icon_mapping.json', import.meta.url), 'utf8'));
+		for (const [item, methods] of Object.entries(vendorItems)) {
+			if (!methods.Market) continue;
+			const m = icons[item] && /\/item\/(\d+)\//.exec(icons[item].url || '');
+			if (m) out.add(Number(m[1]));
+		}
+	} catch { /* no icon table: the land goods alone */ }
+	for (const id of Object.values(landGoods)) if (id > 0) out.add(Number(id));
+	return out;
+})();
 
 export const REGIONS = ['na', 'eu', 'sea', 'mena', 'kr', 'ru', 'jp', 'th', 'tw', 'sa', 'console_eu', 'console_na', 'console_asia'];
 // What a request that names no region is taken to mean. The page always
@@ -225,6 +249,9 @@ export async function pricesFor(region, ids, { fetchImpl = fetch, now = Date.now
 /** The route: GET /api/market?region=eu&ids=4064,5828 */
 export function marketRoutes(express, deps = {}) {
 	const router = express.Router();
+	const known = deps.known || KNOWN_IDS;
+	// Two pages asking the same region at once share one trip upstream.
+	const inflight = new Map();   // region|ids -> promise
 	// The page asks once a region per quarter hour and the relay answers
 	// from memory for the rest, so a browser behaving itself needs a
 	// handful of calls an hour. Each call may fan out to ten upstream
@@ -238,9 +265,15 @@ export function marketRoutes(express, deps = {}) {
 		const ids = [...new Set(String(req.query.ids || '')
 			.split(',')
 			.map(s => Number(s.trim()))
-			.filter(n => Number.isInteger(n) && n > 0))].slice(0, MAX_IDS);
+			.filter(n => Number.isInteger(n) && n > 0 && (!known.size || known.has(n))))].sort((a, b) => a - b).slice(0, MAX_IDS);
 		if (!ids.length) return res.status(400).json({ error: 'No item ids asked for.' });
-		const { prices, failed, fellBack } = await pricesFor(region, ids, deps);
+		const key = `${region}|${ids.join(',')}`;
+		let asking = inflight.get(key);
+		if (!asking) {
+			asking = pricesFor(region, ids, deps).finally(() => inflight.delete(key));
+			inflight.set(key, asking);
+		}
+		const { prices, failed, fellBack } = await asking;
 		// `fellBack` says these are base prices from the second source
 		// rather than last-sold from the first, so the page can be
 		// straight about it instead of quietly showing a different number.

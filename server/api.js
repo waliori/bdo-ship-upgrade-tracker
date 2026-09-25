@@ -9,12 +9,12 @@
 import express from 'express';
 import { config } from './config.js';
 import { getUser, deleteAccount } from './db.js';
-import { isAdmin } from './feedback.js';
+import { isAdmin, unlinkAll } from './feedback.js';
 import { communityRoutes, ensureOnBoards, leaveBoards } from './community.js';
 import { boardRoutes } from './boards.js';
 import { linkRoutes } from './links.js';
 import { readSave, writeSaveFor, forget } from './saves.js';
-import { sessionUser, requireUser, endSession } from './session.js';
+import { sessionUser, requireUser, endSession, forgetUser } from './session.js';
 import { perAccount } from './limit.js';
 import { wrap } from './wrap.js';
 
@@ -215,7 +215,8 @@ export function apiRoutes() {
 		await forget(req.userId);
 		meCache.delete(req.userId);
 		leaveBoards(req.userId);
-		await deleteAccount(req.userId);
+		forgetUser(req.userId);
+		unlinkAll(await deleteAccount(req.userId)).catch(() => { /* the sweep takes what is left */ });
 		endSession(res);
 		res.json({ ok: true });
 	}));

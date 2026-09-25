@@ -32,6 +32,8 @@ COPY icon.png icon-192.png icon-512.png og.png icon_mapping.json manifest.webman
 COPY css ./css
 COPY js ./js
 COPY server ./server
+# The backup tool, for the scheduled backup service in docker-compose.yml.
+COPY tools/backup.mjs ./tools/backup.mjs
 
 # Stamp the deploy into the service worker: the offline cache is named
 # for the build it holds, so activate can sweep every other deploy's.
@@ -46,7 +48,7 @@ RUN sed -i "s/__BUILD__/$(date -u +%Y%m%d%H%M%S)/" sw.js
 # SQLITE_CANTOPEN. docker-compose.yml holds a volume over this path, so
 # the file survives a rebuild -- a database that a `--build` deletes is
 # not a database.
-RUN mkdir -p /app/.data && chown tracker:nodejs /app/.data
+RUN mkdir -p /app/.data /app/backups && chown tracker:nodejs /app/.data /app/backups
 
 USER tracker
 
