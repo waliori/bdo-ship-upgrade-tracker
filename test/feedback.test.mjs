@@ -249,7 +249,7 @@ test('the list is public, and it carries nothing that was meant for the operator
 		cookie: sailor,
 		body: {
 			kind: 'bug', text: 'The hold is short by the parts', format: 'md',
-			page: 'crew', version: '1.3', contact: 'sailor#1234', username: 'Sailor'
+			page: 'crew', version: '1.3', contact: 'sailor#1234', username: 'The Admiral'
 		}
 	});
 	assert.equal(sent.status, 201);
@@ -261,7 +261,7 @@ test('the list is public, and it carries nothing that was meant for the operator
 	const entry = out.entries.find(e => e.id === id);
 	assert.ok(entry, 'anyone can read it');
 	assert.equal(entry.text, 'The hold is short by the parts');
-	assert.equal(entry.username, 'Sailor', 'and who wrote it');
+	assert.equal(entry.username, 'Sailor', 'and who wrote it: the account\'s own name, whatever the browser said');
 	assert.equal(entry.page, 'crew');
 	assert.equal(entry.contact, undefined, 'the contact is not public');
 	assert.equal(entry.userId, undefined, 'nor the account');

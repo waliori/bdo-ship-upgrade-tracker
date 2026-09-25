@@ -38,7 +38,7 @@ import path from 'node:path';
 import { config, uploadsEnabled } from './config.js';
 import {
 	insertFeedback, listFeedback, setFeedbackStatus, deleteFeedback, feedbackStanding, feedbackShown,
-	insertFile, getFile, pendingFiles, attachFiles, deleteFile, staleFiles
+	insertFile, getFile, pendingFiles, attachFiles, deleteFile, staleFiles, getUser
 } from './db.js';
 import { sniff, EXTENSION } from './images.js';
 import { sessionUser, requireUser } from './session.js';
@@ -354,10 +354,11 @@ export function feedbackRoutes() {
 		}
 
 		entry.userId = req.userId;
-		// The name rides in from the client's own /me answer: a user row
-		// lookup here would be one more query on the way in, and the id
-		// is the part that is verified.
-		entry.username = typeof req.body.username === 'string' ? req.body.username.slice(0, 40) : null;
+		// The name is the account's own, from its row: the inbox shows it
+		// to everyone, and a name the browser sent was any name at all --
+		// the admin's included.
+		const user = await getUser(req.userId);
+		entry.username = user && user.username ? String(user.username).slice(0, 40) : null;
 		entry.agent = typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'].slice(0, 200) : null;
 		const id = await insertFeedback(entry);
 		// Only this account's own unsent pictures can be attached, so an
