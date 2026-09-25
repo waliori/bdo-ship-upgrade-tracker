@@ -125,6 +125,11 @@ let engine = null;
  * they are asked for. Changing language lets the old one go -- a
  * player reads a batch in one language, not two.
  */
+// Who hears the engine while a read is under way: the engine is made
+// once and kept, so the progress of a later read -- "recognizing text"
+// -- would otherwise go to whoever made it.
+let listen = null;
+
 async function open(tess, onProgress) {
 	if (engine && engine.tess === tess) return engine.ready;
 	if (engine) await close();
@@ -140,7 +145,7 @@ async function open(tess, onProgress) {
 			gzip: true,
 			legacyCore: false,
 			legacyLang: false,
-			logger: m => say({ stage: 'engine', text: m.status, at: m.progress })
+			logger: m => (listen || say)({ stage: 'engine', text: m.status, at: m.progress })
 		});
 		return { Tesseract, worker };
 	})().catch(err => { engine = null; throw err; });
@@ -440,17 +445,20 @@ const LIST_WIDE = 2200;
  * this one reads the whole picture and leaves the sorting to
  * barter-shot.js.
  */
-export async function readWords(file, { lang = DEFAULT_LANG, wide = LIST_WIDE } = {}) {
+export async function readWords(file, { lang = DEFAULT_LANG, wide = LIST_WIDE, onProgress = null } = {}) {
 	const locale = localeFor(lang);
-	const { worker, Tesseract } = await open(locale.tess, () => {});
-	const bitmap = await createImageBitmap(file);
+	listen = onProgress;
+	let bitmap = null;
 	try {
+		const { worker, Tesseract } = await open(locale.tess, onProgress || (() => {}));
+		bitmap = await createImageBitmap(file);
 		if (bitmap.width * bitmap.height > LIMITS.pixels) return { words: [], width: 0, height: 0, why: T('far too large to be a screenshot') };
 		const scale = Math.max(1, Math.min(3, wide / bitmap.width));
 		const words = await scan(worker, paint(bitmap, { scale }), Tesseract.PSM.SPARSE_TEXT);
 		return { words, width: bitmap.width * scale, height: bitmap.height * scale, scale };
 	} finally {
-		bitmap.close();
+		listen = null;
+		if (bitmap) bitmap.close();
 	}
 }
 

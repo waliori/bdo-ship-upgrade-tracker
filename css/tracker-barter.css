@@ -1022,6 +1022,9 @@ button.rung-fate { cursor: pointer; }
 /* The Inventory window's two bars, typed or read, for the bag as a second hold. */
 .bag-bars { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 .bag-bars .run-pause .purse-inline { width: 68px; }
+.bag-read { display: grid; gap: 6px; margin: 6px 0 10px; }
+.bag-read-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; border-radius: var(--r-btn); background: var(--panel-inset); font-size: 13px; color: var(--ink-mid); }
+.bag-read-row b { color: var(--ink); font-variant-numeric: tabular-nums; }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   .order-row { grid-template-columns: 1fr; gap: 6px; }
 }

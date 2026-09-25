@@ -41,7 +41,7 @@ import { parleyLedger, VOUCHER_COOLDOWN_MIN } from './parley-ledger.js';
 const VOUCHER = "Crow's Trade Voucher";
 import { exchanges, goodsHeld, landHeld, weightOf, sellOf, aboardStock as aboardOf } from './barter-plan.js';
 import { openBarterImport, pickShots, shotGuideHTML } from './barter-import.js';
-import { imagesOn, readWords, shotLang } from './shot-reader.js';
+import { imagesOn, readWords, shotLang, triage } from './shot-reader.js';
 import { openLayoutBook } from './layouts-view.js';
 import { driftOf } from './layout-book.js';
 import { boardsFor, sawItToo, tellFleet, fleetHistory, shared as boardsShared } from './sea-boards.js';
@@ -2159,24 +2159,88 @@ function bagRowHTML() {
 /** A weight as the Inventory window prints it, to the tenth. */
 const LT1 = n => (Math.round(n * 10) / 10).toLocaleString(undefined, { maximumFractionDigits: 1 });
 
-/** The Inventory window's two bars, read off a screenshot of it. */
-async function readBagShot(files) {
-	const file = files && files[0];
-	if (!file) return;
-	toast(T('Reading the Inventory window…'));
-	try {
-		const { words } = await readWords(file, { lang: shotLang() });
-		const f = bagFigures(words);
-		const got = Object.fromEntries(Object.entries(f).filter(([, v]) => v !== null));
-		if (!Object.keys(got).length) { toast(T('No weight or slots found: the foot of the Inventory window, with its two bars, is what is read')); return; }
+/**
+ * The Inventory window's two bars, read off a screenshot of it, in a
+ * dialog like the barter window's: the reader's progress while the
+ * engine is fetched and the picture read -- a first read takes a few
+ * seconds, and a page that says nothing meanwhile looks broken -- then
+ * the figures found, to be checked before they are written in.
+ */
+function readBagShot(files) {
+	let reading = null;   // the read under way; a Stop or a close lets it go
+	let found = null;
+	const host = () => document.getElementById('dialog');
+	const draw = body => {
+		const inner = host().hidden ? null : host().querySelector('[data-bag-body]');
+		if (inner) inner.innerHTML = body;
+		else {
+			const box = openDialog(`<h2>${T('Read the Inventory window')}</h2><div data-bag-body>${body}</div>`, { onDismiss: () => { reading = null; } }).querySelector('.dialog-box');
+			if (box) box.classList.add('shot-box');
+		}
+		wire();
+	};
+	const readingView = (at, text) => `<p class="dialog-note">${esc(text)}</p>
+		<div class="shot-bar"><i style="width:${Math.round(at * 100)}%"></i></div>
+		<div class="dialog-actions"><button class="act quiet" data-stop>${T('Stop')}</button></div>`;
+	const line = (k, v) => `<div class="bag-read-row"><span>${k}</span><b>${v === null ? `<em class="faint">${T('not found')}</em>` : v}</b></div>`;
+	const reviewView = () => {
+		const f = found;
+		const any = f && Object.values(f).some(v => v !== null);
+		const r = bagRoom({ ...bagSet(), ...Object.fromEntries(Object.entries(f || {}).filter(([, v]) => v !== null)) });
+		return `${any ? `<div class="bag-read">
+			${line(T('Weight'), f.max === null ? null : `${LT1(f.now)} / ${F(f.max)} LT`)}
+			${line(T('Inventory Slot'), f.slots === null ? null : `${F(f.used)} / ${F(f.slots)}`)}
+		</div>
+		${r.lt !== null ? `<p class="dialog-note">${r.slots === null ? T('Your bag takes {lt} LT on a run.', { lt: `<b>${F(r.lt)}</b>` }) : T('Your bag takes {lt} LT in {n} slots on a run.', { lt: `<b>${F(r.lt)}</b>`, n: `<b>${F(r.slots)}</b>` })}${f.max === null || f.slots === null ? ` ${T('What was not found keeps the figure typed before.')}` : ''}</p>` : ''}`
+		: `<p class="dialog-note">${T('No weight or slots found: the foot of the Inventory window, with its two bars, is what is read')}</p>`}
+		<div class="dialog-actions">
+			<button class="act quiet" data-again>${T('Read another')}</button>
+			<span class="panel-spacer"></span>
+			<button class="act quiet" data-close>${T('Cancel')}</button>
+			<button class="act" data-use${any ? '' : ' disabled'}>${T('Use these')}</button>
+		</div>`;
+	};
+	const failView = why => `<p class="dialog-note">${esc(why)}</p>
+		<div class="dialog-actions"><button class="act quiet" data-again>${T('Read another')}</button><span class="panel-spacer"></span><button class="act quiet" data-close>${T('Close')}</button></div>`;
+	const use = () => {
+		const got = Object.fromEntries(Object.entries(found || {}).filter(([, v]) => v !== null));
+		if (!Object.keys(got).length) return;
+		closeDialog();
 		store.setProfile('bag', { ...bagSet(), on: true, ...got }, T('Read your inventory’s weight and slots'));
-		toast(f.max !== null && f.slots !== null
-			? T('Read: {now} / {max} LT, {used} / {slots} slots', { now: LT1(f.now), max: F(f.max), used: F(f.used), slots: F(f.slots) })
-			: f.max !== null ? T('Read the weight, {now} / {max} LT; the slots were not found', { now: LT1(f.now), max: F(f.max) })
-				: T('Read the slots, {used} / {slots}; the weight was not found', { used: F(f.used), slots: F(f.slots) }));
-	} catch (err) {
-		toast(T('The screenshot could not be read'));
+		const r = bagRoom(bagSet());
+		if (r.lt !== null) toast(r.slots === null ? T('Your bag takes {lt} LT on a run.', { lt: F(r.lt) }) : T('Your bag takes {lt} LT in {n} slots on a run.', { lt: F(r.lt), n: F(r.slots) }));
+	};
+	function wire() {
+		const box = host();
+		const on = (sel, fn) => box.querySelectorAll(sel).forEach(el => el.addEventListener('click', fn));
+		on('[data-stop]', () => { reading = null; closeDialog(); });
+		on('[data-close]', () => closeDialog());
+		on('[data-again]', () => pickShots(run));
+		on('[data-use]', use);
 	}
+	async function run(list) {
+		const { take, skipped } = await triage([...(list || [])].slice(0, 1));
+		if (!take.length) { draw(failView(skipped.length ? `${skipped[0].file.name}: ${skipped[0].why}` : T('The screenshot could not be read'))); return; }
+		const me = reading = {};
+		draw(readingView(0, T('Fetching the reader…')));
+		// The engine's own steps: fetching and starting it, then reading.
+		const say = ({ text = '', at = 0 }) => {
+			if (reading !== me) return;
+			const read = /recogni/i.test(text);
+			const bar = host().querySelector('.shot-bar i'), note = host().querySelector('.dialog-note');
+			if (bar) bar.style.width = `${Math.round((read ? 0.35 + 0.65 * (at || 0) : 0.35 * (at || 0)) * 100)}%`;
+			if (note) note.textContent = read ? T('Reading the two bars — {name}', { name: take[0].name }) : T('Fetching the reader…');
+		};
+		try {
+			const { words } = await readWords(take[0], { lang: shotLang(), onProgress: say });
+			if (reading !== me) return;
+			found = bagFigures(words);
+			draw(reviewView());
+		} catch (err) {
+			if (reading === me) draw(failView(T('The screenshot could not be read')));
+		}
+	}
+	run(files);
 }
 
 function orderRow(act, label, value, options, title = '') {
