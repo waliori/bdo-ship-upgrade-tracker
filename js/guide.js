@@ -40,7 +40,7 @@ const entries = () => [
 		img: 'guide/voucher.webp',
 		title: T('Crow’s Trade Voucher'),
 		where: T('a Special Item, processed from an Item Collection Increase Scroll'),
-		text: T('Using one recovers 250,000 Parley — a quarter of the bar — on its own two-hour cooldown, and refuses a full bar. The “vouchers” count in the bar above the tabs is how many you keep; it raises the trades-a-refill figure.')
+		text: T('Using one recovers 250,000 Parley — a quarter of the bar — on its own two-hour cooldown, and refuses a full bar. The vouchers you carry, typed under Before you sail on the Barter tab, raise the trades-a-refill figure.')
 	},
 	{
 		id: 'draw',

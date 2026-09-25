@@ -1,10 +1,11 @@
 // The sailor's own numbers, on every tab.
 //
-// Nine things about the player decide what half the app says: how many
-// barters they have made, what barter level they hold, the Parley in
-// the bar, the vouchers in the bag, whether a Value Pack is up, how
-// many draws that buys a day, their Sailing Mastery, the Bos'n Jacks
-// they have out, and the region they play. The barter count alone decides which islands exist for
+// The things about the player that decide what half the app says: how
+// many barters they have made, what barter level they hold, whether a
+// Value Pack is up, how many draws that buys a day, whether a Corsair
+// is at the wheel, their Sailing Mastery and sailing log, the Bos'n
+// Jacks they have out, and the region they play. (The Parley and the
+// vouchers are the Barter tab's, under Before you sail.) The barter count alone decides which islands exist for
 // them, which chains are sailable, and which materials can be got at
 // all; the region is what every Market price in the app is quoted in.
 //
@@ -90,7 +91,7 @@ function summaryHTML(p) {
 	// number the sea is planned from asks for itself until it is given.
 	const blank = !p.barterCount;
 	return `<button class="pouch-item sail summary${blank ? ' asking' : ''}" data-act="sail-bar" aria-expanded="false"
-		title="${T('Your barter count, level, Parley, vouchers, Value Pack, Sailing Mastery and region — everything the sea is planned and priced from. Press to set them.')}">
+		title="${T('Your barter count, level, Value Pack, Sailing Mastery and region — everything the sea is planned and priced from. Press to set them.')}">
 		<span class="pouch-glyph" aria-hidden="true">⇄</span>
 		<span class="pouch-body">
 			<span class="pouch-k">${T('The sailor')}</span>

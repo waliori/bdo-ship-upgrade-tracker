@@ -2,7 +2,7 @@
 // what stands between you and done, with the one next step called out.
 
 import { esc, F } from './fmt.js';
-import { T, gameName } from './i18n.js';
+import { T, gameName, nameHas } from './i18n.js';
 import { todayStrip } from './today.js';
 import * as store from './state.js';
 import { img, codexName, amountInput, sourceOf } from './ui-bits.js';
@@ -60,7 +60,7 @@ export function renderPlan() {
 
 	const q = query.toLowerCase();
 	const entries = Object.entries(rows)
-		.filter(([item]) => !q || item.toLowerCase().includes(q))
+		.filter(([item]) => nameHas(item, q))
 		.map(([item, r]) => ({ item, r, covered: r.short === 0 && r.craft === 0 }));
 
 	const groupsDef = [

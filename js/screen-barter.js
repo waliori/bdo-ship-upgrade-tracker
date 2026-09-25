@@ -54,7 +54,7 @@ import { chains, chainRun, tailOf } from './barter-chains.js';
 import { shortTrades, margins, cutOf } from './barter-short.js';
 import { materialRun } from './barter-material.js';
 import { seaDist, routeLength } from './barter-route.js';
-import { bagFigures, bagRoom, figure } from './bag-shot.js';
+import { bagFigures, bagRoom, figure, BAG_OVER } from './bag-shot.js';
 import { wharves } from './wharves.js';
 import { tradeGoodNames } from './trade_goods.js';
 import { landGoods } from './land_goods.js';
@@ -2176,7 +2176,7 @@ function bagRowHTML() {
 	</div>` : '';
 	const sub = !b.on ? T('Your inventory weighs nothing on the ship: sailors carry a later chain’s goods in it, moved at any wharf.')
 		: r.lt === null ? T('The two bars at the foot of the Inventory window, typed in or read off a screenshot of it: the app works out what the bag takes.')
-			: `<span class="bag-free">${r.slots === null ? T('{lt} LT free for the run', { lt: `<b>${F(r.lt)}</b>` }) : T('{lt} LT and {n} slots free for the run', { lt: `<b>${F(r.lt)}</b>`, n: `<b>${F(r.slots)}</b>` })}</span><span class="bag-why">${T('It carries up to {most} LT (170% of your {max} LT limit) and already holds {now} LT.', { most: F(Math.floor(b.max * 1.7)), max: F(b.max), now: LT1(b.now) })} ${T('A later chain’s goods ride in it and go in and out at any wharf’s Load Cargo; sales stay at a wharf with a storage. The run without it is kept when it pays better an hour.')}</span>`;
+			: `<span class="bag-free">${r.slots === null ? T('{lt} LT free for the run', { lt: `<b>${F(r.lt)}</b>` }) : T('{lt} LT and {n} slots free for the run', { lt: `<b>${F(r.lt)}</b>`, n: `<b>${F(r.slots)}</b>` })}</span><span class="bag-why">${T('It carries up to {most} LT (170% of your {max} LT limit) and already holds {now} LT.', { most: F(Math.floor(b.max * BAG_OVER)), max: F(b.max), now: LT1(b.now) })} ${T('A later chain’s goods ride in it and go in and out at any wharf’s Load Cargo; sales stay at a wharf with a storage. The run without it is kept when it pays better an hour.')}</span>`;
 	return `<div class="order-row" title="${T('Your own inventory, used as a second hold: goods go in and out of it at a wharf only')}"><span class="order-k">${T('your bag')}</span><div class="order-v">${chips}${bars}<span class="run-pick-sub">${sub}</span></div></div>`;
 }
 

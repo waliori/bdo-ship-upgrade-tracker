@@ -71,11 +71,17 @@ export function bagFigures(words) {
 	return out;
 }
 
+/** How far over its weight limit a character can still carry and barter. */
+export const BAG_OVER = 1.7;
+
 /** What the bag takes on a run: 170% of the limit less what it holds,
  *  and the slots still empty; null for what is not known. */
 export function bagRoom({ now, max, used, slots } = {}) {
+	// A figure not read is null, and null >= 0 is true: counted as nought,
+	// an unread weight made the whole 170% free.
+	const known = v => typeof v === 'number' && Number.isFinite(v) && v >= 0;
 	return {
-		lt: max > 0 && now >= 0 ? Math.max(0, Math.floor(max * 1.7 - now)) : null,
-		slots: slots > 0 && used >= 0 ? Math.max(0, slots - used) : null
+		lt: known(max) && max > 0 && known(now) ? Math.max(0, Math.floor(max * BAG_OVER - now)) : null,
+		slots: known(slots) && slots > 0 && known(used) ? Math.max(0, slots - used) : null
 	};
 }

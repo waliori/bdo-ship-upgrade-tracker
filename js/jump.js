@@ -29,8 +29,14 @@ export function matchItems(q, names, limit = 12) {
 	const s = String(q || '').trim().toLowerCase();
 	if (!s) return [];
 	const words = s.split(/\s+/).filter(Boolean);
+	// Ranked by the key or by the name shown, whichever answers better.
 	const rank = name => {
-		const n = name.toLowerCase();
+		const shown = gameName(name);
+		const a = rankOf(name.toLowerCase());
+		const b = shown !== name ? rankOf(String(shown).toLowerCase()) : -1;
+		return a < 0 ? b : b < 0 ? a : Math.min(a, b);
+	};
+	const rankOf = n => {
 		if (!words.every(w => n.includes(w))) return -1;
 		if (n.startsWith(s)) return 0;
 		if (n.includes(' ' + s) || n.includes('[' + s) || n.includes('+' + s)) return 1;

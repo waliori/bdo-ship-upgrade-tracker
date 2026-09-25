@@ -258,8 +258,18 @@ export async function gameNamesFor(readerTag) {
 	return pack('names', lang.id);
 }
 
-/** Whether a name has a translation at all -- for search, which offers both. */
-export const hasGameName = en => Boolean(en && (names[String(en)] || OFFICIAL_EN[String(en)]));
+/**
+ * Whether a name answers a search `q` (lower case): by its key, or by
+ * the name the screen shows for it -- in another language, or the
+ * English client's own ("Epheria Carrack: Advance" for its old key).
+ */
+export function nameHas(key, q) {
+	if (!q) return true;
+	const k = String(key || '');
+	if (k.toLowerCase().includes(q)) return true;
+	const shown = gameName(k);
+	return shown !== k && String(shown).toLowerCase().includes(q);
+}
 
 /* ------------------------------------------------------------------ *
  * Choosing one

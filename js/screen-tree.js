@@ -5,7 +5,7 @@
 // shell's event handling needs to steer it.
 
 import { esc, F } from './fmt.js';
-import { T, TT, said, gameName } from './i18n.js';
+import { T, TT, said, gameName, nameHas } from './i18n.js';
 import * as store from './state.js';
 import { openDialog } from './dialogs.js';
 import { img, codexName, amountInput } from './ui-bits.js';
@@ -143,7 +143,7 @@ export function renderTree() {
 	const q = query.trim().toLowerCase();
 	let walked = walkTree(current.tree, [], 0, '', [], !!q);
 	if (q) {
-		const hits = walked.filter(r => r.node.item.toLowerCase().includes(q)).map(r => r.id);
+		const hits = walked.filter(r => nameHas(r.node.item, q)).map(r => r.id);
 		walked = walked.filter(r => hits.some(h => h === r.id || h.startsWith(r.id + '/') || r.id.startsWith(h + '/')));
 	}
 	const rows = walked.map(row => {

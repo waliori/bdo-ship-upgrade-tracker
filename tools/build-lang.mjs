@@ -133,6 +133,19 @@ for (const file of serverFiles()) {
 	}
 }
 
+// The page's own shell: what index.html marks for i18n.js to translate
+// in place -- `data-t` on an element's text, `data-t-title` and
+// `data-t-aria` on its two attributes. It has no T() to find, and was
+// left English in every pack.
+{
+	const file = path.join(ROOT, 'index.html');
+	const src = fs.readFileSync(file, 'utf8');
+	const decode = t => t.replace(/&middot;/g, '·').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)));
+	const lineOf = i => `index.html:${src.slice(0, i).split('\n').length}`;
+	for (const m of src.matchAll(/data-t-(?:title|aria)="([^"]+)"/g)) remember(decode(m[1]), lineOf(m.index));
+	for (const m of src.matchAll(/data-t>([^<]+)</g)) { const text = decode(m[1]).trim(); if (text) remember(text, lineOf(m.index)); }
+}
+
 const catalogue = Object.fromEntries([...KEYS.keys()].sort().map(k => [k, k]));
 const PLACEHOLDER = /\{(\w+)\}/g;
 const holes = s => new Set(String(s).match(PLACEHOLDER) || []);

@@ -2,7 +2,7 @@
 // enhancement attempt.
 
 import { esc, F } from './fmt.js';
-import { T, gameName } from './i18n.js';
+import { T, gameName, nameHas } from './i18n.js';
 import * as store from './state.js';
 import { img, codexName, amountInput, whereFrom } from './ui-bits.js';
 import { recipes, snapshot, query, readyCrafts, craftStock } from './ui-state.js';
@@ -160,7 +160,7 @@ export function toggleBlocked() { showBlocked = !showBlocked; }
 
 export function renderWorkshop() {
 	const q = query.toLowerCase();
-	const ready = readyCrafts().filter(c => !q || c.item.toLowerCase().includes(q));
+	const ready = readyCrafts().filter(c => nameHas(c.item, q));
 
 	const cards = ready.map(c => {
 		const recipe = recipes[c.item] || {};
@@ -196,7 +196,7 @@ export function renderWorkshop() {
 		</div>`;
 	}).join('');
 
-	const pending = pendingEnhancements().filter(e => !q || e.base.toLowerCase().includes(q));
+	const pending = pendingEnhancements().filter(e => nameHas(e.base, q));
 	// What can be tried comes first; what cannot -- the base part not
 	// held, the stones short -- is folded, since it is the plan's list,
 	// not the bench's.

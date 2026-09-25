@@ -41,12 +41,13 @@ const PINNED_CACHE = 'tiles-pinned';
 // reach, and the data files they fetch. Taken with one addAll so the
 // offline copy is atomic -- all of a deploy or none of it.
 //
-// The language packs are deliberately not here. There are sixteen of
-// them in two halves, and precaching thirty-two files to serve the one
-// a player reads would pay for fifteen languages nobody on this browser
+// The language packs are deliberately not here. There are twelve of
+// them in two halves, and precaching twenty-four files to serve the one
+// a player reads would pay for eleven languages nobody on this browser
 // will ever open. They are js/ paths like any other, so the first time
 // a language is chosen online its pack is filed away with the rest of
-// the code -- and works offline from then on.
+// the code -- and a new deploy fetches again the packs the old one had
+// (see install), so it keeps working offline from then on.
 const SHELL = [
 	'/',
 	'/index.html',
@@ -222,6 +223,20 @@ self.addEventListener('install', evt => {
 	evt.waitUntil((async () => {
 		const cache = await caches.open(APP_CACHE);
 		await cache.addAll(SHELL);
+		// The language packs this browser had, fetched again for this
+		// deploy: the old cache goes at activate, and a player who then
+		// opened the app with no signal was shown it in English.
+		const packs = new Set();
+		for (const key of await caches.keys()) {
+			if (key === APP_CACHE || !key.startsWith('sail-')) continue;
+			for (const req of await (await caches.open(key)).keys()) {
+				const path = new URL(req.url).pathname;
+				if (path.startsWith('/js/lang/')) packs.add(path);
+			}
+		}
+		await Promise.all([...packs].map(async path => {
+			try { const res = await fetch(path, { cache: 'no-cache' }); if (keepable(res)) await cache.put(path, res); } catch { /* fetched again when next asked for */ }
+		}));
 	})());
 });
 
@@ -260,6 +275,7 @@ self.addEventListener('fetch', evt => {
 // rejects, and an opaque or errored response is not a copy of anything.
 const keepable = res => res.status === 200;
 
+let assetPuts = 0;
 async function cacheFirst(req) {
 	// An area kept offline answers first: those tiles were asked for by
 	// name, and they are the ones that must still draw with no signal.
@@ -275,9 +291,12 @@ async function cacheFirst(req) {
 			// at the closest zoom is fifty of them, at 9 KB each. Room
 			// for forty such views (~20 MB), shedding the oldest tenth
 			// rather than growing forever.
-			const keys = await cache.keys();
-			if (keys.length > 2000) {
-				await Promise.all(keys.slice(0, 200).map(key => cache.delete(key)));
+			// Counted every fiftieth put, not every miss: listing two
+			// thousand entries each time a tile came in cost a phone dearly
+			// while panning.
+			if (assetPuts++ % 50 === 0) {
+				const keys = await cache.keys();
+				if (keys.length > 2000) await Promise.all(keys.slice(0, 200).map(key => cache.delete(key)));
 			}
 			await cache.put(req, res.clone());
 		}

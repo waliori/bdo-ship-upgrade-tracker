@@ -5,7 +5,7 @@ import { routes, routeInfo } from './recipes.js';
 import { shipGroups } from './ships.js';
 import { statsLine, shipStats } from './ship_stats.js';
 import { esc, F } from './fmt.js';
-import { T, said, gameName } from './i18n.js';
+import { T, said, gameName, nameHas } from './i18n.js';
 import * as store from './state.js';
 import { openDialog, closeDialog, toast } from './dialogs.js';
 import { img, codexName, amountInput, costCtx, costText, buildableItems } from './ui-bits.js';
@@ -187,7 +187,7 @@ export function openBuildPicker() {
 
 	const paint = term => {
 		const t = (term || '').trim().toLowerCase();
-		const matches = buildableItems().filter(n => !t || n.toLowerCase().includes(t));
+		const matches = buildableItems().filter(n => nameHas(n, t));
 		const over = matches.length - 200;
 		listEl.innerHTML = matches.length
 			? matches.slice(0, 200).map(n => {

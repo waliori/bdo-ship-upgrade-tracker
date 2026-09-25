@@ -3,7 +3,7 @@
 // reserved it and every priced way of getting more.
 
 import { esc, F } from './fmt.js';
-import { T, said, gameName, nameAs } from './i18n.js';
+import { T, said, gameName, nameAs, nameHas } from './i18n.js';
 import * as store from './state.js';
 import {
 	img, codexName, amountInput, costCtx, costText, makeupHTML, barterHTML,
@@ -84,7 +84,7 @@ export function renderInventory() {
 	// found and recorded.
 	const ladderLit = invKind === 'land' || /^lv[1-7]$/.test(invKind);
 	const list = allItems().filter(item => {
-		if (searching && !item.toLowerCase().includes(q)) return false;
+		if (searching && !nameHas(item, q)) return false;
 		if (!inKind(item, invKind)) return false;
 		const r = rows[item];
 		if (invFilter === 'owned') return (stock[item] || 0) > 0;

@@ -20,7 +20,7 @@ import {
 	openTable
 } from './barter.js';
 import { esc, F, FC } from './fmt.js';
-import { T, TT, said, gameName } from './i18n.js';
+import { T, TT, said, gameName, nameHas } from './i18n.js';
 import * as store from './state.js';
 import { img, codexName, copyName, costCtx, costText, groundsFor } from './ui-bits.js';
 import {
@@ -441,7 +441,7 @@ function questStep(way, n, q) {
 	const wanted = new Set(Object.keys(snapshot.missing || {}));
 	const chip = (item, qty, cls = '') => `<span class="reward${wanted.has(item) ? ' wanted' : ''}${cls}" data-peek="${esc(item)}">${img(item, 'reward-icon')}<b>${F(qty)}×</b> ${esc(gameName(item))}</span>`;
 
-	const shown = way.quests.filter(x => !q || x.name.toLowerCase().includes(q) || x.pays.some(p => p.item.toLowerCase().includes(q)));
+	const shown = way.quests.filter(x => nameHas(x.name, q) || x.pays.some(p => nameHas(p.item, q)));
 	if (!shown.length) return '';
 
 	const row = x => {
@@ -546,7 +546,7 @@ function renderWay(q) {
 		return `<div class="panel"><p class="empty">${!way ? T('Nothing to plan yet.') : T('Nothing outstanding — every build has what it needs.')}</p></div>`;
 	}
 
-	const legs = q ? way.legs.filter(l => l.item.toLowerCase().includes(q)) : way.legs;
+	const legs = q ? way.legs.filter(l => nameHas(l.item, q)) : way.legs;
 	const groups = groupLegs(legs);
 	const questsHTML = way.orders.quests ? questStep(way, 1, q) : '';
 	const things = legs.filter(l => l.kind !== 'short').length;
@@ -661,7 +661,7 @@ function visibleGroups(q) {
 		barter: barterData ? barterLookup : null
 	}).map(g => {
 		if (!q) return g;
-		const items = g.items.filter(e => e.item.toLowerCase().includes(q));
+		const items = g.items.filter(e => nameHas(e.item, q));
 		return {
 			...g,
 			items,

@@ -465,8 +465,8 @@ const faceShip = d => (d.fleet.best ? {
 const faceItems = names => (names.length ? { kind: 'items', items: names } : null);
 export const BOARDS = [
 	{ id: 'mastery', section: 'sea', title: TT('Sailing mastery'), icon: '⚓', unit: '', min: 1,
-		desc: TT('mastery points, as set on the Ship tab'), how: TT('Set your sailing mastery on the Ship tab.'),
-		note: TT('The number itself, as you set it on the Ship tab. Nothing is worked out from it.'),
+		desc: TT('mastery points, as set in The sailor above the tabs'), how: TT('Set your sailing mastery in The sailor, above the tabs.'),
+		note: TT('The number itself, as you set it in The sailor. Nothing is worked out from it.'),
 		value: d => d.mastery, detail: d => (d.level ? d.level : ''), face: () => null },
 	{ id: 'ship', section: 'sea', title: TT('Best ship'), icon: '⛵', unit: TT('pts'), min: 1,
 		desc: TT('the hull, which parts are on it, and how far they are taken'), how: TT('Fit a ship on the Ship tab.'),
@@ -499,8 +499,8 @@ export const BOARDS = [
 		value: d => d.crew.n, detail: d => (d.crew.avgLv ? T('average Lv {n}', { n: d.crew.avgLv }) : ''),
 		face: d => (Object.keys(d.crew.byType).length ? { kind: 'sailors', types: Object.keys(d.crew.byType).slice(0, 4) } : null) },
 	{ id: 'barters', section: 'runs', title: TT('Most barters'), icon: '⇄', unit: TT('barters'), min: 1,
-		desc: TT('the barter count, as set on the Barter tab'), how: TT('Set your barter count on the Barter tab.'),
-		note: TT('The number itself, as you set it on the Barter tab.'),
+		desc: TT('the barter count, as set in The sailor above the tabs'), how: TT('Set your barter count in The sailor, above the tabs.'),
+		note: TT('The number itself, as you set it in The sailor.'),
 		value: d => d.barters, detail: d => (d.level ? d.level : ''), face: () => null },
 	{ id: 'silver', section: 'runs', title: TT('Most silver from runs'), icon: '💰', unit: TT('silver'), min: 1,
 		desc: TT('silver over every run logged'), how: TT('Log a run on the Barter tab.'),
