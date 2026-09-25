@@ -5,6 +5,43 @@ someone who has been away. The same notes are in the app itself, under
 **Menu → What's new** — this file is generated from them by
 `node tools/build-changelog.mjs`, so the two cannot drift apart.
 
+## 1.5 — Plan, load, sail, results
+
+*2026-09-25*
+
+The Barter tab was one long page with a sheet over it, and the run was sailed somewhere else. It is **four steps** now, one on the page at a time: **Plan** the day, **Load** what goes aboard — a tick loads the hold for real — **Sail** it from a cockpit that waits at every island for you, and see the **Results** before they are recorded. Under it, the route is **searched by water** and cut into trips when the hold cannot carry everything at once.
+
+### Four steps, one at a time
+
+**Plan** starts with *Before you sail* — the Parley as the window reads it, the vouchers you carry, your home port — then a **ladder** that says where the day ends and what each level becomes, five **ways of sailing** each with the best run the search finds that way, and the chains on offer.
+
+- **Load** is the packing list: buy at the Market, take from storage, put in your bag. A tick buys the goods or moves them out of the storage, and the route below is laid from what is ticked.
+- **Sail** is a cockpit, large enough to read across the room. **Traded** writes the stop into the hold on every tab at once, and the clock waits at each island until you press it.
+- **Results** shows what the run came to before **Record the trip** adds the Parley, Total Barters and the quests — one change, one Undo.
+
+### Routes by water, and trips
+
+Distances come from a table of every island, harbour and wharf bent round the land, and the route through a trip is searched for the shortest. A run the hold cannot carry at once is cut into **trips**, islands near one another on the same one, and a later trip’s goods come aboard early when the ship is back at the harbour with room.
+
+- Every stop can be sailed sooner or later or skipped, a trip moved or left out, with a still of the chart for every leg — and Undo takes back each change.
+- A run stopped part-way can be **continued**: the board keeps what each island has dealt until it is refreshed in game.
+
+### Your bag as a second hold
+
+Say what your Inventory window shows — or screenshot it — and the run can carry a later chain’s goods in your bag, off the ship’s weight, moving them at any wharf’s Load Cargo. Sales stay at the seven wharves with a storage keeper, now including Moodle Village and Byeot County. The run without the bag is kept when it pays better, and the plan says why.
+
+### A short trip
+
+Pick one trade on today’s board and the plan lists what fits round it, each with what it adds and the minutes it costs — for the day you only need one good.
+
+### Legs timed like the game
+
+Legs are timed at the pace five legs timed in game gave, and *Arrived* in the cockpit learns your own hull’s. The Corsair’s class bonus and the sailing log (Loggia, Srulk, Manos) are switches in **The sailor**.
+
+### Readers, links and words
+
+The barter reader reads any client’s language, taken from the Menu; the material list has a book of its own, like the layouts. Signed in, a shared plan, ship, drawing or route is a **short link**, and a drawing holds several lines of stops. Every game word in the twelve languages was checked against the game’s own.
+
 ## 1.4 — The screenshots you already took
 
 *2026-09-19*

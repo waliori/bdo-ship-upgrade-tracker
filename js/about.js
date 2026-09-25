@@ -62,6 +62,48 @@ export const DATA = [
  */
 export const RELEASES = [
 	{
+		id: '1.5',
+		name: TT('Plan, load, sail, results'),
+		date: '2026-09-25',
+		sum: TT('A barter run is four steps — plan it, pack it, sail it stop by stop, record it — with routes found by water, trips when the hold is full, your bag as a second hold, and one trade picked for a short trip.'),
+		blurb: TT('The Barter tab was one long page with a sheet over it, and the run was sailed somewhere else. It is <b>four steps</b> now, one on the page at a time: <b>Plan</b> the day, <b>Load</b> what goes aboard — a tick loads the hold for real — <b>Sail</b> it from a cockpit that waits at every island for you, and see the <b>Results</b> before they are recorded. Under it, the route is <b>searched by water</b> and cut into trips when the hold cannot carry everything at once.'),
+		sections: [
+			{
+				title: TT('Four steps, one at a time'),
+				text: TT('<b>Plan</b> starts with <i>Before you sail</i> — the Parley as the window reads it, the vouchers you carry, your home port — then a <b>ladder</b> that says where the day ends and what each level becomes, five <b>ways of sailing</b> each with the best run the search finds that way, and the chains on offer.'),
+				points: [
+					TT('<b>Load</b> is the packing list: buy at the Market, take from storage, put in your bag. A tick buys the goods or moves them out of the storage, and the route below is laid from what is ticked.'),
+					TT('<b>Sail</b> is a cockpit, large enough to read across the room. <b>Traded</b> writes the stop into the hold on every tab at once, and the clock waits at each island until you press it.'),
+					TT('<b>Results</b> shows what the run came to before <b>Record the trip</b> adds the Parley, Total Barters and the quests — one change, one Undo.')
+				]
+			},
+			{
+				title: TT('Routes by water, and trips'),
+				text: TT('Distances come from a table of every island, harbour and wharf bent round the land, and the route through a trip is searched for the shortest. A run the hold cannot carry at once is cut into <b>trips</b>, islands near one another on the same one, and a later trip’s goods come aboard early when the ship is back at the harbour with room.'),
+				points: [
+					TT('Every stop can be sailed sooner or later or skipped, a trip moved or left out, with a still of the chart for every leg — and Undo takes back each change.'),
+					TT('A run stopped part-way can be <b>continued</b>: the board keeps what each island has dealt until it is refreshed in game.')
+				]
+			},
+			{
+				title: TT('Your bag as a second hold'),
+				text: TT('Say what your Inventory window shows — or screenshot it — and the run can carry a later chain’s goods in your bag, off the ship’s weight, moving them at any wharf’s Load Cargo. Sales stay at the seven wharves with a storage keeper, now including Moodle Village and Byeot County. The run without the bag is kept when it pays better, and the plan says why.')
+			},
+			{
+				title: TT('A short trip'),
+				text: TT('Pick one trade on today’s board and the plan lists what fits round it, each with what it adds and the minutes it costs — for the day you only need one good.')
+			},
+			{
+				title: TT('Legs timed like the game'),
+				text: TT('Legs are timed at the pace five legs timed in game gave, and <i>Arrived</i> in the cockpit learns your own hull’s. The Corsair’s class bonus and the sailing log (Loggia, Srulk, Manos) are switches in <b>The sailor</b>.')
+			},
+			{
+				title: TT('Readers, links and words'),
+				text: TT('The barter reader reads any client’s language, taken from the Menu; the material list has a book of its own, like the layouts. Signed in, a shared plan, ship, drawing or route is a <b>short link</b>, and a drawing holds several lines of stops. Every game word in the twelve languages was checked against the game’s own.')
+			}
+		]
+	},
+	{
 		id: '1.4',
 		name: TT('The screenshots you already took'),
 		date: '2026-09-19',
@@ -736,6 +778,52 @@ export const RELEASES = [
 export const RELEASE = RELEASES[0].id;
 
 export const CHANGES = [
+	{
+		date: '2026-09-25',
+		title: TT('Your bag as a second hold, and a day of fixes'),
+		notes: [
+			TT('<b>Your bag carries a later chain’s goods</b>, off the ship’s weight, moved at any wharf’s Load Cargo; its room comes from the Inventory window’s two bars, typed or read off a screenshot. Moodle Village and Byeot County join the storage wharves.'),
+			TT('<b>Fixes.</b> A moved stop stays in its trip; goods taken from the hold into the bag are recorded in a place of their own; Undo after a route edit takes back the edit and nothing the tab wrote since; Abandon can be undone; a short link to a drawing opens again; searching finds the names shown on screen.')
+		]
+	},
+	{
+		date: '2026-09-24',
+		title: TT('Short links, several lines, and the game’s own words'),
+		notes: [
+			TT('<b>A link is short when you are signed in</b>, and a drawing holds several lines of stops, each written to the game as a loop of its own.'),
+			TT('<b>The material list has a book</b>, and the barter reader reads the game in its own language, taken from the Menu. The game’s words in every pack were checked against each region’s own.')
+		]
+	},
+	{
+		date: '2026-09-23',
+		title: TT('The chart is the cockpit, and a run can be continued'),
+		notes: [
+			TT('<b>The chart’s run panel is the Barter tab’s cockpit</b>, the two following each other, and a planned run is on the chart before it is cast off.'),
+			TT('<b>A run stopped part-way can be continued</b>, a <b>short trip</b> picks one trade and what fits round it, and legs are timed at the pace timed in game.')
+		]
+	},
+	{
+		date: '2026-09-22',
+		title: TT('Routes searched by water, in trips'),
+		notes: [
+			TT('<b>The route is searched</b> over distances by water, cut into trips when the hold cannot carry everything, a later trip’s goods picked up early where there is room.'),
+			TT('<b>A tick loads the hold for real</b>, Traded writes each stop into it, and the clock waits at every island. The sailing log times every leg at sea.')
+		]
+	},
+	{
+		date: '2026-09-21',
+		title: TT('The Barter tab is four steps'),
+		notes: [
+			TT('<b>Plan, load, sail, results</b>, one on the page at a time, with the ways of sailing as cards and a Corsair switch in The sailor.')
+		]
+	},
+	{
+		date: '2026-09-20',
+		title: TT('A run loads what it will hand over'),
+		notes: [
+			TT('<b>A run loads what it will hand over</b>, not what the island offers; a coin day finds the island for a [Level 4] aboard; the clock ends with its run; and a run ticked off is never lost to a board that moved on.')
+		]
+	},
 	{
 		date: '2026-09-19',
 		title: TT('The app is in your language, not only your client’s'),
