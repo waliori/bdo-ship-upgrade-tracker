@@ -203,7 +203,12 @@ function restore() {
 				// another sailor's reading rather than read off the window.
 				answers: s.matBoard.answers.filter(a => a && npcById.has(Number(a.npcId)) && typeof a.give === 'string' && typeof a.recv === 'string').map(a => ({ npcId: Number(a.npcId), give: a.give, recv: a.recv, ...(a.took === 'book' || a.took === 'fleet' ? { took: a.took } : {}) })),
 				told: Math.max(0, Number(s.matBoard.told) || 0),
-				whole: s.matBoard.whole === true
+				whole: s.matBoard.whole === true,
+				// Where a list taken rather than read came from: a board in
+				// the book, or another sailor's reading.
+				...(s.matBoard.from && (s.matBoard.from.kind === 'book' || s.matBoard.from.kind === 'fleet')
+					? { from: { kind: s.matBoard.from.kind, id: String(s.matBoard.from.id || ''), name: String(s.matBoard.from.name || '').slice(0, 40) } }
+					: {})
 			};
 			// A day kept before the run had its own list sailed for
 			// every material ticked.
@@ -5086,6 +5091,10 @@ function openMatBook(then) {
 		day: barterKey(),
 		onTake: page => {
 			const n = takeMatOffers([...page.offers].map(([npcId, o]) => ({ npcId, ...o })), 'book');
+			// Whose list today's is, for the bar to say so rather than
+			// ask for a screenshot of a list it already has.
+			matBoardNow().from = { kind: 'book', id: String(page.id) };
+			persist();
 			toast(n === 1 ? T('{n} island ticked from {board}', { n, board: matPageName(page) }) : T('{n} islands ticked from {board}', { n, board: matPageName(page) }), true);
 			then();
 		},
@@ -5126,12 +5135,15 @@ function matStage() {
 	const fit = matFitNow();
 	const read = mb.answers.filter(a => !a.took).length;
 	const fits = fit.standing.filter(w => w.agree >= MAT_MIN_FIT).length;
-	const kind = fit.sure ? 'known' : fits > 1 ? 'split' : fit.answered >= MAT_MIN_FIT ? 'new' : 'start';
+	// Nothing read yet, but a whole list taken -- from the book or from
+	// another sailor: that is today's list, not a question.
+	const taken = mb.answers.filter(a => a.took).length;
+	const kind = fit.sure ? 'known' : fits > 1 ? 'split' : fit.answered >= MAT_MIN_FIT ? 'new' : !read && taken ? 'taken' : 'start';
 	const whole = matWhole();
 	const complete = kind === 'new' && (mb.whole || read >= Math.round(whole * 0.9));
 	const told = read > 0 && (mb.told || 0) >= read;
-	const step = kind === 'start' ? 1 : kind === 'split' ? 2 : kind === 'known' ? (fit.fill.length ? 2 : 3) : complete ? 3 : 2;
-	return { kind, step, fit, read, whole, complete, told, fits };
+	const step = kind === 'start' ? 1 : kind === 'split' || kind === 'taken' ? 2 : kind === 'known' ? (fit.fill.length ? 2 : 3) : complete ? 3 : 2;
+	return { kind, step, fit, read, whole, complete, told, fits, taken };
 }
 
 /** What a screenshot of the barter window should hold, for the board. */
@@ -5204,6 +5216,17 @@ function matBarHTML() {
 			${matShotHelp(!st.read)}
 			${fleetLine}
 			<p class="board-ask-sub">${T('Or tick, below, the islands showing what you are after.')}</p>`;
+	} else if (kind === 'taken') {
+		// A list taken whole needs no screenshot; one can still check it.
+		const from = mb.from || {};
+		const page = from.kind === 'book' ? pages.find(p => String(p.id) === from.id) : null;
+		const line = page
+			? T('Today’s list is {board}, from the material book: {n} islands filled in.', { board: `<button class="linky" data-act="barter-mat-book" title="${T('Open it in the material book')}"><b>${matPageName(page)}</b></button>`, n: F(st.taken) })
+			: from.kind === 'fleet'
+				? T('Today’s list is {who}’s reading: {n} islands filled in.', { who: from.name ? `<b>${esc(from.name)}</b>` : T('another sailor'), n: F(st.taken) })
+				: T('{n} filled in', { n: F(st.taken) });
+		body = `<p class="mat-say known">✓ ${line} ${T('They show dashed below. A page read off the window checks them and puts right any that differ.')}</p>
+			<div class="mat-acts"><button class="ghost-btn sm" data-act="barter-shot">📷 ${T('Check it with a screenshot')}</button></div>`;
 	} else if (kind === 'split') {
 		const at = fit.splitter ? npcById.get(fit.splitter) : null;
 		body = `<p class="mat-say">${T('What you read fits <b>{n} boards</b> in the book so far.', { n: F(st.fits) })} ${at ? T('One more page tells them apart — the one with <b>{isle}</b> on it.', { isle: esc(gameName(isleOf(at))) }) : T('One more page tells them apart.')}</p>
@@ -6806,6 +6829,8 @@ export function barterAction(act, el, redraw) {
 			// Their islands stand in for the ones not read here; one read
 			// here keeps its own answer.
 			const n = takeMatOffers(seen.offers.map(o => ({ npcId: o[0], give: String(o[1]), recv: String(o[3]) })), 'fleet');
+			matBoardNow().from = { kind: 'fleet', name: seen.name ? String(seen.name).slice(0, 40) : '' };
+			persist();
 			toast(n === 1 ? T('Today’s material list as {who} read it: {n} island ticked', { who: seen.name ? seen.name : T('another sailor'), n }) : T('Today’s material list as {who} read it: {n} islands ticked', { who: seen.name ? seen.name : T('another sailor'), n }), true);
 			if (!seen.mine && !seen.confirmed) sawItToo(seen.id).then(() => { matFleet.asked = false; });
 			return true;
