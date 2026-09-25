@@ -1489,6 +1489,10 @@ button.rung-fate { cursor: pointer; }
 /* A still of the chart for each leg of the route on the wharf. */
 .leg-snap { margin: 8px 0 2px; max-width: 100%; overflow: hidden; border-radius: var(--r-btn); border: 1px solid var(--line); background: #1e3636; width: fit-content; }
 .leg-snap-in { position: relative; overflow: hidden; }
+/* A still is drawn 300 px wide; on a narrow phone it is drawn smaller
+   rather than cut, so the arrival dot stays in the picture. */
+@media (max-width: 380px) { .leg-snap-in { zoom: .82; } }
+@media (max-width: 330px) { .leg-snap-in { zoom: .72; } }
 .leg-snap-tiles { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .leg-snap-tiles img { position: absolute; width: 256px; height: 256px; }
 .leg-snap-in svg { position: absolute; inset: 0; }
