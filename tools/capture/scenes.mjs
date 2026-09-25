@@ -166,8 +166,8 @@ const scenes = {
 			await moveTo(page, '.shot-table tbody tr:nth-child(2)');
 			await wait(1400);
 			await click(page, '#dialog [data-use]', { after: 1200 });
-			await frame(page, '.barter-bar', { top: 24 });
-			await moveTo(page, '.barter-bar-lead');
+			await frame(page, '.board-strip', { top: 24 });
+			await moveTo(page, '.board-strip-k');
 			await wait(2200);
 		});
 		await page.setViewport({ width: 1280, height: 820, deviceScaleFactor: 1 });
@@ -231,7 +231,7 @@ const scenes = {
 		await tab(page, 'barter');
 		await nameTheBoard(page);
 		await waitFor(page, '.board-shut', { then: 600 });
-		await frame(page, '.barter-bar', { top: 24 });
+		await frame(page, '.board-strip', { top: 24 });
 		await rec(page, 'your-own-board', async () => {
 			await wait(700);
 			await moveTo(page, '.board-shut');
@@ -296,10 +296,10 @@ const scenes = {
 		// what puts numbers on the tiles, and an empty run is no picture.
 		await waitFor(page, '.proposal', { then: 1200 });
 		await click(page, '.proposal', { after: 2600 });
-		await frame(page, '.stock-head', { top: 108 });
+		await frame(page, '.plan-sec[data-sec="ladder"]', { top: 108 });
 		await rec(page, 'a-stock', async () => {
 			await wait(600);
-			await typeInto(page, '.stock-row .purse-inline', '40', { after: 1600 });
+			await typeInto(page, '.rung-keep .purse-inline', '40', { after: 1600 });
 			await page.select('[data-act="barter-ceiling"]', '3');
 			await wait(2600);
 			await moveTo(page, '.run-ahead');
@@ -335,17 +335,14 @@ const scenes = {
 		await seed(page, url, fittedShip);
 		await tab(page, 'barter');
 		await nameTheBoard(page);
-		await click(page, '[data-act="barter-run-open"]', { after: 2000 });
-		// The sheet is a box over the page: scroll inside it, not the page.
-		await page.evaluate(() => { const f = document.querySelector('.run-foot'); if (f) f.scrollIntoView({ block: 'end' }); });
+		// The clock starts when the run is cast off, from the Load step;
+		// nothing aboard is nothing to cast off, so every row is ticked.
+		await click(page, '[data-act="barter-step"][data-id="load"]', { after: 2000 });
+		for (const b of await page.$$('[data-act="barter-pack-all"]:not(.active)')) await b.click();
 		await wait(800);
 		await rec(page, 'the-clock', async () => {
 			await wait(600);
-			await click(page, '.run-foot [data-act="barter-timer-start"]', { after: 2400 });
-			// Out of the sheet: the clock keeps time on the tab itself, and
-			// that is where it will be watched from.
-			await click(page, '.run-dialog [data-close]', { after: 1400 });
-			await frame(page, '.hold-bar', { top: 90 });
+			await click(page, '[data-act="barter-cast-off"]', { after: 4800 });
 			await moveTo(page, '.sail-timer.running b');
 			await wait(3000);
 		});
@@ -357,7 +354,7 @@ const scenes = {
 		await seed(page, url, fittedShip);
 		await tab(page, 'barter');
 		await nameTheBoard(page);
-		await click(page, '[data-act="barter-run-open"]', { after: 2200 });
+		await click(page, '[data-act="barter-step"][data-id="load"]', { after: 2200 });
 		await rec(page, 'two-shelves', async () => {
 			await wait(800);
 			await moveTo(page, '.shelf-tile');
@@ -669,9 +666,11 @@ const scenes = {
 			// The runs worth sailing come back from a worker; the best
 			// one is ticked when it lands, and that is when there is a
 			// run to lay out.
-			await waitFor(page, '[data-act="barter-run-open"]', { then: 1400 });
-			await click(page, '[data-act="barter-run-open"]', { after: 1800 });
-			await click(page, '[data-act="barter-sail"]', { after: 2600 });
+			await waitFor(page, '[data-act="barter-step"][data-id="load"]', { then: 1400 });
+			await click(page, '[data-act="barter-step"][data-id="load"]', { after: 1800 });
+			for (const b of await page.$$('[data-act="barter-pack-all"]:not(.active)')) await b.click();
+			await wait(600);
+			await click(page, '[data-act="barter-cast-off"]', { after: 2600 });
 		});
 	},
 

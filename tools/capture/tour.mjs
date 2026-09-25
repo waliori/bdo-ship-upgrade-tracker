@@ -286,13 +286,15 @@ await wait(600);
 await click(page, '.picker-row', { after: 800 });
 await say(page, 'The whole board follows: every chain the day allows, and what it pays.');
 // The best run is ticked when the worker's search lands.
-await waitFor(page, '[data-act="barter-run-open"]', { then: 600 });
+await waitFor(page, '[data-act="barter-step"][data-id="load"]', { then: 600 });
 await say(page, 'Tick the chains, and they are one run.');
 await hush(page);
-await click(page, '[data-act="barter-run-open"]', { after: 1500 });
-await say(page, 'Every stop, what to buy before casting off, the quests on the way.');
-await click(page, '[data-act="barter-sail"]', { after: 2600 });
-await say(page, 'Sail it, and it is on the chart: a checklist, stop by stop.');
+await click(page, '[data-act="barter-step"][data-id="load"]', { after: 1500 });
+await say(page, 'What to have aboard, each tick loading the hold, and every stop in order.');
+for (const b of await page.$$('[data-act="barter-pack-all"]:not(.active)')) await b.click();
+await wait(600);
+await click(page, '[data-act="barter-cast-off"]', { after: 2600 });
+await say(page, 'Cast off, and the cockpit takes you stop by stop, on the tab or on the chart.');
 await say(page, 'Record the trip at the end, and the whole of it lands in the Inventory.');
 await hush(page);
 
