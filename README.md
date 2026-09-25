@@ -1559,7 +1559,11 @@ js/
   storage-import.js   the storage reader's dialog
   bag-shot.js         the Inventory window's two bars, read off a screenshot,
                       and the room the bag has on a run
-  screen-barter.js    the Barter tab: plan, load, sail, results
+  screen-barter.js    the Barter tab: the four steps drawn from the modules below
+  barter/             the Barter tab's parts: state (one object the rest share),
+                      view (what the profile keeps), board, hold, plan, search
+                      (the workers), route, packing, sail, cockpit, results,
+                      short, material, parts, today, and actions (the presses)
   barter.js           what a bartered material costs in sea time
   barter_npcs.js      where the 91 barterers are, and the harbours
   barter_gates.js     the barter count each exchange needs, from the client
