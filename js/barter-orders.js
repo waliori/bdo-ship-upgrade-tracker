@@ -132,7 +132,7 @@ export const VOUCHER_CHOICES = [
 export const DEFAULT_PAUSE = { isle: 45, call: 120 };
 export const PAUSE_MAX = 30 * 60;
 
-export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, landFrom: 'buy', vouchers: 'use', pause: { ...DEFAULT_PAUSE }, hours: 0, count: 'least', way: 'sea', quests: 'near' };
+export const DEFAULT_ORDERS = { preset: 'cash', ...PRESETS[0].orders, landFrom: 'buy', vouchers: 'use', pause: { ...DEFAULT_PAUSE }, hours: 0, way: 'sea', quests: 'near' };
 
 /** The way round the chains ticked: one route through every rung, each
  *  after the rung beneath it in its chain, or chain after chain. */
@@ -156,14 +156,7 @@ export const WAY_CHOICES = [
 /** The orders a run has when none are given: the [Level 7]s sold and
  *  nothing else, no floors -- the run as it was before there were
  *  orders, and what the tests pin. */
-export const PLAIN_ORDERS = { preset: 'cash', sell: 7, floors: {}, buy: true, landFrom: 'buy', vouchers: 'use', pause: { isle: 0, call: 0 }, pace: 'fast', hours: 0, count: 'least', way: 'chain', quests: 'no' };
-
-/** How an exchange that pays a range is counted. */
-export const COUNT_CHOICES = [
-	['least', TT('at the least'), TT('A 2-3 counts as 2')],
-	['average', TT('at the average'), TT('A 2-3 counts as 2.5')],
-	['seen', TT('as seen'), TT('As your own runs recorded it')]
-];
+export const PLAIN_ORDERS = { preset: 'cash', sell: 7, floors: {}, buy: true, landFrom: 'buy', vouchers: 'use', pause: { isle: 0, call: 0 }, pace: 'fast', hours: 0, way: 'chain', quests: 'no' };
 
 /** The caps on time under way a sailor can set, in hours; 0 is none. */
 export const HOUR_CHOICES = [[0, TT('no limit')], [1, TT('an hour')], [2, TT('two hours')], [3, TT('three hours')], [4, TT('four hours')], [6, TT('six hours')]];
@@ -228,7 +221,6 @@ export function readOrders(raw) {
 	if (raw.landFrom === 'stock' || raw.landFrom === 'buy') o.landFrom = raw.landFrom;
 	if (raw.pace === 'full' || raw.pace === 'fast' || raw.pace === 'steady') o.pace = raw.pace;
 	if (HOUR_CHOICES.some(([h]) => h === Number(raw.hours))) o.hours = Number(raw.hours);
-	if (COUNT_CHOICES.some(([c]) => c === raw.count)) o.count = raw.count;
 	if (WAY_CHOICES.some(([w]) => w === raw.way)) o.way = raw.way;
 	if (QUEST_CHOICES.some(([q]) => q === raw.quests)) o.quests = raw.quests;
 	return o;
@@ -237,7 +229,7 @@ export function readOrders(raw) {
 /** The orders a preset sets, keeping nothing of the old ones. */
 export function presetOrders(id) {
 	const p = PRESETS.find(x => x.id === id) || PRESETS[0];
-	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, landFrom: 'buy', vouchers: 'use', pause: { ...DEFAULT_PAUSE }, hours: 0, count: 'least', way: 'sea', quests: 'near' };
+	return { preset: p.id, ...p.orders, floors: { ...p.orders.floors }, landFrom: 'buy', vouchers: 'use', pause: { ...DEFAULT_PAUSE }, hours: 0, way: 'sea', quests: 'near' };
 }
 
 /** Whether the saved orders still match their preset to the letter. */
@@ -262,23 +254,6 @@ export function floorOf(name, orders) {
 
 /** The key an exchange's ratios are recorded under. */
 export const ratioKey = r => `${r.npcId}|${r.give}|${r.item}`;
-
-/**
- * What to count an exchange as, under the orders: the count seen most
- * often on the sailor's own runs, the average, or nothing (the least,
- * which is the run's own default). `ratios` is the profile's record.
- */
-export function countAs(r, orders, ratios = {}) {
-	if (!r || r.recvMin === r.recvMax) return null;
-	if (orders.count === 'average') return r.recv;
-	if (orders.count === 'seen') {
-		const seen = ratios[ratioKey(r)];
-		if (!seen) return null;
-		const top = Object.entries(seen).sort((a, b) => b[1] - a[1] || Number(a[0]) - Number(b[0]))[0];
-		return top ? Number(top[0]) : null;
-	}
-	return null;
-}
 
 /**
  * The yardsticks of a run: silver a Parley unit and silver an hour,

@@ -91,21 +91,6 @@ export const pool = [
 
 export const poolByType = Object.fromEntries(pool.map(s => [s.type, s]));
 
-/**
- * Where a sailor stands, and what standing there does with their stats
- * -- on the hulls that have positions at all, which is a Carrack and
- * the Panokseon. Everything smaller draws cabins only.
- */
-export const positions = [
-	{ name: 'Sail', effect: 'Endurance and Wits count double', for: 'speed and acceleration' },
-	{ name: 'Wheel', effect: 'Awareness and Strength count double', for: 'turning and braking' },
-	{ name: 'Cannon', effect: 'Focus, Force and Vision count double', for: 'cannon damage, reload and range -- the Panokseon has two more of these than a Carrack' },
-	{ name: 'Deck', effect: '+10,000 durability for every cabin the sailor costs', for: 'a ten-cabin sailor is a hundred thousand durability' },
-	{ name: 'Mess', effect: '+5,000 rations for every cabin the sailor costs', for: 'longer between ports' },
-	{ name: 'Fish', effect: 'auto-fishing with an Oceanbound Otter Fishing Rod aboard', for: 'a Carrack only; the gauge fills every 180 s under way' },
-	{ name: 'First Mate', effect: 'the sailor\'s own skill is switched on', for: 'the three named first mates below' }
-];
-
 /** Condition and sickness, and what mends each. */
 export const care = [
 	{ item: 'Raisin Bread', effect: TT('+1 condition'), from: TT('a wharf manager, for silver') },
@@ -159,41 +144,6 @@ export const slotSources = [
 
 export const SAILOR_CAP = 60;
 
-
-/**
- * A crew plan against a hull: what it spends and what it grows.
- *
- * `crew` is `{ [type]: count }`. Returns the totals the Crew screen
- * reads, with both budgets -- sailors seated and cabin space -- measured
- * against the hull. Anything beyond either is a plan the game will
- * refuse, and is flagged rather than clamped so the row can say so.
- */
-export function planCrew(crew, ship) {
-	const totals = { sailors: 0, cabins: 0, weight: 0, appetite: 0, silver: 0,
-		speed: 0, accel: 0, turn: 0, brake: 0, force: 0, focus: 0, vision: 0 };
-	for (const [type, n] of Object.entries(crew || {})) {
-		const s = poolByType[type];
-		const count = Math.max(0, Math.floor(Number(n) || 0));
-		if (!s || !count) continue;
-		totals.sailors += count;
-		totals.cabins += s.cabin * count;
-		totals.weight += s.weight * count;
-		totals.appetite += s.appetite * count;
-		totals.silver += contract.silver * count;
-		for (const k of ['speed', 'accel', 'turn', 'brake', 'force', 'focus', 'vision']) {
-			totals[k] += (s[k] || 0) * count;
-		}
-	}
-	const seats = ship ? ship.crew : 0;
-	const space = ship ? ship.cabins : 0;
-	return {
-		...totals,
-		seats,
-		space,
-		overSeats: seats ? Math.max(0, totals.sailors - seats) : 0,
-		overSpace: space ? Math.max(0, totals.cabins - space) : 0
-	};
-}
 
 /* ------------------------------------------------------------------ *
  * The Manage Sailors board: seats, a roster, and what a crew adds up to

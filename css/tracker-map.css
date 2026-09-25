@@ -1046,7 +1046,6 @@
 .chart-link:hover { text-decoration: underline; }
 .map-zoom .ghost-btn { min-width: 34px; font-size: 15px; line-height: 1; }
 
-
 /* The run sheet in the chart's panel: the Barter tab's rows, the panel
    wide enough for them, the stop the chart stands at lit. */
 .map-side:has(.map-run) { width: min(440px, calc(100% - 24px)); }
@@ -1060,7 +1059,6 @@
 .map-run-fold.tools { margin-top: 10px; }
 .map-run-fold.tools .map-stats { margin-top: 8px; }
 .map-run .sail-bar { flex-wrap: wrap; }
-.map-run-stops .run-stop { padding-right: 4px; }
 /* The cockpit on the chart: the Barter tab's own, drawn narrow. The
    stop, the trade, the two figures and the press, one under another;
    the rest of the run folded beneath. */
@@ -1105,7 +1103,7 @@
 .map-plan-route .run-seg-head > span { flex: 1 1 100%; }
 .map-plan-bar .act { white-space: nowrap; }
 .map-plan-route .run-seg-chains { gap: 4px; }
-.map-plan-route .run-edit-bar, .map-plan-route .route-edit { font-size: 12px; }
+.map-plan-route .route-edit { font-size: 12px; }
 .map-plan-route .run-stops { padding: 0; }
 /* Each stop a card of its own, the whole card a way to fly the chart
    there; its buttons keep their own presses. */
@@ -1124,42 +1122,8 @@
 .map-plan-route .run-main { grid-column: 2; padding-bottom: 4px; }
 .map-plan-route .run-hold { grid-column: 2; width: auto; padding: 0 0 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
 .map-plan-route .run-trade { flex-wrap: wrap; gap: 4px 6px; }
-/* The sheet beside the chart, packed. A stop here was a column: name,
-   the give, an arrow, the get, the count, and only then -- a screen
-   further down -- the one button the sailor is scrolling for. Five
-   stops were five screens of panel. Oni drew the fix in Paint: the
-   trade on a line, and "Traded here" at the end of that line, under
-   the hold it belongs beside. So the stop is a grid -- the head and
-   the hold on one row, the trade and its button on the next -- and
-   the run's inner column gives its children to that grid. */
-@media (min-width: 721px) {
-  .map-run-stops .run-stop { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0 10px; align-items: start; padding: 5px 4px 7px 0; }
-  .map-run-stops .run-rail { grid-column: 1; grid-row: 1 / span 12; align-self: stretch; }
-  .map-run-stops .run-main { display: contents; }
-  .map-run-stops .run-main > * { grid-column: 2; }
-  .map-run-stops .run-stop-head { grid-row: 1; }
-  .map-run-stops .run-hold { grid-column: 3; grid-row: 1 / span 2; padding-top: 2px; }
-  .map-run-stops .run-check { grid-column: 3; grid-row: 3; margin-top: 2px; justify-content: flex-end; align-self: end; gap: 4px 8px; }
-  /* What an island paid, which of its four it gave, whether the goods
-     were sold: a stop that asks any of those gets a line for the asking,
-     rather than squeezing the trade beside it into a ribbon. */
-  .map-run-stops .run-check:has(.run-paid, .run-sold) { grid-column: 2 / -1; grid-row: 4; justify-self: end; }
-  .map-run-stops .run-trade { grid-row: 2 / span 2; margin-top: 2px; gap: 3px 6px; font-size: 12px; align-self: center; }
-  /* Two lines, always the same two: what is handed over, then the count
-     and what comes back. The break is a flex item of its own, so the
-     second line starts where it should whatever the names' lengths. */
-  .map-run-stops .run-trade::after { content: ''; order: 1; flex: 0 0 100%; height: 0; }
-  .map-run-stops .run-trade > span:not([class]) { flex: 0 1 auto; min-width: 0; max-width: calc(100% - 60px); }
-  .map-run-stops .run-trade .run-got { order: 2; gap: 5px; }
-  .map-run-stops .run-trade .run-to { order: 3; flex: 1 1 0; min-width: 0; }
-  .map-run-stops .run-quests { margin-top: 2px; }
-  .map-run-stops .run-done { height: 28px; padding: 0 10px 0 5px; }
-}
-.map-run-stops .run-stop.on { background: rgba(var(--blue-rgb), 0.08); border-radius: var(--r-sm); box-shadow: inset 3px 0 0 var(--blue-bar); }
 .run-stop-fly { padding: 0; border: 0; background: none; color: var(--ink-hi); font: inherit; font-weight: 700; cursor: pointer; text-align: left; }
 .run-stop-fly:hover { color: var(--blue-hi); text-decoration: underline; }
-.map-run-hint { font-size: 11.5px; }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .map-run-stops .run-hold { margin-left: 0; }
   .map-run .sail-bar .act { flex: 1 1 100%; }
 }

@@ -11,7 +11,6 @@
 .crew-ship > div { min-width: 0; flex: 1 1 240px; }
 .crew-ship .row-sub { white-space: normal; }
 .crew-ship-name { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--ink-hi); }
-.crew-pick { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
 .crew-stats { margin-bottom: 14px; }
 .crew-stats .stat { flex: 1 1 130px; padding: 10px 14px; }
 .crew-stats .stat-v { font-size: 17px; }
@@ -116,7 +115,6 @@
 .build-stats { color: var(--ink-faint); }
 .enh-log { font-size: 11.5px; color: var(--ink-faint); white-space: nowrap; }
 .enh-gain { display: block; font-size: 11px; color: var(--teal); font-weight: 400; white-space: normal; max-width: 220px; }
-.quest-row.on { background: rgba(88, 196, 196, 0.06); }
 .quest-rewards { color: var(--ink-dim); }
 
 /* On a phone the drawn hull has no room for seats you can tap; the same
@@ -174,7 +172,6 @@
 .quest-group { display: inline-flex; align-items: center; gap: 6px; }
 .quest-group .map-x { margin-left: 0; }
 .quest.selected { background: rgba(255, 215, 122, 0.06); }
-.crew-setups { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 0 0; width: 100%; }
 .crew-mastery { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 0 0; width: 100%; }
 .crew-mastery .field { width: 90px; }
 /* Read here, set in the bar at the top of the page. */
@@ -817,7 +814,6 @@
 .trip-shot-k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); margin-right: 2px; }
 .trip-shot .ghost-btn { margin-left: auto; }
 .trip-row { display: flex; gap: 6px; }
-.trip-row .trip-item { flex: 1; min-width: 0; }
 .trip-row .trip-qty { width: 120px; }
 .where-line { align-items: center; }
 .where-edit { display: inline-flex; align-items: center; gap: 6px; }
@@ -934,13 +930,8 @@
 .map-course-dot.wharf { background: #cfe3f5; }
 
 /* ---- Fitted out: editable ---- */
-.fit-row { align-items: center; flex-wrap: wrap; }
-.fit-row > span:first-child { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .fit-tag { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }
 .fit-tag.warn { color: var(--amber); }
-.fit-edit { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.fit-stats { font-size: 11.5px; color: var(--ink-dim); }
-.fit-sel { font-size: 12px; padding: 3px 6px; max-width: 220px; }
 .fit-hint { font-size: 12px; color: var(--ink-faint); margin: 0 22px 8px; }
 .map-as { color: var(--ink-dim); }
 .map-as b { color: var(--ink-hi); }
@@ -1124,7 +1115,6 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 .map-hunt-pic { width: 26px; height: 26px; object-fit: contain; flex: none; filter: drop-shadow(0 1px 2px #000); }
 .map-hunt[disabled] { opacity: 0.55; cursor: default; }
 .map-row-sub.note { white-space: normal; color: var(--amber); }
-
 
 /* Reading a crew off screenshots: the drop, the bar and the table that
    asks whether the scan got it right before anything is written. */

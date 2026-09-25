@@ -524,12 +524,6 @@ export async function iconBank(onProgress = () => {}) {
 	return bank;
 }
 
-/** Let the bank go with the engine: both are kept for a dialog, not
- *  for a session of sailing. */
-export function forgetBank() {
-	bank = null;
-}
-
 /** A screenshot as pixels, with nothing done to it -- and the canvas
  *  they are still on, which is what the counts are cropped out of. */
 function pixelsOf(bitmap) {

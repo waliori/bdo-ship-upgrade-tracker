@@ -669,10 +669,6 @@ export function openAccount() {
 	else signIn();
 }
 
-export function isAvailable() {
-	return available;
-}
-
 /**
  * Start syncing, if this deployment can.
  *

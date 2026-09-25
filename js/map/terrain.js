@@ -260,20 +260,6 @@ export function seaAt(size, px, py) {
  * the tile pyramid
  * ------------------------------------------------------------------ */
 
-/**
- * A level for a zoom, taken as a whole.
- *
- * The ground itself no longer uses this -- visibleTiles picks a level
- * per tile, by how big it lands -- but the offline area and anything
- * else that wants one number for "how close is this view" still does.
- */
-export function levelForZoom(zoom) {
-	const lv = state.index ? state.index.levels : [];
-	if (!lv.length) return 1;
-	const lo = lv[0].level, hi = lv[lv.length - 1].level;
-	return Math.max(lo, Math.min(hi, Math.round(7.32 - zoom)));
-}
-
 function levelInfo(level) {
 	return state.index && state.index.levels.find(l => l.level === level);
 }

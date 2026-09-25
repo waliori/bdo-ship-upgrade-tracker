@@ -1273,17 +1273,6 @@ export function moveTarget(id, direction) {
 	});
 }
 
-/** Reorder wholesale from a list of ids (drag and drop). */
-export function reorderTargets(ids) {
-	const byId = new Map(state.targets.map(t => [t.id, t]));
-	const next = ids.map(id => byId.get(id)).filter(Boolean);
-	for (const t of state.targets) if (!next.includes(t)) next.push(t);
-	if (next.length !== state.targets.length) return null;
-	return commit('target', T('Reordered priorities'), () => {
-		state.targets = next;
-	});
-}
-
 /* ------------------------------------------------------------------ *
  * Strategy: craft an item, or buy it and stop exploding its recipe
  * ------------------------------------------------------------------ */

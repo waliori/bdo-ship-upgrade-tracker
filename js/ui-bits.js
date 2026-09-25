@@ -13,7 +13,7 @@ import { tradeGoodNames } from './trade_goods.js';
 import { landGoods } from './land_goods.js';
 import { iconLoader } from './icon-loader.js';
 import { esc, F, FC } from './fmt.js';
-import { T, gameName, LANGS, langById } from './i18n.js';
+import { T, gameName, langById } from './i18n.js';
 import * as store from './state.js';
 import { parseEnhanced, enhanceStep, waysToGet, outstanding, yieldOf } from './planner.js';
 import { quests } from './quests.js';
@@ -78,18 +78,6 @@ export function codexUrl(item) {
 	}
 	return info && info.url ? info.url : null;
 }
-
-/**
- * An item's name, linked to its BDOCodex page. Falls back to plain text
- * for anything the mapping has never heard of, so a name is never
- * missing just because a link is.
- */
-/**
- * The look-ups' languages, which are also the app's: one list, so the
- * screen and the database it links to are never in two different
- * languages. Kept here as a pair for the pickers that had it.
- */
-export const CODEX_LANGS = LANGS.map(l => [l.id, l.label]);
 
 /** The same codex page in the language the player chose. */
 export function localiseCodex(url) {

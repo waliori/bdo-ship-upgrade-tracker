@@ -233,10 +233,9 @@ export function orderLadders(ladders, { start = null, end = null, dist = seaDist
 				for (let j = i + 1; j < seq.length; j++) {
 					const ki = K[seq[i]], kj = K[seq[j]];
 					if (ki === kj) break;
-					if (K[seq[j]] === ki) break;
 					let blocked = false;
 					for (let q = i + 1; q < j && !blocked; q++) if (K[seq[q]] === ki || K[seq[q]] === kj) blocked = true;
-					if (blocked) { if (K[seq[j]] === ki) break; continue; }
+					if (blocked) continue;
 					const prev = i > 0 ? seq[i - 1] : START, next = j + 1 < seq.length ? seq[j + 1] : END;
 					const a = seq[i], b = seq[j];
 					let delta;

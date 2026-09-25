@@ -324,10 +324,6 @@ const EXTENT = (() => {
 	return { x0, y0, x1, y1 };
 })();
 
-/** The charted world box, for anything that needs to scale it down --
- *  the minimap does. */
-export const chartBox = EXTENT;
-
 /** Keep the viewport on the chart, in place. An axis where the chart is
  *  narrower than the view is centred instead. */
 export function clampView(state, size) {

@@ -9,7 +9,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-import { PRESETS, DEFAULT_ORDERS, readOrders, presetOrders, onPreset, sellable, floorOf, yardsticks, PARLEY_UNIT, countAs, ratioKey } from '../js/barter-orders.js';
+import { PRESETS, DEFAULT_ORDERS, readOrders, presetOrders, onPreset, sellable, floorOf, yardsticks, PARLEY_UNIT, ratioKey } from '../js/barter-orders.js';
 import { chains, chainRun } from '../js/barter-chains.js';
 import { boardData } from '../js/barter-board.js';
 import { levelOf } from '../js/barter.js';
@@ -116,11 +116,7 @@ test('the yardsticks and the record of ratios', () => {
 	assert.equal(y.perHour, 500000000);
 	assert.deepEqual(yardsticks(0, 0, 0), { perUnit: 0, perHour: 0 });
 	const r = { npcId: 1, give: 'a', item: 'b', recv: 2.5, recvMin: 2, recvMax: 3 };
-	assert.equal(countAs(r, { count: 'least' }), null);
-	assert.equal(countAs(r, { count: 'average' }), 2.5);
-	assert.equal(countAs(r, { count: 'seen' }, {}), null);
-	assert.equal(countAs(r, { count: 'seen' }, { [ratioKey(r)]: { 2: 1, 3: 4 } }), 3);
-	assert.equal(countAs({ ...r, recvMin: 2, recvMax: 2 }, { count: 'average' }), null, 'a fixed exchange is not a range');
+	assert.equal(ratioKey(r), '1|a|b');
 	assert.equal(levelOf('[Level 3] x'), 3);
 });
 

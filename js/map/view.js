@@ -10,7 +10,7 @@ import { toast } from '../dialogs.js';
 import { pathLength, sailRange, fmtRange, fmtDistance } from '../sailing.js';
 import { toGame } from '../worldmap.js';
 import { mv, persist } from './state.js';
-import { enterTerrain, exitTerrain, terrainOn, terrainTrouble, setStyle, terrainStyle, setTilt, tilt as tiltBy, tiltNow, MAX_PITCH } from './terrain.js';
+import { enterTerrain, exitTerrain, terrainOn, terrainTrouble, setStyle, terrainStyle, setTilt, tilt as tiltBy, tiltNow } from './terrain.js';
 import { marksNow, seaBent } from './marks.js';
 import { paintMap, clearTiles } from './paint.js';
 import { miniHTML } from './render.js';
@@ -210,9 +210,7 @@ export function setMapStyle(style) {
 	paintMap();
 }
 
-export const mapStyleNow = () => terrainStyle();
 export const map3D = () => terrainOn();
-export const maxPitch = () => MAX_PITCH;
 
 function dress3D() {
 	const host = document.querySelector('[data-map]');

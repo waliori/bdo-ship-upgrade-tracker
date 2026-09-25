@@ -30,7 +30,10 @@ export default [
 	{
 		// Vendored, minified and none of our business: the guided tour's
 		// library and the sailor reader's engine.
-		ignores: ['node_modules/**', 'js/driver.iife.js', 'js/all_barter.json', 'reader/**']
+		// And what is kept in the folder without being the app: the design
+		// sync's local folders and the capture audits' scratch.
+		ignores: ['node_modules/**', 'js/driver.iife.js', 'js/all_barter.json', 'reader/**',
+			'design-system/**', 'ds-bundle/**', '.ds-sync/**', '.design-sync/**', 'tools/capture/scratch/**']
 	},
 	js.configs.recommended,
 	{

@@ -97,15 +97,6 @@
 .chain.rung .chain-start .run-arrow { color: var(--ink-faint); font-weight: 400; }
 .chain.rung .chain-right b { color: var(--ink-hi); }
 .chain.rung .chain-right b.ok { color: var(--teal); }
-.barter-ladder .chain-list { max-height: none; }
-
-/* The run's picks that are not a select: the material, and a count. */
-.run-picks .run-pick-item { display: flex; width: 100%; margin: 0; padding: 5px 8px; font-size: 13px; }
-.run-picks .run-pick-item .row-icon.sm { flex: none; }
-.run-picks .run-pick-qty { display: flex; align-items: center; gap: 8px; min-height: 30px; font-size: 12px; color: var(--ink-mute); }
-.run-picks .run-pick-qty .purse-inline { width: 64px; text-align: center; }
-.run-picks .run-pick-qty .faint { color: var(--ink-faint); }
-.barter-run .run-tiles + .barter-caveat { margin: 12px 0 0; }
 
 /* ------------------------------------------------------------------ *
  * Barter: the hold against the goods ashore
@@ -130,38 +121,17 @@
  * Barter: the sailing orders
  * ------------------------------------------------------------------ */
 .orders { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-.orders-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.orders-head .run-pick-k { flex: none; }
 .orders-sub, .orders-adjusted { font-size: 12px; color: var(--ink-mute); }
 .orders-adjusted { color: var(--amber); }
-.orders .run-picks { margin-top: 0; }
-@media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .orders .run-picks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .orders .run-picks .select { font-size: 12px; padding: 5px 6px; }
-}
-.run-floors { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
-.run-floors .run-pick-k { margin-right: 4px; }
-.run-floor { display: inline-flex; align-items: center; gap: 4px; }
-.run-floor i { width: 16px; height: 14px; border-radius: 3px; background: var(--tier); color: var(--on-tint); font-family: var(--font-display); font-style: normal; font-size: 9.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
-.run-floor .purse-inline { width: 46px; text-align: center; }
 .floors-note { flex: 1 1 260px; min-width: 0; }
 
 /* ---- the stock: a row a level, what is held against what is kept --- */
-.stock-sheet { display: flex; flex-direction: column; gap: 8px; }
-.stock-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.stock-head .run-pick-k { flex: none; margin-bottom: 0; }
-.stock-head .run-pick { display: flex; align-items: center; gap: 8px; background: var(--panel-inset); border-radius: var(--r-btn); padding: 5px 9px; }
-.stock-head .run-pick .select { flex: none; width: auto; padding: 4px 8px; }
 .stock-rows { display: flex; flex-direction: column; gap: 4px; background: var(--panel-inset); border-radius: var(--r-btn); padding: 8px 9px; }
-.stock-row { display: grid; grid-template-columns: 20px minmax(92px, 150px) 58px minmax(64px, 96px) minmax(90px, 260px) minmax(120px, 1fr); align-items: center; gap: 10px; }
-.stock-row.over { opacity: 0.45; }
 .stock-lv { width: 18px; height: 16px; border-radius: 3px; background: var(--tier); color: var(--on-tint); font-family: var(--font-display); font-style: normal; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
 .stock-have, .stock-each { font-size: 12px; color: var(--ink-mid); line-height: 1.25; }
 .stock-have em, .stock-each em { display: block; font-style: normal; font-size: 10.5px; color: var(--ink-faint); }
-.stock-row .purse-inline { width: 100%; text-align: center; }
 .stock-bar { display: block; height: 6px; border-radius: 3px; background: var(--panel-sunk, rgba(255, 255, 255, 0.06)); overflow: hidden; }
 .stock-bar i { display: block; height: 100%; background: var(--tier); border-radius: 3px; }
-.stock-row.full .stock-note { color: var(--teal); }
 .stock-note { font-size: 11.5px; color: var(--ink-faint); }
 .run-pauses { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; background: var(--panel-inset); border-radius: var(--r-btn); padding: 7px 9px; }
 .run-pauses .run-pick-k { margin-bottom: 0; flex: none; }
@@ -178,7 +148,6 @@
 .run-ahead b { color: var(--ink-hi); }
 .run-ahead.full { color: var(--teal); }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
-  .stock-row { grid-template-columns: 20px 1fr 58px auto; row-gap: 4px; }
   .stock-bar { grid-column: 2 / -1; }
   .stock-note { grid-column: 2 / -1; }
 }
@@ -255,7 +224,6 @@
 
 /* ---- the clock for the time the ship is out --------------------- */
 .sail-timer { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.sail-timer-k { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
 .sail-timer .chip.tiny { padding: 3px 8px; }
 .sail-timer.running { gap: 8px; padding: 4px 6px 4px 10px; border-radius: var(--r-btn); background: var(--panel-inset); position: relative; overflow: hidden; }
 .sail-timer.running b { font-family: var(--font-display); font-weight: 600; color: var(--ink-hi); font-variant-numeric: tabular-nums; }
@@ -464,9 +432,6 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 }
 
 /* ---- The run for a material, and the hold beside it ---- */
-.mat-run { padding: 0; overflow: hidden; }
-.mat-run .run-head { padding: 12px 18px; margin: 0; align-items: center; gap: 10px; }
-.mat-run .run-head .panel-sub { flex: 1 1 200px; }
 .run-head .run-pick { flex: none; }
 .run-head .run-pick .run-pick-k { margin: 0; letter-spacing: 0; text-transform: none; font-size: 11.5px; color: var(--ink-mute); }
 .run-head .run-pick .select { padding: 5px 9px; font-size: 12px; }
@@ -528,10 +493,6 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
 .run-seg-head .mat-seg-icons .row-icon.xs { width: 24px; height: 24px; border-radius: 5px; }
 .run-seg-head em.mat-got { flex: none; font-family: var(--font-display); font-size: 12.5px; font-weight: 700; color: var(--amber); }
 .run-seg-head em.mat-got.met { color: var(--teal); }
-.mat-sail { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: var(--r-panel); border: 1px solid var(--line-btn); background: var(--panel); }
-.mat-sail.sailing { border-color: var(--teal-edge); }
-.mat-sail .sail-bar { flex: 1 1 320px; padding: 0; border: none; background: transparent; }
-.mat-sail .ghost-btn.run-chart { flex: none; }
 
 /* ---- The burst of light for a thing done (cheer.js) ---- */
 .cheer { position: fixed; z-index: 1200; width: 0; height: 0; pointer-events: none; }
@@ -741,17 +702,10 @@ body.map-turned .toast { left: 40px; top: 50%; bottom: auto; transform: translat
   .run-parley .run-bar { flex: 1 1 auto; margin-top: 0; }
   .run-parley .run-note { flex: 1 1 100%; }
 }
-.hold-parley { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-mute); white-space: nowrap; }
-.hold-parley .purse-inline { width: 92px; }
 
 /* The three paces, compared, under the run's tiles. */
 .pace-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin: 10px 0 0; }
-.pace-card { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 10px 12px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: rgba(var(--deep-rgb), 0.3); color: var(--ink-mid); text-align: left; font: inherit; cursor: pointer; }
-.pace-card:hover { border-color: var(--line-btn-hi); }
-.pace-card.on { border-color: var(--blue-edge); background: rgba(var(--blue-rgb), 0.12); }
 .pace-k { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
-.pace-card.on .pace-k { color: var(--blue-hi); }
-.pace-card b { font-family: var(--font-display); font-size: 17px; color: var(--ink-hi); }
 .pace-sub { font-size: 11.5px; color: var(--ink-faint); }
 .pace-sub.amber { color: var(--amber); }
 .pace-sub.warn { color: var(--red); }
@@ -760,12 +714,6 @@ details.run-quests-off > summary { list-style: none; cursor: pointer; }
 details.run-quests-off > summary::-webkit-details-marker { display: none; }
 details.run-quests-off > summary .panel-title::before { content: '▸ '; color: var(--ink-faint); }
 details.run-quests-off[open] > summary .panel-title::before { content: '▾ '; }
-/* The Parley line on the hold strip: the bar, the level and the trade's price. */
-.hold-parley select { font-size: 12px; }
-/* Read here, set in the bar at the top: the same figures, without a
-   second place to type them. */
-.hold-parley.read b { font-family: var(--font-display); font-size: 13px; color: var(--ink-hi); font-variant-numeric: tabular-nums; }
-.hold-parley.read small { color: var(--ink-faint); }
 /* Room for "23,800 / 18,300 LT" and the Parley's spend beside its bar. */
 .run-hold { width: 152px; }
 .run-hold > div:first-child b, .run-parley > div:first-child b { font-size: 11.5px; white-space: nowrap; }

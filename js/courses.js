@@ -96,6 +96,5 @@ export const courseById = Object.fromEntries(courses.map(c => [c.id, c]));
  */
 let made = null;
 export const setMadeCourse = c => { made = c || null; };
-export const madeCourse = () => made;
 export const courseOf = id => courseById[id] || (made && made.id === id ? made : null);
 export const allCourses = () => (made ? [...courses, made] : courses);
