@@ -125,7 +125,9 @@ export function requireUser(req, res, next) {
 	// row is asked after once a process, then remembered.
 	if (known.has(uid)) return next();
 	getUser(uid).then(user => {
-		if (!user) return res.status(401).json({ error: 'Not signed in.' });
+		// Gone, not merely signed out: 410, as /api/state says it, and the
+		// cookie cleared so the device signs itself out.
+		if (!user) { endSession(res); return res.status(410).json({ error: 'This account has been deleted.' }); }
 		known.add(uid);
 		next();
 	}, () => next());   // the database down is not the sailor's fault: let the route answer for it
