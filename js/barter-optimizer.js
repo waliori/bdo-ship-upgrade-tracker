@@ -82,7 +82,9 @@ export function fillOf(run, { targetOf, held = new Map(), stock = {} } = {}) {
 	// What the run began with in hand: the hold, and what it loaded at
 	// the harbour it sailed from.
 	for (const [name, n] of goodsHeld(stock)) move(after, name, -n);
-	for (const l of run.loaded) move(after, l.item, -l.n);
+	// And what it loaded later: into the bag at the start, and at a call
+	// back to a storage for a later trip -- all of it the stock's already.
+	for (const l of [...run.loaded, ...(run.bagLoaded || []), ...run.stops.flatMap(x => x.loads || [])]) move(after, l.item, -l.n);
 	for (const g of [...run.kept, ...run.stashed]) move(after, g.item, g.n);
 	return fullness(after, targetOf) - fullness(before, targetOf);
 }
@@ -133,9 +135,9 @@ export const SILVER_KINDS = [
 ];
 
 export const COIN_KINDS = [
-	{ kind: 'coins', label: 'The most coins', of: s => s.value },
-	{ kind: 'hour', label: 'The most an hour', of: s => (s.hours > 0 ? s.value / s.hours : 0) },
-	{ kind: 'parley', label: 'The most a Parley unit', of: s => (s.run.parleyUsed > 0 ? s.value / (s.run.parleyUsed / PARLEY_UNIT) : 0) }
+	{ kind: 'coins', label: TT('The most coins'), of: s => s.value },
+	{ kind: 'hour', label: TT('The most an hour'), of: s => (s.hours > 0 ? s.value / s.hours : 0) },
+	{ kind: 'parley', label: TT('The most a Parley unit'), of: s => (s.run.parleyUsed > 0 ? s.value / (s.run.parleyUsed / PARLEY_UNIT) : 0) }
 ];
 
 export const STOCK_KINDS = [
@@ -180,8 +182,10 @@ export function propose({ chains = [], opts, ship, seed = [], timeCap = 0, width
 		const chosen = ids.map(id => byId.get(id)).filter(Boolean);
 		// Laid at the lighter effort: a search judges hundreds of sets, and
 		// the run the tab lays for the set it settles on is laid in full.
-		const run = chainRun({ ...opts, effort: opts.effort ?? 1, chosen });
-		const hours = hoursOf(run, { start: opts.start, npcById: opts.npcById, speed: ship.speed, cal: ship.cal });
+		const run = chainRun({ ...opts, effort: opts.effort ?? 1, chosen, aim });
+		// The run's own hours, stops and the leg home in them, when it was
+		// laid for this ship; the time cap is judged on what the plan says.
+		const hours = opts.ship ? run.hours : hoursOf(run, { start: opts.start, npcById: opts.npcById, speed: ship.speed, cal: ship.cal });
 		const out = { ids: [...ids], run, value: score ? score(run) : valueOf(run, orders), hours, yard: yardsticks(run.net, run.parleyUsed, hours) };
 		memo.set(key, out);
 		return out;

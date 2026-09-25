@@ -857,6 +857,9 @@ export function homeOf(item) {
 
 /** The storage that is the ship itself: goods noted here are aboard. */
 export const ABOARD = "Ship's hold";
+/** The sailor's own bag on a barter run: goods carried off the ship's
+ *  weight, not in the hold and not in a storage. */
+export const BAG = 'Your bag';
 
 /**
  * Write an item's total. `at` says where the change happens: `true`

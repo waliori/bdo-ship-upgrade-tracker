@@ -153,7 +153,7 @@ function restore() {
 	matOrders = { reach: 'want', calls: true, pace: 'full', quests: 'near' };
 	port = 0; routes = { key: '', ids: [] }; shape = 'full'; routesOther = { key: '', ids: [] }; stash = ''; sail = null; reach = ''; planSec = 'ladder'; ownWay = false;
 	board = { day: '', answers: [], own: false }; matBoard = { day: '', answers: [], on: [], told: 0 };
-	questSkip = { day: '', ids: [] }; questPull = { day: '', ids: [] };
+	questSkip = { day: '', ids: [] }; questPull = { day: '', ids: [] }; routeEdit = { key: '', skip: [], nudge: {}, trips: [] }; advOpen = false; packed = new Set();
 	if (!s) return;
 	try {
 		if (['material', 'stock', 'coin'].includes(s.goal)) goal = s.goal;
@@ -161,6 +161,7 @@ function restore() {
 		if (STOCK_LEVELS.includes(Number(s.climb)) && Number(s.climb) < 7) climb = Number(s.climb);
 		if (['parley', 'ladder', 'how', 'chains', 'all', 'none'].includes(s.planSec)) planSec = s.planSec;
 		ownWay = s.ownWay === true;
+		if (Array.isArray(s.packed)) packed = new Set(s.packed.filter(k => typeof k === 'string' && k.startsWith('g|')));
 		if (s.routeEdit && typeof s.routeEdit.key === 'string') routeEdit = { key: s.routeEdit.key, skip: Array.isArray(s.routeEdit.skip) ? s.routeEdit.skip.map(Number).filter(Number.isFinite).slice(0, 40) : [], nudge: Object.fromEntries(Object.entries(s.routeEdit.nudge || {}).map(([k, v]) => [k, Math.max(-20, Math.min(20, Math.round(Number(v) || 0)))]).filter(([, v]) => v).slice(0, 40)), trips: Array.isArray(s.routeEdit.trips) ? s.routeEdit.trips.filter(x => typeof x === 'string').slice(0, 12) : [] };
 		// The orders start shut on every visit: they are set once and
 		// forgotten, and a page that opens on all ten of them is a page a
@@ -185,7 +186,7 @@ function restore() {
 			// run that outlived its page -- a phone gone to sleep, a tab
 			// reloaded an hour in, which is most runs -- was recorded as if
 			// its shore goods had cost nothing.
-			for (const k of ['loaded', 'bagLoaded', 'bought', 'parleyUsed', 'cost', 'silver', 'net', 'trades', 'questsHome', 'chains', 'goal', 'item', 'time', 'port', 'drawnAt', 'lastTick', 'weightStart', 'laidFor', 'appliedN', 'cal']) if (s.sail[k] !== undefined) keep[k] = s.sail[k];
+			for (const k of ['loaded', 'bagLoaded', 'bagFromHold', 'bought', 'parleyUsed', 'cost', 'silver', 'net', 'trades', 'questsHome', 'chains', 'goal', 'item', 'time', 'port', 'drawnAt', 'lastTick', 'weightStart', 'laidFor', 'appliedN', 'cal']) if (s.sail[k] !== undefined) keep[k] = s.sail[k];
 			if (s.sail.applied) keep.applied = cleanApplied(s.sail.applied);
 			sail = { key: s.sail.key, done: s.sail.done.map(String), seen: {}, got: {}, kept: Array.isArray(s.sail.kept) ? s.sail.kept.map(String) : [], stops: Array.isArray(s.sail.stops) ? s.sail.stops : [], ...keep };
 			for (const [k, v] of Object.entries(s.sail.seen || {})) if (Number(v) > 0) sail.seen[k] = Number(v);
@@ -273,6 +274,11 @@ function logBoard() {
 	store.setProfileQuiet('boardLog', [...log, [day, id, drifted ? 1 : 0]]);
 }
 
+/** The view as memory holds it, for a write. The bag's packing marks
+ *  ride with it: a reload before casting off kept every hold row's tick
+ *  (they read the hold) and lost the bag's. */
+const viewNow = () => ({ goal, climb, planSec, ownWay, routeEdit, stock: stockGoal, item, qty, wants, matOrders, port, routes, shape, routesOther, stash, board, matBoard, sail, reach, questSkip, questPull, packed: [...packed].slice(0, 60) });
+
 /**
  * The view written now, as a change Undo can take back: an edit to the
  * route -- a stop moved or skipped, a trip moved or left out, the
@@ -283,7 +289,7 @@ function persistNamed(label) {
 	writing = true;
 	try {
 		syncHold();
-		store.setViewNamed(VIEW_NS, { goal, climb, planSec, ownWay, routeEdit, stock: stockGoal, item, qty, wants, matOrders, port, routes, shape, routesOther, stash, board, matBoard, sail, reach, questSkip, questPull }, label);
+		store.setViewNamed(VIEW_NS, viewNow(), label);
 	} finally {
 		writing = false;
 	}
@@ -300,7 +306,7 @@ function flushView() {
 	writing = true;
 	try {
 		syncHold();
-		store.setView(VIEW_NS, { goal, climb, planSec, ownWay, routeEdit, stock: stockGoal, item, qty, wants, matOrders, port, routes, shape, routesOther, stash, board, matBoard, sail, reach, questSkip, questPull });
+		store.setView(VIEW_NS, viewNow());
 	} finally {
 		writing = false;
 	}
@@ -444,7 +450,7 @@ function ashore() {
 	for (const [name, qty] of Object.entries(store.getAllStock())) {
 		if (levelOf(name) === null || !(qty > 0)) continue;
 		for (const town of TOWNS) {
-			if (town === store.ABOARD) continue;
+			if (town === store.ABOARD || town === store.BAG) continue;
 			const n = store.stockAt(name, town);
 			if (n > 0) {
 				if (!byTown.has(town)) byTown.set(town, []);
@@ -1286,7 +1292,7 @@ function castOffRow(plan, from) {
 	// Inventory, not the plan.
 	const stock = aboardStock();
 	const inHoldNow = [...new Set(plan.stops.filter(x => x.npcId && x.give).map(x => x.give))].filter(g => stock[g] > 0).map(g => ({ item: g, n: stock[g] }));
-	const bagged = (plan.bagLoaded || []).filter(l => l.n > 0);
+	const bagged = [...(plan.bagLoaded || []), ...(plan.bagFromHold || [])].filter(l => l.n > 0);
 	if (!goods.length && !inHoldNow.length && !(plan.weightStart > 0) && !(plan.spares || []).length && !bagged.length) return '';
 	const w = shownHold((plan.stops[0] && plan.stops[0].hold) || currentShip().hold, plan.weightStart || 0);
 	const heavy = w.state === 'heavy' || w.state === 'dead', over = w.state === 'over';
@@ -3309,6 +3315,9 @@ function tripOf(plan, on, from) {
 			if (!ticked(on.kept, s, k, plan.stops)) for (const x of (s.sale && s.sale.items) || []) { add(as(x.item), -x.n); silver += x.total; }
 			for (const d of s.dropped || []) moves.push({ item: as(d.item), from: '', to: storeOf(s.wharf.at), n: Math.round(d.n) });
 			for (const l of s.loads || []) moves.push({ item: l.item, from: storeOf(s.wharf.at), to: '', n: Math.round(l.n) });
+			// Load Cargo at this wharf: goods between the hold and the bag.
+			for (const b of s.toBag || []) moves.push({ item: as(b.item), from: '', to: store.BAG, n: Math.round(b.n) });
+			for (const b of s.fromBag || []) moves.push({ item: as(b.item), from: store.BAG, to: '', n: Math.round(b.n) });
 			continue;
 		}
 		const paid = paidAt(s, on);
@@ -3327,7 +3336,13 @@ function tripOf(plan, on, from) {
 		add(as(s.item), s.times * paid);
 		trades += s.times;
 	}
-	if (on.done.length && from) for (const l of [...(plan.loaded || []), ...(plan.bagLoaded || [])]) moves.push({ item: l.item, from: from.name, to: '', n: Math.round(l.n) });
+	// What the harbour loaded: the hold's goods aboard, the bag's into the
+	// bag -- off the ship's weight, and not read as cargo by the next run.
+	if (on.done.length && from) {
+		for (const l of plan.loaded || []) moves.push({ item: l.item, from: from.name, to: '', n: Math.round(l.n) });
+		for (const l of plan.bagLoaded || []) moves.push({ item: l.item, from: from.name, to: store.BAG, n: Math.round(l.n) });
+	}
+	if (on.done.length) for (const l of plan.bagFromHold || []) moves.push({ item: l.item, from: '', to: store.BAG, n: Math.round(l.n) });
 	if (silver - spent) add(SILVER, silver - Math.round(spent));
 	return { delta, moves, silver, trades, spent: Math.round(spent) };
 }
@@ -3473,6 +3488,7 @@ function sailRecord(plan) {
 		stops,
 		loaded: (plan.loaded || []).map(l => ({ item: l.item, n: num(l.n) })),
 		bagLoaded: (plan.bagLoaded || []).map(l => ({ item: l.item, n: num(l.n) })),
+		bagFromHold: (plan.bagFromHold || []).map(l => ({ item: l.item, n: num(l.n) })),
 		weightStart: num(plan.weightStart),
 		bought: (plan.bought || []).filter(b => b.n > 0).slice(0, 40).map(b => ({ item: b.item, n: num(b.n), each: num(b.each || (b.total && b.n ? b.total / b.n : 0)) })),
 		cost: num(plan.cost), silver: num(plan.silver), net: num(plan.net), trades: num(plan.trades), parleyUsed: num(plan.parleyUsed),
@@ -3528,7 +3544,7 @@ function hydrate(list) {
 function planOfSail(on) {
 	if (!on || !Array.isArray(on.stops) || !on.stops.length || !on.stops.some(s => s.npcId && s.give)) return null;
 	const stops = on.stops.map(s => ({ ...s, quests: hydrate(s.quests) }));
-	return { stops, loaded: on.loaded || [], weightStart: on.weightStart || 0, bought: on.bought || [], cost: on.cost || 0, parleyUsed: on.parleyUsed || 0, questsHome: hydrate(on.questsHome), silver: on.silver || 0, net: on.net || 0, trades: on.trades || 0 };
+	return { stops, loaded: on.loaded || [], bagLoaded: on.bagLoaded || [], bagFromHold: on.bagFromHold || [], weightStart: on.weightStart || 0, bought: on.bought || [], cost: on.cost || 0, parleyUsed: on.parleyUsed || 0, questsHome: hydrate(on.questsHome), silver: on.silver || 0, net: on.net || 0, trades: on.trades || 0 };
 }
 
 /**
@@ -4011,7 +4027,9 @@ function packingOf(plan, from, chosen = []) {
 		...(plan.taken || []).filter(t => t.n > 0).map(t => ({ item: t.item, n: Math.ceil(t.n), per: perTrade(t.item), where: T('from your pile · {n} left', { n: F(t.left) }), key: `t|${t.item}` })),
 		// Into the sailor's own bag, not the hold: ticked, never moved to
 		// the hold's count, which the next laying would read as cargo.
-		...(plan.bagLoaded || []).filter(l => l.n > 0).map(l => ({ item: l.item, n: l.n, per: perTrade(l.item), where: from ? T('into your bag, from {town}', { town: gameName(from.name) }) : T('into your bag, from the storage'), key: `g|${l.item}` }))
+		...(plan.bagLoaded || []).filter(l => l.n > 0).map(l => ({ item: l.item, n: l.n, per: perTrade(l.item), where: from ? T('into your bag, from {town}', { town: gameName(from.name) }) : T('into your bag, from the storage'), key: `g|${l.item}` })),
+		// And out of the hold, when it is too heavy to cast off with them.
+		...(plan.bagFromHold || []).filter(l => l.n > 0).map(l => ({ item: l.item, n: l.n, per: perTrade(l.item), where: T('into your bag, out of the hold'), key: `g|hold|${l.item}` }))
 	];
 	// What the run starts from that is in the hold already. It is there
 	// to be seen and counted against the game's own window, and where
@@ -4623,6 +4641,8 @@ function silverParts(me, b) {
 	// What the sets are judged by: the stock, said as plain data so the
 	// search can take it to the worker.
 	const aim = coining ? { kind: 'coins' } : stocking ? { targets: stockGoal.targets, held: [...everythingHeld()], kind: stockGoal.aim } : null;
+	// Every laying of this plan judges its ways by the same aim.
+	if (aim) opts.aim = aim;
 	// The ceiling is part of the key as much as the barter count is: it
 	// decides which chains exist at all, and a search kept across a
 	// change of it would answer for chains this board no longer lists.
@@ -6395,7 +6415,7 @@ function storesElsewhere() {
 	const from = fromPort();
 	const out = [];
 	for (const town of TOWNS) {
-		if (town === store.ABOARD || (from && town === from.name)) continue;
+		if (town === store.ABOARD || town === store.BAG || (from && town === from.name)) continue;
 		const goods = {};
 		for (const [name, qty] of Object.entries(store.getAllStock())) {
 			if (levelOf(name) === null || !(qty > 0)) continue;
@@ -6837,15 +6857,15 @@ export function barterAction(act, el, redraw) {
 			toast(T('The Parley bar is full — the run is planned on {n}', { n: F(PARLEY.max) }), true);
 			return true;
 		}
-		// A thing on the packing list, fetched. Nothing is moved by this:
-		// buying at the Market and taking goods out of a storage are the
-		// game's own doing, and this is the sailor keeping their place.
+		// A thing on the packing list, fetched. A row that loads the hold
+		// loads it for real, or unloads it; the bag's rows are a mark the
+		// sailor keeps their place by, kept with the run.
 		case 'barter-pack': {
 			const k = String(el.dataset.k || '');
 			const x = { key: k, item: el.dataset.item, n: Number(el.dataset.n) || 0, cost: Number(el.dataset.cost) || 0 };
-			// The rows a tick loads: loaded for real, or unloaded.
 			if (/^[bltasu]\|/.test(k)) { packApply([x], !packedNow(x), fromPort()); return true; }
 			if (packed.has(k)) packed.delete(k); else packed.add(k);
+			persist();
 			return true;
 		}
 		// Every row of a group to one state: all aboard, or none. A row
@@ -6855,6 +6875,9 @@ export function barterAction(act, el, redraw) {
 			const rows = JSON.parse(el.dataset.rows || '[]');
 			const loads = rows.filter(x => /^[bltasu]\|/.test(x.key) && packedNow(x) !== want);
 			if (loads.length) packApply(loads, want, fromPort());
+			const marks = rows.filter(x => !/^[bltasu]\|/.test(x.key));
+			for (const x of marks) if (want) packed.add(String(x.key)); else packed.delete(String(x.key));
+			if (marks.length) persist();
 			return true;
 		}
 		case 'barter-save': askSaveOrders(redraw); return false;

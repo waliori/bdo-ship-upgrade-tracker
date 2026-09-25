@@ -98,10 +98,13 @@ export function margins({ picked, cands, opts, aim = null, ship, start = null })
 	const score = aim ? scoreFor(aim, opts.stock || {}) : run => valueOf(run, { ...opts.orders, preset: 'floor' });
 	const pause = (opts.orders && opts.orders.pause) || { isle: 0, call: 0 };
 	const hours = run => {
+		// The run's own hours when it was laid for this ship: the leg home
+		// and the stops are in them.
+		if (opts.ship && run.hours > 0) return run.hours;
 		const isles = run.stops.filter(s => s.npcId).length, calls = run.stops.length - isles;
 		return hoursOf(run, { start, npcById: opts.npcById, speed: ship.speed, cal: ship.cal }) + (isles * (pause.isle || 0) + calls * (pause.call || 0)) / 3600;
 	};
-	const lay = list => chainRun({ ...opts, chosen: list, effort: 1 });
+	const lay = list => chainRun({ ...opts, chosen: list, effort: 1, aim });
 	const base = picked.length ? lay(picked) : null;
 	const v0 = base ? score(base) : 0, h0 = base ? hours(base) : 0, t0 = base ? base.trades : 0;
 	const rows = cands.map(c => {

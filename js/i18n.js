@@ -222,7 +222,11 @@ const OFFICIAL_EN = {
 	'Carrack (Volante)': 'Epheria Carrack: Volante',
 	'Carrack (Valor)': 'Epheria Carrack: Valor'
 };
-const official = key => OFFICIAL_EN[key] || key;
+// Names the app gives places of its own, said in the language shown:
+// registered by the module that owns the word, so the catalogue finds it.
+const OWN_NAMES = new Map();
+export const nameAs = (key, say) => OWN_NAMES.set(key, say);
+const official = key => (OWN_NAMES.has(key) ? OWN_NAMES.get(key)() : OFFICIAL_EN[key] || key);
 
 /**
  * A game name as the client prints it, for display only.

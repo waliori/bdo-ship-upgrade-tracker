@@ -3,7 +3,7 @@
 // reserved it and every priced way of getting more.
 
 import { esc, F } from './fmt.js';
-import { T, said, gameName } from './i18n.js';
+import { T, said, gameName, nameAs } from './i18n.js';
 import * as store from './state.js';
 import {
 	img, codexName, amountInput, costCtx, costText, makeupHTML, barterHTML,
@@ -316,9 +316,10 @@ function pickBar(shownItems) {
 	</div>`;
 }
 
+nameAs(store.BAG, () => T('Your bag'));
 /** The storages a sailor actually uses, for the "where it is" note. */
 export const TOWNS = [
-	"Ship's hold", 'Velia', 'Port Epheria', 'Iliya Island', 'Olvia', 'Heidel', 'Glish', 'Calpheon City', 'Keplan', 'Trent',
+	"Ship's hold", store.BAG, 'Velia', 'Port Epheria', 'Iliya Island', 'Olvia', 'Heidel', 'Glish', 'Calpheon City', 'Keplan', 'Trent',
 	'Altinova', 'Tarif', 'Valencia City', 'Sand Grain Bazaar', 'Arehaza', 'Ancado Inner Harbor', 'Shakatu', 'Abun', 'Muiquun',
 	'Grána', 'Duvencrune', "O'draxxia", 'Eilton', "Oquilla's Eye", 'Nampo', 'Dalbeol Village', "Nopsae's Byeot County", 'Port Ratt', 'Elsewhere'
 ];
