@@ -40,7 +40,7 @@ import { parleyLedger, VOUCHER_COOLDOWN_MIN } from './parley-ledger.js';
 
 const VOUCHER = "Crow's Trade Voucher";
 import { exchanges, goodsHeld, landHeld, weightOf, sellOf, aboardStock as aboardOf } from './barter-plan.js';
-import { readBarterShots, pickShots, shotInlineHTML, shotGuideHTML } from './barter-import.js';
+import { openBarterImport, pickShots, shotGuideHTML } from './barter-import.js';
 import { imagesOn } from './shot-reader.js';
 import { openLayoutBook } from './layouts-view.js';
 import { driftOf } from './layout-book.js';
@@ -316,8 +316,9 @@ if (typeof window !== 'undefined') {
 	// nothing asking for one. Both sailors who asked for the readers
 	// asked for this: they have the picture on the clipboard already,
 	// and finding the button first is a step that answers nothing. The
-	// read starts on the page with the picture in hand. A paste into a
-	// field is left alone, and so is one while a dialog is up.
+	// reading opens with the picture in hand. A paste into a field is
+	// left alone, and so is one while a dialog is up -- the reading's
+	// own dialog takes a paste itself.
 	document.addEventListener('paste', e => {
 		const screen = document.querySelector('.barter-screen');
 		if (!screen || document.querySelector('#dialog:not([hidden])')) return;
@@ -348,10 +349,6 @@ if (typeof window !== 'undefined') {
 		if (files.length) readWindow(redrawTab, files);
 	});
 }
-
-/** Where a screenshot being read, and then the rows to check, stand:
- *  right under the paste zone that took it. There is no dialog. */
-const shotBoxHTML = () => `<div class="shot-inline" data-shot-inline>${shotInlineHTML()}</div>`;
 
 /** The tab drawn again from outside its own action handler. */
 function redrawTab() {
@@ -781,7 +778,7 @@ function boardHTML(b) {
 		: `<section class="panel board-ask${cls ? ` ${cls}` : ''}">
 			<div class="panel-head"><h2 class="panel-title">${T('Today’s board')}</h2><span class="panel-sub board-ask-lead">${lead}</span></div>
 			<div class="panel-body">
-				${acts ? `<button class="board-drop" data-act="barter-shot"><b class="by-key">${T('Paste your barter window here')}</b><b class="by-touch">${T('Add a screenshot of your barter window')}</b><span class="by-key">${T('Open the barter window in game, take a screenshot, press <kbd>Ctrl</kbd> <kbd>V</kbd>. The layout, your Parley and your barter count are read from it. Nothing is uploaded.')}</span><span class="by-touch">${T('Tap to choose the picture. The layout, your Parley and your barter count are read from it, on this device — nothing is uploaded.')}</span></button>${shotBoxHTML()}` : ''}
+				${acts ? `<button class="board-drop" data-act="barter-shot"><b class="by-key">${T('Paste your barter window here')}</b><b class="by-touch">${T('Add a screenshot of your barter window')}</b><span class="by-key">${T('Open the barter window in game, take a screenshot, press <kbd>Ctrl</kbd> <kbd>V</kbd>. The layout, your Parley and your barter count are read from it. Nothing is uploaded.')}</span><span class="by-touch">${T('Tap to choose the picture. The layout, your Parley and your barter count are read from it, on this device — nothing is uploaded.')}</span></button>` : ''}
 				${acts ? tradeShotHelp() : ''}
 				${acts ? `<div class="board-ask-acts"><span class="board-ask-or">${T('or')}</span>${acts}</div>` : ''}
 				${seen ? `<div class="barter-bar-seen"><span class="barter-bar-k">${T('looked at')}</span><span class="chips">${seen}</span></div>` : ''}
@@ -5102,6 +5099,33 @@ function openMatBook(then) {
 	});
 }
 
+/**
+ * A board the book already has, read again today, is counted without
+ * asking: how often a board comes round is what the book learns from,
+ * and a button to say "I saw it too" was a chore nobody owed. Signed in
+ * only -- a reading goes up with the account it came from, shown by
+ * name or not as the sailor chose for the community boards -- and once
+ * for what has been read; the server merges a sailor's readings of one
+ * day into one. A new board is still offered, never sent by itself.
+ */
+let matAutoTold = '';
+function matAutoTell() {
+	const st = matStage();
+	if (st.kind !== 'known' || st.told || !boardsShared() || !me()) return;
+	const mb = matBoardNow();
+	const read = mb.answers.filter(a => !a.took);
+	const key = `${mb.day}|${read.length}`;
+	if (matAutoTold === key) return;   // under way, or tried and failed
+	matAutoTold = key;
+	tellFleet(barterKey(), null, read.map(a => ({ ...a, qty: '1' })), 'material').then(out => {
+		if (!out.ok) return;
+		mb.told = read.length;
+		persist();
+		matFleet.asked = false;
+		redrawTab();
+	}).catch(() => {});
+}
+
 /** Is there anything read and not yet sent? */
 function matTellable() {
 	const mb = matBoardNow();
@@ -5142,7 +5166,8 @@ function matStage() {
 	const whole = matWhole();
 	const complete = kind === 'new' && (mb.whole || read >= Math.round(whole * 0.9));
 	const told = read > 0 && (mb.told || 0) >= read;
-	const step = kind === 'start' ? 1 : kind === 'split' || kind === 'taken' ? 2 : kind === 'known' ? (fit.fill.length ? 2 : 3) : complete ? 3 : 2;
+	// A known board has nothing to share: it is counted by itself.
+	const step = kind === 'start' ? 1 : kind === 'split' || kind === 'taken' ? 2 : kind === 'known' ? (fit.fill.length ? 2 : 4) : complete ? 3 : 2;
 	return { kind, step, fit, read, whole, complete, told, fits, taken };
 }
 
@@ -5195,7 +5220,7 @@ function matBarHTML() {
 	const theirs = today.find(b => !b.mine);
 	const shared = boardsShared();
 	const book = `<button class="ghost-btn sm" data-act="barter-mat-book" title="${T('Every material board sailors have read, what each pays, how often it has been seen, and by whom')}">📖 ${T('The material book')} · ${pages.length === 1 ? T('{n} board', { n: F(pages.length) }) : T('{n} boards', { n: F(pages.length) })}</button>`;
-	const drop = (big, lead, sub) => `<button class="board-drop${big ? '' : ' slim'}" data-act="barter-shot"><b class="by-key">${lead}</b><b class="by-touch">${lead}</b><span>${sub}</span></button>${shotBoxHTML()}`;
+	const drop = (big, lead, sub) => `<button class="board-drop${big ? '' : ' slim'}" data-act="barter-shot"><b class="by-key">${lead}</b><b class="by-touch">${lead}</b><span>${sub}</span></button>`;
 	const stepper = [
 		[1, '📷', T('One page'), T('Paste a screenshot of the list')],
 		[2, kind === 'new' ? '📜' : '🔍', kind === 'new' ? T('The whole list') : T('Which board'), kind === 'new' ? T('A new board: read every page') : T('Known to the book?')],
@@ -5243,7 +5268,8 @@ function matBarHTML() {
 			<div class="mat-acts">${fit.fill.length
 		? `<button class="chip primary" data-act="barter-mat-fill" title="${T('Tick them as taken from the board, not read: they show dashed below, and a page read later puts any that differ right')}">${fit.fill.length === 1 ? T('Fill in its other {n} island', { n: fit.fill.length }) : T('Fill in its other {n} islands', { n: fit.fill.length })}</button>`
 		: `<span class="mat-done">${T('Every island of it is on today’s list. Open a material below and the run lays itself out.')}</span>`}
-			${st.told ? `<span class="mat-done">✓ ${T('The fleet knows you saw it')}</span>` : tellBtn(!fit.fill.length, T('Tell the fleet you saw it'), T('Counts this board as seen again today, with your name on it: how often a board comes round is what the book learns from'))}</div>`;
+			${st.told ? `<span class="mat-done">✓ ${T('The fleet knows you saw it')}</span>` : ''}</div>`;
+		setTimeout(matAutoTell, 0);
 	} else {
 		const figures = `${progress(st.read, st.whole)}`;
 		body = st.complete
@@ -6113,10 +6139,6 @@ export function renderBarter() {
 	setTimeout(refreshSheet, 0);
 	const now = stepNow();
 	const on = sailing();
-	// A board with no paste zone on it -- one already known, say -- or
-	// another step: the reading stands under the board, or at the top.
-	const boardPart = boardHTML(b);
-	const shotBox = shotBoxHTML();
 	const secs = parts.secs.map(([id, title, summary, body], i) => planSection(i + 1, id, title, summary, body)).join('');
 	// Three steps, in the order they are answered: what the day is for,
 	// then what the game is showing -- the board or the material list,
@@ -6124,7 +6146,7 @@ export function renderBarter() {
 	const planStep = `${dayStep(1, T('What is today for?'), T('It decides which list of the barter window is read next'))}
 		${goalCardsHTML()}
 		${dayStep(2, goal === 'material' ? T('Read today’s material list') : T('Read today’s board'), goal === 'material' ? T('A screenshot of the barter window: its rows paying ship materials are read') : T('A screenshot of the barter window: the layout is found from a few islands'))}
-		${rolledHTML()}${pinnedHTML(b)}${boardPart}${boardPart.includes('data-shot-inline') ? '' : shotBox}${parts.cont || ''}
+		${rolledHTML()}${pinnedHTML(b)}${boardHTML(b)}${parts.cont || ''}
 		${dayStep(3, T('Plan the run'), T('Four parts · each opens when the one before is settled'), `<button class="linky" data-act="barter-sec" data-id="all">${T('show all')}</button><button class="linky" data-act="barter-sec" data-id="none">${T('collapse all')}</button>`)}
 		${shapeBarHTML()}
 		${secs}${parts.dock || ''}`;
@@ -6136,7 +6158,7 @@ export function renderBarter() {
 		<button hidden data-act="barter-redraw" tabindex="-1" aria-hidden="true"></button>
 		${strandedHTML()}${underWayHTML(now)}${recordedHTML()}
 		${stepperHTML(parts, now)}
-		${now === 'load' || now === 'sail' || now === 'results' ? shotBox : ''}${body}
+		${body}
 	</div>`;
 }
 
@@ -6258,7 +6280,7 @@ function bagsNow() {
  */
 function readWindow(then, files) {
 	boardNow();   // the day's answers, reset if the refill has passed
-	readBarterShots({
+	openBarterImport({
 		files,
 		deals: exchanges(barterData),
 		onAnswers: answers => {
@@ -6780,7 +6802,7 @@ export function barterAction(act, el, redraw) {
 		case 'barter-trip': openTripLog(); return false;
 		case 'barter-board-ask': pickOffer(Number(el.dataset.npc), redraw); return false;
 		// The paste zone, pressed: the pictures are chosen straight away,
-		// and read on the page.
+		// and the reading opens with them.
 		case 'barter-shot': pickShots(files => readWindow(redraw, files)); return false;
 		case 'barter-book': openBook(redraw); return false;
 		case 'barter-fleet-take': takeFleetBoard(el.dataset.id, redraw); return false;
