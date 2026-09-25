@@ -202,10 +202,12 @@ the count that opens the next trade route, in the same change as the
 goods and the silver — one Undo takes back all of it — and a run that
 carries you past a threshold says which route it opened. It stays a
 field you can type over when it and the game drift apart; it lives in
-the bar above the tabs, with the barter level, the Parley, the vouchers,
-the Sailing Mastery, the Bos'n Jacks you have out and the region the
-prices are quoted in, because they are read by every screen and not
-only this one.
+*The sailor*, the bar above the tabs, with the barter level, the Value
+Pack, whether a Corsair is at the wheel, the Sailing Mastery and the
+sailing log, the Bos'n Jacks you have out and the region the prices are
+quoted in, because they are read by every screen and not only this one.
+The Parley in the bar and the vouchers you carry are the Barter tab's
+own, typed under *Before you sail*.
 
 **And it decides which islands exist.** The game opens the trade routes
 island by island as that count climbs — 600 barters opens Lantinia's
@@ -585,6 +587,14 @@ Carrack the difference between the average and the real rolls is over a
 point of speed, which is the whole gap between the app's figure and the
 game's.
 
+**A Corsair at the wheel, and the sailing log.** The Corsair's class
+bonus — one per cent more speed, acceleration, turn and brake — is a
+switch in *The sailor*, and the Ship tab's speed line says *+ Corsair 1*
+when it is on. A **sailing log** (Loggia, Srulk or Manos, at its
+enhancement) is chosen there too: the mastery it adds is already in
+your total, so it is not counted twice, and its top-speed bonus times
+every leg at sea — the Barter tab's route, its clock and the Map alike.
+
 **Or read the crew off a screenshot.** *Read screenshots* on the sailor
 list takes the game's own windows — Manage Sailors whole, or a cropped
 Selected Sailor panel, or a mixture — and comes back with names, levels,
@@ -597,8 +607,9 @@ Tenacious all cost five cabins and 300 LT) from where the growths went —
 with anything less than certain marked for a look, and a dropdown to
 correct it.
 
-**In any language the game runs in.** Say which of the sixteen the
-client's own menu lists is yours and the reader speaks it: 식성 and
+**In any language the game runs in.** The reader speaks the language
+chosen under **Menu → Language** — the one setting for the whole app,
+and it says so beside the drop zone: 식성 and
 生活物資 and Требуется кают are labels like any other, and a Cyrillic,
 Hangul, Han or Thai name comes back as the name. The ten Latin services
 read on the model already aboard; Русский, 日本語, 한국어, 中文, 繁體中文
@@ -740,6 +751,17 @@ touched. The link carries the drawing itself, not a pointer to it, so
 it works for someone who has never opened the app before; a trace taken
 in this way is on the water like one drawn here, to draw on or keep.
 
+**Several lines in one drawing.** Each ink is a line of stops numbered on
+its own, so one trace can hold a morning's loop and an evening's. The
+game export writes each line to a loop of its own, or one line (or all
+of them) as favourites.
+
+**Short links when you are signed in.** A plan, a ship setup, a drawing
+or a route is kept on the server under ten characters and the address
+is `#s/<id>`, open to anyone holding it. Signed out, the thing still
+rides whole in the address as before — three of the four packed shorter
+than they were — and every older link form still opens.
+
 Up to twenty traces live on a shelf below, each drawn small with what
 it holds and when it was kept: open one to draw on it, rename it, copy
 a link to it, or open its **eye** to lay it over the chart beside
@@ -750,8 +772,6 @@ sort, and every trace as a card.
 
 ### A run on today's board
 
-![Answering what one island shows; the whole board follows, a run is laid out, and Sail this run draws it on the Map](docs/media/plan-a-run.gif)
-
 The trade-goods barters are not rolled island by island: every refresh
 the whole sea shows one of forty fixed layouts, which a community
 record of nearly two thousand refreshes writes out island by island. So
@@ -759,17 +779,59 @@ the **Barter** tab asks what *one* island is showing — tap it from that
 island's possible offers, the one that tells the layouts apart best is
 suggested — and the whole board follows: every chain the day allows,
 listed by how far it reaches and what it pays, and the ones ticked are
-one run. The hold is what is actually aboard, weighed against the ship
-as fitted and the ceiling the islands still deal under; the sailing
-orders say what the run is for, which levels a wharf sells and at what
-pace; and a strip along the foot keeps the run in a line. *Lay it out*
-opens every stop, what to buy before casting off and the quests handed
-in on the way; *Sail this run* draws it on the Map, where the chart's
-panel becomes the run sheet and each stop is ticked off as it is dealt.
-*Record the trip* at the end puts the whole of it in the Inventory as
-one undoable change. The details — the material run, the three paces,
-the quests that come along, the wharf calls — are under
+one run. A run is four steps, one on the page at a time:
+
+- **Plan.** *Before you sail* takes the Parley as the window's head
+  reads it, the vouchers you carry, your home port and the seconds a
+  stop takes. The **ladder** says where the day ends — tap a rung for
+  the ceiling, each level marked climbs on, sells or kept, a floor on
+  any rung. **How to sail it** offers five ways (light and fast, an hour
+  at most, the whole board at full speed, the whole board loaded heavy,
+  spend no silver), each with the best run the search finds that way,
+  or your own orders. Then the chains on offer, with the runs worth
+  sailing at the top.
+- **Load.** The packing list: buy at the Market, take from storage, put
+  in your bag, already aboard. **A tick loads the hold for real** — the
+  silver comes off, the storage goes down — and the route below it is
+  laid from what is ticked. A run the hold cannot carry at once is
+  **trips**, each with its goods and the stop they come aboard at
+  (early, where the ship is back at the harbour with room); a trip can
+  be sailed sooner or later or left out, a stop moved or skipped, every
+  leg shown as a still of the chart, and Undo takes back each change.
+- **Sail.** The cockpit, one stop at a time, in a glance view large
+  enough to read across a room. **Traded** writes the stop into the
+  hold on every tab at once; the clock waits at each island until you
+  press it, then counts the next leg from the press. *Arrived* times a
+  leg, and after five of them the app uses your own hull's pace.
+- **Results.** What the run came to, and *Record the trip*, which adds
+  the Parley, Total Barters, the quests and the log — one change, one
+  Undo. A run stopped part-way can be **continued**: the board keeps
+  the attempts each island dealt until it is refreshed in game.
+
+The route is searched rather than fallen into: distances by water from
+a baked table of every island, harbour and wharf
+(`tools/build-sea-dist.mjs`), islands near one another put on the same
+trip, and a run that calls at wharves laid several ways and kept by
+what it is worth an hour. The details — the material run, the paces, the
+quests that come along, the wharf calls — are under
 [What's covered](#whats-covered).
+
+**Your bag as a second hold.** Opt in under *Before you sail* with the
+Inventory window's two bars — typed, or read off a screenshot — and the
+app works out what your character can carry off the ship's weight: up
+to 170% of the limit, less what it holds, in the slots still empty. A
+later chain's goods ride in it and go in and out at any wharf's *Load
+Cargo*; sales stay at the seven wharves with a storage keeper (Velia,
+Port Epheria, Iliya, Ancado, Oquilla's Eye, and Nampo's Moodle Village
+and Nopsae's Byeot County at the Dami and Dallae piers). The bag gets its
+own group on the packing list, and the run without it is kept when it
+pays better an hour — the plan says why the bag went unused.
+
+**The material list has a book of its own.** Sailors' readings of the
+ship-material list are kept on the server for a year as their own
+board list; two readings that agree island for island are one board
+seen again, and a page of the window read against them names the board
+and offers its other islands, ticked as taken rather than read.
 
 **A run buys only what the Central Market has.** A chain that starts on
 land starts with something bought, and the Market's last price stands
@@ -1111,17 +1173,16 @@ the Gold Bars a few islands take, bought ashore and priced; a give kept
 in a storage the run cannot load from, to bring to the harbour first;
 and, for what is held nowhere, the way to the item board.
 
-A run is sailed on the **Map**. *Sail this run* draws the route on the
-chart and the chart's panel becomes the run sheet: the numbered rail,
-each stop's trade and count, the hold and the Parley after it, the wharf
-calls with what is left in storage, the quests handed in, Done, and
-Record the trip at the end. A stop's name flies the chart to it; Done
-steps the chart on to the next; a pin pressed on the chart brings its
-stop up the sheet. The plotting tools fold under it. The Barter tab is
-where the run is chosen; the Map is where it is sailed.
+A run is sailed from the Barter tab's **Sail** step or from the **Map**,
+whichever is in front of you: the chart's run panel is the same cockpit
+— the same stop, the same press, the same figures, the rest of the run
+folded under it — and the two follow each other, a tick on either
+stepping the chart and a chip on the chart moving the cockpit. A run
+planned and not yet cast off is on the chart as the Load step lays it,
+with sooner, later and skip, and *Cast off* opens the cockpit there.
 
-The silver run has three paces, compared in numbers under its tiles
-so the choice is made on silver, minutes and calls rather than on a
+The silver run has three paces, each one of the ways of sailing, so
+the choice is made on silver, minutes and calls rather than on a
 word. *Fast* keeps the hold under the limit and makes no wharf call, so
 the hull never slows. *Full, never slower* does every attempt the
 islands allow and leaves the surplus at a wharf before the hull would
@@ -1173,12 +1234,11 @@ only once the run's trades make its count up, the count kept from run
 to run and made up by itself when a trip is recorded. A stop ticked
 off on the checklist hands in the quests at it.
 
-The tab is one column: the board, the hold as a line that opens over
-the page, the run's orders and figures, then what is on offer -- the
-chains as cards, or the material list. The run laid out is a sheet over
-the page: while anything is ticked a strip stays along the foot of the
-window with the run in a line, and opens the whole of it, so the
-answer is never out of sight and never in the way of the ticking.
+The tab is four steps across its head — Plan, Load, Sail, Results —
+one on the page at a time, each card saying where it stands. While
+anything is ticked a bar along the foot keeps the run in a line and
+the step's one press within reach, so the answer is never out of sight
+and never in the way of the ticking.
 
 Every line the chart draws, and every loop it writes, is bent round the
 land in its way: `tools/build-seamask.mjs` reads the shipped tiles and
@@ -1421,92 +1481,177 @@ writes their save back.
 ```
 index.html            the whole shell: masthead, tabs, screen
 server.js             static files, plus the sync API when configured
-css/tracker-*.css     the design system, nine sheets linked in order
+css/tracker-*.css     the design system, linked in order
 js/
-  ui.js               the shell: render loop, event wiring, boot
-  screen-*.js         one module per tab — plan, builds, inventory, tree,
-                      workshop, to-get, map, quests, crew
+  boot.js             starts the app
+  ui.js               the shell: render loop, event wiring, links landing
   ui-state.js         the shared view state, recomputed from the store
   ui-bits.js          icons, linked names, priced costs — the screens' vocabulary
+  viewport.js         what counts as a phone, said once
+  sheet.js            a panel a thumb can move
   pouch.js            the currency bar above the tabs
+  profile-bar.js      The sailor: the barter count, level, Value Pack, Corsair,
+                      draws, mastery, sailing log, Bos'n Jacks and region
   peek.js             the hover card
+  item-card.js        everything the app knows about one item, on one card
+  picker.js           one list with pictures, a search box and the keyboard
+  jump.js             Find: one box that reaches every item and every tab
   dialogs.js          toasts and dialogs
+  cheer.js            a small burst of light for a thing done
   fmt.js              escaping and number formats
-  i18n.js             the sixteen languages: T() for the app's own words,
-                      gameName() for the game's, and nothing imported so
-                      a tool can use it in Node
+  i18n.js             the thirteen interface languages (sixteen for the
+                      readers): T() for the app's own words, gameName() for
+                      the game's, nameHas() for search
   lang/en.json        the English catalogue, generated from the T() calls
+                      and index.html's data-t labels
   lang/<code>.json    one interface pack per language
-  lang/names.<code>.json  the game's own item and ship names, per language
+  lang/names.<code>.json  the game's own names, per language
   state.js            the store: stock, targets, undo/redo, persistence
+  profile-shape.js    what a save's profile may hold, and how each field is bounded
+  profiles.js         more than one save on one browser
   planner.js          pure planning — netting, explosion, costing, enhancement
   sync.js             optional device sync: pull, push, conflict
+  share.js            a plan in a link
+  links.js            one link, short where it can be (#s/<id> when signed in)
+  push-sub.js         the browser's one push subscription
+  presence.js         how many sailors are out right now
   digest.js           what a save says about its sailor, for the boards
-  screen-community.js the Community tab: the hall of fame, the fleet in numbers
-  feedback.js         Menu → Feedback, and the admins' inbox
-  markup.js           the little markup a report is written in, and the HTML it becomes
-  recipes.js          recipes and enhancement chains
-  ships.js            what can be queued
-  sea_coins.js        Crow Coin prices
-  coin-shop.js        spending them: the dialog, and the one change it writes
-  falasi_vendor.js    Falasi's silver prices
+  about.js            what the data was checked against, the releases, the diary
+  guide.js            the field guide: the game's own windows, a card a concept
+  guided-tour.js      the guided tour
+  film.js             where each chapter of the walkthrough film starts
+  screen-plan.js      the Plan
+  screen-builds.js    the Builds queue
+  screen-inventory.js the Inventory, and the storages a good can sit in
+  screen-tree.js      the requirement tree, exactly as the planner built it
+  screen-workshop.js  what can be crafted or enhanced now
+  screen-tables.js    the enhancement tables, printed
+  screen-get.js       To Get: everything outstanding, by how it is got
+  get-plan.js         the way to get each thing
+  get-way.js          the way to get the list, read off the live state
+  screen-quests.js    the Quests tab
+  quests.js           the quests that pay in ship materials
+  quest-today.js      what is still to do today
+  quest-course.js     the day's errands, as one loop
+  quest-places.js     where the sea's quests are handed in
+  quest_icons.js      the icon beside each quest
+  screen-crew.js      the Ship tab: the hull, its parts, the crew and its seats
+  ship.js             the ship you are sailing: hull, parts, crew, speed
+  ship-pace.js        how fast a ship really sails, from the legs it timed
+  ship_stats.js       what each hull is, in the game's own numbers
+  ship_roles.js       what each hull is for
+  ship_skins.js       the two appearance sets
+  part_stats.js       what each part does, level by level
+  setups.js           the fleet: every ship you own or have kept
+  crystals.js         what a sea crystal does to the hull
+  sea_crystals.js     the 287 sea crystal variants, by grade
+  sailors.js          the hiring pool, condition, first mates, and arranging a
+                      crew for a stated goal
+  sailor_rolls.js     what each level-up can add to a sailor
+  sailor_titles.js    every sailor type's name, per game language
+  sailor-locales.js   the sailor window's words in every language the game runs in
+  sailor-shot.js      a sailor read out of a screenshot's words -- pure
+  sailor-import.js    the sailor reader's dialog
+  shot-reader.js      the vendored OCR engine and the bank of icons
+  storage-shot.js     a storage window read off its pixels -- pure
+  count-net.js        the small network that reads a slot's count -- pure
+  count_model.js      its weights, written by tools/count-reader
+  storage-import.js   the storage reader's dialog
+  bag-shot.js         the Inventory window's two bars, read off a screenshot,
+                      and the room the bag has on a run
+  screen-barter.js    the Barter tab: plan, load, sail, results
+  barter.js           what a bartered material costs in sea time
+  barter_npcs.js      where the 91 barterers are, and the harbours
+  barter_gates.js     the barter count each exchange needs, from the client
+  barter_combos.json  the forty layouts
   all_barter.json     barter routes, scraped from BDOCodex
+  barter-board.js     which of the forty layouts the sea is showing
+  barter-odds.js      how often an offer is actually there
+  barter-orders.js    the sailing orders: what a run is for, said once
+  barter-plan.js      a run planned from what is aboard
+  barter-chains.js    the runs a board allows, chain by chain, laid in trips,
+                      with the bag as a second hold
+  barter-route.js     the shortest order through a run's stops, by water
+  barter-optimizer.js the runs worth sailing today, found rather than ticked
+  barter-worker.js    the run search, off the main thread
+  barter-short.js     a short trip: one trade chosen, and what fits round it
+  barter-material.js  the run for a material
+  barter-shot.js      the barter window read out of a screenshot -- pure
+  barter-import.js    the barter reader's dialog
+  material-book.js    what the fleet has read of the material list
+  material-book-view.js  the material book, on the screen
+  sea-boards.js       /api/boards from the browser: what the fleet read today
+  layout-book.js      the layouts on file against the fleet's readings -- pure
+  layouts-view.js     the layout book's dialog
+  parley-ledger.js    what the Parley bar holds after each stop
+  land-cost.js        what a land good costs the run
+  land_goods.js       the land goods the chains start from
+  land_weights.js     what each land good weighs
+  trade_goods.js      the sea trade goods, by level
+  market.js           Central Market prices and stock, per region, kept offline
+  sail-timer.js       the clock for the time the ship is out
+  pace.js             legs timed at sea, and the ship's own figure learnt from them
+  screen-map.js       the Map: the chart, the list drawn on it, routes and traces
   map.js              the tile viewer's arithmetic
-  barter_npcs.js      where the 91 barterers are
+  map/                the Map's parts: view, paint, gestures, marks, route,
+                      trace (the Draw tab), errands, offline areas, terrain (3D),
+                      the game's world map, render and actions
   searoute.js         bending a leg round the land, and timing it
+  sea_dist.js         the chart's fixed points apart by water
+  seamask.js          where the sea is
+  sailing.js          the chart's distances in the game's metres
+  rations.js          what a route eats
+  route-ledger.js     what a plotted loop brings in and hands over
+  saved-routes.js     routes kept by name
   wharves.js          the 58 wharf managers and the guild wharves
   habitats.js         where each species lives, on the water
+  sea_monsters.js     every spawn point BDOCodex lists
+  monster_art.js      each sea monster's artwork
   courses.js          the community maps fitted to the chart
+  worldmap.js         the game's own world map, and a route put on it
+  gamefile.js         writing stops into the game's own world map
   today.js            the Today strip, the clocks and the Vell timetable
   clock.js            the resets, ticking in place
-  pace.js             how fast each build has been moving
   triplog.js          everything one trip brought back, as one change
-  guided-tour.js      the guided tour
+  recipes.js          recipes and enhancement chains
   enhancement.js      per-level rates, Agris caps, perfect-enhance costs
-  ship_stats.js       what each hull is, in the game's own numbers
-  part_stats.js       what each part does, level by level
-  sailors.js          the hiring pool, positions, condition, first mates,
-                      and arranging a crew for a stated goal
-  sailor-locales.js   the sailor window's words in every language the game runs in
-  sailor-shot.js      a sailor read out of a screenshot's words -- pure, and tested
-  shot-reader.js      the vendored OCR engine, the passes over a screenshot,
-                      and the bank of icons a storage slot is named against
-  sailor-import.js    the drop, the reading and the table that checks it
-  storage-shot.js     a storage window read off its pixels: the lattice, the
-                      icon each slot holds, the count over its corner, and the
-                      rows two scrolled shots share -- pure
-  count-net.js        the small network that reads a slot's count: convolution,
-                      pooling and the CTC decoding, in plain JavaScript -- pure
-  count_model.js      what it was taught: its weights, written by tools/count-reader
-  storage-import.js   the Inventory's drop, and the counts it writes at a storage
-  barter-shot.js      the barter window read out of a screenshot's words, against
-                      the exchanges each island deals -- pure, and tested
-  barter-import.js    the Barter tab's drop, and the islands it answers at once
-  sea-boards.js       /api/boards from the browser: what the fleet read today
-  layout-book.js      the layouts on file against what the fleet has read: which
-                      layout a reading votes for, and the boards in no record -- pure
-  layouts-view.js     the layout book's dialog: cards, a board opened out, search
-  quests.js           the quests that pay in ship materials
-  sea_crystals.js     the 287 sea crystal variants, by grade
-  gamefile.js         writing stops into the game's own world map
-  market.js           Central Market prices, per region, kept offline
+  ships.js            what can be queued
+  kinds.js            what kind of thing a name is
+  vendor_items.js     where each item is got
+  sea_coins.js        Crow Coin prices
+  coin-shop.js        spending them
+  falasi_vendor.js    Falasi's silver prices
+  icon-loader.js      item name -> icon file and BDOCodex page
+  screen-community.js the Community tab
+  feedback.js         Menu → Feedback, and the admins' inbox
+  markup.js           the little markup a report is written in
 reader/               Tesseract, vendored: every screenshot is read in the browser
-tools/check-env.mjs   npm run check -- validates a sync configuration
+tools/check-env.mjs   npm run check -- validates a configuration
+tools/backup.mjs      npm run backup / restore -- every table, and the pictures
 tools/build-lang.mjs  reads every T() call into js/lang/en.json, and checks
                       each pack for dead keys and lost {placeholders}
+tools/lang-todo.mjs   what each pack still lacks
 tools/fetch-names.mjs the game's own names per language, from BDOCodex
+tools/build-sea-dist.mjs  the distances by water between every island and wharf
 server/               only loaded when sync is configured
   config.js           what is switched on, and what is therefore offered
   db.js               libSQL schema and queries
   auth.js             the Discord OAuth exchange
+  session.js          signed session cookies, no session table
   api.js              /api/me and /api/state
+  saves.js            where a save lives while the server is up
+  links.js            /api/links — a thing shared as a short link
   community.js        /api/community — the boards, built from the digests
   boards.js           /api/boards — what the fleet saw of today's barter board
-  feedback.js         /api/feedback — posts, screenshots, the inbox, a copy to a webhook
+  feedback.js         /api/feedback — posts, screenshots, the inbox, a webhook
   images.js           is this actually a picture, and how big is it
   market.js           /api/market — the Market relay, on by default
-  session.js          signed session cookies, no session table
-test/                 npm test — the server, the cost model, and a browser
+  push.js             the Vell reminder, and an account's own chimes
+  presence.js         how many sailors are out
+  limit.js            how often an account, or an address, may ask
+  log.js              one line per request, and a few counters
+  wrap.js             async handlers for Express 4
+test/                 npm test — the server, the planners, and a browser
 icons/                item and ship icons (WebP)
 icon_mapping.json     item -> icon file and BDOCodex page
 og.png                the social preview card
