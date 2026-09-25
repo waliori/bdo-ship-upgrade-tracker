@@ -63,6 +63,7 @@ const SHELL = [
 	'/css/tracker-recent.css',
 	'/css/driver.css',
 	'/js/all_barter.json',
+	'/js/bag-shot.js',
 	'/js/barter_combos.json',
 	'/js/material_boards.json',
 	'/js/driver.iife.js',

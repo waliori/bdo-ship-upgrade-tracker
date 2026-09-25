@@ -660,3 +660,30 @@ test('on a full run a good another chain takes later goes into the bag when the 
 	if (uses >= 0) assert.ok(back < uses, `${item} is aboard before the island that takes it`);
 	assert.ok(run.stops.some(s => (s.toBag || s.fromBag) && !stashes.some(w => w.at === s.wharf.at)), 'the bag is used at a wharf with no storage too');
 });
+
+test('a good takes one slot in the bag however many of it, and the bag holds no more kinds than it has slots', () => {
+	const l34 = combos.find(c => c.id === '34');
+	const d34 = boardData(l34, barterData, npcById);
+	const dock = { '[Level 5] Supreme Gold Candlestick': 6, '[Level 5] 102 Year Old Golden Herb': 4, "[Level 5] Statue's Tear": 3, '[Level 5] Golden Fish Scale': 3, '[Level 4] Old Chest with Gold Coins': 36, '[Level 4] Bronze Candlestick': 18 };
+	const chosen = chains(d34, {}, dock).filter(c => c.from === 'dock' && c.top === 7 && dock[c.item]);
+	const docks = wharves.filter(w => w.kind === 'wharf');
+	const kindsAtMost = run => {
+		const inBag = new Map((run.bagLoaded || []).map(l => [l.item, l.n]));
+		let most = [...inBag.values()].filter(n => n > 1e-9).length;
+		for (const s of run.stops) {
+			for (const d of s.toBag || []) inBag.set(d.item, (inBag.get(d.item) || 0) + d.n);
+			for (const d of s.fromBag || []) inBag.set(d.item, inBag.get(d.item) - d.n);
+			most = Math.max(most, [...inBag.values()].filter(n => n > 1e-9).length);
+		}
+		return most;
+	};
+	for (const pace of ['fast', 'full']) {
+		const opts = { chosen, dock, hold: { free: 12000, deal: pace === 'full' ? 15000 : 12000, max: 20400 }, parley: { bar: 1e7, perTrade: 10512 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes, docks, pace, orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7, pause: { isle: 30, call: 60 } } };
+		const roomy = chainRun({ ...opts, bag: { free: 8000, slots: 58 } });
+		const one = chainRun({ ...opts, bag: { free: 8000, slots: 1 } });
+		const none = chainRun({ ...opts, bag: { free: 8000, slots: 0 } });
+		assert.ok(kindsAtMost(one) <= 1, `${pace}: one slot, one kind (${kindsAtMost(one)})`);
+		assert.equal(kindsAtMost(none), 0, `${pace}: no slot, nothing in the bag`);
+		assert.ok(kindsAtMost(roomy) >= kindsAtMost(one));
+	}
+});

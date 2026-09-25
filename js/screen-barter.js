@@ -41,7 +41,7 @@ import { parleyLedger, VOUCHER_COOLDOWN_MIN } from './parley-ledger.js';
 const VOUCHER = "Crow's Trade Voucher";
 import { exchanges, goodsHeld, landHeld, weightOf, sellOf, aboardStock as aboardOf } from './barter-plan.js';
 import { openBarterImport, pickShots, shotGuideHTML } from './barter-import.js';
-import { imagesOn } from './shot-reader.js';
+import { imagesOn, readWords, shotLang } from './shot-reader.js';
 import { openLayoutBook } from './layouts-view.js';
 import { driftOf } from './layout-book.js';
 import { boardsFor, sawItToo, tellFleet, fleetHistory, shared as boardsShared } from './sea-boards.js';
@@ -54,6 +54,7 @@ import { chains, chainRun, tailOf } from './barter-chains.js';
 import { shortTrades, margins, cutOf } from './barter-short.js';
 import { materialRun } from './barter-material.js';
 import { seaDist, routeLength } from './barter-route.js';
+import { bagFigures, bagRoom, figure } from './bag-shot.js';
 import { wharves } from './wharves.js';
 import { tradeGoodNames } from './trade_goods.js';
 import { landGoods } from './land_goods.js';
@@ -923,8 +924,10 @@ const STORE_NAMES = { 'Dami Pier': "Nampo's Moodle Village", 'Dallae Pier': "Nop
 // Every wharf's Load Cargo moves goods between the bag and the ship,
 // storage keeper or not; and the bag, when the sailor sails that way.
 const docks = wharves.filter(w => w.kind === 'wharf');
-const bagSet = () => store.getProfile('bag', null) || { on: false, lt: 0 };
-const bagNow = () => { const b = bagSet(); return b.on && b.lt > 0 ? { free: b.lt } : null; };
+// The Inventory window's two bars are what the sailor gives; what the
+// bag takes is worked out from them (bag-shot.js).
+const bagSet = () => store.getProfile('bag', null) || { on: false, now: 0, max: 0, used: 0, slots: 0 };
+const bagNow = () => { const b = bagSet(); const r = bagRoom(b); return b.on && r.lt > 0 ? { free: r.lt, slots: r.slots } : null; };
 const stashes = STASHES.map(at => wharves.find(w => w.kind === 'wharf' && w.at === at)).filter(Boolean);
 
 /** The legs of a run, bent round the land: distance and time. */
@@ -2135,15 +2138,45 @@ function ladderHTML(o, { fits = null, tickedN = 0 } = {}) {
 
 /** An order as a row of chips -- or a box, where the choices are too
  *  many for a row -- with the sentence the chosen one carries. */
-/** Whether the sailor's own bag is a second hold, and what it takes. */
+/** Whether the sailor's own bag is a second hold, and what it takes:
+ *  worked out from the Inventory window's two bars, typed or read. */
 function bagRowHTML() {
 	const b = bagSet();
+	const r = bagRoom(b);
 	const chips = `<span class="chips">${[['off', T('not used')], ['on', T('a second hold')]].map(([v, t]) => `<button class="chip tiny${(b.on ? 'on' : 'off') === v ? ' active' : ''}" data-act="barter-order" data-k="barter-bag" data-v="${v}">${t}</button>`).join('')}</span>`;
-	const lt = b.on ? `<label class="run-pause">${amountInput('purse-inline', b.lt || 0, `data-act="barter-bag-lt" aria-label="${T('What your bag takes, in LT')}"`)}<span>${T('LT it takes')}<em>${T('up to 170% of your character’s weight limit, less what you carry already')}</em></span></label>` : '';
-	const sub = b.on
-		? (b.lt > 0 ? T('A later chain’s goods ride in your inventory and go in and out at any wharf’s Load Cargo; sales stay at a wharf with a storage. The run without it is kept when it pays better an hour.') : T('Say what it takes, and the run can use it.'))
-		: T('Your inventory weighs nothing on the ship: sailors carry a later chain’s goods in it, moved at any wharf.');
-	return `<div class="order-row" title="${T('Your own inventory, used as a second hold: goods go in and out of it at a wharf only')}"><span class="order-k">${T('your bag')}</span><div class="order-v">${chips}${lt}<span class="run-pick-sub">${sub}</span></div></div>`;
+	const box = (k, v, label, tenths = false) => `<input class="amt purse-inline" type="text" inputmode="${tenths ? 'decimal' : 'numeric'}" autocomplete="off" value="${v > 0 ? esc((tenths ? Math.round(v * 10) / 10 : v).toLocaleString()) : ''}" placeholder="0" data-act="barter-bag-set" data-k="${k}" aria-label="${esc(label)}">`;
+	const bars = b.on ? `<div class="bag-bars">
+		<label class="run-pause"><span>${T('Weight')}</span>${box('now', b.now, T('The weight your inventory holds now'), true)}<span>/</span>${box('max', b.max, T('Your weight limit'))}<span>LT</span></label>
+		<label class="run-pause"><span>${T('Inventory Slot')}</span>${box('used', b.used, T('The inventory slots filled'))}<span>/</span>${box('slots', b.slots, T('The inventory slots you have'))}</label>
+		<button class="chip tiny" data-act="barter-bag-shot" title="${T('A screenshot of the Inventory window: its foot says both')}">📷 ${T('Read the Inventory window')}</button>
+	</div>` : '';
+	const sub = !b.on ? T('Your inventory weighs nothing on the ship: sailors carry a later chain’s goods in it, moved at any wharf.')
+		: r.lt === null ? T('The two bars at the foot of the Inventory window, typed in or read off a screenshot of it: the app works out what the bag takes.')
+			: `${r.slots === null ? T('It takes {lt} LT: 170% of your {max} LT limit, less the {now} LT it holds.', { lt: `<b>${F(r.lt)}</b>`, max: F(b.max), now: LT1(b.now) }) : T('It takes {lt} LT in {n} slots: 170% of your {max} LT limit, less the {now} LT it holds.', { lt: `<b>${F(r.lt)}</b>`, n: `<b>${F(r.slots)}</b>`, max: F(b.max), now: LT1(b.now) })} ${T('A later chain’s goods ride in it and go in and out at any wharf’s Load Cargo; sales stay at a wharf with a storage. The run without it is kept when it pays better an hour.')}`;
+	return `<div class="order-row" title="${T('Your own inventory, used as a second hold: goods go in and out of it at a wharf only')}"><span class="order-k">${T('your bag')}</span><div class="order-v">${chips}${bars}<span class="run-pick-sub">${sub}</span></div></div>`;
+}
+
+/** A weight as the Inventory window prints it, to the tenth. */
+const LT1 = n => (Math.round(n * 10) / 10).toLocaleString(undefined, { maximumFractionDigits: 1 });
+
+/** The Inventory window's two bars, read off a screenshot of it. */
+async function readBagShot(files) {
+	const file = files && files[0];
+	if (!file) return;
+	toast(T('Reading the Inventory window…'));
+	try {
+		const { words } = await readWords(file, { lang: shotLang() });
+		const f = bagFigures(words);
+		const got = Object.fromEntries(Object.entries(f).filter(([, v]) => v !== null));
+		if (!Object.keys(got).length) { toast(T('No weight or slots found: the foot of the Inventory window, with its two bars, is what is read')); return; }
+		store.setProfile('bag', { ...bagSet(), on: true, ...got }, T('Read your inventory’s weight and slots'));
+		toast(f.max !== null && f.slots !== null
+			? T('Read: {now} / {max} LT, {used} / {slots} slots', { now: LT1(f.now), max: F(f.max), used: F(f.used), slots: F(f.slots) })
+			: f.max !== null ? T('Read the weight, {now} / {max} LT; the slots were not found', { now: LT1(f.now), max: F(f.max) })
+				: T('Read the slots, {used} / {slots}; the weight was not found', { used: F(f.used), slots: F(f.slots) }));
+	} catch (err) {
+		toast(T('The screenshot could not be read'));
+	}
 }
 
 function orderRow(act, label, value, options, title = '') {
@@ -6841,6 +6874,7 @@ export function barterAction(act, el, redraw) {
 		// The paste zone, pressed: the pictures are chosen straight away,
 		// and the reading opens with them.
 		case 'barter-shot': pickShots(files => readWindow(redraw, files)); return false;
+		case 'barter-bag-shot': pickShots(files => readBagShot(files)); return false;
 		case 'barter-book': openBook(redraw); return false;
 		case 'barter-fleet-take': takeFleetBoard(el.dataset.id, redraw); return false;
 		case 'barter-fleet-tell': tellTheFleet(redraw); return false;
@@ -7322,10 +7356,11 @@ export function barterChange(el, parseAmount) {
 		}
 		case 'barter-stash': stash = STASHES.includes(el.value) ? el.value : ''; persist(); return true;
 		case 'barter-bag': store.setProfile('bag', { ...bagSet(), on: el.value === 'on' }); return true;
-		case 'barter-bag-lt': {
-			const n = parseAmount(el.value === '' ? '0' : el.value);
-			if (n === null) return true;
-			store.setProfile('bag', { ...bagSet(), lt: Math.max(0, Math.floor(n)) });
+		case 'barter-bag-set': {
+			const k = ['now', 'max', 'used', 'slots'].includes(el.dataset.k) ? el.dataset.k : null;
+			const n = el.value.trim() === '' ? 0 : k === 'now' ? figure(el.value) ?? parseAmount(el.value) : parseAmount(el.value);
+			if (!k || n === null) return true;
+			store.setProfile('bag', { ...bagSet(), [k]: Math.max(0, n) });
 			return true;
 		}
 		case 'barter-target': {

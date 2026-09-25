@@ -339,9 +339,9 @@ test('an island\'s four keep their count, and a count that is not a count is dro
 	assert.equal(p.sevens[58975].seen, undefined, 'an older save, with only the last one paid, reads as it was');
 });
 
-test('the bag as a second hold keeps whether it is on and the LT it takes, and nothing else', () => {
-	assert.deepEqual(readProfile({ bag: { on: true, lt: 8123.7 } }).bag, { on: true, lt: 8123 });
-	assert.deepEqual(readProfile({ bag: { on: 'yes', lt: -5, extra: 1 } }).bag, { on: false, lt: 0 });
-	assert.deepEqual(readProfile({ bag: { on: true, lt: 1e9 } }).bag, { on: true, lt: 99999 });
+test('the bag as a second hold keeps whether it is on and the Inventory window\'s two bars, and nothing else', () => {
+	assert.deepEqual(readProfile({ bag: { on: true, now: 1628.74, max: 2779.6, used: 134, slots: 192 } }).bag, { on: true, now: 1628.7, max: 2779, used: 134, slots: 192 });
+	assert.deepEqual(readProfile({ bag: { on: 'yes', now: -5, max: 'x', extra: 1 } }).bag, { on: false, now: 0, max: 0, used: 0, slots: 0 });
+	assert.deepEqual(readProfile({ bag: { on: true, max: 1e9, slots: 5000 } }).bag, { on: true, now: 0, max: 99999, used: 0, slots: 999 });
 	assert.equal('bag' in readProfile({ bag: 'full' }), false);
 });

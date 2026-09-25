@@ -322,11 +322,12 @@ export function readProfile(raw) {
 	// module that owns the shape.
 	if (isProfile(raw.orders)) out.orders = readOrders(raw.orders);
 	// The sailor's own bag used as a second hold on a barter run: whether
-	// they sail that way, and the LT it takes -- up to 170% of the
-	// character's weight limit, less what they already carry.
+	// they sail that way, and the Inventory window's two bars -- the
+	// weight carried and its limit, the slots filled and how many there
+	// are -- from which the app works out what the bag can still take.
 	if (isProfile(raw.bag)) {
-		const lt = Math.floor(Number(raw.bag.lt));
-		out.bag = { on: raw.bag.on === true, lt: Number.isFinite(lt) && lt > 0 ? Math.min(99999, lt) : 0 };
+		const n = (v, most, tenths = false) => { const x = Number(v); return Number.isFinite(x) && x > 0 ? Math.min(most, tenths ? Math.round(x * 10) / 10 : Math.floor(x)) : 0; };
+		out.bag = { on: raw.bag.on === true, now: n(raw.bag.now, 99999, true), max: n(raw.bag.max, 99999), used: n(raw.bag.used, 999), slots: n(raw.bag.slots, 999) };
 	}
 	// The exchanges a barterer would not make: an island the sailor
 	// looked at and found showing nothing, with the barter count they

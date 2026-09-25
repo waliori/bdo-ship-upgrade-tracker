@@ -192,8 +192,10 @@ export function tailOf(long, short) {
  * it would sell for. `keep` names goods never sold, whatever the orders:
  * the good a material run sent the sailor here for.
  *
- * `bag` ({ free }, LT) is the sailor's own inventory used as a second
- * hold, when they sail that way: it weighs nothing on the ship, and
+ * `bag` ({ free, slots }: LT, and empty slots when known) is the
+ * sailor's own inventory used as a second hold, when they sail that
+ * way -- a good takes one slot however many of it: it weighs nothing on
+ * the ship, and
  * goods go into it and out of it at a wharf only -- any wharf of
  * `docks`, storage keeper or not -- while a sale is still made where a
  * storage is (`stashes`). A later trip's goods ride in it from the start
@@ -315,6 +317,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	const deal = pace === 'steady' ? hold.free : (hold.deal ?? hold.free);
 	// The bag: what it takes, and the wharves goods go in and out of it at.
 	const room = bag && bag.free > 0 ? bag.free : 0;
+	const bagSlots = room && bag.slots >= 0 && Number.isFinite(bag.slots) ? bag.slots : Infinity;
 	const swaps = room ? (docks && docks.length ? docks : stashes) : [];
 
 	// The attempts a rung is worth: all the island allows, or in a
@@ -683,9 +686,11 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			if (lot > 0) later.set(lot, [...(later.get(lot) || []), { ...l }]);
 		}
 		let inBag = 0;
+		const kinds = new Set();
 		for (const [lot, ls] of [...later].sort((a, b) => a[0] - b[0])) {
 			const w = ls.reduce((a, l) => a + l.n * weightOf(l.item), 0);
-			const toBag = room > 0 && inBag + w <= room + 1e-6;
+			const toBag = room > 0 && inBag + w <= room + 1e-6 && new Set([...kinds, ...ls.map(l => l.item)]).size <= bagSlots;
+			if (toBag) for (const l of ls) kinds.add(l.item);
 			if (!toBag && !homeWharf) continue;
 			for (const l of ls) {
 				for (const m of [held0, heldMax0]) { const left = (m.get(l.item) || 0) - l.n; if (left > 1e-9) m.set(l.item, left); else m.delete(l.item); }
@@ -917,6 +922,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			first.set(x.r.give, { q, chain: x.chain });
 		}
 		let free = room - weightHeld(baggedMax), got = 0;
+		let slots = bagSlots - [...baggedMax].filter(([, n]) => n > 1e-9).length;
 		const out = [];
 		const list = [...goods].filter(([name, n]) => n >= 1 - 1e-9 && !skip.has(name) && first.has(name) && first.get(name).chain !== chain && weightOf(name) > 0)
 			.sort((a, b) => first.get(b[0]).q - first.get(a[0]).q);
@@ -924,7 +930,9 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			if (got >= upTo) break;
 			const each = weightOf(name);
 			const k = Math.min(Math.floor(n + 1e-9), Math.floor(free / each + 1e-9), Math.ceil((upTo - got) / each - 1e-9));
-			if (k < 1) continue;
+			const fresh = !((baggedMax.get(name) || 0) > 1e-9);
+			if (k < 1 || (fresh && slots < 1)) continue;
+			if (fresh) slots--;
 			out.push([name, k]);
 			free -= k * each;
 			got += k * each;
@@ -1231,7 +1239,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	const cost = boughtRows.reduce((a, b) => a + b.total, 0);
 	return {
 		order, lots, stops, sold, kept, stashed, loaded: loaded0, landLoaded,
-		bagLoaded: intoBag, bagPeak, bag: room ? { free: room } : null,
+		bagLoaded: intoBag, bagPeak, bag: room ? { free: room, slots: Number.isFinite(bagSlots) ? bagSlots : null } : null,
 		cut: cuts,
 		skippedWhole,
 		bought: boughtRows,

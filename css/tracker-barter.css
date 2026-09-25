@@ -1019,6 +1019,9 @@ button.rung-fate { cursor: pointer; }
 .order-v .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .order-v .select { max-width: 280px; }
 .order-v .run-pauses { flex-direction: row; flex-wrap: wrap; gap: 10px; }
+/* The Inventory window's two bars, typed or read, for the bag as a second hold. */
+.bag-bars { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.bag-bars .run-pause .purse-inline { width: 68px; }
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
   .order-row { grid-template-columns: 1fr; gap: 6px; }
 }
