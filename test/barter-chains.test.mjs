@@ -19,6 +19,7 @@ import { npcById, ports } from '../js/barter_npcs.js';
 import { wharves } from '../js/wharves.js';
 import { PLAIN_ORDERS } from '../js/barter-orders.js';
 import { routeLength } from '../js/barter-route.js';
+import { fillOf } from '../js/barter-optimizer.js';
 
 const barterData = JSON.parse(await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
 const combos = JSON.parse(await readFile(new URL('../js/barter_combos.json', import.meta.url), 'utf8')).combos;
@@ -704,4 +705,76 @@ test('a run asked to use the bag that does not says why', () => {
 	// A run that does use it says nothing.
 	const used = chainRun({ ...opts, pace: 'fast', hold: { free: 12000, deal: 12000, max: 20400 }, bag: { free: 8000, slots: 58 } });
 	assert.ok(used.bagLoaded.length && !used.bagNote);
+});
+
+// Layout 34 from Iliya with six Level 4-5 piles in its storage: more
+// than the hold carries at once, so the run is laid in trips.
+const tripsFixture = () => {
+	const l34 = combos.find(c => c.id === '34');
+	const d34 = boardData(l34, barterData, npcById);
+	const dock = { '[Level 5] Supreme Gold Candlestick': 6, '[Level 5] 102 Year Old Golden Herb': 4, "[Level 5] Statue's Tear": 3, '[Level 5] Golden Fish Scale': 3, '[Level 4] Old Chest with Gold Coins': 36, '[Level 4] Bronze Candlestick': 18 };
+	const chosen = chains(d34, {}, dock).filter(c => c.from === 'dock' && c.top === 7 && dock[c.item]);
+	const base = { chosen, dock, hold: { free: 20889, deal: 26111, max: 35500 }, parley: { bar: 1000000, perTrade: 10512 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes, pace: 'steady', orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7 } };
+	return { d34, dock, chosen, base };
+};
+const loadsOf = run => {
+	const m = new Map();
+	for (const l of [...run.loaded, ...run.stops.flatMap(s => s.loads || [])]) m.set(l.item, (m.get(l.item) || 0) + l.n);
+	return m;
+};
+
+test('a stop moved sooner stays in its trip: the next trip\'s goods are loaded once, and the run keeps its trades', () => {
+	const { dock, base } = tripsFixture();
+	const run = chainRun(base);
+	assert.ok(run.lots.length > 1);
+	const first = run.rungs.find(x => x.lot === 1);
+	const moved = chainRun({ ...base, nudge: { [first.r.npcId]: -1 } });
+	const lots = moved.rungs.map(x => x.lot);
+	assert.deepEqual(lots, [...lots].sort((a, b) => a - b), `the trips stay in order: ${lots.join('')}`);
+	for (const [item, n] of loadsOf(moved)) assert.ok(n <= dock[item], `${item}: ${n} loaded of ${dock[item]}`);
+	assert.ok(moved.trades >= run.trades * 0.9, `${moved.trades} trades against ${run.trades}`);
+});
+
+test('a later trip\'s goods come aboard at a call before that trip, never after its first island', () => {
+	const { base } = tripsFixture();
+	const run = chainRun(base);
+	for (let lot = 1; lot < run.lots.length; lot++) {
+		const at = run.stops.findIndex(s => (s.loads || []).some(l => l.lot === lot));
+		const begins = run.stops.findIndex(s => s.npcId && run.rungs.some(x => x.lot === lot && x.r.npcId === s.npcId));
+		if (at >= 0 && begins >= 0) assert.ok(at < begins, `trip ${lot + 1}: loaded at stop ${at + 1}, begins at ${begins + 1}`);
+	}
+});
+
+test('what a stock run fills counts the goods loaded on the way as the stock\'s already', () => {
+	const { base } = tripsFixture();
+	const run = chainRun(base);
+	assert.ok(run.stops.some(s => (s.loads || []).length), 'the fixture loads at a call');
+	const targetOf = name => (levelOf(name) ? 1000 : 0);
+	const stripped = { ...run, stops: run.stops.map(s => ({ ...s, loads: [] })) };
+	assert.ok(fillOf(run, { targetOf }) < fillOf(stripped, { targetOf }), 'a good loaded at a call is not counted as filled');
+});
+
+test('with no Parley there is no trade, and every chain says the Parley stopped it', () => {
+	const { base } = tripsFixture();
+	const dry = chainRun({ ...base, parley: { bar: 0, perTrade: 10512 } });
+	assert.equal(dry.trades, 0);
+	assert.ok(dry.cut.length && dry.cut.every(c => c.why === 'parley'), JSON.stringify(dry.cut.map(c => c.why)));
+});
+
+test('chain after chain, a hold with room for every good takes them all at the start: no call home between chains', () => {
+	const { chosen, base } = tripsFixture();
+	const run = chainRun({ ...base, chosen: chosen.slice(0, 3), hold: { free: 40000, deal: 50000, max: 68000 }, orders: { ...PLAIN_ORDERS, way: 'chain', sell: 7 } });
+	assert.equal(run.stops.filter(s => s.wharf && (s.loads || []).length).length, 0);
+	assert.ok(run.loaded.length >= 3);
+});
+
+test('goods moved from the hold into the bag at the start are said apart from what the bag is loaded with from a storage', () => {
+	const { d34 } = tripsFixture();
+	const stock = { '[Level 4] Old Chest with Gold Coins': 36, '[Level 5] Supreme Gold Candlestick': 6, '[Level 4] Bronze Candlestick': 18 };
+	const chosen = chains(d34, stock, {}).filter(c => c.from === 'hold' && c.top === 7);
+	const docks = wharves.filter(w => w.kind === 'wharf');
+	const run = chainRun({ chosen, stock, hold: { free: 8000, deal: 10000, max: 13600 }, parley: { bar: 1e7, perTrade: 10512 }, npcById, start: ports.find(p => p.name === 'Iliya Island'), stashes, docks, pace: 'full', orders: { ...PLAIN_ORDERS, way: 'sea', sell: 7 }, bag: { free: 8000, slots: 20 }, effort: 1 });
+	assert.ok(run.bagFromHold.length, 'something came out of the hold into the bag');
+	for (const l of run.bagFromHold) assert.ok(l.n <= stock[l.item], `${l.item}: ${l.n} of the ${stock[l.item]} aboard`);
+	assert.deepEqual(run.bagLoaded, [], 'nothing was loaded into the bag from a storage');
 });
