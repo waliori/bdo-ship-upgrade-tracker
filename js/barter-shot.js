@@ -133,13 +133,30 @@ export function cover(name, text) {
 /** Words gathered into lines of writing, in reading order. */
 export function linesOf(words, lh = lineHeight(words)) {
 	const lines = [];
-	for (const w of [...words].sort((a, b) => (a.y0 + a.y1) / 2 - (b.y0 + b.y1) / 2)) {
-		const mid = (w.y0 + w.y1) / 2;
+	const midOf = w => (w.y0 + w.y1) / 2;
+	// Writing first, then the rest. The engine also boxes icons and the
+	// frame's edges -- tall, or a sliver -- and those sit between two
+	// lines of writing: let them move a line's height and, in a shot of
+	// one row, they walked "Padix Island" down into "Exchanges Left" and
+	// the island was never found. They join the nearest line as it
+	// stands instead.
+	const hs = words.map(w => w.y1 - w.y0).filter(h => h > 2).sort((a, b) => a - b);
+	const h = hs.length ? hs[Math.floor(hs.length / 2)] : 0;
+	const odd = w => h > 0 && (w.y1 - w.y0 > h * 1.45 || w.y1 - w.y0 < h * 0.45);
+	const byMid = (a, b) => midOf(a) - midOf(b);
+	for (const w of words.filter(x => !odd(x)).sort(byMid)) {
+		const mid = midOf(w);
 		const line = lines.find(l => Math.abs(l.mid - mid) < lh * 0.6);
 		if (line) {
 			line.words.push(w);
 			line.mid = (line.mid * (line.words.length - 1) + mid) / line.words.length;
 		} else lines.push({ mid, words: [w] });
+	}
+	for (const w of words.filter(odd).sort(byMid)) {
+		const mid = midOf(w);
+		const near = lines.reduce((best, l) => (!best || Math.abs(l.mid - mid) < Math.abs(best.mid - mid) ? l : best), null);
+		if (near && Math.abs(near.mid - mid) < lh * 0.6) near.words.push(w);
+		else lines.push({ mid, words: [w] });
 	}
 	for (const line of lines) line.words.sort((a, b) => a.x0 - b.x0);
 	return lines.sort((a, b) => a.mid - b.mid);
@@ -241,7 +258,25 @@ export function windowWords(words, lh = lineHeight(words)) {
 		if (!best || paired > best.paired || (paired === best.paired && a.col < best.a.col)) best = { a, b, paired };
 	}
 	if (!best) return list;
-	const left = best.a.col - lh * 0.75;
+	// The left stack may be a name's second word -- "Island", after
+	// "Racid" or "Paratama" -- whose column moves with the word before
+	// it. Taken as the window's edge, it cut every island's name in half
+	// and no row was read. The edge is where those runs of writing start:
+	// from each word of the stack, walk left while the word before sits
+	// close on the same line.
+	const runStart = w => {
+		let at = w;
+		for (let hops = 0; hops < 6; hops++) {
+			const prev = list
+				.filter(v => v !== at && v.x1 <= at.x0 + lh * 0.2 && at.x0 - v.x1 <= lh * 0.8 && Math.abs(midY(v) - midY(at)) <= lh * 0.4)
+				.sort((p, q) => q.x1 - p.x1)[0];
+			if (!prev) break;
+			at = prev;
+		}
+		return at.x0;
+	};
+	const starts = best.a.ws.map(runStart).sort((x, y) => x - y);
+	const left = Math.min(best.a.col, starts[Math.floor(starts.length / 2)]) - lh * 0.75;
 	const top = Math.min(...best.a.ws.map(midY)) - lh * 2.75;
 	// And it ends a row below the last of them: room for a row the shot
 	// cut in half, none for the chat log underneath.

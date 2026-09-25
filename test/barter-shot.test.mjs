@@ -249,3 +249,24 @@ test('an English client with no pack is read exactly as before', () => {
 	assert.equal(t.isles, npcs);
 	assert.equal(t.deals, deals);
 });
+
+// Two shots of 2026-09 that read nothing at all. In the first the
+// window's edge was taken from "Island" -- the second word of every
+// name, whose column moves with the word before it -- and every name
+// was cut in half. In the second, a single row, the icon's tall boxes
+// between the two lines of writing walked the island's line down into
+// "Exchanges Left" and the island was never found.
+test('the window starts where the names start, not at their second word', () => {
+	assert.deepEqual(said(read('nameShift')), [
+		['Racid Island', '[Level 3] Skull Decorated Teacup', 'Deep Sea Memory Filled Glue'],
+		['Arakil Island', '[Level 4] Old Chest with Gold Coins', 'Cox Pirates\' Artifact (Parley Expert)'],
+		['Al-Naha Island', '[Level 4] Amethyst Fragment', 'Tide-Dyed Standardized Timber Square'],
+		['Beiruwa Island', '[Level 4] Headless Dragon Figurine', 'Cox Pirates\' Artifact (Parley Expert)'],
+		['Weita Island', '[Level 2] Urchin Spine', 'Island Tree Coated Plywood'],
+		['Paratama Island', '[Level 4] Panacea', 'Great Ocean Dark Iron']
+	]);
+});
+
+test('a shot of one row reads, the icon’s boxes between its lines notwithstanding', () => {
+	assert.deepEqual(said(read('oneRow')), [['Padix Island', '[Level 4] Bronze Candlestick', '[Level 5] Mysterious Rock']]);
+});
