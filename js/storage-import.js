@@ -28,10 +28,14 @@ import { openDialog, closeDialog, toast } from './dialogs.js';
 import { LIMITS, triage, readStorageShots, wireShotIntake, close as closeReader } from './shot-reader.js';
 import { allItems, img } from './ui-bits.js';
 import { TOWNS } from './screen-inventory.js';
+import { levelOf } from './barter.js';
 
 /** Where a reading is written by default, remembered between goes: a
  *  player reads the same storage every week. */
 const lastPlace = () => store.getSetting('shotStore', '');
+/** Update (only what was read is written) or replace (what is kept
+ *  there and not in the shots goes too), remembered likewise. */
+const lastMode = () => (store.getSetting('shotMode', 'update') === 'replace' ? 'replace' : 'update');
 const PLACES = ['', ...TOWNS];
 
 /** The name for a slot that this app actually keeps a count of.
@@ -97,6 +101,10 @@ export function openStorageImport(after = () => {}, handOff = null) {
 	let unnamed = 0;            // slots that held something the app does not know
 	let small = [];             // shots whose slots are too small to tell apart
 	let place = lastPlace();
+	let mode = lastMode();
+	let taken = [];             // every file read so far: Read more adds to them, and they are read again together
+	let adding = false;         // the next batch adds to the reading rather than starting it afresh
+	const keep = new Set();     // things the replace would take away that the sailor kept
 
 	const host = () => document.getElementById('dialog');
 	// Opened once and redrawn in place: opening it again counts as
@@ -120,10 +128,15 @@ export function openStorageImport(after = () => {}, handOff = null) {
 			${PLACES.map(t => `<option value="${esc(t)}"${t === place ? ' selected' : ''}>${t ? esc(gameName(t)) : T('your bags')}</option>`).join('')}
 		</select>
 		<span class="row-sub">${T('Every count read is written as what is kept there. Drop all the screenshots of one storage together — they are one storage, and their slots add up.')}</span>
+	</div>
+	<div class="shot-mode" role="radiogroup" aria-label="${T('What the screenshots do')}">
+		<label><input type="radio" name="shot-mode" value="update" data-mode${mode === 'update' ? ' checked' : ''}> <b>${T('Update')}</b> <span class="row-sub">${T('Write what the screenshots show; everything else kept there stays as it is.')}</span></label>
+		<label><input type="radio" name="shot-mode" value="replace" data-mode${mode === 'replace' ? ' checked' : ''}> <b>${T('Replace')}</b> <span class="row-sub">${T('The screenshots are the whole storage: what is kept there and not in them goes. Add every screenshot first — Read more adds to the table — and write when you are done.')}</span></label>
 	</div>`;
 
 	const pickView = () => `
 		${handOff ? `<p class="dialog-note">${said(handOff.note)}</p>` : ''}
+		${adding && rows.length ? `<p class="dialog-note shot-adding">${T('Adding to the {n} lines read so far: the new screenshots are read together with the ones before, and nothing is written until you say so.', { n: rows.length })}</p>` : ''}
 		<p class="dialog-note">${T('A screenshot of the storage window reads, and so does a shot of the whole screen with the window open — the panel is found in it. Several at a time is the point: scroll the storage, shoot each screenful, drop the lot.')}</p>
 		<ul class="shot-kinds">
 			<li>${T('<b>What is read</b> — the picture in each slot, against the icons this app already carries, and the figure written over the corner.')}</li>
@@ -141,7 +154,7 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		</div>
 		<p class="dialog-note quiet">${T('Up to {files} at a time, {mb} MB each, PNG, JPEG or WebP.', { files: LIMITS.files, mb: Math.round(LIMITS.bytes / 1024 / 1024) })}
 			${T('They are read in this browser and never uploaded, and a storage needs no reader fetched for it: the pictures and the figures are both read off the pixels.')}</p>
-		<div class="dialog-actions"><button class="act quiet" data-close>${T('Close')}</button></div>`;
+		<div class="dialog-actions">${adding && rows.length ? `<button class="act quiet" data-back>‹ ${T('Back to the table')}</button>` : ''}<button class="act quiet" data-close>${T('Close')}</button></div>`;
 
 	/* --- reading ----------------------------------------------------- */
 	const readingView = (at, text) => `
@@ -164,8 +177,28 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		</tr>`;
 	};
 
+	// What a replace takes away: kept at this place, not in the reading.
+	// Never a ship part at a level -- the reader reads every level as the
+	// plain part -- and never a trade good from the bags, which are the
+	// hold's; and nothing the sailor ticked to keep.
+	const goneList = () => {
+		if (mode !== 'replace' || handOff) return [];
+		const read = new Set(rows.map(r => r.item));
+		return Object.keys(store.getAllStock())
+			.filter(item => !read.has(item) && store.stockAt(item, place) > 0 && !/^\+\d+\s/.test(item) && !(place === '' && levelOf(item) !== null))
+			.map(item => ({ item, n: store.stockAt(item, place) }))
+			.sort((a, b) => a.item.localeCompare(b.item));
+	};
+	const goneHTML = gone => (gone.length ? `<details class="shot-gone" open><summary>${gone.length === 1
+		? T('{n} thing kept at {place} is not in the screenshots, and goes', { n: gone.length, place: esc(place ? gameName(place) : T('your bags')) })
+		: T('{n} things kept at {place} are not in the screenshots, and go', { n: gone.length, place: esc(place ? gameName(place) : T('your bags')) })}</summary>
+		<p class="row-sub">${T('Untick anything that is there and the screenshots missed. Ship parts at a level are never taken away: the reader cannot tell the levels apart.')}</p>
+		<ul class="remove-list">${gone.map(g => `<li><input type="checkbox" data-gone="${esc(g.item)}"${keep.has(g.item) ? '' : ' checked'} aria-label="${T('Take this one away')}">${img(g.item, 'row-icon sm')}<span>${esc(gameName(g.item))}</span><b>${F(g.n)}</b></li>`).join('')}</ul></details>` : '');
+
 	const reviewView = () => {
 		const taking = rows.filter(r => r.take !== false);
+		const gone = goneList();
+		const going = gone.filter(g => !keep.has(g.item));
 		const total = taking.reduce((a, r) => a + r.n, 0);
 		const guessed = taking.filter(r => r.guessed).length;
 		return `
@@ -189,20 +222,30 @@ export function openStorageImport(after = () => {}, handOff = null) {
 			<thead><tr><th></th><th>${T('What')}</th><th>${T('How many')}</th><th>${T('at {place}', { place: esc(place ? gameName(place) : T('the bags')) })}</th><th></th></tr></thead>
 			<tbody>${rows.map(rowHTML).join('')}</tbody>
 		</table></div>` : ''}
+		${goneHTML(gone)}
 		${handOff ? '' : `<div class="shot-lang">${placePicker()}</div>`}
 		<div class="dialog-actions">
 			<button class="act quiet" data-again>${T('Read more')}</button>
 			<span class="panel-spacer"></span>
 			<button class="act quiet" data-close>${T('Cancel')}</button>
-			<button class="act" data-write${taking.length ? '' : ' disabled'}>${taking.length ? `${handOff ? T('{label} · {n}', { label: said(handOff.label), n: taking.length }) : T('Write {n} in', { n: taking.length })}${total ? ` · ${T('{n} in all', { n: F(total) })}` : ''}` : T('Nothing ticked')}</button>
+			<button class="act" data-write${taking.length || going.length ? '' : ' disabled'}>${!taking.length && !going.length ? T('Nothing ticked')
+		: mode === 'replace' && !handOff ? T('Replace {place}: {n} written, {m} taken away', { place: esc(place ? gameName(place) : T('your bags')), n: taking.length, m: going.length })
+			: `${handOff ? T('{label} · {n}', { label: said(handOff.label), n: taking.length }) : T('Write {n} in', { n: taking.length })}${total ? ` · ${T('{n} in all', { n: F(total) })}` : ''}`}</button>
 		</div>`;
 	};
 
 	/* --- doing it ---------------------------------------------------- */
 	async function run(files) {
 		const { take, skipped: out } = await triage([...files]);
+		// Read more adds: the shots so far and the new ones are read again
+		// together, so a row two of them share is still counted once, and
+		// what was typed over or unticked in the table is kept.
+		const more = adding && rows.length;
+		adding = false;
+		const edits = more ? new Map(rows.map(r => [r.item, { take: r.take, n: r.n, typed: r.typed }])) : new Map();
+		taken = more ? [...taken, ...take] : take;
 		skipped = out.map(s => ({ name: s.file.name, why: s.why }));
-		if (!take.length) { rows = []; draw(reviewView()); return; }
+		if (!taken.length) { rows = []; draw(reviewView()); return; }
 		stop = new AbortController();
 		draw(readingView(0, T('Learning the icons…')));
 		const onProgress = p => {
@@ -219,7 +262,7 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		};
 		let results;
 		try {
-			results = await readStorageShots(take, { onProgress, signal: stop.signal });
+			results = await readStorageShots(taken, { onProgress, signal: stop.signal });
 		} catch (err) {
 			draw(`<p class="dialog-note warn">${T('The reader could not start: {why}', { why: esc(err && err.message ? err.message : String(err)) })}</p>
 				<div class="dialog-actions"><button class="act quiet" data-again>${T('Try again')}</button><button class="act" data-close>${T('Close')}</button></div>`);
@@ -241,13 +284,20 @@ export function openStorageImport(after = () => {}, handOff = null) {
 			unnamed += shot.unknown || 0;
 		}
 		rows = gather(results, new Set(allItems()));
+		for (const r of rows) {
+			const e = edits.get(r.item);
+			if (!e) continue;
+			if (e.take === false) r.take = false;
+			if (e.typed) { r.n = e.n; r.typed = true; r.guessed = 0; }
+		}
 		draw(reviewView());
 	}
 
 	/* --- writing it -------------------------------------------------- */
 	function write() {
 		const taking = rows.filter(r => r.take !== false);
-		if (!taking.length) return;
+		const going = handOff ? [] : goneList().filter(g => !keep.has(g.item));
+		if (!taking.length && !going.length) return;
 		// Handed back rather than written: whoever asked for the reading
 		// decides what the counts mean.
 		if (handOff) {
@@ -261,9 +311,10 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		// really a reading of the hold, and the Inventory would show it
 		// as such anyway.
 		const done = store.setStashAll(
-			taking.map(r => ({ item: r.item, n: r.n })),
+			[...taking.map(r => ({ item: r.item, n: r.n })), ...going.map(g => ({ item: g.item, n: 0 }))],
 			place,
-			taking.length === 1
+			going.length ? T('Replaced {place} from screenshots: {n} counts, {m} taken away', { place: place || T('the bags'), n: taking.length, m: going.length })
+			: taking.length === 1
 				? T('Read {n} count off a screenshot of {place}', { n: taking.length, place: place || T('the bags') })
 				: T('Read {n} counts off a screenshot of {place}', { n: taking.length, place: place || T('the bags') })
 		);
@@ -271,7 +322,8 @@ export function openStorageImport(after = () => {}, handOff = null) {
 		closeReader();
 		closeDialog();
 		toast(done
-			? (taking.length === 1
+			? going.length ? T('{place} replaced: {n} written, {m} taken away', { place: place ? gameName(place) : T('your bags'), n: taking.length, m: going.length })
+			: (taking.length === 1
 				? T('{n} count written in at {place}', { n: taking.length, place: place ? gameName(place) : T('your bags') })
 				: T('{n} counts written in at {place}', { n: taking.length, place: place ? gameName(place) : T('your bags') }))
 			: T('Everything read was already right'), true);
@@ -289,7 +341,18 @@ export function openStorageImport(after = () => {}, handOff = null) {
 			draw(rows.length ? reviewView() : pickView());
 		});
 		on('[data-stop]', 'click', () => { if (stop) stop.abort(); });
-		on('[data-again]', 'click', () => draw(pickView()));
+		on('[data-again]', 'click', () => { adding = rows.length > 0; draw(pickView()); });
+		on('[data-back]', 'click', () => { adding = false; draw(reviewView()); });
+		on('[data-mode]', 'change', e => {
+			mode = e.target.value === 'replace' ? 'replace' : 'update';
+			store.setSetting('shotMode', mode, true);
+			draw(rows.length ? reviewView() : pickView());
+		});
+		on('[data-gone]', 'change', e => {
+			const item = e.target.dataset.gone;
+			if (e.target.checked) keep.delete(item); else keep.add(item);
+			draw(reviewView());
+		});
 		on('[data-write]', 'click', write);
 		on('[data-take]', 'change', e => {
 			rows[Number(e.target.dataset.take)].take = e.target.checked;
@@ -299,6 +362,7 @@ export function openStorageImport(after = () => {}, handOff = null) {
 			const r = rows[Number(e.target.dataset.n)];
 			r.n = Math.max(0, Math.floor(Number(String(e.target.value).replace(/[^\d]/g, '')) || 0));
 			r.guessed = 0;              // typed over: not a guess any more
+			r.typed = true;             // and kept when Read more reads the lot again
 			draw(reviewView());
 		});
 	}
