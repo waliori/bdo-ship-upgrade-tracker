@@ -110,13 +110,16 @@ export function margins({ picked, cands, opts, aim = null, ship, start = null })
 	const rows = cands.map(c => {
 		const list = c.grows ? picked.map(p => (p.id === c.grows ? c : p)) : [...picked, c];
 		const run = lay(list);
-		const k = run.order.findIndex(x => x.id === c.id);
-		const cut = k >= 0 ? run.cut.find(x => x.chain === k) : null;
-		const mine = run.stops.filter(s => s.chain === k && s.npcId);
 		// It trades when its own last island does. Not by the count: a
 		// picked trade taken one island further trades less at the first,
 		// only what the second takes, and is the better trip for it.
 		const last = c.rungs[c.rungs.length - 1];
+		// A trade that is the upper part of a climb already picked is laid
+		// as that climb: its island is found on the chain it was folded into.
+		let k = run.order.findIndex(x => x.id === c.id);
+		if (k < 0) k = run.order.findIndex(x => x.rungs.some(r => r.npcId === last.npcId && r.give === last.give && r.item === last.item));
+		const cut = k >= 0 ? run.cut.find(x => x.chain === k) : null;
+		const mine = run.stops.filter(s => s.chain === k && s.npcId);
 		const own = mine.filter(s => s.npcId === last.npcId).reduce((a, s) => a + s.times, 0);
 		const why = own > 0 ? '' : cut ? cut.why : 'nothing';
 		return { c, run, worth: score(run) - v0, minutes: (hours(run) - h0) * 60, trades: run.trades - t0, own, made: mine.length ? mine[mine.length - 1] : null, why };

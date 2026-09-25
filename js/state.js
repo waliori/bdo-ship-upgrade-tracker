@@ -270,6 +270,10 @@ function readHistory(raw) {
 			const fields = readProfileFields(e.prevProfileFields);
 			if (Object.keys(fields).length) entry.prevProfileFields = fields;
 		}
+		if (e.viewKeys && typeof e.viewKeys === 'object') {
+			const keys = Object.fromEntries(Object.entries(e.viewKeys).filter(([, ks]) => Array.isArray(ks)).map(([ns, ks]) => [ns, ks.filter(k => typeof k === 'string').slice(0, 40)]));
+			if (Object.keys(keys).length) entry.viewKeys = keys;
+		}
 		if (entry.delta || entry.prevTargets || entry.prevStrategy || entry.prevProfile || entry.prevProfileFields) out.push(entry);
 	}
 	return out;
@@ -306,6 +310,24 @@ function patchProfile(profile, fields) {
 
 /** The fields of `profile` a patch names, as they stand now -- what
  *  putting the patch on would overwrite, and so what undoes it. */
+/**
+ * Fields to patch in, with a view's own keys only where the change named
+ * them: an edit made on a screen and undone after the screen had quietly
+ * written more -- a run cast off, a chain ticked -- takes back the edit,
+ * not everything the screen wrote since.
+ */
+function withViews(profile, fields, viewKeys) {
+	if (!viewKeys || !('views' in fields)) return fields;
+	const views = { ...(profile.views || {}) };
+	for (const [ns, keys] of Object.entries(viewKeys)) {
+		const src = (fields.views || {})[ns] || {};
+		const dst = { ...(views[ns] || {}) };
+		for (const k of keys) { if (k in src) dst[k] = src[k]; else delete dst[k]; }
+		views[ns] = dst;
+	}
+	return { ...fields, views };
+}
+
 function fieldsOf(profile, fields) {
 	const out = {};
 	for (const k of Object.keys(fields)) out[k] = k in profile ? profile[k] : null;
@@ -416,13 +438,13 @@ function notify(reason) {
  * Change bookkeeping -- every mutation records how to undo itself
  * ------------------------------------------------------------------ */
 
-function commit(type, label, mutate) {
+function commit(type, label, mutate, extra = null) {
 	const was = asWas;
 	asWas = null;
-	try { return commitReal(type, label, mutate); } finally { asWas = was; }
+	try { return commitReal(type, label, mutate, extra); } finally { asWas = was; }
 }
 
-function commitReal(type, label, mutate) {
+function commitReal(type, label, mutate, extra = null) {
 	// While the tour's example data is in: act, but leave no record. A
 	// history entry written against demo quantities would hand undo a
 	// delta that was never true of the real inventory.
@@ -439,7 +461,7 @@ function commitReal(type, label, mutate) {
 
 	mutate();
 
-	const entry = { t: Date.now(), type, label };
+	const entry = { t: Date.now(), type, label, ...(extra || {}) };
 
 	// Stock is undone by its inverse delta, so only changed keys are kept.
 	const delta = {};
@@ -518,6 +540,7 @@ export function undo() {
 	if (entry.prevStrategy) redoEntry.nextStrategy = state.strategy;
 	if (entry.prevProfile) redoEntry.nextProfile = state.profile;
 	if (entry.prevProfileFields) redoEntry.nextProfileFields = fieldsOf(state.profile, entry.prevProfileFields);
+	if (entry.viewKeys) redoEntry.viewKeys = entry.viewKeys;
 	future.push(redoEntry);
 
 	// Undo is replayed as the change it made, with no entry of its own:
@@ -536,7 +559,7 @@ export function undo() {
 	if (entry.prevStrategy) replay.strategy = state.strategy = entry.prevStrategy;
 	if (entry.prevProfile) state.profile = entry.prevProfile;
 	if (entry.prevProfileFields) {
-		state.profile = patchProfile(state.profile, entry.prevProfileFields);
+		state.profile = patchProfile(state.profile, withViews(state.profile, entry.prevProfileFields, entry.viewKeys));
 		replay.profile = fieldsOf(state.profile, entry.prevProfileFields);
 	}
 	queue(replay);
@@ -579,7 +602,8 @@ export function redo() {
 	}
 	if (entry.nextProfileFields) {
 		hist.prevProfileFields = fieldsOf(state.profile, entry.nextProfileFields);
-		state.profile = patchProfile(state.profile, entry.nextProfileFields);
+		if (entry.viewKeys) hist.viewKeys = entry.viewKeys;
+		state.profile = patchProfile(state.profile, withViews(state.profile, entry.nextProfileFields, entry.viewKeys));
 		replay.profile = fieldsOf(state.profile, entry.nextProfileFields);
 	}
 
@@ -790,11 +814,16 @@ export function getView(ns) {
  *  Undo takes it back: the route as the sailor edited it on the wharf. */
 export function setViewNamed(ns, obj, label) {
 	const views = { ...(state.profile.views || {}) };
+	const before = views[ns] || {};
 	const clean = readView(ns, obj);
 	if (clean) views[ns] = clean;
 	else delete views[ns];
 	if (JSON.stringify(views) === JSON.stringify(state.profile.views || {})) return;
-	setProfile('views', views, label);
+	// The keys this change moved, so its Undo moves those and no others.
+	const after = clean || {};
+	const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].filter(k => JSON.stringify(before[k]) !== JSON.stringify(after[k]));
+	const next = readProfile({ ...state.profile, views });
+	commit('profile', label, () => { state.profile = next; }, { viewKeys: { [ns]: keys } });
 }
 
 /** Write a screen's view, or clear it with null. */
@@ -1103,7 +1132,7 @@ export function placeAll(items, town, label) {
  * '' for the ship), and a profile patch, the run's entry in the log.
  * One Undo takes the whole trip back.
  */
-export function applyTrip({ delta = {}, moves = [], profile = null, label = T('Sailed a run'), at = false } = {}) {
+export function applyTrip({ delta = {}, moves = [], profile = null, label = T('Sailed a run'), at = false, viewKeys = null } = {}) {
 	const entries = Object.entries(delta).filter(([, d]) => Number(d));
 	return commit('trip', label, () => {
 		// `at` names the place a good comes off first, or goes onto: the
@@ -1120,7 +1149,7 @@ export function applyTrip({ delta = {}, moves = [], profile = null, label = T('S
 			if (Object.keys(towns).length) stash[m.item] = towns; else delete stash[m.item];
 		}
 		state.profile = readProfile({ ...state.profile, stash, ...(profile || {}) });
-	});
+	}, viewKeys ? { viewKeys } : null);
 }
 
 /** Where new counts of a kind land: '' for the bags. */

@@ -97,6 +97,7 @@ let planSec = 'ladder';   // the part of the plan that is open: parley | ladder 
 let advOpen = false;      // every order, unfolded
 let ownWay = false;       // "my own way" chosen, whether or not the orders happen to match a card
 let routeEdit = { key: '', skip: [], nudge: {}, trips: [] };   // the route as the sailor changed it on the wharf: islands taken off, stops moved
+const editsBy = new Map();   // the edits of other sets of chains this session, by their key
 let questSkip = { day: '', ids: [] };   // quests left out of today's runs by hand
 let questPull = { day: '', ids: [] };   // quests taken in by hand today, whatever the way round
 let sailAll = { open: false, stops: true, quests: true };   // the ask before every stop and quest is ticked off at once
@@ -1633,7 +1634,12 @@ function continueHTML(all, b) {
 	const last = board.last;
 	if (!last || last.off || !b.combo || board.usedFor !== b.combo.id) return '';
 	const tail = (isles, c) => { const ids = c.rungs.map(r => r.npcId); const off = isles.length - ids.length; return off >= 0 && ids.every((id, j) => isles[off + j] === id); };
-	const ids = all.filter(c => last.ids.includes(c.id) || (c.from !== 'land' && last.isles.some(l => tail(l, c)))).map(c => c.id);
+	// A short trip's run was of trades cut from chains (`<chain>><k>`):
+	// matched by the chain, and handed back as the trade it was.
+	const cutK = new Map(last.ids.map(id => cutOf(id)).filter(x => x.k >= 0).map(x => [x.base, x.k]));
+	const bases = new Set(last.ids.map(id => cutOf(id).base));
+	const ids = all.filter(c => bases.has(c.id) || (c.from !== 'land' && last.isles.some(l => tail(l, c))))
+		.map(c => (shape === 'short' ? `${c.id}>${Math.min(c.rungs.length - 1, cutK.has(c.id) ? cutK.get(c.id) : c.rungs.length - 1)}` : c.id));
 	const prof = barterProfile();
 	const aboard = Object.entries(aboardStock()).filter(([, n]) => n > 0);
 	const isles = [...new Set(last.isles.flat())];
@@ -2595,6 +2601,9 @@ function presetNext() {
 	const w = presetWorkerOf();
 	if (!w) { setTimeout(() => done(propose({ ...job.args, budgetMs: 150 })), 0); return; }
 	w.onmessage = evt => done(evt.data && evt.data.result);
+	// A worker that fails mid-job leaves the job to this thread, and the
+	// cards after it too: the cards never filled when it went.
+	w.onerror = () => { presetWorker = null; presetLost = true; setTimeout(() => done(propose({ ...job.args, budgetMs: 150 })), 0); };
 	try { w.postMessage({ id: job.id, ...job.args, budgetMs: PRESET_BUDGET_MS }); } catch { done(propose({ ...job.args, budgetMs: 150 })); }
 }
 function presetSearch(key, jobs) {
@@ -2906,6 +2915,8 @@ function expectedNow(me, b, prof, key) {
 		next = i + 1;
 		send();
 	};
+	// And the layouts still to answer are answered here if it fails.
+	w.onerror = () => { expectWorker = null; expectLost = true; if (seq === expectSeq) here(next); };
 	send();
 }
 
@@ -3436,6 +3447,28 @@ function unsyncHold(on) {
 }
 
 /**
+ * The run dropped, nothing recorded: the hold as it cast off and the
+ * run gone, as one change -- so one Undo brings back both, the run where
+ * it stood and the hold as its ticks had left it.
+ */
+function abandonRun() {
+	const on = sail;
+	if (!on) return;
+	if (writeTimer) { clearTimeout(writeTimer); writeTimer = null; }
+	const back = on.applied ? holdDiff(NO_HOLD, on.applied) : { delta: {}, moves: [] };
+	sail = null;
+	writing = true;
+	try {
+		const views = { ...(store.getProfile('views', {}) || {}), [VIEW_NS]: viewNow() };
+		store.applyTrip({ delta: back.delta, moves: back.moves, at: intoHold, profile: { views }, viewKeys: { [VIEW_NS]: ['sail'] }, label: T('The run dropped: the hold as it cast off') });
+	} finally {
+		writing = false;
+	}
+	const s = store.getView(VIEW_NS);
+	readSig = s ? JSON.stringify(s) : null;
+}
+
+/**
  * A stop ticked done. At a stop with quests handed in they are claimed
  * and the rewards recorded -- but one whose pick-one reward is not
  * remembered keeps its button, to be asked.
@@ -3813,13 +3846,13 @@ function recordTrip(plan, from, on = sailing()) {
 	const rest = holdDiff({ delta: trip.delta, moves: netMoves(trip.moves) }, on.applied || NO_HOLD);
 	const applied = on.applied || null;
 	noteUsed(plan, on);
-	store.applyTrip({ delta: rest.delta, moves: rest.moves, at: intoHold, profile: { runs, ratios, sevens, tally, ...counted, ...spentOf, questProgress: Object.keys(progress).length ? progress : null, questsDone: Object.keys(questsDone).length ? questsDone : null }, label: `${on.done.length === 1 ? T('Sailed a run: {n} stop', { n: on.done.length }) : T('Sailed a run: {n} stops', { n: on.done.length })}${trip.silver ? `, ${T('{silver} sold', { silver: FC(trip.silver) })}` : ''}` });
+	const entry = store.applyTrip({ delta: rest.delta, moves: rest.moves, at: intoHold, profile: { runs, ratios, sevens, tally, ...counted, ...spentOf, questProgress: Object.keys(progress).length ? progress : null, questsDone: Object.keys(questsDone).length ? questsDone : null }, label: `${on.done.length === 1 ? T('Sailed a run: {n} stop', { n: on.done.length }) : T('Sailed a run: {n} stops', { n: on.done.length })}${trip.silver ? `, ${T('{silver} sold', { silver: FC(trip.silver) })}` : ''}` });
 	sail = null;
 	// What it came to, for the results step to show until the next run is
 	// cast off: the page would otherwise fall back to the plan the moment
 	// the checklist went, with nothing said about where the silver went.
 	bringUp('.barter-screen .steps');
-	lastTrip = { applied, stops: on.done.length, trades: Math.round(trip.trades), silver: trip.silver, spent: trip.spent || 0, net: trip.silver - (trip.spent || 0), coins: Math.round(trip.delta[COIN] || 0), parley: parleySpent, vouchers: drawn, gave: moved(-1, SILVER), got: moved(1, SILVER) };
+	lastTrip = { entry: entry && entry.t, applied, stops: on.done.length, trades: Math.round(trip.trades), silver: trip.silver, spent: trip.spent || 0, net: trip.silver - (trip.spent || 0), coins: Math.round(trip.delta[COIN] || 0), parley: parleySpent, vouchers: drawn, gave: moved(-1, SILVER), got: moved(1, SILVER) };
 	step = 'results';
 	cursor = null;
 	skipped = new Set();
@@ -4886,7 +4919,17 @@ function silverParts(me, b) {
 	// The sailor's own changes to the route belong to this set of chains
 	// on this board: a new board or a new tick starts from the planner's.
 	const editKey = `${routes.key}|${routes.ids.slice().sort().join(',')}|${o.way}`;
-	if (routeEdit.key !== editKey) routeEdit = { key: editKey, skip: [], nudge: {}, trips: [] };
+	// Edits belong to the set of chains they were made on. Another set
+	// starts clean; going back to one -- a chain ticked and unticked --
+	// finds its edits where they were left.
+	if (routeEdit.key !== editKey) {
+		if (routeEdit.key && (routeEdit.skip.length || Object.keys(routeEdit.nudge).length || routeEdit.trips.length)) {
+			editsBy.delete(routeEdit.key);
+			editsBy.set(routeEdit.key, routeEdit);
+			if (editsBy.size > 12) editsBy.delete(editsBy.keys().next().value);
+		}
+		routeEdit = editsBy.get(editKey) || { key: editKey, skip: [], nudge: {}, trips: [] };
+	}
 	const edits = { skipIsles: routeEdit.skip, nudge: routeEdit.nudge, tripOrder: routeEdit.trips || [] };
 	// What is aboard and not wanted is dealt with at the harbour, before
 	// casting off: the run is laid without it, so the route neither
@@ -7203,7 +7246,7 @@ export function barterAction(act, el, redraw) {
 		}
 		// The run is dropped, and its clock with it: a clock with no run
 		// behind it only counts up at whoever comes back to the page.
-		case 'barter-sail-drop': unsyncHold(sail); sail = null; sailAll.open = false; cursor = null; skipped = new Set(); step = 'plan'; stopTimer(); persist(); bringUp('.barter-screen .steps'); return true;
+		case 'barter-sail-drop': abandonRun(); sailAll.open = false; cursor = null; skipped = new Set(); step = 'plan'; stopTimer(); bringUp('.barter-screen .steps'); return true;
 		// The cockpit sent to one stop, or past one. A stop passed over is
 		// not ticked and not recorded: it is only out of the way.
 		case 'barter-sail-jump': cursor = String(el.dataset.k); return true;
@@ -7211,6 +7254,15 @@ export function barterAction(act, el, redraw) {
 		// What the last Record came to, put away or taken back.
 		case 'barter-recorded-ok': lastTrip = null; return true;
 		case 'barter-undo-record': {
+			// Only while the run is the last change: an Undo here after a
+			// tick or a port change took back that instead, and the run's
+			// hold writes with it.
+			const top = store.lastChange();
+			if (!lastTrip || !top || top.t !== lastTrip.entry) {
+				lastTrip = null;
+				toast(T('Changes came after the run was recorded: take those back first with the Undo at the top'));
+				return true;
+			}
 			const label = store.undo();
 			// The stops written into the hold as they were ticked go back
 			// with the rest of the run.
@@ -7343,7 +7395,13 @@ export function barterAction(act, el, redraw) {
 			const on = sailing() || (el.dataset.map ? sail : null);
 			if (!on) return false;
 			const n = Number(el.dataset.n);
-			if (on.seen[el.dataset.npc] === n) delete on.seen[el.dataset.npc]; else on.seen[el.dataset.npc] = n;
+			if (on.seen[el.dataset.npc] === n) {
+				// The count taken back is the trade not yet said: the stop
+				// goes back to waiting, rather than being recorded at the
+				// middle of what the island might have paid.
+				delete on.seen[el.dataset.npc];
+				on.done = on.done.filter(x => x !== `n${el.dataset.npc}`);
+			} else on.seen[el.dataset.npc] = n;
 			persist();
 			// Saying what the island paid is saying the exchange was made:
 			// the stop is done with it, one press instead of two.
@@ -7363,7 +7421,7 @@ export function barterAction(act, el, redraw) {
 				: T('{n} floors are gone — the run may spend what you hold', { n: lvs.length }));
 			return true;
 		}
-		case 'barter-record': recordTrip(sailedPlan(), fromPort()); return false;
+		case 'barter-record': { const on = sailing(); recordTrip(sailedPlan(), (on && ports.find(p => p.id === on.port)) || fromPort()); return false; }
 		case 'barter-record-stranded': {
 			const on = stranded();
 			if (!on) return false;
