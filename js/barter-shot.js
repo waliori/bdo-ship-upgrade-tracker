@@ -441,15 +441,48 @@ export function wholeIn(text) {
 }
 
 /**
- * The labels beside the lifetime barter count, where we know them.
+ * The label beside the lifetime barter count, in each client's words.
  *
- * Only English is the client's own word, read off a screenshot. The
- * rest of the game's sixteen languages are not guessed at here: a wrong
- * word would put a wrong number into the sailor's profile, which is
- * worse than leaving the field alone. Parley below needs no vocabulary
- * at all, so it works in every language regardless.
+ * Each is the tail of the label as the client prints it, read off a
+ * player's screenshot where one was found (en, fr, es, sp, pt, tr, jp,
+ * th) and off the region's own patch notes or wiki otherwise. Only the
+ * tail, because the head varies: the Latin-American client says "Mis
+ * intercambios acumulados", the Japanese "私の累積交換回数", and the
+ * engine reads "Nº" as "N°" or "No". A label that matches nothing leaves
+ * the field alone, which is better than a wrong number in the profile.
  */
-const BARTERS_LABELS = ['totalbarters', 'totalbarter'];
+const BARTERS_LABELS = [
+	'Total Barters',                // en
+	'Warentauschanzahl',            // de
+	"échanges accumulés",           // fr: Nbr. d'échanges accumulés
+	'acumulada de trueques',        // es: Cantidad acumulada de trueques
+	'intercambios acumulados',      // sp: Mis intercambios acumulados
+	'Trocas Acumuladas',            // pt: Nº de Trocas Acumuladas
+	'Суммарное число обменов',      // ru
+	'Biriken Takas Sayımı',         // tr
+	'累積交換回数',                   // jp: 私の累積交換回数
+	'누적 교환 횟수',                  // kr
+	'累計交換次數',                   // tw
+	'累计交换次数',                   // cn
+	'จำนวนการแลกเปลี่ยนสะสม'           // th
+].map(plain);
+
+/** Whether letters read so far end in one of those labels. */
+function endsInBartersLabel(seen) {
+	return BARTERS_LABELS.some(label => {
+		if (seen.endsWith(label)) return true;
+		// A letter or two the engine got wrong, in the longer labels.
+		const slack = Math.floor(label.length * 0.12);
+		return slack > 0 && seen.length >= label.length
+			&& editDistance(seen.slice(-label.length), label, slack + 1) <= slack;
+	});
+}
+
+/** The figure a box starts with -- "2640回", "50361ครั้ง", "0" -- or null. */
+function leadingWhole(text) {
+	const m = String(text || '').match(/\d{1,3}(?:[.,\u00a0\u202f ]\d{3})+|\d+/);
+	return m ? wholeIn(m[0]) : null;
+}
 
 /**
  * What the head of the Barter Information window says about the sailor:
@@ -506,14 +539,24 @@ export function figuresFrom(words, lh = lineHeight(words)) {
 			if (!byLabel.has(key)) byLabel.set(key, []);
 			byLabel.get(key).push({ value: wholeIn(num.text), x: w.x0, y: midY(w) });
 		}
-		// The lifetime count, by the only label we are sure of. Two words
-		// in English, and whatever stands between them and the figure --
-		// a "(?)", a colon -- is stepped over by looking to the right
-		// rather than to the very next box.
-		if (out.barters === null && BARTERS_LABELS.some(l => l.startsWith(key) && l !== key)) {
-			const second = nextTo(w, x => BARTERS_LABELS.includes(key + plain(x.text)));
-			const n = second && nextTo(second, x => wholeIn(x.text) !== null);
-			if (n) out.barters = wholeIn(n.text);
+		// The lifetime count, by its label. The label is one box or
+		// several -- the engine splits "Total Barters" in two and a line
+		// of Thai wherever it likes -- and whatever stands between it and
+		// the figure, a "(?)" or a colon, has no letters and is stepped
+		// over. The figure may carry its unit: "2640回".
+		if (out.barters === null) {
+			let seen = '';
+			for (let at = w, hops = 0; at && hops < 8; hops++) {
+				const text = String(at.text);
+				const digit = text.search(/\d/);
+				seen += plain(digit < 0 ? text : text.slice(0, digit));
+				if (digit >= 0) {
+					if (endsInBartersLabel(seen)) out.barters = leadingWhole(text.slice(digit));
+					break;
+				}
+				if (seen.length > 40) break;
+				at = nextTo(at, () => true);
+			}
 		}
 	}
 

@@ -152,6 +152,41 @@ test('a shot of the rows alone offers no figures rather than the wrong ones', ()
 	}
 });
 
+// The head as each client prints it, off players' screenshots found
+// for the purpose: the label in the engine's boxes, then a "(?)" and a
+// colon or not, then the figure, which in Japanese and Thai carries its
+// unit.
+test('the lifetime barter count is read by its label in every client’s words', () => {
+	const row = (...texts) => {
+		let x = 10;
+		return texts.map(text => {
+			const w = { text, x0: x, y0: 100, x1: x + text.length * 9, y1: 118 };
+			x = w.x1 + 6;
+			return w;
+		});
+	};
+	const heads = [
+		[['Total', 'Barters', '(?)', ':', '2048'], 2048],
+		[['Nbr.', "d'échanges", 'accumulés', '(?)', ':', '0'], 0],
+		[['Cantidad', 'acumulada', 'de', 'trueques', '(?):', '17'], 17],
+		[['Mis', 'intercambios', 'acumulados', '(?)', ':', '0'], 0],
+		[['Nº', 'de', 'Trocas', 'Acumuladas(?):', '39909', 'vezes'], 39909],
+		[['N°', 'de', 'Trocas', 'Acumuladas', ':', '1,204'], 1204],
+		[['Biriken', 'Takas', 'Sayımı', ':', '812'], 812],
+		[['私の累積交換回数', '：', '2640回'], 2640],
+		[['私の累積', '交換回数：2640回'], 2640],
+		[['จำนวนการแลกเปลี่ยน', 'สะสม', ':', '50361ครั้ง'], 50361],
+		[['누적', '교환', '횟수', ':', '3,120'], 3120],
+		[['Суммарное', 'число', 'обменов', ':', '75'], 75]
+	];
+	for (const [texts, n] of heads) {
+		assert.equal(figuresFrom(row(...texts)).barters, n, texts.join(' '));
+	}
+	// Words that are not the label leave the field alone.
+	assert.equal(figuresFrom(row('Trocas', 'Restantes', ':', '4')).barters, null);
+	assert.equal(figuresFrom(row('Tractations', ':', '1,000,000')).barters, null);
+});
+
 test('a figure is a figure, and a speed or a refresh count is not', () => {
 	assert.equal(wholeIn('269,692'), 269692);
 	assert.equal(wholeIn('1.234.567'), 1234567);
