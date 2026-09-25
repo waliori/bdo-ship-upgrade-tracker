@@ -518,7 +518,7 @@ const TEMPLATES = [
  * four of them add to the hull's own numbers.
  */
 const SLOT_GLYPH = { cannon: '⁂', sail: '⛵', figurehead: '❖', plating: '▣' };
-const SLOT_LABEL = { cannon: TT('Cannon'), sail: TT('Sail'), figurehead: TT('Figurehead'), plating: TT('Black plating') };
+const SLOT_LABEL = { cannon: TT('part|Cannon'), sail: TT('part|Sail'), figurehead: TT('Figurehead'), plating: TT('Black plating') };
 
 /** One slot: what is on it, where that came from, and the ways to change it. */
 function slotCard(ship, x, chosenByHand) {

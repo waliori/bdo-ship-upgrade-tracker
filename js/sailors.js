@@ -222,9 +222,9 @@ export const anyType = Object.fromEntries([...pool, ...mateTypes].map(s => [s.ty
 
 /** The seats a hull has, in the order the board draws them. */
 const POSITIONS = [
-	{ pos: 'sail', label: TT('Sail'), n: 1, effect: TT('speed and acceleration count double') },
+	{ pos: 'sail', label: TT('seat|Sail'), n: 1, effect: TT('speed and acceleration count double') },
 	{ pos: 'wheel', label: TT('Wheel'), n: 1, effect: TT('turning and braking count double') },
-	{ pos: 'cannon', label: TT('Cannon'), n: 1, effect: TT('cannon damage, reload and range') },
+	{ pos: 'cannon', label: TT('seat|Cannon'), n: 1, effect: TT('cannon damage, reload and range') },
 	{ pos: 'deck', label: TT('Deck'), n: 1, effect: TT('+10,000 durability for every cabin the sailor costs') },
 	{ pos: 'mess', label: TT('Mess'), n: 1, effect: TT('+5,000 rations for every cabin the sailor costs') },
 	{ pos: 'firstmate', label: TT('First Mate'), n: 1, effect: TT("the sailor's own skill switches on") },
