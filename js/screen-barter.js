@@ -921,6 +921,10 @@ function itemNow() {
 // beside the Dami Pier wharf, Goyoung Nopsae Pass's beside Dallae Pier).
 const STASHES = ['Velia', 'Port Epheria', 'Iliya Island', 'Ancado Inner Harbor', "Oquilla's Eye", 'Dami Pier', 'Dallae Pier'];
 const STORE_NAMES = { 'Dami Pier': "Nampo's Moodle Village", 'Dallae Pier': "Nopsae's Byeot County" };
+// The Inventory's storage each of them is: the Moodle Village keeper is
+// the one the Inventory has always called Nampo.
+const STORE_KEYS = { 'Dami Pier': 'Nampo', 'Dallae Pier': "Nopsae's Byeot County" };
+const storeOf = at => STORE_KEYS[at] || at;
 // Every wharf's Load Cargo moves goods between the bag and the ship,
 // storage keeper or not; and the bag, when the sailor sails that way.
 const docks = wharves.filter(w => w.kind === 'wharf');
@@ -3303,8 +3307,8 @@ function tripOf(plan, on, from) {
 			// The sale, unless the sailor said the goods were kept: then
 			// they stay in the delta, and go into the Inventory.
 			if (!ticked(on.kept, s, k, plan.stops)) for (const x of (s.sale && s.sale.items) || []) { add(as(x.item), -x.n); silver += x.total; }
-			for (const d of s.dropped || []) moves.push({ item: as(d.item), from: '', to: s.wharf.at, n: Math.round(d.n) });
-			for (const l of s.loads || []) moves.push({ item: l.item, from: s.wharf.at, to: '', n: Math.round(l.n) });
+			for (const d of s.dropped || []) moves.push({ item: as(d.item), from: '', to: storeOf(s.wharf.at), n: Math.round(d.n) });
+			for (const l of s.loads || []) moves.push({ item: l.item, from: storeOf(s.wharf.at), to: '', n: Math.round(l.n) });
 			continue;
 		}
 		const paid = paidAt(s, on);
@@ -6398,7 +6402,7 @@ function storesElsewhere() {
 			const n = store.stockAt(name, town);
 			if (n > 0) goods[name] = n;
 		}
-		if (Object.keys(goods).length) out.push({ town, wharf: wharves.find(w => w.kind === 'wharf' && w.at === town) || null, goods });
+		if (Object.keys(goods).length) out.push({ town, wharf: wharves.find(w => w.kind === 'wharf' && storeOf(w.at) === town && STASHES.includes(w.at)) || wharves.find(w => w.kind === 'wharf' && w.at === town) || null, goods });
 	}
 	return out;
 }

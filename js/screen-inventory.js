@@ -320,7 +320,7 @@ function pickBar(shownItems) {
 export const TOWNS = [
 	"Ship's hold", 'Velia', 'Port Epheria', 'Iliya Island', 'Olvia', 'Heidel', 'Glish', 'Calpheon City', 'Keplan', 'Trent',
 	'Altinova', 'Tarif', 'Valencia City', 'Sand Grain Bazaar', 'Arehaza', 'Ancado Inner Harbor', 'Shakatu', 'Abun', 'Muiquun',
-	'Grána', 'Duvencrune', "O'draxxia", 'Eilton', 'Nampo', 'Dalbeol Village', 'Port Ratt', 'Elsewhere'
+	'Grána', 'Duvencrune', "O'draxxia", 'Eilton', "Oquilla's Eye", 'Nampo', 'Dalbeol Village', "Nopsae's Byeot County", 'Port Ratt', 'Elsewhere'
 ];
 
 /** Where the item is kept: a line per storage, editable, against the
