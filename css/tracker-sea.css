@@ -1200,3 +1200,9 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 
 /* Pictures dragged over the barter paste zone. */
 .board-drop.over { border-color: var(--teal); border-style: solid; background: color-mix(in srgb, var(--teal) 8%, var(--panel-inset)); }
+
+/* What a removal from the Inventory takes, listed in its ask. */
+.remove-list { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
+.remove-list li { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.remove-list li span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.remove-list li b { font-variant-numeric: tabular-nums; }

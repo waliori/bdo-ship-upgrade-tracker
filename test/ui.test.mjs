@@ -451,6 +451,45 @@ test('a ship in a link is looked at first, and the missing parts can queue', asy
 	await context.close();
 });
 
+test('items leave the Inventory from the select bar or the Delete key, after asking, and one Undo brings them back', async () => {
+	const { page, context, errors } = await open('#inventory');
+	const [a, b] = await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		const { allItems } = await import('/js/ui-bits.js');
+		const pick = allItems().filter(n => !/^\+\d/.test(n)).slice(0, 2);
+		store.setStock(pick[0], 30);
+		store.setStockAt(pick[0], 'Velia', 12);
+		store.setStock(pick[1], 5);
+		return pick;
+	});
+	await wait(300);
+	const stockOf = it => page.evaluate(async i => { const s = await import('/js/state.js'); return [s.getStock(i), s.stockAt(i, 'Velia')]; }, it);
+	const beforeA = await stockOf(a), beforeB = await stockOf(b);
+	assert.ok(beforeA[0] > 0 && beforeA[1] === 12 && beforeB[0] === 5);
+	await tap(page, '[data-act="inv-select"]'); await wait(200);
+	await tap(page, `.tile[data-item="${a.replace(/"/g, '\\"')}"]`); await wait(150);
+	await tap(page, `.tile[data-item="${b.replace(/"/g, '\\"')}"]`); await wait(150);
+	await tap(page, '[data-act="inv-remove"]'); await wait(300);
+	assert.match(await text(page, '#dialog h2'), /remove from the inventory/i, 'it asks first');
+	assert.equal(await count(page, '#dialog .remove-list li'), 2, 'and lists what goes');
+	await tap(page, '[data-remove-go]'); await wait(300);
+	assert.deepEqual(await stockOf(a), [0, 0], 'gone from the bags and from Velia');
+	assert.deepEqual(await stockOf(b), [0, 0]);
+	await page.evaluate(async () => (await import('/js/state.js')).undo()); await wait(300);
+	assert.deepEqual(await stockOf(a), beforeA, 'one Undo brings both back, where they were');
+	assert.deepEqual(await stockOf(b), beforeB);
+	// The Delete key, on the card that is open.
+	await tap(page, '[data-act="inv-select"]'); await wait(200);
+	await tap(page, `.tile[data-item="${b.replace(/"/g, '\\"')}"]`); await wait(300);
+	await page.evaluate(() => document.activeElement && document.activeElement.blur());
+	await page.keyboard.press('Delete'); await wait(300);
+	assert.match(await text(page, '#dialog h2'), /remove from the inventory/i);
+	await tap(page, '#dialog [data-close]'); await wait(200);
+	assert.deepEqual(await stockOf(b), beforeB, 'cancelled, nothing moved');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a ship in a link can be looked at on the Ship tab, and the bar brings your own back', async () => {
 	const { page, context, errors } = await open('#crew');
 	const link = await page.evaluate(async () => {

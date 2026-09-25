@@ -927,6 +927,24 @@ function writeStock(item, qty, at = true) {
 	state.profile = readProfile({ ...state.profile, stash: { ...state.profile.stash, [item]: next } });
 }
 
+/**
+ * Items taken out of the Inventory entirely -- the bags, the hold and
+ * every storage -- as one change, so one Undo brings every one of them
+ * back where it was.
+ */
+export function removeItems(items, label) {
+	const stash0 = state.profile.stash || {};
+	const list = [...new Set(items)].filter(it => getStock(it) > 0 || stash0[it]);
+	if (!list.length) return null;
+	return commit('stock', label, () => {
+		for (const it of list) writeStock(it, 0, false);
+		const stash = { ...(state.profile.stash || {}) };
+		let changed = false;
+		for (const it of list) if (it in stash) { delete stash[it]; changed = true; }
+		if (changed) state.profile = readProfile({ ...state.profile, stash });
+	});
+}
+
 /** Set an item's owned quantity outright; `at` names the place the
  *  change is made at, when it is not the bags or the kind's home. */
 export function setStock(item, qty, label, at = true) {

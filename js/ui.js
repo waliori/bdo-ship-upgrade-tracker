@@ -1358,6 +1358,7 @@ function wire() {
 				return render();
 			}
 			case 'inv-pick-none': invPicked.clear(); return render();
+			case 'inv-remove': return askRemove([...invPicked]);
 			case 'select': setSelected(el.dataset.item); return render();
 			case 'deselect': setSelected(null); return render();
 			case 'strategy':
@@ -1693,6 +1694,16 @@ function wire() {
 			|| evt.target === document.documentElement
 			|| (evt.target.closest && evt.target.closest('.tab, .tabs') && !evt.target.closest('[role="button"], .chip, [contenteditable]'));
 
+		// Delete on the Inventory: the ticked items, or the one whose card
+		// is open, out of it -- after asking.
+		if (evt.key === 'Delete' && !inField && dialog.hidden && !evt.ctrlKey && !evt.metaKey && !evt.altKey && view === 'inventory') {
+			const items = invPicking ? [...invPicked] : selected ? [selected] : [];
+			if (items.length) {
+				evt.preventDefault();
+				return askRemove(items);
+			}
+		}
+
 		// Ctrl+K anywhere, / outside a field: find anything. The digits
 		// switch tabs, the way they do in a browser -- 1 to 9 for the
 		// first nine, 0 for the tenth.
@@ -1920,6 +1931,36 @@ function openSharedSave(save) {
 		closeDialog();
 		store.adopt(save, T('Took a shared plan'));
 		toast(T('Replaced yours with the shared plan'), true);
+	});
+}
+
+/**
+ * Items out of the Inventory, asked first: what goes and how many, from
+ * everywhere it is kept, and that one Undo brings it back. Cancel has
+ * the focus, so a second Delete or an Enter does not remove by accident.
+ */
+function askRemove(items) {
+	const list = [...new Set(items)].filter(it => store.getStock(it) > 0);
+	if (!list.length) return toast(T('Nothing ticked is held'));
+	const n = list.reduce((a, it) => a + store.getStock(it), 0);
+	const host = openDialog(`
+		<h2>${T('Remove from the Inventory?')}</h2>
+		<p class="dialog-copy">${list.length === 1
+		? T('<b>{item}</b> — {n} in all — leaves the bags, the hold and every storage.', { item: esc(gameName(list[0])), n: F(n) })
+		: T('<b>{count}</b> items — {n} in all — leave the bags, the hold and every storage.', { count: F(list.length), n: F(n) })} ${T('One Undo brings them back.')}</p>
+		${list.length > 1 ? `<ul class="remove-list">${list.slice(0, 12).map(it => `<li>${img(it, 'row-icon sm')}<span>${esc(gameName(it))}</span><b>${F(store.getStock(it))}</b></li>`).join('')}${list.length > 12 ? `<li class="faint">${T('and {n} more', { n: F(list.length - 12) })}</li>` : ''}</ul>` : ''}
+		<div class="dialog-actions">
+			<button class="act quiet" data-close>${T('Cancel')}</button>
+			<button class="act danger" data-remove-go>${T('Remove')}</button>
+		</div>`);
+	host.querySelector('[data-close]')?.focus();
+	host.querySelector('[data-remove-go]').addEventListener('click', () => {
+		closeDialog();
+		store.removeItems(list, list.length === 1 ? T('Removed {item} from the Inventory', { item: gameName(list[0]) }) : T('Removed {n} items from the Inventory', { n: list.length }));
+		for (const it of list) invPicked.delete(it);
+		if (selected && list.includes(selected)) setSelected(null);
+		toast(list.length === 1 ? T('{item} removed', { item: gameName(list[0]) }) : T('{n} items removed', { n: F(list.length) }), true);
+		render();
 	});
 }
 

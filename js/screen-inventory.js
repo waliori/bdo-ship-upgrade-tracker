@@ -312,6 +312,7 @@ function pickBar(shownItems) {
 		<label class="inv-place"><span>${n === 1 ? T('move it to') : T('move them all to')}</span>
 			<select class="field select" data-act="inv-place" ${n ? '' : 'disabled'} aria-label="${T('Move the ticked items to a storage')}"><option value="">${T('choose a storage…')}</option><option value="bags">${T('the bags · the ship, for trade goods')}</option>${TOWNS.filter(t => t !== store.ABOARD).map(t => `<option value="${esc(t)}">${esc(gameName(t))}</option>`).join('')}</select>
 		</label>
+		<button class="ghost-btn sm danger" data-act="inv-remove" ${n ? '' : 'disabled'} title="${T('Take the ticked items out of the Inventory, every storage included (the Delete key does the same)')}">${T('Remove')}</button>
 		<button class="ghost-btn sm" data-act="inv-select">${T('Done')}</button>
 	</div>`;
 }
