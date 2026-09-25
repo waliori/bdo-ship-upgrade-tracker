@@ -1210,7 +1210,8 @@ button.status-bit:hover { background: rgba(var(--blue-rgb), 0.12); color: var(--
 /* The storage reader's choice: update what is read, or replace the storage. */
 .shot-mode { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 4px; }
 .shot-mode label { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; cursor: pointer; }
-.shot-mode .row-sub { flex: 1 1 100%; padding-left: 22px; }
+.shot-mode .row-sub { flex: 1 1 100%; min-width: 0; padding-left: 22px; white-space: normal; box-sizing: border-box; }
+.shot-box [data-write] { white-space: normal; min-width: 0; }
 .shot-gone { margin: 10px 0; }
 .shot-gone summary { cursor: pointer; font-weight: 600; color: var(--amber); }
 .shot-gone .remove-list li input { flex: none; }
