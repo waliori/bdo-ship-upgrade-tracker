@@ -770,6 +770,7 @@
 	"Bring your progress across?": "Перенести ваш прогресс?",
 	"Browse all {n}…": "Смотреть все {n}…",
 	"Browse the traces…": "Смотреть следы…",
+	"Bugs reported and runs tested by {names}.": "Об ошибках сообщили и рейсы проверили {names}.",
 	"Build queue": "Очередь сборок",
 	"Builds": "Сборки",
 	"Builds most queued": "Чаще всего в очереди",
@@ -2007,6 +2008,7 @@
 	"One of them is my <b>Alpha Pet</b>": "Один из них — мой <b>Альфа-питомец</b>",
 	"One offer per island, so many tries": "Одно предложение на остров, столько попыток",
 	"One page": "Одна страница",
+	"One player shaped most of this release, and a crew of others caught what was broken in it.": "Большую часть этой версии определил один игрок, а целая команда других нашла, что в ней было сломано.",
 	"One route through every rung of every chain ticked, each after the rung beneath it — the nearest islands first, whatever chain they belong to — or each chain climbed to its top before the next": "Один маршрут через каждую ступень каждой отмеченной цепочки, каждая после ступени под ней — сначала ближайшие острова, к какой бы цепочке они ни принадлежали, — или каждая цепочка пройдена до верха, прежде чем начнётся следующая",
 	"One route, every chain at once": "Один маршрут, все цепочки разом",
 	"One route, {n} lots": {
@@ -2620,6 +2622,7 @@
 	"Sending today’s material list…": "Отправка сегодняшнего списка материалов…",
 	"Sent as <b>{name}</b>": "Отправлено как <b>{name}</b>",
 	"Sent once you are signed in": "Уйдёт, как только вы войдёте",
+	"Sent the most feedback and ideas behind 1.5: the short trip, the route sheet packed on the chart, and a good many of the fixes.": "Прислал больше всего отзывов и идей для 1.5: короткий рейс, плотный лист маршрута на карте и немалую часть исправлений.",
 	"Sent — thank you": "Отправлено — спасибо",
 	"Sent — thank you for saying": "Отправлено — спасибо, что сказали",
 	"Set": "Задать",

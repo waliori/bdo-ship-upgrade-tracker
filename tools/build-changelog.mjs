@@ -46,7 +46,8 @@ const body = RELEASES.flatMap(r => {
 	const t = r.thanks;
 	if (t && t.who && t.who.length) {
 		blocks.push('### Asked for by you', md(t.text));
-		blocks.push(t.who.map(w => `- **${w.name}** — *“${md(w.said)}”* ${md(w.did)}`).join('\n'));
+		blocks.push(t.who.map(w => `- **${w.name}** — ${w.said ? `*“${md(w.said)}”* ` : ''}${md(w.did)}`).join('\n'));
+		if (t.also && t.also.length) blocks.push(`Bugs reported and runs tested by ${t.also.map(n => `**${n}**`).join(', ')}.`);
 		if (t.foot) blocks.push(md(t.foot));
 	}
 	for (const s of r.sections) {

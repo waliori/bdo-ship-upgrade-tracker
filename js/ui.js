@@ -2285,7 +2285,8 @@ function openWhatsNew({ onClose = null } = {}) {
 	const thanks = t && t.who && t.who.length ? `<section class="news-thanks">
 		<h3>${T('Asked for by you')}</h3>
 		<p>${said(t.text)}</p>
-		<ul class="news-points">${t.who.map(w => `<li><b>${esc(w.name)}</b> — <i>“${said(w.said)}”</i> ${said(w.did)}</li>`).join('')}</ul>
+		<ul class="news-points">${t.who.map(w => `<li><b>${esc(w.name)}</b> — ${w.said ? `<i>“${said(w.said)}”</i> ` : ''}${said(w.did)}</li>`).join('')}</ul>
+		${t.also && t.also.length ? `<p>${T('Bugs reported and runs tested by {names}.', { names: t.also.map(n => `<b>${esc(n)}</b>`).join(', ') })}</p>` : ''}
 		${t.foot ? `<p class="news-thanks-foot">${said(t.foot)}</p>` : ''}
 	</section>` : '';
 

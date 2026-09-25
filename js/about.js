@@ -66,6 +66,17 @@ export const RELEASES = [
 		name: TT('Plan, load, sail, results'),
 		date: '2026-09-25',
 		sum: TT('A barter run is four steps — plan it, pack it, sail it stop by stop, record it — with routes found by water, trips when the hold is full, your bag as a second hold, and one trade picked for a short trip.'),
+		thanks: {
+			text: TT('One player shaped most of this release, and a crew of others caught what was broken in it.'),
+			who: [
+				{
+					name: 'Oni',
+					did: TT('Sent the most feedback and ideas behind 1.5: the short trip, the route sheet packed on the chart, and a good many of the fixes.')
+				}
+			],
+			also: ['TheRealDonia', 'Bevs', 'GriefLZ', 'Kairukae', 'BAYONET', 'Sam', 'RENGEREL', 'eavi', 'Fresh', 'Zelpha'],
+			foot: TT('The box is under <b>Menu \u2192 Feedback</b>. It reaches whoever runs the site.')
+		},
 		blurb: TT('The Barter tab was one long page with a sheet over it, and the run was sailed somewhere else. It is <b>four steps</b> now, one on the page at a time: <b>Plan</b> the day, <b>Load</b> what goes aboard — a tick loads the hold for real — <b>Sail</b> it from a cockpit that waits at every island for you, and see the <b>Results</b> before they are recorded. Under it, the route is <b>searched by water</b> and cut into trips when the hold cannot carry everything at once.'),
 		sections: [
 			{

@@ -11,6 +11,16 @@ someone who has been away. The same notes are in the app itself, under
 
 The Barter tab was one long page with a sheet over it, and the run was sailed somewhere else. It is **four steps** now, one on the page at a time: **Plan** the day, **Load** what goes aboard — a tick loads the hold for real — **Sail** it from a cockpit that waits at every island for you, and see the **Results** before they are recorded. Under it, the route is **searched by water** and cut into trips when the hold cannot carry everything at once.
 
+### Asked for by you
+
+One player shaped most of this release, and a crew of others caught what was broken in it.
+
+- **Oni** — Sent the most feedback and ideas behind 1.5: the short trip, the route sheet packed on the chart, and a good many of the fixes.
+
+Bugs reported and runs tested by **TheRealDonia**, **Bevs**, **GriefLZ**, **Kairukae**, **BAYONET**, **Sam**, **RENGEREL**, **eavi**, **Fresh**, **Zelpha**.
+
+The box is under **Menu → Feedback**. It reaches whoever runs the site.
+
 ### Four steps, one at a time
 
 **Plan** starts with *Before you sail* — the Parley as the window reads it, the vouchers you carry, your home port — then a **ladder** that says where the day ends and what each level becomes, five **ways of sailing** each with the best run the search finds that way, and the chains on offer.
