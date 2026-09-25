@@ -804,12 +804,6 @@ export async function deleteFeedback(id) {
 	return rows.map(r => ({ id: String(r.id), mime: r.mime }));
 }
 
-export async function countFeedback(status = 'open') {
-	await migrate();
-	const { rows } = await exec({ sql: 'SELECT COUNT(*) AS n FROM feedback WHERE status = ?', args: [status] });
-	return Number(rows[0] && rows[0].n) || 0;
-}
-
 /**
  * What one account has sent lately: how many are still open, how many
  * in the last day, and when the last one was.
@@ -979,12 +973,6 @@ export async function listCommunity() {
 		userId: r.user_id, share: r.share, stats: r.stats, rev: Number(r.rev) || 0, joinedAt: Number(r.joined_at) || 0,
 		username: r.username, avatar: r.avatar || null, saveRev: r.save_rev === null || r.save_rev === undefined ? null : Number(r.save_rev)
 	}));
-}
-
-export async function countCommunity() {
-	await migrate();
-	const { rows } = await exec('SELECT COUNT(*) AS n FROM community');
-	return Number(rows[0] && rows[0].n) || 0;
 }
 
 /* ------------------------------------------------------------------ *

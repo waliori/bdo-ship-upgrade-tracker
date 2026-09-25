@@ -86,8 +86,3 @@ async function viaDb(db, token) {
 	return { ...counts };
 }
 
-/** For the tests: forget everything counted so far. */
-export function forgetPresence() {
-	local.clear();
-	cached = null;
-}
