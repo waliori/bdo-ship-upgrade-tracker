@@ -914,8 +914,12 @@ function itemNow() {
 }
 
 // Where goods can be left on the way: the harbours with a storage
-// keeper beside the wharf manager.
-const STASHES = ['Velia', 'Port Epheria', 'Iliya Island', 'Ancado Inner Harbor', "Oquilla's Eye"];
+// keeper beside the wharf manager. The Morning Light pair are named
+// here by their pier, and the wharf's storage list names them by the
+// storage keeper's town (BDOCodex: Doodol keeps Moodle Village's storage
+// beside the Dami Pier wharf, Goyoung Nopsae Pass's beside Dallae Pier).
+const STASHES = ['Velia', 'Port Epheria', 'Iliya Island', 'Ancado Inner Harbor', "Oquilla's Eye", 'Dami Pier', 'Dallae Pier'];
+const STORE_NAMES = { 'Dami Pier': "Nampo's Moodle Village", 'Dallae Pier': "Nopsae's Byeot County" };
 const stashes = STASHES.map(at => wharves.find(w => w.kind === 'wharf' && w.at === at)).filter(Boolean);
 
 /** The legs of a run, bent round the land: distance and time. */
@@ -2169,7 +2173,7 @@ function howHTML(o, figs = null) {
 		${orderRow('barter-vouchers', T('trade vouchers'), o.vouchers, VOUCHER_CHOICES, T('Whether the run draws on the Crow’s Trade Vouchers you carry; each is a quarter of a bar, on its own two-hour cooldown'))}
 		${orderRow('barter-way', T('the way round'), o.way, WAY_CHOICES, T('One route through every rung of every chain ticked, each after the rung beneath it — the nearest islands first, whatever chain they belong to — or each chain climbed to its top before the next'))}
 		${named ? `<p class="orders-set-k">${T('And, whichever way you sail')}</p>` : ''}
-		${orderRow('barter-stash', T('storage at'), stash, [['', T('the nearest wharf')], ...stashes.map(w => [w.at, gameName(w.at)])])}
+		${orderRow('barter-stash', T('storage at'), stash, [['', T('the nearest wharf')], ...stashes.map(w => [w.at, gameName(STORE_NAMES[w.at] || w.at)])])}
 		${orderRow('barter-quests', T('quests on the way'), o.quests, QUEST_CHOICES, T('The dailies and weeklies already taken, handed in where the run passes their taker or at a stop put in a short way off the route; the barter quests counted off the run\'s trades; the hunts only when their grounds lie on the way'))}
 `;
 	const fromLadder = `<div class="from-ladder"><span>${T('From the step above')}</span><b>${esc(goalLine(o))}</b><button class="linky" data-act="barter-sec" data-id="ladder">${T('change it there')} ›</button></div>`;
