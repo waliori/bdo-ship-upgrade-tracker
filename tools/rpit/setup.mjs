@@ -38,8 +38,26 @@ export const DEFAULT_ARGS = {
 	dropPolicy: 'any', speed: 100, cal: DEFAULT_CAL
 };
 
+/**
+ * A home storage as a sailor who barters every day keeps one: twenty of
+ * the first [Level 4] or [Level 5] of every climb to a [Level 7], and a
+ * dozen of each lower good such a climb takes -- the leftovers of the
+ * boards before. What the "stocked" cases start with; a board is read
+ * for it, so each layout gets the storage that means something on it.
+ */
+export function autoStorage(board) {
+	const out = {};
+	const tops = chains(board, {}, {}).filter(c => c.top === 7);
+	for (const c of tops) {
+		const r = c.rungs.find(x => [4, 5].includes(levelOf(x.give)));
+		if (r) out[r.give] = 20;
+	}
+	for (const c of tops) for (const r of c.rungs) if ([1, 2, 3].includes(levelOf(r.give))) out[r.give] = (out[r.give] || 0) + 12;
+	return out;
+}
+
 const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-export const nameOf = a => `bdo-${a.layout}-${slug(a.start)}-${a.hold}-${a.pace}`;
+export const nameOf = a => `bdo-${a.layout}-${slug(a.start)}-${a.hold}-${a.pace}${a.stocked ? '-stocked' : ''}`;
 
 /**
  * The instance and the app's options for one case. Unknown arguments
@@ -55,6 +73,9 @@ export function setupOf(given = {}) {
 	if (!port) throw new Error(`no harbour ${args.start}`);
 	for (const d of [args.home, args.end].filter(Boolean)) if (!DEPOTS.includes(d)) throw new Error(`no depot ${d}`);
 	const board = boardData(layout, barterData, npcById);
+	// "auto" is resolved here and written back, so the instance keeps the
+	// storage it was made with and rebuilds to the same case.
+	if (args.storage === 'auto') { args.storage = autoStorage(board); args.stocked = true; }
 
 	// One exchange an island, the barter goods only: a row paying a
 	// material or a coin is not a rung of any climb this model knows.

@@ -5,7 +5,8 @@
 //
 // Options: --layout, --start, --home (defaults to the start when it is a
 // depot, else Velia), --end, --hold, --pace, --parley, --per-trade,
-// --sell, --p, --stock JSON, --storage JSON, --floors JSON (per level),
+// --sell, --p, --stock JSON, --storage JSON or auto (a stocked home
+// storage, see autoStorage), --floors JSON (per level),
 // --drop-policy, --speed, --out FILE (one case) or --dir DIR (default
 // tools/rpit/instances). --all writes every layout from both Velia and
 // Iliya Island, and several --hold / --pace values may be given as
@@ -40,7 +41,7 @@ const list = v => String(v).split(',').map(s => s.trim()).filter(Boolean);
 export function casesOf(o) {
 	const base = {};
 	for (const k of ['parley', 'perTrade', 'sell', 'p', 'speed']) if (o[k] !== undefined) base[k] = Number(o[k]);
-	for (const k of ['stock', 'storage', 'floors']) if (o[k] !== undefined) base[k] = JSON.parse(o[k]);
+	for (const k of ['stock', 'storage', 'floors']) if (o[k] !== undefined) base[k] = o[k] === 'auto' ? 'auto' : JSON.parse(o[k]);
 	if (o.dropPolicy) base.dropPolicy = o.dropPolicy;
 	if (o.end) base.end = o.end;
 	const layouts = o.all ? combos.map(c => c.id) : list(o.layout ?? DEFAULT_ARGS.layout);

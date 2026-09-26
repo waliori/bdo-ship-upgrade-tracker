@@ -47,6 +47,16 @@ test('the export names every case once, and stores what rebuilds it', () => {
 	assert.deepEqual(again.travel, velia.instance.travel);
 });
 
+test('a stocked case keeps the storage it was made with, at home only', () => {
+	const { instance: I } = setupOf({ layout: '34', start: 'Velia', storage: 'auto' });
+	assert.match(I.name, /-stocked$/);
+	const home = I.depots.find(d => d.id === 'Velia').storage;
+	assert.ok(Object.values(home).includes(20), 'twenty of a first [Level 4] or [Level 5]');
+	assert.ok(I.depots.filter(d => d.id !== 'Velia').every(d => !Object.keys(d.storage).length));
+	assert.deepEqual(I.meta.args.storage, home, 'written back, not "auto"');
+	assert.deepEqual(setupOf(I.meta.args).instance.depots, I.depots);
+});
+
 test('level 0: the app\'s run replays to the app\'s own figures', () => {
 	const { plan, info } = solve(velia.instance, { setup: velia });
 	assert.deepEqual(validatePlan(plan, velia.instance), []);
