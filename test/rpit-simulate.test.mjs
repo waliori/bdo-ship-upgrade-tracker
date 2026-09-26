@@ -72,7 +72,7 @@ test('robust: the climb scores what it scores on paper', () => {
 	assert.ok(Math.abs(r.T - (400 + 3 * 45 + 120) / 3600) < 1e-9);
 	assert.equal(r.calls, 1);
 	assert.equal(r.P, 30);
-	assert.deepEqual(r.pointless, { loadThenDrop: 0, idleCalls: 0, consecutiveCalls: 0 });
+	assert.deepEqual(r.pointless, { loadThenDrop: 0, idleCalls: 0, consecutiveCalls: 0, emptyVisits: 0 });
 });
 
 test('sample: an island pays the same at every attempt, drawn once for the board', () => {
@@ -165,6 +165,14 @@ test('a drop away from home is refused when the rules keep goods at home only', 
 	// And the call home after it did nothing, straight after another call.
 	assert.equal(any.pointless.idleCalls, 1);
 	assert.equal(any.pointless.consecutiveCalls, 1);
+});
+
+test('an island sailed to that deals nothing is a pointless stop', () => {
+	// The [Level 3] island before any [Level 2] is made: nothing to give it.
+	const plan = { buy: { Land: 100 }, visits: [{ at: 's1', a: 10 }, { at: 's3', a: 5 }, { at: 's2', a: 10 }, { at: 'H', sell: 'all' }] };
+	const r = simulate(tiny(), planPolicy(plan), { mode: 'robust' });
+	assert.equal(r.log[2].a, 0);
+	assert.equal(r.pointless.emptyVisits, 1);
 });
 
 test('a spare drop leaves what the visits ahead will not take, whatever the yields', () => {

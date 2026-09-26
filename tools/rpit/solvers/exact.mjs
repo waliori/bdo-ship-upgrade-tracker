@@ -11,8 +11,8 @@
 // come to -- every island left dealing all it allows at the most it
 // pays, sold at no cost in time -- is no better than the best found.
 //
-// Exact within those choices: attempts are all, half, or just enough to
-// feed an island above; a call sells and leaves everything spare, not a
+// Exact within those choices: attempts are all, one fewer, half, or
+// just enough to feed an island above; a call sells and leaves everything spare, not a
 // chosen part of it. Within 60 s by
 // default; `optimal` says whether the search finished.
 
@@ -68,7 +68,9 @@ export function search(I, { mu = 0, timeMs = 60000 } = {}) {
 			// come that takes what it makes, at that island's every attempt:
 			// the thin ladder, which leaves the room a second climb needs.
 			const feeds = (takers.get(s.out) || []).filter(t => left.includes(t.id)).map(t => Math.min(s.m, Math.ceil((t.m * t.q) / Math.max(s.ymin, 1e-9) - 1e-9)));
-			for (const a of [...new Set([s.m, Math.ceil(s.m / 2), ...feeds])].filter(a => a > 0)) visit([...visits, { at: id, a }], rest);
+			// One fewer than all, too: on a hold near its limit the attempt that
+			// tips it over slows every leg after, and is not always worth it.
+			for (const a of [...new Set([s.m, s.m - 1, Math.ceil(s.m / 2), ...feeds])].filter(a => a > 0)) visit([...visits, { at: id, a }], rest);
 		}
 		// A call, when the last move was not one.
 		const last = visits[visits.length - 1];

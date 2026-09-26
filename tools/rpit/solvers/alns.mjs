@@ -98,7 +98,11 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 		}
 		// Build up: the removed islands back where they cost least, after
 		// what makes their good; then chains, a handful offered.
-		for (const v of removed.sort(() => rand() - 0.5)) {
+		// Makers before takers: an island put back before the island that
+		// makes its good would stand where nothing reaches it, and deal
+		// nothing. The level of what it takes orders them; ties drawn.
+		const lvl = v => I.goods[station.get(v.at).in].level;
+		for (const v of removed.map(v => ({ v, r: rand() })).sort((a, b) => lvl(a.v) - lvl(b.v) || a.r - b.r).map(x => x.v)) {
 			const s = station.get(v.at);
 			const maker = seq.reduce((m, w, i) => (station.get(w.at).out === s.in ? i : m), -1);
 			seq.splice(cheapestPos(I, seq, v.at, maker + 1), 0, v);

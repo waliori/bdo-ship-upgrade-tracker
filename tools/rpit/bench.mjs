@@ -25,7 +25,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const COLUMNS = ['instance', 'pace', 'solver', 'computeMs', 'meanR', 'meanT', 'rateOfMeans', 'meanRate', 'stdRate', 'minRate',
 	'robustR', 'robustT', 'robustRate', 'P', 'trades', 'calls', 'distance', 'carried',
 	'refusedOverDeal', 'clampedAttempts', 'refusedDrop', 'refusedSell', 'refusedLoad', 'revisited', 'stuck',
-	'loadThenDrop', 'idleCalls', 'consecutiveCalls', 'planErrors'];
+	'loadThenDrop', 'idleCalls', 'consecutiveCalls', 'emptyVisits', 'planErrors'];
 
 /** The files a simple glob names: a directory and a `*` in the last part. */
 export function globFiles(pattern) {

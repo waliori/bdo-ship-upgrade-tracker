@@ -166,9 +166,30 @@ export function finish(I, stationVisits, mu = 0, { calls = [] } = {}) {
 			const e = robustEval(I, p, mu);
 			if (e.f >= best.f - 1e-6) { cs = trial; plan = p; best = e; changed = true; }
 		}
-		// The attempts as made: an island that dealt nothing is not sailed to.
 		const done = new Map(best.run.log.filter(e => e.kind === 'station').map(e => [e.at, e.a]));
-		const next = visits.map(v => ({ at: v.at, a: done.get(v.at) ?? 0 })).filter(v => v.a > 0);
+		// An island that dealt nothing is not sailed to, whatever else is
+		// kept: its stop is time for nothing. Tried on its own, since the
+		// requests trimmed below can keep goods aboard that a spare drop
+		// would otherwise leave, and so may not pay together with it.
+		const dead = visits.filter(v => !(done.get(v.at) > 0));
+		if (dead.length) {
+			const live = visits.filter(v => done.get(v.at) > 0);
+			// A call is kept by the island it stands before: one standing
+			// before a dead island moves on to the next live one, or it would
+			// go with the island.
+			const moved = cs.map(c => {
+				if (live.some(v => v.at === c.before)) return c;
+				const k = visits.findIndex(v => v.at === c.before);
+				const next = visits.slice(k + 1).find(v => done.get(v.at) > 0);
+				return next ? { ...c, before: next.at } : null;
+			}).filter(Boolean);
+			const p = build(live, moved);
+			const e = robustEval(I, p, mu);
+			if (e.f >= best.f - 1e-6) { visits = live; cs = moved; plan = p; best = e; changed = true; }
+		}
+		// The attempts as made.
+		const done2 = new Map(best.run.log.filter(e => e.kind === 'station').map(e => [e.at, e.a]));
+		const next = visits.map(v => ({ at: v.at, a: done2.get(v.at) ?? 0 })).filter(v => v.a > 0);
 		if (next.length !== visits.length || next.some((v, i) => v.a !== visits[i].a)) {
 			const p = build(next, cs);
 			const e = robustEval(I, p, mu);

@@ -45,13 +45,13 @@ export function table(rows) {
 	const best = new Map();
 	for (const r of rows) best.set(r.instance, Math.max(best.get(r.instance) ?? -Infinity, r.rateOfMeans));
 	const solvers = [...new Set(rows.map(r => r.solver))];
-	const out = ['| solver | n | mean /h | median /h | mean gap | wins | mean ms | over-deal | clamped | stuck | load→drop | idle calls | calls in a row |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|'];
+	const out = ['| solver | n | mean /h | median /h | mean gap | wins | mean ms | over-deal | clamped | stuck | load→drop | idle calls | calls in a row | empty visits |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|'];
 	for (const s of solvers) {
 		const mine = rows.filter(r => r.solver === s);
 		const gaps = mine.map(r => { const b = best.get(r.instance); return b > 0 ? (b - r.rateOfMeans) / b : 0; });
 		const wins = mine.filter(r => r.rateOfMeans >= best.get(r.instance) - 1e-6).length;
 		const tot = k => mine.reduce((a, r) => a + (Number(r[k]) || 0), 0).toFixed(1);
-		out.push(`| ${s} | ${mine.length} | ${M(mean(mine.map(r => r.rateOfMeans)))} | ${M(median(mine.map(r => r.rateOfMeans)))} | ${(mean(gaps) * 100).toFixed(2)}% | ${wins} | ${Math.round(mean(mine.map(r => r.computeMs)))} | ${tot('refusedOverDeal')} | ${tot('clampedAttempts')} | ${tot('stuck')} | ${tot('loadThenDrop')} | ${tot('idleCalls')} | ${tot('consecutiveCalls')} |`);
+		out.push(`| ${s} | ${mine.length} | ${M(mean(mine.map(r => r.rateOfMeans)))} | ${M(median(mine.map(r => r.rateOfMeans)))} | ${(mean(gaps) * 100).toFixed(2)}% | ${wins} | ${Math.round(mean(mine.map(r => r.computeMs)))} | ${tot('refusedOverDeal')} | ${tot('clampedAttempts')} | ${tot('stuck')} | ${tot('loadThenDrop')} | ${tot('idleCalls')} | ${tot('consecutiveCalls')} | ${tot('emptyVisits')} |`);
 	}
 	return out;
 }

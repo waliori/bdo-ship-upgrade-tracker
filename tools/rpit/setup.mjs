@@ -123,6 +123,18 @@ export function setupOf(given = {}) {
 	// them would fall back to a straight line without a word.
 	const objs = [port, ...wharfs, ...stations.map(s => npcById.get(Number(s.id)))];
 	const matrix = objs.map(a => objs.map(b => (a === b ? 0 : Math.round(seaDist(a, b) * METRES_PER_PX * 10) / 10)));
+	// The shortest way between two points, by way of any other. The sea
+	// table's legs are the router's, which steers by lanes and keeps off
+	// the shore rather than measuring the least water, and gives up on a
+	// few: read 2026-09-26, 39 % of the legs between these points were
+	// shorter by way of a third, by up to a fifth. A ship can always sail
+	// by way of an island, so the instance says so (Floyd-Warshall), and
+	// every solver works on distances that obey the triangle.
+	const n = matrix.length;
+	for (let k = 0; k < n; k++) for (let i = 0; i < n; i++) {
+		const ik = matrix[i][k];
+		for (let j = 0; j < n; j++) if (ik + matrix[k][j] < matrix[i][j] - 1e-9) matrix[i][j] = Math.round((ik + matrix[k][j]) * 10) / 10;
+	}
 
 	const deal = Math.round(args.hold * OVERLOAD);
 	const instance = {

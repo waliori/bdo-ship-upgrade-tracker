@@ -276,15 +276,18 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 /**
  * The actions that did nothing for the run, read off its log: goods
  * taken aboard and put ashore again before any island took them, calls
- * at which nothing changed hands, and calls with no island between.
+ * at which nothing changed hands, calls with no island between, and
+ * islands sailed to that dealt nothing.
  */
 export function pointlessOf(log) {
-	const out = { loadThenDrop: 0, idleCalls: 0, consecutiveCalls: 0 };
+	const out = { loadThenDrop: 0, idleCalls: 0, consecutiveCalls: 0, emptyVisits: 0 };
 	const taken = new Set();
 	let lastDepot = false;
 	for (const e of log) {
 		if (e.kind === 'station') {
 			if (e.a > 0) taken.delete(e.in);
+			// An island sailed to that dealt nothing: a stop for no trade.
+			else out.emptyVisits++;
 			lastDepot = false;
 			continue;
 		}
