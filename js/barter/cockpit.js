@@ -16,10 +16,10 @@ import { PARLEY, COIN, levelOf } from '../barter.js';
 import { VOUCHER_COOLDOWN_MIN } from '../parley-ledger.js';
 import { V } from './state.js';
 import { timerHTML, timerState, spanText } from '../sail-timer.js';
-import { held, shoreAboard } from './hold.js';
+import { weightOf } from '../barter-plan.js';
 import { parleyOf, ordersNow } from './plan.js';
 import { placeOf, legsOf, questWanted, tradesDone, questChip, n1, TIER, ledgerOf, doneLabel, sevenOf, fourNote, stopDid, stopAsks } from './route.js';
-import { sailing, stopKey, ticked, runLabel, runMarks, PAID_CHIPS, owesCount, rangeOf, paidAsk, unsaid, sailedPlan } from './sail.js';
+import { sailing, stopKey, ticked, runLabel, runMarks, PAID_CHIPS, owesCount, rangeOf, paidAsk, unsaid, sailedPlan, aboardNow, stopEffects } from './sail.js';
 import { VOUCHER } from './view.js';
 
 /**
@@ -324,11 +324,45 @@ function tickUntil() {
 }
 
 /** The mini bars a stop carries: the hold after it and the Parley. */
-function stopBars(s, row) {
-	const w = shownHold(s.hold || currentShip().hold, s.weightAfter);
+function stopBars(s, row, weight = s.weightAfter) {
+	const w = shownHold(s.hold || currentShip().hold, weight);
 	const bad = w.state === 'heavy' || w.state === 'dead', over = w.state === 'over';
 	return { w, bad, over, hold: `<div class="mini-bar"><div><span>${T('hold')}</span><b class="${bad ? 'warn' : over ? 'amber' : ''}">${esc(w.text)}</b></div><div class="run-bar"><i style="width:${w.fill.toFixed(1)}%"></i><i class="over" style="width:${w.extra.toFixed(1)}%"></i><i class="heavy" style="width:${w.worse.toFixed(1)}%"></i></div></div>`,
 		parley: row ? `<div class="mini-bar"><div><span>${T('parley')}</span><b class="${row.short ? 'warn' : ''}">${F(row.after)}</b></div><div class="run-bar parley"><i style="width:${Math.min(100, row.pct).toFixed(1)}%"></i></div></div>` : '' };
+}
+
+/**
+ * The hold along the run, read from the Inventory rather than from the
+ * plan. The plan weighs the hold as it laid the run -- at the least an
+ * island pays, without what the sailor carries that no chain takes --
+ * and the ship's window said 8,011 LT where the cockpit said 7,011.
+ * So the hold as it stands is the start, each stop's own effect is the
+ * trip with it ticked against the trip without, and a stop's after is
+ * the hold now, less the stops ticked after it, plus the stops still
+ * to make up to it. `around(k)` is one stop's before and after, good
+ * by good: the hold now on one side of it, whichever side that is.
+ */
+const ltOf = m => [...m].reduce((a, [name, n]) => a + Math.max(0, n) * weightOf(name), 0);
+// A stop's effect weighs what it hands over as much as what it takes on.
+const ltMoved = m => [...m].reduce((a, [name, n]) => a + n * weightOf(name), 0);
+function holdAlong(plan, on) {
+	const stops = plan.stops;
+	const now = aboardNow();
+	const effects = stopEffects(plan, on);
+	const eff = effects.map(ltMoved);
+	const w0 = ltOf(now);
+	const done = stops.map((s, k) => ticked(on.done, s, k, stops));
+	const skip = stops.map((s, k) => V.skipped.has(stopKey(s, k, stops)));
+	const after = stops.map((s, k) => eff.reduce((w, e, j) => w + (j <= k ? (done[j] || skip[j] ? 0 : e) : done[j] ? -e : 0), w0));
+	const around = k => {
+		const before = new Map(now), next = new Map(now);
+		for (const [name, d] of effects[k] || []) {
+			if (done[k]) before.set(name, (before.get(name) || 0) - d);
+			else next.set(name, (next.get(name) || 0) + d);
+		}
+		return { before, after: next, done: done[k] };
+	};
+	return { after, around };
 }
 
 /**
@@ -387,6 +421,7 @@ export function cockpitHTML({ map = false } = {}) {
 	const clock = timerHTML({ suggest: (legs.mid || 0) + (book.waited || 0) * 60, label: runLabel(plan), marks: runMarks(plan, legs, book) });
 	const legOf = k => { const m = legs.from ? legs.legs[k] : k > 0 ? legs.legs[k - 1] : null; return m != null ? `${fmtDistance(m)} · ${legs.timeOf(m)}` : ''; };
 	const at = stopAt(plan, on);
+	const along = holdAlong(plan, on);
 	const guessed = unsaid(plan, on).length;
 	const questsLeft = [...(plan.questsHome || []), ...stops.flatMap(s => s.quests || [])].map(x => x.q).filter(q => !questDone(q)).length;
 	const allAsk = V.sailAll.open ? `<div class="sail-all">
@@ -411,16 +446,16 @@ export function cockpitHTML({ map = false } = {}) {
 	// panel is a strip down one side, and the stop is what it is for.
 	const fold = inner => (map ? `<details class="map-run-fold rest-fold"><summary>${T('Every stop')} · ${T('{n} of {of} done', { n: doneN, of: stops.length })}</summary>${inner}</details>` : inner);
 	if (at < 0) {
-		return `<div class="all-ticked"><i>✓</i><span><b>${T('Every stop is ticked.')}</b> ${T('The results step shows what the run did and records it.')}</span><button class="act" data-act="barter-step" data-id="results">${T('See the results')} ›</button></div>${fold(restHTML(plan, on, book, legOf, -1))}${foot}`;
+		return `<div class="all-ticked"><i>✓</i><span><b>${T('Every stop is ticked.')}</b> ${T('The results step shows what the run did and records it.')}</span><button class="act" data-act="barter-step" data-id="results">${T('See the results')} ›</button></div>${fold(restHTML(plan, on, book, legOf, -1, along))}${foot}`;
 	}
 	const s = stops[at], key = stopKey(s, at, stops), names = stopNames(s);
 	const done = ticked(on.done, s, at, stops);
 	const row = book.rows[at];
-	const bars = stopBars(s, row);
-	// The hold as the stop is reached, beside what it is after: the run's
-	// own cast-off weight before the first.
-	// Counted the way the after is: crew and parts aboard included.
-	const holdBefore = shownHold(s.hold || currentShip().hold, (at > 0 ? stops[at - 1].weightAfter : plan.weightStart) || 0).total;
+	// The hold before and after this stop, as the Inventory has it:
+	// crew and parts aboard included, as the game's window counts them.
+	const hereHold = along.around(at);
+	const bars = stopBars(s, row, ltOf(hereHold.after));
+	const holdBefore = shownHold(s.hold || currentShip().hold, ltOf(hereHold.before)).total;
 	// The one thing to press. An island that pays two or three is asked
 	// which as it is ticked, since the press is the same press; one that
 	// pays a wide range has a box to type the window's figure into.
@@ -443,6 +478,11 @@ export function cockpitHTML({ map = false } = {}) {
 			: `<p class="cockpit-ask">${T('This island pays a range. Type what the window showed:')} ${paidAsk(s, on.seen[s.npcId])} <span class="${on.seen[s.npcId] > 0 ? 'teal' : 'guess'}">${on.seen[s.npcId] > 0 ? T('recorded exactly') : T('else the middle of the range is assumed')}</span></p>`)
 		: '';
 	const extra = stopAsks(s, at, stops, on, { paid: false });
+	// A stop traded another number of times than the run said: the count
+	// the sailor gives is the one recorded, ticked or not.
+	const didAsk = s.npcId && (V.didOpen === s.npcId || s.planned)
+		? `<p class="cockpit-ask did-ask">${T('Traded another number of times? Type how many:')} <input class="purse-inline narrow" inputmode="numeric" data-act="barter-did-n"${map ? ' data-map="1"' : ''} data-npc="${s.npcId}" value="${s.times}" aria-label="${T('How many times this island was traded')}">${s.planned ? ` <span class="guess">${T('the run said ×{n}', { n: F(s.planned) })}</span>` : ''}</p>`
+		: '';
 	const questsHere = notes.at(at).length ? `<div class="run-quests">${notes.at(at).map(x => questChip(x, wanted, notes.trades, made)).join('')}</div>` : '';
 	const tierOf = name => (levelOf(name) ? ` style="--tier:${TIER(levelOf(name))}"` : '');
 	const ready = s.wait ? readyAt(on, s) : 0;
@@ -476,38 +516,40 @@ export function cockpitHTML({ map = false } = {}) {
 	</div>` : '';
 	const endNote = s.wait && !done ? `<p class="cockpit-ask">${T('Ending here records what is ticked so far; the barters after this wait stay on the board for later.')}</p>` : '';
 	const head = `<div class="panel-head cockpit-head"><h2 class="panel-title">${T('Stop {n} of {of}', { n: at + 1, of: stops.length })}</h2><span class="panel-sub">${esc(legOf(at))}</span>${arrivedHTML(on, s, key, at, legs)}${parleyNotes(book, at, s).tag}<span class="panel-spacer"></span>${timeLegsChip()}${map ? '' : `<button class="linky" data-act="barter-glance">${V.glance ? T('full view') : T('Glance mode')}</button>`}</div>${clock ? `<div class="cockpit-clock">${clock}</div>` : ''}`;
-	const under = `<div class="cockpit-under"><button class="linky" data-act="barter-sail-skip" data-k="${esc(key)}">${s.npcId ? T('island didn’t deal — skip it') : T('skip this stop')}</button><span>·</span><button class="linky" data-act="barter-step" data-id="results">${T('stop here, see the results')}</button></div>`;
+	const didLink = s.npcId && !didAsk ? `<button class="linky" data-act="barter-did-open" data-npc="${s.npcId}">${T('traded another number of times?')}</button>` : '';
+	const under = `<div class="cockpit-under">${didLink ? `${didLink}<span>·</span>` : ''}<button class="linky" data-act="barter-sail-skip" data-k="${esc(key)}">${s.npcId ? T('island didn’t deal — skip it') : T('skip this stop')}</button><span>·</span><button class="linky" data-act="barter-step" data-id="results">${T('stop here, see the results')}</button></div>`;
 	const next = stops[at + 1];
 	const nextHTML = next ? (() => { const nn = stopNames(next); return `<div class="cockpit-next"><span class="cockpit-next-k">${T('next')}</span><b>${esc(nn.place)}</b><span>${esc(legOf(at + 1))}</span>${next.npcId ? `<span>${esc(next.giveText)}× ${esc(gameName(next.give))} → <span class="tiered" style="--tier:${TIER(levelOf(next.item))}">${esc(next.recvText)}× ${esc(gameName(sevenOf(next)))}</span> ×${F(next.times)}</span>` : `<span>${nn.kind}</span>`}</div>`; })() : '';
 	if (map) {
 		return `<section class="panel cockpit compact">${head}<div class="panel-body">
 			<div><div class="cockpit-place">${esc(names.place)}</div><div class="cockpit-who">${esc(names.who)} · ${names.kind}</div></div>
-			${trade}${figures}${voucherBox}${ask}${extra ? `<div class="run-check">${extra}</div>` : ''}${questsHere}
+			${trade}${figures}${voucherBox}${ask}${didAsk}${extra ? `<div class="run-check">${extra}</div>` : ''}${questsHere}
 			<div class="cockpit-press">${press}</div>${endNote}
-			${holdSlotsHTML()}
+			${holdSlotsHTML(hereHold)}
 			${under}
-		</div></section>${nextHTML}${fold(restHTML(plan, on, book, legOf, at))}${foot}`;
+		</div></section>${nextHTML}${fold(restHTML(plan, on, book, legOf, at, along))}${foot}`;
 	}
 	if (V.glance) {
 		return `<section class="panel cockpit glance">${head}<div class="panel-body">
 			<div class="cockpit-place">${esc(names.place)}</div>
-			${trade}${figures}${voucherBox}${ask}${extra ? `<div class="run-check">${extra}</div>` : ''}
+			${trade}${figures}${voucherBox}${ask}${didAsk}${extra ? `<div class="run-check">${extra}</div>` : ''}
 			<div class="cockpit-press">${press}</div>${endNote}
-			${holdSlotsHTML()}
+			${didLink ? `<div class="cockpit-under">${didLink}</div>` : ''}
+			${holdSlotsHTML(hereHold)}
 		</div></section>${foot}`;
 	}
 	return `<div class="cockpit-grid">
 		<div class="cockpit-col">
 			<section class="panel cockpit">${head}<div class="panel-body">
 				<div><div class="cockpit-place">${esc(names.place)}</div><div class="cockpit-who">${esc(names.who)} · ${names.kind}</div></div>
-				${trade}${figures}${voucherBox}${ask}${extra ? `<div class="run-check">${extra}</div>` : ''}${questsHere}
+				${trade}${figures}${voucherBox}${ask}${didAsk}${extra ? `<div class="run-check">${extra}</div>` : ''}${questsHere}
 				<div class="cockpit-press">${press}</div>${endNote}
-				${holdSlotsHTML()}
+				${holdSlotsHTML(hereHold)}
 				${under}
 			</div></section>
 			${nextHTML}
 		</div>
-		${restHTML(plan, on, book, legOf, at)}
+		${restHTML(plan, on, book, legOf, at, along)}
 	</div>${foot}`;
 }
 
@@ -515,40 +557,47 @@ export function cockpitHTML({ map = false } = {}) {
  * The hold as the game's own window draws it: a grid of slots, an icon
  * in each. A trade good of Level 5 and up takes a slot to itself, as
  * it does in the game; the rest stack, with the count in the corner.
- * Read from the Inventory, which every Traded writes to, so it is the
- * hold as it stands after the stops ticked so far.
+ * Read from the Inventory, which every Traded writes to. Given a stop's
+ * before and after, it is the hold across that stop: each good that
+ * changes says what it was and what it comes to, so the hold can be
+ * checked against the game's window on either side of the trade.
  */
-function holdSlotsHTML() {
+function holdSlotsHTML(around = null) {
 	const me = currentShip();
 	const cap = (shipStats[me.name] && shipStats[me.name].slots) || 0;
+	const after = around ? around.after : aboardNow(), before = around ? around.before : after;
+	const count = (m, name) => Math.max(0, Math.round(m.get(name) || 0));
+	const goods = [...new Set([...before.keys(), ...after.keys()])]
+		.map(name => ({ name, lv: levelOf(name) || 0, n: count(after, name), was: count(before, name) }))
+		.filter(g => g.n > 0 || g.was > 0);
 	// Slots are counted the way the game counts them -- a trade good of
 	// Level 5 and up takes one each, the rest stack -- since the game
 	// will not take a good into a full hold; the goods themselves are
 	// drawn as the app draws goods everywhere else, a tile each.
-	const goods = held();
-	const shore = shoreAboard();
-	const used = shore.length + goods.reduce((a, g) => a + (g.lv >= 5 ? g.n : 1), 0);
-	const tile = (name, n, lv) => `<span class="shelf-tile" title="${esc(`${F(n)}× ${gameName(name)}`)}"><i class="shelf-lv${lv ? '' : ' shore'}"${lv ? ` style="--tier:${TIER(lv)}"` : ''}>${lv ? lvTag(lv) : '⌂'}</i>${img(name, 'shelf-icon')}<b>${n1(n)}</b><span>${esc(gameName(name))}</span></span>`;
-	const tiles = [
-		...goods.slice().sort((a, b) => b.lv - a.lv || b.n - a.n || a.name.localeCompare(b.name)).map(g => tile(g.name, g.n, g.lv)),
-		...shore.slice().sort((a, b) => b.n - a.n).map(g => tile(g.name, g.n, 0))
-	].join('');
-	const lt = shownHold(me.hold, goods.reduce((a, g) => a + g.weight, 0) + shore.reduce((a, g) => a + g.weight, 0));
-	const sub = `${cap ? T('{n} of {of} slots', { n: F(used), of: F(cap) }) : T('{n} slots', { n: F(used) })} · ${esc(lt.text)}`;
+	const used = goods.reduce((a, g) => a + (g.n > 0 ? (g.lv >= 5 ? g.n : 1) : 0), 0);
+	const moved = goods.some(g => g.n !== g.was);
+	const tile = g => {
+		const how = g.n === g.was ? '' : !g.n ? ' gone' : !g.was ? ' new' : ' moved';
+		return `<span class="shelf-tile${how}" title="${esc(`${g.was !== g.n ? `${F(g.was)} → ` : ''}${F(g.n)}× ${gameName(g.name)}`)}"><i class="shelf-lv${g.lv ? '' : ' shore'}"${g.lv ? ` style="--tier:${TIER(g.lv)}"` : ''}>${g.lv ? lvTag(g.lv) : '⌂'}</i>${img(g.name, 'shelf-icon')}<b>${how ? `<s>${n1(g.was)}</s> → ` : ''}${n1(g.n)}</b><span>${esc(gameName(g.name))}</span></span>`;
+	};
+	const tiles = goods.sort((a, b) => b.lv - a.lv || b.n - a.n || a.name.localeCompare(b.name)).map(tile).join('');
+	const lt = shownHold(me.hold, ltOf(after)), was = shownHold(me.hold, ltOf(before));
+	const sub = `${cap ? T('{n} of {of} slots', { n: F(used), of: F(cap) }) : T('{n} slots', { n: F(used) })} · ${was.total !== lt.total ? `${F(was.total)} → ` : ''}${esc(lt.text)}`;
+	const legend = moved ? `<p class="hold-slots-legend">${around.done ? T('Before this stop → after it, as the hold stands now') : T('As the hold stands now → after this stop')}</p>` : '';
 	return `<div class="hold-slots${V.slotsOpen ? ' open' : ''}${cap && used > cap ? ' full' : ''}">
 		<button class="hold-slots-head" data-act="barter-slots" aria-expanded="${V.slotsOpen}"><span class="hold-slots-k">${T('In the hold')}</span><span class="hold-slots-sub">${sub}</span><span class="panel-spacer"></span><span class="hold-slots-fold">${V.slotsOpen ? '▴' : '▾'}</span></button>
-		${V.slotsOpen ? (tiles ? `<div class="shelf-tiles hold-tiles">${tiles}</div>` : `<p class="empty hold-empty">${T('Nothing aboard.')}</p>`) : ''}
+		${V.slotsOpen ? (tiles ? `${legend}<div class="shelf-tiles hold-tiles">${tiles}</div>` : `<p class="empty hold-empty">${T('Nothing aboard.')}</p>`) : ''}
 	</div>`;
 }
 
 /** The rest of the run, down the side of the cockpit: every stop with
  *  its tick, what changes hands, and the two bars after it. */
-function restHTML(plan, on, book, legOf, at) {
+function restHTML(plan, on, book, legOf, at, along) {
 	const stops = plan.stops;
 	const doneN = stops.filter((s, k) => ticked(on.done, s, k, stops)).length;
 	const rows = stops.map((s, k) => {
 		const key = stopKey(s, k, stops), names = stopNames(s), done = ticked(on.done, s, k, stops);
-		const bars = stopBars(s, book.rows[k]);
+		const bars = stopBars(s, book.rows[k], along.after[k]);
 		const what = s.npcId
 			? `${img(s.give, 'row-icon xs')}<span>${esc(s.giveText)}× ${esc(gameName(s.give))}</span><span class="faint">→</span>${img(sevenOf(s), 'row-icon xs')}<span class="tiered" style="--tier:${TIER(levelOf(s.item))}">${esc(s.recvText)}× ${esc(gameName(sevenOf(s)))}</span><b>×${F(s.times)}</b>`
 			: `<span>${s.wharf ? [s.toBag && s.toBag.length ? T('Into your bag') : '', s.fromBag && s.fromBag.length ? T('Out of your bag, aboard') : '', s.loads && s.loads.length ? T('Loads from storage') : '', s.dropped && s.dropped.length ? T('Leaves in storage') : '', s.sale ? T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: T('goods'), silver: FC(Math.round(s.sale.total)) }) : ''].filter(Boolean).join(' · ') || names.kind : names.kind}</span>`;

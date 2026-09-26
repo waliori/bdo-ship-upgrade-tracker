@@ -432,6 +432,51 @@ export function syncHold() {
 	on.appliedN = on.done.length;
 	store.applyTrip({ delta: step.delta, moves: step.moves, at: intoHold, label });
 }
+/**
+ * The goods aboard as the Inventory has them: trade goods in the hold,
+ * and shore goods noted on the ship -- what the game's window shows.
+ */
+export function aboardNow() {
+	const out = new Map();
+	for (const name of Object.keys(store.getAllStock())) {
+		if (name === COIN || name === SILVER) continue;
+		const n = levelOf(name) !== null ? store.stockAt(name, '') + store.stockAt(name, store.ABOARD) : store.stockAt(name, store.ABOARD);
+		if (n > 0) out.set(name, n);
+	}
+	return out;
+}
+// Whether a place a write names is the ship: the hold for a trade good,
+// the ship's own line for a shore good.
+const onShip = (item, place) => place === store.ABOARD || (place === '' && levelOf(item) !== null);
+function aboardOfTrip(t) {
+	const out = new Map();
+	const add = (item, n) => { if (n) out.set(item, (out.get(item) || 0) + n); };
+	for (const [item, d] of Object.entries(t.delta)) if (item !== COIN && item !== SILVER && (levelOf(item) !== null || weightOf(item) > 0)) add(item, d);
+	for (const m of t.moves) {
+		const a = onShip(m.item, m.from), b = onShip(m.item, m.to);
+		if (a && !b) add(m.item, -m.n); else if (!a && b) add(m.item, m.n);
+	}
+	return out;
+}
+/**
+ * What each stop does to the hold, good by good: the trip with the stop
+ * ticked against the trip without it, the other ticks as they stand.
+ * The harbour's loads at the start are the wharf step's, not a stop's.
+ */
+export function stopEffects(plan, on) {
+	const bare = { ...plan, loaded: [], bagLoaded: [], bagFromHold: [] };
+	const read = done => aboardOfTrip(store.readingAsWas(on.applied, () => tripOf(bare, { ...on, done }, null)));
+	return plan.stops.map((s, k) => {
+		if (s.quest || s.wait) return new Map();
+		const key = stopKey(s, k, plan.stops), was = stopKeysWas(s, k, plan.stops);
+		const without = on.done.filter(x => x !== key && !was.includes(x));
+		const a = read([...without, key]), b = read(without);
+		const out = new Map();
+		for (const item of new Set([...a.keys(), ...b.keys()])) { const d = (a.get(item) || 0) - (b.get(item) || 0); if (d) out.set(item, d); }
+		return out;
+	});
+}
+
 /** Every tick's write taken back: the hold as it cast off. */
 export function unsyncHold(on) {
 	if (!on || !on.applied) return;
@@ -598,7 +643,15 @@ function hydrate(list) {
 /** The run being sailed, as a plan the recorder and the sheet can read. */
 export function planOfSail(on) {
 	if (!on || !Array.isArray(on.stops) || !on.stops.length || !on.stops.some(s => s.npcId && s.give)) return null;
-	const stops = on.stops.map(s => ({ ...s, quests: hydrate(s.quests) }));
+	// A stop traded another number of times than the run said -- ten
+	// where it said seven -- is read at the count the sailor gave: the
+	// hold, the Parley and the record all follow it.
+	const did = on.did || {};
+	const stops = on.stops.map(s => {
+		const n = s.npcId ? Number(did[s.npcId]) || 0 : 0;
+		const redone = n > 0 && n !== s.times ? { times: n, planned: s.times, parley: Number(s.parley) > 0 && s.times > 0 ? s.parley * n / s.times : s.parley } : {};
+		return { ...s, ...redone, quests: hydrate(s.quests) };
+	});
 	return { stops, loaded: on.loaded || [], bagLoaded: on.bagLoaded || [], bagFromHold: on.bagFromHold || [], weightStart: on.weightStart || 0, bought: on.bought || [], cost: on.cost || 0, parleyUsed: on.parleyUsed || 0, questsHome: hydrate(on.questsHome), silver: on.silver || 0, net: on.net || 0, trades: on.trades || 0 };
 }
 

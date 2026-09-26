@@ -1243,6 +1243,47 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	const last = saleAt(rungs.length);
 	if (last.length && endAt) call(endAt, [], order.length - 1, last);
 
+	// Goods put in the bag at the start harbour and taken out of it at a
+	// call back there were carried for nothing: they could have waited
+	// in that storage and come aboard at that call. So they do -- a load
+	// at the call, and out of the bag's first load. Only a good the bag
+	// took nothing else of on the way, so the count out of storage is
+	// the count that went in.
+	if (homeWharf && start && homeWharf.at === start.name && bagLoaded.length) {
+		const mixed = new Set([...fromHold.map(l => l.item), ...stops.flatMap(s => (s.toBag || []).map(b => b.item))]);
+		const left = new Map(bagLoaded.filter(l => !mixed.has(l.item)).map(l => [l.item, l.n]));
+		let moved = false;
+		for (const s of stops) {
+			if (!s.wharf || !(s.fromBag || []).length) continue;
+			const home = s.wharf.at === homeWharf.at;
+			s.fromBag = s.fromBag.filter(b => {
+				const n = Math.min(b.n, left.get(b.item) || 0);
+				if (!(n > 1e-9)) return true;
+				left.set(b.item, (left.get(b.item) || 0) - n);
+				if (!home) return true;
+				const e = bagLoaded.find(x => x.item === b.item);
+				e.n -= n;
+				s.loads = [...(s.loads || []), { item: b.item, n, lot: b.lot }];
+				moved = true;
+				if (b.n - n > 1e-9) { b.n -= n; return true; }
+				return false;
+			});
+			if (!s.fromBag.length) delete s.fromBag;
+		}
+		if (moved) {
+			for (let k = bagLoaded.length - 1; k >= 0; k--) if (bagLoaded[k].n <= 1e-9) bagLoaded.splice(k, 1);
+			// The bag's heaviest, counted again along the calls.
+			const bag = new Map([...bagLoaded, ...fromHold].map(l => [l.item, 0]));
+			for (const l of [...bagLoaded, ...fromHold]) bag.set(l.item, bag.get(l.item) + l.n);
+			bagPeak = weightHeld(bag);
+			for (const s of stops) {
+				for (const b of s.fromBag || []) bag.set(b.item, Math.max(0, (bag.get(b.item) || 0) - b.n));
+				for (const b of s.toBag || []) bag.set(b.item, (bag.get(b.item) || 0) + b.n);
+				bagPeak = Math.max(bagPeak, weightHeld(bag));
+			}
+		}
+	}
+
 	// What is carried home: `stock` of each is the floor the orders keep
 	// back, the rest is left over -- unsold because the orders do not
 	// sell that level, or because no wharf was called at.

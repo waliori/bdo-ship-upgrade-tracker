@@ -1344,6 +1344,13 @@ button.rung-fate { cursor: pointer; }
 .hold-slots-sub { font-size: 12px; color: var(--ink-faint); }
 .hold-slots.full .hold-slots-sub { color: var(--warn, #e07a6a); }
 .hold-slots-fold { color: var(--ink-faint); font-size: 11px; }
+.hold-slots-legend { margin: 0 12px 6px; font-size: 11.5px; color: var(--ink-mute); }
+/* A good the stop changes: what it was struck through, what it comes to. */
+.hold-tiles .shelf-tile b s { font-size: 11px; font-weight: 500; color: var(--ink-faint); }
+.hold-tiles .shelf-tile.moved { border-color: color-mix(in srgb, var(--teal) 45%, var(--line-btn)); }
+.hold-tiles .shelf-tile.new { border-color: var(--teal); }
+.hold-tiles .shelf-tile.gone { opacity: .55; border-style: dashed; }
+.did-ask .purse-inline { width: 5.5em; }
 .hold-tiles { padding: 0 12px 12px; max-height: 280px; overflow-y: auto; }
 .hold-empty { margin: 0 12px 12px; }
 .cockpit.glance .hold-slots { width: min(660px, 100%); align-self: center; margin-left: auto; margin-right: auto; }

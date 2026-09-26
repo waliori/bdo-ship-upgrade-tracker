@@ -516,6 +516,7 @@ export function barterAction(act, el, redraw) {
 			toast(`${V.sailAll.stops ? (owed.length ? T('Every stop with a known count ticked off') : T('Every stop ticked off')) : T('Nothing ticked')}${claimed ? ` · ${claimed === 1 ? T('{n} quest handed in, the rewards in the bags', { n: claimed }) : T('{n} quests handed in, the rewards in the bags', { n: claimed })}` : ''}${guessSaid}${V.sailAll.stops ? ` — ${T('Record the trip puts it in the Inventory')}` : ''}`, claimed > 0);
 			return true;
 		}
+		case 'barter-did-open': V.didOpen = Number(el.dataset.npc) || 0; return true;
 		case 'barter-stop-done': {
 			const on = sailing() || (el.dataset.map ? V.sail : null);
 			if (!on) return false;
@@ -666,6 +667,23 @@ export function barterChange(el, parseAmount) {
 			if (n > 0) on.seen[el.dataset.npc] = Math.floor(n); else delete on.seen[el.dataset.npc];
 			persist();
 			if (n > 0 && !on.done.includes(`n${el.dataset.npc}`)) markDone(on, `n${el.dataset.npc}`);
+			return true;
+		}
+		// How many times an island was really traded: ten where the run said
+		// seven. The hold, the Parley and the record follow the count given;
+		// the run's own count again takes the correction back.
+		case 'barter-did-n': {
+			const on = sailing() || (el.dataset.map ? V.sail : null);
+			if (!on) return false;
+			const n = parseAmount(el.value === '' ? '0' : el.value);
+			if (n === null) return true;
+			const npc = String(el.dataset.npc);
+			const laid = (on.stops || []).find(x => String(x.npcId) === npc);
+			const did = { ...(on.did || {}) };
+			if (n > 0 && laid && Math.floor(n) !== laid.times) did[npc] = Math.min(9999, Math.floor(n)); else delete did[npc];
+			on.did = did;
+			persist();
+			if (n > 0 && laid && !on.done.includes(`n${npc}`) && !owesCount(laid, on)) markDone(on, `n${npc}`);
 			return true;
 		}
 		case 'barter-port': V.port = ports.some(p => p.id === Number(el.value)) ? Number(el.value) : 0; persist(); return true;

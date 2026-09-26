@@ -105,6 +105,9 @@ export function restore() {
 			V.sail = { key: s.sail.key, done: s.sail.done.map(String), seen: {}, got: {}, kept: Array.isArray(s.sail.kept) ? s.sail.kept.map(String) : [], stops: Array.isArray(s.sail.stops) ? s.sail.stops : [], ...keep };
 			for (const [k, v] of Object.entries(s.sail.seen || {})) if (Number(v) > 0) V.sail.seen[k] = Number(v);
 			for (const [k, v] of Object.entries(s.sail.got || {})) if (typeof v === 'string') V.sail.got[k] = v;
+			// The stops traded another number of times than the run said.
+			const did = Object.entries(s.sail.did || {}).filter(([, v]) => Number(v) > 0);
+			if (did.length) V.sail.did = Object.fromEntries(did.map(([k, v]) => [k, Math.min(9999, Math.floor(Number(v)))]));
 			// The legs timed with Arrived, by stop: seconds from the Traded before.
 			const arrived = Object.entries(s.sail.arrived || {}).filter(([, v]) => Number(v) > 0);
 			if (arrived.length) V.sail.arrived = Object.fromEntries(arrived.map(([k, v]) => [k, Math.round(Number(v))]));

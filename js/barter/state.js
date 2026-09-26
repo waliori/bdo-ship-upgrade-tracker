@@ -57,6 +57,7 @@ export const V = {
 	slotsOpen: true, // the hold's slots, under the cockpit's one press
 	glance: true, // the cockpit drawn large, to be read across a room: how it starts, since a run is sailed with the game in front and the page beside it
 	cursor: null, // the stop the cockpit was sent to, by its key
+	didOpen: 0, // the island whose stop asks how many times it was really traded
 	skipped: new Set(), // stops passed over on the cockpit, by their key
 	packed: new Set(), // goods bought or fetched and ticked aboard on the packing list
 	packLog: { delta: {}, moves: [] }, // what the packing ticks wrote, net: handed to the run at cast-off, so Abandon can put it all back
