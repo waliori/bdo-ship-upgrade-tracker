@@ -69,6 +69,15 @@ const save = (profile, stock = { 'Tidal Black Stone': 10 }) => ({ stock, targets
  * The digest
  * ------------------------------------------------------------------ */
 
+test('the digest counts which [Level 7] each island paid, for the fleet\'s share on the chips', () => {
+	const d = digest(save({ sevens: {
+		58974: { item: '[Level 7] Calpheon Golden Candle Stand', day: '2026-09-25', seen: { '[Level 7] Calpheon Golden Candle Stand': 3, "[Level 7] Top-Quality Heidelian Wine": 1 } },
+		58984: { item: '[Level 7] Combat Manual', day: '2026-09-20' }
+	} }));
+	assert.deepEqual(d.sevens['58974'], { '[Level 7] Calpheon Golden Candle Stand': 3, "[Level 7] Top-Quality Heidelian Wine": 1 });
+	assert.deepEqual(d.sevens['58984'], { '[Level 7] Combat Manual': 1 }, 'an island known before counts were kept is one sighting');
+});
+
 test('the digest reads the fleet, the crew and the career off a save', () => {
 	const d = digest(save({
 		sailingMastery: 1200, level: 'Master 1', barterCount: 40, crewShip: 'Carrack (Advance)',

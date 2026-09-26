@@ -155,6 +155,8 @@ function rank(board, rows) {
 function aggregate(rows) {
 	const totals = { boards: 0, silver: 0, runs: 0, trades: 0, barters: 0, quests: 0, hunts: 0, crafts: 0, ships: 0, sailors: 0, hulls: 0, traces: 0, points: 0, tries: 0, wins: 0, units: 0, mastery: 0, withMastery: 0 };
 	const hulls = {}, sailing = {}, parts = {}, crystals = {}, sailorTypes = {}, quests = {}, hunts = {}, builds = {}, shipsMade = {}, islands = {}, levels = {}, layouts = {};
+	// island -> [Level 7] -> times the fleet saw it paid
+	const sevens = {};
 	const masteryBuckets = [0, 0, 0, 0, 0, 0];   // <500, <1000, <1500, <2000, <2500, 2500+
 	const crewLevels = new Array(10).fill(0);
 	const fleetSizes = [0, 0, 0, 0];   // 0, 1, 2, 3+
@@ -181,6 +183,10 @@ function aggregate(rows) {
 		// digests written before the boards were logged have none
 		for (const [id, c] of Object.entries((d.boards && d.boards.byLayout) || {})) add(layouts, id, c);
 		totals.boards += (d.boards && d.boards.n) || 0;
+		for (const [npc, counts] of Object.entries(d.sevens || {})) {
+			const at = sevens[npc] || (sevens[npc] = {});
+			for (const [item, c] of Object.entries(counts || {})) add(at, item, c);
+		}
 		fleetSizes[Math.min(3, d.fleet.n)]++;
 		d.runs.days.forEach((c, i) => { runDays[i] += c; });
 	}
@@ -189,7 +195,7 @@ function aggregate(rows) {
 		hulls: top(hulls, 16), sailing: top(sailing, 16), parts: top(parts, 15), crystals: top(crystals, 10),
 		sailorTypes: top(sailorTypes, 15), quests: top(quests, 15), hunts: top(hunts, 12), builds: top(builds, 15),
 		shipsMade: top(shipsMade, 12), islands: top(islands, 15), levels: top(levels, 12), layouts: top(layouts, 45),
-		masteryBuckets, crewLevels, fleetSizes, runDays
+		masteryBuckets, crewLevels, fleetSizes, runDays, sevens
 	};
 }
 

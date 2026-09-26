@@ -251,10 +251,25 @@ export function tripOf(plan, on, from) {
 	const delta = {}, moves = [];
 	const add = (item, n) => { if (Math.round(n)) delta[item] = (delta[item] || 0) + Math.round(n); };
 	// An island that paid another of its four [Level 7]s than the plan
-	// named: the good sold or carried is the one it paid.
-	const renamed = new Map();
-	for (const s of plan.stops) { const got = s.npcId ? sevenOf(s, on) : s.item; if (got !== s.item) renamed.set(s.item, got); }
-	const as = name => renamed.get(name) || name;
+	// named: the goods it paid are sold or carried under their own name
+	// -- those goods, and from that stop on. The rename was once taken
+	// from every stop at the start and put on every good of the plan's
+	// name, so five Heidelian Wines loaded from Iliya and sold at Port
+	// Epheria were written off as Candle Stands an island further on had
+	// not yet paid, and the wine stayed in the hold.
+	const owed = new Map(), bagOwed = new Map();   // plan's name -> [{ to, n }] still to be sold or moved
+	const owe = (m, name, to, n) => { if (n > 0) m.set(name, [...(m.get(name) || []), { to, n }]); };
+	const parts = (m, name, n) => {
+		const out = [];
+		let left = n;
+		for (const e of m.get(name) || []) {
+			if (left <= 1e-9) break;
+			const t = Math.min(e.n, left);
+			if (t > 0) { out.push([e.to, t]); e.n -= t; left -= t; }
+		}
+		if (left > 1e-9) out.push([name, left]);
+		return out;
+	};
 	let silver = 0, trades = 0, spent = 0;
 	// A give handed over. A trade good, or a shore good the sailor keeps,
 	// comes off the Inventory. A shore good they do not keep was bought
@@ -277,12 +292,12 @@ export function tripOf(plan, on, from) {
 		if (s.wharf) {
 			// The sale, unless the sailor said the goods were kept: then
 			// they stay in the delta, and go into the Inventory.
-			if (!ticked(on.kept, s, k, plan.stops)) for (const x of (s.sale && s.sale.items) || []) { add(as(x.item), -x.n); silver += x.total; }
-			for (const d of s.dropped || []) moves.push({ item: as(d.item), from: '', to: storeOf(s.wharf.at), n: Math.round(d.n) });
+			if (!ticked(on.kept, s, k, plan.stops)) for (const x of (s.sale && s.sale.items) || []) { for (const [name, n] of parts(owed, x.item, x.n)) add(name, -n); silver += x.total; }
+			for (const d of s.dropped || []) for (const [name, n] of parts(owed, d.item, d.n)) moves.push({ item: name, from: '', to: storeOf(s.wharf.at), n: Math.round(n) });
 			for (const l of s.loads || []) moves.push({ item: l.item, from: storeOf(s.wharf.at), to: '', n: Math.round(l.n) });
 			// Load Cargo at this wharf: goods between the hold and the bag.
-			for (const b of s.toBag || []) moves.push({ item: as(b.item), from: '', to: store.BAG, n: Math.round(b.n) });
-			for (const b of s.fromBag || []) moves.push({ item: as(b.item), from: store.BAG, to: '', n: Math.round(b.n) });
+			for (const b of s.toBag || []) for (const [name, n] of parts(owed, b.item, b.n)) { moves.push({ item: name, from: '', to: store.BAG, n: Math.round(n) }); if (name !== b.item) owe(bagOwed, b.item, name, n); }
+			for (const b of s.fromBag || []) for (const [name, n] of parts(bagOwed, b.item, b.n)) { moves.push({ item: name, from: store.BAG, to: '', n: Math.round(n) }); if (name !== b.item) owe(owed, b.item, name, n); }
 			continue;
 		}
 		const paid = paidAt(s, on);
@@ -298,7 +313,9 @@ export function tripOf(plan, on, from) {
 			continue;
 		}
 		handOver(s.give, s.times * s.giveN);
-		add(as(s.item), s.times * paid);
+		const got = sevenOf(s, on);
+		add(got, s.times * paid);
+		if (got !== s.item) owe(owed, s.item, got, s.times * paid);
 		trades += s.times;
 	}
 	// What the harbour loaded: the hold's goods aboard, the bag's into the

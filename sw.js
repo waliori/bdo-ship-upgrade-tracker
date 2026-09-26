@@ -85,6 +85,7 @@ const SHELL = [
 	'/js/barter/actions.js',
 	'/js/barter/board.js',
 	'/js/barter/cockpit.js',
+	'/js/barter/fleet.js',
 	'/js/barter/hold.js',
 	'/js/barter/material.js',
 	'/js/barter/packing.js',

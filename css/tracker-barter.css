@@ -1354,6 +1354,8 @@ button.rung-fate { cursor: pointer; }
 .chip.pay.likely { border-style: dashed; border-color: var(--teal); }
 .chip.pay .pay-pct { font-style: normal; font-size: 10.5px; font-weight: 600; color: var(--ink-faint); }
 .chip.pay.active .pay-pct, .chip.pay.likely .pay-pct { color: var(--teal-hi); }
+/* The fleet's share, beside your own: what the other sailors were paid there. */
+.chip.pay .pay-fleet { font-style: normal; font-size: 10px; font-weight: 600; color: var(--blue-hi, #8fb8ff); opacity: .85; }
 
 /* What the run comes to as the 2–3 islands decide it: least, halfway, most. */
 .pay-range { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px 10px; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: rgba(0, 0, 0, .14); }

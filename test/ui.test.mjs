@@ -490,6 +490,35 @@ test('items leave the Inventory from the select bar or the Delete key, after ask
 	await context.close();
 });
 
+test('a [Level 7] an island paid under another name is written off only once it was paid', async () => {
+	const { page, context, errors } = await open('#barter');
+	const delta = await page.evaluate(async () => {
+		const { tripOf } = await import('/js/barter/sail.js');
+		const W = "[Level 7] Top-Quality Heidelian Wine", C = '[Level 7] Calpheon Golden Candle Stand', S = '[Level 6] Top-Quality Coconut Syrup';
+		const epheria = { name: 'Srulk', at: 'Port Epheria', x: 0, y: 0 }, iliya = { name: 'Dario', at: 'Iliya Island', x: 0, y: 0 };
+		const sale = n => ({ n, total: n * 1e8, levels: [7], items: [{ item: W, n, total: n * 1e8 }] });
+		const stops = [
+			// the wine loaded at Iliya, sold at Port Epheria
+			{ wharf: epheria, dropped: [], sale: sale(5), weightAfter: 0 },
+			// Karpu pays Candle Stands where the layout names the wine
+			{ npcId: 58974, npc: 'Karpu', give: S, giveN: 1, item: W, recv: 1, recvMin: 1, recvMax: 1, times: 5, weightAfter: 0 },
+			// and those are sold at the next wharf
+			{ wharf: iliya, dropped: [], sale: sale(5), weightAfter: 0 }
+		];
+		const keys = ['wSrulk@0', 'n58974', 'wDario@0'];
+		const on = { done: keys, seen: {}, got: { 58974: C }, kept: [] };
+		const whole = tripOf({ stops, loaded: [] }, on, null).delta;
+		const part = tripOf({ stops, loaded: [] }, { ...on, done: keys.slice(0, 2) }, null).delta;
+		return { whole, part, W, C };
+	});
+	assert.equal(delta.whole[delta.W], -5, 'the wine sold at Port Epheria is the wine');
+	assert.equal(delta.whole[delta.C] || 0, 0, 'the Candle Stands paid are the ones sold after');
+	assert.equal(delta.part[delta.W], -5);
+	assert.equal(delta.part[delta.C], 5, 'paid and not yet sold, they are aboard');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a ship in a link can be looked at on the Ship tab, and the bar brings your own back', async () => {
 	const { page, context, errors } = await open('#crew');
 	const link = await page.evaluate(async () => {

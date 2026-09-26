@@ -84,7 +84,7 @@ export const HULL_TIER = {
  *   2  the ship score reads part quality and the crystal; `sets`,
  *      `gear` and the face's `worth` are new.
  */
-export const DIGEST_V = 3;
+export const DIGEST_V = 4;
 
 const SLOT_FAMILY = 11;
 const HULL_WORTH = 1000;
@@ -405,6 +405,19 @@ function boardsOf(profile) {
 	return { n: arr(profile.boardLog).length, edited, byLayout };
 }
 
+/** Which of its four [Level 7]s each island paid this sailor, and how
+ *  often: what the fleet's share on the Barter tab's chips is added up
+ *  from, since the layout record does not say which one an island pays. */
+function sevensOf(profile) {
+	const out = {};
+	for (const [npc, e] of Object.entries(obj(profile.sevens)).slice(0, 100)) {
+		const seen = e && e.seen && typeof e.seen === 'object' ? e.seen : e && e.item ? { [e.item]: 1 } : {};
+		const counts = Object.fromEntries(Object.entries(seen).filter(([k, v]) => typeof k === 'string' && k.length <= 80 && Number(v) > 0).slice(0, 4).map(([k, v]) => [k, Math.min(9999, Math.floor(Number(v)))]));
+		if (Object.keys(counts).length) out[npc] = counts;
+	}
+	return out;
+}
+
 export function digest(save) {
 	const s = save && typeof save === 'object' ? save : {};
 	// Through the profile's own reading first, so every string is cut
@@ -424,6 +437,7 @@ export function digest(save) {
 		yard: yardOf(s, tally),
 		charts: chartsOf(profile),
 		boards: boardsOf(profile),
+		sevens: sevensOf(profile),
 		stock: stockOf(s),
 		ship: shipOf(profile, fleet)
 	};

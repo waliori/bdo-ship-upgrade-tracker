@@ -24,6 +24,7 @@ import { questIcon } from '../quest_icons.js';
 import { bagRoom } from '../bag-shot.js';
 import { wharves } from '../wharves.js';
 import { V } from './state.js';
+import { fleetSevens } from './fleet.js';
 import { fromPort, sailCal, sailLag } from './board.js';
 import { parleyNotes } from './cockpit.js';
 import { aboardStock } from './hold.js';
@@ -305,14 +306,21 @@ function sevensSeen(npcId) {
 	return { seen, total, item, n };
 }
 /** The [Level 7] a stop is shown paying: the one tapped on this run,
- *  else the one the island has paid more than half the time (seen at
- *  least twice), else the plan's. */
+ *  else the one the island has paid you more than half the time (seen
+ *  at least twice), else the one it paid the fleet more than half the
+ *  time (seen at least three times), else the plan's. */
 export function sevenOf(s, on = sailing()) {
 	if (!s || !s.npcId || levelOf(s.item) !== 7) return s ? s.item : '';
 	const said = on && (on.got || {})[s.npcId];
 	if (said) return said;
 	const k = sevensSeen(s.npcId);
-	return k && k.total >= 2 && k.n * 2 > k.total ? k.item : s.item;
+	if (k && k.total >= 2 && k.n * 2 > k.total) return k.item;
+	const f = fleetSevens(s.npcId);
+	if (!k && f && f.total >= 3) {
+		const [item, n] = Object.entries(f.seen).sort((a, b) => b[1] - a[1])[0];
+		if (n * 2 > f.total && seventhsOf(s.npcId).includes(item)) return item;
+	}
+	return s.item;
 }
 
 /** Which of its four [Level 7]s an island may pay, said after the one
@@ -350,10 +358,15 @@ export function stopAsks(s, k, stops, on, { paid = true } = {}) {
 		const four = seventhsOf(s.npcId);
 		const k = sevensSeen(s.npcId), likely = sevenOf(s, { got: {} });
 		const said = (on.got || {})[s.npcId];
+		// Your own share, and the fleet's beside it: the record names one
+		// of the four and the game pays any, so what sailors were paid is
+		// the only guide to which to expect.
+		const f = fleetSevens(s.npcId);
 		if (four.length > 1) got = `<span class="run-paid"><span>${T('got')}</span>${four.map(name => {
 			const pct = k ? Math.round(((k.seen[name] || 0) / k.total) * 100) : null;
-			const title = `${gameName(name)}${k ? ` — ${T('paid {n} of {total} times', { n: F(k.seen[name] || 0), total: F(k.total) })}` : ''}`;
-			return `<button class="chip pay${said === name ? ' active' : !said && name === likely ? ' likely' : ''}" data-act="barter-got" data-npc="${s.npcId}" data-item="${esc(name)}" title="${esc(title)}">${img(name, 'row-icon sm')}${pct !== null ? `<i class="pay-pct">${pct}%</i>` : ''}</button>`;
+			const fleet = f ? Math.round(((f.seen[name] || 0) / f.total) * 100) : null;
+			const title = [gameName(name), k ? T('paid you {n} of {total} times', { n: F(k.seen[name] || 0), total: F(k.total) }) : '', f ? T('paid the fleet {n} of {total} times', { n: F(f.seen[name] || 0), total: F(f.total) }) : ''].filter(Boolean).join(' — ');
+			return `<button class="chip pay${said === name ? ' active' : !said && name === likely ? ' likely' : ''}" data-act="barter-got" data-npc="${s.npcId}" data-item="${esc(name)}" title="${esc(title)}">${img(name, 'row-icon sm')}${pct !== null ? `<i class="pay-pct">${pct}%</i>` : ''}${fleet !== null ? `<i class="pay-fleet" aria-label="${esc(T('the fleet: {pct}%', { pct: fleet }))}">⚓${fleet}%</i>` : ''}</button>`;
 		}).join('')}</span>`;
 	}
 	// A wharf call that sells: whether the [Level 7]s were sold there.
