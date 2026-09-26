@@ -18,9 +18,9 @@
 
 import { simulate, planPolicy } from '../simulate.mjs';
 import { indexOf, startOf, endVisit } from './common.mjs';
-import { maximiseRate } from './ratio.mjs';
+import * as alns from './alns.mjs';
 
-export function search(I, { mu = 0, timeMs = 60000 } = {}) {
+export function search(I, { mu = 0, timeMs = 60000, incumbent = null } = {}) {
 	const t0 = performance.now();
 	const { station, depots, takers } = indexOf(I);
 	const G = I.goods;
@@ -28,8 +28,21 @@ export function search(I, { mu = 0, timeMs = 60000 } = {}) {
 	const sail = visits => simulate(I, planPolicy(planOf(visits)), { mode: 'robust' });
 	const close = visits => [...visits, endVisit(I)];
 
+	// A plan already known starts the search as the one to beat, so the
+	// bound cuts from the first node.
 	let best = null;
-	let nodes = 0, cut = 0, finished = true;
+	if (incumbent) {
+		// Its visits less the closing call, closed again the search's way.
+		const vs = close(incumbent.visits.slice(0, -1));
+		const done = sail(vs);
+		best = { f: done.R - mu * done.T, R: done.R, T: done.T, visits: vs };
+	}
+	let nodes = 0, cut = 0, dominated = 0, finished = true;
+	// Two partial plans at the same place, having sailed to the same islands
+	// with the same goods aboard and the same Parley left, have the same
+	// futures open to them: the one worth less so far can never end ahead.
+	const seen = new Map();
+	const stateKey = (run, left) => `${run.at}|${left.join(',')}|${Object.entries(run.hold).filter(([, n]) => n > 1e-9).map(([g, n]) => `${g}:${Math.round(n * 1000)}`).sort().join(';')}|${Math.round(run.parleyLeft)}`;
 	// What the islands not yet sailed could still add, at the most: each
 	// deals every attempt at its best, and what it makes is worth the most
 	// any good up its climb sells for. Loose, and never too low.
@@ -57,6 +70,10 @@ export function search(I, { mu = 0, timeMs = 60000 } = {}) {
 		if (!best || f > best.f + 1e-6) best = { f, R: done.R, T: done.T, visits: close(visits) };
 		const run = sail(visits.length ? visits : [{ at: I.rules.home }]);
 		if (bound(run, left) <= best.f + 1e-6) { cut++; return; }
+		const key = stateKey(run, left);
+		const here = run.R - mu * run.T;
+		if (seen.has(key) && seen.get(key) >= here - 1e-6) { dominated++; return; }
+		seen.set(key, here);
 		const hold = new Map(Object.entries(run.hold));
 		// The next island.
 		for (const id of left) {
@@ -88,11 +105,36 @@ export function search(I, { mu = 0, timeMs = 60000 } = {}) {
 		}
 	};
 	visit([], I.stations.map(s => s.id));
-	return { ...best, plan: planOf(best.visits), nodes, cut, optimal: finished };
+	return { ...best, plan: planOf(best.visits), nodes, cut, dominated, optimal: finished };
 }
 
-export function solve(I, { timeMs = 60000, mu = null } = {}) {
-	let optimal = true, nodes = 0;
-	const best = maximiseRate(I, (inst, o) => { const r = search(inst, o); optimal = optimal && r.optimal; nodes += r.nodes; return r; }, { timeMs, mu, rounds: 6 });
-	return { plan: best.plan, info: { mu: best.mu, R: best.R, T: best.T, optimal, nodes } };
+/**
+ * The best rate, proven. A heuristic plan gives a rate μ* to start from;
+ * one exhaustive search at μ = μ* then settles it: if no plan earns more
+ * than μ* an hour -- no plan has R − μ*·T above nought -- the heuristic's
+ * plan is optimal and that is the certificate; if one does, μ moves to its
+ * rate and the search runs again (Dinkelbach from a good start, which
+ * ends in one or two rounds rather than climbing from μ = 0).
+ * `optimal` is true when every round finished.
+ */
+export function solve(I, { timeMs = 60000, mu = null, seed = 1 } = {}) {
+	const t0 = performance.now();
+	const left = () => Math.max(0, timeMs - (performance.now() - t0));
+	if (mu !== null) {
+		const r = search(I, { mu, timeMs });
+		return { plan: r.plan, info: { mu, R: r.R, T: r.T, optimal: r.optimal, nodes: r.nodes } };
+	}
+	const rate = x => (x.T > 0 ? x.R / x.T : 0);
+	const start = alns.solve(I, { timeMs: Math.min(1000, timeMs / 10), seed });
+	let best = { plan: start.plan, R: start.info.R, T: start.info.T };
+	let m = rate(best);
+	let optimal = true, nodes = 0, rounds = 0;
+	for (; rounds < 6 && left() > 0; rounds++) {
+		const r = search(I, { mu: m, timeMs: left(), incumbent: best.plan });
+		nodes += r.nodes;
+		optimal = optimal && r.optimal;
+		if (rate(r) > rate(best) * (1 + 1e-9)) { best = { plan: r.plan, R: r.R, T: r.T }; m = rate(r); }
+		else break;   // nothing earns more than μ an hour: the plan in hand is the best
+	}
+	return { plan: best.plan, info: { mu: m, R: best.R, T: best.T, optimal, nodes, rounds: rounds + 1, startRate: rate({ R: start.info.R, T: start.info.T }) } };
 }
