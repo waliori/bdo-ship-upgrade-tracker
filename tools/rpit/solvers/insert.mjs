@@ -6,7 +6,8 @@
 // each after the one below it, where it lengthens the route least; and a
 // chain is kept when the run it makes is worth more.
 
-import { indexOf, startOf, endVisit, robustEval } from './common.mjs';
+import { indexOf, finish, startOf, endVisit, robustEval } from './common.mjs';
+import { orderLadders } from '../../../js/barter-route.js';
 
 /** Where `id` lengthens `seq` least, at or after `from`. */
 export function cheapestPos(I, seq, id, from = 0) {
@@ -60,8 +61,20 @@ export function withChain(I, seq, rungs) {
 	return out;
 }
 
-/** The quick judge: the visits as they stand, no calls, sailed robust. */
+/**
+ * What a candidate order is worth: made sailable first -- the wharf
+ * calls the hold needs put in -- and then sailed robust. Judged without
+ * the calls, a climb that needs one drop on the way stalls at the hold
+ * and scores as a loss, and a builder never takes it: on a small hold at
+ * a steady pace that was every climb worth taking.
+ */
 export function quick(I, seq, mu) {
+	return finish(I, seq, mu).f;
+}
+
+/** The bare judge: the visits as they stand, no calls put in. Twenty
+ *  times cheaper than `quick`, and blind to a climb that needs a call. */
+export function bare(I, seq, mu) {
 	const { station } = indexOf(I);
 	const visits = [...seq.map(v => ({ at: v.at, a: v.a ?? station.get(v.at).m })), endVisit(I)];
 	return robustEval(I, { ...startOf(I, visits), visits }, mu).f;
@@ -75,9 +88,15 @@ export function quick(I, seq, mu) {
  * built one chain at a time, such a run is never begun. `pool` is the
  * chains to choose from; `most` bounds how many runs are judged.
  */
-export function growByChains(I, seq, pool, mu, { most = Infinity, pairs = true } = {}) {
+export function growByChains(I, seq, pool, mu, { most = Infinity, pairs = true, judge = quick, order = true } = {}) {
+	// A climb added where each rung costs least is still sailed in the old
+	// order, which the new islands may make long: two climbs worth taking
+	// together can look worse than one until the route is laid again. So
+	// each candidate is laid again before it is judged (the lighter route
+	// search: a builder judges many).
+	const lay = order ? s => reorder(I, s, { effort: 1 }) : s => s;
 	let cur = seq.slice();
-	let f = quick(I, cur, mu);
+	let f = judge(I, cur, mu);
 	let judged = 0;
 	for (;;) {
 		let best = null;
@@ -85,8 +104,8 @@ export function growByChains(I, seq, pool, mu, { most = Infinity, pairs = true }
 		const open = pool.filter(c => !c.rungs.every(id => inSeq.has(id)));
 		for (const c of open) {
 			if (judged++ >= most) break;
-			const cand = withChain(I, cur, c.rungs);
-			const g = quick(I, cand, mu);
+			const cand = lay(withChain(I, cur, c.rungs));
+			const g = judge(I, cand, mu);
 			if (g > f + 1e-6 && (!best || g > best.g)) best = { g, cand };
 		}
 		if (!best && pairs) {
@@ -94,8 +113,8 @@ export function growByChains(I, seq, pool, mu, { most = Infinity, pairs = true }
 				const one = withChain(I, cur, open[i].rungs);
 				for (let j = i + 1; j < open.length && judged < most; j++) {
 					judged++;
-					const cand = withChain(I, one, open[j].rungs);
-					const g = quick(I, cand, mu);
+					const cand = lay(withChain(I, one, open[j].rungs));
+					const g = judge(I, cand, mu);
 					if (g > f + 1e-6 && (!best || g > best.g)) best = { g, cand };
 				}
 			}
@@ -104,4 +123,32 @@ export function growByChains(I, seq, pool, mu, { most = Infinity, pairs = true }
 		cur = best.cand; f = best.g;
 	}
 	return { seq: cur, f };
+}
+
+/**
+ * The islands of `seq` in the shortest order that still sails every
+ * island after the one that makes its good: the app's own route search
+ * (orderLadders -- nearest-first and cheapest insertion, then moved
+ * blocks, reversed stretches, swaps and seeded kicks) on the instance's
+ * distances. The ladders are read off the order as it stands: an island
+ * follows the last island before it that makes its good.
+ */
+export function reorder(I, seq, { effort = 2 } = {}) {
+	if (seq.length < 3) return seq;
+	const { station, dist } = indexOf(I);
+	const ladders = [];
+	const ladderOf = new Map();
+	for (const [i, v] of seq.entries()) {
+		const g = station.get(v.at).in;
+		let maker = -1;
+		for (let k = i - 1; k >= 0; k--) if (station.get(seq[k].at).out === g) { maker = k; break; }
+		// A maker already feeding another island starts a ladder of its own:
+		// a ladder is a line, not a tree.
+		const L = maker >= 0 && ladderOf.has(maker) && ladders[ladderOf.get(maker)].at(-1) === maker ? ladderOf.get(maker) : ladders.length;
+		if (L === ladders.length) ladders.push([]);
+		ladders[L].push(i);
+		ladderOf.set(i, L);
+	}
+	const r = orderLadders(ladders.map(l => l.map(i => seq[i].at)), { start: 'start', end: I.rules.end, dist, effort });
+	return r.order.map(o => seq[ladders[o.k][o.j]]);
 }

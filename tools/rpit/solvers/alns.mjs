@@ -15,7 +15,8 @@
 //               a whole chain;
 //   reshape:    fewer attempts at an island (a lighter hold, fewer calls);
 //               more attempts at an island (more goods, if the hold and
-//               the climb above can use them);
+//               the climb above can use them); the whole order searched
+//               again for the shortest sail (the app's orderLadders);
 //   build up:   the islands taken out put back where they lengthen the
 //               route least, then whole chains offered as greedy does.
 // Every choice is drawn from a seeded generator: the same seed, the same
@@ -23,11 +24,15 @@
 
 import { rng } from '../simulate.mjs';
 import { chainsOf, finish, indexOf } from './common.mjs';
-import { cheapestPos, growByChains } from './insert.mjs';
+import { cheapestPos, growByChains, reorder, bare, quick } from './insert.mjs';
 import { build as greedy } from './greedy.mjs';
 import { maximiseRate } from './ratio.mjs';
 
-const DESTROY = ['random', 'related', 'chain', 'thin', 'thick'];
+const DESTROY = ['random', 'related', 'chain', 'thin', 'thick', 'reorder'];
+// Two ways of offering chains back: judged bare, many and cheap; or made
+// sailable first, few and dear -- the only way a climb that needs a call
+// on the way is ever seen to pay.
+const REPAIR = ['bare', 'careful'];
 
 export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most = 20000 } = {}) {
 	const t0 = performance.now();
@@ -42,25 +47,28 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 	};
 	let cur = warm && warm.seq ? judge(warm.seq, warm.calls || []) : null;
 	const g = greedy(I, { mu });
-	const fromGreedy = judge(g.seq, g.calls || []);
-	if (!cur || fromGreedy.f > cur.f) cur = fromGreedy;
+	const fromGreedy = judge(reorder(I, g.seq), []);
+	const plainGreedy = judge(g.seq, g.calls || []);
+	for (const c of [fromGreedy, plainGreedy]) if (!cur || c.f > cur.f) cur = c;
 	let best = cur;
 
-	const weights = Object.fromEntries(DESTROY.map(d => [d, 1]));
-	const scores = Object.fromEntries(DESTROY.map(d => [d, 0]));
-	const uses = Object.fromEntries(DESTROY.map(d => [d, 0]));
-	const roulette = () => {
-		const tot = DESTROY.reduce((a, d) => a + weights[d], 0);
+	const OPS = [...DESTROY, ...REPAIR];
+	const weights = Object.fromEntries(OPS.map(d => [d, 1]));
+	const scores = Object.fromEntries(OPS.map(d => [d, 0]));
+	const uses = Object.fromEntries(OPS.map(d => [d, 0]));
+	const roulette = list => {
+		const tot = list.reduce((a, d) => a + weights[d], 0);
 		let x = rand() * tot;
-		for (const d of DESTROY) { x -= weights[d]; if (x <= 0) return d; }
-		return DESTROY[DESTROY.length - 1];
+		for (const d of list) { x -= weights[d]; if (x <= 0) return d; }
+		return list[list.length - 1];
 	};
 	let temp = 0.05 * Math.max(Math.abs(cur.f), 1);
 
 	let it = 0;
 	for (; it < most && performance.now() - t0 < timeMs; it++) {
-		const op = roulette();
-		uses[op]++;
+		const op = roulette(DESTROY);
+		const rep = roulette(REPAIR);
+		uses[op]++; uses[rep]++;
 		let seq = cur.seq.map(v => ({ ...v }));
 		let removed = [];
 		const n = seq.length;
@@ -82,6 +90,8 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 		} else if (op === 'thin' && n) {
 			const v = pick(seq);
 			v.a = Math.max(1, v.a - 1 - Math.floor(rand() * 3));
+		} else if (op === 'reorder' && n) {
+			seq = reorder(I, seq);
 		} else if (op === 'thick' && n) {
 			const v = pick(seq);
 			v.a = Math.min(station.get(v.at).m, v.a + 1 + Math.floor(rand() * 3));
@@ -93,18 +103,18 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 			const maker = seq.reduce((m, w, i) => (station.get(w.at).out === s.in ? i : m), -1);
 			seq.splice(cheapestPos(I, seq, v.at, maker + 1), 0, v);
 		}
-		const offered = chains.filter(() => rand() < 0.35).slice(0, 12);
-		if (offered.length) seq = growByChains(I, seq, offered, mu, { most: 24 }).seq;
+		const offered = chains.filter(() => rand() < 0.35).slice(0, rep === 'bare' ? 12 : 4);
+		if (offered.length) seq = growByChains(I, seq, offered, mu, rep === 'bare' ? { most: 24, judge: bare } : { most: 8, judge: quick }).seq;
 
 		const cand = judge(seq, cur.calls);
 		let score = 0;
 		if (cand.f > best.f + 1e-6) { best = cand; score = 3; }
 		if (cand.f > cur.f + 1e-6) { cur = cand; score = Math.max(score, 1); }
 		else if (rand() < Math.exp((cand.f - cur.f) / Math.max(temp, 1e-9))) cur = cand;
-		scores[op] += score;
+		scores[op] += score; scores[rep] += score;
 		temp *= 0.997;
 		if ((it + 1) % 50 === 0) {
-			for (const d of DESTROY) { if (uses[d]) weights[d] = 0.5 * weights[d] + 0.5 * Math.max(0.1, scores[d] / uses[d]); scores[d] = 0; uses[d] = 0; }
+			for (const d of OPS) { if (uses[d]) weights[d] = 0.5 * weights[d] + 0.5 * Math.max(0.1, scores[d] / uses[d]); scores[d] = 0; uses[d] = 0; }
 		}
 	}
 	return { ...best, iterations: it };
