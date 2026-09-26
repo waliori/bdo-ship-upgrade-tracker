@@ -72,6 +72,20 @@ export function quick(I, seq, mu) {
 	return finish(I, seq, mu).f;
 }
 
+/**
+ * The loose judge: the visits sailed as if the hold had no limit. It
+ * costs what the bare judge costs, and it never under-rates a climb that
+ * needs a call on the way -- it over-rates it, by the call's time -- so
+ * it can rank candidates for the dear judge to settle.
+ */
+export function loose(I, seq, mu) {
+	const { station } = indexOf(I);
+	if (!I.__loose) Object.defineProperty(I, '__loose', { value: { ...I, vehicle: { ...I.vehicle, Wfree: Infinity, Wdeal: Infinity, Wmax: Infinity } }, enumerable: false });
+	const L = I.__loose;
+	const visits = [...seq.map(v => ({ at: v.at, a: v.a ?? station.get(v.at).m })), endVisit(I)];
+	return robustEval(L, { ...startOf(I, visits), visits }, mu).f;
+}
+
 /** The bare judge: the visits as they stand, no calls put in. Twenty
  *  times cheaper than `quick`, and blind to a climb that needs a call. */
 export function bare(I, seq, mu) {
@@ -88,7 +102,7 @@ export function bare(I, seq, mu) {
  * built one chain at a time, such a run is never begun. `pool` is the
  * chains to choose from; `most` bounds how many runs are judged.
  */
-export function growByChains(I, seq, pool, mu, { most = Infinity, pairs = true, judge = quick, order = true } = {}) {
+export function growByChains(I, seq, pool, mu, { most = Infinity, pairs = true, judge = quick, order = true, shortlist = 6 } = {}) {
 	// A climb added where each rung costs least is still sailed in the old
 	// order, which the new islands may make long: two climbs worth taking
 	// together can look worse than one until the route is laid again. So
@@ -102,22 +116,32 @@ export function growByChains(I, seq, pool, mu, { most = Infinity, pairs = true, 
 		let best = null;
 		const inSeq = new Set(cur.map(v => v.at));
 		const open = pool.filter(c => !c.rungs.every(id => inSeq.has(id)));
-		for (const c of open) {
-			if (judged++ >= most) break;
-			const cand = lay(withChain(I, cur, c.rungs));
-			const g = judge(I, cand, mu);
-			if (g > f + 1e-6 && (!best || g > best.g)) best = { g, cand };
-		}
-		if (!best && pairs) {
-			for (let i = 0; i < open.length && judged < most; i++) {
-				const one = withChain(I, cur, open[i].rungs);
-				for (let j = i + 1; j < open.length && judged < most; j++) {
-					judged++;
-					const cand = lay(withChain(I, one, open[j].rungs));
-					const g = judge(I, cand, mu);
-					if (g > f + 1e-6 && (!best || g > best.g)) best = { g, cand };
-				}
+		// Every candidate ranked by the loose judge, the few best settled by
+		// `judge` -- when `judge` is dear; a cheap one judges them all.
+		const settle = cands => {
+			let pickd = cands;
+			if (judge !== bare && judge !== loose && cands.length > shortlist) {
+				pickd = cands.map(cand => ({ cand, l: loose(I, cand, mu) })).sort((a, b) => b.l - a.l).slice(0, shortlist).map(x => x.cand);
 			}
+			for (const cand of pickd) {
+				if (judged++ >= most) break;
+				const g = judge(I, cand, mu);
+				if (g > f + 1e-6 && (!best || g > best.g)) best = { g, cand };
+			}
+		};
+		settle(open.map(c => lay(withChain(I, cur, c.rungs))));
+		if (!best && pairs && judged < most) {
+			const two = [];
+			for (let i = 0; i < open.length; i++) {
+				const one = withChain(I, cur, open[i].rungs);
+				for (let j = i + 1; j < open.length; j++) two.push(withChain(I, one, open[j].rungs));
+			}
+			// Laid again only once shortlisted: the route search is the dear
+			// part of a pair.
+			if (judge !== bare && judge !== loose && two.length > shortlist) {
+				const top = two.map(cand => ({ cand, l: loose(I, lay(cand), mu) })).sort((a, b) => b.l - a.l).slice(0, shortlist).map(x => lay(x.cand));
+				for (const cand of top) { if (judged++ >= most) break; const g = judge(I, cand, mu); if (g > f + 1e-6 && (!best || g > best.g)) best = { g, cand }; }
+			} else settle(two.map(lay));
 		}
 		if (!best) break;
 		cur = best.cand; f = best.g;
