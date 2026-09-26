@@ -75,12 +75,44 @@ test('robust: the climb scores what it scores on paper', () => {
 	assert.deepEqual(r.pointless, { loadThenDrop: 0, idleCalls: 0, consecutiveCalls: 0 });
 });
 
+test('sample: an island pays the same at every attempt, drawn once for the board', () => {
+	const I = tiny();
+	for (const seed of [1, 2, 3, 4, 5, 6]) {
+		const r = simulate(I, planPolicy(climb), { mode: 'sample', seed });
+		assert.equal(new Set(r.log[2].Y).size, 1);
+		assert.equal(r.log[2].Y.length, 10);
+	}
+});
+
+test('sample: scenario k is the same board whatever order it is sailed in', () => {
+	// Two islands paying two or three, visited in either order: each is
+	// seen to pay the same in both runs.
+	const I = tiny({ stations: [...tiny().stations, { id: 's4', in: 'L1', q: 1, out: 'L2', ymin: 2, ymax: 3, p: 0.5, m: 10, c: 1 }] });
+	I.travel = { points: [...I.travel.points, 's4'], matrix: [...I.travel.matrix.map(r => [...r, 2000]), [...I.travel.points.map(() => 2000), 0]] };
+	const a = { buy: { Land: 100 }, visits: [{ at: 's1', a: 10 }, { at: 's2', a: 5 }, { at: 's4', a: 5 }, { at: 'H' }] };
+	const b = { buy: { Land: 100 }, visits: [{ at: 's1', a: 10 }, { at: 's4', a: 5 }, { at: 's2', a: 5 }, { at: 'H' }] };
+	for (const seed of [1, 2, 3, 4]) {
+		const ra = simulate(I, planPolicy(a), { mode: 'sample', seed }), rb = simulate(I, planPolicy(b), { mode: 'sample', seed });
+		const paid = r => Object.fromEntries(r.log.filter(e => e.kind === 'station').map(e => [e.at, e.Y[0]]));
+		assert.deepEqual(paid(ra), paid(rb));
+	}
+});
+
+test('sample: an island that pays two leaves room a pessimist would not use', () => {
+	// 4500 limit: robust weighs each [Level 2] attempt at three and stops
+	// at three; on a board that pays two, the sailor sees it and goes on.
+	const I = tiny({ vehicle: { Wfree: 4500, Wdeal: 4500, Wmax: 4500 }, stations: tiny().stations.map(s => ({ ...s, p: 0 })) });
+	assert.equal(simulate(I, planPolicy(climb), { mode: 'robust' }).log[2].a, 3);
+	// 1000 aboard, 2 × 400 − 100 an attempt: five end exactly at the limit.
+	assert.equal(simulate(I, planPolicy(climb), { mode: 'sample', seed: 1 }).log[2].a, 5);
+});
+
 test('sample: the same seed draws the same yields, another seed others', () => {
 	const I = tiny();
 	const a = simulate(I, planPolicy(climb), { mode: 'sample', seed: 7 });
 	const b = simulate(I, planPolicy(climb), { mode: 'sample', seed: 7 });
 	assert.deepEqual(a.log.map(e => e.Y), b.log.map(e => e.Y));
-	const seeds = [1, 2, 3, 4, 5].map(s => simulate(I, planPolicy(climb), { mode: 'sample', seed: s }).log[2].Y.join(''));
+	const seeds = [1, 2, 3, 4, 5, 6, 7, 8].map(s => simulate(I, planPolicy(climb), { mode: 'sample', seed: s }).log[2].Y.join(''));
 	assert.ok(new Set(seeds).size > 1);
 });
 

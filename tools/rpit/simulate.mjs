@@ -9,9 +9,14 @@
 // impossible should score badly, not stop the bench.
 //
 // Three ways to count what an exchange pays:
-//   sample   -- each attempt pays the high yield with probability p,
-//               drawn from a seeded generator; the truth, averaged over
-//               many scenarios;
+//   sample   -- an island pays the high yield with probability p, drawn
+//               once for the board: every attempt there pays the same,
+//               and the sailor reads it in the barter window on arrival,
+//               before trading (the game's way, confirmed 2026-09-26).
+//               The whole board is drawn at the start of a scenario, in
+//               station order, so scenario k is the same board whatever
+//               order a solver sails it in -- solvers are compared on
+//               the same days. The truth, averaged over many scenarios;
 //   expected -- each attempt pays its mean, in fractions;
 //   robust   -- the app's own way: goods counted as if every attempt
 //               paid the least, weighed as if it paid the most. Two
@@ -90,6 +95,8 @@ const add = (m, g, n) => { const v = (m.get(g) || 0) + n; if (Math.abs(v) < EPS)
 export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 	const draw = rng(seed);
 	const policyRng = rng(seed * 7 + 3);
+	// The board's payouts, one an island, drawn before anything is sailed.
+	const board = new Map(I.stations.map(s => [s.id, draw() < s.p ? s.ymax : s.ymin]));
 	const idx = new Map(I.travel.points.map((p, i) => [p, i]));
 	const stationOf = new Map(I.stations.map(s => [s.id, s]));
 	const depotIds = new Set(I.depots.map(d => d.id));
@@ -113,7 +120,10 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 
 	const state = {
 		at: 'start', h, hw, W: weight(), parleyLeft: I.budgets.P, time: 0, silver: 0, sold: 0, spent: 0,
-		storages, visited: new Set(), step: 0, log: []
+		storages, visited: new Set(), step: 0, log: [],
+		// What the islands sailed to were seen to pay: a policy may read
+		// an island's payout once it has been there, and not before.
+		revealed: new Map()
 	};
 	const dev = { refusedOverDeal: 0, clampedAttempts: 0, refusedDrop: 0, refusedSell: 0, refusedLoad: 0, revisited: 0, stuck: 0, startLate: 0 };
 	let trades = 0, calls = 0, distance = 0, parleyUsed = 0;
@@ -172,16 +182,20 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 			else if (entry.req > 0 && state.W > startLimit + EPS) dev.refusedOverDeal++;
 			else {
 				const most = Math.min(entry.req, s.m, Math.floor((h.get(s.in) || 0) / s.q + EPS), s.c > 0 ? Math.floor(state.parleyLeft / s.c + EPS) : Infinity, Math.floor(spendable(s.in) / s.q + EPS));
+				// What each attempt here pays: the board's draw, read in the
+				// window before trading; its mean; or, robust, the least --
+				// weighed at the most, since that planner never saw the board.
+				const y = mode === 'sample' ? board.get(s.id) : mode === 'expected' ? s.ymin + s.p * (s.ymax - s.ymin) : s.ymin;
+				const yw = mode === 'robust' ? s.ymax : y;
+				if (mode === 'sample') state.revealed.set(s.id, y);
 				// Attempt by attempt: each starts under the ceiling and ends
-				// under the limit even if it pays the most -- the sailor
-				// cannot know the draw before making it.
-				const dwMax = s.ymax * G[s.out].w - s.q * G[s.in].w;
+				// under the limit.
+				const dw = yw * G[s.out].w - s.q * G[s.in].w;
 				for (; a < most; a++) {
 					const W = weight();
-					if (W > startLimit + EPS || W + dwMax > endLimit + EPS) break;
-					const y = mode === 'sample' ? (draw() < s.p ? s.ymax : s.ymin) : mode === 'expected' ? s.ymin + s.p * (s.ymax - s.ymin) : s.ymin;
+					if (W > startLimit + EPS || W + dw > endLimit + EPS) break;
 					add(h, s.in, -s.q); add(hw, s.in, -s.q);
-					add(h, s.out, y); add(hw, s.out, mode === 'robust' ? s.ymax : y);
+					add(h, s.out, y); add(hw, s.out, yw);
 					Y.push(y);
 				}
 				if (a < entry.req) dev.clampedAttempts++;

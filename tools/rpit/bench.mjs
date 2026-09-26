@@ -2,7 +2,7 @@
 //
 //   node tools/rpit/bench.mjs --solvers level0[,greedy,…] \
 //        [--instances 'tools/rpit/instances/*.json'] [--scenarios 100] [--seed 1] \
-//        [--time 10000] [--out tools/rpit/results/bench.csv] [--limit N] [--filter TEXT]
+//        [--time 10000] [--out tools/rpit/results/bench.csv] [--limit N] [--filter TEXT] [--exclude TEXT]
 //
 // Each solver is a module in solvers/ exporting solve(instance, { setup,
 // timeMs, seed }) → { plan | policy, info }. The time a solver takes is
@@ -65,6 +65,7 @@ async function main() {
 	const solvers = String(o.solvers || 'level0').split(',').map(s => s.trim()).filter(Boolean);
 	let files = globFiles(o.instances || path.join(HERE, 'instances', '*.json'));
 	if (o.filter) files = files.filter(f => f.includes(o.filter));
+	if (o.exclude) files = files.filter(f => !f.includes(o.exclude));
 	if (o.limit) files = files.slice(0, Number(o.limit));
 	const out = o.out || path.join(HERE, 'results', `${solvers.join('+')}.csv`);
 	const plans = `${out}.plans`;
