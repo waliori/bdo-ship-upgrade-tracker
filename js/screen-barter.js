@@ -28,6 +28,7 @@ import { resultsHTML } from './barter/results.js';
 import { sailing, strandedHTML } from './barter/sail.js';
 import { shapeBarHTML } from './barter/short.js';
 import { restore } from './barter/view.js';
+import { toldHTML } from './barter/packing.js';
 
 export { barterAction, barterChange, barterType, chartFragment } from './barter/actions.js';
 
@@ -65,7 +66,10 @@ export function renderBarter() {
 		${shapeBarHTML()}
 		${secs}${parts.dock || ''}`;
 	const loadFoot = `<div class="load-dock"><button class="linky" data-act="barter-step" data-id="plan">‹ ${T('Back to the plan')}</button><span class="run-dock-figs"><span>${parts.things.all ? (parts.things.later ? T('Trip 1: {n} of {of} aboard', { n: parts.things.done, of: parts.things.all }) : T('{n} of {of} aboard', { n: parts.things.done, of: parts.things.all })) : ''}</span>${parts.things.later ? `<span>${T('{n} picked up on the way', { n: parts.things.later })}</span>` : ''}</span>${on ? `<button class="act" data-act="barter-step" data-id="sail">${T('Back to the run')} ›</button>` : `<button class="act" data-act="barter-cast-off"${V.shownPlan && V.shownPlan.stops && V.shownPlan.stops.length ? '' : ' disabled'} title="${T('Each stop goes into the hold as you tick it; at the end the run is recorded')}">${img(currentShip().name, 'ship-ico')} ${T('Cast off')}</button>`}</div>`;
-	const loadStep = `${holdBarHTML(me, parts.packLT || 0)}${parts.load || `<p class="empty step-empty">${T('Nothing to pack yet. Tick a chain on the plan and what it needs is listed here.')}</p>`}${loadFoot}`;
+	// While a run is under way the step leads with what it said at the
+	// wharf, kept with the run: the live list below is laid again from
+	// the hold as it is now.
+	const loadStep = `${on ? toldHTML(on) : ''}${holdBarHTML(me, parts.packLT || 0)}${parts.load || `<p class="empty step-empty">${T('Nothing to pack yet. Tick a chain on the plan and what it needs is listed here.')}</p>`}${loadFoot}`;
 	const body = now === 'load' ? loadStep : now === 'sail' ? sailHTML() : now === 'results' ? resultsHTML() : planStep;
 	// A screenshot pasted on another step is read at the top of it.
 	return `<div class="barter-screen step-${now}">

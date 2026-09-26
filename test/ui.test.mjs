@@ -2172,13 +2172,60 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 	assert.match(await text(page, '.exchange'), /You handed over[\s\S]*You received/i);
 	assert.ok(await count(page, '.exchange .shelf-tile img') > 0, 'the exchange as tiles, each good with its icon');
 	assert.ok(await page.$('[data-act="barter-record"]'), 'and the press that writes it down');
-	// The checklist dropped: back to the plan, and the run is a plan again.
-	await page.evaluate(() => document.querySelector('[data-act="barter-sail-drop"]').click()); await wait(1200);
+	// The checklist dropped, what was traded kept: back to the plan, and the run is a plan again.
+	await page.evaluate(() => document.querySelector('[data-act="barter-sail-drop"]').click()); await wait(600);
+	await page.evaluate(() => document.querySelector('[data-abandon="keep"]').click()); await wait(1200);
 	assert.ok(await page.$('.barter-screen.step-plan'));
 	assert.equal(await count(page, '.cockpit'), 0);
 	// A chain unticked from the plan: one chain fewer on the strip.
 	await page.evaluate(() => document.querySelector('.chain.on').click()); await wait(1500);
 	assert.match(await text(page, '.run-dock'), /1 chain\b/);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
+test('Abandon asks: put everything back undoes the packing and refunds it, keep leaves the hold as traded; the wharf step stays readable', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }] } });
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.chain', { timeout: 15000 });
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); store.setProfile('barterCount', 4006);
+		store.setStockAt('[Level 2] Conch Shell Ornament', 'Iliya Island', 20, 'ashore');
+		store.setStock('Silver', 900000000);
+	});
+	await page.waitForFunction(() => document.querySelector('.proposal') && !document.querySelector('.proposals.working'), { timeout: 20000 });
+	await wait(1500);
+	const snap = () => page.evaluate(async () => { const s = await import('/js/state.js'); const places = Object.fromEntries(Object.entries(s.getProfile('stash', {})).map(([k, v]) => [k, Object.fromEntries(Object.entries(v).filter(([, n]) => n > 0))]).filter(([, v]) => Object.keys(v).length)); return JSON.stringify({ stock: s.getAllStock(), stash: places }); });
+	const before = await snap();
+	await laidOut(page);
+	assert.notEqual(await snap(), before, 'packing moved goods and spent silver');
+	await tap(page, '[data-act="barter-cast-off"]'); await wait(2500);
+	await page.evaluate(() => { const b = document.querySelector('.cockpit-go[data-act="barter-stop-done"]'); if (b) b.click(); }); await wait(800);
+	// What the wharf step said is there to read while sailing.
+	await tap(page, '[data-act="barter-step"][data-id="load"]'); await wait(500);
+	assert.ok(await page.$('.panel.told .told-row'), 'the wharf step as it was, to read');
+	// Abandon asks.
+	await tap(page, '[data-act="barter-step"][data-id="sail"]'); await wait(500);
+	await page.evaluate(() => document.querySelector('[data-act="barter-sail-drop"]').click()); await wait(400);
+	assert.match(await text(page, '#dialog h2'), /abandon this run/i);
+	await tap(page, '[data-abandon="back"]'); await wait(800);
+	assert.equal(await snap(), before, 'put back: the Inventory is as it was before the packing, silver refunded');
+	assert.equal(await page.evaluate(async () => (await import('/js/barter/sail.js')).sailing()), null, 'and the run is gone');
+	// One Undo brings the run back, as it stood.
+	await page.evaluate(async () => (await import('/js/state.js')).undo()); await wait(800);
+	assert.ok(await page.evaluate(async () => !!(await import('/js/barter/sail.js')).sailing()), 'Undo brings the run back');
+	const traded = await snap();
+	await tap(page, '[data-act="barter-step"][data-id="sail"]'); await wait(500);
+	await page.evaluate(() => document.querySelector('[data-act="barter-sail-drop"]').click()); await wait(400);
+	await tap(page, '[data-abandon="keep"]'); await wait(800);
+	assert.equal(await snap(), traded, 'keep: the hold and storages stay as the trades left them');
 	assert.deepEqual(errors, []);
 	await context.close();
 });

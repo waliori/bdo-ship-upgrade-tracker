@@ -59,6 +59,7 @@ export const V = {
 	cursor: null, // the stop the cockpit was sent to, by its key
 	skipped: new Set(), // stops passed over on the cockpit, by their key
 	packed: new Set(), // goods bought or fetched and ticked aboard on the packing list
+	packLog: { delta: {}, moves: [] }, // what the packing ticks wrote, net: handed to the run at cast-off, so Abandon can put it all back
 	lastTrip: null, // what the last Record came to, for the results
 	migrated: false,
 	writeTimer: null, // a write of the view still to be made

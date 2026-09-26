@@ -64,7 +64,7 @@ export function restore() {
 	V.matOrders = { reach: 'want', calls: true, pace: 'full', quests: 'near' };
 	V.port = 0; V.routes = { key: '', ids: [] }; V.shape = 'full'; V.routesOther = { key: '', ids: [] }; V.stash = ''; V.sail = null; V.reach = ''; V.planSec = 'ladder'; V.ownWay = false;
 	V.board = { day: '', answers: [], own: false }; V.matBoard = { day: '', answers: [], on: [], told: 0 };
-	V.questSkip = { day: '', ids: [] }; V.questPull = { day: '', ids: [] }; V.routeEdit = { key: '', skip: [], nudge: {}, trips: [] }; V.advOpen = false; V.packed = new Set();
+	V.questSkip = { day: '', ids: [] }; V.questPull = { day: '', ids: [] }; V.routeEdit = { key: '', skip: [], nudge: {}, trips: [] }; V.advOpen = false; V.packed = new Set(); V.packLog = { delta: {}, moves: [] };
 	if (!s) return;
 	try {
 		if (['material', 'stock', 'coin'].includes(s.goal)) V.goal = s.goal;
@@ -73,6 +73,7 @@ export function restore() {
 		if (['parley', 'ladder', 'how', 'chains', 'all', 'none'].includes(s.planSec)) V.planSec = s.planSec;
 		V.ownWay = s.ownWay === true;
 		if (Array.isArray(s.packed)) V.packed = new Set(s.packed.filter(k => typeof k === 'string' && k.startsWith('g|')));
+		if (s.packLog) V.packLog = cleanApplied(s.packLog);
 		if (s.routeEdit && typeof s.routeEdit.key === 'string') V.routeEdit = { key: s.routeEdit.key, skip: Array.isArray(s.routeEdit.skip) ? s.routeEdit.skip.map(Number).filter(Number.isFinite).slice(0, 40) : [], nudge: Object.fromEntries(Object.entries(s.routeEdit.nudge || {}).map(([k, v]) => [k, Math.max(-20, Math.min(20, Math.round(Number(v) || 0)))]).filter(([, v]) => v).slice(0, 40)), trips: Array.isArray(s.routeEdit.trips) ? s.routeEdit.trips.filter(x => typeof x === 'string').slice(0, 12) : [] };
 		// The orders start shut on every visit: they are set once and
 		// forgotten, and a page that opens on all ten of them is a page a
@@ -99,6 +100,8 @@ export function restore() {
 			// its shore goods had cost nothing.
 			for (const k of ['loaded', 'bagLoaded', 'bagFromHold', 'bought', 'parleyUsed', 'cost', 'silver', 'net', 'trades', 'questsHome', 'chains', 'goal', 'item', 'time', 'port', 'drawnAt', 'lastTick', 'weightStart', 'laidFor', 'appliedN', 'cal']) if (s.sail[k] !== undefined) keep[k] = s.sail[k];
 			if (s.sail.applied) keep.applied = cleanApplied(s.sail.applied);
+			if (s.sail.packLog) keep.packLog = cleanApplied(s.sail.packLog);
+			if (Array.isArray(s.sail.told)) keep.told = s.sail.told.filter(x => x && typeof x.item === 'string' && typeof x.g === 'string');
 			V.sail = { key: s.sail.key, done: s.sail.done.map(String), seen: {}, got: {}, kept: Array.isArray(s.sail.kept) ? s.sail.kept.map(String) : [], stops: Array.isArray(s.sail.stops) ? s.sail.stops : [], ...keep };
 			for (const [k, v] of Object.entries(s.sail.seen || {})) if (Number(v) > 0) V.sail.seen[k] = Number(v);
 			for (const [k, v] of Object.entries(s.sail.got || {})) if (typeof v === 'string') V.sail.got[k] = v;
@@ -188,7 +191,7 @@ function logBoard() {
 /** The view as memory holds it, for a write. The bag's packing marks
  *  ride with it: a reload before casting off kept every hold row's tick
  *  (they read the hold) and lost the bag's. */
-export const viewNow = () => ({ goal: V.goal, climb: V.climb, planSec: V.planSec, ownWay: V.ownWay, routeEdit: V.routeEdit, stock: V.stockGoal, item: V.item, qty: V.qty, wants: V.wants, matOrders: V.matOrders, port: V.port, routes: V.routes, shape: V.shape, routesOther: V.routesOther, stash: V.stash, board: V.board, matBoard: V.matBoard, sail: V.sail, reach: V.reach, questSkip: V.questSkip, questPull: V.questPull, packed: [...V.packed].slice(0, 60) });
+export const viewNow = () => ({ goal: V.goal, climb: V.climb, planSec: V.planSec, ownWay: V.ownWay, routeEdit: V.routeEdit, stock: V.stockGoal, item: V.item, qty: V.qty, wants: V.wants, matOrders: V.matOrders, port: V.port, routes: V.routes, shape: V.shape, routesOther: V.routesOther, stash: V.stash, board: V.board, matBoard: V.matBoard, sail: V.sail, reach: V.reach, questSkip: V.questSkip, questPull: V.questPull, packed: [...V.packed].slice(0, 60), packLog: V.packLog });
 
 /**
  * The view written now, as a change Undo can take back: an edit to the

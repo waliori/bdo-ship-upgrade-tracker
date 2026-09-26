@@ -368,6 +368,24 @@ export function cleanApplied(a) {
 	const moves = netMoves(Array.isArray(a && a.moves) ? a.moves.filter(m => m && typeof m.item === 'string' && typeof m.from === 'string' && typeof m.to === 'string') : []);
 	return { delta, moves };
 }
+/** Two writes as one, net: goods moved there and back again cancel. */
+export function mergeApplied(a, b) {
+	const delta = { ...((a && a.delta) || {}) };
+	for (const [k, v] of Object.entries((b && b.delta) || {})) { const d = Math.round((delta[k] || 0) + v); if (d) delta[k] = d; else delete delta[k]; }
+	const by = new Map();
+	for (const m of [...((a && a.moves) || []), ...((b && b.moves) || [])]) {
+		const n = Math.round(Number(m.n) || 0);
+		if (!n || m.from === m.to) continue;
+		const lo = m.from < m.to ? m.from : m.to, hi = m.from < m.to ? m.to : m.from;
+		const k = `${m.item}\u0001${lo}\u0001${hi}`;
+		const e = by.get(k) || { item: m.item, lo, hi, n: 0 };
+		e.n += m.from === lo ? n : -n;
+		by.set(k, e);
+	}
+	const moves = [...by.values()].filter(e => e.n).map(e => (e.n > 0 ? { item: e.item, from: e.lo, to: e.hi, n: e.n } : { item: e.item, from: e.hi, to: e.lo, n: -e.n }));
+	return { delta, moves };
+}
+
 /** The write that turns `was` into `want`. */
 function holdDiff(want, was = NO_HOLD) {
 	const delta = {};
@@ -423,25 +441,36 @@ export function unsyncHold(on) {
 }
 
 /**
- * The run dropped, nothing recorded: the hold as it cast off and the
- * run gone, as one change -- so one Undo brings back both, the run where
- * it stood and the hold as its ticks had left it.
+ * The run dropped, nothing recorded, one of two ways, each one change
+ * that one Undo takes back with the run where it stood:
+ *
+ *   'keep' -- the trades were made in game: the hold and the storages
+ *             stay as the ticked stops left them.
+ *   'back' -- nothing was done in game: every tick is taken back, and
+ *             the packing too -- goods back where they were taken from,
+ *             what was bought at the Market refunded -- as if the run
+ *             had never been planned. Says what came back.
  */
-export function abandonRun() {
+export function abandonRun(mode = 'back') {
 	const on = V.sail;
-	if (!on) return;
+	if (!on) return null;
 	if (V.writeTimer) { clearTimeout(V.writeTimer); V.writeTimer = null; }
-	const back = on.applied ? holdDiff(NO_HOLD, on.applied) : { delta: {}, moves: [] };
+	let back = { delta: {}, moves: [] };
+	if (mode === 'back') {
+		back = mergeApplied(on.applied ? holdDiff(NO_HOLD, on.applied) : back, on.packLog ? holdDiff(NO_HOLD, on.packLog) : back);
+	}
 	V.sail = null;
 	V.writing = true;
 	try {
 		const views = { ...(store.getProfile('views', {}) || {}), [VIEW_NS]: viewNow() };
-		store.applyTrip({ delta: back.delta, moves: back.moves, at: intoHold, profile: { views }, viewKeys: { [VIEW_NS]: ['sail'] }, label: T('The run dropped: the hold as it cast off') });
+		store.applyTrip({ delta: back.delta, moves: back.moves, at: intoHold, profile: { views }, viewKeys: { [VIEW_NS]: ['sail'] },
+			label: mode === 'back' ? T('The run dropped: everything put back') : T('The run dropped: what was traded kept') });
 	} finally {
 		V.writing = false;
 	}
 	const s = store.getView(VIEW_NS);
 	V.readSig = s ? JSON.stringify(s) : null;
+	return { refund: Math.max(0, back.delta[SILVER] || 0), goods: back.moves.reduce((a, m) => a + m.n, 0), packed: !!on.packLog };
 }
 
 /**

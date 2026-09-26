@@ -1465,3 +1465,16 @@ button.rung-fate { cursor: pointer; }
 .lv-name { color: var(--tier); font-weight: 600; }
 .pack-groups.pack-first { grid-template-columns: minmax(0, 1fr); }
 .run-leave.left-home .run-leave-good .faint { margin-left: 6px; font-size: 11.5px; }
+
+/* What the wharf step said at cast-off, to read during the run. */
+.told-body { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px 18px; }
+.told-k { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 6px; }
+.told-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 13px; }
+.told-name { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.told-name em { font-style: normal; font-size: 11px; color: var(--ink-faint); }
+.told-row b { font-variant-numeric: tabular-nums; }
+/* Abandon's two ways. */
+.abandon-choices { display: grid; gap: 8px; margin: 12px 0; }
+.abandon-choice { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 10px 12px; border-radius: var(--r-btn); border: 1px solid var(--line-btn); background: var(--panel-inset); color: var(--ink); font: inherit; cursor: pointer; }
+.abandon-choice:hover, .abandon-choice:focus-visible { border-color: var(--blue-edge); }
+.abandon-choice span { font-size: 12.5px; color: var(--ink-mute); }

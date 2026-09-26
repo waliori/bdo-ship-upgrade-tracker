@@ -559,5 +559,5 @@ function restHTML(plan, on, book, legOf, at) {
 			<div class="rest-bars">${bars.hold}${bars.parley}<span class="rest-leg">${esc(legOf(k))}</span></div>
 		</div>`;
 	}).join('');
-	return `<section class="panel rest-panel"><div class="panel-head"><h2 class="panel-title">${T('The rest of the run')}</h2><span class="panel-sub">${T('{n} of {of} done', { n: doneN, of: stops.length })} · ${T('tap a stop to jump to it')}</span></div>${rows}</section>`;
+	return `<section class="panel rest-panel"><div class="panel-head"><h2 class="panel-title">${T('The rest of the run')}</h2><span class="panel-sub">${T('{n} of {of} done', { n: doneN, of: stops.length })} · ${T('tap a stop to jump to it')}</span>${(on.told || []).length ? `<span class="panel-spacer"></span><button class="linky" data-act="barter-step" data-id="load">${T('what the wharf step said')} ›</button>` : ''}</div>${rows}</section>`;
 }

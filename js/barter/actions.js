@@ -2,7 +2,7 @@
 // switch for the clicks, one for the fields, one for typing, each
 // returning whether the tab should be drawn again.
 
-import { esc, F } from '../fmt.js';
+import { esc, F, FC } from '../fmt.js';
 import { T, gameName } from '../i18n.js';
 import * as store from '../state.js';
 import { barterKey, periodKey } from '../clock.js';
@@ -21,7 +21,7 @@ import { cutOf } from '../barter-short.js';
 import { figure } from '../bag-shot.js';
 import { openPicker } from '../picker.js';
 import { openTripLog } from '../triplog.js';
-import { toast, openDialog } from '../dialogs.js';
+import { toast, openDialog, closeDialog } from '../dialogs.js';
 import { cheer } from '../cheer.js';
 import { V, STEPS } from './state.js';
 import { timerAction, timerState, timerNow, startTimer, stopTimer, passedStop, arrivedAt, spanText } from '../sail-timer.js';
@@ -29,7 +29,7 @@ import { fromPort, sailCal, itemNow, readWindow, takeFleetBoard, openBook, tellT
 import { castOffFx, bringUp } from './cockpit.js';
 import { aboardStock, unloadTo, held, openSheet, shoreAboard } from './hold.js';
 import { matBoardNow, matFleetNow, matFitNow, noteMatSeen, takeMatOffers, tellMatFleet, openMatBook, pickGood, pickMaterial, setMaterial } from './material.js';
-import { packedNow, unloadMoves, packApply } from './packing.js';
+import { packedNow, unloadMoves, packApply, toldOf } from './packing.js';
 import { parleyRefilled, retickIfAuto, ordersNow, setOrders, applySaved, dropSaved, askSaveOrders, sellFrom, keepFrom, readBagShot } from './plan.js';
 import { STASHES, bagSet, legsOf, skippedToday, pulledToday, ledgerOf } from './route.js';
 import { sailKey, sailing, stopKey, ticked, runLabel, runMarks, owesCount, rangeOf, unsyncHold, abandonRun, markDone, sailRecord, planOfSail, stranded, sailedPlan, recordTrip } from './sail.js';
@@ -409,7 +409,10 @@ export function barterAction(act, el, redraw) {
 		}
 		case 'barter-sail': {
 			if (!V.shownPlan) return false;
-			V.sail = { key: sailKey(), done: [], seen: {}, got: {}, kept: [], laidFor: '{}', cal: sailCal(), ...sailRecord(V.shownPlan) };
+			// The packing the wharf step wrote goes with the run, for Abandon
+			// to put back; and what the step said, to be read on the way.
+			V.sail = { key: sailKey(), done: [], seen: {}, got: {}, kept: [], laidFor: '{}', cal: sailCal(), ...sailRecord(V.shownPlan), packLog: V.packLog, told: toldOf(V.shownPlan, fromPort()) };
+			V.packLog = { delta: {}, moves: [] };
 			// Sailing starts the clock, since that press is the moment the
 			// ship leaves -- and it is the gesture the browser wants before
 			// the page is allowed to make a sound.
@@ -440,7 +443,9 @@ export function barterAction(act, el, redraw) {
 		}
 		// The run is dropped, and its clock with it: a clock with no run
 		// behind it only counts up at whoever comes back to the page.
-		case 'barter-sail-drop': abandonRun(); V.sailAll.open = false; V.cursor = null; V.skipped = new Set(); setStep('plan'); stopTimer(); bringUp('.barter-screen .steps'); return true;
+		// Abandon asks which it was: traded in game and stopped, or never
+		// done at all.
+		case 'barter-sail-drop': askAbandon(redraw); return false;
 		// The cockpit sent to one stop, or past one. A stop passed over is
 		// not ticked and not recorded: it is only out of the way.
 		case 'barter-sail-jump': V.cursor = String(el.dataset.k); return true;
@@ -736,4 +741,33 @@ export function chartFragment(el) {
 	if (el.dataset.trades) parts.push(`x=${encodeURIComponent(el.dataset.trades)}`);
 	if (el.dataset.stash && el.dataset.stash !== '[]') parts.push(`w=${encodeURIComponent(el.dataset.stash)}`);
 	return parts.join(';');
+}
+
+/** Abandon, asked: keep what was traded, or put everything back. */
+function askAbandon(redraw) {
+	const on = sailing();
+	if (!on) return;
+	const host = openDialog(`
+		<h2>${T('Abandon this run?')}</h2>
+		<p class="dialog-copy">${T('Nothing is recorded either way: no Parley, no Total Barters, no entry under Past runs.')}</p>
+		<div class="abandon-choices">
+			<button class="abandon-choice" data-abandon="keep"><b>${T('Keep what I traded')}</b><span>${T('The trades were made in game. The hold and your storages stay as the ticked stops left them.')}</span></button>
+			<button class="abandon-choice" data-abandon="back"><b>${T('Put everything back')}</b><span>${on.packLog ? T('Nothing was done in game. Every tick is taken back, and the packing too: goods go back where they were taken from and what was bought at the Market is refunded.') : T('Nothing was done in game. Every tick is taken back. This run was cast off before the packing was kept, so what was packed stays aboard.')}</span></button>
+		</div>
+		<div class="dialog-actions"><button class="act quiet" data-close>${T('Cancel')}</button></div>`);
+	host.querySelector('[data-close]')?.focus();
+	host.querySelectorAll('[data-abandon]').forEach(b => b.addEventListener('click', () => {
+		const mode = b.dataset.abandon;
+		closeDialog();
+		const done = abandonRun(mode);
+		V.sailAll.open = false; V.cursor = null; V.skipped = new Set();
+		setStep('plan');
+		stopTimer();
+		bringUp('.barter-screen .steps');
+		if (done && mode === 'back') toast(done.refund
+			? T('Everything put back: {n} goods where they were, {silver} silver refunded. One Undo brings the run back.', { n: F(done.goods), silver: FC(done.refund) })
+			: T('Everything put back: {n} goods where they were. One Undo brings the run back.', { n: F(done.goods) }), true);
+		else if (done) toast(T('Run dropped; the hold stays as you traded. One Undo brings the run back.'), true);
+		redraw();
+	}));
 }

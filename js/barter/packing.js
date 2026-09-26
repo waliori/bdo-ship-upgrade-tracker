@@ -17,7 +17,7 @@ import { V } from './state.js';
 import { lvTag } from './cockpit.js';
 import { aboardStock, unloadTo } from './hold.js';
 import { n1, TIER } from './route.js';
-import { sailing, moveKey } from './sail.js';
+import { sailing, moveKey, mergeApplied } from './sail.js';
 import { coinsOf, coinRange } from './short.js';
 import { persist } from './view.js';
 
@@ -184,6 +184,11 @@ export function packApply(rows, want, from) {
 		}
 		persist();
 	}
+	// Kept, net, for Abandon to put back: the run's own log once it is
+	// cast off, the wharf step's until then.
+	if (V.sail) V.sail.packLog = mergeApplied(V.sail.packLog, { delta, moves });
+	else V.packLog = mergeApplied(V.packLog, { delta, moves });
+	persist();
 	const n = rows.length;
 	const sold = new Set(rows.filter(x => want && String(x.key).startsWith('s|')).map(x => x.item));
 	if (rows.every(x => /^[su]\|/.test(String(x.key)))) {
@@ -464,4 +469,51 @@ export function afterShelfHTML(plan, from) {
 		<div class="shelf-head"><h2 class="panel-title">${T('In the storage after')}</h2><span class="panel-sub">${backRows.length ? `${kinds(backRows.length)} · ${T('{n} goods', { n: F(Math.round(backRows.reduce((a, x) => a + x.n, 0))) })}${plan.silver ? ` · ${T('{silver} sold', { silver: FC(Math.round(plan.silver)) })}` : ''}${plan.coins ? ` · ${T('{n} coins', { n: coinRange(purse.min, purse.max) })}` : ''}` : plan.coins ? T('{n} Crow Coins, and nothing else to carry', { n: coinRange(purse.min, purse.max) }) : plan.silver ? T('all of it sold at the wharf') : T('nothing comes back')}</span></div>
 		<div class="shelf-tiles">${paid}${sold}${backRows.map(x => tile(x.item, x.n, noteOf(x))).join('')}</div>
 	</div></section>`;
+}
+
+/**
+ * What the wharf step said, kept with the run when it is cast off: what
+ * was to be sold or left before casting off, bought, taken from storage,
+ * put in the bag, already aboard, and picked up on the way by the later
+ * trips. The live step is laid again from the hold as it is, so once
+ * the run is under way it no longer says what it said at the wharf --
+ * and "was I told to leave that ashore?" had no answer but abandoning
+ * the run to see the step again.
+ */
+export function toldOf(plan, from) {
+	const r = n => Math.round((Number(n) || 0) * 10) / 10;
+	const at = from ? from.name : '';
+	const out = [];
+	for (const x of plan.spares || []) if (x.n > 0) out.push({ g: x.sell ? 'sell' : 'store', item: x.item, n: r(x.n), at });
+	for (const b of plan.bought || []) if (b.n > 0) out.push({ g: 'buy', item: b.item, n: Math.ceil(b.n) });
+	for (const l of plan.loaded || []) if (l.n > 0) out.push({ g: 'take', item: l.item, n: r(l.n), at });
+	for (const t of plan.taken || []) if (t.n > 0) out.push({ g: 'pile', item: t.item, n: Math.ceil(t.n) });
+	for (const l of plan.bagLoaded || []) if (l.n > 0) out.push({ g: 'bag', item: l.item, n: r(l.n), at });
+	for (const l of plan.bagFromHold || []) if (l.n > 0) out.push({ g: 'bagHold', item: l.item, n: r(l.n) });
+	const hold = aboardStock();
+	for (const item of new Set((plan.stops || []).filter(s => s.npcId && s.give).map(s => s.give))) if (hold[item] > 0) out.push({ g: 'aboard', item, n: hold[item] });
+	for (const t of tripsOf(plan).slice(1)) for (const l of t.loads) out.push({ g: 'later', item: l.item, n: r(l.n), trip: t.n, stop: t.at + 1, bag: !!l.bag });
+	return out.slice(0, 120);
+}
+
+/** The wharf step as it was at cast-off, to read: no ticks, no presses. */
+export function toldHTML(on) {
+	const told = (on && on.told) || [];
+	if (!told.length) return '';
+	const at = x => (x.at ? gameName(x.at) : '');
+	const groups = [
+		['sell', T('Before casting off'), x => (x.g === 'sell' ? T('sold at the wharf') : T('into storage'))],
+		['buy', T('Buy at the Market'), () => ''],
+		['take', T('Take from storage'), x => (x.g === 'pile' ? T('from your pile') : at(x))],
+		['bag', T('Into your bag'), x => (x.g === 'bagHold' ? T('into your bag, out of the hold') : at(x))],
+		['aboard', T('Already aboard'), () => ''],
+		['later', T('Picked up on the way'), x => `${T('Trip {n}', { n: x.trip })}${x.stop > 0 ? ` · ${T('stop {n}', { n: x.stop })}` : ''}${x.bag ? ` · ${T('rides in your bag')}` : ''}`]
+	];
+	const inGroup = { sell: ['sell', 'store'], buy: ['buy'], take: ['take', 'pile'], bag: ['bag', 'bagHold'], aboard: ['aboard'], later: ['later'] };
+	const body = groups.map(([id, title, note]) => {
+		const rows = told.filter(x => inGroup[id].includes(x.g));
+		if (!rows.length) return '';
+		return `<div class="told-group"><h3 class="told-k">${title}</h3>${rows.map(x => `<div class="told-row"><span class="pack-icon"${levelOf(x.item) ? ` style="--tier:${TIER(levelOf(x.item))}"` : ''}>${img(x.item, 'row-icon sm')}</span><span class="told-name">${esc(gameName(x.item))}${note(x) ? `<em>${esc(note(x))}</em>` : ''}</span><b>${n1(x.n)}</b></div>`).join('')}</div>`;
+	}).join('');
+	return `<section class="panel told"><div class="panel-head"><h2 class="panel-title">${T('What the wharf step said at cast-off')}</h2><span class="panel-sub">${T('to read, as it was when the lines were let go · the run’s own copy')}</span></div><div class="panel-body told-body">${body}</div></section>`;
 }
