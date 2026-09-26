@@ -62,29 +62,34 @@ export const sailing = () => (V.sail && V.sail.key === sailKey() ? V.sail : null
  * what "the second time at Velia" meant all along, and which no amount
  * of re-counting can shift.
  */
-export const stopKey = (s, k, stops) => (s.npcId
-	? `n${s.npcId}`
-	: s.wait
-		? `v${s.waitAt}@${stops.slice(0, k).filter(x => x.wait && x.waitAt === s.waitAt).length}`
-		: s.quest
-		? `q${s.place.name}@${stops.slice(0, k).filter(x => x.quest && x.place && x.place.name === s.place.name).length}`
-		: `w${s.wharf.name}@${stops.slice(0, k).filter(x => x.wharf && x.wharf.name === s.wharf.name).length}`);
+//
+// And a wharf call or a quest stop is named after the island before it
+// as well: "Port Epheria, after Epheria Sentry Post". Numbered among
+// the calls at that wharf alone, a call a re-laying put in earlier took
+// the number -- and the tick -- of the call the sailor had made: the
+// [Level 7]s sold there came back into the hold, and the sale recorded
+// was of goods still aboard.
+const islandBefore = (stops, k) => { for (let i = Math.min(k, stops.length) - 1; i >= 0; i--) if (stops[i] && stops[i].npcId) return stops[i].npcId; return 0; };
+export const stopKey = (s, k, stops) => {
+	if (s.npcId) return `n${s.npcId}`;
+	if (s.wait) return `v${s.waitAt}@${stops.slice(0, k).filter(x => x.wait && x.waitAt === s.waitAt).length}`;
+	const after = islandBefore(stops, k);
+	const same = x => (s.quest ? x.quest && x.place && x.place.name === s.place.name : x.wharf && x.wharf.name === s.wharf.name);
+	const n = stops.slice(0, k).filter((x, i) => same(x) && islandBefore(stops, i) === after).length;
+	return s.quest ? `q${s.place.name}>${after}@${n}` : `w${s.wharf.name}>${after}@${n}`;
+};
 
-/** What a stop was called before the key above was stable. A checklist
- *  saved mid-run keeps its old ticks, so they are still answered to --
- *  read only, and never written again. */
-const stopKeyWas = (s, k, stops) => (s.npcId
-	? `n${s.npcId}`
-	: s.wait
-		? stopKey(s, k, stops)
-		: s.quest
-		? `q${s.place.name}@${stops.slice(0, k).filter(x => x.npcId).length}`
-		: `w${s.wharf.name}@${stops.slice(0, k).filter(x => x.npcId).length}`);
+/** What a stop was called before the key above: a checklist saved
+ *  mid-run keeps its old ticks, so they are still answered to -- read
+ *  only, and never written again. */
+const stopKeysWas = (s, k, stops) => (s.npcId || s.wait ? [] : s.quest
+	? [`q${s.place.name}@${stops.slice(0, k).filter(x => x.npcId).length}`, `q${s.place.name}@${stops.slice(0, k).filter(x => x.quest && x.place && x.place.name === s.place.name).length}`]
+	: [`w${s.wharf.name}@${stops.slice(0, k).filter(x => x.npcId).length}`, `w${s.wharf.name}@${stops.slice(0, k).filter(x => x.wharf && x.wharf.name === s.wharf.name).length}`]);
 
-/** Whether a list of ticks holds this stop, under either name. */
+/** Whether a list of ticks holds this stop, under any of its names. */
 export const ticked = (list, s, k, stops) => {
 	const l = list || [];
-	return l.includes(stopKey(s, k, stops)) || l.includes(stopKeyWas(s, k, stops));
+	return l.includes(stopKey(s, k, stops)) || stopKeysWas(s, k, stops).some(x => l.includes(x));
 };
 
 /**
@@ -450,7 +455,7 @@ export function markDone(on, k) {
 	cheer();
 	const plan = V.shownPlan || planOfSail(on);
 	if (!plan) return;
-	const at = plan.stops.findIndex((s, i) => stopKey(s, i, plan.stops) === k || stopKeyWas(s, i, plan.stops) === k);
+	const at = plan.stops.findIndex((s, i) => stopKey(s, i, plan.stops) === k || stopKeysWas(s, i, plan.stops).includes(k));
 	// The voucher's cooldown runs from the press that drew it, and a
 	// wait with no such press counts from the stop before it.
 	on.lastTick = Date.now();
@@ -525,15 +530,32 @@ export function syncSail(plan) {
 	// new name, and the tick stayed behind on the old one.
 	const oldStops = Array.isArray(on.stops) ? on.stops : [];
 	const questPlaces = new Set(oldStops.filter((s, k) => s.quest && s.place && ticked(on.done, s, k, oldStops)).map(s => s.place.name));
-	Object.assign(on, sailRecord(plan), { laidFor });
+	// What has been sailed stays as it was sailed. Laid again from the
+	// cast-off with the new counts, the run can reorder or add stops
+	// before the ship's place -- a call to sell a good loaded at the
+	// start, put in ahead of the call already made -- and the ticks and
+	// the hold were then read against a route nobody sailed. So the new
+	// laying is taken from the last stop ticked on; where it no longer
+	// passes there, the run is kept as it is.
+	const rec = sailRecord(plan);
+	let last = -1;
+	oldStops.forEach((s, k) => { if (ticked(on.done, s, k, oldStops)) last = k; });
+	if (last >= 0) {
+		const key = stopKey(oldStops[last], last, oldStops);
+		const j = rec.stops.findIndex((s, i) => stopKey(s, i, rec.stops) === key);
+		if (j < 0) { on.laidFor = laidFor; persist(); return; }
+		rec.stops = [...oldStops.slice(0, last + 1), ...rec.stops.slice(j + 1)];
+	}
+	Object.assign(on, rec, { laidFor });
 	// A quest stop the new laying puts in, whose quests were all handed
 	// in already -- "All done" hands them in before the counts are said
 	// -- is a stop already made: ticked, not left standing at the end.
 	const done = new Set(on.done);
-	plan.stops.forEach((s, k) => {
+	on.stops.forEach((s, k) => {
 		if (!s.quest) return;
-		if (s.place && questPlaces.has(s.place.name)) done.add(stopKey(s, k, plan.stops));
-		else if ((s.quests || []).length && s.quests.every(x => x.q && questDone(x.q))) done.add(stopKey(s, k, plan.stops));
+		const qs = hydrate(s.quests);
+		if (s.place && questPlaces.has(s.place.name)) done.add(stopKey(s, k, on.stops));
+		else if (qs.length && qs.every(x => x.q && questDone(x.q))) done.add(stopKey(s, k, on.stops));
 	});
 	on.done = [...done];
 	persist();

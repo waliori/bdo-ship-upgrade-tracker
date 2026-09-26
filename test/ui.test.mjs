@@ -490,6 +490,27 @@ test('items leave the Inventory from the select bar or the Delete key, after ask
 	await context.close();
 });
 
+test('a wharf call keeps its tick when a re-laying puts another call at the same wharf before it', async () => {
+	const { page, context, errors } = await open('#barter');
+	const r = await page.evaluate(async () => {
+		const { stopKey, ticked } = await import('/js/barter/sail.js');
+		const epheria = { name: 'Srulk', at: 'Port Epheria', x: 0, y: 0 };
+		const arehaza = { npcId: 58984, npc: 'Hanipu' }, karpu = { npcId: 58974, npc: 'Karpu' };
+		const sold = { wharf: epheria, dropped: [], sale: { n: 5 } };
+		// As sailed: Arehaza, Karpu, then Port Epheria to sell what Karpu paid.
+		const before = [arehaza, karpu, sold];
+		const done = before.map((s, k) => stopKey(s, k, before));
+		// Laid again: a call at Port Epheria put in after Arehaza, ahead of it.
+		const early = { wharf: epheria, dropped: [], sale: { n: 5 } };
+		const after = [arehaza, early, karpu, sold];
+		return { early: ticked(done, early, 1, after), sold: ticked(done, sold, 3, after) };
+	});
+	assert.equal(r.sold, true, 'the call that was made keeps its tick');
+	assert.equal(r.early, false, 'the call put in ahead does not take it');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a [Level 7] an island paid under another name is written off only once it was paid', async () => {
 	const { page, context, errors } = await open('#barter');
 	const delta = await page.evaluate(async () => {
