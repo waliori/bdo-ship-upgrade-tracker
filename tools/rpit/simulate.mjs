@@ -64,21 +64,31 @@ export function planPolicy(plan) {
 			const k = state.step - off;
 			if (k >= plan.visits.length) return null;
 			const v = plan.visits[k];
-			if (v.drop !== 'spare') return v;
+			if (v.drop !== 'spare' && v.sell !== 'spare') return v;
 			const stations = new Map(I.stations.map(s => [s.id, s]));
 			const need = new Map();
 			for (const w of plan.visits.slice(k + 1)) {
 				const s = stations.get(w.at);
 				if (s && w.a > 0) need.set(s.in, (need.get(s.in) || 0) + w.a * s.q);
 			}
-			const selling = v.sell === 'all' ? g => I.goods[g].p > 0 : g => !!(v.sell && v.sell[g]);
-			const drop = {};
-			for (const [g, n] of state.h) {
-				if (!I.goods[g] || !I.goods[g].level || selling(g)) continue;
-				const extra = n - (need.get(g) || 0);
-				if (extra > 1e-9) drop[g] = extra;
+			const extra = g => (state.h.get(g) || 0) - (need.get(g) || 0);
+			const out = { ...v };
+			// `sell: "spare"`: what the Market-less wharf buys of it, less what
+			// the islands ahead will take -- a good is not sold from under a
+			// climb the plan still means to make.
+			if (v.sell === 'spare') {
+				out.sell = {};
+				for (const [g] of state.h) if (I.goods[g] && I.goods[g].p > 0 && extra(g) > 1e-9) out.sell[g] = extra(g);
 			}
-			return { ...v, drop };
+			const selling = out.sell === 'all' ? g => I.goods[g].p > 0 : g => !!(out.sell && out.sell[g]);
+			if (v.drop === 'spare') {
+				out.drop = {};
+				for (const [g] of state.h) {
+					if (!I.goods[g] || !I.goods[g].level || selling(g)) continue;
+					if (extra(g) > 1e-9) out.drop[g] = extra(g);
+				}
+			}
+			return out;
 		}
 	};
 }
@@ -178,10 +188,13 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 			entry.req = act.a || 0;
 			let a = 0;
 			const Y = [];
-			if (state.visited.has(s.id)) dev.revisited++;
-			else if (entry.req > 0 && state.W > startLimit + EPS) dev.refusedOverDeal++;
+			if (state.visited.has(s.id)) { dev.revisited++; entry.why = 'revisit'; }
+			else if (entry.req > 0 && state.W > startLimit + EPS) { dev.refusedOverDeal++; entry.why = 'over'; }
 			else {
-				const most = Math.min(entry.req, s.m, Math.floor((h.get(s.in) || 0) / s.q + EPS), s.c > 0 ? Math.floor(state.parleyLeft / s.c + EPS) : Infinity, Math.floor(spendable(s.in) / s.q + EPS));
+				// Each bound on the attempts, kept apart so that a visit that
+				// fell short can say which of them it was.
+				const bounds = { m: s.m, goods: Math.floor((h.get(s.in) || 0) / s.q + EPS), parley: s.c > 0 ? Math.floor(state.parleyLeft / s.c + EPS) : Infinity, floor: Math.floor(spendable(s.in) / s.q + EPS) };
+				const most = Math.min(entry.req, ...Object.values(bounds));
 				// What each attempt here pays: the board's draw, read in the
 				// window before trading; its mean; or, robust, the least --
 				// weighed at the most, since that planner never saw the board.
@@ -198,7 +211,10 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 					add(h, s.out, y); add(hw, s.out, yw);
 					Y.push(y);
 				}
-				if (a < entry.req) dev.clampedAttempts++;
+				if (a < entry.req) {
+					dev.clampedAttempts++;
+					entry.why = a < most ? 'weight' : Object.entries(bounds).reduce((x, y) => (y[1] < x[1] ? y : x))[0];
+				}
 				state.parleyLeft -= a * s.c; parleyUsed += a * s.c; trades += a;
 				state.visited.add(s.id);
 			}
@@ -250,6 +266,9 @@ export function simulate(I, policy, { mode = 'sample', seed = 1 } = {}) {
 	for (const [g, n] of h) carried += n * (G[g] ? G[g].p : 0);
 	return {
 		R, T, rate: T > 0 ? R / T : 0, P: parleyUsed, trades, calls, distance, carried,
+		// Where the run ended and what it held: a search that builds a plan
+		// a visit at a time reads its next move off these.
+		at: state.at, hold: Object.fromEntries(h), parleyLeft: state.parleyLeft,
 		deviations: dev, pointless: pointlessOf(state.log), log: state.log
 	};
 }

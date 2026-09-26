@@ -35,3 +35,4 @@ docs/media/**/*.srt
 tools/rpit/instances/
 tools/rpit/results/
 tools/rpit/data/fleet-ratios.json
+tools/rpit/instances-tiny/

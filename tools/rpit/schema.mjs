@@ -100,7 +100,7 @@ export function validatePlan(P, I) {
 	const once = new Set();
 	const counts = (v, key, k) => {
 		if (v[key] === undefined) return;
-		if (key === 'sell' && v[key] === 'all') return;
+		if (key === 'sell' && (v[key] === 'all' || v[key] === 'spare')) return;
 		if (key === 'drop' && v[key] === 'spare') return;
 		if (!obj(v[key])) { e.push(`visit ${k}: ${key} is not an object`); return; }
 		for (const [g, n] of Object.entries(v[key])) {

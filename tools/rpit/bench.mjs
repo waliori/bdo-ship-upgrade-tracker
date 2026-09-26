@@ -2,7 +2,7 @@
 //
 //   node tools/rpit/bench.mjs --solvers level0[,greedy,…] \
 //        [--instances 'tools/rpit/instances/*.json'] [--scenarios 100] [--seed 1] \
-//        [--time 10000] [--out tools/rpit/results/bench.csv] [--limit N] [--filter TEXT] [--exclude TEXT]
+//        [--time 10000] [--out tools/rpit/results/bench.csv] [--limit N] [--filter TEXT] [--exclude TEXT] [--every K]
 //
 // Each solver is a module in solvers/ exporting solve(instance, { setup,
 // timeMs, seed }) → { plan | policy, info }. The time a solver takes is
@@ -39,7 +39,7 @@ const round = (v, d = 0) => { const k = 10 ** d; return Math.round(v * k) / k; }
 /** One instance, one solver: the CSV row and the plan. */
 export async function benchOne(instance, solverName, { scenarios = 100, seed = 1, timeMs = 10000, setup = null } = {}) {
 	const mod = await import(pathToFileURL(path.join(HERE, 'solvers', `${solverName}.mjs`)).href);
-	const cas = setup || setupOf(instance.meta.args);
+	const cas = setup || (solverName === 'level0' ? setupOf(instance.meta.args) : null);
 	const t0 = performance.now();
 	const out = mod.solve(instance, { setup: cas, timeMs, seed });
 	const computeMs = performance.now() - t0;
@@ -66,6 +66,7 @@ async function main() {
 	let files = globFiles(o.instances || path.join(HERE, 'instances', '*.json'));
 	if (o.filter) files = files.filter(f => f.includes(o.filter));
 	if (o.exclude) files = files.filter(f => !f.includes(o.exclude));
+	if (o.every) files = files.filter((_, i) => i % Number(o.every) === 0);
 	if (o.limit) files = files.slice(0, Number(o.limit));
 	const out = o.out || path.join(HERE, 'results', `${solvers.join('+')}.csv`);
 	const plans = `${out}.plans`;
@@ -75,7 +76,7 @@ async function main() {
 	const t0 = Date.now();
 	for (const [n, file] of files.entries()) {
 		const instance = JSON.parse(readFileSync(file, 'utf8'));
-		const setup = setupOf(instance.meta.args);
+		const setup = solvers.includes('level0') && !instance.meta.tiny ? setupOf(instance.meta.args) : null;
 		for (const s of solvers) {
 			const { row, plan, info, errors } = await benchOne(instance, s, { ...opts, setup });
 			lines.push(COLUMNS.map(c => csvCell(row[c])).join(','));
