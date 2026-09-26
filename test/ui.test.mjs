@@ -490,6 +490,23 @@ test('items leave the Inventory from the select bar or the Delete key, after ask
 	await context.close();
 });
 
+test('the Results step opens with no run under way, and keeps past runs there', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.evaluate(async () => {
+		const store = await import('/js/state.js');
+		store.setProfile('runs', [{ day: '2026-09-24', at: Date.now() - 86400000, silver: 300000000, cost: 0, net: 300000000, trades: 12, parley: 120000, stops: 5, goal: 'silver', layout: '24', port: 'Iliya Island' }]);
+	});
+	await wait(400);
+	await tap(page, '[data-act="barter-step"][data-id="results"]'); await wait(600);
+	assert.ok(await page.$('.barter-screen.step-results'), 'Results opens without a run');
+	assert.match(await text(page, '.step-empty'), /no run under way/i);
+	assert.match(await text(page, '.barter-screen'), /past runs/i, 'and the runs before are there');
+	await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForSelector('.barter-screen'); await wait(400);
+	assert.ok(await page.$('.barter-screen.step-results'), 'and it is still there after a reload');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a wharf call keeps its tick when a re-laying puts another call at the same wharf before it', async () => {
 	const { page, context, errors } = await open('#barter');
 	const r = await page.evaluate(async () => {

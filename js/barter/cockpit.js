@@ -196,11 +196,13 @@ export function bringUp(sel) {
 /** A level's badge, as each language shortens it. */
 export const lvTag = lv => T('L{lv}', { lv });
 
-// A step kept from before a reload that has nothing left to show --
-// the run it sailed gone, the results it showed not kept -- is the plan.
+// A step kept from before a reload that has nothing left to show -- the
+// Sail step, with the run it sailed gone -- is the plan.
 export const stepNow = () => {
 	const on = sailing();
-	if ((V.step === 'sail' && !on) || (V.step === 'results' && !on && !V.lastTrip)) return 'plan';
+	// Results is always there to open: with no run, it is the record of
+	// the runs before -- today's boards, the week, every past run.
+	if (V.step === 'sail' && !on) return 'plan';
 	return V.step || (on ? 'sail' : 'plan');
 };
 
@@ -247,7 +249,7 @@ export function stepperHTML(parts, now) {
 		${cell('plan', 1, T('Plan'), T('What is today for?'), parts.secs[0][2])}
 		${cell('load', 2, T('Load'), T('Pack at the wharf'), parts.stops ? (parts.things.later ? T('{n} to have aboard now · {m} picked up on the way', { n: parts.things.all, m: parts.things.later }) : parts.things.all === 1 ? T('{n} thing to have aboard', { n: parts.things.all }) : T('{n} things to have aboard', { n: parts.things.all })) : T('tick a chain first'))}
 		${cell('sail', 3, T('step|Sail'), T('One stop at a time'), plan ? (at >= 0 ? T('stop {n} of {of}', { n: at + 1, of: plan.stops.length }) : T('every stop ticked')) : parts.stops ? `${parts.stops === 1 ? T('{n} stop', { n: parts.stops }) : T('{n} stops', { n: parts.stops })}${parts.time ? ` · ≈ ${esc(parts.time)}` : ''}` : T('nothing planned yet'))}
-		${cell('results', 4, T('Results'), T('What the run did'), plan ? T('{n} of {of} stops done', { n: doneN, of: plan.stops.length }) : V.lastTrip ? T('recorded') : T('nothing under way'))}
+		${cell('results', 4, T('Results'), T('What the run did'), plan ? T('{n} of {of} stops done', { n: doneN, of: plan.stops.length }) : V.lastTrip ? T('recorded') : T('past runs'))}
 	</nav>`;
 }
 
