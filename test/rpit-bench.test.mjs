@@ -1,0 +1,74 @@
+// The RPIT instances written from the app's data, the app's planner
+// scored as level 0, and the bench round them.
+//
+// What can go wrong: an instance that is not the board the app plans
+// on -- an island missing, a price or a ceiling off, a distance not by
+// water -- so that level 0 and every other solver are scored on two
+// different days; the app's run written out as a plan that the
+// simulator replays to another figure; a bench row or a report that
+// loses a column.
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { setupOf } from '../tools/rpit/setup.mjs';
+import { casesOf } from '../tools/rpit/export.mjs';
+import { validateInstance, validatePlan } from '../tools/rpit/schema.mjs';
+import { simulate, planPolicy } from '../tools/rpit/simulate.mjs';
+import { solve } from '../tools/rpit/solvers/level0.mjs';
+import { benchOne, COLUMNS } from '../tools/rpit/bench.mjs';
+import { table } from '../tools/rpit/report.mjs';
+
+const velia = setupOf({ layout: '25', start: 'Velia', hold: 20000, pace: 'full' });
+
+test('layout 25 from Velia: every island, the seven storages, the sea by water', () => {
+	const I = velia.instance;
+	assert.deepEqual(validateInstance(I), []);
+	assert.equal(I.stations.length, 68);
+	assert.equal(I.depots.length, 7);
+	assert.equal(I.vehicle.Wdeal, 34000);
+	assert.equal(I.goods[I.stations.find(s => I.goods[s.out].level === 7).out].p, 100000000);
+	const n = I.travel.points.length;
+	assert.equal(n, 1 + 7 + 68);
+	for (let i = 0; i < n; i++) {
+		assert.equal(I.travel.matrix[i][i], 0);
+		for (let j = 0; j < i; j++) assert.equal(I.travel.matrix[i][j], I.travel.matrix[j][i]);
+	}
+	// The harbour and its wharf are two points a short way apart.
+	const k = I.travel.points.indexOf('Velia');
+	assert.ok(I.travel.matrix[0][k] > 0 && I.travel.matrix[0][k] < 1000);
+});
+
+test('the export names every case once, and stores what rebuilds it', () => {
+	const cases = casesOf({ all: true, hold: '12000,20000', pace: 'fast,full' });
+	assert.equal(cases.length, 40 * 2 * 2 * 2);
+	assert.ok(cases.every(c => c.home === 'Velia' || c.home === 'Iliya Island'));
+	const again = setupOf(velia.instance.meta.args).instance;
+	assert.deepEqual(again.travel, velia.instance.travel);
+});
+
+test('level 0: the app\'s run replays to the app\'s own figures', () => {
+	const { plan, info } = solve(velia.instance, { setup: velia });
+	assert.deepEqual(validatePlan(plan, velia.instance), []);
+	const r = simulate(velia.instance, planPolicy(plan), { mode: 'robust' });
+	assert.equal(r.trades, info.tradesApp);
+	assert.ok(Math.abs(r.R - info.netApp) <= 0.02 * info.netApp, `${r.R} against ${info.netApp}`);
+	// The app leaves the slowing out of its hours, and makes no leg home
+	// after its last call; the simulator does both, so it is never faster.
+	assert.ok(r.T >= info.hoursApp - 1e-9);
+	assert.equal(r.deviations.refusedOverDeal, 0);
+});
+
+test('the bench writes a row per instance and solver, and the report reads them', async () => {
+	const iliya = setupOf({ layout: '12', start: 'Iliya Island', hold: 12000, pace: 'fast' });
+	const rows = [];
+	for (const s of [velia, iliya]) rows.push((await benchOne(s.instance, 'level0', { scenarios: 5, setup: s })).row);
+	assert.equal(rows.length, 2);
+	for (const r of rows) {
+		for (const c of COLUMNS) assert.ok(c in r, `column ${c}`);
+		assert.equal(r.planErrors, 0);
+		assert.ok(r.rateOfMeans > 0);
+	}
+	const md = table(rows).join('\n');
+	assert.match(md, /\| level0 \| 2 \|/);
+});
