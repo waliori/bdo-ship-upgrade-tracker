@@ -39,6 +39,19 @@ test('layout 25 from Velia: every island, the seven storages, the sea by water',
 	assert.ok(I.travel.matrix[0][k] > 0 && I.travel.matrix[0][k] < 1000);
 });
 
+test('land goods cost what the snapshot says, and no more can be bought than is listed', () => {
+	const I = velia.instance;
+	const land = Object.values(I.goods).filter(g => !g.level);
+	assert.ok(land.length > 0 && land.every(g => g.b > 0), 'every land good on layout 25 is priced');
+	assert.ok(land.every(g => g.cap === null || (Number.isInteger(g.cap) && g.cap >= 0)));
+	assert.equal(I.meta.market.region, 'na');
+	// The app's run is priced from the same snapshot.
+	for (const [name, g] of Object.entries(I.goods)) if (!g.level) assert.equal(velia.app.opts.prices[name].each, g.b);
+	// Without a snapshot, the goods are free and unlimited: a test board only.
+	const free = setupOf({ layout: '25', market: null }).instance;
+	assert.ok(Object.values(free.goods).filter(g => !g.level).every(g => g.b === 0 && g.cap === null));
+});
+
 test('the export names every case once, and stores what rebuilds it', () => {
 	const cases = casesOf({ all: true, hold: '12000,20000', pace: 'fast,full' });
 	assert.equal(cases.length, 40 * 2 * 2 * 2);

@@ -18,7 +18,6 @@ import { seaDist } from '../../js/barter-route.js';
 import { METRES_PER_PX, speedMs, DEFAULT_CAL } from '../../js/sailing.js';
 import { OVERLOAD } from '../../js/ship.js';
 import { PLAIN_ORDERS, DEFAULT_PAUSE } from '../../js/barter-orders.js';
-import { landPrices } from '../../js/land-cost.js';
 import { chains } from '../../js/barter-chains.js';
 
 const read = rel => JSON.parse(readFileSync(new URL(rel, import.meta.url), 'utf8'));
@@ -30,12 +29,27 @@ export const combos = read('../../js/barter_combos.json').combos;
 export const DEPOTS = ['Velia', 'Port Epheria', 'Iliya Island', 'Ancado Inner Harbor', "Oquilla's Eye", 'Dami Pier', 'Dallae Pier'];
 export const depotOf = at => wharves.find(w => w.kind === 'wharf' && w.at === at);
 
+/**
+ * The land goods' prices and listed counts, from a snapshot taken by
+ * fetch-market.mjs: { name: { each, how, stock } } in the shape the
+ * app's run takes. Null for no snapshot, when every land good is free
+ * and unlimited -- which is only ever a test's board.
+ */
+export function marketOf(region) {
+	if (!region) return null;
+	const snap = read(`./data/market-${region}.json`);
+	const out = {};
+	for (const [name, g] of Object.entries(snap.goods)) out[name] = g.fixed ? { each: g.price, how: 'fixed' } : { each: g.price, how: 'market', stock: g.stock };
+	return { at: snap.at, region: snap.region, prices: out };
+}
+
 export const DEFAULT_ARGS = {
 	layout: '25', start: 'Velia', home: 'Velia', end: null,
 	hold: 20000, parley: 3500000, perTrade: 10554,
 	pace: 'full', sell: 7, p: 0.5,
 	stock: {}, storage: {}, floors: {},   // floors: { level: n }, as the app's orders keep them
-	dropPolicy: 'any', speed: 100, cal: DEFAULT_CAL
+	dropPolicy: 'any', speed: 100, cal: DEFAULT_CAL,
+	market: 'na'          // the snapshot in data/ the land goods are priced from; null for none
 };
 
 /**
@@ -87,13 +101,18 @@ export function setupOf(given = {}) {
 
 	const goods = {};
 	const unpriced = [];
-	const land = [...new Set(stations.map(s => s.in).filter(n => levelOf(n) === null))];
-	const prices = landPrices(land);
+	const market = marketOf(args.market);
+	const prices = market ? market.prices : {};
 	for (const name of new Set([...stations.flatMap(s => [s.in, s.out]), ...Object.keys(args.stock), ...Object.keys(args.storage)])) {
 		const level = levelOf(name) ?? 0;
-		const b = level ? 0 : (prices[name] && prices[name].each) || 0;
+		const price = level ? null : prices[name];
+		const b = (price && price.each) || 0;
 		if (!level && !b) unpriced.push(name);
-		goods[name] = { level, w: weightOf(name) || 0, p: level && level >= args.sell ? sellOf(name) || 0 : 0, b, cap: null };
+		// What the Market lists caps what a run can buy of it; a price with
+		// no count behind it (a fixed value, or a count the relay would not
+		// confirm) caps nothing.
+		const cap = price && Number.isFinite(price.stock) ? price.stock : null;
+		goods[name] = { level, w: weightOf(name) || 0, p: level && level >= args.sell ? sellOf(name) || 0 : 0, b, cap };
 	}
 
 	const wharfs = DEPOTS.map(depotOf);
@@ -119,7 +138,7 @@ export function setupOf(given = {}) {
 		initial: { hold: { ...args.stock }, floors: Object.fromEntries(Object.keys(goods).filter(g => goods[g].level && args.floors[goods[g].level] > 0).map(g => [g, args.floors[goods[g].level]])) },
 		rules: { pace: args.pace, dropPolicy: args.dropPolicy, home: args.home, end: args.end || args.home },
 		objective: 'silver_per_hour',
-		meta: { game: 'bdo', layout: String(args.layout), unpricedLandGoods: unpriced, args }
+		meta: { game: 'bdo', layout: String(args.layout), market: market ? { region: market.region, at: market.at } : null, unpricedLandGoods: unpriced, args }
 	};
 
 	const opts = {
@@ -130,7 +149,7 @@ export function setupOf(given = {}) {
 		prefer: args.end && args.end !== args.home ? depotOf(args.end) : null,
 		pace: args.pace,
 		orders: { ...PLAIN_ORDERS, way: 'sea', sell: args.sell, pause: { ...DEFAULT_PAUSE } },
-		prices: {},
+		prices,
 		ship: { speed: args.speed, cal: args.cal }
 	};
 	if (Object.keys(args.floors).length) opts.orders.floors = { ...args.floors };
