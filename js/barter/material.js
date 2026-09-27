@@ -12,12 +12,12 @@ import { npcById, ports, isleOf, whoOf, isleShort } from '../barter_npcs.js';
 import { fmtDistance } from '../sailing.js';
 import { QUEST_CHOICES } from '../barter-orders.js';
 import { landPrices } from '../land-cost.js';
-import { GOODS, levelOf, npcGate, npcOpen } from '../barter.js';
+import { GOODS, PARLEY, levelOf, npcGate, npcOpen } from '../barter.js';
 import { exchanges, weightOf, sellOf } from '../barter-plan.js';
 import { shotGuideHTML } from '../barter-import.js';
 import { tellFleet, fleetHistory, shared as boardsShared } from '../sea-boards.js';
 import { boardsOf as matBoardsOf, bookOf as matBookOf, bookFromGame, fitOf as matFitOf, seenOn as matSeenOnBook, MIN_FIT as MAT_MIN_FIT } from '../material-book.js';
-import { materialPages } from '../barter-layouts.js';
+import { materialPages, materialDeal } from '../barter-layouts.js';
 import { openMaterialBook, pageName as matPageName } from '../material-book-view.js';
 import { me } from '../sync.js';
 import { materialRun } from '../barter-material.js';
@@ -30,7 +30,7 @@ import { fromPort, materials, itemNow, keepRoute } from './board.js';
 import { narrow, lvTag } from './cockpit.js';
 import { aboardStock, dockStock, storesElsewhere, bagsNow } from './hold.js';
 import { runDockHTML } from './parts.js';
-import { chartButton, parleyLine, parleyHTML } from './plan.js';
+import { chartButton, parleyLine, parleyHTML, parleyOf } from './plan.js';
 import { stashes, withWaits, legsOf, questPlan, questsLine, questsPanels, TIER, ledgerOf, runTime, stopRows } from './route.js';
 import { sailing } from './sail.js';
 import { redrawSoon, coinWorth } from './search.js';
@@ -523,8 +523,14 @@ export function materialParts(me, data) {
 	// Only the islands showing a material the run is for: the rest of
 	// the list is known, and not sailed for.
 	const forRun = new Set(mats.map(m => m.it));
+	// Each exchange as the game has it: its daily count, what it pays and
+	// its base Parley, where the codex's figures were a guess.
+	const asGame = x => {
+		const g = materialDeal(x.npcId, x.give, x.item);
+		return g ? { ...x, tries: g.perDay, recvMin: g.recvMin, recvMax: g.recvMax, recv: (g.recvMin + g.recvMax) / 2, recvText: g.recvMin === g.recvMax ? String(g.recvMin) : `${g.recvMin}-${g.recvMax}`, parleyBase: g.parley } : x;
+	};
 	const picks = showing.filter(a => forRun.has(a.recv)).map(a => rows.find(x => x.npcId === a.npcId && x.give === a.give && x.item === a.recv))
-		.filter(x => x && npcOpen(x.npcId, barterProfile().barterCount));
+		.filter(x => x && npcOpen(x.npcId, barterProfile().barterCount)).map(asGame);
 	const plan = materialRun({
 		picks, wants: new Map(mats.map(m => [m.it, m.qty])), reach: V.matOrders.reach, pace: V.matOrders.pace, calls: V.matOrders.calls,
 		stock: aboardStock(), dock: dockStock(), stores: storesElsewhere(), bags: bagsNow(),
@@ -532,10 +538,15 @@ export function materialParts(me, data) {
 		hold: me.hold, start: from, startWharf: from ? stashes.find(w => w.at === from.name) || null : null, npcById
 	});
 	for (const s of plan.stops) s.hold = me.hold;
+	// Each island at its own price: the material list's exchanges cost far
+	// more Parley than a trade good's, and a run recorded at the trade
+	// price left the bar reading a third of what was really spent.
+	const rate = parleyOf(barterProfile()).rate;
+	for (const s of plan.stops) if (s.npcId && s.times > 0) s.parley = s.times * Math.floor((s.parleyBase || PARLEY.perMaterialTrade) * rate);
 	const qp = questPlan(plan.stops, V.matOrders.quests, me.hold, plan.weightStart);
 	plan.stops = withWaits(qp.stops, plan.weightStart);
 	plan.questsHome = qp.home;
-	V.shownPlan = plan.stops.length ? { stops: plan.stops, cost: plan.cost, bought: plan.bought || [], parleyUsed: 0, questsHome: qp.home } : null;
+	V.shownPlan = plan.stops.length ? { stops: plan.stops, cost: plan.cost, bought: plan.bought || [], parleyUsed: plan.stops.reduce((a, x) => a + (Number(x.parley) || 0), 0), questsHome: qp.home } : null;
 	const legs = legsOf(plan.stops);
 	const book = ledgerOf(plan.stops, legs);
 	// What is short splits two ways: some of it may sit in a storage the

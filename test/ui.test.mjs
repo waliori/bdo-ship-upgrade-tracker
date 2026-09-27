@@ -2588,6 +2588,21 @@ test('the material run is one route through every island ticked: a full run goes
 	};
 	await tickAll("Statue's Tear"); await tickAll('Faded Gold Dragon Figurine');
 	await laidOut(page);
+	// Each island at the material list's own price, the game's base less
+	// the sailor's discounts -- not the trade price -- and the run's
+	// Parley their sum.
+	const priced = await page.evaluate(async () => {
+		const { V } = await import('/js/barter/state.js');
+		const { parleyOf } = await import('/js/barter/plan.js');
+		const { barterProfile } = await import('/js/ui-state.js');
+		return { rate: parleyOf(barterProfile()).rate, isles: V.shownPlan.stops.filter(s => s.npcId && s.times > 0).map(s => ({ times: s.times, parley: s.parley, base: s.parleyBase })), used: V.shownPlan.parleyUsed };
+	});
+	assert.ok(priced.isles.length > 0);
+	for (const s of priced.isles) {
+		assert.equal(s.base, 61430, 'the game\u2019s base for a ship material');
+		assert.equal(s.parley, s.times * Math.floor(s.base * priced.rate));
+	}
+	assert.equal(priced.used, priced.isles.reduce((a, s) => a + s.parley, 0));
 	let stops = await page.$$eval('.run-stop', els => els.map(s => s.querySelector('.run-stop-head b').textContent));
 	assert.equal(stops.filter(n => n !== 'Velia wharf').length, 11, `eleven islands, each once: ${stops.join(', ')}`);
 	assert.equal(stops.filter(n => n === 'Velia wharf').length, 2, `two departures from Velia: ${stops.join(', ')}`);

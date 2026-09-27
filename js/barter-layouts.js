@@ -172,3 +172,23 @@ export function materialPages() {
 	}
 	return pages;
 }
+
+/**
+ * A material exchange as the game has it, wherever on the list it is:
+ * `{ perDay, parley, recvMin, recvMax }` for this island, give and pay,
+ * or null. The daily count and the Parley are the exchange's own on
+ * every row it stands on.
+ */
+export function materialDeal(npcId, give, recv) {
+	if (!game || !game.MATERIAL) return null;
+	// The ship-material list first; a few materials (the Brilliants) are
+	// dealt on the trade board instead.
+	for (const [board, groups] of [[game.MATERIAL, game.MATERIAL_GROUPS], [game.TRADE, game.GROUPS]]) {
+		for (const s of board[npcId] || []) {
+			const list = s == null ? [] : typeof s === 'number' ? (groups[s] || []).map(o => offerOf(o, game.OPTION)) : [offerOf(s, game.OFFER)];
+			const hit = list.find(o => o.give === give && o.recv === recv && o.chance > 0);
+			if (hit) return hit;
+		}
+	}
+	return null;
+}
