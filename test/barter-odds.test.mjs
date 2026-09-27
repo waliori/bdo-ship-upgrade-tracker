@@ -111,3 +111,18 @@ test('the whole climb is looked at, so the scarcest rung is named even when anot
 		if (o.recorded) assert.ok(f.scarcest.per <= o.per, `${r.item} is rarer than the one named`);
 	}
 });
+
+test('the material list’s odds from the game’s own tables: exact, not shrunk, and said as such', async () => {
+	const { useGame, materialPages } = await import('../js/barter-layouts.js');
+	useGame(await import('../js/barter_game.js'));
+	const index = readOdds({ pages: materialPages() });
+	assert.equal(index.boards, 41, 'the forty-one material layouts');
+	// A Saltwater Crocodile's Scale is a one-in-twenty offer on a few layouts:
+	// the five boards read put it on one in three.
+	const croc = oddsFor("Saltwater Crocodile's Scale", index);
+	assert.ok(croc.recorded && croc.exact);
+	assert.ok(croc.per > 0.01 && croc.per < 0.06, `${croc.per}`);
+	const shard = oddsFor('Brilliant Pearl Shard', index);
+	assert.ok(shard.per > 0.6 && shard.per < 0.85, `${shard.per}`);
+	assert.match(oddsText(croc), /game.s own tables/);
+});

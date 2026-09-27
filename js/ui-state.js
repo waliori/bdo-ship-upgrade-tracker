@@ -16,6 +16,7 @@ import * as store from './state.js';
 import { plan, craftableNow, stockForCrafting, parseEnhanced, resolveRoutes, ownedLevel } from './planner.js';
 import { parleyOff } from './ship.js';
 import { readOdds } from './barter-odds.js';
+import { materialPages } from './barter-layouts.js';
 
 // The recipe book as the user's chosen routes make it. An upgrade with
 // two ways in -- the Caravel, the Galleass -- reads here as whichever one
@@ -225,7 +226,9 @@ let oddsMemo = null;
 export function oddsIndex() {
 	if (!combos && !matBoards) return null;
 	if (!oddsMemo || oddsMemo.combos !== combos || oddsMemo.boards !== matBoards) {
-		oddsMemo = { combos, boards: matBoards, index: readOdds({ boards: matBoards, combos }) };
+		// The material list's odds from the game's tables once they are
+		// loaded (they come with the layouts), else from the boards read.
+		oddsMemo = { combos, boards: matBoards, index: readOdds({ boards: matBoards, combos, pages: materialPages() }) };
 	}
 	return oddsMemo.index;
 }

@@ -73,12 +73,12 @@ export const PRIOR_WEIGHT = 1;
  * worth knowing that a thing shows at three islands when it shows -- and
  * not for the arithmetic, which counts presence only.
  */
-export function readOdds({ boards = null, combos = null } = {}) {
-	const material = new Map();
+export function readOdds({ boards = null, combos = null, pages = null } = {}) {
+	const material = pages && pages.length ? gameMaterial(pages) : new Map();
 	const trade = new Map();
 
 	const bs = (boards && Array.isArray(boards.boards)) ? boards.boards : [];
-	for (const b of bs) {
+	for (const b of pages && pages.length ? [] : bs) {
 		const here = new Map();
 		for (const o of b.offers || []) {
 			const item = o[3];
@@ -112,7 +112,41 @@ export function readOdds({ boards = null, combos = null } = {}) {
 		}
 	}
 
-	return { material, trade, boards: bs.length, refreshes };
+	return { material, trade, boards: pages && pages.length ? pages.length : bs.length, refreshes };
+}
+
+/**
+ * The material list's odds from the game's own tables: for each good,
+ * the chance it is on a day's list, over the forty-one layouts taken as
+ * equally likely. On one layout a slot shows it with the offer's own
+ * chance, or -- a slot the game fills at random -- its share of the
+ * options; the list has it if any slot does. Exact where the boards
+ * read could only sample, so it is not shrunk toward the old guess.
+ */
+function gameMaterial(pages) {
+	const out = new Map();
+	for (const page of pages) {
+		const here = new Map();
+		const add = (item, p) => {
+			const h = here.get(item) || { none: 1, n: 0 };
+			h.none *= 1 - p;
+			h.n += p;
+			here.set(item, h);
+		};
+		for (const o of page.offers.values()) {
+			if (o.options) for (const x of o.options) add(x.recv, (x.chance ?? 1) / o.options.length);
+			else add(o.recv, o.chance ?? 1);
+		}
+		for (const [item, h] of here) {
+			const rec = out.get(item) || { per: 0, islands: 0, on: 0 };
+			rec.per += (1 - h.none) / pages.length;
+			rec.islands += h.n / pages.length;
+			rec.on += 1;
+			out.set(item, rec);
+		}
+	}
+	for (const rec of out.values()) { rec.exact = true; rec.islands = rec.per ? rec.islands / rec.per : 0; }
+	return out;
 }
 
 /**
@@ -135,6 +169,7 @@ export function oddsFor(item, index) {
 	const of = kind === 'material' ? index.boards : index.refreshes;
 	const rec = table && table.get(item);
 	if (!rec || !of) return unknown;
+	if (rec.exact) return { per: Math.min(1, rec.per), seen: rec.on, of, kind, recorded: true, exact: true, islands: rec.islands };
 
 	// Presence, shrunk toward the old assumption. Never above one: this
 	// file exists to take optimism out of a forecast, not to add it.
@@ -152,6 +187,7 @@ export function oddsText(odds) {
 	if (!odds || !odds.recorded) return T('no board has recorded this one yet');
 	if (odds.kind === 'material') {
 		const where = odds.islands >= 2 ? T(', at {n} islands when it is', { n: Math.round(odds.islands) }) : '';
+		if (odds.exact) return T('on about {pct}% of material lists, by the game’s own tables{where}', { pct: Math.max(1, Math.round(odds.per * 100)), where });
 		return odds.seen >= odds.of
 			? T('on every one of the {of} boards recorded{where}', { of: odds.of, where })
 			: T('on {seen} of the {of} boards recorded{where}', { seen: odds.seen, of: odds.of, where });

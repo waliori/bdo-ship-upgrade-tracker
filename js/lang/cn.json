@@ -4256,6 +4256,7 @@
 	"off": "关闭",
 	"offline — your data is safe here": "离线 — 你的数据在这里是安全的",
 	"on <b>{view}</b>": "在 <b>{view}</b>",
+	"on about {pct}% of material lists, by the game’s own tables{where}": "约 {pct}% 的材料列表上有，依据游戏自身的数据表{where}",
 	"on about {pct}% of refreshes, over {n} recorded": "在约 {pct}% 的更新中出现，共记录 {n} 次",
 	"on every one of the {of} boards recorded{where}": "在记录在案的 {of} 个面板上全都出现{where}",
 	"on its own": "单独",

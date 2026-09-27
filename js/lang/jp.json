@@ -4256,6 +4256,7 @@
 	"off": "オフ",
 	"offline — your data is safe here": "オフライン — データはここで安全です",
 	"on <b>{view}</b>": "<b>{view}</b>で",
+	"on about {pct}% of material lists, by the game’s own tables{where}": "素材リストの約{pct}%に出現（ゲーム自体のデータ表による）{where}",
 	"on about {pct}% of refreshes, over {n} recorded": "記録された{n}回のうち、更新の約{pct}%で",
 	"on every one of the {of} boards recorded{where}": "記録された{of}ボードすべてで{where}",
 	"on its own": "単独",

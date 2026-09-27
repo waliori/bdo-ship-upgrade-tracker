@@ -4256,6 +4256,7 @@
 	"off": "off",
 	"offline — your data is safe here": "offline — your data is safe here",
 	"on <b>{view}</b>": "on <b>{view}</b>",
+	"on about {pct}% of material lists, by the game’s own tables{where}": "on about {pct}% of material lists, by the game’s own tables{where}",
 	"on about {pct}% of refreshes, over {n} recorded": "on about {pct}% of refreshes, over {n} recorded",
 	"on every one of the {of} boards recorded{where}": "on every one of the {of} boards recorded{where}",
 	"on its own": "on its own",

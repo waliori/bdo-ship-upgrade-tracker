@@ -4256,6 +4256,7 @@
 	"off": "ปิด",
 	"offline — your data is safe here": "ออฟไลน์ — ข้อมูลของคุณปลอดภัยที่นี่",
 	"on <b>{view}</b>": "บน <b>{view}</b>",
+	"on about {pct}% of material lists, by the game’s own tables{where}": "ประมาณ {pct}% ของรายการวัสดุ ตามตารางของเกมเอง{where}",
 	"on about {pct}% of refreshes, over {n} recorded": "ในราว {pct}% ของการรีเฟรช จาก {n} ครั้งที่บันทึกไว้",
 	"on every one of the {of} boards recorded{where}": "บนทุกกระดานจาก {of} กระดานที่บันทึกไว้{where}",
 	"on its own": "ลำพัง",

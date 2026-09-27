@@ -4385,6 +4385,7 @@
 	"off": "inactif",
 	"offline — your data is safe here": "hors ligne — vos données sont en sécurité ici",
 	"on <b>{view}</b>": "sur <b>{view}</b>",
+	"on about {pct}% of material lists, by the game’s own tables{where}": "sur environ {pct} % des listes de matériaux, d'après les tables du jeu{where}",
 	"on about {pct}% of refreshes, over {n} recorded": "sur environ {pct} % des actualisations, sur un total de {n}",
 	"on every one of the {of} boards recorded{where}": "sur chacun des {of} tableaux enregistrés{where}",
 	"on its own": "seule",

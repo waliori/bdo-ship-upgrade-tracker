@@ -4256,6 +4256,7 @@
 	"off": "꺼짐",
 	"offline — your data is safe here": "오프라인 — 데이터는 여기 안전합니다",
 	"on <b>{view}</b>": "<b>{view}</b>에",
+	"on about {pct}% of material lists, by the game’s own tables{where}": "재료 목록의 약 {pct}%에 등장, 게임 자체 데이터 기준{where}",
 	"on about {pct}% of refreshes, over {n} recorded": "기록된 {n}회 중 약 {pct}%의 갱신에서",
 	"on every one of the {of} boards recorded{where}": "기록된 {of}개 보드 전부에서{where}",
 	"on its own": "단독",

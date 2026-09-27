@@ -4256,6 +4256,7 @@
 	"off": "kapalı",
 	"offline — your data is safe here": "çevrimdışı — verin burada güvende",
 	"on <b>{view}</b>": "<b>{view}</b> üstünde",
+	"on about {pct}% of material lists, by the game’s own tables{where}": "malzeme listelerinin yaklaşık %{pct}'inde, oyunun kendi tablolarına göre{where}",
 	"on about {pct}% of refreshes, over {n} recorded": "kaydedilen {n} tanede yaklaşık %{pct} yenilemede",
 	"on every one of the {of} boards recorded{where}": "kaydedilen {of} panonun her birinde{where}",
 	"on its own": "tek başına",
