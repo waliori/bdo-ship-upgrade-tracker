@@ -2012,21 +2012,31 @@ test('two chains on one pile: the second start says none are left, asks before i
 	await page.evaluate(async () => {
 		const { barterKey } = await import('/js/clock.js');
 		const store = await import('/js/state.js');
-		// Layout 31: Arehaza and Starry Midnight Port both take the scales.
-		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), pinned: '31', answers: [] } });
-		store.setStockAt('[Level 5] Golden Fish Scale', 'Iliya Island', 5);
+		// Layout 1: two islands take a [Level 4] Panacea.
+		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), pinned: '1', answers: [] } });
+		store.setStockAt('[Level 4] Panacea', 'Iliya Island', 5);
+		// Every island open: the two that take it are far from the start.
+		store.setProfile('barterCount', 20000);
 		store.addTarget('Carrack (Advance)', 1);
 		store.setProfile('crewShip', 'Carrack (Advance)');
 		store.flush();
 	});
 	await page.reload({ waitUntil: 'domcontentloaded' });
-	await page.waitForSelector('.chain', { timeout: 15000 }); await wait(2500);
-	await page.evaluate(() => document.querySelectorAll('.chain.on').forEach(c => c.click())); await wait(1500);
-	// The cards that start from the scales: one ticked, and the other.
-	const scaleCards = () => page.$$eval('button.chain[data-id]', els => els.filter(e => e.querySelector('.chain-start').textContent.includes('Golden Fish Scale')).map(e => ({ id: e.dataset.id, act: e.dataset.act, on: e.classList.contains('on'), text: e.textContent.replace(/\s+/g, ' ') })));
-	const press = id => page.evaluate(x => [...document.querySelectorAll('button.chain[data-id]')].find(e => e.dataset.id === x).click(), id);
+	await page.waitForSelector('.chain', { timeout: 15000 });
+	// The search ticks its best run when it answers: let it, then untick.
+	await page.waitForFunction(() => document.querySelector('.proposals:not(.working)'), { timeout: 30000 }); await wait(500);
+	await tap(page, '[data-act="barter-chains-clear"]'); await wait(1500);
+	// The cards that start from the Panacea: one ticked, and the other.
+	// Where a chain from the Panacea is ticked: its own card, or a start on
+	// a ladder's card -- whichever the board draws it as.
+	const scaleCards = () => page.$$eval('button.chain[data-id], .chain-starts .chip[data-id]', els => {
+		const out = new Map();
+		for (const e of els) if (e.dataset.id.includes('Panacea') && !e.dataset.id.startsWith('land:')) out.set(e.dataset.id, { id: e.dataset.id, act: e.dataset.act, on: e.classList.contains('on') || e.classList.contains('active'), text: e.textContent.replace(/\s+/g, ' ') });
+		return [...out.values()];
+	});
+	const press = id => page.evaluate(x => [...document.querySelectorAll('.chain-starts .chip[data-id], button.chain[data-id]')].find(e => e.dataset.id === x).click(), id);
 	const before = await scaleCards();
-	assert.equal(before.length, 2, 'two chains start from the scales');
+	assert.equal(before.length, 2, 'two chains start from the Panacea');
 	await press(before[0].id); await wait(2000);
 	const other = (await scaleCards()).find(x => x.id === before[1].id);
 	assert.equal(other.act, 'barter-chain-claim', 'the other asks first');

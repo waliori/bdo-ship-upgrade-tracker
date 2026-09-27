@@ -65,8 +65,16 @@ const SEEN = {
 // Tear for a [Level 6] Top-Quality Blue Underglaze Porcelain Crate --
 // at a maintenance after 2026-09-11, and did not say what replaces
 // it. Refetching once the sheet has it is the whole fix; write it
-// here only if the board is seen to disagree with the sheet.
-const CHANGED = {};
+// here only if the board is seen to disagree with the sheet. It came,
+// and the sheet had it by 2026-09-18: the butterfly.
+//
+// Layout 31's Starry Midnight Port (Orchio) takes a [Level 5] Azure
+// Quartz for the [Level 6] Black Rose Bouquet, seen in the game's
+// window on 2026-09-27; the sheet still says Golden Fish Scale, and the
+// client's own table agreed with the game since the bake of 2026-09-19.
+// The stale scale laid a chain from it beside Arehaza's, which takes
+// the same scales.
+const CHANGED = { 31: [[58978, '[Level 5] Golden Fish Scale', '[Level 5] Azure Quartz']] };
 
 // A layout's give as the game asks it today, and a note of which
 // corrections above never fired.
