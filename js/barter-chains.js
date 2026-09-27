@@ -205,7 +205,7 @@ export function tailOf(long, short) {
  * hold is too heavy for the next island, and taken out again before
  * the island that wants them.
  */
-function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [], land = new Map(), owned = null, loadCap = null, landCap = null, skipIsles = [], nudge = {}, tripOrder = [], effort = 2, ship = null, bag = null, docks = null, aim = null } = {}) {
+function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley, npcById, start = null, stashes = [], prefer = null, pace = 'full', orders = PLAIN_ORDERS, prices = {}, seen = {}, keep = [], land = new Map(), owned = null, loadCap = null, landCap = null, skipIsles = [], nudge = {}, tripOrder = [], effort = 2, ship = null, bag = null, docks = null, aim = null, bought = null } = {}) {
 	// What an island was seen to pay this run, tapped on the checklist,
 	// replaces the range the table gives for it: counted and weighed at
 	// that, no longer at the least and the most.
@@ -285,6 +285,9 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// held back by a number nobody has.
 	const listed = new Map();
 	for (const [name, p] of Object.entries(prices)) if (p && p.how === 'market' && Number.isFinite(p.stock)) listed.set(name, p.stock);
+	// A run already cast off has the shore goods it bought and no more:
+	// what it bought is all there is to buy, run down the same way.
+	for (const [name, n] of bought || []) listed.set(name, Math.min(listed.has(name) ? listed.get(name) : Infinity, n));
 
 	// The land goods ride from the harbour too. They were bought "at the
 	// island" as each rung traded, so the hold never carried them: a

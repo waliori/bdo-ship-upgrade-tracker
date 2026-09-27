@@ -245,7 +245,7 @@ function roughHours(c, from) {
 export function payRangeHTML(plan, opts, chosen, edits, seen, coining, stocking) {
 	const open = plan.stops.filter(s => s.npcId && (s.rangeMax ?? s.recvMax) > (s.rangeMin ?? s.recvMin) && !(seen[s.npcId] > 0));
 	if (!open.length || stocking) return '';
-	const key = JSON.stringify([chosen.map(c => c.id), edits, seen, opts.orders, opts.pace, opts.hold, opts.stock, opts.dock, opts.parley, [...(opts.loadCap || [])]]);
+	const key = JSON.stringify([chosen.map(c => c.id), edits, seen, opts.orders, opts.pace, opts.hold, opts.stock, opts.dock, opts.parley, [...(opts.loadCap || [])], [...(opts.landCap || [])], [...(opts.bought || [])]]);
 	if (V.payMemo.key === key) return V.payMemo.html;
 	const at = pick => {
 		const s2 = { ...seen };

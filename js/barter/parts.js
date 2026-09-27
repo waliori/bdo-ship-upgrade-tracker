@@ -23,7 +23,7 @@ import { heldOf } from './material.js';
 import { packedNow, sparesOf, packingOf, packingLT, packingCount, tripsOf, stagedRun, tripsHTML, leaveHomeHTML, packingHTML, afterShelfHTML } from './packing.js';
 import { chartButton, parleyGuessed, parleyOf, stashAt, ordersNow, payRangeHTML, perUnitText, perHourText, stockGains, aheadHTML, goalLine, ladderHTML, howLine, howHTML, parleyLine, parleyHTML, marketDead, chainRow, soloRun } from './plan.js';
 import { docks, bagNow, stashes, withWaits, legsOf, questPlan, questsLine, questsPanels, n1, TIER, ledgerOf, runTime, routeEditBar, castOffRow, stopRows, cutsHTML } from './route.js';
-import { sailing, planSeen, syncSail, castOffCaps } from './sail.js';
+import { sailing, planSeen, syncSail, castOffCaps, castOffLand } from './sail.js';
 import { SEARCH_BUDGET_MS, presetSearch, proposeAsync, searching, redrawSoon, expectedBest } from './search.js';
 import { coinsOf, coinRange, bonusNote, coinPurseHTML, shortSummary, shortHTML, canAppearHTML } from './short.js';
 import { takenNote } from './today.js';
@@ -416,7 +416,8 @@ export function silverParts(me, b) {
 	// Once cast off, the storage is behind the ship: laid again at a count
 	// said on the way, the run loads no more than it did.
 	const pin = castOffCaps(sailing(), opts.dock);
-	const laid = pin ? { ...opts, loadCap: pin } : opts;
+	const bought = castOffLand(sailing(), o);
+	const laid = pin ? { ...opts, loadCap: pin, ...(bought ? { landCap: bought, bought } : {}) } : opts;
 	const plan = chainRun({ ...laid, chosen, ...edits });
 	plan.spares = spares;
 	const payRange = payRangeHTML(plan, laid, chosen, edits, seen, coining, stocking);

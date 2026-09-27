@@ -661,6 +661,22 @@ export function castOffCaps(on, dock) {
 	return cap;
 }
 
+/**
+ * The shore goods a run already cast off has to hand: what it bought at
+ * the Market before casting off, and no more. The same laying again at a
+ * count said on the way was free to buy more -- three hundred Grilled
+ * Bird Meat bought, four hundred planned after the tap -- and the stops
+ * after it counted on goods nobody bought, the record then charging the
+ * silver for them. Goods taken off the sailor's own pile are the pile's
+ * to say, and left alone.
+ */
+export function castOffLand(on, orders) {
+	if (!on || !Array.isArray(on.bought) || !on.bought.length || (orders && orders.landFrom === 'stock')) return null;
+	const cap = new Map();
+	for (const b of on.bought) cap.set(b.item, (cap.get(b.item) || 0) + (Number(b.n) || 0));
+	return cap;
+}
+
 /** The quests a kept stop names, with the quest itself put back. */
 function hydrate(list) {
 	return (list || []).map(x => { const q = quests.find(y => y.id === x.id); return q ? { q, step: { what: x.what, who: x.who } } : null; }).filter(Boolean);

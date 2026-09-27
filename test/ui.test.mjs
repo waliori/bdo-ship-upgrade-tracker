@@ -511,7 +511,7 @@ test('a count said on the way lays the run again without loading anything more a
 	const { page, context, errors } = await open('#barter');
 	const r = await page.evaluate(async () => {
 		const { V } = await import('/js/barter/state.js');
-		const { sailKey, syncSail, castOffCaps } = await import('/js/barter/sail.js');
+		const { sailKey, syncSail, castOffCaps, castOffLand } = await import('/js/barter/sail.js');
 		const slab = '[Level 2] Big Stone Slab', knife = '[Level 3] Round Knife', tear = "[Level 5] Statue's Tear";
 		const iliya = { name: 'Dario', at: 'Iliya Island', x: 0, y: 0 };
 		const louruve = { npcId: 58985, npc: 'Julio', give: slab, giveN: 1, item: knife, recv: 2, recvMin: 2, recvMax: 3, recvText: '2-3', times: 5, parley: 1000, weightAfter: 0, level: 3, chain: 0 };
@@ -522,12 +522,19 @@ test('a count said on the way lays the run again without loading anything more a
 		const caps = Object.fromEntries(castOffCaps(V.sail, { [slab]: 4, [tear]: 5, 'Cactus Rind': 10 }));
 		// Laid again at "paid 2", free to load: four more slabs out of storage.
 		syncSail({ stops: [{ ...louruve, times: 9, recvText: '2' }, call], loaded: [{ item: slab, n: 4 }], bagLoaded: [], bagFromHold: [], weightStart: 13211, bought: [], cost: 0, order: [] });
-		return { caps, loaded: V.sail.loaded, weightStart: V.sail.weightStart, times: V.sail.stops[0].times };
+		// And the shore goods bought at the Market: no more than were bought,
+		// unless the run takes them off the sailor's own pile.
+		V.sail.bought = [{ item: 'Grilled Bird Meat', n: 300, each: 1000 }];
+		const land = Object.fromEntries(castOffLand(V.sail, { landFrom: 'market' }));
+		const pile = castOffLand(V.sail, { landFrom: 'stock' });
+		return { caps, loaded: V.sail.loaded, weightStart: V.sail.weightStart, times: V.sail.stops[0].times, land, pile };
 	});
 	assert.deepEqual(r.caps, { '[Level 2] Big Stone Slab': 0, "[Level 5] Statue's Tear": 5 }, 'nothing more of a good at the harbour than the run took out of it');
 	assert.deepEqual(r.loaded, [], 'what was loaded before casting off stays what was loaded');
 	assert.equal(r.weightStart, 11611);
 	assert.equal(r.times, 5, 'the stop sailed stays as it was sailed');
+	assert.deepEqual(r.land, { 'Grilled Bird Meat': 300 });
+	assert.equal(r.pile, null);
 	assert.deepEqual(errors, []);
 	await context.close();
 });

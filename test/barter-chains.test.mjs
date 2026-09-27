@@ -813,3 +813,18 @@ test('every exchange is charged its own Parley: a Crow Coin trade half again a t
 	assert.ok(isles.some(s => s.item !== 'Crow Coin' && each(s) === 10491), 'a trade good at 10,491');
 	assert.equal(run.parleyUsed, isles.reduce((a, s) => a + s.parley, 0));
 });
+
+test('a land cap holds the shore goods to what was bought before casting off, and the first island trades no more', () => {
+	const land = chains(data).find(c => c.from === 'land' && c.rungs.length >= 3);
+	const r0 = land.rungs[0];
+	const opts = { chosen: [land], hold, parley, npcById, start: ports.find(p => p.name === 'Velia'), stashes, pace: 'full', orders: PLAIN_ORDERS };
+	const free = chainRun(opts);
+	const had = free.landLoaded.find(l => l.item === r0.give);
+	assert.ok(had && had.n > r0.giveN, 'the free laying buys a good many');
+	const bought = Math.floor(had.n / 2 / r0.giveN) * r0.giveN;
+	const pinned = chainRun({ ...opts, landCap: new Map([[r0.give, bought]]), bought: new Map([[r0.give, bought]]) });
+	const now = pinned.landLoaded.find(l => l.item === r0.give);
+	assert.ok(now && now.n <= bought, `${now && now.n} of ${bought} bought`);
+	const first = pinned.stops.find(s => s.npcId === r0.npcId);
+	assert.ok(first.times * first.giveN <= bought, 'the first island takes only what was bought');
+});
