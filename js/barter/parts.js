@@ -307,7 +307,7 @@ export function silverParts(me, b) {
 			${cq || V.chainFrom || V.chainTop ? `<button class="chip tiny" data-act="barter-chain-clear">${T('clear')}</button>` : ''}
 		</span>
 	</div>`;
-	const groups = tops.map(top => {
+	const groupsOf = claimOf => tops.map(top => {
 		const coinGroup = top === 'coin';
 		// The ladders at this reach, each with the starts the filters
 		// leave in; the card shows the start ticked, else the best.
@@ -324,7 +324,7 @@ export function silverParts(me, b) {
 			// memo -- is drawn as nothing rather than thrown over.
 			const solo = solos.get(shown.id);
 			if (!solo) return '';
-			return chainRow(shown, chosen.includes(shown), solo, from && from.name, from, starts.length > 1 ? { starts, chosen, solos } : null);
+			return chainRow(shown, chosen.includes(shown), solo, from && from.name, from, starts.length > 1 ? { starts, chosen, solos } : null, null, claimOf);
 		}).filter(Boolean);
 		// The climbs at this reach that are not this sailor's yet: the
 		// same search filters them, so a word typed finds them too.
@@ -387,7 +387,7 @@ export function silverParts(me, b) {
 				: T('{n} floors are holding the run back', { n: shutByFloor.length })}</b> — ${floorWhy}. ${one
 				? T('There is none of it to spend, so no chain can start from it.')
 				: T('There is none of them to spend, so no chain can start from them.')} ${dropFloors(shutByFloor.map(f => f.lv))}</div>`;
-	let chainsBody = `<div class="barter-chains">${heldNote}${chainActs(fillable)}${floorNote}${shutNote}${reachBar}${V.reach ? '' : `${pickHelp}${proposals}<!--minevs-->`}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.landFrom === 'stock' && o.buy ? T('No chain on this board starts from a shore good you keep. Let the run buy its land goods ashore, or add what you have with ＋ A good.') : o.buy ? T('Nothing climbs on this board.') : T('Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.')) : T('No chain matches.')}</p>`}</div></div>`;
+	const bodyOf = groups => `<div class="barter-chains">${heldNote}${chainActs(fillable)}${floorNote}${shutNote}${reachBar}${V.reach ? '' : `${pickHelp}${proposals}<!--minevs-->`}${all.length ? chainFilters : ''}<div class="chain-list">${groups || `<p class="empty">${!all.length ? (o.landFrom === 'stock' && o.buy ? T('No chain on this board starts from a shore good you keep. Let the run buy its land goods ashore, or add what you have with ＋ A good.') : o.buy ? T('Nothing climbs on this board.') : T('Nothing held climbs on this board. Let the run buy land goods, or load a good ashore.')) : T('No chain matches.')}</p>`}</div></div>`;
 
 	// The sailor's own changes to the route belong to this set of chains
 	// on this board: a new board or a new tick starts from the planner's.
@@ -420,6 +420,32 @@ export function silverParts(me, b) {
 	const plan = chainRun({ ...laid, chosen, ...edits });
 	plan.spares = spares;
 	const payRange = payRangeHTML(plan, laid, chosen, edits, seen, coining, stocking);
+	// Two chains ticked on one pile: the Golden Fish Scales at Iliya start
+	// the Arehaza climb and the Starry Midnight Port one alike, and there
+	// were five. The run gives them to whichever gets there first, and
+	// the other card went on saying "5 ashore" while its chain never
+	// started. So the cards are drawn from the run as it was laid: what
+	// each ticked chain hands over from the pile it starts on, and what
+	// that leaves every other chain on the same pile.
+	const pileClaims = new Map();
+	plan.order.forEach((c, i) => {
+		if (c.from === 'land') return;
+		const r0 = c.rungs[0];
+		const n = plan.stops.reduce((a, s) => a + (s.npcId === r0.npcId && s.chain === i && s.give === c.item ? (s.times || 0) * (s.giveN || 0) : 0), 0);
+		if (n > 0) pileClaims.set(c.item, [...(pileClaims.get(c.item) || []), { id: c.id, n, c }]);
+	});
+	const claimOf = x => {
+		if (!x || x.from === 'land') return null;
+		const list = pileClaims.get(x.item) || [];
+		const by = list.filter(e => e.id !== x.id);
+		if (!by.length) return null;
+		const pile = (x.have || 0) + (x.waiting || 0);
+		const left = Math.max(0, pile - by.reduce((a, e) => a + e.n, 0));
+		const mine = list.some(e => e.id === x.id);
+		return { item: x.item, pile, left, by: by.map(e => ({ c: e.c, n: e.n })), out: !mine && left < x.rungs[0].giveN, ticked: chosen.some(c => c.id === x.id) };
+	};
+	const groups = groupsOf(claimOf);
+	let chainsBody = bodyOf(groups);
 	chainsBody = chainsBody.replace('<!--minevs-->', mineVsOf(plan));
 	for (const s of plan.stops) s.hold = me.hold;
 	// The quests handed in on the way, with a stop put in for a taker

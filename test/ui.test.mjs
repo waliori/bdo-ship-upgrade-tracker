@@ -2006,6 +2006,45 @@ test('a chain card opens its climb step by step: every island in full, what it t
 	await context.close();
 });
 
+test('two chains on one pile: the second start says none are left, asks before it is ticked, and either can be sailed', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		// Layout 31: Arehaza and Starry Midnight Port both take the scales.
+		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), pinned: '31', answers: [] } });
+		store.setStockAt('[Level 5] Golden Fish Scale', 'Iliya Island', 5);
+		store.addTarget('Carrack (Advance)', 1);
+		store.setProfile('crewShip', 'Carrack (Advance)');
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('.chain', { timeout: 15000 }); await wait(2500);
+	await page.evaluate(() => document.querySelectorAll('.chain.on').forEach(c => c.click())); await wait(1500);
+	// The cards that start from the scales: one ticked, and the other.
+	const scaleCards = () => page.$$eval('button.chain[data-id]', els => els.filter(e => e.querySelector('.chain-start').textContent.includes('Golden Fish Scale')).map(e => ({ id: e.dataset.id, act: e.dataset.act, on: e.classList.contains('on'), text: e.textContent.replace(/\s+/g, ' ') })));
+	const press = id => page.evaluate(x => [...document.querySelectorAll('button.chain[data-id]')].find(e => e.dataset.id === x).click(), id);
+	const before = await scaleCards();
+	assert.equal(before.length, 2, 'two chains start from the scales');
+	await press(before[0].id); await wait(2000);
+	const other = (await scaleCards()).find(x => x.id === before[1].id);
+	assert.equal(other.act, 'barter-chain-claim', 'the other asks first');
+	assert.match(other.text, /0 of 5 left/);
+	await press(other.id); await wait(500);
+	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), false, 'the dialog explains');
+	assert.equal(await count(page, '#dialog .claim-chain'), 2, 'both chains side by side');
+	assert.ok((await scaleCards()).find(x => x.id === before[0].id).on, 'nothing changed by asking');
+	// Sail the second instead: it is ticked, the first is not.
+	await page.evaluate(id => [...document.querySelectorAll('#dialog [data-act="barter-claim-pick"]')].find(e => e.dataset.id === id).click(), other.id); await wait(2000);
+	const last = await scaleCards();
+	assert.equal(last.find(x => x.id === other.id).on, true);
+	assert.equal(last.find(x => x.id === before[0].id).on, false);
+	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), true);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a run recorded adds its trades to Total Barters, and says what that opened', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);

@@ -739,7 +739,17 @@ export const marketDead = solo => (solo && (solo.cut || []).find(x => x.why === 
 
 /** One chain of the board, to tick: where it starts, how far it
  *  reaches, the islands, the goods, and what one pass of it pays. */
-export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null) {
+export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null, claimOf = () => null) {
+	// A pile another ticked chain starts from too: what it leaves, said on
+	// the card and on the start, and a start with too few left asks
+	// before it is ticked rather than laying a chain that never starts.
+	const claimTag = x => {
+		const cl = claimOf(x);
+		if (!cl) return '';
+		shownClaims.set(x.id, { x, cl, dockName });
+		const who = cl.by.map(e => chainLabel(e.c)).join(', ');
+		return `<em class="chain-claim${cl.out ? ' out' : ''}">${T('{left} of {n} left', { left: n1(cl.left), n: n1(cl.pile) })} · ${T('the {chain} uses them', { chain: esc(who) })}</em>`;
+	};
 	// The pips are the rungs this chain climbs: from the shore up for a
 	// land chain, from the good held for the rest -- a [Level 5] aboard
 	// shows 5, 6, 7, not the ladder beneath it.
@@ -775,7 +785,9 @@ export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null
 		if (dry && !picked) return `<span class="chip tiny dry" title="${dry.listed
 			? T('The Central Market has only {n} {good} listed and the first island takes {want} a trade, so the climb cannot start from the shore. It is asked again every half hour.', { n: F(dry.listed), good: esc(gameName(dry.good)), want: F(dry.want) })
 			: T('The Central Market has no {good} listed and the first island takes {want} a trade, so the climb cannot start from the shore. It is asked again every half hour.', { good: esc(gameName(dry.good)), want: F(dry.want) })}"><i class="chain-start-lv" style="--tier:${TIER(1)}">⌂</i>${startOf(x)}<em class="dry-why">${dry.listed ? T('only {n} on the Market', { n: F(dry.listed) }) : T('none on the Market')}</em></span>`;
-		return `<button class="chip tiny${picked ? ' active' : x === c ? ' shown' : ''}" data-act="barter-chain-start" data-id="${esc(x.id)}" data-group="${esc(group)}" title="${x.from === 'land' ? T('Buy {n}× {name} ashore and climb from Level 1', { n: F(x.rungs[0].giveN), name: esc(gameName(x.item)) }) : T('Climb from the {n}× {name} held', { n: n1(x.have + x.load), name: esc(gameName(x.item)) })} — ${T('the islands above deal once, so one start is sailed')}"><i class="chain-start-lv" style="--tier:${TIER(x.from === 'land' ? 1 : levelOf(x.item))}">${x.from === 'land' ? '⌂' : levelOf(x.item)}</i>${startOf(x)}${sol && sol.silver ? `<em>${FC(Math.round(sol.net))}</em>` : ''}</button>`;
+		const cl = claimOf(x);
+		const act = cl && cl.out && !picked ? 'barter-chain-claim' : 'barter-chain-start';
+		return `<button class="chip tiny${picked ? ' active' : x === c ? ' shown' : ''}${cl && cl.out ? ' claimed' : ''}" data-act="${act}" data-id="${esc(x.id)}" data-group="${esc(group)}" title="${x.from === 'land' ? T('Buy {n}× {name} ashore and climb from Level 1', { n: F(x.rungs[0].giveN), name: esc(gameName(x.item)) }) : T('Climb from the {n}× {name} held', { n: n1(x.have + x.load), name: esc(gameName(x.item)) })} — ${T('the islands above deal once, so one start is sailed')}"><i class="chain-start-lv" style="--tier:${TIER(x.from === 'land' ? 1 : levelOf(x.item))}">${x.from === 'land' ? '⌂' : levelOf(x.item)}</i>${startOf(x)}${claimTag(x)}${sol && sol.silver && !(cl && cl.out) ? `<em>${FC(Math.round(sol.net))}</em>` : ''}</button>`;
 	}).join('')}</div>` : '';
 	// A climb through an island the barter count has not opened is shown
 	// rather than dropped -- it is what the day's board holds, and what
@@ -808,12 +820,21 @@ export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null
 	// it can be unticked.
 	const dry = marketDead(solo);
 	const dryLine = dry ? `<span class="chain-dry">${img(dry.good, 'row-icon xs')}<span>${dry.listed ? T('only <b>{n}</b> on the Central Market', { n: F(dry.listed) }) : T('<b>none</b> on the Central Market')} · ${T('{n} needed a trade', { n: F(dry.want) })}${dry.held >= dry.want ? ` · ${T('you keep {n}: take land goods <i>from my storage</i>', { n: F(dry.held) })}` : ''}</span></span>` : '';
-	const card = `<button class="chain${on ? ' on' : ''}${dry ? ' dry' : ''}" data-act="barter-chain" data-id="${esc(c.id)}"${group ? ` data-group="${esc(group)}"` : ''}${dry && !on ? ' disabled' : ''} style="--tier:${TIER(c.top)}"${dry ? ` title="${dry.listed
+	// The card's own start, when another ticked chain leaves it too few:
+	// a card not ticked asks first; one ticked says it gets none, and why.
+	const mine = claimOf(c);
+	const blocked = mine && mine.out && !on;
+	const starved = mine && mine.out && on;
+	const claimLine = mine ? `<span class="chain-claim-line${mine.out ? ' out' : ''}">${img(c.item, 'row-icon xs')}<span>${starved
+		? T('gets none of the {n} — the {chain} trades them first', { n: n1(mine.pile), chain: esc(mine.by.map(e => chainLabel(e.c)).join(', ')) })
+		: T('{left} of {n} left — the {chain} uses the rest', { left: n1(mine.left), n: n1(mine.pile), chain: esc(mine.by.map(e => chainLabel(e.c)).join(', ')) })}</span><span class="chain-steps-open" role="button" tabindex="0" data-act="barter-chain-claim" data-id="${esc(c.id)}"${group ? ` data-group="${esc(group)}"` : ''}>${T('why?')}</span></span>` : '';
+	if (mine) shownClaims.set(c.id, { x: c, cl: mine, dockName });
+	const card = `<button class="chain${on ? ' on' : ''}${dry ? ' dry' : ''}${mine && mine.out ? ' claimed' : ''}" data-act="${blocked ? 'barter-chain-claim' : 'barter-chain'}" data-id="${esc(c.id)}"${group ? ` data-group="${esc(group)}"` : ''}${dry && !on ? ' disabled' : ''} style="--tier:${TIER(c.top)}"${dry ? ` title="${dry.listed
 		? T('This climb starts on {want}× {good} bought ashore, and the Central Market has only {listed} listed. It is asked again every half hour.', { want: F(dry.want), good: esc(gameName(dry.good)), listed: F(dry.listed) })
 		: T('This climb starts on {want}× {good} bought ashore, and the Central Market has none listed. It is asked again every half hour.', { want: F(dry.want), good: esc(gameName(dry.good)) })}"` : ''}>
 		<span class="chain-mark">${on ? '✓' : dry ? '∅' : ''}</span>
 		<span class="chain-main">
-			<span class="chain-start">${start}</span>${dryLine}
+			<span class="chain-start">${start}</span>${dryLine}${claimLine}
 			<span class="chain-pips">${pips}<em>${T('Level {lv}', { lv: c.top })}</em></span>
 			<span class="chain-route">${c.rungs.map(r => esc(isleShort(npcById.get(r.npcId)) || r.npc)).join(' › ')}</span>
 			<span class="chain-goods">${c.rungs.map(r => img(r.item, 'row-icon sm')).join('')}</span>
@@ -847,6 +868,53 @@ export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null
  * the card's own figures have it, sailed on its own.
  */
 const shownChains = new Map();
+const shownClaims = new Map();
+/** A chain by its first island, as the run's tags name it. */
+const chainLabel = c => T('{isle} chain', { isle: isleShort(npcById.get(c.rungs[0].npcId)) || c.rungs[0].npc });
+
+/**
+ * Two chains on one pile, explained.
+ *
+ * "Never starts — there is nothing left to hand over" was the whole of
+ * it, under the tiles, and it took the app's own author to work out
+ * that it meant the Arehaza chain had traded the five Golden Fish
+ * Scales the Starry Midnight Port chain was ticked to climb from. So
+ * the pile is shown, and each chain on it side by side -- its islands,
+ * what it pays -- with one press to sail either.
+ */
+export function chainClaimDialog(id, group = '') {
+	const hit = shownClaims.get(id);
+	if (!hit) return false;
+	const { x, cl, dockName } = hit;
+	const solos = V.proposed.solos || new Map();
+	const good = `${img(x.item, 'row-icon sm')}<b class="tiered" style="--tier:${TIER(levelOf(x.item))}">${esc(gameName(x.item))}</b>`;
+	const where = [x.have ? T('{n} aboard', { n: n1(x.have) }) : '', x.waiting ? T('{n} at {where}', { n: n1(x.waiting), where: esc(gameName(dockName || '')) || T('the wharf') }) : ''].filter(Boolean).join(' · ');
+	// The one worth more sailed on its own is the one offered first; even,
+	// the one that has the goods now.
+	const worth = c => (solos.get(c.id) || {}).net || 0;
+	const best = [...cl.by.map(e => e.c), x].reduce((a, c) => (worth(c) > worth(a) + 0.5 ? c : a));
+	const box = (c, n, others, tag) => {
+		const solo = solos.get(c.id);
+		return `<div class="claim-chain" style="--tier:${TIER(c.top)}">
+			<div class="claim-chain-head"><b>${esc(chainLabel(c))}</b><span class="faint">${tag}</span></div>
+			<div class="claim-chain-route">${c.rungs.map(r => `<span>${img(r.item, 'row-icon xs')}${esc(gameName(isleOf(npcById.get(r.npcId)) || r.npc))}</span>`).join('<i>›</i>')}</div>
+			<div class="claim-chain-meta">${n ? T('takes {n} of them at {isle}', { n: n1(n), isle: esc(gameName(isleOf(npcById.get(c.rungs[0].npcId)) || c.rungs[0].npc)) }) : T('gets none of them')}${solo && solo.silver ? ` · ${T('on its own')} <b>${FC(Math.round(solo.net))}</b>` : ''}</div>
+			<button class="act${c === best ? '' : ' quiet'}" data-act="barter-claim-pick" data-id="${esc(c.id)}" data-drop="${esc(others.join('\n'))}" data-group="${esc(group)}">${T('Sail this one')}</button>
+		</div>`;
+	};
+	const want = x.rungs[0].giveN;
+	openDialog(`<h2>${T('Two chains start from the same goods')}</h2>
+		<p class="dialog-copy">${T('You hold {n}× {good} ({where}).', { n: n1(cl.pile), good, where })} ${cl.left < want
+			? T('The {chain} trades them away at its first island, so none are left for the {other}, and it would never start.', { chain: esc(cl.by.map(e => chainLabel(e.c)).join(', ')), other: esc(chainLabel(x)) })
+			: T('The {chain} trades some of them at its first island, and {left} are left for the {other}.', { chain: esc(cl.by.map(e => chainLabel(e.c)).join(', ')), left: n1(cl.left), other: esc(chainLabel(x)) })}
+		${T('Pick the one to sail from them; the other is unticked.')}</p>
+		<div class="claim-chains">
+			${cl.by.map(e => box(e.c, e.n, [x.id, ...cl.by.filter(o => o !== e).map(o => o.c.id)], T('ticked'))).join('')}
+			${box(x, cl.ticked ? Math.min(cl.left, want * x.rungs[0].tries) : 0, cl.by.map(e => e.c.id), cl.ticked ? T('ticked · gets none') : T('not ticked'))}
+		</div>
+		<div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button></div>`);
+	return true;
+}
 export function chainStepsDialog(id) {
 	const hit = shownChains.get(id);
 	if (!hit) return false;
