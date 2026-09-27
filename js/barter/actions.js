@@ -783,9 +783,9 @@ function askAbandon(redraw) {
 	if (!on) return;
 	const host = openDialog(`
 		<h2>${T('Abandon this run?')}</h2>
-		<p class="dialog-copy">${T('Nothing is recorded either way: no Parley, no Total Barters, no entry under Past runs.')}</p>
+		<p class="dialog-copy">${T('Keeping records the stops ticked, as Record would; putting it all back records nothing.')}</p>
 		<div class="abandon-choices">
-			<button class="abandon-choice" data-abandon="keep"><b>${T('Keep what I traded')}</b><span>${T('The trades were made in game. The hold and your storages stay as the ticked stops left them.')}</span></button>
+			<button class="abandon-choice" data-abandon="keep"><b>${T('Keep what I traded')}</b><span>${T('The trades were made in game. The hold and your storages stay as the ticked stops left them, and the stops ticked are recorded: the Parley they spent, your Total Barters, what each island has left today, an entry under Past runs.')}</span></button>
 			<button class="abandon-choice" data-abandon="back"><b>${T('Put everything back')}</b><span>${on.packLog ? T('Nothing was done in game. Every tick is taken back, and the packing too: goods go back where they were taken from and what was bought at the Market is refunded.') : T('Nothing was done in game. Every tick is taken back. This run was cast off before the packing was kept, so what was packed stays aboard.')}</span></button>
 		</div>
 		<div class="dialog-actions"><button class="act quiet" data-close>${T('Cancel')}</button></div>`);
@@ -793,6 +793,15 @@ function askAbandon(redraw) {
 	host.querySelectorAll('[data-abandon]').forEach(b => b.addEventListener('click', () => {
 		const mode = b.dataset.abandon;
 		closeDialog();
+		// Kept, the trades were made: the islands have that many fewer
+		// left today, the Parley is spent and the count went up. Dropping
+		// the run without writing that down left an island the sailor had
+		// traded five times showing its full ten on the next run.
+		if (mode === 'keep' && on.done.some(k => /^n/.test(k))) {
+			recordTrip(sailedPlan(), ports.find(p => p.id === on.port) || fromPort());
+			redraw();
+			return;
+		}
 		const done = abandonRun(mode);
 		V.sailAll.open = false; V.cursor = null; V.skipped = new Set();
 		setStep('plan');

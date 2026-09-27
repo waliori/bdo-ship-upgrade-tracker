@@ -2134,6 +2134,41 @@ test('a run recorded adds its trades to Total Barters, and says what that opened
 	await context.close();
 });
 
+test('abandoned keeping what was traded, the stops ticked are recorded: the count, what each island has left, the Parley', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }, { npcId: 58901, give: 'Vinegar', recv: '[Level 1] Cherry Tree Seed Pouch' }] } });
+		store.setProfile('barterCount', 1);
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('.chain', { timeout: 15000 });
+	await page.evaluate(async () => { const store = await import('/js/state.js'); store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); });
+	await page.waitForFunction(() => document.querySelector('[data-act="barter-cast-off"]:not([disabled]), .run-dock'), { timeout: 20000 });
+	await laidOut(page);
+	await page.evaluate(() => document.querySelector('[data-act="barter-cast-off"]').click()); await wait(2500);
+	await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all"]').click()); await wait(600);
+	await page.evaluate(() => document.querySelector('.cockpit-foot [data-act="barter-sail-all-go"]').click()); await wait(1500);
+	await tap(page, '[data-act="barter-step"][data-id="sail"]'); await wait(500);
+	await page.evaluate(() => document.querySelector('[data-act="barter-sail-drop"]').click()); await wait(400);
+	await tap(page, '[data-abandon="keep"]'); await wait(1500);
+	const r = await page.evaluate(async () => {
+		const { V } = await import('/js/barter/state.js');
+		const store = await import('/js/state.js');
+		return { count: store.getProfile('barterCount', 0), used: Object.keys(V.board.used || {}).length, runs: (store.getProfile('runs', []) || []).length, parley: store.getProfile('parleyHeld', 0) };
+	});
+	assert.ok(r.count > 1, `Total Barters moved: ${r.count}`);
+	assert.ok(r.used > 0, 'the islands traded have that many fewer left today');
+	assert.equal(r.runs, 1, 'an entry under Past runs');
+	assert.ok(r.parley > 0 && r.parley < 1000000, `the Parley came off the bar: ${r.parley}`);
+	assert.equal(await page.evaluate(async () => (await import('/js/barter/sail.js')).sailing()), null, 'and the run is gone');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('the run laid out is the wharf step: a strip along the foot appears as chains are ticked and leads to it, and a chain unticked there redraws it in place', async () => {
 	const { page, context, errors } = await open('#barter');
 	// One island's offer pins today's layout; the run sails from Iliya.
@@ -2313,8 +2348,10 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 	// The checklist dropped, what was traded kept: back to the plan, and the run is a plan again.
 	await page.evaluate(() => document.querySelector('[data-act="barter-sail-drop"]').click()); await wait(600);
 	await page.evaluate(() => document.querySelector('[data-abandon="keep"]').click()); await wait(1200);
-	assert.ok(await page.$('.barter-screen.step-plan'));
+	// Kept, the stops ticked are recorded as Record would: the results.
+	assert.ok(await page.$('.barter-screen.step-results'));
 	assert.equal(await count(page, '.cockpit'), 0);
+	await page.evaluate(() => [...document.querySelectorAll('[data-act="barter-step"][data-id="plan"]')].find(e => e.getBoundingClientRect().width > 0).click()); await wait(1200);
 	// A chain unticked from the plan: one chain fewer on the strip.
 	await page.evaluate(() => document.querySelector('.chain.on').click()); await wait(1500);
 	assert.match(await text(page, '.run-dock'), /1 chain\b/);
