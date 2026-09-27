@@ -39,6 +39,14 @@ export const MIN_FIT = 3;
 
 /** An offer's identity: what the island takes and what it pays. */
 const idOf = o => `${o.give}→${o.recv}`;
+/** Whether two offers are the same, where either may be a slot the game
+ *  fills at random: then any of its options is it. */
+const sameOffer = (o, p) => idOf(o) === idOf(p)
+	|| (p.options && p.options.some(x => idOf(x) === idOf(o)))
+	|| (o.options && o.options.some(x => idOf(x) === idOf(p)));
+/** An offer the book can say is on today's window: not a random slot,
+ *  and not one that shows less than every other day. */
+const certain = o => !o.options && !(o.chance < 0.5);
 
 /** A reading's rows, any of the shapes they come in, as a Map of
  *  island -> { give, recv, giveN, recvN }. The record's rows are
@@ -69,7 +77,7 @@ export function compare(a, b) {
 	for (const [npcId, o] of a) {
 		const p = b.get(npcId);
 		if (!p) continue;
-		if (idOf(o) === idOf(p)) agree++;
+		if (sameOffer(o, p)) agree++;
 		else differ.push(npcId);
 	}
 	return { agree, differ };
@@ -167,6 +175,36 @@ export function bookOf(boards) {
 	}).sort((a, b) => b.times - a.times || String(b.last || '').localeCompare(String(a.last || '')) || String(a.id).localeCompare(String(b.id)));
 }
 
+/**
+ * The book when the game's own layouts are known: every one of the
+ * material list's layouts is a page, whether anybody has read it yet or
+ * not, and what the fleet read is filed under the page it is -- which is
+ * what says how often each has come round. A reading that is no layout
+ * of the game's (a patch the bake has not caught up with) is a page of
+ * its own, as every page was before the game's tables were read.
+ */
+export function bookFromGame(layouts, boards) {
+	const pages = layouts.map(l => ({ ...l, boards: [] }));
+	const rest = [];
+	for (const b of boards.filter(x => x.offers.size >= MIN_BOARD)) {
+		let home = null, most = 0;
+		for (const p of pages) {
+			const c = compare(b.offers, p.offers);
+			if (sameBoard(c) && c.agree > most) { home = p; most = c.agree; }
+		}
+		if (home) home.boards.push(b); else rest.push(b);
+	}
+	const made = pages.map(p => {
+		const days = p.boards.map(b => b.day).filter(Boolean).sort();
+		return {
+			id: p.id, row: p.row, game: true, offers: p.offers, boards: p.boards, days,
+			last: days.length ? days[days.length - 1] : null, filed: true,
+			times: p.boards.length, readers: p.boards.flatMap(b => b.readers || []), tally: tallyOf(p.offers)
+		};
+	});
+	return [...made, ...bookOf(rest)].sort((a, b) => b.times - a.times || String(b.last || '').localeCompare(String(a.last || '')) || String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
+}
+
 function mergeOffers(boards) {
 	const votes = new Map();
 	for (const b of boards) {
@@ -197,7 +235,9 @@ export function tallyOf(offers) {
  * parts, and what it would add. A page that parts nowhere still stands
  * (one slip is forgiven on a page that agrees widely). The fit is
  * `sure` when exactly one standing page agrees at MIN_FIT islands or
- * more; then `fill` is what it says of the islands not yet answered.
+ * more -- or exactly one of them agrees everywhere; then `fill` is what
+ * it says of the islands not yet answered, less the slots the game
+ * fills at random and the offers that show less than every other day.
  * When several stand, `splitter` is the island that tells them apart
  * best, so the sailor knows which row of the window to read next.
  */
@@ -211,10 +251,14 @@ export function fitOf(answers, pages) {
 	const standing = weighed
 		.filter(w => w.differ.length === 0 || (w.differ.length === 1 && w.agree >= MIN_SAME))
 		.sort((a, b) => b.agree - a.agree || a.differ.length - b.differ.length || b.page.times - a.page.times);
-	const fit = standing.filter(w => w.agree >= MIN_FIT);
+	// A page that agrees everywhere beats pages let through on a slip:
+	// the slip is forgiven for a misread, not preferred to the match.
+	const agreeing = standing.filter(w => w.agree >= MIN_FIT);
+	const exact = agreeing.filter(w => !w.differ.length);
+	const fit = exact.length === 1 ? exact : agreeing;
 	const sure = fit.length === 1;
 	const best = sure ? fit[0] : null;
-	const fill = best ? [...best.page.offers].filter(([npcId]) => !mine.has(npcId)).map(([npcId, o]) => ({ npcId, ...o })) : [];
+	const fill = best ? [...best.page.offers].filter(([npcId, o]) => !mine.has(npcId) && certain(o)).map(([npcId, o]) => ({ npcId, ...o })) : [];
 	let splitter = null;
 	if (!sure && fit.length > 1) {
 		const at = new Map();

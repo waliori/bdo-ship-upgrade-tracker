@@ -92,3 +92,25 @@ test('an island\'s exchange is counted on the boards that named anything', () =>
 	assert.equal(s.of, record.boards.length);
 	assert.ok(s.n >= 1);
 });
+
+test('with the game’s tables the book is its forty-one layouts, every board read filed under the one it is, and a few islands settle it', async () => {
+	const { readFileSync } = await import('node:fs');
+	const { useGame, materialPages } = await import('../js/barter-layouts.js');
+	const { boardsOf, bookFromGame, fitOf } = await import('../js/material-book.js');
+	useGame(await import('../js/barter_game.js'));
+	const record = JSON.parse(readFileSync(new URL('../js/material_boards.json', import.meta.url), 'utf8'));
+	const book = bookFromGame(materialPages(), boardsOf(record, []));
+	assert.equal(book.filter(p => p.game).length, 41);
+	for (const b of record.boards) {
+		const page = book.find(p => p.id === b.id);
+		assert.ok(page && page.game && page.times === 1, `board ${b.id} is filed under its layout`);
+		const all = b.offers.map(o => ({ npcId: o[0], give: o[1], recv: o[3] }));
+		const fit = fitOf(all, book);
+		assert.ok(fit.sure && fit.best.page.id === b.id, `the whole of board ${b.id} settles on it`);
+		// what it fills in is never a slot left to chance
+		assert.ok(fit.fill.every(o => !o.options && !(o.chance < 0.5)));
+	}
+	// Three islands of board C are enough.
+	const c = record.boards.find(b => b.id === 'C').offers.slice(0, 3).map(o => ({ npcId: o[0], give: o[1], recv: o[3] }));
+	assert.equal(fitOf(c, book).best.page.id, 'C');
+});

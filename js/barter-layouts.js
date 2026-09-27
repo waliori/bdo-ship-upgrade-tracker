@@ -141,3 +141,34 @@ export function fitsAt(combo, npcId, give, recv) {
 	const o = combo.offers.find(x => x[0] === npcId);
 	return o && o[1] === give && o[3] === recv ? (o[4] || { give, recv }) : null;
 }
+
+/**
+ * The material list's forty-one layouts, as pages of the material book
+ * (material-book.js): `{ id, row, offers: Map(npc -> offer) }`, an offer
+ * `{ give, recv, giveN, recvN, recvMax, perDay, parley, chance }`. A slot
+ * the game fills at random carries its `options` -- any of them is what
+ * the page shows there. An offer that never shows is left off.
+ */
+export function materialPages() {
+	if (!game || !game.MATERIAL) return [];
+	const names = Object.fromEntries(Object.entries(game.LAYOUTS.material || {}).map(([id, row]) => [row, id]));
+	const rows = Math.max(0, ...Object.values(game.MATERIAL).map(s => s.length));
+	const asOffer = o => ({ give: o.give, recv: o.recv, giveN: Number(String(o.qty).split('-')[0]) || 1, recvN: o.recvMin, recvMax: o.recvMax, perDay: o.perDay, parley: o.parley, chance: o.chance });
+	const pages = [];
+	for (let row = 0; row < rows; row++) {
+		const offers = new Map();
+		for (const [npcKey, slots] of Object.entries(game.MATERIAL)) {
+			const s = slots[row];
+			if (s == null) continue;
+			if (typeof s === 'number') {
+				const options = (game.MATERIAL_GROUPS[s] || []).map(o => asOffer(offerOf(o, game.OPTION))).filter(o => o.chance > 0);
+				if (options.length) offers.set(Number(npcKey), { ...options[0], options });
+				continue;
+			}
+			const o = asOffer(offerOf(s, game.OFFER));
+			if (o.chance > 0) offers.set(Number(npcKey), o);
+		}
+		if (offers.size) pages.push({ id: names[row] || `M${row + 1}`, row, offers });
+	}
+	return pages;
+}

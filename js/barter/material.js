@@ -16,7 +16,8 @@ import { GOODS, levelOf, npcGate, npcOpen } from '../barter.js';
 import { exchanges, weightOf, sellOf } from '../barter-plan.js';
 import { shotGuideHTML } from '../barter-import.js';
 import { tellFleet, fleetHistory, shared as boardsShared } from '../sea-boards.js';
-import { boardsOf as matBoardsOf, bookOf as matBookOf, fitOf as matFitOf, seenOn as matSeenOnBook, MIN_FIT as MAT_MIN_FIT } from '../material-book.js';
+import { boardsOf as matBoardsOf, bookOf as matBookOf, bookFromGame, fitOf as matFitOf, seenOn as matSeenOnBook, MIN_FIT as MAT_MIN_FIT } from '../material-book.js';
+import { materialPages } from '../barter-layouts.js';
 import { openMaterialBook, pageName as matPageName } from '../material-book-view.js';
 import { me } from '../sync.js';
 import { materialRun } from '../barter-material.js';
@@ -82,7 +83,11 @@ export function matFleetNow() {
 function matBookNow() {
 	const list = matFleetNow();
 	if (!V.matBookMemo || V.matBookMemo.list !== list || V.matBookMemo.rec !== matBoards) {
-		V.matBookMemo = { list, rec: matBoards, pages: matBookOf(matBoardsOf(matBoards, list)) };
+		// The game's own layouts when they are loaded; the readings alone
+		// before that.
+		const game = materialPages();
+		const boards = matBoardsOf(matBoards, list);
+		V.matBookMemo = { list, rec: matBoards, pages: game.length ? bookFromGame(game, boards) : matBookOf(boards) };
 	}
 	return V.matBookMemo;
 }
