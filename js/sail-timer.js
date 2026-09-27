@@ -23,6 +23,7 @@ import { canReachDevices, subscribeFor, putAlerts, clearAlerts } from './push-su
 import { pushRegion } from './today.js';
 import { toast } from './dialogs.js';
 import { T, TT, said } from './i18n.js';
+import { mountScene } from './sail-scene.js';
 
 const NS = 'timer';
 
@@ -633,7 +634,7 @@ export function spanText(secs) {
  * The clock's text carries `data-timer-clock` so the second hand can
  * move without repainting the screen under it.
  */
-export function timerHTML({ suggest = 0, label = '', marks = [] } = {}) {
+export function timerHTML({ suggest = 0, label = '', marks = [], ship = '' } = {}) {
 	const t = timerState();
 	// The bell says what this browser is actually going to do: ask,
 	// explain why it cannot, or nothing at all once it has said yes.
@@ -681,8 +682,11 @@ export function timerHTML({ suggest = 0, label = '', marks = [] } = {}) {
 	const pct = Math.max(0, Math.min(100, (t.ran / t.seconds) * 100));
 	// The run's name is the chime's to say, not the chip's: on a phone a
 	// long one pushes the clock off its own line.
-	return `<span class="sail-timer running${t.over ? ' over' : ''}"${t.label ? ` title="${esc(t.label)}"` : ''}>
-		<span class="sail-timer-bar"><i style="width:${pct.toFixed(1)}%"></i></span>
+	// The ship crossing the leg, when there is a ship to draw: its own
+	// picture, on the sea, to the pier (sail-scene.js moves it).
+	const scene = ship ? `<span class="sail-scene" aria-hidden="true"><canvas data-sail-scene data-ship="${esc(ship)}"></canvas><b class="sail-scene-cheer">${T('Made fast')}</b></span>` : '';
+	return `<span class="sail-timer running${t.over ? ' over' : ''}${scene ? ' with-scene' : ''}"${t.label ? ` title="${esc(t.label)}"` : ''}>
+		${scene}<span class="sail-timer-bar"><i style="width:${pct.toFixed(1)}%"></i></span>
 		<b data-timer-clock>${esc(clockText(t))}</b>
 		<span class="sail-timer-ctl">${modes}${ear}${devices}
 		<button class="chip tiny sail-timer-again" data-act="barter-timer-restart" title="${T('Set the clock back to nought and run it again from now, at this run’s own estimate')}">↻ ${T('again')}</button>
@@ -720,6 +724,7 @@ export function tickTimer() {
 	}
 	const text = clockText(t);
 	for (const el of els) el.textContent = text;
+	mountScene();
 	if (!beat) beat = setInterval(tickTimer, 1000);
 }
 

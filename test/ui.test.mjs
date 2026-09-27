@@ -2176,6 +2176,33 @@ test('abandoned keeping what was traded, the stops ticked are recorded: the coun
 	await context.close();
 });
 
+test('the running clock draws the sailor’s own ship crossing the leg', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }, { npcId: 58901, give: 'Vinegar', recv: '[Level 1] Cherry Tree Seed Pouch' }] } });
+		store.setProfile('barterCount', 1);
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('.chain', { timeout: 15000 });
+	await page.evaluate(async () => { const store = await import('/js/state.js'); store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); });
+	await page.waitForFunction(() => document.querySelector('[data-act="barter-cast-off"]:not([disabled]), .run-dock'), { timeout: 20000 });
+	await laidOut(page);
+	await page.evaluate(() => document.querySelector('[data-act="barter-cast-off"]').click()); await wait(2000);
+	// Casting off starts the clock; if it did not, start it.
+	if (!(await count(page, 'canvas[data-sail-scene]'))) { await tap(page, '[data-act="barter-timer-start"]'); await wait(1500); }
+	await wait(600);
+	assert.equal(await page.$eval('canvas[data-sail-scene]', el => el.dataset.ship), 'icons/ship_14.webp', 'the Carrack (Advance) itself');
+	// Drawn, not blank: the canvas has pixels that are not the sky.
+	const drawn = await page.$eval('canvas[data-sail-scene]', el => { const d = el.getContext('2d').getImageData(0, 0, el.width, el.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) n++; return n; });
+	assert.ok(drawn > 1000, `${drawn} pixels drawn`);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('the run laid out is the wharf step: a strip along the foot appears as chains are ticked and leads to it, and a chain unticked there redraws it in place', async () => {
 	const { page, context, errors } = await open('#barter');
 	// One island's offer pins today's layout; the run sails from Iliya.

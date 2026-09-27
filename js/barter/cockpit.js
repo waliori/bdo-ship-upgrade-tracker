@@ -418,7 +418,9 @@ export function cockpitHTML({ map = false } = {}) {
 	const wanted = questWanted();
 	const made = tradesDone(on, stops);
 	const doneN = stops.filter((s, k) => ticked(on.done, s, k, stops)).length;
-	const clock = timerHTML({ suggest: (legs.mid || 0) + (book.waited || 0) * 60, label: runLabel(plan), marks: runMarks(plan, legs, book) });
+	// The ship on the clock is the sailor's own, drawn on the tab's cockpit
+	// and not squeezed into the Map's narrow panel.
+	const clock = timerHTML({ suggest: (legs.mid || 0) + (book.waited || 0) * 60, label: runLabel(plan), marks: runMarks(plan, legs, book), ship: map ? '' : iconSrc(currentShip().name) });
 	const legOf = k => { const m = legs.from ? legs.legs[k] : k > 0 ? legs.legs[k - 1] : null; return m != null ? `${fmtDistance(m)} · ${legs.timeOf(m)}` : ''; };
 	const at = stopAt(plan, on);
 	const along = holdAlong(plan, on);
