@@ -122,13 +122,13 @@ export function nearestCall(I, a, b) {
  * attempts written as made. Returns { plan, f, R, T }.
  */
 export function finish(I, stationVisits, mu = 0, { calls = [] } = {}) {
-	const { station } = indexOf(I);
+	const { station, storage } = indexOf(I);
 	let visits = stationVisits.map(v => ({ at: v.at, a: v.a ?? station.get(v.at).m }));
 	// Calls a caller already had, kept in place: { before: stationId, at }.
 	const withCalls = (vs, cs) => {
 		const out = [];
 		for (const v of vs) {
-			for (const c of cs) if (c.before === v.at) out.push({ at: c.at, sell: 'spare', drop: 'spare' });
+			for (const c of cs) if (c.before === v.at) out.push({ at: c.at, sell: 'spare', drop: 'spare', ...(c.load ? { load: c.load } : {}) });
 			out.push(v);
 		}
 		return [...out, endVisit(I)];
@@ -146,12 +146,18 @@ export function finish(I, stationVisits, mu = 0, { calls = [] } = {}) {
 		let changed = false;
 		for (let guard = 0; guard < visits.length; guard++) {
 			const log = best.run.log;
-			const k = log.findIndex(e => e.kind === 'station' && (e.why === 'weight' || e.why === 'over') && !cs.some(c => c.before === e.at));
+			// Stopped by the hold -- or short of a good the home storage still
+			// has: the storage can hold more than one trip carries, and the
+			// ship goes home for the rest, loading what this island lacks.
+			const homeHas = e => e.why === 'goods' && I.goods[e.in] && I.goods[e.in].level > 0 && (storage.get(e.in) || 0) > 0;
+			const k = log.findIndex(e => e.kind === 'station' && (e.why === 'weight' || e.why === 'over' || homeHas(e)) && !cs.some(c => c.before === e.at));
 			if (k < 0) break;
 			const at = log[k].at;
 			const prev = log.slice(0, k).reverse().find(e => e.kind === 'station' || e.kind === 'depot');
-			const d = nearestCall(I, prev ? prev.at : 'start', at);
-			const trial = [...cs, { before: at, at: d }];
+			const short = homeHas(log[k]);
+			const d = short ? I.rules.home : nearestCall(I, prev ? prev.at : 'start', at);
+			const s0 = station.get(at);
+			const trial = [...cs, { before: at, at: d, ...(short ? { load: { [s0.in]: (log[k].req - log[k].a) * s0.q } } : {}) }];
 			const p = build(visits, trial);
 			const e = robustEval(I, p, mu);
 			// Kept or not, this island is not asked about again this round.
