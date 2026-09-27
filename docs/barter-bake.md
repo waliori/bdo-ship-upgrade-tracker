@@ -30,7 +30,7 @@ game, writes `js/barter_game.js`, and says what the patch changed.
    app has no data for -- a barterer missing from `js/barter_npcs.js` (with
    the chart position worked out from the game's spawn point) or a good
    missing from `icon_mapping.json`.
-4. `npm test`, then commit `js/barter_game.js` and `js/barter_gates.js`.
+4. `npm test`, then commit `js/barter_game.js`.
 
 A run on unchanged files reports "no change" on every line; that is the check
 that nothing was misread.
@@ -113,7 +113,26 @@ file to both.
 ## Layout names
 
 The community numbers the trade layouts 1–35E. A row keeps its name from one
-bake to the next (`LAYOUTS` in the baked file); the first names came from
-`js/barter_gates.js`, which matched the rows against the recorded layouts. The
-material list's rows are named A–E where a board has been read off the game
-and are otherwise known by their row.
+bake to the next (`LAYOUTS` in the baked file, carried from the last bake, so
+`js/barter_game.js` must be there before baking). The names were matched once,
+2026-09-27, against the community's sheet of the layouts, which the app no
+longer reads. The material list's rows are named A–E where a board has been
+read off the game and are otherwise known by their row.
+
+## How the app reads it
+
+`js/barter-layouts.js` turns the trade board into the layouts the Barter tab
+works with:
+
+- **Fixed offers** carry the game's daily count, pay range, base Parley and
+  gate.
+- **Random slots** (`rolls`) name one of their options. The default pick is
+  the fleet's majority, else what the community sheet last saw there
+  (`js/barter_seen.js`), else the first option. A sailor's answer replaces
+  it, and the item-or-coins ones are asked in the **Today's rolls** dialog.
+- **Offers that show only some days** (`rare`) are planned on when they show at
+  least half the time, else only once seen.
+
+A random or rare slot never rules a layout out by what it shows, unless what
+was seen is none of its options. Material islands are left to the material
+list.

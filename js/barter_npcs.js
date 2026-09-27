@@ -12,7 +12,8 @@
 // `at` is the place each one stands, matched 2026-08-29 against the
 // BDOCodex node database by nearest node -- everyone lands within
 // ~1,100 units of a named island -- and corrected 2026-09-03 from the
-// community's barter-board record (tools/fetch-barter-combos.mjs),
+// community's barter-board record (the sheet, since dropped for the
+// game's own tables),
 // which names each barterer by the island the game's barter window
 // shows: the four the codex put at Chiro's workshops stand at Al-Naha,
 // Racid, Tinberra and Lerao; Neruo's drying yard is Angie Island;

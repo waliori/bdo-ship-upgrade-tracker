@@ -69,7 +69,7 @@ export let selected = null;
 export let snapshot = null;
 export let rows = {};
 export let barterData = null;
-export let combos = null;       // the forty barter boards, js/barter_combos.json, once read
+export let combos = null;       // the forty barter boards, from the game's tables (barter-layouts.js), once read
 export let matBoards = null;    // the material boards recorded, js/material_boards.json, once read
 
 export const setView = id => { view = id; };

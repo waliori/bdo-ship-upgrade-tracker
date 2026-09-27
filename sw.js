@@ -64,7 +64,6 @@ const SHELL = [
 	'/css/tracker-recent.css',
 	'/css/driver.css',
 	'/js/all_barter.json',
-	'/js/barter_combos.json',
 	'/js/material_boards.json',
 	'/js/driver.iife.js',
 	'/js/about.js',
@@ -275,7 +274,7 @@ self.addEventListener('activate', evt => {
 // The vendored OCR engine belongs here too: its filenames carry their
 // versions, so a given URL is a given six megabytes forever, and it
 // must not be fetched again every time the app is deployed.
-const contentAddressed = path => path.startsWith('/icons/') || path.startsWith('/map/') || (path.startsWith('/map3d/') && path !== '/map3d/index.json') || path.startsWith('/reader/') || path === '/js/all_barter.json' || path === '/js/barter_combos.json';
+const contentAddressed = path => path.startsWith('/icons/') || path.startsWith('/map/') || (path.startsWith('/map3d/') && path !== '/map3d/index.json') || path.startsWith('/reader/') || path === '/js/all_barter.json';
 const neverCached = path =>
 	path.startsWith('/api/') || path.startsWith('/auth/') || path.startsWith('/docs/media/');
 

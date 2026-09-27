@@ -13,8 +13,7 @@
 // It extracts with bdo-data-extractor (github.com/iDevelopThings/
 // bdo-data-extractor; --extractor or BDO_EXTRACTOR, else the one on the
 // PATH), decrypts the barterer list itself, decodes every table, writes
-// js/barter_game.js, bakes js/barter_gates.js again from the same files,
-// and prints what changed since the last bake -- a slot, a group's
+// js/barter_game.js, and prints what changed since the last bake -- a slot, a group's
 // options, a new barterer or good the app has no map position, icon or
 // translation for.
 
@@ -98,10 +97,10 @@ for (const [label, pools, groups] of groupSets) {
 
 const before = existsSync(OUT) ? await import(`${pathToFileURL(OUT.pathname).href}?${Date.now()}`) : null;
 // The layout names are the community's, and a row keeps its layout from
-// one bake to the next; the first bake takes them from the gates file,
-// which solved them against the recorded layouts.
-const gates = await import(new URL('js/barter_gates.js', ROOT).href);
-const layouts = before ? before.LAYOUTS : { trade: gates.ROWS, material: { A: 31, B: 8, C: 37, D: 18, E: 39 } };
+// one bake to the next: they come from the last bake. (The first were
+// matched against the community's sheet of the layouts, 2026-09-27.)
+if (!before) throw new Error('js/barter_game.js is missing: the layout names are carried from the last bake -- restore it from git');
+const layouts = before.LAYOUTS;
 const tradeRows = Object.values(layouts.trade);
 if (new Set(tradeRows).size !== 40 || tradeRows.some(k => k < 0 || k > 39)) throw new Error('the trade layouts do not claim all forty rows');
 
@@ -184,8 +183,7 @@ const slotText = (s, fields, list) => (s == null ? 'nothing' : typeof s === 'num
 const isle = npc => { const n = npcInfo.get(Number(npc)); return n ? `${(n.spawns[0] || {}).regionName || '?'} (${n.name})` : `npc ${npc}`; };
 const rowName = (kind, k) => Object.entries(layouts[kind]).filter(([, r]) => r === k).map(([id]) => `layout ${id}`)[0] || `row ${k}`;
 
-if (!before) note('First bake: nothing to compare with.');
-else {
+{
 	if (before.BAKED.client !== BAKED.client) note(`Client ${before.BAKED.client ?? '?'} -> ${BAKED.client ?? '?'}`);
 	for (const [kind, now, was, rows] of [['trade', TRADE, before.TRADE, 40], ['material', MATERIAL, before.MATERIAL, 41]]) {
 		const changes = [];
@@ -243,12 +241,8 @@ if (dry) {
 } else {
 	writeFileSync(OUT, source);
 	say(`\nwrote js/barter_game.js (${(source.length / 1024).toFixed(0)} KB)`);
-	// The gates the app reads today, from the same files.
-	const npcPlain = join(work, 'barter_npclist.bss');
-	writeFileSync(npcPlain, npcList);
-	execFileSync(process.execPath, [new URL('build-barter-gates.mjs', import.meta.url).pathname, bin, build, npcPlain], { stdio: 'inherit' });
 	say(`report in ${join(work, 'report.txt')}`);
-	say('next: npm test, look over the report, commit js/barter_game.js and js/barter_gates.js');
+	say('next: npm test, look over the report, commit js/barter_game.js');
 }
 // What was extracted here goes (the build is some 400 MB); the report stays.
 if (!flag('keep')) for (const dir of [raw, build]) if (dir.startsWith(work)) rmSync(dir, { recursive: true, force: true });

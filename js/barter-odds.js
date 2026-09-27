@@ -17,8 +17,10 @@
 // one is real evidence of absence, which is what makes these boards
 // worth more than their number suggests.
 //
-// The trade-good list: `barter_combos.json`, forty layouts with how
-// often each was seen across four hundred and twenty refreshes. That
+// The trade-good list: the forty layouts (barter-layouts.js, from the
+// game's own tables) with how often each was seen -- the community
+// sheet's count, kept in barter_seen.js since the app stopped reading
+// it: four hundred and ninety-one refreshes. That
 // is a large sample, and it says plainly that the top rungs are
 // scarce: a [Level 7] Omar Lava Powder is on one refresh in seven,
 // where a [Level 3] Rare Herb Pile is on nineteen in twenty.

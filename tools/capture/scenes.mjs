@@ -6,8 +6,9 @@
 import { open, seed, tab, click, clickIn, drag, moveTo, typeInto, wait, waitFor } from './drive.mjs';
 import { midBuild, readyToCraft, recordLevel, fittedShip, emptyStart, onePartToGo } from './states.mjs';
 import { fakeCommunity, FLEET } from './fleet.mjs';
-import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { useGame } from '../../js/barter-layouts.js';
+import * as GAME from '../../js/barter_game.js';
 
 const OUT = process.argv[2];
 const only = process.argv.slice(3);
@@ -99,8 +100,8 @@ async function fakeSea(page, { boards = [], bare = null } = {}) {
 /** What the fleet is said to have read: layout 16 with two slots moved,
  *  seen today by two sailors, and a handful of older readings. */
 function fleetReadings() {
-	const combos = JSON.parse(readFileSync(new URL('../../js/barter_combos.json', import.meta.url), 'utf8')).combos;
-	const of = id => combos.find(c => c.id === id).offers;
+	const combos = useGame(GAME).combos;
+	const of = id => combos.find(c => c.id === id).offers.map(o => o.slice(0, 4));
 	const moved = of('16').slice(0, 26).map(o => [...o]);
 	for (const [i, from] of [[3, '20'], [9, '5']]) {
 		const o = of(from).find(x => x[0] === moved[i][0]);

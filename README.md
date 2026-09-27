@@ -907,14 +907,15 @@ community boards and for the same reason: this project runs no public
 deployment to film. The book, its sums and the layouts are the app's
 own.*
 
-**The record is not the last word.** The community's record has no row
-for an island or two on most layouts, and the game's own table says why:
-on that layout the island is shut to everyone — the exchange is gated at
-a million barters — so nobody ever wrote down what it showed. Where the
-client does deal a row the record lacks, ten of them, the layout is
-handed on with it (`tools/build-barter-gates.mjs` bakes the client's
-pools into `js/barter_gates.js`), marked *game files* in the book until
-somebody has seen it. Once a board is settled, **✎ An island shows something
+**The layouts are the game's own.** Since 2026-09-27 the forty boards
+come out of the game client's tables, baked after each patch by
+`npm run bake:barter` into `js/barter_game.js` (see
+[docs/barter-bake.md](docs/barter-bake.md)); the community sheet they
+were first read from is kept only as the count of how often each was
+seen. A few slots on a layout are left to chance -- a [Level 4] island
+that pays a [Level 5] or Crow Coins, a mainland island's four [Level 7]s,
+the Wandering Merchant's Ship on some days -- and the board asks which
+(**Today's rolls**), with the fleet's share of each. Once a board is settled, **✎ An island shows something
 else…** is the one door for everything the record can get wrong: name
 the island, then pick what its window shows — from every exchange the
 codex and the client know it to deal — or that it shows nothing.
@@ -1566,8 +1567,9 @@ js/
                       short, material, parts, today, and actions (the presses)
   barter.js           what a bartered material costs in sea time
   barter_npcs.js      where the 91 barterers are, and the harbours
-  barter_gates.js     the barter count each exchange needs, from the client
-  barter_combos.json  the forty layouts
+  barter_game.js      the game client's barter tables, baked by tools/bake-barter.mjs
+  barter-layouts.js   the forty layouts read from them: fixed offers, random slots, rare ones
+  barter_seen.js      how often the community sheet saw each layout, kept as history
   all_barter.json     barter routes, scraped from BDOCodex
   barter-board.js     which of the forty layouts the sea is showing
   barter-odds.js      how often an offer is actually there
