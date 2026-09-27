@@ -13,10 +13,11 @@ import { readFile } from 'node:fs/promises';
 
 import { readOdds, oddsFor, oddsText } from '../js/barter-odds.js';
 import { forecast, summarise, bottleneck, ladder } from '../js/barter.js';
+import { useGame } from '../js/barter-layouts.js';
 
 const here = p => new URL(p, import.meta.url);
 const boards = JSON.parse(await readFile(here('../js/material_boards.json'), 'utf8'));
-const combos = JSON.parse(await readFile(here('../js/barter_combos.json'), 'utf8'));
+const combos = useGame(await import('../js/barter_game.js'));
 const table = JSON.parse(await readFile(here('../js/all_barter.json'), 'utf8'));
 const index = readOdds({ boards, combos });
 

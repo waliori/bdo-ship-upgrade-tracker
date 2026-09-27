@@ -10,7 +10,7 @@ import { tableFor } from './enhancement.js';
 import { iconLoader } from './icon-loader.js';
 import { esc, F, parseAmount } from './fmt.js';
 import * as store from './state.js';
-import { completed } from './barter-board.js';
+import { useGame } from './barter-layouts.js';
 import { initSync, openAccount, feature, me, fetchLink, canKeepLink } from './sync.js';
 import { maxCraftable, craftDelta, enhanceStep, parseEnhanced } from './planner.js';
 import {
@@ -591,15 +591,15 @@ async function loadBarter() {
 	barterLoading = (async () => {
 		// The boards ride with the table: the Barter tab needs both, and
 		// a table without its boards still plans at best.
-		const [table, boards, mats] = await Promise.all([
+		const [table, game, mats] = await Promise.all([
 			fetch('js/all_barter.json'),
-			fetch('js/barter_combos.json').catch(() => null),
+			import('./barter_game.js').catch(() => null),
 			fetch('js/material_boards.json').catch(() => null)
 		]);
 		if (!table.ok) throw new Error(String(table.status));
 		setBarterData(await table.json());
-		// the record, with the client's row wherever it has none
-		if (boards && boards.ok) setCombos(completed(await boards.json()));
+		// the forty layouts, from the game's own tables
+		if (game) setCombos(useGame(game));
 		if (mats && mats.ok) setMatBoards(await mats.json());
 	})();
 	try {

@@ -22,7 +22,7 @@ import { routeLength } from '../js/barter-route.js';
 import { fillOf } from '../js/barter-optimizer.js';
 
 const barterData = JSON.parse(await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
-const combos = JSON.parse(await readFile(new URL('../js/barter_combos.json', import.meta.url), 'utf8')).combos;
+const combos = useGame(await import('../js/barter_game.js')).combos;
 const layout = combos.find(c => c.id === '25');
 const data = boardData(layout, barterData, npcById);
 const stashes = ['Velia', 'Iliya Island', "Oquilla's Eye"].map(at => wharves.find(w => w.kind === 'wharf' && w.at === at));
@@ -46,7 +46,7 @@ test('every chain climbs the board a rung at a time, from a land good or a good 
 	}
 	// Layout 25: ten [Level 1] islands, five of them the foot of a
 	// chain to [Level 7]; the [Level 4]s aboard start a sixth.
-	assert.equal(all.filter(c => c.from === 'land' && levelOf(c.rungs[0].item) === 1).length, 10);
+	assert.equal(new Set(all.filter(c => c.from === 'land' && levelOf(c.rungs[0].item) === 1).map(c => c.rungs[0].npcId)).size, 10);
 	assert.equal(all.filter(c => c.top === 7 && c.from === 'land').length, 5);
 	assert.equal(all[0].from, 'hold', 'the shortest climb to the top comes first');
 	assert.equal(all[0].top, 7);
@@ -214,6 +214,7 @@ test('a steady run is every attempt under the limit itself: never heavier than a
 });
 
 import { tailOf } from '../js/barter-chains.js';
+import { useGame } from '../js/barter-layouts.js';
 
 test('a good held part-way up a chain from the shore is one climb with it: the islands deal once, the good is loaded all the same', () => {
 	// A land chain, and the chain from its own [Level 3] good sitting at
@@ -448,7 +449,8 @@ test('the exact case: a climb cut mid-way by the weight of its own next trade', 
 	// the run now has to be able to say.
 	const sea = { ...PLAIN_ORDERS, way: 'sea' };
 	const three = chains(data, {}, {}, null, 4, true).filter(c => c.pays === 'coin' && c.rungs.length >= 3);
-	const coin = [three[0], three[1], three[3]];
+	const to = at => three.find(c => npcById.get(c.rungs[c.rungs.length - 1].npcId).at === at);
+	const coin = [to("Pakio's Combat Raft"), to("Old Moon Guild's Carrack"), to("Crow's Nest")];
 	const start = ports.find(p => p.name === 'Velia');
 	const run = chainRun({ chosen: coin, hold: { free: 10000, deal: 12500, max: 16000 }, parley, npcById, start, stashes: [], pace: 'fast', orders: sea });
 

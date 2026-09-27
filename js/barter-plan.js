@@ -69,7 +69,11 @@ export function exchanges(barterData) {
 				item: e.name, recv, recvText: String(s.quantity_received),
 				recvMin: ends.length ? Math.min(...ends) : recv, recvMax: ends.length ? Math.max(...ends) : recv,
 				give: s.give.name, giveN, giveText: String(s.give.quantity),
-				tries: triesFor(e.name, s.attempts_available)
+				tries: triesFor(e.name, s.attempts_available),
+				// The game's own base Parley for this exchange, where the
+				// board carries it: a Crow Coin trade costs half again a
+				// trade-good one.
+				...(s.parley > 0 ? { parley: s.parley } : {})
 			});
 		}
 	}

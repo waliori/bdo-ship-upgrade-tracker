@@ -20,6 +20,7 @@ import { wharves } from '../js/wharves.js';
 import { chains, chainRun } from '../js/barter-chains.js';
 import { boardData } from '../js/barter-board.js';
 import { PLAIN_ORDERS } from '../js/barter-orders.js';
+import { useGame } from '../js/barter-layouts.js';
 
 const straight = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -138,7 +139,7 @@ test('the lots are cut for the shortest run: islands near one another on the sam
 });
 
 const barterData = JSON.parse(await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
-const combos = JSON.parse(await readFile(new URL('../js/barter_combos.json', import.meta.url), 'utf8')).combos;
+const combos = useGame(await import('../js/barter_game.js')).combos;
 const stashes = ['Velia', 'Iliya Island', "Oquilla's Eye"].map(at => wharves.find(w => w.kind === 'wharf' && w.at === at));
 const sailed = (run, start) => routeLength([start, ...run.stops.map(s => s.wharf || npcById.get(s.npcId))]);
 

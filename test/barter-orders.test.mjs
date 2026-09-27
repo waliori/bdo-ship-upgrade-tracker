@@ -16,9 +16,10 @@ import { levelOf } from '../js/barter.js';
 import { npcById, ports } from '../js/barter_npcs.js';
 import { wharves } from '../js/wharves.js';
 import { readProfile } from '../js/profile-shape.js';
+import { useGame } from '../js/barter-layouts.js';
 
 const barterData = JSON.parse(await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
-const combos = JSON.parse(await readFile(new URL('../js/barter_combos.json', import.meta.url), 'utf8')).combos;
+const combos = useGame(await import('../js/barter_game.js')).combos;
 const layout = combos.find(c => c.id === '1');   // Gangdalpo takes Azure Quartz for a Level 6
 const data = boardData(layout, barterData, npcById);
 const stashes = ['Velia', 'Iliya Island', 'Port Epheria'].map(at => wharves.find(w => w.kind === 'wharf' && w.at === at));

@@ -17,9 +17,10 @@ import { presetOrders } from '../js/barter-orders.js';
 import { boardData } from '../js/barter-board.js';
 import { npcById, ports } from '../js/barter_npcs.js';
 import { wharves } from '../js/wharves.js';
+import { useGame } from '../js/barter-layouts.js';
 
 const barterData = JSON.parse(await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
-const combos = JSON.parse(await readFile(new URL('../js/barter_combos.json', import.meta.url), 'utf8')).combos;
+const combos = useGame(await import('../js/barter_game.js')).combos;
 const data = boardData(combos.find(c => c.id === '1'), barterData, npcById);
 const stashes = ['Velia', 'Iliya Island', 'Port Epheria'].map(at => wharves.find(w => w.kind === 'wharf' && w.at === at));
 const hold = { free: 16500, deal: 20625, max: 28050 };

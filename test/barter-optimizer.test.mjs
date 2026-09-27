@@ -17,7 +17,7 @@ import { npcById, ports } from '../js/barter_npcs.js';
 import { wharves } from '../js/wharves.js';
 
 const barterData = JSON.parse(await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
-const combos = JSON.parse(await readFile(new URL('../js/barter_combos.json', import.meta.url), 'utf8')).combos;
+const combos = useGame(await import('../js/barter_game.js')).combos;
 const layout = combos.find(c => c.id === '1');
 const data = boardData(layout, barterData, npcById);
 const stashes = ['Velia', 'Iliya Island', 'Port Epheria'].map(at => wharves.find(w => w.kind === 'wharf' && w.at === at));
@@ -104,6 +104,7 @@ test('a budget that is not reached leaves the search whole', () => {
 
 import { fullness, fillOf } from '../js/barter-optimizer.js';
 import { levelOf } from '../js/barter.js';
+import { useGame } from '../js/barter-layouts.js';
 
 test('a stock is as full as its targets, and no fuller: what is over a target adds nothing', () => {
 	const to = { '[Level 1] Bronze Statue': 10, '[Level 2] Bronze Coin': 10 };

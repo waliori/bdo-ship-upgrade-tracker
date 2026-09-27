@@ -15,9 +15,10 @@ import { chains } from '../js/barter-chains.js';
 import { boardData } from '../js/barter-board.js';
 import { PLAIN_ORDERS } from '../js/barter-orders.js';
 import { cutOf, cutAt, shortTrades, margins } from '../js/barter-short.js';
+import { useGame } from '../js/barter-layouts.js';
 
 const barterData = JSON.parse(await readFile(new URL('../js/all_barter.json', import.meta.url), 'utf8'));
-const combos = JSON.parse(await readFile(new URL('../js/barter_combos.json', import.meta.url), 'utf8')).combos;
+const combos = useGame(await import('../js/barter_game.js')).combos;
 const stashes = ['Velia', 'Iliya Island', "Oquilla's Eye"].map(at => wharves.find(w => w.kind === 'wharf' && w.at === at));
 const start = ports.find(p => p.name === 'Iliya Island');
 const data = boardData(combos.find(c => c.id === '24'), barterData, npcById);
