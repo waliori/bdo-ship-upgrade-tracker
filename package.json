@@ -29,6 +29,7 @@
     "test": "node --test \"test/*.test.mjs\"",
     "check": "node --env-file-if-exists=.env tools/check-env.mjs",
     "lang": "node tools/build-lang.mjs",
+    "bake:barter": "node tools/bake-barter.mjs",
     "names": "node tools/fetch-names.mjs",
     "backup": "node --env-file-if-exists=.env tools/backup.mjs",
     "restore": "node --env-file-if-exists=.env tools/backup.mjs --restore",
