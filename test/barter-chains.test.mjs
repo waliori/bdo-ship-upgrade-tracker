@@ -778,3 +778,18 @@ test('goods moved from the hold into the bag at the start are said apart from wh
 	for (const l of run.bagFromHold) assert.ok(l.n <= stock[l.item], `${l.item}: ${l.n} of the ${stock[l.item]} aboard`);
 	assert.deepEqual(run.bagLoaded, [], 'nothing was loaded into the bag from a storage');
 });
+
+test('a load cap holds the harbour load to what came out of the storage, whatever a count said lays', () => {
+	const land = chains(data).find(c => c.from === 'land' && c.top === 7 && c.rungs.length >= 5);
+	const third = land.rungs[2].item;
+	const dock = { [third]: 30 };
+	const held = chains(data, { [third]: 5 }, dock).find(c => c.item === third && c.from === 'hold');
+	assert.ok(held, 'no chain from the good aboard');
+	const opts = { stock: { [third]: 5 }, dock, hold, parley, npcById, start: ports.find(p => p.name === 'Velia'), stashes, pace: 'full', orders: PLAIN_ORDERS, chosen: [held] };
+	const free = chainRun(opts);
+	assert.ok(free.loaded.some(l => l.item === third), 'the free laying loads more of it');
+	const pinned = chainRun({ ...opts, loadCap: new Map([[third, 0]]) });
+	assert.deepEqual(pinned.loaded.filter(l => l.item === third), []);
+	const first = pinned.stops.find(s => s.npcId && s.give === third);
+	assert.ok(first && first.times * first.giveN <= 5, 'the first island deals only what is aboard');
+});

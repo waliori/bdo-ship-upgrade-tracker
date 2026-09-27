@@ -619,6 +619,10 @@ export function syncSail(plan) {
 		const j = rec.stops.findIndex((s, i) => stopKey(s, i, rec.stops) === key);
 		if (j < 0) { on.laidFor = laidFor; persist(); return; }
 		rec.stops = [...oldStops.slice(0, last + 1), ...rec.stops.slice(j + 1)];
+		// And what was loaded before casting off stays what was loaded:
+		// the hold is written from it, and a new laying's load is goods
+		// still in the storage behind the ship.
+		for (const k of ['loaded', 'bagLoaded', 'bagFromHold', 'weightStart', 'bought', 'cost']) if (k in on) rec[k] = on[k];
 	}
 	Object.assign(on, rec, { laidFor });
 	// A quest stop the new laying puts in, whose quests were all handed
@@ -633,6 +637,28 @@ export function syncSail(plan) {
 	});
 	on.done = [...done];
 	persist();
+}
+
+/**
+ * What a run already cast off may take out of the harbour's storage:
+ * what it loaded there, what it put in the bag there, and what its
+ * calls back pick up -- and nothing more of any good that waits there.
+ *
+ * Saying what an island paid lays the run again from the cast-off, and
+ * that laying was free to load again. Big Stone Slabs ticked aboard
+ * before casting off, and four more still in the storage at Iliya: told
+ * that Louruve paid two, not three, the new laying wanted nine slabs,
+ * the checklist took its load from it, and the hold was written four
+ * slabs that never left the storage -- with the stops after Louruve
+ * counting on eighteen Round Knives out of ten. The storage is behind
+ * the ship once it sails, so the laying is held to what came out of it.
+ */
+export function castOffCaps(on, dock) {
+	if (!on || !Array.isArray(on.stops)) return null;
+	const cap = new Map();
+	for (const name of Object.keys(dock || {})) if (levelOf(name) !== null) cap.set(name, 0);
+	for (const l of [...(on.loaded || []), ...(on.bagLoaded || []), ...on.stops.flatMap(s => s.loads || [])]) cap.set(l.item, (cap.get(l.item) || 0) + (Number(l.n) || 0));
+	return cap;
 }
 
 /** The quests a kept stop names, with the quest itself put back. */
