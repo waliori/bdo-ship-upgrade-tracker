@@ -31,7 +31,7 @@ async function pipe(bytes, Stream, kind) {
 // diaries the app keeps by itself. A plan shared is the stock, the
 // builds, the ship and the crew; the other player has traces and a
 // material log of their own, and these are what make a link long.
-export const SLIM_DROP = ['views', 'matSeen', 'progress', 'runs', 'ratios', 'sevens'];
+export const SLIM_DROP = ['views', 'matSeen', 'progress', 'runs', 'ratios', 'sevens', 'rolls'];
 
 /** The save with the profile's diaries and views left out. */
 export function slimShape(save) {

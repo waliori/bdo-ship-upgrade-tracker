@@ -84,7 +84,7 @@ export const HULL_TIER = {
  *   2  the ship score reads part quality and the crystal; `sets`,
  *      `gear` and the face's `worth` are new.
  */
-export const DIGEST_V = 4;
+export const DIGEST_V = 5;
 
 const SLOT_FAMILY = 11;
 const HULL_WORTH = 1000;
@@ -418,6 +418,19 @@ function sevensOf(profile) {
 	return out;
 }
 
+/** What each slot a layout leaves to chance showed this sailor, and how
+ *  often: the fleet's share in the Today's rolls dialog is added up
+ *  from these. Keyed 'layout|npc', each 'give|recv' -> times. */
+function rollsOf(profile) {
+	const out = {};
+	for (const [key, e] of Object.entries(obj(profile.rolls)).slice(-300)) {
+		if (!/^[0-9A-Za-z]{1,4}\|\d+$/.test(key)) continue;
+		const counts = Object.fromEntries(Object.entries(obj(e && e.seen)).filter(([k, v]) => typeof k === 'string' && k.length <= 170 && Number(v) > 0).slice(0, 6).map(([k, v]) => [k, Math.min(9999, Math.floor(Number(v)))]));
+		if (Object.keys(counts).length) out[key] = counts;
+	}
+	return out;
+}
+
 export function digest(save) {
 	const s = save && typeof save === 'object' ? save : {};
 	// Through the profile's own reading first, so every string is cut
@@ -438,6 +451,7 @@ export function digest(save) {
 		charts: chartsOf(profile),
 		boards: boardsOf(profile),
 		sevens: sevensOf(profile),
+		rolls: rollsOf(profile),
 		stock: stockOf(s),
 		ship: shipOf(profile, fleet)
 	};

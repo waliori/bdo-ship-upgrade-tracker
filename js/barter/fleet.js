@@ -12,6 +12,7 @@ import { redrawSoon } from './search.js';
 
 const AGAIN_MS = 15 * 60 * 1000;
 let held = null;
+let heldRolls = null;
 let askedAt = 0;
 
 async function ask() {
@@ -20,6 +21,7 @@ async function ask() {
 		const res = await call('GET', '/api/community');
 		if (res && res.ok && res.body && res.body.stats) {
 			held = res.body.stats.sevens || {};
+			heldRolls = res.body.stats.rolls || {};
 			redrawSoon();
 		}
 	} catch { /* asked again later */ }
@@ -30,6 +32,16 @@ async function ask() {
 export function fleetSevens(npcId) {
 	if (feature('community') && Date.now() - askedAt > AGAIN_MS) ask();
 	const seen = held && held[npcId];
+	if (!seen) return null;
+	const total = Object.values(seen).reduce((a, b) => a + b, 0);
+	return total ? { seen, total } : null;
+}
+
+/** What the fleet was shown at a slot a layout leaves to chance:
+ *  { seen: { 'give|recv': n }, total }, or null. */
+export function fleetRolls(layout, npcId) {
+	if (feature('community') && Date.now() - askedAt > AGAIN_MS) ask();
+	const seen = heldRolls && heldRolls[`${layout}|${npcId}`];
 	if (!seen) return null;
 	const total = Object.values(seen).reduce((a, b) => a + b, 0);
 	return total ? { seen, total } : null;

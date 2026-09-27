@@ -28,6 +28,7 @@ import { parleyGuessed } from './plan.js';
 import { chartData } from './route.js';
 import { sailKey, ticked } from './sail.js';
 import { redrawSoon } from './search.js';
+import { assumedRolls, noteRolls, rollsChipHTML } from './rolls.js';
 import { persist } from './view.js';
 
 /* ------------------------------------------------------------------ *
@@ -84,7 +85,11 @@ export function boardNow() {
 	const gated = gatedOffers(combo, barterProfile().barterCount);
 	const told = shutNow();
 	const shut = [...gated, ...told];
-	return { standing, combo, shut, gated, told, data: combo ? boardData(combo, barterData, npcById, V.board.answers, shut) : barterData };
+	// The islands the layout leaves to chance: what the sailor said is
+	// counted for the fleet, and the rest are planned at their likelier.
+	if (combo && combo.rolls) noteRolls(combo);
+	const rolled = combo && combo.rolls ? assumedRolls(combo) : [];
+	return { standing, combo, shut, gated, told, data: combo ? boardData(combo, barterData, npcById, [...V.board.answers, ...rolled], shut) : barterData };
 }
 
 /**
@@ -207,7 +212,7 @@ export function boardHTML(b) {
 				shutLine);
 		}
 		return bar('known',
-			`<b>${T('Layout {id}', { id: esc(b.combo.id) })}</b><span>${T('today’s board')}</span>`,
+			`<b>${T('Layout {id}', { id: esc(b.combo.id) })}</b><span>${T('today’s board')}</span>${rollsChipHTML(b.combo)}`,
 			T('seen {n} of {of} refreshes since {since} · every island’s offer is known; the material islands roll on their own and are read from the whole table, and which of its four [Level 7] goods an island pays is not the layout’s to say', { n: b.combo.seen, of: combos.sample.refreshes, since: esc(since) }),
 			seen,
 			`<button class="ghost-btn sm" data-act="barter-shot" title="${T('Read more of the window off a screenshot — the rows are matched against what each island deals')}">📷 ${T('Read the window')}</button><button class="ghost-btn sm" data-act="barter-book" title="${T('Every layout on file, how often each has been seen, and the boards sailors have read that are in no record')}">📖 ${T('The layout book')}</button>${fix}<button class="ghost-btn sm" data-act="barter-board-clear" title="${T('The board was refreshed in game: start again')}">↻ ${T('Refreshed in game')}</button>`,

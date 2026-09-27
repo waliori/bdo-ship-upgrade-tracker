@@ -2006,6 +2006,45 @@ test('a chain card opens its climb step by step: every island in full, what it t
 	await context.close();
 });
 
+test('a layout that rolls a good or coins asks which, with the likelier picked, and the board follows the answer', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		// Layout 31, pinned by one [Level 1] island, at 4,406 barters: Ajir,
+		// Orffs and Narvo each pay a [Level 5] or Crow Coins today.
+		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), answers: [{ npcId: 58901, give: 'Powder of Time', recv: '[Level 1] Cherry Tree Seed Pouch' }] } });
+		store.setProfile('barterCount', 4406);
+		store.addTarget('Carrack (Advance)', 1);
+		store.setProfile('crewShip', 'Carrack (Advance)');
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('.rolls-chip', { timeout: 20000 });
+	assert.match(await text(page, '.rolls-chip'), /3 islands roll a good or coins/);
+	await tap(page, '.rolls-chip'); await wait(400);
+	assert.equal(await count(page, '#dialog .roll-row'), 3);
+	assert.equal(await count(page, '#dialog .roll-option.likely'), 3, 'each has the likelier picked, until said');
+	// Ajir showed coins.
+	await page.evaluate(() => [...document.querySelectorAll('#dialog [data-act="barter-roll-pick"]')].find(b => b.dataset.npc === '58966' && b.dataset.recv === 'Crow Coin').click()); await wait(300);
+	assert.equal(await count(page, '#dialog .roll-row.said'), 1);
+	await page.keyboard.press('Escape'); await wait(800);
+	assert.match(await text(page, '.rolls-chip'), /2 islands roll/);
+	const r = await page.evaluate(async () => {
+		const { boardNow } = await import('/js/barter/board.js');
+		const store = await import('/js/state.js');
+		const b = boardNow();
+		const at = b.data.filter(e => e.sources.some(s => s.npc_id === 58966)).map(e => e.name).filter(n => n === 'Crow Coin' || n.startsWith('[Level'));
+		return { layout: b.combo.id, at, rolls: store.getProfile('rolls', {})['31|58966'] };
+	});
+	assert.equal(r.layout, '31');
+	assert.deepEqual(r.at, ['Crow Coin'], 'the board plans Ajir on the coins');
+	assert.deepEqual(r.rolls.seen, { '[Level 4] Panacea|Crow Coin': 1 }, 'counted once for the fleet');
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('two chains on one pile: the second start says none are left, asks before it is ticked, and either can be sailed', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);

@@ -25,7 +25,8 @@ import { toast, openDialog, closeDialog } from '../dialogs.js';
 import { cheer } from '../cheer.js';
 import { V, STEPS } from './state.js';
 import { timerAction, timerState, timerNow, startTimer, stopTimer, passedStop, arrivedAt, spanText } from '../sail-timer.js';
-import { fromPort, sailCal, itemNow, readWindow, takeFleetBoard, openBook, tellTheFleet, pickOffer, pickIsland, showGated, pickAnyIsland } from './board.js';
+import { fromPort, sailCal, itemNow, readWindow, takeFleetBoard, openBook, tellTheFleet, pickOffer, pickIsland, showGated, pickAnyIsland, boardNow } from './board.js';
+import { openRolls } from './rolls.js';
 import { castOffFx, bringUp } from './cockpit.js';
 import { aboardStock, unloadTo, held, openSheet, shoreAboard } from './hold.js';
 import { matBoardNow, matFleetNow, matFitNow, noteMatSeen, takeMatOffers, tellMatFleet, openMatBook, pickGood, pickMaterial, setMaterial } from './material.js';
@@ -224,6 +225,7 @@ export function barterAction(act, el, redraw) {
 		case 'barter-board-fix': pickAnyIsland(redraw); return false;
 		case 'barter-shut-clear': store.setProfile('shutOffers', []); toast(T('Every island is back on the board'), true); return true;
 		case 'barter-board-undo': V.board.answers.pop(); persist(); return true;
+		case 'barter-rolls': { const b = boardNow(); if (b.combo) openRolls(b.combo, redraw); return false; }
 		case 'barter-pace-set': setOrders({ pace: el.dataset.id === 'full' ? 'full' : el.dataset.id === 'steady' ? 'steady' : 'fast' }); return true;
 		case 'barter-mat-pace-set': V.matOrders = { ...V.matOrders, pace: el.dataset.id === 'fast' ? 'fast' : 'full' }; persist(); return true;
 		case 'barter-mat-tick': {
