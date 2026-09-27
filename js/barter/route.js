@@ -561,6 +561,15 @@ function parleyBar(book, k, s) {
  */
 export function cutsHTML(plan, pace, name) {
 	if (!plan.cut || !plan.cut.length) return '';
+	// Nothing left to hand over is, as often as not, two chains ticked on
+	// one pile: the Golden Fish Scales Arehaza takes are the ones Starry
+	// Midnight Port would have, and the chain that gets there second finds
+	// the hold empty of them. Said as that, with where they went.
+	const spentBy = c => {
+		if (c.why !== 'nothing' || !c.give) return '';
+		const s = plan.stops.find(x => x.npcId && x.give === c.give && x.chain !== c.chain && x.times > 0);
+		return s ? isleShort(npcById.get(s.npcId)) || s.npc : '';
+	};
 	const lines = plan.cut.map(c => {
 		const chain = plan.order[c.chain];
 		const untick = chain && chain.id && !String(chain.id).includes('>') ? ` <button class="chip tiny" data-act="barter-chain" data-id="${esc(chain.id)}" title="${T('Take this chain off the run')}">${T('untick')}</button>` : '';
@@ -592,7 +601,9 @@ export function cutsHTML(plan, pace, name) {
 								? T('{where} takes the {icon}<b>{good}</b> it made, and your floor keeps <b>{floor}</b> of every [Level {lv}] back — you hold only {owned}', { where, icon: img(c.good, 'row-icon xs'), good: esc(gameName(c.good)), floor: F(c.floor), lv: c.level, owned: F(c.owned) })
 								: c.why === 'skipped'
 									? T('you took {where} off the route', { where })
-									: T('there is nothing left to hand over at {where}', { where });
+									: spentBy(c)
+										? T('another ticked chain hands the {icon}<b>{good}</b> over first, at {other} — both start from the same goods, and there are not enough for two', { icon: img(c.give, 'row-icon xs'), good: esc(gameName(c.give)), other: esc(spentBy(c)) })
+										: T('there is nothing left to hand over at {where}', { where });
 		// The way out, where there is one: a pace that calls at a wharf,
 		// or the weight to put ashore before casting off.
 		// A good the Market is out of may still be in a storage of the

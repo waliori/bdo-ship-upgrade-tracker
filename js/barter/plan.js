@@ -829,9 +829,71 @@ export function chainRow(c, on, solo, dockName, from, ladder = null, shut = null
 			${solo.cost ? `<span>${T('{sold} sold · {bought} bought', { sold: FC(Math.round(solo.silver)), bought: FC(Math.round(solo.cost)) })}</span>` : solo.bought.some(b => b.how === 'unpriced') ? `<span class="faint">${T('land goods unpriced')}</span>` : ''}
 			<span>${solo.keptWorth ? T('{silver} left over', { silver: FC(Math.round(solo.keptWorth)) }) : solo.silver ? T('nothing left over') : T('nothing to sell at this reach')}</span>
 			<span>${c.rungs.length === 1 ? T('{n} island', { n: c.rungs.length }) : T('{n} islands', { n: c.rungs.length })}${from ? '' : ''}</span>
+			<span class="chain-steps-open" role="button" tabindex="0" data-act="barter-chain-steps" data-id="${esc(c.id)}" title="${T('Every step of this climb: the islands in full, what each takes and pays, the wharf calls')}">${T('step by step')} ›</span>
 		</span>
 	</button>`;
+	shownChains.set(c.id, { c, solo, dockName });
 	return ladder ? `<div class="chain-ladder${on ? ' on' : ''}">${card}${starts}</div>` : card;
+}
+
+/**
+ * A chain step by step, in a dialog of its own.
+ *
+ * The card has room for the islands' names on one line, and a climb of
+ * five islands cut them to "Starry Midnight Port · Epheria Sentry P…".
+ * The dialog has the room: each island in full with its barterer, what
+ * it takes and pays, how many trades it has today and how many the
+ * climb makes there, and the wharf calls between them -- the chain as
+ * the card's own figures have it, sailed on its own.
+ */
+const shownChains = new Map();
+export function chainStepsDialog(id) {
+	const hit = shownChains.get(id);
+	if (!hit) return false;
+	const { c, solo, dockName } = hit;
+	const b = boardNow();
+	const used = b.combo && V.board.usedFor === b.combo.id ? V.board.used || {} : {};
+	const tier = name => (levelOf(name) ? ` style="--tier:${TIER(levelOf(name))}"` : '');
+	const goods = (n, name) => `${img(name, 'row-icon sm')}<span class="tiered"${tier(name)}>${esc(String(n))}× ${esc(gameName(name))}</span>`;
+	const start = c.from === 'land'
+		? T('Bought ashore: {what}', { what: goods(F((solo && (solo.bought || []).find(x => x.item === c.item) || {}).n || c.rungs[0].giveN), c.item) })
+		: c.from === 'dock'
+			? T('Loaded at {where}: {what}', { where: esc(gameName(dockName || '')) || T('the wharf'), what: goods(n1(((solo && solo.loaded) || []).find(x => x.item === c.item)?.n || c.load), c.item) })
+			: T('Already aboard: {what}', { what: goods(n1(c.have), c.item) });
+	const stops = ((solo && solo.stops) || []).filter(s => s.npcId || s.wharf);
+	const reached = new Set(stops.filter(s => s.npcId).map(s => s.npcId));
+	const cut = ((solo && solo.cut) || [])[0];
+	let k = 0;
+	const isle = (r, s) => {
+		const npc = npcById.get(r.npcId);
+		const left = r.tries - (used[r.npcId] || 0);
+		const today = used[r.npcId] ? T('{left} of {n} trades left today', { left: F(Math.max(0, left)), n: F(r.tries) }) : T('{n} trades today', { n: F(r.tries) });
+		return `<li class="chain-step${s ? '' : ' missed'}"><span class="chain-step-n">${++k}</span><div class="chain-step-body">
+			<div class="chain-step-place"><b>${esc(gameName(isleOf(npc) || r.npc))}</b><span>${esc(gameName(r.npc))}</span></div>
+			<div class="chain-step-trade">${goods(r.giveText, r.give)}<span class="faint">→</span>${goods(r.recvText, r.item)}</div>
+			<div class="chain-step-meta">${today}${s ? ` · <b>${T('this climb trades ×{n}', { n: F(s.times) })}</b>` : ` · <span class="warn">${cut && cut.npcId === r.npcId ? T('the climb stops here') : T('not reached')}</span>`}</div>
+		</div></li>`;
+	};
+	const call = s => {
+		const what = [
+			s.sale && s.sale.n ? T('sells {n} {what} here for {silver}', { n: n1(s.sale.n), what: T('goods'), silver: FC(Math.round(s.sale.total)) }) : '',
+			(s.dropped || []).length ? `${T('Leaves in storage')}: ${s.dropped.map(d => `${n1(d.n)}× ${esc(gameName(d.item))}`).join(', ')}` : '',
+			(s.loads || []).length ? `${T('Loads from storage')}: ${s.loads.map(d => `${n1(d.n)}× ${esc(gameName(d.item))}`).join(', ')}` : ''
+		].filter(Boolean).join(' · ');
+		return `<li class="chain-step call"><span class="chain-step-n">⚓</span><div class="chain-step-body"><div class="chain-step-place"><b>${esc(gameName(s.wharf.at))}</b><span>${T('wharf')}</span></div>${what ? `<div class="chain-step-meta">${what}</div>` : ''}</div></li>`;
+	};
+	const rows = [
+		...stops.map(s => (s.npcId ? isle(c.rungs.find(r => r.npcId === s.npcId) || s, s) : call(s))),
+		...c.rungs.filter(r => !reached.has(r.npcId)).map(r => isle(r, null))
+	].join('');
+	const sum = solo && solo.silver
+		? `${T('Sailed on its own')}: <b>${FC(Math.round(solo.net))}</b>${solo.trades ? ` · ${T('{n} trades', { n: F(solo.trades) })}` : ''}${solo.parleyUsed ? ` · ${F(Math.round(solo.parleyUsed))} ${T('Parley')}` : ''}`
+		: '';
+	openDialog(`<h2 class="chain-steps-title" style="--tier:${TIER(c.top)}">${esc(gameName(c.item))} → ${T('Level {lv}', { lv: c.top })}</h2>
+		<p class="dialog-copy">${start}${sum ? `<br>${sum}` : ''}</p>
+		<ol class="chain-steps">${rows}</ol>
+		<div class="dialog-actions"><button class="ghost-btn" data-close>${T('Close')}</button></div>`);
+	return true;
 }
 
 /**

@@ -1981,6 +1981,31 @@ test('the hold is a line across the Barter tab that opens over the page, and the
 	await context.close();
 });
 
+test('a chain card opens its climb step by step: every island in full, what it takes and pays, the card left unticked', async () => {
+	const { page, context, errors } = await open('#barter');
+	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
+	await page.evaluate(async () => {
+		const { barterKey } = await import('/js/clock.js');
+		const store = await import('/js/state.js');
+		store.setView('barter', { goal: 'silver', port: 1002, planSec: 'all', advOpen: true, board: { day: barterKey(), answers: [{ npcId: 58948, give: '[Level 6] Top-Quality Coconut Syrup', recv: "[Level 7] Artisan's Seashell Necklace" }] } });
+		store.flush();
+	});
+	await page.reload({ waitUntil: 'domcontentloaded' });
+	await page.waitForSelector('.chain .chain-steps-open', { timeout: 15000 }); await wait(2000);
+	const was = await page.$eval('.chain', el => el.classList.contains('on'));
+	const rungs = await page.$eval('.chain', el => el.querySelectorAll('.chain-goods img').length);
+	await page.evaluate(() => document.querySelector('.chain .chain-steps-open').click()); await wait(400);
+	assert.equal(await page.evaluate(() => document.getElementById('dialog').hidden), false, 'the dialog is up');
+	assert.equal(await page.$$eval('#dialog .chain-step:not(.call)', els => els.length), rungs, 'a step for every island of the climb');
+	const first = await page.$eval('#dialog .chain-step:not(.call) .chain-step-place b', el => el.textContent);
+	assert.ok(first.length > 2 && !first.endsWith('…'), 'the island in full');
+	assert.match(await text(page, '#dialog .chain-step:not(.call) .chain-step-meta'), /trades/);
+	assert.equal(await page.$eval('.chain', el => el.classList.contains('on')), was, 'opening it does not tick the chain');
+	await page.keyboard.press('Escape'); await wait(300);
+	assert.deepEqual(errors, []);
+	await context.close();
+});
+
 test('a run recorded adds its trades to Total Barters, and says what that opened', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);

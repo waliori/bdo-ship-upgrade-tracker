@@ -30,7 +30,7 @@ import { castOffFx, bringUp } from './cockpit.js';
 import { aboardStock, unloadTo, held, openSheet, shoreAboard } from './hold.js';
 import { matBoardNow, matFleetNow, matFitNow, noteMatSeen, takeMatOffers, tellMatFleet, openMatBook, pickGood, pickMaterial, setMaterial } from './material.js';
 import { packedNow, unloadMoves, packApply, toldOf } from './packing.js';
-import { parleyRefilled, retickIfAuto, ordersNow, setOrders, applySaved, dropSaved, askSaveOrders, sellFrom, keepFrom, readBagShot } from './plan.js';
+import { parleyRefilled, retickIfAuto, ordersNow, setOrders, applySaved, dropSaved, askSaveOrders, sellFrom, keepFrom, readBagShot, chainStepsDialog } from './plan.js';
 import { STASHES, bagSet, legsOf, skippedToday, pulledToday, ledgerOf } from './route.js';
 import { sailKey, sailing, stopKey, ticked, runLabel, runMarks, owesCount, rangeOf, unsyncHold, abandonRun, markDone, sailRecord, planOfSail, stranded, sailedPlan, recordTrip } from './sail.js';
 import { proposeAsync, redrawSoon } from './search.js';
@@ -293,6 +293,7 @@ export function barterAction(act, el, redraw) {
 			return true;
 		}
 		case 'barter-continue-drop': if (V.board.last) V.board = { ...V.board, last: { ...V.board.last, off: true } }; persist(); return true;
+		case 'barter-chain-steps': chainStepsDialog(el.dataset.id); return false;
 		case 'barter-chain': {
 			// Ticked, a start replaces the ladder's other starts: one
 			// climb up those islands, from one place.

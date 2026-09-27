@@ -217,6 +217,20 @@
 .chain-right b.none { color: var(--ink-faint); }
 .chain-right span { font-size: 11px; color: var(--ink-mute); }
 .chain-right span + span { color: var(--ink-faint); }
+.chain .chain-right span.chain-steps-open { color: var(--blue); cursor: pointer; border-radius: 4px; }
+.chain .chain-right span.chain-steps-open:hover, .chain .chain-right span.chain-steps-open:focus-visible { text-decoration: underline; }
+.chain-steps { list-style: none; margin: 12px 0 4px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.chain-step { display: flex; gap: 10px; padding: 9px 11px; background: var(--panel-inset); border: 1px solid var(--line-btn); border-radius: 9px; }
+.chain-step.call { background: none; border-style: dashed; }
+.chain-step.missed { opacity: 0.6; border-style: dashed; }
+.chain-step-n { flex: none; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 700; background: rgba(var(--blue-rgb), 0.18); color: var(--ink); }
+.chain-step.call .chain-step-n { background: none; }
+.chain-step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.chain-step-place { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.chain-step-place span { font-size: 11.5px; color: var(--ink-mute); }
+.chain-step-trade { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 13px; }
+.chain-step-meta { font-size: 11.5px; color: var(--ink-mute); }
+.chain-steps-title { border-left: 3px solid var(--tier); padding-left: 10px; }
 /* On a phone a chain card is never wider than the page: the route wraps,
    and the figures come as a row under the goods. */
 @media (max-width: 720px), ((max-height: 520px) and (pointer: coarse)) {
