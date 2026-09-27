@@ -73,7 +73,7 @@ export function exchanges(barterData) {
 				// The game's own base Parley for this exchange, where the
 				// board carries it: a Crow Coin trade costs half again a
 				// trade-good one.
-				...(s.parley > 0 ? { parley: s.parley } : {})
+				...(s.parley > 0 ? { parleyBase: s.parley } : {})
 			});
 		}
 	}

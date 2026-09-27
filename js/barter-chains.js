@@ -17,7 +17,7 @@
 // the run go out. Distances are by water, from barter-route.js's
 // table; the screen bends the legs round the land the same way.
 
-import { levelOf, npcGate, COIN } from './barter.js';
+import { levelOf, npcGate, COIN, PARLEY } from './barter.js';
 import { exchanges, goodsHeld, weightHeld, weightOf, sellOf } from './barter-plan.js';
 import { sellable, floorOf, PLAIN_ORDERS } from './barter-orders.js';
 import { seaDist, routeLength, orderLadders, orderBlocks, improveLots, growLots } from './barter-route.js';
@@ -264,6 +264,14 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		loadOf.set(c, { item: c.item, n });
 	}
 	const perTrade = parley.perTrade;
+	// Each exchange at its own price. The game's table gives every one a
+	// base -- 14,286 for a trade good, 21,650 for Crow Coins -- and the
+	// sailor pays it less their discounts. The run used to charge every
+	// stop the trade-good price, coins included, and a coin run spent a
+	// third more Parley than it said. A rung with no base of its own (a
+	// board the sailor typed in) is charged the trade price as before.
+	const rate = parley.rate > 0 ? parley.rate : perTrade / PARLEY.perGreatOceanTrade;
+	const costOf = r => (r.parleyBase > 0 ? Math.floor(r.parleyBase * rate) : perTrade);
 	// The shore goods the sailor already keeps, when the orders take
 	// them from the pile rather than buying fresh: what is left as the
 	// run spends them, and what it took in all.
@@ -1052,7 +1060,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		// rather than folded together: which of them bit is the whole of
 		// what the run has to say when a chain stops here.
 		const byGoods = Math.floor(spendable / r.giveN + 1e-9);
-		const byParley = perTrade > 0 ? Math.floor((parley.bar - spent) / perTrade) : Infinity;
+		const byParley = costOf(r) > 0 ? Math.floor((parley.bar - spent) / costOf(r)) : Infinity;
 		const want = Math.min(cap.get(r), byGoods, byParley);
 		let times;
 
@@ -1180,9 +1188,9 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		}
 		weight = weightHeld(heldMax);
 		peak = Math.max(peak, weight);
-		spent += times * perTrade;
+		spent += times * costOf(r);
 		used.add(r.npcId);
-		stops.push({ ...r, times, parley: times * perTrade, level: levelOf(r.give) || 0, weightAfter: weight, chain });
+		stops.push({ ...r, times, parley: times * costOf(r), level: levelOf(r.give) || 0, weightAfter: weight, chain });
 		at = npc;
 		// A sale on the way. The [Level 7] made at Priko on Iliya Island
 		// was carried past the wharf the ship was standing at, and its

@@ -766,10 +766,17 @@ export function parleyPerTrade({ valuePack = false, crowCoin = false, level = nu
 	const base = kind === 'material' ? PARLEY.perMaterialTrade
 		: (crowCoin || kind === 'coin') ? PARLEY.perCrowCoinTrade
 		: PARLEY.perGreatOceanTrade;
+	return Math.floor(base * parleyRate({ valuePack, level, crew }));
+}
+
+/** What the sailor pays of an exchange's base Parley: one less the
+ *  discounts, added together. An exchange's own base -- the game's
+ *  table has one for each -- times this, floored, is its price. */
+export function parleyRate({ valuePack = false, level = null, crew = false } = {}) {
 	const off = levelDiscount(level)
 		+ (valuePack ? PARLEY.valuePackDiscount : 0)
 		+ (crew ? PARLEY.crewDiscount : 0);
-	return Math.floor(base * Math.max(0, 1 - off));
+	return Math.max(0, 1 - off);
 }
 
 /* ------------------------------------------------------------------ *

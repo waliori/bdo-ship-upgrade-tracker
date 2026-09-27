@@ -11,7 +11,7 @@ import { currentShip } from '../ship.js';
 import { npcById, ports, isleOf, isleShort } from '../barter_npcs.js';
 import { sailSeconds, METRES_PER_PX } from '../sailing.js';
 import { WAY_CHOICES, QUEST_CHOICES, SELL_CHOICES, LAND_CHOICES, VOUCHER_CHOICES, HOUR_CHOICES, AIM_CHOICES, NOTHING, STOCK_LEVELS, SAIL_PRESETS, sailPresetOf, readOrders, readStock, yardsticks } from '../barter-orders.js';
-import { PARLEY, COIN, COIN_LEVEL, dailyCapacity, parleyPerTrade, levelOf, countBonus, withBonus } from '../barter.js';
+import { PARLEY, COIN, COIN_LEVEL, dailyCapacity, parleyPerTrade, parleyRate, levelOf, countBonus, withBonus } from '../barter.js';
 import { goodsHeld, landHeld } from '../barter-plan.js';
 import { pickShots } from '../barter-import.js';
 import { readWords, shotLang, triage } from '../shot-reader.js';
@@ -113,7 +113,8 @@ export const parleyOf = prof => ({
 	bar: (prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max) + (ordersNow().vouchers === 'keep' ? 0 : prof.vouchers * PARLEY.voucher),
 	held: prof.parleyHeld > 0 ? Math.min(PARLEY.max, prof.parleyHeld) : PARLEY.max,
 	vouchers: ordersNow().vouchers === 'keep' ? 0 : prof.vouchers,
-	perTrade: parleyPerTrade({ ...prof, kind: 'trade' })
+	perTrade: parleyPerTrade({ ...prof, kind: 'trade' }),
+	rate: parleyRate(prof)
 });
 export const stashAt = () => stashes.find(w => w.at === V.stash) || null;
 

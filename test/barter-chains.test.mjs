@@ -795,3 +795,21 @@ test('a load cap holds the harbour load to what came out of the storage, whateve
 	const first = pinned.stops.find(s => s.npcId && s.give === third);
 	assert.ok(first && first.times * first.giveN <= 5, 'the first island deals only what is aboard');
 });
+
+test('every exchange is charged its own Parley: a Crow Coin trade half again a trade good, less the same discounts', () => {
+	// The game's table prices each exchange; at a 26.56% discount the
+	// window says 10,491 for a trade good and 15,899 for Crow Coins.
+	const rate = 0.7344;
+	const coin = chains(data, {}, {}, null, 4, true).filter(c => c.pays === 'coin' && c.rungs.length >= 3).slice(0, 2);
+	const run = chainRun({ chosen: coin, hold, parley: { bar: 3500000, perTrade: 10491, rate }, npcById, start: ports.find(p => p.name === 'Velia'), stashes });
+	const isles = run.stops.filter(s => s.npcId && s.times > 0);
+	assert.ok(isles.length >= 3);
+	for (const s of isles) {
+		assert.ok(s.parleyBase > 0, `${s.npc} has the game's base`);
+		assert.equal(s.parley, s.times * Math.floor(s.parleyBase * rate));
+	}
+	const each = s => s.parley / s.times;
+	assert.ok(isles.some(s => s.item === 'Crow Coin' && each(s) === 15899), 'a coin trade at 15,899');
+	assert.ok(isles.some(s => s.item !== 'Crow Coin' && each(s) === 10491), 'a trade good at 10,491');
+	assert.equal(run.parleyUsed, isles.reduce((a, s) => a + s.parley, 0));
+});
