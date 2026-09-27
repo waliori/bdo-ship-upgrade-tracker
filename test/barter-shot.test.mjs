@@ -305,3 +305,24 @@ test('the window starts where the names start, not at their second word', () => 
 test('a shot of one row reads, the icon’s boxes between its lines notwithstanding', () => {
 	assert.deepEqual(said(read('oneRow')), [['Padix Island', '[Level 4] Bronze Candlestick', '[Level 5] Mysterious Rock']]);
 });
+
+test('the game\u2019s own window, 2026-09-27: the islands that roll a good or coins read as what they showed, and settle layout 31\u2019s rolls', async () => {
+	// Two shots of layout 31: the coin page (Ajir and Orffs paying coins)
+	// and the [Level 4] -> [Level 5] page (Narvo paying its Elixir).
+	const { useGame, fitsAt } = await import('../js/barter-layouts.js');
+	const { candidates } = await import('../js/barter-board.js');
+	const { combos } = useGame(await import('../js/barter_game.js'));
+	const answers = [...read('coinRolls'), ...read('fourToFiveRolls')].filter(r => r.offer).map(r => ({ npcId: r.isle.id, give: r.offer.give, recv: r.offer.item }));
+	const at = name => answers.find(a => npcs.find(n => n.id === a.npcId).at === name);
+	assert.equal(at('Ajir Island').recv, 'Crow Coin');
+	assert.equal(at('Orffs Island').recv, 'Crow Coin');
+	assert.equal(at('Narvo Island').recv, '[Level 5] Elixir of Youth');
+	const standing = candidates(combos, answers);
+	assert.ok(standing.some(c => c.id === '31'), 'the readings leave layout 31 standing');
+	const l31 = combos.find(c => c.id === '31');
+	for (const name of ['Ajir Island', 'Orffs Island', 'Narvo Island']) {
+		const a = at(name);
+		assert.ok(l31.rolls[a.npcId], `${name} rolls on layout 31`);
+		assert.ok(fitsAt(l31, a.npcId, a.give, a.recv), `${name}: what was read is one of its options`);
+	}
+});
