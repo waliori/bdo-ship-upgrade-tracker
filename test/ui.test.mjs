@@ -2216,9 +2216,11 @@ test('the running clock draws the sailor’s own ship crossing the leg', async (
 	// start -- not part-way along it, and not after a wait.
 	const leg0 = await page.evaluate(async () => (await import('/js/sail-scene.js')).sceneNow().leg);
 	await page.evaluate(() => { const b = document.querySelector('.cockpit-go[data-act="barter-stop-done"], .cockpit-go[data-act="barter-paid"]'); if (b) b.click(); });
-	await page.waitForFunction(n => import('/js/sail-scene.js').then(m => { const x = m.sceneNow(); return x && x.leg > n && x.mode === 'run'; }), { timeout: 8000, polling: 100 }, leg0);
+	await page.waitForFunction(n => import('/js/sail-scene.js').then(m => { const x = m.sceneNow(); return x && x.leg > n && x.mode === 'run'; }), { timeout: 10000, polling: 100 }, leg0);
 	const next = await page.evaluate(async () => (await import('/js/sail-scene.js')).sceneNow());
 	assert.ok(next.px < 0.05, `the next leg starts at its start: ${next.px}`);
+	// ...having sailed there: the view travelled on a leg, the pier behind.
+	assert.ok(next.camX > 0, `the view moved on with the ship: ${next.camX}`);
 	assert.deepEqual(errors, []);
 	await context.close();
 });

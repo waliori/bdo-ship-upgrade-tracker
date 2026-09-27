@@ -22,6 +22,7 @@ import { currentShip } from '../ship.js';
 import { timerState, spanText } from '../sail-timer.js';
 import { stopNames } from './cockpit.js';
 import { sailedPlan } from './sail.js';
+import { shipSprite, foamSprite } from '../sail-scene.js';
 
 const FLOAT = 2.4;          // seconds afloat in close-up, the title up
 const MORPH = 3.4;          // seconds for the camera to pull back
@@ -88,7 +89,7 @@ export function castOffFx() {
 	const h = new Float32Array(N), v = new Float32Array(N);
 	const gShip = (H0 * 2.4) / Z0, gA = (H0 * 1.9) / Z0, gB = Hf * 5;
 	let t = 0, mode = 'fall', hitAt = 0, morphAt = 0, u = 0, e = 0;
-	let drops = [], foam = [];
+	let drops = [], foam = [], sprite = null;
 	let W = start.width, H = start.height;
 	const ship = { y: yb + ((-H0 * 0.9 + sw1 * Z0 * 0.9) - H0 * 0.7) / Z0, vy: 0, rot: -0.05, vr: 0 };
 
@@ -191,6 +192,7 @@ export function castOffFx() {
 	const draw = () => {
 		const ctx = cv.getContext('2d'), d = window.devicePixelRatio || 1, { Z, tx, ty } = cam();
 		const cx = x0w, sw = sw1, sh = sh1;
+		ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
 		ctx.setTransform(d * Z, 0, 0, d * Z, d * tx, d * ty);
 		const vx0 = -tx / Z, vx1 = (W - tx) / Z, vy0 = -ty / Z, vy1 = (H - ty) / Z, lw = 1 / Z;
 		const sky = ctx.createLinearGradient(0, vy0, 0, yb);
@@ -211,19 +213,21 @@ export function castOffFx() {
 				ctx.translate(cx, surfAt(cx) + 1.2); ctx.scale(-1, -0.55); ctx.rotate(-ship.rot * 0.5); ctx.globalAlpha = 0.22 * (1 - e);
 				ctx.drawImage(pic, -sw / 2, -sh * 0.88, sw, sh); ctx.restore();
 			}
-			// Drawn as the clock draws it, so the hand-over does not move it.
-			ctx.save(); ctx.translate(cx, ship.y + sh * 0.03); ctx.rotate(ship.rot * 0.6); ctx.scale(-1, 1);
-			ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = lerp(16, 8, e); ctx.shadowOffsetY = lerp(8, 3, e); ctx.filter = 'saturate(.75) contrast(1.05)';
-			ctx.drawImage(pic, -sw / 2, -sh * 0.88, sw, sh); ctx.restore();
+			// Drawn as the clock draws it, so the hand-over does not move it:
+			// the same sprite, made once at the close-up's sharpness.
+			if (!sprite) sprite = shipSprite(pic, sw, sh, d * Z0);
+			ctx.save(); ctx.translate(cx, ship.y + sh * 0.03); ctx.rotate(ship.rot * 0.6);
+			ctx.drawImage(sprite.c, -sprite.ox, -sprite.oy, sprite.w, sprite.h); ctx.restore();
 		}
 		water(ctx, surf, 0.5, vx0, vx1, vy1, lw);
+		const blob = foamSprite();
 		for (const f of foam) {
 			const y = surfAt(f.x), rx = f.r * (1 + (1 - f.life) * 1.7), ry = Math.max(0.15, f.r * 0.28);
-			const g = ctx.createRadialGradient(f.x, y, 0, f.x, y, rx);
-			g.addColorStop(0, `rgba(225,235,242,${f.a * f.life})`); g.addColorStop(1, 'rgba(225,235,242,0)');
-			ctx.save(); ctx.translate(f.x, y); ctx.scale(1, ry / rx); ctx.translate(-f.x, -y); ctx.beginPath(); ctx.arc(f.x, y, rx, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill(); ctx.restore();
+			ctx.globalAlpha = f.a * f.life; ctx.drawImage(blob, f.x - rx, y - ry, rx * 2, ry * 2);
 		}
-		for (const p of drops) { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fillStyle = `rgba(215,230,240,${p.a * Math.min(1, p.life * 1.5)})`; ctx.fill(); }
+		ctx.fillStyle = 'rgb(215,230,240)';
+		for (const p of drops) { ctx.globalAlpha = p.a * Math.min(1, p.life * 1.5); ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill(); }
+		ctx.globalAlpha = 1;
 		// The ship's shadow on the water, growing as it falls.
 		if (mode === 'fall') {
 			const sy = surfAt(cx), k = Math.max(0, Math.min(1, 1 - (sy - ship.y) / ((H0 * 0.9) / Z)));
