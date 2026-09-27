@@ -6,8 +6,11 @@
 export const esc = s => String(s).replace(/[&<>"']/g, c =>
 	({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-/** A whole number with thousands separators: 12,000. */
-export const F = n => Math.round(n).toLocaleString();
+/** A whole number with thousands separators: 12,000. One formatter,
+ *  made once: toLocaleString() builds a new one every call, and a
+ *  redraw formats numbers by the hundred. */
+const whole = new Intl.NumberFormat();
+export const F = n => whole.format(Math.round(n));
 
 /** A big number the way a chip has room for: 1.5b, 400m, 12,000. */
 // The billions branch opens where the millions branch would round itself

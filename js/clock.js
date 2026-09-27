@@ -168,12 +168,21 @@ export function countdown(ms) {
  * Time zones: a spawn is a wall-clock time on a server's clock.
  * ------------------------------------------------------------------ */
 
+// A formatter per zone, made once: building one is the dear part, and a
+// redraw asks a zone the time over and over.
+const stamps = new Map(), dates = new Map();
+const stampIn = zone => {
+	if (!stamps.has(zone)) stamps.set(zone, new Intl.DateTimeFormat('en-US', { timeZone: zone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+	return stamps.get(zone);
+};
+const dateIn = zone => {
+	if (!dates.has(zone)) dates.set(zone, new Intl.DateTimeFormat('en-US', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' }));
+	return dates.get(zone);
+};
+
 /** The zone's offset from UTC at that instant, in minutes. */
 function zoneOffset(zone, at) {
-	const parts = new Intl.DateTimeFormat('en-US', {
-		timeZone: zone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit',
-		hour: '2-digit', minute: '2-digit', second: '2-digit'
-	}).formatToParts(new Date(at));
+	const parts = stampIn(zone).formatToParts(new Date(at));
 	const get = t => Number(parts.find(p => p.type === t).value);
 	const wall = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour') % 24, get('minute'), get('second'));
 	return Math.round((wall - Math.floor(at / 1000) * 1000) / 60000);
@@ -181,9 +190,7 @@ function zoneOffset(zone, at) {
 
 /** The calendar date, in the zone, of an instant. */
 function wallDate(zone, at) {
-	const parts = new Intl.DateTimeFormat('en-US', {
-		timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short'
-	}).formatToParts(new Date(at));
+	const parts = dateIn(zone).formatToParts(new Date(at));
 	const get = t => parts.find(p => p.type === t).value;
 	return { y: Number(get('year')), m: Number(get('month')) - 1, d: Number(get('day')), day: DAYS.indexOf(get('weekday')) };
 }

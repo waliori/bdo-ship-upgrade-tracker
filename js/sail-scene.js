@@ -22,9 +22,10 @@
 
 import { timerState } from './sail-timer.js';
 
-const DX = 2.5;            // strip pixels a spring of the sea stands for
+const DX = 3;              // strip pixels a spring of the sea stands for
 const PAD = 90;            // sea kept either side of the view
-const FRAME_MS = 1000 / 30;
+const CALM_MS = 1000 / 30; // a ship just sailing: thirty frames a second
+const FAST_MS = 0;         // a rush, a splash, a voyage: every frame the screen has
 const TRANSIT = 2.2;       // seconds to sail from one pier into the next leg
 let canvas = null;
 let raf = 0;
@@ -36,8 +37,12 @@ let readAt = 0;
 let clock = null;
 let palette = null;
 let grads = null;
+let calm = false;          // reduced motion, asked once a frame and not per point of sea
+let sized = true;          // the canvas's box changed since it was measured
+let seen = null;           // what watches it for that
 
-const still = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const reduced = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const still = () => calm;
 const lerp = (a, b, u) => a + (b - a) * u;
 const ease = u => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
 
@@ -167,8 +172,11 @@ function surfAt(x) {
 	const f = Math.max(0, Math.min(s.N - 1.001, (x - s.gx) / DX)), i = Math.floor(f), r = f - i;
 	return surf(i) * (1 - r) + surf(i + 1) * r;
 }
+let simL = new Float32Array(0), simR = new Float32Array(0);
 function sim() {
-	const { h, v, N } = s, L = new Float32Array(N), R = new Float32Array(N);
+	const { h, v, N } = s;
+	if (simL.length !== N) { simL = new Float32Array(N); simR = new Float32Array(N); }
+	const L = simL, R = simR;
 	for (let i = 0; i < N; i++) v[i] += -h[i] * 0.02 - v[i] * 0.04;
 	for (let p = 0; p < 5; p++) {
 		for (let i = 0; i < N; i++) {
@@ -316,7 +324,7 @@ function pier(ctx, X, glow) {
 
 function draw() {
 	const ctx = canvas.getContext('2d'), b = s.bob, { sw, sh, cx } = geo();
-	const d = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
+	const d = dpr();
 	if (!grads || grads.H !== s.H) {
 		const sky = ctx.createLinearGradient(0, 0, 0, s.H * 0.66);
 		sky.addColorStop(0, palette.sky); sky.addColorStop(1, `rgb(${palette.deep})`);
@@ -368,10 +376,15 @@ function draw() {
 	ctx.globalAlpha = 1;
 }
 
+const dpr = () => Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
 function size() {
-	const d = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
+	// Measured when the box changed, not every frame: reading a size
+	// makes the browser lay the page out there and then.
+	if (!sized && s.W && s.H) return true;
+	sized = false;
+	const d = dpr();
 	const w = canvas.clientWidth, h = canvas.clientHeight;
-	if (!w || !h) return false;
+	if (!w || !h) { sized = true; return false; }
 	if (w !== s.W || h !== s.H) {
 		s.W = w; s.H = h; grads = null;
 		// A new width is a new length of leg: the view is put back on the
@@ -387,13 +400,19 @@ function size() {
 function frame(now) {
 	raf = 0;
 	if (!canvas || !canvas.isConnected) { canvas = document.querySelector('canvas[data-sail-scene]'); if (!canvas) return; }
-	// Thirty frames a second is plenty for a strip of sea.
-	if (last && now - last < FRAME_MS - 1) { raf = requestAnimationFrame(frame); return; }
+	// Thirty frames a second is plenty for a ship just sailing; a rush, a
+	// splash or a voyage gets every frame, or the ship jumps.
+	const busy = s && (s.mode !== 'run' || s.drops.length || s.foam.length || s.sparks.length || s.rings.length);
+	if (last && now - last < (busy ? FAST_MS : CALM_MS) - 1) { raf = requestAnimationFrame(frame); return; }
+	calm = reduced();
 	if (now - readAt > 200) { clock = timerState(); readAt = now; }
 	if (!clock) return;
 	if (!s || s.run !== clock.startedAt) s = fresh(clock.startedAt);
 	if (size()) {
-		step(Math.min(80, now - (last || now)) / 1000);
+		// A frame late -- the page redrawn under it when Traded or Arrived
+		// is pressed -- is taken as one frame, not caught up in a leap: the
+		// ship slows for a moment rather than jumping across the strip.
+		step(Math.min(34, now - (last || now)) / 1000);
 		draw();
 	}
 	last = now;
@@ -410,7 +429,12 @@ export function mountScene() {
 	if (!el) { canvas = null; return; }
 	if (el === canvas && raf) return;
 	canvas = el;
-	palette = colours(); grads = null;
+	palette = colours(); grads = null; sized = true;
+	if (typeof window !== 'undefined' && typeof window.ResizeObserver === 'function') {
+		if (seen) seen.disconnect();
+		seen = new window.ResizeObserver(() => { sized = true; });
+		seen.observe(el);
+	}
 	const src = el.dataset.ship || '';
 	if (src !== imgSrc) { imgSrc = src; img = new Image(); img.src = src; if (s) s.sprite = null; }
 	if (!raf) { last = 0; raf = requestAnimationFrame(frame); }
