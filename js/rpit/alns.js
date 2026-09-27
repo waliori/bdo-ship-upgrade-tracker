@@ -24,32 +24,41 @@
 
 import { rng } from './simulate.js';
 import { chainsOf, finish, indexOf } from './common.js';
-import { cheapestPos, growByChains, reorder, bare, quick } from './insert.js';
+import { cheapestPos, growByChains, reorder, serial, bare, quick } from './insert.js';
 import { build as greedy } from './greedy.js';
 import { maximiseRate } from './ratio.js';
 
-const DESTROY = ['random', 'related', 'chain', 'thin', 'thick', 'reorder'];
+const DESTROY = ['random', 'related', 'chain', 'thin', 'thick', 'reorder', 'serial'];
 // Two ways of offering chains back: judged bare, many and cheap; or made
 // sailable first, few and dear -- the only way a climb that needs a call
 // on the way is ever seen to pay.
 const REPAIR = ['bare', 'careful'];
 
-export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most = 20000 } = {}) {
+export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most = 20000, pool = null, fixed = false } = {}) {
+	// Fixed climbs must reach their tops.
+	const must = fixed && pool ? pool.map(c => c.rungs[c.rungs.length - 1]) : null;
 	const t0 = performance.now();
 	const rand = rng(seed * 2654435761);
 	const pick = xs => xs[Math.floor(rand() * xs.length)];
 	const { station, dist } = indexOf(I);
-	const chains = chainsOf(I);
+	// `pool` limits the climbs the search may offer -- the sailor's own, when
+	// they ticked them; by default every climb the board allows.
+	const chains = pool || chainsOf(I);
 
 	const judge = (seq, calls) => {
-		const out = finish(I, seq, mu, { calls });
+		const out = finish(I, seq, mu, { calls, must });
 		return { seq: out.visits, calls: out.calls, f: out.f, R: out.R, T: out.T, plan: out.plan };
 	};
 	let cur = warm && warm.seq ? judge(warm.seq, warm.calls || []) : null;
-	const g = greedy(I, { mu });
-	const fromGreedy = judge(reorder(I, g.seq), []);
-	const plainGreedy = judge(g.seq, g.calls || []);
-	for (const c of [fromGreedy, plainGreedy]) if (!cur || c.f > cur.f) cur = c;
+	// `fixed`: the climbs are the sailor's and all of them are sailed -- the
+	// search lays them, it does not choose among them. Greedy, which would
+	// start from the few that pay best, is not asked.
+	if (!fixed) {
+		const g = greedy(I, { mu, pool: chains });
+		const fromGreedy = judge(reorder(I, g.seq), []);
+		const plainGreedy = judge(g.seq, g.calls || []);
+		for (const c of [fromGreedy, plainGreedy]) if (!cur || c.f > cur.f) cur = c;
+	}
 	let best = cur;
 
 	const OPS = [...DESTROY, ...REPAIR];
@@ -92,9 +101,23 @@ export function search(I, { mu = 0, timeMs = 10000, warm = null, seed = 1, most 
 			v.a = Math.max(1, v.a - 1 - Math.floor(rand() * 3));
 		} else if (op === 'reorder' && n) {
 			seq = reorder(I, seq);
+		} else if (op === 'serial' && n) {
+			// The climbs one after another, in a random order of their own.
+			const ord = chains.map(c => ({ c, r: rand() })).sort((a, b) => a.r - b.r).map(x => x.c);
+			const pos = new Map(ord.map((c, i) => [c.id, i]));
+			seq = serial(I, seq, ord).sort((a, b) => {
+				const ka = ord.find(c => c.rungs.includes(a.at)), kb = ord.find(c => c.rungs.includes(b.at));
+				return (ka ? pos.get(ka.id) : 1e9) - (kb ? pos.get(kb.id) : 1e9);
+			});
 		} else if (op === 'thick' && n) {
 			const v = pick(seq);
 			v.a = Math.min(station.get(v.at).m, v.a + 1 + Math.floor(rand() * 3));
+		}
+		// The sailor's climbs are all sailed: an island of theirs that a
+		// laying before dropped -- it dealt nothing there -- comes back too.
+		if (fixed) {
+			const have = new Set([...seq, ...removed].map(v => v.at));
+			for (const c of chains) for (const id of c.rungs) if (!have.has(id)) { removed.push({ at: id, a: station.get(id).m }); have.add(id); }
 		}
 		// Build up: the removed islands back where they cost least, after
 		// what makes their good; then chains, a handful offered.

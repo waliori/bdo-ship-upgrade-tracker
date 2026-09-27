@@ -121,7 +121,23 @@ export function nearestCall(I, a, b) {
  * hold would stop, where it pays; calls that do nothing taken out; the
  * attempts written as made. Returns { plan, f, R, T }.
  */
-export function finish(I, stationVisits, mu = 0, { calls = [] } = {}) {
+/** What missing one of the islands a plan must deal at costs it: more than
+ *  any run earns. */
+export const MISSED = 1e15;
+
+export function finish(I, stationVisits, mu = 0, { calls = [], must = null } = {}) {
+	// `must`: islands the plan has to deal at -- the tops of the sailor's own
+	// climbs. A plan that misses one is worth less than any that does not,
+	// whatever it earns: the search lays the climbs, it does not drop them.
+	const judge = p => {
+		const e = robustEval(I, p, mu);
+		if (must && must.length) {
+			const dealt = new Set(e.run.log.filter(x => x.kind === 'station' && x.a > 0).map(x => x.at));
+			const missed = must.filter(id => !dealt.has(id)).length;
+			if (missed) e.f -= missed * MISSED;
+		}
+		return e;
+	};
 	const { station, storage } = indexOf(I);
 	let visits = stationVisits.map(v => ({ at: v.at, a: v.a ?? station.get(v.at).m }));
 	// Calls a caller already had, kept in place: { before: stationId, at }.
@@ -139,7 +155,7 @@ export function finish(I, stationVisits, mu = 0, { calls = [] } = {}) {
 		return { ...startOf(I, all), visits: all };
 	};
 	let plan = build(visits, cs);
-	let best = robustEval(I, plan, mu);
+	let best = judge(plan);
 
 	for (let round = 0; round < 3; round++) {
 		// A call before each island the hold stopped, where it pays.
@@ -159,17 +175,35 @@ export function finish(I, stationVisits, mu = 0, { calls = [] } = {}) {
 			const s0 = station.get(at);
 			const trial = [...cs, { before: at, at: d, ...(short ? { load: { [s0.in]: (log[k].req - log[k].a) * s0.q } } : {}) }];
 			const p = build(visits, trial);
-			const e = robustEval(I, p, mu);
+			const e = judge(p);
 			// Kept or not, this island is not asked about again this round.
 			if (e.f > best.f + 1e-6) { cs = trial; plan = p; best = e; changed = true; }
 			else cs = [...cs, { before: at, at: d, tried: true }];
 		}
 		cs = cs.filter(c => !c.tried);
+		// A call to sail lighter. No island refused the hold, but a leg sailed
+		// over the limit is sailed slower; a call before the island after
+		// such a leg -- selling what sells, leaving what nothing ahead takes
+		// -- can pay for its own minutes in the legs it quickens.
+		{
+			const log = best.run.log;
+			const slow = [];
+			for (let k = 0; k < log.length - 1; k++) {
+				const e = log[k], next = log[k + 1];
+				if (e.kind === 'station' && next.kind === 'station' && e.W > I.vehicle.Wfree + 1e-6 && !cs.some(c => c.before === next.at)) slow.push({ at: next.at, from: e.at });
+			}
+			for (const { at, from } of slow.slice(0, 6)) {
+				const trial = [...cs, { before: at, at: nearestCall(I, from, at) }];
+				const p = build(visits, trial);
+				const e = judge(p);
+				if (e.f > best.f + 1e-6) { cs = trial; plan = p; best = e; changed = true; }
+			}
+		}
 		// Calls that do nothing, or less than their time, taken out.
 		for (const c of [...cs]) {
 			const trial = cs.filter(x => x !== c);
 			const p = build(visits, trial);
-			const e = robustEval(I, p, mu);
+			const e = judge(p);
 			if (e.f >= best.f - 1e-6) { cs = trial; plan = p; best = e; changed = true; }
 		}
 		const done = new Map(best.run.log.filter(e => e.kind === 'station').map(e => [e.at, e.a]));
@@ -190,7 +224,7 @@ export function finish(I, stationVisits, mu = 0, { calls = [] } = {}) {
 				return next ? { ...c, before: next.at } : null;
 			}).filter(Boolean);
 			const p = build(live, moved);
-			const e = robustEval(I, p, mu);
+			const e = judge(p);
 			if (e.f >= best.f - 1e-6) { visits = live; cs = moved; plan = p; best = e; changed = true; }
 		}
 		// The attempts as made.
@@ -198,7 +232,7 @@ export function finish(I, stationVisits, mu = 0, { calls = [] } = {}) {
 		const next = visits.map(v => ({ at: v.at, a: done2.get(v.at) ?? 0 })).filter(v => v.a > 0);
 		if (next.length !== visits.length || next.some((v, i) => v.a !== visits[i].a)) {
 			const p = build(next, cs);
-			const e = robustEval(I, p, mu);
+			const e = judge(p);
 			if (e.f >= best.f - 1e-6) { visits = next; plan = p; best = e; changed = true; }
 		}
 		if (!changed) break;

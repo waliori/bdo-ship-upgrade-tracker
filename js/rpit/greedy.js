@@ -11,8 +11,8 @@ import { chainsOf, finish } from './common.js';
 import { growByChains } from './insert.js';
 import { maximiseRate } from './ratio.js';
 
-export function build(I, { mu = 0 } = {}) {
-	const { seq } = growByChains(I, [], chainsOf(I), mu);
+export function build(I, { mu = 0, pool = null } = {}) {
+	const { seq } = growByChains(I, [], pool || chainsOf(I), mu);
 	const out = finish(I, seq, mu);
 	return { ...out, seq: out.visits };
 }

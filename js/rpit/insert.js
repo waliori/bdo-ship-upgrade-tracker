@@ -176,3 +176,21 @@ export function reorder(I, seq, { effort = 2 } = {}) {
 	const r = orderLadders(ladders.map(l => l.map(i => seq[i].at)), { start: 'start', end: I.rules.end, dist, effort });
 	return r.order.map(o => seq[ladders[o.k][o.j]]);
 }
+
+/**
+ * The climbs of `seq` sailed one after another, each whole before the
+ * next begins, in the order their feet come in `seq`. On a small hold a
+ * route that threads two climbs together fills it with both at once; one
+ * after the other, each has the hold to itself.
+ */
+export function serial(I, seq, chains) {
+	const { station } = indexOf(I);
+	const owner = new Map();
+	for (const c of chains) for (const id of c.rungs) if (!owner.has(id)) owner.set(id, c.id);
+	const firstAt = new Map();
+	seq.forEach((v, i) => { const k = owner.has(v.at) ? owner.get(v.at) : `x${i}`; if (!firstAt.has(k)) firstAt.set(k, i); });
+	const keyOf = (v, i) => (owner.has(v.at) ? owner.get(v.at) : `x${i}`);
+	const rank = new Map(seq.map((v, i) => [v, i]));
+	void station;
+	return seq.slice().sort((a, b) => firstAt.get(keyOf(a, rank.get(a))) - firstAt.get(keyOf(b, rank.get(b))) || rank.get(a) - rank.get(b));
+}
