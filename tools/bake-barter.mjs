@@ -212,7 +212,7 @@ const rowName = (kind, k) => Object.entries(layouts[kind]).filter(([, r]) => r =
 }
 
 // What the app has no data for: a barterer with no place on the chart,
-// a good with no icon.
+// a good with no icon (tools/fetch-icons.mjs fetches it from BDOCodex).
 const { npcById } = await import(new URL('js/barter_npcs.js', ROOT).href);
 for (const npc of Object.keys(REGIONS).map(Number)) {
 	if (npcById.has(npc)) continue;
@@ -222,11 +222,14 @@ for (const npc of Object.keys(REGIONS).map(Number)) {
 	note(`NEW BARTERER not in js/barter_npcs.js: ${npc} ${n ? `${n.name} at ${at ? at.regionName : '?'}` : ''}${pos}`);
 }
 const icons = JSON.parse(readFileSync(new URL('icon_mapping.json', ROOT), 'utf8'));
+// Looked up by the name the app shows: the game calls five goods
+// "[Great Ocean] ..." where the app says "[Level 5] ...".
+const { appName } = await import(new URL('js/barter-layouts.js', ROOT).href);
 const bare = s => String(s).replace(/^\[[^\]]+\]\s*/, '');
 const used = new Set();
 for (const board of [TRADE, MATERIAL]) for (const slots of Object.values(board)) for (const s of slots) if (Array.isArray(s) && s[0] > 0) { used.add(s[1]); used.add(s[4]); }
 for (const list of [GROUPS, MATERIAL_GROUPS]) for (const opts of Object.values(list)) for (const o of opts) { used.add(o[1]); used.add(o[4]); }
-const noIcon = [...used].map(i => goods[i][1]).filter(n => !icons[bare(n)] && !icons[n]);
+const noIcon = [...used].map(i => appName(goods[i][1])).filter(n => !icons[n] && !icons[bare(n)]);
 if (noIcon.length) note(`Goods with no icon in icon_mapping.json (${noIcon.length}): ${noIcon.sort().join(', ')}`);
 
 /* ------------------------------------------------------------------ *

@@ -32,7 +32,7 @@ import { tradeGoodNames } from './trade_goods.js';
 // and the barter window say "[Level 5] Rust Repair Tool". The app's
 // name is the one used; the bake keeps the game's.
 const byBare = new Map(tradeGoodNames.map(n => [n.replace(/^\[[^\]]+\]\s*/, ''), n]));
-const appName = n => (/^\[Level \d\]/.test(n) || n === 'Crow Coin' ? n : byBare.get(n.replace(/^\[[^\]]+\]\s*/, '')) || n);
+export const appName = n => (/^\[Level \d\]/.test(n) || n === 'Crow Coin' ? n : byBare.get(n.replace(/^\[[^\]]+\]\s*/, '')) || n);
 
 const FULL = 1e6;
 const dealt = name => /^\[Level \d\]/.test(name) || name === 'Crow Coin';
