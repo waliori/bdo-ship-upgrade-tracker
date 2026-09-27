@@ -54,16 +54,29 @@ function fresh(run) {
  * What the clock says of the leg: which one, how far into it (0 to 1),
  * and whether the ship is at its stop -- the clock has reached it, or
  * the sailor said so.
+ *
+ * Time is read to the millisecond here, not the clock's whole seconds,
+ * or the ship moves in jerks a second apart. And the leg runs from when
+ * Traded let the ship go (the clock keeps it, `legAt`); a clock started
+ * before it kept that is timed back from when the leg is due by its
+ * length as the run was laid. Never from the stop behind: the stop
+ * behind keeps its estimated pause however early or late Traded was
+ * pressed there, so "after that pause" is a start that is wrong both
+ * ways -- the ship sat at the start of a leg under way, or began it in
+ * the middle.
  */
 function legOf(t) {
 	if (!t) return null;
-	if (!t.marks.length) return { leg: 0, p: Math.min(1, t.ran / Math.max(1, t.seconds)), there: t.over, count: 1 };
+	const ran = Math.max(0, (Date.now() - t.startedAt) / 1000);
+	if (!t.marks.length) return { leg: 0, p: Math.min(1, ran / Math.max(1, t.seconds)), there: t.over, count: 1 };
 	const i = Math.min(t.done, t.marks.length - 1);
-	const prev = t.done > 0 ? t.marks[t.done - 1] : null;
-	const start = prev ? prev.at + prev.hold : 0;
-	const end = t.marks[i].at;
 	const there = !!t.wait || t.reached > t.done || t.done >= t.marks.length;
-	const p = there ? 1 : Math.max(0, Math.min(1, (t.ran - start) / Math.max(1, end - start)));
+	const end = t.marks[i].at;
+	const was = t.base && t.base.marks && t.base.marks.length === t.marks.length ? t.base.marks : null;
+	const planned = was ? was[i].at - (i > 0 ? was[i - 1].at + (was[i - 1].hold || 0) : 0) : 0;
+	const prev = t.done > 0 ? t.marks[t.done - 1] : null;
+	const start = t.legAt !== null && t.legAt < end ? t.legAt : planned > 0 ? end - planned : prev ? prev.at + prev.hold : 0;
+	const p = there ? 1 : Math.max(0, Math.min(1, (ran - start) / Math.max(1, end - start)));
 	return { leg: t.done, p, there, count: t.marks.length };
 }
 
@@ -144,7 +157,7 @@ function step(dt) {
 	const { sw, cx, L } = geo(), b = s.bob;
 	if (s.mode === 'run') {
 		if (leg.there) s.mode = s.px < 0.97 ? 'rush' : 'glide';
-		else { s.px += (leg.p - s.px) * Math.min(1, 3 * dt); s.rv = (leg.p - s.px) * L * 3; }
+		else { s.px += (leg.p - s.px) * Math.min(1, 6 * dt); s.rv = (leg.p - s.px) * L * 6; }
 		if (s.fade < 1) s.fade = Math.min(1, s.fade + dt * 2.2);
 	}
 	if (s.mode === 'glide') {
@@ -281,3 +294,7 @@ export function mountScene() {
 	if (s) { s.W = 0; s.H = 0; }
 	if (!raf) { last = 0; raf = requestAnimationFrame(frame); }
 }
+
+/** Where the ship is, for a test: how far along the leg, which leg, and
+ *  what it is doing. Null when nothing is drawn. */
+export const sceneNow = () => (s ? { px: s.px, leg: s.leg, mode: s.mode } : null);

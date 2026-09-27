@@ -77,7 +77,11 @@ export function timerNow() {
 		done: Math.max(0, Math.min(marks.length, Math.floor(Number(t.done) || 0))),
 		// The stops the clock has reached and chimed for. Reaching is not
 		// passing: the clock waits at a stop until Traded is pressed.
-		reached: Math.max(0, Math.min(marks.length, Math.floor(Number(t.reached) || 0)))
+		reached: Math.max(0, Math.min(marks.length, Math.floor(Number(t.reached) || 0))),
+		// When the leg under way began, in seconds from the start: the
+		// moment Traded let the ship go. The picture of the ship on the
+		// clock is timed from it.
+		legAt: Number(t.legAt) >= 0 ? Number(t.legAt) : null
 	};
 }
 
@@ -94,7 +98,7 @@ export function startTimer(seconds, label = '', marks = []) {
 	// The end of the run is the last mark, or what was asked for.
 	const end = list.length ? list[list.length - 1].at : Number(seconds) || 0;
 	const s = Math.max(30, Math.min(6 * 3600, Math.round(end)));
-	write({ startedAt: Date.now(), seconds: s, label: String(label || '').slice(0, 60), chimed: false, marks: list, done: 0, reached: 0, base: { seconds: s, marks: list } });
+	write({ startedAt: Date.now(), seconds: s, label: String(label || '').slice(0, 60), chimed: false, marks: list, done: 0, reached: 0, legAt: 0, base: { seconds: s, marks: list } });
 	arm();
 	sendSchedule();
 	return s;
@@ -133,7 +137,7 @@ export function passedStop(index, fresh = null) {
 		const from = fresh[done - 1].at + fresh[done - 1].hold;
 		marks = marks.map((m, j) => (j < done ? m : { ...m, at: Math.max(ran + 1, ran + fresh[j].at - from), hold: fresh[j].hold }));
 	}
-	write({ ...t, marks, done, reached: Math.max(done, Math.min(t.reached, done)), seconds: Math.max(30, marks[marks.length - 1].at), chimed: false });
+	write({ ...t, marks, done, reached: Math.max(done, Math.min(t.reached, done)), legAt: ran, seconds: Math.max(30, marks[marks.length - 1].at), chimed: false });
 	arm();
 	sendSchedule();
 }
@@ -224,7 +228,7 @@ export function restartTimer() {
 	const base = now.base || { seconds: now.seconds, marks: now.marks };
 	const marks = Array.isArray(base.marks) ? base.marks : [];
 	write({
-		...now, base, startedAt: Date.now(), chimed: false, done: 0, reached: 0,
+		...now, base, startedAt: Date.now(), chimed: false, done: 0, reached: 0, legAt: 0,
 		marks, seconds: Math.max(30, marks.length ? marks[marks.length - 1].at : base.seconds)
 	});
 	arm();

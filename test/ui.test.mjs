@@ -2199,6 +2199,18 @@ test('the running clock draws the sailor’s own ship crossing the leg', async (
 	// Drawn, not blank: the canvas has pixels that are not the sky.
 	const drawn = await page.$eval('canvas[data-sail-scene]', el => { const d = el.getContext('2d').getImageData(0, 0, el.width, el.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) n++; return n; });
 	assert.ok(drawn > 1000, `${drawn} pixels drawn`);
+	// It sails on smoothly, not a jump a second: every look a third of a
+	// second apart finds it further along.
+	const along = [];
+	for (let i = 0; i < 5; i++) { along.push(await page.evaluate(async () => (await import('/js/sail-scene.js')).sceneNow().px)); await wait(300); }
+	for (let i = 1; i < along.length; i++) assert.ok(along[i] > along[i - 1], `moving on: ${along.join(', ')}`);
+	// Traded early: the ship makes fast, and the next leg starts from its
+	// start -- not part-way along it, and not after a wait.
+	const leg0 = await page.evaluate(async () => (await import('/js/sail-scene.js')).sceneNow().leg);
+	await page.evaluate(() => { const b = document.querySelector('.cockpit-go[data-act="barter-stop-done"], .cockpit-go[data-act="barter-paid"]'); if (b) b.click(); });
+	await page.waitForFunction(n => import('/js/sail-scene.js').then(m => { const x = m.sceneNow(); return x && x.leg > n && x.mode === 'run'; }), { timeout: 8000, polling: 100 }, leg0);
+	const next = await page.evaluate(async () => (await import('/js/sail-scene.js')).sceneNow());
+	assert.ok(next.px < 0.05, `the next leg starts at its start: ${next.px}`);
 	assert.deepEqual(errors, []);
 	await context.close();
 });
