@@ -37,7 +37,7 @@ that nothing was misread.
 
 ## The extractor
 
-[bdo-data-extractor](https://github.com/iDevelopThings/bdo-data-extractor),
+[bdo-data-extractor](https://github.com/iDevelopThings/bdo-data-extractor) (installing it: `tools/barter-bake/EXTRACTOR.md`),
 a Go program. Build it once and put it on the `PATH` (or point
 `BDO_EXTRACTOR` at it). The bake runs three of its commands:
 
