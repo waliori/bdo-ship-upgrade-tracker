@@ -2191,7 +2191,15 @@ test('the running clock draws the sailor’s own ship crossing the leg', async (
 	await page.evaluate(async () => { const store = await import('/js/state.js'); store.addTarget('Carrack (Advance)', 1); store.setProfile('crewShip', 'Carrack (Advance)'); });
 	await page.waitForFunction(() => document.querySelector('[data-act="barter-cast-off"]:not([disabled]), .run-dock'), { timeout: 20000 });
 	await laidOut(page);
-	await page.evaluate(() => document.querySelector('[data-act="barter-cast-off"]').click()); await wait(2000);
+	await page.evaluate(() => document.querySelector('[data-act="barter-cast-off"]').click()); await wait(600);
+	// Casting off: the ship dropped in, close up, over the page, the clock's
+	// own strip held back under it -- and a press skips to the clock.
+	assert.equal(await count(page, '.castoff-fx .setsail canvas'), 1, 'the set-sail card');
+	assert.ok(await page.evaluate(() => document.body.classList.contains('sail-scene-hold')), 'the strip waits under it');
+	await page.evaluate(() => document.querySelector('.castoff-fx').click()); await wait(300);
+	assert.equal(await count(page, '.castoff-fx'), 0, 'a press skips it');
+	assert.equal(await page.evaluate(() => document.body.classList.contains('sail-scene-hold')), false, 'and the strip is shown');
+	await wait(1100);
 	// Casting off starts the clock; if it did not, start it.
 	if (!(await count(page, 'canvas[data-sail-scene]'))) { await tap(page, '[data-act="barter-timer-start"]'); await wait(1500); }
 	await wait(600);
@@ -2372,7 +2380,8 @@ test('the run laid out is the wharf step: a strip along the foot appears as chai
 		}
 		for (let i = 0; i < 20; i++) {
 			const chips = await page.$$('.cockpit-press [data-act="barter-paid"]');
-			if (chips.length) { await chips[chips.length - 1].click(); await wait(900); continue; }
+			// Pressed as an element: the set-sail card may still be over the page.
+			if (chips.length) { await chips[chips.length - 1].evaluate(b => b.click()); await wait(900); continue; }
 			const typed = await page.$('.cockpit [data-act="barter-paid-n"]');
 			if (!typed) break;
 			await page.evaluate(() => { const el = document.querySelector('.cockpit [data-act="barter-paid-n"]'); el.value = String(Math.round((Number(el.min) || 0) || 400)); el.dispatchEvent(new Event('change', { bubbles: true })); });
