@@ -41,7 +41,10 @@ let calm = false;          // reduced motion, asked once a frame and not per poi
 let sized = true;          // the canvas's box changed since it was measured
 let seen = null;           // what watches it for that
 
-const reduced = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Asked of the browser once, and told when it changes, rather than
+// asked every frame.
+const motionQuery = typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+const reduced = () => !!(motionQuery && motionQuery.matches);
 const still = () => calm;
 const lerp = (a, b, u) => a + (b - a) * u;
 const ease = u => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
@@ -167,10 +170,34 @@ function shiftGrid() {
 const colX = i => s.gx + i * DX;
 const idx = x => Math.max(0, Math.min(s.N - 1, Math.round((x - s.gx) / DX)));
 const ambient = (x, t) => Math.sin(x * 0.02 + t * 1.1) * 1.1 + Math.sin(x * 0.045 - t * 1.6) * 0.6 + Math.sin(x * 0.008 + t * 0.5) * 0.9;
-const surf = i => baseY() + s.h[i] + (still() ? 0 : ambient(colX(i), s.t));
+/**
+ * The sea's surface, worked out once a frame into a table: the swell and
+ * the springs, point by point. Every particle, the ship and the drawing
+ * read it from there -- the swell is three sines, and asked afresh for
+ * each drop and blob of foam it was the dearest thing on the screen
+ * while a splash was in the air. The far swell behind is tabled too.
+ */
+let top = new Float32Array(0), back = new Float32Array(0), swell = new Float32Array(0), far = new Float32Array(0);
+/** The swell, once a frame: three sines a point for the sea in front,
+ *  the far sea behind at every other point with the ones between drawn
+ *  straight -- it is faint, and a gentle curve either way. */
+function swellNow() {
+	if (swell.length !== s.N) { top = new Float32Array(s.N); back = new Float32Array(s.N); swell = new Float32Array(s.N); far = new Float32Array(s.N); }
+	if (still()) { swell.fill(0); far.fill(0); return; }
+	const t = s.t;
+	for (let i = 0; i < s.N; i++) swell[i] = ambient(s.gx + i * DX, t);
+	for (let i = 0; i < s.N; i += 2) far[i] = ambient(s.gx + i * DX + 200, t * 0.7);
+	for (let i = 1; i < s.N; i += 2) far[i] = i + 1 < s.N ? (far[i - 1] + far[i + 1]) / 2 : far[i - 1];
+}
+/** The surface from the swell and the springs: additions only. */
+function surface() {
+	const b = baseY();
+	for (let i = 0; i < s.N; i++) { top[i] = b + s.h[i] + swell[i]; back[i] = b - 5 + s.h[i] * 0.3 + far[i]; }
+}
+const surf = i => top[i];
 function surfAt(x) {
 	const f = Math.max(0, Math.min(s.N - 1.001, (x - s.gx) / DX)), i = Math.floor(f), r = f - i;
-	return surf(i) * (1 - r) + surf(i + 1) * r;
+	return top[i] * (1 - r) + top[i + 1] * r;
 }
 let simL = new Float32Array(0), simR = new Float32Array(0);
 function sim() {
@@ -192,17 +219,29 @@ function sim() {
  * the ship
  * ------------------------------------------------------------------ */
 
+/** How much of each the sea may hold at once: a splash is a handful of
+ *  things in the air, not hundreds, and each is drawn every frame. */
+const MAX_FOAM = 40, MAX_DROPS = 40, WAKE_PER_S = 24;
+const foamIn = f => { if (s.foam.length < MAX_FOAM) s.foam.push(f); };
+const dropIn = d => { if (s.drops.length < MAX_DROPS) s.drops.push(d); };
+
 /** The wash a moving hull throws: the sea pushed at the bow and drawn
- *  in at the stern, foam behind, spray ahead at speed. */
-function wake(cx, sw, sp) {
+ *  in at the stern, foam behind, spray ahead at speed. Foam and spray
+ *  are let out by the second, not by the frame, so a faster screen does
+ *  not fill the sea with more of them. */
+function wake(cx, sw, sp, dt) {
 	if (!(sp > 0) || still()) return;
 	const bow = cx + sw * 0.3, stern = cx - sw * 0.34;
-	s.v[idx(bow + 4)] += sp * 0.9; s.v[idx(bow + 10)] += sp * 0.5; s.v[idx(stern)] -= sp * 0.6; s.v[idx(stern - 6)] -= sp * 0.3;
-	if (sp > 0.25) {
-		s.foam.push({ x: stern - Math.random() * 6, vx: -(20 + Math.random() * 40), r: 1.5 + Math.random() * 3.5, a: 0.22 + Math.random() * 0.2, life: 1, decay: 0.5 + Math.random() * 0.4 });
-		if (Math.random() < 0.6) s.drops.push({ x: bow + Math.random() * 4, y: surfAt(bow) - 1, vx: (40 + Math.random() * 90) * sp, vy: -(40 + Math.random() * 120) * sp, r: 0.5 + Math.random() * 1.1, a: 0.4 + Math.random() * 0.4, life: 0.8 });
-	} else if (sp > 0.06 && Math.random() < sp * 3) {
-		s.foam.push({ x: stern - Math.random() * 4, vx: -15, r: 1.2 + Math.random() * 2, a: 0.18, life: 1, decay: 0.7 });
+	s.v[idx(bow + 4)] += sp * 0.9 * dt * 60; s.v[idx(bow + 10)] += sp * 0.5 * dt * 60; s.v[idx(stern)] -= sp * 0.6 * dt * 60; s.v[idx(stern - 6)] -= sp * 0.3 * dt * 60;
+	s.wakeDue = (s.wakeDue || 0) + WAKE_PER_S * dt * Math.min(1, sp * 2);
+	while (s.wakeDue >= 1) {
+		s.wakeDue -= 1;
+		if (sp > 0.25) {
+			foamIn({ x: stern - Math.random() * 6, vx: -(20 + Math.random() * 40), r: 1.5 + Math.random() * 3.5, a: 0.22 + Math.random() * 0.2, life: 1, decay: 0.6 + Math.random() * 0.4 });
+			if (Math.random() < 0.6) dropIn({ x: bow + Math.random() * 4, y: surfAt(bow) - 1, vx: (40 + Math.random() * 90) * sp, vy: -(40 + Math.random() * 120) * sp, r: 0.5 + Math.random() * 1.1, a: 0.4 + Math.random() * 0.4, life: 0.8 });
+		} else if (sp > 0.06) {
+			foamIn({ x: stern - Math.random() * 4, vx: -15, r: 1.2 + Math.random() * 2, a: 0.18, life: 1, decay: 0.8 });
+		}
 	}
 }
 
@@ -213,10 +252,10 @@ function land() {
 	s.mode = 'arrived'; s.arrivedAt = s.t; s.rv = 0; s.px = 1;
 	if (still()) return;
 	for (let i = idx(bow - 8); i <= idx(pierX); i++) s.v[i] += 2.2 * k;
-	for (let i = 0; i < 30; i++) s.drops.push({ x: bow + Math.random() * 10, y: sy, vx: (10 + Math.random() * 110) * k, vy: -(60 + Math.random() * 190) * k, r: 0.6 + Math.random() * 1.6, a: 0.5 + Math.random() * 0.5, life: 1 });
-	for (let i = 0; i < 12; i++) s.foam.push({ x: bow - 6 + Math.random() * 22, vx: 10 + Math.random() * 30, r: 3 + Math.random() * 6, a: 0.2 + Math.random() * 0.25, life: 1, decay: 0.35 + Math.random() * 0.3 });
+	for (let i = 0; i < 30; i++) dropIn({ x: bow + Math.random() * 10, y: sy, vx: (10 + Math.random() * 110) * k, vy: -(60 + Math.random() * 190) * k, r: 0.6 + Math.random() * 1.6, a: 0.5 + Math.random() * 0.5, life: 1 });
+	for (let i = 0; i < 12; i++) foamIn({ x: bow - 6 + Math.random() * 22, vx: 10 + Math.random() * 30, r: 3 + Math.random() * 6, a: 0.2 + Math.random() * 0.25, life: 1, decay: 0.35 + Math.random() * 0.3 });
 	for (let i = 0; i < 3; i++) s.rings.push({ x: bow + 6, t0: s.t + i * 0.14 });
-	for (let i = 0; i < 24; i++) {
+	for (let i = 0; i < 18; i++) {
 		const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.9, v = 70 + Math.random() * 150;
 		s.sparks.push({ x: pierX - 4, y: sy - 12, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, decay: 0.55 + Math.random() * 0.45, c: Math.random() < 0.55 ? palette.teal : palette.gold, r: 0.9 + Math.random() * 1.4 });
 	}
@@ -241,6 +280,8 @@ function placeAt(leg) {
 
 function step(dt) {
 	s.t += dt;
+	swellNow();
+	surface();
 	const leg = legOf(clock);
 	if (!leg) return;
 	if (s.leg < 0 || leg.leg < s.leg || leg.leg > s.leg + 1) placeAt(leg);
@@ -265,7 +306,7 @@ function step(dt) {
 		const dist = (1 - s.px) * L, want = Math.min(s.W * 1.5, Math.sqrt(2 * s.W * 2.4 * Math.max(0, dist)) + 30);
 		s.rv += (want - s.rv) * Math.min(1, (want > s.rv ? 2.6 : 6) * dt);
 		s.px += (s.rv * dt) / L;
-		wake(cx, sw, s.rv / s.W);
+		wake(cx, sw, s.rv / s.W, dt);
 		b.rot += (-0.09 * Math.min(1, s.rv / s.W) - b.rot) * 6 * dt;
 		if (s.px >= 1) land();
 	} else if (s.mode === 'transit') {
@@ -274,7 +315,7 @@ function step(dt) {
 		tr.sx = sx;
 		s.camX = lerp(tr.camA, tr.camB, ease(Math.max(0, Math.min(1, (u - 0.08) / 0.92))));
 		shiftGrid();
-		wake(sx, sw, (sp / s.W) * 0.55);
+		wake(sx, sw, (sp / s.W) * 0.55, dt);
 		b.rot += (-0.07 * Math.min(1, sp / s.W) - b.rot) * 5 * dt;
 		if (u >= 1) {
 			s.leg = tr.to; s.camX = tr.camB; shiftGrid();
@@ -290,12 +331,13 @@ function step(dt) {
 	const g = s.H * 5, left = s.camX - 40;
 	s.drops = s.drops.filter(d => {
 		d.vy += g * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.life -= dt * 1.2;
-		if (d.y > surfAt(d.x) && d.vy > 0) { if (Math.random() < 0.25) s.foam.push({ x: d.x, vx: d.vx * 0.2, r: 1.5 + d.r, a: d.a * 0.3, life: 1, decay: 0.9 }); return false; }
+		if (d.y > surfAt(d.x) && d.vy > 0) { if (Math.random() < 0.2) foamIn({ x: d.x, vx: d.vx * 0.2, r: 1.5 + d.r, a: d.a * 0.3, life: 1, decay: 0.9 }); return false; }
 		return d.life > 0 && d.x > left;
 	});
 	s.foam = s.foam.filter(f => { f.life -= f.decay * dt; f.x += f.vx * dt; f.vx *= 0.95; return f.life > 0 && f.x > left; });
 	s.sparks = s.sparks.filter(p => { p.vy += 160 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.985; p.life -= p.decay * dt; return p.life > 0 && p.y < s.H; });
 	s.rings = s.rings.filter(r => s.t - r.t0 < 1.3);
+	surface();
 }
 
 /* ------------------------------------------------------------------ *
@@ -313,13 +355,27 @@ function water(ctx, fn, front, x0, x1) {
 	ctx.strokeStyle = grads.line; ctx.lineWidth = 1; ctx.stroke();
 }
 
+let halo = null;
+/** The lamp's glow, drawn once: a blur on the canvas is dear, and it
+ *  flared with every ship made fast, just as the splash was in the air. */
+function haloSprite() {
+	if (halo && halo.gold === palette.gold) return halo.c;
+	const c = document.createElement('canvas');
+	c.width = c.height = 48;
+	const x = c.getContext('2d'), g = x.createRadialGradient(24, 24, 0, 24, 24, 24);
+	g.addColorStop(0, palette.gold); g.addColorStop(0.25, palette.gold); g.addColorStop(1, 'rgba(0,0,0,0)');
+	x.fillStyle = g; x.fillRect(0, 0, 48, 48);
+	halo = { c, gold: palette.gold };
+	return c;
+}
 function pier(ctx, X, glow) {
 	const ps = surfAt(X);
 	ctx.fillStyle = palette.ink; ctx.globalAlpha = 0.85;
 	ctx.fillRect(X - 9, ps - 9, 18, 2); ctx.fillRect(X - 7, ps - 8, 2, 12); ctx.fillRect(X + 5, ps - 8, 2, 12); ctx.fillRect(X + 7, ps - 18, 1.5, 10);
-	ctx.globalAlpha = 1;
-	ctx.beginPath(); ctx.arc(X + 7.8, ps - 19, 1.8 + glow * 1.5, 0, Math.PI * 2);
-	ctx.fillStyle = palette.gold; ctx.shadowColor = palette.gold; ctx.shadowBlur = 6 + glow * 16; ctx.fill(); ctx.shadowBlur = 0;
+	const r = 6 + glow * 14;
+	ctx.globalAlpha = 0.55 + glow * 0.45; ctx.drawImage(haloSprite(), X + 7.8 - r, ps - 19 - r, r * 2, r * 2);
+	ctx.globalAlpha = 1; ctx.fillStyle = palette.gold;
+	ctx.fillRect(X + 6, ps - 20.8, 3.6, 3.6);
 }
 
 function draw() {
@@ -343,7 +399,7 @@ function draw() {
 	// The world, scrolled to where the view is.
 	ctx.setTransform(d, 0, 0, d, -s.camX * d, 0);
 	const vx0 = s.camX, vx1 = s.camX + s.W;
-	ctx.globalAlpha = 0.6; water(ctx, i => baseY() - 5 + s.h[i] * 0.3 + (still() ? 0 : ambient(colX(i) + 200, s.t * 0.7)), false, vx0, vx1); ctx.globalAlpha = 1;
+	ctx.globalAlpha = 0.6; water(ctx, i => back[i], false, vx0, vx1); ctx.globalAlpha = 1;
 	const glow = s.mode === 'arrived' ? Math.max(0, 1 - (s.t - s.arrivedAt) / 2.4) : 0;
 	for (let k = Math.max(0, Math.floor((vx0 - s.W) / legSpan())); ; k++) {
 		const X = pierAt(k);
@@ -372,7 +428,7 @@ function draw() {
 	}
 	ctx.fillStyle = 'rgb(215,230,240)';
 	for (const p of s.drops) { ctx.globalAlpha = p.a * Math.min(1, p.life * 1.5); ctx.fillRect(p.x - p.r, p.y - p.r, p.r * 2, p.r * 2); }
-	for (const p of s.sparks) { ctx.globalAlpha = Math.min(1, p.life * 1.4); ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill(); }
+	for (const p of s.sparks) { ctx.globalAlpha = Math.min(1, p.life * 1.4); ctx.fillStyle = p.c; ctx.fillRect(p.x - p.r, p.y - p.r, p.r * 2, p.r * 2); }
 	ctx.globalAlpha = 1;
 }
 
