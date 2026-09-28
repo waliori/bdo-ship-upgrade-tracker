@@ -69,6 +69,7 @@ function colours() {
  * { c, ox, oy, w, h }: the sprite, where the ship's anchor (the middle
  * of its waterline) sits in it, and its size in strip pixels.
  */
+export const WATERLINE = 0.8;
 export function shipSprite(pic, w, h, dpr, shadow = { blur: 8, y: 3 }) {
 	const m = Math.ceil(shadow.blur * 2 + shadow.y);
 	const c = document.createElement('canvas');
@@ -79,7 +80,10 @@ export function shipSprite(pic, w, h, dpr, shadow = { blur: 8, y: 3 }) {
 	x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = shadow.blur * dpr; x.shadowOffsetY = shadow.y * dpr;
 	if ('filter' in x) x.filter = 'saturate(.75) contrast(1.05)';
 	x.drawImage(pic, -w / 2, 0, w, h);
-	return { c, ox: m + w / 2, oy: m + h * 0.88, w: w + m * 2, h: h + m * 2 };
+	// The waterline a fifth of the way up the picture: the game's icon
+	// ends in a flat cut under the hull, and a ship riding higher showed it
+	// between the waves.
+	return { c, ox: m + w / 2, oy: m + h * WATERLINE, w: w + m * 2, h: h + m * 2 };
 }
 
 let foamBlob = null;

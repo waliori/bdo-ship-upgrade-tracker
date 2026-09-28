@@ -22,7 +22,7 @@ import { currentShip } from '../ship.js';
 import { timerState, spanText } from '../sail-timer.js';
 import { stopNames } from './cockpit.js';
 import { sailedPlan } from './sail.js';
-import { shipSprite, foamSprite, legNow } from '../sail-scene.js';
+import { shipSprite, foamSprite, legNow, WATERLINE } from '../sail-scene.js';
 
 const FLOAT = 2.4;          // seconds afloat in close-up, the title up
 const MORPH = 3.4;          // seconds for the camera to pull back
@@ -222,7 +222,7 @@ export function castOffFx() {
 			if (e < 1 && mode !== 'fall') {
 				ctx.save(); ctx.beginPath(); ctx.rect(vx0, yb - 8, vx1 - vx0, vy1 - yb + 8); ctx.clip();
 				ctx.translate(cx, surfAt(cx) + 1.2); ctx.scale(-1, -0.55); ctx.rotate(-ship.rot * 0.5); ctx.globalAlpha = 0.22 * (1 - e);
-				ctx.drawImage(pic, -sw / 2, -sh * 0.88, sw, sh); ctx.restore();
+				ctx.drawImage(pic, -sw / 2, -sh * WATERLINE, sw, sh); ctx.restore();
 			}
 			// Drawn as the clock draws it, so the hand-over does not move it:
 			// the same sprite, made once at the close-up's sharpness.
