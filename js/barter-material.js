@@ -7,14 +7,12 @@
 // The hold is the constraint. The gives an island takes weigh a
 // thousand a piece and the materials they pay weigh nothing, so a run
 // leaves heavy and comes back light -- and a hold cannot always carry
-// every give at once. Two paces, both sailing everything ticked: what
-// the run will not spend is left in storage to make room, and when the
-// gives do not fit the run goes out in several departures, back to the
-// harbour for the rest between them. 'fast' loads each departure to the
-// limit the ship still sails at full speed under -- more trips, never
-// slower; 'full' loads it to the barter ceiling -- fewer trips, slower
-// past the limit. Only an island whose gives would not fit an empty
-// hold stays ashore.
+// every give at once. The run sails everything ticked: what it will
+// not spend is left in storage to make room, and when the gives do not
+// fit the run goes out in several departures, back to the harbour for
+// the rest between them, each loaded to the limit -- the most the game
+// lets a wharf put aboard. Only an island whose gives would not fit an
+// empty hold stays ashore.
 //
 // And the Parley: a material exchange costs three times a trade good's,
 // so a bar and its vouchers run out long before most wants are met.
@@ -81,7 +79,12 @@ export { tour };
  */
 export function materialRun({ picks = [], wants = new Map(), reach = 'want', pace = 'full', calls = true, buy = true, assume = true, stock = {}, dock = {}, stores = [], bags = {}, prices = {}, hold, start = null, startWharf = null, npcById, parley = null, order = 'short' } = {}) {
 	const wantOf = wants instanceof Map ? wants : new Map(Object.entries(wants));
-	const limit = pace === 'fast' ? hold.free : (hold.deal ?? hold.free);
+	// Everything a material run carries is loaded at a wharf, and the game
+	// loads no cargo past the hold's limit -- the barter ceiling is only
+	// ever reached by exchanges, and a material run's exchanges make the
+	// hold lighter. So every departure is loaded to the limit, whatever
+	// the pace.
+	const limit = hold.free;
 	const place = x => npcById.get(x.npcId);
 	const isGood = name => levelOf(name) !== null;
 

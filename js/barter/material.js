@@ -375,24 +375,22 @@ export function materialParts(me, data) {
 	// run draw on, and what each island costs of it at the sailor's rate.
 	const pr = parleyOf(barterProfile());
 	const parley = { budget: pr.bar, costOf: x => Math.floor((x.parleyBase || PARLEY.perMaterialTrade) * pr.rate) };
-	const layFor = pace => materialRun({
-		picks, wants: new Map(mats.map(m => [m.it, m.qty])), reach: V.matOrders.reach, pace, calls: V.matOrders.calls, assume: false, parley, order: V.matOrders.order || 'short',
+	const layFor = () => materialRun({
+		picks, wants: new Map(mats.map(m => [m.it, m.qty])), reach: V.matOrders.reach, calls: V.matOrders.calls, assume: false, parley, order: V.matOrders.order || 'short',
 		stock, dock: dockStock(), stores: storesElsewhere(), bags: bagsNow(),
 		prices: landPrices([...new Set(picks.map(x => x.give).filter(g => levelOf(g) === null))], store.getProfile('homemade', []) || []),
 		hold: me.hold, start: from, startWharf: from ? stashes.find(w => w.at === from.name) || null : null, npcById
 	});
-	let plan = layFor(V.matOrders.pace);
+	let plan = layFor();
 	// A coin day's want, when not typed: what the shop asks for everything
 	// short, less the shop's price for what this run brings of the rest.
 	const coin = mats.find(m => m.it === CROW_COIN);
 	if (coin && !coin.typed && Number.isFinite(coin.qty) && plan.stops.length) {
 		const saved = mats.filter(m => m !== coin).reduce((a, m) => a + Math.min(plan.got.get(m.it).min, m.short || 0) * coinPrice(m.it), 0);
 		const net = Math.max(0, Math.ceil(coin.qty - saved));
-		if (net < coin.qty) { coin.qty = net; coin.saved = saved; plan = layFor(V.matOrders.pace); }
+		if (net < coin.qty) { coin.qty = net; coin.saved = saved; plan = layFor(); }
 	}
 	const listPanel = `<section class="barter-chains mat-list hero">${matNeedHTML(mats)}</section>`;
-	// The other way of sailing, laid too, so each card says what it comes to.
-	const other = picks.length ? layFor(V.matOrders.pace === 'fast' ? 'full' : 'fast') : null;
 	plan.stops = nudged(plan.stops, V.routeEdit.nudge, plan.weightStart);
 	for (const s of plan.stops) s.hold = me.hold;
 	// Each island at its own price: the material list's exchanges cost far
@@ -413,21 +411,11 @@ export function materialParts(me, data) {
 	const toBring = shortRows.filter(m => m.bring > 0);
 	const toClimb = shortRows.filter(m => m.climb > 0);
 	const gotText = m => { const g = plan.got.get(m.it); return g.min === g.max ? F(g.min) : `${F(g.min)}–${F(g.max)}`; };
-	// How to sail it, as the trade goods' run says it: the two ways the
-	// hold is treated as cards, each with what it comes to, and the other
-	// orders as chips under them.
-	const cardFig = run => {
-		if (!run || !run.stops.length) return picks.length ? `<span class="preset-fig"><span>${T('nothing sails this way today')}</span></span>` : '';
-		const some = mats.filter(m => run.got.get(m.it).max > 0);
-		const got = some.slice(0, 6).map(m => { const g = run.got.get(m.it); return `<span class="mat-card-got">${img(m.it, 'row-icon xs')}${g.min === g.max ? F(g.min) : `${F(g.min)}–${F(g.max)}`}/${wantSaid(m.qty)}</span>`; }).join('') + (some.length > 6 ? `<span class="mat-card-got">+${some.length - 6}</span>` : '');
-		return `<span class="preset-fig"><b>${got}</b><span>${run.islands === 1 ? T('{n} island', { n: run.islands }) : T('{n} islands', { n: run.islands })} · ${run.trades === 1 ? T('{n} trade', { n: run.trades }) : T('{n} trades', { n: run.trades })}${run.returns ? ` · ${T('{n} departures', { n: run.returns + 1 })}` : ''}</span></span>`;
-	};
-	const runOf = pace => (pace === V.matOrders.pace ? plan : other);
-	const cards = `<div class="preset-cards mat-cards">${[
-		['fast', T('Light and fast'), T('Every departure under the limit the ship still sails at full speed at: more trips, never slower.')],
-		['full', T('Loaded'), T('Every departure loaded up to the barter ceiling: fewer trips, slower past the limit.')]
-	].map(([id, name, line]) => `<button class="preset-card${V.matOrders.pace === id ? ' on' : ''}" data-act="barter-mat-pace-set" data-id="${id}" aria-pressed="${V.matOrders.pace === id}"><span class="preset-name"><i></i>${name}</span><span class="preset-line">${line}</span>${cardFig(runOf(id))}</button>`).join('')}</div>`;
-	const ordersRow = `${cards}<div class="order-rows">
+	// How to sail it. Every departure is loaded to the hold's limit --
+	// the game puts no more aboard at a wharf -- so there is no pace to
+	// choose: the orders are the rest.
+	const loadNote = `<p class="preset-note">${T('Each departure is loaded up to the hold’s limit, {n} LT: a wharf puts no more aboard. Only the exchanges can take the hold past it, and a material run’s make it lighter.', { n: F(Math.round(me.hold.free)) })}</p>`;
+	const ordersRow = `${loadNote}<div class="order-rows">
 		${orderRow('barter-mat-reach', T('sail for'), V.matOrders.reach, [['want', T('the wants, then home'), T('Home once every want is met')], ['all', T('every island I can trade with'), T('Every island dealing a material on the run, as many times as its gives allow')]])}
 		${orderRow('barter-mat-order', T('island order'), V.matOrders.order || 'short', [['short', T('shortest way'), T('The islands in the order that makes the shortest way')], ['rich', T('best payers first'), T('The islands that pay the most first, whatever the way round: a run cut short has had the best of the day')], ['tiers', T('best payers, and the middling ones near them'), T('The islands that pay the most, with the middling ones close to them on the way; then the other middling ones; then the poorest')]], T('The order the run takes the islands in'))}
 		${orderRow('barter-vouchers', T('trade vouchers'), ordersNow().vouchers, VOUCHER_CHOICES, T('Whether the run draws on the Crow’s Trade Vouchers you carry; each is a quarter of a bar, on its own two-hour cooldown'))}
@@ -480,9 +468,8 @@ export function materialParts(me, data) {
 	</section>` : '';
 	// A ship already heavier than the pace allows, and no harbour to leave
 	// the rest at: the run cannot lighten it, so it says how to.
-	const paceLimit = V.matOrders.pace === 'fast' ? me.hold.free : me.hold.deal;
-	const heavyStart = !from && plan.weightStart > paceLimit + 1e-6
-		? `<div class="barter-shut hold-over"><b>${T('The ship leaves heavier than this pace allows')}</b> — ${T('{n} LT of goods aboard. Choose your home port under Before you sail, and what this run does not use is put in its storage before casting off.', { n: F(Math.round(plan.weightStart)) })}</div>`
+	const heavyStart = !from && plan.weightStart > me.hold.free + 1e-6
+		? `<div class="barter-shut hold-over"><b>${T('The ship leaves heavier than its limit')}</b> — ${T('{n} LT of goods aboard. Choose your home port under Before you sail, and what this run does not use is put in its storage before casting off.', { n: F(Math.round(plan.weightStart)) })}</div>`
 		: '';
 	// What comes home: the materials the run brings, one tile a kind.
 	const after = plan.stops.length ? afterShelfHTML({ kept: mats.map(m => ({ item: m.it, n: plan.got.get(m.it).min, stock: 0 })).filter(x => x.n > 0), stashed: [], silver: 0, coins: 0 }, from) : '';
@@ -495,7 +482,7 @@ export function materialParts(me, data) {
 	// Gives held that the run could not take aboard: on a fast run, the
 	// full pace would go back for them; on a full run, one island asks
 	// more than the hold barters under.
-	const ashore = plan.noRoom.length ? `<section class="panel run-list amber mat-goods"><div class="panel-head"><h2 class="panel-title">${T('Stays ashore')}</h2><span class="panel-sub">${V.matOrders.pace === 'fast' ? T('held, but more than the hold carries under the limit, even alone') : T('held, but more than the hold barters under, even alone')}</span>${V.matOrders.pace === 'fast' ? `<span class="panel-spacer"></span><button class="chip tiny primary" data-act="barter-mat-pace-set" data-id="full" title="${T('Load up to the barter ceiling')}">${T('sail loaded')} →</button>` : ''}</div>
+	const ashore = plan.noRoom.length ? `<section class="panel run-list amber mat-goods"><div class="panel-head"><h2 class="panel-title">${T('Stays ashore')}</h2><span class="panel-sub">${T('held, but more than the hold carries under the limit, even alone')}</span></div>
 		${plan.noRoom.map(m => good(m.give, m.n, `${T('for {isles}', { isles: esc(m.islands.map(n => isleShort(n)).join(', ')) })} · ${T('{n} LT', { n: F(Math.round(m.n * weightOf(m.give))) })}`)).join('')}
 	</section>` : '';
 	// The stops as one timeline, since the order runs across the
@@ -527,7 +514,7 @@ export function materialParts(me, data) {
 		secs: [
 			['parley', T('Before you sail'), esc(parleyLine(barterProfile())), parleyHTML(barterProfile())],
 			['ladder', T('The materials wanted'), esc(matsSaid), `${listPanel}<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="how">${T('OK, that’s the goal')} ›</button></div>`],
-			['how', T('How to sail it'), esc([V.matOrders.pace === 'fast' ? T('light and fast') : T('loaded'), V.matOrders.reach === 'all' ? T('every island I can trade with') : T('the wants, then home'), from ? T('from {port}', { port: gameName(from.name) }) : ''].filter(Boolean).join(' · ')), `${ordersRow}<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="chains">${T('OK, see what comes of it')} ›</button></div>`],
+			['how', T('How to sail it'), esc([V.matOrders.reach === 'all' ? T('every island I can trade with') : T('the wants, then home'), from ? T('from {port}', { port: gameName(from.name) }) : ''].filter(Boolean).join(' · ')), `${ordersRow}<div class="plan-next"><span class="panel-spacer"></span><button class="act" data-act="barter-sec" data-id="chains">${T('OK, see what comes of it')} ›</button></div>`],
 			['chains', T('What comes of it'), esc(comes), summary || `<p class="empty">${T('Nothing ticked. Open a material and tap each island showing it today — the run lays itself out here.')}</p>`]
 		],
 		load: `${heavyStart}${empty}${packing}${before}${missing}${ashore}${after}${questsPanels(qp, from)}${routeFold}`,

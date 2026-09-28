@@ -79,7 +79,7 @@ export const SAIL_PRESETS = [
 	},
 	{
 		id: 'full', label: TT('The whole board, loaded heavy'),
-		sub: TT('Every trade the board offers, with the hold filled past its limit — the ship sails slower, and stops at a wharf far less often.'),
+		sub: TT('Every trade the board offers: loaded at the wharf up to the limit, the exchanges then fill the hold past it — the ship sails slower, and stops at a wharf far less often.'),
 		orders: { pace: 'full', hours: 0, vouchers: 'use', buy: true, landFrom: 'buy', way: 'sea' }
 	},
 	{

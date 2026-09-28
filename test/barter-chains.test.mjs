@@ -828,3 +828,21 @@ test('a land cap holds the shore goods to what was bought before casting off, an
 	const first = pinned.stops.find(s => s.npcId === r0.npcId);
 	assert.ok(first.times * first.giveN <= bought, 'the first island takes only what was bought');
 });
+
+test('what a run loads at the wharf fills the hold to its limit and no further; only the exchanges take it past, to the barter ceiling', () => {
+	// A chain whose first island wants more weight than the limit: on a
+	// loaded run the game still puts no more aboard at the wharf than the
+	// limit holds, whatever the ceiling the exchanges may then climb to.
+	const start = ports.find(p => p.name === 'Velia');
+	const ladder = chains(data).find(x => x.rungs.some(r => levelOf(r.give) >= 3));
+	const good = ladder.rungs.find(r => levelOf(r.give) >= 3).give;
+	const dock = { [good]: 500 };
+	const c = chains(data, {}, dock).find(x => x.from === 'dock' && x.item === good);
+	assert.ok(c && c.rungs[0].tries * c.rungs[0].giveN * GOODS[levelOf(good)].weight > 5000, 'a first rung heavier than the limit below');
+	const small = { free: 5000, deal: 10000, max: 10000 };
+	const run = chainRun({ chosen: [c], dock, hold: small, parley, npcById, start, stashes, pace: 'full', orders: { ...PLAIN_ORDERS, pace: 'full' } });
+	assert.ok(run.trades > 0, 'the run still climbs, from what the limit let aboard');
+	assert.ok(run.weightStart <= small.free + 1e-6, `loaded to ${run.weightStart} against a limit of ${small.free}`);
+	assert.ok(run.stops.every(s => s.wharf || (s.weightAfter || 0) <= small.deal + 1e-6), 'and never past the ceiling after');
+	for (const s of run.stops.filter(x => x.wharf && x.loads && x.loads.length)) assert.ok(s.weightAfter <= small.free + 1e-6, `a call loads no further than the limit: ${s.weightAfter}`);
+});

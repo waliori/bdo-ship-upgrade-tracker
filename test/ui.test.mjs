@@ -23,7 +23,6 @@ for (const name of ['DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET', 'TURSO_DATABAS
 const { RELEASE } = await import('../js/about.js');
 // The hold's ceilings are the app's to state, not this file's to
 // remember -- see the material run test.
-const { BARTER_OVER } = await import('../js/ship.js');
 const { shipStats } = await import('../js/ship_stats.js');
 const app = (await import('../server.js')).default;
 const server = app.listen(0);
@@ -1994,7 +1993,7 @@ test('a material layout read: what the builds need is chosen, today’s islands 
 	await page.evaluate(async () => { const store = await import('/js/state.js'); store.setStockAt('[Level 7] Crystal Ball of Fortune', store.ABOARD, 40, 'aboard'); });
 	await wait(500);
 	await laidOut(page);
-	assert.match(await text(page, '.barter-screen'), /leaves heavier than this pace allows.*home port/i);
+	assert.match(await text(page, '.barter-screen'), /leaves heavier than its limit.*home port/i);
 	assert.deepEqual(errors, []);
 	await context.close();
 });
@@ -2668,7 +2667,7 @@ test('the packing list ticks both ways, and what a row says is what its button m
 /** A game name as the page prints it, for a regexp. */
 const gameNameOf = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-test('the material run: each island at its own Parley and within the bar, a loaded run goes back to the harbour when the hold cannot carry every give, a fast one in more trips under the limit', async () => {
+test('the material run: each island at its own Parley and within the bar, each departure loaded to the limit, and back to the harbour for the gives that did not fit', async () => {
 	const { page, context, errors } = await open('#barter');
 	await page.waitForSelector('.barter-screen', { timeout: 15000 }); await wait(600);
 	await page.evaluate(async () => {
@@ -2708,21 +2707,14 @@ test('the material run: each island at its own Parley and within the bar, a load
 	assert.equal(stops[0], 'Velia wharf', 'the first stop loads at the harbour');
 	assert.ok(stops.filter(x => x === 'Velia wharf').length >= 2, `back to Velia for the rest: ${stops.join(', ')}`);
 	assert.doesNotMatch(await text(page, '.barter-screen') || '', /Stays ashore/i, 'nothing stays ashore on a loaded run');
-	// The hold never over the barter ceiling, on any stop.
-	const DEAL = Math.round(shipStats['Epheria Caravel'].weight * BARTER_OVER);
-	let holds = await holdsNow();
-	assert.ok(holds.every(w => w <= DEAL), `${holds.join(', ')} against ${DEAL}`);
-	const loadedTrips = stops.filter(x => x === 'Velia wharf').length;
-	// Fast: every departure under the limit the ship still sails fast at,
-	// so as many trips as that takes.
-	await toPlan(page);
-	await page.evaluate(() => document.querySelector('[data-act="barter-mat-pace-set"][data-id="fast"]').click()); await wait(500);
-	await toLoad();
-	stops = await planned();
-	assert.ok(stops.filter(x => x === 'Velia wharf').length >= loadedTrips, `at least as many trips: ${stops.join(', ')}`);
-	holds = await holdsNow();
+	// Every departure loaded to the limit and no further: a wharf puts no
+	// more aboard, whatever the ceiling the exchanges may reach.
 	const FREE = shipStats['Epheria Caravel'].weight;
+	let holds = await holdsNow();
 	assert.ok(holds.every(w => w <= FREE), `${holds.join(', ')} against ${FREE}`);
+	assert.equal(await count(page, '[data-act="barter-mat-pace-set"]'), 0, 'no pace to choose');
+	await toPlan(page);
+	assert.match(await text(page, '.barter-screen'), /Each departure is loaded up to the hold’s limit/);
 	// Packed and laid again from the hold: each island at the game's own
 	// price for it, less the sailor's discounts, the run's Parley their
 	// sum, and never more than the bar and the vouchers pay for.
@@ -2746,9 +2738,6 @@ test('the material run: each island at its own Parley and within the bar, a load
 	assert.ok(stops.includes('Velia wharf'), `the next trips call at Velia: ${stops.join(', ')}`);
 	holds = await holdsNow();
 	assert.ok(holds.every(w => w <= FREE), `packed, still under the limit: ${holds.join(', ')}`);
-	await toPlan(page);
-	await page.evaluate(() => document.querySelector('[data-act="barter-mat-pace-set"][data-id="full"]').click()); await wait(500);
-	assert.ok(await page.$eval('.preset-card[data-act="barter-mat-pace-set"][data-id="full"]', el => el.classList.contains('on')), 'the loaded card is chosen');
 	assert.deepEqual(errors, []);
 	await context.close();
 });

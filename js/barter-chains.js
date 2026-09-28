@@ -670,7 +670,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	// Chain after chain, a run whose every good fits aboard at the start
 	// takes them all then: nothing waits at the harbour, and the ship does
 	// not go home between chains for goods it had room for all along.
-	const allAboard = way === 'chain' && weightHeld(heldMax) <= (pace === 'fast' ? hold.free : deal) + 1e-6;
+	const allAboard = way === 'chain' && weightHeld(heldMax) <= hold.free + 1e-6;
 	if (aside && trips.length > 1 && !allAboard) {
 		const later = new Map();
 		for (const [c, l] of loadOf) {
@@ -696,6 +696,24 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 				bagFor.set(lot, ls);
 				for (const l of ls) { const e = bagLoaded.find(x => x.item === l.item); if (e) e.n += l.n; else bagLoaded.push({ ...l }); }
 			} else pending.set(lot, ls);
+		}
+		for (let k = loaded0.length - 1; k >= 0; k--) if (loaded0[k].n <= 1e-9) loaded0.splice(k, 1);
+		weightStart = weightHeld(held0);
+	}
+	// What rides out of the harbour at the start is loaded at a wharf, and
+	// the game loads no cargo past the hold's limit -- only the exchanges
+	// carry it on to the barter ceiling. So the start's loads are held to
+	// the limit, the last loaded giving way first; what was aboard before
+	// them stays, however heavy.
+	{
+		const before = weightHeld(goodsHeld(stock));
+		let over = weightHeld(heldMax0) - Math.max(hold.free, before);
+		for (let k = loaded0.length - 1; k >= 0 && over > 1e-6; k--) {
+			const l = loaded0[k], each = weightOf(l.item);
+			if (!(each > 0)) continue;
+			const cut = Math.min(l.n, Math.ceil(over / each - 1e-9));
+			l.n -= cut; over -= cut * each;
+			for (const m of [held0, heldMax0]) { const left = (m.get(l.item) || 0) - cut; if (left > 1e-9) m.set(l.item, left); else m.delete(l.item); }
 		}
 		for (let k = loaded0.length - 1; k >= 0; k--) if (loaded0[k].n <= 1e-9) loaded0.splice(k, 1);
 		weightStart = weightHeld(held0);
@@ -866,9 +884,18 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			stop.dropped.push({ item: name, n });
 		}
 		// And what waits in this storage for the lot about to start.
+		// Loaded no further than the hold's limit: the game refuses cargo
+		// past it at a wharf, whatever the exchanges later carry it to.
 		if (loads.length) {
-			stop.loads = [...(stop.loads || []), ...loads.map(l => ({ item: l.item, n: l.n, lot: lotOf }))];
-			for (const l of loads) for (const m of [held, heldMax]) m.set(l.item, (m.get(l.item) || 0) + l.n);
+			const put = [];
+			for (const l of loads) {
+				const each = weightOf(l.item);
+				const n = each > 0 ? Math.min(l.n, Math.max(0, Math.floor((hold.free - weightHeld(heldMax)) / each + 1e-9))) : l.n;
+				if (n <= 1e-9) continue;
+				put.push({ item: l.item, n, lot: lotOf });
+				for (const m of [held, heldMax]) m.set(l.item, (m.get(l.item) || 0) + n);
+			}
+			if (put.length) stop.loads = [...(stop.loads || []), ...put];
 		}
 		// The bag: the goods to come out of it are taken out first, so the
 		// room they leave can take the goods going in, and then come
@@ -918,7 +945,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		// worth more an hour: goods aboard early can cost attempts on the
 		// way.
 		if (early && homeWharf && wharf.at === homeWharf.at) {
-			const limit = pace === 'fast' ? hold.free : deal;
+			const limit = hold.free;   // loaded at a wharf: no further than the limit
 			for (const [L, ls] of [...pending].sort((a, b) => a[0] - b[0])) {
 				if (L <= lotNow || earlyLoaded.has(L)) continue;
 				const w = ls.reduce((a, l) => a + l.n * weightOf(l.item), 0);
@@ -992,7 +1019,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 	const fromHold = [];
 	let startW = weightStart;
 	if (room && rungs.length) {
-		const over = weightHeld(heldMax) - (pace === 'fast' ? hold.free : deal);
+		const over = weightHeld(heldMax) - hold.free;
 		const park = over > 1e-6 ? parkable(0, rungs[0].chain, heldMax, new Set([rungs[0].r.give]), over) : [];
 		for (const [name, n] of park) {
 			const least = Math.min(n, held.get(name) || 0);
@@ -1031,7 +1058,7 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 			const waiting = earlyLoaded.has(lot) ? [] : pending.get(lot) || [];
 			// The lot's goods out of the bag, at the call that begins it.
 			const fromBag = i > 0 ? (bagFor.get(lot) || []).map(l => [l.item, l.n]).filter(([name]) => (baggedMax.get(name) || 0) > 1e-9) : [];
-			const outOfBag = fromBag.length ? { fetch: fromBag, lim: pace === 'fast' ? hold.free : deal } : null;
+			const outOfBag = fromBag.length ? { fetch: fromBag, lim: hold.free } : null;
 			const sale = stashes.length ? saleAt(i) : [];
 			if (i > 0 && waiting.length) call(homeWharf, [], chain, sale, waiting, lot, outOfBag);
 			else if (outOfBag) {
@@ -1044,7 +1071,8 @@ function chainRunOnce({ chosen: picked = [], stock = {}, dock = {}, hold, parley
 		// the leg least -- the goods another chain takes later going in to
 		// make room for it, as far as that takes. A fast run too: the bag
 		// is a way of sailing that calls at a wharf, and the sailor chose it.
-		const lim = pace === 'fast' ? hold.free : deal;
+		// Out of the bag at a wharf is loading: no further than the limit.
+		const lim = hold.free;
 		if (room && !ashore && (baggedMax.get(r.give) || 0) > 1e-9) {
 			const short = cap.get(r) * r.giveN - (held.get(r.give) || 0);
 			if (short > 1e-9) {

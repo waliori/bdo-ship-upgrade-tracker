@@ -626,7 +626,7 @@ export function orderRow(act, label, value, options, title = '') {
 	return `<div class="order-row"${title ? ` title="${esc(title)}"` : ''}><span class="order-k">${label}</span><div class="order-v">${pick}${chosen && chosen[2] ? `<span class="run-pick-sub">${esc(said(chosen[2]))}</span>` : ''}</div></div>`;
 }
 
-const PACE_CHOICES = () => [['fast', T('fast'), T('No wharf calls, never slower than full speed: only what the hold carries under the limit')], ['steady', T('full, never slower'), T('Every attempt, the hold kept under the limit by calling at a wharf to leave the surplus — more calls, full speed')], ['full', T('full, loaded'), T('Every attempt, the hold taken up to the barter ceiling — a quarter over the limit, sailing slower — and a wharf call only where the next island would not deal')]];
+const PACE_CHOICES = () => [['fast', T('fast'), T('No wharf calls, never slower than full speed: only what the hold carries under the limit')], ['steady', T('full, never slower'), T('Every attempt, the hold kept under the limit by calling at a wharf to leave the surplus — more calls, full speed')], ['full', T('full, loaded'), T('Every attempt: loaded at the wharf up to the limit, then the exchanges take the hold on to the barter ceiling, 170% of it, sailing slower — and a wharf call only where the next island would not deal')]];
 const labelOf = (options, value) => { const hit = options.find(([v]) => String(v) === String(value)) || options[0]; return said(hit[1]); };
 
 /** The card that is chosen: none once "my own way" was pressed, else

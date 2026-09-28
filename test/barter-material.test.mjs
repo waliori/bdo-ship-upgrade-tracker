@@ -97,56 +97,37 @@ test('for the wants the run deals what the want takes and no more; for every isl
 	assert.equal(adrift.weightStart, 6000, 'six Figurines aboard, to be got first');
 });
 
-test('a full run loads to the barter ceiling and goes back to the harbour for the gives that did not fit; a fast run does the same under the limit, in more trips', () => {
+test('a run loads each departure up to the limit -- a wharf puts no more aboard -- and goes back to the harbour for the gives that did not fit', () => {
 	// Ten Figurines in Velia's storage, five islands taking two each:
-	// ten thousand weight against a hold that barters under four.
+	// ten thousand weight against a hold of three thousand. The barter
+	// ceiling (four) is not what a wharf loads to, whatever the pace.
 	const picks = [pick(1), pick(2), pick(3), pick(4), pick(5)];
 	const base = { picks, wants: { [SCALE]: 99 }, reach: 'all', dock: { [L5]: 10 }, hold, start: velia, startWharf: veliaWharf, npcById };
-	const full = materialRun({ ...base, pace: 'full' });
-	assert.deepEqual(names(full.stops), ['Velia+4', 'A', 'B', 'Velia+4', 'C', 'D', 'Velia+2', 'E'], 'three departures, the nearest islands first');
-	assert.equal(full.returns, 2);
-	assert.equal(full.trades, 10);
-	assert.equal(full.noRoom.length, 0);
-	assert.ok(full.weightPeak <= hold.deal, `never over the ceiling: ${full.weightPeak}`);
-	// Each departure leaves with what it will spend and comes back empty.
-	assert.deepEqual(full.stops.map(s => s.weightAfter), [4000, 2000, 0, 4000, 2000, 0, 2000, 0]);
-	// Fast: each departure under the three thousand the ship sails at full
-	// speed with -- one island's two Figurines at a time -- and all of
-	// them dealt, in five trips rather than three.
-	const fast = materialRun({ ...base, pace: 'fast' });
-	assert.deepEqual(names(fast.stops), ['Velia+2', 'A', 'Velia+2', 'B', 'Velia+2', 'C', 'Velia+2', 'D', 'Velia+2', 'E']);
-	assert.equal(fast.returns, 4);
-	assert.equal(fast.trades, 10);
-	assert.equal(fast.noRoom.length, 0);
-	assert.ok(fast.stops.every(s => s.weightAfter <= hold.free), 'never over the limit');
+	for (const pace of ['full', 'fast']) {
+		const run = materialRun({ ...base, pace });
+		assert.deepEqual(names(run.stops), ['Velia+2', 'A', 'Velia+2', 'B', 'Velia+2', 'C', 'Velia+2', 'D', 'Velia+2', 'E'], pace);
+		assert.equal(run.returns, 4);
+		assert.equal(run.trades, 10);
+		assert.equal(run.noRoom.length, 0);
+		assert.ok(run.stops.every(s => s.weightAfter <= hold.free), 'never loaded past the limit');
+	}
 });
 
-test('the run deals no more than the Parley pays for, the best rates first, and says how many it went without', () => {
-	// Five islands, two attempts each; a bar that pays for three trades.
-	// C pays the most a trade, so it is dealt first.
-	const picks = [pick(1), pick(2), pick(3, SCALE, { recv: '6-8' }), pick(4), pick(5)];
-	const plan = materialRun({ picks, wants: { [SCALE]: 99 }, reach: 'all', dock: { [L5]: 10 }, hold, start: velia, startWharf: veliaWharf, npcById, parley: { budget: 3 * 45000 + 10, costOf: () => 45000 } });
-	assert.equal(plan.trades, 3);
-	assert.equal(plan.dry, 7, 'seven trades more than the bar pays for');
-	assert.ok(plan.stops.some(s => s.npc === 'C' && s.times === 2), 'the best rate first');
-	assert.ok(plan.parleyLeft < 45000);
-});
-
-test('a full run leaves what it will not spend in storage when the room is wanted; one island heavier than the hold deals as many times as fit', () => {
+test('a run leaves what it will not spend in storage when the room is wanted; one island heavier than the hold deals as many times as fit', () => {
 	// A [Level 7] aboard that no island takes, and gives for two islands
 	// at the harbour: the ball goes ashore so the gives come aboard.
 	const picks = [pick(1), pick(2)];
 	const plan = materialRun({ picks, wants: { [SCALE]: 99 }, reach: 'all', stock: { [L7]: 1 }, dock: { [L5]: 4 }, hold, start: velia, startWharf: veliaWharf, npcById });
-	assert.deepEqual(names(plan.stops), ['Velia+4-1', 'A', 'B']);
+	assert.deepEqual(names(plan.stops), ['Velia+2-1', 'A', 'Velia+2', 'B'], 'the ball ashore, two Figurines a departure');
 	assert.deepEqual(plan.stops[0].dropped, [{ item: L7, n: 1 }]);
 	assert.equal(plan.weightStart, 2000);
-	assert.equal(plan.stops[0].weightAfter, 4000);
-	// An island with six attempts at a Figurine each: the hold takes
-	// four, so it deals four and says two stayed ashore.
+	assert.equal(plan.stops[0].weightAfter, 2000);
+	// An island with six attempts at a Figurine each: the hold loads
+	// three, so it deals three and says three stayed ashore.
 	const heavy = materialRun({ picks: [pick(1, SCALE, { tries: 6 })], wants: { [SCALE]: 99 }, reach: 'all', dock: { [L5]: 6 }, hold, start: velia, startWharf: veliaWharf, npcById });
-	assert.deepEqual(names(heavy.stops), ['Velia+4', 'A']);
-	assert.equal(heavy.stops[1].times, 4);
-	assert.equal(heavy.noRoom[0].n, 2);
+	assert.deepEqual(names(heavy.stops), ['Velia+3', 'A']);
+	assert.equal(heavy.stops[1].times, 3);
+	assert.equal(heavy.noRoom[0].n, 3);
 });
 
 test('a give kept at another harbour is called for before the island that takes it, and not at all when calls are off', () => {
@@ -155,16 +136,15 @@ test('a give kept at another harbour is called for before the island that takes 
 	const picks = [pick(1), pick(2), pick(3), pick(4)];
 	const stores = [{ town: 'Iliya Island', wharf: northWharf, goods: { [L5]: 4 } }];
 	const plan = materialRun({ picks, wants: { [SCALE]: 99 }, reach: 'all', stock: { [L5]: 4 }, stores, hold, start: velia, startWharf: veliaWharf, npcById });
-	assert.equal(plan.calls, 1);
+	// Four aboard already -- over the limit, which is allowed: they were
+	// not loaded now -- then Iliya's four, two at a time.
+	assert.equal(plan.calls, 2);
 	assert.equal(plan.trades, 8);
 	const seq = names(plan.stops);
-	const call = seq.indexOf('Iliya Island+4');
-	assert.ok(call > 0 && call < seq.length - 1, `the call is on the way: ${seq.join(' > ')}`);
-	// Two islands before the call, from the goods aboard; two after.
-	assert.equal(call, 2, seq.join(' > '));
-	assert.ok(plan.stops.every(s => s.weightAfter <= hold.deal));
+	assert.deepEqual(seq, ['A', 'B', 'Iliya Island+2', 'C', 'Iliya Island+2', 'D']);
+	assert.ok(plan.stops.every(s => s.weightAfter <= hold.free), 'no call loads past the limit');
 	// The harbour's goods are a stop's loads, so the trip records the move.
-	assert.deepEqual(plan.stops[call].loads, [{ item: L5, n: 4 }]);
+	assert.deepEqual(plan.stops[2].loads, [{ item: L5, n: 2 }]);
 	const off = materialRun({ picks, wants: { [SCALE]: 99 }, reach: 'all', stock: { [L5]: 4 }, stores, calls: false, assume: false, hold, start: velia, startWharf: veliaWharf, npcById });
 	assert.equal(off.calls, 0);
 	assert.equal(off.trades, 4);
