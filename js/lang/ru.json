@@ -3570,6 +3570,7 @@
 	"Traded another number of times? Type how many:": "Обменялись другое число раз? Введите сколько:",
 	"Traded at {place}: the hold": "Обмен в {place}: трюм",
 	"Traded here": "Обменено здесь",
+	"Traded out today": "Исчерпаны сегодня",
 	"Traded · paid {n}": "Обменял · заплатил {n}",
 	"Traded ×{n}": "Обменял ×{n}",
 	"Trades": "Обмены",
@@ -5482,6 +5483,7 @@
 	"trade this": "обменять это",
 	"trade vouchers": "торговые гарантии",
 	"traded another number of times?": "обменялись другое число раз?",
+	"traded today": "обменено сегодня",
 	"turn": "поворот",
 	"turn +{n}%": "поворот +{n}%",
 	"turn <b>{n}%</b>": "поворот <b>{n}%</b>",
@@ -7402,6 +7404,7 @@
 		"one": "{n} обмен там",
 		"other": "{n} обменов там"
 	},
+	"{n} traded out today": "исчерпано сегодня: {n}",
 	"{n} trades": {
 		"few": "{n} обмена",
 		"many": "{n} обменов",

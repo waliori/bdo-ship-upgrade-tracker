@@ -131,6 +131,9 @@ export function restore() {
 			// every material ticked.
 			V.matBoard.on = Array.isArray(s.matBoard.on) ? s.matBoard.on.filter(m => typeof m === 'string') : [];
 			V.matBoard.off = Array.isArray(s.matBoard.off) ? s.matBoard.off.filter(m => typeof m === 'string') : [];
+			// The attempts each island dealt on the runs recorded on this list.
+			if (s.matBoard.used && typeof s.matBoard.used === 'object') V.matBoard.used = Object.fromEntries(Object.entries(s.matBoard.used).map(([k, v]) => [k, Math.max(0, Math.round(Number(v) || 0))]).filter(([k, v]) => npcById.has(Number(k)) && v > 0));
+			else delete V.matBoard.used;   // kept before attempts were: read back from today's runs
 		}
 		if (s.board && Array.isArray(s.board.answers)) {
 			V.board = {

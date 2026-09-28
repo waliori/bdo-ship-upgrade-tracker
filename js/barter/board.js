@@ -350,7 +350,8 @@ export function noteUsed(plan, on) {
 		const t = ticked(on.done, s, k, plan.stops);
 		if (t) done++;
 		if (!s.npcId) return;
-		if (t) used[s.npcId] = (used[s.npcId] || 0) + (Number(s.times) || 0);
+		// A ship material is the material list's, kept on it (noteMatUsed).
+		if (t && (levelOf(s.item) !== null || s.item === COIN)) used[s.npcId] = (used[s.npcId] || 0) + (Number(s.times) || 0);
 		if (Number.isFinite(s.chain)) (isles[s.chain] = isles[s.chain] || []).push(s.npcId);
 	});
 	const last = done < plan.stops.length ? { at: Date.now(), ids: V.routes.ids.slice(0, 20), isles: isles.filter(Boolean).slice(0, 20), done, all: plan.stops.length, off: false } : null;

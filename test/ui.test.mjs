@@ -1982,6 +1982,18 @@ test('a material layout read: what the builds need is chosen, today’s islands 
 	}
 	// What comes home, one tile a material.
 	assert.ok(await page.$('.run-shelves.after'), 'the storage after');
+	// A run recorded on today's list has used its islands' attempts: the
+	// next one does not send the ship back to them.
+	await page.evaluate(async () => {
+		const { V } = await import('/js/barter/state.js'); const { noteMatUsed } = await import('/js/barter/material.js'); const { stopKey } = await import('/js/barter/sail.js'); const ui = await import('/js/ui.js');
+		const plan = V.shownPlan;
+		noteMatUsed(plan, { done: plan.stops.map((x, k) => stopKey(x, k, plan.stops)) });
+		ui.render();
+	}); await wait(500);
+	assert.ok(!(await route()).includes(pick.held.npcId), 'an island traded out today is not sailed to again');
+	await toPlan(page);
+	assert.match((await need('.mat-need-text small')).join(' '), /traded out today/);
+	await page.evaluate(async () => { const { V } = await import('/js/barter/state.js'); V.matBoard.used = {}; (await import('/js/ui.js')).render(); }); await wait(400);
 	// Taken off the run, and back through the picker.
 	await toPlan(page);
 	await page.evaluate(m => document.querySelector(`.mat-need-head [data-act="barter-mat-drop"][data-item="${window.CSS.escape(m)}"]`).click(), pick.mat); await wait(400);

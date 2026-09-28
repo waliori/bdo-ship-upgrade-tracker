@@ -18,6 +18,7 @@ import { cheer } from '../cheer.js';
 import { V } from './state.js';
 import { stopTimer, passedStop } from '../sail-timer.js';
 import { boardNow, fromPort, itemNow, noteUsed } from './board.js';
+import { noteMatUsed } from './material.js';
 import { bringUp, stopAt, stopNames, cockpitHTML } from './cockpit.js';
 import { planSheetHTML, parleyOf, ordersNow } from './plan.js';
 import { storeOf, legsOf, skippedToday, questTitle, TIER, ledgerOf, runTime, sevenOf, chartData, chartFragmentOf } from './route.js';
@@ -952,6 +953,7 @@ export function recordTrip(plan, from, on = sailing()) {
 	const rest = holdDiff({ delta: trip.delta, moves: netMoves(trip.moves) }, on.applied || NO_HOLD);
 	const applied = on.applied || null;
 	noteUsed(plan, on);
+	noteMatUsed(plan, on);
 	const entry = store.applyTrip({ delta: rest.delta, moves: rest.moves, at: intoHold, profile: { runs, ratios, sevens, tally, ...counted, ...spentOf, questProgress: Object.keys(progress).length ? progress : null, questsDone: Object.keys(questsDone).length ? questsDone : null }, label: `${on.done.length === 1 ? T('Sailed a run: {n} stop', { n: on.done.length }) : T('Sailed a run: {n} stops', { n: on.done.length })}${trip.silver ? `, ${T('{silver} sold', { silver: FC(trip.silver) })}` : ''}` });
 	V.sail = null;
 	// What it came to, for the results step to show until the next run is

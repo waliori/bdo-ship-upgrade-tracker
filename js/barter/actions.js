@@ -233,7 +233,7 @@ export function barterAction(act, el, redraw) {
 			return true;
 		}
 		case 'barter-mat-clear':
-			V.matBoard = { day: barterKey(), answers: [], on: matBoardNow().on };
+			V.matBoard = { day: barterKey(), answers: [], on: matBoardNow().on, used: {} };
 			// A refresh in game fills the Parley bar again; clearing the
 			// day's list by hand says nothing about the bar.
 			if (!el.dataset.keepParley) parleyRefilled();
