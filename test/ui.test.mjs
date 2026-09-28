@@ -2219,6 +2219,12 @@ test('the running clock draws the sailor’s own ship crossing the leg', async (
 	await page.waitForFunction(n => import('/js/sail-scene.js').then(m => { const x = m.sceneNow(); return x && x.leg > n && x.mode === 'run'; }), { timeout: 10000, polling: 100 }, leg0);
 	const next = await page.evaluate(async () => (await import('/js/sail-scene.js')).sceneNow());
 	assert.ok(next.px < 0.05, `the next leg starts at its start: ${next.px}`);
+	// The tab drew itself again on the press; the sea is still drawn on the
+	// canvas that is on the page, at its full size -- not on a stray one,
+	// and not on a blank one left at the browser's 300 pixels.
+	assert.equal(next.drawnOn, true, 'drawn on the canvas on the page');
+	const box = await page.$eval('canvas[data-sail-scene]', el => el.clientWidth);
+	assert.ok(next.backing >= box, `the canvas is sized to its box: ${next.backing} for ${box}`);
 	// ...having sailed there: the view travelled on a leg, the pier behind.
 	assert.ok(next.camX > 0, `the view moved on with the ship: ${next.camX}`);
 	assert.deepEqual(errors, []);

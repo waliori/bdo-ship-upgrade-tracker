@@ -269,7 +269,9 @@ const menuOpen = () => {
 // What the badges said at the last render, for the sheet.
 let lastCounts = {};
 
+let stale = false;
 export function render() {
+	stale = false;
 	recompute();
 	// The page says which section it is on, so a stylesheet can make
 	// room where one section needs it -- the chart on a short screen.
@@ -2561,9 +2563,17 @@ export async function init() {
 	wireSaveHealth();
 	// A quiet write that is the Map's own -- its view, a moment after a
 	// stroke -- is not a reason to redraw the Map over the pen.
+	// One press writes several things -- a stop ticked, the hold, the
+	// clock, the profile -- and each write used to draw the whole page
+	// again on the spot: four redraws for one Traded, each a stall under
+	// the sailing clock's ship. Now a write marks the page stale and one
+	// redraw follows once the press is done with, unless the press drew
+	// the page itself after its writes.
 	store.subscribe((_, reason) => {
 		if (reason === 'profile-quiet' && mapWritingView()) return;
-		render();
+		if (stale) return;
+		stale = true;
+		Promise.resolve().then(() => { if (stale) render(); });
 	});
 	render();
 	// The minute hand on every countdown, a repaint when a reset passes

@@ -443,7 +443,7 @@ const dpr = () => Math.min(1.5, (typeof window !== 'undefined' && window.deviceP
 function size() {
 	// Measured when the box changed, not every frame: reading a size
 	// makes the browser lay the page out there and then.
-	if (!sized && s.W && s.H) return true;
+	if (!sized && s.W && s.H && canvas.width) return true;
 	sized = false;
 	const d = dpr();
 	const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -460,9 +460,40 @@ function size() {
 	return true;
 }
 
+/**
+ * The canvas on the page now. The tab draws itself again whole, and puts
+ * a blank canvas where the clock is: the live one goes back in its place
+ * -- pixels, context and all -- so a press never blanks the sea or
+ * leaves it drawing on a canvas nobody has sized. Null when the page has
+ * no clock to draw.
+ */
+function adopt() {
+	const el = document.querySelector('canvas[data-sail-scene]');
+	if (!el) return null;
+	if (el === canvas) return canvas;
+	if (canvas && !canvas.isConnected && canvas.width) {
+		const src = el.dataset.ship || '';
+		el.replaceWith(canvas);
+		canvas.dataset.ship = src;
+		if (src !== imgSrc) { imgSrc = src; img = new Image(); img.src = src; if (s) s.sprite = null; }
+	} else {
+		canvas = el;
+		palette = colours(); grads = null;
+		const src = el.dataset.ship || '';
+		if (src !== imgSrc) { imgSrc = src; img = new Image(); img.src = src; if (s) s.sprite = null; }
+	}
+	sized = true;
+	if (typeof window !== 'undefined' && typeof window.ResizeObserver === 'function') {
+		if (seen) seen.disconnect();
+		seen = new window.ResizeObserver(() => { sized = true; });
+		seen.observe(canvas);
+	}
+	return canvas;
+}
+
 function frame(now) {
 	raf = 0;
-	if (!canvas || !canvas.isConnected) { canvas = document.querySelector('canvas[data-sail-scene]'); if (!canvas) return; }
+	if (!canvas || !canvas.isConnected) { if (!adopt()) return; }
 	// Thirty frames a second is plenty for a ship just sailing; a rush, a
 	// splash or a voyage gets every frame, or the ship jumps.
 	const busy = s && (s.mode !== 'run' || s.drops.length || s.foam.length || s.sparks.length || s.rings.length);
@@ -488,33 +519,10 @@ function frame(now) {
  */
 export function mountScene() {
 	if (typeof document === 'undefined') return;
-	const el = document.querySelector('canvas[data-sail-scene]');
-	if (!el) { canvas = null; return; }
-	if (el === canvas && raf) return;
-	// The tab drew itself again and put a blank canvas where the clock is:
-	// the live one goes back in its place, pixels, context and all, so a
-	// press never blanks the sea or starts it over.
-	if (canvas && !canvas.isConnected && canvas.width) {
-		const src = el.dataset.ship || '';
-		el.replaceWith(canvas);
-		canvas.dataset.ship = src;
-		if (src !== imgSrc) { imgSrc = src; img = new Image(); img.src = src; if (s) s.sprite = null; }
-		sized = true;
-		if (!raf) { last = 0; raf = requestAnimationFrame(frame); }
-		return;
-	}
-	canvas = el;
-	palette = colours(); grads = null; sized = true;
-	if (typeof window !== 'undefined' && typeof window.ResizeObserver === 'function') {
-		if (seen) seen.disconnect();
-		seen = new window.ResizeObserver(() => { sized = true; });
-		seen.observe(el);
-	}
-	const src = el.dataset.ship || '';
-	if (src !== imgSrc) { imgSrc = src; img = new Image(); img.src = src; if (s) s.sprite = null; }
+	if (!adopt()) { canvas = null; return; }
 	if (!raf) { last = 0; raf = requestAnimationFrame(frame); }
 }
 
 /** Where the ship is, for a test: how far along the leg, which leg, what
  *  it is doing, and where the view is. Null when nothing is drawn. */
-export const sceneNow = () => (s ? { px: s.px, leg: s.leg, mode: s.mode, camX: s.camX, x: s.W && s.leg >= 0 ? geo().cx : null } : null);
+export const sceneNow = () => (s ? { px: s.px, leg: s.leg, mode: s.mode, camX: s.camX, x: s.W && s.leg >= 0 ? geo().cx : null, drawnOn: canvas && canvas.isConnected && canvas === document.querySelector('canvas[data-sail-scene]'), backing: canvas ? canvas.width : 0 } : null);
