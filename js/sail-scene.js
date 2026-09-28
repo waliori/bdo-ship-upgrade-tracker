@@ -129,6 +129,10 @@ function legOf(t) {
 	return { leg: i, p, there, count: t.marks.length };
 }
 
+/** How far along its leg the clock has the ship, for the cast-off's
+ *  close-up: it sails by the same clock, so the hand-over does not move it. */
+export const legNow = (t = timerState()) => legOf(t);
+
 /* ------------------------------------------------------------------ *
  * the strip: one long sea, a pier at the end of every leg
  * ------------------------------------------------------------------ */

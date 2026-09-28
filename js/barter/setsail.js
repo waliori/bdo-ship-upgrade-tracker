@@ -22,7 +22,7 @@ import { currentShip } from '../ship.js';
 import { timerState, spanText } from '../sail-timer.js';
 import { stopNames } from './cockpit.js';
 import { sailedPlan } from './sail.js';
-import { shipSprite, foamSprite } from '../sail-scene.js';
+import { shipSprite, foamSprite, legNow } from '../sail-scene.js';
 
 const FLOAT = 2.4;          // seconds afloat in close-up, the title up
 const MORPH = 3.4;          // seconds for the camera to pull back
@@ -93,6 +93,16 @@ export function castOffFx() {
 	let W = start.width, H = start.height;
 	const ship = { y: yb + ((-H0 * 0.9 + sw1 * Z0 * 0.9) - H0 * 0.7) / Z0, vy: 0, rot: -0.05, vr: 0 };
 
+	// The clock started at the press, so by the time the camera has pulled
+	// back the ship is some way along the leg: it sails there by the clock
+	// all through the close-up, and the strip takes it over where it is.
+	let cx = x0w, readAt = -1, clock = null;
+	const along = () => {
+		if (t - readAt >= 0.2) { clock = timerState(); readAt = t; }
+		const l = legNow(clock);
+		const p = !l || l.leg > 0 ? 0 : l.there ? 1 : l.p;
+		cx = x0w + p * (pierX - sw1 * 0.42 - x0w);
+	};
 	const colX = i => -pad + (i / (N - 1)) * (Wf + pad);
 	const idx = x => Math.max(0, Math.min(N - 1, Math.round(((x + pad) / (Wf + pad)) * (N - 1))));
 	const ambient = (x, tt) => Math.sin(x * 0.02 + tt * 1.1) * 1.1 + Math.sin(x * 0.045 - tt * 1.6) * 0.6 + Math.sin(x * 0.008 + tt * 0.5) * 0.9;
@@ -100,8 +110,8 @@ export function castOffFx() {
 	const surfAt = x => { const f = ((Math.max(-pad, Math.min(Wf, x)) + pad) / (Wf + pad)) * (N - 1), i = Math.max(0, Math.min(N - 2, Math.floor(f))), r = f - i; return surf(i) * (1 - r) + surf(i + 1) * r; };
 	const cam = () => {
 		const ez = ease(Math.min(1, u / 0.62));
-		const Z = Math.pow(Z0, 1 - ez), fxs = lerp(fx0, x0w, ez), fys = H * lerp(0.7, 0.66, e);
-		return { Z, tx: fxs - x0w * Z, ty: fys - yb * Z };
+		const Z = Math.pow(Z0, 1 - ez), fxs = lerp(fx0, cx, ez), fys = H * lerp(0.7, 0.66, e);
+		return { Z, tx: fxs - cx * Z, ty: fys - yb * Z };
 	};
 	const sim = () => {
 		const L = new Float32Array(N), R = new Float32Array(N);
@@ -123,7 +133,8 @@ export function castOffFx() {
 
 	const step = dt => {
 		t += dt;
-		const cx = x0w, sw = sw1, Z = cam().Z;
+		along();
+		const sw = sw1, Z = cam().Z;
 		if (mode === 'fall') {
 			ship.vy += gShip * dt; ship.y += ship.vy * dt; ship.rot += ship.vr * dt;
 			if (ship.y >= surfAt(cx)) {
@@ -191,7 +202,7 @@ export function castOffFx() {
 
 	const draw = () => {
 		const ctx = cv.getContext('2d'), d = window.devicePixelRatio || 1, { Z, tx, ty } = cam();
-		const cx = x0w, sw = sw1, sh = sh1;
+		const sw = sw1, sh = sh1;
 		ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
 		ctx.setTransform(d * Z, 0, 0, d * Z, d * tx, d * ty);
 		const vx0 = -tx / Z, vx1 = (W - tx) / Z, vy0 = -ty / Z, vy1 = (H - ty) / Z, lw = 1 / Z;
